@@ -135,7 +135,7 @@ test("a reopen with no finding or no triage names both writes", () => {
   ]);
   assert.match(bare.missing[0].command, /^forge record finding ISS-3 --expected/u);
   assert.match(bare.missing[1].command, /^forge record triage ISS-3 --outcome not-met --would-have-caught/u);
-  assert.equal(bare.next, "released", "and it says where the issue is bound while it waits");
+  assert.equal(bare.next, "awaiting_release", "and it says where the issue is bound while it waits");
   const found = targetOf(reopened(null), "ISS-3");
   assert.equal(found.missing.length, 1, "the finding on its own routes nothing");
   assert.match(found.missing[0].what, /^no triage/u);
@@ -169,7 +169,7 @@ test("not-in-spec parks the issue behind the edge that gates it", () => {
   const blocked = targetOf(edged({ otherDisplayId: "ISS-9", otherStatus: "open", kind: "blocks", gatesDispatch: true }), "ISS-3");
   assert.deepEqual(blocked.missing, [], "and nothing else is owed: this issue's own judging was not at fault");
   assert.deepEqual(blocked.park, {
-    kind: "blocked", left: "released",
+    kind: "blocked", left: "awaiting_release",
     why: "the triage rules the expectation not in the specification: a clause that never promised it",
   });
   const satisfied = targetOf(edged({ otherDisplayId: "ISS-9", otherStatus: "closed", kind: "blocks", gatesDispatch: false }), "ISS-3");

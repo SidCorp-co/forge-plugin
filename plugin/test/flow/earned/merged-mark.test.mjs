@@ -9,7 +9,7 @@ import { tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("merged-mark").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
-const { CHECKS, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { CHECKS, judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { sameCommit } = await import("../../../src/tracker/evidence.mjs");
 const { judgedHead, landingMoved, landingWrote, markedCommit } = await import("../../../src/flow/record/merged.mjs");
 const { partFor, partsOf, readContract } = await import("../../../src/guides/contract.mjs");
@@ -27,6 +27,9 @@ const ATTACHED = [{ name: "run.txt" }];
 const view = (issue, comments = []) => viewFrom("the-uuid", issue, comments);
 const missing = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item.what);
 const commands = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item.command);
+/* The mark is read by the judging half of the one rung after `developed`, so that half is what these ask: the deploying half's own items would answer here for nothing this file is about (ISS-1022). */
+const judging = (one) => judgedOwed(one, "ISS-3").map((item) => item.what);
+const judgingAsks = (one) => judgedOwed(one, "ISS-3").map((item) => item.command);
 
 test("a seven-digit commit and the same forty-digit commit are one commit", () => {
   const full = "c8c3550c1b7e1a3f4d5e6f708192a3b4c5d6e7f8";
@@ -77,23 +80,23 @@ test("tested needs one verdict per criterion, passing, at the merged commit", ()
   const landed = mark("merged to master at c8c3550");
   const verdict = (number, kind, commit = "c8c3550", extra = {}) =>
     recorded("verdict", { criterion: `${number} — text`, verdict: kind, commit, evidence: ["run.txt"], ...extra });
-  assert.deepEqual(missing("tested", view({ mergedAt: issue.mergedAt }, [landed])),
+  assert.deepEqual(judging(view({ mergedAt: issue.mergedAt }, [landed])),
     ["the criteria field holds no numbered line, so there is nothing to judge"]);
   const one = view(issue, [landed, verdict(1, "pass")]);
-  assert.deepEqual(missing("tested", one), ["criterion 2 has no verdict"]);
-  assert.match(commands("tested", one)[0], /--criterion 2 --verdict pass --commit c8c3550/u);
-  assert.deepEqual(missing("tested", view(issue, [landed, verdict(1, "pass"), verdict(2, "pass")])), []);
+  assert.deepEqual(judging(one), ["criterion 2 has no verdict"]);
+  assert.match(judgingAsks(one)[0], /--criterion 2 --verdict pass --commit c8c3550/u);
+  assert.deepEqual(judging(view(issue, [landed, verdict(1, "pass"), verdict(2, "pass")])), []);
   const failed = verdict(1, "fail", "c8c3550", { why: "the column stayed empty" });
-  assert.deepEqual(missing("tested", view(issue, [landed, failed, verdict(2, "pass")])),
+  assert.deepEqual(judging(view(issue, [landed, failed, verdict(2, "pass")])),
     ["criterion 1 failed its verdict"]);
-  assert.deepEqual(missing("tested", view(issue, [landed, verdict(1, "fail"), verdict(2, "pass")])),
+  assert.deepEqual(judging(view(issue, [landed, verdict(1, "fail"), verdict(2, "pass")])),
     ["the verdict on criterion 1 lacks --why, naming what the criterion did instead: a `fail` is what another run acts on"],
     "a fail is what the next run acts on, so what the criterion did instead is asked for at the write");
-  assert.deepEqual(missing("tested", view(issue, [landed, verdict(1, "pass", "43b811e"), verdict(2, "pass")])),
+  assert.deepEqual(judging(view(issue, [landed, verdict(1, "pass", "43b811e"), verdict(2, "pass")])),
     ["the verdict on criterion 1 judged 43b811e, and the merged commit is c8c3550"]);
-  assert.deepEqual(missing("tested", view(issue, [landed, verdict(1, "skipped", "c8c3550", { why: "no screen" }), verdict(2, "pass")])),
+  assert.deepEqual(judging(view(issue, [landed, verdict(1, "skipped", "c8c3550", { why: "no screen" }), verdict(2, "pass")])),
     [], "a skip with its reason is judged");
-  assert.deepEqual(missing("tested", view(issue, [landed, verdict(1, "skipped"), verdict(2, "pass")])),
+  assert.deepEqual(judging(view(issue, [landed, verdict(1, "skipped"), verdict(2, "pass")])),
     ["the verdict on criterion 1 lacks --why, for a skipped check"], "the shape says what a skip owes");
 });
 
@@ -104,7 +107,7 @@ test("a verdict at the judged head stands where the landing moved none of the ch
   const at = (note) => mark(`merged to master at 9a4d36d; ${note}`);
   const verdicts = [1, 2].map((number) =>
     recorded("verdict", { criterion: `${number} — text`, verdict: "pass", commit: "bc40edc", evidence: ["run.txt"] }));
-  const owed = (note) => missing("tested", view(issue, [at(note), ...verdicts]));
+  const owed = (note) => judging(view(issue, [at(note), ...verdicts]));
 
   assert.deepEqual(owed("judged head bc40edc; landing moved nothing of this change"), [],
     "the version commit moved no path of the change, so both verdicts stand");
@@ -113,12 +116,12 @@ test("a verdict at the judged head stands where the landing moved none of the ch
     ["the landing moved docs/a.md, plugin/src/flow/earned.mjs, which this change touched, so the "
       + "verdicts on criterion 1, 2 judged bc40edc and the evidence was taken before those paths moved"],
     "one item for the set, because a path list per criterion is what a run reads past");
-  assert.match(commands("tested", view(issue, [at("judged head bc40edc; landing moved docs/a.md"), ...verdicts]))[0],
+  assert.match(judgingAsks(view(issue, [at("judged head bc40edc; landing moved docs/a.md"), ...verdicts]))[0],
     /--criterion <n> --verdict pass --commit 9a4d36d/u, "and the re-judging is at the landed head");
   assert.deepEqual(owed("judged head bc40edc"),
     ["the verdicts on criterion 1, 2 judged bc40edc, which the mark names as the judged head, and "
       + "the mark says nothing about what the landing moved, so nothing says those verdicts survived it"]);
-  assert.match(commands("tested", view(issue, [at("judged head bc40edc"), ...verdicts]))[0],
+  assert.match(judgingAsks(view(issue, [at("judged head bc40edc"), ...verdicts]))[0],
     /^forge record merged ISS-3 .*--moved <the paths of this change the landing moved>/su,
     "a second mark is the route, and the clause it is owed for is one of the verb's own flags");
 
@@ -128,7 +131,7 @@ test("a verdict at the judged head stands where the landing moved none of the ch
     "the verdict on criterion 2 judged bc40edc, and the merged commit is 9a4d36d",
   ], "no judged head clause, so nothing is excused");
   const other = recorded("verdict", { criterion: "2 — text", verdict: "pass", commit: "43b811e", evidence: ["run.txt"] });
-  assert.deepEqual(missing("tested", view(issue, [at("judged head bc40edc; landing moved nothing"), verdicts[0], other])),
+  assert.deepEqual(judging(view(issue, [at("judged head bc40edc; landing moved nothing"), verdicts[0], other])),
     ["the verdict on criterion 2 judged 43b811e, and the merged commit is 9a4d36d"],
     "the escape is the judged head and no other hash");
 });
@@ -198,7 +201,7 @@ test("a mark one actor wrote earns developed for verdicts another wrote", () => 
     "the lander wrote the mark and the builder the review, and developed reads neither author");
   const verdicts = [1, 2].map((number) => ({ ...recorded("verdict", { criterion: `${number}. one`,
     verdict: "pass", commit: "9a4d36d", evidence: ["run.txt"] }), authorId: "the-builder" }));
-  assert.deepEqual(missing("tested", view(issue, [landed, review, ...verdicts])), [],
+  assert.deepEqual(judging(view(issue, [landed, review, ...verdicts])), [],
     "and tested judges the verdicts at the head the note names, not against whoever marked the merge");
 });
 

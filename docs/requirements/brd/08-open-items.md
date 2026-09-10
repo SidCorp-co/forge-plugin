@@ -23,7 +23,7 @@ a row outliving its issue sends the next reader to a key with no answer behind i
 | Whether a decision record may defer one question to a later status that then refuses until it is answered. | ISS-23 |
 | Whether the requirements gate reads a tree the one-home gate cannot see, or whether that gate learns to recurse. | ISS-526 |
 | Whether a per-criterion verdict is carried by a task record rather than by a shaped comment. | ISS-806 |
-| What a project with no deploy step writes for `released`. | ISS-808 |
+| What a project with no deploy step writes for `awaiting_release`. | ISS-808 |
 | Whether a clause can say its result is one a person judges, so the criteria citing it carry that demand. | ISS-812 |
 | Whether the entry criteria, the served text and the verb's own answer are held against each other. | ISS-813 |
 | Whether a plan or criteria write after approval is refused without its correction. | ISS-814 |

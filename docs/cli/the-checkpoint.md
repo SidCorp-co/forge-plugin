@@ -69,7 +69,7 @@ run holding it makes: without one, that state is where a landing goes to die.
 
 `--judged` is the judge's: it takes the turn, writes its verdicts as any run does, and says the turn
 is over. What those verdicts have to carry — a judge that is not the builder, and a citation of the
-deployment identity the checkpoint holds — is the contract's business at `tested` and is not
+deployment identity the checkpoint holds — is the contract's at `awaiting_release` and is not
 re-judged here, because a judge this claim refused could neither hand back nor be replaced.
 
 `--reconciled <sha>` is the builder's, and the sha is what that state is for: the run is asked which
@@ -103,7 +103,7 @@ A base or a branch head that moved after those verdicts voids them, and the land
 rather than describing the loss: whoever judges again is owed the list. The numbers are the verdicts
 taken at the identity being given up, and not every verdict a promotion would refuse — one citing
 some third head was void before this landing and is nothing this void takes. Whether a verdict still
-standing cites what is running is read per verdict at `tested`, and is not a second list here.
+standing cites what is running is read per verdict at that rung, and is not a second list here.
 
 ## What a state may not do
 

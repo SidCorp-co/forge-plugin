@@ -11,7 +11,7 @@ const leaseFor = (holder, minutes = 30, at = new Date().toISOString()) =>
   ({ lease: { holder, agent: "an agent", pid: "1", renewedAt: at, minutes, history: [] } });
 
 test("a status no run takes is dropped, and the sentence names the status", () => {
-  for (const status of ["in_progress", "developed", "released", "closed", "dropped", "waiting"]) {
+  for (const status of ["in_progress", "developed", "awaiting_release", "closed", "dropped", "waiting"]) {
     const held = eligibilityOf(row({ status }));
     assert.equal(held.eligible, false, status);
     assert.match(held.reason, new RegExp(`status ${status}`, "u"));
@@ -43,7 +43,7 @@ test("a blocker the flow would still refuse on drops the issue, and the sentence
   const held = eligibilityOf(row(), { blockers: [edge("open")] });
   assert.equal(held.eligible, false);
   assert.equal(held.reason, "blocked by ISS-9 (open)");
-  for (const status of ["developed", "tested", "released", "closed"]) {
+  for (const status of ["developed", "awaiting_release", "closed"]) {
     assert.equal(eligibilityOf(row(), { blockers: [edge(status)] }).eligible, true,
       `${status} is at or past the floor the transition asks for`);
   }

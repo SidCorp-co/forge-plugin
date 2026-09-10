@@ -215,13 +215,13 @@ test("Phase 7 and the fold are served in the mode's own text, one branch of each
   assert.match(folds[1], /never the run that built the change/u, "and dispatches the judge where one is asked for");
 });
 
-/* What a fence takes with it: the `self` branch carried the note, `released` and the close, so fencing it left a `ready` reader two statuses short of the end state. Over the union served, either half may own it and neither may drop it (ISS-673). */
-test("a ready reader is told somewhere who moves released, which the mode's own half no longer does", () => {
+/* What a fence takes with it: the `self` branch carried the note, the release rung and the close, so fencing it left a `ready` reader two statuses short of the end state. Over the union served, either half may own it and neither may drop it (ISS-673). */
+test("a ready reader is told somewhere who moves the release rung, which the mode's own half no longer does", () => {
   const phase = shipping("ready");
   const fold = shipping("ready", "dispatch");
-  assert.match(`${phase} ${fold}`, /`released`/u,
-    "the status past tested is named to a reader whose own phase stops at a pushed branch");
-  assert.match(fold, /`released` and `closed` are moved from here/u,
+  assert.match(`${phase} ${fold}`, /`awaiting_release`/u,
+    "the rung past the judging is named to a reader whose own phase stops at a pushed branch");
+  assert.match(fold, /`awaiting_release` and `closed` are moved from here/u,
     "and the fold, whose landing it follows, is where it is owned");
   assert.match(phase, /are the landing actor's, not this run's/u,
     "the phase says whose it is rather than leaving the run to assume it is nobody's");

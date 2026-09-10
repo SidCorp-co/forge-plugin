@@ -24,10 +24,10 @@ described: the run that distrusts the ledger is what a later scoped green stands
 
 ## A screen's verdict cites an attachment
 
-Where the plan declares `Screen change: yes`, `tested` refuses a verdict whose evidence set holds no
+Where the plan declares `Screen change: yes`, `awaiting_release` refuses a verdict whose evidence set holds no
 attachment the issue carries. A URL and a sha are citations; an attachment is the thing itself, and a
 screen is the one change whose whole proof is that somebody looked at it. A `skipped` verdict is
-exempt, for the reason the write already exempts it from evidence: there was nothing to look at.
+exempt, for the reason the write exempts it from evidence: there was nothing to look at.
 
 Keyed on the screen declaration alone and not on the reading that asks for a person, which a
 user-facing outcome also triggers. The two questions differ: one asks who has to look, this one asks
@@ -60,16 +60,16 @@ lives too, and a change that added one would otherwise vanish from a clause a ch
 ## A verification names the deployment, where the project deploys on its own
 
 A project can set `pipelineConfig.autoProdDeploy`, and that setting decides who is *asked* — with it,
-`released` waits for no person's look. It does not decide what *ships*, and nothing in this plugin
+the rung waits for no person's look. It does not decide what *ships*, and nothing in this plugin
 deploys anything: the machine that advances an issue need not be the one that shipped it, so what git
 and a host know is written onto the record at the step that knew it, here as everywhere else.
 
 On one project measured on 2026-09-05 the two came apart. The host had no push-to-deploy configured
-at all, five landings sat undeployed under `released` statuses, and three separate runs read the
+at all, five landings sat undeployed under the release rung, and three separate runs read the
 setting as the host's and went to verify a build that predated their own landing. A run that does
 that reports a correct fix as broken, or records a passing verification against code nobody shipped.
 
-So where the setting is on, `released` reads the verification against the record rather than taking
+So where the setting is on, the rung reads the verification against the record rather than taking
 it: its commit is the one the merged mark names, and its evidence is not every-item a bare sha, since
 a sha names no deployment. The refusal says the sha is read from the deployment's own build log and
 never assumed from the branch head, which is the step that was being skipped. A project that has not
@@ -78,7 +78,7 @@ plugin owes a project that has decided nothing.
 
 The equality alone would have been a refusal with no way past it. A host that coalesces landings
 builds a head the change never was, and that build is running the change: on such a project the
-exact commit may never be built, and a run could only sit at `tested` having shipped, redeploy an
+exact commit may never be built, and a run could only sit at the rung having shipped, redeploy an
 older revision, or type a sha it had not read. So the verification carries the two facts apart — the
 commit the deployment reports, and the landed commit that build contains — and the second is what
 the equality is held to where they differ. The field is optional, a shape's records outliving the
@@ -98,7 +98,7 @@ as `judge-from:`, off the session the CLI resolved and never off a flag — `--j
 the reason the lease's holder is read rather than passed. Declared on the shape so the read keeps
 them, and `newer` for the reason `--scope` is below.
 
-`tested` reads each standing verdict against the landing checkpoint, the only record naming both the
+`awaiting_release` reads each standing verdict against the landing checkpoint, the only record naming both the
 builder and what the deployment reported running. The builder's own id is the case the project asked
 about. *No* judge is refused too, and is not read as the builder's: `judge` is excused at the
 read-back, so a check comparing only ids would pass it in silence. An id a run inherited is refused

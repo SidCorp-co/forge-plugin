@@ -6,7 +6,7 @@ repository state at transition time. A check that read the working tree would an
 every machine.
 
 **A later change unearns.** A moved merged commit unearns `developed` and above; moved criteria
-unearn `tested` and above. The run that moved it is who notices. Old reviews and verdicts stay as
+unearn `awaiting_release` and above. The run that moved it is who notices. Old reviews and verdicts stay as
 superseded history, and the new ones are written beside them.
 
 **A person's finding unearns like a change to the code.** The triage is what unearns, and it says

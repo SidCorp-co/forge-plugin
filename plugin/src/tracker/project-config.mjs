@@ -167,7 +167,7 @@ export const credentialLeak = (data, deploy) => {
   return null;
 };
 
-const NOTHING_DEPLOYS = "and nothing here says the host deploys on push: `released` asks the "
+const NOTHING_DEPLOYS = "and nothing here says the host deploys on push: `awaiting_release` asks the "
   + "verification to name the deployment that built the commit this change landed at";
 
 const NO_DEPLOY = "none configured";
@@ -189,12 +189,12 @@ const credentialRows = (held, asked) => {
 const branchRow = (label, held, from) => (held
   ? { level: "ok", label, detail: `${held}  ← ${from}` }
   : { level: "note", label, detail: `${UNSET} — a release has no named ${label}, and the park before`
-    + " released stands until it is set" });
+    + " awaiting_release stands until it is set" });
 
 const policyRows = (policy, landing) => {
   if (!policy) {
     return [{ level: "note", label: "release policy",
-      detail: "the project config did not answer — the park before released stands" }];
+      detail: "the project config did not answer — the park before awaiting_release stands" }];
   }
   const route = landingRoute(policy, landing);
   const out = [
@@ -205,7 +205,7 @@ const policyRows = (policy, landing) => {
       + ` look  ← ${policy.from}` },
     { level: "ok", label: "where the merge sits", detail: `${route.value}  ← ${route.from}` },
     { level: "ok", label: "independent judgement", detail: `${judgementOf(policy)} between developed`
-      + ` and tested  ← ${policy.from}` },
+      + ` and awaiting_release  ← ${policy.from}` },
   ];
   if (policy.autoProd) out.push({ level: "ok", label: "", detail: NOTHING_DEPLOYS });
   const said = releaseConflict(policy);
@@ -228,7 +228,7 @@ export const projectRows = ({ policy, deploy, credentials, landing = landingScop
   const ending = credentialRows(held, asked);
   if (!deployed(deploy)) {
     return [...out, { level: "note", label: "staging deploy", detail: policy?.staging
-      ? "none on record while the staging branch is named, so the verification `released` owes cites"
+      ? "none on record while the staging branch is named, so the verification the rung owes cites"
         + " the branch and no running host. A host is added on the tracker's own project settings"
         + " screen: this CLI declares no route that writes one"
       : NO_DEPLOY }, ...ending];

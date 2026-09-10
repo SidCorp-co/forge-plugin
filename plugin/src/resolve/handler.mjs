@@ -9,8 +9,7 @@ export const MOVES = {
   approved: "approve",
   in_progress: "start",
   developed: "develop",
-  tested: "test",
-  released: "release",
+  awaiting_release: "release",
   closed: "close",
 };
 

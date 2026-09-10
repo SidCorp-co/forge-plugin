@@ -11,7 +11,7 @@ where it is parsed, and what each clause is for.
 Before ISS-701 no verb wrote the mark. A run composed the sentence by hand from a template a
 refusal printed, and the refusal was the only statement of the shape anywhere — so the sentence had
 one author per run. Two clauses of it hold a sha and a third holds another, and a sha in the wrong
-slot is not refused by the write: it is refused two statuses later, by `tested`, saying the verdicts
+slot is not refused by the write: it is refused two statuses later, by `awaiting_release`, saying the verdicts
 judged a head the mark does not name. The cost lands a phase away from the mistake, on whoever is
 trying to ship.
 
@@ -39,8 +39,8 @@ without the other.
 |---|---|---|
 | `at <sha>` | `developed`, and every record that reads `--commit` off the mark | which commit landed; a mark naming none earns nothing |
 | `reviewed head <sha>` | `developed` | the head the review judged, so a squash that changed the hash still matches an approving review |
-| `judged head <sha>` | `tested` | the head the verdicts were taken at, which is what lets a verdict stand across the landing |
-| `landing moved <paths>` | `tested` | whether the landing moved a path this change touched; empty is what makes the verdicts stand, and *silence is not empty* |
+| `judged head <sha>` | `awaiting_release` | the head the verdicts were taken at, which is what lets a verdict stand across the landing |
+| `landing moved <paths>` | `awaiting_release` | whether the landing moved a path this change touched; empty is what makes the verdicts stand, and *silence is not empty* |
 | `landing wrote <paths>` | `developed` | what this change itself landed, so a path neither the plan nor a correction names refuses the status |
 
 A path clause takes paths separated by commas, or the word `nothing`. Silence and none are different

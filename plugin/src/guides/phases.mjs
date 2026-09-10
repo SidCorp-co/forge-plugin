@@ -16,15 +16,14 @@ export const CITED = {
   approved: ["plan", "criteria"],
   in_progress: ["baseline"],
   developed: ["review", "merged"],
-  tested: ["verdict"],
-  released: ["verification", "note"],
+  awaiting_release: ["verdict", "verification", "note"],
 };
 
 export const dischargedBy = (status) => CITED[stepAfter(status)]?.[0] ?? null;
 
 /** Three readings of one row: every phase it names, the phase a record of a kind ends, and the phase the landing ends. A record's is the stage below the one `CITED` says it earns, and null where that stage owes several phases, since `CITED` does not say which of a stage's records ends it; the landing's is the last its own stage names, that row abbreviating the note and the ship into one cell. docs/cli/the-parts.md. */
 const EVERY_NUMBER = /\d+/gu;
-const RELEASED = "released";
+const AWAITING = "awaiting_release";
 const stageBelow = (status) => ORDER[ORDER.indexOf(status) - 1] ?? null;
 
 export const phasesOwed = (status) =>
@@ -32,11 +31,13 @@ export const phasesOwed = (status) =>
 
 export const phaseForRecord = (kind) => {
   const earns = ORDER.find((status) => CITED[status]?.includes(kind));
+  /* A rung whose own cell names several phases holds records that end different ones, so only the kind leading the row — the one `dischargedBy` answers with — takes the stage below's number and the rest say nothing rather than borrow it. One rung cites the verdict, the verification and the note, which end 5, 6 and 7 (ISS-1022). */
+  if (earns && phasesOwed(earns).length > 1 && CITED[earns][0] !== kind) return null;
   const owed = earns ? phasesOwed(stageBelow(earns)) : [];
   return owed.length === 1 ? owed[0] : null;
 };
 
-export const phaseAtLanding = () => phasesOwed(stageBelow(RELEASED)).at(-1) ?? null;
+export const phaseAtLanding = () => phasesOwed(AWAITING).at(-1) ?? null;
 
 /** The waiver a rung grants on the way out of a status, named by what it drops and why. */
 const waivedFor = (status, fields) => {
@@ -134,7 +135,8 @@ const laneSaid = (row) => {
   return row.dropped.length ? `${row.owed.join(", ")}; ${dropped} at this rung` : row.owed.join(", ");
 };
 
-const LANE_WIDTH = 15;
+/* The longest rung the order holds and one space past it, so a rename cannot run a status into what earns it. Measured at the print: the order reaches this file through a cycle, and read at load it is a name in its own dead zone (ISS-1022). */
+const laneWidth = () => Math.max(...ORDER.map((one) => one.length)) + 1;
 
 /** The lane as the three verbs print it, one renderer so their blocks cannot differ (ISS-810). */
 export const laneLines = ({ status, fields }) => {
@@ -142,7 +144,7 @@ export const laneLines = ({ status, fields }) => {
   if (aside) return [`Lane: \`${aside}\` is off the ladder's linear path, so no lane is read from it.`];
   return [
     `Lane at \`${rung}\` — every status from where it stands, and what earns it:`,
-    ...rows.map((one) => `  ${one.status.padEnd(LANE_WIDTH)}${laneSaid(one)}`),
+    ...rows.map((one) => `  ${one.status.padEnd(laneWidth())}${laneSaid(one)}`),
     ...(rows.some((one) => !one.here && one.owed.length)
       ? ["Each name is a record kind: `forge record <kind> -h`."]
       : []),

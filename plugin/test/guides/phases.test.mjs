@@ -109,24 +109,23 @@ test("the opening lists each phase behind with the record that discharged it, or
 test("the lane names what earns each status ahead, and what the rung drops on the way", () => {
   assert.deepEqual(laneLines({ status: "open", fields: fieldsOf("s") }), [
     "Lane at `fix` — every status from where it stands, and what earns it:",
-    "  open           ← where it stands",
-    "  confirmed      confirmation",
-    "  clarified      nothing owed at this rung",
-    "  approved       criteria; no plan at this rung",
-    "  in_progress    baseline",
-    "  developed      review, merged",
-    "  tested         verdict",
-    "  released       verification; no note at this rung",
-    "  closed         nothing owed at any rung",
+    "  open             ← where it stands",
+    "  confirmed        confirmation",
+    "  clarified        nothing owed at this rung",
+    "  approved         criteria; no plan at this rung",
+    "  in_progress      baseline",
+    "  developed        review, merged",
+    "  awaiting_release verdict, verification; no note at this rung",
+    "  closed           nothing owed at any rung",
     "Each name is a record kind: `forge record <kind> -h`.",
   ], "a fix reads its whole route: what it writes, what it does not, and where it ends");
   const feature = laneLines({ status: "open", fields: fieldsOf("m") });
   assert.ok(!feature.some((one) => one.includes("at this rung")),
     "a feature is waived nothing, so no line of its lane names a payload as dropped");
-  assert.deepEqual(feature.filter((one) => /clarified|approved|released/u.test(one)), [
-    "  clarified      decision",
-    "  approved       plan, criteria",
-    "  released       verification, note",
+  assert.deepEqual(feature.filter((one) => /clarified|approved|awaiting_release/u.test(one)), [
+    "  clarified        decision",
+    "  approved         plan, criteria",
+    "  awaiting_release verdict, verification, note",
   ], "and each of the three rows a lighter rung touches asks for the whole of its payload");
   assert.deepEqual(laneLines({ status: "open", fields: fieldsOf("s", ["Size: fix -> feature"]) }), feature,
     "a correction that climbed a rung prints the feature lane, the field having claimed a fix");
@@ -148,11 +147,12 @@ test("neither verb that prints the opening composes a line of it", () => {
 
 /* A waiver is on a transition: dropping the plan is not dropping the implementing, and an index
    reading it as the latter tells a run at the fix rung its work is done. */
-test("a rung's waiver is printed against the phase that pays it, and waives no phase", () => {
+test("a rung's waiver is printed against the status it is granted from, and waives no phase", () => {
   const owed = (complexity) => phaseIndex({ status: "clarified", fields: fieldsOf(complexity) }).owed;
   const waived = owed("s").filter((one) => one.waived);
-  assert.deepEqual(waived.map((one) => one.phase), ["3 Plan", "6, 7 Ship"],
-    "the plan is waived on the way into approved, the note on the way into released");
+  /* The status below the one dropping it: the plan's own phase, and for the note the phase before it, the release rung being entered from `developed` and spanning both (ISS-1022). */
+  assert.deepEqual(waived.map((one) => one.phase), ["3 Plan", "5 Prove"],
+    "the plan is waived on the way into approved, the note on the way into the release rung");
   assert.ok(owed("s").every((one) => PHASE[one.status]),
     "and every phase is still owed: a waiver drops a record, never the work");
   assert.match(waived[0].waived.drops, /the plan field/u, "named by what it drops");

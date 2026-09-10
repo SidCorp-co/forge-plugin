@@ -156,7 +156,7 @@ export const readyCheckpoint = (ref, holder, patch, landing) => {
 
 /* The one route out of `qa-owed`, and the reason the state is not a dead end: the judge writes its
    verdicts as any run does and then says the turn is over, which is all this writes. What those
-   verdicts have to carry is the contract's at `tested` and not this claim's to re-judge — a judge
+   verdicts have to carry is the contract's at `awaiting_release` and not this claim's to re-judge — a judge
    refused here could neither hand back nor be replaced. docs/cli/the-checkpoint.md. */
 const handBack = async (documentId, ref, context, holder) => {
   const landing = landingOf(context);

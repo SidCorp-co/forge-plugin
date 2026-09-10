@@ -35,7 +35,7 @@ test("the line stays silent on every reading that is not a screen change without
     "a project that recorded a login is owed nothing");
   assert.equal(ahead({ status: "in_progress", plan: SCREEN }, null), null,
     "and a deploy nobody read reports no empty set: null is unread, never none");
-  for (const status of ["tested", "released", "closed"]) {
+  for (const status of ["awaiting_release", "awaiting_release", "closed"]) {
     assert.equal(ahead({ status, plan: SCREEN }, NO_LOGIN), null, `${status} is past the point of saying it`);
   }
 });
@@ -43,7 +43,7 @@ test("the line stays silent on every reading that is not a screen change without
 /* The gate on the fetch and the line spell one pair of conditions; the calls are counted below. */
 test("the reading is not taken where the line would not read it", async () => {
   assert.equal(await deployFor(QUIET, "in_progress"), null, "a plan declaring no screen change");
-  assert.equal(await deployFor(SCREEN, "released"), null, "and a status already past tested");
+  assert.equal(await deployFor(SCREEN, "awaiting_release"), null, "and a status already past tested");
 });
 
 const SCREENING = {

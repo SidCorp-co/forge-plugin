@@ -58,7 +58,7 @@ Four of its lines are read here rather than later, because the phase that owes e
 for it. **The brief's goal line** is what *cause or surface* is judged against, so a run deciding how
 far to fix something answers to the project's goals rather than its own taste, and it is that list a
 `Serves:` names. **Where the merge sits** and **whether the judgement between `developed` and
-`tested` is an independent run's** are what Phase 3's plan is written against: a run finding either
+`awaiting_release` is an independent run's** are what Phase 3's plan is written against: a run finding either
 unstated cannot know whether the judging comes before the push or after it, and discovers it rather
 than assuming.
 
@@ -188,11 +188,12 @@ typed verdict per criterion citing its own evidence, and judge a criterion again
 judging the code against it. Where the proof is a test, what a criterion is matched against is the
 assertion lines that would go red and never a case's name: a name is prose, one carrying two claims
 is two searches rather than one, and an assertion that cannot fail covers nothing. Nothing advances
-from this phase; both `developed` and `tested` move at the landing on the record written here,
+from this phase; both `developed` and `awaiting_release` move at the landing on the record written
+here,
 whether this run makes that landing or leaves it ready for the one that does. Which head, what each
 kind of change owes as evidence and how to capture it: `forge guide issue-flow verification`. What a
 record holds before either status is earned, and on which outcomes:
-`forge guide contract developed`, `forge guide contract tested`.
+`forge guide contract developed`, `forge guide contract awaiting_release`.
 
 **A change to a screen parks the issue for human review before Phase 7.** Where no login reaches the
 rendered state, what stands instead and the two verdict shapes it earns: `forge guide issue-flow
@@ -227,9 +228,9 @@ of that log rather than after the guard refuses the second.
 Then verify the change where it now runs, post the release note, and move the status, in that
 order: a note published before the change ships announces what has not happened, and the status is
 what other people's queries filter on, so it moves last. What the move is owed:
-`forge guide contract released`.
+`forge guide contract awaiting_release`.
 
-**Then close it, in this phase.** A run that stops on `released` has handed a person the one
+**Then close it, in this phase.** A run that stops on `awaiting_release` has handed a person the one
 keystroke this workflow exists to take over. Where the contract hands the issue to somebody instead,
 a park or a reopen, it stays where it is and the report says which.
 <!-- forge:end -->
@@ -241,7 +242,8 @@ states after it.
 
 **The lease is handed over and never dropped**: a run that abandons it leaves an issue nobody may
 write to until it expires. Phase 5's record and Phase 6's drafted note are written before that
-checkpoint, because the landing writes neither — it moves `developed` and `tested`, the statuses
+checkpoint, because the landing writes neither — it moves `developed` and `awaiting_release`, the
+statuses
 those records earn, and no status past them.
 
 **What the landing does with it is not this run's to do**, and one outcome comes back: a merge that
@@ -254,7 +256,7 @@ itself, and `forge resume ISS-nn` says which happened.
 another run's: this run neither writes those verdicts nor waits for them. Whether that stop sits
 before the promotion or after it is the project's landing route, which Phase 0 read.
 
-**`released` and `closed` are the landing actor's, not this run's**, because the release those two
+**`awaiting_release` and `closed` are the landing actor's, not this run's**, because the release those two
 answer for does not exist while this phase runs. So leave the Phase 6 note drafted on the issue for
 whoever publishes it, and let the report say the two statuses are owed rather than reporting them
 moved.

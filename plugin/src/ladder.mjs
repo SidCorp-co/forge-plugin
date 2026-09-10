@@ -77,7 +77,7 @@ export const LIGHTER = [
     because: "a fix's criteria are the one check that fails without it, which is the whole of its plan",
   },
   {
-    status: "released",
+    status: "awaiting_release",
     rungs: BELOW_TOP,
     kind: "note",
     drops: "a release note",

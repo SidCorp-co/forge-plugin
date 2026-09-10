@@ -127,9 +127,9 @@ dispatches it: a role of its own, given the issue, its criteria and Outcome, and
 identity the checkpoint names — never the run that built the change, whose own verdicts earn nothing
 there. Its verdicts and its hand-back are what let the landing finish.
 
-**The two statuses after `tested` are this phase's too.** The release note each run left drafted is
-published from here, once the release those statuses answer for is actually out, and `released` and
-`closed` are moved from here. A wave that lands every branch and moves neither has left the queue
+**The two statuses a landing does not reach are this phase's too.** The release note each run left
+drafted is published from here, once the release those statuses answer for is actually out, and
+`awaiting_release` and `closed` are moved from here. A wave that lands every branch and moves neither has left the queue
 exactly where a person has to finish it, which is the one outcome this method exists to remove.
 <!-- forge:end -->
 

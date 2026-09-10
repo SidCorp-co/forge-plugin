@@ -6,8 +6,8 @@ import {
 } from "./ladder.mjs";
 import { looksTo, planFlags } from "./flow/machine.mjs";
 
-/* Past the widest label, so a hanging line clears it. */
-const WIDTH = 18;
+/* Past the widest label so a hanging line clears it, measured off the labels: a literal is a column only until a status is renamed longer than it (ISS-1022). */
+const WIDTH = Math.max(...LIGHTER.map((one) => one.status.length + 4), 18);
 const lighterLines = (rung) => LIGHTER.filter((one) => one.rungs.includes(rung)).map((one) =>
   `  ${`at ${one.status}`.padEnd(WIDTH)}not owed: ${one.drops}\n  ${" ".repeat(WIDTH)}  because ${one.because}`);
 

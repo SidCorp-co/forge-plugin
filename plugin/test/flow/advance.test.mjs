@@ -10,8 +10,8 @@ process.env.XDG_CONFIG_HOME = tempHome("advance").path;
 const { parse, render } = await import("../../src/flow/record/page.mjs");
 const { PARKS } = await import("../../src/flow/machine.mjs");
 const {
-  CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, dispositionOf, holdsBack,
-  nextOf, personLooks, shapeGaps, viewFrom,
+  CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, deployedOwed, dispositionOf, holdsBack,
+  judgedOwed, nextOf, personLooks, shapeGaps, viewFrom,
 } = await import("../../src/flow/earned.mjs");
 const { planFlags } = await import("../../src/flow/machine.mjs");
 const { lookAhead, targetOf } = await import("../../src/flow/route.mjs");
@@ -32,6 +32,8 @@ const ATTACHED = [{ name: "run.txt" }];
 const view = (issue, comments = []) => viewFrom("the-uuid", issue, comments);
 const missing = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item.what);
 const commands = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item.command);
+const judging = (one) => judgedOwed(one, "ISS-3").map((item) => item.what);
+const deploying = (one) => deployedOwed(one, "ISS-3").map((item) => item.what);
 
 test("the flow table names one next status, and a disposition sends the issue to dropped", () => {
   for (const [index, status] of ORDER.slice(0, -1).entries()) {
@@ -184,7 +186,7 @@ test("a jump past where the triage routes is refused, and a side status names th
 });
 
 /* A wrong-test triage moves the criteria and no commit with them, so every verdict on the record
-   still names the merged commit: judged on those, the issue would pass back through `tested` on the
+   still names the merged commit: judged on those, the issue would pass back through the rung on the
    very judgement the person disagreed with. */
 test("a reopen judges again, so a verdict from before its triage earns nothing", () => {
   const ruling = (outcome) => recorded("triage", { outcome, "would-have-caught": "a criterion naming the order" }, "0");
@@ -198,34 +200,34 @@ test("a reopen judges again, so a verdict from before its triage earns nothing",
   const marked = mark("merged to master at 43b811e");
   const early = judged("pass");
   const wrong = ruling("wrong-test");
-  assert.deepEqual(missing("tested", view(shipped, [marked, early, wrong])), [
+  assert.deepEqual(judging(view(shipped, [marked, early, wrong])), [
     "the verdict on criterion 1 was written before this reopen's triage, and a reopen judges again",
   ]);
   const late = judged("pass");
-  assert.deepEqual(missing("tested", view(shipped, [marked, early, wrong, late])), [],
+  assert.deepEqual(judging(view(shipped, [marked, early, wrong, late])), [],
     "a verdict written since the triage earns it again");
-  assert.equal(missing("tested", view(shipped, [marked, early, ruling("not-met")])).length, 1,
+  assert.equal(judging(view(shipped, [marked, early, ruling("not-met")])).length, 1,
     "and not-met sends the judging back too, because the code moved under it");
-  assert.deepEqual(missing("tested", view(shipped, [marked, early, ruling("not-in-spec")])), [],
+  assert.deepEqual(judging(view(shipped, [marked, early, ruling("not-in-spec")])), [],
     "and not-in-spec found nothing wrong with this issue's own judging");
   /* A wrong-test correction may drop the criterion that was wrong, and a verdict cannot be written
-     for a number the field no longer holds: asked for one, the issue could never reach `tested`. */
+     for a number the field no longer holds: asked for one, the issue could never reach the rung. */
   const dropped = { ...shipped, acceptanceCriteria: "2. The second outcome." };
-  assert.deepEqual(missing("tested", view(dropped, [marked, early, wrong])), ["criterion 2 has no verdict"]);
+  assert.deepEqual(judging(view(dropped, [marked, early, wrong])), ["criterion 2 has no verdict"]);
   /* A reopen re-judges every criterion at once, so the twelve ISS-289 itself carried would have come
      back as twelve items and twelve writes — the cost the batched write removed (ISS-297). */
   const all = { ...shipped, acceptanceCriteria: `${CRITERIA}\n3. The third outcome.` };
   const each = [1, 2, 3].map((number) =>
     recorded("verdict", { criterion: `${number} — an outcome`, verdict: "pass", commit: "43b811e", evidence: ["run.txt"] }));
   const stale = view(all, [marked, ...each, ruling("wrong-test")]);
-  assert.deepEqual(missing("tested", stale), [
+  assert.deepEqual(judging(stale), [
     "the verdicts on criteria 1, 2, 3 were written before this reopen's triage, and a reopen judges again",
   ], "one item names the set");
-  assert.deepEqual(commands("tested", stale), [
+  assert.deepEqual(judgedOwed(stale, "ISS-3").map((one) => one.command), [
     "forge record verdict ISS-3 --commit <sha> --evidence <attachment|url|sha>"
     + " --criterion 1 --verdict pass --criterion 2 --verdict pass --criterion 3 --verdict pass",
   ], "and one write answers it, its shared flags before the first --criterion");
-  assert.deepEqual(commands("tested", view(shipped, [marked, early, wrong])), [
+  assert.deepEqual(judgedOwed(view(shipped, [marked, early, wrong]), "ISS-3").map((one) => one.command), [
     "forge record verdict ISS-3 --criterion 1 --verdict pass --commit <sha> --evidence <attachment|url|sha>",
   ], "while one stale verdict keeps the item and the command it had");
 });
@@ -235,43 +237,43 @@ test("a reopen judges again, so a verdict from before its triage earns nothing",
 test("a user-facing outcome owes a person's look, and --owed says so first", () => {
   const looking = "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: yes.";
   const shipped = {
-    status: "tested", plan: looking, acceptanceCriteria: CRITERIA,
+    status: "awaiting_release", plan: looking, acceptanceCriteria: CRITERIA,
     attachments: ATTACHED, releaseNotes: { section: "Fixed" },
   };
   const ready = [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["run.txt"] })];
-  assert.deepEqual(missing("released", view(shipped, ready)), [
+  assert.deepEqual(deploying(view(shipped, ready)), [
     "the plan declares a user-facing outcome, and no person has answered since it was parked for review",
   ]);
   assert.equal(personLooks({ look: "yes", screen: "no" }), "a user-facing outcome");
   assert.equal(personLooks({ look: null, screen: "yes" }), "a screen change");
   assert.equal(personLooks({ look: "no", screen: "no" }), null, "and a plan declaring neither owes nobody");
   const ahead = lookAhead(view({ ...shipped, status: "developed" }, []), "ISS-3");
-  assert.match(ahead, /^Ahead: released owes a person's look, because the plan declares a user-facing outcome/u);
+  assert.match(ahead, /^Ahead: awaiting_release owes a person's look, because the plan declares a user-facing outcome/u);
   assert.match(ahead, /--park screen-review/u);
   assert.equal(lookAhead(view({ ...shipped, plan: PLAN }, []), "ISS-3"), null, "a plan declaring neither says nothing ahead");
-  assert.equal(lookAhead(view({ ...shipped, status: "released" }, []), "ISS-3"), null, "and past it there is nothing ahead");
+  assert.equal(lookAhead(view({ ...shipped, status: "awaiting_release" }, []), "ISS-3"), null, "and past it there is nothing ahead");
 });
 
 /* The park is the project's to keep or to waive, and its own config is the answer: two branches
-   that differ make `released` staging, one automatic production deploy releases without a person,
+   that differ make the rung's branch staging, one automatic production deploy releases without a person,
    and anything unread stays as it was (ISS-90). */
 test("the project's release policy decides whether a user-facing outcome parks", () => {
   const looking = "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: yes.";
   const shipped = {
-    status: "tested", plan: looking, acceptanceCriteria: CRITERIA,
+    status: "awaiting_release", plan: looking, acceptanceCriteria: CRITERIA,
     attachments: ATTACHED, releaseNotes: { section: "Fixed" },
   };
   const ready = [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["run.txt"] })];
   const asked = "the plan declares a user-facing outcome, and no person has answered since it was parked for review";
   const policy = (staging, production, autoProd) => ({ staging, production, autoProd, from: "the tracker's project config" });
-  const seen = (release) => CHECKS.released(viewFrom("the-uuid", shipped, ready, null, release), "ISS-3").map((one) => one.what);
+  const seen = (release) => deployedOwed(viewFrom("the-uuid", shipped, ready, null, release), "ISS-3").map((one) => one.what);
   assert.deepEqual(seen(policy("master", "master", false)), [asked], "one branch and no automatic deploy is today's behaviour");
   assert.deepEqual(seen(null), [asked], "and so is a config that did not answer");
   assert.deepEqual(seen(policy(null, "master", true)), [asked], "an unset branch is unread, and the strict reading stands");
-  assert.deepEqual(seen(policy("master", "master", true)), [], "the same record earns released where the project deploys production itself");
-  assert.deepEqual(seen(policy("staging", "master", false)), [], "and where released is the staging branch, which is where a person looks");
+  assert.deepEqual(seen(policy("master", "master", true)), [], "the same record earns the rung where the project deploys production itself");
+  assert.deepEqual(seen(policy("staging", "master", false)), [], "and where the rung is the staging branch, which is where a person looks");
   const ahead = (release) => lookAhead(viewFrom("the-uuid", { ...shipped, status: "developed" }, [], null, release), "ISS-3");
-  assert.match(ahead(policy("master", "master", false)), /^Ahead: released owes a person's look/u);
+  assert.match(ahead(policy("master", "master", false)), /^Ahead: awaiting_release owes a person's look/u);
   assert.equal(ahead(policy("master", "master", true)), null, "and the warning three statuses earlier reads the same answer");
 });
 
@@ -281,36 +283,35 @@ test("what the plan declared decides what the ship steps owe", () => {
   const verdicts = [1, 2].map((number) =>
     recorded("verdict", { criterion: `${number} — text`, verdict: "pass", commit: "c8c3550", evidence: ["c8c3550"] }));
   const coupled = { ...stamped, acceptanceCriteria: CRITERIA, plan: "Screen change: no. Schema coupling: yes." };
-  assert.deepEqual(missing("tested", view(coupled, [landed, ...verdicts])),
+  assert.deepEqual(judging(view(coupled, [landed, ...verdicts])),
     ["the plan declares schema coupling, and no attachment carries the migration risk classification"]);
-  assert.deepEqual(missing("tested", view({ ...coupled, attachments: ATTACHED }, [landed, ...verdicts])), []);
+  assert.deepEqual(judging(view({ ...coupled, attachments: ATTACHED }, [landed, ...verdicts])), []);
   const shipped = { releaseNotes: { section: "Skip" }, plan: "Screen change: yes. Schema coupling: no." };
   const verified = [recorded("verification", { where: "staging", commit: "c8c3550", evidence: ["c8c3550"] })];
   const owed = ["the plan declares a screen change, and no person has answered since it was parked for review"];
-  assert.deepEqual(missing("released", view(shipped, verified)), owed);
+  assert.deepEqual(deploying(view(shipped, verified)), owed);
   const person = () => comment("looks right to me", { authorId: "a-person" });
   const runner = () => comment("job done", { authorId: "a-person", authorDeviceId: "a-device" });
-  assert.deepEqual(missing("released", view(shipped, [...verified, person()])), owed,
+  assert.deepEqual(deploying(view(shipped, [...verified, person()])), owed,
     "a person who spoke before the review was asked for reviewed something else");
-  const asked = recorded("park", { kind: "screen-review", why: "the new column", evidence: ["c8c3550"] }, "tested");
-  assert.deepEqual(missing("released", view(shipped, [...verified, asked])), owed, "asked and unanswered");
-  assert.deepEqual(missing("released", view(shipped, [...verified, asked, runner()])), owed,
+  const asked = recorded("park", { kind: "screen-review", why: "the new column", evidence: ["c8c3550"] }, "awaiting_release");
+  assert.deepEqual(deploying(view(shipped, [...verified, asked])), owed, "asked and unanswered");
+  assert.deepEqual(deploying(view(shipped, [...verified, asked, runner()])), owed,
     "a device token cannot answer its own park — that is the whole guarantee left after is_ai went");
-  assert.deepEqual(missing("released", view(shipped, [...verified, asked, person()])), []);
+  assert.deepEqual(deploying(view(shipped, [...verified, asked, person()])), []);
 });
 
-test("released needs a verification and a release note, and closed needs only released", () => {
-  assert.deepEqual(missing("released", view({})), [
+test("the deploying half needs a verification and a release note", () => {
+  assert.deepEqual(deploying(view({})), [
     "no verification: where the change now runs, at which commit, and the evidence",
     "no release note and no withholding either",
   ]);
   const verified = [recorded("verification", { where: "the cache copy", commit: "c8c3550", evidence: ["run.txt"] })];
   const shipped = { releaseNotes: { section: "Skip" }, attachments: ATTACHED };
-  assert.deepEqual(missing("released", view(shipped, verified)), []);
-  assert.deepEqual(missing("released", view({ ...shipped, attachments: [] }, verified)),
+  assert.deepEqual(deploying(view(shipped, verified)), []);
+  assert.deepEqual(deploying(view({ ...shipped, attachments: [] }, verified)),
     ["the verification on the record is not a whole payload: it lacks --evidence `run.txt`, which is no attachment here, no URL and no commit"],
     "a record read back cites what the issue carries, or it cites nothing");
-  assert.deepEqual(missing("closed", view({})), [], "released is the whole criterion");
   assert.deepEqual(missing("dropped", view({})), [], "the confirmation that dropped it is the reason");
 });
 
@@ -345,7 +346,7 @@ test("a comment carrying the tag and little else is no payload", () => {
     ["the review on the record is not a whole payload: it lacks --outcome"], "a value off the list is no value");
   const issue = { acceptanceCriteria: CRITERIA, attachments: ATTACHED, ...stamped };
   const noEvidence = recorded("verdict", { criterion: "1 — text", verdict: "pass", commit: "c8c3550", evidence: [] });
-  assert.deepEqual(missing("tested", view(issue, [landed, noEvidence])), [
+  assert.deepEqual(judging(view(issue, [landed, noEvidence])), [
     "criterion 2 has no verdict",
     "the verdict on criterion 1 lacks --evidence (repeatable): a verdict with none is refused",
   ]);
@@ -364,7 +365,7 @@ test("a parked issue resumes where its park record says it left, once somebody a
   const moved = (from, said = "⏸ **Waiting on a human decision**") => comment(`${said} — moved from \`${from}\``);
   const at = (status, comments, issue = {}) => targetOf(view({ status, ...issue }, comments), "ISS-3");
   assert.throws(() => at("waiting", []), /no park record/u);
-  assert.throws(() => at("waiting", [moved("tested"), asked("code-review", "nowhere")]),
+  assert.throws(() => at("waiting", [moved("awaiting_release"), asked("code-review", "nowhere")]),
     /names `nowhere` as the status it left/u);
 
   const asking = [asked("question", "confirmed"), moved("confirmed", "❓ **Needs info**")];
@@ -391,9 +392,9 @@ test("a parked issue resumes where its park record says it left, once somebody a
 
   /* The park that put the issue where it is, and not the last one written: a side status set from
      outside, with an older park of another kind behind it, would resume by that park's policy. */
-  const stale = at("waiting", [asked("paused", "in_progress"), moved("tested"), asked("screen-review", "tested")]);
-  assert.equal(stale.next, "tested", "the screen-review park is the one that lands in waiting");
-  assert.throws(() => at("needs_info", [moved("tested"), asked("screen-review", "tested")]), /no park record/u,
+  const stale = at("waiting", [asked("paused", "in_progress"), moved("awaiting_release"), asked("screen-review", "awaiting_release")]);
+  assert.equal(stale.next, "awaiting_release", "the screen-review park is the one that lands in waiting");
+  assert.throws(() => at("needs_info", [moved("awaiting_release"), asked("screen-review", "awaiting_release")]), /no park record/u,
     "and a park of a kind that lands elsewhere resumes nothing");
 });
 
@@ -480,17 +481,17 @@ const OPEN = {
   description: "`forge issue` should take the `data.relations` route.\n\nSize: fix.\n",
 };
 const EARNS = { ...OPEN, documentId: "earning-uuid", issueId: "ISS-92", description: "no mark here" };
-/* Shipped but for the person: what the project's own config decides is whether that person is owed,
-   and an issue declaring neither line must not cost the call that asks (ISS-90). */
+/* Judged and deployed but for the person: what the project's own config decides is whether that
+   person is owed, and an issue declaring neither line must not cost the call that asks (ISS-90). */
+const passed = () => recorded("verdict", { criterion: "1 — The first outcome.", verdict: "pass", commit: "43b811e", evidence: ["43b811e"] });
 const LOOKING = {
   documentId: "looking-uuid",
   issueId: "ISS-93",
-  status: "tested",
+  status: "developed",
   title: "the change a person may have to look at",
   description: "no mark here",
   plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: yes.",
-  acceptanceCriteria: "1. The first outcome.",
-  releaseNotes: { section: "Fixed", userFacing: "it works" },
+  acceptanceCriteria: "1. The first outcome.", releaseNotes: { section: "Fixed", userFacing: "it works" },
 };
 const QUIET = { ...LOOKING, documentId: "quiet-uuid", issueId: "ISS-94", plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: no." };
 /* Landed at one sha and verified at another: the shape of a run that opened the app, saw the build
@@ -514,8 +515,8 @@ const state = {
     EARNS, LOOKING, QUIET, LANDED, STALE],
   comments: {
     "earning-uuid": [recorded("confirmation", { where: ["a.mjs"], is: "it holds", finding: "holds" })],
-    "looking-uuid": [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["https://ci.example.test/9"] })],
-    "quiet-uuid": [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["https://ci.example.test/9"] })],
+    "looking-uuid": [passed(), recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["https://ci.example.test/9"] })],
+    "quiet-uuid": [passed(), recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["https://ci.example.test/9"] })],
     "stale-uuid": [comment(`mark_merged target=base — merged to master at 08ca795; ${HEADS}`),
       recorded("verification", { where: "https://app.example.test", commit: "eee109e", evidence: ["https://ci.example.test/8"] })],
   },
@@ -532,21 +533,21 @@ test("the project's config is asked once the plan declares a person, and never b
   assert.match(early.stdout, /confirmed is next and the record earns it/u, "a plan declaring neither owes no person");
   assert.equal(asked(), quiet, "and a status with no release ahead of it pays no round to hear what the project would have said");
   const nobody = await owed("ISS-94");
-  assert.match(nobody.stdout, /released is next and the record earns it/u,
+  assert.match(nobody.stdout, /awaiting_release is next and the record earns it/u,
     "a plan declaring neither parks for nobody, as it did before the answer was read");
-  assert.ok(asked() > quiet, "and the answer is read anyway, released being the status it would enter");
+  assert.ok(asked() > quiet, "and the answer is read anyway, awaiting_release being the status it would enter");
   const parked = await owed("ISS-93");
   assert.match(parked.stdout, /no person has answered since it was parked for review/u,
     "one branch and no automatic production deploy is the park as it always was");
   state.config = { ...state.config, pipelineConfig: { autoProdDeploy: true } };
   const ships = await owed("ISS-93");
-  assert.match(ships.stdout, /released is next and the record earns it/u,
-    "and the same record earns released where the project releases production itself");
+  assert.match(ships.stdout, /awaiting_release is next and the record earns it/u,
+    "and the same record earns it where the project releases production itself");
 });
 
 /* The verb, not the check: what a run typing the advance actually gets back (ISS-393). The config
    is left deploying its own production by the test above, which is the population this is about. */
-test("a project that deploys on its own is refused released where the verification is not of what landed", async () => {
+test("a project that deploys on its own is refused the rung where the verification is not of what landed", async () => {
   const run = await ranAsync(FORGE, ["advance", "ISS-96"], tracker.env);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stdout, /eee109e is running and the merged mark says this change landed at 08ca795/u);
@@ -594,9 +595,9 @@ test("a drop is refused once the merged mark is set, and it is the mark that ref
   swap({ mergedAt: null });
   const unmarked = await drop("ISS-95");
   assert.doesNotMatch(unmarked.stderr, /dropped means no code landed/u, "with no mark, nothing says the change landed");
-  swap({ status: "tested" });
+  swap({ status: "awaiting_release" });
   const late = await drop("ISS-95");
-  assert.match(late.stderr, /is tested, and dropped means no code landed/u, "past developed the status refuses first");
+  assert.match(late.stderr, /is awaiting_release, and dropped means no code landed/u, "past developed the status refuses first");
   assert.doesNotMatch(late.stderr, /was marked merged at/u, "so a case keyed on the mark cannot pass on the status");
   swap({});
 });

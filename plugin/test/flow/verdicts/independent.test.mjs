@@ -1,4 +1,4 @@
-/* Where a project asks for a second judge, what earns `tested` is a set of verdicts somebody other
+/* Where a project asks for a second judge, the rung's judging half wants a set of verdicts somebody other
    than the builder wrote against what the deployment reported running. Two fence values decide
    whether the rule is worth anything: a verdict carrying no judge must count for nothing rather
    than pass unnoticed, and the identity has to be cited off the evidence rather than off the
@@ -11,7 +11,7 @@ import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("verdict-independent").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
-const { CHECKS, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { JUDGE_FROM } = await import("../../../src/flow/machine.mjs");
 const { judgeAsk, judgeProblem, judgedAt } = await import("../../../src/flow/qa/verdicts.mjs");
 const { releaseFrom } = await import("../../../src/tracker/project-config.mjs");
@@ -64,7 +64,7 @@ const issueOf = (over = {}) => ({
   ...over,
 });
 const items = (verdicts, { release = INDEPENDENT, issue = {} } = {}) =>
-  CHECKS.tested(
+  judgedOwed(
     viewFrom("the-uuid", issueOf(issue), [mark(), comment(render("verdict", verdicts))], null, release),
     "ISS-8",
   );
@@ -107,7 +107,7 @@ test("an attachment named after the deployment is not a citation of it", () => {
   );
 });
 
-test("every standing verdict judged by the QA session and citing the deployment earns tested", () => {
+test("every standing verdict judged by the QA session and citing the deployment earns the rung", () => {
   assert.deepEqual(owed([verdictOf(1), verdictOf(2)]), []);
 });
 
@@ -118,7 +118,7 @@ const screening = (verdicts, attachments = []) =>
   owed(verdicts, { issue: { plan: SCREENING, attachments } });
 const skip = (number, over = {}) => verdictOf(number, { verdict: "skipped", why: NO_LOGIN, ...over });
 
-test("a skip citing the deployment identity earns tested where no route reaches the rendered state", () => {
+test("a skip citing the deployment identity earns the rung where no route reaches the rendered state", () => {
   assert.deepEqual(screening([skip(1), skip(2)]), [],
     "the one route a judge with no capture tool has, and the check it has to clear is the judge's own");
 });
@@ -140,12 +140,12 @@ test("a pass citing the deployment and no attachment is refused, this changing n
   const said = screening([verdictOf(1), verdictOf(2)]);
   assert.equal(said.length, 1, `one item for the set of verdicts, not one each: ${said}`);
   assert.match(said[0], /cites no attachment this issue carries/u,
-    "a screen change nobody looked at earns no tested, whoever judged it");
+    "a screen change nobody looked at earns no rung, whoever judged it");
 });
 
 /* The half kept as regression coverage rather than as a criterion: a project that asks for no
    second judge is where it always was, and a judge-less verdict there is no shortfall. */
-test("where the project asks for no second judge, the builder's own verdicts earn tested", () => {
+test("where the project asks for no second judge, the builder's own verdicts earn the rung", () => {
   const one = verdictOf(1, { judge: BUILDER, evidence: [MERGED] });
   const two = verdictOf(2);
   delete two.judge;
@@ -307,7 +307,7 @@ before(async () => {
   assert.equal(claimed.status, 0, `the lease every write needs: ${claimed.stderr}`);
 });
 
-test("advance to tested is refused while the standing verdicts are the builder's own", async () => {
+test("advance to the rung is refused while the standing verdicts are the builder's own", async () => {
   const wrote = await builder("record", "verdict", "ISS-8", "--commit", MERGED, "--evidence", DEPLOYED,
     "--verdict", "pass", "--criterion", "1", "--criterion", "2");
   assert.equal(wrote.status, 0, wrote.stderr);
@@ -321,7 +321,7 @@ test("advance to tested is refused while the standing verdicts are the builder's
     "and the item carries the write that answers it, citing the identity to judge against");
 });
 
-test("once the QA session has judged every criterion against the deployment, advance earns tested", async () => {
+test("once the QA session has judged every criterion against the deployment, advance earns the rung", async () => {
   lapse();
   /* The builder's own verdicts are comments this QA session has not been shown, so its first write
      is held to deliver them and the second is the one that takes the lapsed lease. */
@@ -333,9 +333,15 @@ test("once the QA session has judged every criterion against the deployment, adv
     "--verdict", "pass", "--criterion", "1", "--criterion", "2");
   assert.equal(wrote.status, 0, wrote.stderr);
   assert.equal(wrote.stdout.match(new RegExp(`^judge: ${QA}$`, "gmu")).length, 2, wrote.stdout);
+  /* One rung, two halves: the judging alone leaves it owed, so the same session writes the deployment's records and the advance answers for the whole of it. */
+  const proved = await qa("record", "verification", "ISS-8", "--where", "the deployed app",
+    "--commit", MERGED, "--evidence", "https://ci.example.test/9");
+  assert.equal(proved.status, 0, proved.stderr);
+  const noted = await qa("record", "note", "ISS-8", "--section", "Fixed", "--user", "it works");
+  assert.equal(noted.status, 0, noted.stderr);
   const run = await qa("advance", "ISS-8");
   assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
-  assert.equal(judging.status, "tested", "the record earned it, so the verb moved it");
+  assert.equal(judging.status, "awaiting_release", "the record earned it, so the verb moved it");
 });
 
 /* The third move of the handoff these criteria name — builder readies, lander takes, QA takes,

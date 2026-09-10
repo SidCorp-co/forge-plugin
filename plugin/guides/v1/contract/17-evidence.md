@@ -9,7 +9,7 @@ because what a landing brings is other people's work. That argument stops short 
 proof rested on the whole tree — a gate's result, a suite's count, a rendered screen, a fixture. Judge
 those on the tree that shipped, and the author is who knows which they are.
 
-**A change claiming no behaviour change earns `tested` by identity.** Its criteria are the three
+**A change claiming no behaviour change earns `awaiting_release` by identity.** Its criteria are the three
 things a move can break: the export surface of every touched module against the base, the suite green
 from the new locations with the count before and after, and history reaching each moved file through
 the rename.

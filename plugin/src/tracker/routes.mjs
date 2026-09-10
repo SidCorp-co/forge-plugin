@@ -190,9 +190,10 @@ export const DECLARES = {
   forge_issues: {
     filters: Object.keys(FILTERS),
     priority: ["critical", "high", "medium", "low", "none"],
+    /* The tracker's enum as it answers today, not this plugin's ladder: `released` left it and `awaiting_release` and `releasing` arrived in its place (ISS-1022), and the retired rungs stay because rows still hold them and a read has to be able to name one. */
     status: ["open", "confirmed", "clarified", "waiting", "approved", "in_progress", "developed",
-      "testing", "tested", "released", "closed", "reopen", "on_hold", "needs_info", "draft",
-      "dropped"],
+      "testing", "tested", "awaiting_release", "releasing", "closed", "reopen", "on_hold",
+      "needs_info", "draft", "dropped"],
     caps: {
       title: { self: 500, halves: {} },
       description: { self: 100000, halves: {} },

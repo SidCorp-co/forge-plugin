@@ -234,7 +234,7 @@ test("the brief carries the finding, the triage and the reopen count", () => {
   assert.equal(brief().reopens, 0, "an issue nobody reopened says nothing about it");
   assert.equal(brief().ahead, null, "and a plan declaring no person's look says nothing ahead");
   const looking = brief({ plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: yes." });
-  assert.match(looking.ahead, /^Ahead: released owes a person's look/u);
+  assert.match(looking.ahead, /^Ahead: awaiting_release owes a person's look/u);
 });
 
 test("the worklog and the lease's line are read out of the field, and never from the repository", () => {
@@ -272,7 +272,7 @@ test("every blocking edge is named with its kind, and the park with the status i
      land in another side status, and a brief showing that one would disagree with its own owed. */
   const both = brief({ status: "on_hold" }, [
     recorded("park", { kind: "crashed", why: "three reclaims of in_progress" }, "in_progress"),
-    recorded("park", { kind: "screen-review", why: "look at it", evidence: ["https://example.test/x"] }, "tested"),
+    recorded("park", { kind: "screen-review", why: "look at it", evidence: ["https://example.test/x"] }, "awaiting_release"),
   ]);
   assert.match(both.park.said, /three reclaims of in_progress/u, "the newer park lands in waiting, not here");
   assert.equal(both.owed.next, "in_progress", "and the owed route reads the same one");
@@ -292,11 +292,11 @@ test("the owed section is what advance would say, and a refusal becomes the line
   assert.equal(brief({ status: "closed" }).owed.next, null);
 });
 
-/* A run's end is measured by `closed`, so a brief re-minted on an issue at `released` says the close
-   is owed rather than leaving the phase's name to imply that somebody else might make it (ISS-105). */
-test("a brief on a released issue owes the close, and names the phase that makes it", () => {
-  const one = brief({ status: "released" });
-  assert.equal(one.phase, "7 Ship, the close");
+/* A run's end is measured by `closed`, so a brief re-minted on an issue at the release rung says the
+   close is owed rather than leaving the phase's name to imply that somebody else might make it (ISS-105). */
+test("a brief on an issue at the release rung owes the close, and names the phase that makes it", () => {
+  const one = brief({ status: "awaiting_release" });
+  assert.equal(one.phase, "6, 7 Ship, the close", "the one rung names both phases its two used to");
   assert.equal(one.owed.next, "closed");
   assert.deepEqual(one.owed.missing, [], "the status is the whole of what a close is earned by");
   assert.equal(one.ahead, null, "and nothing is ahead of it");

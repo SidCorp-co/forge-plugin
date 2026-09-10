@@ -132,7 +132,7 @@ test("the flag is reported as what it decides, and where it is set the line says
   assert.match(out, /^production deploy: automatic — /mu);
   assert.match(out, /^: and nothing here says the host deploys on push: /mu,
     "on a row of its own with no label, which is how the one report prints a continuation");
-  assert.match(out, /`released` asks the verification to name the deployment that built the commit/u);
+  assert.match(out, /`awaiting_release` asks the verification to name the deployment that built the commit/u);
   assert.doesNotMatch(out, /deploys on its own/u, "the sentence the reading came from is gone");
 });
 
@@ -169,7 +169,7 @@ test("a project with no deploy is told so, ends on the credential line, and inve
 
 test("a config that did not answer is said rather than defaulted", () => {
   const out = lines(projectRows({ policy: null, deploy: null }));
-  assert.match(out, /^release policy: the project config did not answer — the park before released stands$/mu);
+  assert.match(out, /^release policy: the project config did not answer — the park before awaiting_release stands$/mu);
   assert.doesNotMatch(out, /staging branch/u);
   assert.doesNotMatch(out, /test credentials/u,
     "an unanswered call is not a decision, so *none* is not said on its behalf: that silence is "
@@ -335,7 +335,7 @@ test("the independent-judgement line is the tracker record's, and no checkout ke
 test("the report prints both lines, the route with the source it was read from", () => {
   const out = said({ landing: NONE });
   assert.match(out, /^where the merge sits: after-merge {2}← the tracker's project config$/mu);
-  assert.match(out, /^independent judgement: not stated between developed and tested {2}← the tracker's project config$/mu);
+  assert.match(out, /^independent judgement: not stated between developed and awaiting_release {2}← the tracker's project config$/mu);
   assert.match(said({ landing: { value: "before-merge", from: ".forge.json" } }),
     /^where the merge sits: before-merge {2}← \.forge\.json$/mu);
 });

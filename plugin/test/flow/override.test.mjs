@@ -278,20 +278,20 @@ test("a pair the verb cannot read is refused with the form it takes", async () =
 });
 
 test("a status set by hand carries the reason the tracker demands, and says no check read it", async () => {
-  before("tested");
+  before("awaiting_release");
   const run = await setStatus("--set", "on_hold", "--why", WHY);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, /^ISS-96 {2}tested -> on_hold {2}\(set, unearned\)$/mu,
+  assert.match(run.stdout, /^ISS-96 {2}awaiting_release -> on_hold {2}\(set, unearned\)$/mu,
     "the move says it was set rather than earned, on the line a reader skims");
   assert.ok(run.stdout.includes(UNREAD));
   assert.equal(sent("transition").reason, WHY, "the reason travels with the move, which a side status refuses without");
   const [correction] = posted();
-  assert.match(correction, /the status set to `on_hold` by `forge advance --set`, from `tested`/u,
+  assert.match(correction, /the status set to `on_hold` by `forge advance --set`, from `awaiting_release`/u,
     "and the correction says where it came from, which the status field no longer holds");
 });
 
 test("a status that waits on a person carries the kind the tracker demands of one", async () => {
-  before("tested");
+  before("awaiting_release");
   const run = await setStatus("--set", "waiting", "--why", WHY);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.equal(sent("transition").waitingKind, "needs_decision",

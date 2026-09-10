@@ -392,7 +392,7 @@ export const restoreMachine = (text, held = {}) => {
    the block it is written into, and importing nothing, so either side may reach it. */
 export const FINDINGS = ["holds", "already-fixed", "duplicate", "intended", "obsolete", "premise-false"];
 /* The status `closed` is entered from. Here, not beside ORDER: record.mjs cannot import earned.mjs. */
-export const CLOSES_FROM = "released";
+export const CLOSES_FROM = "awaiting_release";
 export const PARKS = [
   "question", "screen-review", "destructive-migration", "rolled-back", "no-way-back",
   "unshippable", "blocked", "paused", "crashed", "release-decision", "code-review", "dropped",

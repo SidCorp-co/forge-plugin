@@ -23,7 +23,7 @@ import { waitsForPerson } from "../tracker/project-config.mjs";
 
 /* The contract's flow table in its own order: the sequence is the rule, so listing it is the point. */
 export const ORDER = [
-  "open", "confirmed", "clarified", "approved", "in_progress", "developed", "tested", "released", "closed",
+  "open", "confirmed", "clarified", "approved", "in_progress", "developed", "awaiting_release", "closed",
 ];
 
 /* The method's phases, numbered as the guide numbers them and indexed by that number. The one table: the flow table below builds its phrases from it and the transcript miner counts a run's calls against it, so phase 5 is one phase rather than two that shared a number and meant "prove" in one reading and "ship" in the other (ISS-700, BR-09). */
@@ -41,9 +41,8 @@ export const PHASE = {
   approved: [`${PHASES[4]}, to the branch`, "verification"],
   in_progress: [`${PHASES[4]}, to the review; ${PHASES[5]}; then 7's landing`, "verification"],
   developed: [PHASES[5], "verification"],
-  /* The contract's cell abbreviates the note's phase to its number, and this table mirrors that cell for cell: `forge guide contract tested` is what a reader is held to. */
-  tested: [`6, ${PHASES[7]}`, null],
-  released: [`${PHASES[7]}, the close`, null],
+  /* The contract's cell abbreviates the note's phase to its number, and this table mirrors that cell for cell: `forge guide contract awaiting_release` is what a reader is held to. One row where two were, the tracker holding one status where this ladder held `tested` and `released` (ISS-1022). */
+  awaiting_release: [`6, ${PHASES[7]}, the close`, null],
   closed: ["none", "learning"],
   dropped: ["none", "learning"],
   reopen: [`${PHASES[1]}, of the person's finding`, null],
@@ -325,9 +324,7 @@ const judgedSince = (view, ref) => {
   const held = atThisReopen(view, "triage");
   const outcome = held?.record.fields.outcome;
   if (!outcome || outcome === TRIAGES[2]) return [];
-  /* Only the criteria the issue still has: a wrong-test correction may drop or renumber the one
-     that was wrong, and a verdict asked for on a number the field no longer holds is refused at the
-     write, which would leave the issue unable to reach `tested` at all. */
+  /* Only the criteria the issue still has: a wrong-test correction may drop or renumber the one that was wrong, and a verdict asked for on a number the field no longer holds is refused at the write, which would leave the issue unable to reach the rung at all. */
   const current = new Set(view.criteria.map((one) => one.number));
   const stale = numbered(view.verdicts)
     .filter(([number, one]) => current.has(number) && one.at <= held.at)
@@ -440,6 +437,44 @@ const scopeOwed = (view, ref) => {
   )];
 };
 
+/* The judging half of the rung the tracker renamed, kept whole and called beside the other: what was two statuses is one, and a rung asking that three payloads be present in their place would drop every demand these make beyond a record's existence — the judge, the head a verdict was judged at, the screen, the classification (ISS-1022, consult 8736c3 F2). */
+export const judgedOwed = (view, ref) => {
+  if (!view.criteria.length) {
+    return [need("the criteria field holds no numbered line, so there is nothing to judge", `forge record criteria ${ref} <criteria.md>`)];
+  }
+  const out = [...verdictsOwed(view, ref), ...judgedSince(view, ref), ...shownOwed(view, ref), ...judgeOwed(view, ref)];
+  if (view.flags.schema === "yes" && !view.names.length) {
+    out.push(need(
+      "the plan declares schema coupling, and no attachment carries the migration risk classification",
+      `forge attach issue ${ref} <classification>`,
+    ));
+  }
+  return out;
+};
+
+/* The deploying half of the same rung. Both halves are named and exported because each is asked of the one rung and a case holds each to its own refusals: composed into a single list, a half that stopped asking anything would still leave the other's items and read as a rung that refuses. */
+export const deployedOwed = (view, ref) => {
+  const verification = payloadOwed(
+    view,
+    "verification",
+    "no verification: where the change now runs, at which commit, and the evidence",
+    verificationForm(ref, "<sha>", "<attachment|url|sha>"),
+  );
+  /* One or the other: a payload with gaps has no fields to compare against anything. */
+  const out = verification.length ? verification : deployOwed(view, ref);
+  if (!view.issue.releaseNotes?.section && !lightPath(view, "awaiting_release")) {
+    out.push(need("no release note and no withholding either", `forge record note ${ref} --section Added --user "<what the reporter sees>"`));
+  }
+  const declared = personLooks(view.flags, view.release);
+  if (declared && !answered(view, "screen-review")) {
+    out.push(need(
+      `the plan declares ${declared}, and no person has answered since it was parked for review`,
+      `forge advance ${ref} --park screen-review --why "<why>" --evidence <attachment|url|sha>`,
+    ));
+  }
+  return out;
+};
+
 /* One entry check per status, each answering with what the record lacks and the write that supplies
    it. Nothing here reads the repository: what git knows was written on at the step that knew it. */
 export const CHECKS = {
@@ -537,40 +572,7 @@ export const CHECKS = {
     }
     return [...out, ...scopeOwed(view, ref), ...reviewOwed(view, ref)];
   },
-  tested: (view, ref) => {
-    if (!view.criteria.length) {
-      return [need("the criteria field holds no numbered line, so there is nothing to judge", `forge record criteria ${ref} <criteria.md>`)];
-    }
-    const out = [...verdictsOwed(view, ref), ...judgedSince(view, ref), ...shownOwed(view, ref), ...judgeOwed(view, ref)];
-    if (view.flags.schema === "yes" && !view.names.length) {
-      out.push(need(
-        "the plan declares schema coupling, and no attachment carries the migration risk classification",
-        `forge attach issue ${ref} <classification>`,
-      ));
-    }
-    return out;
-  },
-  released: (view, ref) => {
-    const verification = payloadOwed(
-      view,
-      "verification",
-      "no verification: where the change now runs, at which commit, and the evidence",
-      verificationForm(ref, "<sha>", "<attachment|url|sha>"),
-    );
-    /* One or the other: a payload with gaps has no fields to compare against anything. */
-    const out = verification.length ? verification : deployOwed(view, ref);
-    if (!view.issue.releaseNotes?.section && !lightPath(view, "released")) {
-      out.push(need("no release note and no withholding either", `forge record note ${ref} --section Added --user "<what the reporter sees>"`));
-    }
-    const declared = personLooks(view.flags, view.release);
-    if (declared && !answered(view, "screen-review")) {
-      out.push(need(
-        `the plan declares ${declared}, and no person has answered since it was parked for review`,
-        `forge advance ${ref} --park screen-review --why "<why>" --evidence <attachment|url|sha>`,
-      ));
-    }
-    return out;
-  },
+  awaiting_release: (view, ref) => [...judgedOwed(view, ref), ...deployedOwed(view, ref)],
   closed: () => [],
   dropped: () => [],
 };

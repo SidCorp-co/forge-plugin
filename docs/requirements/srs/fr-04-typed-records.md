@@ -64,7 +64,7 @@ client no check sits in front of.
 - **AC-04-2-1** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "a record with no mark and no earlier citation is refused by the flag, and says what is there"
   IF a record cites an attachment that is not on the issue THEN the CLI SHALL refuse the record and
   SHALL say what the reference has to be.
-- **AC-04-2-2** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "released needs a verification and a release note, and closed needs only released"
+- **AC-04-2-2** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "the deploying half needs a verification and a release note"
   WHEN a record is read back THEN its evidence SHALL be checked again against the issue.
 - **AC-04-2-3** · Rev: 1 · Proof: plugin/test/flow/earned/batched-verdict.test.mjs "a file two criteria cite goes up once, under the one name both of them carry"
   WHERE more than one block of one write cites the same file, the CLI SHALL upload it once and every

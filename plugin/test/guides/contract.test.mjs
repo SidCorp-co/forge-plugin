@@ -26,7 +26,7 @@ const {
   stageLine,
   statesContract,
 } = await import("../../src/guides/contract.mjs");
-const { CHECKS, ORDER, PHASE, viewFrom } = await import("../../src/flow/earned.mjs");
+const { CHECKS, ORDER, PHASE, deployedOwed, judgedOwed, viewFrom } = await import("../../src/flow/earned.mjs");
 const { LIGHTER, RUNGS, SPARES, complexityFor } = await import("../../src/ladder.mjs");
 const { rungReport } = await import("../../src/ladder-report.mjs");
 const { render } = await import("../../src/flow/record/page.mjs");
@@ -54,7 +54,7 @@ test("every status of the flow has a part, and the sections are the files' own h
   }
   assert.deepEqual(keysOfAll(PARTS), [
     "the-issue-flow-contract", "two-layers-one-record", "the-flow", "the-stages",
-    ...STAGED.slice(0, 9), "dropped", "when-the-run-breaks", "the-mechanics",
+    ...STAGED, "when-the-run-breaks", "the-mechanics",
     "earning-and-unearning", "the-review", "evidence", "release-and-routes", "what-it-does-not-do",
   ], "a heading renamed, dropped or added moves the command that reaches it, and says so here");
   const keys = keysOfAll(PARTS);
@@ -317,7 +317,7 @@ test("the stage line names the part for the status and the command that prints i
 });
 
 test("the verb's answer is one part, the contents, or one refusal that names the way out", () => {
-  assert.deepEqual(contractAnswer({ part: "released" }).lines, [partFor(PARTS, "released").text]);
+  assert.deepEqual(contractAnswer({ part: "awaiting_release" }).lines, [partFor(PARTS, "awaiting_release").text]);
   assert.equal(contractAnswer({}).lines[0].startsWith("The issue-flow contract"), true);
   const flag = contractAnswer({ tracker: true }).refusal;
   assert.match(flag, /--tracker does not apply to contract/u);
@@ -373,6 +373,9 @@ const recorded = (kind, fields) =>
 const UNMARKED = "`forge issue` should take the `data.relations` route.";
 const VERIFIED = [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["43b811e"] })];
 const climbed = (moved) => [recorded("correction", { moved, why: "what the work turned out to be" })];
+/* One rung asks both halves, so a case reading the note's drop satisfies the judging half as well, on the one criterion `weighed` carries: judging items left owed would answer for the deploying half never being asked (ISS-1022). */
+const JUDGED = [recorded("verdict", { criterion: "1. The one check that fails without the change.",
+  verdict: "pass", commit: "43b811e", evidence: ["43b811e"] })];
 /* A rung is the tracker's complexity and nothing else, so a case at a rung sets the field the entry
    checks read; `null` is the issue that holds none, which is the top rung by the upward rule. */
 const weighed = (rung, extra = {}) => ({
@@ -384,11 +387,13 @@ const weighed = (rung, extra = {}) => ({
 });
 const missing = (status, issue, comments = []) =>
   CHECKS[status](viewFrom("the-uuid", issue, comments), "ISS-3").map((one) => one.what);
+const deploying = (issue, comments = []) =>
+  deployedOwed(viewFrom("the-uuid", issue, comments), "ISS-3").map((one) => one.what);
 /* One case per row, keyed by the status, so a row added with no case fails rather than going unasked. */
 const CASES = {
   clarified: { owed: /^no decision record/u },
   approved: { owed: /^the plan field is empty$/u },
-  released: { comments: VERIFIED, owed: /^no release note/u },
+  awaiting_release: { comments: [...VERIFIED, ...JUDGED], owed: /^no release note/u },
 };
 
 test("every status a rung lightens is dropped by its own check, and the rung report is the one home", () => {
@@ -446,8 +451,8 @@ test("no rung buys a judgement: the baseline and the migration classification co
     const held = weighed(rung, { plan: "Schema coupling: yes" });
     assert.ok(missing("in_progress", held).some((one) => /^no baseline/u.test(one)),
       `a ${rung} is asked for no baseline, and the one whole gate run of the work is what it skipped`);
-    assert.ok(missing("tested", { ...held, acceptanceCriteria: "" }).length,
-      `a ${rung} declaring schema coupling earns tested with nothing said about the migration`);
+    assert.ok(missing("awaiting_release", { ...held, acceptanceCriteria: "" }).length,
+      `a ${rung} declaring schema coupling earns the rung with nothing said about the migration`);
   }
   assert.equal(LIGHTER.some((row) => row.status === "in_progress"), false,
     "and no row lightens in_progress, so the demand is the table's and not this case's");
@@ -457,8 +462,8 @@ test("the rung drops nothing the contract keeps, and a declared person takes a f
   assert.equal(missing("confirmed", weighed("fix")).length, 1, "the confirmation with its where");
   assert.deepEqual(missing("approved", weighed("fix", { acceptanceCriteria: "" })),
     ["the criteria field holds no numbered line `N. outcome`"], "the criteria, being the whole of a fix's plan");
-  assert.deepEqual(missing("released", weighed("fix")).map((one) => one.slice(0, 16)), ["no verification:"]);
-  const seen = missing("released", weighed("fix", { plan: "User-facing outcome: yes" }), VERIFIED);
+  assert.deepEqual(deploying(weighed("fix")).map((one) => one.slice(0, 16)), ["no verification:"]);
+  const seen = missing("awaiting_release", weighed("fix", { plan: "User-facing outcome: yes" }), VERIFIED);
   assert.ok(seen.includes("no release note and no withholding either"), "declaring a person owes the note again");
   assert.ok(seen.some((one) => /no person has answered/u.test(one)), "and the park with it");
 });
@@ -486,7 +491,7 @@ test("a correction climbs a fix back onto the full path, and reads one direction
   const back = (status) => missing(status, weighed("fix"), [...climbed("Size: fix -> feature"), ...VERIFIED]);
   assert.equal(back("clarified").length, 1, "the decision record is owed again");
   assert.deepEqual(back("approved"), ["the plan field is empty"]);
-  assert.ok(back("released").includes("no release note and no withholding either"));
+  assert.ok(back("awaiting_release").includes("no release note and no withholding either"));
   for (const moved of ["Size: feature -> fix", "Size: fix later"]) {
     assert.deepEqual(missing("clarified", weighed("fix"), climbed(moved)), [],
       `\`${moved}\` is not the climb, and reading it as one unearns a status the issue holds`);
@@ -500,7 +505,7 @@ const RETIRED_BY_CHECK = [
   [/the project's gate run once, whole and\s+distrusting any remembered pass/u,
     "the baseline's wholeness, which `in_progress` now refuses on the record's own scope"],
   [/An image left on your disk proved nothing to anyone/u,
-    "that a screen's proof is an attachment, which `tested` now refuses a verdict for lacking"],
+    "that a screen's proof is an attachment, which the rung now refuses a verdict for lacking"],
   [/Do not silently expand scope/u,
     "that a file the plan does not name is a correction, which `developed` now refuses the mark for"],
 ];
@@ -538,7 +543,7 @@ test("the checks point back from the guides, and the evidence table keeps the ki
 
 /* The fallback is prose about a refusal, so it can drift from the refusal without failing anything.
    The shapes are parsed out of the section rather than asserted beside it: a third bullet, or one
-   opening on a verdict the check refuses, is a run told to spend a Phase 5 on evidence `tested` will
+   opening on a verdict the check refuses, is a run told to spend a Phase 5 on evidence the rung will
    not take, and it fails here. The check's own file is another run's (ISS-72). */
 const SHAPES = { skipped: [], pass: ["rendered.png"] };
 const SECTION = "## When no login reaches the rendered state";
@@ -550,7 +555,7 @@ const shapesIn = (text) => {
   return [...held.matchAll(/^- \*\*`(\w+)`/gmu)].map((found) => found[1]);
 };
 
-test("the fallback for a screen with no credential names the two shapes the tested check leaves", () => {
+test("the fallback for a screen with no credential names the two shapes the judging check leaves", () => {
   const text = readFileSync(VERIFICATION, "utf8");
   const held = flat(text);
   for (const [beat, phrase] of [
@@ -572,7 +577,7 @@ test("the fallback for a screen with no credential names the two shapes the test
     acceptanceCriteria: criteria,
     attachments: [{ name: "rendered.png" }],
   }, comments);
-  const owed = (comments) => CHECKS.tested(seen(comments), "ISS-72").map((one) => one.what);
+  const owed = (comments) => judgedOwed(seen(comments), "ISS-72").map((one) => one.what);
   /* Every shape the section offers, and only those: an offer the check refuses fails on the drive,
      and one it accepts that nobody wrote a case for fails on the name. */
   const offered = shapesIn(text);
@@ -580,7 +585,7 @@ test("the fallback for a screen with no credential names the two shapes the test
     + "shapes this test has no case for, so the guide and the check are no longer held together");
   for (const verdict of offered) {
     assert.deepEqual(owed(judged(verdict, SHAPES[verdict])), [], `the reference sends a criterion to `
-      + `\`${verdict}\` and the check does not leave it, so the guide asks for evidence \`tested\` refuses`);
+      + `\`${verdict}\` and the check does not leave it, so the guide asks for evidence the rung refuses`);
   }
   const refused = owed(judged("pass", ["https://host.test/ 200", "43b811e"]));
   assert.equal(refused.length, 1, "while routing evidence alone earns the refusal the reference warns of");

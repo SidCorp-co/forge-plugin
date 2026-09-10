@@ -29,7 +29,10 @@ import {
 } from "./earned.mjs";
 import { releasePolicy, stagingDeploy } from "../tracker/project-config.mjs";
 
-const RELEASED = "released";
+/* One name where this file held two: `tested` and `released` are one rung on the tracker (ISS-1022), so the screen gate, the person's look and the policy fetch all read the same status. */
+const AWAITING = "awaiting_release";
+/* What a park recorded before the tracker's rename names as the status it left, and the rung that took each over. Read only to answer with a name instead of a placeholder, and never to alias: an issue parked from the judging half never earned the deploying one, so the way back is a set that records what no check read (ISS-1022, review F1). */
+const REPLACED_BY = { tested: AWAITING, released: AWAITING };
 
 /* A park is a checkpoint with a person at it: the reply that resumes it is a comment by somebody
    other than whoever parked the issue. A hold nobody was asked to answer resumes by hand. */
@@ -62,11 +65,9 @@ const resumeOwed = (view, held, ref) => {
 export const REOPEN = "reopen";
 const FALLS_TO = { "wrong-test": "developed", "not-met": "in_progress" };
 
-/* Where the reopen landed, read from the record: a merged mark means code landed, so this is the
-   reopen of a close and the contract sends it to `released`. No mark means nothing landed, so it is
-   the reopen of a drop and it goes back to the status the dropped park recorded. */
+/* Where the reopen landed, read from the record: a merged mark means code landed, so this is the reopen of a close and the contract sends it to the rung merged work waits on. No mark means nothing landed, so it is the reopen of a drop and it goes back to the status the dropped park recorded. */
 const landedOn = (view, ref) => {
-  if (view.issue.mergedAt) return RELEASED;
+  if (view.issue.mergedAt) return AWAITING;
   const left = parkRecord(view, (one) => one === "dropped")?.record.fields.left;
   if (!ORDER.includes(left)) {
     refuse(`${ref} is ${REOPEN} and has no merged mark, so nothing landed and this is the reopen of a `
@@ -194,29 +195,27 @@ const reopenTarget = (view, ref) => {
   };
 };
 
-/* What `released` will want, said at the rehearsal rather than at the refusal three statuses later:
+/* What the last rung will want, said at the rehearsal rather than at the refusal two statuses later:
    the fourth dry run's lesson is that an obligation nobody is told about early is one that slips. */
 export const lookAhead = (view, ref) => {
   const said = personLooks(view.flags, view.release);
-  if (!said || atLeast(view.issue.status, RELEASED) || answered(view, "screen-review")) return null;
-  return `Ahead: released owes a person's look, because the plan declares ${said}. Ask for it with
+  if (!said || atLeast(view.issue.status, AWAITING) || answered(view, "screen-review")) return null;
+  return `Ahead: ${AWAITING} owes a person's look, because the plan declares ${said}. Ask for it with
 `
     + `  forge advance ${ref} --park screen-review --why "<why>" --evidence <attachment|url|sha>`;
 };
 
-const TESTED = "tested";
-
-/* One gate, read by the line and by the fetch that feeds it: a screen change below `tested`, and not
-   `tested` being next, nothing arriving there until the change has landed. */
+/* One gate, read by the line and by the fetch that feeds it: a screen change below the judging rung,
+   and not that rung being next, nothing arriving there until the change has landed. */
 const credentialOwed = (flags, status) =>
-  (flags.screen === "yes" && !atLeast(status, TESTED));
+  (flags.screen === "yes" && !atLeast(status, AWAITING));
 
 /* Said while a run can still do something about it, and not from the entry check, whose every item
    is one owed. A null deploy is unread, never empty. advance.md. */
 export const credentialAhead = (view, ref) => {
   if (!credentialOwed(view.flags, view.issue.status)) return null;
   if (!view.deploy || view.deploy.withheld.length) return null;
-  return `Ahead: ${TESTED} wants an attachment on every verdict that is not skipped, and this project
+  return `Ahead: ${AWAITING} wants an attachment on every verdict that is not skipped, and this project
 `
     + `holds no test credential, so no login reaches the rendered state. Two verdict shapes get past
 `
@@ -257,8 +256,13 @@ export const targetOf = (view, ref) => {
     }
     const left = held.record.fields.left;
     if (!ORDER.includes(left)) {
+      const took = REPLACED_BY[left];
       refuse(`the park record on ${ref} names \`${left}\` as the status it left, which is no step of the flow. `
-        + `Whoever knows where it belongs sets it, and this writes a status no entry check read:\n  ${setForm(ref, "<status>")}`);
+        + (took
+          ? `The rung that took it over is \`${took}\`, which asks for more than \`${left}\` did, so the `
+            + `way back is a set and not a step: `
+          : `Whoever knows where it belongs sets it, and this writes a status no entry check read:\n  `)
+        + `${setForm(ref, took ?? "<status>")}`);
     }
     return { next: left, missing: resumeOwed(view, held, ref), resumed: true };
   }
@@ -294,9 +298,9 @@ export const owedLine = (view, ref, held) => {
 };
 
 /* A call made only where its answer is read: a plan declaring neither line owes no person, and the
-   policy is fetched only where the status being entered reads it — `tested` asks who judges,
-   `released` what deploys. The step is `stepAfter`'s, null for a status the flow does not hold. */
-const POLICY_AT = [TESTED, RELEASED];
+   policy is fetched only where the status being entered reads it — one rung now, which asks both who
+   judges and what deploys. The step is `stepAfter`'s, null for a status the flow does not hold. */
+const POLICY_AT = [AWAITING];
 export const policyFor = async (plan, status = null) =>
   (personLooks(planFlags(unwrap(plan))) || POLICY_AT.includes(stepAfter(status)) ? releasePolicy() : null);
 

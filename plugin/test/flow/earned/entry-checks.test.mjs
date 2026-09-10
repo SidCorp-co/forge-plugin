@@ -11,7 +11,7 @@ import { tempHome, typedPlan } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("entry-checks").path;
 const { parse, render } = await import("../../../src/flow/record/page.mjs");
-const { CHECKS, namedIn, rungFieldsOf, shapeGaps, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { CHECKS, deployedOwed, judgedOwed, namedIn, rungFieldsOf, shapeGaps, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { rungOf } = await import("../../../src/ladder.mjs");
 const { planFlags, planSections, planSteps } = await import("../../../src/flow/machine.mjs");
 const { markNote } = await import("../../../src/flow/record/merged.mjs");
@@ -27,6 +27,8 @@ const CRITERIA = "1. The first outcome.\n2. The second outcome.";
 const ATTACHED = [{ name: "run.txt" }];
 const view = (issue, comments = []) => viewFrom("the-uuid", issue, comments);
 const missing = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item.what);
+/* Each half of the one rung after `developed` is asked on its own, a case about the verdicts having no business answering for a verification (ISS-1022). */
+const judging = (one) => judgedOwed(one, "ISS-3").map((item) => item.what);
 const commands = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item.command);
 
 test("a baseline that measured part of the tree earns nothing, and one that names no scope is not refused for it", () => {
@@ -51,19 +53,19 @@ test("a screen change owes an attachment on every verdict that is not skipped", 
   const judged = (evidence, verdict = "pass") => [1, 2].map((criterion) =>
     recorded("verdict", { criterion: `${criterion}. The outcome.`, verdict, commit: "43b811e", evidence, why: "nothing to look at" }));
   const seen = (issue, comments) => viewFrom("the-uuid", { ...issue, attachments: ATTACHED }, comments);
-  assert.deepEqual(missing("tested", seen(plan("no"), judged(["43b811e"]))), [],
+  assert.deepEqual(judging(seen(plan("no"), judged(["43b811e"]))), [],
     "a plan declaring no screen is judged as it always was");
-  const said = CHECKS.tested(seen(plan("yes"), judged(["43b811e"])), "ISS-3");
+  const said = judgedOwed(seen(plan("yes"), judged(["43b811e"])), "ISS-3");
   assert.equal(said.length, 1, "one item for the set, not one per criterion");
   assert.match(said[0].what, /cites no attachment/u);
   assert.match(said[0].command, /forge attach issue ISS-3/u);
-  assert.deepEqual(missing("tested", seen(plan("yes"), judged(["run.txt"]))), [],
+  assert.deepEqual(judging(seen(plan("yes"), judged(["run.txt"]))), [],
     "an attachment this issue carries is the thing a person looked at");
-  assert.deepEqual(missing("tested", seen(plan("yes"), judged([], "skipped"))), [],
+  assert.deepEqual(judging(seen(plan("yes"), judged([], "skipped"))), [],
     "a skipped verdict owes no evidence at all, so it owes no attachment either");
   /* A wrong-test triage drops a criterion; the verdict stays, and cannot be written again. */
   const dropped = { ...plan("yes"), acceptanceCriteria: "2. The second outcome." };
-  assert.deepEqual(missing("tested", seen(dropped, judged(["run.txt"]).slice(1)
+  assert.deepEqual(judging(seen(dropped, judged(["run.txt"]).slice(1)
     .concat(recorded("verdict", { criterion: "1. The dropped outcome.", verdict: "pass", commit: "43b811e", evidence: ["43b811e"] })))), [],
   "the verdict left on a criterion the issue dropped owes no attachment");
 });
@@ -202,7 +204,7 @@ test("a project that deploys on its own earns released by proving the deploy, no
   const policy = (autoProd) => ({ staging: "master", production: "master", autoProd, from: "the config" });
   const verified = (commit, evidence, contains) =>
     [mark(NOTE), recorded("verification", { where: "https://app.example", commit, contains, evidence })];
-  const owed = (release, commit, evidence, contains) => CHECKS.released(
+  const owed = (release, commit, evidence, contains) => deployedOwed(
     viewFrom("the-uuid", { attachments: ATTACHED, releaseNotes: { section: "Fixed" } }, verified(commit, evidence, contains), null, release),
     "ISS-3",
   );
@@ -239,7 +241,7 @@ test("a project that deploys on its own earns released by proving the deploy, no
     "a project whose config did not answer has decided nothing, and this stays silent");
 
   /* The gaps come first and alone: a payload with no commit in it has none to compare. */
-  const half = CHECKS.released(
+  const half = deployedOwed(
     viewFrom("the-uuid", { releaseNotes: { section: "Fixed" } },
       [mark(NOTE), recorded("verification", { where: "https://app.example", evidence: ["43b811e"] })], null, policy(true)),
     "ISS-3",
@@ -384,6 +386,6 @@ test("a declaration a plan quotes inside a code span is not one it makes", () =>
   const verdicts = [1, 2].map((number) =>
     recorded("verdict", { criterion: `${number} — text`, verdict: "pass", commit: "c8c3550", evidence: ["c8c3550"] }));
   const stamped = { mergedAt: "2026-09-02T13:49:51.777Z", acceptanceCriteria: CRITERIA, plan: quoted };
-  assert.deepEqual(missing("tested", view(stamped, [landed, ...verdicts])), [],
+  assert.deepEqual(judging(view(stamped, [landed, ...verdicts])), [],
     "and no migration risk classification is asked of a plan whose only coupling line is a quotation");
 });

@@ -13,7 +13,8 @@ process.env.XDG_CONFIG_HOME = tempHome("batched-verdict").path;
 const { blocksIn } = await import("../../../src/flow/record/record.mjs");
 const { parse, parseAll, render } = await import("../../../src/flow/record/page.mjs");
 const { SHAPES } = await import("../../../src/flow/machine.mjs");
-const { CHECKS, viewFrom } = await import("../../../src/flow/earned.mjs");
+/* Every case here asks the judging half of the one rung after `developed`, which is the half a verdict earns: its deploying half asks for a verification and a note, and no case here is about either (ISS-1022). */
+const { judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { CONTRACT } = await import("../../../src/guides/contract.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -79,14 +80,14 @@ test("advance earns tested from a batched write exactly as from one write per cr
   const three = [verdictOf(1), verdictOf(2), verdictOf(3)];
   const batched = viewFrom("the-uuid", issue, [mark, comment(render("verdict", three))]);
   const singly = viewFrom("the-uuid", issue, [mark, ...three.map((one) => comment(render("verdict", [one])))]);
-  assert.deepEqual(CHECKS.tested(batched, "ISS-7"), [], "the batched write earns it");
-  assert.deepEqual(CHECKS.tested(batched, "ISS-7"), CHECKS.tested(singly, "ISS-7"), "and the two read alike");
+  assert.deepEqual(judgedOwed(batched, "ISS-7"), [], "the batched write earns it");
+  assert.deepEqual(judgedOwed(batched, "ISS-7"), judgedOwed(singly, "ISS-7"), "and the two read alike");
   const mixed = [verdictOf(1), verdictOf(2, "fail", { why: "sorted by id" }), verdictOf(3)];
-  const failing = CHECKS.tested(viewFrom("the-uuid", issue, [mark, comment(render("verdict", mixed))]), "ISS-7");
+  const failing = judgedOwed(viewFrom("the-uuid", issue, [mark, comment(render("verdict", mixed))]), "ISS-7");
   assert.deepEqual(failing.map((one) => one.what), ["criterion 2 failed its verdict"],
     "and one failing block in a batch fails on its own");
   const short = viewFrom("the-uuid", issue, [mark, comment(render("verdict", [verdictOf(1), verdictOf(2)]))]);
-  assert.deepEqual(CHECKS.tested(short, "ISS-7").map((one) => one.what), ["criterion 3 has no verdict"]);
+  assert.deepEqual(judgedOwed(short, "ISS-7").map((one) => one.what), ["criterion 3 has no verdict"]);
 });
 
 /* A list of fourteen commands is fourteen writes: the owed item is the surface the batched form is
@@ -96,11 +97,11 @@ test("several criteria with no verdict are one owed item carrying one write", ()
     acceptanceCriteria: CRITERIA, mergedAt: "2026-09-05T13:49:51.777Z", attachments: [],
   };
   const mark = comment(`mark_merged target=base — merged to master at ${COMMIT}`);
-  const none = CHECKS.tested(viewFrom("the-uuid", issue, [mark]), "ISS-7");
+  const none = judgedOwed(viewFrom("the-uuid", issue, [mark]), "ISS-7");
   assert.deepEqual(none.map((one) => one.what), ["criteria 1, 2, 3 have no verdict"]);
   assert.equal(none[0].command, `forge record verdict ISS-7 --commit ${COMMIT} --evidence <attachment|url|sha>`
     + " --criterion 1 --verdict pass --criterion 2 --verdict pass --criterion 3 --verdict pass");
-  const one = CHECKS.tested(viewFrom("the-uuid", issue, [mark, comment(render("verdict", [verdictOf(1), verdictOf(2)]))]), "ISS-7");
+  const one = judgedOwed(viewFrom("the-uuid", issue, [mark, comment(render("verdict", [verdictOf(1), verdictOf(2)]))]), "ISS-7");
   assert.deepEqual(one.map((held) => held.what), ["criterion 3 has no verdict"], "and one owed criterion reads as it did");
   assert.match(one[0].command, /--criterion 3 --verdict pass --commit 43b811e/u);
 });

@@ -1,5 +1,5 @@
 /* The last transition of a run, and the only one earned by a status rather than by a payload. Five
-   of one day's delegated runs left their issues at `released` and a person closed each by hand: the
+   of one day's delegated runs left their issues at the release rung and a person closed each by hand: the
    verb refused past a page it had no need of, and no phase of the method said close (ISS-105). */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -24,7 +24,7 @@ test("the status a close is earned from is the flow table's own tail, and it rea
   assert.deepEqual(CHECKS.closed(view, "ISS-3"), [], "and a close reads nothing written");
 });
 
-/* Its plan declares the person `released` wanted, so this measures the round a close does not pay. */
+/* Its plan declares the person the rung wanted, so this measures the round a close does not pay. */
 const SHIPPED = {
   documentId: "shipped-uuid",
   issueId: "ISS-96",
@@ -84,9 +84,9 @@ test("--owed on a shipped issue names the close, and reads no page to say it", a
   const rounds = asked();
   const run = await ranAsync(FORGE, ["advance", "ISS-96", "--owed"], tracker.env);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /ISS-96 is released; closed is next and the record earns it/u, run.stdout);
+  assert.match(run.stdout, /ISS-96 is awaiting_release; closed is next and the record earns it/u, run.stdout);
   assert.equal(listed("shipped-uuid"), pages, "the page the refusal names was fetched");
-  assert.equal(asked(), rounds, "and the release policy, which only what `released` owes reads, cost a round");
+  assert.equal(asked(), rounds, "and the release policy, which only what the rung owes reads, cost a round");
   assert.deepEqual(moved("shipped-uuid"), [], "a rehearsal moves nothing");
 });
 
@@ -104,15 +104,15 @@ test("a close transitions, and the page a shipped issue overflows cannot refuse 
   const run = await ranAsync(FORGE, ["close", "ISS-96"], tracker.env);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stderr, /^forge: read close as forge advance ISS-96$/mu, run.stderr);
-  assert.match(run.stdout, /ISS-96 {2}released -> closed {2}\(read as forge advance ISS-96\)/u, run.stdout);
+  assert.match(run.stdout, /ISS-96 {2}awaiting_release -> closed {2}\(read as forge advance ISS-96\)/u, run.stdout);
   assert.equal(listed("shipped-uuid"), pages + 1, "one page, read by the lease write's gate and by no check");
   assert.deepEqual(wrote("shipped-uuid"), [], "nothing is written to close");
   assert.deepEqual(moved("shipped-uuid").map((one) => one.args.data.status), ["closed"]);
 });
 
-/* A park from `released` is not the transition above: its evidence resolves against the attachments
+/* A park from that rung is not the transition above: its evidence resolves against the attachments
    the issue and its comments carry. Refused on that check, which comes before the lease it owes. */
-test("a park from released reads the page, because an attachment is named on a comment", async () => {
+test("a park from the rung reads the page, because an attachment is named on a comment", async () => {
   const pages = listed("parking-uuid");
   const run = await ranAsync(FORGE, ["advance", "ISS-97", "--park", "rolled-back", "--why",
     "the deploy went back and the branch is named", "--evidence", "nope.txt"], tracker.env);

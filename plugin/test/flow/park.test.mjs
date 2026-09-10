@@ -26,7 +26,7 @@ const recorded = (kind, fields, status = null) => comment(render(kind, fields, s
 const PARKING = {
   documentId: "parking-uuid",
   issueId: "ISS-97",
-  status: "tested",
+  status: "awaiting_release",
   title: "the change a person may have to look at",
   description: "no mark here",
   plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: no.",
@@ -102,7 +102,7 @@ const filed = () => state.calls.filter((one) => one.name === "forge_comments" &&
 test("a park sends the reason it was typed and the kind the tracker takes, in one call", async () => {
   const run = await parked("ISS-97");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-  assert.match(run.stdout, /^ISS-97 {2}tested -> waiting$/mu, "the status moves");
+  assert.match(run.stdout, /^ISS-97 {2}awaiting_release -> waiting$/mu, "the status moves");
   const moved = sent("transition");
   assert.equal(moved.status, "waiting");
   assert.equal(moved.reason, "the new column has to be looked at", "the sentence is typed once");
@@ -150,8 +150,8 @@ test("a plain advance sends the status alone, with no reason and no waiting kind
 /* The tracker's announcement of the move is a comment with no device on it, and the order the park
    is written in is what keeps it from answering the very question the park asked (ISS-157). */
 test("the tracker's announcement of the park is not the person's look that answers it", () => {
-  const announcement = comment("⏸ **Waiting on a human decision** — moved from `tested`\n\nlook at it");
-  const asked = recorded("park", { kind: "screen-review", why: "look at it", evidence: ["c8c3550"] }, "tested");
+  const announcement = comment("⏸ **Waiting on a human decision** — moved from `awaiting_release`\n\nlook at it");
+  const asked = recorded("park", { kind: "screen-review", why: "look at it", evidence: ["c8c3550"] }, "awaiting_release");
   const view = (comments) => viewFrom("the-uuid", { status: "waiting" }, comments);
   assert.equal(answered(view([announcement, asked]), "screen-review"), false, "the park is the last word on the page");
   const looked = view([announcement, asked, comment("looked, and it is right", { authorId: "a-person" })]);
@@ -163,12 +163,12 @@ test("the tracker's announcement of the park is not the person's look that answe
    reads the park the announcement pairs with and sends the issue back where it left. */
 test("a park written by the verb is resumed by the verb, back to the status it left", async () => {
   state.comments["parking-uuid"] = [];
-  Object.assign(PARKING, { status: "tested" });
+  Object.assign(PARKING, { status: "awaiting_release" });
   const park = await parked("ISS-97");
   assert.equal(park.status, 0, `${park.stdout}${park.stderr}`);
   assert.equal(PARKING.status, "waiting", "the move landed");
   const page = state.comments["parking-uuid"];
-  assert.match(page[0].body, /moved from `tested`/u, "the tracker announced the move first");
+  assert.match(page[0].body, /moved from `awaiting_release`/u, "the tracker announced the move first");
   assert.match(page[1].body, /forge-record: park/u, "and the record went up under it");
   state.comments["parking-uuid"].push(comment("looked, and it is right", { authorId: "a-person" }));
   /* The answer is a comment this session has not been shown, so the first advance delivers it and
@@ -177,7 +177,7 @@ test("a park written by the verb is resumed by the verb, back to the status it l
   assert.match(held.stderr, /looked, and it is right/u, "the reply is delivered before it is acted on");
   const back = await ranAsync(FORGE, ["advance", "ISS-97"], tracker.env);
   assert.equal(back.status, 0, `${back.stdout}${back.stderr}`);
-  assert.match(back.stdout, /^ISS-97 {2}waiting -> tested {2}\(resumed where its park left it\)$/mu, back.stdout);
+  assert.match(back.stdout, /^ISS-97 {2}waiting -> awaiting_release {2}\(resumed where its park left it\)$/mu, back.stdout);
 });
 
 /* A `needs_info` park is the one that cannot be written the other way round: the record is a comment,

@@ -333,9 +333,10 @@ test("a gap says where the method did not answer and what was done instead", () 
 const shipped = {
   documentId: "shipped-uuid",
   issueId: "ISS-3",
-  status: "tested",
+  status: "developed",
   title: "the change that is about to be released",
   description: "no mark here",
+  acceptanceCriteria: "1. The first outcome.",
   releaseNotes: { section: "Fixed", userFacing: "it works" },
 };
 /* And one a run has released: its criteria are judged, its note is up, and what it still owes is
@@ -343,7 +344,7 @@ const shipped = {
 const closing = {
   documentId: "closing-uuid",
   issueId: "ISS-4",
-  status: "released",
+  status: "awaiting_release",
   title: "the change a run has released",
   description: "no mark here",
   acceptanceCriteria: "1. The first outcome.",
@@ -363,7 +364,11 @@ const project = {
   config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
   issues: [shipped, closing, held],
   comments: {
-    "shipped-uuid": [],
+    "shipped-uuid": [{
+      documentId: "shipped-verdict",
+      createdAt: "2026-09-02T10:00:00.000Z",
+      body: render("verdict", { criterion: "1 — The first outcome.", verdict: "pass", commit: "43b811e", evidence: ["43b811e"] }),
+    }],
     "held-uuid": [],
     "closing-uuid": [{
       createdAt: "2026-09-02T10:01:00.000Z",
@@ -384,7 +389,8 @@ const project = {
 };
 const tracker = await fakeTracker(project);
 test.after(() => tracker.close());
-await ranAsync(FORGE, ["claim", "ISS-3"], tracker.env);
+/* Twice: the verdict on the page is a comment this session has not been shown, so the first claim delivers it and the second takes the lease every payload write needs. */
+for (const again of [1, 2]) assert.ok(again && await ranAsync(FORGE, ["claim", "ISS-3"], tracker.env));
 const verify = (env = tracker.env) =>
   ranAsync(FORGE, ["record", "verification", "ISS-3", "--where", "the installed plugin",
     "--commit", "43b811e", "--evidence", "43b811e"], env);
@@ -479,13 +485,13 @@ test("no flag puts the project's answer on a record", () => {
   for (const flag of derived) assert.equal(read[flag], undefined, `${flag} read back off a hand-written body`);
 });
 
-/* Five of one day's runs left their issues at `released` and a person closed them by hand, so what
+/* Five of one day's runs left their issues at the release rung and a person closed them by hand, so what
    a run reads at the end of one says the close is owed rather than leaving it to be noticed. */
 test("the report says the close is owed on an issue a run has released", async () => {
   const run = await ranAsync(FORGE, ["resume", "ISS-4", "--report"], project.env ?? tracker.env);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^Every criterion has a verdict\.$/mu, "the criteria are judged");
-  assert.match(run.stdout, /^Owed: the close\. A run ends at closed, not at released:$/mu, run.stdout);
+  assert.match(run.stdout, /^Owed: the close\. A run ends at closed, not at awaiting_release:$/mu, run.stdout);
   assert.match(run.stdout, /^ {2}forge advance ISS-4$/mu, "with the one command that makes it");
   assert.match(run.stdout, /^Plan {2}\(typed\)$/mu, "the plan is on the report, as every other payload is");
   assert.match(run.stdout, /^## Files touched$/mu, "and whole: it is what every later phase was built against");
@@ -506,7 +512,7 @@ test("a record write ends with the line advance --owed would print, and never fa
   const earned = await verify();
   assert.equal(earned.status, 0, earned.stderr);
   assert.equal(earned.stderr.trim().split("\n").at(-1),
-    "ISS-3 is tested; released is next and the record earns it. `forge advance ISS-3` moves it.",
+    "ISS-3 is developed; awaiting_release is next and the record earns it. `forge advance ISS-3` moves it.",
     "byte for byte the line advance --owed printed before this");
   /* A record that posted must not fail on the line printed under it: the reading refuses here. */
   await ranAsync(FORGE, ["claim", "ISS-5"], tracker.env);

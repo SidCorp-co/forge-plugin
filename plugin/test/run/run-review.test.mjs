@@ -231,7 +231,7 @@ test("an issue found but unread files nothing, and is not routed to a filing of 
   const { at, work, from } = owedAt("unread");
   noBacklog();
   writeFileSync(join(at, "forge-rows.txt"),
-    `${"ISS-504".padEnd(8)} ${"medium".padEnd(8)} ${"tested".padEnd(12)} `
+    `${"ISS-504".padEnd(8)} ${"medium".padEnd(8)} ${"awaiting_release".padEnd(12)} `
     + `The batch ${from.slice(0, 7)}..deadbee is read once as a whole\n`);
   writeFileSync(join(at, "forge-unread"), "");
 

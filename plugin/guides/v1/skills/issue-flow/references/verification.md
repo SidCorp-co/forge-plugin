@@ -59,7 +59,7 @@ and the suite runs again only for a criterion whose evidence is its own.
 
 | Changed | Proof |
 |---|---|
-| A screen | the rendered state, driven — including empty, loading and error, and attached: `tested` refuses a verdict under a declared screen change whose evidence holds no attachment |
+| A screen | the rendered state, driven — including empty, loading and error, and attached: `awaiting_release` refuses a verdict under a declared screen change whose evidence holds no attachment |
 | An API | request and response, plus the side effect it claims |
 | A CLI | the invocation and its output, including a non-zero exit |
 | A library | a consumer exercising it, not a unit test of its internals |
@@ -79,7 +79,7 @@ a rendered-state criterion by itself. A render of the same screen taken where no
 locally against the released commit, or on a route of the deployed host that does not authenticate —
 is the thing a person can look at, and it is what a criterion is judged on.
 
-Two verdict shapes get past `tested` under a declared screen change, and routing evidence alone is
+Two verdict shapes get past `awaiting_release` under a declared screen change, and routing evidence alone is
 neither of them:
 
 - **`skipped`, with the reason in `--why`.** For a criterion no available route reaches. A skip owes
@@ -136,5 +136,5 @@ disposable, destroy it wholesale instead, which is safer than editing a counter 
 
 It belongs on the issue with the QA report that cites it, uploaded rather than pasted through
 context — `forge -h` names the verb. A verdict citing no attachment under a declared screen change
-is refused at `tested`, so the rule is the entry check's; what no check can judge is whether the
+is refused at `awaiting_release`, so the rule is the entry check's; what no check can judge is whether the
 image shows the state a reader needs, which is what the paragraphs above are for.

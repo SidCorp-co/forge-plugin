@@ -216,9 +216,9 @@ test("the contract is answered off disk, by part, and costs no call at all", asy
   assert.equal(contents.status, 0, contents.stderr);
   assert.match(contents.stdout, /^The issue-flow contract — this plugin's own, contract \d+/u);
   assert.deepEqual(contents.guideCalls, [], "no call for the listing");
-  const part = await asked("contract", "released");
+  const part = await asked("contract", "awaiting_release");
   assert.equal(part.status, 0, part.stderr);
-  assert.match(part.stdout, /^### `released`/u);
+  assert.match(part.stdout, /^### `awaiting_release`/u);
   assert.deepEqual(part.guideCalls, [], "and none for a part");
   const refused = await asked("contract", "--tracker");
   assert.equal(refused.status, 1);
@@ -231,7 +231,7 @@ test("a second positional and a bare --tracker are refused, never dropped", asyn
   const extra = await asked("deploy-safety", "elsewhere");
   assert.equal(extra.status, 1);
   assert.match(extra.stderr, /one slug/u);
-  const two = await asked("contract", "released", "elsewhere");
+  const two = await asked("contract", "awaiting_release", "elsewhere");
   assert.equal(two.status, 1);
   assert.match(two.stderr, /contract takes one part/u, "and the contract's own second positional too");
   const bare = await asked("--tracker");

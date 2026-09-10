@@ -45,9 +45,10 @@ export const USAGE = [
   "`forge guide contract <status>` for the rule.",
 ].join("\n");
 
-/* A plain advance from `released`, whose whole entry criterion is that status, so the page is not
-   worth the call. A park or a drop from it is another transition: its kind, its evidence and the
-   question a needs_info park owes are all judged against the record, so those read the page. */
+/* One name declared so a read can filter on it and written by nothing: the release path's own status (ISS-1022). */
+const RELEASE_PATH_ONLY = "releasing";
+
+/* A plain advance from the rung `closed` is entered from, whose whole entry criterion is that status, so the page is not worth the call. A park or a drop from it is another transition: its kind, its evidence and the question a needs_info park owes are all judged against the record, so those read the page. */
 const readsTheRecord = (body, given) =>
   !given.set && (body.status !== CLOSES_FROM || Boolean(given.park) || Boolean(given.drop));
 
@@ -230,6 +231,12 @@ export const shortfall = (ref, view, held) => {
 
 /* The status set with nothing earning it, judged against what `declaredValue` declares and against nothing else, with the reply and the correction saying no check read it. A side status is reached with the payload the tracker demands of one, so `--set` writes what a park writes and skips only the entry checks. */
 const setStatus = async (view, ref, status, why) => {
+  /* The one name declared for reading and written by nothing: the release button enters `releasing` and the release batch alone leaves it, so a run setting it declares its own release finished. Declaring the name is what would otherwise let it through, `declaredValue` being the only check a set passes (ISS-1022, consult 8736c3 F1). */
+  if (status === RELEASE_PATH_ONLY) {
+    refuse(`\`${RELEASE_PATH_ONLY}\` is the release path's own status: the release button enters it and `
+      + `the release batch alone leaves it, so no run of this CLI writes it and nothing was sent. The `
+      + `rung a run reaches is \`${CLOSES_FROM}\`, which its record earns: forge advance ${ref}`);
+  }
   const said = whyChecked("advance --set", why);
   const near = declaredValue("forge_issues", "status", status);
   if (near) refuse(`${near} That set is what the route table declares this tracker takes. Nothing was sent.`);

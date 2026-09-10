@@ -8,7 +8,7 @@ import { Refused } from "../../../plugin/src/refusal.mjs";
 import { commentPage } from "../../../plugin/src/tracker/comments.mjs";
 import { scoped } from "../../../plugin/src/tracker/rest.mjs";
 import { advance } from "../../../plugin/src/flow/advance.mjs";
-import { atLeast, viewFrom } from "../../../plugin/src/flow/earned.mjs";
+import { atLeast, stepAfter, viewFrom } from "../../../plugin/src/flow/earned.mjs";
 import { markMerged, markNote, markedCommit, namedFor } from "../../../plugin/src/flow/record/merged.mjs";
 import { LANDING_DONE, LANDING_JUDGED, LANDING_QA_OWED, landingSaved } from "../../../plugin/src/flow/lease.mjs";
 import { INDEPENDENT, judgedAt } from "../../../plugin/src/flow/qa/verdicts.mjs";
@@ -16,7 +16,7 @@ import { releasePolicy } from "../../../plugin/src/tracker/project-config.mjs";
 
 const BEFORE_MERGE = "before-merge";
 export const DEVELOPED = "developed";
-export const TESTED = "tested";
+export const AWAITING = stepAfter(DEVELOPED);
 
 /* `fail` in the CLI's own modules exits, dropping the lock and leaving a branch promoted in silence. */
 export const asked = async (run) => {
@@ -112,7 +112,7 @@ export const notReconciled = (key, landing, candidate, moved = []) =>
   + `promoted against a reading of another candidate${moved.length
     ? `: the branch is the builder's again.\n    forge claim ${key} --take` : "."}`;
 
-/* A commit on both routes, and the one a verdict cites: `judgeProblem` reads it again at `tested`. */
+/* A commit on both routes, and the one a verdict cites: `judgeProblem` reads it again at the rung. */
 export const OWED_TO_QA = (key, landing, what) =>
   `the checkpoint on ${key} reads \`${LANDING_QA_OWED}\`: ${what} at ${shortly(landing.deployment)} is `
   + `what an independent judge is owed, and nothing of ${key} moves until the turn comes back.\n`
@@ -178,9 +178,9 @@ export const statusStep = async (one) => {
       return stop(OWED_TO_QA(key, member.landing, "the release"));
     }
     /* `done` is refused to every turn, so it waits on the status: closed over a record that did not
-       earn `tested`, the issue would be reachable by no route at all. */
-    if (!await moveTo(key, TESTED, documentId)) {
-      return console.log(`  the checkpoint stays \`${landing.state}\`: what \`${TESTED}\` is owed is `
+       earn the rung, the issue would be reachable by no route at all. */
+    if (!await moveTo(key, AWAITING, documentId)) {
+      return console.log(`  the checkpoint stays \`${landing.state}\`: what \`${AWAITING}\` is owed is `
         + `above, and the landing is run again once the record carries it`);
     }
     await saveOn(member, { state: LANDING_DONE });

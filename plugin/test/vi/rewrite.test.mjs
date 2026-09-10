@@ -16,7 +16,7 @@ const { SHAPES } = await import("../../src/flow/machine.mjs");
 const {
   PLAN_SECTIONS, planFlags, planSections, planSteps, protectMachine, restoreMachine, sectionsOwed,
 } = await import("../../src/flow/machine.mjs");
-const { CHECKS, ORDER, viewFrom } = await import("../../src/flow/earned.mjs");
+const { CHECKS, ORDER, judgedOwed, viewFrom } = await import("../../src/flow/earned.mjs");
 
 /* What the real call does, measured by putting a rendered record, a plan and a criteria list through
    `vi-natural doc --register san-pham --no-glossary`, which is the call the write boundary makes: a
@@ -167,7 +167,7 @@ test("no owed item is keyed by anything but a criterion's number, so none can na
   assert.deepEqual(owed, [2], "and the criterion nobody judged is still owed under its own number");
   assert.equal(unreadable.length, 2);
   const view = viewFrom("the-uuid", { acceptanceCriteria: "1. a\n2. b", attachments: [{ name: "run.txt" }] }, unkeyed);
-  const said = CHECKS.tested(view, "ISS-67").map((one) => `${one.what} ${one.command}`).join("\n");
+  const said = judgedOwed(view, "ISS-67").map((one) => `${one.what} ${one.command}`).join("\n");
   assert.doesNotMatch(said, /NaN/u, said);
   assert.match(said, /criterion 2 has no verdict/u);
   assert.equal(said.match(/names no criterion this build can read/gu)?.length, 2);

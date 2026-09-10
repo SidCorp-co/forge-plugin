@@ -46,15 +46,17 @@ const asRun = (id) => {
 test("a record's phase is the one owed by the rung below the status its entry check cites", () => {
   for (const [earns, kinds] of Object.entries(CITED)) {
     const owed = phasesOwed(rungBelow(earns));
+    /* A rung spanning several phases holds records ending different ones, so only the kind leading its row takes the number below and the rest answer nothing. */
+    const spans = phasesOwed(earns).length > 1;
     for (const kind of kinds) {
       const answer = phaseForRecord(kind);
-      if (owed.length === 1) {
+      if (owed.length === 1 && (!spans || kinds[0] === kind)) {
         assert.equal(answer, owed[0],
           `a ${kind} earns ${earns}, so it ends the one phase ${rungBelow(earns)} owes`);
       } else {
         assert.equal(answer, null,
-          `${rungBelow(earns)} owes ${owed.join(" and ")}, and which of its records ends it is not `
-          + `something the citation table says, so a ${kind} answers nothing rather than the last`);
+          `neither ${rungBelow(earns)}'s phases nor ${earns}'s own row says which record ends one, `
+          + `so a ${kind} answers nothing rather than borrowing a number`);
       }
     }
   }
@@ -64,14 +66,14 @@ test("a record's phase is the one owed by the rung below the status its entry ch
    silent change of answer: the review is Phase 4's last step and would otherwise read as 7. */
 test("the review and the verification are the kinds that exclusion covers", () => {
   assert.equal(phaseForRecord("review"), null, "in_progress owes 4, 5 and 7");
-  assert.equal(phaseForRecord("verification"), null, "tested owes 6 and 7");
+  assert.equal(phaseForRecord("verification"), null, "the one rung after developed spans 6 and 7, and only the kind leading its row takes a number");
   assert.equal(phaseForRecord("plan"), 3, "and clarified owes 3 alone");
   assert.equal(phaseForRecord("verdict"), 5, "as developed owes 5 alone");
 });
 
 test("the landing ends the last phase its own rung names, that row abbreviating two", () => {
-  const owed = phasesOwed(rungBelow("released"));
-  assert.ok(owed.length > 1, `the rung below released names several phases: ${owed.join(", ")}`);
+  const owed = phasesOwed("awaiting_release");
+  assert.ok(owed.length > 1, `the rung names several phases: ${owed.join(", ")}`);
   assert.equal(phaseAtLanding(), owed.at(-1), "and the landing is the end of them");
 });
 

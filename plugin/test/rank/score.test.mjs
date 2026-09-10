@@ -129,7 +129,7 @@ test("the set the chain stops at is what still gates, not what a run may take", 
     { issueId: "ISS-2", status: "in_progress" },
     { issueId: "ISS-3", status: "waiting" },
     { issueId: "ISS-4", status: "developed" },
-    { issueId: "ISS-5", status: "released" },
+    { issueId: "ISS-5", status: "awaiting_release" },
     { issueId: "ISS-6", status: "closed" },
   ];
   assert.deepEqual([...takeableKeys(rows)], ["ISS-1"]);
