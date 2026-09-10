@@ -154,11 +154,11 @@ export const shortOfWhole = (one, rels) => {
   return { unread, part, whole: one?.send === "bodies" && !unread.length && !part.length };
 };
 
-/** The last answered consult of this root that read the whole of this set at a commit — the head a review was earned at — or null. Two absences are this caller's and not `shortOfWhole`'s, so the recheck's own reading is untouched: an empty set is read whole by every consult ever taken, and a `dirty` entry's head is where the pass was taken rather than what it read, so it argues neither way about ancestry. */
+/** The last answered consult of this root that read the whole of this set at a recorded head — the read a review was earned by — or null. An empty set answers null here rather than in `shortOfWhole`, which the recheck also reads: every consult ever taken read the empty set whole. What a `dirty` head is worth is the caller's, since only a caller comparing histories is troubled by it. */
 export const wholeReadOf = (entries, root, rels) => {
   if (!rels.length) return null;
   return answered(entries)
-    .filter((one) => one.root === root && !one.dirty && one.head && shortOfWhole(one, rels).whole)
+    .filter((one) => one.root === root && one.head && shortOfWhole(one, rels).whole)
     .at(-1) ?? null;
 };
 

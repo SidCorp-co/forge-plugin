@@ -14,7 +14,7 @@ import { recordDir, runSays } from "./gates/timing.mjs";
 import { acrossVersion } from "./gates/carried.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { follows, installs, LINKED } from "./run/install.mjs";
-import { REPLAY_HELP, REPLAYED, replaySays } from "./run/replayed.mjs";
+import { REPLAY_HELP, REPLAYED, replaySays, replayedBy } from "./run/replayed.mjs";
 import { cleanTree, INSTALLS, land, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./run/land.mjs";
 import { landReady } from "./run/land-ready.mjs";
 import { onlyRelease, RELEASE_FILES } from "./run/landing.mjs";
@@ -489,8 +489,11 @@ const shipSteps = (tree, root, base, note) => {
       writeFileSync(markFile(tree), `${gitOut(["rev-parse", `${REMOTE}/${base}`], tree)}\n`);
     }, LANDS],
     [REPLAYED, () => replaySays(tree, base, SELF), LANDS],
-    [`rebase onto ${REMOTE}/${base}`, () =>
-      loud("git", ["rebase", `${REMOTE}/${base}`], tree, "Resolve it, or `git rebase --abort`."), LANDS],
+    [`rebase onto ${REMOTE}/${base}`, () => {
+      const from = gitOut(["rev-parse", "HEAD"], tree);
+      loud("git", ["rebase", `${REMOTE}/${base}`], tree, "Resolve it, or `git rebase --abort`.");
+      replayedBy(tree, from);
+    }, LANDS],
     /* After the rebase, because the range is what the release actually ships, and before the bump,
        because the gate's record is keyed on the manifests too: run it after and every release pays
        for a whole gate over a change of one version string. The step below carries that record

@@ -1,10 +1,11 @@
-/* Whether the read that earned the review answers for the head this lands, which is two questions.
-   That the base under the change has not moved a path it writes: `land-ready` hands a branch back
-   there, and a single run's ship rebased onto the same pin and asked nothing (ISS-962). And that the
-   commits the read was taken over are still in the history that would land, because a run which
-   rebases after its read makes the merge base the pin and clears the first question by itself
-   (ISS-972). Before the rebase, which settles both whichever head was read; pinned by ls-remote as
-   land-ready's is, a resume past the fetch reading a ref as stale as it; edits nothing. */
+/* Whether the read that earned the review answers for the head this lands, which is two questions:
+   that the base under the change has not moved a path it writes (ISS-962), and that the commits the
+   read was taken over are still in the history that would land (ISS-972). REPLAY_HELP below argues
+   both. Before the rebase, which settles either whichever head was read; pinned by ls-remote as
+   land-ready's is, a resume past the fetch reading a ref as stale as it; edits no tracked file. */
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { git, gitOut, lines, REMOTE, stop } from "../checkout.mjs";
 import { logEntries, wholeReadOf } from "../../plugin/src/codex/codex-log.mjs";
 import { repoRoot } from "../../plugin/src/codex/codex.mjs";
@@ -44,10 +45,15 @@ export const REPLAY_HELP = [
   "an amend or a reset between the read and the ship, and it names both heads. What clears it is",
   "a read of the whole set at the head that would land, whose command it prints; no replay and no",
   "flag does. A read at a commit that head does carry passes, so a fix committed after the review",
-  "lands above it as before. It is silent where the log holds no such read, where the read was taken",
-  "over a working tree and its head is therefore where the pass was taken rather than what it read,",
-  "and where that head is no commit this checkout can resolve; it says which of the three, because a",
-  "check that found nothing to judge and one that judged read alike otherwise.",
+  "lands above it as before, and so does the one rewrite the ship itself makes: the rebase a step",
+  "later is recorded as the pair of heads it moved the branch across, and a read predating the first",
+  "of them passes while HEAD still carries the second, since `--from` puts this step back ahead of",
+  "the gate and a run whose gate failed would otherwise owe a read for the replay it was told to",
+  "make. A rewrite by hand after that takes the recorded head off the lineage and is refused as any.",
+  "It is silent where the log holds no such read, where the read was taken over a working tree and",
+  "its head is therefore where the pass was taken rather than what it read, and where that head is",
+  "no commit this checkout can resolve; it says which of the three, because a check that found",
+  "nothing to judge and one that judged read alike otherwise.",
 ];
 
 const notFetched = (base, pin, self) =>
@@ -87,29 +93,68 @@ const rewrittenSince = (of, at, head, held) =>
   + `Then rewrite the review record at ${shortly(head)}, and ship. A read taken at a commit HEAD `
   + `carries does not stop here at all, so a fix committed after the review lands above it as before.`;
 
-/* `--is-ancestor` and not equality: a rebase drops the reviewed commit, while a commit made after
-   the read to fix one of its findings keeps it and lands above it by design. The set is the change's
-   own paths less the ones it deleted, which have no body a read could have carried. */
+const carries = (tree, of, head) => git(["merge-base", "--is-ancestor", of, head], tree).status === 0;
+
+/* The one rewrite this step forgives, being the step's own: `owed` puts it back ahead of the gate on
+   every resume, so a ship whose gate failed after rebasing would be refused for the replay it had
+   just been told to make. Written by the rebase step, and nothing else rides on it — the read has to
+   predate the head rebased from and HEAD to carry the head rebased to, which a later rewrite ends. */
+const MARK = "forge-ship-replay";
+const markAt = (tree) => join(gitOut(["rev-parse", "--absolute-git-dir"], tree) ?? tree, MARK);
+
+const markRead = (tree) => {
+  const [from, to] = existsSync(markAt(tree))
+    ? readFileSync(markAt(tree), "utf8").trim().split(" ") : [];
+  return from && to ? { from, to } : null;
+};
+
+export const replayedBy = (tree, from) => {
+  const to = gitOut(["rev-parse", "HEAD"], tree);
+  if (!from || !to || from === to) return;
+  /* Two failed gates are two replays, and keeping only the last one refuses the read the first was
+     taken before. The chain holds while what it last left is still under what this one starts at. */
+  const held = markRead(tree);
+  writeFileSync(markAt(tree), `${held && carries(tree, held.to, from) ? held.from : from} ${to}\n`);
+};
+
+const ownReplay = (tree, at, head) => {
+  const held = markRead(tree);
+  return Boolean(held && carries(tree, at, held.from) && carries(tree, held.to, head));
+};
+
+/* `--is-ancestor` and not equality: a rebase drops the reviewed commit, while a commit made after the
+   read to fix one of its findings keeps it and lands above it by design. The set is the change's own
+   paths less the ones it deleted, which have no body a read could carry, NUL-delimited because
+   `--name-only` quotes a path outside ASCII while a log entry holds the real one — unmatched by any
+   read, such a change would pass as an absence. */
 const readSays = (tree, was) => {
   const root = repoRoot(tree);
-  const held = lines(gitOut(["diff", "--name-only", "--no-renames", "--diff-filter=d", `${was}..HEAD`], tree));
+  const held = (gitOut(["diff", "--name-only", "--no-renames", "--diff-filter=d", "-z", `${was}..HEAD`], tree)
+    ?? "").split("\0").filter(Boolean);
   const read = root ? wholeReadOf(logEntries(), root, held) : null;
   const head = gitOut(["rev-parse", "HEAD"], tree);
   if (!read) {
     return console.log(`  no consult in this log read the whole of this change's ${held.length} `
-      + `file(s) at a commit of ${root ?? "this tree"}, so the head the review was earned at is not `
-      + `something this can read — it judges nothing here and the read stands where it was taken`);
+      + `file(s) at a recorded head of ${root ?? "this tree"}, so the head the review was earned at `
+      + `is not something this can read — it judges nothing here and the read stands where it was taken`);
   }
   const of = read.id ?? read.at;
+  if (read.dirty) {
+    return console.log(`  consult ${of} read this change's whole set at ${read.head}, but over a `
+      + `working tree, so that head is where the pass was taken rather than what it read and settles `
+      + `nothing about what HEAD carries`);
+  }
   if (!gitOut(["rev-parse", "--verify", `${read.head}^{commit}`], tree)) {
     return console.log(`  consult ${of} read this change's whole set at ${read.head}, which is no `
       + `commit this checkout can resolve, so whether HEAD carries it cannot be read here`);
   }
-  if (git(["merge-base", "--is-ancestor", read.head, "HEAD"], tree).status !== 0) {
-    stop(rewrittenSince(of, read.head, head, held));
+  const at = shortly(read.head);
+  if (carries(tree, read.head, "HEAD")) {
+    return console.log(`  the read that earned the review was taken at ${at}, which ${shortly(head)} carries`);
   }
-  console.log(`  the read that earned the review was taken at ${shortly(read.head)}`
-    + `, which ${shortly(head)} carries`);
+  if (!ownReplay(tree, read.head, head)) stop(rewrittenSince(of, read.head, head, held));
+  console.log(`  the read that earned the review was taken at ${at}, which this ship's own rebase `
+    + `replayed as ${shortly(head)}, and nothing has rewritten the branch since`);
 };
 
 export const replaySays = (tree, base, self) => {

@@ -149,12 +149,13 @@ test("a rename under review puts both of its paths in the set the landing is int
 /* The replay above clears the base question and answers the other one not at all: nothing in git
    tells a branch replayed and re-read from one replayed and shipped, because the two leave the same
    tree. What separates them is when the read was taken, which the consult log records (ISS-972). */
-const readTaken = (root, head, files, at = "1") => {
+const readTaken = (root, head, files, more = {}) => {
   const home = tempRoom("run-replayed-home-");
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "forge", "codex-log.jsonl"), `${JSON.stringify({
-    kind: "consult", id: `c${at}`, at, ok: true, reply: "CODEX: 0 findings", send: "bodies",
+    kind: "consult", id: "c1", at: "1", ok: true, reply: "CODEX: 0 findings", send: "bodies",
     root: realpathSync(root), head, files, sent: files.map((rel) => ({ rel, chars: 40, clipped: false })),
+    ...more,
   })}\n`);
   return { ...BARE, XDG_CONFIG_HOME: home };
 };
@@ -205,7 +206,7 @@ test("a branch rebased after its read is refused, and a read at the head it woul
     assert.doesNotMatch(past.stdout, /scratch gate ran/u, `--from ${step} paid a gate for a refusal`);
   }
 
-  const reread = runIn(work, ["ship"], readTaken(work, landed, [UNDER_REVIEW], "2"));
+  const reread = runIn(work, ["ship"], readTaken(work, landed, [UNDER_REVIEW]));
   assert.match(reread.stdout, /step 4\/10 {2}rebase onto origin\/master/u,
     `a read taken at the head that would land does not clear the refusal:\n${reread.stdout}${reread.stderr}`);
   assert.ok(reread.stdout.includes(`taken at ${landed.slice(0, 7)}`), reread.stdout);
@@ -229,6 +230,89 @@ for (const [name, held, said] of [
       `${name} stopped a ship it cannot judge:\n${run.stdout}${run.stderr}`);
   });
 }
+
+/* The rebase a step later rewrites the branch too, and `owed` puts this step back ahead of the gate
+   on every resume that can still push: a run whose gate failed once would be refused for the replay
+   the ship itself made and printed the resume for, which is a false refusal with no flag past it. */
+test("the ship's own rebase does not cost the run a second read", () => {
+  const { work } = pushed("read-then-resume");
+  const pkg = JSON.parse(readFileSync(join(work, "package.json"), "utf8"));
+  pkg.scripts.check = "node -e \"process.exit(1)\"";
+  writeFileSync(join(work, "package.json"), JSON.stringify(pkg, null, 2));
+  mkdirSync(join(work, "plugin", "src"), { recursive: true });
+  for (const path of [UNDER_REVIEW, ELSEWHERE]) {
+    writeFileSync(join(work, path), [...Array(40).keys()].map((one) => `line ${one}`).join("\n"));
+    git(work, "add", path);
+  }
+  git(work, "add", "package.json");
+  git(work, "commit", "-m", "the files the two sides write, and a gate that refuses");
+  git(work, "push", "origin", "master:master");
+
+  git(work, "checkout", "-b", "iss-962");
+  const mine = rewrote(work, UNDER_REVIEW, 1, "the change under review");
+  git(work, "checkout", "master");
+  rewrote(work, ELSEWHERE, 38, "what landed between the read and the ship");
+  git(work, "push", "origin", "master:master");
+  git(work, "checkout", "iss-962");
+
+  const env = readTaken(work, mine, [UNDER_REVIEW]);
+  const first = runIn(work, ["ship"], env);
+  assert.match(first.stderr, /stopped at step 5 \(the gate\)/u, `${first.stdout}${first.stderr}`);
+  assert.notEqual(git(work, "rev-parse", "HEAD").stdout.trim(), mine,
+    "the ship never rebased, so nothing here is about its own replay");
+
+  const again = runIn(work, ["ship", "--from", "5"], env);
+  assert.doesNotMatch(again.stderr, /does not carry/u,
+    `the resume was refused for the ship's own replay:\n${again.stdout}${again.stderr}`);
+  assert.ok(again.stdout.includes(`taken at ${mine.slice(0, 7)}`), again.stdout);
+  assert.match(again.stderr, /stopped at step 5 \(the gate\)/u, "the resume never reached the gate");
+
+  /* Two failed gates are two replays, and a record holding only the last of them refuses the read
+     the first was taken before — the same false refusal, one attempt further on. */
+  git(work, "checkout", "master");
+  rewrote(work, ELSEWHERE, 30, "a second landing, still nothing this change writes");
+  git(work, "push", "origin", "master:master");
+  git(work, "checkout", "iss-962");
+  assert.match(runIn(work, ["ship", "--from", "4"], env).stderr, /stopped at step 5 \(the gate\)/u);
+  const third = runIn(work, ["ship", "--from", "5"], env);
+  assert.doesNotMatch(third.stderr, /does not carry/u,
+    `a second replay by the ship lost the first:\n${third.stdout}${third.stderr}`);
+
+  /* And nothing else rides on it: a rewrite by hand after that takes the recorded head off the
+     lineage, so the record forgives the ship's replay and not the run's. */
+  git(work, "commit", "--amend", "-m", "the change under review, amended after the ship replayed it");
+  const byHand = runIn(work, ["ship", "--from", "5"], env);
+  assert.match(byHand.stderr, /stopped at step 3 \(the review answers for the head this lands\)/u,
+    `the recorded replay waived a rewrite the run made:\n${byHand.stdout}${byHand.stderr}`);
+});
+
+/* `--name-only` quotes a path outside ASCII where a log entry holds the real one, so the set and the read would never match and a branch rebased past its review would pass as an absence. */
+test("a path git quotes in its own output is still matched against the read", () => {
+  const { work } = baseMoved("read-quoted-path", ELSEWHERE);
+  const cafe = join("plugin", "src", "café.mjs");
+  writeFileSync(join(work, cafe), "the change\n");
+  git(work, "add", cafe);
+  git(work, "commit", "-m", "a path git quotes in its own output");
+  const env = readTaken(work, git(work, "rev-parse", "HEAD").stdout.trim(), [UNDER_REVIEW, cafe]);
+
+  assert.equal(git(work, "rebase", "origin/master").status, 0);
+  const run = runIn(work, ["ship"], env);
+  assert.match(run.stderr, /stopped at step 3 \(the review answers for the head this lands\)/u,
+    `a quoted path left the read unmatched and the rebase unrefused:\n${run.stdout}${run.stderr}`);
+  assert.ok(run.stderr.includes(cafe), `the read it asks for does not name the path:\n${run.stderr}`);
+});
+
+/* The help says which of the three absences it found, and this is the one a run can mistake for the
+   first: it did take a whole-set read, so being told none is in the log sends it nowhere. */
+test("a read taken over a working tree is said to be one", () => {
+  const { work, mine } = baseMoved("read-of-a-worktree", ELSEWHERE);
+  assert.equal(git(work, "rebase", "origin/master").status, 0);
+
+  const run = runIn(work, ["ship"], readTaken(work, mine, [UNDER_REVIEW], { dirty: true }));
+  assert.match(run.stdout, /but over a working tree/u,
+    `a read of a working tree read as no read at all:\n${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /step 4\/10 {2}rebase onto origin\/master/u, run.stdout);
+});
 
 /* A file the change deleted has no body a read could have carried, so it is out of the set matched
    against one. In it, this branch would find no read at all and pass for the wrong reason, which is

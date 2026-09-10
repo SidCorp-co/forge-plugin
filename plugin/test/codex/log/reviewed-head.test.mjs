@@ -1,8 +1,9 @@
 /* Which head a review was earned at, in its own file because the log's other questions fill one. The
    ship refuses a branch rewritten since that head (ISS-972) past a step with no flag through it, so
    a head off some other read refuses a run that did nothing wrong: every absence answers null, an
-   absent read and a stale one being obliged not to read alike. Two are this reader's and not the
-   recheck's shared `shortOfWhole` — a `dirty` head is where the pass was taken, not what it read. */
+   absent read and a stale one being obliged not to read alike. The empty set is the absence this
+   reader owns rather than the recheck's shared `shortOfWhole`; a `dirty` read it answers, the ship
+   ruling on what a working tree makes of a head. */
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -40,8 +41,12 @@ test("a read that did not cover this set whole answers for no head", () => {
   );
 });
 
-test("a read taken over a working tree answers for no head", () => {
-  assert.equal(wholeReadOf([{ ...READ, dirty: true }], "/a", RELS), null);
+test("a read taken over a working tree is answered, dirty and all", () => {
+  const wet = wholeReadOf([{ ...READ, dirty: true }], "/a", RELS);
+  assert.equal(wet.head, "aaaaaaa");
+  assert.equal(wet.dirty, true, "the caller cannot rule on a working tree it is not told about");
+  assert.equal(wholeReadOf([{ ...READ, dirty: true }, READ], "/a", RELS).dirty, undefined,
+    "a clean read after it is still the last that qualifies");
 });
 
 test("a set with no surviving path answers for no head", () => {
