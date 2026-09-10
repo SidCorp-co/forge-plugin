@@ -26,6 +26,10 @@ export const ALIASES = [
 /* The one shape an alias may stand in: the initializer of a declaration whose own name says the spelling is retired, so a reader of a historical record keeps the old word under a name that says so. A second string on that line is refused as any other is, and no path is exempt. */
 const RETIRED_HOLDER = /^\s*(?:export\s+)?const\s+RETIRED[A-Z_]*\s*=\s*$/u;
 
+/* What a `/` follows where it divides rather than opens a regex: a value, which is a word character, a closing bracket, or the end of a string. Everything else — an operator, a comma, an opening bracket, the start of the input — is a position only a literal can hold. */
+const DIVIDES = /[\w$)\]"'`]/u;
+const SPACE = /\s/u;
+
 /** Every quoted span, comments dropped: a pattern over the file cannot tell a read from a print. A
  *  template is one span with the text of its `${…}` holes taken out, so a sentence broken by a hole
  *  is still read whole, and what stands in a hole is read as the code it is — a string nested there
@@ -65,9 +69,32 @@ export const quoted = (text) => {
     out.push({ from, held });
     at += 1;
   };
+  /* Skipped as a comment is, and by the same necessity: a delimiter inside a regex is read as the
+     delimiter it is not, and one unbalanced span puts every span after it in that file out by a
+     literal — a comment's words arrive as string content. A class is read whole so a `/` inside one
+     ends nothing, and the literal ends at a line break, which no regex crosses (ISS-1110). */
+  const regex = () => {
+    at += 1;
+    let inClass = false;
+    while (at < text.length && text[at] !== "\n") {
+      const one = text[at];
+      if (one === "\\") {
+        at += 2;
+        continue;
+      }
+      if (one === "[") inClass = true;
+      else if (one === "]") inClass = false;
+      else if (one === "/" && !inClass) {
+        at += 1;
+        return;
+      }
+      at += 1;
+    }
+  };
   /* Braces are counted so a hole holding an object or a block ends where its own `}` does. */
   function code(stop) {
     let depth = 0;
+    let prev = "";
     while (at < text.length) {
       const two = text.slice(at, at + 2);
       if (two === "//") {
@@ -81,10 +108,17 @@ export const quoted = (text) => {
       const one = text[at];
       if (one === '"' || one === "'") {
         plain(one);
+        prev = one;
         continue;
       }
       if (one === "`") {
         template();
+        prev = one;
+        continue;
+      }
+      if (one === "/" && DIVIDES.test(prev) === false) {
+        regex();
+        prev = "/";
         continue;
       }
       if (stop && one === "{") depth += 1;
@@ -94,6 +128,7 @@ export const quoted = (text) => {
         depth -= 1;
         continue;
       }
+      if (!SPACE.test(one)) prev = one;
       at += 1;
     }
   }

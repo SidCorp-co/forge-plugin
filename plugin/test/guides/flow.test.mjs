@@ -1,6 +1,7 @@
-/* Which flow a project is served, and which flow each contract part came from. Every assertion is
-   watched failing on a planted tree or a planted declaration: the shipped set is one flow, so a case
-   reading only it would pass on a resolver that had no flow axis at all. */
+/* A flow's directory is the whole of what that flow serves. Every assertion is watched failing on a
+   planted tree: the shipped set is one flow, so a case reading only it would pass on a resolver that
+   had no flow axis at all, and one reading only `default` would pass on a resolver that still fell
+   back to it. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -11,14 +12,17 @@ import { flat, tempHome, tempRoom } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("flow").path;
 const {
-  addressed, contractParts, contractPath, contractProblems, flowProblems, missingIn,
-  partFileProblem, partFor, readContract,
+  addressed, contractAnswer, contractParts, contractPath, contractProblems, flowProblems,
+  partFileProblem, partFor, readContract, unansweredIn,
 } = await import("../../src/guides/contract.mjs");
-const { DEFAULT, FLOWS, FLOW_SLUGS } = await import("../../src/guides/flow.mjs");
+const flowModule = await import("../../src/guides/flow.mjs");
+const { DEFAULT, FLOWS, FLOW_SLUGS } = flowModule;
+const { ORDER } = await import("../../src/flow/earned.mjs");
 
 const PLUGIN = new URL("../../", import.meta.url).pathname;
 const FORGE = join(PLUGIN, "bin", "forge");
 const FIXTURE = "erp-flow";
+const SIBLING = "qa-flow";
 
 /* A flow is read off a `.forge.json` by a resolver answering once per process, so a case varying one
    runs the verb: two flows in one process would both read whichever was resolved first. */
@@ -31,79 +35,17 @@ const room = (keys) => {
 const asked = (keys, ...argv) =>
   spawnSync(FORGE, argv, { encoding: "utf8", env: { ...process.env, HOME: process.env.HOME }, cwd: room(keys) });
 
-test("this copy ships one flow, and it is the base every other one inherits from", () => {
-  assert.deepEqual(FLOW_SLUGS, [DEFAULT], "a second shipped flow is its own issue, blocked by ISS-902");
-  assert.deepEqual(FLOWS[DEFAULT], { overrides: [], requires: [] },
-    "the base declares no override and demands no declaration of a plan");
+test("this copy ships one flow, and the declaration says nothing about what a flow holds", () => {
+  assert.deepEqual(FLOW_SLUGS, [DEFAULT], "a second shipped flow is its own issue, ISS-1088");
+  assert.deepEqual(FLOWS[DEFAULT], { requires: [] },
+    "an `overrides` key would be a flow declaring a part, and a flow's directory declares that");
+  assert.equal(Object.hasOwn(flowModule, "overridesOf"), false,
+    "the override lookup is gone, or a caller can still resolve a part against a base");
   assert.deepEqual(flowProblems(), [], flowProblems().join("\n"));
 });
 
-/* The declaration and the directories against each other, and no pin in the question: the answer to
-   *what does this copy ship* must not move with a `.forge.json` no gate step declares. */
-const shipping = (parts, flows) => {
-  const dir = tempRoom("flow-ship-");
-  for (const [flow, files] of Object.entries(parts)) {
-    mkdirSync(join(dir, "guides", "contract", flow), { recursive: true });
-    for (const [name, text] of Object.entries(files)) {
-      writeFileSync(join(dir, "guides", "contract", flow, name), text);
-    }
-  }
-  return flowProblems(dir, flows);
-};
-
-const BASE = {
-  "01-first.md": "# First\n\n**Contract 1.** The number.\n",
-  "09-developed.md": "### `developed` — reads the review\n\nThe base's own.\n",
-  "10-testing.md": "### `testing` — reads the verdict\n\nAlso the base's.\n",
-};
-const DECLARED = { [DEFAULT]: { overrides: [], requires: [] },
-  [FIXTURE]: { overrides: ["09-developed.md"], requires: [] } };
-
-test("a flow declared with no directory is named, and so is a directory nothing declares", () => {
-  const absent = shipping({ [DEFAULT]: BASE }, DECLARED);
-  assert.equal(absent.length, 2, absent.join("\n"));
-  assert.match(absent[0], new RegExp(`${FIXTURE} is declared and \\S+ holds no part`, "u"));
-  assert.match(absent[1], new RegExp(`${FIXTURE} declares 09-developed\\.md and has not got it`, "u"));
-  const stranger = shipping(
-    { [DEFAULT]: BASE, unnamed: { "09-developed.md": "### `developed`\n\nNobody's.\n" } },
-    { [DEFAULT]: { overrides: [], requires: [] } },
-  );
-  assert.equal(stranger.length, 1, stranger.join("\n"));
-  assert.match(stranger[0], /holds unnamed and FLOWS names no such flow/u);
-});
-
-test("an override of a part default has not got, and one nothing declares, are each named", () => {
-  const inserted = shipping(
-    { [DEFAULT]: BASE, [FIXTURE]: { "20-new.md": "### `new` — reads nothing\n\nInserted.\n" } },
-    { ...DECLARED, [FIXTURE]: { overrides: ["20-new.md"], requires: [] } },
-  );
-  assert.equal(inserted.length, 1, inserted.join("\n"));
-  assert.match(inserted[0], /declares 20-new\.md and default has no part of that name/u);
-  const undeclared = shipping(
-    { [DEFAULT]: BASE, [FIXTURE]: { "10-testing.md": "### `testing`\n\nA flow's own.\n" } },
-    DECLARED,
-  );
-  assert.equal(undeclared.length, 2, undeclared.join("\n"));
-  assert.match(undeclared[0], /declares 09-developed\.md and has not got it/u);
-  assert.match(undeclared[1], /holds 10-testing\.md and declares no override for it/u);
-});
-
-test("a flow file byte-identical to the default it overrides carries nothing and is refused", () => {
-  const copied = shipping(
-    { [DEFAULT]: BASE, [FIXTURE]: { "09-developed.md": BASE["09-developed.md"] } },
-    DECLARED,
-  );
-  assert.equal(copied.length, 1, copied.join("\n"));
-  assert.match(copied[0], /09-developed\.md is byte-identical to default's/u);
-  const differing = shipping(
-    { [DEFAULT]: BASE, [FIXTURE]: { "09-developed.md": "### `developed` — reads the review\n\nThe flow's own.\n" } },
-    DECLARED,
-  );
-  assert.deepEqual(differing, [], differing.join("\n"));
-});
-
-/* One flow's parts resolved against another's: the override answers from the flow, every part it
-   does not declare from `default`, and no sibling flow is read for either. */
+/* Whole sets, planted: each flow's directory is everything that flow serves, so a case hands over a
+   directory rather than a declaration and nothing about parts is declared anywhere. */
 const installed = (files) => {
   const dir = tempRoom("flow-parts-");
   for (const [flow, held] of Object.entries(files)) {
@@ -115,52 +57,90 @@ const installed = (files) => {
   return dir;
 };
 
-const OWN = "### `developed` — reads the review\n\nThe flow's own.\n";
+const BASE = {
+  "01-first.md": "# First\n\n**Contract 1.** The number.\n",
+  "09-developed.md": "### `developed` — reads the review\n\nThe base's own.\n",
+  "10-testing.md": "### `testing` — reads the verdict\n\nAlso the base's.\n",
+};
 
-test("a declared override answers from the flow and every other part from default", () => {
+const OWN = {
+  "01-first.md": "# First\n\n**Contract 1.** The flow's own number.\n",
+  "05-a-part-of-its-own.md": "### `open` — reads a finding\n\nA part default has not got.\n",
+  "09-developed.md": "### `developed` — reads the review\n\nThe flow's own.\n",
+};
+
+test("a flow holding three parts is served exactly those three, in its own order", () => {
+  const root = installed({ [DEFAULT]: BASE, [FIXTURE]: OWN });
+  const entries = contractParts({ root, flow: FIXTURE });
+  assert.deepEqual(entries.map(({ name }) => name),
+    ["01-first.md", "05-a-part-of-its-own.md", "09-developed.md"],
+    "a fourth entry is default's order leaking into a flow that never asked for it");
+  const parts = addressed(entries);
+  assert.deepEqual(parts.map((one) => one.keys[0]), ["first", "open", "developed"]);
+  assert.match(partFor(parts, "developed").text, /The flow's own/u);
+  assert.match(partFor(parts, "open").text, /A part default has not got/u,
+    "a part name default has not got needs no permission and is served");
+  assert.equal(partFor(parts, "testing"), null,
+    "default holds 10-testing.md and this flow does not: serving it would be the base coming back");
+  assert.match(readContract(root, FIXTURE), /The flow's own number/u);
+  assert.doesNotMatch(readContract(root, FIXTURE), /Also the base's/u,
+    "the join is the flow's directory and nothing merged into it");
+});
+
+test("serving one flow reads no other flow's file, for a part it holds or one it has not got", () => {
   const root = installed({
     [DEFAULT]: BASE,
-    [FIXTURE]: { "09-developed.md": OWN },
-    sibling: { "10-testing.md": "### `testing`\n\nA sibling's, which nothing may reach.\n" },
+    [FIXTURE]: OWN,
+    [SIBLING]: { "10-testing.md": "### `testing`\n\nA sibling's, which nothing may reach.\n" },
   });
-  const parts = addressed(contractParts({ root, flow: FIXTURE, flows: DECLARED }));
-  assert.deepEqual(parts.map((one) => [one.keys[0], one.from]),
-    [["first", DEFAULT], ["developed", FIXTURE], ["testing", DEFAULT]],
-    "each part names the flow it came from, and the sibling is never probed");
-  assert.match(partFor(parts, "developed").text, /The flow's own/u);
-  assert.match(partFor(parts, "testing").text, /Also the base's/u);
-  const base = addressed(contractParts({ root, flow: DEFAULT, flows: DECLARED }));
+  const missing = contractAnswer({ root, flow: FIXTURE, part: "testing" });
+  assert.match(missing.refusal, /No guide contract named testing/u,
+    "the part is refused, not fetched from default or from the sibling");
+  assert.doesNotMatch(missing.refusal, /sibling|Also the base's|A sibling's/u);
+  const held = contractAnswer({ root, flow: FIXTURE, part: "developed" });
+  assert.match(held.lines.join("\n"), /The flow's own/u);
+  assert.equal(held.lines.at(-1), `Flow ${FIXTURE}, which this project runs; \`forge doctor\` names its source.`,
+    "and the answer names the flow it was served for, not the one the settings pin");
+  const base = addressed(contractParts({ root, flow: DEFAULT }));
   assert.match(partFor(base, "developed").text, /The base's own/u,
-    "and the base is served its own file, not the flow's");
+    "and default is served its own file, never the flow's");
 });
 
-test("a part a flow declares and has not got is refused by name, and its neighbours are served", () => {
-  const root = installed({ [DEFAULT]: BASE, [FIXTURE]: { "11-other.md": "### `other`\n\nx\n" } });
-  const flows = { ...DECLARED, [FIXTURE]: { overrides: ["09-developed.md", "11-other.md"], requires: [] } };
-  const entries = contractParts({ root, flow: FIXTURE, flows });
-  assert.deepEqual(missingIn(entries).map((one) => one.name), ["09-developed.md"]);
-  const parts = addressed(entries);
-  assert.equal(partFor(parts, "developed").missing, true,
-    "the part is addressed by default's heading so the refusal answers the key a reader typed");
-  assert.equal(partFor(parts, "testing").missing, false, "and the parts the damage does not touch stand");
-  assert.match(readContract(root, FIXTURE), /Also the base's/u,
-    "the join leaves the lost part out rather than withholding every part with it");
+test("two flows holding one part byte-identically are both served it, and nothing is refused", () => {
+  const shared = "### `developed` — reads the review\n\nWord for word in both.\n";
+  const root = installed({
+    [DEFAULT]: { ...BASE, "09-developed.md": shared },
+    [FIXTURE]: { ...OWN, "09-developed.md": shared },
+  });
+  for (const flow of [DEFAULT, FIXTURE]) {
+    const parts = addressed(contractParts({ root, flow }));
+    assert.match(partFor(parts, "developed").text, /Word for word in both/u, flow);
+    assert.deepEqual(contractProblems({ root, flow }), [], contractProblems({ root, flow }).join("\n"));
+  }
+  assert.deepEqual(
+    flowProblems(root, { [DEFAULT]: { requires: [] }, [FIXTURE]: { requires: [] } }), [],
+    "duplication between flows is the expected shape, so nothing about it is a finding",
+  );
 });
 
-/* The part carrying `**Contract 1.**` is the one whose loss reaches every other part: read off the
-   served join, the number would be gone and the whole contract refused as stating none, which is the
-   per-part rule breaking on exactly the part that tests it. */
-test("a lost override of the part carrying the number leaves every other part servable", () => {
-  const root = installed({ [DEFAULT]: BASE, [FIXTURE]: { "09-developed.md": OWN } });
-  const flows = { ...DECLARED, [FIXTURE]: { overrides: ["01-first.md", "09-developed.md"], requires: [] } };
-  assert.deepEqual(contractProblems({ root, flow: FIXTURE, flows }), [],
-    "the number is still knowable, so nothing says this copy states none");
-  const parts = addressed(contractParts({ root, flow: FIXTURE, flows }));
-  assert.equal(partFor(parts, "first").missing, true, "the lost part is the only one refused");
-  assert.equal(partFor(parts, "developed").missing, false);
-  assert.match(partFor(parts, "testing").text, /Also the base's/u, "and an inherited part is served");
-  assert.deepEqual(missingIn(contractParts({ root, flow: FIXTURE, flows })).map((one) => one.name),
-    ["01-first.md"]);
+/* The declaration and the directories against each other, and no pin in the question: the answer to
+   *what does this copy ship* must not move with a `.forge.json` no gate step declares. */
+const shipping = (parts, flows) => flowProblems(installed(parts), flows);
+
+test("a declared flow whose directory holds no part is named, with the way out", () => {
+  const said = shipping({ [DEFAULT]: BASE }, { [DEFAULT]: { requires: [] }, [FIXTURE]: { requires: [] } });
+  assert.equal(said.length, 1, said.join("\n"));
+  assert.match(said[0], new RegExp(`${FIXTURE} is declared and \\S+ holds no part`, "u"));
+  assert.match(said[0], /take the flow out of FLOWS/u);
+  const whole = shipping({ [DEFAULT]: BASE, [FIXTURE]: OWN },
+    { [DEFAULT]: { requires: [] }, [FIXTURE]: { requires: [] } });
+  assert.deepEqual(whole, [], whole.join("\n"));
+});
+
+test("a directory FLOWS names no flow for is named, with the way out", () => {
+  const said = shipping({ [DEFAULT]: BASE, unnamed: OWN }, { [DEFAULT]: { requires: [] } });
+  assert.equal(said.length, 1, said.join("\n"));
+  assert.match(said[0], /holds unnamed and FLOWS names no such flow — declare it, or delete the directory/u);
 });
 
 /* A join is one text, so a file that lost its heading would have its prose served under the part
@@ -204,6 +184,17 @@ test("a copy with no contract, one with no number and one from another build are
     "an older file under a newer build is the same finding: the number is matched, never ranged");
 });
 
+/* The one completeness reading kept, and the reason it may not become a gate: a flow deliberately
+   without a part is legal, and `stageLine` already answers for one at the call. */
+test("the statuses a set leaves unanswered are read off that set and off no other flow's", () => {
+  const parts = addressed(contractParts({ root: installed({ [FIXTURE]: OWN }), flow: FIXTURE }));
+  assert.deepEqual(unansweredIn(parts, ORDER),
+    ORDER.filter((one) => one !== "open" && one !== "developed"),
+    "a status the flow's own parts answer is not reported, and every other one is");
+  assert.deepEqual(unansweredIn(addressed(contractParts({})), ORDER), [],
+    "and the shipped set answers every stage of the ladder");
+});
+
 /* A copy of the code with no guides/ beside it is what every installed copy was before ISS-78, and
    the only way to watch the report say so is to make one. */
 const copyOfCode = (contract, argv = ["doctor"]) => {
@@ -231,6 +222,17 @@ test("doctor names the missing file, and a file from another build, in the copy 
     /\[ miss \] contract\s+\S+: 01-only\.md opens with no heading/u,
     "a part file the install truncated is named, not served under the part before it");
   assert.match(copyOfCode("whole"), /\[ {2}ok {2}\] contract\s+\S+ states contract 1/u);
+});
+
+/* The completeness line through the report rather than through the function, because the mark is the
+   half that matters: a `miss` here would make a flow's own choice of parts a refusal. */
+test("doctor reports a flow's set and what it leaves unanswered, at a mark that refuses nothing", () => {
+  const short = copyOfCode("# A contract\n\n**Contract 1.** The number.\n");
+  assert.match(short, /\[ note \] flow set\s+default: 1 part\(s\) — leaves open, confirmed, approved/u);
+  assert.match(short, /which `stageLine` says at the call/u, "and names where a run would meet it");
+  assert.doesNotMatch(short, /\[ miss \] flow set/u,
+    "an unanswered status is a report; a miss here would make a flow's own set a refusal");
+  assert.match(copyOfCode("whole"), /\[ {2}ok {2}\] flow set\s+default: 19 part\(s\) — every stage of the ladder answered/u);
 });
 
 /* Serving is the same route as reporting and is asked by the verb rather than by a call: a copy
@@ -304,21 +306,21 @@ test("the flow the doctor serves is printed with where the value was read", () =
     /\[ miss \] flow\s+default, read off the retired `method: 1` {2}← \.forge\.json\. Set `flow` instead/u);
 });
 
-/* The fence's value class carries the hyphen because a flow slug is kebab-case like every other slug
-   here: without it the opener matches nothing, the closer reports closing a block nothing opened,
-   and the body is served to every flow alike. */
+/* The fence's value class carries the hyphen because every other slug here is kebab-case: without it
+   the opener matches nothing, the closer reports closing a block nothing opened, and the body is
+   served to every project alike. The condition is planted, because the flow is no longer one. */
 test("a fence value carrying a hyphen opens a block, and without the hyphen it is malformed", async () => {
   const { render } = await import("../../src/guides/render.mjs");
-  const text = `Above.\n\n<!-- forge:when flow ${FIXTURE} -->\nOnly that flow's.\n<!-- forge:end -->\n\nBelow.`;
-  const conditions = { flow: { value: FIXTURE, allowed: [DEFAULT, FIXTURE] } };
-  const kept = render(text, conditions);
+  const text = `Above.\n\n<!-- forge:when mode take-two -->\nOnly that value's.\n<!-- forge:end -->\n\nBelow.`;
+  const allowed = ["take-one", "take-two"];
+  const kept = render(text, { mode: { value: "take-two", allowed } });
   assert.deepEqual(kept.problems, [], kept.problems.join("\n"));
-  assert.match(kept.text, /Only that flow's\./u);
-  const dropped = render(text, { flow: { value: DEFAULT, allowed: [DEFAULT, FIXTURE] } });
+  assert.match(kept.text, /Only that value's\./u);
+  const dropped = render(text, { mode: { value: "take-one", allowed } });
   assert.deepEqual(dropped.problems, []);
-  assert.doesNotMatch(dropped.text, /Only that flow's\./u);
+  assert.doesNotMatch(dropped.text, /Only that value's\./u);
   const OPEN = readFileSync(join(PLUGIN, "src", "guides", "render.mjs"), "utf8")
     .match(/^const OPEN = .*$/mu)[0];
   assert.ok(OPEN.includes(String.raw`[a-z][a-z0-9\s-]`),
-    "the value class without the hyphen leaves a kebab-case flow governing nothing");
+    "the value class without the hyphen leaves a kebab-case value governing nothing");
 });

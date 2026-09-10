@@ -21,7 +21,7 @@ against *every* issue, because an issue can be named as a dependent without sayi
 and it is resolved by word overlap over a floor of two, so a vague phrase belongs to nobody rather
 than to the nearest title. What a body
 has to say for this reader to see it at all belongs where the run that writes the body reads:
-`plugin/guides/skills/forge/references/dependencies.md`, which also carries the per-tracker override.
+`plugin/guides/skills/forge/default/references/dependencies.md`, which also carries the per-tracker override.
 
 One line each, ASCII, and never a drawn shape: on this tracker's nine edges, 595 bytes and 19 arrows
 became 180 bytes and none — a box-drawing tree is fewer characters and more tokens. A literal NUL in

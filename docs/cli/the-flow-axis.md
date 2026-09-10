@@ -1,10 +1,9 @@
 # A flow is what projects differ by, and it is a slug rather than a number
 
 For six releases the axis over served text was an integer: `method` in `.forge.json`, and
-`plugin/guides/v<n>/` holding what it chose between. `SHIPPED` never held a second value, so the
-number carried no information from the day it was built, and the reason is that a version is a
-property of the tree rather than of the text — two texts that version at different rates cannot both
-be addressed under one. That is why there were two homes and a resolver searching between them.
+`plugin/guides/v<n>/` holding what it chose between. It never held a second value, and the reason it
+could not is that a version is a property of the tree rather than of the text — two texts that
+version at different rates cannot both be addressed under one.
 
 What projects actually differ by is **which flow they run**: where the merge sits, who judges, what
 a plan must declare. A number cannot say `erp-flow`. So the axis is a slug, `flow`, and an absent key
@@ -21,13 +20,12 @@ project wrote and not an absence. Both keys absent is `default`.
 
 ## A flow nobody serves is refused where the key is read
 
-Serving used to look in a pinned version's root and then a plain one. That fallback was right for a
-skill no version had an opinion about, and wrong for a number this copy had no directory for: the
-call fell through to a root holding no method at all, and the verb answered in two confident false
-sentences — that the method was inline in the `SKILL.md`, and that the copy served none of its
-references. The contract was worse rather than better, because it had no fallback and named the
-absent file instead, which reads as an install that arrived broken when the copy is whole and the
-key is the project's own.
+Serving used to look in a pinned version's root and then a plain one, and for a number this copy had
+no directory for the call fell through to a root holding no method at all. The verb then answered in
+two confident false sentences — that the method was inline in the `SKILL.md`, and that the copy
+served none of its references. The contract was worse rather than better: with no fallback it named
+the absent file, which reads as an install that arrived broken when the copy is whole and the key is
+the project's own.
 
 So a `flow` the declaration does not name is one refusal, given at the moment the key is read rather
 than at the moment a file turns out to be missing. It names the value set, the flows this copy
@@ -38,36 +36,42 @@ project came to be refused the method and served the other skills without a word
 cannot act on is the defect this replaces, and the two sentences it replaces were not silence: they
 were wrong.
 
-## Declared, never discovered
+## A flow's directory is the whole of what that flow serves
 
-One constant names the flows this copy serves and, per flow, the contract parts it overrides and the
-plan declarations it requires. The installed directory is not the declaration, and the reason is a
-failure the filesystem cannot report: a flow that loses a part it was meant to override still has
-its directory, and nothing reading the tree can tell that from deliberate inheritance. So the
-declaration is the claim and the tree is the inventory, and a checker holds them against each other.
+The path is the answer. `plugin/guides/contract/<flow>/` holds every contract part that flow serves
+and `plugin/guides/skills/<skill>/<flow>/` every method part and reference, with no base, no merge
+and nothing to declare: reading what `erp-flow` is served is `ls` on one directory. `default` is the
+flow a project falls back to when its config names none — it is not a base, and nothing resolves
+through it.
 
-Every flow's base is `default`, named by nothing and walked by no chain, so resolution is one lookup
-and there is no order to get wrong. **Contract resolution is per part**: a declared override resolves
-to the flow's own file, a part the flow does not declare resolves to `default`'s, and a part the flow
-declares and has not got is an incomplete installation — refused by name, never inherited, with the
-parts around it still served. What stays forbidden is probing a *sibling* flow for a part the
-asked-for flow does not name, which is the search this layout exists without.
+**A flow is not a patch on another flow.** It is a way of working, and the parts it needs are its
+own: `18-release-and-routes.md` means nothing to a flow with one branch, and a staged-QA flow wants a
+part about exercising a screen no other flow should be shown. An override layer can say neither — it
+expresses *the same part, said differently*, which is the narrowest of the three things a flow does.
+So part names and their order are the flow's, and a part `default` has not got needs no permission.
 
-The earlier rule that serving must not fall back is amended here deliberately. Its objection was to a
-combination nobody declared supported. `default` as every flow's declared base, with each part's
-source named in the answer, is a declared combination; a silent substitution is not.
+**Duplication between flows is legal, and it is unchecked.** Shared prose exists once per flow, so a
+correction to a rule every flow shares is made once per flow. That cost buys the two things a base
+cannot: text no reader has to assemble from two files, and a part `default` has not got. So a
+shared-text report or a drift check is refused here, because either would re-import the base by the
+back door.
 
-**A flow overrides a part and never inserts one.** The order is the filename prefix, so a part added
-mid-sequence renumbers everything after it — ten renames, paid twice already. A flow needing a part
-between two others waits for the reading that derives the number instead of encoding it.
+**This restores the rule that serving must not fall back.** Its objection was to a combination nobody
+declared supported, and the earlier shape amended it to permit a declared base. Complete sets need no
+amendment: there is no combination, so every part a reader is served is the served flow's own, and
+that is why an answer names one flow and never a second.
 
-**Skill text is one copy and a flow never overrides a file of it.** Copying a file so a flow can
-change part of it is how the two homes grew: `guide.md` is one text of eight phases, and a flow
-changing one phase would carry the other seven with no byte comparison able to catch a copy that
-differs by a paragraph. What a flow changes it changes inside the file, in a
-`<!-- forge:when flow <slug> -->` fence — [the parts](the-parts.md) carries the fence itself. A
-reference one flow alone cites ships in the shared `references/` directory and is named by the fenced
-reference table, so a document exists once however many flows cite it.
+**The slugs stay declared, and nothing about parts is.** One constant names the flows this copy
+serves and, per flow, the plan declarations it requires — because a flow whose directory vanished has
+to be a refusal rather than a silently shorter list. What a flow *holds* needs no declaration at all,
+its directory being that.
+
+**Skill text is under the same rule**, and [the guides](the-guides.md) carries what that makes of its
+directory. The consequence here is that `flow` is not a fence condition: a
+`<!-- forge:when flow <slug> -->` fence anywhere in served text is refused by a checker naming the
+part file to write instead, because two routes for one axis is a precedence rule with nothing to
+decide it. What stays a fence is a fact orthogonal to the flow that belongs inside a part — the
+machine's ship mode, the project's feedback channel; [the parts](the-parts.md) carries the fence.
 
 ## What a flow may not decide
 
@@ -94,23 +98,33 @@ demands, so no record becomes ambiguous. The pin is also one value for the whole
 per-skill map: the method and the contract are co-designed, and a project mixing them runs text
 nobody tested.
 
-## What the checker holds, and why each finding exists
+## What the checker holds, and why only two findings are left
 
-Six findings, each on a planted flow rather than on the shipped one:
+Two findings, each on a planted flow rather than the shipped one, and both about a slug:
 
-- a declared flow with no directory, and a directory the declaration does not name;
-- an override the flow declares and has not got, which is the incomplete installation;
-- an override naming a part `default` has not got, which is a flow inserting a part;
-- a file the flow has and declares no override for, which nothing would serve;
-- **a flow file byte-identical to the `default` file it overrides**, because a per-part fallback lets
-  a flow carry a copy it did not need.
+- a declared flow whose directory holds no part, which is the incomplete installation;
+- a directory the declaration does not name, which nothing would serve.
+
+Four findings went with the override layer, each having policed a declaration that no longer exists.
+The last of them is the one worth naming: a flow file byte-identical to the one it overrode was
+refused because a per-part fallback let a flow carry a copy it did not need, and under complete sets
+that copy *is* what the flow serves.
 
 The check keeps its own question. *Which text am I served* is a project's, and the flow answers it.
 *What does this copy ship* is a check's, and no `.forge.json` is part of that answer: a gate step
 whose verdict moved with a setting it does not declare would be reused stale, and declaring the
 settings resolver as its input would re-run the check every time an unrelated key changed.
 
-**Every answer names the flow it was served for, `default` included**, and a contract part that came
-from another flow names that flow too. A reader that cannot ask what it just read is the thing being
-fixed; the missing version line the old shape appended only for versioned slugs was the same defect
-from the other side.
+## The one completeness reading, and why it reports
+
+`forge doctor` prints one line per declared flow: how many parts that flow's contract holds, and
+which statuses of the ladder it leaves unanswered. **It reports and it does not refuse.** A flow
+deliberately without a part is legal, and `stageLine` already answers for an absent one at the call,
+so the line exists to make the choice visible where a set is chosen — it catches the flow that is
+*accidentally* without a part. Turning it into a gate would make a flow's own set a refusal, which is
+the layer this axis just stopped being.
+
+**Every answer names the flow it was served for, `default` included**, and it names one flow, because
+every part a reader is served is that flow's own. A reader that cannot ask what it just read is the
+thing being fixed; the missing version line the old shape appended only for versioned slugs was the
+same defect from the other side.

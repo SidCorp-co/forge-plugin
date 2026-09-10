@@ -1,14 +1,14 @@
 /* The contract the flow this project runs answers on, read out of the copy that is running: it sits
    inside `plugin/` because installing copies that and nothing beside it, and beside guides.mjs
    because `forge guide` serves both. Served by part, never whole — one file per part, ordered by the
-   number its name carries, so nothing here lists them (ISS-78, ISS-802). Which flow answers for
-   which part, and what a flow may not do to them: docs/cli/the-guides.md. */
+   number its name carries, so nothing here lists them (ISS-78, ISS-802). Why one flow's directory is
+   the whole of what it serves, and what that leaves undeclared: docs/cli/the-flow-axis.md. */
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { bare, didYouMean } from "../suggest.mjs";
-import { DEFAULT, FLOWS, flowPinned, flowRefusal, overridesOf, servedFor } from "./flow.mjs";
+import { FLOWS, flowPinned, flowRefusal, servedFor } from "./flow.mjs";
 
 /** The contract this build reads and stamps on every record; another number is two versions in one. */
 export const CONTRACT = 1;
@@ -55,35 +55,25 @@ const flowsIn = (dir) => {
   }
 };
 
-/** Every part of the contract for one flow, in `default`'s order: the flow's own file where the flow
- *  declares that name, `default`'s where it does not, and a `text` of null where the flow declares
- *  it and this copy has not got it. No sibling flow is read, which is the probe that stays forbidden. */
-export const contractParts = ({ root = HERE, flow = flowPinned().value, flows = FLOWS } = {}) => {
-  const base = partFilesIn(contractPath(root, DEFAULT));
-  if (!base) return null;
-  const declared = overridesOf(flow, flows);
-  const own = new Map(partFilesIn(contractPath(root, flow)) ?? []);
-  return base.map(([name, text]) => (declared.includes(name)
-    ? { name, text: own.has(name) ? own.get(name) : null, base: text, from: flow }
-    : { name, text, base: text, from: DEFAULT }));
-};
+export const partEntriesIn = (dir) =>
+  partFilesIn(dir)?.map(([name, text]) => ({ name, text })) ?? null;
 
-const joined = (entries) => entries
-  .filter(({ text }) => text !== null)
+/** One flow's whole contract: one `readdir` and no merge, since a flow's set is complete and no sibling is ever read for a part it has not got. */
+export const contractParts = ({ root = HERE, flow = flowPinned().value } = {}) =>
+  partEntriesIn(contractPath(root, flow));
+
+export const joinedParts = (entries) => entries
   .map(({ text }) => text.replace(/\s+$/u, ""))
   .join("\n\n");
 
-/** The number a set of parts declares, with a lost part's identity still read though its body is served to nobody: off the served join instead, a copy that lost the part carrying the number would answer `no contract number` and refuse every intact part with it. */
-export const identityOf = (entries) => statesContract(entries
-  .map(({ text, base }) => (text ?? base).replace(/\s+$/u, ""))
-  .join("\n\n"));
+export const identityOf = (entries) => statesContract(joinedParts(entries));
 
-/** The parts joined into the one text every reader below expects. A malformed part withholds the whole join rather than serving its prose under the part before it: a reader that took the join would answer with the wrong part's text and nothing would say so, and this way every reader takes its own absent-contract route to `forge doctor`, which names the file. A part an incomplete installation lost is left out instead, because the parts the damage does not touch stay servable. */
+/** The parts joined. A malformed part withholds the whole join rather than serving its prose under the part before it: a reader that took the join would answer with the wrong part's text and nothing would say so, and this way every reader takes its own absent-contract route to `forge doctor`, which names the file. */
 export const readContract = (root = HERE, flow = flowPinned().value) => {
   const entries = contractParts({ root, flow });
   if (!entries) return null;
-  if (entries.some(({ name, text }) => text !== null && partFileProblem(name, text))) return null;
-  return joined(entries);
+  if (entries.some(({ name, text }) => partFileProblem(name, text))) return null;
+  return joinedParts(entries);
 };
 
 /* Its own line and shape, so the prose about contract versions is not read as the file's claim. */
@@ -124,9 +114,9 @@ export const partsOf = (text) => {
   });
 };
 
-/** A part this copy has not got is addressed by `default`'s heading, so a refusal answers the key a reader typed rather than a file name nobody does. */
-export const addressed = (entries) => entries.flatMap(({ name, text, base, from }) =>
-  partsOf(text ?? base).map((part) => ({ ...part, file: name, from, missing: text === null })));
+/** Every part of a set with the file it was read out of, so a refusal can name that file. */
+export const addressed = (entries) => entries.flatMap(({ name, text }) =>
+  partsOf(text).map((part) => ({ ...part, file: name })));
 
 /* A separator is how a name is misremembered, not which part was meant, so it costs no round. */
 export const partFor = (parts, key) =>
@@ -136,9 +126,7 @@ export const partFor = (parts, key) =>
 export const keysOfAll = (parts) => parts.flatMap((part) => part.keys);
 
 /** What a citation of the contract resolves against: every key the verb would answer. */
-export const contractKeys = (root = HERE) => keysOfAll(partsOf(readContract(root) ?? ""));
-
-const ABSENT = "absent";
+export const contractKeys = (root = HERE, flow = flowPinned().value) => keysOfAll(partsOf(readContract(root, flow) ?? ""));
 
 /** One line per part and per status, with its size and command, and none of the contract's prose. */
 export const contentsOf = (parts, number) => {
@@ -149,7 +137,7 @@ export const contentsOf = (parts, number) => {
     "Each line is one part, its size in characters, and the command that prints it:",
     "",
     ...rows.map(([key, part]) =>
-      `  ${key.padEnd(width)}  ${String(part.missing ? ABSENT : part.chars).padStart(6)}`
+      `  ${key.padEnd(width)}  ${String(part.chars).padStart(6)}`
       + `  forge guide ${SLUG} ${key}`),
   ];
 };
@@ -163,62 +151,38 @@ export const stageLine = (status, parts, path = contractPath()) => {
 };
 
 /** The malformed part before presence: a directory holding one is what `readContract` withholds the join for, and a reader told only that the contract is absent would go looking for a directory that is right there. The parts are resolved here rather than handed in, because a caller with no list to offer would otherwise switch the rule off and be told the contract is well formed (ISS-848). */
-export const contractProblems = ({ root = HERE, flow = flowPinned().value, flows = FLOWS, reads = CONTRACT } = {}) => {
-  const base = contractPath(root, DEFAULT);
-  const entries = contractParts({ root, flow, flows });
+export const contractProblems = ({ root = HERE, flow = flowPinned().value, reads = CONTRACT } = {}) => {
+  const dir = contractPath(root, flow);
+  const entries = contractParts({ root, flow });
   if (entries === null) {
-    return [`no contract at ${base}, so this copy holds none of the rules that are not code`];
+    return [`no contract at ${dir}, so this copy holds none of the rules that are not code`];
   }
   const malformed = entries
-    .filter(({ text }) => text !== null)
-    .map(({ name, text, from }) => {
+    .map(({ name, text }) => {
       const said = partFileProblem(name, text);
-      return said === null ? null : `${contractPath(root, from)}: ${said}`;
+      return said === null ? null : `${dir}: ${said}`;
     })
     .filter(Boolean);
   if (malformed.length) return malformed;
   const states = identityOf(entries);
   if (states === null) {
-    return [`${base} states no contract number, so nothing says which rules a reader has`];
+    return [`${dir} states no contract number, so nothing says which rules a reader has`];
   }
   if (states !== reads) {
-    return [`${base} states contract ${states} and this build reads contract ${reads}`];
+    return [`${dir} states contract ${states} and this build reads contract ${reads}`];
   }
   return [];
 };
 
-/** Which parts of one flow this copy declares an override for and has not got, so the refusal for
- *  each says which and the parts around them stay servable. */
-export const missingIn = (entries) => (entries ?? []).filter(({ text }) => text === null);
+/** Which of the statuses handed in no part of this set answers. What is done with the answer, and why it is not a refusal, is `doctor.mjs`'s. */
+export const unansweredIn = (parts, statuses) => statuses.filter((one) => !partFor(parts, one));
 
-/** What this copy ships held against what it declares, with no pin as an input: the answer to *what
- *  does this copy ship*, which a gate verdict must not take off a `.forge.json` it does not declare. */
+/** What this copy ships held against the slugs it declares, no pin in the question so a gate verdict does not move with a `.forge.json` it never declared. Both findings are about a slug: what a flow holds is its own, so no part and no sibling's set is left to hold it to. */
 export const flowProblems = (root = HERE, flows = FLOWS) => {
   const out = [];
-  const base = new Map(partFilesIn(contractPath(root, DEFAULT)) ?? []);
-  if (!base.size) {
-    out.push(`${contractPath(root, DEFAULT)} holds no contract part, so no flow has a base to answer from`);
-  }
   for (const flow of Object.keys(flows)) {
-    if (flow === DEFAULT) continue;
-    const own = new Map(partFilesIn(contractPath(root, flow)) ?? []);
-    if (!own.size) {
-      out.push(`${flow} is declared and ${contractPath(root, flow)} holds no part — install the plugin again for a whole copy, or take the flow out of FLOWS`);
-    }
-    for (const name of overridesOf(flow, flows)) {
-      if (!base.has(name)) {
-        out.push(`${flow} declares ${name} and ${DEFAULT} has no part of that name: a flow overrides a part and never inserts one`);
-      } else if (!own.has(name)) {
-        out.push(`${flow} declares ${name} and has not got it, so that part is refused rather than inherited — restore the file, or take the name out of FLOWS`);
-      } else if (own.get(name) === base.get(name)) {
-        out.push(`${flow}'s ${name} is byte-identical to ${DEFAULT}'s, so the override carries nothing — delete the file and let the part inherit`);
-      }
-    }
-    for (const name of own.keys()) {
-      if (!overridesOf(flow, flows).includes(name)) {
-        out.push(`${flow} holds ${name} and declares no override for it, so nothing serves it — declare the name in FLOWS, or delete the file`);
-      }
-    }
+    if (partFilesIn(contractPath(root, flow))) continue;
+    out.push(`${flow} is declared and ${contractPath(root, flow)} holds no part — install the plugin again for a whole copy, or take the flow out of FLOWS`);
   }
   for (const name of flowsIn(contractRoot(root))) {
     if (!Object.hasOwn(flows, name)) {
@@ -229,7 +193,7 @@ export const flowProblems = (root = HERE, flows = FLOWS) => {
 };
 
 /** All of what the verb answers — lines, or one refusal — so a case can ask it without a process. */
-export const contractAnswer = ({ part = null, tracker = false, extra = [], root = HERE } = {}) => {
+export const contractAnswer = ({ part = null, tracker = false, extra = [], root = HERE, flow = flowPinned().value } = {}) => {
   if (tracker) {
     return { refusal: `--tracker does not apply to ${SLUG}, which is this plugin's own, not the`
       + ` tracker's. \`forge guide ${SLUG}\` prints it.` };
@@ -241,20 +205,15 @@ export const contractAnswer = ({ part = null, tracker = false, extra = [], root 
   /* The flow before the file: an absent `erp-flow/` is a chosen slug, not a copy that lost its rules. */
   const pinned = flowRefusal();
   if (pinned) return { refusal: pinned };
-  const wrong = contractProblems({ root });
+  const wrong = contractProblems({ root, flow });
   if (wrong.length) return { refusal: `${wrong[0]}. \`forge doctor\` reports which copy is running.` };
-  const entries = contractParts({ root });
+  const entries = contractParts({ root, flow });
   const parts = addressed(entries);
-  if (!part) return { lines: [...contentsOf(parts, identityOf(entries)), "", ...servedFor()] };
+  if (!part) return { lines: [...contentsOf(parts, identityOf(entries)), "", ...servedFor(flow)] };
   const held = partFor(parts, part);
   if (!held) {
     return { refusal: didYouMean(`guide ${SLUG}`, part, keysOfAll(parts),
       `\`forge guide ${SLUG}\` lists every part.`) };
   }
-  if (held.missing) {
-    return { refusal: `${held.from} declares ${held.file} and this copy has not got it, so the`
-      + ` ${part} part is refused rather than inherited — install the plugin again for a whole copy.`
-      + " `forge doctor` reports which copy is running." };
-  }
-  return { lines: [held.text, "", ...servedFor(held.from)] };
+  return { lines: [held.text, "", ...servedFor(flow)] };
 };

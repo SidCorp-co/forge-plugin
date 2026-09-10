@@ -34,7 +34,7 @@ const guardedDirs = (ev, root) => {
   if (transcript) out.push(join(dirname(transcript), "memory"));
   const listed = root
     ? git(root, ["ls-files", "-c", "-o", "--exclude-standard", "--full-name", "--", "*/SKILL.md", "SKILL.md",
-      "*/skills/*/guide.md"])
+      "*/skills/*/guide.md", "*/skills/*/*/guide/*.md", "*/skills/*/*/references/*.md"])
     : "";
   /* Untracked as well as tracked: a skill nobody has committed yet is exactly the one to look for. */
   for (const rel of listed.split("\n")) {

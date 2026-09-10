@@ -257,10 +257,10 @@ test("a skill file through a variable is refused", () => {
   assert.equal(decide("S=plugin/skills/issue-flow\ncat > $S/SKILL.md <<'EOF'\nx\nEOF").allowed, false);
 });
 
-/* The served body and its references are the skill's own text under another root (ISS-353). */
-test("a served skill body and its references are a skill's own text", () => {
-  assert.equal(decide("cat > plugin/guides/skills/issue-flow/guide.md <<'EOF'\nx\nEOF").allowed, false);
-  assert.equal(decide("sed -i s/a/b/ plugin/guides/skills/issue-flow/references/plan.md").allowed, false);
+/* The served method and its references are the skill's own text under another root (ISS-353), and a method is a directory of parts under the flow serving it: a reading that stops at the name `guide.md` guards none of them. */
+test("a served method part and its references are a skill's own text", () => {
+  assert.equal(decide("cat > plugin/guides/skills/issue-flow/default/guide/05-phase-1.md <<'EOF'\nx\nEOF").allowed, false);
+  assert.equal(decide("sed -i s/a/b/ plugin/guides/skills/issue-flow/default/references/plan.md").allowed, false);
   assert.equal(decide("cat > plugin/guides/contract/default/03-the-flow.md <<'EOF'\nx\nEOF").allowed, true, "the contract is not a skill");
 });
 

@@ -99,7 +99,7 @@ test("a retired directory is held, and only its path form is a mention", () => {
 test("a retired verb is refused on the help, the skills, the topics and the contract", () => {
   const found = problems(files, [AS_IF]);
   for (const surface of [
-    "plugin/guides/skills/issue-flow/guide.md",
+    "plugin/guides/skills/issue-flow/default/guide/",
     "docs/cli/advance.md",
     "plugin/guides/contract/default/",
     "plugin/src/resolve/visibility.mjs",
@@ -143,8 +143,8 @@ test("a retired gate is refused wherever it is readable, and its retirement note
   const gate = RETIRED.find(({ name }) => name === "codex-order");
   assert.ok(gate, "the registry holds the gate that retired with no replacement");
   const said = (rel, text) => problems([{ rel, text }], [gate], LIVE);
-  assert.equal(said("plugin/guides/skills/forge/guide.md", "run it after codex-order clears\n").length, 1,
-    "a skill still naming it is a finding");
+  assert.equal(said("plugin/guides/skills/forge/default/guide/01-skill-forge.md",
+    "run it after codex-order clears\n").length, 1, "a skill still naming it is a finding");
   assert.equal(said("docs/HOOKS.md", "the codex-order page argues its own case\n").length, 1);
   assert.equal(said("plugin/hooks/gate.mjs", "pre bash-guard codex-order\n").length, 1,
     "and so is a line that would register it again");

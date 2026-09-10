@@ -100,9 +100,10 @@ call, never a wrong answer.
 plugin/
   .claude-plugin/plugin.json      the plugin manifest, name: forge
   bin/forge  bin/vi-natural       PATH entry points; reached through the link, they dispatch
-  guides/contract/default/        the contract a status is earned under, one file per served part,
-                                  under the flow it answers for
-  guides/skills/<skill>/          each skill's served method and references, one copy fenced by flow
+  guides/contract/<flow>/         the contract a status is earned under, one file per part, and the
+                                  whole of what that flow serves
+  guides/skills/<skill>/<flow>/   each skill's served method as `guide/`, one file per part, beside
+                                  its `references/` — the whole of what that flow serves
   src/                            the forge CLI
     cli.mjs          argv, the usage list, the write-time rules
     dispatch.mjs     which copy a call through the PATH link runs
@@ -149,7 +150,7 @@ plugin/
     gateway/              config, the streaming client, the batch engine with its gate
     commands/             one file per verb
   skills/<name>/SKILL.md  what every invocation of a skill reads: rules and a route table, or a stub
-  guides/skills/<name>/   what a minority of invocations reads, served by `forge guide <name>`
+  guides/skills/<name>/<flow>/  what a minority of invocations reads, served by `forge guide <name>`
   skills/audit-code-quality  skills/setup-code-quality  whole, shared with packages/code-quality
   agents/<role>.md        one role a dispatch names instead of typing a model beside a general agent
 ```

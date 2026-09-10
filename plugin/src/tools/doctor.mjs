@@ -41,9 +41,10 @@ import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } f
 import { usageOf } from "../resolve/visibility.mjs";
 import { PROJECT_USAGE, WITH_BODY, WRITES } from "../tracker/project-flags.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
-import { flowPinned, flowRefusal } from "../guides/flow.mjs";
+import { FLOW_SLUGS, flowPinned, flowRefusal } from "../guides/flow.mjs";
+import { ORDER } from "../flow/earned.mjs";
 import {
-  contractParts, contractPath, contractProblems, flowProblems, identityOf, missingIn,
+  addressed, contractParts, contractPath, contractProblems, flowProblems, identityOf, unansweredIn,
 } from "../guides/contract.mjs";
 
 const viConfig = () => join(configDir("vi-natural"), "config.json");
@@ -326,6 +327,19 @@ const reportGuideTable = (served) => {
 
 /* The rules that are not code travel inside the plugin, so a copy without them is a copy whose every
    route to them is a dead end — which is what an installed copy was before ISS-78. */
+/* Reports and never refuses: a flow deliberately without a part is allowed and `stageLine` degrades gracefully for one, so this is here for the flow accidentally without it, at the moment a set is chosen rather than the moment a run reaches for the part. */
+const reportFlowSets = () => {
+  for (const flow of FLOW_SLUGS) {
+    const entries = contractParts({ flow });
+    if (entries === null) continue;
+    const absent = unansweredIn(addressed(entries), ORDER);
+    const said = absent.length
+      ? `leaves ${absent.join(", ")} unanswered, which \`stageLine\` says at the call`
+      : "every stage of the ladder answered";
+    line(absent.length ? NOTE : OK, "flow set", `${flow}: ${entries.length} part(s) — ${said}`);
+  }
+};
+
 const checkContract = () => {
   const refused = flowRefusal();
   if (refused) return line(BAD, "contract", refused);
@@ -335,13 +349,9 @@ const checkContract = () => {
   }
   if (wrong.length) return;
   const path = contractPath();
-  const entries = contractParts({});
-  for (const held of missingIn(entries)) {
-    line(BAD, "contract", `${path} declares ${held.name} and has not got it, so that part is`
-      + " refused rather than inherited — install the plugin again for a whole copy");
-  }
   for (const said of flowProblems()) line(BAD, "contract", said);
-  line(OK, "contract", `${path} states contract ${identityOf(entries)} — \`forge guide contract\``);
+  line(OK, "contract", `${path} states contract ${identityOf(contractParts({}))} — \`forge guide contract\``);
+  reportFlowSets();
 };
 
 /* The guide half, which needs the server. */

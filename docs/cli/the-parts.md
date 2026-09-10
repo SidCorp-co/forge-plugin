@@ -73,12 +73,12 @@ number with the half above that subsection and say nothing about the rest — a 
 unreachable through the only address it has. So a phase gathers every heading beneath its own level
 until the next one at that level or above.
 
-A part ends by naming the flow it was rendered for, and a contract part that came from another flow
-names that flow too. A phase read for a flow nobody named cannot be held against the flow the
-project runs, and that comparison is the whole reason a project names one. The corpus reads that
-line back rather than this copy's own key, so a transcript is a fact about the run that made it; the
-retired `Method version 1` line reads as flow `default`, which is the retirement's own precedence
-applied to a read.
+A part ends by naming the flow it was rendered for, and it names one: every part a reader is served
+comes out of that flow's own directory, so there is no second flow a part could have come from. A
+phase read for a flow nobody named cannot be held against the flow the project runs, and that
+comparison is the whole reason a project names one. The corpus reads that line back rather than this
+copy's own key, so a transcript is a fact about the run that made it; the retired `Method version 1`
+line reads as flow `default`, which is the retirement's own precedence applied to a read.
 
 ## The verb that acts carries its own phase, and asks nobody which one it is
 

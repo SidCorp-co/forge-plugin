@@ -19,13 +19,17 @@ reader nothing about which to reach for.
 Also reported: a skill named in another skill's prose that is not installed here. That reference is
 an instruction to invoke something that will never load.
 
+And reported: a served text fencing a block on the flow. A flow's directory is the whole of what
+that flow serves, so a difference between flows is a part file under that flow's own directory, and
+a fence beside it would be a second route to one axis with nothing to decide between them.
+
 Exit 0 when clean, 1 on a finding, 2 on a usage error.`;
 
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { guideBodyPath } from "../src/guides/skill-guides.mjs";
+import { flowFences, servedBody } from "../src/guides/skill-guides.mjs";
 
 const args = process.argv.slice(2);
 if (args.includes("-h") || args.includes("--help")) {
@@ -118,9 +122,9 @@ const skills = readdirSync(skillsRoot, { withFileTypes: true })
   .map((entry) => {
     const text = readFileSync(join(skillsRoot, entry.name, "SKILL.md"), "utf8");
     const held = frontmatter(text);
-    /* Read with the frontmatter: the guide body this name is served from, whatever flow is set. */
-    const served = guideBodyPath(entry.name, join(skillsRoot, ".."));
-    const body = [text, ...(existsSync(served) ? [readFileSync(served, "utf8")] : [])].join("\n");
+    /* Read with the frontmatter: the method this name is served, joined from the parts of whatever flow is set. */
+    const served = servedBody(entry.name, join(skillsRoot, ".."));
+    const body = [text, ...(served === null ? [] : [served])].join("\n");
     return { name: entry.name, description: held.description ?? "", body, words: meaningful(held.description ?? "") };
   });
 
@@ -139,6 +143,8 @@ for (const skill of skills) {
     if (!names.has(match[1])) findings.push([skill.name, `names the \`${match[1]}\` skill, which is not installed here`]);
   }
 }
+
+for (const said of flowFences(join(skillsRoot, ".."))) findings.push(["forge:when flow", said]);
 
 for (let left = 0; left < skills.length; left += 1) {
   for (let right = left + 1; right < skills.length; right += 1) {

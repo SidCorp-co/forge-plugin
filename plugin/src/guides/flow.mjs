@@ -1,14 +1,12 @@
-/* Which flow this copy serves, what a flow may override, and why `method` still answers: docs/cli/the-guides.md. */
+/* Which flow this copy serves, and why `method` still answers: docs/cli/the-guides.md. */
 import { flowScope, methodScope } from "../resolve/settings.mjs";
 
 export const DEFAULT = "default";
 
-/* Declared and never read off the tree; `default` declares neither half, being every flow's base. */
-export const FLOWS = { [DEFAULT]: { overrides: [], requires: [] } };
+/* Slugs, declared and never read off the tree, and nothing about what a flow holds: its directory is that, so a vanished one refuses rather than serving a shorter list. */
+export const FLOWS = { [DEFAULT]: { requires: [] } };
 
 export const FLOW_SLUGS = Object.keys(FLOWS);
-
-export const overridesOf = (flow, flows = FLOWS) => flows[flow]?.overrides ?? [];
 
 export const requiresOf = (flow, flows = FLOWS) => flows[flow]?.requires ?? [];
 
@@ -43,12 +41,11 @@ export const flowRefusal = () => {
     + ` ${ROUTE}`;
 };
 
-/** What a served answer ends with: the flow rendered for, the flow a part came from where that is another, and the retired key where it decided. */
-export const servedFor = (source = null) => {
+/** What a served answer ends with: the flow it was served for, and the retired key where it decided. Named by the caller that served it rather than read off the pin again, so the line is a fact about the answer and not about the settings. */
+export const servedFor = (flow = null) => {
   const { value, from, retired } = flowPinned();
-  const said = source && source !== value ? `, and this part is ${source}'s` : "";
   return [
-    `Flow ${value}, which this project runs${said}; \`forge doctor\` names its source.`,
+    `Flow ${flow ?? value}, which this project runs; \`forge doctor\` names its source.`,
     ...(retired
       ? [`\`method\` is retired: ${from} sets \`method: ${retired}\`, read as flow ${value}.`]
       : []),

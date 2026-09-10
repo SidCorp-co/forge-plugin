@@ -80,21 +80,58 @@ test("a description with no trigger, and one too short to carry one, are both re
   assert.match(said, /under 60 it cannot carry a trigger/);
 });
 
-/* The body the check reads is the one `forge guide <skill>` serves, at `guides/skills/<name>/`: a
-   dead instruction written there and not in the stub is only reachable through that read, so this is
-   the case that fails if the walk stops at the stub. */
-test("a dead instruction in the served body under the moved layout is read and named", (t) => {
+/* The body the check reads is the one `forge guide <skill>` serves, joined from the parts of the
+   flow that serves it: a dead instruction written into one of those parts is only reachable through
+   that read, so this is the case that fails if the walk stops at the stub, and the case that fails
+   if the read stops at the flow directory rather than reaching its parts. */
+test("a dead instruction in a served part under the flow's own directory is read and named", (t) => {
   const root = tempRoom("skill-boundaries-served-");
   t.after(() => rmSync(root, { recursive: true, force: true }));
   mkdirSync(join(root, "skills", "solo"), { recursive: true });
   writeFileSync(join(root, "skills", "solo", "SKILL.md"),
     `---\nname: solo\ndescription: ${UNRELATED}\n---\n\nNothing here names another skill.\n`);
   assert.deepEqual(check(join(root, "skills")).findings, [], "the stub alone is clean");
-  mkdirSync(join(root, "guides", "skills", "solo"), { recursive: true });
-  writeFileSync(join(root, "guides", "skills", "solo", "guide.md"),
-    "# Skill: solo\n\nFor edge cases use the missing skill instead.\n");
+  const guide = join(root, "guides", "skills", "solo", "default", "guide");
+  mkdirSync(guide, { recursive: true });
+  writeFileSync(join(guide, "01-skill-solo.md"), "# Skill: solo\n\nThe opening, naming nobody.\n");
+  assert.deepEqual(check(join(root, "skills")).findings, [],
+    "a served set that names no other skill is clean, so the read below is not passing on absence");
+  writeFileSync(join(guide, "02-edge-cases.md"),
+    "## Edge cases\n\nFor edge cases use the missing skill instead.\n");
   assert.match(check(join(root, "skills")).findings.map((one) => one.join(" ")).join("\n"),
-    /`missing` skill, which is not installed/u);
+    /`missing` skill, which is not installed/u,
+    "a part past the first one is in the join, or the read stops at whichever file sorts first");
+});
+
+/* A fence on the flow is refused wherever a served text holds one, and the message names the part
+   file to write instead: two routes for one axis is a precedence rule with nothing to decide it. */
+test("a forge:when flow fence in a served text is a finding naming the file and the way out", (t) => {
+  const root = tempRoom("skill-boundaries-fence-");
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, "skills", "solo"), { recursive: true });
+  writeFileSync(join(root, "skills", "solo", "SKILL.md"),
+    `---\nname: solo\ndescription: ${UNRELATED}\n---\n\nNothing here names another skill.\n`);
+  const guide = join(root, "guides", "skills", "solo", "default", "guide");
+  mkdirSync(guide, { recursive: true });
+  writeFileSync(join(guide, "01-skill-solo.md"), "# Skill: solo\n\nThe opening.\n");
+  assert.deepEqual(check(join(root, "skills")).findings, [], "a served set with no fence is clean");
+  writeFileSync(join(guide, "01-skill-solo.md"),
+    "# Skill: solo\n\n<!-- forge:when flow erp-flow -->\nOnly that flow's.\n<!-- forge:end -->\n");
+  const said = check(join(root, "skills")).findings.map((one) => one.join(" ")).join("\n");
+  assert.match(said, /01-skill-solo\.md fences a block on `forge:when flow`/u, "the file is named");
+  assert.match(said, /write the block as a part file under that flow's own directory instead/u,
+    "and so is what to write instead, or a reader is told a shape is wrong and not what is right");
+  writeFileSync(join(guide, "01-skill-solo.md"),
+    "# Skill: solo\n\n<!-- forge:when flow erp-flow -->\nOnly that flow's, and nothing closes it.\n");
+  const unclosed = check(join(root, "skills")).findings.map((one) => one.join(" ")).join("\n");
+  assert.match(unclosed, /01-skill-solo\.md fences a block on `forge:when flow`/u,
+    "an opener nothing closes is one too, and a reading of finished blocks alone cannot see it");
+  assert.match(unclosed, /write the block as a part file under that flow's own directory instead/u,
+    "so the malformed text gets the same way out as the well-formed text");
+  writeFileSync(join(guide, "01-skill-solo.md"),
+    "# Skill: solo\n\nThe fence is:\n\n    <!-- forge:when flow erp-flow -->\n\nAnd that is prose.\n");
+  assert.deepEqual(check(join(root, "skills")).findings, [],
+    "a fence quoted as an example opens nothing, so a page documenting the grammar is not a finding");
 });
 
 test("a skill naming one that is not installed is a dead instruction", (t) => {

@@ -5,15 +5,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { flat, homeEnv, tempRoom } from "../fixtures.mjs";
 
-const { blocksOf, phasesOf, render } = await import("../../src/guides/render.mjs");
+const { blocksOf, openersOf, phasesOf, render } = await import("../../src/guides/render.mjs");
+const { servedBody } = await import("../../src/guides/skill-guides.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const BODY = new URL("../../guides/skills/issue-flow/guide.md", import.meta.url).pathname;
+const PLUGIN = new URL("../../", import.meta.url).pathname;
 const CONDITION = "feedback.plugin";
 
 /* The domain travels with the answer, off the key's own list, so a case cannot invent a channel. */
@@ -71,10 +72,22 @@ test("a marked block is kept for the values it names, dropped for the rest, and 
     [[CONDITION, "bugs all"]], "and the block is one block, whatever any project answers");
 });
 
+/* A block joins `blocks` at its closer, so a checker refusing a condition sees nothing in the text
+   that never closes one — which is text a refusal is owed for more, not less (ISS-1098). */
+test("an opener nothing closes names its condition, and a quoted one names nothing", () => {
+  const opener = `<!-- forge:when ${CONDITION} bugs -->`;
+  assert.deepEqual(blocksOf(`# One\n\n${opener}\nThe block.\n`), [], "the finished-block reading is blind here");
+  assert.deepEqual(openersOf(`# One\n\n${opener}\nThe block.\n`), [CONDITION]);
+  assert.deepEqual(openersOf(`# One\n\n${opener}\nThe block.\n<!-- forge:end -->\n`), [CONDITION],
+    "closed or not, the condition is named once");
+  assert.deepEqual(openersOf(`# One\n\nThe fence is:\n\n    ${opener}\n`), [],
+    "and a fence quoted as an example opens nothing, so a page documenting the grammar is clean");
+});
+
 /* AC-02-8-1. The two readings of the phase come from one source, so the case reads the shipped text
    rather than a fixture: a fence that stopped matching the real body would pass on invented lines. */
 test("the Phase 5 part this copy ships carries the filing block once, and loses it under a closed channel", () => {
-  const body = readFileSync(BODY, "utf8");
+  const body = servedBody("issue-flow", PLUGIN);
   const phase = phasesOf(body).find((one) => one.number === "5");
   assert.ok(phase, "the method's phases are addressed by number, and 5 is one of them");
   const marked = blocksOf(phase.text).filter((one) => one.condition === CONDITION);
@@ -94,7 +107,7 @@ test("the Phase 5 part this copy ships carries the filing block once, and loses 
 /* AC-02-8-1, through the key rather than through an argument: the block travels to a project's own
    answer, which is a resolver reading `.forge.json` and not a value a case can hand the renderer. */
 test("the phase the verb serves a project carries the block off the project's own key", () => {
-  const filing = blocksOf(readFileSync(BODY, "utf8"))
+  const filing = blocksOf(servedBody("issue-flow", PLUGIN))
     .find((one) => one.condition === CONDITION).body.join("\n");
   const bugs = asked(room("bugs"), "guide", "issue-flow", "5");
   const off = asked(room("off"), "guide", "issue-flow", "5");

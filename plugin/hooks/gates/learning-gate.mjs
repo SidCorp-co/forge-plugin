@@ -77,9 +77,14 @@ const SHAPE =
   "One file, one fact: `name`, a `description` saying when it applies, `metadata.type` "
   + `(${FILE_TYPES.join("|")}), one pointer line in MEMORY.md.`;
 
-/** Walk up to the directory holding SKILL.md, or null if this is not a skill file. */
+/* A skill's own text under either shape a served method takes: one file, or one directory of parts under the flow that serves them. A selector reading only `guide.md` guards nothing in a copy that has split it, and looks exactly like a copy nobody writes to. */
+const OWN_TEXT = /\/(?:SKILL\.md|guide\.md|(?:guide|references)\/[^/]+\.md)$/;
+
+/** The directory whose text is served together, which is what a duplicate is judged within: one flow's own for served text, since two flows carrying a part word for word is the expected shape; the one holding SKILL.md for a stub. */
 function skillRoot(path) {
-  let dir = dirname(resolve(path));
+  const held = dirname(resolve(path));
+  if (basename(held) === "guide" || basename(held) === "references") return dirname(held);
+  let dir = held;
   for (let i = 0; i < 4; i += 1) {
     if (existsSync(join(dir, "SKILL.md")) || existsSync(join(dir, "guide.md"))) return dir;
     dir = dirname(dir);
@@ -199,7 +204,7 @@ export const run = (ev) => {
   }
 
   // --- a skill's own text: a skill learning ---
-  if (path.includes("/skills/") && /\/(SKILL\.md|guide\.md|references\/[^/]+\.md)$/.test(path)) {
+  if (path.includes("/skills/") && OWN_TEXT.test(path)) {
     const root = skillRoot(path);
     const proposed = `${ti.content ?? ""}\n${ti.new_string ?? ""}`;
     if (root) {

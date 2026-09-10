@@ -76,16 +76,20 @@ A skill's text is placed by how often a reading needs it, and README states the 
 invocation needs is inline in `SKILL.md`; what a run of a long method needs once is the body
 `forge guide <skill>` serves; what a minority of invocations needs is a reference behind
 `forge guide <skill> <reference>`; what a tool's own `-h` answers appears in neither. Bodies and
-references live under `plugin/guides/skills/<skill>/` as rows of the same local registry the
+references live under `plugin/guides/skills/<skill>/<flow>/` as rows of the same local registry the
 contract is, and a skill with references and no body is listed for its references alone.
 
-**One root, and no axis in the path.** Every served skill sits under that one directory, the
-issue-flow method among them, so a slug is offered and addressed the same way whatever a project
-runs and there is no per-slug inconsistency left for a refusal to fall through. The axis is the
-project's `flow`, and it selects what the fence inside a file renders and which contract parts
-answer, never which file a skill is read from: [the flow axis](the-flow-axis.md) carries what a
-flow may and may not change, why it is a slug rather than a number, and what the checker holds the
-declaration to.
+**One shape for both served trees, so the flow is a segment of the path.** A skill's method is a
+directory of parts under the flow that serves it — `<flow>/guide/`, one file per heading beside
+`<flow>/references/` — read by the same reader the contract's parts are read by and held to the same
+one-heading-per-file rule. That is what makes `forge guide <skill> <part>` address one phase and what
+makes a phase whose file lost its heading a named refusal rather than prose served under the phase
+above it, and it is why the rule needs no second statement for the skills: there is one reader.
+
+A flow's directory is the whole of what that flow serves, here as in the contract, so a skill a flow
+holds no text for is not offered under it and one it holds is offered whole.
+[The flow axis](the-flow-axis.md) carries why that is not an override layer, why the slugs are
+declared while what a flow holds is not, and what the checker holds the declaration to.
 
 The served half exists because a skill file is read by a session at its start and never again
 (ISS-78, ISS-321, ISS-353): a landed correction reached nobody until every open session restarted,

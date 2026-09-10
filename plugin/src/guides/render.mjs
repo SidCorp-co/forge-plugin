@@ -27,6 +27,7 @@ const strayIn = (block, held) => {
 const walk = (text, known) => {
   const kept = [];
   const blocks = [];
+  const named = [];
   const problems = [];
   let open = null;
   let guarded = false;
@@ -41,6 +42,7 @@ const walk = (text, known) => {
     const opened = OPEN.exec(line);
     if (opened) {
       if (open) problems.push(`line ${at} opens a marked block inside the one line ${open.at} opened`);
+      named.push(opened[1]);
       open = { condition: opened[1], values: opened[2].split(/\s+/u), at, body: [] };
       continue;
     }
@@ -66,7 +68,7 @@ const walk = (text, known) => {
     open = null;
   }
   if (open) problems.push(`line ${open.at} opens a marked block nothing closes`);
-  return { kept, blocks, problems };
+  return { kept, blocks, named, problems };
 };
 
 /** One part's text for one project, closing the blank run a removal left behind and nothing else. */
@@ -81,6 +83,9 @@ export const render = (text, conditions = {}) => {
 
 /** Every marked block one text holds, with no project in the question: what a check counts. */
 export const blocksOf = (text) => walk(text, {}).blocks;
+
+/** Every condition this text opens a marked block on, closed or not: a block joins `blocks` at its closer, so a checker refusing a condition needs this to reach the malformed text too (ISS-1098). */
+export const openersOf = (text) => walk(text, {}).named;
 
 const PHASE = /^phase-(\d+)$/u;
 

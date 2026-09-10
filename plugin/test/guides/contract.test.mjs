@@ -24,6 +24,8 @@ const {
   stageLine,
   statesContract,
 } = await import("../../src/guides/contract.mjs");
+const { DEFAULT } = await import("../../src/guides/flow.mjs");
+const { servedBody } = await import("../../src/guides/skill-guides.mjs");
 const { CHECKS, ORDER, deployedOwed, judgedOwed, viewFrom } = await import("../../src/flow/earned.mjs");
 const { PHASE } = await import("../../src/guides/phases.mjs");
 const { LIGHTER, RUNGS, SPARES, complexityFor } = await import("../../src/ladder.mjs");
@@ -106,9 +108,11 @@ test("a heading becomes its own address, and a heading of statuses becomes one p
   assert.deepEqual(partsOf("## Two layers, one record\n\nz\n")[0].keys, ["two-layers-one-record"]);
 });
 
-/* The body `forge guide issue-flow` serves, not the stub Claude Code loads (ISS-353). */
-const SKILL = join(PLUGIN, "guides", "skills", "issue-flow", "guide.md");
-const VERIFICATION = join(PLUGIN, "guides", "skills", "issue-flow", "references", "verification.md");
+/* The body `forge guide issue-flow` serves, not the stub Claude Code loads (ISS-353), joined from
+   the parts of the flow that serves it: a phase read out of one part file would be measured against
+   a fragment of the method rather than the method. */
+const SKILL = servedBody("issue-flow", PLUGIN);
+const VERIFICATION = join(PLUGIN, "guides", "skills", "issue-flow", DEFAULT, "references", "verification.md");
 /* Split rather than matched to a lookahead: a lazy body against a multiline `$` ends at the first
    line break, and every phase then reads as empty. */
 const phasesOf = (text) => Object.fromEntries(
@@ -123,7 +127,7 @@ const phasesOf = (text) => Object.fromEntries(
    before it is the method's and has one home; what the contract keeps is that the pass is what earns
    the review, and no surface may send a landing back for a recheck (ISS-51, ISS-230). */
 test("the read that earns the review has one place, and no landing owes a recheck", () => {
-  const phases = phasesOf(readFileSync(SKILL, "utf8"));
+  const phases = phasesOf(SKILL);
   assert.match(PHASE.in_progress[0], /to the review/u, "the ladder names the review in Phase 4");
   const naming = Object.keys(phases).filter((n) => /read that earns the review/u.test(phases[n]));
   assert.deepEqual(naming, ["4"], "and the spine names that read in Phase 4 and in no other phase");
@@ -139,7 +143,7 @@ test("the read that earns the review has one place, and no landing owes a rechec
   assert.match(held, /never a recheck/u, "and says what a landing owes instead");
   /* Every surface, not the two that state the rule: one left prescribing the retired round is a run
      reading that one and taking a step the CLI refuses. */
-  for (const [what, held2] of [["the contract", TEXT], [SKILL, readFileSync(SKILL, "utf8")],
+  for (const [what, held2] of [["the contract", TEXT], ["the served method", SKILL],
     [VERIFICATION, readFileSync(VERIFICATION, "utf8")]]) {
     assert.doesNotMatch(held2, /owes its own recheck/u, `${what} sends a landing back for a recheck`);
   }
@@ -151,7 +155,7 @@ test("the read that earns the review has one place, and no landing owes a rechec
    assertions mechanically, so the method names the comparison target instead, in the phase that
    judges and in no other: two phases answering it is a run reading whichever it reached first. */
 test("Phase 5 names what a criterion is matched against, and no other phase answers that", () => {
-  const phases = phasesOf(readFileSync(SKILL, "utf8"));
+  const phases = phasesOf(SKILL);
   for (const [beat, phrase] of [
     ["the comparison target", "the assertion lines that would go red"],
     ["that a case's name is not it", "never a case's name"],
@@ -172,7 +176,7 @@ test("Phase 5 names what a criterion is matched against, and no other phase answ
    runs in one night each invented a different amount of what that owes. Whether behaviour moved is
    not mechanical, so the method names the test, in the phase that takes the read and in no other. */
 test("Phase 4 says what a refusal arriving after that read owes, and no other phase does", () => {
-  const phases = phasesOf(readFileSync(SKILL, "utf8"));
+  const phases = phasesOf(SKILL);
   for (const [beat, phrase] of [
     ["the case at all", "refusing the tree after that read"],
     ["what the fix is measured against", "measured against the set the read carried"],
@@ -475,7 +479,7 @@ test("the checks point back from the guides, and the evidence table keeps the ki
   for (const kind of ["An API", "A CLI", "A library", "A batch or data job", "Generated output", "Infrastructure"]) {
     assert.ok(held.includes(`| ${kind} |`), `the evidence table no longer names ${kind}, which no check replaced`);
   }
-  const guide = flat(readFileSync(join(PLUGIN, "guides", "skills", "issue-flow", "guide.md"), "utf8"));
+  const guide = flat(SKILL);
   assert.ok(guide.includes("`developed` refuses a path in it that neither the plan nor a correction"),
     "Phase 4 no longer names the check that refuses a file the plan does not name");
 });

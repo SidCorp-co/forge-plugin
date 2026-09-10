@@ -111,3 +111,18 @@ test("a comment may name the column it fetches, which is the carve-out the rule 
   assert.deepEqual(printedColumns(said, "commented.mjs"), []);
   assert.deepEqual(quoted(said), [], "a comment holds no span at all");
 });
+
+/* One regex the scanner walks into leaves every later span in that file out by a literal, so a comment's words arrive as string content and satisfy a row together with a string thirty lines above. Watched on the shape this tree holds — `contract.mjs`'s own `SPAN` (ISS-1110). */
+test("a delimiter inside a regex literal ends nothing, and division still divides", () => {
+  const held = 'const SPAN = /`([^`]+)`/gu;\nconst a = "its size in characters";\n/* the ladder */\nconst b = "plain";\n';
+  assert.deepEqual(quoted(held).map((one) => one.held), ["its size in characters", "plain"],
+    "a backtick inside the class opened a span, so the comment below it was read as string content");
+  assert.deepEqual(printedAliases(held, "reader.mjs"), [],
+    "and the two halves of a row's rule were satisfied by one pseudo-span across a comment");
+  assert.deepEqual(quoted("const half = total / 2;\nconst s = \"kept\";\n").map((one) => one.held),
+    ["kept"], "a slash after a value divides, and reading it as a literal would swallow the rest");
+  assert.deepEqual(quoted('const q = /["\']/u;\nconst s = "kept";\n').map((one) => one.held),
+    ["kept"], "and a quote inside a regex is no delimiter either");
+  assert.deepEqual(quoted('const p = /[/]\\//u;\nconst s = "kept";\n').map((one) => one.held),
+    ["kept"], "a slash inside a class, and an escaped one, end the literal nowhere");
+});

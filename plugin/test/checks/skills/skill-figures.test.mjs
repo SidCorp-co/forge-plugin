@@ -48,12 +48,16 @@ test("the shipped skills carry no measurement", () => {
 test("a figure in a served body under the moved layout is named, and that root is a default one", (t) => {
   const root = tempRoom("skill-figures-served-");
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  const dir = join(root, "guides", "skills", "alpha");
+  const dir = join(root, "guides", "skills", "alpha", "default");
+  mkdirSync(join(dir, "guide"), { recursive: true });
   mkdirSync(join(dir, "references"), { recursive: true });
-  writeFileSync(join(dir, "guide.md"), "# Skill: alpha\n\nMeasured over 4,096 runs of the gate.\n");
+  writeFileSync(join(dir, "guide", "01-skill-alpha.md"), "# Skill: alpha\n\nThe opening.\n");
+  writeFileSync(join(dir, "guide", "02-the-measure.md"),
+    "## The measure\n\nMeasured over 4,096 runs of the gate.\n");
   const held = check(join(root, "guides", "skills"));
   assert.equal(held.status, 1);
-  assert.deepEqual(held.findings.map((one) => one.figure), ["4,096"]);
+  assert.deepEqual(held.findings.map((one) => one.figure), ["4,096"],
+    "a part under the flow's own directory is walked, at whatever depth it has come to sit");
   const plugin = new URL("../../../", import.meta.url).pathname;
   assert.equal(skillGuidesRoot(plugin), join(plugin, "guides", "skills"),
     "and the root a default run walks is where every served body now sits");
