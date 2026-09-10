@@ -204,12 +204,21 @@ test("a date the walk cannot read is refused before it reads a row, so a filter 
   const { refusing } = await import("../../src/resolve/settings.mjs");
   assert.deepEqual(DATE_FILTERS, ["createdAfter", "createdBefore", "updatedAfter"],
     "the date-shaped local filters are no longer the three this case covers");
+  const held = SET;
   await refusing(async () => {
-    for (const name of DATE_FILTERS) {
-      await assert.rejects(() => everyIssue({ [name]: "garbage" }),
-        new RegExp(`A date filter reached the walk unjudged: --${name} is garbage`, "u"),
-        `${name} narrowed on a word nothing read`);
+    /* The empty page and the nonempty one, because a guard placed after the fetch passes on rows
+       alone; and no request in either, which is what says it ran before the page (codex F1). */
+    for (const [word, rows] of [["garbage", held], ["not-a-date", []]]) {
+      SET = rows;
+      for (const name of DATE_FILTERS) {
+        const spent = asked.length;
+        await assert.rejects(() => everyIssue({ [name]: word }),
+          new RegExp(`A date filter reached the walk unjudged: --${name} is ${word}`, "u"),
+          `${name} narrowed on a word nothing read over ${rows.length} row(s)`);
+        assert.equal(asked.length, spent, `${name} sent a request before refusing`);
+      }
     }
+    SET = held;
     await assert.rejects(() => everyIssue({ statusNot: "open", createdAfter: "not-a-date" }),
       /--createdAfter is not-a-date/u, "a filter ahead of the date short-circuited past the refusal");
   });
