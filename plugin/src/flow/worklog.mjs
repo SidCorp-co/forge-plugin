@@ -82,6 +82,13 @@ export const gitNow = () => {
 
 /* What the review owes: a verdict on findings nobody decided, or the recheck one folded owes — and
    whether a recheck is takeable at all is the refusal's own reading, never a second one (ISS-230). */
+/* The mirror of `writtenBy` for facts git holds rather than the session: every key is present, so a value a caller typed is cleared and not left standing, and `undefined` off a checkout is a field the record has not got — which is what refuses a citation nothing can say a tree for. */
+const STAMPS = { head: () => git(["rev-parse", "HEAD"]) ?? undefined };
+
+export const stampedNow = (shape) => Object.fromEntries(shape.fields
+  .filter((one) => one.stamped)
+  .map((one) => [one.flag, STAMPS[one.stamped]?.()]));
+
 export const owedOn = (entries, last) => {
   const open = unverdicted(entries, last.root);
   if (open) return `verdict owed on ${open.open.join(", ")}`;

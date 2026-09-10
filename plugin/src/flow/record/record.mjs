@@ -28,7 +28,7 @@ import { pluginFilingLine } from "../../tracker/filing/plugin-defect.mjs";
 import { partForRecord } from "../../guides/served.mjs";
 import { didYouMean } from "../../suggest.mjs";
 import { FIELD as SESSION, nextLine, renew, writtenBy } from "../lease.mjs";
-import { patchFrom, worklogLines, worklogOf } from "../worklog.mjs";
+import { patchFrom, stampedNow, worklogLines, worklogOf } from "../worklog.mjs";
 
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
 
@@ -93,7 +93,7 @@ const gather = (kind, argv, defer = []) => {
     rest = pulled.rest;
   }
   const single = flags(rest, `record ${kind}`, [], { usage });
-  Object.assign(got, single, writtenBy(shape));
+  Object.assign(got, single, writtenBy(shape), stampedNow(shape));
   for (const field of shape.fields) {
     const value = got[field.flag];
     if (field.many) {

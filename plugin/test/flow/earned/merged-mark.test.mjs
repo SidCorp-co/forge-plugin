@@ -71,6 +71,13 @@ test("developed needs the mark, its commit, and an approving review of that comm
     "a squash moved the hash, and the note kept the head that was reviewed");
   assert.deepEqual(missing("developed", view(stamped, [...landed, review("c8c3550", "changes-requested")])),
     ["the latest review of c8c3550 says changes-requested"]);
+  /* The outcome is read before the head, so a read that asked for changes earns no head at all: one
+     that approved head A and a mark naming B is a mismatch to answer, and this is not that. */
+  assert.deepEqual(missing("developed", view(stamped, [...landed, review("43b811e", "changes-requested")])),
+    ["the latest review of 43b811e says changes-requested"],
+    "a read that asked for changes on one head is refused for the outcome, not for naming another");
+  assert.deepEqual(missing("developed", view(stamped, [...landed, review("c8c3550")])), [],
+    "and an approving read of the head the mark names earns the rung with no consult log read");
   assert.match(commands("developed", view(stamped, landed))[0], /--commit c8c3550 --outcome approved/u,
     "the commit the review owes is the one the mark named");
 });

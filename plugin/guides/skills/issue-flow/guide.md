@@ -70,9 +70,10 @@ already gone unjudged.
 Then `forge knowledge search` on the issue's title: an entry about the module this issue touches is
 read before the code, and against the source it cites.
 
-**Start the baseline the moment the gate is named.** Run the project's gate whole, in the background,
-and carry on reading; its result is read before the first edit, never waited for. What it must record:
-`forge guide issue-flow verification`.
+**Start the baseline the moment the gate is named**, where the rung owes a run of it rather than a
+citation. Run the project's gate whole, in the background, and carry on reading; its result is read
+before the first edit, never waited for. What it must record, and when a result already recorded
+answers instead: `forge guide issue-flow verification`.
 
 Phase 0 writes nothing. Carry it into Phase 1, where the claim comes before the first write, and a
 brief this run found wrong is corrected on the way out.

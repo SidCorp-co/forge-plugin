@@ -441,7 +441,7 @@ test("every field a kind's shape takes is named on the row its help prints", () 
   for (const kind of KINDS) {
     const named = flagsNamed(kindUsage(kind));
     for (const field of SHAPES[kind]?.fields ?? []) {
-      if (field.derived || field.written || named.includes(`--${field.flag}`)) continue;
+      if (field.derived || field.written || field.stamped || named.includes(`--${field.flag}`)) continue;
       missing.push(`record ${kind} takes --${field.flag}, which its help does not name`);
     }
   }

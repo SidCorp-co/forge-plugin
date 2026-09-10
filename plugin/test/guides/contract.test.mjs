@@ -376,8 +376,8 @@ test("what a rung drops and the rounds it spares are the rung report's, and no g
     + "`forge advance --owed` prints about a rung: cut it to the command, which prints it for the "
     + "issue in hand rather than in general");
   const [lowest] = RUNGS;
-  assert.ok(SPARES[lowest].length > SPARES[RUNGS[1]].length,
-    "the shortest ladder saves no more rounds than the one above it, so nothing distinguishes them");
+  assert.deepEqual(SPARES[lowest], SPARES[RUNGS[1]],
+    "the two rungs below the top spare different rounds, and the contract says they differ by ceiling alone");
 });
 
 /* A rung's claim is that the work is small, never a claim about what the gate found: this gate is

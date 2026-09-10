@@ -7,6 +7,13 @@ whether the run measured the whole tree. Whether it was whole is the baseline re
 `in_progress` refuses one saying it was not, so that demand is the entry check's rather than this
 page's.
 
+**Below the top rung the baseline may cite a run rather than be one.** Where the branch was cut from
+a head some gate run already answered for whole, record that result and name where you read it off
+in `--cited`. The write stamps the head your checkout is at, which is why the baseline is recorded
+before the first edit rather than after it: the entry check takes the citation only where that
+stamped head is the commit you cited, and otherwise refuses it with the fresh run to spend.
+`forge advance <ref> --owed` says whether this issue's rung may cite at all.
+
 What the check cannot judge is yours. **A gate that stops at its first failure has measured only what
 ran**: one red at the front leaves every step behind it unknown, so run the remaining steps by hand
 and record what each answered before calling the run whole. A baseline that cannot be obtained at all
@@ -17,7 +24,9 @@ regression.
 after it, one scoped run when a unit of work is finished — a change that stands on its own, never
 each edit inside one — and in between the changed file's own suite, which answers one question
 faster than any gate reaches it. The ship spends the gate itself, so the release's gate is
-that run and there is nothing left to spend after the push. A gate too slow to spend once a unit is
+that run and there is nothing left to spend after the push. Below the top rung even the run per unit
+goes: the ship's is the one the clean path spends, and `forge advance <ref> --owed` is what says so
+for the issue in hand. A gate too slow to spend once a unit is
 the gate's defect and the gate-review skill is the route to it, never a reason to spend it less often.
 Whichever of those runs, it is started in the background and its log is read when the completion
 notice arrives, never before.

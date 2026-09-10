@@ -3,13 +3,14 @@
    writes, fetches or reads the repository. What it checks against is the contract's table for that
    status, printed by `forge guide contract`. */
 import {
-  CLOSES_FROM, FINDINGS, SHAPES, TRIAGES, criteriaUncovered, looksTo, planFlags, planSteps,
+  CLOSES_FROM, FINDINGS, SHAPES, TRIAGES, criteriaUncovered, looksTo, need, planFlags, planSteps,
   planTyped, sectionsOwed, stepsUncited, unwrap,
 } from "./machine.mjs";
 import { correctionForm, judgedHead, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead } from "./record/merged.mjs";
 import { eachProblem } from "./record/content.mjs";
 import { FORMS } from "../spec/parse.mjs";
-import { lightens } from "../ladder.mjs";
+import { lightens, rungOf } from "../ladder.mjs";
+import { citedOwed, wholeOwed } from "./earned/baseline.mjs";
 import { rungReport } from "../ladder-report.mjs";
 import { attachmentNames, evidenceHeld, isCommit, sameCommit } from "../tracker/evidence.mjs";
 
@@ -119,7 +120,7 @@ export const stepAfter = (status) => {
 export const nextOf = (status, view) =>
   (status === "confirmed" && dispositionOf(view) ? "dropped" : stepAfter(status));
 
-export const need = (what, command) => ({ what, command });
+export { need };
 
 /* The park is a look at the evidence either way, which the project's own policy may say it does
    not want: the declaration is the plan's and whether a person is waited for is the project's. */
@@ -322,19 +323,6 @@ const judgedSince = (view, ref) => {
     (number) => `the verdict on criterion ${number} was written before this reopen's triage, and a reopen judges again`,
     (listed) => `the verdicts on criteria ${listed} were written before this reopen's triage, and a reopen judges again`,
   );
-};
-
-/* On what the run said of itself, never on a ledger this plugin cannot see: a scoped run reports no
-   red for what it skipped, and a baseline naming no scope predates the field and is excused. */
-const wholeOwed = (view, ref) => {
-  const held = view.latest.baseline?.record.fields;
-  if (held?.scope !== "part") return [];
-  return [need(
-    `the baseline says \`${held.gate}\` measured part of the tree, so what it did not run has no `
-      + `answer and a green after it stands on nothing`,
-    `forge record baseline ${ref} --gate "${held.gate}" --result "<what already fails>" `
-      + `--commit <sha> --scope whole`,
-  )];
 };
 
 /* A URL and a sha are citations; an attachment is the thing itself, and a screen is the one change
@@ -546,7 +534,8 @@ export const CHECKS = {
       "no baseline: the gate, what it already reports and the commit it ran at",
       `forge record baseline ${ref} --gate "<command>" --result "<what already fails>" --commit <sha> --scope whole`,
     );
-    return [...blockersOwed(view), ...baseline, ...wholeOwed(view, ref)];
+    return [...blockersOwed(view), ...baseline, ...wholeOwed(view, ref),
+      ...citedOwed(view, ref, rungOf(rungFieldsOf(view)))];
   },
   developed: (view, ref) => {
     const out = [];

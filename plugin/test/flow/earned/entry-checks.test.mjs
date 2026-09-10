@@ -48,6 +48,51 @@ test("a baseline that measured part of the tree earns nothing, and one that name
   assert.match(none[0].command, /--scope whole$/u);
 });
 
+/* The citation's two legs, and the four ways a record can fail one. The head is what the write
+   stamped from its own checkout, so every case here is the record's own facts and no case reaches
+   for git — which is the whole reason the provenance is a field rather than a question. */
+const HEAD = "43b811e2c9d0f1a3b4c5d6e7f8091a2b3c4d5e6f";
+const cite = (fields) => [recorded("baseline",
+  { gate: "npm run check", result: "354 pass", commit: HEAD, scope: "whole", cited: "the release's gate", head: HEAD, ...fields })];
+const citing = (complexity, fields) => CHECKS.in_progress(view({ complexity }, cite(fields)), "ISS-3");
+
+test("a cited baseline is taken below the top rung where the commit is the head the write stamped", () => {
+  assert.deepEqual(missing("in_progress", view({ complexity: "xs" }, cite({}))), [],
+    "the lowest rung cites a recorded result and owes nothing further");
+  assert.deepEqual(missing("in_progress", view({ complexity: "s" }, cite({}))), [],
+    "and so does the rung above it, the two being granted one list");
+  /* The leg that makes the citation worth accepting: the branch is still at the tree that gate read. */
+  const moved = citing("s", { commit: "0f1e2d3c4b5a69788796a5b4c3d2e1f009182736" });
+  assert.equal(moved.length, 1);
+  assert.match(moved[0].what, /cites a result at 0f1e2d3c/u, "the refusal names the commit cited");
+  assert.match(moved[0].what, new RegExp(`written at ${HEAD}`, "u"), "and the head it disagrees with");
+  assert.match(moved[0].command, /--scope whole$/u, "and the fresh run that answers instead");
+});
+
+test("a cited baseline is refused at the top rung, and on a record that carries no head", () => {
+  const top = citing("m", {});
+  assert.equal(top.length, 1);
+  assert.match(top[0].what, /a `feature` spends the whole run/u, "the rung is why, and it is named");
+  assert.match(top[0].command, /--scope whole$/u);
+  /* A baseline written outside a checkout: the stamp is the one fact nothing else can supply. */
+  const bare = citing("s", { head: undefined });
+  assert.equal(bare.length, 1);
+  assert.match(bare[0].what, /carries no head/u);
+  assert.match(bare[0].command, /--cited "the release's gate"$/u, "and the re-record keeps the citation");
+  /* Deferred to `wholeOwed` rather than refused twice: one rule, one refusal, and it names the gate. */
+  const part = citing("s", { scope: "part" });
+  assert.equal(part.length, 1, "a partial scope is one refusal and not two");
+  assert.match(part[0].what, /measured part of the tree/u);
+});
+
+test("a citation waives no payload, so a rung with no baseline at all is still refused", () => {
+  for (const complexity of ["xs", "s", "m"]) {
+    const none = missing("in_progress", view({ complexity }, []));
+    assert.ok(none.some((one) => /^no baseline/u.test(one)),
+      `a rung claimed by \`${complexity}\` reaches in_progress with no baseline record on it`);
+  }
+});
+
 test("a screen change owes an attachment on every verdict that is not skipped", () => {
   const plan = (screen) => ({ plan: `Screen change: ${screen}\nSchema coupling: no`, acceptanceCriteria: CRITERIA });
   const judged = (evidence, verdict = "pass") => [1, 2].map((criterion) =>

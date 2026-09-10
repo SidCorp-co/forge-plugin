@@ -85,13 +85,17 @@ export const LIGHTER = [
   },
 ];
 
+/* One list held by both rungs under the top, so `CEILINGS` is the whole of what tells them apart and a second list cannot become a difference the contract denies having; each line is a judgement spent once, where a `LIGHTER` row drops a payload. */
+const LIGHTER_ROUNDS = [
+  "Phase 0 is the brief alone, where no source of it is stale",
+  "one consult, which is the whole-set read at the replayed head, and no recheck after a clean pass",
+  "one gate run on the clean path, the ship's, so no commit spends one and none is left after it",
+  "a baseline citing a recorded whole-tree result at the head the branch was cut at, rather than a fresh run",
+];
+
 export const SPARES = {
-  [TRIVIAL]: [
-    "Phase 0 is the brief alone, where no source of it is stale",
-    "one consult, which is the whole-set read at the replayed head, and no recheck after a clean pass",
-    "no gate run after the ship, the ship having spent it",
-  ],
-  [FIX]: ["no recheck after a consult that raised nothing"],
+  [TRIVIAL]: LIGHTER_ROUNDS,
+  [FIX]: LIGHTER_ROUNDS,
   [FEATURE]: [],
 };
 

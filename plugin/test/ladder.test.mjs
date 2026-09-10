@@ -124,8 +124,10 @@ test("every rung the ladder has has its rows, its rounds, and a ceiling unless i
   for (const rung of RUNGS) {
     assert.ok(Array.isArray(SPARES[rung]), `${rung} is a rung of the ladder with no rounds column`);
   }
-  assert.ok(SPARES[lowest].length > SPARES[rest[0]].length,
-    "the shortest ladder saves no more rounds than the one above it, so a run cannot tell them apart");
+  assert.deepEqual(SPARES[lowest], SPARES[rest[0]],
+    "the two rungs below the top spare different rounds, so they differ in more than their ceiling");
+  assert.notDeepEqual(CEILINGS[lowest], CEILINGS[rest[0]],
+    "and the ceiling is then the whole of the difference, so the two cannot differ in nothing at all");
   assert.equal(SPARES[top].length, 0, "the top rung is what the others are measured against");
   assert.equal(CEILINGS[top], undefined, "and has nothing to climb to, so it has no ceiling");
   for (const rung of RUNGS.filter((one) => one !== top)) {
@@ -323,10 +325,23 @@ test("the shortest rung drops what the one above drops, and is told what else it
     assert.ok(trivial.stdout.includes(row.drops), `the shortest rung is reported to owe ${row.drops}`);
   }
   const roundsIn = (text) => text.split("and fewer rounds")[1]?.split("Every other demand")[0] ?? "";
-  const [under, above] = [roundsIn(trivial.stdout), roundsIn(fix.stdout)];
+  const [under, above, top] = [roundsIn(trivial.stdout), roundsIn(fix.stdout), roundsIn(feature.stdout)];
   assert.ok(SPARES.trivial.every((one) => under.includes(one)), "each round it may spend fewer of is named");
-  assert.ok(SPARES.trivial.some((one) => !above.includes(one)),
-    "and one of them is not the rung above's, or the two differ in nothing a reader can act on");
+  assert.ok(SPARES.trivial.every((one) => above.includes(one)),
+    "and the rung above is told every one of them, the two being granted one list");
+  assert.ok(SPARES.trivial.every((one) => !top.includes(one)),
+    "and the top rung is told none of them, which is what the two below it are measured against");
+  /* The two the ladder gained: a run told it may cite a baseline and told the gate is the ship's
+     spends neither twice, and a feature reading either would spend a judgement it owes. */
+  for (const [rung, out] of [["trivial", trivial], ["fix", fix]]) {
+    assert.match(out.stdout, /a baseline citing a recorded whole-tree result/u,
+      `a \`${rung}\` is not told its baseline may cite a result already recorded`);
+    assert.match(out.stdout, /one gate run on the clean path, the ship's/u,
+      `a \`${rung}\` is not told the gate is spent once, at the ship`);
+  }
+  assert.doesNotMatch(feature.stdout, /a baseline citing a recorded whole-tree result/u,
+    "the top rung is offered a cited baseline, which is the one judgement it may not skip");
+  assert.doesNotMatch(feature.stdout, /one gate run on the clean path/u, "and is offered one gate run");
   assert.match(trivial.stdout, /--moved "Rung: trivial -> fix"/u, "the route up names the next rung, not the top");
   assert.match(feature.stdout, /holds no complexity on the tracker, so it is a `feature`/u);
   assert.match(feature.stdout, /a feature owes the whole set/u, "the top rung says so rather than saying nothing");

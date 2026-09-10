@@ -46,7 +46,9 @@ plan declares one of them, because an issue that owes no person owes no round to
 onto a staging branch is one a person can still look at afterwards, so it does not park; a project
 that deploys its own production branch has said the same thing about production. What comes back is
 one derived line on the verification — the project's answer, in a field no flag can supply, because a
-line an author could type proves only that they typed it.
+line an author could type proves only that they typed it. A cited baseline's head is that shape with
+git as its source, so the check comparing it with the commit cited opens no repository. Stamped, not
+derived: a derived field is dropped from every stored body and read back by nothing.
 
 A third measurement, two runs later: an edge the tracker had already answered for forced a raw
 transition twice. `relations.blockedBy` returns mentions beside orderings, each edge naming its kind

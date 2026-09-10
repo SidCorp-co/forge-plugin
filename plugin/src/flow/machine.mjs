@@ -77,7 +77,7 @@ const groupsIn = (entries, per) => {
   return groups;
 };
 
-/* Keys resolving to none of the shape's is rewritten, not empty; and no body sources a derived one. */
+/* Keys resolving to none of the shape's is rewritten, not empty; and no body sources a derived one — so a fact a check has to read back is `stamped`, which the write fills and this reads, never `derived`, which is a copy for a person and reaches no checker. */
 export const readRecords = (body, shapeOf) => {
   const tag = TAG.exec(body ?? "");
   const shape = tag ? shapeOf(tag[1]) : null;
@@ -404,6 +404,9 @@ export const FAIL = "fail";
 export const VERDICTS = ["pass", FAIL, "skipped"];
 export const JUDGE_FROM = "judge-from";
 export const SCOPES = ["whole", "part"];
+
+/** One owed item: what the record lacks, and the one command that supplies it. Here rather than in the checks, so a check split out of them takes the shape with it and imports nothing back. */
+export const need = (what, command) => ({ what, command });
 /* What the agent may rule a person's finding to be: the criterion asked the wrong thing, the
    criterion was not met, or nothing in the specification ever promised what the person expected. */
 export const TRIAGES = ["wrong-test", "not-met", "not-in-spec"];
@@ -494,7 +497,13 @@ export const SHAPES = {
       FIELD("result", "Result"),
       FIELD("commit", "Commit", { commit: true }),
       FIELD("scope", "Scope", { oneOf: SCOPES, newer: true }),
+      FIELD("cited", "Cited from", { optional: true }),
+      FIELD("head", "Head at the write", { optional: true, stamped: "head" }),
     ],
+    check: (got) =>
+      (got.cited !== undefined && !String(got.cited).trim()
+        ? "--cited to name the recorded gate result its result was read off: a citation naming no source is a result from nowhere"
+        : null),
   },
   /* `per` opens a block: one write, a verdict per criterion. A stamp renders last, so a shape with `per` takes none. */
   verdict: {
