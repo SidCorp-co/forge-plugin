@@ -3,8 +3,8 @@
    writes, fetches or reads the repository. What it checks against is the contract's table for that
    status, printed by `forge guide contract`. */
 import {
-  FINDINGS, SHAPES, TRIAGES, criteriaUncovered, looksTo, planFlags, planSteps, planTyped,
-  sectionsOwed, stepsUncited, unwrap,
+  CLOSES_FROM, FINDINGS, SHAPES, TRIAGES, criteriaUncovered, looksTo, planFlags, planSteps,
+  planTyped, sectionsOwed, stepsUncited, unwrap,
 } from "./machine.mjs";
 import { correctionForm, judgedHead, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead } from "./record/merged.mjs";
 import { eachProblem } from "./record/content.mjs";
@@ -462,7 +462,7 @@ export const deployedOwed = (view, ref) => {
   );
   /* One or the other: a payload with gaps has no fields to compare against anything. */
   const out = verification.length ? verification : deployOwed(view, ref);
-  if (!view.issue.releaseNotes?.section && !lightPath(view, "awaiting_release")) {
+  if (!view.issue.releaseNotes?.section && !lightPath(view, CLOSES_FROM)) {
     out.push(need("no release note and no withholding either", `forge record note ${ref} --section Added --user "<what the reporter sees>"`));
   }
   const declared = personLooks(view.flags, view.release);

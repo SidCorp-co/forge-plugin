@@ -185,15 +185,33 @@ export const mimeForName = (name) => {
   return (at < 0 ? null : UPLOAD_MIMES[held.slice(at).toLowerCase()]) ?? UNTYPED;
 };
 
-/* Only what the route serves is declared. A name on neither list is refused rather than ignored. */
+/* Only what the route serves is declared, as the values the route takes — or, where a value carries
+   more than its own name, as rows that answer with one. A name on neither list is refused rather
+   than ignored. The reader that spends a row beside its name is `statusKind` in `rest.mjs`. */
 export const DECLARES = {
   forge_issues: {
     filters: Object.keys(FILTERS),
     priority: ["critical", "high", "medium", "low", "none"],
-    /* The tracker's enum as it answers today, not this plugin's ladder: `released` left it and `awaiting_release` and `releasing` arrived in its place (ISS-1022), and the retired rungs stay because rows still hold them and a read has to be able to name one. */
-    status: ["open", "confirmed", "clarified", "waiting", "approved", "in_progress", "developed",
-      "testing", "tested", "awaiting_release", "releasing", "closed", "reopen", "on_hold",
-      "needs_info", "draft", "dropped"],
+    status: [
+      { name: "open", step: true },
+      { name: "confirmed", step: true },
+      { name: "clarified", step: true },
+      { name: "waiting" },
+      { name: "approved", step: true },
+      { name: "in_progress", step: true },
+      { name: "developed", step: true },
+      { name: "testing" },
+      { name: "tested", replacedBy: "awaiting_release" },
+      { name: "awaiting_release", step: true },
+      { name: "releasing", writtenByNobody: "the release path's own status: the release button "
+        + "enters it and the release batch alone leaves it" },
+      { name: "closed", step: true },
+      { name: "reopen" },
+      { name: "on_hold" },
+      { name: "needs_info" },
+      { name: "draft" },
+      { name: "dropped" },
+    ],
     caps: {
       title: { self: 500, halves: {} },
       description: { self: 100000, halves: {} },

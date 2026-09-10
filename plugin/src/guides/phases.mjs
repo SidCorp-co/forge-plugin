@@ -2,6 +2,7 @@
    a phase is the work owed *at* a status and an entry check guards the way *into* one, so the phase
    at a rung answers to the rung above. docs/cli/resume.md. */
 import { ORDER, PHASE, stepAfter } from "../flow/earned.mjs";
+import { CLOSES_FROM } from "../flow/machine.mjs";
 import { LIGHTER, rungOf } from "../ladder.mjs";
 
 const NUMBERED = /^(\d+)/u;
@@ -23,7 +24,6 @@ export const dischargedBy = (status) => CITED[stepAfter(status)]?.[0] ?? null;
 
 /** Three readings of one row: every phase it names, the phase a record of a kind ends, and the phase the landing ends. A record's is the stage below the one `CITED` says it earns, and null where that stage owes several phases, since `CITED` does not say which of a stage's records ends it; the landing's is the last its own stage names, that row abbreviating the note and the ship into one cell. docs/cli/the-parts.md. */
 const EVERY_NUMBER = /\d+/gu;
-const AWAITING = "awaiting_release";
 const stageBelow = (status) => ORDER[ORDER.indexOf(status) - 1] ?? null;
 
 export const phasesOwed = (status) =>
@@ -37,7 +37,7 @@ export const phaseForRecord = (kind) => {
   return owed.length === 1 ? owed[0] : null;
 };
 
-export const phaseAtLanding = () => phasesOwed(AWAITING).at(-1) ?? null;
+export const phaseAtLanding = () => phasesOwed(CLOSES_FROM).at(-1) ?? null;
 
 /** The waiver a rung grants on the way out of a status, named by what it drops and why. */
 const waivedFor = (status, fields) => {

@@ -5,7 +5,7 @@ import { exclusive, firstLine, flags, pullRepeated, wantsHelp } from "../resolve
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { commentPage, countedShort, creditAfter, cutIn } from "../tracker/comments.mjs";
-import { declaredValue, write } from "../tracker/rest.mjs";
+import { declaredValue, statusKind, write } from "../tracker/rest.mjs";
 import { UNREAD, afterRefused, correctionFor, whyChecked } from "./override.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../guides/contract.mjs";
@@ -44,9 +44,6 @@ export const USAGE = [
   "What each status is earned by, rung by rung: `forge advance <ref> --owed` for this issue, and",
   "`forge guide contract <status>` for the rule.",
 ].join("\n");
-
-/* One name declared so a read can filter on it and written by nothing: the release path's own status (ISS-1022). */
-const RELEASE_PATH_ONLY = "releasing";
 
 /* A plain advance from the rung `closed` is entered from, whose whole entry criterion is that status, so the page is not worth the call. A park or a drop from it is another transition: its kind, its evidence and the question a needs_info park owes are all judged against the record, so those read the page. */
 const readsTheRecord = (body, given) =>
@@ -231,11 +228,16 @@ export const shortfall = (ref, view, held) => {
 
 /* The status set with nothing earning it, judged against what `declaredValue` declares and against nothing else, with the reply and the correction saying no check read it. A side status is reached with the payload the tracker demands of one, so `--set` writes what a park writes and skips only the entry checks. */
 const setStatus = async (view, ref, status, why) => {
-  /* The one name declared for reading and written by nothing: the release button enters `releasing` and the release batch alone leaves it, so a run setting it declares its own release finished. Declaring the name is what would otherwise let it through, `declaredValue` being the only check a set passes (ISS-1022, consult 8736c3 F1). */
-  if (status === RELEASE_PATH_ONLY) {
-    refuse(`\`${RELEASE_PATH_ONLY}\` is the release path's own status: the release button enters it and `
-      + `the release batch alone leaves it, so no run of this CLI writes it and nothing was sent. The `
-      + `rung a run reaches is \`${CLOSES_FROM}\`, which its record earns: forge advance ${ref}`);
+  /* Declaring a name is what would otherwise let it through, `declaredValue` being the only check a set passes, so the kind beside the name in that same table is what refuses — and each refusal names where the caller goes instead of what it may not write (ISS-1022, consult 8736c3 F1; ISS-1043). */
+  const kind = statusKind(status);
+  if (kind?.replacedBy) {
+    refuse(`\`${status}\` is no step of the flow: \`${kind.replacedBy}\` is the rung that took it over, `
+      + `and it asks for more than \`${status}\` did, so nothing was sent. Setting the rung that `
+      + `replaced it writes a status no entry check read:\n  ${setForm(ref, kind.replacedBy)}`);
+  }
+  if (kind?.writtenByNobody) {
+    refuse(`\`${status}\` is ${kind.writtenByNobody}, so no run of this CLI writes it and nothing was `
+      + `sent. The rung a run reaches is \`${CLOSES_FROM}\`, which its record earns: forge advance ${ref}`);
   }
   const said = whyChecked("advance --set", why);
   const near = declaredValue("forge_issues", "status", status);

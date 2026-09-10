@@ -244,13 +244,21 @@ export const scoped = callTool;
 export const tried = async (name, args) => callTool(name, args, true);
 
 /** What the table declares in the tracker's stead, and a value judged against it — the nearest name, or null where the value is in the set or the table declares none.
- *  The set is this CLI's and goes stale when the tracker grows a value, which is what the caller's sentence around either of these has to say. */
-export const declaredFor = (tool, field) => DECLARES[tool]?.[field] ?? [];
+ *  The set is this CLI's and goes stale when the tracker grows a value, which is what the caller's sentence around either of these has to say.
+ *  A row carrying more than its own name answers with the name, so what a declared set holds is the values whatever each row says beside them; a declared field that is not a list at all — `caps` — passes through as it is. */
+export const declaredFor = (tool, field) => {
+  const held = DECLARES[tool]?.[field] ?? [];
+  return Array.isArray(held) ? held.map((one) => one?.name ?? one) : held;
+};
 
 export const declaredValue = (tool, field, given) => {
   const allowed = declaredFor(tool, field);
   return !allowed.length || allowed.includes(given) ? null : didYouMean(field, given, allowed);
 };
+
+/** What a status name is, off the row that declares it: `step` a rung of this plugin's own flow, `replacedBy` the rung that took a retired name over, `writtenByNobody` the clause saying whose path enters it and no run's. A row carrying none of the three is readable, written by a park or a set, and no step. Null for a name the table does not declare, which `declaredValue` is what refuses. */
+export const statusKind = (name) =>
+  DECLARES.forge_issues.status.find((one) => one.name === name) ?? null;
 
 /* One seat rather than a list of the payload kinds that may carry a secret, which goes stale the
    next time a verb learns to write. `uploadAll` holds the other: bytes never pass here. */

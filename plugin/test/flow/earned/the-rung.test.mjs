@@ -10,6 +10,7 @@ const { CHECKS, ORDER, deployedOwed, judgedOwed, nextOf, viewFrom } =
   await import("../../../src/flow/earned.mjs");
 const { CLOSES_FROM } = await import("../../../src/flow/machine.mjs");
 const { DECLARES } = await import("../../../src/tracker/routes.mjs");
+const { declaredFor, statusKind } = await import("../../../src/tracker/rest.mjs");
 const { render } = await import("../../../src/flow/record/page.mjs");
 const { targetOf } = await import("../../../src/flow/route.mjs");
 
@@ -52,13 +53,44 @@ test("closed is entered from that rung, and this change added nothing to what it
 /* A write is checked against this list before its request is built, so it answers to the tracker
    rather than the ladder: `releasing` belongs in it for a read to name. */
 test("the declared status list is the tracker's enum, and the ladder is a subset of it", () => {
-  assert.deepEqual(DECLARES.forge_issues.status, ANSWERED);
+  assert.deepEqual(declaredFor("forge_issues", "status"), ANSWERED,
+    "a declared set answers with values, whatever each row carries beside its name");
   for (const status of ORDER) {
     assert.ok(ANSWERED.includes(status), `${status} is a rung this CLI writes and the tracker has no such member`);
   }
   assert.equal(ANSWERED.includes("released"), false, "and the name the tracker dropped is undeclared");
   assert.ok(ANSWERED.includes(RELEASING) && !ORDER.includes(RELEASING),
     "while the release path's own status is readable and no rung of the ladder");
+});
+
+/* Three facts in three files until ISS-1043, one column now: the row carrying nothing but a name is
+   the fourth kind — readable, written by a park or a set, and no step of the flow. */
+test("every declared name carries its kind where it is declared, and an undeclared name has none", () => {
+  assert.deepEqual(DECLARES.forge_issues.status.map((one) => one.name), ANSWERED,
+    "one row per name the tracker takes, and no row for a name it does not");
+  assert.deepEqual(statusKind("tested"), { name: "tested", replacedBy: RUNG });
+  assert.equal(statusKind("developed").step, true);
+  assert.match(statusKind(RELEASING).writtenByNobody, /release batch alone leaves it/u);
+  assert.deepEqual(statusKind("needs_info"), { name: "needs_info" },
+    "a name that is no step and not retired carries nothing beside itself");
+  assert.equal(statusKind("released"), null, "and a name off the table has no kind to read");
+});
+
+/* The column says which names are steps and `ORDER` in what order, so either edited alone fails
+   here. Driven over a disagreeing sequence: an equality that cannot fail covers nothing. */
+const stepNames = () => DECLARES.forge_issues.status.filter((one) => one.step).map((one) => one.name);
+const disagreeing = (order) => {
+  const steps = stepNames();
+  return [...order.filter((one) => !steps.includes(one)), ...steps.filter((one) => !order.includes(one))];
+};
+
+test("the step column and ORDER name the same rungs, and either edited alone goes red", () => {
+  assert.deepEqual(disagreeing(ORDER), [],
+    "every name whose row carries step is a rung, and every rung's row carries step");
+  assert.deepEqual(disagreeing([...ORDER, "testing"]), ["testing"],
+    "a name joining the sequence whose row carries no step is named");
+  assert.deepEqual(disagreeing(ORDER.filter((one) => one !== "clarified")), ["clarified"],
+    "and so is a step row the sequence dropped");
 });
 
 /* A park record outlives the rename and names the status it left, so the way back is refused — and the refusal names the rung that took it over rather than a placeholder the reader fills. Not an alias: the deploying half was never earned (review F1). */
@@ -112,5 +144,22 @@ test("no run writes the release path's own status, and the refusal says whose it
     "the jump refusal names the status that is next, which is the clause it answers to");
   assert.deepEqual(transitions(), [], "neither route moved anything");
   const read = await ranAsync(FORGE, ["issue", "--status", RELEASING], tracker.env);
+  assert.equal(read.status, 0, `${read.stdout}${read.stderr}`);
+});
+
+/* The hole the column closes: `tested` is declared for reading and no rung holds it, and
+   `declaredValue` — membership in that list — was the only check the set passed (ISS-1043). */
+test("a retired name is refused the set, and the refusal names the rung that took it over", async () => {
+  const set = await ranAsync(FORGE,
+    ["advance", "ISS-96", "--set", "tested", "--why", "the verdicts are all in"], tracker.env);
+  const said = set.stdout + set.stderr;
+  assert.equal(set.status, 1, set.stdout);
+  assert.match(said, /`tested` is no step of the flow/u);
+  assert.match(said, /`awaiting_release` is the rung that took it over/u);
+  assert.match(said, /forge advance ISS-96 --set awaiting_release --why/u,
+    "the replacement is a command to run, not a name to look up");
+  assert.doesNotMatch(said, /-h\b/u, "and no caller is sent to a help text to find out what to do");
+  assert.deepEqual(transitions(), [], "nothing was sent");
+  const read = await ranAsync(FORGE, ["issue", "--status", "tested"], tracker.env);
   assert.equal(read.status, 0, `${read.stdout}${read.stderr}`);
 });
