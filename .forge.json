@@ -8,7 +8,10 @@
     "check": "npm test"
   },
   "rank": {
-    "readCap": 400
+    "readCap": 400,
+    "kind": {
+      "bug": 20
+    }
   },
   "stop": {
     "agents": ["runner", "reviewer", "triage", "evaluator"]
