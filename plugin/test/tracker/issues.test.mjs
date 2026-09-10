@@ -3,7 +3,7 @@
    how many requests a key costs, and that a walk ends where the route says there is nothing behind. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tempRoom } from "../fixtures.mjs";
 
@@ -204,10 +204,14 @@ test("a date the walk cannot read is refused before it reads a row, so a filter 
   const { refusing } = await import("../../src/resolve/settings.mjs");
   assert.deepEqual(DATE_FILTERS, ["createdAfter", "createdBefore", "updatedAfter"],
     "the date-shaped local filters are no longer the three this case covers");
+  /* `LOCAL` is private, so no case can add a fourth filter and watch this refuse; what it can read
+     is that the module holds one reading of a date, which `dated` is what spends (codex F1). */
+  const source = readFileSync(new URL("../../src/tracker/issues.mjs", import.meta.url), "utf8");
+  assert.equal(source.match(/Date\.parse/gu).length, 1,
+    "a second reading of a date is a comparison `dated` did not compose, so a filter using it "
+    + "carries no marker and DATE_FILTERS cannot see it; spend `instant` through `dated` instead");
   const held = SET;
   await refusing(async () => {
-    /* The empty page and the nonempty one, because a guard placed after the fetch passes on rows
-       alone; and no request in either, which is what says it ran before the page (codex F1). */
     for (const [word, rows] of [["garbage", held], ["not-a-date", []]]) {
       SET = rows;
       for (const name of DATE_FILTERS) {

@@ -25,7 +25,8 @@ export const listIssues = async (filters = {}, limit = DEFAULT_LIMIT, extra = {}
     ...extra,
   }, Boolean(held.soft), held);
 
-const aged = (row) => Date.parse(row?.createdAt ?? "") || Infinity;
+const instant = (given) => Date.parse(given ?? "");
+const aged = (row) => instant(row?.createdAt) || Infinity;
 
 /** The page in the order it is to be worked, a row with no date taking the back of its rank. */
 export const queued = (rows, order = []) => {
@@ -41,16 +42,16 @@ export const queued = (rows, order = []) => {
     .map((held) => held.row);
 };
 
-/* The filters the route does not narrow on, applied here because the walk holds the rows. A date-shaped one says so by being written with `dated`, so the set below is read off this table rather than kept beside it and forgotten by whoever adds the fourth (ISS-1081). */
-const after = (row, key, at) => Date.parse(row?.[key] ?? "") >= Date.parse(at);
-const dated = (keep) => Object.assign(keep, { date: true });
+/* The filters the route does not narrow on, applied here because the walk holds the rows. A date-shaped one is composed only by `dated`, which is what reads the two stamps and what marks the row, so the set below is read off this table and a fourth date filter has no unmarked composition to reach for (codex F1). The negated form rather than `<`: a row with no stamp reads NaN and loses every comparison, so it stands outside the after-window and inside the before-window, which is where it stood before this was factored (ISS-1081). */
+const dated = (key, keep) =>
+  Object.assign((row, value) => keep(instant(row?.[key]), instant(value)), { date: true });
 
 const LOCAL = {
   statusNot: (row, value) => row?.status !== value,
   complexity: (row, value) => row?.complexity === value,
-  createdAfter: dated((row, value) => after(row, "createdAt", value)),
-  createdBefore: dated((row, value) => !after(row, "createdAt", value)),
-  updatedAfter: dated((row, value) => after(row, "updatedAt", value)),
+  createdAfter: dated("createdAt", (stamp, given) => stamp >= given),
+  createdBefore: dated("createdAt", (stamp, given) => !(stamp >= given)),
+  updatedAfter: dated("updatedAt", (stamp, given) => stamp >= given),
 };
 
 export const DATE_FILTERS = Object.keys(LOCAL).filter((name) => LOCAL[name].date);
