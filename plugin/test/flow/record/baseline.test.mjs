@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync, spawnSync } from "node:child_process";
 
-import { tempRoom } from "../../fixtures.mjs";
+import { dirtyRepo, tempRoom } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("record-baseline-");
 const { checked } = await import("../../../src/flow/record/record.mjs");
@@ -22,7 +22,6 @@ test("a baseline stamps the head its checkout is at, and reads it back off its o
   assert.ok(!head.derived, "and not the bit that would keep it off every read-back");
   assert.ok(head.optional, "absent off a checkout, where a stamp would be an invention");
   const at = execFileSync("git", ["-C", ROOT, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-  assert.equal(stampedNow(SHAPES.baseline).head, at, "the stamp is this checkout's head, not a composed one");
   assert.ok("head" in stampedNow({ fields: [{ flag: "head", stamped: "nowhere" }] }),
     "every stamped key is present, so a value a caller typed is cleared and not left standing");
   const typed = spawnSync(new URL("../../../bin/forge", import.meta.url).pathname,
@@ -46,6 +45,26 @@ const refusedBy = (got) => {
     return error.message;
   }
 };
+
+/* A head names a commit and says nothing about the files in hand, so the stamp asks git for both. */
+test("a checkout with uncommitted work stamps no head, and a clean one stamps the head it is at", () => {
+  const was = process.cwd();
+  const room = dirtyRepo();
+  const inRoom = (...args) => execFileSync("git",
+    ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
+  try {
+    process.chdir(room);
+    assert.ok("head" in stampedNow(SHAPES.baseline), "the key is there either way");
+    assert.equal(stampedNow(SHAPES.baseline).head, undefined,
+      "uncommitted work means the tree is not the one any gate measured at that commit");
+    inRoom("add", "tracked.txt");
+    inRoom("commit", "-qm", "the work committed");
+    assert.equal(stampedNow(SHAPES.baseline).head, inRoom("rev-parse", "HEAD").trim(),
+      "and once nothing is uncommitted the head is the tree, so it may be stamped");
+  } finally {
+    process.chdir(was);
+  }
+});
 
 test("a citation naming no source is refused, and one naming a source is not", () => {
   const whole = { gate: "npm run check", result: "354 pass", commit: "43b811e", scope: "whole" };

@@ -28,11 +28,19 @@ export const citedOwed = (view, ref, rung) => {
     return [need(`the baseline cites ${held.cited} rather than a run of its own, and a \`${rung}\` `
       + "spends the whole run: only the two rungs below it may cite one", fresh)];
   }
+  if (held.scope !== "whole") {
+    if (held.scope === "part") return [];
+    return [need("the baseline cites a recorded result and names no scope, so nothing says that run "
+      + "measured the whole tree; an absent scope is excused for a run of one's own and not for a "
+      + "citation, which is what the rung grants on the strength of that word", fresh)];
+  }
   if (!held.head) {
     return [need(
       "the baseline cites a recorded result and carries no head, so nothing on the record says which "
-        + "tree that result answered for; a baseline written outside a checkout carries none",
-      `${fresh} --cited "${held.cited}"`,
+        + "tree that result answered for; a baseline written off a checkout carries none, and so does "
+        + "one written in a checkout with uncommitted work in it",
+      `re-record it from the checkout the branch was cut in, with that work committed or gone: `
+        + `${fresh} --cited "${held.cited}"`,
     )];
   }
   if (!sameCommit(held.commit, held.head)) {

@@ -79,10 +79,23 @@ test("a cited baseline is refused at the top rung, and on a record that carries 
   assert.equal(bare.length, 1);
   assert.match(bare[0].what, /carries no head/u);
   assert.match(bare[0].command, /--cited "the release's gate"$/u, "and the re-record keeps the citation");
+  assert.match(bare[0].command, /re-record it from the checkout the branch was cut in/u,
+    "and says where to run it, a headless baseline being what running it anywhere else writes again");
   /* Deferred to `wholeOwed` rather than refused twice: one rule, one refusal, and it names the gate. */
   const part = citing("s", { scope: "part" });
   assert.equal(part.length, 1, "a partial scope is one refusal and not two");
   assert.match(part[0].what, /measured part of the tree/u);
+});
+
+/* `scope` is `newer`, so its absence reads back whole — right for a run of one's own, wrong for a citation, which is granted on the strength of that very word. */
+test("a citation naming no scope is refused, where an uncited baseline naming none is not", () => {
+  const none = citing("s", { scope: undefined });
+  assert.equal(none.length, 1);
+  assert.match(none[0].what, /cites a recorded result and names no scope/u);
+  assert.match(none[0].command, /--scope whole$/u);
+  const ran = [recorded("baseline", { gate: "npm run check", result: "354 pass", commit: HEAD })];
+  assert.deepEqual(missing("in_progress", view({ complexity: "s" }, ran)), [],
+    "a baseline written before the field existed still reads back whole, citing nothing");
 });
 
 test("a citation waives no payload, so a rung with no baseline at all is still refused", () => {

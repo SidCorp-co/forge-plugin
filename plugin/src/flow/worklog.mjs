@@ -82,8 +82,11 @@ export const gitNow = () => {
 
 /* What the review owes: a verdict on findings nobody decided, or the recheck one folded owes — and
    whether a recheck is takeable at all is the refusal's own reading, never a second one (ISS-230). */
-/* The mirror of `writtenBy` for facts git holds rather than the session: every key is present, so a value a caller typed is cleared and not left standing, and `undefined` off a checkout is a field the record has not got — which is what refuses a citation nothing can say a tree for. */
-const STAMPS = { head: () => git(["rev-parse", "HEAD"]) ?? undefined };
+/* The mirror of `writtenBy` for facts git holds rather than the session: every key is present, so a value a caller typed is cleared and not left standing. A head names a commit and not the tree in hand, so a dirty checkout stamps nothing and neither does no checkout — either way the field is absent, and a citation resting on it is refused rather than claiming a green for files no gate run measured. */
+const cleanHead = () =>
+  (git(["status", "--porcelain"]) === "" ? git(["rev-parse", "HEAD"]) ?? undefined : undefined);
+
+const STAMPS = { head: cleanHead };
 
 export const stampedNow = (shape) => Object.fromEntries(shape.fields
   .filter((one) => one.stamped)
