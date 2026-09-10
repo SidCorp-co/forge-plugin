@@ -1,6 +1,6 @@
-/* One verb between an agent and a status change: the entry criteria of the next status, checked
-   against the issue's record and nothing else. The rule a status is earned by, stage by stage:
-   `forge guide contract <status>`. */
+/* The move and the check it runs: the entry criteria of the next status, checked against the issue's
+   record and nothing else. Two callers — this verb, and a record write through `movedByRecord`.
+   The rule a status is earned by, stage by stage: `forge guide contract <status>`. */
 import { exclusive, firstLine, flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
@@ -9,15 +9,15 @@ import { declaredValue, statusKind, write } from "../tracker/rest.mjs";
 import { UNREAD, afterRefused, correctionFor, whyChecked } from "./override.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../guides/contract.mjs";
-import { CLOSES_FROM, PARKS, SHOWS_EVIDENCE } from "./machine.mjs";
+import { CLOSES_FROM, PARKS, SHOWS_EVIDENCE, missingLines } from "./machine.mjs";
 import { citedClauses } from "../spec/checked.mjs";
 import { Refused, refuse } from "../refusal.mjs";
 import { issueOf, post } from "./record/record.mjs";
 import { render } from "./record/page.mjs";
-import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, rungFieldsOf, setForm, viewFrom } from "./earned.mjs";
-import { laneLines } from "../guides/phases.mjs";
+import { ANSWERED_BY_COMMENT, ORDER, PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, rungFieldsOf, setForm, viewFrom } from "./earned.mjs";
+import { CITED, laneLines } from "../guides/phases.mjs";
 import { undoForm } from "./record/merged.mjs";
-import { baselineAhead, credentialAhead, deployFor, lookAhead, owedLine, policyFor, targetOf } from "./route.mjs";
+import { baselineAhead, credentialAhead, deployFor, lookAhead, owedIn, owedLine, owedSaid, policyFor, targetOf } from "./route.mjs";
 import { FIELD, anothersHold, leaseOf, nextLine, renew } from "./lease.mjs";
 
 /* A needs_info park owes the readings only the question shape carries. */
@@ -68,7 +68,7 @@ const viewOf = async (reference, given) => {
 
 /* The renew before it is where the line is cleared: the transition is refused before this runs unless the record earns it, and a second lease write would cost three more calls. `said` is what a park adds to the payload; a plain advance sends the status alone and nothing else.
    `soft` is the caller with a record up already, which is one fact and not two: the renewal its own write made a call earlier is not made twice, and the tracker's refusal comes back to it rather than exiting the process, because a second renewal is a second place to exit and exiting there would leave that record claiming a move nothing attempted. */
-export const transitionTo = async (view, status, ref, { note = "", next = null, said = null, soft = false } = {}) => {
+export const transitionTo = async (view, status, ref, { note = "", next = null, said = null, soft = false, say = console.log } = {}) => {
   if (!soft) await renew(view.documentId, ref, next);
   const answer = await write("forge_issues",
     { action: "transition", documentId: view.documentId, data: { status, ...(said ?? {}) } }, undefined, soft);
@@ -76,7 +76,7 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
   if (answer?.refused) return answer.refused;
   const held = answer?.status ?? answer?.issue?.status;
   if (held && held !== status) refuse(`The transition answered with status ${held}, not ${status}. Nothing to rely on.`);
-  console.log(`${ref}  ${view.issue.status} -> ${status}${note}`);
+  say(`${ref}  ${view.issue.status} -> ${status}${note}`);
   return null;
 };
 
@@ -91,7 +91,7 @@ const waitsFor = (status) => (status === WAITING ? { waitingKind: "needs_decisio
    costs, said by the one route both writers of it spend: a move refused after the record went up
    leaves a page reading as a status the issue does not hold, and the transition's own refusal says
    nothing about the record above it. */
-const movedAfterRecord = async (view, ref, status, move) => {
+export const movedAfterRecord = async (view, ref, status, move) => {
   /* The record's write renewed the lease, so the move does not renew it again — but a handoff between the two is still a handoff, and the move must not be the write that learns it. Asked rather than asserted, and asked softly, because a read that exits here reports a transport and never the record standing above it. */
   const held = await anothersHold(view.documentId, ref);
   if (held) {
@@ -225,7 +225,40 @@ const countSays = (said) =>
 
 export const shortfall = (ref, view, held) => {
   console.log(owedLine(view, ref, held));
-  for (const one of held.missing) console.log(`\n  ${one.what}\n    ${one.command}`);
+  for (const line of missingLines(held.missing)) console.log(line);
+};
+
+const pageFor = async (documentId, held) =>
+  held ?? await commentPage(documentId).then((page) => ({ comments: page.comments, cut: cutIn(page) }));
+
+/* A reading that may fail without the record losing anything, which is the whole of ISS-285. */
+const owedAfter = async (documentId, issue, ref, page) => {
+  try {
+    const said = await owedSaid(documentId, issue, page.comments, ref, page.cut);
+    if (said) console.error(said);
+  } catch (error) {
+    console.error(`what this write now owes could not be read: ${error.message}`);
+  }
+};
+
+/** The move a record write earns, in that write's own call: this file's own target and entry check
+ *  over the record just made, and only where a kind written is one the rung cites — else the status
+ *  is moved by whatever write followed the one that earned it. Linear path only, a park and a triage
+ *  being routes `owedIn` drops; stderr throughout, stdout being the record. */
+export const movedByRecord = async (documentId, issue, ref, kinds, held = null) => {
+  const page = await pageFor(documentId, held);
+  const view = viewFrom(documentId, issue, page.comments, page.cut,
+    await policyFor(issue.plan, issue.status), () => citedClauses(issue));
+  const linear = ORDER.includes(issue.status);
+  const { next, missing } = linear ? owedIn(view, ref) : { next: null, missing: [] };
+  const cited = Boolean(next) && (CITED[next] ?? []).some((kind) => kinds.includes(kind));
+  const moves = cited && !missing.length;
+  if (moves) {
+    await movedAfterRecord(view, ref, next, (soft) =>
+      transitionTo(view, next, ref, { soft, say: console.error }));
+  }
+  await owedAfter(documentId, moves ? { ...issue, status: next } : issue, ref, page);
+  return moves ? next : null;
 };
 
 /* The status set with nothing earning it, judged against what `declaredValue` declares and against nothing else, with the reply and the correction saying no check read it. A side status is reached with the payload the tracker demands of one, so `--set` writes what a park writes and skips only the entry checks. */

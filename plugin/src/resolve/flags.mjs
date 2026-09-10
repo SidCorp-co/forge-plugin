@@ -104,9 +104,9 @@ const askedFor = (verb, flag, items) => Object.freeze({
   verb, flag, items: Object.freeze([...items]), wordFor: ({ field, value }) => `${field}=${value}`,
 });
 
-/** The ask a caller names in its own source rather than off argv: one thing, written where the call is. It exists so that a writer reached with no ask and a writer reached with an ask of one are two different values, which is the whole of the rule — an absent record of the call reads exactly like a complete one. */
-export const askedInSource = (verb, field) => Object.freeze({
-  verb, flag: field, items: Object.freeze([field]), wordFor: (one) => one.field,
+/** The ask a caller names in its own source rather than off argv, written where the call is. It exists so that a writer reached with no ask and a writer reached with an ask of one are two different values, which is the whole of the rule — an absent record of the call reads exactly like a complete one. Several fields where one call writes several: the caller that names two and reaches the write with one is the shortfall this reports, and an ask of one could not tell it. */
+export const askedInSource = (verb, ...fields) => Object.freeze({
+  verb, flag: fields.join(" and "), items: Object.freeze(fields), wordFor: (one) => one.field,
 });
 
 /** What a reporting layer owes where fewer of the caller's words reached it than the call gave it: both counts and every word that went missing, whatever layer lost it. `held` is what reached the layer, each in whatever shape that layer holds one, and the ask words them. Occurrences are consumed rather than matched, so two identical asks are not answered by one thing. */

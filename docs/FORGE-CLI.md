@@ -18,6 +18,7 @@ how many topics there may be.
 | [`the-kinds`](cli/the-kinds.md) | Why a filing names a category, what the four are, which sections each owes, and why both words are the tracker's. |
 | [`record`](cli/record.md) | Why the CLI owns a payload's shape, which two flags are read off the record, and what it cannot undo. |
 | [`record merged`](cli/record-merged.md) | The mark's five clauses, one flag each, and what `--undo` removes. |
+| [`record` — a rung in one call](cli/record-the-rung.md) | The pair counts behind `--also`, the order a call writes in, and why the move is a cited kind's alone. |
 | [the field rules](cli/the-field-rules.md) | The three fields judged on what they say, and the two overrides round a check. |
 | [`advance`](cli/advance.md) | What the entry criteria read, why git is never asked at a transition while the requirements tree is, and how a reopen routes. |
 | [`claim`](cli/claim.md) | How far a lease can be promised without a conditional write, what the step line is for, and why every write lists the issue's comments first. |

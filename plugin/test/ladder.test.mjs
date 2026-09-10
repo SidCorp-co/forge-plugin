@@ -304,6 +304,8 @@ test("a confirmation at the top rung offers no upward correction, and one claime
 });
 
 test("--owed reports the rung the checks run, what it drops and every route up from it", async () => {
+  /* From a mark, not over the whole log: a record write of an earlier case moves what it earns. */
+  const mark = state.calls.length;
   const run = await owed("ISS-71");
   assert.equal(run.status, 0, "asked what is owed, the shortfall is the answer and not a refusal");
   assert.match(run.stdout, /is a `fix`: the tracker's complexity is `s`\. The entry checks run that rung/u);
@@ -312,7 +314,8 @@ test("--owed reports the rung the checks run, what it drops and every route up f
   assert.match(run.stdout, /forge record plan ISS-71 <plan\.md>/u, "one route up, in the form it wants");
   assert.match(run.stdout, /--moved "Rung: fix -> feature"/u, "and the other, so neither is inferred");
   assert.match(run.stdout, /no confirmation/u, "while the confirmation with its where is owed all the same");
-  assert.equal(state.calls.some((one) => one.args.action === "transition"), false, "and --owed moves nothing");
+  assert.equal(state.calls.slice(mark).some((one) => one.args.action === "transition"), false,
+    "and --owed moves nothing");
 });
 
 /* A rung whose saving is rounds rather than payloads is invisible to LIGHTER, so this report is the

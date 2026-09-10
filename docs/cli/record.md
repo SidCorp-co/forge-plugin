@@ -89,9 +89,6 @@ copy about would refuse a run for a rule it could not have read, and the point o
 nothing has to be told. The report closes with the run's own worklog — the branch, the head, what it
 touched and the plugin copy the capture was made under — so one read answers which copy typed it.
 
-Over ninety-seven runs here, 264 of 564 `advance` calls followed a record directly, asking what the
-write had just changed. So a write ends by saying it — the line `forge advance --owed` heads its
-answer with, from the one function that verb and `forge resume` also spend. On stderr, because
-stdout is the record and its last line is the tag every reader keys on. Counted with the comment
-just posted, folded into the page the write already read: a second fetch costs the round the line
-saves. And it never fails the command a record already landed for.
+A write also ends by saying what the issue now owes, and takes the other kinds its rung cites in the
+same call, and makes the move that set earns. The pair counts behind both, the order a call writes
+in, and what a refusal costs: [record-the-rung.md](record-the-rung.md).

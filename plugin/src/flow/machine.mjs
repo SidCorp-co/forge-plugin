@@ -405,8 +405,9 @@ export const VERDICTS = ["pass", FAIL, "skipped"];
 export const JUDGE_FROM = "judge-from";
 export const SCOPES = ["whole", "part"];
 
-/** One owed item: what the record lacks, and the one command that supplies it. Here rather than in the checks, so a check split out of them takes the shape with it and imports nothing back. */
+/** One owed item — what the record lacks and the one command that supplies it — and the way every reader prints a set of them. Here rather than in the checks, so a check split out of them takes the shape with it and imports nothing back, and so a refusal's shortfall and a write's own tail cannot spell one differently. */
 export const need = (what, command) => ({ what, command });
+export const missingLines = (missing) => missing.map((one) => `\n  ${one.what}\n    ${one.command}`);
 /* What the agent may rule a person's finding to be: the criterion asked the wrong thing, the
    criterion was not met, or nothing in the specification ever promised what the person expected. */
 export const TRIAGES = ["wrong-test", "not-met", "not-in-spec"];

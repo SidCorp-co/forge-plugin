@@ -4,7 +4,7 @@
 import { citedClauses } from "../spec/checked.mjs";
 import { sayIfChanged, sessionKey } from "../shown/ledger.mjs";
 import { Refused, refuse } from "../refusal.mjs";
-import { CLOSES_FROM, SHAPES, TRIAGES, atMinute, criterionNumber, planFlags, unwrap } from "./machine.mjs";
+import { CLOSES_FROM, SHAPES, TRIAGES, atMinute, criterionNumber, missingLines, planFlags, unwrap } from "./machine.mjs";
 import { statusKind } from "../tracker/rest.mjs";
 import { slugIfAny } from "../resolve/settings.mjs";
 import { stampedNow } from "./worklog.mjs";
@@ -330,8 +330,11 @@ export const policyFor = async (plan, status = null) =>
 export const deployFor = async (plan, status = null) =>
   (credentialOwed(planFlags(unwrap(plan)), status) ? stagingDeploy() : null);
 
+/* The line and the items it counts, said together and held together: the line carries a number and
+   not the names, so a second shortfall of the same size would be deduped away whole (ISS-1103). */
 export const owedSaid = async (documentId, issue, comments, ref, cut = null) => {
   const view = viewFrom(documentId, issue, comments, cut, await policyFor(issue.plan, issue.status), () => citedClauses(issue));
-  const said = owedLine(view, ref, owedIn(view, ref));
+  const owed = owedIn(view, ref);
+  const said = [owedLine(view, ref, owed), ...missingLines(owed.missing)].join("\n");
   return sayIfChanged(sessionKey(), `owed-next ${documentId}`, said);
 };

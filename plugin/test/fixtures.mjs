@@ -62,12 +62,11 @@ export const callHookAsync = (hook, event, env = process.env, cwd = process.cwd(
     child.stdin.end(JSON.stringify(event));
   });
 
-/* Thousands of these have filled the mount a shell needed (ISS-42, ISS-125), on a tmpfs out of
-   inodes while gigabytes are free. So a suite's rooms go inside one root this process removes on its
-   way out, the pid in its name because Ctrl-C runs no handler: a root whose process is gone is swept
-   by the next to ask for one, and one this fixture never named is nobody's. It is made at import
-   because `TMPDIR` points at it below and a gate stamps under `tmpdir()` per call, so a suite
-   leaving that alone fills the room every hook reaps; `MACHINE` is therefore read before then. */
+/* Thousands of these have filled the mount a shell needed (ISS-42, ISS-125), on a tmpfs out of inodes while
+   gigabytes are free. So a suite's rooms go inside one root this process removes on its way out, the pid in its
+   name because Ctrl-C runs no handler: a root whose process is gone is swept by the next to ask for one, and one
+   this fixture never named is nobody's. It is made at import because `TMPDIR` points at it below and a gate stamps
+   under `tmpdir()` per call, so a suite leaving that alone fills the room every hook reaps; `MACHINE` is read first. */
 const OWNED = /^forge-plugin-test-(\d+)-/u;
 const MACHINE = tmpdir();
 
@@ -320,8 +319,11 @@ export const fakeTracker = async (state) => {
     if (args.action === "create") return { documentId: state.mint ?? "filed-uuid", ...(state.key ? { issueId: state.key } : {}), ...args.data };
     return { documentId: args.documentId, ...(args.data ?? {}) };
   };
+  /* A created comment answers with the author the `forge_comments.create` route projects, as the tracker's does: a reader telling a person's comment from an agent's keys on that field. */
   const comments = (args) => {
-    if (args.action !== "list") return { documentId: "comment-uuid", ...(args.data ?? {}) };
+    if (args.action !== "list") {
+      return { documentId: "comment-uuid", authorDeviceId: state.device ?? "a-fake-device", ...(args.data ?? {}) };
+    }
     const held = (state.comments ?? {})[args.filters?.issue] ?? [];
     return { comments: held, returned: held.length, hasMore: false };
   };

@@ -154,12 +154,12 @@ test("criteria are numbered lines, and a line carrying two outcomes is refused w
 });
 
 /* The kind whose payload is a bare path: the flag went to `open()` and the run ended on an fs error
-   naming no verb, no flag and no route (ISS-240). The set offered is the four flags it does take. */
-test("a flag where the criteria file goes is refused as a flag, and the four it does take are named", () => {
+   naming no verb, no flag and no route (ISS-240). The set offered is every flag it does take. */
+test("a flag where the criteria file goes is refused as a flag, and the ones it does take are named", () => {
   const run = ask("record", "criteria", "ISS-1", "--read");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /No record criteria flag named --read\./u);
-  assert.match(run.stderr, /The set is --next, --pushed, --review, --open\./u,
+  assert.match(run.stderr, /The set is --also, --next, --pushed, --review, --open\./u,
     "read off the text `forge record criteria -h` prints, which is where the file it does take is spelled");
   assert.match(run.stderr, /^Usage: forge record criteria /mu);
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u);
@@ -507,13 +507,14 @@ test("a record write ends with the line advance --owed would print, and never fa
   const owing = await ranAsync(FORGE, ["record", "gap", "ISS-3", "--none", "the method answered"], tracker.env);
   assert.equal(owing.status, 0, owing.stderr);
   assert.doesNotMatch(owing.stdout, /is next and the record/u, "on stderr, because stdout is the record itself");
-  /* The write counts itself: the page this one read carries no verification, and the comment it
-     posted is what earns the status — a trailer that re-read the page would report it as owed. */
+  /* The write counts itself: the page this one read carries no verification, and the comment it posted is what earns the status — a trailer that re-read the page would report it as owed. That verification completes what `awaiting_release` cites, so the same call moves the status and the trailer reads where it left the issue rather than where it found it (ISS-1103). */
   const earned = await verify();
   assert.equal(earned.status, 0, earned.stderr);
+  assert.match(earned.stderr, /^ISS-3 {2}testing -> awaiting_release$/mu, "the move is reported, never silent");
+  assert.doesNotMatch(earned.stdout, /testing -> awaiting_release/u, "on stderr, stdout being the record");
   assert.equal(earned.stderr.trim().split("\n").at(-1),
-    "ISS-3 is testing; awaiting_release is next and the record earns it. `forge advance ISS-3` moves it.",
-    "byte for byte the line advance --owed printed before this");
+    "ISS-3 is awaiting_release; closed is next and the record earns it. `forge advance ISS-3` moves it.",
+    "byte for byte the line advance --owed would print for the status the call left it at");
   /* A record that posted must not fail on the line printed under it: the reading refuses here. */
   await ranAsync(FORGE, ["claim", "ISS-5"], tracker.env);
   const done = await ranAsync(FORGE, ["record", "gap", "ISS-5", "--none", "the method answered"], tracker.env);

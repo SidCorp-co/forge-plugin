@@ -2,17 +2,17 @@
    back by kind: docs/cli/record.md. The verb owns the shape; the tracker owns the fields. */
 import { fail, slugIfAny, translateTo } from "../../resolve/settings.mjs";
 import { Refused, refuse } from "../../refusal.mjs";
-import { citationsChecked, criteriaChecked } from "../../spec/checked.mjs";
 import { citationProblem } from "../earned/published.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
-import { CLOSES_FROM, SECTIONS, SHAPES, compoundCriteria, criterionNumber, heldSaid, planFlags, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, unwrap } from "../machine.mjs";
+export { compoundRefused, criteriaLines, noteFrom } from "./fields.mjs";
+import { CLOSES_FROM, SHAPES, criterionNumber, heldSaid, planTyped, unwrap } from "../machine.mjs";
 import { assemble, parseAll, printRecord, render } from "./page.mjs";
-import { markedCommit, recordMerged } from "./merged.mjs";
+import { markedCommit, mergedPrepared } from "./merged.mjs";
 import { commitProblem, eachProblem } from "./content.mjs";
 import { KINDS, SERVES_KINDS, USAGE, kindHelp, kindUsage, usage } from "./record-rows.mjs";
-import { readOrRefuse } from "../../codex/codex-read.mjs";
-import { bodyFrom } from "../../resolve/payload.mjs";
+import { criteriaLines, criteriaPrepared, notePrepared, planPrepared } from "./fields.mjs";
+import { kindBlocks, pullRun } from "./rung.mjs";
 import { FLAG_WORD, firstLine, noValue, pullRepeated, flags, wantsHelp } from "../../resolve/flags.mjs";
 import { commentPage, cutIn, cutLine, postComment } from "../../tracker/comments.mjs";
 import {
@@ -22,54 +22,14 @@ import { briefGoals, releaseLine, releasePolicy } from "../../tracker/project-co
 import { NONE_STATED, servesRefusal } from "../../goals.mjs";
 import { belowTop, climbForm, rungClaimed } from "../../ladder.mjs";
 import { documentIdOf } from "../../tracker/issues.mjs";
-import { capsOf, writeField } from "../../tracker/field-write.mjs";
+import { capsOf, writeFields } from "../../tracker/field-write.mjs";
 import { scoped } from "../../tracker/rest.mjs";
 import { refuseIfGated } from "../../resolve/visibility.mjs";
 import { pluginFilingLine } from "../../tracker/filing/plugin-defect.mjs";
 import { partForRecord } from "../../guides/served.mjs";
-import { didYouMean } from "../../suggest.mjs";
-import { FIELD as SESSION, nextLine, renew, writtenBy } from "../lease.mjs";
-import { patchFrom, stampedNow, worklogLines, worklogOf } from "../worklog.mjs";
-
-const NUMBERED = /^(\d+)\.\s+(.*)$/u;
-
-/* Named once: `pullRun` strips them, and `criteria` offers them back to a caller who typed one. */
-const RUN_FLAGS = ["--open", "--next", "--pushed", "--review"];
-const [OPEN, NEXT, ...TOGGLES] = RUN_FLAGS;
-
-const CRITERIA_BODY = "record criteria takes the file holding the numbered lines, which a consult reads before the issue takes them.";
-const PLAN_BODY = "record plan takes the file holding the plan, which a consult reads before the issue takes it.";
-
-
-export const criteriaLines = (text) => {
-  const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
-  const out = [];
-  for (const line of lines) {
-    const match = NUMBERED.exec(line);
-    if (!match) refuse(`Every criterion is a numbered line, \`N. outcome\`; this one is not:\n  ${line}`);
-    const number = Number(match[1]);
-    if (out.some((one) => one.number === number)) refuse(`Two criteria are numbered ${number}; a verdict names one by its number.`);
-    out.push({ number, text: match[2] });
-  }
-  if (!out.length) refuse("No criteria given; an empty field is what Phase 5 cannot judge against.");
-  return out;
-};
-
-/* The grammar's own reading, in the language the project writes its prose in: `machine.mjs` says
-   which shapes it can prove and which it lets through. The refusal carries the halves — a line named without them is a second reading the author has to make. */
-export const compoundRefused = (criteria, language = translateTo()) => {
-  const found = compoundCriteria(criteria, language);
-  if (!found.length) return;
-  refuse([
-    `${found.length === 1 ? "One criterion carries" : `${found.length} criteria carry`} two outcomes,`
-      + " which is two criteria, so nothing was written:",
-    ...found.flatMap((one) => [
-      `  ${one.number}. one outcome: ${one.first}`,
-      `  ${String(one.number).replace(/./gu, " ")}  another: ${one.second}`,
-    ]),
-    "Split each into two numbered lines, renumber what follows, and send the file one consult reads.",
-  ].join("\n"));
-};
+import { askedInSource } from "../../resolve/flags.mjs";
+import { FIELD as SESSION, renew, writtenBy } from "../lease.mjs";
+import { stampedNow, worklogLines, worklogOf } from "../worklog.mjs";
 
 export const issueOf = async (reference) => {
   const documentId = await documentIdOf(reference);
@@ -77,9 +37,8 @@ export const issueOf = async (reference) => {
   return { documentId, body };
 };
 
-/* Filled from the record where the flag is absent (ISS-65): the merged mark holds the commit and
-   the issue holds the one attachment, so a verdict loop typed neither. Deferred rather than
-   defaulted here, because the values arrive with the issue and a flag error must cost no call. */
+/* Filled from the record where the flag is absent (ISS-65): a verdict loop typed both twenty times.
+   Deferred and not defaulted, the values arriving with the issue and a flag error costing no call. */
 export const DEFERRED = ["commit", "evidence"];
 
 /* One pass over the shape: every flag read, every rule applied, before anything is written. */
@@ -149,21 +108,9 @@ export const sayStored = (which, language = translateTo()) => {
   return said;
 };
 
-/* The ladder under the write that just landed (ISS-285), on stderr because stdout is the record;
-   imported at the call, since `route.mjs` reads this module; and never a record's own failure. The
-   write counts itself, stamped by the tracker or no earlier than the newest row it would sort under. */
+/* Stamped by the tracker or no earlier than the newest row it sorts under, so the ladder read at the end of a call counts the record that call made (ISS-285). */
 const stampedLast = (comments, written) => String(written?.createdAt
   ?? [new Date().toISOString(), ...comments.map((one) => String(one.createdAt ?? ""))].sort().at(-1));
-const sayOwed = async (documentId, issue, ref, held = null) => {
-  try {
-    const { owedSaid } = await import("../route.mjs");
-    const page = held ?? await commentPage(documentId);
-    const said = await owedSaid(documentId, issue, page.comments, ref, held ? held.cut : cutIn(page));
-    if (said) console.error(said);
-  } catch (error) {
-    console.error(`what this write now owes could not be read: ${error.message}`);
-  }
-};
 
 /* On stderr, beside what the write owes and not on the stream carrying the record: a caller reading a payload back is not reading the method. A record ends its phase's work, so the part is that phase's. */
 const sayPart = (kind) => partForRecord(kind, (part) => console.error(`\n${part}`));
@@ -181,27 +128,23 @@ export const post = async (documentId, body, { ref = documentId, next = undefine
   return answer;
 };
 
-/* Read off the record rather than off the issue: what this issue's evidence is belongs to whoever
-   wrote the first record of the kind, and the rest of a loop inherit that citation rather than a
-   guess. Not per criterion — one document answers twenty of them, which is the loop it removes. */
+/* Off the record and not the issue: whoever wrote the first of the kind cited it, and the rest of a
+   loop inherit that rather than a guess. Not per criterion — one document answers twenty. */
 const citedBy = (comments, kind) =>
   comments.flatMap((one) => parseAll(one.body ?? "")).filter((one) => one.kind === kind).at(-1)?.fields.evidence ?? [];
 
-/* An upload is refused where the page was cut rather than risked past it: a name it has to be
-   unique against may live on a comment the cut held back, and one attached twice is two documents. */
+/* Refused where the page was cut rather than risked past it: the name it must be unique against may be on a comment the cut held back, and one attached twice is two documents. */
 const CROWDED = (kind, cut) => `record ${kind} would put a file up, and the names already on this `
   + `issue cannot be read whole. ${cut} ${TWICE} Every record citing it is then ambiguous. Cite a `
   + `URL or a commit, or attach the file under a name nothing else could carry and cite that.`;
 
-/* A default read off the thread is the latest of its kind. Found nowhere, on a read that stopped
-   short, it may be a comment past where it stopped, so the flag is asked for (ISS-131). */
+/* A default is the latest of its kind; found nowhere on a read that stopped short, it may be past where that read stopped, so the flag is asked for (ISS-131). */
 const BEHIND = (kind, flag, cut) => `record ${kind} reads --${flag} off this issue and the page `
   + `carries none to read. ${cut} The one that would answer may be a comment behind the cut, so `
   + `name --${flag} for this write.`;
 
-/* The record answers for the flag it was not given, and says where the value came from: a default
-   nobody can see is one nobody can catch being wrong. Where it cannot answer, the refusal says what
-   the issue does carry, because the old one named a flag and left the reader to go and look. */
+/* Where the value came from, said: a default nobody can see is one nobody can catch being wrong.
+   Where it cannot answer, the refusal says what the issue does carry rather than naming a flag. */
 export const fromRecord = (kind, got, { comments, names, cut = null }, say = console.error) => {
   const shape = SHAPES[kind];
   const commit = shape.fields.find((one) => one.commit);
@@ -235,8 +178,7 @@ export const fromRecord = (kind, got, { comments, names, cut = null }, say = con
 };
 
 /* Read off what the write already knows, a line an author could type proving only that they typed it: the release policy from the config, the rung off the `get` this write has already made.
-   It is not the entry checks' answer either: the stamp reads the complexity field, where `rungOf` climbs from there for a plan's declarations and for a correction that moved the issue up, and answers the top rung outright on a cut page (ISS-428).
-   It stays a copy for a reader outside the flow, so a hand-written record lacking it is refused nothing. */
+   Not the entry checks' answer either — the stamp reads the complexity field, where `rungOf` climbs for a plan's declarations and for a correction that moved the issue up, and answers the top rung outright on a cut page (ISS-428). A copy for a reader outside the flow, so a hand-written record lacking it is refused nothing. */
 const DERIVED = {
   verification: async () => {
     const held = releaseLine(await releasePolicy());
@@ -281,10 +223,9 @@ const servesChecked = async (kind, blocks) => {
   if (bad) refuse(bad);
 };
 
-/* A block's own value of a single flag replaces the shared one, so the shared occurrence comes out
-   rather than riding in front of it: the parser refuses a name it has already bound, and one flag
-   in front of its own replacement is that shape and not a caller asking twice (ISS-930). Which
-   flags are single is the shape's, so a name absent from `single` is left where it is. */
+/* A block's own value of a single flag replaces the shared one, so that occurrence comes out rather
+   than riding in front of it: the parser refuses a name it has bound, and a flag before its own
+   replacement is that and not a caller asking twice (ISS-930). Which are single is the shape's. */
 const sharedFor = (shared, own, single, verb) => {
   const replaced = new Set(own.filter((token) => single.includes(token)));
   if (!replaced.size) return shared;
@@ -366,15 +307,14 @@ const quoteCriteria = (kind, blocks, body, reference) => {
   }
 };
 
-const recordShaped = async (kind, reference, argv, { next, patch }) => {
+/* Every refusal a shaped payload can earn, before any write of the call: a second block's bad field costs the first block nothing. */
+const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) => {
   const shape = SHAPES[kind];
   const blocks = blocksOf(kind, argv);
-  const { documentId, body } = await issueOf(reference);
   const asks = shape.fields.some((one) => one.evidence || one.commit);
-  const page = asks ? await commentPage(documentId) : { comments: [], hasMore: false };
-  const { comments } = page;
-  const cut = cutIn(page);
-  const held = attachmentNames(body, comments);
+  const { body } = await issue();
+  const { comments, cut } = asks ? await page() : { comments: [], cut: null };
+  const held = [...attachmentNames(body, comments), ...planned];
   const plan = citeOnce(kind, blocks, { held, cut });
   const names = [...held, ...(plan?.upload ?? []).map((one) => one.name)];
     /* Every block fills from one record; three copies of a line is reading the write spared. */
@@ -398,24 +338,107 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
   /* Asked here as well as in `post`, because a record that cannot be posted must not leave its
      evidence up: the two calls are one refusal a caller can act on and one nothing may skip. */
   refuseIfGated("forge_comments");
-  /* Sent once every refusal the record's own shape can earn has been earned, and named from the
-     line before the PUT: a file the tracker took with the answer lost is up all the same. */
+  return { uploads: plan?.upload ?? [], rendered: render(kind, blocks, stamp) };
+};
+
+const PREPARED = { plan: planPrepared, criteria: criteriaPrepared, note: notePrepared, merged: mergedPrepared };
+
+/* `writeFields` refuses where fewer fields reached it than were asked for, and a rung asks for two. */
+const askedFor = (reference, fields) =>
+  askedInSource(`record for ${reference}`, ...fields.map((one) => one.field));
+
+/* Read at the first prepare that asks and never before it: a flag error must cost no call (ISS-65). */
+const once = (make) => {
+  let held = null;
+  return () => (held ??= make());
+};
+
+/* Patched from what each write answered, and read again where an effect is in neither answer: the mark's stamp and audit comment, an upload, which moves the attachment set, and a comment whose author the answer left unnamed.
+   Beside that read stands a row of this write it did not hand back, and only where something named the author: an authorless row reads to `answered` as a person's reply to a park,
+   so one the tracker has not confirmed is left out and the rung reads short rather than moving on a page nobody owns. */
+const kept = (posted, back) => posted.filter((one) =>
+  (!one.documentId || !back.has(one.documentId)) && Boolean(one.authorDeviceId));
+
+const afterWrites = async (documentId, reference, { issue, page, again, posted }) => {
+  if (!again) return { issue, page };
+  const read = await commentPage(documentId);
+  const back = new Set(read.comments.map((one) => one.documentId).filter(Boolean));
+  return {
+    issue: (await issueOf(reference)).body,
+    page: { comments: [...read.comments, ...kept(posted, back)], cut: cutIn(read) },
+  };
+};
+
+/* The one order in which a refusal costs nothing already written: every payload judged, then the
+   uploads, whose scan is of bytes and cannot be judged earlier, then the fields in one update, which
+   caps them all before either is sent, then the comments and the mark. */
+const writeRung = async (reference, blocks, { next, patch }) => {
+  const issue = once(() => issueOf(reference));
+  const page = once(async () => {
+    const read = await commentPage((await issue()).documentId);
+    return { comments: read.comments, cut: cutIn(read) };
+  });
+  const planned = [];
+  const prepared = [];
+  for (const one of blocks) {
+    const at = { kind: one.kind, reference, issue, page, planned, next, patch, usage: kindUsage(one.kind) };
+    const ready = { kind: one.kind, ...await (PREPARED[one.kind] ?? shapedPrepared)(one.argv, at) };
+    planned.push(...(ready.uploads ?? []).map((two) => two.name));
+    prepared.push(ready);
+  }
+  const { documentId, body } = await issue();
+  const read = await page();
+  const written = await postRung(prepared, { reference, documentId, body, comments: read.comments, next, patch });
+  const after = await afterWrites(documentId, reference, {
+    issue: written.issue,
+    page: { comments: [...read.comments, ...written.posted], cut: read.cut },
+    again: written.again,
+    posted: written.posted,
+  });
+  const { movedByRecord } = await import("../advance.mjs");
+  await movedByRecord(documentId, after.issue, reference, blocks.map((one) => one.kind), after.page);
+  for (const one of blocks) sayPart(one.kind);
+};
+
+const postRung = async (prepared, { reference, documentId, body, comments, next, patch }) => {
+  const uploads = prepared.flatMap((one) => one.uploads ?? []);
   const sent = [];
+  /* Named from the line before the PUT: a file the tracker took with the answer lost is up all the same. */
   const stranded = (code) => code && sent.length && console.error(strandedLine(sent, reference));
   process.once("exit", stranded);
-  await uploadAll("issue", documentId, (plan?.upload ?? []).map((one) => one.path), {
+  await uploadAll("issue", documentId, uploads.map((one) => one.path), {
     renewing: () => renew(documentId, reference),
     sending: sent.push.bind(sent),
   });
-  const rendered = render(kind, blocks, stamp);
-  const written = await post(documentId, rendered, { ref: reference, next, patch });
+  const issue = { ...body, ...await fieldsWritten(prepared, { reference, documentId, next, patch }) };
+  const posted = [];
+  for (const one of prepared) {
+    if (one.rendered === undefined) continue;
+    const answer = await post(documentId, one.rendered, { ref: reference, next, patch });
+    /* The row as the tracker answered it: a comment carrying no device reads as a person's answer to a park, and an agent's write is no person's. */
+    posted.push({ ...(answer ?? {}), documentId: answer?.documentId ?? null, body: one.rendered,
+      createdAt: stampedLast([...comments, ...posted], answer) });
+  }
+  for (const one of prepared) await one.write?.();
   /* Dropped on the way out and never in a `finally`: a thrown failure unwinds through one before the
      exit, and the notice would be gone for every route but `fail()`'s. */
   process.off("exit", stranded);
-  const posted = { documentId: written?.documentId ?? null, createdAt: stampedLast(comments, written), body: rendered };
-  await sayOwed(documentId, body, reference, asks ? { comments: [...comments, posted], cut } : null);
-  sayPart(kind);
-  return written;
+  return { issue, posted, again: uploads.length > 0 || prepared.some((one) => one.write)
+    || posted.some((one) => !one.authorDeviceId) };
+};
+
+const fieldsWritten = async (prepared, { reference, documentId, next, patch }) => {
+  const fields = prepared.filter((one) => one.field);
+  if (!fields.length) return {};
+  for (const one of fields) sayStored(one.kind);
+  const back = await writeFields(documentId, fields.map((one) => ({ field: one.field, value: one.value })),
+    { ref: reference, next, patch, refuse, ask: askedFor(reference, fields) });
+  const out = {};
+  for (const one of fields) {
+    console.log(one.shown);
+    out[one.field] = back?.[one.field] ?? one.value;
+  }
+  return out;
 };
 
 const criteriaCount = (body) => {
@@ -424,106 +447,6 @@ const criteriaCount = (body) => {
   } catch {
     return "no numbered criteria";
   }
-};
-
-/* Two forms, and a flag from the other one is refused rather than dropped. */
-export const noteFrom = (argv) => {
-  const { skip, ...rest } = flags(argv, "record note", ["--skip"], { usage: kindUsage("note") });
-  const allowed = skip ? ["why", "technical"] : ["section", "user", "technical"];
-  for (const given of Object.keys(rest)) {
-    if (!allowed.includes(given)) {
-      refuse(`record note${skip ? " --skip" : ""} takes ${allowed.map((one) => `--${one}`).join(" ")}, not --${given}.`);
-    }
-  }
-  if (skip) {
-    if (!rest.why) refuse("record note --skip needs --why: a withheld note says why it is withheld.");
-    return { section: "Skip", userFacing: rest.why, technical: rest.technical ?? null };
-  }
-  if (!SECTIONS.includes(rest.section)) refuse(`--section takes one of ${SECTIONS.join(", ")}, or --skip --why.`);
-  if (!rest.user) refuse("record note needs --user: what the reporter will now see, in their words.");
-  return { section: rest.section, userFacing: rest.user, technical: rest.technical ?? null };
-};
-
-const recordNote = async (reference, argv, { next, patch }) => {
-  const releaseNotes = noteFrom(argv);
-  const { documentId, body } = await issueOf(reference);
-  sayStored("note");
-  await writeField(documentId, "releaseNotes", releaseNotes, { ref: reference, next, patch, refuse });
-  console.log(JSON.stringify(releaseNotes, null, 2));
-  await sayOwed(documentId, { ...body, releaseNotes }, reference);
-};
-
-const recordCriteria = async (reference, [path, ...extra], { next, patch }) => {
-  if (!path) refuse(CRITERIA_BODY);
-  if (path.startsWith("--")) refuse(`${didYouMean("record criteria flag", path, RUN_FLAGS)} ${CRITERIA_BODY}`);
-  if (extra.length) refuse(`record criteria takes one file and nothing after it, not \`${extra.join(" ")}\`.`);
-  /* The file's own shape first, the consult after it: a criterion this verb will refuse anyway is
-     one no review round should have been spent on, which is the whole of ISS-483. */
-  const { refusal, text } = readOrRefuse(path);
-  if (refusal && text === null) refuse(refusal);
-  const criteria = criteriaLines(text ?? await bodyFrom(path));
-  criteriaChecked(criteria, refuse);
-  compoundRefused(criteria);
-  if (refusal) refuse(refusal);
-  const { documentId, body } = await issueOf(reference);
-  const acceptanceCriteria = criteria.map((one) => `${one.number}. ${one.text}`).join("\n");
-  sayStored("criteria");
-  await writeField(documentId, "acceptanceCriteria", acceptanceCriteria, { ref: reference, next, patch, refuse });
-  console.log(acceptanceCriteria);
-  await sayOwed(documentId, { ...body, acceptanceCriteria }, reference);
-};
-
-/* Every shape rule of a typed plan, before the field is written. A plan carrying no section at all
-   is the free text this verb has always stored, so its shape is nobody's here to judge and what it
-   owes is `approved`'s to say — which is what keeps a plan already on the tracker writable. */
-const planChecked = (plan) => {
-  if (!planTyped(plan)) {
-    return console.error("The plan carries none of the sections `forge record plan -h` prints, so nothing"
-      + " here judged its shape: it is stored as the free text it is, and `forge advance` will refuse"
-      + " `approved` while it stays untyped.");
-  }
-  const flags = planFlags(plan);
-  const owed = sectionsOwed(plan, flags);
-  if (owed.length) {
-    refuse([
-      `The plan carries no ${owed.length === 1 ? "section" : `${owed.length} of the sections`} below, so nothing was written:`,
-      ...owed.map((name) => {
-        const by = sectionOwedBy(name, flags);
-        return `  ## ${name}${by.length ? ` — the plan declares ${by.join(" and ")}` : ""}`;
-      }),
-      "Each opens on a heading whose text is the name and nothing else. What each answers: `forge record plan -h`.",
-    ].join("\n"));
-  }
-  const bare = stepsUncited(planSteps(plan));
-  if (bare.length) {
-    refuse([
-      `${bare.length === 1 ? "One step names" : `${bare.length} steps name`} no criterion, and a step`
-        + " serving none is one no verdict reaches, so nothing was written:",
-      ...bare.map((one) => `  ${one.number}. ${one.text}`),
-      "Name what each serves on its own line, as `criteria: 3` or `criteria: 3, 4`.",
-    ].join("\n"));
-  }
-  return null;
-};
-
-/* A kind rather than the top-level verb it replaced: the plan and the criteria are one payload by the contract's reckoning, and one write has one verb. */
-const recordPlan = async (reference, [path, ...extra], { next, patch }) => {
-  if (!path) refuse(PLAN_BODY);
-  if (path.startsWith("--")) refuse(`${didYouMean("record plan flag", path, RUN_FLAGS)} ${PLAN_BODY}`);
-  if (extra.length) refuse(`record plan takes one file and nothing after it, not \`${extra.join(" ")}\`.`);
-  const { refusal, text } = readOrRefuse(path);
-  if (refusal && text === null) refuse(refusal);
-  const plan = text ?? await bodyFrom(path);
-  if (!plan.trim()) refuse("An empty plan would clear the field; pass the plan itself.");
-  citationsChecked(plan, refuse);
-  planChecked(plan);
-  if (refusal) refuse(refusal);
-  const { documentId, body } = await issueOf(reference);
-  sayStored("plan");
-  await writeField(documentId, "plan", plan, { ref: reference, next, patch, refuse });
-  console.log(plan);
-  await sayOwed(documentId, { ...body, plan }, reference);
-  sayPart("plan");
 };
 
 export const recordReport = async (reference) => {
@@ -563,32 +486,6 @@ export const recordReport = async (reference) => {
   }
 };
 
-const pullOne = (argv, flag) => {
-  const at = argv.indexOf(flag);
-  if (at < 0) return { value: undefined, rest: argv };
-  const value = argv[at + 1];
-  if (value === undefined || FLAG_WORD.test(value)) refuse(noValue("record", flag, value));
-  return { value, rest: [...argv.slice(0, at), ...argv.slice(at + 2)] };
-};
-
-/* Pulled before the kind is dispatched, so no shape gains a field: these say what the run is doing
-   and not what the payload holds, and `criteria` takes a bare path where a shape takes flags. */
-const pullRun = (argv, kind, usage) => {
-  const lines = pullRepeated(argv, OPEN, `record ${kind}`, { usage });
-  const line = pullOne(lines.rest, NEXT);
-  let rest = line.rest;
-  const took = {};
-  for (const flag of TOGGLES) {
-    took[flag.slice(2)] = rest.includes(flag);
-    rest = rest.filter((one) => one !== flag);
-  }
-  return {
-    next: nextLine(line.value),
-    patch: patchFrom({ ...took, open: lines.values }),
-    rest,
-  };
-};
-
 const run = async ([kind, reference, ...argv]) => {
   if (!kind || wantsHelp([kind])) return console.log(usage());
   if (!KINDS.includes(kind)) refuse(`record knows no kind \`${kind}\`. Kinds: ${KINDS.join(", ")}.`);
@@ -596,12 +493,8 @@ const run = async ([kind, reference, ...argv]) => {
      position was spent as an issue key — the one flag its own refusal could not answer for. */
   if (wantsHelp([reference])) return console.log(kindHelp(kind, await capsOf(), await briefGoals()));
   if (!reference) refuse(firstLine(USAGE));
-  const own = kindUsage(kind);
-  const { next, patch, rest } = pullRun(argv, kind, own);
-  const run = { next, patch, usage: own };
-  const routed = { note: recordNote, criteria: recordCriteria, plan: recordPlan, merged: recordMerged };
-  if (routed[kind]) return routed[kind](reference, rest, run);
-  return recordShaped(kind, reference, rest, run);
+  const { next, patch, rest } = pullRun(kindBlocks(kind, argv));
+  return writeRung(reference, rest, { next, patch });
 };
 
 export const record = async (argv) => {

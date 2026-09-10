@@ -90,13 +90,13 @@ stood on that head, not one item per criterion: fourteen copies of one path list
 past. The finer rule, refusing only the criteria those paths reached, waits on ISS-207 — a verdict's
 evidence is an attachment, a URL or a sha, and none of the three names a path.
 
-The line that heads that answer is no longer this verb's alone. A record write ends with it, and
-`forge resume` prints it in its brief, so one function answers for all three (ISS-285). Where the
-record does not earn the status the line carries the count, which this verb used to print a second
-time under the items; a run reading the line under its own write has no list beneath it to count, and
-two places saying the same number is one of them going stale. Where the reading refuses — a closed
-issue, a side status whose page holds no park record — the line is the refusal's first sentence, and
-the verb that refused is the one that prints the command under it.
+The line that heads that answer is no longer this verb's alone, and neither is the move under it. A
+record write ends with the line, `forge resume` prints it in its brief, and a write whose payload
+completes the rung asks this file's own target and check for the move, so one function answers for
+all four (ISS-285, ISS-1103; [record-the-rung.md](record-the-rung.md)). The count the line carries is
+followed by the items in both places, from one formatter: a run told only how many spent a call
+asking which. Where the reading refuses — a closed issue, a side status whose page holds no park
+record — the line is the refusal's first sentence, and the refusing verb prints the command.
 
 A sixth, and the first thing this verb says that refuses nothing. The obvious home for it was the
 `testing` entry check whose refusal it runs ahead of, and that is the wrong shape twice over: everything a check returns becomes an item owed and a non-zero exit, and this is a

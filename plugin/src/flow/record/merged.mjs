@@ -7,15 +7,13 @@ import { flags } from "../../resolve/flags.mjs";
 import { commentPage, creditAfter } from "../../tracker/comments.mjs";
 import { isCommit } from "../../tracker/evidence.mjs";
 import { capsOf, lengthOf } from "../../tracker/field-write.mjs";
-import { documentIdOf } from "../../tracker/issues.mjs";
 import { releasePolicy } from "../../tracker/project-config.mjs";
 import { scoped, write } from "../../tracker/rest.mjs";
 import { notAnothers, renew } from "../lease.mjs";
 import { unwrap } from "../machine.mjs";
 import { commitProblem } from "./content.mjs";
 
-/* The tracker's own audit comment for the mark opens on the action's name, and that is what tells a
-   mark apart from a comment quoting one. */
+/* The audit comment for the mark opens on the action's name, which is what tells a mark from a comment quoting one. */
 const MARK = /^mark_merged\b/u;
 
 /** The word a clause carrying no path takes. Enumerated on the read, because `nothingness` and
@@ -64,10 +62,9 @@ const readPaths = (comments, flag) => pathsIn(readClause(comments, flag)?.trim()
 export const landingMoved = (comments) => readPaths(comments, "moved");
 export const landingWrote = (comments) => readPaths(comments, "wrote");
 
-/* What the clauses are joined by, so a path holding one reads as its clause ending there and a `moved` with one path in it reads as none moved, which is the reading a status acts on. Refused wherever the note is composed, the landing task composing one too, and under its own flag where one was typed. */
+/* What the clauses are joined by, so a path holding one reads as its clause ending there and a `moved` with one path in it reads as none moved, which is the reading a status acts on. Refused wherever the note is composed, the landing task composing one too, and under its own flag where one was typed; and what no path may hold, said once for the flag that names itself and for the composer that has no flag to name. */
 const APART = /[;\n]/u;
 
-/* What no path may hold wherever the note is composed, said once for the flag that names itself and the composer that has no flag to name. */
 const pathHeld = (paths) => {
   const barred = paths.find((one) => APART.test(one) || one.includes(","));
   if (barred) {
@@ -278,35 +275,41 @@ const branchFor = async (given) => {
     + "config names no base branch to read it from. Name it with --to <branch>.");
 };
 
-const undone = async (documentId, ref, { next, patch }) => {
-  const { comments } = await commentPage(documentId);
-  const held = lastMark(comments);
-  if (!held) {
-    refuse(`${ref} carries no merged mark, so there is nothing to remove. What a mark is written `
-      + `with:\n  ${mergedForm(ref)}`);
-  }
+const undone = async (documentId, ref, held, { next, patch }) => {
   await renew(documentId, ref, next, patch);
   await unmarkMerged(documentId, ref);
   console.log(`${ref}  the merged mark is removed. What it said:\n  ${held}`);
 };
 
-/** `forge record merged`: one flag per clause of the note, and `--undo` the one route back. The usage the parser judges a stranger against is the kind's own `-h`, handed in by the dispatcher: the rows live beside the verb table, which reads this module's clauses, and a read back the other way would be a cycle. */
-export const recordMerged = async (reference, argv, { next, patch, usage } = {}) => {
+const marked = async (documentId, ref, note, at, { next, patch }) => {
+  await renew(documentId, ref, next, patch);
+  await markMerged(documentId, ref, note, { leased: true });
+  console.log(`${ref}  marked merged at ${at}. Its note:\n  ${note}`);
+};
+
+/** `forge record merged`: one flag per clause of the note, and `--undo` the one route back. Every
+ *  refusal either form can earn is earned here, before the call this belongs to writes anything, and
+ *  what comes back is the write. The usage the parser judges a stranger against is the kind's own
+ *  `-h`, handed in: the rows read this module's clauses, and a read back would be a cycle. */
+export const mergedPrepared = async (argv, { reference, issue, page, next, patch, usage } = {}) => {
   const given = flags(argv, "record merged", ["--undo"], { usage });
-  const documentId = await documentIdOf(reference);
+  const clauses = given.undo ? null : clausesFrom(given);
+  const { documentId } = await issue();
+  const { comments } = await page();
   if (given.undo) {
     const also = Object.keys(given).filter((one) => one !== "undo");
     if (also.length) {
       refuse(`--undo removes the mark whole, so ${also.map((one) => `--${one}`).join(" and ")} `
         + "has no place beside it: a clause is written by the mark and not by its removal.");
     }
-    return undone(documentId, reference, { next, patch });
+    const held = lastMark(comments);
+    if (!held) {
+      refuse(`${reference} carries no merged mark, so there is nothing to remove. What a mark is `
+        + `written with:\n  ${mergedForm(reference)}`);
+    }
+    return { write: () => undone(documentId, reference, held, { next, patch }) };
   }
-  const held = clausesFrom(given);
-  const note = markNote({ branch: await branchFor(given), ...held,
-    named: await namedFor(documentId), ref: reference });
-  await renew(documentId, reference, next, patch);
-  await markMerged(documentId, reference, note, { leased: true });
-  console.log(`${reference}  marked merged at ${held.at}. Its note:\n  ${note}`);
-  return null;
+  const note = markNote({ branch: await branchFor(given), ...clauses,
+    named: await namedFor(documentId, comments), ref: reference });
+  return { write: () => marked(documentId, reference, note, clauses.at, { next, patch }) };
 };

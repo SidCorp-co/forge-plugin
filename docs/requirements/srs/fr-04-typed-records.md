@@ -56,6 +56,13 @@ a correction beside any of them.
   the CLI SHALL refuse the write and SHALL name the command that measures a fresh baseline, so that
   the authority a citation rests on is established where the payload is made rather than believed
   when it is read back.
+- **AC-04-1-7** · Rev: 1 · Proof: plugin/test/flow/record/rung.test.mjs "the three records approved cites go in one call, and that call moves the status"
+  WHEN one write names several kinds THEN the CLI SHALL take a payload for each of them in that one
+  call and SHALL refuse each missing field by the name of its own kind.
+- **AC-04-1-8** · Rev: 1 · Proof: plugin/test/flow/record/rung.test.mjs "a field over its cap refuses the whole call, and the comment beside it is not posted"
+  IF one write names several kinds and any of their payloads is refused THEN the CLI SHALL write none
+  of them, so that no run holds part of what a status is earned by because a later payload was
+  malformed.
 
 ### UC-04-2 — Evidence is checked before it is cited
 

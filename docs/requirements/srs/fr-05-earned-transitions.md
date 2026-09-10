@@ -108,6 +108,15 @@ deciding a status.
   scope, the head and the commit that record itself carries and on no other reading, the state of a
   tree being no property of the issue looking at it.
 
+- **AC-05-2-9** · Rev: 1 · Proof: plugin/test/flow/record/rung.test.mjs "the three records approved cites go in one call, and that call moves the status"
+  WHEN a write of a typed payload leaves the next status earned and that payload is one the next
+  status is earned by THEN the CLI SHALL transition the issue in the same call, SHALL report the
+  status it left and the status it entered, and SHALL read that status's entry criteria rather than
+  the payload it was handed.
+- **AC-05-2-10** · Rev: 1 · Proof: plugin/test/flow/record/rung.test.mjs "a write of a kind the rung does not cite moves nothing, however complete the rung is"
+  IF the payload written is not one the next status is earned by THEN the CLI SHALL leave the status
+  where it stands, however little that status is owed.
+
 ### UC-05-3 — Refuse a jump
 
 Rev: 1 · Actors: agent · Enforces: BR-04

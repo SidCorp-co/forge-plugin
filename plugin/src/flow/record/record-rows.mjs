@@ -10,8 +10,8 @@ import { goalBlock } from "../../goals.mjs";
 import { OPEN_KEPT } from "../worklog.mjs";
 import { usageOf } from "../../resolve/visibility.mjs";
 
-/* The shapes, then the kinds whose payload is a field or the tracker's own mark rather than a
-   comment: each of those four has a route of its own in `record.mjs`. */
+/* The shapes, then the four the verb prepares by another route: three of them write a field of the
+   issue and the fourth hangs the tracker's own mark. */
 export const KINDS = [...Object.keys(SHAPES), "merged", "note", "criteria", "plan"];
 
 const withCap = (value, cap) => (typeof cap === "number" ? `${value}(${cap})` : value);
@@ -167,6 +167,7 @@ const readsOff = (kind) => {
 };
 
 const SHARED_FLAGS = [
+  "  --also <kind>   another kind of this rung, its payload after it; the set moves the status",
   "  --next <line>   on any kind that writes: the step whoever comes next starts on, onto the lease",
   "  --pushed        the branch, head, base and files touched, read from git at this moment",
   "  --review        the last codex consult, its findings and what it owes, read from the log now",

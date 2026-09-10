@@ -12,6 +12,9 @@ const { owedSaid } = await import("../../../src/flow/route.mjs");
 const ISSUE = "the-uuid-of-an-issue";
 const CRITERIA = "1. The first outcome.\n2. The second outcome.";
 const held = { status: "in_progress", acceptanceCriteria: CRITERIA };
+const TYPED = ["## Files touched", "a", "## Before", "a", "## After", "a", "## Deliberately unchanged",
+  "a", "## Verified in code", "a", "## Conventions reversed", "a", "## Declarations",
+  "Screen change: no\nSchema coupling: no", "## Steps", "1. Do it. criteria: 9"].join("\n\n");
 
 const asked = async (session) => {
   process.env.FORGE_SESSION_ID = session;
@@ -47,4 +50,24 @@ test("a ladder that moved and came back is said again", async () => {
   assert.notEqual(moved, first);
   const back = await owedSaid(ISSUE, held, [], "ISS-3");
   assert.equal(back, first, "and the first one is owed again, the session having been told another since");
+});
+
+/* The line counts the items and never names them, so a reader held to it alone is told a number twice and the
+   second set of names not at all. What is said and what the session is credited with are therefore one text (ISS-1103). */
+test("the items are said under the line, and a set that changed under an unchanged count is said again", async () => {
+  process.env.FORGE_SESSION_ID = "owed-items";
+  const said = await owedSaid(ISSUE, held, [], "ISS-3");
+  assert.match(said, /item\(s\) owed\.$/mu, "the line, first and alone on its own line");
+  const under = said.split("\n").slice(1).filter((one) => one.trim());
+  assert.ok(under.length >= 2, `the items under it, each with the command that supplies it: ${said}`);
+  assert.match(under.join("\n"), /^ {4}forge /mu, "the command is indented under what it supplies");
+  /* Two readings whose lines are identical: four owed with nothing written, and four owed where a typed plan's step serves a criterion the issue does not hold. Only the items part them. */
+  const bare = { status: "confirmed" };
+  const mismatched = { status: "confirmed", acceptanceCriteria: "1. One outcome.", plan: TYPED };
+  process.env.FORGE_SESSION_ID = "owed-same-count";
+  const first = await owedSaid(ISSUE, bare, [], "ISS-3");
+  const second = await owedSaid(ISSUE, mismatched, [], "ISS-3");
+  assert.equal(second.split("\n")[0], first.split("\n")[0], "the line is the same, so the count is");
+  assert.notEqual(second, first, "and the items are not, so the second is a reading nobody has read");
+  assert.ok(second.trim(), "which is why it is said rather than credited to the first");
 });

@@ -180,11 +180,13 @@ test("citedClauses is the only reader here that touches the checkout", () => {
 const source = (rel) => readFileSync(new URL(`../../${rel}`, import.meta.url), "utf8");
 
 test("the citation check has one home, and the verbs reach it rather than spelling it", () => {
-  const record = source("src/flow/record/record.mjs");
+  const record = source("src/flow/record/fields.mjs");
   assert.ok(record.includes('from "../../spec/checked.mjs"'), "both field writes spend the shared step");
   assert.ok(/citationsChecked\b/u.test(record), "record plan over the plan's whole text");
   assert.ok(/criteriaChecked\b/u.test(record), "record criteria over each criterion's opening");
   assert.ok(!record.includes("citationRefusal"), "and neither assembles the refusal itself");
+  assert.ok(!source("src/flow/record/record.mjs").includes("spec/checked.mjs"),
+    "and the module those two writes moved out of no longer reaches it at all");
   assert.ok(!source("src/commands.mjs").includes("spec/checked.mjs"),
     "and the verb table reaches it through no route of its own");
 });

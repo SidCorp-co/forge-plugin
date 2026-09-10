@@ -333,15 +333,16 @@ test("once the QA session has judged every criterion against the deployment, adv
     "--verdict", "pass", "--criterion", "1", "--criterion", "2");
   assert.equal(wrote.status, 0, wrote.stderr);
   assert.equal(wrote.stdout.match(new RegExp(`^judge: ${QA}$`, "gmu")).length, 2, wrote.stdout);
-  /* One rung, two halves: the judging alone leaves it owed, so the same session writes the deployment's records and the advance answers for the whole of it. */
+  assert.match(wrote.stderr, /^ISS-8 {2}developed -> testing$/mu, "the verdicts earn the judging rung in their own call");
+  /* One rung, two records: the judging leaves the release rung owed, and this session writes both of the records that rung cites in one call, so that call is what moves it (ISS-1103). */
   const proved = await qa("record", "verification", "ISS-8", "--where", "the deployed app",
-    "--commit", MERGED, "--evidence", "https://ci.example.test/9");
+    "--commit", MERGED, "--evidence", "https://ci.example.test/9",
+    "--also", "note", "--section", "Fixed", "--user", "it works");
   assert.equal(proved.status, 0, proved.stderr);
-  const noted = await qa("record", "note", "ISS-8", "--section", "Fixed", "--user", "it works");
-  assert.equal(noted.status, 0, noted.stderr);
+  assert.match(proved.stderr, /^ISS-8 {2}testing -> awaiting_release$/mu, "both records, one call, one move");
   const run = await qa("advance", "ISS-8");
   assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
-  assert.equal(judging.status, "testing", "the record earned the judging rung, so the verb moved it");
+  assert.equal(judging.status, "closed", "every rung moved on the call that earned it, and the close is what is left");
 });
 
 /* The third move of the handoff these criteria name — builder readies, lander takes, QA takes,
