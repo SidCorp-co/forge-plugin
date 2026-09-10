@@ -2069,6 +2069,14 @@
       "rev": 1,
       "digest": "c6ed58020b5256069ecc827b15067927c066234d15062665845d2608391747c1"
     },
+    "AC-12-7-4": {
+      "rev": 1,
+      "digest": "4c4e921c22e433a4e4e127a55b97ea90f0cc847f5516139b34b83eabcd869cab"
+    },
+    "AC-12-7-5": {
+      "rev": 1,
+      "digest": "de7ecc04cb07cb9f296e96a4fb267f75b2171ca24752c286748eda2fd74ed47d"
+    },
     "FR-13": {
       "rev": 1,
       "digest": "f0d957f21090993b2def23dab3e79a1182c9d6cbe084d565433875566f48eb1a"

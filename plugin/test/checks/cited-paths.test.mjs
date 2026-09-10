@@ -10,12 +10,12 @@ import { citedIn, problems } from "../../src/checks/cited-paths.mjs";
 
 const ROOT = new URL("../../..", import.meta.url).pathname;
 /* The working tree, not the index: a file this commit adds is a path a clause may already cite. */
-const list = (...args) =>
-  execFileSync("git", ["-C", ROOT, "ls-files", "--cached", "--others", "--exclude-standard", ...args],
-    { encoding: "utf8" })
+const lines = (...args) =>
+  execFileSync("git", ["-C", ROOT, ...args], { encoding: "utf8" })
     .trim()
     .split("\n")
     .filter(Boolean);
+const list = (...args) => lines("ls-files", "--cached", "--others", "--exclude-standard", ...args);
 
 /* The population is a decision and not the part of the tree that happened to be clean (ISS-191): the
    files this repository describes itself in, because only there is a named path a claim this check can
@@ -23,6 +23,8 @@ const list = (...args) =>
    Every file of a part that is in, whatever its class: a class left unread is a third way out that
    carries no reason, which `docs` declared whole with its figures unwalked was (ISS-263). */
 const TREE = list();
+/* The one thing the population cannot say: it already means untracked and unignored. */
+const INDEXED = new Set(lines("ls-files", "--cached"));
 const DESCRIBES_THIS_TREE = [".claude-plugin", ".forge.json", ".gitignore", "CLAUDE.md", "LICENSE",
   "README.md", "docs", "eslint.config.mjs", "package.json", "packages", "plugin/.claude-plugin",
   "plugin/guides", "plugin/scripts", "plugin/src", "plugin/vi-natural", "tools"];
@@ -60,13 +62,39 @@ test("nothing this repository says of itself cites a path that names no file", (
   assert.deepEqual(found, [], `a citation names no file:\n${found.join("\n")}`);
 });
 
+/* Refused either way, ISS-191 having decided that; which refusal is the index's answer and never the
+   name's, because a run's own working file and a part of the tree nobody placed look alike (ISS-1014). */
+const refusal = (rel, indexed) => indexed.has(rel)
+  ? `${rel} — the index carries it and neither list places it: name its part in DESCRIBES_THIS_TREE,`
+    + " or name it in ANOTHER_TREE with the reason it is left unread"
+  : `${rel} — the index does not carry it, so it is not part of this tree: a working file this run`
+    + " wrote goes outside the checkout or is deleted, and one that is a new part of the tree is"
+    + " added to the index, which is what asks either list to place it";
+
 /* A part of the tree in neither list is one nothing decided about, and it reads as a clean run. */
 test("every file in the tree is read, or left out for a reason named here", () => {
   const claimed = [...DESCRIBES_THIS_TREE, ...Object.keys(ANOTHER_TREE)];
   const unplaced =
     TREE.filter((one) => !claimed.some((claim) => one === claim || one.startsWith(`${claim}/`)));
-  assert.deepEqual(unplaced, [], `neither read nor accounted for:\n${unplaced.join("\n")}`);
+  assert.deepEqual(unplaced, [],
+    `neither read nor accounted for:\n${unplaced.map((one) => refusal(one, INDEXED)).join("\n")}`);
   assert.ok(Object.values(ANOTHER_TREE).every((why) => why.length > 30), "each exclusion says why");
+});
+
+const SCRATCH = ".iss953-criteria.md";
+
+test("an unplaced file no commit put here is refused as the run's own and named the way out", () => {
+  const said = refusal(SCRATCH, new Set(["CLAUDE.md"]));
+  assert.ok(said.includes("not part of this tree"), said);
+  assert.ok(said.includes("goes outside the checkout or is deleted"), said);
+  assert.ok(!said.includes("DESCRIBES_THIS_TREE"), `a working file is sent to no list: ${said}`);
+});
+
+test("the same name refused once the index carries it is sent to the two lists instead", () => {
+  const said = refusal(SCRATCH, new Set([SCRATCH]));
+  assert.ok(said.includes("DESCRIBES_THIS_TREE"), said);
+  assert.ok(said.includes("ANOTHER_TREE"), said);
+  assert.ok(!said.includes("outside the checkout"), `a committed file is not the run's: ${said}`);
 });
 
 /* The class the filter hid, counted so a figure added and never walked cannot read as covered. */

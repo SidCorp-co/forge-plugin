@@ -189,6 +189,15 @@ reports.
 - **AC-12-7-3** · Rev: 1 · Proof: plugin/test/checks/cited-paths.test.mjs "every figure under the documents directory is in the population"
   WHERE a declared part holds a class of file the check would otherwise walk past, the case SHALL
   name that class and SHALL hold every member of it to being in the population walked.
+- **AC-12-7-4** · Rev: 1 · Proof: plugin/test/checks/cited-paths.test.mjs "an unplaced file no commit put here is refused as the run's own and named the way out"
+  IF a file the population reaches is placed by neither list and the index does not carry it THEN
+  the refusal SHALL say that the file is not part of the tree, and SHALL name taking it outside the
+  checkout or deleting it as the way out, so a run that left a working file behind does not read the
+  refusal as a decision about the tree.
+- **AC-12-7-5** · Rev: 1 · Proof: plugin/test/checks/cited-paths.test.mjs "the same name refused once the index carries it is sent to the two lists instead"
+  IF a file placed by neither list is one the index already carries THEN the refusal SHALL name the
+  two declaration lists as the way out however that file is named, because a refusal that reads a
+  name exempts the next mistyped one.
 
 ## Business rules enforced
 
