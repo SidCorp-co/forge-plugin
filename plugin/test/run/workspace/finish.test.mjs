@@ -148,12 +148,19 @@ test("finish reads the remote-tracking ref itself, so a local branch named for i
   assert.match(run.stderr, /holds 1 commit\(s\) origin\/master does not carry/u, run.stderr);
 });
 
+/* The minted basename and a relative parent, so the absolute guard is the only thing that rejects
+   it: named `forge-run-<id>` alone the record would be refused by the basename check instead, and
+   the case would pass with the guard taken out. */
 test("finish derives no scratch path from a record that is not an absolute one", () => {
   const { work, tree } = started("finish-relative");
-  writeFileSync(scratchFile(work), `${readFileSync(idFile(work), "utf8").trim()}\n`);
+  const id = readFileSync(idFile(work), "utf8").trim();
+  const planted = join(dirname(work), `forge-run-${id}`);
+  mkdirSync(planted, { recursive: true });
+  writeFileSync(scratchFile(work), `${join("..", `forge-run-${id}`)}\n`);
 
   const run = runIn(work, ["finish", KEY], BARE);
   assert.equal(run.status, 0, run.stderr + run.stdout);
+  assert.ok(existsSync(planted), "a path a relative record spelled was removed");
   assert.ok(!existsSync(tree), run.stdout);
   assert.match(run.stdout, /no run id this repository minted/u, run.stdout);
 });
