@@ -4,7 +4,7 @@
    unresolved condition is not a silence: docs/cli/the-parts.md. */
 import { partsOf } from "./contract.mjs";
 
-const OPEN = /^ {0,3}<!--\s+forge:when\s+([a-z][a-z0-9.]*)\s+([a-z][a-z0-9\s]*?)\s+-->$/u;
+const OPEN = /^ {0,3}<!--\s+forge:when\s+([a-z][a-z0-9.]*)\s+([a-z][a-z0-9\s-]*?)\s+-->$/u;
 const CLOSE = /^ {0,3}<!--\s+forge:end\s+-->$/u;
 const RESERVED = /^ {0,3}<!--\s*forge:/u;
 const GUARD = /^ {0,3}(?:```|~~~)/u;

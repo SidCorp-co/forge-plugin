@@ -99,9 +99,9 @@ test("a retired directory is held, and only its path form is a mention", () => {
 test("a retired verb is refused on the help, the skills, the topics and the contract", () => {
   const found = problems(files, [AS_IF]);
   for (const surface of [
-    "plugin/guides/v1/skills/issue-flow/guide.md",
+    "plugin/guides/skills/issue-flow/guide.md",
     "docs/cli/advance.md",
-    "plugin/guides/v1/contract/",
+    "plugin/guides/contract/default/",
     "plugin/src/resolve/visibility.mjs",
   ]) {
     assert.ok(found.some((one) => one.startsWith(surface)), `${surface} went unread:\n${found.slice(0, 5).join("\n")}`);

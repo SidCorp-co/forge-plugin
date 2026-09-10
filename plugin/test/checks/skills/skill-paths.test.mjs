@@ -96,12 +96,12 @@ test("the roles directory is one of the roots a skill check walks, and it is fla
     { dir: "/p/guides/skills", flat: false },
     { dir: join("/p", ROLES), flat: true },
   ], "a root out of this list is a tree no skill check reads");
-  assert.ok(skillRootsIn(PLUGIN).some(({ dir }) => /guides\/v\d+\/skills\/?$/u.test(dir)),
-    "and a version directory's own skills are walked, or the method's text is the one tree unguarded");
+  assert.ok(skillRootsIn(PLUGIN).some(({ dir }) => /guides\/skills\/?$/u.test(dir)),
+    "and the served bodies' own root is walked, or the method's text is the one tree unguarded");
 });
 
 /* Recounted off the tree rather than off the walker's roots, or this counts nothing: every `skills`
-   directory under `guides`, whatever the version directories above them are named. */
+   directory under `guides`, at whatever depth one has come to sit. */
 const guideSkillRoots = (dir = join(PLUGIN, "guides")) => readdirSync(dir, { withFileTypes: true })
   .filter((one) => one.isDirectory())
   .flatMap((one) => (one.name === "skills" ? [join(dir, one.name)] : guideSkillRoots(join(dir, one.name))));

@@ -13,7 +13,7 @@ import { flat, homeEnv, tempRoom } from "../fixtures.mjs";
 const { blocksOf, phasesOf, render } = await import("../../src/guides/render.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const BODY = new URL("../../guides/v1/skills/issue-flow/guide.md", import.meta.url).pathname;
+const BODY = new URL("../../guides/skills/issue-flow/guide.md", import.meta.url).pathname;
 const CONDITION = "feedback.plugin";
 
 /* The domain travels with the answer, off the key's own list, so a case cannot invent a channel. */

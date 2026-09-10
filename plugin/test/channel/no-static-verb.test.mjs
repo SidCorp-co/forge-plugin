@@ -28,6 +28,6 @@ test("no text this plugin ships into a session names the destination verb", () =
 });
 
 test("and the walk that says so would catch one", () => {
-  const planted = [{ rel: "plugin/guides/v1/made-up.md", text: "one line\nfile it with `forge feedback`\n" }];
-  assert.deepEqual(named(planted), ["plugin/guides/v1/made-up.md:2"], "the selector matches nothing otherwise");
+  const planted = [{ rel: "plugin/guides/made-up.md", text: "one line\nfile it with `forge feedback`\n" }];
+  assert.deepEqual(named(planted), ["plugin/guides/made-up.md:2"], "the selector matches nothing otherwise");
 });

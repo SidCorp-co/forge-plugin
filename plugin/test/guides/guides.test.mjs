@@ -44,7 +44,9 @@ const review = (extra = {}) =>
 test("a local guide is answered from this copy, and nothing else is", async () => {
   const answer = localGuide("contract");
   assert.equal(typeof answer, "function", "the contract is answered from disk");
-  assert.deepEqual(answer({ part: "confirmed" }).lines.length, 1, "and its part comes back as one body");
+  const lines = answer({ part: "confirmed" }).lines;
+  assert.match(lines[0], /^### `confirmed`/u, "and its part comes back as one body");
+  assert.match(lines.at(-1), /^Flow \S+, which this project runs/u, "under the flow it was served for");
   for (const slug of [...REVIEWED, "", "contracts", undefined]) {
     assert.equal(localGuide(slug), null, `${slug} is the tracker's, and this copy holds no page of it`);
   }

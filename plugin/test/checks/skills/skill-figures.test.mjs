@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tempRoom } from "../../fixtures.mjs";
+import { skillGuidesRoot } from "../../../src/guides/skill-guides.mjs";
 
 const SCRIPT = new URL("../../../scripts/skill-figures.mjs", import.meta.url).pathname;
 
@@ -40,4 +41,20 @@ test("the shipped skills carry no measurement", () => {
   const held = check();
   assert.deepEqual(held.findings, []);
   assert.equal(held.status, 0);
+});
+
+/* A default run walks the stubs and the one served root, so a figure in a served body is a figure in
+   the skill: watched firing on the moved layout, and the root asserted to be the one it walks. */
+test("a figure in a served body under the moved layout is named, and that root is a default one", (t) => {
+  const root = tempRoom("skill-figures-served-");
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const dir = join(root, "guides", "skills", "alpha");
+  mkdirSync(join(dir, "references"), { recursive: true });
+  writeFileSync(join(dir, "guide.md"), "# Skill: alpha\n\nMeasured over 4,096 runs of the gate.\n");
+  const held = check(join(root, "guides", "skills"));
+  assert.equal(held.status, 1);
+  assert.deepEqual(held.findings.map((one) => one.figure), ["4,096"]);
+  const plugin = new URL("../../../", import.meta.url).pathname;
+  assert.equal(skillGuidesRoot(plugin), join(plugin, "guides", "skills"),
+    "and the root a default run walks is where every served body now sits");
 });

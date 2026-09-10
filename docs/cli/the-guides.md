@@ -54,8 +54,8 @@ the rename left.
 
 The contract those rows send a reader to is answered by the same verb, and it had to move to be
 answerable at all: installing copies `plugin/` and nothing beside it, so for six releases every one
-of those rows named a file that existed on one machine. It is `plugin/guides/v1/contract/` now, one
-file per part, and `docs/` keeps a pointer so the requirement clauses citing a section still land.
+of those rows named a file that existed on one machine. It is `plugin/guides/contract/<flow>/` now,
+one file per part, and `docs/` keeps a pointer so the requirement clauses citing a section still land.
 Most of a contract is about a stage the reader is not at, so the verb serves one part per call: a
 bare `forge guide contract` answers with the parts, their sizes and the call for each, in name
 order. Three consequences. A heading is the address, so renaming one moves the call that reaches it
@@ -79,28 +79,13 @@ invocation needs is inline in `SKILL.md`; what a run of a long method needs once
 references live under `plugin/guides/skills/<skill>/` as rows of the same local registry the
 contract is, and a skill with references and no body is listed for its references alone.
 
-One number pins the guide, the method and the contract together, because they are designed as one set
-and a project mixing them runs text nobody tested. A project names it in `.forge.json` as `method`,
-and the texts that number chooses between sit under `plugin/guides/v<n>/` — the issue-flow method and
-the contract, and nothing else. The other skills stay outside a version directory on purpose: their
-texts answer questions a method version has no opinion about, and a requirement clause whose `Source`
-names one would otherwise move whenever a project pinned a different method. The listing is read from
-every version's root at once, so a slug is offered whatever the project pins and only the text served
-for it changes.
-
-There are two questions about where a text lives and they have different answers. *Which text am I
-served* is a project's question, and the pin answers it. *What does this copy ship* is a check's, and
-a pin is no part of that answer: a gate step whose verdict moved with a `.forge.json` it does not
-declare would be reused stale, and declaring the settings resolver as its input would re-run a check
-over shipped text every time an unrelated setting changed. So the boundary check reads every body a
-slug has, newest version first — by number, because a lexical order files v10 under v2. Serving does
-not search that order: a pinned version, else the plain root, and nothing else, or a project would
-quietly be given a method it did not choose.
-
-`SHIPPED` stays a declared list rather than the directory listing, because the two say different
-things — the tree is an inventory of what is present, and the list is which versions this copy stands
-behind. A directory arriving without a row is a version half-landed, and a row without a directory
-names text nobody can be served; a case holds them equal so neither passes as the other.
+**One root, and no axis in the path.** Every served skill sits under that one directory, the
+issue-flow method among them, so a slug is offered and addressed the same way whatever a project
+runs and there is no per-slug inconsistency left for a refusal to fall through. The axis is the
+project's `flow`, and it selects what the fence inside a file renders and which contract parts
+answer, never which file a skill is read from: [the flow axis](the-flow-axis.md) carries what a
+flow may and may not change, why it is a slug rather than a number, and what the checker holds the
+declaration to.
 
 The served half exists because a skill file is read by a session at its start and never again
 (ISS-78, ISS-321, ISS-353): a landed correction reached nobody until every open session restarted,

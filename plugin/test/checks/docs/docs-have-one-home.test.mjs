@@ -5,7 +5,7 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { guideRoots } from "../../../src/guides/skill-guides.mjs";
+import { skillGuidesRoot } from "../../../src/guides/skill-guides.mjs";
 import { compare, sentences } from "../../../src/checks/duplication.mjs";
 import { NARRATES } from "../../../src/checks/doc-shape.mjs";
 import { VERBS } from "../../../src/resolve/visibility.mjs";
@@ -71,8 +71,7 @@ const refused = () => {
 };
 
 /* Listed roots drop a moved skill's text in silence; the floor is met without it. */
-const SKILL_ROOTS = ["plugin/skills",
-  ...guideRoots(join(ROOT, "plugin")).map((dir) => relative(ROOT, dir))];
+const SKILL_ROOTS = ["plugin/skills", relative(ROOT, skillGuidesRoot(join(ROOT, "plugin")))];
 const skillDocs = () => {
   const out = [];
   for (const rel of SKILL_ROOTS) {

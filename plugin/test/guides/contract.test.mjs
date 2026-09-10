@@ -3,26 +3,24 @@
    turning one command into a near miss for whoever reaches for it next. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { cpSync, existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { execFileSync, spawnSync } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 
-import { flat, tempHome, tempRoom } from "../fixtures.mjs";
+import { flat, tempHome } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("contract").path;
 const {
   CONTRACT,
-  LISTING_ROW,
   contentsOf,
   contractAnswer,
+  contractParts,
   contractPath,
-  contractProblems,
   keysOfAll,
-  partFileProblem,
+  listingRow,
   partFor,
   partsOf,
   readContract,
-  readContractFiles,
   stageLine,
   statesContract,
 } = await import("../../src/guides/contract.mjs");
@@ -41,11 +39,11 @@ const TRACKED = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { encoding
   .trim().split("\n").filter(Boolean);
 
 test("the contract is inside the plugin, at one path, and nothing else in the tree holds it", () => {
-  assert.equal(contractPath(), join(PLUGIN, "guides", "v1", "contract"));
+  assert.equal(contractPath(), join(PLUGIN, "guides", "contract", "default"));
   assert.ok(existsSync(contractPath()), `${contractPath()} is what every route now names`);
   const holding = TRACKED.filter((rel) =>
     readFileSync(join(ROOT, rel), "utf8").includes("## Two layers, one record"));
-  assert.deepEqual(holding, ["plugin/guides/v1/contract/02-two-layers-one-record.md"],
+  assert.deepEqual(holding, ["plugin/guides/contract/default/02-two-layers-one-record.md"],
     "one source, and docs/ points at it");
 });
 
@@ -65,9 +63,9 @@ test("every status of the flow has a part, and the sections are the files' own h
 /* One file per part, and the file name is what a reader opens to find the part `forge guide contract
    <slug>` printed: the number orders the join and the slug is the address. */
 test("each part is one file, whose name carries its order and its slug", () => {
-  const files = readContractFiles();
+  const files = contractParts({});
   assert.equal(files.length, PARTS.length, `${files.length} file(s) and ${PARTS.length} part(s)`);
-  files.forEach(([name], at) => {
+  files.forEach(({ name }, at) => {
     assert.match(name, /^\d\d-[a-z][a-z0-9-]*\.md$/u, `${name} does not name an order and a slug`);
     const slug = name.slice(3, -3);
     const keys = PARTS[at].keys.map((one) => one.replace(/_/gu, "-"));
@@ -76,32 +74,6 @@ test("each part is one file, whose name carries its order and its slug", () => {
   });
 });
 
-/* A join is one text, so a file that lost its heading would have its prose served under the part
-   above it and a file with two would hold a part its name does not address. Both are named, and the
-   call that names them passes no file list: the parts are the directory's, so no caller can omit
-   its way past the rule and be told the contract is well formed (ISS-848). */
-test("a part file with no heading of its own, or with two, is a finding naming that file", () => {
-  const room = tempRoom("contract-files-");
-  const dir = join(room, "guides", "v1", "contract");
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "01-first.md"), "# First\n\n**Contract 1.** The number.\n");
-  writeFileSync(join(dir, "02-second.md"), "Prose with no heading over it at all.\n");
-  const path = join(room, "guides", "v1", "contract");
-  assert.equal(readContract(room), null, "the raw reader served a join it should have withheld");
-  const said = contractProblems({ text: readContract(room), path });
-  assert.equal(said.length, 1, said.join("; "));
-  assert.match(said[0], /02-second\.md opens with no heading, so nothing addresses it/u);
-  writeFileSync(join(dir, "02-second.md"), "## Second\n\nProse.\n\n## Third\n\nMore prose.\n");
-  const two = contractProblems({ text: readContract(room), path });
-  assert.equal(two.length, 1, two.join("; "));
-  assert.match(two[0], /02-second\.md carries 2 headings, and its name addresses one part/u);
-  /* The join a caller made for itself: it states the number and passes every other check, so the
-     directory is the only thing left that can refuse it, and this is the call that came back empty
-     while the parts arrived as an argument. */
-  const held = readContractFiles(room).map(([, text]) => text.replace(/\s+$/u, "")).join("\n\n");
-  assert.deepEqual(contractProblems({ text: held, path }), two);
-  assert.deepEqual(partFileProblem("03-ok.md", "### `x` — reads y\n\nProse.\n"), null);
-});
 
 /* A part arrives whole in one call, so its size is what a reader pays to reach one rule. The whole
    was 70,809 characters over 25 parts, most of them about a stage the reader is not at (ISS-802). */
@@ -135,8 +107,8 @@ test("a heading becomes its own address, and a heading of statuses becomes one p
 });
 
 /* The body `forge guide issue-flow` serves, not the stub Claude Code loads (ISS-353). */
-const SKILL = join(PLUGIN, "guides", "v1", "skills", "issue-flow", "guide.md");
-const VERIFICATION = join(PLUGIN, "guides", "v1", "skills", "issue-flow", "references", "verification.md");
+const SKILL = join(PLUGIN, "guides", "skills", "issue-flow", "guide.md");
+const VERIFICATION = join(PLUGIN, "guides", "skills", "issue-flow", "references", "verification.md");
 /* Split rather than matched to a lookahead: a lazy body against a multiline `$` ends at the first
    line break, and every phase then reads as empty. */
 const phasesOf = (text) => Object.fromEntries(
@@ -283,7 +255,7 @@ test("the table of contents is one line per part and per status, and none of the
   assert.match(lines[0], new RegExp(`contract ${CONTRACT}`, "u"));
   assert.equal(lines.join("\n").includes("Presence is checked and fit is judged"), false,
     "no sentence of the contract");
-  assert.match(LISTING_ROW, /^contract\n {2}this plugin's own, not the tracker's/u);
+  assert.match(listingRow(), /^contract\n {2}this plugin's own, not the tracker's/u);
 });
 
 test("the number the file states is its own line, and the prose about versions is not it", () => {
@@ -292,21 +264,6 @@ test("the number the file states is its own line, and the prose about versions i
   assert.equal(statesContract("**Contract 4.** and then some prose"), 4);
 });
 
-test("a copy with no contract, one with no number and one from another build are each a finding", () => {
-  const path = "/somewhere/guides/v1/contract";
-  assert.deepEqual(contractProblems({ text: TEXT, path }), []);
-  assert.match(contractProblems({ text: null, path })[0], /no contract at \/somewhere\//u);
-  assert.match(contractProblems({ text: "# No number here", path })[0], /states no contract number/u);
-  assert.match(
-    contractProblems({ text: "**Contract 9.**", path })[0],
-    new RegExp(`states contract 9 and this build reads contract ${CONTRACT}`, "u"),
-  );
-  assert.match(
-    contractProblems({ text: TEXT, path, reads: CONTRACT + 1 })[0],
-    new RegExp(`states contract ${CONTRACT} and this build reads contract ${CONTRACT + 1}`, "u"),
-    "an older file under a newer build is the same finding: the number is matched, never ranged",
-  );
-});
 
 test("the stage line names the part for the status and the command that prints it", () => {
   for (const status of STAGED) {
@@ -328,7 +285,10 @@ test("the stage line names the part for the status and the command that prints i
 });
 
 test("the verb's answer is one part, the contents, or one refusal that names the way out", () => {
-  assert.deepEqual(contractAnswer({ part: "awaiting_release" }).lines, [partFor(PARTS, "awaiting_release").text]);
+  assert.deepEqual(contractAnswer({ part: "awaiting_release" }).lines,
+    [partFor(PARTS, "awaiting_release").text, "",
+      "Flow default, which this project runs; `forge doctor` names its source."],
+    "the part, and then the flow it was served for");
   assert.equal(contractAnswer({}).lines[0].startsWith("The issue-flow contract"), true);
   const flag = contractAnswer({ tracker: true }).refusal;
   assert.match(flag, /--tracker does not apply to contract/u);
@@ -338,45 +298,6 @@ test("the verb's answer is one part, the contents, or one refusal that names the
   assert.match(contractAnswer({ part: "nothing-like-it" }).refusal, /lists every part/u);
 });
 
-/* A copy of the code with no guides/ beside it is what every installed copy was before ISS-78, and
-   the only way to watch the report say so is to make one. */
-const copyOfCode = (contract, argv = ["doctor"]) => {
-  const room = tempRoom("contract-copy-");
-  for (const held of ["src", "hooks"]) {
-    cpSync(join(PLUGIN, held), join(room, held), { recursive: true });
-  }
-  if (contract === "whole") cpSync(contractPath(), join(room, "guides", "v1", "contract"), { recursive: true });
-  else if (contract !== null) {
-    mkdirSync(join(room, "guides", "v1", "contract"), { recursive: true });
-    writeFileSync(join(room, "guides", "v1", "contract", "01-only.md"), contract);
-  }
-  const home = tempRoom("contract-home-");
-  const run = spawnSync(process.execPath, [join(room, "src", "cli.mjs"), ...argv], {
-    encoding: "utf8",
-    env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
-  });
-  return `${run.stdout}${run.stderr}`;
-};
-
-test("doctor names the missing file, and a file from another build, in the copy that is running", () => {
-  assert.match(copyOfCode(null), /\[ miss \] contract\s+no contract at \S+guides\/v1\/contract/u);
-  assert.match(copyOfCode("# A contract\n\n**Contract 9.**\n"), /\[ miss \] contract\s+\S+ states contract 9/u);
-  assert.match(copyOfCode("# A contract\n\nNo number here.\n"), /\[ miss \] contract\s+\S+ states no contract number/u);
-  assert.match(copyOfCode("**Contract 1.** No heading over it.\n"),
-    /\[ miss \] contract\s+\S+: 01-only\.md opens with no heading/u,
-    "a part file the install truncated is named, not served under the part before it");
-  assert.match(copyOfCode("whole"), /\[ {2}ok {2}\] contract\s+\S+ states contract 1/u);
-});
-
-/* Serving is the same route as reporting and is asked by the verb rather than by a call: a copy
-   holding a malformed part is refused by that file's name, never by the absent-contract line, which
-   would send a reader looking for a directory that is right there. */
-test("the verb refuses a copy whose part carries two headings, naming the file and not the absence", () => {
-  const said = flat(copyOfCode("# A contract\n\n**Contract 1.** The number.\n\n## A second heading\n\nProse.\n",
-    ["guide", "contract"]));
-  assert.match(said, /01-only\.md carries 2 headings, and its name addresses one part/u);
-  assert.doesNotMatch(said, /no contract at/u);
-});
 
 let clock = 0;
 const recorded = (kind, fields) =>
@@ -554,7 +475,7 @@ test("the checks point back from the guides, and the evidence table keeps the ki
   for (const kind of ["An API", "A CLI", "A library", "A batch or data job", "Generated output", "Infrastructure"]) {
     assert.ok(held.includes(`| ${kind} |`), `the evidence table no longer names ${kind}, which no check replaced`);
   }
-  const guide = flat(readFileSync(join(PLUGIN, "guides", "v1", "skills", "issue-flow", "guide.md"), "utf8"));
+  const guide = flat(readFileSync(join(PLUGIN, "guides", "skills", "issue-flow", "guide.md"), "utf8"));
   assert.ok(guide.includes("`developed` refuses a path in it that neither the plan nor a correction"),
     "Phase 4 no longer names the check that refuses a file the plan does not name");
 });

@@ -272,25 +272,25 @@ project's scope, and each key is reported with its source (BR-08).
   SHALL act in the project the checkout's settings name, resolved behind the verb, and SHALL take no
   project as an argument; a verb reaching no such resource SHALL need no project.
 
-### UC-02-8 — The method arrives with the verb that acts, rendered and versioned
+### UC-02-8 — The method arrives with the verb that acts, rendered for the flow
 
-Rev: 1 · Actors: agent · Enforces: BR-07, BR-09
+Rev: 2 · Actors: agent · Enforces: BR-07, BR-09
 
 A method served as a static file is read by the agent choosing which part to read, and a part
 chosen can be the wrong one, one the issue's rung does not owe, or one read too early to be held when
 needed; a static part also cannot say what this project, this complexity and this status make true. The
 verbs that perform the acts know all three. So a part is rendered at the call from one source text
-per part (BR-09), for the project's keys and the version it pins (BR-07), and the verb that acts
+per part (BR-09), for the project's keys and the flow it names (BR-07), and the verb that acts
 carries the part for its act.
 
-- **AC-02-8-1** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-02-8-1** · Rev: 2 · Proof: none yet — ISS-673
   WHEN a part of the method is served THEN the CLI SHALL render it for the project's keys, the issue's
-  complexity and status and the version the project pins, removing marked lines and adding none.
-- **AC-02-8-2** · Rev: 1 · Proof: none yet — ISS-673
-  IF the project pins a version this copy does not ship THEN the CLI SHALL refuse in one line naming
-  the versions it ships.
-- **AC-02-8-3** · Rev: 1 · Proof: none yet — ISS-673
-  WHEN a part is served THEN its last line SHALL name the version it was read from.
+  complexity and status and the flow the project names, removing marked lines and adding none.
+- **AC-02-8-2** · Rev: 2 · Proof: plugin/test/guides/flow.test.mjs "a method no flow answers, and a flow this copy does not serve, are refused naming the way out"
+  IF the project names a flow this copy does not serve THEN the CLI SHALL refuse in one line naming
+  the flows it serves.
+- **AC-02-8-3** · Rev: 2 · Proof: plugin/test/guides/skill-guides.test.mjs "a phase of the method is served whole and ends by naming the flow it was rendered for"
+  WHEN a part is served THEN its last line SHALL name the flow it was rendered for.
 - **AC-02-8-4** · Rev: 1 · Proof: none yet — ISS-673
   WHEN the method's index is cut for one issue THEN it SHALL list only the phases that issue's
   complexity, status and project keys leave it owing.

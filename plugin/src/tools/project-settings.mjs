@@ -2,6 +2,8 @@
    with the source each key was read from and written one key at a time. Whose the decision is, and
    why a key is never re-declared in a checkout: docs/cli/doctor.md. */
 import { fail, projectSlug } from "../resolve/settings.mjs";
+import { flowPinned, requiresOf } from "../guides/flow.mjs";
+import { flowPolicyConflict } from "../flow/earned.mjs";
 import { scoped, write } from "../tracker/rest.mjs";
 import { WITH_BODY, WRITES } from "../tracker/project-flags.mjs";
 import {
@@ -205,9 +207,12 @@ export const projectReport = async ({ credentials, graph = null } = {}) => {
     releasePolicy(), stagingDeploy(), readSettings(), readBrief(),
     scoped("forge_project_pm.snapshot", {}, true), scoped("forge_project_pm.runner_load", {}, true),
   ]);
+  const flow = flowPinned().value;
+  const clash = flow === null ? null : flowPolicyConflict(flow, requiresOf(flow), policy);
   return {
-    rows: [...projectRows({ policy, deploy, credentials }), ...settingRows(settings),
-      ...pmRows(snapshot, load, graph)],
+    rows: [...projectRows({ policy, deploy, credentials }),
+      ...(clash ? [{ level: "miss", label: "flow", detail: clash }] : []),
+      ...settingRows(settings), ...pmRows(snapshot, load, graph)],
     brief: briefLines(brief),
   };
 };

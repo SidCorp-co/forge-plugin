@@ -7,9 +7,9 @@ import { fileURLToPath } from "node:url";
 
 import { FEEDBACK_CHANNELS, SHIP_MODES, feedbackScope, shipMode } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { SLUG as CONTRACT_SLUG, partFor, partsOf, readContract } from "./contract.mjs";
+import { SLUG as CONTRACT_SLUG, contractKeys } from "./contract.mjs";
+import { FLOW_SLUGS, flowPinned, flowRefusal, servedFor } from "./flow.mjs";
 import { phasesOf, render } from "./render.mjs";
-import { SHIPPED, methodPinned, pinRefusal, versionDir } from "./version.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const WITHIN = join("guides", "skills");
@@ -24,50 +24,24 @@ const namesIn = (dir) => (existsSync(dir)
   ? readdirSync(dir).filter((one) => one.endsWith(".md")).map((one) => one.slice(0, -3)).sort()
   : []);
 
-/* Two roots, because one number pins the method and nothing else: the versioned root holds what a
-   project's `method` chooses between, the plain one every skill no version judges. A slug in both is
-   served versioned; `bodyPathsOf` reads the tree whole, for a check owed to it rather than to a pin. */
-const servedFrom = (slug, root, version) => {
-  const dir = join(root, "guides", versionDir(version), "skills");
-  return existsSync(join(dir, slug)) ? { dir, version } : { dir: join(root, WITHIN), version: null };
-};
+/** One root, no flow axis in the path: what a flow changes it changes inside the file, in a fence. */
+export const skillGuidesRoot = (root = HERE) => join(root, WITHIN);
 
-const homeOf = (slug, root, version) => servedFrom(slug, root, version).dir;
+export const referencesOf = (slug, root = HERE) =>
+  namesIn(join(skillGuidesRoot(root), slug, REFERENCES));
 
-/* Asked of the versions this copy stands behind, never of the pin: docs/cli/the-parts.md. */
-export const isVersioned = (slug, root = HERE) =>
-  SHIPPED.some((one) => existsSync(join(root, "guides", versionDir(one), "skills", slug)));
+export const guideBodyPath = (slug, root = HERE) => join(skillGuidesRoot(root), slug, BODY);
 
-const pinProblem = (slug, root) => (isVersioned(slug, root) ? pinRefusal() : null);
-
-/* Every shipped version's root and the plain one, so the listing is one set whatever a project pins;
-   exported because two scripts walk skill text and would each carry this shape. Newest version
-   first, and by number: `readdirSync` promises no order and a lexical one puts v10 under v2. */
-export const guideRoots = (root = HERE) => [
-  ...folders(join(root, "guides")).filter((one) => /^v\d+$/u.test(one))
-    .sort((one, next) => Number(next.slice(1)) - Number(one.slice(1)))
-    .map((one) => join(root, "guides", one, "skills")),
-  join(root, WITHIN),
-];
-
-export const referencesOf = (slug, root = HERE, version = methodPinned().value) =>
-  namesIn(join(homeOf(slug, root, version), slug, REFERENCES));
-
-export const guideBodyPath = (slug, root = HERE, version = methodPinned().value) =>
-  join(homeOf(slug, root, version), slug, BODY);
-
-export const bodyPathsOf = (slug, root = HERE) =>
-  guideRoots(root).map((dir) => join(dir, slug, BODY)).filter((one) => existsSync(one));
-
-const hasBody = (slug, root = HERE, version = methodPinned().value) =>
-  existsSync(guideBodyPath(slug, root, version));
+export const hasBody = (slug, root = HERE) => existsSync(guideBodyPath(slug, root));
 
 const speaks = (dir, slug) =>
   existsSync(join(dir, slug, BODY)) || namesIn(join(dir, slug, REFERENCES)).length > 0;
 
 /** Read off the directories rather than listed. */
-export const skillGuideSlugs = (root = HERE) =>
-  [...new Set(guideRoots(root).flatMap((dir) => folders(dir).filter((slug) => speaks(dir, slug))))].sort();
+export const skillGuideSlugs = (root = HERE) => {
+  const dir = skillGuidesRoot(root);
+  return folders(dir).filter((slug) => speaks(dir, slug)).sort();
+};
 
 const sizeOf = (path) => (existsSync(path) ? statSync(path).size : 0);
 
@@ -75,7 +49,7 @@ const INLINE = (slug) => `The ${slug} skill's method is its SKILL.md, loaded wit
 
 /** The line `forge guide` prints for a skill: what it is, and the command that reads it. */
 export const skillListingRow = (slug, root = HERE) => {
-  const held = pinProblem(slug, root);
+  const held = flowRefusal();
   if (held) return `${slug}\n  ${held}`;
   const count = `${referencesOf(slug, root).length} reference(s)`;
   if (!hasBody(slug, root)) {
@@ -95,12 +69,10 @@ const referenceLines = (slug, dir) => {
 
 const read = (path) => readFileSync(path, "utf8").replace(/\s+$/u, "");
 
-const versionLine = (version) =>
-  `Method version ${version}, which this project runs; \`forge doctor\` names its source.`;
-
 /* One entry per answer this CLI can give here, each declaring the domain off that key's own list. */
 const conditions = () => ({
   "feedback.plugin": { value: feedbackScope().plugin.value, allowed: FEEDBACK_CHANNELS },
+  flow: { value: flowPinned().value, allowed: FLOW_SLUGS },
   ship: { value: shipMode().value, allowed: SHIP_MODES },
 });
 
@@ -111,7 +83,7 @@ const served = (slug, text, tail) => {
 };
 
 /** The answer shape `contractAnswer` gives, for one skill: the body, one reference, one numbered
- *  phase of the method, or a refusal. A part served out of a version directory ends by naming it. */
+ *  phase of the method, or a refusal. Every answer ends by naming the flow it was rendered for. */
 export const skillGuideAnswer = (slug, root = HERE) => ({ part = null, tracker = false, extra = [] } = {}) => {
   if (tracker) {
     return { refusal: `--tracker does not apply to ${slug}, which is this plugin's own, not the tracker's.`
@@ -121,11 +93,10 @@ export const skillGuideAnswer = (slug, root = HERE) => ({ part = null, tracker =
     return { refusal: `${slug} takes one reference, not \`${[part, ...extra].join(" ")}\`.`
       + ` \`forge guide ${slug}\` lists them.` };
   }
-  const held = pinProblem(slug, root);
+  const held = flowRefusal();
   if (held) return { refusal: held };
-  const { dir: home, version } = servedFrom(slug, root, methodPinned().value);
-  const dir = join(home, slug);
-  const tail = version === null ? [] : ["", versionLine(version)];
+  const dir = join(skillGuidesRoot(root), slug);
+  const tail = ["", ...servedFor()];
   const body = existsSync(join(dir, BODY)) ? read(join(dir, BODY)) : null;
   if (!part) return served(slug, body ?? INLINE(slug), [...referenceLines(slug, dir), ...tail]);
   const names = namesIn(join(dir, REFERENCES));
@@ -143,7 +114,7 @@ const CITATION = /`forge guide ([a-z][a-z0-9-]*) ([a-z][a-z0-9-]*)`/gu;
 
 /* A citation of the contract resolves against its parts, the way the verb would answer it. */
 const answers = (skill, reference, root) => {
-  if (skill === CONTRACT_SLUG) return partFor(partsOf(readContract(root) ?? ""), reference) !== null;
+  if (skill === CONTRACT_SLUG) return contractKeys(root).includes(reference);
   return referencesOf(skill, root).includes(reference);
 };
 
@@ -159,7 +130,7 @@ export const unresolvedCitations = (root = HERE) => {
   const out = [];
   const files = stubsOf(root);
   for (const slug of skillGuideSlugs(root)) {
-    const dir = join(homeOf(slug, root, methodPinned().value), slug);
+    const dir = join(skillGuidesRoot(root), slug);
     if (hasBody(slug, root)) files.push(join(dir, BODY));
     files.push(...referencesOf(slug, root).map((one) => join(dir, REFERENCES, `${one}.md`)));
   }

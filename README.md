@@ -100,7 +100,9 @@ call, never a wrong answer.
 plugin/
   .claude-plugin/plugin.json      the plugin manifest, name: forge
   bin/forge  bin/vi-natural       PATH entry points; reached through the link, they dispatch
-  guides/v1/contract/             the contract a status is earned under, one file per served part
+  guides/contract/default/        the contract a status is earned under, one file per served part,
+                                  under the flow it answers for
+  guides/skills/<skill>/          each skill's served method and references, one copy fenced by flow
   src/                            the forge CLI
     cli.mjs          argv, the usage list, the write-time rules
     dispatch.mjs     which copy a call through the PATH link runs

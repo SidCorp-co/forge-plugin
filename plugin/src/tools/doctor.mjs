@@ -41,8 +41,10 @@ import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } f
 import { usageOf } from "../resolve/visibility.mjs";
 import { PROJECT_USAGE, WITH_BODY, WRITES } from "../tracker/project-flags.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
-import { methodPinned, pinRefusal } from "../guides/version.mjs";
-import { contractPath, contractProblems, readContract, statesContract } from "../guides/contract.mjs";
+import { flowPinned, flowRefusal } from "../guides/flow.mjs";
+import {
+  contractParts, contractPath, contractProblems, flowProblems, identityOf, missingIn,
+} from "../guides/contract.mjs";
 
 const viConfig = () => join(configDir("vi-natural"), "config.json");
 
@@ -325,16 +327,21 @@ const reportGuideTable = (served) => {
 /* The rules that are not code travel inside the plugin, so a copy without them is a copy whose every
    route to them is a dead end — which is what an installed copy was before ISS-78. */
 const checkContract = () => {
-  const pinned = pinRefusal();
-  if (pinned) return line(BAD, "contract", pinned);
-  const path = contractPath();
-  const text = readContract();
-  const wrong = contractProblems({ text, path });
+  const refused = flowRefusal();
+  if (refused) return line(BAD, "contract", refused);
+  const wrong = contractProblems({});
   for (const said of wrong) {
     line(BAD, "contract", `${said} — install the plugin again for a whole copy`);
   }
   if (wrong.length) return;
-  line(OK, "contract", `${path} states contract ${statesContract(text)} — \`forge guide contract\``);
+  const path = contractPath();
+  const entries = contractParts({});
+  for (const held of missingIn(entries)) {
+    line(BAD, "contract", `${path} declares ${held.name} and has not got it, so that part is`
+      + " refused rather than inherited — install the plugin again for a whole copy");
+  }
+  for (const said of flowProblems()) line(BAD, "contract", said);
+  line(OK, "contract", `${path} states contract ${identityOf(entries)} — \`forge guide contract\``);
 };
 
 /* The guide half, which needs the server. */
@@ -434,8 +441,13 @@ const checkFlowKeys = () => {
   for (const [which, one] of Object.entries(feedbackScope())) {
     line(one.unknown ? BAD : OK, `feedback.${which}`, held(one, FEEDBACK_CHANNELS));
   }
-  const method = methodPinned();
-  line(method.unknown ? BAD : OK, "method", held(method, ["a whole number above 0"]));
+  const flow = flowPinned();
+  const refused = flowRefusal();
+  if (refused) line(BAD, "flow", refused);
+  else if (flow.retired) {
+    line(BAD, "flow", `${flow.value}, read off the retired \`method: ${flow.retired}\``
+      + `  ← ${flow.from}. Set \`flow\` instead`);
+  } else line(OK, "flow", `${flow.value}  ← ${flow.from}`);
   const landing = landingScope();
   if (landing.unknown) line(BAD, "landing", held({ ...landing, value: "the derived route" }, LANDING_ROUTES));
   else if (landing.value) line(OK, "landing", `${landing.value}  ← ${landing.from}`);

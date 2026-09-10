@@ -216,5 +216,5 @@ it. Reading is all this product does there.
   WHEN a profile is printed THEN the CLI SHALL list per wave the time from ready to landed, from
   landed to judged and in total, the batch size, the gate time and lock wait, the reviews and
   verdicts written twice, and the minutes and calls of every actor in the wave.
-- **AC-19-8-12** · Rev: 1 · Proof: plugin/test/stats/guide-parts.test.mjs "the version is the one that call was served, so a reading does not move when this copy's pin does"
-  WHEN the guide parts are listed THEN each SHALL carry the method version it was read from.
+- **AC-19-8-12** · Rev: 2 · Proof: plugin/test/stats/guide-parts.test.mjs "the flow is the one that call was served, so a reading does not move when this copy's does"
+  WHEN the guide parts are listed THEN each SHALL carry the flow it was rendered for.

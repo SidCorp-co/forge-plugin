@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
+import { DEFAULT } from "../guides/flow.mjs";
 import { NOTHING, logRead } from "../hooks/log-reads.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
 import { handledBy } from "../resolve/handler.mjs";
@@ -103,11 +104,16 @@ export const guidePartOf = (shell) => {
   return [found.slug, found.part].filter(Boolean).join(" ") || GUIDE_INDEX;
 };
 
-/* Off the line the part ends with, never this copy's pin — which for a transcript older than the pin
-   would be this machine's configuration passed off as that run's fact (ISS-673). */
-const SERVED_VERSION = /^Method version (\d+), which this project runs;/mu;
+/* Off the line the part ends with, never this copy's own flow — which for an older transcript would
+   be this machine's configuration passed off as that run's fact (ISS-673). The second shape is the
+   retired key's, read as the flow it named, so an older window is a window (ISS-902). */
+const SERVED_FLOW = /^Flow ([a-z][a-z0-9-]*), which this project runs/mu;
+const SERVED_METHOD = /^Method version 1, which this project runs;/mu;
 
-export const guideVersionOf = (body) => SERVED_VERSION.exec(String(body ?? ""))?.[1] ?? null;
+export const guideFlowOf = (body) => {
+  const held = String(body ?? "");
+  return SERVED_FLOW.exec(held)?.[1] ?? (SERVED_METHOD.test(held) ? DEFAULT : null);
+};
 
 /* A heredoc carries a document, not shell: read as commands, the criteria files a run writes named
    `npm run check` 423 times, each counted as a gate run that never happened. */

@@ -1,25 +1,9 @@
 # A part is what `forge guide` serves, and two projects may be owed different text
 
-[The guides](the-guides.md) says which texts are versioned and where they live. This page is the
-other half: which of them a call is served, and what one project's own answers take out of it before
-it arrives. Neither question is the tracker's — both are about this copy and the checkout it stands
-in.
-
-## A pin nobody ships is refused where the pin is read
-
-Serving looks in the pinned version's root and then the plain one. That fallback is right for a
-skill no version has an opinion about, and wrong for a number this copy has no directory for: the
-call fell through to a root holding no method at all, and the verb answered in two confident false
-sentences — that the method was inline in the `SKILL.md`, and that the copy served none of its
-references. The contract was worse rather than better, because it has no fallback and named the
-absent file instead, which reads as an install that arrived broken when the copy is whole and the
-number is the project's own.
-
-So a pin outside `SHIPPED` is one refusal, given at the moment the pin is read rather than at the
-moment a file turns out to be missing. It names the number pinned, the versions shipped and the key
-to change, and every surface that would otherwise have answered gives that same line: the method,
-the contract, the listing row, and `forge doctor`'s contract line. A refusal a reader cannot act on
-is the defect this replaces, and the two sentences it replaces were not silence — they were wrong.
+[The guides](the-guides.md) says where served text lives and [the flow axis](the-flow-axis.md) what
+selects it. This page is the other half: what one project's own answers take out of a part before it
+arrives, and how a part is addressed. Neither question is the tracker's — both are about this copy
+and the checkout it stands in.
 
 ## What varies is fenced, and the text has one copy
 
@@ -28,7 +12,7 @@ part it reads is shorter than the part another project reads. The source still h
 once: what varies is fenced between `<!-- forge:when <condition> <value>… -->` and
 `<!-- forge:end -->`, and the renderer only ever takes lines away, so no branch of the text has a
 second wording to keep in step with the first. A rendering never adds a word — what the CLI
-contributes around a part, like the line naming the version it came from, is assembled beside the
+contributes around a part, like the line naming the flow it was rendered for, is assembled beside the
 part and is not written into it.
 
 The fence is an HTML comment because the source has to stay a document. It is read in an editor, in
@@ -36,6 +20,12 @@ a diff, and by this repository's own prose checks, and a notation those three do
 the method text every time somebody maintains it in exchange for a rendering no reader sees. Only
 the opener carries the condition: a fence naming it at both ends can disagree with itself, and the
 closer has nothing to add.
+
+A value may carry a hyphen, and that is not a widening for its own sake. Every value the fence had
+ever carried — `self`, `ready`, `bugs all` — needed none, so the class had none; a flow slug is
+kebab-case like every other slug in this repository, and without the hyphen `flow erp-flow` opens
+nothing, the closer reports closing a block nobody opened, and the block's body is served to every
+flow alike. A charset that cannot spell the value it governs is a fence that governs nothing.
 
 Every silence this mechanism can produce is refused rather than tolerated, each with a case that
 watches it fire, because they share one shape: a rendering that looks well-formed and is missing
@@ -83,9 +73,12 @@ number with the half above that subsection and say nothing about the rest — a 
 unreachable through the only address it has. So a phase gathers every heading beneath its own level
 until the next one at that level or above.
 
-A part served out of a version directory ends by naming that version. A phase read out of a version
-nobody named cannot be held against the version the project runs, and that comparison is the whole
-reason a project pins one.
+A part ends by naming the flow it was rendered for, and a contract part that came from another flow
+names that flow too. A phase read for a flow nobody named cannot be held against the flow the
+project runs, and that comparison is the whole reason a project names one. The corpus reads that
+line back rather than this copy's own key, so a transcript is a fact about the run that made it; the
+retired `Method version 1` line reads as flow `default`, which is the retirement's own precedence
+applied to a read.
 
 ## The verb that acts carries its own phase, and asks nobody which one it is
 

@@ -10,7 +10,7 @@ import {
   WHOLE_SET_CLASS,
   callsIn,
   guidePartOf,
-  guideVersionOf,
+  guideFlowOf,
   markerOf,
   readTranscript,
   rootFor,
@@ -23,7 +23,6 @@ import { PHASES } from "../guides/phases.mjs";
 import { RUNGS } from "../ladder.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
 import { FORMS, READ_AS } from "../resolve/handler.mjs";
-import { isVersioned } from "../guides/skill-guides.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 
@@ -353,21 +352,12 @@ const mergedCounts = (runs, pick) => {
   return [...merged].sort((left, right) => right[1] - left[1]);
 };
 
-/* A versioned part differs per version, so the key carries which: read again after a pin moved is a
-   run that changed method, not one that went back. The version is the one that call was served, off
-   the part's own last line, and a call refused or unanswered says so rather than borrow this pin. Whether a slug is versioned at all is asked once per slug: it is an `existsSync` under this copy's own guides, which cannot move while the process runs, and the corpus asked it once per `forge guide` call for six answers. */
-const VERSIONED = new Map();
-const versionedSlug = (slug) => {
-  if (!VERSIONED.has(slug)) VERSIONED.set(slug, isVersioned(slug));
-  return VERSIONED.get(slug);
-};
-
+/* The key carries the flow a part was rendered for, read off the part's own last line and never off
+   this copy's: a call refused or unanswered says so rather than borrow a flow it was not served. */
 const partRead = (call) => {
   const part = guidePartOf(call.shell) ?? GUIDE_INDEX;
-  const [slug] = part.split(" ");
-  if (!versionedSlug(slug)) return part;
-  const version = guideVersionOf(call.body);
-  return `${part} (${version ? `v${version}` : "version unread"})`;
+  const flow = guideFlowOf(call.body);
+  return `${part} (${flow ?? "flow unread"})`;
 };
 
 /* `again` is runs that read the part more than once, not the extra reads: a run that read a part

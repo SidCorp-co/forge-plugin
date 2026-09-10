@@ -6,14 +6,14 @@
    carries what the stale rules cost; `forge guide contract` prints what holds instead. */
 
 import { once } from "../resolve/config.mjs";
-import { LISTING_ROW as CONTRACT_ROW, SLUG as CONTRACT_SLUG, contractAnswer } from "./contract.mjs";
+import { SLUG as CONTRACT_SLUG, contractAnswer, listingRow } from "./contract.mjs";
 import { skillGuideAnswer, skillGuideSlugs, skillListingRow } from "./skill-guides.mjs";
 
 /* The guides this copy answers off its own disk, listed rather than reached by the verb comparing a
    slug against one constant of its own; a slug absent from it is the tracker's, answered `null`.
    Built on the first call that asks: the rows are read off `plugin/guides/`, 51 filesystem calls every verb paid at import while two of them read the answer (ISS-762). */
 const LOCAL = once(() => [
-  { slug: CONTRACT_SLUG, row: CONTRACT_ROW, answer: contractAnswer },
+  { slug: CONTRACT_SLUG, row: listingRow(), answer: contractAnswer },
   ...skillGuideSlugs().map((slug) => ({ slug, row: skillListingRow(slug), answer: skillGuideAnswer(slug) })),
 ]);
 export const localSlugs = () => LOCAL().map((one) => one.slug);

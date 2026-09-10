@@ -396,13 +396,13 @@ test("the label doctor prints comes off the source row and not a table keyed on 
 /* The four keys one flow reads. This is the only surface allowed to say what a project or a machine
    turned off, so each is printed with where it was read: a value and no source reads back as a value
    somebody chose, and the run that acts on it cannot tell a default from a decision. */
-const KEYS = { feedback: { plugin: "off", project: "bugs" }, method: 1, landing: "before-merge" };
+const KEYS = { feedback: { plugin: "off", project: "bugs" }, flow: "default", landing: "before-merge" };
 
 test("every key the project set is printed with .forge.json as its source", () => {
   const out = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo", ...KEYS }) });
   assert.match(out, /\[ {2}ok {2}\] feedback\.plugin\s+off {2}← \.forge\.json/u, out);
   assert.match(out, /\[ {2}ok {2}\] feedback\.project\s+bugs {2}← \.forge\.json/u);
-  assert.match(out, /\[ {2}ok {2}\] method\s+1 {2}← \.forge\.json/u);
+  assert.match(out, /\[ {2}ok {2}\] flow\s+default {2}← \.forge\.json/u);
   assert.match(out, /\[ {2}ok {2}\] landing\s+before-merge {2}← \.forge\.json/u);
 });
 
@@ -411,10 +411,20 @@ test("a key the project left out is printed at the plugin's default, with the de
   assert.match(out, /\[ {2}ok {2}\] feedback\.plugin\s+bugs {2}← the plugin's default/u, out);
   assert.match(out, /\[ {2}ok {2}\] feedback\.project\s+all {2}← the plugin's default/u,
     "the two channels default apart, so a project naming one says nothing about the other");
-  assert.match(out, /\[ {2}ok {2}\] method\s+1 {2}← the plugin's default/u,
-    "the version in force is the one this copy ships, and it says that is where it came from");
+  assert.match(out, /\[ {2}ok {2}\] flow\s+default {2}← the plugin's default/u,
+    "the flow in force is the base this copy ships, and it says that is where it came from");
   assert.match(out, /\[ {2}ok {2}\] landing\s+unset, so the branches on the tracker's record derive/u,
     "the route alone has no default: unanswered is derived from the record, never invented here");
+});
+
+/* A project left on `method` is served `default` and told to move, never read as unset. */
+test("a project still carrying the retired method key is told the flow it was read as", () => {
+  const out = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo", method: 1 }) });
+  assert.match(out, /\[ miss \] flow\s+default, read off the retired `method: 1` {2}← \.forge\.json\. Set `flow` instead/u, out);
+  const bad = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo", method: 4 }) });
+  assert.match(bad, /\[ miss \] flow\s+\.forge\.json sets `method: 4`, and `method` is retired/u, bad);
+  assert.match(bad, /\[ miss \] contract\s+\.forge\.json sets `method: 4`/u,
+    "and the contract line gives the same answer rather than reporting a missing file");
 });
 
 /* Read back off the file rather than off the report, because what a later `ship` reads is the file:

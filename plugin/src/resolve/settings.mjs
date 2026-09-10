@@ -215,15 +215,17 @@ export const feedbackScope = once(() => Object.fromEntries(
     [which, chosen(forgeJson().parsed?.feedback?.[which], FEEDBACK_CHANNELS, fallback)]),
 ));
 
-/** The key as written, or none: the versions are the plugin's, so `methodPinned` applies the default. */
-export const methodScope = once(() => {
-  const given = forgeJson().parsed?.method;
-  if (given === undefined || given === null) return { value: null, from: PLUGIN_DEFAULT };
-  const held = Number(given);
-  return Number.isInteger(held) && held > 0
-    ? { value: held, from: FROM_PROJECT }
-    : { value: null, from: PLUGIN_DEFAULT, unknown: String(given) };
-});
+/* As written and by presence, an explicit `null` being a value: `guides/flow.mjs` reads both keys. */
+const written = (key) => {
+  const parsed = forgeJson().parsed;
+  return parsed && Object.hasOwn(parsed, key)
+    ? { value: parsed[key], from: FROM_PROJECT }
+    : { value: undefined, from: PLUGIN_DEFAULT };
+};
+
+export const flowScope = once(() => written("flow"));
+
+export const methodScope = once(() => written("method"));
 
 export const LANDING_ROUTES = ["after-merge", "before-merge"];
 

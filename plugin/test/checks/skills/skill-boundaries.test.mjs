@@ -80,6 +80,23 @@ test("a description with no trigger, and one too short to carry one, are both re
   assert.match(said, /under 60 it cannot carry a trigger/);
 });
 
+/* The body the check reads is the one `forge guide <skill>` serves, at `guides/skills/<name>/`: a
+   dead instruction written there and not in the stub is only reachable through that read, so this is
+   the case that fails if the walk stops at the stub. */
+test("a dead instruction in the served body under the moved layout is read and named", (t) => {
+  const root = tempRoom("skill-boundaries-served-");
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, "skills", "solo"), { recursive: true });
+  writeFileSync(join(root, "skills", "solo", "SKILL.md"),
+    `---\nname: solo\ndescription: ${UNRELATED}\n---\n\nNothing here names another skill.\n`);
+  assert.deepEqual(check(join(root, "skills")).findings, [], "the stub alone is clean");
+  mkdirSync(join(root, "guides", "skills", "solo"), { recursive: true });
+  writeFileSync(join(root, "guides", "skills", "solo", "guide.md"),
+    "# Skill: solo\n\nFor edge cases use the missing skill instead.\n");
+  assert.match(check(join(root, "skills")).findings.map((one) => one.join(" ")).join("\n"),
+    /`missing` skill, which is not installed/u);
+});
+
 test("a skill naming one that is not installed is a dead instruction", (t) => {
   const root = tempRoom("skill-boundaries-");
   mkdirSync(join(root, "solo"));
