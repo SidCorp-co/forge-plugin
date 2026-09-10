@@ -245,19 +245,32 @@ export const openTitles = (rows) =>
     title: String(one.title ?? "").trim(),
   }));
 
-const HEADING = /^#{1,6}[ \t]+(.*)$/gmu;
+const HEADING = /^(#{1,6})[ \t]+(.*)$/gmu;
 
-const headingsOf = (body) => [...String(body).matchAll(HEADING)].map((one) => one[1].trim());
+/* A body's own title line is the parent of its sections and never one of them, and it is passed
+   beside the body anyway. Read as a section it let any title answer for the section named after the
+   same word (ISS-633). What tells a title from a section is being the first heading and shallower
+   than every other one: sections of a level with subsections under them are still sections. */
+const sectionsOf = (body) => {
+  const found = [...String(body).matchAll(HEADING)];
+  const titled = found.length > 1 && found[0][1].length === 1
+    && found.slice(1).every((one) => one[1].length > 1);
+  return titled ? found.slice(1) : found;
+};
+
+const headingsOf = (body) => sectionsOf(body).map((one) => one[2].trim());
 
 /* To the next heading of any depth: a section name with nothing under it is no section. */
-const sectionUnder = (body, wanted) => {
-  const found = [...String(body).matchAll(HEADING)].find((one) => wanted.test(one[1]));
+const sectionIn = (body, wanted) => {
+  const found = sectionsOf(body).find((one) => wanted.test(one[2]));
   if (!found) return null;
   const from = found.index + found[0].length;
   const rest = String(body).slice(from);
   const next = /^#{1,6}[ \t]+/mu.exec(rest);
-  return next ? rest.slice(0, next.index) : rest;
+  return { heading: found[2].trim(), under: next ? rest.slice(0, next.index) : rest };
 };
+
+const sectionUnder = (body, wanted) => sectionIn(body, wanted)?.under ?? null;
 
 const hasLine = (text) =>
   String(text ?? "").split("\n").some((line) => line.replace(/^[-*\d.\s]+/u, "").trim().split(/\s+/u).length >= SUBSTANTIAL);
@@ -378,38 +391,37 @@ const titleGaps = (title) => {
 
 const namesKind = (kind) => kind !== null && kind !== undefined;
 
-/* Whether the section is there, and the text under it for the line that says what was read. */
+/* Whether the section is there, and the heading and text of it for the lines that say what was read. */
 const held = (text, section) => {
-  const under = sectionUnder(text, section.heading);
+  const found = sectionIn(text, section.heading);
   const spoken = section.spoken?.test(text) ?? false;
-  const ok = spoken || (section.substantial ? hasLine(under) : Boolean(under?.trim()));
-  return { under, ok };
+  const ok = spoken || (section.substantial ? hasLine(found?.under) : Boolean(found?.under?.trim()));
+  return { under: found?.under ?? null, heading: found?.heading ?? null, ok };
 };
 
-const readFor = (section, under, among) => {
+const readFor = (section, { under, heading }, among) => {
   if (under !== null) {
     const floor = section.substantial ? ` of ${SUBSTANTIAL} words or more` : "";
-    return `${article(section.bare)} ${section.bare} heading with nothing under it${floor}`;
+    return `${article(section.bare)} ${section.bare} heading \`${heading}\` with nothing under it${floor}`;
   }
   const spoken = section.spoken ? ", and no line saying there is none" : "";
   return `no heading naming ${section.reads}, ${among}${spoken}`;
 };
 
-/* A heading already there is the one read: `sectionUnder` takes the first of its family, so adding
-   a second would leave the thin one answering and the refusal would not clear. */
-const clearFor = (section, under) => {
+/* The heading quoted is the one read: `sectionIn` takes the first of a family, so a second added below it would leave the thin one answering. */
+const clearFor = (section, { under, heading }) => {
   if (under === null) return `add \`${section.add}\` ${RESEND}`;
   const floor = section.substantial ? `one line of ${SUBSTANTIAL} words or more` : "one line";
-  return `write ${floor} under the ${section.bare} heading already there ${RESEND}`;
+  return `write ${floor} under the heading \`${heading}\` already there ${RESEND}`;
 };
 
 const sectionGaps = (text, shape, among) =>
   shape.needs.flatMap((section) => {
-    const { under, ok } = held(text, section);
-    return ok ? [] : [need(
-      readFor(section, under, among),
+    const found = held(text, section);
+    return found.ok ? [] : [need(
+      readFor(section, found, among),
       `${section.wants}, required of ${article(shape.kind)} ${shape.kind}`,
-      clearFor(section, under),
+      clearFor(section, found),
     )];
   });
 

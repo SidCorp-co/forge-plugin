@@ -84,7 +84,7 @@ test("a heading with nothing under it is no section, and the refusal names the f
      every wants line has to name the floor or the second refusal is the first one again. */
   assert.match(wants(WHOLE.replace("## Outcome", "## Why")), /one line of 4 words or more/u);
   const hollow = WHOLE.replace("Judging whether the issue is true.", "## Evidence\n\nnone");
-  assert.match(read(hollow).join(" "), /an out-of-scope heading with nothing under it/u);
+  assert.match(read(hollow).join(" "), /an out-of-scope heading `Out of scope` with nothing under it/u);
 });
 
 test("a title says the behaviour after the change, and three shapes never do", () => {

@@ -76,8 +76,8 @@ test("the kind decides which section opens the body, and the refusal names the k
   assert.equal(said(body("today", "outcome", "rules", "scope", "why"), "enhancement").includes("Why it happens"),
     false, "and of no other kind: an enhancement is refused nothing for naming no cause");
   const thin = said(`${body("happened", "outcome", "rules", "scope")}\n\n## Why it happens\n\nnot found`, "bug");
-  assert.match(thin, /a cause heading with nothing under it of 4 words or more/u);
-  assert.match(thin, /write one line of 4 words or more under the cause heading already there/u);
+  assert.match(thin, /a cause heading `Why it happens` with nothing under it of 4 words or more/u);
+  assert.match(thin, /write one line of 4 words or more under the heading `Why it happens` already there/u);
   assert.deepEqual(gapsOf(body("today", "outcome", "rules", "scope", "why"), "enhancement").gaps, []);
   assert.match(said(body("outcome", "rules", "scope"), "enhancement"), /what happens today/u);
   assert.match(said(body("outcome", "rules", "scope"), "enhancement"), /required of an enhancement/u);
@@ -213,11 +213,11 @@ test("a filing whose complexity claims a rung below the top is read against no s
 test("a heading already there is told to grow a line, not to be added a second time", () => {
   const thin = body("outcome", "rules", "scope").replace("A filing is read against the shape its kind names.", "TBD");
   const clears = gapsOf(thin, "feature").gaps.map((one) => one.clear).join(" | ");
-  assert.match(clears, /write one line of 4 words or more under the outcome heading already there/u);
+  assert.match(clears, /write one line of 4 words or more under the heading `Outcome` already there/u);
   assert.doesNotMatch(clears, /add `## Outcome`/u);
   const hollow = body("outcome", "rules", "scope").replace("Judging whether the issue is true.", "## Evidence\n\nnone");
   assert.match(gapsOf(hollow, "feature").gaps.map((one) => one.clear).join(" | "),
-    /write one line under the out-of-scope heading already there/u);
+    /write one line under the heading `Out of scope` already there/u);
 });
 
 /* Criterion 14: the two flags this CLI had words of its own for are strangers now, so they fall to
