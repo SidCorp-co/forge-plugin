@@ -6,8 +6,8 @@ import test from "node:test";
 import { appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { atRung, BARE, brokenAnswer, committed, corrected, emptyAnswer, GATE, git, LAST_STEP, lastStep,
-  landIn, planned, pushed, ref, ROOT, runIn, scratch, stubbed } from "./run-fixtures.mjs";
+import { atRung, BARE, brokenAnswer, called, committed, emptyAnswer, GATE, git, LAST_STEP, lastStep,
+  landIn, laneAt, pageSays, pushed, ref, ROOT, runIn, scratch, stubbed } from "./run-fixtures.mjs";
 
 /* The threshold and the mark are typed here rather than imported: nothing imports an entry point,
    and a second party that has to agree with the constants is what pins them to the help at all. */
@@ -392,6 +392,42 @@ test("a ship from a branch naming no issue measures the landing against nothing"
   const said = `${run.stdout}\n${run.stderr}`;
   assert.doesNotMatch(said, /ceiling/u, said);
   assert.doesNotMatch(said, /(?:Rung|Size): trivial ->/u, said);
+  assert.ok(called(at).every((one) => !(one.argv[0] === "resume")),
+    "and it asked the tracker nothing: there is no issue for a rung to be read off");
+});
+
+/* A request made that did not arrive: the branch names the issue, so the step got as far as asking. */
+test("a tracker that could not be reached costs the ship the ceiling and not the run", () => {
+  const { at, work } = pushed("rung-refused");
+  stubbed(work);
+  atRung(at, "trivial");
+  landIn(work, join("plugin", "src", "one.mjs"), 400, "far past the shortest rung's ceiling");
+  git(work, "checkout", "-b", "iss-318");
+  runIn(work, ["ship"], BARE);
+  writeFileSync(join(at, "forge-refuses"), "");
+  const run = runIn(work, ["ship", "--from", String(LAST_STEP)], BARE);
+  const said = `${run.stdout}\n${run.stderr}`;
+  assert.ok(called(at).some((one) => one.argv[0] === "resume" && one.argv.includes("--json")),
+    `the rung was never asked for, so no refusal was under test:\n${said}`);
+  assert.doesNotMatch(said, /ceiling/u, said);
+  assert.doesNotMatch(said, /(?:Rung|Size): trivial ->/u, said);
+  assert.match(said, /what is owed a reading cannot be counted/u,
+    "and the step after the ceiling still says what it found");
+});
+
+/* A rung the table has not got, which an inherited property name is: `CEILINGS.constructor` is truthy. */
+test("a rung no ceiling is set for is measured against nothing, inherited names included", () => {
+  const { at, work } = pushed("rung-inherited");
+  stubbed(work);
+  atRung(at, "trivial");
+  laneAt(at, "constructor");
+  landIn(work, join("plugin", "src", "one.mjs"), 400, "far past the shortest rung's ceiling");
+  const run = shipOnBranch(work, "iss-318");
+  const said = `${run.stdout}\n${run.stderr}`;
+  assert.doesNotMatch(said, /ceiling/u, said);
+  assert.doesNotMatch(said, /undefined/u, `a rung nobody set printed figures nobody set:\n${said}`);
+  assert.match(said, /what is owed a reading cannot be counted/u,
+    "and the step after the ceiling still says what it found");
 });
 
 /* The ceiling is advisory and runs after the release: by the time it prints, the branch is pushed
@@ -417,14 +453,14 @@ test("an answer with nothing in it costs the ship the ceiling and not the run", 
   assert.match(also, /the copy the next session loads/u, "and an answer that is not JSON at all costs no more");
 });
 
-/* The rung the work is on, never the one its body still claims: an issue corrected to the top rung
-   measured against its original ceiling would be held to a threshold it left rounds ago and offered
-   a correction that could not clear it, on this ship or any later one (consult F3). */
-test("the ceiling is the rung the issue reached, counting its plan and its corrections", () => {
+/* The rung the work is on, never the one its body claims: measured against its original ceiling an
+   issue corrected upward is held to a threshold it left rounds ago (consult F3). Off the lane's
+   answer, so what climbed it is settled where the rung is and not a second time here. */
+test("the ceiling is the rung the lane answered, whatever the complexity field still claims", () => {
   const { at, work } = pushed("rung-climbed");
   stubbed(work);
   atRung(at,"trivial");
-  corrected(at, "Size: trivial -> feature");
+  laneAt(at, "feature");
   for (const one of ["a", "b", "c", "d", "e", "f", "g"]) {
     landIn(work, join("plugin", "src", `${one}.mjs`), 40, `${one} landed`);
   }
@@ -432,17 +468,6 @@ test("the ceiling is the rung the issue reached, counting its plan and its corre
   const said = `${run.stdout}\n${run.stderr}`;
   assert.doesNotMatch(said, /is a `trivial`/u, `a correction took it off that rung:\n${said}`);
   assert.doesNotMatch(said, /ceiling/u, "and the rung it reached is the top one, which has none to be past");
-});
-
-test("a plan declaring a person climbs the rung the ceiling is read at", () => {
-  const { at, work } = pushed("rung-declared");
-  stubbed(work);
-  atRung(at,"trivial");
-  planned(at, "Screen change: no\nSchema coupling: no\nUser-facing outcome: yes");
-  landIn(work, join("plugin", "src", "one.mjs"), 3, "a small change on a declared issue");
-  const said = shipOnBranch(work, "iss-318").stdout;
-  assert.match(said, /ISS-318 is a `fix`/u, `the declaration moved it one rung:\n${said}`);
-  assert.match(said, /ceiling of 15 and 500/u, "so the ceiling is the rung above trivial's");
 });
 
 /* The stub and the manifests pushed below the range, which the cases above leave inside it: every
@@ -492,6 +517,24 @@ test("the tier line counts the change and leaves out the release commit the ship
   assert.match(out, /landed 3 file\(s\) and 15 changed line\(s\)/u, out);
   const wrote = /^ {4}landing wrote (.+)$/mu.exec(out)?.[1].split(", ");
   assert.equal(wrote?.length, 3, `the count and the mark's own clause disagree about the change:\n${out}`);
+});
+
+/* ISS-860's criterion 4 verdict quoted the climb form in its `why` and the whole page went to the
+   ceiling as one string, so a record holding no correction was measured at 15 and 500. The page
+   here is on the record to be ignored (ISS-1012). */
+test("prose that mentions the climb form moves no rung, whichever record carried it", () => {
+  const { at, work } = based("rung-quoted");
+  atRung(at, "trivial");
+  pageSays(at, "Verdict  criterion 4  (2026-09-10T00:34, contract 1)\n  Why: ok 18 (past it on files"
+    + " and lines, with --moved \"Rung: trivial -> fix\" and the skipped obligations line)\n");
+  for (const one of ["a", "b", "c", "d"]) landIn(work, join("plugin", "src", `${one}.mjs`), 50, `${one} landed`);
+  const run = shipOnBranch(work, "iss-318");
+  const said = `${run.stdout}\n${run.stderr}`;
+  assert.match(said, /ISS-318 is a `trivial` and landed 4 file\(s\) and 200 changed line\(s\)/u, said);
+  assert.match(said, /ceiling of 5 and 150 — past it on lines \(200 of 150\)/u,
+    `a verdict's prose climbed the rung, so the landing was measured against a fix's:\n${said}`);
+  assert.ok(called(at).every((one) => !one.argv.includes("--report")),
+    "and the page it did not read was never asked for");
 });
 
 /* Silence, not a nought: the change was measured at the ship that landed it, and a zero against a

@@ -13,7 +13,7 @@ import { tempHome } from "../../fixtures.mjs";
 const HOME = tempHome("resume");
 process.env.XDG_CONFIG_HOME = HOME.path;
 const { render } = await import("../../../src/flow/record/page.mjs");
-const { PHASE, ORDER, SIDE, methodOf, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { PHASE, ORDER, SIDE, methodOf, rungFieldsOf, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { briefOf } = await import("../../../src/flow/brief.mjs");
 const { USAGE, edgeSaid } = await import("../../../src/flow/resume.mjs");
 const { sessionHeld } = await import("../../../src/resolve/config.mjs");
@@ -52,6 +52,31 @@ const issue = (extra = {}) => ({
 });
 
 const brief = (extra = {}, comments = []) => briefOf(viewFrom("the-uuid", issue(extra), comments), "ISS-44");
+
+/* The rung on the object, never the fields it came off: a tool handed those worked one out for
+   itself and read a climb out of a verdict's prose, taking ISS-860's ceiling two rungs up on a
+   record holding no correction (ISS-1012). The lane's answer is checked beside it, one view being
+   one reading, so a second reader cannot appear and agree only on the easy cases. */
+test("the brief carries the rung the lane is at, off the record's whole corrections and nothing else", async () => {
+  const { laneOf } = await import("../../../src/guides/phases.mjs");
+  const xs = (comments) => brief({ complexity: "xs" }, comments);
+  const moved = (fields) => recorded("correction", fields);
+  const lane = (comments) => laneOf({
+    status: "in_progress",
+    fields: rungFieldsOf(viewFrom("the-uuid", issue({ complexity: "xs" }), comments)),
+  }).rung;
+  assert.equal(xs([]).rung, "trivial", "the complexity field claims it");
+  const climbed = [moved({ moved: "Rung: trivial -> feature", why: "the work grew a second tree" })];
+  assert.equal(xs(climbed).rung, "feature", "and a whole correction climbs it");
+  assert.equal(xs([moved({ moved: "Rung: trivial -> feature" })]).rung, "trivial",
+    "while a comment carrying moved and no why is no correction and climbs nothing");
+  assert.equal(xs([recorded("verdict", { criterion: "1", verdict: "pass", commit: "a".repeat(40),
+    why: 'the case asserts --moved "Rung: trivial -> feature"' })]).rung, "trivial",
+  "and prose that quotes the climb form is prose, whichever record carried it");
+  const cut = briefOf(viewFrom("the-uuid", issue({ complexity: "xs" }), [], "the list returned 36 of more"), "ISS-44");
+  assert.equal(cut.rung, "feature", "a page the tracker cut is a feature, whatever the field says");
+  assert.equal(lane([]), xs([]).rung, "the lane and the brief read one rung, not two that agree");
+});
 
 test("the brief carries the status, the phase it owes and the reference that holds its method", () => {
   const one = brief();

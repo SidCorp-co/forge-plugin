@@ -4,7 +4,8 @@
 import { sessionSourced } from "../resolve/config.mjs";
 import { FIELD, leaseOf, sharedHolder, stateOf } from "./lease.mjs";
 import { atMinute, unwrap } from "./machine.mjs";
-import { PARK_STATUS, SIDE, atLeast, holdsBack, methodOf, parkRecord } from "./earned.mjs";
+import { PARK_STATUS, SIDE, atLeast, holdsBack, methodOf, parkRecord, rungFieldsOf } from "./earned.mjs";
+import { rungOf } from "../ladder.mjs";
 import { lookAhead, owedIn } from "./route.mjs";
 import { worklogOf } from "./worklog.mjs";
 
@@ -94,6 +95,8 @@ export const briefOf = (view, ref) => {
     documentId: view.documentId,
     status,
     ...(method ?? {}),
+    /* The answer and never the fields it came off, so a tool measuring against a rung reads the one the lane prints instead of a climb out of a page: the ship's ceiling took one from a verdict quoting the form (ISS-1012). */
+    rung: rungOf(rungFieldsOf(view)),
     plan: unwrap(view.issue.plan) || null,
     criteria: markedCriteria(view),
     latest: Object.fromEntries(

@@ -26,7 +26,7 @@ import { markRefused, REVIEWED, REVIEW_PATHS, reviewBody, reviewLines, reviewSay
 import { edgesLeft, fileIssue } from "../plugin/src/tracker/filing/route.mjs";
 import { releaseMark, runsMark } from "../plugin/src/stats/eval.mjs";
 import { refusing, slugIfAny } from "../plugin/src/resolve/settings.mjs";
-import { CEILINGS, climbForm, overCeiling, rungOf } from "../plugin/src/ladder.mjs";
+import { CEILINGS, climbForm, overCeiling } from "../plugin/src/ladder.mjs";
 import { partForLanding } from "../plugin/src/guides/served.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -349,8 +349,8 @@ const gateGrew = (tree) => {
 };
 
 /* The backstop, never the decision, and contained whole: what it prints and why it refuses nothing,
-   why it is silent rather than loud on a doubtful read, and why the loss in that read only ever
-   tightens it, are docs/cli/the-ladder.md's, as is why `at` is the sha the change landed as and
+   why it is silent rather than loud on a doubtful read, and why the rung is asked for rather than
+   worked out here, are docs/cli/the-ladder.md's, as is why `at` is the sha the change landed as and
    never HEAD. The rung comes off the issue the branch names. */
 const BRANCH_KEY = /^iss-(\d+)/u;
 
@@ -359,15 +359,15 @@ const tierCeiling = (tree, was, at) => {
     const key = BRANCH_KEY.exec(gitOut(["rev-parse", "--abbrev-ref", "HEAD"], tree) ?? "")?.[1];
     if (!key) return undefined;
     const ref = `ISS-${key}`;
-    const said = forgeSays(tree, ["issue", ref, "--fields", "complexity,plan"]);
+    const said = forgeSays(tree, ["resume", ref, "--json"]);
     if (said.why) return undefined;
     /* Parsed, never matched: JSON escapes newlines. `null` parses; anything worse takes the catch. */
     const body = JSON.parse(said.out);
     if (!body || typeof body !== "object") return undefined;
-    /* One string: every climb on it is a climb, whichever record carried it, and only the latest. */
-    const page = forgeSays(tree, ["resume", ref, "--report"]);
-    const fields = { complexity: body.complexity, plan: body.plan, whole: true, moved: page.why ? [] : [page.out] };
-    const rung = rungOf(fields), ceiling = CEILINGS[rung];
+    /* An own string key of the table and nothing an object inherits: `CEILINGS.constructor` is
+       truthy and has no figures, so a rung nobody set would print a ceiling of undefined. */
+    const rung = body.rung;
+    const ceiling = typeof rung === "string" && Object.hasOwn(CEILINGS, rung) ? CEILINGS[rung] : null;
     if (!ceiling) return undefined;
     const rows = (gitOut(["diff", "--numstat", `${was}..${at}`], tree) ?? "").split("\n").filter(Boolean);
     const each = (row) => row.split("\t").slice(0, 2).reduce((part, one) => part + (Number.parseInt(one, 10) || 0), 0);

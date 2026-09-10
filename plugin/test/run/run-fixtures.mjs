@@ -224,6 +224,9 @@ if (existsSync(join(room, "forge-refuses"))) {
 }
 const rows = join(room, "forge-rows.txt");
 const STATUS_AT = 2;
+const answer = (shape) => (existsSync(join(room, "forge-broken"))
+  ? "not json at all {"
+  : JSON.stringify(existsSync(join(room, "forge-null")) ? null : shape, null, 2));
 if (argv[0] === "issue" && (argv[1] === undefined || argv[1].startsWith("--"))) {
   const want = argv.includes("--status") ? argv[argv.indexOf("--status") + 1] : null;
   const all = (existsSync(rows) ? readFileSync(rows, "utf8") : "").split("\\n").filter(Boolean);
@@ -242,16 +245,13 @@ if (argv[0] === "issue") {
   const status = row ? row.trim().split(/\\s+/)[STATUS_AT] : "open";
   const heldAt = join(room, "forge-complexity");
   const complexity = existsSync(heldAt) ? readFileSync(heldAt, "utf8").trim() : null;
-  const planned = join(room, "forge-plan");
-  const plan = existsSync(planned) ? readFileSync(planned, "utf8") : "";
-  if (existsSync(join(room, "forge-broken"))) {
-    process.stdout.write("not json at all {");
-    process.exit(0);
-  }
-  const shape = existsSync(join(room, "forge-null"))
-    ? null
-    : { issueId: argv[1], status, complexity, plan };
-  process.stdout.write(JSON.stringify(shape, null, 2));
+  process.stdout.write(answer({ issueId: argv[1], status, complexity }));
+  process.exit(0);
+}
+if (argv[0] === "resume" && argv.includes("--json")) {
+  const heldAt = join(room, "forge-rung");
+  const rung = existsSync(heldAt) ? readFileSync(heldAt, "utf8").trim() : null;
+  process.stdout.write(answer({ issueId: argv[1], status: "in_progress", rung }));
   process.exit(0);
 }
 if (argv[0] === "resume" && argv.includes("--report")) {
@@ -287,17 +287,20 @@ export const stubbed = (work) => {
   git(work, "commit", "-m", "the tracker this checkout files through");
 };
 
-/** What the stubbed tracker answers a ship whose branch names an issue: the complexity on the issue, the two things that climb from it, and `null`, which parses and has no field to read. Named by rung and written as the field's own value, which is what the ship reads it back as. */
-export const atRung = (at, rung) => writeFileSync(join(at, "forge-complexity"), complexityFor(rung));
-export const planned = (at, text) => writeFileSync(join(at, "forge-plan"), text);
+/** An issue at one rung with nothing on its record moving it: the complexity field claims it and the lane answers it, each written as the value its own reader reads back. `laneAt` moves the lane's answer alone, for the record where the two legitimately differ — a whole correction climbed the issue and the field still claims what the reporter typed. */
+export const atRung = (at, rung) => {
+  writeFileSync(join(at, "forge-complexity"), complexityFor(rung));
+  writeFileSync(join(at, "forge-rung"), rung);
+};
+export const laneAt = (at, rung) => writeFileSync(join(at, "forge-rung"), rung);
+export const pageSays = (at, text) => writeFileSync(join(at, "forge-record-page"), text);
 /** Two answers the ceiling cannot measure: `null`, which parses and has no field, and neither. */
 export const emptyAnswer = (at) => writeFileSync(join(at, "forge-null"), "");
 export const brokenAnswer = (at) => writeFileSync(join(at, "forge-broken"), "");
-export const corrected = (at, moved) =>
-  writeFileSync(join(at, "forge-record-page"), `Correction  (2026-09-05T10:00, contract 1)\n  What moved: ${moved}\n`);
 
-export const called = (at) => readFileSync(join(at, "forge-calls.json"), "utf8")
-  .split("\n").filter(Boolean).map((line) => JSON.parse(line));
+export const called = (at) => (existsSync(join(at, "forge-calls.json"))
+  ? readFileSync(join(at, "forge-calls.json"), "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line))
+  : []);
 
 /* The range, the size and the rules are the step's to measure, never a person's to copy out (ISS-112). */
 /** The project's own reading threshold, committed: `.forge.json` is read out of the tree's head. */

@@ -59,22 +59,25 @@ Where it applies, and what each case would have done read the other way:
 | a complexity the table has not got | no claim at all, so the rung is a `feature` | invent a rung for a value nobody mapped, and read it as the one that owes least |
 | a run's transcript naming several rungs | the largest among them | file a batch under its cheapest member, so every rung looks better the more work is batched onto it |
 | a plan declaring one name twice | `yes`, wherever outside a code span it stands | read the first, so `no` above `yes` waives a payload the plan explicitly declared, and the same two lines reordered do not |
-| a ceiling read from a projection that lost a correction | printed all the same | the loss only ever lowers the rung, so it tightens a print that refuses nothing: it nags where nothing was owed and never falls silent where something was |
 
 ## The ship's ceiling
 
 `tools/run.mjs` prints the landed file and line count against the rung's ceiling, and it is the
 backstop rather than the decision: by the time a ship runs, a refusal protects nothing, so it prints
-and returns. It is contained whole for the same reason — the release has already happened by the
-time it runs, and an advisory number is not worth the lines that say what landed. Every doubtful
-read makes it silent rather than loud: an unnamed branch, a tracker that could not answer, an answer
-that is not an object. What it counts is the change and not the push: the range ends at the sha the
-change landed as, never at HEAD, which by that step carries the version commit the same release just
-made, and a push that added no commit of its own is measured against nothing (ISS-860). The one loss
-it accepts is the correction page's, which carries the latest correction of its kind and no earlier
-one, so a climb an ordinary correction followed is not read here. That loss is one-directional — a
-dropped correction only ever lowers the rung, which tightens a print that refuses nothing, so it
-nags where nothing was owed and never falls silent where something was.
+and returns. It is contained whole for the same reason: an advisory number is not worth the lines
+that say what landed. Every doubtful read makes it silent rather than loud: an unnamed branch, a
+tracker that could not answer, an answer that is not an object. What it counts is the change and not
+the push: the range ends at the sha the change landed as, never at HEAD, which by that step carries
+the version commit the same release just made, and a push that added no commit of its own is
+measured against nothing (ISS-860).
+
+**The rung is asked for, never worked out here.** `forge resume <ref> --json` carries the one the
+lane reads off the record's whole corrections, so ship and tracker cannot answer differently about
+one issue. It came off the report page until ISS-1012, and a page carries a verdict's prose beside a
+correction's field: a sentence quoting the climb form took ISS-860 from 5 and 150 to 15 and 500 on a
+record holding no correction. The argument that excused the page — a correction it lost only lowers
+the rung, which tightens a print that refuses nothing — covers a loss and reaches no gain. A rung
+climbed on prose is that gain, and it loosens the only number here that means anything.
 
 ## Two readings the rule does not govern
 
