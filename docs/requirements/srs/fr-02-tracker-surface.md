@@ -224,6 +224,11 @@ method text and not a feature to keep.
   IF the slot where a body's path goes holds the body itself THEN the CLI SHALL refuse before it opens
   any file, and SHALL print the caller's own call in each of the forms that slot does take, because a
   caller who has to ask a second time what the slot takes spends the turn guessing.
+- **AC-02-9-16** · Rev: 1 · Proof: plugin/test/tracker/field-write.test.mjs "a call that asked for three fields and reaches the writer with two is refused" · Source: docs/cli/two-writes-that-lie.md
+  WHERE a reply says a write succeeded, that reply SHALL be true of the call the caller made and not
+  only of the instruction the writing layer was handed, so a call that fewer of the caller's words
+  reached SHALL be refused before anything is sent, with both counts and every word that did not
+  arrive named.
 
 ### UC-02-10 — The projects, at the plugin's own scope
 
