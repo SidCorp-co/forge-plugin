@@ -7,9 +7,8 @@ import { existsSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:
 import { join } from "node:path";
 
 import { DECLINED, gatesOn, placeFor, runnersOf } from "../../../../tools/gates/machine.mjs";
-import { STEPS } from "../../../../tools/gates/steps.mjs";
 import { tempRoom } from "../../fixtures.mjs";
-import { entryNames, HOLDING, heldGate, run, runsFile, scratch, stopGate, write } from "./scratch.mjs";
+import { entryNames, HANGS_IN, heldGate, reachedTheStep, run, runsFile, scratch, stopGate, write } from "./scratch.mjs";
 
 const TICK = 100;
 
@@ -130,21 +129,8 @@ test("every worktree of this checkout has a runner, and each is named whole", ()
 });
 
 /* Real gates of one scratch, which is what proves the count is the machine's own and not this case's
-   table. A gate held inside a step that never returns has reached that step, so a second one that
+   table: a gate held inside a step that never returns has reached that step, so a second one that
    also reaches it was admitted, and one that declines says so instead of getting there. */
-const HANGS_IN = STEPS.find((step) => !step.tests).label;
-
-const reachedTheStep = (child, why) => new Promise((done, fail) => {
-  let said = "";
-  const both = (chunk) => {
-    said += chunk;
-    if (said.includes(HOLDING)) done(said);
-  };
-  child.stdout.on("data", both);
-  child.stderr.on("data", both);
-  child.once("exit", (code) => fail(new Error(`${why}: it exited ${code} instead\n${said}`)));
-});
-
 const room = (name, keys) => {
   const held = scratch(name, null, null, { hanging: HANGS_IN });
   if (keys) write(join(held.work, ".."), join("config", "forge", "config.json"), JSON.stringify(keys));

@@ -2,10 +2,11 @@
    is long enough that the remote always moves under one of them. The lock is a file whose existence
    is the lock, never flock(2), because the kernel drops an advisory lock when the holder dies and a
    landing lock that vanishes silently is one nobody is told about (ISS-333). */
-import { closeSync, existsSync, openSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { closeSync, existsSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { gitCommonDir, gitOut, stop } from "../checkout.mjs";
+import { watching } from "../watching.mjs";
 
 const LOCK = "forge-ship-lock";
 
@@ -60,34 +61,6 @@ const whose = (one) => (one
   ? `${one.tree} (pid ${one.pid}${one.branch ? ` on ${one.branch}` : ""}, since ${one.since})`
   : "a ship that left no name in it");
 
-/** Armed at the call, settling on the first change to the lock file or on the ceiling. Exported
- *  because a notification arriving before anything awaits `settled` is what the loop leans on. */
-export const watching = (path, ms) => {
-  let close = () => {};
-  let done = () => {};
-  const settled = new Promise((woke) => {
-    done = woke;
-  });
-  const timer = setTimeout(() => done("ceiling"), ms);
-  timer.unref?.();
-  try {
-    const watcher = watch(dirname(path), (_kind, name) => {
-      if (name === null || name === basename(path)) done("changed");
-    });
-    watcher.on("error", () => done("unwatchable"));
-    close = () => watcher.close();
-  } catch {
-    /* Unwatchable leaves the ceiling as the only wake, which refuses rather than hangs. */
-  }
-  return {
-    settled,
-    cancel: () => {
-      clearTimeout(timer);
-      close();
-    },
-  };
-};
-
 const staleSaid = (path, one) => `a landing that is no longer running left this checkout's landing lock behind, `
   + `so nothing can land until it is cleared:\n  ${path}\n  taken by ${whose(one)}, and that pid is not `
   + `running.\nNothing removes it for you — a lock taken over silently is one that was never a lock. `
@@ -108,8 +81,7 @@ export const takeShipLock = async (from, mine, { ms = WAIT_MS, say = console.log
   let waited = false;
   for (;;) {
     /* Armed BEFORE the create, and this order is the whole of the race: a release landing between a
-       failed create and a wait armed after it reaches a watcher that does not exist yet, and the
-       ship then waits out the ceiling behind a lock nobody holds. */
+       failed create and a wait armed after it leaves the ship waiting out the ceiling behind nobody. */
     const wait = watching(path, Math.max(until - Date.now(), 1));
     let taken = false;
     try {

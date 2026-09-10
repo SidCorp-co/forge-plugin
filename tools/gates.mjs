@@ -10,9 +10,11 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { crossTree, gitFiles, uncommittedInShared } from "./checkout.mjs";
+import { DEADLINE, DEFAULT_MINUTES, gateDecided, gateStarted, GONE, NO_GATE, said, TERMINAL, waitForVerdict }
+  from "./gate-verdict.mjs";
 import { attribute, attributionLines, CASES_ENV } from "./gates/isolation.mjs";
 import { cheapestFirst, ENTRIES_PER_STEP, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from "./gates/ledger.mjs";
-import { DECLINED, placeFor, RAISE, runnersOf } from "./gates/machine.mjs";
+import { DECLINED, placeFor, RAISE, runnersOf, WAIT } from "./gates/machine.mjs";
 import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
 import { gateSteps, TEST_FILE } from "./gates/steps.mjs";
@@ -149,6 +151,22 @@ refused — its uncommitted work is the point of it.
   ${ANYWAY}   gate the shared checkout as it stands, uncommitted paths and all. The run names
              them when it starts and says again at the end that it used this, so a result reached
              this way cannot be mistaken for a clean one.
+  ${WAIT} [M]  wait for the verdict of a gate of this tree instead of running one, up to M
+             minutes (${DEFAULT_MINUTES} where none is given), and exit on that verdict
+
+Every exit past the tree it judges prints one line beginning \`${TERMINAL}\` and writes the same line
+to a record beside the ledger — the verdict, the steps spent of the table, the head and the pid — so
+nothing here has to be grepped for and no run has to invent a token to grep for. ${WAIT} reads that
+record and never a log, and never a process's exit code either. It answers a verdict already written
+at once, since the common case after a resume is a gate that finished while the run was elsewhere;
+waits on a notification for one a running gate has yet to write; and tells apart the three states a
+log with no verdict in it cannot. Each of those three has its own exit code, past every code a run of
+this gate uses: ${GONE} a gate that exited having written no verdict, which is a failure and not a
+pass; ${DEADLINE} this wait's own deadline with the gate still running; ${NO_GATE} no gate of this
+tree having ever written one, answered at once rather than waited out. A verdict exits with the
+status the gate itself exited with. The line names the pid that wrote it and how long ago, because a
+wait attaches to a run it did not start. A wait runs no gate and judges no tree, so it is refused
+beside --full and ${ANYWAY}, and the uncommitted paths of a shared checkout do not refuse it.
 
 The tree judged is the one this copy of the runner sits in, never the one you stand in, so a run of
 another checkout's copy is refused rather than answered about that checkout. Both verdict lines
@@ -163,10 +181,32 @@ if (argv.includes("-h") || argv.includes("--help")) {
 
 const full = argv.includes("--full");
 const allowDirty = argv.includes(ANYWAY);
-const unknown = argv.filter((one) => one !== "--full" && one !== ANYWAY);
+const waiting = argv.includes(WAIT);
+/* The value after the flag and only where it is one: `--wait --full` names no minutes, and reading
+   the next token blindly would swallow the flag whose refusal is below. */
+const after = argv[argv.indexOf(WAIT) + 1];
+const patience = waiting && after !== undefined && !after.startsWith("-") ? after : null;
+const unknown = argv.filter((one) => one !== "--full" && one !== ANYWAY && one !== WAIT && one !== patience);
 
 if (unknown.length > 0) {
   console.error(`No such option: ${unknown.join(" ")}\n\n${USAGE}`);
+  process.exit(1);
+}
+
+if (waiting && (full || allowDirty)) {
+  const other = full ? "--full" : ANYWAY;
+  console.error(`${WAIT} runs no gate — it reads the verdict of one this tree already has — so ${other} `
+    + `has nothing here to act on.`);
+  console.error(`Wait for the verdict: node tools/gates.mjs ${WAIT}${patience ? ` ${patience}` : ""}`);
+  console.error(`Or run the gate:      npm run check -- ${other}`);
+  process.exit(1);
+}
+
+const minutes = patience === null ? DEFAULT_MINUTES : Number(patience);
+
+if (waiting && !(minutes > 0)) {
+  console.error(`${WAIT} takes the minutes to wait for a verdict, not \`${patience}\`.`);
+  console.error(`Wait ${DEFAULT_MINUTES} minutes: node tools/gates.mjs ${WAIT}`);
   process.exit(1);
 }
 
@@ -179,9 +219,28 @@ if (elsewhere) {
   process.exit(1);
 }
 
+/* Before the checkout is judged for its uncommitted paths, which is a rule about running a gate:
+   this runs none, and a wait refused for a tree two sessions are writing would leave the verdict
+   they are waiting for unreadable. */
+if (waiting) process.exit(await waitForVerdict(ROOT, { minutes }));
+
 const dirty = uncommittedInShared(ROOT);
 const listed = (say) => {
   for (const one of dirty) say(`    ${one}`);
+};
+const banner = `gating ${ROOT} with ${dirty.length} uncommitted path(s), asked for with ${ANYWAY}`;
+
+/* Written before the first step and before the refusal below, so every exit from here on has a
+   record to decide: a run that reached this tree and left no verdict is one a waiter cannot tell
+   from a crash. */
+const opened = gateStarted(ROOT, { full });
+
+/* Every exit past the banner, not the green one alone: the run that stops at a failing step is the
+   one whose reader most needs to know it was told about a tree two sessions were writing. */
+const finish = (code, verdict, figures = {}) => {
+  if (dirty.length > 0 && allowDirty) console.log(`\n${banner}`);
+  console.log(said(gateDecided(ROOT, opened, { verdict, code, ...figures })));
+  process.exit(code);
 };
 
 if (dirty.length > 0 && !allowDirty) {
@@ -190,10 +249,8 @@ if (dirty.length > 0 && !allowDirty) {
   listed((line) => console.error(line));
   console.error(`Gate from a worktree of your own: node tools/run.mjs start <ISS-nn>`);
   console.error(`Or gate this tree as it stands, said out loud: npm run check -- ${ANYWAY}`);
-  process.exit(1);
+  finish(1, "refused");
 }
-
-const banner = `gating ${ROOT} with ${dirty.length} uncommitted path(s), asked for with ${ANYWAY}`;
 
 if (dirty.length > 0) {
   console.log(`\n${banner}`);
@@ -203,13 +260,6 @@ if (dirty.length > 0) {
 /* Every step runs under this and not under the machine's temp root, so what a step leaves there is
    this run's alone and no live session's hooks are mixed into it. It removes itself at exit. */
 const scratch = gateTmp();
-
-/* Every exit past the banner, not the green one alone: the run that stops at a failing step is the
-   one whose reader most needs to know it was told about a tree two sessions were writing. */
-const finish = (code) => {
-  if (dirty.length > 0) console.log(`\n${banner}`);
-  process.exit(code);
-};
 
 /* Before the table, the record and the first step, because a refusal that cost the caller a step has
    already lost the argument. It says nothing about the tree and records nothing of it. */
@@ -223,7 +273,7 @@ if (place.declined) {
   console.error(`No step ran and nothing was recorded, so nothing here judges ${ROOT}.`);
   console.error(`Wait for one of those to finish, or say what this machine carries: `
     + `${RAISE} ${place.declared.value + 1}`);
-  finish(DECLINED);
+  finish(DECLINED, "declined");
 }
 
 const files = gitFiles(ROOT);
@@ -235,7 +285,7 @@ const orRefuse = (what, build) => {
     return build();
   } catch (error) {
     console.error(`This gate ${what}: ${error.message}`);
-    return finish(1);
+    return finish(1, "refused");
   }
 };
 
@@ -360,7 +410,7 @@ for (const step of planned) {
         + `${because(step, said, error)} — the tree judged: ${ROOT}`);
       for (const each of said?.tree ?? []) console.error(`  ${each.one.file}  ${each.one.name}`);
       for (const line of ownedLines()) console.error(line);
-      finish(status ?? 1);
+      finish(status ?? 1, "failed", { step: step.label });
     }
   }
   /* Before the pass is recorded, or the ledger holds a step green that left the machine dirtier. */
@@ -368,7 +418,7 @@ for (const step of planned) {
   if (leak) {
     console.error(`\nGate failed: ${step.label} — the tree judged: ${ROOT}\n${leakMessage(leak)}`);
     for (const line of ownedLines()) console.error(line);
-    finish(1);
+    finish(1, "failed", { step: step.label });
   }
   if (ledger && !failed) recordPass(ledger.dir, step, took);
 }
@@ -390,7 +440,7 @@ if (unproved.length > 0) {
     + `content spends each of them whole: cases passing one at a time are not the suite passing. `
     + `No whole-run figure is recorded either — seconds spent re-running cases measure neither this `
     + `gate nor this tree.`);
-  finish(0);
+  finish(0, "unproved", { seconds: elapsed, ran: planned.length, total: steps.length });
 }
 
 console.log(`\nAll ${planned.length} gate step(s) passed in ${elapsed}s${spared} — the tree judged: ${ROOT}`);
@@ -409,4 +459,4 @@ try {
   console.error(`This gate passed and could not record how long it took: ${error.message}`);
 }
 
-finish(0);
+finish(0, "pass", { seconds: elapsed, ran: planned.length, total: steps.length });

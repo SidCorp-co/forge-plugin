@@ -33,8 +33,15 @@ that run and there is nothing left to spend after the push. Below the top rung e
 goes: the ship's is the one the clean path spends, and `forge advance <ref> --owed` is what says so
 for the issue in hand. A gate too slow to spend once a unit is
 the gate's defect and the gate-review skill is the route to it, never a reason to spend it less often.
-Whichever of those runs, it is started in the background and its log is read when the completion
-notice arrives, never before.
+Whichever of those runs, it is started in the background and what is read afterwards is the gate's
+own verdict rather than its log. Where the project's gate has a call that waits for that verdict,
+that one call is the whole of the wait and the answer both, and the gate's own `-h` names it. A
+completion notice is not that answer: it says a process ended, and a run holding a log with no
+verdict in it cannot tell a gate still running from one that died at a step or one that never
+started — three states, one silence, and a run that waits on the notice for the second or the third
+waits for something nothing will send. Where the gate writes no verdict at all, the log is read when
+the notice arrives and never before, and the verdict it does not write is the project's own defect to
+file.
 
 ## The order
 

@@ -109,6 +109,20 @@ export const LEAKS = "node -e \"const fs=require('node:fs'),os=require('node:os'
 export const HOLDING = "holding";
 const HANGS = `node -e "console.log('${HOLDING}');setTimeout(()=>{},600000)"`;
 
+// The label a scratch hangs in, and the promise that a held gate has really reached it: a gate stopped short of its step was never running, and every case about a running gate would then be about nothing.
+export const HANGS_IN = STEPS.find((step) => !step.tests).label;
+
+export const reachedTheStep = (child, why) => new Promise((done, fail) => {
+  let said = "";
+  const both = (chunk) => {
+    said += chunk;
+    if (said.includes(HOLDING)) done(said);
+  };
+  child.stdout.on("data", both);
+  child.stderr.on("data", both);
+  child.once("exit", (code) => fail(new Error(`${why}: it exited ${code} instead\n${said}`)));
+});
+
 const command = (label, { failing, leaking, hanging }) => {
   if (label === failing) return "node -e \"process.exit(1)\"";
   if (label === leaking) return LEAKS;

@@ -9,6 +9,7 @@ import { availableParallelism } from "node:os";
 import { join } from "node:path";
 
 import { STEPS, gateSteps } from "../../../tools/gates/steps.mjs";
+import { DEADLINE, DEFAULT_MINUTES, GONE, NO_GATE, TERMINAL } from "../../../tools/gate-verdict.mjs";
 import { REVIEW } from "../../../tools/gates/timing.mjs";
 import { tempRoom } from "../fixtures.mjs";
 import { entries, entryDir, entryNames, git, landed, NAMED, passesDir, passesFor, ROOT, RUNNER, run,
@@ -52,7 +53,7 @@ const spentIn = (said) => [...said.matchAll(/^=== (\S+) ===$/gmu)].map((one) => 
 const orderBlock = (said) => said.split("=== order:").at(1).split("\n\n")[0].split("\n").slice(1);
 const orderedIn = (said) => orderBlock(said).map((line) => line.trim().split(/\s+/u)[0]);
 
-test("-h names the two flags and what the record cannot see", () => {
+test("-h names the three flags and what the record cannot see", () => {
   const said = run(ROOT.replace(/\/$/u, ""), ["-h"]).stdout;
   for (const one of ["--full", "--anyway", "node_modules", "merge-base", "tree judged",
     "seconds that step took", "one line per green run", "a temporary directory of this run's own",
@@ -67,7 +68,12 @@ test("-h names the two flags and what the record cannot see", () => {
     "comments on that case's issue rather than filing again",
     "searching the backlog for that marker and matching it in a title",
     "An issue somebody has closed or dropped", "does not come back whole files nothing",
-    "leaves the run's status alone", "sends no request"]) {
+    "leaves the run's status alone", "sends no request",
+    "--wait [M]", "wait for the verdict of a gate of this tree instead of running one",
+    `${DEFAULT_MINUTES} where none is given`, `one line beginning \`${TERMINAL}\``,
+    "never a log, and never a process's exit code either", "answers a verdict already written",
+    `${GONE} a gate that exited having written no verdict`, `${DEADLINE} this wait's own deadline`,
+    `${NO_GATE} no gate of this`, "refused\nbeside --full"]) {
     assert.ok(said.includes(one), `${one} is not in the usage:\n${said}`);
   }
 });

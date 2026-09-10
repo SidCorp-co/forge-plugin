@@ -14,7 +14,8 @@ import { BARE, committed, GATE, git, landIn, LAST_STEP, pushed, ROOT, runIn, scr
   from "./run-fixtures.mjs";
 
 const MODULE = join(ROOT, "tools", "run", "lock.mjs");
-const { dropShipLock, lockFile, takeShipLock, watching } = await import(MODULE);
+const { dropShipLock, lockFile, takeShipLock } = await import(MODULE);
+const { watching } = await import(join(ROOT, "tools", "watching.mjs"));
 
 const LOCK = "forge-ship-lock";
 const BUMP = "forge-ship-bump";
@@ -85,6 +86,13 @@ test("the lock is one file for every worktree of a checkout, and not one per wor
   assert.equal(lockFile(beside), lockFile(work),
     "a linked worktree and its checkout must contend on one file, or the lock serializes nothing");
   assert.ok(lockFile(work).endsWith(join(".git", LOCK)), lockFile(work));
+});
+
+/* The primitive is the gate wait's too (ISS-1102), so it has one home and one answer to when a wait gives up: two copies
+   would be two, and the loop below leans on the property either way. */
+test("the wait this lock is built on is defined in one file, which both callers import", () => {
+  const found = git(ROOT, "grep", "-l", "--untracked", "^export const watching", "--", "*.mjs").stdout.trim().split("\n");
+  assert.deepEqual(found, [join("tools", "watching.mjs")], `watching has more than one home: ${found.join(" ")}`);
 });
 
 /* The one property the acquire loop leans on: nothing changes after the await begins, so the case

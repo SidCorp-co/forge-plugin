@@ -1,14 +1,14 @@
-/* Which gates of this checkout are running, and whether this one may join them. Counted off the
-   process table rather than off files a gate leaves behind: a file has to be reclaimed when its
-   holder is killed and reclaiming a shared name is a race two gates can both win, where a process
-   is its own record and a killed gate has none. Why gates and not load: `node tools/gates.mjs -h`. */
+/* Which gates of this checkout are running, and whether this one may join them. Counted off the process table rather than
+   off files a gate leaves behind: a file has to be reclaimed when its holder is killed and reclaiming a shared name is a race
+   two gates can both win, where a process is its own record and a killed gate has none. A wait of the same runner is not one
+   of them: counted, it would decline a gate that could have run and look like a run to a second wait (`gates.mjs -h`). */
 import { readFileSync, readdirSync, readlinkSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 
 import { gitOut, lines } from "../checkout.mjs";
 import { parallelRuns } from "../../plugin/src/resolve/settings.mjs";
 
-const PROC = "/proc";
+export const PROC = "/proc";
 const RUNNER = join("tools", "gates.mjs");
 const WORKTREE = "worktree ";
 // Node itself and not everything starting with the four letters, which is `nodemon` too; and the options after which there is no script to find.
@@ -17,10 +17,12 @@ const NO_ENTRY = new Set(["-c", "--check", "-e", "--eval", "-p", "--print"]);
 
 export const DECLINED = 75;
 
+export const WAIT = "--wait";
+
 export const RAISE = "forge doctor --runs";
 
 // Field 22 of the status line, counted from after its last `)`, because the command name holds parentheses and spaces and nothing before it can be split on.
-const startedAt = (text) => {
+export const startedAt = (text) => {
   const after = text.slice(text.lastIndexOf(")") + 2).split(" ");
   const ticks = Number(after[19]);
   return Number.isFinite(ticks) ? ticks : null;
@@ -45,7 +47,7 @@ const oneProcess = (proc, pid, ours) => {
     return null;
   }
   const entry = entryOf(argv);
-  if (entry === null || basename(entry) !== basename(RUNNER)) return null;
+  if (entry === null || basename(entry) !== basename(RUNNER) || argv.includes(WAIT)) return null;
   let start;
   let cwd;
   try {
