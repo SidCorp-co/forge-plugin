@@ -9,6 +9,7 @@ import {
 import { CHECKS, ORDER, PHASE, viewFrom } from "../../src/flow/earned.mjs";
 import { LIGHTER } from "../../src/ladder.mjs";
 import { KINDS } from "../../src/flow/record/record-rows.mjs";
+import { kindsHeld } from "../../src/flow/record/page.mjs";
 
 const fieldsOf = (complexity, moved = []) =>
   ({ description: "a defect", plan: null, moved, whole: true, complexity });
@@ -132,6 +133,20 @@ test("a full record set at open passes no phase and still owes the triage", () =
   assert.match(index.first, /^1 Triage/u, "and the phase owed is the status's, which is the triage");
   assert.deepEqual(openingLines("open", EVERY_KIND), [],
     "so both verbs say at open what a claim there always said");
+});
+
+/* Off a real view and not a literal list, the join every case above skips: `forge record plan` writes a field and never a comment, so a set read off the page alone left Phase 3 never passed (ISS-1064). */
+test("the plan and the criteria count as held, being fields of the issue rather than comments", () => {
+  const body = { status: "developed", plan: PLAN, complexity: "m", acceptanceCriteria: "1. The outcome." };
+  const said = (kind) => ({ body: `## X\n\n\`\`\`forge-record\n${kind}\n\`\`\`\n\nforge-record: ${kind.split(":")[0]} · contract 1`, createdAt: "2026-01-01" });
+  const view = viewFrom("the-uuid", body, [
+    said("where: a place\nis: a thing\nfinding: holds"),
+  ]);
+  const held = kindsHeld(view);
+  assert.ok(held.includes("plan"), `the plan field is set and the held set is ${held.join(", ")}`);
+  assert.ok(held.includes("criteria"), "and so is the criteria field, the other kind kept off the page");
+  assert.deepEqual(kindsHeld(viewFrom("the-uuid", { status: "developed" }, [])), [],
+    "while an issue holding neither field and no comment holds nothing");
 });
 
 /* The two halves answer different questions — the record what was written, the status where the

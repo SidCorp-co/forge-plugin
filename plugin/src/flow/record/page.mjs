@@ -41,10 +41,12 @@ export const assemble = (comments, criteria) => {
   return { latest, verdicts, owed, repeated, unreadable };
 };
 
-/* Which kinds the assembly above found, the verdicts under the one name it files them apart from. Written and not whole: the phase index asks this to stop calling a phase passed that no record earned, while whether a payload holds is the entry checks' question and `forge advance --owed` where a gappy one is named (ISS-1064). */
-export const kindsHeld = ({ latest, verdicts, unreadable }) => [
+/* Which record kinds an issue holds, wherever `forge record` put them: the latest of each kind the assembly above found, the verdicts under the one name it files them apart from, and the plan and the criteria, which are written into fields of the issue and never onto the page — reading the page alone left Phase 3 unable to read as passed on any issue (ISS-1064). The tracker's merged mark is not here: it is no typed record, `markedCommit` is what reads it, and no rung cites it as the record that discharges the rung below. Written and not whole: this is asked so that no phase is called passed that nothing earned, while whether a payload holds is the entry checks' question and `forge advance --owed` where a gappy one is named. */
+export const kindsHeld = ({ latest, verdicts, unreadable, issue, criteria }) => [
   ...Object.keys(latest ?? {}),
   ...(verdicts?.size || unreadable?.length ? ["verdict"] : []),
+  ...(unwrap(issue?.plan) ? ["plan"] : []),
+  ...(criteria?.length ? ["criteria"] : []),
 ];
 
 /* The label is the shape's, never the record's: a record carries keys, and two forms of one record read back under one heading. A rewritten one carries no key and says so instead of nothing. */
