@@ -56,11 +56,11 @@ const cite = (fields) => [recorded("baseline",
   { gate: "npm run check", result: "354 pass", commit: HEAD, scope: "whole", cited: "the release's gate", head: HEAD, ...fields })];
 const citing = (complexity, fields) => CHECKS.in_progress(view({ complexity }, cite(fields)), "ISS-3");
 
-test("a cited baseline is taken below the top rung where the commit is the head the write stamped", () => {
+test("a cited baseline is taken at every rung where the commit is the head the write stamped", () => {
   assert.deepEqual(missing("in_progress", view({ complexity: "xs" }, cite({}))), [],
     "the lowest rung cites a recorded result and owes nothing further");
   assert.deepEqual(missing("in_progress", view({ complexity: "s" }, cite({}))), [],
-    "and so does the rung above it, the two being granted one list");
+    "and so does the rung above it");
   /* The leg that makes the citation worth accepting: the branch is still at the tree that gate read. */
   const moved = citing("s", { commit: "0f1e2d3c4b5a69788796a5b4c3d2e1f009182736" });
   assert.equal(moved.length, 1);
@@ -69,11 +69,12 @@ test("a cited baseline is taken below the top rung where the commit is the head 
   assert.match(moved[0].command, /--scope whole$/u, "and the fresh run that answers instead");
 });
 
-test("a cited baseline is refused at the top rung, and on a record that carries no head", () => {
-  const top = citing("m", {});
-  assert.equal(top.length, 1);
-  assert.match(top[0].what, /a `feature` spends the whole run/u, "the rung is why, and it is named");
-  assert.match(top[0].command, /--scope whole$/u);
+test("a cited baseline is taken at every rung, and refused on a record that carries no head", () => {
+  assert.deepEqual(citing("m", {}), [],
+    "the top rung cites the same result: what a tree already fails is no property of the issue reading it");
+  for (const complexity of ["l", "xl"]) {
+    assert.deepEqual(citing(complexity, {}), [], `and so does a \`${complexity}\`, which claims the same rung`);
+  }
   /* A baseline written outside a checkout: the stamp is the one fact nothing else can supply. */
   const bare = citing("s", { head: undefined });
   assert.equal(bare.length, 1);

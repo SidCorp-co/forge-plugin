@@ -65,6 +65,13 @@ export const passesHeld = (root, wrote) => {
   };
 };
 
+/** A fresh reading of the whole step table at the content on disk now: how many steps the record holds green, out of how many there are. Read after the carry, so it answers for the commit a release pushed and not for the tree the gate itself was scoped over. Its own read and not `carryPasses`'s count, which is over the entries that run selected for carrying. */
+export const greenHeld = (root) => {
+  forgetContent();
+  const { entries } = ledgerAt(root, gitFiles(root));
+  return { green: entries.filter((step) => step.green).length, of: entries.length };
+};
+
 const movedBetween = (held, now) => [...new Set([...held.keys(), ...now.keys()])]
   .filter((one) => held.get(one) !== now.get(one)).sort();
 

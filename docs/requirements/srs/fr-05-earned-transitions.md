@@ -66,6 +66,11 @@ agent learns what a status wants.
   CLI SHALL name every status from the issue's own onwards with the payloads that earn each at the
   issue's own rung, and SHALL say of a status the rung leaves no payload to write that nothing is
   owed at it.
+- **AC-05-1-10** · Rev: 1 · Proof: plugin/test/flow/route/baseline-ahead.test.mjs "--owed names the published baseline and the write that cites it, and says so where none is published"
+  WHERE a whole-tree gate result is published for the commit the checkout stands at, the rehearsal
+  of every status below the one a baseline earns SHALL name that commit and SHALL print the write
+  that cites it; where none is published for that commit the rehearsal SHALL say so and SHALL name
+  the fresh run, a result published for another commit answering for no tree but its own.
 
 ### UC-05-2 — Advance to the next status
 
@@ -98,6 +103,10 @@ deciding a status.
 - **AC-05-2-7** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a baseline that measured part of the tree earns nothing, and one that names no scope is not refused for it"
   WHERE a record was written before a field was added to its shape, the CLI SHALL read it back as a
   whole payload rather than refusing it for lacking that field.
+- **AC-05-2-8** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a cited baseline is taken at every rung, and refused on a record that carries no head"
+  WHERE the latest baseline cites a recorded gate result, the CLI SHALL judge `in_progress` on the
+  scope, the head and the commit that record itself carries and on no other reading, the state of a
+  tree being no property of the issue looking at it.
 
 ### UC-05-3 — Refuse a jump
 

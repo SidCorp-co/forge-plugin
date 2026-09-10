@@ -19,6 +19,7 @@ import { REPLAY_HELP, REPLAYED, replaySays, replayedBy } from "./run/replayed.mj
 import { cleanTree, INSTALLS, land, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./run/land.mjs";
 import { landReady } from "./run/land-ready.mjs";
 import { onlyRelease, RELEASE_FILES } from "./run/landing.mjs";
+import { CHECK, publishes } from "./run/publish.mjs";
 import { forgetBump, unwound, versionAbove } from "./run/version.mjs";
 import { occupied } from "./run/start/occupant.mjs";
 import { mintRunId, RUN_ID_VAR } from "./run/start/run-id.mjs";
@@ -507,7 +508,7 @@ const shipSteps = (tree, root, base, note) => {
        because the gate's record is keyed on the manifests too: run it after and every release pays
        for a whole gate over a change of one version string. The step below carries that record
        across the commit, which is the other half of the same reason. */
-    [GATE, () => loud("npm", ["run", "check"], tree,
+    [GATE, () => loud("npm", CHECK, tree,
       "Fix the tree and ship again; a release ships what a gate has passed, and nothing after this step has run."), LANDS],
     [`a version above ${REMOTE}/${base}`,
       () => acrossVersion(tree, RELEASE_FILES, () => versionAbove(tree, base, note)), LANDS],
@@ -531,6 +532,7 @@ const shipSteps = (tree, root, base, note) => {
       await reviewOwed(tree);
       const mark = runsMark(root);
       if (mark) console.log(`  ${mark}`);
+      publishes(tree, base, copy?.installed);
       /* Whatever the corpus count, so a comparison can be taken since THIS release: the version and
          the head are the two things a reading taken later cannot work out for itself. */
       const held = releaseMark(root, { version: copy?.installed, head: gitOut(["rev-parse", "HEAD"], tree) });

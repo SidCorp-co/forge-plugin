@@ -1,6 +1,5 @@
-/* Which rung of the ladder an issue is at and what it stops owing; the report about it is
-   ladder-report.mjs. Out of `flow/` because three trees read it and a primitive each could declare
-   drifts on one side (docs/cli/the-primitives.md). Smallest first, so an index is a height. What each rung is for and what it may not buy: `forge guide contract`; why a doubtful reading resolves upward, here and in every function below: docs/cli/the-ladder.md. */
+/* Which rung of the ladder an issue is at and what it stops owing; the report about it is ladder-report.mjs. Out of `flow/` because three trees read it and a primitive each could declare drifts on one side (docs/cli/the-primitives.md). Smallest first, so an index is a height.
+   What each rung is for and what it may not buy: `forge guide contract`; why a doubtful reading resolves upward, here and in every function below: docs/cli/the-ladder.md. */
 import { looksTo, planFlags } from "./flow/machine.mjs";
 
 export const RUNGS = ["trivial", "fix", "feature"];
@@ -90,7 +89,6 @@ const LIGHTER_ROUNDS = [
   "Phase 0 is the brief alone, where no source of it is stale",
   "one consult, which is the whole-set read at the replayed head, and no recheck after a clean pass",
   "one gate run on the clean path, the ship's, so no commit spends one and none is left after it",
-  "a baseline citing a recorded whole-tree result at the head the branch was cut at, rather than a fresh run",
 ];
 
 export const SPARES = {

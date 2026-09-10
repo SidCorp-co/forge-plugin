@@ -4,9 +4,14 @@
 import { citedClauses } from "../spec/checked.mjs";
 import { sayIfChanged, sessionKey } from "../shown/ledger.mjs";
 import { Refused, refuse } from "../refusal.mjs";
-import { CLOSES_FROM, TRIAGES, atMinute, criterionNumber, planFlags, unwrap } from "./machine.mjs";
+import { CLOSES_FROM, SHAPES, TRIAGES, atMinute, criterionNumber, planFlags, unwrap } from "./machine.mjs";
 import { statusKind } from "../tracker/rest.mjs";
+import { slugIfAny } from "../resolve/settings.mjs";
+import { stampedNow } from "./worklog.mjs";
+import { freshForm } from "./earned/baseline.mjs";
+import { citeForm } from "./earned/published.mjs";
 import {
+  BASELINE_AT,
   CHECKS,
   JUDGED_AT,
   ORDER,
@@ -223,6 +228,24 @@ export const credentialAhead = (view, ref) => {
     + `  forge record verdict ${ref} --commit <sha> --criterion <n> --verdict skipped --why "<which credential>"
 `
     + "  forge guide issue-flow verification";
+};
+
+/** The head the baseline write would stamp, asked for through that write's own stamp so the two cannot disagree about which commit is in hand — a dirty checkout and no checkout both answer with none, which is the head that write would fail to stamp too. */
+export const headNow = () => stampedNow(SHAPES.baseline).head ?? null;
+
+/* Said while a run can still take the cheap path, and refusing nothing: a store one machine holds is no entry criterion, or two checkouts advancing one issue would answer differently (AC-05-2-3). Said at every status below the one a baseline earns rather than only at the rehearsal of that status, because the phase that decides whether to spend a gate at all reads this before the issue is even confirmed, and a line that arrives two statuses later has been read after the decision it was for. The lookup is on this head alone — a result published for another commit answers for no tree but its own. */
+export const baselineAhead = (view, ref, head = headNow()) => {
+  /* Membership of the sequence and not `!atLeast`, which is true of every side status too: a park from the judging rung sits in `waiting` and a reopen in a status of its own, and both are past the baseline rather than before it, so telling either to spend one names a phase already done and buries the park answer or the triage actually owed. */
+  const at = ORDER.indexOf(view.issue.status);
+  if (at < 0 || at >= ORDER.indexOf(BASELINE_AT)) return null;
+  const form = citeForm(ref, slugIfAny(), head);
+  if (!form) {
+    return `Ahead: ${BASELINE_AT} is earned by a baseline and no ship has published a whole-tree `
+      + `result for the commit this checkout stands at, so the run is this run's:\n`
+      + `  ${freshForm(ref, "<the project's gate>")}`;
+  }
+  return `Ahead: ${BASELINE_AT} is earned by a baseline and a ship published a whole-tree result for `
+    + `the commit this checkout stands at, so cite it rather than running one:\n  ${form}`;
 };
 
 /* Said only where a park of the right kind is on the page and nothing pairs it with the move. */

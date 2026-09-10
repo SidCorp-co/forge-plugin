@@ -51,6 +51,11 @@ a correction beside any of them.
 - **AC-04-1-5** · Rev: 1 · Proof: plugin/test/flow/earned/batched-verdict.test.mjs "a criterion named twice in one write is refused, and nothing is posted"
   IF one write opens two blocks on the same value THEN the CLI SHALL refuse the write and SHALL name
   that value.
+- **AC-04-1-6** · Rev: 1 · Proof: plugin/test/flow/earned/published-baseline.test.mjs "a citation for a commit nothing published is refused at the write, and the refusal names the fresh run"
+  IF a baseline cites a recorded gate result for a commit no published whole-tree result names THEN
+  the CLI SHALL refuse the write and SHALL name the command that measures a fresh baseline, so that
+  the authority a citation rests on is established where the payload is made rather than believed
+  when it is read back.
 
 ### UC-04-2 — Evidence is checked before it is cited
 

@@ -331,17 +331,15 @@ test("the shortest rung drops what the one above drops, and is told what else it
     "and the rung above is told every one of them, the two being granted one list");
   assert.ok(SPARES.trivial.every((one) => !top.includes(one)),
     "and the top rung is told none of them, which is what the two below it are measured against");
-  /* The two the ladder gained: a run told it may cite a baseline and told the gate is the ship's
-     spends neither twice, and a feature reading either would spend a judgement it owes. */
+  /* The one the ladder gained: a run told the gate is the ship's spends none of its own, and a feature reading that would spend a judgement it owes. No rung is granted a cited baseline, because every rung has one — what a tree already fails is a property of the tree, so a waiver here would report a difference between the rungs that is not there, and the rehearsal is what tells any of them a result is published (ISS-1101). */
   for (const [rung, out] of [["trivial", trivial], ["fix", fix]]) {
-    assert.match(out.stdout, /a baseline citing a recorded whole-tree result/u,
-      `a \`${rung}\` is not told its baseline may cite a result already recorded`);
     assert.match(out.stdout, /one gate run on the clean path, the ship's/u,
       `a \`${rung}\` is not told the gate is spent once, at the ship`);
   }
-  assert.doesNotMatch(feature.stdout, /a baseline citing a recorded whole-tree result/u,
-    "the top rung is offered a cited baseline, which is the one judgement it may not skip");
-  assert.doesNotMatch(feature.stdout, /one gate run on the clean path/u, "and is offered one gate run");
+  assert.doesNotMatch(feature.stdout, /one gate run on the clean path/u, "and the top rung is offered one gate run");
+  for (const out of [trivial, fix, feature]) {
+    assert.doesNotMatch(out.stdout, /baseline citing/u, "no rung is told a cited baseline is its own to spend");
+  }
   assert.match(trivial.stdout, /--moved "Rung: trivial -> fix"/u, "the route up names the next rung, not the top");
   assert.match(feature.stdout, /holds no complexity on the tracker, so it is a `feature`/u);
   assert.match(feature.stdout, /a feature owes the whole set/u, "the top rung says so rather than saying nothing");

@@ -17,7 +17,7 @@ import { render } from "./record/page.mjs";
 import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, rungFieldsOf, setForm, viewFrom } from "./earned.mjs";
 import { laneLines } from "../guides/phases.mjs";
 import { undoForm } from "./record/merged.mjs";
-import { credentialAhead, deployFor, lookAhead, owedLine, policyFor, targetOf } from "./route.mjs";
+import { baselineAhead, credentialAhead, deployFor, lookAhead, owedLine, policyFor, targetOf } from "./route.mjs";
 import { FIELD, anothersHold, leaseOf, nextLine, renew } from "./lease.mjs";
 
 /* A needs_info park owes the readings only the question shape carries. */
@@ -200,6 +200,8 @@ const sayAhead = (view, ref, next) => {
   if (report) console.log(`\n${report}`);
   console.log("");
   for (const line of laneLines({ status: view.issue.status, fields: rungFieldsOf(view) })) console.log(line);
+  const cheaper = baselineAhead(view, ref);
+  if (cheaper) console.log(`\n${cheaper}`);
   const shortly = credentialAhead(view, ref);
   if (shortly) console.log(`\n${shortly}`);
   const said = lookAhead(view, ref);

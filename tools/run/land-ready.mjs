@@ -7,6 +7,7 @@ import { gitOut, loud, REMOTE, stop, Stop } from "../checkout.mjs";
 import { acrossVersion } from "../gates/carried.mjs";
 import { INSTALLS, LANDS, PUSHES, runLanding, waitMs } from "./land.mjs";
 import { follows, installs, shortly } from "./install.mjs";
+import { publishes } from "./publish.mjs";
 import { above, forgetBump, versionAbove } from "./version.mjs";
 import { RELEASE_FILES, versionAt } from "./landing.mjs";
 import {
@@ -322,6 +323,7 @@ const installStep = async (one) => {
       installs({ tree: at.room, root, base, market, plugin, self });
       at.installing = false;
     }
+    publishes(at.room, base, release);
   }
   for (const member of at.members) await saveOn(member, { state: "installed" });
 };

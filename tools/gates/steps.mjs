@@ -28,6 +28,7 @@ export const WHOLE_TREE_TESTS = [
   "plugin/test/checks/cited-paths.test.mjs",
   "plugin/test/checks/docs",
   "plugin/test/checks/sources-are-text.test.mjs",
+  "plugin/test/checks/surface/level-boundary.test.mjs",
   "plugin/test/guides/contract.test.mjs",
 ];
 

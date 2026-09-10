@@ -1,8 +1,9 @@
 /* The contract's payloads, each written in one shape a reader and a checker find alike, and read
    back by kind: docs/cli/record.md. The verb owns the shape; the tracker owns the fields. */
-import { fail, translateTo } from "../../resolve/settings.mjs";
+import { fail, slugIfAny, translateTo } from "../../resolve/settings.mjs";
 import { Refused, refuse } from "../../refusal.mjs";
 import { citationsChecked, criteriaChecked } from "../../spec/checked.mjs";
+import { citationProblem } from "../earned/published.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
 import { CLOSES_FROM, SECTIONS, SHAPES, compoundCriteria, criterionNumber, heldSaid, planFlags, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, unwrap } from "../machine.mjs";
@@ -123,6 +124,13 @@ const gather = (kind, argv, defer = []) => {
 export const checked = (kind, got) => {
   const said = SHAPES[kind].check?.(got);
   if (said) refuse(`record ${kind} needs ${said}.`);
+};
+
+/* Beside `checked` rather than inside the shape's own `check`, which is handed the payload and nothing else: this one asks what a ship published, and machine.mjs imports nothing that reads a file. It is the whole of where a citation's authority is settled, so no entry check has to reach for a store one machine holds (ISS-1101). */
+const citationChecked = (kind, reference, got) => {
+  if (kind !== "baseline") return;
+  const said = citationProblem(reference, slugIfAny(), got);
+  if (said) refuse(`record ${kind} needs ${said}`);
 };
 
 /* What the stored copy will be, said where the write is made: the payload block is the record and
@@ -379,6 +387,7 @@ const recordShaped = async (kind, reference, argv, { next, patch }) => {
   for (const got of blocks) {
     if (asks) fromRecord(kind, got, { comments, names, cut }, say);
     checked(kind, got);
+    citationChecked(kind, reference, got);
     const bad = got.evidence?.length ? evidenceProblem(got.evidence, names) : null;
     if (bad) refuse(bad);
   }

@@ -19,6 +19,7 @@ const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const { landReady } = await import("../../../../tools/run/land-ready.mjs");
 const { Stop } = await import("../../../../tools/checkout.mjs");
 const { landingOf } = await import("../../../src/flow/lease.mjs");
+const { publishedFor, publishedPath } = await import("../../../src/flow/earned/published.mjs");
 
 test.after(() => tracker.close());
 
@@ -123,6 +124,24 @@ test("the install after that promotion holds the version the release commit carr
   const versions = Object.values(record.plugins).flat().map((one) => one.version);
   assert.deepEqual(versions, [versionAt(work, landed)], `the installed copy is the release's:\n${said}`);
   assert.equal(landing().release, versionAt(work, landed), said);
+});
+
+/* The other release route publishes what the ship publishes, so a run cutting from a head this landing released cites the gate rather than running one. Only the call-site half is reachable here — that the publish cannot break a landing — because `greenHeld` reads *this* repository's step table and the world a landing fixture builds is not this repository, so no publication is obtainable however green anything is; the positive path is proven over the same function, against a ledger of its own, in `plugin/test/flow/earned/published-baseline.test.mjs`. */
+test("the landing offers the head it released to the publisher, and is not stopped by what it answers", async () => {
+  const { at, work, head, base } = world({ base: "other" });
+  seeded({ landing: ready(head, base) });
+  forgetInstall();
+  const said = await ran([KEY], work);
+  const landed = remote(at);
+  assert.match(said, new RegExp(`nothing is published for ${landed.slice(0, 7)}`, "u"),
+    `the landing did not offer its released head to the publisher:\n${said}`);
+  assert.equal(landing().release, versionAt(work, landed),
+    `and the landing finished all the same, a record it cannot read being no release to stop:\n${said}`);
+  assert.equal(publishedFor("forge-plugin", landed), null,
+    "nothing is published off a step table this fixture's world cannot satisfy");
+  /* The store a release-time write would land in is inside the test's own temp root, and the only thing putting it there is `Object.assign(process.env, tracker.env)` in `fixture.mjs` carrying the tracker fixture's `XDG_CONFIG_HOME` — asserted because nothing else in this harness says the developer's live configuration directory is out of reach. */
+  assert.ok(publishedPath().startsWith(process.env.TMPDIR),
+    `a release-time write would land outside the test root: ${publishedPath()}`);
 });
 
 /* The one other caller of `versionAbove`, reaching it with no note at all: what a refusal of a

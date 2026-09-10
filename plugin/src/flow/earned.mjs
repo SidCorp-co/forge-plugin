@@ -9,7 +9,7 @@ import {
 import { correctionForm, judgedHead, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead } from "./record/merged.mjs";
 import { eachProblem } from "./record/content.mjs";
 import { FORMS } from "../spec/parse.mjs";
-import { lightens, rungOf } from "../ladder.mjs";
+import { lightens } from "../ladder.mjs";
 import { citedOwed, wholeOwed } from "./earned/baseline.mjs";
 import { rungReport } from "../ladder-report.mjs";
 import { attachmentNames, evidenceHeld, isCommit, sameCommit } from "../tracker/evidence.mjs";
@@ -29,6 +29,9 @@ export const ORDER = [
 
 /** The rung the verdicts are owed at, read off the sequence rather than spelled a second time: `route.mjs` asks for it by name, and a literal there is a rung free to disagree with this order. */
 export const JUDGED_AT = ORDER[ORDER.indexOf("developed") + 1];
+
+/** The rung the baseline is owed at, read off the sequence for the same reason. */
+export const BASELINE_AT = ORDER[ORDER.indexOf("developed") - 1];
 
 /* Which reader each park kind speaks to, and so which side status it lands in. Every kind in PARKS has a row: a park with nowhere to go is a status set from nothing. */
 /** The status on which the tracker reads any comment as the reporter's answer and puts the issue back to `open` (ISS-429): the one a park's record goes up on before its move, and the one an override is refused on. */
@@ -534,8 +537,7 @@ export const CHECKS = {
       "no baseline: the gate, what it already reports and the commit it ran at",
       `forge record baseline ${ref} --gate "<command>" --result "<what already fails>" --commit <sha> --scope whole`,
     );
-    return [...blockersOwed(view), ...baseline, ...wholeOwed(view, ref),
-      ...citedOwed(view, ref, rungOf(rungFieldsOf(view)))];
+    return [...blockersOwed(view), ...baseline, ...wholeOwed(view, ref), ...citedOwed(view, ref)];
   },
   developed: (view, ref) => {
     const out = [];

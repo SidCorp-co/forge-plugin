@@ -7,13 +7,17 @@ whether the run measured the whole tree. Whether it was whole is the baseline re
 `in_progress` refuses one saying it was not, so that demand is the entry check's rather than this
 page's.
 
-**Below the top rung the baseline may cite a run rather than be one.** Where the branch was cut from
-a head some gate run already answered for whole, record that result and name where you read it off
-in `--cited`. The write stamps the head your checkout is at, and only where nothing in it is
-uncommitted — which is why the baseline is recorded before the first edit rather than after it: the
-entry check takes the citation only where that stamped head is the commit you cited, and otherwise
-refuses it with the fresh run to spend.
-`forge advance <ref> --owed` says whether this issue's rung may cite at all.
+**At any rung the baseline may cite a run rather than be one, where a ship published one for the
+commit you are standing at.** A ship publishes the whole-tree result for the head it releases, and
+that record is the only thing a citation may rest on: the write is refused where nothing is
+published for the commit it names, so a citation for some other commit is not a cheap path but a
+wrong one. You are told rather than left to know — `forge advance <ref> --owed` looks that store up
+on the very head the write would stamp, and either prints the write that cites it or says nothing is
+published for that head and names the fresh run. Take the command it prints: the published result
+carries what already fails, and a run retyping that field from memory attributes an inherited
+failure to itself. The write stamps that head only where nothing in the checkout is uncommitted,
+which is why the baseline is recorded before the first edit rather than after it — the entry check
+takes the citation only where the stamped head is the commit cited.
 
 What the check cannot judge is yours. **A gate that stops at its first failure has measured only what
 ran**: one red at the front leaves every step behind it unknown, so run the remaining steps by hand

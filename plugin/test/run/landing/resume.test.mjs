@@ -170,6 +170,9 @@ test("a branch past this release with nothing newer installed refuses rather tha
   const after = await ran([KEY], work);
   assert.match(after, new RegExp(`past this release at ${release.slice(0, 7)}`, "u"), after);
   assert.equal(claudeCalls().length, before, `nothing was installed over the newer copy:\n${after}`);
+  /* A release this one is past releases nothing, so it publishes nothing and does not so much as ask: the head in the root is the other landing's, and offering it here would file that head under this release's version (ISS-1101). */
+  assert.doesNotMatch(after, /nothing is published for/u,
+    `the publisher was offered a head this resume did not release:\n${after}`);
   assert.equal(marks().length, 1, `and the mark it owed is up:\n${after}`);
   assert.equal(landing().state, "marked", after);
   assert.equal(remote(at), later, `the branch is still where the other landing left it:\n${after}`);
