@@ -231,11 +231,9 @@ for (const [name, held, said] of [
   });
 }
 
-/* The rebase a step later rewrites the branch too, and `owed` puts this step back ahead of the gate
-   on every resume that can still push: a run whose gate failed once would be refused for the replay
-   the ship itself made and printed the resume for, which is a false refusal with no flag past it. */
-test("the ship's own rebase does not cost the run a second read", () => {
-  const { work } = pushed("read-then-resume");
+/* A refusing gate, which is the one state where the read's head is off HEAD's lineage by this step's own doing. */
+const gateRefuses = (name) => {
+  const { work } = pushed(name);
   const pkg = JSON.parse(readFileSync(join(work, "package.json"), "utf8"));
   pkg.scripts.check = "node -e \"process.exit(1)\"";
   writeFileSync(join(work, "package.json"), JSON.stringify(pkg, null, 2));
@@ -254,7 +252,14 @@ test("the ship's own rebase does not cost the run a second read", () => {
   rewrote(work, ELSEWHERE, 38, "what landed between the read and the ship");
   git(work, "push", "origin", "master:master");
   git(work, "checkout", "iss-962");
+  return { work, mine };
+};
 
+/* The rebase a step later rewrites the branch too, and `owed` puts this step back ahead of the gate
+   on every resume that can still push: a run whose gate failed once would be refused for the replay
+   the ship itself made and printed the resume for, which is a false refusal with no flag past it. */
+test("the ship's own rebase does not cost the run a second read", () => {
+  const { work, mine } = gateRefuses("read-then-resume");
   const env = readTaken(work, mine, [UNDER_REVIEW]);
   const first = runIn(work, ["ship"], env);
   assert.match(first.stderr, /stopped at step 5 \(the gate\)/u, `${first.stdout}${first.stderr}`);
@@ -367,6 +372,73 @@ test("a commit made after the read leaves the ship alone", () => {
   assert.match(run.stdout, /step 4\/10 {2}rebase onto origin\/master/u,
     `a fix committed after the review was refused:\n${run.stdout}${run.stderr}`);
   assert.ok(run.stdout.includes(`taken at ${mine.slice(0, 7)}`), run.stdout);
+});
+
+const ADDED = join("plugin", "src", "added.mjs");
+
+/* A set read off the tree at ship time can have no covering read once the change grew a file, so the
+   whole-set lookup answers null by construction. What the log does hold is a read of the change as it
+   stood, which is a judgement about this head and not an absence of one (ISS-1013). */
+const grewAfter = (name, at) => {
+  const held = baseMoved(name, ELSEWHERE);
+  const env = readTaken(held.work, at(held), [UNDER_REVIEW]);
+  writeFileSync(join(held.work, ADDED), "the file the fix added\n");
+  git(held.work, "add", ADDED);
+  git(held.work, "commit", "-m", "a finding fixed by a file no read carried");
+  return { ...held, env };
+};
+
+test("a fix that added a file after the read is refused, naming what no read carried", () => {
+  const { work, mine, env, remote } = grewAfter("read-then-grew", (held) => held.mine);
+
+  const run = runIn(work, ["ship"], env);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /stopped at step 3 \(the review answers for the head this lands\)/u, run.stderr);
+  assert.ok(run.stderr.includes(ADDED), `the file the read never carried is not named:\n${run.stderr}`);
+  assert.ok(run.stderr.includes(mine.slice(0, 7)),
+    `the head the read was taken at is not named:\n${run.stderr}`);
+  assert.ok(run.stderr.includes(`--send bodies ${ADDED} ${UNDER_REVIEW}`),
+    `the read it asks for does not name the whole set at the head that would land:\n${run.stderr}`);
+  assert.match(run.stdout, /landing moved nothing/u,
+    `the base question refused rather than passing, so this proves nothing about the read:\n${run.stdout}`);
+  assert.doesNotMatch(run.stdout, /scratch gate ran/u, "a refused ship spent the gate");
+  assert.equal(git(remote, "rev-parse", "master").stdout.trim(),
+    git(work, "rev-parse", "master").stdout.trim(), "the refused change was pushed");
+});
+
+/* Two reads this is not, and each is one path away from being it: a head this change had no paths at,
+   which `shortOfWhole` reads as covering the empty set whole, and a head no lineage here reaches. */
+for (const [name, room, at, rewrite] of [
+  ["a head this change had no paths at", "read-at-the-base", (held) => held.base, () => {}],
+  ["a head this history lost", "read-off-lineage", (held) => held.mine, (held) => {
+    git(held.work, "reset", "--soft", held.base);
+    git(held.work, "commit", "-m", "the change under review, rebuilt as one commit");
+  }],
+]) {
+  test(`a read at ${name} is not a read this change outgrew`, () => {
+    const held = grewAfter(room, at);
+    rewrite(held);
+
+    const run = runIn(held.work, ["ship"], held.env);
+    assert.match(run.stdout, /no consult in this log read the whole of this change's 2 file\(s\)/u,
+      `a read at ${name} was taken for one this change outgrew:\n${run.stdout}${run.stderr}`);
+    assert.match(run.stdout, /step 4\/10 {2}rebase onto origin\/master/u,
+      `a read at ${name} stopped a ship this cannot judge:\n${run.stdout}${run.stderr}`);
+  });
+}
+
+test("a file added to fix the gate after the ship's own replay is named, not left to an absence", () => {
+  const { work, mine } = gateRefuses("read-then-grew-on-resume");
+  const env = readTaken(work, mine, [UNDER_REVIEW]);
+  assert.match(runIn(work, ["ship"], env).stderr, /stopped at step 5 \(the gate\)/u);
+  writeFileSync(join(work, ADDED), "the file the gate fix added\n");
+  git(work, "add", ADDED);
+  git(work, "commit", "-m", "the gate's own complaint, fixed by a file no read carried");
+
+  const again = runIn(work, ["ship", "--from", "5"], env);
+  assert.match(again.stderr, /stopped at step 3 \(the review answers for the head this lands\)/u,
+    `the ship's own replay left the added file to an absence:\n${again.stdout}${again.stderr}`);
+  assert.ok(again.stderr.includes(ADDED), `the file the read never carried is not named:\n${again.stderr}`);
 });
 
 test("a landing that moved nothing this change writes leaves the ship alone, and the replay clears it", () => {

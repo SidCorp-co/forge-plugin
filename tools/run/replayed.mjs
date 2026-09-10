@@ -1,13 +1,13 @@
-/* Whether the read that earned the review answers for the head this lands, which is two questions:
-   that the base under the change has not moved a path it writes (ISS-962), and that the commits the
-   read was taken over are still in the history that would land (ISS-972). REPLAY_HELP below argues
-   both. Before the rebase, which settles either whichever head was read; pinned by ls-remote as
-   land-ready's is, a resume past the fetch reading a ref as stale as it; edits no tracked file. */
+/* Whether the read that earned the review answers for the head this lands: that the base under the
+   change has not moved a path it writes (ISS-962), and that the read still answers for it — its
+   commits in that history (ISS-972), its set the whole of the change (ISS-1013). REPLAY_HELP below
+   argues both. Before the rebase, which settles either whichever head was read; pinned by ls-remote
+   as land-ready's is, a resume past the fetch reading a ref as stale as it; edits no tracked file. */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { git, gitOut, lines, REMOTE, stop } from "../checkout.mjs";
-import { logEntries, wholeReadOf } from "../../plugin/src/codex/codex-log.mjs";
+import { judgedBy, logEntries, shortOfWhole, wholeReadOf } from "../../plugin/src/codex/codex-log.mjs";
 import { repoRoot } from "../../plugin/src/codex/codex.mjs";
 import { pathed } from "../../plugin/src/hooks/shell-spans.mjs";
 import { shortly } from "./install.mjs";
@@ -15,9 +15,9 @@ import { movedBy, remoteHead } from "./land-ready/candidate.mjs";
 
 export const REPLAYED = "the review answers for the head this lands";
 
-/** What `-h` says about this step, beside the step itself rather than in the runner's own help: two
+/** What `-h` says about this step, beside the step itself rather than in the runner's own help: three
  *  refusals and what clears each is the longest thing that help says about any one step, and a copy
- *  of it over there ages the moment either refusal is reworded. */
+ *  of it over there ages the moment any of them is reworded. */
 export const REPLAY_HELP = [
   "The step before the rebase asks two things of the read that earned the review. The first is the",
   "same rule land-ready takes for a batch, at the one landing that had none. It pins the head the",
@@ -50,10 +50,16 @@ export const REPLAY_HELP = [
   "of them passes while HEAD still carries the second, since `--from` puts this step back ahead of",
   "the gate and a run whose gate failed would otherwise owe a read for the replay it was told to",
   "make. A rewrite by hand after that takes the recorded head off the lineage and is refused as any.",
-  "It is silent where the log holds no such read, where the read was taken over a working tree and",
-  "its head is therefore where the pass was taken rather than what it read, and where that head is",
-  "no commit this checkout can resolve; it says which of the three, because a check that found",
-  "nothing to judge and one that judged read alike otherwise.",
+  "Where no read covers the whole set it asks a narrower question before it settles for silence:",
+  "does the log hold a read of this change that the change has outgrown — one that read whole the",
+  "paths the change had at its own head, on a lineage this step accepts, where what would land holds",
+  "paths it never carried. That is refused too, naming those paths and asking for the same read at",
+  "the same head, because a read a post-review fix put out of reach is a review that provably does",
+  "not answer for what is being landed, and a widening fix is the case that owes the most.",
+  "It is silent where the log holds no read of this change at all, where the read was taken over a",
+  "working tree and its head is therefore where the pass was taken rather than what it read, and",
+  "where that head is no commit this checkout can resolve; it says which of the three, because a",
+  "check that found nothing to judge and one that judged read alike otherwise.",
 ];
 
 const notFetched = (base, pin, self) =>
@@ -122,18 +128,51 @@ const ownReplay = (tree, at, head) => {
     && held.some((one) => carries(tree, at, one)));
 };
 
+const outgrewSince = (of, at, head, added, held) =>
+  `consult ${of} read the whole of this change at ${shortly(at)}, and the change has grown since: `
+  + `${added.join(", ")} ${added.length === 1 ? "is a file" : "are files"} ${shortly(head)} would land `
+  + `that no read here carries. That is a review which provably does not answer for this head rather `
+  + `than an absence this step cannot judge, and the base under the change is fine, so replaying `
+  + `clears nothing. What is missing is the read at the head that would land, over the whole of what `
+  + `it now touches, and nothing here re-reads for you:\n`
+  + `    echo "<what you were doing>" | forge codex consult --send bodies ${held.map(pathed).join(" ")}\n`
+  + `Then rewrite the review record at ${shortly(head)}, and ship. A fix that adds no file leaves the `
+  + `read covering the whole set and does not stop here at all.`;
+
+/* The change's paths less the ones it deleted, which have no body a read could carry. NUL-delimited and
+   untrimmed: `--name-only` quotes a path outside ASCII and `gitOut` eats a leading space, while a log
+   entry holds the real one either way, so a trimmed set would pass unmatched as an absence. */
+const pathsIn = (tree, from, to) => {
+  const named = git(["diff", "--name-only", "--no-renames", "--diff-filter=d", "-z", `${from}..${to}`], tree);
+  return (named.status === 0 ? named.stdout ?? "" : "").split("\0").filter(Boolean);
+};
+
+/* A read this change outgrew, as against one that never covered it: the newest consult whose head this
+   step accepts and which read whole the paths the change had at that head — diffed from that head's
+   merge base with this change's base, so the ship's own replay leaves a candidate the change's paths
+   and not the landing's. An empty covered set is no read of this change: every bodies consult read it. */
+const outgrew = (tree, was, root, held, head) => {
+  for (const one of judgedBy(logEntries(), root, held).reverse()) {
+    if (one.dirty || !gitOut(["rev-parse", "--verify", `${one.head}^{commit}`], tree)) continue;
+    if (!carries(tree, one.head, "HEAD") && !ownReplay(tree, one.head, head)) continue;
+    const from = gitOut(["merge-base", one.head, was], tree);
+    const covered = from ? pathsIn(tree, from, one.head) : [];
+    const added = held.filter((rel) => !covered.includes(rel));
+    if (covered.length && added.length && shortOfWhole(one, covered).whole) return { one, added };
+  }
+  return null;
+};
+
 /* `--is-ancestor` and not equality: a rebase drops the reviewed commit, while a commit made after the
-   read to fix one of its findings keeps it and lands above it by design. The set is the change's own
-   paths less the ones it deleted, which have no body a read could carry, NUL-delimited and untrimmed
-   because `--name-only` quotes a path outside ASCII and `gitOut` would eat a leading space, while a
-   log entry holds the real one either way — unmatched by any read, it would pass as an absence. */
+   read to fix one of its findings keeps it and lands above it by design. */
 const readSays = (tree, was) => {
   const root = repoRoot(tree);
-  const named = git(["diff", "--name-only", "--no-renames", "--diff-filter=d", "-z", `${was}..HEAD`], tree);
-  const held = (named.status === 0 ? named.stdout ?? "" : "").split("\0").filter(Boolean);
+  const held = pathsIn(tree, was, "HEAD");
   const read = root ? wholeReadOf(logEntries(), root, held) : null;
   const head = gitOut(["rev-parse", "HEAD"], tree);
   if (!read) {
+    const grew = root ? outgrew(tree, was, root, held, head) : null;
+    if (grew) stop(outgrewSince(grew.one.id ?? grew.one.at, grew.one.head, head, grew.added, held));
     return console.log(`  no consult in this log read the whole of this change's ${held.length} `
       + `file(s) at a recorded head of ${root ?? "this tree"}, so the head the review was earned at `
       + `is not something this can read — it judges nothing here and the read stands where it was taken`);
