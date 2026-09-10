@@ -203,10 +203,11 @@ const shipFrom = (tree) => (existsSync(markFile(tree)) ? readFileSync(markFile(t
 const releaseSays = (tree, base) => {
   const was = shipFrom(tree);
   if (!was) {
-    return console.error(`  no ${MARK} in this tree's git directory, so the sha this change landed `
+    console.error(`  no ${MARK} in this tree's git directory, so the sha this change landed `
       + `as cannot be named and what this release moved is unknown; no session may be told it is `
       + `safe. Read both against the head ${REMOTE}/${base} had before the push: `
       + `git log --oneline --first-parent <that sha>..HEAD, git diff --name-only <that sha>..HEAD`);
+    return null;
   }
   const all = (gitOut(["log", "--first-parent", "--reverse", "--format=%H", `${was}..HEAD`], tree) ?? "")
     .split("\n").filter(Boolean);
@@ -216,11 +217,15 @@ const releaseSays = (tree, base) => {
   const moved = (gitOut(["diff", "--name-only", `${was}..HEAD`], tree) ?? "").split("\n").filter(Boolean);
   wroteLine(tree, own);
   const held = moved.filter(freezesSession);
-  if (!held.length) return console.log(`  nothing a session is frozen on moved since ${was.slice(0, 7)}`
-    + ` — the set is ${FROZEN.join(", ")}`);
-  const why = reasonsGiven();
-  console.log(`  a restart is owed before any open session trusts these ${held.length} file(s):`);
-  for (const one of held) console.log(`    ${one} — ${why.get(one) ?? "no reason recorded at the write"}`);
+  if (held.length) {
+    const why = reasonsGiven();
+    console.log(`  a restart is owed before any open session trusts these ${held.length} file(s):`);
+    for (const one of held) console.log(`    ${one} — ${why.get(one) ?? "no reason recorded at the write"}`);
+  } else {
+    console.log(`  nothing a session is frozen on moved since ${was.slice(0, 7)}`
+      + ` — the set is ${FROZEN.join(", ")}`);
+  }
+  return own.at(-1) ?? null;
 };
 
 /** The clause the merged mark's note carries about this change's own files, printed at the step that
@@ -345,10 +350,11 @@ const gateGrew = (tree) => {
 
 /* The backstop, never the decision, and contained whole: what it prints and why it refuses nothing,
    why it is silent rather than loud on a doubtful read, and why the loss in that read only ever
-   tightens it, are docs/cli/the-ladder.md's. The rung comes off the issue the branch names. */
+   tightens it, are docs/cli/the-ladder.md's, as is why `at` is the sha the change landed as and
+   never HEAD. The rung comes off the issue the branch names. */
 const BRANCH_KEY = /^iss-(\d+)/u;
 
-const tierCeiling = (tree, was) => {
+const tierCeiling = (tree, was, at) => {
   try {
     const key = BRANCH_KEY.exec(gitOut(["rev-parse", "--abbrev-ref", "HEAD"], tree) ?? "")?.[1];
     if (!key) return undefined;
@@ -363,7 +369,7 @@ const tierCeiling = (tree, was) => {
     const fields = { complexity: body.complexity, plan: body.plan, whole: true, moved: page.why ? [] : [page.out] };
     const rung = rungOf(fields), ceiling = CEILINGS[rung];
     if (!ceiling) return undefined;
-    const rows = (gitOut(["diff", "--numstat", `${was}..HEAD`], tree) ?? "").split("\n").filter(Boolean);
+    const rows = (gitOut(["diff", "--numstat", `${was}..${at}`], tree) ?? "").split("\n").filter(Boolean);
     const each = (row) => row.split("\t").slice(0, 2).reduce((part, one) => part + (Number.parseInt(one, 10) || 0), 0);
     const landed = { files: rows.length, lines: rows.reduce((sum, row) => sum + each(row), 0) };
     const line = `  ${ref} is a \`${rung}\` and landed ${landed.files} file(s) and `
@@ -515,9 +521,9 @@ const shipSteps = (tree, root, base, note) => {
       console.log(copy
         ? `  ${copy.name} ${copy.running} running, ${copy.installed} installed${copy.stale ? " — this version is in no install record" : ""}`
         : "  no install record answers for this plugin");
-      releaseSays(tree, base);
+      const landed = releaseSays(tree, base);
       const was = shipFrom(tree);
-      if (was) tierCeiling(tree, was);
+      if (landed) tierCeiling(tree, was, landed);
       gateGrew(tree);
       await reviewOwed(tree);
       const mark = runsMark(root);

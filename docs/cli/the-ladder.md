@@ -68,11 +68,13 @@ backstop rather than the decision: by the time a ship runs, a refusal protects n
 and returns. It is contained whole for the same reason — the release has already happened by the
 time it runs, and an advisory number is not worth the lines that say what landed. Every doubtful
 read makes it silent rather than loud: an unnamed branch, a tracker that could not answer, an answer
-that is not an object. The one loss it accepts is the correction page's, which carries the latest
-correction of its kind and no earlier one, so a climb an ordinary correction followed is not read
-here. That loss is one-directional — a dropped correction only ever lowers the rung, which tightens
-a print that refuses nothing, so it nags where nothing was owed and never falls silent where
-something was.
+that is not an object. What it counts is the change and not the push: the range ends at the sha the
+change landed as, never at HEAD, which by that step carries the version commit the same release just
+made, and a push that added no commit of its own is measured against nothing (ISS-860). The one loss
+it accepts is the correction page's, which carries the latest correction of its kind and no earlier
+one, so a climb an ordinary correction followed is not read here. That loss is one-directional — a
+dropped correction only ever lowers the rung, which tightens a print that refuses nothing, so it
+nags where nothing was owed and never falls silent where something was.
 
 ## Two readings the rule does not govern
 

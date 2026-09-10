@@ -445,6 +445,86 @@ test("a plan declaring a person climbs the rung the ceiling is read at", () => {
   assert.match(said, /ceiling of 15 and 500/u, "so the ceiling is the rung above trivial's");
 });
 
+/* The stub and the manifests pushed below the range, which the cases above leave inside it: every
+   count below is an exact figure and would read the setup's own commits as the change's. */
+const based = (name) => {
+  const { at, work } = pushed(name);
+  stubbed(work);
+  git(work, "push", "origin", "HEAD:master");
+  return { at, work };
+};
+
+const SYNC = `import { readFileSync, writeFileSync } from "node:fs";
+const at = "plugin/.claude-plugin/plugin.json";
+const held = JSON.parse(readFileSync(at, "utf8"));
+writeFileSync(at, JSON.stringify({ ...held, version: JSON.parse(readFileSync("package.json", "utf8")).version }));
+`;
+
+/* What makes this scratch checkout's release commit the shape a real one has: `npm version` raises
+   the package and the lock, and the `version` lifecycle script carries it into the plugin manifest,
+   as this repository's own script does. Three files and eight changed lines, every release. The
+   trailing newline is npm's, and a manifest written without one has its last line change too. */
+const releasesThree = (work) => {
+  const held = JSON.parse(readFileSync(join(work, "package.json"), "utf8"));
+  writeFileSync(join(work, "sync-version.mjs"), SYNC);
+  writeFileSync(join(work, "package.json"),
+    `${JSON.stringify({ ...held, scripts: { ...held.scripts, version: "node sync-version.mjs" } }, null, 2)}\n`);
+  writeFileSync(join(work, "package-lock.json"), `${JSON.stringify({ name: "scratch", version: held.version,
+    lockfileVersion: 3, packages: { "": { name: "scratch", version: held.version } } }, null, 2)}\n`);
+  git(work, "add", "package.json", "package-lock.json", "sync-version.mjs");
+  git(work, "commit", "-m", "the manifests a release writes");
+  git(work, "push", "origin", "HEAD:master");
+};
+
+const changedIn = (rows) => rows.reduce((sum, row) =>
+  sum + row.split("\t").slice(0, 2).reduce((part, one) => part + Number(one), 0), 0);
+
+test("the tier line counts the change and leaves out the release commit the ship just made", () => {
+  const { at, work } = based("rung-release-commit");
+  atRung(at, "fix");
+  releasesThree(work);
+  for (const one of ["a", "b", "c"]) landIn(work, join("plugin", "src", `${one}.mjs`), 5, `${one} landed`);
+  const out = shipOnBranch(work, "iss-318").stdout;
+
+  const bump = git(work, "diff", "--numstat", "HEAD^", "HEAD").stdout.trim().split("\n");
+  assert.equal(bump.length, 3, `the fixture's release commit is not three files:\n${bump.join("\n")}`);
+  assert.equal(changedIn(bump), 8, `nor the eight changed lines a release writes:\n${bump.join("\n")}`);
+  assert.match(out, /landed 3 file\(s\) and 15 changed line\(s\)/u, out);
+  const wrote = /^ {4}landing wrote (.+)$/mu.exec(out)?.[1].split(", ");
+  assert.equal(wrote?.length, 3, `the count and the mark's own clause disagree about the change:\n${out}`);
+});
+
+/* Silence, not a nought: the change was measured at the ship that landed it, and a zero against a
+   ceiling reads as a landing judged to be inside its rung. */
+test("a release carrying nothing but its own version commit measures no landing", () => {
+  const { at, work } = based("rung-bump-only");
+  atRung(at, "trivial");
+  landIn(work, join("plugin", "src", "one.mjs"), 400, "a change far past the shortest rung's ceiling");
+  const first = shipOnBranch(work, "iss-318");
+  assert.match(first.stderr, /ISS-318 is a `trivial`/u, `the ship that landed it measured it:\n${first.stderr}`);
+
+  const again = lastStep(work);
+  const said = `${again.stdout}\n${again.stderr}`;
+  assert.match(said, /this release landed nothing but the version commit/u, said);
+  assert.doesNotMatch(said, /ISS-318 is a/u, `a release with no change of its own was measured:\n${said}`);
+});
+
+/* The one range the fix leaves holding more than the change. Nothing new is claimed for it: the
+   clause a line above says the range holds a release commit, and the count still carries it. */
+test("a release commit of an earlier attempt below the change is counted, and the range says it holds one", () => {
+  const { at, work } = based("rung-earlier-bump");
+  atRung(at, "fix");
+  const held = JSON.parse(readFileSync(join(work, "package.json"), "utf8"));
+  writeFileSync(join(work, "package.json"), JSON.stringify({ ...held, version: "1.0.1" }, null, 2));
+  git(work, "add", "package.json");
+  git(work, "commit", "-m", "chore(release): 1.0.1, the bump an earlier attempt left");
+  landIn(work, join("plugin", "src", "one.mjs"), 5, "the first commit of the change");
+  landIn(work, join("plugin", "src", "two.mjs"), 5, "the second commit of the change");
+  const out = shipOnBranch(work, "iss-318").stdout;
+  assert.match(out, /landed 3 file\(s\) and 12 changed line\(s\)/u, out);
+  assert.match(out, /a release commit sits among them/u, `the range's own clause is what says so:\n${out}`);
+});
+
 /* The clause `developed` reads back against the plan, printed here because this is the step that
    knows what landed. The bump is not the change, so the files a release commit touches come out. */
 test("the last step prints what this change wrote, and leaves the release commit's own files out of it", () => {
