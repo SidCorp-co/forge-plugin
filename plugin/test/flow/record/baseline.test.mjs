@@ -4,6 +4,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync, spawnSync } from "node:child_process";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { dirtyRepo, tempRoom } from "../../fixtures.mjs";
 
@@ -61,6 +63,14 @@ test("a checkout with uncommitted work stamps no head, and a clean one stamps th
     inRoom("commit", "-qm", "the work committed");
     assert.equal(stampedNow(SHAPES.baseline).head, inRoom("rev-parse", "HEAD").trim(),
       "and once nothing is uncommitted the head is the tree, so it may be stamped");
+    /* A machine's own configuration must not decide what the record says the tree was: this setting
+       empties the default porcelain output over a source file nobody committed. */
+    inRoom("config", "status.showUntrackedFiles", "no");
+    writeFileSync(join(room, "extra.mjs"), "a source file nobody committed\n");
+    assert.equal(inRoom("status", "--porcelain").trim(), "",
+      "the setting hides it, which is what the flags are there to defeat");
+    assert.equal(stampedNow(SHAPES.baseline).head, undefined,
+      "and the stamp reads the tree rather than what this machine was configured to show of it");
   } finally {
     process.chdir(was);
   }
