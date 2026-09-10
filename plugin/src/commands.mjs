@@ -1,6 +1,6 @@
 import { fail, keepOnFailure } from "./resolve/settings.mjs";
 import { bodyFrom, notABody } from "./resolve/payload.mjs";
-import { declaredFor, scoped, write } from "./tracker/rest.mjs";
+import { declaredFor, refuseUndeclared, scoped, write } from "./tracker/rest.mjs";
 import { EDGE_KINDS, otherOf } from "./tracker/routes.mjs";
 import {
   DEFAULT_LIMIT,
@@ -112,6 +112,8 @@ const printIssues = (read, limit, order) => {
 };
 
 const LIST_USAGE = "Usage: forge issue [--status s] [--search q] [--limit n]";
+/* Seventeen names are a list rather than a sentence, so the route out is where they are counted. */
+const STATUSES_SEEN = "`forge doctor` counts the statuses this project's issues carry.";
 
 const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full] [--set f=v... --why W]"
   + " [--blocks ISS-46|--relates ISS-46|--unlink ISS-46]";
@@ -198,6 +200,15 @@ export const commands = {
     if (first === undefined || first.startsWith("--")) {
       const declared = declaredFor("forge_issues", "filters").map((one) => `--${one}`);
       const { limit: raw, ...filters } = flags(argv, "issue", [], { usage: LIST_USAGE, hidden: declared });
+      /* Each named at its own call, not looped: the value a caller typed is what the judge is handed, and a loop would name the field and pass whatever the loop held (ISS-936). */
+      refuseUndeclared("issue", "status", filters.status,
+        { values: declaredFor("forge_issues", "status"), hint: STATUSES_SEEN });
+      refuseUndeclared("issue", "statusNot", filters.statusNot,
+        { field: "status", values: declaredFor("forge_issues", "status"), hint: STATUSES_SEEN });
+      refuseUndeclared("issue", "priority", filters.priority,
+        { values: declaredFor("forge_issues", "priority") });
+      refuseUndeclared("issue", "category", filters.category, { values: KIND_NAMES });
+      refuseUndeclared("issue", "complexity", filters.complexity, { values: COMPLEXITY_NAMES });
       return printIssues(await everyIssue(filters), limitFrom(raw), declaredFor("forge_issues", "priority"));
     }
     const reference = first;
@@ -228,6 +239,8 @@ export const commands = {
     if (retired) fail(retired);
     const { with: rides, complexity, category, priority, new: fresh, ...given } = flags(rest, "new", ["--new"], row);
     if (!given.title) fail("An issue needs --title; the tracker refuses an untitled one.");
+    refuseUndeclared("new", "status", given.status,
+      { values: declaredFor("forge_issues", "status"), hint: STATUSES_SEEN });
     if (complexity !== undefined && !COMPLEXITY_NAMES.includes(complexity)) fail(complexityRefusal(complexity));
     if (category !== undefined && !KIND_NAMES.includes(category)) fail(kindRefusal(category));
     const { keys: withKeys, refusal: badKeys } = keysFrom(rides);

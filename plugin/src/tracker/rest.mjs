@@ -256,6 +256,14 @@ export const declaredValue = (tool, field, given) => {
   return !allowed.length || allowed.includes(given) ? null : didYouMean(field, given, allowed);
 };
 
+/** Throws rather than answering, so no call site judges the value and drops the judgement; the verb
+ *  is the caller's, and undefined passes — an argument nobody gave is no value at all (ISS-936). */
+export const refuseUndeclared = (verb, flag, given, { field = flag, values, hint = undefined }) => {
+  if (given === undefined || !values.length || values.includes(given)) return;
+  fail(`${verb} --${flag}: ${didYouMean(field, given, values, hint)} Nothing was sent: the set is `
+    + "this CLI's own, so a name outside it is answered here rather than by whatever came back.");
+};
+
 /** What a status name is, off the row that declares it: `step` a rung of this plugin's own flow, `replacedBy` the rung that took a retired name over, `writtenByNobody` the clause saying whose path enters it and no run's. A row carrying none of the three is readable, written by a park or a set, and no step. Null for a name the table does not declare, which `declaredValue` is what refuses. */
 export const statusKind = (name) =>
   DECLARES.forge_issues.status.find((one) => one.name === name) ?? null;

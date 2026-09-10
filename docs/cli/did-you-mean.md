@@ -100,6 +100,6 @@ A flag accepted and named nowhere is declared beside the verb that takes it rath
 names this CLI's flag instead. No suggestion may offer any of them: a refusal naming a flag its caller
 may not act on has leaked the thing that rule keeps off every other surface.
 
-No checker holds a source line to the sentences above — ISS-227 was to and is dropped, and the wider
-rule is ISS-936's. So this page is held by cases, and a new refusal can still be written in its own
-words without anything going red.
+One sentence above has a checker now: `plugin/src/checks/surface/judged-arguments.mjs` refuses an
+argument whose values this CLI declares and whose verb spends no judge on it before the call, with
+`refuseUndeclared` as that sentence. The rest of this page is held by cases alone.

@@ -229,6 +229,10 @@ method text and not a feature to keep.
   only of the instruction the writing layer was handed, so a call that fewer of the caller's words
   reached SHALL be refused before anything is sent, with both counts and every word that did not
   arrive named.
+- **AC-02-9-17** · Rev: 1 · Proof: plugin/test/checks/surface/judged-arguments.test.mjs "the judge taken out of the verbs that spend it is a finding for every slot it answered for"
+  WHERE an argument the surface invites takes one of a set of values the CLI itself declares, the CLI
+  SHALL judge the value against that set before it spends the call, and SHALL name the nearest
+  declared value in a refusal of its own rather than sending the value and reporting what came back.
 
 ### UC-02-10 — The projects, at the plugin's own scope
 
