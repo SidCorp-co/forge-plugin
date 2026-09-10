@@ -96,6 +96,38 @@ test("a file the landing wrote and the plan does not name owes a correction", ()
   assert.deepEqual(owed({ acceptanceCriteria: CRITERIA, mergedAt: at() },
     wrote("; landing wrote plugin/src/flow/earned.mjs, tools/run.mjs")).map((one) => one.what), [],
   "an issue carrying no plan has no list to be outside of");
+  /* The carve-out is the plan field's own blankness and never a plan whose prose happens to name nothing: that plan has a list, and it is empty (ISS-1018). */
+  const prose = { ...planned, plan: "It changes the carve-out and nothing else." };
+  const both = "; landing wrote plugin/src/flow/earned.mjs, tools/run.mjs";
+  const pathless = owed(prose, wrote(both));
+  assert.equal(pathless.length, 1);
+  assert.match(pathless[0].what, /earned\.mjs, tools\/run\.mjs/u,
+    "so every landed path is outside a plan whose prose names none of them");
+  const halved = owed(prose, [...wrote(both),
+    recorded("correction", { moved: "the change also wrote tools/run.mjs", why: "the plan named neither" })]);
+  assert.equal(halved.length, 1, "and a correction extends that list");
+  assert.match(halved[0].what, /earned\.mjs/u);
+  assert.doesNotMatch(halved[0].what, /run\.mjs/u, "by the path it names and no other");
+});
+
+/* ISS-402 and ISS-1018: a correction is what a plan's list is extended by and never what stands in for one, so the carve-out is the plan field's own blankness — keyed on the joined text instead, the rung climb the ladder prints to every run that outgrows its rung handed back the demand that rung had dropped. */
+test("a record whose plan field holds no text has no list to be outside of, whatever its corrections name", () => {
+  const NOTE = "merged to master at 43b811e; reviewed head 43b811e; judged head 43b811e; landing moved nothing";
+  const landed = [mark(`${NOTE}; landing wrote plugin/src/flow/earned.mjs, tools/run.mjs`),
+    recorded("review", { reviewer: "codex", commit: "43b811e", outcome: "approved", finding: [] })];
+  const owed = (issue, comments) => CHECKS.developed(view(issue, comments), "ISS-3").map((one) => one.what);
+  const blank = { acceptanceCriteria: CRITERIA, complexity: "xs", mergedAt: at() };
+  const climb = recorded("correction", { moved: "Rung: trivial -> fix", why: "the work grew a second file" });
+  for (const plan of [undefined, null, "", "  \n\t "]) {
+    assert.deepEqual(owed({ ...blank, plan }, [...landed, climb]), [],
+      `a plan field of ${JSON.stringify(plan)} is no plan, and the climb that outgrew the rung is no list either`);
+  }
+  /* Both readers of `namedIn` off one answer: the check above, and the composer that must not leave out of the note a path this check would refuse (`namedFor`, record/merged.mjs). */
+  const named = [...landed,
+    recorded("correction", { moved: "the change also wrote tools/run.mjs", why: "the ship prints the clause" })];
+  assert.equal(namedIn(view(blank, named)), "",
+    "and a correction naming a path stands in for no plan either");
+  assert.deepEqual(owed(blank, named), []);
 });
 
 /* The rung and `namedIn` read the corrections a record holds through one function over the list `assemble` filed, `correction` repeating since ISS-11; the hand parse of the same comments that stood beside it was a second parse for one answer and its comment still claimed the kind cannot repeat (ISS-161, ISS-847). The source assertion is the half that fails without the change, this being a change of readers and not of answers: what a malformed correction earns is `plugin/test/guides/contract.test.mjs`'s, and one copy of that is enough. */
@@ -157,6 +189,11 @@ test("a fitted note earns what the whole list would have earned, and refuses wha
       `${one} is a path the plan does not name, so the note may not leave it out`);
   }
   assert.doesNotMatch(grew[0].what, /case-118/u, "and no path it does name is reported as growth");
+  /* And what the composer does with the blank `namedIn` answers for a plan field holding no text: no path is owed, so it fits the note by leaving out whichever it can and refuses nothing (ISS-1018). */
+  const blank = note([]);
+  assert.match(blank, /leaves out \d+ that no plan of this issue names/u);
+  assert.deepEqual(owed(null, []).map((one) => one.what), [],
+    "and the check reads that same blank answer off the same record");
 });
 
 test("a project that deploys on its own earns released by proving the deploy, not by asserting it", () => {

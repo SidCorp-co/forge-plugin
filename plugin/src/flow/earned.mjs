@@ -413,16 +413,20 @@ const deployOwed = (view, ref) => {
   return out;
 };
 
-/** The plan's own text and not a path list, a plan being prose; `wrote` is not `moved`. The composer of the note reads this too, before it leaves a path out of one that will not fit. */
-export const namedIn = (view) => [unwrap(view.issue.plan), ...movedIn(view)].join("\n");
+/** The plan's own text and the corrections extending it, and not a path list, a plan being prose; `wrote` is not `moved`. Blank where the plan field holds no text, whatever the corrections name: a correction is what a plan's list is extended by and never what stands in for one, so the climb the ladder prints to every run that outgrows its rung leaves this blank rather than turning it into a list that names no path (ISS-402, ISS-1018). The test is the field and not the rung, a rung climbed by a correction past `approved` having no plan to be held to either. The composer of the note is the second reader — `namedFor` in `record/merged.mjs` — so the carve-out is here and not in either reader, which would otherwise each keep a copy of the same question. */
+export const namedIn = (view) => {
+  const plan = unwrap(view.issue.plan);
+  return plan ? [plan, ...movedIn(view)].join("\n") : "";
+};
 
 /* A rung below `feature` writes no plan, and refusing against a list the ladder excused would take
-   that rung back. */
+   that rung back: `namedIn` is blank there, which is no list rather than an empty one. A plan that
+   exists and names no path does have a list, and every landed path is outside it. */
 const unplannedIn = (view) => {
   const wrote = landingWrote(view.comments);
   if (!wrote) return [];
   const named = namedIn(view);
-  if (!named.trim()) return [];
+  if (!named) return [];
   return wrote.filter((path) => !namesPath(named, path));
 };
 
