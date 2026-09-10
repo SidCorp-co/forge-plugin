@@ -1,13 +1,13 @@
 /* `start`'s half of `tools/run.mjs`: the worktree it adds beside the checkout, the holder id it
-   mints with it, and what it says about a path that is already taken. The other verbs are
-   `run-script.test.mjs`'s and the review's are `run-review.test.mjs`'s, as that file's head says. */
+   mints with it, and what it says about a path that is already taken. Ending it again is
+   `finish.test.mjs`'s, the landing verbs `run-script.test.mjs`'s, the review `run-review.test.mjs`'s. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { BARE, committed, git, OWN_SLUG, runIn, scratch } from "./run-fixtures.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { BARE, committed, git, OWN_SLUG, runIn, scratch } from "../run-fixtures.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 
 const checkout = (name) => {
   const room = scratch(name);

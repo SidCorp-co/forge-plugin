@@ -3,7 +3,7 @@
    copy with nothing to fail when it ages past the tree, and four of the lines sixteen runs obeyed
    were workarounds for defects closed three releases earlier (ISS-79). */
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -14,20 +14,20 @@ import { checkoutRoot, defaultBranch, git, gitOut, loud, parsed, read, REMOTE, S
 import { recordDir, runSays } from "./gates/timing.mjs";
 import { acrossVersion } from "./gates/carried.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
-import { follows, installs, LINKED } from "./run/install.mjs";
+import { follows, installs } from "./run/install.mjs";
 import { REPLAY_HELP, REPLAYED, replaySays, replayedBy } from "./run/replayed.mjs";
 import { cleanTree, INSTALLS, land, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./run/land.mjs";
 import { landReady } from "./run/land-ready.mjs";
 import { onlyRelease, RELEASE_FILES } from "./run/landing.mjs";
 import { CHECK, publishes } from "./run/publish.mjs";
 import { forgetBump, unwound, versionAbove } from "./run/version.mjs";
-import { occupied } from "./run/start/occupant.mjs";
-import { mintRunId, RUN_ID_VAR } from "./run/start/run-id.mjs";
+import { start } from "./run/workspace/start.mjs";
+import { finish, FINISH_HELP } from "./run/workspace/finish.mjs";
 import { markRefused, REVIEWED, REVIEW_PATHS, reviewBody, reviewLines, reviewSays, spannedIn }
   from "./run/review.mjs";
 import { edgesLeft, fileIssue } from "../plugin/src/tracker/filing/route.mjs";
 import { releaseMark, runsMark } from "../plugin/src/stats/eval.mjs";
-import { refusing, slugIfAny } from "../plugin/src/resolve/settings.mjs";
+import { refusing } from "../plugin/src/resolve/settings.mjs";
 import { CEILINGS, climbForm, overCeiling } from "../plugin/src/ladder.mjs";
 import { partForLanding } from "../plugin/src/guides/served.mjs";
 
@@ -43,12 +43,19 @@ const NO_MARK = `no ${REVIEWED} in this repository, so what is owed a reading ca
 const sig = (verb) => VERBS.get(verb).signature;
 
 const usage = () => [
-  `Usage: ${SELF} <start|ship|land|land-ready|review> [args]`,
-  "The repository's own steps around one change: the worktree a run works in, and the release that",
-  "puts its commit in the plugin copy the next session loads. Everything else is the change itself.",
+  `Usage: ${SELF} <start|finish|ship|land|land-ready|review> [args]`,
+  "The repository's own steps around one change: the worktree a run works in, the release that puts",
+  "its commit in the plugin copy the next session loads, and the call that ends that workspace again.",
+  "Everything else is the change itself.",
   "",
   `  ${sig("start")}   add the worktree beside this checkout, link both node_modules, and`,
-  "                          print the wrapper a probe of the change must invoke",
+  "                          print the wrapper a probe of the change must invoke, the id this run",
+  "                          holds its lease under, and the one directory its scratch belongs in",
+  `  ${sig("finish")}         end the workspace \`start\` made for that key: the scratch directory under`,
+  "                          that run's own id, the worktree, its branch through git's own merged",
+  "                          check, and that tree's verdict record. It removes nothing else and",
+  "                          nothing by pattern or by age, refuses where a removal would destroy",
+  "                          work no record cites, and says what it left and why",
   `  ${sig("ship")}`,
   "                          clean tree, fetch, the review proved to answer for the head this lands,",
   "                          rebase, `npm run check`, a version above the remote head, push, the",
@@ -79,6 +86,8 @@ const usage = () => [
   "",
   "ship stops at the first failure and writes nothing past it, and a resume past the gate spends the",
   "gate first, so nothing that pushes runs against a tree no gate has passed.",
+  "",
+  ...FINISH_HELP,
   "",
   ...REPLAY_HELP,
   "",
@@ -147,48 +156,6 @@ const usage = () => [
   "make whole, or a tree with uncommitted work in it, is left exactly where it is and the refusal",
   "says so.",
 ].join("\n");
-
-/* The slug is in the name because two projects on one device share the parent directory and the
-   issue-key scheme: `wt-ISS-42` was one project's live work or another's depending on who got there
-   first (ISS-401). A checkout with no project file is named by its directory. */
-const worktreePath = (root, key) => join(dirname(root), `wt-${slugIfAny() ?? basename(root)}-${key}`);
-
-const start = ({ words: [given, slug] }) => {
-  const key = String(given ?? "").toUpperCase();
-  if (!/^ISS-\d+$/u.test(key)) stop(`start takes the issue key it works, \`ISS-nn\`, not \`${given ?? ""}\`.`);
-  const root = checkoutRoot(HERE);
-  const path = worktreePath(root, key);
-  if (existsSync(path)) stop(occupied(root, path));
-  const branch = `iss-${key.slice(4).toLowerCase()}${slug ? `-${slug}` : ""}`;
-  const base = defaultBranch(root);
-  loud("git", ["-C", root, "worktree", "add", path, "-b", branch, base], root,
-    `Pick another branch name than ${branch} if it is taken.`);
-  /* All of it or none of it: a half-linked tree refuses the next `start` for the path it left and
-     keeps the branch it cut, so the run's escape is two commands it was never told. */
-  try {
-    for (const one of LINKED) {
-      if (!existsSync(join(root, one))) {
-        console.error(`  ${one} is not installed in the checkout, so nothing was linked for it.`);
-        continue;
-      }
-      symlinkSync(join(root, one), join(path, one));
-      console.log(`  linked  ${join(path, one)}`);
-    }
-  } catch (error) {
-    git(["-C", root, "worktree", "remove", "--force", path], root);
-    git(["-C", root, "branch", "-D", branch], root);
-    stop(`${path} could not be linked (${error.message}), so the worktree and ${branch} are removed `
-      + `again and nothing is half-made. Install the checkout's dependencies, then start over.`);
-  }
-  console.log(`\nBranch ${branch} on ${path}, cut from ${base}.`);
-  console.log(`This run's own lease holder, which every tracker write it makes carries — without it`);
-  console.log(`the run writes under the dispatching session's id, which every agent of a wave shares:`);
-  console.log(`  ${RUN_ID_VAR}=${mintRunId(path, key)}`);
-  console.log(`Probe the change with this tree's own wrapper, never the one on PATH:`);
-  console.log(`  ${join(path, "plugin", "bin", "forge")} <args>`);
-  console.log(`  node ${join(path, "plugin", "hooks", "entries")}/<gate>.mjs   one gate, alone`);
-  console.log(`Ship it from that tree: ${SELF} ship`);
-};
 
 /* In the tree's git directory and not in this process: --from is a new process, and after the push
    the remote head is no range's start. */
@@ -579,7 +546,10 @@ const ship = async ({ flags }) => {
   console.log(`\nReleased. Verify the change against the installed copy by its own path, not \`forge\` on PATH.`);
 };
 
-const VERB_RUNS = new Map([["start", start], ["ship", ship],
+const VERB_RUNS = new Map([
+  ["start", (read) => start(read, { here: HERE, self: SELF })],
+  ["finish", (read) => finish(read, { here: HERE })],
+  ["ship", ship],
   ["land", (read) => land(read, SELF)],
   ["land-ready", (read) => landReady(read, { ...named(), root: HERE, base: defaultBranch(HERE), self: SELF })],
   ["review", review]]);

@@ -1,10 +1,16 @@
-/* The tree path is the issue key beside the checkout, so two projects sharing a parent directory
-   and the ISS-nn scheme derive one path (ISS-401); whose tree is there decides who can clear it. */
+/* The tree path is the issue key beside the checkout with the project's slug in it, since two projects
+   sharing a parent directory and the ISS-nn scheme derived one path (ISS-401); whose tree is there
+   decides who can clear it, and the verb that makes one and the verb that ends one read both off here. */
 import { realpathSync } from "node:fs";
-import { basename, dirname } from "node:path";
+import { basename, dirname, join } from "node:path";
 
+import { slugIfAny } from "../../../plugin/src/resolve/settings.mjs";
 import { gitCommonDir, gitOut } from "../../checkout.mjs";
 import { runIdAt, RUN_ID_VAR } from "./run-id.mjs";
+
+export const KEY = /^ISS-\d+$/u;
+
+export const worktreePath = (root, key) => join(dirname(root), `wt-${slugIfAny() ?? basename(root)}-${key}`);
 
 const resolved = (one) => {
   try {
@@ -24,25 +30,34 @@ const same = (one, other) => {
 // The git dir itself where it is not a `.git` in a checkout: a bare repository backs worktrees too.
 const ownerOf = (common) => (basename(common) === ".git" ? dirname(common) : common);
 
-export const occupied = (root, path) => {
+/** Whose tree stands at `path`: this checkout's with its lease id, another repository's with its owner, or no root. */
+export const whoseTree = (root, path) => {
   // The toplevel as well: `rev-parse` inside a plain directory answers for whatever encloses it.
   const common = gitCommonDir(path);
   const top = gitOut(["rev-parse", "--show-toplevel"], path);
-  if (!common || !same(top, path)) {
+  if (!common || !same(top, path)) return { plain: true };
+  if (!same(common, gitCommonDir(root))) {
+    const owner = ownerOf(common);
+    return { owner, itsOwn: same(owner, path) };
+  }
+  return { mine: true, held: runIdAt(path) };
+};
+
+export const occupied = (root, path) => {
+  const whose = whoseTree(root, path);
+  if (whose.plain) {
     return `${path} is already there and git answers no worktree root for it, so it is a plain `
       + `directory or a tree this checkout cannot read — which of the two is what \`git -C ${path} `
       + `status\` says. Start again once the path is free.`;
   }
-  if (!same(common, gitCommonDir(root))) {
-    const owner = ownerOf(common);
-    const whose = same(owner, path) ? "a checkout of its own" : `a worktree of ${owner}`;
-    return `${path} is already there and is ${whose}, so clearing it is that repository's to do and `
+  if (whose.owner) {
+    const which = whose.itsOwn ? "a checkout of its own" : `a worktree of ${whose.owner}`;
+    return `${path} is already there and is ${which}, so clearing it is that repository's to do and `
       + `no command here reaches it. This path is derived from the issue key alone and that `
       + `repository keys its issues the same way, so the key has no tree beside ${dirname(root)} `
       + `until the one there is gone: work it once that repository has released the path.`;
   }
-  const held = runIdAt(path);
   return `${path} is already there, and start never touches a worktree it did not make. Work in it, `
     + `or remove it: git -C ${root} worktree remove ${path}`
-    + (held ? `\nThe id that run takes the lease under: ${RUN_ID_VAR}=${held}` : "");
+    + (whose.held ? `\nThe id that run takes the lease under: ${RUN_ID_VAR}=${whose.held}` : "");
 };
