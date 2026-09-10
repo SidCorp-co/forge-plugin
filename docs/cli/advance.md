@@ -91,9 +91,9 @@ past. The finer rule, refusing only the criteria those paths reached, waits on I
 evidence is an attachment, a URL or a sha, and none of the three names a path.
 
 The line that heads that answer is no longer this verb's alone, and neither is the move under it. A
-record write ends with the line, `forge resume` prints it in its brief, and a write whose payload
-completes the rung asks this file's own target and check for the move, so one function answers for
-all four (ISS-285, ISS-1103; [record-the-rung.md](record-the-rung.md)). The count the line carries is
+record write ends with the line, `forge resume` prints it in its brief, and a write whose `--also`
+set completes the rung asks this file's own target and check for the move, so one answers all four
+(ISS-285, ISS-1103; [record-the-rung.md](record-the-rung.md)). The count the line carries is
 followed by the items in both places, from one formatter: a run told only how many spent a call
 asking which. Where the reading refuses — a closed issue, a side status whose page holds no park
 record — the line is the refusal's first sentence, and the refusing verb prints the command.

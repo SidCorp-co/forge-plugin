@@ -90,5 +90,6 @@ nothing has to be told. The report closes with the run's own worklog — the bra
 touched and the plugin copy the capture was made under — so one read answers which copy typed it.
 
 A write also ends by saying what the issue now owes, and takes the other kinds its rung cites in the
-same call, and makes the move that set earns. The pair counts behind both, the order a call writes
-in, and what a refusal costs: [record-the-rung.md](record-the-rung.md).
+same call — `--also <kind>` opens each one after the first with its own payload — and makes the move
+that set earns, in that same call. The pair counts behind both, the order a call writes in, and what
+a refusal costs: [record-the-rung.md](record-the-rung.md).
