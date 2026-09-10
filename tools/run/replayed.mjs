@@ -97,40 +97,40 @@ const carries = (tree, of, head) => git(["merge-base", "--is-ancestor", of, head
 
 /* The one rewrite this step forgives, being the step's own: `owed` puts it back ahead of the gate on
    every resume, so a ship whose gate failed after rebasing would be refused for the replay it had
-   just been told to make. Written by the rebase step, and nothing else rides on it — the read has to
-   predate the head rebased from and HEAD to carry the head rebased to, which a later rewrite ends. */
+   just been told to make. Nothing else rides on it — a later rewrite by hand ends the chain. */
 const MARK = "forge-ship-replay";
 const markAt = (tree) => join(gitOut(["rev-parse", "--absolute-git-dir"], tree) ?? tree, MARK);
 
-const markRead = (tree) => {
-  const [from, to] = existsSync(markAt(tree))
-    ? readFileSync(markAt(tree), "utf8").trim().split(" ") : [];
-  return from && to ? { from, to } : null;
-};
+const markRead = (tree) =>
+  (existsSync(markAt(tree)) ? readFileSync(markAt(tree), "utf8") : "").trim().split(/\s+/u).filter(Boolean);
 
+/* Every head the branch stood at when this step let it through, and not just the last pair: two
+   failed gates are two replays, and a read taken between them belongs to neither end of one pair.
+   The chain holds while what it last left is still under what this replay starts at, so a commit
+   made to fix the gate extends it and a rewrite by hand starts it over. */
 export const replayedBy = (tree, from) => {
   const to = gitOut(["rev-parse", "HEAD"], tree);
   if (!from || !to || from === to) return;
-  /* Two failed gates are two replays, and keeping only the last one refuses the read the first was
-     taken before. The chain holds while what it last left is still under what this one starts at. */
   const held = markRead(tree);
-  writeFileSync(markAt(tree), `${held && carries(tree, held.to, from) ? held.from : from} ${to}\n`);
+  const kept = held.length && carries(tree, held.at(-1), from) ? held : [];
+  writeFileSync(markAt(tree), `${[...kept, from, to].join(" ")}\n`);
 };
 
 const ownReplay = (tree, at, head) => {
   const held = markRead(tree);
-  return Boolean(held && carries(tree, at, held.from) && carries(tree, held.to, head));
+  return Boolean(held.length && carries(tree, held.at(-1), head)
+    && held.some((one) => carries(tree, at, one)));
 };
 
 /* `--is-ancestor` and not equality: a rebase drops the reviewed commit, while a commit made after the
    read to fix one of its findings keeps it and lands above it by design. The set is the change's own
-   paths less the ones it deleted, which have no body a read could carry, NUL-delimited because
-   `--name-only` quotes a path outside ASCII while a log entry holds the real one — unmatched by any
-   read, such a change would pass as an absence. */
+   paths less the ones it deleted, which have no body a read could carry, NUL-delimited and untrimmed
+   because `--name-only` quotes a path outside ASCII and `gitOut` would eat a leading space, while a
+   log entry holds the real one either way — unmatched by any read, it would pass as an absence. */
 const readSays = (tree, was) => {
   const root = repoRoot(tree);
-  const held = (gitOut(["diff", "--name-only", "--no-renames", "--diff-filter=d", "-z", `${was}..HEAD`], tree)
-    ?? "").split("\0").filter(Boolean);
+  const named = git(["diff", "--name-only", "--no-renames", "--diff-filter=d", "-z", `${was}..HEAD`], tree);
+  const held = (named.status === 0 ? named.stdout ?? "" : "").split("\0").filter(Boolean);
   const read = root ? wholeReadOf(logEntries(), root, held) : null;
   const head = gitOut(["rev-parse", "HEAD"], tree);
   if (!read) {

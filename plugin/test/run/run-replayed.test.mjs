@@ -267,8 +267,7 @@ test("the ship's own rebase does not cost the run a second read", () => {
   assert.ok(again.stdout.includes(`taken at ${mine.slice(0, 7)}`), again.stdout);
   assert.match(again.stderr, /stopped at step 5 \(the gate\)/u, "the resume never reached the gate");
 
-  /* Two failed gates are two replays, and a record holding only the last of them refuses the read
-     the first was taken before — the same false refusal, one attempt further on. */
+  /* Two failed gates are two replays, and a record holding only the last refuses the read the first was taken before — the same false refusal, one attempt further on. */
   git(work, "checkout", "master");
   rewrote(work, ELSEWHERE, 30, "a second landing, still nothing this change writes");
   git(work, "push", "origin", "master:master");
@@ -277,6 +276,18 @@ test("the ship's own rebase does not cost the run a second read", () => {
   const third = runIn(work, ["ship", "--from", "5"], env);
   assert.doesNotMatch(third.stderr, /does not carry/u,
     `a second replay by the ship lost the first:\n${third.stdout}${third.stderr}`);
+
+  /* A read taken between two of the ship's replays is at neither end of either pair, so a record
+     that keeps only the ends of one refuses the newest read of all. */
+  const between = readTaken(work, git(work, "rev-parse", "HEAD~0").stdout.trim(), [UNDER_REVIEW]);
+  git(work, "checkout", "master");
+  rewrote(work, ELSEWHERE, 20, "a third landing, still nothing this change writes");
+  git(work, "push", "origin", "master:master");
+  git(work, "checkout", "iss-962");
+  assert.match(runIn(work, ["ship", "--from", "4"], between).stderr, /stopped at step 5 \(the gate\)/u);
+  const mid = runIn(work, ["ship", "--from", "5"], between);
+  assert.doesNotMatch(mid.stderr, /does not carry/u,
+    `a read taken between two of the ship's own replays was refused:\n${mid.stdout}${mid.stderr}`);
 
   /* And nothing else rides on it: a rewrite by hand after that takes the recorded head off the
      lineage, so the record forgives the ship's replay and not the run's. */
@@ -290,10 +301,15 @@ test("the ship's own rebase does not cost the run a second read", () => {
 test("a path git quotes in its own output is still matched against the read", () => {
   const { work } = baseMoved("read-quoted-path", ELSEWHERE);
   const cafe = join("plugin", "src", "café.mjs");
-  writeFileSync(join(work, cafe), "the change\n");
-  git(work, "add", cafe);
-  git(work, "commit", "-m", "a path git quotes in its own output");
-  const env = readTaken(work, git(work, "rev-parse", "HEAD").stdout.trim(), [UNDER_REVIEW, cafe]);
+  /* Sorts ahead of the rest, which is where a trim of the whole output can reach its leading space. */
+  const spaced = " leading space.mjs";
+  for (const path of [cafe, spaced]) {
+    writeFileSync(join(work, path), "the change\n");
+    git(work, "add", path);
+  }
+  git(work, "commit", "-m", "two paths git does not hand back as they are");
+  const env = readTaken(work, git(work, "rev-parse", "HEAD").stdout.trim(),
+    [spaced, cafe, UNDER_REVIEW]);
 
   assert.equal(git(work, "rebase", "origin/master").status, 0);
   const run = runIn(work, ["ship"], env);
