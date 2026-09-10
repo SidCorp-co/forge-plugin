@@ -44,8 +44,7 @@ const asRun = (id) => {
   process.env.FORGE_SESSION_ID = id;
 };
 
-/* The declaration is the one runtime source and this is its checker: six of the ten rows are held to
-   what the two flow tables still derive, and the four they cannot answer for are the case below. */
+/* The declaration is the one runtime source and this is its checker: six rows held to what the two flow tables still derive, the four they cannot answer for pinned below. */
 test("every cited kind answers a phase, and one the flow tables can derive answers that one", () => {
   for (const [earns, kinds] of Object.entries(CITED)) {
     const owed = phasesOwed(rungBelow(earns));
@@ -58,7 +57,8 @@ test("every cited kind answers a phase, and one the flow tables can derive answe
         `a ${kind} is cited at ${earns} and the declared column gives it no phase at all`);
       assert.ok(guideSays(answer).length > 0,
         `a ${kind} answers ${answer}, which is no phase this copy serves a part for`);
-      if (owed.length === 1 && !spans) {
+      /* A spanning rung's leading kind was derivable too, and dropping that exception left the baseline and the verdict unchecked while this case claimed six rows. */
+      if (owed.length === 1 && (!spans || kind === kinds[0])) {
         assert.equal(answer, owed[0],
           `a ${kind} earns ${earns}, so it ends the one phase ${rungBelow(earns)} owes`);
       }
