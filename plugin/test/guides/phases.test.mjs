@@ -70,7 +70,8 @@ test("a row's kind is the payload its status stops being asked for at a rung bel
 /* The shift, and the bug: citing its own status names the evidence for the step before. */
 test("a phase cites the record that carried it, not the one that reached its own status", () => {
   assert.equal(dischargedBy("open"), "confirmation", "Phase 1 is triage, and a confirmation ends it");
-  assert.equal(dischargedBy("clarified"), "plan", "Phase 3 is planning, discharged by the plan");
+  assert.equal(dischargedBy("confirmed"), "decision",
+    "the fold left the clarifying and the planning at one rung, and the reading is what opens what earns the next");
   assert.equal(dischargedBy("in_progress"), "review", "and the review is what carries implementation");
   assert.equal(dischargedBy("closed"), null, "the last rung has none above it to answer to");
 });
@@ -84,7 +85,7 @@ test("the judging rung owes 6 and 7 while the deploying rung owes the close", ()
   const index = phaseIndex({ status: "testing", fields: fieldsOf("m"), held: EVERY_KIND });
   assert.deepEqual(index.owed.map((one) => one.phase), ["6, 7 Ship", "7 Ship, the close"],
     "so a run at the judging rung is told both, in the order it walks them");
-  assert.deepEqual(index.passed.map((one) => one.cites), ["confirmation", "decision", "plan", "baseline", "review", "verdict"],
+  assert.deepEqual(index.passed.map((one) => one.cites), ["confirmation", "decision", "baseline", "review", "verdict"],
     "and the verdict is what discharged the phase below it");
 });
 
@@ -99,8 +100,7 @@ test("the first phase owed at approved is Phase 4, and the phases before it are 
   assert.match(first, /^4 /u, "an approved issue implements next, and the index opens on that");
   assert.deepEqual(passed.map((one) => [one.phase, one.cites]), [
     ["1 Triage", "confirmation"],
-    ["2 Clarify", "decision"],
-    ["3 Plan", "plan"],
+    ["2 Clarify; 3 Plan", "decision"],
   ], "each passed phase names the record that ended it, so a run reads it instead of redoing it");
 });
 
@@ -111,9 +111,8 @@ test("the opening lists each phase behind with the record that discharged it, or
   assert.equal(lines[0], READ_OFF_THE_RECORD, "the line saying where to start leads it");
   assert.deepEqual(lines.slice(1), [
     "  passed: 1 Triage  —  confirmation",
-    "  passed: 2 Clarify  —  decision",
-    "  passed: 3 Plan  —  plan",
-  ], "one line per phase, since a phase's own name carries commas and a joined list reads as more");
+    "  passed: 2 Clarify; 3 Plan  —  decision",
+  ], "one line per rung, since a rung's own cell carries commas and a joined list reads as more");
   assert.deepEqual(openingLines("open", []), [],
     "an issue nobody has opened yet earns no header over an empty list, on either verb");
   assert.deepEqual(openingLines("closed", EVERY_KIND), [], "and one owing no phase is not told where to start");
@@ -122,19 +121,19 @@ test("the opening lists each phase behind with the record that discharged it, or
 /* The status is a cache of the records with fewer slots than there are facts, and `advance --set`
    writes it with no entry check reading it, so a status alone claimed phases nothing earned. */
 test("a phase is passed on the record that discharges it and not on where the status sits", () => {
-  const behind = (held) => openingLines("approved", held).slice(1);
-  assert.deepEqual(behind(["confirmation", "decision", "plan"]), [
+  const behind = (held) => openingLines("in_progress", held).slice(1);
+  assert.deepEqual(behind(["confirmation", "decision", "baseline"]), [
     "  passed: 1 Triage  —  confirmation",
-    "  passed: 2 Clarify  —  decision",
-    "  passed: 3 Plan  —  plan",
-  ], "a page holding all three names all three, which is what the status alone used to say");
+    "  passed: 2 Clarify; 3 Plan  —  decision",
+    "  passed: 4 Implement, to the branch  —  baseline",
+  ], "a page holding all three names all three, which the status alone is what claimed");
   assert.deepEqual(behind(["confirmation"]), ["  passed: 1 Triage  —  confirmation"],
-    "and a status set forward over a page holding one record claims that one phase and no other");
-  assert.deepEqual(openingLines("approved", []), [],
+    "and a status set forward over a page holding one record claims that one rung and no other");
+  assert.deepEqual(openingLines("in_progress", []), [],
     "a status nothing earned earns no opening: every phase behind it is still owed");
-  assert.deepEqual(behind(["confirmation", "plan"]), [
+  assert.deepEqual(behind(["confirmation", "baseline"]), [
     "  passed: 1 Triage  —  confirmation",
-    "  passed: 3 Plan  —  plan",
+    "  passed: 4 Implement, to the branch  —  baseline",
   ], "and a gap in the middle is left as a gap rather than filled in from the status");
 });
 
@@ -183,8 +182,7 @@ test("the lane names what earns each status ahead, and what the rung drops on th
     "Lane at `fix` — every status from where it stands, and what earns it:",
     "  open             ← where it stands",
     "  confirmed        confirmation",
-    "  clarified        nothing owed at this rung",
-    "  approved         criteria; no plan at this rung",
+    "  approved         criteria; no decision, no plan at this rung",
     "  in_progress      baseline",
     "  developed        review, merged",
     "  testing          verdict",
@@ -195,11 +193,10 @@ test("the lane names what earns each status ahead, and what the rung drops on th
   const feature = laneLines({ status: "open", fields: fieldsOf("m") });
   assert.ok(!feature.some((one) => one.includes("at this rung")),
     "a feature is waived nothing, so no line of its lane names a payload as dropped");
-  assert.deepEqual(feature.filter((one) => /clarified|approved|awaiting_release/u.test(one)), [
-    "  clarified        decision",
-    "  approved         plan, criteria",
+  assert.deepEqual(feature.filter((one) => /approved|awaiting_release/u.test(one)), [
+    "  approved         decision, plan, criteria",
     "  awaiting_release verification, note",
-  ], "and each of the three rows a lighter rung touches asks for the whole of its payload");
+  ], "and each of the two rows a lighter rung touches asks for the whole of its payload");
   assert.deepEqual(laneLines({ status: "open", fields: fieldsOf("s", ["Size: fix -> feature"]) }), feature,
     "a correction that climbed a rung prints the feature lane, the field having claimed a fix");
 });
@@ -221,28 +218,35 @@ test("neither verb that prints the opening composes a line of it", () => {
 /* A waiver is on a transition: dropping the plan is not dropping the implementing, and an index
    reading it as the latter tells a run at the fix rung its work is done. */
 test("a rung's waiver is printed against the status it is granted from, and waives no phase", () => {
-  const owed = (complexity) => phaseIndex({ status: "clarified", fields: fieldsOf(complexity), held: EVERY_KIND }).owed;
-  const waived = owed("s").filter((one) => one.waived);
-  /* The status below the one dropping it: the plan's own phase, and for the note the phase `testing` owes, the deploying rung being entered from there and the note written in it (ISS-1065). */
-  assert.deepEqual(waived.map((one) => one.phase), ["3 Plan", "6, 7 Ship"],
-    "the plan is waived on the way into approved, the note on the way into the deploying rung");
+  const owed = (complexity) => phaseIndex({ status: "confirmed", fields: fieldsOf(complexity), held: EVERY_KIND }).owed;
+  const waived = owed("s").filter((one) => one.waivers.length);
+  /* The status below the one dropping it: for the reading and the plan the cell `confirmed` owes, both being written there, and for the note the phase `testing` owes, the deploying rung being entered from there (ISS-1065, ISS-1066). */
+  assert.deepEqual(waived.map((one) => one.phase), ["2 Clarify; 3 Plan", "6, 7 Ship"],
+    "the reading and the plan are waived on the way into approved, the note on the way into the deploying rung");
   assert.ok(owed("s").every((one) => PHASE[one.status]),
     "and every phase is still owed: a waiver drops a record, never the work");
-  assert.match(waived[0].waived.drops, /the plan field/u, "named by what it drops");
-  assert.match(waived[0].waived.because, /a fix's criteria are the one check that fails without it/u,
-    "and by the ladder's own words for why, so the cut cannot say what the ladder does not");
-  assert.deepEqual(owed("m").filter((one) => one.waived), [],
+  /* Two rows on one status: the first alone is what `find` answered, and the plan's row is the second, so a reader taking it would report the plan and say nothing of the reading (ISS-1066). */
+  assert.deepEqual(waived[0].waivers.map((one) => one.drops),
+    ["a decision record", "the plan field, and the declarations it would carry, which absent read `no`"],
+    "both rows the status carries are named, in the table's own order");
+  assert.match(waived[0].waivers[1].because, /a fix's criteria are the one check that fails without it/u,
+    "each by the ladder's own words for why, so the cut cannot say what the ladder does not");
+  assert.deepEqual(owed("m").filter((one) => one.waivers.length), [],
     "where a feature is waived nothing and is shown no waiver at all");
 });
 
 test("the lines say a phase is owed without a record, never that the phase is dropped", () => {
   const lines = indexLines("issue-flow", "ISS-9",
-    phaseIndex({ status: "clarified", fields: fieldsOf("s"), held: EVERY_KIND }));
+    phaseIndex({ status: "confirmed", fields: fieldsOf("s"), held: EVERY_KIND }));
   assert.equal(lines.filter((one) => one.startsWith("dropped")).length, 0,
     "no line calls a phase dropped, which is what told a fix its implementing was waived");
-  assert.match(lines.find((one) => one.startsWith("owed") && one.includes("3 Plan")),
-    /^owed\s+3 Plan\s+—\s+without the plan field/u, "the waiver rides the phase that pays it");
-  assert.match(lines[0], /^issue-flow for ISS-9 — phase owed: 3 /u);
+  const clarify = lines.filter((one) => one.startsWith("owed") && one.includes("2 Clarify; 3 Plan"));
+  assert.deepEqual(clarify.length, 1, "the phase is named once however many waivers ride it");
+  assert.match(clarify[0], /^owed\s+2 Clarify; 3 Plan\s+—\s+without a decision record/u,
+    "the first waiver rides the phase that pays it");
+  assert.match(lines[lines.indexOf(clarify[0]) + 1], /^ +without the plan field/u,
+    "and the second is under it, indented past the phase rather than repeating it");
+  assert.match(lines[0], /^issue-flow for ISS-9 — phase owed: 2 /u);
   assert.match(lines.at(-1), /forge guide issue-flow <phase>/u, "a reader is left with the next call");
 });
 
@@ -252,7 +256,7 @@ test("a status off the linear path owes its own phase and is not read as finishe
   assert.match(index.first, /^1 Triage/u, "a reopen owes the triage of the person's finding");
   assert.equal(index.aside, "reopen", "and says it is off the path rather than implying a rung");
   assert.deepEqual(index.passed, [], "nothing is claimed passed on a path this status is not on");
-  assert.deepEqual(index.owed.map((one) => one.waived), [null],
+  assert.deepEqual(index.owed.map((one) => one.waivers), [[]],
     "no rung waiver is read against a status the ladder's rows do not speak to");
   assert.match(indexLines("issue-flow", "ISS-9", index)[0], /off the ladder's linear path/u);
 });

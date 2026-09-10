@@ -180,10 +180,10 @@ test("where a reopen lands is read from the mark", () => {
   assert.equal(targetOf(reopened(WRONG, {}, () => [corrected()]), "ISS-3").next, "developed",
     "a mark says code landed, so a close was reopened");
   const drop = targetOf(reopened(WRONG, { mergedAt: null }, () => [
-    recorded("park", { kind: "dropped", why: "the premise was false", evidence: [] }, "clarified"),
+    recorded("park", { kind: "dropped", why: "the premise was false", evidence: [] }, "approved"),
     corrected(),
   ]), "ISS-3");
-  assert.equal(drop.next, "clarified", "nothing landed, so it goes back where the drop left it and no further on");
+  assert.equal(drop.next, "approved", "nothing landed, so it goes back where the drop left it and no further on");
   assert.throws(() => targetOf(reopened(WRONG, { mergedAt: null }), "ISS-3"), /no park record of kind dropped/u);
 });
 

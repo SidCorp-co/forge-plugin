@@ -60,10 +60,10 @@ export const climbForm = (ref, from = FIX) =>
   `forge record correction ${ref} --moved "Rung: ${from} -> ${RUNGS[Math.min(heightOf(from) + 1, RUNGS.length - 1)]}" `
   + `--why "<what the work turned out to be>"`;
 
-/* One row per status a rung below the top stops owing something at. `kind` is the record kind the row drops, so a reader deciding what a status is still earned by matches the row to a payload by that key rather than by reading `drops`, which with `because` is the report's own prose for it. */
+/* One row per payload a rung below the top stops owing, so a status demanding several carries several. `kind` is the record kind the row drops, and it is what both readers below match on: `drops` and `because` are the report's own prose and no key. */
 export const LIGHTER = [
   {
-    status: "clarified",
+    status: "approved",
     rungs: BELOW_TOP,
     kind: "decision",
     drops: "a decision record",
@@ -121,8 +121,11 @@ export const rungOf = ({ plan, moved, whole, complexity = null }) => {
   return RUNGS[Math.max(climbed, ...climbedTo(moved).map(heightOf))];
 };
 
-/** A row lightens a status: taking one out restores the demand, not just the report. */
-export const lightens = (status, fields) => {
+/** Every row a rung grants at a status, in the table's own order. A status carries a row per payload it may drop, so this answers with a list and the two readers below take what each needs from it: taking the first would say one waiver where two are granted (ISS-1066). The rows are a parameter because the live table waives every kind of a status at the same rungs, and a case driving only that table could not tell keying on the kind from keying on the status. */
+export const lighterRows = (status, fields, rows = LIGHTER) => {
   const rung = rungOf(fields);
-  return LIGHTER.some((one) => one.status === status && one.rungs.includes(rung));
+  return rows.filter((one) => one.status === status && one.rungs.includes(rung));
 };
+
+export const lightens = (status, kind, fields, rows = LIGHTER) =>
+  lighterRows(status, fields, rows).some((one) => one.kind === kind);

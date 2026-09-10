@@ -48,7 +48,7 @@ test("drop and park reach the paths advance judges them by", () => {
 
 /* `flags` keeps the last value, so a close carrying both targets advanced to the caller's — a form performing a move its own word does not name (F2). */
 test("a status form refuses a second target rather than letting one overwrite its own", () => {
-  const said = refusedFor("close", ["ISS-45", "--to", "clarified"]);
+  const said = refusedFor("close", ["ISS-45", "--to", "approved"]);
   assert.match(said, /^close is the form for closed/u, said);
   assert.match(said, /forge advance/u, "and the verb that does take a target is named");
   assert.equal(refusedFor("close", ["ISS-45"]), null, "a form given no second target is no refusal");

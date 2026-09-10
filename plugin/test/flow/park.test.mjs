@@ -39,6 +39,8 @@ const MOVING = {
   status: "confirmed",
   title: "the fix that walks the flow",
   description: "`forge issue` should take the `data.relations` route.\n",
+  /* A fix is waived the reading and the plan on the way into `approved` and never the criteria or the clause one of them cites, so the one step this file takes along the flow needs both on the record to be a step. */
+  acceptanceCriteria: "1. BR-09~1: the one outcome.",
   complexity: "s",
 };
 /* The tracker as it really answers, because the pairing this file is about is a sequence and a
@@ -142,7 +144,7 @@ test("a plain advance sends the status alone, with no reason and no waiting kind
   const run = await ranAsync(FORGE, ["advance", "ISS-98"], tracker.env);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   const moved = sent("transition");
-  assert.equal(moved.status, "clarified");
+  assert.equal(moved.status, "approved");
   assert.equal(moved.reason, undefined, "nothing collects a reason for a step of the flow");
   assert.equal(moved.waitingKind, undefined);
 });

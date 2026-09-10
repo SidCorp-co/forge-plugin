@@ -12,8 +12,9 @@ import { fakeTracker, ranAsync, tempHome } from "./fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("ladder").path;
 const {
-  COMPLEXITY_NAMES, CEILINGS, LIGHTER, SPARES, RUNGS, complexityFor, belowTop, climbsIn, escalatedBy,
-  heightOf, lightens, overCeiling, climbForm, rungFrom, rungClaimed, splits, rungOf,
+  COMPLEXITY_NAMES, CEILINGS, FIX, LIGHTER, SPARES, RUNGS, complexityFor, belowTop, climbsIn,
+  escalatedBy, heightOf, lightens, lighterRows, overCeiling, climbForm, rungFrom, rungClaimed,
+  splits, rungOf,
 } = await import("../src/ladder.mjs");
 const { planFlags } = await import("../src/flow/machine.mjs");
 const { render } = await import("../src/flow/record/page.mjs");
@@ -136,21 +137,39 @@ test("every rung the ladder has has its rows, its rounds, and a ceiling unless i
 /* Through `lightens`, which is what every entry check calls: asserting only that the top rung is
    absent from `row.rungs` passes with exemptions removed altogether, the list being data either
    way. The two spawned tests below carry the same claim end to end, through the checks themselves. */
+const at = (rung) => ({ complexity: complexityFor(rung), plan: "", moved: [], whole: true });
+
 test("what a rung stops owing is the row's, and a rung absent from a row owes that payload", () => {
   const top = RUNGS.at(-1);
   for (const row of LIGHTER) {
     for (const rung of RUNGS) {
-      const said = lightens(row.status, { complexity: complexityFor(rung), plan: "", moved: [], whole: true });
-      assert.equal(said, row.rungs.includes(rung),
+      assert.equal(lightens(row.status, row.kind, at(rung)), row.rungs.includes(rung),
         `at ${row.status} a \`${rung}\` ${row.rungs.includes(rung) ? "stops owing" : "owes"} ${row.drops}`);
     }
-    assert.equal(lightens(row.status, { complexity: complexityFor(top), plan: "", moved: [], whole: true }), false,
+    assert.equal(lightens(row.status, row.kind, at(top)), false,
       `${row.status} drops ${row.drops} for the top rung`);
   }
   for (const rung of RUNGS) {
-    assert.equal(lightens("in_progress", { complexity: complexityFor(rung), plan: "", moved: [], whole: true }), false,
+    assert.equal(lightens("in_progress", "baseline", at(rung)), false,
       `${rung} is exempted from the baseline, which no rung buys`);
   }
+});
+
+/* Driven over a table of its own: the live one waives every kind of a status at the same rungs, so
+   a reader keying on the status alone answers it correctly and the equality could not fail. What
+   fails without the kind is exactly a rung that bought one payload of a status and not the other. */
+test("a status carrying two rows is waived each payload by its own row and by neither of the other's", () => {
+  const rows = [
+    { status: "approved", rungs: [FIX], kind: "decision", drops: "a decision record", because: "the confirmation held it" },
+    { status: "approved", rungs: [RUNGS[0]], kind: "plan", drops: "the plan field", because: "the criteria are the whole of it" },
+  ];
+  assert.equal(lightens("approved", "decision", at(FIX), rows), true, "the row for this kind names this rung");
+  assert.equal(lightens("approved", "plan", at(FIX), rows), false,
+    "and the other kind's row does not, so one answer for the status would waive a payload nothing bought");
+  assert.deepEqual(lighterRows("approved", at(FIX), rows).map((one) => one.kind), ["decision"],
+    "one row of the two is granted here, where taking the first of the status would have named the plan");
+  assert.deepEqual(lighterRows("approved", at(FIX), LIGHTER).map((one) => one.kind), ["decision", "plan"],
+    "while the live table grants both at this rung, and a reader of it reports both or reports half");
 });
 
 /* Read every declaration, not the first: a plan naming one twice is doubtful, and the order two

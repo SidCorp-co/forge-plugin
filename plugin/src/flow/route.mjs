@@ -119,7 +119,7 @@ const blockingOwed = (view, ref) =>
     )];
 
 /* The outcome says how far back the work goes and never how far forward, so the status the reopen
-   landed on is the ceiling: a reopened drop that landed at `clarified` is not sent to `developed`. */
+   landed on is the ceiling: a reopened drop that landed at `approved` is not sent to `developed`. */
 const lowerOf = (one, two) => (ORDER.indexOf(one) <= ORDER.indexOf(two) ? one : two);
 
 const QUOTED = /^\d+\s*—\s*/u;

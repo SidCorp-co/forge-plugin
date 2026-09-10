@@ -123,7 +123,7 @@ backlog something about the brief.
 
 When you must ask, the readings go up in the shape `forge record question -h` takes, so the person
 chooses between visible results rather than between readings. Then park it with kind `question` and
-move to the next issue. What the decision record earns: `forge guide contract clarified`.
+move to the next issue. What the decision record earns: `forge guide contract approved`.
 
 **A credential Phase 0 found missing is asked for here**, once Phase 1's claim is taken, and never
 at Phase 7. It is the question record alone and not the park. What stands as evidence while the

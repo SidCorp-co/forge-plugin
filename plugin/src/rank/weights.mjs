@@ -3,7 +3,7 @@
    stops where it does, is docs/cli/next.md's. */
 import { FROM_PROJECT, rankConvention } from "../resolve/settings.mjs";
 
-export const TAKEABLE = ["open", "confirmed", "clarified", "approved", "reopen"];
+export const TAKEABLE = ["open", "confirmed", "approved", "reopen"];
 
 export const UNSET = "unset";
 

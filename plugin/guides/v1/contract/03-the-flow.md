@@ -3,8 +3,7 @@
 | Status | Promise to the next reader | Phase owed while held |
 |---|---|---|
 | `open` | someone filed this | 1 Triage |
-| `confirmed` | we read the code; the problem is real and it is this | 2 Clarify |
-| `clarified` | every ambiguity is decided or answered | 3 Plan |
+| `confirmed` | we read the code; the problem is real and it is this | 2 Clarify; 3 Plan |
 | `approved` | object to the plan now, not after | 4 Implement, to the branch |
 | `in_progress` | code is being written against this plan | 4 Implement, to the review; 5 Prove; then 7's landing |
 | `developed` | the change was reviewed and is on the default branch | 5 Prove |

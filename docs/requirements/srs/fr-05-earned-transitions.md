@@ -40,7 +40,7 @@ agent learns what a status wants.
 - **AC-05-1-1** · Rev: 1 · Proof: plugin/test/ladder.test.mjs "--owed reports the rung the checks run, what it drops and every route up from it"
   WHEN the agent asks what is owed THEN the CLI SHALL name the next status and every missing item
   without writing to the tracker.
-- **AC-05-1-2** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "confirmed needs a confirmation, and clarified a decision record"
+- **AC-05-1-2** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "confirmed needs a confirmation, and approved the decision record beside the plan"
   WHEN an item is missing THEN the CLI SHALL print the command that supplies that item beside it.
 - **AC-05-1-3** · Rev: 1 · Proof: none yet — ISS-12
   WHEN the move being rehearsed is a park or a drop THEN the CLI SHALL rehearse it like any other
@@ -80,7 +80,7 @@ deciding a status.
 - **AC-05-2-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "the flow table names one next status, and a disposition sends the issue to dropped"
   WHEN every entry criterion of the next status is met THEN the CLI SHALL transition the issue to
   that status and report the status it left and the status it entered.
-- **AC-05-2-2** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "approved needs the plan with both its declarations, and numbered criteria"
+- **AC-05-2-2** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "approved needs the plan with both its declarations, and numbered criteria"
   IF the record lacks an item the next status is earned by THEN the CLI SHALL refuse the transition
   and name every missing item, not the first.
 - **AC-05-2-3** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "--owed reads the line the last write left, and an issue without one offers none"
@@ -203,7 +203,7 @@ for.
   IF the plan declares a screen change or a user-facing outcome, the project's configuration asks
   for a person, and no person has answered since the issue was parked for review THEN the CLI SHALL
   refuse `awaiting_release`.
-- **AC-05-7-3** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "approved needs the plan with both its declarations, and numbered criteria"
+- **AC-05-7-3** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "approved needs the plan with both its declarations, and numbered criteria"
   IF the plan declares neither THEN the CLI SHALL refuse `approved` and quote the two lines it
   reads.
 - **AC-05-7-4** · Rev: 2 · Proof: plugin/test/flow/advance.test.mjs "the project's release policy decides whether a user-facing outcome parks"

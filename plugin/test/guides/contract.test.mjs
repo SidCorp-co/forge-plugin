@@ -400,27 +400,32 @@ const missing = (status, issue, comments = []) =>
   CHECKS[status](viewFrom("the-uuid", issue, comments), "ISS-3").map((one) => one.what);
 const deploying = (issue, comments = []) =>
   deployedOwed(viewFrom("the-uuid", issue, comments), "ISS-3").map((one) => one.what);
-/* One case per row, keyed by the status, so a row added with no case fails rather than going unasked. */
+/* One case per row, keyed by the payload the row drops rather than by the status: a status carries a
+   row per payload, and two rows under one key would leave the second unasked (ISS-1066). */
 const CASES = {
-  clarified: { owed: /^no decision record/u },
-  approved: { owed: /^the plan field is empty$/u },
-  awaiting_release: { comments: [...VERIFIED, ...JUDGED], owed: /^no release note/u },
+  decision: { owed: /^no decision record/u },
+  plan: { owed: /^the plan field is empty$/u },
+  note: { comments: [...VERIFIED, ...JUDGED], owed: /^no release note/u },
 };
 
-test("every status a rung lightens is dropped by its own check, and the rung report is the one home", () => {
-  assert.deepEqual(LIGHTER.map((one) => one.status), Object.keys(CASES),
-    "a row this test has no case for is a status lightened and unasked");
+test("every payload a rung lightens is dropped by its own check, and the rung report is the one home", () => {
+  assert.deepEqual(LIGHTER.map((one) => one.kind), Object.keys(CASES),
+    "a row this test has no case for is a payload lightened and unasked");
   for (const row of LIGHTER) {
     assert.ok(CHECKS[row.status], `the ladder drops ${row.drops} at ${row.status}, which is no entry check`);
     assert.ok(row.because, `${row.status} drops ${row.drops} and says why nowhere`);
-    const held = CASES[row.status].comments ?? [];
+    const held = CASES[row.kind].comments ?? [];
     for (const rung of row.rungs) {
-      assert.deepEqual(missing(row.status, weighed(rung), held), [],
+      assert.ok(!missing(row.status, weighed(rung), held).some((one) => CASES[row.kind].owed.test(one)),
         `${row.status} is reported to drop ${row.drops} for a ${rung} and the check still asks for it`);
     }
     const heavy = missing(row.status, weighed(null), held);
-    assert.ok(heavy.some((one) => CASES[row.status].owed.test(one)),
+    assert.ok(heavy.some((one) => CASES[row.kind].owed.test(one)),
       `and the complexity is the whole difference at ${row.status}: ${heavy.join("; ") || "nothing owed"}`);
+  }
+  for (const [status, rows] of Object.entries(Object.groupBy(LIGHTER, (one) => one.status))) {
+    assert.deepEqual(missing(status, weighed(rows[0].rungs[0]), CASES[rows.at(-1).kind].comments ?? []), [],
+      `${status} carries ${rows.length} row(s) and a rung granted every one of them is still asked for something`);
   }
 });
 
@@ -481,11 +486,11 @@ test("the rung drops nothing the contract keeps, and a declared person takes a f
 
 test("a climb outlives the corrections written after it, and a shortened page never lightens", () => {
   const both = [...climbed("Size: fix -> feature"), ...climbed("criterion 2 | the review proved it impossible")];
-  assert.equal(missing("clarified", weighed("fix"), both).length, 1,
+  assert.equal(missing("approved", weighed("fix"), both).length, 2,
     "the newest correction is the plan's, and `assemble` keeps that one alone (ISS-161): the climb is "
     + "read off every comment, or the correction `approved` asks for would put the issue back on the light path");
-  const cut = CHECKS.clarified(viewFrom("the-uuid", weighed("fix"), [], "2 of 40 comments read"), "ISS-3");
-  assert.equal(cut.length, 1,
+  const cut = CHECKS.approved(viewFrom("the-uuid", weighed("fix"), [], "2 of 40 comments read"), "ISS-3");
+  assert.equal(cut.length, 2,
     "and a cut cannot show a climb, so losing one would shrink a shortfall every other check only grows");
   /* Read like every other record and not by its tag alone: a comment carrying `moved` and no `why`
      is no correction, and taking it for one would un-lighten an issue on a payload nothing wrote. */
@@ -494,20 +499,22 @@ moved: Size: fix -> feature
 \`\`\`
 
 \`forge-record: correction · contract 1\`` }];
-  assert.deepEqual(missing("clarified", weighed("fix"), half), [],
+  assert.deepEqual(missing("approved", weighed("fix"), half), [],
     "a correction missing its why is not the climb, and the light path stands");
 });
 
 test("a correction climbs a fix back onto the full path, and reads one direction only", () => {
   const back = (status) => missing(status, weighed("fix"), [...climbed("Size: fix -> feature"), ...VERIFIED]);
-  assert.equal(back("clarified").length, 1, "the decision record is owed again");
-  assert.deepEqual(back("approved"), ["the plan field is empty"]);
+  assert.deepEqual(back("approved"), [
+    "no decision record: each reading decided with its assumption and undo, or an explicit none",
+    "the plan field is empty",
+  ], "both rows the climb takes back are owed again, and neither answers for the other");
   assert.ok(back("awaiting_release").includes("no release note and no withholding either"));
   for (const moved of ["Size: feature -> fix", "Size: fix later"]) {
-    assert.deepEqual(missing("clarified", weighed("fix"), climbed(moved)), [],
+    assert.deepEqual(missing("approved", weighed("fix"), climbed(moved)), [],
       `\`${moved}\` is not the climb, and reading it as one unearns a status the issue holds`);
   }
-  assert.equal(missing("clarified", weighed("fix"), climbed("Size: fix to feature")).length, 1,
+  assert.equal(missing("approved", weighed("fix"), climbed("Size: fix to feature")).length, 2,
     "while the word and the arrow are both the author's");
 });
 

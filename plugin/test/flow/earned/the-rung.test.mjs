@@ -26,7 +26,7 @@ const ANSWERED = ["open", "confirmed", "clarified", "waiting", "approved", "in_p
   "draft", "dropped"];
 
 test("the ladder's tail is two rungs, and developed leads to the judging one", () => {
-  assert.deepEqual(ORDER, ["open", "confirmed", "clarified", "approved", "in_progress", "developed",
+  assert.deepEqual(ORDER, ["open", "confirmed", "approved", "in_progress", "developed",
     JUDGING, RUNG, "closed"], "a member added or dropped anywhere fails this");
   assert.equal(nextOf("developed", {}), JUDGING);
   assert.equal(nextOf(JUDGING, {}), RUNG);
@@ -92,7 +92,7 @@ test("the step column and ORDER name the same rungs, and either edited alone goe
     "every name whose row carries step is a rung, and every rung's row carries step");
   assert.deepEqual(disagreeing([...ORDER, "waiting"]), ["waiting"],
     "a name joining the sequence whose row carries no step is named");
-  assert.deepEqual(disagreeing(ORDER.filter((one) => one !== "clarified")), ["clarified"],
+  assert.deepEqual(disagreeing(ORDER.filter((one) => one !== "confirmed")), ["confirmed"],
     "and so is a step row the sequence dropped");
 });
 

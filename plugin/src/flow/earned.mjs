@@ -23,7 +23,7 @@ import { waitsForPerson } from "../tracker/project-config.mjs";
 
 /* The contract's flow table in its own order: the sequence is the rule, so listing it is the point. */
 export const ORDER = [
-  "open", "confirmed", "clarified", "approved", "in_progress", "developed", "testing", "awaiting_release", "closed",
+  "open", "confirmed", "approved", "in_progress", "developed", "testing", "awaiting_release", "closed",
 ];
 
 /** The rung the verdicts are owed at, read off the sequence rather than spelled a second time: `route.mjs` asks for it by name, and a literal there is a rung free to disagree with this order. */
@@ -138,7 +138,7 @@ export const rungFieldsOf = (view) => (view.rungFields ??= {
   complexity: view.issue.complexity ?? null,
 });
 
-export const lightPath = (view, status) => lightens(status, rungFieldsOf(view));
+export const lightPath = (view, status, kind) => lightens(status, kind, rungFieldsOf(view));
 export const fixReport = (view, ref) => rungReport(rungFieldsOf(view), ref);
 
 export const setForm = (ref, status) =>
@@ -437,7 +437,7 @@ export const deployedOwed = (view, ref) => {
   );
   /* One or the other: a payload with gaps has no fields to compare against anything. */
   const out = verification.length ? verification : deployOwed(view, ref);
-  if (!view.issue.releaseNotes?.section && !lightPath(view, CLOSES_FROM)) {
+  if (!view.issue.releaseNotes?.section && !lightPath(view, CLOSES_FROM, "note")) {
     out.push(need("no release note and no withholding either", `forge record note ${ref} --section Added --user "<what the reporter sees>"`));
   }
   const declared = personLooks(view.flags, view.release);
@@ -460,19 +460,18 @@ export const CHECKS = {
       "no confirmation: where you looked, what the issue is in the code's own terms, and the finding",
       `forge record confirmation ${ref} --where <where> --is "<what it is>" --finding holds`,
     ),
-  clarified: (view, ref) =>
-    (lightPath(view, "clarified") ? [] : payloadOwed(
+  /* Three payloads and two phases behind them: the reading is decided and the plan written while the issue stands at `confirmed`, and this is the one rung that refuses without all three. Each is waived by its own row, so a rung dropping the plan still owes the decision if no row says otherwise (ISS-1066). */
+  approved: (view, ref) => {
+    const out = lightPath(view, "approved", "decision") ? [] : payloadOwed(
       view,
       "decision",
       "no decision record: each reading decided with its assumption and undo, or an explicit none",
       `forge record decision ${ref} --decision "reading | assumption | undo"`,
-    )),
-  approved: (view, ref) => {
-    const out = [];
+    );
     const plan = unwrap(view.issue.plan);
     const { flags } = view;
     /* Absent, the declarations read `no` in every reader downstream, so a fix defaults nothing here. */
-    const asks = !lightPath(view, "approved");
+    const asks = !lightPath(view, "approved", "plan");
     if (asks && !plan) out.push(need("the plan field is empty", `forge record plan ${ref} <plan.md>`));
     else if (asks && (!flags.screen || !flags.schema)) {
       out.push(need(

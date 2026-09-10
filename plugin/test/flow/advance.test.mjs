@@ -13,7 +13,6 @@ const {
   CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, deployedOwed, dispositionOf, holdsBack,
   judgedOwed, nextOf, personLooks, shapeGaps, viewFrom,
 } = await import("../../src/flow/earned.mjs");
-const { planFlags } = await import("../../src/flow/machine.mjs");
 const { lookAhead, targetOf } = await import("../../src/flow/route.mjs");
 const { USAGE, checkTarget, nextHeld } = await import("../../src/flow/advance.mjs");
 
@@ -42,7 +41,7 @@ test("the flow table names one next status, and a disposition sends the issue to
   assert.equal(nextOf("closed", {}), null, "closed is terminal");
   assert.equal(nextOf("dropped", {}), null, "and so is dropped");
   const said = (finding) => view({}, [recorded("confirmation", { where: ["a.mjs"], is: "it is this", finding })]);
-  assert.equal(nextOf("confirmed", said("holds")), "clarified");
+  assert.equal(nextOf("confirmed", said("holds")), "approved");
   assert.equal(nextOf("confirmed", said("obsolete")), "dropped", "the confirmation is the reason");
   assert.equal(dispositionOf(said("obsolete")), "obsolete");
   assert.equal(dispositionOf(said("holds")), null);
@@ -51,7 +50,7 @@ test("the flow table names one next status, and a disposition sends the issue to
      whole of what earns it, and a comment carrying the finding alone earns nothing. */
   const thin = view({}, [comment("## Confirmation\n\n- **Finding:** obsolete\n\n`forge-record: confirmation · contract 1`")]);
   assert.equal(dispositionOf(thin), null, "a confirmation that is not a whole payload disposes of nothing");
-  assert.equal(nextOf("confirmed", thin), "clarified");
+  assert.equal(nextOf("confirmed", thin), "approved");
 });
 
 test("every park kind lands in one side status, and none is left without a home", () => {
@@ -76,36 +75,22 @@ test("the criteria field is read off its numbered lines, and unnumbered prose is
   assert.deepEqual(criteriaOf({}), []);
 });
 
-test("confirmed needs a confirmation, and clarified a decision record", () => {
+const PLAN = typedPlan();
+const NO_DECISION = "no decision record: each reading decided with its assumption and undo, or an explicit none";
+
+test("confirmed needs a confirmation, and approved the decision record beside the plan", () => {
   assert.deepEqual(missing("confirmed", view({})), ["no confirmation: where you looked, what the issue is in the code's own terms, and the finding"]);
   assert.match(commands("confirmed", view({}))[0], /^forge record confirmation ISS-3 --where/u);
   const confirmed = view({}, [recorded("confirmation", { where: ["a.mjs"], is: "it holds", finding: "holds" })]);
   assert.deepEqual(missing("confirmed", confirmed), []);
-  assert.match(commands("clarified", confirmed)[0], /^forge record decision ISS-3 --decision/u);
-  assert.deepEqual(missing("clarified", view({}, [recorded("decision", { decision: [], none: "none found" })])), []);
-});
-
-const PLAN = typedPlan();
-
-test("approved needs the plan with both its declarations, and numbered criteria", () => {
-  assert.deepEqual(missing("approved", view({})), [
-    "the plan field is empty",
-    "the criteria field holds no numbered line `N. outcome`",
-  ]);
-  assert.deepEqual(missing("approved", view({ plan: PLAN, acceptanceCriteria: CRITERIA })), []);
-  assert.deepEqual(missing("approved", view({ plan: "   " })).length, 2, "whitespace is an empty field");
-  const bare = missing("approved", view({ plan: "the plan", acceptanceCriteria: CRITERIA }));
-  assert.equal(bare[0], "the plan declares neither `Screen change: yes|no` nor `Schema coupling: yes|no`, and the "
-    + "two decide what the ship steps owe");
-  assert.match(bare[1], /^the plan is untyped/u, "and the sections are owed apart from the declarations");
-  assert.equal(bare.length, 2);
-  assert.deepEqual(planFlags(PLAN), { screen: "no", schema: "no", deploy: null, look: null });
-  assert.deepEqual(planFlags("Screen change: YES\nSchema coupling: yes"), { screen: "yes", schema: "yes", deploy: null, look: null });
-  assert.deepEqual(planFlags("this is a screen change, and the schema is untouched"), { screen: null, schema: null, deploy: null, look: null },
-    "prose about the two is not the two declared");
-  assert.equal(planFlags("User-facing outcome: yes.").look, "yes", "and the third line is read the same way");
-  assert.deepEqual(missing("approved", view({ plan: "User-facing outcome: yes.", acceptanceCriteria: CRITERIA })).length, 2,
-    "which is optional: its absence is no, and only the two required lines are owed here");
+  /* The decision is owed at the rung the plan is owed at, and is asked for ahead of it: a run
+     holding neither is told the order it writes them in (ISS-1066). */
+  assert.match(commands("approved", confirmed)[0], /^forge record decision ISS-3 --decision/u);
+  assert.deepEqual(missing("approved", view({ plan: PLAN, acceptanceCriteria: CRITERIA })), [NO_DECISION],
+    "a plan and criteria with no reading behind them earn nothing");
+  const decided = [recorded("decision", { decision: [], none: "none found" })];
+  assert.deepEqual(missing("approved", view({ plan: PLAN, acceptanceCriteria: CRITERIA }, decided)), [],
+    "and an explicit none is the record, as it was at the rung that went");
 });
 
 test("in_progress waits for every blocker to be developed, and for a baseline", () => {

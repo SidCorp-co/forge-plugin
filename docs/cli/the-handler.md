@@ -12,8 +12,8 @@ the table honest is here.
 An unknown verb answers with the verb list, so a caller who typed the wrong word for a move it was
 entitled to make paid the turn twice — once for the list, once for the retype — and the word it
 typed was, every time, the name of the status it wanted. The user's decision of 2026-09-07 is that
-those words are served. The alternative shapes were both worse: a verb per status is nine rows in
-every help text for nine spellings of one transition, and a *did you mean* row is the redirect that
+those words are served. The alternative shapes were both worse: a verb per status is a row in
+every help text for every spelling of one transition, and a *did you mean* row is the redirect that
 costs the second turn anyway.
 
 So the class is bounded by what it is: a form names a thing the CLI can already do and adds no

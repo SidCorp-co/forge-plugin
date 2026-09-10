@@ -112,7 +112,7 @@ test("the claim and the resume print one opening, and at open neither prints any
   /* The page's records and not the status, so what both verbs are judged on is one issue's own. */
   const held = ["confirmation", "decision", "plan", "criteria"];
   const opened = openingLines("approved", held);
-  assert.equal(opened.length, 4, "an approved issue has three phases behind it and a line saying so");
+  assert.equal(opened.length, 3, "an approved issue has two rungs behind it and a line saying so");
   assert.deepEqual(said(() => opening("approved", fields, held)).slice(0, opened.length), opened,
     "the resume prints them above what is ahead");
   const claimed = said(() => advisory("approved", fields, held));

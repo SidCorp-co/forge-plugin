@@ -44,11 +44,17 @@ const asRun = (id) => {
   process.env.FORGE_SESSION_ID = id;
 };
 
-/* The declaration is the one runtime source and this is its checker: six rows held to what the two flow tables still derive, the four they cannot answer for pinned below. */
+/* Which phase a kind ends, where the two flow tables can still work it out. The one phase the rung below the earning status owes, except that a rung naming several answers only for the kind that leads its row. */
+const derivedFor = (earns, kind, kinds) => {
+  const owed = phasesOwed(rungBelow(earns));
+  const spans = phasesOwed(earns).length > 1;
+  return owed.length === 1 && (!spans || kind === kinds[0]) ? owed[0] : null;
+};
+
+/* The declaration is the one runtime source and this is its checker, and which rows it reaches is asserted rather than counted in prose: a fold that gives a rung a second phase takes rows out of the derivation, and a case describing its own reach in a comment goes on claiming them (ISS-1066). */
 test("every cited kind answers a phase, and one the flow tables can derive answers that one", () => {
+  const derived = [];
   for (const [earns, kinds] of Object.entries(CITED)) {
-    const owed = phasesOwed(rungBelow(earns));
-    const spans = phasesOwed(earns).length > 1;
     for (const kind of kinds) {
       const answer = phaseForRecord(kind);
       /* Named before it is served: a kind with no row answers null, and serving that says only that
@@ -57,25 +63,28 @@ test("every cited kind answers a phase, and one the flow tables can derive answe
         `a ${kind} is cited at ${earns} and the declared column gives it no phase at all`);
       assert.ok(guideSays(answer).length > 0,
         `a ${kind} answers ${answer}, which is no phase this copy serves a part for`);
-      /* A spanning rung's leading kind was derivable too, and dropping that exception left the baseline and the verdict unchecked while this case claimed six rows. */
-      if (owed.length === 1 && (!spans || kind === kinds[0])) {
-        assert.equal(answer, owed[0],
-          `a ${kind} earns ${earns}, so it ends the one phase ${rungBelow(earns)} owes`);
-      }
+      const owed = derivedFor(earns, kind, kinds);
+      if (owed === null) continue;
+      derived.push(kind);
+      assert.equal(answer, owed, `a ${kind} earns ${earns}, so it ends the one phase ${rungBelow(earns)} owes`);
     }
   }
+  assert.deepEqual(derived, ["confirmation", "baseline", "verdict"],
+    "the rows this derivation still reaches: one leaving the set is a row this case stopped checking, and the pin below is what has to gain it");
   assert.deepEqual(Object.keys(ENDS_PHASE).sort(), Object.values(CITED).flat().sort(),
     "and the column holds a row for exactly the cited kinds, so neither a dead row nor a mistyped key sits in it unread");
 });
 
-/* The four the case above skips, each by its own number: a wrong row here serves a part nobody could tell from the right one. */
-test("the four kinds the flow tables leave underivable are declared by number", () => {
+/* Every row the case above skips, each by its own number: a wrong row here serves a part nobody could tell from the right one. */
+test("the kinds the flow tables leave underivable are declared by number", () => {
+  assert.equal(phaseForRecord("decision"), 2, "the reading is Phase 2's, on the rung that owes the clarifying and the planning both");
+  assert.equal(phaseForRecord("plan"), 3, "the plan is Phase 3's, written at that same rung");
+  assert.equal(phaseForRecord("criteria"), 3, "and the criteria beside it, in the phase the plan cites them from");
   assert.equal(phaseForRecord("review"), 4, "the review is Phase 4's last step, on a rung owing 4, 5 and 7");
   assert.equal(phaseForRecord("merged"), 7, "and the landing that earns the same rung is Phase 7's first step");
   assert.equal(phaseForRecord("verification"), 7, "the verification reads the change where it now runs");
   assert.equal(phaseForRecord("note"), 6, "and the note is drafted at 6, the rung it is written at spanning 6 and 7");
-  assert.equal(phaseForRecord("plan"), 3, "while clarified owes 3 alone");
-  assert.equal(phaseForRecord("verdict"), 5, "as developed owes 5 alone");
+  assert.equal(phaseForRecord("verdict"), 5, "while developed owes 5 alone, which is the derivation's to answer");
 });
 
 /* Pinned by number rather than against the row it is read off, which would be the implementation spelled twice: the ship is Phase 7 and the close is its tail, so the rung the close is entered from owes 7 and the landing ends 7. A row moved to any other phase fails here. */
@@ -113,9 +122,10 @@ test("a rung naming several phases carries a part for each of its own kinds", ()
 
 test("a claim carries the phase its issue's status owes, and no two statuses answer alike", () => {
   asRun("a-run-taking-a-lease");
-  assert.deepEqual(printed((say) => partForStatus("clarified", say)), [guideSays(3)], "clarified owes 3");
+  assert.deepEqual(printed((say) => partForStatus("confirmed", say)), [guideSays(2)],
+    "the first phase of the two that rung owes is the one a claim there arrives with");
   assert.deepEqual(printed((say) => partForStatus("developed", say)), [guideSays(5)], "developed owes 5");
-  assert.notEqual(guideSays(3), guideSays(5), "which are different parts, or the case proves nothing");
+  assert.notEqual(guideSays(2), guideSays(5), "which are different parts, or the case proves nothing");
 });
 
 test("the second act of a kind in one session carries no part, and another phase still does", () => {

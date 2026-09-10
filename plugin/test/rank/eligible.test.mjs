@@ -16,7 +16,7 @@ test("a status no run takes is dropped, and the sentence names the status", () =
     assert.equal(held.eligible, false, status);
     assert.match(held.reason, new RegExp(`status ${status}`, "u"));
   }
-  for (const status of ["open", "confirmed", "clarified", "approved", "reopen"]) {
+  for (const status of ["open", "confirmed", "approved", "reopen"]) {
     assert.equal(eligibilityOf(row({ status })).eligible, true, status);
   }
 });

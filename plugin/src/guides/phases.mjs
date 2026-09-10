@@ -3,18 +3,17 @@
    at a rung answers to the rung above. docs/cli/resume.md. */
 import { ORDER, stepAfter } from "../flow/earned.mjs";
 import { CLOSES_FROM } from "../flow/machine.mjs";
-import { LIGHTER, rungOf } from "../ladder.mjs";
+import { lighterRows, rungOf } from "../ladder.mjs";
 
 /* The method's phases, numbered as the guide numbers them and indexed by that number. The one table: the flow table below builds its phrases from it and the transcript miner counts a run's calls against it, so phase 5 is one phase rather than two that shared a number and meant "prove" in one reading and "ship" in the other (ISS-700, BR-09). */
 export const PHASES = [
   "0 Project", "1 Triage", "2 Clarify", "3 Plan", "4 Implement", "5 Prove", "6 Note", "7 Ship", "8 Learn",
 ];
 
-/* The flow table's last column: which phase a status owes, and where its method lives — the reference the phase cites, or null where the body itself carries the phase. Here rather than beside `ORDER`, the sequence being what a record earns and this what the method owes at each rung. ISS-18 owns typing it; a pointer beats a number nobody can look up. */
+/* The flow table's last column: which phase a status owes, and where its method lives — the reference the phase cites, or null where the body itself carries the phase. Here rather than beside `ORDER`, the sequence being what a record earns and this what the method owes at each rung. A cell names as many phases as are worked while the status is held, so a rung the ladder folded two into names both and holds the records that earn the status above it across the pair. ISS-18 owns typing it; a pointer beats a number nobody can look up. */
 export const PHASE = {
   open: [PHASES[1], null],
-  confirmed: [PHASES[2], null],
-  clarified: [PHASES[3], null],
+  confirmed: [`${PHASES[2]}; ${PHASES[3]}`, null],
   approved: [`${PHASES[4]}, to the branch`, "verification"],
   in_progress: [`${PHASES[4]}, to the review; ${PHASES[5]}; then 7's landing`, "verification"],
   developed: [PHASES[5], "verification"],
@@ -40,8 +39,7 @@ export const phaseNumber = (status) => Number(NUMBERED.exec(PHASE[status]?.[0] ?
 /* Every payload each entry check refuses without, held to their own refusals by a case. The one that discharges the phase below the status leads the row, `dischargedBy` answering with it. */
 export const CITED = {
   confirmed: ["confirmation"],
-  clarified: ["decision"],
-  approved: ["plan", "criteria"],
+  approved: ["decision", "plan", "criteria"],
   in_progress: ["baseline"],
   developed: ["review", "merged"],
   testing: ["verdict"],
@@ -56,7 +54,7 @@ const EVERY_NUMBER = /\d+/gu;
 export const phasesOwed = (status) =>
   [...String(PHASE[status]?.[0] ?? "").matchAll(EVERY_NUMBER)].map((one) => Number(one[0]));
 
-/* Which phase each cited record ends, declared per kind rather than derived from where its rung sits in the order. A rung naming several phases holds records that end different ones and no table says which, so the derivation answered nothing for four of these ten (ISS-1064). Keyed by the kind, so merging two rungs moves no row of this. A case recomputes that derivation over every row and refuses one that disagrees wherever the two tables can still answer, which is the six that are not review, merged, verification and note. */
+/* Which phase each cited record ends, declared per kind rather than derived from where its rung sits in the order. A rung naming several phases holds records that end different ones and no table says which, so the derivation answered nothing for four of these ten (ISS-1064) and answers nothing for seven of them now that the fold gave `confirmed` two phases (ISS-1066). Keyed by the kind, so merging two rungs moves no row of this: every row below outlived the fold unedited, which is what the column was for. */
 export const ENDS_PHASE = {
   confirmation: 1,
   decision: 2,
@@ -74,12 +72,10 @@ export const phaseForRecord = (kind) => ENDS_PHASE[kind] ?? null;
 
 export const phaseAtLanding = () => phasesOwed(CLOSES_FROM).at(-1) ?? null;
 
-/** The waiver a rung grants on the way out of a status, named by what it drops and why. */
-const waivedFor = (status, fields) => {
+/** Every waiver a rung grants on the way out of a status, each named by what it drops and why. A list, because one status may drop several payloads and the first of them is not the whole of what the rung bought; the plural name is what makes a reader testing this for one waiver fail rather than read an empty list as a granted one (ISS-1066). */
+const waiversFor = (status, fields) => {
   const next = stepAfter(status);
-  const rung = rungOf(fields);
-  const row = next && LIGHTER.find((one) => one.status === next && one.rungs.includes(rung));
-  return row ? { drops: row.drops, because: row.because } : null;
+  return next ? lighterRows(next, fields).map((one) => ({ drops: one.drops, because: one.because })) : [];
 };
 
 const owedFrom = (status) => {
@@ -116,7 +112,7 @@ export const phaseIndex = ({ status, fields, held }) => {
     owed: owing.map((one) => ({
       status: one,
       phase: PHASE[one][0],
-      waived: aside ? null : waivedFor(one, fields),
+      waivers: aside ? [] : waiversFor(one, fields),
     })),
     first,
     aside,
@@ -127,8 +123,7 @@ export const READ_OFF_THE_RECORD =
   "Start at the phase owed. The phases before it are read off the record and not run again — each"
   + " one below names the record that discharged it.";
 
-/** The opening on an issue somebody else opened: one line per phase behind, none where none is, and
- *  one renderer for `resume` and `claim` both (ISS-804, BR-09). docs/cli/resume.md. */
+/** The opening on an issue somebody else opened: one line per phase behind, none where none is, and one renderer for `resume` and `claim` both (ISS-804, BR-09). docs/cli/resume.md. */
 export const openingLines = (status, held) => {
   const { passed, first } = behind(status, held);
   const earned = first ? passed.filter((one) => one.cites) : [];
@@ -138,20 +133,15 @@ export const openingLines = (status, held) => {
 };
 
 /* The lane: every status from this one on, and the payloads each is earned by at this rung, read off the two tables and never off the record — so a status it says owes nothing is one the rung leaves no payload to write rather than one whose payload happens to be on the page, which is the distinction ISS-810 defers. A route is not a shortfall. docs/cli/the-ladder.md. */
-const droppedAt = (status, rung) => LIGHTER
-  .filter((one) => one.status === status && one.rungs.includes(rung))
-  .map((one) => one.kind);
-
 export const laneOf = ({ status, fields }) => {
   const at = ORDER.indexOf(status);
   if (at < 0) return { aside: status, rows: [] };
-  const rung = rungOf(fields);
   return {
     aside: null,
-    rung,
+    rung: rungOf(fields),
     rows: ORDER.slice(at).map((one) => {
       const earns = CITED[one] ?? [];
-      const dropped = droppedAt(one, rung);
+      const dropped = lighterRows(one, fields).map((row) => row.kind);
       return {
         status: one,
         here: one === status,
@@ -188,15 +178,22 @@ export const laneLines = ({ status, fields }) => {
   ];
 };
 
+/* One line per waiver, and the phase named once however many there are: a phase repeated down the column reads as a phase owed twice, and this list is what a run acts on (ISS-1066). */
+const OWED = "owed     ";
+const owedLines = (one) => {
+  if (!one.waivers.length) return [`${OWED}${one.phase}`];
+  const lead = `${OWED}${one.phase}  —  `;
+  return one.waivers.map((held, at) =>
+    `${at ? " ".repeat(lead.length) : lead}without ${held.drops}; ${held.because}`);
+};
+
 export const indexLines = (slug, ref, index) => [
   `${slug} for ${ref} — ${index.first ? `phase owed: ${index.first}` : "no phase owed"}`
     + `${index.aside ? ` (${index.aside}, which is off the ladder's linear path)` : ""}`,
   READ_OFF_THE_RECORD,
   "",
   ...index.passed.filter((one) => one.cites).map((one) => `passed   ${one.phase}  —  ${one.cites}`),
-  ...index.owed.map((one) => (one.waived
-    ? `owed     ${one.phase}  —  without ${one.waived.drops}; ${one.waived.because}`
-    : `owed     ${one.phase}`)),
+  ...index.owed.flatMap(owedLines),
   "",
   `The phase itself: \`forge guide ${slug} <phase>\`.`,
 ];

@@ -51,7 +51,6 @@ const reopenPayloads = () => routed(viewFrom("the-uuid",
 export const FAMILIES = {
   "an absent payload": () => [
     ...owed("confirmed", { plan: "", acceptanceCriteria: "" }),
-    ...owed("clarified", { plan: "", acceptanceCriteria: "" }),
     ...owed("approved", { plan: "", acceptanceCriteria: "" }),
     ...owed("in_progress", { plan: "", acceptanceCriteria: "",
       relations: { blockedBy: [{ kind: "blocks", otherDisplayId: "ISS-2", otherStatus: "open" }] } }),

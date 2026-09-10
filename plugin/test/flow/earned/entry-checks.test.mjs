@@ -256,7 +256,9 @@ const UNTYPED = "Screen change: no. Schema coupling: no.\n\nThe plan itself.";
 /* AC-14-4-2: the sixth argument is the read, handed over unevaluated, so this check is proved from
    a fixture and `earned.mjs` still reads no checkout. `null` is a project with no tree and owes
    nothing; the empty array is a tree with nothing named, which is the whole of what it fires on. */
-const cited = (issue, ids) => viewFrom("the-uuid", issue, [], null, null, () => ids);
+const DECIDED = [recorded("decision", { decision: [], none: "none found" })];
+const cited = (issue, ids) => viewFrom("the-uuid", issue, DECIDED, null, null, () => ids);
+const planned = (plan) => view({ plan, acceptanceCriteria: CRITERIA }, DECIDED);
 const APPROVABLE = { plan: PLAN, acceptanceCriteria: CRITERIA };
 const UNREAD = () => assert.fail("the tree was walked by a transition that had no citation to weigh");
 const CITES_NOTHING = "no clause of this project's requirements tree is named by the description, the plan or the "
@@ -297,39 +299,79 @@ test("no entry check other than approved asks for the issue's clauses", () => {
 /* The plan's shape, read off the record and not off the file, so a plan written by any route
    answers to it — which is what the write cannot do for a plan already on the tracker. */
 test("approved refuses an untyped plan, and a criterion no plan step names", () => {
-  const untyped = missing("approved", view({ plan: UNTYPED, acceptanceCriteria: CRITERIA }));
+  const untyped = missing("approved", planned(UNTYPED));
   assert.equal(untyped.length, 1, "the declarations are there; the sections are not");
   assert.match(untyped[0], /^the plan is untyped — it carries none of the sections a typed plan owes: Files touched · Before · /u);
-  assert.match(commands("approved", view({ plan: UNTYPED, acceptanceCriteria: CRITERIA }))[0],
+  assert.match(commands("approved", planned(UNTYPED))[0],
     /^forge record plan ISS-3 <plan\.md>, each section opened by a heading whose text is its name$/u);
   const short = typedPlan({ Steps: "1. The one step — criteria 1" });
-  assert.deepEqual(missing("approved", view({ plan: short, acceptanceCriteria: CRITERIA })),
+  assert.deepEqual(missing("approved", planned(short)),
     ["no plan step names criterion 2, so nothing the plan does serves it"]);
-  assert.match(commands("approved", view({ plan: short, acceptanceCriteria: CRITERIA }))[0],
+  assert.match(commands("approved", planned(short))[0],
     /with a step naming each as `criteria: 2`$/u, "and the number to name is in the command");
-  assert.deepEqual(missing("approved", view({ plan: typedPlan({ Steps: null }), acceptanceCriteria: CRITERIA })),
+  assert.deepEqual(missing("approved", planned(typedPlan({ Steps: null }))),
     ["the plan carries no section `## Steps`", "no plan step names criterion 1, 2, so nothing the plan does serves them"],
     "a section dropped and what its absence leaves uncovered are both said");
   /* Every criterion served and a step serving none: refused at the write, so only a plan edited on
      the tracker arrives here in this shape — which is the whole reason the check is asked twice. */
   const spare = typedPlan({ Steps: "1. The one step — criteria 1, 2\n2. The work nothing accounts for" });
-  assert.deepEqual(missing("approved", view({ plan: spare, acceptanceCriteria: CRITERIA })),
+  assert.deepEqual(missing("approved", planned(spare)),
     ["plan step 2 serves no criterion this issue holds, so no verdict reaches what it does"]);
-  assert.match(commands("approved", view({ plan: spare, acceptanceCriteria: CRITERIA }))[0],
+  assert.match(commands("approved", planned(spare))[0],
     /with `criteria: <n>` on each, from 1, 2$/u, "and the numbers there are to name");
   /* A citation the write cannot weigh: syntax it has, and whether 999 is anything this issue holds
      it does not, so the step reads as served there and as serving nothing here. */
   const absent = typedPlan({ Steps: "1. The one step — criteria 1, 2\n2. The work nothing accounts for, criteria: 999" });
-  assert.deepEqual(missing("approved", view({ plan: absent, acceptanceCriteria: CRITERIA })),
+  assert.deepEqual(missing("approved", planned(absent)),
     ["plan step 2 (citing 999) serves no criterion this issue holds, so no verdict reaches what it does"],
     "and the number it does cite is quoted, since that is what makes the step look served");
   const both = typedPlan({ Steps: "1. The one step — criteria 1\n2. The work nothing accounts for" });
-  assert.deepEqual(missing("approved", view({ plan: both, acceptanceCriteria: CRITERIA })), [
+  assert.deepEqual(missing("approved", planned(both)), [
     "no plan step names criterion 2, so nothing the plan does serves it",
     "plan step 2 serves no criterion this issue holds, so no verdict reaches what it does",
   ], "the two gaps are one plan's, and each is said: the outcome nothing serves, then the step serving nothing");
-  assert.deepEqual(missing("approved", view({ plan: PLAN, acceptanceCriteria: CRITERIA })), [],
+  assert.deepEqual(missing("approved", planned(PLAN)), [],
     "and a plan carrying every section, both declarations and a step per criterion owes nothing");
+});
+
+/* The two declarations are what the ship steps read, so a plan that answers neither earns nothing —
+   and each is answered by a line, never by prose saying the same thing (AC-05-7-3). */
+test("approved needs the plan with both its declarations, and numbered criteria", () => {
+  assert.deepEqual(missing("approved", view({}, DECIDED)), [
+    "the plan field is empty",
+    "the criteria field holds no numbered line `N. outcome`",
+  ]);
+  assert.deepEqual(missing("approved", planned(PLAN)), []);
+  assert.deepEqual(missing("approved", view({ plan: "   " }, DECIDED)).length, 2, "whitespace is an empty field");
+  const bare = missing("approved", planned("the plan"));
+  assert.equal(bare[0], "the plan declares neither `Screen change: yes|no` nor `Schema coupling: yes|no`, and the "
+    + "two decide what the ship steps owe");
+  assert.match(bare[1], /^the plan is untyped/u, "and the sections are owed apart from the declarations");
+  assert.equal(bare.length, 2);
+  assert.deepEqual(planFlags(PLAN), { screen: "no", schema: "no", deploy: null, look: null });
+  assert.deepEqual(planFlags("Screen change: YES\nSchema coupling: yes"), { screen: "yes", schema: "yes", deploy: null, look: null });
+  assert.deepEqual(planFlags("this is a screen change, and the schema is untouched"), { screen: null, schema: null, deploy: null, look: null },
+    "prose about the two is not the two declared");
+  assert.equal(planFlags("User-facing outcome: yes.").look, "yes", "and the third line is read the same way");
+  assert.deepEqual(missing("approved", planned("User-facing outcome: yes.")).length, 2,
+    "which is optional: its absence is no, and only the two required lines are owed here");
+});
+
+/* The record the fold moved here, and the rung that drops it: `approved` carries a row per payload,
+   so a rung dropping the plan may still owe the reading and a reader taking the first row of a
+   status would waive both wherever it waives either (ISS-1066). */
+test("approved refuses without the decision record, and each of its three is dropped by its own row", () => {
+  const owed = missing("approved", view({ plan: PLAN, acceptanceCriteria: CRITERIA }));
+  assert.deepEqual(owed, ["no decision record: each reading decided with its assumption and undo, or an explicit none"],
+    "the plan and the criteria are there and the reading behind them is not");
+  assert.match(commands("approved", view({}))[0], /^forge record decision ISS-3 --decision "reading \| assumption \| undo"$/u);
+  const light = { complexity: "s", acceptanceCriteria: CRITERIA };
+  assert.deepEqual(missing("approved", view(light)), [],
+    "a fix is waived the reading and the plan both, which is two rows of the ladder and not one");
+  assert.deepEqual(missing("approved", view({ ...light, complexity: "m" })), [
+    "no decision record: each reading decided with its assumption and undo, or an explicit none",
+    "the plan field is empty",
+  ], "and a feature owes both, in the order a run writes them");
 });
 
 /* The way back is the one section a declaration turns on, which is the condition the requirements
@@ -339,11 +381,11 @@ test("schema coupling and deploy coupling each owe the way back at the write and
   assert.equal(planFlags("DEPLOY COUPLING: YES").deploy, "yes", "read in any case, as the three before it are");
   assert.equal(planFlags("Deploy coupling: no").deploy, "no", "and a bare no is an answer, not an absent one");
   for (const which of ["Schema", "Deploy"]) {
-    assert.deepEqual(missing("approved", view({ plan: coupled(which), acceptanceCriteria: CRITERIA })),
+    assert.deepEqual(missing("approved", planned(coupled(which))),
       ["the plan carries no section `## The way back`"], `${which.toLowerCase()} coupling owes it`);
   }
   const answered = typedPlan({ Declarations: "Screen change: no\nSchema coupling: yes", "The way back": "Revert the ship commit." });
-  assert.deepEqual(missing("approved", view({ plan: answered, acceptanceCriteria: CRITERIA })), [],
+  assert.deepEqual(missing("approved", planned(answered)), [],
     "and a plan that carries it owes nothing");
 });
 
@@ -355,7 +397,7 @@ test("a complete plan quoted inside a fence earns nothing, and is untyped as any
   const template = `${UNTYPED}\n\n\`\`\`markdown\n${PLAN}\n\`\`\`\n`;
   assert.deepEqual([...planSections(template).keys()], [], "no section is opened inside the fence");
   assert.deepEqual(planSteps(template), []);
-  const owed = missing("approved", view({ plan: template, acceptanceCriteria: CRITERIA }));
+  const owed = missing("approved", planned(template));
   assert.equal(owed.length, 1);
   assert.match(owed[0], /^the plan is untyped/u, "so it owes what the free text it is owes, and no more");
   /* A fence long enough to quote one: closing on the first delimiter seen would expose the rest. */
@@ -368,7 +410,7 @@ test("a plan with CRLF line endings reads as the same plan with LF", () => {
   const crlf = PLAN.replace(/\n/gu, "\r\n");
   assert.deepEqual([...planSections(crlf).keys()], [...planSections(PLAN).keys()]);
   assert.deepEqual(planSteps(crlf).map((one) => one.cites), planSteps(PLAN).map((one) => one.cites));
-  assert.deepEqual(missing("approved", view({ plan: crlf, acceptanceCriteria: CRITERIA })), [],
+  assert.deepEqual(missing("approved", planned(crlf)), [],
     "so it earns approved exactly as the copy of it that ends its lines with one byte");
 });
 
@@ -378,7 +420,7 @@ test("a declaration a plan quotes inside a code span is not one it makes", () =>
     "the line the plan writes decides and the line it quotes does not");
   const quoted = "This reads `Screen change: yes` and `Schema coupling: yes` off whatever plan it is given.";
   assert.deepEqual(planFlags(quoted), { screen: null, schema: null, deploy: null, look: null });
-  const said = missing("approved", view({ plan: quoted, acceptanceCriteria: CRITERIA }));
+  const said = missing("approved", planned(quoted));
   assert.equal(said[0], "the plan declares neither `Screen change: yes|no` nor `Schema coupling: yes|no`, and the "
     + "two decide what the ship steps owe", "such a plan declares nothing, which is what it means");
   assert.match(said[1], /^the plan is untyped/u, "and carrying no section is a second thing it owes");

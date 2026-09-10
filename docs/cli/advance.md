@@ -26,7 +26,7 @@ transition, and a person's word then left the issue at a status no entry check a
 `--owed` said nothing advances from it. Two records route it now, the finding and the triage, and
 where the reopen landed comes from the merged mark, because a mark is what says code landed and so
 which of a close and a drop was reopened. The one measurement that shaped the routing: an outcome
-alone would have sent a reopened drop *forward*, to `developed` from the `clarified` it fell back
+alone would have sent a reopened drop *forward*, to `developed` from the `approved` it fell back
 to, so the landing status is a ceiling rather than a starting point.
 
 And the plan gained a third declaration, `User-facing outcome`, which is the only optional one of

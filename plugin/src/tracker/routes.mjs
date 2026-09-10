@@ -195,7 +195,7 @@ export const DECLARES = {
     status: [
       { name: "open", step: true },
       { name: "confirmed", step: true },
-      { name: "clarified", step: true },
+      { name: "clarified", replacedBy: "approved" },
       { name: "waiting" },
       { name: "approved", step: true },
       { name: "in_progress", step: true },

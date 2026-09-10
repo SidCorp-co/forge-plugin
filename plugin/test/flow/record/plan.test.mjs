@@ -17,7 +17,7 @@ const PLAN = "# The plan\n\nScreen change: no\nSchema coupling: no\nUser-facing 
 
 const state = {
   config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
-  issues: [{ documentId: "uuid-348", issueId: "ISS-348", status: "clarified", title: "one verb per write", description: "x" }],
+  issues: [{ documentId: "uuid-348", issueId: "ISS-348", status: "confirmed", title: "one verb per write", description: "x" }],
   comments: { "uuid-348": [] },
   answer: {
     forge_config: () => ({ config: state.config }),
