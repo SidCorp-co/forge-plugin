@@ -172,7 +172,11 @@ anything; `forge hooks --how bash-guard` carries the rest.
 **The last step is the read that earns the review.** Replay the change onto the default branch's
 head, and then take the read of the whole set of files the change touched, at that head. It is the
 head Phase 5 judges and Phase 7 lands, so one read answers for the review, for every verdict and for
-both heads the mark's note names. The pass's own shape, what a consult taken to clear a commit gate
+both heads the mark's note names. A checker refusing the tree after that read is answered by a fix
+measured against the set the read carried: one confined to those files and moving no behaviour owes
+no second read for what it changed, said in a correction naming it and why the read still holds,
+while one widening the set or moving behaviour owes a fresh read of the whole set at the new head
+with every verdict re-judged there. The pass's own shape, what a consult taken to clear a commit gate
 earns instead, and what the review record holds: `forge guide contract the-review`.
 
 Baseline, gates and evidence: `forge guide issue-flow verification`.

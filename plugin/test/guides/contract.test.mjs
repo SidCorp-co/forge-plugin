@@ -195,6 +195,28 @@ test("Phase 5 names what a criterion is matched against, and no other phase answ
     + "what they are matched against");
 });
 
+/* The tree keeps moving after the read, and what moves it is this repository's own checkers; three
+   runs in one night each invented a different amount of what that owes. Whether behaviour moved is
+   not mechanical, so the method names the test, in the phase that takes the read and in no other. */
+test("Phase 4 says what a refusal arriving after that read owes, and no other phase does", () => {
+  const phases = phasesOf(readFileSync(SKILL, "utf8"));
+  for (const [beat, phrase] of [
+    ["the case at all", "refusing the tree after that read"],
+    ["what the fix is measured against", "measured against the set the read carried"],
+    ["what a fix inside that set owes", "moving no behaviour owes no second read for what it changed"],
+    ["what it says instead", "a correction naming it and why the read still holds"],
+    ["the read a wider fix owes", "widening the set or moving behaviour owes a fresh read of the "
+      + "whole set at the new head"],
+    ["the verdicts it owes with it", "every verdict re-judged there"],
+  ]) {
+    assert.ok(phases["4"].includes(phrase), `Phase 4 no longer names ${beat}, so a run whose own fix `
+      + "moved the head after the read is back to inventing what the record owes (ISS-1008)");
+  }
+  const naming = Object.keys(phases).filter((n) => /the tree after that read/u.test(phases[n]));
+  assert.deepEqual(naming, ["4"], "and the phase that takes the read is the only one that says what "
+    + "a refusal arriving after it owes");
+});
+
 /* The cadence has one home, and a retirement leaving a copy behind is what ISS-108 refuses. Both
    directions are asserted: absence alone passes on a file somebody emptied, reading exactly like a
    clean repository. The history doc is no rule surface — it records what runs did, not what to do. */
