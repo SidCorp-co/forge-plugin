@@ -16,4 +16,5 @@ How to work through it: `forge hooks --off codex-second`, for the session. `FORG
 belongs to the session's environment; as a prefix on the refused command it reaches no hook.
 
 Not judged: what the consult says, whether you take it, a verdict's honesty, or anything a write
-between commits does — only a commit is asked.
+between commits does — only a commit is asked. Not asked either: the bytes a consult was shown, or a
+path the tree no longer holds and git reports no change of.

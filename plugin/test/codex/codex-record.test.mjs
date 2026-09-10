@@ -3,7 +3,8 @@
    other, and because one file holding both was at the max-lines limit (ISS-616). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { tempRoom } from "../fixtures.mjs";
 
@@ -30,20 +31,34 @@ const clearState = () => rmSync(statePath(), { force: true });
 
 /* `first` and `added` are different questions: the second new file of a turn is recorded but must
    not repeat the instruction the first one carried. */
+const touched = (...argv) => {
+  const held = afterTouch(...argv);
+  assert.equal(typeof held.at, "number", "every answer carries the moment the record now stands at");
+  return { files: held.files, added: held.added, first: held.first, cleared: held.cleared };
+};
+
 test("only the first file of a turn is announced, and a repeat is neither", () => {
-  const empty = afterTouch({}, REPO, "docs/A.md");
-  assert.deepEqual(empty, { files: ["docs/A.md"], added: true, first: true });
+  assert.deepEqual(touched({}, REPO, "docs/A.md"),
+    { files: ["docs/A.md"], added: true, first: true, cleared: false });
   const held = { turns: { [REPO]: { files: ["docs/A.md"] } } };
-  assert.deepEqual(afterTouch(held, REPO, "docs/B.md"), {
+  assert.deepEqual(touched(held, REPO, "docs/B.md"), {
     files: ["docs/A.md", "docs/B.md"],
     added: true,
     first: false,
+    cleared: false,
   });
-  assert.deepEqual(afterTouch(held, REPO, "docs/A.md"), {
+  assert.deepEqual(touched(held, REPO, "docs/A.md"), {
     files: ["docs/A.md"],
     added: false,
     first: false,
+    cleared: false,
   });
+  assert.deepEqual(touched(held, REPO, "docs/A.md", true), {
+    files: [],
+    added: false,
+    first: false,
+    cleared: true,
+  }, "a write at the bytes a consult read clears the entry standing for it");
 });
 
 /* One state file, many checkouts: keyed by root, or two repositories trade files with each other. */
@@ -118,8 +133,13 @@ test("a document the latest answered consult read at this content is not recorde
 
   opened = 0;
   assert.equal(hookRecord({}, [file], told("t4"), log([consult(true)])), null, "already pending");
+  assert.deepEqual(pendingIn(state(), REPO), ["docs/READ.md"], "and its bytes still differ, so still owed");
+  writeFileSync(file, "read by codex");
+  assert.equal(hookRecord({}, [file], told("t4"), log([consult(true)])), null, "put back to the bytes read");
+  assert.deepEqual(pendingIn(state(), REPO), ["docs/READ.md"],
+    "and git cannot answer for this fixture's index, so the obligation stands rather than lapses");
   assert.equal(hookRecord({}, [join(REPO, "src", "codex.mjs")], told("t4"), log([consult(true)])), null);
-  assert.equal(opened, 0, "a pending or unrecordable file never opens the log");
+  assert.equal(opened, 2, "one read of the log per invocation carrying a recordable path, and none without");
   clearState();
 });
 
@@ -191,4 +211,39 @@ test("the disable switch silences the record", (t) => {
     clearState();
   });
   assert.equal(hookRecord({}, [join(REPO, "docs", "PLAN.md")]), null);
+});
+
+/* The comparison was skipped for a path already recorded, so an exact revert — this repository's own
+   way of proving a checker fires — owed a consult with nothing in it to read (ISS-952). It clears the
+   entry only where the index holds the same bytes: the copy a commit lands is the one that matters. */
+test("a write putting a recorded document back to the bytes read clears it, unless the index holds the write", () => {
+  clearState();
+  const root = realpathSync(tempRoom("forge-codex-restore-"));
+  const git = (...argv) => spawnSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { encoding: "utf8" });
+  spawnSync("git", ["init", "-q", root]);
+  mkdirSync(join(root, "docs"), { recursive: true });
+  const file = join(root, "docs", "READ.md");
+  const READ = "read by codex\n";
+  writeFileSync(file, READ);
+  git("add", "-A");
+  git("commit", "-qm", "the base");
+  const log = () => [{ kind: "consult", ok: true, reply: "CODEX: 0 findings", root, files: ["docs/READ.md"],
+    sent: [{ rel: "docs/READ.md", sha: digest(READ) }] }];
+  const told = teller();
+
+  writeFileSync(file, "a mutation, to watch the case fail\n");
+  assert.match(hookRecord({}, [file], told("t1"), log), /docs\/READ\.md/u, "the mutation is a write to review");
+  writeFileSync(file, READ);
+  assert.equal(hookRecord({}, [file], told("t1"), log), null);
+  assert.deepEqual(pendingIn(state(), root), [], "the revert clears it: nothing is left to read");
+
+  writeFileSync(file, "staged and unread\n");
+  assert.match(hookRecord({}, [file], told("t2"), log), /docs\/READ\.md/u);
+  git("add", "docs/READ.md");
+  writeFileSync(file, READ);
+  assert.equal(hookRecord({}, [file], told("t2"), log), null);
+  assert.deepEqual(pendingIn(state(), root), ["docs/READ.md"],
+    "but the index holds the write, and that is the copy a commit would land");
+  clearState();
+  rmSync(root, { recursive: true, force: true });
 });

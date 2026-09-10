@@ -4,6 +4,7 @@ import test from "node:test";
 import { callHook, tempRoom } from "../fixtures.mjs";
 import { commitAim } from "../../hooks/gates/codex-second.mjs";
 import { stagedIn } from "../../src/codex/codex-state.mjs";
+import { digest } from "../../src/codex/codex-api.mjs";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -252,4 +253,68 @@ test("a second commit whose tree cannot be named went unchecked, and the sentine
   assert.match(out, new RegExp(`stages in ${realpathSync(REPO)}`, "u"), "the first commit names its tree and is judged there");
   assert.match(out, /also commits in a tree it does not name, which went unchecked/u);
   assert.equal(stderrSaid.trim(), "", "a symbol in a path argument throws, and a thrown gate is a skipped gate");
+});
+
+/* A record entry is a path with a write behind it, and two of these four have none the gate can ask
+   about: bytes a consult was shown, and a copy staged before the worktree was put back (ISS-952). */
+const four = () => {
+  const held = tempRoom("codex-second-four-");
+  const repo = join(held, "repo");
+  const home = join(held, "home");
+  mkdirSync(join(home, "forge"), { recursive: true });
+  mkdirSync(repo, { recursive: true });
+  const git = (...argv) => spawnSync("git", ["-C", repo, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { encoding: "utf8" });
+  spawnSync("git", ["init", "-q", repo]);
+  const wrote = (rel, text) => writeFileSync(join(repo, rel), text);
+  for (const rel of ["seen.mjs", "changed.mjs", "unread.mjs", "restaged.mjs", "erased.mjs"]) wrote(rel, "// the base\n");
+  git("add", "-A");
+  git("commit", "-qm", "the base");
+  /* Each of the five is staged, so each reaches the demand at all; what separates them is the log. */
+  const READ = "// the bytes a consult was shown\n";
+  wrote("seen.mjs", READ);
+  wrote("changed.mjs", "// and now it is not\n");
+  wrote("unread.mjs", "// no consult ever saw this\n");
+  wrote("restaged.mjs", "// staged unread\n");
+  git("rm", "-q", "erased.mjs");
+  git("add", "seen.mjs", "changed.mjs", "unread.mjs", "restaged.mjs");
+  /* Staged unread and then put back on disk alone: the index is what a plain commit carries. */
+  wrote("restaged.mjs", READ);
+  const sent = (rel, text) => ({ rel, sha: digest(text), chars: text.length, clipped: false });
+  writeFileSync(join(home, "forge", "codex-log.jsonl"), `${JSON.stringify({
+    kind: "consult", id: "c1", ok: true, root: realpathSync(repo), at: at(300_000), reply: "no blocker found",
+    files: ["seen.mjs", "changed.mjs", "restaged.mjs"],
+    sent: [sent("seen.mjs", READ), sent("changed.mjs", "// the base\n"), sent("restaged.mjs", READ)],
+  })}\n`);
+  const files = ["seen.mjs", "changed.mjs", "unread.mjs", "restaged.mjs", "erased.mjs"];
+  writeFileSync(join(home, "forge", "codex.json"),
+    JSON.stringify({ turns: { [realpathSync(repo)]: { files, at: now - 90_000 } } }));
+  return { repo, home };
+};
+
+const fourSaid = (repo, home, command) => {
+  const out = callHook(
+    HOOK,
+    { tool_name: "Bash", tool_input: { command }, session_id: "s-four", cwd: repo },
+    { ...process.env, XDG_CONFIG_HOME: home },
+  );
+  return because(out.stdout.trim() ? JSON.parse(out.stdout) : null);
+};
+
+test("what a commit is asked for is the record's unread class, not the record", () => {
+  const { repo, home } = four();
+  const said = fourSaid(repo, home, "git commit -m x");
+  assert.match(said, /has not read what this commit stages/u, "there is unread work here, so it refuses");
+  assert.doesNotMatch(said, /(?<!un)(?<!re)seen\.mjs/u, "a file staged at the bytes a consult was shown is read");
+  assert.match(said, /changed\.mjs/u, "one whose bytes moved since is not");
+  assert.match(said, /unread\.mjs/u, "and one no consult ever saw is not");
+  assert.match(said, /erased\.mjs/u, "a staged deletion is work nobody read");
+  assert.match(said, /restaged\.mjs/u, "and neither is a copy staged before the disk was put back");
+});
+
+/* `-a` carries the worktree, so the copy the index holds is not what that commit would land. */
+test("a commit taking the worktree is asked about the worktree it takes", () => {
+  const { repo, home } = four();
+  const said = fourSaid(repo, home, "git commit -am x");
+  assert.match(said, /has not read what this commit stages/u);
+  assert.doesNotMatch(said, /restaged\.mjs/u, "on disk it is the bytes a consult was shown");
 });

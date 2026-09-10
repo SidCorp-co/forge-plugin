@@ -52,10 +52,11 @@ checkout's decision rather than the account's, and `README.md` says why that lev
   where there are any, else the turn's record where the consult is a recheck holding one, else the
   checkout's own change against the base whatever that record holds, else the record; and it SHALL
   disclose each of those last three as the ground it selected on.
-- **AC-06-1-6** · Rev: 1 · Proof: plugin/test/codex/codex-anchor.test.mjs "a path that is not in the tree and has no diff reaches neither the reviewer nor the log, and leaves the turn record"
+- **AC-06-1-6** · Rev: 2 · Proof: plugin/test/codex/codex-anchor.test.mjs "a path that is not in the tree and has no diff reaches neither the reviewer nor the log, and leaves the turn record"
   IF a path is absent from the tree and has no diff against the base THEN the CLI SHALL send it to
-  the reviewer in no form, SHALL leave it out of the file list it records, and SHALL drop it from the
-  turn's record.
+  the reviewer in no form, SHALL leave it out of the file list it records, SHALL drop it from the
+  turn's record, and SHALL name what it dropped; and it SHALL take that course whatever ground the
+  review set was selected on, asking the tree's own head where the consult named no base.
 
 ### UC-06-2 — List the documents a turn changed, once, at the end
 
@@ -68,9 +69,11 @@ is not offered again however recently it was touched.
 - **AC-06-2-1** · Rev: 1 · Proof: plugin/test/gates/codex-turn.test.mjs "a later turn is told even though the list from an earlier one is still pending"
   WHEN the first document of a turn is written THEN the CLI SHALL ask once, and SHALL record the
   rest of that turn's documents without asking again.
-- **AC-06-2-2** · Rev: 1 · Proof: plugin/test/codex/codex-record.test.mjs "a document the latest answered consult read at this content is not recorded again"
-  IF the latest consult already read a document at its current content THEN the CLI SHALL not record
-  it as unread, even when the document is named or touched again.
+- **AC-06-2-2** · Rev: 2 · Proof: plugin/test/codex/codex-record.test.mjs "a document the latest answered consult read at this content is not recorded again"
+  IF the most recent consult shown a document read it at the content the tree holds now THEN the CLI
+  SHALL hold no record of that document as unread, whether it was named, touched, or already recorded
+  from a write since taken back — unless a copy of that write is staged, which is a reading still
+  owed on the bytes a commit would land.
 - **AC-06-2-3** · Rev: 1 · Proof: plugin/test/gates/codex-turn.test.mjs "giving up on the lock leaves a note, and the note is not counted as a refusal"
   WHILE a turn is in progress the CLI SHALL never stop it for an unread document.
 
@@ -83,9 +86,11 @@ and that the last consult which made findings heard a disposition of each. A fin
 is an open finding. Nothing between commits is asked anything: a gate deciding per write reviewed
 fragments, and the trigger it decided on could not be read at all.
 
-- **AC-06-3-1** · Rev: 2 · Proof: plugin/test/gates/codex-second.test.mjs "a commit waits for the documents it stages, and not for one left dirty beside them"
+- **AC-06-3-1** · Rev: 3 · Proof: plugin/test/gates/codex-second.test.mjs "a commit waits for the documents it stages, and not for one left dirty beside them"
   WHEN a commit stages a document recorded as unread THEN the gate SHALL refuse the commit and SHALL
-  name the files it wants read.
+  name the files it wants read; and it SHALL count as unread neither a document the commit carries at
+  bytes a consult was shown nor one absent from the tree that the tree's own head reports no change
+  of — a copy staged before the working file was put back being neither.
 - **AC-06-3-2** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs "a commit waits for a verdict on the last consult that made findings"
   IF the last consult made findings and heard no disposition THEN the gate SHALL refuse the commit
   and SHALL name the command that records one.
@@ -95,6 +100,14 @@ fragments, and the trigger it decided on could not be read at all.
 - **AC-06-3-4** · Rev: 1 · Status: retired (ISS-360)
   WHEN work is deleted rather than written THEN the gate SHALL treat the deletion as work in the
   tree, a whole directory included.
+- **AC-06-3-5** · Rev: 1 · Proof: plugin/test/codex/codex-state.test.mjs "the record's own listing keeps a file written back to the read bytes apart from what a commit is asked for"
+  WHERE the turn's record holds a file whose current bytes a consult was shown, the CLI SHALL list it
+  apart from the files a commit is still asked for, a reader told only that a file is recorded having
+  no way to tell a write nobody has read from one there is nothing left to read.
+- **AC-06-3-6** · Rev: 1 · Proof: plugin/test/codex/codex-state.test.mjs "a recorded path the tree no longer holds leaves the record when the listing reads it"
+  WHERE the turn's record holds a path absent from the tree that the tree's own head reports no
+  change of, the CLI SHALL take it out of the record as it lists what a commit is asked for, rather
+  than name it as a write awaiting a reading that nothing can stage and no consult can reach.
 
 ### UC-06-4 — What the built-in advisor said travels into the consult
 

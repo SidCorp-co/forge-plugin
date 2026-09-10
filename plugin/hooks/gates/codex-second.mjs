@@ -2,7 +2,7 @@
 
 import { isAbsolute, resolve } from "node:path";
 
-import { ageOf, demandIn, pendingState, repoRoot, stagedIn } from "../../src/codex/codex.mjs";
+import { ageOf, apartFrom, demandIn, pendingNow, pendingState, repoRoot, stagedIn } from "../../src/codex/codex.mjs";
 import { logEntries, unverdicted, verdictForm } from "../../src/codex/codex-log.mjs";
 import { probeMs } from "../../src/hooks/git-probe.mjs";
 import {
@@ -129,10 +129,14 @@ export const run = (ev) => {
   /* Asked for what it stages; a commit this cannot enumerate names nothing, so the record stands whole. */
   const staged = stagedIn(root, aim, probeMs(remaining()));
 
-  /* Recorded this turn or a turn ago, staged here, and never read: 7 of 30 commits landed with
-     the list unread, and a shared checkout's 726 dirty paths were demanded of a three-file commit. */
+  /* Recorded this turn or a turn ago, staged here, and unread at the bytes this commit carries — the
+     index with no `-a`: 7 of 30 landed unread, and an exact revert owed a consult with nothing in it. */
   const waiting = pendingState(root);
-  const demand = demandIn(waiting.files, staged);
+  let entries = null;
+  const log = () => (entries ??= logEntries());
+  const asked = demandIn(waiting.files, staged);
+  const apart = aim.all ? [] : apartFrom(root, asked, probeMs(remaining()));
+  const demand = pendingNow(root, asked, log, { apart, ms: probeMs(remaining()) }).owed;
   if (demand.length) {
     deny(
       `Codex has not read what this commit stages in ${root} (${demand.slice(0, 6).map(typed).join(" ")}`
@@ -145,7 +149,7 @@ export const run = (ev) => {
     );
   }
   /* 37 consults made findings nobody ruled on, and the next consult then read "still open" as a guess. */
-  const open = unverdicted(logEntries(), root);
+  const open = unverdicted(log(), root);
   if (open) {
     deny(
       `Consult ${open.id} made ${open.ids.join(", ")} on ${open.files.join(", ")}; nothing says what became of ${open.open.join(", ")}.${also}\n\n`

@@ -1,12 +1,14 @@
 /* The turn's bookkeeping: which files each checkout touched and has not consulted on, in one file
    for every repository on the machine, written under a lock. docs/cli/codex-the-log.md. */
-import { closeSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { closeSync, lstatSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { basename, join } from "node:path";
+import { basename, isAbsolute, join } from "node:path";
 
 import { configDir, readJson, writeJsonPrivate } from "../resolve/config.mjs";
 import { logHook } from "../hooks/hook-log-file.mjs";
+import { changedAgainst, digest } from "./codex-api.mjs";
+import { logEntries, sentShaOf } from "./codex-log.mjs";
 
 export const statePath = () => join(configDir("forge"), "codex.json");
 
@@ -112,11 +114,41 @@ export const pendingState = (root) => {
   return { files: held?.files ?? [], at: held?.at ?? null };
 };
 
-/* A turn's second write must not repeat the first one's instruction, so the hook needs `first`. */
-export const afterTouch = (held, root, rel) => {
+const turnAt = (files, since) => (files.length ? since ?? Date.now() : Date.now());
+
+/* A turn's second write must not repeat the first one's instruction, so the hook needs `first`; and a
+   write leaving the bytes a consult was shown clears a standing entry, nothing else being able to. */
+export const afterTouch = (held, root, rel, read = false) => {
   const files = pendingIn(held, root);
-  if (files.includes(rel)) return { files, added: false, first: false };
-  return { files: [...files, rel], added: true, first: files.length === 0 };
+  const has = files.includes(rel);
+  const since = turnsOf(held)[root]?.at ?? null;
+  if (read) {
+    const left = files.filter((one) => one !== rel);
+    return { files: left, at: turnAt(left, since), added: false, first: false, cleared: has };
+  }
+  if (has) return { files, at: turnAt(files, since), added: false, first: false, cleared: false };
+  return { files: [...files, rel], at: Date.now(), added: true, first: files.length === 0, cleared: false };
+};
+
+/* Content codex has read is not owed a second reading: the digest of what went up is the log's. */
+export const readByCodex = (root, rel, log) => {
+  let text;
+  try {
+    text = readFileSync(join(root, rel), "utf8");
+  } catch {
+    return false;
+  }
+  return digest(text) === sentShaOf(log(), root, rel);
+};
+
+/** The three classes a recorded path can be in, one home, so the gate and `pending` cannot differ. */
+export const pendingNow = (root, files, log = logEntries, { apart = [], ms } = {}) => {
+  let entries = null;
+  const read = () => (entries ??= log());
+  const gone = goneFrom(root, files, "HEAD", false, ms);
+  const left = files.filter((rel) => !gone.includes(rel));
+  const seen = left.filter((rel) => !apart.includes(rel) && readByCodex(root, rel, read));
+  return { owed: left.filter((rel) => !seen.includes(rel)), read: seen, gone };
 };
 
 /* Only what was consulted on is dropped; a file recorded while the call was in flight survives. */
@@ -126,7 +158,7 @@ export const clearConsulted = (root, rels) => {
   updateState((held) => {
     since = turnsOf(held)[root]?.at ?? null;
     left = pendingIn(held, root).filter((rel) => !rels.includes(rel));
-    return { ...held, turns: { ...turnsOf(held), [root]: { files: left, at: left.length ? since ?? Date.now() : Date.now() } } };
+    return { ...held, turns: { ...turnsOf(held), [root]: { files: left, at: turnAt(left, since) } } };
   });
   return { left, since };
 };
@@ -166,3 +198,32 @@ export const demandIn = (files, staged) =>
 
 export const demandOf = (root, files, shape, ms) =>
   (files.length ? demandIn(files, stagedIn(root, shape, ms)) : []);
+
+/* Whose staged copy is not what is on disk: with no `-a` the index is carried, and a failed git answers all. */
+export const apartFrom = (root, rels, ms = GIT_MS) =>
+  (rels.length ? names(root, ["diff", "--name-only", "-z", "--", ...rels], ms) ?? rels : []);
+
+/* `lstat` not `stat`, so a dangling link is present; and only ENOENT, so an EACCES file stays. */
+export const absentFrom = (root, rel) => {
+  try {
+    lstatSync(isAbsolute(rel) ? rel : join(root, rel));
+    return false;
+  } catch (error) {
+    return error.code === "ENOENT";
+  }
+};
+
+/** What no write stands behind: absent, no change against the base, and nothing of it staged either,
+ *  a removed working copy hiding a staged addition from both. A probe that failed drops nothing. */
+export const goneFrom = (root, record, base = "HEAD", fromParting = false, ms) => {
+  const absent = record.filter((rel) => absentFrom(root, rel));
+  if (!absent.length) return [];
+  const changed = changedAgainst(root, base, fromParting, ms);
+  const staged = stagedIn(root, {}, ms);
+  if (changed === null || staged === null) return [];
+  return absent.filter((rel) => !changed.includes(rel) && !staged.includes(rel));
+};
+
+export const goneSaid = (gone, base) => `${gone.length} path(s) this turn's record held are absent from `
+  + `the tree and carry no diff against ${base}: ${gone.join(", ")}. Out of the review, out of the log `
+  + "and out of the record, so no later consult is offered them.";

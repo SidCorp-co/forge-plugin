@@ -4,11 +4,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { demandIn, demandOf, stagedIn } from "../../src/codex/codex-state.mjs";
+import { apartFrom, demandIn, demandOf, goneFrom, stagedIn } from "../../src/codex/codex-state.mjs";
+import { digest } from "../../src/codex/codex-api.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "cli.mjs");
@@ -123,4 +124,82 @@ test("`--drop` with nothing staged says so rather than reporting a drop", () => 
   const out = forge(root, home, "pending", "--drop");
   assert.match(out.stdout, /nothing to drop/u);
   assert.match(forge(root, home, "pending").stdout, /2 file\(s\) recorded/u, "and the record is still there");
+});
+
+/* A path a rename took out of the tree was reported by every later consult as work owed, and the
+   only verb against it declined for not being staged (ISS-952). */
+const logging = (home, root, sent) => writeFileSync(join(home, "forge", "codex-log.jsonl"), `${JSON.stringify({
+  kind: "consult", id: "c1", ok: true, root, at: new Date(Date.now() - 300_000).toISOString(),
+  reply: "no blocker found", files: sent.map((one) => one.rel), sent,
+})}\n`);
+
+test("a recorded path the tree no longer holds leaves the record when the listing reads it", () => {
+  const root = tree();
+  const home = state(root, ["docs/A.md", "docs/GONE.md"]);
+  const out = forge(root, home, "pending");
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /^docs\/A\.md$/mu, "the staged write is still asked for");
+  assert.match(out.stdout, /no longer in the tree, so out of the record now: docs\/GONE\.md/u);
+  assert.doesNotMatch(forge(root, home, "pending").stdout, /GONE/u, "and the next call is not offered it");
+});
+
+test("the record's own listing keeps a file written back to the read bytes apart from what a commit is asked for", () => {
+  const root = tree();
+  const home = state(root, ["docs/A.md", "docs/C.md"]);
+  logging(home, root, [{ rel: "docs/C.md", sha: digest(readFileSync(join(root, "docs/C.md"), "utf8")), clipped: false }]);
+  const out = forge(root, home, "pending");
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /^docs\/A\.md$/mu, "the write nobody read is asked for");
+  assert.match(out.stdout, /^recorded and read at the bytes a commit would carry, so none is held for them: docs\/C\.md$/mu);
+  assert.doesNotMatch(out.stdout.split("what a commit made now")[0], /docs\/C\.md/u, "and it is not in the demand");
+});
+
+/* Reviewed bytes on disk with the unread write still in the index: `pending` and the gate have to
+   answer alike, or a caller is told no commit is held for a file the next commit is refused for. */
+test("a file whose unread write is staged is asked for however the working copy reads", () => {
+  const root = tree();
+  const home = state(root, ["docs/A.md"]);
+  const staged = readFileSync(join(root, "docs/A.md"), "utf8");
+  logging(home, root, [{ rel: "docs/A.md", sha: digest("docs/A.md\n"), clipped: false }]);
+  writeFileSync(join(root, "docs/A.md"), "docs/A.md\n");
+  assert.deepEqual(apartFrom(root, ["docs/A.md"]), ["docs/A.md"], `the index still holds ${staged.trim()}`);
+  const out = forge(root, home, "pending");
+  assert.match(out.stdout, /^docs\/A\.md$/mu, "so the commit is still asked for it");
+  assert.doesNotMatch(out.stdout, /no commit is held/u, "and it is not called read");
+});
+
+/* A base that moved under the branch parts from it, and a deletion both sides made is no change
+   against the ref while being real work against the point they parted at. */
+test("what no write stands behind is asked of the base the review was taken from", () => {
+  const root = realpathSync(tempRoom("codex-parted-"));
+  rooms.push(root);
+  mkdirSync(join(root, "docs"), { recursive: true });
+  for (const one of ["docs/A.md", "docs/C.md"]) writeFileSync(join(root, one), `${one}\n`);
+  git(root, "init", "-q", ".");
+  git(root, "add", "-A");
+  git(root, "commit", "-qm", "both");
+  const here = git(root, "rev-parse", "--abbrev-ref", "HEAD").trim();
+  git(root, "checkout", "-qb", "side");
+  git(root, "rm", "-q", "docs/C.md");
+  git(root, "commit", "-qm", "gone on side");
+  git(root, "checkout", "-q", here);
+  git(root, "rm", "-q", "docs/C.md");
+  git(root, "commit", "-qm", "gone here too");
+  assert.deepEqual(goneFrom(root, ["docs/C.md"], "side"), ["docs/C.md"], "against the ref it is no change");
+  assert.deepEqual(goneFrom(root, ["docs/C.md"], "side", true), [], "against the parting the deletion is work");
+  assert.deepEqual(goneFrom(root, ["docs/C.md"], "no-such-ref"), [], "and a git that cannot answer drops none");
+});
+
+/* A staged addition whose working copy was removed is in no diff against HEAD and in no untracked
+   list, so absence alone read it as a path no write stands behind (consult c39aa9 F1). */
+test("a staged addition is work nobody read, whatever became of its working copy", () => {
+  const root = tree();
+  writeFileSync(join(root, "docs/NEW.md"), "brand new\n");
+  git(root, "add", "docs/NEW.md");
+  rmSync(join(root, "docs/NEW.md"));
+  assert.deepEqual(goneFrom(root, ["docs/NEW.md"]), [], "the index still holds the addition");
+  const home = state(root, ["docs/NEW.md"]);
+  const out = forge(root, home, "pending");
+  assert.match(out.stdout, /^docs\/NEW\.md$/mu, "so a commit made now is asked for it");
+  assert.doesNotMatch(out.stdout, /out of the record now/u, "and nothing dropped it");
 });

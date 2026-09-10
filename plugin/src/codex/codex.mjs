@@ -4,11 +4,12 @@
    Four pieces: the call and what it may read (codex-api.mjs), the log that is both its memory and
    its eval set (codex-log.mjs), the turn's bookkeeping (codex-state.mjs), and this — the verb and
    the hook halves. */
-export { afterTouch, ageOf, demandIn, holding, pendingIn, pendingState, stagedIn, statePath } from "./codex-state.mjs";
+export { afterTouch, ageOf, apartFrom, demandIn, holding, pendingIn, pendingNow, pendingState, stagedIn, statePath }
+  from "./codex-state.mjs";
 export { reviewed, rounds } from "./codex-rounds.mjs";
 export { plannedFor } from "./codex-plan.mjs";
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
@@ -19,7 +20,8 @@ import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
 import { fail, projectCodex, projectRecordPattern } from "../resolve/settings.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { afterTouch, ageOf, clearConsulted, demandOf, pendingIn, readState, turnsOf, updateState } from "./codex-state.mjs";
+import { afterTouch, ageOf, apartFrom, clearConsulted, demandOf, pendingIn, pendingNow, readByCodex, readState, turnsOf,
+  updateState } from "./codex-state.mjs";
 import { PER_KEY, READ_ISSUE, SPARE, TOOLS, scopeFor } from "./codex-tools.mjs";
 import { noDiffIn, reviewSet, shownOf } from "./codex-set.mjs";
 import { reviewed } from "./codex-rounds.mjs";
@@ -30,7 +32,6 @@ import {
   modelSlot,
   askApi,
   bundle,
-  digest,
   divergedFrom,
   inside,
   modelBehind,
@@ -59,7 +60,6 @@ import {
   recheckPlan,
   recheckRange,
   sentFrom,
-  sentShaOf,
   verdict,
   verdictFromRulings,
   verdictsBy,
@@ -489,16 +489,6 @@ const show = (rest = []) => {
 
 /* The hook records; it never reviews. It asks for one consult at the end of the turn with the intent
    attached, and the caller decides what a turn is: a pending list spans sessions. */
-/* Content codex has read is not owed a second reading, whatever the mtime says. */
-const readByCodex = (root, rel, log) => {
-  let text;
-  try {
-    text = readFileSync(join(root, rel), "utf8");
-  } catch {
-    return false;
-  }
-  return digest(text) === sentShaOf(log(), root, rel);
-};
 
 export const hookRecord = (event, paths, told = () => false, log = logEntries) => {
   if (process.env.FORGE_CODEX_DISABLE === "1") return null;
@@ -513,12 +503,15 @@ export const hookRecord = (event, paths, told = () => false, log = logEntries) =
     if (!root) continue;
     const rel = inside(root, path);
     if (!rel || !recordable(rel)) continue;
-    if (!pendingIn(readState(), root).includes(rel) && readByCodex(root, rel, read)) continue;
+    /* Asked whether the path is recorded or not, an exact revert having owed a consult; a standing entry clears only where the index holds those bytes too, that copy being what lands (ISS-952). */
+    const stood = pendingIn(readState(), root).includes(rel);
+    const known = readByCodex(root, rel, read) && (!stood || !apartFrom(root, [rel]).includes(rel));
     let added = false;
     updateState((held) => {
-      const step = afterTouch(held, root, rel);
+      const step = afterTouch(held, root, rel, known);
       added = step.added;
-      return added ? { ...held, turns: { ...turnsOf(held), [root]: { files: step.files, at: Date.now() } } } : held;
+      if (!step.added && !step.cleared) return held;
+      return { ...held, turns: { ...turnsOf(held), [root]: { files: step.files, at: step.at } } };
     });
     /* Asked only while there is something to say, because asking is what marks the turn told. */
     if (added && !announce && !told(root)) announce = rel;
@@ -544,11 +537,17 @@ const SUBS = {
     const held = readState();
     const waiting = root ? pendingIn(held, root) : [];
     if (!waiting.length) return console.log("nothing pending");
-    const demand = demandOf(root, waiting);
-    const unstaged = waiting.filter((rel) => !demand.includes(rel));
+    const { owed, read, gone } = pendingNow(root, waiting, logEntries, { apart: apartFrom(root, waiting) });
+    /* Dropped as the record is read: a path no write stands behind was reported as work owed by every later consult, and `--drop` declines for it (ISS-952). */
+    if (gone.length) clearConsulted(root, gone);
+    const goneLine = `recorded and no longer in the tree, so out of the record now: ${gone.join(", ")}`;
+    const kept = owed.length + read.length;
+    if (!kept) return console.log(`nothing pending. ${goneLine}`);
+    const demand = demandOf(root, owed);
+    const unstaged = owed.filter((rel) => !demand.includes(rel));
     if (drop) {
       if (!demand.length) {
-        return console.log(`nothing of the ${waiting.length} recorded file(s) is staged, so no commit is `
+        return console.log(`nothing of the ${kept} recorded file(s) is staged, so no commit is `
           + "held for them and there is nothing to drop. Name one to a consult to clear it.");
       }
       const { left } = clearConsulted(root, demand);
@@ -556,11 +555,15 @@ const SUBS = {
       return left.length ? console.log(`still recorded, unstaged: ${left.join(", ")}`) : undefined;
     }
     console.log(demand.length ? demand.join("\n") : "nothing staged that codex has not read");
-    console.log(`\nwhat a commit made now is asked for, out of ${waiting.length} file(s) recorded `
+    console.log(`\nwhat a commit made now is asked for, out of ${kept} file(s) recorded `
       + `${ageOf(held.turns?.[root]?.at)}; \`forge codex pending --drop\` clears it.`);
     if (unstaged.length) {
       console.log(`recorded and not staged, which a commit takes only with -a or a pathspec: ${unstaged.join(", ")}`);
     }
+    if (read.length) {
+      console.log(`recorded and read at the bytes a commit would carry, so none is held for them: ${read.join(", ")}`);
+    }
+    if (gone.length) console.log(goneLine);
   },
   show,
   log: printLog,

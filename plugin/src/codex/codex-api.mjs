@@ -250,9 +250,9 @@ const changedIn = (root, rel, base, fromParting) => {
 
 /** For a consult asked to review a diff and given no file: every path git names, a deletion, an
  *  untracked one and both ends of a rename included — detected, a rename is named by its destination alone and its source by nothing (ISS-703) — or null where the base is no ref, which is not the same as no change. */
-export const changedAgainst = (root, base, fromParting = false) => {
+export const changedAgainst = (root, base, fromParting = false, ms) => {
   const asked = (argv) => {
-    const run = spawnSync("git", argv, { cwd: root, encoding: "utf8" });
+    const run = spawnSync("git", argv, { cwd: root, encoding: "utf8", timeout: ms });
     return run.status === 0 ? (run.stdout ?? "").split("\0").filter(Boolean) : null;
   };
   /* `-z` ahead of `--end-of-options`, past which every word is a path: a newline is a legal one. */

@@ -79,7 +79,8 @@ What a row of this log can be replayed into, and what a rebuild proves, is
 What counts as a document is `codex.pathRe`, `^docs/.*\.md$` by default, because prose is what nothing
 else here checks — and a document written by a heredoc is a document. The turn is keyed by canonical git
 root, one state file for every checkout, and a consult clears only the files it was given: one recorded
-while the call was in flight survives it.
+while the call was in flight survives it. It records paths and the log records what went up, so
+nothing keeps a digest twice (ISS-952).
 
 **Scoped to the working tree, the commit gate was a function of other people's work.** In a checkout
 shared with another session, a three-file commit was refused five times over with a list of 726 paths

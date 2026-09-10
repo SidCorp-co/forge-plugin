@@ -1,27 +1,14 @@
 /* Which files one consult is about, and which of them anything can be shown of. docs/cli/codex-the-consult.md. */
-import { lstatSync } from "node:fs";
-import { isAbsolute, join } from "node:path";
-
 import { fail } from "../resolve/settings.mjs";
 import { pathed } from "../hooks/shell-spans.mjs";
 import { changedAgainst, ignoredIn, locate } from "./codex-api.mjs";
+import { absentFrom, goneFrom, goneSaid } from "./codex-state.mjs";
 
 export const relsOf = (root, named) => named.map((one) => {
   const held = locate(root, one);
   if (!held) fail(`codex: ${one} is not a readable file, from ${root}.`);
   return held.rel;
 });
-
-/** Absent, and not merely unreadable: `lstat` rather than `stat`, so a dangling symbolic link is
- *  present, and only `ENOENT` answers yes, so an `EACCES` file is somebody's work and stays. */
-export const absentFrom = (root, rel) => {
-  try {
-    lstatSync(isAbsolute(rel) ? rel : join(root, rel));
-    return false;
-  } catch (error) {
-    return error.code === "ENOENT";
-  }
-};
 
 /** One home for the question two readers ask: a diff git refused is not one that came back empty, and
  *  neither is one nobody asked for. `missing` covers a deletion and an unreadable file too, so `nothingToShow` — a heading handed over with none of the file under it — asks the disk about absence (ISS-703). */
@@ -54,18 +41,14 @@ export const shownOf = (root, parts, anchor) => {
 };
 
 /* Absent, then ignored, then unchanged as the remainder, so no path lands in no class; ignored is said
-   apart, being real work. `gone` holds no deletion: `changedAgainst` names every one, so none is excluded. */
+   apart, being real work. Neither class holds a deletion: `changed` has named every one already. */
 const classified = (root, left, base) => {
   const absent = left.filter((rel) => absentFrom(root, rel));
   const present = left.filter((rel) => !absent.includes(rel));
   const ignored = [...ignoredIn(root, present)];
   const unchanged = present.filter((rel) => !ignored.includes(rel));
   const said = [];
-  if (absent.length) {
-    said.push(`${absent.length} path(s) this turn's record held are absent from the tree and carry no diff `
-      + `against ${base}: ${absent.join(", ")}. Out of the review, out of the log and out of the record, so `
-      + "no later consult is offered them.");
-  }
+  if (absent.length) said.push(goneSaid(absent, base));
   if (ignored.length) {
     said.push(`${ignored.length} path(s) this turn's record held are ones git ignores, so no diff against `
       + `${base} names them and this review does not see them: ${ignored.join(", ")}. Review them anyway by `
@@ -100,12 +83,17 @@ const committedSaid = (record, pattern, base) => (record.length
   : []);
 
 /** What the caller named, else — a recheck excepted, that being about findings — the checkout's change
- *  against the base, which wins whatever the turn record holds, a pattern-kept record having shown a
- *  reviewer a strict subset twice (ISS-703); else the record, nothing differing leaving no subset. */
+ *  against the base, which wins whatever the turn record holds (ISS-703); else the record, nothing
+ *  differing leaving no subset. `gone` is every route's and not the base's alone (ISS-952). */
 export const reviewSet = ({ root, named, keys = [], base, namedBase, held, pattern, recheck }) => {
-  if (named.length) return { rels: [...new Set(relsOf(root, named))], offered: TOUCHED, said: [], gone: [] };
-  if (keys.length && !base) return { rels: [], offered: TOUCHED, said: [keysSaid(keys)], gone: [] };
   const record = [...new Set(held)];
+  if (named.length || (keys.length && !base)) {
+    const from = base ?? "HEAD";
+    const gone = goneFrom(root, record, from, base !== null && base === namedBase);
+    const said = gone.length ? [goneSaid(gone, from)] : [];
+    const rels = named.length ? [...new Set(relsOf(root, named))] : [];
+    return { rels, offered: TOUCHED, said: named.length ? said : [keysSaid(keys), ...said], gone };
+  }
   if (!base) return { rels: record, offered: TOUCHED, said: recordSaid(record, pattern), gone: [] };
   /* A recheck answers findings, and the tree winning here loses the file they are about the moment anything else is dirty — the round then refuses instead of ruling (ISS-703). */
   if (recheck && record.length) return { rels: record, offered: TOUCHED, said: recheckSaid(record), gone: [] };

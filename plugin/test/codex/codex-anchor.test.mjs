@@ -286,8 +286,10 @@ test("a consult given a file reviews that file, whatever the tree and the record
   assert.equal(status, 0, said);
   assert.deepEqual(logRows(home).find((one) => one.kind === "consult" && one.ok).files, ["src/thing.mjs"]);
   assert.doesNotMatch(said, /nothing named/u, "a path the caller typed is their range and is never widened");
-  assert.deepEqual(recordNow(home, canonical(room)), ["src/gone.mjs", "src/settled.mjs"],
-    "and a record path no consult named is neither classified nor cleared");
+  assert.match(said, /src\/gone\.mjs\. Out of the review, out of the log and out of the record/u,
+    "the phantom is dropped on this route too, where nothing else ever read the record (ISS-952)");
+  assert.deepEqual(recordNow(home, canonical(room)), ["src/settled.mjs"],
+    "and a record path the tree does hold is neither classified nor cleared");
 });
 
 test("a path that is not in the tree and has no diff reaches neither the reviewer nor the log, and leaves the turn record", async () => {
