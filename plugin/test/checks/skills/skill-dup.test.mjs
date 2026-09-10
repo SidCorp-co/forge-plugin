@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { chmodSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
 import { commentSentences, load, sentences } from "../../../src/checks/duplication.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { cleanRepo, tempRoom } from "../../fixtures.mjs";
 
 const A = "The sequence assigns a master-data code whenever the field is left blank.";
 const B = "Uniqueness of that code is a database constraint and not application discipline.";
@@ -53,6 +54,31 @@ test("code carries comments and markdown carries prose", () => {
     join("vendor", "c.mjs"),
   ]);
   assert.deepEqual(load(root, new Set(), "prose").map(([label]) => label), ["b.md"]);
+});
+
+/* The list names untracked files, so a fixture a concurrent test process writes into the checkout is
+   in it and gone by the read. One ENOENT there ended `forge doctor` mid-report and would end the
+   learning gate mid-session, and the report that died named nothing about why (ISS-891). Staged and
+   then deleted is the same list and the same read, without a second process to wait for. */
+test("a file gone by the time the walk reads it is skipped, and the rest still carry their units", () => {
+  const room = cleanRepo();
+  writeFileSync(join(room, "a.mjs"), `// ${A}\n`);
+  writeFileSync(join(room, "gone.mjs"), `// ${B}\n`);
+  spawnSync("git", ["-C", room, "add", "gone.mjs"]);
+  rmSync(join(room, "gone.mjs"));
+
+  assert.deepEqual(load(room, new Set(), "comments").map(([label]) => label), ["a.mjs"]);
+});
+
+/* The other half, and the reason the tolerance is ENOENT and not every read error: `check:dup` reads
+   no hits as a clean tree, so a file that is there and went unread would certify coverage nobody
+   measured — which is the shape this project calls absent rather than red (consult 91d5cd, F1). */
+test("a file that is there and cannot be read stops the walk rather than reading as a clean scan", () => {
+  const root = tempRoom("skill-dup-held-");
+  writeFileSync(join(root, "held.mjs"), `// ${B}\n`);
+  chmodSync(join(root, "held.mjs"), 0o000);
+
+  assert.throws(() => load(root, new Set(), "comments"), /EACCES/u);
 });
 
 test("a glob is not a block comment, however much it looks like one", () => {

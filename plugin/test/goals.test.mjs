@@ -65,6 +65,20 @@ test.after(() => tracker.close());
 mkdirSync(join(home.path, "forge"), { recursive: true });
 writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: tracker.url, token: "t" }));
 const ask = (...argv) => ranAsync(FORGE, argv, tracker.env, ROOT);
+
+/* The goal line is the last thing this report prints and every line under `route table` is a
+   tracker read, so a run whose fixture tracker went unread has no goal line to find: it is named
+   here, before the regex three lines down blames a goal list that moved (ISS-891). Doctor's status
+   is its own verdict on the machine — a fixture endpoint misses several probes — and says nothing
+   about which half of the report answered. */
+const briefRead = (run) => {
+  assert.ok([0, 1].includes(run.status), `${run.status}: ${run.stderr}`);
+  const stopped = run.stdout.trimEnd().split("\n").at(-1);
+  assert.match(run.stdout, /^\[ {2}ok {2}\] project id/mu,
+    `this report never reached the tracker, so it read no brief. Stopped at: ${stopped}. Stderr: ${run.stderr}`);
+  return run.stdout;
+};
+
 const room = tempHome("goals-room").path;
 const bodyAt = (body) => {
   const path = join(room, "body.md");
@@ -143,20 +157,16 @@ test("either source answers, and neither answering is what a refusal is for", ()
 
 test("forge doctor prints the identifiers the brief's own section holds", async () => {
   brief(BRIEF);
-  const run = await ask("doctor");
-  /* Doctor's status is its own verdict on the machine — a fixture endpoint misses several probes —
-     and this test's subject is the goal line, which the report prints either way. */
-  assert.ok([0, 1].includes(run.status), `${run.status}: ${run.stderr}`);
-  assert.match(run.stdout, new RegExp(`^ {2}goals: G-01, G-02, G-03 — read from the brief's \\*${SECTION}\\*`, "mu"));
+  const read = briefRead(await ask("doctor"));
+  assert.match(read, new RegExp(`^ {2}goals: G-01, G-02, G-03 — read from the brief's \\*${SECTION}\\*`, "mu"));
 });
 
 test("a brief with no section prints the line as not stated, and names what writes one", async () => {
   brief("# a map\n\nBuild: none.  ← `CLAUDE.md`\n");
   try {
-    const run = await ask("doctor");
-    assert.ok([0, 1].includes(run.status), `${run.status}: ${run.stderr}`);
-    assert.match(run.stdout, new RegExp(`^ {2}goals: ${NOT_STATED} — .*no \\*${SECTION}\\* section`, "mu"));
-    assert.match(run.stdout, /forge doctor --refresh <brief\.md>/u);
+    const read = briefRead(await ask("doctor"));
+    assert.match(read, new RegExp(`^ {2}goals: ${NOT_STATED} — .*no \\*${SECTION}\\* section`, "mu"));
+    assert.match(read, /forge doctor --refresh <brief\.md>/u);
   } finally {
     /* Restored whatever this asserted: every test below reads the brief, and one of them failing
        for the brief this one left behind is a failure naming the wrong test. */

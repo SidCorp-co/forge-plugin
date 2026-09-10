@@ -20,8 +20,9 @@ import {
 import { backoff, deadlineSeconds, retrySeconds, waitSeconds } from "../tracker/rest.mjs";
 import { BUNDLED } from "./vi.mjs";
 import {
-  FEEDBACK_CHANNELS, LANDING_ROUTES, RUNS_TAKES, SHIP_MODES, accountCredentials, fail, feedbackScope,
-  landingScope, mcpForgeIgnored, parallelRuns, projectRoot, projectScope, shipMode, translateScope,
+  FEEDBACK_CHANNELS, LANDING_ROUTES, RUNS_TAKES, Refusal, SHIP_MODES, accountCredentials, fail,
+  feedbackScope, landingScope, mcpForgeIgnored, parallelRuns, projectRoot, projectScope, refusing,
+  shipMode, translateScope,
 } from "../resolve/settings.mjs";
 import {
   MAX_CLAUDE_MD_LINES,
@@ -378,7 +379,20 @@ const checkProject = async (credentials, graph = null) => {
   for (const said of brief) console.log(said);
 };
 
-/* Lazy: the transport exits the process when credentials have not resolved. */
+/** The one read left in this report that refuses through `fail()`, taken soft so it cannot: an exit
+ *  here costs the report its project id, its probes, the guide table, the project's settings and the
+ *  brief's goal list, with the reason on stderr — where a caller matching this report has only the
+ *  lines that never came, and blames whatever it came for (ISS-891, AC-01-3-1). A refusal is a
+ *  finding to print; a `TypeError` under it is this file's bug and stays a crash (3aa1cb, F1). */
+export const trackerId = async (projectId) => {
+  try {
+    return { id: await refusing(projectId) };
+  } catch (error) {
+    if (!(error instanceof Refusal)) throw error;
+    return { refused: error.message.split("\n")[0] };
+  }
+};
+
 const checkEndpoint = async (full, credentials) => {
   const { forgetProjects, projectId, restBase, scoped } = await import("../tracker/rest.mjs");
   const { served } = await import("../tracker/routes.mjs");
@@ -391,8 +405,14 @@ const checkEndpoint = async (full, credentials) => {
     console.log("\nNo project slug: capability probes are project-scoped and were skipped.");
     return;
   }
-  const id = await projectId();
-  line(OK, "project id", full ? id : `resolved from the slug (--full to print it)`);
+  const held = await trackerId(projectId);
+  /* Neutral about which half: a dead host and a slug the tracker holds no project for both refuse
+     here, and the refusal's own words are what tells them apart (consult 3aa1cb, F2). */
+  if (held.refused) {
+    return line(BAD, "tracker", `${restBase()} did not answer for this project, so nothing below `
+      + `this line was read — ${held.refused}. Check \`endpoint url\` and \`project slug\` above`);
+  }
+  line(OK, "project id", full ? held.id : `resolved from the slug (--full to print it)`);
   const findings = await probe(scoped, slug);
   if (!findings.forge_guide) await checkAgainstGuides(scoped);
   if (findings.gated) {

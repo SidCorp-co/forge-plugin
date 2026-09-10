@@ -3,7 +3,7 @@
    headings, and a source file's comment markers. hooks/vendor/text-overlap.js measures. */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 import { isIgnoredComment, isWaiver, RESTATEMENT_WAIVER } from "../../hooks/vendor/line-metrics.js";
@@ -114,9 +114,18 @@ function tracked(root, kind) {
   return git.stdout
     .split("\0")
     .filter((rel) => rel && wanted(rel, kind))
-    .map((rel) => join(root, rel))
-    .filter((path) => existsSync(path));
+    .map((rel) => join(root, rel));
 }
+
+/* Gone only: untracked files are listed, so one removed under the walk ended it; one that is there and unread is coverage this cannot claim (ISS-891). */
+const contentOf = (path) => {
+  try {
+    return readFileSync(path, "utf8");
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+    return null;
+  }
+};
 
 export function load(root, exclude = new Set(), kind = "both") {
   const units = [];
@@ -124,7 +133,8 @@ export function load(root, exclude = new Set(), kind = "both") {
   for (const path of tracked(root, kind) ?? walk(root, kind)) {
     const rel = relative(root, path);
     if (skipped.some((entry) => rel === entry || rel.startsWith(`${entry}/`))) continue;
-    const text = readFileSync(path, "utf8");
+    const text = contentOf(path);
+    if (text === null) continue;
     const found = rel.endsWith(".md") ? sentences(text) : commentSentences(text);
     for (const sentence of found) units.push([rel, sentence]);
   }

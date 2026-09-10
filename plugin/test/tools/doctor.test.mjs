@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { cleanRepo, fakeTracker, tempRoom } from "../fixtures.mjs";
+import { cleanRepo, fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "cli.mjs");
 
@@ -188,6 +188,68 @@ const whole = async (config, { previewDeploy = null, saved = {}, project = {} } 
 };
 
 const releaseReport = async (config, previewDeploy = null) => (await whole(config, { previewDeploy })).out;
+
+/* Two runs over one configuration, the host gone between them: the first resolves the project and
+   leaves its id in the cache beside the credential, so the second proves the report asks anyway.
+   `checkEndpoint` empties that cache before it resolves anything, which is why a cached id is no
+   way past the read — the question a reader of this has, answered here rather than argued. */
+const afterTheHostWent = async () => {
+  const tracker = await fakeTracker({
+    answer: {
+      "forge_projects.list": () => ({ projects: [{ slug: "gone-fixture", id: "1e1c1a1e-0000-4000-8000-00000000000e" }] }),
+    },
+  });
+  const cwd = tempRoom("doctor-gone-");
+  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "gone-fixture" }));
+  const ran = () => ranAsync(process.execPath, [CLI, "doctor"], tracker.env, cwd);
+  const live = await ran();
+  tracker.close();
+  return { live, gone: await ran() };
+};
+
+/* AC-01-3-1: a setting that resolved to nothing is reported, not omitted. An exit at the project's
+   id costs the report its whole tracker half — the probes, the guide table, the project's settings,
+   the brief's goal list — with the reason on a stream this suite never reads (ISS-891). */
+test("a tracker that stopped answering is a line of the report and not the end of it", async () => {
+  const { live, gone } = await afterTheHostWent();
+  assert.match(live.stdout, /\[ {2}ok {2}\] project id\s+resolved from the slug/u,
+    "the live run resolved the project, so a cached id is what the second run starts from");
+  assert.doesNotMatch(live.stdout, /\[ miss \] tracker/u, "and a tracker that answered earns no such line");
+  assert.match(gone.stdout, /\[ miss \] tracker\s+http:\/\/127\.0\.0\.1:\d+\/api did not answer for this project/u);
+  assert.match(gone.stdout, /Forge did not answer GET \/projects/u, "carrying the transport's own reason");
+  assert.match(gone.stdout, /Check `endpoint url` and `project slug` above/u,
+    "and the route out, by the labels of the rows that hold each rather than by where they sit");
+  assert.doesNotMatch(gone.stderr, /^Forge did not answer/mu,
+    "the reason is on the surface a caller matches, not the one it never reads");
+  assert.equal(gone.status, 1, "a report that reached none of its tracker half is a miss, and the exit says so");
+});
+
+/* Two things refuse at that one read — a host that is not there, and a host that is and holds no
+   project by this name — so the line is neutral and the refusal's words tell them apart (3aa1cb F2). */
+test("a slug the tracker holds no project for is named as that, not as an endpoint that went quiet", async () => {
+  const tracker = await fakeTracker({
+    answer: { "forge_projects.list": () => ({ projects: [{ slug: "some-other", id: "1e1c1a1e-0000-4000-8000-00000000000f" }] }) },
+  });
+  const cwd = tempRoom("doctor-no-slug-");
+  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "absent-fixture" }));
+  const run = await ranAsync(process.execPath, [CLI, "doctor"], tracker.env, cwd);
+  tracker.close();
+  assert.match(run.stdout, /\[ miss \] tracker\s+.*No Forge project has slug absent-fixture/u);
+  assert.match(run.stdout, /Seen: some-other/u, "with what the tracker did hold, which is the route out");
+  assert.equal(run.status, 1);
+});
+
+/* Only a refusal is a finding: a `TypeError` reported as a tracker that went quiet is this file's
+   own bug wearing the environment's clothes (3aa1cb F1). */
+test("a read that fails for anything but a refusal is not reported as a tracker that went quiet", async () => {
+  const { trackerId } = await import("../../src/tools/doctor.mjs");
+  await assert.rejects(() => trackerId(() => {
+    throw new TypeError("broken lookup");
+  }), /broken lookup/u);
+  const { fail } = await import("../../src/resolve/settings.mjs");
+  assert.deepEqual(await trackerId(() => fail("the tracker refused\nand a second line nobody reads")),
+    { refused: "the tracker refused" });
+});
 
 test("the three release values are reported with where they came from", async () => {
   const out = await releaseReport({
