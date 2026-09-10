@@ -35,28 +35,35 @@ being granted, so `2>&1` and `> out.log` keep the name, and so does any characte
 hands on as prose — an ampersand, a semicolon, a pipe, a parenthesis, a `$` that expands rather than
 runs, a `>` that is part of a sentence rather than of the shell.
 
-**What loses it.** A command inside the command, in any of the ways a shell writes one:
+**What loses it.** A command inside the command, in any of the ways a shell writes one, and only
+where the shell would run it there:
 
-| Written | Why it loses the name |
-|---|---|
-| `$(…)` | a subshell of its own, expanded before this command runs and without its assignment |
-| `` `…` `` | the same substitution, older spelling |
-| `<(…)` and `>(…)` | a process substitution, likewise its own shell |
-| `${ …; }` and `${\| …; }` | bash 5.3's brace substitutions, which run in this shell but before the assignment applies |
-| `<<` and `<<<` | a body the shell expands, and one this reader does not model |
+| Written | Why it loses the name | Where it is prose instead |
+|---|---|---|
+| `$(…)` | a subshell of its own, expanded before this command runs and without its assignment | single quotes, or a `\` on the `$` inside double quotes |
+| `` `…` `` | the same substitution, older spelling | single quotes, or a `\` on the backtick |
+| `${ …; }` and `${\| …; }` | bash 5.3's brace substitutions, which run in this shell but before the assignment applies | single quotes, or a `\` on the `$` inside double quotes |
+| `<(…)` and `>(…)` | a process substitution, likewise its own shell | either quote, since neither performs one |
+| `<<` and `<<<` | a body the shell expands, and one this reader does not model | either quote, for the same reason |
 
-Each is refused without being read, and that is deliberate. A `forge` call nested in one would write
-under no name at all, so refusing is the safe direction; and no reading of what sits inside an opener
-has survived review. An apostrophe delimits nothing inside double quotes, quote removal spells
-`for"ge"` into `forge`, a `#` makes the reader drop the rest of a here-doc line, and a backslash
-before a newline makes an opener out of two characters neither of which is one. So the question asked
-is whether an opener is present, never what follows it, and an opener inside single quotes is refused
-along with the rest.
+**What decides is the quoting, and one reader answers it.** `plugin/src/hooks/shell-spans.mjs` reads
+a shell text once and says what quoting each character stands under, so the question asked of an
+opener is the one a shell asks: would this run, written here. A line continuation is removed before
+the reading, both characters of it, because the shell removes it and joins what it split — so a `$`
+and a `(` a backslash-newline sits between are one opener and lose the name.
 
-**The consequence to write around: an identifier in a record's prose goes in without backticks.**
-This repository's writing convention is to put one around every identifier, and a backtick is an
-opener whichever quote surrounds it. Write the name plain, or use the export form, which has none of
-this.
+Nothing inside an opener that does run is read, and that is deliberate: a `forge` call nested in one
+would write under no name at all, so refusing unread is the safe direction, and no reading of what
+sits inside an opener has survived review.
+
+**The one quoting this cannot place: `$'…'`.** Inside an ANSI-C quoted word a backslash escapes, so
+the apostrophe that looks like the closing one may not be, and every single-quote boundary after it
+is a guess. A command carrying one is answered the way every opener was answered before any of this:
+present anywhere, and the name is lost. Spell the value with ordinary quotes and it is read.
+
+**So an identifier in a record's prose goes in as the rest of this repository writes it**, in
+backticks, inside single quotes. In double quotes a backtick still runs, so escape it or apostrophe
+the value; and the export form has none of this.
 
 ## Where a lost name shows
 

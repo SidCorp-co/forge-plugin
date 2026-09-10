@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { quoting } from "../../src/hooks/shell-spans.mjs";
 import { idGrantedBy } from "../../src/resolve/granted-id.mjs";
 
 const WRITE = "./plugin/bin/forge comment ISS-29 -";
@@ -101,6 +102,47 @@ test("what a granted call carries after the verb is that call's own", () => {
   }
 });
 
+/* ISS-949. The same removal one character class further in: an opener a shell would not act on where it stands is the prose it looks like, and this repository's convention puts a backtick around every
+   identifier a record names. The quoting `shell-spans` reads is what decides, so every row is a shell fact — single quotes carry anything, a double quote runs a substitution and reads a process
+   substitution or a here-doc operator as text, and a backslash makes an opener's own character literal. */
+test("an opener a shell would not act on is the prose it looks like", () => {
+  const advance = "forge advance ISS-29 --why";
+  const reads = {
+    [`FORGE_SESSION_ID=a-run ${advance} 'the \`set\` flag'`]: "a backtick apostrophed, which every record writes",
+    [`FORGE_SESSION_ID=a-run ${advance} 'run $(date), \`date\` and <(date)'`]: "every spelling at once, apostrophed",
+    [`FORGE_SESSION_ID=a-run ${advance} 'held \${ ROUNDS; } times'`]: "the brace substitution, apostrophed",
+    [`FORGE_SESSION_ID=a-run ${advance} 'a body it takes on <<EOF'`]: "the here-doc operator, apostrophed",
+    [`FORGE_SESSION_ID=a-run ${advance} "read <(date) as text"`]: "a process substitution a double quote does not run",
+    [`FORGE_SESSION_ID=a-run ${advance} "shifted a << b"`]: "nor a here-doc operator",
+    [`FORGE_SESSION_ID=a-run ${advance} "the \\\`set\\\` flag"`]: "a backtick a backslash made literal",
+    [`FORGE_SESSION_ID=a-run ${advance} "\\$(not a substitution)"`]: "and the dollar of one",
+    [`FORGE_SESSION_ID=a-run ${advance} pre\\\`set\\\`post`]: "the same escape outside every quote",
+    [`FORGE_SESSION_ID=a-run ${advance} "it's the \\\`set\\\` flag, isn't it"`]: "apostrophes that delimit nothing, beside an escaped opener",
+  };
+  for (const [command, what] of Object.entries(reads)) {
+    assert.equal(idGrantedBy(command), "a-run", what);
+  }
+});
+
+/* The reading the rows above spend, in the spender's own suite: `plugin/test/hooks/` holds ten source files and an eleventh trips the folder-width limit, which is why `typed` and `waitsIn` are tested
+   from their spenders too. A state character per character of the text, so an offset in the answer is an offset in the text — and one pair the shell removes, which is what joins an opener it split. */
+test("every character a shell reads carries the quoting it stands under", () => {
+  const under = (text) => quoting(text).map((one) => one.under).join("");
+  assert.equal(under("cd /tmp"), "       ", "bare text stands under nothing");
+  assert.equal(under("a 'b' c"), "  '''  ", "a single-quoted run, its delimiters in it");
+  assert.equal(under('a "b" c'), '  """  ', "and a double-quoted one");
+  assert.equal(under("a # b"), "  ###", "a comment, from its hash to the line's end");
+  assert.equal(under("a \\# b"), "  \\\\  ", "a hash a backslash made literal opens none");
+  assert.equal(under("a 'b"), "  ''", "an unclosed quote runs to the end");
+  assert.equal(under("'a\\'"), "''''", "and a backslash inside single quotes escapes nothing");
+  assert.deepEqual(quoting("$\\\n(x)").map(({ at, one }) => `${at}${one}`), ["0$", "3(", "4x", "5)"],
+    "a continuation is gone, both characters of it, and its neighbours join");
+  assert.equal(quoting("\u{1f600}$\\\n(x)").map(({ one }) => one).join(""), "\u{1f600}$(x)",
+    "and the pair dropped is the pair, past a code point that is two code units");
+  assert.equal(quoting("$\\q(x)").map(({ one }) => one).join(""), "$\\q(x)",
+    "where every other escaped character stands where it stood");
+});
+
 /* The other side of the same removal, and the reason the class could not simply go: an inline
    assignment prefixes one command, so a writer a substitution starts is a second process this grant
    never reaches, where an export — being the environment — does reach one. Every attempt to read what
@@ -111,7 +153,17 @@ test("a granted call that can start a second command is granted nothing", () => 
     [`FORGE_SESSION_ID=a-run ${WRITE} $(date)`]: "a substitution the prefix cannot reach",
     [`FORGE_SESSION_ID=a-run ${WRITE} \`date\``]: "the same, spelled with backticks",
     [`FORGE_SESSION_ID=a-run ${advance} "the \`set\` flag"`]: "a backtick a shell runs in double quotes",
-    [`FORGE_SESSION_ID=a-run ${advance} 'the \`set\` flag'`]: "and refused apostrophed too, unread",
+    [`FORGE_SESSION_ID=a-run ${advance} 'closed' \`date\``]: "an opener past the quotes that end before it",
+    [`FORGE_SESSION_ID=a-run ${advance} $'can\\'t'$(forge advance ISS-30)`]:
+      "an apostrophe an ANSI-C word keeps, which this reading cannot place",
+    [`FORGE_SESSION_ID=a-run ${advance} $\\\n'can\\'t'$(forge advance ISS-30)`]:
+      "the same word, its own opener written as two characters neither of which is one",
+    [`FORGE_SESSION_ID=a-run ${advance} "\u{1f600}$\\\n(forge advance ISS-30)"`]:
+      "a continuation past a code point outside the BMP, where a code-point offset would be one out",
+    [`FORGE_SESSION_ID=a-run ${advance} "\${missing:-"it's $(forge advance ISS-30)"}"`]:
+      "a quote an expansion nests, which a flat reading of the text closes early",
+    [`FORGE_SESSION_ID=a-run ${advance} "$[0 + "it's $(forge advance ISS-30)"]"`]:
+      "and the deprecated arithmetic form, whose body no shell this runs on is read for",
     [`FORGE_SESSION_ID=a-run ${advance} "$(forge advance ISS-30)"`]: "a writer nested in a substitution",
     [`FORGE_SESSION_ID=a-run ${advance} "$(cd /x && forge advance ISS-30)"`]: "a separator a quote hides",
     [`FORGE_SESSION_ID=a-run ${advance} "it's $(forge advance ISS-30) isn't"`]: "apostrophes delimit nothing",

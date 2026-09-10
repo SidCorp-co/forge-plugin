@@ -8,11 +8,10 @@ import { isAbsolute, resolve } from "node:path";
    a `)` closes a frame only where the `(` it matches opened one, so a substitution pops nothing. */
 const OPENS = /[\s;&|()]/u;
 
-/** Where each command begins and ends, with the subshells its span opens and closes. A quoted body is
- *  never cut, nor a pipeline split: both hand the next command its arguments. An unclosed quote joins, a
- *  backslash escapes outside single quotes, and a comment is outside every span — its `|` is no pipeline. */
-export const spans = (text, { pipes = false } = {}) => {
+/* One walk, two answers: the spans below and the quoting each character stands under. Both are this loop's, because the quote state is the primitive the spans reading already spends, and a second walk of the same text elsewhere is a copy that can drift on one side only. */
+const walked = (text, pipes) => {
   const out = [];
+  const under = new Array(text.length).fill(" ");
   let start = 0;
   let quote = "";
   let said = -1;
@@ -33,26 +32,31 @@ export const spans = (text, { pipes = false } = {}) => {
       if (one === "\n") {
         cut(at);
         start = at + 1;
-      }
+      } else under[at] = "#";
       continue;
     }
     if (one === "\\" && quote !== "'") {
+      under[at] = "\\";
+      if (at + 1 < text.length) under[at + 1] = "\\";
       at += 1;
       fresh = false;
       continue;
     }
     if (quote) {
+      under[at] = quote;
       if (one === quote) quote = "";
       fresh = false;
       continue;
     }
     if (one === '"' || one === "'") {
+      under[at] = one;
       quote = one;
       fresh = false;
       continue;
     }
     if (fresh && one === "#") {
       said = at;
+      under[at] = "#";
       continue;
     }
     if (one === "(") {
@@ -76,7 +80,23 @@ export const spans = (text, { pipes = false } = {}) => {
     }
   }
   cut(text.length);
-  return out;
+  return { out, under };
+};
+
+/** Where each command begins and ends, with the subshells its span opens and closes. A quoted body is never cut, nor a pipeline split: both hand the next command its arguments. An unclosed quote joins, a backslash escapes outside single quotes, and a comment is outside every span — its `|` is no pipeline. */
+export const spans = (text, { pipes = false } = {}) => walked(text, pipes).out;
+
+/** Every character a shell reads, in order: `at` its offset, `one` the character, `under` the quoting it stands inside — a space bare, `'` or `"` that quote and its own delimiters, `#` a comment, `\` a character a backslash made literal. A line continuation is gone, both characters of it, because a shell removes the pair and joins what it separated; nothing else is, so an escaped character goes on separating what it separates and two neighbours here can be two apart in the text.
+ *  What a quoting means for a character is the caller's: a shell runs a `$(` under a double quote and reads a `<(` there as text. And one quoting this cannot place, which the caller has to answer for: inside `$'…'` a backslash escapes, so the apostrophe that looks like the closing one may not be. */
+export const quoting = (text) => {
+  const { under } = walked(text, false);
+  const continued = (at) =>
+    under[at] === "\\"
+    && (text[at] === "\n" || (text[at + 1] === "\n" && under[at + 1] === "\\"));
+  /* Split rather than spread: one entry per code unit, so `at` indexes this walk and a caller's own match, where a code point outside the BMP would put every offset after it one out. */
+  return text.split("")
+    .map((one, at) => ({ at, one, under: under[at] }))
+    .filter(({ at }) => !continued(at));
 };
 
 /* What may precede a move and still leave it to this shell: a group, or a keyword whose condition or body runs here — never a `!`, which inverts. The destination is one optional shell word, `popd` has none, a `-n` moves the stack and not the shell so it is no move at all, and past a `--` a word beginning with one is the destination. */
