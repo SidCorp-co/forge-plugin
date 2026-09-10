@@ -13,6 +13,9 @@ import { KINDS } from "../../src/flow/record/record-rows.mjs";
 const fieldsOf = (complexity, moved = []) =>
   ({ description: "a defect", plan: null, moved, whole: true, complexity });
 
+/** Every kind an entry check cites, for a page that holds the whole record set. */
+const EVERY_KIND = Object.values(CITED).flat();
+
 const PLAN = "Screen change: no. Schema coupling: no.";
 
 /** What a status's entry check asks of a record holding nothing but the complexity and the two readings
@@ -33,9 +36,8 @@ test("every citation names the record the check into the next status refuses wit
     assert.ok(CITED[status], `${status} has an entry check and no record named for it, so the phase `
       + "below it would print as discharged by nothing");
   }
-  /* The values, not the presence: three were wrong and a presence check passed all three. Asked of
-     two records, one holding criteria and one not, because the criteria are what `approved` asks for
-     when they are absent and what `tested` needs present before it asks for a verdict at all. */
+  /* The values, not the presence: three were wrong and a presence check passed all three. Asked of a
+     record holding criteria and one not, since absent criteria are what `approved` asks for. */
   for (const [status, kinds] of Object.entries(CITED)) {
     const said = asked(status);
     for (const kind of kinds) {
@@ -74,12 +76,12 @@ test("a phase cites the record that carried it, not the one that reached its own
 
 test("a status the flow table gives no numbered phase is not listed as owing one", () => {
   assert.ok(Number.isNaN(phaseNumber("closed")), "closed owes `none`, which is no phase number");
-  assert.deepEqual(phaseIndex({ status: "closed", fields: fieldsOf("s") }).owed, [],
+  assert.deepEqual(phaseIndex({ status: "closed", fields: fieldsOf("s"), held: EVERY_KIND }).owed, [],
     "so a closed issue owes no phase and the index says so by listing none");
 });
 
 test("the first phase owed at approved is Phase 4, and the phases before it are on the record", () => {
-  const { first, passed } = phaseIndex({ status: "approved", fields: fieldsOf("m") });
+  const { first, passed } = phaseIndex({ status: "approved", fields: fieldsOf("m"), held: EVERY_KIND });
   assert.match(first, /^4 /u, "an approved issue implements next, and the index opens on that");
   assert.deepEqual(passed.map((one) => [one.phase, one.cites]), [
     ["1 Triage", "confirmation"],
@@ -91,16 +93,58 @@ test("the first phase owed at approved is Phase 4, and the phases before it are 
 /* Two verbs print this and a run compares them, so a second composition of one line is the defect
    the renderer exists to prevent — and it reads exactly like a working one (ISS-804). */
 test("the opening lists each phase behind with the record that discharged it, or nothing", () => {
-  const lines = openingLines("approved");
+  const lines = openingLines("approved", EVERY_KIND);
   assert.equal(lines[0], READ_OFF_THE_RECORD, "the line saying where to start leads it");
   assert.deepEqual(lines.slice(1), [
     "  passed: 1 Triage  —  confirmation",
     "  passed: 2 Clarify  —  decision",
     "  passed: 3 Plan  —  plan",
   ], "one line per phase, since a phase's own name carries commas and a joined list reads as more");
-  assert.deepEqual(openingLines("open"), [],
+  assert.deepEqual(openingLines("open", []), [],
     "an issue nobody has opened yet earns no header over an empty list, on either verb");
-  assert.deepEqual(openingLines("closed"), [], "and one owing no phase is not told where to start");
+  assert.deepEqual(openingLines("closed", EVERY_KIND), [], "and one owing no phase is not told where to start");
+});
+
+/* The status is a cache of the records with fewer slots than there are facts, and `advance --set`
+   writes it with no entry check reading it, so a status alone claimed phases nothing earned. */
+test("a phase is passed on the record that discharges it and not on where the status sits", () => {
+  const behind = (held) => openingLines("approved", held).slice(1);
+  assert.deepEqual(behind(["confirmation", "decision", "plan"]), [
+    "  passed: 1 Triage  —  confirmation",
+    "  passed: 2 Clarify  —  decision",
+    "  passed: 3 Plan  —  plan",
+  ], "a page holding all three names all three, which is what the status alone used to say");
+  assert.deepEqual(behind(["confirmation"]), ["  passed: 1 Triage  —  confirmation"],
+    "and a status set forward over a page holding one record claims that one phase and no other");
+  assert.deepEqual(openingLines("approved", []), [],
+    "a status nothing earned earns no opening: every phase behind it is still owed");
+  assert.deepEqual(behind(["confirmation", "plan"]), [
+    "  passed: 1 Triage  —  confirmation",
+    "  passed: 3 Plan  —  plan",
+  ], "and a gap in the middle is left as a gap rather than filled in from the status");
+});
+
+/* Rule 3 of the issue that asked for this: a reopen keeps the answer it gives today. It stands at
+   `open` carrying the whole record set of the cycle before, and owes the triage of the finding. */
+test("a full record set at open passes no phase and still owes the triage", () => {
+  const index = phaseIndex({ status: "open", fields: fieldsOf("m"), held: EVERY_KIND });
+  assert.deepEqual(index.passed, [], "no rung sits below open, so the record above it passes nothing");
+  assert.match(index.first, /^1 Triage/u, "and the phase owed is the status's, which is the triage");
+  assert.deepEqual(openingLines("open", EVERY_KIND), [],
+    "so both verbs say at open what a claim there always said");
+});
+
+/* The two halves answer different questions — the record what was written, the status where the
+   issue stands — and a phase in both lists would contradict the line that heads the block. */
+test("no phase is both named as passed and named as owed", () => {
+  for (const status of ORDER) {
+    const index = phaseIndex({ status, fields: fieldsOf("m"), held: EVERY_KIND });
+    const owed = new Set(index.owed.map((one) => one.phase));
+    for (const one of index.passed) {
+      assert.ok(!owed.has(one.phase),
+        `at ${status} the phase \`${one.phase}\` is listed as passed and as owed at once`);
+    }
+  }
 });
 
 /* The lane a run reads before it spends anything. Pinned whole at the rung the issue that asked for
@@ -148,7 +192,7 @@ test("neither verb that prints the opening composes a line of it", () => {
 /* A waiver is on a transition: dropping the plan is not dropping the implementing, and an index
    reading it as the latter tells a run at the fix rung its work is done. */
 test("a rung's waiver is printed against the status it is granted from, and waives no phase", () => {
-  const owed = (complexity) => phaseIndex({ status: "clarified", fields: fieldsOf(complexity) }).owed;
+  const owed = (complexity) => phaseIndex({ status: "clarified", fields: fieldsOf(complexity), held: EVERY_KIND }).owed;
   const waived = owed("s").filter((one) => one.waived);
   /* The status below the one dropping it: the plan's own phase, and for the note the phase before it, the release rung being entered from `developed` and spanning both (ISS-1022). */
   assert.deepEqual(waived.map((one) => one.phase), ["3 Plan", "5 Prove"],
@@ -164,7 +208,7 @@ test("a rung's waiver is printed against the status it is granted from, and waiv
 
 test("the lines say a phase is owed without a record, never that the phase is dropped", () => {
   const lines = indexLines("issue-flow", "ISS-9",
-    phaseIndex({ status: "clarified", fields: fieldsOf("s") }));
+    phaseIndex({ status: "clarified", fields: fieldsOf("s"), held: EVERY_KIND }));
   assert.equal(lines.filter((one) => one.startsWith("dropped")).length, 0,
     "no line calls a phase dropped, which is what told a fix its implementing was waived");
   assert.match(lines.find((one) => one.startsWith("owed") && one.includes("3 Plan")),
@@ -175,7 +219,7 @@ test("the lines say a phase is owed without a record, never that the phase is dr
 
 /* `ORDER` is the path, not the table: a status beside it read as completion owes work silently. */
 test("a status off the linear path owes its own phase and is not read as finished", () => {
-  const index = phaseIndex({ status: "reopen", fields: fieldsOf("s") });
+  const index = phaseIndex({ status: "reopen", fields: fieldsOf("s"), held: EVERY_KIND });
   assert.match(index.first, /^1 Triage/u, "a reopen owes the triage of the person's finding");
   assert.equal(index.aside, "reopen", "and says it is off the path rather than implying a rung");
   assert.deepEqual(index.passed, [], "nothing is claimed passed on a path this status is not on");
@@ -189,6 +233,6 @@ test("every status the flow table gives a phase is on the order or named as besi
   const off = Object.keys(PHASE).filter((status) => Number.isFinite(phaseNumber(status)) && !ORDER.includes(status));
   assert.deepEqual(off, ["reopen"], "reopen alone sits outside the order, being a bounce not a rung");
   for (const status of off) {
-    assert.equal(phaseIndex({ status, fields: fieldsOf("s") }).aside, status, `${status} reads as finished`);
+    assert.equal(phaseIndex({ status, fields: fieldsOf("s"), held: EVERY_KIND }).aside, status, `${status} reads as finished`);
   }
 });

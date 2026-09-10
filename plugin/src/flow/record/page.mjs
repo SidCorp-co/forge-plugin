@@ -41,6 +41,12 @@ export const assemble = (comments, criteria) => {
   return { latest, verdicts, owed, repeated, unreadable };
 };
 
+/* Which kinds the assembly above found, the verdicts under the one name it files them apart from. Written and not whole: the phase index asks this to stop calling a phase passed that no record earned, while whether a payload holds is the entry checks' question and `forge advance --owed` where a gappy one is named (ISS-1064). */
+export const kindsHeld = ({ latest, verdicts, unreadable }) => [
+  ...Object.keys(latest ?? {}),
+  ...(verdicts?.size || unreadable?.length ? ["verdict"] : []),
+];
+
 /* The label is the shape's, never the record's: a record carries keys, and two forms of one record read back under one heading. A rewritten one carries no key and says so instead of nothing. */
 export const printRecord = ({ at, record }) => {
   const shape = SHAPES[record.kind];

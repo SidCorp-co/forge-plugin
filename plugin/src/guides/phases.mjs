@@ -22,20 +22,27 @@ export const CITED = {
 
 export const dischargedBy = (status) => CITED[stepAfter(status)]?.[0] ?? null;
 
-/** Three readings of one row: every phase it names, the phase a record of a kind ends, and the phase the landing ends. A record's is the stage below the one `CITED` says it earns, and null where that stage owes several phases, since `CITED` does not say which of a stage's records ends it; the landing's is the last its own stage names, that row abbreviating the note and the ship into one cell. docs/cli/the-parts.md. */
+/** Two readings of one row: every phase it names, and the phase the landing ends — the last its own row names, that row abbreviating the note and the ship into one cell. docs/cli/the-parts.md. */
 const EVERY_NUMBER = /\d+/gu;
-const stageBelow = (status) => ORDER[ORDER.indexOf(status) - 1] ?? null;
 
 export const phasesOwed = (status) =>
   [...String(PHASE[status]?.[0] ?? "").matchAll(EVERY_NUMBER)].map((one) => Number(one[0]));
 
-export const phaseForRecord = (kind) => {
-  const earns = ORDER.find((status) => CITED[status]?.includes(kind));
-  /* A rung whose own cell names several phases holds records that end different ones, so only the kind leading the row — the one `dischargedBy` answers with — takes the stage below's number and the rest say nothing rather than borrow it. One rung cites the verdict, the verification and the note, which end 5, 6 and 7 (ISS-1022). */
-  if (earns && phasesOwed(earns).length > 1 && CITED[earns][0] !== kind) return null;
-  const owed = earns ? phasesOwed(stageBelow(earns)) : [];
-  return owed.length === 1 ? owed[0] : null;
+/* Which phase each cited record ends, declared per kind rather than derived from where its rung sits in the order. A rung naming several phases holds records that end different ones and no table says which, so the derivation answered nothing for four of these ten (ISS-1064). Keyed by the kind, so merging two rungs moves no row of this. A case recomputes that derivation over every row and refuses one that disagrees wherever the two tables can still answer, which is the six that are not review, merged, verification and note. */
+export const ENDS_PHASE = {
+  confirmation: 1,
+  decision: 2,
+  plan: 3,
+  criteria: 3,
+  baseline: 4,
+  review: 4,
+  merged: 7,
+  verdict: 5,
+  verification: 7,
+  note: 6,
 };
+
+export const phaseForRecord = (kind) => ENDS_PHASE[kind] ?? null;
 
 export const phaseAtLanding = () => phasesOwed(CLOSES_FROM).at(-1) ?? null;
 
@@ -54,26 +61,28 @@ const owedFrom = (status) => {
 
 const numbered = (status) => Number.isFinite(phaseNumber(status));
 
-/* Everything a status alone decides, the waiver below being the only reading that needs a rung. A
+/* A rung below the status is passed when the record that discharges it is on the page: the status is
+   a cache of the records with fewer slots than there are facts, so one set by hand claimed phases
+   nothing earned (ISS-1064). Capped at the status, since the phase owed is still the status's. */
+const passedIn = (status, held) => ORDER.slice(0, ORDER.indexOf(status)).filter(numbered)
+  .map((one) => ({ status: one, phase: PHASE[one][0], cites: dischargedBy(one) }))
+  .filter((one) => one.cites && held.includes(one.cites));
+
+/* What is ahead is the status's alone, the waiver below being the only reading that needs a rung. A
    status off `ORDER` — a reopen, a park's side — owes its own row's phase and is not completion. */
-const behind = (status) => {
+const behind = (status, held) => {
   const aside = !ORDER.includes(status) && numbered(status);
   const owing = aside ? [status] : owedFrom(status).filter(numbered);
   return {
     aside: aside ? status : null,
     owing,
-    passed: aside ? [] : ORDER.slice(0, ORDER.indexOf(status)).filter(numbered).map((one) => ({
-      status: one,
-      phase: PHASE[one][0],
-      cites: dischargedBy(one),
-    })),
+    passed: aside ? [] : passedIn(status, held),
     first: owing.length ? PHASE[owing[0]][0] : null,
   };
 };
 
-/** The phases behind this issue with what discharged each, then those owed with what a rung waives. */
-export const phaseIndex = ({ status, fields }) => {
-  const { aside, owing, passed, first } = behind(status);
+export const phaseIndex = ({ status, fields, held }) => {
+  const { aside, owing, passed, first } = behind(status, held);
   return {
     passed,
     owed: owing.map((one) => ({
@@ -92,8 +101,8 @@ export const READ_OFF_THE_RECORD =
 
 /** The opening on an issue somebody else opened: one line per phase behind, none where none is, and
  *  one renderer for `resume` and `claim` both (ISS-804, BR-09). docs/cli/resume.md. */
-export const openingLines = (status) => {
-  const { passed, first } = behind(status);
+export const openingLines = (status, held) => {
+  const { passed, first } = behind(status, held);
   const earned = first ? passed.filter((one) => one.cites) : [];
   return earned.length
     ? [READ_OFF_THE_RECORD, ...earned.map((one) => `  passed: ${one.phase}  —  ${one.cites}`)]

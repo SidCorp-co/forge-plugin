@@ -18,7 +18,8 @@ process.env.XDG_CONFIG_HOME = HOME.path;
 
 const { SLUG, partForLanding, partForRecord, partForStatus, phasePart, surfaceFor } =
   await import("../../src/guides/served.mjs");
-const { CITED, phaseAtLanding, phaseForRecord, phasesOwed } = await import("../../src/guides/phases.mjs");
+const { CITED, ENDS_PHASE, phaseAtLanding, phaseForRecord, phasesOwed } =
+  await import("../../src/guides/phases.mjs");
 const { localGuide } = await import("../../src/guides/guides.mjs");
 const { ORDER } = await import("../../src/flow/earned.mjs");
 const { userConfig } = await import("../../src/resolve/config.mjs");
@@ -43,31 +44,37 @@ const asRun = (id) => {
   process.env.FORGE_SESSION_ID = id;
 };
 
-test("a record's phase is the one owed by the rung below the status its entry check cites", () => {
+/* The declaration is the one runtime source and this is its checker: six of the ten rows are held to
+   what the two flow tables still derive, and the four they cannot answer for are the case below. */
+test("every cited kind answers a phase, and one the flow tables can derive answers that one", () => {
   for (const [earns, kinds] of Object.entries(CITED)) {
     const owed = phasesOwed(rungBelow(earns));
-    /* A rung spanning several phases holds records ending different ones, so only the kind leading its row takes the number below and the rest answer nothing. */
     const spans = phasesOwed(earns).length > 1;
     for (const kind of kinds) {
       const answer = phaseForRecord(kind);
-      if (owed.length === 1 && (!spans || kinds[0] === kind)) {
+      /* Named before it is served: a kind with no row answers null, and serving that says only that
+         the guide refused a part called `null`. */
+      assert.ok(Number.isInteger(answer),
+        `a ${kind} is cited at ${earns} and the declared column gives it no phase at all`);
+      assert.ok(guideSays(answer).length > 0,
+        `a ${kind} answers ${answer}, which is no phase this copy serves a part for`);
+      if (owed.length === 1 && !spans) {
         assert.equal(answer, owed[0],
           `a ${kind} earns ${earns}, so it ends the one phase ${rungBelow(earns)} owes`);
-      } else {
-        assert.equal(answer, null,
-          `neither ${rungBelow(earns)}'s phases nor ${earns}'s own row says which record ends one, `
-          + `so a ${kind} answers nothing rather than borrowing a number`);
       }
     }
   }
+  assert.deepEqual(Object.keys(ENDS_PHASE).sort(), Object.values(CITED).flat().sort(),
+    "and the column holds a row for exactly the cited kinds, so neither a dead row nor a mistyped key sits in it unread");
 });
 
-/* The two the exclusion is for, named so a table that stopped abbreviating is a red rather than a
-   silent change of answer: the review is Phase 4's last step and would otherwise read as 7. */
-test("the review and the verification are the kinds that exclusion covers", () => {
-  assert.equal(phaseForRecord("review"), null, "in_progress owes 4, 5 and 7");
-  assert.equal(phaseForRecord("verification"), null, "the one rung after developed spans 6 and 7, and only the kind leading its row takes a number");
-  assert.equal(phaseForRecord("plan"), 3, "and clarified owes 3 alone");
+/* The four the case above skips, each by its own number: a wrong row here serves a part nobody could tell from the right one. */
+test("the four kinds the flow tables leave underivable are declared by number", () => {
+  assert.equal(phaseForRecord("review"), 4, "the review is Phase 4's last step, on a rung owing 4, 5 and 7");
+  assert.equal(phaseForRecord("merged"), 7, "and the landing that earns the same rung is Phase 7's first step");
+  assert.equal(phaseForRecord("verification"), 7, "the verification reads the change where it now runs");
+  assert.equal(phaseForRecord("note"), 6, "and the note is drafted at 6, the rung it earns spanning 6 and 7");
+  assert.equal(phaseForRecord("plan"), 3, "while clarified owes 3 alone");
   assert.equal(phaseForRecord("verdict"), 5, "as developed owes 5 alone");
 });
 
@@ -77,6 +84,12 @@ test("the landing ends the last phase its own rung names, that row abbreviating 
   assert.equal(phaseAtLanding(), owed.at(-1), "and the landing is the end of them");
 });
 
+/* One act, two readers: the ship's last step reads the landing off its rung, the mark's write reads the declared row, and moving one without the other tells a run two phases for one act. */
+test("the landing and the merged mark it writes name one phase", () => {
+  assert.equal(phaseForRecord("merged"), phaseAtLanding(),
+    "the mark is what the landing writes, so the row and the rung answer alike or one of them is wrong");
+});
+
 test("a served part is byte-identical to what the guide verb prints for the same phase", () => {
   asRun("a-run-writing-records");
   const plan = printed((say) => partForRecord("plan", say));
@@ -84,6 +97,15 @@ test("a served part is byte-identical to what the guide verb prints for the same
   assert.ok(plan[0].length > 0, "and it is not the empty answer passing for identity");
   assert.deepEqual(printed((say) => partForRecord("verdict", say)), [guideSays(5)], "a verdict Phase 5");
   assert.deepEqual(printed((say) => partForLanding(say)), [guideSays(7)], "and the landing Phase 7");
+});
+
+test("a rung naming several phases carries a part for each of its own kinds", () => {
+  asRun("a-run-at-the-release-rung");
+  assert.deepEqual(printed((say) => partForRecord("verification", say)), [guideSays(7)],
+    "the verification carried nothing while the rung's index was what answered for it");
+  assert.deepEqual(printed((say) => partForRecord("note", say)), [guideSays(6)],
+    "and the note carried nothing either, on the same rung and for the same reason");
+  assert.notEqual(guideSays(6), guideSays(7), "which are different parts, or the case proves nothing");
 });
 
 test("a claim carries the phase its issue's status owes, and no two statuses answer alike", () => {

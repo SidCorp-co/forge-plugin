@@ -96,14 +96,22 @@ is what the criterion asks for, and one call site is cheaper to keep true than t
 
 **The number is the record's and never the caller's.** A claim opens a phase's work, so it carries
 the first phase the row for the issue's status names — the same reading `forge resume` prints as *the
-phase owed*. A record ends a phase's work, so it carries the phase owed by the rung below the one
-whose entry check cites that record: the plan is written at `clarified` and carries Phase 3, the
-verdicts at `developed` and carry Phase 5. Nothing takes a phase as an argument, because a caller
-that could name its phase could name the wrong one, and the two rows that abbreviate several phases
-into one cell answer nothing here rather than answer wrongly — a rung owing several phases owes
-several records, and which of them ends it is not something that table says. The landing is the one
-act read off a rung rather than a record, since the row it ends is the one naming the note and the
-ship together and the landing is the end of it.
+phase owed*. A record ends a phase's work, and which phase that is is declared once per record kind.
+Nothing takes a phase as an argument, because a caller that could name its phase could name the
+wrong one.
+
+**It was derived before it was declared, and the derivation ran out.** A record's phase was the one
+owed by the rung below the one whose entry check cites it, which answers while every rung names one
+phase and stops the day one names two: which of a rung's several records ends which is not something
+either table says. Four of the ten cited kinds went unanswerable that way, and an unanswerable kind
+is a record write arriving with no method at all. Declaring against the kind is also what survives a
+ladder change, since merging two rungs moves no row. A case recomputes the old derivation over every
+row and refuses one that disagrees wherever the tables still answer, naming the four they cannot by
+number: a row nothing checks goes stale in silence, and a wrong part reads like the right one.
+
+The landing is read off its rung rather than off a record, the row it ends naming the note and the
+ship together. The mark it writes carries that same number, and a case holds the two equal: one act
+answering with two phases sends a run to the wrong half of its method.
 
 **A part is the whole text or it is nothing.** The [shown ledger](the-shown-ledger.md) is what makes
 a second act of the same kind free, and it can answer a repeat with the lines it has not already

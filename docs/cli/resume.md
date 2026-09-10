@@ -72,8 +72,8 @@ before its first write saw the method for the phase ahead and nothing about the 
 the one run that resumed correctly did so because a person had said the record was there. So the
 same lines print on the claim, from the one renderer this verb prints them with — two renderers
 would disagree about one record the first time a row moved, which is the whole of why there is one.
-They are silent where nothing is behind the status, so an issue at `open` says on both verbs what a
-claim there always said.
+They are silent where no record is behind, so an issue at `open` says on both verbs what a claim
+there always said.
 
 `forge guide issue-flow --for ISS-nn` prints the same cut whole, and it is where the shape lives:
 every phase, every drop and every citation is read off a table some other reader already answers
@@ -88,10 +88,23 @@ step before, and sends a successor to the wrong record. And a rung's lightening 
 transition, never on a phase — the ladder drops the plan on the way into `approved`, which does not
 drop the implementing. An index reading the second as the first tells a run at the fix rung its work is
 done, so a waiver is printed against the phase that pays it, in the ladder's own words, and the
-phase stays owed. The one table added is which record discharges which status, held to the entry
-checks by a case that reads their refusals: a status with a check and no record named against it
-would print a phase discharged by nothing, and a row naming the wrong kind is the same defect
-wearing a value.
+phase stays owed. Two tables are added. The first is which record discharges which status, held to
+the entry checks by a case that reads their refusals: a status with a check and no record named
+against it would print a phase discharged by nothing, and a row naming the wrong kind is the same
+defect wearing a value. The second is which phase each of those records ends, whose own reading is
+in [the parts](the-parts.md).
+
+A third shift: what is behind is not read the way what is ahead is. **The status is a cache of the
+records with fewer slots than there are facts.** `forge advance --set` writes it with no entry check
+reading it, and an issue arriving that way had every phase below printed as passed on the number
+alone — the one claim here a successor acts on by *not* doing the work. So a phase behind is passed
+when the record discharging it is on the page, and a gap in the middle prints as a gap.
+
+What is ahead stays the status's, because the record cannot say where an issue stands. The release
+rung's own discharge is the close, which asks no payload and has no row, so a forward walk off the
+record stops there for every issue; and a reopened issue stands at `open` holding the record set of
+the cycle before, which read forward would be told it owes the ship. A case holds no phase to
+appearing in both lists: passed and owed at once contradicts the line above them.
 
 `--for` is the only part of a guide's answer that is not on this disk. So it is answered where the
 tracker is already reached and not by the guide registry, which stays offline: asking for a slug's
