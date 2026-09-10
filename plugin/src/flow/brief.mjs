@@ -4,7 +4,8 @@
 import { sessionSourced } from "../resolve/config.mjs";
 import { FIELD, leaseOf, sharedHolder, stateOf } from "./lease.mjs";
 import { atMinute, unwrap } from "./machine.mjs";
-import { PARK_STATUS, SIDE, atLeast, holdsBack, methodOf, parkRecord, rungFieldsOf } from "./earned.mjs";
+import { PARK_STATUS, SIDE, atLeast, holdsBack, parkRecord, rungFieldsOf } from "./earned.mjs";
+import { methodOf } from "../guides/phases.mjs";
 import { rungOf } from "../ladder.mjs";
 import { lookAhead, owedIn } from "./route.mjs";
 import { worklogOf } from "./worklog.mjs";

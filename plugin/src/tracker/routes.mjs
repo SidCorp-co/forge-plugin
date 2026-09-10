@@ -200,7 +200,7 @@ export const DECLARES = {
       { name: "approved", step: true },
       { name: "in_progress", step: true },
       { name: "developed", step: true },
-      { name: "testing" },
+      { name: "testing", step: true },
       { name: "tested", replacedBy: "awaiting_release" },
       { name: "awaiting_release", step: true },
       { name: "releasing", writtenByNobody: "the release path's own status: the release button "

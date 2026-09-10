@@ -75,7 +75,7 @@ test("the report answers where the merge sits and whether a judge is independent
   const run = await ask("doctor");
   assert.match(run.stdout, ROW("where the merge sits", "after-merge {2}← the tracker's project config"), run.stdout);
   assert.match(run.stdout,
-    ROW("independent judgement", "not stated between developed and awaiting_release {2}← the tracker's project config"),
+    ROW("independent judgement", "not stated between developed and testing {2}← the tracker's project config"),
     "unanswered is discovered and recorded, never read as either value");
 });
 
@@ -86,7 +86,7 @@ test("a qa key in the checkout moves nothing the report prints", async () => {
   writeFileSync(join(room.path, ".forge.json"), JSON.stringify({ slug: "forge-plugin", qa: "independent" }));
   const run = await ranAsync(FORGE, ["doctor"], tracker.env, room.path);
   assert.match(run.stdout,
-    ROW("independent judgement", "not stated between developed and awaiting_release {2}← the tracker's project config"),
+    ROW("independent judgement", "not stated between developed and testing {2}← the tracker's project config"),
     "the checkout said independent and the record said nothing, and the record is what answers");
 });
 

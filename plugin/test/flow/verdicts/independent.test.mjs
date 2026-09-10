@@ -341,7 +341,7 @@ test("once the QA session has judged every criterion against the deployment, adv
   assert.equal(noted.status, 0, noted.stderr);
   const run = await qa("advance", "ISS-8");
   assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
-  assert.equal(judging.status, "awaiting_release", "the record earned it, so the verb moved it");
+  assert.equal(judging.status, "testing", "the record earned the judging rung, so the verb moved it");
 });
 
 /* The third move of the handoff these criteria name — builder readies, lander takes, QA takes,

@@ -26,7 +26,8 @@ const {
   stageLine,
   statesContract,
 } = await import("../../src/guides/contract.mjs");
-const { CHECKS, ORDER, PHASE, deployedOwed, judgedOwed, viewFrom } = await import("../../src/flow/earned.mjs");
+const { CHECKS, ORDER, deployedOwed, judgedOwed, viewFrom } = await import("../../src/flow/earned.mjs");
+const { PHASE } = await import("../../src/guides/phases.mjs");
 const { LIGHTER, RUNGS, SPARES, complexityFor } = await import("../../src/ladder.mjs");
 const { rungReport } = await import("../../src/ladder-report.mjs");
 const { render } = await import("../../src/flow/record/page.mjs");
@@ -257,6 +258,16 @@ test("the contract names no issue and no date, which the tracker and git hold", 
     assert.deepEqual(found, [], `the contract names ${what}: a served guide carries fact and method, `
       + "and live data in it is a claim that stops being true with nothing failing");
   }
+});
+
+/* One rung per actor, so a reader at either is told what that actor owes and not the other's: a part stating both is the composed rung wearing two file names (ISS-1065). */
+test("each rung at the end of a run has a part, and neither states the other's half", () => {
+  const judging = flat(partFor(PARTS, "testing").text);
+  const deploying = flat(partFor(PARTS, "awaiting_release").text);
+  assert.match(judging, /verdict/u, "the judging rung's part is about the verdicts");
+  assert.doesNotMatch(judging, /verification/u, "and says nothing of what the deploying actor owes");
+  assert.match(deploying, /verification/u, "the deploying rung's part is about the verification");
+  assert.doesNotMatch(deploying, /verdict/u, "and nothing of the judge's");
 });
 
 test("a separator misremembered costs no round", () => {

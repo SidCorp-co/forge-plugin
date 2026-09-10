@@ -58,7 +58,7 @@ Four of its lines are read here rather than later, because the phase that owes e
 for it. **The brief's goal line** is what *cause or surface* is judged against, so a run deciding how
 far to fix something answers to the project's goals rather than its own taste, and it is that list a
 `Serves:` names. **Where the merge sits** and **whether the judgement between `developed` and
-`awaiting_release` is an independent run's** are what Phase 3's plan is written against: a run finding either
+`testing` is an independent run's** are what Phase 3's plan is written against: a run finding either
 unstated cannot know whether the judging comes before the push or after it, and discovers it rather
 than assuming.
 
@@ -188,12 +188,12 @@ typed verdict per criterion citing its own evidence, and judge a criterion again
 judging the code against it. Where the proof is a test, what a criterion is matched against is the
 assertion lines that would go red and never a case's name: a name is prose, one carrying two claims
 is two searches rather than one, and an assertion that cannot fail covers nothing. Nothing advances
-from this phase; both `developed` and `awaiting_release` move at the landing on the record written
+from this phase; both `developed` and `testing` move at the landing on the record written
 here,
 whether this run makes that landing or leaves it ready for the one that does. Which head, what each
 kind of change owes as evidence and how to capture it: `forge guide issue-flow verification`. What a
 record holds before either status is earned, and on which outcomes:
-`forge guide contract developed`, `forge guide contract awaiting_release`.
+`forge guide contract developed`, `forge guide contract testing`.
 
 **A change to a screen parks the issue for human review before Phase 7.** Where no login reaches the
 rendered state, what stands instead and the two verdict shapes it earns: `forge guide issue-flow
@@ -242,7 +242,7 @@ states after it.
 
 **The lease is handed over and never dropped**: a run that abandons it leaves an issue nobody may
 write to until it expires. Phase 5's record and Phase 6's drafted note are written before that
-checkpoint, because the landing writes neither — it moves `developed` and `awaiting_release`, the
+checkpoint, because the landing writes neither — it moves `developed` and `testing`, the
 statuses
 those records earn, and no status past them.
 

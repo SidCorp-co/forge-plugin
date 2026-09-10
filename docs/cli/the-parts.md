@@ -109,8 +109,8 @@ ladder change, since merging two rungs moves no row. A case recomputes the old d
 row and refuses one that disagrees wherever the tables still answer, naming the four they cannot by
 number: a row nothing checks goes stale in silence, and a wrong part reads like the right one.
 
-The landing is read off its rung rather than off a record, the row it ends naming the note and the
-ship together. The mark it writes carries that same number, and a case holds the two equal: one act
+The landing is read off its rung rather than off a record, the row it ends naming the ship and the
+close together. The mark it writes carries that same number, and a case holds the two equal: one act
 answering with two phases sends a run to the wrong half of its method.
 
 **A part is the whole text or it is nothing.** The [shown ledger](the-shown-ledger.md) is what makes

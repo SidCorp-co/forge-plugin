@@ -482,12 +482,13 @@ const OPEN = {
 };
 const EARNS = { ...OPEN, documentId: "earning-uuid", issueId: "ISS-92", description: "no mark here" };
 /* Judged and deployed but for the person: what the project's own config decides is whether that
-   person is owed, and an issue declaring neither line must not cost the call that asks (ISS-90). */
+   person is owed, and an issue declaring neither line must not cost the call that asks (ISS-90).
+   At the judging rung, which is where the person's look is the next rung's to ask for (ISS-1065). */
 const passed = () => recorded("verdict", { criterion: "1 — The first outcome.", verdict: "pass", commit: "43b811e", evidence: ["43b811e"] });
 const LOOKING = {
   documentId: "looking-uuid",
   issueId: "ISS-93",
-  status: "developed",
+  status: "testing",
   title: "the change a person may have to look at",
   description: "no mark here",
   plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: yes.",

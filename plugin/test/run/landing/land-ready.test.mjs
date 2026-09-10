@@ -9,8 +9,8 @@ import { join } from "node:path";
 
 import {
   BASE, BUILDER, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, NEXT_UUID, OWNED, RECORD,
-  claudeCalls, comments, context, ctx, forgetInstall, git, issue, marks, ready, seeded, serverPushes,
-  sha, strayWrites, tracker, world,
+  claudeCalls, comments, context, ctx, earning, forgetInstall, git, issue, marks, ready, seeded,
+  serverPushes, sha, state, strayWrites, tracker, world,
 } from "./fixture.mjs";
 import { ranAsync } from "../../fixtures.mjs";
 
@@ -82,6 +82,35 @@ test("a ready branch is pinned, merged, proved to have moved nothing and promote
   assert.equal(held.state, "marked", `no judge is asked for and neither status is earned:\n${said}`);
   assert.match(said, /no judge's turn sits here: this project lands after-merge/u, said);
   assert.match(said, /the checkpoint stays `marked`/u, said);
+});
+
+/* The tail of the ladder is two rungs and `advance` refuses a jump, so the landing walks them: a
+   move to the deploying rung alone would be refused and the checkpoint would rest one rung short of
+   `done` on a record that earned both (ISS-1065). */
+test("the landing walks the judging rung and the deploying one, and rests at done over both", async () => {
+  const { work, head, base } = world({ base: "other" });
+  seeded({ landing: ready(head, base), earned: earning(head) });
+  const said = await ran([KEY], work);
+  assert.equal(issue().status, "awaiting_release", `both rungs were walked:\n${said}`);
+  assert.equal(landing().state, "done", `and nothing of the landing is left:\n${said}`);
+  assert.match(said, /the checkpoint reads `done`/u, said);
+  const moves = state.calls.filter((one) => one.args?.action === "transition").map((one) => one.args.data.status);
+  assert.deepEqual(moves, ["developed", "testing", "awaiting_release"],
+    `one move per rung, in the table's order, and no jump:\n${said}`);
+});
+
+/* And the other way: a record earning the judging rung and not the deploying one stops there rather
+   than reporting the rung it did reach as the one that is owed. */
+test("a landing whose record earns the judging rung alone stops at it and names what the next is owed", async () => {
+  const { work, head, base } = world({ base: "other" });
+  const { releaseNotes, ...half } = earning(head);
+  seeded({ landing: ready(head, base), earned: { ...half, said: half.said.slice(0, 2) } });
+  const said = await ran([KEY], work);
+  assert.equal(issue().status, "testing", `the judging rung is where it rests:\n${said}`);
+  assert.equal(landing().state, "marked", `the checkpoint is not done:\n${said}`);
+  assert.match(said, /what `awaiting_release` is owed is above/u, said);
+  assert.match(said, /no verification/u, "and what that is, is on the report");
+  assert.ok(releaseNotes.section, "the half withheld is the note, which is what the rung asks for");
 });
 
 test("the install after that promotion holds the version the release commit carries", async () => {

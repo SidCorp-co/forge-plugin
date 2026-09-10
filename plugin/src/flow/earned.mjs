@@ -23,36 +23,11 @@ import { waitsForPerson } from "../tracker/project-config.mjs";
 
 /* The contract's flow table in its own order: the sequence is the rule, so listing it is the point. */
 export const ORDER = [
-  "open", "confirmed", "clarified", "approved", "in_progress", "developed", "awaiting_release", "closed",
+  "open", "confirmed", "clarified", "approved", "in_progress", "developed", "testing", "awaiting_release", "closed",
 ];
 
-/* The method's phases, numbered as the guide numbers them and indexed by that number. The one table: the flow table below builds its phrases from it and the transcript miner counts a run's calls against it, so phase 5 is one phase rather than two that shared a number and meant "prove" in one reading and "ship" in the other (ISS-700, BR-09). */
-export const PHASES = [
-  "0 Project", "1 Triage", "2 Clarify", "3 Plan", "4 Implement", "5 Prove", "6 Note", "7 Ship", "8 Learn",
-];
-
-/* The flow table's last column: which phase a status owes, and where its method lives — the
-   reference the phase cites, or null where the body itself carries the phase. ISS-18 owns typing
-   it; a pointer beats a number nobody can look up. */
-export const PHASE = {
-  open: [PHASES[1], null],
-  confirmed: [PHASES[2], null],
-  clarified: [PHASES[3], null],
-  approved: [`${PHASES[4]}, to the branch`, "verification"],
-  in_progress: [`${PHASES[4]}, to the review; ${PHASES[5]}; then 7's landing`, "verification"],
-  developed: [PHASES[5], "verification"],
-  /* The contract's cell abbreviates the note's phase to its number, and this table mirrors that cell for cell: `forge guide contract awaiting_release` is what a reader is held to. One row where two were, the tracker holding one status where this ladder held `tested` and `released` (ISS-1022). */
-  awaiting_release: [`6, ${PHASES[7]}, the close`, null],
-  closed: ["none", "learning"],
-  dropped: ["none", "learning"],
-  reopen: [`${PHASES[1]}, of the person's finding`, null],
-};
-
-export const methodOf = (status) => {
-  const held = PHASE[status];
-  if (!held) return null;
-  return { phase: held[0], reference: held[1] ? `forge guide issue-flow ${held[1]}` : "forge guide issue-flow" };
-};
+/** The rung the verdicts are owed at, read off the sequence rather than spelled a second time: `route.mjs` asks for it by name, and a literal there is a rung free to disagree with this order. */
+export const JUDGED_AT = ORDER[ORDER.indexOf("developed") + 1];
 
 /* Which reader each park kind speaks to, and so which side status it lands in. Every kind in PARKS has a row: a park with nowhere to go is a status set from nothing. */
 /** The status on which the tracker reads any comment as the reporter's answer and puts the issue back to `open` (ISS-429): the one a park's record goes up on before its move, and the one an override is refused on. */
@@ -437,7 +412,7 @@ const scopeOwed = (view, ref) => {
   )];
 };
 
-/* The judging half of the rung the tracker renamed, kept whole and called beside the other: what was two statuses is one, and a rung asking that three payloads be present in their place would drop every demand these make beyond a record's existence — the judge, the head a verdict was judged at, the screen, the classification (ISS-1022, consult 8736c3 F2). */
+/* The whole of what `testing` is entered on: the judge's half of the end of a run, and the rung a project asking for an independent judgement hands its turn over at. Kept a function of its own beside the other half, so a case holds each to its own refusals rather than to the union two rungs would make (ISS-1022, consult 8736c3 F2; ISS-1065). */
 export const judgedOwed = (view, ref) => {
   if (!view.criteria.length) {
     return [need("the criteria field holds no numbered line, so there is nothing to judge", `forge record criteria ${ref} <criteria.md>`)];
@@ -452,7 +427,7 @@ export const judgedOwed = (view, ref) => {
   return out;
 };
 
-/* The deploying half of the same rung. Both halves are named and exported because each is asked of the one rung and a case holds each to its own refusals: composed into a single list, a half that stopped asking anything would still leave the other's items and read as a rung that refuses. */
+/* The whole of what `awaiting_release` is entered on: the deploying actor's half, of a change already running. The two halves answer to different actors, which is why each has a rung — a rung demanding both could not say which one it was waiting for. */
 export const deployedOwed = (view, ref) => {
   const verification = payloadOwed(
     view,
@@ -572,7 +547,8 @@ export const CHECKS = {
     }
     return [...out, ...scopeOwed(view, ref), ...reviewOwed(view, ref)];
   },
-  awaiting_release: (view, ref) => [...judgedOwed(view, ref), ...deployedOwed(view, ref)],
+  testing: judgedOwed,
+  awaiting_release: deployedOwed,
   closed: () => [],
   dropped: () => [],
 };

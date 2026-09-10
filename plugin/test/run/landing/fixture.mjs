@@ -7,6 +7,8 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { dirname, join } from "node:path";
 
 import { fakeTracker, tempRoom } from "../../fixtures.mjs";
+import { render } from "../../../src/flow/record/page.mjs";
+import { noteShown } from "../../../src/tracker/comments.mjs";
 
 export const LANDER = "the-lander-run";
 export const BUILDER = "the-builder-run";
@@ -170,9 +172,11 @@ export const state = {
       if (args.action === "update" || args.action === "transition") {
         state.issues[which] = { ...state.issues[which], ...(args.data ?? {}) };
       }
-      /* The tracker's own doing, stood in for: a mark is read back off the comment page. */
+      /* The tracker's own doing, stood in for: a mark is read back off the comment page, and it is
+         the tracker that stamps the field the entry check into `developed` reads. */
       if (args.action === "mark_merged") {
         posted(state.comments[state.issues[which].documentId], `mark_merged ${args.data.note}`);
+        state.issues[which] = { ...state.issues[which], mergedAt: new Date().toISOString() };
       }
       return state.issues[which];
     },
@@ -197,16 +201,34 @@ const row = (documentId, issueId, status, landing, lease, owned) => ({
   sessionContext: { ...(landing ? { landing } : {}), ...(lease ? { lease } : {}) },
 });
 
+/** What a builder wrote before it handed the branch on, so a case can watch the landing walk every
+ *  rung its record earns: the fields the entry checks read off the issue, and the payloads that earn
+ *  the review, the judging rung and the deploying one, all judged at the head that was handed over. */
+export const earning = (head) => ({
+  acceptanceCriteria: "1. it lands",
+  releaseNotes: { section: "Fixed", userFacing: "it works" },
+  said: [
+    render("review", { reviewer: "codex", commit: head, outcome: "approved", finding: ["F1 accepted"] }),
+    render("verdict", { criterion: "1 — it lands", verdict: "pass", commit: head, evidence: [head] }),
+    render("verification", { where: "the installed plugin", commit: head, evidence: ["https://ci.example.test/9"] }),
+  ],
+});
+
 /** The issues a case runs against, their checkpoints, and nothing recorded against any of them. */
 export const seeded = ({
-  landing = null, status = "in_progress", lease = null, next = null, last = null,
+  landing = null, status = "in_progress", lease = null, next = null, last = null, earned = null,
 } = {}) => {
-  state.issues = [row(UUID, KEY, status, landing, lease, OWNED)];
+  const { said = [], ...fields } = earned ?? {};
+  state.issues = [{ ...row(UUID, KEY, status, landing, lease, OWNED), ...fields }];
   if (next) state.issues.push(row(NEXT_UUID, NEXT_KEY, status, next, null, NEXT_OWNED));
   /* Off the checkpoint, because `shared` puts the third branch in the first one's file and the mark
      is refused where the plan names none of the paths the change wrote. */
   if (last) state.issues.push(row(THIRD_UUID, THIRD_KEY, status, last, null, (last.files ?? []).join(", ")));
   state.comments = { [UUID]: [], [NEXT_UUID]: [], [THIRD_UUID]: [] };
+  for (const body of said) posted(state.comments[UUID], body);
+  /* Credited as read: the delivery a landing would be held by is another rule's, and a case about
+     the rungs it walks would otherwise be a case about the thread it had not been shown. */
+  if (said.length) noteShown(LANDER, UUID, state.comments[UUID]);
   state.calls = [];
 };
 

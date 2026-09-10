@@ -25,7 +25,11 @@ test("a screen change on a project with no test credential is told at the rehear
   assert.match(said, /cited as the evidence/u, "and the pass on another route's render is the other");
   assert.match(said, /forge guide issue-flow verification/u, "which carries the rest, unrestated");
   assert.equal(ahead({ status: "approved", plan: SCREEN }, NO_LOGIN), said,
-    "and it is said from the status the plan was written at, not only from the one before tested");
+    "and it is said from the status the plan was written at, not only from the one before it");
+  assert.equal(ahead({ status: "developed", plan: SCREEN }, NO_LOGIN), said,
+    "and from the rung below the judging one, which is the last that can still act on it");
+  assert.match(said, /^Ahead: testing wants an attachment/u,
+    "naming the rung that refuses the verdict, which is the judging one");
 });
 
 test("the line stays silent on every reading that is not a screen change without a login", () => {
@@ -35,7 +39,7 @@ test("the line stays silent on every reading that is not a screen change without
     "a project that recorded a login is owed nothing");
   assert.equal(ahead({ status: "in_progress", plan: SCREEN }, null), null,
     "and a deploy nobody read reports no empty set: null is unread, never none");
-  for (const status of ["awaiting_release", "awaiting_release", "closed"]) {
+  for (const status of ["testing", "awaiting_release", "closed"]) {
     assert.equal(ahead({ status, plan: SCREEN }, NO_LOGIN), null, `${status} is past the point of saying it`);
   }
 });
@@ -43,7 +47,8 @@ test("the line stays silent on every reading that is not a screen change without
 /* The gate on the fetch and the line spell one pair of conditions; the calls are counted below. */
 test("the reading is not taken where the line would not read it", async () => {
   assert.equal(await deployFor(QUIET, "in_progress"), null, "a plan declaring no screen change");
-  assert.equal(await deployFor(SCREEN, "awaiting_release"), null, "and a status already past tested");
+  assert.equal(await deployFor(SCREEN, "testing"), null, "and a status already at the judging rung");
+  assert.equal(await deployFor(SCREEN, "awaiting_release"), null, "or past it");
 });
 
 const SCREENING = {

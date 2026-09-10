@@ -13,7 +13,8 @@ import { tempHome } from "../../fixtures.mjs";
 const HOME = tempHome("resume");
 process.env.XDG_CONFIG_HOME = HOME.path;
 const { render } = await import("../../../src/flow/record/page.mjs");
-const { PHASE, ORDER, SIDE, methodOf, rungFieldsOf, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { ORDER, SIDE, rungFieldsOf, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { PHASE, methodOf } = await import("../../../src/guides/phases.mjs");
 const { briefOf } = await import("../../../src/flow/brief.mjs");
 const { USAGE, edgeSaid } = await import("../../../src/flow/resume.mjs");
 const { sessionHeld } = await import("../../../src/resolve/config.mjs");
@@ -298,7 +299,7 @@ test("the owed section is what advance would say, and a refusal becomes the line
    close is owed rather than leaving the phase's name to imply that somebody else might make it (ISS-105). */
 test("a brief on an issue at the release rung owes the close, and names the phase that makes it", () => {
   const one = brief({ status: "awaiting_release" });
-  assert.equal(one.phase, "6, 7 Ship, the close", "the one rung names both phases its two used to");
+  assert.equal(one.phase, "7 Ship, the close", "the deploying rung names the ship and its tail");
   assert.equal(one.owed.next, "closed");
   assert.deepEqual(one.owed.missing, [], "the status is the whole of what a close is earned by");
   assert.equal(one.ahead, null, "and nothing is ahead of it");

@@ -1,4 +1,4 @@
-/* Whether an issue's verdicts were judged by somebody other than the run that built the change. `earned.mjs` spends the first reading at `awaiting_release`, a promotion the second; why each is the shape it is: docs/cli/the-entry-checks.md. */
+/* Whether an issue's verdicts were judged by somebody other than the run that built the change. `earned.mjs` spends the first reading at `testing`, a promotion the second; why each is the shape it is: docs/cli/the-entry-checks.md. */
 import { INHERITED, INHERITED_MEANS, OWN_ID } from "../../resolve/config.mjs";
 import { JUDGE_FROM } from "../machine.mjs";
 import { QA_MODES, judgementOf } from "../../tracker/project-config.mjs";
@@ -51,7 +51,7 @@ export const judgeAsk = (ref, number, landing, held = null) => (landing?.deploym
     + `--evidence ${short(landing.deployment)}`
   : `forge resume ${ref}`);
 
-/* What a void gives up, for a landing that has to name it: judged by somebody other than the checkpoint's builder, and citing the identity the landing is about to stop holding. Whether a verdict still standing cites what is running now is the same citation read per verdict, which is `judgeProblem`'s and is spent at `awaiting_release` — not a second list here, and a successor builder's verdicts are neither's on a project that asked for no judge. */
+/* What a void gives up, for a landing that has to name it: judged by somebody other than the checkpoint's builder, and citing the identity the landing is about to stop holding. Whether a verdict still standing cites what is running now is the same citation read per verdict, which is `judgeProblem`'s and is spent at `testing` — not a second list here, and a successor builder's verdicts are neither's on a project that asked for no judge. */
 export const judgedAt = (landing, verdicts, release) => (asksIndependent(release)
   ? numbered(verdicts)
     .filter(([, one]) => judgedApart(one.record.fields, landing))

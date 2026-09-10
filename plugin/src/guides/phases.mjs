@@ -1,9 +1,36 @@
 /* The spine cut to one issue, off the tables other readers answer to. The shift this file turns on:
    a phase is the work owed *at* a status and an entry check guards the way *into* one, so the phase
    at a rung answers to the rung above. docs/cli/resume.md. */
-import { ORDER, PHASE, stepAfter } from "../flow/earned.mjs";
+import { ORDER, stepAfter } from "../flow/earned.mjs";
 import { CLOSES_FROM } from "../flow/machine.mjs";
 import { LIGHTER, rungOf } from "../ladder.mjs";
+
+/* The method's phases, numbered as the guide numbers them and indexed by that number. The one table: the flow table below builds its phrases from it and the transcript miner counts a run's calls against it, so phase 5 is one phase rather than two that shared a number and meant "prove" in one reading and "ship" in the other (ISS-700, BR-09). */
+export const PHASES = [
+  "0 Project", "1 Triage", "2 Clarify", "3 Plan", "4 Implement", "5 Prove", "6 Note", "7 Ship", "8 Learn",
+];
+
+/* The flow table's last column: which phase a status owes, and where its method lives — the reference the phase cites, or null where the body itself carries the phase. Here rather than beside `ORDER`, the sequence being what a record earns and this what the method owes at each rung. ISS-18 owns typing it; a pointer beats a number nobody can look up. */
+export const PHASE = {
+  open: [PHASES[1], null],
+  confirmed: [PHASES[2], null],
+  clarified: [PHASES[3], null],
+  approved: [`${PHASES[4]}, to the branch`, "verification"],
+  in_progress: [`${PHASES[4]}, to the review; ${PHASES[5]}; then 7's landing`, "verification"],
+  developed: [PHASES[5], "verification"],
+  testing: [`6, ${PHASES[7]}`, null],
+  /* The contract's cells and this table's are mirrored, so `forge guide contract awaiting_release` is what a reader is held to: the close is the tail of the ship's own phase and the row names it there. */
+  awaiting_release: [`${PHASES[7]}, the close`, null],
+  closed: ["none", "learning"],
+  dropped: ["none", "learning"],
+  reopen: [`${PHASES[1]}, of the person's finding`, null],
+};
+
+export const methodOf = (status) => {
+  const held = PHASE[status];
+  if (!held) return null;
+  return { phase: held[0], reference: held[1] ? `forge guide issue-flow ${held[1]}` : "forge guide issue-flow" };
+};
 
 const NUMBERED = /^(\d+)/u;
 
@@ -17,7 +44,8 @@ export const CITED = {
   approved: ["plan", "criteria"],
   in_progress: ["baseline"],
   developed: ["review", "merged"],
-  awaiting_release: ["verdict", "verification", "note"],
+  testing: ["verdict"],
+  awaiting_release: ["verification", "note"],
 };
 
 export const dischargedBy = (status) => CITED[stepAfter(status)]?.[0] ?? null;

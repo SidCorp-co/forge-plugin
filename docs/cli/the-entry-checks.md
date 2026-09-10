@@ -24,7 +24,7 @@ described: the run that distrusts the ledger is what a later scoped green stands
 
 ## A screen's verdict cites an attachment
 
-Where the plan declares `Screen change: yes`, `awaiting_release` refuses a verdict whose evidence set holds no
+Where the plan declares `Screen change: yes`, `testing` refuses a verdict whose evidence set holds no
 attachment the issue carries. A URL and a sha are citations; an attachment is the thing itself, and a
 screen is the one change whose whole proof is that somebody looked at it. A `skipped` verdict is
 exempt, for the reason the write exempts it from evidence: there was nothing to look at.
@@ -98,7 +98,7 @@ as `judge-from:`, off the session the CLI resolved and never off a flag — `--j
 the reason the lease's holder is read rather than passed. Declared on the shape so the read keeps
 them, and `newer` for the reason `--scope` is below.
 
-`awaiting_release` reads each standing verdict against the landing checkpoint, the only record naming both the
+`testing` reads each standing verdict against the landing checkpoint, the only record naming both the
 builder and what the deployment reported running. The builder's own id is the case the project asked
 about. *No* judge is refused too, and is not read as the builder's: `judge` is excused at the
 read-back, so a check comparing only ids would pass it in silence. An id a run inherited is refused

@@ -9,6 +9,8 @@ export const MOVES = {
   approved: "approve",
   in_progress: "start",
   developed: "develop",
+  /* The word names the actor the rung waits for rather than the rung: `test` in a CLI that also ships gates reads as *run the suite*, and a form performs a move. */
+  testing: "judge",
   awaiting_release: "release",
   closed: "close",
 };

@@ -3,10 +3,10 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 
 import {
-  CITED, READ_OFF_THE_RECORD, dischargedBy, indexLines, laneLines, openingLines, phaseIndex,
+  CITED, PHASE, READ_OFF_THE_RECORD, dischargedBy, indexLines, laneLines, openingLines, phaseIndex,
   phaseNumber,
 } from "../../src/guides/phases.mjs";
-import { CHECKS, ORDER, PHASE, viewFrom } from "../../src/flow/earned.mjs";
+import { CHECKS, ORDER, viewFrom } from "../../src/flow/earned.mjs";
 import { LIGHTER } from "../../src/ladder.mjs";
 import { KINDS } from "../../src/flow/record/record-rows.mjs";
 import { kindsHeld } from "../../src/flow/record/page.mjs";
@@ -73,6 +73,19 @@ test("a phase cites the record that carried it, not the one that reached its own
   assert.equal(dischargedBy("clarified"), "plan", "Phase 3 is planning, discharged by the plan");
   assert.equal(dischargedBy("in_progress"), "review", "and the review is what carries implementation");
   assert.equal(dischargedBy("closed"), null, "the last rung has none above it to answer to");
+});
+
+/* The cells the split restored: the work at a rung is what earns the rung above it, so the judging
+   rung owes the note and the ship and the deploying rung owes the ship's tail, the close (ISS-1065). */
+test("the judging rung owes 6 and 7 while the deploying rung owes the close", () => {
+  assert.equal(PHASE.developed[0], "5 Prove", "the verdicts that earn the judging rung are Phase 5");
+  assert.equal(PHASE.testing[0], "6, 7 Ship", "the note and the verification that earn the next");
+  assert.equal(PHASE.awaiting_release[0], "7 Ship, the close");
+  const index = phaseIndex({ status: "testing", fields: fieldsOf("m"), held: EVERY_KIND });
+  assert.deepEqual(index.owed.map((one) => one.phase), ["6, 7 Ship", "7 Ship, the close"],
+    "so a run at the judging rung is told both, in the order it walks them");
+  assert.deepEqual(index.passed.map((one) => one.cites), ["confirmation", "decision", "plan", "baseline", "review", "verdict"],
+    "and the verdict is what discharged the phase below it");
 });
 
 test("a status the flow table gives no numbered phase is not listed as owing one", () => {
@@ -174,7 +187,8 @@ test("the lane names what earns each status ahead, and what the rung drops on th
     "  approved         criteria; no plan at this rung",
     "  in_progress      baseline",
     "  developed        review, merged",
-    "  awaiting_release verdict, verification; no note at this rung",
+    "  testing          verdict",
+    "  awaiting_release verification; no note at this rung",
     "  closed           nothing owed at any rung",
     "Each name is a record kind: `forge record <kind> -h`.",
   ], "a fix reads its whole route: what it writes, what it does not, and where it ends");
@@ -184,7 +198,7 @@ test("the lane names what earns each status ahead, and what the rung drops on th
   assert.deepEqual(feature.filter((one) => /clarified|approved|awaiting_release/u.test(one)), [
     "  clarified        decision",
     "  approved         plan, criteria",
-    "  awaiting_release verdict, verification, note",
+    "  awaiting_release verification, note",
   ], "and each of the three rows a lighter rung touches asks for the whole of its payload");
   assert.deepEqual(laneLines({ status: "open", fields: fieldsOf("s", ["Size: fix -> feature"]) }), feature,
     "a correction that climbed a rung prints the feature lane, the field having claimed a fix");
@@ -209,9 +223,9 @@ test("neither verb that prints the opening composes a line of it", () => {
 test("a rung's waiver is printed against the status it is granted from, and waives no phase", () => {
   const owed = (complexity) => phaseIndex({ status: "clarified", fields: fieldsOf(complexity), held: EVERY_KIND }).owed;
   const waived = owed("s").filter((one) => one.waived);
-  /* The status below the one dropping it: the plan's own phase, and for the note the phase before it, the release rung being entered from `developed` and spanning both (ISS-1022). */
-  assert.deepEqual(waived.map((one) => one.phase), ["3 Plan", "5 Prove"],
-    "the plan is waived on the way into approved, the note on the way into the release rung");
+  /* The status below the one dropping it: the plan's own phase, and for the note the phase `testing` owes, the deploying rung being entered from there and the note written in it (ISS-1065). */
+  assert.deepEqual(waived.map((one) => one.phase), ["3 Plan", "6, 7 Ship"],
+    "the plan is waived on the way into approved, the note on the way into the deploying rung");
   assert.ok(owed("s").every((one) => PHASE[one.status]),
     "and every phase is still owed: a waiver drops a record, never the work");
   assert.match(waived[0].waived.drops, /the plan field/u, "named by what it drops");

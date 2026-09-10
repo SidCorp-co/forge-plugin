@@ -69,7 +69,7 @@ run holding it makes: without one, that state is where a landing goes to die.
 
 `--judged` is the judge's: it takes the turn, writes its verdicts as any run does, and says the turn
 is over. What those verdicts have to carry — a judge that is not the builder, and a citation of the
-deployment identity the checkpoint holds — is the contract's at `awaiting_release` and is not
+deployment identity the checkpoint holds — is the contract's at `testing` and is not
 re-judged here, because a judge this claim refused could neither hand back nor be replaced.
 
 `--reconciled <sha>` is the builder's, and the sha is what that state is for: the run is asked which

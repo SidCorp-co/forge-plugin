@@ -15,7 +15,7 @@ import {
 } from "./land-ready/candidate.mjs";
 import {
   asked, caughtUp, DEVELOPED, intendedOf, keysOf, markStep, notReconciled, OWED_TO_QA, perMember,
-  AWAITING, releaseOf, saveOn, statusStep, viewOf, voidSaid,
+  JUDGED, releaseOf, saveOn, statusStep, viewOf, voidSaid,
 } from "./land-ready/member.mjs";
 import { sessionOf } from "../../plugin/src/resolve/config.mjs";
 import { documentIdOf } from "../../plugin/src/tracker/issues.mjs";
@@ -220,7 +220,7 @@ const judgeStep = async (one) => {
   const { at, ctx: { route, judgement } } = one;
   if (judgement !== INDEPENDENT || route !== BEFORE_MERGE) {
     return console.log(`  no judge's turn sits here: this project lands ${route} and its judgement `
-      + `between ${DEVELOPED} and ${AWAITING} is ${judgement}`);
+      + `between ${DEVELOPED} and ${JUDGED} is ${judgement}`);
   }
   const [member] = at.members;
   const { key, documentId, landing } = member;
@@ -478,7 +478,7 @@ const carriedOn = async (holder, rest, ctx) => {
 
 const NO_SET = (route) =>
   `\nno candidate is made of these branches together: this project lands ${route} and asks an `
-  + `independent judge between ${DEVELOPED} and ${AWAITING}, so the candidate a turn is handed over is `
+  + `independent judge between ${DEVELOPED} and ${JUDGED}, so the candidate a turn is handed over is `
   + `a fact about the set it was built from, and a set half of which came back judged is one nothing `
   + `rebuilds. They are landed one at a time.`;
 
@@ -501,7 +501,7 @@ export const landReady = async ({ flags, words }, ctx) => {
   const route = landingRoute(policy, landingScope()).value;
   const judgement = judgementOf(policy);
   if (judgement === INDEPENDENT && route !== BEFORE_MERGE && route !== AFTER_MERGE) {
-    stop(`this project asks for an independent judge between ${DEVELOPED} and ${AWAITING} and says nothing `
+    stop(`this project asks for an independent judge between ${DEVELOPED} and ${JUDGED} and says nothing `
       + `about where the merge sits, so nothing here knows whether the judgement comes before the `
       + `push or after it. Set the branches on the project's record, or the \`landing\` key in `
       + `.forge.json, and land again: forge doctor`);

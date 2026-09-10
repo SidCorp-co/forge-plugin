@@ -13,7 +13,7 @@ step that knows the answer, and the answer is written onto the issue there, so a
 record of the moment it judges rather than the tree as it stands now. That is a rule about *git*, and
 one repository read survives it — whether the project keeps a `docs/requirements/` tree, and which
 of its clauses the issue names, which `approved` owes (AC-14-4-2). A tree is a standing fact about
-the project, like the release policy `awaiting_release` asks the tracker for, and not an account of a change
+the project, like the release policy the last two rungs ask the tracker for, and not an account of a change
 that some earlier step already wrote down.
 
 `--owed` is a question and answers zero; the same list without it is a refusal and answers one, so
@@ -97,8 +97,8 @@ issue, a side status whose page holds no park record — the line is the refusal
 the verb that refused is the one that prints the command under it.
 
 A sixth, and the first thing this verb says that refuses nothing. The obvious home for it was the
-`awaiting_release` entry check whose refusal it runs ahead of, and that is the wrong shape twice over: everything a check returns becomes an item owed and a non-zero exit, and this is a
-shortfall a run carries rather than clears; and *`awaiting_release` is next* is a trigger that fires after the
+`testing` entry check whose refusal it runs ahead of, and that is the wrong shape twice over: everything a check returns becomes an item owed and a non-zero exit, and this is a
+shortfall a run carries rather than clears; and *`testing` is next* is a trigger that fires after the
 landing, the merged mark standing between an issue and `developed`. So the reading is the project's
 deploy, taken where a plan declares a screen and not otherwise, and said from every status below
-`awaiting_release` — the window in which the plan is written and the evidence captured.
+`testing` — the window in which the plan is written and the evidence captured.

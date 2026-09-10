@@ -73,15 +73,18 @@ test("the four kinds the flow tables leave underivable are declared by number", 
   assert.equal(phaseForRecord("review"), 4, "the review is Phase 4's last step, on a rung owing 4, 5 and 7");
   assert.equal(phaseForRecord("merged"), 7, "and the landing that earns the same rung is Phase 7's first step");
   assert.equal(phaseForRecord("verification"), 7, "the verification reads the change where it now runs");
-  assert.equal(phaseForRecord("note"), 6, "and the note is drafted at 6, the rung it earns spanning 6 and 7");
+  assert.equal(phaseForRecord("note"), 6, "and the note is drafted at 6, the rung it is written at spanning 6 and 7");
   assert.equal(phaseForRecord("plan"), 3, "while clarified owes 3 alone");
   assert.equal(phaseForRecord("verdict"), 5, "as developed owes 5 alone");
 });
 
-test("the landing ends the last phase its own rung names, that row abbreviating two", () => {
-  const owed = phasesOwed("awaiting_release");
-  assert.ok(owed.length > 1, `the rung names several phases: ${owed.join(", ")}`);
-  assert.equal(phaseAtLanding(), owed.at(-1), "and the landing is the end of them");
+/* Pinned by number rather than against the row it is read off, which would be the implementation spelled twice: the ship is Phase 7 and the close is its tail, so the rung the close is entered from owes 7 and the landing ends 7. A row moved to any other phase fails here. */
+test("the landing ends the phase the rung the close is entered from names, which is the ship", () => {
+  assert.deepEqual(phasesOwed("awaiting_release"), [7],
+    "the deploying rung owes the ship alone, the judging rung below it owing the note as well");
+  assert.equal(phaseAtLanding(), 7, "and the landing is a step of that phase");
+  assert.deepEqual(phasesOwed("testing"), [6, 7],
+    "while the rung that spans two is the judging one, so `.at(-1)` there picks rather than repeats");
 });
 
 /* One act, two readers: the ship's last step reads the landing off its rung, the mark's write reads the declared row, and moving one without the other tells a run two phases for one act. */

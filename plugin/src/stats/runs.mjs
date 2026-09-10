@@ -19,7 +19,7 @@ import {
 } from "./transcripts.mjs";
 import { claimedIn, parkWritersIn, rulingsIn } from "./joined.mjs";
 import { median } from "./median.mjs";
-import { PHASES } from "../flow/earned.mjs";
+import { PHASES } from "../guides/phases.mjs";
 import { RUNGS } from "../ladder.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
 import { FORMS, READ_AS } from "../resolve/handler.mjs";

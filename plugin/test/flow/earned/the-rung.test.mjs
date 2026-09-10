@@ -16,6 +16,7 @@ const { targetOf } = await import("../../../src/flow/route.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const RUNG = "awaiting_release";
+const JUDGING = "testing";
 const RELEASING = "releasing";
 
 /* Read off the tracker on 2026-09-10 by `forge issue --status released`, which answers the whole
@@ -24,23 +25,25 @@ const ANSWERED = ["open", "confirmed", "clarified", "waiting", "approved", "in_p
   "testing", "tested", "awaiting_release", "releasing", "closed", "reopen", "on_hold", "needs_info",
   "draft", "dropped"];
 
-test("the ladder's tail is the one rung the tracker holds, and developed leads to it", () => {
+test("the ladder's tail is two rungs, and developed leads to the judging one", () => {
   assert.deepEqual(ORDER, ["open", "confirmed", "clarified", "approved", "in_progress", "developed",
-    RUNG, "closed"], "a member added or dropped anywhere fails this");
-  assert.equal(nextOf("developed", {}), RUNG);
-  assert.equal(ORDER.includes("tested"), false, "the rung the verdicts earned is this one now");
+    JUDGING, RUNG, "closed"], "a member added or dropped anywhere fails this");
+  assert.equal(nextOf("developed", {}), JUDGING);
+  assert.equal(nextOf(JUDGING, {}), RUNG);
+  assert.equal(ORDER.includes("tested"), false, "the rung the verdicts earned is `testing` now");
   assert.equal(ORDER.includes("released"), false, "and the tracker holds no such status at all");
 });
 
-/* Composed into one list, a half that stopped asking would leave the other's items behind and still
-   read as a rung that refuses — so each half is held to asking something of its own. */
-test("the rung asks both halves whole, and neither answers for the other", () => {
+/* Each rung is entered on one half and neither may answer for the other: a rung whose check reached
+   for both could not say which actor it was waiting for, which is what ISS-1065 split. */
+test("each rung is entered on its own half, and neither check reaches the other's", () => {
   const view = viewFrom("the-uuid", { acceptanceCriteria: "1. The one outcome." }, []);
   const judged = judgedOwed(view, "ISS-3");
   const deployed = deployedOwed(view, "ISS-3");
   assert.ok(judged.length, "the judging half asks for the verdict");
   assert.ok(deployed.length, "and the deploying half for the verification and the note");
-  assert.deepEqual(CHECKS[RUNG](view, "ISS-3"), [...judged, ...deployed]);
+  assert.deepEqual(CHECKS[JUDGING](view, "ISS-3"), judged);
+  assert.deepEqual(CHECKS[RUNG](view, "ISS-3"), deployed);
 });
 
 test("closed is entered from that rung, and this change added nothing to what it owes", () => {
@@ -87,7 +90,7 @@ const disagreeing = (order) => {
 test("the step column and ORDER name the same rungs, and either edited alone goes red", () => {
   assert.deepEqual(disagreeing(ORDER), [],
     "every name whose row carries step is a rung, and every rung's row carries step");
-  assert.deepEqual(disagreeing([...ORDER, "testing"]), ["testing"],
+  assert.deepEqual(disagreeing([...ORDER, "waiting"]), ["waiting"],
     "a name joining the sequence whose row carries no step is named");
   assert.deepEqual(disagreeing(ORDER.filter((one) => one !== "clarified")), ["clarified"],
     "and so is a step row the sequence dropped");

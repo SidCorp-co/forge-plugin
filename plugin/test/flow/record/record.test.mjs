@@ -333,7 +333,7 @@ test("a gap says where the method did not answer and what was done instead", () 
 const shipped = {
   documentId: "shipped-uuid",
   issueId: "ISS-3",
-  status: "developed",
+  status: "testing",
   title: "the change that is about to be released",
   description: "no mark here",
   acceptanceCriteria: "1. The first outcome.",
@@ -512,7 +512,7 @@ test("a record write ends with the line advance --owed would print, and never fa
   const earned = await verify();
   assert.equal(earned.status, 0, earned.stderr);
   assert.equal(earned.stderr.trim().split("\n").at(-1),
-    "ISS-3 is developed; awaiting_release is next and the record earns it. `forge advance ISS-3` moves it.",
+    "ISS-3 is testing; awaiting_release is next and the record earns it. `forge advance ISS-3` moves it.",
     "byte for byte the line advance --owed printed before this");
   /* A record that posted must not fail on the line printed under it: the reading refuses here. */
   await ranAsync(FORGE, ["claim", "ISS-5"], tracker.env);

@@ -8,7 +8,8 @@ import { Refused } from "../../../plugin/src/refusal.mjs";
 import { commentPage } from "../../../plugin/src/tracker/comments.mjs";
 import { scoped } from "../../../plugin/src/tracker/rest.mjs";
 import { advance } from "../../../plugin/src/flow/advance.mjs";
-import { atLeast, stepAfter, viewFrom } from "../../../plugin/src/flow/earned.mjs";
+import { ORDER, atLeast, viewFrom } from "../../../plugin/src/flow/earned.mjs";
+import { CLOSES_FROM } from "../../../plugin/src/flow/machine.mjs";
 import { markMerged, markNote, markedCommit, namedFor } from "../../../plugin/src/flow/record/merged.mjs";
 import { LANDING_DONE, LANDING_JUDGED, LANDING_QA_OWED, landingSaved } from "../../../plugin/src/flow/lease.mjs";
 import { INDEPENDENT, judgedAt } from "../../../plugin/src/flow/qa/verdicts.mjs";
@@ -16,7 +17,9 @@ import { releasePolicy } from "../../../plugin/src/tracker/project-config.mjs";
 
 const BEFORE_MERGE = "before-merge";
 export const DEVELOPED = "developed";
-export const AWAITING = stepAfter(DEVELOPED);
+const WALKED = ORDER.slice(ORDER.indexOf(DEVELOPED) + 1, ORDER.indexOf(CLOSES_FROM) + 1);
+export const [JUDGED] = WALKED;
+export const AWAITING = WALKED.at(-1);
 
 /* `fail` in the CLI's own modules exits, dropping the lock and leaving a branch promoted in silence. */
 export const asked = async (run) => {
@@ -177,11 +180,14 @@ export const statusStep = async (one) => {
       await saveOn(member, { state: LANDING_QA_OWED, deployment: intendedOf(at) });
       return stop(OWED_TO_QA(key, member.landing, "the release"));
     }
-    /* `done` is refused to every turn, so it waits on the status: closed over a record that did not
-       earn the rung, the issue would be reachable by no route at all. */
-    if (!await moveTo(key, AWAITING, documentId)) {
-      return console.log(`  the checkpoint stays \`${landing.state}\`: what \`${AWAITING}\` is owed is `
-        + `above, and the landing is run again once the record carries it`);
+    /* One rung at a time up `WALKED`, a jump being refused, and `done` refused to every turn so it
+       waits on the last of them: closed over a record that did not earn a rung, the issue would be
+       reachable by no route at all. A rung the record does not earn stops the walk where it stands. */
+    for (const rung of WALKED) {
+      if (!await moveTo(key, rung, documentId)) {
+        return console.log(`  the checkpoint stays \`${landing.state}\`: what \`${rung}\` is owed is `
+          + `above, and the landing is run again once the record carries it`);
+      }
     }
     await saveOn(member, { state: LANDING_DONE });
     return console.log(`  the checkpoint reads \`${LANDING_DONE}\`: no turn of this landing is left`);

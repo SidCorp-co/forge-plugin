@@ -92,7 +92,7 @@ neither branch prints *not stated* rather than the safer-looking route, because 
 checkout overrides the derivation and prints its own source, so a project that disagrees with what
 its record implies says so once, where a reader can see both.
 
-**Whether an independent agent judges between `developed` and `awaiting_release` is the record's alone.** A
+**Whether an independent agent judges between `developed` and `testing` is the record's alone.** A
 project has one tracker record and many checkouts, and QA belongs with the deploy facts rather than
 beside them; read from a checkout instead, two clones of one project would judge the same change
 differently. So a `qa` key in a `.forge.json` has no effect on this line, which prints

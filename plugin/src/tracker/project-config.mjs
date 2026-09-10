@@ -205,7 +205,7 @@ const policyRows = (policy, landing) => {
       + ` look  ← ${policy.from}` },
     { level: "ok", label: "where the merge sits", detail: `${route.value}  ← ${route.from}` },
     { level: "ok", label: "independent judgement", detail: `${judgementOf(policy)} between developed`
-      + ` and awaiting_release  ← ${policy.from}` },
+      + ` and testing  ← ${policy.from}` },
   ];
   if (policy.autoProd) out.push({ level: "ok", label: "", detail: NOTHING_DEPLOYS });
   const said = releaseConflict(policy);

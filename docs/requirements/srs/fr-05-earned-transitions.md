@@ -60,7 +60,7 @@ agent learns what a status wants.
   nothing in the body, and SHALL name the complexity that claimed it.
 - **AC-05-1-8** · Rev: 1 · Proof: plugin/test/flow/route/credential-ahead.test.mjs "--owed says a screen change has no login to prove it with, and refuses nothing for it"
   WHERE the plan declares a screen change and the project holds no test credential, the CLI SHALL
-  say so in the rehearsal of every status below `awaiting_release`, and SHALL refuse none of them for it.
+  say so in the rehearsal of every status below `testing`, and SHALL refuse none of them for it.
 - **AC-05-1-9** · Rev: 1 · Proof: plugin/test/flow/resume/resume.test.mjs "the claim and the resume print the lane, and neither composes a line of it"
   WHEN the agent asks what is owed, takes an issue's lease, or has its context re-minted THEN the
   CLI SHALL name every status from the issue's own onwards with the payloads that earn each at the
@@ -170,14 +170,14 @@ superseded history and the check simply stops being met.
   commit marked.
 - **AC-05-6-2** · Rev: 2 · Proof: plugin/test/flow/earned/merged-mark.test.mjs "a verdict at the judged head stands where the landing moved none of the change's paths"
   IF a verdict judged neither the merged commit nor the judged head the merged mark records THEN the
-  CLI SHALL refuse `awaiting_release` and name the criterion, the commit judged and the merged commit.
+  CLI SHALL refuse `testing` and name the criterion, the commit judged and the merged commit.
 - **AC-05-6-3** · Rev: 1 · Proof: plugin/test/flow/earned/merged-mark.test.mjs "tested needs one verdict per criterion, passing, at the merged commit"
-  WHEN a criterion has no verdict THEN the CLI SHALL refuse `awaiting_release` and name that criterion.
+  WHEN a criterion has no verdict THEN the CLI SHALL refuse `testing` and name that criterion.
 - **AC-05-6-4** · Rev: 1 · Proof: none yet — ISS-7
   WHEN a new head is merged THEN the merged mark SHALL name that head, and the CLI SHALL judge
   `developed` against the mark alone.
 - **AC-05-6-5** · Rev: 1 · Proof: plugin/test/flow/earned/merged-mark.test.mjs "a verdict at the judged head stands where the landing moved none of the change's paths"
-  WHERE the merged mark records a judged head, a verdict at that head SHALL earn `awaiting_release` only where
+  WHERE the merged mark records a judged head, a verdict at that head SHALL earn `testing` only where
   the mark says the landing moved no path the change touched.
 - **AC-05-6-6** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a file the landing wrote and the plan does not name owes a correction"
   IF the merged mark records that the landing wrote a path which neither the plan's text nor a
@@ -189,15 +189,16 @@ superseded history and the check simply stops being met.
 Rev: 1 · Actors: agent · Enforces: BR-01, BR-02
 
 The plan's two declarations — whether this is a screen change, whether it couples to a schema — are
-read at the ship steps rather than at the write: entering `awaiting_release`, a screen change owes a
-person's answer and schema coupling owes the migration risk classification. Whether that
+read at the ship steps rather than at the write. Entering `testing`, a screen change owes an
+attachment on every verdict and schema coupling owes the migration risk classification. Entering
+`awaiting_release`, a screen change owes a person's answer instead. Whether that
 person is owed at all is the project's to decide in its own configuration, because a project whose
 release lands where a person can still look at it afterwards is not the product the rule was written
 for.
 
 - **AC-05-7-1** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "what the plan declared decides what the ship steps owe"
   IF the plan declares schema coupling and no attachment carries the migration risk classification
-  THEN the CLI SHALL refuse `awaiting_release` and name the attachment it wants.
+  THEN the CLI SHALL refuse `testing` and name the attachment it wants.
 - **AC-05-7-2** · Rev: 2 · Proof: plugin/test/flow/advance.test.mjs "a user-facing outcome owes a person's look, and --owed says so first"
   IF the plan declares a screen change or a user-facing outcome, the project's configuration asks
   for a person, and no person has answered since the issue was parked for review THEN the CLI SHALL
@@ -213,7 +214,7 @@ for.
   releases on that record, from a value no author supplies.
 - **AC-05-7-6** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a screen change owes an attachment on every verdict that is not skipped"
   IF the plan declares a screen change and a verdict that is not `skipped` cites no attachment the
-  issue carries THEN the CLI SHALL refuse `awaiting_release` and name that criterion.
+  issue carries THEN the CLI SHALL refuse `testing` and name that criterion.
 - **AC-05-7-7** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a project that deploys on its own earns released by proving the deploy, not by asserting it"
   IF the project's configuration says production deploys on its own and the release verification
   names a commit other than the one the merged mark names, and does not name that commit as one the
@@ -327,12 +328,12 @@ so a death between the two is recovered by reading back rather than by doing aga
   WHEN the install has completed THEN the landing SHALL write the merged mark naming the judged head,
   the landed head and whether the landing moved the change's own paths.
 
-### UC-05-11 — An independent judge earns `awaiting_release`
+### UC-05-11 — An independent judge earns `testing`
 
 Rev: 1 · Actors: agent · Enforces: BR-01, BR-02, BR-04
 
 A builder judging its own criteria proves the code matches what the builder thought the criteria
-meant. Where a project asks for it, the judgement between `developed` and `awaiting_release` is another
+meant. Where a project asks for it, the judgement between `developed` and `testing` is another
 actor's, exercising the deployed change as a user would; for the check to hold, who judged must be
 on the record as the CLI captured it, never as the writer claims it (BR-02), and the judgement is
 of one deployment, so a candidate that changed after it is judged again (BR-04).
@@ -345,11 +346,11 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
 - **AC-05-11-6** · Rev: 1 · Proof: plugin/test/flow/verdicts/judge.test.mjs "the assembled view of an issue's verdicts keeps the judge on each"
   WHEN an issue's verdicts are assembled THEN the view SHALL keep the judge's identity on each.
 - **AC-05-11-2** · Rev: 1 · Proof: none yet — ISS-673
-  WHERE the project's record asks for an independent judgement, the CLI SHALL refuse `awaiting_release` while
+  WHERE the project's record asks for an independent judgement, the CLI SHALL refuse `testing` while
   any standing verdict carries the builder's identity or none, and SHALL earn it once every standing
   verdict carries another judge and cites the deployment the checkpoint recorded.
 - **AC-05-11-3** · Rev: 1 · Proof: none yet — ISS-673
-  WHERE the project's record does not ask for it, the builder's verdicts SHALL earn `awaiting_release` as
+  WHERE the project's record does not ask for it, the builder's verdicts SHALL earn `testing` as
   they did before.
 - **AC-05-11-4** · Rev: 1 · Proof: none yet — ISS-673
   WHERE the route verifies before the merge, a candidate whose base or batch changed after its
@@ -360,7 +361,7 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
   own actor's.
 - **AC-05-11-8** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "a verdict whose judge id was inherited earns nothing, however that id compares with the builder's"
   WHERE the project's record asks for an independent judgement, IF a standing verdict's identity was
-  inherited from the session that dispatched the run THEN the CLI SHALL refuse `awaiting_release` naming the
+  inherited from the session that dispatched the run THEN the CLI SHALL refuse `testing` naming the
   environment variable that gives a run an identity of its own.
 
 ## Business rules enforced

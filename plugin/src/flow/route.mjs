@@ -8,6 +8,7 @@ import { CLOSES_FROM, TRIAGES, atMinute, criterionNumber, planFlags, unwrap } fr
 import { statusKind } from "../tracker/rest.mjs";
 import {
   CHECKS,
+  JUDGED_AT,
   ORDER,
   PARK_STATUS,
   SIDE,
@@ -204,14 +205,14 @@ export const lookAhead = (view, ref) => {
 /* One gate, read by the line and by the fetch that feeds it: a screen change below the judging rung,
    and not that rung being next, nothing arriving there until the change has landed. */
 const credentialOwed = (flags, status) =>
-  (flags.screen === "yes" && !atLeast(status, CLOSES_FROM));
+  (flags.screen === "yes" && !atLeast(status, JUDGED_AT));
 
 /* Said while a run can still do something about it, and not from the entry check, whose every item
    is one owed. A null deploy is unread, never empty. advance.md. */
 export const credentialAhead = (view, ref) => {
   if (!credentialOwed(view.flags, view.issue.status)) return null;
   if (!view.deploy || view.deploy.withheld.length) return null;
-  return `Ahead: ${CLOSES_FROM} wants an attachment on every verdict that is not skipped, and this project
+  return `Ahead: ${JUDGED_AT} wants an attachment on every verdict that is not skipped, and this project
 `
     + `holds no test credential, so no login reaches the rendered state. Two verdict shapes get past
 `
@@ -294,10 +295,13 @@ export const owedLine = (view, ref, held) => {
 };
 
 /* A call made only where its answer is read: a plan declaring neither line owes no person, and the
-   policy is fetched only where the status being entered reads it — one rung, which asks both who
-   judges and what deploys. The step is `stepAfter`'s, null for a status the flow does not hold. */
+   policy is fetched only where the status being entered reads it — the two rungs at the end, one
+   asking who judges and one what deploys. The step is `stepAfter`'s, null for a status the flow does
+   not hold. */
 export const policyFor = async (plan, status = null) =>
-  (personLooks(planFlags(unwrap(plan))) || stepAfter(status) === CLOSES_FROM ? releasePolicy() : null);
+  (personLooks(planFlags(unwrap(plan))) || [JUDGED_AT, CLOSES_FROM].includes(stepAfter(status))
+    ? releasePolicy()
+    : null);
 
 /* Gated as `policyFor` is, on `credentialOwed`: the fetch is async and the line is not. */
 export const deployFor = async (plan, status = null) =>
