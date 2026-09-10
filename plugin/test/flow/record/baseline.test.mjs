@@ -76,6 +76,37 @@ test("a checkout with uncommitted work stamps no head, and a clean one stamps th
   }
 });
 
+/* The other flag's own case, because a submodule set to ignore its own changes empties the default
+   output exactly as the setting above does, and a rule with no case that fails without it is a rule
+   the next change may drop unnoticed. */
+test("a submodule told to ignore its own changes does not make the checkout read clean", () => {
+  const was = process.cwd();
+  const room = tempRoom("submodule-repo-");
+  const git = (cwd, ...args) => execFileSync("git",
+    ["-C", cwd, "-c", "user.email=t@t", "-c", "user.name=t", "-c", "protocol.file.allow=always", ...args],
+    { encoding: "utf8" });
+  try {
+    const inner = join(room, "inner");
+    const outer = join(room, "outer");
+    for (const one of [inner, outer]) execFileSync("git", ["init", "-q", one]);
+    writeFileSync(join(inner, "f.txt"), "one\n");
+    git(inner, "add", "f.txt");
+    git(inner, "commit", "-qm", "base");
+    git(outer, "commit", "-q", "--allow-empty", "-m", "base");
+    git(outer, "submodule", "add", "-q", inner, "sub");
+    git(outer, "commit", "-qm", "add sub");
+    process.chdir(outer);
+    assert.ok(stampedNow(SHAPES.baseline).head, "committed and clean, so the head is stamped");
+    writeFileSync(join(outer, "sub", "f.txt"), "two\n");
+    git(outer, "config", "submodule.sub.ignore", "all");
+    assert.equal(git(outer, "status", "--porcelain").trim(), "", "the setting hides the submodule's own work");
+    assert.equal(stampedNow(SHAPES.baseline).head, undefined,
+      "and the stamp asks for it anyway, so a citation cannot rest on a tree that setting concealed");
+  } finally {
+    process.chdir(was);
+  }
+});
+
 test("a citation naming no source is refused, and one naming a source is not", () => {
   const whole = { gate: "npm run check", result: "354 pass", commit: "43b811e", scope: "whole" };
   assert.equal(refusedBy(whole), null, "a baseline that cites nothing at all is a run of its own");

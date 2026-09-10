@@ -9,9 +9,10 @@ page's.
 
 **Below the top rung the baseline may cite a run rather than be one.** Where the branch was cut from
 a head some gate run already answered for whole, record that result and name where you read it off
-in `--cited`. The write stamps the head your checkout is at, which is why the baseline is recorded
-before the first edit rather than after it: the entry check takes the citation only where that
-stamped head is the commit you cited, and otherwise refuses it with the fresh run to spend.
+in `--cited`. The write stamps the head your checkout is at, and only where nothing in it is
+uncommitted — which is why the baseline is recorded before the first edit rather than after it: the
+entry check takes the citation only where that stamped head is the commit you cited, and otherwise
+refuses it with the fresh run to spend.
 `forge advance <ref> --owed` says whether this issue's rung may cite at all.
 
 What the check cannot judge is yours. **A gate that stops at its first failure has measured only what
