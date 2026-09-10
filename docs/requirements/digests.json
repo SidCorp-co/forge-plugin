@@ -1057,6 +1057,14 @@
       "rev": 1,
       "digest": "7be389af9cd7b87dd3dbc31c710f20a7008ee03152b6caabd4ef0c49a88d6070"
     },
+    "AC-04-8-7": {
+      "rev": 1,
+      "digest": "06e121fdc810020002cd9e023b4ed5ade3703ea4b543dd3fa86ea38a26aec274"
+    },
+    "AC-04-8-8": {
+      "rev": 1,
+      "digest": "c445425b566819e518707f6703eca992f1f0eab291a9a2f2174fa484dc2bdf36"
+    },
     "FR-05": {
       "rev": 1,
       "digest": "950b20698898c9ec4a1f234cd4bd599a359841045635c93307e5c5001578c438"

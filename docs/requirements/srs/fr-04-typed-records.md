@@ -211,6 +211,12 @@ field is named and the write is where it is refused.
 - **AC-04-8-6** · Rev: 1 · Proof: none yet — ISS-681
   IF a filing names a complexity or a category the tracker does not take THEN the CLI SHALL refuse it
   naming the values the tracker takes.
+- **AC-04-8-7** · Rev: 1 · Proof: plugin/test/flow/record/merged.test.mjs "a phrase typed into a path clause is refused under the flag it came in on, and nothing is written"
+  IF a clause of the merged mark that holds paths is given a value with whitespace inside one of them
+  THEN the CLI SHALL refuse the write and name the flag that value came in on.
+- **AC-04-8-8** · Rev: 1 · Proof: plugin/test/flow/record/merged.test.mjs "the word for none typed beside a path is refused, and nothing is written"
+  IF a clause of the merged mark that holds paths names the word it takes for no paths at all beside
+  a path THEN the CLI SHALL refuse the write.
 
 ## The way back
 

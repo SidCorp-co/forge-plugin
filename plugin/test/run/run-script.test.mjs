@@ -516,7 +516,7 @@ test("the tier line counts the change and leaves out the release commit the ship
   assert.equal(bump.length, 3, `the fixture's release commit is not three files:\n${bump.join("\n")}`);
   assert.equal(changedIn(bump), 8, `nor the eight changed lines a release writes:\n${bump.join("\n")}`);
   assert.match(out, /landed 3 file\(s\) and 15 changed line\(s\)/u, out);
-  const wrote = /^ {4}landing wrote (.+)$/mu.exec(out)?.[1].split(", ");
+  const wrote = /^ {4}--wrote '(.+)'$/mu.exec(out)?.[1].split(", ");
   assert.equal(wrote?.length, 3, `the count and the mark's own clause disagree about the change:\n${out}`);
 });
 
@@ -569,47 +569,4 @@ test("a release commit of an earlier attempt below the change is counted, and th
   assert.match(out, /a release commit sits among them/u, `the range's own clause is what says so:\n${out}`);
 });
 
-/* The clause `developed` reads back against the plan, printed here because this is the step that
-   knows what landed. The bump is not the change, so the files a release commit touches come out. */
-test("the last step prints what this change wrote, and leaves the release commit's own files out of it", () => {
-  const { work } = pushed("landing-wrote");
-  stubbed(work);
-  /* A module path nothing resolves, as every other case here uses: the scratch checkout's `plugin/src` is what the script under test loads, so this text on a real module's path would replace it and the script would not start. */
-  landIn(work, join("plugin", "src", "flow", "entered.mjs"), 1, "the entry check");
-  landIn(work, join("docs", "cli", "record.md"), 1, "and its page");
-  const out = lastStep(work).stdout;
-  const said = /^ {4}landing wrote (.+)$/mu.exec(out);
-  assert.ok(said, `no clause for the mark's note:\n${out}`);
-  const wrote = said[1].split(", ");
-  for (const one of ["docs/cli/record.md", "plugin/src/flow/entered.mjs"]) {
-    assert.ok(wrote.includes(one), `${one} landed and the clause does not name it:\n${out}`);
-  }
-  for (const one of ["package.json", "package-lock.json", "plugin.json"]) {
-    assert.ok(!said[1].includes(one), `the release commit's own ${one} is in the clause:\n${out}`);
-  }
-  /* ISS-730: a run that shortened this clause by hand is what the composer's fitting replaced, so the step that prints it says the list is typed as it stands. */
-  assert.match(out, /type that clause whole: the note is built to the room the tracker gives it/u,
-    `the clause is printed with nothing saying it is typed whole:\n${out}`);
-});
-
-/* Identity is the wrong test: a manifest is where a dependency lives too, and a change that added
-   one would vanish from the clause a check reads back. Which commit wrote it is the question. */
-test("a manifest the change itself edited stays in the clause, the bump alone being what comes out", () => {
-  const { work } = pushed("landing-wrote-manifest");
-  stubbed(work);
-  const held = JSON.parse(readFileSync(join(work, "package.json"), "utf8"));
-  writeFileSync(join(work, "package.json"), JSON.stringify({ ...held, dependencies: { left: "1.0.0" } }, null, 2));
-  git(work, "add", "package.json");
-  git(work, "commit", "-m", "the dependency this change needs");
-  const out = lastStep(work).stdout;
-  const said = /^ {4}landing wrote (.+)$/mu.exec(out);
-  assert.ok(said, `no clause for the mark's note:\n${out}`);
-  assert.ok(said[1].split(", ").includes("package.json"),
-    `the change edited package.json and the clause drops it:\n${out}`);
-});
-
-test("a release that landed nothing of its own says so in the clause", () => {
-  const { work } = pushed("landing-wrote-nothing");
-  const out = lastStep(work).stdout;
-  assert.match(out, /^ {4}landing wrote nothing$/mu, `a release of the bump alone named paths:\n${out}`);
-});
+/* The flag the mark's `landing wrote` clause is typed into is printed by this same step, and its cases are `run-wrote-line.test.mjs`. */

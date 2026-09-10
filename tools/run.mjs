@@ -8,6 +8,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { hookEntries } from "../plugin/src/hooks/hook-log-file.mjs";
+import { typed } from "../plugin/src/hooks/shell-spans.mjs";
 import { freezesSession, FROZEN, pluginCopy } from "../plugin/src/tools/plugin-copy.mjs";
 import { checkoutRoot, defaultBranch, git, gitOut, loud, parsed, read, REMOTE, Stop, stop } from "./checkout.mjs";
 import { recordDir, runSays } from "./gates/timing.mjs";
@@ -228,19 +229,21 @@ const releaseSays = (tree, base) => {
   return own.at(-1) ?? null;
 };
 
-/** The clause the merged mark's note carries about this change's own files, printed at the step that
- *  knows them: `developed` reads it back against the plan. By commit and not by filename — a
- *  dependency this change added lives in the manifest a release bump also writes. */
+/** The flag that writes the merged mark's clause about this change's own files, printed at the step
+ *  that knows them — the flag and not the clause, whose wording a run typed whole into the value
+ *  (ISS-1023). By commit and not by filename: a dependency lives in the manifest a bump also writes. */
 const wroteLine = (tree, own) => {
   const wrote = new Set();
   for (const sha of own) {
     for (const one of (gitOut(["diff", "--name-only", `${sha}^`, sha], tree) ?? "").split("\n").filter(Boolean)) wrote.add(one);
   }
   const said = [...wrote].sort();
-  console.log(`  the mark's note says what this change wrote, which \`developed\` reads against the plan:`);
-  console.log(`    landing wrote ${said.length ? said.join(", ") : "nothing"}`);
-  console.log(`  type that clause whole: the note is built to the room the tracker gives it, and one `
-    + `too long to store leaves out paths the plan names and says so in a clause of its own`);
+  console.log("  the clause of the mark's note that says what this change wrote, which `developed` "
+    + "reads against the plan, is written by this flag:");
+  console.log(`    --wrote ${said.length ? typed(said.join(", ")) : "nothing"}`);
+  console.log("  type the flag and the value whole, any quotes on it being the shell's: the note is built "
+    + "to the room the tracker gives it, and one too long to store leaves out paths the plan names "
+    + "and says so in a clause of its own");
 };
 
 /** Why each frozen file had to move, as the gate that held the write recorded it. Read here because

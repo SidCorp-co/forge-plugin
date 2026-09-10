@@ -32,8 +32,8 @@ export const REPLAY_HELP = [
   "and it replays nothing and re-reads nothing for you:",
   "replaying onto the head that is there now is the whole of what clears it, and it goes back in",
   "ahead of the gate on any resume that can still reach the push, so --from is no way past it",
-  "either. Where nothing moved it prints the mark's own `landing moved` clause, which nothing else",
-  "in a single run's ship computes.",
+  "either. Where nothing moved it prints the flag the mark's `landing moved` clause is written by,",
+  "which nothing else in a single run's ship computes.",
   "",
   "That much proves the base unmoved and not that the review was earned at what is being landed: a",
   "run which rebases after taking its read makes the merge base the pin and clears the first question",
@@ -208,8 +208,8 @@ export const replaySays = (tree, base, self) => {
   console.log(`  ${REMOTE}/${base} is ${shortly(pin)}`
     + `${was === pin ? ", the head this change sits on" : `, moved from ${shortly(was)} under it`}`
     + `, and none of this change's ${files.length} file(s) moved with it`);
-  console.log("  the mark's note says what the landing moved of this change, which is what lets the "
-    + "verdicts stand at the head they were taken at:");
-  console.log("    landing moved nothing");
+  console.log("  the clause of the mark's note that says what the landing moved of this change, "
+    + "which is what lets the verdicts stand at the head they were taken at, is written by this flag:");
+  console.log("    --moved nothing");
   readSays(tree, was);
 };

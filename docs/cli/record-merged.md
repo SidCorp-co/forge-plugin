@@ -48,6 +48,33 @@ answers: a clause that parses to no path at all says nothing about what moved, a
 judged head then has nothing saying it survived the landing. That is why the verb refuses a clause
 whose value parses to no path rather than storing the empty string.
 
+## What a path clause may hold
+
+Whitespace is what tells a path from a phrase, and a typed value holding it is refused. The reason
+the question came up: the ship printed the clause the note would carry, `landing moved nothing`,
+under the words *type that clause whole*, and the run that did got a mark naming a path of that name
+— so `awaiting_release` reported nine verdicts as taken before that path moved and offered nine
+fresh verdicts as the way out (ISS-1023). Three things follow.
+
+**The refusal is where the value is typed.** A record that says the wrong thing about a set of paths
+is worth catching at the write; the status that reads it is three rungs away from the typo, and what
+clears it there is `--undo` and a second mark rather than anything that refusal can name.
+
+**It is asked of the shape and never of the filesystem.** A path this change wrote and a later
+commit deleted is still what the landing wrote, and a path no tree ever held is refused by
+`developed` reading it against the plan, which is that check's question and not this one's.
+
+**And it is the flag's alone.** The landing task hands the composer paths off `git diff`, where a
+space in a name is the tree's business and not a typo, and every clause word the note is read by
+needs a space to collide — so barring whitespace in the composer would leave the read-back refusal
+above unreachable for a path clause. What the composer refuses is what no path may hold wherever the
+note is built: a separator the note is read by, and the word a clause takes for none, which alone
+reads as a landing that moved none and beside a path says both and so neither.
+
+The ship prints the flag and the value `forge record merged` takes for it, rather than the clause the
+note will carry, for the same reason the refusal exists: a printed clause holds the template and the
+value in one sentence, and nothing but this page told a run which words were which.
+
 ## The note is built to the room the tracker gives it
 
 The tracker takes 2000 code points of note on that route, and a change of some forty-five paths is
@@ -73,7 +100,7 @@ untrue:
 - one whose `landing moved` clause has no room for a single written path. That clause is what stands
   the verdicts down, and a partial list of it reads as a landing that moved less than it did.
 
-A run following the ship's last step types the clause whole. The improvisation this replaced —
+A run following the ship's last step types the flag and the value it printed, whole. The improvisation this replaced —
 a shorter note invented per run, because the printed instruction was refused by the write it asked
 for — is what made the record of a large change whatever its run had time to type.
 

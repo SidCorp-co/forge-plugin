@@ -136,9 +136,73 @@ test("a path the reader could not tell from the word for none is refused by the 
   assert.throws(note(["nothing"]), /is the word this clause takes for no paths at all/u,
     "a path called `nothing` would read back as a landing that moved none");
   assert.throws(note(["nothing."]), /is the word this clause takes for no paths at all/u);
+  assert.throws(note(["nothing", "plugin/src/a.mjs"]), /beside another path it says both and so neither/u,
+    "and beside a path it is a clause saying both (ISS-1023)");
   assert.throws(note(["plugin/src/a,b.mjs"]), /separated by `;`/u, "and a comma is what the paths of one clause are apart by");
   assert.match(markNote({ ...whole, moved: ["plugin/src/a.mjs", "docs/b.md"] }),
     /landing moved plugin\/src\/a\.mjs, docs\/b\.md;/u, "while the paths a landing really moves travel as they are");
+});
+
+/* Whitespace is what the flag route bars, and it is barred there and not here: every clause word the
+   note is read by needs a space to collide, so the read-back refusal below would be unreachable for
+   a path clause if the composer refused one — and the landing task's paths come off `git diff`. */
+test("a path holding a space composes, the landing task's own route asking no flag for it", () => {
+  const whole = { branch: "master", at: AT, reviewed: REVIEWED, judged: JUDGED, wrote: [] };
+  assert.match(markNote({ ...whole, moved: ["docs/a note.md"] }),
+    /landing moved docs\/a note\.md;/u, "a path a tree really holds a space in travels as it is");
+});
+
+/* The ship prints the clause the note carries and the run types it into the flag, so the note's own
+   wording lands in the value: the mark then says a landing moved a file of that name, and
+   `awaiting_release` stands every verdict down against a path nothing wrote (ISS-1023). */
+test("a phrase typed into a path clause is refused under the flag it came in on, and nothing is written", async () => {
+  state.comments[ISSUE.documentId] = [];
+  state.calls = [];
+  const run = await marked("--at", AT, "--reviewed", REVIEWED, "--judged", JUDGED,
+    "--moved", "landing moved nothing", "--wrote", "plugin/src/a.mjs");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /^--moved takes the paths of this change the landing moved/mu,
+    "the flag the value was typed on opens the refusal");
+  assert.match(run.stderr, /`landing moved nothing` holds whitespace/u, "and names what it read as no path");
+  assert.match(run.stderr, /`landing moved` is the note's own wording rather than part of the value/u,
+    "and which words of the printed clause were the template");
+  assert.match(run.stderr, /which here is `nothing`/u, "and what the flag would have taken instead");
+  assert.equal(state.calls.some((one) => one.args.action === "mark_merged"), false);
+  assert.deepEqual(page(), []);
+});
+
+test("prose quoting no clause is refused on the other path flag, told what a path may hold", async () => {
+  state.comments[ISSUE.documentId] = [];
+  state.calls = [];
+  const run = await marked("--at", AT, "--reviewed", REVIEWED, "--judged", JUDGED,
+    "--moved", "nothing", "--wrote", "probably nothing");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /^--wrote takes the paths this change itself landed/mu, "in its own name");
+  assert.match(run.stderr, /Name a path that really holds a space by the directory it is under/u,
+    "and with the one route out, no clause of the note being quoted here");
+  assert.deepEqual(page(), []);
+});
+
+test("the word for none typed beside a path is refused, and nothing is written", async () => {
+  state.comments[ISSUE.documentId] = [];
+  state.calls = [];
+  const run = await marked("--at", AT, "--reviewed", REVIEWED, "--judged", JUDGED,
+    "--moved", "nothing, plugin/src/a.mjs", "--wrote", "nothing");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /beside another path it says both and so neither/u);
+  assert.equal(state.calls.some((one) => one.args.action === "mark_merged"), false);
+  assert.deepEqual(page(), []);
+});
+
+/* The clause records what the landing wrote and asks nothing of the filesystem: a path a later
+   commit deleted, and a path no tree ever held, are both what this change landed. */
+test("a path no tree holds is written and reads back as given", async () => {
+  state.comments[ISSUE.documentId] = [];
+  const run = await marked("--at", AT, "--reviewed", REVIEWED, "--judged", JUDGED,
+    "--moved", "nothing", "--wrote", "plugin/src/flow/gone.mjs, docs/cli/never-was.md");
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.deepEqual(landingWrote(page()), ["plugin/src/flow/gone.mjs", "docs/cli/never-was.md"],
+    "both paths, in the order they were typed, whatever the tree holds");
 });
 
 /* A clause is found by its own words wherever they fall in the note, so a path carrying another

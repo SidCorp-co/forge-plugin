@@ -64,25 +64,54 @@ const readPaths = (comments, flag) => pathsIn(readClause(comments, flag)?.trim()
 export const landingMoved = (comments) => readPaths(comments, "moved");
 export const landingWrote = (comments) => readPaths(comments, "wrote");
 
-/* What the clauses are joined by, so a path holding one reads as its clause ending there and a `moved` with one path in it reads as none moved, which is the reading a status acts on. Refused at the composer rather than at the flag, because the landing task composes a note too. */
+/* What the clauses are joined by, so a path holding one reads as its clause ending there and a `moved` with one path in it reads as none moved, which is the reading a status acts on. Refused wherever the note is composed, the landing task composing one too, and under its own flag where one was typed. */
 const APART = /[;\n]/u;
+
+/* What no path may hold wherever the note is composed, said once for the flag that names itself and the composer that has no flag to name. */
+const pathHeld = (paths) => {
+  const barred = paths.find((one) => APART.test(one) || one.includes(","));
+  if (barred) {
+    return `\`${barred}\` cannot travel in the mark's note: the note's clauses are separated by \`;\` `
+      + "and the paths in one by `,`, so a reader would take part of this path for another clause or "
+      + "another path. Name the directory it is under, or the path without the separator.";
+  }
+  const none = paths.find((one) => NONE.test(one));
+  if (none) {
+    return `\`${none}\` is the word this clause takes for no paths at all, so a path of that name `
+      + "cannot travel in the note: alone it would read back as a landing that moved none of them, "
+      + "which is what lets the verdicts stand, and beside another path it says both and so neither. "
+      + "Name it some other way — the directory it is under, or the path with its extension.";
+  }
+  return null;
+};
 
 const pathsSaid = (paths) => {
   const held = paths ?? [];
-  const barred = held.find((one) => APART.test(one) || one.includes(","));
-  if (barred) {
-    refuse(`\`${barred}\` cannot travel in the mark's note: the note's clauses are separated by \`;\` `
-      + "and the paths in one by `,`, so a reader would take part of this path for another clause or "
-      + "another path. Name the directory it is under, or the path without the separator.");
-  }
-  const said = held.length ? held.join(", ") : NOTHING;
-  if (held.length && NONE.test(said)) {
-    refuse(`\`${said}\` is the word this clause takes for no paths at all, so a path of that name `
-      + "cannot travel in the note: it would read back as a landing that moved none of them, which "
-      + "is what lets the verdicts stand. Name it some other way — the directory it is under, or the "
-      + "path with its extension.");
-  }
-  return said;
+  const wrong = pathHeld(held);
+  if (wrong) refuse(wrong);
+  return held.length ? held.join(", ") : NOTHING;
+};
+
+/* And what a typed one may not: whitespace, which is what tells a phrase in a clause from a filename. Barred on the flag route alone, the composer being handed `git diff` paths that may hold a space and owing the read-back below instead.
+   Why the shape and not the filesystem, and why the ship prints the flag rather than the clause: docs/cli/record-merged.md. */
+const SPACED = /\s/u;
+
+const opensWith = (given) => CLAUSES.find((one) =>
+  !one.commit && new RegExp(String.raw`^${one.said}\b`, "iu").test(given.trim()));
+
+const typedProblem = (one, paths, given) => {
+  const held = pathHeld(paths);
+  if (held) return held;
+  const spaced = paths.find((path) => SPACED.test(path));
+  if (!spaced) return null;
+  const said = opensWith(given);
+  return `takes ${one.label}, separated by commas, or the word \`${NOTHING}\`; \`${spaced}\` holds `
+    + "whitespace, which nothing that reads the note back can tell from a phrase, so a status would "
+    + "report it as a file this change touched. "
+    + (said
+      ? `\`${said.said}\` is the note's own wording rather than part of the value — what the flag `
+        + `takes is what follows it, which here is \`${given.trim().slice(said.said.length).trim()}\`.`
+      : "Name a path that really holds a space by the directory it is under.");
 };
 
 /* A whole path or nothing, prefixes included; a trailing dot ends a sentence unless a name follows. Beside the note rather than beside the check that spends it, because the composer asks the same question of the same text before it leaves a path out. */
@@ -224,6 +253,8 @@ const valueOf = (one, given) => {
     refuse(`--${one.flag} takes ${one.label}, separated by commas, or the word \`${NOTHING}\`; `
       + `\`${given}\` parses to no path at all.`);
   }
+  const wrong = typedProblem(one, paths, given);
+  if (wrong) refuse(`--${one.flag} ${wrong}`);
   return paths;
 };
 
