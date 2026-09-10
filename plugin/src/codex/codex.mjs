@@ -20,8 +20,8 @@ import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
 import { fail, projectCodex, projectRecordPattern } from "../resolve/settings.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { afterTouch, ageOf, apartFrom, clearConsulted, demandOf, pendingIn, pendingNow, readByCodex, readState, turnsOf,
-  updateState } from "./codex-state.mjs";
+import { afterTouch, ageOf, apartFrom, clearConsulted, demandOf, pendingIn, pendingNow, readByCodex, readState,
+  stagedApart, stagedReader, turnsOf, updateState } from "./codex-state.mjs";
 import { PER_KEY, READ_ISSUE, SPARE, TOOLS, scopeFor } from "./codex-tools.mjs";
 import { noDiffIn, reviewSet, shownOf } from "./codex-set.mjs";
 import { reviewed } from "./codex-rounds.mjs";
@@ -498,14 +498,14 @@ export const hookRecord = (event, paths, told = () => false, log = logEntries) =
      same file. Scoped to the call and not the module, since a memo outliving it would answer from a log that had moved. */
   let held = null;
   const read = () => (held ??= log());
+  const stagedFor = stagedReader();
   for (const path of paths) {
     const root = repoRoot(dirname(resolve(path)));
     if (!root) continue;
     const rel = inside(root, path);
     if (!rel || !recordable(rel)) continue;
-    /* Asked whether the path is recorded or not, an exact revert having owed a consult; a standing entry clears only where the index holds those bytes too, that copy being what lands (ISS-952). */
-    const stood = pendingIn(readState(), root).includes(rel);
-    const known = readByCodex(root, rel, read) && (!stood || !apartFrom(root, [rel]).includes(rel));
+    /* Asked of a path the record does not hold as of one it does, an exact revert having owed a consult: a write at the bytes read is a reading still owed while the index holds another copy, that copy being what a commit lands (ISS-952, ISS-1005). */
+    const known = readByCodex(root, rel, read) && !stagedApart(root, rel, { staged: stagedFor(root) });
     let added = false;
     updateState((held) => {
       const step = afterTouch(held, root, rel, known);

@@ -203,6 +203,23 @@ export const demandOf = (root, files, shape, ms) =>
 export const apartFrom = (root, rels, ms = GIT_MS) =>
   (rels.length ? names(root, ["diff", "--name-only", "-z", "--", ...rels], ms) ?? rels : []);
 
+/** Whether a commit would carry bytes for one path that are not the ones on disk: a change staged for it, and that staged copy apart from the working copy. The second probe alone is not the question — a file whose read bytes are in no commit reads apart while nothing of it is staged and a commit carries none of it. Either probe unanswered says yes, no answer being no evidence a reviewer saw what would land (ISS-1005); `staged` is for a caller already holding that list. */
+export const stagedApart = (root, rel, { staged, ms = GIT_MS } = {}) => {
+  const held = staged === undefined ? stagedIn(root, {}, ms) : staged;
+  if (held === null) return true;
+  if (!held.includes(rel)) return false;
+  return apartFrom(root, [rel], ms).includes(rel);
+};
+
+/** One index read per checkout, for a caller asking about several paths of it: git answers the same for every path of one checkout, and a memo any longer-lived than the caller would answer from an index that had moved. */
+export const stagedReader = () => {
+  const held = new Map();
+  return (root, ms) => {
+    if (!held.has(root)) held.set(root, stagedIn(root, {}, ms));
+    return held.get(root);
+  };
+};
+
 /* `lstat` not `stat`, so a dangling link is present; and only ENOENT, so an EACCES file stays. */
 export const absentFrom = (root, rel) => {
   try {

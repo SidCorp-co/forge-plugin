@@ -6,7 +6,9 @@ import test from "node:test";
 import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
-import { tempRoom } from "../fixtures.mjs";
+import { callHook, tempRoom } from "../fixtures.mjs";
+
+const HOOK = new URL("../../hooks/entries/codex-second.mjs", import.meta.url).pathname;
 
 /* Imported after XDG_CONFIG_HOME moves, so nothing here can touch the caller's own state file. */
 const sandbox = tempRoom("forge-codex-record-");
@@ -101,7 +103,11 @@ test("the hook records a document once, and tells a repository once per turn", (
   clearState();
 });
 
-test("a document the latest answered consult read at this content is not recorded again", () => {
+/* This fixture's `.git` is a file naming a directory that is not there, so no probe of its index
+   answers — and a write at the bytes read is recorded for that reason alone, an unanswered probe
+   being no evidence a reviewer saw what a commit would land. What the probes say when they do answer
+   is the real repository's case below. */
+test("a write at the bytes read is recorded where git will not say what the index holds", () => {
   clearState();
   const file = join(REPO, "docs", "READ.md");
   writeFileSync(file, "read by codex");
@@ -120,10 +126,12 @@ test("a document the latest answered consult read at this content is not recorde
     return entries;
   };
 
-  assert.equal(hookRecord({}, [file], told("t1"), log([consult(true)])), null, "same content, already read");
-  assert.ok(!existsSync(statePath()) || !pendingIn(state(), REPO).length, "nothing pending");
+  assert.match(hookRecord({}, [file], told("t1"), log([consult(true)])), /docs\/READ\.md/,
+    "the content is the content read, and nothing here can say the index holds no other copy");
+  assert.ok(existsSync(statePath()) && pendingIn(state(), REPO).length === 1, "so the write stands as owed");
   assert.equal(opened, 1, "the log was read once, for the file that would be added");
 
+  clearState();
   assert.match(hookRecord({}, [file], told("t2"), log([consult(false)])), /docs\/READ\.md/, "an unanswered consult read nothing");
   clearState();
   assert.match(hookRecord({}, [file], told("t3"), log([])), /docs\/READ\.md/, "never sent");
@@ -137,7 +145,7 @@ test("a document the latest answered consult read at this content is not recorde
   writeFileSync(file, "read by codex");
   assert.equal(hookRecord({}, [file], told("t4"), log([consult(true)])), null, "put back to the bytes read");
   assert.deepEqual(pendingIn(state(), REPO), ["docs/READ.md"],
-    "and git cannot answer for this fixture's index, so the obligation stands rather than lapses");
+    "and git will not say what this fixture's index holds, so the obligation stands rather than lapses");
   assert.equal(hookRecord({}, [join(REPO, "src", "codex.mjs")], told("t4"), log([consult(true)])), null);
   assert.equal(opened, 2, "one read of the log per invocation carrying a recordable path, and none without");
   clearState();
@@ -214,11 +222,64 @@ test("the disable switch silences the record", (t) => {
 });
 
 /* The comparison was skipped for a path already recorded, so an exact revert — this repository's own
-   way of proving a checker fires — owed a consult with nothing in it to read (ISS-952). It clears the
-   entry only where the index holds the same bytes: the copy a commit lands is the one that matters. */
-test("a write putting a recorded document back to the bytes read clears it, unless the index holds the write", () => {
+   way of proving a checker fires — owed a consult with nothing in it to read (ISS-952). What decides
+   it is the copy a commit would land, asked of a path the record does not hold as of one it does; and
+   the index against the working copy alone is not that question, `FRESH.md` being the case where the
+   two answers differ (ISS-1005). */
+test("a write at the bytes read is recorded where the index holds another copy, and cleared where it does not", () => {
   clearState();
   const root = realpathSync(tempRoom("forge-codex-restore-"));
+  const git = (...argv) => spawnSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { encoding: "utf8" });
+  spawnSync("git", ["init", "-q", root]);
+  mkdirSync(join(root, "docs"), { recursive: true });
+  const READ = "read by codex\n";
+  const UNREAD = "no reviewer has seen this\n";
+  const one = join(root, "docs", "READ.md");
+  const two = join(root, "docs", "FRESH.md");
+  writeFileSync(one, READ);
+  writeFileSync(two, "what HEAD holds and no consult read\n");
+  git("add", "-A");
+  git("commit", "-qm", "the base");
+  const sent = (rel) => ({ kind: "consult", ok: true, reply: "CODEX: 0 findings", root, files: [rel],
+    sent: [{ rel, sha: digest(READ) }] });
+  const log = () => [sent("docs/FRESH.md"), sent("docs/READ.md")];
+  const told = teller();
+  const record = () => (existsSync(statePath()) ? pendingIn(state(), root) : []);
+
+  writeFileSync(one, UNREAD);
+  git("add", "docs/READ.md");
+  writeFileSync(one, READ);
+  assert.match(hookRecord({}, [one], told("t1"), log) ?? "", /docs\/READ\.md/u,
+    "the record never held this path, and the index holds bytes no consult was shown");
+  assert.deepEqual(record(), ["docs/READ.md"]);
+  assert.equal(hookRecord({}, [one], told("t1"), log), null);
+  assert.deepEqual(record(), ["docs/READ.md"], "and a path it does hold stays, by the same reading (ISS-952)");
+
+  git("reset", "-q");
+  clearState();
+  writeFileSync(two, READ);
+  assert.equal(hookRecord({}, [two], told("t2"), log), null,
+    "nothing of it is staged, so a commit carries none of it, whatever HEAD holds");
+  assert.deepEqual(record(), []);
+  git("add", "docs/FRESH.md");
+  assert.equal(hookRecord({}, [two], told("t2"), log), null, "and the staged copy here is the copy that was read");
+  assert.deepEqual(record(), []);
+
+  git("reset", "-q");
+  writeFileSync(two, UNREAD);
+  assert.match(hookRecord({}, [two], told("t3"), log) ?? "", /docs\/FRESH\.md/u);
+  writeFileSync(two, READ);
+  assert.equal(hookRecord({}, [two], told("t3"), log), null);
+  assert.deepEqual(record(), [], "the revert clears a standing entry: these bytes are in no commit and nothing stages them");
+  clearState();
+  rmSync(root, { recursive: true, force: true });
+});
+
+/* End to end, because the gate reads the record this hook writes and neither half refuses alone:
+   the record was empty for the path, so the commit was asked nothing and the staged copy landed. */
+test("a commit is refused for a path the record took only because the index held the write", () => {
+  clearState();
+  const root = realpathSync(tempRoom("forge-codex-gate-"));
   const git = (...argv) => spawnSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { encoding: "utf8" });
   spawnSync("git", ["init", "-q", root]);
   mkdirSync(join(root, "docs"), { recursive: true });
@@ -227,23 +288,19 @@ test("a write putting a recorded document back to the bytes read clears it, unle
   writeFileSync(file, READ);
   git("add", "-A");
   git("commit", "-qm", "the base");
-  const log = () => [{ kind: "consult", ok: true, reply: "CODEX: 0 findings", root, files: ["docs/READ.md"],
-    sent: [{ rel: "docs/READ.md", sha: digest(READ) }] }];
-  const told = teller();
+  writeFileSync(join(sandbox, "forge", "codex-log.jsonl"), `${JSON.stringify({ kind: "consult", ok: true,
+    reply: "CODEX: 0 findings", root, files: ["docs/READ.md"], sent: [{ rel: "docs/READ.md", sha: digest(READ) }] })}\n`);
 
-  writeFileSync(file, "a mutation, to watch the case fail\n");
-  assert.match(hookRecord({}, [file], told("t1"), log), /docs\/READ\.md/u, "the mutation is a write to review");
-  writeFileSync(file, READ);
-  assert.equal(hookRecord({}, [file], told("t1"), log), null);
-  assert.deepEqual(pendingIn(state(), root), [], "the revert clears it: nothing is left to read");
-
-  writeFileSync(file, "staged and unread\n");
-  assert.match(hookRecord({}, [file], told("t2"), log), /docs\/READ\.md/u);
+  writeFileSync(file, "no reviewer has seen this\n");
   git("add", "docs/READ.md");
   writeFileSync(file, READ);
-  assert.equal(hookRecord({}, [file], told("t2"), log), null);
-  assert.deepEqual(pendingIn(state(), root), ["docs/READ.md"],
-    "but the index holds the write, and that is the copy a commit would land");
+  assert.match(hookRecord({}, [file], teller()("t1")) ?? "", /docs\/READ\.md/u, "recorded off the index");
+  const run = callHook(HOOK, { tool_name: "Bash", cwd: root, tool_input: { command: `git -C ${root} commit -m work` } },
+    { ...process.env, XDG_CONFIG_HOME: sandbox });
+  const out = run.stdout.trim() ? JSON.parse(run.stdout) : null;
+  assert.match(out?.hookSpecificOutput?.permissionDecisionReason ?? "", /has not read what this commit stages/u);
+  assert.match(out?.hookSpecificOutput?.permissionDecisionReason ?? "", /docs\/READ\.md/u, "and it names the file");
+  assert.equal(git("show", ":docs/READ.md").stdout, "no reviewer has seen this\n", "which is what the index still holds");
   clearState();
   rmSync(root, { recursive: true, force: true });
 });

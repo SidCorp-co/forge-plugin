@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "no
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { apartFrom, demandIn, demandOf, goneFrom, stagedIn } from "../../src/codex/codex-state.mjs";
+import { apartFrom, demandIn, demandOf, goneFrom, stagedApart, stagedIn } from "../../src/codex/codex-state.mjs";
 import { digest } from "../../src/codex/codex-api.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
@@ -60,6 +60,26 @@ test("a root git cannot answer for is not an empty index", () => {
   rooms.push(room);
   assert.equal(stagedIn(room), null, "no repository there");
   assert.deepEqual(demandOf(room, ["docs/A.md"], {}), ["docs/A.md"], "so the record stands whole");
+});
+
+/* Two probes and not one, because the second answers about a path a commit would carry nothing of:
+   `docs/B.md` differs from the index and is staged nowhere, which is why a write at the bytes read
+   cannot be judged on the working copy against the index alone (ISS-1005). */
+test("what a commit would carry apart from the working copy needs the index asked twice", () => {
+  const root = tree();
+  assert.deepEqual(apartFrom(root, ["docs/B.md"]), ["docs/B.md"], "the working copy differs from the index");
+  assert.equal(stagedApart(root, "docs/B.md"), false, "and a commit with no -a carries nothing of it");
+  assert.equal(stagedApart(root, "docs/A.md"), false, "the staged copy here is the copy on disk");
+  assert.equal(stagedApart(root, "docs/C.md"), false, "and nothing was written to this one at all");
+  writeFileSync(join(root, "docs/A.md"), "staged, then written again\n");
+  assert.equal(stagedApart(root, "docs/A.md"), true, "now the index holds a copy that is not the one on disk");
+
+  const room = tempRoom("codex-apart-bare-");
+  rooms.push(room);
+  assert.equal(stagedApart(room, "docs/A.md"), true, "a root git will not read says nothing is proven read");
+  writeFileSync(join(room, ".git"), "gitdir: nowhere\n");
+  assert.equal(stagedApart(room, "docs/A.md", { staged: ["docs/A.md"] }), true,
+    "and a caller's own staged list does not stand in for the probe it cannot make");
 });
 
 /* Codex's F3: the supplementary read for `-a` or a pathspec failed into "no more files", so a
