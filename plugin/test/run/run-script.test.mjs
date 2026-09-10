@@ -62,7 +62,8 @@ test("ship -h prints ship's own arguments and reaches no step", () => {
   const was = git(work, "rev-parse", "HEAD").stdout.trim();
   const run = runIn(work, ["ship", "-h"], BARE);
   assert.equal(run.status, 0, run.stderr);
-  for (const said of ["ship [--from N] [--note S]", "--from N", "--note S"]) {
+  for (const said of ["ship [--from N] [--note S]", "--from N", "--note S",
+    "read for dotted version triples", "disagreeing with the version this release takes is refused"]) {
     assert.ok(run.stdout.includes(said), `${said} is not in ship's own help:\n${run.stdout}`);
   }
   assert.ok(!/step 1\//u.test(run.stdout + run.stderr), `a request for help reached a step:\n${run.stdout}${run.stderr}`);

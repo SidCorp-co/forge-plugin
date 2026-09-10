@@ -24,6 +24,19 @@ export const nextVersion = (local, upstream) => {
   return [major, minor, patch + 1].join(".");
 };
 
+/** Every version a subject claims: a dotted triple, a leading `v` optional, never a component of a longer numeric run. It is the shape every release subject here leads with, and the number is this step's — a caller writing it writes it from before there was one to write, which put ee8d6ce and 0606e6a on master claiming versions another release had taken (ISS-965). Both bounds refuse a neighbouring numeric component and nothing else, since punctuation is where a sentence ends rather than where a version carries on: `Release 1.0.0.` and `Release...1.0.0` each claim a version as loudly as a bare one, and reading a dot as a fourth component let both past. A two-part number reads as no version, so a subject about the change stands; a dotted date is over-read and refused. */
+const NAMES_VERSION = /(?<!\d)(?<!\d\.)v?(\d+\.\d+\.\d+)(?!\d|\.\d)/gu;
+
+const noteAgrees = (note, taken) => {
+  const wrong = [...String(note ?? "").matchAll(NAMES_VERSION)].map(([, one]) => one)
+    .filter((one) => one !== taken);
+  if (wrong.length === 0) return;
+  stop(`--note names ${wrong.join(" and ")} and this release takes ${taken}, so the version commit `
+    + `would claim a release that is not the one installed. The number is this step's to write: ship `
+    + `again with the note about the change and no version in it, or with ${taken} in place of `
+    + `${wrong.join(" and ")}. Nothing was written, so the resume spends no gate it has not already.`);
+};
+
 /* Per-worktree, like the ship's mark: a step 6 resumed in a new process is the same attempt. */
 const BUMP = "forge-ship-bump";
 
@@ -43,7 +56,10 @@ export const versionAbove = (tree, base, note, at = null) => {
     ...(gitOut(["diff", "--name-only", "HEAD"], tree) ?? "").split("\n"),
     ...(gitOut(["ls-files", "--others", "--exclude-standard", "--", ...RELEASE_FILES], tree) ?? "").split("\n"),
   ].filter(Boolean);
-  const want = nextVersion(read(join(tree, "package.json"))?.version, upstream);
+  const local = read(join(tree, "package.json"))?.version;
+  const want = nextVersion(local, upstream);
+  /* Judged before `npm version` writes, so a refused note leaves the tree at the content the gate's record is keyed on and the resume that fixes it carries every pass rather than spending the gate again — `acrossVersion` re-keys that record only once this returns. The condition is the early return below, one line ahead of it: where HEAD already carries the version, no commit is made and there is no subject to be wrong. */
+  if (versionAt(tree, "HEAD") !== (want ?? local)) noteAgrees(note, want ?? local);
   if (want) {
     console.log(`  ${REMOTE}/${base} carries ${upstream}; taking ${want}`);
     loud("npm", ["version", want, "--no-git-tag-version"], tree, "The version lifecycle writes the manifest too.");

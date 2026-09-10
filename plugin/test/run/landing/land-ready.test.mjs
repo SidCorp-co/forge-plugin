@@ -96,6 +96,18 @@ test("the install after that promotion holds the version the release commit carr
   assert.equal(landing().release, versionAt(work, landed), said);
 });
 
+/* The one other caller of `versionAbove`, reaching it with no note at all: what a refusal of a
+   caller's own subject may not cost is the batch's, which has none to be wrong (ISS-965). */
+test("the batch's release commit carries the composed subject, having no note to check", async () => {
+  const { at, work, head, base } = world({ base: "other" });
+  seeded({ landing: ready(head, base) });
+  const said = await ran([KEY], work);
+  const landed = remote(at);
+
+  assert.equal(git(work, "log", "--format=%s", "-1", landed).stdout.trim(),
+    `chore(release): ${versionAt(work, landed)}, so the installed copy is this head`, said);
+});
+
 test("the merged mark names the judged head, the landed head and that the landing moved nothing", async () => {
   const { at, work, head, base } = world({ base: "other" });
   seeded({ landing: ready(head, base) });

@@ -15,7 +15,7 @@ export const VERBS = new Map([
     signature: "ship [--from N] [--note S] [--wait M]",
     flags: [
       takes("--from", "N", "resume at step N, which a failed step prints for you"),
-      takes("--note", "S", "the subject of the version commit, when the release has to make one"),
+      takes("--note", "S", "the subject of the version commit, when the release has to make one. Write it about the change: the subject is read for dotted version triples, and one disagreeing with the version this release takes is refused, since the step chooses that number after this flag is read"),
       takes("--wait", "M", "minutes to wait behind another landing on this checkout before refusing"),
     ],
     words: 0,
