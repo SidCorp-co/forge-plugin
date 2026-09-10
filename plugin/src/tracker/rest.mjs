@@ -264,6 +264,17 @@ export const refuseUndeclared = (verb, flag, given, { field = flag, values, hint
     + "this CLI's own, so a name outside it is answered here rather than by whatever came back.");
 };
 
+/** The whole of what this CLI reads a date as, and below it the judge a date slot spends because no declared set can hold every date. It is exported so this judge and whatever narrows rows against a caller's date ask one question: a second reading would disagree on some word and be the one nobody ran (ISS-1081). */
+export const readsAsDate = (given) => !Number.isNaN(Date.parse(given));
+
+export const refuseUnreadableDate = (verb, flag, given) => {
+  if (given === undefined || readsAsDate(given)) return;
+  fail(`${verb} --${flag}: ${given} is no date this CLI can read. One it does: 2026-01-01, or `
+    + "2026-01-01T00:00:00+07:00 where the hour matters. Nothing was sent: the reading is this "
+    + "CLI's own, so a word it cannot read is answered here rather than by narrowing every row "
+    + "against it, which answers the same for all of them.");
+};
+
 /** What a status name is, off the row that declares it: `step` a rung of this plugin's own flow, `replacedBy` the rung that took a retired name over, `writtenByNobody` the clause saying whose path enters it and no run's. A row carrying none of the three is readable, written by a park or a set, and no step. Null for a name the table does not declare, which `declaredValue` is what refuses. */
 export const statusKind = (name) =>
   DECLARES.forge_issues.status.find((one) => one.name === name) ?? null;

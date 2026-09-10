@@ -15,6 +15,22 @@ import { backoff, callTool, deadlineSeconds, retryAfter, retryOf, retrySeconds, 
 import { useProject } from "../../src/resolve/settings.mjs";
 import { REFERENCE_KEYS } from "../../src/tracker/routes.mjs";
 
+/* The shape judge's own three answers, the middle one being what keeps a caller who typed nothing
+   out of a refusal: a date slot left empty is no value at all, as an undeclared one is. */
+test("the date judge ends the call on a word it cannot read, passes one it can, and passes an argument nobody gave", async () => {
+  const { readsAsDate, refuseUnreadableDate } = await import("../../src/tracker/rest.mjs");
+  const { refusing } = await import("../../src/resolve/settings.mjs");
+  await refusing(() => {
+    assert.throws(() => refuseUnreadableDate("issue", "createdAfter", "garbage"),
+      /issue --createdAfter: garbage is no date this CLI can read\./u);
+    assert.equal(refuseUnreadableDate("issue", "createdAfter", "2026-01-01"), undefined);
+    assert.equal(refuseUnreadableDate("issue", "createdAfter", undefined), undefined,
+      "an argument nobody gave is no word to read as a date");
+  });
+  assert.equal(readsAsDate("2026-01-01T00:00:00+07:00"), true, "the judge and the walk read one set of words");
+  assert.equal(readsAsDate("2026-13-01"), false);
+});
+
 /* Which arguments identify a record, which is what a raw call resolves a key in before it sends. */
 test("the identifying arguments are the ones that name a record, and no other", () => {
   for (const key of ["documentId", "issueId", "issue", "dependsOnId", "blocksId"]) {

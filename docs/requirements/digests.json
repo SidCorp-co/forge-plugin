@@ -721,6 +721,14 @@
       "rev": 1,
       "digest": "a143a23b100549fb1b9e4ff328df1d9f90492c04b9080561dd7c4084523affff"
     },
+    "AC-02-9-18": {
+      "rev": 1,
+      "digest": "dc21a90007312521eb44bd326e07c77d3ed49349af7faf1b01cfa8626907e208"
+    },
+    "AC-02-9-19": {
+      "rev": 1,
+      "digest": "aa74967084b76e7ba880fceff55dd3ed6afc8bc85a5ca48380d4acd52c509b86"
+    },
     "UC-02-10": {
       "rev": 1,
       "digest": "b18a59679632b7eeab447c57745f5dd81faeecf8afef99ac0c687b37feb47601"

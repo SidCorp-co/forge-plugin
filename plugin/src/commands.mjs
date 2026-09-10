@@ -1,6 +1,6 @@
 import { fail, keepOnFailure } from "./resolve/settings.mjs";
 import { bodyFrom, notABody } from "./resolve/payload.mjs";
-import { declaredFor, refuseUndeclared, scoped, write } from "./tracker/rest.mjs";
+import { declaredFor, refuseUndeclared, refuseUnreadableDate, scoped, write } from "./tracker/rest.mjs";
 import { EDGE_KINDS, otherOf } from "./tracker/routes.mjs";
 import {
   DEFAULT_LIMIT,
@@ -209,6 +209,10 @@ export const commands = {
         { values: declaredFor("forge_issues", "priority") });
       refuseUndeclared("issue", "category", filters.category, { values: KIND_NAMES });
       refuseUndeclared("issue", "complexity", filters.complexity, { values: COMPLEXITY_NAMES });
+      /* The three whose values are a shape, so no declared set reaches them and the checker holding the five above cannot either (ISS-1081). */
+      refuseUnreadableDate("issue", "createdAfter", filters.createdAfter);
+      refuseUnreadableDate("issue", "createdBefore", filters.createdBefore);
+      refuseUnreadableDate("issue", "updatedAfter", filters.updatedAfter);
       return printIssues(await everyIssue(filters), limitFrom(raw), declaredFor("forge_issues", "priority"));
     }
     const reference = first;

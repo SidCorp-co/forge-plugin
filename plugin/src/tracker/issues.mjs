@@ -1,7 +1,7 @@
 /* Paging, the browse projection and the reference-to-id lookup: docs/cli/the-projections.md. */
 import { fail, slugIfAny } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { scoped } from "./rest.mjs";
+import { readsAsDate, scoped } from "./rest.mjs";
 
 /* What the browse verb PRINTS; the wire ask is MAX_LIMIT, the route's own cap. the-projections.md. */
 export const DEFAULT_LIMIT = 200;
@@ -41,15 +41,29 @@ export const queued = (rows, order = []) => {
     .map((held) => held.row);
 };
 
-/* The filters the route does not narrow on, applied here because the walk holds the rows. */
+/* The filters the route does not narrow on, applied here because the walk holds the rows. A date-shaped one says so by being written with `dated`, so the set below is read off this table rather than kept beside it and forgotten by whoever adds the fourth (ISS-1081). */
 const after = (row, key, at) => Date.parse(row?.[key] ?? "") >= Date.parse(at);
+const dated = (keep) => Object.assign(keep, { date: true });
 
 const LOCAL = {
   statusNot: (row, value) => row?.status !== value,
   complexity: (row, value) => row?.complexity === value,
-  createdAfter: (row, value) => after(row, "createdAt", value),
-  createdBefore: (row, value) => !after(row, "createdAt", value),
-  updatedAfter: (row, value) => after(row, "updatedAt", value),
+  createdAfter: dated((row, value) => after(row, "createdAt", value)),
+  createdBefore: dated((row, value) => !after(row, "createdAt", value)),
+  updatedAfter: dated((row, value) => after(row, "updatedAt", value)),
+};
+
+export const DATE_FILTERS = Object.keys(LOCAL).filter((name) => LOCAL[name].date);
+
+/** The refusal owed before the walk reads a row, since NaN loses every comparison and a word nothing read narrows on nothing while answering the same for every row. Asked here and not per row: a row-by-row check fires on neither a page that came back empty nor a filter that short-circuited ahead of it (codex F1). */
+const refuseUnjudgedDate = (filters) => {
+  for (const name of DATE_FILTERS) {
+    const at = filters[name];
+    if (at === undefined || readsAsDate(at)) continue;
+    fail(`A date filter reached the walk unjudged: --${name} is ${at}, which is no date. Spend `
+      + "`refuseUnreadableDate` on it where the verb reads its arguments, as the `issue` block of "
+      + "plugin/src/commands.mjs does for the three it takes.");
+  }
 };
 
 export const keeps = (row, filters = {}) =>
@@ -104,7 +118,10 @@ const readOf = (held) => ({
 });
 
 /** Every row matching `filters`, paged to the end; `whole` false is a ceiling, not absence. */
-export const everyIssue = async (filters = {}, bound = {}) => readOf(await walkFor(filters, bound));
+export const everyIssue = async (filters = {}, bound = {}) => {
+  refuseUnjudgedDate(filters);
+  return readOf(await walkFor(filters, bound));
+};
 
 /** The names a body projects to are its own keys and the ones the tracker declares, read off each
  *  answer and never listed here; a declared name the answer left out is empty. */

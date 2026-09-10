@@ -233,6 +233,18 @@ method text and not a feature to keep.
   WHERE an argument the surface invites takes one of a set of values the CLI itself declares, the CLI
   SHALL judge the value against that set before it spends the call, and SHALL name the nearest
   declared value in a refusal of its own rather than sending the value and reporting what came back.
+- **AC-02-9-18** · Rev: 1 · Proof: plugin/test/tracker/issue/date-filters.test.mjs "a date this CLI cannot read is refused with nothing sent at all"
+  WHERE an argument the surface invites takes a value of a shape the CLI reads rather than one of a
+  set it declares, the CLI SHALL judge the word against that shape before it spends the call, and
+  SHALL name the argument, the word and one form it does read, because a caller told only that the
+  word was wrong has to guess what a right one looks like.
+- **AC-02-9-19** · Rev: 1 · Proof: plugin/test/tracker/issues.test.mjs "a date the walk cannot read is refused before it reads a row, so a filter added without a judge fails rather than answers"
+  WHERE the CLI narrows rows against a value of such a shape itself, it SHALL refuse a word it
+  cannot read before it reads the first row, because a comparison against an unreadable value
+  answers the same for every row and is therefore an answer the caller cannot tell from a real one,
+  and a check made row by row fires on neither an empty page nor a filter that short-circuits ahead
+  of it — which is what makes an argument of that shape added without the judge fail instead of
+  answer.
 
 ### UC-02-10 — The projects, at the plugin's own scope
 

@@ -56,7 +56,7 @@ globalThis.fetch = async (address) => {
   return { ok: true, status: 200, headers: new Map(), text: async () => JSON.stringify(body) };
 };
 
-const { documentIdOf, everyIssue, keeps, queued } = await import("../../src/tracker/issues.mjs");
+const { DATE_FILTERS, documentIdOf, everyIssue, keeps, queued } = await import("../../src/tracker/issues.mjs");
 
 const lookups = () => asked.filter((one) => one.query.limit === "1").length;
 const pages = () => asked.filter((one) => one.query.limit !== "1" && one.path.endsWith("/issues")).length;
@@ -196,6 +196,23 @@ test("a date filter reads the row's own stamp, and an undated row is outside eve
   assert.equal(keeps(dated, { createdAfter: "2026-03-01T00:00:00.000Z" }), false);
   assert.equal(keeps(dated, { createdBefore: "2026-03-01T00:00:00.000Z" }), true);
   assert.equal(keeps({}, { createdAfter: "2026-01-01T00:00:00.000Z" }), false);
+});
+
+/* The two paths a per-row check misses are why this one is at the entry: a filter that
+   short-circuits ahead of the date, and a page with no row to reach it (codex F1). */
+test("a date the walk cannot read is refused before it reads a row, so a filter added without a judge fails rather than answers", async () => {
+  const { refusing } = await import("../../src/resolve/settings.mjs");
+  assert.deepEqual(DATE_FILTERS, ["createdAfter", "createdBefore", "updatedAfter"],
+    "the date-shaped local filters are no longer the three this case covers");
+  await refusing(async () => {
+    for (const name of DATE_FILTERS) {
+      await assert.rejects(() => everyIssue({ [name]: "garbage" }),
+        new RegExp(`A date filter reached the walk unjudged: --${name} is garbage`, "u"),
+        `${name} narrowed on a word nothing read`);
+    }
+    await assert.rejects(() => everyIssue({ statusNot: "open", createdAfter: "not-a-date" }),
+      /--createdAfter is not-a-date/u, "a filter ahead of the date short-circuited past the refusal");
+  });
 });
 
 test("a filter nothing here applies leaves every row standing", () => {
