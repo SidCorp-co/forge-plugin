@@ -390,7 +390,7 @@ const project = {
 const tracker = await fakeTracker(project);
 test.after(() => tracker.close());
 /* Twice: the verdict on the page is a comment this session has not been shown, so the first claim delivers it and the second takes the lease every payload write needs. */
-for (const again of [1, 2]) assert.ok(again && await ranAsync(FORGE, ["claim", "ISS-3"], tracker.env));
+for (const again of [1, 2]) assert.ok(again && await ranAsync(FORGE, ["claim", "ISS-3", "--unheld"], tracker.env));
 const verify = (env = tracker.env) =>
   ranAsync(FORGE, ["record", "verification", "ISS-3", "--where", "the installed plugin",
     "--commit", "43b811e", "--evidence", "43b811e"], env);
@@ -537,7 +537,7 @@ test("a record write ends with the line advance --owed would print, and never fa
     "ISS-3 is awaiting_release; closed is next and the record earns it. `forge advance ISS-3` moves it.",
     "byte for byte the line advance --owed would print for the status the call left it at");
   /* A record that posted must not fail on the line printed under it: the reading refuses here. */
-  await ranAsync(FORGE, ["claim", "ISS-5"], tracker.env);
+  await ranAsync(FORGE, ["claim", "ISS-5", "--unheld"], tracker.env);
   const done = await ranAsync(FORGE, ["record", "gap", "ISS-5", "--none", "the method answered"], tracker.env);
   assert.equal(done.status, 0, done.stderr);
   assert.match(done.stderr, /^ISS-5 is closed; nothing advances from it\./mu, done.stderr);

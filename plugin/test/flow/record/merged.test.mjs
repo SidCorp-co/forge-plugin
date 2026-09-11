@@ -69,7 +69,7 @@ const state = {
 };
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
-await ranAsync(FORGE, ["claim", "ISS-99"], tracker.env);
+await ranAsync(FORGE, ["claim", "ISS-99", "--unheld"], tracker.env);
 
 const marked = (...argv) => ranAsync(FORGE, ["record", "merged", "ISS-99", ...argv], tracker.env);
 const page = () => state.comments[ISSUE.documentId] ?? [];

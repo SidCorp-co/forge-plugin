@@ -58,7 +58,7 @@ const wrote = (name, where = ".") => {
   return path;
 };
 
-const claimed = await ask("claim", "ISS-1");
+const claimed = await ask("claim", "ISS-1", "--unheld");
 assert.equal(claimed.status, 0, `the lease every write needs: ${claimed.stderr}`);
 
 test("a base name already a document on the issue is refused, and nothing is sent", async () => {

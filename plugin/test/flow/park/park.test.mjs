@@ -92,8 +92,8 @@ const state = {
 };
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
-await ranAsync(FORGE, ["claim", "ISS-97"], tracker.env);
-await ranAsync(FORGE, ["claim", "ISS-98"], tracker.env);
+await ranAsync(FORGE, ["claim", "ISS-97", "--unheld"], tracker.env);
+await ranAsync(FORGE, ["claim", "ISS-98", "--unheld"], tracker.env);
 
 const parked = (reference, kind = "screen-review") =>
   ranAsync(FORGE, ["advance", reference, "--park", kind, "--why",

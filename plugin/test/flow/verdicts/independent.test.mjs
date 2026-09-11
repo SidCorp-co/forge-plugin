@@ -302,8 +302,8 @@ state.comments["judging-uuid"].push({
   body: `mark_merged target=base — merged to master at ${MERGED}`,
 });
 before(async () => {
-  await builder("claim", "ISS-8");
-  const claimed = await builder("claim", "ISS-8");
+  await builder("claim", "ISS-8", "--unheld");
+  const claimed = await builder("claim", "ISS-8", "--unheld");
   assert.equal(claimed.status, 0, `the lease every write needs: ${claimed.stderr}`);
 });
 

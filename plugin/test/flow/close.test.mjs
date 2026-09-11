@@ -97,7 +97,7 @@ test("a close transitions, and the page a shipped issue overflows cannot refuse 
   /* The read-before-write gate sits inside every lease write and credits what it delivered, so the
      claim meets it twice and the close not at all. That hold is not the refusal this case is about. */
   for (const again of [1, 2]) {
-    const claim = await ranAsync(FORGE, ["claim", "ISS-96"], tracker.env);
+    const claim = await ranAsync(FORGE, ["claim", "ISS-96", "--unheld"], tracker.env);
     assert.equal(claim.status, again === 1 ? 1 : 0, claim.stderr);
   }
   const pages = listed("shipped-uuid");

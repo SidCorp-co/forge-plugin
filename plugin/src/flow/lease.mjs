@@ -149,6 +149,26 @@ export const reclaimRefusal = (ref, lease, now = Date.now()) =>
   + ` Ask that run: where it answers, its own next write takes the lease back. Where you have `
   + `established it stopped, say so:\n  forge claim ${ref} ${STOPPED}`;
 
+export const UNHELD = "--unheld";
+
+/** The line a lease left, off a field `leaseOf` reads as no lease at all: whatever emptied it took the holder and may have left the rest, and that line is the last thing the record says about the run that is gone. */
+export const nextLeft = (context) => {
+  const held = context?.[KEY];
+  return typeof held?.next === "string" && held.next ? held.next : null;
+};
+
+/* Refused for the reason the fresh lapse is, on the other shape the same loss takes: nobody is named here, so the caller cannot ask the holder and the flag says instead that no run is on the issue. The work lines are handed in rather than read, because the opening that prints them runs past this refusal and the branch is the whole of what a second arrival needs to take the work up rather than cut it again (ISS-1183, ISS-1184). */
+export const unheldRefusal = (ref, status, { next = null, work = [] } = {}) =>
+  `${ref} is at \`${status}\`, past the statuses a run is dispatched at, and its lease field holds `
+  + `no lease. A status that far along was reached by writes a lease covered, so the field is a run `
+  + `that died or a write that erased one, and never an issue nobody has started.`
+  + `${next ? ` The step the last write named: ${next}.` : ""}\n`
+  + (work.length
+    ? `${work.map((one) => `  ${one}`).join("\n")}\n`
+    : "  the worklog names no branch, so the record says nothing about where the work went.\n")
+  + `Where you have established no run is on it, say so and the claim history keeps that it was `
+  + `taken this way:\n  forge claim ${ref} ${UNHELD}`;
+
 /* Counted since the park that answered them: a resumed issue does not walk straight back in. */
 const since = (history, status) => {
   const parked = history.findLastIndex((one) => one?.how === "parked" && one?.status === status);

@@ -78,7 +78,7 @@ already finished is not work, and waiting it out is the cost this exception exis
 
 ### UC-03-3 — Reclaim what a dead run left
 
-Rev: 2 · Actors: agent · Enforces: BR-05
+Rev: 3 · Actors: agent · Enforces: BR-05
 
 Once the duration has passed the lease is open to any run, and the run that held it is no more
 privileged than any other. The live test that settled that — and what it caught a build doing — is
@@ -91,6 +91,12 @@ reclaim is therefore refused and says so, and the taker clears the refusal by sa
 established the run stopped — because the taking is the damage, and a run whose issue is taken while
 it works loses every write it makes after that.
 
+An empty field is the same uncertainty with less to read. A status past the ones a run is
+dispatched at was reached by writes a lease covered, so a field holding none is a run that died
+or a write that erased one, and never a first claim on untouched work. The holder cannot be asked
+here, the record naming nobody, so the caller says instead that no run is on the issue, and the
+history keeps a word of its own for that claim rather than the one an ordinary first one writes.
+
 - **AC-03-3-1** · Rev: 2 · Proof: plugin/test/flow/lease.test.mjs "the five states, and a lease past its duration is another run's to take"
   IF a lease is past its duration THEN the CLI SHALL let any run reclaim it, by the route the age of
   the lapse decides, and SHALL refuse the former holder's next write as stale.
@@ -102,6 +108,11 @@ it works loses every write it makes after that.
   another run, unless that run is one the same exception admits against a live lease, and SHALL name
   the holder, how long ago the lease ran out, what a lapse of that age does not prove, and the one
   command that clears the refusal.
+- **AC-03-3-4** · Rev: 1 · Proof: plugin/test/flow/claim/unheld.test.mjs "a claim on an issue past the dispatch statuses with no lease at all is refused, and the flag is what takes it"
+  IF an issue holds no lease and stands at a status past those a run is dispatched at THEN the CLI
+  SHALL refuse the claim, SHALL name that status and whatever the record still holds of the work
+  the missing run left, and SHALL write the claim the clearing flag then takes under a name of its
+  own in the claim history.
 
 ### UC-03-4 — A status that keeps dying reaches a person
 

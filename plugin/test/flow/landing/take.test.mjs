@@ -108,11 +108,15 @@ const BUILT = {
 };
 
 /* The read-before-write gate delivers a comment this session has not been shown and refuses once;
-   the same command sent again lands. That hold is not this file's subject. */
+   the same command sent again lands. That hold is not this file's subject, and neither is the
+   other: every case here starts from a field holding no lease at `developed`, which is the record
+   a claim refuses without `--unheld` (ISS-1184), and the flag says nothing about any state a
+   checkpoint names. */
 const ran = async (argv, id, cwd = process.cwd(), env = asRun) => {
+  const sent = argv[0] === "claim" ? [...argv, "--unheld"] : argv;
   let run = null;
   for (const again of [1, 2]) {
-    run = await ranAsync(FORGE, argv, env(id), cwd);
+    run = await ranAsync(FORGE, sent, env(id), cwd);
     if (run.status === 0 || again === 2) return run;
   }
   return run;

@@ -91,7 +91,7 @@ const state = {
 };
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
-await ranAsync(FORGE, ["claim", "ISS-96"], tracker.env);
+await ranAsync(FORGE, ["claim", "ISS-96", "--unheld"], tracker.env);
 /* The claim above is this suite's lease, restored per case: one of them hands the issue to another run. */
 const MINE = structuredClone(ISSUE.sessionContext);
 

@@ -104,8 +104,8 @@ state.comments["judging-uuid"].push({
   body: `mark_merged target=base — merged to master at ${COMMIT}`,
 });
 before(async () => {
-  await ask("claim", "ISS-7");
-  const claimed = await ask("claim", "ISS-7");
+  await ask("claim", "ISS-7", "--unheld");
+  const claimed = await ask("claim", "ISS-7", "--unheld");
   assert.equal(claimed.status, 0, `the lease every write needs: ${claimed.stderr}`);
 });
 
@@ -148,8 +148,8 @@ test("a run holding only the dispatching session's id records the judge as inher
   const wave = { ...env, CLAUDE_CODE_SESSION_ID: "the-whole-wave" };
   delete wave.FORGE_SESSION_ID;
   const asWave = (...argv) => ranAsync(FORGE, argv, wave);
-  await asWave("claim", "ISS-7");
-  assert.equal((await asWave("claim", "ISS-7")).status, 0, "the lapsed lease is the next run's to reclaim");
+  await asWave("claim", "ISS-7", "--unheld");
+  assert.equal((await asWave("claim", "ISS-7", "--unheld")).status, 0, "the lapsed lease is the next run's to reclaim");
   const run = await asWave("record", "verdict", "ISS-7", "--evidence", COMMIT, "--verdict", "pass",
     "--criterion", "1");
   assert.equal(run.status, 0, run.stderr);

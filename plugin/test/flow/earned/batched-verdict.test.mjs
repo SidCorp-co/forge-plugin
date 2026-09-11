@@ -170,8 +170,8 @@ state.comments["judging-uuid"].push({
    comment this session has not been shown, so the first claim is held and the second is the one
    that takes the lease; that the hold fired is issue-read-first's to test and not this file's. */
 before(async () => {
-  await ask("claim", "ISS-7");
-  const claimed = await ask("claim", "ISS-7");
+  await ask("claim", "ISS-7", "--unheld");
+  const claimed = await ask("claim", "ISS-7", "--unheld");
   assert.equal(claimed.status, 0, `the lease every write needs: ${claimed.stderr}`);
 });
 

@@ -182,9 +182,9 @@ test("the verb walks developed to the judging rung and on to the deploying one, 
     new RegExp(`is developed and ${JUDGED_AT} is next, not ${CLOSES_FROM}`, "u"));
   assert.equal(statusNow(), "developed", "and the refused jump moved nothing");
   /* The page this session has not been shown holds the first write to deliver it; the second takes. */
-  const shown = await walking("claim", "ISS-96");
+  const shown = await walking("claim", "ISS-96", "--unheld");
   assert.match(shown.stderr, /has not been shown/u, shown.stderr);
-  const took = await walking("claim", "ISS-96");
+  const took = await walking("claim", "ISS-96", "--unheld");
   assert.equal(took.status, 0, took.stderr);
   const first = await walking("advance", "ISS-96");
   assert.equal(first.status, 0, `${first.stdout}${first.stderr}`);

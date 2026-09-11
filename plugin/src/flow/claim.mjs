@@ -8,8 +8,9 @@ import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
 import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
+import { TAKEABLE } from "../rank/weights.mjs";
 import { rungFieldsOf, viewFrom } from "./earned.mjs";
-import { laneLines, openingLines } from "../guides/phases.mjs";
+import { laneLines, openingLines, workLines } from "../guides/phases.mjs";
 import { partForStatus } from "../guides/served.mjs";
 import { kindsHeld, parse } from "./record/page.mjs";
 import { parkAs, transitionTo } from "./advance.mjs";
@@ -26,6 +27,7 @@ import {
   RECLAIMS_BEFORE_PARK,
   SHARED_HOLDER,
   STOPPED,
+  UNHELD,
   claimRefusal,
   claimed,
   describe,
@@ -38,6 +40,7 @@ import {
   landingOf,
   landingSaved,
   leaseOf,
+  nextLeft,
   nextLine,
   notHandedHere,
   nothingWorked,
@@ -52,6 +55,7 @@ import {
   writeRefusal,
   takeLease,
   takeRefusal,
+  unheldRefusal,
 } from "./lease.mjs";
 
 const MAX_MINUTES = 24 * 60;
@@ -91,6 +95,7 @@ export const USAGE = [
   "",
   `  --minutes <n>   how long the lease runs from now, instead of ${MINUTES}`,
   `  ${STOPPED}       reclaim a lease that has only just lapsed, the run having been established stopped`,
+  `  ${UNHELD}        take an issue whose lease field holds none, no run is on it having been established`,
   "  --next <line>   one line, the step whoever comes next starts on; a transition clears it",
   "  --pushed        the branch, head, base and files touched, read from git at this moment",
   "  --review        the last codex consult, its findings and what it owes, read from the log now",
@@ -138,8 +143,9 @@ export const parkWrite = (lease, next = null) =>
   ({ holder: lease.holder, at: new Date().toISOString(), minutes: lease.minutes, next: next ?? null });
 
 /* The line taken over from is not the line taken on: printing the incoming one as the last
-   holder's would say the dead run left a note its successor wrote. A take is a handoff too. */
-const HANDOFF = new Set(["reclaim", "take", "handed"]);
+   holder's would say the dead run left a note its successor wrote. A take is a handoff too, and so
+   is a claim on a field that lost its holder and kept the line. */
+const HANDOFF = new Set(["reclaim", "take", "handed", "unheld"]);
 
 export const nextLines = (how, left, taken) => [
   HANDOFF.has(how) && left ? `Next, left by the run before: ${left}` : null,
@@ -287,7 +293,7 @@ export const claim = async (argv) => {
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) fail(`claim takes the issue first. ${usageOf("claim")}`);
   const pulled = pullRepeated(rest, "--open", "claim", { usage: USAGE });
-  const given = flags(pulled.rest, "claim", ["--pushed", "--review", "--ready", "--take", "--judged", STOPPED],
+  const given = flags(pulled.rest, "claim", ["--pushed", "--review", "--ready", "--take", "--judged", STOPPED, UNHELD],
     { usage: USAGE });
   const turns = ["ready", "take", "judged", "reconciled"].filter((one) => given[one]);
   if (turns.length > 1) {
@@ -331,11 +337,18 @@ export const claim = async (argv) => {
   if (state === "live" && !handed) {
     fail(claimRefusal(ref, lease, notHandedHere(ref, key, context, issue.status, holder)));
   }
+  /* The anomaly and not the flag: a field with no lease in it, at a status only a run's own writes reach. Named here so the refusal and the word the history keeps cannot come to disagree about which claim was the anomalous one. */
+  const unheld = state === "free" && !TAKEABLE.includes(String(issue.status));
+  if (unheld && !given.unheld) {
+    fail(unheldRefusal(ref, issue.status,
+      { next: nextLeft(context), work: workLines(workNow(worklog)) }));
+  }
   if (state === "expired" && !given.stopped && !handed && freshLapse(lease)) {
     fail(reclaimRefusal(ref, lease));
   }
-  const left = lease?.next ?? null;
-  const how = { free: "claim", live: "handed", expired: "reclaim", mine: null, lapsed: null }[state];
+  /* Off the remnant where there is no lease to read it from, so the flag that clears the refusal is not the way to lose the one line the refusal just printed. */
+  const left = lease?.next ?? nextLeft(context);
+  const how = { free: unheld ? "unheld" : "claim", live: "handed", expired: "reclaim", mine: null, lapsed: null }[state];
   const checkpoint = given.ready ? readyCheckpoint(ref, holder, patch, landingOf(context)) : null;
   const next = claimed(context, {
     holder, at: new Date().toISOString(), minutes, next: line, worklog: worklogFor(context, patch), how, status: issue.status,
