@@ -1,5 +1,5 @@
 /* The issue's session field read as a lease, and what a build ready to land leaves beside it. Every write it covers carries the value it read, and the tracker refuses one whose value moved. docs/cli/claim.md, docs/cli/the-precondition.md. */
-import { INHERITED, INHERITED_MEANS, OWN_ID, WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
+import { ASKED, INHERITED, INHERITED_MEANS, OWN_ID, WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
 import { RUN_ID, RUN_ID_VAR, besideGit, runFor, runIdAt } from "../resolve/session/run-id.mjs";
 import { TAKEABLE } from "../rank/weights.mjs";
 import { fail } from "../resolve/settings.mjs";
@@ -351,18 +351,19 @@ export const handedOn = (key, context, status, holder = sessionOf()) => {
 };
 
 /* One sentence per condition above, because four of them refuse here and a single way out sends three of the four back to the refusal they have just read. */
-export const notHandedHere = (ref, key, context, status, holder = sessionOf(), at = process.cwd()) => {
+export const notHandedHere = (ref, key, context, status, holder = sessionOf(), at = process.cwd(), held = sessionSourced()) => {
   const named = String(key).trim().toLowerCase();
   if (runFor(holder) !== named) {
-    /* The tree already answers and a variable is outranking it, so telling this caller to stand in that tree sends it back to this refusal: the id it holds is the one it was handed, not the one it stands on. */
-    const here = runFor(runIdAt(at)) === named;
+    /* A tree is outranked by the variable, so a route naming only the tree sends this caller back to the refusal it has just read — whether it is standing in that tree already or has still to move to it. */
+    const asked = held.id === holder && held.source === ASKED
+      ? ` ${RUN_ID_VAR} is what this call resolved and it outranks any tree, so unset it too.` : "";
     return `This call holds ${holder}, which names no run dispatched to ${ref}. `
-      + (here
+      + (runFor(runIdAt(at)) === named
         ? `The tree it stands in does name one, in ${besideGit(at, RUN_ID)}, and ${RUN_ID_VAR} is `
           + `outranking it. Unset that variable and send this again.`
         : `Where this is the run ${ref} was dispatched to, make the call from the worktree cut for `
           + `it: the ${RUN_ID} beside that tree's git directory names the issue, and a lease its `
-          + `dispatcher is only holding is the dispatched run's to take.`);
+          + `dispatcher is only holding is the dispatched run's to take.${asked}`);
   }
   if (!TAKEABLE.includes(String(status))) {
     return `This call's id names ${ref} and the issue is at \`${status}\`, past the statuses a run `

@@ -12,7 +12,7 @@ import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../..
 process.env.XDG_CONFIG_HOME = tempHome("dispatched-claim").path;
 standsInNoTree("dispatched-claim");
 
-const { runFor } = await import("../../../src/resolve/session/run-id.mjs");
+const { RUN_ID_VAR, runFor } = await import("../../../src/resolve/session/run-id.mjs");
 const { mintRunId } = await import("../../../../tools/run/workspace/run-id.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -200,6 +200,15 @@ test("a tree that names this run, overridden by a variable that does not, is tol
     { ...tracker.env, FORGE_SESSION_ID: "" }, tree);
   assert.equal(took.status, 0, `unset, the tree answers:\n${took.stdout}${took.stderr}`);
   assert.match(took.stdout, /handed: session iss-1091-/u, "under the id the tree minted");
+
+  /* And the same caller one directory earlier, which is where a run reads this refusal first: a
+     route naming only the tree leaves the variable it would arrive still holding. */
+  heldBy(DISPATCHER);
+  const outside = await claim([], "a-whole-wave-of-runs");
+  assert.equal(outside.status, 1, `outside the tree it is a second run:\n${outside.stdout}${outside.stderr}`);
+  assert.match(outside.stderr, /make the call from the worktree cut for it/u);
+  assert.match(outside.stderr, new RegExp(`${RUN_ID_VAR} is what this call resolved`, "u"),
+    "and unsetting the override, without which moving to the tree changes nothing");
 });
 
 /* The two halves of the id are written by different trees of this repository, and nothing else ties

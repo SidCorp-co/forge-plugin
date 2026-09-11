@@ -102,8 +102,9 @@ export const INHERITED_MEANS =
 /** Named without a command: what sets it is a project's business, and this plugin cannot see one. */
 export const OWN_ID = `Give each run an id of its own in ${RUN_ID_VAR}.`;
 
-/** A tree that names its own run, which is what a run standing in it holds instead of the wave's. */
+/** A tree that names its own run, which is what a run standing in it holds instead of the wave's, and above it the id a run was handed rather than found, which outranks every tree. */
 export const WORKTREE = "worktree";
+export const ASKED = "asked";
 
 /* Ordered, first row holding an id wins. Each carries its own `said`, so a row added here needs no
    edit elsewhere; `environment` marks the two a process was handed rather than found, and `granted`
@@ -115,7 +116,7 @@ const SOURCES = [
     said: () => "FORGE_SESSION_ID — the command this call is judging grants it to the run inside it",
   },
   {
-    source: "asked",
+    source: ASKED,
     read: () => process.env.FORGE_SESSION_ID || null,
     said: () => "FORGE_SESSION_ID — this run says which run it is",
     environment: true,
