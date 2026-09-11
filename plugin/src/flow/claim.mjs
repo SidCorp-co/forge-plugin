@@ -95,7 +95,7 @@ export const USAGE = [
   "",
   `  --minutes <n>   how long the lease runs from now, instead of ${MINUTES}`,
   `  ${STOPPED}       reclaim a lease that has only just lapsed, the run having been established stopped`,
-  `  ${UNHELD}        take an issue whose lease field holds none, no run is on it having been established`,
+  `  ${UNHELD}        no run is on it: take it anyway`,
   "  --next <line>   one line, the step whoever comes next starts on; a transition clears it",
   "  --pushed        the branch, head, base and files touched, read from git at this moment",
   "  --review        the last codex consult, its findings and what it owes, read from the log now",

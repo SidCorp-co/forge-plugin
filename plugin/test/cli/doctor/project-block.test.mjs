@@ -51,7 +51,7 @@ const state = {
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 const ask = (...argv) => ranAsync(FORGE, argv, tracker.env, ROOT);
-await ask("claim", "ISS-1");
+await ask("claim", "ISS-1", "--unheld");
 
 /* The report's status is its verdict on the machine — a fixture endpoint misses probes of its own —
    so a read of it is judged on the rows and a write on the status, which a write returns before the
