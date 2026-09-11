@@ -3,19 +3,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
-import { tempHome } from "../fixtures.mjs";
+import { standsInNoTree, tempHome, tempRoom } from "../fixtures.mjs";
 
 const HOME = tempHome("lease");
 process.env.XDG_CONFIG_HOME = HOME.path;
+standsInNoTree("lease");
 /* Fixed here, so what the lease says about its writer is the fixture's and not the suite runner's. */
 process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const {
   MECHANISM, MINUTES, READING_MINUTES, RECLAIMS_BEFORE_PARK, SHARED_HOLDER, agentOf, canonical,
   claimRefusal, claimed, describe, expiryOf, historyLine, leaseOf, nextLine, nothingWorked,
-  parksAsCrashed, pidOf, reclaimsOf, sharedHolder, stateOf, writeRefusal, writtenBy,
+  idsHere, parksAsCrashed, pidOf, reclaimsOf, sharedHolder, stateOf, writeRefusal, writtenBy,
 } = await import("../../src/flow/lease.mjs");
 const {
   MINTED, sessionAsked, sessionHeld, sessionOf, sessionPath, sessionSourced, sessionWriting,
@@ -482,3 +484,52 @@ for (const [name, first] of [["the lease", LEASE], ["the field writer", WRITER]]
     assert.equal(run.stdout, "both", run.stderr);
   });
 }
+
+/* A run that claimed under the wave's id and then stood in the tree that names it meets a refusal
+   about an id it has no way to place, and the run that ended ISS-449 dropped the mechanism rather
+   than wait out its own lease. Both directions are said and neither is refused (ISS-467). */
+const treeNaming = (id) => {
+  const at = tempRoom("lease-tree-");
+  mkdirSync(join(at, ".git"));
+  writeFileSync(join(at, ".git", "forge-run-id"), `${id}\n`);
+  return at;
+};
+
+test("a refusal naming a holder this tree minted says so, and one made under this tree's own id says where it got it", () => {
+  const at = treeNaming("iss-467-abcd1234");
+  const lease = held("iss-467-abcd1234");
+  const locked = idsHere(lease, { id: "the-whole-wave", source: "inherited" }, at);
+  assert.match(locked, /That holder is the id/u, "the holder the refusal already named is placed, not repeated");
+  assert.match(locked, /forge-run-id/u, "by the path the tree keeps it at");
+  assert.match(locked, /the-whole-wave/u, "beside the id this call resolved instead");
+  assert.match(locked, /FORGE_SESSION_ID/u, "and the variable to drop to be that run again");
+
+  const mine = idsHere(held("another-run"), { id: "iss-467-abcd1234", source: "worktree" }, at);
+  assert.match(mine, /forge-run-id/u, "a run holding a tree's id is told which file said so");
+  assert.doesNotMatch(mine, /another-run/u, "and nothing about the holder, which is not this tree's");
+
+  assert.equal(idsHere(held("another-run"), { id: "the-whole-wave", source: "inherited" }, at), "",
+    "and where neither id is this tree's there is nothing to say");
+  assert.equal(idsHere(lease, { id: "the-whole-wave", source: "inherited" }, tempRoom("lease-plain-")), "",
+    "nor where the tree names no run at all");
+});
+
+test("the claim refusal and the write refusals carry that sentence, and still end on the one command", () => {
+  const at = treeNaming("iss-467-abcd1234");
+  const was = { cwd: process.cwd(), asked: process.env.FORGE_SESSION_ID };
+  try {
+    process.chdir(at);
+    process.env.FORGE_SESSION_ID = "the-whole-wave";
+    const lease = held("iss-467-abcd1234");
+    const sentence = idsHere(lease);
+    assert.notEqual(sentence, "", "the fixture is the case, so an empty sentence proves nothing below");
+    for (const said of [claimRefusal("ISS-4", lease), writeRefusal("live", "ISS-4", lease), writeRefusal("expired", "ISS-4", lease)]) {
+      assert.ok(said.includes(sentence), said);
+      assert.match(said, /forge claim ISS-4$/u, said);
+    }
+  } finally {
+    process.chdir(was.cwd);
+    if (was.asked === undefined) delete process.env.FORGE_SESSION_ID;
+    else process.env.FORGE_SESSION_ID = was.asked;
+  }
+});

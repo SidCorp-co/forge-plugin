@@ -1,5 +1,6 @@
 /* The issue's session field read as a lease, and what a build ready to land leaves beside it. Every write it covers carries the value it read, and the tracker refuses one whose value moved. docs/cli/claim.md, docs/cli/the-precondition.md. */
-import { INHERITED, INHERITED_MEANS, OWN_ID, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
+import { INHERITED, INHERITED_MEANS, OWN_ID, WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
+import { RUN_ID, RUN_ID_VAR, besideGit, runIdAt } from "../resolve/session/run-id.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
 import { enforcementOf, writeField } from "../tracker/field-write.mjs";
@@ -40,6 +41,24 @@ export const SHARED_HOLDER =
 
 export const sharedHolder = (lease, held = sessionSourced()) =>
   held.source === INHERITED && lease?.holder === held.id;
+
+/* Which of the two ids the tree standing here minted, said and never refused: a run that claimed
+   under the wave's id and then stood in its own worktree is otherwise refused by an id it has no
+   way to place, and one holding a tree's id is told nothing about where it got it (ISS-467). */
+export const idsHere = (lease, held = sessionSourced(), at = process.cwd()) => {
+  const here = runIdAt(at);
+  if (here && lease?.holder === here && held.id !== here) {
+    return `That holder is the id ${besideGit(at, RUN_ID)} holds, so the lease is a run standing `
+      + `where this call stands; this one resolved ${held.id} instead. Unset ${RUN_ID_VAR} and run `
+      + "from this tree, and the two are one run again.";
+  }
+  return held.source === WORKTREE
+    ? `This call's own id was read off ${besideGit(at, RUN_ID)}, the tree it stands in, so it is `
+      + "this run's alone and names no wave."
+    : "";
+};
+
+const alsoSay = (said) => (said ? `${said} ` : "");
 
 const UNKNOWN = "unknown";
 
@@ -292,7 +311,7 @@ export const historyLine = (lease, status) =>
 
 export const claimRefusal = (ref, lease) =>
   `${ref} is claimed: ${describe(lease)}. A live lease is that run's, and this claim is refused. `
-  + `Wait for it, or take it once it expires:\n  forge claim ${ref}`;
+  + `${alsoSay(idsHere(lease))}Wait for it, or take it once it expires:\n  forge claim ${ref}`;
 
 const WRITE_REFUSAL = {
   free: (ref) =>
@@ -300,10 +319,10 @@ const WRITE_REFUSAL = {
     + nothingWorked(ref),
   live: (ref, lease) =>
     `${ref} is held by another run: ${describe(lease)}. Its payload writes are that run's, so this `
-    + `one is refused. Take the lease once it expires:\n  forge claim ${ref}`,
+    + `one is refused. ${alsoSay(idsHere(lease))}Take the lease once it expires:\n  forge claim ${ref}`,
   expired: (ref, lease) =>
     `the lease on ${ref} is another run's and has expired: ${describe(lease)}. A write of yours `
-    + `beside it is stale. Reclaim it first:\n  forge claim ${ref}`,
+    + `beside it is stale. ${alsoSay(idsHere(lease))}Reclaim it first:\n  forge claim ${ref}`,
 };
 
 export const writeRefusal = (state, ref, lease) => WRITE_REFUSAL[state](ref, lease);

@@ -36,16 +36,16 @@ rather than a run: two runs there look like one holder and neither is refused. *
 the agents of a dispatched wave** — every one of them inherits the dispatching session's
 `CLAUDE_CODE_SESSION_ID`, so a wave of runs is one holder and the refusal this whole mechanism
 exists for is unreachable in the only situation where more than one run exists at once (ISS-445).
-Nothing ambient separates them: the process id and the socket both name the parent, and the working
-directory is not one run's for the length of a run. So a run is given an id, in `FORGE_SESSION_ID`,
-by whatever creates it.
+Nothing ambient separates them: the process id and the socket both name the parent, and a plain
+working directory is no run's for the length of a run — unless the tree names one, in a
+`forge-run-id` file its git directory holds (ISS-467). So a run is given an id, in
+`FORGE_SESSION_ID` or in that file, by whatever creates it.
 
 **Write it where the gate can read it.** The read-before-write gate runs in the harness's process,
-handed no `FORGE_SESSION_ID`, so the only place it learns which run this is is the command it
-judges: `export FORGE_SESSION_ID=<id>` or `FORGE_SESSION_ID=<id>` prefixing a `forge` call, at any
-command of that text (ISS-672). Spell the id out; this reader has the text, not the shell that will
-run it, so `"$RUN_ID"` names nothing. Given a way it cannot read, the run pays the round it would
-with no reader at all rather than a wrong one.
+handed no `FORGE_SESSION_ID`, so what it learns which run this is from is the command it judges:
+`export FORGE_SESSION_ID=<id>` or `FORGE_SESSION_ID=<id>` prefixing a `forge` call, at any command
+of that text (ISS-672), or the tree that text will run in. Given a way it can read none of, the run
+pays the round it would with no reader at all rather than a wrong one.
 
 Which spelling survives what the call carries: [the granted id](the-granted-id.md).
 

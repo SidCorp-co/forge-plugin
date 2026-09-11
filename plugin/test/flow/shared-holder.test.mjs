@@ -5,9 +5,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
+import { fakeTracker, ranAsync, standsInNoTree, tempHome } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("shared-holder").path;
+standsInNoTree("shared-holder");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const SHARED = "the-dispatching-session";

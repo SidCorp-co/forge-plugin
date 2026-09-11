@@ -1,6 +1,6 @@
 /* The id a Bash command grants the process that will write, for a hook handed none of its own, read
    off the text's commands and not its first alone (ISS-672). The two forms: docs/cli/claim.md. */
-import { quoting, spans } from "../hooks/shell-spans.mjs";
+import { quoting, spans } from "../../hooks/shell-spans.mjs";
 
 const BACKTICK = "\\x60";
 const LITERAL = String.raw`[\w.@:+/-]+`;
@@ -34,7 +34,7 @@ const nests = (read) => read.some(({ one, under }, at) =>
   one === "$" && under !== "'" && under !== "#" && under !== "\\"
   && NESTS_IN.test(read[at + 1]?.one ?? ""));
 
-const runsACommand = (said) => {
+export const runsACommand = (said) => {
   const joined = said.replace(CONTINUED, "");
   const read = quoting(said);
   if (ANSI_C.test(joined) || nests(read)) return RUNS_A_COMMAND.test(joined);
@@ -43,7 +43,7 @@ const runsACommand = (said) => {
     acts(opener, read.slice(at, at + opener.length).map(({ under }) => under)));
 };
 
-const CALLS_THE_WRITER = new RegExp(String.raw`(?:^|[\s;&|()])[^\s;&|()]*forge(?![\w-])`, "u");
+export const CALLS_THE_WRITER = new RegExp(String.raw`(?:^|[\s;&|()])[^\s;&|()]*forge(?![\w-])`, "u");
 const OPENS_A_BODY = new RegExp(String.raw`[(${BACKTICK}]|<<`, "u");
 const SEPARATOR = /^[ \t]*(&&|\|\||;|\n|\||&)/u;
 

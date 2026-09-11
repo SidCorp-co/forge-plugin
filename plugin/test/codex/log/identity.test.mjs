@@ -4,11 +4,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, writeFileSync } from "node:fs";
 
-import { tempRoom } from "../../fixtures.mjs";
+import { standsInNoTree, tempRoom } from "../../fixtures.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves: these tests write the log, and the developer's own is live. */
 const sandbox = tempRoom("forge-codex-identity-");
 process.env.XDG_CONFIG_HOME = sandbox;
+standsInNoTree("forge-codex-identity");
 
 const { logConsult, logEntries, logLine, logPath } = await import("../../../src/codex/codex-log.mjs");
 

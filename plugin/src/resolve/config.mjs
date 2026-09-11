@@ -15,7 +15,8 @@ import {
 import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 
-import { idGrantedBy } from "./granted-id.mjs";
+import { idGrantedBy } from "./session/granted-id.mjs";
+import { RUN_ID, RUN_ID_VAR, besideGit, runHeldWhere } from "./session/run-id.mjs";
 
 export const configDir = (name) =>
   join(process.env.XDG_CONFIG_HOME || join(homedir(), ".config"), name);
@@ -99,7 +100,10 @@ export const INHERITED_MEANS =
   + "an id matching it names a wave and not a run";
 
 /** Named without a command: what sets it is a project's business, and this plugin cannot see one. */
-export const OWN_ID = "Give each run an id of its own in FORGE_SESSION_ID.";
+export const OWN_ID = `Give each run an id of its own in ${RUN_ID_VAR}.`;
+
+/** A tree that names its own run, which is what a run standing in it holds instead of the wave's. */
+export const WORKTREE = "worktree";
 
 /* Ordered, first row holding an id wins. Each carries its own `said`, so a row added here needs no
    edit elsewhere; `environment` marks the two a process was handed rather than found, and `granted`
@@ -115,6 +119,12 @@ const SOURCES = [
     read: () => process.env.FORGE_SESSION_ID || null,
     said: () => "FORGE_SESSION_ID — this run says which run it is",
     environment: true,
+  },
+  {
+    source: WORKTREE,
+    read: (ev) => runHeldWhere(ev).id,
+    said: (ev) => `${besideGit(runHeldWhere(ev).at, RUN_ID)} — the tree this write stands in names `
+      + "its own run, so no variable had to be carried to it",
   },
   {
     source: INHERITED,
@@ -139,7 +149,7 @@ const SOURCES = [
 export const sessionSourced = (ev = null) => {
   for (const row of SOURCES) {
     const id = row.read(ev);
-    if (id) return { id, source: row.source, said: row.said(), environment: Boolean(row.environment) };
+    if (id) return { id, source: row.source, said: row.said(ev), environment: Boolean(row.environment) };
   }
   return { id: null, source: null, said: null, environment: false };
 };

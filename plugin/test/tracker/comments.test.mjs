@@ -7,7 +7,7 @@ import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { tempHome } from "../fixtures.mjs";
+import { standsInNoTree, tempHome } from "../fixtures.mjs";
 
 const HOME = tempHome("comments");
 mkdirSync(join(HOME.path, "forge"), { recursive: true });
@@ -16,6 +16,7 @@ writeFileSync(
   JSON.stringify({ url: "https://stub.example/mcp", token: "t", retrySeconds: 0 }),
 );
 process.env.XDG_CONFIG_HOME = HOME.path;
+standsInNoTree("comments");
 process.env.FORGE_SESSION_ID = "session-one";
 
 const ISSUE = "11111111-1111-4111-8111-111111111111";

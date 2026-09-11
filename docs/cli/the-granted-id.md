@@ -1,10 +1,12 @@
 # the granted id — which call keeps the name it was given
 
-A hook is handed no `FORGE_SESSION_ID`. It runs in the harness's process, so the only place it can
-learn which run is about to write is the command it is judging. Two spellings put the name there, and
-`docs/cli/claim.md` says why a run needs one at all. This page says what each spelling survives,
-because a call whose name is lost is credited to whatever dispatched the session — a whole wave of
-runs, under one id — and the next write is then held on the record the run itself just wrote.
+A hook is handed no `FORGE_SESSION_ID`. It runs in the harness's process, so what it can read is the
+command it is judging: the name spelt in that text, or the tree that text will stand in when it runs
+(ISS-467). Two spellings put the name there, and `docs/cli/claim.md` says why a run needs one at
+all. This page says what each spelling survives and what the tree answers for, because a call whose
+name is lost falls back to the tree, and where there is no tree to fall back to it is credited to
+whatever dispatched the session — a whole wave of runs, under one id — and the next write is then
+held on the record the run itself just wrote.
 
 ## The export form has no opener limit
 
@@ -65,15 +67,26 @@ present anywhere, and the name is lost. Spell the value with ordinary quotes and
 backticks, inside single quotes. In double quotes a backtick still runs, so escape it or apostrophe
 the value; and the export form has none of this.
 
+## The tree the command will stand in
+
+Where the text spells no name, the gate reads the tree instead — off the same text, since a `cd`
+into a worktree moves the write and not the hook, whose own directory is the session's. Without
+that, the two resolve two ids and every write after the first is held for the record the run itself
+just made. A move joined by `;` may have failed; the reading taken is the one where it succeeded,
+wrong only where it did not and costing the same round a lost name costs. Two `forge` calls in one
+text standing in trees that answer differently name no id at all, and a text carrying an opener is
+left unread whole, as the prefix form is: the writer inside one stands where this cannot follow.
+
 ## Where a lost name shows
 
 Nothing refuses, and `forge doctor` will not show it. Two readers are in play and only one is
 affected: the CLI is handed `FORGE_SESSION_ID` in its own environment and goes on using it, which is
-what doctor reports, while the hook has only the text and falls back to the dispatching session's
-id. So the write lands under the run's own name and the *gate* credits the wave. The cost arrives one
-write later: the gate holds the next write to that issue and quotes the run its own record back. An
-identical re-send clears it, that being the whole of that gate's rule and not a second defect —
-`forge hooks --how issue-read-first`.
+what doctor reports, while the hook has only the text. Where that text will run in a tree naming its
+own run, the hook reads the same id from there and nothing is lost. Where it will not, the hook
+falls back to the dispatching session's id, the write lands under the run's own name and the *gate*
+credits the wave. The cost arrives one write later: the gate holds the next write to that issue and
+quotes the run its own record back. An identical re-send clears it, that being the whole of that
+gate's rule and not a second defect — `forge hooks --how issue-read-first`.
 
 Read with this: [`claim`](claim.md) for the lease the name is the key to, and
 [`the-consult`](codex-the-consult.md) for the other place a run's identity is recorded.

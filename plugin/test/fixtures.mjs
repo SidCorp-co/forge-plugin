@@ -99,6 +99,14 @@ process.env.TMPDIR = root;
 
 export const tempRoom = (prefix) => mkdtempSync(join(root, prefix));
 
+/* A case about which run a call is controls the tree it stands in as it controls the config home: a suite run from a worktree naming its own run resolves that id, where a case written about the inherited one wants a tree naming none. It carries the checkout's project file, so leaving the checkout moves nothing else (ISS-467). */
+export const standsInNoTree = (name) => {
+  const at = tempRoom(`${name}-no-tree-`);
+  writeFileSync(join(at, ".forge.json"), readFileSync(new URL("../../.forge.json", import.meta.url), "utf8"));
+  process.chdir(at);
+  return at;
+};
+
 export const tempHome = (name) => {
   const path = tempRoom(`${name}-home-`);
   return { path, remove: () => rmSync(path, { recursive: true, force: true }) };

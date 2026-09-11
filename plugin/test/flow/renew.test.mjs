@@ -6,7 +6,7 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempHome } from "../fixtures.mjs";
+import { standsInNoTree, tempHome } from "../fixtures.mjs";
 
 const HOME = tempHome("renew");
 mkdirSync(join(HOME.path, "forge"), { recursive: true });
@@ -15,6 +15,7 @@ writeFileSync(
   JSON.stringify({ url: "https://stub.example/mcp", token: "t" }),
 );
 process.env.XDG_CONFIG_HOME = HOME.path;
+standsInNoTree("renew");
 process.env.FORGE_SESSION_ID = "this-run";
 process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";

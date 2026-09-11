@@ -8,10 +8,11 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { tempHome } from "../../fixtures.mjs";
+import { standsInNoTree, tempHome } from "../../fixtures.mjs";
 
 const HOME = tempHome("resume");
 process.env.XDG_CONFIG_HOME = HOME.path;
+standsInNoTree("resume");
 const { render } = await import("../../../src/flow/record/page.mjs");
 const { ORDER, SIDE, rungFieldsOf, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { PHASE, methodOf } = await import("../../../src/guides/phases.mjs");

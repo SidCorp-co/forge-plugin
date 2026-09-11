@@ -8,9 +8,10 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 
-import { fakeTracker, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("landing-take").path;
+standsInNoTree("landing-take");
 const { landingOf, leaseOf } = await import("../../../src/flow/lease.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;

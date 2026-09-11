@@ -4,8 +4,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { quoting } from "../../src/hooks/shell-spans.mjs";
-import { idGrantedBy } from "../../src/resolve/granted-id.mjs";
+import { quoting } from "../../../src/hooks/shell-spans.mjs";
+import { idGrantedBy } from "../../../src/resolve/session/granted-id.mjs";
 
 const WRITE = "./plugin/bin/forge comment ISS-29 -";
 

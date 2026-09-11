@@ -5,9 +5,10 @@
 import assert from "node:assert/strict";
 import test, { after, before } from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { fakeTracker, ranAsync, standsInNoTree, tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("verdict-judge").path;
+standsInNoTree("verdict-judge");
 const { assemble, parseAll, render } = await import("../../../src/flow/record/page.mjs");
 const { JUDGE_FROM, SHAPES } = await import("../../../src/flow/machine.mjs");
 
