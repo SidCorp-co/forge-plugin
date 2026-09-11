@@ -1,7 +1,8 @@
 {
   "slug": "forge-plugin",
   "feedback": {
-    "plugin": "bugs"
+    "plugin": "bugs",
+    "project": "bugs"
   },
   "codex": {
     "pathRe": "^(plugin|packages)/(src|hooks|scripts)/.*\\.mjs$|^docs/.*\\.md$",
