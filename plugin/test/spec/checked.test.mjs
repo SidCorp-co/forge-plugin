@@ -206,3 +206,19 @@ test("no module of spec/ imports from flow/, which is the edge the shared step c
     assert.ok(!/from "\.\.\/flow\//u.test(text), `plugin/src/spec/${name} imports from plugin/src/flow/`);
   }
 });
+
+/* The switch is the project's, so an injected argument proves the paragraph and not that the shipped
+   help asks the disk for it: both commands are run in a fixture project either way (ISS-516). */
+test("the two file writes' help carries the citation where a project keeps a tree, and not where it does not", () => {
+  for (const kind of ["criteria", "plan"]) {
+    const run = (root) => spawnSync(FORGE, ["record", kind, "-h"],
+      { cwd: root, encoding: "utf8", env: process.env });
+    const kept = run(project(`cited-help-${kind}-`, true));
+    assert.equal(kept.status, 0, kept.stderr);
+    assert.match(kept.stdout, /opening with `<id>~<rev>:`/u, `${kind} names the form a criterion opens with`);
+    assert.match(kept.stdout, /the description, the plan or the criteria/u, `${kind} names the fields it may sit in`);
+    const none = run(project(`uncited-help-${kind}-`, false));
+    assert.equal(none.status, 0, none.stderr);
+    assert.doesNotMatch(none.stdout, /<id>~<rev>/u, `${kind} asks a project keeping no tree for nothing`);
+  }
+});

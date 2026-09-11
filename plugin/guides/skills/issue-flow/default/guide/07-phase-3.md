@@ -1,8 +1,9 @@
 ## Phase 3 — Plan and acceptance criteria, in the issue's own fields
 
 Both land in fields of the issue, one each, never a comment and never a local file. `forge record
-plan -h` prints the sections a typed plan carries and what each step owes, and `forge guide contract
-approved` what the status reads. The two are written together rather than one and then the other,
+plan -h` and `forge record criteria -h` each print every demand that write makes, read before the
+file is written rather than after a refusal turns it back, and `forge guide contract approved`
+prints what the status reads. The two are written together rather than one and then the other,
 because the steps name the criteria they serve, and declaring a screen change is what turns the
 credential ask from worth making into owed: the declaration is what makes a rendered state this
 issue's evidence.

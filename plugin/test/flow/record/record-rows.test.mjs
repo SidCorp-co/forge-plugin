@@ -9,6 +9,7 @@ import { tempRoom } from "../../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempRoom("record-rows-");
 const { KINDS, USAGE, kindHelp, usage } = await import("../../../src/flow/record/record.mjs");
 const { SHAPES } = await import("../../../src/flow/machine.mjs");
+const { CITED_IN, citationBlocks } = await import("../../../src/spec/checked.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
@@ -119,4 +120,17 @@ test("a kind -h answers for the kind alone, and a name that is no kind still ref
   const bad = ask("record", "nosuchkind", "-h");
   assert.equal(bad.status, 1, bad.stdout);
   assert.match(bad.stderr, /record knows no kind `nosuchkind`/u);
+});
+
+/* The demand the `approved` check makes was written in its refusal and on no surface a run reads
+   before the file, so adding the citation moved text a consult had read and cost a second one (ISS-516). */
+test("both file kinds print the citation demand, and only where the project keeps a tree", () => {
+  for (const kind of ["criteria", "plan"]) {
+    const kept = kindHelp(kind, {}, null, citationBlocks(true));
+    assert.match(kept, /A criterion carries one by\nopening with `<id>~<rev>:`/u, `${kind} names the form`);
+    assert.ok(kept.includes(CITED_IN), `${kind} names the fields a citation may sit in: ${CITED_IN}`);
+    assert.match(kept, /a citation added afterwards is a second consult/u, `${kind} says what the refusal costs`);
+    const none = kindHelp(kind, {}, null, citationBlocks(false));
+    assert.doesNotMatch(none, /<id>~<rev>|requirements tree/u, `${kind} asks a project keeping no tree for nothing`);
+  }
 });

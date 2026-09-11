@@ -4,6 +4,7 @@
 import { PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES,
   sectionOwedBy } from "../machine.mjs";
 import { CLAUSES, NOTHING } from "./merged.mjs";
+import { citationBlocks } from "../../spec/checked.mjs";
 import { commitTakes } from "./content.mjs";
 import { declaredFor } from "../../tracker/rest.mjs";
 import { goalBlock } from "../../goals.mjs";
@@ -97,6 +98,9 @@ const PLAN_BLOCKS = [
   "naming none is refused here. At `approved`, where the criteria field is read, so is a step whose",
   "numbers name no criterion the issue holds, and a criterion no step names.",
 ];
+
+/* The two kinds whose file is written from what a consult read, which is why the citation belongs on their help and not only in the entry check's refusal: by the refusal the consult has been spent. */
+const CITES = ["plan", "criteria"];
 
 /* The one place the note's clauses are described, from the same table that writes and reads them:
    a template a run copied by hand is how a sha reached the slot another clause is read from. */
@@ -208,7 +212,7 @@ export const kindUsage = (kind) => {
   return KIND_USAGE.get(kind);
 };
 
-export const kindHelp = (kind, caps = {}, goals = null) => {
+export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()) => {
   const row = rowFor(kind, caps) ?? `  ${kind}`;
   return [
     usageOf("record").replace("<kind>", kind),
@@ -217,6 +221,7 @@ export const kindHelp = (kind, caps = {}, goals = null) => {
     row,
     ...(HAS_CAP.test(row) ? ["", ...CAP_LEGEND] : []),
     ...(kind === "plan" ? ["", ...PLAN_BLOCKS] : []),
+    ...(CITES.includes(kind) && cites.length ? ["", ...cites] : []),
     ...(kind === "merged" ? ["", ...MERGED_BLOCKS] : []),
     ...(goals && SERVES_KINDS.includes(kind) ? ["", ...servesBlocks(goals)] : []),
     ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS] : []),
