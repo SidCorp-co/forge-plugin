@@ -3,7 +3,7 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { git, gitOut, loud, read, REMOTE, stop } from "../checkout.mjs";
+import { git, gitOut, loud, read, REMOTE, remoteRef, stop } from "../checkout.mjs";
 import { onlyRelease, RELEASE_FILES, versionAt } from "./landing.mjs";
 
 const parts = (version) => String(version ?? "").split(".").map((one) => Number.parseInt(one, 10));
@@ -49,7 +49,7 @@ export const forgetBump = (tree) => rmSync(bumpFile(tree), { force: true });
 /** Read against the tree's head, not from having made it: a resume would push a disk-only version. `at` is the revision to be above, which a landing pins by `ls-remote` rather than trusting a tracking ref: a version above a stale ref is one the branch may already carry. */
 export const versionAbove = (tree, base, note, at = null) => {
   forgetBump(tree);
-  const upstream = versionAt(tree, at ?? `${REMOTE}/${base}`);
+  const upstream = versionAt(tree, at ?? remoteRef(base));
   /* Read before `npm version` writes: what already differs from HEAD is somebody's, not this step's,
      and an untracked release file is what `git add` sweeps in and a reset to the parent deletes. */
   const carried = [

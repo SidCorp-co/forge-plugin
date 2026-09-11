@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
 
 import { pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
-import { git, gitOut, lines, loud, REMOTE, stop } from "../checkout.mjs";
+import { git, gitOut, lines, loud, REMOTE, remoteRef, stop } from "../checkout.mjs";
 import { above } from "./version.mjs";
 
 const READ_BY_INSTALL = ["plugin", ".claude-plugin"];
@@ -51,7 +51,7 @@ const touching = (root, sha) =>
 
 // Whose each commit in the way is and what it touches: a refusal leaving that read names nothing.
 export const inTheWay = (root, base) => {
-  const held = lines(gitOut(["log", "--format=%h %an, %ad: %s", "--date=short", `${REMOTE}/${base}..HEAD`], root));
+  const held = lines(gitOut(["log", "--format=%h %an, %ad: %s", "--date=short", `${remoteRef(base)}..HEAD`], root));
   return {
     commits: held.map((one) => {
       const files = touching(root, one.split(" ")[0]);
@@ -77,7 +77,7 @@ export const follows = (root, base, tree) => {
   /* Never `pull`: under `pull.rebase` that is a rebase, which refuses a dirty worktree even for a
      no-op, and the push a step ago already moved these refs (ISS-143). Through `git` and not
      `loud`, a bare `fatal:` on the way past not being this step's message. */
-  if (git(["merge", "--ff-only", `${REMOTE}/${base}`], root).status === 0) {
+  if (git(["merge", "--ff-only", remoteRef(base)], root).status === 0) {
     return console.log(`  ${root} is at ${headOf(root)}`);
   }
   console.error(`  ${root} cannot fast-forward to the pushed head and stays at ${headOf(root)}. In the way:`);
@@ -86,7 +86,7 @@ export const follows = (root, base, tree) => {
   if (dirty.length) console.error(`    uncommitted: ${dirty.join(", ")}`);
   if (!commits.length && !dirty.length) {
     console.error(`    nothing this reading can name — git -C ${root} status --short and `
-      + `git -C ${root} log --oneline ${REMOTE}/${base}..HEAD say more`);
+      + `git -C ${root} log --oneline ${remoteRef(base)}..HEAD say more`);
   }
   return console.error(LEAVE_IT);
 };

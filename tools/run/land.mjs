@@ -4,7 +4,7 @@
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
-import { checkoutRoot, defaultBranch, gitOut, loud, REMOTE, Stop, stop } from "../checkout.mjs";
+import { checkoutRoot, defaultBranch, gitOut, loud, REMOTE, remoteRef, Stop, stop } from "../checkout.mjs";
 import { shipHolder, takeShipLock, WAIT_MS } from "./lock.mjs";
 
 /* The span: the fetch the rebase and the version are taken against, through the last step that
@@ -73,7 +73,7 @@ const landSteps = (tree, base, self) => [
   [`fetch ${REMOTE}/${base}`, () =>
     loud("git", ["fetch", REMOTE, base], tree, "Check the remote is reachable."), LANDS],
   [`rebase onto ${REMOTE}/${base}`, () =>
-    loud("git", ["rebase", `${REMOTE}/${base}`], tree,
+    loud("git", ["rebase", remoteRef(base)], tree,
       `Resolve it, or \`git rebase --abort\`, then run it again: ${self} land`), LANDS],
   [`push to ${REMOTE}/${base}`, () => {
     pushing(tree, base, () => `Rejected means the remote moved under this landing, which no lock on `

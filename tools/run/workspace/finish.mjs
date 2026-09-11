@@ -10,7 +10,7 @@ import { homedir } from "node:os";
 import { join, resolve, sep } from "node:path";
 
 import { copyToRun } from "../../../plugin/src/tools/plugin-copy.mjs";
-import { checkoutRoot, defaultBranch, git, gitOut, lines, loud, REMOTE } from "../../checkout.mjs";
+import { checkoutRoot, defaultBranch, git, gitOut, lines, loud, REMOTE, remoteRef } from "../../checkout.mjs";
 import { gatesHere, verdictPath } from "../../gate-verdict.mjs";
 import { runnersOf } from "../../gates/machine.mjs";
 import { KEY, whoseTree, worktreePath } from "./occupant.mjs";
@@ -72,10 +72,8 @@ const uncommitted = (path) => {
    is the reading nothing else here makes — `git worktree remove` refuses a dirty tree by itself, and
    says nothing about a commit that exists in one place. */
 const ahead = (path, base) => {
-  /* Spelled out to the full ref: `origin/master` abbreviated resolves a local branch of that name
-     first, and a branch somebody made there would read as nothing ahead over commits the remote has
-     never seen — a false green on the one reading that decides whether a commit can die here. */
-  const ref = `refs/remotes/${REMOTE}/${base}`;
+  // Spelled out by `remoteRef`, a false empty range here being a commit that dies with its tree.
+  const ref = remoteRef(base);
   const said = `${REMOTE}/${base}`;
   if (!gitOut(["rev-parse", "--verify", "--quiet", ref], path)) return { unknown: `${said} resolves to nothing in that tree` };
   const held = gitOut(["log", "--oneline", `${ref}..HEAD`], path);

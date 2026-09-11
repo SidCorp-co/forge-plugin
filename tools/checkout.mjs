@@ -6,6 +6,7 @@ import { dirname, resolve } from "node:path";
 
 export const REMOTE = "origin";
 const FALLBACK = ["master", "main"];
+const TRACKING = `refs/remotes/${REMOTE}/`;
 
 export class Stop extends Error {}
 
@@ -56,12 +57,21 @@ export const checkoutRoot = (from) => {
   return dirname(common);
 };
 
+/** Every read of the remote's branch, spelled out: abbreviated, it is a name a local branch wins, and `plugin/test/run/run-shadowed-ref.test.mjs` is what that costs (ISS-1127). */
+export const remoteRef = (branch) => `${TRACKING}${branch}`;
+
+/** A commit or a stop: through `gitOut` an unresolvable ref and an empty answer are one value. */
+export const revAt = (root, ref) =>
+  gitOut(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], root)
+  ?? stop(`${ref} resolves to no commit in ${root}, so there is nothing to read against it. `
+    + `Fetch ${REMOTE} and run this again.`);
+
 // The remote's own answer first: a hard-coded name is how a runner ships to the wrong place.
 export const defaultBranch = (root) => {
-  const named = gitOut(["rev-parse", "--abbrev-ref", `${REMOTE}/HEAD`], root);
-  if (named) return named.replace(`${REMOTE}/`, "");
-  for (const ref of ["refs/remotes/origin", "refs/heads"]) {
-    for (const name of FALLBACK) if (gitOut(["rev-parse", "--verify", `${ref}/${name}`], root)) return name;
+  const named = gitOut(["symbolic-ref", remoteRef("HEAD")], root);
+  if (named?.startsWith(TRACKING)) return named.slice(TRACKING.length);
+  for (const ref of [remoteRef(""), "refs/heads/"]) {
+    for (const name of FALLBACK) if (gitOut(["rev-parse", "--verify", `${ref}${name}`], root)) return name;
   }
   return stop(`no branch named ${FALLBACK.join(" or ")} resolves here and ${REMOTE} names no default. Set ${REMOTE}/HEAD.`);
 };

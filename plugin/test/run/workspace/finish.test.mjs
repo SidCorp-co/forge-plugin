@@ -148,6 +148,26 @@ test("finish reads the remote-tracking ref itself, so a local branch named for i
   assert.match(run.stderr, /holds 1 commit\(s\) origin\/master does not carry/u, run.stderr);
 });
 
+/* The branch's *name* comes from the remote's symbolic ref, which the same shadowing branch makes
+   ambiguous: read short it answers `remotes/origin/master`, and the first `origin/` stripped off
+   leaves `remotes/master`. This verb's own ref was already spelled out, so what that cost was a
+   correct refusal naming a ref that resolves nowhere and a fetch command nobody could run (ISS-1127). */
+test("finish names the branch the remote names, where a local branch of that name makes the short spelling longer", () => {
+  const { work, tree } = started("finish-shadowed-name");
+  git(work, "remote", "set-head", "origin", "master");
+  writeFileSync(join(tree, "landed.md"), "a commit nothing else holds\n");
+  git(tree, "add", "landed.md");
+  git(tree, "-c", "user.email=t@example.test", "-c", "user.name=Test", "commit", "-m", "the change");
+  git(work, "branch", "origin/master", git(tree, "rev-parse", "HEAD").stdout.trim());
+
+  const run = runIn(work, ["finish", KEY], BARE);
+  assert.equal(run.status, 1, run.stdout);
+  assert.ok(existsSync(tree), "a tree whose commit is nowhere else was removed");
+  assert.match(run.stderr, /holds 1 commit\(s\) origin\/master does not carry/u, run.stderr);
+  assert.doesNotMatch(run.stderr, /remotes\/master/u,
+    `the refusal names a branch nothing resolves:\n${run.stderr}`);
+});
+
 /* The minted basename and a relative parent, so the absolute guard is the only thing that rejects
    it: named `forge-run-<id>` alone the record would be refused by the basename check instead, and
    the case would pass with the guard taken out. */

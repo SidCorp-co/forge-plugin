@@ -10,7 +10,9 @@ import { fileURLToPath } from "node:url";
 import { hookEntries } from "../plugin/src/hooks/hook-log-file.mjs";
 import { typed } from "../plugin/src/hooks/shell-spans.mjs";
 import { freezesSession, FROZEN, pluginCopy } from "../plugin/src/tools/plugin-copy.mjs";
-import { checkoutRoot, defaultBranch, git, gitOut, loud, parsed, read, REMOTE, Stop, stop } from "./checkout.mjs";
+import {
+  checkoutRoot, defaultBranch, git, gitOut, loud, parsed, read, REMOTE, remoteRef, revAt, Stop, stop,
+} from "./checkout.mjs";
 import { recordDir, runSays } from "./gates/timing.mjs";
 import { acrossVersion } from "./gates/carried.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
@@ -463,12 +465,12 @@ const shipSteps = (tree, root, base, note) => {
     ["the tree is clean", () => cleanTree(tree)],
     [`fetch ${REMOTE}/${base}`, () => {
       loud("git", ["fetch", REMOTE, base], tree, "Check the remote is reachable.");
-      writeFileSync(markFile(tree), `${gitOut(["rev-parse", `${REMOTE}/${base}`], tree)}\n`);
+      writeFileSync(markFile(tree), `${revAt(tree, remoteRef(base))}\n`);
     }, LANDS],
     [REPLAYED, () => replaySays(tree, base, SELF), LANDS],
     [`rebase onto ${REMOTE}/${base}`, () => {
       const from = gitOut(["rev-parse", "HEAD"], tree);
-      loud("git", ["rebase", `${REMOTE}/${base}`], tree, "Resolve it, or `git rebase --abort`.");
+      loud("git", ["rebase", remoteRef(base)], tree, "Resolve it, or `git rebase --abort`.");
       replayedBy(tree, from);
     }, LANDS],
     /* After the rebase, because the range is what the release actually ships, and before the bump,
