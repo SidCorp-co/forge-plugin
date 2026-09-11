@@ -15,9 +15,10 @@ standsInNoTree("lease");
 process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const {
-  MECHANISM, MINUTES, READING_MINUTES, RECLAIMS_BEFORE_PARK, SHARED_HOLDER, agentOf, canonical,
-  claimRefusal, claimed, describe, expiryOf, historyLine, leaseOf, nextLine, nothingWorked,
-  idsHere, parksAsCrashed, pidOf, reclaimsOf, sharedHolder, stateOf, writeRefusal, writtenBy,
+  MECHANISM, MINUTES, MINUTES_ASKS, READING_MINUTES, RECLAIMS_BEFORE_PARK, RENEWED_BY_WRITING,
+  SHARED_HOLDER, agentOf, canonical, claimRefusal, claimed, describe, expiryOf, freshLapse,
+  historyLine, leaseOf, nextLine, nothingWorked, idsHere, parksAsCrashed, pidOf, reclaimRefusal,
+  reclaimsOf, sharedHolder, stateOf, writeRefusal, writtenBy,
 } = await import("../../src/flow/lease.mjs");
 const {
   MINTED, sessionAsked, sessionHeld, sessionOf, sessionPath, sessionSourced, sessionWriting,
@@ -56,6 +57,32 @@ test("the five states, and a lease past its duration is another run's to take", 
     "the holder past its own duration, with the field still naming it, so nobody took over");
   assert.equal(stateOf(held("other", "not a time"), "mine", NOW), "expired", "a renew time nobody can read is past");
   assert.equal(expiryOf(held("other", AT, 30)), NOW + 30 * 60_000);
+});
+
+/* The window is the holder's own estimate again, so nothing here is a constant somebody has to keep
+   true against how long a phase takes: a run that asked for ten minutes is covered for ten. */
+test("a lapse is fresh while it is younger than the duration the holder named, and stale at it", () => {
+  const lease = held("other", AT, 30);
+  assert.equal(freshLapse(lease, NOW + 31 * 60_000), true, "just past expiry, where the record can tell nothing");
+  assert.equal(freshLapse(lease, NOW + 59 * 60_000), true);
+  assert.equal(freshLapse(lease, NOW + 60 * 60_000), false, "at one whole duration past it, anybody's again");
+  assert.equal(freshLapse(held("other", AT, 10), NOW + 21 * 60_000), false, "and a short lease is covered as briefly");
+  assert.equal(freshLapse(held("other", "not a time"), NOW), false, "a renew time nobody can read covers nothing");
+  const said = reclaimRefusal("ISS-4", { ...lease, next: "Phase 5: the gate" }, NOW + 33 * 60_000);
+  assert.match(said, /ran out 3 minute\(s\) ago/u, "how long ago, because two minutes and two hours are different acts");
+  assert.match(said, /session other/u, "the holder it would be taking from");
+  assert.match(said, /forge claim ISS-4 --stopped/u, "and the one command that clears it");
+  assert.match(said, /The step it left named: Phase 5: the gate/u);
+  assert.ok(said.includes(RENEWED_BY_WRITING), "out of the one string the usage prints, never a paraphrase of it");
+  assert.doesNotMatch(reclaimRefusal("ISS-4", lease, NOW + 33 * 60_000), /The step it left/u,
+    "and a lease carrying no line says nothing about one");
+});
+
+test("`forge claim -h` says what --minutes is asking for, which is not how long the work will take", () => {
+  assert.ok(USAGE.includes(MINUTES_ASKS), "so the help and the refusal cannot come to disagree");
+  assert.ok(MINUTES_ASKS.includes(RENEWED_BY_WRITING));
+  assert.match(MINUTES_ASKS, /gap to this run's next write/u, "which is the quantity a run can estimate");
+  assert.match(USAGE, /--stopped/u, "and the flag that clears a fresh lapse is in the list");
 });
 
 test("every refusal names the holder, its renew time and the one command that clears it", () => {

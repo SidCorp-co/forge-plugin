@@ -814,16 +814,20 @@
       "digest": "be9a91a1874b2bb1346732b7338267476f6e232cd07da3188201abae304549d6"
     },
     "UC-03-3": {
-      "rev": 1,
-      "digest": "e410002a6ff62b31fb0a28ebb4df7fe7712303caf84eee27cbe28017db6dd822"
+      "rev": 2,
+      "digest": "6e0ccbf494a2cf9eee3cbe6e837fd99632a414b875513285b7232fbf3f4312d1"
     },
     "AC-03-3-1": {
-      "rev": 1,
-      "digest": "43f0afac586d7bfd3917600b2b0e21b1d4e44236458fa94090835d533ab446d0"
+      "rev": 2,
+      "digest": "3cd1e3a5949dff10d03b43a4bd3c523612673305fb35b7ae1d7e2499df23271d"
     },
     "AC-03-3-2": {
       "rev": 1,
       "digest": "db71146cd3abbec801e630c6ad15d3b17035247cd08319c785b900b7383ff4c2"
+    },
+    "AC-03-3-3": {
+      "rev": 1,
+      "digest": "ac0a9d01ad607d75113c9fca608e76fe59519771e8a03d0d6ae0a06607fd1e3c"
     },
     "UC-03-4": {
       "rev": 1,

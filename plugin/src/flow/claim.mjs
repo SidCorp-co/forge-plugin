@@ -22,11 +22,14 @@ import {
   LANDING_RECONCILED,
   MECHANISM,
   MINUTES,
+  MINUTES_ASKS,
   RECLAIMS_BEFORE_PARK,
   SHARED_HOLDER,
+  STOPPED,
   claimRefusal,
   claimed,
   describe,
+  freshLapse,
   heldBy,
   historyLine,
   landingLine,
@@ -38,6 +41,7 @@ import {
   parkAnswers,
   readContext,
   parksAsCrashed,
+  reclaimRefusal,
   reclaimsOf,
   setLease,
   sharedHolder,
@@ -83,6 +87,7 @@ export const USAGE = [
   "needs none. Nothing else about a run is remembered anywhere.",
   "",
   `  --minutes <n>   how long the lease runs from now, instead of ${MINUTES}`,
+  `  ${STOPPED}       reclaim a lease that has only just lapsed, the run having been established stopped`,
   "  --next <line>   one line, the step whoever comes next starts on; a transition clears it",
   "  --pushed        the branch, head, base and files touched, read from git at this moment",
   "  --review        the last codex consult, its findings and what it owes, read from the log now",
@@ -97,6 +102,8 @@ export const USAGE = [
   "What the checkpoint holds and which state names whose turn: docs/cli/the-checkpoint.md.",
   "",
   nothingWorked(),
+  "",
+  MINUTES_ASKS,
   "",
   MECHANISM,
 ].join("\n");
@@ -277,7 +284,7 @@ export const claim = async (argv) => {
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) fail(`claim takes the issue first. ${usageOf("claim")}`);
   const pulled = pullRepeated(rest, "--open", "claim", { usage: USAGE });
-  const given = flags(pulled.rest, "claim", ["--pushed", "--review", "--ready", "--take", "--judged"],
+  const given = flags(pulled.rest, "claim", ["--pushed", "--review", "--ready", "--take", "--judged", STOPPED],
     { usage: USAGE });
   const turns = ["ready", "take", "judged", "reconciled"].filter((one) => given[one]);
   if (turns.length > 1) {
@@ -315,6 +322,7 @@ export const claim = async (argv) => {
     return advise(documentId, issue, worklog);
   }
   if (state === "live") fail(claimRefusal(ref, lease));
+  if (state === "expired" && !given.stopped && freshLapse(lease)) fail(reclaimRefusal(ref, lease));
   const left = lease?.next ?? null;
   const how = { free: "claim", expired: "reclaim", mine: null, lapsed: null }[state];
   const checkpoint = given.ready ? readyCheckpoint(ref, holder, patch, landingOf(context)) : null;

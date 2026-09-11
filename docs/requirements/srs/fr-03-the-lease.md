@@ -62,18 +62,29 @@ the holder and the renew time — the two facts a person needs to decide whether
 
 ### UC-03-3 — Reclaim what a dead run left
 
-Rev: 1 · Actors: agent · Enforces: BR-05
+Rev: 2 · Actors: agent · Enforces: BR-05
 
 Once the duration has passed the lease is open to any run, and the run that held it is no more
 privileged than any other. The live test that settled that — and what it caught a build doing — is
 in the contract's fifth dry run.
 
-- **AC-03-3-1** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "the five states, and a lease past its duration is another run's to take"
-  IF a lease is past its duration THEN the CLI SHALL let any run reclaim it, and SHALL refuse the
-  former holder's next write as stale.
+What a lapse does not say is that the run stopped. The lease is renewed by a write to the issue and
+by nothing else, and the longest steps a run takes make none, so a run in a gate and a run that has
+died leave one record. While the lapse is younger than the duration the holder itself named, the
+reclaim is therefore refused and says so, and the taker clears the refusal by saying it has
+established the run stopped — because the taking is the damage, and a run whose issue is taken while
+it works loses every write it makes after that.
+
+- **AC-03-3-1** · Rev: 2 · Proof: plugin/test/flow/lease.test.mjs "the five states, and a lease past its duration is another run's to take"
+  IF a lease is past its duration THEN the CLI SHALL let any run reclaim it, by the route the age of
+  the lapse decides, and SHALL refuse the former holder's next write as stale.
 - **AC-03-3-2** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "the claim history is appended by the write that made it, and a renew appends nothing"
   WHEN a holder retakes its own lapsed lease THEN the CLI SHALL append no handoff and SHALL count it
   toward no park.
+- **AC-03-3-3** · Rev: 1 · Proof: plugin/test/flow/fresh-lapse.test.mjs "a reclaim of a lease that has only just lapsed is refused, and the flag is what takes it"
+  IF a lease is past its duration by less than that duration THEN the CLI SHALL refuse a reclaim by
+  another run, and SHALL name the holder, how long ago the lease ran out, what a lapse of that age
+  does not prove, and the one command that clears the refusal.
 
 ### UC-03-4 — A status that keeps dying reaches a person
 

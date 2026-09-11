@@ -9,7 +9,8 @@ import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
 
 export const FIELD = "sessionContext";
 export const KEY = "lease";
-export const MINUTES = 30;
+/* 60 and not the 30 it was, off the corpus rather than named: a quarter of runs went longer than that between two payload writes, twelve of those gaps with the run working right through and the longest of them 58 minutes, and past 60 there is no such gap left. It buys a smaller window and never liveness, which no duration can be — the record says when a run last wrote and nothing about whether it is alive (ISS-1224). */
+export const MINUTES = 60;
 export const READING_MINUTES = 10;
 export const RECLAIMS_BEFORE_PARK = 2;
 const HISTORY_KEPT = 12;
@@ -33,6 +34,14 @@ export const nothingWorked = (ref = "<ref>") =>
   + "left — takes a short lease that says so on the record, so the run after it reads a reading "
   + "rather than a reclaim:\n"
   + `  forge claim ${ref} --minutes ${READING_MINUTES} --next "nothing was worked under this lease"`;
+
+export const RENEWED_BY_WRITING =
+  "A lease is renewed only by a write the CLI makes to the issue, so a gate, a consult and a read "
+  + "renew nothing.";
+
+export const MINUTES_ASKS =
+  `${RENEWED_BY_WRITING} So what --minutes asks for is the gap to this run's next write: a step `
+  + "that writes nothing is the whole of what a lease has to survive.";
 
 /* Said, not refused: `stateOf` reads an inherited holder as this run's own. docs/cli/claim.md. */
 export const SHARED_HOLDER =
@@ -116,6 +125,28 @@ export const describe = (lease) =>
   `session ${lease.holder} (${lease.agent}, pid ${lease.pid}), renewed `
   + `${stamp(Date.parse(lease.renewedAt))} for ${lease.minutes} minute(s), expiring `
   + `${stamp(expiryOf(lease))}`;
+
+export const STOPPED = "--stopped";
+
+/* How far past expiry the record still cannot tell a working run from a stopped one: the holder's own estimate again, so a run that asked for ten minutes is covered for ten and one that asked for four hours for four. Strictly less, so exactly one duration past expiry is anybody's again. */
+export const freshLapse = (lease, now = Date.now()) => {
+  const expiry = expiryOf(lease);
+  return expiry > 0 && now < expiry + lease.minutes * 60_000;
+};
+
+const agoIn = (ms) => {
+  const minutes = Math.round(ms / 60_000);
+  return minutes < 1 ? "less than a minute ago" : `${minutes} minute(s) ago`;
+};
+
+/* Refused rather than said, alone among the lease's notices, because here the taking is the damage: the reclaim this was filed from took a live run's issue and cost it forty minutes of writes, and a line printed by the command that has already written the field warns nobody in time. It judges nothing and withholds one flag's worth — the record it describes is the one a stopped run leaves too, which is why the caller decides and this only says what is being decided (ISS-1224). */
+export const reclaimRefusal = (ref, lease, now = Date.now()) =>
+  `the lease on ${ref} ran out ${agoIn(now - expiryOf(lease))}, and this reclaim would take the `
+  + `issue off ${describe(lease)}. ${RENEWED_BY_WRITING} A run inside one of those leaves the `
+  + `record a stopped run leaves, so a lapse this fresh proves neither.`
+  + `${lease.next ? ` The step it left named: ${lease.next}.` : ""}`
+  + ` Ask that run: where it answers, its own next write takes the lease back. Where you have `
+  + `established it stopped, say so:\n  forge claim ${ref} ${STOPPED}`;
 
 /* Counted since the park that answered them: a resumed issue does not walk straight back in. */
 const since = (history, status) => {
