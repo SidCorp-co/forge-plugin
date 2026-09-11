@@ -19,7 +19,8 @@ export const DECLINED = 75;
 
 export const WAIT = "--wait";
 
-export const RAISE = "forge doctor --runs";
+// Named as a key and not a command: no verb writes `.forge.json`, and an untypable route is offered as none.
+export const RAISE = "the `runs` key in this project's .forge.json";
 
 // Field 22 of the status line, counted from after its last `)`, because the command name holds parentheses and spaces and nothing before it can be split on.
 export const startedAt = (text) => {
@@ -81,8 +82,7 @@ export const gatesOn = (ours, proc = PROC) => {
   return found.sort((one, other) => one.start - other.start || one.pid - other.pid);
 };
 
-/** What this gate may do: the gates started before it, and whether they have reached the number this
- *  machine declares. A machine that declares none declines nobody, as it did before the key. */
+/** What this gate may do: the gates before it, against the number this project declares — none declared declines nobody. */
 export const placeFor = (ours, { proc = PROC, declared = parallelRuns(), pid = process.pid } = {}) => {
   if (declared.value === null) return { declared, ahead: [], declined: false };
   const running = gatesOn(ours, proc);

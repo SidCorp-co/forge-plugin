@@ -4,6 +4,7 @@
     "plugin": "bugs",
     "project": "bugs"
   },
+  "runs": 2,
   "codex": {
     "pathRe": "^(plugin|packages)/(src|hooks|scripts)/.*\\.mjs$|^docs/.*\\.md$",
     "angles": [

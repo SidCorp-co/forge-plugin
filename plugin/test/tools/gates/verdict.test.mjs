@@ -4,14 +4,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { appendFileSync, existsSync, rmSync } from "node:fs";
-import { join } from "node:path";
 
 import { DEADLINE, gateDecided, gateStarted, gatesHere, GONE, NO_GATE, verdictPath, verdictRuns, waitForVerdict }
   from "../../../../tools/gate-verdict.mjs";
 import { DECLINED } from "../../../../tools/gates/machine.mjs";
 import { recordDir } from "../../../../tools/gates/timing.mjs";
 import { STEPS } from "../../../../tools/gates/steps.mjs";
-import { HANGS_IN, heldGate, reachedTheStep, run, scratch, stopGate, write } from "./scratch.mjs";
+import { HANGS_IN, heldGate, reachedTheStep, run, scratch, stopGate } from "./scratch.mjs";
 
 // Minutes, and a tick fast enough that a case waits on the state under test rather than on a constant.
 const BRIEFLY = 0.02;
@@ -27,7 +26,7 @@ const waited = (work, said, minutes = BRIEFLY) => waitForVerdict(work, { minutes
 
 const recordOf = (work) => verdictRuns(work).at(-1);
 
-const holding = (name) => scratch(name, null, null, { hanging: HANGS_IN });
+const holding = (name, runs = null) => scratch(name, null, null, { hanging: HANGS_IN, runs });
 
 test("a wait for a tree no gate has ever run in says so at once and names what to start", async () => {
   const { at, work } = scratch("verdict-none");
@@ -349,8 +348,7 @@ test("a run whose step failed writes a failed verdict naming that step, and the 
 /* A decline judges nothing and says so, and it is the one outcome whose exit code a run could mistake for a verdict about
    the tree, so the record carries the word and the wait hands back 75 rather than a pass. */
 test("a gate that declined the machine is read back as declined, not as a pass", async () => {
-  const { at, work } = holding("verdict-declined");
-  write(join(work, ".."), join("config", "forge", "config.json"), JSON.stringify({ runs: 1 }));
+  const { at, work } = holding("verdict-declined", 1);
   const gate = heldGate(work, ["--full"]);
   try {
     await reachedTheStep(gate, "the gate holding the machine's only place never reached its hanging step");

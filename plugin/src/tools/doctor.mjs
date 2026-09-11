@@ -15,7 +15,7 @@ import {
   userConfig,
 } from "../resolve/config.mjs";
 import {
-  CHATGPT_FLAGS, SAVED, install, runsGiven, setChatgpt, setRuns, setShip, setVisibility,
+  CHATGPT_FLAGS, SAVED, install, setChatgpt, setShip, setVisibility,
 } from "./doctor-keys.mjs";
 import { backoff, deadlineSeconds, retrySeconds, waitSeconds } from "../tracker/rest.mjs";
 import { BUNDLED } from "./vi.mjs";
@@ -465,9 +465,9 @@ const checkFlowKeys = () => {
   const ship = shipMode();
   line(ship.unknown ? BAD : OK, "ship", held(ship, SHIP_MODES));
   const runs = parallelRuns();
-  if (runs.unknown) line(BAD, "parallel runs", held({ ...runs, value: "the whole machine" }, [RUNS_TAKES]));
+  if (runs.unknown) line(BAD, "parallel runs", held({ ...runs, value: "no bound" }, [RUNS_TAKES]));
   else if (runs.value) line(OK, "parallel runs", `${runs.value}  ← ${runs.from}`);
-  else line(OK, "parallel runs", "unset, so a gate takes the whole machine and declines for no sibling");
+  else line(OK, "parallel runs", "unset, so a wave is sized by whoever dispatches it and a gate declines for no sibling");
   const given = userConfig().retrySeconds;
   const own = retrySeconds({ retrySeconds: given }) === given;
   const retry = {
@@ -513,13 +513,13 @@ export const doctor = async (argv) => {
   const { values: pairs, rest } = pullRepeated(argv, "--meta", "doctor", { usage });
   const { positionals, flagArgv } = partition(rest, BOOLEAN, { verb: "doctor", usage });
   const asked = flags(flagArgv, "doctor", BOOLEAN, { usage, secret: ["--token", "--chatgpt-key"] });
-  const { full, credentials, hide, show: reveal, ship, runs } = asked;
+  const { full, credentials, hide, show: reveal, ship } = asked;
   if (positionals.length && asked.line === undefined) {
     fail(`doctor: \`${positionals[0]}\` names no flag, and the prose of a line is --line's: `
       + "forge doctor --line <n> <text>");
   }
   /* Two stores: the project write returns before the report, dropping the machine's half silently. */
-  const machine = [...SAVED, ...Object.keys(CHATGPT_FLAGS), "hide", "show", "ship", "runs"]
+  const machine = [...SAVED, ...Object.keys(CHATGPT_FLAGS), "hide", "show", "ship"]
     .filter((key) => asked[key] !== undefined);
   const project = PROJECT_FLAGS.filter((key) => asked[key] !== undefined);
   if (project.length && machine.length) {
@@ -528,11 +528,9 @@ export const doctor = async (argv) => {
   }
   const wrote = await wroteProject(asked, pairs, positionals);
   if (wrote) return wrote.forEach((said) => console.log(said));
-  const wantsRuns = runs === undefined ? null : runsGiven(runs);
   if (hide) setVisibility(hide, true);
   if (reveal) setVisibility(reveal, false);
   if (ship) setShip(ship);
-  if (wantsRuns !== null) setRuns(wantsRuns);
   const saved = Object.fromEntries(SAVED.filter((key) => asked[key] !== undefined).map((key) => [key, asked[key]]));
   if (Object.keys(saved).length) install(saved);
   if (Object.keys(CHATGPT_FLAGS).some((flag) => asked[flag] !== undefined)) setChatgpt(asked);

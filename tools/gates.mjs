@@ -114,8 +114,8 @@ hook stamps in it is failed: on a developer's machine that directory is the room
 before every stamp, and a suite that fills it is a cost no green can show.
 
 Before any of that, before the table and before the first step, it counts the gates of this checkout
-already running and declines where they have reached the number this machine declares — one number,
-\`${RAISE} <n>\`, absent which nothing is counted and nothing declines. A decline exits ${DECLINED}
+already running and declines where they have reached the number this project declares — one number,
+${RAISE}, absent which nothing is counted and nothing declines. A decline exits ${DECLINED}
 rather than 1, names each gate it counted and the tree that gate is judging, records no pass and no
 figure, and says no verdict about this tree: a run that spent twenty-five minutes and then reported
 the tree is what this exists to stop, and a refusal costing the caller a step has already lost the
@@ -267,12 +267,12 @@ const place = placeFor(runnersOf(ROOT));
 
 if (place.declined) {
   console.error(`\nThis gate declined the machine and judged nothing.`);
-  console.error(`${place.ahead.length} gate(s) of this checkout are already running, and this machine `
+  console.error(`${place.ahead.length} gate(s) of this checkout are already running, and this project `
     + `carries ${place.declared.value} run(s) at once  ← ${place.declared.from}`);
   for (const one of place.ahead) console.error(`  pid ${one.pid}  gating ${one.tree}`);
   console.error(`No step ran and nothing was recorded, so nothing here judges ${ROOT}.`);
-  console.error(`Wait for one of those to finish, or say what this machine carries: `
-    + `${RAISE} ${place.declared.value + 1}`);
+  console.error(`Wait for one of those to finish, or raise ${RAISE} above `
+    + `${place.declared.value}.`);
   finish(DECLINED, "declined");
 }
 

@@ -239,12 +239,12 @@ export const shipMode = () => chosen(userConfig().ship, SHIP_MODES, SHIP_MODES[0
 
 export const RUNS_TAKES = "a whole number above 0";
 
-// How many runs this box carries at once, which is the box's fact and not a checkout's: a clone on a sixty-four-core machine may not inherit a six-core answer. Absent it is null, and every reader then behaves as it did before the key existed.
+// How many runs this project carries at once: the width of a wave the dispatcher fills and the ceiling a gate of this project admits itself against, which are one number because they bound one thing. The project's and not the machine's — ISS-1157 reverses ISS-917 on that, the user's decision on 2026-09-11 — so two checkouts on one box each answer for their own work, and neither inherits the other's. Absent it is null, and every reader then behaves as it did before the key existed.
 export const parallelRuns = () => {
-  const given = userConfig().runs;
+  const given = forgeJson().parsed?.runs;
   if (given === undefined || given === null) return { value: null, from: PLUGIN_DEFAULT };
   const held = Number(given);
   return Number.isInteger(held) && held > 0
-    ? { value: held, from: configPath() }
+    ? { value: held, from: FROM_PROJECT }
     : { value: null, from: PLUGIN_DEFAULT, unknown: String(given) };
 };

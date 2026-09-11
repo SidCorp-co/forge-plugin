@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 import { DECLINED, gatesOn, placeFor, runnersOf } from "../../../../tools/gates/machine.mjs";
 import { tempRoom } from "../../fixtures.mjs";
-import { entryNames, HANGS_IN, heldGate, reachedTheStep, run, runsFile, scratch, stopGate, write } from "./scratch.mjs";
+import { entryNames, HANGS_IN, heldGate, reachedTheStep, run, runsFile, scratch, stopGate } from "./scratch.mjs";
 
 const TICK = 100;
 
@@ -131,14 +131,10 @@ test("every worktree of this checkout has a runner, and each is named whole", ()
 /* Real gates of one scratch, which is what proves the count is the machine's own and not this case's
    table: a gate held inside a step that never returns has reached that step, so a second one that
    also reaches it was admitted, and one that declines says so instead of getting there. */
-const room = (name, keys) => {
-  const held = scratch(name, null, null, { hanging: HANGS_IN });
-  if (keys) write(join(held.work, ".."), join("config", "forge", "config.json"), JSON.stringify(keys));
-  return held;
-};
+const room = (name, runs) => scratch(name, null, null, { hanging: HANGS_IN, runs });
 
 test("a second gate of one checkout declines the machine, says every clause it owes, and the place comes back when the first has gone", async () => {
-  const { at, work } = room("machine-ceiling", { runs: 1 });
+  const { at, work } = room("machine-ceiling", 1);
   const ours = new Set([join(work, "tools", "gates.mjs")]);
   const declared = { value: 1, from: "the case" };
   const first = heldGate(work, ["--full"]);
@@ -150,9 +146,9 @@ test("a second gate of one checkout declines the machine, says every clause it o
     const said = second.stderr;
     assert.match(said, /This gate declined the machine and judged nothing/u, said);
     assert.match(said, /1 gate\(s\) of this checkout are already running/u, "the count it read");
-    assert.match(said, /carries 1 run\(s\) at once {2}← \S+config\.json/u, "the number and where it came from");
+    assert.match(said, /carries 1 run\(s\) at once {2}← \.forge\.json/u, "the number and where it came from");
     assert.match(said, new RegExp(`pid ${first.pid} {2}gating ${work}`, "u"), "the gate it counted, and that gate's tree");
-    assert.match(said, /forge doctor --runs 2/u, "the one command that raises it");
+    assert.match(said, /raise the `runs` key in this project's \.forge\.json above 1/u, "the route that raises it");
     assert.ok(said.includes(`nothing here judges ${work}`), `it claimed something about the tree:\n${said}`);
     assert.deepEqual(entryNames(work), [], "a declined gate recorded a pass");
     assert.ok(!existsSync(runsFile(work)), "a declined gate recorded a run figure");

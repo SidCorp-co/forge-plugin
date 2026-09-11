@@ -137,7 +137,7 @@ const scripts = (marks) =>
 /* Committed on master, then worked on a branch, so the merge-base is real and a change to it diffs.
    `also` are roots beyond the runner's, `slug` the project a filing from inside would be aimed at,
    `hanging` a step that prints `HOLDING` and then never returns, so a gate can be held open. */
-export const scratch = (name, failing, leaking, { also = [], slug = null, hanging = null } = {}) => {
+export const scratch = (name, failing, leaking, { also = [], slug = null, hanging = null, runs = null } = {}) => {
   const at = tempRoom(`${name}-`);
   const work = join(at, "checkout");
   for (const one of [...COPIED, ...reachedFrom(also)]) {
@@ -149,7 +149,9 @@ export const scratch = (name, failing, leaking, { also = [], slug = null, hangin
       ? `import test from "node:test";\ntest("the green case of ${one}", () => {});\n`
       : `${one}\n`);
   }
-  if (slug) write(work, ".forge.json", JSON.stringify({ slug }));
+  /* Written before the tree is committed: the number is the project's now, and a file placed
+     after the commit would leave the scratch dirty and refuse its gate for another reason. */
+  if (slug || runs) write(work, ".forge.json", JSON.stringify({ ...(slug && { slug }), ...(runs && { runs }) }));
   write(work, "package.json",
     JSON.stringify({ name: "scratch", version: "1.0.0",
       scripts: scripts({ failing, leaking, hanging }) }, null, 2));

@@ -1,7 +1,6 @@
-/* The keys `forge doctor` writes, and what each says once written. Beside doctor.mjs, which
-   reports: a report is every finding at once and a write is one key per call. docs/cli/doctor.md. */
+/* The keys `forge doctor` writes: a report is every finding at once, a write is one key. docs/cli/doctor.md. */
 import { saveConfig, userConfig } from "../resolve/config.mjs";
-import { RUNS_TAKES, SHIP_MODES, fail, parallelRuns } from "../resolve/settings.mjs";
+import { SHIP_MODES, fail } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
 
@@ -40,23 +39,4 @@ export const setShip = (mode) => {
   console.log(mode === "ready"
     ? "A run on this machine now ends at a pushed branch and a landing checkpoint; the landing is another actor's.\n"
     : "A run on this machine now lands its own change, as it did before the option existed.\n");
-};
-
-// Apart from the write and before every other writer, or a refusal here follows a key another flag saved and the sentence about nothing being written is false.
-export const runsGiven = (given) => {
-  const held = Number(given);
-  if (!Number.isInteger(held) || held < 1) {
-    fail(`doctor: --runs is how many runs this machine carries at once and takes ${RUNS_TAKES}. `
-      + `\`${given}\` is not one, and nothing was written.`);
-  }
-  return held;
-};
-
-// Read back off the file and never off the number handed in, because the file is what a gate reads.
-export const setRuns = (held) => {
-  saveConfig({ runs: held });
-  const read = parallelRuns();
-  console.log(`This machine now carries ${read.value} run(s) at once, read back from ${read.from}: a `
-    + `gate that finds that many already running declines before it spends a step, and nothing else `
-    + `changes.\n`);
 };
