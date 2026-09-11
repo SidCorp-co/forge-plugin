@@ -82,8 +82,11 @@ test("a claim on an issue past the dispatch statuses with no lease at all is ref
   assert.match(refused.stderr, /lease field holds no lease/u, "and says the record holds none where one is expected");
   assert.match(refused.stderr, new RegExp(`The step the last write named: ${LEFT}`, "u"),
     "and the line the emptied field still carries");
-  assert.match(refused.stderr, new RegExp(`work: ${BRANCH}`, "u"), "and the branch the worklog still names");
-  assert.match(refused.stderr, /cut from 9182736/u, "in the sentences the claim's own opening prints it in");
+  assert.match(refused.stderr, new RegExp(`work: ${BRANCH}, at 0f1e2d3, cut from 9182736`, "u"),
+    "and the branch, head and base the worklog still names, in the sentences the opening prints them in");
+  assert.match(refused.stderr, /captured \d{4}-\d{2}-\d{2}T\d{2}:\d{2}/u, "with the time that capture was taken");
+  assert.doesNotMatch(refused.stderr, /a run that died or a write that erased one\b/u,
+    "and it does not tell a filing sent straight to this status that a run died on it");
   assert.match(refused.stderr, /forge claim ISS-1184 --unheld\s*$/u,
     "and the one command that clears it, with no second flag beside it");
   assert.deepEqual(state.calls.slice(before).filter((one) => one.args?.action === "update"), [],

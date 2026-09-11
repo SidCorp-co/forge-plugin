@@ -160,8 +160,9 @@ export const nextLeft = (context) => {
 /* Refused for the reason the fresh lapse is, on the other shape the same loss takes: nobody is named here, so the caller cannot ask the holder and the flag says instead that no run is on the issue. The work lines are handed in rather than read, because the opening that prints them runs past this refusal and the branch is the whole of what a second arrival needs to take the work up rather than cut it again (ISS-1183, ISS-1184). */
 export const unheldRefusal = (ref, status, { next = null, work = [] } = {}) =>
   `${ref} is at \`${status}\`, past the statuses a run is dispatched at, and its lease field holds `
-  + `no lease. A status that far along was reached by writes a lease covered, so the field is a run `
-  + `that died or a write that erased one, and never an issue nobody has started.`
+  + `no lease. Every write that carries an issue this far renews one, so the field is a run that `
+  + `died, a write that erased it, or a filing sent straight to this status — and not an issue `
+  + `waiting to be started, which is the one reading that would have this claim build it twice.`
   + `${next ? ` The step the last write named: ${next}.` : ""}\n`
   + (work.length
     ? `${work.map((one) => `  ${one}`).join("\n")}\n`
