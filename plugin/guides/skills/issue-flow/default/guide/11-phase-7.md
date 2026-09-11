@@ -20,7 +20,7 @@ what other people's queries filter on, so it moves last. What the move is owed:
 stops on `awaiting_release` under a release that has already happened has handed a person the one
 keystroke this workflow exists to take over. Where a person still owes that release an act, the
 issue rests at the rung and the close is theirs. Which of the two this project is, is the release
-policy's answer and never the ship mode's, and `forge record report` prints it at that status. Where
+policy's answer and never the ship mode's, and `forge resume ISS-nn --report` prints it there. Where
 the contract hands the issue to somebody instead, a park or a reopen, it stays where it is and the
 report says which.
 <!-- forge:end -->
