@@ -3,7 +3,8 @@
 What one round buys, what effort it is asked at, and what a follow-up round is for:
 [the round](codex-the-round.md). What a finding coming back has to carry, and where the two
 boundaries the reviewer cannot see for itself are filled from: [the
-finding](codex-the-finding.md).
+finding](codex-the-finding.md). What of a file travels, how much of it fits and which passes earn a
+review: [the payload](codex-the-payload.md).
 
 **No local agent.** The first engine spawned a `claude` session with `--allowedTools Read Grep Glob`;
 that flag auto-approves and does not confine, so the child inherited this machine's skills, answered a
@@ -16,20 +17,6 @@ said it could not verify; a fixed command it did not choose is not a shell.
 conversation (32,385 input tokens, no cache read, ~33 s) and its reply comes back encrypted, never
 entering the transcript as plaintext. That is the number behind what the skill says about carrying
 its reply into the consult.
-
-**The diff travels, not the body.** Sending files whole *and* offering tools paid twice: two consults
-spent 12 and 17 calls re-reading text already in front of them. Telling it not to re-read did not
-work; sending less did — 4,381 characters against 32,233 on a two-file review, 5,266 against 59,462 on
-a four-file one, same findings. `bodies` remains for a file outside any checkout, and for the one
-pass below that is owed whatever the payload costs.
-
-**One pass reads the whole set, and it is the one a review is earned by.** A diff consult judges the
-diff and answers *not verified* on the rest, which nobody can approve on. So the earning read is one
-`--send bodies` pass over the whole touched set, at the commit; the diff rounds between edits close
-findings and none is owed. `--recheck` is not that pass and does not become it — a recheck answers
-findings, and after a clean pass there are none, so it refuses and names the whole-set read. A flag
-that quietly ran the costlier thing would bill for a question nobody asked, which is why `--rounds
-two` is refused rather than rounded.
 
 **The plan and the criteria are the second thing owed a whole body, and the first that no commit gate
 could ever have asked for.** They are written into fields of an issue from a file that matches no path
@@ -76,12 +63,6 @@ rather than reviewing a change, and the tree would lose the file they are about 
 else went dirty; and where nothing differs from the base the record travels too, for a change just
 committed. Every record path left out is classed absent, ignored by git, or unchanged: ignored is the
 one that is real work, and absent leaves the record, no consult being able to reach it.
-
-**A path nothing can be shown of never travels and is never recorded.** `bundle` marks what it cannot
-read `missing`, which is three things: a tracked deletion, whose diff is its whole change; a file that
-exists and could not be read, a dangling symbolic link among them; and one that is not there at all
-and has no diff, which went out as `NEW FILE` with no lines under it. Absence is `lstat` and only
-`ENOENT`, never a failed read.
 
 **A base is read from where the branch left it.** `--base master` diffed against the ref as it
 stood, so a base that moved under the run — master taking another run's release mid-branch —

@@ -7,6 +7,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { git, gitOut, lines, REMOTE, stop } from "../checkout.mjs";
+import { FILE_CHARS, bundle } from "../../plugin/src/codex/codex-api.mjs";
 import { judgedBy, logEntries, shortOfWhole, wholeReadOf } from "../../plugin/src/codex/codex-log.mjs";
 import { repoRoot } from "../../plugin/src/codex/codex.mjs";
 import { pathed } from "../../plugin/src/hooks/shell-spans.mjs";
@@ -50,12 +51,24 @@ export const REPLAY_HELP = [
   "of them passes while HEAD still carries the second, since `--from` puts this step back ahead of",
   "the gate and a run whose gate failed would otherwise owe a read for the replay it was told to",
   "make. A rewrite by hand after that takes the recorded head off the lineage and is refused as any.",
-  "Where no read covers the whole set it asks a narrower question before it settles for silence:",
+  "A set too large for one bodies pass is read across several, so what it looks for is one run's",
+  "passes at one clean head, which count together as one; a pass over a dirty tree joins none of",
+  "them and a second run's does not either.",
+  "Where no read covers the whole set it asks two narrower questions before it settles for silence.",
+  "The first:",
   "does the log hold a read of this change that the change has outgrown — one that read whole the",
   "paths the change had at its own head, on a lineage this step accepts, where what would land holds",
   "paths it never carried. That is refused too, naming those paths and asking for the same read at",
   "the same head, because a read a post-review fix put out of reach is a review that provably does",
   "not answer for what is being landed, and a widening fix is the case that owes the most.",
+  "The second: do the passes this change was read by cover the set between them. Where they carry no",
+  "whole body for some of it, that much of what would land went clipped or was never sent, and a",
+  "reply of no findings over part of a set is indistinguishable from an approving review of all of",
+  "it — which is the one thing this step is here to refuse. So it names those files, and it refuses",
+  "where a consult could carry them: readable, not empty, and inside the per-file cap, in which case",
+  "it prints the pass that completes the read at this head. Where one of them can be carried by no",
+  "pass at all it says so and lets the ship through, a refusal no command clears being a run",
+  "stranded at its landing rather than a review made honest.",
   "It is silent where the log holds no read of this change at all, where the read was taken over a",
   "working tree and its head is therefore where the pass was taken rather than what it read, and",
   "where that head is no commit this checkout can resolve; it says which of the three, because a",
@@ -163,6 +176,68 @@ const outgrew = (tree, was, root, held, head) => {
   return null;
 };
 
+const shortOf = (of, at, head, missing, ask) =>
+  `the bodies passes this change was read by, the newest of them consult ${of} at ${shortly(at)}, `
+  + `carry no whole body for ${missing.join(", ")}. That much of what ${shortly(head)} would land was `
+  + `sent clipped or never sent, so the review answers for the rest of the set and not for ${ask.length === 1 ? "it" : "them"}, `
+  + `and an approving review of a set nobody read whole is what this step exists to refuse. Nothing `
+  + `here re-reads for you:\n`
+  + `    echo "<what you were doing>" | forge codex consult --send bodies ${ask.map(pathed).join(" ")}\n`
+  + `Take it as this run, at this head, and it joins the passes already taken; then rewrite the `
+  + `review record at ${shortly(head)}, and ship.`;
+
+const stuckOn = (missing, stuck) =>
+  `  the bodies passes this change was read by carry no whole body for ${missing.join(", ")}, and `
+  + `${stuck.join(", ")} can be carried by no pass at all — empty, unreadable, or longer than the `
+  + `${FILE_CHARS} characters one file may be sent as. No consult clears that, so this step names it `
+  + `rather than refusing a ship nothing would let through: the review answers for the rest of the `
+  + `set, and what it does not answer for is the line above`;
+
+/* A read of this change and not of a file it happens to name: the same question `outgrew` asks, and
+   for the same reason — at a head the change had no paths at, a whole body is the old file. */
+const ofThisChange = (tree, was, one) => {
+  const from = gitOut(["merge-base", one.head, was], tree);
+  return Boolean(from && pathsIn(tree, from, one.head).length);
+};
+
+/* Which of the set the passes on this lineage carry, taken one run and one head at a time as
+   `wholeReadOf` does, so a partial sequence is told from two unrelated consults that happen to
+   overlap. The best-covering group is the one this change was read by; a group carrying none of the
+   set is no read of it. */
+const coveredBy = (tree, was, root, held, head) => {
+  const groups = new Map();
+  for (const one of judgedBy(logEntries(), root, held)) {
+    if (one.dirty || one.send !== "bodies") continue;
+    if (!gitOut(["rev-parse", "--verify", `${one.head}^{commit}`], tree)) continue;
+    if (!carries(tree, one.head, "HEAD") && !ownReplay(tree, one.head, head)) continue;
+    if (!ofThisChange(tree, was, one)) continue;
+    const key = one.run ? `${one.head} ${one.run}` : (one.id ?? one.at);
+    groups.set(key, [...(groups.get(key) ?? []), one]);
+  }
+  let best = null;
+  for (const group of groups.values()) {
+    const missing = held.filter((rel) => !group.some((one) => shortOfWhole(one, [rel]).whole));
+    if (missing.length === held.length) continue;
+    if (!best || missing.length < best.missing.length) best = { group, missing };
+  }
+  return best;
+};
+
+const shortSays = (tree, was, root, held, head) => {
+  const best = coveredBy(tree, was, root, held, head);
+  if (!best?.missing.length) return false;
+  const last = best.group.at(-1);
+  const stuck = bundle(root, best.missing)
+    .filter((part) => part.missing || !(part.chars > 0) || part.chars > FILE_CHARS)
+    .map((part) => part.rel);
+  if (!stuck.length) {
+    stop(shortOf(last.id ?? last.at, last.head, head, best.missing,
+      last.head === head ? best.missing : held));
+  }
+  console.log(stuckOn(best.missing, stuck));
+  return true;
+};
+
 /* `--is-ancestor` and not equality: a rebase drops the reviewed commit, while a commit made after the
    read to fix one of its findings keeps it and lands above it by design. */
 const readSays = (tree, was) => {
@@ -173,6 +248,7 @@ const readSays = (tree, was) => {
   if (!read) {
     const grew = root ? outgrew(tree, was, root, held, head) : null;
     if (grew) stop(outgrewSince(grew.one.id ?? grew.one.at, grew.one.head, head, grew.added, held));
+    if (root && shortSays(tree, was, root, held, head)) return undefined;
     return console.log(`  no consult in this log read the whole of this change's ${held.length} `
       + `file(s) at a recorded head of ${root ?? "this tree"}, so the head the review was earned at `
       + `is not something this can read — it judges nothing here and the read stands where it was taken`);

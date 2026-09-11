@@ -40,7 +40,8 @@ how many topics there may be.
 | [the shown ledger](cli/the-shown-ledger.md) | What a repeat costs a refusal and what it costs advice, the two readings of "already shown", and why the journal is appended. |
 | [cloudflare](cli/cloudflare.md) | Why this is a second API rather than a route through the first, and how the account holding a zone is found. |
 | [chatgpt](cli/chatgpt.md) | Why one turn is never sent twice, which two transports the backend forces, what makes a message an answer rather than one about it, and where the key must not reach. |
-| [codex — the consult](cli/codex-the-consult.md) | Why no local agent is spawned, what travels instead of the bodies, which single pass earns a review, and where a base is read from. |
+| [codex — the consult](cli/codex-the-consult.md) | Why no local agent is spawned, what a refusal reports, where a base is read from, and what a recheck narrows its range to. |
+| [codex — the payload](cli/codex-the-payload.md) | What of a file travels, which passes earn a review, why a set too large is refused rather than clipped, and what never travels at all. |
 | [codex — the finding](cli/codex-the-finding.md) | What one finding must carry to be worth its round, which clause a recheck still owes, where the issue's boundary and the project's checks come from, and what the replay settles. |
 | [codex — the round](cli/codex-the-round.md) | Why calls are the only lever on wall time, what moves a round's effort, what a review that could not check is owed, and what a recheck is anchored to. |
 | [codex — the request](cli/codex-the-request.md) | Which cache the request is written for, what a consult replays, what a path may reach, and what the reviewer's tools mean by no argument. |

@@ -154,12 +154,38 @@ export const shortOfWhole = (one, rels) => {
   return { unread, part, whole: one?.send === "bodies" && !unread.length && !part.length };
 };
 
-/** The last answered consult of this root that read the whole of this set at a recorded head — the read a review was earned by — or null. An empty set answers null here rather than in `shortOfWhole`, which the recheck also reads: every consult ever taken read the empty set whole. What a `dirty` head is worth is the caller's, since only a caller comparing histories is troubled by it. */
+/* The passes one run took over one clean head, keyed on both: a shared head pins shared content only where the tree was clean at each, and one writing run is what makes them a sequence somebody declared rather than two unrelated consults having touched the same file at the same commit. Groups of one are left out, being what the single-consult answer already covers. */
+const sequencesIn = (own) => {
+  const held = new Map();
+  for (const one of own) {
+    if (one.dirty || one.send !== "bodies" || !one.run) continue;
+    const key = `${one.head} ${one.run}`;
+    held.set(key, [...(held.get(key) ?? []), one]);
+  }
+  return [...held.values()].filter((group) => group.length > 1);
+};
+
+const jointlyWhole = (group, rels) => {
+  const carried = new Set();
+  for (const one of group) {
+    for (const rel of rels) if (shortOfWhole(one, [rel]).whole) carried.add(rel);
+  }
+  return carried.size === rels.length;
+};
+
+/** The last answered consult of this root that read the whole of this set at a recorded head — the read a review was earned by — or null. A set too large for one bodies pass is read across several, so a run's own sequence of them at one clean head answers here as one pass does, carrying `covering` for how many it took. An empty set answers null here rather than in `shortOfWhole`, which the recheck also reads: every consult ever taken read the empty set whole. What a `dirty` head is worth is the caller's, since only a caller comparing histories is troubled by it. */
 export const wholeReadOf = (entries, root, rels) => {
   if (!rels.length) return null;
-  return answered(entries)
-    .filter((one) => one.root === root && one.head && shortOfWhole(one, rels).whole)
-    .at(-1) ?? null;
+  const own = answered(entries).filter((one) => one.root === root && one.head);
+  let at = own.findLastIndex((one) => shortOfWhole(one, rels).whole);
+  let found = at < 0 ? null : own[at];
+  for (const group of sequencesIn(own)) {
+    const last = own.lastIndexOf(group.at(-1));
+    if (last <= at || !jointlyWhole(group, rels)) continue;
+    at = last;
+    found = { ...group.at(-1), covering: group.length };
+  }
+  return found;
 };
 
 export const historyFor = (entries, root, pairs = HISTORY_PAIRS, rels = []) => {

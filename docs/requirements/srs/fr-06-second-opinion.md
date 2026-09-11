@@ -57,6 +57,17 @@ checkout's decision rather than the account's, and `README.md` says why that lev
   the reviewer in no form, SHALL leave it out of the file list it records, SHALL drop it from the
   turn's record, and SHALL name what it dropped; and it SHALL take that course whatever ground the
   review set was selected on, asking the tree's own head where the consult named no base.
+- **AC-06-1-7** · Rev: 1 · Proof: plugin/test/codex/payload/bundle.test.mjs "a bodies pass over a set the cap cannot carry is refused, and costs the run nothing"
+  IF a whole-body consult cannot carry every file of its set whole THEN the CLI SHALL refuse it
+  before the reviewer is reached, and SHALL name the passes whose files together are every file of
+  the set it can carry whole.
+- **AC-06-1-8** · Rev: 1 · Proof: plugin/test/codex/payload/bundle.test.mjs "a file longer than one file may be is named apart, with the diff that is the most of it"
+  WHERE a file of the set is longer than one file may be sent as, the refusal SHALL name that file
+  apart from the passes, beside the consult that sends its change instead.
+- **AC-06-1-9** · Rev: 1 · Proof: plugin/test/codex/log/reviewed-head.test.mjs "one run's passes at one clean head are together the read the review was earned by"
+  WHERE one run took several whole-body consults at one recorded head with no working-tree change
+  under any of them, those consults SHALL answer together as the read a review of that set is
+  earned by.
 
 ### UC-06-2 — List the documents a turn changed, once, at the end
 

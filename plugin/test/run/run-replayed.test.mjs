@@ -462,3 +462,77 @@ test("a landing that moved nothing this change writes leaves the ship alone, and
     `a replayed change is still refused:\n${again.stdout}${again.stderr}`);
   assert.match(again.stdout, /^ {4}--moved nothing$/mu, again.stdout);
 });
+
+/* The read that clipped. A bodies pass over a set above the bundle cap carries whole bodies for some
+   of it and clipped ones for the rest, and answered no differently from a pass that covered it all:
+   the review said approved, the ship said nothing, and the sentence the contract states was
+   unreachable rather than skipped (ISS-1087). These fixtures build that log by hand — one pass at
+   the head that would land, whole for one file and short for the other. */
+const clippedRead = (name, short, more = {}) => {
+  const held = baseMoved(name, ELSEWHERE);
+  writeFileSync(join(held.work, ADDED), short);
+  git(held.work, "add", ADDED);
+  git(held.work, "commit", "-m", "the second file of the change");
+  const head = git(held.work, "rev-parse", "HEAD").stdout.trim();
+  const files = [ADDED, UNDER_REVIEW];
+  return {
+    ...held,
+    head,
+    env: readTaken(held.work, head, files, {
+      run: "r1",
+      sent: files.map((rel) => ({ rel, chars: 40, clipped: rel === ADDED })),
+      ...more,
+    }),
+  };
+};
+
+test("a pass that went short on one file of the change refuses the ship, and names the pass that completes it", () => {
+  const { work, env, head, remote } = clippedRead("read-clipped", "the file the pass clipped\n");
+
+  const run = runIn(work, ["ship"], env);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /stopped at step 3 \(the review answers for the head this lands\)/u, run.stderr);
+  assert.ok(run.stderr.includes(ADDED), `the file no pass carried whole is not named:\n${run.stderr}`);
+  assert.ok(!run.stderr.includes(UNDER_REVIEW),
+    `a file the pass did carry whole is named as unread:\n${run.stderr}`);
+  assert.ok(run.stderr.includes(`--send bodies ${ADDED}`),
+    `the pass that would complete the read is not printed, or asks for more than is missing:\n${run.stderr}`);
+  assert.match(run.stderr, /joins the passes already taken/u,
+    `the refusal asks for a pass without saying it counts with the others:\n${run.stderr}`);
+  assert.ok(run.stderr.includes(head.slice(0, 7)),
+    `neither head the shortfall is about is named:\n${run.stderr}`);
+  assert.doesNotMatch(run.stdout, /scratch gate ran/u, "a refused ship spent the gate");
+  assert.equal(git(remote, "rev-parse", "master").stdout.trim(),
+    git(work, "rev-parse", "master").stdout.trim(), "the refused change was pushed");
+});
+
+/* The two shortfalls no consult can clear. A refusal here would strand the run at its landing with a
+   command that clips identically however often it is run, so the step says it and stands aside. */
+for (const [what, short] of [
+  ["an empty file", ""],
+  ["a file longer than one pass may carry", `${"x".repeat(80_001)}\n`],
+]) {
+  test(`${what} is named as unread and stops no ship`, () => {
+    const { work, env } = clippedRead(`read-stuck-${short.length}`, short);
+    const run = runIn(work, ["ship"], env);
+
+    assert.match(run.stdout, /step 4\/10 {2}rebase onto origin\/master/u,
+      `a shortfall no consult clears stopped the ship:\n${run.stdout}${run.stderr}`);
+    assert.ok(run.stdout.includes(ADDED), `the file no pass carries is not named:\n${run.stdout}`);
+    assert.match(run.stdout, /can be carried by no pass at all/u,
+      `the step named the file without saying why no read will ever carry it:\n${run.stdout}`);
+  });
+}
+
+const NO_LOG = { ...BARE, XDG_CONFIG_HOME: tempRoom("run-replayed-no-log-") };
+
+test("a change no bodies pass has read at all is the absence this step has always reported", () => {
+  const { work } = baseMoved("read-none", ELSEWHERE);
+  const run = runIn(work, ["ship"], NO_LOG);
+  assert.match(run.stdout, /no consult in this log read the whole of this change's 1 file\(s\)/u,
+    `an absence was reported as a shortfall:\n${run.stdout}${run.stderr}`);
+  assert.doesNotMatch(run.stdout, /carry no whole body for/u,
+    `a change nobody read was described as one read short:\n${run.stdout}`);
+  assert.match(run.stdout, /step 4\/10 {2}rebase onto origin\/master/u,
+    `an absence stopped a ship this cannot judge:\n${run.stdout}${run.stderr}`);
+});

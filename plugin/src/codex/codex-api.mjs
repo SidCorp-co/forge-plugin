@@ -10,6 +10,7 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import { defaultEffort } from "./codex-plan.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
+import { pathed } from "../hooks/shell-spans.mjs";
 import { userConfig } from "../resolve/config.mjs";
 import { sseData } from "../wire/sse.mjs";
 
@@ -19,9 +20,10 @@ const maxTokens = () => Number(userConfig().codex?.maxTokens || 32_000);
 /* Accepted by the gateway and not observable from here: the same puzzle answers the same at high and
    at minimal, in the same seconds. Sent because the slot is the account's to configure. */
 
-/* A file is sent whole or reported as clipped; a silently halved file is a review of half a file. */
-const FILE_CHARS = 80_000;
-const TOTAL_CHARS = 320_000;
+/* A file is sent whole or reported as clipped; a silently halved file is a review of half a file.
+   Exported because whether a pass can be taken at all is a question about these two numbers. */
+export const FILE_CHARS = 80_000;
+export const TOTAL_CHARS = 320_000;
 const ERROR_CHARS = 400;
 const HASH_CHARS = 12;
 
@@ -211,6 +213,75 @@ export const bundle = (root, rels) => {
     });
   }
   return parts;
+};
+
+const directoryOf = (rel) => (rel.includes("/") ? rel.slice(0, rel.lastIndexOf("/")) : ".");
+
+/* By directory before by size, so a pass reads as one concern rather than as whatever the packer
+   reached next. A directory larger than one pass is the only thing split across two. */
+const packedInto = (parts) => {
+  const groups = new Map();
+  for (const part of parts) {
+    const key = directoryOf(part.rel);
+    groups.set(key, [...(groups.get(key) ?? []), part]);
+  }
+  const passes = [];
+  let open = [];
+  let room = TOTAL_CHARS;
+  const start = () => {
+    if (open.length) passes.push(open);
+    open = [];
+    room = TOTAL_CHARS;
+  };
+  for (const group of groups.values()) {
+    if (group.reduce((many, part) => many + (part.chars ?? 0), 0) > room) start();
+    for (const part of group) {
+      if ((part.chars ?? 0) > room) start();
+      open.push(part.rel);
+      room -= part.chars ?? 0;
+    }
+  }
+  start();
+  return passes;
+};
+
+/** Whether one bodies pass carries this bundle whole, and what passes would. A file longer than
+ *  `FILE_CHARS` is in no pass at all, so it is named apart; a part with no body occupies nothing. */
+export const bodiesPasses = (parts) => {
+  const over = parts.filter((part) => (part.chars ?? 0) > FILE_CHARS).map((part) => part.rel);
+  const passes = packedInto(parts.filter((part) => !over.includes(part.rel)));
+  return { over, passes, whole: !over.length && passes.length <= 1 };
+};
+
+const INTENT = 'echo "<what you were doing>" | forge codex consult';
+
+const passLine = (send, rels) => `    ${INTENT} --send ${send} ${rels.map(pathed).join(" ")}`;
+
+/** The refusal owed a bodies pass that cannot carry its set whole, or `null`. A pass that went short
+ *  is indistinguishable afterwards from one that did not, so it is not taken and no flag gets past
+ *  this; what clears it is the passes it prints, whose union is the set. */
+export const cannotCarry = (parts) => {
+  const { over, passes, whole } = bodiesPasses(parts);
+  if (whole) return null;
+  const sized = new Map(parts.map((part) => [part.rel, part.chars ?? 0]));
+  /* Printed wherever there is one: an oversize file named alone leaves the rest of the set unread. */
+  const held = passes.length
+    ? [passes.length > 1
+      ? `the ${parts.length} file(s) hold more than the ${TOTAL_CHARS} characters one bodies pass `
+        + `carries, so read them as ${passes.length} passes, cut by directory, whose files together `
+        + "are the whole of what can be carried:"
+      : "one pass carries the rest of the set whole:", ...passes.map((rels) => passLine("bodies", rels))]
+    : [];
+  const big = over.map((rel) => `${rel} is ${sized.get(rel)} characters, longer than the ${FILE_CHARS} `
+    + "one file may carry, so no pass holds it whole and its change is the most a reviewer can be "
+    + `given of it:\n${passLine("diffs", [rel])}`);
+  return [
+    "this set cannot be sent whole, and a pass that clips is a review of part of a file that reads "
+      + "afterwards as a review of all of it.",
+    ...held,
+    ...big,
+    "One run's bodies passes at one clean head count together as the read that earned the review.",
+  ].join("\n  ");
 };
 
 export const DIFF_CHARS = 20_000;

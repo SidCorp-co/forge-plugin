@@ -32,6 +32,7 @@ import {
   modelSlot,
   askApi,
   bundle,
+  cannotCarry,
   divergedFrom,
   inside,
   modelBehind,
@@ -99,8 +100,8 @@ const CONSULT_USAGE = [
   "",
   "  --diff         send each file's diff and refuse findings about code this turn did not touch",
   "  --base <ref>   what to diff against; implies --diff. HEAD unless you say otherwise",
-  "  --send m       diffs (default) sends each change, bodies sends every file whole; one bodies",
-  "                 pass over the whole touched set is what earns an approving review",
+  "  --send m       diffs (default) sends each change, bodies sends every file whole; bodies over the",
+  "                 whole set earns an approving review, and one too large is refused with the passes",
   "  --only s,s     report only these severities: blocker, major, minor",
   "  --verify <risk>  a named risk to rule on rather than an open review; repeatable",
   "  --recheck      verify the last consult's findings on these files instead of roaming for new ones",
@@ -332,6 +333,8 @@ const consult = async (given) => {
     clearConsulted(root, empty);
   }
   if (!rels.length && !issues.length) fail("codex: nothing to consult on: every path it was offered is absent from the tree.");
+  const short = bodies && cannotCarry(bundled.filter((part) => rels.includes(part.rel)));
+  if (short) fail(`codex: ${short}`);
   /* Said before the read, so a stall says where it is, and the read waits on the first byte alone:
      an open stdin with nothing on it was read to EOF and never returned (ISS-65). */
   console.error(`codex: ${rels.length} file(s) to review`
