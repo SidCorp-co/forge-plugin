@@ -187,11 +187,11 @@ const shortOf = (of, at, head, missing, ask) =>
   + `review record at ${shortly(head)}, and ship.`;
 
 const stuckOn = (missing, stuck) =>
-  `  the bodies passes this change was read by carry no whole body for ${missing.join(", ")}, and `
-  + `${stuck.join(", ")} can be carried by no pass at all — empty, unreadable, or longer than the `
-  + `${FILE_CHARS} characters one file may be sent as. No consult clears that, so this step names it `
-  + `rather than refusing a ship nothing would let through: the review answers for the rest of the `
-  + `set, and what it does not answer for is the line above`;
+  `  the bodies passes this change was read by carry no whole body for ${missing.join(", ")}, and the `
+  + `read that would cover that cannot be taken: ${stuck.join(", ")} can be carried by no pass at all `
+  + `— empty, unreadable, or longer than the ${FILE_CHARS} characters one file may be sent as. No `
+  + `consult clears it, so this step names it rather than refusing a ship nothing would let through: `
+  + `the review answers for the rest of the set, and what it does not answer for is the line above`;
 
 /* A read of this change and not of a file it happens to name: the same question `outgrew` asks, and
    for the same reason — at a head the change had no paths at, a whole body is the old file. */
@@ -227,13 +227,14 @@ const shortSays = (tree, was, root, held, head) => {
   const best = coveredBy(tree, was, root, held, head);
   if (!best?.missing.length) return false;
   const last = best.group.at(-1);
-  const stuck = bundle(root, best.missing)
+  /* Recoverability is asked of the set the printed command would carry and not of the shortfall:
+     where the passes were taken at an earlier head, completing the cover means reading the whole
+     set again, and a file carried whole back then may be over the cap by now. */
+  const ask = last.head === head ? best.missing : held;
+  const stuck = bundle(root, ask)
     .filter((part) => part.missing || !(part.chars > 0) || part.chars > FILE_CHARS)
     .map((part) => part.rel);
-  if (!stuck.length) {
-    stop(shortOf(last.id ?? last.at, last.head, head, best.missing,
-      last.head === head ? best.missing : held));
-  }
+  if (!stuck.length) stop(shortOf(last.id ?? last.at, last.head, head, best.missing, ask));
   console.log(stuckOn(best.missing, stuck));
   return true;
 };

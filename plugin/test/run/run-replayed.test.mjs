@@ -524,6 +524,25 @@ for (const [what, short] of [
   });
 }
 
+/* The shortfall that is recoverable and the read that would recover it is not: the passes were taken
+   at an earlier head, so completing the cover means reading the whole set again, and a file they did
+   carry whole has grown past the cap since. Refusing here would name a command that cannot succeed. */
+test("a shortfall whose covering read cannot be taken names the file in the way and stops no ship", () => {
+  const { work, env } = clippedRead("read-short-then-grown", "the file the pass clipped\n");
+  writeFileSync(join(work, UNDER_REVIEW), `${"x".repeat(80_001)}\n`);
+  git(work, "add", UNDER_REVIEW);
+  git(work, "commit", "-m", "the read file, grown past what one pass carries");
+
+  const run = runIn(work, ["ship"], env);
+  assert.match(run.stdout, /step 4\/10 {2}rebase onto origin\/master/u,
+    `a refusal was raised that the command it prints could not clear:\n${run.stdout}${run.stderr}`);
+  assert.ok(run.stdout.includes(ADDED), `the file no pass carried is not named:\n${run.stdout}`);
+  assert.ok(run.stdout.includes(UNDER_REVIEW),
+    `the file that put the covering read out of reach is not named:\n${run.stdout}`);
+  assert.match(run.stdout, /the read that would cover that cannot be taken/u,
+    `the step named the files without saying which way it went:\n${run.stdout}`);
+});
+
 const NO_LOG = { ...BARE, XDG_CONFIG_HOME: tempRoom("run-replayed-no-log-") };
 
 test("a change no bodies pass has read at all is the absence this step has always reported", () => {
