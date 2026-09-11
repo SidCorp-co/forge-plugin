@@ -9,7 +9,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { tempRoom } from "../../fixtures.mjs";
-import { flowPolicyConflict } from "../../../src/flow/earned.mjs";
+import { flowJudgeConflict, flowPolicyConflict } from "../../../src/flow/earned.mjs";
+import { judgeOf } from "../../../src/guides/flow.mjs";
 
 const SRC = new URL("../../../src/", import.meta.url).pathname;
 
@@ -81,7 +82,7 @@ test("one persisted plan earns one entry-check verdict under two different flows
   assert.ok(held.length > 0, `testing owes nothing under this plan: ${JSON.stringify(base.owed)}`);
   assert.ok(held.some((one) => /screen/u.test(one)),
     `the declared screen change is what testing charges for: ${JSON.stringify(held)}`);
-  for (const keys of [{ flow: "erp-flow" }, { method: 1 }, {}]) {
+  for (const keys of [{ flow: "screen" }, { flow: "erp-flow" }, { method: 1 }, {}]) {
     assert.deepEqual(owed(keys).owed, base.owed,
       `the same plan and the same evidence under ${JSON.stringify(keys)}`);
   }
@@ -104,4 +105,25 @@ test("a flow requiring a look the release policy waives is a reported conflict, 
   assert.equal(flowPolicyConflict("erp-flow", ["deploy"], WAIVES), null,
     "and a declaration that asks for no look is no conflict with a policy that waives one");
   assert.equal(flowPolicyConflict("default", [], WAIVES), null, "which is the shipped flow's answer");
+});
+
+const JUDGED = { qa: "independent" };
+const BUILT = { qa: "builder" };
+
+/* The same shape for the other thing a flow may ask the project for. Who judges is one key, and a
+   flow that decided it a second time would be a precedence rule with nothing to settle it, so the
+   clash is reported against both sources and neither is rewritten (ISS-1088, 784e57 F2). */
+test("a flow asking for a judgement the project's key does not name is a reported conflict", () => {
+  const said = flowJudgeConflict("erp-flow", "independent", BUILT);
+  assert.match(said, /flow erp-flow asks for independent judgement between developed and testing/u);
+  assert.match(said, /this project's configuration says builder/u, "and the other source, in its own value");
+  assert.match(said, /change the flow, or the project's qa configuration/u, "and both ways out");
+  assert.match(flowJudgeConflict("erp-flow", "independent", {}), /says not stated/u,
+    "a project that has answered nothing is a conflict too, and is told which answer is missing");
+  assert.equal(flowJudgeConflict("erp-flow", "independent", JUDGED), null,
+    "a project whose key already says independent is refused a conflict it does not have");
+  assert.equal(flowJudgeConflict("default", judgeOf("default"), BUILT), null,
+    "and a flow that asks for no judgement reads the project's key not at all");
+  assert.equal(judgeOf("screen"), "independent",
+    "the shipped flow that asks for one, which is what makes the check reachable");
 });

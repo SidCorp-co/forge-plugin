@@ -12,10 +12,10 @@ kind of change owes as evidence and how to capture it: `forge guide issue-flow v
 record holds before either status is earned, and on which outcomes:
 `forge guide contract developed`, `forge guide contract testing`.
 
-**A change to a screen parks the issue for human review before Phase 7.** Where no login reaches the
-rendered state, what stands instead and the two verdict shapes it earns: `forge guide issue-flow
-verification`. A change that proves unshippable is an outcome: post the finding, leave the branch
-named, park the issue.
+**A change to a screen parks the issue for human review before Phase 7.** Nothing here judges one
+for you: the park is a person's look, and what stands as a verdict's evidence in the meantime is
+`forge guide issue-flow verification`. A change that proves unshippable is an outcome: post the
+finding, leave the branch named, park the issue.
 
 Something you found that belongs to another issue goes there with `forge comment -h`.
 

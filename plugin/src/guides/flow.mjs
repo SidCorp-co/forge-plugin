@@ -2,13 +2,20 @@
 import { flowScope, methodScope } from "../resolve/settings.mjs";
 
 export const DEFAULT = "default";
+export const SCREEN = "screen";
 
-/* Slugs, declared and never read off the tree, and nothing about what a flow holds: its directory is that, so a vanished one refuses rather than serving a shorter list. */
-export const FLOWS = { [DEFAULT]: { requires: [] } };
+/* Slugs, declared and never read off the tree, and nothing about what a flow holds: its directory is that, so a vanished one refuses rather than serving a shorter list. What a flow asks the project for sits beside the slug — `requires`, the plan declarations it wants answered `yes`, and `judge`, the judgement it wants — as plain values checked against the tables that own them where those are already in scope, this module being one every guide call loads. */
+export const FLOWS = {
+  [DEFAULT]: { requires: [] },
+  [SCREEN]: { requires: [], judge: "independent" },
+};
 
 export const FLOW_SLUGS = Object.keys(FLOWS);
 
 export const requiresOf = (flow, flows = FLOWS) => flows[flow]?.requires ?? [];
+
+/** The judgement this flow asks the project for, or null where it asks for none. It asks and never decides: who judges is the project's key, and a flow reading it a second time is a precedence rule with nothing to settle it. */
+export const judgeOf = (flow, flows = FLOWS) => flows[flow]?.judge ?? null;
 
 const RETIRED = 1;
 

@@ -28,6 +28,7 @@ const { DEFAULT } = await import("../../src/guides/flow.mjs");
 const { servedBody } = await import("../../src/guides/skill-guides.mjs");
 const { CHECKS, ORDER, deployedOwed, judgedOwed, viewFrom } = await import("../../src/flow/earned.mjs");
 const { PHASE } = await import("../../src/guides/phases.mjs");
+const { FLOW_SLUGS } = await import("../../src/guides/flow.mjs");
 const { LIGHTER, RUNGS, SPARES, complexityFor } = await import("../../src/ladder.mjs");
 const { rungReport } = await import("../../src/ladder-report.mjs");
 const { render } = await import("../../src/flow/record/page.mjs");
@@ -45,8 +46,9 @@ test("the contract is inside the plugin, at one path, and nothing else in the tr
   assert.ok(existsSync(contractPath()), `${contractPath()} is what every route now names`);
   const holding = TRACKED.filter((rel) =>
     readFileSync(join(ROOT, rel), "utf8").includes("## Two layers, one record"));
-  assert.deepEqual(holding, ["plugin/guides/contract/default/02-two-layers-one-record.md"],
-    "one source, and docs/ points at it");
+  /* One file per flow: a flow's directory is the whole of what it serves, so the part exists once under each and nowhere else. */
+  assert.deepEqual(holding, FLOW_SLUGS.map((flow) => `plugin/guides/contract/${flow}/02-two-layers-one-record.md`),
+    "one source per flow, each flow's own, and nothing outside the served trees holds it");
 });
 
 test("every status of the flow has a part, and the sections are the files' own headings", () => {

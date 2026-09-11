@@ -510,3 +510,38 @@ test("the report mints no session id to have one to report", () => {
   assert.match(run.stdout, /mints it and saves it at/, "and says which verb would, and where");
   assert.equal(existsSync(join(home, "forge", "session.json")), false, "and the report wrote none");
 });
+
+/* Two sources answer "who judges": the flow asks, the project's key decides. The report says they
+   disagree and changes neither — ISS-1088, and `flowJudgeConflict`'s own case carries the wording. */
+test("a flow asking for a judge the project's configuration does not name is a miss, and nothing is rewritten", async () => {
+  const pinned = JSON.stringify({ slug: "release-fixture", flow: "screen" });
+  const { out, status } = await whole(
+    { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true, qa: "builder" } },
+    { project: { ".forge.json": pinned } },
+  );
+  assert.match(out, /\[ miss \] flow\s+flow screen asks for independent judgement/u,
+    "the conflict is a miss and names the flow that asked");
+  assert.match(out, /this project's configuration says builder/u, "beside the key that answered otherwise");
+  assert.match(out, /change the flow, or the project's qa configuration/u, "and both ways out");
+  assert.equal(status, 1, "a report holding a miss exits on it");
+  assert.match(out, /\[ {2}ok {2}\] flow\s+screen {2}← \.forge\.json/u,
+    "and the key itself is still read and reported as the project's own");
+});
+
+test("a project whose configuration names the judgement its flow asks for earns no conflict", async () => {
+  const { out } = await whole(
+    { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true, qa: "independent" } },
+    { project: { ".forge.json": JSON.stringify({ slug: "release-fixture", flow: "screen" }) } },
+  );
+  assert.doesNotMatch(out, /\[ miss \] flow/u, "the two sources agree, so there is nothing to report");
+  assert.match(out, /independent judgement\s+independent between developed/u, "and the key is reported as it stands");
+});
+
+/* One line per flow this copy serves: the set a project chooses between is visible where it is
+   chosen, and a flow accidentally without a part is what the line catches (ISS-1088). */
+test("the contract each flow serves is reported, one line per flow", () => {
+  const out = report(null);
+  assert.match(out, /\[ {2}ok {2}\] flow set\s+default: \d+ part\(s\)/u);
+  assert.match(out, /\[ {2}ok {2}\] flow set\s+screen: \d+ part\(s\)/u,
+    "the second flow's set is not reported, so a project choosing it chooses blind");
+});

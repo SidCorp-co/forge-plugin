@@ -73,31 +73,6 @@ part file to write instead, because two routes for one axis is a precedence rule
 decide it. What stays a fence is a fact orthogonal to the flow that belongs inside a part — the
 machine's ship mode, the project's feedback channel; [the parts](the-parts.md) carries the fence.
 
-## What a flow may not decide
-
-A flow sets which declarations a plan is *required* to make. It does not set what a rung demands: the
-entry checks are one code set, so a UI flow can require `screen` of every plan while the
-screen-evidence refusal stays the single place that charges for it.
-
-**The declaration vocabulary itself is global**, and a flow may neither add a name nor remove one.
-The reason is where the flags are read from: they are parsed out of the issue's *persisted plan text*
-with no flow as an input, so a plan's declaration means the same thing forever. Let a flow own the
-vocabulary and a plan reading `screen change: yes` parses to nothing under a flow whose table lacks
-`screen` — changing a project's flow would retroactively reinterpret every plan already written, with
-no check firing. A case holds the same persisted plan and the same evidence to the same verdict under
-two different flows.
-
-A flow requiring a person's look on a project whose release policy waives it is **refused, not
-reconciled**: the declaration would promise a look nobody takes, and `forge doctor` reports the
-conflict beside the release-policy one it already reports. No precedence rule between the two sources
-is introduced, because there is none to introduce.
-
-The record-contract identity stays separate. One number stamps records and is compared against what
-a served text declares; neither is derived from the flow, and nothing here diverges what a rung
-demands, so no record becomes ambiguous. The pin is also one value for the whole set rather than a
-per-skill map: the method and the contract are co-designed, and a project mixing them runs text
-nobody tested.
-
 ## What the checker holds, and why only two findings are left
 
 Two findings, each on a planted flow rather than the shipped one, and both about a slug:

@@ -20,7 +20,7 @@ import { judgeAsk, judgeProblems, numbered } from "./qa/verdicts.mjs";
 import { criteriaLines } from "./record/record.mjs";
 import { assemble, parse } from "./record/page.mjs";
 import { CONTRACT } from "../guides/contract.mjs";
-import { waitsForPerson } from "../tracker/project-config.mjs";
+import { judgementOf, waitsForPerson } from "../tracker/project-config.mjs";
 
 /* The contract's flow table in its own order: the sequence is the rule, so listing it is the point. */
 export const ORDER = [
@@ -128,7 +128,7 @@ export const nextOf = (status, view) =>
 export const personLooks = (flags, policy = null) =>
   (policy && !waitsForPerson(policy) ? null : looksTo(flags));
 
-/** Refused rather than reconciled, there being no precedence rule between the two sources to introduce: a flow requiring a look this project's release policy waives promises one nobody takes. */
+/** Reported rather than reconciled, there being no precedence rule between the two sources to introduce: a flow requiring a look this project's release policy waives promises one nobody takes. */
 export const flowPolicyConflict = (flow, requires, policy) => {
   const flags = Object.fromEntries(requires.map((one) => [one, "yes"]));
   const asks = looksTo(flags);
@@ -136,6 +136,16 @@ export const flowPolicyConflict = (flow, requires, policy) => {
   return `flow ${flow} requires ${asks} of every plan and this project's release policy waives a`
     + " person's look, so the declaration promises a look nobody takes: change the flow, or the"
     + " project's release policy";
+};
+
+/** The same shape for the other thing a flow may ask a project for: two answers to one question are reported over both sources, because a precedence rule between them is one nobody could read off either. */
+export const flowJudgeConflict = (flow, judge, policy) => {
+  if (!judge) return null;
+  const held = judgementOf(policy);
+  if (held === judge) return null;
+  return `flow ${flow} asks for ${judge} judgement between developed and testing, and this project's`
+    + ` configuration says ${held}, so the method dispatches a judge whose verdicts the rung does not`
+    + " ask for: change the flow, or the project's qa configuration";
 };
 
 /* What the corrections on a record say moved, for the rung and for `namedIn`, which are its only readers. `correction` repeats since ISS-11, so `assemble` has already filed every one of them off the parse it made, and the hand parse of `view.comments` this replaced was a second parse for one answer (ISS-161, ISS-847). Whole payloads only: a comment carrying `moved` and no `why` reaches the page through any client no gate sits before, and it is no correction — read as a climb it would un-lighten an issue on a payload nothing wrote, and read as a path named it would excuse a landing that wrote one. The report counts what is on the page rather than what is a correction, which is a different question and stays `record.mjs`'s. */

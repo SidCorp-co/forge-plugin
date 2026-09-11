@@ -5,7 +5,8 @@
    docs/cli/record-the-rung.md. */
 import { refuse } from "../../refusal.mjs";
 import { citationsChecked, criteriaChecked } from "../../spec/checked.mjs";
-import { SECTIONS, compoundCriteria, planFlags, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited } from "../machine.mjs";
+import { SECTIONS, compoundCriteria, declaredAs, planFlags, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited } from "../machine.mjs";
+import { flowPinned, requiresOf } from "../../guides/flow.mjs";
 import { translateTo } from "../../resolve/settings.mjs";
 import { readOrRefuse } from "../../codex/codex-read.mjs";
 import { bodyFrom } from "../../resolve/payload.mjs";
@@ -67,6 +68,20 @@ export const noteFrom = (argv) => {
   return { section: rest.section, userFacing: rest.user, technical: rest.technical ?? null };
 };
 
+/** Why this plan does not answer what its flow requires, or null where it does. Read here and at no rung, so one persisted plan means the same thing under either flow; satisfied by `yes` alone, the reading `flowPolicyConflict` gives the same list; and taking its flow and its list, so a case proves it on a planted flow. */
+export const requiresRefusal = (flow, declared, requires = requiresOf(flow)) => {
+  const short = flow === null ? [] : requires.filter((key) => declared[key] !== "yes");
+  if (!short.length) return null;
+  const names = declaredAs(short);
+  return [
+    `Flow ${flow} requires ${names.join(" and ")} of every plan, and this one does not, so nothing`
+      + " was written:",
+    ...names.map((name) => `  ${name}: yes`),
+    "Write each of those under `## Declarations`, or run a flow that does not require it —"
+      + " `forge doctor` names where this one is set.",
+  ].join("\n");
+};
+
 /* Every shape rule of a typed plan, before the field is written. A plan carrying no section at all
    is the free text this verb has always stored, so its shape is nobody's here to judge and what it
    owes is `approved`'s to say — which is what keeps a plan already on the tracker writable. */
@@ -88,6 +103,8 @@ const planChecked = (plan) => {
       "Each opens on a heading whose text is the name and nothing else. What each answers: `forge record plan -h`.",
     ].join("\n"));
   }
+  const said = requiresRefusal(flowPinned().value, declared);
+  if (said) refuse(said);
   const bare = stepsUncited(planSteps(plan));
   if (bare.length) {
     refuse([

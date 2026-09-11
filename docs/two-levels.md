@@ -46,9 +46,11 @@ project's, in its own `.forge.json`, because none of them can be stated without 
   What it gives up by turning the plugin channel off is real and is the project's to choose: six
   causes reached this plugin's backlog through that channel over one review window, and a project set
   to `off` meets those defects and records them only in a run's report.
-- **`method`** — which version of the served text this project runs. Projects are independent: two on
-  one machine may run two versions, a run reads the version of the checkout it stands in, and a
-  method change rolls out when the project chooses rather than when the plugin releases.
+- **`flow`** — which flow's text this project is served, `default` for a project with no screen and
+  `screen` for one whose change a person looks at. Projects are independent: two on one machine may
+  run two flows, a run reads the flow of the checkout it stands in, and a project moves between them
+  when it chooses rather than when the plugin releases. The retired `method` and what still answers
+  for it: [the flow axis](cli/the-flow-axis.md).
 - **`landing`** — where the merge sits, as an override of what the tracker's own record already
   implies. The route itself is derived and not asked for twice.
 

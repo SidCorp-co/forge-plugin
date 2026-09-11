@@ -1,0 +1,189 @@
+# Proving a change, and capturing the evidence
+
+## Before you edit
+
+Read the **baseline** Phase 0 started in the background, then record it with what already fails and
+whether the run measured the whole tree. Whether it was whole is the baseline record's own field, and
+`in_progress` refuses one saying it was not, so that demand is the entry check's rather than this
+page's.
+
+**At any rung the baseline may cite a run rather than be one, where a ship published one for the
+commit you are standing at.** A ship publishes the whole-tree result for the head it releases, and
+that record is the only thing a citation may rest on: the write is refused where nothing is
+published for the commit it names, so a citation for some other commit is not a cheap path but a
+wrong one. You are told rather than left to know — `forge advance <ref> --owed` looks that store up
+on the very head the write would stamp, and either prints the write that cites it or says nothing is
+published for that head and names the fresh run. Take the command it prints: the published result
+carries what already fails, and a run retyping that field from memory attributes an inherited
+failure to itself. The write stamps that head only where nothing in the checkout is uncommitted,
+which is why the baseline is recorded before the first edit rather than after it — the entry check
+takes the citation only where the stamped head is the commit cited.
+
+What the check cannot judge is yours. **A gate that stops at its first failure has measured only what
+ran**: one red at the front leaves every step behind it unknown, so run the remaining steps by hand
+and record what each answered before calling the run whole. A baseline that cannot be obtained at all
+is said rather than assumed green — without one a pre-existing red is indistinguishable from your
+regression.
+
+**The gate is spent once per unit of work.** The baseline above is the only whole run the work owes;
+after it, one scoped run when a unit of work is finished — a change that stands on its own, never
+each edit inside one — and in between the changed file's own suite, which answers one question
+faster than any gate reaches it. The ship spends the gate itself, so the release's gate is
+that run and there is nothing left to spend after the push. Below the top rung even the run per unit
+goes: the ship's is the one the clean path spends, and `forge advance <ref> --owed` is what says so
+for the issue in hand. A gate too slow to spend once a unit is
+the gate's defect and the gate-review skill is the route to it, never a reason to spend it less often.
+Whichever of those runs, it is started in the background and what is read afterwards is the gate's
+own verdict rather than its log. Where the project's gate has a call that waits for that verdict,
+that one call is the whole of the wait and the answer both, and the gate's own `-h` names it. A
+completion notice is not that answer: it says a process ended, and a run holding a log with no
+verdict in it cannot tell a gate still running from one that died at a step or one that never
+started — three states, one silence, and a run that waits on the notice for the second or the third
+waits for something nothing will send. Where the gate writes no verdict at all, the log is read when
+the notice arrives and never before, and the verdict it does not write is the project's own defect to
+file.
+
+## The order
+
+1. **The repo's own gates.** Whatever the project defines. Passing them is the floor.
+2. **Schema and deployment coupling, if the change has any.** Establish how a migration
+   reaches the deployed environment before the merge — an entrypoint that migrates at boot
+   means merging *is* a schema change. Then classify it, statement by statement, by what
+   deploying it does to rows that already exist and to readers already running: **additive**
+   where both come through untouched and the old code still works, **tightening** where an
+   existing row or an older writer can violate what the statement now demands, **destructive**
+   where it discards a value that running the migration backwards does not put back. Only the
+   last of those stops the pipeline. Test reversibility only where the project's migration
+   system supports it and only against a disposable database.
+3. **Blast radius.** Grep for what you changed — the renamed symbol, the removed field, the
+   altered response shape. Nothing asserts what nothing covers. **That grep is blind to a
+   change of provenance**: where every identifier stays and only who assigns the value moved,
+   the code still reading the old convention mentions no line of the diff, and the sweep comes
+   back clean. Cover that case by hand: take the identifiers the diff touches, drop the ones
+   the whole tree uses, and list the files outside the diff that share what is left, the most
+   shared first. That list is a reading list and not findings — say, of the top entries,
+   whether the change alters what each one reads.
+4. **Proof suited to what you changed** (below).
+5. **Look at the result.** The only step with no substitute.
+
+**An item that names something this project does not have is skipped, and the skip is
+said.** A library has no deployment; a CLI has no screen. Silence about a skipped step
+reads as a step that passed.
+
+## One run of the evidence, at the head Phase 4's last two steps left
+
+Run it once, at that head, and attach it once. A suite re-run per criterion proves nothing the first
+run did not. The verdicts go up together, all criteria in a single record (`forge record verdict -h`),
+and the suite runs again only for a criterion whose evidence is its own.
+
+## What each kind of change owes as evidence
+
+| Changed | Proof |
+|---|---|
+| A screen | the rendered state, driven — including empty, loading and error, and attached: `testing` refuses a verdict under a declared screen change whose evidence holds no attachment |
+| An API | request and response, plus the side effect it claims |
+| A CLI | the invocation and its output, including a non-zero exit |
+| A library | a consumer exercising it, not a unit test of its internals |
+| A batch or data job | fixture in, resulting records out |
+| Generated output | the artefact opened, not the generator's exit code |
+| Infrastructure | the plan, and a validation against a real environment |
+
+## What the judge writes before it maps a criterion
+
+A judge that starts from the criteria re-reads the list the run wrote, and a change that answers
+every line on it can still lose the person using it. So the first thing written is a charter, and it
+is written before any observation is mapped to a criterion: the role being played, the task being
+attempted, the state it starts from, the result it intends, and the short trace of acts and outcomes
+it took. It covers the screen the journey enters by and the one it leaves by, one interruption or
+recovery — the lapsed session, the second submit, the back button — and one alternate state or role.
+Only then are the observations read against the criteria.
+
+The case that says the ordering earns its place: every criterion answers, and returning to an
+unchanged list loses the work the person just did. A charter written first meets that; a walk down
+the path that works does not. What a charter is not: a redesign nobody asked for, a requirement
+nobody stated, or a destructive act taken on a live system to see what happens.
+
+## Which finding blocks, and where the others go
+
+A finding blocks where it demonstrates material harm to a task the change is meant to support — the
+task cannot be completed, its result is materially wrong, work is lost, or an accessibility barrier
+stands with no reasonable way round it. It carries the steps that reproduce it, the behaviour
+expected and what that expectation rests on — the task, or a rule of the product, and never taste —
+the harm observed, and the deployment identity it was seen at.
+
+Everything else is written and holds nothing. A preference about a layout no harm was demonstrated
+from, and a defect that was there before this change, are each an issue of their own rather than
+this one's to answer: they go to the backlog in the shape `forge new -h` prints, and the rung they
+were met at moves on the verdicts.
+
+## When no login reaches the rendered state
+
+Phase 0 read the credential line and Phase 2 asked; the answer has not come, or there is none to
+give. The run is not stopped and the issue is not parked for it — a missing credential is a
+qualification on the record, not a reason to set the work down.
+
+What still stands. The deployed build, identified by the routes it answers and the version it
+reports, says which commit is serving and nothing about what that commit draws, so it never carries
+a rendered-state criterion by itself. A render of the same screen taken where no login is needed —
+locally against the released commit, or on a route of the deployed host that does not authenticate —
+is the thing a person can look at, and it is what a criterion is judged on.
+
+Two verdict shapes get past `testing` under a declared screen change, and routing evidence alone is
+neither of them:
+
+- **`skipped`, with the reason in `--why`.** For a criterion no available route reaches. A skip owes
+  no evidence at all, so it owes no attachment either, and `--why` names the credential that is
+  missing rather than the symptom it produced.
+- **`pass`, citing an attachment, with the missing credential in `--why`.** For a criterion another
+  route renders. The attachment has to show the state that criterion is about — a render of some
+  other screen clears the check and proves nothing, which is worse than a skip because it reads as
+  judged — and `--why` says which host the image is not from.
+
+Anything else is refused: the check reads a verdict under a declared screen change and wants an
+attachment this issue carries on every one that is not skipped, so a redirect, a pair of answering
+routes and a version number earn no verdict at all.
+
+## Standing up something to run against
+
+**If the project has its own stack tooling, that tooling is the mechanism** — including
+when it says the servers are shared and starting your own is the defect. Build a separate
+stack only where the project has not decided, and then keep every port it owns out of the
+range the user's stack owns.
+
+- **A stack script may override outer environment variables.** Exporting a variable before
+  calling it does nothing if the script sets its own inside the process it spawns; the
+  override belongs inside the invocation the script actually executes.
+- **Start background processes from the directory their dependencies resolve against.** A
+  module-not-found from a background process is usually the working directory.
+- **Wait for long work, never poll it.** The routes that ask nothing, and what asking again costs:
+  `forge hooks --how polling`.
+- **After stopping anything, confirm the user's own stack still answers** — no guard can tell you
+  that you aimed correctly.
+
+## When a symptom's cause is the environment
+
+Some failures report their consequence and never their cause. Two that recur, as examples
+of the class rather than as a checklist:
+
+- A wait for network idle that never settles, because a development server holds a
+  hot-reload connection open. Wait for the document plus an explicit pause.
+- A click that times out because the API refused the request's origin. The browser reports
+  a missing element; the cause is a CORS configuration pointing at a different port.
+
+When a symptom makes no sense against the code you changed, suspect the environment before
+suspecting the selector.
+
+## Screenshots
+
+Take them from a **production build** where the project can produce one locally:
+development overlays and error badges land in the image and make a correct change look
+broken. Where it cannot, say which build produced the image.
+
+Screenshot the state a user reaches — create the data the screen needs, and remove it
+afterwards. If seeding advanced a counter or a sequence, restore it; if the store was
+disposable, destroy it wholesale instead, which is safer than editing a counter back.
+
+It belongs on the issue with the QA report that cites it, uploaded rather than pasted through
+context — `forge -h` names the verb. A verdict citing no attachment under a declared screen change
+is refused at `testing`, so the rule is the entry check's; what no check can judge is whether the
+image shows the state a reader needs, which is what the paragraphs above are for.

@@ -12,7 +12,8 @@ how many topics there may be.
 | [the way in](cli/the-way-in.md) | Why `-h` is intercepted before the verb, answers on stdout, and carries the tracker's write-time rules in the binary. |
 | [what the projections leave out](cli/the-projections.md) | Which fields the browse and issue projections drop, and why no local copy of a server-published name is kept. |
 | [the guides](cli/the-guides.md) | Why seven of the twelve guides the tracker serves are withheld, and what the disposition table still decides. |
-| [the flow axis](cli/the-flow-axis.md) | Why the axis over served text is a flow slug rather than a version number, what a flow may override, and what it may not decide. |
+| [the flow axis](cli/the-flow-axis.md) | Why the axis over served text is a flow slug rather than a version number, and why a flow's directory is the whole of what it serves. |
+| [what a flow asks for](cli/what-a-flow-asks-for.md) | The flows this copy serves, what a flow may require of a plan and ask of a project, and what it may not decide. |
 | [the parts](cli/the-parts.md) | How a block one project loses is fenced once, why the fence is a comment, and why a phase is addressed by its number. |
 | [`new`](cli/new.md) | What a body is read against before the tracker sees it, the value a filing nobody ranked carries, and why the rung is the `complexity` field alone. |
 | [`the-kinds`](cli/the-kinds.md) | Why a filing names a category, what the four are, which sections each owes, and why both words are the tracker's. |

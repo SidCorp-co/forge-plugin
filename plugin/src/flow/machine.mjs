@@ -326,6 +326,8 @@ export const sectionsOwed = (plan, flags = {}) => {
     .map((one) => one.name);
 };
 
+export const declaredAs = (keys) => keys.map((key) => DECLARED[key] ?? key);
+
 export const sectionOwedBy = (name, flags = {}) =>
   (PLAN_SECTIONS.find((one) => one.name === name)?.owed ?? [])
     .filter((key) => flags[key] === "yes")
