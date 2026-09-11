@@ -2,7 +2,9 @@
    a phase is the work owed *at* a status and an entry check guards the way *into* one, so the phase
    at a rung answers to the rung above. docs/cli/resume.md. */
 import { ORDER, stepAfter } from "../flow/earned.mjs";
-import { CLOSES_FROM } from "../flow/machine.mjs";
+import { CLOSES_FROM, atMinute } from "../flow/machine.mjs";
+import { POINTER } from "../flow/worklog.mjs";
+import { shortSha } from "../tracker/evidence.mjs";
 import { lighterRows, rungOf } from "../ladder.mjs";
 
 /* The method's phases, numbered as the guide numbers them and indexed by that number. The one table: the flow table below builds its phrases from it and the transcript miner counts a run's calls against it, so phase 5 is one phase rather than two that shared a number and meant "prove" in one reading and "ship" in the other (ISS-700, BR-09). */
@@ -119,18 +121,64 @@ export const phaseIndex = ({ status, fields, held }) => {
   };
 };
 
+/* Each clause says the reading and stops there. The base is the merge-base the capture measured, so equal to the head it means the branch had nothing of its own then — a branch just cut and a branch just merged both — and the tense is the capture's, this being two saved values and no reading of a default branch that may have moved since (consult ecf127 F2, 6f36f2 F1). docs/cli/the-work.md. */
+const headSaid = (work) => {
+  if (!work.base) return `at ${shortSha(work.head)}`;
+  return work.base === work.head
+    ? `at ${shortSha(work.head)}, its own base at that reading, so nothing of its own on it`
+    : `at ${shortSha(work.head)}, cut from ${shortSha(work.base)}`;
+};
+
+/* One phrase per pointer field, so a field added to `POINTER` fails here rather than going unprinted; `base` has none of its own, the head's clause being where a base is a fact. */
+const SAID = {
+  branch: (work) => work.branch,
+  head: headSaid,
+  base: () => null,
+  at: (work) => `captured ${atMinute(work.at)}`,
+};
+
+const reachSaid = (reach) => {
+  if (!reach) return null;
+  if (!reach.here) {
+    return "no checkout here holds that commit. Fetch, and start this phase over if it does not arrive.";
+  }
+  /* Both arms qualified, a remote-tracking ref being a reading of the last fetch and not of the remote: a force-push since leaves the first stale, a push from elsewhere leaves the second, and neither arm may say where the work is — only what this checkout has seen of it (consults 34d2ee F2, ecf127 F1). */
+  return reach.remote
+    ? `this checkout holds that commit, and ${reach.remote} carried it as of the last fetch here.`
+    : "this checkout holds that commit, and no remote-tracking ref here contains it as of the last "
+      + "fetch, so nothing seen from here would survive losing this machine.";
+};
+
+const LEAD = "work: ";
+
+/** The work the last run left, in the one place a reader of either verb meets it. docs/cli/the-work.md. */
+export const workLines = (work) => {
+  if (!work?.branch) return [];
+  const said = POINTER.map((name) => (work[name] ? SAID[name](work) : null)).filter(Boolean);
+  const reach = reachSaid(work.reach);
+  return [
+    `${LEAD}${said.join(", ")}`,
+    ...(reach ? [`${" ".repeat(LEAD.length)}${reach}`] : []),
+  ];
+};
+
 export const READ_OFF_THE_RECORD =
   "Start at the phase owed. The phases before it are read off the record and not run again — each"
   + " one below names the record that discharged it.";
 
 /** The opening on an issue somebody else opened: one line per phase behind, none where none is, and one renderer for `resume` and `claim` both (ISS-804, BR-09). docs/cli/resume.md. */
-export const openingLines = (status, held) => {
+/* And the work under the record, gated on a phase being owed — a closed issue's branch is nobody's next step — and on the branch, so a phase owed with nothing behind it reads exactly as it did (ISS-1183). */
+export const openingLines = (status, held, work = null) => {
   const { passed, first } = behind(status, held);
   const earned = first ? passed.filter((one) => one.cites) : [];
-  return earned.length
+  const lines = earned.length
     ? [READ_OFF_THE_RECORD, ...earned.map((one) => `  passed: ${one.phase}  —  ${one.cites}`)]
     : [];
+  return first ? [...lines, ...workLines(work).map((one) => `  ${one}`)] : lines;
 };
+
+/** Whether the opening is where the pointer is printed at this status, so the block below it renders what the opening left to nobody rather than a fact going unsaid (ISS-1183). */
+export const opensWork = (status, held) => Boolean(behind(status, held).first);
 
 /* The lane: every status from this one on, and the payloads each is earned by at this rung, read off the two tables and never off the record — so a status it says owes nothing is one the rung leaves no payload to write rather than one whose payload happens to be on the page, which is the distinction ISS-810 defers. A route is not a shortfall. docs/cli/the-ladder.md. */
 export const laneOf = ({ status, fields }) => {

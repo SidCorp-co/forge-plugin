@@ -25,7 +25,9 @@ const mark = (note) => comment(`mark_merged target=base — ${note}`);
 
 const CRITERIA = "1. The first outcome.\n2. The second outcome.";
 const ATTACHED = [{ name: "run.txt" }];
-const view = (issue, comments = []) => viewFrom("the-uuid", issue, comments);
+/* Every issue reaching `in_progress` is built on a branch now, so a fixture short of one would refuse each case below for the thing none of them is about. */
+const BUILT = { sessionContext: { worklog: { branch: "iss-3-the-work" } } };
+const view = (issue, comments = []) => viewFrom("the-uuid", { ...BUILT, ...issue }, comments);
 const missing = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item.what);
 /* Each half of the one rung after `developed` is asked on its own, a case about the verdicts having no business answering for a verification (ISS-1022). */
 const judging = (one) => judgedOwed(one, "ISS-3").map((item) => item.what);
@@ -104,6 +106,25 @@ test("a citation waives no payload, so a rung with no baseline at all is still r
     const none = missing("in_progress", view({ complexity }, []));
     assert.ok(none.some((one) => /^no baseline/u.test(one)),
       `a rung claimed by \`${complexity}\` reaches in_progress with no baseline record on it`);
+  }
+});
+
+/* Two runs built one rename because `owed` is the same word for nothing started and a change staged and blocked. Read off the worklog, so this opens no tree either (ISS-1183). */
+test("in_progress owes the branch the change is built on, and the refusal names the capture", () => {
+  const ran = [recorded("baseline", { gate: "npm run check", result: "354 pass", commit: "43b811e", scope: "whole" })];
+  const bare = CHECKS.in_progress(viewFrom("the-uuid", { sessionContext: {} }, ran), "ISS-3");
+  assert.equal(bare.length, 1, JSON.stringify(bare));
+  assert.match(bare[0].what, /worklog names no branch/u);
+  assert.match(bare[0].command, /^forge claim ISS-3 --pushed/u, "and the capture that supplies one");
+  assert.match(bare[0].command, /checkout the branch is cut in/u, "read where the branch is");
+  assert.deepEqual(missing("in_progress", view({}, ran)), [], "and a worklog naming one owes nothing");
+  const headless = viewFrom("the-uuid", { sessionContext: { worklog: { head: "43b811e" } } }, ran);
+  assert.deepEqual(CHECKS.in_progress(headless, "ISS-3").map((one) => one.what), [bare[0].what],
+    "a worklog with facts in it and no branch among them is no branch, not a branch unread");
+  for (const complexity of ["xs", "s", "m"]) {
+    const at = viewFrom("the-uuid", { complexity, sessionContext: {} }, ran);
+    assert.equal(CHECKS.in_progress(at, "ISS-3").length, 1,
+      `${complexity} is owed the branch too: a tree the record cannot name is no judgement repeated`);
   }
 });
 

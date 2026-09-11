@@ -6,7 +6,7 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { tempHome, tempRoom } from "../../fixtures.mjs";
@@ -16,8 +16,10 @@ process.env.XDG_CONFIG_HOME = HOME.path;
 process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const {
-  KEY, OPEN_KEPT, capturedLine, gitNow, merged, owedOn, patchFrom, worklogFor, worklogLines, worklogOf,
+  KEY, OPEN_KEPT, POINTER, capturedLine, gitNow, merged, owedOn, patchFrom, reachOf, workNow,
+  worklogFor, worklogLines, worklogOf,
 } = await import("../../../src/flow/worklog.mjs");
+const { workLines } = await import("../../../src/guides/phases.mjs");
 const { claimed, leaseOf } = await import("../../../src/flow/lease.mjs");
 const { recheckOwed, recheckPlan } = await import("../../../src/codex/codex-log.mjs");
 
@@ -125,15 +127,12 @@ test("the git block is what git said when it was asked, with the time it was ask
 test("a patch is built only from what was asked for, and nothing else is invented", () => {
   assert.equal(patchFrom({}), null, "a write that captures nothing writes no block");
   assert.deepEqual(patchFrom({ open: ["a dead end"] }), { open: ["a dead end"] });
-  /* A branch ahead of its base is captured whole; a head that is its own base writes no block. */
+  /* Whatever git said, diff or none: a branch is at its own base the moment it is cut (ISS-1183). */
   const now = gitNow();
   const block = patchFrom({ pushed: true });
-  if (now.touched && now.base && now.base !== now.head) {
-    assert.ok(block.head, "--pushed is the git block");
-    assert.equal(block.review, undefined, "and says nothing about the review");
-  } else {
-    assert.equal(block, null, "a capture that captures nothing writes no block");
-  }
+  assert.equal(block.branch, now.branch, "--pushed is the git block");
+  assert.ok(block.head, "and the head it stands at, diff or none");
+  assert.equal(block.review, undefined, "and says nothing about the review");
 });
 
 /* Which pass the last word was is not the reading: a clean diff round and a clean whole-set one both
@@ -169,13 +168,106 @@ test("the owed line names a recheck only where `consult --recheck` would take on
 });
 
 test("the block prints one line per fact, and a fact nobody wrote is left out", () => {
-  const said = worklogLines({ branch: "b", head: "h", review: { consult: "abc123", recheck: true, findings: 0, owed: "clean" } }, "the step");
-  assert.deepEqual(said.map((one) => one.split(/\s{2,}/u)[0]), ["next", "branch", "head", "review"]);
+  const said = worklogLines({ branch: "b", head: "h", touched: "one.mjs", review: { consult: "abc123", recheck: true, findings: 0, owed: "clean" } }, "the step");
+  assert.deepEqual(said.map((one) => one.split(/\s{2,}/u)[0]), ["next", "touched", "review"]);
   assert.match(said.at(-1), /consult abc123, recheck, 0 finding\(s\), clean/u);
   assert.deepEqual(worklogLines(null, null), [], "an issue with no worklog and no line prints no section");
   assert.deepEqual(worklogLines(null, "the step"), ["next        the step"], "the line alone is a worklog of one fact");
-  assert.ok(!worklogLines({ branch: "b" }, null).some((one) => /touched|captured|review/u.test(one)),
+  assert.ok(!worklogLines({ touched: "one.mjs" }, null).some((one) => /copy|review/u.test(one)),
     "and absence is absence rather than an empty label");
+});
+
+/* One fact, one reader: a branch that read one way under the phase owed and another in the block below is the drift the shared opening exists to stop (ISS-804, ISS-1183). */
+test("the pointer is the opening's and the block prints none of it", () => {
+  const whole = {
+    branch: "iss-1183-work", head: "a9288a6fd11", base: "4e41dfd881e", at: "2026-09-03T15:00:00.000Z",
+    touched: "one.mjs", copy: "forge 3.35.12", review: { consult: "abc123", recheck: false, findings: 0, owed: "clean" },
+    open: ["a dead end"],
+  };
+  const block = worklogLines(whole, "the step").join("\n");
+  for (const name of POINTER) {
+    assert.equal(block.includes(String(whole[name])), false, `the block prints ${name}, which the opening carries`);
+  }
+  const opening = workLines(whole).join("\n");
+  for (const [name, value] of [["touched", whole.touched], ["copy", whole.copy], ["open", whole.open[0]]]) {
+    assert.equal(opening.includes(String(value)), false, `the opening prints ${name}, which the block carries`);
+  }
+  assert.match(opening, /iss-1183-work/u, "and the branch is on the opening, which is the point of it");
+});
+
+/* Two readings: whether the reader can carry the work on, and whether the work is on one machine. A commit this checkout cannot resolve is not one that is gone (ISS-1183, consult c72ec8 F1). */
+test("the opening says what can be reached of the head, and never asks a remote", () => {
+  const held = { branch: "iss-1183-work", head: "a9288a6fd11", base: "4e41dfd881e", at: "2026-09-03T15:00:00.000Z" };
+  const said = (reach) => workLines({ ...held, reach }).join("\n");
+  assert.match(said({ here: false, remote: null }), /no checkout here holds that commit/u);
+  assert.match(said({ here: false, remote: null }), /Fetch, and start this phase over/u);
+  assert.match(said({ here: true, remote: null }),
+    /no remote-tracking ref here contains it as of the last fetch, so nothing seen from here would survive losing this machine/u);
+  assert.match(said({ here: true, remote: "origin/master" }), /origin\/master carried it as of the last fetch here/u);
+  /* Both arms qualified: a remote-tracking ref is the last fetch and not the remote (consult 34d2ee F2). */
+  for (const remote of [null, "origin/master"]) {
+    assert.match(said({ here: true, remote }), /fetch/u, `the ${remote ? "carried" : "uncarried"} arm claims the remote's own word`);
+  }
+  assert.equal(/holds that commit|Fetch/u.test(said(null)), false, "no checkout to read is no sentence at all");
+  assert.match(said(null), /a9288a6, cut from 4e41dfd/u, "and the pointer stands without one");
+  assert.deepEqual(workLines({ ...held, branch: null }), [], "a worklog naming no branch prints nothing");
+  assert.deepEqual(workLines(null), [], "and neither does no worklog");
+  /* Two saved values equal, which a branch just cut and a branch just merged both reach: the clause
+     says that reading in the capture's own tense and infers no history from it (ecf127 F2, 4c000a F1). */
+  const flat = workLines({ ...held, base: held.head }).join("\n");
+  assert.match(flat, /its own base at that reading, so nothing of its own on it/u);
+  assert.equal(/nothing committed|does not already carry|no commit/u.test(flat), false,
+    "no history inferred, and nothing claimed of a default branch this never read");
+});
+
+test("the reachability of a head is read off this checkout and off no network", () => {
+  const was = process.cwd();
+  try {
+    process.chdir(pushedRepo());
+    const now = gitNow();
+    const here = reachOf({ head: now.head });
+    assert.equal(here.here, true, "the head this checkout stands on is one it holds");
+    assert.equal(here.remote, null, "and the commit past the push is on no remote ref here");
+    assert.equal(reachOf({ head: now.base }).remote, "origin/master", "the pushed one is");
+    assert.deepEqual(reachOf({ head: "0".repeat(40) }), { here: false, remote: null });
+    assert.equal(reachOf({}), null, "a worklog with no head is nothing to read");
+    assert.equal(workNow({ head: now.head }), null, "and a worklog with no branch is nothing to print");
+    assert.equal(workNow({ branch: "b", head: now.head }).reach.here, true);
+    process.chdir(tempRoom("no-checkout-"));
+    assert.equal(reachOf({ head: "0".repeat(40) }), null, "outside a checkout nothing is claimed");
+  } finally {
+    process.chdir(was);
+  }
+});
+
+/* A full clone answers this either way, so the promise is watched at git's own door: what the reads
+   carry, not what this fixture's remote holds. A partial clone is where it bites (consults c88e14 F2, 4cfdcd F1). */
+test("no reachability read is one git may fetch to answer", () => {
+  const was = process.cwd();
+  const real = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+  const bin = tempRoom("offline-bin-");
+  const log = join(bin, "asked.txt");
+  writeFileSync(join(bin, "git"),
+    `#!/bin/sh\nprintf '%s %s\\n' "\${GIT_NO_LAZY_FETCH-unset}" "$*" >> ${log}\nexec ${real} "$@"\n`,
+    { mode: 0o755 });
+  const path = process.env.PATH;
+  try {
+    process.chdir(pushedRepo());
+    /* A head this checkout holds, resolved before the shim is on PATH: a head it does not hold ends
+       the reading at the second call, leaving the containment read untested (consult 4cfdcd F1). */
+    const here = gitNow().head;
+    process.env.PATH = `${bin}:${path}`;
+    assert.equal(reachOf({ head: here }).here, true, "the shim answers as git does");
+    process.env.PATH = path;
+    const asked = readFileSync(log, "utf8").trim().split("\n");
+    assert.equal(asked.length, 3, `every read of the head: ${asked.join(" | ")}`);
+    assert.ok(asked.some((one) => one.includes("--contains")), "the last one included");
+    assert.deepEqual([...new Set(asked.map((one) => one.split(" ")[0]))], ["1"],
+      "each one told not to fetch to answer");
+  } finally {
+    process.env.PATH = path;
+    process.chdir(was);
+  }
 });
 
 /* An input read and silently dropped is the family ISS-2 found six of: a capture asked for is made,
@@ -204,22 +296,47 @@ test("a capture says in one line what it holds", () => {
   const held = { branch: "iss-65-rounds", head: "a9288a6fd11", base: "4e41dfd881e", touched: "one.mjs, two.mjs", files: 2, at: "2026-09-03T15:00:00.000Z" };
   assert.equal(capturedLine(held), "--pushed: iss-65-rounds at a9288a6, base 4e41dfd, 2 file(s) touched.");
   /* Counted from the list, never off the joined line: one name with ", " in it reads as two. */
-  assert.match(capturedLine({ ...held, files: undefined }), /nothing to capture/u);
+  assert.match(capturedLine({ ...held, files: undefined, touched: null }), /no diff behind it/u);
 });
 
-test("a capture that captured nothing says so, and its worklog is not written", () => {
+/* ISS-65's silence was drawn one noun too wide: it was the touched set that must not go empty over a full one, and the pointer went quiet with it (ISS-1183). */
+test("a capture with no diff behind it writes the pointer and says which reason held", () => {
   const empty = { branch: "master", head: "4e41dfd881e", base: "4e41dfd881e", touched: null, at: "2026-09-03T15:00:00.000Z" };
   const why = [[empty, /the base is the head/u], [{ ...empty, base: null }, /no base/u],
-    [{ ...empty, base: "0000000" }, /no file does/u], [null, /git answered nothing/u],
+    [{ ...empty, base: "0000000" }, /no file does/u],
     [{ ...empty, base: "0000000", files: null }, /would not read the diff/u]];
   for (const [one, said] of why) {
-    assert.match(capturedLine(one), /nothing to capture/u, JSON.stringify(one));
+    assert.match(capturedLine(one), /no diff behind it/u, JSON.stringify(one));
     assert.match(capturedLine(one), said, "and the cause it states is the one that holds");
-    assert.match(capturedLine(one), /The worklog is unchanged/u);
-    assert.match(capturedLine(one), /before the merge/u, "and the command that would have captured it");
+    assert.match(capturedLine(one), /^--pushed: master at 4e41dfd/u, "the branch and the head are written");
+    assert.match(capturedLine(one), /touched set is cleared/u, "and the diff half goes with that reading");
   }
+  assert.match(capturedLine(null), /nothing to capture/u, "no checkout is the one reading that writes none");
+  /* Cleared and not left standing: half of one reading and half of another names files against a head that never touched them. */
+  const after = merged({ branch: "old", head: "1111111", touched: "gone.mjs", files: 3 }, { ...empty, files: null });
+  assert.equal(after.worklog.touched, undefined, "the old touched set does not outlive its head");
+  assert.equal(after.worklog.head, empty.head);
   assert.equal(merged({ branch: "iss-65-rounds" }, null).worklog.branch, "iss-65-rounds",
     "a patch nobody made leaves the last capture alone");
+});
+
+/* The one moment a capture can say it, and said rather than refused: a run captures again from the default branch once its change has landed (ISS-1183). */
+test("a capture over another branch says which one it replaced", () => {
+  const held = field({ branch: "iss-1183-work", head: "1111111", at: AT });
+  const said = [];
+  const was = console.error;
+  console.error = (line) => said.push(line);
+  try {
+    worklogFor(held, { branch: "master", head: "2222222", at: AT });
+    worklogFor(held, { branch: "iss-1183-work", head: "2222222", at: AT });
+    worklogFor(null, { branch: "master", head: "2222222", at: AT });
+  } finally {
+    console.error = was;
+  }
+  assert.equal(said.length, 1, said.join("\n"));
+  assert.match(said[0], /this capture names `master`/u);
+  assert.match(said[0], /replaces named `iss-1183-work`/u, "and the block it replaced, by name");
+  assert.match(said[0], /captured 2026-09-03T02:00/u, "with when that one was taken");
 });
 
 test("the two captures and the open line are on the flag list of both verbs that write", () => {

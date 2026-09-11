@@ -8,7 +8,6 @@ import { PARK_STATUS, SIDE, atLeast, holdsBack, parkRecord, rungFieldsOf } from 
 import { methodOf } from "../guides/phases.mjs";
 import { rungOf } from "../ladder.mjs";
 import { lookAhead, owedIn } from "./route.mjs";
-import { worklogOf } from "./worklog.mjs";
 
 const MARK = { pass: "✓ pass", fail: "✗ fail", skipped: "· skipped" };
 const NONE = "– none";
@@ -107,7 +106,7 @@ export const briefOf = (view, ref) => {
     ),
     repeated: repeatedIn(view),
     next: held?.next ?? null,
-    worklog: worklogOf(view.issue?.[FIELD]),
+    worklog: view.work,
     lease: held,
     /* Printed here because nothing else printed it: a checkpoint naming whose turn it is was written
        by one run and readable by none. */

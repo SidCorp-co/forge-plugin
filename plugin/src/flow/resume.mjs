@@ -11,10 +11,10 @@ import { Refused } from "../refusal.mjs";
 import { issueOf, recordReport } from "./record/record.mjs";
 import { rungFieldsOf, viewFrom } from "./earned.mjs";
 import { kindsHeld } from "./record/page.mjs";
-import { indexLines, laneLines, openingLines, phaseIndex } from "../guides/phases.mjs";
+import { indexLines, laneLines, opensWork, openingLines, phaseIndex, workLines } from "../guides/phases.mjs";
 import { shortfall } from "./advance.mjs";
 import { owedLine, policyFor } from "./route.mjs";
-import { worklogLines } from "./worklog.mjs";
+import { worklogLines, workNow } from "./worklog.mjs";
 import { briefOf } from "./brief.mjs";
 import { SHARED_HOLDER, landingLine, landingTurn } from "./lease.mjs";
 import { atMinute, heldSaid } from "./machine.mjs";
@@ -51,7 +51,7 @@ const block = (heading, lines) => {
   for (const line of lines) console.log(`  ${line}`);
 };
 
-const held = (brief) => {
+const leased = (brief) => {
   const one = brief.lease;
   if (!one) return [];
   return [
@@ -104,8 +104,8 @@ const owed = (brief, view, ref) => {
 /* Ahead of the body, the brief and every other block, because a run handed an issue past `open`
    redoes the phases behind it otherwise — this issue's own run replayed two of them (ISS-673).
    Exported alongside the claim's own printer, which carries why either is (ISS-804). */
-export const opening = (status, fields, held) => {
-  for (const line of openingLines(status, held)) console.log(line);
+export const opening = (status, fields, held, work = null) => {
+  for (const line of openingLines(status, held, work)) console.log(line);
   console.log("");
   for (const line of laneLines({ status, fields })) console.log(line);
 };
@@ -113,12 +113,18 @@ export const opening = (status, fields, held) => {
 const print = (brief, view, ref) => {
   console.log(`${ref}  ${brief.status}${brief.phase ? `  —  phase owed: ${brief.phase}` : ""}`
     + `${brief.reopens ? `  —  reopened ${brief.reopens} time(s)` : ""}`);
-  opening(brief.status, rungFieldsOf(view), kindsHeld(view));
-  block("Lease", held(brief));
+  const work = workNow(brief.worklog);
+  const kinds = kindsHeld(view);
+  opening(brief.status, rungFieldsOf(view), kinds, work);
+  block("Lease", leased(brief));
   block("Plan", planLines(brief, ref));
   block("Criteria", brief.criteria.map((one) => `${one.mark.padEnd(10)} ${one.number}. ${one.text}`));
   block("Record", records(brief));
-  block("Worklog", worklogLines(brief.worklog, brief.next));
+  /* The pointer where the opening did not carry it — a status owing no phase has no opening to carry it — so the split is which renderer says a fact and never whether one is said (ISS-1183). */
+  block("Worklog", [
+    ...(opensWork(brief.status, kinds) ? [] : workLines(work)),
+    ...worklogLines(brief.worklog, brief.next),
+  ]);
   block("Parks and blockers", parks(brief));
   owed(brief, view, ref);
   if (brief.reference) console.log(`\nThe method for this phase: ${brief.reference}`);

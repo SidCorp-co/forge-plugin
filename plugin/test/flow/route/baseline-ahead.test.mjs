@@ -65,6 +65,8 @@ const ISSUE = {
   complexity: "m",
   acceptanceCriteria: "1. The first outcome.",
   plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: no.",
+  /* The branch that rung owes, so the one item this case is about is the one item printed. */
+  sessionContext: { worklog: { branch: "iss-9-the-work" } },
 };
 const state = {
   calls: [],

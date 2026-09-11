@@ -16,9 +16,12 @@ import { atMinute } from "./machine.mjs";
 export const KEY = "worklog";
 export const OPEN_KEPT = 8;
 
-/* Read off the run, never typed; without the last one a run behind the tree reads like one on it. */
+/* Read off the run, never typed; without `copy` a run behind the tree reads like one on it. */
 const FACTS = ["branch", "head", "base", "touched", "files", "at", "copy"];
 const REMOTES = ["origin/main", "origin/master"];
+
+/** The half the opening renders, the block below it rendering the rest: one list both readers answer to, so neither prints a fact the other does. Reaching a head is two offline readings for the same reason a claim may not wait on a remote to open. docs/cli/the-work.md. */
+export const POINTER = ["branch", "head", "base", "at"];
 
 const asLine = (value) => String(value ?? "").replace(/[\r\n]+/gu, " ").trim() || null;
 
@@ -47,8 +50,8 @@ export const merged = (held, patch) => {
 };
 
 /* Null where git would not answer: otherwise a failed diff and an empty one read the same. */
-const git = (args) => {
-  const run = spawnSync("git", args, { encoding: "utf8" });
+const git = (args, env = null) => {
+  const run = spawnSync("git", args, { encoding: "utf8", ...(env ? { env: { ...process.env, ...env } } : {}) });
   return run.status === 0 ? (run.stdout ?? "").trim() : null;
 };
 
@@ -74,8 +77,8 @@ export const gitNow = () => {
     head,
     base: base || null,
     touched: touched.length ? touched.join(", ") : null,
-    /* Counted from the list, since a name with ", " in it reads as two. */
-    files: diffed === null ? null : touched.length,
+    /* Counted from the list, since a name with ", " in it reads as two; null and never zero, a falsy value being dropped at the read. */
+    files: touched.length || null,
     at: new Date().toISOString(),
   };
 };
@@ -116,8 +119,7 @@ export const reviewNow = (root = process.cwd()) => {
   };
 };
 
-/** What a capture holds, or why it holds nothing: after a fast-forward the base is the head and the
- *  touched set reads as none, which three captures wrote in silence and two wrote whole (ISS-65). */
+/** Why a capture found no diff: after a fast-forward the base is the head and the touched set reads as none. */
 const EMPTY = {
   none: "git answered nothing about this checkout",
   base: "no base: the checkout names no remote head to measure from",
@@ -134,17 +136,21 @@ const emptyWhy = (git) => {
   return EMPTY.files;
 };
 
-export const capturedLine = (git) => {
-  const files = git?.files ?? 0;
-  if (!git || !files || !git.base || git.base === git.head) {
-    return `--pushed: nothing to capture — ${emptyWhy(git)}. The worklog is unchanged, and what it `
-      + "holds is whatever the last capture wrote. Capture at the push, before the merge.";
-  }
-  return `--pushed: ${git.branch} at ${shortSha(git.head)}, base ${shortSha(git.base)}, `
-    + `${files} file(s) touched.`;
-};
-
 const captured = (git) => Boolean(git?.touched) && Boolean(git.base) && git.base !== git.head;
+
+/* ISS-65's silence is kept for the diff and dropped for the pointer, which a branch just cut is all there is of. What that costs and buys: docs/cli/the-work.md. */
+export const capturedLine = (held) => {
+  if (!held) {
+    return `--pushed: nothing to capture — ${EMPTY.none}. The worklog is unchanged, and what it `
+      + "holds is whatever the last capture wrote.";
+  }
+  const where = `${held.branch} at ${shortSha(held.head)}`;
+  if (!captured(held)) {
+    return `--pushed: ${where}, and no diff behind it — ${emptyWhy(held)}. The branch and the head `
+      + "are written and the touched set is cleared with them. Capture again at the push.";
+  }
+  return `--pushed: ${where}, base ${shortSha(held.base)}, ${held.files} file(s) touched.`;
+};
 
 /* Null where the install record says nothing: a copy invented here is the very fact this prevents. */
 const copyNow = () => {
@@ -161,7 +167,7 @@ export const patchFrom = ({ pushed = false, review = false, open = [] }) => {
     const now = gitNow();
     if (!now) fail(`--pushed reads the branch and head from git, and ${process.cwd()} is no checkout.`);
     console.error(capturedLine(now));
-    if (captured(now)) Object.assign(patch, now, { copy: copyNow() });
+    Object.assign(patch, now, { copy: copyNow() });
   }
   const held = review ? reviewNow() : null;
   if (review && !held) console.error("--review: no answered consult for this checkout yet, so the review block is unchanged.");
@@ -170,9 +176,15 @@ export const patchFrom = ({ pushed = false, review = false, open = [] }) => {
   return Object.keys(patch).length ? patch : null;
 };
 
-/* Merged where the write is made, so the drop is said by the command that caused it. */
+/* Merged where the write is made, so the drop is said by the command that caused it — and so is a capture landing over another branch, this being the one place both blocks are in hand. */
 export const worklogFor = (context, patch) => {
-  const { worklog, dropped } = merged(worklogOf(context), patch);
+  const held = worklogOf(context);
+  const { worklog, dropped } = merged(held, patch);
+  if (patch?.branch && held?.branch && patch.branch !== held.branch) {
+    console.error(`worklog: this capture names \`${patch.branch}\`, and the block it replaces named `
+      + `\`${held.branch}\`${held.at ? `, captured ${atMinute(held.at)}` : ""}. `
+      + "Capture from the checkout the issue's own branch is cut in.");
+  }
   for (const one of dropped) {
     console.error(`worklog: past ${OPEN_KEPT} open lines, the oldest is dropped — ${one}`);
   }
@@ -182,16 +194,28 @@ export const worklogFor = (context, patch) => {
 const reviewLine = (held) =>
   `consult ${held.consult}${held.recheck ? ", recheck" : ""}, ${held.findings} finding(s), ${held.owed}`;
 
-/* In the order a successor asks; a fact nobody wrote is left out rather than printed empty. */
+/* In the order a successor asks; a fact nobody wrote is left out rather than printed empty. The pointer goes before anything renders, so a field added to it leaves here on its own, and `next` is the lease's line rather than a worklog key. */
 export const worklogLines = (worklog, next = null) => {
+  const held = Object.fromEntries(
+    Object.entries(worklog ?? {}).filter(([name]) => !POINTER.includes(name)));
   const out = next ? [`next        ${next}`] : [];
-  for (const name of ["branch", "head", "base"]) {
-    if (worklog?.[name]) out.push(`${name.padEnd(11)} ${worklog[name]}`);
-  }
-  if (worklog?.touched) out.push(`touched     ${worklog.touched}`);
-  if (worklog?.at) out.push(`captured    ${atMinute(worklog.at)}, from git at that moment`);
-  if (worklog?.copy) out.push(`copy        ${worklog.copy}`);
-  if (worklog?.review) out.push(`review      ${reviewLine(worklog.review)}`);
-  for (const one of worklog?.open ?? []) out.push(`open        ${one}`);
+  if (held.touched) out.push(`touched     ${held.touched}`);
+  if (held.copy) out.push(`copy        ${held.copy}`);
+  if (held.review) out.push(`review      ${reviewLine(held.review)}`);
+  for (const one of held.open ?? []) out.push(`open        ${one}`);
   return out;
 };
+
+/* Offline is enforced and not assumed: a partial clone fetches a missing object to answer, which is the wait this reading exists to avoid. In the environment and not as a flag, a git too old to know the variable ignoring it where one too old for `--no-lazy-fetch` refuses the call (consult 34d2ee F1). */
+const OFFLINE = { GIT_NO_LAZY_FETCH: "1" };
+
+export const reachOf = (work) => {
+  if (!work?.head || git(["rev-parse", "--git-dir"], OFFLINE) === null) return null;
+  if (git(["cat-file", "-e", `${work.head}^{commit}`], OFFLINE) === null) return { here: false, remote: null };
+  const carried = git(["branch", "--remotes", "--contains", work.head], OFFLINE) ?? "";
+  /* `origin/HEAD -> origin/master` is that second ref again, and naming it counts one remote as two. */
+  const refs = carried.split("\n").map((one) => one.trim()).filter((one) => one && !one.includes(" -> "));
+  return { here: true, remote: refs[0] ?? null };
+};
+
+export const workNow = (work) => (work?.branch ? { ...work, reach: reachOf(work) } : null);

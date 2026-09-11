@@ -16,6 +16,7 @@ import { attachmentNames, evidenceHeld, isCommit, sameCommit } from "../tracker/
 
 import { Refused } from "../refusal.mjs";
 import { FIELD as SESSION, landingOf } from "./lease.mjs";
+import { worklogOf } from "./worklog.mjs";
 import { judgeAsk, judgeProblems, numbered } from "./qa/verdicts.mjs";
 import { criteriaLines } from "./record/record.mjs";
 import { assemble, parse } from "./record/page.mjs";
@@ -457,6 +458,13 @@ export const deployedOwed = (view, ref) => {
   return out;
 };
 
+/* The rung whose whole phase happens between two records, so it is the one that owes a branch: read off the worklog, which is what the run said of itself. docs/cli/the-work.md. */
+const branchOwed = (view, ref) => (view.work?.branch ? [] : [need(
+  "the worklog names no branch, so nothing on the record says which tree the code is being written "
+    + "against, and a run resuming this issue cannot tell work already done from none",
+  `forge claim ${ref} --pushed, from the checkout the branch is cut in`,
+)]);
+
 /* One entry check per status, each answering with what the record lacks and the write that supplies
    it. Nothing here reads the repository: what git knows was written on at the step that knew it. */
 export const CHECKS = {
@@ -543,7 +551,8 @@ export const CHECKS = {
       "no baseline: the gate, what it already reports and the commit it ran at",
       `forge record baseline ${ref} --gate "<command>" --result "<what already fails>" --commit <sha> --scope whole`,
     );
-    return [...blockersOwed(view), ...baseline, ...wholeOwed(view, ref), ...citedOwed(view, ref)];
+    return [...blockersOwed(view), ...baseline, ...branchOwed(view, ref), ...wholeOwed(view, ref),
+      ...citedOwed(view, ref)];
   },
   developed: (view, ref) => {
     const out = [];
@@ -564,7 +573,7 @@ export const viewFrom = (documentId, issue, comments, cut = null, release = null
   const names = attachmentNames(issue, comments);
   /* Parsed once: six readers here and in route.mjs each ran it over the same plan for the same answer. */
   const flags = planFlags(unwrap(issue.plan));
-  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, deploy, flags, landing: landingOf(issue?.[SESSION]), ...assemble(comments, criteria) };
+  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, deploy, flags, landing: landingOf(issue?.[SESSION]), work: worklogOf(issue?.[SESSION]), ...assemble(comments, criteria) };
 };
 export const parkRecord = (view, wanted = () => true, since = null, until = null) => {
   const found = view.comments

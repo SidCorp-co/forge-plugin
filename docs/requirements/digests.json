@@ -1137,6 +1137,18 @@
       "rev": 1,
       "digest": "6425af1984efff04ef9b2746b8a457eb017fbf3750c6cc12b80c343b0f876e49"
     },
+    "AC-05-1-11": {
+      "rev": 1,
+      "digest": "43048db1f253f135fddaf13b9785d63026759bfdd6d75d3ac9830fa52b43d480"
+    },
+    "AC-05-1-12": {
+      "rev": 1,
+      "digest": "bf8e5c24fc4cdc8fa81cc026b2c8f386c5663b53fc77dcca052d33cc953ea2fc"
+    },
+    "AC-05-1-13": {
+      "rev": 1,
+      "digest": "0a8663e3800719c97ffa3023ef86e29f6f16c43463b759f615d19d8bbc84364f"
+    },
     "UC-05-2": {
       "rev": 1,
       "digest": "8b36cd2023956a8383f427fbed094aa107e0cea7b4f8e58a7535fd1c2402d0c8"
@@ -1180,6 +1192,10 @@
     "AC-05-2-10": {
       "rev": 1,
       "digest": "415992b98c8ca7d22d1c1395c9cbb6a885a9cf2ea1508e134eab0499d9ea138f"
+    },
+    "AC-05-2-11": {
+      "rev": 1,
+      "digest": "5db1daea585e2fd789da92b1278e4a25d0a195e4ee11c8d6e5f7d41d6e7b35b7"
     },
     "UC-05-3": {
       "rev": 1,

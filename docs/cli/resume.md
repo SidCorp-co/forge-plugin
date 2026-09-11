@@ -18,9 +18,8 @@ Three flags write it, on `forge claim` and on any `forge record` kind that write
 the git block, `--review` reads the consult log, and `--open` appends a line. What `--pushed` captured
 is one line at the write — branch, head, base, and how many files — because two captures that wrote a
 complete block printed nothing but the lease renewal, and their author ran `forge resume` to find out
-whether the flag had worked. A capture with nothing in it says which of the four reasons held, and
-leaves the block an earlier capture wrote: that block carries the time it was taken, so it is a true
-statement about an earlier push rather than a stale one. **None of them is
+whether the flag had worked. A capture with no diff behind it says which of the four reasons held
+and writes the pointer it could read anyway, which is [the work](the-work.md)'s to argue. **None of them is
 automatic, and that is a decision rather than an omission.** A renew is made from wherever the shell
 happens to be, and a write from another checkout would name that checkout's branch as this issue's,
 or another project's review state as this one's. So the flags name the moment a run knows the values
@@ -73,7 +72,8 @@ the one run that resumed correctly did so because a person had said the record w
 same lines print on the claim, from the one renderer this verb prints them with — two renderers
 would disagree about one record the first time a row moved, which is the whole of why there is one.
 They are silent where no record is behind, so an issue at `open` says on both verbs what a claim
-there always said.
+there always said. What that block carries under the record, and why the record alone was not
+enough, is [the work](the-work.md).
 
 `forge guide issue-flow --for ISS-nn` prints the same cut whole, and it is where the shape lives:
 every phase, every drop and every citation is read off a table some other reader already answers

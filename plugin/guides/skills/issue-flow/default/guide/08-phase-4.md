@@ -1,8 +1,14 @@
 ## Phase 4 — Implement
 
-One branch cut from the project's actual default branch, named for the issues on it. Where more
-than one session works the same checkout, each takes its own worktree. What `in_progress` reads:
-`forge guide contract in_progress`.
+**Where the opening named a branch, work on this phase already exists**, and settling that comes
+before anything is cut or captured — a capture replaces the very pointer a recovery reads. Take it
+up by whichever route the sentence under that branch leaves open; beginning again is one of them,
+and it goes on the record as a correction rather than happening quietly.
+
+Otherwise one branch cut from the project's actual default branch, named for the issues on it. Where
+more than one session works the same checkout, each takes its own worktree. Capture it — `forge
+claim <ref> --pushed` — before the status moves and again at each push, so the branch is on the
+record and not only in this shell. What `in_progress` reads: `forge guide contract in_progress`.
 
 **A file the plan does not name is a correction**, posted before you write it: the mark's note says
 what the landing wrote, and `developed` refuses a path in it that neither the plan nor a correction

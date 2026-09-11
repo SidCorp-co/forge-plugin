@@ -133,6 +133,65 @@ test("a build that ends ready writes the checkpoint the landing reads, off the c
   assert.equal(held().holder, BUILDER, "the lease is still the builder's, which is what --take is for");
 });
 
+/* Through the verb and not through the printer, because the printer's own cases stay green when the
+   wiring under them goes: the bug this catches was `advise` composing the opening from the issue it
+   fetched before its own write, so a capture went unprinted by the call that made it (consult
+   34d2ee F3). The branch here is bare — one commit, its own base — which is what a branch looks like
+   at the moment the status it is built under is entered. */
+test("a bare branch is captured, and the claim's own opening names it above the lane", async () => {
+  field(null, null);
+  const run = await ran(["claim", "ISS-673", "--pushed"], BUILDER, NOTHING);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const at = git(NOTHING, "rev-parse", "HEAD").stdout.trim();
+  const wrote = state.issues[0].sessionContext.worklog;
+  assert.equal(wrote.branch, "iss-673-6", "the branch, which the old capture wrote nowhere");
+  assert.equal(wrote.head, at, "the head it stands at");
+  assert.equal(wrote.base, at, "and the base, which on a branch with no commit of its own is that head");
+  assert.equal(wrote.touched, undefined, "no diff, so no touched set beside a head that has none");
+  const said = run.stdout.split("\n");
+  const work = said.findIndex((one) => /^ {2}work: iss-673-6, at /u.test(one));
+  assert.notEqual(work, -1, run.stdout);
+  assert.match(said[work], /its own base at that reading, so nothing of its own on it/u,
+    "which is what a branch with no commit of its own is, said as the reading it comes from");
+  assert.ok(work < said.findIndex((one) => one.startsWith("Lane at ")), "above the lane, not under it");
+});
+
+/* The resume's own wiring, which no printer case reaches, and the pointer at a status with no
+   opening to carry it: the split between the two blocks says which renders a fact, never whether
+   one is rendered, and a closed issue is where somebody asks which branch this was (c88e14 F1, ecf127 F3). */
+test("the resume names the work through the verb, and a status owing no phase says it below", async () => {
+  field(null, null);
+  const wrote = await ran(["claim", "ISS-673", "--pushed"], BUILDER, CHANGED);
+  assert.equal(wrote.status, 0, `${wrote.stdout}${wrote.stderr}`);
+  const owed = await ran(["resume", "ISS-673"], BUILDER, CHANGED);
+  assert.equal(owed.status, 0, `${owed.stdout}${owed.stderr}`);
+  assert.match(owed.stdout.split("Lane at ")[0], /^ {2}work: iss-673-6, at /mu,
+    "the worklog this verb fetched, above the lane rather than in a footer");
+  state.issues[0] = { ...state.issues[0], status: "closed" };
+  const closed = await ran(["resume", "ISS-673"], BUILDER, CHANGED);
+  assert.equal(closed.status, 0, `${closed.stdout}${closed.stderr}`);
+  assert.equal(/^ {2}work: /mu.test(closed.stdout.split("\nWorklog")[0]), false,
+    "a status owing no phase opens on nothing, so nothing above the block says it");
+  assert.equal((closed.stdout.match(/^ {2}work: iss-673-6, at /gmu) ?? []).length, 1,
+    `and the block below carries it instead, exactly once: ${closed.stdout}`);
+});
+
+/* The other half of the same wiring: a claim writing no capture is advised on the block that was
+   already there, and one writing a capture is advised on the block it just wrote. */
+test("the opening names the branch this claim wrote, and the one it found where it wrote none", async () => {
+  field(null, null);
+  state.issues[0].sessionContext = { worklog: { branch: "iss-673-before", head: "9e24c2af0000000000000000000000000000abcd" } };
+  const found = await ran(["claim", "ISS-673"], BUILDER, NOTHING);
+  assert.equal(found.status, 0, `${found.stdout}${found.stderr}`);
+  assert.match(found.stdout, /^ {2}work: iss-673-before, at 9e24c2a/mu, found.stdout);
+  const wrote = await ran(["claim", "ISS-673", "--pushed"], BUILDER, CHANGED);
+  assert.equal(wrote.status, 0, `${wrote.stdout}${wrote.stderr}`);
+  assert.match(wrote.stdout, /^ {2}work: iss-673-6, at /mu, "the branch this call captured, not the one it read");
+  assert.equal(/iss-673-before/u.test(wrote.stdout.split("Lane at ")[0]), false,
+    "and the block it replaced is gone from the opening rather than printed beside its successor");
+  assert.match(wrote.stderr, /this capture names `iss-673-6`/u, "with the replacement said aloud");
+});
+
 test("--ready without the capture it writes from is refused, and so is a capture holding nothing", async () => {
   field(null, null);
   const alone = await ran(["claim", "ISS-673", "--ready"], BUILDER, CHANGED);
@@ -141,7 +200,7 @@ test("--ready without the capture it writes from is refused, and so is a capture
   assert.equal(checkpoint(), null, "and nothing was written");
   const empty = await ran(["claim", "ISS-673", "--pushed", "--ready"], BUILDER, NOTHING);
   assert.equal(empty.status, 1, empty.stdout);
-  assert.match(empty.stderr, /captured nothing/u, empty.stderr);
+  assert.match(empty.stderr, /captured no change/u, empty.stderr);
   assert.match(empty.stderr, /Capture at the push, before the merge/u);
   assert.equal(checkpoint(), null, "a checkpoint with no head is one nobody can land");
 });

@@ -28,7 +28,11 @@ const mark = (note) => comment(`mark_merged target=base — ${note}`);
 const CRITERIA = "1. The first outcome.\n2. The second outcome.";
 /* Evidence is judged against what the issue really carries, so the fixture carries it. */
 const ATTACHED = [{ name: "run.txt" }];
-const view = (issue, comments = []) => viewFrom("the-uuid", issue, comments);
+/* Every issue reaching `in_progress` here is built on a branch, that rung owing one: a fixture
+   short of it would refuse each case below for the one thing none of them is about, and the case
+   that is about it is entry-checks.test.mjs's. */
+const BUILT = { sessionContext: { worklog: { branch: "iss-3-the-work" } } };
+const view = (issue, comments = []) => viewFrom("the-uuid", { ...BUILT, ...issue }, comments);
 const missing = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item.what);
 const commands = (status, one) => CHECKS[status](one, "ISS-3").map((item) => item.command);
 const judging = (one) => judgedOwed(one, "ISS-3").map((item) => item.what);

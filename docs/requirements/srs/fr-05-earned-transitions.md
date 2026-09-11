@@ -71,6 +71,17 @@ agent learns what a status wants.
   of every status below the one a baseline earns SHALL name that commit and SHALL print the write
   that cites it; where none is published for that commit the rehearsal SHALL say so and SHALL name
   the fresh run, a result published for another commit answering for no tree but its own.
+- **AC-05-1-11** · Rev: 1 · Proof: plugin/test/guides/phases.test.mjs "the opening names the work the last run left, and says what can be reached of it"
+  WHERE the worklog holds a branch and the issue's status owes a phase, the CLI SHALL name that
+  branch, the head it stands at and the commit it was cut from when the agent takes the issue's lease
+  or has its context re-minted.
+- **AC-05-1-12** · Rev: 1 · Proof: plugin/test/flow/resume/worklog.test.mjs "the opening says what can be reached of the head, and never asks a remote"
+  WHERE a branch is named, the CLI SHALL report what the checkout it is read in observes of that head
+  without contacting a remote — that the checkout holds it, that it does not, or that no reading was
+  possible — and SHALL qualify any statement about a remote as that checkout's own last fetch.
+- **AC-05-1-13** · Rev: 1 · Proof: plugin/test/flow/landing/take.test.mjs "the resume names the work through the verb, and a status owing no phase says it below"
+  WHERE the worklog holds a branch, the CLI SHALL print the branch and the head exactly once when it
+  re-mints the issue's context, whichever block of that context carries them.
 
 ### UC-05-2 — Advance to the next status
 
@@ -116,6 +127,9 @@ deciding a status.
 - **AC-05-2-10** · Rev: 1 · Proof: plugin/test/flow/record/rung.test.mjs "a write of a kind the rung does not cite moves nothing, however complete the rung is"
   IF the payload written is not one the next status is earned by THEN the CLI SHALL leave the status
   where it stands, however little that status is owed.
+- **AC-05-2-11** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "in_progress owes the branch the change is built on, and the refusal names the capture"
+  IF the worklog holds no branch THEN the CLI SHALL refuse `in_progress` and SHALL name the capture
+  that writes one.
 
 ### UC-05-3 — Refuse a jump
 

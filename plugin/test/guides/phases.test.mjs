@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 
 import {
   CITED, PHASE, READ_OFF_THE_RECORD, dischargedBy, indexLines, laneLines, openingLines, phaseIndex,
-  phaseNumber,
+  phaseNumber, workLines,
 } from "../../src/guides/phases.mjs";
 import { CHECKS, ORDER, viewFrom } from "../../src/flow/earned.mjs";
 import { LIGHTER } from "../../src/ladder.mjs";
@@ -135,6 +135,30 @@ test("a phase is passed on the record that discharges it and not on where the st
     "  passed: 1 Triage  —  confirmation",
     "  passed: 4 Implement, to the branch  —  baseline",
   ], "and a gap in the middle is left as a gap rather than filled in from the status");
+});
+
+/* On ISS-979 a second run read `4 Implement` as owed, which was true, and cut the same rename its predecessor had staged and could not commit: the record-level opening was right and one layer short (ISS-804, ISS-1183). */
+test("the opening names the work the last run left, and says what can be reached of it", () => {
+  const work = {
+    branch: "ISS-979-assistant-layer", head: "ea3a7033e18", base: "ed861ebac6f",
+    at: "2026-09-11T08:16:19.832Z", reach: { here: true, remote: null },
+  };
+  const under = (status, held, one) => openingLines(status, held, one).filter((line) => /^ {2}work/u.test(line));
+  const lines = under("in_progress", EVERY_KIND, work);
+  assert.equal(lines.length, 1, "one pointer line, whatever the record above it holds");
+  assert.match(lines[0], /ISS-979-assistant-layer/u, "the branch");
+  assert.match(lines[0], /at ea3a703/u, "the head it stands at");
+  assert.match(lines[0], /cut from ed861eb/u, "and what it was cut from");
+  assert.match(openingLines("in_progress", EVERY_KIND, work).at(-1), /no remote-tracking ref here contains it/u,
+    "with what can be reached of it under the pointer rather than in a footer");
+  assert.deepEqual(under("in_progress", [], work), lines,
+    "a page passing no phase still names the branch: the two readings answer different questions");
+  /* The other half of the promise: a phase with nothing behind it reads as it always did. */
+  assert.deepEqual(openingLines("in_progress", EVERY_KIND, null), openingLines("in_progress", EVERY_KIND));
+  assert.deepEqual(under("in_progress", EVERY_KIND, { ...work, branch: null }), []);
+  assert.deepEqual(under("closed", EVERY_KIND, work), [],
+    "and a status owing no phase names no branch, nobody's next step being on it");
+  assert.equal(workLines(work).length, 2, "the renderer is the one both verbs share");
 });
 
 /* Rule 3 of the issue that asked for this: a reopen keeps the answer it gives today. It stands at

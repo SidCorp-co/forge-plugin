@@ -124,6 +124,41 @@ test("the claim and the resume print one opening, and at open neither prints any
     "and the claim still prints the advisory, under what is ahead and above the served method");
 });
 
+/* The work under the record, on both verbs and in the same words: the run that arrived at ISS-979
+   second was told the phase was owed, which was true, and built the same sixty-six-file rename
+   because *owed* says nothing about a branch already carrying it. Judged on the screen for the
+   reason the two cases around it are (ISS-1183). */
+test("the claim and the resume name the work under the phase owed, in the same words", async () => {
+  const { workLines } = await import("../../../src/guides/phases.mjs");
+  const { opening } = await import("../../../src/flow/resume.mjs");
+  const { advisory } = await import("../../../src/flow/claim.mjs");
+  const said = (run) => {
+    const lines = [];
+    const was = console.log;
+    console.log = (line) => lines.push(String(line));
+    try { run(); } finally { console.log = was; }
+    return lines;
+  };
+  const fields = { plan: null, moved: [], whole: true, complexity: "m" };
+  const held = ["confirmation", "decision", "plan", "criteria", "baseline"];
+  const work = {
+    branch: "ISS-979-assistant-layer", head: "ea3a7033e18", base: "ed861ebac6f",
+    at: "2026-09-11T08:16:19.832Z", reach: { here: false, remote: null },
+  };
+  const lines = workLines(work).map((one) => `  ${one}`);
+  assert.equal(lines.length, 2, "the pointer and the sentence about reaching it");
+  assert.match(lines[0], /ISS-979-assistant-layer, at ea3a703, cut from ed861eb/u);
+  const onBoth = (run) => said(run).filter((one) => lines.includes(one));
+  assert.deepEqual(onBoth(() => opening("in_progress", fields, held, work)), lines, "the resume prints it");
+  assert.deepEqual(onBoth(() => advisory("in_progress", fields, held, work)), lines,
+    "and the claim prints the same lines, one renderer answering for both");
+  /* The half of the promise that is about doing nothing: a phase owed with no work behind it. */
+  for (const run of [opening, advisory]) {
+    assert.deepEqual(said(() => run("in_progress", fields, held, null)),
+      said(() => run("in_progress", fields, held)), "a worklog naming no branch changes no line");
+  }
+});
+
 /* One lane, printed by the claim, the resume and the rehearsal, so a run reading two of them is
    shown one route. Judged on the screen for the reason the case above is (ISS-810). */
 test("the claim and the resume print the lane, and neither composes a line of it", async () => {

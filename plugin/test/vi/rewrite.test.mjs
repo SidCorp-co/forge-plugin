@@ -103,6 +103,8 @@ test("a status is earned from records that came back through the rewrite, with n
     mergedAt: "2026-09-03T11:30:00.000Z",
     releaseNotes: { section: "Fixed", userFacing: "You see it now." },
     attachments: [{ name: "run.txt" }],
+    /* The branch `in_progress` owes, which no rewrite touches: the field is the lease's, not prose. */
+    sessionContext: { worklog: { branch: "iss-67-the-work" } },
   };
   const comments = [
     posted("confirmation", FIELDS.confirmation),

@@ -27,9 +27,10 @@ import { scoped } from "../../tracker/rest.mjs";
 import { refuseIfGated } from "../../resolve/visibility.mjs";
 import { pluginFilingLine } from "../../tracker/filing/plugin-defect.mjs";
 import { partForRecord } from "../../guides/served.mjs";
+import { workLines } from "../../guides/phases.mjs";
 import { askedInSource } from "../../resolve/flags.mjs";
 import { FIELD as SESSION, renew, writtenBy } from "../lease.mjs";
-import { stampedNow, worklogLines, worklogOf } from "../worklog.mjs";
+import { stampedNow, worklogLines, worklogOf, workNow } from "../worklog.mjs";
 
 export const issueOf = async (reference) => {
   const documentId = await documentIdOf(reference);
@@ -476,7 +477,9 @@ export const recordReport = async (reference) => {
   if (held) console.log(`Plan  (${planTyped(held) ? "typed" : "untyped"})\n${held}`);
   if (body.releaseNotes?.section) console.log(`Release note  ${body.releaseNotes.section}: ${body.releaseNotes.userFacing}`);
   /* The run's own captures: no payload, and all of what a fold asks for beyond the payloads. */
-  const lines = worklogLines(worklogOf(body[SESSION]));
+  /* The pointer with the block, this report opening on no phase line to carry it (ISS-1183). */
+  const work = worklogOf(body[SESSION]);
+  const lines = [...workLines(workNow(work)), ...worklogLines(work)];
   if (lines.length) console.log(["", "The run, from its own captures:", ...lines.map((one) => `  ${one}`)].join("\n"));
   console.log(pluginFilingLine((repeated.routed ?? []).map((one) => one.record.fields.to)));
   console.log(owed.length ? `\nOwed: a verdict on criterion ${owed.join(", ")}.` : `\nEvery criterion has a verdict.`);

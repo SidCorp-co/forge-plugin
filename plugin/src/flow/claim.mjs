@@ -13,7 +13,7 @@ import { laneLines, openingLines } from "../guides/phases.mjs";
 import { partForStatus } from "../guides/served.mjs";
 import { kindsHeld, parse } from "./record/page.mjs";
 import { parkAs, transitionTo } from "./advance.mjs";
-import { OPEN_KEPT, patchFrom, worklogFor } from "./worklog.mjs";
+import { OPEN_KEPT, merged, patchFrom, worklogFor, worklogOf, workNow } from "./worklog.mjs";
 import {
   ADVISORY,
   LANDING_BUILDER_OWED,
@@ -49,8 +49,8 @@ const PARKS_IN = "on_hold";
 
 /* Beside the advisory rather than above the lease line: both are what the run does next, where the lines above are what this write did. A claim opens a phase's work, so the part is the one its status owes. */
 /* And the opening above both, because a run handed an issue past `open` redoes the phases behind it otherwise, through the renderer `forge resume` prints so the two cannot say different things about one record. Both printers are exported so a case reads what each verb prints rather than what that renderer returns, a renderer nobody prints passing every case that asks it for lines (ISS-804). */
-export const advisory = (status, fields, held) => {
-  for (const line of openingLines(status, held)) console.log(line);
+export const advisory = (status, fields, held, work = null) => {
+  for (const line of openingLines(status, held, work)) console.log(line);
   console.log("");
   for (const line of laneLines({ status, fields })) console.log(line);
   console.log(`\n${ADVISORY}`);
@@ -60,15 +60,17 @@ export const advisory = (status, fields, held) => {
 /* The rung the lane is printed at is the effective one — the field, every correction that climbs and the cut rule — so this is the one read this verb makes for something other than the lease, and it is made after the writes and softly: a hard read's own failure exits the process, which would take a claim that had already landed down with it, and a page that does not read back is owed a line and not the claim. Unread, it is read as a cut page is, which is the rung that owes most (docs/cli/the-ladder.md). */
 const UNREAD = { plan: null, moved: [], whole: false, complexity: null };
 
-const advise = async (documentId, issue) => {
+/* The worklog is handed in and not read off the issue, which was fetched before this claim's own write: each route passes what it wrote, the two hand-backs writing none, and a page that did not read back still names the branch. */
+const advise = async (documentId, issue, held = null) => {
+  const work = workNow(held);
   const page = await commentPage(documentId, true);
   if (page?.refused) {
     console.log(`This issue's comment page did not read back, so no phase is named as passed and the `
       + `lane below is printed at the rung an unread page owes: ${page.refused}`);
-    return advisory(issue.status, UNREAD, []);
+    return advisory(issue.status, UNREAD, [], work);
   }
   const view = viewFrom(documentId, issue, page.comments, cutIn(page));
-  return advisory(issue.status, rungFieldsOf(view), kindsHeld(view));
+  return advisory(issue.status, rungFieldsOf(view), kindsHeld(view), work);
 };
 
 export const USAGE = [
@@ -132,12 +134,13 @@ export const nextLines = (how, left, taken) => [
 ].filter(Boolean);
 
 /* Off the same capture the worklog took, so the head the checkpoint calls judged is the head the
-   review was taken at. The paths and not the count: what the lander compares with what the landing
-   moved is a list, and a capture that read no diff is a checkpoint nobody can land. */
+   review was taken at. The paths and not the count: what the lander compares with what the landing moved
+   is a list, and a capture that read no diff is a checkpoint nobody can land — which is why the guard
+   below reads the diff and not the head, the pointer being written either way. */
 export const readyCheckpoint = (ref, holder, patch, landing) => {
-  if (!patch?.head || !patch.base) {
+  if (!patch?.head || !patch.base || !patch.touched) {
     fail(`claim --ready writes the checkpoint off the capture --pushed makes, and this one captured `
-      + `nothing — the line above says why. Capture at the push, before the merge:\n`
+      + `no change — the line above says why. Capture at the push, before the merge:\n`
       + `  forge claim ${ref} --pushed --ready`);
   }
   if (landing && landing.state !== LANDING_READY) {
@@ -287,18 +290,19 @@ export const claim = async (argv) => {
   const holder = sessionOf();
   const state = stateOf(lease, holder);
   const minutes = asked ?? (lease && lease.holder === holder ? lease.minutes : MINUTES);
+  const worklog = worklogOf(context);
   if (given.take) {
     const took = await takeTurn(documentId, ref, issue, context, { holder, minutes, line, patch });
     if (sharedHolder(took, mine)) console.log(SHARED_HOLDER);
-    return advise(documentId, issue);
+    return advise(documentId, issue, merged(worklog, patch).worklog);
   }
   if (given.judged) {
     await handBack(documentId, ref, context, holder);
-    return advise(documentId, issue);
+    return advise(documentId, issue, worklog);
   }
   if (given.reconciled) {
     await reconcile(documentId, ref, context, holder, given.reconciled);
-    return advise(documentId, issue);
+    return advise(documentId, issue, worklog);
   }
   if (state === "live") fail(claimRefusal(ref, lease));
   const left = lease?.next ?? null;
@@ -326,6 +330,6 @@ export const claim = async (argv) => {
     console.log(`Reclaim ${reclaimsOf(taken, issue.status)} of ${issue.status}: `
       + `the one after ${RECLAIMS_BEFORE_PARK} parks the issue as crashed.`);
   }
-  return advise(documentId, issue);
+  return advise(documentId, issue, worklogOf(next));
 };
 claim.answersHelp = true;

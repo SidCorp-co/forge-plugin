@@ -1,4 +1,4 @@
-# The five checks a plugin can make in a project it has never seen
+# The checks a plugin can make in a project it has never seen
 
 Three obligations were prose in the issue-flow guide until 2026-09-05, and a sentence is what a run
 reads past. ISS-318 folded them in as sentences to replace; two of the three could not be built where

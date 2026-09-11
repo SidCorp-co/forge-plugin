@@ -68,7 +68,12 @@ const EARNS = {
   documentId: "earns-uuid",
   issueId: "ISS-99",
   status: "approved",
-  sessionContext: { lease: { holder: HOLDER, agent: "a-test-agent", pid: "4242", renewedAt: new Date().toISOString(), minutes: 30, next: null, history: [] } },
+  /* The branch beside the lease is what `in_progress` owes, so the move this case is about is not
+     refused for the one thing it is not about. */
+  sessionContext: {
+    lease: { holder: HOLDER, agent: "a-test-agent", pid: "4242", renewedAt: new Date().toISOString(), minutes: 30, next: null, history: [] },
+    worklog: { branch: "iss-99-the-work" },
+  },
 };
 const LOGIN = { testCredentials: { user: "qa@example.test", password: "a-real-password" } };
 /* Carrying an id: the read-before-write hold credits a comment by one, and nothing else. */
