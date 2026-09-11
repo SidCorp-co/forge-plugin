@@ -161,6 +161,10 @@ outcome; leaving it unruled makes "resolved or still open" a guess.
 - **AC-06-5-4** · Rev: 1 · Proof: plugin/test/codex/log/identity.test.mjs "an entry written where no run id resolves says so rather than carrying a blank"
   WHERE no identity resolves for the writing run the entry SHALL say that, rather than carry an empty
   one, because a blank every unattributed entry shares reads as one run having written them all.
+- **AC-06-5-5** · Rev: 1 · Proof: plugin/test/codex/log/masking.test.mjs "an entry stored before the write-side mask is masked on the way into the next consult"
+  WHEN a stored exchange is replayed into a request THEN every string it carries SHALL be masked
+  before that request leaves the machine, because the exchange may have been written before the mask
+  the write takes and nothing rewrites what is already stored.
 
 ### UC-06-6 — Compare the log's last hundred consults with the hundred before them
 

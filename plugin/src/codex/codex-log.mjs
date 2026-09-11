@@ -188,6 +188,9 @@ export const wholeReadOf = (entries, root, rels) => {
   return found;
 };
 
+/* Masked here and not in `logEntries`, which stays raw at 322ms against this seat's 2ms (ISS-266): this projection opens the next request, and an exchange older than the write-side mask holds whatever the reviewed file held.
+   Before the clips and never after, a shape a clip cuts in half matching no pattern; and over the pick rather than the stored entry, whose `sent` bodies cost double to mask and leave by no route here.
+   A field added below and not to the pick reads undefined, which is the loud way to get this wrong. */
 export const historyFor = (entries, root, pairs = HISTORY_PAIRS, rels = []) => {
   const scored = verdictsBy(entries);
   const own = answered(entries).filter((one) => one.root === root);
@@ -197,13 +200,20 @@ export const historyFor = (entries, root, pairs = HISTORY_PAIRS, rels = []) => {
   return [...far, ...near]
     .sort((a, b) => own.indexOf(a) - own.indexOf(b))
     .map((one) => {
-      const held = scored.get(one.id ?? one.at);
-      return {
+      const ruled = scored.get(one.id ?? one.at);
+      const held = ruled ? maskedDeep(ruled) : null;
+      const said = maskedDeep({
         at: one.at,
         files: one.files ?? [],
-        intent: (one.intent ?? "(none given)").slice(0, INTENT_CHARS),
+        intent: one.intent ?? "(none given)",
+        reply: one.reply ?? "",
+      });
+      return {
+        at: said.at,
+        files: said.files,
+        intent: said.intent.slice(0, INTENT_CHARS),
         verdict: held ? verdictLine(held) : null,
-        reply: digestOf(one.reply, held),
+        reply: digestOf(said.reply, held),
       };
     });
 };
@@ -340,8 +350,10 @@ export const outcomeOf = (held, id) => {
 export const recheckPlan = (entries, root, rels) => {
   const judged = judgedBy(entries, root, rels).at(-1);
   if (!judged) return null;
-  const held = verdictsBy(entries).get(judged.id ?? judged.at);
-  const findings = numbered(judged.reply, rels);
+  /* The other half of what a request carries out of stored entries; `historyFor` above has the seat's reason, and `judged` stays as stored because its coverage fields are read here and never sent. */
+  const ruled = verdictsBy(entries).get(judged.id ?? judged.at);
+  const held = ruled ? maskedDeep(ruled) : null;
+  const findings = numbered(masked(judged.reply), rels);
   return {
     judged,
     ids: findings.map((one) => one.id),

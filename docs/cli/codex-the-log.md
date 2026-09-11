@@ -44,8 +44,8 @@ it, no on-sight credential shape matches any entry at all: only the two *named* 
 entries of prose about credentials. So a rewrite would remove nothing and would destroy text in an
 append-only eval set nothing backs up, on a file already at 0600 in the config directory. The residue
 stays, and every route that prints an entry back to the caller is masked (ISS-266). What a consult
-replays into its *next request* is a separate question with a different reason on each side, and
-ISS-268 holds it rather than this paragraph.
+replays into its *next request* is masked at the emission too, and before the clips: a shape a clip
+cuts in half is one no pattern knows (ISS-268).
 
 **A harness with no numbers on itself is tuned by memory.** `forge codex stats` reads a window —
 `--last n`, `--days n`, `--root p` or `--here` — and answers the questions a change to the harness is
