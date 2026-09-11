@@ -802,16 +802,24 @@
       "digest": "0aa1ad619944552d23ad8273121647e1546ca2f5d450a467331909f4af21a5f3"
     },
     "UC-03-2": {
-      "rev": 1,
-      "digest": "b6ef5c3bf8d01fe42e40ff72b45af2f05005fe62ada68b7d5ea16ec539c781c2"
+      "rev": 2,
+      "digest": "10df36884fb1bfb07cb9be31672c921a8ed47f19b78545acddda224074773517"
     },
     "AC-03-2-1": {
-      "rev": 1,
-      "digest": "33bb7a2003ec9fcf8b50240eade18cbc388589ec6d315ec6d7bffd605e767ff0"
+      "rev": 2,
+      "digest": "31b93fd9db00203b15c8ee5b87b8d89be205f5ecf5455f29a8ff2d392cd6fe9f"
     },
     "AC-03-2-2": {
       "rev": 1,
       "digest": "be9a91a1874b2bb1346732b7338267476f6e232cd07da3188201abae304549d6"
+    },
+    "AC-03-2-3": {
+      "rev": 1,
+      "digest": "a06b3dec57ab3f8a58f376307fac2b2df7567024cada21213e6db54b6121b099"
+    },
+    "AC-03-2-4": {
+      "rev": 1,
+      "digest": "6c42575de1dbd8015c932eb66982465db46426efcca46f3c34e4f8a22cf5225e"
     },
     "UC-03-3": {
       "rev": 2,
@@ -826,8 +834,8 @@
       "digest": "db71146cd3abbec801e630c6ad15d3b17035247cd08319c785b900b7383ff4c2"
     },
     "AC-03-3-3": {
-      "rev": 1,
-      "digest": "ac0a9d01ad607d75113c9fca608e76fe59519771e8a03d0d6ae0a06607fd1e3c"
+      "rev": 2,
+      "digest": "a3ea810cc37d5c9ee84c19f6b5821ad6b6e8d7e9f640cc094ac2aef99cee8a36"
     },
     "UC-03-4": {
       "rev": 1,

@@ -50,6 +50,25 @@ pays the round it would with no reader at all rather than a wrong one.
 
 Which spelling survives what the call carries: [the granted id](the-granted-id.md).
 
+**And an id a tree minted names the issue that tree was cut for**, which is the one thing about a
+run the record can say without being told. `iss-1091-90f5a52f` is ISS-1091's, and the run holding it
+is by construction the run ISS-1091 was dispatched to — so a live lease held by anybody whose id is
+not also one of that issue's no longer refuses its claim. What that drops is a wait nobody could
+shorten: a dispatcher takes a lease to post a triage line, hands the issue on, and the runner it
+dispatched was refused every write until the lease ran out — fifteen minutes of a 25-minute lease
+when this was measured, forty-five of the hour a default one runs now (ISS-1091). No flag, and
+nothing the dispatcher has to remember: the tree the runner was given is the record.
+
+The exception is kept to the dispatch by three conditions, each one a case where a live lease is
+work rather than a hold. The **landing checkpoint** governs wherever its state names a turn, so the
+turns stay `--take`'s and an issue-bound id cannot walk a builder past the state that handed its
+turn to somebody else. The take reaches only the **statuses a run is dispatched at**, so a lease at
+`in_progress` or past it reads as a run at work and refuses as it always did. And a **holder whose
+own id names this same issue** is the run the dispatch already reached, which is the wave of several
+runners the lease exists for. A refusal that stands says which of the four conditions stopped this
+caller, because one route for all four sends three of them back to the refusal they have just read.
+
+
 Where it was not, the CLI **says so and does not refuse**. A run whose own id came from the
 dispatching session is told, where it claims and where it reads the lease, that the holder it
 matched names a wave rather than a run. Refusing that write instead would change what a claim means

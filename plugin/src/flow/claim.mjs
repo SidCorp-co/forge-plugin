@@ -30,6 +30,8 @@ import {
   claimed,
   describe,
   freshLapse,
+  handedOn,
+  handedSaid,
   heldBy,
   historyLine,
   landingLine,
@@ -37,6 +39,7 @@ import {
   landingSaved,
   leaseOf,
   nextLine,
+  notHandedHere,
   nothingWorked,
   parkAnswers,
   readContext,
@@ -136,7 +139,7 @@ export const parkWrite = (lease, next = null) =>
 
 /* The line taken over from is not the line taken on: printing the incoming one as the last
    holder's would say the dead run left a note its successor wrote. A take is a handoff too. */
-const HANDOFF = new Set(["reclaim", "take"]);
+const HANDOFF = new Set(["reclaim", "take", "handed"]);
 
 export const nextLines = (how, left, taken) => [
   HANDOFF.has(how) && left ? `Next, left by the run before: ${left}` : null,
@@ -321,10 +324,15 @@ export const claim = async (argv) => {
     await reconcile(documentId, ref, context, holder, given.reconciled);
     return advise(documentId, issue, worklog);
   }
-  if (state === "live") fail(claimRefusal(ref, lease));
-  if (state === "expired" && !given.stopped && freshLapse(lease)) fail(reclaimRefusal(ref, lease));
+  const handed = handedOn(ref, context, issue.status, holder);
+  if (state === "live" && !handed) {
+    fail(claimRefusal(ref, lease, notHandedHere(ref, context, issue.status, holder)));
+  }
+  if (state === "expired" && !given.stopped && !handed && freshLapse(lease)) {
+    fail(reclaimRefusal(ref, lease));
+  }
   const left = lease?.next ?? null;
-  const how = { free: "claim", expired: "reclaim", mine: null, lapsed: null }[state];
+  const how = { free: "claim", live: "handed", expired: "reclaim", mine: null, lapsed: null }[state];
   const checkpoint = given.ready ? readyCheckpoint(ref, holder, patch, landingOf(context)) : null;
   const next = claimed(context, {
     holder, at: new Date().toISOString(), minutes, next: line, worklog: worklogFor(context, patch), how, status: issue.status,
@@ -333,6 +341,7 @@ export const claim = async (argv) => {
   await setLease(documentId, next, ref, () => context);
   const taken = leaseOf(next);
   console.log(`${ref}  ${how ?? "renewed"}: ${describe(taken)}`);
+  if (state === "live") console.log(handedSaid(ref, lease));
   if (checkpoint) console.log(`${landingLine(checkpoint)} — taken from here by \`forge claim ${ref} --take\`.`);
   for (const one of nextLines(how, left, taken.next)) console.log(one);
   /* Beside the lease it is about, and above every route out of here: a claim that answers a park

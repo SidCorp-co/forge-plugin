@@ -49,6 +49,10 @@ export const heldBesideGit = (from, name) => {
 
 export const runIdAt = (from) => heldBesideGit(from, RUN_ID);
 
+export const MINTED_FOR = /^(iss-\d+)-\S+$/iu;
+
+export const runFor = (id) => MINTED_FOR.exec(String(id ?? "").trim())?.[1]?.toLowerCase() ?? null;
+
 const textOf = (command) => (Array.isArray(command) ? command.join("\n") : String(command ?? ""));
 
 /** The tree the write this event carries will stand in, which is not the one the hook stands in.

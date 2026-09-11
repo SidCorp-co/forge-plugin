@@ -48,17 +48,30 @@ fail or lie.
 
 ### UC-03-2 — Refuse a second run
 
-Rev: 1 · Actors: agent · Enforces: BR-01, BR-05
+Rev: 2 · Actors: agent · Enforces: BR-01, BR-05
 
 A live lease held by another run refuses the claim and every payload write, and the refusal names
-the holder and the renew time — the two facts a person needs to decide whether to wait.
+the holder and the renew time — the two facts a person needs to decide whether to wait. The one
+second run it does not refuse is the run the issue was dispatched to, which the record identifies
+without anybody being asked to remember a flag; a dispatcher holding a lease over a write it has
+already finished is not work, and waiting it out is the cost this exception exists to drop.
 
-- **AC-03-2-1** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "every refusal names the holder, its renew time and the one command that clears it"
+- **AC-03-2-1** · Rev: 2 · Proof: plugin/test/flow/lease.test.mjs "every refusal names the holder, its renew time and the one command that clears it"
   IF a live lease is held by another run THEN the CLI SHALL refuse and SHALL name that run, its
-  renew time and the one command that clears the refusal.
+  renew time, the line the holder left on the lease and a way out that answers the reason this
+  caller was refused.
 - **AC-03-2-2** · Rev: 1 · Proof: plugin/test/tracker/precondition.test.mjs "the payload write carries the sessionContext its own renewal sent, and a moved one does not land"
   WHEN a payload is written THEN the tracker SHALL refuse the write if the lease field is no longer
   exactly what the writer read.
+- **AC-03-2-3** · Rev: 1 · Proof: plugin/test/flow/dispatched-claim.test.mjs "a run dispatched to the issue takes a live lease its dispatcher is only holding"
+  IF a live lease is held by a run other than the one the issue was dispatched to, and the issue is
+  at a status a run is dispatched at, and no landing checkpoint on it names a turn, THEN the CLI
+  SHALL let the dispatched run take the lease and SHALL record the handoff as neither a first claim
+  nor a dead run's reclaim.
+- **AC-03-2-4** · Rev: 1 · Proof: plugin/test/flow/dispatched-claim.test.mjs "a live lease is refused where its holder is another run dispatched to the same issue"
+  IF the caller is not the run the issue was dispatched to, or the issue is past the statuses a run
+  is dispatched at, or a landing checkpoint on it names a turn, or the holder is itself a run the
+  issue was dispatched to, THEN the CLI SHALL refuse the claim as it refuses any second run's.
 
 ### UC-03-3 — Reclaim what a dead run left
 
@@ -81,10 +94,11 @@ it works loses every write it makes after that.
 - **AC-03-3-2** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "the claim history is appended by the write that made it, and a renew appends nothing"
   WHEN a holder retakes its own lapsed lease THEN the CLI SHALL append no handoff and SHALL count it
   toward no park.
-- **AC-03-3-3** · Rev: 1 · Proof: plugin/test/flow/fresh-lapse.test.mjs "a reclaim of a lease that has only just lapsed is refused, and the flag is what takes it"
+- **AC-03-3-3** · Rev: 2 · Proof: plugin/test/flow/fresh-lapse.test.mjs "a reclaim of a lease that has only just lapsed is refused, and the flag is what takes it"
   IF a lease is past its duration by less than that duration THEN the CLI SHALL refuse a reclaim by
-  another run, and SHALL name the holder, how long ago the lease ran out, what a lapse of that age
-  does not prove, and the one command that clears the refusal.
+  another run that is not the one the issue was dispatched to, and SHALL name the holder, how long
+  ago the lease ran out, what a lapse of that age does not prove, and the one command that clears
+  the refusal.
 
 ### UC-03-4 — A status that keeps dying reaches a person
 

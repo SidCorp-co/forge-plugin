@@ -6,7 +6,7 @@ const RULED = "forge codex verdict";
 const PARKED = "forge record park";
 const ADVANCES = "forge advance";
 
-export const GRANTS = ["claim", "reclaim", "renewed", "take", "judged", "reconciled"];
+export const GRANTS = ["claim", "reclaim", "renewed", "take", "handed", "judged", "reconciled"];
 
 /* Anchored, so the reference is what the line is ABOUT: `ISS-nn is claimed:` is the refusal and a
    caller's `--next` text prints behind `Next: `, so neither can fake an ownership. */

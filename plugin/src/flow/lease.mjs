@@ -1,6 +1,7 @@
 /* The issue's session field read as a lease, and what a build ready to land leaves beside it. Every write it covers carries the value it read, and the tracker refuses one whose value moved. docs/cli/claim.md, docs/cli/the-precondition.md. */
 import { INHERITED, INHERITED_MEANS, OWN_ID, WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
-import { RUN_ID, RUN_ID_VAR, besideGit, runIdAt } from "../resolve/session/run-id.mjs";
+import { RUN_ID, RUN_ID_VAR, besideGit, runFor, runIdAt } from "../resolve/session/run-id.mjs";
+import { TAKEABLE } from "../rank/weights.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
 import { enforcementOf, writeField } from "../tracker/field-write.mjs";
@@ -340,9 +341,44 @@ export const historyLine = (lease, status) =>
     .map((one) => `${one.how} by ${one.holder} at ${stamp(Date.parse(one.at ?? ""))}`)
     .join(" | ");
 
-export const claimRefusal = (ref, lease) =>
+/* The one live lease a claim may take, and the fact that licenses it is the caller's own id rather than any judgement about the holder: a run standing in the tree cut for this issue IS the run the issue was dispatched to, and the id ISS-467 gave that tree already names which issue. Until this, a dispatcher's own lease over a triage write was waited out by the runner it had just dispatched — fifteen minutes of a 25-minute lease when this was filed, forty-five of the hour a default one runs now (ISS-1091). Three conditions keep it to the dispatch, each one a case where a live lease is work rather than a hold: the checkpoint governs wherever its state names a turn, so a landing's turns stay `--take`'s alone; the take reaches only the statuses a run is dispatched at, so a lease past them is a run at work; and a holder cut for this same issue is the run the dispatch already reached. */
+export const handedOn = (ref, context, status, holder = sessionOf()) => {
+  const mine = runFor(holder);
+  if (!mine || mine !== String(ref).trim().toLowerCase()) return false;
+  if (!TAKEABLE.includes(String(status))) return false;
+  if (landingTurn(landingOf(context))) return false;
+  return runFor(leaseOf(context)?.holder) !== mine;
+};
+
+/* One sentence per condition above, because four of them refuse here and a single way out sends three of the four back to the refusal they have just read. */
+export const notHandedHere = (ref, context, status, holder = sessionOf()) => {
+  if (runFor(holder) !== String(ref).trim().toLowerCase()) {
+    return `This call holds ${holder}, which names no run dispatched to ${ref}. Where this is that `
+      + `run, make the call from the worktree cut for it: the ${RUN_ID} beside that tree's git `
+      + `directory names the issue, and a lease its dispatcher is only holding is the dispatched `
+      + `run's to take.`;
+  }
+  if (!TAKEABLE.includes(String(status))) {
+    return `This call's id names ${ref} and the issue is at \`${status}\`, past the statuses a run `
+      + `is dispatched at, so a live lease here is a run at work and not a dispatcher holding one.`;
+  }
+  const turn = landingTurn(landingOf(context));
+  if (turn) {
+    return `A landing checkpoint on ${ref} names the ${turn}'s turn, and a turn changes hands `
+      + `through the checkpoint and not through a claim. ${READ_THE_STATE(ref)}`;
+  }
+  return `That holder is another run dispatched to ${ref}, so the issue is already with a run it `
+    + `was handed to and the lease is doing work.`;
+};
+
+export const handedSaid = (ref, lease) =>
+  `The lease on ${ref} was live and ${describe(lease)} held it. This run is the one ${ref} was `
+  + `dispatched to, so the claim took it rather than waiting the lease out.`;
+
+export const claimRefusal = (ref, lease, said = "") =>
   `${ref} is claimed: ${describe(lease)}. A live lease is that run's, and this claim is refused. `
-  + `${alsoSay(idsHere(lease))}Wait for it, or take it once it expires:\n  forge claim ${ref}`;
+  + `${alsoSay(idsHere(lease))}${lease.next ? `The step it left named: ${lease.next}. ` : ""}`
+  + `${alsoSay(said)}Wait for it, or take it once it expires:\n  forge claim ${ref}`;
 
 const WRITE_REFUSAL = {
   free: (ref) =>
