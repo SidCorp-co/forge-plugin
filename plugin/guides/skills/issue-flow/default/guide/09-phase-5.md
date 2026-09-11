@@ -23,3 +23,14 @@ Something you found that belongs to another issue goes there with `forge comment
 A defect in this plugin that proving this change met is filed against this plugin's own backlog
 here, with the evidence this phase captured cited on it rather than described in the report.
 <!-- forge:end -->
+<!-- forge:when feedback.plugin bugs -->
+
+A defect is the only shape this project sends, so what this phase met that is not one — a verb
+worth having, a phase that reads wrong and held anyway — goes in the run's report and no further.
+<!-- forge:end -->
+<!-- forge:when feedback.plugin all -->
+
+What this phase met that is not a defect goes the same way and as the shape it is: this project
+sends every shape, and one filed as a bug because that is the shape a defect takes is ranked as a
+bug for the rest of its life.
+<!-- forge:end -->

@@ -46,6 +46,15 @@ heading nobody wrote it against. The kinds are the filing shapes', so nothing he
 list. Whether the verb may be typed at all is the same key's, and its rule with this machine's
 withholding beside it is [`withholding-a-verb`](withholding-a-verb.md)'s.
 
+**And the run is told before it is refused.** Two surfaces answer this key and neither is the
+other's copy. The served method branches on it, so a run reads which shapes this project sends
+while it is still deciding what to write, and a channel that is off takes that paragraph out of the
+phase rather than shrinking it — a phase that mentions a filing nobody may make is a turn spent
+learning there is nowhere to send it. The `--kind` refusal above is the backstop under that, for
+the run that arrived anyway on a stale copy of the method or reasoned past it. Guidance that only
+ever arrives as a refusal costs the turn the note was written in; a refusal dropped because the
+method now says it would bet the finding on which copy of that method the run happens to hold.
+
 **A note is measured the way a filing is, and folds the way one does.** Both routes that file ask
 the tracker's own memory what is open beside what they are about to write, print it above the
 result, and land the note on the neighbour that shares the place its cause names rather than filing

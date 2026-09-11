@@ -84,40 +84,50 @@ test("an opener nothing closes names its condition, and a quoted one names nothi
     "and a fence quoted as an example opens nothing, so a page documenting the grammar is clean");
 });
 
-/* AC-02-8-1. The two readings of the phase come from one source, so the case reads the shipped text
-   rather than a fixture: a fence that stopped matching the real body would pass on invented lines. */
-test("the Phase 5 part this copy ships carries the filing block once, and loses it under a closed channel", () => {
+/* AC-02-8-1. The readings come from one source, so the case reads the shipped text rather than a
+   fixture: a fence that stopped matching the real body would pass on invented lines. Three of them
+   and not two — a run learning from the refusal which shapes it sends has already spent the turn. */
+test("the Phase 5 part this copy ships answers each of the channel's three values with its own text", () => {
   const body = servedBody("issue-flow", PLUGIN);
   const phase = phasesOf(body).find((one) => one.number === "5");
   assert.ok(phase, "the method's phases are addressed by number, and 5 is one of them");
   const marked = blocksOf(phase.text).filter((one) => one.condition === CONDITION);
-  assert.equal(marked.length, 1, "the filing block is fenced once in the Phase 5 source");
-  assert.equal(blocksOf(body).filter((one) => one.condition === CONDITION).length, 1,
-    "and once in the whole method text, so no branch of it is written twice");
-  const filing = marked[0].body.join("\n");
-  const kept = render(phase.text, answering("bugs"));
-  const gone = render(phase.text, answering("off"));
-  assert.deepEqual(kept.problems, []);
-  assert.equal(kept.text.includes(filing), true, "a project whose key takes bug reports is shown the block");
-  assert.equal(gone.text.includes(filing), false, "a project that closed the channel is not");
-  assert.deepEqual(paragraphs(gone.text), paragraphs(kept.text).filter((one) => one !== filing),
-    "and the two are equal everywhere else in the part");
+  assert.deepEqual(marked.map((one) => one.values.join(" ")), ["bugs all", "bugs", "all"],
+    "the filing both open channels share, then one block per channel for what only it sends");
+  assert.equal(blocksOf(body).filter((one) => one.condition === CONDITION).length, marked.length,
+    "and the branch is written in this phase alone, so no other part of the method answers the key");
+  const [shared, ...only] = marked.map((one) => one.body.join("\n").trim());
+  const seen = Object.fromEntries(FEEDBACK_CHANNELS.map((one) => [one, render(phase.text, answering(one))]));
+  for (const [value, out] of Object.entries(seen)) assert.deepEqual(out.problems, [], value);
+  assert.equal(seen.off.text.includes(shared), false, "a project that closed the channel is shown none of it");
+  for (const [at, value] of ["bugs", "all"].entries()) {
+    assert.equal(seen[value].text.includes(shared), true, `${value} is shown the filing itself`);
+    assert.equal(seen[value].text.includes(only[at]), true, `${value} is shown what only it sends`);
+    assert.equal(seen[value].text.includes(only[1 - at]), false, `${value} is not shown the other channel's`);
+  }
+  assert.deepEqual(paragraphs(seen.off.text),
+    paragraphs(seen.bugs.text).filter((one) => one !== shared && one !== only[0]),
+    "and the three are one part everywhere else");
 });
 
-/* AC-02-8-1, through the key rather than through an argument: the block travels to a project's own
+/* AC-02-8-1, through the key rather than through an argument: the blocks travel to a project's own
    answer, which is a resolver reading `.forge.json` and not a value a case can hand the renderer. */
-test("the phase the verb serves a project carries the block off the project's own key", () => {
-  const filing = blocksOf(servedBody("issue-flow", PLUGIN))
-    .find((one) => one.condition === CONDITION).body.join("\n");
-  const bugs = asked(room("bugs"), "guide", "issue-flow", "5");
-  const off = asked(room("off"), "guide", "issue-flow", "5");
-  assert.equal(bugs.status, 0, bugs.stderr);
-  assert.equal(off.status, 0, off.stderr);
-  assert.equal(bugs.stdout.includes(filing), true, "`feedback.plugin: bugs` is shown the filing block");
-  assert.equal(off.stdout.includes(filing), false, "`feedback.plugin: off` is not");
-  assert.deepEqual(paragraphs(off.stdout.trimEnd()), paragraphs(bugs.stdout.trimEnd()).filter((one) => one !== filing),
+test("the phase the verb serves a project carries the branch its own key names", () => {
+  const marked = blocksOf(servedBody("issue-flow", PLUGIN)).filter((one) => one.condition === CONDITION);
+  const [shared, bugsOnly, allOnly] = marked.map((one) => one.body.join("\n").trim());
+  const out = Object.fromEntries(
+    FEEDBACK_CHANNELS.map((one) => [one, asked(room(one), "guide", "issue-flow", "5")]));
+  for (const [value, one] of Object.entries(out)) assert.equal(one.status, 0, `${value}: ${one.stderr}`);
+  assert.equal(out.off.stdout.includes(shared), false, "`feedback.plugin: off` is shown no filing at all");
+  assert.equal(out.bugs.stdout.includes(shared), true, "`feedback.plugin: bugs` is shown the filing block");
+  assert.equal(out.bugs.stdout.includes(bugsOnly), true, "and that a defect is the only shape it sends");
+  assert.equal(out.bugs.stdout.includes(allOnly), false, "never the other channel's answer");
+  assert.equal(out.all.stdout.includes(allOnly), true, "`feedback.plugin: all` is shown to send the shape it met");
+  assert.equal(out.all.stdout.includes(bugsOnly), false, "and not the narrower channel's answer");
+  assert.deepEqual(paragraphs(out.off.stdout.trimEnd()),
+    paragraphs(out.bugs.stdout.trimEnd()).filter((one) => one !== shared && one !== bugsOnly),
     "and the part is otherwise the same part");
-  assert.equal(bugs.stdout.includes("forge:when"), false, "a fence is never served to a reader");
+  assert.equal(out.bugs.stdout.includes("forge:when"), false, "a fence is never served to a reader");
 });
 
 /* A renderer that swallows a broken fence looks exactly like one with nothing to drop, so each way
