@@ -37,8 +37,11 @@ the code have been read:
 
 1. **Find.** `forge next --count N --why` prints each ranked row's neighbours by shared path and by
    text; `forge issues --status open --search <term>` per topic reaches the low-priority tail the
-   rank never compares. A path relation at directory level means nothing; a title that says the same
-   thing in the same words is a lead, not a verdict.
+   rank never compares; `forge knowledge search "<title>"` asks the near-duplicate search a filing
+   is measured against, which is the one route that reads a family whose members chose different
+   words for one cause, and it answers with scores and the tracker's own ids rather than keys. A
+   path relation at directory level means nothing; a title that says the same thing in the same
+   words is a lead, not a verdict.
 2. **Read the cause, not the vocabulary.** Open each candidate's "Why it happens" and the file it
    names. Two bodies naming one module and one mechanism are one issue; two naming the same shape in
    different modules are two, and each gets a comment naming the other. The older filing is the
@@ -56,6 +59,20 @@ the code have been read:
    reading, which is the one thing it was worth.
 6. **Count it in the fold** as a run not spent, with the query that found it, and say which query
    returned nothing where a set was judged complete.
+
+## A round over the whole backlog, rather than over a wave's few
+
+**Slice the set by family, never by count.** Splitting a backlog between two readers by giving one
+the first N and the other the rest cuts through families, and a family cut in two is folded twice,
+onto two heads, each holding half the evidence and neither aware of the other. Reconciling that
+costs more than the split saved, and nothing reports it: both readers finish clean.
+
+**The fold floor is a filing's, not a pair's.** `FOLD_FLOOR` is calibrated for one new body measured
+against the whole corpus, where a near-copy scores high. Two issues already open, filed apart by
+authors who chose different words for one cause, read below it and are still one issue. So a round
+that stops at the floor leaves behind exactly the families the floor was never meant to catch: read
+the band beneath it, and report where the yield falls away, because that figure is the only evidence
+anyone has for where the line belongs when both sides are already open.
 
 ## Posting it
 
