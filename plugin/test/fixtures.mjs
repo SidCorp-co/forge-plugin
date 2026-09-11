@@ -452,10 +452,13 @@ export const fakeTracker = async (state) => {
     }],
     [/^\/api\/issues\/([^/]+)\/merge$/u, (q, sent, method, [id]) =>
       answered("forge_issues", { action: method === "DELETE" ? "unmark" : "mark_merged", data: { issueId: id, ...sent } })],
-    [/^\/api\/issues\/([^/]+)$/u, (q, sent, method, [id]) =>
-      asRow(answered("forge_issues", method === "PATCH"
-        ? { action: "update", documentId: id, data: sent }
-        : { action: "get", documentId: id }))],
+    /* `expect` comes off the body and stands beside it, as the route composes it: a precondition on the write and not a field, so a case counting what an update wrote counts fields and one about the precondition reads it by name. */
+    [/^\/api\/issues\/([^/]+)$/u, (q, sent, method, [id]) => {
+      const { expect, ...data } = sent;
+      return asRow(answered("forge_issues", method === "PATCH"
+        ? { action: "update", documentId: id, data, ...(expect ? { expect } : {}) }
+        : { action: "get", documentId: id }));
+    }],
     [/^\/api\/projects\/[^/]+\/knowledge\/([^/]+)$/u, (q, sent, method, [slug]) =>
       answered("forge_knowledge", { action: method === "PUT" ? "upsert" : method === "DELETE" ? "delete" : "get", slug, ...sent })],
     [/^\/api\/projects\/[^/]+\/knowledge$/u, (q) =>

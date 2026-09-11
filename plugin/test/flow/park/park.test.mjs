@@ -4,14 +4,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
+import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("park").path;
-const { render } = await import("../../src/flow/record/page.mjs");
-const { PARKS } = await import("../../src/flow/machine.mjs");
-const { PARK_STATUS, answered, viewFrom } = await import("../../src/flow/earned.mjs");
+const { render } = await import("../../../src/flow/record/page.mjs");
+const { PARKS } = await import("../../../src/flow/machine.mjs");
+const { PARK_STATUS, answered, viewFrom } = await import("../../../src/flow/earned.mjs");
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
 let clock = 0;
 const at = () => `2026-09-02T10:${String((clock += 1)).padStart(2, "0")}:00.000Z`;

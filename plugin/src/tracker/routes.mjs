@@ -310,11 +310,13 @@ export const ROUTES = {
     answers: writtenRow,
     sends: ["data"],
   },
+  /* `expect` rides beside `data` and never inside it: it is a precondition on the write and not a field of the issue, and one folded into the body would be read back as a field by everything that lists what an update wrote. */
   "forge_issues.update": {
     writes: true,
-    requests: (args) => one(`/issues/${args.documentId}`, "PATCH", args.data),
+    requests: (args) => one(`/issues/${args.documentId}`, "PATCH",
+      args.expect ? { ...args.data, expect: args.expect } : args.data),
     answers: writtenRow,
-    sends: ["documentId", "data"],
+    sends: ["documentId", "data", "expect"],
   },
   "forge_issues.transition": {
     writes: true,

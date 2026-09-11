@@ -22,7 +22,8 @@ how many topics there may be.
 | [`record` — a rung in one call](cli/record-the-rung.md) | The pair counts behind `--also`, the order a call writes in, and why the move is a cited kind's alone. |
 | [the field rules](cli/the-field-rules.md) | The three fields judged on what they say, and the two overrides round a check. |
 | [`advance`](cli/advance.md) | What the entry criteria read, why git is never asked at a transition while the requirements tree is, and how a reopen routes. |
-| [`claim`](cli/claim.md) | How far a lease can be promised without a conditional write, what the step line is for, and why every write lists the issue's comments first. |
+| [`claim`](cli/claim.md) | What a lease is, what the step line is for, and why every write lists the issue's comments first. |
+| [`the precondition`](cli/the-precondition.md) | What every write the lease covers carries, the one call that establishes the far end honours it, and which read-back stops being spent once it does. |
 | [the short lease](cli/the-short-lease.md) | Why a write no work follows takes a lease of minutes, why the refusal is where that is said, and the split it was measured on. |
 | [the granted id](cli/the-granted-id.md) | Why an export reaches a substitution and a prefix does not, which openers lose a call its name unread, and which quoting leaves one as the prose it looks like. |
 | [`the checkpoint`](cli/the-checkpoint.md) | What a build ready to land leaves whoever lands it, why both merge routes are one table, and how the judge's turn is handed back. |

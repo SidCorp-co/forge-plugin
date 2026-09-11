@@ -99,7 +99,7 @@ test("the brief carries the status, the phase it owes and the reference that hol
 test("the claim and the resume print one opening, and at open neither prints any", async () => {
   const { openingLines } = await import("../../../src/guides/phases.mjs");
   const { opening } = await import("../../../src/flow/resume.mjs");
-  const { ADVISORY } = await import("../../../src/flow/lease.mjs");
+  const { MECHANISM } = await import("../../../src/flow/lease.mjs");
   const { advisory } = await import("../../../src/flow/claim.mjs");
   const said = (run) => {
     const lines = [];
@@ -120,8 +120,8 @@ test("the claim and the resume print one opening, and at open neither prints any
     "and the claim prints the same lines, so a run reading both is shown one record once");
   assert.deepEqual(said(() => opening("open", fields, [])).slice(0, 1), [""],
     "an issue at open has nothing behind it, so the first thing either verb prints is what is ahead");
-  assert.ok(said(() => advisory("open", fields, [])).includes(`\n${ADVISORY}`),
-    "and the claim still prints the advisory, under what is ahead and above the served method");
+  assert.ok(said(() => advisory("open", fields, [])).some((line) => line.includes(MECHANISM)),
+    "and the claim still says what the lease promises, under what is ahead and above the served method");
 });
 
 /* The work under the record, on both verbs and in the same words: the run that arrived at ISS-979

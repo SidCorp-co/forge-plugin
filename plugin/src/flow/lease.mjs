@@ -1,9 +1,8 @@
-/* The issue's session field read as a lease, and what a build ready to land leaves beside it. The
-   tracker has no conditional write (ISS-7), so a write is a read-back compare. docs/cli/claim.md. */
+/* The issue's session field read as a lease, and what a build ready to land leaves beside it. Every write it covers carries the value it read, and the tracker refuses one whose value moved. docs/cli/claim.md, docs/cli/the-precondition.md. */
 import { INHERITED, INHERITED_MEANS, OWN_ID, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
-import { writeField } from "../tracker/field-write.mjs";
+import { enforcementOf, writeField } from "../tracker/field-write.mjs";
 import { scoped, tried } from "../tracker/rest.mjs";
 import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
 
@@ -14,10 +13,18 @@ export const READING_MINUTES = 10;
 export const RECLAIMS_BEFORE_PARK = 2;
 const HISTORY_KEPT = 12;
 
-export const ADVISORY =
-  "The lease is advisory: the tracker refuses no stale write yet (ISS-7), so two runs that both "
-  + "find no lease both claim, and the later write erases the earlier. A project running more than "
-  + "one agent at a time needs the tracker's refusal before it can trust this.";
+/** What the mechanism is, claiming nothing of any far end, because `forge claim -h` has made no write and a run reading it is owed the shape rather than a guess. */
+export const MECHANISM =
+  "Every write the lease covers carries the value it read, and the tracker refuses one whose value "
+  + "moved: two runs that both find no lease no longer both claim. Where the tracker does not "
+  + "enforce it, the write is compared after the fact instead, which cannot stop another run's write "
+  + "and only refuses to build on it.";
+
+/** And what this endpoint answered, which only a write can have learned, so this is the claim's own line and never the usage's. */
+export const heldBy = () => (enforcementOf() === true
+  ? "This tracker refuses a stale write to the field, so the lease is this run's until it lapses."
+  : "This tracker did not refuse a stale write to the field, so the lease is advisory: two runs that "
+    + "both find no lease both claim, and the later write erases the earlier.");
 
 /** The other lease a write can be owed, spent by `forge claim -h` and by the refusal a payload write with no lease meets, so a run reaches it where it is stopped rather than in a document it may not open. It names no kind of write, because nothing here can tell a reading's output from a build's: the run knows whether work follows it and the CLI does not (ISS-840). */
 export const nothingWorked = (ref = "<ref>") =>
@@ -327,8 +334,7 @@ export const readContext = async (documentId, soft = false) => {
   return answer?.refused ? answer : answer?.[FIELD] ?? null;
 };
 
-/* The compare-and-set the tracker owes (ISS-7): it cannot stop another run's write, only refuse. The
-   write itself is the field writer's, and `sessionContext`'s row there is where these three are spent. */
+/* What a far end with no precondition still gets: the compare-and-set made here, which cannot stop another run's write and only refuses to build on it. `sessionContext`'s row in the field writer is where these three are spent, and where the tracker's own refusal replaces them. */
 export const leaseLandedAs = (held, sent) => canonical(held) === canonical(sent);
 
 export const leaseMismatch = (ref, back) => {
@@ -338,8 +344,9 @@ export const leaseMismatch = (ref, back) => {
     + `build on. Read the record, then claim again:\n  forge claim ${ref}`;
 };
 
-export const setLease = async (documentId, value, ref) =>
-  writeField(documentId, FIELD, value, { ref, refuse: fail });
+/* `on` answers with the context the value was built from, which is what the write is conditional on: a function rather than the value itself because the two writes whose value is built inside the write's own callback read that context there, after this call was made. A caller naming none conditions nothing — the safe way for a call site to be missed, where an expectation of `null` would read as *the field is empty* and refuse every write to an issue that has a lease. */
+export const setLease = async (documentId, value, ref, on) =>
+  writeField(documentId, FIELD, value, { ref, refuse: fail, expect: on });
 
 /* An edge touches two issues and one of them is being worked: the other is only checked, so a blocker just filed, holding no lease at all, can still be named. */
 export const notAnothers = async (documentId, ref) => {
@@ -357,7 +364,7 @@ export const anothersHold = async (documentId, ref) => {
   return { unknown: false, said: writeRefusal(state, ref, lease) };
 };
 
-/* Every payload write renews the lease; another run's is refused, a read needs none, and `finder` is the one conditional renewal, answered by the return: asked for by the two writes a finder may make, a comment and an edge, and inherited by nobody, because the field writer awaits this and reads none of it, and a `false` handed back unasked would license a write on another run's issue. What it answers nothing about is whether a LIVE lease may be written past: a comment is additive and is posted anyway, an edge moves what a dispatch may take and is not, so the caller that cares reads `notAnothers` or `anothersHold` for itself — after this call, so that nothing is written having read another run's lease. The lapsed reread below is outside the option — a handoff mid-write is a handoff whoever is writing. */
+/* Every payload write renews the lease; another run's is refused, a read needs none, and `finder` is the one conditional renewal, answered by the return, which is the `sessionContext` this call SENT — the object the write after it is conditional on, and the one the tracker certainly holds, a reply having passed the transport's fence strip (ISS-1219): asked for by the two writes a finder may make, a comment and an edge, and inherited by nobody, because the field writer awaits this and reads none of it, and a `false` handed back unasked would license a write on another run's issue. What it answers nothing about is whether a LIVE lease may be written past: a comment is additive and is posted anyway, an edge moves what a dispatch may take and is not, so the caller that cares reads `notAnothers` or `anothersHold` for itself — after this call, so that nothing is written having read another run's lease. The lapsed reread below is outside the option — a handoff mid-write is a handoff whoever is writing. */
 export const renew = async (documentId, ref, next = undefined, patch = null, { finder = false } = {}) => {
   const holder = sessionOf();
   const context = await readContext(documentId);
@@ -367,29 +374,32 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
     if (finder) return false;
     fail(writeRefusal(state, ref, lease));
   }
-  const value = (from, held) => claimed(from, {
+  let sent = null;
+  const value = (from, held) => (sent = claimed(from, {
     holder,
     at: new Date().toISOString(),
     minutes: held.minutes,
     next,
     worklog: worklogFor(from, patch),
-  });
+  }));
   if (state === "mine") {
-    await setLease(documentId, value(context, lease), ref);
-    return true;
+    await setLease(documentId, value(context, lease), ref, () => context);
+    return sent;
   }
   /* Lapsed is the one another run may take: the last read decides, and the notice waits for the write. */
   let renewed = null;
+  let read = null;
   await setLease(documentId, async () => {
     const again = await readContext(documentId);
     const now = leaseOf(again);
     const state = stateOf(now, holder);
     if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, now));
     if (state === "lapsed") renewed = now;
+    read = again;
     return value(again, now);
-  }, ref);
+  }, ref, () => read);
   if (renewed) console.error(renewedLapsed(ref, renewed));
-  return true;
+  return sent;
 };
 
 /** The take itself, apart from the verb that prints it, so the landing task and `forge claim --take` cannot come to disagree about what licenses one. */
@@ -408,7 +418,7 @@ export const takeLease = async (documentId, ref, context,
     holder, at: new Date().toISOString(), minutes, next: line, worklog: worklogFor(context, patch),
     how: "take", status, landing,
   });
-  await setLease(documentId, next, ref);
+  await setLease(documentId, next, ref, () => context);
   return leaseOf(next);
 };
 
@@ -416,8 +426,10 @@ export const takeLease = async (documentId, ref, context,
 export const landingSaved = async (documentId, ref, patch) => {
   const holder = sessionOf();
   let saved = null;
+  let read = null;
   await setLease(documentId, async () => {
     const context = await readContext(documentId);
+    read = context;
     const lease = leaseOf(context);
     const state = stateOf(lease, holder);
     if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, lease));
@@ -430,6 +442,6 @@ export const landingSaved = async (documentId, ref, patch) => {
     return claimed(context, {
       holder, at: new Date().toISOString(), minutes: lease.minutes, landing: saved,
     });
-  }, ref);
+  }, ref, () => read);
   return landingOf({ [LANDING]: saved });
 };

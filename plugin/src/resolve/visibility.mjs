@@ -121,14 +121,15 @@ export const usageOf = (verb) => {
   return `Usage: forge ${verb}${row?.[1] ? ` ${row[1]}` : ""}`;
 };
 
+const NAMES_NO_FIELD = new Set(["data", "expect"]);
+
 /* Read off the routes the verb owns, so the answer arrives with the question rather than in a second command that could go out of step with the table. Owning a route is the whole condition: a verb's own argument vocabulary says nothing about what the tracker takes, and a verb owning no route names no field. */
 const fieldsOwned = (row) => {
   const owned = wrapsOf(row);
   if (!owned) return [];
   const said = Object.keys(owned).flatMap((key) => ROUTES[key]?.sends ?? []);
-  /* `data` is the body every write is wrapped in and names no field, so a verb whose only send is
-     that one names none: the fields inside it are `DECLARES`, which the verb's own flags carry. */
-  return [...new Set(said)].filter((one) => one !== "data").sort();
+  /* `data` is the body every write is wrapped in and names no field, so a verb whose only send is that one names none: the fields inside it are `DECLARES`, which the verb's own flags carry. `expect` is the other, being a precondition on a write that the CLI fills from what it read and no caller types. */
+  return [...new Set(said)].filter((one) => !NAMES_NO_FIELD.has(one)).sort();
 };
 
 /** What `-h` on a verb answers: what to type, what it is for, and the fields the tracker itself

@@ -12,7 +12,7 @@
 | **C-02** A plugin directory travels alone and cannot import a sibling package. | 1 | The shared linter script is vendored into the plugin as a copy, and drift between the copy and its source is a gate rather than a habit. |
 | **C-03** The tracker's fields are the tracker's. | 1 | Every payload the workflow writes lands in a field or a comment that exists today, and a shape the tracker lacks is carried in a fixed prose form until it gains a field. |
 | **C-04** One credential, in one file outside every repository, at owner-only permissions. | 1 | No environment variable and no in-repository file is a second source for the account, and a test that exercises live state redirects the configuration directory first. |
-| **C-05** The tracker refuses no stale write yet. | 1 | The lease is advisory rather than exclusive: two runs that both find no lease both take one, and the later write erases the earlier. This is the limit BR-05's duty is bounded by, and a project running more than one agent needs the tracker's refusal first (ISS-7). |
+| **C-05** The tracker's refusal cannot separate two writers holding one holder string. | 2 | The tracker refuses a write to the session field whose value moved, and every write the lease covers carries the value it read, so two runs that both find no lease no longer both take one. What no precondition can refuse is two runs under one holder: they agree on the value and both writes are legitimate to it. That is the limit BR-05's duty is bounded by now (ISS-467). |
 | **C-06** The host has no per-hook switch. | 1 | Turning one gate off is this product's own feature, in the account's configuration, and it fails open when that file will not parse. |
 | **C-07** The tracker's comment list has no cursor, and cuts a long page by response size. | 1 | An issue whose thread outgrows the response is judged from the page, which the cut leaves holding the most recent rows: what the page earns it earns, and a shortfall may name a record behind the cut (ISS-17, ISS-131). |
 | **C-08** A gate's message lands in a context window on every tool call. | 1 | A refusal is capped in size and carries no argument; the reasoning lives in the document a refused agent can open. |
@@ -26,7 +26,7 @@
 | Assumption | Rev | If it is false |
 |---|---|---|
 | **A-01** A project that uses the tracker carries its own settings file naming its slug. | 1 | Every call needing a project identifier refuses, and the diagnostic verb says which source failed. |
-| **A-02** One agent works a project's backlog at a time. | 1 | Two runs can overwrite one record, and nothing on the record shows it. C-05 is why. |
+| **A-02** One agent works a project's backlog at a time. | 1 | Two runs sharing one holder id can overwrite one record, and nothing on the record shows it. C-05 is why. |
 | **A-03** A person reads the tracker rather than the repository. | 1 | Evidence written onto issues reaches nobody, and the phases that write it are cost without a reader. |
 | **A-04** The default branch, the deploy route and the way back are the project's, discovered per project. | 1 | A step assumed from another project's layout fails at the worst moment, which is why the way back is established before the step that needs one. |
 | **A-05** A business analyst reads a rendered page and asks for changes as issues. | 1 | The text tree becomes a document a non-developer edits, and the citations in it stop being trustworthy. |

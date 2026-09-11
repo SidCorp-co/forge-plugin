@@ -13,7 +13,7 @@ process.env.XDG_CONFIG_HOME = HOME.path;
 process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const {
-  ADVISORY, MINUTES, READING_MINUTES, RECLAIMS_BEFORE_PARK, SHARED_HOLDER, agentOf, canonical,
+  MECHANISM, MINUTES, READING_MINUTES, RECLAIMS_BEFORE_PARK, SHARED_HOLDER, agentOf, canonical,
   claimRefusal, claimed, describe, expiryOf, historyLine, leaseOf, nextLine, nothingWorked,
   parksAsCrashed, pidOf, reclaimsOf, sharedHolder, stateOf, writeRefusal, writtenBy,
 } = await import("../../src/flow/lease.mjs");
@@ -439,14 +439,17 @@ test("a call that may write is retried on one status, a read on the gateway's to
   assert.equal(ROUTES["forge_issues.get"].writes, undefined, "and a read declares none");
 });
 
-test("the verb says what to type, and says the lease is advisory", () => {
+test("the verb says what to type, and says what the mechanism is without claiming a far end honours it", () => {
   const run = spawnSync(FORGE, ["claim", "-h"], { encoding: "utf8", env: process.env });
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /Usage: forge claim <uuid\|ISS-45> \[--minutes n\]/u);
   assert.match(run.stdout, /--minutes/u, "every flag it takes is on the line");
   assert.match(run.stdout, /--next <line>/u, "the line a successor starts on among them");
-  assert.ok(run.stdout.includes(ADVISORY), "the output says what the lease cannot promise");
-  assert.ok(USAGE.includes(ADVISORY));
+  assert.ok(run.stdout.includes(MECHANISM), "the output says what every write the lease covers carries");
+  assert.ok(USAGE.includes(MECHANISM));
+  assert.doesNotMatch(run.stdout, /refuses no stale write/u,
+    "and -h has made no write, so it claims nothing of the far end either way");
+  assert.doesNotMatch(run.stdout, /the lease is advisory/iu);
   const wrong = spawnSync(FORGE, ["claim", "--minutes", "9"], { encoding: "utf8", env: process.env });
   assert.equal(wrong.status, 1, "the issue comes first, and a flag in its place is not one");
   assert.match(wrong.stderr, /claim takes the issue first/u);

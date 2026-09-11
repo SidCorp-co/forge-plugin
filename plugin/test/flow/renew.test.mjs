@@ -242,7 +242,10 @@ test("an issue nobody claimed refuses the write, because a payload is the holder
 test("the finder option renews the holder's lease and answers that it did", async () => {
   field = lease("this-run", ago(1));
   const { answer } = await said(() => renew(ISSUE, "ISS-348", undefined, null, { finder: true }));
-  assert.equal(answer, true, "asked for or not, a lease of this run's is renewed");
+  assert.ok(answer, "asked for or not, a lease of this run's is renewed");
+  /* The answer is the `sessionContext` this renewal SENT, which is what the write after it is
+     conditional on: a boolean would say it happened and leave that write nothing to expect. */
+  assert.deepEqual(answer, field, "and what it answers is the value it left, not that it left one");
   assert.equal(leaseOf(field).holder, "this-run");
   assert.ok(Date.parse(leaseOf(field).renewedAt) > Date.now() - 60_000, "and the window starts again");
 });

@@ -90,8 +90,8 @@
       "digest": "592b6289baaa16a3a38969f758e91bee79fe463caf9c531dd87efe434dd8b649"
     },
     "C-05": {
-      "rev": 1,
-      "digest": "4749de77f5482e3d11cff6fce7a1d0f013d5b1723963d5e64768bc4399ec82a7"
+      "rev": 2,
+      "digest": "706628affc19d93006bda13be9ff0f535f18375dbfb5b9e31cb959214bf0be22"
     },
     "C-06": {
       "rev": 1,
@@ -119,7 +119,7 @@
     },
     "A-02": {
       "rev": 1,
-      "digest": "f109f0745552d8d1c911c44fdcd05987533fab821f07c9a9f3c548c822846830"
+      "digest": "991a9bf216bdf2f8abe08969e229b393ab1c61bdf2c276d98879dc6f925bd301"
     },
     "A-03": {
       "rev": 1,

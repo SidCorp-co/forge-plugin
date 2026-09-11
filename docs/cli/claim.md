@@ -1,17 +1,16 @@
-# `claim` — one run holds an issue, as far as a client can promise
+# `claim` — one run holds an issue
 
 The issue's session field was there from the start and nothing wrote it: measured 2026-09-02, a
 search for it across this plugin answered nowhere at all. It now holds a lease — a holder, a renew
 time, a duration and the claims before this one — taken by the pick and renewed by every payload
 write the CLI makes. A run that dies leaves the field behind, and the field is what the next run
-reads.
+reads. What makes the lease exclusive rather than advisory is
+[the precondition](the-precondition.md).
 
-Three measurements shaped it. The tracker replaces that field rather than merging it and answers
-with the keys in an order of its own, so the compare is blind to key order: the first read-back
-rejected a write where nothing had changed. There is no conditional write (ISS-7), so the compare
-is a read, a write and a read back, which cannot stop another run's write and only refuses to build
-on it — `forge claim` says so in its own output rather than leaving a reader to assume otherwise.
-And 429 is the only answer this tracker gives that means it did not process a call, so it is the
+Two measurements shaped the writing. The tracker replaces that field rather than merging it and
+answers with the keys in an order of its own, so the compare is blind to key order: the first
+read-back rejected a write where nothing had changed. And 429 is the only answer this tracker gives
+that means it did not process a call, so it is the
 only one anything but a read is sent again on; a gateway status or a dropped socket is retried for
 a named read alone, because idempotence is documented for the merged mark and nothing else. Which
 actions those are is decided here rather than read off the arguments: one of them mutates with no
@@ -24,11 +23,11 @@ replaced it named `forge claim`, which cost the eleventh dry run two rounds for 
 already read. What makes the renewal safe is what the refusal never used: the field still names this
 session, and a run that took the issue would have replaced the holder, so the two states that mean
 somebody else's lease still refuse. It is safe as far as the read, and no further — a reclaim
-landing between the read and the write is the ISS-7 window, which the refused route paid too,
-because `forge claim` is the same three calls. That read is the last call before the write: the
-comment gate every write passes was a round trip sitting between the two, and a review of this
-issue's own change caught it there, widening a window the CLI cannot close by as long as a
-comments list takes. A reclaim is a handoff between two holders, though, so a holder
+landing between the read and the write is the window the precondition closes, and which the
+refused route paid too, because `forge claim` is the same three calls. That read is the last call
+before the write: the comment gate every write passes was a round trip sitting between the two, and
+a review of this issue's own change caught it there, widening a window nothing in this CLI could
+close by as long as a comments list takes. A reclaim is a handoff between two holders, though, so a holder
 taking its own lapsed lease back appends nothing to the history and brings no park closer.
 
 The holder is the harness's own session, read twice to check that it is stable for the life of a
@@ -59,9 +58,10 @@ nothing about a holder string this reader did not write is this reader's to judg
 names the source of the id it holds, so a wave sharing one is visible before it writes rather than
 after.
 
-Each payload write costs three calls for the lease — the read, the write, the read back — and every
-one of them pays, because a park is three writes and an upload of four files is four: a run
-reclaimed halfway through has to be refused at the next of them rather than carried to the end.
+Each payload write costs the lease a read and a write, and a read back on top of them where the far
+end refuses no stale write; and every one of them pays, because a park is three writes and an upload
+of four files is four: a run reclaimed halfway through has to be refused at the next of them rather
+than carried to the end.
 
 Two facts beside the lease itself. **The holder names the kind of agent and the process id
 beside the session**, because a uuid places nobody: when ISS-26's shell died, whoever had to decide

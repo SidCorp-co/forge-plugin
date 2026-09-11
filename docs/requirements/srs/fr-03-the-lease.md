@@ -56,7 +56,7 @@ the holder and the renew time — the two facts a person needs to decide whether
 - **AC-03-2-1** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "every refusal names the holder, its renew time and the one command that clears it"
   IF a live lease is held by another run THEN the CLI SHALL refuse and SHALL name that run, its
   renew time and the one command that clears the refusal.
-- **AC-03-2-2** · Rev: 1 · Proof: none yet — ISS-7
+- **AC-03-2-2** · Rev: 1 · Proof: plugin/test/tracker/precondition.test.mjs "the payload write carries the sessionContext its own renewal sent, and a moved one does not land"
   WHEN a payload is written THEN the tracker SHALL refuse the write if the lease field is no longer
   exactly what the writer read.
 

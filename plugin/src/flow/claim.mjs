@@ -15,18 +15,19 @@ import { kindsHeld, parse } from "./record/page.mjs";
 import { parkAs, transitionTo } from "./advance.mjs";
 import { OPEN_KEPT, merged, patchFrom, worklogFor, worklogOf, workNow } from "./worklog.mjs";
 import {
-  ADVISORY,
   LANDING_BUILDER_OWED,
   LANDING_JUDGED,
   LANDING_QA_OWED,
   LANDING_READY,
   LANDING_RECONCILED,
+  MECHANISM,
   MINUTES,
   RECLAIMS_BEFORE_PARK,
   SHARED_HOLDER,
   claimRefusal,
   claimed,
   describe,
+  heldBy,
   historyLine,
   landingLine,
   landingOf,
@@ -35,11 +36,13 @@ import {
   nextLine,
   nothingWorked,
   parkAnswers,
+  readContext,
   parksAsCrashed,
   reclaimsOf,
   setLease,
   sharedHolder,
   stateOf,
+  writeRefusal,
   takeLease,
   takeRefusal,
 } from "./lease.mjs";
@@ -53,7 +56,7 @@ export const advisory = (status, fields, held, work = null) => {
   for (const line of openingLines(status, held, work)) console.log(line);
   console.log("");
   for (const line of laneLines({ status, fields })) console.log(line);
-  console.log(`\n${ADVISORY}`);
+  console.log(`\n${MECHANISM} ${heldBy()}`);
   partForStatus(status, (part) => console.log(`\n${part}`));
 };
 
@@ -95,7 +98,7 @@ export const USAGE = [
   "",
   nothingWorked(),
   "",
-  ADVISORY,
+  MECHANISM,
 ].join("\n");
 
 const minutesFrom = (raw) => {
@@ -240,7 +243,8 @@ const answerPark = async (documentId, ref, context, line) => {
   const { comments } = await commentPage(documentId);
   const park = crashedPark(comments);
   if (!park || !parkAnswers(lease, park.left, park.at)) return false;
-  await setLease(documentId, claimed(context, { ...parkWrite(lease, line), how: "parked", status: park.left }), ref);
+  await setLease(documentId, claimed(context, { ...parkWrite(lease, line), how: "parked", status: park.left }), ref,
+    () => context);
   console.log(`${ref} is parked as crashed for what it did at ${park.left}, and its history now says so.`);
   return true;
 };
@@ -258,7 +262,13 @@ const parkCrashed = async (documentId, ref, issue, context, line) => {
   const stands = written?.left === status && parkAnswers(lease, status, written.at);
   if (stands) await transitionTo(view, PARKS_IN, ref);
   else await parkAs(view, ref, "crashed", why);
-  await setLease(documentId, claimed(context, { ...parkWrite(lease, line), how: "parked", status }), ref);
+  /* Read again: both branches above renew the lease, so the context this call arrived with is a value the field no longer holds. Building the acknowledgement on it would write the renewal back out of the record, and conditioning it on that value is a refusal this run earns against itself. And judged again on what came back, because a read is not a claim: a run that took the issue while this one was transitioning would otherwise have its own holder written back to it under a precondition that matches, and be told the lease is somebody else's. */
+  const held = await readContext(documentId);
+  const now = leaseOf(held);
+  const state = stateOf(now, sessionOf());
+  if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, now));
+  await setLease(documentId,
+    claimed(held, { ...parkWrite(now, line), how: "parked", status }), ref, () => held);
   console.log(`${ref} kept crashing at ${status}. The lease is yours and the issue is a person's.`);
 };
 
@@ -312,7 +322,7 @@ export const claim = async (argv) => {
     holder, at: new Date().toISOString(), minutes, next: line, worklog: worklogFor(context, patch), how, status: issue.status,
     landing: checkpoint ?? undefined,
   });
-  await setLease(documentId, next, ref);
+  await setLease(documentId, next, ref, () => context);
   const taken = leaseOf(next);
   console.log(`${ref}  ${how ?? "renewed"}: ${describe(taken)}`);
   if (checkpoint) console.log(`${landingLine(checkpoint)} — taken from here by \`forge claim ${ref} --take\`.`);
