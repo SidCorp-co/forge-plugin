@@ -25,6 +25,8 @@ import { CHECK, publishes } from "./run/publish.mjs";
 import { forgetBump, unwound, versionAbove } from "./run/version.mjs";
 import { start } from "./run/workspace/start.mjs";
 import { finish, FINISH_HELP } from "./run/workspace/finish.mjs";
+import { LINKS_HELP } from "./run/workspace/links.mjs";
+import { relink } from "./run/workspace/relink.mjs";
 import { markRefused, REVIEWED, REVIEW_PATHS, reviewBody, reviewLines, reviewSays, spannedIn }
   from "./run/review.mjs";
 import { edgesLeft, fileIssue } from "../plugin/src/tracker/filing/route.mjs";
@@ -45,7 +47,7 @@ const NO_MARK = `no ${REVIEWED} in this repository, so what is owed a reading ca
 const sig = (verb) => VERBS.get(verb).signature;
 
 const usage = () => [
-  `Usage: ${SELF} <start|finish|ship|land|land-ready|review> [args]`,
+  `Usage: ${SELF} <start|relink|finish|ship|land|land-ready|review> [args]`,
   "The repository's own steps around one change: the worktree a run works in, the release that puts",
   "its commit in the plugin copy the next session loads, and the call that ends that workspace again.",
   "Everything else is the change itself.",
@@ -53,6 +55,11 @@ const usage = () => [
   `  ${sig("start")}   add the worktree beside this checkout, link both node_modules, and`,
   "                          print the wrapper a probe of the change must invoke, the id this run",
   "                          holds its lease under, and the one directory its scratch belongs in",
+  `  ${sig("relink")}                  put back what the worktree holding this copy of the script borrows,`,
+  "                          and remove nothing to do it: the tree, its branch and every",
+  "                          uncommitted path in it stand whatever this finds. It says of each",
+  "                          borrowed path whether it was kept, relinked, left or is still broken,",
+  "                          and exits non-zero where any of them does not resolve",
   `  ${sig("finish")}         end the workspace \`start\` made for that key: the scratch directory under`,
   "                          that run's own id, the worktree, its branch through git's own merged",
   "                          check, and that tree's verdict record. It removes nothing else and",
@@ -88,6 +95,8 @@ const usage = () => [
   "",
   "ship stops at the first failure and writes nothing past it, and a resume past the gate spends the",
   "gate first, so nothing that pushes runs against a tree no gate has passed.",
+  "",
+  ...LINKS_HELP,
   "",
   ...FINISH_HELP,
   "",
@@ -550,6 +559,7 @@ const ship = async ({ flags }) => {
 
 const VERB_RUNS = new Map([
   ["start", (read) => start(read, { here: HERE, self: SELF })],
+  ["relink", (read) => relink(read, { here: HERE })],
   ["finish", (read) => finish(read, { here: HERE })],
   ["ship", ship],
   ["land", (read) => land(read, SELF)],

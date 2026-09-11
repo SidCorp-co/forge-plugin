@@ -1,11 +1,11 @@
 /* The workspace one run works in: the worktree beside the checkout, the two links a gate in it
    resolves its linter through, the id it holds its lease under and the directory its scratch belongs
    in. `finish.mjs` is the counterpart, and the two read one derivation of the path (ISS-1106). */
-import { existsSync, mkdirSync, symlinkSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { checkoutRoot, defaultBranch, git, loud, stop } from "../../checkout.mjs";
-import { LINKED } from "../install.mjs";
+import { borrowedInto, BROKEN } from "./links.mjs";
 import { KEY, occupied, worktreePath } from "./occupant.mjs";
 import { mintRunId, RUN_ID_VAR, scratchMinted } from "./run-id.mjs";
 
@@ -25,7 +25,7 @@ const scratchMade = (tree, id, self) => {
   return console.log(`  TMPDIR=${at}  XDG_CONFIG_HOME=${at}`);
 };
 
-export const start = ({ words: [given, slug] }, { here, self }) => {
+export const start = ({ words: [given, slug] }, { here, self, write }) => {
   const key = String(given ?? "").toUpperCase();
   if (!KEY.test(key)) stop(`start takes the issue key it works, \`ISS-nn\`, not \`${given ?? ""}\`.`);
   const root = checkoutRoot(here);
@@ -37,20 +37,19 @@ export const start = ({ words: [given, slug] }, { here, self }) => {
     `Pick another branch name than ${branch} if it is taken.`);
   /* All of it or none of it: a half-linked tree refuses the next `start` for the path it left and
      keeps the branch it cut, so the run's escape is two commands it was never told. */
-  try {
-    for (const one of LINKED) {
-      if (!existsSync(join(root, one))) {
-        console.error(`  ${one} is not installed in the checkout, so nothing was linked for it.`);
-        continue;
-      }
-      symlinkSync(join(root, one), join(path, one));
-      console.log(`  linked  ${join(path, one)}`);
-    }
-  } catch (error) {
+  const made = borrowedInto(root, path, write);
+  const broken = made.filter((one) => BROKEN.has(one.kind));
+  if (broken.length) {
     git(["-C", root, "worktree", "remove", "--force", path], root);
     git(["-C", root, "branch", "-D", branch], root);
-    stop(`${path} could not be linked (${error.message}), so the worktree and ${branch} are removed `
-      + `again and nothing is half-made. Install the checkout's dependencies, then start over.`);
+    stop(`${path} was cut and what it borrows does not resolve, so the worktree and ${branch} are `
+      + `removed again and nothing is half-made:\n${broken.map((one) => `  ${one.said}`).join("\n")}\n`
+      + `A link this filesystem writes and cannot then read is what this refuses rather than hands `
+      + `you, the tree's own gate having no way to say it: ${self} start ${key} again.`);
+  }
+  for (const one of made) {
+    if (one.kind === "absent") console.error(`  ${one.said}.`);
+    else console.log(`  linked  ${one.at}`);
   }
   console.log(`\nBranch ${branch} on ${path}, cut from ${base}.`);
   console.log(`This run's own lease holder, which every tracker write it makes carries — without it`);
@@ -61,6 +60,8 @@ export const start = ({ words: [given, slug] }, { here, self }) => {
   console.log(`Probe the change with this tree's own wrapper, never the one on PATH:`);
   console.log(`  ${join(path, "plugin", "bin", "forge")} <args>`);
   console.log(`  node ${join(path, "plugin", "hooks", "entries")}/<gate>.mjs   one gate, alone`);
+  console.log(`Put those links back if they stop resolving, by that tree's own copy of this script:`);
+  console.log(`  node ${join(path, "tools", "run.mjs")} relink`);
   console.log(`Ship it from that tree: ${self} ship`);
   console.log(`End the workspace from the checkout once the issue is closed: ${self} finish ${key}`);
 };

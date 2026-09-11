@@ -323,7 +323,7 @@ test("the top-level usage lists finish, and start names the call that ends what 
   const { work, run } = started("finish-usage");
   const help = runIn(work, ["-h"], BARE);
   assert.equal(help.status, 0, help.stderr);
-  assert.match(help.stdout, /<start\|finish\|ship\|land\|land-ready\|review>/u, help.stdout);
+  assert.match(help.stdout, /<start\|relink\|finish\|ship\|land\|land-ready\|review>/u, help.stdout);
   assert.match(help.stdout, /finish <ISS-nn> {9}end the workspace `start` made for that key/u, help.stdout);
   assert.match(run.stdout, new RegExp(`finish ${KEY}`, "u"),
     `start does not name the call that ends the workspace it just made:\n${run.stdout}`);

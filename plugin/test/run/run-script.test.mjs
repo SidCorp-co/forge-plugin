@@ -14,7 +14,7 @@ import { atRung, BARE, brokenAnswer, called, committed, emptyAnswer, GATE, git, 
 test("-h names all four steps, the resume flag and the threshold it counts against", () => {
   const run = runIn(ROOT, ["-h"]);
   assert.equal(run.status, 0, run.stderr);
-  for (const said of ["start <ISS-nn>", "ship [--from N]", "land [--wait M]", "review [--done [ref]]",
+  for (const said of ["start <ISS-nn>", "relink", "ship [--from N]", "land [--wait M]", "review [--done [ref]]",
     "--from N", "worktree", "restart", "refs/forge/reviewed", "1500 changed line(s)", "npm run check",
     "The release count is printed beside it and decides nothing",
     "the sha the change landed as", "not the pushed head the push printed",
@@ -27,7 +27,9 @@ test("-h names all four steps, the resume flag and the threshold it counts again
     "replaying onto the head that is there now is the whole of what clears it",
     "is not an ancestor of the head it would land",
     "a read of the whole set at the head that would land",
-    "the one rewrite the ship itself makes"]) {
+    "the one rewrite the ship itself makes",
+    "reads every link it makes back before it says it made one",
+    "the checkout's own copy refuses, that install being what a worktree borrows"]) {
     assert.ok(run.stdout.includes(said), `${said} is not in the usage:\n${run.stdout}`);
   }
   assert.ok(!run.stdout.includes("3 release(s)"), `a release count is no part of the trigger:\n${run.stdout}`);

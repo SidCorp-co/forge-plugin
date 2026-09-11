@@ -12,6 +12,7 @@ const takes = (name, value, why) => ({ name, value, why, spare: value.startsWith
 export const VERBS = new Map([
   ["start", { signature: "start <ISS-nn> [slug]", flags: [], words: 2 }],
   ["finish", { signature: "finish <ISS-nn>", flags: [], words: 1 }],
+  ["relink", { signature: "relink", flags: [], words: 0 }],
   ["ship", {
     signature: "ship [--from N] [--note S] [--wait M]",
     flags: [
