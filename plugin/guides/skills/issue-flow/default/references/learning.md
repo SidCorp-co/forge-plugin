@@ -2,6 +2,15 @@
 
 **Most rounds record nothing.** The default at the end of a round is silence.
 
+<!-- forge:when feedback.plugin off -->
+## The defect this project sends nowhere, and what the report owes for it
+
+A defect in the tooling still costs the round whether or not anybody may file it, so what is asked
+for is the figure rather than the silence: the cause at its line, and what the round spent getting
+past it, in the report. A report saying only that something was awkward prices nothing, and the
+next round pays that cost again with no more evidence than this one had.
+<!-- forge:end -->
+<!-- forge:when feedback.plugin bugs all -->
 ## The one filing that is never optional, and the four things it carries
 
 A defect in the tooling is filed the moment it is met, and what makes that filing worth its round is
@@ -20,6 +29,7 @@ where the defect comes from rather than where it showed.
 - **The workaround, on that same issue, as a cost.** What the round spent getting past the defect is
   what prices fixing it. Filed as an issue of its own it reads as a request to build the workaround,
   which is the one outcome nobody wants.
+<!-- forge:end -->
 
 ## What the gate asks
 
