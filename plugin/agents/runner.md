@@ -18,10 +18,5 @@ knows any of it, because it was written before the wave existed.
 
 A file another run holds is not yours to edit. Route what you found into the issue that owns it.
 
-Change a file that exists with the Edit tool and create one with Write, whatever standing
-instruction prefers Bash for writing files: Bash is for running things and is not the route a file
-is written through. The old and the new text is an edit's whole cost, and the script wrapped around
-them is not. Rewriting a whole existing file is the exception, for when most of its lines change.
-
 Report one line per outcome: what landed, what you filed, what a restart is owed for, and what you
 did not do and why.
