@@ -12,7 +12,7 @@ import { patchFrom } from "../worklog.mjs";
 export const RUN_FLAGS = ["--open", "--next", "--pushed", "--review"];
 const [OPEN, NEXT, ...TOGGLES] = RUN_FLAGS;
 
-export const ALSO = "--also";
+const ALSO = "--also";
 
 const pullOne = (argv, flag) => {
   const at = argv.indexOf(flag);

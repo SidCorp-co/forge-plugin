@@ -123,8 +123,6 @@ export const stepAfter = (status) => {
 export const nextOf = (status, view) =>
   (status === "confirmed" && dispositionOf(view) ? "dropped" : stepAfter(status));
 
-export { need };
-
 /* The park is a look at the evidence either way, which the project's own policy may say it does
    not want: the declaration is the plan's and whether a person is waited for is the project's. */
 export const personLooks = (flags, policy = null) =>
@@ -297,10 +295,8 @@ const verdictsOwed = (view, ref) => {
   return out;
 };
 
-/* One reopen, one finding, one triage, matched by the reopen each was written at: routed on the
-   latest instead, a second look would be ruled on by the ruling on the first. The count is the
-   tracker's, so a tracker that never raises it leaves every record at reopen zero and the pair is
-   whichever was written — which is what a first reopen owes anyway. */
+/* One reopen, one finding, one triage, matched by the reopen each was written at: routed on the latest instead, a second look would be ruled on by the ruling on the first.
+   The count is the tracker's, so a tracker that never raises it leaves every record at reopen zero and the pair is whichever was written — which is what a first reopen owes anyway. */
 export const atThisReopen = (view, kind) => {
   const count = String(view.issue.reopenCount ?? 0);
   const held = (view.repeated?.[kind] ?? []).filter((one) => one.record.fields.reopen === count);

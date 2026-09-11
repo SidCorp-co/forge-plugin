@@ -15,7 +15,7 @@ export const publishedFor = (project, commit) => jsonlAt(publishedPath())
 export const WROTE = "wrote";
 export const HELD = "held";
 export const PART = "part";
-export const FAILED = "failed";
+const FAILED = "failed";
 
 /** A ship's publish, and the one word saying what became of it. A scope the ship cannot call whole is a defect in its own reading of the gate's record and not a green a later run may lean on, so it is not published at all. */
 export const publishBaseline = ({ project, commit, gate, result, scope, version = null }) => {

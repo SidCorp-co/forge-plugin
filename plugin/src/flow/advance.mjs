@@ -91,7 +91,7 @@ const waitsFor = (status) => (status === WAITING ? { waitingKind: "needs_decisio
    costs, said by the one route both writers of it spend: a move refused after the record went up
    leaves a page reading as a status the issue does not hold, and the transition's own refusal says
    nothing about the record above it. */
-export const movedAfterRecord = async (view, ref, status, move) => {
+const movedAfterRecord = async (view, ref, status, move) => {
   /* The record's write renewed the lease, so the move does not renew it again — but a handoff between the two is still a handoff, and the move must not be the write that learns it. Asked rather than asserted, and asked softly, because a read that exits here reports a transport and never the record standing above it. */
   const held = await anothersHold(view.documentId, ref);
   if (held) {

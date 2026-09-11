@@ -17,14 +17,14 @@ const VALUE_AT = 2;
 const OPTIONS_AT = 3;
 
 /* Keyed by the verb's own tool: `--kind` is a knowledge entry's kind on one verb, a category on another. */
-export const OWN_SETS = {
+const OWN_SETS = {
   "forge_issues.category": { held: "plugin/src/tracker/issue-shape.mjs KIND_NAMES",
     values: KIND_NAMES, spelt: "KIND_NAMES" },
   "forge_issues.complexity": { held: "plugin/src/ladder.mjs COMPLEXITY_NAMES",
     values: COMPLEXITY_NAMES, spelt: "COMPLEXITY_NAMES" },
 };
 
-export const ALIAS = { statusNot: "status" };
+const ALIAS = { statusNot: "status" };
 
 /* Where a verb judges its own way; a rename leaves the slot unjudged rather than quietly excused.
    Each row is the whole statement of its judgement: `guard` where the call composes the sentence,
@@ -43,7 +43,7 @@ export const JUDGES = {
 
 /* What every judge of a verb has to come before, whichever judge it is. Why the filing's is the
    body read: `keepOnFailure`'s own comment in `plugin/src/commands.mjs`. */
-export const BOUNDS = { new: "bodyFrom(" };
+const BOUNDS = { new: "bodyFrom(" };
 
 /* A block naming none is a finding. The callee alone: a literal spelling the transport's call shape reads as a write. */
 export const DISPATCHES = ["everyIssue", "fileAndSay", "uploadAll", "scoped", "write"];
@@ -67,7 +67,7 @@ export const slotsIn = (usage) => {
 const rowFor = (verb) => VERBS.find(([name]) => name === verb);
 
 /** Off the tool the verb owns, so nothing here lists a verb's arguments by hand. */
-export const setFor = (verb, name) => {
+const setFor = (verb, name) => {
   const tool = rowFor(verb)?.[3];
   if (!tool) return null;
   const field = ALIAS[name] ?? name;

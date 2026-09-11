@@ -4,7 +4,8 @@
 import { citedClauses } from "../spec/checked.mjs";
 import { sayIfChanged, sessionKey } from "../shown/ledger.mjs";
 import { Refused, refuse } from "../refusal.mjs";
-import { CLOSES_FROM, SHAPES, TRIAGES, atMinute, criterionNumber, missingLines, planFlags, unwrap } from "./machine.mjs";
+import { CLOSES_FROM, SHAPES, TRIAGES, atMinute, criterionNumber, missingLines, need, planFlags, unwrap }
+  from "./machine.mjs";
 import { statusKind } from "../tracker/rest.mjs";
 import { slugIfAny } from "../resolve/settings.mjs";
 import { stampedNow } from "./worklog.mjs";
@@ -24,7 +25,6 @@ import {
   atThisReopen,
   blockersOwed,
   holdsBack,
-  need,
   nextOf,
   parkRecord,
   parkThatSet,
