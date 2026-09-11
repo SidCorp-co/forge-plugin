@@ -245,6 +245,10 @@ for.
 - **AC-05-7-9** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "a declaration a plan quotes inside a code span is not one it makes"
   WHERE a declaration sits inside an inline code span, the CLI SHALL read it as a value the plan
   names rather than one it declares, because only what a plan leaves bare is what it commits to.
+- **AC-05-7-10** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "what the report says is owed at the deploying rung is the release policy's answer"
+  WHERE the project's configuration leaves a person an act to make before the release is out, the
+  CLI SHALL report that act as what the deploying rung owes rather than the close, because a run
+  told to close is one that closes an issue whose release nobody has made.
 
 ### UC-05-8 — A record too large to read whole
 

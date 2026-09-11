@@ -15,6 +15,7 @@ import {
   judgementOf,
   landingRoute,
   leakRefusal,
+  personOwedForRelease,
   projectRows,
   releaseFrom,
   staleIn,
@@ -353,4 +354,33 @@ test("a source the path reader took nothing from is named rather than dropped in
     "a span the reader took a path from is hashed, and one it took nothing from is said");
   assert.deepEqual(unhashable("Build: none.  ← `README.md`"), [],
     "and a brief whose every source resolved says nothing");
+});
+
+/* What a person still owes before an issue at the deploying rung may close, over every shape a
+   policy has. Read as the reason and not as a flag, because both callers print it: the landing says
+   why it stopped at the rung and the report says why the close is not the run's (ISS-1147). */
+test("what a person owes before the close is the policy's own answer, and silence is a person's", () => {
+  const owed = (over) => personOwedForRelease(releaseFrom(over));
+  const both = (branch, autoProdDeploy) =>
+    owed({ baseBranch: branch, productionBranch: branch, pipelineConfig: { autoProdDeploy } });
+  assert.equal(both("master", true), null,
+    "one branch that deploys production on its own means the push was the release, and nobody owes an act");
+  assert.equal(owed({ baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: true } }),
+    null, "and so does a promotion the project makes without being asked");
+  assert.match(both("master", false), /master does not deploy on its own, so the release is a person's/u,
+    "one branch nothing deploys leaves the release to a person");
+  assert.match(owed({ baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } }),
+    /the promotion from staging to master is a person's/u,
+    "and so does a promotion no flag makes automatic, which is the shape the branch pair alone reads as automatic");
+  /* The one the twelve stranded issues would have been closed by, had the read been optimistic. */
+  assert.match(personOwedForRelease(null),
+    /the project config did not answer, so nothing here says a release happened/u,
+    "a policy nothing answered for owes a person, never an automatic release");
+  assert.match(owed({ productionBranch: "master", pipelineConfig: { autoProdDeploy: true } }),
+    /^the staging branch is unset/u, "an unsettled pair names which side is missing");
+  assert.match(owed({ baseBranch: "staging", pipelineConfig: { autoProdDeploy: true } }),
+    /^the production branch is unset/u, "from either side");
+  assert.match(owed({ pipelineConfig: { autoProdDeploy: true } }),
+    /^the staging and the production branch is unset/u,
+    "and names both where both are, which is the shape releaseConflict refuses outright");
 });

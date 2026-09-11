@@ -488,6 +488,7 @@ test("no flag puts the project's answer on a record", () => {
 /* Five of one day's runs left their issues at the release rung and a person closed them by hand, so what
    a run reads at the end of one says the close is owed rather than leaving it to be noticed. */
 test("the report says the close is owed on an issue a run has released", async () => {
+  project.config = { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true } };
   const run = await ranAsync(FORGE, ["resume", "ISS-4", "--report"], project.env ?? tracker.env);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^Every criterion has a verdict\.$/mu, "the criteria are judged");
@@ -498,6 +499,26 @@ test("the report says the close is owed on an issue a run has released", async (
   const quiet = await ranAsync(FORGE, ["resume", "ISS-3", "--report"], tracker.env);
   assert.doesNotMatch(quiet.stdout, /the close/u, "and an issue not yet released is owed no close");
   assert.doesNotMatch(quiet.stdout, /^Plan {2}\(/mu, "an issue with an empty plan field prints no plan line");
+});
+
+/* The other half of the same line, and what twelve issues cost by its absence: the rung is the end
+   of the run for a project whose release a person still owes an act on, and a report that told
+   every run to close is one that would have them close what nobody released (ISS-1147). */
+test("what the report says is owed at the deploying rung is the release policy's answer", async () => {
+  project.config = { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } };
+  const run = await ranAsync(FORGE, ["resume", "ISS-4", "--report"], tracker.env);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^Owed: the release, which is a person's\./mu, run.stdout);
+  assert.match(run.stdout, /master does not deploy on its own, so the release is a person's/u,
+    "named in the project's own terms, so the reader knows which setting says so");
+  assert.match(run.stdout, /this run ends at awaiting_release and the close is theirs:$/mu, run.stdout);
+  assert.match(run.stdout, /^ {2}forge advance ISS-4, once the release is out$/mu,
+    "and the command is still printed, the rung being the person's to leave and not the run's");
+  assert.doesNotMatch(run.stdout, /^Owed: the close\./mu, "the two lines are one line, never both");
+  /* The branch pair alone says nothing about whether anyone owes the promotion. */
+  project.config = { baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } };
+  const promoted = await ranAsync(FORGE, ["resume", "ISS-4", "--report"], tracker.env);
+  assert.match(promoted.stdout, /the promotion from staging to master is a person's/u, promoted.stdout);
 });
 
 /* A run that has just written a record already knows what the write earned, and spent six to twenty

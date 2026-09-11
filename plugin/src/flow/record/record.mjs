@@ -18,7 +18,7 @@ import { commentPage, cutIn, cutLine, postComment } from "../../tracker/comments
 import {
   TWICE, attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadAll,
 } from "../../tracker/evidence.mjs";
-import { briefGoals, releaseLine, releasePolicy } from "../../tracker/project-config.mjs";
+import { briefGoals, personOwedForRelease, releaseLine, releasePolicy } from "../../tracker/project-config.mjs";
 import { NONE_STATED, servesRefusal } from "../../goals.mjs";
 import { belowTop, climbForm, rungClaimed } from "../../ladder.mjs";
 import { documentIdOf } from "../../tracker/issues.mjs";
@@ -480,9 +480,13 @@ export const recordReport = async (reference) => {
   if (lines.length) console.log(["", "The run, from its own captures:", ...lines.map((one) => `  ${one}`)].join("\n"));
   console.log(pluginFilingLine((repeated.routed ?? []).map((one) => one.record.fields.to)));
   console.log(owed.length ? `\nOwed: a verdict on criterion ${owed.join(", ")}.` : `\nEvery criterion has a verdict.`);
-  /* A run's end is measured by `closed`, and five of one day's runs stopped short of it (ISS-105). */
+  /* A run's end is `closed`, or this rung where the policy leaves a person the release (ISS-105, ISS-1147). */
   if (body.status === CLOSES_FROM) {
-    console.log(`Owed: the close. A run ends at closed, not at ${CLOSES_FROM}:\n  forge advance ${reference}`);
+    const owed = personOwedForRelease(await releasePolicy());
+    console.log(owed
+      ? `Owed: the release, which is a person's. ${owed}, so this run ends at ${CLOSES_FROM} and the `
+        + `close is theirs:\n  forge advance ${reference}, once the release is out`
+      : `Owed: the close. A run ends at closed, not at ${CLOSES_FROM}:\n  forge advance ${reference}`);
   }
 };
 

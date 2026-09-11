@@ -13,13 +13,15 @@ import { CLOSES_FROM } from "../../../plugin/src/flow/machine.mjs";
 import { markMerged, markNote, markedCommit, namedFor } from "../../../plugin/src/flow/record/merged.mjs";
 import { LANDING_DONE, LANDING_JUDGED, LANDING_QA_OWED, landingSaved } from "../../../plugin/src/flow/lease.mjs";
 import { INDEPENDENT, judgedAt } from "../../../plugin/src/flow/qa/verdicts.mjs";
-import { releasePolicy } from "../../../plugin/src/tracker/project-config.mjs";
+import { personOwedForRelease, releasePolicy } from "../../../plugin/src/tracker/project-config.mjs";
 
 const BEFORE_MERGE = "before-merge";
 export const DEVELOPED = "developed";
-const WALKED = ORDER.slice(ORDER.indexOf(DEVELOPED) + 1, ORDER.indexOf(CLOSES_FROM) + 1);
-export const [JUDGED] = WALKED;
-export const AWAITING = WALKED.at(-1);
+const RUNGS = ORDER.slice(ORDER.indexOf(DEVELOPED) + 1);
+export const [JUDGED] = RUNGS;
+
+/* How far a member goes: through the close only where the release owes a person no act (ISS-1147). */
+const walkedWhere = (owed) => (owed ? RUNGS.slice(0, RUNGS.indexOf(CLOSES_FROM) + 1) : RUNGS);
 
 /* `fail` in the CLI's own modules exits, dropping the lock and leaving a branch promoted in silence. */
 export const asked = async (run) => {
@@ -171,7 +173,8 @@ const moveTo = async (key, to, documentId) => {
 };
 
 export const statusStep = async (one) => {
-  const { at, ctx: { route, judgement } } = one;
+  const { at, ctx: { route, judgement, policy } } = one;
+  const owed = personOwedForRelease(policy);
   await perMemberOwed(at, async (member) => {
     const { key, documentId, landing } = member;
     await moveTo(key, DEVELOPED, documentId);
@@ -180,14 +183,18 @@ export const statusStep = async (one) => {
       await saveOn(member, { state: LANDING_QA_OWED, deployment: intendedOf(at) });
       return stop(OWED_TO_QA(key, member.landing, "the release"));
     }
-    /* One rung at a time up `WALKED`, a jump being refused, and `done` refused to every turn so it
+    /* One rung at a time up the tail, a jump being refused, and `done` refused to every turn so it
        waits on the last of them: closed over a record that did not earn a rung, the issue would be
        reachable by no route at all. A rung the record does not earn stops the walk where it stands. */
-    for (const rung of WALKED) {
+    for (const rung of walkedWhere(owed)) {
       if (!await moveTo(key, rung, documentId)) {
         return console.log(`  the checkpoint stays \`${landing.state}\`: what \`${rung}\` is owed is `
           + `above, and the landing is run again once the record carries it`);
       }
+    }
+    if (owed) {
+      console.log(`  ${key} rests at \`${CLOSES_FROM}\`: ${owed}, so the close is theirs and not this `
+        + `landing's. Once the release is out:\n    forge advance ${key}`);
     }
     await saveOn(member, { state: LANDING_DONE });
     return console.log(`  the checkpoint reads \`${LANDING_DONE}\`: no turn of this landing is left`);

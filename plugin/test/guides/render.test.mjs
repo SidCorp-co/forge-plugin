@@ -234,9 +234,9 @@ test("a ready reader is told somewhere who moves the release rung, which the mod
   const fold = shipping("ready", "dispatch");
   assert.match(`${phase} ${fold}`, /`awaiting_release`/u,
     "the rung past the judging is named to a reader whose own phase stops at a pushed branch");
-  assert.match(fold, /`awaiting_release` and `closed` are moved from here/u,
+  assert.match(fold, /A status the landing could not reach is this phase's/u,
     "and the fold, whose landing it follows, is where it is owned");
-  assert.match(phase, /are the landing actor's, not this run's/u,
+  assert.match(phase, /are the landing's, not this run's/u,
     "the phase says whose it is rather than leaving the run to assume it is nobody's");
   assert.doesNotMatch(phase, /Then close it, in this phase/u,
     "and does not also claim the close, which under this mode it cannot make");

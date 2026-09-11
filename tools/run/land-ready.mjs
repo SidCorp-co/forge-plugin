@@ -523,7 +523,7 @@ export const landReady = async ({ flags, words }, ctx) => {
       process.exitCode = 1;
     }
   }
-  const full = { ...ctx, ms, route, judgement };
+  const full = { ...ctx, ms, route, judgement, policy };
   const alone = async (one) => {
     console.log(`\n=== ${one.key}`);
     await landSet([one], full, one.from);

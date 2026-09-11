@@ -57,6 +57,22 @@ export const waitsForPerson = (policy) => {
   return !policy.autoProd;
 };
 
+/* What a person still owes before an issue at the closing rung may close, or null where nothing
+   does. Not `waitsForPerson` above, which asks whether one is shown the change before it goes out
+   and answers no for any pair of distinct branches: reading it here would close an issue whose
+   promotion nobody had made. Silence is a person's, never an automatic release (ISS-1147). */
+export const personOwedForRelease = (policy) => {
+  if (!policy) return "the project config did not answer, so nothing here says a release happened";
+  if (!readable(policy)) {
+    const unset = [!policy.staging && "staging", !policy.production && "production"].filter(Boolean);
+    return `the ${unset.join(" and the ")} branch is unset, so nothing says where a release lands`;
+  }
+  if (policy.autoProd) return null;
+  return policy.staging === policy.production
+    ? `${policy.production} does not deploy on its own, so the release is a person's`
+    : `the promotion from ${policy.staging} to ${policy.production} is a person's`;
+};
+
 export const releaseLine = (policy) => {
   if (!readable(policy)) return null;
   if (policy.staging !== policy.production) {

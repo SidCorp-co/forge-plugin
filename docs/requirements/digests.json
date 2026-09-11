@@ -1297,6 +1297,10 @@
       "rev": 1,
       "digest": "6c6040943954ae6b5674dd6ebbb4ae642a7dad41af22c584b60d64d23b79e8a7"
     },
+    "AC-05-7-10": {
+      "rev": 1,
+      "digest": "e2ca447c49a46b45a3a9fd16af5375c55687ac6afc4996af0e64c47d310354d7"
+    },
     "UC-05-8": {
       "rev": 2,
       "digest": "ceaba5c909f15f217418f53283fa79d55f85a400e0f0d609d6effc1824296548"

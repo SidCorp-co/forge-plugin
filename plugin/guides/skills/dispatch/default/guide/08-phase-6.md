@@ -23,10 +23,12 @@ dispatches it: a role of its own, given the issue, its criteria and Outcome, and
 identity the checkpoint names — never the run that built the change, whose own verdicts earn nothing
 there. Its verdicts and its hand-back are what let the landing finish.
 
-**The two statuses a landing does not reach are this phase's too.** The release note each run left
-drafted is published from here, once the release those statuses answer for is actually out, and
-`awaiting_release` and `closed` are moved from here. A wave that lands every branch and moves neither has left the queue
-exactly where a person has to finish it, which is the one outcome this method exists to remove.
+**A status the landing could not reach is this phase's.** The landing takes each issue as far as its
+record earns and the project's release allows, which is to `closed` where that release owes a person
+nothing. Where it owes one, the issue rests at `awaiting_release`: the release note each run left
+drafted is published from here once the release is actually out, and the close follows it. A wave
+that lands every branch and leaves a rung nobody moves has left the queue exactly where a person has
+to finish it, which is the one outcome this method exists to remove.
 <!-- forge:end -->
 
 **A run that parked is resumed, never replaced.** When the block it named clears, the same agent is
