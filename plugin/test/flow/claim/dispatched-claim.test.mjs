@@ -4,18 +4,18 @@
    the take they leave. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync } from "node:fs";
+import { copyFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("dispatched-claim").path;
 standsInNoTree("dispatched-claim");
 
-const { runFor } = await import("../../src/resolve/session/run-id.mjs");
-const { mintRunId } = await import("../../../tools/run/workspace/run-id.mjs");
+const { runFor } = await import("../../../src/resolve/session/run-id.mjs");
+const { mintRunId } = await import("../../../../tools/run/workspace/run-id.mjs");
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const UUID = "3f5b0a1c-2d4e-4b6a-8c9d-0e1f2a3b4c5d";
 const RUNNER = "iss-1091-90f5a52f";
 const DISPATCHER = "bc3ef73b-0e08-4e9d-869e-b2168403c7c0";
@@ -163,6 +163,43 @@ test("an id shaped like a mint but not minted licenses nothing", async () => {
     assert.equal(refused.status, 1, `${who} took a live lease:\n${refused.stdout}${refused.stderr}`);
     assert.match(refused.stderr, /names no run dispatched to ISS-1091/u);
   }
+});
+
+
+/* An id is a run's, not an issue's pass: one cut for another issue is as far from this dispatch as
+   one naming none, and each of the four dispatchable statuses answers the same way. */
+test("an id minted for another issue takes nothing, and every dispatchable status hands this one over", async () => {
+  heldBy(DISPATCHER);
+  const other = await claim([], "iss-1084-deadbeef");
+  assert.equal(other.status, 1, `another issue's run is a second run here:\n${other.stdout}${other.stderr}`);
+  assert.match(other.stderr, /names no run dispatched to ISS-1091/u);
+  for (const status of ["open", "confirmed", "approved", "reopen"]) {
+    heldBy(DISPATCHER, { status });
+    const took = await claim();
+    assert.equal(took.status, 0, `${status} is a status a run is dispatched at:\n${took.stdout}${took.stderr}`);
+    assert.match(took.stdout, /handed: session/u, status);
+  }
+});
+
+/* The variable outranks the tree, so a runner handed an id of somebody else's stands in the right
+   tree and is refused by the one thing it cannot see: the route has to name the variable. */
+test("a tree that names this run, overridden by a variable that does not, is told which to drop", async () => {
+  const tree = tempRoom("dispatched-tree-");
+  mkdirSync(join(tree, ".git"));
+  copyFileSync(new URL("../../../../.forge.json", import.meta.url).pathname, join(tree, ".forge.json"));
+  mintRunId(tree, "ISS-1091");
+  heldBy(DISPATCHER);
+  const refused = await ranAsync(FORGE, ["claim", "ISS-1091"],
+    { ...tracker.env, FORGE_SESSION_ID: "a-whole-wave-of-runs" }, tree);
+  assert.equal(refused.status, 1, `the variable is what resolved:\n${refused.stdout}${refused.stderr}`);
+  assert.match(refused.stderr, /The tree it stands in does name one/u);
+  assert.match(refused.stderr, /Unset that variable and send this again/u,
+    "and not the tree it is already standing in, which is the route that sends it back here");
+
+  const took = await ranAsync(FORGE, ["claim", "ISS-1091"],
+    { ...tracker.env, FORGE_SESSION_ID: "" }, tree);
+  assert.equal(took.status, 0, `unset, the tree answers:\n${took.stdout}${took.stderr}`);
+  assert.match(took.stdout, /handed: session iss-1091-/u, "under the id the tree minted");
 });
 
 /* The two halves of the id are written by different trees of this repository, and nothing else ties

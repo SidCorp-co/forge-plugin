@@ -5,12 +5,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, standsInNoTree, tempHome } from "../fixtures.mjs";
+import { fakeTracker, ranAsync, standsInNoTree, tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("fresh-lapse").path;
 standsInNoTree("fresh-lapse");
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const UUID = "lapsing-uuid";
 const OURS = "the-reclaiming-run";
 const THEIRS = "the-run-that-may-be-working";

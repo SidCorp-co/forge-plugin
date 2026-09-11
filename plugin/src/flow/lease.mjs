@@ -351,12 +351,18 @@ export const handedOn = (key, context, status, holder = sessionOf()) => {
 };
 
 /* One sentence per condition above, because four of them refuse here and a single way out sends three of the four back to the refusal they have just read. */
-export const notHandedHere = (ref, key, context, status, holder = sessionOf()) => {
-  if (runFor(holder) !== String(key).trim().toLowerCase()) {
-    return `This call holds ${holder}, which names no run dispatched to ${ref}. Where this is that `
-      + `run, make the call from the worktree cut for it: the ${RUN_ID} beside that tree's git `
-      + `directory names the issue, and a lease its dispatcher is only holding is the dispatched `
-      + `run's to take.`;
+export const notHandedHere = (ref, key, context, status, holder = sessionOf(), at = process.cwd()) => {
+  const named = String(key).trim().toLowerCase();
+  if (runFor(holder) !== named) {
+    /* The tree already answers and a variable is outranking it, so telling this caller to stand in that tree sends it back to this refusal: the id it holds is the one it was handed, not the one it stands on. */
+    const here = runFor(runIdAt(at)) === named;
+    return `This call holds ${holder}, which names no run dispatched to ${ref}. `
+      + (here
+        ? `The tree it stands in does name one, in ${besideGit(at, RUN_ID)}, and ${RUN_ID_VAR} is `
+          + `outranking it. Unset that variable and send this again.`
+        : `Where this is the run ${ref} was dispatched to, make the call from the worktree cut for `
+          + `it: the ${RUN_ID} beside that tree's git directory names the issue, and a lease its `
+          + `dispatcher is only holding is the dispatched run's to take.`);
   }
   if (!TAKEABLE.includes(String(status))) {
     return `This call's id names ${ref} and the issue is at \`${status}\`, past the statuses a run `
