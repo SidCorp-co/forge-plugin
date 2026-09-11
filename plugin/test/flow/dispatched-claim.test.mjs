@@ -16,7 +16,7 @@ const { runFor } = await import("../../src/resolve/session/run-id.mjs");
 const { mintRunId } = await import("../../../tools/run/workspace/run-id.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const UUID = "dispatched-uuid";
+const UUID = "3f5b0a1c-2d4e-4b6a-8c9d-0e1f2a3b4c5d";
 const RUNNER = "iss-1091-90f5a52f";
 const DISPATCHER = "bc3ef73b-0e08-4e9d-869e-b2168403c7c0";
 const LEFT = "triage only — nothing was worked under this lease";
@@ -66,8 +66,8 @@ const state = {
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
-const claim = (argv = [], who = RUNNER) =>
-  ranAsync(FORGE, ["claim", "ISS-1091", ...argv], { ...tracker.env, FORGE_SESSION_ID: who });
+const claim = (argv = [], who = RUNNER, ref = "ISS-1091") =>
+  ranAsync(FORGE, ["claim", ref, ...argv], { ...tracker.env, FORGE_SESSION_ID: who });
 const wrote = () => state.calls
   .filter((one) => one.name === "forge_issues" && one.args.action === "update")
   .map((one) => one.args.data?.sessionContext?.lease);
@@ -142,6 +142,27 @@ test("a fresh lapse is reclaimed with no flag by the run the issue was dispatche
   assert.equal(took.status, 0, `--stopped asks a dispatched run to establish what the dispatch said:\n${took.stdout}${took.stderr}`);
   assert.match(took.stdout, /ISS-1091 {2}reclaim:/u, "as a reclaim, the lease having genuinely run out");
   assert.doesNotMatch(took.stderr, /--stopped/u);
+});
+
+/* A reference is a key or the document's own uuid, and which one a run typed is not a fact about
+   whether it was dispatched: the eligibility is read off the issue the tracker answered with. */
+test("the same lease is handed over whether the run claims by key or by document id", async () => {
+  heldBy(DISPATCHER);
+  const byUuid = await claim([], RUNNER, UUID);
+  assert.equal(byUuid.status, 0, `a uuid names the same issue:\n${byUuid.stdout}${byUuid.stderr}`);
+  assert.match(byUuid.stdout, new RegExp(`${UUID} {2}handed: session ${RUNNER}`, "u"));
+});
+
+/* The grammar is the mint's and no looser: a name somebody typed into the variable for their own
+   convenience is not a worktree's record of a dispatch, and reading it as one takes a live lease. */
+test("an id shaped like a mint but not minted licenses nothing", async () => {
+  for (const who of ["iss-1091-triage", "iss-1091-x", "iss-1091-90f5a52", "iss-1091-90f5a52g"]) {
+    assert.equal(runFor(who), null, `${who} is not what the workspace mints`);
+    heldBy(DISPATCHER);
+    const refused = await claim([], who);
+    assert.equal(refused.status, 1, `${who} took a live lease:\n${refused.stdout}${refused.stderr}`);
+    assert.match(refused.stderr, /names no run dispatched to ISS-1091/u);
+  }
 });
 
 /* The two halves of the id are written by different trees of this repository, and nothing else ties

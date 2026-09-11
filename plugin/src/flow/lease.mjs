@@ -342,17 +342,17 @@ export const historyLine = (lease, status) =>
     .join(" | ");
 
 /* The one live lease a claim may take, and the fact that licenses it is the caller's own id rather than any judgement about the holder: a run standing in the tree cut for this issue IS the run the issue was dispatched to, and the id ISS-467 gave that tree already names which issue. Until this, a dispatcher's own lease over a triage write was waited out by the runner it had just dispatched — fifteen minutes of a 25-minute lease when this was filed, forty-five of the hour a default one runs now (ISS-1091). Three conditions keep it to the dispatch, each one a case where a live lease is work rather than a hold: the checkpoint governs wherever its state names a turn, so a landing's turns stay `--take`'s alone; the take reaches only the statuses a run is dispatched at, so a lease past them is a run at work; and a holder cut for this same issue is the run the dispatch already reached. */
-export const handedOn = (ref, context, status, holder = sessionOf()) => {
+export const handedOn = (key, context, status, holder = sessionOf()) => {
   const mine = runFor(holder);
-  if (!mine || mine !== String(ref).trim().toLowerCase()) return false;
+  if (!mine || mine !== String(key).trim().toLowerCase()) return false;
   if (!TAKEABLE.includes(String(status))) return false;
   if (landingTurn(landingOf(context))) return false;
   return runFor(leaseOf(context)?.holder) !== mine;
 };
 
 /* One sentence per condition above, because four of them refuse here and a single way out sends three of the four back to the refusal they have just read. */
-export const notHandedHere = (ref, context, status, holder = sessionOf()) => {
-  if (runFor(holder) !== String(ref).trim().toLowerCase()) {
+export const notHandedHere = (ref, key, context, status, holder = sessionOf()) => {
+  if (runFor(holder) !== String(key).trim().toLowerCase()) {
     return `This call holds ${holder}, which names no run dispatched to ${ref}. Where this is that `
       + `run, make the call from the worktree cut for it: the ${RUN_ID} beside that tree's git `
       + `directory names the issue, and a lease its dispatcher is only holding is the dispatched `

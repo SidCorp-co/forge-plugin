@@ -303,7 +303,7 @@ export const claim = async (argv) => {
   const line = nextLine(given.next);
   const patch = patchFrom({ pushed: given.pushed, review: given.review, open: pulled.values });
   const documentId = await documentIdOf(ref);
-  const issue = await scoped("forge_issues", { action: "get", documentId, fields: ["sessionContext", "status", "complexity", "plan"] });
+  const issue = await scoped("forge_issues", { action: "get", documentId, fields: ["issueId", "sessionContext", "status", "complexity", "plan"] });
   const context = issue?.sessionContext ?? null;
   const lease = leaseOf(context);
   const mine = sessionSourced();
@@ -324,9 +324,12 @@ export const claim = async (argv) => {
     await reconcile(documentId, ref, context, holder, given.reconciled);
     return advise(documentId, issue, worklog);
   }
-  const handed = handedOn(ref, context, issue.status, holder);
+  /* The issue's own key and never the caller's spelling of it: `documentIdOf` takes a uuid too, and
+     a run refused for how it typed the reference is refused by nothing on the record (codex F1). */
+  const key = issue.issueId ?? ref;
+  const handed = handedOn(key, context, issue.status, holder);
   if (state === "live" && !handed) {
-    fail(claimRefusal(ref, lease, notHandedHere(ref, context, issue.status, holder)));
+    fail(claimRefusal(ref, lease, notHandedHere(ref, key, context, issue.status, holder)));
   }
   if (state === "expired" && !given.stopped && !handed && freshLapse(lease)) {
     fail(reclaimRefusal(ref, lease));

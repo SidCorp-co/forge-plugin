@@ -49,7 +49,7 @@ export const heldBesideGit = (from, name) => {
 
 export const runIdAt = (from) => heldBesideGit(from, RUN_ID);
 
-export const MINTED_FOR = /^(iss-\d+)-\S+$/iu;
+export const MINTED_FOR = /^(iss-\d+)-[0-9a-f]{8}$/iu;
 
 export const runFor = (id) => MINTED_FOR.exec(String(id ?? "").trim())?.[1]?.toLowerCase() ?? null;
 

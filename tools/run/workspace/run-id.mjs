@@ -5,13 +5,11 @@ import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, isAbsolute, join } from "node:path";
 
-import { RUN_ID, besideGit as beside, heldBesideGit as heldAt, runIdAt } from "../../../plugin/src/resolve/session/run-id.mjs";
+import { MINTED_FOR, RUN_ID, besideGit as beside, heldBesideGit as heldAt, runIdAt } from "../../../plugin/src/resolve/session/run-id.mjs";
 
 const SCRATCH_AT = "forge-run-scratch";
 
 export const SCRATCH = "forge-run-";
-
-const MINTED = /^iss-\d+-[0-9a-f]{8}$/u;
 
 export { RUN_ID_VAR } from "../../../plugin/src/resolve/session/run-id.mjs";
 export { runIdAt };
@@ -21,7 +19,7 @@ export { runIdAt };
 export const scratchAt = (path) => {
   const id = runIdAt(path);
   const at = heldAt(path, SCRATCH_AT);
-  const named = Boolean(id) && MINTED.test(id) && basename(at ?? "") === `${SCRATCH}${id}`;
+  const named = Boolean(id) && MINTED_FOR.test(id) && basename(at ?? "") === `${SCRATCH}${id}`;
   return named && isAbsolute(at) ? at : null;
 };
 
