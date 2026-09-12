@@ -12,10 +12,10 @@ import { createServer } from "node:http";
 import { join } from "node:path";
 import test from "node:test";
 
-import { ranAsync, tempHome } from "../fixtures.mjs";
+import { ranAsync, tempHome } from "../../fixtures.mjs";
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../..", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const ROOT = new URL("../../../..", import.meta.url).pathname;
 const KEY = "sm_stub_key_never_a_real_credential";
 const PNG = Buffer.from("89504e470d0a1a0a", "hex");
 

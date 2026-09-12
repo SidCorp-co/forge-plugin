@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tempRoom } from "../fixtures.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 
 /* A config of its own, and imported after it: on the developer's machine this suite otherwise
    loads four live tokens and what it proves becomes a property of that file. The import has to
@@ -16,9 +16,9 @@ writeFileSync(CONFIG, JSON.stringify({
 process.env.XDG_CONFIG_HOME = HOME;
 
 const { accountForZone, cloudflareAccounts, everyZone, recordLine, searchDns } = await import(
-  "../../src/tools/services/cloudflare.mjs"
+  "../../../src/tools/services/cloudflare.mjs"
 );
-const { pullRepeated } = await import("../../src/resolve/flags.mjs");
+const { pullRepeated } = await import("../../../src/resolve/flags.mjs");
 
 const reply = (body, { ok = true, status = 200 } = {}) => ({
   ok,

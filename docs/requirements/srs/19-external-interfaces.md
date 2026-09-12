@@ -102,7 +102,7 @@ Zones, records and cache purges on the developer's own credential, from the same
 configuration as everything else — one source, so nothing about which credential answered is a
 precedence rule.
 
-- **AC-19-6-1** · Rev: 1 · Proof: plugin/test/tools/cloudflare.test.mjs "an environment pair is not an account"
+- **AC-19-6-1** · Rev: 1 · Proof: plugin/test/tools/services/cloudflare.test.mjs "an environment pair is not an account"
   WHEN a zone or record call is made THEN the credential SHALL come from the account's own
   configuration.
 
@@ -231,14 +231,14 @@ is somebody else's text, and a gateway that echoes a request back may put the ke
 is struck out of external text before any of it is printed. Why a spent turn hands the decision to a
 person instead of asking again is `docs/cli/chatgpt.md`'s.
 
-- **AC-19-9-1** · Rev: 1 · Proof: plugin/test/tools/chatgpt.test.mjs "one turn is a tools/call of chatgpt at the configured endpoint, under the configured key"
+- **AC-19-9-1** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt.test.mjs "one turn is a tools/call of chatgpt at the configured endpoint, under the configured key"
   WHEN a turn is sent THEN the CLI SHALL send it to the endpoint the configuration names, under the
   key it names, and SHALL send no second turn for that invocation.
-- **AC-19-9-2** · Rev: 1 · Proof: plugin/test/tools/chatgpt.test.mjs "no endpoint or key: the refusal names the doctor flag for each, and sends nothing"
+- **AC-19-9-2** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt.test.mjs "no endpoint or key: the refusal names the doctor flag for each, and sends nothing"
   IF either the endpoint or the key is unconfigured THEN the CLI SHALL refuse before anything is
   sent and SHALL name what sets each.
-- **AC-19-9-3** · Rev: 1 · Proof: plugin/test/tools/chatgpt.test.mjs "a key echoed back through the conversation id is struck out of the failure too"
+- **AC-19-9-3** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt.test.mjs "a key echoed back through the conversation id is struck out of the failure too"
   WHERE text the far side wrote is printed the CLI SHALL strike the configured key out of it first.
-- **AC-19-9-4** · Rev: 1 · Proof: plugin/test/tools/chatgpt.test.mjs "the upload goes to the origin beside the chatgpt endpoint, never the tracker's"
+- **AC-19-9-4** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt.test.mjs "the upload goes to the origin beside the chatgpt endpoint, never the tracker's"
   WHEN a local attachment is sent THEN the CLI SHALL upload it to the same backend the turn is
   addressed to, and SHALL send the turn only the address that upload answered with.
