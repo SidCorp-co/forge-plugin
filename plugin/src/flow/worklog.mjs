@@ -83,8 +83,7 @@ export const gitNow = () => {
   };
 };
 
-/* What the review owes: a verdict on findings nobody decided, or the recheck one folded owes — and
-   whether a recheck is takeable at all is the refusal's own reading, never a second one (ISS-230). */
+/* What the review owes: a verdict on findings nobody decided, or the recheck one folded owes — and whether a recheck is takeable at all is the refusal's own reading, never a second one (ISS-230). */
 /* The mirror of `writtenBy` for facts git holds rather than the session: every key is present, so a value a caller typed is cleared and not left standing. A head names a commit and not the tree in hand, so a dirty checkout stamps nothing and neither does no checkout — either way the field is absent, and a citation resting on it is refused rather than claiming a green for files no gate run measured. The two flags are what makes that reading the tree's rather than the machine's: `status.showUntrackedFiles=no` empties the default output over an uncommitted source file, and a submodule set to `ignore=all` hides its own. */
 const CLEAN = ["status", "--porcelain", "--untracked-files=all", "--ignore-submodules=none"];
 
@@ -194,10 +193,9 @@ export const worklogFor = (context, patch) => {
 const reviewLine = (held) =>
   `consult ${held.consult}${held.recheck ? ", recheck" : ""}, ${held.findings} finding(s), ${held.owed}`;
 
-/* In the order a successor asks; a fact nobody wrote is left out rather than printed empty. The pointer goes before anything renders, so a field added to it leaves here on its own, and `next` is the lease's line rather than a worklog key. */
+/* In the order a successor asks; a fact nobody wrote is left out rather than printed empty. The pointer is the opening's and none of it is printed here, which is what `POINTER` says and `SAID` in guides/phases.mjs enforces; `next` is the lease's line rather than a worklog key. */
 export const worklogLines = (worklog, next = null) => {
-  const held = Object.fromEntries(
-    Object.entries(worklog ?? {}).filter(([name]) => !POINTER.includes(name)));
+  const held = worklog ?? {};
   const out = next ? [`next        ${next}`] : [];
   if (held.touched) out.push(`touched     ${held.touched}`);
   if (held.copy) out.push(`copy        ${held.copy}`);

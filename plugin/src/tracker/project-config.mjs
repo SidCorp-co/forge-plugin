@@ -57,16 +57,19 @@ export const waitsForPerson = (policy) => {
   return !policy.autoProd;
 };
 
+/* Which branch a policy leaves unset and what that costs, said once: two readers below answer the same question, and a reword of one would have the CLI stating one fact two ways. */
+const nothingSaysWhere = (policy) => {
+  const unset = [!policy.staging && "staging", !policy.production && "production"].filter(Boolean);
+  return `the ${unset.join(" and the ")} branch is unset, so nothing says where a release lands`;
+};
+
 /* What a person still owes before an issue at the closing rung may close, or null where nothing
    does. Not `waitsForPerson` above, which asks whether one is shown the change before it goes out
    and answers no for any pair of distinct branches: reading it here would close an issue whose
    promotion nobody had made. Silence is a person's, never an automatic release (ISS-1147). */
 export const personOwedForRelease = (policy) => {
   if (!policy) return "the project config did not answer, so nothing here says a release happened";
-  if (!readable(policy)) {
-    const unset = [!policy.staging && "staging", !policy.production && "production"].filter(Boolean);
-    return `the ${unset.join(" and the ")} branch is unset, so nothing says where a release lands`;
-  }
+  if (!readable(policy)) return nothingSaysWhere(policy);
   if (policy.autoProd) return null;
   return policy.staging === policy.production
     ? `${policy.production} does not deploy on its own, so the release is a person's`
@@ -83,9 +86,8 @@ export const releaseLine = (policy) => {
 
 export const releaseConflict = (policy) => {
   if (!policy?.autoProd || readable(policy)) return null;
-  const unset = [!policy.staging && "staging", !policy.production && "production"].filter(Boolean);
-  return `production deploys are automatic and the ${unset.join(" and the ")} branch is unset, so `
-    + "nothing says where a release lands: a person's look is owed until the branch is set";
+  return `production deploys are automatic and ${nothingSaysWhere(policy)}: a person's look is owed `
+    + "until the branch is set";
 };
 
 export const releasePolicy = once(async () => {
@@ -190,8 +192,7 @@ const NO_DEPLOY = "none configured";
 
 const UNSET = "unset on the project";
 
-/** One reading of `withheld`: the branches cannot disagree, and *none* is said rather than inferred
- *  from an absent line (ISS-477). */
+/** One reading of `withheld`: the branches cannot disagree, and *none* is said rather than inferred from an absent line (ISS-477). */
 const credentialRows = (held, asked) => {
   const out = [{ level: "ok", label: "test credentials", detail: held.length
     ? (asked ? "below, printed once" : "present, forge doctor --credentials") : "none" }];

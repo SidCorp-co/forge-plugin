@@ -329,9 +329,8 @@ export const sectionsOwed = (plan, flags = {}) => {
 export const declaredAs = (keys) => keys.map((key) => DECLARED[key] ?? key);
 
 export const sectionOwedBy = (name, flags = {}) =>
-  (PLAN_SECTIONS.find((one) => one.name === name)?.owed ?? [])
-    .filter((key) => flags[key] === "yes")
-    .map((key) => DECLARED[key]);
+  declaredAs((PLAN_SECTIONS.find((one) => one.name === name)?.owed ?? [])
+    .filter((key) => flags[key] === "yes"));
 
 /** The steps that serve nothing: citing none, or none the given criteria hold — with none given, presence is the whole of it. Taking the steps and not the plan, because one caller judges both rules over one plan and reading it twice is the read twice. */
 export const stepsUncited = (steps, criteria) => {

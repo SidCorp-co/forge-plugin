@@ -17,6 +17,7 @@ import {
 import { MACHINE_FLAGS, MACHINE_WRITES } from "./doctor-keys.mjs";
 import { backoff, retrySeconds } from "../tracker/rest.mjs";
 import { deadlineSeconds, waitSeconds } from "../wire/request.mjs";
+import { measured, offsetSaid } from "../wire/shared-clock.mjs";
 import { BUNDLED } from "./vi.mjs";
 import {
   FEEDBACK_CHANNELS, LANDING_ROUTES, RUNS_TAKES, Refusal, SHIP_MODES, accountCredentials, fail,
@@ -433,8 +434,7 @@ const checkEndpoint = async (full, credentials) => {
       + `this line was read — ${held.refused}. Check \`endpoint url\` and \`project slug\` above`);
   }
   line(OK, "project id", full ? held.id : `resolved from the slug (--full to print it)`);
-  const clock = await import("../wire/shared-clock.mjs");
-  line(clock.measured() ? OK : NOTE, "tracker clock", clock.offsetSaid());
+  line(measured() ? OK : NOTE, "tracker clock", offsetSaid());
   const findings = await probe(scoped, slug);
   if (!findings.forge_guide) await checkAgainstGuides(scoped);
   if (findings.gated) {

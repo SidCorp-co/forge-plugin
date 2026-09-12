@@ -12,7 +12,7 @@ import { defaultEffort } from "./codex-plan.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
 import { pathed } from "../hooks/shell-spans.mjs";
 import { userConfig } from "../resolve/config.mjs";
-import { sseData } from "../wire/sse.mjs";
+import { FRAME_END, sseData } from "../wire/sse.mjs";
 import { parsedOr } from "../wire/request.mjs";
 
 const profilePath = () => process.env.CLAUDE_PROXY_ENV || join(homedir(), ".claude", "claude-proxy.env");
@@ -453,8 +453,6 @@ const frameEvent = (frame) => {
 };
 
 /* The deltas are handed out as they land; the whole text is still returned, because the log wants the answer and not the frames. */
-const FRAME_END = /\r?\n\r?\n/;
-
 export const consume = async (body, onDelta) => {
   const decoder = new TextDecoder();
   let buffered = "";

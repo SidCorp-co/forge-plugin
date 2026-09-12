@@ -26,7 +26,8 @@ const chatgptRow = (full) => {
   const held = chatgptSettings();
   /* The endpoint whole and the key masked: one is a host somebody has to check against the backend they meant, the other a credential no report needs the value of. */
   const shown = { url: (value) => value, key: (value) => masked(value, full) };
-  const parts = CHATGPT_KEYS.map((row) => (held.missing.includes(row)
+  /* Off the settings this row already holds and not `missing`'s membership, which holds the very row objects `CHATGPT_KEYS` declares: the same answer through a coupling a `chatgptSettings` that ever copied its rows would break in silence. */
+  const parts = CHATGPT_KEYS.map((row) => (!held[row.key]
     ? `no ${row.asks} — \`forge doctor --${row.flag} <${row.asks}>\``
     : shown[row.key](held[row.key])));
   return { level: held.missing.length ? "note" : "ok", detail: parts.join("  ") };

@@ -166,7 +166,7 @@ const fetchedParts = async (row, args, soft, held) => {
     const body = text ? parsedOr(text) : null;
     /* Refused rather than projected: an empty page built out of a gateway's HTML would read as the
        tracker saying the row is not there. */
-    if (text && (body === undefined || typeof body !== "object" || body === null)) {
+    if (text && (typeof body !== "object" || body === null)) {
       return [part, refused(`${request.method ?? "GET"} ${request.path} answered 200 with no record: `
         + `${text.slice(0, 200)}`)];
     }

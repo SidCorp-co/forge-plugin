@@ -2,7 +2,7 @@
    else's: a lease compares a stamp one machine wrote against another's `Date.now()` (ISS-1212), and
    correcting the reader alone leaves the stamp in the writer's frame, so it is stamped here too. */
 
-/* HTTP dates are truncated to the second, so the instant one names lies in [date, date + 1s), and the estimate takes its middle. */
+/* HTTP dates are truncated to the second, so the instant one names lies in [date, date + 1s), and the estimate takes its middle; `stampOf` cuts to the minute below, which is the width `lease.mjs` prints an expiry at and takes from here so one refusal naming both prints them alike. */
 const HEADER_GRAIN = 1000;
 const MINUTE = 60_000;
 
@@ -67,12 +67,12 @@ export const unplaceable = (theirs) => {
     + "carries that machine's time and this CLI cannot place it against the tracker's.";
 };
 
+export const stampOf = (ms) => new Date(ms).toISOString().slice(0, 16);
+
 export const straddleSaid = (what, instant, band) =>
   `The two clocks cannot order ${what} against now: it is ${stampOf(instant)} in the tracker's `
   + `frame and the two measurements this rests on are worth ±${seconds(band)} between them. `
   + `Past ${stampOf(orderableFrom(instant, band))} they can.`;
-
-const stampOf = (ms) => new Date(ms).toISOString().slice(0, 16);
 
 export const forgetClock = () => {
   best = null;

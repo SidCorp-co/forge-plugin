@@ -2,7 +2,7 @@
 import { ASKED, INHERITED, INHERITED_MEANS, OWN_ID, WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
 import { RUN_ID, RUN_ID_VAR, besideGit, runFor, runIdAt } from "../resolve/session/run-id.mjs";
 import { TAKEABLE } from "../rank/weights.mjs";
-import { sharedNow, sharedStamp, slackNow } from "../wire/shared-clock.mjs";
+import { sharedNow, sharedStamp, slackNow, stampOf } from "../wire/shared-clock.mjs";
 import { thisCall } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
@@ -114,7 +114,7 @@ export const expiryOf = (lease) => {
   return Number.isFinite(at) ? at + lease.minutes * 60_000 : 0;
 };
 
-const stamp = (ms) => (ms ? new Date(ms).toISOString().slice(0, 16) : "an unreadable time");
+const stamp = (ms) => (ms ? stampOf(ms) : "an unreadable time");
 
 /* A lease past its duration is another run's. The holder's own lapsed one is its own state because
    the field still naming this session proves nobody took the issue; a reclaim is a handoff. */

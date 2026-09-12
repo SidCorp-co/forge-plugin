@@ -485,9 +485,9 @@ export const recordReport = async (reference) => {
   console.log(owed.length ? `\nOwed: a verdict on criterion ${owed.join(", ")}.` : `\nEvery criterion has a verdict.`);
   /* A run's end is `closed`, or this rung where the policy leaves a person the release (ISS-105, ISS-1147). */
   if (body.status === CLOSES_FROM) {
-    const owed = personOwedForRelease(await releasePolicy());
-    console.log(owed
-      ? `Owed: the release, which is a person's. ${owed}, so this run ends at ${CLOSES_FROM} and the `
+    const person = personOwedForRelease(await releasePolicy());
+    console.log(person
+      ? `Owed: the release, which is a person's. ${person}, so this run ends at ${CLOSES_FROM} and the `
         + `close is theirs:\n  forge advance ${reference}, once the release is out`
       : `Owed: the close. A run ends at closed, not at ${CLOSES_FROM}:\n  forge advance ${reference}`);
   }
