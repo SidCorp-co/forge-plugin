@@ -1,6 +1,7 @@
-/* Parsing `--name value` pairs, once, and refusing a name the verb does not take: a flag is one word with no `=` in it, and the set a verb takes is read off the usage text its own `-h` prints, so a flag added there is taken with no second edit — docs/cli/did-you-mean.md. */
+/* The argv this call carries: parsing `--name value` pairs, once, refusing a name the verb does not take, and writing the call back out for a refusal that has to name it. A flag is one word with no `=` in it, and the set a verb takes is read off the usage text its own `-h` prints, so a flag added there is taken with no second edit — docs/cli/did-you-mean.md. */
+import { typed } from "../hooks/shell-spans.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { fail } from "./settings.mjs";
+import { embeddedRun, fail } from "./settings.mjs";
 
 export const FLAG_WORD = /^--[^\s=]*$/u;
 
@@ -183,4 +184,15 @@ export const pairOf = (given, flag) => {
   const at = given.indexOf("=");
   if (at < 1) fail(`${flag} takes \`key=value\`, not \`${given}\`.`);
   return { key: given.slice(0, at), value: given.slice(at + 1) };
+};
+
+/* A flag stays bare, where quoting it would make a word the receiving parser no longer reads as one, and `null` inside `refusing()`, whose argv belongs to the embedding script and holds no part of this call (ISS-842). */
+const word = (one) => (one.startsWith("--") && typed(one.slice(2)) === one.slice(2) ? one : typed(one));
+
+export const typedArgv = () => (embeddedRun() ? null : process.argv.slice(2).map(word));
+
+/** The whole of it, and `null` where there is none to name: a refusal handed no command says nothing rather than a `forge` with no verb behind it. */
+export const thisCall = () => {
+  const argv = typedArgv();
+  return argv?.length ? ["forge", ...argv].join(" ") : null;
 };

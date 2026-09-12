@@ -5,9 +5,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { typed } from "../hooks/shell-spans.mjs";
-import { FLAG_WORD } from "./flags.mjs";
-import { embeddedRun, fail } from "./settings.mjs";
+import { FLAG_WORD, typedArgv } from "./flags.mjs";
+import { fail } from "./settings.mjs";
 
 const NAMED = "Write it to a file and name it, or pipe it in.";
 /* A read that failed after a chunk is a truncated payload, so it is refused rather than returned. */
@@ -88,18 +87,18 @@ const shown = (path) => {
   return cut === path ? cut : `${cut}…`;
 };
 
-/* A flag stays bare, and the slot is the one occurrence no flag word owns, else the only one there
-   is: nothing prints where two could be it, a wrong replacement being worse than none (ISS-842). */
-const word = (one) => (one.startsWith("--") && typed(one.slice(2)) === one.slice(2) ? one : typed(one));
+/* The slot is the one occurrence no flag word owns, else the only one there is: nothing prints
+   where two could be it, a wrong replacement being worse than none (ISS-842). */
 const formsFor = (path, piped) => {
-  if (embeddedRun()) return null;
+  const typedIn = typedArgv();
+  if (!typedIn) return null;
   const argv = process.argv.slice(2);
   const held = argv.flatMap((one, index) =>
     (one === path && !FLAG_WORD.test(argv[index - 1] ?? "") ? [index] : []));
   const only = argv.indexOf(path) === argv.lastIndexOf(path);
   const at = held.length === 1 ? held[0] : (held.length === 0 && only ? argv.indexOf(path) : -1);
   if (at < 0) return null;
-  const call = (fill) => ["forge", ...argv.map(word).with(at, fill)].join(" ");
+  const call = (fill) => ["forge", ...typedIn.with(at, fill)].join(" ");
   const forms = [call("body.md"), ...(piped ? [`echo "<the body>" | ${call("-")}`] : [])];
   return `\n\nDo this, with the body you have in hand:\n  ${forms.join("\n  ")}`;
 };

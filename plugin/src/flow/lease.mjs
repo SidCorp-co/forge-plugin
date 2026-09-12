@@ -2,6 +2,7 @@
 import { ASKED, INHERITED, INHERITED_MEANS, OWN_ID, WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
 import { RUN_ID, RUN_ID_VAR, besideGit, runFor, runIdAt } from "../resolve/session/run-id.mjs";
 import { TAKEABLE } from "../rank/weights.mjs";
+import { thisCall } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
 import { enforcementOf, writeField } from "../tracker/field-write.mjs";
@@ -403,10 +404,37 @@ export const handedSaid = (ref, lease) =>
   `The lease on ${ref} was live and ${describe(lease)} held it. This run is the one ${ref} was `
   + `dispatched to, so the claim took it rather than waiting the lease out.`;
 
+/* A duration past the expiry and not the expiry, which is where a reclaim stops being refused
+   rather than where it starts (ISS-1224); rounded up, a truncated minute still being held. */
+const anybodysFrom = (lease) => {
+  const expiry = expiryOf(lease);
+  return expiry ? Math.ceil((expiry + lease.minutes * 60_000) / 60_000) * 60_000 : 0;
+};
+
+const freeFrom = (lease) =>
+  `unless a write renews it, the lease is anybody's from ${stamp(anybodysFrom(lease))}`;
+
+const waitItOut = (ref, lease) => `Wait for it: ${freeFrom(lease)}:\n  forge claim ${ref}`;
+
+/* The one refusal whose route out was the refusal: a run whose id changed under it reads its own
+   lease as another run's, and the `forge claim` it is sent to is refused for the same reason. Two
+   conditions keep the sentence off the callers with a better route — the holder is the run this
+   issue was dispatched to, and this call is not a second one, whom `notHandedHere` answers. */
+export const asItsHolder = (ref, lease, { held = sessionSourced(), at = process.cwd(), call = thisCall() } = {}) => {
+  const key = String(ref).trim().toLowerCase();
+  if (!call || runFor(lease?.holder) !== key || runFor(held.id) === key) return null;
+  if (lease.pid === UNKNOWN || lease.pid !== pidOf() || runIdAt(at) === lease.holder) return null;
+  return `That holder is a run dispatched to ${ref}, and the lease records pid ${lease.pid}, which `
+    + `is this call's own process — the process and not the run inside it, every agent a session `
+    + `dispatched sharing one, so nothing here is taken on it. A caller that is not that run waits: `
+    + `${freeFrom(lease)}, and \`forge claim ${ref}\` takes it then. Where this call IS that run, `
+    + `under an id it has lost, carry the id it named back:\n  ${RUN_ID_VAR}=${lease.holder} ${call}`;
+};
+
 export const claimRefusal = (ref, lease, said = "") =>
   `${ref} is claimed: ${describe(lease)}. A live lease is that run's, and this claim is refused. `
   + `${alsoSay(idsHere(lease))}${lease.next ? `The step it left named: ${lease.next}. ` : ""}`
-  + `${alsoSay(said)}Wait for it, or take it once it expires:\n  forge claim ${ref}`;
+  + `${alsoSay(said)}${asItsHolder(ref, lease) ?? waitItOut(ref, lease)}`;
 
 const WRITE_REFUSAL = {
   free: (ref) =>
@@ -414,7 +442,7 @@ const WRITE_REFUSAL = {
     + nothingWorked(ref),
   live: (ref, lease) =>
     `${ref} is held by another run: ${describe(lease)}. Its payload writes are that run's, so this `
-    + `one is refused. ${alsoSay(idsHere(lease))}Take the lease once it expires:\n  forge claim ${ref}`,
+    + `one is refused. ${alsoSay(idsHere(lease))}${asItsHolder(ref, lease) ?? waitItOut(ref, lease)}`,
   expired: (ref, lease) =>
     `the lease on ${ref} is another run's and has expired: ${describe(lease)}. A write of yours `
     + `beside it is stale. ${alsoSay(idsHere(lease))}Reclaim it first:\n  forge claim ${ref}`,
