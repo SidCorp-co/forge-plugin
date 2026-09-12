@@ -107,6 +107,19 @@ export const capChecked = (field, caps, sent, given, refuse, row) => {
   if (over.length) refuse(over.join(" ") + NOTHING_SENT);
 };
 
+/* Which names the update route takes is the tracker's and is declared nowhere here, so a name it has
+   no column for is judged on the way back, where its answer is two reasons and neither is ours (ISS-931). */
+const UNRECOGNISED = /Unrecognized key: "([^"]+)"/u;
+
+export const unrecognisedRefusal = (refused, ref) => {
+  const name = UNRECOGNISED.exec(String(refused ?? ""))?.[1];
+  if (!name) return null;
+  return `${name} is not a field the tracker's update route takes, so it refused the call and `
+    + `nothing of it was written. Which names it does take is the tracker's and is declared nowhere `
+    + `here; \`forge issue ${ref} --full\` prints the fields this issue carries, and each one this `
+    + "flag will not write is refused by name with the call that does write it.";
+};
+
 /** The one reader of the table, so a caller that has to hand a row on holds the same one the writer would. */
 export const rowOf = (field) => fields()[field];
 
@@ -151,7 +164,11 @@ export const writeFields = async (documentId, given, { ref, next, patch, refuse,
   const asked = asks && enforcementOf() === null ? await establish((one) => send(one, true)) : null;
   if (asked?.refused) refuse(asked.refused);
   const covered = enforcementOf() === true && (asks || Boolean(held));
-  if (!asked) await send(covered ? expecting(held ?? null) : null, false);
+  /* Soft on the override arm alone, the one caller sending a name no row above declares. */
+  if (!asked) {
+    const answer = await send(covered ? expecting(held ?? null) : null, override);
+    if (answer?.refused) refuse(unrecognisedRefusal(answer.refused, ref) ?? answer.refused);
+  }
   /* The lease's own read-back was the compare-and-set this CLI made in the tracker's stead, so where the tracker made it that read is not spent; every other field's answers whether the text landed, which is a different question no precondition replaces. Nothing reads a lease write's return, which is why dropping the read leaves it null rather than owing a call for it. */
   const owed = rows.filter((one) => !(covered && one.row.expects));
   if (!owed.length) return null;

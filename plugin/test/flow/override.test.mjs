@@ -49,6 +49,13 @@ const state = {
         return ISSUE;
       }
       if (args.action === "update") {
+        /* The tracker's own envelope for a name it has no column for, two reasons in one answer:
+           the key, and then the precondition standing beside a payload with nothing left to write. */
+        const unknown = Object.keys(args.data ?? {}).find((key) => (state.noColumnFor ?? []).includes(key));
+        if (unknown) {
+          return { refused: `BAD_REQUEST: Invalid input\nUnrecognized key: "${unknown}"\n`
+            + "`expect` is a precondition on a write — send the field(s) to write alongside it" };
+        }
         /* Acknowledged and not applied, which is the one answer the read-back below exists for. */
         if (state.ignores && args.data?.[state.ignores] !== undefined) return { ...ISSUE };
         /* And acknowledged, applied in part: one key of a payload the tracker took whole. Nothing documents whether its PATCH is atomic, so the read-back has to answer for a set that came back split. */
@@ -110,6 +117,7 @@ const before = (status = "in_progress") => {
   state.dropsRecord = null;
   state.takesLease = null;
   state.losesLeaseRead = null;
+  state.noColumnFor = null;
   state.comments[ISSUE.documentId] = [];
 };
 const setField = (...argv) => ranAsync(FORGE, ["issue", "ISS-96", ...argv], tracker.env);
@@ -503,4 +511,30 @@ test("a field that holds no body is untouched by the rule", async () => {
     assert.equal(sent("update", field)[field], value,
       `a route is only a route where a body is what it would replace: ${field}`);
   }
+});
+
+/* ISS-931. The arm ISS-930 left: the tracker's whole envelope, two reasons and no route out, and
+   what was wrong with all four of them was that the reply was nobody's. */
+test("a field the tracker has no column for is refused in one sentence of this CLI's own", async () => {
+  before();
+  state.noColumnFor = ["notAColumn"];
+  const run = await setField("--set", "notAColumn=x", "--why", WHY);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /notAColumn is not a field the tracker's update route takes/u,
+    "the name that was refused, in a sentence naming it");
+  assert.match(run.stderr, /nothing of it was written/u, "and what became of the call");
+  assert.doesNotMatch(run.stderr, /Unrecognized key|BAD_REQUEST|precondition/u,
+    "with none of the tracker's own wording, which answered three questions about a payload this CLI built");
+  assert.doesNotMatch(run.stderr, /a name among them is one this flag writes/u,
+    "and no promise that every field the issue carries is one this flag writes: status and plan are not (review 8b3a01 F3)");
+});
+
+/* The soft send is the override arm's alone: every other caller keeps the far end's own words. */
+test("a caller that is not the override arm keeps the tracker's own refusal", async () => {
+  before();
+  state.noColumnFor = ["sessionContext"];
+  const run = await ranAsync(FORGE, ["claim", "ISS-96", "--next", "on to the next step"], tracker.env);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /Unrecognized key: "sessionContext"/u,
+    "the tracker's own answer, unchanged for every caller but the one this rule is about");
 });
