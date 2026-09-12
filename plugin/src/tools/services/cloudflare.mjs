@@ -6,6 +6,7 @@
    account: which account holds that zone is asked rather than typed. */
 import { configPath, saveNested, userConfig } from "../../resolve/config.mjs";
 import { abbreviated, masked } from "./masked.mjs";
+import { parsedOr } from "../../wire/request.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { firstLine, flags, helpAskedOf, pullRepeated } from "../../resolve/flags.mjs";
 import { didYouMean } from "../../suggest.mjs";
@@ -95,12 +96,7 @@ const cfFetch = async (token, path, method = "GET", body) => {
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
   const text = await response.text();
-  let parsed = null;
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    parsed = null;
-  }
+  const parsed = parsedOr(text);
   if (!response.ok || !parsed?.success) {
     throw new Error(parsed?.errors?.[0]?.message ?? `HTTP ${response.status}: ${text.slice(0, 200)}`);
   }

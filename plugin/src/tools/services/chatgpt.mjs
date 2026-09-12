@@ -4,7 +4,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
 
-import { apiBaseOf, clockFor, deadlineOf, deadlineSeconds } from "../../wire/request.mjs";
+import { apiBaseOf, clockFor, deadlineOf, deadlineSeconds, parsedOr } from "../../wire/request.mjs";
+import { sseEvents } from "../../wire/sse.mjs";
 import { chatgptSettings, fail } from "../../resolve/settings.mjs";
 import { firstLine, flags, pullRepeated, wantsHelp } from "../../resolve/flags.mjs";
 
@@ -36,25 +37,6 @@ const settingsFor = () => {
   return held;
 };
 
-/* Event-aware and deliberately not `sseData`, which concatenates every `data:` value: a notification
-   before the result then yields two adjacent JSON documents and the parse fails (consult ab0c46, F1). */
-const eventsIn = (text) => text
-  .split(/\r?\n\r?\n/u)
-  .map((block) => block
-    .split(/\r?\n/u)
-    .filter((line) => line.startsWith("data:"))
-    .map((line) => line.slice("data:".length).trim())
-    .join(""))
-  .filter(Boolean);
-
-const parsedOr = (text) => {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-};
-
 /* An answer to this request, not merely a message about it: the transport may send a request of its
    own on the same stream under an id counter that starts where ours does (consult 4f91a2, F1). */
 const isAnswer = (held, id) => held?.id === id && held.method === undefined
@@ -65,7 +47,7 @@ const answerIn = (text, type, id) => {
     const held = parsedOr(text);
     return isAnswer(held, id) ? held : null;
   }
-  for (const event of eventsIn(text)) {
+  for (const event of sseEvents(text)) {
     const held = parsedOr(event);
     if (isAnswer(held, id)) return held;
   }

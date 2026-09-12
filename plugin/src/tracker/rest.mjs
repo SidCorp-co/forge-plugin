@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { clockFor, deadlineOf, deadlineSeconds, ranOut, secondsGiven, waitSeconds } from "../wire/request.mjs";
+import { clockFor, deadlineOf, parsedOr, ranOut, secondsGiven } from "../wire/request.mjs";
 import { sawAnswer } from "../wire/shared-clock.mjs";
 import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
 import { FROM_PROJECT, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
@@ -33,23 +33,12 @@ const sleep = (seconds) => new Promise((done) => setTimeout(done, seconds * 1000
 export const retrySeconds = (config = userConfig()) => secondsGiven(config.retrySeconds) ?? FALLBACK_RETRY_SECONDS;
 export const backoff = (attempt, config) => Math.min(retrySeconds(config) * 2 ** (attempt - 1), MAX_RETRY_SECONDS);
 
-/* Re-exported rather than moved out of reach: `doctor` and two suites take both names from this module, and the deadline behind them is `../wire/request.mjs`'s now that `forge chatgpt` runs under the same clock. */
-export { deadlineSeconds, waitSeconds };
-
-const parsed = (text) => {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return undefined;
-  }
-};
-
 /* Honour the server's stated wait, with a ceiling: 3600 would be an hour of sleep, four times. */
 export const retryAfter = (text, headers) => {
   const capped = (seconds) => Math.min(seconds, MAX_RETRY_SECONDS);
   const header = Number(headers.get("retry-after"));
   if (Number.isFinite(header) && header > 0) return capped(header);
-  const seconds = parsed(text)?.details?.retryAfterSeconds;
+  const seconds = parsedOr(text)?.details?.retryAfterSeconds;
   return Number.isFinite(seconds) && seconds > 0 ? capped(seconds) : FALLBACK_RETRY_SECONDS;
 };
 
@@ -173,8 +162,8 @@ const fetchedParts = async (row, args, soft, held) => {
     if (spent) return [part, refused(spent)];
     if (dropped) return [part, refused(`Forge did not answer ${request.method ?? "GET"} ${request.path}: `
       + `${ranOut(dropped, deadline)}${row.writes ? `\n${AMBIGUOUS}` : ""}`)];
-    if (!response.ok) return [part, refused(said(parsed(text), response.status))];
-    const body = text ? parsed(text) : null;
+    if (!response.ok) return [part, refused(said(parsedOr(text), response.status))];
+    const body = text ? parsedOr(text) : null;
     /* Refused rather than projected: an empty page built out of a gateway's HTML would read as the
        tracker saying the row is not there. */
     if (text && (body === undefined || typeof body !== "object" || body === null)) {

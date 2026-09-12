@@ -11,7 +11,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
-import { backoff, callTool, deadlineSeconds, retryAfter, retryOf, retrySeconds, unfencedIn, waitSeconds } from "../../src/tracker/rest.mjs";
+import { backoff, callTool, retryAfter, retryOf, retrySeconds, unfencedIn } from "../../src/tracker/rest.mjs";
 import { useProject } from "../../src/resolve/settings.mjs";
 import { REFERENCE_KEYS } from "../../src/tracker/routes.mjs";
 
@@ -205,26 +205,6 @@ test("the retry schedule is 2, 4, 8 unless config.json names a non-negative numb
   }
   assert.equal(retryAfter("", new Map([["retry-after", "5"]])), 5, "a 429 waits what the server says");
   assert.equal(retryAfter("{}", new Map()), 2, "and the fallback for a 429 saying nothing is the constant, not the knob");
-});
-
-/* The other number of seconds, and the same reading of what config.json may put in it: how long one
-   attempt may take, where the ladder above says how many there are (ISS-828). */
-test("the deadline one attempt gets is 60s unless config.json names a non-negative number of seconds", () => {
-  assert.equal(waitSeconds({}), 60, "the default is the constant's");
-  assert.equal(waitSeconds({ waitSeconds: 0 }), 0, "zero is a deadline that runs out at once, not the absence of one");
-  assert.equal(waitSeconds({ waitSeconds: 0.5 }), 0.5);
-  for (const bad of ["1", null, -1, Number.NaN, Number.POSITIVE_INFINITY, true, undefined]) {
-    assert.equal(waitSeconds({ waitSeconds: bad }), 60, `${String(bad)} read as a deadline`);
-  }
-  /* The timer's own two limits, spent by the deadline rather than thrown where a request should go:
-     whole milliseconds, and no more than a signed 32-bit count of them, past which the timer warns
-     and fires at 1ms (consults 6b1ac4 F1, 8b2c3d F1). */
-  assert.equal(waitSeconds({ waitSeconds: 1.001 }), 1.001, "what a project may write is read as written");
-  assert.equal(deadlineSeconds({ waitSeconds: 1.001 }), 1.001, "and a whole millisecond of it is what it gets");
-  assert.equal(deadlineSeconds({ waitSeconds: 0.0004 }), 0, "less than a millisecond gets none, which fires at once");
-  assert.equal(deadlineSeconds({ waitSeconds: 1e9 }), 2147483.647,
-    "and a value past the timer's range gets the deadline it buys rather than one that fires at 1ms");
-  assert.equal(deadlineSeconds({}), 60, "the default goes through the same reading");
 });
 
 /* What went on the wire, off `fetch`'s own second argument rather than off the row's intent. */

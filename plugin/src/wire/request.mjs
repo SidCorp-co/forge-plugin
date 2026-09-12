@@ -6,6 +6,15 @@ const FALLBACK_WAIT_SECONDS = 60;
 const MAX_DEADLINE_MILLIS = 2 ** 31 - 1;
 const MCP_TAIL = /\/mcp\/?$/u;
 
+/* A body this side did not write and cannot make a caller's problem: a document that will not parse answers `null` here, and what to do about `null` is the caller's. Three transports had written this three times and two of them answered differently, so a caller moving between them got a different falsy value for the same failure. */
+export const parsedOr = (text) => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
 export const secondsGiven = (given) =>
   (typeof given === "number" && Number.isFinite(given) && given >= 0 ? given : null);
 

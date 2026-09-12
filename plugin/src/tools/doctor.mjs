@@ -15,7 +15,8 @@ import {
   userConfig,
 } from "../resolve/config.mjs";
 import { MACHINE_FLAGS, MACHINE_WRITES } from "./doctor-keys.mjs";
-import { backoff, deadlineSeconds, retrySeconds, waitSeconds } from "../tracker/rest.mjs";
+import { backoff, retrySeconds } from "../tracker/rest.mjs";
+import { deadlineSeconds, waitSeconds } from "../wire/request.mjs";
 import { BUNDLED } from "./vi.mjs";
 import {
   FEEDBACK_CHANNELS, LANDING_ROUTES, RUNS_TAKES, Refusal, SHIP_MODES, accountCredentials, fail,

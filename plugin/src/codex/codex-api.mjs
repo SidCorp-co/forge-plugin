@@ -13,6 +13,7 @@ import { gitRootOf } from "./codex-tools.mjs";
 import { pathed } from "../hooks/shell-spans.mjs";
 import { userConfig } from "../resolve/config.mjs";
 import { sseData } from "../wire/sse.mjs";
+import { parsedOr } from "../wire/request.mjs";
 
 const profilePath = () => process.env.CLAUDE_PROXY_ENV || join(homedir(), ".claude", "claude-proxy.env");
 export const modelSlot = () => userConfig().codex?.model || "fable";
@@ -448,16 +449,10 @@ export const openingFor = (...given) => {
 
 const frameEvent = (frame) => {
   const data = sseData(frame);
-  if (!data || data === "[DONE]") return null;
-  try {
-    return JSON.parse(data);
-  } catch {
-    return null;
-  }
+  return !data || data === "[DONE]" ? null : parsedOr(data);
 };
 
-/* The deltas are handed out as they land; the whole text is still returned, because the log wants
-   the answer and not the frames. */
+/* The deltas are handed out as they land; the whole text is still returned, because the log wants the answer and not the frames. */
 const FRAME_END = /\r?\n\r?\n/;
 
 export const consume = async (body, onDelta) => {

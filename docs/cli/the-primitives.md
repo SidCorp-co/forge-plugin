@@ -68,6 +68,16 @@ on a module testing a `data:` URI, and the refusal would send it to a frame read
 for — a refusal a developer cannot act on. What that leaves uncaught is a copy that spells the field
 and derives the width from it, which carries no count and is not the drift the pair was filed for.
 
+A third transport then arrived and wrote exactly that copy. The chat backend's reader is per event
+rather than over the whole body — a notification sent before a result gives two JSON documents, and
+concatenating them makes one that will not parse — so it could not borrow the reader and borrowed
+nothing. What it needed was never a different field, only a different question of the same framing,
+and that is the line: how a body divides into events and where each event's payload is are the wire
+format's, and there is one of them; what a payload then *means* is the provider's. So the framing
+answers both questions in one module and the whole-body reader is the per-event one joined, while
+the parse and the `[DONE]` sentinel stay where they were. A fourth transport asking the same
+question now finds it answered.
+
 ## The tracker's fence, and why it stopped being a primitive
 
 ISS-256 found the wrapper declared twice and gave it one home in the flow module, which imports
