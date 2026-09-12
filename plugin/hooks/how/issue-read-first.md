@@ -16,4 +16,4 @@ that names itself owes its own delivery, not yours: the name is read off the com
 
 Not judged: what you write once you have read, whether you read it, or a mention of a write verb —
 the target is the argument the verb takes, so one in a heredoc, a path or prose is not one.
-Silent with no endpoint configured, and on a tracker that will not answer.
+Silent with no endpoint configured, on a tracker that will not answer, and outside a project.

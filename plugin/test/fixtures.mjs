@@ -422,13 +422,13 @@ export const fakeTracker = async (state) => {
   const ROUTES = [
     [/^\/api\/projects\/[^/]+\/issues\/search$/u, (q) =>
       windowOn(q, answered("forge_issues", { action: "list", filters: { search: q.get("q") } }))],
-    [/^\/api\/projects\/[^/]+\/issues$/u, (q, sent, method) => {
-      if (method === "POST") return asRow(answered("forge_issues", { action: "create", data: sent }));
+    [/^\/api\/projects\/([^/]+)\/issues$/u, (q, sent, method, [project]) => {
+      if (method === "POST") return asRow(answered("forge_issues", { action: "create", project, data: sent }));
       /* Omitted where the query narrowed on nothing, exactly as the caller omits it: a handler
          asking whether a page was filtered may not be told it always was. */
       const narrowed = filtersFrom(q);
       return windowOn(q, answered("forge_issues",
-        { action: "list", ...(Object.keys(narrowed).length ? { filters: narrowed } : {}) }), q.get("sort"));
+        { action: "list", project, ...(Object.keys(narrowed).length ? { filters: narrowed } : {}) }), q.get("sort"));
     }],
     [/^\/api\/issues\/([^/]+)\/dependencies\/([^/]+)$/u, (q, sent, method, [id, edgeId]) =>
       answered("forge_issues", { action: "unlink_edge", documentId: id, edgeId })],

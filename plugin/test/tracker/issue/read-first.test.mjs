@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { joined, targetsOfTool, writeTargets } from "../../../src/tracker/issue-read.mjs";
 import { isReference } from "../../../src/tracker/issues.mjs";
 import { shellText, starts } from "../../../hooks/_hook.mjs";
-import { callHookAsync, fakeTracker, tempHome } from "../../fixtures.mjs";
+import { callHookAsync, fakeTracker, tempHome, tempRoom } from "../../fixtures.mjs";
 
 const bash = (command) => ({ name: "Bash", input: { command } });
 /* The hook's own wiring: the target is read where a command starts, so it is given the starts. */
@@ -230,19 +230,21 @@ test("a command granting an id nobody credited is denied, whatever the harness w
 
 /* The shape a run in a worktree writes all day: the assignment stands behind the `cd` that reaches
    the tree, and it was read only where it led the whole text — so the CLI credited the exported name,
-   this hook asked under the harness's uuid, and every write was held on the one before it (ISS-672). */
+   this hook asked under the harness's uuid, and every write was held on the one before it (ISS-672).
+   The tree it moves to carries a project file, because the gate now resolves a key in the project
+   the command runs in and says nothing where a directory names none (ISS-1190). */
 test("a run whose assignment stands behind a cd is one run across its writes", async () => {
   state.comments = { [UUID]: [comment("c3", "the record this run wrote a minute ago")] };
-  const exported = "cd /tmp && export FORGE_SESSION_ID=behind-a-cd && forge advance ISS-29";
+  const exported = `cd ${SAME_PROJECT} && export FORGE_SESSION_ID=behind-a-cd && forge advance ISS-29`;
   const held = await gate(exported, { harness: "harness-four" });
   assert.equal(held.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
   assert.equal((await gate(exported, { harness: "harness-five" })).out, null,
     "and the second write is the same run, whatever session the harness names");
-  const prefixed = "cd /tmp && FORGE_SESSION_ID=on-the-writer /usr/bin/forge advance ISS-29";
+  const prefixed = `cd ${SAME_PROJECT} && FORGE_SESSION_ID=on-the-writer /usr/bin/forge advance ISS-29`;
   const alone = await gate(prefixed, { harness: "harness-six" });
   assert.equal(alone.out.hookSpecificOutput.permissionDecision, "deny", "the prefix names a run of its own");
   assert.equal((await gate(prefixed, { harness: "harness-seven" })).out, null, "and its own second write passes");
-  const other = "cd /tmp && export FORGE_SESSION_ID=another-worktree-run && forge advance ISS-29";
+  const other = `cd ${SAME_PROJECT} && export FORGE_SESSION_ID=another-worktree-run && forge advance ISS-29`;
   const stranger = await gate(other, { harness: "harness-four" });
   assert.equal(stranger.out.hookSpecificOutput.permissionDecision, "deny",
     "while a third run is shown nothing by either of them having looked");
@@ -400,3 +402,84 @@ test("a plan whose body cites five clauses writes only to the issue it names", (
     + " under BR-03 and NFR-02.\nMD\n)";
   assert.deepEqual(targets(command), ["ISS-32"]);
 });
+
+/* ISS-1190. Every key resolved under the session's own project, so a command run in a second
+   checkout was held on a stranger's thread and the write it was about went unguarded. Two checkouts
+   carrying one key and different comments is the shape that tells the two readings apart. */
+const OWN_ID = "1e1c1a1e-0000-4000-8000-0000000000ff";
+const OTHER_ID = "1e1c1a1e-0000-4000-8000-00000000beef";
+const OTHER_SLUG = "second-checkout";
+const OTHER_DOC = "7c2f4b21-0ac4-4a1e-9f52-2d1c0a5f6e33";
+const OWN_SLUG = JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8")).slug;
+
+const SECOND = tempRoom("second-checkout-");
+writeFileSync(join(SECOND, ".forge.json"), JSON.stringify({ slug: OTHER_SLUG }));
+const NOWHERE_AT_ALL = tempRoom("names-no-project-");
+
+/* Both checkouts answer, and the second one's ISS-29 is a different document with a thread of its
+   own. The own project keeps the fixture's default rows, so every case above this is unmoved. */
+const twoProjects = () => {
+  state.answer = {
+    "forge_projects.list": () => ({ projects: [{ id: OWN_ID, slug: OWN_SLUG }, { id: OTHER_ID, slug: OTHER_SLUG }] }),
+    forge_issues: (args) => {
+      if (args.action !== "list") return {};
+      const rows = args.project === OTHER_ID
+        ? [{ issueId: "ISS-29", documentId: OTHER_DOC }]
+        : state.issues;
+      return { issues: rows, returned: rows.length, hasMore: false };
+    },
+  };
+};
+const oneProject = () => {
+  delete state.answer;
+};
+const issueCalls = (from) => state.calls.slice(from).filter((one) => /\/issues(\?|$)/u.test(one.path));
+
+test("a write in a second checkout is held on that checkout's own thread for the key it names", async () => {
+  twoProjects();
+  state.comments = {
+    [UUID]: [comment("own", "the thread of the project this session stands in")],
+    [OTHER_DOC]: [comment("second", "the thread of the checkout the command runs in")],
+  };
+  state.calls = [];
+  const run = await gate(`cd ${SECOND} && forge advance ISS-29`);
+  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
+  assert.ok(because(run).includes("the thread of the checkout the command runs in"),
+    "the hold quotes the comments of the project the command will act on");
+  assert.ok(!because(run).includes("the thread of the project this session stands in"),
+    "and never a stranger's, which is what teaches a reader that the quotations are noise");
+  assert.deepEqual([...new Set(issueCalls(0).map((one) => one.slug))], [OTHER_SLUG],
+    "every issue lookup the gate made carried the second checkout's project");
+  oneProject();
+});
+
+test("a command whose directory names no project draws no lookup and refuses nothing", async () => {
+  twoProjects();
+  state.comments = { [UUID]: [comment("own", "unread and unquoted")] };
+  state.calls = [];
+  const run = await gate(`cd ${NOWHERE_AT_ALL} && forge advance ISS-29`);
+  assert.equal(run.out, null, "a hold on no evidence is worse than no hold");
+  assert.equal(run.status, 0);
+  assert.deepEqual(issueCalls(0), [], "and no issue is looked up under a project nobody named");
+  oneProject();
+});
+
+test("a command that moves nowhere is resolved in the event's own directory", async () => {
+  twoProjects();
+  state.comments = {
+    [UUID]: [comment("own", "the thread of the project this session stands in")],
+    [OTHER_DOC]: [comment("second", "the thread of the checkout the command runs in")],
+  };
+  state.calls = [];
+  const run = await gate("forge advance ISS-29");
+  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
+  assert.ok(because(run).includes("the thread of the project this session stands in"));
+  assert.deepEqual([...new Set(issueCalls(0).map((one) => one.slug))], [OWN_SLUG],
+    "the event's own directory is the project, exactly as it was before this rule");
+  oneProject();
+});
+
+/* A worktree of this same project: a `cd` in the cases above reaches a tree the gate can name a
+   project for, which is what those cases were about before a directory naming none went silent. */
+const SAME_PROJECT = tempRoom("same-project-");
+writeFileSync(join(SAME_PROJECT, ".forge.json"), readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
