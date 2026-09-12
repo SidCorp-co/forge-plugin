@@ -43,7 +43,7 @@ test("every harness row is a row of the report's own vocabulary, with no second 
   profiled(WHOLE_PROFILE);
   configured({});
   const rows = harnessLines(false);
-  assert.deepEqual(rows.map((row) => row.label), ["cloudflare", "codex", "chatgpt"]);
+  assert.deepEqual(rows.map((row) => row.label), ["cloudflare", "codex", "chatgpt", "chatgpt framing"]);
   for (const row of rows) {
     assert.ok(["ok", "note", "miss"].includes(row.level), `${row.label} answered the level ${row.level}`);
     assert.equal(row.ok, undefined, `${row.label} still carries a boolean beside its level`);
@@ -85,6 +85,19 @@ test("the chatgpt row names the flag that writes each half it is missing, and ne
   assert.equal(detail, "no endpoint — `forge doctor --chatgpt-url <endpoint>`  no key — `forge doctor --chatgpt-key <key>`");
 });
 
+/* The framing is the value a caller set and not a credential, so it is reported whole where the key beside it is masked; the row is its own because a framing runs to whatever length somebody wrote. */
+test("the framing row is a note naming the flag while none is saved, and reports the value once one is", () => {
+  profiled(WHOLE_PROFILE);
+  configured({});
+  const absent = harnessLines(false).find((row) => row.label === "chatgpt framing");
+  assert.equal(absent.level, "note");
+  assert.match(absent.detail, /forge doctor --chatgpt-prefix <framing>/u);
+  configured({ chatgpt: { prefix: "Flat vector, no text." } });
+  const held = harnessLines(false).find((row) => row.label === "chatgpt framing");
+  assert.equal(held.level, "ok");
+  assert.equal(held.detail, `Flat vector, no text.  ← ${join(HOME, "forge", "config.json")}`);
+});
+
 /* The pair is read once, where the other machine-level settings are read, and answers the file that
    answered for it — which is what every other setting in that report already does (AC-01-3-1). */
 test("the chatgpt endpoint and key come off one reader that names the file they came from", async () => {
@@ -94,10 +107,12 @@ test("the chatgpt endpoint and key come off one reader that names the file they 
   assert.deepEqual({ url: absent.url, key: absent.key, from: absent.from }, { url: null, key: null, from: null },
     "nothing saved is answered as nothing, with no file claimed for it");
   assert.deepEqual(absent.missing, CHATGPT_KEYS, "and both rows are the ones a refusal names its flags off");
-  configured({ chatgpt: { url: "https://gpt.example/mcp", key: "k" } });
+  assert.equal(absent.prefix, null, "and the framing beside them answers as nothing too");
+  configured({ chatgpt: { url: "https://gpt.example/mcp", key: "k", prefix: "Flat vector." } });
   const held = chatgptSettings();
   assert.equal(held.url, "https://gpt.example/mcp");
   assert.equal(held.key, "k");
+  assert.equal(held.prefix, "Flat vector.");
   assert.equal(held.from, join(HOME, "forge", "config.json"), "the file that answered, not merely that one did");
   assert.deepEqual(held.missing, []);
 });

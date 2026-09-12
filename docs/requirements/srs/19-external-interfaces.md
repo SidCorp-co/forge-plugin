@@ -249,3 +249,12 @@ person instead of asking again is `docs/cli/chatgpt.md`'s.
 - **AC-19-9-6** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt-detach.test.mjs "the answer a detached turn came back with is collected, twice, and then is not pending"
   WHEN a turn sent that way is collected THEN the CLI SHALL print the outcome that turn settled with
   and SHALL cross this boundary no further to do it.
+- **AC-19-9-7** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt-image.test.mjs "a call that names no ratio is refused, and nothing is sent"
+  IF a turn asking for a picture states no framing or no aspect ratio THEN the CLI SHALL refuse it
+  before anything crosses this boundary, and SHALL name both of them.
+- **AC-19-9-8** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt-image.test.mjs "the framing opens the prompt, the caller's words sit in the middle and the shape closes it, in one turn"
+  WHEN a turn asking for a picture is sent THEN the CLI SHALL carry the saved framing and the stated
+  aspect ratio inside the prompt it sends, the ratio as the last line of it.
+- **AC-19-9-9** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt-detach.test.mjs "a detached picture is spawned under the action that asked for it, and collects as one"
+  WHERE a turn is sent from a process that outlives the invocation the CLI SHALL invoke that process
+  under the action the caller asked for.

@@ -8,7 +8,7 @@ import { basename } from "node:path";
 
 import { apiBaseOf, clockFor, deadlineOf, deadlineSeconds, MAX_WAIT_SECONDS, parsedOr, ranOut } from "../../wire/request.mjs";
 import { sseEvents } from "../../wire/sse.mjs";
-import { chatgptSettings, fail, refusing } from "../../resolve/settings.mjs";
+import { CHATGPT_PREFIX, chatgptSettings, fail, refusing } from "../../resolve/settings.mjs";
 import { firstLine, flags, helpAskedOf, pullRepeated, wantsHelp } from "../../resolve/flags.mjs";
 import { didYouMean } from "../../suggest.mjs";
 import {
@@ -46,11 +46,12 @@ const SPENT = "This turn may have been spent and is not sent again — the tool 
 const KEPT = "\n  The turn is not sent again — the answer above is already the one it gave.";
 
 export const USAGE = [
-  "Usage: forge chatgpt <ask|collect|pending> [args]",
+  "Usage: forge chatgpt <ask|image|collect|pending> [args]",
   "One turn of ChatGPT from the terminal, over the endpoint this machine has saved. Each action's",
   "own flags: `forge chatgpt <action> -h`.",
   "",
   "  ask       send one turn; past a wait no caller could hold it detaches and hands back an id",
+  "  image     one picture, at a shape you state and under the framing this machine saved",
   "  collect   the answer a detached turn came back with, by that id",
   "  pending   the detached turns nobody has read yet, and the flag that gives one up",
 ].join("\n");
@@ -78,6 +79,33 @@ const askUsage = () => [
   `Past ${DETACH_ABOVE_SECONDS}s the turn runs without you, and \`forge chatgpt collect\` reads it back.`,
 ].join("\n");
 
+/* Its own screen rather than five more rows on `ask`: what an image ask requires of a caller is what
+   this action exists to state, and `ask -h` is at the cap ISS-1268 set. The flag that saves the
+   framing is in backticks, or the parser reads it off this text as a flag of this action. */
+const imageUsage = () => [
+  `Usage: forge chatgpt image "<prompt>" --ratio w:h [--resume id] [--model slug]`,
+  "                                      [--save path] [--wait s]",
+  "One picture, one turn: look-and-feel to build toward, never a render of what you built.",
+  "",
+  "Write the prompt short — the subject and the feeling, then stop. The model elaborates a short",
+  "prompt and transcribes a long one, so four hundred words buy a reading of the words themselves.",
+  "",
+  "The framing every picture is drawn under is saved once and never typed into a prompt:",
+  `  \`forge doctor --${CHATGPT_PREFIX.flag} "<${CHATGPT_PREFIX.asks}>"\`, and \`forge doctor\` prints what resolved`,
+  "",
+  "One attempt per call and never a second. A call that fails may still have spent a metered turn:",
+  "nothing here can tell, and nothing here sends it again.",
+  "",
+  "  --ratio w:h    required; it travels as an instruction of its own, not a clause of the prompt",
+  "  --resume id    draw into that conversation, so this picture and the last are one set",
+  "  --model slug   pass a model through; no default is sent",
+  "  --save path    write the bytes of the image the reply names",
+  "  --wait s       seconds to hold this one call open, in place of the configured wait",
+  "",
+  `The wait is ${deadlineSeconds()}s, from waitSeconds in config.json; --wait sets this call's alone.`,
+  `Past ${DETACH_ABOVE_SECONDS}s the turn runs without you, and \`forge chatgpt collect\` reads it back.`,
+].join("\n");
+
 const COLLECT_USAGE = [
   "Usage: forge chatgpt collect <id> [--wait s]",
   "The answer a detached turn came back with, read off this machine and costing no turn.",
@@ -91,6 +119,38 @@ const PENDING_USAGE = [
   "",
   "  --drop id      give that turn up: its process stops itself and the answer is not collected",
 ].join("\n");
+
+const RATIO = /^([1-9]\d*):([1-9]\d*)$/u;
+
+/** What continues a turn, per action, printed by the reply's resume line and by a spent turn's recovery line: a second picture of a set wants the ratio the first was drawn at, and a follow-up question wants none. */
+const RESUMES_ASK = (id) => `forge chatgpt ask "<next>" --resume ${id}`;
+const resumesImage = (ratio) => (id) => `forge chatgpt image "<next>" --ratio ${ratio} --resume ${id}`;
+
+/* Last and alone on its line: a ratio inside the prose is the instruction a generation model most often reads past, which is the thing this action exists to fix. Which spelling lands is not diffable, so docs/cli/chatgpt-image.md carries what was run rather than an argument. */
+const ratioSaid = (ratio) => `Aspect ratio: ${ratio}. Render the image at exactly ${ratio} and at no `
+  + "other shape — do not crop or pad it to a different one.";
+
+/** The framing first, the caller's words in the middle, the shape last. */
+const imageAsk = (prefix, prompt, ratio) => `${prefix}\n\n${prompt}\n\n${ratioSaid(ratio)}`;
+
+/* Both are named whichever of them is missing: a caller told about one, who fixes it and then meets the other, has spent two rounds learning one shape. Neither is defaulted — a default ratio is the square picture nobody asked for, arriving with no sign that a choice was made for them. */
+const stating = (prefix, ratio) => {
+  if (prefix && ratio) return;
+  const lacks = !prefix && !ratio ? "neither" : (prefix ? "no ratio" : "no framing");
+  fail(`chatgpt image: a picture is asked for under a framing and at a shape, and this call states ${lacks}.`
+    + `\n  framing   ${prefix ? "saved, and every picture is drawn under it"
+      : `none saved — \`forge doctor --${CHATGPT_PREFIX.flag} <${CHATGPT_PREFIX.asks}>\`, once, for every picture after it`}`
+    + `\n  ratio     ${ratio ? `${ratio}, as this call asked` : "--ratio w:h, and nothing defaults one"}`
+    + "\n  Nothing was sent.");
+};
+
+const ratioFrom = (given) => {
+  if (!RATIO.test(given)) {
+    fail(`chatgpt image: --ratio takes two whole numbers above nought with a colon between them, and \`${given}\` is not one.`
+      + "\n  Nothing was sent. Ask again with the shape you want: --ratio 16:9, --ratio 9:16, --ratio 1:1.");
+  }
+  return given;
+};
 
 const settingsFor = () => {
   const held = chatgptSettings();
@@ -138,10 +198,8 @@ const redactorsFor = (key) => {
 };
 
 /* The prompt leads the printed command, or the recovery line is one this verb's own parser turns away (review 829fc7, F1). */
-const ambiguous = (said, conversation, struck = (text) => text) => {
-  const back = conversation
-    ? `\n  The turn may already exist: forge chatgpt ask "<next>" --resume ${struck(conversation)}`
-    : "";
+const ambiguous = (said, continues = null) => {
+  const back = continues ? `\n  The turn may already exist: ${continues}` : "";
   fail(`chatgpt: ${said}\n  ${SPENT}${back}`);
 };
 
@@ -202,19 +260,20 @@ const attached = async (parts, held, deadline, signal) => {
    (review 829fc7, F2). The model prints only where the reply carries one, `_meta` having none; the
    account it does carry is the gateway's own rotation, which no caller chooses. And `answers` is the
    empty string on an image turn, so the value decides, not a null test that printed a blank line. */
-const reportOf = (out, struck) => {
+const reportOf = (out, struck, resumeAs) => {
   const said = out.answers;
   const body = said === null || said === undefined ? ""
     : (typeof said === "string" ? said : JSON.stringify(said, null, 2));
   const lines = body ? [struck(body)] : [];
   if (out.imageUrl) lines.push(`${body ? "\n" : ""}image     ${struck(out.imageUrl)}`);
   if (out.model) lines.push(`model     ${struck(out.model)}`);
-  if (out.conversationId) lines.push(`resume    forge chatgpt ask "<next>" --resume ${struck(out.conversationId)}`);
+  if (out.conversationId) lines.push(`resume    ${resumeAs(struck(out.conversationId))}`);
   return lines;
 };
 
-const sent = async ({ prompt, model, resume, parts, save, held, deadline, signal }) => {
+const sent = async ({ prompt, model, resume, parts, save, held, deadline, signal, resumeAs }) => {
   const { struck, shown } = redactorsFor(held.key);
+  const continues = (id) => (id ? resumeAs(struck(id)) : null);
   const clock = () => clockFor(deadline, signal);
   const files = await attached(parts, held, deadline, signal);
   const id = 1;
@@ -253,27 +312,27 @@ const sent = async ({ prompt, model, resume, parts, save, held, deadline, signal
     });
     text = await answer.text();
   } catch (error) {
-    ambiguous(shown(ranOut(error, deadline)), resume, struck);
+    ambiguous(shown(ranOut(error, deadline)), continues(resume));
   }
   if (!answer.ok) fail(`chatgpt: the backend answered ${answer.status} — ${shown(text)}`);
 
   const message = answerIn(text, answer.headers.get("content-type") ?? "", id);
-  if (!message) ambiguous(`the reply could not be read as this request's answer — ${shown(text)}`, resume, struck);
+  if (!message) ambiguous(`the reply could not be read as this request's answer — ${shown(text)}`, continues(resume));
   const result = message.result ?? {};
   const part = result.content?.find((one) => one.type === "text");
   if (result.isError || message.error) {
     ambiguous(`the tool refused — ${shown(message.error?.message ?? part?.text ?? "no reason given")}`,
-      resume ?? result._meta?.conversationId, struck);
+      continues(resume ?? result._meta?.conversationId));
   }
   /* Nothing to read is refused rather than printed as an empty answer, and names --resume like any
      other spent turn; text that will not parse is shown as it came (consult 4f91a2, F1). */
   if (typeof part?.text !== "string" || !part.text.trim()) {
     ambiguous(`the reply carried no answer to read — ${shown(text)}`,
-      resume ?? result._meta?.conversationId, struck);
+      continues(resume ?? result._meta?.conversationId));
   }
   const out = parsedOr(part.text) ?? { answers: part.text };
-  const lines = reportOf(out, struck);
-  const report = { report: lines.join("\n"), conversationId: out.conversationId ?? null };
+  const lines = reportOf(out, struck, resumeAs);
+  const report = { report: lines.join("\n"), resumeLine: continues(out.conversationId) };
   if (!save || !out.imageUrl) return report;
   /* The status is checked before the write, or a 403's error document lands on the destination under
      a `saved` line and overwrites whatever was there (consult 4f91a2, F3). Every other way this can
@@ -310,15 +369,21 @@ const ranOutOf = (before, error) => (Date.now() >= before.deadlineAt
    whole of it runs under one signal too, since each request builds its own timer from the same
    seconds and three in a row outlive the deadline the record names (a9f0, F1). The watch on that
    signal is the whole of this turn's stoppability: no pid is ever signalled, here or anywhere. */
-const heldFor = async (id, asked) => {
+const heldFor = async (id, prepare) => {
   const before = writeTurn({ ...readTurn(id), id, pid: process.pid });
   const settle = (fields) => writeTurn({ ...before, ...fields, settledAt: Date.now() });
   const stop = new AbortController();
   const unwatch = watchForDrop(id, () => stop.abort());
   const ends = setTimeout(() => stop.abort(), Math.max(1, before.deadlineAt - Date.now()));
   try {
-    const done = await refusing(() => sent({ ...asked, held: settingsFor(), parts: partsOf(asked.given),
-      deadline: deadlineOf(asked.asked), signal: stop.signal }));
+    const done = await refusing(() => {
+      /* The composition too, and not only the send: what the child reads off the configuration may
+         have moved since the parent read it, and a refusal outside this boundary is the record left
+         running that the paragraph above is about. */
+      const asked = prepare();
+      return sent({ ...asked, held: settingsFor(), parts: partsOf(asked.given),
+        deadline: deadlineOf(asked.asked), signal: stop.signal });
+    });
     if (!wasDropped(id)) settle({ ...done, state: done.said ? "failed" : "answered" });
   } catch (error) {
     if (!wasDropped(id)) settle({ state: "failed", said: ranOutOf(before, error) });
@@ -329,66 +394,101 @@ const heldFor = async (id, asked) => {
   }
 };
 
-const detaching = (rest, prompt, deadline) => {
+const detaching = (action, rest, shown, deadline) => {
   sweepTurns();
   const id = newTurnId();
   const now = Date.now();
   writeTurn({
     id,
-    prompt: promptShown(prompt),
+    prompt: promptShown(shown),
     submittedAt: now,
     waitSeconds: deadline.value,
     deadlineAt: now + deadline.millis,
     pid: null,
     state: "running",
   });
-  detachedTurn(rest, id);
+  detachedTurn(action, rest, id);
   console.error(`chatgpt: ${deadline.value}s is longer than one call may hold, so this turn runs without you.`);
   console.log(`turn      ${id}`);
   console.log(`collect   forge chatgpt collect ${id}`);
 };
 
+/* The half of an action that is not its own parsing: whether this process is the detached child,
+   whether the wait in force detaches, and the one send. Two actions reach it because they differ in
+   what they ask of a caller and in what reaches the model, never in how a turn is spent. */
+const turned = async (action, argv, prepare) => {
+  const turn = turnAsked();
+  if (turn) return await heldFor(turn, prepare);
+
+  const asked = prepare();
+  const held = settingsFor();
+  const deadline = deadlineOf(asked.asked);
+  /* Before the uploads, which already run under it: a caller told after them has spent the clamped deadline once without ever learning the number it asked for was not the one in force. */
+  if (asked.asked !== null && asked.asked > MAX_WAIT_SECONDS) {
+    console.error(`chatgpt: ${asked.asked}s is past the longest a timer here holds, so this turn waits ${deadline.value}s.`);
+  }
+  const parts = partsOf(asked.given);
+  /* The wait in force and not the one typed: a machine whose configured wait is an hour holds a run
+     open for an hour, which is the very thing this closes, and it never typed a flag to do it. */
+  if (deadline.value > DETACH_ABOVE_SECONDS) return detaching(action, argv, asked.shown, deadline);
+  return printed(await sent({ ...asked, parts, held, deadline, signal: null }));
+};
+
+/* The prompt is a subject, not a flag's value, so it comes off before the parser, which refuses a
+   bare word. A flag standing in its place is two mistakes at once, so the flags are judged first —
+   or a mistyped one is never named and reads as a missing prompt. */
+const promptIn = (argv, verb, usage, judged) => {
+  const [prompt] = argv;
+  if (prompt.startsWith("--")) judged();
+  if (prompt.startsWith("--") || !prompt.trim()) {
+    fail(`chatgpt: the prompt comes first, before any flag.\n${firstLine(usage)}`);
+  }
+  return prompt;
+};
+
 const ask = async (argv) => {
   const said = askUsage();
   if (wantsHelp(argv) || argv.length === 0) return console.log(said);
-  const [prompt, ...others] = argv;
-  /* The prompt is a subject, not a flag's value, so it comes off before the parser, which refuses a
-     bare word. A flag standing in its place is two mistakes at once, so the flags are judged first
-     — or a mistyped one is never named and reads as a missing prompt. */
-  if (prompt.startsWith("--")) {
-    flags(pullRepeated(argv, "--file", "chatgpt ask", { usage: said }).rest, "chatgpt ask", [], { usage: said });
-  }
-  if (prompt.startsWith("--") || !prompt.trim()) {
-    fail(`chatgpt: the prompt comes first, before any flag.\n${firstLine(said)}`);
-  }
-  const { values: given, rest } = pullRepeated(others, "--file", "chatgpt ask", { usage: said });
+  const prompt = promptIn(argv, "chatgpt ask", said, () =>
+    flags(pullRepeated(argv, "--file", "chatgpt ask", { usage: said }).rest, "chatgpt ask", [], { usage: said }));
+  const { values: given, rest } = pullRepeated(argv.slice(1), "--file", "chatgpt ask", { usage: said });
   const { resume, model, save, wait } = flags(rest, "chatgpt ask", [], { usage: said });
   const asked = waitFrom(wait, "chatgpt ask", "this one turn may hold the connection open for");
-  const turn = turnAsked();
-  if (turn) return await heldFor(turn, { prompt, model, resume, given, save, asked });
+  return await turned("ask", argv, () => ({ prompt, shown: prompt, model, resume, given, save, asked,
+    resumeAs: RESUMES_ASK }));
+};
 
-  const held = settingsFor();
-  const deadline = deadlineOf(asked);
-  /* Before the uploads, which already run under it: a caller told after them has spent the clamped deadline once without ever learning the number it asked for was not the one in force. */
-  if (asked !== null && asked > MAX_WAIT_SECONDS) {
-    console.error(`chatgpt: ${asked}s is past the longest a timer here holds, so this turn waits ${deadline.value}s.`);
-  }
-  const parts = partsOf(given);
-  /* The wait in force and not the one typed: a machine whose configured wait is an hour holds a run
-     open for an hour, which is the very thing this closes, and it never typed a flag to do it. */
-  if (deadline.value > DETACH_ABOVE_SECONDS) return detaching(argv, prompt, deadline);
-  return printed(await sent({ prompt, model, resume, parts, save, held, deadline, signal: null }));
+/* Refused before the endpoint is even read: what this action asks of a caller is the caller's own to
+   fix, and a turn is never spent learning it. */
+const image = async (argv) => {
+  const said = imageUsage();
+  if (wantsHelp(argv) || argv.length === 0) return console.log(said);
+  const prompt = promptIn(argv, "chatgpt image", said, () =>
+    flags(argv, "chatgpt image", [], { usage: said }));
+  const { ratio, resume, model, save, wait } = flags(argv.slice(1), "chatgpt image", [], { usage: said });
+  const asked = waitFrom(wait, "chatgpt image", "this one turn may hold the connection open for");
+  return await turned("image", argv, () => {
+    const { prefix } = chatgptSettings();
+    stating(prefix, ratio);
+    const shape = ratioFrom(ratio);
+    return { prompt: imageAsk(prefix, prompt, shape), shown: prompt, model, resume, given: [], save,
+      asked, resumeAs: resumesImage(shape) };
+  });
 };
 
 const collected = (id, record, state) => {
+  /* Rendered where the action was known and kept in the record, because a picture given up hours
+     later is continued by another picture and not by a question. A record outlives the release that
+     wrote it, so one carrying the bare id instead is read as what only `ask` could have written. */
+  const continues = record.resumeLine
+    ?? (record.conversationId ? RESUMES_ASK(record.conversationId) : null);
   if (state === "dropped") {
-    ambiguous(`turn ${id} was given up before it answered`, record.conversationId);
+    ambiguous(`turn ${id} was given up before it answered`, continues);
   }
   if (state === "abandoned") {
     writeTurn({ ...record, state: "failed", said: `chatgpt: turn ${id} stopped without answering`,
       collectedAt: Date.now() });
-    ambiguous(`turn ${id} stopped without answering — its process is gone and its wait has passed`,
-      record.conversationId);
+    ambiguous(`turn ${id} stopped without answering — its process is gone and its wait has passed`, continues);
   }
   writeTurn({ ...record, collectedAt: Date.now() });
   if (record.report) console.log(record.report);
@@ -447,11 +547,14 @@ const pending = async (argv) => {
   return undefined;
 };
 
-const SUBS = { ask, collect, pending };
+const SUBS = { ask, image, collect, pending };
 
 export const SAYS = {
   get ask() {
     return askUsage();
+  },
+  get image() {
+    return imageUsage();
   },
   collect: COLLECT_USAGE,
   pending: PENDING_USAGE,

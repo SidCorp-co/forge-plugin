@@ -232,21 +232,28 @@ export const LANDING_ROUTES = ["after-merge", "before-merge"];
 export const landingScope = once(() =>
   chosen(forgeJson().parsed?.landing, LANDING_ROUTES, null, { absent: null }));
 
-/* One row per key `forge chatgpt` needs: the flag that writes it, and the word that flag's own value goes by, which is what both the verb's refusal and doctor's row put after the flag. Declared here rather than beside the writer because `doctor-keys.mjs` reads this module, so the map cannot live there and be read from here. */
+/* One row per value `forge chatgpt` needs: the flag that writes it, and the word that flag's own value goes by, which is what both the verb's refusal and doctor's row put after the flag. Declared here rather than beside the writer because `doctor-keys.mjs` reads this module, so the map cannot live there and be read from here. The framing sits outside the pair on purpose — the pair is what `missing` gates every turn on, and a turn asking for text owes no framing — so all three are written and reported and only the pair refuses a turn. Why the framing has one home and no flag beside it: docs/cli/chatgpt-image.md. */
 export const CHATGPT_KEYS = [
   { key: "url", flag: "chatgpt-url", asks: "endpoint" },
   { key: "key", flag: "chatgpt-key", asks: "key" },
 ];
 
-/* The pair and the file that answered for them, like every other machine-level reader here, and `missing` naming the rows a refusal builds its flags off rather than typing them. Unmemoised, as `shipMode` above is and for the same reason. */
+export const CHATGPT_PREFIX = { key: "prefix", flag: "chatgpt-prefix", asks: "framing" };
+export const CHATGPT_SAVED = [...CHATGPT_KEYS, CHATGPT_PREFIX];
+
+/* The values and the file that answered for them, like every other machine-level reader here, and `missing` naming the rows a refusal builds its flags off rather than typing them. Unmemoised, as `shipMode` above is and for the same reason. */
+/* One decision about what counts as saved, so the row that reports a framing and the action that refuses without one cannot disagree: blank text is a value the file holds and nobody framed a picture with. */
+const savedText = (given) => (typeof given === "string" && given.trim() ? given : null);
+
 export const chatgptSettings = () => {
   const held = userConfig().chatgpt ?? {};
-  const saved = CHATGPT_KEYS.filter((row) => held[row.key]);
+  const saved = CHATGPT_SAVED.filter((row) => savedText(held[row.key]));
   return {
-    url: held.url ?? null,
-    key: held.key ?? null,
+    url: savedText(held.url),
+    key: savedText(held.key),
+    prefix: savedText(held.prefix),
     from: saved.length ? configPath() : null,
-    missing: CHATGPT_KEYS.filter((row) => !held[row.key]),
+    missing: CHATGPT_KEYS.filter((row) => !savedText(held[row.key])),
   };
 };
 

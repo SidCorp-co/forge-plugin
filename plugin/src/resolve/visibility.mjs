@@ -76,8 +76,8 @@ export const VERBS = [
     null, { group: HARNESS }],
   ["codex", "<consult|verdict|pending|show|log|stats|eval|marks|replay>",
     "a second model reviews what this turn changed", null, { group: HARNESS }],
-  ["chatgpt", "<ask|collect|pending>",
-    "one ChatGPT turn, or an image, over the endpoint this machine has saved, and a long one collected later",
+  ["chatgpt", "<ask|image|collect|pending>",
+    "one ChatGPT turn, or a picture, over the endpoint this machine has saved, and a long one collected later",
     null, { group: HARNESS }],
   ["hooks", "[--deny|--block|--notes|--rounds] [--hook h] [--last n] [--off h|--on h] [--how h]",
     "what the gates refused, why one does, which are off", null, { group: HARNESS }],
@@ -85,7 +85,8 @@ export const VERBS = [
   ["feedback", "<file.md|@file|-> --title T [--kind K] [--with ISS-45,ISS-46] [--new]",
     "`forge new` with the kind, the project and the Where filled in: a defect in this plugin, from any checkout",
     null, { group: HARNESS }],
-  ["doctor", "[--token t] [--url u] [--chatgpt-url u] [--chatgpt-key k] [--hide v|--show v]"
+  ["doctor", "[--token t] [--url u] [--chatgpt-url u] [--chatgpt-key k] [--chatgpt-prefix p]"
+    + " [--hide v|--show v]"
     + " [--ship ready|self] [--set k=v] [--credentials]"
     + " [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text>] [--title T]"
     + " [--confidence C] [--meta k=v]... [--full]",

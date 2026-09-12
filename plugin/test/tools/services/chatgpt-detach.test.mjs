@@ -17,6 +17,7 @@ import { ranAsync, tempHome } from "../../fixtures.mjs";
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../../..", import.meta.url).pathname;
 const KEY = "sm_stub_key_never_a_real_credential";
+const FRAMING = "Flat vector illustration, no text anywhere.";
 const PNG = Buffer.from("89504e470d0a1a0a", "hex");
 const SPENT = "This turn may have been spent and is not sent again — the tool cannot say whether it ran.";
 
@@ -59,13 +60,13 @@ test.after(() => home.remove());
    would run on the developer's own credential and write the store beside their live token. */
 const turnsDir = () => join(home.path, "forge", "chatgpt-turns");
 
-const env = () => {
+const env = (framing = FRAMING) => {
   mkdirSync(join(home.path, "forge"), { recursive: true });
   writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({
     url: `${state.origin}/mcp`,
     token: "not-a-real-tracker-token",
     waitSeconds: 2,
-    chatgpt: { url: `${state.origin}/mcp`, key: KEY },
+    chatgpt: { url: `${state.origin}/mcp`, key: KEY, ...(framing ? { prefix: framing } : {}) },
   }));
   return { ...process.env, XDG_CONFIG_HOME: home.path, FORGE_SESSION_ID: "chatgpt-detach-suite" };
 };
@@ -108,15 +109,17 @@ const alive = (pid) => {
 
 /* The child alone, run where this suite can watch it: the record is written by hand so its deadline
    is seconds rather than the ten minutes a detaching parent would have to be given. */
-const asChild = (id, deadlineIn, ...argv) => {
+const asChild = (id, deadlineIn, ...argv) => childOf({}, id, deadlineIn, "ask", ...argv);
+
+const childOf = ({ framing = FRAMING }, id, deadlineIn, action, ...argv) => {
   mkdirSync(turnsDir(), { recursive: true });
   const now = Date.now();
   writeFileSync(join(turnsDir(), `${id}.json`), JSON.stringify({
     id, prompt: argv[0], submittedAt: now, waitSeconds: deadlineIn / 1000,
     deadlineAt: now + deadlineIn, pid: null, state: "running",
   }));
-  return ranAsync(FORGE, ["chatgpt", "ask", ...argv, "--wait", "601"],
-    { ...env(), FORGE_CHATGPT_TURN: id }, ROOT, null);
+  return ranAsync(FORGE, ["chatgpt", action, ...argv, "--wait", "601"],
+    { ...env(framing), FORGE_CHATGPT_TURN: id }, ROOT, null);
 };
 
 const detached = async (...argv) => {
@@ -161,6 +164,57 @@ test("the answer a detached turn came back with is collected, twice, and then is
   assert.match(again.stdout, /the stub answered/u, "a caller who lost the output has nowhere else to read it");
   const waiting = await ran("pending");
   assert.doesNotMatch(waiting.stdout, new RegExp(id, "u"), "a turn that has been read is not waiting");
+});
+
+/* A picture is the slow kind of turn, so it is usually the detaching kind: what the caller stated
+   about it has to survive into a process they are not watching, and the line they collect has to
+   continue the action they asked for rather than whichever one the spawn names. */
+test("a detached picture is spawned under the action that asked for it, and collects as one", async () => {
+  state.mode = "image";
+  const run = await ran("image", "a fox asleep on a windowsill", "--ratio", "16:9", "--wait", "601");
+  assert.equal(run.status, 0, run.stderr);
+  const id = idIn(run.stdout);
+  assert.ok(id, `no id in: ${run.stdout}`);
+  const record = await settled(id);
+  assert.ok(record, "the child settled its own record");
+  assert.equal(record.prompt, "a fox asleep on a windowsill",
+    "what is listed as pending is what the caller typed, not the framing wrapped around it");
+  const read = await ran("collect", id);
+  assert.equal(read.status, 0, read.stderr);
+  assert.match(read.stdout, /^resume {4}forge chatgpt image "<next>" --ratio 16:9 --resume conv-9$/mu);
+});
+
+/* Everything a child could be refused for that the parent could not — which is whatever it reads off
+   the configuration rather than off its own argv — is inside the boundary that settles the record.
+   Outside it the child exits, and the record it was spawned for says running until it is abandoned. */
+test("a child refused by a framing that moved after the spawn settles its own record and sends nothing", async () => {
+  state.mode = "json";
+  const id = "cafe0300";
+  const before = state.calls;
+  const child = await childOf({ framing: null }, id, 60_000, "image", "a fox", "--ratio", "16:9");
+  assert.equal(child.status, 0, child.stderr);
+  assert.equal(state.calls, before, "a refused child spends no turn");
+  const record = recordOf(id);
+  assert.equal(record.state, "failed", "the record settled rather than being left for the sweep");
+  const read = await ran("collect", id);
+  assert.equal(read.status, 1);
+  assert.match(read.stderr, /states no framing/u, "and what it settled with is the refusal itself");
+});
+
+/* A record outlives the release that wrote it, and one written before the continuation was rendered
+   into it carries the bare id: only `ask` could have written it, so that is what it is read as. */
+test("a record from before this release is still collected with a line that continues it", async () => {
+  mkdirSync(turnsDir(), { recursive: true });
+  const id = "cafe0301";
+  const now = Date.now();
+  writeFileSync(join(turnsDir(), `${id}.json`), JSON.stringify({
+    id, prompt: "written by the release before", submittedAt: now, deadlineAt: now + 60_000,
+    pid: null, state: "answered", report: "an answer", conversationId: "conv-old",
+  }));
+  writeFileSync(join(turnsDir(), `${id}.drop`), `${new Date().toISOString()}\n`);
+  const run = await ran("collect", id);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /forge chatgpt ask "<next>" --resume conv-old/u);
 });
 
 test("pending lists a running turn with its age, and collect turns one away rather than printing nothing", async () => {

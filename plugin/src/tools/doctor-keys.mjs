@@ -1,6 +1,6 @@
 /* The keys `forge doctor` writes: a report is every finding at once, a write is one key. docs/cli/doctor.md. */
 import { saveNested, saveConfig, userConfig } from "../resolve/config.mjs";
-import { CHATGPT_KEYS, SHIP_MODES, fail } from "../resolve/settings.mjs";
+import { CHATGPT_SAVED, SHIP_MODES, fail } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
 
@@ -16,7 +16,7 @@ const install = (values) => {
 };
 
 const setChatgpt = (asked) => {
-  const named = CHATGPT_KEYS.filter((row) => asked[row.flag] !== undefined);
+  const named = CHATGPT_SAVED.filter((row) => asked[row.flag] !== undefined);
   const written = saveNested("chatgpt", Object.fromEntries(named.map((row) => [row.key, asked[row.flag]])));
   console.log(`Saved chatgpt ${named.map((row) => row.key).join(" and ")} to ${written} (mode 0600).\n`);
 };
@@ -45,7 +45,7 @@ export const MACHINE_WRITES = [
   { flags: ["show"], write: (asked) => asked.show && setVisibility(asked.show, false) },
   { flags: ["ship"], write: (asked) => asked.ship && setShip(asked.ship) },
   { flags: SAVED, write: (asked) => install(given(asked, SAVED)) },
-  { flags: CHATGPT_KEYS.map((row) => row.flag), write: setChatgpt },
+  { flags: CHATGPT_SAVED.map((row) => row.flag), write: setChatgpt },
 ];
 
 export const MACHINE_FLAGS = MACHINE_WRITES.flatMap((row) => row.flags);

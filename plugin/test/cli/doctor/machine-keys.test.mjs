@@ -32,14 +32,17 @@ test("one call carrying every flag of the table reaches every writer, and each w
     "--token", "fresh-token", "--url", "https://fresh.example/mcp",
     "--ship", "ready", "--hide", "issue", "--show", "comment",
     "--chatgpt-url", "https://gpt.example/mcp", "--chatgpt-key", "gpt-key",
+    "--chatgpt-prefix", "Flat vector, no text.",
   ], { withheld: ["comment"] });
   const saved = run.saved();
   assert.equal(saved.token, "fresh-token");
   assert.equal(saved.url, "https://fresh.example/mcp");
   assert.equal(saved.ship, "ready");
   assert.deepEqual(saved.withheld, ["issue"], "--hide added one and --show took the other away, so both writers ran");
-  assert.deepEqual(saved.chatgpt, { url: "https://gpt.example/mcp", key: "gpt-key" });
-  assert.deepEqual(MACHINE_FLAGS, ["hide", "show", "ship", "token", "url", "chatgpt-url", "chatgpt-key"],
+  assert.deepEqual(saved.chatgpt,
+    { url: "https://gpt.example/mcp", key: "gpt-key", prefix: "Flat vector, no text." });
+  assert.deepEqual(MACHINE_FLAGS,
+    ["hide", "show", "ship", "token", "url", "chatgpt-url", "chatgpt-key", "chatgpt-prefix"],
     "and the flags that reached them are the flags the two-stores check filters, off the same table");
 });
 

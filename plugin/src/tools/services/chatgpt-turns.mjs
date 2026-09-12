@@ -114,11 +114,11 @@ export const waitedFor = async (id, seconds, every = WATCH_MS) => {
 const cliPath = () => fileURLToPath(new URL("../../cli.mjs", import.meta.url));
 
 /** Its own process group and no pipe back, or the shell that submitted the turn goes on waiting for
- *  the very process it just detached. */
-export const detachedTurn = (rest, id) => {
+ *  the process it detached; the action is carried, or the child settles a record nobody asked for. */
+export const detachedTurn = (action, rest, id) => {
   mkdirSync(turnsDir(), { recursive: true });
   const log = openSync(logAt(id), "a", 0o600);
-  const child = spawn(process.execPath, [cliPath(), "chatgpt", "ask", ...rest], {
+  const child = spawn(process.execPath, [cliPath(), "chatgpt", action, ...rest], {
     detached: true,
     stdio: ["ignore", log, log],
     env: { ...process.env, [TURN_VAR]: id },

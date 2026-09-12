@@ -52,7 +52,7 @@ const labels = (said) => said.split("\n")
 
 test("the verb's own -h is the list of actions and no flag of any of them", async () => {
   const said = await helpText();
-  assert.deepEqual(labels(said), ["ask", "collect", "pending"]);
+  assert.deepEqual(labels(said), ["ask", "image", "collect", "pending"]);
   assert.equal(said.match(/--[a-z]+/gu), null, "a flag here is a second copy of some action's own help");
   assert.match(said, /forge chatgpt <action> -h/u, "and the row a caller reads next is named");
 });
@@ -60,7 +60,7 @@ test("the verb's own -h is the list of actions and no flag of any of them", asyn
 test("an action this verb does not have is refused with the nearest one it does, and sends nothing", async () => {
   const run = await ran("colect", "x");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /No chatgpt action named colect\. Did you mean: collect\? The set is ask, collect, pending\./u);
+  assert.match(run.stderr, /No chatgpt action named colect\. Did you mean: collect\? The set is ask, image, collect, pending\./u);
   assert.equal(calls.length, 0);
 });
 

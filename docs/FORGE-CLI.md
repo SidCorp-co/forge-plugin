@@ -44,6 +44,7 @@ how many topics there may be.
 | [the shown ledger](cli/the-shown-ledger.md) | What a repeat costs a refusal and what it costs advice, the two readings of "already shown", and why the journal is appended. |
 | [cloudflare](cli/cloudflare.md) | Why this is a second API rather than a route through the first, and how the account holding a zone is found. |
 | [chatgpt](cli/chatgpt.md) | Why one turn is never sent twice, which two transports the backend forces, what makes a message an answer rather than one about it, and where the key must not reach. |
+| [chatgpt — asking for a picture](cli/chatgpt-image.md) | Why the framing and the aspect ratio are both refused rather than defaulted, where the framing is saved and why no flag stands beside it, why the ratio travels in the prompt and how a run of pictures comes back as one set. |
 | [chatgpt — the detached turn](cli/chatgpt-detached.md) | Which number decides that a wait is longer than a caller can hold and where that number came from, why one record has one writer at a time, and why nothing is ever signalled. |
 | [codex — the consult](cli/codex-the-consult.md) | Why no local agent is spawned, what a refusal reports, where a base is read from, and what a recheck narrows its range to. |
 | [codex — the payload](cli/codex-the-payload.md) | What of a file travels, which passes earn a review, why a set too large is refused rather than clipped, and what never travels at all. |

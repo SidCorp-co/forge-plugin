@@ -1,5 +1,5 @@
 /* The credentials that are this machine's and a harness verb's, gating nothing: every other verb works with none of them saved, so each absence is a note. Rows out rather than printed lines, in the shape the project's rows already come in, because importing `line` from `doctor.mjs` would be a cycle. docs/cli/doctor.md. */
-import { CHATGPT_KEYS, chatgptSettings } from "../../resolve/settings.mjs";
+import { CHATGPT_KEYS, CHATGPT_PREFIX, chatgptSettings } from "../../resolve/settings.mjs";
 import { modelBehind, profile } from "../../codex/codex-api.mjs";
 import { consults, logEntries, logPath } from "../../codex/codex-log.mjs";
 import { cloudflareAccounts } from "./cloudflare.mjs";
@@ -33,8 +33,19 @@ const chatgptRow = (full) => {
   return { level: held.missing.length ? "note" : "ok", detail: parts.join("  ") };
 };
 
+/* Its own row rather than a third part of the one above, because the value is a sentence somebody wrote and the two beside it are a host and a credential: joined, the row a reader scans for an endpoint would run to whatever length a framing was given. */
+const prefixRow = () => {
+  const { prefix, from } = chatgptSettings();
+  return prefix
+    ? { level: "ok", detail: `${prefix}  ← ${from}` }
+    : { level: "note",
+      detail: `no ${CHATGPT_PREFIX.asks} — \`forge doctor --${CHATGPT_PREFIX.flag} <${CHATGPT_PREFIX.asks}>\`, `
+        + "which `forge chatgpt image` is refused without" };
+};
+
 export const harnessLines = (full) => [
   { label: "cloudflare", ...cloudflareRow(full) },
   { label: "codex", ...codexRow() },
   { label: "chatgpt", ...chatgptRow(full) },
+  { label: "chatgpt framing", ...prefixRow() },
 ];
