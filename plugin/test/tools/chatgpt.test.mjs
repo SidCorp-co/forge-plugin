@@ -19,7 +19,16 @@ const ROOT = new URL("../../..", import.meta.url).pathname;
 const KEY = "sm_stub_key_never_a_real_credential";
 const PNG = Buffer.from("89504e470d0a1a0a", "hex");
 
-const state = { mode: "json", calls: [], uploads: 0, sent: [], form: "" };
+const state = { mode: "json", calls: [], uploads: 0, sent: [], form: "", hold: 0, slow: [], refuse: [] };
+
+/* The uploads of one turn are answered together or not at all: `hold` keeps every upload's response
+   until that many have arrived, which a loop awaiting each upload before sending the next never
+   reaches. `slow` and `refuse` are per file, so a case can make the file the caller named first the
+   one that answers last. */
+const waiting = [];
+const releaseHeld = () => {
+  while (waiting.length) waiting.shift()();
+};
 
 const answered = (out, meta = {}) => ({
   jsonrpc: "2.0",
@@ -28,8 +37,7 @@ const answered = (out, meta = {}) => ({
 });
 
 const BODIES = {
-  /* A notification carries no id, and the impostor carries this request's id with a method beside
-     it — which is what the transport's own server-to-client requests look like. */
+  /* A notification carries no id, and the impostor carries this request's id with a method beside it — which is what the transport's own server-to-client requests look like. */
   /* The id is in both halves because the backend puts it in both — `content[0].text` is
      `JSON.stringify(out)` and `_meta` repeats it beside the account. No `model`, so a reply naming
      none is what the passthrough case is judged against (search-master's mcp/tools/chatgpt.ts). */
@@ -112,12 +120,23 @@ const served = (request, response) => {
     });
     request.on("end", () => {
       state.form = sent;
-      if (state.mode === "unsupported") {
-        return response.writeHead(415, { "content-type": "text/plain" })
-          .end(`.xyz is not one of: png, jpg, pdf — and your key was Bearer ${KEY}`);
-      }
-      return response.writeHead(200, { "content-type": "application/json" })
-        .end(JSON.stringify({ id: "up-1", url: `${state.origin}/held/one.png`, name: "one.png", mime: "image/png", size: 8 }));
+      const name = /filename="([^"]*)"/u.exec(sent)?.[1] ?? "one.png";
+      const answer = () => {
+        if (state.mode === "unsupported") {
+          return response.writeHead(415, { "content-type": "text/plain" })
+            .end(`.xyz is not one of: png, jpg, pdf — and your key was Bearer ${KEY}`);
+        }
+        if (state.refuse.includes(name)) {
+          return response.writeHead(400, { "content-type": "text/plain" }).end(`${name} is not a file this takes`);
+        }
+        return response.writeHead(200, { "content-type": "application/json" })
+          .end(JSON.stringify({ id: "up-1", url: `${state.origin}/held/${name}`, name, mime: "image/png", size: 8 }));
+      };
+      if (state.slow.includes(name)) return setTimeout(answer, 200);
+      if (!state.hold) return answer();
+      waiting.push(answer);
+      if (waiting.length >= state.hold) releaseHeld();
+      return undefined;
     });
     return undefined;
   }
@@ -184,6 +203,9 @@ const ran = (env, ...argv) => {
   state.sent = [];
   state.uploads = 0;
   state.form = "";
+  state.hold = 0;
+  state.slow = [];
+  state.refuse = [];
   return ranAsync(FORGE, ["chatgpt", ...argv], env, ROOT, null);
 };
 
@@ -500,4 +522,57 @@ test("an endpoint with no /mcp is refused for the upload, naming what it could n
   assert.match(run.stderr, /no \/mcp at the end of/u);
   assert.equal(state.uploads, 0);
   assert.ok(existsSync(path), "the file it was asked about is not touched either");
+});
+
+/* The attachments of one turn go up together: ten files are one wait rather than ten, and the part a
+   caller sees is which file a refusal among them names. `ran` clears the stub's per-file switches, so
+   these are set after it starts the child and before the child's first request can be handled — a
+   spawn cannot answer inside the same tick (ISS-1059). */
+const uploading = (extra, ...argv) => {
+  const started = ran(configured(), ...argv);
+  Object.assign(state, extra);
+  return started;
+};
+
+const written = (name) => {
+  const path = join(home.path, name);
+  writeFileSync(path, PNG);
+  return path;
+};
+
+test("the uploads of one turn are in flight together, not one after another", async () => {
+  state.mode = "json";
+  const run = await uploading({ hold: 3 }, "three at once", "--file", written("a.png"), "--file", written("b.png"), "--file", written("c.png"));
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(state.uploads, 3, "the stub answered none of them until all three had arrived");
+  assert.deepEqual(state.sent[0].params.arguments.files, [
+    `${state.origin}/held/a.png`, `${state.origin}/held/b.png`, `${state.origin}/held/c.png`,
+  ], "and the URLs stand in the order the caller named the files");
+});
+
+/* The whole of what parallel costs, said out loud: every upload is spent before the refusal is
+   reported, and in exchange the file named is the caller's first rather than the wire's. */
+test("a refusal among the uploads names the earliest file the caller named, though it answered last", async () => {
+  state.mode = "json";
+  const run = await uploading(
+    { refuse: ["first.png", "second.png"], slow: ["first.png"] },
+    "two bad ones", "--file", written("first.png"), "--file", written("second.png"),
+  );
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /chatgpt: the upload of \S+first\.png was refused — first\.png is not a file this takes/u);
+  assert.doesNotMatch(run.stderr, /second\.png was refused/u, "the one that answered first is not the one named");
+  assert.equal(state.uploads, 2, "both were spent, which is what the refusal's wording costs");
+  assert.equal(state.calls.length, 0, "and no turn was sent");
+});
+
+test("an upload the deadline runs out on is a refusal naming its file, not a thrown stack", async () => {
+  state.mode = "json";
+  const env = seeded({ url: `${state.origin}/mcp`, key: KEY }, { waitSeconds: 0.1 });
+  const started = ran(env, "one that stalls", "--file", written("stalled.png"));
+  Object.assign(state, { slow: ["stalled.png"] });
+  const run = await started;
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /chatgpt: the upload of \S+stalled\.png did not finish — ran out after 0\.1s/u);
+  assert.doesNotMatch(run.stderr, /at async|node:internal/u, "a refusal, not an unhandled rejection");
+  assert.equal(state.calls.length, 0, "and no turn was sent");
 });

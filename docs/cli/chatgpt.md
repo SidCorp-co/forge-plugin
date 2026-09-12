@@ -17,7 +17,11 @@ instead. The image download is a `GET` and still follows redirects, because that
 
 Two transports, because the backend has two. The turn goes over the MCP endpoint and a local file's
 upload goes over REST, which is search-master's own split rather than a choice made here; there is no
-REST route that sends a turn. The transformation between them takes the URL as an argument instead of
+REST route that sends a turn. The uploads of one turn go up together, so ten attachments are one wait
+rather than ten. What that costs is on a refusal: every upload is spent before one of them is
+reported, where a loop would have stopped at the first. The exchange is the part a caller can act on
+— the message names the earliest file the caller named, rather than whichever request happened to
+answer first, which is a fact about the network and not about the call. The transformation between them takes the URL as an argument instead of
 reading one, since two endpoints are configured now and a function reading its own would derive one
 caller's origin from the other's host. It refuses a URL that never ended in `/mcp` rather than
 appending a path to whatever it was given.

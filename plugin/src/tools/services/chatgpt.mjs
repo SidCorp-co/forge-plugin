@@ -4,7 +4,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
 
-import { apiBaseOf, clockFor, deadlineOf, deadlineSeconds, parsedOr } from "../../wire/request.mjs";
+import { apiBaseOf, clockFor, deadlineOf, deadlineSeconds, parsedOr, ranOut } from "../../wire/request.mjs";
 import { sseEvents } from "../../wire/sse.mjs";
 import { chatgptSettings, fail } from "../../resolve/settings.mjs";
 import { firstLine, flags, pullRepeated, wantsHelp } from "../../resolve/flags.mjs";
@@ -71,26 +71,33 @@ const ambiguous = (said, conversation, struck) => {
     + `whether it ran.${back}`);
 };
 
-const uploaded = async (base, key, { path, bytes }, clock) => {
+/* Answers a problem rather than refusing: the uploads of one turn go together, so the first one to come back badly is not the one a caller wants named, and `fail` would end the process before the rest could be read. The whole request is inside the catch — the signal, the send and the read of the body, since a 200 whose body stalls throws at the read. */
+const uploaded = async (base, key, { path, bytes }, deadline) => {
   const { shown } = redactorsFor(key);
   const form = new FormData();
   form.set("file", new Blob([bytes]), basename(path));
-  const answer = await fetch(`${base}/upload`, {
-    method: "POST",
-    headers: { authorization: `Bearer ${key}` },
-    body: form,
-    signal: clock(),
-    redirect: "error",
-  });
-  const text = await answer.text();
-  if (!answer.ok) fail(`chatgpt: the upload of ${path} was refused — ${shown(text)}`);
+  let text = "";
+  let answer = null;
+  try {
+    answer = await fetch(`${base}/upload`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${key}` },
+      body: form,
+      signal: clockFor(deadline),
+      redirect: "error",
+    });
+    text = await answer.text();
+  } catch (error) {
+    return { problem: `the upload of ${path} did not finish — ${shown(ranOut(error, deadline))}` };
+  }
+  if (!answer.ok) return { problem: `the upload of ${path} was refused — ${shown(text)}` };
   const held = parsedOr(text);
-  if (!held?.url) fail(`chatgpt: the upload of ${path} answered no url — ${shown(text)}`);
-  return held.url;
+  if (!held?.url) return { problem: `the upload of ${path} answered no url — ${shown(text)}` };
+  return { url: held.url };
 };
 
-/* Every attachment is read before the first upload leaves: reading inside the loop spends the first file's request before a missing second one is found, and an upload cannot be taken back. */
-const attached = async (given, held, clock) => {
+/* Every attachment is read before the first upload leaves: reading inside the loop spends the first file's request before a missing second one is found, and an upload cannot be taken back. The uploads themselves go together, which is what makes ten files one wait instead of ten; the cost is that every one of them is spent before a refusal among them is reported, and in exchange the message names the earliest file the caller named rather than whichever request answered first. */
+const attached = async (given, held, deadline) => {
   if (given.length > FILE_CAP) fail(`chatgpt: ${given.length} files, and the tool takes ${FILE_CAP}`);
   const parts = [];
   for (const one of given) {
@@ -109,11 +116,11 @@ const attached = async (given, held, clock) => {
   }
   const { base, problem } = parts.some((one) => one.path) ? apiBaseOf(held.url) : {};
   if (problem) fail(`chatgpt: a local file is uploaded to the origin beside the endpoint, and there is ${problem}`);
-  const urls = [];
-  for (const one of parts) {
-    urls.push(one.url ? one.url : await uploaded(base, held.key, one, clock));
-  }
-  return urls;
+  const settled = await Promise.all(parts.map((one) =>
+    (one.url ? { url: one.url } : uploaded(base, held.key, one, deadline))));
+  const refused = settled.find((one) => one.problem);
+  if (refused) fail(`chatgpt: ${refused.problem}`);
+  return settled.map((one) => one.url);
 };
 
 /* The answer is struck like every other piece of backend text: a text part that will not parse
@@ -149,7 +156,7 @@ export const chatgpt = async (argv) => {
   const { struck, shown } = redactorsFor(held.key);
   const deadline = deadlineOf(null);
   const clock = () => clockFor(deadline);
-  const files = await attached(given, held, clock);
+  const files = await attached(given, held, deadline);
   const id = 1;
   const body = {
     jsonrpc: "2.0",
