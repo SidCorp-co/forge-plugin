@@ -119,7 +119,7 @@ const attached = async (given, held, deadline) => {
   const settled = await Promise.all(parts.map((one) =>
     (one.url ? { url: one.url } : uploaded(base, held.key, one, deadline))));
   const refused = settled.find((one) => one.problem);
-  if (refused) fail(`chatgpt: ${refused.problem}`);
+  if (refused) fail(`chatgpt: ${refused.problem}, so the turn was not sent`);
   return settled.map((one) => one.url);
 };
 

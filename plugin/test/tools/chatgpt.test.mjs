@@ -563,6 +563,7 @@ test("a refusal among the uploads names the earliest file the caller named, thou
   assert.doesNotMatch(run.stderr, /second\.png was refused/u, "the one that answered first is not the one named");
   assert.equal(state.uploads, 2, "both were spent, which is what the refusal's wording costs");
   assert.equal(state.calls.length, 0, "and no turn was sent");
+  assert.match(run.stderr, /so the turn was not sent/u, "the refusal says so rather than leaving it to be inferred");
 });
 
 test("an upload the deadline runs out on is a refusal naming its file, not a thrown stack", async () => {
@@ -575,4 +576,5 @@ test("an upload the deadline runs out on is a refusal naming its file, not a thr
   assert.match(run.stderr, /chatgpt: the upload of \S+stalled\.png did not finish — ran out after 0\.1s/u);
   assert.doesNotMatch(run.stderr, /at async|node:internal/u, "a refusal, not an unhandled rejection");
   assert.equal(state.calls.length, 0, "and no turn was sent");
+  assert.match(run.stderr, /so the turn was not sent/u, "which the refusal says, as the other upload refusals do");
 });
