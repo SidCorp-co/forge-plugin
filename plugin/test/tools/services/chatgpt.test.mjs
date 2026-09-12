@@ -344,7 +344,7 @@ test("isError says the turn may have been spent, names the conversation it salva
 test("a body that never finishes runs out on the deadline, the headers having already arrived", async () => {
   const run = await asked("stalls", "wait for me");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /ran out after 2s/u);
+  assert.match(run.stderr, /ran out after 2s \(waitSeconds in config\.json\)/u);
   assert.equal(state.calls.length, 1);
 });
 

@@ -202,8 +202,7 @@ export const chatgpt = async (argv) => {
     });
     text = await answer.text();
   } catch (error) {
-    ambiguous(error.name === "TimeoutError" ? `ran out after ${deadline.value}s` : shown(error.message),
-      resume, struck);
+    ambiguous(shown(ranOut(error, deadline)), resume, struck);
   }
   if (!answer.ok) fail(`chatgpt: the backend answered ${answer.status} — ${shown(text)}`);
 
