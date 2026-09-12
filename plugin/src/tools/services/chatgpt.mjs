@@ -130,16 +130,13 @@ const attached = async (given, held, deadline) => {
   return settled.map((one) => one.url);
 };
 
-/* The answer is struck like every other piece of backend text: a text part that will not parse
-   becomes the answer, which is exactly where an echoed authorization header arrives, so exempting it
-   held open the path it was guarding (review 829fc7, F2). The model prints only where the reply
-   carries one, since `_meta` has none and a slug asked for may never have run. Nothing here is
-   printed that the caller has no lever on: the account `_meta` carries is the gateway's own
-   rotation, observed changing mid-conversation, and a caller cannot choose it or keep it. */
+/* The answer is struck like every other backend text: a text part that will not parse becomes the
+   answer, exactly where an echoed header arrives, so exempting it held open the path it guarded
+   (review 829fc7, F2). The model prints only where the reply carries one, `_meta` having none; the
+   account it does carry is the gateway's own rotation, which no caller chooses. And `answers` is the
+   empty string on an image turn, so the value decides, not a null test that printed a blank line. */
 const printed = (out, struck) => {
   const said = out.answers;
-  /* The value decides, not a comparison with null: an image turn's `answers` is the empty string,
-     which printed a line with nothing on it and left a blank one above the image. */
   const body = said === null || said === undefined ? ""
     : (typeof said === "string" ? said : JSON.stringify(said, null, 2));
   if (body) console.log(struck(body));

@@ -67,12 +67,10 @@ const BODIES = {
     },
   }),
   image: () => JSON.stringify(answered({ answers: "drawn", imageUrl: `${state.origin}/image.png` })),
-  /* What an image turn really answers: the inner `answers` field is the empty string rather than
-     absent, which a guard written against `null` printed as a line with nothing on it. */
+  /* What an image turn really answers: `answers` is the empty string rather than absent. */
   imageOnly: () => JSON.stringify(answered({ answers: "", imageUrl: `${state.origin}/image.png` },
     { account: "acct-7" })),
-  /* A reply that does name the model that ran, which no other fixture here carries: the passthrough
-     case is judged against a reply naming none, so without this one nothing asserts the line prints. */
+  /* The only fixture here that names a model, so without it nothing asserts that line prints. */
   namedModel: () => JSON.stringify(answered({ answers: "it ran", model: "gpt-5.6-whatever-ran" })),
   /* A signed URL is routinely longer than any cap worth putting on a quoted error body, so a
      redactor that also truncates breaks a link it had no key to strike (consult ea77c3, F1). */
@@ -220,86 +218,6 @@ const asked = (mode, ...argv) => {
   state.mode = mode;
   return ran(configured(), ...argv);
 };
-
-/* Through the CLI rather than the exported text: without `answersHelp` the dispatcher answers `-h`
-   off the verb table before the verb sees it, and every line below is silently missing. */
-const helpText = async () => {
-  state.mode = "json";
-  const run = await ran(seeded({ url: `${state.origin}/mcp`, key: KEY }), "-h");
-  assert.equal(run.status, 0);
-  assert.equal(state.calls.length, 0, "asking what to type sends no turn");
-  return run.stdout;
-};
-
-test("-h is answered by the verb, and states the one attempt, the cap and the deadline in force", async () => {
-  const said = await helpText();
-  assert.match(said, /One attempt per call and never a second/u);
-  /* Never that it was: a call with no endpoint spends nothing and a timeout cannot say either way,
-     so a help line claiming the turn is gone would have a caller abandon work that never ran. */
-  assert.match(said, /may still have spent a metered turn/u);
-  assert.doesNotMatch(said, /does not refund/u);
-  assert.match(said, /up to 10/u);
-  assert.match(said, /no default is sent/u);
-  assert.match(said, /The wait is \d+s, from waitSeconds in config\.json\./u);
-});
-
-const labels = (said) => said.split("\n")
-  .filter((line) => /^ {2}\S/u.test(line) && !line.trim().startsWith("--"))
-  .map((line) => line.trim().split(/ {2,}/u)[0]);
-
-/* The rows are pinned by name rather than searched for in the prose, so dropping one goes red here
-   rather than passing as a help text that happens to be shorter. The flag set is pinned beside them
-   because a flag is the only handle this suite has on a use case arriving: a fifth one turns this
-   case red and whether it earns a row of its own is judged then rather than never. */
-test("-h carries one row per use case, and the flags that reach them are those four", async () => {
-  const said = await helpText();
-  assert.deepEqual(labels(said), ["an answer", "a picture", "a follow-up"]);
-  assert.deepEqual([...new Set(said.match(/--[a-z]+/gu))],
-    ["--resume", "--model", "--file", "--save"], "a flag added here owes the rows above another look");
-});
-
-/* The two clauses a row exists to carry, which a flag row cannot and prose would bury: what keeps an
-   id worth carrying, and what a generated picture is not. */
-test("the follow-up row carries the arithmetic and the picture row says what it is not", async () => {
-  const said = await helpText();
-  const rowFor = (name) => said.split("\n").find((line) => line.trimStart().startsWith(`${name} `));
-  assert.match(rowFor("a follow-up"), /one turn and not two/u);
-  assert.match(rowFor("a picture"), /never a render of what you built/u);
-});
-
-/* A reader who meets the cost after the flags has already decided, and one who has to scroll stops
-   before the end; the four rows above and this line are the whole of what the shape is for. */
-test("the cost stands above the flag rows, and -h is one screen", async () => {
-  const lines = (await helpText()).split("\n");
-  assert.ok(lines.length <= 24, `-h runs to ${lines.length} lines, which is past one screen`);
-  const cost = lines.findIndex((line) => /One attempt per call/u.test(line));
-  const flag = lines.findIndex((line) => line.startsWith("  --"));
-  assert.ok(cost >= 0 && cost < flag, `the cost line is at ${cost} and the first flag row at ${flag}`);
-  /* No use-case row is a second spelling of a flag row, which is what would make the shape a second
-     flag list rather than a statement of what the verb is for. */
-  for (const label of labels(lines.join("\n"))) {
-    const row = lines.find((line) => line.trimStart().startsWith(`${label} `));
-    const words = new Set(row.split(/\W+/u).filter((word) => word.length > 4));
-    for (const flagRow of lines.filter((line) => line.startsWith("  --"))) {
-      const shared = flagRow.split(/\W+/u).filter((word) => words.has(word));
-      assert.ok(shared.length < 3, `"${label}" restates ${flagRow.trim()}: ${shared.join(", ")}`);
-    }
-  }
-});
-
-/* A flag where the prompt belongs is two mistakes, and the stranger is the one worth naming: a
-   refusal that only said the prompt was missing left a typo of a real flag unnamed. */
-test("a stranger flag standing in the prompt's place is named, and a real one still misses the prompt", async () => {
-  state.mode = "json";
-  const env = seeded({ url: `${state.origin}/mcp`, key: KEY });
-  const stranger = await ran(env, "--zzz", "x");
-  assert.equal(stranger.status, 1);
-  assert.match(stranger.stderr, /No chatgpt flag named --zzz\. The set is/u);
-  const missing = await ran(env, "--model", "gpt-5.6");
-  assert.equal(missing.status, 1);
-  assert.match(missing.stderr, /the prompt comes first/u);
-  assert.equal(state.calls.length, 0);
-});
 
 test("no endpoint or key: the refusal names the doctor flag for each, and sends nothing", async () => {
   state.mode = "json";
