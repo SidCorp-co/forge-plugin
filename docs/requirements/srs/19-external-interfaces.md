@@ -242,3 +242,10 @@ person instead of asking again is `docs/cli/chatgpt.md`'s.
 - **AC-19-9-4** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt.test.mjs "the upload goes to the origin beside the chatgpt endpoint, never the tracker's"
   WHEN a local attachment is sent THEN the CLI SHALL upload it to the same backend the turn is
   addressed to, and SHALL send the turn only the address that upload answered with.
+- **AC-19-9-5** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt-detach.test.mjs "a wait past the cap returns without the answer, names the turn and prints what collects it"
+  WHERE the wait in force is longer than one call may hold open, the CLI SHALL send the turn from a
+  process that outlives the invocation, SHALL return before the answer exists, and SHALL print both
+  the identifier of that turn and the command that reads it back.
+- **AC-19-9-6** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt-detach.test.mjs "the answer a detached turn came back with is collected, twice, and then is not pending"
+  WHEN a turn sent that way is collected THEN the CLI SHALL print the outcome that turn settled with
+  and SHALL cross this boundary no further to do it.

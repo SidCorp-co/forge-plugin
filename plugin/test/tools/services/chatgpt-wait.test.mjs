@@ -1,6 +1,9 @@
 /* The deadline one call runs under, which is now the caller's to set: `--wait` against values the
    clock reads, values it does not, and one past what a timer here can hold. Split off rather than
-   added beside the turn's own cases, which are already at the file's limit (ISS-1270). */
+   added beside the turn's own cases, which are already at the file's limit (ISS-1270).
+
+   Every case that means to block stays under ten minutes, past which the turn is handed to a process
+   whose request would land in the next case's count; the two clamped ones cannot, so they stand last. */
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
@@ -77,7 +80,7 @@ const seeded = (waits) => {
 const ran = (env, ...argv) => {
   state.calls = [];
   state.uploads = 0;
-  return ranAsync(FORGE, ["chatgpt", ...argv], env, ROOT, null);
+  return ranAsync(FORGE, ["chatgpt", "ask", ...argv], env, ROOT, null);
 };
 
 /* The whole of the issue in one case: the file says one minute, the call says two seconds, and two
@@ -96,9 +99,9 @@ test("the wait is the call's own, and the file's sixty seconds is not what it ru
 
 test("a wait far past anything the file names is taken, and the line before the wait names it", async () => {
   state.stalls = false;
-  const run = await ran(seeded(60), "a long one", "--wait", "3600");
+  const run = await ran(seeded(60), "a long one", "--wait", "599");
   assert.equal(run.status, 0);
-  assert.match(run.stderr, /one turn, waiting up to 3600s\./u);
+  assert.match(run.stderr, /one turn, waiting up to 599s\./u);
   assert.equal(state.calls.length, 1);
 });
 
@@ -129,35 +132,11 @@ test("an accepted wait reaches the clock at the nearest whole millisecond", asyn
   }
 });
 
-/* A platform limit met by being told what you got: `AbortSignal.timeout` validates against the
-   unsigned range while the timer under it fires at 1ms past the signed one, so a longer ask cannot
-   be honoured — and refusing it would be a judgement about which asks this verb serves. */
-test("a wait past the longest a timer here holds is clamped to it, and the call names both numbers", async () => {
-  state.stalls = false;
-  const run = await ran(seeded(60), "past the timer", "--wait", "1e9");
-  assert.equal(run.status, 0);
-  assert.match(run.stderr, /1000000000s is past the longest a timer here holds, so this call waits 2147483\.647s\./u);
-  assert.match(run.stderr, /waiting up to 2147483\.647s\./u);
-});
-
-/* The uploads run under the clamped deadline too, so a caller told about it only after them has
-   already spent that wait once without knowing which number was in force (review of this change). */
-test("the clamp is named before the uploads it governs, not after they have failed", async () => {
-  state.stalls = false;
-  const path = join(home.path, REFUSED_FILE);
-  writeFileSync(path, PNG);
-  const run = await ran(seeded(60), "past the timer, with a file", "--file", path, "--wait", "1e9");
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /1000000000s is past the longest a timer here holds, so this call waits 2147483\.647s\./u);
-  assert.match(run.stderr, /was refused/u, "the upload failed, which is what puts the notice before it");
-  assert.equal(state.calls.length, 0, "and no turn was sent");
-});
-
 test("--wait writes nothing, so the file every tracker call reads is byte for byte what it was", async () => {
   state.stalls = false;
   const env = seeded(60);
   const before = readFileSync(configFile());
-  await ran(env, "a call with its own wait", "--wait", "3600");
+  await ran(env, "a call with its own wait", "--wait", "599");
   assert.deepEqual(readFileSync(configFile()), before);
 });
 
@@ -169,4 +148,27 @@ test("the uploads of a call run under that call's own wait rather than the file'
   assert.equal(run.status, 1);
   assert.match(run.stderr, /did not finish — ran out after 0\.1s \(the caller's own deadline\)/u);
   assert.equal(state.calls.length, 0, "and no turn was sent");
+});
+
+/* A platform limit met by being told what you got: `AbortSignal.timeout` validates against the
+   unsigned range while the timer under it fires at 1ms past the signed one, so a longer ask cannot
+   be honoured — and refusing it would be a judgement about which asks this verb serves. A wait that
+   long is also one nobody holds, so these two are the file's only detaching cases and stand last. */
+test("a wait past the longest a timer here holds is clamped to it, and the call names both numbers", async () => {
+  state.stalls = false;
+  const run = await ran(seeded(60), "past the timer", "--wait", "1e9");
+  assert.equal(run.status, 0);
+  assert.match(run.stderr, /1000000000s is past the longest a timer here holds, so this turn waits 2147483\.647s\./u);
+  assert.match(run.stdout, /^turn {6}[0-9a-f]{8}$/mu, "and the turn it clamped is one this call handed on");
+});
+
+/* Told any later, the caller has already spent that wait once without knowing which number it was. */
+test("a clamped wait is named by the call that asked for it, beside the id that turn was given", async () => {
+  state.stalls = false;
+  const path = join(home.path, REFUSED_FILE);
+  writeFileSync(path, PNG);
+  const run = await ran(seeded(60), "past the timer, with a file", "--file", path, "--wait", "1e9");
+  assert.equal(run.status, 0);
+  assert.match(run.stderr, /is past the longest a timer here holds/u);
+  assert.match(run.stdout, /^collect {3}forge chatgpt collect [0-9a-f]{8}$/mu);
 });

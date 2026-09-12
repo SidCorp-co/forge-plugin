@@ -1,5 +1,6 @@
-/* The half of this verb that sends nothing: what a caller reads before spending a turn, and the
-   refusal a flag in the prompt's place gets. Split off when the suite beside it passed max-lines. */
+/* The half of this verb that sends nothing: what a caller reads before spending a turn, the action
+   it is refused for not naming, and the refusal a flag in the prompt's place gets. Split off when the
+   suite beside it passed max-lines. */
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -38,8 +39,8 @@ const ran = (...argv) => {
 };
 
 /* Through the CLI: without `answersHelp` the dispatcher answers `-h` and every line below is lost. */
-const helpText = async () => {
-  const run = await ran("-h");
+const helpText = async (...argv) => {
+  const run = await ran(...argv, "-h");
   assert.equal(run.status, 0);
   assert.equal(calls.length, 0, "asking what to type sends no turn");
   return run.stdout;
@@ -49,8 +50,31 @@ const labels = (said) => said.split("\n")
   .filter((line) => /^ {2}\S/u.test(line) && !line.trim().startsWith("--"))
   .map((line) => line.trim().split(/ {2,}/u)[0]);
 
-test("-h states the one attempt, the cap and the deadline in force", async () => {
+test("the verb's own -h is the list of actions and no flag of any of them", async () => {
   const said = await helpText();
+  assert.deepEqual(labels(said), ["ask", "collect", "pending"]);
+  assert.equal(said.match(/--[a-z]+/gu), null, "a flag here is a second copy of some action's own help");
+  assert.match(said, /forge chatgpt <action> -h/u, "and the row a caller reads next is named");
+});
+
+test("an action this verb does not have is refused with the nearest one it does, and sends nothing", async () => {
+  const run = await ran("colect", "x");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /No chatgpt action named colect\. Did you mean: collect\? The set is ask, collect, pending\./u);
+  assert.equal(calls.length, 0);
+});
+
+/* The spelling this change retired. It is refused as an action rather than sent as a prompt, which is
+   what makes the retirement a retirement and not a redirect. */
+test("the bare prompt form is refused rather than sent", async () => {
+  const run = await ran("what do you say");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /No chatgpt action named what do you say/u);
+  assert.equal(calls.length, 0);
+});
+
+test("ask -h states the one attempt, the cap, the deadline in force and where a longer wait goes", async () => {
+  const said = await helpText("ask");
   assert.match(said, /One attempt per call and never a second/u);
   /* Never that it was spent: a timeout cannot say either way, and a line claiming the turn is gone
      would have a caller abandon work that may never have run. */
@@ -60,29 +84,31 @@ test("-h states the one attempt, the cap and the deadline in force", async () =>
   assert.match(said, /no default is sent/u);
   assert.match(said, /The wait is \d+s, from waitSeconds in config\.json; --wait sets this call's alone\./u,
     "the line naming where the wait comes from is the line that names the flag setting one call's");
+  assert.match(said, /Past 600s the turn runs without you, and `forge chatgpt collect` reads it back\./u,
+    "the number that decides is in the text, beside the command that reads the turn back");
 });
 
 /* Pinned by name, so dropping a row goes red here rather than passing as a shorter help text. The
    flag set is pinned beside them because a flag is the only handle this suite has on a use case
    arriving: a fifth turns this red, and whether it earns a row is judged then rather than never. */
-test("-h carries one row per use case, and the flags that reach them are those five", async () => {
-  const said = await helpText();
+test("ask -h carries one row per use case, and the flags that reach them are those five", async () => {
+  const said = await helpText("ask");
   assert.deepEqual(labels(said), ["an answer", "a picture", "a follow-up"]);
   assert.deepEqual([...new Set(said.match(/--[a-z]+/gu))],
     ["--resume", "--model", "--file", "--save", "--wait"], "a flag added here owes the rows above another look");
 });
 
 test("the follow-up row carries the arithmetic and the picture row says what it is not", async () => {
-  const said = await helpText();
+  const said = await helpText("ask");
   const rowFor = (name) => said.split("\n").find((line) => line.trimStart().startsWith(`${name} `));
   assert.match(rowFor("a follow-up"), /one turn and not two/u);
   assert.match(rowFor("a picture"), /never a render of what you built/u);
 });
 
 /* A reader who meets the cost after the flags has already decided, and one who scrolls stops. */
-test("the cost stands above the flag rows, and -h is one screen", async () => {
-  const lines = (await helpText()).split("\n");
-  assert.ok(lines.length <= 24, `-h runs to ${lines.length} lines, which is past one screen`);
+test("the cost stands above the flag rows, and ask -h is one screen", async () => {
+  const lines = (await helpText("ask")).split("\n");
+  assert.ok(lines.length <= 24, `ask -h runs to ${lines.length} lines, which is past one screen`);
   const cost = lines.findIndex((line) => /One attempt per call/u.test(line));
   const flag = lines.findIndex((line) => line.startsWith("  --"));
   assert.ok(cost >= 0 && cost < flag, `the cost line is at ${cost} and the first flag row at ${flag}`);
@@ -97,12 +123,21 @@ test("the cost stands above the flag rows, and -h is one screen", async () => {
   }
 });
 
+test("collect and pending each answer for themselves, and each says what it costs", async () => {
+  const collect = await helpText("collect");
+  assert.match(collect, /Usage: forge chatgpt collect <id> \[--wait s\]/u);
+  assert.match(collect, /costing no turn/u);
+  const pending = await helpText("pending");
+  assert.match(pending, /Usage: forge chatgpt pending \[--drop id\]/u);
+  assert.match(pending, /--drop id/u);
+});
+
 /* A flag where the prompt belongs is two mistakes, and the stranger is the one worth naming. */
 test("a stranger flag standing in the prompt's place is named, and a real one still misses the prompt", async () => {
-  const stranger = await ran("--zzz", "x");
+  const stranger = await ran("ask", "--zzz", "x");
   assert.equal(stranger.status, 1);
-  assert.match(stranger.stderr, /No chatgpt flag named --zzz\. The set is/u);
-  const missing = await ran("--model", "gpt-5.6");
+  assert.match(stranger.stderr, /No chatgpt ask flag named --zzz\. The set is/u);
+  const missing = await ran("ask", "--model", "gpt-5.6");
   assert.equal(missing.status, 1);
   assert.match(missing.stderr, /the prompt comes first/u);
   assert.equal(calls.length, 0);

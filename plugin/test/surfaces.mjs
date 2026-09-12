@@ -4,6 +4,7 @@ import { USAGE as CLAIM } from "../src/flow/claim.mjs";
 import { USAGE as RECORD } from "../src/flow/record/record.mjs";
 import { USAGE as RESUME } from "../src/flow/resume.mjs";
 import { SAYS as CLOUDFLARE, USAGE as CLOUDFLARE_USAGE } from "../src/tools/services/cloudflare.mjs";
+import { SAYS as CHATGPT, USAGE as CHATGPT_USAGE } from "../src/tools/services/chatgpt.mjs";
 import { SAYS as CODEX, USAGE as CODEX_USAGE } from "../src/codex/codex.mjs";
 import { SAYS as KNOWLEDGE, USAGE as KNOWLEDGE_USAGE } from "../src/tools/knowledge.mjs";
 import { SAYS as STATS } from "../src/stats/stats.mjs";
@@ -13,12 +14,13 @@ import { usageOf } from "../src/resolve/visibility.mjs";
 
 /** The verb's own `-h` text, for a row on `forge -h` that names no flag because it delegates. */
 export const OWN = {
-  advance: ADVANCE, claim: CLAIM, cloudflare: CLOUDFLARE_USAGE, codex: CODEX_USAGE,
-  knowledge: KNOWLEDGE_USAGE, record: RECORD, resume: RESUME, spec: SPEC,
+  advance: ADVANCE, chatgpt: CHATGPT_USAGE, claim: CLAIM, cloudflare: CLOUDFLARE_USAGE,
+  codex: CODEX_USAGE, knowledge: KNOWLEDGE_USAGE, record: RECORD, resume: RESUME, spec: SPEC,
 };
 
 /** One level in: the sub-verb's or the kind's own text, keyed by the word the caller types. */
 const UNDER = {
+  chatgpt: CHATGPT,
   cloudflare: CLOUDFLARE,
   codex: CODEX,
   knowledge: KNOWLEDGE,

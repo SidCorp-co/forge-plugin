@@ -47,7 +47,7 @@ const SURFACE = {
   knowledge: [],
   cloudflare: [],
   codex: [],
-  chatgpt: ["resume", "model", "file", "save"],
+  chatgpt: [],
   hooks: ["hook", "last", "off", "on", "how"],
   feedback: ["title", "kind", "with"],
   doctor: ["token", "url", "chatgpt-url", "chatgpt-key", "hide", "show", "ship", "set",

@@ -76,9 +76,9 @@ export const VERBS = [
     null, { group: HARNESS }],
   ["codex", "<consult|verdict|pending|show|log|stats|eval|marks|replay>",
     "a second model reviews what this turn changed", null, { group: HARNESS }],
-  ["chatgpt", "\"<prompt>\" [--resume id] [--model slug] [--file path|url]... [--save path]",
-    "one ChatGPT turn, or an image, over the endpoint this machine has saved", null,
-    { group: HARNESS }],
+  ["chatgpt", "<ask|collect|pending>",
+    "one ChatGPT turn, or an image, over the endpoint this machine has saved, and a long one collected later",
+    null, { group: HARNESS }],
   ["hooks", "[--deny|--block|--notes|--rounds] [--hook h] [--last n] [--off h|--on h] [--how h]",
     "what the gates refused, why one does, which are off", null, { group: HARNESS }],
   /* No `needs`, though it writes: the gates below are the CALLER's project's — docs/cli/feedback.md. */

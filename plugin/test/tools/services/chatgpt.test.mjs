@@ -67,6 +67,9 @@ const BODIES = {
     },
   }),
   image: () => JSON.stringify(answered({ answers: "drawn", imageUrl: `${state.origin}/image.png` })),
+  imageWithId: () => JSON.stringify(answered({
+    answers: "drawn", conversationId: "conv-img", imageUrl: `${state.origin}/image.png`,
+  })),
   /* What an image turn really answers: `answers` is the empty string rather than absent. */
   imageOnly: () => JSON.stringify(answered({ answers: "", imageUrl: `${state.origin}/image.png` },
     { account: "acct-7" })),
@@ -211,7 +214,7 @@ const ran = (env, ...argv) => {
   state.hold = 0;
   state.slow = [];
   state.refuse = [];
-  return ranAsync(FORGE, ["chatgpt", ...argv], env, ROOT, null);
+  return ranAsync(FORGE, ["chatgpt", "ask", ...argv], env, ROOT, null);
 };
 
 const asked = (mode, ...argv) => {
@@ -232,7 +235,7 @@ test("a JSON reply prints the answer and the resume line", async () => {
   const run = await asked("json", "what do you say");
   assert.equal(run.status, 0);
   assert.match(run.stdout, /the stub answered/u);
-  assert.match(run.stdout, /^resume {4}forge chatgpt "<next>" --resume conv-json$/mu,
+  assert.match(run.stdout, /^resume {4}forge chatgpt ask "<next>" --resume conv-json$/mu,
     "a reply carrying an id ends with the way on, and the title said so before anything asserted it");
   assert.equal(state.calls.length, 1, "one turn per invocation");
   assert.equal(state.sent[0].params.arguments.prompt, "what do you say");
@@ -269,10 +272,10 @@ test("the resume command a reply prints is one this verb accepts, and it carries
   const first = await asked("json", "the first turn");
   const line = first.stdout.split("\n").find((one) => one.startsWith("resume "));
   assert.ok(line, "there is a command to run");
-  const argv = line.trim().split(/\s+/u).slice(3)
+  const argv = line.trim().split(/\s+/u).slice(4)
     .map((one) => (one === '"<next>"' ? "the second turn" : one));
   const again = await ran(configured(), ...argv);
-  assert.equal(again.status, 0, `the command it printed was refused: forge chatgpt ${argv.join(" ")}`);
+  assert.equal(again.status, 0, `the command it printed was refused: forge chatgpt ask ${argv.join(" ")}`);
   assert.equal(state.sent[0].params.arguments.prompt, "the second turn");
   assert.equal(state.sent[0].params.arguments.conversationId, "conv-json");
 });
@@ -500,8 +503,9 @@ test("--save writes the bytes the image URL served", async () => {
   assert.deepEqual(readFileSync(path), PNG);
 });
 
-/* F3: an error document written over the destination, under a line saying it was saved. */
-test("an image URL answering 403 leaves the destination untouched and says so", async () => {
+/* F3: an error document written over the destination, under a line saying it was saved. The answer is
+   asserted beside it because the turn is spent either way and the refusal points at it (review a9f0). */
+test("an image URL answering 403 leaves the destination untouched, says so, and still prints the answer", async () => {
   const path = join(home.path, "kept.png");
   writeFileSync(path, PNG);
   const before = readFileSync(path);
@@ -510,9 +514,21 @@ test("an image URL answering 403 leaves the destination untouched and says so", 
   state.imageGone = false;
   assert.equal(run.status, 1);
   assert.match(run.stderr, /answered 403/u);
+  assert.match(run.stdout, /^drawn$/mu, "the answer the turn gave is above the refusal that names it");
   assert.ok(!run.stdout.includes("saved"), "nothing is reported saved that was not");
   assert.deepEqual(readFileSync(path), before, "the bytes that were there are still there");
   assert.equal(state.calls.length, 1, "a failed download is no reason to ask for the picture again");
+});
+
+/* The half no status check reaches: the write itself throwing, on the cheapest destination that always refuses (4bc7, F1). */
+test("a destination that cannot be written leaves the answer and the way on standing", async () => {
+  const run = await asked("imageWithId", "draw something", "--save", home.path);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /the image named by this turn did not reach/u);
+  assert.match(run.stdout, /^drawn$/mu);
+  assert.match(run.stdout, /^resume {4}forge chatgpt ask "<next>" --resume conv-img$/mu);
+  assert.ok(!run.stdout.includes("saved"), "nothing is reported saved that was not");
+  assert.equal(state.calls.length, 1, "a destination that would not take it is no reason to ask again");
 });
 
 test("an endpoint with no /mcp is refused for the upload, naming what it could not read", async () => {

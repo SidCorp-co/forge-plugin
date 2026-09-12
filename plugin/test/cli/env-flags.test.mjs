@@ -9,7 +9,8 @@ import test from "node:test";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /* Decided, not derived: where config lives, what the platform passes in, a kill switch for when
-   config broke, and a run's identity — no file names a run, its kind or its pid (ISS-4, ISS-22). */
+   config broke, a run's identity, and which record a process this CLI spawned of itself is settling
+   — no file names a run, its kind or its pid (ISS-4, ISS-22). */
 const ALLOWED = new Set([
   "AI_AGENT",
   "CLAUDE_PID",
@@ -19,6 +20,7 @@ const ALLOWED = new Set([
   "CLAUDE_PROJECT_DIR",
   "CLAUDE_CODE_DISABLE_ADVISOR_TOOL",
   "CLAUDE_CODE_SESSION_ID",
+  "FORGE_CHATGPT_TURN",
   "FORGE_CODEX_DISABLE",
   "FORGE_SESSION_ID",
   "FORGE_STOP_DISABLE",

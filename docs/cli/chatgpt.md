@@ -66,8 +66,7 @@ enough to serve it is one this verb takes.
 What a long wait buys and what it costs are separate questions. A turn that runs out returns no
 conversation id at all, and `--resume <id>` continues a conversation rather than collecting a turn
 that already ran out, so a lost turn has nothing to collect it by and a longer wait lengthens the
-exposure instead of closing it. Closing it means a call that detaches, hands back an id when it
-submits and is collected later, which is ISS-1271 and not this verb today.
+exposure instead of closing it. What closes it is the detach, which is `chatgpt-detached.md`'s.
 
 The proof is a stub wearing the backend's shapes. The upstream's browser pool was empty for every
 turn of the 2026-09-08 probe, so a gate that needs it is a gate that goes red for the weather — a
