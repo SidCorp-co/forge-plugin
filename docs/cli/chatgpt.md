@@ -51,3 +51,27 @@ value the plugin reads is ISS-934 and not this verb's to do.
 The proof is a stub wearing the backend's shapes. The upstream's browser pool was empty for every
 turn of the 2026-09-08 probe, so a gate that needs it is a gate that goes red for the weather — a
 live turn is evidence beside the suite and never the thing the suite waits on.
+
+## What earns a turn
+
+Every invocation is metered, so the question a caller owes is not how hard the job looks but
+whether this session could do it at all. A turn is earned when the answer needs something this
+session does not have, and three asks qualify. Pixels it cannot make. A different provider's
+judgement — an open-ended ask, ideas, a reaction to something half-formed, where nothing that comes
+back is acted on as fact and so no verification follows the turn. And a reading of an attached
+image that a script cannot give: asked on 2026-09-12 for the hex colours of a flat vector picture
+and the role each played, it named the accent and the background exactly, which sampling by itself
+does not do, because sampling answers which values are there and not which one is the accent. On a
+photograph or a gradient there is no such thing as *the* exact value, and what comes back is a
+chosen representative rather than a measurement.
+
+What the rule refuses is the more useful half. An image read for its text or its content is
+refused, because the session holding this CLI already reads one for nothing; that refusal lifts
+only at a volume its own reading cannot absorb. A job being simple is not a reason either: a job
+simple enough to describe in one prompt is usually one the session can do for itself, and *simple*
+was never the test.
+
+Two jobs the picture path in particular is not for. Structure — a layout, a flow, a component tree
+— belongs to a deterministic diagram, which renders for nothing, stays editable afterwards and
+invents no text inside the picture. Seeing what the code actually does is not what this verb is
+for either; that is a job for whatever runs the code.

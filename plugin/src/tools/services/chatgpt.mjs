@@ -16,16 +16,23 @@ const URL_LIKE = /^https?:\/\//u;
 /* Built, not a constant: a deadline written into the text goes stale against `waitSeconds`. */
 export const usage = () => [
   "Usage: forge chatgpt \"<prompt>\" [--resume id] [--model slug] [--file path|url]... [--save path]",
-  "Ask ChatGPT once and print what came back. A prompt describing an image gets one; the same",
-  "endpoint answers both. The turn is sent once and never again: a failure that may have spent it",
-  "says so and names --resume rather than asking twice.",
+  "One turn of ChatGPT from the terminal, over the endpoint this machine has saved. Three things it",
+  "is for, and what each costs:",
+  "",
+  "  an answer     what this session cannot settle for itself, put to another provider \u2014 one turn",
+  "  a picture     look-and-feel to build toward, never a render of what you built \u2014 one turn",
+  "  a follow-up   the id every reply prints, given back \u2014 the next ask is one turn and not two",
+  "",
+  "One attempt per call and never a second. A call that fails may still have spent a metered turn:",
+  "nothing here can tell, and nothing here sends it again.",
   "",
   "  --resume id    continue that conversation instead of starting one",
   "  --model slug   pass a model through; no default is sent, so the upstream runs its account's",
   "  --file p|url   attach a file, up to 10; a local path is uploaded first, a URL is sent as it is",
   "  --save path    write the bytes of the image the reply names",
   "",
-  `The wait is ${deadlineSeconds()}s, from waitSeconds in config.json.`,
+  `The wait is ${deadlineSeconds()}s, from waitSeconds in config.json. Which asks earn a turn:`
+    + " docs/cli/chatgpt.md.",
 ].join("\n");
 
 const settingsFor = () => {
