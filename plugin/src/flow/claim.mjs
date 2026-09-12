@@ -9,6 +9,7 @@ import { scoped } from "../tracker/rest.mjs";
 import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
 import { TAKEABLE } from "../rank/weights.mjs";
+import { rungOf } from "../ladder.mjs";
 import { rungFieldsOf, viewFrom } from "./earned.mjs";
 import { laneLines, openingLines, workLines } from "../guides/phases.mjs";
 import { partForStatus } from "../guides/served.mjs";
@@ -70,7 +71,7 @@ export const advisory = (status, fields, held, work = null) => {
   console.log("");
   for (const line of laneLines({ status, fields })) console.log(line);
   console.log(`\n${MECHANISM} ${heldBy()}`);
-  partForStatus(status, (part) => console.log(`\n${part}`));
+  partForStatus(status, (part) => console.log(`\n${part}`), rungOf(fields));
 };
 
 /* The rung the lane is printed at is the effective one — the field, every correction that climbs and the cut rule — so this is the one read this verb makes for something other than the lease, and it is made after the writes and softly: a hard read's own failure exits the process, which would take a claim that had already landed down with it, and a page that does not read back is owed a line and not the claim. Unread, it is read as a cut page is, which is the rung that owes most (docs/cli/the-ladder.md). */

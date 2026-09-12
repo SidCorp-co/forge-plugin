@@ -283,7 +283,7 @@ verbs that perform the acts know all three. So a part is rendered at the call fr
 per part (BR-09), for the project's keys and the flow it names (BR-07), and the verb that acts
 carries the part for its act.
 
-- **AC-02-8-1** · Rev: 2 · Proof: none yet — ISS-673
+- **AC-02-8-1** · Rev: 2 · Proof: plugin/test/guides/rounds.test.mjs "a part fenced on the rung is served to the rung it names and to no other"
   WHEN a part of the method is served THEN the CLI SHALL render it for the project's keys, the issue's
   complexity and status and the flow the project names, removing marked lines and adding none.
 - **AC-02-8-2** · Rev: 2 · Proof: plugin/test/guides/flow.test.mjs "a method no flow answers, and a flow this copy does not serve, are refused naming the way out"

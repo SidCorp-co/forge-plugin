@@ -114,7 +114,7 @@ const stampedLast = (comments, written) => String(written?.createdAt
   ?? [new Date().toISOString(), ...comments.map((one) => String(one.createdAt ?? ""))].sort().at(-1));
 
 /* On stderr, beside what the write owes and not on the stream carrying the record: a caller reading a payload back is not reading the method. A record ends its phase's work, so the part is that phase's. */
-const sayPart = (kind) => partForRecord(kind, (part) => console.error(`\n${part}`));
+const sayPart = (kind, rung) => partForRecord(kind, (part) => console.error(`\n${part}`), rung);
 
 /* `renewed` is the caller whose write a moment ago renewed the lease, which a second lease write would only repeat; `soft` hands the tracker's refusal back rather than exiting, for the caller with something to say about it. */
 export const post = async (documentId, body, { ref = documentId, next = undefined, patch = null, soft = false, renewed = false } = {}) => {
@@ -397,8 +397,8 @@ const writeRung = async (reference, blocks, { next, patch }) => {
     posted: written.posted,
   });
   const { movedByRecord } = await import("../advance.mjs");
-  await movedByRecord(documentId, after.issue, reference, blocks.map((one) => one.kind), after.page);
-  for (const one of blocks) sayPart(one.kind);
+  const { rung } = await movedByRecord(documentId, after.issue, reference, blocks.map((one) => one.kind), after.page);
+  for (const one of blocks) sayPart(one.kind, rung);
 };
 
 const postRung = async (prepared, { reference, documentId, body, comments, next, patch }) => {

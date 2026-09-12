@@ -50,7 +50,7 @@ export const CITED = {
 
 export const dischargedBy = (status) => CITED[stepAfter(status)]?.[0] ?? null;
 
-/** Two readings of one row: every phase it names, and the phase the landing ends — the last its own row names, that row abbreviating the note and the ship into one cell. docs/cli/the-parts.md. */
+/** Two readings of one row: every phase it names, and the phase the landing ends — the last its own row names, that row abbreviating the note and the ship into one cell. docs/cli/addressing-a-part.md. */
 const EVERY_NUMBER = /\d+/gu;
 
 export const phasesOwed = (status) =>

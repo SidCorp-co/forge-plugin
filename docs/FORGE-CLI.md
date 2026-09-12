@@ -14,7 +14,8 @@ how many topics there may be.
 | [the guides](cli/the-guides.md) | Why seven of the twelve guides the tracker serves are withheld, and what the disposition table still decides. |
 | [the flow axis](cli/the-flow-axis.md) | Why the axis over served text is a flow slug rather than a version number, and why a flow's directory is the whole of what it serves. |
 | [what a flow asks for](cli/what-a-flow-asks-for.md) | The flows this copy serves, what a flow may require of a plan and ask of a project, and what it may not decide. |
-| [the parts](cli/the-parts.md) | How a block one project loses is fenced once, why the fence is a comment, and why a phase is addressed by its number. |
+| [the parts](cli/the-parts.md) | How a block one project loses is fenced once, why the fence is a comment, and which condition is the call's rather than the checkout's. |
+| [addressing a part](cli/addressing-a-part.md) | Why a phase is addressed by its number, and why the verb that acts carries its own phase rather than taking one as an argument. |
 | [`new`](cli/new.md) | What a body is read against before the tracker sees it, the value a filing nobody ranked carries, and why the rung is the `complexity` field alone. |
 | [`the-kinds`](cli/the-kinds.md) | Why a filing names a category, what the four are, which sections each owes, and why both words are the tracker's. |
 | [`record`](cli/record.md) | Why the CLI owns a payload's shape, which two flags are read off the record, and what it cannot undo. |

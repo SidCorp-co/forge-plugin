@@ -5,13 +5,13 @@
    would pass a contract that copied the conditional halves (ISS-802). */
 import assert from "node:assert/strict";
 
-import { CHECKS, viewFrom } from "../../src/flow/earned.mjs";
-import { owedIn } from "../../src/flow/route.mjs";
-import { KINDS, kindHelp } from "../../src/flow/record/record-rows.mjs";
-import { RUNGS, complexityFor } from "../../src/ladder.mjs";
-import { rungReport } from "../../src/ladder-report.mjs";
-import { claims } from "../../src/checks/duplication.mjs";
-import { render } from "../../src/flow/record/page.mjs";
+import { CHECKS, viewFrom } from "../src/flow/earned.mjs";
+import { owedIn } from "../src/flow/route.mjs";
+import { KINDS, kindHelp } from "../src/flow/record/record-rows.mjs";
+import { RUNGS, complexityFor } from "../src/ladder.mjs";
+import { rungReport } from "../src/ladder-report.mjs";
+import { claims } from "../src/checks/duplication.mjs";
+import { render } from "../src/flow/record/page.mjs";
 
 /** Doctor's threshold, and the floor `docs-have-one-home.test.mjs` uses: three words collide in
  *  short prose, and a table cell is short prose. */

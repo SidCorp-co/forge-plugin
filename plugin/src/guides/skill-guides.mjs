@@ -6,8 +6,9 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { FEEDBACK_CHANNELS, SHIP_MODES, feedbackScope, shipMode } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
+import { conditionsAt } from "./conditions.mjs";
+import { roundLines, rungRefusal, rungServed } from "./rounds.mjs";
 import {
   SLUG as CONTRACT_SLUG, contractKeys, contractRoot, joinedParts, partEntriesIn, partFileProblem,
 } from "./contract.mjs";
@@ -92,23 +93,15 @@ const referenceLines = (slug, dir) => {
 
 const read = (path) => readFileSync(path, "utf8").replace(/\s+$/u, "");
 
-/* One entry per answer this CLI can give here, each declaring the domain off that key's own list. A
-   machine's mode and a project's channel are facts orthogonal to which flow it runs and belong
-   inside a part; the flow itself is the directory, so it is no condition anything resolves. */
-const conditions = () => ({
-  "feedback.plugin": { value: feedbackScope().plugin.value, allowed: FEEDBACK_CHANNELS },
-  ship: { value: shipMode().value, allowed: SHIP_MODES },
-});
-
-const served = (slug, text, tail) => {
-  const { text: out, problems } = render(text, conditions());
+const served = (slug, text, tail, rung) => {
+  const { text: out, problems } = render(text, conditionsAt(rungServed(rung)));
   if (problems.length) return { refusal: `${slug}'s served text is marked wrong — ${problems[0]}` };
   return { lines: [out, ...tail] };
 };
 
 /** The answer shape `contractAnswer` gives, for one skill: the body, one reference, one numbered
  *  phase of the method, or a refusal. Every answer ends by naming the flow it was rendered for. */
-export const skillGuideAnswer = (slug, root = HERE, flow = flowPinned().value) => ({ part = null, tracker = false, extra = [] } = {}) => {
+export const skillGuideAnswer = (slug, root = HERE, flow = flowPinned().value) => ({ part = null, tracker = false, extra = [], rung = null } = {}) => {
   if (tracker) {
     return { refusal: `--tracker does not apply to ${slug}, which is this plugin's own, not the tracker's.`
       + ` \`forge guide ${slug}\` prints it.` };
@@ -119,17 +112,19 @@ export const skillGuideAnswer = (slug, root = HERE, flow = flowPinned().value) =
   }
   const held = flowRefusal();
   if (held) return { refusal: held };
+  const noSuchRung = rungRefusal(rung);
+  if (noSuchRung) return { refusal: noSuchRung };
   const dir = skillFlowDir(slug, root, flow);
-  const tail = ["", ...servedFor(flow)];
+  const tail = ["", ...roundLines(rung), "", ...servedFor(flow)];
   const wrong = bodyProblems(slug, root, flow);
   if (wrong.length) return { refusal: `${wrong[0]}. \`forge doctor\` reports which copy is running.` };
   const body = servedBody(slug, root, flow);
-  if (!part) return served(slug, body ?? INLINE(slug), [...referenceLines(slug, dir), ...tail]);
+  if (!part) return served(slug, body ?? INLINE(slug), [...referenceLines(slug, dir), ...tail], rung);
   const names = namesIn(join(dir, REFERENCES));
-  if (names.includes(part)) return served(slug, read(join(dir, REFERENCES, `${part}.md`)), tail);
+  if (names.includes(part)) return served(slug, read(join(dir, REFERENCES, `${part}.md`)), tail, rung);
   const phases = body === null ? [] : phasesOf(body);
   const phase = phases.find((one) => one.number === String(part));
-  if (phase) return served(slug, phase.text, tail);
+  if (phase) return served(slug, phase.text, tail, rung);
   return { refusal: didYouMean(`guide ${slug}`, part, [...names, ...phases.map((one) => one.number)],
     phases.length
       ? `\`forge guide ${slug}\` lists every reference, and each phase of the method is its number.`

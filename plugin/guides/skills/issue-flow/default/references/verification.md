@@ -25,14 +25,16 @@ and record what each answered before calling the run whole. A baseline that cann
 is said rather than assumed green — without one a pre-existing red is indistinguishable from your
 regression.
 
-**The gate is spent once per unit of work.** The baseline above is the only whole run the work owes;
-after it, one scoped run when a unit of work is finished — a change that stands on its own, never
-each edit inside one — and in between the changed file's own suite, which answers one question
-faster than any gate reaches it. The ship spends the gate itself, so the release's gate is
-that run and there is nothing left to spend after the push. Below the top rung even the run per unit
-goes: the ship's is the one the clean path spends, and `forge advance <ref> --owed` is what says so
-for the issue in hand. A gate too slow to spend once a unit is
+**The baseline above is the only whole run the work owes**, and the ship spends the gate itself, so
+the release's gate is that run and there is nothing left to spend after the push.
+<!-- forge:when rung feature -->
+**The gate is spent once per unit of work**, between those two:
+one scoped run when a unit of work is finished — a change that stands on its own, never each edit
+inside one. A gate too slow to spend once a unit is
 the gate's defect and the gate-review skill is the route to it, never a reason to spend it less often.
+<!-- forge:end -->
+Whatever else is spent, the changed file's own suite answers one question faster than any gate
+reaches it, and a gate too slow to spend at all is the gate-review skill's to profile.
 Whichever of those runs, it is started in the background and what is read afterwards is the gate's
 own verdict rather than its log. Where the project's gate has a call that waits for that verdict,
 that one call is the whole of the wait and the answer both, and the gate's own `-h` names it. A

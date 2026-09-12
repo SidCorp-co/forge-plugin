@@ -293,8 +293,10 @@ test("the stage line names the part for the status and the command that prints i
 test("the verb's answer is one part, the contents, or one refusal that names the way out", () => {
   assert.deepEqual(contractAnswer({ part: "awaiting_release" }).lines,
     [partFor(PARTS, "awaiting_release").text, "",
+      "No rung was named, so this is the `feature` text — the top rung, which is what an unstated"
+        + " rung resolves to. `--rung <name>` serves a lighter one.", "",
       "Flow default, which this project runs; `forge doctor` names its source."],
-    "the part, and then the flow it was served for");
+    "the part, the rung it was rendered for, and then the flow it was served for");
   assert.equal(contractAnswer({}).lines[0].startsWith("The issue-flow contract"), true);
   const flag = contractAnswer({ tracker: true }).refusal;
   assert.match(flag, /--tracker does not apply to contract/u);

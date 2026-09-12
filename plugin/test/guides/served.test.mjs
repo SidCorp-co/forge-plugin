@@ -130,9 +130,9 @@ test("a claim carries the phase its issue's status owes, and no two statuses ans
 
 test("the second act of a kind in one session carries no part, and another phase still does", () => {
   const session = "one-run";
-  assert.deepEqual(printed((say) => phasePart(3, say, session)), [guideSays(3)], "the first is the part");
-  assert.deepEqual(printed((say) => phasePart(3, say, session)), [], "the second prints nothing at all");
-  assert.deepEqual(printed((say) => phasePart(5, say, session)), [guideSays(5)], "a phase not yet served is owed");
+  assert.deepEqual(printed((say) => phasePart(3, say, { session })), [guideSays(3)], "the first is the part");
+  assert.deepEqual(printed((say) => phasePart(3, say, { session })), [], "the second prints nothing at all");
+  assert.deepEqual(printed((say) => phasePart(5, say, { session })), [guideSays(5)], "a phase not yet served is owed");
 });
 
 /* The rule the ledger states and this surface has to keep: a text credited before it reached anyone
@@ -141,36 +141,36 @@ test("the credit follows the delivery, so a part nobody received is still owed",
   const session = "a-run-whose-printer-failed";
   assert.throws(() => phasePart(3, () => {
     throw new Error("stdout is gone");
-  }, session), /stdout is gone/u);
+  }, { session }), /stdout is gone/u);
   assert.equal(owedOf(session, surfaceFor(3), guideSays(3)).owed, true, "so the part is owed again");
-  assert.deepEqual(printed((say) => phasePart(3, say, session)), [guideSays(3)], "and arrives whole");
+  assert.deepEqual(printed((say) => phasePart(3, say, { session })), [guideSays(3)], "and arrives whole");
 });
 
 /* The delta the ledger offers is the trap: two renderings of one phase share most of their lines,
    and the difference between them is not the method. */
 test("a phase served twice under two renderings answers with the whole of the second", () => {
   const session = "a-run-whose-key-changed";
-  const [first] = printed((say) => phasePart(7, say, session));
+  const [first] = printed((say) => phasePart(7, say, { session }));
   userConfig().ship = "ready";
   const second = guideSays(7);
   assert.notEqual(first, second, "the key change moved the rendering, or the case proves nothing");
-  assert.deepEqual(printed((say) => phasePart(7, say, session)), [second], "the whole of the new one");
+  assert.deepEqual(printed((say) => phasePart(7, say, { session })), [second], "the whole of the new one");
   delete userConfig().ship;
 });
 
 test("each phase holds a surface of its own, so no two can answer each other's lines", () => {
   assert.notEqual(surfaceFor(3), surfaceFor(5), "one key per phase and not one for the method");
   const session = "surfaces-apart";
-  printed((say) => phasePart(3, say, session));
+  printed((say) => phasePart(3, say, { session }));
   assert.equal(owedOf(session, surfaceFor(5), guideSays(5)).owed, true,
     "Phase 5 is owed to a session shown Phase 3, whatever lines the two share");
 });
 
 test("a phase this copy serves none of, and a run with no id", () => {
-  assert.deepEqual(printed((say) => phasePart(99, say, "any-run")), [], "no part answers 99");
-  assert.deepEqual(printed((say) => phasePart(Number.NaN, say, "any-run")), [],
+  assert.deepEqual(printed((say) => phasePart(99, say, { session: "any-run" })), [], "no part answers 99");
+  assert.deepEqual(printed((say) => phasePart(Number.NaN, say, { session: "any-run" })), [],
     "nor does a status whose row names no phase");
-  assert.deepEqual(printed((say) => phasePart(3, say, "")), [guideSays(3)],
+  assert.deepEqual(printed((say) => phasePart(3, say, { session: "" })), [guideSays(3)],
     "and a run with no id cannot be credited, so it is told every time");
 });
 

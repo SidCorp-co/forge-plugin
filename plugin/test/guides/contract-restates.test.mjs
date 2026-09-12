@@ -7,7 +7,7 @@ import { tempHome } from "../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("contract-restates").path;
 const { partsOf, readContract } = await import("../../src/guides/contract.mjs");
 const { claims, compare } = await import("../../src/checks/duplication.mjs");
-const { FAMILIES, FLOOR, THRESHOLD, corpusUnits } = await import("./corpus.mjs");
+const { FAMILIES, FLOOR, THRESHOLD, corpusUnits } = await import("../corpus.mjs");
 
 const CORPUS = corpusUnits();
 const worstIn = (text) => compare(claims(text).map((one) => ["a part", one]), CORPUS, THRESHOLD, FLOOR)[0];

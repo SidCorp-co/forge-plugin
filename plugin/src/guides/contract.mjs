@@ -8,7 +8,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { bare, didYouMean } from "../suggest.mjs";
+import { conditionsAt } from "./conditions.mjs";
 import { FLOWS, flowPinned, flowRefusal, servedFor } from "./flow.mjs";
+import { render } from "./render.mjs";
+import { roundLines, rungRefusal, rungServed } from "./rounds.mjs";
 
 /** The contract this build reads and stamps on every record; another number is two versions in one. */
 export const CONTRACT = 1;
@@ -193,7 +196,14 @@ export const flowProblems = (root = HERE, flows = FLOWS) => {
 };
 
 /** All of what the verb answers — lines, or one refusal — so a case can ask it without a process. */
-export const contractAnswer = ({ part = null, tracker = false, extra = [], root = HERE, flow = flowPinned().value } = {}) => {
+/* The rung reaches a part through the renderer, as a project's keys do. `contractKeys` and
+   `stageLine` read the raw parts, so a citation answers the same under every rung. */
+const shownAt = (parts, rung) => parts.map((one) => {
+  const { text, problems } = render(one.text, conditionsAt(rungServed(rung)));
+  return { ...one, text, chars: text.length, problems };
+});
+
+export const contractAnswer = ({ part = null, tracker = false, extra = [], rung = null, root = HERE, flow = flowPinned().value } = {}) => {
   if (tracker) {
     return { refusal: `--tracker does not apply to ${SLUG}, which is this plugin's own, not the`
       + ` tracker's. \`forge guide ${SLUG}\` prints it.` };
@@ -205,15 +215,20 @@ export const contractAnswer = ({ part = null, tracker = false, extra = [], root 
   /* The flow before the file: an absent `erp-flow/` is a chosen slug, not a copy that lost its rules. */
   const pinned = flowRefusal();
   if (pinned) return { refusal: pinned };
+  const noSuchRung = rungRefusal(rung);
+  if (noSuchRung) return { refusal: noSuchRung };
   const wrong = contractProblems({ root, flow });
   if (wrong.length) return { refusal: `${wrong[0]}. \`forge doctor\` reports which copy is running.` };
   const entries = contractParts({ root, flow });
-  const parts = addressed(entries);
-  if (!part) return { lines: [...contentsOf(parts, identityOf(entries)), "", ...servedFor(flow)] };
+  const parts = shownAt(addressed(entries), rung);
+  const fence = parts.flatMap((one) => one.problems)[0];
+  if (fence) return { refusal: `${SLUG}'s served text is marked wrong — ${fence}` };
+  const tail = ["", ...roundLines(rung), "", ...servedFor(flow)];
+  if (!part) return { lines: [...contentsOf(parts, identityOf(entries)), ...tail] };
   const held = partFor(parts, part);
   if (!held) {
     return { refusal: didYouMean(`guide ${SLUG}`, part, keysOfAll(parts),
       `\`forge guide ${SLUG}\` lists every part.`) };
   }
-  return { lines: [held.text, "", ...servedFor(flow)] };
+  return { lines: [held.text, ...tail] };
 };

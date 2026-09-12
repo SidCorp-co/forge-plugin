@@ -338,6 +338,7 @@ export const commands = {
     /* Which phases an issue still owes is the tracker's to say, so the offline registry stays so. */
     if (asked.for) {
       if (extra.length) fail(`guide: --for takes the slug alone, not \`${positionals.join(" ")}\`. ${usageOf("guide")}`);
+      if (asked.rung) fail(`guide: --for ${asked.for} reads the rung off that issue, so --rung ${asked.rung} decides nothing. Ask for one: \`forge guide ${slug} --for ${asked.for}\`, or \`forge guide ${slug} <part> --rung ${asked.rung}\`.`);
       return console.log((await indexFor(slug, asked.for)).join("\n"));
     }
     /* This copy's own guides — the contract and each skill's method — answer off disk through one
@@ -345,10 +346,11 @@ export const commands = {
     const local = localGuide(slug);
     if (local) {
       const [part, ...rest] = extra;
-      const answer = local({ part, extra: rest, tracker: asked.tracker });
+      const answer = local({ part, extra: rest, tracker: asked.tracker, rung: asked.rung });
       if (answer.refusal) fail(`guide: ${answer.refusal}`);
       return console.log(answer.lines.join("\n"));
     }
+    if (asked.rung) fail(`guide: --rung renders this plugin's own guides — ${localSlugs().join(", ")} — and \`${slug}\` is the tracker's. ${usageOf("guide")}`);
     if (extra.length) fail(`guide: one slug, not \`${positionals.join(" ")}\`. ${usageOf("guide")}`);
     /* Echoing back a flag the caller typed, and saying nothing about what it does: what a copy or a
        credential cannot use is shown under `forge doctor` and nowhere else. */

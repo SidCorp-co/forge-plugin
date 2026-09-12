@@ -45,7 +45,7 @@ export const VERBS = [
     "the open issues to work next, ranked off their metadata; writes nothing", "forge_issues",
     { group: BACKLOG }],
   /* `--tracker` unnamed, a maintainer's alone (docs/cli/withholding-a-verb.md); `--for` every run's. */
-  ["guide", "[contract [part]|<skill> [reference]|slug] [--for ISS-nn]",
+  ["guide", "[contract [part]|<skill> [reference]|slug] [--for ISS-nn] [--rung <name>]",
     "this plugin's contract and each skill's method, one part per call, and the tracker's guides this flow stands behind",
     "forge_guide", { group: METHOD, needs: null,
       wraps: { list: "`forge guide`", get: "`forge guide <slug>`" } }],

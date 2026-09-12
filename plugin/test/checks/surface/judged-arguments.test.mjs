@@ -42,7 +42,7 @@ const SURFACE = {
   next: ["count", "graph", "holding", "checkout"],
   /* No row of its own for a subject-taking verb: `record`, `advance` and `resume` end theirs in
      `[...]`, and their arguments are their own help's, which this walk does not read. */
-  guide: ["for"],
+  guide: ["for", "rung"],
   project: ["name", "slug", "set"],
   knowledge: [],
   cloudflare: [],

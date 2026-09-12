@@ -15,6 +15,7 @@ import { Refused, refuse } from "../refusal.mjs";
 import { issueOf, post } from "./record/record.mjs";
 import { render } from "./record/page.mjs";
 import { ANSWERED_BY_COMMENT, ORDER, PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, rungFieldsOf, setForm, viewFrom } from "./earned.mjs";
+import { rungOf } from "../ladder.mjs";
 import { CITED, laneLines } from "../guides/phases.mjs";
 import { undoForm } from "./record/merged.mjs";
 import { baselineAhead, credentialAhead, deployFor, lookAhead, owedIn, owedLine, owedSaid, policyFor, targetOf } from "./route.mjs";
@@ -258,7 +259,8 @@ export const movedByRecord = async (documentId, issue, ref, kinds, held = null) 
       transitionTo(view, next, ref, { soft, say: console.error }));
   }
   await owedAfter(documentId, moves ? { ...issue, status: next } : issue, ref, page);
-  return moves ? next : null;
+  /* The effective rung of the view this already built, for the phase part the caller prints. */
+  return { moved: moves ? next : null, rung: rungOf(rungFieldsOf(view)) };
 };
 
 /* The status set with nothing earning it, judged against what `declaredValue` declares and against nothing else, with the reply and the correction saying no check read it. A side status is reached with the payload the tracker demands of one, so `--set` writes what a park writes and skips only the entry checks. */
