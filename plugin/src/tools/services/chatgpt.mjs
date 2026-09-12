@@ -126,12 +126,17 @@ const attached = async (given, held, deadline) => {
 /* The answer is struck like every other piece of backend text: a text part that will not parse
    becomes the answer, which is exactly where an echoed authorization header arrives, so exempting it
    held open the path it was guarding (review 829fc7, F2). The model prints only where the reply
-   carries one, since `_meta` has none and a slug asked for may never have run. */
-const printed = (out, meta, struck) => {
-  const said = out.answers ?? null;
-  if (said !== null) console.log(struck(typeof said === "string" ? said : JSON.stringify(said, null, 2)));
-  if (out.imageUrl) console.log(`\nimage     ${struck(out.imageUrl)}`);
-  if (meta?.account) console.log(`account   ${struck(meta.account)}`);
+   carries one, since `_meta` has none and a slug asked for may never have run. Nothing here is
+   printed that the caller has no lever on: the account `_meta` carries is the gateway's own
+   rotation, observed changing mid-conversation, and a caller cannot choose it or keep it. */
+const printed = (out, struck) => {
+  const said = out.answers;
+  /* The value decides, not a comparison with null: an image turn's `answers` is the empty string,
+     which printed a line with nothing on it and left a blank one above the image. */
+  const body = said === null || said === undefined ? ""
+    : (typeof said === "string" ? said : JSON.stringify(said, null, 2));
+  if (body) console.log(struck(body));
+  if (out.imageUrl) console.log(`${body ? "\n" : ""}image     ${struck(out.imageUrl)}`);
   if (out.model) console.log(`model     ${struck(out.model)}`);
   if (out.conversationId) console.log(`resume    forge chatgpt "<next>" --resume ${struck(out.conversationId)}`);
 };
@@ -213,7 +218,7 @@ export const chatgpt = async (argv) => {
       resume ?? result._meta?.conversationId, struck);
   }
   const out = parsedOr(part.text) ?? { answers: part.text };
-  printed(out, result._meta, struck);
+  printed(out, struck);
   if (save && out.imageUrl) {
     const drawn = await fetch(out.imageUrl, { signal: clock() });
     /* Checked before the write, or a 403's error document lands on the destination under a `saved`

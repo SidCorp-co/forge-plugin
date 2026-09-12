@@ -67,6 +67,13 @@ const BODIES = {
     },
   }),
   image: () => JSON.stringify(answered({ answers: "drawn", imageUrl: `${state.origin}/image.png` })),
+  /* What an image turn really answers: the inner `answers` field is the empty string rather than
+     absent, which a guard written against `null` printed as a line with nothing on it. */
+  imageOnly: () => JSON.stringify(answered({ answers: "", imageUrl: `${state.origin}/image.png` },
+    { account: "acct-7" })),
+  /* A reply that does name the model that ran, which no other fixture here carries: the passthrough
+     case is judged against a reply naming none, so without this one nothing asserts the line prints. */
+  namedModel: () => JSON.stringify(answered({ answers: "it ran", model: "gpt-5.6-whatever-ran" })),
   /* A signed URL is routinely longer than any cap worth putting on a quoted error body, so a
      redactor that also truncates breaks a link it had no key to strike (consult ea77c3, F1). */
   longUrl: () => JSON.stringify(answered({
@@ -250,15 +257,38 @@ test("no endpoint or key: the refusal names the doctor flag for each, and sends 
   assert.equal(state.calls.length, 0, "nothing is sent before the credential is there");
 });
 
-test("a JSON reply prints the answer, the account and the resume line", async () => {
+test("a JSON reply prints the answer and the resume line", async () => {
   const run = await asked("json", "what do you say");
   assert.equal(run.status, 0);
   assert.match(run.stdout, /the stub answered/u);
-  assert.match(run.stdout, /account   acct-7/u);
   assert.match(run.stdout, /^resume {4}forge chatgpt "<next>" --resume conv-json$/mu,
     "a reply carrying an id ends with the way on, and the title said so before anything asserted it");
   assert.equal(state.calls.length, 1, "one turn per invocation");
   assert.equal(state.sent[0].params.arguments.prompt, "what do you say");
+});
+
+/* The gateway rotates the account between turns and once mid-conversation, so a caller has no lever
+   on it: printing it invited a reader to reason about something it could not choose (ISS-1269). */
+test("the account the reply carries is not printed, on any line and under any label", async () => {
+  const run = await asked("json", "what do you say");
+  assert.equal(run.status, 0);
+  assert.doesNotMatch(run.stdout, /^account\s/mu, "no account row");
+  assert.ok(!run.stdout.includes("acct-7"), "and the value is nowhere else either");
+});
+
+test("an image reply whose answer is empty begins at the image line, with nothing above it", async () => {
+  const run = await asked("imageOnly", "draw me a thing");
+  assert.equal(run.status, 0);
+  const lines = run.stdout.split("\n");
+  assert.match(lines[0], /^image {5}http/u, "the first line printed is the image, not a blank one");
+  assert.ok(!run.stdout.includes("acct-7"), "and the account this fixture carries is still not printed");
+});
+
+test("a reply naming the model that answered still prints it", async () => {
+  const run = await asked("namedModel", "which model is this");
+  assert.equal(run.status, 0);
+  assert.match(run.stdout, /^model {5}gpt-5\.6-whatever-ran$/mu,
+    "the only way a caller learns whether --model took, since the upstream ignores a slug it does not know");
 });
 
 /* The printed command is run rather than matched. The verb refuses a flag standing in the prompt's
