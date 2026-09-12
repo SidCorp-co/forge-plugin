@@ -2,6 +2,7 @@
 import { ASKED, INHERITED, INHERITED_MEANS, OWN_ID, WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
 import { RUN_ID, RUN_ID_VAR, besideGit, runFor, runIdAt } from "../resolve/session/run-id.mjs";
 import { TAKEABLE } from "../rank/weights.mjs";
+import { sharedNow, sharedStamp, slackNow } from "../wire/shared-clock.mjs";
 import { thisCall } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
@@ -102,6 +103,7 @@ export const leaseOf = (context) => {
     pid: held.pid === undefined || held.pid === null || held.pid === "" ? UNKNOWN : String(held.pid),
     renewedAt: String(held.renewedAt ?? ""),
     minutes: Number.isFinite(minutes) && minutes > 0 ? minutes : MINUTES,
+    slack: Number.isFinite(Number(held.clock)) && Number(held.clock) >= 0 ? Number(held.clock) : null,
     next: typeof held.next === "string" && held.next ? held.next : null,
     history: Array.isArray(held.history) ? held.history : [],
   };
@@ -116,7 +118,7 @@ const stamp = (ms) => (ms ? new Date(ms).toISOString().slice(0, 16) : "an unread
 
 /* A lease past its duration is another run's. The holder's own lapsed one is its own state because
    the field still naming this session proves nobody took the issue; a reclaim is a handoff. */
-export const stateOf = (lease, holder, now = Date.now()) => {
+export const stateOf = (lease, holder, now = sharedNow()) => {
   if (!lease) return "free";
   const live = expiryOf(lease) > now;
   if (lease.holder === holder) return live ? "mine" : "lapsed";
@@ -131,7 +133,7 @@ export const describe = (lease) =>
 export const STOPPED = "--stopped";
 
 /* How far past expiry the record still cannot tell a working run from a stopped one: the holder's own estimate again, so a run that asked for ten minutes is covered for ten and one that asked for four hours for four. Strictly less, so exactly one duration past expiry is anybody's again. */
-export const freshLapse = (lease, now = Date.now()) => {
+export const freshLapse = (lease, now = sharedNow()) => {
   const expiry = expiryOf(lease);
   return expiry > 0 && now < expiry + lease.minutes * 60_000;
 };
@@ -142,7 +144,7 @@ const agoIn = (ms) => {
 };
 
 /* Refused rather than said, alone among the lease's notices, because here the taking is the damage: the reclaim this was filed from took a live run's issue and cost it forty minutes of writes, and a line printed by the command that has already written the field warns nobody in time. It judges nothing and withholds one flag's worth — the record it describes is the one a stopped run leaves too, which is why the caller decides and this only says what is being decided (ISS-1224). */
-export const reclaimRefusal = (ref, lease, now = Date.now()) =>
+export const reclaimRefusal = (ref, lease, now = sharedNow()) =>
   `the lease on ${ref} ran out ${agoIn(now - expiryOf(lease))}, and this reclaim would take the `
   + `issue off ${describe(lease)}. ${RENEWED_BY_WRITING} A run inside one of those leaves the `
   + `record a stopped run leaves, so a lapse this fresh proves neither.`
@@ -275,7 +277,7 @@ const READ_THE_STATE = (ref) =>
 /* `--take` is the one route that may take a lease which is still live, so what licenses it is the
    state naming the taker's turn and nothing else. A lease no longer live is anybody's by the
    reclaim rules already, which is what makes a successor eligible where the run named has gone. */
-export const takeRefusal = (ref, landing, holder, lease, { now = Date.now(), source = null } = {}) => {
+export const takeRefusal = (ref, landing, holder, lease, { now = sharedNow(), source = null } = {}) => {
   if (!landing) {
     return `${ref} carries no landing checkpoint, so no turn is handed off and --take is refused. `
       + `A build writes one where it ends:\n  forge claim ${ref} --pushed --ready`;
@@ -334,7 +336,7 @@ export const takeRefusal = (ref, landing, holder, lease, { now = Date.now(), sou
 
 /* Read, not passed: a caller that could supply the writer's own identity could supply a false one.
    Silence about `next` means unchanged, or a claim would drop the note the dead run left. */
-export const claimed = (context, { holder, at, minutes, next, worklog, landing, how = null, status = null }) => {
+export const claimed = (context, { holder, at = sharedStamp(), minutes, next, worklog, landing, how = null, status = null }) => {
   const held = leaseOf(context);
   const history = [...(held?.history ?? [])];
   const state = landing?.state ?? landingOf(context)?.state ?? null;
@@ -349,6 +351,7 @@ export const claimed = (context, { holder, at, minutes, next, worklog, landing, 
       agent: agentOf(),
       pid: pidOf(),
       renewedAt: at,
+      ...(slackNow() === null ? {} : { clock: slackNow() }),
       minutes,
       next: next === undefined ? held?.next ?? null : nextLine(next),
       history: history.slice(-HISTORY_KEPT),
@@ -519,7 +522,6 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
   let sent = null;
   const value = (from, held) => (sent = claimed(from, {
     holder,
-    at: new Date().toISOString(),
     minutes: held.minutes,
     next,
     worklog: worklogFor(from, patch),
@@ -557,7 +559,7 @@ export const takeLease = async (documentId, ref, context,
      behind would make the lander lease it goes on to hold a third run's to take. */
   const landing = held?.state === LANDING_JUDGED && held.judge ? { ...held, judge: "" } : undefined;
   const next = claimed(context, {
-    holder, at: new Date().toISOString(), minutes, next: line, worklog: worklogFor(context, patch),
+    holder, minutes, next: line, worklog: worklogFor(context, patch),
     how: "take", status, landing,
   });
   await setLease(documentId, next, ref, () => context);
@@ -582,7 +584,7 @@ export const landingSaved = async (documentId, ref, patch) => {
     }
     saved = { ...held, ...patch };
     return claimed(context, {
-      holder, at: new Date().toISOString(), minutes: lease.minutes, landing: saved,
+      holder, minutes: lease.minutes, landing: saved,
     });
   }, ref, () => read);
   return landingOf({ [LANDING]: saved });

@@ -467,3 +467,17 @@ test("a brief that moved under a narrow write refuses rather than putting back w
   assert.match(store.get("project-brief").body, /a second session wrote this/u,
     "and what that session wrote is still in the store");
 });
+
+test("the report says how far this device's clock stands from the tracker's, or that it read none", async () => {
+  const run = await ask("doctor");
+  assert.match(run.stdout,
+    ROW("tracker clock", "this device is \\d+\\.\\d\\ds (ahead of|behind) the tracker, known to ±\\d+\\.\\d\\ds"),
+    run.stdout);
+  assert.match(run.stdout, /tracker clock.*← the `date` header on the tracker's own answers/u);
+  state.noDate = true;
+  const blind = await ask("doctor");
+  state.noDate = false;
+  assert.match(blind.stdout,
+    NOTE_ROW("tracker clock", "unmeasured — the tracker's answers carry no readable time"),
+    "a figure nobody measured is not printed as one");
+});

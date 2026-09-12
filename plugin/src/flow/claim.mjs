@@ -31,6 +31,7 @@ import {
   claimRefusal,
   claimed,
   describe,
+  expiryOf,
   freshLapse,
   handedOn,
   handedSaid,
@@ -57,6 +58,7 @@ import {
   takeRefusal,
   unheldRefusal,
 } from "./lease.mjs";
+import { bandWith, straddleSaid, straddles, unplaceable } from "../wire/shared-clock.mjs";
 
 const MAX_MINUTES = 24 * 60;
 const PARKS_IN = "on_hold";
@@ -140,7 +142,7 @@ const crashedPark = (comments) => {
    the transition just took away. A line this claim asked for survives it: the person resuming reads
    it, and writing it, printing it and taking it away again would be the input dropped. */
 export const parkWrite = (lease, next = null) =>
-  ({ holder: lease.holder, at: new Date().toISOString(), minutes: lease.minutes, next: next ?? null });
+  ({ holder: lease.holder, minutes: lease.minutes, next: next ?? null });
 
 /* The line taken over from is not the line taken on: printing the incoming one as the last
    holder's would say the dead run left a note its successor wrote. A take is a handoff too, and so
@@ -317,6 +319,15 @@ export const claim = async (argv) => {
   const state = stateOf(lease, holder);
   const minutes = asked ?? (lease && lease.holder === holder ? lease.minutes : MINUTES);
   const worklog = worklogOf(context);
+  /* Above every route out of here, including the three turns below, because what it qualifies is the state each of them reads, and a claim told afterwards has already been answered on it. */
+  const band = bandWith(lease?.slack);
+  const expiry = lease ? expiryOf(lease) : 0;
+  const anybodys = lease ? expiry + lease.minutes * 60_000 : 0;
+  if (lease) {
+    const untold = unplaceable(lease.slack)
+      ?? (straddles(expiry, band) ? straddleSaid(`the expiry of the lease on ${ref}`, expiry, band) : null);
+    if (untold) console.error(untold);
+  }
   if (given.take) {
     const took = await takeTurn(documentId, ref, issue, context, { holder, minutes, line, patch });
     if (sharedHolder(took, mine)) console.log(SHARED_HOLDER);
@@ -346,12 +357,18 @@ export const claim = async (argv) => {
   if (state === "expired" && !given.stopped && !handed && freshLapse(lease)) {
     fail(reclaimRefusal(ref, lease));
   }
+  /* After the refusal above, which owns the lapse the record can tell is fresh; this owns only the lapse read as stale that cannot be ruled fresh, the direction that takes an issue off a working run (ISS-1212). */
+  if (state === "expired" && !given.stopped && !handed && straddles(anybodys, band)) {
+    fail(`${straddleSaid(`the moment the lease on ${ref} becomes anybody's`, anybodys, band)} `
+      + `Until then this reclaim would take the issue off ${describe(lease)}. Where you have `
+      + `established that run stopped, say so:\n  forge claim ${ref} ${STOPPED}`);
+  }
   /* Off the remnant where there is no lease to read it from, so the flag that clears the refusal is not the way to lose the one line the refusal just printed. */
   const left = lease?.next ?? nextLeft(context);
   const how = { free: unheld ? "unheld" : "claim", live: "handed", expired: "reclaim", mine: null, lapsed: null }[state];
   const checkpoint = given.ready ? readyCheckpoint(ref, holder, patch, landingOf(context)) : null;
   const next = claimed(context, {
-    holder, at: new Date().toISOString(), minutes, next: line, worklog: worklogFor(context, patch), how, status: issue.status,
+    holder, minutes, next: line, worklog: worklogFor(context, patch), how, status: issue.status,
     landing: checkpoint ?? undefined,
   });
   await setLease(documentId, next, ref, () => context);

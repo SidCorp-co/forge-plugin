@@ -38,8 +38,11 @@ const held = (holder, at = AT, minutes = 30, history = []) =>
 
 test("a lease is read out of the field, and anything else in it is no lease", () => {
   assert.deepEqual(leaseOf(field(held("a-run"))), {
-    holder: "a-run", agent: "a-test-agent", pid: "4242", renewedAt: AT, minutes: 30, next: null, history: [],
+    holder: "a-run", agent: "a-test-agent", pid: "4242", renewedAt: AT, minutes: 30, slack: null, next: null, history: [],
   });
+  assert.equal(leaseOf(field({ ...held("a-run"), clock: 517 })).slack, 517,
+    "the error the stamp was taken under, which a reader adds to its own");
+  assert.equal(leaseOf(field({ ...held("a-run"), clock: -1 })).slack, null, "and no error at all is not an error of none");
   assert.equal(leaseOf(null), null, "an issue nobody claimed");
   assert.equal(leaseOf({ notes: "something else" }), null, "a field another client wrote");
   assert.equal(leaseOf(field({ renewedAt: AT })), null, "a lease with no holder holds nothing");

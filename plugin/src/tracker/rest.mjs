@@ -6,6 +6,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { clockFor, deadlineOf, deadlineSeconds, ranOut, secondsGiven, waitSeconds } from "../wire/request.mjs";
+import { sawAnswer } from "../wire/shared-clock.mjs";
 import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
 import { FROM_PROJECT, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
@@ -117,7 +118,9 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
     if (stop) return { response: null, text: "", dropped: null, spent: stop };
     [text, response, dropped] = ["", null, null];
     try {
+      const sentAt = performance.now();
       response = await make(clock());
+      sawAnswer(response.headers, sentAt, performance.now());
       text = await response.text();
     } catch (error) {
       dropped = error;

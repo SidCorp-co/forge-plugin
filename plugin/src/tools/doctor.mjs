@@ -430,6 +430,8 @@ const checkEndpoint = async (full, credentials) => {
       + `this line was read — ${held.refused}. Check \`endpoint url\` and \`project slug\` above`);
   }
   line(OK, "project id", full ? held.id : `resolved from the slug (--full to print it)`);
+  const clock = await import("../wire/shared-clock.mjs");
+  line(clock.measured() ? OK : NOTE, "tracker clock", clock.offsetSaid());
   const findings = await probe(scoped, slug);
   if (!findings.forge_guide) await checkAgainstGuides(scoped);
   if (findings.gated) {
