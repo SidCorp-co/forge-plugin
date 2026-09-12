@@ -5,7 +5,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { fakeTracker, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("override").path;
 const { UNREAD } = await import("../../src/flow/override.mjs");
@@ -432,4 +435,72 @@ test("a reason handed to a read is refused, there being nothing for it to be the
   const run = await setField("--why", WHY);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /--why belongs to --set; a read takes no reason\./u);
+});
+
+/* ISS-1158. The run that reached for `@file` stored the path and lost a 10,233-character body, the
+   tracker keeping no revision of a field — which is why the refusal comes before the write. */
+const BODY_FILE = join(tempRoom("set-body-"), "body.md");
+writeFileSync(BODY_FILE, "# a replacement body\n\nthe text a run meant to store\n");
+const updates = () => state.calls.filter((one) => one.args.action === "update" && one.args.data?.description !== undefined);
+
+test("a description set to a file route is refused, and the route out sends the file's own text", async () => {
+  before();
+  const run = await setField("--set", `description=@${BODY_FILE}`, "--why", WHY);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, new RegExp(`reads as the file \`${BODY_FILE}\``, "u"), "the route it read, named");
+  assert.ok(run.stderr.includes(`--set description="$(cat -- ${BODY_FILE})"`),
+    "and the call that sends the file's own text as the description");
+  assert.deepEqual(updates(), [], "nothing was sent, so the body on the page is the body that was there");
+});
+
+/* The existing file is the same mistake with better evidence, not the mistake itself: a mistyped
+   path is the route the flag has not got either, and it lands as text just as surely. */
+test("a description set to a file route that names nothing is refused too", async () => {
+  before();
+  const run = await setField("--set", "description=@/tmp/no-such-body-file.md", "--why", WHY);
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /reads as the file/u);
+  assert.deepEqual(updates(), []);
+});
+
+test("a description that carries a newline is written, so a body beginning with @ still has a route", async () => {
+  before();
+  const body = "@the-handle this body opens with\nand carries a second line";
+  const run = await setField("--set", `description=${body}`, "--why", WHY);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(sent("update", "description").description, body, "the text itself, as it was typed");
+});
+
+/* The newline is the escape, so it is read off the value as typed: trimming first took the only
+   newline off `@handle\n` and refused the very body the escape exists for (review 8b3a01 F1). */
+test("the newline that opens the escape is read where the caller put it", async () => {
+  for (const body of ["@the-handle\n", "\n@the-handle"]) {
+    before();
+    const run = await setField("--set", `description=${body}`, "--why", WHY);
+    assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+    assert.equal(sent("update", "description").description, body, `written as typed: ${JSON.stringify(body)}`);
+  }
+});
+
+/* The route out is a line a caller runs next, and an unquoted substitution over a name with a space
+   in it is several arguments — `cat` would concatenate whatever they name and the body would be
+   lost to the very fix that refused it (review 8b3a01 F2). */
+test("the route out quotes the path it names", async () => {
+  before();
+  const spaced = join(tempRoom("set-spaced-"), "a body.md");
+  writeFileSync(spaced, "the body a space in the path would have split\n");
+  const run = await setField("--set", `description=@${spaced}`, "--why", WHY);
+  assert.equal(run.status, 1);
+  assert.ok(run.stderr.includes(`--set description="$(cat -- '${spaced}')"`),
+    `the path quoted whole, and \`cat --\` so a leading hyphen stays a name: ${run.stderr}`);
+});
+
+test("a field that holds no body is untouched by the rule", async () => {
+  for (const [field, value] of [["priority", "@high"], ["category", "@x"]]) {
+    before();
+    const run = await setField("--set", `${field}=${value}`, "--why", WHY);
+    assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+    assert.equal(sent("update", field)[field], value,
+      `a route is only a route where a body is what it would replace: ${field}`);
+  }
 });

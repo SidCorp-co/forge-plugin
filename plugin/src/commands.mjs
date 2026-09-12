@@ -118,6 +118,11 @@ const STATUSES_SEEN = "`forge doctor` counts the statuses this project's issues 
 const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full] [--set f=v... --why W]"
   + " [--blocks ISS-46|--relates ISS-46|--unlink ISS-46]";
 
+/* The one thing a row cannot hold: the form a body takes, learnt before the refusal (ISS-1158). */
+const SET_TAKES = "`--set f=v` writes the value as it is typed. For a body field — description — that\n"
+  + "value is the text itself and never a path to it, since `@file` and `-` are routes this flag has\n"
+  + 'not: `--set description="$(cat body.md)"` is how a file becomes the body.';
+
 /* One line per flag, then the one table a row cannot hold: what a body is read against depends on the kind it names. What is open beside a filing prints on the filing, and which rank it took is in the reply — the reasoning behind both is docs/cli/beside.md and docs/cli/new.md, whose second copy this help was. */
 const NEW_FLAGS = [
   "  --title T      what is true once this is fixed, one line",
@@ -196,6 +201,7 @@ export const commands = {
   /* One verb, two asks, and a flag of one is a stranger to the other, so each path hands the parser
      its own text: a combined set would take `--status` beside a key and answer nothing about it. */
   issue: async (argv) => {
+    if (wantsHelp(argv)) return console.log(`${helpOf("issue")}\n\n${SET_TAKES}`);
     const [first, ...rest] = argv;
     if (first === undefined || first.startsWith("--")) {
       const declared = declaredFor("forge_issues", "filters").map((one) => `--${one}`);
@@ -383,5 +389,6 @@ export const commands = {
   },
 };
 
+commands.issue.answersHelp = true;
 commands.new.answersHelp = true;
 commands.feedback.answersHelp = true;
