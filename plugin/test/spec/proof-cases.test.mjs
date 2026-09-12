@@ -6,7 +6,7 @@ import test from "node:test";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { casesIn, proofOf, proofProblems } from "../../src/spec/proof.mjs";
+import { casesIn, proofOf, proofProblems } from "../../src/spec/claims/proof.mjs";
 
 const ROOT = new URL("../../..", import.meta.url).pathname;
 const TREE = "docs/requirements";

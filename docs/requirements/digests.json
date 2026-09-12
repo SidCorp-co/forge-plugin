@@ -401,6 +401,26 @@
       "rev": 2,
       "digest": "91d3855cc8e44ec4ccc3c858516dfa098d8147083030331b649e91de4f4deb79"
     },
+    "EI-09": {
+      "rev": 1,
+      "digest": "d73bef4ecb3232155874dfcc51db03dbca7ab5d94f456c0888ad94ca920be68a"
+    },
+    "AC-19-9-1": {
+      "rev": 1,
+      "digest": "75c94b949ff9e99111e23f22cb15dbffc68bc8931188a5f1449696042f8b7be4"
+    },
+    "AC-19-9-2": {
+      "rev": 1,
+      "digest": "696b9ebc6dde989f9deae007c8764b290a2f46424a4e0d78fba525620dd93ea0"
+    },
+    "AC-19-9-3": {
+      "rev": 1,
+      "digest": "5a43309d0e9484d059971d739ed8caac6406ae05e611612fd3ffc68010abf750"
+    },
+    "AC-19-9-4": {
+      "rev": 1,
+      "digest": "8bf139b03502aeb8305736ccb4a88f2fcf6df795e6e34962ed7df1213e748351"
+    },
     "FR-01": {
       "rev": 1,
       "digest": "b53bdf79d2534a15b4bf611a1fc770437865c15903f992af9598fefc74c54f57"

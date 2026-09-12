@@ -11,7 +11,7 @@ and what it does when the assumption fails.
 
 ### EI-01 — The tracker
 
-Rev: 3 · Enforces: BR-02, BR-14
+Rev: 3 · Enforces: BR-02, BR-14 · Reached from: `plugin/src/tracker/rest.mjs`
 
 Calls go over the tracker's REST API, with the credential as a bearer token and the project carried
 as a path segment naming its identifier rather than as a header naming its slug. One capability may
@@ -34,7 +34,7 @@ tracker keeps the verdict on it.
 
 ### EI-02 — The review provider
 
-Rev: 1 · Enforces: BR-16
+Rev: 1 · Enforces: BR-16 · Reached from: `plugin/src/codex/codex-api.mjs`
 
 A model from another provider, reached over its own gateway. It is worth its tokens only because it
 is a different family, so a slot resolving to this model's own family is refused (C-09). Every tool
@@ -96,7 +96,7 @@ accounting and segmentation are this product's; the prose is the model's and is 
 
 ### EI-06 — The zone and record service
 
-Rev: 1 · Enforces: BR-08
+Rev: 1 · Enforces: BR-08 · Reached from: `plugin/src/tools/services/cloudflare.mjs`
 
 Zones, records and cache purges on the developer's own credential, from the same account
 configuration as everything else — one source, so nothing about which credential answered is a
@@ -218,3 +218,27 @@ it. Reading is all this product does there.
   verdicts written twice, and the minutes and calls of every actor in the wave.
 - **AC-19-8-12** · Rev: 2 · Proof: plugin/test/stats/guide-parts.test.mjs "the flow is the one that call was served, so a reading does not move when this copy's does"
   WHEN the guide parts are listed THEN each SHALL carry the flow it was rendered for.
+
+### EI-09 — The chat backend
+
+Rev: 1 · Enforces: BR-08, BR-14 · Reached from: `plugin/src/tools/services/chatgpt.mjs`
+
+One turn crosses this boundary per invocation and never a second. The endpoint and the key are this
+plugin's own, kept in the configuration directory the tracker's token lives in and written there by
+the diagnostic verb, so neither is read off another tool's profile. A local attachment goes to an
+upload route of the same backend first and only its address travels with the turn. What comes back
+is somebody else's text, and a gateway that echoes a request back may put the key in it, so the key
+is struck out of external text before any of it is printed. Why a spent turn hands the decision to a
+person instead of asking again is `docs/cli/chatgpt.md`'s.
+
+- **AC-19-9-1** · Rev: 1 · Proof: plugin/test/tools/chatgpt.test.mjs "one turn is a tools/call of chatgpt at the configured endpoint, under the configured key"
+  WHEN a turn is sent THEN the CLI SHALL send it to the endpoint the configuration names, under the
+  key it names, and SHALL send no second turn for that invocation.
+- **AC-19-9-2** · Rev: 1 · Proof: plugin/test/tools/chatgpt.test.mjs "no endpoint or key: the refusal names the doctor flag for each, and sends nothing"
+  IF either the endpoint or the key is unconfigured THEN the CLI SHALL refuse before anything is
+  sent and SHALL name what sets each.
+- **AC-19-9-3** · Rev: 1 · Proof: plugin/test/tools/chatgpt.test.mjs "a key echoed back through the conversation id is struck out of the failure too"
+  WHERE text the far side wrote is printed the CLI SHALL strike the configured key out of it first.
+- **AC-19-9-4** · Rev: 1 · Proof: plugin/test/tools/chatgpt.test.mjs "the upload goes to the origin beside the chatgpt endpoint, never the tracker's"
+  WHEN a local attachment is sent THEN the CLI SHALL upload it to the same backend the turn is
+  addressed to, and SHALL send the turn only the address that upload answered with.

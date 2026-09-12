@@ -58,6 +58,7 @@ the checker and does not restate what it says.
 | R-17 | Every list is renderable as a table. | Each list of clauses is a table, or a sequence of clauses with identical field keys. | the page lint |
 | R-18 | A clause never restates the argument for a rule; it states the duty and cites the argument's home. | No sentence of the tree overlaps a sentence of the rules file, a skill, a gate document or another document under `docs/` at 0.55 or above by the measure in `plugin/src/checks/duplication.mjs`, over sentences of five words or more — counting prose, list items **and the text of table cells**, which that module strips and the gate therefore has to put back. | ISS-526, which owes the measure that reaches a cell |
 | R-19 | The tree names nothing that does not resolve. | Every path in a code span or a link exists, read from the repository root or from the document's own directory; every verb named is one the CLI has, or one declared on the document's proposal line. | `plugin/test/checks/cited-paths.test.mjs` for the paths, `plugin/test/checks/docs/doc-claims.test.mjs` for the verbs |
+| R-20 | An interface this product reaches over HTTP is a clause of §19. | Every module under `plugin/src` holding a `fetch` call or an `https://` base URL is named, as a root-relative path in a code span, by the `Reached from:` field of some `EI-` clause. | `plugin/test/spec/reached.test.mjs` |
 
 **Why a Proof names a case and not only a file (R-11).** A path that resolves cannot be told from a
 path that proves: three clauses cited a live test file for three releases after the cases moved out
@@ -119,6 +120,14 @@ constraints, the assumptions and the glossary are all tables. Measured separatel
 back, this tree carries no overlap with those sources at 0.40 or above. A gate built on that module
 unchanged would be blind to the half of the tree that most needs the check, which is the kind of
 selector that looks exactly like a clean repository.
+
+**What R-20's selector does not reach.** The two marks it reads are what an outbound HTTP call
+leaves in this repository's source, and they make a floor rather than a census. A provider crossed by
+a spawned process leaves neither — every module here that runs `git` would match a selector that
+reached one — and a second provider reached from a module some clause already names satisfies the
+join without earning a clause of its own. Both of those stay a person's judgement, as R-04, R-05 and
+R-16 do. What the rule buys is the case this tree had already missed and could not report: a module
+that talks to somebody new, arriving with no clause and with nothing in the tree able to say so.
 
 **A proposal line, where a document has one.** Exactly one line, immediately after the title:
 `**Status: proposal for` followed by the verbs the document names, each in a code span, then a full

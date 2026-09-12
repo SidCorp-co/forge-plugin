@@ -1,8 +1,8 @@
 /* The path is R-19's to resolve, in plugin/src/checks/cited-paths.mjs, so what is asked here is the
    case; docs/requirements/README.md carries why a Proof names one (R-11, ISS-217). */
-import { lineAt } from "../markdown.mjs";
-import { clausesOf } from "./parse.mjs";
-import { suggest } from "../suggest.mjs";
+import { lineAt } from "../../markdown.mjs";
+import { clausesOf } from "../parse.mjs";
+import { suggest } from "../../suggest.mjs";
 
 const TEST_FILE = /\.test\.mjs$/u;
 const ESCAPED = /^none yet\b/u;
