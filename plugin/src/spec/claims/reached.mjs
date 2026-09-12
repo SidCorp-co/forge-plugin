@@ -1,10 +1,11 @@
 /* R-20: what §19 declares against what this source reaches. `documents` is the tree and `sources`
    this repository's own modules, each `{ file, text }` with `file` from the root — the spelling a
    clause claims a module in. What the selector does not reach is `docs/requirements/README.md`'s. */
+import { CODE_SPAN_NONEMPTY_PATTERN } from "../../markdown.mjs";
 import { clausesOf } from "../parse.mjs";
 
 const FIELD = "Reached from";
-const SPAN = /`([^`\n]+)`/gu;
+const SPAN = new RegExp(CODE_SPAN_NONEMPTY_PATTERN, "gu");
 const CALLS = /(?<![\w$])fetch\s*\(/u;
 const ADDRESS = /https?:\/\//u;
 
