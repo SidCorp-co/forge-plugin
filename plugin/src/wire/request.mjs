@@ -25,6 +25,9 @@ export const waitSeconds = (config = userConfig()) =>
 
 export const deadlineSeconds = (config) => millisOf(waitSeconds(config)) / 1000;
 
+/** The longest wait a caller is handed rather than refused: `millisOf` clamps at it, and a call that asked past it is told what it got rather than judged for asking. */
+export const MAX_WAIT_SECONDS = MAX_DEADLINE_MILLIS / 1000;
+
 export const deadlineOf = (waits) => {
   const own = secondsGiven(waits);
   const millis = millisOf(own ?? waitSeconds());

@@ -48,6 +48,27 @@ token. Reading them off the codex gateway profile was tried and reversed: that f
 external shim, so a chatgpt turn would break the day the shim's profile moved. Widening this to every
 value the plugin reads is ISS-934 and not this verb's to do.
 
+The wait is set per call because the file it otherwise comes from is not this verb's. `waitSeconds`
+in the plugin's config is the deadline every tracker request runs under as well, so a number chosen
+for a turn that draws a picture or researches something for an hour becomes the number a call that
+lists issues waits before giving up. `--wait` hands one call its own seconds and writes nothing,
+which is the whole of the separation: raising the file is still how a machine changes its default,
+and it still moves both.
+
+Nothing bounds that wait but the clock. A wait under a whole millisecond is refused, because the
+timer counts in them and a deadline of nought spends the turn without reading an answer. A wait past
+what `AbortSignal.timeout` holds is clamped to that length and said to be, because a caller who asked
+for more has met a platform limit and not a judgement about which asks this verb serves. The rule
+that used to stand here — that past some duration this verb does not serve the ask — was the user's
+to make and they withdrew it on 2026-09-12: deep research is an ask they want served, and a wait long
+enough to serve it is one this verb takes.
+
+What a long wait buys and what it costs are separate questions. A turn that runs out returns no
+conversation id at all, and `--resume <id>` continues a conversation rather than collecting a turn
+that already ran out, so a lost turn has nothing to collect it by and a longer wait lengthens the
+exposure instead of closing it. Closing it means a call that detaches, hands back an id when it
+submits and is collected later, which is ISS-1271 and not this verb today.
+
 The proof is a stub wearing the backend's shapes. The upstream's browser pool was empty for every
 turn of the 2026-09-08 probe, so a gate that needs it is a gate that goes red for the weather — a
 live turn is evidence beside the suite and never the thing the suite waits on.

@@ -58,17 +58,18 @@ test("-h states the one attempt, the cap and the deadline in force", async () =>
   assert.doesNotMatch(said, /does not refund/u);
   assert.match(said, /up to 10/u);
   assert.match(said, /no default is sent/u);
-  assert.match(said, /The wait is \d+s, from waitSeconds in config\.json\./u);
+  assert.match(said, /The wait is \d+s, from waitSeconds in config\.json; --wait sets this call's alone\./u,
+    "the line naming where the wait comes from is the line that names the flag setting one call's");
 });
 
 /* Pinned by name, so dropping a row goes red here rather than passing as a shorter help text. The
    flag set is pinned beside them because a flag is the only handle this suite has on a use case
    arriving: a fifth turns this red, and whether it earns a row is judged then rather than never. */
-test("-h carries one row per use case, and the flags that reach them are those four", async () => {
+test("-h carries one row per use case, and the flags that reach them are those five", async () => {
   const said = await helpText();
   assert.deepEqual(labels(said), ["an answer", "a picture", "a follow-up"]);
   assert.deepEqual([...new Set(said.match(/--[a-z]+/gu))],
-    ["--resume", "--model", "--file", "--save"], "a flag added here owes the rows above another look");
+    ["--resume", "--model", "--file", "--save", "--wait"], "a flag added here owes the rows above another look");
 });
 
 test("the follow-up row carries the arithmetic and the picture row says what it is not", async () => {

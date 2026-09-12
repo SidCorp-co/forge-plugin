@@ -4,18 +4,20 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
 
-import { apiBaseOf, clockFor, deadlineOf, deadlineSeconds, parsedOr, ranOut } from "../../wire/request.mjs";
+import { apiBaseOf, clockFor, deadlineOf, deadlineSeconds, MAX_WAIT_SECONDS, parsedOr, ranOut } from "../../wire/request.mjs";
 import { sseEvents } from "../../wire/sse.mjs";
 import { chatgptSettings, fail } from "../../resolve/settings.mjs";
 import { firstLine, flags, pullRepeated, wantsHelp } from "../../resolve/flags.mjs";
 
 const FILE_CAP = 10;
+const MIN_WAIT_SECONDS = 0.001;
 const BODY_CHARS = 400;
 const URL_LIKE = /^https?:\/\//u;
 
 /* Built, not a constant: a deadline written into the text goes stale against `waitSeconds`. */
 export const usage = () => [
   "Usage: forge chatgpt \"<prompt>\" [--resume id] [--model slug] [--file path|url]... [--save path]",
+  "                                [--wait s]",
   "One turn of ChatGPT from the terminal, over the endpoint this machine has saved. Three things it",
   "is for, and what each costs:",
   "",
@@ -30,9 +32,10 @@ export const usage = () => [
   "  --model slug   pass a model through; no default is sent, so the upstream runs its account's",
   "  --file p|url   attach a file, up to 10; a local path is uploaded first, a URL is sent as it is",
   "  --save path    write the bytes of the image the reply names",
+  "  --wait s       seconds to hold this one call open, in place of the configured wait",
   "",
-  `The wait is ${deadlineSeconds()}s, from waitSeconds in config.json. Which asks earn a turn:`
-    + " docs/cli/chatgpt.md.",
+  `The wait is ${deadlineSeconds()}s, from waitSeconds in config.json; --wait sets this call's alone.`,
+  "That file is every tracker call's deadline too. Which asks earn a turn: docs/cli/chatgpt.md.",
 ].join("\n");
 
 const settingsFor = () => {
@@ -42,6 +45,17 @@ const settingsFor = () => {
       + held.missing.map((row) => `forge doctor --${row.flag} <${row.asks}>`).join("\n  "));
   }
   return held;
+};
+
+/* Judged on the seconds typed, not on what they round to: the clock counts whole milliseconds, so a wait under one of them is a deadline of nought whose turn is spent before an answer can arrive. */
+const waitFrom = (raw) => {
+  if (raw === undefined) return null;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < MIN_WAIT_SECONDS) {
+    fail(`chatgpt: --wait takes a number of seconds, ${MIN_WAIT_SECONDS} at the least, and \`${raw}\` is not one.`
+      + "\n  Nothing was sent. Ask again with the seconds this one turn may hold the connection open for.");
+  }
+  return value;
 };
 
 /* An answer to this request, not merely a message about it: the transport may send a request of its
@@ -159,11 +173,16 @@ export const chatgpt = async (argv) => {
     fail(`chatgpt: the prompt comes first, before any flag.\n${firstLine(said)}`);
   }
   const { values: given, rest } = pullRepeated(others, "--file", "chatgpt", { usage: said });
-  const { resume, model, save } = flags(rest, "chatgpt", [], { usage: said });
+  const { resume, model, save, wait } = flags(rest, "chatgpt", [], { usage: said });
+  const asked = waitFrom(wait);
 
   const held = settingsFor();
   const { struck, shown } = redactorsFor(held.key);
-  const deadline = deadlineOf(null);
+  const deadline = deadlineOf(asked);
+  /* Before the uploads, which already run under it: a caller told after them has spent the clamped deadline once without ever learning the number it asked for was not the one in force. */
+  if (asked !== null && asked > MAX_WAIT_SECONDS) {
+    console.error(`chatgpt: ${asked}s is past the longest a timer here holds, so this call waits ${deadline.value}s.`);
+  }
   const clock = () => clockFor(deadline);
   const files = await attached(given, held, deadline);
   const id = 1;
@@ -182,7 +201,7 @@ export const chatgpt = async (argv) => {
     },
   };
 
-  console.error(`chatgpt: one turn, waiting up to ${deadlineSeconds()}s.`);
+  console.error(`chatgpt: one turn, waiting up to ${deadline.value}s.`);
   let answer = null;
   let text = "";
   try {
