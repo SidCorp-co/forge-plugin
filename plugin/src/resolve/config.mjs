@@ -46,10 +46,7 @@ export const readJson = (path) => {
 
 export const userConfig = once(() => readJson(configPath()) ?? {});
 
-/* `w` sets the mode on create only, so a temp file left by a crashed run would keep its own. The
-   temporary name carries the writer's pid: two processes sharing one would interleave a file the
-   survivor then renames into place, and a writer killed before its rename leaves a file nothing
-   reuses. The next write sweeps it, there being nothing else here that runs to clean up. */
+/* `w` sets the mode on create only, so a temp file left by a crashed run would keep its own. The temporary name carries the writer's pid: two processes sharing one would interleave a file the survivor then renames into place, and a writer killed before its rename leaves a file nothing reuses. The next write sweeps it, there being nothing else here that runs to clean up. */
 const STRANDED_MS = 60_000;
 
 const sweepStranded = (path) => {
@@ -86,6 +83,9 @@ export const saveConfig = (values) => {
   Object.assign(userConfig(), merged);
   return configPath();
 };
+
+/* One key of the config holds an object, and `saveConfig` above merges the top level only — so writing one field of it from a bare object drops every sibling under the same key, which is how a login lost what a login before it had saved. The read, the merge and the save are here, where that limitation is. */
+export const saveNested = (key, values) => saveConfig({ [key]: { ...(userConfig()[key] ?? {}), ...values } });
 
 /* Which run this is: the lease's holder and what a session has been shown are both keyed by it. */
 export const sessionPath = () => join(configDir("forge"), "session.json");

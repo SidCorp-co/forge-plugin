@@ -232,6 +232,24 @@ export const LANDING_ROUTES = ["after-merge", "before-merge"];
 export const landingScope = once(() =>
   chosen(forgeJson().parsed?.landing, LANDING_ROUTES, null, { absent: null }));
 
+/* One row per key `forge chatgpt` needs: the flag that writes it, and the word that flag's own value goes by, which is what both the verb's refusal and doctor's row put after the flag. Declared here rather than beside the writer because `doctor-keys.mjs` reads this module, so the map cannot live there and be read from here. */
+export const CHATGPT_KEYS = [
+  { key: "url", flag: "chatgpt-url", asks: "endpoint" },
+  { key: "key", flag: "chatgpt-key", asks: "key" },
+];
+
+/* The pair and the file that answered for them, like every other machine-level reader here, and `missing` naming the rows a refusal builds its flags off rather than typing them. Unmemoised, as `shipMode` above is and for the same reason. */
+export const chatgptSettings = () => {
+  const held = userConfig().chatgpt ?? {};
+  const saved = CHATGPT_KEYS.filter((row) => held[row.key]);
+  return {
+    url: held.url ?? null,
+    key: held.key ?? null,
+    from: saved.length ? configPath() : null,
+    missing: CHATGPT_KEYS.filter((row) => !held[row.key]),
+  };
+};
+
 export const SHIP_MODES = ["self", "ready"];
 
 /** Unmemoised: `forge doctor --ship` writes the option and reports it in the same process. */

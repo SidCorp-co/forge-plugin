@@ -14,9 +14,7 @@ import {
   sessionSourced,
   userConfig,
 } from "../resolve/config.mjs";
-import {
-  CHATGPT_FLAGS, SAVED, install, setChatgpt, setShip, setVisibility,
-} from "./doctor-keys.mjs";
+import { MACHINE_FLAGS, MACHINE_WRITES } from "./doctor-keys.mjs";
 import { backoff, deadlineSeconds, retrySeconds, waitSeconds } from "../tracker/rest.mjs";
 import { BUNDLED } from "./vi.mjs";
 import {
@@ -33,7 +31,8 @@ import {
   readClaudeMd,
   reviewClaudeMd,
 } from "../checks/claude-md.mjs";
-import { harnessLines, masked } from "./services/doctor-harness.mjs";
+import { harnessLines } from "./services/doctor-harness.mjs";
+import { masked } from "./services/masked.mjs";
 import { copyToRun, FROZEN, pluginCopy } from "./plugin-copy.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
@@ -62,6 +61,13 @@ let missed = 0;
 const line = (mark, label, detail) => {
   if (mark === BAD) missed += 1;
   console.log(`[${mark}] ${label.padEnd(22)} ${detail}`);
+};
+
+/* One vocabulary for every row this report is handed, the project's and the harness's alike: a level the map does not carry is an `ok`, and `miss` is the one that reaches the exit code. Exported so the suite can hold it to being that one map rather than reading the marks back out of a report (ISS-102). */
+export const LEVELS = { note: NOTE, miss: BAD };
+
+const report = (rows) => {
+  for (const row of rows) line(LEVELS[row.level] ?? OK, row.label, row.detail);
 };
 
 /* Which part resolved and from where, never the value: `--full` is for a human holding two tokens. */
@@ -120,9 +126,7 @@ const checkVi = (waited) => {
   else line(login, "vi-natural model", "run `vi-natural login --model <id>` — `vi-natural models` lists them");
 };
 
-const checkHarness = (full) => {
-  for (const { ok, label, detail } of harnessLines(full)) line(ok ? OK : NOTE, label, detail);
-};
+const checkHarness = (full) => report(harnessLines(full));
 
 /* Something saying no, against a fault of the moment: a dropped socket or a 5xx is one bad minute,
    and recorded as a gate it hides the verb from every run after it (codex F4). */
@@ -380,8 +384,6 @@ const checkRoles = (dispatched) => {
   line(NOTE, "roles", `${parts.join("; ")} — \`claude plugin update\` then restart`);
 };
 
-const LEVELS = { note: NOTE, miss: BAD };
-
 /* The project's own record, under the names its owner uses rather than the tracker's columns, and
    in this report rather than under a verb named for the project: one surface reports every level of
    configuration with its source, and the project is a level of it. */
@@ -390,7 +392,7 @@ const projectSettings = () => import("./project-settings.mjs");
 const checkProject = async (credentials, graph = null) => {
   const { projectReport } = await projectSettings();
   const { rows, brief } = await projectReport({ credentials, graph });
-  for (const row of rows) line(LEVELS[row.level] ?? OK, row.label, row.detail);
+  report(rows);
   if (!brief.length) return;
   console.log("");
   for (const said of brief) console.log(said);
@@ -515,14 +517,13 @@ export const doctor = async (argv) => {
   const { values: pairs, rest } = pullRepeated(argv, "--meta", "doctor", { usage });
   const { positionals, flagArgv } = partition(rest, BOOLEAN, { verb: "doctor", usage });
   const asked = flags(flagArgv, "doctor", BOOLEAN, { usage, secret: ["--token", "--chatgpt-key"] });
-  const { full, credentials, hide, show: reveal, ship } = asked;
+  const { full, credentials } = asked;
   if (positionals.length && asked.line === undefined) {
     fail(`doctor: \`${positionals[0]}\` names no flag, and the prose of a line is --line's: `
       + "forge doctor --line <n> <text>");
   }
   /* Two stores: the project write returns before the report, dropping the machine's half silently. */
-  const machine = [...SAVED, ...Object.keys(CHATGPT_FLAGS), "hide", "show", "ship"]
-    .filter((key) => asked[key] !== undefined);
+  const machine = MACHINE_FLAGS.filter((key) => asked[key] !== undefined);
   const project = PROJECT_FLAGS.filter((key) => asked[key] !== undefined);
   if (project.length && machine.length) {
     fail(`doctor: \`--${project[0]}\` writes the project's own record and \`--${machine[0]}\` writes this `
@@ -530,12 +531,9 @@ export const doctor = async (argv) => {
   }
   const wrote = await wroteProject(asked, pairs, positionals);
   if (wrote) return wrote.forEach((said) => console.log(said));
-  if (hide) setVisibility(hide, true);
-  if (reveal) setVisibility(reveal, false);
-  if (ship) setShip(ship);
-  const saved = Object.fromEntries(SAVED.filter((key) => asked[key] !== undefined).map((key) => [key, asked[key]]));
-  if (Object.keys(saved).length) install(saved);
-  if (Object.keys(CHATGPT_FLAGS).some((flag) => asked[flag] !== undefined)) setChatgpt(asked);
+  for (const row of MACHINE_WRITES) {
+    if (row.flags.some((flag) => asked[flag] !== undefined)) row.write(asked);
+  }
 
   const { url, token } = accountCredentials();
   if (url.value) line(OK, "endpoint url", `${url.value}  ← ${url.from}`);

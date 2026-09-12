@@ -4,7 +4,8 @@
 
    Zones aggregate across every configured account, and a caller names a zone by id and never an
    account: which account holds that zone is asked rather than typed. */
-import { configPath, saveConfig, userConfig } from "../../resolve/config.mjs";
+import { configPath, saveNested, userConfig } from "../../resolve/config.mjs";
+import { abbreviated, masked } from "./masked.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { firstLine, flags, helpAskedOf, pullRepeated } from "../../resolve/flags.mjs";
 import { didYouMean } from "../../suggest.mjs";
@@ -260,11 +261,6 @@ export const searchDns = async (zones, query, type) => {
   return dedupe(perZone.flat());
 };
 
-const masked = (token, full) => {
-  if (!full) return `set (${token.length} chars)`;
-  return token.length <= 12 ? "set" : `${token.slice(0, 6)}…${token.slice(-4)} (${token.length} chars)`;
-};
-
 const saveAccount = (rest) => {
   const { name, "account-id": accountId, token, forget } =
     flags(rest, "cloudflare login", [], { usage: LOGIN_USAGE, secret: ["--token"] });
@@ -272,7 +268,7 @@ const saveAccount = (rest) => {
   if (forget) {
     const kept = held.filter((one) => one.name !== forget);
     if (kept.length === held.length) fail(didYouMean("account", forget, held.map((one) => one.name)));
-    saveConfig({ cloudflare: { accounts: kept } });
+    saveNested("cloudflare", { accounts: kept });
     console.log(`Dropped ${forget}; ${kept.length} account(s) left in ${configPath()}`);
     return;
   }
@@ -280,7 +276,7 @@ const saveAccount = (rest) => {
     fail("cloudflare login needs --name, --account-id and --token, or --forget <name>.");
   }
   const kept = held.filter((one) => one.name !== name);
-  saveConfig({ cloudflare: { accounts: [...kept, { name, accountId, apiToken: token }] } });
+  saveNested("cloudflare", { accounts: [...kept, { name, accountId, apiToken: token }] });
   console.log(`Saved ${name} to ${configPath()} (0600); ${kept.length + 1} account(s) configured.`);
 };
 
@@ -293,7 +289,7 @@ const listAccounts = (rest) => {
   }
   for (const account of accounts) {
     console.log(
-      `${account.name.padEnd(20)} account ${masked(account.accountId, full)}  token ${masked(account.apiToken, full)}`,
+      `${account.name.padEnd(20)} account ${abbreviated(account.accountId, full)}  token ${masked(account.apiToken, full)}`,
     );
   }
   console.log(`\n${accounts.length} account(s) ← ${from}`);

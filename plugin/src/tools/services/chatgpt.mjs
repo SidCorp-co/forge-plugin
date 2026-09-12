@@ -5,8 +5,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
 
 import { apiBaseOf, clockFor, deadlineOf, deadlineSeconds } from "../../wire/request.mjs";
-import { userConfig } from "../../resolve/config.mjs";
-import { fail } from "../../resolve/settings.mjs";
+import { chatgptSettings, fail } from "../../resolve/settings.mjs";
 import { firstLine, flags, pullRepeated, wantsHelp } from "../../resolve/flags.mjs";
 
 const FILE_CAP = 10;
@@ -29,13 +28,10 @@ export const usage = () => [
 ].join("\n");
 
 const settingsFor = () => {
-  const held = userConfig().chatgpt ?? {};
-  const missing = [];
-  if (!held.url) missing.push("--chatgpt-url <endpoint>");
-  if (!held.key) missing.push("--chatgpt-key <key>");
-  if (missing.length) {
-    fail(`chatgpt: no endpoint and key here yet. Set ${missing.length === 2 ? "both" : "it"}:\n  `
-      + missing.map((one) => `forge doctor ${one}`).join("\n  "));
+  const held = chatgptSettings();
+  if (held.missing.length) {
+    fail(`chatgpt: no endpoint and key here yet. Set ${held.missing.length === 2 ? "both" : "it"}:\n  `
+      + held.missing.map((row) => `forge doctor --${row.flag} <${row.asks}>`).join("\n  "));
   }
   return held;
 };
@@ -111,8 +107,7 @@ const uploaded = async (base, key, { path, bytes }, clock) => {
   return held.url;
 };
 
-/* Every attachment is read before the first upload leaves: reading inside the loop spends the first
-   file's request before a missing second one is found, and an upload cannot be taken back. */
+/* Every attachment is read before the first upload leaves: reading inside the loop spends the first file's request before a missing second one is found, and an upload cannot be taken back. */
 const attached = async (given, held, clock) => {
   if (given.length > FILE_CAP) fail(`chatgpt: ${given.length} files, and the tool takes ${FILE_CAP}`);
   const parts = [];
