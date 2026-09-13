@@ -7,7 +7,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { repoRoot } from "../../../src/codex/codex.mjs";
-import { logEntries, unverdicted, verdictForm } from "../../../src/codex/codex-log.mjs";
+import { logBytes, unverdicted, verdictForm } from "../../../src/codex/codex-log.mjs";
 import { FIELD, KEY } from "../../../src/flow/lease.mjs";
 import { gitProbe } from "../../../src/hooks/git-probe.mjs";
 import { linting } from "../../../src/hooks/lint-delegate.mjs";
@@ -197,7 +197,7 @@ export const run = (ev, held = heldAndSilent) => {
     say(`lint ${one.split(" — ")[0]}`, `Linter: ${one}\n  Clear it: edit the file until the finding is gone.`);
   }
 
-  const open = unverdicted(logEntries(), repoRoot(tree) ?? tree);
+  const open = unverdicted(logBytes(), repoRoot(tree) ?? tree);
   if (open) {
     say(`consult ${open.id}`,
       `Consult ${open.id} made ${open.open.join(", ")} and nothing says what became of them.\n`

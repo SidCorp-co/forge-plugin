@@ -8,9 +8,10 @@ import { shortSha } from "../tracker/evidence.mjs";
 import { pluginCopy } from "../tools/plugin-copy.mjs";
 
 import {
-  answered, countedIn, logEntries, numbered, recheckOwed, recheckPlan, undecidedIn, unverdicted,
+  answered, countedIn, logBytes, numbered, recheckOwed, recheckPlan, undecidedIn, unverdicted,
   verdictsBy,
 } from "../codex/codex-log.mjs";
+import { jsonLines } from "../hooks/hook-log-file.mjs";
 import { atMinute } from "./machine.mjs";
 
 export const KEY = "worklog";
@@ -95,8 +96,8 @@ export const stampedNow = (shape) => Object.fromEntries(shape.fields
   .filter((one) => one.stamped)
   .map((one) => [one.flag, STAMPS[one.stamped]?.()]));
 
-export const owedOn = (entries, last) => {
-  const open = unverdicted(entries, last.root);
+export const owedOn = (bytes, entries, last) => {
+  const open = unverdicted(bytes, last.root);
   if (open) return `verdict owed on ${open.open.join(", ")}`;
   const ids = numbered(last.reply).map((one) => one.id);
   if (undecidedIn(ids, verdictsBy(entries).get(last.id ?? last.at)).length) return "verdict owed";
@@ -107,14 +108,15 @@ export const owedOn = (entries, last) => {
 /* The consult id is the round: the log numbers no rounds, and a streak rule only this code knew
    would be a number nobody could check. `forge codex log --id <id>` expands it. */
 export const reviewNow = (root = process.cwd()) => {
-  const entries = logEntries();
+  const bytes = logBytes();
+  const entries = jsonLines(bytes.toString("utf8"));
   const last = answered(entries).filter((one) => one.root === root).at(-1);
   if (!last) return null;
   return {
     consult: String(last.id ?? last.at),
     recheck: Boolean(last.recheck),
     findings: countedIn(last.reply)?.total ?? numbered(last.reply).length,
-    owed: owedOn(entries, last),
+    owed: owedOn(bytes, entries, last),
   };
 };
 

@@ -1,7 +1,8 @@
 /* The credentials that are this machine's and a harness verb's, gating nothing: every other verb works with none of them saved, so each absence is a note. Rows out rather than printed lines, in the shape the project's rows already come in, because importing `line` from `doctor.mjs` would be a cycle. docs/cli/doctor.md. */
 import { CHATGPT_KEYS, CHATGPT_PREFIX, chatgptSettings } from "../../resolve/settings.mjs";
 import { modelBehind, profile } from "../../codex/codex-api.mjs";
-import { consults, logEntries, logPath } from "../../codex/codex-log.mjs";
+import { logBytes, logPath } from "../../codex/codex-log.mjs";
+import { consultCount } from "../../codex/log/asked.mjs";
 import { cloudflareAccounts } from "./cloudflare.mjs";
 import { masked } from "./masked.mjs";
 
@@ -19,7 +20,7 @@ const codexRow = () => {
   if (problem) return { level: "note", detail: `${problem} — \`forge codex\` cannot consult` };
   const model = modelBehind(values);
   if (!model) return { level: "note", detail: "the profile maps that model slot to nothing" };
-  return { level: "ok", detail: `${model}  ${consults(logEntries()).length} consult(s) logged at ${logPath()}` };
+  return { level: "ok", detail: `${model}  ${consultCount(logBytes())} consult(s) logged at ${logPath()}` };
 };
 
 const chatgptRow = (full) => {

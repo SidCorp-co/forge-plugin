@@ -9,7 +9,8 @@ import { configDir, readJson, writeJsonPrivate } from "../resolve/config.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { logHook } from "../hooks/hook-log-file.mjs";
 import { changedAgainst, digest } from "./codex-api.mjs";
-import { logEntries, sentShaOf } from "./codex-log.mjs";
+import { logBytes } from "./codex-log.mjs";
+import { sentShaOf } from "./log/asked.mjs";
 
 export const statePath = () => join(configDir("forge"), "codex.json");
 
@@ -143,7 +144,7 @@ export const readByCodex = (root, rel, log) => {
 };
 
 /** The three classes a recorded path can be in, one home, so the gate and `pending` cannot differ. */
-export const pendingNow = (root, files, log = logEntries, { apart = [], ms } = {}) => {
+export const pendingNow = (root, files, log = logBytes, { apart = [], ms } = {}) => {
   let entries = null;
   const read = () => (entries ??= log());
   const gone = goneFrom(root, files, "HEAD", false, ms);
@@ -266,7 +267,7 @@ export const pending = (rest, root) => {
     console.log("nothing pending");
     return from();
   }
-  const { owed, read, gone } = pendingNow(root, waiting, logEntries, { apart: apartFrom(root, waiting) });
+  const { owed, read, gone } = pendingNow(root, waiting, logBytes, { apart: apartFrom(root, waiting) });
   /* Dropped as the record is read: a path no write stands behind was reported as work owed by every later consult, and `--drop` declines for it (ISS-952). */
   if (gone.length) clearConsulted(root, gone);
   const goneLine = `recorded and no longer in the tree, so out of the record now: ${gone.join(", ")}`;

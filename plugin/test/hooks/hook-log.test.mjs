@@ -9,6 +9,7 @@ import { join } from "node:path";
 const room = tempRoom("hook-log-");
 process.env.XDG_CONFIG_HOME = room;
 const { hookEntries, hookLogPath, roundsBy, scrubbed } = await import("../../src/hooks/hook-log.mjs");
+const { jsonLines, jsonlBack, jsonlBytes, jsonlMark } = await import("../../src/hooks/hook-log-file.mjs");
 const CLI = new URL("../../src/cli.mjs", import.meta.url).pathname;
 test.after(() => rmSync(room, { recursive: true, force: true }));
 
@@ -208,4 +209,56 @@ test("the count is offered by the verb, and reads the log the gates write", () =
   assert.match(said.stdout, /a-sessio\s+\d+ refusal\(s\)/u, "one line per session");
   assert.match(said.stdout, /1 of them before a tracker write, over 1 refused write = 1 per write/u);
   assert.match(said.stdout, /only refusals are logged/u, "and the line says what the number is not");
+});
+
+/* A store this size is read to answer a question about one row, and holding it as rows cost 503 ms
+   and 167 MB of heap on the live consult log (ISS-1044). These are what the bytes answer instead. */
+const rows = [
+  { kind: "consult", id: "c1", root: "/a", sent: [{ rel: "docs/a.md", sha: "aa" }] },
+  { kind: "verdict", of: "c1" },
+  { kind: "consult", id: "c2", root: "/b", text: 'a reviewed file whose own body says "kind":"consult"' },
+];
+const stored = (held = rows) => Buffer.from(held.map((one) => `${JSON.stringify(one)}\n`).join(""));
+
+const marked = (bytes, mark) => [...jsonlBack(bytes, [mark])];
+
+test("a mark selects rows by a field, and no spelling of it inside a row's own text", () => {
+  const bytes = stored();
+  assert.deepEqual(marked(bytes, jsonlMark("kind", "consult")).map((one) => one.id), ["c2", "c1"],
+    "the second row says it in its own text, where every quote is escaped and no mark can be");
+  assert.equal(marked(bytes, jsonlMark("kind", "verdict")).length, 1);
+  assert.deepEqual(marked(Buffer.alloc(0), jsonlMark("kind", "consult")), [], "no store is no rows");
+  assert.equal(marked(bytes, jsonlMark("root", "/a"))[0].id, "c1");
+  assert.deepEqual(marked(bytes, jsonlMark("root", "/nowhere")), [], "a root the store never held");
+});
+
+test("the scan reads rows newest first, takes every one of the `all` marks, and stops where the caller does", () => {
+  const bytes = stored();
+  assert.deepEqual([...jsonlBack(bytes, [jsonlMark("kind", "consult")])].map((one) => one.id), ["c2", "c1"]);
+  assert.deepEqual([...jsonlBack(bytes, [jsonlMark("kind", "consult")], [jsonlMark("root", "/a")])].map((one) => one.id), ["c1"],
+    "the `all` mark is asked for in the same row");
+  let read = 0;
+  for (const one of jsonlBack(bytes, [jsonlMark("kind", "consult")])) {
+    read += 1;
+    if (one.id === "c2") break;
+  }
+  assert.equal(read, 1, "the row before the answer was never parsed");
+});
+
+const asRows = (bytes) => jsonLines(bytes.toString("utf8")).filter((one) => one.kind === "consult").length;
+
+test("a row torn by an append that stopped is no row to either reader, wherever the tear is", () => {
+  const half = '{"kind":"consult","id":"c3"';
+  const ended = Buffer.concat([stored(), Buffer.from(half)]);
+  assert.equal(asRows(ended), 2, "the parsing reader drops a tear at the end");
+  assert.equal(marked(ended, jsonlMark("kind", "consult")).length, 2, "and the scan reads no row out of it either");
+  /* The tear that outlives the append after it: the next whole record lands on the same line, and neither reader has a row. */
+  const inside = Buffer.concat([stored(), Buffer.from(`${half}${JSON.stringify({ kind: "consult", id: "c4" })}\n`)]);
+  assert.equal(marked(inside, jsonlMark("kind", "consult")).length, asRows(inside), "and the two agree there too");
+  const broken = Buffer.from(`{"kind":"consult","id":"c0"}\nnot json at all\n${'{"kind":"verdict","of":"c0"}'}\n`);
+  assert.deepEqual(marked(broken, jsonlMark("kind", "consult")).map((one) => one.id), ["c0"], "a line that will not parse is skipped, as it is by the parse");
+});
+
+test("a store with no file reads as no bytes, not as a throw", () => {
+  assert.equal(jsonlBytes(join(room, "nothing-here.jsonl")).length, 0);
 });

@@ -6,7 +6,7 @@ import test from "node:test";
 import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
-import { callHook, tempRoom } from "../fixtures.mjs";
+import { callHook, jsonlOf, tempRoom } from "../fixtures.mjs";
 
 const HOOK = new URL("../../hooks/entries/codex-second.mjs", import.meta.url).pathname;
 
@@ -123,7 +123,7 @@ test("a write at the bytes read is recorded where git will not say what the inde
   let opened = 0;
   const log = (entries) => () => {
     opened += 1;
-    return entries;
+    return jsonlOf(entries);
   };
 
   assert.match(hookRecord({}, [file], told("t1"), log([consult(true)])), /docs\/READ\.md/,
@@ -159,7 +159,7 @@ test("one invocation reads the log at most once, and not at all where no path as
   let opened = 0;
   const log = () => {
     opened += 1;
-    return [];
+    return jsonlOf([]);
   };
   const three = ["ONE.md", "TWO.md", "THREE.md"].map((one) => {
     const file = join(REPO, "docs", one);
@@ -242,7 +242,7 @@ test("a write at the bytes read is recorded where the index holds another copy, 
   git("commit", "-qm", "the base");
   const sent = (rel) => ({ kind: "consult", ok: true, reply: "CODEX: 0 findings", root, files: [rel],
     sent: [{ rel, sha: digest(READ) }] });
-  const log = () => [sent("docs/FRESH.md"), sent("docs/READ.md")];
+  const log = () => jsonlOf([sent("docs/FRESH.md"), sent("docs/READ.md")]);
   const told = teller();
   const record = () => (existsSync(statePath()) ? pendingIn(state(), root) : []);
 

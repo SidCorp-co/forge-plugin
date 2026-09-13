@@ -4,7 +4,7 @@
 import { isAbsolute, join } from "node:path";
 
 import { HUMAN_REF } from "../tracker/issues.mjs";
-import { appendJsonl, jsonlAt } from "../hooks/hook-log-file.mjs";
+import { appendJsonl, jsonLines, jsonlAt, jsonlBack, jsonlBytes, jsonlMark } from "../hooks/hook-log-file.mjs";
 import { configDir, NO_SESSION, sessionSourced, userConfig } from "../resolve/config.mjs";
 import { masked } from "../hooks/hook-log.mjs";
 import { pathed } from "../hooks/shell-spans.mjs";
@@ -50,6 +50,8 @@ export const logConsult = (record) => {
 
 export const logEntries = () => jsonlAt(logPath());
 
+export const logBytes = () => jsonlBytes(logPath());
+
 const HEADER = /^CODEX:\s*(\d+)\s*findings?(?:\s*\(([^)]*)\))?/im;
 const SEVERITY = /(\d+)\s*(blocker|major|minor)/gi;
 
@@ -66,7 +68,9 @@ export const countedIn = (reply) => {
 export const consults = (entries) => entries.filter((one) => one.kind === "consult");
 
 /* A failed consult carries no advice: "3 accepted" against a gateway timeout is not a verdict. */
-export const answered = (entries) => consults(entries).filter((one) => one.ok && one.reply);
+export const isAnswered = (one) => one.kind === "consult" && Boolean(one.ok) && Boolean(one.reply);
+
+export const answered = (entries) => entries.filter(isAnswered);
 
 /* Every hundredth answered consult, the log says so and names the verb that reads it — by this record's own place in the log, and identified by more than its id. docs/cli/codex-the-log.md. */
 export const MARK = 100;
@@ -100,16 +104,6 @@ export const sentFrom = (parts) => {
     /* The text sent, not the file: a clipped part went clipped, and its `sha` is of the whole. */
     return { ...row, text: part.text };
   });
-};
-
-/* The hash the latest answered consult for this checkout sent for one file; null when none did. */
-export const sentShaOf = (entries, root, rel) => {
-  for (const one of answered(entries).reverse()) {
-    if (one.root !== root) continue;
-    const hit = (one.sent ?? []).find((sent) => sent.rel === rel);
-    if (hit) return hit.sha ?? null;
-  }
-  return null;
 };
 
 /* Paired on `id`, which the finished entry copies from the started one. An unpaired start is a
@@ -468,13 +462,21 @@ export const undecidedIn = (ids, held) => {
 export const verdictForm = (id) => `forge codex verdict --of ${id} --accepted <ids> --rejected <id>=<why>`;
 
 /* For the commit gate, with the one command that clears it: two gates print that line in sentences of their own and the flags are the same flags in both. A later consult that found nothing does not answer for an earlier one's findings. */
-export const unverdicted = (entries, root) => {
-  const scored = verdictsBy(entries);
-  const last = answered(entries).filter((one) => one.root === root && numbered(one.reply).length).at(-1);
-  if (!last) return null;
-  const ids = numbered(last.reply).map((one) => one.id);
-  const open = undecidedIn(ids, scored.get(last.id ?? last.at));
-  return open.length ? { id: last.id ?? last.at, ids, open, files: last.files ?? [], at: last.at } : null;
+export const unverdicted = (bytes, root) => {
+  const scored = new Map();
+  for (const one of jsonlBack(bytes, [jsonlMark("root", root), jsonlMark("kind", "verdict")])) {
+    if (one.kind === "verdict") {
+      if (one.of && !scored.has(one.of)) scored.set(one.of, one);
+      continue;
+    }
+    if (!isAnswered(one) || one.root !== root) continue;
+    const ids = numbered(one.reply).map((held) => held.id);
+    if (!ids.length) continue;
+    const id = one.id ?? one.at;
+    const open = undecidedIn(ids, scored.get(id));
+    return open.length ? { id, ids, open, files: one.files ?? [], at: one.at } : null;
+  }
+  return null;
 };
 
 /* Inside the budget it is in flight; past it, nothing is coming. Reading the second as the first
@@ -610,9 +612,10 @@ export const verdict = (rest, root) => {
   if (!accepted.length && !rejected.length && !note) fail(VERDICT_USAGE);
   /* This repository's last consult that made findings and heard nothing back, not the last answer:
      after a converged recheck the last answer found nothing, and a verdict landed on it twice. */
-  const entries = logEntries();
+  const bytes = logBytes();
+  const entries = jsonLines(bytes.toString("utf8"));
   const own = answered(entries).filter((one) => !root || one.root === root);
-  const open = unverdicted(entries, root);
+  const open = unverdicted(bytes, root);
   const last = of
     ? own.find((one) => one.id === of)
     : open && own.find((one) => one.id === open.id) || own.at(-1);

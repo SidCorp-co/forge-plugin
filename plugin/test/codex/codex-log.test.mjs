@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, writeFileSync } from "node:fs";
 
-import { tempRoom } from "../fixtures.mjs";
+import { jsonlOf, tempRoom } from "../fixtures.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves, so the two tests that read the real log path read a sandbox. */
 const sandbox = tempRoom("forge-codex-log-");
@@ -385,17 +385,17 @@ test("a recheck's rulings become the verdict on the consult it judged, by positi
 test("the commit gate asks about the last consult that made findings and heard nothing", () => {
   const withFindings = { kind: "consult", id: "c1", ok: true, root: "/a", at: "1", files: ["a.mjs"], reply: "- **F1 — New — major:** `a.mjs:1` — x." };
   const quiet = { kind: "consult", id: "c2", ok: true, root: "/a", at: "2", files: ["b.mjs"], reply: "CODEX: 0 findings" };
-  assert.deepEqual(unverdicted([withFindings, quiet], "/a"), { id: "c1", ids: ["F1"], open: ["F1"], files: ["a.mjs"], at: "1" }, "a later empty consult does not answer for it");
-  assert.equal(unverdicted([withFindings, quiet, { kind: "verdict", of: "c1", accepted: 1, rejected: 0 }], "/a"), null, "a count-form verdict decided everything");
+  assert.deepEqual(unverdicted(jsonlOf([withFindings, quiet]), "/a"), { id: "c1", ids: ["F1"], open: ["F1"], files: ["a.mjs"], at: "1" }, "a later empty consult does not answer for it");
+  assert.equal(unverdicted(jsonlOf([withFindings, quiet, { kind: "verdict", of: "c1", accepted: 1, rejected: 0 }]), "/a"), null, "a count-form verdict decided everything");
   const two = { ...withFindings, reply: `${withFindings.reply}\n- **F2 — New — minor:** \`a.mjs:2\` — y.` };
   const partial = { kind: "verdict", of: "c1", accepted: 1, rejected: 0, kept: ["F1"], dropped: {}, from: "r1" };
-  assert.deepEqual(unverdicted([two, partial], "/a").open, ["F2"], "a recheck's partial verdict leaves what it confirmed open");
-  assert.equal(unverdicted([two, { ...partial, dropped: { F2: "by design" } }], "/a"), null);
+  assert.deepEqual(unverdicted(jsonlOf([two, partial]), "/a").open, ["F2"], "a recheck's partial verdict leaves what it confirmed open");
+  assert.equal(unverdicted(jsonlOf([two, { ...partial, dropped: { F2: "by design" } }]), "/a"), null);
   const merged = verdictRecord({ id: "c1", files: ["a.mjs"], reply: two.reply }, { rejected: "F2=by design" }, partial);
   assert.deepEqual([merged.record.kept, merged.record.dropped, merged.undecided], [["F1"], { F2: "by design" }, 0], "a later verdict adds to the recheck's");
   const flipped = verdictRecord({ id: "c1", files: ["a.mjs"], reply: two.reply }, { rejected: "F1=wrong after all" }, partial);
   assert.deepEqual([flipped.record.kept, Object.keys(flipped.record.dropped)], [[], ["F1"]], "the newer word wins");
-  assert.equal(unverdicted([withFindings], "/b"), null, "another root's consult is not this tree's");
+  assert.equal(unverdicted(jsonlOf([withFindings]), "/b"), null, "another root's consult is not this tree's");
 });
 
 test("history replays the findings, rulings and outcomes, not the prose", () => {

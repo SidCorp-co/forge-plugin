@@ -45,4 +45,46 @@ export const jsonlAt = (path) => {
   }
 };
 
+/** The store's bytes, or none where there is no file yet: a question about one row is answered off the text, and decoding a 43 MB log to UTF-16 costs ten times reading it (ISS-1044). */
+export const jsonlBytes = (path) => {
+  try {
+    return readFileSync(path);
+  } catch {
+    return Buffer.alloc(0);
+  }
+};
+
+/** A key and its value as `JSON.stringify` writes the pair. Nothing inside a row's string values can spell one, every quote there being escaped, so a mark selects rows by a field rather than by a word that could be anywhere. */
+export const jsonlMark = (key, value) => `"${key}":${JSON.stringify(value)}`;
+
+const NEWLINE = 0x0a;
+
+/** The store's rows carrying any of these marks and all of those, newest first, each parsed as it is reached: a caller that stops at its answer pays the distance back to it rather than the whole store. A row an append left half-written is what it is to `jsonLines` — a line that will not parse, and no row. */
+export function* jsonlBack(bytes, any, all = []) {
+  const marks = any.map((one) => ({ mark: Buffer.from(one), at: bytes.length }));
+  const every = all.map((one) => Buffer.from(one));
+  let end = bytes.length;
+  while (end > 0) {
+    let found = -1;
+    for (const held of marks) {
+      if (held.at >= end) held.at = end < held.mark.length ? -1 : bytes.lastIndexOf(held.mark, end - held.mark.length);
+      found = Math.max(found, held.at);
+    }
+    if (found < 0) return;
+    const start = bytes.lastIndexOf(NEWLINE, found) + 1;
+    const stop = bytes.indexOf(NEWLINE, found);
+    const line = bytes.subarray(start, stop < 0 ? bytes.length : stop);
+    if (every.every((mark) => line.includes(mark))) {
+      let row = null;
+      try {
+        row = JSON.parse(line.toString("utf8"));
+      } catch {
+        row = null;
+      }
+      if (row) yield row;
+    }
+    end = start;
+  }
+}
+
 export const hookEntries = () => jsonlAt(hookLogPath());

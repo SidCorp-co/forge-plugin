@@ -53,6 +53,7 @@ import {
   consults,
   numbered,
   historyFor,
+  logBytes,
   logConsult,
   logEntries,
   loggedWithMark,
@@ -483,7 +484,7 @@ const show = (rest = []) => {
 /* The hook records; it never reviews. It asks for one consult at the end of the turn with the intent
    attached, and the caller decides what a turn is: a pending list spans sessions. */
 
-export const hookRecord = (event, paths, told = () => false, log = logEntries) => {
+export const hookRecord = (event, paths, told = () => false, log = logBytes) => {
   if (process.env.FORGE_CODEX_DISABLE === "1") return null;
   let announce = null;
   /* The whole log, read at most once for the invocation and not at all where no path gets as far as asking:

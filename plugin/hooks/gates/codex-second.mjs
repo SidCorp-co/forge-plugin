@@ -3,7 +3,7 @@
 import { isAbsolute, resolve } from "node:path";
 
 import { ageOf, apartFrom, demandIn, pendingNow, pendingState, repoRoot, stagedIn } from "../../src/codex/codex.mjs";
-import { logEntries, unverdicted, verdictForm } from "../../src/codex/codex-log.mjs";
+import { logBytes, unverdicted, verdictForm } from "../../src/codex/codex-log.mjs";
 import { configDir } from "../../src/resolve/config.mjs";
 import { probeMs } from "../../src/hooks/git-probe.mjs";
 import {
@@ -138,7 +138,7 @@ export const run = (ev) => {
      index with no `-a`: 7 of 30 landed unread, and an exact revert owed a consult with nothing in it. */
   const waiting = pendingState(root);
   let entries = null;
-  const log = () => (entries ??= logEntries());
+  const log = () => (entries ??= logBytes());
   const asked = demandIn(waiting.files, staged);
   const apart = aim.all ? [] : apartFrom(root, asked, probeMs(remaining()));
   const demand = pendingNow(root, asked, log, { apart, ms: probeMs(remaining()) }).owed;

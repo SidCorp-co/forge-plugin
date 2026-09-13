@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempHome, tempRoom } from "../../fixtures.mjs";
+import { jsonlOf, tempHome, tempRoom } from "../../fixtures.mjs";
 
 const HOME = tempHome("worklog");
 process.env.XDG_CONFIG_HOME = HOME.path;
@@ -158,7 +158,7 @@ test("the owed line names a recheck only where `consult --recheck` would take on
     ["a finding the record folded", [found, folded], "recheck owed"],
   ];
   for (const [what, entries, said] of shapes) {
-    const owed = owedOn(entries, entries[0]);
+    const owed = owedOn(jsonlOf(entries), entries, entries[0]);
     assert.equal(owed, said, what);
     assert.ok(
       !/recheck/u.test(owed) || recheckOwed(recheckPlan(entries, "/nowhere", rels), rels) === null,
