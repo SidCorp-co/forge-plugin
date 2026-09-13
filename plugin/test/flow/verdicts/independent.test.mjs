@@ -384,10 +384,7 @@ test("the judging run hands the turn back, and the lander takes the lease it lef
     "and the hand-back is refused a second time, naming the state it read");
 });
 
-/* The other half of the round ISS-1260 removed: a payload write takes a field holding no lease where
-   a bare claim would have been granted, and this write never can — every landing state is past the
-   statuses a run is dispatched at — so what it owes is the claim that does clear the state, and not
-   the one that is refused there in turn (ISS-1252). */
+/* The other half of the round ISS-1260 removed: a payload write takes a field holding no lease where a bare claim would have been granted, and this write never can, every landing state being past the statuses a run is dispatched at. So what it owes is the claim that does clear the state, and not the one refused there in turn (ISS-1252). */
 test("the hand-back on a field holding no lease names the claim that clears that state", async () => {
   const was = judging.status;
   judging.status = "testing";

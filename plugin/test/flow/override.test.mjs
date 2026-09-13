@@ -304,10 +304,7 @@ test("a status set by hand carries the reason the tracker demands, and says no c
     "and the correction says where it came from, which the status field no longer holds");
 });
 
-/* The round this removes, end to end and on the verb that was spending it most: the move lands in
-   the one call that asked for it, on an issue no run had ever taken (ISS-1260). The transition's own
-   `--next` is a clearing of a line the issue was carrying, and a field holding no lease carries
-   none, so what the lease gets is the line that says no work followed the write. */
+/* The round this removes, end to end and on the verb that was spending it most: the move lands in the one call that asked for it, on an issue no run had ever taken (ISS-1260). The transition's own `--next` is a clearing of a line the issue was carrying, and a field holding no lease carries none, so the lease gets the line that says no work followed the write. */
 test("a status set on an issue nobody holds moves in the one call, the write taking the lease it was refused for", async () => {
   before("confirmed");
   ISSUE.sessionContext = null;

@@ -7,7 +7,6 @@ import { fakeTracker, pageOf, ranAsync } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../..", import.meta.url).pathname;
-/* Named, so the holder the take writes is compared with a value this file chose rather than with itself. */
 const WRITER = "the-run-that-wrote-the-note";
 
 const day = (one) => `2026-09-0${one}T00:00:00.000Z`;
@@ -62,9 +61,7 @@ test("a finder reaches the same key through forge comment, and is asked for no l
   assert.match(run.stdout, /No lease on ISS-1 is yours/u, "and the reply says the post took none");
 });
 
-/* The record path's own take, beside the advance path's: one function does both, and a defect in the
-   ownership either of them writes is invisible until a second run collides with the lease (consult
-   a64e9b F1). */
+/* The record path's own take, beside the advance path's: a defect in the ownership either of them writes is invisible until a second run collides with the lease, so the holder is compared with a name this file chose (consult a64e9b F1). */
 test("the holder's verbs reach it too, the lookup being one, and the lease they wanted is taken", async () => {
   cutTo(BACKLOG, 2);
   const run = await ranAsync(FORGE, ["record", "note", "ISS-1", "--section", "Fixed", "--user", "a line"],
