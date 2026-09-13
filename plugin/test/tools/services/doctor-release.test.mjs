@@ -101,6 +101,16 @@ test("a remote that answers with no version tag is said by name, never as agreem
   assert.doesNotMatch(row.detail, /and the one running/u);
 });
 
+test("an annotated release answers twice and is counted once", () => {
+  const at = box("annotated", { tags: ["v1.0.0"] });
+  for (const [tag, at_] of [["v1.0.1", "HEAD"], ["v1.0.2", "HEAD"]]) {
+    git(at.tree, "-c", "user.email=t@example.test", "-c", "user.name=Test", "tag", "-a", "-m", tag, tag, at_);
+    git(at.tree, "push", "origin", tag);
+  }
+  const row = only(releaseRows({ home: at.home, running: "1.0.0" }));
+  assert.match(row.detail, /2 tagged release\(s\) newer than it/u);
+});
+
 test("a tag that is no dotted version counts as none at all", () => {
   const at = box("odd-tags", { tags: ["release-candidate", "latest"] });
   assert.match(only(releaseRows({ home: at.home, running: "1.0.0" })).detail, /no version tag/u);

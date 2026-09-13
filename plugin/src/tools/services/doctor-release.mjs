@@ -63,8 +63,10 @@ export const releasedVersions = (at, ms = MS) => {
   const held = [...String(run.stdout).matchAll(/refs\/tags\/(\S+?)(?:\^\{\})?$/gmu)]
     .map((one) => triple(one[1]))
     .filter(Boolean);
-  if (!held.length) return { problem: "the remote carries no version tag" };
-  return { versions: held.sort((one, two) => (above(one, two) ? 1 : -1)) };
+  /* An annotated tag answers twice, itself and its peeled commit, and both name one release. */
+  const once = [...new Map(held.map((one) => [one.join("."), one])).values()];
+  if (!once.length) return { problem: "the remote carries no version tag" };
+  return { versions: once.sort((one, two) => (above(one, two) ? 1 : -1)) };
 };
 
 /* Counting tags and never releases: every release before this one published nothing to count, so a
