@@ -11,7 +11,7 @@ delete process.env.FORGE_CODEX_DISABLE;
 
 const { consultArgs } = await import("../../src/codex/codex.mjs");
 const { promptFor, roleFor } = await import("../../src/codex/codex-api.mjs");
-const { digestOf, numbered, recheckRisks } = await import("../../src/codex/codex-log.mjs");
+const { digestOf, numbered, recheckRisks } = await import("../../src/codex/log/replies.mjs");
 
 /* 149 of 1,014 ruled findings were dropped, and the two largest classes — real but outside the
    issue, and something a checker already holds — are things the prompt never told the reviewer. */

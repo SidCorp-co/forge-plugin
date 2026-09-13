@@ -9,7 +9,8 @@ import { tempRoom } from "../../fixtures.mjs";
 const sandbox = tempRoom("forge-codex-anchors-");
 process.env.XDG_CONFIG_HOME = sandbox;
 
-const { findingsIn, logConsult, logEntries, numbered } = await import("../../../src/codex/codex-log.mjs");
+const { logConsult, logEntries } = await import("../../../src/codex/codex-log.mjs");
+const { findingsIn, numbered } = await import("../../../src/codex/log/replies.mjs");
 const { statsOf } = await import("../../../src/codex/codex-stats.mjs");
 
 const REPLY = [

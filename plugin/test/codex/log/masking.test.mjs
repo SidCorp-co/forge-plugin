@@ -10,7 +10,7 @@ import { tempRoom } from "../../fixtures.mjs";
    is live, and nothing here may read or write it. */
 process.env.XDG_CONFIG_HOME = tempRoom("forge-codex-masking-");
 
-const { historyFor, recheckRisks } = await import("../../../src/codex/codex-log.mjs");
+const { historyFor, recheckRisks } = await import("../../../src/codex/log/replies.mjs");
 
 const FAKE = "7|notarealtokennotarealtokennotarealtoken";
 const JWT = `eyJ${"z".repeat(30)}.${"y".repeat(30)}.${"x".repeat(30)}`;

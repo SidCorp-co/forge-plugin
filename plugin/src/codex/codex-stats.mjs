@@ -7,7 +7,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute } from "node:path";
 
 import { DIFF_CHARS, digest } from "./codex-api.mjs";
-import { MARK, answered, logEntries, logPath, modelKey, numbered, scoreOf } from "./codex-log.mjs";
+import { MARK, answered, logEntries, logPath } from "./codex-log.mjs";
+import { modelKey, numbered, scoreOf } from "./log/replies.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
 import { incompleteIn, newFindingsIn } from "./codex-plan.mjs";
 import { fail } from "../resolve/settings.mjs";

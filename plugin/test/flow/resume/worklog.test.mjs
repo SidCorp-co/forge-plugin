@@ -21,7 +21,7 @@ const {
 } = await import("../../../src/flow/worklog.mjs");
 const { workLines } = await import("../../../src/guides/phases.mjs");
 const { claimed, leaseOf } = await import("../../../src/flow/lease.mjs");
-const { recheckOwed, recheckPlan } = await import("../../../src/codex/codex-log.mjs");
+const { recheckOwed, recheckPlan } = await import("../../../src/codex/log/replies.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 

@@ -14,7 +14,7 @@ import { PER_KEY, SPARE, issueParts, pagedParts, runTool, scopeFor, toolsFor, tr
 import { SAYS, consultArgs } from "../../../src/codex/codex.mjs";
 import { reviewSet } from "../../../src/codex/codex-set.mjs";
 import { roleFor } from "../../../src/codex/codex-api.mjs";
-import { numbered } from "../../../src/codex/codex-log.mjs";
+import { numbered } from "../../../src/codex/log/replies.mjs";
 
 const SLUG = JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8")).slug;
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;

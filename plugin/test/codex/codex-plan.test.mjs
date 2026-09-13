@@ -30,7 +30,8 @@ const {
   windowOf,
   windowObject,
 } = await import("../../src/codex/codex-stats.mjs");
-const { KEPT_CHARS, KEPT_TOTAL, logPath, scoreOf, sentFrom } = await import("../../src/codex/codex-log.mjs");
+const { KEPT_CHARS, KEPT_TOTAL, logPath, sentFrom } = await import("../../src/codex/codex-log.mjs");
+const { scoreOf } = await import("../../src/codex/log/replies.mjs");
 const { marksPath, writeMark } = await import("../../src/stats/marks.mjs");
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const { digest, promptMark, roleFor } = await import("../../src/codex/codex-api.mjs");

@@ -3,7 +3,8 @@
 import { isAbsolute, resolve } from "node:path";
 
 import { ageOf, apartFrom, demandIn, pendingNow, pendingState, repoRoot, stagedIn } from "../../src/codex/codex.mjs";
-import { logBytes, unverdicted, verdictForm } from "../../src/codex/codex-log.mjs";
+import { logBytes } from "../../src/codex/codex-log.mjs";
+import { unverdicted, verdictForm } from "../../src/codex/log/replies.mjs";
 import { configDir } from "../../src/resolve/config.mjs";
 import { probeMs } from "../../src/hooks/git-probe.mjs";
 import {

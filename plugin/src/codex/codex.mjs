@@ -46,26 +46,25 @@ import {
 import { EVAL_USAGE, MARKS_USAGE, REPLAY_USAGE, STATS_USAGE, crossingSaid, printEval, printMarks,
   printReplay, printStats } from "./codex-stats.mjs";
 import {
-  LOG_USAGE,
-  VERDICT_USAGE,
   budgetMs,
   logPath,
   consults,
-  numbered,
-  historyFor,
   logBytes,
   logConsult,
   logEntries,
   loggedWithMark,
-  printLog,
+  sentFrom,
+  verdictsBy,
+} from "./codex-log.mjs";
+import {
+  numbered,
+  historyFor,
   recheckOwed,
   recheckPlan,
   recheckRange,
-  sentFrom,
-  verdict,
   verdictFromRulings,
-  verdictsBy,
-} from "./codex-log.mjs";
+} from "./log/replies.mjs";
+import { LOG_USAGE, VERDICT_USAGE, printLog, verdict } from "./log/verbs.mjs";
 
 const DEFAULT_PATH_RE = "^docs/.*\\.md$";
 

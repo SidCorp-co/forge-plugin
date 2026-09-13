@@ -7,10 +7,10 @@ import { fail } from "../resolve/settings.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
 import { pluginCopy } from "../tools/plugin-copy.mjs";
 
+import { answered, logBytes, verdictsBy } from "../codex/codex-log.mjs";
 import {
-  answered, countedIn, logBytes, numbered, recheckOwed, recheckPlan, undecidedIn, unverdicted,
-  verdictsBy,
-} from "../codex/codex-log.mjs";
+  countedIn, numbered, recheckOwed, recheckPlan, undecidedIn, unverdicted,
+} from "../codex/log/replies.mjs";
 import { jsonLines } from "../hooks/hook-log-file.mjs";
 import { atMinute } from "./machine.mjs";
 

@@ -11,7 +11,8 @@ const sandbox = tempRoom("forge-codex-identity-");
 process.env.XDG_CONFIG_HOME = sandbox;
 standsInNoTree("forge-codex-identity");
 
-const { logConsult, logEntries, logLine, logPath } = await import("../../../src/codex/codex-log.mjs");
+const { logConsult, logEntries, logPath } = await import("../../../src/codex/codex-log.mjs");
+const { logLine } = await import("../../../src/codex/log/verbs.mjs");
 
 /* The environment the write reads, and whatever this suite's own run was handed put back after. */
 const asRun = (held, then) => {
