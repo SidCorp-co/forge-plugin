@@ -2,7 +2,7 @@
    call is spent. Four sightings let another layer answer for one argument — `fs`, the tracker's
    option list, or nothing at all — and none of them knows this CLI has verbs, so none could carry
    the command that clears it (ISS-936). What this asks and what it leaves to the parser, to
-   `notAPath` and to each verb's second page: docs/cli/did-you-mean.md. */
+   `notAPath` and to each verb's second page: docs/cli/the-usage-row.md. */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 

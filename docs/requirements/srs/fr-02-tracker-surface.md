@@ -245,6 +245,11 @@ method text and not a feature to keep.
   and a check made row by row fires on neither an empty page nor a filter that short-circuits ahead
   of it — which is what makes an argument of that shape added without the judge fail instead of
   answer.
+- **AC-02-9-20** · Rev: 1 · Proof: plugin/test/cli/did-you-mean.test.mjs "a flag of another call of the verb is refused as that call's, never as one the verb has not got" · Source: docs/cli/the-usage-row.md
+  IF a verb that parses against one of its several usage texts is given a flag another of them names
+  THEN the CLI SHALL refuse without saying the verb has no such flag, and SHALL carry the one command
+  that reaches the flag on the call that takes it, because a caller who used that flag on the other
+  call a moment earlier can see the denial is false and learns only that the refusal is unreliable.
 
 ### UC-02-10 — The projects, at the plugin's own scope
 

@@ -111,11 +111,11 @@ const printIssues = (read, limit, order) => {
   if (said) console.log(said);
 };
 
-const LIST_USAGE = "Usage: forge issue [--status s] [--search q] [--limit n]";
+export const LIST_USAGE = "Usage: forge issue [--status s] [--search q] [--limit n]";
 /* Seventeen names are a list rather than a sentence, so the route out is where they are counted. */
 const STATUSES_SEEN = "`forge doctor` counts the statuses this project's issues carry.";
 
-const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full] [--set f=v... --why W]"
+export const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full] [--set f=v... --why W]"
   + " [--blocks ISS-46|--relates ISS-46|--unlink ISS-46]";
 
 /* The one thing a row cannot hold: the form a body takes, learnt before the refusal (ISS-1158). */
@@ -198,14 +198,14 @@ export const commands = {
   chatgpt,
   hooks,
   stats,
-  /* One verb, two asks, and a flag of one is a stranger to the other, so each path hands the parser
-     its own text: a combined set would take `--status` beside a key and answer nothing about it. */
+  /* One verb, two asks, and a flag of one is a stranger to the other, so each path hands the parser its
+     own text and names the other as its `modes`: a combined set would take `--status` beside a key and answer nothing about it, and one text alone called the other's flag a flag nobody has (ISS-932). */
   issue: async (argv) => {
     if (wantsHelp(argv)) return console.log(`${helpOf("issue")}\n\n${SET_TAKES}`);
     const [first, ...rest] = argv;
     if (first === undefined || first.startsWith("--")) {
       const declared = declaredFor("forge_issues", "filters").map((one) => `--${one}`);
-      const { limit: raw, ...filters } = flags(argv, "issue", [], { usage: LIST_USAGE, hidden: declared });
+      const { limit: raw, ...filters } = flags(argv, "issue", [], { usage: LIST_USAGE, hidden: declared, modes: [READ_USAGE] });
       /* Each named at its own call, not looped: the value a caller typed is what the judge is handed, and a loop would name the field and pass whatever the loop held (ISS-936). */
       refuseUndeclared("issue", "status", filters.status,
         { values: declaredFor("forge_issues", "status"), hint: STATUSES_SEEN });
@@ -222,8 +222,8 @@ export const commands = {
       return printIssues(await everyIssue(filters), limitFrom(raw), declaredFor("forge_issues", "priority"));
     }
     const reference = first;
-    const pulled = pullRepeated(rest, "--set", "issue", { usage: READ_USAGE, boolean: ["--full"] });
-    const { fields, full, why, ...single } = flags(pulled.rest, "issue", ["--full"], { usage: READ_USAGE });
+    const pulled = pullRepeated(rest, "--set", "issue", { usage: READ_USAGE, boolean: ["--full"], modes: [LIST_USAGE] });
+    const { fields, full, why, ...single } = flags(pulled.rest, "issue", ["--full"], { usage: READ_USAGE, modes: [LIST_USAGE] });
     const asked = { ...single, ...(pulled.values.length ? { set: pulled.values } : {}) };
     const [wrote] = exclusive(asked, [...EDGE_KINDS, "unlink", "set"], "issue", "writes and a call makes one");
     if (wrote === "set") return overrideFields(reference, asked.set, why, { ask: pulled.ask });

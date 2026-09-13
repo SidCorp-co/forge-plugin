@@ -67,7 +67,7 @@ const fromStdin = async () => {
   return text;
 };
 
-/* A path opening with two dashes is a flag, not a file — docs/cli/did-you-mean.md (ISS-240). */
+/* A path opening with two dashes is a flag, not a file — docs/cli/the-usage-row.md (ISS-240). */
 export const notABody = (path) =>
   `\`${path}\` is a flag, not a body: this slot takes a file, \`@file\`, or \`-\` for stdin. A file `
   + `whose own name opens that way is passed as \`./${path}\`.`;

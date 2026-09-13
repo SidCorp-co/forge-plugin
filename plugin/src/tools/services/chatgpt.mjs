@@ -449,10 +449,11 @@ const promptIn = (argv, verb, usage, judged) => {
 const ask = async (argv) => {
   const said = askUsage();
   if (wantsHelp(argv) || argv.length === 0) return console.log(said);
+  const row = { usage: said, modes: otherCalls("ask") };
   const prompt = promptIn(argv, "chatgpt ask", said, () =>
-    flags(pullRepeated(argv, "--file", "chatgpt ask", { usage: said }).rest, "chatgpt ask", [], { usage: said }));
-  const { values: given, rest } = pullRepeated(argv.slice(1), "--file", "chatgpt ask", { usage: said });
-  const { resume, model, save, wait } = flags(rest, "chatgpt ask", [], { usage: said });
+    flags(pullRepeated(argv, "--file", "chatgpt ask", row).rest, "chatgpt ask", [], row));
+  const { values: given, rest } = pullRepeated(argv.slice(1), "--file", "chatgpt ask", row);
+  const { resume, model, save, wait } = flags(rest, "chatgpt ask", [], row);
   const asked = waitFrom(wait, "chatgpt ask", "this one turn may hold the connection open for");
   return await turned("ask", argv, () => ({ prompt, shown: prompt, model, resume, given, save, asked,
     resumeAs: RESUMES_ASK }));
@@ -463,9 +464,9 @@ const ask = async (argv) => {
 const image = async (argv) => {
   const said = imageUsage();
   if (wantsHelp(argv) || argv.length === 0) return console.log(said);
-  const prompt = promptIn(argv, "chatgpt image", said, () =>
-    flags(argv, "chatgpt image", [], { usage: said }));
-  const { ratio, resume, model, save, wait } = flags(argv.slice(1), "chatgpt image", [], { usage: said });
+  const row = { usage: said, modes: otherCalls("image") };
+  const prompt = promptIn(argv, "chatgpt image", said, () => flags(argv, "chatgpt image", [], row));
+  const { ratio, resume, model, save, wait } = flags(argv.slice(1), "chatgpt image", [], row);
   const asked = waitFrom(wait, "chatgpt image", "this one turn may hold the connection open for");
   return await turned("image", argv, () => {
     const { prefix } = chatgptSettings();
@@ -502,7 +503,7 @@ const collect = async (argv) => {
   if (wantsHelp(argv) || argv.length === 0) return console.log(COLLECT_USAGE);
   const [id, ...rest] = argv;
   if (id.startsWith("--")) fail(`chatgpt collect: the turn's id comes first.\n${firstLine(COLLECT_USAGE)}`);
-  const { wait } = flags(rest, "chatgpt collect", [], { usage: COLLECT_USAGE });
+  const { wait } = flags(rest, "chatgpt collect", [], { usage: COLLECT_USAGE, modes: otherCalls("collect") });
   const asked = waitFrom(wait, "chatgpt collect", "this call may wait here for a turn still running");
   const found = readTurn(id);
   if (!found?.id) {
@@ -535,7 +536,7 @@ const dropping = async (id) => {
 
 const pending = async (argv) => {
   if (wantsHelp(argv)) return console.log(PENDING_USAGE);
-  const { drop } = flags(argv, "chatgpt pending", [], { usage: PENDING_USAGE });
+  const { drop } = flags(argv, "chatgpt pending", [], { usage: PENDING_USAGE, modes: otherCalls("pending") });
   sweepTurns();
   if (drop) return await dropping(drop);
   const waiting = turnsWaiting();
@@ -546,6 +547,8 @@ const pending = async (argv) => {
   }
   return undefined;
 };
+
+const otherCalls = (action) => Object.entries(SAYS).filter(([name]) => name !== action).map(([, text]) => text);
 
 const SUBS = { ask, image, collect, pending };
 

@@ -1,4 +1,4 @@
-/* The argv this call carries: parsing `--name value` pairs, once, refusing a name the verb does not take, and writing the call back out for a refusal that has to name it. A flag is one word with no `=` in it, and the set a verb takes is read off the usage text its own `-h` prints, so a flag added there is taken with no second edit — docs/cli/did-you-mean.md. */
+/* The argv this call carries: parsing `--name value` pairs, once, refusing a name the verb does not take, and writing the call back out for a refusal that has to name it. A flag is one word with no `=` in it, and the set a verb takes is read off the usage text its own `-h` prints, so a flag added there is taken with no second edit — docs/cli/the-usage-row.md. */
 import { typed } from "../hooks/shell-spans.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { embeddedRun, fail } from "./settings.mjs";
@@ -43,8 +43,47 @@ const rowsOf = (usage) => {
   return [first, ...rest.filter(isRow)].join("\n");
 };
 
-/** Only a flag SHAPE is turned away, and the usage rows close every one: the nearest name alone leaves a caller who was nowhere near a live flag nothing to type — docs/cli/did-you-mean.md. */
-export const unknownFlag = (verb, argv, { usage, hidden = [], boolean = [] }) => {
+/* The name and nothing that continues it: `--file` is declared by `[--file path|url]` and not by `[--fields a,b]`. Read by index rather than by a pattern, because the name comes off the caller's own argv and a pattern would have to escape it. */
+const declares = (part, flag) => {
+  const at = part.indexOf(flag);
+  return at >= 0 && !/[\w-]/u.test(part[at + flag.length] ?? "");
+};
+
+/* The call itself: everything of the first line before the first optional argument, so a subject and a required flag stay and the choices go. */
+const headOf = (usage) => firstLine(usage).replace(/^\s*Usage:\s*/u, "").split("[")[0].trim();
+
+const GROUP = /\[([^\]]*)\]/gu;
+const OWN_ROW = /^\s+(--\S.*)$/u;
+
+/* What that call wants written with the flag, off the text that already declares it: the bracketed alternative whole — `[--set f=v... --why W]` is one ask, where slicing from `--why` handed over a read the verb then refuses, and `[--blocks ISS-46|--relates ISS-46]` is two asks rather than one — or the flag's own help row with its description cut at the gap. */
+const declarationIn = (usage, flag) => {
+  for (const line of usage.split("\n")) {
+    for (const [, group] of line.matchAll(GROUP)) {
+      const part = group.split("|").find((one) => declares(one, flag));
+      if (part) return part.trim();
+    }
+    const row = OWN_ROW.exec(line);
+    const said = row?.[1].split(/\s{2,}/u)[0].trim();
+    if (said && declares(said, flag)) return said;
+  }
+  return null;
+};
+
+/** The one command that reaches a flag on the call it belongs to, composed from that call's own usage text and written nowhere else — a flag added to a usage row is reached with no second edit, which is the rule this module already keeps for the flag set itself. The head is kept whole, so a flag the call requires is named once and not twice (ISS-932). */
+export const reachFor = (usage, flag) => {
+  const head = headOf(usage);
+  if (declares(head, flag)) return head;
+  const declaration = declarationIn(usage, flag);
+  return declaration ? `${head} ${declaration}` : head;
+};
+
+/* A verb with more than one call parses against one usage text at a time, so the set this text names is this call's and never the verb's: saying the verb has no such flag is false, and the caller who used it on the other call a moment ago can see it is (ISS-932). */
+const elsewhereIn = (verb, given, usage) =>
+  `${verb}: ${given} belongs to another call of this verb, not to this one — the verb takes it and `
+  + `this call does not. The call that reaches it:\n  ${reachFor(usage, given)}`;
+
+/** Only a flag SHAPE is turned away, and the usage rows close every one: the nearest name alone leaves a caller who was nowhere near a live flag nothing to type — docs/cli/the-usage-row.md. `modes` is the other calls of this same verb, in the order their own help lists them. */
+export const unknownFlag = (verb, argv, { usage, hidden = [], boolean = [], modes = [] }) => {
   const named = flagsNamed(usage);
   const known = [...named, ...hidden, ...boolean];
   /* A flag word where a value goes is that value: the parse refuses the flag whose value is missing, which is the sentence that says how to write one starting `--`. */
@@ -54,16 +93,18 @@ export const unknownFlag = (verb, argv, { usage, hidden = [], boolean = [] }) =>
   const row = rowsOf(usage);
   /* No name at all, so no near miss answers it, and this is the one place that sentence lives. */
   if (given === "--") return `${verb}: \`--\` names no flag, and read as one it would take the next word as its value.\n${row}`;
+  const elsewhere = modes.find((other) => flagsNamed(other).includes(given));
+  if (elsewhere) return `${elsewhereIn(verb, given, elsewhere)}\n${row}`;
   return `${didYouMean(`${verb} flag`, given, named)}\n${row}`;
 };
 
 /* Before a value is read and before an endpoint is resolved; no usage text is this CLI's defect. */
-const strangerIn = (argv, verb, { usage, hidden = [], boolean = [] }) => {
-  if (!usage) {
+const strangerIn = (argv, verb, row) => {
+  if (!row.usage) {
     fail(`${verb ?? "forge"}: this verb gave the parser no usage text, so no flag of it could be `
       + "judged. That is a defect in this CLI, not in what you typed: `forge feedback`.");
   }
-  const said = unknownFlag(verb, argv, { usage, hidden, boolean });
+  const said = unknownFlag(verb, argv, row);
   if (said) fail(said);
 };
 

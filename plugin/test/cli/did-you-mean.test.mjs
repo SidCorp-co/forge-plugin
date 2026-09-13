@@ -15,7 +15,8 @@ import { SAYS as CODEX } from "../../src/codex/codex.mjs";
 import { kindUsage } from "../../src/flow/record/record-rows.mjs";
 import { retiredFlagIn, retiredRefusal } from "../../src/resolve/retiring.mjs";
 import { VERB_NAMES } from "../../src/resolve/visibility.mjs";
-import { FLAG_WORD, flags, flagsNamed, partition, pullRepeated, unknownFlag } from "../../src/resolve/flags.mjs";
+import { FLAG_WORD, flags, flagsNamed, partition, pullRepeated, reachFor, unknownFlag } from "../../src/resolve/flags.mjs";
+import { LIST_USAGE, READ_USAGE } from "../../src/commands.mjs";
 import { bodyFrom, notABody } from "../../src/resolve/payload.mjs";
 import { homeEnv, ranAsync, tempRoom } from "../fixtures.mjs";
 
@@ -68,6 +69,47 @@ test("a flag no row names is accepted where the call site declares it, and offer
   const said = unknownFlag("guide", ["--trackr"], { usage, hidden: ["--tracker"] });
   assert.match(said, /No guide flag named --trackr\./u);
   assert.doesNotMatch(said, /--tracker\b/u, "the hidden flag is in no refusal either");
+});
+
+/* Every shape this CLI's usage texts have, and `--why` sliced out of its group handed the caller a
+   read this verb then refuses — the group is the ask, not the flag (consult db01df F1). */
+test("the call that reaches a flag is composed from that call's own usage text", () => {
+  assert.equal(reachFor(READ_USAGE, "--fields"), "forge issue <uuid|ISS-45> --fields a,b");
+  assert.equal(reachFor(LIST_USAGE, "--status"), "forge issue --status s");
+  assert.equal(reachFor(READ_USAGE, "--relates"), "forge issue <uuid|ISS-45> --relates ISS-46");
+  assert.equal(reachFor(READ_USAGE, "--why"), "forge issue <uuid|ISS-45> --set f=v... --why W");
+  assert.equal(
+    reachFor('Usage: forge chatgpt ask "<prompt>" [--model slug]\n            [--save path] [--wait s]', "--save"),
+    'forge chatgpt ask "<prompt>" --save path',
+  );
+});
+
+/* A line naming one flag twice is one this very parser refuses, so a wrong sentence would have been
+   answered with another (consult 0b5931 F1). */
+test("a flag the other call requires is named once and not twice", () => {
+  const usage = 'Usage: forge chatgpt image "<prompt>" --ratio w:h [--save path]\n'
+    + "  --ratio w:h    required; it travels as an instruction of its own";
+  assert.equal(reachFor(usage, "--ratio"), 'forge chatgpt image "<prompt>" --ratio w:h');
+});
+
+test("a flag of another call of the verb is refused as that call's, never as one the verb has not got", () => {
+  const said = unknownFlag("issue", ["--fields", "a,b"], { usage: LIST_USAGE, modes: [READ_USAGE] });
+  assert.doesNotMatch(said, /No issue flag named/u, "which the caller can see is false");
+  assert.match(said, /^ {2}forge issue <uuid\|ISS-45> --fields a,b$/mu);
+  assert.match(said, /^Usage: forge issue \[--status s\]/mu, "and this call's own row is still under it");
+});
+
+/* On no call of this verb: the suggestion is right where the name really is not there. */
+test("a name no call of the verb takes is still answered by this call's own set", () => {
+  assert.match(unknownFlag("issue", ["--feilds"], { usage: LIST_USAGE, modes: [READ_USAGE] }),
+    /No issue flag named --feilds\. The set is --status, --search, --limit\./u);
+});
+
+/* Read off the other call's own text at the refusal, so nothing beside either usage names a flag. */
+test("a flag added to one call's row is reached by the other's refusal with no second edit", () => {
+  const grown = `${READ_USAGE} [--fresh n]`;
+  assert.match(unknownFlag("issue", ["--fresh"], { usage: LIST_USAGE, modes: [grown] }),
+    /^ {2}forge issue <uuid\|ISS-45> --fresh n$/mu);
 });
 
 /* A flag is one word. The shell has already bound a quoted value to its flag, so re-reading that
@@ -281,6 +323,23 @@ test("a verb taking one flag names the set and the row it read the set off", asy
   assert.match(run.stderr, /^Usage: forge comment <uuid\|ISS-45> \[<file\.md\|@file\|->\] \[--title T\]$/mu,
     "the row, which is where the body slot the caller wanted is spelled");
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u, "and not as a file nobody meant");
+});
+
+/* The refusal the caller could see was false: --fields of one issue works on this same verb (ISS-932). */
+test("a flag of the verb's other call is refused as that call's, with the command that reaches it", async () => {
+  const run = await ran("issue", "--search", "x", "--limit", "5", "--fields", "issueId,title");
+  assert.equal(run.status, 1);
+  assert.doesNotMatch(run.stderr, /No issue flag named --fields/u);
+  assert.match(run.stderr, /^ {2}forge issue <uuid\|ISS-45> --fields a,b$/mu);
+  assert.match(run.stderr, /^Usage: forge issue \[--status s\] \[--search q\] \[--limit n\]$/mu);
+  assert.equal(run.stdout, "", "and nothing was read to say it");
+});
+
+test("the same answer in the other direction, off the list call's own row", async () => {
+  const run = await ran("issue", "ISS-1", "--status", "open");
+  assert.equal(run.status, 1);
+  assert.doesNotMatch(run.stderr, /No issue flag named --status/u);
+  assert.match(run.stderr, /^ {2}forge issue --status s$/mu);
 });
 
 test("a flag standing in the body slot is this verb's own unknown flag", async () => {

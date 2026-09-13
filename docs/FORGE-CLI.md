@@ -73,4 +73,5 @@ how many topics there may be.
 | [the deadline](cli/the-deadline.md) | Why counting attempts bounds no attempt, which of two numbers a refusal names and whose it was, and why an attempt whose body ran out is a dropped attempt whatever its headers said. |
 | [the handler](cli/the-handler.md) | Why a performed word is neither a verb nor a redirect, whose refusals every form borrows, and what the one line on stderr is counted for. |
 | ["did you mean"](cli/did-you-mean.md) | Why matching is on the separator-stripped form: an agent recalls a name from the wrong shape rather than fat-fingering a key. |
+| [the usage row](cli/the-usage-row.md) | Why a verb's flags are declared only on the row its own help prints, what a verb with more than one call owes a flag of its other one, and every refusal composed from that row. |
 | [vietnamese](cli/vietnamese.md) | Why `vi-natural review` cannot be the gate, and which copy of the binary is spawned. |

@@ -132,6 +132,23 @@ test("collect and pending each answer for themselves, and each says what it cost
   assert.match(pending, /--drop id/u);
 });
 
+/* Four actions, four flag sets, and until ISS-932 a flag of one was reported as a flag this verb has
+   not got. The command each refusal hands over is the sibling action's own usage line and nothing
+   written beside it, so `image`'s required --ratio is named once. No turn is sent to learn any of it. */
+test("a flag of a sibling action is refused as that action's, with the call that reaches it", async () => {
+  const ratio = await ran("ask", "x", "--ratio", "16:9");
+  assert.equal(ratio.status, 1);
+  assert.doesNotMatch(ratio.stderr, /No chatgpt ask flag named --ratio/u);
+  assert.match(ratio.stderr, /^ {2}forge chatgpt image "<prompt>" --ratio w:h$/mu);
+  const file = await ran("image", "x", "--file", "a.png");
+  assert.equal(file.status, 1);
+  assert.match(file.stderr, /^ {2}forge chatgpt ask "<prompt>" --file path$/mu);
+  const drop = await ran("collect", "abc", "--drop", "abc");
+  assert.equal(drop.status, 1);
+  assert.match(drop.stderr, /^ {2}forge chatgpt pending --drop id$/mu);
+  assert.equal(calls.length, 0, "and no turn was spent on any of them");
+});
+
 /* A flag where the prompt belongs is two mistakes, and the stranger is the one worth naming. */
 test("a stranger flag standing in the prompt's place is named, and a real one still misses the prompt", async () => {
   const stranger = await ran("ask", "--zzz", "x");
