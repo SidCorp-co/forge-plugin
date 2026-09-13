@@ -41,6 +41,10 @@ export const VERBS = [
     null, { group: METHOD }],
   ["attach", "<issue|comment> <uuid|ISS-45> <file>...", "upload; no base64 through context",
     "forge_uploads", { group: BACKLOG, wraps: { request: "`forge attach`" } }],
+  /* Owns no route: the search it spends is the knowledge verb's to declare. */
+  ["alike", "",
+    "every open issue measured against every other, and what reads alike grouped; writes nothing",
+    "forge_issues", { group: BACKLOG }],
   ["next", "[--count n] [--why] [--json] [--graph [ISS-45]] [--holding ISS-45] [--checkout <dir>]",
     "the open issues to work next, ranked off their metadata; writes nothing", "forge_issues",
     { group: BACKLOG }],

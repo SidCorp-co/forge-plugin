@@ -55,6 +55,7 @@ how many topics there may be.
 | [codex — the replay](cli/codex-the-replay.md) | What proves a past payload can be rebuilt, which two cases refuse a row rather than replay it loosely, the one text the log keeps and its caps, and what a share of a window is worth. |
 | [`beside`](cli/beside.md) | The two questions the create path asks before it files, and the floor. |
 | [`the fold`](cli/the-fold.md) | Which filings land on a neighbour as a finding rather than a second issue, and what declines it. |
+| [`alike`](cli/alike.md) | Which of the two floors a sweep of the open backlog reports at and the measurement that settled it, what the score does not establish, and what a reading shorter than the backlog is owed. |
 | [`feedback`](cli/feedback.md) | Why a defect in this plugin is an issue, not a file, where its destination is held, which kinds the project allows, what no refusal loses. |
 | [the filing](cli/filing.md) | Why every route that files an issue calls one interface, why it neither prints nor exits, why a route adds a section rather than joining text, and the two decisions each route makes. |
 | [the refusal log](cli/the-refusal-log.md) | Why refusing is what writes the line, what a per-write round count means, and what is masked before a line lands on disk. |

@@ -310,6 +310,37 @@ carries the part for its act.
   WHEN one issue's whole context is re-minted THEN it SHALL carry the index cut for that issue
   beside the record and the brief.
 
+### UC-02-11 — The backlog swept for issues that already read alike
+
+Rev: 1 · Actors: agent, developer · Enforces: BR-02, BR-14
+
+The reader that measures a filing against what is open is spent once, at the filing, and answers
+only about that one body. Two issues both already open are therefore never measured against each
+other, and the error compounds rather than decays. One call asks that second question of the whole
+open backlog and reports what came back. It decides nothing: which member of a set is the head, and
+whether a set is one issue at all, is read off the bodies by whoever acts on the report.
+
+- **AC-02-11-1** · Rev: 1 · Proof: plugin/test/alike/sweep.test.mjs "two open issues above the floor come back as one family, with both keys and the score"
+  WHEN the open backlog is swept THEN the CLI SHALL report each set of open issues that read alike at
+  or above the floor a filer's neighbours are shown at, carrying every member's key, its title and the
+  score that joined it to the set.
+- **AC-02-11-2** · Rev: 1 · Proof: plugin/test/alike/sweep.test.mjs "a backlog with nothing at the floor answers with the count it measured and no family"
+  IF no two open issues reach that floor THEN the CLI SHALL report no set and SHALL say how many
+  issues it measured.
+- **AC-02-11-3** · Rev: 1 · Proof: plugin/test/alike/sweep.test.mjs "a band that fills the search is reported short, naming the issue it was asked for"
+  IF one issue's query comes back with as many hits in band as a single search carries THEN the CLI
+  SHALL name that reading as possibly short and SHALL claim no size for what it did not see.
+- **AC-02-11-4** · Rev: 1 · Proof: plugin/test/alike/sweep.test.mjs "a settled issue scoring high against an open one is in no family"
+  WHERE an issue is settled, the sweep SHALL report it in no set, whatever it scored.
+- **AC-02-11-5** · Rev: 1 · Proof: plugin/test/alike/sweep.test.mjs "the sweep sends no write and takes no lease"
+  WHEN the open backlog is swept THEN the CLI SHALL send the tracker no write and SHALL take no lease.
+- **AC-02-11-6** · Rev: 1 · Proof: plugin/test/alike/families.test.mjs "the floor the report names is the create path's own, and neither module holds a number"
+  WHERE a set is reported, the floor it was judged at SHALL be the one the create path shows a filer
+  their neighbours at, and the sweep SHALL hold no threshold of its own.
+- **AC-02-11-7** · Rev: 1 · Proof: plugin/test/alike/sweep.test.mjs "a walk that came back short is reported as incomplete, though every query ran"
+  IF the walk over the open issues did not come back whole THEN the CLI SHALL report the sweep as
+  incomplete, whether or not every query it did run succeeded.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*

@@ -6,7 +6,7 @@ import { firstLine } from "../../resolve/flags.mjs";
 
 const TOOL = "forge_memory.search";
 const SOURCE = ["issue"];
-const TOP_K = 10;
+export const TOP_K = 10;
 const QUERY_MAX = 4000;
 const NO_SCORE = "  —  ";
 const KEY = 8;
@@ -50,11 +50,13 @@ export const neighboursOf = async ({ seed, place }, live) => {
       samePlace: samePlace.has(ref),
     });
   };
+  const inBand = near.hits.filter((one) => Number(one.score) >= FLOOR).length;
   for (const hit of near.hits) if (Number(hit.score) >= FLOOR) add(hit.sourceRef, Number(hit.score));
   for (const hit of named.hits) add(hit.sourceRef, null);
   return {
     place,
     notes: [near.note, named.note].filter(Boolean),
+    inBand,
     /* Scored first and descending, so `foldOnto` reads the nearest off the front. */
     suggestions: [...found.values()].sort((one, two) => (two.score ?? 0) - (one.score ?? 0)),
   };

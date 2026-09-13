@@ -35,6 +35,7 @@ import { goalBlock } from "./goals.mjs";
 import { doctor } from "./tools/doctor.mjs";
 import { project } from "./tools/project.mjs";
 import { next } from "./rank/next.mjs";
+import { alike } from "./alike/alike.mjs";
 import { cloudflare } from "./tools/services/cloudflare.mjs";
 import { knowledge } from "./tools/knowledge.mjs";
 import { feedback } from "./tools/feedback.mjs";
@@ -191,6 +192,7 @@ export const commands = {
   spec,
   project,
   next,
+  alike,
   knowledge,
   cloudflare,
   feedback,
