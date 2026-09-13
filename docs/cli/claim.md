@@ -19,8 +19,8 @@ payload field at all, and an action this list does not name is not retried.
 A lease past its duration is another run's to take once the lapse outlasts the lease itself, and
 the holder's own next write renews it and says so. The first version renewed it without reading
 the state at all, and a live run then showed a dead session writing payloads half an hour after
-its lease had gone, silently; the refusal that replaced it named `forge claim`, which cost the
-eleventh dry run two rounds for a value the CLI had already read. What makes the renewal safe is
+its lease had gone, silently; the refusal that replaced it named `forge claim`, which cost
+ISS-57's run two rounds for a value the CLI had already read. What makes the renewal safe is
 what the refusal never used: the field still names this session, and a run that took the issue
 would have replaced the holder, so the two states that mean somebody else's lease still refuse. It
 is safe as far as the read, and no further — a reclaim landing between the read and the write is
@@ -81,7 +81,7 @@ run's note to its successor, not a payload. It is written by the renew that prec
 belongs to, which is the same call that refuses a stale holder, so a write that then fails can leave
 the line describing a step that never started; that costs a sentence and never a fact, because what
 earns anything is the record, and a second lease write to close the gap would cost three more calls
-on every payload and leave a gap of its own between the two. The measurement that asked for it: the sixth dry run's
+on every payload and leave a gap of its own between the two. The measurement that asked for it: ISS-32's run, whose
 agent died mid-consult, and the one fact its record could not hold was which codex round it was in,
 so the round was run again to find out. The verbs that write something other than a payload — a
 comment, an upload, a dependency edge — renew the lease and leave the line alone; the plan is a

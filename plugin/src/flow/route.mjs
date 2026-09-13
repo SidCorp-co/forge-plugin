@@ -198,7 +198,7 @@ const reopenTarget = (view, ref) => {
 };
 
 /* What the last rung will want, said at the rehearsal rather than at the refusal two statuses later:
-   the fourth dry run's lesson is that an obligation nobody is told about early is one that slips. */
+   ISS-3's run showed that an obligation nobody is told about early is one that slips. */
 export const lookAhead = (view, ref) => {
   const said = personLooks(view.flags, view.release);
   if (!said || atLeast(view.issue.status, CLOSES_FROM) || answered(view, "screen-review")) return null;

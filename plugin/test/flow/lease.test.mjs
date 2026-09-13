@@ -157,7 +157,7 @@ test("a renew keeps the line the lease already held, and only a caller that says
 });
 
 /* Where each attempt died is the line the run that died left, never the one its successor is about
-   to set: the sixth dry run lost only which codex round it was in, and this is that fact. */
+   to set: ISS-32's run lost only which codex round it was in, and this is that fact. */
 test("the history entry carries the line current before the reclaim, not the one after it", () => {
   const first = claimed(null, { holder: "one", at: AT, minutes: 30, next: "fold F1", how: "claim", status: "in_progress" });
   const second = claimed(first, { holder: "two", at: AT, minutes: 30, next: "start over", how: "reclaim", status: "in_progress" });

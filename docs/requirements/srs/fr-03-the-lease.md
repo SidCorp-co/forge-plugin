@@ -101,7 +101,7 @@ Rev: 3 · Actors: agent · Enforces: BR-05
 
 Once the duration has passed the lease is open to any run, and the run that held it is no more
 privileged than any other. The live test that settled that — and what it caught a build doing — is
-in the contract's fifth dry run.
+ISS-4's run, whose records are on the tracker.
 
 What a lapse does not say is that the run stopped. The lease is renewed by a write to the issue and
 by nothing else, and the longest steps a run takes make none, so a run in a gate and a run that has

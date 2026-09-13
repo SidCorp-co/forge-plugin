@@ -1,5 +1,5 @@
 /* One case per line of the shape, each with the refusal it earns, and the body that meets every one
-   of them. The four filed off the ninth dry run are the fixtures: three of them are what this reads
+   of them. The four filed off ISS-49's run are the fixtures: three of them are what this reads
    as a fix, one is what it lets through, and one is a duplicate of an issue already open. */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -321,7 +321,7 @@ test("--with files it and relates it in the same create, so one branch carries b
   assert.doesNotMatch(create.args.data.description, new RegExp(SIZE_LINE, "u"));
 });
 
-/* Every input is used or refused, never dropped: the second dry run found six of that family. And
+/* Every input is used or refused, never dropped: ISS-2's run found six of that family. And
    the flags a filing takes are refused on the comment verb by the verb's own unknown-flag route,
    which is what having two verbs removes — there is no route left to drop one on. */
 test("a flag that belongs to a filing is refused on the comment verb, not silently dropped", async () => {

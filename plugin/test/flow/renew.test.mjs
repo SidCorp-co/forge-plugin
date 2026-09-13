@@ -1,5 +1,5 @@
 /* The renew every payload write makes, against a stub tracker: which states it refuses and which it
-   spends itself. The fifth dry run caught a dead run renewing its lease; the eleventh spent two
+   spends itself. ISS-4's run caught a dead run renewing its lease; ISS-57's spent two
    rounds on `forge claim` after its own lease lapsed (ISS-65), and both rules are one decision. */
 import assert from "node:assert/strict";
 import test from "node:test";

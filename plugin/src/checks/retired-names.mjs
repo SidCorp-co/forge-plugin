@@ -1,7 +1,6 @@
 /* The retired names, held once so a sentence naming a verb that no longer runs fails something. An
    entry names no replacement: pointing at what took over is the redirect docs/cli/retiring-a-name.md forbids. */
 import { lineAt } from "../markdown.mjs";
-import { RECORDS_RATHER_THAN_INSTRUCTS } from "./doc-shape.mjs";
 import { RETIRING } from "../resolve/retiring.mjs";
 
 export const RETIRED = [
@@ -43,8 +42,8 @@ const WHY = "docs/cli/retiring-a-name.md";
 const stem = (rel) => rel.split("/").pop().replace(/\.[^.]+$/u, "");
 
 const SELF = `plugin/${import.meta.url.split("/plugin/").pop()}`;
+/* The requirements tree names a retired verb in a clause that records what was true, and its own gate reads it. */
 const REQUIREMENTS = /^docs\/requirements\//u;
-const history = (rel) => RECORDS_RATHER_THAN_INSTRUCTS.test(rel) || REQUIREMENTS.test(rel);
 /* Each records a name rather than routing to it: the argument, the case that watches one, and the
    note `forge hooks --how` answers a retired gate's name with. */
 const RECORDS = new Set([
@@ -53,7 +52,7 @@ const RECORDS = new Set([
   "plugin/test/checks/retired-names.test.mjs",
 ]);
 
-export const exempt = (rel) => rel === SELF || history(rel) || RECORDS.has(rel);
+export const exempt = (rel) => rel === SELF || REQUIREMENTS.test(rel) || RECORDS.has(rel);
 
 const mentions = ({ rel, text }, entry) =>
   [...new Set(shapesOf(entry, rel).flatMap((shape) =>

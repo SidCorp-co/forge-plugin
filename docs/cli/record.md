@@ -1,6 +1,6 @@
 # `record` — a payload has one shape
 
-ISS-1's dry run of the issue-flow contract wrote nine payloads by hand: a confirmation, a decision
+ISS-1's run of the issue-flow contract wrote nine payloads by hand: a confirmation, a decision
 record, a baseline, six verdicts. Each was shaped at the keyboard, and the second run would have
 shaped them differently. `forge record <kind>` owns the shape, so the reader and the checker find the
 same fields every time, and a missing field is refused by name before anything is posted.
@@ -32,8 +32,7 @@ name already there. Named from before the request, not after: the tracker can ta
 the answer, and a file nobody was told about is the one nobody cites.
 
 Two flags are read off the record when they are absent, and each prints where its value came from: a
-commit from the merged mark's note, and evidence from the latest record of the same kind. The twelfth
-dry run's verdict loop typed the same two values twenty times each, and both were already on the
+commit from the merged mark's note, and evidence from the latest record of the same kind. ISS-59's verdict loop typed the same two values twenty times each, and both were already on the
 record. Evidence is read from the latest record of that kind rather than from the attachment set, because
 what an issue's evidence is belongs to whoever cited it first: the one attachment an issue carries
 may be a design document nobody cited, and a default from it would turn a refused verdict into a
@@ -75,7 +74,7 @@ actually saw and their own words went into a plain comment nothing read back, so
 ship was never named. A finding is that comment typed, written by the agent on the person's behalf
 and quoting them; a triage is the ruling on it, one of three outcomes and one line naming what would
 have caught it. Both repeat, as correction, park, question, routed and gap do, so the report shows every one and
-says how many above them: the fourth dry run wrote four corrections and reported one.
+says how many above them: ISS-3's run wrote four corrections and reported one.
 
 Two more exist because the fold of a run was prose. A parent reading the report got every payload that
 earned a status and nothing about what the run met on the way: a defect it found on something else

@@ -1,5 +1,5 @@
 /* A consult read an open stdin to EOF and never returned: 17 and 13 minutes, killed by pid, the
-   largest single round the eleventh dry run lost (ISS-65). The wait is for the first byte, and each
+   largest single round a run has lost (ISS-65). The wait is for the first byte, and each
    rule here fails without it. */
 import assert from "node:assert/strict";
 import test from "node:test";

@@ -1,4 +1,4 @@
-/* A park is two writes — the status and the record — and for three dry runs it was only ever one:
+/* A park is two writes — the status and the record — and for three runs it was only ever one:
    the record went up, the tracker refused the move for a reason the flag had already collected, and
    the issue read parked to whoever read the record and unparked to everything else (ISS-157). */
 import assert from "node:assert/strict";

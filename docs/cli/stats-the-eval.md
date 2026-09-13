@@ -1,7 +1,7 @@
 # `stats` — the eval, and the line that says to run it
 
 **The profile answered one window, and nobody could say whether the next release made it better.**
-A hundred and fifty dry runs were folded by hand into a journal, one dated section each, and every
+A hundred and fifty runs were folded by hand, one written account each, and every
 question of the form "did that guide change make runs cheaper" was answered from the feel of the last
 few. The codex harness had already stopped doing that (ISS-310): its log says when to look at itself,
 and the look is two windows side by side. This topic is the same arrangement for the flow the harness

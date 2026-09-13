@@ -1,9 +1,8 @@
 /* An index apart from the detail, both halves checked: a row whose file was renamed sends a reader
    nowhere, and a file no row names is a topic nobody is told exists (ISS-87). Capped by default and
    exempt by kind, so a document written later is in scope without anyone remembering it: the
-   requirements tree answers to its own gate, and the journal a run appends to is read by date. */
+   requirements tree answers to its own gate. */
 import { LINK_TARGET_PATTERN, TABLE_SEPARATOR_PATTERN, withoutSpans } from "../markdown.mjs";
-import { RECORDS_RATHER_THAN_INSTRUCTS } from "./doc-shape.mjs";
 
 export const TOPIC_MAX = 9000;
 /* An index has no length of its own, budgeted per part below; UC-12-6 of the tree says why not. */
@@ -11,8 +10,7 @@ export const INDEX = "docs/FORGE-CLI.md";
 export const ROW_MAX = 300;
 export const LEAD_MAX = 800;
 const REQUIREMENTS = /^docs\/requirements\//u;
-const uncapped = (rel) =>
-  rel === INDEX || REQUIREMENTS.test(rel) || RECORDS_RATHER_THAN_INSTRUCTS.test(rel);
+const uncapped = (rel) => rel === INDEX || REQUIREMENTS.test(rel);
 
 export const overCap = (docs, max = TOPIC_MAX) =>
   docs

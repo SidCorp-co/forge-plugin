@@ -1,5 +1,5 @@
 /* An --evidence value that was a file on disk cost `forge attach` and a re-send of the same record,
-   twenty times over one verdict loop (the twelfth dry run). Each rule here fails without its check. */
+   twenty times over one verdict loop (ISS-59's run). Each rule here fails without its check. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";

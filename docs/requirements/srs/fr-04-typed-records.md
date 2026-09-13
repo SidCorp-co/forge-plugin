@@ -9,7 +9,8 @@ Rev: 1 · Actors: agent, reviewer · Enforces: BR-01, BR-02, BR-03, BR-14 · Cou
 *Why does this requirement exist?*
 
 The payloads a workflow produces were invented at the keyboard, and a second run invented them
-differently — the contract's first dry run names the four that had no shape to copy. A payload with
+differently — ISS-1's run wrote four with no shape to copy: the confirmation, the decision record,
+the baseline and the per-criterion verdict table. A payload with
 one shape can be written the same way twice, read back by kind, assembled into a report nobody
 writes from memory, and checked for presence by the verb that judges a status.
 

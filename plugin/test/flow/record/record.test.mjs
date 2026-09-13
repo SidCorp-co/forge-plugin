@@ -1,4 +1,4 @@
-/* A payload shaped at the keyboard was shaped differently every run (ISS-1's dry run); the verb owns
+/* A payload shaped at the keyboard was shaped differently every run (ISS-1's run); the verb owns
    the shape, refuses a missing field by name, and reads its own records back. */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -185,7 +185,7 @@ test("a release note has two forms, and a flag from the other form is refused, n
    there are two, so this fails at the bump rather than after a payload has been re-judged by a rule
    it was never written under. The reviewer asked for the tripwire rather than speculative shapes. */
 /* The verdict loop typed one commit and one evidence name twenty times, and the record held both
-   (the twelfth dry run). Each is read from where it already is, and said, because a default nobody
+   (ISS-59's run). Each is read from where it already is, and said, because a default nobody
    sees is one nobody catches being wrong. */
 test("a commit the flag did not carry comes from the merged mark, and is said", () => {
   const mark = { body: "mark_merged target base: merged to master at c8c3550; reviewed head 91b0e7f", createdAt: "2026-09-03T10:00:00.000Z" };

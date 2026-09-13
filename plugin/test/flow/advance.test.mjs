@@ -1,4 +1,4 @@
-/* Twenty-six transitions across three dry runs, every one a raw call that refused nothing (ISS-1,
+/* Twenty-six transitions across three runs, every one a raw call that refused nothing (ISS-1,
    ISS-2, ISS-10). Each rule below is one of those refusals, and fails without the check behind it. */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -115,7 +115,7 @@ test("in_progress waits for every blocker to be developed, and for a baseline", 
 
 /* The tracker puts a mention and an ordering constraint in the one list and carries the difference
    on each edge, as `kind` and as its own answer about dispatch. The check read neither and refused
-   a transition on a *relates* edge in two dry runs (ISS-19). */
+   a transition on a *relates* edge in two runs (ISS-19). */
 test("only an edge that gates dispatch holds a status back, and the refusal names the kind", () => {
   const ran = [recorded("baseline", { gate: "npm run check", result: "354 pass", commit: "43b811e" })];
   const edged = (...blockedBy) => view({ relations: { blockedBy } }, ran);
@@ -387,7 +387,7 @@ test("a parked issue resumes where its park record says it left, once somebody a
     "and a park of a kind that lands elsewhere resumes nothing");
 });
 
-/* The one piece of run state the sixth dry run lost was which codex round it was in, and --owed is
+/* The one piece of run state ISS-32's run lost was which codex round it was in, and --owed is
    where a resuming run asks. Read from the field, because nothing else survives the run. */
 test("--owed reads the line the last write left, and an issue without one offers none", () => {
   const leased = (extra) => ({ sessionContext: { lease: { holder: "a-run", renewedAt: at(), minutes: 30, ...extra } } });

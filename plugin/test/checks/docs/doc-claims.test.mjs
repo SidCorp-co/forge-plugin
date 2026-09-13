@@ -6,7 +6,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { RECORDS_RATHER_THAN_INSTRUCTS, claimProblems, docClaims } from "../../../src/checks/doc-shape.mjs";
+import { claimProblems, docClaims } from "../../../src/checks/doc-shape.mjs";
 import { VERB_NAMES } from "../../../src/resolve/visibility.mjs";
 import { FORM_NAMES } from "../../../src/resolve/handler.mjs";
 import { surfaceOf } from "../../surfaces.mjs";
@@ -46,7 +46,7 @@ const markdown = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { encodin
 
 test("every command a document tells a reader to run is one the CLI has", () => {
   let claims = 0;
-  const read = markdown.filter((rel) => !RECORDS_RATHER_THAN_INSTRUCTS.test(rel));
+  const read = markdown;
   for (const rel of read) {
     const text = readFileSync(join(ROOT, rel), "utf8");
     const found = docClaims(text);
@@ -57,14 +57,11 @@ test("every command a document tells a reader to run is one the CLI has", () => 
   assert.ok(claims > 40, `${claims} claims across ${read.length} documents: the pattern found nothing`);
 });
 
-/* The journal is the one exemption, and it is worth a case of its own: a run's dated record of a
-   command that has since been retired is not the same claim as a topic still naming it. */
-test("the journal of what runs typed is read as a record and not as an instruction", () => {
-  const journal = markdown.filter((rel) => RECORDS_RATHER_THAN_INSTRUCTS.test(rel));
-  assert.deepEqual(journal, ["docs/issue-flow-dry-runs.md"], "one path, and the walk still reaches it");
-  assert.equal(RECORDS_RATHER_THAN_INSTRUCTS.test("docs/cli/claim.md"), false, "and no topic beside it");
+/* No document is exempt: every markdown file this repository tracks is read as an instruction, so a
+   command named in one is a command the CLI has. */
+test("a retired verb named in any tracked document is a finding", () => {
   const said = claimProblems("The run typed `forge nonsense ISS-45` and it was refused.", held);
-  assert.equal(said.length, 1, "the same line in a topic is a finding, which is what the filter removes");
+  assert.equal(said.length, 1, "no filter removes it");
 });
 
 test("a renamed flag, a dropped verb, a document that moved and a dead switch each fail", () => {

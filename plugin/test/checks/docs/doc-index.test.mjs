@@ -165,14 +165,10 @@ test("a second paragraph, a dead row, an unindexed topic and an oversized file e
       + " pass — split it and give each half its own index row. The cap is the round number above"
       + " docs/HOOKS.md, the one document this repository keeps whole",
   ]);
-  /* The two exemptions and the near misses either side of them: an exemption proved only by the
-     path it was written for is one a widened pattern takes silently. */
-  assert.deepEqual(overCap([
-    { rel: "docs/requirements/README.md", chars: TOPIC_MAX * 2 },
-    { rel: "docs/issue-flow-dry-runs.md", chars: TOPIC_MAX * 8 },
-  ]), []);
+  /* The one exemption and the near miss beside it: an exemption proved only by the path it was
+     written for is one a widened pattern takes silently. */
+  assert.deepEqual(overCap([{ rel: "docs/requirements/README.md", chars: TOPIC_MAX * 2 }]), []);
   assert.equal(overCap([{ rel: "docs/requirements-old/topic.md", chars: TOPIC_MAX * 2 }]).length, 1);
-  assert.equal(overCap([{ rel: "docs/issue-flow-copy.md", chars: TOPIC_MAX * 2 }]).length, 1);
   assert.deepEqual(docsCited("/* one home: docs/cli/new.md, docs/cli/new.md and docs/HOOKS.md */"),
     ["docs/HOOKS.md", "docs/cli/new.md"]);
   /* The example a note prints is quoted, and a quoted path is nobody's claim that the file exists. */

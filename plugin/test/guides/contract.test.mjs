@@ -198,9 +198,8 @@ test("Phase 4 says what a refusal arriving after that read owes, and no other ph
 
 /* The cadence has one home, and a retirement leaving a copy behind is what ISS-108 refuses. Both
    directions are asserted: absence alone passes on a file somebody emptied, reading exactly like a
-   clean repository. The history doc is no rule surface — it records what runs did, not what to do. */
+   clean repository. */
 const RETIRED_CADENCE = /as often as the work changes it/u;
-const HISTORY = "docs/issue-flow-dry-runs.md";
 test("the gate's cadence is stated in the verification reference and restated nowhere", () => {
   const held = flat(readFileSync(VERIFICATION, "utf8"));
   for (const [beat, phrase] of [
@@ -217,8 +216,7 @@ test("the gate's cadence is stated in the verification reference and restated no
   }
   const tracked = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { encoding: "utf8" })
     .trim().split("\n").filter(Boolean);
-  const holding = tracked.filter((rel) =>
-    rel !== HISTORY && RETIRED_CADENCE.test(readFileSync(join(ROOT, rel), "utf8")));
+  const holding = tracked.filter((rel) => RETIRED_CADENCE.test(readFileSync(join(ROOT, rel), "utf8")));
   assert.deepEqual(holding, [], "a surface still tells a run to spend the gate as often as the work "
     + "changes it, which the cadence above replaced: a sentence retired is retired from every surface "
     + "at once, so delete it there rather than leaving two answers to one question (ISS-108, ISS-290)");
@@ -461,8 +459,7 @@ test("a sentence an entry check now enforces is stated by the check and by no gu
   const tracked = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { encoding: "utf8" })
     .trim().split("\n").filter(Boolean);
   for (const [pattern, what] of RETIRED_BY_CHECK) {
-    const holding = tracked.filter((rel) =>
-      rel !== HISTORY && pattern.test(readFileSync(join(ROOT, rel), "utf8")));
+    const holding = tracked.filter((rel) => pattern.test(readFileSync(join(ROOT, rel), "utf8")));
     assert.deepEqual(holding, [], `a surface still states ${what}: a rule with a checker is stated `
       + `once, in the checker, and the guide points at it (ISS-108, ISS-359)`);
   }

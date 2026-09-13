@@ -55,7 +55,7 @@
     },
     "BR-14": {
       "rev": 1,
-      "digest": "0b53f65b7e9130184a6f079078c1d6ca2f6234ee7d355ca7c1c1a3d052e822ca"
+      "digest": "cb4b9b54df8724166fda2af5ac71b06bb4112582c6c8152ade2fde0a57b82e29"
     },
     "BR-15": {
       "rev": 1,
@@ -951,7 +951,7 @@
     },
     "UC-03-3": {
       "rev": 3,
-      "digest": "37a940cc2de92a3945ca4d95f531227dbda0701f7fd6c8693f8c575c5493df4e"
+      "digest": "fe9c95965a7e6158bcfac70833220c790f004a2623c2be3d53f15d332a6ff352"
     },
     "AC-03-3-1": {
       "rev": 2,
@@ -1035,7 +1035,7 @@
     },
     "FR-04": {
       "rev": 1,
-      "digest": "acb15daa08b5cd0cff53b39e08d4b44a198689abcbad988322993997bfe2c7ca"
+      "digest": "afe8a4581297056c791d0a844717c43b89aa16003b5c3edcd42f7b18920fee27"
     },
     "UC-04-1": {
       "rev": 1,

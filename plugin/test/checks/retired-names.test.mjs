@@ -167,9 +167,9 @@ test("a tool retired from the route table has no row, no listing and no route", 
     "and no route it wanted: a name outside the table wanted none");
 });
 
-test("history and the one place the name is held are exempt", () => {
+test("the requirements tree and the one place the name is held are exempt", () => {
   const found = problems(files, [AS_IF]);
-  assert.deepEqual(found.filter((one) => /^docs\/(?:issue-flow-dry-runs\.md|requirements\/)/u.test(one)), []);
+  assert.deepEqual(found.filter((one) => /^docs\/requirements\//u.test(one)), []);
   assert.ok(exempt("plugin/src/checks/retired-names.mjs"), "the registry holds the name once");
   assert.deepEqual(problems([{ rel: "plugin/src/checks/retired-names.mjs", text: "`forge advance`" }], [AS_IF]), []);
   assert.deepEqual(problems([{ rel: "docs/requirements/srs/fr-05-earned-transitions.md", text: "`forge advance`" }], [AS_IF]), []);

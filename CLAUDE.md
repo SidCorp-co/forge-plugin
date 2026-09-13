@@ -16,6 +16,9 @@ cite it: [`docs/requirements/README.md`](docs/requirements/README.md), which als
 tree's own rules. A refusal carries the one command that clears it, because an agent
 that needs a second call to learn what to do spends the turn guessing; `forge hooks --how <hook>`
 carries what a refusal has no room for — why the rule exists, what it does not judge, the escape.
+Every input a verb or a typed write is given is used or refused, never ignored: a flag read and
+dropped, a field written and not read back, a duplicate silently taking the last value, all read to
+the caller exactly like the thing they asked for happening.
 
 ## An entry point is not a library
 

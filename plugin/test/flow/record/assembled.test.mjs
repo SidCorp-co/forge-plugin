@@ -32,7 +32,7 @@ test("the report keeps the latest of each kind, the latest verdict per criterion
 });
 
 /* The latest of a kind is right for a kind that can only be current, and wrong for one that
-   repeats: four corrections were written and one was reported in the fourth dry run. */
+   repeats: four corrections were written and one was reported in ISS-3's run. */
 test("every finding and every triage is on the report, not the latest of each", () => {
   const at = (n) => `2026-09-03T05:0${n}:00.000Z`;
   const found = (seen, when) => ({

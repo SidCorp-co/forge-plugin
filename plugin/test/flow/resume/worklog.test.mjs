@@ -290,7 +290,7 @@ test("the report refuses a capture flag it was given, whatever the log had to sa
 });
 
 /* Three captures after a fast-forward wrote base equal to head and no touched set, in silence, over
-   two dry runs; two complete ones printed nothing either, so the flag's own author ran `forge
+   two runs; two complete ones printed nothing either, so the flag's own author ran `forge
    resume` to see whether it had worked (ISS-65, ISS-66). */
 test("a capture says in one line what it holds", () => {
   const held = { branch: "iss-65-rounds", head: "a9288a6fd11", base: "4e41dfd881e", touched: "one.mjs, two.mjs", files: 2, at: "2026-09-03T15:00:00.000Z" };
@@ -350,7 +350,7 @@ test("the two captures and the open line are on the flag list of both verbs that
 });
 
 /* A run three releases behind the tree writes records that read exactly like one on the tree's own
-   head, and the seventeenth dry run was that run. The capture answers it, from the install record
+   head, and ISS-70's run was that run. The capture answers it, from the install record
    rather than from anything typed (ISS-79). */
 test("a capture carries the plugin copy it was made under, and the lines print it", () => {
   const held = worklogOf(field({ head: "abc1234", copy: "forge 3.35.12" }));

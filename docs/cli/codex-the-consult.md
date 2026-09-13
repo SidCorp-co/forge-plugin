@@ -47,7 +47,7 @@ run can. Three rounds of review each found another way a CLI asserting it would 
 **An open stdin is not an intent that has not arrived yet.** The consult reads its intent from
 stdin, and inside a harness the shell's stdin is a pipe nobody is writing to: read to EOF, it never
 returns. Two consults ran 17 and 13 minutes on 2026-09-03 and were killed by pid, which is the
-largest single round a dry run has lost. What is bounded now is silence rather than the whole read —
+largest single round a run has lost. What is bounded now is silence rather than the whole read —
 two seconds before the first byte and between any two, ten for a payload a verb cannot proceed
 without — because a producer that writes one byte and stalls is the same unbounded wait. A silence
 after bytes have arrived is a refusal and never a short payload: a plan read in half would be stored
