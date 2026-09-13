@@ -48,7 +48,10 @@ the code have been read:
    survivor unless the newer states the cause and the older only the symptom.
 3. **Verify "already fixed" live, once for the set.** Run the verb on the installed copy by its own
    path, not the checkout, and name the landing that fixed it with its release. One live read covers
-   every filing on that cause.
+   every filing on that cause. Where the evidence is another repository's source rather than this
+   one's behaviour the rule is the same and easier to miss: a checkout answers for its own date, so
+   the date is read and written beside the finding. A tree a day behind reads exactly like a current
+   one, and will say a shipped surface does not exist.
 4. **Post, per issue, on its own command line.** `forge claim`, then `forge record confirmation
    --finding duplicate|already-fixed --where … --is … --detail …`, the detail naming the survivor or
    the release; then `forge advance --drop --why` for a duplicate and `forge advance --set closed

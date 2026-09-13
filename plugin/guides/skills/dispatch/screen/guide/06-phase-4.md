@@ -4,6 +4,13 @@ Three things, all read at dispatch time and none of them from memory:
 
 - **Where it works.** One tree per run where more than one run shares a checkout.
 - **What it may not touch.** The files the runs already in flight hold, read off those issues' own
-  plan records now. A plan naming no file holds whatever tree its prose names.
+  plan records now. A plan naming no file holds whatever tree its prose names. Whatever the source,
+  what comes back is a claim, and the brief says which kind it is: a run dispatched in the same wave
+  has written no plan and its tree holds nothing yet, so neither source answers for it, and a plan
+  that does exist names what its run expected to touch rather than what it wrote. Both readings have
+  come back short. So the brief names where its list came from, says where a tree is still empty, and
+  names the diff of that tree against the default branch as what settles it once there is something
+  to read. A list handed over as fact gives the second run a collision it cannot see, paid for in a
+  rebase, a re-earned review and a second ship.
 - **What moved under it.** What has landed since the copy of the plugin that run will load, and
   whether a restart is owed before it starts.

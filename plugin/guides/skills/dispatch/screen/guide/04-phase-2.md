@@ -32,4 +32,8 @@ is `forge claim -h`'s, which the refusal each of them meets without one prints a
 CLI grows a route needing no lease for either, that route is the one this phase takes, and a lease
 the CLI withholds is not worked around.
 
+Where the candidates are divided among readers, each candidate belongs to exactly one of them. A
+slice cut by a search term is not a partition: a body answering two terms is read twice, and the
+two readers race for its lease and duplicate the reading that earns the writes above.
+
 A candidate too big for one run is split before it is dispatched.
