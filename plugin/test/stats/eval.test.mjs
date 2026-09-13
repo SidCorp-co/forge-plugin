@@ -150,19 +150,88 @@ test("the rows that moved most carry both values and both counts, and a row abse
   assert.ok(moved.fell.by < 0 && moved.fell.now < moved.fell.before);
 });
 
-test("fewer than two full windows is said: the shortfall, or nothing yet to compare", () => {
+/* The window lines report what was selected and leave the reader to decide whether it was evidence,
+   and a corpus swept an hour ago reports exactly what a young project's does. The judgement is the
+   line a reader acts on; it fires on either window falling short, the shortfall having been the case
+   nobody read for twenty releases (ISS-1328, criteria 1 and 4). */
+test("fewer than two full windows is said as a shortfall, and judged not a comparison", () => {
   const short = ask(corpusOf(70));
   assert.equal(short.status, 0, short.stderr);
   assert.match(short.stdout, /the 20 before them .* — short of a full 50 by 30/u, short.stdout);
+  assert.match(short.stdout,
+    /not a comparison: the window before it holds 20 of 50, over a corpus holding 70 run\(s\) in all\./u,
+    short.stdout);
 
   const few = ask(corpusOf(50));
   assert.equal(few.status, 0, few.stderr);
-  assert.match(few.stdout, /nothing yet to compare this one against/u, few.stdout);
-  assert.match(few.stdout, /the corpus holds 50 run\(s\) in all/u);
+  assert.match(few.stdout, /no window before them: the corpus holds 50 run\(s\) in all\./u, few.stdout);
+  assert.match(few.stdout,
+    /not a comparison: there is no window before it, over a corpus holding 50 run\(s\) in all\./u, few.stdout);
+  assert.doesNotMatch(few.stdout, /nothing yet to compare/u,
+    "which asserted a young corpus in the one case where a swept one is indistinguishable");
+
+  const both = ask(corpusOf(100));
+  assert.equal(both.status, 0, both.stderr);
+  assert.doesNotMatch(both.stdout, /not a comparison/u, "two full windows are a comparison and are not judged one");
+  assert.doesNotMatch(both.stdout, /the corpus reaches back to/u, "and owe no account of what bounded them");
 
   const none = ask(tempRoom("stats-eval-empty-"));
   assert.equal(none.status, 0, none.stderr);
   assert.match(none.stdout, /No issue-flow run under .*-fixture-project, so there is nothing to compare/u);
+});
+
+/* This project's corpus fell from 70 runs to 2 inside ninety minutes on 2026-09-12, and the eighteen
+   releases marked after it each reported a short window as a clean reading. A young corpus and a
+   swept one print the same counts; a reading held when the store was deeper is the only thing here
+   that separates them, and the marks had been recording that reach all along (ISS-1328, criteria 2,
+   3 and 5). Plant the shallow corpus, watch the sentence change when the mark arrives. */
+test("a reading held deeper than the corpus reaches is what tells a swept corpus from a young one", () => {
+  const home = tempRoom("stats-eval-reach-");
+  const room = corpusOf(9);
+  const root = join(room, `claude-${process.getuid()}`, slugFor(PROJECT));
+
+  const silent = askStats(room, ["eval", "--checkout", PROJECT], home);
+  assert.equal(silent.status, 0, silent.stderr);
+  assert.match(silent.stdout, /the corpus reaches back to 2026-09-01 00:00; no reading held for this project/u, silent.stdout);
+  assert.match(silent.stdout, /which is not to say the corpus was never deeper — a mark is a snapshot and not a history/u,
+    "the record's silence is silence, never evidence the depth was never there");
+
+  const was = process.env.XDG_CONFIG_HOME;
+  try {
+    process.env.XDG_CONFIG_HOME = home;
+    writeMark({ kind: "releases", mark: 70, version: "3.35.339", head: null, at: at(0), root,
+      now: { runs: 50, profile: { from: BASE - 48 * HOUR * 1000, to: BASE } } });
+  } finally {
+    process.env.XDG_CONFIG_HOME = was;
+  }
+
+  const said = askStats(room, ["eval", "--checkout", PROJECT], home);
+  assert.equal(said.status, 0, said.stderr);
+  assert.match(said.stdout,
+    /the corpus reaches back to 2026-09-01 00:00; release 3\.35\.339's reading reached back to 2026-08-30 00:00, so depth this project once read is no longer here\./u,
+    said.stdout);
+
+  /* A mark taken over a deep corpus records a LATE floor in its window — the recent fifty begin long
+     after the corpus does — so the reading's own corpus reach is the field carrying the depth, and a
+     reader going by the window floor alone sees none of it (consult c5d393 F1). */
+  try {
+    process.env.XDG_CONFIG_HOME = home;
+    writeMark({ kind: "runs", mark: 100, at: at(0), root,
+      now: { runs: 50, profile: { from: BASE + 50 * HOUR * 1000, to: BASE + 99 * HOUR * 1000 } },
+      comparability: { comparable: true, short: [], reach: { from: BASE - 200 * HOUR * 1000, earlier: null } } });
+  } finally {
+    process.env.XDG_CONFIG_HOME = was;
+  }
+  const deeper = askStats(room, ["eval", "--checkout", PROJECT], home);
+  assert.match(deeper.stdout, /mark 100's reading reached back to 2026-08-23 16:00/u,
+    `${deeper.stdout}\nthe window floor of that mark is later than the corpus reaches now, and only its own reach carries the depth`);
+
+  const held = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--json"], home).stdout);
+  assert.equal(held.comparability.comparable, false);
+  assert.deepEqual(held.comparability.short,
+    ["the recent window holds 9 of 50", "there is no window before it"]);
+  assert.equal(held.comparability.reach.earlier.by, "mark 100",
+    "criterion 5: the judgement is a field of the reading, so a mark can be read back for it");
 });
 
 test("--json is the comparison alone, --size sets both windows, and a bad size is refused by name", () => {
@@ -176,7 +245,11 @@ test("--json is the comparison alone, --size sets both windows, and a bad size i
   assert.equal(held.project, PROJECT);
   assert.equal(held.copies, 0);
   assert.deepEqual(Object.keys(held),
-    ["root", "project", "skipped", "unreadable", "copies", "requests", "size", "total", "now", "before", "moved", "shifts"]);
+    ["root", "project", "skipped", "unreadable", "copies", "requests", "size", "total", "now", "before",
+      "comparability", "moved", "shifts"]);
+  assert.deepEqual(held.comparability,
+    { comparable: true, short: [], reach: { from: BASE, earlier: null } },
+    "two full windows: the judgement is on the record either way, and the reach is the corpus's own floor, not the window's");
   assert.deepEqual(Object.keys(held.now), ["runs", "spanned", "profile", "groups", "outcomes"],
     "criterion 15: the window carries spanned, and ISS-821's outcomes beside the cost");
   /* No credential resolves in this room, so every tracker read is refused and every outcome figure
@@ -237,6 +310,9 @@ test("the ship's mark is one line at a multiple of the window, read off the corp
     assert.deepEqual(Object.keys(record), ["kind", "mark", "at", ...costOnly],
       "the object --json prints less its tracker read, under the mark's own three fields");
     assert.equal(record.now.outcomes, undefined, "a stored reading carries no outcome figure rather than zeroes");
+    assert.deepEqual(record.comparability, { comparable: false, short: ["there is no window before it"],
+      reach: { from: Date.parse("2026-09-01T00:00:00.000Z"), earlier: null } },
+      "criterion 6: the mark carries whether its reading was comparable, so what /tmp held that day need not be recomputed");
     /* The profile and the count: the groups and `spanned` name copies, and this process sees the real cache where the spawned verb sees an empty HOME. */
     assert.deepEqual([record.now.runs, record.now.profile], [printed.now.runs, printed.now.profile], "and the same figures");
     const bytes = readFileSync(marksPath());

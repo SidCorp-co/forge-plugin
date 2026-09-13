@@ -35,10 +35,24 @@ Two windows are adjacent and never overlap. When the corpus holds fewer than two
 earlier one is compared as far as it reaches and the shortfall is printed beside it, because a window
 padded or silently shortened reads exactly like a full one.
 
-`--json` prints the comparison as one object — `size`, `total`, `now`, `before`, `moved`, `shifts` —
+The shortfall alone was not enough. Printing what was selected leaves the reader to decide whether it
+was evidence, and this project's corpus fell from seventy runs to two inside ninety minutes on
+2026-09-12, after which eighteen releases were marked against a window that never filled and not one
+of the marks said so. So either window falling short of the size is also **judged**, in a line that
+says the reading is not a comparison and what bounded it — and the bound is read off the marks rather
+than off the store, because a store swept an hour ago holds as few runs as a young project's and only
+a reading taken when it was deeper separates them. That reading says depth was once here and is gone;
+it never says why, and where none is held it says the record is silent rather than that the corpus was
+never deeper. `forge stats runs` reports the same reach over the whole corpus, before a comparison is
+taken off it, and reports none under `--since`, where the floor is the flag's own boundary (ISS-1328).
+
+`--json` prints the comparison as one object — `size`, `total`, `now`, `before`, `comparability`,
+`moved`, `shifts` —
 each window its `runs`, `profile`, `groups` by copy and `outcomes`. Nothing in it can be derived from
 another field: the bounds are the profile's and the shortfall is the size less the runs, so a reader
-holds one spelling of each figure and the screen computes the rest (ISS-492). `forge codex eval --json` answers in the same outer shape, each window its
+holds one spelling of each figure and the screen computes the rest (ISS-492). `comparability` is the
+exception the mark earned — the judgement rides on the record because the corpus it was taken against
+cannot be asked later what it held. `forge codex eval --json` answers in the same outer shape, each window its
 `consults`, its `stats` and its `groups` per model, effort and prompt; the two readers the
 harness-eval method names take the same argument and are quoted the same way (ISS-484).
 

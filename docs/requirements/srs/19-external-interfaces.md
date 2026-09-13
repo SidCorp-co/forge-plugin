@@ -137,7 +137,7 @@ it. Reading is all this product does there.
 - **AC-19-8-3** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "every row of a fixture run is what the transcript adds up to"
   WHERE a call in that record was never answered the CLI SHALL report it as unanswered and SHALL
   add nothing to any waiting time on its account.
-- **AC-19-8-4** · Rev: 2 · Proof: plugin/test/stats/eval.test.mjs "fewer than two full windows is said: the shortfall, or nothing yet to compare"
+- **AC-19-8-4** · Rev: 2 · Proof: plugin/test/stats/eval.test.mjs "fewer than two full windows is said as a shortfall, and judged not a comparison"
   WHEN two windows of runs are compared and no stored reading is named THEN the CLI SHALL take the
   last fifty runs and the fifty before them by each run's own last record, adjacent and
   non-overlapping, and SHALL say how many the earlier window is short of rather than compare against

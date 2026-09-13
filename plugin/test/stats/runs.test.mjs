@@ -13,6 +13,7 @@ import {
 } from "../../src/stats/transcripts.mjs";
 import { runFrom, segmented, unionSeconds } from "../../src/stats/runs.mjs";
 import { RUNGS } from "../../src/ladder.mjs";
+import { writeMark } from "../../src/stats/marks.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
@@ -176,10 +177,46 @@ test("an empty window is JSON under the flag and prose without it", () => {
   assert.match(held.root, /claude-\d+\/-fixture-project$/u);
   assert.deepEqual([held.skipped, held.outsideWindow, held.unreadable], [1, 1, 0],
     "and what the reading passed over, which is the whole of why the window is empty");
+  assert.equal(held.reach, undefined, "a windowed reading reaches back as far as the flag asked and no further");
 
   const prose = ask(room, "--since", "1d");
   assert.match(prose.stdout, /No issue-flow run under .*-fixture-project in the last 1d/u,
     "the sentence keeps its wording; only its order with the flag moved");
+});
+
+/* How far the corpus reaches, before any reading is taken off it: a corpus swept an hour ago holds
+   as few runs as a young one, and a reading held when the store was deeper is what separates them
+   (ISS-1328, criteria 8 and 9). */
+test("the whole corpus reports its reach, and a windowed reading reports none", () => {
+  const room = corpus();
+  const home = tempRoom("stats-reach-home-");
+  /* One config home across the calls, where `ask` takes a fresh one: this case is about a reading
+     held between two of them. */
+  const probe = (...argv) => spawnSync(FORGE, ["stats", "runs", "--checkout", PROJECT, ...argv],
+    { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home, TMPDIR: room } });
+
+  const silent = probe();
+  assert.equal(silent.status, 0, silent.stderr);
+  assert.match(silent.stdout, /the corpus reaches back to 2026-09-01 00:00; no reading held for this project records an earlier reach/u,
+    silent.stdout);
+
+  const root = join(room, `claude-${process.getuid()}`, slugFor(PROJECT));
+  const was = process.env.XDG_CONFIG_HOME;
+  try {
+    process.env.XDG_CONFIG_HOME = home;
+    writeMark({ kind: "runs", mark: 50, at: at(0), root,
+      now: { runs: 50, profile: { from: BASE - 24 * 3600 * 1000, to: BASE } } });
+  } finally {
+    process.env.XDG_CONFIG_HOME = was;
+  }
+  const said = probe();
+  assert.match(said.stdout, /mark 50's reading reached back to 2026-08-31 00:00, so depth this project once read is no longer here/u,
+    said.stdout);
+
+  const windowed = probe("--since", "300d");
+  assert.equal(windowed.status, 0, windowed.stderr);
+  assert.doesNotMatch(windowed.stdout, /the corpus reaches back to/u,
+    "the floor of a windowed reading is the flag's selection boundary, so no reach is read off it");
 });
 
 test("a window is read off the run's own clock, not the file's", () => {

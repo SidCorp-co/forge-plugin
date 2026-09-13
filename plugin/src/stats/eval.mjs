@@ -7,8 +7,8 @@ import { checkoutFrom, derivedFrom, profileOf, readingAside, runsUnder, stamp } 
 import { UNRECORDED, cacheRoot, copyAt, installedCopies, spansInstall } from "./versions.mjs";
 import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows } from "./windows.mjs";
 import {
-  RELEASES, RUNS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, resolveRelease,
-  releaseSaid, sinceReleaseIn, writeMark, wroteSaid,
+  RELEASES, RUNS, againstIn, heldAtMark, markLines, marksOf, reachOf, reachSaid, resolveAgainst,
+  resolveRelease, releaseSaid, sinceReleaseIn, writeMark, wroteSaid,
 } from "./marks.mjs";
 import { BUDGET, HORIZON, UNAVAILABLE, budgetOf, outcomesOf, parkedOver, readThreads, ruledOver } from "./outcomes.mjs";
 import { logEntries } from "../codex/codex-log.mjs";
@@ -183,10 +183,26 @@ export const readBack = (record) => {
   };
 };
 
+/** Whether the reading is a comparison, and each way it falls short where it is not. Judged off the
+ *  windows that were selected and not off the corpus, so an anchor supplying a full before window is
+ *  comparable over a corpus that could never hold two (consult 51ec08 F1). Held on the reading rather
+ *  than left to a reader because the reading is what a mark keeps, and a corpus swept since cannot be
+ *  asked what it held that day — which is how twenty releases were marked against a truncated corpus
+ *  with the counts on the record the whole time and nothing reading them (ISS-1328). */
+export const comparabilityOf = ({ size, total, now, before, reach }) => {
+  const short = [];
+  if (now.runs < size) short.push(`the recent window holds ${now.runs} of ${size}`);
+  if (!before) short.push("there is no window before it");
+  else if (before.runs < size) short.push(`the window before it holds ${before.runs} of ${size}`);
+  /* The reach rides on a comparable reading too: one field either way, and a mark taken while the
+     store was deep is what a later reading is judged short against. */
+  return { comparable: !short.length, short, reach };
+};
+
 /** The comparison, every cost figure of it one `profileOf` computes over a window or a group. With a
  *  stored reading, its recent window stands where the earlier one would, through the same lines; a
  *  reading held before the outcome figures existed carries none, which is not the same as zeroes. */
-export const evalRuns = (runs, copies, size = WINDOW, against = null, read = null) => {
+export const evalRuns = (runs, copies, size = WINDOW, against = null, read = null, reach = null) => {
   const { now, before } = twoWindows(versioned(byEnd(runs), copies), size);
   const nowHeld = windowOf(now, read);
   const beforeHeld = against ? against.now : before.length ? windowOf(before, read) : null;
@@ -196,6 +212,7 @@ export const evalRuns = (runs, copies, size = WINDOW, against = null, read = nul
     against,
     now: nowHeld,
     before: beforeHeld,
+    comparability: comparabilityOf({ size, total: runs.length, now: nowHeld, before: beforeHeld, reach }),
     moved: beforeHeld
       ? { rungs: movedIn(nowHeld.profile.rungs, beforeHeld.profile.rungs, "rung"),
         phases: movedIn(nowHeld.profile.phases, beforeHeld.profile.phases, "name") }
@@ -325,13 +342,22 @@ const confoundedLines = (held, release, copies) => {
  *  the figures came from. */
 const releaseIn = (anchor) => (anchor?.kind === RELEASES ? anchor : null);
 
-const head = (held, anchor) => {
+/* The verdict the window lines never carried: they reported what was selected and left the reader to
+   decide whether it was evidence, and on a corpus swept an hour ago that reads exactly like a young
+   project's. Silent on a comparable reading, so a full pair of windows prints as it always did. */
+const judgedLines = (held) => {
+  const said = held.comparability;
+  if (said.comparable) return [];
+  return [
+    `not a comparison: ${said.short.join(", and ")}, over a corpus holding ${held.total} run(s) in all.`,
+    ...(said.reach ? [`  ${reachSaid(said.reach)}.`] : []),
+  ];
+};
+
+const windowLines = (held, anchor) => {
   const full = held.now.runs < held.size ? `  — ${held.size} is a full window and the corpus holds no more` : "";
   const first = `the last ${held.now.runs} issue-flow run(s)  ${span(held.now)}${full}`;
-  if (!held.before) {
-    return [first,
-      `no window before them: the corpus holds ${held.total} run(s) in all, so there is nothing yet to compare this one against.`];
-  }
+  if (!held.before) return [first, `no window before them: the corpus holds ${held.total} run(s) in all.`];
   const overlapping = held.now.profile.from <= held.before.profile.to;
   const release = releaseIn(anchor);
   if (release) {
@@ -345,6 +371,8 @@ const head = (held, anchor) => {
     `the ${held.before.runs} before them  ${span(held.before)}${short > 0 ? `  — short of a full ${held.size} by ${short}` : ""}`,
   ];
 };
+
+const head = (held, anchor) => [...windowLines(held, anchor), ...judgedLines(held)];
 
 /** `anchor` is the stored reading this comparison's before window came from, or null where it slid:
  *  one argument and not one per line, so no line is handed a point another line did not read. */
@@ -423,7 +451,8 @@ const readingOf = (directory, corpus, size, against = null, read = null) => ({
   unreadable: corpus.unreadable,
   copies: corpus.copies.length,
   ...(read ? { requests: read.spent.requests } : {}),
-  ...evalRuns(corpus.runs, corpus.copies, size, against, read),
+  ...evalRuns(corpus.runs, corpus.copies, size, against, read,
+    reachOf(corpus.root, corpus.runs[0]?.startedAt)),
 });
 
 const WRITES = "the release step writes one at every multiple of fifty runs in the corpus";

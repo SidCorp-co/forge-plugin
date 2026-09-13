@@ -17,6 +17,7 @@ import {
   rungRun,
   transcriptsUnder,
 } from "./transcripts.mjs";
+import { reachOf, reachSaid } from "./marks.mjs";
 import { claimedIn, parkWritersIn, rulingsIn } from "./joined.mjs";
 import { median } from "./median.mjs";
 import { PHASES } from "../guides/phases.mjs";
@@ -578,10 +579,12 @@ export const printRuns = (rest) => {
   const { runs, skipped, outsideWindow, unreadable } = runsUnder(root, from);
   const aside = readingAside({ skipped, outsideWindow, unreadable });
   const held = profileOf(runs);
+  /* A reading under `--since` reaches back exactly as far as the flag asked, so its floor is the flag's. */
+  const reach = since === undefined ? reachOf(root, held.from) : null;
   /* Before the empty-window prose: the flag is for a diff between two weeks and stopped being JSON on exactly the quiet week that diff is about (ISS-308). */
   if (json) {
     return console.log(JSON.stringify(
-      { root, project: directory, skipped, outsideWindow, unreadable, ...held },
+      { root, project: directory, skipped, outsideWindow, unreadable, ...(reach ? { reach } : {}), ...held },
       null, 2));
   }
   if (!runs.length) {
@@ -590,7 +593,7 @@ export const printRuns = (rest) => {
   }
   console.log(`${held.runs} issue-flow run(s)${since ? ` in the last ${since}` : ""}, `
     + `${stamp(held.from)} to ${stamp(held.to)}`);
-  console.log(`${root}\n${aside}\n`);
+  console.log(`${root}\n${aside}${reach ? `\n${reachSaid(reach)}` : ""}\n`);
   for (const line of profileLines(held)) console.log(line);
   return null;
 };
