@@ -8,7 +8,7 @@ import { acrossVersion } from "../gates/carried.mjs";
 import { INSTALLS, LANDS, PUSHES, runLanding, waitMs } from "./land.mjs";
 import { follows, installs, shortly } from "./install.mjs";
 import { publishes } from "./publish.mjs";
-import { above, forgetBump, versionAbove } from "./version.mjs";
+import { above, forgetBump, versionAbove } from "./release/version.mjs";
 import { RELEASE_FILES, versionAt } from "./landing.mjs";
 import {
   candidateOf, carries, dropRoom, landedAlready, linked, mergedTree, movedBy, NOT_KNOWN, pushed,
@@ -21,6 +21,7 @@ import {
 import { sessionOf } from "../../plugin/src/resolve/config.mjs";
 import { documentIdOf } from "../../plugin/src/tracker/issues.mjs";
 import { pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
+import { publishesVersion } from "./release/released-tag.mjs";
 import { parkAs } from "../../plugin/src/flow/advance.mjs";
 import {
   LANDING_BUILDER_OWED, LANDING_CANDIDATE, LANDING_DONE, LANDING_JUDGED, LANDING_QA_OWED,
@@ -279,6 +280,8 @@ const pushStep = async (one) => {
       + `so it landed and nothing is pushed again`);
   }
   if (at.room) forgetBump(at.room);
+  publishesVersion(root, intended, releaseOf(at), `Run the landing again: it comes back to this `
+    + `step, where the branch is already there and only the publication is retried.`);
   for (const member of at.members) await saveOn(member, { state: "promoted" });
   console.log(`  ${base} is at ${shortly(intended)}, release ${releaseOf(at)}`);
 };

@@ -5,7 +5,7 @@ import test from "node:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { BARE, GATE, git, landIn, pushed, runIn } from "./run-fixtures.mjs";
+import { BARE, GATE, git, landIn, pushed, runIn } from "../run-fixtures.mjs";
 
 /* The release files a scratch checkout has: `package-lock.json` is not one, and asserting a file that is never there proves nothing about what a refusal left alone. */
 const RELEASE = ["package.json", join("plugin", ".claude-plugin", "plugin.json")];

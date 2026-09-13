@@ -60,6 +60,21 @@ saved key alone is configuration that looks complete and dies at the first call.
 **And it names the copy a call from here would run, and the copy the gates come from** — two lines
 rather than one, because the case that matters is when they disagree: [the way in](the-way-in.md).
 
+**And it asks the remote which version was released last, because this box cannot answer that about
+itself.** Which copies are installed is a fact about one machine, so a box nobody has updated for
+three days agrees with itself and reads green — sixteen filings against defects already fixed came
+off one such box before this row existed. The remote is where a release lands, so that is what is
+asked, with `git ls-remote` in the directory the marketplace is registered from: no fetch, no write,
+bounded in time, and never a prompt for a credential. What the release leaves there to be read is a
+tag naming its version, which is also why a release that cannot publish one stops.
+
+The row refuses nothing and moves no exit code, a box deliberately held on an older copy being a
+state and not a fault. What it will not do is go quiet: no registration, no remote, a command that
+fails or never answers, and a remote carrying no version tag are each said by name, an unknown that
+reads as agreement being the defect itself rather than a tidier version of it. And where the
+registered directory is behind too, that directory is named as what has to move first: updating from
+a stale source reinstalls the copy already running.
+
 ## One verb reports every level, so the project is a level of it
 
 There were two verbs where there is now one, and each carried a partial view of what the other
@@ -93,23 +108,8 @@ declared, and a Plug'n'Play loader each earn no row, the last because an absence
 proves nothing where nothing resolves through it. And the row names the command rather than running
 it: an install is a write, and this verb makes none.
 
-## Two lines Phase 0 reads before it plans a landing
-
-**Where the merge sits is derived, not asked for.** The project already told the tracker whether its
-default branch deploys production on its own, and that is the fact that decides it: one branch
-deploying production means a push *is* the deploy, so a candidate is deployed and judged before it is
-pushed; distinct branches mean the merge lands on staging and is judged there. A record answering
-neither branch prints *not stated* rather than the safer-looking route, because a run told
-*after-merge* by a default would deploy production without knowing it. The `landing` key in a
-checkout overrides the derivation and prints its own source, so a project that disagrees with what
-its record implies says so once, where a reader can see both.
-
-**Whether an independent agent judges between `developed` and `testing` is the record's alone.** A
-project has one tracker record and many checkouts, and QA belongs with the deploy facts rather than
-beside them; read from a checkout instead, two clones of one project would judge the same change
-differently. So a `qa` key in a `.forge.json` has no effect on this line, which prints
-*not stated* until the record itself answers. This report says so at the point where there is still
-time to change the record, and not at the transition that would later turn it down.
+The two lines this report writes that Phase 0 reads before it plans a landing, and whose answer is
+the tracker's record rather than any checkout's: [the landing lines](the-landing-lines.md).
 
 The test credentials the deploy lines withhold, and the guard that keeps them out of every payload:
 [the test credentials](test-credentials.md). The brief this report also writes — why `--refresh` takes

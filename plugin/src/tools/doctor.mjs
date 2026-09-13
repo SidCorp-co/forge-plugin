@@ -35,9 +35,10 @@ import {
 } from "../checks/claude-md.mjs";
 import { harnessLines } from "./services/doctor-harness.mjs";
 import { installRows } from "./services/doctor-install.mjs";
+import { copyRows } from "./services/doctor-release.mjs";
 import { withholdingLines } from "./services/doctor-jobs.mjs";
 import { masked } from "./services/masked.mjs";
-import { copyToRun, FROZEN, pluginCopy } from "./plugin-copy.mjs";
+import { copyToRun, FROZEN } from "./plugin-copy.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
@@ -581,12 +582,7 @@ export const doctor = async (argv) => {
   } else {
     line(OK, "prose language", "as written; set translate in .forge.json to rewrite");
   }
-  const copy = pluginCopy();
-  if (copy && !copy.stale) line(OK, "plugin copy", `${copy.running} — running and installed`);
-  else if (copy) {
-    line(NOTE, "plugin copy", `${copy.running} here, ${copy.installed} installed — a session keeps the `
-      + "registration it started with: `claude plugin update` then restart");
-  }
+  report(copyRows());
   /* Which copy `forge` on PATH is, from here — the answer changes with the directory, and the link
      itself names one copy for the whole machine. */
   const dispatched = copyToRun();

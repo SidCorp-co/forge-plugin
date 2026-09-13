@@ -22,7 +22,8 @@ import { cleanTree, INSTALLS, land, LANDS, PUSHES, pushing, runLanding, SHARED, 
 import { landReady } from "./run/land-ready.mjs";
 import { onlyRelease, RELEASE_FILES } from "./run/landing.mjs";
 import { CHECK, publishes } from "./run/publish.mjs";
-import { forgetBump, unwound, versionAbove } from "./run/version.mjs";
+import { publishesVersion, statesVersion, versionIn } from "./run/release/released-tag.mjs";
+import { forgetBump, unwound, versionAbove } from "./run/release/version.mjs";
 import { start } from "./run/workspace/start.mjs";
 import { finish, FINISH_HELP } from "./run/workspace/finish.mjs";
 import { LINKS_HELP } from "./run/workspace/links.mjs";
@@ -470,7 +471,10 @@ const GATE = "the gate";
 const shipSteps = (tree, root, base, note) => {
   const { market, plugin } = named();
   if (!market || !plugin) stop("this checkout names no marketplace or no plugin, so there is nothing to install.");
-  return [
+  const push = `push to ${REMOTE}/${base}`;
+  const resume = () => `Resume the release at its push step, where the branch push is a no-op and `
+    + `this is retried: ${SELF} ship --from ${rows.findIndex(([one]) => one === push) + 1}`;
+  const rows = [
     ["the tree is clean", () => cleanTree(tree)],
     [`fetch ${REMOTE}/${base}`, () => {
       loud("git", ["fetch", REMOTE, base], tree, "Check the remote is reachable.");
@@ -490,10 +494,11 @@ const shipSteps = (tree, root, base, note) => {
       "Fix the tree and ship again; a release ships what a gate has passed, and nothing after this step has run."), LANDS],
     [`a version above ${REMOTE}/${base}`,
       () => acrossVersion(tree, RELEASE_FILES, () => versionAbove(tree, base, note)), LANDS],
-    [`push to ${REMOTE}/${base}`, () => {
+    [push, () => {
       pushing(tree, base, () => `Rejected means the remote `
         + `moved${unwound(tree)}: rebase, re-run the review of the rebased head, then ${SELF} ship --from 2`);
       forgetBump(tree);
+      publishesVersion(tree, gitOut(["rev-parse", "HEAD"], tree), versionIn(tree), resume());
     }, PUSHES],
     ["the checkout follows", () => follows(root, base, tree)],
     [`install ${plugin}@${market} from the tree that shipped`, () =>
@@ -503,6 +508,7 @@ const shipSteps = (tree, root, base, note) => {
       console.log(copy
         ? `  ${copy.name} ${copy.running} running, ${copy.installed} installed${copy.stale ? " — this version is in no install record" : ""}`
         : "  no install record answers for this plugin");
+      statesVersion(tree, gitOut(["rev-parse", "HEAD"], tree), versionIn(tree), resume());
       const landed = releaseSays(tree, base);
       const was = shipFrom(tree);
       if (landed) tierCeiling(tree, was, landed);
@@ -519,6 +525,7 @@ const shipSteps = (tree, root, base, note) => {
       partForLanding((phase) => console.log(`\n${phase}`));
     }],
   ];
+  return rows;
 };
 
 const ship = async ({ flags }) => {

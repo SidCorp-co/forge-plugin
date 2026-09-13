@@ -63,6 +63,7 @@ how many topics there may be.
 | [stats — the eval](cli/stats-the-eval.md) | Why a cost figure is the profile's, and what the installed copy cannot fix. |
 | [stats — the outcome](cli/stats-the-outcome.md) | The four figures beside the costs, and the release mark. |
 | [doctor](cli/doctor.md) | Why every missing piece is reported together, and why one verb reports every level of configuration and reads a key back before calling it set. |
+| [the landing lines](cli/the-landing-lines.md) | Why where the merge sits is derived from the branches rather than asked for, and why whether an independent agent judges is the tracker record's alone. |
 | [which gates run](cli/which-gates-run.md) | Why the switch is derived from the hooks directory, and why one place alone answers whether a gate is off. |
 | [the test credentials](cli/test-credentials.md) | Why a host is told from a secret by the shape of the value, and where the trim stops. |
 | [the project's brief](cli/the-brief.md) | Why `--refresh` takes the answer it is meant to produce, which files a digest covers and which it deliberately does not, and why a store that will not answer is not a store with no brief. |

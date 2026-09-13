@@ -6,7 +6,7 @@ import { join, resolve } from "node:path";
 
 import { pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
 import { git, gitOut, lines, loud, REMOTE, remoteRef, stop } from "../checkout.mjs";
-import { above } from "./version.mjs";
+import { above } from "./release/version.mjs";
 
 const READ_BY_INSTALL = ["plugin", ".claude-plugin"];
 

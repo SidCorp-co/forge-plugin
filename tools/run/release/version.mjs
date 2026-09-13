@@ -3,8 +3,8 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { git, gitOut, loud, read, REMOTE, remoteRef, stop } from "../checkout.mjs";
-import { onlyRelease, RELEASE_FILES, versionAt } from "./landing.mjs";
+import { git, gitOut, loud, read, REMOTE, remoteRef, stop } from "../../checkout.mjs";
+import { onlyRelease, RELEASE_FILES, versionAt } from "../landing.mjs";
 
 const parts = (version) => String(version ?? "").split(".").map((one) => Number.parseInt(one, 10));
 
