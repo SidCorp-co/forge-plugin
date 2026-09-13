@@ -219,12 +219,12 @@ test("the limit prints that many of the whole set and says what it left out", as
   assert.deepEqual(keysOf(run), ["ISS-11", "ISS-13"], "the top two of the order, not the two that fit");
   assert.match(run.stdout, /2 of 4 issue\(s\)/u);
   assert.match(run.stdout, /tail of the order above/u);
-  assert.match(run.stdout, /--limit/u, "the flag that prints more of it");
+  assert.match(run.stdout, /forge issue --limit 2 --offset 2/u, "the call that prints the rest of it");
 });
 
-/* The one size this project has never been: `--limit` is refused above MAX_LIMIT and the print cut
-   only bites at `shown === limit`, so at the ceiling the flag clause names the one thing that cannot
-   move. Built off the constant, because a case pinned to 500 goes green by accident if it changes. */
+/* The one size this project has never been: `--limit` is refused above MAX_LIMIT, so at the ceiling
+   the route past the cut cannot be that flag and is the offset. Built off the constant, because a
+   case pinned to 500 goes green by accident if it changes. */
 const overTheCeiling = () => {
   state.issues = Array.from({ length: MAX_LIMIT + 1 }, (unused, at) => ({
     issueId: `ISS-${1000 + at}`,
@@ -237,15 +237,15 @@ const overTheCeiling = () => {
   state.answer = undefined;
 };
 
-test("at the ceiling the cut sentence drops the flag and keeps the route that works", async () => {
+test("at the ceiling the cut sentence names the offset, the route the limit cannot be", async () => {
   overTheCeiling();
   const run = await ran(["issue", "--limit", String(MAX_LIMIT)]);
   assert.equal(run.status, 0, run.stderr);
-  const said = run.stdout.split("\n").find((line) => line.includes("not printed")) ?? "";
+  const said = run.stdout.slice(run.stdout.indexOf(`${MAX_LIMIT} of ${MAX_LIMIT + 1}`));
   assert.match(said, new RegExp(`^${MAX_LIMIT} of ${MAX_LIMIT + 1} issue\\(s\\)`, "u"));
   assert.match(said, /tail of the order above/u, "which rows were dropped is still said");
-  assert.match(said, /a filter narrows the ask/u, "the one action left is still named");
-  assert.doesNotMatch(said, /--limit/u, "the flag is already at its ceiling, so naming it is advice that cannot be taken");
+  assert.match(said, new RegExp(`forge issue --limit ${MAX_LIMIT} --offset ${MAX_LIMIT}$`, "mu"),
+    "the call that prints them, carrying the limit this one was given");
 });
 
 test("a page the tracker reports whole is read in one request", async () => {

@@ -102,7 +102,7 @@ test("a flag of another call of the verb is refused as that call's, never as one
 /* On no call of this verb: the suggestion is right where the name really is not there. */
 test("a name no call of the verb takes is still answered by this call's own set", () => {
   assert.match(unknownFlag("issue", ["--feilds"], { usage: LIST_USAGE, modes: [READ_USAGE] }),
-    /No issue flag named --feilds\. The set is --status, --search, --limit\./u);
+    /No issue flag named --feilds\. The set is --status, --search, --limit, --offset\./u);
 });
 
 /* Read off the other call's own text at the refusal, so nothing beside either usage names a flag. */
@@ -331,7 +331,7 @@ test("a flag of the verb's other call is refused as that call's, with the comman
   assert.equal(run.status, 1);
   assert.doesNotMatch(run.stderr, /No issue flag named --fields/u);
   assert.match(run.stderr, /^ {2}forge issue <uuid\|ISS-45> --fields a,b$/mu);
-  assert.match(run.stderr, /^Usage: forge issue \[--status s\] \[--search q\] \[--limit n\]$/mu);
+  assert.match(run.stderr, /^Usage: forge issue \[--status s\] \[--search q\] \[--limit n\] \[--offset n\]$/mu);
   assert.equal(run.stdout, "", "and nothing was read to say it");
 });
 

@@ -64,10 +64,10 @@ the route's own ceiling. Keeping it as the ask is incoherent once the answer is 
 pages — the union exceeds the number asked for — and a ranked top-N is only truthful over the
 whole set, since a `critical` row a month old sits in the last window as easily as the first. Where
 the print cut bites, the count line says how many of how many, which order the rest are the tail of,
-and the flag that prints more: a cut a caller cannot act on is the defect this file is about. At the
-ceiling it drops that flag and names the filter alone — the cut only bites where the print count
-equals the limit, so a limit already at the maximum makes "raise it" the same unactionable advice a
-refusal is forbidden below.
+and the whole call that reaches the next window: a cut a caller cannot act on is the defect this file
+is about, and `--limit` is no route out of one, at its own ceiling where the cut bites hardest.
+`--offset` is the route, and it indexes the printed rank and not the wire order: the walk ranks rows
+it already holds, so an offset sent to the route would page one order while printing another.
 
 Narrowing by enum — status, priority, category, label — was the other candidate for reading a whole
 set, and those axes cannot subdivide without limit. Where the cap is on bytes a bucket overflows

@@ -88,31 +88,61 @@ const limitFrom = (raw) => {
   return value;
 };
 
-/* Every matching row being in hand, the only cut left is the printed one — by the order above. */
-const routeSaid = (shown) => (shown < MAX_LIMIT
-  ? ` — \`--limit\` up to ${MAX_LIMIT} prints more of it, and a filter narrows the ask.`
-  : " — a filter narrows the ask.");
+/* Floor 0 and no ceiling: the offset indexes the set the walk already holds, so a page past its end is an answer and not a refusal, and page one is not a number to be refused for naming (ISS-1150). */
+const offsetFrom = (raw) => {
+  if (raw === undefined) return 0;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 0) fail(`--offset takes an integer from 0 up, not \`${raw}\`.`);
+  return value;
+};
 
-const countSaid = (shown, read) => (shown < read.rows.length
-  ? `${shown} of ${read.rows.length} issue(s) over ${read.pages} page(s). The ${read.rows.length - shown}`
-    + ` not printed are the tail of the order above${routeSaid(shown)}`
-  : `${read.rows.length} issue(s) over ${read.pages} page(s)`
-    + (read.whole ? ", which is every row matching this ask." : "."));
+/* The footer below is a command a reader pastes, so a value a shell would split travels quoted. */
+const typedBack = (value) => (/^[\w.:@/-]+$/u.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`);
+
+/* The next page's whole call in the caller's own terms, because a footer naming a flag already at its ceiling is the unactionable advice ISS-264 was closed on. */
+const nextCall = (asked, offset) => [
+  "forge issue",
+  ...Object.entries(asked.filters)
+    .filter(([, value]) => value !== undefined)
+    .map(([name, value]) => `--${name} ${typedBack(String(value))}`),
+  ...(asked.raw === undefined ? [] : [`--limit ${asked.limit}`]),
+  `--offset ${offset}`,
+].join(" ");
+
+/* Every matching row being in hand, the only cut left is the printed one — by the order above and at the offset this call named, so the route past that cut is the offset and never `--limit`. */
+const countSaid = (shown, read, asked) => {
+  const total = read.rows.length;
+  const behind = total - asked.offset - shown;
+  const over = `${read.pages} page(s)`;
+  if (shown === 0 && asked.offset > 0) {
+    return total
+      ? `Nothing at offset ${asked.offset}: ${total} issue(s) match this ask over ${over}, the last`
+        + ` of them at offset ${total - 1}, so a walk by offset ends here.`
+      : `Nothing at offset ${asked.offset}: nothing matches this ask at all, over ${over}.`;
+  }
+  const held = asked.offset
+    ? `${asked.offset + 1} to ${asked.offset + shown} of ${total} issue(s) over ${over}`
+    : `${shown === total ? total : `${shown} of ${total}`} issue(s) over ${over}`;
+  return behind > 0
+    ? `${held}. The ${behind} behind this page are the tail of the order above, and this call prints`
+      + ` the next page of them:\n  ${nextCall(asked, asked.offset + shown)}`
+    : `${held}${read.whole ? ", which is every row matching this ask." : "."}`;
+};
 
 /* One line per issue: the uuid column was 22% of this verb and bought nothing, and the rank is here
    because an order a reader cannot see reads as a shuffle. */
-const printIssues = (read, limit, order) => {
-  const shown = queued(read.rows, order).slice(0, limit);
+const printIssues = (read, asked, order) => {
+  const shown = queued(read.rows, order).slice(asked.offset, asked.offset + asked.limit);
   for (const issue of shown) {
     console.log(`${(issue.issueId ?? "").padEnd(8)} ${(issue.priority ?? "").padEnd(8)} `
       + `${(issue.status ?? "").padEnd(12)} ${issue.title}`);
   }
-  console.log(`\n${countSaid(shown.length, read)}`);
+  console.log(`\n${countSaid(shown.length, read, asked)}`);
   const said = shortOf(read, "This reading");
   if (said) console.log(said);
 };
 
-export const LIST_USAGE = "Usage: forge issue [--status s] [--search q] [--limit n]";
+export const LIST_USAGE = "Usage: forge issue [--status s] [--search q] [--limit n] [--offset n]";
 /* Seventeen names are a list rather than a sentence, so the route out is where they are counted. */
 const STATUSES_SEEN = "`forge doctor` counts the statuses this project's issues carry.";
 
@@ -207,7 +237,7 @@ export const commands = {
     const [first, ...rest] = argv;
     if (first === undefined || first.startsWith("--")) {
       const declared = declaredFor("forge_issues", "filters").map((one) => `--${one}`);
-      const { limit: raw, ...filters } = flags(argv, "issue", [], { usage: LIST_USAGE, hidden: declared, modes: [READ_USAGE] });
+      const { limit: raw, offset: atRaw, ...filters } = flags(argv, "issue", [], { usage: LIST_USAGE, hidden: declared, modes: [READ_USAGE] });
       /* Each named at its own call, not looped: the value a caller typed is what the judge is handed, and a loop would name the field and pass whatever the loop held (ISS-936). */
       refuseUndeclared("issue", "status", filters.status,
         { values: declaredFor("forge_issues", "status"), hint: STATUSES_SEEN });
@@ -221,7 +251,8 @@ export const commands = {
       refuseUnreadableDate("issue", "createdAfter", filters.createdAfter);
       refuseUnreadableDate("issue", "createdBefore", filters.createdBefore);
       refuseUnreadableDate("issue", "updatedAfter", filters.updatedAfter);
-      return printIssues(await everyIssue(filters), limitFrom(raw), declaredFor("forge_issues", "priority"));
+      const asked = { filters, raw, limit: limitFrom(raw), offset: offsetFrom(atRaw) };
+      return printIssues(await everyIssue(filters), asked, declaredFor("forge_issues", "priority"));
     }
     const reference = first;
     const pulled = pullRepeated(rest, "--set", "issue", { usage: READ_USAGE, boolean: ["--full"], modes: [LIST_USAGE] });
