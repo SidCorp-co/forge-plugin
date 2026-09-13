@@ -89,7 +89,8 @@ test("past the threshold the step files the reading's issue itself, and prints t
     "the filing spawned the CLI, which is the parse this step no longer makes");
 
   for (const said of ["## Outcome", "## Rules", "## Out of scope", "1 file(s) and 1501 changed line(s)",
-    `git diff ${from}..${to} -- plugin/src plugin/hooks plugin/bin`, "ISS-77", `review --done ${to}`,
+    `git diff ${from}..${to} -- plugin/src plugin/hooks plugin/bin`, "ISS-77",
+    "review --done",
     "forge knowledge write module-<name>", "forge doctor --refresh",
     /* One needle per obligation: dropping one leaves the batch read by no named instrument (ISS-339). */
     "`simplify`", "reuse, simplification, efficiency,", "altitude", "forge comment",
@@ -97,6 +98,19 @@ test("past the threshold the step files the reading's issue itself, and prints t
     "listing has no `simplify`", "git status --porcelain"]) {
     assert.ok(filing.description.includes(said), `the body carries no ${said}:\n${filing.description}`);
   }
+  /* The one string of this body that outlives the tree it was written in: it is read from another
+     run's worktree, days later, and `finish` has removed the directory the filing stood in. A
+     command carrying either the filing tree's name or the filing head sends that reader somewhere
+     it cannot go or somewhere that is no longer the end of its range (ISS-1143). */
+  const done = filing.description.split("\n").filter((one) => one.includes("review --done"));
+  assert.equal(done.length, 1, `one --done line, not ${done.length}:\n${filing.description}`);
+  assert.match(done[0], /`node tools\/run\.mjs review --done /u,
+    `the --done command names a directory before the script: ${done[0]}`);
+  assert.doesNotMatch(done[0], /--done\s+\S*[0-9a-f]{7}/u,
+    `the --done command pins a sha, and ${to.slice(0, 7)} is the one this filing resolved: ${done[0]}`);
+  assert.doesNotMatch(filing.description, /\bwt-[a-z0-9-]*ISS-\d+/iu,
+    `a path of somebody's worktree is in the body:\n${filing.description}`);
+
   assert.ok(owed.stdout.includes("filed ISS-777"), owed.stdout);
   assert.ok(owed.stdout.includes("Work ISS-777. Use the Skill tool: skill forge:issue-flow, args ISS-777."),
     `the launch line is not printed as the parent reads it:\n${owed.stdout}`);

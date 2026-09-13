@@ -63,7 +63,7 @@ export const spannedIn = (tree, from) => {
   return [...new Set(subjects.match(KEY) ?? [])].sort((one, two) => Number(one.slice(4)) - Number(two.slice(4)));
 };
 
-export const reviewBody = ({ tree, from, to, volume, self }) => {
+export const reviewBody = ({ tree, from, to, volume }) => {
   const owed = reviewLines();
   const keys = spannedIn(tree, from);
   const paths = REVIEW_PATHS.join(" ");
@@ -106,9 +106,12 @@ export const reviewBody = ({ tree, from, to, volume, self }) => {
     "  files it was read from in the same call, where this reading changed what it says.",
     "  `forge knowledge -h` carries the shape, and the run's verification cites the entries written.",
     `- Issues whose releases this range spans: ${keys.join(", ") || "none, so the range is unreleased work"}.`,
-    `- The run ends from its own tree with \`${self} review --done ${to}\`, after its own ship. The ref`,
-    "  is named and not defaulted: it is this range's end, which is the head the reading reached, and",
-    "  other runs land on this branch while the reading is read (ISS-146).",
+    "- The run ends from its own tree with `node tools/run.mjs review --done <the head this reading",
+    "  reached>`, after its own ship. The command carries no directory and no commit of its own: both",
+    "  were resolved where this body was written, and the tree that resolved them is another run's and",
+    "  is gone by the time this is read (ISS-1143). The ref is named and not defaulted: it is this",
+    "  range's end, which is the head the reading reached, and other runs land on this branch while",
+    "  the reading is read (ISS-146).",
     "",
     "## Out of scope",
     "",

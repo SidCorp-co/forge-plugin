@@ -303,7 +303,7 @@ const fileReview = async (tree, from, volume) => {
   /* Keys off the commit subjects, never the body, which cites the issues that shaped this step. */
   const filed = await refusing(() => fileIssue({
     title,
-    body: reviewBody({ tree, from, to, volume, self: SELF }),
+    body: reviewBody({ tree, from, to, volume }),
     kind: "review",
     relateKeys: spannedIn(tree, from),
     soft: true,
