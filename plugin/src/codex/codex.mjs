@@ -25,8 +25,8 @@ import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, pending, pendingIn, r
 import { PER_KEY, READ_ISSUE, SPARE, TOOLS, scopeFor } from "./codex-tools.mjs";
 import { noDiffIn, reviewSet, shownOf } from "./codex-set.mjs";
 import { reviewed } from "./codex-rounds.mjs";
-import { EFFORTS, defaultEffort, incompleteIn, keepsTools, newFindingsIn, plannedFor, plannedLimits }
-  from "./codex-plan.mjs";
+import { EFFORTS, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools, newFindingsIn,
+  plannedFor, plannedLimits, rungFor, rungLadder } from "./codex-plan.mjs";
 import {
   ANGLES,
   modelSlot,
@@ -258,15 +258,35 @@ const chosenEffort = (raw) => {
 
 /* The premise is a decorrelated reviewer, so an echo is refused rather than warned about: a warning
    on stderr is read after the tokens are spent. */
-const modelFor = (values, path, allowEcho) => {
-  const model = modelBehind(values);
-  if (!model) fail(`codex: ${path} maps the ${modelSlot()} slot to no model.`);
+const modelFor = (values, path, allowEcho, effort) => {
+  const model = rungFor(effort, modelBehind(values));
+  if (!model) {
+    fail(`codex: no \`codex.rungs.${effort}\` and no ${modelSlot()} slot in ${path} names a model to `
+      + "review with. Add a `codex.rungs` entry for that level, or map the slot in the profile.");
+  }
   if (sameFamily(model) && !allowEcho) {
-    fail(`codex: the ${modelSlot()} slot resolves to ${model}, this model's own family — that echoes rather `
-      + "than reviews. Point `codex.model` at another slot, or pass --allow-echo.");
+    fail(`codex: the ${effort} rung resolves to ${model}, this model's own family — that echoes rather `
+      + "than reviews. Point `codex.rungs` or `codex.model` at another family, or pass --allow-echo.");
   }
   return model;
 };
+
+/* `${namedBase}~1` is no escape from a base that moved: one commit back is on the other side, so it
+   parts from the branch at the same point. The head is the ref that answers there. */
+const unmovedSaid = (root, rels, namedBase, parted) => {
+  const where = commitAt(root).dirty ? "the files named" : "the tree is clean, so the change is committed";
+  const back = parted ? "HEAD~1" : `${namedBase}~1`;
+  return `codex: nothing differs from ${namedBase}${parted ? ` since they parted at ${parted.slice(0, 7)}` : ""}`
+    + ` in ${rels.join(", ")} — ${where}. Pass --base ${back} to review the last commit.`;
+};
+
+/* The model and the channel beside the count, because which of the two carried the level is the one
+   thing a reader cannot infer from the level itself. */
+const plannedSaid = ({ model, effort, kind, budget, ceiling, lines, clipped }) =>
+  `codex: ${budget} call(s) to ${model} at ${effort} effort, on the ${effortVia(model)}, `
+  + `for a ${kind} of ${lines} changed line(s)`
+  + `${clipped.length ? `, ${clipped.length} of them clipped` : ""}`
+  + `${budget < ceiling ? `, up to ${ceiling} if the review comes back incomplete` : ""}.`;
 
 const consult = async (given) => {
   const { problem, values, path } = profile();
@@ -311,7 +331,6 @@ const consult = async (given) => {
   const parted = fromParting ? divergedFrom(root, anchor) : null;
   if (parted) console.error(`codex: ${anchor} has moved under this branch, so the diff is from ${parted.slice(0, 7)}, where they parted.`);
 
-  const model = modelFor(values, path, allowEcho);
   /* Bundled before the count is printed, because a path with nothing under it is not a file to
      review: it travelled as a NEW FILE heading with no lines and was logged as reviewed (ISS-703). */
   const showing = shownOf(root,
@@ -325,6 +344,23 @@ const consult = async (given) => {
   if (!rels.length && !issues.length) fail("codex: nothing to consult on: every path it was offered is absent from the tree.");
   const short = bodies && cannotCarry(bundled.filter((part) => rels.includes(part.rel)));
   if (short) fail(`codex: ${short}`);
+  /* A review of nothing is still billed: after a commit every file reads UNCHANGED against HEAD. A
+     recheck is the one case that carries on: its base was chosen for it, so an unmoved tree means
+     nothing to diff and not nothing to ask, and the findings are still owed a ruling. */
+  const still = anchor && unchangedAll(bundled);
+  if (still && anchor === namedBase) fail(unmovedSaid(root, rels, namedBase, parted));
+  if (still) console.error(`codex: nothing differs from ${anchor}, so this recheck carries no diff — the findings are asked for on the tree as it stands.`);
+  const parts = still ? bundle(root, rels) : bundled;
+  /* The point diffed from, not the ref: a row anchored to a name replays against wherever that name
+     has since gone, which is a diff nobody was ever shown (`codex replay`, codex-stats.mjs). */
+  const reached = parted ?? anchor;
+  const anchoredTo = still ? null : reached;
+  /* The whole plan before the intent is read, none of it needing one: it settles the model this
+     consult will be sent to, so a rung that resolves nothing refuses here rather than after the wait. */
+  const { clipped, lines, budget, ceiling, effort, kind } = plannedFor({ parts, bodies, recheck, risks: risks.length, asked: cap, effort: askedEffort });
+  const model = modelFor(values, path, allowEcho, effort);
+  if (clipped.length) console.error(`codex: sent clipped, too long to fit whole: ${clipped.join(", ")}.`);
+  console.error(plannedSaid({ model, effort, kind, budget, ceiling, lines, clipped }));
   /* Said before the read, so a stall says where it is, and the read waits on the first byte alone:
      an open stdin with nothing on it was read to EOF and never returned (ISS-65). */
   console.error(`codex: ${rels.length} file(s) to review`
@@ -334,31 +370,8 @@ const consult = async (given) => {
   if (said === null) console.error(`codex: nothing on stdin inside ${INTENT_MS}ms, so the consult carries no intent.`);
   const intent = (said ?? "").trim();
   const id = randomBytes(3).toString("hex");
-
-  /* A review of nothing is still billed: after a commit every file reads UNCHANGED against HEAD. A
-     recheck is the one case that carries on: its base was chosen for it, so an unmoved tree means
-     nothing to diff and not nothing to ask, and the findings are still owed a ruling. */
-  const still = anchor && unchangedAll(bundled);
-  if (still && anchor === namedBase) {
-    const where = commitAt(root).dirty ? "the files named" : "the tree is clean, so the change is committed";
-    /* `${namedBase}~1` is no escape from a base that moved: one commit back is on the other side, so
-       it parts from the branch at the same point. The head is the ref that answers there. */
-    const back = parted ? "HEAD~1" : `${namedBase}~1`;
-    fail(`codex: nothing differs from ${namedBase}${parted ? ` since they parted at ${parted.slice(0, 7)}` : ""}`
-      + ` in ${rels.join(", ")} — ${where}. Pass --base ${back} to review the last commit.`);
-  }
-  if (still) console.error(`codex: nothing differs from ${anchor}, so this recheck carries no diff — the findings are asked for on the tree as it stands.`);
-  const parts = still ? bundle(root, rels) : bundled;
-  /* The point diffed from, not the ref: a row anchored to a name replays against wherever that name
-     has since gone, which is a diff nobody was ever shown (`codex replay`, codex-stats.mjs). */
-  const reached = parted ?? anchor;
-  const anchoredTo = still ? null : reached;
-  const { clipped, lines, budget, ceiling, effort } = plannedFor({ parts, bodies, recheck, asked: cap, effort: askedEffort });
-  if (clipped.length) console.error(`codex: sent clipped, too long to fit whole: ${clipped.join(", ")}.`);
   const history = historyFor(entries, root, undefined, rels);
   const system = roleFor(angles, { check: Boolean(projectCheck()), recheck, tracker: issues.length > 0 });
-  console.error(`codex: ${budget} call(s) at ${effort} effort for ${lines} changed line(s)`
-    + `${clipped.length ? `, ${clipped.length} of them clipped` : ""}${budget < ceiling ? `, up to ${ceiling} if the review comes back incomplete` : ""}.`);
   const started = Date.now();
   const record = {
     id,
@@ -371,6 +384,8 @@ const consult = async (given) => {
     intent,
     history: history.length,
     effort,
+    effortVia: effortVia(model),
+    consultKind: kind,
     angles,
     ceiling,
     lines,
@@ -455,12 +470,22 @@ const show = (rest = []) => {
   const root = repoRoot(process.cwd());
   const waiting = root ? pendingIn(readState(), root) : [];
   const entries = logEntries();
-  const model = modelBehind(values);
+  const base = defaultEffort();
+  const ladder = rungLadder();
+  const model = rungFor(base, modelBehind(values));
+  const said = model && disagreement(base, model);
   console.log(`profile   : ${path}${problem ? `  (${problem})` : ""}`);
   console.log(`endpoint  : ${values?.ANTHROPIC_BASE_URL ?? "<unresolved>"}/v1/messages  (streamed)`);
-  console.log(`model     : ${modelSlot()} -> ${model ?? "<unset>"}`);
+  console.log(`model     : ${modelSlot()} -> ${model ?? "<unset>"} at ${base} effort, `
+    + `carried on the ${effortVia(model)}`);
+  console.log(`rungs     : ${ladder.length ? ladder.map(([level, one]) => `${level} -> ${one}`).join(", ")
+    : "none — a `codex.rungs` object in this machine's own config maps a level to a model"}`);
   if (sameFamily(model)) {
     console.log("            ^ this model's own family: consult refuses it without --allow-echo.");
+  }
+  if (said) {
+    console.log(`            ^ that id states the ${said} rung while the rule resolved ${base}, so `
+      + `${ladder.length ? "a rung points at another rung's model" : "the one slot answers every level"}.`);
   }
   console.log(`repo root : ${root ?? "<not in a git repository>"}`);
   console.log(`history   : ${root ? historyFor(entries, root).length : 0} prior exchange(s) replayed`);
@@ -470,8 +495,8 @@ const show = (rest = []) => {
     + `${limits.ceiling} when a review comes back incomplete`);
   console.log(`tracker   : ${READ_ISSUE.name} where a consult names an issue key, `
     + `${PER_KEY} tracker request(s) per key and ${SPARE} over, per consult`);
-  console.log(`effort    : ${defaultEffort()}, a step down on a recheck or under ${limits.small} `
-    + `changed line(s), a step up over ${limits.large}`);
+  console.log(`effort    : ${base}, a step down on a recheck or under ${limits.small} changed line(s), `
+    + `a step up on a bodies pass, on a named risk or over ${limits.large}`);
   console.log(`angles    : ${chosenAngles(undefined).join(", ")}`);
   console.log(`check     : ${projectCheck()?.command ?? "none — a codex.check in the project's own settings names one"}`);
   console.log(`per call  : ${Math.round(budgetMs() / 1000)}s of budget, and the tool list is `

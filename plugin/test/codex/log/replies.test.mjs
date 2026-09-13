@@ -16,6 +16,7 @@ const {
   digestOf,
   findingsIn,
   historyFor,
+  modelKey,
   numbered,
   outcomeOf,
   recheckOwed,
@@ -367,4 +368,30 @@ test("history replays the findings, rulings and outcomes, not the prose", () => 
   assert.equal(digestOf("## Tech Lead\n\nA paragraph of reasons.\n\nCODEX: 0 findings\n\nMore prose after.", null), "CODEX: 0 findings", "a converged reply is one line");
   const [replayed] = historyFor([{ kind: "consult", id: "c1", ok: true, root: "/a", at: "1", files: ["a.mjs"], intent: "x", reply: "Preamble.\n- **F1 — New — major:** `a.mjs:1` — x." }], "/a", 3, ["a.mjs"]);
   assert.equal(replayed.reply, "CODEX: 1 findings\n- F1 — New — major: `a.mjs:1` — x.", "what travels is the digest");
+});
+
+/* A row from before the effort moved onto the model states a level the gateway never read, so it is a
+   treatment of its own however much of its label matches one written after. */
+test("the channel is part of the key, and a row recording none keys apart from one that does", () => {
+  assert.equal(modelKey({ model: "cx/gpt-6-astra-high", effort: "low" }), "cx/gpt-6-astra-high @low via unrecorded");
+  assert.equal(modelKey({ model: "cx/gpt-6-astra-high", effort: "high", effortVia: "model" }), "cx/gpt-6-astra-high via model");
+  assert.equal(modelKey({ model: "cx/gpt-5.6-sol", effort: "medium", effortVia: "parameter" }),
+    "cx/gpt-5.6-sol @medium via parameter");
+  assert.notEqual(modelKey({ model: "cx/gpt-5.6-sol", effort: "medium" }),
+    modelKey({ model: "cx/gpt-5.6-sol", effort: "medium", effortVia: "parameter" }),
+    "the same model at the same level either side of the change is two treatments, not one");
+  assert.equal(modelKey({ slot: "codex" }), "codex via unrecorded");
+});
+
+/* Where the model carried the effort its id already says which rung answered, so the level the rule
+   asked for is not repeated in the key: `--effort high` falling back to the base rung's model is the
+   same treatment as a consult that resolved that rung outright. */
+test("two consults answered by one rung score as one group, whatever level each asked for", () => {
+  const rows = ["high", "medium"].map((effort, at) => ({
+    kind: "consult", id: `${at}`, ok: true, root: "/a", at: `${at}`,
+    model: "cx/gpt-6-astra-medium", effort, effortVia: "model", reply: "CODEX: 0 findings",
+  }));
+  const scored = scoreOf(rows);
+  assert.equal(scored.length, 1, "one rung is one treatment");
+  assert.equal(scored[0].consults, 2);
 });

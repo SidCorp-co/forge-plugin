@@ -13,6 +13,7 @@ delete process.env.FORGE_CODEX_DISABLE;
 const { SAYS, ageOf, consultArgs, rounds, unchangedAll } = await import("../../src/codex/codex.mjs");
 const {
   ANGLES,
+  askApi,
   bundle,
   consume,
   digest,
@@ -474,6 +475,29 @@ test("a command line becomes a request in one place", () => {
   assert.equal(consultArgs(["--diff", "--base", "main"]).base, "main");
   assert.equal(consultArgs(["--base", "main"]).base, "main");
   assert.equal(consultArgs(["a.mjs"]).base, null);
+});
+
+/* The one place in the tree that spells `reasoning_effort`: the gateway states a model's effort in
+   the model id and resolves a contradiction in the id's favour, so the parameter travels only where
+   the id leaves the question open. The call is failed at the status line, the body having been built. */
+test("a model whose id states a rung is sent no reasoning_effort, and one that states none is", async () => {
+  const live = globalThis.fetch;
+  const sent = [];
+  globalThis.fetch = async (url, options) => {
+    sent.push(JSON.parse(options.body));
+    return { ok: false, status: 503, text: async () => "not this test's business" };
+  };
+  const values = { ANTHROPIC_BASE_URL: "https://gateway.example.com", ANTHROPIC_AUTH_TOKEN: "sk-secret" };
+  try {
+    for (const model of ["cx/gpt-6-astra-high", "cx/gpt-5.6-sol"]) {
+      await assert.rejects(askApi(values, model, [{ role: "user", content: "x" }], { effort: "low" }));
+    }
+  } finally {
+    globalThis.fetch = live;
+  }
+  assert.equal(sent[0].model, "cx/gpt-6-astra-high");
+  assert.ok(!("reasoning_effort" in sent[0]), "the id states the rung, so nothing beside it may disagree");
+  assert.equal(sent[1].reasoning_effort, "low", "an id stating no rung leaves the parameter the only channel");
 });
 
 test.after(() => rmSync(sandbox, { recursive: true, force: true }));

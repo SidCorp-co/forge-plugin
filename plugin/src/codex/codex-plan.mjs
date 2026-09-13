@@ -21,12 +21,48 @@ export const budgetFor = ({ base, ceiling, bodies = false, clipped = 0 }) => {
   return Math.max(1, Math.min(want, Math.max(base, ceiling)));
 };
 
-/** One step off the base, never two, and the round outranks the size. */
-export const effortFor = ({ base, recheck = false, lines = 0, small, large }) => {
-  if (recheck) return stepped(base, -1);
+/* Four jobs, and the size decides only for the one that says nothing about itself. */
+const STEPS = { recheck: -1, verify: 1, bodies: 1, diff: 0 };
+
+export const kindOf = ({ recheck = false, bodies = false, risks = 0 }) => {
+  if (recheck) return "recheck";
+  if (risks) return "verify";
+  return bodies ? "bodies" : "diff";
+};
+
+/** One step off the base, never two, and the kind outranks the size. */
+export const effortFor = ({ base, kind = "diff", lines = 0, small, large }) => {
+  const step = STEPS[kind] ?? 0;
+  if (step) return stepped(base, step);
   if (!lines) return base;
   if (lines > large) return stepped(base, 1);
   return lines < small ? stepped(base, -1) : base;
+};
+
+/* This gateway states a model's effort in the model id and validates the suffix — an invented one is
+   refused with a 400 — so the id is the channel it reads and `reasoning_effort` is the one it does
+   not. docs/cli/codex-the-round.md. */
+const RUNG_END = new RegExp(`-(${EFFORTS.join("|")})$`, "u");
+
+export const rungIn = (model) => String(model ?? "").match(RUNG_END)?.[1] ?? null;
+
+export const effortVia = (model) => (rungIn(model) ? "model" : "parameter");
+
+const rungTable = () => {
+  const held = userConfig().codex?.rungs;
+  return held && typeof held === "object" && !Array.isArray(held) ? held : {};
+};
+
+export const rungLadder = () => Object.entries(rungTable()).filter(([level]) => EFFORTS.includes(level));
+
+export const rungFor = (effort, slotted) => {
+  const table = rungTable();
+  return table[effort] ?? table[defaultEffort()] ?? slotted ?? null;
+};
+
+export const disagreement = (effort, model) => {
+  const said = rungIn(model);
+  return said && said !== effort ? said : null;
 };
 
 /* First person, because "a guard cannot read a stale value" is a finding and not a short review. Never
@@ -64,18 +100,20 @@ const changedLines = (parts) =>
   }, 0);
 
 /** Both numbers come off the same two facts, so they are decided together; an asked-for one wins. */
-export const plannedFor = ({ parts, bodies, recheck, asked, effort }) => {
+export const plannedFor = ({ parts, bodies, recheck, risks = 0, asked, effort }) => {
   const limits = plannedLimits();
   const clipped = parts.filter((part) => part.clipped);
   const lines = changedLines(parts);
   const budget = asked ?? budgetFor({ ...limits, bodies, clipped: clipped.length });
+  const kind = kindOf({ recheck, bodies, risks });
   return {
     clipped: clipped.map((part) => part.rel),
     lines,
     budget,
+    kind,
     /* `--rounds 1` asked for one call; a ladder spending five more is the overrun it prevents. */
     ceiling: asked ?? Math.max(budget, limits.ceiling),
-    effort: effort ?? effortFor({ base: defaultEffort(), recheck, lines, small: limits.small, large: limits.large }),
+    effort: effort ?? effortFor({ base: defaultEffort(), kind, lines, small: limits.small, large: limits.large }),
   };
 };
 

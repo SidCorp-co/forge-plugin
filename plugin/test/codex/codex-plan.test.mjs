@@ -11,7 +11,6 @@ process.env.XDG_CONFIG_HOME = sandbox;
 
 const {
   budgetFor,
-  effortFor,
   incompleteIn,
   isNewFinding,
   newFindingsIn,
@@ -52,16 +51,6 @@ test("the budget comes off the payload, not off a constant", () => {
 /* A ceiling below the base would silently cap every consult under what the caller configured. */
 test("a ceiling under the base does not lower the base", () => {
   assert.equal(budgetFor({ base: 4, ceiling: 2 }), 4);
-});
-
-test("effort steps one level, and the round outranks the size", () => {
-  assert.equal(effortFor({ base: "medium", lines: 100, small: 40, large: 400 }), "medium");
-  assert.equal(effortFor({ base: "medium", lines: 12, small: 40, large: 400 }), "low");
-  assert.equal(effortFor({ base: "medium", lines: 900, small: 40, large: 400 }), "high");
-  assert.equal(effortFor({ base: "medium", recheck: true, lines: 900, small: 40, large: 400 }), "low",
-    "a recheck is a narrower question whatever the diff's size");
-  assert.equal(effortFor({ base: "high", lines: 900, small: 40, large: 400 }), "high", "clamped at the top");
-  assert.equal(effortFor({ base: "minimal", recheck: true }), "minimal", "and at the bottom");
 });
 
 /* The predicate is the field on the row, the retry's trigger and a stats line at once, so the one
@@ -110,7 +99,7 @@ test("the change's size is the diff where there is one and the body where there 
   assert.equal(withDiff.lines, 3, "context and the hunk header are not the change");
   const whole = plannedFor({ parts: [{ rel: "a.mjs", text: "x\n".repeat(499) }], bodies: true, recheck: false });
   assert.equal(whole.lines, 500);
-  assert.equal(whole.effort, "high", "a whole-file pass over the large mark is worth more thinking");
+  assert.equal(whole.effort, "high", "a whole-file pass over the large mark is worth more thinking, and one step is all it gets");
 });
 
 test("an unchanged file is no part of the change's size", () => {
@@ -401,7 +390,7 @@ test("the eval is the last hundred against the hundred before, scored on the who
   assert.equal(now[0].id, "w150", "the recent window ends at the log's last answered consult");
   assert.equal(before.at(-1).id, "w149", "and the earlier one abuts it");
   const said = evalLines(evalObject([...rows, ...verdicts])).join("\n");
-  assert.match(said, /new-model @medium {2}prompt v2 bbb/u, "one block per model and prompt version");
+  assert.match(said, /new-model @medium via unrecorded {2}prompt v2 bbb/u, "one block per model, channel and prompt version");
   assert.match(said, /100 consult\(s\) {2,}100 finding\(s\)/u);
   assert.match(said, /100% kept of 100 ruled/u, "the verdicts reach the scoring");
   assert.match(said, /20s median {2}0 could not check/u, "no coverage note where every row is timed");
@@ -490,10 +479,11 @@ test("--json is the comparison as one object, in stats eval's outer shape, and i
     assert.deepEqual(Object.keys(window), ["consults", "from", "to", "stats", "mix", "groups"]);
     assert.equal(window.consults, 100);
     assert.ok(window.from < window.to);
-    assert.deepEqual(Object.keys(window.mix), ["slot", "model", "prompt", "effort"]);
+    assert.deepEqual(Object.keys(window.mix), ["slot", "model", "prompt", "effort", "effort via"]);
     assert.equal(window.groups.reduce((sum, group) => sum + group.consults, 0), window.consults, "the groups partition the window");
     for (const group of window.groups) {
-      assert.deepEqual(Object.keys(group), ["key", "slot", "model", "prompt", "effort", "consults", "timed", "metered", "score", "stats"]);
+      assert.deepEqual(Object.keys(group),
+        ["key", "slot", "model", "prompt", "effort", "effortVia", "consults", "timed", "metered", "score", "stats"]);
       assert.equal(group.timed, group.consults, "every fixture row is timed and metered, and the counts say so");
       assert.equal(group.metered, group.consults);
     }
@@ -519,7 +509,12 @@ test("--json is the comparison as one object, in stats eval's outer shape, and i
     printEval(["--json"]);
     const empty = JSON.parse(String(said.mock.calls[0].arguments[0]));
     assert.deepEqual(empty, {
-      size: 100, total: 0, now: { consults: 0, from: null, to: null, stats: statsOf([]), mix: { slot: {}, model: {}, prompt: {}, effort: {} }, groups: [] }, before: null, shifts: [],
+      size: 100,
+      total: 0,
+      now: { consults: 0, from: null, to: null, stats: statsOf([]),
+        mix: { slot: {}, model: {}, prompt: {}, effort: {}, "effort via": {} }, groups: [] },
+      before: null,
+      shifts: [],
     });
   } finally {
     said.mock.restore();
@@ -600,6 +595,7 @@ test("a stored consult reading is the before window, scored as it was at the mar
   /* The stored window is rows 100 to 199: fifty of each model, so two groups of fifty. */
   assert.match(said, /before {3}50 consult\(s\) {4}50 finding\(s\) \(0 found none\) {2}100% kept of 50 ruled/u, "the stored window's score");
   assert.match(said, /now {6}50 consult\(s\) {4}50 finding\(s\) \(0 found none\) {2}0% kept of 50 ruled/u, "the live one's");
-  assert.match(said, /old-model @medium {2}prompt v2 aaa\n {2}now {5}not in this window\n {2}before {3}50 consult/u, "a group the live window lacks still prints its stored side");
+  assert.match(said, /old-model @medium via unrecorded {2}prompt v2 aaa\n {2}now {5}not in this window\n {2}before {3}50 consult/u,
+    "a group the live window lacks still prints its stored side");
   assert.match(said, /tokens\/consult {2}1000 in, 500 from cache, 0 written, 200 out/u);
 });

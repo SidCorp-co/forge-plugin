@@ -317,8 +317,16 @@ export const unverdicted = (bytes, root) => {
 };
 
 
-/* The eval the log exists for: what each model found, what the caller kept, cached over every input token. */
-export const modelKey = (one) => `${one.model ?? one.slot ?? "?"}${one.effort ? ` @${one.effort}` : ""}`;
+/* The eval the log exists for: what each model found, what the caller kept, cached over every input
+   token. The channel is part of the key and an unrecorded one is a value of its own: a row written
+   before the effort moved onto the model states an effort the gateway never read, and grouping it
+   with one written after would score two treatments as one. Where the model carried the effort its
+   id already says which, so the level is not repeated in the key. */
+export const modelKey = (one) => {
+  const via = one.effortVia ?? "unrecorded";
+  const level = via !== "model" && one.effort ? ` @${one.effort}` : "";
+  return `${one.model ?? one.slot ?? "?"}${level} via ${via}`;
+};
 
 export const scoreOf = (entries) => {
   const scored = verdictsBy(entries);

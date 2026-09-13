@@ -172,13 +172,15 @@ const groupLines = (group, when) => {
   ];
 };
 
-/* Four dimensions and not one: the slot stayed `codex` while the model behind it changed, and a
-   comparison keyed on either alone names the wrong change or none. */
+/* Five dimensions and not one: the slot stayed `codex` while the model behind it changed, and a
+   comparison keyed on either alone names the wrong change or none. The channel is the fifth because
+   the same level means two different things either side of the release that moved it. */
 const DIMENSIONS = [
   ["slot", (row) => row.slot ?? "unrecorded"],
   ["model", (row) => row.model ?? "unrecorded"],
   ["prompt", promptKey],
   ["effort", (row) => row.effort ?? "unrecorded"],
+  ["effort via", (row) => row.effortVia ?? "unrecorded"],
 ];
 
 /* Counted, not merely present: a window that went 99 low-effort to one has the same values in it, and
@@ -273,6 +275,7 @@ const groupObject = (rows, verdicts) => {
     model: row.model ?? "unrecorded",
     prompt: promptKey(row),
     effort: row.effort ?? "unrecorded",
+    effortVia: row.effortVia ?? "unrecorded",
     consults: rows.length,
     ...coverageOf(rows),
     score,

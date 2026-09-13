@@ -1,6 +1,8 @@
 /* The credentials that are this machine's and a harness verb's, gating nothing: every other verb works with none of them saved, so each absence is a note. Rows out rather than printed lines, in the shape the project's rows already come in, because importing `line` from `doctor.mjs` would be a cycle. docs/cli/doctor.md. */
 import { CHATGPT_KEYS, CHATGPT_PREFIX, chatgptSettings } from "../../resolve/settings.mjs";
 import { modelBehind, profile } from "../../codex/codex-api.mjs";
+import { defaultEffort, disagreement, effortVia, rungFor, rungLadder } from "../../codex/codex-plan.mjs";
+import { configPath } from "../../resolve/config.mjs";
 import { logBytes, logPath } from "../../codex/codex-log.mjs";
 import { consultCount } from "../../codex/log/asked.mjs";
 import { cloudflareAccounts } from "./cloudflare.mjs";
@@ -15,12 +17,28 @@ const cloudflareRow = (full) => {
   return { level: "ok", detail: `${held.join(", ")}  ← ${from}` };
 };
 
+/* The model, the level and the channel on one row rather than four lines apart: which of the two
+   channels the effort travels on is a fact about the model that resolved, and a reader given the model
+   alone cannot tell a ladder from one slot frozen at a rung. */
 const codexRow = () => {
   const { problem, values } = profile();
   if (problem) return { level: "note", detail: `${problem} — \`forge codex\` cannot consult` };
-  const model = modelBehind(values);
-  if (!model) return { level: "note", detail: "the profile maps that model slot to nothing" };
-  return { level: "ok", detail: `${model}  ${consultCount(logBytes())} consult(s) logged at ${logPath()}` };
+  const base = defaultEffort();
+  const ladder = rungLadder();
+  const model = rungFor(base, modelBehind(values));
+  if (!model) {
+    return { level: "note",
+      detail: `no \`codex.rungs\` in ${configPath()} and the profile maps that model slot to nothing` };
+  }
+  const entry = Object.fromEntries(ladder)[base];
+  const from = entry
+    ? `\`codex.rungs.${base}\` in ${configPath()}`
+    : `the profile's model slot${ladder.length ? `, \`codex.rungs\` naming no ${base} rung` : ""}`;
+  const said = disagreement(base, model);
+  return { level: said ? "note" : "ok",
+    detail: `${model} at ${base} effort on the ${effortVia(model)}  ← ${from}`
+      + `${said ? `, and that id states the ${said} rung` : ""}`
+      + `  ${consultCount(logBytes())} consult(s) logged at ${logPath()}` };
 };
 
 const chatgptRow = (full) => {

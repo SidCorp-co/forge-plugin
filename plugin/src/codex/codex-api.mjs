@@ -8,7 +8,7 @@ import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
-import { defaultEffort } from "./codex-plan.mjs";
+import { defaultEffort, rungIn } from "./codex-plan.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
 import { pathed } from "../hooks/shell-spans.mjs";
 import { userConfig } from "../resolve/config.mjs";
@@ -18,8 +18,7 @@ import { parsedOr } from "../wire/request.mjs";
 const profilePath = () => process.env.CLAUDE_PROXY_ENV || join(homedir(), ".claude", "claude-proxy.env");
 export const modelSlot = () => userConfig().codex?.model || "fable";
 const maxTokens = () => Number(userConfig().codex?.maxTokens || 32_000);
-/* Accepted by the gateway and not observable from here: the same puzzle answers the same at high and
-   at minimal, in the same seconds. Sent because the slot is the account's to configure. */
+/* The slot is the account's, and the rung table in front of it too; with none, this slot answers every level. */
 
 /* A file is sent whole or reported as clipped; a silently halved file is a review of half a file.
    Exported because whether a pass can be taken at all is a question about these two numbers. */
@@ -536,7 +535,8 @@ export const askApi = async (values, model, messages, { onDelta = () => {}, sign
       system: [cached(system ?? roleFor())],
       stream: true,
       messages,
-      reasoning_effort: effort ?? defaultEffort(),
+      /* One channel or the other and never both: the gateway reads the rung out of the id. */
+      ...(rungIn(model) ? {} : { reasoning_effort: effort ?? defaultEffort() }),
       ...(tools?.length ? { tools, ...(serve ? {} : { tool_choice: { type: "none" } }) } : {}),
     }),
     signal,

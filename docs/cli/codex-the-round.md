@@ -32,14 +32,25 @@ it must never match is `CANNOT TELL`: that ruling is what the verification gramm
 the reviewer cannot decide, and retrying there buys the same answer at twice the price.
 
 Thinking tokens come out of the same ceiling as the reply, which is why 8,000 was mostly spent before
-the review began. `reasoning_effort` is a request rather than a lever — the same puzzle answers
-identically at minimal and at high — and the minutes go on the reviewer's own reading, which is why
-medium is the base rather than the answer. It was also the *only* level anything ran at: medium on 384
-of the 393 consults that recorded one, high on four. What moves it now is the round and the size, one
-step and never two, the round winning where both apply. A recheck is asked a narrower question than the
-pass that raised the findings, so it steps down; a change under `codex.effortLines.small` steps down and
-one over `.large` steps up, measured on the diff where the consult is anchored to one and on the bodies
-where it is not.
+the review began.
+
+**The effort travels on the model, because that is the channel the gateway reads.** `reasoning_effort`
+looked like a lever and was not one: 326 of 400 logged consults named a model whose own id said `high`
+while the parameter beside it said `low`, `medium` or `minimal`, and nothing downstream acted on the
+parameter. This gateway states a model's effort in the model id and validates the suffix — an invented
+one is refused with a 400, each real rung answers echoing the id — so the rung is the lever and the
+parameter was being dropped on arrival. `codex.rungs` maps a level to a model; a level the table does
+not name falls back to the base rung's model, and a machine naming no table at all reaches the one slot
+the profile maps, exactly as it did before the table existed. A request carries whichever of the two
+channels the resolved model leaves free and never both, and each record says which one carried it, so a
+window from before this and a window from after are not scored as one treatment.
+
+Medium is the rung a consult climbs from rather than a level nothing acts on. What moves it is the kind
+and the size, one step and never two, the kind winning where both apply. A recheck is asked a narrower
+question than the pass that raised the findings, so it steps down; a whole-set `--send bodies` review
+and a `--verify` ruling on named risks are each a deeper read of a set already in hand, so they step up;
+and a change under `codex.effortLines.small` steps down and one over `.large` steps up, measured on the
+diff where the consult is anchored to one and on the bodies where it is not.
 
 **A follow-up round verifies; it does not roam.** Six rounds on one patch, each a full review, each
 finding a narrower hole than the last with no signal to stop on. `--recheck` replays the previous
