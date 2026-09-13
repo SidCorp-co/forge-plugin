@@ -1,5 +1,5 @@
 /* The readings both harness evals write at a mark and read back as a pinned before window: one store, kept as the
-   consult log keeps its entries. A runs reading carries the root whose corpus was counted; a consult reading is the device's and carries none. docs/cli/stats-the-eval.md. */
+   consult log keeps its entries. A runs reading carries the root whose corpus was counted; a consult reading is the device's and carries none. docs/cli/stats-the-mark.md. */
 import { join } from "node:path";
 
 import { appendJsonl, jsonlAt } from "../hooks/hook-log-file.mjs";
@@ -129,9 +129,9 @@ const WHEN = 16;
 const stamped = (iso) => iso.slice(0, 16).replace("T", " ");
 const at = (ms) => stamped(new Date(ms).toISOString());
 
-/** How far the corpus reaches, and the earliest reach a held reading records past it. Only ever read
- *  off a reading of the whole corpus: under a window the floor is the flag's own selection boundary,
- *  and a reach taken from it would report lost depth on every windowed call. */
+/** `earlierReach` above, paired with the floor it was asked about, and only ever read off a reading
+ *  of the whole corpus: under a window the floor is the flag's own selection boundary, and a reach
+ *  taken from it would report lost depth on every windowed call. */
 export const reachOf = (root, from) =>
   (Number.isFinite(from) ? { from, earlier: earlierReach(root, from) } : null);
 

@@ -126,7 +126,7 @@ export const printStats = (rest) => {
    them, so a harness upgrade is read off the log rather than off the feel of the next few consults.
    Every number is a column one of the two readers above already computes — a second copy would
    answer differently from `stats` the day either moved. The crossing writes the comparison once and
-   `--against` reads it back as the before window — docs/cli/stats-the-eval.md. */
+   `--against` reads it back as the before window — docs/cli/stats-the-mark.md. */
 export const evalWindows = (entries, size = MARK) => {
   const own = answered(entries);
   return { ...twoWindows(own, size), total: own.length };

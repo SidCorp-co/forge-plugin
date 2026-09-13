@@ -181,7 +181,7 @@ Rev: 1 · Actors: agent · Enforces: BR-16
 Nothing a reviewer answers is diffable, so an upgrade to the harness shows up only as a shift in what
 the reviews cost and in how much of them was kept. The log holds both, and this comparison is what
 turns them into a judgement rather than an impression. How the windows are sized, why a crossing
-writes a reading and what pinning one is for is `docs/cli/stats-the-eval.md`. That reading shares a
+writes a reading and what pinning one is for is `docs/cli/stats-the-mark.md`. That reading shares a
 store with the run corpus's, whose own side of it is EI-08, and this use case is the consult side
 alone.
 

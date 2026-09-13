@@ -5,8 +5,9 @@ runs worse.** A run that skips the consult, parks less and ships something wrong
 line of the profile. ISS-821 put something beside each of them that gets worse when the work does.
 This topic is what each of those four figures claims, what none of them claims, the budget the
 tracker reads behind them are held to, and the release mark a comparison since one change needs.
-The eval they sit inside — its windows, its copy grouping and its own mark — is
-[stats — the eval](stats-the-eval.md).
+The eval they sit inside — its windows and its copy grouping — is [stats — the
+eval](stats-the-eval.md); what a crossing writes and what reads it back is [stats — the
+mark](stats-the-mark.md).
 
 **The unit is a run and one issue, not an issue.** A dispatch may carry a batch and an issue may be
 worked twice, so the eval derives per run the issues its own `forge claim` calls' output shows it

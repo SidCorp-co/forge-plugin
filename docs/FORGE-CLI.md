@@ -60,8 +60,10 @@ how many topics there may be.
 | [the filing](cli/filing.md) | Why every route that files an issue calls one interface, why it neither prints nor exits, why a route adds a section rather than joining text, and the two decisions each route makes. |
 | [the refusal log](cli/the-refusal-log.md) | Why refusing is what writes the line, what a per-write round count means, and what is masked before a line lands on disk. |
 | [`stats`](cli/stats.md) | Why the transcript root is derived rather than passed, why the entries are deliberately not containment-checked, and what an unanswered call counts as. |
-| [stats — the rows](cli/stats-rows.md) | The three rows a hand profile got wrong, why a phase boundary is read off the class a call carries, and why a run that claimed no rung keeps a row. |
-| [stats — the eval](cli/stats-the-eval.md) | Why a cost figure is the profile's, and what the installed copy cannot fix. |
+| [stats — the rows](cli/stats-rows.md) | The three rows a hand profile got wrong, and why a refusal is keyed on the line naming the rule rather than on the first line of the body. |
+| [stats — the tables](cli/stats-the-tables.md) | Why a phase boundary is read off the class a call carries, why the phases sum to the wall, and why a run that claimed no rung keeps a row. |
+| [stats — the eval](cli/stats-the-eval.md) | Why a cost figure is the profile's, why a reading too shallow for its window is judged rather than reported, and what the installed copy cannot fix. |
+| [stats — the mark](cli/stats-the-mark.md) | Why the reading is written at the crossing and never again, and what `--against` puts back in the sliding window's place. |
 | [stats — the outcome](cli/stats-the-outcome.md) | The four figures beside the costs, and the release mark. |
 | [doctor](cli/doctor.md) | Why every missing piece is reported together, and why one verb reports every level of configuration and reads a key back before calling it set. |
 | [the landing lines](cli/the-landing-lines.md) | Why where the merge sits is derived from the branches rather than asked for, and why whether an independent agent judges is the tracker record's alone. |

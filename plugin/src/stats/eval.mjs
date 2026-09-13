@@ -1,7 +1,8 @@
 /* `forge stats eval` — the last fifty issue-flow runs against the fifty before them: the cost figures
    the profile computes, and beside them what became of the work, which is the tracker's to say and
-   not the profile's. The one line the ship prints at a multiple of the window, the reading it writes
-   there, and what a comparison since a release is confounded by — docs/cli/stats-the-eval.md. */
+   not the profile's. What a comparison since a release is confounded by, and what a reading too
+   shallow for its own window says instead — docs/cli/stats-the-eval.md; the line the ship prints at a
+   multiple of the window and the reading it writes there — docs/cli/stats-the-mark.md. */
 import { RUNG_UNKNOWN, rootFor } from "./transcripts.mjs";
 import { checkoutFrom, derivedFrom, profileOf, readingAside, runsUnder, stamp } from "./runs.mjs";
 import { UNRECORDED, cacheRoot, copyAt, installedCopies, spansInstall } from "./versions.mjs";

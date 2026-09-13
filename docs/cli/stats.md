@@ -70,4 +70,5 @@ stopped being a shape on exactly the quiet week the diff is about — and the ca
 with it. The zero-run profile is a profile, and it prints as one (ISS-308).
 
 What each row of the profile is — the classifier and the wrong rows it was built to avoid, the
-phase table, the rung table: [`stats-rows.md`](stats-rows.md).
+the refusals listing: [`stats-rows.md`](stats-rows.md). The phase table and the rung table:
+[`stats-the-tables.md`](stats-the-tables.md).
