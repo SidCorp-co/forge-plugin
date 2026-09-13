@@ -206,6 +206,49 @@ comes from the copy the CLI itself would run.
   WHEN the files a restart is owed for are reported THEN the set SHALL be the registration, the
   entries it names and what those import, and nothing else under the hooks tree.
 
+### UC-07-9 — A copy behind the newest released one is told, and an unknown is not agreement
+
+Rev: 1 · Actors: developer, agent · Enforces: BR-01, BR-13
+
+Which copies are installed is a fact about one machine, so a box whose only copy is days old agrees
+with itself and reads green. That silence is what this use case removes: the newest released version
+is asked of the place a release lands rather than of the box, because a box that has not been
+updated is exactly the box that cannot tell. A release therefore leaves the version it published
+readable from anywhere the repository is reachable, and the report compares against that. Nothing
+here installs, updates or pins anything: a machine deliberately held on an older copy is a state
+this states and does not refuse.
+
+- **AC-07-9-1** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "a copy behind the newest released one is named with the newer version and the count"
+  WHEN the report runs AND the running copy is older than the newest released version THEN the
+  report SHALL name both versions, SHALL count only the releases it can see published, and SHALL
+  name what has to happen for the newer copy to be the one loaded next.
+- **AC-07-9-2** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "a remote that answers with no version tag is said by name, never as agreement"
+  IF the newest released version cannot be read THEN the report SHALL say which step could not
+  answer and SHALL NOT describe the running copy as current.
+- **AC-07-9-3** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "no marketplace registration for this plugin is said by name, never as agreement"
+  IF no registration names a directory this plugin is installed from THEN the report SHALL say so
+  and SHALL leave the comparison unmade rather than answer it from the running copy alone.
+- **AC-07-9-4** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "a copy that is the newest released one is one green row naming where that was read"
+  WHERE the running copy is the newest released version, the report SHALL say so and SHALL name
+  where that version was read.
+- **AC-07-9-5** · Rev: 1 · Proof: plugin/test/run/run-script.test.mjs "the release leaves the version it shipped readable on the remote without a fetch"
+  WHEN a release is published THEN it SHALL leave the version it published on the remote in a form
+  a second machine reads without fetching the repository.
+- **AC-07-9-6** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "the report asks the remote and writes nothing to the tree it asked through"
+  WHILE the report is asking for the newest released version, it SHALL leave the checkout it asks
+  through exactly as it found it.
+- **AC-07-9-7** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "an ask that never answers is bounded, and comes back as an unknown rather than a wait"
+  WHILE the report is asking for the newest released version, the ask SHALL be bounded in time,
+  SHALL never wait on a person for a credential, and SHALL cost the report no more than one note
+  when it does not answer.
+- **AC-07-9-8** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "a source that is itself behind is named as the thing to move first"
+  IF the directory the plugin is installed from is itself older than the newest released version
+  THEN the report SHALL name that directory as what has to move before installing anything would
+  reach the newer copy.
+- **AC-07-9-9** · Rev: 1 · Proof: plugin/test/run/run-script.test.mjs "a release that cannot publish its version stops and names the resume that publishes it"
+  IF a release cannot publish the version it shipped THEN it SHALL stop and SHALL name the step to
+  resume from, rather than complete with that version unpublished.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*
