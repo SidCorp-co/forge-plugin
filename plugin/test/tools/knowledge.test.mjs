@@ -190,13 +190,49 @@ test("search asks the route that exists, and prints the records it answers with"
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^0\.71 {2}issue.*ISS-152.*What this module owns$/mu, run.stdout);
   assert.match(run.stdout, /^0\.40 {2}comment.*uuid-9.*a finding about the store$/mu, run.stdout);
-  assert.match(run.stdout, /2 hit\(s\) for `what the module owns`/u, run.stdout);
+  assert.match(run.stdout, /2 hit\(s\) for `what the module owns`, fewer than the 3 asked for, so the limit cut nothing from this answer\./u,
+    run.stdout);
   const asked = state.calls.filter((one) => one.name === "forge_memory.search");
   assert.equal(asked.length, 1, `the route was asked once: ${JSON.stringify(state.calls)}`);
   assert.equal(asked[0].args.query, "what the module owns");
   assert.equal(asked[0].args.topK, 3, "and the limit is the count it sends");
   assert.deepEqual(state.calls.filter((one) => one.name === "forge_knowledge"), [],
     "and the store's own tool is not asked for a reading it has no route for");
+});
+
+/* `topK` is an ask: this tracker answered five of them at about twice the number asked, measured
+   2026-09-13, and every row of that surplus printed. The cut is the caller's and it is taken here,
+   so the rows printed are the rows asked for whatever the answer carries. */
+test("an answer longer than the limit prints the limit, and says the store may hold more", async () => {
+  state.calls.length = 0;
+  state.answer["forge_memory.search"] = () => ({
+    hits: Array.from({ length: 18 }, (unused, at) => ({
+      source: "issue", sourceRef: `ISS-${at + 1}`, score: 0.9 - at / 100, text: `row ${at + 1}`,
+    })),
+  });
+  const run = await ran(["knowledge", "search", "over-served", "--limit", "5"]);
+  assert.equal(run.status, 0, run.stderr);
+  const rows = run.stdout.split("\n").filter((one) => /^0\.\d\d {2}issue/u.test(one));
+  assert.equal(rows.length, 5, `eighteen came back and five were asked for:\n${run.stdout}`);
+  assert.match(run.stdout, /5 hit\(s\) for `over-served`, the whole of what was asked for, so the limit may have cut more\./u,
+    run.stdout);
+  assert.doesNotMatch(run.stdout, /ISS-6\b/u, "and nothing past the ask is printed");
+});
+
+/* The distinction this count line exists for: a reading the ask cut and a reading that exhausted the
+   store print the same rows and the same number, and only the sentence tells them apart. */
+test("an answer under the limit says the limit cut nothing, and claims nothing of the store", async () => {
+  state.calls.length = 0;
+  state.answer["forge_memory.search"] = () => ({
+    hits: [{ source: "issue", sourceRef: "ISS-3", score: 0.8, text: "the only one" }],
+  });
+  const run = await ran(["knowledge", "search", "narrow", "--limit", "5"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /1 hit\(s\) for `narrow`, fewer than the 5 asked for, so the limit cut nothing from this answer\./u,
+    run.stdout);
+  assert.doesNotMatch(run.stdout, /may have cut more/u);
+  assert.doesNotMatch(run.stdout, /everything the store holds|nothing else is held/u,
+    "a short answer is not a reading of the store, and this line claims nothing about one");
 });
 
 test("a limit outside the range is refused before the call", async () => {

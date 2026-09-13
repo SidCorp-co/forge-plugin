@@ -77,12 +77,17 @@ accounting and is ordered by the strongest reading first: what a reader wants fr
 the pairs most worth opening, and what they want from the head of it is how much of the backlog the
 sweep actually saw.
 
-The band is counted off what the search returned, before a hit is resolved against the open issues
-and before the sweep drops the issue's own row: counting the survivors instead would call a query
-short whenever the neighbours it found happened to be closed.
+The band is counted off what the reader took, before a hit is resolved against the open issues and
+before the sweep drops the issue's own row: counting the survivors instead would call a query short
+whenever the neighbours it found happened to be closed. What it took is what it asked for — the
+tracker answers a `topK` past it, so the cut is the reader's own, and the surplus is discarded rather
+than read, because a sweep built on an over-serving it never asked for reads short the day the
+tracker stops.
 
 Three readings are shorter than the backlog and each is named rather than absorbed: a query the
-tracker refused, whose issue was measured against nothing; a query whose band came back as wide as
-one search carries, where what else is open beside that issue is unknown by an amount nothing here
-can compute; and a walk over the open issues that did not come back whole. None of the three is
-given a size, because a count of what was not seen is exactly the claim none of them supports.
+tracker refused, whose issue was measured against nothing; a query whose reading filled the ask with
+nothing below the floor, where what else is open beside that issue is unknown by an amount nothing
+here can compute; and a walk over the open issues that did not come back whole. None of the three is
+given a size, because a count of what was not seen is exactly the claim none of them supports. A
+reading carrying a hit below the floor is not one of them: the search reached past the band on its
+own, so nothing in band was cut.

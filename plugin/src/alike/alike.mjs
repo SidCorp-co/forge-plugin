@@ -1,7 +1,7 @@
 /* Every open issue measured against every other, through the search and the floor the create path
    already spends on one filing. It reads and reports; the act it leads to is a person's. What the
    score can and cannot say, and what one sweep costs: docs/cli/alike.md. */
-import { TOP_K, neighboursOf } from "../tracker/filing/neighbours.mjs";
+import { neighboursOf } from "../tracker/filing/neighbours.mjs";
 import { familiesOf, linksFrom, sweepLines } from "./families.mjs";
 import { liveTitles } from "../tracker/issue-shape.mjs";
 import { shortOf } from "../tracker/issues.mjs";
@@ -39,7 +39,7 @@ export const alike = async (argv) => {
   const notes = [];
   await spread(live, async (one) => {
     const beside = await neighboursOf({ seed: one.title, place: null }, live);
-    if (beside.inBand >= TOP_K) saturated.push(one.issueId);
+    if (beside.cut) saturated.push({ issueId: one.issueId, inBand: beside.inBand });
     for (const note of beside.notes) notes.push(`${one.issueId}, ${note}`);
     for (const near of beside.suggestions) {
       /* Its own row comes back ranked like any other and often highest. */
@@ -52,7 +52,7 @@ export const alike = async (argv) => {
     families: familiesOf(linksFrom(found)),
     titles: new Map(live.map((one) => [one.issueId, one.title])),
     measured: live.length,
-    saturated: saturated.sort(),
+    saturated: saturated.sort((one, two) => one.issueId.localeCompare(two.issueId)),
     notes,
     short: shortOf(read, "The walk over the open issues"),
   });

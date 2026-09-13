@@ -69,6 +69,17 @@ truncated read is refused rather than rendered.
 - **AC-02-2-1** · Rev: 1 · Proof: none yet — ISS-17
   IF the record could not be read whole THEN the CLI SHALL refuse to judge anything on it and SHALL
   say which read was short.
+- **AC-02-2-2** · Rev: 1 · Proof: plugin/test/tools/knowledge.test.mjs "an answer longer than the limit prints the limit, and says the store may hold more"
+  WHEN a search is asked for a number of rows THEN the CLI SHALL print no more rows than were asked
+  for, whatever number of hits the answer carries, because a bound the caller states and the answer
+  ignores is a bound the caller applies.
+- **AC-02-2-3** · Rev: 1 · Proof: plugin/test/tools/knowledge.test.mjs "an answer longer than the limit prints the limit, and says the store may hold more"
+  IF a search answer fills the number of rows asked for THEN the CLI SHALL say that the bound may
+  have cut more.
+- **AC-02-2-4** · Rev: 1 · Proof: plugin/test/tools/knowledge.test.mjs "an answer under the limit says the limit cut nothing, and claims nothing of the store"
+  IF a search answer comes back under the number of rows asked for THEN the CLI SHALL say the bound
+  cut nothing from it and SHALL claim nothing about what is held, because a short answer is the
+  search's own reading and not a count of the store.
 
 ### UC-02-3 — Write to an issue
 
@@ -327,9 +338,10 @@ whether a set is one issue at all, is read off the bodies by whoever acts on the
 - **AC-02-11-2** · Rev: 1 · Proof: plugin/test/alike/sweep.test.mjs "a backlog with nothing at the floor answers with the count it measured and no family"
   IF no two open issues reach that floor THEN the CLI SHALL report no set and SHALL say how many
   issues it measured.
-- **AC-02-11-3** · Rev: 1 · Proof: plugin/test/alike/sweep.test.mjs "a band that fills the search is reported short, naming the issue it was asked for"
-  IF one issue's query comes back with as many hits in band as a single search carries THEN the CLI
-  SHALL name that reading as possibly short and SHALL claim no size for what it did not see.
+- **AC-02-11-3** · Rev: 2 · Proof: plugin/test/alike/sweep.test.mjs "a band that fills the search is reported short, naming the issue it was asked for"
+  IF one issue's reading fills what was asked for and no hit in it falls below the floor THEN the CLI
+  SHALL name that reading as possibly short and SHALL claim no size for what it did not see, because
+  a hit the bound cut may be in band too and a hit below the floor proves nothing in band was cut.
 - **AC-02-11-4** · Rev: 1 · Proof: plugin/test/alike/sweep.test.mjs "a settled issue scoring high against an open one is in no family"
   WHERE an issue is settled, the sweep SHALL report it in no set, whatever it scored.
 - **AC-02-11-5** · Rev: 1 · Proof: plugin/test/alike/sweep.test.mjs "the sweep sends no write and takes no lease"
@@ -340,6 +352,13 @@ whether a set is one issue at all, is read off the bodies by whoever acts on the
 - **AC-02-11-7** · Rev: 1 · Proof: plugin/test/alike/sweep.test.mjs "a walk that came back short is reported as incomplete, though every query ran"
   IF the walk over the open issues did not come back whole THEN the CLI SHALL report the sweep as
   incomplete, whether or not every query it did run succeeded.
+- **AC-02-11-8** · Rev: 1 · Proof: plugin/test/alike/families.test.mjs "the saturation line's width is the reading it was handed, not a constant it holds"
+  WHERE a reading is named as possibly short, the width the CLI states for it SHALL be the number of
+  hits that reading held in band, because a constant printed where a measurement belongs reads as a
+  measurement and cannot be told from one.
+- **AC-02-11-9** · Rev: 1 · Proof: plugin/test/alike/sweep.test.mjs "an answer longer than the ask is read to the ask, and what it served past it joins nothing"
+  WHERE an answer carries more hits than were asked for, the sweep SHALL join an issue to a set only
+  through a hit inside what it asked for.
 
 ## Business rules enforced
 

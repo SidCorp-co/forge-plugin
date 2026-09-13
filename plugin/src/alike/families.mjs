@@ -1,7 +1,7 @@
 /* The scored links a sweep collected, turned into the families it prints and the accounting under
    them. Nothing here calls anything and nothing here holds a number: the floor is the create path's
    own export. Why a family is a transitive join and what the score does not say: docs/cli/alike.md. */
-import { FLOOR, TOP_K } from "../tracker/filing/neighbours.mjs";
+import { FLOOR } from "../tracker/filing/neighbours.mjs";
 
 const KEY = 8;
 const PAIR = "~";
@@ -107,10 +107,16 @@ const countLine = (families, measured) => {
 };
 
 /* The two ways a query answers less than the backlog holds, said apart: one the search cut, one the
-   tracker refused. Neither says how much is missing, because neither reading can know. */
-const saturatedLine = (keys) =>
-  `${keys.length} query(ies) came back with ${TOP_K} hits at or above the floor, as many as one search`
-  + ` carries, so what else is open beside these reads short by an unknown amount: ${keys.join(", ")}.`;
+   tracker refused. Neither says how much is missing, because neither reading can know, and the width
+   is the one the reader handed over: this module has measured nothing and states no figure of its own. */
+const widthsOf = (saturated) =>
+  [...new Set(saturated.map((one) => one.inBand))].sort((one, two) => one - two).join(" and ");
+
+const saturatedLine = (saturated) =>
+  `${saturated.length} query(ies) came back with every hit of the reading at or above the floor — `
+  + `${widthsOf(saturated)} of them, and the reading was cut there — so what else is open beside `
+  + `these reads short by an unknown amount: `
+  + `${saturated.map((one) => one.issueId).join(", ")}.`;
 
 const refusedLine = (notes) =>
   `${notes.length} query(ies) could not run, and the issues behind them were measured against`

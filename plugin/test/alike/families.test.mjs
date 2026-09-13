@@ -86,10 +86,33 @@ test("nothing joined is an answer with the count in it, not an empty one", () =>
 });
 
 test("a saturated query and a refused one are two sentences, and neither claims a size", () => {
-  const said = swept([], { saturated: ["ISS-3"], notes: ["ISS-4, the semantic query could not run: gone"] });
+  const said = swept([], {
+    saturated: [{ issueId: "ISS-3", inBand: 10 }],
+    notes: ["ISS-4, the semantic query could not run: gone"],
+  });
   assert.match(said, /ISS-3/u);
   assert.match(said, /short by an unknown amount/u);
   assert.match(said, /measured against\s+nothing: ISS-4, the semantic query could not run: gone/u);
+});
+
+/* The width the reader measured and the width this module would guess at are the same number on this
+   tracker, so a handed width that is neither is what tells a printed measurement from a printed
+   constant. The line said `10` here for as long as it read the ask instead of the reading. */
+test("the saturation line's width is the reading it was handed, not a constant it holds", () => {
+  const said = swept([], { saturated: [{ issueId: "ISS-3", inBand: 7 }] });
+  assert.match(said, /7 of them, and the reading was cut there/u);
+  assert.doesNotMatch(said, /\b10\b/u, `a width nobody measured is in the line:\n${said}`);
+  assert.doesNotMatch(said, /one search carries/u,
+    "and no sentence claims a size for what one search returns");
+});
+
+test("two readings cut at different widths are both said, and neither is averaged away", () => {
+  const said = swept([], {
+    saturated: [{ issueId: "ISS-2", inBand: 4 }, { issueId: "ISS-3", inBand: 9 }],
+  });
+  assert.match(said, /2 query\(ies\) came back with every hit of the reading at or above the floor/u);
+  assert.match(said, /4 and 9 of them/u);
+  assert.match(said, /short by an unknown amount: ISS-2, ISS-3\./u);
 });
 
 test("a walk that did not come back whole carries the reading's own sentence", () => {

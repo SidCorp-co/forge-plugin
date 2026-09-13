@@ -112,9 +112,44 @@ test("a band that fills the search is reported short, naming the issue it was as
     [titleOf(2)]: [["ISS-2", 0.9], ["ISS-1", 0.71]],
   });
   const said = (await swept()).stdout;
-  assert.match(said, /1 query\(ies\) came back with 10 hits at or above the floor/u);
+  assert.match(said, /1 query\(ies\) came back with every hit of the reading at or above the floor/u);
+  assert.match(said, /10 of them, and the reading was cut there/u);
   assert.match(said, /short by an unknown amount: ISS-1\./u);
   assert.doesNotMatch(said, /ISS-11/u, "and the ten it did return are all it claims");
+});
+
+/* This tracker answers a `topK` of ten with about twenty — measured 2026-09-13 — so the reading the
+   sweep works from is only the size it asked for because the sweep cuts it. Every hit past the cut
+   here is in band and open, and would have joined ISS-1's family on the reading that took them all. */
+test("an answer longer than the ask is read to the ask, and what it served past it joins nothing", async () => {
+  const rows = Array.from({ length: 15 }, (unused, at) => row(at + 1));
+  backlog(rows, {
+    [titleOf(1)]: rows.slice(0, 14).map((one, at) => [one.issueId, 0.95 - at / 100]),
+  });
+  const said = (await swept()).stdout;
+  assert.match(said, /9 family\(ies\) over 10 of the 15 open issue\(s\) measured/u,
+    `the ten the ask bought, joined to ISS-1 and to nothing else:\n${said}`);
+  for (const at of [11, 12, 13, 14]) {
+    assert.doesNotMatch(said, new RegExp(`ISS-${at}\\b`, "u"),
+      `ISS-${at} was served past the ask and reached the report anyway:\n${said}`);
+  }
+  assert.match(said, /10 of them, and the reading was cut there/u,
+    "and the width said is the reading's, not the fourteen the tracker served");
+});
+
+/* A hit under the floor inside the reading is the search reaching past the band on its own, which is
+   the one reading that proves nothing was cut off in band. */
+test("a reading carrying a hit below the floor is not reported short", async () => {
+  const rows = Array.from({ length: 12 }, (unused, at) => row(at + 1));
+  backlog(rows, {
+    [titleOf(1)]: [...rows.slice(0, 9).map((one, at) => [one.issueId, 0.9 - at / 100]),
+      ["ISS-10", 0.6], ["ISS-11", 0.55]],
+  });
+  const said = (await swept()).stdout;
+  assert.match(said, /8 family\(ies\) over 9 of the 12 open issue\(s\) measured/u,
+    `the nine in band:\n${said}`);
+  assert.doesNotMatch(said, /short by an unknown amount/u,
+    `the search went past the band and the reading is whole:\n${said}`);
 });
 
 test("the sweep sends no write and takes no lease", async () => {

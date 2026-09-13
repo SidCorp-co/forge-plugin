@@ -23,7 +23,8 @@ export const USAGE = [
   "  get <slug>                             the entry's fields, then its body as markdown",
   "  write <slug> <file.md|@file|-> --kind K [--title T] [--injection I] [--confidence C]",
   "                                         [--meta k=v]...  upsert by slug, read back after",
-  "  search <query> [--limit n]             the records this project holds, by meaning, nearest first",
+  "  search <query> [--limit n]             the records this project holds, by meaning, nearest first;",
+  "                                         n rows at most, and the count says whether more may be held",
   "  delete <slug>                          remove it, and say whether there was one",
   "",
   `  --kind          ${setOf("kind")}`,
@@ -246,17 +247,25 @@ const limitFrom = (raw) => {
 
 const SEARCH_USAGE = "Usage: forge knowledge search <query> [--limit n]";
 
+/* A reading the ask cut and one that exhausted the store print the same rows and the same count, so
+   this line is what tells them apart. The bound is the caller's to apply: docs/cli/alike.md. */
+const countLine = (query, shown, asked) =>
+  `\n${shown} hit(s) for \`${query}\`, ${shown < asked
+    ? `fewer than the ${asked} asked for, so the limit cut nothing from this answer`
+    : "the whole of what was asked for, so the limit may have cut more"}.`;
+
 const search = async ([query, ...rest]) => {
   if (!query) fail(`${SEARCH_USAGE}\n${USAGE}`);
   const { limit } = flags(rest, "knowledge search", [], { usage: SEARCH_USAGE });
-  const answer = await scoped("forge_memory.search", { query, topK: limitFrom(limit) });
-  const hits = answer?.hits ?? [];
+  const asked = limitFrom(limit);
+  const answer = await scoped("forge_memory.search", { query, topK: asked });
+  const hits = (answer?.hits ?? []).slice(0, asked);
   for (const hit of hits) {
     const opens = String(hit.text ?? "").split("\n").find((one) => one.trim()) ?? "";
     console.log(`${(hit.score ?? 0).toFixed(2)}  ${String(hit.source ?? "").padEnd(KIND_WIDTH)} `
       + `${String(hit.sourceRef ?? "").padEnd(SLUG_WIDTH)} ${opens.slice(0, 90)}`);
   }
-  console.log(`\n${hits.length} hit(s) for \`${query}\``);
+  console.log(countLine(query, hits.length, asked));
 };
 
 const DELETE_USAGE = "Usage: forge knowledge delete <slug>";

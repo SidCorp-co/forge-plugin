@@ -15,7 +15,8 @@ const KEY = 8;
 export const FLOOR = 0.7;
 export const FOLD_FLOOR = 0.78;
 
-const hitsOf = (answer) => (Array.isArray(answer?.hits) ? answer.hits : []);
+/* `topK` is an ask this tracker answers past, so the bound is applied here: every count below is off what this reader kept, and a reading that filled the bound with nothing under the floor is the one that may be short. docs/cli/alike.md carries the measurement and the two readings that are not short. */
+const hitsOf = (answer) => (Array.isArray(answer?.hits) ? answer.hits : []).slice(0, TOP_K);
 
 const ask = async (query, strategy) => {
   const text = String(query ?? "").trim();
@@ -32,6 +33,8 @@ const ask = async (query, strategy) => {
   }
   return { hits: hitsOf(answer), note: null };
 };
+
+const cutInBand = (hits, inBand) => hits.length >= TOP_K && inBand >= hits.length;
 
 /** Every open issue either query reached. The key, the title and the open-ness are the projection's, which `live` already is, so the resolve costs no call of its own. */
 export const neighboursOf = async ({ seed, place }, live) => {
@@ -57,6 +60,7 @@ export const neighboursOf = async ({ seed, place }, live) => {
     place,
     notes: [near.note, named.note].filter(Boolean),
     inBand,
+    cut: cutInBand(near.hits, inBand),
     /* Scored first and descending, so `foldOnto` reads the nearest off the front. */
     suggestions: [...found.values()].sort((one, two) => (two.score ?? 0) - (one.score ?? 0)),
   };
