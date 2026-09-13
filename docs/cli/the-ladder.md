@@ -110,7 +110,7 @@ rule decides only what to do when the *reading* is ambiguous, never when the cla
 Nor is urgency an input to it. Priority is the order `forge next` ranks by and it reaches no rung:
 an urgent change whose meaning is new behaviour, or a screen, is a `feature` at the top of the queue,
 and a one-line fix nobody is waiting for is still a `fix`. So there is no rung for a hotfix, and the
-way to make an urgent change cheap is to make it small — `bandFor` writes the rung back as a
+way to make an urgent change cheap is to make it small — `complexityFor` writes the rung back as a
 complexity, and the two axes meet nowhere else.
 
 Nor does it reach the ceiling. `CEILINGS` is arithmetic the ship prints after the judging, and it

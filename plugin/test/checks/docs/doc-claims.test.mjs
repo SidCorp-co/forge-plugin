@@ -6,7 +6,8 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { claimProblems, docClaims } from "../../../src/checks/doc-shape.mjs";
+import { claimProblems, docClaims, nameProblems, namesClaimed, namesHeld } from "../../../src/checks/doc-shape.mjs";
+import { codeOf, quoted } from "../../../src/checks/tracker-names.mjs";
 import { VERB_NAMES } from "../../../src/resolve/visibility.mjs";
 import { FORM_NAMES } from "../../../src/resolve/handler.mjs";
 import { surfaceOf } from "../../surfaces.mjs";
@@ -14,19 +15,20 @@ import { surfaceOf } from "../../surfaces.mjs";
 const ROOT = new URL("../../../..", import.meta.url).pathname;
 const HOW = join(ROOT, "plugin", "hooks", "how");
 
+/* Every directory the plugin ships code in — `protectInline` is documented and lives under `vi-natural` — and not the suite, whose fixtures name words on purpose that nothing reads. */
+const SHIPPED = ["src", "hooks", "scripts", "vi-natural"];
 const sources = () => {
   const out = [];
   const walk = (dir) => {
     for (const one of readdirSync(dir, { withFileTypes: true })) {
       if (one.isDirectory()) {
-        if (one.name !== "vendor") walk(join(dir, one.name));
+        if (one.name !== "vendor" && one.name !== "node_modules") walk(join(dir, one.name));
       } else if (one.name.endsWith(".mjs")) {
         out.push(readFileSync(join(dir, one.name), "utf8"));
       }
     }
   };
-  walk(join(ROOT, "plugin", "src"));
-  walk(join(ROOT, "plugin", "hooks"));
+  for (const one of SHIPPED) walk(join(ROOT, "plugin", one));
   return out.join("\n");
 };
 
@@ -43,6 +45,11 @@ const markdown = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { encodin
   .trim()
   .split("\n")
   .filter(Boolean);
+
+/* The tree whose subject is this code, and the identifier rule's scope: a whole-repository selector fires 82 times, 79 of them on a name owned by the sibling package or by Claude Code (ISS-897). */
+const CLI_DOCS = /^docs\/cli\//u;
+const source = sources();
+const named = namesHeld(codeOf(source), quoted(source));
 
 test("every command a document tells a reader to run is one the CLI has", () => {
   let claims = 0;
@@ -100,4 +107,43 @@ test("a sub-verb's flags are judged against the sub-verb's own usage", () => {
   assert.deepEqual(claimProblems("`forge record confirmation ISS-1 --criterion 2`", held),
     ["`forge record confirmation --criterion` is in no usage line"],
     "and a kind is a surface too: `--criterion` is verdict's, and the kinds' union would pass this");
+});
+
+
+/* ISS-822 renamed a function across 67 files, left `bandFor` in a document, and nothing failed: the retired-name rule reads quoted spans of sources alone, and a path is not an identifier. */
+test("every identifier a document under docs/cli names is one this repository's code holds", () => {
+  const read = markdown.filter((rel) => CLI_DOCS.test(rel));
+  let claimed = 0;
+  for (const rel of read) {
+    const text = readFileSync(join(ROOT, rel), "utf8");
+    claimed += namesClaimed(text).length;
+    assert.deepEqual(nameProblems(text, named), [], rel);
+  }
+  assert.ok(read.length > 20, `${read.length} document(s) under docs/cli`);
+  assert.ok(claimed > 20, `${claimed} identifier(s) claimed across ${read.length} documents: the selector found nothing`);
+});
+
+test("a name this tree does not declare is a finding, and the one it declares in its place is not", () => {
+  assert.deepEqual(nameProblems("`bandFor` writes the rung back as a complexity.", named),
+    ["`bandFor` names nothing in this repository's code"]);
+  assert.deepEqual(nameProblems("`complexityFor` writes the rung back as a complexity.", named), []);
+  assert.deepEqual(nameProblems("`protectInline` runs before translation.", named), [],
+    "a name declared under plugin/vi-natural is code this repository holds");
+});
+
+/* A rename leaves the old word in prose beside the code as readily as in a document. */
+const namesOf = (source) => namesHeld(codeOf(source), quoted(source));
+
+test("a name surviving only in prose is no evidence the binding is there", () => {
+  const gone = "/* bandFor was the name */\nconst complexityFor = 1;\nfail(\"bandFor is retired\");\n";
+  assert.deepEqual(nameProblems("`bandFor`", namesOf(gone)),
+    ["`bandFor` names nothing in this repository's code"]);
+  assert.deepEqual(nameProblems("`bandFor`", namesOf("const bandFor = 1;\n")), []);
+  assert.deepEqual(nameProblems("`devDependencies`", namesOf('const OWES = ["devDependencies"];\n')), [],
+    "a key this code reads by name lives in a string and nowhere else");
+});
+
+test("a dotted form and a SCREAMING name are no identifier claim", () => {
+  assert.deepEqual(namesClaimed("`rank.band` was the key, and `ALLOWED` is search-master's."), []);
+  assert.deepEqual(namesClaimed("`forge issue --offset 200` is a call, not a name."), []);
 });

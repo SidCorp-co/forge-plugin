@@ -50,6 +50,26 @@ export const docClaims = (text) => claimsFrom(
   [...new Set(text.match(ENV_VAR) ?? [])],
 );
 
+/* A span holding one camelCase word and nothing else is a name this repository is claiming to have. A dotted or spaced span is prose about a shape, and a SCREAMING one is as often another codebase's constant as this one's — docs/cli/chatgpt.md names search-master's (ISS-897). */
+const NAMED = /`([a-z][A-Za-z0-9]*[A-Z][A-Za-z0-9]*)`/gu;
+const WORDS = /[A-Za-z_$][\w$]*/gu;
+const ONE_NAME = /^[A-Za-z_$][\w$]*$/u;
+
+export const namesClaimed = (text) =>
+  [...new Set([...String(text).matchAll(NAMED)].map((one) => one[1]))];
+
+/** Every name a source holds: what its code declares, reads or calls, and a string whose whole content is one name, since a key this code reads by name — `devDependencies` — lives nowhere else. Prose inside a string is not evidence: a rename leaving `oldHelper failed` in a diagnostic kept no binding. */
+export const namesHeld = (code, spans = []) => new Set([
+  ...(String(code).match(WORDS) ?? []),
+  ...spans.map((one) => String(one?.held ?? one).trim()).filter((one) => ONE_NAME.test(one)),
+]);
+
+/** What a document claims this repository has and it has not; `named` is the authority, which is why a rename leaving the old word in a comment does not answer for the document that kept it. */
+export const nameProblems = (text, named) =>
+  namesClaimed(text)
+    .filter((one) => !named.has(one))
+    .map((one) => `\`${one}\` names nothing in this repository's code`);
+
 /** A verb whose usage names no flag keeps them under a sub-verb, so its flags are not checked here. */
 export const claimProblems = (text, held) =>
   problemsIn({ ...docClaims(text), proposed: proposedIn(text) }, held);

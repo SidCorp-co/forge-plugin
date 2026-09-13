@@ -8,7 +8,7 @@ const COLUMN_ROWS = COLUMNS.map((pattern) => ({ pattern }));
 const COMPLEXITY = "the tracker's complexity";
 const RUNG = "the contract's rung";
 
-/* A third word for one of the two nouns, one row per shape it takes: `band` and `tier` mean nothing else in this CLI and are refused whole, while `size` measures bytes, windows and diffs here, so it is refused by the grammar of the retired mark and the retired flag, and by the word only where the same string already names what it would be a second word for. docs/cli/the-kinds.md. */
+/* A third word for one of the two nouns, one row per shape it takes: `band` and `tier` mean nothing else in this CLI and are refused whole, while `size` measures bytes, windows and diffs here, so it is refused by the grammar of the retired mark and the retired flag, and by the word only where the same string already names what it would be a second word for. docs/cli/the-kinds.md. This walk reads sources and not `docs/`, and stays that way: the two documents naming a retired spelling name it as the history a reader needs, and the one rename that did reach a document — `bandFor` — is refused by the identifier rule in `doc-shape.mjs` instead, which asks whether the name exists rather than whether the word is retired (ISS-897). */
 export const ALIASES = [
   { pattern: /\bbands?\b/iu, meant: COMPLEXITY },
   { pattern: /\btiers?\b|\buntiered\b/iu, meant: RUNG },
@@ -34,9 +34,22 @@ const SPACE = /\s/u;
  *  template is one span with the text of its `${…}` holes taken out, so a sentence broken by a hole
  *  is still read whole, and what stands in a hole is read as the code it is — a string nested there
  *  is a span of its own rather than the delimiter the scanner mistook for this template's last. */
-export const quoted = (text) => {
+const scan = (text) => {
   const out = [];
+  const bare = text.split("");
   let at = 0;
+  /* Blanked and never cut, so every offset a caller reports stays where it was and a line number
+     does too; a space also parts two names a removal would have joined. */
+  const blank = (from, to) => {
+    for (let one = Math.max(from, 0); one < Math.min(to, bare.length); one += 1) {
+      if (bare[one] !== "\n") bare[one] = " ";
+    }
+  };
+  const skipped = (run) => {
+    const from = at;
+    run();
+    blank(from, at);
+  };
   const past = (end) => {
     const found = text.indexOf(end, at + end.length);
     at = found === -1 ? text.length : found + end.length;
@@ -50,11 +63,13 @@ export const quoted = (text) => {
   };
   const template = () => {
     const from = at + 1;
+    blank(at, from);
     at = from;
     let held = "";
     while (at < text.length && text[at] !== "`") {
       if (text[at] === "\\") {
         held += text.slice(at, at + 2);
+        blank(at, at + 2);
         at += 2;
         continue;
       }
@@ -64,6 +79,7 @@ export const quoted = (text) => {
         continue;
       }
       held += text[at];
+      blank(at, at + 1);
       at += 1;
     }
     out.push({ from, held });
@@ -98,16 +114,16 @@ export const quoted = (text) => {
     while (at < text.length) {
       const two = text.slice(at, at + 2);
       if (two === "//") {
-        past("\n");
+        skipped(() => past("\n"));
         continue;
       }
       if (two === "/*") {
-        past("*/");
+        skipped(() => past("*/"));
         continue;
       }
       const one = text[at];
       if (one === '"' || one === "'") {
-        plain(one);
+        skipped(() => plain(one));
         prev = one;
         continue;
       }
@@ -117,7 +133,7 @@ export const quoted = (text) => {
         continue;
       }
       if (one === "/" && DIVIDES.test(prev) === false) {
-        regex();
+        skipped(() => regex());
         prev = "/";
         continue;
       }
@@ -133,8 +149,15 @@ export const quoted = (text) => {
     }
   }
   code(null);
-  return out;
+  return { spans: out, bare: bare.join("") };
 };
+
+export const quoted = (text) => scan(text).spans;
+
+/** The same walk's other half: the source with every comment, string and regex blanked and every
+ *  offset kept, so a name a rename left behind in prose is not evidence the binding survived. What a
+ *  string may still stand as evidence of is `doc-shape.mjs`'s to say, off the spans above. */
+export const codeOf = (text) => scan(text).bare;
 
 const rowsIn = (held, rows) =>
   rows.filter((row) => row.pattern.test(held) && (!row.needs || row.needs.test(held)));

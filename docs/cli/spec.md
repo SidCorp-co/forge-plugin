@@ -83,7 +83,7 @@ a real clause is said and the plan is written. **A project that keeps no tree
 reads nothing:** this runs in repositories it cannot see, and `documents()` refuses outright where
 there is no `docs/requirements/`, which is the right answer to somebody who asked for a clause and
 the wrong one to somebody who asked to write a plan. The predicate that separates the two is
-`hasTree`.
+`keepsSpecTree`.
 
 **A plan is read whole and a criterion only where it opens.** AC-14-4-1 says *opens with*, and the
 narrowing pays for itself immediately: a criterion is the one field that talks about identifiers as
