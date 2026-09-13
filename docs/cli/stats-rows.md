@@ -51,6 +51,15 @@ first consult after the build began was drawn at the first commit: on this proje
 row carried 429 gate runs and 991 test runs beside its consults, and a rise reported there was the
 build's tail moving, not the review's cost.
 
+**The phases sum to the wall.** The brief that opened a run and the report that closed it are
+generation the run spent, and the run's clock counts both; the phase fold once counted only up to the
+last call's result, so the closing report landed in the wall and the model share and in no phase at
+all, understating by exactly itself the phase every run ends in — on this project's corpus, forty-four
+of forty-five runs and seventeen minutes in total. The tail is measured from the latest result the
+fold has reached rather than from the last call's, because the harness issues several calls in one
+turn and a pair whose later call returned first would otherwise have its overlap counted twice and
+push the phases past the wall (ISS-308).
+
 Each of those last two rules is declared on the marker row it constrains rather than beside the cut
 it makes, so a phase number is written once. Renumbering a phase then moves the cut with it; a
 second copy of the number would go on matching a phase that had moved.

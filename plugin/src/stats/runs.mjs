@@ -137,7 +137,7 @@ export const segmented = (calls) => {
 
 const emptyPhase = () => PHASES.map(() => ({ seconds: 0, calls: 0, byClass: new Map() }));
 
-const foldPhases = (calls, startedAt) => {
+const foldPhases = (calls, startedAt, endedAt) => {
   const phases = emptyPhase();
   let last = startedAt;
   for (const call of calls) {
@@ -148,6 +148,10 @@ const foldPhases = (calls, startedAt) => {
     held.byClass.set(call.class, { calls: was.calls + 1, wait: was.wait + call.wait });
     last = Math.max(last, call.endedAt);
   }
+  /* The run's own end and not the last call's: the closing report is generation after the final tool
+     result, counted in the wall and in no phase, so the phases summed short of the run by exactly it.
+     Off the cursor the loop carries, so a turn's pair whose later call returned first adds its tail once. */
+  if (calls.length) phases[calls.at(-1).phase].seconds += Math.max(0, endedAt - last) / 1000;
   return phases;
 };
 
@@ -285,7 +289,7 @@ export const runFrom = (path, session, text) => {
     repeats: new Map([...repeats].filter(([, many]) => many >= REPEATED)),
     guideParts,
     longest,
-    phases: foldPhases(calls, startedAt),
+    phases: foldPhases(calls, startedAt, endedAt),
   };
 };
 
@@ -573,17 +577,20 @@ export const printRuns = (rest) => {
   const root = rootFor(directory);
   const { runs, skipped, outsideWindow, unreadable } = runsUnder(root, from);
   const aside = readingAside({ skipped, outsideWindow, unreadable });
+  const held = profileOf(runs);
+  /* Before the empty-window prose: the flag is for a diff between two weeks and stopped being JSON on exactly the quiet week that diff is about (ISS-308). */
+  if (json) {
+    return console.log(JSON.stringify(
+      { root, project: directory, skipped, outsideWindow, unreadable, ...held },
+      null, 2));
+  }
   if (!runs.length) {
     return console.log(`No issue-flow run under ${root}${since ? ` in the last ${since}` : ""}. ${aside}.`
       + derivedFrom(directory));
-  }
-  const held = profileOf(runs);
-  if (json) {
-    return console.log(JSON.stringify(
-      { root, project: directory, skipped, outsideWindow, unreadable, ...held }, null, 2));
   }
   console.log(`${held.runs} issue-flow run(s)${since ? ` in the last ${since}` : ""}, `
     + `${stamp(held.from)} to ${stamp(held.to)}`);
   console.log(`${root}\n${aside}\n`);
   for (const line of profileLines(held)) console.log(line);
+  return null;
 };

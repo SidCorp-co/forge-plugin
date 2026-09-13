@@ -11,7 +11,7 @@ import { PHASES, methodOf } from "../../src/guides/phases.mjs";
 import {
   MARKERS, RUNG_UNKNOWN, WHOLE_SET_CLASS, callsIn, classOf, markerOf, shellOf, slugFor,
 } from "../../src/stats/transcripts.mjs";
-import { segmented, unionSeconds } from "../../src/stats/runs.mjs";
+import { runFrom, segmented, unionSeconds } from "../../src/stats/runs.mjs";
 import { RUNGS } from "../../src/ladder.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
@@ -164,6 +164,24 @@ test("--json carries what the screen leaves out", () => {
   );
 });
 
+/* A window under --json stopped being JSON on exactly the quiet week the flag exists to diff, and a
+   reader diffing two weeks got prose back with a zero exit (ISS-308, criteria 1 and 2). */
+test("an empty window is JSON under the flag and prose without it", () => {
+  const room = corpus();
+  const held = JSON.parse(ask(room, "--since", "1d", "--json").stdout);
+  assert.equal(held.runs, 0, "the zero-run profile, not a shape of its own");
+  assert.equal(held.from, null);
+  assert.equal(held.to, null);
+  assert.equal(held.project, PROJECT);
+  assert.match(held.root, /claude-\d+\/-fixture-project$/u);
+  assert.deepEqual([held.skipped, held.outsideWindow, held.unreadable], [1, 1, 0],
+    "and what the reading passed over, which is the whole of why the window is empty");
+
+  const prose = ask(room, "--since", "1d");
+  assert.match(prose.stdout, /No issue-flow run under .*-fixture-project in the last 1d/u,
+    "the sentence keeps its wording; only its order with the flag moved");
+});
+
 test("a window is read off the run's own clock, not the file's", () => {
   const room = corpus();
   const empty = ask(room, "--since", "1d");
@@ -276,6 +294,41 @@ test("the phases the miner counts are the phases the method names", () => {
   }
   assert.equal(methodOf("developed").phase, PHASES[5], "which is the phase the resume header owes");
   assert.ok(methodOf("in_progress").phase.includes(PHASES[4]), methodOf("in_progress").phase);
+});
+
+/* The closing report is generation after the final tool result: it counts in the run's wall and in
+   its model share, and folded into no phase it left the phases summing short of the run by exactly
+   that report, understating the phase every run ends in (ISS-308, criteria 3 and 4). The second
+   fixture is the one that refuses the easy fix: measured from the LAST call's end rather than from
+   the latest end, an overlapping pair whose later call returned first pushes the phases past the
+   wall (consult 51ec08 F3). */
+test("the phases sum to the wall, the closing report counted in the phase the run ended in", () => {
+  const closing = [
+    JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-99" } }),
+    use("s1", 10, "Bash", { command: "forge claim ISS-99" }),
+    result("s1", 20, "claimed"),
+    use("s2", 30, "Bash", { command: "node /w/tools/run.mjs ship" }),
+    result("s2", 90, "landed"),
+    JSON.stringify({ timestamp: at(150), message: { role: "assistant", content: [{ type: "text", text: "what landed" }] } }),
+  ].join("\n");
+  const run = runFrom("/p", "s", closing);
+  assert.equal(run.seconds, 150, "the wall is the transcript's own bounds, the report included");
+  assert.equal(run.phases.reduce((many, one) => many + one.seconds, 0), run.seconds,
+    "so the phases add up to the run rather than to the last call");
+  assert.equal(run.phases[7].seconds, 130,
+    "70s of ship and the 60s of report after it, in the phase the ship was in and not the one after");
+
+  const overlapped = [
+    JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-98" } }),
+    use("o1", 0, "Bash", { command: "forge claim ISS-98" }),
+    use("o2", 0, "Bash", { command: "git status --short" }),
+    result("o2", 20, "clean"),
+    result("o1", 40, "claimed"),
+  ].join("\n");
+  const held = runFrom("/p", "s", overlapped);
+  assert.equal(held.seconds, 40);
+  assert.equal(held.phases.reduce((many, one) => many + one.seconds, 0), 40,
+    "a turn's pair whose later call returned first adds its tail once, and the phases never exceed the wall");
 });
 
 /* A phase number copied into the cutter is invisible until a phase is renumbered, so this case

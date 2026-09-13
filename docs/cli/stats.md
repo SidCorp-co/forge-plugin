@@ -64,5 +64,10 @@ So a mistyped `--since` profiled the whole corpus and said nothing about it. For
 compared with next week's, a filter silently dropped is worse than a refusal, so a flag this verb
 does not have is named back.
 
+For the same reason `--json` answers in JSON on a week with no run in it. The empty-window sentence
+is prose and once stood in front of the flag, so the one shape a two-week diff is written against
+stopped being a shape on exactly the quiet week the diff is about — and the caller got a zero exit
+with it. The zero-run profile is a profile, and it prints as one (ISS-308).
+
 What each row of the profile is — the classifier and the wrong rows it was built to avoid, the
 phase table, the rung table: [`stats-rows.md`](stats-rows.md).
