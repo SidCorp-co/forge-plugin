@@ -1,8 +1,8 @@
 /* The keys `forge doctor` writes: a report is every finding at once, a write is one key. docs/cli/doctor.md. */
 import { saveNested, saveConfig, userConfig } from "../resolve/config.mjs";
-import { CHATGPT_SAVED, SHIP_MODES, fail } from "../resolve/settings.mjs";
+import { CHATGPT_SAVED, FROM_PROJECT, JOB_ALL, SHIP_MODES, declaredJobs, fail } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { VERB_NAMES } from "../resolve/visibility.mjs";
+import { VERB_NAMES, withheldForJob } from "../resolve/visibility.mjs";
 
 const SAVED = ["token", "url"];
 
@@ -30,6 +30,35 @@ const setVisibility = (verb, hide) => {
   console.log(`${verb} is now ${hide ? "withheld from" : "offered in"} the usage list.\n`);
 };
 
+/* One call over the switch `--hide` writes a verb at a time, and a REPLACEMENT rather than an
+   addition, so turning a job on is the same act whatever this machine held before it. The array it
+   writes is the machine's while the declarations are one project's, so it reaches every checkout on
+   this box, and the line says so. docs/cli/withholding-a-verb.md. */
+const setJob = (name) => {
+  if (name === JOB_ALL) {
+    saveConfig({ withheld: [] });
+    console.log("Every verb this machine withheld is offered again, including any hidden one at a time.\n");
+    return;
+  }
+  const { jobs } = declaredJobs();
+  const names = Object.keys(jobs);
+  if (!names.length) {
+    fail(`doctor: no job is declared here. A job is a name and the verbs its usage list offers, under`
+      + ` \`jobs\` in the ${FROM_PROJECT} at the root of this checkout — the project's own file,`
+      + " because which jobs exist cannot be stated without naming the project.");
+  }
+  if (!Object.hasOwn(jobs, name)) fail(didYouMean("job", name, names));
+  const unknown = jobs[name].filter((verb) => !VERB_NAMES.includes(verb));
+  if (unknown.length) {
+    fail(`doctor: the \`${name}\` job in ${FROM_PROJECT} names ${unknown.join(", ")}, which this CLI`
+      + " has no verb for. Nothing was written; `forge -h` lists the verbs there are.");
+  }
+  const withheld = withheldForJob(jobs[name]);
+  saveConfig({ withheld });
+  console.log(`The usage list is at the ${name} job: ${withheld.length} verb(s) withheld on this machine,`
+    + ` in every checkout on it. \`forge doctor --job ${JOB_ALL}\` offers them all again.\n`);
+};
+
 /* Whose the option is, and why: `shipMode` in resolve/settings.mjs. */
 const setShip = (mode) => {
   if (!SHIP_MODES.includes(mode)) fail(didYouMean("--ship mode", mode, SHIP_MODES));
@@ -41,6 +70,7 @@ const setShip = (mode) => {
 
 /* Every flag that writes this machine's half, in the order the report spends them, and what each spends. The two-stores check that refuses a project flag beside one of these and the dispatch that makes the writes both read this table: they were two lists, and two releases in a row each added a key to one and to the other. A row owns the flags it writes together, because a pair saved in one call prints one line for it, and it guards its own value where its predecessor guarded on truthiness — an empty `--hide` wrote nothing before this table and writes nothing under it. */
 export const MACHINE_WRITES = [
+  { flags: ["job"], write: (asked) => asked.job && setJob(asked.job) },
   { flags: ["hide"], write: (asked) => asked.hide && setVisibility(asked.hide, true) },
   { flags: ["show"], write: (asked) => asked.show && setVisibility(asked.show, false) },
   { flags: ["ship"], write: (asked) => asked.ship && setShip(asked.ship) },

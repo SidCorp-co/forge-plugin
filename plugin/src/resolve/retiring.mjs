@@ -1,4 +1,4 @@
-/* One row per name a losing verb gets one release of, empty while no window is open, and a row's own release is when it closes; the rule, the `flag` shape and why a redirect is allowed only here: docs/cli/withholding-a-verb.md. */
+/* One row per name a losing verb gets one release of, empty while no window is open, and a row's own release is when it closes; the rule, the `flag` shape and why a redirect is allowed only here: docs/cli/retiring-a-name.md. */
 export const RETIRING = [];
 
 const said = (row) =>

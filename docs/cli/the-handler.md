@@ -2,7 +2,7 @@
 
 A word this CLI performs through a verb it already has, rather than a word it lists. Why that is not
 a redirect, and why a form is never offered anywhere, is
-[withholding a verb](withholding-a-verb.md)'s; what a form may be, where it is read and what keeps
+[retiring a name](retiring-a-name.md)'s; what a form may be, where it is read and what keeps
 the table honest is here.
 
 ## What made a whole class of word worth serving

@@ -179,11 +179,11 @@ test("the form the parser refuses is left to the parser", () => {
 /* The form table is read before distance, so a synonym answers with one verb and not with two near
    spellings of the wrong one. What a row has to hold is held here rather than in prose: a form
    naming a retired verb would answer a name the CLI is supposed not to know, which is the redirect
-   docs/cli/withholding-a-verb.md forbids, and a form that is itself a verb is a row nothing reads. */
+   docs/cli/retiring-a-name.md forbids, and a form that is itself a verb is a row nothing reads. */
 const retiredRow = (given, retired) =>
   (retired.some((entry) => entry.kind === "verb" && entry.name === given)
     ? [`the table answers ${given}, retired in ${retired.find((entry) => entry.name === given).release}`
-      + " — delete the row rather than aiming it at a live name (docs/cli/withholding-a-verb.md)"]
+      + " — delete the row rather than aiming it at a live name (docs/cli/retiring-a-name.md)"]
     : []);
 
 const formProblems = (forms, retired, live) =>
@@ -278,7 +278,7 @@ test("the rule fires on a table that answers a retired name", () => {
   const found = formProblems(FORMS, asIf, VERB_NAMES);
   assert.equal(found.length, 1, found.join("\n"));
   assert.match(found[0], /retired in 3\.36\.0/u);
-  assert.match(found[0], /withholding-a-verb\.md/u, "and the finding says where the rule reads");
+  assert.match(found[0], /retiring-a-name\.md/u, "and the finding says where the rule reads");
   assert.deepEqual(formProblems({ issue: { verb: "issue" } }, RETIRED, VERB_NAMES),
     ["issue is a verb of its own, so its row is never reached"]);
   assert.deepEqual(formProblems({ fetch: { verb: "gone" } }, RETIRED, VERB_NAMES),
@@ -424,7 +424,7 @@ test("a name for a call spends one sentence on the call, not thirty-three lines 
 /* The one place this CLI answers a name with a replacement, and it is bounded: a write that had two
    verbs gets one release of the line, in front of the did-you-mean, so an agent that learned the
    losing name types the winning one next rather than reading a near miss (ISS-348). The window and
-   what closes it: docs/cli/withholding-a-verb.md. */
+   what closes it: docs/cli/retiring-a-name.md. */
 const WINDOW = [{ typed: "sweep", release: "3.36.0", verb: "new", flag: "--sweep", instead: "forge attach <issue> <file>" }];
 
 /* The registry is empty between retirements, which is most of the time, so the rule is watched against a row of its own and both entry points read it. */

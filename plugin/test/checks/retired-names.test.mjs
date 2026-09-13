@@ -107,7 +107,7 @@ test("a retired verb is refused on the help, the skills, the topics and the cont
     assert.ok(found.some((one) => one.startsWith(surface)), `${surface} went unread:\n${found.slice(0, 5).join("\n")}`);
   }
   assert.ok(
-    found.every((one) => one.includes("retired in 3.36.0") && one.includes("withholding-a-verb.md")),
+    found.every((one) => one.includes("retired in 3.36.0") && one.includes("retiring-a-name.md")),
     "a finding names the release that retired the name and where the rule reads",
   );
   assert.ok(found.some((one) => /^docs\/cli\/advance\.md is named for/u.test(one)), "a topic named for it goes too");

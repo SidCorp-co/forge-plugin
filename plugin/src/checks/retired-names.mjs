@@ -1,5 +1,5 @@
 /* The retired names, held once so a sentence naming a verb that no longer runs fails something. An
-   entry names no replacement: pointing at what took over is the redirect docs/cli/withholding-a-verb.md forbids. */
+   entry names no replacement: pointing at what took over is the redirect docs/cli/retiring-a-name.md forbids. */
 import { lineAt } from "../markdown.mjs";
 import { RECORDS_RATHER_THAN_INSTRUCTS } from "./doc-shape.mjs";
 import { RETIRING } from "../resolve/retiring.mjs";
@@ -39,7 +39,7 @@ const shapesOf = ({ name, kind }, rel) =>
     directory: [new RegExp(`(?<![\\w./-])(?<!/[\\w-]+ )(?:\\.\\.?/)*${name}/`, "gu")],
   })[kind] ?? [];
 
-const WHY = "docs/cli/withholding-a-verb.md";
+const WHY = "docs/cli/retiring-a-name.md";
 const stem = (rel) => rel.split("/").pop().replace(/\.[^.]+$/u, "");
 
 const SELF = `plugin/${import.meta.url.split("/plugin/").pop()}`;

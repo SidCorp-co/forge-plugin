@@ -3,7 +3,7 @@
    docs/cli/withholding-a-verb.md. */
 import { ROUTES } from "../tracker/routes.mjs";
 import { userConfig } from "./config.mjs";
-import { fail, feedbackScope, projectScope } from "./settings.mjs";
+import { declaredJobs, fail, feedbackScope, projectScope } from "./settings.mjs";
 
 /* A row names its group; `forge -h`'s headings are folded off that, so a verb reaching the table
    without one appears under no heading and `cli-help.test.mjs` refuses it rather than a reader. */
@@ -86,7 +86,7 @@ export const VERBS = [
     "`forge new` with the kind, the project and the Where filled in: a defect in this plugin, from any checkout",
     null, { group: HARNESS }],
   ["doctor", "[--token t] [--url u] [--chatgpt-url u] [--chatgpt-key k] [--chatgpt-prefix p]"
-    + " [--hide v|--show v]"
+    + " [--hide v|--show v] [--job name|all]"
     + " [--ship ready|self] [--set k=v] [--credentials]"
     + " [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text>] [--title T]"
     + " [--confidence C] [--meta k=v]... [--full]",
@@ -161,6 +161,36 @@ export const isGated = (tool) => Boolean(recorded().gates[tool]);
 export const gatedTools = () => new Set(Object.keys(recorded().gates).filter(isGated));
 export const withheldVerbs = () => new Set(userConfig().withheld ?? []);
 
+/* A job offers this whether it names it or not: a machine whose report verb has gone missing has no
+   surface left allowed to say what else has. The bulk write alone is bound; `--hide` is not. */
+const JOB_KEEPS = "doctor";
+
+export const withheldForJob = (verbs) => {
+  const offers = new Set([...verbs, JOB_KEEPS]);
+  return VERB_NAMES.filter((verb) => !offers.has(verb));
+};
+
+/* Matching is the whole of the claim — an array built by hand matches, and two jobs offering the
+   same verbs both do — so every match is named. Storing the name would be a second switch. */
+export const matchingJobs = () => {
+  const held = withheldVerbs();
+  return Object.entries(declaredJobs().jobs)
+    .filter(([, verbs]) => {
+      const want = withheldForJob(verbs);
+      return want.length === held.size && want.every((verb) => held.has(verb));
+    })
+    .map(([name]) => name);
+};
+
+/** What a project's own jobs get wrong, for the one surface allowed to say a thing is unusable. */
+export const jobProblems = () => {
+  const { jobs, problems } = declaredJobs();
+  return [...problems, ...Object.entries(jobs)
+    .map(([name, verbs]) => [name, verbs.filter((verb) => !VERB_NAMES.includes(verb))])
+    .filter(([, unknown]) => unknown.length)
+    .map(([name, unknown]) => `the \`${name}\` job names ${unknown.join(", ")}, which this CLI has no verb for`)];
+};
+
 const FEEDBACK_VERB = "feedback";
 
 /** The project's say over the channel to this plugin's backlog, beside this machine's over the verb:
@@ -220,7 +250,9 @@ export const verbFor = (tool, action) => {
    can. The argument for refusing rather than falling back: how/wrapped-route.md. */
 const unavailable = (verb) => {
   if (withheldVerbs().has(verb)) {
-    return `\`forge ${verb}\` is withheld on this machine — \`forge doctor --show ${verb}\` offers it again`;
+    const matched = matchingJobs();
+    const at = matched.length === 1 ? `, which is at the \`${matched[0]}\` job` : "";
+    return `\`forge ${verb}\` is withheld on this machine${at} — \`forge doctor --show ${verb}\` offers it again`;
   }
   const blocked = blockedBy(verb);
   return blocked

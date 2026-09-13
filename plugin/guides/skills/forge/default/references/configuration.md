@@ -25,8 +25,10 @@ An agent is offered what it can use and nothing else. A verb disappears for one 
 - **The capability behind it refuses.** `forge doctor` probes and records that; the verb then leaves
   the usage list, and its own `-h` goes with it, the fields it named being that verb's. A record is
   keyed by project and dated, so a refusal that was true once is not read as true forever.
-- **A human ran `forge doctor --hide <verb>`.** That one is unlisted but still runs;
-  `forge doctor --show <verb>` puts it back.
+- **A human ran `forge doctor --hide <verb>`, or turned on a job with `forge doctor --job <name>`**,
+  which withholds every verb outside that job at once. Either way the verb is unlisted and still
+  runs; `forge doctor --show <verb>` puts one back and `forge doctor --job all` puts them all back.
+  `forge doctor` names the jobs the project declares and which of them this machine is at.
 
 Nothing is filtered until `doctor` has measured it, and every refusal carries the date it was
 measured rather than claiming a permanent fact. `forge doctor` prints what resolves, from which

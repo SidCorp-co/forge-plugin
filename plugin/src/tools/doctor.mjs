@@ -35,6 +35,7 @@ import {
 } from "../checks/claude-md.mjs";
 import { harnessLines } from "./services/doctor-harness.mjs";
 import { installRows } from "./services/doctor-install.mjs";
+import { withholdingLines } from "./services/doctor-jobs.mjs";
 import { masked } from "./services/masked.mjs";
 import { copyToRun, FROZEN, pluginCopy } from "./plugin-copy.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
@@ -555,8 +556,7 @@ export const doctor = async (argv) => {
     line(BAD, "mcp.json", `${join(stale.root, ".mcp.json")} carries settings this CLI does not read`
       + ` — ${fix.join(", and ")}`);
   }
-  const chosen = userConfig().withheld ?? [];
-  if (chosen.length) line(OK, "withheld verbs", `${chosen.join(", ")} — \`forge doctor --show <verb>\``);
+  report(withholdingLines());
   checkFlowKeys();
   for (const { name, event } of offNow()) {
     line(OK, "hooks off", `${name} (${event}) — \`forge hooks --on ${name}\``);

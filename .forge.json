@@ -5,6 +5,12 @@
     "project": "bugs"
   },
   "runs": 1,
+  "jobs": {
+    "ba": ["issue", "new", "comment", "attach", "next", "spec", "guide", "project", "knowledge"],
+    "developer": ["issue", "new", "comment", "claim", "resume", "record", "advance", "spec", "attach",
+      "next", "guide", "project", "knowledge", "codex", "hooks", "feedback", "stats"],
+    "pm": ["issue", "resume", "next", "spec", "guide", "project", "stats"]
+  },
   "codex": {
     "pathRe": "^(plugin|packages)/(src|hooks|scripts)/.*\\.mjs$|^docs/.*\\.md$",
     "angles": [

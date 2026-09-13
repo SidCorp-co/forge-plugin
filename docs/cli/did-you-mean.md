@@ -14,7 +14,7 @@ confinement to verbs and is not meant to be: `forge attach get` means `forge att
 `issue` is the right answer there too. Where the set holds no such name — a flag, a kind, a slug —
 the given word is ranked as it always was, and a verb this credential may not see is no more
 suggestible than before. A retired name is never a key in it. A CLI that knows an old name is
-exactly the redirect [withholding a verb](withholding-a-verb.md) forbids, and the table is not the
+exactly the redirect [retiring a name](retiring-a-name.md) forbids, and the table is not the
 place that route comes back. The rows, and both rules over them, are held by the case beside the
 helper.
 

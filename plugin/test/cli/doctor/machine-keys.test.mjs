@@ -42,7 +42,7 @@ test("one call carrying every flag of the table reaches every writer, and each w
   assert.deepEqual(saved.chatgpt,
     { url: "https://gpt.example/mcp", key: "gpt-key", prefix: "Flat vector, no text." });
   assert.deepEqual(MACHINE_FLAGS,
-    ["hide", "show", "ship", "token", "url", "chatgpt-url", "chatgpt-key", "chatgpt-prefix"],
+    ["job", "hide", "show", "ship", "token", "url", "chatgpt-url", "chatgpt-key", "chatgpt-prefix"],
     "and the flags that reached them are the flags the two-stores check filters, off the same table");
 });
 

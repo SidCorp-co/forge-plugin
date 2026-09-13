@@ -77,11 +77,17 @@ can be reached. It is what a refusal points at, so it answers before the questio
 
 ### UC-01-4 — Withhold a verb
 
-Rev: 1 · Actors: developer · Enforces: BR-01, BR-07
+Rev: 2 · Actors: developer · Enforces: BR-01, BR-07, BR-08
 
 Two things can shorten the usage list: a record of which tools refused this credential, and a
 developer hiding a verb by hand. Because a verb can be missing for either reason, the CLI says so
-rather than behaving as though the verb never existed.
+rather than behaving as though the verb never existed. By hand means one verb at a time or the
+whole group a project has named for a job it does, and both write the one list this machine keeps,
+so the report answers for a verb once and names every declared job the list matches, which is a
+different claim from naming what caused it and is the only one the list can carry (BR-08). Which
+jobs exist is the project's to declare, because no plugin can know what work is done in a checkout
+it has never seen (BR-07). A job leaves the report verb advertised whether or not it names one,
+since that verb is the only surface permitted to say what has gone missing.
 
 - **AC-01-4-1** · Rev: 1 · Proof: plugin/test/cli/cli-help.test.mjs "no run of anything else is advertised"
   WHEN the usage list is printed THEN it SHALL advertise only what this credential may run.
@@ -109,6 +115,34 @@ rather than behaving as though the verb never existed.
 - **AC-01-4-9** · Rev: 1 · Proof: none yet — ISS-673
   WHEN the filing verb's help is printed THEN it SHALL render the destination of a finding off the
   project's key, naming the channel's verb where the key allows it and no verb where it does not.
+- **AC-01-4-10** · Rev: 1 · Proof: plugin/test/cli/doctor/job.test.mjs "one call replaces what this machine withholds with every verb the job does not offer"
+  WHEN the developer turns on a job the project declares THEN the CLI SHALL replace what this
+  machine withholds with every verb that job does not offer, in one call, and SHALL hold them in the
+  same list a verb hidden one at a time goes into.
+- **AC-01-4-11** · Rev: 1 · Proof: plugin/test/cli/doctor/job.test.mjs "turning off whatever job is on leaves nothing withheld, hand-hidden verbs included"
+  WHEN the developer turns off whatever job is on THEN the CLI SHALL withhold no verb at all,
+  including any the developer had hidden one at a time.
+- **AC-01-4-12** · Rev: 1 · Proof: plugin/test/cli/doctor/job.test.mjs "the report names every declared job and the project's own file as where they were read"
+  WHEN the resolution report is printed in a checkout whose project declares jobs THEN it SHALL name
+  each job declared and SHALL name the project's own file as where they were read.
+- **AC-01-4-13** · Rev: 1 · Proof: plugin/test/cli/doctor/job.test.mjs "the report names every declared job the withheld list matches, and says none matches where that is so"
+  WHEN the resolution report is printed THEN it SHALL name every declared job whose withheld verbs
+  are exactly the ones this machine holds, SHALL say that the list matches them rather than that they
+  caused it, and SHALL say that none matches where no declared job does.
+- **AC-01-4-14** · Rev: 1 · Proof: plugin/test/resolve/wrapped.test.mjs "a withheld verb a declared job matches is refused by the route it wraps, in a sentence naming that job"
+  WHERE a verb is withheld and exactly one declared job matches what this machine withholds, a
+  refusal naming that verb SHALL name that job and the way back from it.
+- **AC-01-4-15** · Rev: 1 · Proof: plugin/test/cli/doctor/job.test.mjs "a checkout declaring no job is told nothing about jobs"
+  IF the project declares no job THEN the resolution report SHALL say nothing about jobs.
+- **AC-01-4-16** · Rev: 1 · Proof: plugin/test/cli/doctor/job.test.mjs "a job naming a word that is no verb is refused before anything is written"
+  IF a declared job names a word that is no verb of this CLI THEN the CLI SHALL refuse to turn that
+  job on and SHALL write nothing.
+- **AC-01-4-17** · Rev: 1 · Proof: plugin/test/cli/doctor/job.test.mjs "a job that names the report verb nowhere leaves it advertised all the same"
+  IF a job names the report verb nowhere THEN turning that job on SHALL leave the report verb
+  advertised all the same.
+- **AC-01-4-18** · Rev: 1 · Proof: plugin/test/cli/doctor/job.test.mjs "a job reopens no verb the credential or the project has closed"
+  WHERE a verb a job offers is one this credential may not spend or this project has closed, turning
+  that job on SHALL leave it unadvertised.
 
 ### UC-01-5 — The project's keys, and the machine's own
 

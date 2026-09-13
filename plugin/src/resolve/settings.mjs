@@ -192,6 +192,29 @@ export const depsConvention = once(() => {
 
 export const rankConvention = once(() => sourced(FROM_PROJECT, forgeJson().parsed?.rank));
 
+export const JOB_ALL = "all";
+
+/* A job is the project's because which jobs exist cannot be stated without naming the project, and
+   `all` clears one rather than naming one. Which words are verbs is the verb table's. */
+export const declaredJobs = () => {
+  const given = forgeJson().parsed?.jobs;
+  if (!given || typeof given !== "object" || Array.isArray(given)) return { jobs: {}, from: null, problems: [] };
+  const jobs = {};
+  const problems = [];
+  for (const [name, verbs] of Object.entries(given)) {
+    if (name === JOB_ALL) {
+      problems.push(`\`${JOB_ALL}\` is reserved, being what clears a job rather than a name one may take,`
+        + ` so the job declared under it is offered nowhere — rename it in ${FROM_PROJECT}`);
+    } else if (!Array.isArray(verbs) || verbs.some((verb) => typeof verb !== "string")) {
+      problems.push(`the \`${name}\` job is not a list of verb names, so it is offered nowhere`
+        + ` — write it as one in ${FROM_PROJECT}`);
+    } else {
+      jobs[name] = [...verbs];
+    }
+  }
+  return { jobs, from: FROM_PROJECT, problems };
+};
+
 export const projectReview = () => forgeJson().parsed?.review ?? {};
 export const projectStop = () => forgeJson().parsed?.stop ?? {};
 

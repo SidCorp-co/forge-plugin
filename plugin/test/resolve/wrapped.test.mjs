@@ -223,6 +223,24 @@ test("a withheld verb's action is refused with the verb and the withholding, not
   }
 });
 
+/* And a job is the same withholding written once, so the refusal names the job the array matches —
+   matches, not caused: a job's name is stored nowhere, which is what keeps the array the one switch. */
+test("a withheld verb a declared job matches is refused by the route it wraps, in a sentence naming that job", async () => {
+  const { ran, close, env, cwd } = await gatedKnowledge();
+  try {
+    const held = JSON.parse(readFileSync(join(cwd, ".forge.json"), "utf8"));
+    writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ ...held, jobs: { reader: ["issue", "next"] } }));
+    const on = await ran("doctor", "--job", "reader");
+    assert.match(on.stdout, /The usage list is at the reader job/u, on.stderr);
+    const said = await refusedBy(env, cwd, "mcp__forge__forge_knowledge", { action: "upsert", data: { slug: "s" } });
+    assert.match(said, /forge_knowledge upsert is what `forge knowledge write` wraps/u, said);
+    assert.match(said, /is withheld on this machine, which is at the `reader` job/u, said);
+    assert.match(said, /forge doctor --show knowledge/u, "and the way back is the one command it names");
+  } finally {
+    await close();
+  }
+});
+
 /* Judged on the word typed, `forge list` has no row, is blocked by nothing, and performs the gated `forge issue` anyway — a way round the refusal withholding-a-verb.md exists for (F1). */
 test("a form is refused by the capability its verb needs, and answers with the same line", async () => {
   const { ran, close } = await gatedTool("forge_issues");
