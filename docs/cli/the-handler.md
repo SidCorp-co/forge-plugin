@@ -9,16 +9,19 @@ the table honest is here.
 
 *Why perform a word instead of adding a verb or leaving it unknown?*
 
-An unknown verb answers with the verb list, so a caller who typed the wrong word for a move it was
-entitled to make paid the turn twice — once for the list, once for the retype — and the word it
-typed was, every time, the name of the status it wanted. The user's decision of 2026-09-07 is that
-those words are served. The alternative shapes were both worse: a verb per status is a row in
+An unknown verb answers with one sentence and nothing that ran, so a caller who typed the wrong word
+for a move it was entitled to make paid the turn twice — once for the miss, once for the retype — and
+the word it typed was, every time, the name of the status it wanted. The user's decision of
+2026-09-07 is that those words are served. The alternative shapes were both worse: a verb per status is a row in
 every help text for every spelling of one transition, and a *did you mean* row is the redirect that
 costs the second turn anyway.
 
 So the class is bounded by what it is: a form names a thing the CLI can already do and adds no
 capability. A word that would reach the tracker in a way no verb does is a verb, argued for on its
-own; a word that only re-spells a flag is neither.
+own; a word that only re-spells a flag is neither, and the third class is a route. A route is
+answered and never performed: its row holds a call rather than a verb, and the miss prints that call
+for the caller to type. It cannot be a form because an insertion can only go behind the reference,
+and a flag whose value is a query wants the query in that place.
 
 ## The table is the order table's, and says so by having a row per status
 

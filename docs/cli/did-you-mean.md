@@ -24,6 +24,8 @@ three names spends no turn asking which three, and a caller shown thirty reads a
 sentence, so past the threshold the route to the set is what fits. That route is said where nothing
 matched and the set is too long to name — beside the set itself, or beside a nearest name, it is a
 clause spent on nothing, because a caller one retype from the name they meant is not browsing the set.
+On a verb miss that clause carries two different things: where the word has a route row, the call it
+was reaching for, so the sentence ends in something to type; where it has none, the route to the set.
 A set that repeats the suggestion it just made is not said either. And a refusal writing its own set
 beside the helper's is two copies of one list, the second of which is the one that goes stale.
 
