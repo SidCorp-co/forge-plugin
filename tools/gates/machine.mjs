@@ -19,6 +19,8 @@ export const DECLINED = 75;
 
 export const WAIT = "--wait";
 
+export const SLOT = "slot";
+
 // Named as a key and not a command: no verb writes `.forge.json`, and an untypable route is offered as none.
 export const RAISE = "the `runs` key in this project's .forge.json";
 

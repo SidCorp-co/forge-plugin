@@ -2,7 +2,7 @@
    spellings of a line no gate writes, and two runs parked on a notice that says a process ended and never what it decided (ISS-1102).
    A wait exits on the line and never on the process, one that exited having written nothing being its own answer and not a pass. */
 import { gitOut, lines, parsed } from "./checkout.mjs";
-import { gatesOn, PROC, runnersOf, startedAt } from "./gates/machine.mjs";
+import { gatesOn, placeFor, PROC, runnersOf, SLOT, startedAt, WAIT } from "./gates/machine.mjs";
 import { recordDir } from "./gates/timing.mjs";
 import { watching } from "./watching.mjs";
 import { createHash } from "node:crypto";
@@ -102,6 +102,49 @@ const deadlineSaid = (root, pid, minutes, held) => `${WAITED} deadline — the g
   + `running ${spent(held)} and has written no verdict, and this wait was given ${minutes} minute(s), which is what it `
   + `hit. The gate is still running, so nothing here judges that tree either way.\nWait again, longer:\n`
   + `  node tools/gates.mjs --wait ${minutes * 2}`;
+
+const holding = (ahead) => ahead.map((one) => `  pid ${one.pid}  gating ${one.tree}`).join("\n");
+
+const slotFreeSaid = (root, ahead, waited) => `${WAITED} place — ${ahead.length} gate(s) of this checkout are `
+  + `running, which is under the number it declares${waited >= 1000 ? `, after ${spent(waited)}` : ""}. Nothing here `
+  + `judged ${root}: the ceiling is advisory, so a gate that starts before yours takes the place instead.\nGate it:\n`
+  + `  npm run check`;
+
+const slotHeldSaid = (root, ahead, minutes) => `${WAITED} deadline — every place this checkout declares is still `
+  + `held and this wait was given ${minutes} minute(s), which is what it hit:\n${holding(ahead)}\nNo gate of ${root} `
+  + `ran at all, so this is not a tree that was judged and found red — it is one that never got a place.\n`
+  + `Wait again, longer:\n  node tools/gates.mjs ${WAIT} ${SLOT} ${minutes * 2}`;
+
+/** The wait's other subject: a place at the ceiling this checkout declares, answered 0 where a gate starting now would not be declined and DEADLINE where it still would. It starts no gate, judges no tree and writes no verdict, so nothing it does can be read back as a result about this tree; what it watches is the verdict file of the gate ahead, since that is the last thing that gate writes, and the tick behind it is what answers a gate killed before it wrote one. `place` is the seam a case drives a ceiling through, this repository's own number being one a suite may not be made to answer to. */
+export const waitForSlot = async (root, { minutes = DEFAULT_MINUTES, say = console.log, warn = console.error,
+  tick = TICK_MS, place = placeFor } = {}) => {
+  const began = Date.now();
+  const until = began + minutes * 60_000;
+  mkdirSync(recordDir(root), { recursive: true });
+  let ours = runnersOf(root);
+  for (;;) {
+    let where = place(ours);
+    /* The worktree list again, and only where the answer is about to be yes: a tree cut while this wait was armed
+       holds a place a set read once cannot count, and the caller would be sent to a gate that declines. A round that
+       is still declined keeps the cached set, a git spawn every three seconds being the cost that caching removes. */
+    if (!where.declined) {
+      ours = runnersOf(root);
+      where = place(ours);
+    }
+    if (!where.declined) {
+      say(slotFreeSaid(root, where.ahead, Date.now() - began));
+      return 0;
+    }
+    if (Date.now() >= until) {
+      warn(slotHeldSaid(root, where.ahead, minutes));
+      return DEADLINE;
+    }
+    const ms = Math.min(tick, Math.max(until - Date.now(), 1));
+    const wake = watching(verdictPath(where.ahead[0].tree), ms);
+    await Promise.race([wake.settled, new Promise((woke) => setTimeout(woke, ms))]);
+    wake.cancel();
+  }
+};
 
 export const gatesHere = (root, ours = runnersOf(root)) =>
   (gatesOn(ours) ?? []).filter((one) => one.tree === root && one.pid !== process.pid);

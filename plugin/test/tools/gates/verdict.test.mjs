@@ -4,13 +4,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { appendFileSync, existsSync, rmSync } from "node:fs";
+import { join } from "node:path";
 
-import { DEADLINE, gateDecided, gateStarted, gatesHere, GONE, NO_GATE, verdictPath, verdictRuns, waitForVerdict }
-  from "../../../../tools/gate-verdict.mjs";
-import { DECLINED } from "../../../../tools/gates/machine.mjs";
+import { DEADLINE, gateDecided, gateStarted, gatesHere, GONE, NO_GATE, verdictPath, verdictRuns, waitForSlot,
+  waitForVerdict } from "../../../../tools/gate-verdict.mjs";
+import { DECLINED, placeFor } from "../../../../tools/gates/machine.mjs";
 import { recordDir } from "../../../../tools/gates/timing.mjs";
 import { STEPS } from "../../../../tools/gates/steps.mjs";
-import { HANGS_IN, heldGate, reachedTheStep, run, scratch, stopGate } from "./scratch.mjs";
+import { git, HANGS_IN, heldGate, reachedTheStep, run, scratch, stopGate } from "./scratch.mjs";
 
 // Minutes, and a tick fast enough that a case waits on the state under test rather than on a constant.
 const BRIEFLY = 0.02;
@@ -27,6 +28,9 @@ const waited = (work, said, minutes = BRIEFLY) => waitForVerdict(work, { minutes
 const recordOf = (work) => verdictRuns(work).at(-1);
 
 const holding = (name, runs = null) => scratch(name, null, null, { hanging: HANGS_IN, runs });
+
+// The ceiling the case declares, never the one this repository does: a suite that read `.forge.json` would answer to the box it runs on.
+const ofOne = (ours) => placeFor(ours, { declared: { value: 1, from: "the case" } });
 
 test("a wait for a tree no gate has ever run in says so at once and names what to start", async () => {
   const { at, work } = scratch("verdict-none");
@@ -372,6 +376,108 @@ test("a wait asked for beside --full is refused, and so is one given minutes tha
     const words = run(work, ["--wait", "soon"]);
     assert.equal(words.status, 1, words.stdout + words.stderr);
     assert.match(words.stderr, /--wait takes the minutes to wait for a verdict, not `soon`/u, words.stderr);
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* The refusal this whole wait exists for, end to end: three runs of one wave each invented a different loop around it
+   because the decline named no command and the wait that existed had the wrong subject (ISS-1345). */
+test("a tree declined for the place is told what waits for it, and is handed the place when the gate ahead ends", async () => {
+  const { at, work } = holding("slot-handed", 1);
+  const gate = heldGate(work, ["--full"]);
+  try {
+    await reachedTheStep(gate, "the gate holding the machine's only place never reached its hanging step");
+    const declined = run(work, ["--full"]);
+    assert.equal(declined.status, DECLINED, declined.stdout + declined.stderr);
+    assert.match(declined.stderr, /Wait for a place, then gate again: node tools\/gates\.mjs --wait slot/u,
+      `the decline named no command:\n${declined.stderr}`);
+    const said = heard();
+    const waiting = waitForSlot(work, { minutes: 30, tick: TICK, place: ofOne, ...said });
+    await stopGate(gate);
+    assert.equal(await waiting, 0, said.lines.join("\n"));
+    const whole = said.lines.join("\n");
+    assert.match(whole, /gate wait: place/u, whole);
+    assert.ok(whole.includes(work), `it did not name the tree:\n${whole}`);
+    assert.match(whole, /npm run check/u, "the wait that came back with a place named nothing to run");
+  } finally {
+    await stopGate(gate);
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* The other half of the same refusal, and the one a caller cannot afford to read as a red tree: the deadline says the
+   place is still held and by which pid, and exits past every code a run of this gate uses. */
+test("a wait for a place that runs out of time names the pid still holding it and judges no tree", async () => {
+  const { at, work } = holding("slot-deadline", 1);
+  const gate = heldGate(work, ["--full"]);
+  try {
+    await reachedTheStep(gate, "the gate holding the machine's only place never reached its hanging step");
+    const said = heard();
+    assert.equal(await waitForSlot(work, { minutes: BRIEFLY, tick: TICK, place: ofOne, ...said }), DEADLINE,
+      said.lines.join("\n"));
+    const whole = said.lines.join("\n");
+    assert.match(whole, /gate wait: deadline/u, whole);
+    assert.match(whole, new RegExp(`pid ${gate.pid}  gating ${work}`, "u"), `the holder of the place is not named:\n${whole}`);
+    assert.match(whole, /never got a place/u, `it read as a tree that was judged:\n${whole}`);
+    assert.ok(!whole.includes("gate verdict:"), `a wait that judged nothing spoke as a verdict:\n${whole}`);
+    assert.equal(verdictRuns(work).filter((one) => one.verdict).length, 0, "the wait wrote a verdict of its own");
+  } finally {
+    await stopGate(gate);
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+test("a wait for a place nothing holds answers at once and writes no verdict about the tree", async () => {
+  const { at, work } = scratch("slot-free");
+  try {
+    const said = heard();
+    const began = Date.now();
+    assert.equal(await waitForSlot(work, { minutes: 30, tick: TICK, place: ofOne, ...said }), 0, said.lines.join("\n"));
+    assert.ok(Date.now() - began < 1000, "a place nothing held was waited for");
+    assert.match(said.lines.join("\n"), /gate wait: place/u, said.lines.join("\n"));
+    assert.equal(verdictRuns(work), null, "a wait that judged no tree wrote one a later wait would read");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+test("the place subject is refused beside --full and beside --anyway, and the verdict subject still takes its minutes", () => {
+  const { at, work } = scratch("slot-refused");
+  try {
+    for (const other of ["--full", "--anyway"]) {
+      const both = run(work, ["--wait", "slot", other]);
+      assert.equal(both.status, 1, both.stdout + both.stderr);
+      assert.match(both.stderr, /--wait slot runs no gate — it waits for a place/u, both.stderr);
+      assert.ok(both.stderr.includes(`npm run check -- ${other}`), `the refusal names no way to run the gate:\n${both.stderr}`);
+    }
+    const minutes = run(work, ["--wait", "30"]);
+    assert.equal(minutes.status, NO_GATE, `\`--wait 30\` was not read as a verdict wait of thirty minutes:\n${minutes.stdout}${minutes.stderr}`);
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* The checkout's worktrees, read once, go stale while a wait is armed: a tree cut mid-wait holds a place the wait
+   cannot count, and one reporting free off the stale set sends its caller straight back to a decline. */
+test("a worktree cut while the wait is armed is counted before a place is reported free", async () => {
+  const { at, work } = scratch("slot-later-worktree");
+  const later = join(at, "later");
+  try {
+    let rounds = 0;
+    const declared = { value: 1, from: "the case" };
+    const place = (ours) => {
+      rounds += 1;
+      if (rounds === 1) return { declared, ahead: [{ pid: 4242, tree: work }], declined: true };
+      const ahead = [...ours].filter((one) => one.startsWith(later)).map(() => ({ pid: 4343, tree: later }));
+      return { declared, ahead, declined: ahead.length > 0 };
+    };
+    const said = heard();
+    const waiting = waitForSlot(work, { minutes: BRIEFLY, tick: 300, place, ...said });
+    git(work, "worktree", "add", later, "master");
+    assert.equal(await waiting, DEADLINE, said.lines.join("\n"));
+    assert.ok(said.lines.join("\n").includes(later),
+      `the tree cut while the wait was armed was not counted:\n${said.lines.join("\n")}`);
   } finally {
     rmSync(at, { recursive: true, force: true });
   }

@@ -53,9 +53,12 @@ const spentIn = (said) => [...said.matchAll(/^=== (\S+) ===$/gmu)].map((one) => 
 const orderBlock = (said) => said.split("=== order:").at(1).split("\n\n")[0].split("\n").slice(1);
 const orderedIn = (said) => orderBlock(said).map((line) => line.trim().split(/\s+/u)[0]);
 
-test("-h names the three flags and what the record cannot see", () => {
+test("-h names every flag it reads and what the record cannot see", () => {
   const said = run(ROOT.replace(/\/$/u, ""), ["-h"]).stdout;
-  for (const one of ["--full", "--anyway", "node_modules", "merge-base", "tree judged",
+  for (const one of ["Usage: node tools/gates.mjs [--full] [--anyway] [--wait [slot] [M]]",
+    "--wait slot [M]", "wait for a place at the ceiling this project declares",
+    "reads the process table instead", "It reserves nothing", "still declines at 75",
+    "--full", "--anyway", "node_modules", "merge-base", "tree judged",
     "seconds that step took", "one line per green run", "a temporary directory of this run's own",
     "a path no step claims", "leaves the record", "records no pass",
     "decide the order the steps are spent in: cheapest first", "no seconds for",

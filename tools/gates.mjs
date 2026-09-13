@@ -10,12 +10,12 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { crossTree, gitFiles, uncommittedInShared } from "./checkout.mjs";
-import { DEADLINE, DEFAULT_MINUTES, gateDecided, gateStarted, GONE, NO_GATE, said, TERMINAL, waitForVerdict }
+import { DEADLINE, DEFAULT_MINUTES, gateDecided, gateStarted, GONE, NO_GATE, said, TERMINAL, waitForSlot, waitForVerdict }
   from "./gate-verdict.mjs";
 import { attribute, attributionLines, CASES_ENV } from "./gates/isolation.mjs";
 import { cheapestFirst, ENTRIES_PER_STEP, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from "./gates/ledger.mjs";
 import { PUTS_IT_BACK, said as saidMissing, unresolvedIn } from "../plugin/src/resolve/installed.mjs";
-import { DECLINED, placeFor, RAISE, runnersOf, WAIT } from "./gates/machine.mjs";
+import { DECLINED, placeFor, RAISE, runnersOf, SLOT, WAIT } from "./gates/machine.mjs";
 import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
 import { gateSteps, TEST_FILE } from "./gates/steps.mjs";
@@ -26,7 +26,7 @@ const SELF = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(SELF), "..");
 const ANYWAY = "--anyway";
 
-const USAGE = `Usage: node tools/gates.mjs [--full] [${ANYWAY}]
+const USAGE = `Usage: node tools/gates.mjs [--full] [${ANYWAY}] [${WAIT} [${SLOT}] [M]]
 
 Every check this repository gates a change with, stopping at the first failure. It is what
 \`npm run check\` runs; each step is still the npm script of its own name, spent by hand.
@@ -160,6 +160,8 @@ refused — its uncommitted work is the point of it.
              this way cannot be mistaken for a clean one.
   ${WAIT} [M]  wait for the verdict of a gate of this tree instead of running one, up to M
              minutes (${DEFAULT_MINUTES} where none is given), and exit on that verdict
+  ${WAIT} ${SLOT} [M]  wait for a place at the ceiling this project declares instead of declining for
+             want of one, and exit 0 once a gate started then would not be declined
 
 Every exit past the tree it judges prints one line beginning \`${TERMINAL}\` and writes the same line
 to a record beside the ledger — the verdict, the steps spent of the table, the head and the pid — so
@@ -175,6 +177,17 @@ status the gate itself exited with. The line names the pid that wrote it and how
 wait attaches to a run it did not start. A wait runs no gate and judges no tree, so it is refused
 beside --full and ${ANYWAY}, and the uncommitted paths of a shared checkout do not refuse it.
 
+${WAIT} ${SLOT} is that same wait pointed at the other thing a run here waits on. A run declined for
+the ceiling has no gate of its own — the decline happens before the table, the record and the first
+step — so there is no verdict of this tree coming and the subject above has nothing to read. This one
+reads the process table instead: it exits 0 once a gate started then would not be declined, naming
+the command that gates, and ${DEADLINE} at its own deadline, naming the pid still holding the place.
+That is a code no run of this gate exits with, so a caller can tell a tree that never ran from one
+that ran and was red, which is the confusion a run improvises around (ISS-1345). It reserves nothing:
+the ceiling is advisory, so the place it reports free is the place any gate may take. Waiting is
+asked for and never assumed — a bare invocation still declines at ${DECLINED}, because a gate that
+blocked by default would hide the contention this project sizes with the number above.
+
 The tree judged is the one this copy of the runner sits in, never the one you stand in, so a run of
 another checkout's copy is refused rather than answered about that checkout. Both verdict lines
 name the tree, because a wrong-tree gate does not fail — it certifies.`;
@@ -189,11 +202,19 @@ if (argv.includes("-h") || argv.includes("--help")) {
 const full = argv.includes("--full");
 const allowDirty = argv.includes(ANYWAY);
 const waiting = argv.includes(WAIT);
-/* The value after the flag and only where it is one: `--wait --full` names no minutes, and reading
-   the next token blindly would swallow the flag whose refusal is below. */
-const after = argv[argv.indexOf(WAIT) + 1];
-const patience = waiting && after !== undefined && !after.startsWith("-") ? after : null;
-const unknown = argv.filter((one) => one !== "--full" && one !== ANYWAY && one !== WAIT && one !== patience);
+const mark = argv.indexOf(WAIT);
+/* The subject and then the minutes, each read only where it is there and each spent by its position
+   rather than by its text: `--wait --full` names neither, reading the next token blindly would
+   swallow the flag whose refusal is below, and a token matched by value would let a second copy of
+   it anywhere on the line pass as this one. */
+const subject = waiting && argv[mark + 1] === SLOT ? SLOT : null;
+const minutesAt = mark + (subject === null ? 1 : 2);
+const after = waiting ? argv[minutesAt] : undefined;
+const patience = after !== undefined && !after.startsWith("-") ? after : null;
+const taken = new Set([mark, subject === null ? -1 : mark + 1, patience === null ? -1 : minutesAt]);
+const unknown = argv.filter((one, at) => !taken.has(at) && one !== "--full" && one !== ANYWAY);
+const waitCall = `${WAIT}${subject === null ? "" : ` ${subject}`}`;
+const waitedOn = subject === SLOT ? "place" : "verdict";
 
 if (unknown.length > 0) {
   console.error(`No such option: ${unknown.join(" ")}\n\n${USAGE}`);
@@ -202,9 +223,10 @@ if (unknown.length > 0) {
 
 if (waiting && (full || allowDirty)) {
   const other = full ? "--full" : ANYWAY;
-  console.error(`${WAIT} runs no gate — it reads the verdict of one this tree already has — so ${other} `
-    + `has nothing here to act on.`);
-  console.error(`Wait for the verdict: node tools/gates.mjs ${WAIT}${patience ? ` ${patience}` : ""}`);
+  console.error(`${waitCall} runs no gate — it ${subject === SLOT
+    ? "waits for a place at the ceiling this checkout declares"
+    : "reads the verdict of one this tree already has"} — so ${other} has nothing here to act on.`);
+  console.error(`Wait for the ${waitedOn}: node tools/gates.mjs ${waitCall}${patience ? ` ${patience}` : ""}`);
   console.error(`Or run the gate:      npm run check -- ${other}`);
   process.exit(1);
 }
@@ -212,8 +234,8 @@ if (waiting && (full || allowDirty)) {
 const minutes = patience === null ? DEFAULT_MINUTES : Number(patience);
 
 if (waiting && !(minutes > 0)) {
-  console.error(`${WAIT} takes the minutes to wait for a verdict, not \`${patience}\`.`);
-  console.error(`Wait ${DEFAULT_MINUTES} minutes: node tools/gates.mjs ${WAIT}`);
+  console.error(`${waitCall} takes the minutes to wait for a ${waitedOn}, not \`${patience}\`.`);
+  console.error(`Wait ${DEFAULT_MINUTES} minutes: node tools/gates.mjs ${waitCall}`);
   process.exit(1);
 }
 
@@ -229,7 +251,11 @@ if (elsewhere) {
 /* Before the checkout is judged for its uncommitted paths, which is a rule about running a gate:
    this runs none, and a wait refused for a tree two sessions are writing would leave the verdict
    they are waiting for unreadable. */
-if (waiting) process.exit(await waitForVerdict(ROOT, { minutes }));
+if (waiting) {
+  process.exit(subject === SLOT
+    ? await waitForSlot(ROOT, { minutes })
+    : await waitForVerdict(ROOT, { minutes }));
+}
 
 const dirty = uncommittedInShared(ROOT);
 const listed = (say) => {
@@ -277,9 +303,9 @@ if (place.declined) {
   console.error(`${place.ahead.length} gate(s) of this checkout are already running, and this project `
     + `carries ${place.declared.value} run(s) at once  ← ${place.declared.from}`);
   for (const one of place.ahead) console.error(`  pid ${one.pid}  gating ${one.tree}`);
+  console.error(`Wait for a place, then gate again: node tools/gates.mjs ${WAIT} ${SLOT}`);
   console.error(`No step ran and nothing was recorded, so nothing here judges ${ROOT}.`);
-  console.error(`Wait for one of those to finish, or raise ${RAISE} above `
-    + `${place.declared.value}.`);
+  console.error(`Or raise ${RAISE} above ${place.declared.value}.`);
   finish(DECLINED, "declined");
 }
 
