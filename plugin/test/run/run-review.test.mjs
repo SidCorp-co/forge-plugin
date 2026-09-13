@@ -98,10 +98,7 @@ test("past the threshold the step files the reading's issue itself, and prints t
     "listing has no `simplify`", "git status --porcelain"]) {
     assert.ok(filing.description.includes(said), `the body carries no ${said}:\n${filing.description}`);
   }
-  /* The one string of this body that outlives the tree it was written in: it is read from another
-     run's worktree, days later, and `finish` has removed the directory the filing stood in. A
-     command carrying either the filing tree's name or the filing head sends that reader somewhere
-     it cannot go or somewhere that is no longer the end of its range (ISS-1143). */
+  /* The one command of this body, read from another run's worktree days later, once `finish` has removed the directory the filing stood in: a name or a head resolved here sends that reader nowhere it can go (ISS-1143). */
   const done = filing.description.split("\n").filter((one) => one.includes("review --done"));
   assert.equal(done.length, 1, `one --done line, not ${done.length}:\n${filing.description}`);
   assert.match(done[0], /`node tools\/run\.mjs review --done /u,
