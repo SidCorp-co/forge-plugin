@@ -123,10 +123,11 @@ export const reachedTheStep = (child, why) => new Promise((done, fail) => {
   child.once("exit", (code) => fail(new Error(`${why}: it exited ${code} instead\n${said}`)));
 });
 
-const command = (label, { failing, leaking, hanging }) => {
+const command = (label, { failing, leaking, hanging, needing }) => {
   if (label === failing) return "node -e \"process.exit(1)\"";
   if (label === leaking) return LEAKS;
   if (label === hanging) return HANGS;
+  if (label === needing?.step) return needing.command;
   return "node -e \"\"";
 };
 
@@ -137,7 +138,8 @@ const scripts = (marks) =>
 /* Committed on master, then worked on a branch, so the merge-base is real and a change to it diffs.
    `also` are roots beyond the runner's, `slug` the project a filing from inside would be aimed at,
    `hanging` a step that prints `HOLDING` and then never returns, so a gate can be held open. */
-export const scratch = (name, failing, leaking, { also = [], slug = null, hanging = null, runs = null } = {}) => {
+export const scratch = (name, failing, leaking,
+  { also = [], slug = null, hanging = null, runs = null, declares = null, needing = null } = {}) => {
   const at = tempRoom(`${name}-`);
   const work = join(at, "checkout");
   for (const one of [...COPIED, ...reachedFrom(also)]) {
@@ -153,8 +155,8 @@ export const scratch = (name, failing, leaking, { also = [], slug = null, hangin
      after the commit would leave the scratch dirty and refuse its gate for another reason. */
   if (slug || runs) write(work, ".forge.json", JSON.stringify({ ...(slug && { slug }), ...(runs && { runs }) }));
   write(work, "package.json",
-    JSON.stringify({ name: "scratch", version: "1.0.0",
-      scripts: scripts({ failing, leaking, hanging }) }, null, 2));
+    JSON.stringify({ name: "scratch", version: "1.0.0", ...(declares && { devDependencies: declares }),
+      scripts: scripts({ failing, leaking, hanging, needing }) }, null, 2));
   git(work, "init", "-b", "master");
   for (const [key, value] of [["user.email", "t@example.test"], ["user.name", "Test"]]) git(work, "config", key, value);
   git(work, "add", "-A");

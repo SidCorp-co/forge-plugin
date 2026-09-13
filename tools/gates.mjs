@@ -14,6 +14,7 @@ import { DEADLINE, DEFAULT_MINUTES, gateDecided, gateStarted, GONE, NO_GATE, sai
   from "./gate-verdict.mjs";
 import { attribute, attributionLines, CASES_ENV } from "./gates/isolation.mjs";
 import { cheapestFirst, ENTRIES_PER_STEP, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from "./gates/ledger.mjs";
+import { PUTS_IT_BACK, said as saidMissing, unresolvedIn } from "../plugin/src/resolve/installed.mjs";
 import { DECLINED, placeFor, RAISE, runnersOf, WAIT } from "./gates/machine.mjs";
 import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
@@ -78,6 +79,12 @@ Past that, a step whose inputs are byte for byte what one of its recorded passes
 and says which digest matched. Only passes are recorded, so a red step is red again next time. The
 record lives under the common git directory, so a worktree's pass counts for the checkout's re-run
 of the same tree, and carries the seconds that step took when it passed.
+
+No digest is trusted at all while a package this project declares does not resolve under
+node_modules. A dangling install moves no tracked file and no manifest, so every entry of the record
+still matches and the step whose tooling is gone is skipped rather than run — the one break that
+stops a gate is the one its record is blind to. The run names the package and what puts it back,
+spends every step it planned, and records no pass while it stands.
 
 The record is keyed by the step and the content together, one entry per pair, so a second worktree
 gating other content adds an entry beside this tree's instead of replacing it: that is what makes
@@ -326,7 +333,14 @@ let planned = steps;
 let ledger;
 
 if (!full) {
-  const plan = scoped();
+  let plan = scoped();
+  /* Merged into whichever widening `scoped` reached, its own included: a broken install is the one
+     input the digests cannot hold, so the record answers for no step while it stands. */
+  const missing = orRefuse("cannot read the packages this project declares", () => unresolvedIn(ROOT))?.missing ?? [];
+  if (missing.length > 0) {
+    plan = { ...plan, ...unreadable(`${saidMissing(missing)} does not resolve under node_modules, `
+      + `so no digest here covers the step that needs it`, `Run \`${PUTS_IT_BACK}\`.`) };
+  }
   if (plan.full) console.log(`\n=== scope: the full gate — ${plan.reason} ===`);
   else planned = plan.steps.filter((step) => step.run);
   if (plan.unread) {

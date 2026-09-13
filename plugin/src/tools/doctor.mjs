@@ -34,6 +34,7 @@ import {
   reviewClaudeMd,
 } from "../checks/claude-md.mjs";
 import { harnessLines } from "./services/doctor-harness.mjs";
+import { installRows } from "./services/doctor-install.mjs";
 import { masked } from "./services/masked.mjs";
 import { copyToRun, FROZEN, pluginCopy } from "./plugin-copy.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
@@ -602,6 +603,7 @@ export const doctor = async (argv) => {
   /* Reads and writes differ: `new` translates before it posts, and a read never asks. */
   checkVi(language.value === "vi");
   checkHarness(full);
+  report(installRows(projectRoot()));
   checkClaudeMdLocally();
 
   if (!url.value || !token.value) {

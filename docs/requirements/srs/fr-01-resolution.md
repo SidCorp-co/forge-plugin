@@ -71,6 +71,9 @@ can be reached. It is what a refusal points at, so it answers before the questio
 - **AC-01-3-2** · Rev: 1 · Proof: plugin/test/hooks/hook-switch.test.mjs "doctor reports a switch wired to nothing"
   IF a switch names a gate that does not exist THEN the report SHALL say so, so a gate somebody
   believes is off cannot be silently on.
+- **AC-01-3-3** · Rev: 1 · Proof: plugin/test/tools/services/doctor-install.test.mjs "the report prints the row and leaves the install exactly as it found it"
+  IF a package the project's own manifest declares does not resolve THEN the report SHALL name it
+  with the command that installs it, and SHALL install nothing of its own.
 
 ### UC-01-4 — Withhold a verb
 
