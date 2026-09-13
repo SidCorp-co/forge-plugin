@@ -8,9 +8,10 @@ import { checkoutFrom, derivedFrom, profileOf, readingAside, runsUnder, stamp } 
 import { UNRECORDED, cacheRoot, copyAt, installedCopies, spansInstall } from "./versions.mjs";
 import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows } from "./windows.mjs";
 import {
-  RELEASES, RUNS, againstIn, heldAtMark, markLines, marksOf, reachOf, reachSaid, resolveAgainst,
-  resolveRelease, releaseSaid, sinceReleaseIn, writeMark, wroteSaid,
-} from "./marks.mjs";
+  RELEASES, RUNS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, resolveRelease,
+  releaseSaid, sinceReleaseIn, writeMark, wroteSaid,
+} from "./marks/marks.mjs";
+import { reachOf, reachSaid } from "./marks/reach.mjs";
 import { BUDGET, HORIZON, UNAVAILABLE, budgetOf, outcomesOf, parkedOver, readThreads, ruledOver } from "./outcomes.mjs";
 import { logEntries } from "../codex/codex-log.mjs";
 import { fail, projectAt, projectTarget, useProject } from "../resolve/settings.mjs";
@@ -184,19 +185,12 @@ export const readBack = (record) => {
   };
 };
 
-/** Whether the reading is a comparison, and each way it falls short where it is not. Judged off the
- *  windows that were selected and not off the corpus, so an anchor supplying a full before window is
- *  comparable over a corpus that could never hold two (consult 51ec08 F1). Held on the reading rather
- *  than left to a reader because the reading is what a mark keeps, and a corpus swept since cannot be
- *  asked what it held that day — which is how twenty releases were marked against a truncated corpus
- *  with the counts on the record the whole time and nothing reading them (ISS-1328). */
-export const comparabilityOf = ({ size, total, now, before, reach }) => {
+/** Whether the reading is a comparison, and each way it falls short — docs/cli/stats-the-eval.md. */
+export const comparabilityOf = ({ size, now, before, reach }) => {
   const short = [];
   if (now.runs < size) short.push(`the recent window holds ${now.runs} of ${size}`);
   if (!before) short.push("there is no window before it");
   else if (before.runs < size) short.push(`the window before it holds ${before.runs} of ${size}`);
-  /* The reach rides on a comparable reading too: one field either way, and a mark taken while the
-     store was deep is what a later reading is judged short against. */
   return { comparable: !short.length, short, reach };
 };
 
@@ -213,7 +207,7 @@ export const evalRuns = (runs, copies, size = WINDOW, against = null, read = nul
     against,
     now: nowHeld,
     before: beforeHeld,
-    comparability: comparabilityOf({ size, total: runs.length, now: nowHeld, before: beforeHeld, reach }),
+    comparability: comparabilityOf({ size, now: nowHeld, before: beforeHeld, reach }),
     moved: beforeHeld
       ? { rungs: movedIn(nowHeld.profile.rungs, beforeHeld.profile.rungs, "rung"),
         phases: movedIn(nowHeld.profile.phases, beforeHeld.profile.phases, "name") }
@@ -343,9 +337,7 @@ const confoundedLines = (held, release, copies) => {
  *  the figures came from. */
 const releaseIn = (anchor) => (anchor?.kind === RELEASES ? anchor : null);
 
-/* The verdict the window lines never carried: they reported what was selected and left the reader to
-   decide whether it was evidence, and on a corpus swept an hour ago that reads exactly like a young
-   project's. Silent on a comparable reading, so a full pair of windows prints as it always did. */
+/* The verdict the window lines never carried — docs/cli/stats-the-eval.md. */
 const judgedLines = (held) => {
   const said = held.comparability;
   if (said.comparable) return [];

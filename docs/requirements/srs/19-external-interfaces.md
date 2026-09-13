@@ -142,13 +142,13 @@ it. Reading is all this product does there.
   last fifty runs and the fifty before them by each run's own last record, adjacent and
   non-overlapping, and SHALL say how many the earlier window is short of rather than compare against
   a window it does not hold.
-- **AC-19-8-5** · Rev: 2 · Proof: plugin/test/stats/eval.test.mjs "the ship's mark is one line at a multiple of the window, read off the corpus, and silent otherwise"
+- **AC-19-8-5** · Rev: 2 · Proof: plugin/test/stats/marks/marks.test.mjs "the ship's mark is one line at a multiple of the window, read off the corpus, and silent otherwise"
   WHEN a release lands and the project's run count is a positive multiple of the window THEN the
   release step SHALL end on one line naming the comparison to run, SHALL read the crossing off the
   corpus alone, and SHALL write that comparison's figures as one record for the mark once and never
   again.
 
-- **AC-19-8-6** · Rev: 2 · Proof: plugin/test/stats/runs.test.mjs "a consult before the plan write is the plan's, and the review opens on the one after the build"
+- **AC-19-8-6** · Rev: 2 · Proof: plugin/test/stats/phases.test.mjs "a consult before the plan write is the plan's, and the review opens on the one after the build"
   WHEN a run's calls are cut into phases THEN the CLI SHALL open the review phase only on a
   whole-set consult taken after the build has begun, and SHALL count in the phase the run was
   already in both a consult taken before that and a consult sent only what a commit stages.
@@ -161,7 +161,7 @@ it. Reading is all this product does there.
   one of this plugin's own refusal shapes, SHALL key the row on the line that names the rule rather
   than on the body's first line, and SHALL count every other non-zero exit on a line of its own
   broken down by the call's class.
-- **AC-19-8-9** · Rev: 1 · Proof: plugin/test/stats/eval.test.mjs "a stored reading is the before window, and the screen says where the windows overlap"
+- **AC-19-8-9** · Rev: 1 · Proof: plugin/test/stats/marks/marks.test.mjs "a stored reading is the before window, and the screen says where the windows overlap"
   WHERE a stored reading is named as the before window the CLI SHALL compare the current window with
   the recent window that reading holds, through the reader the sliding comparison uses, and SHALL say
   that the two overlap where they do.
@@ -186,7 +186,7 @@ it. Reading is all this product does there.
   WHILE the readings behind those counts are being taken the CLI SHALL spend no more than one stated
   number of requests for the whole comparison, SHALL count against it every attempt and every lookup
   a request makes, and SHALL go on printing every figure of cost where that number is reached.
-- **AC-19-8-21** · Rev: 1 · Proof: plugin/test/stats/eval.test.mjs "a release mark carries its version and head, resolves apart from a count mark at one corpus count, and names what the comparison since it is confounded by"
+- **AC-19-8-21** · Rev: 1 · Proof: plugin/test/stats/marks/marks.test.mjs "a release mark carries its version and head, resolves apart from a count mark at one corpus count, and names what the comparison since it is confounded by"
   WHEN a release lands THEN the release step SHALL hold a reading for that release carrying the
   version and the head it landed at, SHALL hold it under that version so that two releases landing at
   one count of runs are two readings, SHALL keep it apart from a reading held at a count of runs so

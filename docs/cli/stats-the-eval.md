@@ -46,6 +46,16 @@ it never says why, and where none is held it says the record is silent rather th
 never deeper. `forge stats runs` reports the same reach over the whole corpus, before a comparison is
 taken off it, and reports none under `--since`, where the floor is the flag's own boundary (ISS-1328).
 
+Two things about how the record is read. **Both kinds of mark are searched**, count and release
+alike: a count mark is written only at a multiple of the window, so between two crossings the release
+marks are the only readings there are, and on this project they outnumber the counts about twenty to
+one. **And a mark is read for the corpus floor it carries, not the floor of its own window** — a
+window on a deep corpus begins long after the corpus does, so a mark read by its window alone hides
+most of the depth it was taken over. A mark written before the reading carried a corpus floor is read
+by its window floor instead, which is later than the corpus reached and so understates how much depth
+is gone. Understating it is the safe direction: the reading claims only depth somebody demonstrably
+read, and never invents a loss.
+
 `--json` prints the comparison as one object — `size`, `total`, `now`, `before`, `comparability`,
 `moved`, `shifts` —
 each window its `runs`, `profile`, `groups` by copy and `outcomes`. Nothing in it can be derived from

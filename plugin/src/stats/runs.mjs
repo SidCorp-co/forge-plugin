@@ -17,7 +17,7 @@ import {
   rungRun,
   transcriptsUnder,
 } from "./transcripts.mjs";
-import { reachOf, reachSaid } from "./marks.mjs";
+import { reachOf, reachSaid } from "./marks/reach.mjs";
 import { claimedIn, parkWritersIn, rulingsIn } from "./joined.mjs";
 import { median } from "./median.mjs";
 import { PHASES } from "../guides/phases.mjs";
@@ -149,9 +149,7 @@ const foldPhases = (calls, startedAt, endedAt) => {
     held.byClass.set(call.class, { calls: was.calls + 1, wait: was.wait + call.wait });
     last = Math.max(last, call.endedAt);
   }
-  /* The run's own end and not the last call's: the closing report is generation after the final tool
-     result, counted in the wall and in no phase, so the phases summed short of the run by exactly it.
-     Off the cursor the loop carries, so a turn's pair whose later call returned first adds its tail once. */
+  /* The closing report is generation the wall counts and no phase did, off the loop's own cursor (ISS-308). */
   if (calls.length) phases[calls.at(-1).phase].seconds += Math.max(0, endedAt - last) / 1000;
   return phases;
 };
@@ -579,9 +577,7 @@ export const printRuns = (rest) => {
   const { runs, skipped, outsideWindow, unreadable } = runsUnder(root, from);
   const aside = readingAside({ skipped, outsideWindow, unreadable });
   const held = profileOf(runs);
-  /* A reading under `--since` reaches back exactly as far as the flag asked, so its floor is the flag's. */
   const reach = since === undefined ? reachOf(root, held.from) : null;
-  /* Before the empty-window prose: the flag is for a diff between two weeks and stopped being JSON on exactly the quiet week that diff is about (ISS-308). */
   if (json) {
     return console.log(JSON.stringify(
       { root, project: directory, skipped, outsideWindow, unreadable, ...(reach ? { reach } : {}), ...held },

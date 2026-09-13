@@ -23,7 +23,7 @@ const {
   numbered,
 } = await import("../../src/codex/log/replies.mjs");
 const { crossingSaid } = await import("../../src/codex/codex-stats.mjs");
-const { marksOf, marksPath } = await import("../../src/stats/marks.mjs");
+const { marksOf, marksPath } = await import("../../src/stats/marks/marks.mjs");
 
 /* A verdict against an error entry would read as "3 accepted" on a gateway timeout. */
 test("only an answered consult can carry a verdict", () => {

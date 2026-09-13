@@ -2,9 +2,9 @@
    consult log keeps its entries. A runs reading carries the root whose corpus was counted; a consult reading is the device's and carries none. docs/cli/stats-the-mark.md. */
 import { join } from "node:path";
 
-import { appendJsonl, jsonlAt } from "../hooks/hook-log-file.mjs";
-import { configDir } from "../resolve/config.mjs";
-import { fail } from "../resolve/settings.mjs";
+import { appendJsonl, jsonlAt } from "../../hooks/hook-log-file.mjs";
+import { configDir } from "../../resolve/config.mjs";
+import { fail } from "../../resolve/settings.mjs";
 
 export const RUNS = "runs";
 export const CONSULTS = "consults";
@@ -100,53 +100,8 @@ export const resolveAgainst = (kind, asked, { root = null, verb, list, writes })
   return null;
 };
 
-/** The earliest reach any reading held for this project records, where that reaches further back
- *  than the corpus does now, and null where none does. A store that lost its history holds as few
- *  runs as one that never had any, and the record is the only thing on this machine that separates
- *  them. It says depth was once read and is gone; it never says why, and its silence says nothing at
- *  all — a mark is a snapshot of the moment a ship took it, not a history of the store.
- *  Both kinds are asked, a release mark being the one written at every release rather than at a
- *  multiple of the window, so the deepest reading is usually one of those. */
-/* The corpus floor the reading carries, or the recent window's floor where it carries none. A window
-   on a deep corpus begins long after the corpus does, so a mark read by its window alone hides most
-   of the depth it was taken over; a mark written before the reading carried a floor gives what it
-   has, which understates the loss rather than inventing one (consult c5d393 F1). */
-const reachedBy = (one) => one.comparability?.reach?.from ?? one.now?.profile?.from;
-
-export const earlierReach = (root, from) => {
-  const held = [...marksOf(RUNS, root), ...marksOf(RELEASES, root)]
-    .map((one) => ({ one, at: reachedBy(one) }))
-    .filter((row) => Number.isFinite(row.at) && row.at < from);
-  if (!held.length) return null;
-  const deepest = held.reduce((deep, row) => (row.at < deep.at ? row : deep));
-  return {
-    from: deepest.at,
-    by: deepest.one.kind === RELEASES ? `release ${deepest.one.version}` : `mark ${deepest.one.mark}`,
-  };
-};
-
 const WHEN = 16;
-const stamped = (iso) => iso.slice(0, 16).replace("T", " ");
-const at = (ms) => stamped(new Date(ms).toISOString());
-
-/** `earlierReach` above, paired with the floor it was asked about, and only ever read off a reading
- *  of the whole corpus: under a window the floor is the flag's own selection boundary, and a reach
- *  taken from it would report lost depth on every windowed call. */
-export const reachOf = (root, from) =>
-  (Number.isFinite(from) ? { from, earlier: earlierReach(root, from) } : null);
-
-/** The reach said, in the words both subjects say it in. The second clause is what tells a corpus
- *  swept an hour ago from one that is young — and where nothing is held it says the record is silent,
- *  never that the corpus was never deeper, which no record here can know. */
-export const reachSaid = (reach) =>
-  `the corpus reaches back to ${at(reach.from)}; `
-  + (reach.earlier
-    ? `${reach.earlier.by}'s reading reached back to ${at(reach.earlier.from)}, `
-      + "so depth this project once read is no longer here"
-    : "no reading held for this project records an earlier reach, which is not to say the corpus was "
-      + "never deeper — a mark is a snapshot and not a history");
-
-
+export const stamped = (iso) => iso.slice(0, 16).replace("T", " ");
 /** The `--against` line both evals print, and the one sentence saying the two windows meet. The count is each eval's own unit and the span its own reading; the wording and the two spaces are neither, and a case pinning them could otherwise drift in one harness alone. */
 export const heldAtMark = (count, mark, span, overlapping) =>
   `the ${count} held at mark ${mark}  ${span}`
