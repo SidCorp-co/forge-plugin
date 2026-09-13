@@ -23,6 +23,8 @@ process.env.CLAUDE_PID = "4242";
 const ISSUE = "22222222-2222-4222-8222-222222222222";
 
 let field = null;
+/* The other field the free state reads, and the one that decides between the take and the refusal. */
+let status = "open";
 const sent = [];
 
 const answer = (body) => ({ ok: true, status: 200, headers: new Map(), text: async () => JSON.stringify(body) });
@@ -44,10 +46,10 @@ globalThis.fetch = async (address, init = {}) => {
     return answer({ id: ISSUE });
   }
   sent.push("forge_issues:get");
-  return answer({ id: ISSUE, sessionContext: field });
+  return answer({ id: ISSUE, status, sessionContext: field });
 };
 
-const { leaseOf, renew, renewedLapsed, writeRefusal } = await import("../../src/flow/lease.mjs");
+const { landingSaved, leaseOf, renew, renewedLapsed, writeRefusal } = await import("../../src/flow/lease.mjs");
 
 const ago = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString();
 const lease = (holder, at, history = []) =>
@@ -90,6 +92,7 @@ test("a lease inside its window renews with nothing said about it", async () => 
   const { lines } = await said(() => renew(ISSUE, "ISS-65"));
   assert.deepEqual(lines.filter((one) => /lease/u.test(one)), [], "a renew in the ordinary case is not news");
   assert.equal(leaseOf(field).next, "fold F1", "and the line the last write left is kept");
+  assert.equal(leaseOf(field).minutes, 30, "as is the duration that run claimed: only the free state takes a new one");
 });
 
 /* The round this removes: the refusal named `forge claim`, which the write can make itself, because
@@ -232,9 +235,111 @@ test("a lease cleared between the two reads is free, and refuses", async () => {
   }
 });
 
-test("an issue nobody claimed refuses the write, because a payload is the holder's", async () => {
+/* The round this removes, the second of the two: the refusal named `forge claim`, the caller typed it,
+   and re-sent the identical command. Nothing was learned in between, and what separates two callers
+   who both read an empty field is the tracker's compare on the write, not which of them typed first. */
+test("an issue nobody holds is taken by the payload write itself, for the duration a write with no work under it is owed", async () => {
   field = null;
-  assert.match(await refused(() => renew(ISSUE, "ISS-65")), /carries no lease/u);
+  status = "open";
+  const { answer, lines } = await said(() => renew(ISSUE, "ISS-1260"));
+  const took = leaseOf(field);
+  assert.ok(took, "the write left a lease where there was none, which is the whole of the change");
+  assert.equal(took.holder, "this-run");
+  assert.equal(took.minutes, 10, "the short lease, and not the hour a default claim takes");
+  assert.equal(took.next, "nothing was worked under this lease", "carrying the line that says no work followed");
+  assert.deepEqual(took.history.map((one) => one.how), ["write"],
+    "under a word no other claim writes, so a reader can count the takes a write made");
+  assert.equal(took.history[0].status, "open", "and the status it was taken at");
+  assert.deepEqual(answer, field, "and it answers the value the write after it is conditional on, as a renew does");
+  const notice = lines.find((one) => one.includes("carried no lease"));
+  assert.ok(notice, `nothing said the write took a lease: ${lines.join(" | ")}`);
+  assert.match(notice, /for 10 minute\(s\)/u, "naming the duration nobody asked for");
+  assert.match(notice, /forge claim ISS-1260/u, "and the claim that takes a longer one");
+});
+
+/* The notice claims the write happened, so a failed write must not leave it standing — the same
+   order the lapsed notice above is held to, for the same reason. */
+test("the take is said after its write, not before it", async () => {
+  field = null;
+  status = "open";
+  const stub = globalThis.fetch;
+  const order = [];
+  globalThis.fetch = async (url, init = {}) => {
+    if ((init.method ?? "GET") === "PATCH") order.push("write");
+    return stub(url, init);
+  };
+  const held = console.error;
+  console.error = (line) => order.push(line.includes("carried no lease") ? "notice" : "other");
+  try {
+    await renew(ISSUE, "ISS-1260");
+  } finally {
+    console.error = held;
+    globalThis.fetch = stub;
+  }
+  assert.deepEqual(order.filter((one) => one !== "other"), ["write", "notice"]);
+});
+
+/* The boundary, and the whole of it: the take reaches exactly where a bare claim would have been
+   granted. Past the dispatch statuses that claim is refused in turn, and a write that took the lease
+   there would be picking silently between the three readings the flag exists to ask a person about. */
+test("a write finding no lease past the dispatch statuses is refused in the words the claim itself would have used", async () => {
+  for (const at of ["in_progress", "developed", "awaiting_release"]) {
+    field = null;
+    status = at;
+    const refusal = await refused(() => renew(ISSUE, "ISS-1260"));
+    assert.match(refusal, new RegExp(`is at \`${at}\`, past the statuses a run is dispatched at`, "u"), at);
+    assert.match(refusal, /forge claim ISS-1260 --unheld/u, "the claim that clears it and not one refused there");
+    assert.doesNotMatch(refusal, /Take it first/u, "which is the route a bare claim was named by");
+    assert.equal(field, null, "and nothing was taken");
+  }
+});
+
+/* The boundary as one assertion rather than as two lists that could drift apart. A take reaching one
+   status too far is invisible by construction — a wrongly-taken lease reads exactly like a rightly
+   taken one until a second run collides with it — so what is asserted is the table itself. */
+test("the statuses a write takes at are exactly the statuses a bare claim is granted at", async () => {
+  const { TAKEABLE } = await import("../../src/rank/weights.mjs");
+  for (const at of TAKEABLE) {
+    field = null;
+    status = at;
+    await said(() => renew(ISSUE, "ISS-1260"));
+    assert.equal(leaseOf(field)?.holder, "this-run", `${at}: a bare claim is granted here, so the write takes`);
+  }
+  for (const at of ["draft", "in_progress", "developed", "testing", "awaiting_release", "closed", "on_hold"]) {
+    field = null;
+    status = at;
+    assert.match(await refused(() => renew(ISSUE, "ISS-1260")) ?? "", /--unheld/u,
+      `${at}: a bare claim is refused here, so the write is`);
+    assert.equal(field, null, `${at}: and the field is left as it was found`);
+  }
+});
+
+/* What taking a lease is for, and the only thing that proves the take was the right run's: the next
+   run is kept off. A take under the wrong holder passes every other assertion in this file. */
+test("the lease a write took excludes the next run, and names the run whose write took it", async () => {
+  field = null;
+  status = "open";
+  await said(() => renew(ISSUE, "ISS-1260"));
+  const held = process.env.FORGE_SESSION_ID;
+  process.env.FORGE_SESSION_ID = "run-two";
+  try {
+    const refusal = await refused(() => renew(ISSUE, "ISS-1260"));
+    assert.match(refusal, /ISS-1260 is held by another run/u);
+    assert.match(refusal, /this-run/u, "naming the run whose write took the lease");
+    assert.equal(leaseOf(field).holder, "this-run", "and nothing of run two's was written over it");
+  } finally {
+    process.env.FORGE_SESSION_ID = held;
+  }
+});
+
+/* Refused where `renew` takes: a landing state exists only past the statuses a run is dispatched at,
+   so the empty field here is the anomaly, and what it owed was the right claim to name (ISS-1252). */
+test("a landing write on a field holding no lease names the claim that clears it", async () => {
+  field = null;
+  status = "testing";
+  const refusal = await refused(() => landingSaved(ISSUE, "ISS-1260", { state: "judged", judge: "a-judge" }));
+  assert.match(refusal, /forge claim ISS-1260 --unheld/u);
+  assert.equal(field, null, "and no landing was written either");
 });
 
 /* The one conditional renewal, and the default that keeps it from being one. `forge comment` posts

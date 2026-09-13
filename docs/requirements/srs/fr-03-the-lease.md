@@ -31,11 +31,20 @@ the only thing that expires.
 
 ### UC-03-1 — Take an issue
 
-Rev: 1 · Actors: agent · Enforces: BR-05
+Rev: 2 · Actors: agent · Enforces: BR-05
 
 A claim writes the holder, the renew time and the duration, and appends itself to the claim history
 in the same write — so who held the issue when is on the record with no second write that could
 fail or lie.
+
+A payload write to an issue no run holds is a claim the caller has already made in everything but
+the typing, and the exclusion is the tracker's compare rather than the order two commands were sent
+in, so the write takes the lease instead of refusing and naming the command that takes it. The
+duration it takes is the one a write with no work under it is owed, because a call that had to take
+its own lease is the whole of what that call does to the issue, and a run with work following says
+so by claiming for itself. Where the field is empty at a status only a lease's own writes reach,
+the write refuses as the claim would: that state is a run that died or a write that erased one, and
+nothing may pick between those readings silently.
 
 - **AC-03-1-1** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "the claim history is appended by the write that made it, and a renew appends nothing"
   WHEN an issue is claimed THEN the CLI SHALL record the holder, the renew time, the duration and
@@ -45,6 +54,16 @@ fail or lie.
   as a claim it can renew.
 - **AC-03-1-3** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "a renew keeps the line the lease already held, and only a caller that says so clears it"
   WHEN a payload is written THEN the CLI SHALL renew the lease as part of that write.
+- **AC-03-1-4** · Rev: 1 · Proof: plugin/test/flow/renew.test.mjs "an issue nobody holds is taken by the payload write itself, for the duration a write with no work under it is owed"
+  IF a payload is written to an issue whose lease field holds no lease, and the issue stands at a
+  status a run is dispatched at, THEN the CLI SHALL take the lease as part of that write, SHALL take
+  it for the duration a write with no work under it is owed, SHALL record on the lease that no work
+  followed it, SHALL name that take in the claim history under a word no other claim writes, and
+  SHALL tell the caller that the write took it.
+- **AC-03-1-5** · Rev: 1 · Proof: plugin/test/flow/renew.test.mjs "a write finding no lease past the dispatch statuses is refused in the words the claim itself would have used"
+  IF a payload is written to an issue whose lease field holds no lease, and the issue stands past
+  the statuses a run is dispatched at, THEN the CLI SHALL refuse the write and SHALL name the claim
+  that takes an issue no run is on, rather than one that is itself refused there.
 
 ### UC-03-2 — Refuse a second run
 

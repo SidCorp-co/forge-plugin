@@ -6,10 +6,12 @@ judged — is the whole of what that run will ever do to the issue. A default-le
 those charges the run that comes next a reclaim for nothing, which is the cost a wave triages to
 avoid, paid back with interest.
 
-So the duration and the line saying nothing was worked are one sentence, and it is printed twice
-from one place: by `forge claim -h`, and again by the refusal a payload write meets when it holds no
-lease at all. The refusal is the surface that matters, because the run that needs this rule is the
-run that has just been stopped by it. **Neither surface names a kind of write.** Nothing in the CLI
+So the duration and the line saying nothing was worked are one sentence, and one place states it.
+`forge claim -h` prints it for the caller about to type a claim; the write that has to take its own
+lease gives itself that very lease without printing anything to type; and the refusals a payload
+write can still meet print it again, which is the surface that matters where one fires, because the
+run that needs this rule is the run that has just been stopped by it. **None of them names a kind of
+write.** Nothing in the CLI
 can tell a reading's output from a build's — the run is what knows whether work follows — so the
 sentence describes the write's relation to the work and never the verdict behind it, and a route the
 CLI grows that needs no lease at all wins over both.
@@ -24,6 +26,27 @@ all, judged four issues and handed four complexities back to the dispatcher as r
 which the dispatcher then wrote — four writes the reading had already earned, and a phase that could
 not report itself complete. A third run got it right, and the only thing that separated it was a
 brief carrying the rule in as many words (ISS-840).
+
+## The write that had to take its own lease takes this one
+
+A payload write to an issue nobody holds used to meet that refusal and be sent to type the claim it
+had just been shown — two calls, the second identical to the first, with nothing learned between
+them. It now makes that claim itself, and the lease it makes is this one. A call that had to take
+its own lease is by construction the whole of what that call does to the issue, so the choice the
+round trip was buying is derivable from what was already asked, and the run wanting anything else
+types the verb that asks for it (ISS-1260).
+
+**What the refusal was not doing is separating two racers.** Two callers that both read an empty
+field are separated by the tracker's compare on the field's own write, which every write the lease
+covers carries; which of them typed a claim first decides nothing. The precedent was already in the
+file, one state over: a write whose own lease had lapsed renews it, writes, and says so in a line
+rather than refusing (ISS-65).
+
+**What the caller loses is the two things it did not get to choose**, so the notice names the
+duration it got and the claim that takes another. And where the field is empty at a status only a
+lease's own writes reach, the write refuses as before: that field is a run that died or a write that
+erased one, never an issue waiting to be started, and choosing between those readings is the
+judgement a person is asked for rather than one a write may make quietly.
 
 ## And the run it was costing no longer pays for it
 

@@ -7,6 +7,8 @@ import { fakeTracker, pageOf, ranAsync } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../..", import.meta.url).pathname;
+/* Named, so the holder the take writes is compared with a value this file chose rather than with itself. */
+const WRITER = "the-run-that-wrote-the-note";
 
 const day = (one) => `2026-09-0${one}T00:00:00.000Z`;
 const at = (number, touched) => ({
@@ -33,8 +35,13 @@ const ran = (argv, stdin = null) => ranAsync(FORGE, argv, tracker.env, ROOT, std
 const cutTo = (rows, fits) => {
   const listed = pageOf(rows, fits);
   state.issues = rows;
-  state.answer.forge_issues = (args) =>
-    (args.action === "list" ? listed(args) : rows.find((one) => one.documentId === args.documentId) ?? {});
+  state.answer.forge_issues = (args) => {
+    if (args.action === "list") return listed(args);
+    const row = rows.find((one) => one.documentId === args.documentId) ?? {};
+    /* Applied rather than acknowledged: a lease write reads its own value back, so a stub that keeps
+       nothing answers every write of one with the mismatch a second run would have caused. */
+    return args.action === "update" ? Object.assign(row, args.data ?? {}) : row;
+  };
 };
 
 test("the read verb reaches a key the first page could not carry", async () => {
@@ -55,11 +62,23 @@ test("a finder reaches the same key through forge comment, and is asked for no l
   assert.match(run.stdout, /No lease on ISS-1 is yours/u, "and the reply says the post took none");
 });
 
-test("the holder's verbs reach it too, the lookup being one", async () => {
+/* The record path's own take, beside the advance path's: one function does both, and a defect in the
+   ownership either of them writes is invisible until a second run collides with the lease (consult
+   a64e9b F1). */
+test("the holder's verbs reach it too, the lookup being one, and the lease they wanted is taken", async () => {
   cutTo(BACKLOG, 2);
-  const run = await ran(["record", "note", "ISS-1", "--section", "Fixed", "--user", "a line"]);
-  assert.match(run.stderr, /ISS-1 carries no lease/u,
-    "refused for the lease it wanted, which is a key it had already resolved");
+  const run = await ranAsync(FORGE, ["record", "note", "ISS-1", "--section", "Fixed", "--user", "a line"],
+    { ...tracker.env, FORGE_SESSION_ID: WRITER }, ROOT);
+  assert.match(run.stderr, /ISS-1 carried no lease and this write took one/u,
+    "the lease it wanted was taken on a key it had already resolved");
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const held = BACKLOG.find((one) => one.documentId === "u-1");
+  assert.ok(held.releaseNotes, "the record the caller asked for is on the issue, written in the one call");
+  const took = held.sessionContext.lease;
+  assert.equal(took.holder, WRITER, "held by the run that made the write and by nobody else");
+  assert.equal(took.minutes, 10, "for the ten minutes a write with no work under it is owed");
+  assert.equal(took.next, "nothing was worked under this lease");
+  assert.deepEqual(took.history.map((one) => one.how), ["write"], "under the word only a write's take writes");
 });
 
 test("a key the tracker does not hold is refused as a fact about the tracker", async () => {

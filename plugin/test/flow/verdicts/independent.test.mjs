@@ -384,6 +384,26 @@ test("the judging run hands the turn back, and the lander takes the lease it lef
     "and the hand-back is refused a second time, naming the state it read");
 });
 
+/* The other half of the round ISS-1260 removed: a payload write takes a field holding no lease where
+   a bare claim would have been granted, and this write never can — every landing state is past the
+   statuses a run is dispatched at — so what it owes is the claim that does clear the state, and not
+   the one that is refused there in turn (ISS-1252). */
+test("the hand-back on a field holding no lease names the claim that clears that state", async () => {
+  const was = judging.status;
+  judging.status = "testing";
+  judging.sessionContext.landing = { ...CHECKPOINT, state: "qa-owed" };
+  delete judging.sessionContext.lease;
+  try {
+    const refused = await twice(qa, "claim", "ISS-8", "--judged");
+    assert.equal(refused.status, 1, refused.stdout);
+    assert.match(`${refused.stdout}\n${refused.stderr}`, /forge claim ISS-8 --unheld/u,
+      "and not the bare claim, which is itself refused at a status past the dispatch ones");
+    assert.equal(judging.sessionContext.landing.state, "qa-owed", "with the turn still owed to a judge");
+  } finally {
+    judging.status = was;
+  }
+});
+
 /* The independence `--take` refuses one move earlier, asked again of the move that writes the
    judgement down: reaching `--judged` needs no take, so a builder holding its own lease signed
    itself onto the checkpoint as judge, and before-merge reads that state alone to push (ISS-673). */
