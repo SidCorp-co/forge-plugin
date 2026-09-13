@@ -107,10 +107,12 @@ export const accountCredentials = once(() => {
 export const settings = once(() => {
   const { url, token } = accountCredentials();
   if (!url.value || !token.value) {
+    /* The file this call read, not the one it would have read with the configuration directory left where it defaults: a run under a redirected home was told the live path was the one place either is read from, and went looking in a file nothing had opened (ISS-189). */
     fail(
-      "No Forge endpoint. Run `forge doctor --token <pat> --url <endpoint>` to save one in\n" +
-        "~/.config/forge/config.json, the one place either is read from. Neither the environment\n" +
-        "nor a `.mcp.json` is a source; `forge doctor` names a `.mcp.json` it finds.",
+      `No Forge endpoint. Run \`forge doctor --token <pat> --url <endpoint>\` to save one in\n${
+        configPath()}\n`
+        + "which is the one place either is read from. Neither the environment nor a `.mcp.json`\n"
+        + "is a source; `forge doctor` names a `.mcp.json` it finds.",
     );
   }
   const bearer = token.value.startsWith("Bearer ") ? token.value : `Bearer ${token.value}`;

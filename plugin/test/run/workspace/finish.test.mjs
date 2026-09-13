@@ -339,5 +339,30 @@ test("start makes the one directory this run's scratch belongs in, and names it 
   assert.equal(readdirSync(scratch).length, 0, "the directory a run is handed is not empty");
   const run = runIn(work, ["start", "ISS-89"], BARE);
   assert.equal(run.status, 0, run.stderr + run.stdout);
-  assert.match(run.stdout, /TMPDIR=.*forge-run-iss-89-[0-9a-f]{8} {2}XDG_CONFIG_HOME=/u, run.stdout);
+  assert.match(run.stdout, /TMPDIR=.*forge-run-iss-89-[0-9a-f]{8}$/mu, run.stdout);
+  /* It printed both variables at this one empty directory, so a run doing as it was told had no
+     credential, logged its consults where the commit gate does not read and `finish` then removed
+     them, and the corpus a release is judged on lost every delegated run (ISS-189). */
+  assert.doesNotMatch(run.stdout, /XDG_CONFIG_HOME=/u, "plugin state is not this run's scratch");
+  assert.match(run.stdout, /Plugin state is not scratch/u, run.stdout);
+});
+
+/* The quiet half of the same split: a consult recorded under a scratch configuration home is in the
+   corpus `forge stats eval` reads and in no other copy of it, and this call is what takes it. */
+test("finish names a consult log standing in the scratch it is about to remove", () => {
+  const { work } = started("finish-corpus");
+  const scratch = scratchOf(work);
+  mkdirSync(join(scratch, "forge"), { recursive: true });
+  const log = join(scratch, "forge", "codex-log.jsonl");
+  writeFileSync(log, [
+    JSON.stringify({ kind: "consult", id: "c1", ok: true }),
+    JSON.stringify({ kind: "verdict", of: "c1" }),
+    JSON.stringify({ kind: "consult", id: "c2", ok: true }),
+  ].join("\n") + "\n");
+
+  const run = runIn(work, ["finish", KEY], BARE);
+  assert.equal(run.status, 0, run.stderr + run.stdout);
+  assert.ok(!existsSync(scratch), run.stdout);
+  assert.ok(run.stdout.includes(`${log} holds 2 consult(s)`),
+    `the consults going with the directory are counted, the verdict beside them not being one: ${run.stdout}`);
 });

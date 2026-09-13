@@ -6,6 +6,7 @@ import { randomBytes } from "node:crypto";
 import { basename, isAbsolute, join } from "node:path";
 
 import { configDir, readJson, writeJsonPrivate } from "../resolve/config.mjs";
+import { flags } from "../resolve/flags.mjs";
 import { logHook } from "../hooks/hook-log-file.mjs";
 import { changedAgainst, digest } from "./codex-api.mjs";
 import { logEntries, sentShaOf } from "./codex-log.mjs";
@@ -244,3 +245,58 @@ export const goneFrom = (root, record, base = "HEAD", fromParting = false, ms) =
 export const goneSaid = (gone, base) => `${gone.length} path(s) this turn's record held are absent from `
   + `the tree and carry no diff against ${base}: ${gone.join(", ")}. Out of the review, out of the log `
   + "and out of the record, so no later consult is offered them.";
+
+/* The verb that prints this record, beside the record it reads, as the log's own printing sits beside the log: a listing that named 726 paths the gate never looked at cost five consults and cleared nothing (ISS-70). */
+export const PENDING_USAGE = [
+  "Usage: forge codex pending [--drop]",
+  "What this turn touched and has not been consulted on, which is what a commit is asked for.",
+  "",
+  "  --drop         clear the unconsulted files a commit made now would be asked for",
+].join("\n");
+
+export const pending = (rest, root) => {
+  const { drop } = flags(rest, "codex pending", ["--drop"], { usage: PENDING_USAGE });
+  const held = readState();
+  const waiting = root ? pendingIn(held, root) : [];
+  /* Said on every branch, the empty one most of all: this record and the commit gate's both sit
+     under XDG_CONFIG_HOME and the gate reads the session's, so `nothing pending` here and a refusal
+     naming the same file there are two answers about two records (ISS-189). */
+  const from = () => console.log(`read from ${configDir("forge")}`);
+  if (!waiting.length) {
+    console.log("nothing pending");
+    return from();
+  }
+  const { owed, read, gone } = pendingNow(root, waiting, logEntries, { apart: apartFrom(root, waiting) });
+  /* Dropped as the record is read: a path no write stands behind was reported as work owed by every later consult, and `--drop` declines for it (ISS-952). */
+  if (gone.length) clearConsulted(root, gone);
+  const goneLine = `recorded and no longer in the tree, so out of the record now: ${gone.join(", ")}`;
+  const kept = owed.length + read.length;
+  if (!kept) {
+    console.log(`nothing pending. ${goneLine}`);
+    return from();
+  }
+  const demand = demandOf(root, owed);
+  const unstaged = owed.filter((rel) => !demand.includes(rel));
+  if (drop) {
+    if (!demand.length) {
+      console.log(`nothing of the ${kept} recorded file(s) is staged, so no commit is `
+        + "held for them and there is nothing to drop. Name one to a consult to clear it.");
+      return from();
+    }
+    const { left } = clearConsulted(root, demand);
+    console.log(`dropped ${demand.length} unconsulted file(s), which is what a commit made now would be asked for.`);
+    if (left.length) console.log(`still recorded, unstaged: ${left.join(", ")}`);
+    return from();
+  }
+  console.log(demand.length ? demand.join("\n") : "nothing staged that codex has not read");
+  console.log(`\nwhat a commit made now is asked for, out of ${kept} file(s) recorded `
+    + `${ageOf(held.turns?.[root]?.at)}; \`forge codex pending --drop\` clears it.`);
+  if (unstaged.length) {
+    console.log(`recorded and not staged, which a commit takes only with -a or a pathspec: ${unstaged.join(", ")}`);
+  }
+  if (read.length) {
+    console.log(`recorded and read at the bytes a commit would carry, so none is held for them: ${read.join(", ")}`);
+  }
+  if (gone.length) console.log(goneLine);
+  return from();
+};

@@ -9,9 +9,7 @@ import { borrowedInto, BROKEN } from "./links.mjs";
 import { KEY, occupied, worktreePath } from "./occupant.mjs";
 import { mintRunId, RUN_ID_VAR, scratchMinted } from "./run-id.mjs";
 
-/* Made here rather than left to the run, so a run's logs and its seeded config home have a place whose name says whose
-   they are and `finish` removes that one path. One that cannot be made is said and stops nothing: a run without one
-   writes elsewhere and `finish` then finds nothing to remove, which is the safe answer either way. */
+/* Made here rather than left to the run, so a run's logs and scratch files have a place whose name says whose they are and `finish` removes that one path. One that cannot be made is said and stops nothing: a run without one writes elsewhere and `finish` then finds nothing to remove, which is the safe answer either way. */
 const scratchMade = (tree, id, self) => {
   const at = scratchMinted(tree, id);
   try {
@@ -22,7 +20,11 @@ const scratchMade = (tree, id, self) => {
   }
   console.log(`Put every scratch file this run makes under that id's own directory, which is what`);
   console.log(`${self} finish removes and the only path under the temporary root it will:`);
-  return console.log(`  TMPDIR=${at}  XDG_CONFIG_HOME=${at}`);
+  console.log(`  TMPDIR=${at}`);
+  /* That variable and no second one. This directory is made empty, so a shell pointing XDG_CONFIG_HOME at it held no credential, wrote its consults to a log the commit gate does not read and `finish` then removed, and every delegated run that did as it was told went missing from the corpus a release is judged on (ISS-189). */
+  return console.log(`Plugin state is not scratch: the credential, the consult log and the turn `
+    + `record stay in this machine's own config directory, which is where the hooks read them from `
+    + `whatever this shell exports.`);
 };
 
 export const start = ({ words: [given, slug] }, { here, self, write }) => {

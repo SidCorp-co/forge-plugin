@@ -8,6 +8,7 @@ findings nobody ruled on, `forge codex verdict --of <id> --accepted F1 --rejecte
 codex pending --drop` discards them unread.
 
 A commit is asked for what it stages, in the tree it names, which `forge codex pending` prints too.
+Both name the config directory they read.
 One whose tree the command does not name — after a `cd -`, a bare `cd`, a destination held in a
 value — is refused for that: spell it out, `cd <path> &&` or `git -C <path>`. A commit whose staged
 set cannot be enumerated is asked for the record whole.

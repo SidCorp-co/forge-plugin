@@ -40,6 +40,11 @@ account setting in name only.
 - **AC-01-1-2** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "the saved credential is owner-only, and lands outside the repository it was saved from"
   WHEN the credential is written THEN the CLI SHALL store it at owner-only permissions outside the
   repository.
+- **AC-01-1-3** · Rev: 1 · Proof: plugin/test/resolve/settings-home.test.mjs "the refusal for an unresolved account names the file it read"
+  IF neither an endpoint nor a credential resolves THEN the CLI SHALL name the configuration file it
+  read, rather than the one it would have read with the configuration directory left where it
+  defaults, that directory being redirectable and the refusal otherwise pointing at a file it never
+  opened.
 
 ### UC-01-2 — Resolve the project
 

@@ -120,6 +120,14 @@ fragments, and the trigger it decided on could not be read at all.
   WHERE the turn's record holds a path absent from the tree that the tree's own head reports no
   change of, the CLI SHALL take it out of the record as it lists what a commit is asked for, rather
   than name it as a write awaiting a reading that nothing can stage and no consult can reach.
+- **AC-06-3-7** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs "a record under one configuration home and a gate reading another are each named by the surface that answered"
+  WHEN the gate refuses a commit THEN it SHALL name the configuration directory whose turn record and
+  consult log it read, a caller with no way to tell a consult this gate cannot see from one nobody
+  has made having no route out of the refusal at all.
+- **AC-06-3-8** · Rev: 1 · Proof: plugin/test/codex/codex-state.test.mjs "the listing names the configuration directory it read, with files to list and with none"
+  WHEN the CLI lists what a commit is asked for THEN it SHALL name the configuration directory it
+  read the turn record from, including where it holds nothing to list, so that an empty answer and a
+  refusal about the same file cannot both be read as facts about one record.
 
 ### UC-06-4 — What the built-in advisor said travels into the consult
 

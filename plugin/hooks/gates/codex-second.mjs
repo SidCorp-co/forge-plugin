@@ -4,6 +4,7 @@ import { isAbsolute, resolve } from "node:path";
 
 import { ageOf, apartFrom, demandIn, pendingNow, pendingState, repoRoot, stagedIn } from "../../src/codex/codex.mjs";
 import { logEntries, unverdicted, verdictForm } from "../../src/codex/codex-log.mjs";
+import { configDir } from "../../src/resolve/config.mjs";
 import { probeMs } from "../../src/hooks/git-probe.mjs";
 import {
   REDIRECT,
@@ -88,6 +89,10 @@ export const commitAim = (ev) => {
 const ESCAPE = "For the session: `forge hooks --off codex-second` — an inline `FORGE_CODEX_DISABLE=1` "
   + "prefix never reaches a hook.";
 
+/* The record and the log resolve under XDG_CONFIG_HOME and a hook reads the session's, so a consult made under another one is recorded where this never looks: unsaid, that refused files a consult had already read while `pending` answered nothing pending about them, and the only way out it offered was turning the review off (ISS-189). */
+const readIn = () => `Read from ${typed(configDir("forge"))}, so a consult recorded under another `
+  + "XDG_CONFIG_HOME clears nothing here.";
+
 /* One call, two commits, one answer: the tree judged is the first commit's, and the second's is
    inspected by nothing. Saying which was judged is what the reader needs to split the call. */
 const unjudged = (ev, root, others) => {
@@ -143,7 +148,7 @@ export const run = (ev) => {
         + `${demand.length > 6 ? ` and ${demand.length - 6} more` : ""}, recorded ${ageOf(waiting.at)}).${also}\n\n`
         + `Do this: \`${root === (ev.cwd ?? process.cwd()) ? "" : `cd ${typed(root)} && `}`
         + 'echo "<what you were doing>" | forge codex consult --diff --only blocker,major '
-        + `${demand.slice(0, 6).map(typed).join(" ")}\`, then re-send. `
+        + `${demand.slice(0, 6).map(typed).join(" ")}\`, then re-send. ${readIn()} `
         + `\`forge codex pending --drop\` discards them unread. ${ESCAPE}`
         + how(),
     );
@@ -153,7 +158,7 @@ export const run = (ev) => {
   if (open) {
     deny(
       `Consult ${open.id} made ${open.ids.join(", ")} on ${open.files.join(", ")}; nothing says what became of ${open.open.join(", ")}.${also}\n\n`
-        + `Do this: \`${verdictForm(open.id)}\`, then re-send. `
+        + `Do this: \`${verdictForm(open.id)}\`, then re-send. ${readIn()} `
         + `A --recheck records the verdict for what it refutes. ${ESCAPE}`
         + how(),
     );

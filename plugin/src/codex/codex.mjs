@@ -20,7 +20,7 @@ import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
 import { fail, projectCodex, projectRecordPattern } from "../resolve/settings.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { afterTouch, ageOf, apartFrom, clearConsulted, demandOf, pendingIn, pendingNow, readByCodex, readState,
+import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, pending, pendingIn, readByCodex, readState,
   stagedApart, stagedReader, turnsOf, updateState } from "./codex-state.mjs";
 import { PER_KEY, READ_ISSUE, SPARE, TOOLS, scopeFor } from "./codex-tools.mjs";
 import { noDiffIn, reviewSet, shownOf } from "./codex-set.mjs";
@@ -115,13 +115,6 @@ const CONSULT_USAGE = [
   "What a round buys and what a recheck may not do: docs/cli/codex-the-round.md.",
 ].join("\n");
 
-const PENDING_USAGE = [
-  "Usage: forge codex pending [--drop]",
-  "What this turn touched and has not been consulted on, which is what a commit is asked for.",
-  "",
-  "  --drop         clear the unconsulted files a commit made now would be asked for",
-].join("\n");
-
 const SHOW_USAGE = [
   "Usage: forge codex show",
   "Profile, model, records, rounds, effort, angles, check, pending and log, in effect here.",
@@ -214,10 +207,7 @@ export const consultArgs = (given) => {
     risks,
     only: severities(held.only),
     allowEcho: Boolean(held["allow-echo"]),
-    /* Asking what to diff against is asking for the diff, so `--base` implies `--diff` rather than
-       being silently dropped — one fewer rule to learn and one fewer way to be ignored. Kept apart
-       from `named` because HEAD from `--diff` is this end's guess and a recheck may still improve
-       on it, where a base the caller typed is theirs and is never moved. */
+    /* Asking what to diff against is asking for the diff, so `--base` implies `--diff` rather than being silently dropped — one fewer rule to learn and one fewer way to be ignored. Kept apart from `named` because HEAD from `--diff` is this end's guess and a recheck may still improve on it, where a base the caller typed is theirs and is never moved. */
     base: held.base ?? (held.diff ? "HEAD" : null),
     namedBase: held.base ?? null,
     effort: chosenEffort(held.effort),
@@ -532,42 +522,7 @@ export const hookRecord = (event, paths, told = () => false, log = logEntries) =
 const SUBS = {
   consult,
   verdict: (rest) => verdict(rest, repoRoot(process.cwd())),
-  /* What the commit gate will compare, not the record it is drawn from: a list that named 726 paths
-     the gate never looked at cost five consults and cleared nothing (ISS-70). */
-  pending: (rest) => {
-    const { drop } = flags(rest, "codex pending", ["--drop"], { usage: PENDING_USAGE });
-    const root = repoRoot(process.cwd());
-    const held = readState();
-    const waiting = root ? pendingIn(held, root) : [];
-    if (!waiting.length) return console.log("nothing pending");
-    const { owed, read, gone } = pendingNow(root, waiting, logEntries, { apart: apartFrom(root, waiting) });
-    /* Dropped as the record is read: a path no write stands behind was reported as work owed by every later consult, and `--drop` declines for it (ISS-952). */
-    if (gone.length) clearConsulted(root, gone);
-    const goneLine = `recorded and no longer in the tree, so out of the record now: ${gone.join(", ")}`;
-    const kept = owed.length + read.length;
-    if (!kept) return console.log(`nothing pending. ${goneLine}`);
-    const demand = demandOf(root, owed);
-    const unstaged = owed.filter((rel) => !demand.includes(rel));
-    if (drop) {
-      if (!demand.length) {
-        return console.log(`nothing of the ${kept} recorded file(s) is staged, so no commit is `
-          + "held for them and there is nothing to drop. Name one to a consult to clear it.");
-      }
-      const { left } = clearConsulted(root, demand);
-      console.log(`dropped ${demand.length} unconsulted file(s), which is what a commit made now would be asked for.`);
-      return left.length ? console.log(`still recorded, unstaged: ${left.join(", ")}`) : undefined;
-    }
-    console.log(demand.length ? demand.join("\n") : "nothing staged that codex has not read");
-    console.log(`\nwhat a commit made now is asked for, out of ${kept} file(s) recorded `
-      + `${ageOf(held.turns?.[root]?.at)}; \`forge codex pending --drop\` clears it.`);
-    if (unstaged.length) {
-      console.log(`recorded and not staged, which a commit takes only with -a or a pathspec: ${unstaged.join(", ")}`);
-    }
-    if (read.length) {
-      console.log(`recorded and read at the bytes a commit would carry, so none is held for them: ${read.join(", ")}`);
-    }
-    if (gone.length) console.log(goneLine);
-  },
+  pending: (rest) => pending(rest, repoRoot(process.cwd())),
   show,
   log: printLog,
   stats: printStats,

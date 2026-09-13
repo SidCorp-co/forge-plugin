@@ -9,6 +9,8 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+const CLI = new URL("../../src/cli.mjs", import.meta.url).pathname;
+
 const HOOK = new URL("../../hooks/entries/codex-second.mjs", import.meta.url).pathname;
 const room = tempRoom("codex-second-");
 const REPO = join(room, "repo");
@@ -228,6 +230,7 @@ test("a commit waits for a verdict on the last consult that made findings", () =
   const half = because(gate({ command, log: lines(found, quiet, { kind: "verdict", of: "c9", accepted: 1, rejected: 0, kept: ["F1"], dropped: {}, from: "r1" }) }));
   assert.match(half, /what became of F2\./u, "a recheck that closed F1 leaves F2 to decide");
   assert.match(out, /forge codex verdict --of c9 --accepted/u);
+  assert.ok(out.includes(join(room, "forge")), `the verdict refusal names the log it read: ${out}`);
   assert.equal(gate({ command, log: lines(found, quiet, { kind: "verdict", of: "c9", accepted: 1, rejected: 1, kept: ["F1"], dropped: { F2: "no" } }) }), null, "ruled on, it lands");
   assert.equal(gate({ command, log: lines({ ...found, root: "/elsewhere" }) }), null, "another tree's consult is not this one's");
   assert.equal(gate({ log: lines(found) }), null, "a write is not asked");
@@ -317,4 +320,20 @@ test("a commit taking the worktree is asked about the worktree it takes", () => 
   const said = fourSaid(repo, home, "git commit -am x");
   assert.match(said, /has not read what this commit stages/u);
   assert.doesNotMatch(said, /restaged\.mjs/u, "on disk it is the bytes a consult was shown");
+});
+
+/* The gate reads the configuration directory the session names and the shell that would clear it may
+   read its own, so a consult goes where the gate never looks: four rounds on ISS-139 went into
+   consults recorded there, and neither surface could say so (ISS-189). */
+test("a record under one configuration home and a gate reading another are each named by the surface that answered", () => {
+  const out = because(gate({ command: "git commit -m work", pending: ["work.mjs"], stage: ["work.mjs"] }));
+  assert.match(out, /work\.mjs/u, "the gate under the home holding the record refuses for it");
+  assert.ok(out.includes(join(room, "forge")), `and names the directory it read: ${out}`);
+  const other = tempRoom("codex-second-other-home-");
+  const said = spawnSync(process.execPath, [CLI, "codex", "pending"],
+    { encoding: "utf8", cwd: REPO, env: { ...process.env, XDG_CONFIG_HOME: other } });
+  assert.equal(said.status, 0, said.stderr);
+  assert.match(said.stdout, /^nothing pending$/mu, "the second home holds no record of that file");
+  assert.ok(said.stdout.includes(join(other, "forge")),
+    `so the two answers name two records rather than reading as one: ${said.stdout}`);
 });

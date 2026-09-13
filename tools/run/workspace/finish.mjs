@@ -9,6 +9,8 @@ import { existsSync, readdirSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve, sep } from "node:path";
 
+import { consults } from "../../../plugin/src/codex/codex-log.mjs";
+import { jsonlAt } from "../../../plugin/src/hooks/hook-log-file.mjs";
 import { copyToRun } from "../../../plugin/src/tools/plugin-copy.mjs";
 import { checkoutRoot, defaultBranch, git, gitOut, lines, loud, REMOTE, remoteRef } from "../../checkout.mjs";
 import { gatesHere, verdictPath } from "../../gate-verdict.mjs";
@@ -138,6 +140,18 @@ const refusals = (root, path, base, read) => [
   lockRefusal(root, path, read.locked),
 ].filter(Boolean);
 
+/* Said before the removal, because afterwards there is nothing left to read. A run whose configuration
+   home was this directory logged its consults here and into no other copy, and `forge stats eval` and
+   the evaluator role judge a release by a log that never saw them: missing data, from exactly the runs
+   a wave produces, with nothing failing to say so (ISS-189). */
+const corpusGoing = (at) => {
+  const log = join(at, "forge", "codex-log.jsonl");
+  const held = consults(jsonlAt(log)).length;
+  if (!held) return undefined;
+  return console.log(`  note     ${log} holds ${held} consult(s) and goes with the directory: that `
+    + `log is the corpus a release is read off, and a consult recorded only here reached no other copy`);
+};
+
 const removedScratch = (at) => {
   if (!at) {
     return console.log(`  left     no scratch directory is named: that tree carries no run id this `
@@ -145,6 +159,7 @@ const removedScratch = (at) => {
   }
   if (!existsSync(at)) return console.log(`  gone     ${at} was already removed`);
   const held = readdirSync(at).length;
+  corpusGoing(at);
   rmSync(at, { recursive: true, force: true });
   return console.log(`  removed  ${at}, holding ${held} entry(s)`);
 };

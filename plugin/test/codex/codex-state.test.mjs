@@ -126,6 +126,24 @@ test("`codex pending` prints the set a commit made now is asked for", () => {
   assert.match(out.stdout, /recorded and not staged, which a commit takes only with -a or a pathspec: docs\/B\.md/u);
 });
 
+/* `nothing pending` here and a commit refused for the same file are two answers about two records,
+   and a run reading either alone cannot tell: the record sits under XDG_CONFIG_HOME and the gate
+   reads the session's (ISS-189). */
+test("the listing names the configuration directory it read, with files to list and with none", () => {
+  const root = tree();
+  const home = state(root, ["docs/A.md"]);
+  const listed = forge(root, home, "pending");
+  assert.equal(listed.status, 0, listed.stderr);
+  assert.ok(listed.stdout.includes(`read from ${join(home, "forge")}`), listed.stdout);
+  const other = tempRoom("codex-demand-other-home-");
+  rooms.push(other);
+  const empty = forge(root, other, "pending");
+  assert.equal(empty.status, 0, empty.stderr);
+  assert.match(empty.stdout, /^nothing pending$/mu, "that record holds nothing for this tree");
+  assert.ok(empty.stdout.includes(`read from ${join(other, "forge")}`),
+    `an empty answer says which record it is about: ${empty.stdout}`);
+});
+
 test("`codex pending --drop` drops that set and leaves the rest of the record", () => {
   const root = tree();
   const home = state(root, ["docs/A.md", "docs/B.md"]);
