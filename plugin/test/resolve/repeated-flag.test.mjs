@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { flags, pullRepeated, repeatedFlag, shortOfAsk } from "../../src/resolve/flags.mjs";
+import { flags, pairOf, pairsFrom, pullRepeated, repeatedFlag, shortOfAsk } from "../../src/resolve/flags.mjs";
 import { Refusal, refusing } from "../../src/resolve/settings.mjs";
 import { homeEnv, ranAsync } from "../fixtures.mjs";
 
@@ -198,4 +198,52 @@ test("a layer handed no ask at all is refused as this CLI's own defect", () => {
   assert.match(said, /no record of what was asked for reached the layer that reports/u, said);
   assert.match(said, /Nothing was sent\./u, said);
   assert.match(said, /a defect in this CLI, not in what you typed/u, said);
+});
+
+/* ISS-1056. The de-duplication and the shortfall are one reading of one list, so they have one home:
+   a verb keying its own object by field drops the first of a repeat before the count is taken. */
+const setPair = (one) => {
+  const { key, value } = pairOf(one, "--set");
+  return { field: key, value };
+};
+const pairs = (...words) => pairsFrom(words, "--set", { each: setPair });
+
+test("a field named twice is refused with its name, both its values and the count", async () => {
+  const said = await refused(() => pairs("status=open", "status=closed"));
+  assert.match(said, /^--set names status 2 times, as `open` and `closed`, /u, said);
+  assert.match(said, /one call writes each field once\./u, "the rule, said once");
+  assert.match(said, /Ask for the one you meant: --set status=<value>\./u, "and the form that works");
+  assert.match(said, /Nothing was sent\./u, "and neither value was preferred over the other");
+});
+
+/* No route named is what a verb reaching this reading for the first time gets, so a third inherits it. */
+test("a caller that names no refusal route of its own is still refused", async () => {
+  const said = await refused(() => pairsFrom(["a=1", "a=2"], "--set", { each: setPair }));
+  assert.match(said, /--set names a 2 times, as `1` and `2`/u, said);
+});
+
+test("distinct fields pass through in the order they were given", () => {
+  assert.deepEqual(pairs("status=open", "priority=high"),
+    [{ field: "status", value: "open" }, { field: "priority", value: "high" }]);
+});
+
+/* A pair a layer above dropped is a shortfall: read as a repeat it would name a field typed once. */
+test("a list one word of which never arrived is no repeat, so the shortfall keeps its own sentence", () => {
+  const held = pairs("status=open");
+  assert.match(shortOfAsk(askFor("status=open", "priority=high"), held),
+    /this CLI lost it between your call and the write/u, "the reading a genuine loss still gets");
+});
+
+/* Both verbs watched arriving at the one sentence: a keyed object of a verb's own goes red here. */
+test("the two `--set`-taking verbs print one rule, before either resolves an endpoint", async () => {
+  const project = await ran("project", "forge-plugin", "--set", "name=a", "--set", "name=b");
+  assert.equal(project.status, 1, project.stdout);
+  assert.match(project.stderr, /^project: --set names name 2 times, as `a` and `b`, /mu, project.stderr);
+  const issue = await ran("issue", "ISS-1", "--set", "a=1", "--set", "a=2", "--why", "w");
+  assert.equal(issue.status, 1, issue.stdout);
+  assert.match(issue.stderr, /--set names a 2 times, as `1` and `2`, /u, issue.stderr);
+  for (const run of [project, issue]) {
+    assert.match(run.stderr, /one call writes each field once\./u, run.stderr);
+    assert.doesNotMatch(run.stderr, /No Forge endpoint/u, "neither got as far as needing one");
+  }
 });

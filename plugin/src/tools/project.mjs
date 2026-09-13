@@ -3,7 +3,7 @@
    naming picks between. Why deletion is not among them: docs/cli/doctor.md. */
 import { deployFrom, deployRows, deployed } from "../tracker/project-config.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { exclusive, flags, partition, pullRepeated, shortOfAsk, wantsHelp } from "../resolve/flags.mjs";
+import { exclusive, flags, pairsFrom, partition, pullRepeated, shortOfAsk, wantsHelp } from "../resolve/flags.mjs";
 import { projectIdOf, scoped, write } from "../tracker/rest.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
@@ -83,21 +83,24 @@ const created = async (asked) => {
   return [`created: ${answer?.project?.slug ?? asked.slug}`, ...recordLines(answer?.project)];
 };
 
-const updated = async (slug, pairs, ask) => {
-  const data = {};
-  for (const pair of pairs) {
-    const at = pair.indexOf("=");
-    if (at < 1) fail(`project: --set takes one field and its value joined by \`=\`, not \`${pair}\`.`);
-    const field = pair.slice(0, at);
-    if (!FIELDS.includes(field)) {
-      fail(`${didYouMean("field of a project", field, FIELDS)} A branch is chosen on the tracker's own`
-        + " settings screen, and nothing was sent.");
-    }
-    data[field] = pair.slice(at + 1);
+const setPair = (given) => {
+  const at = given.indexOf("=");
+  if (at < 1) fail(`project: --set takes one field and its value joined by \`=\`, not \`${given}\`.`);
+  const field = given.slice(0, at);
+  if (!FIELDS.includes(field)) {
+    fail(`${didYouMean("field of a project", field, FIELDS)} A branch is chosen on the tracker's own`
+      + " settings screen, and nothing was sent.");
   }
-  /* The object about to go, against what the call asked for, and no write has happened yet on this route: the loop above is keyed by field, so a second `--set` on one field left the count below counting keys rather than the pairs a caller gave (ISS-945). */
-  const short = shortOfAsk(ask, Object.entries(data).map(([field, value]) => ({ field, value })));
+  return { field, value: given.slice(at + 1) };
+};
+
+const updated = async (slug, given, ask) => {
+  /* Through the shared reading rather than a keyed object of its own, so a field named twice is refused here by name as it is on the other `--set`-taking verb, instead of the first value being dropped and the check below blaming this CLI for the caller's repeat (ISS-1056). */
+  const pairs = pairsFrom(given, "--set", { each: setPair, refusing: (said) => fail(`project: ${said}`) });
+  /* What reached this layer against what the call asked for, and no write has happened yet on this route (ISS-945). */
+  const short = shortOfAsk(ask, pairs);
   if (short) fail(short);
+  const data = Object.fromEntries(pairs.map(({ field, value }) => [field, value]));
   const projectRef = await idFor(slug);
   const answer = await write("forge_projects", { action: "update", projectRef, data });
   return [`set: ${Object.keys(data).join(", ")}`, ...recordLines(answer?.project)];

@@ -130,6 +130,18 @@ export const shortOfAsk = (ask, held) => {
     + "between your call and the write, which is its defect and not yours: `forge feedback`.";
 };
 
+/** The pairs of one repeated `key=value` flag, `each` splitting one its own way: a field named twice is refused by name, by both its values and by the count. It stands beside `shortOfAsk` because a verb that keys its own object by field drops the first of a repeat before that check runs, leaving the check no reading of the loss but this CLI's own defect — which tells a caller who typed one field twice to file a bug against the tool (ISS-1056). It judges the list this layer was handed and never the ask, so a pair a layer above lost is still the shortfall; `refusing` is the calling layer's own route out. */
+export const pairsFrom = (given, flag, { each, refusing = fail } = {}) => {
+  const pairs = given.map((one) => each(one));
+  const twice = pairs.find(({ field }, at) => pairs.findIndex((one) => one.field === field) !== at);
+  if (twice) {
+    const values = pairs.filter(({ field }) => field === twice.field).map(({ value }) => `\`${value}\``);
+    refusing(`${flag} names ${twice.field} ${values.length} times, as ${values.join(" and ")}, and one call `
+      + `writes each field once. Ask for the one you meant: ${flag} ${twice.field}=<value>. Nothing was sent.`);
+  }
+  return pairs;
+};
+
 /* `flags` refuses a name it has already bound, so this is the one declaration that a flag's values accumulate: a verb that means "all of these" pulls them out before handing the rest over. */
 export const pullRepeated = (argv, flag, verb, row = {}) => {
   strangerIn(argv, verb, { ...row, hidden: [...(row.hidden ?? []), flag] });

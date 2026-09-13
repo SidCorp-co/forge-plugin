@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 
 import { refuse } from "../refusal.mjs";
 import { pathed } from "../hooks/shell-spans.mjs";
-import { pairOf } from "../resolve/flags.mjs";
+import { pairOf, pairsFrom } from "../resolve/flags.mjs";
 import { keepOnFailure } from "../resolve/settings.mjs";
 import { lengthOf, ownsField, writeFields } from "../tracker/field-write.mjs";
 import { AMBIGUOUS } from "../tracker/rest.mjs";
@@ -92,13 +92,7 @@ const MOVED_ELSEWHERE = { status: (ref, value) => `forge advance ${ref} --set ${
 const setForm = (pairs) => pairs.map(({ field, value }) => `--set ${field}=${value}`).join(" ");
 
 const pairsOf = (given, ref) => {
-  const pairs = given.map((one) => setPair(one, ref));
-  const twice = pairs.find(({ field }, at) => pairs.findIndex((one) => one.field === field) !== at);
-  if (twice) {
-    const values = pairs.filter(({ field }) => field === twice.field).map(({ value }) => `\`${value}\``);
-    refuse(`--set names ${twice.field} ${values.length} times, as ${values.join(" and ")}, and one call `
-      + `writes each field once. Ask for the one you meant: --set ${twice.field}=<value>. Nothing was sent.`);
-  }
+  const pairs = pairsFrom(given, "--set", { each: (one) => setPair(one, ref), refusing: refuse });
   const moved = pairs.find(({ field }) => MOVED_ELSEWHERE[field]);
   if (moved) {
     refuse(`${moved.field} is not a field an update writes: the tracker moves it on a route of its `

@@ -131,20 +131,39 @@ test("a pair with no `=` in it is refused rather than read as a field set to not
   assert.match(run.stderr, /--set takes one field and its value joined by `=`, not `name`/u);
 });
 
-/* ISS-945. The line this verb ends on counts the keys of the object it built, and that object is
-   keyed by field, so a second `--set` on one field left three pairs asked for and two reported set —
-   truthfully, about the two the writer held. The count it prints is now one the call asked for. */
+/* ISS-945, then ISS-1056. The object this verb built was keyed by field, so a second `--set` on one
+   field dropped the first before the count was taken, and the only reading the count had left was
+   that this CLI lost the pair — a caller who typed one field twice was told to file a bug against
+   the tool. The pairs now come through the reading `forge issue --set` reads through, which refuses
+   the repeat by name before the count is taken at all. */
 const updates = () => state.calls.filter((one) => one.name === "forge_projects.update");
 
-test("a field named twice among three pairs is refused, and the reply names the pair that went nowhere", async () => {
+test("a field named twice among three pairs is refused by name, and nothing blames this CLI", async () => {
   state.calls = [];
   const run = await ask("forge-plugin", "--set", "name=one", "--set", "description=two", "--set", "name=three");
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /--set was given 3 thing\(s\) and 2 reached the write/u, run.stderr);
-  assert.match(run.stderr, /`name=one` did not/u, "the pair that never left the process, in the caller's own spelling");
-  assert.match(run.stderr, /Nothing was sent/u, run.stderr);
+  assert.match(run.stderr, /^project: --set names name 2 times, as `one` and `three`, /mu, run.stderr);
+  assert.match(run.stderr, /one call writes each field once\./u, "the rule, in this verb's own reply");
+  assert.match(run.stderr, /Ask for the one you meant: --set name=<value>\./u, "and the form that works");
+  assert.doesNotMatch(run.stderr, /this CLI lost it between your call and the write/u,
+    "the repeat is the caller's, and the shortfall check never reads it as a loss now");
+  assert.doesNotMatch(run.stderr, /its defect and not yours/u, "nor is a defect filing asked for");
   assert.equal(updates().length, 0, "and no update went out");
   assert.doesNotMatch(run.stdout, /^set: /mu, "nor did a line claiming a set");
+});
+
+test("a third occurrence is counted rather than collapsed to the first two", async () => {
+  const run = await ask("forge-plugin", "--set", "name=a", "--set", "name=b", "--set", "name=c");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--set names name 3 times, as `a` and `b` and `c`/u, run.stderr);
+});
+
+/* A repeat is about the name: two identical values are still two answers to one question, and the
+   caller who meant one of them is the one whose second `--set` was a slip. */
+test("two identical values on one field are still a repeat", async () => {
+  const run = await ask("forge-plugin", "--set", "name=same", "--set", "name=same");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--set names name 2 times, as `same` and `same`/u, run.stderr);
 });
 
 test("two pairs on two fields are set, and both field names are in the line that says so", async () => {
