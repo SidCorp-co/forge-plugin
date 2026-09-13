@@ -27,9 +27,29 @@ const scratchMade = (tree, id, self) => {
     + `whatever this shell exports.`);
 };
 
-export const start = ({ words: [given, slug] }, { here, self, write }) => {
-  const key = String(given ?? "").toUpperCase();
-  if (!KEY.test(key)) stop(`start takes the issue key it works, \`ISS-nn\`, not \`${given ?? ""}\`.`);
+/* The keys first and the slug after them, rather than a count: a batch is one tree under one id and
+   the id is what its members' claims are taken on, so a `start` that read one key left the second
+   and third of a batch with no tree whose id names them (ISS-1295). */
+const dispatched = (words, self) => {
+  const keys = [];
+  for (const one of words) {
+    const key = String(one).toUpperCase();
+    if (!KEY.test(key)) break;
+    keys.push(key);
+  }
+  if (!keys.length) stop(`start takes the issue key it works, \`ISS-nn\`, not \`${words[0] ?? ""}\`.`);
+  const rest = words.slice(keys.length);
+  if (rest.length > 1) {
+    stop(`start takes the keys of one batch and then one slug for the branch, and \`${rest[1]}\` `
+      + `follows the slug \`${rest[0]}\`. A key after the slug is read as the slug's neighbour and `
+      + `not as a key: ${self} start ${[...keys, rest[1]].join(" ")} ${rest[0]}`);
+  }
+  return { keys, slug: rest[0] };
+};
+
+export const start = ({ words }, { here, self, write }) => {
+  const { keys, slug } = dispatched(words, self);
+  const [key] = keys;
   const root = checkoutRoot(here);
   const path = worktreePath(root, key);
   if (existsSync(path)) stop(occupied(root, path));
@@ -55,8 +75,9 @@ export const start = ({ words: [given, slug] }, { here, self, write }) => {
   }
   console.log(`\nBranch ${branch} on ${path}, cut from ${base}.`);
   console.log(`This run's own lease holder, which every tracker write it makes carries — without it`);
-  console.log(`the run writes under the dispatching session's id, which every agent of a wave shares:`);
-  const id = mintRunId(path, key);
+  console.log(`the run writes under the dispatching session's id, which every agent of a wave shares.`);
+  console.log(`It names ${keys.join(", ")}, so a claim on any of them is this run's to take:`);
+  const id = mintRunId(path, keys);
   console.log(`  ${RUN_ID_VAR}=${id}`);
   scratchMade(path, id, self);
   console.log(`Probe the change with this tree's own wrapper, never the one on PATH:`);

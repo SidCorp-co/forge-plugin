@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 
 import { BARE, committed, git, OWN_SLUG, runIn, scratch } from "../run-fixtures.mjs";
 import { tempRoom } from "../../fixtures.mjs";
+import { runIdAt, runsFor } from "../../../src/resolve/session/run-id.mjs";
 
 const checkout = (name) => {
   const room = scratch(name);
@@ -72,6 +73,42 @@ test("start mints a holder id for the worktree, keeps it beside it, and hands it
 /* The slug in the path separates two projects sharing this parent; a same-slug project or a tree made
    by hand at that name still owns the path this one derives (ISS-401). The remove offered for a tree
    of ours is refused for one of theirs, since an agent following it would aim at their live work. */
+/* A batch is one dispatch, one tree and one id by the flow's own rule, so what the id has to carry
+   is every key the run was given: members past the head have no tree whose record could name them,
+   and until this the take reached only the first of them (ISS-1295). */
+test("start on several keys mints one id naming every one of them, and names the tree for the first", () => {
+  const { work } = checkout("batch-id");
+  const home = tempRoom("batch-id-home-");
+  const run = runIn(work, ["start", "ISS-93", "ISS-94", "ISS-95", "three-of-them"],
+    { ...BARE, XDG_CONFIG_HOME: home });
+  assert.equal(run.status, 0, run.stderr + run.stdout);
+  const id = /FORGE_SESSION_ID=([^\s,]+)/u.exec(run.stdout)?.[1];
+  assert.equal(id?.replace(/-[0-9a-f]{8}$/u, ""), "iss-93+94+95",
+    `the id names one issue where the run was dispatched to three:\n${run.stdout}`);
+  const tree = join(dirname(work), `wt-${OWN_SLUG}-ISS-93`);
+  assert.ok(existsSync(tree), `the tree is not named for the first key:\n${run.stdout}${run.stderr}`);
+  assert.equal(readFileSync(join(work, ".git", "worktrees", `wt-${OWN_SLUG}-ISS-93`, "forge-run-id"), "utf8").trim(),
+    id, "and the record beside the tree holds the same id, which is what a claim from it resolves");
+  assert.equal(git(work, "rev-parse", "--abbrev-ref", "refs/heads/iss-93-three-of-them").status, 0,
+    `the branch is not the head key's with the slug after the keys:\n${run.stdout}${run.stderr}`);
+  assert.ok(run.stdout.includes("ISS-93, ISS-94, ISS-95"),
+    `the run is not told which issues its id covers:\n${run.stdout}`);
+  assert.deepEqual(runsFor(runIdAt(tree)), ["iss-93", "iss-94", "iss-95"],
+    "and the plugin standing in that tree reads the whole batch back off what start left there");
+});
+
+/* A key typed after the slug reads as a second slug, and a `start` that dropped it would cut a tree whose id is short one issue — a refusal nobody meets until a claim three phases later. */
+test("start refuses a second bare word after the slug, and prints the line with the key back among the keys", () => {
+  const { work } = checkout("batch-order");
+  const run = runIn(work, ["start", "ISS-96", "a-slug", "ISS-97"], BARE);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /follows the slug `a-slug`/u, run.stderr);
+  assert.match(run.stderr, /start ISS-96 ISS-97 a-slug/u,
+    `the line that works is not printed back:\n${run.stderr}`);
+  assert.ok(!existsSync(join(dirname(work), `wt-${OWN_SLUG}-ISS-96`)),
+    "and no tree was cut for a line the script refused");
+});
+
 test("start on a path another repository's worktree holds names that repository and offers no remove", () => {
   const { at, work } = checkout("foreign-tree");
   const other = theirRepo(join(at, "other"));

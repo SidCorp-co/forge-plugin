@@ -78,7 +78,8 @@ test("start -h and review -h each print that verb's own arguments and run nothin
   const { work } = pushed("verb-help");
   const start = runIn(work, ["start", "-h"], BARE);
   assert.equal(start.status, 0, start.stderr);
-  assert.ok(start.stdout.includes("start <ISS-nn> [slug]"), `start's own signature is not printed:\n${start.stdout}`);
+  assert.ok(start.stdout.includes("start <ISS-nn> [ISS-nn…] [slug]"),
+    `start's own signature is not printed:\n${start.stdout}`);
   assert.equal(git(work, "worktree", "list").stdout.trim().split("\n").length, 1,
     `a request for help cut a worktree:\n${start.stdout}`);
 

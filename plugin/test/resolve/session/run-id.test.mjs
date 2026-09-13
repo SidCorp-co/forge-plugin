@@ -50,7 +50,7 @@ test("the id answers from the worktree's root and from a subdirectory of it, and
 
 test("an id minted by the tools is the id the plugin resolves, from the root and from below it", () => {
   const at = root();
-  const minted = mintRunId(join(at, "wt-one"), "ISS-467");
+  const minted = mintRunId(join(at, "wt-one"), ["ISS-467"]);
   assert.match(minted, /^iss-467-[0-9a-f]{8}$/u);
   assert.equal(runIdAt(join(at, "wt-one")), minted);
   assert.equal(runIdAt(join(at, "wt-one", "deep")), minted);

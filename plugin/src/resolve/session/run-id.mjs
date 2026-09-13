@@ -49,9 +49,19 @@ export const heldBesideGit = (from, name) => {
 
 export const runIdAt = (from) => heldBesideGit(from, RUN_ID);
 
-export const MINTED_FOR = /^(iss-\d+)-[0-9a-f]{8}$/u;
+/* One tree and one id per batch, so the id carries the batch after its head rather than a second file beside it, which would be two places for one fact (ISS-1295). */
+export const MINTED_FOR = /^(iss-\d+(?:\+\d+)*)-[0-9a-f]{8}$/u;
 
-export const runFor = (id) => MINTED_FOR.exec(String(id ?? "").trim())?.[1]?.toLowerCase() ?? null;
+export const runsFor = (id) => {
+  const named = MINTED_FOR.exec(String(id ?? "").trim())?.[1]?.toLowerCase();
+  if (!named) return [];
+  const [head, ...batch] = named.split("+");
+  return [head, ...batch.map((one) => `iss-${one}`)];
+};
+
+export const runFor = (id) => runsFor(id)[0] ?? null;
+
+export const runNames = (id, key) => runsFor(id).includes(String(key ?? "").trim().toLowerCase());
 
 const textOf = (command) => (Array.isArray(command) ? command.join("\n") : String(command ?? ""));
 

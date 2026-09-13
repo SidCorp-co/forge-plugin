@@ -10,7 +10,7 @@ const takes = (name, value, why) => ({ name, value, why, spare: value.startsWith
 /** Each verb's signature, its flags with the help's line for each, and the bare words it reads; a
  *  value in brackets is spare. Help and reading are off this one table, so neither can miss a flag. */
 export const VERBS = new Map([
-  ["start", { signature: "start <ISS-nn> [slug]", flags: [], words: 2 }],
+  ["start", { signature: "start <ISS-nn> [ISS-nn…] [slug]", flags: [], words: Number.POSITIVE_INFINITY }],
   ["finish", { signature: "finish <ISS-nn>", flags: [], words: 1 }],
   ["relink", { signature: "relink", flags: [], words: 0 }],
   ["ship", {

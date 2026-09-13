@@ -30,8 +30,9 @@ export const scratchMinted = (path, id) => {
   return at;
 };
 
-export const mintRunId = (path, key) => {
-  const id = `${key.toLowerCase()}-${randomUUID().slice(0, 8)}`;
+export const mintRunId = (path, keys) => {
+  const [head, ...batch] = keys.map((one) => one.toLowerCase());
+  const id = `${[head, ...batch.map((one) => one.slice(4))].join("+")}-${randomUUID().slice(0, 8)}`;
   const at = beside(path, RUN_ID);
   if (at) writeFileSync(at, `${id}\n`);
   return id;

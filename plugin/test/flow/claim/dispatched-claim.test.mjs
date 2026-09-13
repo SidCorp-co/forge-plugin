@@ -12,7 +12,7 @@ import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../..
 process.env.XDG_CONFIG_HOME = tempHome("dispatched-claim").path;
 standsInNoTree("dispatched-claim");
 
-const { RUN_ID_VAR, runFor } = await import("../../../src/resolve/session/run-id.mjs");
+const { RUN_ID_VAR, runFor, runsFor } = await import("../../../src/resolve/session/run-id.mjs");
 const { mintRunId } = await import("../../../../tools/run/workspace/run-id.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -108,8 +108,8 @@ test("a live lease is refused where the claiming run's id names no issue, and na
   const refused = await claim([], "a-whole-wave-of-runs");
   assert.equal(refused.status, 1, `an id naming no issue proves no dispatch:\n${refused.stdout}${refused.stderr}`);
   assert.match(refused.stderr, /names no run dispatched to ISS-1091/u);
-  assert.match(refused.stderr, /forge-run-id beside that tree's git directory/u,
-    "and the route out is the tree that was cut for it, not the claim that just failed");
+  assert.match(refused.stderr, /forge-run-id beside its git directory/u,
+    "and the route out is the tree cut for that run, not the claim that just failed");
 });
 
 test("a live lease is refused past the statuses a run is dispatched at", async () => {
@@ -187,7 +187,7 @@ test("a tree that names this run, overridden by a variable that does not, is tol
   const tree = tempRoom("dispatched-tree-");
   mkdirSync(join(tree, ".git"));
   copyFileSync(new URL("../../../../.forge.json", import.meta.url).pathname, join(tree, ".forge.json"));
-  mintRunId(tree, "ISS-1091");
+  mintRunId(tree, ["ISS-1091"]);
   heldBy(DISPATCHER);
   const refused = await ranAsync(FORGE, ["claim", "ISS-1091"],
     { ...tracker.env, FORGE_SESSION_ID: "a-whole-wave-of-runs" }, tree);
@@ -206,9 +206,79 @@ test("a tree that names this run, overridden by a variable that does not, is tol
   heldBy(DISPATCHER);
   const outside = await claim([], "a-whole-wave-of-runs");
   assert.equal(outside.status, 1, `outside the tree it is a second run:\n${outside.stdout}${outside.stderr}`);
-  assert.match(outside.stderr, /make the call from the worktree cut for it/u);
+  assert.match(outside.stderr, /make the call from the tree cut for that run/u);
   assert.match(outside.stderr, new RegExp(`${RUN_ID_VAR} is what this call resolved`, "u"),
     "and unsetting the override, without which moving to the tree changes nothing");
+});
+
+/* The shape the flow dispatches, which this take was not written for: a batch is one tree under one
+   id, so its second and third members have no tree named for them and nothing but the id can say
+   the run was dispatched to them (ISS-1295). */
+test("a run dispatched to a batch takes the lease on a member its tree is not named for", async () => {
+  const room = tempRoom("dispatched-batch-");
+  mkdirSync(join(room, ".git"));
+  const minted = mintRunId(room, ["ISS-1084", "ISS-1091", "ISS-1133"]);
+  assert.deepEqual(runsFor(minted), ["iss-1084", "iss-1091", "iss-1133"], `the mint made ${minted}`);
+  assert.equal(runFor(minted), "iss-1084", "and the tree and branch are the head's, as they were");
+
+  heldBy(DISPATCHER);
+  const took = await claim([], minted);
+  assert.equal(took.status, 0, `a batchmate is the dispatch too:\n${took.stdout}${took.stderr}`);
+  assert.match(took.stdout, new RegExp(`ISS-1091 {2}handed: session ${minted.replace(/\+/gu, "\\+")}`, "u"));
+  assert.equal(wrote().at(-1)?.history.at(-1)?.how, "handed");
+});
+
+/* The whole path a batch member's claim takes: the id off the record a tree holds rather than off a
+   variable, which is what a run standing in its own worktree resolves and what `start` left there. */
+test("a batch id read off the tree takes the lease on a member the tree is not named for", async () => {
+  const tree = tempRoom("dispatched-batch-tree-");
+  mkdirSync(join(tree, ".git"));
+  copyFileSync(new URL("../../../../.forge.json", import.meta.url).pathname, join(tree, ".forge.json"));
+  const minted = mintRunId(tree, ["ISS-1084", "ISS-1091"]);
+  heldBy(DISPATCHER);
+  const took = await ranAsync(FORGE, ["claim", "ISS-1091"],
+    { ...tracker.env, FORGE_SESSION_ID: "" }, tree);
+  assert.equal(took.status, 0, `the tree's own record is what a run resolves:\n${took.stdout}${took.stderr}`);
+  assert.match(took.stdout, new RegExp(`handed: session ${minted.replace(/\+/gu, "\\+")}`, "u"),
+    "under the id the tree holds, which names this issue second and the tree after the first");
+});
+
+/* One key of the batch and not the batch: an id naming a run that was dispatched elsewhere is as
+   far from this issue as one naming none, and the route it is sent has to exist for a batchmate. */
+test("a batch id that does not name this issue takes nothing, and is sent to a tree that exists", async () => {
+  heldBy(DISPATCHER);
+  const refused = await claim([], "iss-1084+1133-deadbeef");
+  assert.equal(refused.status, 1, `another run's batch is a second run here:\n${refused.stdout}${refused.stderr}`);
+  assert.match(refused.stderr, /names no run dispatched to ISS-1091/u);
+  assert.match(refused.stderr, /make the call from the tree cut for that run/u,
+    "the tree cut for the run, since a batch member past the head never gets one of its own");
+  assert.doesNotMatch(refused.stderr, /worktree cut for it/u,
+    "and not a tree named for the issue, which for a batchmate is a path nothing will cut");
+});
+
+/* The other three conditions are unchanged, and a batch caller meets each of them as a single-issue
+   caller does: identity is the only one this widened. */
+test("the three conditions besides identity refuse a batch caller exactly as they refuse any other", async () => {
+  const mine = "iss-1084+1091-deadbeef";
+  heldBy("iss-1091-cccccccc");
+  const held = await claim([], mine);
+  assert.equal(held.status, 1, `a run dispatched to this issue holds it:\n${held.stdout}${held.stderr}`);
+  assert.match(held.stderr, /already with a run it was handed to/u);
+
+  heldBy("iss-1084+1091-cccccccc");
+  const batched = await claim([], mine);
+  assert.equal(batched.status, 1, `a holder naming it past its head holds it too:\n${batched.stdout}${batched.stderr}`);
+  assert.match(batched.stderr, /already with a run it was handed to/u);
+
+  heldBy(DISPATCHER, { status: "in_progress" });
+  const past = await claim([], mine);
+  assert.equal(past.status, 1, `in_progress is past the dispatch statuses:\n${past.stdout}${past.stderr}`);
+  assert.match(past.stderr, /past the statuses a run is dispatched at/u);
+
+  heldBy("a-landing-session", { landing: { state: "candidate", builder: mine, branch: "iss-1084", head: "a".repeat(40), base: "b".repeat(40), files: ["one.mjs"], at: ago(30) } });
+  const turn = await claim([], mine);
+  assert.equal(turn.status, 1, `the checkpoint governs a batch caller too:\n${turn.stdout}${turn.stderr}`);
+  assert.match(turn.stderr, /names the lander's turn/u);
 });
 
 /* The two halves of the id are written by different trees of this repository, and nothing else ties
@@ -216,7 +286,7 @@ test("a tree that names this run, overridden by a variable that does not, is tol
 test("an id the workspace mints for an issue is read back by the CLI as naming that issue", () => {
   const room = tempRoom("dispatched-mint-");
   mkdirSync(join(room, ".git"));
-  const minted = mintRunId(room, "ISS-1091");
+  const minted = mintRunId(room, ["ISS-1091"]);
   assert.equal(runFor(minted), "iss-1091", `the mint made ${minted}, which the lease cannot place`);
   assert.equal(runFor("bc3ef73b-0e08-4e9d-869e-b2168403c7c0"), null, "and an opaque id names no issue");
   assert.equal(runFor("iss-1091"), null, "nor does a bare key, which no tree ever minted");
