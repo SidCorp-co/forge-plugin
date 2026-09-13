@@ -5366,3 +5366,52 @@ twenty-four comments were read back.
 - The step-7 class is closed at its cause after seventeen resumes in fifty runs; what remains of
   the ship's contention is the gate every waiter re-pays and the head a sibling's landing moves,
   which are ISS-654 and ISS-653, both held as ideas until the next mark's figures.
+## The record's own gap — 2026-09-07 to 2026-09-13
+
+Nothing was written here between the two-hundred-and-eighth dry run and the one below it. Forty-three
+releases landed in that window, among them at least six delegated runs whose handbacks were folded
+without a section: ISS-885, ISS-1260, ISS-1320, ISS-1324, ISS-189 and ISS-1044, the last of which is
+the only one with an entry. The ordinals from here count sections of this file rather than runs of
+the flow, and a parenthetical citing a run by number resolves to a section, not to a place in the
+order the runs happened.
+
+## Two-hundred-and-ninth dry run — ISS-1044
+
+A question about one row of the consult log costs a scan that stops at its answer (3.36.1, landed as
+5a7706f7, released at 9f6eac13). `plugin/src/hooks/hook-log-file.mjs` gained a backwards walk over
+the store's bytes that finds rows by a mark spelled the way `JSON.stringify` writes a key and its
+value, parses only the candidates and stops where the caller stops; the two questions needing none of
+the reply's grammar moved to `plugin/src/codex/log/asked.mjs`. On the developer's own log copied
+under a temporary config home — 43.2 MB, 8,843 rows, 3,515 consults, median of ten per side — one
+recordable path went from 462 ms and 164 MB of heap to 47 ms and none, the log's part of it from
+545 ms to 33 ms, the open-findings question from 475–485 ms to 26 ms, and the consult count from
+487 ms to 191 ms. Nine criteria pass at one head. Two corrections written in the open, one retiring
+a file from the plan and one replacing a criterion's absolute millisecond target with a ratio. One
+review, approved, its finding accepted. Two filed (ISS-1335, the split of a file left at 498 of 500
+lines; ISS-1336, a recheck whose rulings the log never records), one paragraph routed to ISS-1149,
+one caller's measurement answered onto ISS-636 and left open for its holder, one gap record. Closed
+by its run; no restart owed. Folded from its handback; the ten comments were read back.
+
+- A criterion written as an absolute time judged the machine rather than the change: on a 43 MB file
+  19 ms of any answer is the `readFileSync`, so no design that reads the file whole could have met
+  the 30 ms the criterion asked for. The correction moved it to a ratio of what the whole-log read
+  spent for the same answer, in the open and before the verdict — which is the only place a
+  criterion can be argued from without the argument being a defence of the result.
+- A ceiling met mid-run picked the seam instead of an exemption. `codex-log.mjs` stood at 495 of its
+  500 lines and `plugin/src/codex/` at 10 of its 10 files, so the two questions that need none of the
+  reply's grammar went a folder down; `unverdicted` stayed where it was because the verb below it
+  calls it and the other direction is an import cycle. The file ends at 498 and its split is filed
+  rather than swallowed.
+- The paragraph the reading rule deserved could not land: its document was 8,969 characters of the
+  9,000 a topic is read in one pass, so the gate refused the tree. The paragraph went whole onto the
+  issue that owns that document's split, and the decision went to the two modules' opening comments.
+  A budget on served text with no room left in it was met twice the same day in two different
+  budgets, the other being the `--how` set's ceiling.
+- A recheck's rulings were never recorded at all: the reply numbered them `1. **F1 — REFUTED**` and
+  the reader demands `N. **REFUTED**` as the whole of the first bold run, so the ruling read as
+  nothing and the commit gate refused three steps later saying nothing about the recheck. Two rounds.
+- No named wait fits a gate that declines with exit 75. A sibling worktree held this checkout's one
+  gate slot for most of the run, and the gate and `ship --from 5` were re-sent from a bounded loop in
+  one background command — three waits, about fifty minutes, and nothing re-run that had passed.
+- A comment was posted twice: a read-before-write refusal was read as a thread print and the same
+  command re-sent. The two are identical and adjacent on the issue that holds them.
