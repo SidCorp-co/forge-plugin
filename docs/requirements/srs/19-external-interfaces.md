@@ -261,30 +261,30 @@ is somebody else's text, and a gateway that echoes a request back may put the ke
 is struck out of external text before any of it is printed. Why a spent turn hands the decision to a
 person instead of asking again is `docs/cli/chatgpt.md`'s.
 
-- **AC-19-9-1** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt.test.mjs "one turn is a tools/call of chatgpt at the configured endpoint, under the configured key"
+- **AC-19-9-1** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt.test.mjs "one turn is a tools/call of chatgpt at the configured endpoint, under the configured key"
   WHEN a turn is sent THEN the CLI SHALL send it to the endpoint the configuration names, under the
   key it names, and SHALL send no second turn for that invocation.
-- **AC-19-9-2** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt.test.mjs "no endpoint or key: the refusal names the doctor flag for each, and sends nothing"
+- **AC-19-9-2** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt.test.mjs "no endpoint or key: the refusal names the doctor flag for each, and sends nothing"
   IF either the endpoint or the key is unconfigured THEN the CLI SHALL refuse before anything is
   sent and SHALL name what sets each.
-- **AC-19-9-3** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt.test.mjs "a key echoed back through the conversation id is struck out of the failure too"
+- **AC-19-9-3** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt.test.mjs "a key echoed back through the conversation id is struck out of the failure too"
   WHERE text the far side wrote is printed the CLI SHALL strike the configured key out of it first.
-- **AC-19-9-4** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt.test.mjs "the upload goes to the origin beside the chatgpt endpoint, never the tracker's"
+- **AC-19-9-4** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt.test.mjs "the upload goes to the origin beside the chatgpt endpoint, never the tracker's"
   WHEN a local attachment is sent THEN the CLI SHALL upload it to the same backend the turn is
   addressed to, and SHALL send the turn only the address that upload answered with.
-- **AC-19-9-5** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt-detach.test.mjs "a wait past the cap returns without the answer, names the turn and prints what collects it"
+- **AC-19-9-5** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-detach.test.mjs "a wait past the cap returns without the answer, names the turn and prints what collects it"
   WHERE the wait in force is longer than one call may hold open, the CLI SHALL send the turn from a
   process that outlives the invocation, SHALL return before the answer exists, and SHALL print both
   the identifier of that turn and the command that reads it back.
-- **AC-19-9-6** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt-detach.test.mjs "the answer a detached turn came back with is collected, twice, and then is not pending"
+- **AC-19-9-6** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-detach.test.mjs "the answer a detached turn came back with is collected, twice, and then is not pending"
   WHEN a turn sent that way is collected THEN the CLI SHALL print the outcome that turn settled with
   and SHALL cross this boundary no further to do it.
-- **AC-19-9-7** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt-image.test.mjs "a call that names no ratio is refused, and nothing is sent"
+- **AC-19-9-7** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-image.test.mjs "a call that names no ratio is refused, and nothing is sent"
   IF a turn asking for a picture states no framing or no aspect ratio THEN the CLI SHALL refuse it
   before anything crosses this boundary, and SHALL name both of them.
-- **AC-19-9-8** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt-image.test.mjs "the framing opens the prompt, the caller's words sit in the middle and the shape closes it, in one turn"
+- **AC-19-9-8** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-image.test.mjs "the framing opens the prompt, the caller's words sit in the middle and the shape closes it, in one turn"
   WHEN a turn asking for a picture is sent THEN the CLI SHALL carry the saved framing and the stated
   aspect ratio inside the prompt it sends, the ratio as the last line of it.
-- **AC-19-9-9** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt-detach.test.mjs "a detached picture is spawned under the action that asked for it, and collects as one"
+- **AC-19-9-9** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-detach.test.mjs "a detached picture is spawned under the action that asked for it, and collects as one"
   WHERE a turn is sent from a process that outlives the invocation the CLI SHALL invoke that process
   under the action the caller asked for.
