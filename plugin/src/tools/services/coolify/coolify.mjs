@@ -1,6 +1,6 @@
-/* The deploy path of a Coolify instance, driven from this CLI. Every route-index command runs
-   inside the project `.coolify.json` pins, and there is no unscoped mode: a uuid outside the pin is
-   refused before its request is built. docs/cli/coolify.md. */
+/* The verb itself: its usage texts, the two built-ins that need no instance behind them, and the
+   one order the pieces run in — resolve the operation, read its arguments against that operation's
+   own declaration, put both past the guard, and only then send. docs/cli/coolify.md. */
 import { configPath, saveNested } from "../../../resolve/config.mjs";
 import { fail } from "../../../resolve/settings.mjs";
 import { flags, helpAskedOf } from "../../../resolve/flags.mjs";
