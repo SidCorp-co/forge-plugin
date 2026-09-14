@@ -68,14 +68,17 @@ export const cloudflareAccounts = () => {
 const TOOLS = [
   { verb: "cloudflare",
     held: () => cloudflareAccounts().accounts.length > 0,
+    absent: () => "no account",
     configure: `\`${CLOUDFLARE_LOGIN}\`` },
   { verb: "coolify",
     held: () => Boolean(coolifyTarget().url),
+    absent: () => "no instance",
     configure: "`forge coolify login --url <url> --token <token>`" },
   { verb: "codex",
     held: () => !profile().problem,
-    configure: "a gateway profile carrying ANTHROPIC_BASE_URL and ANTHROPIC_AUTH_TOKEN, at"
-      + " `CLAUDE_PROXY_ENV` or at ~/.claude/claude-proxy.env" },
+    absent: () => profile().problem,
+    configure: "one carrying ANTHROPIC_BASE_URL and ANTHROPIC_AUTH_TOKEN, at `CLAUDE_PROXY_ENV`"
+      + " or at ~/.claude/claude-proxy.env" },
   { verb: "chatgpt",
     held: () => chatgptSettings().missing.length === 0,
     configure: "`forge doctor --chatgpt-url <endpoint> --chatgpt-key <key>`" },
@@ -85,21 +88,32 @@ export const CONFIGURABLE = TOOLS.map(({ verb }) => verb);
 
 const rowFor = (verb) => TOOLS.find((one) => one.verb === verb);
 
-/* A reader that THROWS answers unconfigured: `forge -h` asks this before it dispatches, so a directory named in
-   `CLAUDE_PROXY_ENV` would otherwise take every verb of this CLI down. The verb typed still reaches it and throws. */
+/* Every read of a row goes through here, because `forge -h` asks before it dispatches and `forge doctor` is the one
+   surface left to explain itself: a directory named in `CLAUDE_PROXY_ENV` would otherwise take the whole CLI down,
+   and a guard on one of the two readings leaves the report throwing where the help survived. The verb typed still
+   reaches the same file and still fails its own way. */
+const tried = (read, fallback) => {
+  try {
+    return read();
+  } catch {
+    return fallback;
+  }
+};
+
 export const toolState = (verb) => {
   const row = rowFor(verb);
   if (!row) return null;
-  try {
-    return row.held() ? CONFIGURED : UNCONFIGURED;
-  } catch {
-    return UNCONFIGURED;
-  }
+  return tried(row.held, false) ? CONFIGURED : UNCONFIGURED;
 };
 
 export const unconfiguredTool = (verb) => toolState(verb) === UNCONFIGURED;
 
 export const configureSaid = (verb) => rowFor(verb)?.configure ?? null;
+
+export const absentSaid = (verb) => {
+  const row = rowFor(verb);
+  return row?.absent ? tried(row.absent, "nothing this machine could read") : null;
+};
 
 export const toolConditions = () =>
   Object.fromEntries(TOOLS.map(({ verb }) =>

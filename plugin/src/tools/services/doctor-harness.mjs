@@ -4,7 +4,8 @@ import { defaultEffort, disagreement, effortVia, rungFor, rungLadder } from "../
 import { configPath } from "../../resolve/config.mjs";
 import { logBytes, logPath } from "../../codex/codex-log.mjs";
 import { consultCount } from "../../codex/log/asked.mjs";
-import { CONFIGURABLE, cloudflareAccounts, configureSaid, unconfiguredTool, modelBehind, profile } from "./tool-config.mjs";
+import { CONFIGURABLE, absentSaid, cloudflareAccounts, configureSaid, unconfiguredTool, modelBehind,
+  profile } from "./tool-config.mjs";
 import { SCOPE_FILE, coolifyTarget, pinned } from "./coolify/config.mjs";
 import { masked } from "./masked.mjs";
 
@@ -81,7 +82,7 @@ const HALVES = { chatgpt: (full) => chatgptRow(full).detail };
 const toolRow = (verb, full) => (unconfiguredTool(verb)
   ? { label: verb,
     level: "note",
-    detail: `${HALVES[verb]?.(full) ?? `nothing saved — ${configureSaid(verb)}`}`
+    detail: `${HALVES[verb]?.(full) ?? `${absentSaid(verb)} — ${configureSaid(verb)}`}`
       + `, so \`forge ${verb}\` is in no help` }
   : { label: verb, ...SAVED[verb](full) });
 
