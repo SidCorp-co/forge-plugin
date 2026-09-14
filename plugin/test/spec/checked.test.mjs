@@ -147,6 +147,54 @@ test("nothing is read where no criterion opens with a reference", () => {
   assert.equal(raised, 0);
 });
 
+/* A revision of more than sixteen digits is a float by the time either reader has it, and the two
+   spellings below are the two ways it used to come back through the `<id>~<rev>` text the criterion
+   path built: `1.1111111111111111e+21` re-read as revision 1, a revision the clause really is at, so
+   the write stored silently; `1e+21` re-read as no revision at all, so the write stored under R-10's
+   notice. The plan path, which never round-tripped, refused both (ISS-462). */
+const UNWRITABLE = [
+  ["1111111111111111111111", "1.1111111111111111e+21"],
+  ["1000000000000000000000", "1e+21"],
+];
+
+for (const [typed, renders] of UNWRITABLE) {
+  test(`a criterion opening at a revision that renders as ${renders} is refused, not stored`, () => {
+    const run = written(project(`crit-unwritable-${renders}-`, true), `1. AC-01-1-1~${typed}: the outcome.\n`);
+    assert.equal(run.status, 1, run.stderr);
+    assert.match(run.stderr, /nothing was written/u);
+    assert.match(run.stderr, new RegExp(`at revision 1, not ${renders.replace(/[.+]/gu, "\\$&")}`, "u"),
+      `the refusal names the revision the clause is at and the one it was given: ${run.stderr}`);
+    assert.match(run.stderr, /cite AC-01-1-1~1/u, "and the citation to write instead");
+  });
+}
+
+/* Criterion 2 of ISS-462: one reference standing alone, read by both this module's readers over one
+   tree. The criterion path wraps it in a criterion and the plan path hands it over as text, which is
+   the whole of what separates them, so any difference in what comes back is the two of them
+   disagreeing about the same citation. */
+const bothReaders = (root, reference) => spawnSync(process.execPath, [
+  "-e",
+  `import("${new URL("../../src/spec/checked.mjs", import.meta.url).pathname}").then((m) => {`
+    + "const answers = (call) => { const said = []; const was = console.error;"
+    + " console.error = (line) => said.push(String(line));"
+    + " try { call((line) => said.push(String(line))); } catch (error) { said.push(error.message); }"
+    + " console.error = was; return said.join(\"\\n\"); };"
+    + `const one = ${JSON.stringify(reference)};`
+    + "console.log(JSON.stringify({"
+    + " criteria: answers((raise) => m.criteriaChecked([{ number: 1, text: `${one}: the outcome.` }], raise)),"
+    + " plan: answers((raise) => m.citationsChecked(one, raise)),"
+    + "}));});",
+], { encoding: "utf8", cwd: root }).stdout.trim();
+
+test("a criterion's opening and a plan's text answer one reference the same way, at every revision", () => {
+  const root = project("crit-agree-", true);
+  for (const reference of ["AC-01-1-1~1", "AC-01-1-2~1", "UC-01-1", "R-10~1",
+    "AC-01-1-1~1111111111111111111111", "AC-01-1-1~1000000000000000000000"]) {
+    const { criteria, plan } = JSON.parse(bothReaders(root, reference));
+    assert.equal(criteria, plan, `the two readers disagree about ${reference}`);
+  }
+});
+
 const clauses = (root, issue) => spawnSync(process.execPath, [
   "-e",
   `import("${new URL("../../src/spec/checked.mjs", import.meta.url).pathname}")`

@@ -4,8 +4,7 @@ import { citationsIn, identifiersIn, opensWith } from "./parse.mjs";
 import { keepsSpecTree, specTreeIfAny } from "./tree.mjs";
 import { lookup } from "./index.mjs";
 
-export const citationsChecked = (text, raise) => {
-  const ids = identifiersIn(text);
+const referencesChecked = (ids, raise) => {
   if (!ids.length) return;
   const index = specTreeIfAny();
   if (!index) return;
@@ -15,12 +14,11 @@ export const citationsChecked = (text, raise) => {
   if (said) console.error(said);
 };
 
-/** An identifier further into a criterion is prose and settles nothing, and where no criterion opens with one nothing is read, so a verb that walked no tree does not start. */
-export const criteriaChecked = (criteria, raise) => {
-  const opened = criteria.map((one) => opensWith(one.text)).filter(Boolean);
-  const written = (one) => `${one.id}${one.rev === null ? "" : `~${one.rev}`}`;
-  if (opened.length) citationsChecked(opened.map(written).join("\n"), raise);
-};
+export const citationsChecked = (text, raise) => referencesChecked(identifiersIn(text), raise);
+
+/** An identifier further into a criterion is prose and settles nothing, and where no criterion opens with one nothing is read, so a verb that walked no tree does not start. The openings go on as the references they already are: rendering them back to `<id>~<rev>` text for the next line to parse made this reader and the one above answer one citation differently, because a revision `Number` cannot hold prints in exponent form and parses back as something else — as revision 1 from `1.1111111111111111e+21`, and as no revision at all from `1e+21` (ISS-462). */
+export const criteriaChecked = (criteria, raise) =>
+  referencesChecked(criteria.map((one) => opensWith(one.text)).filter(Boolean), raise);
 
 /** The three fields a write can put a citation into, each with the words a reader is given for it, in one table: the check that reads them and the help a file is written against would otherwise come to name different fields. The tracker's own wrapping of them carries no identifier of its own. */
 export const CITED_FIELDS = [
