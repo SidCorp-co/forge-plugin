@@ -24,20 +24,20 @@ range would have become a comment on the previous range's issue with nothing lef
 **The fold asks for both signals on one issue, and that is a price paid deliberately.** The issue a
 filing lands on has to be the one it is about *and* the one it is in — the nearest of the neighbours
 naming its place, which is not the nearest of all, and no reply here says otherwise. The place query
-cannot rank: every hit it returns comes back at the same score — seven issues naming one path, all
-at 0.0608 — so on its own it would choose whichever the tracker listed first, and a place as broad
-as a common verb returns ten undifferentiated issues. Left to the place alone the fold would
-eventually post a finding onto an issue with nothing to do with it, and the finding would be lost
-exactly the way filing it twice loses it.
+ranks by nothing this act can use: its score reads how strongly a body matches the term, so on its
+own the fold would land on whichever open issue says the place most often, and a place as broad as a
+common verb has dozens of those. Left to the place alone the fold would eventually post a finding
+onto an issue with nothing to do with it, and the finding would be lost exactly the way filing it
+twice loses it.
 
 **So the fold reaches neither of the two cases that motivated it, and the block is what covers
 them.** The two same-file defects of 2026-09-04 share no subject — each one's nearest neighbours are
 its own topic's, and neither reaches the other above the floor — and one of them names the file only
 in prose, so the place query misses it too. The duplicate pair shares a subject at 0.830 and no
-place: the section naming its place named a verb broad enough to return ten issues, none of them the
-one it duplicated. Both would have been filed. What changes is that the second filer would have been
-shown the issue they were duplicating, on their own screen, while the command was still in their
-hand. That is the whole of what this buys, and it is worth saying plainly rather than claiming a fold
+place: the section naming its place named a verb broad enough that the issue it duplicated was not
+among what came back. Both would have been filed. What changes is that the second filer would have
+been shown the issue they were duplicating, on their own screen, while the command was still in
+their hand. That is the whole of what this buys, and it is worth saying plainly rather than claiming a fold
 that fires more often than it does.
 
 **A destination nobody chose is read before it is written to.** The hold every write to an issue

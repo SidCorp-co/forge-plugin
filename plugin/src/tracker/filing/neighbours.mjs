@@ -7,6 +7,8 @@ import { firstLine } from "../../resolve/flags.mjs";
 const TOOL = "forge_memory.search";
 const SOURCE = ["issue"];
 export const TOP_K = 10;
+/** The place net's own width, and not a display budget: how many issues naming this place may be eligible to take a finding, where the block below still prints `TOP_K` of them. Fifty because the deepest place rank at which the fold's own destination sat, measured 2026-09-14 over 24 open issues, was 34 — a ceiling and not an exhaustion point, the scored answer for a place as broad as a common verb running past any ask. Where the net ends is that score rather than this number: over six terms every hit the tracker scored above zero held the place term verbatim in the text it embedded, and none of the forty it scored zero did. docs/cli/beside.md carries both measurements. */
+export const PLACE_K = 50;
 const QUERY_MAX = 4000;
 const NO_SCORE = "  —  ";
 const KEY = 8;
@@ -15,32 +17,35 @@ const KEY = 8;
 export const FLOOR = 0.7;
 export const FOLD_FLOOR = 0.78;
 
-/* `topK` is an ask this tracker answers past, so the bound is applied here: every count below is off what this reader kept, and a reading that filled the bound with nothing under the floor is the one that may be short. docs/cli/alike.md carries the measurement and the two readings that are not short. */
-const hitsOf = (answer) => (Array.isArray(answer?.hits) ? answer.hits : []).slice(0, TOP_K);
+/* `topK` is an ask this tracker answers past, so the bound is applied here, against the ask that was made rather than against one constant: the two queries want different widths and neither may read the other's surplus. Every count below is off what this reader kept, and a reading that filled the bound with nothing under the floor is the one that may be short. docs/cli/alike.md carries the measurement and the two readings that are not short. */
+const hitsOf = (answer, want) => (Array.isArray(answer?.hits) ? answer.hits : []).slice(0, want);
 
-const ask = async (query, strategy) => {
+const ask = async (query, strategy, want) => {
   const text = String(query ?? "").trim();
   /* A `note` means a query that COULD not run, so one with no subject leaves none. */
   if (!text) return { hits: [], note: null };
   const answer = await tried(TOOL, {
     query: text.slice(0, QUERY_MAX),
-    topK: TOP_K,
+    topK: want,
     strategy,
     sourceFilter: SOURCE,
   });
   if (answer?.refused) {
     return { hits: [], note: `the ${strategy} query could not run: ${firstLine(answer.refused)}` };
   }
-  return { hits: hitsOf(answer), note: null };
+  return { hits: hitsOf(answer, want), note: null };
 };
+
+const namingPlace = (hits) => hits.filter((one) => Number(one.score) > 0);
 
 const cutInBand = (hits, inBand) => hits.length >= TOP_K && inBand >= hits.length;
 
 /** Every open issue either query reached. The key, the title and the open-ness are the projection's, which `live` already is, so the resolve costs no call of its own. */
 export const neighboursOf = async ({ seed, place }, live) => {
   const open = new Map(live.filter((one) => one.documentId).map((one) => [one.documentId, one]));
-  const [near, named] = await Promise.all([ask(seed, "semantic"), ask(place, "keyword")]);
-  const samePlace = new Set(named.hits.map((one) => one.sourceRef));
+  const [near, named] = await Promise.all([ask(seed, "semantic", TOP_K), ask(place, "keyword", PLACE_K)]);
+  const inPlace = namingPlace(named.hits);
+  const samePlace = new Set(inPlace.map((one) => one.sourceRef));
   const found = new Map();
   const add = (ref, score) => {
     const row = open.get(ref);
@@ -55,7 +60,7 @@ export const neighboursOf = async ({ seed, place }, live) => {
   };
   const inBand = near.hits.filter((one) => Number(one.score) >= FLOOR).length;
   for (const hit of near.hits) if (Number(hit.score) >= FLOOR) add(hit.sourceRef, Number(hit.score));
-  for (const hit of named.hits) add(hit.sourceRef, null);
+  for (const hit of inPlace.slice(0, TOP_K)) add(hit.sourceRef, null);
   return {
     place,
     notes: [near.note, named.note].filter(Boolean),
@@ -66,8 +71,7 @@ export const neighboursOf = async ({ seed, place }, live) => {
   };
 };
 
-/** The issue a filing below the top rung joins: the nearest of those the place query found too, at the
- *  fold's own threshold. Nearest among THOSE, and no line here calls it nearest of all. */
+/** The issue a filing below the top rung joins: the nearest of those the place query found too, at the fold's own threshold. Nearest among THOSE, and no line here calls it nearest of all. */
 export const foldOnto = (suggestions) =>
   suggestions.find((one) => one.samePlace && one.score !== null && one.score >= FOLD_FLOOR) ?? null;
 

@@ -32,6 +32,24 @@ duplicate. Landing a filing on one takes 0.78, in the middle of that measured ga
 range the printing tolerates is exactly the range where the subject is known not to match. One
 threshold for both would have folded onto a machinery neighbour and called it the subject.
 
+**The place net is wider than the block, because the two answer different questions.** How many
+rows a filer glances at is a display budget. How many issues naming this place may be eligible to
+take a finding is not, and until 2026-09-14 one number was both — so the fold's reach moved whenever
+the block's did. The keyword answer ranks, descending, and the first ten of an ask of fifty are the
+whole of an ask of ten, so reading further reorders nothing already taken and can only add. What it
+adds is the destination itself: over twenty-four open issues the one the fold should have landed on
+sat as deep as place rank thirty-four, once on the very issue whose title says it narrows that one.
+The net is therefore asked at fifty, which clears every destination rank measured with room over it,
+and the block still prints ten. Fifty is a ceiling rather than an exhaustion point — for a place as
+broad as a common verb the scored answer runs past any ask worth making, and what the fold does there
+is [`the-fold`](the-fold.md)'s.
+
+**Where that net ends is the score, not the count.** This tracker pads a keyword answer with rows it
+scored zero. Measured over six terms: every hit above zero held the query verbatim in the text it was
+embedded from, and none of the forty at zero did. A row at zero names the place in no sense, so it
+joins no net and is marked as naming nothing. It used to be counted as a place match, and on a
+path-shaped place — where the scored tail ends around rank six — most of the ten were those.
+
 **Which filings then land on a neighbour, on what condition, and what that act costs:**
 [`the-fold`](the-fold.md). Nothing on this page decides it, and the mark is not among the answers.
 
