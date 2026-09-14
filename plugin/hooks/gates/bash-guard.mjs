@@ -110,10 +110,17 @@ const RULES = [
     topic: "polling",
     cause:
       "A sleep inside a wait polls: every wake-up is a turn spent asking, and a wait longer than "
-      + "the shell tool's ten-minute cap ends with the state it was waiting on lost.",
+      + "the shell tool's ten-minute cap ends with the state it was waiting on lost. Backgrounding "
+      + "this same loop is refused with it: that moves the poll off the turn budget and the answer "
+      + "out of reach together, a backgrounded call coming back to nobody.",
     instead:
-      "Run the work in the foreground with the tool's own timeout, up to that ten-minute cap, or "
-      + "start it in the background and let the harness's completion notice be the wake-up.",
+      "Wait with a call that comes back to you. Where the work provides a verdict call, take that: "
+      + "it returns the decision. Otherwise run the work in the foreground under the "
+      + "tool's own timeout, up to that ten-minute cap. Work already running, which you cannot go "
+      + "back and relaunch, is waited on with `timeout <seconds> tail --pid=<pid> -f /dev/null`: "
+      + "`0` is that pid gone, `124` the deadline, anything else the wait itself failing. Past the "
+      + "cap, put the same condition on `Monitor`, watching what produces the answer as well as the "
+      + "file, where the line the command prints is the answer.",
   },
 ];
 
@@ -256,8 +263,9 @@ export const run = (ev) => {
     deny(
       `Refused. This is the read before it, typed again with nothing done between: ${again.join(", ")}. `
       + "A read repeated with nothing between it and the last one is a wait spent asking."
-      + "\n\nInstead: if the work writing it is still running, let the harness's completion notice be the "
-      + "wake-up — it arrives when the work ends, however long that takes. If it has already ended, then "
+      + "\n\nInstead: if the work writing it is still running, wait on it with one call that comes back to "
+      + "you — its own verdict call, or `timeout <seconds> tail --pid=<pid> -f /dev/null` on the pid "
+      + "writing it. If it has already ended, then "
       + "the read before this one came too early: ask the finished log what you now want to know, which "
       + `is a different question. This rule says a thing once, so sending this again passes.${how("polling")}`,
     );

@@ -291,15 +291,21 @@ test("a body a shell runs is commands, whatever names it happens to carry", () =
   assert.ok(decide(`bash <<'SH'\necho "git ${verb}"\nSH`).allowed, "while a literal there is still an argument");
 });
 
-/* The three shapes counted in the transcripts, and the two routes the refusal has to offer instead:
-   1,691 poll-shaped calls on one project in three days, 46 of them lost to the shell tool's cap. */
+/* The three shapes counted in the transcripts, and the routes the refusal has to offer instead:
+   1,691 poll-shaped calls on one project in three days, 46 of them lost to the shell tool's cap.
+   Every route named is one whose own call comes back to the caller, because five runs on ISS-943
+   took the one that does not and never saw their answer. */
 test("a wait that polls is refused, and a pause on its own is not", () => {
   const nap = `sl${"eep"}`;
   const first = decide(`until curl -sf localhost:3000; do ${nap} 5; done`);
   assert.equal(first.allowed, false);
-  assert.match(first.reason, /foreground with the tool's own timeout/u, "the first route");
-  assert.match(first.reason, /background and let the harness's completion notice/u, "the second");
+  assert.match(first.reason, /comes back to you/u, "the line every route it offers is picked by");
+  assert.match(first.reason, /foreground under the tool's own timeout/u, "the route for work this call starts");
+  assert.match(first.reason, /tail --pid=<pid>/u, "the one for work already running, which a run cannot go back and relaunch");
+  assert.match(first.reason, /Monitor/u, "and the one for a wait past the cap");
   assert.match(first.reason, /ten-minute cap/u, "and what the foreground one is bounded by");
+  assert.doesNotMatch(first.reason, /completion notice/u, "while the route that comes back to nobody is offered as none of them");
+  assert.match(first.reason, /Backgrounding this same loop is refused/u, "and the second attempt this refusal used to invite is answered inside the first");
   assert.match(first.reason, /forge hooks --how polling/u, "the argument has its own page");
   assert.equal(decide(`while ! grep -q ready /tmp/log; do ${nap} 10; done`).allowed, false);
   assert.equal(decide(`while true; do date; ${nap} 30; done`).allowed, false);
@@ -387,6 +393,8 @@ test("the same read of a log typed again is refused, and another question of it 
   assert.equal(again.allowed, false);
   assert.match(again.reason, /\/tmp\/ship\.log/u, "the refusal names the log it is about");
   assert.match(again.reason, /still running/u, "what to do while the work writing it runs");
+  assert.match(again.reason, /comes back to you/u, "which is a call that returns, and not a notice that reaches a run only while it is still going");
+  assert.doesNotMatch(again.reason, /completion notice/u, "so this refusal sends nobody where the one above does not");
   assert.match(again.reason, /already\s+ended/u, "and what to do once that work has ended");
   assert.match(again.reason, /came too early/u, "which is what the read before it was, since this gate cannot see the notice");
   assert.match(again.reason, /is a different question/u, "so the way through is named rather than left to be found");

@@ -125,9 +125,10 @@ otherwise: an answer's quality is a person's finding, never a gate's.
 
 Rev: 1 · Enforces: BR-18
 
-Asking again is what a wait costs: each wake-up spends a turn on a question whose answer arrives by
-itself once the work ends. Two routes wait without spending one, and `plugin/hooks/how/polling.md`
-holds the figures that settled this, the routes themselves, and what the rule leaves unjudged.
+Asking again is what a wait costs: each wake-up spends a turn on a question one call could have put
+once, and the routes that spend none are the ones whose own call carries the answer back.
+`plugin/hooks/how/polling.md` holds the figures that settled this, the routes themselves, and what
+the rule leaves unjudged.
 
 - **AC-17-11-1** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs "a wait that polls is refused, and a pause on its own is not"
   IF a pause stands inside a wait for other work THEN the product SHALL refuse the command and SHALL
