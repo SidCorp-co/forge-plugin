@@ -3,59 +3,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { dirname, join } from "node:path";
 
 import { DEFAULTS } from "../../src/rank/weights.mjs";
-import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
+import { claims, issue, rankRoom, standing } from "./room.mjs";
 import { bounded, waveUnder, wanted } from "../../src/rank/next.mjs";
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../..", import.meta.url).pathname;
-
-/* The weights are read out of the checkout the caller stands in and from nowhere else, so a case
-   about them stands somewhere else: writing this repository's own file would leave a run that died
-   mid-case with a backlog ranked by a weight nobody set. */
-const OWN = JSON.parse(readFileSync(`${ROOT}.forge.json`, "utf8"));
-const standing = (rank) => {
-  const room = tempRoom("rank-project-");
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: OWN.slug, ...(rank ? { rank } : {}) }));
-  return room;
-};
-
-const issue = (issueId, held = {}) => ({
-  issueId,
-  documentId: `u-${issueId}`,
-  status: "open",
-  priority: "medium",
-  category: "feature",
-  complexity: null,
-  reopenCount: 0,
-  mergedAt: null,
-  createdAt: `2026-09-0${(Number(issueId.slice(4)) % 9) + 1}T00:00:00.000Z`,
-  touched: Number(issueId.slice(4)),
-  title: `${issueId} as it was filed`,
-  description: "## Why\n\nSomething is wrong.\n\n## Outcome\n\nIt is right.\n\n## Out of scope\n\nNothing.\n",
-  ...held,
-});
-
-/* The convention prose-edges.mjs reads, in the tracker's own built-in English: the marker sentence
-   is what makes a body a carrier, and the phrase inside it is what names the other end. */
-const claims = (phrase) => `It is blocked by the ${phrase} issue, and those edges are recorded.`;
-
-const state = { issues: [], comments: {}, calls: [], answer: {}, memory: {} };
-const tracker = await fakeTracker(state);
-test.after(() => tracker.close());
-
-/* Every case stands in a directory it owns, so what the rank reads is what the case set and never
-   what this checkout's own `rank` block happens to hold (ISS-395). */
-const PLAIN = standing(null);
-const ran = (argv, cwd = PLAIN) => ranAsync(FORGE, argv, tracker.env, cwd);
-
-const load = (issues, memory = {}) => {
-  state.issues = issues;
-  state.memory = memory;
-};
+const { load, ran, state, close } = await rankRoom();
+test.after(close);
 
 test("the rank prints the eligible issues and writes nothing at all", async () => {
   load([issue("ISS-1", { priority: "critical" }), issue("ISS-2", { priority: "low" })]);
@@ -151,6 +108,77 @@ test("a batch of three rides together and the fourth prints as related", async (
   assert.match(run.stdout, /\+ ISS-3\s+reads like ISS-1 at 0\.90/u);
   assert.match(run.stdout, /~ ISS-4\s+related, not batched: the batch is full/u);
   assert.doesNotMatch(run.stdout, /\+ ISS-4/u, "the cap is three members, and it holds");
+});
+
+/* The paths a body names are claims about code, read against the tree the wave would be built in.
+   ISS-1363: a `+` line grouped three issues on plugin/src/tools/issues.mjs, which no branch of this
+   repository has ever held, and the batch was dispatched on it. */
+const standingInTree = (...files) => {
+  const room = standing(null);
+  spawnSync("git", ["-C", room, "init", "-q"], { encoding: "utf8" });
+  for (const rel of files) {
+    mkdirSync(join(room, dirname(rel)), { recursive: true });
+    writeFileSync(join(room, rel), "");
+  }
+  return room;
+};
+
+const naming = (key, ...paths) => issue(key, {
+  complexity: "s",
+  priority: "high",
+  description: `## Why\n\nIt edits ${paths.map((one) => `\`${one}\``).join(" and ")}.\n`,
+});
+
+test("a wave is not grouped on a path the checkout has not got, and the line names the path", async () => {
+  const room = standingInTree("plugin/src/rank/batch.mjs");
+  load([naming("ISS-1", "plugin/src/tools/issues.mjs"), naming("ISS-2", "plugin/src/tools/issues.mjs")]);
+  const run = await ran(["next", "--count", "1"], room);
+  assert.equal(run.status, 0, run.stderr);
+  assert.doesNotMatch(run.stdout, /\+ ISS-2/u, "nothing is grouped on a path that resolves to nothing");
+  assert.match(run.stdout, /~ ISS-2\s+not related by module: it names plugin\/src\/tools\/issues\.mjs,/u);
+  assert.match(run.stdout, /which this checkout has not got/u);
+});
+
+/* The path is said nowhere else, so the filter that stops an issue printing twice may not take it. */
+test("the path a pair failed to meet on is still named where that issue heads a batch of its own", async () => {
+  const room = standingInTree("plugin/src/rank/batch.mjs");
+  load([naming("ISS-1", "plugin/src/tools/issues.mjs"), naming("ISS-2", "plugin/src/tools/issues.mjs")]);
+  const run = await ran(["next"], room);
+  assert.equal(run.status, 0, run.stderr);
+  const heads = run.stdout.split("\n").filter((line) => line.startsWith("ISS-")).map((line) => line.slice(0, 5));
+  assert.deepEqual(heads, ["ISS-1", "ISS-2"], "neither was absorbed by the other");
+  assert.match(run.stdout, /~ ISS-2\s+not related by module: it names plugin\/src\/tools\/issues\.mjs,/u);
+  const json = await ran(["next", "--json"], room);
+  const [head] = JSON.parse(json.stdout).candidates;
+  assert.deepEqual(head.related.map((one) => one.why),
+    ["names plugin/src/tools/issues.mjs, which this checkout has not got"], "and the json carries it too");
+});
+
+/* The cap exists to keep a batch readable, and an unresolvable path is not a batch member. */
+test("the cap on related issues does not take a missing-path line with it", async () => {
+  const room = standingInTree("plugin/src/rank/batch.mjs");
+  load([
+    naming("ISS-1", "plugin/src/tools/issues.mjs", "plugin/src/rank/phantom.mjs"),
+    naming("ISS-2", "plugin/src/tools/issues.mjs"),
+    naming("ISS-3", "plugin/src/tools/issues.mjs"),
+    naming("ISS-4", "plugin/src/tools/issues.mjs"),
+    naming("ISS-5", "plugin/src/rank/phantom.mjs"),
+  ]);
+  const run = await ran(["next", "--count", "1"], room);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /~ ISS-5\s+not related by module: it names plugin\/src\/rank\/phantom\.mjs,/u,
+    "the fourth aside is the fifth issue's, and the cap on related issues must not reach it");
+  const json = await ran(["next", "--json", "--count", "1"], room);
+  assert.equal(JSON.parse(json.stdout).candidates[0].related.length, 4, "and the json carries all four");
+});
+
+test("a body naming a path that is gone and one the tree holds is grouped on the one it holds", async () => {
+  const room = standingInTree("plugin/src/rank/batch.mjs");
+  const both = ["plugin/src/tools/issues.mjs", "plugin/src/rank/batch.mjs"];
+  load([naming("ISS-1", ...both), naming("ISS-2", ...both)]);
+  const run = await ran(["next", "--count", "1"], room);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /\+ ISS-2\s+names plugin\/src\/rank\/batch\.mjs, as ISS-1 does/u);
 });
 
 test("a related issue at the top rung is named rather than batched", async () => {
@@ -397,168 +425,4 @@ test("a file a held issue's plan names sets a candidate aside, and the line says
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /ISS-1\s+holds plugin\/src\/flow\/ with ISS-9/u);
   assert.match(run.stdout.split("left out")[0], /ISS-2/u, "and the one that does not collide still ranks");
-});
-
-/* The two stores under one flag, each under its own heading: an edge the tracker holds orders a
-   dispatch and a sentence in a body orders nothing, so a reader who cannot tell them apart has been
-   told the wrong thing about both. Which is which: docs/cli/next-the-edges.md. */
-/* One edge has one id and both ends' rows carry it, which is how a reading of both ends knows it
-   read one edge: a fixture giving each end its own id models two edges and proves nothing. */
-const edge = (other, held = {}) => ({
-  edgeId: `e-${other}`,
-  kind: "blocks",
-  otherIssueId: `u-${other}`,
-  otherDisplayId: other,
-  otherStatus: "open",
-  otherMergedAt: null,
-  validUntil: null,
-  ...held,
-});
-
-test("--graph prints the ordering edges the tracker holds and counts the rest", async () => {
-  load([
-    issue("ISS-1", { title: "the first thing",
-      relations: { blocks: [edge("ISS-2", { edgeId: "e-12" })], blockedBy: [] } }),
-    issue("ISS-2", { title: "the second thing",
-      relations: { blocks: [], blockedBy: [edge("ISS-1", { edgeId: "e-12" })] } }),
-    issue("ISS-3", { title: "the third thing",
-      relations: { blocks: [edge("ISS-1", { kind: "relates", edgeId: "e-31" })], blockedBy: [] } }),
-  ]);
-  const run = await ran(["next", "--graph"]);
-  assert.equal(run.status, 0, run.stderr);
-  assert.equal(run.stdout.match(/^ {2}ISS-1\s+-> ISS-2\s+blocks$/gmu)?.length, 1,
-    "the one edge that orders a dispatch, printed once however many of its ends were read");
-  assert.match(run.stdout, /^edges the ranking reads — 2 on this reading$/mu);
-  assert.match(run.stdout, /^ {2}and 1 that order nothing: a relates edge/mu,
-    "a whole backlog's mentions are a count, the ones that order being what a dispatch turns on");
-  assert.doesNotMatch(run.stdout, /ISS-3\s+-> ISS-1/u);
-  assert.match(run.stdout, /issue\(s\) read whole, takeable first and capped at readCap/u,
-    "and the reading says what it covered, an edge outside it not being absent");
-});
-
-test("--graph on one issue prints every edge it has, a mention included", async () => {
-  load([
-    issue("ISS-1", { title: "the first thing", relations: { blocks: [edge("ISS-2")], blockedBy: [] } }),
-    issue("ISS-2", { title: "the second thing",
-      relations: { blocks: [edge("ISS-3", { kind: "relates" })], blockedBy: [edge("ISS-1")] } }),
-    issue("ISS-3", { title: "the third thing" }),
-  ]);
-  const run = await ran(["next", "--graph", "iss-2"]);
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^ {2}ISS-1\s+-> ISS-2\s+blocks$/mu);
-  assert.match(run.stdout, /^ {2}ISS-2\s+-> ISS-3\s+relates, ordering nothing \(a relates edge orders none\)$/mu,
-    "an issue's own edges are few and every one of them is worth a line");
-  assert.match(run.stdout, /ISS-2 read whole; \d+ issue\(s\) on the backlog carry the sentence/u);
-});
-
-/* The status the tracker answers is the far end's, whichever end was read, so an edge whose blocker
-   is already developed orders nothing — and says so identically from either end, or the row that
-   was read first decides what a dispatch is told. */
-test("a developed blocker's edge orders nothing, read from its own end or from the end it held", async () => {
-  const done = { edgeId: "e-45", otherStatus: "developed" };
-  for (const order of [["ISS-4", "ISS-5"], ["ISS-5", "ISS-4"]]) {
-    const rows = {
-      "ISS-4": issue("ISS-4", { title: "the blocker itself", status: "developed",
-        relations: { blocks: [edge("ISS-5", { edgeId: "e-45" })], blockedBy: [] } }),
-      "ISS-5": issue("ISS-5", { title: "the thing it held up",
-        relations: { blocks: [], blockedBy: [edge("ISS-4", done)] } }),
-    };
-    load(order.map((key) => rows[key]));
-    for (const [argv, matching] of [
-      /* Focused on the blocker itself is the reading whose row carries the status: the edge is the
-         blocker's own outgoing one, and the far end it names is the open issue it held up. */
-      [["next", "--graph", "ISS-4"], /^ {2}ISS-4\s+-> ISS-5\s+blocks, ordering nothing \(the blocker is developed\)$/mu],
-      [["next", "--graph", "ISS-5"], /^ {2}ISS-4\s+-> ISS-5\s+blocks, ordering nothing \(the blocker is developed\)$/mu],
-      [["next", "--graph"], /^ {2}and 1 that order nothing/mu],
-    ]) {
-      const run = await ran(argv);
-      assert.equal(run.status, 0, run.stderr);
-      assert.doesNotMatch(run.stdout, /^ {2}ISS-4\s+-> ISS-5\s+blocks$/mu,
-        `${argv.join(" ")} after ${order.join(",")}: a developed blocker still ordering a dispatch`);
-      assert.match(run.stdout, matching, `${argv.join(" ")} after ${order.join(",")}: ${run.stdout}`);
-    }
-  }
-});
-
-/* A relation the two ends state in opposite directions, with no id to tie them: the reading that
-   counts it twice reports a backlog with more relations than it has. A pair of `blocks` edges is
-   the case that keeps the fallback directional — two of those are two edges, ordering or not. */
-test("an edge the tracker named no id for is one edge where its kind has no direction", async () => {
-  /* Authored in the shape the route serves, which is the pair of lists `sided` reads: what tells a
-     `relates` edge apart is the kind on it, and the projection is what files it under its own list. */
-  const loose = { edgeId: null, kind: "relates" };
-  load([
-    issue("ISS-6", { title: "one end", relations: { blocks: [edge("ISS-7", loose)], blockedBy: [] } }),
-    issue("ISS-7", { title: "the other end", relations: { blocks: [edge("ISS-6", loose)], blockedBy: [] } }),
-  ]);
-  const run = await ran(["next", "--graph"]);
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^edges the ranking reads — 1 on this reading$/mu, run.stdout);
-  assert.match(run.stdout, /^ {2}and 1 that order nothing: a relates edge/mu);
-
-  const cycle = { edgeId: null, otherStatus: "developed" };
-  load([
-    issue("ISS-6", { title: "one end", status: "developed",
-      relations: { blocks: [edge("ISS-7", cycle)], blockedBy: [edge("ISS-7", cycle)] } }),
-    issue("ISS-7", { title: "the other end", status: "developed",
-      relations: { blocks: [edge("ISS-6", cycle)], blockedBy: [edge("ISS-6", cycle)] } }),
-  ]);
-  const both = await ran(["next", "--graph", "ISS-6"]);
-  assert.equal(both.status, 0, both.stderr);
-  assert.match(both.stdout, /^edges the ranking reads — 2 on this reading$/mu,
-    `two opposite blocks edges are two edges, whatever their blockers' status: ${both.stdout}`);
-});
-
-test("a name no issue on the tracker carries is refused rather than read as an empty graph", async () => {
-  load([issue("ISS-1")]);
-  const run = await ran(["next", "--graph", "ISS-404"]);
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /--graph names ISS-404, which is not on this project's tracker/u);
-});
-
-test("a claim only a body makes is under its own heading, and one both sides make says so", async () => {
-  load([
-    issue("ISS-1", { title: "the first thing" }),
-    issue("ISS-2", { title: "the second thing", description: `${claims("first thing")} It waits.` }),
-    issue("ISS-3", { title: "the third thing", description: `${claims("nothing anyone filed")} It waits.` }),
-  ]);
-  const run = await ran(["next", "--graph"]);
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^claims found only in prose, which gate nothing — 1$/mu);
-  assert.match(run.stdout, /^ {2}ISS-1\s+-> ISS-2\s+blocks, stated by ISS-2 only$/mu);
-  assert.match(run.stdout, /^ {2}unresolved: ISS-3 names "nothing anyone filed", matching no title$/mu,
-    "a phrase resolving to nothing is printed as written rather than guessed at");
-});
-
-/* The seam the two stores exist to show: the tracker holds the edge AND a body claims it, so the
-   claim is not news and the prose heading stays empty. */
-test("a claim the tracker already holds is not printed twice", async () => {
-  load([
-    issue("ISS-1", { title: "the first thing", relations: { blocks: [edge("ISS-2")], blockedBy: [] } }),
-    issue("ISS-2", { title: "the second thing", description: `${claims("first thing")} It waits.`,
-      relations: { blocks: [], blockedBy: [edge("ISS-1")] } }),
-  ]);
-  const run = await ran(["next", "--graph"]);
-  assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^claims found only in prose, which gate nothing — 0$/mu);
-  assert.match(run.stdout, /^ {2}none$/mu);
-});
-
-/* The edge that answers a blocking claim is a blocking edge. A `relates` edge on the same pair
-   orders nothing, so a claim standing beside one is still a claim only prose makes — and it is the
-   same answer from either end, the relation being one the two ends state in opposite directions. */
-test("a relates edge does not retire a blocking claim on the same pair", async () => {
-  const loose = { kind: "relates", edgeId: "e-12" };
-  load([
-    issue("ISS-1", { title: "the first thing", relations: { blocks: [edge("ISS-2", loose)], blockedBy: [] } }),
-    issue("ISS-2", { title: "the second thing", description: `${claims("first thing")} It waits.`,
-      relations: { blocks: [edge("ISS-1", loose)], blockedBy: [] } }),
-  ]);
-  for (const argv of [["next", "--graph"], ["next", "--graph", "ISS-1"], ["next", "--graph", "ISS-2"]]) {
-    const run = await ran(argv);
-    assert.equal(run.status, 0, run.stderr);
-    assert.match(run.stdout, /^claims found only in prose, which gate nothing — 1$/mu,
-      `${argv.join(" ")}: an edge that orders nothing retired the claim: ${run.stdout}`);
-    assert.match(run.stdout, /^ {2}ISS-1\s+-> ISS-2\s+blocks, stated by ISS-2 only$/mu);
-  }
 });

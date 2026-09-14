@@ -104,6 +104,35 @@ test("the limit stops the batching rather than the printing, so no head is searc
   assert.deepEqual(asked, ["ISS-1", "ISS-2"], "ISS-3 was never a head, so it cost no search");
 });
 
+/* ISS-1363: a `+` line named plugin/src/tools/issues.mjs, which no branch of this repository has
+   ever held, and a wave of three was dispatched on it. */
+const gone = (path) => (one) => one !== path;
+
+test("a pair meeting only on a path the checkout has not got is not related by module", () => {
+  const paths = new Map([["ISS-1", ["plugin/src/tools/issues.mjs"]],
+    ["ISS-2", ["plugin/src/tools/issues.mjs"]]]);
+  const held = context({ paths, resolves: gone("plugin/src/tools/issues.mjs") });
+  const read = relatednessOf(candidate("ISS-1"), candidate("ISS-2"), held);
+  assert.deepEqual(read.gone, ["plugin/src/tools/issues.mjs"]);
+  assert.equal(read.said, "names plugin/src/tools/issues.mjs, which this checkout has not got");
+  const { members, aside } = batchUnder(candidate("ISS-1"), [candidate("ISS-2")], held, DEFAULTS);
+  assert.deepEqual(members, [], "nothing is grouped on a path that resolves to nothing");
+  assert.deepEqual(aside.map((one) => one.issueId), ["ISS-2"], "and it is said rather than dropped");
+  assert.equal(aside[0].capped, undefined, "neither the cap nor the rung is what kept it out");
+});
+
+test("a body naming a path that is gone and one that is not is grouped on the one that is", () => {
+  const paths = new Map([
+    ["ISS-1", ["plugin/src/tools/issues.mjs", "plugin/src/rank/batch.mjs"]],
+    ["ISS-2", ["plugin/src/tools/issues.mjs", "plugin/src/rank/"]],
+  ]);
+  const read = relatednessOf(candidate("ISS-1"), candidate("ISS-2"),
+    context({ paths, resolves: gone("plugin/src/tools/issues.mjs") }));
+  assert.equal(read.how, MODULE);
+  assert.equal(read.gone, undefined);
+  assert.equal(read.said, "names plugin/src/rank/batch.mjs, as ISS-1 does");
+});
+
 test("a batch spans modules where a relation or a search put it there", () => {
   const head = candidate("ISS-1");
   const other = candidate("ISS-2");

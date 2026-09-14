@@ -7,6 +7,7 @@ import { everyIssue, keysIn, shortOf } from "../tracker/issues.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { asksOf } from "../tracker/issue-shape.mjs";
 import { rootFor } from "../stats/transcripts.mjs";
+import { resolverIn, treeAt } from "./checkout.mjs";
 import { batchesOf } from "./batch.mjs";
 import { candidateLines, droppedLine, graphLines, HEAD } from "./print.mjs";
 import { carriersOf, graphOf, PROSE_FROM, PROSE_MARKER } from "./prose-edges.mjs";
@@ -376,12 +377,23 @@ export const next = async (argv) => {
     relates: new Map(judged.map((one) => [one.issueId, one.relates])),
     nearOf: searcher(eligible.slice(0, count), (head) => nearFor(head, bodies, live, weights)),
     paths,
+    resolves: resolverIn(treeAt(asked.checkout ?? process.cwd())),
   }, weights, count);
-  /* An aside a reader will meet as a head of its own is the same issue printed twice. */
+  /* An aside met again as a head is the issue twice; one naming a path resolving to nothing is not.
+     The cap is the related issues' alone: a path said nowhere else is not a row to make room. */
   const shown = new Set(batched.map((batch) => batch.head.issueId));
+  const asideOf = (aside) => {
+    let room = weights.batchCap;
+    return aside.filter((one) => {
+      if (one.gone) return true;
+      if (shown.has(one.issueId) || room < 1) return false;
+      room -= 1;
+      return true;
+    });
+  };
   const batches = batched.map((batch) => ({
     ...batch,
-    aside: batch.aside.filter((one) => !shown.has(one.issueId)).slice(0, weights.batchCap),
+    aside: asideOf(batch.aside),
     wave: waveUnder(batch.head.issueId, { blocks, blockedBy, alive }),
   }));
   /* Said before either branch, and carried in the json as a field: an order the budget cut is not

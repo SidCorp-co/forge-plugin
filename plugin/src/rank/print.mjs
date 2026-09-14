@@ -65,8 +65,15 @@ const servesLine = (candidate) =>
 const memberLine = (member) =>
   `  + ${member.issueId.padEnd(KEY)} ${member.said.padEnd(44)} ${cut(member.row.title, TITLE)}`;
 
-const asideLine = (one) =>
-  `  ~ ${one.issueId.padEnd(KEY)} related, not batched: ${one.capped ? "the batch is full" : `it ${one.said}, and a batch stays below the top rung throughout`}`;
+/* Three reasons to sit beside a batch, and the third is not relatedness: saying nothing where the
+   only shared path resolves to nothing would replace a wrong reason with no reason. */
+const asideSaid = (one) => {
+  if (one.gone) return `not related by module: it ${one.said}`;
+  if (one.capped) return "related, not batched: the batch is full";
+  return `related, not batched: it ${one.said}, and a batch stays below the top rung throughout`;
+};
+
+const asideLine = (one) => `  ~ ${one.issueId.padEnd(KEY)} ${asideSaid(one)}`;
 
 const chainSaid = (path) => path.join(" -> ");
 

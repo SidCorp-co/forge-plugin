@@ -7,12 +7,25 @@ export const RELATION = "relation";
 export const SEARCH = "search";
 export const MODULE = "module";
 
-const sharedPath = (mine, theirs) =>
-  mine.find((path) => theirs.some((other) => meets(path, other))) ?? null;
+/** The first meeting pair of named paths this checkout holds both ends of, and the first it holds
+ *  neither end of. */
+export const sharedPaths = (mine, theirs, resolves) => {
+  let gone = null;
+  for (const path of mine) {
+    for (const other of theirs) {
+      if (!meets(path, other)) continue;
+      const absent = [...new Set([path, other])].filter((one) => !resolves(one));
+      if (!absent.length) return { path, gone: null };
+      gone ??= absent;
+    }
+  }
+  return { path: null, gone };
+};
 
 /** Which of the three made this pair related, or null where none did. `relates` and `near` are the
  *  head's own: a search asked about one head answers about that head and no other. */
-export const relatednessOf = (head, other, { relates = new Map(), near = new Map(), paths = new Map() }) => {
+export const relatednessOf = (head, other,
+  { relates = new Map(), near = new Map(), paths = new Map(), resolves = () => true }) => {
   if ((relates.get(head.issueId) ?? []).includes(other.issueId)) {
     return { how: RELATION, said: `related to ${head.issueId} by relation` };
   }
@@ -20,8 +33,11 @@ export const relatednessOf = (head, other, { relates = new Map(), near = new Map
   if (score !== undefined) {
     return { how: SEARCH, said: `reads like ${head.issueId} at ${score.toFixed(2)}` };
   }
-  const shared = sharedPath(paths.get(head.issueId) ?? [], paths.get(other.issueId) ?? []);
-  return shared ? { how: MODULE, said: `names ${shared}, as ${head.issueId} does` } : null;
+  const { path: shared, gone } = sharedPaths(
+    paths.get(head.issueId) ?? [], paths.get(other.issueId) ?? [], resolves);
+  if (shared) return { how: MODULE, said: `names ${shared}, as ${head.issueId} does` };
+  if (gone) return { how: MODULE, gone, said: `names ${gone.join(" and ")}, which this checkout has not got` };
+  return null;
 };
 
 /* Members are taken in rank order, so the cap keeps the strongest rather than the first read. */
@@ -31,6 +47,10 @@ export const batchUnder = (head, rest, context, weights) => {
   for (const other of rest) {
     const related = relatednessOf(head, other, context);
     if (!related) continue;
+    if (related.gone) {
+      aside.push({ ...other, ...related });
+      continue;
+    }
     if (!belowTop(rungFrom(other.score.complexity)) || !belowTop(rungFrom(head.score.complexity))) {
       aside.push({ ...other, ...related });
       continue;

@@ -79,7 +79,7 @@ tracker's field. A project that set it scores exactly as it did: the reader fold
 both, the canonical one scores and the line says the other was passed over. Nothing writes the old
 key back, and `forge next -h` prints the canonical one alone.
 
-## Where the module reading stops, and why it is not the repository
+## Where the module reading stops, and what a path must be first
 
 Relatedness by module is the tree a body names, matched against the trees another body names, one
 path being a prefix of the other. It is deliberately *not* an import graph: this plugin runs in
@@ -87,6 +87,14 @@ repositories it cannot see, so a verb that inferred which trees import which wou
 layout out of a checkout it may not be standing in — and, standing in the wrong one, would answer
 confidently about somebody else's tree. Two issues in trees that import each other are related by
 the relation or by the search, both of which the tracker answers for, or they are not related here.
+
+**And a path groups nothing until this checkout is asked.** A body is untrusted input: four paths
+naming nothing sat at the head of one order in two days, one a wave's reason. So both ends of a
+match must resolve against the tree the rank runs in — the working directory or what `--checkout`
+names, nothing reached outside it, nothing refused where git answers for none. A pair meeting only
+on a path that resolves to nothing is not related by module, and its `~` line names that path
+rather than vanishing, a wrong reason replaced by no reason teaching nothing; that line is the only
+place it is said. No weight, score or eligibility moves.
 
 ## The restart signal is the ship's set, not a tree
 
