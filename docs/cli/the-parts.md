@@ -41,9 +41,11 @@ nothing to say so, so the block stays and the answer is a refusal naming the con
 condition to a text therefore means adding it where the answers are assembled, and forgetting to is
 loud.
 
-**One condition is the call's and not the checkout's.** `feedback.plugin` and `ship` are read off
-the project, one answer per checkout; `rung` is read off the issue in hand, and one checkout serves
-every rung. So it arrives as an argument — `--rung <name>` on the guide verb, and on the verbs that
+**One condition is the call's and not the checkout's, and one is the machine's.** `feedback.plugin`
+and `ship` are read off the project, one answer per checkout; a `tool.` key is read off what this
+box saved, so two checkouts of one project differ where one of them configured a tool and the other
+did not ([an unconfigured tool](an-unconfigured-tool.md)); `rung` is read off the issue in hand, and
+one checkout serves every rung. So it arrives as an argument — `--rung <name>` on the guide verb, and on the verbs that
 act the effective rung they already computed for the lane — and a call naming none is served the top
 rung's text and told so in a line, the upward rule being what an unstated rung resolves to
 everywhere else. That it is an argument rather than a lookup is the point: the guide answers off disk

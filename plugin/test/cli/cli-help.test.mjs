@@ -3,7 +3,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { GROUPS, VERBS, VERB_NAMES, helpOf, usageOf } from "../../src/resolve/visibility.mjs";
 import { flagsNamed, helpAskedOf, unknownFlag, wantsHelp } from "../../src/resolve/flags.mjs";
@@ -22,11 +23,23 @@ const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../../", import.meta.url).pathname;
 /* One spawn per argv, held for the file: four walks ask the same names for help, and nothing asked here writes state. */
 const HOME = tempRoom("cli-help-");
+/* Every harness tool saved, and the gateway profile with them: the help drops a verb this machine
+   holds no configuration for, so a home that saved nothing would make every walk below a question
+   about this box rather than about the table. tool-config.test.mjs owns the other state. */
+const PROFILE = join(HOME, "claude-proxy.env");
+mkdirSync(join(HOME, "forge"), { recursive: true });
+writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({
+  cloudflare: { accounts: [{ name: "one", accountId: "acct", apiToken: "cf" }] },
+  coolify: { url: "https://coolify.example", apiToken: "co" },
+  chatgpt: { url: "https://chatgpt.example/mcp", key: "gpt" },
+}));
+writeFileSync(PROFILE, "ANTHROPIC_BASE_URL=https://gateway.example\nANTHROPIC_AUTH_TOKEN=tok\n");
 const ASKED = new Map();
 const ask = (...argv) => {
   const key = argv.join("\0");
   if (!ASKED.has(key)) {
-    ASKED.set(key, spawnSync(FORGE, argv, { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: HOME } }));
+    ASKED.set(key, spawnSync(FORGE, argv, { encoding: "utf8",
+      env: { ...process.env, XDG_CONFIG_HOME: HOME, CLAUDE_PROXY_ENV: PROFILE } }));
   }
   return ASKED.get(key);
 };

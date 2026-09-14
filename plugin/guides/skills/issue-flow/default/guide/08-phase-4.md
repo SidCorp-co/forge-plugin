@@ -45,10 +45,18 @@ the same file and only one of them is a fresh subject to read. Without that line
 terminate, because a finding asking for a clearer sentence is answered by changing what the code
 prints, and every such change reads as a change to what the code does.
 
+<!-- forge:when tool.codex configured -->
 **A fix made to close a finding is answered by a recheck**, `forge codex consult --recheck`, which
 verifies that consult's findings rather than roaming for new ones; what a recheck may not do is that
 verb's own help. The whole-set read is owed on top of it only where the fix widened the set or moved
 behaviour by the line above.
+<!-- forge:end -->
+<!-- forge:when tool.codex unconfigured -->
+**A fix made to close a finding is answered by a recheck, and this machine cannot take one.** Any
+finding already raised is still owed its verdict, and a fix that would have been rechecked here
+carries that debt into the report rather than out of it: `forge doctor` names what configures the
+reviewer, and the recheck is unreachable rather than discharged.
+<!-- forge:end -->
 
 The pass's own shape, what a consult taken to clear a commit gate earns instead, and what the review
 record holds: `forge guide contract the-review`.

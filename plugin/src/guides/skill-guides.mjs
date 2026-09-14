@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 
 import { didYouMean } from "../suggest.mjs";
 import { conditionsAt } from "./conditions.mjs";
+import { CONFIGURABLE, configureSaid, unconfiguredTool } from "../resolve/tool-config.mjs";
 import { roundLines, rungRefusal, rungServed } from "./rounds.mjs";
 import {
   SLUG as CONTRACT_SLUG, contractKeys, contractRoot, joinedParts, partEntriesIn, partFileProblem,
@@ -83,8 +84,27 @@ export const skillListingRow = (slug, root = HERE) => {
     + ` \`forge guide ${slug}\` prints it, and \`forge guide ${slug} <reference>\` one of its ${count}`;
 };
 
-const referenceLines = (slug, dir) => {
-  const names = namesIn(join(dir, REFERENCES));
+/* What is left of a reference is what decides, not what it is called and not that it names a tool: a
+   text with one fenced paragraph still has the rest to serve, and a text that renders to nothing is
+   the empty reference this change exists to stop offering. A marked-wrong text is not this — it is a
+   refusal of its own, and answering it here would report a fence somebody mistyped as a credential
+   somebody never saved. Named directly it is refused with what configures the tool, because unlike a
+   verb a reference has no call of its own left to give that sentence. */
+const toolFencing = (dir, part, rung) => {
+  const path = join(dir, REFERENCES, `${part}.md`);
+  if (!existsSync(path)) return null;
+  const held = read(path);
+  const { text: left, problems } = render(held, conditionsAt(rungServed(rung)));
+  if (problems.length || left.trim()) return null;
+  const opened = openersOf(held);
+  return CONFIGURABLE.find((verb) => opened.includes(`tool.${verb}`) && unconfiguredTool(verb)) ?? null;
+};
+
+const offeredIn = (dir, rung) =>
+  namesIn(join(dir, REFERENCES)).filter((one) => toolFencing(dir, one, rung) === null);
+
+const referenceLines = (slug, dir, rung) => {
+  const names = offeredIn(dir, rung);
   if (!names.length) return [];
   const width = names.reduce((wide, one) => Math.max(wide, one.length), 0);
   return ["", `References, each \`forge guide ${slug} <reference>\`:`, ...names.map((one) =>
@@ -119,8 +139,13 @@ export const skillGuideAnswer = (slug, root = HERE, flow = flowPinned().value) =
   const wrong = bodyProblems(slug, root, flow);
   if (wrong.length) return { refusal: `${wrong[0]}. \`forge doctor\` reports which copy is running.` };
   const body = servedBody(slug, root, flow);
-  if (!part) return served(slug, body ?? INLINE(slug), [...referenceLines(slug, dir), ...tail], rung);
-  const names = namesIn(join(dir, REFERENCES));
+  if (!part) return served(slug, body ?? INLINE(slug), [...referenceLines(slug, dir, rung), ...tail], rung);
+  const withheld = toolFencing(dir, part, rung);
+  if (withheld) {
+    return { refusal: `\`forge guide ${slug} ${part}\` is about \`forge ${withheld}\`, which this machine`
+      + ` saved nothing for — ${configureSaid(withheld)}. \`forge doctor\` reports the rest.` };
+  }
+  const names = offeredIn(dir, rung);
   if (names.includes(part)) return served(slug, read(join(dir, REFERENCES, `${part}.md`)), tail, rung);
   const phases = body === null ? [] : phasesOf(body);
   const phase = phases.find((one) => one.number === String(part));

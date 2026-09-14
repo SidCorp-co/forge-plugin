@@ -1,3 +1,4 @@
+<!-- forge:when tool.codex configured -->
 # `forge codex` answers as a different model, and it can be wrong
 
 Read this before asking for a second opinion, and again before acting on one. What to type is
@@ -42,3 +43,4 @@ the document too, not only the code.
 
 Anything that is the user's call goes through AskUserQuestion rather than being settled between two
 models.
+<!-- forge:end -->

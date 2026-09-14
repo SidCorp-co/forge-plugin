@@ -15,8 +15,17 @@ stands. They are written before the code; a wrong one is corrected in the open w
 correction` rather than relaxed to match what got built, and a plan that turns out wrong is replaced
 in the field so the issue carries one plan, the current one.
 
+<!-- forge:when tool.codex configured -->
 **Both are read before the issue takes them**: `forge record plan` and `forge record criteria` each
 refuse a file no consult has read, and one consult over both clears both writes — `forge codex
 consult -h` says how the issue and the two bodies reach the reviewer. Every later phase is built
 against this text, so the intent names the load-bearing assumption rather than the prose, and the
 findings are owed a verdict as any consult's are.
+<!-- forge:end -->
+<!-- forge:when tool.codex unconfigured -->
+**Both are read before the issue takes them, and this machine has no reviewer to read them.**
+`forge record plan` and `forge record criteria` each refuse a file no consult has read, and nothing
+here relaxes that: the reviewer is unreachable, not optional. `forge doctor` names what configures
+it, and until it is configured the two writes are blocked and that is the finding to report rather
+than a step to work around.
+<!-- forge:end -->

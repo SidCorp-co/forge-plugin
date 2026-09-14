@@ -1,12 +1,10 @@
-/* The call itself: what GPT-5 Codex is asked, what it may do for itself, and the streamed answer.
-   HTTPS POSTs to the gateway named in ~/.claude/claude-proxy.env, which answers with real `tool_use`
-   blocks — so the changed files travel with the prompt and anything else the reviewer needs it reads
-   through codex-tools.mjs. docs/cli/codex-the-consult.md. */
+/* The call itself: what GPT-5 Codex is asked, what it may do for itself, and the streamed answer. HTTPS POSTs
+   to the gateway `codex-profile.mjs` names, which answers with real `tool_use` blocks — so the changed files
+   travel with the prompt and the rest the reviewer needs it reads through codex-tools.mjs. docs/cli/codex-the-consult.md. */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
-import { homedir } from "node:os";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { readFileSync, realpathSync, statSync } from "node:fs";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 
 import { defaultEffort, rungIn } from "./codex-plan.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
@@ -15,10 +13,7 @@ import { userConfig } from "../resolve/config.mjs";
 import { FRAME_END, sseData } from "../wire/sse.mjs";
 import { parsedOr } from "../wire/request.mjs";
 
-const profilePath = () => process.env.CLAUDE_PROXY_ENV || join(homedir(), ".claude", "claude-proxy.env");
-export const modelSlot = () => userConfig().codex?.model || "fable";
 const maxTokens = () => Number(userConfig().codex?.maxTokens || 32_000);
-/* The slot is the account's, and the rung table in front of it too; with none, this slot answers every level. */
 
 /* A file is sent whole or reported as clipped; a silently halved file is a review of half a file.
    Exported because whether a pass can be taken at all is a question about these two numbers. */
@@ -105,41 +100,6 @@ ${UNTRUSTED}
 - Where you are given a diff, the diff is what is under review. Context you were given for reading is not the subject.
 - Terse. No preamble, no praise, no summary of what the file already says.${recheck ? `\n\n${RECHECK}` : ""}`;
 };
-
-const ENV_LINE = /^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$/;
-
-const unquoted = (raw) => {
-  const value = raw.trim();
-  const quote = value[0];
-  const paired = (quote === '"' || quote === "'") && value.endsWith(quote) && value.length > 1;
-  return paired ? value.slice(1, -1) : value;
-};
-
-export const profileFrom = (text) => {
-  const found = {};
-  for (const raw of text.split("\n")) {
-    const line = raw.trim();
-    if (!line || line.startsWith("#")) continue;
-    const matched = ENV_LINE.exec(line);
-    if (matched) found[matched[1]] = unquoted(matched[2]);
-  }
-  return found;
-};
-
-export const profile = () => {
-  const path = profilePath();
-  if (!existsSync(path)) return { path, problem: `no gateway profile at ${path}` };
-  const values = profileFrom(readFileSync(path, "utf8"));
-  for (const key of ["ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN"]) {
-    if (!values[key]) return { path, problem: `${key} is missing from ${path}`, values };
-  }
-  return { path, values };
-};
-
-/* The slot is what gets asked for; the profile decides which model that is, and that mapping is the
-   whole reason this verb is a second opinion rather than an echo. */
-export const modelBehind = (values, slot = modelSlot()) =>
-  values?.[`ANTHROPIC_DEFAULT_${slot.toUpperCase()}_MODEL`] ?? null;
 
 export const sameFamily = (model) => Boolean(model) && /claude/i.test(model);
 

@@ -17,18 +17,33 @@ const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
 const BA = ["issue", "new", "comment", "next"];
 const SLUG = "off-fixture";
 
+/* Every harness tool saved and a gateway profile beside them, because a tool this machine holds no
+   configuration for is unlisted too and these cases are about the other reason: a room that saved
+   none of them would make `nothing withheld` a room with four verbs missing. tool-config.test.mjs
+   owns that state; docs/cli/an-unconfigured-tool.md holds the division. */
+const TOOLS = {
+  cloudflare: { accounts: [{ name: "one", accountId: "acct", apiToken: "cf" }] },
+  coolify: { url: "https://coolify.example", apiToken: "co" },
+  chatgpt: { url: "https://chatgpt.example/mcp", key: "gpt" },
+};
+
 /* A port nothing listens on, refused at once: every case here is answered before the endpoint. */
 const room = (held = {}, jobs = { ba: BA }) => {
   const home = tempRoom("doctor-off-");
   mkdirSync(join(home, "forge"));
+  mkdirSync(join(home, ".claude"));
+  writeFileSync(join(home, ".claude", "claude-proxy.env"),
+    "ANTHROPIC_BASE_URL=https://gateway.example\nANTHROPIC_AUTH_TOKEN=tok\n");
   const at = join(home, "forge", "config.json");
   writeFileSync(at, JSON.stringify({
-    url: "http://127.0.0.1:1/mcp", token: "saved-token", retrySeconds: 0, waitSeconds: 0.05, ...held,
+    url: "http://127.0.0.1:1/mcp", token: "saved-token", retrySeconds: 0, waitSeconds: 0.05,
+    ...TOOLS, ...held,
   }));
   const cwd = tempRoom("doctor-off-cwd-");
   writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "off-fixture", jobs }));
   const run = (...argv) => spawnSync(process.execPath, [CLI, ...argv], {
-    encoding: "utf8", cwd, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
+    encoding: "utf8", cwd,
+    env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home, CLAUDE_PROXY_ENV: "" },
   });
   return { run, saved: () => JSON.parse(readFileSync(at, "utf8")) };
 };

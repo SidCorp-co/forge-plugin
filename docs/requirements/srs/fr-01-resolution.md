@@ -82,11 +82,14 @@ can be reached. It is what a refusal points at, so it answers before the questio
 
 ### UC-01-4 — Withhold a verb
 
-Rev: 2 · Actors: developer · Enforces: BR-01, BR-07, BR-08
+Rev: 3 · Actors: developer · Enforces: BR-01, BR-07, BR-08
 
-Two things can shorten the usage list: a record of which tools refused this credential, and a
-developer hiding a verb by hand. Because a verb can be missing for either reason, the CLI says so
-rather than behaving as though the verb never existed. By hand means one verb at a time or the
+Three things can shorten the usage list: a record of which tools refused this credential, a
+developer hiding a verb by hand, and a tool this machine has saved none of the local configuration
+for. Because a verb can be missing for any of those reasons, the CLI says so rather than behaving as
+though the verb never existed. The third is neither of the first two — the record is about what a
+credential may spend, and the hiding is a choice — so it is answered separately, it withholds the
+advertisement and not the verb, and the verb typed runs and refuses as it always did. By hand means one verb at a time or the
 whole group a project has named for a job it does, and both write the one list this machine keeps,
 so the report answers for a verb once and names every declared job the list matches, which is a
 different claim from naming what caused it and is the only one the list can carry (BR-08). Which
@@ -167,6 +170,18 @@ since that verb is the only surface permitted to say what has gone missing.
 - **AC-01-4-25** · Rev: 1 · Proof: plugin/test/cli/doctor/off.test.mjs "the report names every verb under the state it is in"
   WHERE this machine withholds any verb, the resolution report SHALL name every verb of this CLI
   under the state that verb is in on this machine.
+- **AC-01-4-26** · Rev: 1 · Proof: plugin/test/resolve/tool-config.test.mjs "a tool this machine saved nothing for is in no usage line and no row"
+  WHERE this machine holds none of the local configuration a tool needs, the usage list SHALL
+  advertise neither that tool's verb nor a row for it.
+- **AC-01-4-27** · Rev: 1 · Proof: plugin/test/resolve/tool-config.test.mjs "the verb typed still runs and refuses in its own words"
+  WHERE this machine holds none of that configuration, typing that verb SHALL run it and SHALL leave
+  its own refusal unchanged.
+- **AC-01-4-28** · Rev: 1 · Proof: plugin/test/resolve/tool-config.test.mjs "doctor names each unconfigured tool with the one thing that configures it"
+  WHERE this machine holds none of that configuration, the resolution report SHALL name that tool
+  with the one command or file that configures it.
+- **AC-01-4-29** · Rev: 1 · Proof: plugin/test/resolve/tool-config.test.mjs "a reference wholly about an unconfigured tool is unlisted, and named directly names what configures it"
+  WHERE a served text is marked for a tool this machine holds no configuration for, that text SHALL
+  not be served and SHALL not be listed.
 
 ### UC-01-5 — The project's keys, and the machine's own
 
