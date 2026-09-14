@@ -70,6 +70,39 @@ test("a shape whose payload carries blocks carries no stamp", () => {
     "and what stands before the first is every block's");
 });
 
+/* `blocksIn` never lets a single-valued flag stand both shared and in a block, so the reader is the only
+   thing answering for a record written by hand — which the record page's rule is also written for (ISS-307). */
+test("a block's own value of a single-valued flag replaces the shared one, and a repeatable flag adds to it", () => {
+  const body = [
+    "## Verdict", "", "```forge-record",
+    "verdict: pass", `commit: ${COMMIT}`, "evidence: run.txt",
+    "criterion: 1 — text",
+    "criterion: 2 — text", "verdict: fail", "why: it sorted by id", "evidence: two.txt",
+    "```", "", `\`forge-record: verdict · contract ${CONTRACT}\``,
+  ].join("\n");
+  const read = parseAll(body);
+  assert.deepEqual(read.map((one) => one.fields.verdict), ["pass", "fail"],
+    "the shared value stands where a block names none, and loses to the block that names its own");
+  assert.deepEqual(read.map((one) => one.fields.commit), [COMMIT, COMMIT], "a flag no block names is still every block's");
+  assert.deepEqual(read.map((one) => one.fields.evidence), [["run.txt"], ["run.txt", "two.txt"]],
+    "and a repeatable flag adds to the shared values rather than replacing them");
+  assert.equal(read[0].fields.why, undefined, "the block that gave no reason reads with none");
+});
+
+/* Nothing is shared where no block opens, so the precedence above reaches no payload it was not written
+   for: a key repeated in a bare payload is the author's own repeat and reads as it has always read. */
+test("a payload opening no block hands a repeated single-valued key on as it read it", () => {
+  const fenced = [
+    "## Verdict", "", "```forge-record",
+    "verdict: pass", "verdict: fail", `commit: ${COMMIT}`,
+    "```", "", `\`forge-record: verdict · contract ${CONTRACT}\``,
+  ].join("\n");
+  assert.deepEqual(parseAll(fenced).map((one) => one.fields.verdict), ["pass"], "the fenced form keeps the first");
+  const older = `## Verdict\n\n- **Verdict:** pass\n- **Verdict:** fail\n- **Commit:** ${COMMIT}\n\n`
+    + "`forge-record: verdict · contract 1`";
+  assert.deepEqual(parseAll(older).map((one) => one.fields.verdict), ["pass"], "and so does the older bullet form");
+});
+
 /* The reading the whole change turns on: what a batched comment earns is what the same verdicts
    earn written one at a time, through one reader and with no second copy of the rule. */
 test("advance earns tested from a batched write exactly as from one write per criterion", () => {

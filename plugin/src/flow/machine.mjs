@@ -64,17 +64,20 @@ const valuesFor = (entries, field) => {
   return held.length ? held[0] : undefined;
 };
 
-/* A `per` key opens a block; what stands before the first is every block's (ISS-289). */
-const groupsIn = (entries, per) => {
+/* A `per` key opens a block; what stands before the first is every block's (ISS-289), and a block's own value of a flag taking one replaces the shared one, so that occurrence comes out for exactly the flags the block names while a repeatable flag adds to the shared values and keeps them ahead of its own (ISS-307) — the rule `blocksIn` gives the writer's argv, read here off the payload because a record is also written by hand. A payload opening no block shares nothing, so a key repeated in one is handed on as it was read. */
+const groupsIn = (entries, per, single = []) => {
   const opens = per ? entries.findIndex(([key]) => key === per) : -1;
   if (opens < 0) return [entries];
   const shared = entries.slice(0, opens);
   const groups = [];
   for (const entry of entries.slice(opens)) {
-    if (entry[0] === per) groups.push([...shared]);
+    if (entry[0] === per) groups.push([]);
     groups.at(-1).push(entry);
   }
-  return groups;
+  return groups.map((own) => {
+    const replaced = new Set(own.map(([key]) => key).filter((key) => single.includes(key)));
+    return [...shared.filter(([key]) => !replaced.has(key)), ...own];
+  });
 };
 
 /* Keys resolving to none of the shape's is rewritten, not empty; and no body sources a derived one — so a fact a check has to read back is `stamped`, which the write fills and this reads, never `derived`, which is a copy for a person and reaches no checker. */
@@ -85,7 +88,8 @@ export const readRecords = (body, shapeOf) => {
   const fenced = payloadIn(body);
   const { entries, rewritten } = fenced ? { entries: fenced, rewritten: false } : labelledIn(body, shape);
   const read = [...shape.fields.filter((one) => !one.derived), ...(shape.stamp ? [shape.stamp] : [])];
-  return groupsIn(entries, shape.per).map((group) => {
+  const single = read.filter((one) => !one.many).map((one) => one.flag);
+  return groupsIn(entries, shape.per, single).map((group) => {
     const fields = {};
     for (const field of read) {
       const held = valuesFor(group, field);
