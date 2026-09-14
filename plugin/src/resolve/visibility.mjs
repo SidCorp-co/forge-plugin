@@ -4,6 +4,7 @@
 import { ROUTES } from "../tracker/routes.mjs";
 import { userConfig } from "./config.mjs";
 import { declaredJobs, fail, feedbackScope, projectScope } from "./settings.mjs";
+import { unconfiguredTool } from "./tool-config.mjs";
 
 /* A row names its group; `forge -h`'s headings are folded off that, so a verb reaching the table
    without one appears under no heading and `cli-help.test.mjs` refuses it rather than a reader. */
@@ -302,7 +303,8 @@ export const offeredVerbs = () => {
   const withheld = withheldVerbs();
   return VERBS.filter((row) => {
     const key = gateKey(row);
-    return !withheld.has(row[0]) && !closedByProject(row[0]) && !(key && isGated(key));
+    return !withheld.has(row[0]) && !closedByProject(row[0]) && !(key && isGated(key))
+      && !unconfiguredTool(row[0]);
   });
 };
 

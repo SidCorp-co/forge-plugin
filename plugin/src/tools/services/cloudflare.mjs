@@ -5,6 +5,7 @@
    Zones aggregate across every configured account, and a caller names a zone by id and never an
    account: which account holds that zone is asked rather than typed. */
 import { configPath, saveNested, userConfig } from "../../resolve/config.mjs";
+import { NO_ACCOUNT, cloudflareAccounts } from "../../resolve/tool-config.mjs";
 import { abbreviated, masked } from "./masked.mjs";
 import { parsedOr } from "../../wire/request.mjs";
 import { fail } from "../../resolve/settings.mjs";
@@ -70,17 +71,6 @@ const DNS_SET_USAGE = [
 ].join("\n");
 
 const DNS_RM_USAGE = "Usage: forge cloudflare dns rm <record-id> --zone <zone-id>";
-
-/* Every account the config holds, and only the config: provenance travels with them because
-   `forge doctor` reports where each came from and never what it is. */
-export const cloudflareAccounts = () => {
-  const held = (userConfig().cloudflare?.accounts ?? []).filter((one) => one.apiToken && one.accountId);
-  return { from: held.length ? configPath() : null, accounts: held };
-};
-
-const NO_ACCOUNT =
-  "No Cloudflare account is configured. Save one with\n" +
-  "  forge cloudflare login --name <label> --account-id <id> --token <api-token>";
 
 const configured = () => {
   const { accounts } = cloudflareAccounts();

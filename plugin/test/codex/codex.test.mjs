@@ -19,14 +19,13 @@ const {
   digest,
   inside,
   locate,
-  modelBehind,
   openingFor,
-  profileFrom,
   promptFor,
   roleFor,
   withDiffs,
   sameFamily,
 } = await import("../../src/codex/codex-api.mjs");
+const { modelBehind, profileFrom } = await import("../../src/codex/codex-profile.mjs");
 const { runTool, scopeFor } = await import("../../src/codex/codex-tools.mjs");
 const { partition } = await import("../../src/resolve/flags.mjs");
 const BOOLEANS = ["--allow-echo"];

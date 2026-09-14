@@ -108,7 +108,8 @@ test("the chatgpt row names the flag that writes each half it is missing, and ne
   profiled(WHOLE_PROFILE);
   configured({});
   const { detail } = harnessLines(false).find((row) => row.label === "chatgpt");
-  assert.equal(detail, "no endpoint — `forge doctor --chatgpt-url <endpoint>`  no key — `forge doctor --chatgpt-key <key>`");
+  assert.equal(detail, "no endpoint — `forge doctor --chatgpt-url <endpoint>`  no key — `forge doctor --chatgpt-key <key>`"
+    + ", so `forge chatgpt` is in no help");
 });
 
 /* The framing is the value a caller set and not a credential, so it is reported whole where the key beside it is masked; the row is its own because a framing runs to whatever length somebody wrote. */

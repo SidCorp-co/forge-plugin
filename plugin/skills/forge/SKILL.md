@@ -22,7 +22,8 @@ description: >-
 - Write English. A tracker that reads Vietnamese says so in its config, and the CLI rewrites what
   you hand it.
 - Never pass a project id, a slug or a token on the command line.
-- A verb you expected and cannot see is withheld on purpose: `forge doctor` says by what.
+- A verb you expected and cannot see is withheld on purpose, or needs something this machine has
+  not saved: `forge doctor` says which, and the one command or file that puts it back.
 - When this plugin is the problem, report it before working around it. Where it goes is the
   project's answer: `forge new -h` gives it, or says there is none.
 
@@ -35,9 +36,7 @@ description: >-
 | a plan, a lease, a record, a status move | `forge record -h`, `forge claim -h`, `forge advance -h` |
 | the next issue to work | `forge next -h` |
 | what blocks what | `forge next --graph`; the two stores of an edge: `forge guide forge dependencies` |
-| Cloudflare zones, DNS, purges | `forge cloudflare -h`; the method: `forge guide forge cloudflare` |
-| a Coolify deploy, restart, status, logs | `forge coolify -h`; the method: `forge guide forge coolify` |
-| a second opinion on this turn | `forge codex -h`; asking and reading one: `forge guide forge codex` |
+| a harness tool — zones and DNS, a deploy, a second opinion | `forge -h` lists the ones this machine configured, and `forge guide forge <reference>` reads one's method |
 | a first call in a project, a missing verb | `forge doctor`; then `forge guide forge configuration` |
 | what a gate refused and why | `forge hooks -h` |
 | the fields the tracker takes for a verb's own routes | that verb's `-h` |

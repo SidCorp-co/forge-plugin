@@ -1,19 +1,16 @@
 /* The credentials that are this machine's and a harness verb's, gating nothing: every other verb works with none of them saved, so each absence is a note. Rows out rather than printed lines, in the shape the project's rows already come in, because importing `line` from `doctor.mjs` would be a cycle. docs/cli/doctor.md. */
 import { CHATGPT_KEYS, CHATGPT_PREFIX, chatgptSettings } from "../../resolve/settings.mjs";
-import { modelBehind, profile } from "../../codex/codex-api.mjs";
+import { modelBehind, profile } from "../../codex/codex-profile.mjs";
 import { defaultEffort, disagreement, effortVia, rungFor, rungLadder } from "../../codex/codex-plan.mjs";
 import { configPath } from "../../resolve/config.mjs";
 import { logBytes, logPath } from "../../codex/codex-log.mjs";
 import { consultCount } from "../../codex/log/asked.mjs";
-import { cloudflareAccounts } from "./cloudflare.mjs";
+import { CONFIGURABLE, cloudflareAccounts, configureSaid, unconfiguredTool } from "../../resolve/tool-config.mjs";
 import { SCOPE_FILE, coolifyTarget, pinned } from "./coolify/config.mjs";
 import { masked } from "./masked.mjs";
 
 const cloudflareRow = (full) => {
   const { accounts, from } = cloudflareAccounts();
-  if (!accounts.length) {
-    return { level: "note", detail: "no account — `forge cloudflare login --name n --account-id a --token t`" };
-  }
   const held = accounts.map((account) => `${account.name} ${masked(account.apiToken, full)}`);
   return { level: "ok", detail: `${held.join(", ")}  ← ${from}` };
 };
@@ -22,8 +19,7 @@ const cloudflareRow = (full) => {
    channels the effort travels on is a fact about the model that resolved, and a reader given the model
    alone cannot tell a ladder from one slot frozen at a rung. */
 const codexRow = () => {
-  const { problem, values } = profile();
-  if (problem) return { level: "note", detail: `${problem} — \`forge codex\` cannot consult` };
+  const { values } = profile();
   const base = defaultEffort();
   const ladder = rungLadder();
   const model = rungFor(base, modelBehind(values));
@@ -67,19 +63,30 @@ const prefixRow = () => {
    network fault as a missing credential, and the pin is a property of this directory either way. */
 const coolifyRow = (full) => {
   const { url, token, from } = coolifyTarget();
-  if (!url) {
-    return { level: "note", detail: "no instance — `forge coolify login --url u --token t`" };
-  }
   const { at, spec } = pinned();
   const projects = (spec.project_uuid ?? []).join(", ");
   const pin = projects ? `project ${projects}  ← ${at}` : `no project pinned — no ${SCOPE_FILE} on the way up from here`;
   return { level: "ok", detail: `${url} ${masked(token, full)}  ← ${from}  ${pin}` };
 };
 
+const SAVED = {
+  cloudflare: cloudflareRow,
+  coolify: coolifyRow,
+  codex: codexRow,
+  chatgpt: chatgptRow,
+};
+
+/* Two facts and not one: the table says WHETHER a tool is configured — the same answer the help filtered on, which is what stops the two disagreeing about a verb — and a row above says which half of it is missing, which only that tool knows. */
+const HALVES = { chatgpt: (full) => chatgptRow(full).detail };
+
+const toolRow = (verb, full) => (unconfiguredTool(verb)
+  ? { label: verb,
+    level: "note",
+    detail: `${HALVES[verb]?.(full) ?? `nothing saved — ${configureSaid(verb)}`}`
+      + `, so \`forge ${verb}\` is in no help` }
+  : { label: verb, ...SAVED[verb](full) });
+
 export const harnessLines = (full) => [
-  { label: "cloudflare", ...cloudflareRow(full) },
-  { label: "coolify", ...coolifyRow(full) },
-  { label: "codex", ...codexRow() },
-  { label: "chatgpt", ...chatgptRow(full) },
+  ...CONFIGURABLE.map((verb) => toolRow(verb, full)),
   { label: "chatgpt framing", ...prefixRow() },
 ];

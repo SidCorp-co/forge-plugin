@@ -1,3 +1,4 @@
+<!-- forge:when tool.cloudflare configured -->
 # `forge cloudflare` is not the tracker
 
 Read this before the first `forge cloudflare` call of a task. Run `forge cloudflare -h` for the
@@ -11,3 +12,4 @@ says whether one already resolved.
 **The four write actions apply on the first call, with no confirmation.** They print the zone and
 the account *after* the fact. These are live zones and a deleted record is not recoverable from
 here, so read with `dns <zone-id>` before `dns set` or `dns rm`.
+<!-- forge:end -->

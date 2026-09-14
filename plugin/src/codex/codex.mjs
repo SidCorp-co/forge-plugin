@@ -29,20 +29,18 @@ import { EFFORTS, defaultEffort, disagreement, effortVia, incompleteIn, keepsToo
   plannedFor, plannedLimits, rungFor, rungLadder } from "./codex-plan.mjs";
 import {
   ANGLES,
-  modelSlot,
   askApi,
   bundle,
   cannotCarry,
   divergedFrom,
   inside,
-  modelBehind,
   promptMark,
   withDiffs,
   openingFor,
-  profile,
   roleFor,
   sameFamily,
 } from "./codex-api.mjs";
+import { modelBehind, modelSlot, profile } from "./codex-profile.mjs";
 import { EVAL_USAGE, MARKS_USAGE, REPLAY_USAGE, STATS_USAGE, crossingSaid, printEval, printMarks,
   printReplay, printStats } from "./codex-stats.mjs";
 import {

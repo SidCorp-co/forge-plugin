@@ -76,6 +76,7 @@ how many topics there may be.
 | [the goals a `Serves:` may name](cli/the-goals.md) | Whose list an identifier is read from, why one the brief does not list is still put to the requirements tree, and why naming no goal is refused by nothing while no weight reads the line. |
 | [settings](cli/settings.md) | Why provenance is the shape of every answer, which six environment variables remain, and where a credential may sit. |
 | [withholding a verb](cli/withholding-a-verb.md) | The difference between a tool the server gates and a verb a human hid, the three states the second of those has, and why `forge doctor` alone may say so. |
+| [an unconfigured tool](cli/an-unconfigured-tool.md) | Why a tool this machine saved nothing for is a third question beside the server's gate and a person's choice, which reader answers it for all four surfaces, and the one surface it cannot reach. |
 | [a job](cli/a-job.md) | Why a slice of verbs is named by the project and turned on by the machine, why the report matches a job rather than blaming one, and the one verb a job cannot take away. |
 | [retiring a name](cli/retiring-a-name.md) | Why a replaced name is not redirected to its replacement, what separates a form the dispatcher performs from a redirect, and the one bounded window a losing name gets. |
 | [one transport](cli/one-transport.md) | Why the route each capability takes is a declared table, what a capability with no route does instead, why a write announces itself here, and the edge the credential guard states. |

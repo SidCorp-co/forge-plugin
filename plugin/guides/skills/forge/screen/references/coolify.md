@@ -1,3 +1,4 @@
+<!-- forge:when tool.coolify configured -->
 # `forge coolify` runs inside a pinned project
 
 Read this before the first `forge coolify` call of a task. Run `forge coolify -h` for the sub-verbs;
@@ -19,3 +20,4 @@ committing to it; the scope guard still runs while nothing is being sent.
 **A status has already been read for you.** Coolify calls a container unhealthy whenever it has no
 healthcheck configured, so that word is dropped before you see it and `running` here means running.
 Never report a service as broken on the strength of a word this verb did not print.
+<!-- forge:end -->
