@@ -27,7 +27,8 @@ how many topics there may be.
 | [`the precondition`](cli/the-precondition.md) | What every write the lease covers carries, the one call that establishes the far end honours it, and which read-back stops being spent once it does. |
 | [the short lease](cli/the-short-lease.md) | Why a write no work follows takes a lease of minutes, why the refusal is where that is said, and the split it was measured on. |
 | [the granted id](cli/the-granted-id.md) | Why an export reaches a substitution and a prefix does not, which openers lose a call its name unread, and which quoting leaves one as the prose it looks like. |
-| [`the checkpoint`](cli/the-checkpoint.md) | What a build ready to land leaves whoever lands it, why both merge routes are one table, and how the judge's turn is handed back. |
+| [`the checkpoint`](cli/the-checkpoint.md) | What a build ready to land leaves whoever lands it, why both merge routes are one table, and what a candidate is a fact about. |
+| [`the turn`](cli/the-turn.md) | Whose turn each landing state names, the three routes one is handed back by, and why a state whose successor nothing writes is a landing parked for good. |
 | [`resume`](cli/resume.md) | What the worklog holds beside the lease, why no capture of it is automatic, and what the brief prints. |
 | [`spec`](cli/spec.md) | Why a clause is answered by its identifier, and the three readings of the notation narrowed rather than guessed. |
 | [two writes that lie about themselves](cli/two-writes-that-lie.md) | Why a field is reported written only after the server shows it, why the read-back compares the copy the boundary sent, and why the count a reply answers to is read off argv, not at the layer reporting. |

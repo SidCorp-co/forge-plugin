@@ -1,13 +1,16 @@
-/* The issue's session field read as a lease, and what a build ready to land leaves beside it. Every write it covers carries the value it read, and the tracker refuses one whose value moved. docs/cli/claim.md, docs/cli/the-precondition.md. */
+/* The issue's session field read as a lease. Every write it covers carries the value it read, and the tracker refuses one whose value moved. docs/cli/claim.md, docs/cli/the-precondition.md. */
 import { ASKED, INHERITED, INHERITED_MEANS, OWN_ID, WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
 import { RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames } from "../resolve/session/run-id.mjs";
 import { TAKEABLE } from "../rank/weights.mjs";
 import { sharedNow, sharedStamp, slackNow, stampOf } from "../wire/shared-clock.mjs";
 import { thisCall } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
-import { shortSha } from "../tracker/evidence.mjs";
 import { enforcementOf, writeField } from "../tracker/field-write.mjs";
 import { scoped, tried } from "../tracker/rest.mjs";
+import {
+  LANDING, LANDING_BUILDER_OWED, LANDING_JUDGED, LANDING_STATES, READ_THE_STATE, SPENT_AT,
+  landingNext, landingOf, landingTurn,
+} from "./landing/checkpoint.mjs";
 import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
 
 export const FIELD = "sessionContext";
@@ -209,78 +212,6 @@ export const tookAt = (lease, holder, state) => {
   return last?.how === "take" && last?.landing === state;
 };
 
-/* The other object in the field, beside the lease and the worklog: what a build ready to land leaves
-   for whoever lands it. One turn per state, `done` is nobody's, and which of the two successors a
-   state offers is the landing task's reading of the project. docs/cli/the-checkpoint.md. */
-export const LANDING = "landing";
-export const LANDING_READY = "ready";
-export const LANDING_BUILDER_OWED = "builder-owed";
-export const LANDING_RECONCILED = "reconciled";
-export const LANDING_QA_OWED = "qa-owed";
-export const LANDING_JUDGED = "judged";
-export const LANDING_DONE = "done";
-
-export const LANDING_STATES = {
-  ready: { turn: "lander", next: ["candidate"] },
-  candidate: { turn: "lander", next: ["reconciled", "builder-owed"] },
-  "builder-owed": { turn: "builder", next: ["reconciled"] },
-  reconciled: { turn: "lander", next: ["qa-owed", "promoting"] },
-  "qa-owed": { turn: "qa", next: ["judged"] },
-  judged: { turn: "lander", next: ["promoting", "done"] },
-  promoting: { turn: "lander", next: ["promoted"] },
-  promoted: { turn: "lander", next: ["installed"] },
-  installed: { turn: "lander", next: ["marked"] },
-  marked: { turn: "lander", next: ["qa-owed", "done"] },
-  done: { turn: null, next: [] },
-};
-
-/* Declared, as the record's fields are: the landing writes its own shas and its install state into
-   this same object, and a key nothing here names is dropped rather than read back as a fact. `files`
-   is the paths the change touched, where the worklog's `files` beside it is how many there were. */
-const CHECKPOINT = ["state", "builder", "branch", "head", "base", "at", "pinned", "intended",
-  "candidate", "release", "install", "deployment", "moved", "reconciled", "judge"];
-
-export const landingOf = (context) => {
-  const held = context?.[LANDING];
-  if (!held || typeof held !== "object" || typeof held.state !== "string" || !held.state) return null;
-  const files = (Array.isArray(held.files) ? held.files : []).map((one) => String(one).trim());
-  const out = { files: files.filter(Boolean) };
-  for (const name of CHECKPOINT) if (held[name]) out[name] = String(held[name]);
-  return out;
-};
-
-export const landingTurn = (landing) => LANDING_STATES[landing?.state]?.turn ?? null;
-
-/* A base that moved under a pin is built again from a fresh one — the one move the table above
-   cannot carry, being backwards. Never past the push: that would void evidence for a landed release. */
-export const LANDING_CANDIDATE = "candidate";
-const REBUILDS = new Set([LANDING_CANDIDATE, LANDING_RECONCILED, LANDING_QA_OWED, LANDING_JUDGED, "promoting"]);
-
-/** Blank rather than absent: `landingOf` drops what is falsy, so this is how a field is cleared. */
-export const landingVoided = (pinned) => ({
-  state: LANDING_CANDIDATE, pinned, candidate: "", intended: "", moved: "", reconciled: "",
-  deployment: "", judge: "", release: "",
-});
-
-export const landingNext = (held, to) => {
-  if (!held) return `no landing checkpoint is on it, so there is no state for \`${to}\` to follow`;
-  if (!LANDING_STATES[to]) return `\`${to}\` is no landing state this version knows`;
-  const row = LANDING_STATES[held.state];
-  if (!row) return `it reads \`${held.state}\`, which is no state this version knows`;
-  if (to === LANDING_CANDIDATE && REBUILDS.has(held.state)) return null;
-  if (!row.next.includes(to)) {
-    return `it reads \`${held.state}\`, whose next is ${row.next.join(" or ") || "nothing at all"}`;
-  }
-  return null;
-};
-
-export const landingLine = (landing) =>
-  `landing \`${landing.state}\`: ${landing.branch ?? "no branch"} at ${shortSha(landing.head)}, `
-  + `base ${shortSha(landing.base)}, ${landing.files.length} file(s), built by ${landing.builder}`;
-
-const READ_THE_STATE = (ref) =>
-  `Read where the landing is, and take it when the state names your turn:\n  forge resume ${ref}`;
-
 /* `--take` is the one route that may take a lease which is still live, so what licenses it is the
    state naming the taker's turn and nothing else. A lease no longer live is anybody's by the
    reclaim rules already, which is what makes a successor eligible where the run named has gone. */
@@ -324,7 +255,8 @@ export const takeRefusal = (ref, landing, holder, lease, { now = sharedNow(), so
     if (!live || lease.holder === holder || lease.holder === landing.builder) return null;
     if (landing.state === LANDING_JUDGED && landing.judge && lease.holder === landing.judge) return null;
     /* And one state over, a successor's own lease after the write its turn ended with: spent by the take, and with no marker to clear, the row saying nothing once the lease moves. */
-    if (landing.state === LANDING_RECONCILED && tookAt(lease, lease.holder, LANDING_BUILDER_OWED)) return null;
+    const spent = SPENT_AT[landing.state];
+    if (spent && tookAt(lease, lease.holder, spent)) return null;
     return `${said}, whose turn is the lander's, and ${describe(lease)} is already on it. `
       + `${READ_THE_STATE(ref)}`;
   }

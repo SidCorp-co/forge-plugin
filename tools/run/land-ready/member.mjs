@@ -11,7 +11,8 @@ import { advance } from "../../../plugin/src/flow/advance.mjs";
 import { ORDER, atLeast, viewFrom } from "../../../plugin/src/flow/earned.mjs";
 import { CLOSES_FROM } from "../../../plugin/src/flow/machine.mjs";
 import { markMerged, markNote, markedCommit, namedFor } from "../../../plugin/src/flow/record/merged.mjs";
-import { LANDING_DONE, LANDING_JUDGED, LANDING_QA_OWED, landingSaved } from "../../../plugin/src/flow/lease.mjs";
+import { landingSaved } from "../../../plugin/src/flow/lease.mjs";
+import { LANDING_DONE, LANDING_JUDGED, LANDING_MARKED, LANDING_QA_OWED, LANDING_RECORDS_OWED } from "../../../plugin/src/flow/landing/checkpoint.mjs";
 import { INDEPENDENT, judgedAt } from "../../../plugin/src/flow/qa/verdicts.mjs";
 import { personOwedForRelease, releasePolicy } from "../../../plugin/src/tracker/project-config.mjs";
 
@@ -95,8 +96,8 @@ export const viewOf = async (documentId) => {
   return viewFrom(documentId, issue, page.comments ?? [], null, release);
 };
 
-/* The verdicts a moved base or head takes away, named rather than described. Empty where the project
-   asks for no independent judge: a builder's verdicts are the review at the landed head's business. */
+/* The verdicts a moved base or head takes away, named rather than described. Empty where no
+   independent judge is asked for. */
 export const voidSaid = async (documentId, landing) => {
   if (!landing.deployment) return "";
   const view = await asked(() => viewOf(documentId));
@@ -149,13 +150,11 @@ export const markStep = async (one) => {
       await asked(() => markMerged(documentId, key, note));
       console.log(`  ${key} is marked merged at ${shortly(landed)}`);
     }
-    await saveOn(member, { state: "marked" });
+    await saveOn(member, { state: LANDING_MARKED });
   });
 };
 
-/* Driven through `advance`, so the flow table and the entry criteria stay where they live, and read
-   for whether the status is there rather than for whether the move was tried: an advance refused
-   says so and moves nothing, and `done` written over that would certify a status nothing earned. */
+/* Read for whether the status is there rather than for whether the move was tried: `done` written over a refusal would certify a status nothing earned. */
 const moveTo = async (key, to, documentId) => {
   const status = await asked(() => statusOf(documentId));
   if (atLeast(status, to)) {
@@ -172,25 +171,41 @@ const moveTo = async (key, to, documentId) => {
   return atLeast(await asked(() => statusOf(documentId)), to);
 };
 
+/* Earned by a record only the builder knows the reason for, refused to a run holding neither lease nor turn. Not a stop (ISS-923). */
+const handRecordsBack = async (member, rung) => {
+  const { key, landing } = member;
+  await saveOn(member, { state: LANDING_RECORDS_OWED, owed: landing.state });
+  return console.log(`  the checkpoint reads \`${LANDING_RECORDS_OWED}\`: what \`${rung}\` is owed `
+    + `is above, and it is answered by ${landing.builder}, which built this change. Nothing of ${key} `
+    + `moves until the turn comes back:\n`
+    + `    forge claim ${key} --take\n`
+    + `    ... the records, then: forge claim ${key} --recorded`);
+};
+
 export const statusStep = async (one) => {
   const { at, ctx: { route, judgement, policy } } = one;
   const owed = personOwedForRelease(policy);
   await perMemberOwed(at, async (member) => {
     const { key, documentId, landing } = member;
-    await moveTo(key, DEVELOPED, documentId);
+    const developed = await moveTo(key, DEVELOPED, documentId);
     /* The other place the route puts that turn; the release is what says what is running. */
     if (judgement === INDEPENDENT && route !== BEFORE_MERGE && landing.state !== LANDING_JUDGED) {
       await saveOn(member, { state: LANDING_QA_OWED, deployment: intendedOf(at) });
       return stop(OWED_TO_QA(key, member.landing, "the release"));
     }
+    /* Above the walk, which would otherwise report the rung two above the one it is short of. */
+    if (!developed) return handRecordsBack(member, DEVELOPED);
     /* One rung at a time up the tail, a jump being refused, and `done` refused to every turn so it
        waits on the last of them: closed over a record that did not earn a rung, the issue would be
        reachable by no route at all. A rung the record does not earn stops the walk where it stands. */
     for (const rung of walkedWhere(owed)) {
-      if (!await moveTo(key, rung, documentId)) {
-        return console.log(`  the checkpoint stays \`${landing.state}\`: what \`${rung}\` is owed is `
-          + `above, and the landing is run again once the record carries it`);
+      if (await moveTo(key, rung, documentId)) continue;
+      /* The one rung that is not the builder's: where a second judge is asked for, `judgeProblem` refuses a verdict carrying the builder's id, so that turn is one nobody can discharge. */
+      if (rung === JUDGED && judgement === INDEPENDENT) {
+        await saveOn(member, { state: LANDING_QA_OWED, deployment: member.landing.deployment || intendedOf(at) });
+        return stop(OWED_TO_QA(key, member.landing, "the release"));
       }
+      return handRecordsBack(member, rung);
     }
     if (owed) {
       console.log(`  ${key} rests at \`${CLOSES_FROM}\`: ${owed}, so the close is theirs and not this `

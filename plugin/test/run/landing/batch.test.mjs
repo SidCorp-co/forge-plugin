@@ -21,7 +21,7 @@ const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
 const { landReady } = await import("../../../../tools/run/land-ready.mjs");
 const { Stop } = await import("../../../../tools/checkout.mjs");
-const { landingOf } = await import("../../../src/flow/lease.mjs");
+const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
 
 test.after(() => tracker.close());
 
@@ -121,7 +121,7 @@ test("a combination the gate refuses lands one branch and refuses the other agai
   const landed = remote(at);
   assert.ok(holds(work, landed, head), `the first branch landed:\n${said}`);
   assert.ok(!holds(work, landed, next), `and the second did not:\n${said}`);
-  assert.equal(landing().state, "marked", said);
+  assert.equal(landing().state, "records-owed", said);
   assert.equal(marks(NEXT_UUID).length, 0, `nothing of it is marked:\n${said}`);
   /* Refused where its own gate ran: the pin under it is the base the first branch landed on, and
      what it is reconciled at is that candidate rather than the combination it was read at. */
@@ -160,7 +160,7 @@ test("a branch whose paths the base moved is handed back alone, and the rest of 
   assert.ok(!holds(work, remote(at), head), `nothing of it was pushed:\n${said}`);
   assert.equal(marks().length, 0, `nor marked:\n${said}`);
   assert.notEqual(remote(at), pinned, `and the branch beside it landed:\n${said}`);
-  assert.equal(landing(NEXT_UUID).state, "marked", said);
+  assert.equal(landing(NEXT_UUID).state, "records-owed", said);
   /* The sha it was handed is one the builder's own claim takes, which is the whole of the route out. */
   const took = await asBuilder(["claim", KEY, "--take"]);
   assert.equal(took.status, 0, `${took.stdout}${took.stderr}`);
@@ -179,7 +179,7 @@ test("a branch a sibling moved leaves the set with no hand-back, and is landed a
   assert.match(said, new RegExp(`${THIRD_KEY} is out of this landing`, "u"), said);
   const landed = remote(at);
   assert.ok(holds(work, landed, head), `the set landed:\n${said}`);
-  assert.equal(landing().state, "marked", said);
+  assert.equal(landing().state, "records-owed", said);
   /* Landed after them, and the pin it met is the base they left: there the move is the base's own,
      so its builder is the one asked about it — no park and no hand-back while the set was landing. */
   assert.equal(landing(THIRD_UUID).pinned, landed, said);
@@ -410,7 +410,7 @@ test("a key past its push is left out of the set and landed on its own, before a
   seeded({ landing: ready(head, base), next: beside(next, base) });
   forgetInstall();
   const first = await ran([KEY], work);
-  assert.equal(landing().state, "marked", first);
+  assert.equal(landing().state, "records-owed", first);
   /* Its release is on the branch and the mark is all it has left, which is no candidate's business. */
   issue().sessionContext.landing = { ...landing(), state: "installed" };
   comments().length = 0;
@@ -423,6 +423,6 @@ test("a key past its push is left out of the set and landed on its own, before a
   const its = said.slice(said.indexOf(`=== ${KEY}`), said.indexOf(`=== ${NEXT_KEY}`));
   assert.match(its, /step 9\/10/u, its);
   assert.doesNotMatch(its, /step 1\/10/u, its);
-  assert.equal(landing(NEXT_UUID).state, "marked", `the ready branch landed after it:\n${said}`);
+  assert.equal(landing(NEXT_UUID).state, "records-owed", `the ready branch landed after it:\n${said}`);
   assert.ok(holds(work, remote(at), next), said);
 });

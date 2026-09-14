@@ -19,9 +19,15 @@ import { OPEN_KEPT, merged, patchFrom, worklogFor, worklogOf, workNow } from "./
 import {
   LANDING_BUILDER_OWED,
   LANDING_JUDGED,
+  LANDING_MARKED,
   LANDING_QA_OWED,
   LANDING_READY,
   LANDING_RECONCILED,
+  LANDING_RECORDS_OWED,
+  landingLine,
+  landingOf,
+} from "./landing/checkpoint.mjs";
+import {
   MECHANISM,
   MINUTES,
   MINUTES_ASKS,
@@ -38,8 +44,6 @@ import {
   handedSaid,
   heldBy,
   historyLine,
-  landingLine,
-  landingOf,
   landingSaved,
   leaseOf,
   nextLeft,
@@ -93,8 +97,7 @@ const advise = async (documentId, issue, held = null) => {
 export const USAGE = [
   usageOf("claim"),
   "The lease on an issue, in the session field the issue already has: a holder, a renew time, a",
-  "duration and the claims before this one. Every payload write the CLI makes renews it, and a read",
-  "needs none. Nothing else about a run is remembered anywhere.",
+  "duration and the claims before this one. Nothing else about a run is remembered anywhere.",
   "",
   `  --minutes <n>   how long the lease runs from now, instead of ${MINUTES}`,
   `  ${STOPPED}       reclaim a lease that has only just lapsed, the run having been established stopped`,
@@ -105,12 +108,13 @@ export const USAGE = [
   `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest is dropped`,
   "  --ready         with --pushed: the landing checkpoint, in state `ready`, from that capture",
   "  --take          the lease at whatever state the checkpoint names your turn",
-  "  --judged        the QA turn handed back: the checkpoint moves from `qa-owed` to `judged`",
-  "  --reconciled <sha>  the builder's turn handed back: `builder-owed` to `reconciled` at that sha",
+  "  --judged        the QA turn handed back, from `qa-owed`",
+  "  --reconciled <sha>  the builder's turn handed back, from `builder-owed` at that sha",
+  "  --recorded      the builder's records turn handed back, from `records-owed`",
   "",
   "--pushed, --review and --open write the worklog beside the lease, which `forge resume` reads",
-  "first; neither capture is automatic, since a write from another checkout would name that one.",
-  "What the checkpoint holds and which state names whose turn: docs/cli/the-checkpoint.md.",
+  "first; neither capture is automatic. What the checkpoint holds: docs/cli/the-checkpoint.md.",
+  "Whose turn each state names, and what each hand-back moves it to: docs/cli/the-turn.md.",
   "",
   nothingWorked(),
   "",
@@ -204,12 +208,9 @@ const handBack = async (documentId, ref, context, holder) => {
     + `here, so nothing more of ${ref} is this run's.`);
 };
 
-/* The other route out, and the same shape as the hand-back above: the state, then the independence,
-   then one write. What is its own is the sha — the builder is owed the turn because the landing's
-   merge moved a path this change owns, so what it has to say is which candidate it read, and the
-   candidate the checkpoint names is what proves that rather than the run's word for it. Seven digits
-   or forty, because seven is what the landing's own stop prints; the checkpoint's own string is
-   stored, since that is the one the promotion compares. docs/cli/the-checkpoint.md. */
+/* The other route out, the same shape as the hand-back above. What is its own is the sha: the
+   candidate the checkpoint names proves which one was read rather than the run's word for it. Seven
+   digits or forty, the checkpoint's own string stored, since the promotion compares that. */
 const reconcile = async (documentId, ref, context, holder, given) => {
   const landing = landingOf(context);
   if (landing?.state !== LANDING_BUILDER_OWED) {
@@ -241,6 +242,43 @@ const reconcile = async (documentId, ref, context, holder, given) => {
   console.log(`${ref}  reconciled: ${landingLine(saved)}`);
   return console.log(`The candidate ${shortSha(landing.candidate)} is what this run says it read, `
     + `and the landing promotes that commit and no other, so nothing more of ${ref} is this run's.`);
+};
+
+/* The two states a records turn returns to, written out one apiece rather than composed, because the
+   table that reads which states a verb writes reads the source for the state's own spelling and a
+   name assembled at run time is a state it cannot see. The `owed` field is cleared with the move: it
+   answers where this turn came from and nothing once the turn is over. */
+const RETURNS = {
+  [LANDING_MARKED]: { state: LANDING_MARKED, owed: "" },
+  [LANDING_JUDGED]: { state: LANDING_JUDGED, owed: "" },
+};
+
+/* The third route out, the same shape as the two above. It reads no record back — a hand-back its own
+   holder could be refused is a state nobody can leave — so an empty one is the walk's. the-turn.md. */
+const handRecords = async (documentId, ref, context, holder) => {
+  const landing = landingOf(context);
+  if (landing?.state !== LANDING_RECORDS_OWED) {
+    fail(`claim --recorded ends the builder's records turn, and the landing checkpoint on ${ref} `
+      + `reads \`${landing?.state ?? "nothing at all"}\`: the turn is handed back from `
+      + `\`${LANDING_RECORDS_OWED}\` and from no other state. Read where the landing is:\n`
+      + `  forge resume ${ref}`);
+  }
+  const back = RETURNS[landing.owed];
+  if (!back) {
+    fail(`the checkpoint on ${ref} reads \`${LANDING_RECORDS_OWED}\` and names `
+      + `\`${landing.owed || "nothing at all"}\` as the state the turn came from, which is not one `
+      + `a landing hands records back from. Read where the landing is:\n  forge resume ${ref}`);
+  }
+  /* The lander that offered this turn still holds the lease it wrote the offer under, so state alone
+     would let it take the turn back before the builder had answered a thing. */
+  const mine = sessionSourced();
+  const refused = takeRefusal(ref, landing, holder, leaseOf(context),
+    { source: mine.id === holder ? mine.source : null });
+  if (refused) fail(refused);
+  const saved = await landingSaved(documentId, ref, back);
+  console.log(`${ref}  recorded: ${landingLine(saved)}`);
+  return console.log(`The records this turn was handed back for are on the issue, so the landing `
+    + `takes it from here and nothing more of ${ref} is this run's.`);
 };
 
 /* The turn is read before anything is written, because this is the one claim that may take a live
@@ -296,11 +334,12 @@ export const claim = async (argv) => {
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) fail(`claim takes the issue first. ${usageOf("claim")}`);
   const pulled = pullRepeated(rest, "--open", "claim", { usage: USAGE });
-  const given = flags(pulled.rest, "claim", ["--pushed", "--review", "--ready", "--take", "--judged", STOPPED, UNHELD],
+  const given = flags(pulled.rest, "claim",
+    ["--pushed", "--review", "--ready", "--take", "--judged", "--recorded", STOPPED, UNHELD],
     { usage: USAGE });
-  const turns = ["ready", "take", "judged", "reconciled"].filter((one) => given[one]);
+  const turns = ["ready", "take", "judged", "reconciled", "recorded"].filter((one) => given[one]);
   if (turns.length > 1) {
-    fail(`claim takes one of --ready, --take and --judged and this one takes `
+    fail(`claim takes one of --ready, --take, --judged, --reconciled and --recorded and this one takes `
       + `${turns.map((one) => `--${one}`).join(" and ")}: each is a different turn's own move. To end `
       + `this build:\n  forge claim ${ref} --pushed --ready`);
   }
@@ -340,6 +379,10 @@ export const claim = async (argv) => {
   }
   if (given.reconciled) {
     await reconcile(documentId, ref, context, holder, given.reconciled);
+    return advise(documentId, issue, worklog);
+  }
+  if (given.recorded) {
+    await handRecords(documentId, ref, context, holder);
     return advise(documentId, issue, worklog);
   }
   /* The issue's own key and never the caller's spelling of it: `documentIdOf` takes a uuid too, and

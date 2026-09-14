@@ -175,15 +175,18 @@ It reads only, and needs no lease of its own.
 
 ### UC-03-6 — The lease follows the work
 
-Rev: 1 · Actors: agent · Enforces: BR-01, BR-05
+Rev: 2 · Actors: agent · Enforces: BR-01, BR-05
 
 When the run that built a change ends before the change lands, the landing and the judgement are
 other actors' work on the same issue, and each writes under a lease of its own rather than under
 the builder's (BR-05). What says whose turn it is cannot be the lease's own next line, which a
 transition clears; it is a landing checkpoint on the issue that transitions leave alone, whose state
 names one turn at a time — the landing's, the builder's when a landing moved its files, the judge's
-when a deployment is to be judged — and a takeover is allowed by that state and refused naming it
-(BR-01).
+when a deployment is to be judged, and the builder's again where a status the landing is walking is
+earned by a record only the run that built the change can answer for — and a takeover is allowed by
+that state and refused naming it (BR-01). A turn the landing cannot discharge is handed over rather
+than held: a refusal naming a record whose reason one actor knows and whose write another holds is
+a wait no party can end.
 
 - **AC-03-6-1** · Rev: 1 · Proof: none yet — ISS-673
   WHEN a run declares its change ready to land THEN the CLI SHALL write a landing checkpoint on the
@@ -202,6 +205,14 @@ when a deployment is to be judged — and a takeover is allowed by that state an
 - **AC-03-6-6** · Rev: 1 · Proof: plugin/test/flow/landing/take.test.mjs "the builder's reconciliation moves the checkpoint to reconciled at the candidate it names"
   WHILE the checkpoint names the builder's turn and the builder holds the lease, a reconciliation
   write under that lease SHALL be accepted.
+- **AC-03-6-7** · Rev: 1 · Proof: plugin/test/run/landing/land-ready.test.mjs "the builder writes the records the landing stops for, and the landing finishes on its own turn"
+  IF a status the landing is walking is not earned, THEN the landing SHALL move the checkpoint to a
+  state naming the turn of the actor whose record earns that status, SHALL record on it the state
+  the turn was handed back from where that actor is the builder, and SHALL name the run that answers
+  for what is owed.
+- **AC-03-6-8** · Rev: 1 · Proof: plugin/test/flow/landing/take.test.mjs "the builder ends its records turn and the checkpoint goes back to the state it came from"
+  WHEN the run holding that turn ends it THEN the CLI SHALL return the checkpoint to the state the
+  turn was handed back from, without reading back the records it was handed over for.
 
 ## Business rules enforced
 

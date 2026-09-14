@@ -23,10 +23,11 @@ import { documentIdOf } from "../../plugin/src/tracker/issues.mjs";
 import { pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
 import { publishesVersion } from "./release/released-tag.mjs";
 import { parkAs } from "../../plugin/src/flow/advance.mjs";
+import { takeLease } from "../../plugin/src/flow/lease.mjs";
 import {
   LANDING_BUILDER_OWED, LANDING_CANDIDATE, LANDING_DONE, LANDING_JUDGED, LANDING_QA_OWED,
-  LANDING_READY, LANDING_RECONCILED, landingOf, landingVoided, takeLease,
-} from "../../plugin/src/flow/lease.mjs";
+  LANDING_READY, LANDING_RECONCILED, LANDING_RECORDS_OWED, landingOf, landingVoided,
+} from "../../plugin/src/flow/landing/checkpoint.mjs";
 import { INDEPENDENT } from "../../plugin/src/flow/qa/verdicts.mjs";
 import { judgementOf, landingRoute, releasePolicy } from "../../plugin/src/tracker/project-config.mjs";
 import { landingScope } from "../../plugin/src/resolve/settings.mjs";
@@ -448,7 +449,8 @@ const landSet = async (taking, ctx, from) => {
 /* The set a death inside the promoting loop broke, read back off the ancestry rather than off a
    field no record holds: a member the pushed release already carries was on that candidate, and a
    candidate of its own would spend a gate and a version on a change the base has. the-checkpoint.md. */
-const PAST_INSTALL = new Set(["installed", "marked", LANDING_QA_OWED, LANDING_JUDGED, LANDING_DONE]);
+const PAST_INSTALL = new Set(["installed", "marked", LANDING_QA_OWED, LANDING_JUDGED,
+  LANDING_RECORDS_OWED, LANDING_DONE]);
 
 const carriedOn = async (holder, rest, ctx) => {
   const issue = await asked(() => scoped("forge_issues",

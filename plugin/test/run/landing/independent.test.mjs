@@ -22,7 +22,7 @@ state.config = {
 
 const { landReady } = await import("../../../../tools/run/land-ready.mjs");
 const { Stop } = await import("../../../../tools/checkout.mjs");
-const { landingOf } = await import("../../../src/flow/lease.mjs");
+const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
 const { render } = await import("../../../src/flow/record/page.mjs");
 
 test.after(() => tracker.close());
@@ -167,4 +167,26 @@ test("a void leaves no release on the checkpoint for a later resume to read as a
   const after = landing();
   assert.ok(!after.release, `a voided checkpoint names no release:\n${JSON.stringify(after)}\n${said}`);
   assert.ok(!after.intended, `and no sha it intended to push:\n${said}`);
+});
+
+/* The turn a records hand-back must not take: `judgeProblem` refuses a verdict carrying the builder's own id, so a shortfall here handed to the builder is the very defect this change fixes, one rung over (ISS-923). */
+test("a judging rung the verdicts do not earn goes back to the judge, not to the builder", async () => {
+  const { work, head, base } = world({ base: "other" });
+  seeded({
+    landing: ready(head, base),
+    earned: {
+      acceptanceCriteria: "1. the outcome",
+      said: [render("review", { reviewer: "codex", commit: head, outcome: "approved", finding: ["F1 accepted"] })],
+    },
+  });
+  await ran([KEY], work);
+  const deployment = landing().deployment;
+  assert.equal(landing().state, "qa-owed", "the release is what an independent judge is owed");
+  issue().sessionContext.landing = { ...landing(), state: "judged", judge: QA };
+  const said = await ran([KEY], work);
+  const after = landing();
+  assert.equal(after.state, "qa-owed", `the turn goes back to the judge:\n${said}`);
+  assert.equal(after.deployment, deployment, `over the identity its verdicts have to cite:\n${said}`);
+  assert.doesNotMatch(said, /records-owed/u, `and never to the builder, whose verdict earns nothing:\n${said}`);
+  assert.match(said, new RegExp(`forge claim ${KEY} --judged`, "u"), `with the route out of it:\n${said}`);
 });

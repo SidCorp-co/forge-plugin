@@ -18,7 +18,7 @@ const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
 const { landReady } = await import("../../../../tools/run/land-ready.mjs");
 const { Stop } = await import("../../../../tools/checkout.mjs");
-const { landingOf } = await import("../../../src/flow/lease.mjs");
+const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
 const { publishedFor, publishedPath } = await import("../../../src/flow/earned/published.mjs");
 
 test.after(() => tracker.close());
@@ -37,10 +37,15 @@ const ran = async (keys, work) => {
     out.push(error.message);
   } finally {
     [console.log, console.error] = kept;
+    exited = process.exitCode ?? 0;
     process.exitCode = 0;
   }
   return out.join("\n");
 };
+
+/** What the run above left, read before the line resetting it: a member owed something is a stop and
+ *  a turn handed over is not, so the code the landing exits with is what tells one from the other. */
+let exited = 0;
 
 /** The builder's own commands, through the shipped verb: a landing hands the branch back to a run
  *  of its own, so what that run types is what this suite has to ask for. Twice, since the gate every
@@ -80,9 +85,14 @@ test("a ready branch is pinned, merged, proved to have moved nothing and promote
   /* This project asks for no independent judge, so no QA turn is written at all; and its record
      earns neither status, so the checkpoint rests at `marked` for the landing to be run again
      rather than closing at `done` over a `tested` nothing earned. */
-  assert.equal(held.state, "marked", `no judge is asked for and neither status is earned:\n${said}`);
+  assert.equal(held.state, "records-owed", `no judge is asked for and neither status is earned, so the turn is the builder's:\n${said}`);
+  assert.equal(held.owed, "marked", `and the checkpoint names the state it was handed back from:\n${said}`);
   assert.match(said, /no judge's turn sits here: this project lands after-merge/u, said);
-  assert.match(said, /the checkpoint stays `marked`/u, said);
+  assert.match(said, /the checkpoint reads `records-owed`/u, said);
+  assert.match(said, new RegExp(`answered by ${BUILDER}`, "u"),
+    `the run that can answer for the records is named, not the rung alone:\n${said}`);
+  assert.match(said, new RegExp(`forge claim ${KEY} --take`, "u"), `with the command that takes it:\n${said}`);
+  assert.match(said, new RegExp(`forge claim ${KEY} --recorded`, "u"), `and the one that ends it:\n${said}`);
 });
 
 /* The tail of the ladder is two rungs and `advance` refuses a jump, so the landing walks them: a
@@ -116,7 +126,7 @@ test("a landing whose record earns the judging rung alone stops at it and names 
   seeded({ landing: ready(head, base), earned: { ...half, said: half.said.slice(0, 2) } });
   const said = await ran([KEY], work);
   assert.equal(issue().status, "testing", `the judging rung is where it rests:\n${said}`);
-  assert.equal(landing().state, "marked", `the checkpoint is not done:\n${said}`);
+  assert.equal(landing().state, "records-owed", `the checkpoint is not done, and the rung left is the builder's:\n${said}`);
   assert.match(said, /what `awaiting_release` is owed is above/u, said);
   assert.match(said, /no verification/u, "and what that is, is on the report");
   assert.ok(releaseNotes.section, "the half withheld is the note, which is what the rung asks for");
@@ -210,10 +220,94 @@ test("a base that moved a line of the change's own file hands the branch back, r
   assert.equal(landing().state, "reconciled", `the builder's own write moved it:\n${wrote.stdout}`);
   assert.equal(landing().reconciled, held.candidate, wrote.stdout);
   const after = await ran([KEY], work);
-  assert.equal(landing().state, "marked", after);
+  assert.equal(landing().state, "records-owed", after);
   assert.notEqual(remote(at), pinned, `the reconciled candidate lands:\n${after}`);
   assert.match(marks()[0].body, new RegExp(`judged head ${held.candidate}\\b`, "u"), marks()[0].body);
   assert.match(marks()[0].body, new RegExp(`landing moved ${OWNED};`, "u"), marks()[0].body);
+});
+
+/* Four runs of one wave were each refused at the last record and every refusal was right: the rungs left after the mark are earned by records only the builder can answer, and the checkpoint gave that state to the lander. Watched end to end, through the shipped commands (ISS-923). */
+test("the builder writes the records the landing stops for, and the landing finishes on its own turn", async () => {
+  const { work, head, base } = world({ base: "other" });
+  /* The criteria, and a plan naming a file this change never wrote, so the landing's mark owes a
+     correction as well as a review: both are reasons only the run that built it knows. */
+  seeded({
+    landing: ready(head, base),
+    earned: {
+      acceptanceCriteria: "1. it lands",
+      plan: "Screen change: no\nSchema coupling: no\nUser-facing outcome: no\n\nIt edits docs/other.md.\n\n1. it lands\n",
+    },
+  });
+  const first = await ran([KEY], work);
+  const held = landing();
+  assert.equal(held.state, "records-owed", `the record earns no rung, so the turn is the builder's:\n${first}`);
+  assert.equal(held.owed, "marked", first);
+  assert.equal(exited, 0, `a turn handed over is what this step is for and not a failure of it:\n${first}`);
+  const landed = marks()[0].body.match(/at ([0-9a-f]{40})/u)[1];
+
+  const took = await asBuilder(["claim", KEY, "--take"]);
+  assert.equal(took.status, 0, `${took.stdout}${took.stderr}`, "no lease was waited out");
+  assert.doesNotMatch(`${took.stdout}${took.stderr}`, /Reclaim \d+ of/u,
+    `and no reclaim was spent on it:\n${took.stdout}`);
+
+  /* Written by the run that can answer for them, which is the one thing the lander could not do. */
+  const review = await asBuilder(["record", "review", KEY, "--reviewer", "codex",
+    "--commit", landed, "--outcome", "approved", "--finding", "F1 accepted"]);
+  assert.equal(review.status, 0, `${review.stdout}${review.stderr}`);
+  const verdict = await asBuilder(["record", "verdict", KEY, "--criterion", "1",
+    "--verdict", "pass", "--commit", landed, "--evidence", landed]);
+  assert.equal(verdict.status, 0, `${verdict.stdout}${verdict.stderr}`);
+
+  const correction = await asBuilder(["record", "correction", KEY,
+    "--moved", OWNED, "--why", "the plan named another file and this is the one that landed"]);
+  assert.equal(correction.status, 0, `${correction.stdout}${correction.stderr}`,
+    "the reason only this run knows is typed by this run");
+  const verified = await asBuilder(["record", "verification", KEY,
+    "--where", "the installed plugin", "--commit", landed, "--evidence", "https://ci.example.test/12"]);
+  assert.equal(verified.status, 0, `${verified.stdout}${verified.stderr}`);
+  const note = await asBuilder(["record", "note", KEY, "--section", "Fixed", "--user", "it works"]);
+  assert.equal(note.status, 0, `${note.stdout}${note.stderr}`);
+
+  const back = await asBuilder(["claim", KEY, "--recorded"]);
+  assert.equal(back.status, 0, `${back.stdout}${back.stderr}`);
+  assert.equal(landing().state, "marked", `the turn goes back to the state it came from:\n${back.stdout}`);
+
+  /* Twice: the builder's records are comments this lander has not been shown, and the gate every
+     write passes delivers them before it spends one. */
+  const shown = await ran([KEY], work);
+  assert.match(shown, /has not been shown/u, `the records reach the landing before they are spent:\n${shown}`);
+  const after = await ran([KEY], work);
+  assert.equal(issue().status, "awaiting_release", `the landing walks every rung it stopped short of:\n${after}`);
+  assert.equal(landing().state, "done", `and nothing of the landing is left:\n${after}`);
+  assert.equal(marks().length, 1, `over the release it already made:\n${after}`);
+  assert.doesNotMatch(after, /records-owed/u, `with no second hand-back:\n${after}`);
+});
+
+/* The other half of re-judging nothing: an empty hand-back is answered by the walk, not the verb. */
+test("a records turn handed back with nothing written comes back, and no rung moves", async () => {
+  const { work, head, base } = world({ base: "other" });
+  seeded({ landing: ready(head, base) });
+  const first = await ran([KEY], work);
+  assert.equal(landing().state, "records-owed", first);
+  const was = issue().status;
+  const took = await asBuilder(["claim", KEY, "--take"]);
+  assert.equal(took.status, 0, `${took.stdout}${took.stderr}`);
+  const back = await asBuilder(["claim", KEY, "--recorded"]);
+  assert.equal(back.status, 0, `${back.stdout}${back.stderr}`, "the hand-back reads no record and refuses none");
+  const after = await ran([KEY], work);
+  assert.equal(landing().state, "records-owed", `the turn comes back:\n${after}`);
+  assert.equal(issue().status, was, `and no rung was earned on the way:\n${after}`);
+});
+
+/* Read before the lease is taken, a take being a write this state gives no lander business making. */
+test("a landing over a checkpoint whose records turn is out refuses, naming the state", async () => {
+  const { work, head, base } = world({ base: "other" });
+  seeded({ landing: ready(head, base) });
+  await ran([KEY], work);
+  assert.equal(landing().state, "records-owed");
+  const said = await ran([KEY], work);
+  assert.match(said, /reads `records-owed`, which is not a step this task owes/u, said);
+  assert.match(said, /when the state names the lander's turn/u, said);
 });
 
 test("a reconciliation naming another candidate promotes nothing", async () => {
@@ -244,7 +338,7 @@ test("a branch that conflicts with the pinned base is parked with the list, and 
   assert.ok(!held.includes("<<<<"), `the conflict was not resolved into the tree:\n${held}`);
   assert.match(held, /line 2, as the base moved it/u, "the tree holds the base's own text, not the branch's");
   /* The branch after it is somebody else's release, so the park is not the end of the run. */
-  assert.equal(landing(NEXT_UUID).state, "marked", said);
+  assert.equal(landing(NEXT_UUID).state, "records-owed", said);
   assert.equal(marks(NEXT_UUID).length, 1, said);
   assert.notEqual(remote(at), pinned, `the second branch landed:\n${said}`);
   assert.match(fileAt(work, remote(at), NEXT_OWNED), /the second change/u, said);
@@ -290,7 +384,7 @@ test("a note that will not fit is one member's own, and the branch beside it is 
   assert.match(said, /the plan and its corrections do not name/u, said);
   assert.equal(landing().state, "installed", `whose checkpoint waits at the mark:\n${said}`);
   assert.equal(marks().length, 0, `and nothing of it was marked:\n${said}`);
-  assert.equal(landing(NEXT_UUID).state, "marked", `the branch beside it is marked:\n${said}`);
+  assert.equal(landing(NEXT_UUID).state, "records-owed", `the branch beside it is marked and its records are owed:\n${said}`);
   assert.equal(marks(NEXT_UUID).length, 1, said);
   assert.notEqual(remote(at), pinned, `and the release the two share landed:\n${said}`);
   assert.deepEqual(strayWrites(), [], `and the stop is inside the landing's own writes:\n${said}`);

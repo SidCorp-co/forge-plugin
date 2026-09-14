@@ -11,10 +11,10 @@ import { tempHome } from "../../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("landing-checkpoint").path;
 process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
+const { claimed, leaseOf, takeRefusal } = await import("../../../src/flow/lease.mjs");
 const {
-  LANDING_READY, LANDING_STATES, claimed, landingLine, landingOf, landingTurn, landingVoided,
-  leaseOf, takeRefusal,
-} = await import("../../../src/flow/lease.mjs");
+  LANDING_READY, LANDING_STATES, landingLine, landingOf, landingTurn, landingVoided,
+} = await import("../../../src/flow/landing/checkpoint.mjs");
 
 const AT = "2026-09-07T12:00:00.000Z";
 const NOW = Date.parse(AT);
@@ -53,7 +53,15 @@ test("every state is reachable from ready, names exactly one turn, and ends at d
   assert.ok(names.every((one) => one === LANDING_READY || names.some((two) => LANDING_STATES[two].next.includes(one))),
     "every state but the first is some state's successor");
   assert.deepEqual(LANDING_STATES["builder-owed"], { turn: "builder", next: ["reconciled"] },
-    "the one state the builder is owed, and the one state it leads to");
+    "the turn a moved path hands back, and the one state it leads to");
+  /* A row rather than `marked` renamed: the status step runs at two states, so the turn returns to
+     the one it came from (ISS-923). */
+  assert.deepEqual(LANDING_STATES["records-owed"], { turn: "builder", next: ["marked", "judged"] },
+    "the turn a record only the builder can answer hands back, and the two states it returns to");
+  for (const one of ["marked", "judged"]) {
+    assert.ok(LANDING_STATES[one].next.includes("records-owed"),
+      `${one} is a state the status step runs at, so the turn is handed back from it`);
+  }
 });
 
 test("the checkpoint is read by its declared fields, and a state nothing wrote is no checkpoint", () => {
@@ -208,9 +216,10 @@ test("a void gives up every field the candidate it built was the evidence for", 
    `qa-owed → judged` and `marked → done` shipped green as dead ends (ISS-673). Two readings, because
    a row can fail either way: written by neither file, or written only by the lander where the turn is
    somebody else's — a state its own turn holder cannot leave, which `builder-owed` was (ISS-726).
-   Both read the source for `state:` and the state, a convention over the object handed to
-   `landingSaved` rather than proof the line runs, so the mutation that proves the second fires is the
-   write removed with the refusals that name the state left standing. */
+   The second was green on `marked` and the checker was right: it asks whose turn a state names, and
+   `marked` named the lander's — the row was wrong, and the reading fires on one naming the builder's
+   (ISS-923). Both read the source for `state:` and the state, a convention over the object handed to
+   `landingSaved` rather than proof the line runs. */
 const WRITERS = {
   claim: ["plugin/src/flow/claim.mjs"],
   /* The verb and every part of it, read off the directory rather than listed: a state written in a

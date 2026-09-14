@@ -12,7 +12,8 @@ import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../..
 
 process.env.XDG_CONFIG_HOME = tempHome("landing-take").path;
 standsInNoTree("landing-take");
-const { landingOf, leaseOf } = await import("../../../src/flow/lease.mjs");
+const { leaseOf } = await import("../../../src/flow/lease.mjs");
+const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const BUILDER = "the-builder-run";
@@ -300,7 +301,7 @@ test("a reconciliation naming another candidate is refused with both shas, and w
 });
 
 test("a reconciliation at any state but builder-owed is refused naming the state it read", async () => {
-  for (const state of ["ready", "candidate", "reconciled", "qa-owed", "judged", "marked", "done"]) {
+  for (const state of ["ready", "candidate", "reconciled", "qa-owed", "judged", "marked", "records-owed", "done"]) {
     field({ ...OWED, state }, lease(BUILDER));
     const run = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], BUILDER);
     assert.equal(run.status, 1, `${state}: ${run.stdout}`);
@@ -473,4 +474,67 @@ test("claim refuses a flag it does not take, and names the ones it does", async 
   const judging = await ran(["claim", "ISS-673", "--take", "--judged"], LANDER);
   assert.equal(judging.status, 1, judging.stdout);
   assert.match(judging.stderr, /--take and --judged/u, judging.stderr);
+});
+
+/* The third turn: at `marked` and at `judged` the rungs left are earned by records only the builder
+   can answer for, and the lander can type the command the refusal prints and not the reason it asks
+   for (ISS-923). These are the two questions the route out asks, in the order the others ask them. */
+const RECORDS = { ...BUILT, state: "records-owed", owed: "marked", intended: CANDIDATE };
+
+test("the builder ends its records turn and the checkpoint goes back to the state it came from", async () => {
+  for (const owed of ["marked", "judged"]) {
+    field({ ...RECORDS, owed }, lease(LANDER));
+    const took = await ran(["claim", "ISS-673", "--take"], BUILDER);
+    assert.equal(took.status, 0, `${owed}: ${took.stdout}${took.stderr}`,
+      "the live lease the lander wrote the hand-back under does not refuse the run it handed it to");
+    assert.equal(held().history.at(-1).how, "take", `${owed}: a take and not a reclaim`);
+    assert.equal(held().history.at(-1).landing, "records-owed", `${owed}: named at the state it was taken at`);
+    const back = await ran(["claim", "ISS-673", "--recorded"], BUILDER);
+    assert.equal(back.status, 0, `${owed}: ${back.stdout}${back.stderr}`);
+    assert.equal(checkpoint().state, owed, `${owed}: the turn goes back where it came from`);
+    assert.equal(checkpoint().owed, undefined, "and the field naming that state is spent with the move");
+  }
+});
+
+/* The refusal the state check alone would not make: the lander still holds its own lease here. */
+test("the lander that handed the records turn over cannot take it back", async () => {
+  field(RECORDS, lease(LANDER));
+  const run = await ran(["claim", "ISS-673", "--recorded"], LANDER);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /reads `records-owed`/u, run.stderr);
+  assert.match(run.stderr, new RegExp(`whose turn is the builder ${BUILDER}'s`, "u"),
+    "naming the run whose turn it is, and not the state alone");
+  assert.equal(checkpoint().state, "records-owed", "and nothing was written");
+});
+
+test("a successor that took the builder's dead records turn ends it, and the lander takes the lease back", async () => {
+  field(RECORDS, { ...lease(BUILDER), renewedAt: "2026-09-07T10:00:00.000Z" });
+  const took = await ran(["claim", "ISS-673", "--take"], "a-successor-run");
+  assert.equal(took.status, 0, `${took.stdout}${took.stderr}`, "the builder is gone and its lease is dead");
+  const back = await ran(["claim", "ISS-673", "--recorded"], "a-successor-run");
+  assert.equal(back.status, 0, `${back.stdout}${back.stderr}`, "and the write it took the turn to make is its own");
+  assert.equal(checkpoint().state, "marked");
+  const lands = await ran(["claim", "ISS-673", "--take"], LANDER);
+  assert.equal(lands.status, 0, `${lands.stdout}${lands.stderr}`);
+  assert.equal(held().holder, LANDER, "so the lander takes it back at the state the hand-back wrote");
+});
+
+test("a records hand-back at any other state is refused naming the state it read", async () => {
+  for (const state of ["ready", "candidate", "builder-owed", "reconciled", "qa-owed", "judged", "marked", "done"]) {
+    field({ ...RECORDS, state }, lease(BUILDER));
+    const run = await ran(["claim", "ISS-673", "--recorded"], BUILDER);
+    assert.equal(run.status, 1, `${state}: ${run.stdout}`);
+    assert.match(run.stderr, new RegExp(`reads \`${state}\``, "u"), run.stderr);
+    assert.match(run.stderr, /handed back from `records-owed`/u, "and the one state it is handed back from");
+    assert.equal(checkpoint().state, state, "nothing was written");
+  }
+});
+
+/* An `owed` naming no state the status step runs at: refused rather than resumed into. */
+test("a records turn naming no state to return to is refused rather than guessed at", async () => {
+  field({ ...RECORDS, owed: "promoting" }, lease(BUILDER));
+  const run = await ran(["claim", "ISS-673", "--recorded"], BUILDER);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /names `promoting` as the state the turn came from/u, run.stderr);
+  assert.equal(checkpoint().state, "records-owed", "and nothing was written");
 });

@@ -5,9 +5,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  BASE, KEY, UUID,
+  BASE, BUILDER, KEY, UUID,
   comments, context, ctx, earning, issue, ready, seeded, state, tracker, world,
 } from "./fixture.mjs";
+import { ranAsync } from "../../fixtures.mjs";
 
 /* Before the first landing, the policy being memoised: the promotion is the project's own. */
 state.config = {
@@ -18,7 +19,7 @@ state.config = {
 
 const { landReady } = await import("../../../../tools/run/land-ready.mjs");
 const { Stop } = await import("../../../../tools/checkout.mjs");
-const { landingOf } = await import("../../../src/flow/lease.mjs");
+const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
 const { render } = await import("../../../src/flow/record/page.mjs");
 const { noteShown } = await import("../../../src/tracker/comments.mjs");
 const { markedCommit } = await import("../../../src/flow/record/merged.mjs");
@@ -26,6 +27,18 @@ const { markedCommit } = await import("../../../src/flow/record/merged.mjs");
 test.after(() => tracker.close());
 
 const LANDER = process.env.FORGE_SESSION_ID;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+
+/** The builder's own command, through the shipped verb, twice: the gate every write passes delivers
+ *  a comment this session has not read and refuses once. */
+const asBuilder = async (argv) => {
+  let run = null;
+  for (const again of [1, 2]) {
+    run = await ranAsync(FORGE, argv, { ...process.env, FORGE_SESSION_ID: BUILDER }, process.cwd());
+    if (run.status === 0 || again === 2) return run;
+  }
+  return run;
+};
 
 const ran = async (keys, work) => {
   const out = [];
@@ -64,10 +77,16 @@ test("a release the project makes without a person is closed by the landing that
   seeded({ landing: ready(head, base), earned: earning(head) });
   /* It stops at the judging rung first: the fixture's verification cites the head, not what shipped. */
   const first = await ran([KEY], work);
-  assert.equal(landing().state, "marked", `the mark is up and the deploying rung is not earned:\n${first}`);
+  assert.equal(landing().state, "records-owed", `the mark is up and the deploying rung is not earned:\n${first}`);
   const landed = markedCommit(comments(UUID));
   assert.ok(landed, `the mark names the sha this landing pushed:\n${first}`);
   verified(landed);
+  /* The turn the landing handed over, ended by the run it named. */
+  const took = await asBuilder(["claim", KEY, "--take"]);
+  assert.equal(took.status, 0, `${took.stdout}${took.stderr}`);
+  const back = await asBuilder(["claim", KEY, "--recorded"]);
+  assert.equal(back.status, 0, `${back.stdout}${back.stderr}`);
+  assert.equal(landing().state, "marked", `and the turn is the lander's again:\n${back.stdout}`);
 
   const said = await ran([KEY], work);
   assert.equal(issue().status, "closed", `the landing took the last rung itself:\n${said}`);

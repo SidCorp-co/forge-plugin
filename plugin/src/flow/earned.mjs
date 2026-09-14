@@ -15,7 +15,8 @@ import { rungReport } from "../ladder-report.mjs";
 import { attachmentNames, evidenceHeld, isCommit, sameCommit } from "../tracker/evidence.mjs";
 
 import { Refused } from "../refusal.mjs";
-import { FIELD as SESSION, landingOf } from "./lease.mjs";
+import { FIELD as SESSION } from "./lease.mjs";
+import { landingOf } from "./landing/checkpoint.mjs";
 import { worklogOf } from "./worklog.mjs";
 import { judgeAsk, judgeProblems, numbered } from "./qa/verdicts.mjs";
 import { criteriaLines } from "./record/record.mjs";

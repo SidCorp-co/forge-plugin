@@ -191,7 +191,7 @@ test("the claim and the resume print the lane, and neither composes a line of it
    verb printed it, so a lander was told to `forge resume` to find whose turn it was and resume
    showed the lease alone. Through the same two readers the take refusals use (ISS-673). */
 test("the landing checkpoint is printed beside the lease it sits next to, with whose turn it is", async () => {
-  const { landingLine, landingTurn } = await import("../../../src/flow/lease.mjs");
+  const { landingLine, landingTurn } = await import("../../../src/flow/landing/checkpoint.mjs");
   const landing = {
     state: "ready", builder: "iss-1-aaa", branch: "iss-1", head: "1".repeat(40), base: "2".repeat(40),
     files: ["plugin/src/one.mjs", "plugin/src/two.mjs"],
