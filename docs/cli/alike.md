@@ -6,20 +6,29 @@ open issue instead, and the two answer different questions: *is this new body al
 key is [`beside`](beside.md)'s; the act a filing's reading leads to is [`the fold`](the-fold.md)'s.
 Nothing here acts.
 
-## The report is at the show floor, and the fold floor would answer empty
+## The report is at the show floor, and what settled that was a sample of eight families
 
 Eight readers measured this backlog on 2026-09-13, each working a different family and none of them
-measuring the floor as its task. Over 214 scored rows across eight queries, **the highest score any
-two distinct open issues reached was 0.77**, and every same-cause pair they confirmed by reading the
-bodies scored between 0.66 and 0.77 — including one pair a filer had admitted in writing was the
-same cause, at 0.73, and one an author had declared a duplicate, at 0.68 and rank fifteen. An issue
-searched against **its own title** does not reliably reach 0.78 either: measured self-hits ran from
-0.72 to 0.85, four of eight under the fold floor in one reader's sample.
+measuring the floor as its task. Over their 214 scored rows, **every same-cause pair they confirmed
+by reading the bodies scored between 0.66 and 0.77** — including one pair a filer had admitted in
+writing was the same cause, at 0.73, and one an author had declared a duplicate, at 0.68 and rank
+fifteen. An issue searched against **its own title** does not reliably reach 0.78 either: measured
+self-hits ran from 0.72 to 0.85, four of eight under the fold floor in one reader's sample.
 
 Every pair above is one this verb exists to nominate, and not one of them stands at the higher band.
 So the sweep reports at the floor a filer is shown a neighbour at. It is not a third number and neither floor
 moved: the reading a filing gets is already cut at the show floor on the way in, and what turns that
 into a fold is a second test this verb never applies.
+
+**Those 214 rows are a yield and not a ceiling.** Read over the whole open backlog instead — 620 open
+issues on 2026-09-14 at 3.36.9, one title-seeded query each, which is what this verb now does in one
+call — there are **1176 scored links between distinct open issues, running 0.70 to 0.89, with 161
+pairs at or above 0.78**. The strongest family in that reading is five members at 0.85 to 0.89, five
+filings of one defect in `forge advance`. The eight simply did not happen to contain this corpus's
+strong pairs, so a sweep at the higher band would name 161 pairs today rather than none. That removes
+one of the two reasons the floor was chosen on and leaves the other standing: nothing measured in the
+re-take says anything about where a true neighbour falls relative to a false one, which is the
+load-bearing half of the choice. The re-take itself is on ISS-1148's thread.
 
 Checked before the code was written, on this project's own backlog: three issues filed minutes apart
 on one subject, with no fold between them, score 0.73 and 0.71 against the first — over the show
