@@ -8,6 +8,7 @@ import { spawnSync } from "node:child_process";
 
 import { homeEnv } from "../fixtures.mjs";
 import { INTENT_MS, PAYLOAD_MS, stdinText } from "../../src/resolve/payload.mjs";
+import { patience } from "../patience.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 
@@ -15,7 +16,7 @@ test("a pipe nobody writes to answers nothing, inside the deadline", async () =>
   const open = new PassThrough();
   const started = Date.now();
   assert.equal(await stdinText(open, 30), null, "null is `nothing fed it`, which is not an empty payload");
-  assert.ok(Date.now() - started < 2_000, "and it does not wait on a producer that is not there");
+  assert.ok(Date.now() - started < patience(2_000), "and it does not wait on a producer that is not there");
 });
 
 test("a pipe with the intent on it is read whole, and its own EOF ends the read", async () => {

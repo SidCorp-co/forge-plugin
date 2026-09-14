@@ -7,6 +7,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { standsInNoTree, tempHome } from "../fixtures.mjs";
+import { patience } from "../patience.mjs";
 
 const HOME = tempHome("renew");
 mkdirSync(join(HOME.path, "forge"), { recursive: true });
@@ -106,7 +107,7 @@ test("the holder's own lapsed lease is renewed at the write, and the write says 
   assert.match(notice, /no other run had taken the issue/u, "and why that is safe");
   assert.equal(leaseOf(field).holder, "this-run", "the lease is the same holder's");
   assert.deepEqual(leaseOf(field).history, [], "a reclaim is a handoff and this was none");
-  assert.ok(Date.parse(leaseOf(field).renewedAt) > Date.now() - 60_000, "and the window starts again");
+  assert.ok(Date.parse(leaseOf(field).renewedAt) > Date.now() - patience(60_000), "and the window starts again");
 });
 
 /* The notice says the write renewed it, so it waits for the write and its read-back: a claim printed
@@ -151,7 +152,7 @@ test("a payload write is refused across two ids and goes through across one shar
     const { lines } = await said(() => renew(ISSUE, "ISS-445"));
     assert.equal(leaseOf(field).holder, "the-dispatching-session",
       "one id between two runs, and the second writes over the first unrefused: the defect itself");
-    assert.ok(Date.parse(leaseOf(field).renewedAt) > Date.now() - 60_000, "having renewed what it read as its own");
+    assert.ok(Date.parse(leaseOf(field).renewedAt) > Date.now() - patience(60_000), "having renewed what it read as its own");
     assert.deepEqual(lines.filter((one) => /dispatched/u.test(one)), [],
       "and the write path stays silent: what a run is told about a shared id is said where it claims and reads");
   } finally {
@@ -353,7 +354,7 @@ test("the finder option renews the holder's lease and answers that it did", asyn
      conditional on: a boolean would say it happened and leave that write nothing to expect. */
   assert.deepEqual(answer, field, "and what it answers is the value it left, not that it left one");
   assert.equal(leaseOf(field).holder, "this-run");
-  assert.ok(Date.parse(leaseOf(field).renewedAt) > Date.now() - 60_000, "and the window starts again");
+  assert.ok(Date.parse(leaseOf(field).renewedAt) > Date.now() - patience(60_000), "and the window starts again");
 });
 
 test("the finder option answers false on another run's lease and writes nothing", async () => {

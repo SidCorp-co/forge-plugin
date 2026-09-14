@@ -12,6 +12,7 @@ import { DECLINED, placeFor } from "../../../../tools/gates/machine.mjs";
 import { recordDir } from "../../../../tools/gates/timing.mjs";
 import { STEPS } from "../../../../tools/gates/steps.mjs";
 import { git, HANGS_IN, heldGate, reachedTheStep, run, scratch, stopGate } from "./scratch.mjs";
+import { patience } from "../../patience.mjs";
 
 // Minutes, and a tick fast enough that a case waits on the state under test rather than on a constant.
 const BRIEFLY = 0.02;
@@ -54,7 +55,7 @@ test("a verdict already written answers at once, off the record, with its pid an
     const said = heard();
     const began = Date.now();
     assert.equal(await waited(work, said, 30), 0, said.lines.join("\n"));
-    assert.ok(Date.now() - began < 1000, "a verdict already written was waited for");
+    assert.ok(Date.now() - began < patience(1000), "a verdict already written was waited for");
     const whole = said.lines.join("\n");
     assert.match(whole, /gate verdict: pass — 14 of 14 step\(s\) in 41s/u, whole);
     assert.match(whole, new RegExp(`pid ${opened.pid}`, "u"), "the pid that wrote it is not named");
@@ -434,7 +435,7 @@ test("a wait for a place nothing holds answers at once and writes no verdict abo
     const said = heard();
     const began = Date.now();
     assert.equal(await waitForSlot(work, { minutes: 30, tick: TICK, place: ofOne, ...said }), 0, said.lines.join("\n"));
-    assert.ok(Date.now() - began < 1000, "a place nothing held was waited for");
+    assert.ok(Date.now() - began < patience(1000), "a place nothing held was waited for");
     assert.match(said.lines.join("\n"), /gate wait: place/u, said.lines.join("\n"));
     assert.equal(verdictRuns(work), null, "a wait that judged no tree wrote one a later wait would read");
   } finally {

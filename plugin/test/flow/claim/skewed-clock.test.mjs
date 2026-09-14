@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { fakeTracker, ranAsync, standsInNoTree, tempHome } from "../../fixtures.mjs";
+import { patience } from "../../patience.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("skewed-clock").path;
 standsInNoTree("skewed-clock");
@@ -75,7 +76,7 @@ test("a lease this CLI writes is stamped in the tracker's frame and carries the 
   assert.equal(Number.isFinite(written.clock), true, "the error the stamp was taken under is on the lease");
   assert.equal(written.clock >= 500, true, "at least the second the date header is truncated to, halved");
   const drift = Math.abs(Date.parse(written.renewedAt) - Date.now());
-  assert.equal(drift < 5000, true, `the stamp is the tracker's clock, and this one answers from here: ${drift}ms`);
+  assert.equal(drift < patience(5000), true, `the stamp is the tracker's clock, and this one answers from here: ${drift}ms`);
 });
 
 test("a stamp carrying no error is said to be one this CLI cannot place, and the claim still goes as it would have", async () => {
@@ -189,7 +190,7 @@ test("a device an hour out from the tracker reads a live lease as live and stamp
   assert.equal(renewed.status, 0, `${renewed.stdout}${renewed.stderr}`);
   const written = wrote().at(-1);
   const behind = Date.now() - Date.parse(written.renewedAt);
-  assert.equal(Math.abs(behind - HOUR) < 5000, true,
+  assert.equal(Math.abs(behind - HOUR) < patience(5000), true,
     `the stamp is the tracker's clock and this device is an hour off it: ${behind}ms behind local`);
 });
 

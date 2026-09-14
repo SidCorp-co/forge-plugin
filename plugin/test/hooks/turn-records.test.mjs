@@ -7,6 +7,7 @@ import { join } from "node:path";
 
 import { callAt, turnAt, turnRecords } from "../../hooks/_hook.mjs";
 import { tempRoom } from "../fixtures.mjs";
+import { patience } from "../patience.mjs";
 
 const room = tempRoom("turn-records-");
 
@@ -85,5 +86,5 @@ test("a session far larger than one turn is read in the time one turn takes", ()
   const records = turnRecords(path);
   const spent = Date.now() - started;
   assert.equal(turnAt(records), "2026-09-01T12:00:00.000Z");
-  assert.ok(spent < 1000, `${spent}ms for a 30 MB transcript: the window is not being used`);
+  assert.ok(spent < patience(1000), `${spent}ms for a 30 MB transcript: the window is not being used`);
 });

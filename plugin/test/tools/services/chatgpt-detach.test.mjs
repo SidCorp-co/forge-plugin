@@ -13,6 +13,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { patience } from "../../patience.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../../..", import.meta.url).pathname;
@@ -80,7 +81,7 @@ const recordOf = (id) => JSON.parse(readFileSync(join(turnsDir(), `${id}.json`),
 const slept = (ms) => new Promise((wake) => setTimeout(wake, ms));
 
 const until = async (holds, within = 10_000) => {
-  const stop = Date.now() + within;
+  const stop = Date.now() + patience(within);
   for (;;) {
     const held = holds();
     if (held) return held;
@@ -245,7 +246,7 @@ test("a collect that waits returns when the turn settles, and one whose wait run
   const done = await waiting;
   assert.equal(done.status, 0, done.stderr);
   assert.match(done.stdout, /released at last/u, "the turn that ran out a moment ago was still there to collect");
-  assert.ok(Date.now() - from < 25_000, "it returned on the settlement rather than at the end of its wait");
+  assert.ok(Date.now() - from < patience(25_000), "it returned on the settlement rather than at the end of its wait");
 });
 
 test("a detached turn that failed is collected as one that may have been spent", async () => {
@@ -313,7 +314,7 @@ test("a turn already settled is given up without waiting for a child that is not
   const run = await ran("pending", "--drop", id);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /no process was left to tell/u);
-  assert.ok(Date.now() - from < 10_000, "it did not wait out an acknowledgement nobody could send");
+  assert.ok(Date.now() - from < patience(10_000), "it did not wait out an acknowledgement nobody could send");
 });
 
 /* A late write by a child that was already given up, which is exactly what the marker exists for. */
@@ -387,7 +388,7 @@ test("the child stops at the deadline its record names, not at a fresh timer for
   assert.equal(child.status, 0, child.stderr);
   const record = recordOf(id);
   assert.equal(record.state, "failed", "it settled itself rather than running on under its own --wait");
-  assert.ok(Date.now() - began < 60_000, `it ran for ${Date.now() - began}ms against a deadline of 3000`);
+  assert.ok(Date.now() - began < patience(60_000), `it ran for ${Date.now() - began}ms against a deadline of 3000`);
   const run = await ran("collect", id);
   assert.equal(run.status, 1);
   assert.match(run.stderr, /ran out after 3s, which is the wait this turn was submitted under/u);

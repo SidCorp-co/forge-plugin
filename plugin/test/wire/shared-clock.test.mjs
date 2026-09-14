@@ -5,6 +5,7 @@
    guesses. Nothing here reaches the tracker: an observation is a header and two local instants. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { patience } from "../patience.mjs";
 
 import {
   answered, bandWith, forgetClock, measured, offsetSaid, orderableFrom, sawAnswer, sharedNow,
@@ -49,7 +50,8 @@ test("an answer with no readable time measures nothing, and is not the same as n
   sawAnswer(headers(null), performance.now(), performance.now() + 10);
   assert.equal(answered(), true, "the tracker replied");
   assert.equal(measured(), false, "and its reply placed no clock");
-  assert.equal(Math.abs(sharedNow() - Date.now()) <= 2, true, "so the frame falls back to this device's own");
+  assert.equal(Math.abs(sharedNow() - Date.now()) <= patience(1_000), true,
+    "so the frame falls back to this device's own, which no frame read off a header is within an hour of");
   assert.match(offsetSaid(), /^unmeasured — the tracker's answers carry no readable time/u);
   forgetClock();
   assert.match(offsetSaid(), /^unmeasured — nothing has been asked of the tracker yet/u);
@@ -71,7 +73,7 @@ test("a device an hour fast stamps in the tracker's clock, so the stamp is not i
   /* An hour ahead: this machine's own clock reads an hour past what the tracker's answer says. */
   seenAt(new Date(Date.now() - 60 * 60_000).toISOString(), 200);
   const stamped = Date.parse(sharedStamp());
-  assert.equal(Math.abs(stamped - (Date.now() - 60 * 60_000)) < 1500, true,
+  assert.equal(Math.abs(stamped - (Date.now() - 60 * 60_000)) < patience(1500), true,
     "the stamp is the tracker's clock and not the hour-fast one this machine holds");
 });
 

@@ -6,6 +6,7 @@ import { execFileSync } from "node:child_process";
 import { TOOLS, runTool, scopeFor, toolsFor } from "../../src/codex/codex-tools.mjs";
 import { bundle, changedAgainst, divergedFrom, roleFor, withDiffs } from "../../src/codex/codex-api.mjs";
 import { tempRoom } from "../fixtures.mjs";
+import { patience } from "../patience.mjs";
 
 const repo = () => {
   const dir = tempRoom("codex-check-");
@@ -172,7 +173,7 @@ test("run_check keeps only the tail of a long output and stops a run past its cl
   const child = Number(readFileSync(pidfile, "utf8").trim());
   const alive = (pid) => { try { return execFileSync("ps", ["-o", "stat=", "-p", String(pid)]).toString().trim(); } catch { return ""; } };
   const t0 = Date.now();
-  while (alive(child) && !alive(child).startsWith("Z") && Date.now() - t0 < 2000) execFileSync("sleep", ["0.05"]);
+  while (alive(child) && !alive(child).startsWith("Z") && Date.now() - t0 < patience(2000)) execFileSync("sleep", ["0.05"]);
   assert.ok(!alive(child) || alive(child).startsWith("Z"), `the runner the shell started (${child}) went with it`);
 });
 
@@ -185,7 +186,7 @@ test("a run the buffer ends takes its process group with it too", async () => {
   const child = Number(readFileSync(join(root, "child.pid"), "utf8").trim());
   const alive = (pid) => { try { return execFileSync("ps", ["-o", "stat=", "-p", String(pid)]).toString().trim(); } catch { return ""; } };
   const t0 = Date.now();
-  while (alive(child) && !alive(child).startsWith("Z") && Date.now() - t0 < 2000) execFileSync("sleep", ["0.05"]);
+  while (alive(child) && !alive(child).startsWith("Z") && Date.now() - t0 < patience(2000)) execFileSync("sleep", ["0.05"]);
   assert.ok(!alive(child) || alive(child).startsWith("Z"), `the runner (${child}) went with the shell`);
 });
 

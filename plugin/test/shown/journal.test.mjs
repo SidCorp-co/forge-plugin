@@ -9,6 +9,7 @@ import { spawn } from "node:child_process";
 import { join } from "node:path";
 
 import { tempHome } from "../fixtures.mjs";
+import { patience } from "../patience.mjs";
 
 const HOME = tempHome("shown-journal");
 mkdirSync(join(HOME.path, "forge"), { recursive: true });
@@ -121,7 +122,7 @@ const SOURCE = new URL("../../src/shown/journal.mjs", import.meta.url).pathname;
 const WRITERS = 12;
 
 const allAtOnce = async (surface) => {
-  const startAt = Date.now() + 1_000;
+  const startAt = Date.now() + patience(1_000);
   const marks = ids(WRITERS, "from");
   await Promise.all(marks.map((mark) => new Promise((settle) => {
     spawn(process.execPath, ["--input-type=module", "-e", `

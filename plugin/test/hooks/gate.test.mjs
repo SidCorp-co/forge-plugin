@@ -7,6 +7,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { dirtyRepo, tempRoom } from "../fixtures.mjs";
+import { patience } from "../patience.mjs";
 
 const GATE = new URL("../../hooks/gate.mjs", import.meta.url).pathname;
 const REGISTERED = new URL("../../hooks/hooks.json", import.meta.url).pathname;
@@ -55,7 +56,7 @@ test("a git that never answers costs the line about filing and never the refusal
   assert.equal(answer?.permissionDecision, "deny", `the refusal still arrives: ${held.stderr}`);
   assert.match(answer.permissionDecisionReason, /select by name/u, "and it is the rule's own reason");
   assert.doesNotMatch(answer.permissionDecisionReason, /forge feedback/u, "with no route resolved for it");
-  assert.ok(took < 6_000, `costing the read's own ceiling and not the event's clock: ${took}ms`);
+  assert.ok(took < patience(6_000), `costing the read's own ceiling and not the event's clock: ${took}ms`);
 });
 
 test("before a call, the first gate to refuse is the answer and the rest are not asked", () => {
@@ -111,7 +112,17 @@ function mkdirIfNeeded(dir) {
 /* The clock is the event's: a gate late on the line spends what the ones before it left. */
 test("the deadline runs from the process start, and the last gate reads what is left", async () => {
   const { DEADLINES, remaining } = await import("../../hooks/_hook.mjs");
-  assert.ok(remaining() <= DEADLINES.post && remaining() > DEADLINES.post - 10_000, `remaining ${remaining()} of ${DEADLINES.post}`);
+  /* Bracketed and not equated: what the budget has spent is this process's own age at the instant
+     `remaining()` read the clock, and reading that age either side of the call holds however long
+     the box takes to schedule the three reads. A budget started at this import instead — whole
+     cases into the run — would show a spend below the first bracket. */
+  const before = Date.now() - performance.timeOrigin;
+  const spent = DEADLINES.post - remaining();
+  const after = Date.now() - performance.timeOrigin;
+  assert.ok(spent >= Math.floor(before) - 1 && spent <= Math.ceil(after) + 1,
+    `the budget has spent ${spent}ms of a process ${Math.round(after)}ms old`);
+  assert.match(readFileSync(new URL("../../hooks/_hook.mjs", import.meta.url), "utf8"),
+    /const startedAt = performance\.timeOrigin;/u, "and the origin it counts from is the process's own");
   const text = readFileSync(new URL("../../hooks/gates/code-quality.mjs", import.meta.url), "utf8");
   assert.match(text, /remaining\(\)/u, "code-quality budgets from the shared clock");
   assert.doesNotMatch(text, /BUDGET_MS/u, "and not from a clock of its own");
@@ -138,10 +149,19 @@ test("a gate that crashes is skipped and logged, and the line goes on", () => {
 test("the clock is the event's kind: before a call it is short, after one it is long", async () => {
   const { DEADLINES, dispatch, remaining } = await import("../../hooks/_hook.mjs");
   assert.ok(DEADLINES.pre < 10_000 && DEADLINES.post < 90_000, "each under what hooks.json registers");
+  /* Which ceiling is in force, read as the one the spend accounts against: after a pre the spend
+     is this process's age out of the short budget, and after a post it is the same age out of the
+     long one. Neither reads how long the run has taken to get here. */
+  const accounts = (ceiling) => {
+    const before = Date.now() - performance.timeOrigin;
+    const spent = ceiling - remaining();
+    const after = Date.now() - performance.timeOrigin;
+    return spent >= Math.floor(before) - 1 && spent <= Math.ceil(after) + 1;
+  };
   await dispatch(["pre"], { tool_name: "Bash", tool_input: { command: "true" } });
-  assert.ok(remaining() <= DEADLINES.pre, `pre: ${remaining()}`);
+  assert.ok(accounts(DEADLINES.pre), `pre: ${remaining()} is not counted against ${DEADLINES.pre}`);
   await dispatch(["post"], { tool_name: "Bash", tool_input: { command: "true" } });
-  assert.ok(remaining() > DEADLINES.pre, `post: ${remaining()}`);
+  assert.ok(accounts(DEADLINES.post), `post: ${remaining()} is not counted against ${DEADLINES.post}`);
 });
 
 test("out of time before a call refuses it, and after one is a line in the log", async () => {

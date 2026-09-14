@@ -19,9 +19,10 @@ mkdirSync(join(room, "forge"), { recursive: true });
 spawnSync("git", ["init", "-q", REPO]);
 test.after(() => rmSync(room, { recursive: true, force: true }));
 
-/* Real clock, because a record's age is printed and a consult's timestamp is read against it. */
-const now = Date.now();
-const at = (msAgo) => new Date(now - msAgo).toISOString();
+/* Real clock, because a record's age is printed and a consult's timestamp is read against it — and
+   read at the moment of use, never frozen at import: a fixture stamped 90s back when this module
+   loaded is one the gate prints as three minutes old once the file has run for a minute. */
+const at = (msAgo) => new Date(Date.now() - msAgo).toISOString();
 
 let count = 0;
 /* No transcript is passed at all: this gate reads none, and a fixture carrying one would hide that. */
@@ -31,7 +32,7 @@ const gate = ({ session, env = {}, command, log, pending, pendingIn, stage } = {
   /* The state file is keyed by the canonical root, as the hook resolves it. */
   writeFileSync(
     join(room, "forge", "codex.json"),
-    JSON.stringify({ turns: pending ? { [pendingIn ?? realpathSync(REPO)]: { files: pending, at: now - 90_000 } } : {} }),
+    JSON.stringify({ turns: pending ? { [pendingIn ?? realpathSync(REPO)]: { files: pending, at: Date.now() - 90_000 } } : {} }),
   );
   writeFileSync(join(REPO, "work.mjs"), `// ${count}\n`);
   /* A commit is asked for what it stages, so the index is the case's to set and never the last one's. */
@@ -203,10 +204,10 @@ test("a document recorded in one tree does not hold a commit in another", () => 
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "forge", "codex-log.jsonl"), "");
   const asked = (root) => {
-    writeFileSync(join(home, "forge", "codex.json"), JSON.stringify({ turns: { [root]: { files: ["docs/A.md"], at: now - 120_000 } } }));
+    writeFileSync(join(home, "forge", "codex.json"), JSON.stringify({ turns: { [root]: { files: ["docs/A.md"], at: Date.now() - 120_000 } } }));
     const out = callHook(
       HOOK,
-      { tool_name: "Bash", tool_input: { command: `cd ${worktree} && git commit -m x` }, session_id: `wt-${root}-${now}`, cwd: main },
+      { tool_name: "Bash", tool_input: { command: `cd ${worktree} && git commit -m x` }, session_id: `wt-${root}-${Date.now()}`, cwd: main },
       { ...process.env, XDG_CONFIG_HOME: home },
     );
     return because(out.stdout.trim() ? JSON.parse(out.stdout) : null);
@@ -290,7 +291,7 @@ const four = () => {
   })}\n`);
   const files = ["seen.mjs", "changed.mjs", "unread.mjs", "restaged.mjs", "erased.mjs"];
   writeFileSync(join(home, "forge", "codex.json"),
-    JSON.stringify({ turns: { [realpathSync(repo)]: { files, at: now - 90_000 } } }));
+    JSON.stringify({ turns: { [realpathSync(repo)]: { files, at: Date.now() - 90_000 } } }));
   return { repo, home };
 };
 

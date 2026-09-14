@@ -5,12 +5,13 @@
    and a string carrying none comes back untouched, the half a trim breaks. The third is what goes
    out: which requests declare a JSON payload, and which carry one. */
 import assert from "node:assert/strict";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { join } from "node:path";
 import test from "node:test";
 
 import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
+import { patience } from "../patience.mjs";
 import { backoff, callTool, retryAfter, retryOf, retrySeconds, unfencedIn } from "../../src/tracker/rest.mjs";
 import { useProject } from "../../src/resolve/settings.mjs";
 import { REFERENCE_KEYS } from "../../src/tracker/routes.mjs";
@@ -332,7 +333,7 @@ test("a request given a deadline is refused in words, and the request itself is 
     const began = Date.now();
     const answer = await callTool("forge_issues", { action: "get", documentId: "u-1", fields: ["title"] },
       true, { once: true, waits: 0.05 });
-    assert.ok(Date.now() - began < 3000, "a tracker that never answers does not hold the caller open");
+    assert.ok(Date.now() - began < patience(3000), "a tracker that never answers does not hold the caller open");
     assert.ok(cancelled, "and the request is aborted rather than left in flight");
     assert.match(answer.refused, /did you mean|did not answer/u, answer.refused);
     assert.match(answer.refused, /ran out after 0\.05s \(the caller's own deadline\)/u,
@@ -400,18 +401,35 @@ test("a fractional deadline the millisecond cannot hold still sends the request"
   assert.equal(answer.title, "sent");
 });
 
-test("a refused connection with retrySeconds 0 is retried to the limit in well under the old fourteen seconds", async () => {
+/* What this catches is a ladder that sleeps between attempts, and the ladder says so itself at every
+   rung it takes: timing the whole verb instead asserted how much of the machine this process got. */
+test("a refused connection with retrySeconds 0 sleeps at no rung of the ladder it goes round", async () => {
   const home = tempHome("dead-port");
   mkdirSync(join(home.path, "forge"), { recursive: true });
   writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t", retrySeconds: 0 }));
   const began = Date.now();
   const run = await ranAsync(FORGE, ["issue", "ISS-1"], { ...process.env, XDG_CONFIG_HOME: home.path }, ROOT, null);
   const took = Date.now() - began;
-  assert.ok(took < 5000, `four attempts with no wait took ${took}ms`);
-  assert.match(run.stderr, /waiting 0s \(attempt 3 of 4\)/u, run.stderr);
+  for (const attempt of [1, 2, 3]) {
+    assert.match(run.stderr, new RegExp(`waiting 0s \\(attempt ${attempt} of 4\\)`, "u"),
+      `rung ${attempt} of the ladder waited: ${run.stderr}`);
+  }
+  assert.equal(/waiting (?!0s)/u.test(run.stderr), false, `a rung waited after all: ${run.stderr}`);
   assert.match(run.stderr, /Forge did not answer/u, run.stderr);
+  assert.ok(took < patience(60_000), `nothing came back at all: ${took}ms`);
   assert.notEqual(run.status, 0);
   home.remove();
+});
+
+/* What the two cases either side of this stand on: printing the wait and taking it are two
+   statements, so a floor added to one would leave every rung still saying `waiting 0s` and still
+   waiting. Read rather than timed, because timing it is what made them report the machine's load. */
+test("the wait the ladder announces is the value it sleeps, and the sleep puts no floor under it", () => {
+  const source = readFileSync(new URL("../../src/tracker/rest.mjs", import.meta.url), "utf8");
+  assert.match(source, /waiting \$\{wait\}s[^\n]*\n\s*await sleep\(wait\);/u,
+    "the wait printed and the wait slept are one value");
+  assert.match(source, /const sleep = \(seconds\) => new Promise\(\(done\) => setTimeout\(done, seconds \* 1000\)\);/u,
+    "and the sleep takes the seconds it is given, with no minimum of its own");
 });
 
 /* The failure a refused connection is not: a host that accepts and then writes nothing, which is
@@ -429,9 +447,12 @@ test("a host that accepts and never answers refuses the verb at the deadline con
   const began = Date.now();
   const run = await ranAsync(FORGE, ["issue", "ISS-1"], { ...process.env, XDG_CONFIG_HOME: home.path }, ROOT, null);
   const took = Date.now() - began;
-  assert.ok(took < 15000, `a host that never answers held the verb for ${took}ms`);
   assert.match(run.stderr, /ran out after 0\.05s \(waitSeconds in config\.json\)/u, run.stderr);
-  assert.match(run.stderr, /waiting 0s \(attempt 3 of 4\)/u, "and a read still goes round the ladder");
+  for (const attempt of [1, 2, 3]) {
+    assert.match(run.stderr, new RegExp(`waiting 0s \\(attempt ${attempt} of 4\\)`, "u"),
+      `a read still goes round the ladder, and waits at no rung of it: ${run.stderr}`);
+  }
+  assert.ok(took < patience(60_000), `nothing came back at all: ${took}ms`);
   assert.match(run.stderr, /Forge did not answer GET /u, run.stderr);
   assert.notEqual(run.status, 0);
   home.remove();

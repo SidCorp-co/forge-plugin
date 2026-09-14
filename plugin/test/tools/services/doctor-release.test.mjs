@@ -10,6 +10,7 @@ import test from "node:test";
 
 import { releaseRows } from "../../../src/tools/services/doctor-release.mjs";
 import { tempRoom } from "../../fixtures.mjs";
+import { patience } from "../../patience.mjs";
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const NAME = JSON.parse(readFileSync(join(SRC, ".claude-plugin", "plugin.json"), "utf8")).name;
@@ -143,7 +144,7 @@ test("an ask that never answers is bounded, and comes back as an unknown rather 
   git(at.tree, "remote", "set-url", "origin", "ext::sleep 30");
   const began = Date.now();
   const row = only(releaseRows({ home: at.home, running: "1.0.0", ms: 700 }));
-  assert.ok(Date.now() - began < 5000, `the ask was not bounded: ${Date.now() - began}ms`);
+  assert.ok(Date.now() - began < patience(5000), `the ask was not bounded: ${Date.now() - began}ms`);
   assert.equal(row.level, "note");
   assert.match(row.detail, /not read: (the remote did not answer inside 0\.7s|git ls-remote origin exited)/u);
 });

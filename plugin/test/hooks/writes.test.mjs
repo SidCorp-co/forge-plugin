@@ -7,7 +7,7 @@
    after the `&&` read as written (ISS-39). The second half of the evidence is the tree, and the cases
    for it are at the foot of this file. */
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { beforeEach } from "node:test";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, realpathSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -19,7 +19,9 @@ import { tempRoom } from "../fixtures.mjs";
 
 const room = tempRoom("writes-");
 mkdirSync(join(room, "plugin", "src"), { recursive: true });
-const NOW = Date.now();
+/* One instant per case and never one per import, which walks out of the freshness window. */
+let NOW = Date.now();
+beforeEach(() => { NOW = Date.now(); });
 let made = 0;
 
 /* What the transcript says about when a call began: the last assistant record is the message asking

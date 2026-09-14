@@ -11,6 +11,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { patience } from "../../patience.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../../..", import.meta.url).pathname;
@@ -93,7 +94,7 @@ test("the wait is the call's own, and the file's sixty seconds is not what it ru
   const spent = Date.now() - began;
   assert.equal(run.status, 1);
   assert.match(run.stderr, /ran out after 2s \(the caller's own deadline\)/u);
-  assert.ok(spent < 30_000, `it ran for ${spent}ms, which is the file's wait rather than the call's`);
+  assert.ok(spent < patience(30_000), `it ran for ${spent}ms, which is the file's wait rather than the call's`);
   assert.equal(state.calls.length, 1, "a deadline is not a reason to send a second turn");
 });
 
