@@ -8,9 +8,9 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempRoom } from "../fixtures.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const TOOLS = ["cloudflare", "coolify", "codex", "chatgpt"];
 
 const BARE = tempRoom("tool-config-bare-");
@@ -23,9 +23,9 @@ const PROFILE = join(SAVED, "claude-proxy.env");
 process.env.XDG_CONFIG_HOME = BARE;
 process.env.CLAUDE_PROXY_ENV = join(BARE, "absent.env");
 
-const { VERB_NAMES } = await import("../../src/resolve/visibility.mjs");
-const { skillGuideAnswer } = await import("../../src/guides/skill-guides.mjs");
-const { DEFAULT } = await import("../../src/guides/flow.mjs");
+const { VERB_NAMES } = await import("../../../src/resolve/visibility.mjs");
+const { skillGuideAnswer } = await import("../../../src/guides/skill-guides.mjs");
+const { DEFAULT } = await import("../../../src/guides/flow.mjs");
 
 mkdirSync(join(SAVED, "forge"), { recursive: true });
 writeFileSync(join(SAVED, "forge", "config.json"), JSON.stringify({

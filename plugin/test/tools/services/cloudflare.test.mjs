@@ -18,7 +18,7 @@ process.env.XDG_CONFIG_HOME = HOME;
 const { accountForZone, everyZone, recordLine, searchDns } = await import(
   "../../../src/tools/services/cloudflare.mjs"
 );
-const { cloudflareAccounts } = await import("../../../src/resolve/tool-config.mjs");
+const { cloudflareAccounts } = await import("./../../../src/tools/services/tool-config.mjs");
 const { pullRepeated } = await import("../../../src/resolve/flags.mjs");
 
 const reply = (body, { ok = true, status = 200 } = {}) => ({

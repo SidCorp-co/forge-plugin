@@ -7,10 +7,10 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
-import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { ranAsync, tempHome } from "../../../fixtures.mjs";
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../../..", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
+const ROOT = new URL("../../../../..", import.meta.url).pathname;
 
 /* Counts and answers nothing: a dead port would prove no turn was sent by failing to connect. */
 const calls = [];

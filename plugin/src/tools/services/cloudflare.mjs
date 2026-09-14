@@ -5,7 +5,7 @@
    Zones aggregate across every configured account, and a caller names a zone by id and never an
    account: which account holds that zone is asked rather than typed. */
 import { configPath, saveNested, userConfig } from "../../resolve/config.mjs";
-import { NO_ACCOUNT, cloudflareAccounts } from "../../resolve/tool-config.mjs";
+import { NO_ACCOUNT, cloudflareAccounts } from "./tool-config.mjs";
 import { abbreviated, masked } from "./masked.mjs";
 import { parsedOr } from "../../wire/request.mjs";
 import { fail } from "../../resolve/settings.mjs";

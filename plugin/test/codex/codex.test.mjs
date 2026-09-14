@@ -25,7 +25,7 @@ const {
   withDiffs,
   sameFamily,
 } = await import("../../src/codex/codex-api.mjs");
-const { modelBehind, profileFrom } = await import("../../src/codex/codex-profile.mjs");
+const { modelBehind, profileFrom } = await import("../../src/tools/services/tool-config.mjs");
 const { runTool, scopeFor } = await import("../../src/codex/codex-tools.mjs");
 const { partition } = await import("../../src/resolve/flags.mjs");
 const BOOLEANS = ["--allow-echo"];

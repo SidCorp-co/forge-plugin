@@ -170,16 +170,16 @@ since that verb is the only surface permitted to say what has gone missing.
 - **AC-01-4-25** · Rev: 1 · Proof: plugin/test/cli/doctor/off.test.mjs "the report names every verb under the state it is in"
   WHERE this machine withholds any verb, the resolution report SHALL name every verb of this CLI
   under the state that verb is in on this machine.
-- **AC-01-4-26** · Rev: 1 · Proof: plugin/test/resolve/tool-config.test.mjs "a tool this machine saved nothing for is in no usage line and no row"
+- **AC-01-4-26** · Rev: 1 · Proof: plugin/test/tools/services/tool-config.test.mjs "a tool this machine saved nothing for is in no usage line and no row"
   WHERE this machine holds none of the local configuration a tool needs, the usage list SHALL
   advertise neither that tool's verb nor a row for it.
-- **AC-01-4-27** · Rev: 1 · Proof: plugin/test/resolve/tool-config.test.mjs "the verb typed still runs and refuses in its own words"
+- **AC-01-4-27** · Rev: 1 · Proof: plugin/test/tools/services/tool-config.test.mjs "the verb typed still runs and refuses in its own words"
   WHERE this machine holds none of that configuration, typing that verb SHALL run it and SHALL leave
   its own refusal unchanged.
-- **AC-01-4-28** · Rev: 1 · Proof: plugin/test/resolve/tool-config.test.mjs "doctor names each unconfigured tool with the one thing that configures it"
+- **AC-01-4-28** · Rev: 1 · Proof: plugin/test/tools/services/tool-config.test.mjs "doctor names each unconfigured tool with the one thing that configures it"
   WHERE this machine holds none of that configuration, the resolution report SHALL name that tool
   with the one command or file that configures it.
-- **AC-01-4-29** · Rev: 1 · Proof: plugin/test/resolve/tool-config.test.mjs "a reference wholly about an unconfigured tool is unlisted, and named directly names what configures it"
+- **AC-01-4-29** · Rev: 1 · Proof: plugin/test/tools/services/tool-config.test.mjs "a reference wholly about an unconfigured tool is unlisted, and named directly names what configures it"
   WHERE a served text is marked for a tool this machine holds no configuration for, that text SHALL
   not be served and SHALL not be listed.
 
