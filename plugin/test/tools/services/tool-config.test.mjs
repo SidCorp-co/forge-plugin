@@ -17,9 +17,10 @@ const BARE = tempRoom("tool-config-bare-");
 const SAVED = tempRoom("tool-config-saved-");
 const PROFILE = join(SAVED, "claude-proxy.env");
 
-/* The two homes before the imports: every reader here resolves its path once as the module loads,
-   so a case reading the planted references in this process would otherwise read the developer's own
-   gateway and find codex configured. The spawned cases carry their own and are unaffected. */
+/* The two homes before the imports, because `userConfig` memoises on its first call and that call can
+   come from module evaluation: a case reading the planted references in this process would otherwise
+   find the developer's own config home, and the gateway path — read on demand rather than memoised —
+   would answer for their real profile. The spawned cases carry their own and are unaffected. */
 process.env.XDG_CONFIG_HOME = BARE;
 process.env.CLAUDE_PROXY_ENV = join(BARE, "absent.env");
 
