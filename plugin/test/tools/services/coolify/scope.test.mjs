@@ -227,8 +227,8 @@ test("a uuid nothing answers for is still left to the real request", async (t) =
   await refusing(() => check(scoped(), GUARD, { uuid: "a-nowhere" }));
 });
 
-/* Where this filter is the pin's only hold, a row it cannot place is a row nothing checked. It is
-   counted apart from one that is somebody else's, because the two are different facts. */
+/* Two counts and not one: a reader acts differently on "this belongs to another project" and on
+   "nothing here says whose this is", so collapsing them would report the second as the first. */
 test("an unplaceable row is withheld under strict filtering and counted on its own", async (t) => {
   stub(t);
   const cut = await filterList(scoped(), "applications",
