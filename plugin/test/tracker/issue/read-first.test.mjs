@@ -167,9 +167,12 @@ test.after(() => tracker.close());
 const HOME = tempHome("read-first");
 /* The state file is the run's own and is never touched here: a fixture that reset it would be
    testing a fresh session every time, which is the one thing this gate must not do. */
-const endpoint = (url) => {
+const endpoint = (url, withheld = null) => {
   mkdirSync(join(HOME.path, "forge"), { recursive: true });
-  writeFileSync(join(HOME.path, "forge", "config.json"), JSON.stringify(url ? { url, token: "t", retrySeconds: 0 } : {}));
+  writeFileSync(join(HOME.path, "forge", "config.json"), JSON.stringify({
+    ...(url ? { url, token: "t", retrySeconds: 0 } : {}),
+    ...(withheld ? { withheld } : {}),
+  }));
 };
 const live = () => tracker.url;
 
@@ -317,13 +320,15 @@ const WHOLE = "## Outcome\n\nThe filing is read where it is made, on every route
   + "- A body that meets the shape files with nothing said.\n\n## Out of scope\n\nJudging whether it is true.";
 const TITLED = "the filing is read where it is made on every route";
 
-const filing = async (data, { name = "mcp__forge__forge_issues", url = live() } = {}) => {
-  endpoint(url);
-  const run = await callHookAsync(HOOK, { tool_name: name, tool_input: { action: "create", data }, cwd: process.cwd() }, {
-    ...process.env, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: "probe-filing",
+const raw = async (input, { name = "mcp__forge__forge_issues", url = live(), withheld = null, session = "probe-filing" } = {}) => {
+  endpoint(url, withheld);
+  const run = await callHookAsync(HOOK, { tool_name: name, tool_input: input, cwd: process.cwd() }, {
+    ...process.env, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: session,
   });
   return { ...run, out: run.stdout.trim() ? JSON.parse(run.stdout) : null };
 };
+
+const filing = async (data, options = {}) => raw({ action: "create", data }, options);
 
 test("a create whose body cannot carry the flow is denied, and the pointer is the shape's own page", async () => {
   const run = await filing({ title: "fix", description: "It is broken." });
@@ -350,21 +355,46 @@ test("a comment made through the tool is named its own verb, not the filing's", 
 });
 
 test("an update is claimed by the verb that writes a field no check earned, and named as its", async () => {
-  endpoint(live());
-  const run = await callHookAsync(HOOK, {
-    tool_name: "mcp__forge__forge_issues",
-    tool_input: { action: "update", documentId: UUID, data: { description: "b" } },
-    cwd: process.cwd(),
-  }, { ...process.env, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: "probe-filing" });
-  const said = run.stdout.trim() ? JSON.parse(run.stdout) : null;
-  assert.match(said?.hookSpecificOutput?.permissionDecisionReason ?? "", /is what `forge issue --set` wraps/u,
+  const run = await raw({ action: "update", documentId: UUID, data: { description: "b" } });
+  assert.match(because(run), /is what `forge issue --set` wraps/u,
     "one verb writes a field the record does not earn, so a raw update has a route to be sent to");
 });
 
-test("with no endpoint saved a filing is not judged either", async () => {
+/* ISS-1414. The two checks above ask the tracker something and stand down where it cannot be asked;
+   which verb wraps a route is this CLI's own table, and silence there was the way round a withholding. */
+test("with no endpoint saved a filing is judged for its route and not for its shape", async () => {
   const run = await filing({ title: "fix", description: "It is broken." }, { url: "" });
-  assert.equal(run.out, null);
-  assert.equal(run.status, 0);
+  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
+  assert.match(because(run), /forge_issues create is what `forge new` wraps/u);
+  assert.doesNotMatch(because(run), /a heading naming the outcome/u,
+    "the shape is a question for the tracker and stands down; the route is not and does not");
+});
+
+test("the refusal a raw create earns with no endpoint saved is the one it earns with one", async () => {
+  /* One session each: the line saying where to file a wrong refusal is shown once per session. */
+  const saved = await filing({ title: TITLED, description: WHOLE }, { session: "probe-with-endpoint" });
+  const none = await filing({ title: TITLED, description: WHOLE }, { url: "", session: "probe-no-endpoint" });
+  assert.equal(because(none), because(saved), "the same call, so the same words: the credential is not part of the question");
+  assert.match(because(none), /forge_issues create is what `forge new` wraps/u);
+});
+
+/* A verb held back is paid for by the route it wraps, and a box with no endpoint never paid it. */
+test("with no endpoint saved a verb held back still answers for the route it wraps", async () => {
+  for (const state of ["hidden", "off"]) {
+    const run = await filing({ title: TITLED, description: WHOLE },
+      { url: "", withheld: { new: state }, session: `probe-withheld-${state}` });
+    assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny", state);
+    assert.match(because(run), new RegExp(`\`forge new\` is ${state} on this machine`, "u"));
+    assert.match(because(run), /The raw call is not the way round that/u, state);
+  }
+});
+
+test("a raw call at a route no verb wraps is served whether or not an endpoint is saved", async () => {
+  for (const url of ["", live()]) {
+    const run = await raw({ action: "write", data: { text: "x" } },
+      { name: "mcp__forge__forge_memory", url, session: `probe-unwrapped-${url ? "saved" : "none"}` });
+    assert.equal(run.out, null, `no verb is the route to forge_memory write, so nothing refuses it (url: ${url || "none"})`);
+  }
 });
 
 /* ISS-36's remaining half. Every identifier family of the requirements tree is letters-dash-digits,

@@ -53,16 +53,17 @@ export const run = async (ev) => {
   const wrapped = wrappedRefusal(toolOfCall(call.name), actionIn(call.input));
   if (!refs.length && !filings.length && !wrapped) done();
   const { url, token } = accountCredentials();
-  if (!url.value || !token.value) done();
+  const canAskTracker = Boolean(url.value && token.value);
   const here = ev.cwd || process.cwd();
   // The shape first: a filing refused never happened, and its scope is the event's own directory.
-  if (aimedAt(here)) {
+  if (canAskTracker && aimedAt(here)) {
     for (const filing of filings) {
       const refused = await refusalFrom(filing, shapeOf(filing));
       if (refused) deny(refused + how(SHAPE));
     }
   }
   if (wrapped) deny(wrapped + how("wrapped-route"));
+  if (!canAskTracker) done();
   /* One group per command start: a compound may cross checkouts, and a tool call moves nowhere. */
   const groups = call.name === "Bash"
     ? spoken.map((one) => ({ at: directoryOf(text, one.at, here), refs: writeTargets(call, [one.said]) }))

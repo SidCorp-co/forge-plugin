@@ -12,5 +12,7 @@ How to work through it: the pairs are read off the same table the capability gat
 there is no list of refused actions to consult and no second place for one to go stale.
 
 Not judged: an action no verb is the route to — a description updated in place, a transition the
-flow does not own, the mark a ship writes, a read a verb only spends on its way elsewhere. Silent
-with no endpoint configured, the verb named being this CLI's.
+flow does not own, the mark a ship writes, a read a verb only spends on its way elsewhere. An
+endpoint this machine has not configured changes none of it: the pair is read off this CLI's own
+table, so the same call hears the same refusal whether or not a credential is saved here, and the
+verb it names says how to save one when you type it.
