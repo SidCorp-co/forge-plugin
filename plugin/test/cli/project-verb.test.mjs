@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync } from "../fixtures.mjs";
+import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../..", import.meta.url).pathname;
@@ -85,6 +85,17 @@ test("a project is created from a name and a slug, and its record is printed bac
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^created: a-new-thing$/mu);
   assert.match(run.stdout, /^name: A new thing$/mu);
+});
+
+/* The credential guard reads the project the checkout names, and this verb is the one that runs
+   where there is none. A checkout with no project holds no project's credential to carry, so the
+   reading is null rather than unread and the write goes (ISS-487). */
+test("a checkout naming no project still writes, having no project's credential to carry", async () => {
+  const room = tempHome("project-unscoped");
+  const run = await ranAsync(FORGE, ["project", "new", "--name", "Unscoped", "--slug", "unscoped"],
+    tracker.env, room.path);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /^created: unscoped$/mu);
 });
 
 test("a creation missing either half is refused by name, with nothing sent", async () => {

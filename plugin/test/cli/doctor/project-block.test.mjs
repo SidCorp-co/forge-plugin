@@ -180,14 +180,28 @@ test("a record carrying the credential is refused too, since the guard reads no 
   assert.match(run.stderr, /carries this project's test credentials · password, at [a-zA-Z]/u);
 });
 
-test("a write goes through where the deploy could not be read at all", async () => {
+/* The guard fails closed: a payload it could not judge is held rather than sent, because there is
+   no delete for what the tracker has taken and a held write costs a retry (ISS-487). */
+test("a write is refused where the deploy could not be read at all, and the refusal carries the reason", async () => {
   const room = tempHome("project-unread");
   const body = join(room.path, "secret.md");
   writeFileSync(body, `Signed in with ${PASSWORD}.\n`);
+  const posted = () => state.calls.filter((one) => one.args?.action === "create").length;
   state.answer["forge_projects.get"] = () => ({ refused: "this credential may not read the project" });
+  const before = posted();
   const run = await ask("comment", "ISS-1", body);
+  const rows = await ask("doctor");
   state.answer["forge_projects.get"] = () => ({ project: { previewDeploy: state.deploy } });
-  assert.equal(run.status, 0, `a refusal caused by a read this CLI could not make has no way out: ${run.stderr}`);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /could not be read, so nothing here can say whether the payload carries one/u,
+    run.stderr);
+  assert.match(run.stderr, /this credential may not read the project/u,
+    "the reading's own reason, which is what a token that may not read the project acts on");
+  assert.match(run.stderr, /^ {2}forge doctor$/mu, "and one command that says whether the project reads");
+  assert.equal(posted(), before, "and nothing was posted");
+  assert.match(rows.stdout,
+    NOTE_ROW("staging deploy", "the tracker's project detail did not answer, so nothing here says"),
+    "the report says the reading did not answer, rather than that the project configured nothing");
 });
 
 /* The brief. Its sources are this repository's own files, because that is what the verb resolves a

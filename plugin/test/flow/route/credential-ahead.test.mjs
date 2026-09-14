@@ -39,6 +39,8 @@ test("the line stays silent on every reading that is not a screen change without
     "a project that recorded a login is owed nothing");
   assert.equal(ahead({ status: "in_progress", plan: SCREEN }, null), null,
     "and a deploy nobody read reports no empty set: null is unread, never none");
+  assert.equal(ahead({ status: "in_progress", plan: SCREEN }, { ...NO_LOGIN, refused: "no answer" }), null,
+    "as is a reading that did not answer, which carries the empty set the guard's own shape needs");
   for (const status of ["testing", "awaiting_release", "closed"]) {
     assert.equal(ahead({ status, plan: SCREEN }, NO_LOGIN), null, `${status} is past the point of saying it`);
   }

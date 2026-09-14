@@ -154,12 +154,14 @@ export const deployFrom = (deploy) => {
 export const deployed = (deploy) =>
   Boolean(deploy && (deploy.urls.length || deploy.notes.length || deploy.withheld.length));
 
+const NO_RECORD = "the project detail answered with no project record";
+
+/** Null is a checkout naming no project, which holds none of a project's credentials to carry; a reading that did not answer is the deploy's own empty shape carrying `refused`, so every walker below still meets arrays and only the credential guard acts on the field (ISS-487). */
 export const stagingDeploy = once(async () => {
   if (!slugIfAny()) return null;
   const answer = await scoped("forge_projects.get", {}, true);
-  if (!answer?.project) return null;
-  const { previewDeploy } = answer.project;
-  return deployFrom(previewDeploy);
+  if (answer?.project) return deployFrom(answer.project.previewDeploy);
+  return { ...deployFrom(undefined), refused: answer?.refused ?? NO_RECORD };
 });
 
 /* Above the length, refused wherever a payload holds it; below it, only where a field is it,
@@ -189,6 +191,8 @@ const NOTHING_DEPLOYS = "and nothing here says the host deploys on push: `awaiti
   + "verification to name the deployment that built the commit this change landed at";
 
 const NO_DEPLOY = "none configured";
+
+const UNREAD_DEPLOY = `${DEPLOY_SOURCE} did not answer, so nothing here says what this project holds`;
 
 const UNSET = "unset on the project";
 
@@ -239,6 +243,9 @@ export const deployRows = (deploy) => [
  *  one verb reporting every level of configuration prints its own keys in. */
 export const projectRows = ({ policy, deploy, credentials, landing = landingScope() }) => {
   const out = policyRows(policy, landing);
+  if (deploy?.refused) {
+    return [...out, { level: "note", label: "staging deploy", detail: UNREAD_DEPLOY }];
+  }
   if (!deploy) return [...out, { level: "ok", label: "staging deploy", detail: NO_DEPLOY }];
   const held = deploy.withheld;
   const asked = Boolean(credentials && held.length);
@@ -253,6 +260,12 @@ export const projectRows = ({ policy, deploy, credentials, landing = landingScop
   out.push({ level: "ok", label: "staging deploy", detail: `${deploy.urls.length} host(s)  ← ${deploy.from}` });
   return [...out, ...deployRows(deploy), ...ending];
 };
+
+export const unreadRefusal = (refused, what) =>
+  `${what} was not sent: this project's test credentials could not be read, so nothing here can say `
+  + "whether the payload carries one, and there is no delete for what the tracker has taken. The "
+  + `reading came back with: ${refused}\nSay whether the project reads, and send this again `
+  + "unchanged once it does:\n  forge doctor";
 
 export const leakRefusal = (found, what) =>
   `${what} carries this project's ${found.credential}`

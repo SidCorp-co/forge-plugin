@@ -105,10 +105,11 @@ mechanism that would catch that word inside a sentence is one that refuses every
 it — a gate no developer gets past, which is a defect rather than strictness. A review pressed twice
 for the wider guarantee; the width of the claim was wrong, not the mechanism, so the claim narrowed. A project whose credential is five characters is the project's to fix.
 
-The read behind all of it is soft and memoised: one call per process that writes, and a read that
-fails lets the write through. A payload refused because of a read this CLI could not make would be a
-refusal with no route out. Which values are credentials at all, and why the shape of the value decides
-rather than a list of names: [the test credentials](test-credentials.md).
+The read behind all of it is soft and memoised, and **a reading that did not answer stops the
+write**: there is no delete for what the tracker has taken and a held write costs a retry. ISS-487's
+route out of the refusal is the reading's own reason, in the message. Which values are credentials at
+all, and why the shape of the value decides rather than a list of names:
+[the test credentials](test-credentials.md).
 
 ## Why the vocabulary has a checker
 

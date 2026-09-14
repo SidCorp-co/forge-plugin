@@ -276,7 +276,10 @@ export const statusKind = (name) =>
 export const refuseCredential = async (value, what) => {
   if (!value) return;
   const held = await import("./project-config.mjs");
-  const found = held.credentialLeak(value, await held.stagingDeploy());
+  const deploy = await held.stagingDeploy();
+  /* A reading that did not answer stops the write: there is no delete for what the tracker has taken, and a held write costs a retry — docs/cli/one-transport.md (ISS-487). */
+  if (deploy?.refused) fail(held.unreadRefusal(deploy.refused, what));
+  const found = held.credentialLeak(value, deploy);
   if (found) fail(held.leakRefusal(found, what));
 };
 

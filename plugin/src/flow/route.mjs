@@ -213,10 +213,10 @@ const credentialOwed = (flags, status) =>
   (flags.screen === "yes" && !atLeast(status, JUDGED_AT));
 
 /* Said while a run can still do something about it, and not from the entry check, whose every item
-   is one owed. A null deploy is unread, never empty. advance.md. */
+   is one owed. An unread deploy is null or refused, never empty. advance.md. */
 export const credentialAhead = (view, ref) => {
   if (!credentialOwed(view.flags, view.issue.status)) return null;
-  if (!view.deploy || view.deploy.withheld.length) return null;
+  if (!view.deploy || view.deploy.refused || view.deploy.withheld.length) return null;
   return `Ahead: ${JUDGED_AT} wants an attachment on every verdict that is not skipped, and this project
 `
     + `holds no test credential, so no login reaches the rendered state. Two verdict shapes get past

@@ -491,10 +491,9 @@ export const fakeTracker = async (state) => {
     [/^\/api\/projects\/([^/]+)$/u, (q, sent, method, [id]) => {
       if (method === "PATCH") return answered("forge_projects.update", { projectRef: id, data: sent });
       if (state.answer?.["forge_projects.read"]) return answered("forge_projects.read", { projectRef: id });
-      return projectRow({
-        ...answered("forge_config", { action: "get" }),
-        ...(state.answer?.["forge_projects.get"] ? answered("forge_projects.get", {}) : {}),
-      });
+      const config = answered("forge_config", { action: "get" });
+      const detail = state.answer?.["forge_projects.get"] ? answered("forge_projects.get", {}) : {};
+      return detail.refused ? detail : projectRow({ ...config, ...detail });
     }],
     [/^\/api\/projects$/u, (q, sent, method) => (method === "POST"
       ? answered("forge_projects.create", { data: sent })
