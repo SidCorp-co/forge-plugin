@@ -9,8 +9,11 @@ Three things, all read at dispatch time and none of them from memory:
   has written no plan and its tree holds nothing yet, so neither source answers for it, and a plan
   that does exist names what its run expected to touch rather than what it wrote. Both readings have
   come back short. So the brief names where its list came from, says where a tree is still empty, and
-  names the diff of that tree against the default branch as what settles it once there is something
-  to read. A list handed over as fact gives the second run a collision it cannot see, paid for in a
-  rebase, a re-earned review and a second ship.
+  names what settles it: that tree's uncommitted files and what it has committed against the default
+  branch, both readings, because a run holds its work uncommitted until it commits and a reading of
+  commits alone answers empty for a tree with twenty files open in it. Empty reads exactly like an
+  idle tree, so which of the two a command covers is worth knowing before it is trusted. A
+  list handed over as fact gives the second run a collision it cannot see, paid for in a rebase, a
+  re-earned review and a second ship.
 - **What moved under it.** What has landed since the copy of the plugin that run will load, and
   whether a restart is owed before it starts.
