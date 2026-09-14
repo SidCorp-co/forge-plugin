@@ -1,5 +1,5 @@
 /* The call itself: what GPT-5 Codex is asked, what it may do for itself, and the streamed answer. HTTPS POSTs
-   to the gateway `codex-profile.mjs` names, which answers with real `tool_use` blocks — so the changed files
+   to the gateway `../tools/services/tool-config.mjs` names, which answers with real `tool_use` blocks — so the changed files
    travel with the prompt and the rest the reviewer needs it reads through codex-tools.mjs. docs/cli/codex-the-consult.md. */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";

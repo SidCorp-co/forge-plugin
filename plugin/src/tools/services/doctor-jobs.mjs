@@ -3,7 +3,7 @@
 import { declaredJobs } from "../../resolve/settings.mjs";
 import { HIDDEN, OFF, VERB_NAMES, blockedBy, channelRefusal, jobProblems, matchingJobs, stateOf,
   verbStates } from "../../resolve/visibility.mjs";
-import { UNCONFIGURED, unconfiguredTool } from "../../resolve/tool-config.mjs";
+import { UNCONFIGURED, unconfiguredTool } from "./tool-config.mjs";
 
 const ON = "on";
 const CLOSED = "closed";

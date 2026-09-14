@@ -4,7 +4,7 @@
 import { ROUTES } from "../tracker/routes.mjs";
 import { userConfig } from "./config.mjs";
 import { declaredJobs, fail, feedbackScope, projectScope } from "./settings.mjs";
-import { unconfiguredTool } from "./tool-config.mjs";
+import { unconfiguredTool } from "../tools/services/tool-config.mjs";
 
 /* A row names its group; `forge -h`'s headings are folded off that, so a verb reaching the table
    without one appears under no heading and `cli-help.test.mjs` refuses it rather than a reader. */

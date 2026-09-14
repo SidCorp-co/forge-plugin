@@ -40,7 +40,7 @@ import {
   roleFor,
   sameFamily,
 } from "./codex-api.mjs";
-import { modelBehind, modelSlot, profile } from "./codex-profile.mjs";
+import { modelBehind, modelSlot, profile } from "../tools/services/tool-config.mjs";
 import { EVAL_USAGE, MARKS_USAGE, REPLAY_USAGE, STATS_USAGE, crossingSaid, printEval, printMarks,
   printReplay, printStats } from "./codex-stats.mjs";
 import {

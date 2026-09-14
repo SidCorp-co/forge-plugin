@@ -1,11 +1,10 @@
 /* The credentials that are this machine's and a harness verb's, gating nothing: every other verb works with none of them saved, so each absence is a note. Rows out rather than printed lines, in the shape the project's rows already come in, because importing `line` from `doctor.mjs` would be a cycle. docs/cli/doctor.md. */
 import { CHATGPT_KEYS, CHATGPT_PREFIX, chatgptSettings } from "../../resolve/settings.mjs";
-import { modelBehind, profile } from "../../codex/codex-profile.mjs";
 import { defaultEffort, disagreement, effortVia, rungFor, rungLadder } from "../../codex/codex-plan.mjs";
 import { configPath } from "../../resolve/config.mjs";
 import { logBytes, logPath } from "../../codex/codex-log.mjs";
 import { consultCount } from "../../codex/log/asked.mjs";
-import { CONFIGURABLE, cloudflareAccounts, configureSaid, unconfiguredTool } from "../../resolve/tool-config.mjs";
+import { CONFIGURABLE, cloudflareAccounts, configureSaid, unconfiguredTool, modelBehind, profile } from "./tool-config.mjs";
 import { SCOPE_FILE, coolifyTarget, pinned } from "./coolify/config.mjs";
 import { masked } from "./masked.mjs";
 

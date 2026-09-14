@@ -26,7 +26,7 @@ answered *unknown verb* would be worse than the row it replaced.
 
 ## One reading, four readers
 
-`plugin/src/resolve/tool-config.mjs` is the whole of the answer. The help's filter, `forge doctor`'s
+`plugin/src/tools/services/tool-config.mjs` is the whole of the answer. The help's filter, `forge doctor`'s
 rows, the served guides' `tool.` conditions and the Cloudflare verb's own refusal all read it. That
 is not tidiness: before it, the command that saves a Cloudflare account was spelled two ways — once
 in the verb's refusal, once in the report's row — and they had already drifted apart in their
@@ -40,11 +40,14 @@ because the help asks this question before it dispatches and a directory named i
 `CLAUDE_PROXY_ENV` would otherwise take every verb of the CLI down with it. The verb typed still
 reaches the same reader and still fails its own way.
 
-Two of those readers had to move to be borrowed. `profile` sat in the module that makes the HTTPS
-call, and the Cloudflare accounts sat in the verb; a hook that loads `visibility.mjs` would have
-paid for an HTTP client and the tracker layer to learn whether there is a gateway at all, against a
-requirement that a gate costs one process start. So the gateway profile and the model it resolves
-are `plugin/src/codex/codex-profile.mjs`, and the accounts are read where the table is.
+Two of those readers had to move to be borrowed, and that decided where the table lives. `profile`
+sat in the module that makes the HTTPS call and the Cloudflare accounts sat in the verb; a hook that
+loads `visibility.mjs` would have paid for an HTTP client and the tracker layer to learn whether
+there is a gateway at all, against a requirement that a gate costs one process start. So both are
+read here, beside the services they answer for, and `codex-api.mjs` imports the profile back — the
+shape `chatgptSettings` already had in `plugin/src/resolve/settings.mjs`. The folder-width checker
+is what settled it against a module of its own: `plugin/src/codex` and `plugin/src/resolve` were
+each at ten files, and a third home for one fact would have been a seam picked by arithmetic.
 
 ## Doctor still names it, because doctor is the only surface that may
 

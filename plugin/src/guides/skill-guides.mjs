@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 import { didYouMean } from "../suggest.mjs";
 import { conditionsAt } from "./conditions.mjs";
-import { CONFIGURABLE, configureSaid, unconfiguredTool } from "../resolve/tool-config.mjs";
+import { CONFIGURABLE, configureSaid, unconfiguredTool } from "../tools/services/tool-config.mjs";
 import { roundLines, rungRefusal, rungServed } from "./rounds.mjs";
 import {
   SLUG as CONTRACT_SLUG, contractKeys, contractRoot, joinedParts, partEntriesIn, partFileProblem,
