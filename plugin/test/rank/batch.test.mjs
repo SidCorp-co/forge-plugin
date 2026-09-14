@@ -121,6 +121,15 @@ test("a pair meeting only on a path the checkout has not got is not related by m
   assert.equal(aside[0].capped, undefined, "neither the cap nor the rung is what kept it out");
 });
 
+test("a phantom sitting under a tree the checkout holds groups nothing either", () => {
+  const paths = new Map([["ISS-1", ["plugin/src/tools/"]], ["ISS-2", ["plugin/src/tools/issues.mjs"]]]);
+  const read = relatednessOf(candidate("ISS-1"), candidate("ISS-2"),
+    context({ paths, resolves: gone("plugin/src/tools/issues.mjs") }));
+  assert.deepEqual(read.gone, ["plugin/src/tools/issues.mjs"],
+    "the head's tree resolves, so only the far end can refuse the pair");
+  assert.equal(read.said, "names plugin/src/tools/issues.mjs, which this checkout has not got");
+});
+
 test("a body naming a path that is gone and one that is not is grouped on the one that is", () => {
   const paths = new Map([
     ["ISS-1", ["plugin/src/tools/issues.mjs", "plugin/src/rank/batch.mjs"]],
