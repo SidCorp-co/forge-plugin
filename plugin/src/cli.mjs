@@ -3,8 +3,8 @@
    credential may not call is not listed and does not run — docs/cli/withholding-a-verb.md. */
 import { commands } from "./commands.mjs";
 import { didYouMean } from "./suggest.mjs";
-import { blockedBy, channelRefusal, grouped, helpLine, helpOf, offeredVerbs, verbForPluginDefect }
-  from "./resolve/visibility.mjs";
+import { blockedBy, channelRefusal, grouped, helpLine, helpOf, offeredVerbs, typedRefusal,
+  verbForPluginDefect } from "./resolve/visibility.mjs";
 import { wantsHelp } from "./resolve/flags.mjs";
 import { retiredRefusal } from "./resolve/retiring.mjs";
 import { argvOf, handledBy, refusedFor, routeSaid, saidFor } from "./resolve/handler.mjs";
@@ -71,13 +71,21 @@ if (retired) {
 /* Performed, not suggested, and ahead of the near miss that would answer a word this CLI runs. */
 const form = command && !Object.hasOwn(commands, command) ? handledBy(command) : null;
 
-/* Before the two checks, which judge what will run: judged on the typed word, `forge list` would run a gated `forge issue` and print a line for it. */
+/* Before the three checks, which judge what will run: judged on the typed word, `forge list` would run a gated `forge issue` and print a line for it. */
 const running = form ? form.verb : command;
 
 const closed = running ? channelRefusal(running) : null;
 
 if (closed) {
   console.error(closed);
+  process.exit(1);
+}
+
+/* Ahead of the credential's gate: this refusal is a person's own choice, so they can type the way out. */
+const turnedOff = running ? typedRefusal(running) : null;
+
+if (turnedOff) {
+  console.error(turnedOff);
   process.exit(1);
 }
 

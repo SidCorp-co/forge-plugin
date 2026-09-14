@@ -165,7 +165,20 @@ const recorded = () => {
 export const knownGates = recorded;
 export const isGated = (tool) => Boolean(recorded().gates[tool]);
 export const gatedTools = () => new Set(Object.keys(recorded().gates).filter(isGated));
-export const withheldVerbs = () => new Set(userConfig().withheld ?? []);
+/* One key over three states, why a bare list of names still reads and why it reads `hidden`: docs/cli/withholding-a-verb.md. */
+export const HIDDEN = "hidden";
+export const OFF = "off";
+
+export const verbStates = () => {
+  const held = userConfig().withheld;
+  if (Array.isArray(held)) return Object.fromEntries(held.map((verb) => [verb, HIDDEN]));
+  if (!held || typeof held !== "object") return {};
+  return Object.fromEntries(Object.entries(held)
+    .map(([verb, state]) => [verb, state === OFF ? OFF : HIDDEN]));
+};
+
+export const stateOf = (verb) => verbStates()[verb] ?? null;
+export const withheldVerbs = () => new Set(Object.keys(verbStates()));
 
 /* A job offers this whether it names it or not: a machine whose report verb has gone missing has no
    surface left allowed to say what else has. The bulk write alone is bound; `--hide` is not. */
@@ -255,16 +268,20 @@ export const verbFor = (tool, action) => {
 /* Why a verb cannot be typed, in the words its own refusal already carries, or nothing where it
    can. The argument for refusing rather than falling back: how/wrapped-route.md. */
 const unavailable = (verb) => {
-  if (withheldVerbs().has(verb)) {
+  const state = stateOf(verb);
+  if (state) {
     const matched = matchingJobs();
     const at = matched.length === 1 ? `, which is at the \`${matched[0]}\` job` : "";
-    return `\`forge ${verb}\` is withheld on this machine${at} — \`forge doctor --show ${verb}\` offers it again`;
+    return `\`forge ${verb}\` is ${state} on this machine${at} — \`forge doctor --show ${verb}\` offers it again`;
   }
   const blocked = blockedBy(verb);
   return blocked
     ? `\`forge ${verb}\` cannot spend ${blocked} on this credential — \`forge doctor\` measured that`
     : null;
 };
+
+/** Why a TYPED verb does not run, or nothing where it does; `hidden` never answers here. */
+export const typedRefusal = (verb) => (stateOf(verb) === OFF ? `${unavailable(verb)}.` : null);
 
 export const wrappedRefusal = (tool, action) => {
   const found = verbFor(tool, action);

@@ -1,8 +1,8 @@
-/* A job is the bulk write over the array `--hide` writes one verb at a time, and the whole risk is
+/* A job is the bulk write over the key `--hide` writes one verb at a time, and the whole risk is
    that it becomes a second switch: a stored name, a precedence rule, a report nobody can read. So
-   what is watched here is that the array is the only state — replaced rather than added to, matched
+   what is watched here is that the key is the only state — replaced rather than added to, matched
    rather than attributed, and answered for by the one verb allowed to say a thing is missing.
-   docs/cli/withholding-a-verb.md. ISS-1320. */
+   Which state a job writes is off.test.mjs's. docs/cli/a-job.md. ISS-1320, ISS-1258. */
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -40,11 +40,13 @@ test("one call replaces what this machine withholds with every verb the job does
   assert.match(wrote.stdout, /The usage list is at the ba job/u, wrote.stderr);
   const withheld = saved().withheld;
   for (const verb of BA) {
-    assert.ok(!withheld.includes(verb), `${verb} is the job's and is offered, not withheld`);
+    assert.equal(withheld[verb], undefined, `${verb} is the job's and is offered, not withheld`);
   }
-  assert.ok(withheld.includes("codex") && withheld.includes("stats") && withheld.includes("guide"),
-    "and every verb outside the job is withheld, whatever the machine held before the call");
-  assert.ok(!withheld.includes("issue"),
+  for (const verb of ["codex", "stats", "guide"]) {
+    assert.equal(withheld[verb], "off",
+      "every verb outside the job is turned off, whatever the machine held before the call");
+  }
+  assert.equal(withheld.issue, undefined,
     "the write replaces rather than adds, so a verb the job offers stops being withheld");
 });
 
@@ -73,10 +75,10 @@ test("turning off whatever job is on leaves nothing withheld, hand-hidden verbs 
   const { run, saved } = room(declared);
   run("doctor", "--job", "ba");
   run("doctor", "--hide", "issue");
-  assert.ok(saved().withheld.includes("issue"), "hidden by hand on top of the job");
+  assert.equal(saved().withheld.issue, "hidden", "hidden by hand on top of the job");
   const cleared = run("doctor", "--job", "all");
   assert.match(cleared.stdout, /including any hidden one at a time/u, cleared.stdout);
-  assert.deepEqual(saved().withheld, [], "and the whole array goes, not only what the job wrote");
+  assert.deepEqual(saved().withheld, {}, "and every entry goes, not only what the job wrote");
 });
 
 test("the report names every declared job and the project's own file as where they were read", () => {
@@ -138,7 +140,7 @@ test("a job naming a word that is no verb is refused before anything is written"
   const refused = run("doctor", "--job", "odd");
   assert.equal(refused.status, 1, refused.stdout);
   assert.match(refused.stderr, /the `odd` job in \.forge\.json names triage, which this CLI has no verb for/u);
-  assert.deepEqual(saved().withheld, ["stats"], "and the refusal left the array exactly as it was");
+  assert.deepEqual(saved().withheld, ["stats"], "and the refusal left the key exactly as it was");
 });
 
 test("a job flag beside a project flag is refused with neither store written", () => {
@@ -157,7 +159,7 @@ test("the reserved name is reported rather than served, and still clears", () =>
   assert.match(said, /\[ miss \] jobs\s+`all` is reserved/u, said);
   assert.doesNotMatch(said, /\[ {2}ok {2}\] jobs\s+ba, all/u, "and is offered nowhere");
   run("doctor", "--job", "ba");
-  assert.ok(saved().withheld.length, "a job is on");
+  assert.ok(Object.keys(saved().withheld).length, "a job is on");
   run("doctor", "--job", "all");
-  assert.deepEqual(saved().withheld, [], "so `all` cleared rather than applying the declaration");
+  assert.deepEqual(saved().withheld, {}, "so `all` cleared rather than applying the declaration");
 });

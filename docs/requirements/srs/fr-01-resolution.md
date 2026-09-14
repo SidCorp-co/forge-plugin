@@ -148,6 +148,25 @@ since that verb is the only surface permitted to say what has gone missing.
 - **AC-01-4-18** · Rev: 1 · Proof: plugin/test/cli/doctor/job.test.mjs "a job reopens no verb the credential or the project has closed"
   WHERE a verb a job offers is one this credential may not spend or this project has closed, turning
   that job on SHALL leave it unadvertised.
+- **AC-01-4-19** · Rev: 1 · Proof: plugin/test/cli/doctor/off.test.mjs "an off verb and a form through one reach the tracker with nothing, while a hidden verb still does"
+  WHERE this machine has turned a verb off, typing that verb SHALL refuse it and SHALL run nothing.
+- **AC-01-4-20** · Rev: 1 · Proof: plugin/test/cli/doctor/off.test.mjs "the refusal names the verb, the state and the one command that clears it"
+  WHERE this machine has turned a verb off, the refusal SHALL name the verb, the state it is in and
+  the command that offers it again, and SHALL volunteer nothing past them.
+- **AC-01-4-21** · Rev: 1 · Proof: plugin/test/cli/doctor/off.test.mjs "an off verb and a form through one reach the tracker with nothing, while a hidden verb still does"
+  WHERE a word this CLI performs through a verb this machine has turned off is typed, the CLI SHALL
+  refuse it before the verb behind it runs.
+- **AC-01-4-22** · Rev: 1 · Proof: plugin/test/cli/doctor/off.test.mjs "an off verb and a form through one reach the tracker with nothing, while a hidden verb still does"
+  WHERE this machine has hidden a verb one at a time, typing that verb SHALL run it.
+- **AC-01-4-23** · Rev: 1 · Proof: plugin/test/cli/doctor/job.test.mjs "one call replaces what this machine withholds with every verb the job does not offer"
+  WHEN the developer turns on a job the project declares THEN the CLI SHALL turn every verb outside
+  that job off rather than merely unlisted.
+- **AC-01-4-24** · Rev: 1 · Proof: plugin/test/cli/doctor/off.test.mjs "a bare list of names an earlier release wrote reads as hidden throughout"
+  WHERE this machine's withholding is the bare list of names an earlier release wrote, every verb in
+  it SHALL be hidden rather than turned off.
+- **AC-01-4-25** · Rev: 1 · Proof: plugin/test/cli/doctor/off.test.mjs "the report names every verb under the state it is in"
+  WHERE this machine withholds any verb, the resolution report SHALL name every verb of this CLI
+  under the state that verb is in on this machine.
 
 ### UC-01-5 — The project's keys, and the machine's own
 

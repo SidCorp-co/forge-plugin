@@ -213,10 +213,10 @@ test("a withheld verb's action is refused with the verb and the withholding, not
   const { ran, close, env, cwd } = await gatedKnowledge();
   try {
     const hidden = await ran("doctor", "--hide", "knowledge");
-    assert.match(hidden.stdout, /knowledge is now withheld from the usage list/u, hidden.stderr);
+    assert.match(hidden.stdout, /knowledge is now hidden from the usage list/u, hidden.stderr);
     const said = await refusedBy(env, cwd, "mcp__forge__forge_knowledge", { action: "upsert", data: { slug: "s" } });
     assert.match(said, /forge_knowledge upsert is what `forge knowledge write` wraps/u, said);
-    assert.match(said, /is withheld on this machine/u);
+    assert.match(said, /is hidden on this machine/u);
     assert.match(said, /not the way round/u);
   } finally {
     await close();
@@ -234,7 +234,7 @@ test("a withheld verb a declared job matches is refused by the route it wraps, i
     assert.match(on.stdout, /The usage list is at the reader job/u, on.stderr);
     const said = await refusedBy(env, cwd, "mcp__forge__forge_knowledge", { action: "upsert", data: { slug: "s" } });
     assert.match(said, /forge_knowledge upsert is what `forge knowledge write` wraps/u, said);
-    assert.match(said, /is withheld on this machine, which is at the `reader` job/u, said);
+    assert.match(said, /is off on this machine, which is at the `reader` job/u, said);
     assert.match(said, /forge doctor --show knowledge/u, "and the way back is the one command it names");
   } finally {
     await close();

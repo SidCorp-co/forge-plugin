@@ -84,8 +84,14 @@ Run it first when anything refuses.
   withholds every verb that spends one recorded here, so **a verb can be missing from `forge -h`
   because of this file.** `forge doctor` prints what it measured, refusals included, and is never
   itself withheld — the verb that re-probes a credential cannot be gated on it.
-- **`withheld`** — verbs a human hid with `forge doctor --hide <verb>`. Unlisted, but they still
-  run. `forge doctor --show <verb>` puts one back.
+- **`withheld`** — the verbs this machine does not offer, each under the state it is in. `hidden`,
+  what `forge doctor --hide <verb>` writes, is unlisted and still runs when typed; `off`, what
+  `forge doctor --job <name>` writes for every verb outside the job, is unlisted and refused
+  whichever route the call comes in on. A verb no entry names is offered and served.
+  `forge doctor --show <verb>` puts one back. Releases before the states wrote a bare list of names
+  here and it still reads, every name in it hidden; the states are written over it the first time
+  one of those flags writes. A `forge` older than the states cannot read what they write — delete
+  the key to put such a copy back on its feet.
 
 `tools-<hash>.json` beside it caches the server's 130 KB tool declaration, keyed by endpoint. It is
 refreshed when a name lookup misses and on every `forge doctor` run; deleting it costs one slow

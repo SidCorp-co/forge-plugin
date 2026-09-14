@@ -38,7 +38,8 @@ test("one call carrying every flag of the table reaches every writer, and each w
   assert.equal(saved.token, "fresh-token");
   assert.equal(saved.url, "https://fresh.example/mcp");
   assert.equal(saved.ship, "ready");
-  assert.deepEqual(saved.withheld, ["issue"], "--hide added one and --show took the other away, so both writers ran");
+  assert.deepEqual(saved.withheld, { issue: "hidden" },
+    "--hide added one and --show took the other away, so both writers ran");
   assert.deepEqual(saved.chatgpt,
     { url: "https://gpt.example/mcp", key: "gpt-key", prefix: "Flat vector, no text." });
   assert.deepEqual(MACHINE_FLAGS,
@@ -56,7 +57,7 @@ test("a flag of that table beside a flag of the project's is refused with neithe
 test("a flag carrying an empty value prints the report and writes nothing", () => {
   const run = machineRun(["--hide", "", "--show", "", "--ship", ""]);
   assert.match(run.stdout, /\[  ok  \] endpoint url/u, "the report did not run");
-  assert.doesNotMatch(run.stdout, /is now withheld from|now ends at a pushed branch|now lands its own change/u);
+  assert.doesNotMatch(run.stdout, /is now hidden from|now ends at a pushed branch|now lands its own change/u);
   assert.equal(run.saved().ship, undefined);
   assert.equal(run.saved().withheld, undefined);
 });

@@ -75,7 +75,8 @@ how many topics there may be.
 | [the project's brief](cli/the-brief.md) | Why `--refresh` takes the answer it is meant to produce, which files a digest covers and which it deliberately does not, and why a store that will not answer is not a store with no brief. |
 | [the goals a `Serves:` may name](cli/the-goals.md) | Whose list an identifier is read from, why one the brief does not list is still put to the requirements tree, and why naming no goal is refused by nothing while no weight reads the line. |
 | [settings](cli/settings.md) | Why provenance is the shape of every answer, which six environment variables remain, and where a credential may sit. |
-| [withholding a verb](cli/withholding-a-verb.md) | The difference between a tool the server gates and a verb a human hid, and why `forge doctor` alone may say so. |
+| [withholding a verb](cli/withholding-a-verb.md) | The difference between a tool the server gates and a verb a human hid, the three states the second of those has, and why `forge doctor` alone may say so. |
+| [a job](cli/a-job.md) | Why a slice of verbs is named by the project and turned on by the machine, why the report matches a job rather than blaming one, and the one verb a job cannot take away. |
 | [retiring a name](cli/retiring-a-name.md) | Why a replaced name is not redirected to its replacement, what separates a form the dispatcher performs from a redirect, and the one bounded window a losing name gets. |
 | [one transport](cli/one-transport.md) | Why the route each capability takes is a declared table, what a capability with no route does instead, why a write announces itself here, and the edge the credential guard states. |
 | [the deadline](cli/the-deadline.md) | Why counting attempts bounds no attempt, which of two numbers a refusal names and whose it was, and why an attempt whose body ran out is a dropped attempt whatever its headers said. |

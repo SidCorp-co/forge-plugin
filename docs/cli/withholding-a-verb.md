@@ -6,6 +6,19 @@ distinction that makes each correct. `needs` is declared on every verb with a ba
 probed ones, so if `forge_issues` is ever gated, six verbs disappear together rather than fail one at a
 time. A gated tool's schema is not printed at all: it is an invitation to a call that cannot succeed.
 
+**The human's half has two states of its own, and the gate is neither of them.** `hidden` is that
+unlisted-and-still-works, chosen one verb at a time by the person who can undo it, and leaving it
+reachable is a courtesy to them. `off` is unlisted and refused wherever the call arrives — the verb
+typed, a word this CLI performs through it, the raw route behind it — and it is what
+[a job](a-job.md) writes, because a job is the project saying a slice of verbs is not this role's
+work, read by every machine and everyone who takes that role; a verb such a person can still type is
+a rule drawn on the screen and nowhere else. A verb no entry names is on, which is listed and served. The states live under the
+one key rather than a key each: two of those would be a precedence rule, a report nobody can read,
+and an undo answering half a question. And a release before the states wrote a bare list of names
+there, which still reads, every name in it `hidden` — the state that machine already behaves as, and
+an upgrade may not take a verb away from somebody who could type it the call before. The list is
+written over with the states the first time one of the flags below writes.
+
 The usage line has one home. It lived twice and the two had drifted four ways, so `forge -h` and the
 error a caller hit disagreed about which payload forms exist.
 
@@ -29,34 +42,6 @@ says which tool it needs and that this credential may not call it, because the c
 spent the turn and a silent refusal costs a second one; what the refusal must not do is *describe*
 the thing — asking `forge guide` for a withheld page with the `--tracker` flag echoes the flag and
 refuses the shape, and says nowhere what the flag would have printed.
-
-**A job is that same withholding written once instead of ten times, and the project says which jobs
-there are.** A person working a tracker is doing one of a few jobs, and each wants a different slice
-of the verbs; assembled by hand that is a call per verb and nothing recording why the slice belongs
-together. So a project declares its jobs in its own file — a name and the verbs that job's usage
-list offers — and `forge doctor --job <name>` replaces this machine's withheld array with everything
-outside it, in one call. Replacement and not addition, so turning a job on is the same act whatever
-the machine held before, and `--job all` empties the array, which takes a verb hidden by hand with it
-and restores no earlier list. A machine that had its own withholding wants that written down first.
-
-The declarations are the project's because [two levels](../two-levels.md) puts them there: a rule
-that cannot be stated without naming the project does not belong in the plugin, not even as a
-default with sensible values, and what jobs exist in a checkout is exactly that. This repository
-declares three, which are an example to copy and not an enum — nothing in the plugin knows the name
-of any job. A checkout that declares none behaves as it did before the key existed.
-
-**The array is still the machine's, so a job turned on here withholds those verbs in every checkout
-on this box** — the same as a verb hidden by hand, which is not scoped to a project either. The two
-levels are not in conflict: one says which slices have names, the other which slice this box is at.
-
-And the report never says a job *caused* what is withheld, because an array cannot carry that. It
-names every declared job the array is the complement of, which an array built by hand can match and
-two jobs offering the same verbs both do, and says none matches where that is so. A job's name kept
-beside the array would be a second switch over one state and a label that stops being true the first
-time `--show` follows `--job`. One more thing the write does not touch: a job offers the report verb
-whether it names it or not, since a machine whose `doctor` has gone missing has no surface left that
-is allowed to say what else has. `--hide` and `--show` keep their meaning on that verb as on all the
-others; what a person names one at a time stays that person's.
 
 **A project's key and this machine's withholding are two answers to two questions, and the narrower
 one is what a caller gets.** `feedback.plugin` is the project's: whether a run working here may file

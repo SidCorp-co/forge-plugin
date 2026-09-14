@@ -1,8 +1,8 @@
 /* The keys `forge doctor` writes: a report is every finding at once, a write is one key. docs/cli/doctor.md. */
-import { saveNested, saveConfig, userConfig } from "../resolve/config.mjs";
+import { saveNested, saveConfig } from "../resolve/config.mjs";
 import { CHATGPT_SAVED, FROM_PROJECT, JOB_ALL, SHIP_MODES, declaredJobs, fail } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { VERB_NAMES, withheldForJob } from "../resolve/visibility.mjs";
+import { HIDDEN, OFF, VERB_NAMES, verbStates, withheldForJob } from "../resolve/visibility.mjs";
 
 const SAVED = ["token", "url"];
 
@@ -21,22 +21,27 @@ const setChatgpt = (asked) => {
   console.log(`Saved chatgpt ${named.map((row) => row.key).join(" and ")} to ${written} (mode 0600).\n`);
 };
 
+/* One verb at a time is the person's own tidying and stays reachable by hand, so this writes the
+   state a job does not. Either way the whole map is written back, which is what turns a list an
+   older release left behind into the shape every reader now takes. */
 const setVisibility = (verb, hide) => {
   if (!VERB_NAMES.includes(verb)) fail(didYouMean("verb", verb, VERB_NAMES));
-  const withheld = new Set(userConfig().withheld ?? []);
-  if (hide) withheld.add(verb);
-  else withheld.delete(verb);
-  saveConfig({ withheld: [...withheld] });
-  console.log(`${verb} is now ${hide ? "withheld from" : "offered in"} the usage list.\n`);
+  const withheld = verbStates();
+  if (hide) withheld[verb] = HIDDEN;
+  else delete withheld[verb];
+  saveConfig({ withheld });
+  console.log(hide
+    ? `${verb} is now hidden from the usage list, and still runs when it is typed.\n`
+    : `${verb} is now offered in the usage list.\n`);
 };
 
 /* One call over the switch `--hide` writes a verb at a time, and a REPLACEMENT rather than an
    addition, so turning a job on is the same act whatever this machine held before it. The array it
    writes is the machine's while the declarations are one project's, so it reaches every checkout on
-   this box, and the line says so. docs/cli/withholding-a-verb.md. */
+   this box, and the line says so. docs/cli/a-job.md. */
 const setJob = (name) => {
   if (name === JOB_ALL) {
-    saveConfig({ withheld: [] });
+    saveConfig({ withheld: {} });
     console.log("Every verb this machine withheld is offered again, including any hidden one at a time.\n");
     return;
   }
@@ -54,9 +59,10 @@ const setJob = (name) => {
       + " has no verb for. Nothing was written; `forge -h` lists the verbs there are.");
   }
   const withheld = withheldForJob(jobs[name]);
-  saveConfig({ withheld });
-  console.log(`The usage list is at the ${name} job: ${withheld.length} verb(s) withheld on this machine,`
-    + ` in every checkout on it. \`forge doctor --job ${JOB_ALL}\` offers them all again.\n`);
+  saveConfig({ withheld: Object.fromEntries(withheld.map((verb) => [verb, OFF])) });
+  console.log(`The usage list is at the ${name} job: ${withheld.length} verb(s) off on this machine,`
+    + ` unlisted and refused, in every checkout on it.`
+    + ` \`forge doctor --job ${JOB_ALL}\` offers them all again.\n`);
 };
 
 /* Whose the option is, and why: `shipMode` in resolve/settings.mjs. */
