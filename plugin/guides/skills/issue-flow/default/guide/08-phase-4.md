@@ -36,7 +36,21 @@ both heads the mark's note names. A checker refusing the tree after that read is
 measured against the set the read carried: one confined to those files and moving no behaviour owes
 no second read for what it changed, said in a correction naming it and why the read still holds,
 while one widening the set or moving behaviour owes a fresh read of the whole set at the new head
-with every verdict re-judged there. The pass's own shape, what a consult taken to clear a commit gate
-earns instead, and what the review record holds: `forge guide contract the-review`.
+with every verdict re-judged there.
+
+**What moved is which branch the code takes, not how many lines changed or which file holds them.** A
+condition, an order, a default, a value something outside the change reads: behaviour moved. The
+wording of a message, a comment, the name of a thing nothing else uses: it did not. Both are diffs in
+the same file and only one of them is a fresh subject to read. Without that line the rule does not
+terminate, because a finding asking for a clearer sentence is answered by changing what the code
+prints, and every such change reads as a change to what the code does.
+
+**A fix made to close a finding is answered by a recheck**, `forge codex consult --recheck`, which
+verifies that consult's findings rather than roaming for new ones; what a recheck may not do is that
+verb's own help. The whole-set read is owed on top of it only where the fix widened the set or moved
+behaviour by the line above.
+
+The pass's own shape, what a consult taken to clear a commit gate earns instead, and what the review
+record holds: `forge guide contract the-review`.
 
 Baseline, gates and evidence: `forge guide issue-flow verification`.

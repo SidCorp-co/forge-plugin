@@ -196,6 +196,29 @@ test("Phase 4 says what a refusal arriving after that read owes, and no other ph
     + "a refusal arriving after it owes");
 });
 
+/* Without these two lines the rule above does not terminate: a finding asking for a clearer sentence
+   is answered by changing what the code prints, which reads as a change to what the code does, so the
+   whole-set read is owed again and the read clearing it raises the next finding (ISS-1211). */
+test("Phase 4 says what separates a change that owes a fresh read, and what a fix to a finding owes", () => {
+  const phases = phasesOf(SKILL);
+  for (const [beat, phrase] of [
+    ["the separator at all", "which branch the code takes, not how many lines changed"],
+    ["what counts as behaviour", "a value something outside the change reads: behaviour moved"],
+    ["what does not", "the name of a thing nothing else uses: it did not"],
+    ["why the line is load-bearing", "the rule does not terminate"],
+    ["the reading a fix to a finding owes", "answered by a recheck"],
+    ["the verb that takes it", "forge codex consult --recheck"],
+    ["when the whole set is owed as well", "owed on top of it only where the fix widened the set"],
+  ]) {
+    assert.ok(phases["4"].includes(phrase), `Phase 4 no longer names ${beat}, so a run that accepted `
+      + "a finding about a printed string has two defensible readings and takes the expensive one "
+      + "(ISS-1211)");
+  }
+  const naming = Object.keys(phases).filter((n) => /--recheck/u.test(phases[n]));
+  assert.deepEqual(naming, ["4"], "and the phase that takes the read is the only one naming the "
+    + "recheck, the round's own limits being the verb's help and not this method's");
+});
+
 /* The cadence has one home, and a retirement leaving a copy behind is what ISS-108 refuses. Both
    directions are asserted: absence alone passes on a file somebody emptied, reading exactly like a
    clean repository. */
