@@ -96,10 +96,18 @@ const valuesOffered = (usage, flag) => {
 
 const typedOut = (value) => value !== null && !value.includes("$") && !value.startsWith("<");
 
-const problemsIn = ({ calls, flags, hows, envs, proposed = [] }, { verbs, usageOf, documented, sources, strict = false }) => {
+const problemsIn = ({ calls, flags, hows, envs, proposed = [] }, { verbs, usageOf, wordsOf = () => null, documented, sources, strict = false }) => {
   const out = [];
   for (const { verb } of calls) {
     if (!verbs.includes(verb) && !proposed.includes(verb)) out.push(`\`forge ${verb}\` is no verb`);
+  }
+  /* A kind and a sub-verb are as much of the command as a flag, and the verb refuses an unknown one by name, so a document naming one costs the reader the same round a renamed flag does (ISS-1154). Its flags then go unjudged: they belong to a surface that does not exist, and holding them to the verb's own row reports a second drift that is really the first. */
+  const strangers = new Set();
+  for (const { verb, sub } of calls.filter((one) => one.sub && verbs.includes(one.verb))) {
+    const words = wordsOf(verb);
+    if (!words || words.includes(sub)) continue;
+    strangers.add(`${verb} ${sub}`);
+    out.push(`\`forge ${verb} ${sub}\` is no word it takes: ${words.join(" or ")}`);
   }
   /* Whole names, read once per surface: `--den` is in `--deny` by substring, and a truncated flag is the drift. */
   const named = new Map();
@@ -107,7 +115,8 @@ const problemsIn = ({ calls, flags, hows, envs, proposed = [] }, { verbs, usageO
     if (!named.has(usage)) named.set(usage, new Set(usage.match(/--[\w-]+/gu) ?? []));
     return named.get(usage);
   };
-  for (const { verb, sub, flag, value } of flags.filter((one) => verbs.includes(one.verb))) {
+  const judged = flags.filter((one) => verbs.includes(one.verb) && !strangers.has(`${one.verb} ${one.sub}`));
+  for (const { verb, sub, flag, value } of judged) {
     const usage = usageOf(verb, sub);
     const under = [verb, sub].filter(Boolean).join(" ");
     const has = namedIn(usage).has(flag);

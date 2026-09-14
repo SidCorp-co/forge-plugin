@@ -5,6 +5,7 @@ import { USAGE as RECORD } from "../src/flow/record/record.mjs";
 import { USAGE as RESUME } from "../src/flow/resume.mjs";
 import { SAYS as CLOUDFLARE, USAGE as CLOUDFLARE_USAGE } from "../src/tools/services/cloudflare.mjs";
 import { SAYS as COOLIFY, USAGE as COOLIFY_USAGE } from "../src/tools/services/coolify/coolify.mjs";
+import { ALIASES as COOLIFY_ALIASES } from "../src/tools/services/coolify/routes.mjs";
 import { SAYS as CHATGPT, USAGE as CHATGPT_USAGE } from "../src/tools/services/chatgpt.mjs";
 import { SAYS as CODEX, USAGE as CODEX_USAGE } from "../src/codex/codex.mjs";
 import { SAYS as KNOWLEDGE, USAGE as KNOWLEDGE_USAGE } from "../src/tools/knowledge.mjs";
@@ -20,17 +21,23 @@ export const OWN = {
   codex: CODEX_USAGE, knowledge: KNOWLEDGE_USAGE, record: RECORD, resume: RESUME, spec: SPEC,
 };
 
-/** One level in: the sub-verb's or the kind's own text, keyed by the word the caller types. */
-const UNDER = {
+/** One level in, for a verb that refuses every other word in that slot: the sub-verb's or the kind's own text, keyed by the word the caller types, and so also the set that slot takes. `spec` is out of it because `forge spec BR-09` names a clause of the requirements tree and only `check` is a word, and coolify's short forms are added back because they dispatch through `ALIASES` and print the group's text rather than one of their own. */
+const CLOSED = {
   chatgpt: CHATGPT,
   cloudflare: CLOUDFLARE,
   coolify: COOLIFY,
   codex: CODEX,
   knowledge: KNOWLEDGE,
   record: Object.fromEntries(KINDS.map((kind) => [kind, kindUsage(kind)])),
-  spec: { check: CHECK_USAGE },
   stats: STATS,
 };
+
+const ALSO = { coolify: Object.keys(COOLIFY_ALIASES) };
+
+const UNDER = { ...CLOSED, spec: { check: CHECK_USAGE } };
+
+export const wordsOf = (verb) =>
+  (CLOSED[verb] ? [...Object.keys(CLOSED[verb]), ...(ALSO[verb] ?? [])] : null);
 
 /* A word no table knows is a positional, not a sub-verb: `forge attach issue ISS-1 body.md` is judged by the verb's surface, where an empty one would turn every flag on it into a finding. */
 export const surfaceOf = (verb, sub = null) => {

@@ -10,7 +10,8 @@ import { claimProblems, docClaims, nameProblems, namesClaimed, namesHeld } from 
 import { codeOf, quoted } from "../../../src/checks/tracker-names.mjs";
 import { VERB_NAMES } from "../../../src/resolve/visibility.mjs";
 import { FORM_NAMES } from "../../../src/resolve/handler.mjs";
-import { surfaceOf } from "../../surfaces.mjs";
+import { surfaceOf, wordsOf } from "../../surfaces.mjs";
+import { KINDS } from "../../../src/flow/record/record-rows.mjs";
 
 const ROOT = new URL("../../../..", import.meta.url).pathname;
 const HOW = join(ROOT, "plugin", "hooks", "how");
@@ -37,6 +38,7 @@ const sources = () => {
 const held = {
   verbs: [...VERB_NAMES, ...FORM_NAMES],
   usageOf: surfaceOf,
+  wordsOf,
   documented: readdirSync(HOW).filter((one) => one.endsWith(".md")).map((one) => one.slice(0, -3)),
   sources: sources(),
 };
@@ -109,6 +111,42 @@ test("a sub-verb's flags are judged against the sub-verb's own usage", () => {
     "and a kind is a surface too: `--criterion` is verdict's, and the kinds' union would pass this");
 });
 
+
+/* The verbs whose first word the CLI refuses against a set of its own, so a kind or an action added or retired moves this rule with it. `spec` is not among them: that slot takes a clause of the requirements tree, and reading `forge spec BR-09` as a bad word would refuse a true document. */
+const CLOSED_VERBS = ["chatgpt", "cloudflare", "codex", "coolify", "knowledge", "record", "stats"];
+
+/* `forge record report` was served to every session that read Phase 7 and passed the full gate twice: the verb was real, there were no flags, and the word between them was read by nothing. `record` refuses an unknown kind by name, so that word costs a reader the round a renamed flag does. */
+test("a first argument the verb refuses is a finding, with the word and the set it takes", () => {
+  const said = claimProblems("Write it up with `forge record report ISS-1`.", held);
+  assert.equal(said.length, 1, "one finding for one drift");
+  assert.match(said[0], /^`forge record report` is no word it takes: /u, "the word it refused");
+  for (const kind of KINDS) assert.ok(said[0].includes(kind), `${kind} is missing from the set printed`);
+  assert.deepEqual(claimProblems("`forge stats summary --since 3d`", held),
+    ["`forge stats summary` is no word it takes: runs or eval or marks"],
+    "and the flags of a word the verb refuses go unjudged: they belong to a surface that is not there");
+});
+
+test("the reach is every verb whose first word the CLI refuses against a set, and no other", () => {
+  assert.deepEqual(held.verbs.filter((verb) => wordsOf(verb)).sort(), [...CLOSED_VERBS].sort());
+  for (const verb of CLOSED_VERBS) {
+    const words = wordsOf(verb);
+    assert.ok(words.length > 1, `forge ${verb} names no set of first words`);
+    assert.deepEqual(claimProblems(`\`forge ${verb} frobnicate\``, held),
+      [`\`forge ${verb} frobnicate\` is no word it takes: ${words.join(" or ")}`], verb);
+    assert.deepEqual(claimProblems(`\`forge ${verb} ${words[0]} ISS-1\``, held), [], `forge ${verb} ${words[0]}`);
+  }
+  assert.equal(wordsOf("spec"), null, "`forge spec BR-09` names a clause, not a word from a set");
+  assert.deepEqual(claimProblems("`forge spec BR-09` prints the clause.", held), []);
+});
+
+/* A help word is what a document tells a reader to run more often than any write, and a placeholder is how the kinds are written where no one kind is meant. Neither is a word the verb was given. */
+test("a help word, a placeholder and a short form of a verb's own are no finding", () => {
+  assert.deepEqual(claimProblems("`forge record -h`", held), []);
+  assert.deepEqual(claimProblems("`forge record verdict -h`", held), []);
+  assert.deepEqual(claimProblems("`forge record <kind> -h`", held), []);
+  assert.deepEqual(claimProblems("`forge coolify apps`", held), [],
+    "and coolify's short forms dispatch through ALIASES, which have no help text of their own");
+});
 
 /* ISS-822 renamed a function across 67 files, left `bandFor` in a document, and nothing failed: the retired-name rule reads quoted spans of sources alone, and a path is not an identifier. */
 test("every identifier a document under docs/cli names is one this repository's code holds", () => {
