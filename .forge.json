@@ -6,10 +6,20 @@
   },
   "runs": 1,
   "jobs": {
-    "ba": ["issue", "new", "comment", "attach", "next", "spec", "guide", "project", "knowledge"],
-    "developer": ["issue", "new", "comment", "claim", "resume", "record", "advance", "spec", "attach",
-      "next", "guide", "project", "knowledge", "codex", "hooks", "feedback", "stats"],
-    "pm": ["issue", "resume", "next", "spec", "guide", "project", "stats"]
+    "ba": {
+      "verbs": ["issue", "new", "comment", "attach", "next", "spec", "guide", "project", "knowledge"],
+      "skills": ["forge", "vi-natural"]
+    },
+    "developer": {
+      "verbs": ["issue", "new", "comment", "claim", "resume", "record", "advance", "spec", "attach",
+        "next", "guide", "project", "knowledge", "codex", "hooks", "feedback", "stats"],
+      "skills": ["audit-code-quality", "dispatch", "forge", "gate-review", "harness-eval",
+        "issue-flow", "setup-code-quality", "vi-natural"]
+    },
+    "pm": {
+      "verbs": ["issue", "resume", "next", "spec", "guide", "project", "stats"],
+      "skills": ["forge", "vi-natural"]
+    }
   },
   "codex": {
     "pathRe": "^(plugin|packages)/(src|hooks|scripts)/.*\\.mjs$|^docs/.*\\.md$",

@@ -2,7 +2,8 @@
 import { saveNested, saveConfig } from "../resolve/config.mjs";
 import { CHATGPT_SAVED, FROM_PROJECT, JOB_ALL, SHIP_MODES, declaredJobs, fail } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { HIDDEN, OFF, VERB_NAMES, verbStates, withheldForJob } from "../resolve/visibility.mjs";
+import { HIDDEN, OFF, VERB_NAMES, shippedSkills, skillsWithheldForJob, verbStates,
+  withheldForJob } from "../resolve/visibility.mjs";
 
 const SAVED = ["token", "url"];
 
@@ -35,14 +36,22 @@ const setVisibility = (verb, hide) => {
     : `${verb} is now offered in the usage list.\n`);
 };
 
+const refuseUnknown = (name, named, known, said) => {
+  const unknown = named.filter((one) => !known.includes(one));
+  if (unknown.length) {
+    fail(`doctor: the \`${name}\` job in ${FROM_PROJECT} names ${unknown.join(", ")}, ${said}`);
+  }
+};
+
 /* One call over the switch `--hide` writes a verb at a time, and a REPLACEMENT rather than an
    addition, so turning a job on is the same act whatever this machine held before it. The array it
    writes is the machine's while the declarations are one project's, so it reaches every checkout on
    this box, and the line says so. docs/cli/a-job.md. */
 const setJob = (name) => {
   if (name === JOB_ALL) {
-    saveConfig({ withheld: {} });
-    console.log("Every verb this machine withheld is offered again, including any hidden one at a time.\n");
+    saveConfig({ withheld: {}, withheldSkills: [] });
+    console.log("Every verb and skill this machine withheld is offered again,"
+      + " including any verb hidden one at a time.\n");
     return;
   }
   const { jobs } = declaredJobs();
@@ -53,15 +62,16 @@ const setJob = (name) => {
       + " because which jobs exist cannot be stated without naming the project.");
   }
   if (!Object.hasOwn(jobs, name)) fail(didYouMean("job", name, names));
-  const unknown = jobs[name].filter((verb) => !VERB_NAMES.includes(verb));
-  if (unknown.length) {
-    fail(`doctor: the \`${name}\` job in ${FROM_PROJECT} names ${unknown.join(", ")}, which this CLI`
-      + " has no verb for. Nothing was written; `forge -h` lists the verbs there are.");
-  }
-  const withheld = withheldForJob(jobs[name]);
-  saveConfig({ withheld: Object.fromEntries(withheld.map((verb) => [verb, OFF])) });
-  console.log(`The usage list is at the ${name} job: ${withheld.length} verb(s) off on this machine,`
-    + ` unlisted and refused, in every checkout on it.`
+  const shipped = shippedSkills();
+  refuseUnknown(name, jobs[name].verbs, VERB_NAMES,
+    "which this CLI has no verb for. Nothing was written; `forge -h` lists the verbs there are.");
+  refuseUnknown(name, jobs[name].skills ?? [], shipped,
+    "which this copy ships no skill for. Nothing was written; `forge guide` lists the ones it serves.");
+  const withheld = withheldForJob(jobs[name].verbs);
+  const skills = skillsWithheldForJob(jobs[name].skills, shipped);
+  saveConfig({ withheld: Object.fromEntries(withheld.map((verb) => [verb, OFF])), withheldSkills: skills });
+  console.log(`The usage list is at the ${name} job: ${withheld.length} verb(s) and ${skills.length} skill(s)`
+    + ` off on this machine, unlisted and refused, in every checkout on it.`
     + ` \`forge doctor --job ${JOB_ALL}\` offers them all again.\n`);
 };
 

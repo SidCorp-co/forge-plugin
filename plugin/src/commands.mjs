@@ -26,7 +26,7 @@ import { fileAndSay } from "./tracker/filing/say.mjs";
 import { routingBlock } from "./tracker/filing/plugin-defect.mjs";
 import { commentLanded, sayLanded } from "./tracker/filing/landed.mjs";
 import { COMPLEXITY_NAMES } from "./ladder.mjs";
-import { helpOf, isGated, refuseIfGated, usageOf } from "./resolve/visibility.mjs";
+import { helpOf, isGated, refuseIfGated, skillRefusal, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { exclusive, flags, partition, pullRepeated, unknownFlag, wantsHelp } from "./resolve/flags.mjs";
 import { dispositionOf, localGuide, localRows, localSlugs, trackerHeader, visibleGuides } from "./guides/guides.mjs";
@@ -376,6 +376,8 @@ export const commands = {
     const { positionals, flagArgv } = partition(argv, ["--tracker"], { verb: "guide", usage });
     const asked = flags(flagArgv, "guide", ["--tracker"], { usage });
     const [slug, ...extra] = positionals;
+    const held = slug ? skillRefusal(slug) : null;
+    if (held) fail(`guide: ${held}`);
     /* Which phases an issue still owes is the tracker's to say, so the offline registry stays so. */
     if (asked.for) {
       if (extra.length) fail(`guide: --for takes the slug alone, not \`${positionals.join(" ")}\`. ${usageOf("guide")}`);

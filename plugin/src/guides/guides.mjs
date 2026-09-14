@@ -6,6 +6,7 @@
    carries what the stale rules cost; `forge guide contract` prints what holds instead. */
 
 import { once } from "../resolve/config.mjs";
+import { skillWithheld } from "../resolve/visibility.mjs";
 import { SLUG as CONTRACT_SLUG, contractAnswer, listingRow } from "./contract.mjs";
 import { skillGuideAnswer, skillGuideSlugs, skillListingRow } from "./skill-guides.mjs";
 
@@ -16,8 +17,9 @@ const LOCAL = once(() => [
   { slug: CONTRACT_SLUG, row: listingRow(), answer: contractAnswer },
   ...skillGuideSlugs().map((slug) => ({ slug, row: skillListingRow(slug), answer: skillGuideAnswer(slug) })),
 ]);
-export const localSlugs = () => LOCAL().map((one) => one.slug);
-export const localRows = () => LOCAL().map((one) => one.row);
+const offered = () => LOCAL().filter((one) => !skillWithheld(one.slug));
+export const localSlugs = () => offered().map((one) => one.slug);
+export const localRows = () => offered().map((one) => one.row);
 export const localGuide = (slug) => LOCAL().find((one) => one.slug === slug)?.answer ?? null;
 
 /* Having a row is what withholds the guide, whichever disposition the row carries: neither a page
@@ -196,10 +198,10 @@ export const supersededSlugs = (table = GUIDE_TABLE) =>
 /** Every slug this plugin holds a disposition about, and so the set the verb refuses to serve. */
 export const heldSlugs = (table = GUIDE_TABLE) => new Set(table.map((row) => row.slug));
 
-/** The slugs the verb stands behind, in the order the tracker gave them. */
+/** The slugs the verb stands behind, in the order the tracker gave them, a withheld skill's name among what they are not: the verb refuses that word whatever would have answered it, and a listing offering what the verb refuses is the contradiction one surface exists to prevent. */
 export const visibleGuides = (slugs, table = GUIDE_TABLE) => {
   const held = heldSlugs(table);
-  return slugs.filter((slug) => !held.has(slug));
+  return slugs.filter((slug) => !held.has(slug) && !skillWithheld(slug));
 };
 
 const routes = (row) => {

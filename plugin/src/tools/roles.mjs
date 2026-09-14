@@ -4,6 +4,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { SKILLS_WITHIN } from "../resolve/visibility.mjs";
 import { skillGuidesRoot } from "../guides/skill-guides.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -22,7 +23,7 @@ export const rolesIn = (root = HERE) => {
 };
 
 export const skillRootsIn = (plugin) => [
-  { dir: join(plugin, "skills"), flat: false },
+  { dir: join(plugin, SKILLS_WITHIN), flat: false },
   { dir: skillGuidesRoot(plugin), flat: false },
   { dir: join(plugin, WITHIN), flat: true },
 ];

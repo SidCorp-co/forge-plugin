@@ -197,6 +197,21 @@ export const rankConvention = once(() => sourced(FROM_PROJECT, forgeJson().parse
 
 export const JOB_ALL = "all";
 
+const names = (given) => (Array.isArray(given) && given.every((one) => typeof one === "string")
+  ? [...given] : null);
+
+/* A bare array is the verbs alone and declares no skills, which is what a checkout written before
+   the skills half holds and what leaves every skill offered. docs/cli/a-job.md. */
+const jobShape = (given) => {
+  const bare = names(given);
+  if (bare) return { verbs: bare, skills: null };
+  if (!given || typeof given !== "object" || Array.isArray(given)) return null;
+  const verbs = names(given.verbs);
+  const skills = given.skills === undefined ? null : names(given.skills);
+  if (!verbs || (given.skills !== undefined && !skills)) return null;
+  return { verbs, skills };
+};
+
 /* A job is the project's because which jobs exist cannot be stated without naming the project, and
    `all` clears one rather than naming one. Which words are verbs is the verb table's. */
 export const declaredJobs = () => {
@@ -204,15 +219,16 @@ export const declaredJobs = () => {
   if (!given || typeof given !== "object" || Array.isArray(given)) return { jobs: {}, from: null, problems: [] };
   const jobs = {};
   const problems = [];
-  for (const [name, verbs] of Object.entries(given)) {
+  for (const [name, declared] of Object.entries(given)) {
+    const shape = name === JOB_ALL ? null : jobShape(declared);
     if (name === JOB_ALL) {
       problems.push(`\`${JOB_ALL}\` is reserved, being what clears a job rather than a name one may take,`
         + ` so the job declared under it is offered nowhere — rename it in ${FROM_PROJECT}`);
-    } else if (!Array.isArray(verbs) || verbs.some((verb) => typeof verb !== "string")) {
-      problems.push(`the \`${name}\` job is not a list of verb names, so it is offered nowhere`
-        + ` — write it as one in ${FROM_PROJECT}`);
+    } else if (!shape) {
+      problems.push(`the \`${name}\` job is neither a list of verb names nor a table of \`verbs\` and`
+        + ` \`skills\` that are each one, so it is offered nowhere — write it as one in ${FROM_PROJECT}`);
     } else {
-      jobs[name] = [...verbs];
+      jobs[name] = shape;
     }
   }
   return { jobs, from: FROM_PROJECT, problems };

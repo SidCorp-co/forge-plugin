@@ -77,7 +77,7 @@ test("turning off whatever job is on leaves nothing withheld, hand-hidden verbs 
   run("doctor", "--hide", "issue");
   assert.equal(saved().withheld.issue, "hidden", "hidden by hand on top of the job");
   const cleared = run("doctor", "--job", "all");
-  assert.match(cleared.stdout, /including any hidden one at a time/u, cleared.stdout);
+  assert.match(cleared.stdout, /including any verb hidden one at a time/u, cleared.stdout);
   assert.deepEqual(saved().withheld, {}, "and every entry goes, not only what the job wrote");
 });
 
@@ -90,7 +90,7 @@ test("the report names every declared job the withheld list matches, and says no
   const one = room(declared);
   one.run("doctor", "--job", "ba");
   assert.match(one.run("doctor").stdout,
-    /\[ {2}ok {2}\] job\s+ba is the declared job this machine's withheld verbs match/u);
+    /\[ {2}ok {2}\] job\s+ba is the declared job this machine's withholding matches/u);
 
   const two = room({ jobs: { ba: BA, second: [...BA] } });
   two.run("doctor", "--job", "ba");

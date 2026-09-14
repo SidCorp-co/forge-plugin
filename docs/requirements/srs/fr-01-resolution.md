@@ -82,7 +82,7 @@ can be reached. It is what a refusal points at, so it answers before the questio
 
 ### UC-01-4 — Withhold a verb
 
-Rev: 3 · Actors: developer · Enforces: BR-01, BR-07, BR-08
+Rev: 4 · Actors: developer · Enforces: BR-01, BR-07, BR-08
 
 Three things can shorten the usage list: a record of which tools refused this credential, a
 developer hiding a verb by hand, and a tool this machine has saved none of the local configuration
@@ -96,6 +96,15 @@ different claim from naming what caused it and is the only one the list can carr
 jobs exist is the project's to declare, because no plugin can know what work is done in a checkout
 it has never seen (BR-07). A job leaves the report verb advertised whether or not it names one,
 since that verb is the only surface permitted to say what has gone missing.
+
+A job names the methods it uses as well as the verbs, and names them rather than having them
+derived from its verbs, because a method may drive no verb of this product at all and would derive
+to one nobody is offered. The two are two lists on the project's side and two keys on the machine's,
+so a job is named by the report only where the machine stands at the complement of both; a job
+naming no method leaves every method offered, as a checkout declaring no job is left. What a
+withheld method stops being is offered by this product's own surfaces, which is where it is listed
+and where it is asked for by name, and the report says of a method those surfaces do not reach that
+withholding it reaches nothing else.
 
 - **AC-01-4-1** · Rev: 1 · Proof: plugin/test/cli/cli-help.test.mjs "no run of anything else is advertised"
   WHEN the usage list is printed THEN it SHALL advertise only what this credential may run.
@@ -133,10 +142,11 @@ since that verb is the only surface permitted to say what has gone missing.
 - **AC-01-4-12** · Rev: 1 · Proof: plugin/test/cli/doctor/job.test.mjs "the report names every declared job and the project's own file as where they were read"
   WHEN the resolution report is printed in a checkout whose project declares jobs THEN it SHALL name
   each job declared and SHALL name the project's own file as where they were read.
-- **AC-01-4-13** · Rev: 1 · Proof: plugin/test/cli/doctor/job.test.mjs "the report names every declared job the withheld list matches, and says none matches where that is so"
+- **AC-01-4-13** · Rev: 2 · Proof: plugin/test/cli/doctor/job.test.mjs "the report names every declared job the withheld list matches, and says none matches where that is so"
   WHEN the resolution report is printed THEN it SHALL name every declared job whose withheld verbs
-  are exactly the ones this machine holds, SHALL say that the list matches them rather than that they
-  caused it, and SHALL say that none matches where no declared job does.
+  and withheld methods are each exactly the ones this machine holds, SHALL say that the withholding
+  matches them rather than that they caused it, and SHALL say that none matches where no declared
+  job does.
 - **AC-01-4-14** · Rev: 1 · Proof: plugin/test/resolve/wrapped.test.mjs "a withheld verb a declared job matches is refused by the route it wraps, in a sentence naming that job"
   WHERE a verb is withheld and exactly one declared job matches what this machine withholds, a
   refusal naming that verb SHALL name that job and the way back from it.
@@ -182,6 +192,34 @@ since that verb is the only surface permitted to say what has gone missing.
 - **AC-01-4-29** · Rev: 1 · Proof: plugin/test/tools/services/tool-config.test.mjs "a reference wholly about an unconfigured tool is unlisted, and named directly names what configures it"
   WHERE a served text is marked for a tool this machine holds no configuration for, that text SHALL
   not be served and SHALL not be listed.
+- **AC-01-4-30** · Rev: 1 · Proof: plugin/test/cli/doctor/skills.test.mjs "one call withholds every skill the job does not name, beside the verbs it does not name"
+  WHEN the developer turns on a job the project declares THEN the CLI SHALL withhold every method
+  this copy ships that the job does not name, in the call that withholds its verbs, and SHALL hold
+  them in a key of their own.
+- **AC-01-4-31** · Rev: 1 · Proof: plugin/test/cli/doctor/skills.test.mjs "a job declaring no skills leaves every shipped skill offered"
+  WHERE a declared job names no method, turning it on SHALL leave every method this copy ships
+  offered.
+- **AC-01-4-32** · Rev: 1 · Proof: plugin/test/cli/doctor/skills.test.mjs "turning off whatever job is on leaves no skill withheld"
+  WHEN the developer turns off whatever job is on THEN the CLI SHALL withhold no method at all.
+- **AC-01-4-33** · Rev: 1 · Proof: plugin/test/cli/doctor/skills.test.mjs "a job naming a skill this copy does not ship is refused before anything is written"
+  IF a declared job names a method this copy does not ship THEN the CLI SHALL refuse to turn that job
+  on and SHALL write neither the verbs it withholds nor the methods.
+- **AC-01-4-34** · Rev: 1 · Proof: plugin/test/cli/doctor/skills.test.mjs "a withheld skill is unlisted, refused by name, and its phase part is served all the same"
+  WHERE this machine withholds a method, the listing of this product's own guides SHALL leave it out
+  and asking for it by name SHALL be refused in a line naming the method, the state it is in and the
+  command that offers it again.
+- **AC-01-4-35** · Rev: 1 · Proof: plugin/test/cli/doctor/skills.test.mjs "a withheld skill is unlisted, refused by name, and its phase part is served all the same"
+  WHERE this machine withholds a method a verb that acts prints part of, that verb SHALL go on
+  printing it.
+- **AC-01-4-36** · Rev: 1 · Proof: plugin/test/cli/doctor/skills.test.mjs "the report names every shipped skill under its state, and which withheld one it offers nowhere"
+  WHERE this machine withholds any method, the resolution report SHALL name every method this copy
+  ships under the state it is in, and SHALL name each withheld one whose only surface here is that
+  report as withheld from nothing else.
+- **AC-01-4-37** · Rev: 1 · Proof: plugin/test/cli/doctor/skills.test.mjs "a job declaring no skills leaves every shipped skill offered"
+  IF this machine withholds no method THEN the resolution report SHALL say nothing about methods.
+- **AC-01-4-38** · Rev: 1 · Proof: plugin/test/cli/doctor/skills.test.mjs "a shipped skill every declared job leaves out is reported as offered to nobody"
+  WHERE every declared job names methods and a method this copy ships is named by none of them, the
+  resolution report SHALL name that method as one no job offers.
 
 ### UC-01-5 — The project's keys, and the machine's own
 

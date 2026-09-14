@@ -1,6 +1,10 @@
 /* What this credential may see. Two mechanisms, deliberately not merged: the server REFUSES a
    tool, a human WITHHELD a verb. They differ in authority and consequence.
    docs/cli/withholding-a-verb.md. */
+import { existsSync, readdirSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { ROUTES } from "../tracker/routes.mjs";
 import { userConfig } from "./config.mjs";
 import { declaredJobs, fail, feedbackScope, projectScope } from "./settings.mjs";
@@ -190,25 +194,86 @@ export const withheldForJob = (verbs) => {
   return VERB_NAMES.filter((verb) => !offers.has(verb));
 };
 
+const PLUGIN = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+export const SKILLS_WITHIN = "skills";
+
+/** Every skill this copy ships, read off the one directory the session host loads them from. */
+export const shippedSkills = (root = PLUGIN) => {
+  const dir = join(root, SKILLS_WITHIN);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir, { withFileTypes: true })
+    .filter((one) => one.isDirectory() && existsSync(join(dir, one.name, "SKILL.md")))
+    .map((one) => one.name).sort();
+};
+
+/* One state, and a key of its own rather than a name inside `withheld`: docs/cli/a-job.md. */
+export const withheldSkills = () => {
+  const held = userConfig().withheldSkills;
+  return new Set(Array.isArray(held) ? held.filter((one) => typeof one === "string") : []);
+};
+
+export const skillsWithheldForJob = (skills, shipped = shippedSkills()) =>
+  (skills === null ? [] : shipped.filter((slug) => !skills.includes(slug)));
+
+export const offeredSkills = (shipped = shippedSkills()) => {
+  const withheld = withheldSkills();
+  return shipped.filter((slug) => !withheld.has(slug));
+};
+
+export const skillWithheld = (slug) => withheldSkills().has(slug);
+
+/* Both complements at once, so no row has to say which half it matched on: docs/cli/a-job.md. */
+const standsAt = ({ verbs, skills }, held, heldSkills) => {
+  const want = withheldForJob(verbs);
+  const wantSkills = skillsWithheldForJob(skills);
+  return want.length === held.size && want.every((verb) => held.has(verb))
+    && wantSkills.length === heldSkills.size && wantSkills.every((slug) => heldSkills.has(slug));
+};
+
 /* Matching is the whole of the claim — an array built by hand matches, and two jobs offering the
    same verbs both do — so every match is named. Storing the name would be a second switch. */
 export const matchingJobs = () => {
   const held = withheldVerbs();
+  const heldSkills = withheldSkills();
   return Object.entries(declaredJobs().jobs)
-    .filter(([, verbs]) => {
-      const want = withheldForJob(verbs);
-      return want.length === held.size && want.every((verb) => held.has(verb));
-    })
+    .filter(([, job]) => standsAt(job, held, heldSkills))
     .map(([name]) => name);
+};
+
+const unknownIn = (named, known) => named.filter((one) => !known.includes(one));
+
+/* A shipped skill no job names is offered to nobody, which is the drift a second list buys; asked
+   only where every job has declared, so a project halfway through deciding is told nothing. */
+const skillsNobodyNames = (jobs, shipped) => {
+  const declared = Object.values(jobs).map((job) => job.skills);
+  if (!declared.length || declared.some((one) => one === null)) return [];
+  const named = new Set(declared.flat());
+  return shipped.filter((slug) => !named.has(slug));
 };
 
 /** What a project's own jobs get wrong, for the one surface allowed to say a thing is unusable. */
 export const jobProblems = () => {
   const { jobs, problems } = declaredJobs();
+  const shipped = shippedSkills();
+  const orphans = skillsNobodyNames(jobs, shipped);
   return [...problems, ...Object.entries(jobs)
-    .map(([name, verbs]) => [name, verbs.filter((verb) => !VERB_NAMES.includes(verb))])
+    .flatMap(([name, job]) => [
+      [name, unknownIn(job.verbs, VERB_NAMES), "which this CLI has no verb for"],
+      [name, unknownIn(job.skills ?? [], shipped), "which this copy ships no skill for"],
+    ])
     .filter(([, unknown]) => unknown.length)
-    .map(([name, unknown]) => `the \`${name}\` job names ${unknown.join(", ")}, which this CLI has no verb for`)];
+    .map(([name, unknown, said]) => `the \`${name}\` job names ${unknown.join(", ")}, ${said}`),
+  ...(orphans.length
+    ? [`no declared job names ${orphans.join(", ")}, so no job offers ${orphans.length > 1 ? "them" : "it"}`]
+    : [])];
+};
+
+/** Why a skill is not served, in the words a verb turned off is refused in, or nothing where it is. */
+export const skillRefusal = (slug) => {
+  if (!skillWithheld(slug)) return null;
+  const matched = matchingJobs();
+  const at = matched.length === 1 ? `, which is at the \`${matched[0]}\` job` : "";
+  return `the ${slug} skill is off on this machine${at} — \`forge doctor --job all\` offers it again.`;
 };
 
 const FEEDBACK_VERB = "feedback";
