@@ -147,11 +147,12 @@ test("nothing is read where no criterion opens with a reference", () => {
   assert.equal(raised, 0);
 });
 
-/* A revision of more than sixteen digits is a float by the time either reader has it, and the two
-   spellings below are the two ways it used to come back through the `<id>~<rev>` text the criterion
-   path built: `1.1111111111111111e+21` re-read as revision 1, a revision the clause really is at, so
-   the write stored silently; `1e+21` re-read as no revision at all, so the write stored under R-10's
-   notice. The plan path, which never round-tripped, refused both (ISS-462). */
+/* A revision of more than sixteen digits is a float by the time either reader has it, and both
+   spellings a float takes are here because they fail a re-read differently: `1.1111111111111111e+21`
+   carries a decimal point, so `REFERENCE`'s trailing guard is satisfied and its leading `1` parses as
+   a whole revision the clause may really be at; `1e+21` carries none, so the `e` fails that guard and
+   the reference parses bare. One case covers one of those, and a reader is owed the refusal for both
+   (ISS-462). */
 const UNWRITABLE = [
   ["1111111111111111111111", "1.1111111111111111e+21"],
   ["1000000000000000000000", "1e+21"],
