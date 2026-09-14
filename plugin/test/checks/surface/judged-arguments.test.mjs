@@ -46,6 +46,7 @@ const SURFACE = {
   project: ["name", "slug", "set"],
   knowledge: [],
   cloudflare: [],
+  coolify: [],
   codex: [],
   chatgpt: [],
   hooks: ["hook", "last", "off", "on", "how"],

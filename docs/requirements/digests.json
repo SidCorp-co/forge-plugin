@@ -301,6 +301,34 @@
       "rev": 1,
       "digest": "90ce8877ff8f017939a960f720c87d2693d5b22bab0bc1f560455e67621d0bc8"
     },
+    "EI-10": {
+      "rev": 1,
+      "digest": "0eb052b257c7a6dbd642dca3117a8deb3dce0e46a402e80157233e23c964a6e1"
+    },
+    "AC-19-10-1": {
+      "rev": 1,
+      "digest": "321bfb6a01e09c30c9fc0469d141e3d9f6180b780a851ea51ef4a4bc3d47d408"
+    },
+    "AC-19-10-2": {
+      "rev": 1,
+      "digest": "ae59739e6203b25a2ee1fb6b0a12d497c0b179ba8e9c94a3ca43926b10427816"
+    },
+    "AC-19-10-3": {
+      "rev": 1,
+      "digest": "fb56a0a6de03dec83a58e406a0b3466614b31a4f4b92482e5a90d8cf33517b60"
+    },
+    "AC-19-10-4": {
+      "rev": 1,
+      "digest": "8ad5908b6710fea2bcd5794cfc5044cd8ad034715c6dc588966676420fbac16c"
+    },
+    "AC-19-10-5": {
+      "rev": 1,
+      "digest": "c099339530ea406d6d4c40284b0626dd4fd3e40d8296295f2841e1f4a14d86c2"
+    },
+    "AC-19-10-6": {
+      "rev": 1,
+      "digest": "d74fa84552d5faf7aa69f4481612a59baecf2156c2ed3b42924df1f14c1cadec"
+    },
     "EI-07": {
       "rev": 1,
       "digest": "be7096835c8d7754af18de2aeb007df575fa8e80fe11366577e0456f7b016204"

@@ -6,6 +6,7 @@ import { configPath } from "../../resolve/config.mjs";
 import { logBytes, logPath } from "../../codex/codex-log.mjs";
 import { consultCount } from "../../codex/log/asked.mjs";
 import { cloudflareAccounts } from "./cloudflare.mjs";
+import { SCOPE_FILE, coolifyTarget, pinned } from "./coolify/config.mjs";
 import { masked } from "./masked.mjs";
 
 const cloudflareRow = (full) => {
@@ -62,8 +63,22 @@ const prefixRow = () => {
         + "which `forge chatgpt image` is refused without" };
 };
 
+/* Read off the files and never off the instance: a doctor row that made a request would report a
+   network fault as a missing credential, and the pin is a property of this directory either way. */
+const coolifyRow = (full) => {
+  const { url, token, from } = coolifyTarget();
+  if (!url) {
+    return { level: "note", detail: "no instance — `forge coolify login --url u --token t`" };
+  }
+  const { at, spec } = pinned();
+  const projects = (spec.project_uuid ?? []).join(", ");
+  const pin = projects ? `project ${projects}  ← ${at}` : `no project pinned — no ${SCOPE_FILE} on the way up from here`;
+  return { level: "ok", detail: `${url} ${masked(token, full)}  ← ${from}  ${pin}` };
+};
+
 export const harnessLines = (full) => [
   { label: "cloudflare", ...cloudflareRow(full) },
+  { label: "coolify", ...coolifyRow(full) },
   { label: "codex", ...codexRow() },
   { label: "chatgpt", ...chatgptRow(full) },
   { label: "chatgpt framing", ...prefixRow() },

@@ -78,6 +78,8 @@ export const VERBS = [
         delete: "`forge knowledge delete`" } }],
   ["cloudflare", "<zones|zone|dns|purge|search>", "zones and DNS at Cloudflare, on local credentials",
     null, { group: HARNESS }],
+  ["coolify", "<login|accounts|whoami|app|deploy|deployment|project|resource>",
+    "a pinned project's deployments, and nothing outside it", null, { group: HARNESS }],
   ["codex", "<consult|verdict|pending|show|log|stats|eval|marks|replay>",
     "a second model reviews what this turn changed", null, { group: HARNESS }],
   ["chatgpt", "<ask|image|collect|pending>",

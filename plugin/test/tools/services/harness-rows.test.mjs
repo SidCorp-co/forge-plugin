@@ -17,7 +17,7 @@ const { userConfig } = await import("../../../src/resolve/config.mjs");
 
 /* The same write `saveConfig` makes, without the file: it assigns into the memoised object, so a reader called after this sees what a `forge doctor --chatgpt-key` in the same process would have left. */
 const configured = (values) => {
-  for (const key of ["cloudflare", "chatgpt", "codex"]) delete userConfig()[key];
+  for (const key of ["cloudflare", "coolify", "chatgpt", "codex"]) delete userConfig()[key];
   Object.assign(userConfig(), values);
 };
 
@@ -43,12 +43,38 @@ test("every harness row is a row of the report's own vocabulary, with no second 
   profiled(WHOLE_PROFILE);
   configured({});
   const rows = harnessLines(false);
-  assert.deepEqual(rows.map((row) => row.label), ["cloudflare", "codex", "chatgpt", "chatgpt framing"]);
+  assert.deepEqual(rows.map((row) => row.label), ["cloudflare", "coolify", "codex", "chatgpt", "chatgpt framing"]);
   for (const row of rows) {
     assert.ok(["ok", "note", "miss"].includes(row.level), `${row.label} answered the level ${row.level}`);
     assert.equal(row.ok, undefined, `${row.label} still carries a boolean beside its level`);
     assert.equal(typeof row.detail, "string");
   }
+});
+
+const detailOf = (label, values = {}) => {
+  configured(values);
+  return harnessLines(false).find((row) => row.label === label).detail;
+};
+
+const INSTANCE = { coolify: { url: "https://coolify.example", apiToken: "tok-abcdefghij" } };
+
+test("the coolify row is a note with no instance and an ok with one, and never shows the token", () => {
+  profiled(WHOLE_PROFILE);
+  assert.equal(levelOf("coolify"), "note");
+  assert.match(detailOf("coolify"), /forge coolify login/u);
+  assert.equal(levelOf("coolify", INSTANCE), "ok");
+  const said = detailOf("coolify", INSTANCE);
+  assert.match(said, /https:\/\/coolify\.example/u);
+  assert.ok(!said.includes("tok-abcdefghij"), "the row printed the token");
+  assert.match(said, /set \(14 chars\)/u);
+});
+
+/* The row is read off files and never off the instance: a request here would report a network
+   fault as a missing credential, and this directory is not a pinned checkout. */
+test("the coolify row says which project this directory is pinned to, or that none is", () => {
+  profiled(WHOLE_PROFILE);
+  assert.match(detailOf("coolify", INSTANCE), /no project pinned/u);
+  assert.match(detailOf("coolify", INSTANCE), /\.coolify\.json/u);
 });
 
 test("the cloudflare row is a note with no account and an ok with one", () => {

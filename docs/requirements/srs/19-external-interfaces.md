@@ -106,6 +106,36 @@ precedence rule.
   WHEN a zone or record call is made THEN the credential SHALL come from the account's own
   configuration.
 
+### EI-10 — The deployment platform
+
+Rev: 1 · Enforces: BR-08, BR-14 · Reached from: `plugin/src/tools/services/coolify/client.mjs`, `plugin/src/tools/services/coolify/config.mjs`
+
+An instance of somebody else's deployment platform, on the developer's own credential, reached
+through the operation index that platform's own specification generates. Which operations this
+product will call is a set it declares, and which resources a call may name is a project this
+checkout pins and not an argument: there is no unscoped call, and an operation the index ties to no
+resource of that project is not offered. What the platform answers with is its own, so a status it
+reports is read as that platform means it rather than as it spells it.
+
+- **AC-19-10-1** · Rev: 1 · Proof: plugin/test/tools/services/coolify/request.test.mjs "a uuid outside the pin is refused, and its own action path is never asked for"
+  IF a call names a resource outside the pinned project THEN the CLI SHALL refuse it while the
+  target is being resolved, and SHALL send nothing to that resource's own route.
+- **AC-19-10-2** · Rev: 1 · Proof: plugin/test/tools/services/coolify/request.test.mjs "with nothing pinned every route-index command refuses and says what to write"
+  WHERE no project is pinned the CLI SHALL refuse every call that reaches this boundary, and SHALL
+  name what pins one.
+- **AC-19-10-3** · Rev: 1 · Proof: plugin/test/tools/services/coolify/surface.test.mjs "deploy is the one served operation with a selector nothing ties to the pin"
+  WHEN an operation is offered THEN either its resource-naming arguments SHALL be ones the index
+  ties to the pinned project, or its answer SHALL be a listing the pin cuts down, and an argument
+  with neither SHALL be refused.
+- **AC-19-10-4** · Rev: 1 · Proof: plugin/test/tools/services/coolify/request.test.mjs "the token reaches neither stream on a refusal, nor under --dry-run"
+  WHERE text this boundary produced is printed the CLI SHALL strike the credential out of it first.
+- **AC-19-10-5** · Rev: 1 · Proof: plugin/test/tools/services/coolify/shape.test.mjs "the phantom health half goes and every other half stays"
+  WHEN a state this platform reports is shown THEN the CLI SHALL drop the half that reads unhealthy
+  for want of a healthcheck, and SHALL keep every other half whole.
+- **AC-19-10-6** · Rev: 1 · Proof: plugin/test/tools/services/coolify/request.test.mjs "an environment listing is masked by default and plain under --reveal"
+  WHEN a record carrying a secret is shown THEN the CLI SHALL mask that value unless the caller
+  asked for it as it stands.
+
 ### EI-07 — The version-control host
 
 Rev: 1 · Enforces: BR-02

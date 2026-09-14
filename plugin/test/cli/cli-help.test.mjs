@@ -162,6 +162,7 @@ const FIELDS_OF = {
   knowledge: "authoredBy, body, confidence, injection, injectionFilter, kind, kindFilter, metadata,"
     + " query, scope, slug, sourceFilter, strategy, title, topK",
   cloudflare: null,
+  coolify: null,
   codex: null,
   chatgpt: null,
   hooks: null,

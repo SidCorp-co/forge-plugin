@@ -37,6 +37,7 @@ import { project } from "./tools/project.mjs";
 import { next } from "./rank/next.mjs";
 import { alike } from "./alike/alike.mjs";
 import { cloudflare } from "./tools/services/cloudflare.mjs";
+import { coolify } from "./tools/services/coolify/coolify.mjs";
 import { knowledge } from "./tools/knowledge.mjs";
 import { feedback } from "./tools/feedback.mjs";
 import { codex } from "./codex/codex.mjs";
@@ -225,6 +226,7 @@ export const commands = {
   alike,
   knowledge,
   cloudflare,
+  coolify,
   feedback,
   codex,
   chatgpt,

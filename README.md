@@ -121,8 +121,8 @@ plugin/
                      event stream is read off it
     tools/           vi-natural, doctor, which copy is running
       services/      the verbs answering from somebody else's service on this
-                     machine's own credentials — cloudflare, chatgpt — and the
-                     doctor lines reporting those credentials
+                     machine's own credentials — cloudflare, coolify, chatgpt —
+                     and the doctor lines reporting those credentials
     spec/            the requirements tree, answered by identifier
     stats/           where an issue-flow run's time and rounds go, off the transcripts
     resolve/         what this run is: settings to { value, from }, ~/.config/forge

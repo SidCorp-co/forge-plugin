@@ -5,10 +5,11 @@ description: >-
   comment on and attach to issues without an MCP client connected. Invoke for any task that
   reads or writes the backlog: listing open issues, filing a defect, posting a finding,
   recording a dependency, or reading an issue body before working it. The same CLI carries
-  `forge cloudflare` for zones, DNS records and cache purges, and `forge codex` for a review
-  of this turn's documents by a model on another provider. Triggers on Forge, tracker,
-  backlog, issue, ISS-nn, "file an issue", "what's open", Cloudflare, DNS record, zone,
-  purge cache, "second opinion", "review this plan", codex.
+  `forge cloudflare` for zones, DNS records and cache purges, `forge coolify` for a pinned
+  project's deployments, and `forge codex` for a review of this turn's documents by a model on
+  another provider. Triggers on Forge, tracker, backlog, issue, ISS-nn, "file an issue",
+  "what's open", Cloudflare, DNS record, zone, purge cache, Coolify, deploy, redeploy,
+  "restart the app", "is it running", "second opinion", "review this plan", codex.
 ---
 
 ## Rules
@@ -35,6 +36,7 @@ description: >-
 | the next issue to work | `forge next -h` |
 | what blocks what | `forge next --graph`; the two stores of an edge: `forge guide forge dependencies` |
 | Cloudflare zones, DNS, purges | `forge cloudflare -h`; the method: `forge guide forge cloudflare` |
+| a Coolify deploy, restart, status, logs | `forge coolify -h`; the method: `forge guide forge coolify` |
 | a second opinion on this turn | `forge codex -h`; asking and reading one: `forge guide forge codex` |
 | a first call in a project, a missing verb | `forge doctor`; then `forge guide forge configuration` |
 | what a gate refused and why | `forge hooks -h` |
