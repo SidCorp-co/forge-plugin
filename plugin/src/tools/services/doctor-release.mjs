@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
 import { readJson } from "../../resolve/config.mjs";
+import { firstLine } from "../../resolve/flags.mjs";
 import { hereCopy, pluginCopy } from "../plugin-copy.mjs";
 
 const LABEL = "newest release";
@@ -53,13 +54,11 @@ const asked = (at, ms) => spawnSync("git", ["ls-remote", "--tags", REMOTE], {
   env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_SSH_COMMAND: "ssh -oBatchMode=yes" },
 });
 
-const firstLine = (text) => String(text ?? "").trim().split("\n")[0] || "no output";
-
 export const releasedVersions = (at, ms = MS) => {
   const run = asked(at, ms);
   if (run.error?.code === "ETIMEDOUT") return { problem: `the remote did not answer inside ${ms / 1000}s` };
   if (run.error) return { problem: `git could not be run: ${run.error.message}` };
-  if (run.status !== 0) return { problem: `git ls-remote origin exited ${run.status}: ${firstLine(run.stderr)}` };
+  if (run.status !== 0) return { problem: `git ls-remote origin exited ${run.status}: ${firstLine(String(run.stderr ?? "").trim()) || "no output"}` };
   const held = [...String(run.stdout).matchAll(/refs\/tags\/(\S+?)(?:\^\{\})?$/gmu)]
     .map((one) => triple(one[1]))
     .filter(Boolean);
@@ -120,7 +119,7 @@ const hereRow = (copy) => (copy.stale
     + "session keeps the registration it started with: `claude plugin update` then restart" }
   : { level: "ok", label: "plugin copy", detail: `${copy.running} — running and installed` });
 
-export const copyRows = (asked = {}) => {
+export const copyRows = () => {
   const copy = pluginCopy();
-  return [...(copy ? [hereRow(copy)] : []), ...releaseRows(asked)];
+  return [...(copy ? [hereRow(copy)] : []), ...releaseRows()];
 };

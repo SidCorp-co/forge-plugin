@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 
 import { readJson } from "./config.mjs";
 
-export const INSTALL_OWES = ["dependencies", "devDependencies"];
+const INSTALL_OWES = ["dependencies", "devDependencies"];
 
 const RESOLVES_ELSEWHERE = [".pnp.cjs", ".pnp.js", ".pnp.mjs"];
 

@@ -16,12 +16,12 @@ export const turnAsked = () => process.env.FORGE_CHATGPT_TURN || null;
 /* The child writes its timeout as the clock fires, so a record still `running` this far past its own deadline was killed rather than slow. */
 const ABANDONED_AFTER_MS = 60_000;
 
-export const WATCH_MS = 2000;
+const WATCH_MS = 2000;
 const ACKNOWLEDGED_MS = 15_000;
 const KEEP_SETTLED_MS = 7 * 24 * 60 * 60 * 1000;
 const PROMPT_CHARS = 60;
 
-export const turnsDir = () => join(configDir("forge"), "chatgpt-turns");
+const turnsDir = () => join(configDir("forge"), "chatgpt-turns");
 
 const recordAt = (id) => join(turnsDir(), `${id}.json`);
 const dropAt = (id) => join(turnsDir(), `${id}.drop`);
@@ -54,7 +54,7 @@ export const stateOf = (record, id, now = Date.now()) => {
 
 export const isSettled = (state) => state !== "running";
 
-export const isWaiting = (record, id) => !record.collectedAt && stateOf(record, id) !== "dropped";
+const isWaiting = (record, id) => !record.collectedAt && stateOf(record, id) !== "dropped";
 
 const idsHeld = () => {
   try {

@@ -437,7 +437,7 @@ const turned = async (action, argv, prepare) => {
 /* The prompt is a subject, not a flag's value, so it comes off before the parser, which refuses a
    bare word. A flag standing in its place is two mistakes at once, so the flags are judged first —
    or a mistyped one is never named and reads as a missing prompt. */
-const promptIn = (argv, verb, usage, judged) => {
+const promptIn = (argv, usage, judged) => {
   const [prompt] = argv;
   if (prompt.startsWith("--")) judged();
   if (prompt.startsWith("--") || !prompt.trim()) {
@@ -450,7 +450,7 @@ const ask = async (argv) => {
   const said = askUsage();
   if (wantsHelp(argv) || argv.length === 0) return console.log(said);
   const row = { usage: said, modes: otherCalls("ask") };
-  const prompt = promptIn(argv, "chatgpt ask", said, () =>
+  const prompt = promptIn(argv, said, () =>
     flags(pullRepeated(argv, "--file", "chatgpt ask", row).rest, "chatgpt ask", [], row));
   const { values: given, rest } = pullRepeated(argv.slice(1), "--file", "chatgpt ask", row);
   const { resume, model, save, wait } = flags(rest, "chatgpt ask", [], row);
@@ -465,7 +465,7 @@ const image = async (argv) => {
   const said = imageUsage();
   if (wantsHelp(argv) || argv.length === 0) return console.log(said);
   const row = { usage: said, modes: otherCalls("image") };
-  const prompt = promptIn(argv, "chatgpt image", said, () => flags(argv, "chatgpt image", [], row));
+  const prompt = promptIn(argv, said, () => flags(argv, "chatgpt image", [], row));
   const { ratio, resume, model, save, wait } = flags(argv.slice(1), "chatgpt image", [], row);
   const asked = waitFrom(wait, "chatgpt image", "this one turn may hold the connection open for");
   return await turned("image", argv, () => {

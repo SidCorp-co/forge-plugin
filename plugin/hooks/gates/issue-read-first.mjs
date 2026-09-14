@@ -49,7 +49,7 @@ export const run = async (ev) => {
   const said = spoken.map((one) => one.said);
   const call = { name: ev.tool_name, input: ev.tool_input };
   const refs = writeTargets(call, said);
-  const filings = filingsOf(call, said);
+  const filings = filingsOf(call);
   const wrapped = wrappedRefusal(toolOfCall(call.name), actionIn(call.input));
   if (!refs.length && !filings.length && !wrapped) done();
   const { url, token } = accountCredentials();
