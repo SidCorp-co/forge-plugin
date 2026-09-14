@@ -4,10 +4,32 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { pluginCopy } from "../tools/plugin-copy.mjs";
+import { writeStubs } from "../tools/services/skill-stubs.mjs";
 import { hookOff } from "./hook-switch.mjs";
+
+const stubSaid = ({ slug, dropped }) => (dropped.length
+  ? `${slug}'s description no longer names ${dropped.join(", ")}, which this machine has saved nothing for`
+  : `${slug}'s description is back to what this copy ships`);
+
+/* The host reads a stub off disk before any of this runs, so the write lands for the session after
+   this one and the one it lands in has to be told which text it is holding. A session start is no
+   place to throw: an unwritable copy leaves the stub as it was. */
+const sayStubs = (root) => {
+  let written = [];
+  try {
+    written = writeStubs(root);
+  } catch {
+    return;
+  }
+  if (!written.length) return;
+  process.stdout.write(`${written.map(stubSaid).join("; ")}. A session is handed its skills at its `
+    + "start, so this one holds the text from before that write and the next will not. "
+    + "`forge doctor` names it.\n");
+};
 
 export const linkCli = (root) => {
   if (!root || hookOff("link-cli")) return;
+  sayStubs(root);
   const bin = join(homedir(), ".local", "bin");
   try {
     mkdirSync(bin, { recursive: true });

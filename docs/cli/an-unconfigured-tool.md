@@ -24,11 +24,11 @@ may not call it. An unconfigured verb typed **runs**, and gives the refusal it a
 already names what saves the credential. Nothing about that refusal changed, and a hidden verb that
 answered *unknown verb* would be worse than the row it replaced.
 
-## One reading, four readers
+## One reading, five readers
 
-`plugin/src/tools/services/tool-config.mjs` is the whole of the answer. The help's filter, `forge doctor`'s
-rows, the served guides' `tool.` conditions and the Cloudflare verb's own refusal all read it. That
-is not tidiness: before it, the command that saves a Cloudflare account was spelled two ways — once
+`plugin/src/tools/services/tool-config.mjs` is the whole of the answer. The help's filter, `forge
+doctor`'s rows, the served guides' `tool.` conditions, the writer of the skill stubs and the
+Cloudflare verb's own refusal all read it. That is not tidiness: before it, the command that saves a Cloudflare account was spelled two ways — once
 in the verb's refusal, once in the report's row — and they had already drifted apart in their
 flags. A tool is in the table because it already refuses without local configuration today. Nothing
 here decides that a tool needs a credential it did not need before, which is why the table borrows
@@ -83,12 +83,29 @@ allowed to say what is missing. `harness-eval` keeps its text: its whole subject
 so with no gateway there is nothing for that skill to be about, which is a question about whether
 the skill should exist and not about a sentence inside it.
 
-## The surface this cannot reach
+## The surface no filter reaches, and the write that answers it
 
 A skill's `SKILL.md` is read off disk by the session host before any of this code runs, and one copy
-of it ships to every machine. Its frontmatter therefore cannot answer a per-machine question, and
-cutting the tool names out of it would stop the skill firing on *purge cache* on a machine that has
-Cloudflare — against the rule that a checkout configuring everything sees exactly what it saw
-before. The body's Route table is a different thing, because it directs a reader rather than
-matching one, and it points at `forge -h` and `forge guide forge`, both of which filter. What is
-left is a shortfall of the outcome rather than a decision, and it carries an issue of its own.
+of it ships to every machine. Nothing can stand between those two, so the file itself is what varies:
+each tool's material sits on continuation lines of its own inside the shipped description, and a line
+naming a tool this machine saved nothing for is dropped. Naming the tool is the whole test. A table
+of fragments would be a second copy of the words, so what holds the layout is a checker instead — no
+tool's material may sit on a line that does not name it, and a line the render can drop may carry
+nothing else the skill needs.
+
+Cutting those words out of what ships was the alternative, and the rule above refuses it: a checkout
+that saved a Cloudflare account goes on firing on *purge cache*. What ships is therefore the
+fully-configured text, and each machine below it subtracts.
+
+The write lands in the copy the harness installed and nowhere else. Two conditions decide it and
+neither answers alone: the install record says which directory the host loads, and the walk for a
+marketplace above says whether that directory is somebody's source tree — a plugin can be installed
+from a checkout, and an installed path can be a symlink into one. Both are asked of the real path.
+What this copy ships is kept beside the stub the first time one is written, so a tool configured
+afterwards has its words back at the next session start rather than at the next release.
+
+It reaches a session one start late, which is the restart set's rule and not a defect to design
+around: a session is handed its skills as of its start, so the start that writes the file says in as
+many words that the text this session holds is the text from before the write. `forge doctor` names
+each stub on disk that is off what this copy ships, with the tool whose words are out, and says
+nothing where none is.

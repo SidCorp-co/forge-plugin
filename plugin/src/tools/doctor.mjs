@@ -39,6 +39,7 @@ import { copyRows } from "./services/doctor-release.mjs";
 import { withholdingLines } from "./services/doctor-jobs.mjs";
 import { masked } from "./services/masked.mjs";
 import { copyToRun, FROZEN } from "./plugin-copy.mjs";
+import { stubRows } from "./services/skill-stubs.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
@@ -594,6 +595,7 @@ export const doctor = async (argv) => {
   /* The two lines above say which copy answers a call; this one says what no call reaches. One reading, spent by the release step and by the gate that holds a write to any of them. */
   line(OK, "restart set", `${FROZEN.join(", ")} — a session keeps these as of its start, whatever `
     + "copy the lines above name");
+  report(stubRows(dispatched.installed));
   checkRoles(dispatched);
   checkContract();
   /* Reads and writes differ: `new` translates before it posts, and a read never asks. */

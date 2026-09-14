@@ -44,6 +44,11 @@ export const pluginCopy = (root = HERE) => {
   };
 };
 
+const nameAt = (root) => read(join(root, ".claude-plugin", "plugin.json"))?.name ?? null;
+
+export const installedPaths = (record = RECORD, root = HERE) =>
+  recordsOf(nameAt(root) ?? "", record).map((one) => one.installPath).filter((one) => typeof one === "string");
+
 const shippedBy = (path, name) => {
   if (typeof path !== "string") return null;
   const ships = read(join(path, ".claude-plugin", "marketplace.json"))?.plugins ?? [];
@@ -58,6 +63,9 @@ const checkoutAbove = (from, name) => {
     if (dirname(at) === at) return null;
   }
 };
+
+/** Whether a path sits inside a checkout that ships this plugin, which is somebody's source tree. */
+export const insideCheckout = (from, root = HERE) => checkoutAbove(from, nameAt(root)) !== null;
 
 const installedAbleToRun = (name, entry, record) => {
   const able = recordsOf(name, record)
@@ -75,7 +83,7 @@ export const hereCopy = (root = HERE) => ({ dir: resolve(root), version: version
  *  directory sits in, else the newest installed copy that resolves, else this one. `entry` defaults
  *  to this CLI's, which is the copy doctor asks about. */
 export const copyToRun = ({ cwd = process.cwd(), entry = join("src", "cli.mjs"), root = HERE, record = RECORD } = {}) => {
-  const name = read(join(root, ".claude-plugin", "plugin.json"))?.name;
+  const name = nameAt(root);
   const installed = name ? installedAbleToRun(name, entry, record) : null;
   const checkout = name ? checkoutAbove(cwd, name) : null;
   if (checkout) {

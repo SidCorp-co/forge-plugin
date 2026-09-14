@@ -4,12 +4,14 @@ description: >-
   Drive a Forge issue tracker from the terminal with the `forge` CLI — browse, read, file,
   comment on and attach to issues without an MCP client connected. Invoke for any task that
   reads or writes the backlog: listing open issues, filing a defect, posting a finding,
-  recording a dependency, or reading an issue body before working it. The same CLI carries
-  `forge cloudflare` for zones, DNS records and cache purges, `forge coolify` for a pinned
-  project's deployments, and `forge codex` for a review of this turn's documents by a model on
-  another provider. Triggers on Forge, tracker, backlog, issue, ISS-nn, "file an issue",
-  "what's open", Cloudflare, DNS record, zone, purge cache, Coolify, deploy, redeploy,
-  "restart the app", "is it running", "second opinion", "review this plan", codex.
+  recording a dependency, or reading an issue body before working it.
+  The same CLI carries `forge cloudflare` for zones, DNS records and cache purges.
+  It carries `forge coolify` for a pinned project's deployments.
+  It carries `forge codex` for a review of this turn's documents by a model on another provider.
+  Triggers on Forge, tracker, backlog, issue, ISS-nn, "file an issue", "what's open".
+  Also on Cloudflare, DNS record, zone, purge cache.
+  Also on Coolify, deploy, redeploy, "restart the app", "is it running".
+  Also on codex, "second opinion", "review this plan".
 ---
 
 ## Rules

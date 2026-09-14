@@ -82,7 +82,7 @@ can be reached. It is what a refusal points at, so it answers before the questio
 
 ### UC-01-4 — Withhold a verb
 
-Rev: 4 · Actors: developer · Enforces: BR-01, BR-07, BR-08
+Rev: 5 · Actors: developer · Enforces: BR-01, BR-07, BR-08
 
 Three things can shorten the usage list: a record of which tools refused this credential, a
 developer hiding a verb by hand, and a tool this machine has saved none of the local configuration
@@ -105,6 +105,12 @@ naming no method leaves every method offered, as a checkout declaring no job is 
 withheld method stops being is offered by this product's own surfaces, which is where it is listed
 and where it is asked for by name, and the report says of a method those surfaces do not reach that
 withholding it reaches nothing else.
+
+One surface of a method is read before any of this product runs, and one copy of it ships to every
+machine: the stub the session host loads off disk. Nothing can filter it, so it is written instead,
+in the copy the harness installed and never in somebody's source tree, from the text this copy ships
+kept beside it. It reaches a session only at the next start, so the start that writes it says which
+text the session it is in is holding.
 
 - **AC-01-4-1** · Rev: 1 · Proof: plugin/test/cli/cli-help.test.mjs "no run of anything else is advertised"
   WHEN the usage list is printed THEN it SHALL advertise only what this credential may run.
@@ -220,6 +226,32 @@ withholding it reaches nothing else.
 - **AC-01-4-38** · Rev: 1 · Proof: plugin/test/cli/doctor/skills.test.mjs "a shipped skill every declared job leaves out is reported as offered to nobody"
   WHERE every declared job names methods and a method this copy ships is named by none of them, the
   resolution report SHALL name that method as one no job offers.
+- **AC-01-4-39** · Rev: 1 · Proof: plugin/test/tools/services/skill-stubs.test.mjs "a machine that saved nothing for a tool is given a description naming it nowhere"
+  WHERE this machine holds none of the local configuration a tool needs, the stub the session host
+  loads SHALL name that tool nowhere in its description.
+- **AC-01-4-40** · Rev: 1 · Proof: plugin/test/tools/services/skill-stubs.test.mjs "a tool that is configured keeps every word of its own while another's go"
+  WHERE this machine holds the local configuration one tool needs and not another's, that stub SHALL
+  keep every word of the configured tool's own material.
+- **AC-01-4-41** · Rev: 1 · Proof: plugin/test/tools/services/skill-stubs.test.mjs "a machine that configured everything is given the file this copy ships"
+  WHERE this machine holds the local configuration every tool needs, that stub SHALL be the file this
+  copy ships.
+- **AC-01-4-42** · Rev: 1 · Proof: plugin/test/tools/services/skill-stubs.test.mjs "a tool configured after its words went has them back at the next start"
+  WHEN a tool is configured after its words were dropped THEN the next session start SHALL put those
+  words back.
+- **AC-01-4-43** · Rev: 1 · Proof: plugin/test/tools/services/skill-stubs.test.mjs "a copy inside a checkout that ships this plugin is not written, record or no record"
+  IF the copy a stub sits in is inside a checkout that ships this product THEN nothing SHALL be
+  written there.
+- **AC-01-4-44** · Rev: 1 · Proof: plugin/test/tools/services/skill-stubs.test.mjs "a copy the install record does not name is not written"
+  IF the harness's install record names no copy a stub sits in THEN nothing SHALL be written there.
+- **AC-01-4-45** · Rev: 1 · Proof: plugin/test/tools/services/skill-stubs.test.mjs "the session whose start wrote a stub is told the text it holds predates the write"
+  WHEN a session start writes a stub THEN it SHALL say that the text that session holds is the text
+  from before that write.
+- **AC-01-4-46** · Rev: 1 · Proof: plugin/test/tools/services/skill-stubs.test.mjs "the report names a stub this machine took words out of, and says nothing where none went"
+  WHERE a stub on disk is off the file this copy ships, the resolution report SHALL name it with the
+  tool whose words are out.
+- **AC-01-4-47** · Rev: 1 · Proof: plugin/test/tools/services/skill-stubs.test.mjs "the report names a stub this machine took words out of, and says nothing where none went"
+  WHERE no stub on disk is off the file this copy ships, the resolution report SHALL say nothing
+  about stubs.
 
 ### UC-01-5 — The project's keys, and the machine's own
 

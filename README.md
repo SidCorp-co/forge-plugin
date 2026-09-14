@@ -141,7 +141,8 @@ plugin/
                      this credential may see
   hooks/
     _hook.mjs             the event, the files a call wrote, deny/block, the once-per-session stamp
-    link-cli.mjs          SessionStart: both binaries onto PATH
+    link-cli.mjs          SessionStart: both binaries onto PATH, and each skill's stub written
+                          for the tools this machine has configured
     entries/              one registered line each, running one gate alone
       bash-guard.mjs        PreToolUse: the shell commands that cannot be undone, and the wait that polls
       learning-gate.mjs     PreToolUse: one stop before a memory or skill write
