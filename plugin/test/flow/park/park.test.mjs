@@ -200,3 +200,128 @@ test("a needs_info park writes its record first, because a record under the move
   assert.ok(wrote >= 0 && moved > wrote, `the record is the first write: wrote ${wrote}, moved ${moved}`);
   assert.equal(MOVING.status, "needs_info", "and the park is still on when the verb returns");
 });
+
+/* The tracker mints the question a person answers off `needs` alone, and neither writer of a
+   `needs_info` move ever put that key in the payload: five parked issues carried their question in a
+   comment with no answer box on the page and nothing delivered to the room (ISS-1396). The readings
+   were on the record the whole time — the park is refused without them — so the field that travels is
+   built from those, and never from the reason, which is the other half of the same distinction. */
+const asked = (reference, extra = []) =>
+  ranAsync(FORGE, ["advance", reference, "--park", "question", "--why",
+    "which of the two readings is the one this issue is about", ...extra], tracker.env);
+
+const readied = async (...readings) => {
+  Object.assign(MOVING, { status: "confirmed" });
+  state.comments["moving-uuid"] = [];
+  const held = readings.length ? readings
+    : ["the park set the status -> resume by its left", "an earlier move set it -> refuse"];
+  const run = await ranAsync(FORGE, ["record", "question", "ISS-98",
+    ...held.flatMap((one) => ["--reading", one])], tracker.env);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  state.calls.length = 0;
+};
+
+test("a question park sends the needs it was given beside the reason, and neither in the other's place", async () => {
+  await readied();
+  const run = await asked("ISS-98", ["--needs", "say which of the two readings the filing meant"]);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const moved = sent("transition");
+  assert.equal(moved.status, "needs_info");
+  assert.equal(moved.needs, "say which of the two readings the filing meant");
+  assert.equal(moved.reason, "which of the two readings is the one this issue is about");
+});
+
+test("a question park carries what would settle it, built from the readings where the call names none", async () => {
+  await readied();
+  const run = await asked("ISS-98");
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const { needs } = sent("transition");
+  const first = needs.indexOf("the park set the status -> resume by its left");
+  const second = needs.indexOf("an earlier move set it -> refuse");
+  assert.ok(first >= 0, `the first reading with its outcome: ${needs}`);
+  assert.ok(second >= 0, `the second reading with its outcome: ${needs}`);
+  assert.ok(first < second, `in the order the record carries them: ${needs}`);
+});
+
+test("the needs a question park derives is the readings', whatever the reason beside it says", async () => {
+  await readied();
+  const one = await asked("ISS-98");
+  assert.equal(one.status, 0, `${one.stdout}${one.stderr}`);
+  const derived = sent("transition").needs;
+  assert.ok(derived, "something was derived, or two absences would agree with each other");
+  await readied();
+  const two = await ranAsync(FORGE, ["advance", "ISS-98", "--park", "question", "--why",
+    "a wholly different sentence about why this work stopped"], tracker.env);
+  assert.equal(two.status, 0, `${two.stdout}${two.stderr}`);
+  assert.equal(sent("transition").needs, derived, "the record held, the reason varied, the field did not");
+});
+
+test("a set to needs_info sends the needs it was given, as the park does", async () => {
+  await readied();
+  const run = await ranAsync(FORGE, ["advance", "ISS-98", "--set", "needs_info", "--why",
+    "the reporter is the only one who can say", "--needs", "name the reading to take"], tracker.env);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(sent("transition").needs, "name the reading to take");
+});
+
+test("a set to needs_info given no needs sends no needs key, because a set reads no record", async () => {
+  await readied();
+  const run = await ranAsync(FORGE, ["advance", "ISS-98", "--set", "needs_info", "--why",
+    "the reporter is the only one who can say"], tracker.env);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(sent("transition").needs, undefined, "nothing derives a question a set never read");
+});
+
+test("a park landing anywhere but needs_info sends no needs key", async () => {
+  Object.assign(PARKING, { status: "awaiting_release" });
+  state.comments["parking-uuid"] = [];
+  state.calls.length = 0;
+  const run = await parked("ISS-97");
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(sent("transition").needs, undefined, "no other status mints an answer box");
+});
+
+test("needs on a call that mints no answer box is refused before a single call is made", async () => {
+  state.calls.length = 0;
+  const run = await ranAsync(FORGE, ["advance", "ISS-97", "--park", "screen-review", "--why",
+    "the new column has to be looked at", "--evidence", "c8c3550",
+    "--needs", "what would settle it"], tracker.env);
+  assert.equal(run.status, 1, run.stdout);
+  assert.deepEqual(state.calls, [], "no endpoint was resolved and no credential was spent");
+  assert.match(run.stderr, /--park question --why "<why>" --needs/u, "the park that reaches it");
+  assert.match(run.stderr, /--set needs_info --why .* --needs/u, "and the set that reaches it");
+});
+
+test("a needs blank after trim is refused with nothing sent", async () => {
+  state.calls.length = 0;
+  const run = await asked("ISS-98", ["--needs", "   "]);
+  assert.equal(run.status, 1, run.stdout);
+  assert.deepEqual(state.calls, [], "a question with no text is an answer box asking nothing");
+});
+
+test("a needs over the cap the transition body takes is refused with nothing sent", async () => {
+  state.calls.length = 0;
+  const run = await asked("ISS-98", ["--needs", "x".repeat(2001)]);
+  assert.equal(run.status, 1, run.stdout);
+  assert.deepEqual(state.calls, [], "the body would reject it and take the status write down with it");
+  assert.match(run.stderr, /2001 code points/u, "and the refusal says how far over it is");
+});
+
+test("a derived needs over that cap is refused, and the refusal costs no write", async () => {
+  await readied(`${"alpha ".repeat(200)}-> ${"outcome ".repeat(200)}`, "the short reading -> the short outcome");
+  const run = await asked("ISS-98");
+  assert.equal(run.status, 1, run.stdout);
+  const wrote = state.calls.filter((one) =>
+    one.args.action === "transition" || one.args.action === "update"
+    || (one.name === "forge_comments" && one.args.action === "create"));
+  assert.deepEqual(wrote, [], "the readings are read and nothing at all is written");
+  assert.match(run.stderr, /--needs/u, "and the flag that gets past it is named");
+});
+
+test("advance's own help puts needs on the row of each call that takes it", async () => {
+  const run = await ranAsync(FORGE, ["advance", "-h"], tracker.env);
+  assert.equal(run.status, 0, run.stderr);
+  const rows = run.stdout.split("\n");
+  assert.ok(rows.some((line) => /^\s+--park <kind>.*--needs/u.test(line)), run.stdout);
+  assert.ok(rows.some((line) => /^\s+--set <status>.*--needs/u.test(line)), run.stdout);
+});

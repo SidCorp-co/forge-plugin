@@ -16,11 +16,6 @@ of its clauses the issue names, which `approved` owes (AC-14-4-2). A tree is a s
 the project, like the release policy the last two rungs ask the tracker for, and not an account of a change
 that some earlier step already wrote down.
 
-`--owed` is a question and answers zero; the same list without it is a refusal and answers one, so
-a caller can tell "not yet" from "here is what to type". Asked what is owed, it ends by naming the
-contract's part for the status it would enter and the call that prints it, so the rule arrives at
-the stage that needs it instead of at the start of the run: `forge guide contract <status>`.
-
 A reopen was the one thing it had nothing to say about. It refused at `closed`, named the raw
 transition, and a person's word then left the issue at a status no entry check answered for —
 `--owed` said nothing advances from it. Two records route it now, the finding and the triage, and
@@ -97,10 +92,3 @@ set completes the rung asks this file's own target and check for the move, so on
 followed by the items in both places, from one formatter: a run told only how many spent a call
 asking which. Where the reading refuses — a closed issue, a side status whose page holds no park
 record — the line is the refusal's first sentence, and the refusing verb prints the command.
-
-A sixth, and the first thing this verb says that refuses nothing. The obvious home for it was the
-`testing` entry check whose refusal it runs ahead of, and that is the wrong shape twice over: everything a check returns becomes an item owed and a non-zero exit, and this is a
-shortfall a run carries rather than clears; and *`testing` is next* is a trigger that fires after the
-landing, the merged mark standing between an issue and `developed`. So the reading is the project's
-deploy, taken where a plan declares a screen and not otherwise, and said from every status below
-`testing` — the window in which the plan is written and the evidence captured.

@@ -373,3 +373,22 @@ describe("the request an upload makes", () => {
     assert.deepEqual(printed.sends, ["data", "bytes"]);
   });
 });
+
+/* The half a fixture at the tool boundary cannot see: `needs` reaches the transition's `data` and the
+   body that leaves the machine is built here, where a pass-through is the whole of the row (ISS-1396). */
+describe("the request a transition makes", () => {
+  const row = ROUTES["forge_issues.transition"];
+
+  it("carries every field beside the status, and the status only as toStatus", () => {
+    const asked = { documentId: "u-1", data: { status: "needs_info", reason: "why it stopped", needs: "what settles it" } };
+    const sent = row.requests(asked).page;
+    assert.equal(sent.method, "POST");
+    assert.equal(sent.path, "/issues/u-1/transition");
+    assert.deepEqual(sent.body, { toStatus: "needs_info", reason: "why it stopped", needs: "what settles it" });
+  });
+
+  it("leaves out a field the caller did not set, so an absent needs is an absent key", () => {
+    const sent = row.requests({ documentId: "u-1", data: { status: "waiting", reason: "why it stopped" } }).page;
+    assert.deepEqual(Object.keys(sent.body).sort(), ["reason", "toStatus"]);
+  });
+});

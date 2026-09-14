@@ -169,6 +169,10 @@ kind speaks to exactly one reader, which is what decides the status.
 - **AC-05-4-5** · Rev: 1 · Proof: none yet — ISS-13
   WHEN a park was a mistake THEN the CLI SHALL require a correction naming the park and the status
   resumed before it transitions back.
+- **AC-05-4-6** · Rev: 1 · Proof: plugin/test/flow/park/park.test.mjs "a question park carries what would settle it, built from the readings where the call names none"
+  WHEN the agent parks an issue as a question THEN the CLI SHALL carry into that transition the text
+  that would settle it, built from the readings the question record already holds where the call
+  supplies none, and never from the reason the work stopped.
 
 ### UC-05-5 — Drop an issue
 

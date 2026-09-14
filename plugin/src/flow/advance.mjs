@@ -6,6 +6,7 @@ import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { commentPage, countedShort, creditAfter, cutIn } from "../tracker/comments.mjs";
 import { declaredValue, statusKind, write } from "../tracker/rest.mjs";
+import { lengthOf } from "../tracker/field-write.mjs";
 import { UNREAD, afterRefused, correctionFor, whyChecked } from "./override.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../guides/contract.mjs";
@@ -36,10 +37,15 @@ export const USAGE = [
   "  --owed                  what the next status is owed, moving nothing, and the line last left",
   "  --next <line>           the step the status it enters starts on, for whoever comes next",
   "  --to <status>           refused unless that status is the next one; a jump is not advancing",
-  "  --park <kind> --why W [--evidence E]...  a park record, then the side status the kind implies",
+  "  --park <kind> --why W [--needs N] [--evidence E]...  a park record, then the side status the",
+  "                          kind implies",
   "  --drop --why W          park as dropped; refused once the merged mark is set",
-  "  --set <status> --why W  the status outright, no entry check read; the reply says so and a",
-  "                          correction goes on the record naming the status and the reason",
+  "  --set <status> --why W [--needs N]  the status outright, no entry check read; the reply says",
+  "                          so and a correction goes on the record naming the status and the reason",
+  "",
+  `Only a move to ${ANSWERED_BY_COMMENT} takes --needs, which is what would settle the question and what`,
+  "the tracker mints the answer box from; --why is why the work stopped. Neither is ever written from",
+  "the other. A question park given no --needs carries the readings its question record already holds.",
   "",
   `A park kind: ${PARKS.join("|")}.`,
   "What each status is earned by, rung by rung: `forge advance <ref> --owed` for this issue, and",
@@ -86,6 +92,34 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
 const WAITING = "waiting";
 const waitsFor = (status) => (status === WAITING ? { waitingKind: "needs_decision" } : {});
 
+/* The one field of this payload the tracker mints an answer box from, where `reason` is why the work stopped: neither is ever written from the other, and a text over the endpoint's cap is refused here rather than sent to take the status write down with it — docs/cli/advance-what-it-sends.md. */
+const NEEDS_CAP = 2000;
+const ASKS = "Which of these readings is the one to take?";
+
+const needsProblem = (text) => {
+  if (!text) return "is blank after trim, and a question with no text is an answer box asking nothing";
+  const held = lengthOf(text);
+  return held > NEEDS_CAP
+    ? `is ${held} code points and the transition body takes ${NEEDS_CAP}, which refuses the whole call `
+      + "and the status write with it"
+    : null;
+};
+
+/* The readings are what `--park question` is already refused without, so the question that travels is built from them rather than asked for twice; the stem is a constant and never the park's own reason. */
+const asksFor = (view, asked, ref) => {
+  if (asked) return { needs: asked };
+  const held = view.latest?.question?.record.fields.reading ?? [];
+  if (!held.length) return {};
+  const text = [ASKS, ...held.map((one) => `- ${one}`)].join("\n");
+  const bad = needsProblem(text);
+  if (bad) {
+    refuse(`the readings on this issue's question record come to a text that ${bad}. Nothing was sent. `
+      + `Say what would settle it in fewer words than the readings take:\n`
+      + `  forge advance ${ref} --park ${ASKS_A_QUESTION} --why "<why>" --needs "<what would settle it>"`);
+  }
+  return { needs: text };
+};
+
 /* The two writes of one park: the typed `why` travels with the move, which the tracker refuses
    without one (ISS-157), and the status goes first so a refused move leaves no record to disagree
    with it — except at `ANSWERED_BY_COMMENT`, where the record has to go first. What that order
@@ -129,11 +163,13 @@ const moveTo = async (view, ref, status, { note = "", said, credit }, soft = fal
   return null;
 };
 
-export const parkAs = async (view, ref, kind, why, evidence = [], left = null) => {
+export const parkAs = async (view, ref, kind, why, evidence = [], { left = null, asked = null } = {}) => {
   const status = PARK_STATUS[kind];
+  /* Built before the record goes up: at this status the record is the first write, and a refusal after it leaves a comment claiming a move nothing attempted. */
+  const said = { reason: why, ...waitsFor(status), ...(status === ANSWERED_BY_COMMENT ? asksFor(view, asked, ref) : {}) };
   const body = render("park", { kind, why, evidence }, left ?? view.issue.status);
   const move = (soft = false) =>
-    moveTo(view, ref, status, { said: { reason: why, ...waitsFor(status) }, credit: "the park's transition" }, soft);
+    moveTo(view, ref, status, { said, credit: "the park's transition" }, soft);
   if (status === ANSWERED_BY_COMMENT) {
     await post(view.documentId, body, { ref });
     await movedAfterRecord(view, ref, status, move);
@@ -153,7 +189,7 @@ export const parkAs = async (view, ref, kind, why, evidence = [], left = null) =
   }
 };
 
-const park = async (view, ref, kind, why, evidence) => {
+const park = async (view, ref, kind, why, evidence, asked = null) => {
   const to = PARK_STATUS[kind];
   if (!to) refuse(`--park takes one of ${Object.keys(PARK_STATUS).join(", ")}, not \`${kind}\`.`);
   if (to === ANSWERED_BY_COMMENT && !ASKED_AT.includes(view.issue.status)) {
@@ -183,7 +219,7 @@ const park = async (view, ref, kind, why, evidence) => {
   }
   const bad = evidence.length ? evidenceProblem(evidence, attachmentNames(view.issue, view.comments)) : null;
   if (bad) refuse(bad);
-  await parkAs(view, ref, kind, why, evidence);
+  await parkAs(view, ref, kind, why, evidence, { asked });
 };
 
 /* A named target is checked rather than obeyed: the only legal one is where the route says the
@@ -264,7 +300,7 @@ export const movedByRecord = async (documentId, issue, ref, kinds, held = null) 
 };
 
 /* The status set with nothing earning it, judged against what `declaredValue` declares and against nothing else, with the reply and the correction saying no check read it. A side status is reached with the payload the tracker demands of one, so `--set` writes what a park writes and skips only the entry checks. */
-const setStatus = async (view, ref, status, why) => {
+const setStatus = async (view, ref, status, why, asked) => {
   /* Declaring a name is what would otherwise let it through, `declaredValue` being the only check a set passes, so the kind beside the name in that same table is what refuses — and each refusal names where the caller goes instead of what it may not write (ISS-1022, consult 8736c3 F1; ISS-1043). */
   const kind = statusKind(status);
   if (kind?.replacedBy) {
@@ -283,7 +319,7 @@ const setStatus = async (view, ref, status, why) => {
     + `\`${view.issue.status}\`, with no entry check read`;
   const move = async (soft = false) => {
     const refused = await moveTo(view, ref, status,
-      { note: "  (set, unearned)", said: { reason: said, ...waitsFor(status) }, credit: "the set transition" }, soft);
+      { note: "  (set, unearned)", said: { reason: said, ...waitsFor(status), ...(asked ? { needs: asked } : {}) }, credit: "the set transition" }, soft);
     if (refused) return refused;
     console.log(UNREAD);
     return null;
@@ -298,7 +334,22 @@ const setStatus = async (view, ref, status, why) => {
 
 export const nextHeld = (view) => leaseOf(view.issue?.[FIELD])?.next ?? null;
 
-const readFlags = (rest) => {
+/* Both names are in argv, so a --needs the tracker would mint nothing from is turned away in the parse — before an endpoint is resolved and before a credential is spent — rather than dropped on the way to a payload. */
+const needsChecked = (given, ref) => {
+  if (given.needs === undefined) return null;
+  if (given.park !== ASKS_A_QUESTION && given.set !== ANSWERED_BY_COMMENT) {
+    refuse(`--needs is what would settle the question, and only a move to ${ANSWERED_BY_COMMENT} mints `
+      + `the answer box that carries it. The two calls that reach it:\n`
+      + `  forge advance ${ref} --park ${ASKS_A_QUESTION} --why "<why>" --needs "<what would settle it>"\n`
+      + `  ${setForm(ref, ANSWERED_BY_COMMENT)} --needs "<what would settle it>"`);
+  }
+  const text = given.needs.trim();
+  const bad = needsProblem(text);
+  if (bad) refuse(`--needs ${bad}. Nothing was sent.`);
+  return text;
+};
+
+const readFlags = (rest, ref) => {
   const pulled = pullRepeated(rest, "--evidence", "advance", { usage: USAGE });
   const given = flags(pulled.rest, "advance", ["--owed", "--drop"], { usage: USAGE });
   const evidence = pulled.values;
@@ -314,22 +365,22 @@ const readFlags = (rest) => {
   const asked = given.next !== undefined;
   if (asked && given.owed) refuse("--owed moves nothing and --next is a write. Ask for one.");
   if (asked && writes) refuse("a park says what it waits for in --why; the claim that resumes it sets --next.");
-  return { ...given, evidence, next: nextLine(given.next) };
+  return { ...given, evidence, needs: needsChecked(given, ref), next: nextLine(given.next) };
 };
 
 const run = async (argv, readAs) => {
   if (!argv.length || wantsHelp(argv)) return console.log(USAGE);
   const [ref, ...rest] = argv;
   if (ref.startsWith("--")) refuse(`advance takes the issue first. ${firstLine(USAGE)}`);
-  const given = readFlags(rest);
+  const given = readFlags(rest, ref);
   const view = await viewOf(ref, given);
   const left = nextHeld(view);
   if (given.owed && left) console.log(`Next, as the last write left it: ${left}`);
   if (!view.whole) console.log(cutSays(view.cut, ref));
   if (view.counted) console.log(countSays(view.counted));
-  if (given.set) return setStatus(view, ref, given.set, given.why);
+  if (given.set) return setStatus(view, ref, given.set, given.why, given.needs);
   if (given.park || given.drop) {
-    return park(view, ref, given.park ?? "dropped", given.why, given.evidence);
+    return park(view, ref, given.park ?? "dropped", given.why, given.evidence, given.needs);
   }
   const { next, missing, resumed, park: routed } = targetOf(view, ref);
   checkTarget(given.to, next, view, ref);
@@ -345,7 +396,7 @@ const run = async (argv, readAs) => {
   }
   /* The triage that puts the expectation outside the specification writes its park here, because a
      park is a record and a status and the route decided both from the triage the record holds. */
-  if (routed) return parkAs(view, ref, routed.kind, routed.why, [], routed.left);
+  if (routed) return parkAs(view, ref, routed.kind, routed.why, [], { left: routed.left });
   /* Both notes, where a form resumed a park: what moved it and what was typed to move it are two
      facts, and dropping either leaves the line answering a question nobody asked. */
   const note = `${resumed ? "  (resumed where its park left it)" : ""}`
