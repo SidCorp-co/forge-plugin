@@ -119,7 +119,7 @@ export const homeEnv = (name) => ({
   XDG_CONFIG_HOME: tempRoom(`${name}-home-`),
 });
 
-const git = (room, ...args) =>
+export const git = (room, ...args) =>
   spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
 
 export const dirtyRepo = () => {

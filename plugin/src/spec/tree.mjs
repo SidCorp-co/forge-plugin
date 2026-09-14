@@ -3,7 +3,7 @@
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
-import { projectRoot } from "../resolve/settings.mjs";
+import { checkoutRoot } from "../resolve/settings.mjs";
 import { refuse } from "../refusal.mjs";
 import { clauseIndex } from "./index.mjs";
 import { RECORD, malformedIn, written } from "./recorded.mjs";
@@ -20,13 +20,13 @@ const walk = (dir, out = []) => {
 };
 
 const treeDir = () => {
-  const root = projectRoot();
+  const root = checkoutRoot();
   const dir = root ? join(root, TREE) : null;
   return dir && existsSync(dir) ? dir : null;
 };
 
 const readFrom = (dir) => {
-  const root = projectRoot();
+  const root = checkoutRoot();
   return walk(dir).map((path) => ({
     file: relative(root, path),
     text: readFileSync(path, "utf8"),
@@ -36,7 +36,7 @@ const readFrom = (dir) => {
 /* The record is JSON and the walk above takes only `.md`: read as a document, its table of
    identifiers would define every clause of this tree a second time. */
 const recordAt = (dir) => {
-  const file = relative(projectRoot(), join(dir, RECORD));
+  const file = relative(checkoutRoot(), join(dir, RECORD));
   const path = join(dir, RECORD);
   if (!existsSync(path)) return { file, clauses: null, why: "is not there" };
   let held = null;
@@ -57,14 +57,14 @@ export const writeSpecRecord = (record) => {
   const dir = treeDir();
   if (!dir) return null;
   writeFileSync(join(dir, RECORD), written(record));
-  return relative(projectRoot(), join(dir, RECORD));
+  return relative(checkoutRoot(), join(dir, RECORD));
 };
 
 const documents = () => {
   const dir = treeDir();
   if (!dir) {
     refuse(
-      `This project has no requirements tree: nothing at ${TREE}/ under ${projectRoot() ?? "any directory above this one"}.\n`
+      `This project has no requirements tree: nothing at ${TREE}/ under ${checkoutRoot() ?? "any directory above this one"}.\n`
         + "A tree is a business document and a specification under that directory, one clause per\n"
         + "identifier, under the rules the tree's own index states. Scaffolding one from templates is ISS-30.",
     );

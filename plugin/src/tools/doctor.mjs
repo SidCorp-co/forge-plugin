@@ -20,9 +20,9 @@ import { deadlineSeconds, waitSeconds } from "../wire/request.mjs";
 import { measured, offsetSaid } from "../wire/shared-clock.mjs";
 import { BUNDLED } from "./vi.mjs";
 import {
-  FEEDBACK_CHANNELS, LANDING_ROUTES, RUNS_TAKES, Refusal, SHIP_MODES, accountCredentials, fail,
-  feedbackScope, landingScope, mcpForgeIgnored, parallelRuns, projectRoot, projectScope, refusing,
-  shipMode, translateScope,
+  FEEDBACK_CHANNELS, LANDING_ROUTES, RUNS_TAKES, Refusal, SHIP_MODES, accountCredentials,
+  checkoutRoot, fail, feedbackScope, landingScope, mcpForgeIgnored, parallelRuns, projectScope,
+  refusing, shipMode, translateScope,
 } from "../resolve/settings.mjs";
 import {
   MAX_CLAUDE_MD_LINES,
@@ -306,7 +306,7 @@ const reportRestated = (hits) => {
 };
 
 const checkClaudeMdLocally = () => {
-  const root = projectRoot();
+  const root = checkoutRoot();
   const found = readClaudeMd(root);
   if (!found) return;
   reportStructure(root, found.text);
@@ -367,7 +367,7 @@ const checkContract = () => {
 const checkAgainstGuides = async (scoped) => {
   const guides = await guideBodies(scoped);
   reportGuideTable(guides.map((guide) => guide.slug));
-  const found = readClaudeMd(projectRoot());
+  const found = readClaudeMd(checkoutRoot());
   if (!found) return;
   const review = reviewClaudeMd(found.text, guides, { superseded: supersededSlugs() });
   reportClaudeMd(review, found.path);
@@ -599,7 +599,7 @@ export const doctor = async (argv) => {
   /* Reads and writes differ: `new` translates before it posts, and a read never asks. */
   checkVi(language.value === "vi");
   checkHarness(full);
-  report(installRows(projectRoot()));
+  report(installRows(checkoutRoot()));
   checkClaudeMdLocally();
 
   if (!url.value || !token.value) {

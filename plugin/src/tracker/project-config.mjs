@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { once } from "../resolve/config.mjs";
-import { accountCredentials, fail, keepOnFailure, landingScope, projectRoot, slugIfAny }
+import { accountCredentials, checkoutRoot, fail, keepOnFailure, landingScope, slugIfAny }
   from "../resolve/settings.mjs";
 
 import { didYouMean } from "../suggest.mjs";
@@ -309,7 +309,7 @@ export const unhashable = (body) => {
 /* Against the project root: this is the project's own brief, read inside the checkout it pins. */
 const hashOf = (path) => {
   try {
-    return createHash("sha256").update(readFileSync(join(projectRoot(), path))).digest("hex")
+    return createHash("sha256").update(readFileSync(join(checkoutRoot(), path))).digest("hex")
       .slice(0, DIGEST_WIDTH);
   } catch {
     return null;

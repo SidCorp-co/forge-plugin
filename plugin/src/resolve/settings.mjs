@@ -55,15 +55,15 @@ const ancestors = (start) => {
   }
 };
 
-/* A linked worktree owns neither file; `--git-common-dir` names the checkout that does. Memoised —
-   unmemoised this spawned nine `git rev-parse` for one `forge issue`. */
-const checkoutRoot = once(() => {
+/* Which REPOSITORY: a linked worktree owns neither settings file and `--git-common-dir` names the
+   checkout that does. Memoised — unmemoised this spawned nine `git rev-parse` for one `forge issue`. */
+const repositoryRoot = once(() => {
   const common = git(["rev-parse", "--git-common-dir"], process.cwd());
   return common === null ? null : dirname(resolve(process.cwd(), common));
 });
 
 const searchRoots = once(() => {
-  const shared = checkoutRoot();
+  const shared = repositoryRoot();
   return [...ancestors(process.cwd()), ...(shared ? [shared] : [])];
 });
 
@@ -145,9 +145,10 @@ export const projectTarget = () => aimed ?? projectScope();
 export const projectRecordPattern = () => sourced(FROM_PROJECT, forgeJson().parsed?.codex?.pathRe);
 export const projectCodex = () => forgeJson().parsed?.codex ?? {};
 
-/* The directory the project file sits in, else the checkout's, because a caller reading a project
-   file needs that and not the cwd: walking up from a subdirectory eventually leaves the project. */
-export const projectRoot = once(() => forgeJson().root ?? checkoutRoot());
+/** Which CHECKOUT this process stands in — what a caller reading FILES off a root wants, and what
+ *  `--git-common-dir` gets wrong in a worktree (ISS-1245); else the project file's own directory. */
+export const checkoutRoot = once(() =>
+  git(["rev-parse", "--show-toplevel"], process.cwd()) ?? forgeJson().root);
 
 /* The slug is a header when there is one, and an error only for a call needing a project id. */
 export const slugIfAny = () => projectTarget().value;
