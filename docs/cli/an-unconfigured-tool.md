@@ -44,7 +44,7 @@ Two of those readers had to move to be borrowed, and that decided where the tabl
 sat in the module that makes the HTTPS call and the Cloudflare accounts sat in the verb; a hook that
 loads `visibility.mjs` would have paid for an HTTP client and the tracker layer to learn whether
 there is a gateway at all, against a requirement that a gate costs one process start. So both are
-read here, beside the services they answer for, and `codex-api.mjs` imports the profile back — the
+read here, beside the services they answer for, and `codex.mjs` imports the profile back — the
 shape `chatgptSettings` already had, sitting with the settings that resolve rather than beside the
 verb that spends them. The folder-width checker
 is what settled it against a module of its own: `plugin/src/codex` and `plugin/src/resolve` were
