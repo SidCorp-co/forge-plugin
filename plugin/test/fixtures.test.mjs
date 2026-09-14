@@ -16,6 +16,10 @@ const STAMPS = "plugin/src/hooks/stamps.mjs";
    files that state the rule name it as well and are not held to it. */
 const RAW = /\bmkdtemp(?:Sync)?\b/u;
 const STATED = [...FIXTURES, "plugin/test/fixtures.test.mjs"];
+const KEEP = "KEEP_TEST_ROOMS";
+/* A case about the default states the default: a suite the developer started under the flag would
+   otherwise hand it to every child here, which keeps a room and reads as the leak this counts. */
+const WITHOUT = Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== KEEP));
 
 /* Everything the fixture can be asked for, from a process whose whole temporary directory is the
    room handed in, so what it leaves behind is whatever is still in there once it has exited. */
@@ -30,7 +34,7 @@ const uses = (fixture) => `
 test("a test process removes every directory its fixture made", () => {
   const room = tempRoom("fixture-leavings-");
   const argv = ["--input-type=module", "-e", uses(join(ROOT, FIXTURES[0]))];
-  const run = spawnSync(process.execPath, argv, { encoding: "utf8", env: { ...process.env, TMPDIR: room } });
+  const run = spawnSync(process.execPath, argv, { encoding: "utf8", env: { ...WITHOUT, TMPDIR: room } });
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   /* Directories only: a stamp is a file, written by the code under test, and is ISS-126's. */
   const left = readdirSync(room, { withFileTypes: true }).filter((one) => one.isDirectory());
@@ -67,7 +71,7 @@ const stamps = (fixture) => `
 test("a gate a test process fires stamps inside that process's own root", () => {
   const room = tempRoom("fixture-stamps-");
   const argv = ["--input-type=module", "-e", stamps(join(ROOT, FIXTURES[0]))];
-  const run = spawnSync(process.execPath, argv, { encoding: "utf8", env: { ...process.env, TMPDIR: room } });
+  const run = spawnSync(process.execPath, argv, { encoding: "utf8", env: { ...WITHOUT, TMPDIR: room } });
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.match(run.stdout, /\/forge-plugin-test-\d+-[^/]+\/forge-hook-stamps-/u, "the room is under the root it removes");
   assert.deepEqual(
@@ -83,7 +87,31 @@ test("a root its process never got to remove is swept by the next one", () => {
   const stale = join(room, `forge-plugin-test-${dead.pid}-killed`);
   mkdirSync(join(stale, "what it had made"), { recursive: true });
   const argv = ["--input-type=module", "-e", uses(join(ROOT, FIXTURES[0]))];
-  const run = spawnSync(process.execPath, argv, { encoding: "utf8", env: { ...process.env, TMPDIR: room } });
+  const run = spawnSync(process.execPath, argv, { encoding: "utf8", env: { ...WITHOUT, TMPDIR: room } });
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.equal(existsSync(stale), false, `${stale} outlived the process that made it and nothing else will free it`);
+});
+
+test("a room the flag asked to keep is still there once its process has gone, at the path it printed", () => {
+  const room = tempRoom("fixture-kept-");
+  const argv = ["--input-type=module", "-e", uses(join(ROOT, FIXTURES[0]))];
+  const run = spawnSync(process.execPath, argv, { encoding: "utf8", env: { ...WITHOUT, TMPDIR: room, [KEEP]: "1" } });
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const left = readdirSync(room, { withFileTypes: true }).filter((one) => one.isDirectory()).map((one) => one.name);
+  assert.deepEqual(left.length, 1, `asked to keep its room, the process left ${left.length}: ${left.join(", ") || "nothing"}`);
+  assert.match(run.stderr, new RegExp(`${room}/${left[0]}`, "u"),
+    `the kept room's path was never printed, so the room is a leak nobody can find: ${run.stderr || "(silent)"}`);
+});
+
+test("a kept room is not taken by the sweep of the next process to ask for one", () => {
+  const room = tempRoom("fixture-kept-sweep-");
+  const argv = ["--input-type=module", "-e", uses(join(ROOT, FIXTURES[0]))];
+  const keeper = spawnSync(process.execPath, argv, { encoding: "utf8", env: { ...WITHOUT, TMPDIR: room, [KEEP]: "1" } });
+  assert.equal(keeper.status, 0, `${keeper.stdout}${keeper.stderr}`);
+  const kept = readdirSync(room);
+  assert.equal(kept.length, 1, `the keeper left ${kept.length} entries, so what this case asserts on is not the kept room`);
+  const after = spawnSync(process.execPath, argv, { encoding: "utf8", env: { ...WITHOUT, TMPDIR: room } });
+  assert.equal(after.status, 0, `${after.stdout}${after.stderr}`);
+  assert.deepEqual(readdirSync(room), kept,
+    `a later process swept a room that was kept on purpose, and nothing will ever put it back`);
 });

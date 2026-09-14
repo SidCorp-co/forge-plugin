@@ -99,6 +99,11 @@ call, never a wrong answer.
 
 `vi-natural` keeps its own key at `~/.config/vi-natural/config.json` (`vi-natural login --key`).
 
+One environment variable belongs to the checks rather than to the CLI. `KEEP_TEST_ROOMS=1` tells the
+gate run, and every suite fixture underneath it, to hold on to the scratch directory it would
+otherwise delete on its way out, and to print on standard error where it left it. Nothing reaps one
+afterwards — that is what asking buys — so it is set for the one run you mean to read, never kept.
+
 ## Layout
 
 ```

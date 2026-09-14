@@ -64,11 +64,11 @@ export const callHookAsync = (hook, event, env = process.env, cwd = process.cwd(
     child.stdin.end(JSON.stringify(event));
   });
 
-/* Thousands of these have filled the mount a shell needed (ISS-42, ISS-125), on a tmpfs out of inodes while
-   gigabytes are free. So a suite's rooms go inside one root this process removes on its way out, the pid in its
-   name because Ctrl-C runs no handler: a root whose process is gone is swept by the next to ask for one, and one
-   this fixture never named is nobody's. It is made at import because `TMPDIR` points at it below and a gate stamps
-   under `tmpdir()` per call, so a suite leaving that alone fills the room every hook reaps; `MACHINE` is read first. */
+/* Thousands of these have filled the mount a shell needed (ISS-42, ISS-125), on a tmpfs out of inodes while gigabytes are free.
+   So a suite's rooms go inside one root this process removes on its way out, the pid in its name because Ctrl-C runs no handler:
+   a root whose process is gone is swept by the next to ask for one, and one this fixture never named is nobody's — so the flag
+   renames rather than only spares, a kept root's pid being dead at once. Made at import because `TMPDIR` points at it below and
+   a gate stamps under `tmpdir()` per call, so a suite leaving that alone fills the room every hook reaps; `MACHINE` is first. */
 const OWNED = /^forge-plugin-test-(\d+)-/u;
 const MACHINE = tmpdir();
 
@@ -93,8 +93,10 @@ const sweep = () => {
   }
 };
 
-const root = mkdtempSync(join(MACHINE, `forge-plugin-test-${process.pid}-`));
-process.on("exit", () => rmSync(root, { recursive: true, force: true }));
+const KEPT = process.env.KEEP_TEST_ROOMS === "1";
+const root = mkdtempSync(join(MACHINE, `forge-plugin-test-${KEPT ? "kept-" : ""}${process.pid}-`));
+if (KEPT) process.stderr.write(`keeping this test process's room: ${root}\n`);
+else process.on("exit", () => rmSync(root, { recursive: true, force: true }));
 sweep();
 
 process.env.TMPDIR = root;
