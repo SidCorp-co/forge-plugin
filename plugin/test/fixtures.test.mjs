@@ -12,6 +12,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
 const FIXTURES = ["plugin/test/fixtures.mjs", "packages/code-quality/test/fixtures/room.js"];
 const STAMPS = "plugin/src/hooks/stamps.mjs";
+const GATE_ROOM = "tools/gates/stamp-room.mjs";
 /* The identifier rather than the call, so an alias or the async form is caught too, and the three
    files that state the rule name it as well and are not held to it. */
 const RAW = /\bmkdtemp(?:Sync)?\b/u;
@@ -114,4 +115,33 @@ test("a kept room is not taken by the sweep of the next process to ask for one",
   assert.equal(after.status, 0, `${after.stdout}${after.stderr}`);
   assert.deepEqual(readdirSync(room), kept,
     `a later process swept a room that was kept on purpose, and nothing will ever put it back`);
+});
+
+/* The gate hands its own root to every step as `TMPDIR`, so it is the ancestor of every room the
+   fixtures above make: sparing a room while that root goes would print a path to nothing. Its
+   removal is an exit handler, so a child is what proves either way — this process is not exiting. */
+const gateRoot = (fixture) => `
+  const { gateTmp } = await import("${pathToFileURL(fixture).href}");
+  process.stdout.write(gateTmp());
+`;
+
+const gateRootIn = (room, env) =>
+  spawnSync(process.execPath, ["--input-type=module", "-e", gateRoot(join(ROOT, GATE_ROOM))],
+    { encoding: "utf8", env: { ...WITHOUT, TMPDIR: room, ...env } });
+
+test("the gate's own temp root goes when the gate process that made it goes", () => {
+  const room = tempRoom("gate-root-");
+  const run = gateRootIn(room, {});
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(existsSync(run.stdout), false, `${run.stdout} outlived the gate that made it, and nothing sweeps one`);
+});
+
+test("a gate root the flag asked to keep outlives its process, at the path it printed", () => {
+  const room = tempRoom("gate-root-kept-");
+  const run = gateRootIn(room, { [KEEP]: "1" });
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(existsSync(run.stdout), true,
+    `the gate root was taken anyway, so every room kept under it went with it: ${run.stdout}`);
+  assert.match(run.stderr, new RegExp(run.stdout, "u"),
+    `the kept root's path was never printed, so what a step left in it is unreadable: ${run.stderr || "(silent)"}`);
 });
