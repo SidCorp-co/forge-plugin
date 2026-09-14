@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import test, { after } from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tempRoom } from "../fixtures.mjs";
 
@@ -195,11 +195,13 @@ test("a criterion's opening and a plan's text answer one reference the same way,
   }
 });
 
-const clauses = (root, issue) => spawnSync(process.execPath, [
+const asked = (root, issue) => spawnSync(process.execPath, [
   "-e",
   `import("${new URL("../../src/spec/checked.mjs", import.meta.url).pathname}")`
     + `.then((m) => console.log(JSON.stringify(m.citedClauses(${JSON.stringify(issue)}))));`,
-], { encoding: "utf8", cwd: root }).stdout.trim();
+], { encoding: "utf8", cwd: root });
+
+const clauses = (root, issue) => asked(root, issue).stdout.trim();
 
 test("a project with no tree answers null, which is the one answer that owes nothing", () => {
   assert.equal(clauses(project("cited-no-tree-", false), { description: "serves UC-01-1~1" }), "null");
@@ -214,6 +216,23 @@ test("the clauses an issue names are resolved, not recognised by their prefix", 
   assert.equal(clauses(root, { description: "serves R-10~1" }), "[]", "a rule of the index is not a clause");
   assert.equal(clauses(root, { description: "serves UC-01-1" }), "[]", "a revision is what makes a citation");
   assert.equal(clauses(root, {}), "[]", "a tree with nothing cited is empty and never null");
+});
+
+/* The one path this reader's order is observable on: a tree that is there and throws when it is
+   read. An issue citing nothing now makes no traversal it has no reason to make and answers `[]`,
+   which is what the docblock at the head of this file has claimed of the module all along; an issue
+   that does cite a clause still has to read the tree, and still throws (ISS-461). The entry is a
+   dangling symlink rather than an unreadable file, because permission bits establish nothing when
+   the suite runs as root. */
+test("an issue citing nothing answers [] where the tree is there and the read of it throws", () => {
+  const root = project("cited-unreadable-", true);
+  symlinkSync("./nowhere.md", join(root, TREE, "srs", "dangling.md"));
+  assert.equal(clauses(root, { description: "a body naming no identifier at all" }), "[]");
+  const citing = asked(root, { description: "serves UC-01-1~1" });
+  assert.notEqual(citing.status, 0, "the citing path reads the tree as it always did");
+  assert.match(citing.stderr, /ENOENT/u, citing.stderr);
+  assert.match(citing.stderr, /dangling\.md/u,
+    `and it is this fixture's own entry it died on, not something else: ${citing.stderr}`);
 });
 
 test("citedClauses is the only reader here that touches the checkout", () => {

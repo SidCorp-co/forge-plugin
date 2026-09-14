@@ -40,10 +40,12 @@ export const citationBlocks = (keeps = keepsSpecTree()) => (keeps
     "given, so a citation added afterwards is a second consult."]
   : []);
 
-/** The clauses an issue names, resolved rather than recognised: a prefix and a revision make an identifier, not a clause. `null` is a project keeping no tree and is the one answer that turns the condition off; `[]` is a tree with nothing cited. */
+/** The clauses an issue names, resolved rather than recognised: a prefix and a revision make an identifier, not a clause. `null` is a project keeping no tree and is the one answer that turns the condition off; `[]` is a tree with nothing cited. The probe is what keeps those two apart once the text has answered nothing, and it is the whole of what an issue citing no clause pays here (ISS-461). */
 export const citedClauses = (issue) => {
+  const text = CITED_FIELDS.map(({ field }) => issue?.[field]).join("\n");
+  const cited = citationsIn(text);
+  if (!cited.length) return keepsSpecTree() ? [] : null;
   const index = specTreeIfAny();
   if (!index) return null;
-  const text = CITED_FIELDS.map(({ field }) => issue?.[field]).join("\n");
-  return [...new Set(citationsIn(text).filter((one) => lookup(index, one.id).clause).map((one) => one.id))];
+  return [...new Set(cited.filter((one) => lookup(index, one.id).clause).map((one) => one.id))];
 };
