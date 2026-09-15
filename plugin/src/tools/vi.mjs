@@ -38,10 +38,7 @@ const viNatural = (argv, shown = argv, done = [0]) => {
   return run;
 };
 
-/* Both refusals below leave through `fail`, whose `process.exit` runs no `finally`, so the room and
-   the user's prose in it outlived every refused run (ISS-1427). The removal is registered where an
-   exit still reaches it, and `remove` is what frees it inside an embedded run, where `fail` throws
-   and the process carries on. */
+/* Both refusals below leave through `fail`, whose `process.exit` runs no `finally`, so the room and the user's prose in it outlived every refused run; the removal is registered where an exit still reaches it, and `remove` frees it inside an embedded run, where `fail` throws and the process carries on (ISS-1427). */
 const roomFor = (prefix) => {
   const at = mkdtempSync(join(tmpdir(), prefix));
   const sweep = () => rmSync(at, { recursive: true, force: true });

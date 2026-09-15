@@ -83,7 +83,7 @@ test("an embedded refusal frees the room before the call returns, with no exit t
     `  const settings = await import("${SETTINGS.href}");`,
     '  const { readdirSync } = await import("node:fs");',
     '  try { await settings.refusing(() => vi.translated({ description: "The body in English." })); }',
-    '  catch (refused) { console.log(JSON.stringify({ said: String(refused.message), left: readdirSync(process.env.TMPDIR) })); }',
+    "  catch (refused) { console.log(JSON.stringify({ said: String(refused.message), left: readdirSync(process.env.TMPDIR) })); }",
     "})()",
   ].join("\n");
   const { stdout } = await underRoot(root, call);
