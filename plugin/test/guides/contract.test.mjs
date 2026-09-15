@@ -282,11 +282,14 @@ test("Phase 3 says where a payload file is written, in every flow and under eith
           + "place for it and the run writes it into the tree it is about to gate (ISS-899)");
       }
     }
+    /* Uniqueness on that flow's own unrendered body, and once per flow: a second copy in another
+       flow's Phase 5 is a second home for the project pinning it, and one behind a `forge:when`
+       fence would read as absent in whichever state was rendered away. */
+    const phases = phasesOf(body);
+    const naming = Object.keys(phases).filter((n) => /it is written outside the checkout/u.test(phases[n]));
+    assert.deepEqual(naming, ["3"], `and in the ${flow} flow the phase that first sends a run to `
+      + "write a payload file is the only one that says where it goes");
   }
-  const phases = phasesOf(SKILL);
-  const naming = Object.keys(phases).filter((n) => /it is written outside the checkout/u.test(phases[n]));
-  assert.deepEqual(naming, ["3"], "and the phase that first sends a run to write a payload file is "
-    + "the only one that says where it goes");
 });
 
 /* The cadence has one home, and a retirement leaving a copy behind is what ISS-108 refuses. Both
