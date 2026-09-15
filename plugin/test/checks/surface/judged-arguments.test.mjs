@@ -52,7 +52,7 @@ const SURFACE = {
   hooks: ["hook", "last", "off", "on", "how"],
   feedback: ["title", "kind", "with"],
   doctor: ["token", "url", "chatgpt-url", "chatgpt-key", "chatgpt-prefix", "hide", "show", "job", "ship", "set",
-    "refresh", "confirm", "line", "title", "confidence", "meta"],
+    "refresh", "confirm", "line", "was", "title", "confidence", "meta"],
   stats: [],
   resume: [],
   record: [],

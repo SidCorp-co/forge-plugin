@@ -23,6 +23,14 @@ const deploy = {
 
 const held = { documentId: ISSUE, issueId: "ISS-1", status: "in_progress", title: "one" };
 
+/* A refusal that came after the write reads exactly like one that came before it, so the store's
+   own writes are counted and a guard is judged on the count rather than on the body it left. */
+let upserts = 0;
+const counted = (args) => {
+  if (args.action === "upsert") upserts += 1;
+  return knowledge(args);
+};
+
 const state = {
   issues: [held],
   comments: { [ISSUE]: [] },
@@ -38,7 +46,7 @@ const state = {
       config: { baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
     }),
     "forge_projects.get": () => ({ project: { previewDeploy: state.deploy } }),
-    forge_knowledge: knowledge,
+    forge_knowledge: counted,
     /* One handler for the three, because the fake routes every `pm/<what>` path to this tool. */
     forge_project_pm: ({ action }) => (action === "snapshot" ? state.snapshot
       : action === "runner_load" ? { runners: [{ id: "r-1" }] } : state.graph),
@@ -246,7 +254,7 @@ test("a refresh writes the brief and stamps a digest for each source its own lin
 test("the report then prints the brief it wrote, with no stale line while the sources hold", async () => {
   const run = await ask("doctor");
   assert.match(run.stdout, /^project brief {2}← the knowledge store, slug project-brief/mu, run.stderr);
-  assert.match(run.stdout, /^# The map$/mu);
+  assert.match(run.stdout, /^1 {2}# The map$/mu);
   assert.doesNotMatch(run.stdout, /stale:|gone:/u);
 });
 
@@ -405,7 +413,8 @@ test("a line replaces its own prose and leaves every other line byte-identical",
   await writeShared("brief-line");
   const before = store.get("project-brief");
   const run = await ask("doctor", "--line", "4",
-    "Layout: eight trees under plugin/src.  ← `docs/FORGE-CLI.md`");
+    "Layout: eight trees under plugin/src.  ← `docs/FORGE-CLI.md`",
+    "--was", "Layout: the CLI in seven trees");
   assert.equal(run.status, 0, run.stderr);
   const after = store.get("project-brief").body.split("\n");
   const was = before.body.split("\n");
@@ -420,7 +429,8 @@ test("a line replaces its own prose and leaves every other line byte-identical",
 test("a line sharing its source with another leaves that source stale and names the line", async () => {
   await writeShared("brief-line-shared");
   stale("CLAUDE.md");
-  const run = await ask("doctor", "--line", "3", "The gate: `npm run check`.  ← `CLAUDE.md`");
+  const run = await ask("doctor", "--line", "3", "The gate: `npm run check`.  ← `CLAUDE.md`",
+    "--was", "Test and lint, and the gate:");
   assert.equal(run.status, 0, run.stderr);
   assert.equal(store.get("project-brief").metadata.digests["CLAUDE.md"], ZERO,
     "the shared digest is not stamped by one line's rewrite");
@@ -443,9 +453,93 @@ test("prose with no --line is refused rather than read as a verb of its own", as
   assert.match(run.stderr, /forge doctor --line <n> <text>/u);
 });
 
+/* The whole ground of the guard: this entry has no revision and no conditional write, so a line
+   replaced is gone and the number is the one thing the caller can be wrong about (ISS-448). */
+test("a line replaced with no --was is refused before the store is asked at all", async () => {
+  await writeShared("brief-line-unchecked");
+  const before = upserts;
+  const run = await ask("doctor", "--line", "4", "Layout: eight trees.  ← `README.md`");
+  assert.equal(run.status, 1, run.stdout);
+  assert.equal(upserts, before, "and no write left for the refusal to be after");
+  assert.match(run.stderr, /--was <the line as it stands>/u);
+  assert.match(run.stderr, /prints the brief with the numbers <n> counts down its margin/u);
+});
+
+test("prose line 4 does not begin with is refused, quoting what line 4 holds", async () => {
+  await writeShared("brief-line-mismatch");
+  const before = { ...store.get("project-brief"), upserts };
+  const run = await ask("doctor", "--line", "4", "Layout: eight trees.  ← `README.md`",
+    "--was", "Nothing in this brief opens that way");
+  assert.equal(run.status, 1, run.stdout);
+  assert.equal(upserts, before.upserts, "and nothing was sent");
+  assert.equal(store.get("project-brief").body, before.body);
+  assert.match(run.stderr, /no line of the brief begins `Nothing in this brief opens that way`/u);
+  assert.match(run.stderr, /Line 4 reads: Layout: the CLI in seven trees under plugin\/src\./u);
+});
+
+/* The case that destroyed prose twice: an in-range number read off a view that counts differently,
+   with the prose the caller meant sitting on another line. The refusal is where that line is. */
+test("prose that opens a different line names that line rather than spending the number", async () => {
+  await writeShared("brief-line-elsewhere");
+  const before = upserts;
+  const run = await ask("doctor", "--line", "4", "Language: English.  ← `CLAUDE.md`",
+    "--was", "Language: English for what");
+  assert.equal(run.status, 1, run.stdout);
+  assert.equal(upserts, before, "and nothing was sent");
+  assert.match(run.stderr, /`Language: English for what` opens line 5, not line 4/u);
+  assert.match(run.stderr, /Line 4 reads: Layout: the CLI in seven trees/u);
+});
+
+test("prose two lines share is refused naming both, even where one of them is the number given", async () => {
+  store.clear();
+  const room = tempHome("brief-line-ambiguous");
+  const body = ["# The map", "", "Build: none.  ← `CLAUDE.md`", "Build: none twice.  ← `README.md`", ""];
+  await ask("doctor", "--refresh", briefAt(room, body.join("\n")), "--title", "The map");
+  const before = upserts;
+  const run = await ask("doctor", "--line", "3", "Build: one step.  ← `CLAUDE.md`", "--was", "Build: none");
+  assert.equal(run.status, 1, run.stdout);
+  assert.equal(upserts, before, "a prefix the numbered line does begin with still writes nothing");
+  assert.match(run.stderr, /`Build: none` opens lines 3, 4/u);
+  assert.match(run.stderr, /name more of the line/u);
+});
+
+test("--was with no --line is refused, and writes neither the brief nor a configuration key", async () => {
+  await writeShared("brief-was-orphan");
+  const before = { ...store.get("project-brief"), upserts };
+  const run = await ask("doctor", "--was", "# The map");
+  assert.equal(run.status, 1, run.stdout);
+  assert.equal(upserts, before.upserts);
+  assert.equal(store.get("project-brief").body, before.body);
+  assert.match(run.stderr, /no --line was given/u);
+  const set = await ask("doctor", "--set", "fact.done-means=shipped", "--was", "# The map");
+  assert.equal(set.status, 1, set.stdout);
+  assert.match(set.stderr, /no --line was given/u);
+});
+
+test("an empty --was is refused, since every line begins with one", async () => {
+  await writeShared("brief-was-empty");
+  const before = upserts;
+  const run = await ask("doctor", "--line", "4", "Layout: eight trees.  ← `README.md`", "--was", "   ");
+  assert.equal(run.status, 1, run.stdout);
+  assert.equal(upserts, before);
+  assert.match(run.stderr, /every line begins with an empty one, so this checks nothing/u);
+});
+
+/* Two numbering schemes used in the same breath is what the workflow the brief prescribes asks
+   for, so the view the stale line sends a run to carries the flag's own numbers. */
+test("the printed brief numbers the body it counts and leaves the rows above it unnumbered", async () => {
+  await writeShared("brief-numbered");
+  const run = await ask("doctor");
+  assert.match(run.stdout, /^1 {2}# The map$/mu, run.stdout);
+  assert.match(run.stdout, /^2 {2}$/mu, "a blank body line carries its number too");
+  assert.match(run.stdout, /^4 {2}Layout: the CLI in seven trees under plugin\/src\./mu);
+  assert.match(run.stdout, /^project brief {2}← the knowledge store/mu,
+    "and the rows above the body carry none");
+});
+
 test("a line number outside the stored body names the range it has", async () => {
   await writeShared("brief-line-range");
-  const run = await ask("doctor", "--line", "99", "Nowhere.");
+  const run = await ask("doctor", "--line", "99", "Nowhere.", "--was", "# The map");
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /--line takes a line of the stored brief, 1 to 6/u);
 });

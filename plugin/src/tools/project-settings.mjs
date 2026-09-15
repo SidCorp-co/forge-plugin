@@ -233,6 +233,25 @@ export const refuseCarried = (asked, pairs, said) => {
   }
 };
 
+/* The number is checked against the prose before the store is read, because a number is all a
+   caller can be wrong about here and a line replaced is gone: this entry has no revision and no
+   conditional write, so the only repair is retyping from a scrollback the next session has not got. */
+export const refuseUnchecked = (asked) => {
+  if (asked.line !== undefined && asked.was === undefined) {
+    fail("doctor: --line replaces a line of a store with no undo, so it names the prose that line "
+      + "begins with: forge doctor --line <n> <text> --was <the line as it stands>. `forge doctor` "
+      + "prints the brief with the numbers <n> counts down its margin.");
+  }
+  if (asked.was !== undefined && asked.line === undefined) {
+    fail("doctor: --was names the prose the line --line replaces begins with, and no --line was "
+      + "given. Nothing was sent: forge doctor --line <n> <text> --was <the line as it stands>");
+  }
+  if (asked.was !== undefined && !asked.was.trim()) {
+    fail("doctor: --was is the prose the replaced line begins with, and every line begins with an "
+      + "empty one, so this checks nothing. Quote enough of the line to name it alone.");
+  }
+};
+
 export const briefRoute = async (asked, pairs, positionals) => {
   const asks = WRITES.filter((one) => asked[one] !== undefined);
   if (asks.length > 1) {
@@ -249,6 +268,6 @@ export const briefRoute = async (asked, pairs, positionals) => {
         ? ` — ${positionals.length} arrived after it` : ""}`);
   }
   if (asked.confirm !== undefined) return confirmSource(asked.confirm);
-  if (asked.line !== undefined) return replaceBriefLine(asked.line, positionals[0]);
+  if (asked.line !== undefined) return replaceBriefLine(asked.line, positionals[0], asked.was);
   return refreshBrief(asked.refresh, { ...asked, pairs });
 };

@@ -270,7 +270,15 @@ test("a brief whose every source still matches prints with no stale line", () =>
   const said = briefLines(entry()).join("\n");
   assert.match(said, /^project brief {2}← the knowledge store, slug project-brief, written 2026-09-05$/mu);
   assert.doesNotMatch(said, /stale:|gone:/u);
-  assert.match(said, /# The map/u);
+  assert.match(said, /^1 {2}# The map$/mu);
+});
+
+/* The offset is not one number to document: this block puts three to six rows over the body and the
+   store's own read puts nine, so the numbers the flag counts are printed where the flag is used. */
+test("the body carries the numbers --line counts, and the rows above it carry none", () => {
+  const said = briefLines(entry({ body: "# The map\n\nBuild: none.\n" }));
+  assert.deepEqual(said.slice(-4), ["1  # The map", "2  ", "3  Build: none.", "4  "]);
+  assert.match(said[0], /^project brief {2}← the knowledge store/u);
 });
 
 /* The route it prints is the narrow one: a stale line sends a run to a whole-file write it will
@@ -280,7 +288,7 @@ test("a moved source is named, with the two writes that close one line rather th
   const stale = said.filter((one) => /stale:/u.test(one)).join("\n");
   assert.match(stale, /^ {2}stale: CLAUDE\.md — moved since the brief was read\./mu);
   assert.match(stale, /forge doctor --confirm <source>/u);
-  assert.match(stale, /forge doctor --line <n> <text>/u);
+  assert.match(stale, /forge doctor --line <n> <text> --was <the line as it stands>/u);
   assert.doesNotMatch(stale, /--refresh/u, "the stale line's own route, and no other line's");
 });
 

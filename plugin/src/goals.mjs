@@ -106,7 +106,7 @@ const HOW = {
   [WHY.unread]: "Read it again: forge doctor",
   [WHY.stored]: "Write one: forge doctor --refresh <brief.md> --title <one line>",
   [WHY.section]: `Add the section: forge doctor --refresh <brief.md>, one line per goal under \`## ${SECTION}\``,
-  [WHY.none]: "Write the goals Phase 0 discovered: forge doctor --line <n> <text>",
+  [WHY.none]: "Write the goals Phase 0 discovered: forge doctor --line <n> <text> --was <the line as it stands>",
 };
 
 /** The line `forge doctor` prints and the block a verb's `-h` carries, each naming the way out of

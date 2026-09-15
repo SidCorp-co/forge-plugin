@@ -34,49 +34,6 @@ and carries forward the digests of the body it replaced.
 here because the entry has one job; `--confidence` is the caller's, because whether every line was
 read off a statement or some off a convention is a reading, not a shape.
 
-## Fixing one stale line without rewriting the other fifty
-
-*Why is there a flag that only re-stamps, when the whole-body form exists?*
-
-Because rewriting fifty lines to fix the one whose source moved is a whole-file write to a store
-with no revision — the shape a run declines to make while another session may be reading the brief,
-and on 2026-09-05 two of them did. The brief then stays stale, and the first thing the next Phase 0
-reads is a line telling it to do the work by hand. A route nobody takes is not a route.
-
-What the section above says has to hold is that a freshening is deliberate and names what it covers.
-Both narrow writes are:
-
-- `--confirm <source>` is the caller saying the lines naming that source were read against the file
-  as it now is and their prose still holds. The body goes back byte for byte, one digest is
-  re-stamped, and the lines it just vouched for are printed. It is the common case: the file moved
-  and the fact did not.
-- `--line <n> <text>` replaces one line's prose, for where the fact did move.
-
-**A digest is keyed by path and not by line, and that is what decides the second flag.** Two lines
-of a brief often read the same file. Stamping that path because one of them was rewritten would
-clear the other line's staleness over prose nobody looked at — the exact silence the `stale:` line
-exists to break. So `--line` stamps a source only where the rewritten line is that source's *only*
-reader, and where it is not, it names the lines that keep it stale and the `--confirm` that closes
-it once those have been judged too. The two flags compose; neither alone can lie about the other's
-lines.
-
-The alternative — stamp always, list the other lines as a courtesy — was refused for the reason the
-`not hashed:` listing exists at all: a listing beside a write nobody can undo is not the same as not
-making it.
-
-**A narrow write carries nothing a body carries.** `--title`, `--confidence` and `--meta` are
-refused beside `--confirm` and `--line` rather than ignored, and the stored entry's own are carried
-forward. Three routes to one entry, and a call takes one, because a call that quietly preferred a
-route would report success about a write nobody asked for.
-
-**The window a review found, and why it is made loud rather than closed.** Every route here reads
-the entry, decides, and writes the whole entry back: the store takes no conditional write.
-`--refresh` at least has a caller who just looked at what they replace. A narrow write does not — it
-would restore prose another session put there while this one was deciding and report that it changed
-nothing, which is worse than the staleness it set out to fix. So it reads once more immediately
-before writing and refuses if the body or the digests moved. Nothing here can make the write atomic;
-this turns a silent overwrite into a refusal naming the read to redo.
-
 ## Which files a digest covers, and why not the ones you would list first
 
 *What is a source of the brief?*

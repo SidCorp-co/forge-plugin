@@ -100,7 +100,7 @@ export const VERBS = [
   ["doctor", "[--token t] [--url u] [--chatgpt-url u] [--chatgpt-key k] [--chatgpt-prefix p]"
     + " [--hide v|--show v] [--job name|all]"
     + " [--ship ready|self] [--set k=v] [--credentials]"
-    + " [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text>] [--title T]"
+    + " [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text> --was <prose>] [--title T]"
     + " [--confidence C] [--meta k=v]... [--full]",
     "what resolves and from where, this project's own record included, and the keys of it that are written here",
     "forge_config", { group: HARNESS, needs: null,

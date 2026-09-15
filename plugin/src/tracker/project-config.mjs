@@ -354,6 +354,14 @@ const NONE_STORED = [
 const NO_SOURCES = "  no line of this brief names a source, so nothing was hashed and no later run "
   + "can be told which of them moved";
 
+/** The margin `--line <n>` counts: every other view of this entry puts a different number of rows
+ *  over the body, so a number read off one and spent here lands elsewhere. docs/cli/the-stale-line.md */
+const numberedBody = (body) => {
+  const lines = String(body ?? "").split("\n");
+  const width = String(lines.length).length;
+  return lines.map((line, at) => `${String(at + 1).padStart(width)}  ${line}`);
+};
+
 /** A read the store refused is never printed as an absence: a run that took it for one would write
  *  over a brief it never saw. */
 export const briefLines = (read) => {
@@ -370,12 +378,12 @@ export const briefLines = (read) => {
   if (moved.length) {
     out.push(`  stale: ${moved.join(", ")} — moved since the brief was read. Judge the lines naming `
       + "each against the file it names: where the prose still holds, forge doctor --confirm "
-      + "<source>; where it does not, forge doctor --line <n> <text>");
+      + "<source>; where it does not, forge doctor --line <n> <text> --was <the line as it stands>");
   }
   if (gone.length) {
     out.push(`  gone: ${gone.join(", ")} — named as a source and not in this checkout`);
   }
-  return [...out, "", read.entry.body ?? ""];
+  return [...out, "", ...numberedBody(read.entry.body)];
 };
 
 export const readBrief = async () => (slugIfAny() ? softEntryAt(BRIEF_SLUG) : null);
@@ -475,6 +483,18 @@ const wroteBrief = async (was, body, digests) => {
 const atLines = (numbers) =>
   `${numbers.length > 1 ? "lines" : "line"} ${numbers.join(", ")}`;
 
+/** A prefix the caller retypes, which must open exactly the line the number names — docs/cli/the-stale-line.md. */
+const wrongLine = (lines, at, was) => {
+  const opens = lines.map((line, one) => (line.startsWith(was) ? one + 1 : 0)).filter(Boolean);
+  const reads = `Line ${at} reads: ${lines[at - 1]}`;
+  if (!opens.length) return `no line of the brief begins \`${was}\`. ${reads}.`;
+  if (opens.length > 1) {
+    return `\`${was}\` opens ${atLines(opens)}, so it does not say which of them is meant — name `
+      + `more of the line. ${reads}.`;
+  }
+  return opens[0] === at ? null : `\`${was}\` opens line ${opens[0]}, not line ${at}. ${reads}.`;
+};
+
 /** The caller has read the lines naming this source against the file as it now is, and their prose
  *  still holds — so the digest alone is re-stamped and the body goes back byte for byte. What it
  *  covered is printed, because a digest is a path's and the caller vouched for lines. */
@@ -508,18 +528,20 @@ export const confirmSource = async (source) => {
  *  also reads is left stale here and named: stamping it would clear that other line over prose
  *  nobody looked at, which is the silent staleness the `stale:` line exists to prevent. Once those
  *  lines have been judged too, `--confirm` is what closes the source. */
-export const replaceBriefLine = async (given, text) => {
+export const replaceBriefLine = async (given, text, was) => {
   const entry = await storedBrief();
   const lines = (entry.body ?? "").split("\n");
   if (!/^[1-9]\d*$/u.test(given) || Number(given) > lines.length) {
     fail(`--line takes a line of the stored brief, 1 to ${lines.length}, and \`${given}\` is not `
-      + "one. `forge doctor` prints the body those numbers count, the lines above it aside.");
+      + "one. `forge doctor` prints the brief with those numbers down its margin.");
   }
   const at = Number(given);
   if (text.includes("\n")) {
     fail("--line replaces one line and this text holds a newline. A brief whose prose has to move "
       + "across lines is a brief being rewritten: forge doctor --refresh <brief.md>");
   }
+  const wrong = wrongLine(lines, at, was);
+  if (wrong) fail(`--was names the line --line replaces, and ${wrong} Nothing was written.`);
   if (lines[at - 1] === text) return [`line ${at} already reads that, so nothing was written.`];
   const body = [...lines.slice(0, at - 1), text, ...lines.slice(at)].join("\n");
   const before = entry.metadata?.[DIGESTS] ?? {};

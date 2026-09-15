@@ -498,12 +498,13 @@ const checkFlowKeys = () => {
 const BOOLEAN = ["--full", "--credentials"];
 /* The machine's, the checkout's and the project's, in one surface: `--set` and the brief's three
    are the project's half, and the keys doctor-keys.mjs writes this machine's. */
-const PROJECT_FLAGS = ["set", ...WRITES, ...WITH_BODY];
+const PROJECT_FLAGS = ["set", "was", ...WRITES, ...WITH_BODY];
 
 /** One write per call, then the report, because a run that asked to write is not asking to be
  *  diagnosed: the project's own writes print their lines and stop there. */
 const wroteProject = async (asked, pairs, positionals) => {
-  const { briefAsked, briefRoute, refuseCarried, writeSetting } = await projectSettings();
+  const { briefAsked, briefRoute, refuseCarried, refuseUnchecked, writeSetting } = await projectSettings();
+  refuseUnchecked(asked);
   const brief = briefAsked(asked);
   if (asked.set !== undefined && brief) {
     fail("doctor: --set writes a key of the project's configuration and the brief's flags write the "
