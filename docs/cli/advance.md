@@ -53,8 +53,8 @@ The check reads the edge's own answer now, falling back to the kind where the tr
 keeps the blocker's status as a second test beside it: the tracker gates on a merged mark and this
 contract's floor is `developed`, so the two answer different questions.
 
-A fourth measurement, and the plainest of them: the tracker cuts a comment list by response size and
-not by count. A list of ISS-99 with a limit of two hundred came back with thirty-six rows and
+A fourth measurement, and the plainest of them: a comment list comes back short of the count asked
+for. A list of ISS-99 with a limit of two hundred came back with thirty-six rows and
 `hasMore` set, so by the time a thorough run has shipped, its own issue answers that way — and the
 check that declines to judge a status on part of a record was therefore declining on every status,
 including the one earned by another status and by nothing written. Five issues in a single day were

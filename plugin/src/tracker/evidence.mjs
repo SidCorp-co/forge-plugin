@@ -171,7 +171,7 @@ export const attachPlan = (refs, names, held) => {
 
 /** A bare upload's `refusal` where a base name is already a document on the issue, and its `said`
  *  where the comment page stopped short — said, never refused: `record` cites a URL or a commit
- *  instead, and a verb that only uploads, against a list capped with no cursor, cannot (ISS-137). */
+ *  instead, and a verb that only uploads, against a thread the walk could not finish, cannot (ISS-137). */
 export const uploadRead = (paths, names, { reference, cut }) => {
   const taken = [...names];
   for (const path of paths) {

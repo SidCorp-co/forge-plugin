@@ -84,7 +84,7 @@ their own words, all of them end with *do not send this call again*, and the exi
 of them. The refusals a filing route still makes are the tracker's own: a create it rejects and a
 fold whose comment write it rejects, neither of which this reader is reached from.
 
-A comment page is the weaker read of the two on purpose: `forge_comments` has no get, its list takes
-no cursor and the tracker cuts it by response size, so `hasMore` false is the only assertion of
-completeness there is — and it is read as that boolean rather than as falsy, because a page that
+A comment page is the weaker read of the two on purpose: `forge_comments` has no get, and its list
+serves a window at a time with a count nobody here holds it to, so `hasMore` false is the only
+assertion of completeness there is — and it is read as that boolean rather than as falsy, because a page that
 asserts nothing would otherwise pass for one that asserted it was whole.

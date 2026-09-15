@@ -55,8 +55,8 @@ const state = {
       if (args.action === "update" && held) return Object.assign(held, args.data);
       return { documentId: args.documentId, ...(args.data ?? {}) };
     },
-    /* The live tracker cuts a list by response size, not by count: ISS-99 answered 36 rows under a
-       limit of 200 with `hasMore` true. A park is judged on the page, so that fixture answers whole. */
+    /* A live comment list comes back short of the count asked for and says so: ISS-99 answered 36
+       rows under a limit of 200 with `hasMore` true. A park is judged on the page, so that fixture answers whole. */
     forge_comments: (args) => {
       if (args.action !== "list") return { documentId: "comment-uuid", ...(args.data ?? {}) };
       const issue = args.filters?.issue;

@@ -17,6 +17,7 @@ const { parse, render } = await import("../../../src/flow/record/page.mjs");
 const { OUTCOMES, SHAPES, SHOWS_EVIDENCE, TRIAGES } = await import("../../../src/flow/machine.mjs");
 const { CONTRACT } = await import("../../../src/guides/contract.mjs");
 const { TWICE } = await import("../../../src/tracker/evidence.mjs");
+const { cutLine } = await import("../../../src/tracker/comments.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
@@ -205,11 +206,11 @@ test("a commit the flag did not carry comes from the merged mark, and is said", 
     "--evidence iss65-evidence.md, as the latest verdict on this issue cites it."]);
 });
 
-/* The cut keeps the most recent rows, so a mark or a citation the page carries is the latest one and
-   reading it is sound. What the page does not carry may be the comment behind the cut, and there the
-   flag is asked for by name with the cut as the reason — not on every long issue whether the record
-   answered or not, which is what ISS-131 measured on eight runs. */
-const CUT = "The comment list returned 1 comment(s) and reported more behind them, cut by response size.";
+/* A mark or a citation the page does carry is what the default reads; a read that stopped short may
+   have stopped before the one that would answer, and there the flag is asked for by name with the cut
+   as the reason — not on every long issue whether the record answered or not, which is what ISS-131
+   measured on eight runs. The sentence is the CLI's own, so this fixture cannot drift from it. */
+const CUT = cutLine({ returned: 1, total: 9 });
 test("a default is read off a cut page that carries it, and asked for where the page carries none", () => {
   const mark = { body: "mark_merged target base: merged to master at c8c3550", createdAt: "2026-09-03T10:00:00.000Z" };
   const verdict = {
@@ -230,7 +231,7 @@ test("a default is read off a cut page that carries it, and asked for where the 
   assert.equal(said.length, 2, said.join(" | "));
   const bare = { comments: [], names: [], cut: CUT };
   assert.throws(() => fromRecord("verdict", { criterion: "1", verdict: "pass", evidence: ["one.md"] }, bare),
-    /reads --commit off this issue and the page carries none[\s\S]*cut by response size[\s\S]*behind the cut, so name --commit/u,
+    /reads --commit off this issue and the page carries none[\s\S]*stopped after 1 comment\(s\) of 9[\s\S]*behind the cut, so name --commit/u,
     "and where the page carries none, the flag is asked for and the cut is the reason");
   assert.throws(() => fromRecord("verdict", { criterion: "1", verdict: "pass", commit: "c8c3550", evidence: [] }, bare),
     /reads --evidence off this issue and the page carries none/u, "the evidence default the same way");
@@ -571,7 +572,7 @@ test("a newer field is asked for at the write and excused at the read-back", () 
 test("the record route's collision refusal carries the one sentence evidence.mjs holds", async () => {
   project.answer.forge_comments = (args) =>
     (args.action === "list"
-      ? { comments: project.comments["shipped-uuid"] ?? [], returned: 1, hasMore: true, truncatedBy: "response-size" }
+      ? { comments: project.comments["shipped-uuid"] ?? [], returned: 1, hasMore: true, truncatedBy: "cursor" }
       : { documentId: "comment-uuid" });
   const path = join(tempRoom("crowded-"), "shot.png");
   writeFileSync(path, "not really a screenshot");
