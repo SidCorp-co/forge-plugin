@@ -1,4 +1,4 @@
-/* The score and its parts. Nothing here calls anything; why each weight: docs/cli/next.md. */
+/* The score and its parts. Nothing here calls anything; why each weight: docs/cli/next-weights.md. */
 import { TAKEABLE, UNSET } from "./weights.mjs";
 import { holdsBack } from "../flow/earned.mjs";
 import { FIELD_SAID } from "../ladder.mjs";
