@@ -139,6 +139,10 @@ reports is read as that platform means it rather than as it spells it.
 - **AC-19-10-6** · Rev: 1 · Proof: plugin/test/tools/services/coolify/request.test.mjs "an environment listing is masked by default and plain under --reveal"
   WHEN a record carrying a secret is shown THEN the CLI SHALL mask that value unless the caller
   asked for it as it stands.
+- **AC-19-10-7** · Rev: 1 · Proof: plugin/test/tools/services/coolify/deadline.test.mjs "an instance that never answers is refused inside the deadline, naming the request and the key"
+  WHEN a call reaches this platform THEN it SHALL be bounded by the deadline the account
+  configuration states, and SHALL be refused past it naming the operation, the seconds it had and
+  the key a caller raises.
 
 ### EI-07 — The version-control host
 

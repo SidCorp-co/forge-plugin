@@ -51,17 +51,17 @@ test("the retry and deadline lines say the numbers that resolve and where each w
     "a value over the cap is reported as the wait it buys, not as written");
   assert.match(forgeConfig({ retrySeconds: "soon" }),
     /\[ miss \] retry\s+"soon" is no value of this key — it takes a non-negative number of seconds; reading 2s first, doubling under 60s  ← the plugin's default/u);
-  assert.match(forgeConfig({}), /\[  ok  \] deadline\s+60s per attempt on the tracker, Cloudflare and the chat backend, the ladder's four unchanged  ← the plugin's default/u,
+  assert.match(forgeConfig({}), /\[  ok  \] deadline\s+60s per attempt on the tracker, Cloudflare, Coolify and the chat backend, the ladder's four unchanged  ← the plugin's default/u,
     "the deadline is the second of this transport's two numbers and is read back beside the first (ISS-828)");
-  assert.match(forgeConfig({ waitSeconds: 5 }), /\[  ok  \] deadline\s+5s per attempt on the tracker, Cloudflare and the chat backend, the ladder's four unchanged  ← \S+\/forge\/config\.json/u);
-  assert.match(forgeConfig({ waitSeconds: 0 }), /\[  ok  \] deadline\s+0s per attempt on the tracker, Cloudflare and the chat backend, the ladder's four unchanged  ← \S+\/forge\/config\.json/u,
+  assert.match(forgeConfig({ waitSeconds: 5 }), /\[  ok  \] deadline\s+5s per attempt on the tracker, Cloudflare, Coolify and the chat backend, the ladder's four unchanged  ← \S+\/forge\/config\.json/u);
+  assert.match(forgeConfig({ waitSeconds: 0 }), /\[  ok  \] deadline\s+0s per attempt on the tracker, Cloudflare, Coolify and the chat backend, the ladder's four unchanged  ← \S+\/forge\/config\.json/u,
     "zero is a deadline a suite can prove the refusal with, so it reads as the project's value and not as unset");
-  assert.match(forgeConfig({ waitSeconds: 1e9 }), /\[  ok  \] deadline\s+2147483\.647s per attempt on the tracker, Cloudflare and the chat backend, the ladder's four unchanged  ← \S+\/forge\/config\.json/u,
+  assert.match(forgeConfig({ waitSeconds: 1e9 }), /\[  ok  \] deadline\s+2147483\.647s per attempt on the tracker, Cloudflare, Coolify and the chat backend, the ladder's four unchanged  ← \S+\/forge\/config\.json/u,
     "a value the timer's range cuts down is the project's all the same, reported as the deadline it buys");
-  assert.match(forgeConfig({ waitSeconds: 0.0004 }), /\[  ok  \] deadline\s+0s per attempt on the tracker, Cloudflare and the chat backend, the ladder's four unchanged  ← \S+\/forge\/config\.json/u,
+  assert.match(forgeConfig({ waitSeconds: 0.0004 }), /\[  ok  \] deadline\s+0s per attempt on the tracker, Cloudflare, Coolify and the chat backend, the ladder's four unchanged  ← \S+\/forge\/config\.json/u,
     "and one under a millisecond too: a value the transport honours is never reported as no value of this key");
   assert.match(forgeConfig({ waitSeconds: "soon" }),
-    /\[ miss \] deadline\s+"soon" is no value of this key — it takes a non-negative number of seconds; reading 60s per attempt on the tracker, Cloudflare and the chat backend, the ladder's four unchanged  ← the plugin's default/u);
+    /\[ miss \] deadline\s+"soon" is no value of this key — it takes a non-negative number of seconds; reading 60s per attempt on the tracker, Cloudflare, Coolify and the chat backend, the ladder's four unchanged  ← the plugin's default/u);
 });
 
 /* The account config is the only source, and a `.mcp.json` carrying credentials is the one setup

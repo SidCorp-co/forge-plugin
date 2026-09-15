@@ -488,7 +488,7 @@ const checkFlowKeys = () => {
   const waits = userConfig().waitSeconds;
   const ownWait = waitSeconds({ waitSeconds: waits }) === waits;
   const deadline = {
-    value: `${deadlineSeconds()}s per attempt on the tracker, Cloudflare and the chat backend, the ladder's four unchanged`,
+    value: `${deadlineSeconds()}s per attempt on the tracker, Cloudflare, Coolify and the chat backend, the ladder's four unchanged`,
     from: ownWait ? configPath() : "the plugin's default",
     unknown: waits === undefined || ownWait ? null : JSON.stringify(waits),
   };

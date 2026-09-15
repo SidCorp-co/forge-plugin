@@ -1,7 +1,7 @@
 /* Requests to the configured Coolify instance. The token travels in a header and appears in
    nothing this prints: a gateway echoing a request back would otherwise put it in a transcript,
    and from there into a consult or a record. docs/cli/coolify.md. */
-import { parsedOr } from "../../../wire/request.mjs";
+import { clockFor, deadlineOf, parsedOr, ranOut } from "../../../wire/request.mjs";
 import { fail } from "../../../resolve/settings.mjs";
 
 const BODY_CUT = 1500;
@@ -51,10 +51,14 @@ export const ask = async (held, method, path, { query, body, internal = false, c
     return null;
   }
 
-  let response;
+  /* A deploy is the longest call this CLI makes by design, where a hang reads as a slow build. */
+  const deadline = deadlineOf(null);
+  let response = null;
+  let text = "";
   try {
     response = await fetch(url, {
       method,
+      signal: clockFor(deadline),
       headers: {
         Authorization: `Bearer ${target.token}`,
         Accept: "application/json",
@@ -62,11 +66,15 @@ export const ask = async (held, method, path, { query, body, internal = false, c
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
-  } catch (error) {
-    return fail(`coolify: cannot reach ${struck(url, target.token)} — ${struck(error.message, target.token)}`);
+    text = await response.text();
+  } catch (dropped) {
+    /* `response` says which stage dropped: a body failure of its own was never wrapped here. */
+    if (dropped.name === "TimeoutError") {
+      return fail(`coolify: did not answer ${method} ${struck(url, target.token)}: ${ranOut(dropped, deadline)}`);
+    }
+    if (response) throw dropped;
+    return fail(`coolify: cannot reach ${struck(url, target.token)} — ${struck(dropped.message, target.token)}`);
   }
-
-  const text = await response.text();
   if (!response.ok) {
     const said = struck(detailOf(text), target.token).slice(0, BODY_CUT);
     return fail(`coolify: HTTP ${response.status} on ${method} ${struck(url, target.token)}\n  ${said}${hint(response.status)}`);
