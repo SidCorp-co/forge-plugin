@@ -18,6 +18,11 @@ const THEIRS = "the-run-that-may-be-working";
 /* Twenty seconds, so the band the two errors make is wide enough that a case is not decided by how
    long the CLI took to start; a forty-second round trip is inside the deadline the transport allows. */
 const WIDE = 20_000;
+/* Renewed this long ago on a one-minute lease, so the instant the lease becomes anybody's stands ten
+   seconds behind now: inside the band a WIDE writer makes and clear of the band a half-second one
+   makes, by about ten seconds either way. At one second past — the width of that narrow band itself
+   — which way the second of the two cases below went was the round trip's to decide (ISS-1447). */
+const TEN_PAST = 130_000;
 
 const ago = (millis) => new Date(Date.now() - millis).toISOString();
 
@@ -92,7 +97,7 @@ test("a stamp carrying no error is said to be one this CLI cannot place, and the
 });
 
 test("a reclaim whose cutoff the two clocks cannot order is refused, and the flag that says the run stopped takes it", async () => {
-  heldBy(THEIRS, 121_000, 1, WIDE);
+  heldBy(THEIRS, TEN_PAST, 1, WIDE);
   const before = state.calls.length;
   const refused = await claim([]);
   assert.equal(refused.status, 1, `the reclaim should have been refused:\n${refused.stdout}${refused.stderr}`);
@@ -104,16 +109,16 @@ test("a reclaim whose cutoff the two clocks cannot order is refused, and the fla
   assert.deepEqual(state.calls.slice(before).filter((one) => one.args?.action === "update"), [],
     "and writes nothing, the field holding what the refusal read");
 
-  heldBy(THEIRS, 121_000, 1, WIDE);
+  heldBy(THEIRS, TEN_PAST, 1, WIDE);
   const taken = await claim(["--stopped"]);
   assert.equal(taken.status, 0, `--stopped should have taken it:\n${taken.stdout}${taken.stderr}`);
   assert.equal(wrote().at(-1)?.history.at(-1)?.how, "reclaim");
 });
 
 test("the same reclaim goes through once the cutoff is outside the band, so the refusal is the doubt and not the lapse", async () => {
-  heldBy(THEIRS, 121_000, 1, 500);
+  heldBy(THEIRS, TEN_PAST, 1, 500);
   const run = await claim([]);
-  assert.equal(run.status, 0, `a cutoff a second past and a band of one is orderable:\n${run.stdout}${run.stderr}`);
+  assert.equal(run.status, 0, `a cutoff ten seconds past and a band of one is orderable:\n${run.stdout}${run.stderr}`);
   assert.doesNotMatch(run.stderr, /cannot order the moment/u);
 });
 
