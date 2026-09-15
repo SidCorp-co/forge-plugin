@@ -223,7 +223,7 @@ test("a default is read off a cut page that carries it, and asked for where the 
   try {
     const got = { criterion: "1", verdict: "pass" };
     fromRecord("verdict", got, { comments: [mark, verdict], names: ["one.md"], cut: CUT });
-    assert.equal(got.commit, "c8c3550", "the mark on the page is the latest one, cut or not");
+    assert.equal(got.commit, "c8c3550", "the mark the page does carry is what the default reads, cut or not");
     assert.deepEqual(got.evidence, ["one.md"], "and so is the citation");
   } finally {
     console.error = held;
