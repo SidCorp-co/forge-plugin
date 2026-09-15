@@ -253,6 +253,42 @@ test("Phase 4 says the head the read was taken at survives to the landing, and n
     + "head it was taken at has to survive to the landing");
 });
 
+/* The method's own instruction is what put the file in the tree: `forge record criteria` takes a path
+   and Phase 3 named no place for it, so a run wrote one at its worktree root and the next gate went
+   red on a repository checker — at the baseline, which reads as a tree that was already broken and
+   cost a whole re-run (ISS-899, ISS-1018). The checker's refusal names the way out but only after the
+   file exists, so the place is the method's to say before the write. */
+test("Phase 3 says where a payload file is written, in every flow and under either reviewer", () => {
+  const beats = [
+    ["whose file it is and where it goes", "so it is written outside the checkout"],
+    ["how the place is chosen", "the project names for this run's own scratch"],
+    ["that a project's own directory has to be outside as well", "where that directory is itself outside the checkout"],
+    ["what answers where it is not", "the system's temporary one in every other case"],
+    ["what a file left in the tree costs the run", "names a repository checker rather than the change"],
+    ["why that reading is the expensive one", "the shape of a tree already red"],
+    ["the tree a delegated run stands in", "where the worktree is not the checkout root"],
+    ["that the rule outlives this phase's own two writes", "Every later file a verb reads off a path goes the same way"],
+  ];
+  /* Every flow and both reviewer states: the rule is about the file the two writes read, which a
+     project pinning `screen` and a machine with no reviewer configured both still write. */
+  for (const flow of FLOW_SLUGS) {
+    const body = servedBody("issue-flow", PLUGIN, flow);
+    const held = conditionsAt(null);
+    for (const state of TOOL_STATES) {
+      const phases = phasesOf(rendered(body, { ...held, "tool.codex": { ...held["tool.codex"], value: state } }).text);
+      for (const [beat, phrase] of beats) {
+        assert.ok(phases["3"].includes(phrase), `Phase 3 of the ${flow} flow under a ${state} reviewer `
+          + `no longer names ${beat}, so the phase that sends a run to write a payload file names no `
+          + "place for it and the run writes it into the tree it is about to gate (ISS-899)");
+      }
+    }
+  }
+  const phases = phasesOf(SKILL);
+  const naming = Object.keys(phases).filter((n) => /it is written outside the checkout/u.test(phases[n]));
+  assert.deepEqual(naming, ["3"], "and the phase that first sends a run to write a payload file is "
+    + "the only one that says where it goes");
+});
+
 /* The cadence has one home, and a retirement leaving a copy behind is what ISS-108 refuses. Both
    directions are asserted: absence alone passes on a file somebody emptied, reading exactly like a
    clean repository. */
