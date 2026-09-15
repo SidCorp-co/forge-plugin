@@ -231,13 +231,13 @@ test("the call's own cwd is a tree the write resolves against", () => {
   assert.equal(at("/tmp/notes", `echo x > trap.md`).allowed, true, "and a tree guarding nothing refuses nothing");
 });
 
-/* Placing a token against the cwd placed one the *shell* would still have expanded there too, so an agent standing in a skills tree had every `~/…md` write of its own refused, and an over-refusal on a file nowhere near the tree is how a gate gets routed around (ISS-279). `MD_TOKEN` admits no `$`, so the second match begins after it and the rest reads as a relative path. */
+/* Placing a token against the cwd placed one the *shell* would still have expanded there too, so an agent standing in a skills tree had every `~/…md` write of its own refused, and an over-refusal on a file nowhere near the tree is how a gate gets routed around (ISS-279). A `$` ends a word, so the name begins after it and the rest reads as a relative path. */
 test("a `~` destination is placed against no tree", () => {
   assert.equal(at(SKILL_DIR, `echo x > ~/notes.md`).allowed, true);
   assert.equal(at(SKILL_DIR, `echo x > notes~.md`).allowed, false, "while a `~` inside a token is a path");
 });
 
-test("a destination whose `$` the token class dropped is placed against no tree", () => {
+test("a destination whose `$` the reading stopped at is placed against no tree", () => {
   assert.equal(at(SKILL_DIR, `echo x > $HOME/notes.md`).allowed, true);
   assert.equal(at(SKILL_DIR, `cat > $UNSET/notes.md <<EOF\nx\nEOF`).allowed, true, "set or unset alike");
   assert.equal(at(SKILL_DIR, "echo x > ${HOME}/notes.md").allowed, true, "the braced form, whose match starts at the `/`");
@@ -247,6 +247,39 @@ test("a destination whose `$` the token class dropped is placed against no tree"
 test("an expanded destination still answers for what the token itself spells", () => {
   assert.equal(at(SKILL_DIR, `printf x > "$HOME/p/memory/trap.md"`).allowed, false);
   assert.equal(at(SKILL_DIR, `echo x > ~/p/memory/trap.md`).allowed, false);
+});
+
+/* The reading cut a path at the first character an allow-list left out, and what was left of one cut past its guarded segment carried no `/memory/` at all — so the write went through unasked (ISS-1535). */
+test("a name carrying a character a name usually does not is read whole, guarded segment and all", () => {
+  assert.equal(decide(`printf x > /tmp/run/memory/trap+one.md`).allowed, false, "a plus");
+  assert.equal(decide(`printf x > /tmp/run/memory/trap,one.md`).allowed, false, "a comma");
+  assert.equal(decide(`printf x > /tmp/run/memory/trap#one.md`).allowed, false, "a hash");
+  assert.equal(decide(`printf x > /tmp/run/memory/trap=one.md`).allowed, false, "a key's own separator");
+  assert.equal(decide(`printf x > /tmp/forge-run-iss-1477+1447/memory/trap.md`).allowed, false, "a scratch root's own");
+  assert.equal(decide(`curl -o/tmp/run/memory/trap.md https://x`).allowed, false, "a value written against its option's letter");
+  assert.equal(at(MEMORY, `tee "$OUT.md" OUT.md`).allowed, false, "and a name spelled twice is placed where no `$` precedes it");
+  assert.equal(at(MEMORY, `printf x > --trap.md`).allowed, false, "and a redirect's target is a filename however it opens");
+  assert.equal(at(MEMORY, `tee -- --trap.md`).allowed, false, "as is an operand past the word saying there are no options left");
+});
+
+test("nothing standing where a name cannot is claimed as one, from inside the tree that guards them", () => {
+  assert.equal(at(MEMORY, `sed -i s/x/y/ *.md`).allowed, true, "what a glob matches is not in this text");
+  assert.equal(at(MEMORY, `curl --output=/tmp/a/notes.md https://x`).allowed, true, "the option is no path under the cwd");
+  assert.equal(at(MEMORY, `python3 -c 'root="/tmp"; open(f"{root}/notes.md", "w").write("x")'`).allowed, true,
+    "nor is a placeholder this cannot read, whose own tail lands elsewhere");
+  assert.equal(at(MEMORY, `dd if=/dev/zero of=/tmp/notes.md count=1`).allowed, true, "nor a key in front of a value");
+  assert.equal(at(MEMORY, `dd if=/dev/zero of=../notes.md count=1`).allowed, true, "spelled from the root or from beside this tree");
+  assert.equal(at(MEMORY, `dd if=/dev/zero of=~/notes.md count=1`).allowed, true, "or from a home");
+});
+
+test("a literal an interpreter's body carries is a name, and the value behind a key is one", () => {
+  assert.equal(at(MEMORY, `dd if=/dev/zero of=/tmp/memory/trap.md count=1`).allowed, false, "the value itself is read");
+  assert.equal(at(MEMORY, `dd if=/dev/zero of=~/memory/trap.md count=1`).allowed, false, "from a home as much as from the root");
+  assert.equal(at(MEMORY, `python3 -c 'open("--trap.md", "w").write("x")'`).allowed, false,
+    "and a literal a body carries is no option, whatever it opens with");
+  const back = String.fromCharCode(96);
+  assert.equal(at(MEMORY, `node -e 'writeFileSync(${back}--trap.md${back}, "x")'`).allowed, false,
+    "under a template's own quote as much as under the other two");
 });
 
 test("a literal path is still refused", () => {

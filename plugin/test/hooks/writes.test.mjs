@@ -12,10 +12,11 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, realpathSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { FRESH_MS, callAt, shellWrites, touched } from "../../hooks/_hook.mjs";
+import { FRESH_MS, callAt, namesOf, shellWrites, touched } from "../../hooks/_hook.mjs";
 import { glued } from "../../src/hooks/assembled.mjs";
 import { agreedWithHead, LEAST_MS } from "../../src/hooks/git-probe.mjs";
 import { tempRoom } from "../fixtures.mjs";
+import { patience } from "../patience.mjs";
 
 const room = tempRoom("writes-");
 mkdirSync(join(room, "plugin", "src"), { recursive: true });
@@ -84,6 +85,64 @@ test("where nothing says when the call began, a young file answers as written", 
     [file],
     "a transcript holding no assistant record",
   );
+});
+
+/* An allow-list cut a path at the first character it left out and handed on the tail — shorter,
+   relative, still resolving — so a gate asked about a file nobody wrote and said nothing (ISS-1535).
+   Named from the cwd, so the one character is what this varies and not the scratch root (ISS-1543). */
+test("a directory whose name carries a character a name usually does not is read whole", () => {
+  const at = asked(NOW - 10_000);
+  for (const odd of ["plus+one", "comma,one", "hash#one", "percent%one", "equals=one"]) {
+    mkdirSync(join(room, odd), { recursive: true });
+    const file = stamped(join(odd, "written.md"), NOW - 1_000);
+    assert.deepEqual(touched(bash(`printf x > ${odd}/written.md`, at)), [file], odd);
+  }
+});
+
+test("a name is read from the word the command spelled it in, and never from the middle of one", () => {
+  const names = (command) => namesOf(command).map((one) => one.token);
+  assert.deepEqual(names("curl --output=/tmp/a/notes.md https://x"), ["/tmp/a/notes.md"],
+    "an option spells no name of its own, and the value it stands in front of does");
+  assert.deepEqual(names("curl -o/tmp/a/notes.md https://x"), ["/tmp/a/notes.md"],
+    "including the value written against the option's own letter");
+  assert.deepEqual(names("curl -onotes.md https://x"), ["notes.md"],
+    "which is one letter after a single hyphen, whether or not the value begins at the root");
+  assert.deepEqual(names(`python3 -c 'open(f"{root}/notes.md", "w")'`), ["/notes.md"],
+    "a substitution leaves the tail it spells, and the placeholder is no part of a name");
+  assert.deepEqual(names("sed -i s/a/b/ ~/.config/forge/x.md"), ["~/.config/forge/x.md"],
+    "a home a shell would expand answers for what it spells, root and all");
+  assert.deepEqual(names("tee /tmp/a=b/memory/x.md"), ["/tmp/a=b/memory/x.md", "b/memory/x.md"],
+    "one word spells the whole path and the value reading, the rooted one first");
+  assert.deepEqual(names("dd if=/dev/zero of=/tmp/notes.md count=1"), ["/tmp/notes.md"],
+    "a key carries no separator of its own, so the word behind one is no name");
+  assert.deepEqual(names("dd if=/dev/zero of=../notes.md count=1"), ["../notes.md"],
+    "whether the value behind it is spelled from the root or from a directory beside this one");
+  assert.deepEqual(namesOf("printf x > --trap.md", undefined, { options: false }).map((one) => one.token),
+    ["--trap.md"], "and a redirect's target is a filename however it opens");
+  assert.deepEqual(names("tee -- --trap.md"), ["--trap.md"],
+    "as is an operand past the word that says there are no options left");
+  assert.deepEqual(names(`python3 -c 'open("--trap.md", "w")'`), ["--trap.md"],
+    "and a literal standing against a quote, which is a body's and no command's option");
+  const back = String.fromCharCode(96);
+  assert.deepEqual(names(`node -e 'writeFileSync(${back}--trap.md${back}, "x")'`), ["--trap.md"],
+    "a template's own quote counting as one of the three");
+  assert.deepEqual(names("dd if=/dev/zero of=~/notes.md count=1"), ["~/notes.md"],
+    "a key stands in front of a home the same way it stands in front of a root");
+  assert.deepEqual(names(`tee "$OUT.md" OUT.md`), ["OUT.md", "OUT.md"],
+    "and one name spelled twice is two readings, the second standing where no `$` precedes it");
+  assert.deepEqual(names("sed -i s/x/y/ *.md"), [], "a pattern names a file this text does not spell");
+  assert.deepEqual(names("tee /tmp/a[1]/memory/x.md"), [], "and the `/memory/x.md` inside one is no path either");
+});
+
+/* Anchored nowhere, the scan was attempted at every position: one 40 000-character word cost 4.1 s
+   inside a hook running under a deadline, so the guard here is against a hang and not a budget. */
+test("a long operand is scanned once for the word it is, not once for each character in it", () => {
+  const blob = `${"A".repeat(20_000)}+/${"B".repeat(20_000)}`;
+  const began = Date.now();
+  assert.deepEqual(namesOf(`printf '%s' ${blob} > out.bin`).map((one) => one.token), ["out.bin"]);
+  assert.deepEqual(namesOf(`curl -d ${"a:b".repeat(13_333)} https://x`), []);
+  const spent = Date.now() - began;
+  assert.ok(spent < patience(500), `two 40 000-character operands took ${spent} ms to scan`);
 });
 
 test("the file tools answer with their own path and consult no clock", () => {

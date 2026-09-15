@@ -206,6 +206,42 @@ export const waitsIn = (text) => {
   return out;
 };
 
+/* A word is what a shell hands on as one, so only what ends a word ends a name: the operators, the quotes, a `$` and a backslash — each quote spelt as its code point, since a lone one in a source file is an unclosed string to everything that reads this repository as text and the checks here do read it that way. Everything else a filesystem allows stands inside a name, which is why this is written as what a name may not carry rather than as what it may — an allow-list cut a path at the first `+` in it and handed on the tail, which is shorter, relative and still resolves. */
+const BARE = /[^\s;&|()<>\x27\x22\x60$\\]+/gu;
+/* Where a name may begin inside its word, besides its start. Before it: the option a value may be attached to, which is one letter after a single hyphen and the whole word after two — `curl -onotes.md` writes what `--output=notes.md` does, and past a bare `--` there are no options left, so a file whose own name opens with a hyphen is read as one — and the first `=` or `:`, a key standing in front of the value it names. After it: the last `}`, since what follows the last substitution is the literal tail the program will build, and `f"{root}/skills/x/SKILL.md"` spells a guarded path while naming no `root` this can read. One of each and no more, so one word is read four ways rather than once per character of a 40 000-character operand. And a word standing against a quote is no option at all but a literal a body carries, an interpreter's own body arriving here with its quotes still in it — all three of them, a template's backtick as much as the other two — and `open("--trap.md", "w")` naming a file. */
+const OPTION = /^--[\w-]+|^-[A-Za-z0-9]/u;
+const KEYED = /[=:]/u;
+const QUOTES = /[\x22\x27\x60]/u;
+/* And where the word itself is no name: behind a key, which is a word-part carrying no separator with a value spelled from somewhere behind it — the root, a home, this directory or the one above. A `dd` naming its output after an `of=` names the value alone; a directory whose own name carries an `=` names the whole word, and only the first has a key in front of it. */
+const KEY = /^[^/=:]*[=:](?:~|\.{0,2})\//u;
+/* And a word a shell or an interpreter would rewrite spells a file this text does not hold: what the write lands on is the pattern's match or the substitution's value, which is elsewhere. how/writes.md. */
+const PATTERN = String.raw`[^*?[\]{}]`;
+
+/** A name with an extension, as a command spells one, with where each begins: the readings above, so a directory carrying a character a name usually does not is read whole rather than cut at it, while one word may still spell the value behind its option or its key and the tail behind its substitution. `tail` is which extensions a caller wants, one gate judging `.md` alone. The names written from the root come first, those being the ones a reader resolves without the call's own cwd. Spelt here and nowhere else. */
+export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true } = {}) => {
+  const ending = new RegExp(`^${PATTERN}+\\.${tail}`, "u");
+  const names = [];
+  const past = (mark) => (mark < 0 ? [] : [mark + 1]);
+  let ended = false;
+  for (const word of text.matchAll(BARE)) {
+    if (word[0] === "--") ended = true;
+    const literal = QUOTES.test(text[word.index - 1] ?? " ");
+    const option = (options && !ended && !literal && OPTION.exec(word[0])?.[0].length) || 0;
+    const starts = [
+      ...(option || KEY.test(word[0]) ? [] : [0]),
+      ...(option && word[0][option] !== "=" ? [option] : []),
+      ...past(KEYED.exec(word[0])?.index ?? -1),
+      ...past(word[0].lastIndexOf("}")),
+    ];
+    for (const at of new Set(starts)) {
+      const name = ending.exec(word[0].slice(at))?.[0];
+      if (name) names.push({ token: name, at: word.index + at });
+    }
+  }
+  const rooted = (one) => one.token.startsWith("/") || one.token.startsWith("~/");
+  return [...names.filter(rooted), ...names.filter((one) => !rooted(one))];
+};
+
 export const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 
 /** Where a command starts. `xargs` keeps its own flags (`xargs -I{} sh` runs a shell), the rest do not: a flag widens what a mention may look like. `^` is last — zero-width, it wins a prefix's position. */

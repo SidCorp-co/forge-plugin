@@ -9,7 +9,7 @@ import { pathToFileURL } from "node:url";
 
 import { jsonLines as parsed, logHook } from "../src/hooks/hook-log-file.mjs";
 import { scrubbed } from "../src/hooks/hook-log.mjs";
-import { NOWHERE, STARTS, WRITES, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, STARTS, WRITES, namesOf, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
 import { glued } from "../src/hooks/assembled.mjs";
 import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
 import { agreedWithHead } from "../src/hooks/git-probe.mjs";
@@ -17,12 +17,9 @@ import { agreedWithHead } from "../src/hooks/git-probe.mjs";
 export { DEADLINES };
 export { askedAlready, askedByAnyone, clearNote, note, noted } from "../src/hooks/stamps.mjs";
 export { movedTo, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
-export { NOWHERE, STARTS, WRITES, spans, standsIn, unquote };
+export { NOWHERE, STARTS, WRITES, namesOf, spans, standsIn, unquote };
 export { struck } from "../src/hooks/shell-spans.mjs";
 
-/** A name with an extension, as a command spells one. `~` is a home a shell would expand and belongs only where a caller judges the spelling, so the readings differ by that one character; `tail` is which extensions a caller wants, one gate judging `.md` alone. Exported so the class is spelt here and nowhere else. */
-export const nameLike = (extra, tail = "[A-Za-z0-9]+") => new RegExp(`[A-Za-z0-9_./@${extra}-]+\\.${tail}`, "g");
-const TOKEN = nameLike("");
 /** How long after a call a file's mtime still answers for it. */
 export const FRESH_MS = 120_000;
 
@@ -189,7 +186,10 @@ function touching(ev, freshMs) {
   const command = String(ti.command ?? "");
   /* Two texts: as written, and with a shell binding and a body's own assembly resolved, so a name the call computed is one to ask the disk about. Beside the raw scan and never instead — the resolved one drops a data heredoc's body. how/writes.md. */
   const resolved = shellWrites(command);
-  const tokens = [...new Set([...(command.match(TOKEN) ?? []), ...(resolved.match(TOKEN) ?? [])])];
+  /* Both readings of each text, the disk being what answers here: a candidate that is not a file costs a lookup, while a word opening with a hyphen that really is one — a redirect's target — costs the write. */
+  const tokens = [...new Set([command, resolved]
+    .flatMap((one) => [...namesOf(one), ...namesOf(one, undefined, AIMED_AT)])
+    .map((one) => one.token))];
   const since = tokens.length ? callAt(turnRecords(transcriptOf(ev))) : 0;
   /* What the text claims answers on the stamp alone: a write putting back HEAD's bytes is one the tree cannot report. The rest are mentions, which a git operation in this same call stamps too. */
   const claims = new Set(tokens.length ? writtenPaths(resolved, cwd).map((one) => one.token) : []);
@@ -220,7 +220,7 @@ export const named = (ev) => {
   const cwd = ev.cwd || process.cwd();
   const found =
     ev.tool_name === "Bash"
-      ? (String(ti.command ?? "").match(TOKEN) ?? [])
+      ? namesOf(String(ti.command ?? "")).map((one) => one.token)
       : [ti.file_path ?? ti.notebook_path ?? ""].filter(Boolean);
   return found.map((one) => resolve(cwd, one));
 };
@@ -427,8 +427,6 @@ export const expanded = (command) => {
   return command.replace(NAMED, (whole, braced, bare, at) => resolve(braced ?? bare, at) ?? whole);
 };
 
-/** Every file a shell command would write, each with the trees the write could land in: a verb counts for the command it starts and a redirect for its own target, and a name the shell would still expand is placed against every tree the command could be standing in, while one it would not — a leading `~`, a `$` the class below dropped — answers for what it spells and nothing more. `pattern` narrows which names a caller wants. `forge hooks --how writes`. */
-const WRITTEN = nameLike("~");
 /* A quoted span is the write's target only where it could be one filename, so a sentence and a payload a command carries are both data — twelve refusals in three days were a write word and a path in one line of prose, and a guarded path spelled as a bare element of a JSON list a command was writing elsewhere is the same defect without the spaces. A `-c` body is code. Narrowing, not a parse: a quote or a bracket is legal in a name no tree this guards uses, and a payload that is exactly one path still reads as a target. */
 const NOT_A_NAME = /["'\s[\]]/u;
 const spoken = (said) =>
@@ -436,13 +434,17 @@ const spoken = (said) =>
     .replace(RUNS, (all, runner, body) => ` ${body.slice(1, -1)} `)
     .replace(QUOTED, (span) => (NOT_A_NAME.test(span.slice(1, -1)) ? " " : span));
 
-const namesIn = (said, pattern) =>
-  [...said.matchAll(pattern)].map((one) => ({
-    token: one[0],
-    placed: one[0][0] !== "~" && said[one.index - 1] !== "$",
+/* A redirect's operand is a filename and never an option, so a target opening with a hyphen is read whole where the same word standing among a command's arguments is not. */
+const AIMED_AT = { options: false };
+
+const namesIn = (said, tail, read) =>
+  namesOf(said, tail, read).map(({ token, at }) => ({
+    token,
+    placed: token[0] !== "~" && said[at - 1] !== "$",
   }));
 
-export const writtenPaths = (text, cwd, pattern = WRITTEN) => {
+/** Every file a shell command would write, each with the trees the write could land in: a verb counts for the command it starts and a redirect for its own target, and a name the shell would still expand is placed against every tree the command could be standing in, while one it would not — a leading `~`, a `$` the reader above stopped at — answers for what it spells and nothing more. `tail` narrows which extensions a caller wants. `forge hooks --how writes`. */
+export const writtenPaths = (text, cwd, tail) => {
   const held = new Map();
   const standing = (at) => {
     if (!held.has(at)) {
@@ -452,10 +454,10 @@ export const writtenPaths = (text, cwd, pattern = WRITTEN) => {
   };
   const named = spans(text).flatMap(({ start, end }) => {
     const said = spoken(text.slice(start, end).trim());
-    return WRITES.test(said) ? namesIn(said, pattern).map((one) => ({ ...one, at: start })) : [];
+    return WRITES.test(said) ? namesIn(said, tail).map((one) => ({ ...one, at: start })) : [];
   });
   const aimed = [...text.matchAll(REDIRECT)]
-    .flatMap((one) => namesIn(unquote(one[1]), pattern).map((each) => ({ ...each, at: one.index })));
+    .flatMap((one) => namesIn(unquote(one[1]), tail, AIMED_AT).map((each) => ({ ...each, at: one.index })));
   return [...aimed, ...named].map(({ token, placed, at }) => {
     const trees = placed && !token.startsWith("/") ? standing(at) : [];
     return { token, trees, paths: [token, ...trees.map((tree) => join(tree, token))] };
