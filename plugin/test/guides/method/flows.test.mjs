@@ -8,13 +8,13 @@ import { writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { flat, tempHome, tempRoom } from "../fixtures.mjs";
+import { flat, tempHome, tempRoom } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("screen-flow").path;
-const { DEFAULT, SCREEN } = await import("../../src/guides/flow.mjs");
-const { skillGuideSlugs } = await import("../../src/guides/skill-guides.mjs");
+const { DEFAULT, SCREEN } = await import("../../../src/guides/flow.mjs");
+const { skillGuideSlugs } = await import("../../../src/guides/skill-guides.mjs");
 
-const PLUGIN = new URL("../../", import.meta.url).pathname;
+const PLUGIN = new URL("../../../", import.meta.url).pathname;
 const FORGE = join(PLUGIN, "bin", "forge");
 
 /* One flow per process, the resolver answering once, so every reading spawns the verb. */

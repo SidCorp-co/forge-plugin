@@ -7,18 +7,18 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { flat, tempHome } from "../fixtures.mjs";
+import { flat, tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("method-phases").path;
-const { DEFAULT, FLOW_SLUGS } = await import("../../src/guides/flow.mjs");
-const { servedBody } = await import("../../src/guides/skill-guides.mjs");
-const { render: rendered } = await import("../../src/guides/render.mjs");
-const { conditionsAt } = await import("../../src/guides/conditions.mjs");
-const { TOOL_STATES } = await import("../../src/tools/services/tool-config.mjs");
-const { PHASE } = await import("../../src/guides/phases.mjs");
-const { partFor, partsOf, readContract } = await import("../../src/guides/contract.mjs");
+const { DEFAULT, FLOW_SLUGS } = await import("../../../src/guides/flow.mjs");
+const { servedBody } = await import("../../../src/guides/skill-guides.mjs");
+const { render: rendered } = await import("../../../src/guides/render.mjs");
+const { conditionsAt } = await import("../../../src/guides/conditions.mjs");
+const { TOOL_STATES } = await import("../../../src/tools/services/tool-config.mjs");
+const { PHASE } = await import("../../../src/guides/phases.mjs");
+const { partFor, partsOf, readContract } = await import("../../../src/guides/contract.mjs");
 
-const PLUGIN = new URL("../../", import.meta.url).pathname;
+const PLUGIN = new URL("../../../", import.meta.url).pathname;
 const TEXT = readContract();
 const PARTS = partsOf(TEXT);
 
