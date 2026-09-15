@@ -42,8 +42,9 @@ export const VERBS = [
       unmark: "`forge record merged --undo`" } }],
   ["advance", "<uuid|ISS-45> [...]", "the next status, earned by the record or refused with what it owes",
     "forge_issues", { group: FLOW, wraps: { transition: "`forge advance`" } }],
-  ["spec", "<id>[~<rev>]", "one clause of the requirements tree, read by its identifier",
-    null, { group: METHOD }],
+  /* Another tool's route by its whole key: this verb owns none of its own. */
+  ["spec", "<id>[~<rev>] [--status]", "one clause of the requirements tree, read by its identifier",
+    null, { group: METHOD, wraps: { "forge_issues.citing": "`forge spec <id> --status`" } }],
   ["attach", "<issue|comment> <uuid|ISS-45> <file>...", "upload; no base64 through context",
     "forge_uploads", { group: BACKLOG, wraps: { request: "`forge attach`" } }],
   /* Owns no route: the search it spends is the knowledge verb's to declare. */

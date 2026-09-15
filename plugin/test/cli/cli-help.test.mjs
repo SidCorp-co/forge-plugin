@@ -166,7 +166,7 @@ const FIELDS_OF = {
   resume: null,
   record: null,
   advance: "documentId",
-  spec: null,
+  spec: "filters, limit, offset",
   attach: "bytes",
   alike: null,
   next: null,

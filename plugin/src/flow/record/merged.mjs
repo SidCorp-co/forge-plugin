@@ -60,6 +60,15 @@ const pathsIn = (said) => {
 const readPaths = (comments, flag) => pathsIn(readClause(comments, flag)?.trim());
 
 export const landingMoved = (comments) => readPaths(comments, "moved");
+
+/** ISS-156's rule, spent by two readers: a landing that moved none of this change's paths judged the code that landed, so a verdict at the judged head stands and the commits below are what one may cite. */
+export const judgedStands = (comments) =>
+  Boolean(judgedHead(comments)) && landingMoved(comments)?.length === 0;
+
+export const verdictHeads = (comments) => [
+  markedCommit(comments),
+  ...(judgedStands(comments) ? [judgedHead(comments)] : []),
+].filter(Boolean);
 export const landingWrote = (comments) => readPaths(comments, "wrote");
 
 /* What the clauses are joined by, so a path holding one reads as its clause ending there and a `moved` with one path in it reads as none moved, which is the reading a status acts on. Refused wherever the note is composed, the landing task composing one too, and under its own flag where one was typed; and what no path may hold, said once for the flag that names itself and for the composer that has no flag to name. */

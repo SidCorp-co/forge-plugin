@@ -116,6 +116,13 @@ export const browseOf = (row) => {
     mergedAt, createdAt, updatedAt };
 };
 
+/* What reading a citation backwards needs and `browseOf` may not grow: docs/cli/spec-the-status.md. */
+export const citingOf = (row) => ({
+  ...named(row),
+  ...pick(row, ["title", "status", "mergedAt", "mergedCommitSha", "matchedFields",
+    "description", "plan", "acceptanceCriteria"]),
+});
+
 export const commentOf = (row) => ({ documentId: row?.id ?? null, ...pick(row, COMMENT) });
 
 const threadOf = (page) => ({
@@ -281,6 +288,13 @@ export const ROUTES = {
     project: true,
     requests: issueList,
     answers: ({ page }) => paged(page, "issues", rowsIn(page, "items").map(browseOf), "limit"),
+    sends: ["limit", "offset", "filters"],
+  },
+  /* One wire route, two actions: a projection chosen at the call is one no capture can pin. */
+  "forge_issues.citing": {
+    project: true,
+    requests: issueList,
+    answers: ({ page }) => paged(page, "issues", rowsIn(page, "items").map(citingOf), "limit"),
     sends: ["limit", "offset", "filters"],
   },
   "forge_issues.at": {

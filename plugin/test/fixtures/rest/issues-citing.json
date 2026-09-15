@@ -1,0 +1,109 @@
+{
+  "taken": "2026-09-15",
+  "tool": "forge_issues",
+  "action": "citing",
+  "routes": {
+    "page": "GET /projects/cda0adf0-fa3e-436c-ad7e-f3357e62778a/issues/search?q=AC-14-4-3&limit=2&sort=updatedAt:desc"
+  },
+  "note": "No tool answered this: the MCP surface never had a citing action, so what is pinned here is the body the projection reads a citing row off — the three fields a citation may sit in, and the matchedFields the search route adds and the browse route does not.",
+  "rowsTrimmed": "the four long text columns are cut at 200 code points; the projection carries the column and never its length",
+  "secretsDropped": [
+    "identSearch",
+    "sessionContext",
+    "descriptionNodes",
+    "activity",
+    "comments",
+    "agentSessions",
+    "metadata"
+  ],
+  "rest": {
+    "answer": {
+      "items": [
+        {
+          "id": "cf587a8b-e397-4635-b9b5-3ccf88cd6d0d",
+          "projectId": "cda0adf0-fa3e-436c-ad7e-f3357e62778a",
+          "issSeq": 424,
+          "title": "No bounded read names the issues citing a clause, so a requirement's implementation state cannot be reported",
+          "description": "## What happens today\n\nNothing derives a requirement's status. `plugin/src/spec/` reads clauses out of the checkout and\nanswers by identifier; it never reaches the tracker, so nothing can say which FR …",
+          "descriptionFormat": "markdown",
+          "status": "in_progress",
+          "priority": "high",
+          "category": "feature",
+          "reportedBy": null,
+          "createdVia": "mcp",
+          "detectorKey": null,
+          "assigneeId": null,
+          "createdById": "0a3bb457-c689-4773-bf87-f3aba7198539",
+          "mergedAt": null,
+          "mergedCommitSha": null,
+          "complexity": "l",
+          "reopenCount": 0,
+          "waitingKind": null,
+          "source": "manual",
+          "externalId": null,
+          "plan": "# The reverse read, and a requirement's status derived from it\n\n## Files touched\n\n- `plugin/src/spec/citing.mjs` — new. The reverse read: which issues cite a clause, in one paged\n  search on that clau …",
+          "acceptanceCriteria": "1. AC-14-4-3~1: `forge spec <id> --status` reports a status for that clause derived from the verdicts at the merged commits of the issues citing it, and no field of the tracker or of the checkout hold …",
+          "releaseNotes": null,
+          "releaseBatchRunId": null,
+          "createdAt": "2026-09-05T19:25:25.578Z",
+          "updatedAt": "2026-09-15T03:08:18.738Z",
+          "displayId": "ISS-424",
+          "matchedFields": [
+            "description",
+            "plan",
+            "acceptanceCriteria"
+          ],
+          "creatorEmail": "thanhnh@sidcorp.co",
+          "creatorIsAgent": true,
+          "creatorLabel": "Forge Agent"
+        },
+        {
+          "id": "197d284c-300d-4f2c-80bd-f008fe6e20a7",
+          "projectId": "cda0adf0-fa3e-436c-ad7e-f3357e62778a",
+          "issSeq": 28,
+          "title": "A citation in a plan is resolved against the requirements tree at the write",
+          "description": "## What happens today\n\n`forge plan` writes whatever markdown it is handed. A plan may name `FR-14`, `UC-14-4~1` or a clause\nthat does not exist, and all three are stored alike; a citation written agai …",
+          "descriptionFormat": "markdown",
+          "status": "closed",
+          "priority": "high",
+          "category": null,
+          "reportedBy": null,
+          "createdVia": "mcp",
+          "detectorKey": null,
+          "assigneeId": null,
+          "createdById": "0a3bb457-c689-4773-bf87-f3aba7198539",
+          "mergedAt": "2026-09-05T19:57:17.038Z",
+          "mergedCommitSha": null,
+          "complexity": null,
+          "reopenCount": 0,
+          "waitingKind": null,
+          "source": "manual",
+          "externalId": null,
+          "plan": "# ISS-28 — a citation in a plan is resolved against the tree at the write\n\nScreen change: no\nSchema coupling: no\nUser-facing outcome: no\n\n## The one thing verified in code that makes this possible\n\n`p …",
+          "acceptanceCriteria": "1. `forge plan` refuses a plan whose text cites an identifier that names no clause of this project's tree, and the refusal names the nearest identifiers.\n2. `forge plan` refuses a plan citing a clause …",
+          "releaseNotes": {
+            "section": "Added",
+            "technical": "forge plan runs plugin/src/spec/citation.mjs over the plan text before the first tracker call, behind hasTree(). identifiersIn spans the clause prefixes and the tree's FOREIGN ones; citationsIn is that list filtered back to a clause prefix, so every clause digest is unchanged.",
+            "userFacing": "If your project keeps a requirements tree, forge plan now checks what a plan cites before it stores anything. An identifier that names no clause is refused with the closest ones it could have meant, and one written against a revision the clause has moved past is refused with the revision to write instead. Nothing is stored when a citation is refused, so you fix it in the file you are still holding. A project with no tree sees none of this."
+          },
+          "releaseBatchRunId": null,
+          "createdAt": "2026-09-02T16:02:04.590Z",
+          "updatedAt": "2026-09-05T20:00:19.125Z",
+          "displayId": "ISS-28",
+          "matchedFields": [
+            "plan",
+            "acceptanceCriteria"
+          ],
+          "creatorEmail": "thanhnh@sidcorp.co",
+          "creatorIsAgent": true,
+          "creatorLabel": "Forge Agent"
+        }
+      ],
+      "returned": 2,
+      "total": 2,
+      "limit": 2,
+      "offset": 0,
+      "hasMore": false
+    }
+  }
+}

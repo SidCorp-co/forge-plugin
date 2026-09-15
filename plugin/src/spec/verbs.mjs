@@ -19,7 +19,7 @@ const LINK = new RegExp(LINK_TEXT_PATTERN, "gu");
    label is the clause's words, the target is how they are filed. */
 const readable = (text) => String(text).replace(LINK, "$1");
 const HELD_IN_A_ROW = ["BR", "G", "M", "C", "A"];
-const KNOWN = ["--json", "--where"];
+const KNOWN = ["--json", "--where", "--status"];
 const TWO_HOMES = "two documents define this: ask for it alone, and both are named.";
 const CHECK = "check";
 const RECORDING = "--record";
@@ -34,6 +34,8 @@ export const USAGE = [
   "  <id>~<rev>  a citation: the clause prints, and a revision that has moved is called stale",
   "  --json      the clause and everything printed under it, one object each, for a verb to read",
   "  --where     the file and heading behind each clause, the one path this verb ever prints",
+  "  --status    what the issues citing each criterion have proved of it, derived at this read and",
+  "              stored nowhere — the one thing here that asks the tracker",
   `  ${CHECK}       the whole tree against the rules its own index states; \`forge spec ${CHECK} -h\``,
   `  ${CHECK} ${RECORDING}  writes the digest of every clause to the file those rules compare a citation against`,
   "",
@@ -135,6 +137,31 @@ const asData = (clause, given) => ({
   ...(given.where ? { file: clause.file, heading: clause.heading } : {}),
 });
 
+/* Named rather than counted: a rung is only useful beside the issues it was read off, and a reader
+   who has to ask which issue proved a clause has been given a number and not an answer. */
+const NO_RUNG = "no rung";
+
+const rungSaid = (one) => {
+  const rest = one.citedBy.map((row) => row.issueId).filter((key) => !one.provers.includes(key));
+  const proved = one.provers.length ? `proved by ${one.provers.join(", ")}` : "";
+  const also = rest.length ? `${proved ? "; also " : ""}cited by ${rest.join(", ")}` : "";
+  return `${proved}${also}`;
+};
+
+const statusLines = (held) => {
+  const wide = Math.max(...held.clauses.map((one) => one.id.length), 0);
+  const rungs = Math.max(...held.clauses.map((one) => (one.rung ?? NO_RUNG).length), 0);
+  return [
+    "",
+    `Status of ${held.id}: ${held.rung ?? "none derived — a citing set came back cut"}`,
+    "It is derived at this read from the verdicts on the issues citing each clause, and stored nowhere.",
+    "",
+    ...held.clauses.map((one) =>
+      `  ${one.id.padEnd(wide)}  ${(one.rung ?? NO_RUNG).padEnd(rungs)}  ${rungSaid(one)}`.trimEnd()),
+    ...held.clauses.filter((one) => one.cut).map((one) => `\n${one.cut}`),
+  ];
+};
+
 const printed = (index, clause, ref, given) => {
   const stale = staleLine(ref, clause);
   if (stale) console.log(`${stale}\n`);
@@ -196,7 +223,7 @@ const checked = (rest) => {
     + "Every rule named above is stated in docs/requirements/README.md, one row each.";
 };
 
-const run = (argv) => {
+const run = async (argv, readStatus) => {
   /* `check` is the only subject this verb has; every other word in that slot is an identifier, so a help word after one is the stray argument `read` already refuses rather than a question. */
   const help = helpAskedOf(argv, [CHECK]);
   if (help || !argv.length) return console.log(help?.subject === CHECK ? CHECK_USAGE : USAGE);
@@ -212,19 +239,28 @@ const run = (argv) => {
   if (!KIND[ref.prefix] && ref.prefix !== "R") refuse(`\`${token}\` carries no known prefix. One of ${FORMS}.`);
   const index = specTree();
   const clause = clauseFor(index, ref);
-  if (!given.json) return printed(index, clause, ref, given);
+  if (given.status && !readStatus) {
+    refuse("spec was wired without the reader --status spends: whichever module registers this verb "
+      + "passes `readStatus`, which is `statusOf` in plugin/src/trace/citing.mjs.");
+  }
+  const status = given.status ? await readStatus(clause.id, index) : null;
+  if (!given.json) {
+    printed(index, clause, ref, given);
+    return status ? console.log(statusLines(status).join("\n")) : null;
+  }
   return console.log(JSON.stringify({
     asked: token,
     cited: ref.cited,
     stale: Boolean(staleLine(ref, clause)),
     ambiguous: ambiguousUnder(index, clause.id),
     clauses: withDescendants(index, clause.id).map((one) => asData(one, given)),
+    ...(status ? { status } : {}),
   }, null, 2));
 };
 
-export const spec = (argv) => {
+export const spec = async (argv, { readStatus = null } = {}) => {
   try {
-    run(argv);
+    await run(argv, readStatus);
   } catch (error) {
     if (error instanceof Refused) fail(error.message);
     throw error;

@@ -6,7 +6,7 @@ import {
   CLOSES_FROM, FINDINGS, SHAPES, TRIAGES, criteriaUncovered, looksTo, need, planFlags, planSteps,
   planTyped, sectionsOwed, stepsUncited, unwrap,
 } from "./machine.mjs";
-import { correctionForm, judgedHead, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead } from "./record/merged.mjs";
+import { correctionForm, judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead } from "./record/merged.mjs";
 import { eachProblem } from "./record/content.mjs";
 import { FORMS } from "../spec/parse.mjs";
 import { lightens } from "../ladder.mjs";
@@ -276,7 +276,7 @@ const verdictsOwed = (view, ref) => {
   const merged = markedCommit(view.comments);
   const judged = judgedHead(view.comments);
   const moved = judged ? landingMoved(view.comments) : null;
-  const stands = Boolean(judged) && moved?.length === 0;
+  const stands = judgedStands(view.comments);
   const ask = (number) => askOne(ref, number, merged ?? "<sha>");
   const out = foldVerdicts(ref, view.owed, merged ?? "<sha>",
     (number) => `criterion ${number} has no verdict`,

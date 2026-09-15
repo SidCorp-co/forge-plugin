@@ -118,6 +118,11 @@ const PAIRS = {
    projection produces from a captured body. */
 const SHAPES = {
   "issues-at": { key: "forge_issues.at", keys: ["row", "total"] },
+  /* The reverse read's own row. No pair: the MCP surface never had this action, so there is no
+     answer to compare with, and what is pinned is that the three fields a citation may sit in and
+     the field the search matched all survive the projection. */
+  "issues-citing": { key: "forge_issues.citing",
+    keys: ["issues", "returned", "limit", "hasMore"] },
   "issues-create": { key: "forge_issues.create", keys: ["documentId", "issueId"] },
   "issues-update": { key: "forge_issues.update", keys: ["documentId", "issueId"] },
   "issues-transition": { key: "forge_issues.transition", keys: ["documentId", "status"] },
@@ -156,6 +161,28 @@ describe("the route table answers with the shape the tool answered with", () => 
       }
     });
   }
+});
+
+/* The envelope verdict above says the page came through; what the reverse read is for is the row,
+   and a projection that dropped a citation field would leave the narrowing with nothing to resolve
+   and every candidate kept. */
+describe("the citing projection carries what a citation is resolved out of", () => {
+  it("each row keeps the three fields a citation may sit in and the field the search matched", () => {
+    const { issues } = ROUTES["forge_issues.citing"]
+      .answers({ page: held("issues-citing").rest.answer }, {});
+    assert.ok(issues.length > 1, "one row cannot show a projection that varies by row");
+    for (const row of issues) {
+      assert.match(row.issueId, /^ISS-\d+$/u);
+      for (const field of ["description", "plan", "acceptanceCriteria"]) {
+        assert.ok(Object.hasOwn(row, field), `${row.issueId} lost ${field}, which is where a citation sits`);
+      }
+      assert.ok(Array.isArray(row.matchedFields), `${row.issueId} carries no matchedFields`);
+      assert.ok(Object.hasOwn(row, "status") && Object.hasOwn(row, "mergedAt"),
+        `${row.issueId} carries neither the status nor the merged mark a verdict is judged against`);
+    }
+    assert.ok(issues.some((row) => (row.matchedFields ?? []).includes("plan")),
+      "no row matched on the plan, so this capture cannot show the field the browse route never had");
+  });
 });
 
 /* The lookup guesses an offset from the key's own number and searches from there, so it reads two

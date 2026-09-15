@@ -32,6 +32,7 @@ how many topics there may be.
 | [`the turn`](cli/the-turn.md) | Whose turn each landing state names, the three routes one is handed back by, and why a state whose successor nothing writes is a landing parked for good. |
 | [`resume`](cli/resume.md) | What the worklog holds beside the lease, why no capture of it is automatic, and what the brief prints. |
 | [`spec`](cli/spec.md) | Why a clause is answered by its identifier, and the three readings of the notation narrowed rather than guessed. |
+| [spec — a clause read backwards](cli/spec-the-status.md) | Why the issues citing a clause are a search narrowed rather than a store walked, why the ask is per clause, what a criterion proves that a mention does not, and why a cut set earns no rung. |
 | [two writes that lie about themselves](cli/two-writes-that-lie.md) | Why a field is reported written only after the server shows it, why the read-back compares the copy the boundary sent, and why the count a reply answers to is read off argv, not at the layer reporting. |
 | [the entry checks](cli/the-entry-checks.md) | The obligations a plugin holds a project to without reading its tree, and why `--scope` is both asked for and excused. |
 | [the work](cli/the-work.md) | What the opening says about a branch already carrying the phase it names, why reaching it is two offline readings, and why a capture with no diff behind it still writes one. |

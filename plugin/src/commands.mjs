@@ -47,7 +47,8 @@ import { hooks } from "./hooks/hook-log.mjs";
 import { record } from "./flow/record/record.mjs";
 import { advance } from "./flow/advance.mjs";
 import { overrideFields } from "./flow/override.mjs";
-import { spec } from "./spec/verbs.mjs";
+import { spec as clauseVerb } from "./spec/verbs.mjs";
+import { statusOf } from "./trace/citing.mjs";
 import { claim } from "./flow/claim.mjs";
 import { indexFor, resume } from "./flow/resume.mjs";
 import { finderSaid, notAnothers, renew } from "./flow/lease.mjs";
@@ -213,6 +214,11 @@ const wroteEdge = async (subject, asked) => {
   return `${subject} ${kind} ${other}: written on the ${blocked.ref} dependency route, and reads back `
     + `under ${kind === "blocks" ? "blockedBy" : "relates"} there.`;
 };
+
+/* The one composition in this table: `spec/` reads the checkout and may not import the workflow, and
+   the rung `--status` prints is derived from workflow records, so the two halves are wired here. */
+const spec = (argv) => clauseVerb(argv, { readStatus: statusOf });
+spec.answersHelp = true;
 
 export const commands = {
   doctor,
