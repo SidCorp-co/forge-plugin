@@ -11,7 +11,6 @@ import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
 import { FROM_PROJECT, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { sayDeclined } from "./declined.mjs";
 import { DECLARES, ROUTES, answersOf, droppedRefusal, keyOf, noRouteRefusal, rowFor, undeclaredIn } from "./routes.mjs";
 
 const RETRY_ATTEMPTS = 4;
@@ -176,6 +175,24 @@ const fetchedParts = async (row, args, soft, held) => {
   return parts;
 };
 
+/* What a write's answer says beside the row, and why it is read here rather than out of what a row
+   projects: docs/cli/one-transport.md. */
+const sentence = (one) => {
+  if (one === null || one === undefined) return "";
+  return typeof one === "string" ? one : one.message ?? JSON.stringify(one);
+};
+
+export const warningsIn = (body) => {
+  const held = body?.warnings;
+  return (Array.isArray(held) ? held : [held]).map(sentence).filter((one) => one.trim() !== "");
+};
+
+const sayDeclined = (key, bodies, say = console.error) => {
+  for (const body of bodies) {
+    for (const said of unfencedIn(warningsIn(body))) say(`${key}: ${said}`);
+  }
+};
+
 export const callTool = async (name, args, soft = false, held = {}) => {
   const key = keyOf(name, args);
   const row = ROUTES[key];
@@ -187,7 +204,7 @@ export const callTool = async (name, args, soft = false, held = {}) => {
   /* The tracker's words with nothing in front: a caller reading the first line frames it itself. */
   const bad = parts.find(([, held]) => held.refused);
   if (bad) return stop(bad[1].refused);
-  if (row.writes) sayDeclined(key, parts.map(([, held]) => held.body), unfencedIn);
+  if (row.writes) sayDeclined(key, parts.map(([, held]) => held.body));
   return unfencedIn(answersOf(row)(Object.fromEntries(parts.map(([part, held]) => [part, held.body])), args));
 };
 

@@ -89,9 +89,9 @@ project never changes, and a credential change is what drops it.
 it. It happens in the transport, so a verb added later cannot forget.
 
 **A write that took half of what it was asked for says which half beside the row, and that sentence
-is read off the answer rather than out of a row's projection.** `plugin/src/tracker/declined.mjs` is
-where, and the transport hands it every write's body before a row is projected. Above that point
-there is nothing left to read: a projection keeping a fixed set of a row's fields drops every sibling
+is read off the answer rather than out of a row's projection.** The transport reads it off every
+write's body, one call above the row that body becomes, because above that point there is nothing
+left to read: a projection keeping a fixed set of a row's fields drops every sibling
 of them with it, and the one dropped here reads to a caller exactly like the whole call having
 happened — the status line is true about the status and silent about everything else. It is *said*
 and never raised: the write it stands beside did happen, and a caller told otherwise would undo work
