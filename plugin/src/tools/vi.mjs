@@ -38,12 +38,26 @@ const viNatural = (argv, shown = argv, done = [0]) => {
   return run;
 };
 
+/* Both refusals below leave through `fail`, whose `process.exit` runs no `finally`, so the room and
+   the user's prose in it outlived every refused run (ISS-1427). The removal is registered where an
+   exit still reaches it, and `remove` is what frees it inside an embedded run, where `fail` throws
+   and the process carries on. */
+const roomFor = (prefix) => {
+  const at = mkdtempSync(join(tmpdir(), prefix));
+  const sweep = () => rmSync(at, { recursive: true, force: true });
+  process.once("exit", sweep);
+  return { at, remove: () => {
+    process.off("exit", sweep);
+    sweep();
+  } };
+};
+
 /* `doc` keeps fences, spans and link targets, so a body may carry shas and paths safely. */
 const translatedBody = (text) => {
-  const directory = mkdtempSync(join(tmpdir(), "forge-vi-"));
+  const room = roomFor("forge-vi-");
   try {
-    const source = join(directory, "body.md");
-    const target = join(directory, "body.vi.md");
+    const source = join(room.at, "body.md");
+    const target = join(room.at, "body.vi.md");
     writeFileSync(source, text);
     const shown = ["doc", "-o", "<vietnamese>.md", "<english>.md"];
     const run = viNatural(["doc", "-o", target, source], shown);
@@ -53,7 +67,7 @@ const translatedBody = (text) => {
     }
     return readFileSync(target, "utf8");
   } finally {
-    rmSync(directory, { recursive: true, force: true });
+    room.remove();
   }
 };
 

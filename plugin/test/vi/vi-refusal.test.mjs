@@ -3,13 +3,14 @@
    wrapper for real against a gateway that is not configured (ISS-288). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { writeFileSync } from "node:fs";
+import { readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { ranAsync, tempRoom } from "../fixtures.mjs";
 import { BUNDLED, commandLine } from "../../src/tools/vi.mjs";
 
 const SOURCE = new URL("../../src/tools/vi.mjs", import.meta.url);
+const SETTINGS = new URL("../../src/resolve/settings.mjs", import.meta.url);
 
 /** The layer run for real on a machine that has never run `vi-natural login`: a field it reaches
  *  is refused there, and one it leaves alone comes back on stdout. */
@@ -55,4 +56,38 @@ test("a release note's user-facing half goes through the layer, and its other tw
   const written = await layerOn({ releaseNotes: { ...note, userFacing: "" } });
   assert.equal(written.status, 0, `the enum and the payload half reach no gateway:\n${written.stderr}`);
   assert.deepEqual(JSON.parse(written.stdout).releaseNotes, { ...note, userFacing: "" }, "and come back as written");
+});
+
+/* The room the layer makes to hand `doc` its pair outlived every refused run: `fail` ends in
+   `process.exit`, which runs no `finally` (ISS-1427). So the temporary root is this case's own and
+   is read after the refusal, rather than the one the fixtures point every process at. */
+const underRoot = (root, call) => {
+  const room = tempRoom("vi-room-");
+  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "any", translate: "vi" }));
+  return ranAsync(process.execPath, ["-e", call], { ...process.env, XDG_CONFIG_HOME: room, TMPDIR: root }, room);
+};
+
+test("a refusal that ends the process takes the room with it", async () => {
+  const root = tempRoom("vi-exit-root-");
+  const { status } = await underRoot(root,
+    `import("${SOURCE.href}").then((m) => m.translated({ description: "The body in English." }))`);
+  assert.equal(status, 1, "the gateway is not configured, so this is the refusing path");
+  assert.deepEqual(readdirSync(root), [], "and nothing of it is left in the temporary root it ran under");
+});
+
+test("an embedded refusal frees the room before the call returns, with no exit to do it", async () => {
+  const root = tempRoom("vi-embedded-root-");
+  const call = [
+    "(async () => {",
+    `  const vi = await import("${SOURCE.href}");`,
+    `  const settings = await import("${SETTINGS.href}");`,
+    '  const { readdirSync } = await import("node:fs");',
+    '  try { await settings.refusing(() => vi.translated({ description: "The body in English." })); }',
+    '  catch (refused) { console.log(JSON.stringify({ said: String(refused.message), left: readdirSync(process.env.TMPDIR) })); }',
+    "})()",
+  ].join("\n");
+  const { stdout } = await underRoot(root, call);
+  const answered = JSON.parse(stdout);
+  assert.match(answered.said, /vi-natural could not write the Vietnamese/u, "the embedded run is refused, not exited");
+  assert.deepEqual(answered.left, [], "and the room is gone while that process is still running");
 });
