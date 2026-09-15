@@ -207,6 +207,11 @@ it. Reading is all this product does there.
   WHEN a profile is printed THEN the CLI SHALL list each guide part the window's runs read with its
   calls, the runs that read it and the runs that read it more than once, read off the call's own
   words by the reading the class uses, and SHALL keep the class table's one row for the verb.
+- **AC-19-8-27** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "one class per shape of work, whatever way it was typed"
+  WHEN a call in that record is classed THEN the CLI SHALL NOT read as the place a command
+  begins an operator the shell spent as a character of a word — one inside a single-quoted
+  span, inside a comment or behind a backslash — and SHALL go on reading one inside the body
+  a shell runner is handed.
 - **AC-19-8-17** · Rev: 1 · Proof: plugin/test/stats/outcomes.test.mjs "a run is joined to every issue its own claim output granted, and to none a refusal or a quoted line names"
   WHEN a run's work is joined to the issues it owned THEN the CLI SHALL read every ownership its own
   claim calls printed, by either name a claim may print it under, SHALL take the reference only where

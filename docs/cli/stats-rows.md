@@ -21,6 +21,15 @@ got wrong:
   a search argument into a claim, each opening a phase the run had not reached.
 - **A mention of a ship is not a ship.** A run waiting on one polls for the process by name; read
   as the invocation, that line moved every such run into its closing phase.
+- **And an operator the shell spent as text opens no command either.** A separator inside a
+  single-quoted argument, inside a comment or behind a backslash is a character of a word: 29 calls
+  of this project's own corpus were filed under a class their text only quoted, a `pgrep` pattern
+  among them counted as the gate it was watching for. Two spans go back to a shell and are left
+  standing — a double quote, where a `$(…)` is live and this reading cannot tell it from the words
+  beside it, and the body handed to a shell runner, taken off the word the quote opens so a body an
+  interpolation cuts in two resumes. The character struck in is one no pattern reads rather than a
+  space: with a space, `'/tmp/forge;close'` turned into a `forge close` nobody typed, and a reading
+  that may only ever take a call away had invented one.
 
 Two verbs earn a row per action, because their actions cost differently: a verdict against the other
 records, and a consult in the three shapes it comes in. The whole-set read that earns a review, the

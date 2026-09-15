@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 
 import { DEFAULT } from "../guides/flow.mjs";
 import { NOTHING, logRead } from "../hooks/log-reads.mjs";
+import { quoting } from "../hooks/shell-spans.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
 import { handledBy } from "../resolve/handler.mjs";
 import { RUNGS, highest } from "../ladder.mjs";
@@ -115,11 +116,40 @@ export const guideFlowOf = (body) => {
   return SERVED_FLOW.exec(held)?.[1] ?? (SERVED_METHOD.test(held) ? DEFAULT : null);
 };
 
-/* A heredoc carries a document, not shell: read as commands, the criteria files a run writes named
-   `npm run check` 423 times, each counted as a gate run that never happened. */
+/* Text a command carries is not a command it ran: read as one, heredoc bodies named `npm run
+   check` 423 times and `printf '%s\n' '; forge close ISS-45'` was a close that never happened.
+   Which spans go back to a shell, and what an operator is struck to: docs/cli/stats.md. */
 const HEREDOC = /<<-?\s*(['"]?)(\w+)\1(?:[\s\S]*?^[ \t]*\2[ \t]*$|[\s\S]*)/gmu;
+const OPERATOR = /[\n;|&(){}]/u;
+const TEXT = new Set(["'", "#", "\\"]);
+const RUNS = /(?:^|[\s;&|(){}])(?:\S*\/)?(?:ba|da|k|z|a)?sh\s+(?:(?:-\S+|[A-Za-z][\w-]*)\s+)*-[a-zA-Z]*c[a-zA-Z]*\s*$/u;
+const SPENT = "\u0000";
+const ENDS_A_WORD = /[\s;|&(){}<>]/u;
 
-export const shellOf = (command) => command.replaceAll(HEREDOC, "<<");
+export const shellOf = (command) => {
+  const text = command.replaceAll(HEREDOC, "<<");
+  const said = [];
+  const outer = [];
+  let word = 0;
+  let handed = false;
+  let last = " ";
+  for (const { at, one, under } of quoting(text)) {
+    if (under === " ") {
+      if (one === "(") {
+        outer.push(text[at - 1] === "$" ? word : null);
+        word = at + 1;
+      } else if (one === ")") {
+        const back = outer.pop();
+        word = typeof back === "number" ? back : at + 1;
+      } else if (ENDS_A_WORD.test(one)) word = at + 1;
+    }
+    if (under === "'" && last !== "'") handed = RUNS.test(text.slice(0, word));
+    last = under;
+    const ran = under === "'" ? handed : !TEXT.has(under);
+    said.push(ran || !OPERATOR.test(one) ? one : SPENT);
+  }
+  return said.join("");
+};
 
 /* The invocation, never the mention: `pgrep -f "tools/run.mjs ship"` is a run WAITING for one. */
 const SHIP = at(String.raw`node[ \t]+\S*tools/run\.mjs[ \t]+ship\b`);

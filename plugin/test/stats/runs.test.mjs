@@ -192,6 +192,23 @@ test("one class per shape of work, whatever way it was typed", () => {
     ['until ! pgrep -f "tools/run.mjs ship"; do sleep 10; done', "poll"],
     ["node /w/tools/run.mjs ship --note x", "ship"],
     ["cd /w && npm run check", "gate"],
+    /* Each of these was a call counted as having run what it only carried (ISS-781). */
+    ["printf '%s\\n' '; forge close ISS-45'", "shell"],
+    ["printf '%s\\n' '; npm run check'", "shell"],
+    ["echo a\\;forge close ISS-45", "shell"],
+    ["ls -l # ; npm run check", "read"],
+    ["git log --format=';'", "git"],
+    ["git commit -m 'forge: a subject naming npm run check'", "git"],
+    ["pgrep -af 'gates.mjs|npm run check'", "poll"],
+    ["grep -rn 'forge claim\\|npm run check' docs/", "read"],
+    /* And the two spans that go back to a shell: a runner's body, and a substitution. */
+    ["nohup bash -c 'node tools/gates.mjs --wait slot 90 && npm run check' > /tmp/g.log 2>&1 &", "gate"],
+    ["code=$(timeout 90 bash -c 'set -a; curl -s x'\"$m\"'; head -c 200 /tmp/p')", "read"],
+    ["echo \"head $(git rev-parse --short HEAD)\"", "git"],
+    ["'/tmp/forge;close' ISS-45", "shell"],
+    ["bash -c 'echo '$(printf x)'; npm run check'", "gate"],
+    ["bash -o pipefail -c 'echo ready; npm run check'", "gate"],
+    ["bash -c 'echo '$( (printf x) )'; npm run check'", "gate"],
   ]) {
     assert.equal(classOf("Bash", shellOf(command)), expected, command);
   }
