@@ -219,6 +219,27 @@ test("Phase 4 says what separates a change that owes a fresh read, and what a fi
     + "recheck, the round's own limits being the verb's help and not this method's");
 });
 
+/* The two rules above are about the diff alone, so a run amending its confined fix into its one
+   commit followed the phase exactly and lost the read the landing asks for (ISS-923, ISS-1395). */
+test("Phase 4 says the head the read was taken at survives to the landing, and no other phase does", () => {
+  const phases = phasesOf(SKILL);
+  for (const [beat, phrase] of [
+    ["what the read is pinned to", "pinned to the head it was taken at"],
+    ["the property that keeps it", "that head stays reachable from what lands"],
+    ["where the answering fix goes", "goes on top of it and is never folded into it"],
+    ["why a byte-identical tree is no defence", "leave the review answering for a commit the branch no longer carries"],
+    ["that the rule is the property rather than one verb", "an amend, a reset and a rebase of your own each break it alike"],
+    ["when a run may collapse its commits instead", "collapses the branch before it takes the read"],
+  ]) {
+    assert.ok(phases["4"].includes(phrase), `Phase 4 no longer names ${beat}, so a run answering a `
+      + "finding with an amend follows the phase exactly and arrives at the landing with a review "
+      + "that answers for a commit nothing carries (ISS-1395)");
+  }
+  const naming = Object.keys(phases).filter((n) => /stays reachable from what lands/u.test(phases[n]));
+  assert.deepEqual(naming, ["4"], "and the phase that takes the read is the only one that says the "
+    + "head it was taken at has to survive to the landing");
+});
+
 /* The cadence has one home, and a retirement leaving a copy behind is what ISS-108 refuses. Both
    directions are asserted: absence alone passes on a file somebody emptied, reading exactly like a
    clean repository. */

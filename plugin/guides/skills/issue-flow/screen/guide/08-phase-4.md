@@ -45,6 +45,13 @@ the same file and only one of them is a fresh subject to read. Without that line
 terminate, because a finding asking for a clearer sentence is answered by changing what the code
 prints, and every such change reads as a change to what the code does.
 
+**That read is pinned to the head it was taken at, and that head stays reachable from what lands.** A
+fix answering a finding goes on top of it and is never folded into it: the fold can leave a tree
+byte-identical and still leave the review answering for a commit the branch no longer carries, so the
+cheapest fix the lines above allow ends up owing the whole set after all. What is stated here is the
+property and not one verb, because an amend, a reset and a rebase of your own each break it alike. A
+run that wants one commit collapses the branch before it takes the read, never after.
+
 <!-- forge:when tool.codex configured -->
 **A fix made to close a finding is answered by a recheck**, `forge codex consult --recheck`, which
 verifies that consult's findings rather than roaming for new ones; what a recheck may not do is that
