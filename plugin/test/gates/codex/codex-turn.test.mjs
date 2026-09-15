@@ -8,19 +8,19 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { callHook, homeEnv, tempRoom } from "../fixtures.mjs";
+import { callHook, homeEnv, tempRoom } from "../../fixtures.mjs";
 
-const HOOK = new URL("../../hooks/entries/codex-turn.mjs", import.meta.url).pathname;
+const HOOK = new URL("../../../hooks/entries/codex/codex-turn.mjs", import.meta.url).pathname;
 const HOME = homeEnv("codex-turn");
 const room = tempRoom("codex-turn-");
 const STATE = join(HOME.XDG_CONFIG_HOME, "forge", "codex.json");
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
 /* Pointed at the temp home before the first source module loads, and imported dynamically for the
    same reason: `HOOK_LOG_PATH` and its like are read at import time, and a static import here is
    hoisted above any assignment below it, so it would freeze them on the developer's own config. */
 process.env.XDG_CONFIG_HOME = HOME.XDG_CONFIG_HOME;
-const { digestOf } = await import("../../src/shown/ledger.mjs");
+const { digestOf } = await import("../../../src/shown/ledger.mjs");
 
 const repo = (name) => {
   const root = join(room, name);
@@ -189,7 +189,7 @@ test("a checkout and the names in one call leave the gate with nothing to announ
    the race hides. Four processes recording into two checkouts at once is contention, and without a
    lock the read-modify-write loses whatever another one wrote in between. */
 const STORM = `
-import { hookRecord } from "${new URL("../../src/codex/codex.mjs", import.meta.url).pathname}";
+import { hookRecord } from "${new URL("../../../src/codex/codex.mjs", import.meta.url).pathname}";
 /* With -e there is no script path, so the first argument is argv[1]. */
 const [root, mine, count] = process.argv.slice(1);
 for (let n = 0; n < Number(count); n += 1) {
@@ -242,7 +242,7 @@ test("nothing is lost when several projects record at the same moment", async ()
    name means no later writer touches it. One minute old is nobody's write in progress. */
 test("a temp file a killed writer left behind is swept, and a live one is not", async () => {
   process.env.XDG_CONFIG_HOME = HOME.XDG_CONFIG_HOME;
-  const { writeJsonPrivate } = await import("../../src/resolve/config.mjs");
+  const { writeJsonPrivate } = await import("../../../src/resolve/config.mjs");
   const room = join(HOME.XDG_CONFIG_HOME, "forge");
   mkdirSync(room, { recursive: true });
   const target = join(room, "swept.json");
@@ -262,7 +262,7 @@ test("a temp file a killed writer left behind is swept, and a live one is not", 
    reads "N refusal(s)" is what a false positive looks like from outside. */
 test("giving up on the lock leaves a note, and the note is not counted as a refusal", async () => {
   process.env.XDG_CONFIG_HOME = HOME.XDG_CONFIG_HOME;
-  const { holding } = await import("../../src/codex/codex.mjs");
+  const { holding } = await import("../../../src/codex/codex.mjs");
   const lock = join(HOME.XDG_CONFIG_HOME, "forge", "codex.json.lock");
   mkdirSync(dirname(lock), { recursive: true });
   writeFileSync(lock, "somebody-still-holding-it");
@@ -289,7 +289,7 @@ test("giving up on the lock leaves a note, and the note is not counted as a refu
    config directory. */
 test("a writer whose lock was broken does not remove the one that replaced it", async () => {
   process.env.XDG_CONFIG_HOME = HOME.XDG_CONFIG_HOME;
-  const { holding } = await import("../../src/codex/codex.mjs");
+  const { holding } = await import("../../../src/codex/codex.mjs");
   const lock = join(HOME.XDG_CONFIG_HOME, "forge", "codex.json.lock");
   let entered = false;
   holding(() => {
@@ -304,7 +304,7 @@ test("a writer whose lock was broken does not remove the one that replaced it", 
 /* The writer asked directly, with no lock between them: what the lock hides is whether the write
    itself survives company. */
 const WRITERS = `
-import { writeJsonPrivate } from "${new URL("../../src/resolve/config.mjs", import.meta.url).pathname}";
+import { writeJsonPrivate } from "${new URL("../../../src/resolve/config.mjs", import.meta.url).pathname}";
 const [path, mine, count] = process.argv.slice(1);
 const wide = Object.fromEntries(Array.from({ length: 20_000 }, (_, n) => [\`k\${n}\`, \`\${mine}-\${n}\`]));
 for (let n = 0; n < Number(count); n += 1) writeJsonPrivate(path, wide);

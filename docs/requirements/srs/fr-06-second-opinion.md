@@ -77,7 +77,7 @@ The reading is offered once at the end of a turn rather than at each write, for 
 `plugin/hooks/how/codex-turn.md` gives, and a document whose content the last consult already read
 is not offered again however recently it was touched.
 
-- **AC-06-2-1** · Rev: 1 · Proof: plugin/test/gates/codex-turn.test.mjs "a later turn is told even though the list from an earlier one is still pending"
+- **AC-06-2-1** · Rev: 1 · Proof: plugin/test/gates/codex/codex-turn.test.mjs "a later turn is told even though the list from an earlier one is still pending"
   WHEN the first document of a turn is written THEN the CLI SHALL ask once, and SHALL record the
   rest of that turn's documents without asking again.
 - **AC-06-2-2** · Rev: 3 · Proof: plugin/test/codex/codex-record.test.mjs "a write at the bytes read is recorded where the index holds another copy, and cleared where it does not"
@@ -86,7 +86,7 @@ is not offered again however recently it was touched.
   from a write since taken back — unless a change to it is staged whose staged copy is apart from the
   tree's, which is a reading still owed on the bytes a commit would land, asked of a path no record
   held as of one a record already did, and taken as owed wherever either of those cannot be read.
-- **AC-06-2-3** · Rev: 1 · Proof: plugin/test/gates/codex-turn.test.mjs "giving up on the lock leaves a note, and the note is not counted as a refusal"
+- **AC-06-2-3** · Rev: 1 · Proof: plugin/test/gates/codex/codex-turn.test.mjs "giving up on the lock leaves a note, and the note is not counted as a refusal"
   WHILE a turn is in progress the CLI SHALL never stop it for an unread document.
 
 ### UC-06-3 — A commit waits for the reading and for the verdict
@@ -98,15 +98,15 @@ and that the last consult which made findings heard a disposition of each. A fin
 is an open finding. Nothing between commits is asked anything: a gate deciding per write reviewed
 fragments, and the trigger it decided on could not be read at all.
 
-- **AC-06-3-1** · Rev: 3 · Proof: plugin/test/gates/codex-second.test.mjs "a commit waits for the documents it stages, and not for one left dirty beside them"
+- **AC-06-3-1** · Rev: 3 · Proof: plugin/test/gates/codex/codex-second.test.mjs "a commit waits for the documents it stages, and not for one left dirty beside them"
   WHEN a commit stages a document recorded as unread THEN the gate SHALL refuse the commit and SHALL
   name the files it wants read; and it SHALL count as unread neither a document the commit carries at
   bytes a consult was shown nor one absent from the tree that the tree's own head reports no change
   of — a copy staged before the working file was put back being neither.
-- **AC-06-3-2** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs "a commit waits for a verdict on the last consult that made findings"
+- **AC-06-3-2** · Rev: 1 · Proof: plugin/test/gates/codex/codex-second.test.mjs "a commit waits for a verdict on the last consult that made findings"
   IF the last consult made findings and heard no disposition THEN the gate SHALL refuse the commit
   and SHALL name the command that records one.
-- **AC-06-3-3** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs "a commit is judged by the tree it names, not the shell's"
+- **AC-06-3-3** · Rev: 1 · Proof: plugin/test/gates/codex/codex-second.test.mjs "a commit is judged by the tree it names, not the shell's"
   WHEN a commit names another tree THEN the gate SHALL judge it by that tree rather than by the
   shell's.
 - **AC-06-3-4** · Rev: 1 · Status: retired (ISS-360)
@@ -120,7 +120,7 @@ fragments, and the trigger it decided on could not be read at all.
   WHERE the turn's record holds a path absent from the tree that the tree's own head reports no
   change of, the CLI SHALL take it out of the record as it lists what a commit is asked for, rather
   than name it as a write awaiting a reading that nothing can stage and no consult can reach.
-- **AC-06-3-7** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs "a record under one configuration home and a gate reading another are each named by the surface that answered"
+- **AC-06-3-7** · Rev: 1 · Proof: plugin/test/gates/codex/codex-second.test.mjs "a record under one configuration home and a gate reading another are each named by the surface that answered"
   WHEN the gate refuses a commit THEN it SHALL name the configuration directory whose turn record and
   consult log it read, a caller with no way to tell a consult this gate cannot see from one nobody
   has made having no route out of the refusal at all.

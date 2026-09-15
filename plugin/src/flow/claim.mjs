@@ -10,7 +10,8 @@ import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
 import { TAKEABLE } from "../rank/weights.mjs";
 import { rungOf } from "../ladder.mjs";
-import { rungFieldsOf, viewFrom } from "./earned.mjs";
+import { namedIn, rungFieldsOf, viewFrom } from "./earned.mjs";
+import { scopeFrom } from "./record/plan-scope.mjs";
 import { laneLines, openingLines, workLines } from "../guides/phases.mjs";
 import { partForStatus } from "../guides/served.mjs";
 import { kindsHeld, parse } from "./record/page.mjs";
@@ -91,6 +92,7 @@ const advise = async (documentId, issue, held = null) => {
     return advisory(issue.status, UNREAD, [], work);
   }
   const view = viewFrom(documentId, issue, page.comments, cutIn(page));
+  scopeFrom(issue.status, issue.issueId, namedIn(view));
   return advisory(issue.status, rungFieldsOf(view), kindsHeld(view), work);
 };
 

@@ -138,7 +138,7 @@ test("doctor reports a gate its own variable holds down", () => {
   const named = found[1].split(", ").map((one) => one.replace(/ \(.+\)$/u, ""));
   assert.ok(named.length > 0);
   for (const name of named) {
-    const source = readFileSync(join(HERE, "..", "..", "hooks", "gates", `${name}.mjs`), "utf8");
+    const source = readFileSync(gateFile(name), "utf8");
     assert.match(source, /FORGE_CODEX_DISABLE/u, `${name} does not read the variable it is listed under`);
   }
 });

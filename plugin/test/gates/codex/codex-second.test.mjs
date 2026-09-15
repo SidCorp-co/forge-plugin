@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { callHook, tempRoom } from "../fixtures.mjs";
-import { commitAim } from "../../hooks/gates/codex-second.mjs";
-import { stagedIn } from "../../src/codex/codex-state.mjs";
-import { digest } from "../../src/codex/codex-api.mjs";
+import { callHook, tempRoom } from "../../fixtures.mjs";
+import { commitAim } from "../../../hooks/gates/codex/codex-second.mjs";
+import { stagedIn } from "../../../src/codex/codex-state.mjs";
+import { digest } from "../../../src/codex/codex-api.mjs";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const CLI = new URL("../../src/cli.mjs", import.meta.url).pathname;
+const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
 
-const HOOK = new URL("../../hooks/entries/codex-second.mjs", import.meta.url).pathname;
+const HOOK = new URL("../../../hooks/entries/codex/codex-second.mjs", import.meta.url).pathname;
 const room = tempRoom("codex-second-");
 const REPO = join(room, "repo");
 mkdirSync(join(REPO, ".git"), { recursive: true });

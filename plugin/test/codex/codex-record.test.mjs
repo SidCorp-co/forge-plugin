@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { callHook, jsonlOf, tempRoom } from "../fixtures.mjs";
 
-const HOOK = new URL("../../hooks/entries/codex-second.mjs", import.meta.url).pathname;
+const HOOK = new URL("../../hooks/entries/codex/codex-second.mjs", import.meta.url).pathname;
 
 /* Imported after XDG_CONFIG_HOME moves, so nothing here can touch the caller's own state file. */
 const sandbox = tempRoom("forge-codex-record-");

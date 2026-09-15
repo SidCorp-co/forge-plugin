@@ -2,8 +2,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { NOWHERE, committing } from "../../hooks/_hook.mjs";
-import { commitAim } from "../../hooks/gates/codex-second.mjs";
+import { NOWHERE, committing } from "../../../hooks/_hook.mjs";
+import { commitAim } from "../../../hooks/gates/codex/codex-second.mjs";
 
 /* Command position, and git's globals take arguments: `--git-dir /r/.git commit` is one. */
 const ev = (command) => ({ tool_name: "Bash", tool_input: { command } });

@@ -9,7 +9,7 @@ import { pathToFileURL } from "node:url";
 
 import { jsonLines as parsed, logHook } from "../src/hooks/hook-log-file.mjs";
 import { scrubbed } from "../src/hooks/hook-log.mjs";
-import { NOWHERE, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, STARTS, WRITES, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
 import { glued } from "../src/hooks/assembled.mjs";
 import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
 import { agreedWithHead } from "../src/hooks/git-probe.mjs";
@@ -17,7 +17,8 @@ import { agreedWithHead } from "../src/hooks/git-probe.mjs";
 export { DEADLINES };
 export { askedAlready, askedByAnyone, clearNote, note, noted } from "../src/hooks/stamps.mjs";
 export { movedTo, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
-export { NOWHERE, spans, standsIn, unquote };
+export { NOWHERE, STARTS, WRITES, spans, standsIn, unquote };
+export { struck } from "../src/hooks/shell-spans.mjs";
 
 /** A name with an extension, as a command spells one. `~` is a home a shell would expand and belongs only where a caller judges the spelling, so the readings differ by that one character; `tail` is which extensions a caller wants, one gate judging `.md` alone. Exported so the class is spelt here and nowhere else. */
 export const nameLike = (extra, tail = "[A-Za-z0-9]+") => new RegExp(`[A-Za-z0-9_./@${extra}-]+\\.${tail}`, "g");
@@ -307,22 +308,6 @@ export const bodiless = (text, onProgram = (body) => body) => {
   }
   return out + rest;
 };
-
-/* Where a command starts. `xargs` keeps its own flags (`xargs -I{} sh` runs a shell), the rest do not:
-   a flag widens what a mention may look like. `^` is last — zero-width, it wins a prefix's position. */
-export const STARTS = String.raw`(?:[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+|\bxargs\s+(?:-\S+\s+)*`
-  + String.raw`|\b(?:sudo|command|nohup|time|env|do|then|else|if|elif|while|until)\s+|^)`;
-
-/** Verbs count where a command starts, a library call anywhere, and only with a target it names. how/writes.md. */
-export const WRITES = new RegExp(
-  STARTS
-    + String.raw`(?:sed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)`
-    + String.raw`|(?:tee|cp|mv|truncate|touch|install|rsync)\b`
-    + String.raw`|dd\b[^|;]*\bof=|curl\b[^|;]*\s(?:-o|--output)\b|wget\b[^|;]*\s(?:-O|--output-document)\b)`
-    + String.raw`|open\([^)]*['"][wa]|\bwrite_(?:text|bytes)\b|\b(?:append|write)FileSync\b`
-    + String.raw`|\bwriteFile\b|\bDeno\.write(?:TextFile|File)\b|\bBun\.write\b`
-    + String.raw`|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink)\b`,
-);
 
 /** A shell runs a `-c` body and `eval` its argument, so a verb there is in command position. One holds
  *  another, so it runs to a fixed point, keeping the start it matched: that can carry an assignment. */

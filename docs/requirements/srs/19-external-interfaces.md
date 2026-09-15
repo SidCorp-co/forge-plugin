@@ -145,7 +145,7 @@ to decide what a call wrote and what a commit would land, and it writes nothing 
 own accord. What the repository knows is written onto the issue at the step that knew it, and never
 read back at judging time.
 
-- **AC-19-7-1** · Rev: 1 · Proof: plugin/test/gates/codex-second.test.mjs "a commit is judged by the tree it names, not the shell's"
+- **AC-19-7-1** · Rev: 1 · Proof: plugin/test/gates/codex/codex-second.test.mjs "a commit is judged by the tree it names, not the shell's"
   WHEN a commit is judged THEN the tree judged SHALL be the one the command names rather than the
   shell's.
 

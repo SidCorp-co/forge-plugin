@@ -1,7 +1,7 @@
-// Where a command in a shell text ends, and which directory it could be running in: one reading, span by span.
+// Reading a shell command: where one ends, which directory it could be running in, and which of its operands a write lands on — one walk, span by span.
 
 import { homedir } from "node:os";
-import { isAbsolute, resolve } from "node:path";
+import { basename, isAbsolute, resolve } from "node:path";
 
 /* Where a word begins: the only place a `#` is a comment and a `(` a subshell, `$(…)` and `<(…)` opening
    a shell for their body alone. A flag and not a look-behind — the escape branch eats two characters. And
@@ -207,3 +207,95 @@ export const waitsIn = (text) => {
 };
 
 export const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
+
+/** Where a command starts. `xargs` keeps its own flags (`xargs -I{} sh` runs a shell), the rest do not: a flag widens what a mention may look like. `^` is last — zero-width, it wins a prefix's position. */
+export const STARTS = String.raw`(?:[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+|\bxargs\s+(?:-\S+\s+)*`
+  + String.raw`|\b(?:sudo|command|nohup|time|env|do|then|else|if|elif|while|until)\s+|^)`;
+
+/** Verbs count where a command starts, a library call anywhere, and only with a target it names. how/writes.md. */
+export const WRITES = new RegExp(
+  STARTS
+    + String.raw`(?:sed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)`
+    + String.raw`|(?:tee|cp|mv|truncate|touch|install|rsync)\b`
+    + String.raw`|dd\b[^|;]*\bof=|curl\b[^|;]*\s(?:-o|--output)\b|wget\b[^|;]*\s(?:-O|--output-document)\b)`
+    + String.raw`|open\([^)]*['"][wa]|\bwrite_(?:text|bytes)\b|\b(?:append|write)FileSync\b`
+    + String.raw`|\bwriteFile\b|\bDeno\.write(?:TextFile|File)\b|\bBun\.write\b`
+    + String.raw`|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink)\b`,
+);
+
+/* Where each of the verbs `WRITES` knows puts the file it writes: the last operand for `cp`, `install` and `rsync`, each of its own for `tee`, `sed -i`, `truncate` and `touch`, both for `mv` and for an `rsync` that unlinks the one it reads, and the `of=` one for `dd`. `curl` and `wget` name none, their target arriving as the value of `-o` or `-O`, which the reading below never strikes out anyway; and `sed` and `dd` name none in the readings — `sed -n`, a `dd` with no `of=` — that write nothing at all. */
+const AIMS = { cp: "last", curl: "none", dd: "of", install: "last", mv: "each", rsync: "last", sed: "each", tee: "each", touch: "each", truncate: "each", wget: "none" };
+const IN_PLACE = /\s(?:-[a-hj-z]*i(?![\w-])|--in-place)/u;
+const UNLINKS = /\s--remove-source-files(?![\w-])/u;
+
+/* A word, kept whole through its quotes; the three classes of word that are not a program's operands — what runs before the verb, a word carrying a redirect, which is `echo x>a` as much as `> a` and is the one reading struck text must not lose, and a flag, whose value a gate has no way to tell from a flag that takes none; and the move whose destination is read for the tree it leaves behind rather than as an operand. Last, where the destination is an option's value, attached to its letter or standing after it: the operand a last-operand verb then aims at is one of the files it reads, and which one is meant went out with every other flag's value. */
+const WORDS = /(?:'[^']*'|"(?:[^"\\]|\\[\s\S])*"|\\[\s\S]|[^\s;&|])+/gu;
+const BEFORE = /^(?:[A-Za-z_]\w*=|(?:sudo|command|nohup|time|env|exec|do|then|else|elif|if|while|until)$)/u;
+const AIMED = /[<>]/u;
+const FLAG = /^-/u;
+const RELOCATES = /^(?:cd|pushd|popd)$/u;
+const HANDED = /\bxargs\b|(?:^|\s)-exec\b|\{\}/u;
+const TARGETED = /\s(?:-[A-Za-z]*t[^\s-]*|--target-directory(?:=\S*)?)(?![\w-])/u;
+
+const notAnOperand = (words, at) => {
+  const { said } = words[at];
+  const before = at > 0 ? words[at - 1].said : "";
+  return FLAG.test(said) || FLAG.test(before) || AIMED.test(said) || AIMED.test(before);
+};
+
+/** The operands of one command, with the words that are not operands left out, each `{ from, to }` in the text this stage was cut from. It reads each word's own spelling, quotes off, because a shell takes `'--output'` for the option it is and reading the raw word left the destination beside it unguarded. */
+const operandsOf = (words) => words.filter((one, at) => !notAnOperand(words, at));
+
+/** A word left out for standing after a flag, which is a value that flag takes or an operand that flag does not — this cannot tell the two apart. Nothing the write lands on, either way, except for the verbs whose destination arrives exactly there, and those are `none` above. A caller that must not invent a target reads it as a word the write does not land on; the default leaves it where it was, since a caller that must not miss one wants every candidate. */
+const afterFlagIn = (words) => words.filter(({ said }, at) =>
+  at > 0 && FLAG.test(words[at - 1].said) && !FLAG.test(said) && !AIMED.test(said) && !AIMED.test(words[at - 1].said));
+
+/** Which of one command's operands its write lands on, `null` where this cannot say — a verb whose operands are somewhere else, or a write made by a language's own call, which names no position here. `said` is the same command with every word's quotes off, which is how a shell reads a flag; `stage` is what it wrote, since unquoting it would promote a verb quoted inside an argument. */
+const aimsOf = (program, operands, stage, said) => {
+  const aim = AIMS[program];
+  if (!aim) return WRITES.test(stage) ? null : [];
+  if (aim === "none" || (program === "sed" && !IN_PLACE.test(said))) return [];
+  if (aim === "of") return operands.filter((one) => one.said.startsWith("of="));
+  return aim === "last" && !UNLINKS.test(said) ? operands.slice(-1) : operands;
+};
+
+/** Every operand of one command that its write does not land on, or `null` to leave the whole span alone. Each word is unquoted once here and carried as `said`, since every reading below wants the shell's spelling; `text` stays because the offsets a strike works in are the raw word's. */
+const readsIn = (stage, from, strict) => {
+  const words = [...stage.matchAll(WORDS)]
+    .map((m) => ({ text: m[0], said: unquote(m[0]), from: from + m.index, to: from + m.index + m[0].length }));
+  let at = 0;
+  while (at < words.length && BEFORE.test(words[at].said)) at += 1;
+  const program = basename(words[at]?.said ?? "");
+  if (RELOCATES.test(program)) return [];
+  const rest = words.slice(at + 1);
+  const operands = operandsOf(rest);
+  const said = ` ${words.map((one) => one.said).join(" ")}`;
+  const aims = aimsOf(program, operands, stage, said);
+  if (strict && AIMS[program] === "last" && TARGETED.test(said)) return null;
+  const spare = strict && AIMS[program] && AIMS[program] !== "none" ? afterFlagIn(rest) : [];
+  return aims && [...spare, ...operands.filter((one) => !aims.includes(one))];
+};
+
+/** The command text with every operand a write does not land on struck out, space for space so a relative name still resolves against the trees it did.
+ *  `writtenPaths` answers with every name standing beside a write shape, which is the breadth a gate asking what a call may have touched wants and the wrong one here: a `grep` of a skill piped into `tee` was held as a write to the skill, and the refusal cost the unrelated appends beside it (ISS-81). A guarded path a caller holds has to be the write's own target. `HANDED` is where the file a write lands on is not in the command at all — `xargs` and `-exec` hand it over from another and `{}` stands in for one. `unplaceable` is what such a span answers with: `keep` leaves it whole, so every operand stands as a candidate, which is the only answer a gate that must not miss a target can take; `strike` empties it, which a gate that must not invent one takes instead. */
+export const struck = (text, { unplaceable = "keep" } = {}) => {
+  const strict = unplaceable === "strike";
+  let out = text;
+  const blank = (from, to) => {
+    out = `${out.slice(0, from)}${" ".repeat(to - from)}${out.slice(to)}`;
+  };
+  for (const { start, end } of spans(text)) {
+    const span = text.slice(start, end);
+    if (!WRITES.test(span)) continue;
+    if (HANDED.test(span)) {
+      if (strict) blank(start, end);
+      continue;
+    }
+    const reads = spans(span, { pipes: true })
+      .map((stage) => readsIn(span.slice(stage.start, stage.end), start + stage.start, strict))
+      .reduce((all, one) => all && one && [...all, ...one], []);
+    if (reads === null && strict) blank(start, end);
+    for (const { from, to } of reads ?? []) blank(from, to);
+  }
+  return out;
+};

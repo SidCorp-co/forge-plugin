@@ -15,7 +15,8 @@ import { citedClauses } from "../spec/checked.mjs";
 import { Refused, refuse } from "../refusal.mjs";
 import { issueOf, post } from "./record/record.mjs";
 import { render } from "./record/page.mjs";
-import { ANSWERED_BY_COMMENT, ORDER, PARK_STATUS, SIDE, atLeast, fixReport, payloadOwed, rungFieldsOf, setForm, viewFrom } from "./earned.mjs";
+import { ANSWERED_BY_COMMENT, ORDER, PARK_STATUS, SIDE, atLeast, fixReport, namedIn, payloadOwed, rungFieldsOf, setForm, viewFrom } from "./earned.mjs";
+import { scopeFrom } from "./record/plan-scope.mjs";
 import { rungOf } from "../ladder.mjs";
 import { CITED, laneLines } from "../guides/phases.mjs";
 import { undoForm } from "./record/merged.mjs";
@@ -83,6 +84,7 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
   if (answer?.refused) return answer.refused;
   const held = answer?.status ?? answer?.issue?.status;
   if (held && held !== status) refuse(`The transition answered with status ${held}, not ${status}. Nothing to rely on.`);
+  scopeFrom(status, ref, namedIn(view));
   say(`${ref}  ${view.issue.status} -> ${status}${note}`);
   return null;
 };

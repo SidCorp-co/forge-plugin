@@ -27,6 +27,8 @@ import { scoped } from "../../tracker/rest.mjs";
 import { refuseIfGated } from "../../resolve/visibility.mjs";
 import { pluginFilingLine } from "../../tracker/filing/plugin-defect.mjs";
 import { partForRecord } from "../../guides/served.mjs";
+import { scopeFrom, scopePath } from "./plan-scope.mjs";
+import { repoRoot } from "../../codex/codex.mjs";
 import { workLines } from "../../guides/phases.mjs";
 import { askedInSource } from "../../resolve/flags.mjs";
 import { FIELD as SESSION, renew, writtenBy } from "../lease.mjs";
@@ -401,6 +403,19 @@ const writeRung = async (reference, blocks, { next, patch }) => {
   for (const one of blocks) sayPart(one.kind, rung);
 };
 
+/* Taken as each write lands rather than once this call returns: a correction the tracker holds whose call failed after it would otherwise leave a cache that still refuses the retry (ISS-411). The import is at the call, `earned.mjs` reading this module for its criteria; a scope this cannot read is a gate that says nothing, never a record write that failed, so the catch is empty. A write outside a repository has no scope to keep and says nothing, and a save that answers false is what `saved` in `plan-scope.mjs` says it is: the run is told rather than left to meet it. */
+const scopeNoted = async (documentId, reference, issue, comments) => {
+  const tree = repoRoot(process.cwd());
+  if (!tree) return;
+  try {
+    const { namedIn, viewFrom } = await import("../earned.mjs");
+    const named = namedIn(viewFrom(documentId, issue, comments));
+    if (scopeFrom(issue.status, issue.issueId ?? reference, named, { tree })) return;
+    console.error(`this record landed and ${scopePath(tree, issue.issueId ?? reference)} could not be written or removed, so a `
+      + `write it clears may still be refused: \`forge hooks --off plan-scope\``);
+  } catch {}
+};
+
 const postRung = async (prepared, { reference, documentId, body, comments, next, patch }) => {
   const uploads = prepared.flatMap((one) => one.uploads ?? []);
   const sent = [];
@@ -413,12 +428,14 @@ const postRung = async (prepared, { reference, documentId, body, comments, next,
   });
   const issue = { ...body, ...await fieldsWritten(prepared, { reference, documentId, next, patch }) };
   const posted = [];
+  await scopeNoted(documentId, reference, issue, comments);
   for (const one of prepared) {
     if (one.rendered === undefined) continue;
     const answer = await post(documentId, one.rendered, { ref: reference, next, patch });
     /* The row as the tracker answered it: a comment carrying no device reads as a person's answer to a park, and an agent's write is no person's. */
     posted.push({ ...(answer ?? {}), documentId: answer?.documentId ?? null, body: one.rendered,
       createdAt: stampedLast([...comments, ...posted], answer) });
+    await scopeNoted(documentId, reference, issue, [...comments, ...posted]);
   }
   for (const one of prepared) await one.write?.();
   /* Dropped on the way out and never in a `finally`: a thrown failure unwinds through one before the

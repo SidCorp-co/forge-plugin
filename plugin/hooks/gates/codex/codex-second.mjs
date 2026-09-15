@@ -2,11 +2,11 @@
 
 import { isAbsolute, resolve } from "node:path";
 
-import { ageOf, apartFrom, demandIn, pendingNow, pendingState, repoRoot, stagedIn } from "../../src/codex/codex.mjs";
-import { logBytes } from "../../src/codex/codex-log.mjs";
-import { unverdicted, verdictForm } from "../../src/codex/log/replies.mjs";
-import { configDir } from "../../src/resolve/config.mjs";
-import { probeMs } from "../../src/hooks/git-probe.mjs";
+import { ageOf, apartFrom, demandIn, pendingNow, pendingState, repoRoot, stagedIn } from "../../../src/codex/codex.mjs";
+import { logBytes } from "../../../src/codex/codex-log.mjs";
+import { unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
+import { configDir } from "../../../src/resolve/config.mjs";
+import { probeMs } from "../../../src/hooks/git-probe.mjs";
 import {
   REDIRECT,
   COMMITS,
@@ -19,7 +19,7 @@ import {
   spans,
   spelled as bare,
   typed,
-  how, done, remaining } from "../_hook.mjs";
+  how, done, remaining } from "../../_hook.mjs";
 
 /* What the commit closes over, from that command alone: a pipeline's flags are not the commit's, and
    neither is a redirect's target or a value a flag ate — `-am x` is all and a message, `-ma` a message

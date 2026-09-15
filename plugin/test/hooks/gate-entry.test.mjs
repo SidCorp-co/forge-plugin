@@ -5,11 +5,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, readFileSync, readlinkSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, readdirSync, readlinkSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { FROZEN } from "../../src/tools/plugin-copy.mjs";
+import { ENTRIES_DIR } from "../../src/hooks/hook-switch.mjs";
 import { dirtyRepo, tempRoom } from "../fixtures.mjs";
 
 const PLUGIN = new URL("../..", import.meta.url).pathname.replace(/\/$/u, "");
@@ -163,10 +164,24 @@ test("what the registered entries import is exactly what the frozen set declares
       + "the ship's restart line are wrong until this matches");
 });
 
+/* Walked, not spelt: an entry that moved into a folder of its own is the same entry, and a path typed here would fail as though the entry were gone. */
+const entryFile = (name) => {
+  const found = [];
+  const walk = (dir) => {
+    for (const one of readdirSync(dir, { withFileTypes: true })) {
+      if (one.isDirectory()) walk(join(dir, one.name));
+      else if (one.name === `${name}.mjs`) found.push(join(dir, one.name));
+    }
+  };
+  walk(ENTRIES_DIR);
+  assert.equal(found.length, 1, `${name} is named by ${found.length} entries`);
+  return found[0];
+};
+
 test("the solo entries still run this checkout's own gate text, so the suite is unaffected", () => {
   for (const name of ["bash-guard", "codex-turn"]) {
-    const text = readFileSync(join(PLUGIN, "hooks", "entries", `${name}.mjs`), "utf8");
-    assert.match(text, /from "\.\.\/_hook\.mjs"/u, `${name} no longer loads the harness beside it`);
+    const text = readFileSync(entryFile(name), "utf8");
+    assert.match(text, /from "(?:\.\.\/)+_hook\.mjs"/u, `${name} no longer loads the harness beside it`);
     assert.doesNotMatch(text, /plugin-copy/u, `${name} hops, and the suite would then test the installed copy`);
   }
 });

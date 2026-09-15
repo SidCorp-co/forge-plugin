@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/gate.mjs pre bash-guard codex-second learning-gate restart-owed issue-read-first",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}\"/hooks/gate.mjs pre bash-guard codex-second learning-gate restart-owed plan-scope issue-read-first",
             "timeout": 10
           }
         ]

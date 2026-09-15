@@ -99,7 +99,7 @@ of the method — repeats that text on every firing, and the repeats are paid fo
 context. One ledger, keyed on the session, the surface and a digest of the text, tells a session a
 thing once; a refusal keeps its one line because every hold owes the command that clears it (BR-01).
 
-- **AC-10-5-1** · Rev: 1 · Proof: plugin/test/gates/codex-turn.test.mjs "the hint is credited under the session, the surface codex-turn and the digest of its text"
+- **AC-10-5-1** · Rev: 1 · Proof: plugin/test/gates/codex/codex-turn.test.mjs "the hint is credited under the session, the surface codex-turn and the digest of its text"
   WHEN text reaches a session for the first time THEN the ledger SHALL show it whole and SHALL
   credit it to the session, the surface and the text's digest.
 - **AC-10-5-2** · Rev: 1 · Proof: plugin/test/shown/ledger.test.mjs "an unchanged repeat costs a refusal one line, and that line names the route to the reason"

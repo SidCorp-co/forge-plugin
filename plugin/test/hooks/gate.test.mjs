@@ -8,6 +8,7 @@ import { join } from "node:path";
 
 import { dirtyRepo, tempRoom } from "../fixtures.mjs";
 import { patience } from "../patience.mjs";
+import { gateFile } from "../../src/hooks/hook-switch.mjs";
 
 const GATE = new URL("../../hooks/gate.mjs", import.meta.url).pathname;
 const REGISTERED = new URL("../../hooks/hooks.json", import.meta.url).pathname;
@@ -123,11 +124,11 @@ test("the deadline runs from the process start, and the last gate reads what is 
     `the budget has spent ${spent}ms of a process ${Math.round(after)}ms old`);
   assert.match(readFileSync(new URL("../../hooks/_hook.mjs", import.meta.url), "utf8"),
     /const startedAt = performance\.timeOrigin;/u, "and the origin it counts from is the process's own");
-  const text = readFileSync(new URL("../../hooks/gates/code-quality.mjs", import.meta.url), "utf8");
+  const text = readFileSync(gateFile("code-quality"), "utf8");
   assert.match(text, /remaining\(\)/u, "code-quality budgets from the shared clock");
   assert.doesNotMatch(text, /BUDGET_MS/u, "and not from a clock of its own");
   for (const gate of ["bash-guard", "codex-second"]) {
-    const source = readFileSync(new URL(`../../hooks/gates/${gate}.mjs`, import.meta.url), "utf8");
+    const source = readFileSync(gateFile(gate), "utf8");
     assert.doesNotMatch(source, /timeout: \d+,/u, `${gate} spawns nothing on a clock of its own`);
     assert.match(source, /remaining\(\)/u, `${gate} budgets from the shared clock`);
   }
