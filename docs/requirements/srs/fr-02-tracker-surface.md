@@ -101,6 +101,10 @@ than encoded into the call, because bytes through a context window are paid for 
 - **AC-02-3-4** · Rev: 1 · Proof: none yet — ISS-681
   WHEN an edge between two issues is written or removed THEN the CLI SHALL do it through the issue's
   own dependency route, and the ranking SHALL read the edge it wrote.
+- **AC-02-3-5** · Rev: 1 · Proof: plugin/test/tracker/rest.test.mjs "a write's answer says what it declined, in the tracker's own words, and the write still stands" · Source: docs/cli/one-transport.md
+  WHEN a write's answer carries the tracker's account of a part of that call it declined THEN the
+  CLI SHALL say each sentence of the account to the caller in the tracker's own words, and SHALL
+  leave the write it stands beside standing rather than refusing it.
 
 ### UC-02-4 — Everything the tracker returns is untrusted input
 

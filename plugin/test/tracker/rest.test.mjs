@@ -469,3 +469,43 @@ test("a host that accepts and never answers refuses the verb at the deadline con
   home.remove();
   await new Promise((closed) => stalled.close(closed));
 });
+
+/* Watched on the write whose row keeps a fixed set of the answer's fields: a reading taken out of a
+   projection would be green on the three rows that spread the body whole and silent on this one. */
+const heard = async (call) => {
+  const said = [];
+  const held = console.error;
+  console.error = (line) => said.push(line);
+  try {
+    return { answer: await call(), said };
+  } finally {
+    console.error = held;
+  }
+};
+
+const ISSUE_ID = "11111111-1111-4111-8111-111111111111";
+
+const DECLINED = "the question was not minted: this credential is a person's own";
+
+test("a write's answer says what it declined, in the tracker's own words, and the write still stands", async () => {
+  const { answer, said } = await heard(() => answering(
+    [ok({ id: "c-9", body: "posted", warnings: [fenced("warnings", DECLINED), { message: "and one carrying its own key" }, "  ", null] })],
+    () => callTool("forge_comments", { action: "create", data: { issue: ISSUE_ID, body: "posted" } })));
+  assert.deepEqual(said, [
+    `forge_comments.create: ${DECLINED}`,
+    "forge_comments.create: and one carrying its own key",
+  ], `the sentences the tracker sent, unfenced, under the route that carried them: ${said.join(" | ")}`);
+  assert.equal(said.some((line) => line.includes(MARKER)), false, "and no fence reached the terminal");
+  assert.equal(answer.documentId, "c-9", "the row this write answered with is still projected");
+  assert.equal(answer.body, "posted", "and the warning stood beside the row rather than in place of it");
+});
+
+test("a read carrying the same key says nothing, and a write carrying none says nothing either", async () => {
+  const quiet = await heard(() => answering([ok({ id: ISSUE_ID, displayId: "ISS-1", warnings: ["a read is not a write"] })],
+    () => callTool("forge_issues", { action: "get", documentId: ISSUE_ID, fields: [] })));
+  assert.deepEqual(quiet.said, [], "nothing here declined anything: a read asked for one thing and got it");
+  const bare = await heard(() => answering([ok({ id: ISSUE_ID, status: "confirmed" })],
+    () => callTool("forge_issues", { action: "transition", documentId: ISSUE_ID, data: { status: "confirmed" } })));
+  assert.deepEqual(bare.said, [], "and a write whose answer carries no such key prints no empty line for it");
+  assert.equal(bare.answer.status, "confirmed");
+});

@@ -11,6 +11,7 @@ import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
 import { FROM_PROJECT, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
 import { didYouMean } from "../suggest.mjs";
+import { sayDeclined } from "./declined.mjs";
 import { DECLARES, ROUTES, answersOf, droppedRefusal, keyOf, noRouteRefusal, rowFor, undeclaredIn } from "./routes.mjs";
 
 const RETRY_ATTEMPTS = 4;
@@ -186,6 +187,7 @@ export const callTool = async (name, args, soft = false, held = {}) => {
   /* The tracker's words with nothing in front: a caller reading the first line frames it itself. */
   const bad = parts.find(([, held]) => held.refused);
   if (bad) return stop(bad[1].refused);
+  if (row.writes) sayDeclined(key, parts.map(([, held]) => held.body), unfencedIn);
   return unfencedIn(answersOf(row)(Object.fromEntries(parts.map(([part, held]) => [part, held.body])), args));
 };
 
