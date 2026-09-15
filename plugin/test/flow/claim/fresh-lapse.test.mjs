@@ -87,7 +87,11 @@ test("a reclaim of a lease that has only just lapsed is refused, and the flag is
 });
 
 test("a lease lapsed by its own duration or more is anybody's again, with no flag at all", async () => {
-  heldBy(THEIRS, 120, 60);
+  /* A minute past the boundary rather than on it. At exactly one duration the predicate asks
+     `now < now`, and the two nows come from different clocks: the tracker's `date` header is whole
+     seconds, so the CLI's reading can be a second behind the one the stamp was built from and which
+     side the case lands on is decided by where in a second that happened (ISS-1477). */
+  heldBy(THEIRS, 121, 60);
   const run = await claim([]);
   assert.equal(run.status, 0, `a lapse of a whole duration needs no flag:\n${run.stdout}${run.stderr}`);
   assert.match(run.stdout, new RegExp(`reclaim: session ${OURS}`, "u"));
