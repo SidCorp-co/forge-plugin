@@ -41,11 +41,15 @@ fold for as long as it stays filed, and waiting cannot move it. That is the stat
 changed out of: a high-priority issue three days old that had never once appeared in the order, and
 could not have appeared at any age (ISS-1397).
 
-So the top of a backlog nobody has worked through eventually belongs to its oldest issues rather than
-its most urgent, and that is the point. Age is the term that forces a decision on anything left
-sitting, and the decision it forces is to work the issue or to drop it. A project that wants a
-ceiling sets `rank.ageCap` to a number; `null` is how it says no ceiling again, because a very large
-number is the same arithmetic offered as a guess.
+What that buys is precise, and it is worth saying what it is not. Two issues already filed do not
+drift apart by waiting: both accrue at the same rate, so what separates them is the days between
+their filing dates and it stays that. What an issue keeps is the whole of its head start over
+everything filed after it — and a ceiling is what threw that head start away, so that past the
+ceiling a year-old issue and this morning's scored alike. The pressure age applies is therefore
+against new arrivals rather than against its own neighbours: work nobody picked up does not quietly
+fall behind the day's filings, and it goes on rising against them until somebody works it or drops
+it. A project that wants a ceiling sets `rank.ageCap` to a number; `null` is how it says no ceiling
+again, because a very large number is the same arithmetic offered as a guess.
 
 ## An issue nobody weighed scores below every issue somebody did
 
