@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 
-import { DECLARES, ROUTES, UNTYPED, answersOf, asToolCall, droppedRefusal, keyOf, mimeForName,
-  noRouteRefusal, rowFor, served, undeclaredIn } from "../../src/tracker/routes.mjs";
+import { DECLARES, ISSUE_PARTS, ROUTES, UNTYPED, answersOf, asToolCall, droppedRefusal, keyOf,
+  mimeForName, noRouteRefusal, partsAmong, rowFor, served, undeclaredIn } from "../../src/tracker/routes.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const captures = join(here, "..", "fixtures", "rest");
@@ -284,10 +284,50 @@ describe("an argument a route does not send", () => {
   it("a reader naming its fields pays for the parts those fields are on, and no others", () => {
     const whole = ROUTES["forge_issues.get"].requests({ documentId: "u-1" });
     assert.deepEqual(Object.keys(whole), ["issue", "dependencies", "attachments"]);
-    const narrow = ROUTES["forge_issues.get"].requests({ documentId: "u-1", fields: ["plan"] });
-    assert.deepEqual(Object.keys(narrow), ["issue"], "a plan is on the issue row and on neither of the others");
+    const narrow = ROUTES["forge_issues.get"].requests({ documentId: "u-1", fields: [] });
+    assert.deepEqual(Object.keys(narrow), ["issue"], "a list naming neither part asks for the row alone");
     assert.deepEqual(Object.keys(ROUTES["forge_issues.get"].requests({ documentId: "u-1", fields: ["relations"] })),
       ["issue", "dependencies"]);
+    assert.deepEqual(Object.keys(ROUTES["forge_issues.get"].requests({ documentId: "u-1", fields: ["attachments"] })),
+      ["issue", "attachments"]);
+  });
+});
+
+/* One level in from the argument nothing sends: `fields` is sent, and the route reads two of its
+   values and answers whole for every other — so a caller naming a column of the row was told nothing
+   and got the row it would have got anyway, at eight of the twelve call sites (ISS-588). */
+describe("a value a route cannot honour", () => {
+  it("is refused by the same check and named with the values the route does take", () => {
+    const row = ROUTES["forge_issues.get"];
+    const found = undeclaredIn(row, { action: "get", documentId: "u-1", fields: ["relations", "plan"] });
+    assert.deepEqual(found, ["fields: plan"],
+      "the value the route reads rides, and the one it would have dropped is what comes back");
+    const said = droppedRefusal("forge_issues.get", found, row);
+    assert.match(said, /nothing was sent at all/u);
+    assert.match(said, /fields only relations or attachments/u, "and what it does take, so the caller can fix it");
+  });
+
+  it("is every value of the list, so one refusal answers for all of them", () => {
+    assert.deepEqual(undeclaredIn(ROUTES["forge_issues.get"], { fields: ["plan", "description"] }),
+      ["fields: plan, description"]);
+  });
+
+  it("is no value at all where the list names the parts, or neither of them", () => {
+    assert.deepEqual(undeclaredIn(ROUTES["forge_issues.get"], { fields: ISSUE_PARTS }), []);
+    assert.deepEqual(undeclaredIn(ROUTES["forge_issues.get"], { fields: [] }), []);
+    assert.deepEqual(undeclaredIn(ROUTES["forge_issues.get"], { documentId: "u-1" }), []);
+  });
+
+  it("is no row's question but the one that declares a legal set", () => {
+    assert.deepEqual(undeclaredIn(ROUTES["forge_issues.list"], { limit: 200, filters: { search: "x" } }), []);
+  });
+
+  /* The caller that holds names of its own asks the route for the parts among them and projects the
+     rest off the answer itself, so the refusal above is never what its reader meets. */
+  it("is what a caller's own names are filtered down to before they are sent", () => {
+    assert.deepEqual(partsAmong(["relations", "plan", "status"]), ["relations"]);
+    assert.deepEqual(partsAmong(["status", "plan"]), []);
+    assert.deepEqual(partsAmong(null), []);
   });
 
   /* Two routes serve the browse verb and both narrow on the same columns, so a filter the search

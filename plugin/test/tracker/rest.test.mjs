@@ -295,13 +295,24 @@ test("unmark comes back with the handler's answer, and the note reaches the trac
     "and the handler's own answer came back, rather than a parse refusing ahead of it");
 });
 
+/* `fields` is sent, so the name check passes it and the route read two of its values and answered
+   whole for every other — a narrowing eight of twelve callers asked for and were never told of (ISS-588). */
+test("a fields value the route cannot honour refuses the whole call, and no request is sent", async () => {
+  state.calls = [];
+  const answer = await callTool("forge_issues", { action: "get", documentId: "u-1", fields: ["plan"] }, true);
+  assert.match(answer.refused, /forge_issues\.get was given fields: plan/u, answer.refused);
+  assert.match(answer.refused, /fields only relations or attachments/u,
+    "and the two it does take, so the caller can send one");
+  assert.deepEqual(state.calls, [], "the refusal is ahead of the request, not a reading of its answer");
+});
+
 /* Answered rather than retried, and charged rather than trusted: what a caller inside somebody else's
    clock needs. Four waits of up to a minute is a consult's budget spent to answer nobody, and one tool
-   call the reviewer makes is several requests the tracker sees. One field below, so one request. */
+   call the reviewer makes is several requests the tracker sees. No part named below, so one request. */
 test("a rate limit is one attempt where the caller cannot wait, and its answer comes back as text", async () => {
   assert.equal(retryOf(429, false), "rate-limited", "the ladder sends a 429 again whatever the row declares");
   const answer = await answering([[429, { code: "RATE_LIMITED", message: "slow down" }]], () =>
-    callTool("forge_issues", { action: "get", documentId: "u-1", fields: ["title"] }, true, { once: true }));
+    callTool("forge_issues", { action: "get", documentId: "u-1", fields: [] }, true, { once: true }));
   assert.equal(asks, 1, `asked ${asks} times where the ladder would have asked four`);
   assert.match(answer.refused, /slow down/u, "and the tracker's own words reach the caller");
 });
@@ -331,7 +342,7 @@ test("a request given a deadline is refused in words, and the request itself is 
   });
   try {
     const began = Date.now();
-    const answer = await callTool("forge_issues", { action: "get", documentId: "u-1", fields: ["title"] },
+    const answer = await callTool("forge_issues", { action: "get", documentId: "u-1", fields: [] },
       true, { once: true, waits: 0.05 });
     assert.ok(Date.now() - began < patience(3000), "a tracker that never answers does not hold the caller open");
     assert.ok(cancelled, "and the request is aborted rather than left in flight");
@@ -368,7 +379,7 @@ const stalling = async (status, call) => {
 };
 
 const read = (soft = true, held = {}) =>
-  callTool("forge_issues", { action: "get", documentId: "u-1", fields: ["title"] }, soft, held);
+  callTool("forge_issues", { action: "get", documentId: "u-1", fields: [] }, soft, held);
 const update = () =>
   callTool("forge_issues", { action: "update", documentId: "u-1", data: { priority: "high" } }, true);
 

@@ -101,7 +101,7 @@ export const graphOf = (issues, universe) => {
 
 const bodyOf = async (summary) => ({
   ...summary,
-  ...(await scoped("forge_issues", { action: "get", documentId: summary.documentId, fields: ["description"] })),
+  ...(await scoped("forge_issues", { action: "get", documentId: summary.documentId, fields: [] })),
 });
 
 /** The candidates a prose edge can be read out of, and the bodies to read it from: the search

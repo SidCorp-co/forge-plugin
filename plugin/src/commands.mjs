@@ -1,7 +1,7 @@
 import { fail, keepOnFailure } from "./resolve/settings.mjs";
 import { bodyFrom, notABody } from "./resolve/payload.mjs";
 import { declaredFor, refuseUndeclared, refuseUnreadableDate, scoped, write } from "./tracker/rest.mjs";
-import { EDGE_KINDS, otherOf } from "./tracker/routes.mjs";
+import { EDGE_KINDS, otherOf, partsAmong } from "./tracker/routes.mjs";
 import {
   DEFAULT_LIMIT,
   MAX_LIMIT,
@@ -272,8 +272,8 @@ export const commands = {
     if (why !== undefined) fail("--why belongs to --set; a read takes no reason.");
     const names = fields ? fields.split(",").map((name) => name.trim()) : null;
     const documentId = await documentIdOf(reference);
-    /* The names ride along so the read skips the routes nothing asked for; the answer is the row whole either way, and the projection is taken from it. */
-    const held = await scoped("forge_issues", { action: "get", documentId, ...(names ? { fields: names } : {}) });
+    /* The parts among the names ride along so the read skips the routes nothing asked for; the answer is the row whole either way, and the projection off it is this verb's own, which is why the names it cannot choose a route by are dropped here rather than sent to be refused. */
+    const held = await scoped("forge_issues", { action: "get", documentId, ...(names ? { fields: partsAmong(names) } : {}) });
     const body = filled(names ? projectedTo(held, names) : held);
     show(full ? body : terse(body));
     return null;

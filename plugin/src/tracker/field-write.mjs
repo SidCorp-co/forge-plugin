@@ -5,6 +5,7 @@
 import { randomUUID } from "node:crypto";
 
 import { declaredFor, scoped, write } from "./rest.mjs";
+import { partsAmong } from "./routes.mjs";
 import { mustBeShown } from "./comments.mjs";
 import { askedInSource, shortOfAsk } from "../resolve/flags.mjs";
 import { leaseLandedAs, leaseMismatch, renew } from "../flow/lease.mjs";
@@ -172,7 +173,7 @@ export const writeFields = async (documentId, given, { ref, next, patch, refuse,
   /* The lease's own read-back was the compare-and-set this CLI made in the tracker's stead, so where the tracker made it that read is not spent; every other field's answers whether the text landed, which is a different question no precondition replaces. Nothing reads a lease write's return, which is why dropping the read leaves it null rather than owing a call for it. */
   const owed = rows.filter((one) => !(covered && one.row.expects));
   if (!owed.length) return null;
-  const back = await scoped("forge_issues", { action: "get", documentId, fields: owed.map((one) => one.field) });
+  const back = await scoped("forge_issues", { action: "get", documentId, fields: partsAmong(owed.map((one) => one.field)) });
   const wrong = owed.filter((one) => !one.row.same(back?.[one.field], one.sent));
   if (!wrong.length) return back;
   /* A field that read back as written has moved, and the caller's record of why is owed before this exits: refusing on its neighbour would leave the tracker holding a value with nothing on the page saying who set it. */

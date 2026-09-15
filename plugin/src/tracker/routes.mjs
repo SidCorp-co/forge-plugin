@@ -278,7 +278,12 @@ const issueList = (args, project) => {
 
 const one = (path, method = "GET", body) => ({ page: filled({ path, method, body }) });
 
-/* A reader naming no field asked for the whole issue, and one naming fields asked for those. */
+/* Which separate requests ride with the row, never a projection of it: the row comes back whole, so a
+   list naming neither asks for the row alone and a name outside these two narrows nothing (ISS-588). */
+export const ISSUE_PARTS = ["relations", "attachments"];
+
+export const partsAmong = (names) => (names ?? []).filter((name) => ISSUE_PARTS.includes(name));
+
 const asked = (args, name) => !args.fields || args.fields.includes(name);
 
 /* Every row: which requests it makes, what its answer is, and whether it may be sent twice. A row
@@ -316,6 +321,7 @@ export const ROUTES = {
     }),
     answers: issueOf,
     sends: ["documentId", "fields"],
+    honours: { fields: ISSUE_PARTS },
   },
   "forge_issues.create": {
     project: true,
@@ -583,17 +589,23 @@ export const rowFor = (name, args) => ROUTES[keyOf(name, args)] ?? null;
 /* Every row's rather than a route's: `action` makes the key, `projectId` aims off the resolved slug. */
 const STRUCTURAL = new Set(["action", "projectId"]);
 
-/** The arguments a caller gave that the row's route does not send. */
-export const undeclaredIn = (row, args) =>
-  Object.keys(args ?? {}).filter((name) => !STRUCTURAL.has(name) && !(row?.sends ?? []).includes(name));
+/** The arguments a caller gave that the row's route does not send, and the values of one whose legal
+ *  set the row declares that are outside it: one refusal, the hazard below being the same for both. */
+export const undeclaredIn = (row, args) => [
+  ...Object.keys(args ?? {}).filter((name) => !STRUCTURAL.has(name) && !(row?.sends ?? []).includes(name)),
+  ...Object.entries(row?.honours ?? {})
+    .map(([name, legal]) => [name, [].concat(args?.[name] ?? []).filter((one) => !legal.includes(one))])
+    .filter(([, outside]) => outside.length).map(([name, outside]) => `${name}: ${outside.join(", ")}`),
+];
 
 /* A narrowing dropped on the way out is worse than a refusal: the caller reads a whole answer as
    though it were the narrow one it asked for, and pays for the difference without being told. */
 export const droppedRefusal = (key, names, row) =>
   `${key} was given ${names.join(", ")}, which its route does not send, so nothing was sent at all: `
   + "an argument dropped in transit reads back as an answer to a question the tracker never heard. "
-  + `This route takes ${(row?.sends ?? []).join(", ") || "no arguments"}, which the -h of the verb `
-  + "that owns it names too.";
+  + `This route takes ${(row?.sends ?? []).join(", ") || "no arguments"}${Object.entries(row?.honours ?? {})
+    .map(([name, legal]) => `, and ${name} only ${legal.join(" or ")}`).join("")}, which the -h of the `
+  + "verb that owns it names too.";
 
 /** The capabilities this CLI declares and REST does not serve. Each names the route it wanted, so
  *  the gap is reportable as a route rather than as a verb that stopped working, and each names what

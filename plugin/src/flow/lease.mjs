@@ -411,7 +411,7 @@ export const tookByWriting = (ref, lease, left = null) =>
 
 /* The one read a free field costs, made here and on no other path: the status is what separates the take from the refusal, and reading it for every payload write would be a round trip per write (ISS-1252). */
 const statusFor = async (documentId) => {
-  const answer = await scoped("forge_issues", { action: "get", documentId, fields: ["status"] });
+  const answer = await scoped("forge_issues", { action: "get", documentId, fields: [] });
   return String(answer?.status ?? "");
 };
 
@@ -437,7 +437,7 @@ export const canonical = (value) => {
 
 /* Where the lease is read from, in one place. Softly, the transport's own refusal comes back in place of the context: a caller that asks for it has a record up already, and every failure it meets owes a message naming that record. */
 export const readContext = async (documentId, soft = false) => {
-  const answer = await (soft ? tried : scoped)("forge_issues", { action: "get", documentId, fields: [FIELD] });
+  const answer = await (soft ? tried : scoped)("forge_issues", { action: "get", documentId, fields: [] });
   return answer?.refused ? answer : answer?.[FIELD] ?? null;
 };
 

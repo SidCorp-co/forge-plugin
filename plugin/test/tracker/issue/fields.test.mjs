@@ -22,6 +22,9 @@ const ISSUE = {
   plan: "the plan as it stands",
   sessionContext: { lease: { holder: "s-1" } },
   unheardOfKey: "a name this repository holds nowhere",
+  /* On a route of its own, so a name that reaches it buys a request and every other name does not. */
+  relations: { blocks: [{ edgeId: "e-1", kind: "blocks", fromIssueId: "u-1", toIssueId: "u-2",
+    otherDisplayId: "ISS-2", otherStatus: "open", otherMergedAt: null }], blockedBy: [] },
 };
 
 /* The tracker's own `get`: it projects the names it declared and always carries both identifiers. */
@@ -81,6 +84,17 @@ test("one ask naming two fields answers both", async () => {
 test("a read naming fields skips the routes those fields are not on", async () => {
   await asked("--fields", "plan,status");
   assert.deepEqual(paths(), [`/api/issues/${ISSUE.documentId}`]);
+});
+
+/* The two halves of one ask: the names the route can choose a request by go to it, the rest are the
+   projection's alone. A caller that sent them whole asked the route to narrow where it cannot, and
+   before ISS-588 the route answered whole and the ask read as though it had been honoured. */
+test("a read naming a part and a column pays for that part's route and prints both", async () => {
+  const run = await asked("--fields", "plan,relations");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(run.body.plan, ISSUE.plan);
+  assert.deepEqual(run.body.relations.blocks.map((one) => one.otherDisplayId), ["ISS-2"]);
+  assert.deepEqual(paths(), [`/api/issues/${ISSUE.documentId}`, `/api/issues/${ISSUE.documentId}/dependencies`].sort());
 });
 
 test("a read naming no field at all reads the whole issue, edges and attachments included", async () => {

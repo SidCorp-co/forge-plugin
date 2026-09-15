@@ -132,7 +132,7 @@ export const correctionForm = (ref, paths) =>
 /** The text `developed` reads each path of the note against — the plan and its corrections — for the composer that must not leave out what that check would refuse. The import is at the call because `earned.mjs` reads this module's clauses, so a static one back would be a cycle. */
 export const namedFor = async (documentId, comments = null) => {
   const { namedIn, viewFrom } = await import("../earned.mjs");
-  const issue = await scoped("forge_issues", { action: "get", documentId, fields: ["plan"] });
+  const issue = await scoped("forge_issues", { action: "get", documentId, fields: [] });
   const page = comments ?? (await commentPage(documentId)).comments ?? [];
   return namedIn(viewFrom(documentId, issue ?? {}, page ?? []));
 };

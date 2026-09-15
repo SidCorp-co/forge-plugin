@@ -381,7 +381,7 @@ const landingSteps = (one) => {
 const readOf = async (key) => {
   const documentId = await asked(() => documentIdOf(key));
   const issue = await asked(() => scoped("forge_issues",
-    { action: "get", documentId, fields: ["sessionContext", "status"] }));
+    { action: "get", documentId, fields: [] }));
   return { documentId, context: issue?.sessionContext ?? null, status: issue?.status ?? null };
 };
 
@@ -454,7 +454,7 @@ const PAST_INSTALL = new Set(["installed", "marked", LANDING_QA_OWED, LANDING_JU
 
 const carriedOn = async (holder, rest, ctx) => {
   const issue = await asked(() => scoped("forge_issues",
-    { action: "get", documentId: holder.documentId, fields: ["sessionContext"] }));
+    { action: "get", documentId: holder.documentId, fields: [] }));
   const { intended, release, state } = landingOf(issue?.sessionContext ?? null) ?? {};
   if (!intended || !release) return [];
   /* Asked of the remote and of that state: a release built and not pushed is readable here for as

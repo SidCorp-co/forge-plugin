@@ -175,7 +175,7 @@ const heldFrom = async (keys, rows) => {
   const plans = await Promise.all(keys.map(async (key) => {
     const row = rows.find((one) => String(one.issueId).toUpperCase() === key.toUpperCase());
     if (!row) fail(`next: --holding names ${key}, which is not on this project's tracker.`);
-    const held = await scoped("forge_issues", { action: "get", documentId: row.documentId, fields: ["plan"] });
+    const held = await scoped("forge_issues", { action: "get", documentId: row.documentId, fields: [] });
     return { issueId: row.issueId, plan: held?.plan ?? "" };
   }));
   return heldPaths(plans);
@@ -318,7 +318,7 @@ export const next = async (argv) => {
   const complexities = complexitiesOf(rows);
   const landed = lastLanded(rows);
   const warmPaths = landed ? pathsNamed((await scoped("forge_issues", {
-    action: "get", documentId: landed.documentId, fields: ["description"] }))?.description ?? "") : [];
+    action: "get", documentId: landed.documentId, fields: [] }))?.description ?? "") : [];
   /* The body's own lines are read when it lands, not in `judge`: `judge` is re-run over the whole read prefix on every
      pass — up to five under the caps below — and the body does not change between them, so they ride on its own entry. */
   const bodies = new Map();

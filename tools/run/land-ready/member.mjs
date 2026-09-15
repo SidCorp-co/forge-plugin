@@ -109,7 +109,7 @@ export const voidSaid = async (documentId, landing) => {
 };
 
 const statusOf = async (documentId) =>
-  (await scoped("forge_issues", { action: "get", documentId, fields: ["status"] }))?.status ?? null;
+  (await scoped("forge_issues", { action: "get", documentId, fields: [] }))?.status ?? null;
 
 export const notReconciled = (key, landing, candidate, moved = []) =>
   `the checkpoint on ${key} reads \`${landing.state}\` and its reconciliation names `
