@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { jsonlOf, tempHome, tempRoom } from "../../fixtures.mjs";
+import { escaped, jsonlOf, tempHome, tempRoom } from "../../fixtures.mjs";
 
 const HOME = tempHome("worklog");
 process.env.XDG_CONFIG_HOME = HOME.path;
@@ -276,7 +276,7 @@ test("--pushed outside a checkout is refused, naming the directory it was asked 
   const outside = spawnSync(FORGE, ["claim", "ISS-1", "--pushed"], { encoding: "utf8", env: process.env, cwd: tmpdir() });
   assert.equal(outside.status, 1, outside.stdout);
   assert.match(outside.stderr, /--pushed reads the branch and head from git/u);
-  assert.match(outside.stderr, new RegExp(tmpdir(), "u"), "and says where it looked");
+  assert.match(outside.stderr, new RegExp(escaped(tmpdir()), "u"), "and says where it looked");
 });
 
 /* The report's own refusal said it carries no capture flag, and then let one through whenever the

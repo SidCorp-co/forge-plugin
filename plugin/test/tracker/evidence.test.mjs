@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
 import { attachPlan, localFile, uploadRefusal, uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { escaped, tempRoom } from "../fixtures.mjs";
 
 const DIR = tempRoom("evidence-");
 const FILE = join(DIR, "iss65-evidence.md");
@@ -110,7 +110,7 @@ test("a refusal on the name says which file, what it read off it, and what the t
   assert.match(said, /its reading of the tracker's set rather than the tracker's own answer/u);
   assert.match(said, /MIME_NOT_ALLOWED/u, "the tracker's own words stay in it");
   const log = join(DIR, "iss134-gate-final.log");
-  assert.match(said, new RegExp(`ln -- '${log}' '${log}\\.txt'$`, "u"), "the same name plus .txt collides with nothing");
+  assert.match(said, new RegExp(`ln -- '${escaped(log)}' '${escaped(log)}\\.txt'$`, "u"), "the same name plus .txt collides with nothing");
 });
 
 /* The mint bought the tracker's verdict before any byte went, and one request cannot: what the

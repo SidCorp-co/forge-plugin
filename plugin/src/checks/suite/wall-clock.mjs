@@ -57,7 +57,7 @@ export const blanked = (text) => {
    so neither a case reusing the name for a count nor a binding a nested block has left is read as
    an elapsed. The braces are as much scope as text gives: a parameter and a hoisted `var` are not. */
 /* Where the block holding a declaration ends, which is where its binding stops answering. */
-const closesAfter = (code, at) => {
+export const closesAfter = (code, at) => {
   let depth = 0;
   for (let edge = at; edge < code.length; edge += 1) {
     if (code[edge] === "{") depth += 1;

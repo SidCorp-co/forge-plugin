@@ -103,8 +103,8 @@ test("a call that commits in two trees says which one it judged", () => {
   mkdirSync(join(REPO, "docs"), { recursive: true });
   writeFileSync(join(REPO, "docs", "PLAN.md"), "# PLAN\n");
   const out = because(gate({ command: `git commit -m a && git -C ${other} commit -m b`, pending: record }));
-  assert.match(out, new RegExp(`stages in ${realpathSync(REPO)}`, "u"), "the tree it judged");
-  assert.match(out, new RegExp(`also commits in ${other}, which went unchecked`, "u"), "and the one it did not");
+  assert.ok(out.includes(`stages in ${realpathSync(REPO)}`), "the tree it judged");
+  assert.ok(out.includes(`also commits in ${other}, which went unchecked`), "and the one it did not");
   const one = because(gate({ command: "git commit -m a && git commit -m b", pending: record }));
   rmSync(join(REPO, "docs"), { recursive: true, force: true });
   assert.doesNotMatch(one, /went unchecked/u, "two commits in one tree leave nothing unjudged");
@@ -117,9 +117,9 @@ test("a commit is judged by the tree it names, not the shell's", () => {
   assert.equal(gate({ command: `git -C ${realpathSync(away(false))} commit -m x`, pending: ["work.mjs"] }), null,
     "and a tree staging nothing owes nothing wherever the record is");
   const out = because(gate({ command: `git -C ${elsewhere} commit -m x`, pending: ["work.mjs"], pendingIn: elsewhere }));
-  assert.match(out, new RegExp(`stages in ${elsewhere}`, "u"), "the tree the command names is the one judged");
+  assert.ok(out.includes(`stages in ${elsewhere}`), "the tree the command names is the one judged");
   /* Judged there, it has to be consulted there: the paths listed are that tree's, and so is the log. */
-  assert.match(out, new RegExp(`Do this: \`cd ${elsewhere} && echo`, "u"), "the command runs where the commit lands");
+  assert.ok(out.includes(`Do this: \`cd ${elsewhere} && echo`), "the command runs where the commit lands");
   const held = realpathSync(away(true));
   assert.ok(
     gate({ command: `git --git-dir=${join(held, ".git")} commit -m x`, pending: ["work.mjs"], pendingIn: held }),
@@ -137,7 +137,7 @@ test("a --git-dir naming no tree does not carry the commit out of this gate", ()
     pendingIn: elsewhere,
   }));
   assert.match(out, /has not read what this commit stages/u, out);
-  assert.match(out, new RegExp(`cd ${elsewhere} && echo`, "u"), "and it is consulted in the tree -C named");
+  assert.ok(out.includes(`cd ${elsewhere} && echo`), "and it is consulted in the tree -C named");
 });
 
 /* 7 of 30 commits landed with the turn's documents recorded and unread, in turns the advisor never
@@ -152,7 +152,7 @@ test("a commit waits for the documents it stages, and not for one left dirty bes
   const out = because(gate({ command, pending: record, stage: staged }));
   assert.match(out, /has not read what this commit stages in .*docs\/PLAN\.md 'docs\/a b\.md', recorded 2 minute\(s\) ago/u);
   assert.doesNotMatch(out, /LATER/u, "an uncommitted file nobody staged is not this commit's to review");
-  assert.match(out, new RegExp(`stages in ${realpathSync(REPO)}`, "u"), "the tree whose record is being asked about");
+  assert.ok(out.includes(`stages in ${realpathSync(REPO)}`), "the tree whose record is being asked about");
   assert.match(out, /forge codex consult --diff --only blocker,major docs\/PLAN\.md 'docs\/a b\.md'/u);
   assert.match(out, /pending --drop/u);
   assert.equal(gate({ pending: record, stage: staged }), null, "a write is asked nothing at all");
@@ -213,7 +213,7 @@ test("a document recorded in one tree does not hold a commit in another", () => 
     return because(out.stdout.trim() ? JSON.parse(out.stdout) : null);
   };
   assert.equal(asked(main), "", "the main checkout's record is not the worktree commit's to answer for");
-  assert.match(asked(worktree), new RegExp(`stages in ${worktree}`, "u"), "and the worktree's own record still holds it");
+  assert.ok(asked(worktree).includes(`stages in ${worktree}`), "and the worktree's own record still holds it");
   rmSync(worktree, { recursive: true, force: true });
   rmSync(main, { recursive: true, force: true });
   rmSync(home, { recursive: true, force: true });
@@ -254,7 +254,7 @@ test("a second commit whose tree cannot be named went unchecked, and the sentine
     pending: ["work.mjs"],
     stage: ["work.mjs"],
   }));
-  assert.match(out, new RegExp(`stages in ${realpathSync(REPO)}`, "u"), "the first commit names its tree and is judged there");
+  assert.ok(out.includes(`stages in ${realpathSync(REPO)}`), "the first commit names its tree and is judged there");
   assert.match(out, /also commits in a tree it does not name, which went unchecked/u);
   assert.equal(stderrSaid.trim(), "", "a symbol in a path argument throws, and a thrown gate is a skipped gate");
 });

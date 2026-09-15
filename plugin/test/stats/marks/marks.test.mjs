@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { WINDOW, evalLines, evalRuns, releaseMark, runsMark } from "../../../src/stats/eval.mjs";
 import { marksOf, marksPath, writeMark } from "../../../src/stats/marks/marks.mjs";
 import { slugFor } from "../../../src/stats/transcripts.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { escaped, tempRoom } from "../../fixtures.mjs";
 import { HOUR, PROJECT, ask, askStats, at, corpusOf, runsOf } from "../fixture-eval.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("stats-eval-marks-home-");
@@ -258,7 +258,7 @@ test("a release mark carries its version and head, resolves apart from a count m
     for (const version of ["3.35.400", "3.35.401"]) {
       const read = askStats(room, ["eval", "--checkout", PROJECT, "--since-release", version], home);
       assert.equal(read.status, 0, read.stderr);
-      assert.match(read.stdout, new RegExp(`held at release ${version.replaceAll(".", "\\.")}`, "u"),
+      assert.match(read.stdout, new RegExp(`held at release ${escaped(version)}`, "u"),
         "each version resolves to its own reading");
     }
   } finally {

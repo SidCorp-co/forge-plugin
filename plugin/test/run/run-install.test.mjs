@@ -132,7 +132,7 @@ test("a registration that cannot be put back is refused with the command that pu
   const run = runIn(room.tree, ["ship"], room.env);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /the registration could not be put back/u, run.stderr);
-  assert.match(run.stderr, new RegExp(`claude plugin marketplace add ${room.work}`, "u"),
+  assert.ok(run.stderr.includes(`claude plugin marketplace add ${room.work}`),
     `the one command that puts it back is not in the refusal:\n${run.stderr}`);
   assert.equal(registeredAt(room.at), room.tree, "the stub was told to refuse and the registration moved anyway");
 });

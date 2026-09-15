@@ -58,7 +58,7 @@ test("a verdict already written answers at once, off the record, with its pid an
     assert.ok(Date.now() - began < patience(1000), "a verdict already written was waited for");
     const whole = said.lines.join("\n");
     assert.match(whole, /gate verdict: pass — 14 of 14 step\(s\) in 41s/u, whole);
-    assert.match(whole, new RegExp(`pid ${opened.pid}`, "u"), "the pid that wrote it is not named");
+    assert.ok(whole.includes(`pid ${opened.pid}`), "the pid that wrote it is not named");
     assert.match(whole, /head [0-9a-f]+, /u, "the head it judged is not named");
     assert.match(whole, /written \d+ second\(s\) ago/u, "the age of the verdict is not named");
   } finally {
@@ -118,7 +118,7 @@ test("a wait on a running gate returns once, at the verdict that gate writes", a
     gateDecided(work, opened, { verdict: "failed", code: 1, step: STEPS.at(0).label });
     assert.equal(await answer, 1, said.lines.join("\n"));
     assert.equal(said.lines.length, 1, `it said more than the verdict:\n${said.lines.join("\n")}`);
-    assert.match(said.lines[0], new RegExp(`gate verdict: failed — at the step ${STEPS.at(0).label}`, "u"), said.lines[0]);
+    assert.ok(said.lines[0].includes(`gate verdict: failed — at the step ${STEPS.at(0).label}`), said.lines[0]);
   } finally {
     await stopGate(gate);
     rmSync(at, { recursive: true, force: true });
@@ -419,7 +419,7 @@ test("a wait for a place that runs out of time names the pid still holding it an
       said.lines.join("\n"));
     const whole = said.lines.join("\n");
     assert.match(whole, /gate wait: deadline/u, whole);
-    assert.match(whole, new RegExp(`pid ${gate.pid}  gating ${work}`, "u"), `the holder of the place is not named:\n${whole}`);
+    assert.ok(whole.includes(`pid ${gate.pid}  gating ${work}`), `the holder of the place is not named:\n${whole}`);
     assert.match(whole, /never got a place/u, `it read as a tree that was judged:\n${whole}`);
     assert.ok(!whole.includes("gate verdict:"), `a wait that judged nothing spoke as a verdict:\n${whole}`);
     assert.equal(verdictRuns(work).filter((one) => one.verdict).length, 0, "the wait wrote a verdict of its own");

@@ -7,7 +7,7 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { escaped, fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
 
 const state = { issues: [], comments: {}, calls: [], memory: {}, answer: {} };
 const tracker = await fakeTracker(state);
@@ -259,7 +259,7 @@ test("a filing that lands ends its stdout with the key, read back, and not with 
   state.memory = both(NEAR.issueId, 0.72);
   const run = await ranAsync(FORGE, ["new", bodyFile(), "--title", TITLE, "--category", "bug"], tracker.env);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, new RegExp(TRAILER.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"),
+  assert.match(run.stdout, new RegExp(escaped(TRAILER), "u"),
     "the block still prints; what moved is what comes after it");
   assert.equal(lastOf(run.stdout), "ISS-810 is filed at uuid-810, read back from the tracker.");
 });

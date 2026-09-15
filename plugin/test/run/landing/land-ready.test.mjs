@@ -12,7 +12,7 @@ import {
   claudeCalls, comments, context, ctx, earning, forgetInstall, git, issue, marks, ready, seeded,
   serverPushes, sha, state, strayWrites, tracker, world,
 } from "./fixture.mjs";
-import { ranAsync } from "../../fixtures.mjs";
+import { escaped, ranAsync } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
@@ -69,7 +69,7 @@ test("a ready branch is pinned, merged, proved to have moved nothing and promote
   seeded({ landing: ready(head, base) });
   const said = await ran([KEY], work);
   const landed = remote(at);
-  assert.match(said, new RegExp(`pinned at ${base.slice(0, 7)}`, "u"), said);
+  assert.ok(said.includes(`pinned at ${base.slice(0, 7)}`), said);
   assert.match(said, /landing moved nothing of the change/u, said);
   assert.notEqual(landed, base, `${BASE} did not move:\n${said}`);
   /* The release sits on the candidate, and the candidate on both: the base this landing pinned and
@@ -151,7 +151,7 @@ test("the landing offers the head it released to the publisher, and is not stopp
   forgetInstall();
   const said = await ran([KEY], work);
   const landed = remote(at);
-  assert.match(said, new RegExp(`nothing is published for ${landed.slice(0, 7)}`, "u"),
+  assert.ok(said.includes(`nothing is published for ${landed.slice(0, 7)}`),
     `the landing did not offer its released head to the publisher:\n${said}`);
   assert.equal(landing().release, versionAt(work, landed),
     `and the landing finished all the same, a record it cannot read being no release to stop:\n${said}`);
@@ -180,10 +180,10 @@ test("the merged mark names the judged head, the landed head and that the landin
   const said = await ran([KEY], work);
   assert.equal(marks().length, 1, `one mark and no more:\n${said}`);
   const note = marks()[0].body;
-  assert.match(note, new RegExp(`at ${remote(at)}\\b`, "u"), note);
-  assert.match(note, new RegExp(`judged head ${head}\\b`, "u"), note);
+  assert.match(note, new RegExp(`at ${escaped(remote(at))}\\b`, "u"), note);
+  assert.match(note, new RegExp(`judged head ${escaped(head)}\\b`, "u"), note);
   assert.match(note, /landing moved nothing;/u, note);
-  assert.match(note, new RegExp(`landing wrote ${OWNED.replace(/\//gu, "/")}`, "u"), note);
+  assert.ok(note.includes(`landing wrote ${OWNED}`), note);
 });
 
 test("the landing writes the checkpoint, the mark and the statuses, and no judgement of its own", async () => {
@@ -205,7 +205,7 @@ test("a base that moved a line of the change's own file hands the branch back, r
   const held = landing();
   assert.equal(held.state, "builder-owed", said);
   assert.equal(held.moved, OWNED, `the path it moved is named:\n${said}`);
-  assert.match(said, new RegExp(`landing moved ${OWNED}`, "u"), said);
+  assert.ok(said.includes(`landing moved ${OWNED}`), said);
   assert.match(said, /reads `reconciled` at/u, said);
   assert.equal(remote(at), pinned, `nothing was pushed:\n${said}`);
   assert.equal(marks().length, 0, `and nothing marked:\n${said}`);
@@ -222,8 +222,8 @@ test("a base that moved a line of the change's own file hands the branch back, r
   const after = await ran([KEY], work);
   assert.equal(landing().state, "records-owed", after);
   assert.notEqual(remote(at), pinned, `the reconciled candidate lands:\n${after}`);
-  assert.match(marks()[0].body, new RegExp(`judged head ${held.candidate}\\b`, "u"), marks()[0].body);
-  assert.match(marks()[0].body, new RegExp(`landing moved ${OWNED};`, "u"), marks()[0].body);
+  assert.match(marks()[0].body, new RegExp(`judged head ${escaped(held.candidate)}\\b`, "u"), marks()[0].body);
+  assert.ok(marks()[0].body.includes(`landing moved ${OWNED};`), marks()[0].body);
 });
 
 /* Four runs of one wave were each refused at the last record and every refusal was right: the rungs left after the mark are earned by records only the builder can answer, and the checkpoint gave that state to the lander. Watched end to end, through the shipped commands (ISS-923). */
@@ -328,7 +328,7 @@ test("a branch that conflicts with the pinned base is parked with the list, and 
   });
   const clean = git(work, "status", "--porcelain").stdout;
   const said = await ran([KEY, NEXT_KEY], work);
-  assert.match(said, new RegExp(`${OWNED} conflict`, "u"), said);
+  assert.ok(said.includes(`${OWNED} conflict`), said);
   assert.equal(issue().status, "on_hold", `parked as blocked:\n${said}`);
   const park = comments().find((one) => one.body.includes("Park"));
   assert.ok(park && park.body.includes(OWNED), `the conflict list is attached:\n${park?.body}`);
@@ -404,7 +404,7 @@ test("a base head past the pin refuses the promotion, names it, and rebuilds fro
   assert.equal(sha(work, `refs/remotes/origin/${BASE}`), pinned,
     "the tracking ref still names the pin, so only the remote itself can say the base moved");
   const said = await ran([KEY], work);
-  assert.match(said, new RegExp(`is at ${theirs.slice(0, 7)}`, "u"), said);
+  assert.ok(said.includes(`is at ${theirs.slice(0, 7)}`), said);
   assert.match(said, /rebuilt from the new head/u, said);
   const held = landing();
   assert.equal(held.pinned, theirs, `the fresh pin is the checkpoint's:\n${said}`);

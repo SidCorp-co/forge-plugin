@@ -7,7 +7,7 @@ import { mkdirSync, writeFileSync, symlinkSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { cleanRepo, tempRoom } from "../fixtures.mjs";
+import { cleanRepo, escaped, tempRoom } from "../fixtures.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves: the log's path is bound when its module loads, and a suite
    that imports first writes to the developer's own log. */
@@ -222,7 +222,7 @@ test("the command the refusal prints is quoted, and names the tree it has to run
   assert.match(refusalOf(spaced, root), /--send bodies '(?:the plan\.md)'/u);
   const nowhere = tempRoom("no-checkout-");
   const away = refusalOf(join(root, "plan.md"), nowhere);
-  assert.match(away, new RegExp(`cd ${root}( |/)?.*&& echo`, "u"));
+  assert.match(away, new RegExp(`cd ${escaped(root)}( |/)?.*&& echo`, "u"), away);
   assert.doesNotMatch(refusalOf(join(root, "plan.md"), root), /cd .* &&/u);
 });
 

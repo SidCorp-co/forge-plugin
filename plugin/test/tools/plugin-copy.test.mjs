@@ -6,7 +6,7 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tempRoom } from "../fixtures.mjs";
+import { escaped, tempRoom } from "../fixtures.mjs";
 
 const HOOK = new URL("../../hooks/link-cli.mjs", import.meta.url).pathname;
 const ROOT = new URL("../..", import.meta.url).pathname;
@@ -38,7 +38,7 @@ const mine = JSON.parse(readFileSync(join(ROOT, ".claude-plugin", "plugin.json")
 test("a session running a copy the install has moved past is told to restart", () => {
   const said = started(record("99.0.0"));
   assert.match(said, /99\.0\.0 is installed/u);
-  assert.match(said, new RegExp(`forge ${mine.replace(/\./gu, "\\.")} is running`, "u"));
+  assert.match(said, new RegExp(`forge ${escaped(mine)} is running`, "u"));
   assert.match(said, /Restart/u);
 });
 

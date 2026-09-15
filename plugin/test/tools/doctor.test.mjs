@@ -351,7 +351,7 @@ test("the saved credential is owner-only, and lands outside the repository it wa
     encoding: "utf8", cwd: repo, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });
   const said = `${run.stdout}${run.stderr}`;
-  assert.match(run.stdout, new RegExp(`Saved token to ${held} \\(mode 0600\\)`, "u"), said);
+  assert.ok(run.stdout.includes(`Saved token to ${held} (mode 0600)`), said);
   assert.equal(statSync(held).mode & 0o777, 0o600, `the write kept the mode it found: ${said}`);
   assert.equal(JSON.parse(readFileSync(held, "utf8")).token, TOKEN);
   const holds = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((one) => {

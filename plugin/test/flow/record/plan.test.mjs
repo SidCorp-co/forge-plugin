@@ -6,7 +6,7 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome, tempRoom, typedPlan } from "../../fixtures.mjs";
+import { escaped, fakeTracker, ranAsync, tempHome, tempRoom, typedPlan } from "../../fixtures.mjs";
 import { PLAN_SECTIONS } from "../../../src/flow/machine.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("record-plan").path;
@@ -151,7 +151,7 @@ test("`record plan -h` prints every section a typed plan owes, as the question i
   const run = await ranAsync(FORGE, ["record", "plan", "-h"], env());
   assert.equal(run.status, 0, run.stderr);
   for (const one of PLAN_SECTIONS) {
-    assert.match(run.stdout, new RegExp(`^ {2}## ${one.name} +${one.asks.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}$`, "mu"), one.name);
+    assert.match(run.stdout, new RegExp(`^ {2}## ${escaped(one.name)} +${escaped(one.asks)}$`, "mu"), one.name);
   }
   assert.match(run.stdout, /The way back is owed only where the plan declares schema coupling or deploy coupling\./u);
   assert.match(run.stdout, /naming none is refused here\. At `approved`, where the criteria field is read, so is a step whose\nnumbers name no criterion the issue holds, and a criterion no step names\./u);

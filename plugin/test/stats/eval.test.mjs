@@ -14,7 +14,7 @@ import { UNRECORDED, copyAt, installedCopies, spansInstall } from "../../src/sta
 import { shiftBetween, tallied, twoWindows } from "../../src/stats/windows.mjs";
 import { evalObject, evalWindows } from "../../src/codex/codex-stats.mjs";
 import { writeMark } from "../../src/stats/marks/marks.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { escaped, tempRoom } from "../fixtures.mjs";
 import { BASE, FORGE, HOUR, PROJECT, ask, askStats, at, corpusOf, runsOf } from "./fixture-eval.mjs";
 
 /* The mark writes a reading under the config directory, so the process's own is moved first. */
@@ -233,7 +233,7 @@ test("--json is the comparison alone, --size sets both windows, and a bad size i
   for (const bad of ["0", "x", "2.5"]) {
     const refused = ask(room, "--size", bad);
     assert.equal(refused.status, 1);
-    assert.match(refused.stderr, new RegExp(`stats eval: --size takes an integer of 1 or more, not \`${bad.replace(".", "\\.")}\``, "u"));
+    assert.match(refused.stderr, new RegExp(`stats eval: --size takes an integer of 1 or more, not \`${escaped(bad)}\``, "u"));
   }
   const relative = spawnSync(FORGE, ["stats", "eval", "--checkout", "../elsewhere"], {
     encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-eval-home-"), TMPDIR: room },

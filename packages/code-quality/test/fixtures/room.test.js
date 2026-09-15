@@ -57,7 +57,7 @@ test("a room the flag asked to keep is still there once its process has gone, at
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   const left = readdirSync(room, { withFileTypes: true }).filter((one) => one.isDirectory()).map((one) => one.name);
   assert.equal(left.length, 1, `asked to keep its room, the process left ${left.length}: ${left.join(", ") || "nothing"}`);
-  assert.match(run.stderr, new RegExp(`${room}/${left[0]}`, "u"),
+  assert.ok(run.stderr.includes(`${room}/${left[0]}`),
     `the kept room's path was never printed, so the room is a leak nobody can find: ${run.stderr || "(silent)"}`);
 });
 

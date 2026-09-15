@@ -6,8 +6,8 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { BARE, git, OWN_SLUG, pushed, runIn } from "../run-fixtures.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { BARE, OWN_SLUG, git, pushed, runIn } from "../run-fixtures.mjs";
+import { escaped, tempRoom } from "../../fixtures.mjs";
 
 const KEY = "ISS-88";
 const HAS_PROC = existsSync(join("/proc", "self", "stat"));
@@ -99,7 +99,7 @@ test("finish never forces a branch delete: one git refuses is left, named, and s
   assert.ok(!existsSync(tree), `the worktree was kept for a branch that loses nothing:\n${run.stdout}`);
   assert.notEqual(git(work, "rev-parse", "--verify", "--quiet", branch).stdout.trim(), "",
     "a branch git refused to delete was deleted anyway");
-  assert.match(run.stderr, new RegExp(`left {5}branch ${branch}`, "u"), run.stderr);
+  assert.match(run.stderr, new RegExp(`left {5}branch ${escaped(branch)}`, "u"), run.stderr);
   assert.match(run.stderr, /nothing of it is lost/u, run.stderr);
   assert.doesNotMatch(run.stderr + run.stdout, /branch -D/u, "a forced delete is named as a way out");
 });
@@ -210,7 +210,7 @@ test("finish leaves the tree a gate of its own is still judging, and stops no pr
   const run = runIn(work, ["finish", KEY], BARE);
   assert.equal(run.status, 1, run.stdout);
   assert.ok(existsSync(tree), "a tree with a gate of its own still running was removed");
-  assert.match(run.stderr, new RegExp(`pid ${gate.pid}`, "u"), run.stderr);
+  assert.ok(run.stderr.includes(`pid ${gate.pid}`), run.stderr);
   assert.match(run.stderr, /clear it: node .*gates\.mjs --wait/u, run.stderr);
   assert.equal(gate.exitCode, null, "the gate this call reported was stopped by it");
   gate.kill();
@@ -225,7 +225,7 @@ test("finish called from inside the tree takes that run's scratch, leaves the tr
   assert.ok(!existsSync(scratch), `the scratch of the run making this call was kept:\n${run.stdout}`);
   assert.ok(existsSync(tree), "the directory this call was standing in was removed under it");
   assert.match(run.stdout, /which this call is standing in/u, run.stdout);
-  assert.match(run.stdout, new RegExp(`node ${work}/tools/run\\.mjs finish ${KEY}`, "u"), run.stdout);
+  assert.ok(run.stdout.includes(`node ${work}/tools/run.mjs finish ${KEY}`), run.stdout);
 });
 
 test("a finish after a successful one removes nothing and exits 0", () => {
@@ -267,7 +267,7 @@ test("finish removes the scratch start made even when the run exported it as its
   assert.equal(run.status, 0, run.stderr + run.stdout);
   assert.ok(!existsSync(scratch), `the scratch start made outlived the run:\n${run.stdout}`);
   assert.ok(!existsSync(tree), run.stdout);
-  assert.match(run.stdout, new RegExp(`removed {2}${scratch}, holding 1 entry`, "u"), run.stdout);
+  assert.match(run.stdout, new RegExp(`removed {2}${escaped(scratch)}, holding 1 entry`, "u"), run.stdout);
 });
 
 /* A lock is somebody saying not to remove this tree. Read in the preflight and not met at the
@@ -282,7 +282,7 @@ test("finish leaves a worktree somebody has locked, names the lock and takes not
   assert.ok(existsSync(tree), "a locked worktree was removed");
   assert.ok(existsSync(scratch), `the scratch of a locked workspace was removed:\n${run.stdout}`);
   assert.match(run.stderr, /that worktree is locked/u, run.stderr);
-  assert.match(run.stderr, new RegExp(`clear it: git -C ${work} worktree unlock ${tree}`, "u"), run.stderr);
+  assert.ok(run.stderr.includes(`clear it: git -C ${work} worktree unlock ${tree}`), run.stderr);
 });
 
 test("finish refuses a directory at the derived path that is another repository's, and says whose", () => {
@@ -296,7 +296,7 @@ test("finish refuses a directory at the derived path that is another repository'
   assert.equal(run.status, 1, run.stdout);
   assert.ok(existsSync(join(theirs, ".git")), "another repository's checkout was removed");
   assert.match(run.stderr, /is a checkout of its own and not a worktree of/u, run.stderr);
-  assert.match(run.stderr, new RegExp(`git -C ${theirs} worktree list`, "u"), run.stderr);
+  assert.ok(run.stderr.includes(`git -C ${theirs} worktree list`), run.stderr);
   assert.ok(at, "the room the case ran in");
 });
 
@@ -305,7 +305,7 @@ test("finish names the worktrees left on this checkout and whether the copy a se
   const run = runIn(work, ["finish", KEY], homeWith("finish-stack", 0));
   assert.equal(run.status, 0, run.stderr + run.stdout);
   assert.match(run.stdout, /trees {4}1 left on this checkout:/u, run.stdout);
-  assert.match(run.stdout, new RegExp(`${work}.*\\[master\\]`, "u"), run.stdout);
+  assert.match(run.stdout, new RegExp(`${escaped(work)}.*\\[master\\]`, "u"), run.stdout);
   assert.match(run.stdout, /stack {4}the copy a session outside this checkout loads answered: 9\.9\.9/u, run.stdout);
 });
 

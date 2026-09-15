@@ -11,7 +11,7 @@ import { join, relative } from "node:path";
 import { clauseIndex } from "../../src/spec/index.mjs";
 import { RECORD, entriesOf, malformedIn, movedIn, recordProblems } from "../../src/spec/recorded.mjs";
 import { TREE } from "../../src/spec/tree.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { escaped, tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const scratch = [];
@@ -121,7 +121,7 @@ test("a clause whose words moved is the record's drift, whether or not anything 
   const found = said(moved, recordedAs(CURRENT));
   assert.deepEqual(found.filter((one) => one.includes("is suspect")), [], "FR-01 is cited by nothing");
   assert.equal(found.length, 1, found.join(" · "));
-  assert.match(found[0], new RegExp(`^${FILE}:1 FR-01 R-10 is at revision 1 and the digest recorded`, "u"));
+  assert.match(found[0], new RegExp(`^${escaped(FILE)}:1 FR-01 R-10 is at revision 1 and the digest recorded`, "u"), found[0]);
   assert.match(found[0], /for that revision is not this clause's words now/u);
   assert.match(found[0], /Bump the clause's revision, .* or re-record with `forge spec check --record`/u);
 });

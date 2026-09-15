@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 
-import { tempHome, typedPlan } from "../../fixtures.mjs";
+import { escaped, tempHome, typedPlan } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("entry-checks").path;
 const { parse, render } = await import("../../../src/flow/record/page.mjs");
@@ -267,7 +267,7 @@ test("a fitted note earns what the whole list would have earned, and refuses wha
   const grew = owed(`It touches ${cases.slice(29).join(" and ")}.`, cases.slice(29));
   assert.equal(grew.length, 1, "while the 29 it does not name are one shortfall");
   for (const one of cases.slice(0, 29)) {
-    assert.match(grew[0].what, new RegExp(one.replace(/\./gu, "\\."), "u"),
+    assert.match(grew[0].what, new RegExp(escaped(one), "u"),
       `${one} is a path the plan does not name, so the note may not leave it out`);
   }
   assert.doesNotMatch(grew[0].what, /case-118/u, "and no path it does name is reported as growth");

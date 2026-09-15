@@ -7,7 +7,7 @@ import test, { after } from "node:test";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tempRoom } from "../fixtures.mjs";
+import { escaped, tempRoom } from "../fixtures.mjs";
 
 const scratch = [];
 const temporary = (prefix) => {
@@ -163,7 +163,7 @@ for (const [typed, renders] of UNWRITABLE) {
     const run = written(project(`crit-unwritable-${renders}-`, true), `1. AC-01-1-1~${typed}: the outcome.\n`);
     assert.equal(run.status, 1, run.stderr);
     assert.match(run.stderr, /nothing was written/u);
-    assert.match(run.stderr, new RegExp(`at revision 1, not ${renders.replace(/[.+]/gu, "\\$&")}`, "u"),
+    assert.match(run.stderr, new RegExp(`at revision 1, not ${escaped(renders)}`, "u"),
       `the refusal names the revision the clause is at and the one it was given: ${run.stderr}`);
     assert.match(run.stderr, /cite AC-01-1-1~1/u, "and the citation to write instead");
   });

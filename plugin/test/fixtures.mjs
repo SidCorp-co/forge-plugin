@@ -26,6 +26,8 @@ export const typedPlan = (over = {}) => {
 
 export const flat = (text) => text.replace(/\s+/gu, " ");
 
+export const escaped = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+
 export const jsonlOf = (rows) => Buffer.from(rows.map((one) => `${JSON.stringify(one)}\n`).join(""));
 
 /* `cwd` is the project the hook stands in, a different question from the event's `cwd`: the settings resolver walks up from the process, so a case varying a `.forge.json` key sets this. */

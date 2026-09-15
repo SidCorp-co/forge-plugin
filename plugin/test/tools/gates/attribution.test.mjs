@@ -8,7 +8,7 @@ import { existsSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 
 import { CASES_ENV } from "../../../../tools/gates/isolation.mjs";
-import { fakeTracker } from "../../fixtures.mjs";
+import { escaped, fakeTracker } from "../../fixtures.mjs";
 import { COPIED, entryDir, landed, passesFor, ranGate, reachedFrom, ROOT as SCRATCH_ROOT,
   ROUTE_ROOTS, run, runsFile, scratch, STAMPED } from "./scratch.mjs";
 
@@ -71,9 +71,9 @@ test("a case that fails however it is run refuses the gate, and the refusal name
     const said = run(work);
     assert.equal(said.status, 1, said.stdout);
     assert.match(said.stderr, new RegExp(`Gate failed: test — 1 of 1 case\\(s\\) reproduced alone `
-      + `— the tree judged: ${work}`, "u"), said.stderr);
+      + `— the tree judged: ${escaped(work)}`, "u"), said.stderr);
     assert.match(said.stderr, /a case of this scratch's own/u, said.stderr);
-    assert.match(said.stderr, new RegExp(CASE.replace(/\//gu, "\\/"), "u"), said.stderr);
+    assert.match(said.stderr, new RegExp(escaped(CASE), "u"), said.stderr);
     assert.match(said.stdout, /reproduced alone/u, said.stdout);
     assert.deepEqual(passesFor(work, "test"), [], "a step whose case reproduced was recorded as passed");
   } finally {
@@ -266,7 +266,7 @@ test("a test step that failed with no case to name refuses, and says none was re
     const said = run(work);
     assert.equal(said.status, 1, said.stdout);
     assert.match(said.stderr, new RegExp(`Gate failed: test — no failing case was named, so none was `
-      + `re-run — the tree judged: ${work}`, "u"), said.stderr);
+      + `re-run — the tree judged: ${escaped(work)}`, "u"), said.stderr);
     assert.match(said.stdout, /# the failing cases could not be recorded at \S+: EISDIR/u, said.stdout);
     assert.ok(!said.stdout.includes("=== isolation:"), `a case was re-run with none named:\n${said.stdout}`);
   } finally {
@@ -280,7 +280,7 @@ test("a step no case can be named in refuses exactly as it did before any of thi
     landed(work, REACHED, "export const two = 2;\n");
     const said = run(work);
     assert.equal(said.status, 1, said.stdout);
-    assert.match(said.stderr, new RegExp(`Gate failed: lint — the tree judged: ${work}`, "u"), said.stderr);
+    assert.ok(said.stderr.includes(`Gate failed: lint — the tree judged: ${work}`), said.stderr);
     assert.ok(!said.stdout.includes("=== isolation:"), `a case was re-run for a step with none:\n${said.stdout}`);
   } finally {
     rmSync(at, { recursive: true, force: true });

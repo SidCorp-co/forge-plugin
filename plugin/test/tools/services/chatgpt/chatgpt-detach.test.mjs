@@ -12,7 +12,7 @@ import { createServer } from "node:http";
 import { join } from "node:path";
 import test from "node:test";
 
-import { ranAsync, tempHome } from "../../../fixtures.mjs";
+import { escaped, ranAsync, tempHome } from "../../../fixtures.mjs";
 import { patience } from "../../../patience.mjs";
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
@@ -164,7 +164,7 @@ test("the answer a detached turn came back with is collected, twice, and then is
   assert.equal(again.status, 0);
   assert.match(again.stdout, /the stub answered/u, "a caller who lost the output has nowhere else to read it");
   const waiting = await ran("pending");
-  assert.doesNotMatch(waiting.stdout, new RegExp(id, "u"), "a turn that has been read is not waiting");
+  assert.doesNotMatch(waiting.stdout, new RegExp(escaped(id), "u"), "a turn that has been read is not waiting");
 });
 
 /* A picture is the slow kind of turn, so it is usually the detaching kind: what the caller stated
@@ -223,11 +223,11 @@ test("pending lists a running turn with its age, and collect turns one away rath
   const { id } = await detached("held open");
   const waiting = await ran("pending");
   assert.equal(waiting.status, 0);
-  assert.match(waiting.stdout, new RegExp(`^${id} {2}running +\\d+s {2}held open$`, "mu"));
+  assert.match(waiting.stdout, new RegExp(`^${escaped(id)} {2}running +\\d+s {2}held open$`, "mu"), waiting.stdout);
   const early = await ran("collect", id);
   assert.equal(early.status, 1);
   assert.match(early.stderr, /is still running, \d+s in, and has nothing to read yet/u);
-  assert.match(early.stderr, new RegExp(`forge chatgpt collect ${id} --wait <s>`, "u"));
+  assert.ok(early.stderr.includes(`forge chatgpt collect ${id} --wait <s>`), early.stderr);
 });
 
 test("a collect that waits returns when the turn settles, and one whose wait runs out leaves it collectable", async () => {
@@ -286,7 +286,7 @@ test("giving a turn up stops its own process, says the same thing about the mete
   assert.match(run.stdout, /is given up and its own process has stopped/u);
   assert.ok(await until(() => !alive(record.pid)), "the child stopped itself rather than being signalled");
   const waiting = await ran("pending");
-  assert.doesNotMatch(waiting.stdout, new RegExp(id, "u"));
+  assert.doesNotMatch(waiting.stdout, new RegExp(escaped(id), "u"), waiting.stdout);
 });
 
 /* The proof that nothing is signalled by pid, which no reading of the drop's output can give: the
@@ -332,7 +332,7 @@ test("a turn that settles after it was dropped is still reported as given up", a
   assert.match(run.stderr, /was given up before it answered/u);
   assert.doesNotMatch(run.stderr, /nobody is listening for/u, "the marker outranks the record beside it");
   const waiting = await ran("pending");
-  assert.doesNotMatch(waiting.stdout, new RegExp(id, "u"));
+  assert.doesNotMatch(waiting.stdout, new RegExp(escaped(id), "u"), waiting.stdout);
 });
 
 test("the sweep takes what was read long ago and leaves an answer nobody has read", async () => {

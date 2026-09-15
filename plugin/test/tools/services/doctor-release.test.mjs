@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import { releaseRows } from "../../../src/tools/services/doctor/release.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { escaped, tempRoom } from "../../fixtures.mjs";
 import { patience } from "../../patience.mjs";
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -90,7 +90,7 @@ test("a running copy older than every tag is told that instead of a count it can
 test("a source that is itself behind is named as the thing to move first", () => {
   const at = box("stale-source", { source: "1.0.0" });
   const row = only(releaseRows({ home: at.home, running: "1.0.0" }));
-  assert.match(row.detail, new RegExp(`${at.tree.replaceAll(".", "\\.")} holds 1\\.0\\.0`, "u"));
+  assert.match(row.detail, new RegExp(`${escaped(at.tree)} holds 1\\.0\\.0`, "u"), row.detail);
   assert.match(row.detail, /has to reach 1\.0\.2 first, then/u);
 });
 
@@ -154,7 +154,7 @@ test("a copy that is the newest released one is one green row naming where that 
   const row = only(releaseRows({ home: at.home, running: "1.0.2" }));
   assert.equal(row.level, "ok");
   assert.match(row.detail, /1\.0\.2 — the newest released version, and the one running/u);
-  assert.match(row.detail, new RegExp(`git ls-remote origin in ${at.tree.replaceAll(".", "\\.")}`, "u"));
+  assert.match(row.detail, new RegExp(`git ls-remote origin in ${escaped(at.tree)}`, "u"), row.detail);
 });
 
 test("a copy ahead of every released one is said to be ahead, never called the released one", () => {

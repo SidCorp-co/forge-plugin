@@ -90,7 +90,7 @@ test("a docs-only change runs the steps that read docs and no others", () => {
     assert.match(first.stdout, /run {2}test:tree/u, first.stdout);
     assert.match(first.stdout, /skip check:dup\s+nothing it reads changed/u, first.stdout);
     assert.ok(!first.stdout.includes("=== check:dup ==="), `a step nothing reached was spent:\n${first.stdout}`);
-    assert.match(first.stdout, new RegExp(`the tree judged: ${work}`, "u"), first.stdout);
+    assert.ok(first.stdout.includes(`the tree judged: ${work}`), first.stdout);
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
@@ -300,7 +300,7 @@ test("a red step records nothing, and the failing verdict names the tree", () =>
     landed(work, "plugin/src/two.mjs", "export const two = 2;\n");
     const said = run(work);
     assert.equal(said.status, 1, said.stdout);
-    assert.match(said.stderr, new RegExp(`Gate failed: lint — the tree judged: ${work}`, "u"), said.stderr);
+    assert.ok(said.stderr.includes(`Gate failed: lint — the tree judged: ${work}`), said.stderr);
     assert.deepEqual(passesFor(work, "lint"), [], "a step that failed was recorded as passed");
     assert.deepEqual(passesFor(work, "test"), [], "a step the run never reached was recorded as passed");
   } finally {
@@ -314,7 +314,7 @@ test("a step that leaves hook stamps in the temp root it was handed is refused, 
     landed(work, "plugin/src/two.mjs", "export const two = 2;\n");
     const said = run(work);
     assert.equal(said.status, 1, said.stdout);
-    assert.match(said.stderr, new RegExp(`Gate failed: lint — the tree judged: ${work}`, "u"), said.stderr);
+    assert.ok(said.stderr.includes(`Gate failed: lint — the tree judged: ${work}`), said.stderr);
     assert.match(said.stderr, new RegExp(`left 1 hook stamp\\(s\\) in \\S+/${STAMPED}`, "u"), said.stderr);
     assert.match(said.stderr, /plugin\/test\/fixtures\.mjs/u, said.stderr);
     assert.deepEqual(passesFor(work, "lint"), [], "a step that filled a stamp room was recorded as passed");
@@ -420,7 +420,7 @@ test("a worktree is never refused for its uncommitted paths", () => {
     write(tree, "docs/three.md", "not committed\n");
     const said = spawnSync(process.execPath, [join(tree, RUNNER)], { cwd: tree, encoding: "utf8" });
     assert.equal(said.status, 0, said.stdout + said.stderr);
-    assert.match(said.stdout, new RegExp(`the tree judged: ${tree}`, "u"), said.stdout);
+    assert.ok(said.stdout.includes(`the tree judged: ${tree}`), said.stdout);
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
@@ -433,8 +433,8 @@ test("another tree's copy of the runner is refused rather than answered about th
     git(work, "worktree", "add", tree, "-b", "other");
     const said = run(work, [], tree);
     assert.equal(said.status, 1, said.stdout);
-    assert.match(said.stderr, new RegExp(`standing in ${tree}`, "u"), said.stderr);
-    assert.match(said.stderr, new RegExp(`node ${join(tree, RUNNER)}`, "u"), said.stderr);
+    assert.ok(said.stderr.includes(`standing in ${tree}`), said.stderr);
+    assert.ok(said.stderr.includes(`node ${join(tree, RUNNER)}`), said.stderr);
   } finally {
     rmSync(at, { recursive: true, force: true });
   }

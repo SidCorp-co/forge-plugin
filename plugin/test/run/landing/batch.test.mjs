@@ -15,7 +15,7 @@ import {
   comments, context, ctx, forgetGateRuns, forgetInstall, gateRuns, git, issue, marks,
   ready, redTogether, seeded, sha, state, strayWrites, tracker, world,
 } from "./fixture.mjs";
-import { ranAsync } from "../../fixtures.mjs";
+import { escaped, ranAsync } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
@@ -96,7 +96,7 @@ test("each member of that set takes its own mark and names no other member on it
   for (const [uuid, key, at2] of [[undefined, KEY, head], [NEXT_UUID, NEXT_KEY, next]]) {
     const note = marks(uuid)[0]?.body ?? "";
     assert.equal(marks(uuid).length, 1, `one mark on ${key}:\n${said}`);
-    assert.match(note, new RegExp(`at ${landed}\\b`, "u"), note);
+    assert.match(note, new RegExp(`at ${escaped(landed)}\\b`, "u"), note);
     assert.match(note, new RegExp(`judged head ${at2}\\b`, "u"), note);
   }
   assert.ok(!JSON.stringify(context()).includes(NEXT_KEY), `ISS-673 names no batchmate:\n${said}`);
@@ -193,7 +193,7 @@ test("a branch that conflicts with the pin is parked and the two beside it land 
   const { at, work, head, next, last, base } = world({ base: "conflict", second: true, third: true });
   seeded({ landing: ready(head, base), next: beside(next, base), last: behind(last, base) });
   const said = await ran([KEY, NEXT_KEY, THIRD_KEY], work);
-  assert.match(said, new RegExp(`${OWNED} conflict`, "u"), said);
+  assert.ok(said.includes(`${OWNED} conflict`), said);
   assert.equal(issue().status, "on_hold", `parked as blocked:\n${said}`);
   const landed = remote(at);
   assert.ok(holds(work, landed, next) && holds(work, landed, last),
@@ -322,7 +322,7 @@ test("a release the base does not carry recovers nobody, and that member takes i
   assert.ok(holds(work, landed, next), `so this change lands on its own account:\n${said}`);
   assert.deepEqual(gateRuns(), ["green"], `and pays its own gate for it:\n${said}`);
   assert.equal(marks(NEXT_UUID).length, 1, said);
-  assert.match(marks(NEXT_UUID)[0].body, new RegExp(`at ${landed}\\b`, "u"), marks(NEXT_UUID)[0].body);
+  assert.match(marks(NEXT_UUID)[0].body, new RegExp(`at ${escaped(landed)}\\b`, "u"), marks(NEXT_UUID)[0].body);
   assert.notEqual(landing(NEXT_UUID).intended, meant, `nothing of it reads that release:\n${said}`);
 });
 

@@ -474,7 +474,7 @@ test("a description set to a file route is refused, and the route out sends the 
   before();
   const run = await setField("--set", `description=@${BODY_FILE}`, "--why", WHY);
   assert.equal(run.status, 1);
-  assert.match(run.stderr, new RegExp(`reads as the file \`${BODY_FILE}\``, "u"), "the route it read, named");
+  assert.ok(run.stderr.includes(`reads as the file \`${BODY_FILE}\``), "the route it read, named");
   assert.ok(run.stderr.includes(`--set description="$(cat -- ${BODY_FILE})"`),
     "and the call that sends the file's own text as the description");
   assert.deepEqual(updates(), [], "nothing was sent, so the body on the page is the body that was there");

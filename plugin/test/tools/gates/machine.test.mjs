@@ -7,7 +7,7 @@ import { existsSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:
 import { join } from "node:path";
 
 import { DECLINED, gatesOn, placeFor, runnersOf } from "../../../../tools/gates/machine.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { escaped, tempRoom } from "../../fixtures.mjs";
 import { entryNames, HANGS_IN, heldGate, reachedTheStep, run, runsFile, scratch, stopGate } from "./scratch.mjs";
 
 const TICK = 100;
@@ -147,7 +147,7 @@ test("a second gate of one checkout declines the machine, says every clause it o
     assert.match(said, /This gate declined the machine and judged nothing/u, said);
     assert.match(said, /1 gate\(s\) of this checkout are already running/u, "the count it read");
     assert.match(said, /carries 1 run\(s\) at once {2}← \.forge\.json/u, "the number and where it came from");
-    assert.match(said, new RegExp(`pid ${first.pid} {2}gating ${work}`, "u"), "the gate it counted, and that gate's tree");
+    assert.match(said, new RegExp(`pid ${first.pid} {2}gating ${escaped(work)}`, "u"), "the gate it counted, and that gate's tree");
     assert.match(said, /raise the `runs` key in this project's \.forge\.json above 1/u, "the route that raises it");
     assert.ok(said.includes(`nothing here judges ${work}`), `it claimed something about the tree:\n${said}`);
     assert.deepEqual(entryNames(work), [], "a declined gate recorded a pass");

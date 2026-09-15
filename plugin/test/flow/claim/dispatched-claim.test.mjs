@@ -7,7 +7,7 @@ import test from "node:test";
 import { copyFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
+import { escaped, fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("dispatched-claim").path;
 standsInNoTree("dispatched-claim");
@@ -76,7 +76,7 @@ test("a run dispatched to the issue takes a live lease its dispatcher is only ho
   heldBy(DISPATCHER);
   const took = await claim();
   assert.equal(took.status, 0, `the dispatched run should have been given it:\n${took.stdout}${took.stderr}`);
-  assert.match(took.stdout, new RegExp(`ISS-1091 {2}handed: session ${RUNNER}`, "u"),
+  assert.match(took.stdout, new RegExp(`ISS-1091 {2}handed: session ${escaped(RUNNER)}`, "u"),
     "under a word of its own, because a dispatch is not a dead run's lease reclaimed");
   assert.match(took.stdout, /was live and session bc3ef73b/u, "saying what it took and from whom");
   assert.match(took.stdout, new RegExp(`Next, left by the run before: ${LEFT}`, "u"));
@@ -150,7 +150,7 @@ test("the same lease is handed over whether the run claims by key or by document
   heldBy(DISPATCHER);
   const byUuid = await claim([], RUNNER, UUID);
   assert.equal(byUuid.status, 0, `a uuid names the same issue:\n${byUuid.stdout}${byUuid.stderr}`);
-  assert.match(byUuid.stdout, new RegExp(`${UUID} {2}handed: session ${RUNNER}`, "u"));
+  assert.match(byUuid.stdout, new RegExp(`${UUID} {2}handed: session ${escaped(RUNNER)}`, "u"), byUuid.stdout);
 });
 
 /* The grammar is the mint's and no looser: a name somebody typed into the variable for their own
@@ -224,7 +224,7 @@ test("a run dispatched to a batch takes the lease on a member its tree is not na
   heldBy(DISPATCHER);
   const took = await claim([], minted);
   assert.equal(took.status, 0, `a batchmate is the dispatch too:\n${took.stdout}${took.stderr}`);
-  assert.match(took.stdout, new RegExp(`ISS-1091 {2}handed: session ${minted.replace(/\+/gu, "\\+")}`, "u"));
+  assert.match(took.stdout, new RegExp(`ISS-1091 {2}handed: session ${escaped(minted)}`, "u"));
   assert.equal(wrote().at(-1)?.history.at(-1)?.how, "handed");
 });
 
@@ -239,7 +239,7 @@ test("a batch id read off the tree takes the lease on a member the tree is not n
   const took = await ranAsync(FORGE, ["claim", "ISS-1091"],
     { ...tracker.env, FORGE_SESSION_ID: "" }, tree);
   assert.equal(took.status, 0, `the tree's own record is what a run resolves:\n${took.stdout}${took.stderr}`);
-  assert.match(took.stdout, new RegExp(`handed: session ${minted.replace(/\+/gu, "\\+")}`, "u"),
+  assert.match(took.stdout, new RegExp(`handed: session ${escaped(minted)}`, "u"),
     "under the id the tree holds, which names this issue second and the tree after the first");
 });
 

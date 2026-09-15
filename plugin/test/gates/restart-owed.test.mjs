@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { FROZEN } from "../../src/tools/plugin-copy.mjs";
-import { callHook, tempRoom } from "../fixtures.mjs";
+import { callHook, escaped, tempRoom } from "../fixtures.mjs";
 
 const PLUGIN = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const HOOK = join(PLUGIN, "hooks", "entries", "restart-owed.mjs");
@@ -67,7 +67,7 @@ test("every file the restart set names is held, whichever entry named it", () =>
   for (const one of FROZEN) {
     const held = writes(anExample(one));
     assert.equal(held.allowed, false, `${anExample(one)} is in the restart set and was not held`);
-    assert.match(held.reason, new RegExp(`\`${anExample(one).replace(/[.]/gu, "\\.")}\``, "u"),
+    assert.match(held.reason, new RegExp(`\`${escaped(anExample(one))}\``, "u"),
       `the refusal does not name the file:\n${held.reason}`);
   }
   /* The path a reader would try under the `plugin/skills/` entry, spelled out and through Edit: the
@@ -179,7 +179,7 @@ test("the note carries the line the transcript holds, under the name the release
 
 test("doctor names the restart set, read from the one place the release step reads it", () => {
   const run = spawnSync(process.execPath, [CLI, "doctor"], { encoding: "utf8", env: ENV, cwd: checkout });
-  const said = new RegExp(`restart set\\s+${FROZEN.join(", ").replace(/[/.]/gu, "\\$&")}`, "u");
+  const said = new RegExp(`restart set\\s+${escaped(FROZEN.join(", "))}`, "u");
   assert.match(run.stdout, said, `doctor does not print the set:\n${run.stdout}`);
   assert.match(run.stdout, /a session keeps these as of its start/u, run.stdout);
 });

@@ -8,7 +8,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, realpathSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { callHook, homeEnv, tempRoom } from "../fixtures.mjs";
+import { callHook, escaped, homeEnv, tempRoom } from "../fixtures.mjs";
 
 const HOOK = new URL("../../hooks/entries/learning-landed.mjs", import.meta.url).pathname;
 const HOME = homeEnv("learning-landed");
@@ -153,7 +153,7 @@ test("every file that landed is named in one refusal", () => {
     HOME,
   );
   const said = JSON.parse(run.stdout).reason;
-  for (const name of ["one.md", "two.md", "three.md"]) assert.match(said, new RegExp(name.replace(".", "\\."), "u"));
+  for (const name of ["one.md", "two.md", "three.md"]) assert.match(said, new RegExp(escaped(name), "u"), said);
   assert.match(said, /they should/u, "and asked of them together");
 });
 
