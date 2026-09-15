@@ -73,15 +73,15 @@ test("a pin with no project is not a scope, and nothing runs under one", () => {
 test("the pin resolves to the environment ids of its own project and the applications in them", async (t) => {
   stub(t);
   const scope = scoped();
-  assert.deepEqual([...(await environmentIds(scope))], [10]);
-  assert.deepEqual([...(await applicationIds(scope))], [100]);
+  assert.deepEqual([...(await environmentIds(scope))], ["10"]);
+  assert.deepEqual([...(await applicationIds(scope))], ["100"]);
 });
 
 /* Some instances answer the environments route with nothing useful; the project's own embedded
    list is what both this and the guard then read, so the two cannot disagree about the pin. */
 test("an empty environments route falls back to the environments the project itself carries", async (t) => {
   stub(t, { ...INSTANCE, "/projects/p-in/environments": [], "/projects/p-in": { uuid: "p-in", environments: [{ id: 11 }] } });
-  assert.deepEqual([...(await environmentIds(scoped()))], [11]);
+  assert.deepEqual([...(await environmentIds(scoped()))], ["11"]);
 });
 
 test("an application outside the pin is refused, and the refusal names it, the pin and the file", async (t) => {
@@ -134,6 +134,65 @@ test("deployments are filtered by the applications the pin holds, not by an envi
   const { kept, dropped } = await filterList(scoped(), "deployments", INSTANCE["/deployments"]);
   assert.deepEqual(kept.map((one) => one.id), [1]);
   assert.equal(dropped, 1);
+});
+
+/* This instance answers `/applications` with the uuid alone and its deployments name an application
+   by an id spelled as text, so the two halves of the defect ISS-1435 reports meet here: an allow-set
+   built from the first route's `id` holds nothing, and a set of numbers would place no row anyway. */
+const UUID_ONLY = {
+  ...INSTANCE,
+  "/applications": [{ uuid: "a-in", name: "web", environment_id: 10 }, { uuid: "a-out", name: "theirs", environment_id: 99 }],
+  "/resources": [{ id: 100, uuid: "a-in", environment_id: 10 }, { id: 200, uuid: "a-out", environment_id: 99 }],
+  "/deployments": [{ id: 1, application_id: "100" }, { id: 2, application_id: "200" }],
+  "/deployments/d-1": { deployment_uuid: "d-1", application_id: "100" },
+  "/deployments/d-2": { deployment_uuid: "d-2", application_id: "200" },
+};
+
+const DEPLOYMENT = index().groups.deployment.commands.get.scope;
+
+test("an application answered without an id is keyed through the resources route instead", async (t) => {
+  const asked = stub(t, UUID_ONLY);
+  assert.deepEqual([...(await applicationIds(scoped()))], ["100"]);
+  assert.ok(asked.includes("/resources"), "the route carrying the id was asked for");
+});
+
+test("the resources route is left alone where the applications route already carries ids", async (t) => {
+  const asked = stub(t);
+  await applicationIds(scoped());
+  assert.deepEqual(asked.filter((one) => one === "/resources"), []);
+});
+
+/* The reported symptom whole: every deployment dropped and counted as another project's, on an
+   instance where the pin does admit the application each of them names. */
+test("deployments survive the pin where the applications route answers with no id at all", async (t) => {
+  stub(t, UUID_ONLY);
+  const { kept, dropped } = await filterList(scoped(), "deployments", UUID_ONLY["/deployments"]);
+  assert.deepEqual(kept.map((one) => one.id), [1]);
+  assert.equal(dropped, 1, "the other project's deployment is still dropped and still counted");
+});
+
+test("a deployment of the pinned project's own application is not refused as foreign", async (t) => {
+  stub(t, UUID_ONLY);
+  await refusing(() => check(scoped(), DEPLOYMENT, { uuid: "d-1" }));
+});
+
+test("a deployment of an application outside the pin is still refused", async (t) => {
+  stub(t, UUID_ONLY);
+  assert.match(await refused(() => check(scoped(), DEPLOYMENT, { uuid: "d-2" })), /deployment d-2 is outside/u);
+});
+
+/* One application keyed and one not is the same defect confined to one application: the set is
+   populated, every guard passes it, and that application's own deployments read as somebody else's. */
+test("an application the resources route cannot key refuses even where its neighbour resolved", async (t) => {
+  stub(t, {
+    ...UUID_ONLY,
+    "/applications": [{ uuid: "a-in", environment_id: 10 }, { uuid: "a-second", name: "worker", environment_id: 10 }],
+  });
+  const said = await refused(() => filterList(scoped(), "deployments", UUID_ONLY["/deployments"]));
+  assert.match(said, /1 application\(s\) of the pinned project \(p-in\) carry no id/u);
+  assert.match(said, /unplaced: a-second/u);
+  assert.match(said, /`\/applications` answered without an `id` field and `\/resources` carried no row/u);
+  assert.match(said, /\/work\/web\/\.coolify\.json/u);
 });
 
 test("a projects listing is cut to the projects the pin names", async (t) => {

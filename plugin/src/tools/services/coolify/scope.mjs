@@ -41,14 +41,16 @@ export const active = (scope) => scope.projects.length > 0;
 
 export const label = (scope) => scope.projects.join(", ");
 
+/* One route spells an id a number and another spells the same id a string, so every key is text. */
+const asKey = (value) => (value === undefined || value === null ? null : String(value));
+
 export const environmentIds = async (scope) => {
   if (scope.envIds) return scope.envIds;
   const found = new Set();
   for (const project of scope.projects) {
     for (const environment of await environmentsOf(scope.held, project)) {
-      if (environment.id !== undefined && environment.id !== null && wanted(scope.pin.spec, environment)) {
-        found.add(environment.id);
-      }
+      const key = asKey(environment.id);
+      if (key !== null && wanted(scope.pin.spec, environment)) found.add(key);
     }
   }
   scope.envIds = found;
@@ -67,11 +69,41 @@ const mustResolve = (scope, allowed, what) => {
   );
 };
 
+const mustPlace = (scope, left) => {
+  if (!left.length) return;
+  fail(
+    `coolify: ${left.length} application(s) of the pinned project${scope.projects.length === 1 ? "" : "s"} `
+    + `(${label(scope)}) carry no id on this instance, so no deployment can be placed against them.\n`
+    + `  unplaced: ${left.join(", ")}\n`
+    + `  this checkout's scope comes from ${scope.pin.at}\n`
+    + "  `/applications` answered without an `id` field and `/resources` carried no row with that uuid\n"
+    + "  report it: a deployment names its application by that id and by nothing else",
+  );
+};
+
+/* Some instances leave an application's id out of `/applications`, and a deployment names its
+   application by nothing else — so `/resources`, which carries id beside uuid, is read for what the
+   first route left unkeyed. It never decides which applications the pin admits: it spans more. */
 export const applicationIds = async (scope) => {
   if (scope.appIds) return scope.appIds;
   const ids = await environmentIds(scope);
-  const apps = objects(await look(scope.held, "/applications"));
-  scope.appIds = new Set(apps.filter((one) => ids.has(one.environment_id)).map((one) => one.id));
+  const found = new Set();
+  const unkeyed = new Set();
+  for (const one of objects(await look(scope.held, "/applications"))) {
+    if (!ids.has(asKey(one.environment_id))) continue;
+    const key = asKey(one.id);
+    if (key === null) unkeyed.add(asKey(one.uuid) ?? asKey(one.name) ?? "(a row naming itself nothing)");
+    else found.add(key);
+  }
+  if (unkeyed.size) {
+    for (const one of objects(await look(scope.held, "/resources"))) {
+      const key = asKey(one.id);
+      const uuid = asKey(one.uuid);
+      if (key !== null && uuid !== null && unkeyed.delete(uuid)) found.add(key);
+    }
+  }
+  mustPlace(scope, [...unkeyed]);
+  scope.appIds = found;
   return scope.appIds;
 };
 
@@ -86,7 +118,7 @@ const keepByField = (items, field, allowed, strict) => {
     if (!one || typeof one !== "object" || !(field in one)) {
       if (strict) unplaced += 1;
       else kept.push(one);
-    } else if (allowed.has(one[field])) kept.push(one);
+    } else if (allowed.has(asKey(one[field]))) kept.push(one);
     else dropped += 1;
   }
   return { kept, dropped, unplaced };
@@ -189,7 +221,7 @@ const checkUuid = async (scope, guard, uuid) => {
      lookup that established nothing about it. */
   const verdict = !seen
     ? { allowed: true, noun }
-    : { allowed: seen.placed && allowed.has(seen.object[field]), placed: seen.placed, noun };
+    : { allowed: seen.placed && allowed.has(asKey(seen.object[field])), placed: seen.placed, noun };
   scope.checked.set(uuid, verdict);
   refuseUnless(verdict, scope, uuid);
 };

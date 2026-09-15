@@ -22,6 +22,17 @@ longer exists, leaves the guard with an empty set to check against — and an em
 prints a warning there and carries on; here the call is refused and the refusal says which uuid to
 check. It is the one state where being useless is the correct behaviour.
 
+**A deployment is placed by an id its own application's listing may not carry.** A deployment names
+its application by that application's id and by nothing else, and an instance may answer the
+applications route with the uuid alone — which leaves the allow-set holding nothing, and every
+deployment of the pinned project then reads as somebody else's and is counted as an ordinary
+exclusion. So the id is resolved through the resources route for whatever the applications route
+left unkeyed, and that route is read for the id only: which applications the pin admits stays the
+applications route's answer, because the other spans services and databases no deployment names. An
+application the pin admits that neither route can key refuses the call rather than shrinking the
+set — a set that is merely smaller turns that one application's deployments into another project's,
+which is the failure this whole guard exists to prevent wearing the face of it working.
+
 ## The surface is derived, not typed
 
 `routes.json`, which ships beside this verb, is the index the external Python plugin generates from the

@@ -161,7 +161,7 @@ const whoami = async (argv) => {
     console.log(`scope     none — every resource command refuses here\n${noPin(process.cwd())}`);
     return;
   }
-  const ids = [...(await environmentIds(scope))].sort((one, two) => one - two);
+  const ids = [...(await environmentIds(scope))].sort((one, two) => Number(one) - Number(two));
   console.log(`scope     project ${label(scope)}, environment ids ${ids.join(", ") || "(none)"}  ← ${pin.at}`);
   console.log(`apps      ${(await applicationIds(scope)).size} in scope`);
 };
