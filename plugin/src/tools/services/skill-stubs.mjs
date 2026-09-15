@@ -69,7 +69,7 @@ const pristineOf = (dir) => {
 
 /** Per stub: what a write would drop, what is out of the text on disk — the fact and not its cause,
  *  a tool being configurable again before the start that restores its words — and what is left. */
-export const stubStates = (root) =>
+const stubStates = (root) =>
   shippedSkills(root).map((slug) => {
     const dir = dirOf(root, slug);
     const shipped = pristineOf(dir);

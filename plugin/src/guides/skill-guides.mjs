@@ -146,8 +146,11 @@ export const skillGuideAnswer = (slug, root = HERE, flow = flowPinned().value) =
     return { refusal: `\`forge guide ${slug} ${part}\` is about \`forge ${withheld}\`, which this machine`
       + ` saved nothing for — ${configureSaid(withheld)}. \`forge doctor\` reports the rest.` };
   }
+  /* The fence above already answered for this one, so the hit is the directory's own listing. */
+  if (namesIn(join(dir, REFERENCES)).includes(part)) {
+    return served(slug, read(join(dir, REFERENCES, `${part}.md`)), tail, rung);
+  }
   const names = offeredIn(dir, rung);
-  if (names.includes(part)) return served(slug, read(join(dir, REFERENCES, `${part}.md`)), tail, rung);
   const phases = body === null ? [] : phasesOf(body);
   const phase = phases.find((one) => one.number === String(part));
   if (phase) return served(slug, phase.text, tail, rung);

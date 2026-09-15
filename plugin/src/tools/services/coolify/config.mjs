@@ -13,7 +13,7 @@ export const NO_TARGET =
 
 /* A pin a flag or an environment variable could retarget follows you into every directory, which
    is the ambient scope the guard exists to prevent. The format is the Python CLI's, read as it is. */
-export const pinFile = (from = process.cwd()) => {
+const pinFile = (from = process.cwd()) => {
   let here = resolve(from);
   for (;;) {
     const candidate = join(here, SCOPE_FILE);
@@ -39,7 +39,7 @@ const asList = (value) => {
   return String(value).split(",").map((one) => one.trim()).filter(Boolean);
 };
 
-export const SCOPE_KEYS = ["project_uuid", "environment", "server_uuid"];
+const SCOPE_KEYS = ["project_uuid", "environment", "server_uuid"];
 
 export const pinned = (from = process.cwd()) => {
   const at = pinFile(from);
@@ -66,4 +66,3 @@ export const coolifyTarget = () => {
   return { url: withBase(saved.url), token: saved.apiToken, from: configPath() };
 };
 
-export const targetHost = () => userConfig().coolify?.url ?? null;

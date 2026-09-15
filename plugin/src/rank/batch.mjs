@@ -9,7 +9,7 @@ export const MODULE = "module";
 
 /** The first meeting pair of named paths this checkout holds both ends of, and the first it holds
  *  neither end of. */
-export const sharedPaths = (mine, theirs, resolves) => {
+const sharedPaths = (mine, theirs, resolves) => {
   let gone = null;
   for (const path of mine) {
     for (const other of theirs) {

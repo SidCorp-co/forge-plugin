@@ -269,13 +269,15 @@ export const jobProblems = () => {
     : [])];
 };
 
-/** Why a skill is not served, in the words a verb turned off is refused in, or nothing where it is. */
-export const skillRefusal = (slug) => {
-  if (!skillWithheld(slug)) return null;
+const atJob = () => {
   const matched = matchingJobs();
-  const at = matched.length === 1 ? `, which is at the \`${matched[0]}\` job` : "";
-  return `the ${slug} skill is off on this machine${at} — \`forge doctor --job all\` offers it again.`;
+  return matched.length === 1 ? `, which is at the \`${matched[0]}\` job` : "";
 };
+
+/** Why a skill is not served, in the words a verb turned off is refused in, or nothing where it is. */
+export const skillRefusal = (slug) => (skillWithheld(slug)
+  ? `the ${slug} skill is off on this machine${atJob()} — \`forge doctor --job all\` offers it again.`
+  : null);
 
 const FEEDBACK_VERB = "feedback";
 
@@ -337,9 +339,7 @@ export const verbFor = (tool, action) => {
 const unavailable = (verb) => {
   const state = stateOf(verb);
   if (state) {
-    const matched = matchingJobs();
-    const at = matched.length === 1 ? `, which is at the \`${matched[0]}\` job` : "";
-    return `\`forge ${verb}\` is ${state} on this machine${at} — \`forge doctor --show ${verb}\` offers it again`;
+    return `\`forge ${verb}\` is ${state} on this machine${atJob()} — \`forge doctor --show ${verb}\` offers it again`;
   }
   const blocked = blockedBy(verb);
   return blocked

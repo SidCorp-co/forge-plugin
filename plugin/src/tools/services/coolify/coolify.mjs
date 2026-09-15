@@ -96,7 +96,7 @@ export const SAYS = {
   resource: RESOURCE_USAGE,
 };
 
-export const noPin = (from) =>
+const noPin = (from) =>
   `coolify: no project is pinned for ${from}, and there is no unscoped mode.\n`
   + `  every resource command runs inside the project ${SCOPE_FILE} names, found by walking up from here\n`
   + `  write one: {"project_uuid": "<the project's uuid>"}`;

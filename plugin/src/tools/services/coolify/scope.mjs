@@ -2,6 +2,7 @@
    service, so a target outside the pin is refused here, before its request is built, and a listing
    is cut to the pin's own environments. There is no unscoped mode. docs/cli/coolify.md. */
 import { look } from "./client.mjs";
+import { wrapper } from "./shape.mjs";
 import { fail } from "../../../resolve/settings.mjs";
 
 const objects = (value) => (Array.isArray(value) ? value.filter((one) => one && typeof one === "object") : []);
@@ -115,15 +116,6 @@ const cutDown = async (scope, returns, rows, strict) => {
   return keepByField(rows, "environment_id", ids, strict);
 };
 
-/* A listing that came back wrapped beside a count is still a listing: passing the wrapper through
-   untouched because it is not an array is how rows the pin excludes would leave unfiltered. */
-const WRAPPERS = ["deployments", "data", "items"];
-
-const wrapped = (items) =>
-  items && !Array.isArray(items) && typeof items === "object"
-    ? WRAPPERS.find((name) => Array.isArray(items[name])) ?? null
-    : null;
-
 /* `mustFilter` is for an operation the pin's only hold on is this filter — a listing with no guard
    of its own. There an answer this cannot place is not something to print anyway: it would be rows
    nothing has checked. Where a guard already placed the target, an unplaceable answer is just a
@@ -132,7 +124,9 @@ export const filterList = async (scope, returns, items, { mustFilter = false } =
   /* A dry run sent nothing, so there is no answer to place — which is not the same as an answer
      this cannot place, and refusing it would make `--dry-run` unusable on every listing. */
   if (!active(scope) || !returns || items === null) return { kept: items, dropped: 0 };
-  const inside = wrapped(items);
+  /* A listing that came back wrapped beside a count is still a listing: passing the wrapper through
+     untouched because it is not an array is how rows the pin excludes would leave unfiltered. */
+  const inside = wrapper(items);
   if (inside) {
     const cut = await cutDown(scope, returns, items[inside], mustFilter);
     return { ...cut, kept: { ...items, [inside]: cut.kept } };

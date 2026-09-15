@@ -108,7 +108,7 @@ const projected = (object, group) => {
    resource, so nothing was projected: one such listing answered 1.2 MB of whole build logs. */
 const WRAPPERS = ["deployments", "data", "items"];
 
-const wrapper = (data) =>
+export const wrapper = (data) =>
   data && !Array.isArray(data) && typeof data === "object"
     ? WRAPPERS.find((name) => Array.isArray(data[name])) ?? null
     : null;

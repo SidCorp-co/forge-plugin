@@ -7,7 +7,7 @@ const at = (ms) => stamped(new Date(ms).toISOString());
    corpus begins long after the corpus does (consult c5d393 F1). */
 const reachedBy = (one) => one.comparability?.reach?.from ?? one.now?.profile?.from;
 
-export const earlierReach = (root, from) => {
+const earlierReach = (root, from) => {
   const held = [...marksOf(RUNS, root), ...marksOf(RELEASES, root)]
     .map((one) => ({ one, at: reachedBy(one) }))
     .filter((row) => Number.isFinite(row.at) && row.at < from);

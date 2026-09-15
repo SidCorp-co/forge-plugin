@@ -11,7 +11,7 @@ import { configPath, userConfig } from "../../resolve/config.mjs";
 import { coolifyTarget } from "./coolify/config.mjs";
 
 
-export const profilePath = () =>
+const profilePath = () =>
   process.env.CLAUDE_PROXY_ENV || join(homedir(), ".claude", "claude-proxy.env");
 
 const ENV_LINE = /^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$/;
@@ -55,7 +55,7 @@ export const CONFIGURED = "configured";
 export const UNCONFIGURED = "unconfigured";
 export const TOOL_STATES = [CONFIGURED, UNCONFIGURED];
 
-export const CLOUDFLARE_LOGIN =
+const CLOUDFLARE_LOGIN =
   "forge cloudflare login --name <label> --account-id <id> --token <api-token>";
 
 export const NO_ACCOUNT = `No Cloudflare account is configured. Save one with\n  ${CLOUDFLARE_LOGIN}`;

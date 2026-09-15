@@ -186,7 +186,7 @@ export const readBack = (record) => {
 };
 
 /** Whether the reading is a comparison, and each way it falls short — docs/cli/stats-the-eval.md. */
-export const comparabilityOf = ({ size, now, before, reach }) => {
+const comparabilityOf = ({ size, now, before, reach }) => {
   const short = [];
   if (now.runs < size) short.push(`the recent window holds ${now.runs} of ${size}`);
   if (!before) short.push("there is no window before it");
