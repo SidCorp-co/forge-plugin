@@ -232,13 +232,34 @@ test("--json carries the score, its parts and every signal as its own column", a
   /* Age is the one weight a clock moves, so the total is judged against its own parts. */
   assert.equal(first.score, Object.values(first.parts).reduce((sum, one) => sum + one.points, 0));
   assert.equal(first.parts.priority.points, 40);
-  assert.equal(first.parts.complexity.points, 3);
+  assert.equal(first.parts.complexity.points, 0, "it declares no size, which is the bottom of that table");
   assert.equal(first.parts.kind.points, 0);
   assert.equal(first.restart, true, "its body names a file no open session picks up");
   assert.equal(first.complexityFrom, "none on the tracker");
   assert.deepEqual(Object.keys(first.cost).sort(), ["complexity", "minutes", "over"]);
   assert.equal(held.weightsFrom, "the built-in table");
   assert.equal(held.weights.priority.critical, 40);
+});
+
+/* The order could not surface a large new capability at any priority and any age, so the six issues
+   describing one deploy surface were never once in the eligible set and waiting could not put them
+   there. Read through the verb rather than through `scoreOf`, because eligibility is what the issue
+   is about and the score is only how it is reached (ISS-1397). */
+test("a large aged feature reaches the order over a cheap fresh bug, holding no edge to get there", async () => {
+  const filed = (days) => new Date(Date.now() - (days * 86_400_000)).toISOString();
+  load([
+    issue("ISS-2", { priority: "high", category: "bug", complexity: "xs", createdAt: filed(0),
+      title: "the cheap fresh thing" }),
+    issue("ISS-1", { priority: "high", category: "feature", complexity: "l", createdAt: filed(100),
+      title: "the large old thing" }),
+  ]);
+  const run = await ran(["next", "--json"]);
+  assert.equal(run.status, 0, run.stderr);
+  const held = JSON.parse(run.stdout);
+  assert.deepEqual(held.candidates.map((one) => one.issueId), ["ISS-1", "ISS-2"], run.stdout);
+  const [big] = held.candidates;
+  assert.equal(big.parts.age.points, 100, "the age term is what carried it, not an edge it does not hold");
+  assert.equal(big.parts.blocks.points, 0);
 });
 
 /* A fixed window truncated the candidate a body would have promoted, and one whose whole width a

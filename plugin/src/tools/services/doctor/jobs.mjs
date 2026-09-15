@@ -1,11 +1,11 @@
 /* Silent where the project declares no job, that level's own rule: docs/cli/a-job.md.
    Why a match and not a cause: `matchingJobs`. Why rows and not lines: doctor-harness.mjs. */
-import { declaredJobs } from "../../resolve/settings.mjs";
+import { declaredJobs } from "../../../resolve/settings.mjs";
 import { HIDDEN, OFF, VERB_NAMES, blockedBy, channelRefusal, jobProblems, matchingJobs,
   offeredSkills, shippedSkills, skillWithheld, stateOf, verbStates,
-  withheldSkills } from "../../resolve/visibility.mjs";
-import { UNCONFIGURED, unconfiguredTool } from "./tool-config.mjs";
-import { skillGuideSlugs } from "../../guides/skill-guides.mjs";
+  withheldSkills } from "../../../resolve/visibility.mjs";
+import { UNCONFIGURED, unconfiguredTool } from "../tool-config.mjs";
+import { skillGuideSlugs } from "../../../guides/skill-guides.mjs";
 
 const ON = "on";
 const CLOSED = "closed";

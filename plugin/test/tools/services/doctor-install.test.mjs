@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import { installRows } from "../../../src/tools/services/doctor-install.mjs";
+import { installRows } from "../../../src/tools/services/doctor/install.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "src", "cli.mjs");

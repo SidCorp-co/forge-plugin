@@ -33,10 +33,10 @@ import {
   readClaudeMd,
   reviewClaudeMd,
 } from "../checks/claude-md.mjs";
-import { harnessLines } from "./services/doctor-harness.mjs";
-import { installRows } from "./services/doctor-install.mjs";
-import { copyRows } from "./services/doctor-release.mjs";
-import { withholdingLines } from "./services/doctor-jobs.mjs";
+import { harnessLines } from "./services/doctor/harness.mjs";
+import { installRows } from "./services/doctor/install.mjs";
+import { copyRows } from "./services/doctor/release.mjs";
+import { withholdingLines } from "./services/doctor/jobs.mjs";
 import { masked } from "./services/masked.mjs";
 import { copyToRun, FROZEN } from "./plugin-copy.mjs";
 import { stubRows } from "./services/skill-stubs.mjs";
@@ -47,6 +47,7 @@ import { usageOf } from "../resolve/visibility.mjs";
 import { PROJECT_USAGE, WITH_BODY, WRITES } from "../tracker/project-flags.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
 import { FLOW_SLUGS, flowPinned, flowRefusal } from "../guides/flow.mjs";
+import { rankLines } from "./services/doctor/rank.mjs";
 import { ORDER } from "../flow/earned.mjs";
 import {
   addressed, contractParts, contractPath, contractProblems, flowProblems, identityOf, unansweredIn,
@@ -477,6 +478,7 @@ const checkFlowKeys = () => {
   if (runs.unknown) line(BAD, "parallel runs", held({ ...runs, value: "no bound" }, [RUNS_TAKES]));
   else if (runs.value) line(OK, "parallel runs", `${runs.value}  ← ${runs.from}`);
   else line(OK, "parallel runs", "unset, so a wave is sized by whoever dispatches it and a gate declines for no sibling");
+  report(rankLines());
   const given = userConfig().retrySeconds;
   const own = retrySeconds({ retrySeconds: given }) === given;
   const retry = {

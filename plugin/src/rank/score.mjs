@@ -27,6 +27,9 @@ export const chainOf = (key, blocks, alive) => {
 const points = (table, name, fallback = 0) =>
   (Object.hasOwn(table, String(name)) ? table[String(name)] : fallback);
 
+const aged = (days, weights) =>
+  (weights.ageCap === null ? days * weights.agePerDay : Math.min(days * weights.agePerDay, weights.ageCap));
+
 /** The total and its parts, `now` passed rather than read: age is the one weight a clock moves, and
  *  a case that could not fix the clock could not pin the order. */
 export const scoreOf = (row, { weights, chain = [], now = Date.now() }) => {
@@ -39,7 +42,7 @@ export const scoreOf = (row, { weights, chain = [], now = Date.now() }) => {
     ["priority", String(row?.priority ?? "none"), points(weights.priority, row?.priority ?? "none")],
     ["kind", String(row?.category ?? "feature"), points(weights.kind, row?.category ?? "feature")],
     ["complexity", said, points(weights.complexity, complexity, weights.complexity.unset)],
-    ["age", `${days}d`, Math.min(days * weights.agePerDay, weights.ageCap)],
+    ["age", `${days}d`, aged(days, weights)],
     ["reopened", `${reopened}`, reopened ? weights.reopened : 0],
     ["blocks", `${chain.length} chained`, chain.length * weights.blocks],
   ];

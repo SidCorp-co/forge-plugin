@@ -10,9 +10,9 @@ export const UNSET = "unset";
 export const DEFAULTS = {
   priority: { critical: 40, high: 30, medium: 20, low: 10, none: 0 },
   kind: { bug: 8, enhancement: 4, feature: 0 },
-  complexity: { xs: 8, s: 6, m: 4, l: 2, xl: 0, [UNSET]: 3 },
+  complexity: { xs: 8, s: 6, m: 4, l: 2, xl: 1, [UNSET]: 0 },
   agePerDay: 1,
-  ageCap: 10,
+  ageCap: null,
   reopened: 5,
   blocks: 3,
   similarity: 0.78,
@@ -22,6 +22,8 @@ export const DEFAULTS = {
 };
 
 const TABLES = ["priority", "kind", "complexity"];
+
+const UNCAPPED = "ageCap";
 
 const RETIRED_TABLE = "band";
 const OWN_TABLE = "complexity";
@@ -65,7 +67,10 @@ const wrongIn = (given) => {
       }
       continue;
     }
-    if (!numeric(value)) return `\`rank.${key}\` is a number, not \`${JSON.stringify(value)}\`.`;
+    if (numeric(value) || (key === UNCAPPED && value === null)) continue;
+    return key === UNCAPPED
+      ? `\`rank.${UNCAPPED}\` is a number of points or \`null\` for no ceiling, not \`${JSON.stringify(value)}\`.`
+      : `\`rank.${key}\` is a number, not \`${JSON.stringify(value)}\`.`;
   }
   return null;
 };
@@ -84,8 +89,17 @@ export const foldWeights = (asked) => {
 
 export const weightsFrom = () => foldWeights(rankConvention().value);
 
+/** The ceiling in force and which of the two decided it: the fold's own `from` answers for the whole
+ *  object, so reading that would tell a project its file decided the weights it left alone. */
+export const ageCeiling = () => {
+  const asked = rankConvention().value;
+  const { value, from, refusal } = foldWeights(asked);
+  const own = Boolean(asked) && Object.hasOwn(asked, UNCAPPED);
+  return { value: value[UNCAPPED], from: own ? from : "the plugin's default", refusal };
+};
+
 /** How far a body can still move a row: the complexity is the only weight a body decides, so its
- *  spread is the whole of it, and a window this wide orders as the whole list would. */
+    spread is the whole of it, and a window this wide orders as the whole list would. */
 export const complexitySpread = (weights) => {
   const points = Object.values(weights.complexity);
   return Math.max(...points) - Math.min(...points);
@@ -104,7 +118,9 @@ export const weightLines = (weights) => [
   row("kind", `${table(weights.kind)} — a defect in the tool the flow runs on is paid by every later run`),
   row("complexity", `${table(weights.complexity)} — smaller first, a light path paying back sooner`),
   row("agePerDay", `${weights.agePerDay} per day since it was filed, so nothing starves`),
-  row("ageCap", `${weights.ageCap} — the most age alone can be worth`),
+  row("ageCap", weights.ageCap === null
+    ? "none — age never stops, so anything left sitting rises until somebody works it or drops it"
+    : `${weights.ageCap} — the most age alone can be worth, past which two filing dates score alike`),
   row("reopened", `${weights.reopened}`),
   row("blocks", `${weights.blocks} per open issue this one blocks, counted through the chain`),
   row("similarity", `${weights.similarity} — the floor a search hit is read back as related at`),

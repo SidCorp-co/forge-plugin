@@ -3,9 +3,9 @@ import { spawnSync } from "node:child_process";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { readJson } from "../../resolve/config.mjs";
-import { firstLine } from "../../resolve/flags.mjs";
-import { hereCopy, pluginCopy } from "../plugin-copy.mjs";
+import { readJson } from "../../../resolve/config.mjs";
+import { firstLine } from "../../../resolve/flags.mjs";
+import { hereCopy, pluginCopy } from "../../plugin-copy.mjs";
 
 const LABEL = "newest release";
 const REMOTE = "origin";
@@ -13,7 +13,7 @@ const REMOTE = "origin";
    waiting on cannot hold up the phase that runs it. */
 export const MS = 5000;
 
-const OWN = new URL("../../../.claude-plugin/plugin.json", import.meta.url);
+const OWN = new URL("../../../../.claude-plugin/plugin.json", import.meta.url);
 
 const note = (detail) => [{ level: "note", label: LABEL, detail }];
 const said = (detail) => [{ level: "ok", label: LABEL, detail }];

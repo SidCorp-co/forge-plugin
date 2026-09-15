@@ -1,8 +1,9 @@
-# `forge next` — the call budget, the one source of a complexity, and where the module reading stops
+# `forge next` — the call budget, where the module reading stops, and what the answer is silent about
 
 The order this verb prints is arithmetic over what the tracker already holds, and `forge next -h`
 prints the table it is arithmetic over. What follows is what neither the table nor the code can
-carry: the measurement each shape was set by.
+carry: the measurement each shape was set by. What the weights themselves mean, and which of them
+were argued over, is [`next-weights.md`](next-weights.md).
 
 ## 171 gets is not a shape a ranking may take
 
@@ -51,33 +52,6 @@ afterwards leaves the issue an earlier batch promoted with no answer of its own,
 the search can see goes unfound. That would make every search a round of its own, which measured
 fifty-nine seconds, so the heads a batch does not move are asked for together and only a head a
 batch promoted costs a round — the rare case paying for itself instead of every case paying for it.
-
-## The weight is the `complexity` field, and a row holding none says so
-
-The listing carries the field on every row and that is the whole of it: five values wide, so
-`l` and `xl` score apart where a rung would fold them together. A row holding none scores as `unset`
-and takes the weight declared for that, which is a value of its own rather than the rung an issue
-holding none would fall to at `forge advance --owed` — what to work next is a question about what
-somebody weighed, and reading an unweighed issue as a feature would score it as though they had.
-
-The body's retired `Size:` line was the other source until ISS-701. Two sources meant a value the body
-claimed and one the tracker gave scoring alike and meaning differently, and it meant reading a body
-per candidate to find out. [`the-ladder`](the-ladder.md) holds why the field is the one source.
-
-**`--why` is where a lead the field holds nothing for is told what to set**, on a line of its own
-carrying the `forge issue --set complexity=` write, and only where the field is empty. The `unset` in
-the complexity column says a lead was never weighed and cannot say what to do about it; a line on
-every candidate would repeat the column for the rows that hold a value. The word is one constant,
-`UNSET`, declared beside the weights because the overridable `complexity` table keys a row by it and
-both the scoring and the printing then ask by the same name — a second spelling of it is how the
-column comes to say `unset` while the line below it goes quiet, or how a project's
-`rank.complexity.unset` comes to weight a row nothing lands in.
-
-**`rank.band` was that table's key until ISS-822**, when the CLI stopped keeping two words for the
-tracker's field. A project that set it scores exactly as it did: the reader folds it onto
-`rank.complexity` before it validates and says on stderr which key it read, and where a project sets
-both, the canonical one scores and the line says the other was passed over. Nothing writes the old
-key back, and `forge next -h` prints the canonical one alone.
 
 ## Where the module reading stops, and what a path must be first
 

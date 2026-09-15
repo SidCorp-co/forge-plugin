@@ -21,6 +21,7 @@ test("a weight the table does not hold is refused, not dropped", () => {
     [{ priority: { urgent: 4 } }, /rank\.priority\.urgent/u],
     [{ priority: 40 }, /a table of/u],
     [{ blocks: "three" }, /is a number/u],
+    [{ blocks: null }, /is a number/u],
     [{ complexity: { xs: null } }, /number of points/u],
   ]) {
     const { refusal, value } = foldWeights(given);
@@ -38,7 +39,7 @@ test("no project object leaves the built-in table, and says so", () => {
 /* The window is what makes a bounded body read order as the whole list would, so the number has to
    come off the weights and not out of a developer's head. */
 test("the window's width is the complexity weights' own spread", () => {
-  assert.equal(complexitySpread(DEFAULTS), 8, "xs 8 down to xl 0");
+  assert.equal(complexitySpread(DEFAULTS), 8, "xs 8 down to an issue holding no size at all");
   assert.equal(complexitySpread(foldWeights({ complexity: { xs: 20 } }).value), 20);
 });
 
@@ -63,6 +64,32 @@ test("both keys set is answered by name, the canonical one scoring", () => {
   assert.match(held.said, /the score is on `rank\.complexity`/u);
   assert.deepEqual(canonicalKeys({ complexity: { xs: 7 } }).given, { complexity: { xs: 7 } },
     "and a project naming neither spelling is handed back what it wrote");
+});
+
+/* The ceiling was the one weight with no way to say it should not exist, and a very large number was
+   the only workaround: the setting says it now, and the whole reason is that an issue nobody will do
+   has to rise until somebody works it or drops it rather than sit below the fold (ISS-1397). */
+test("the age ceiling ships as none, and a project says either shape or is refused", () => {
+  assert.equal(DEFAULTS.ageCap, null, "no ceiling is what a project that decided nothing gets");
+  assert.equal(foldWeights({ ageCap: null }).value.ageCap, null, "and saying so explicitly is not a number");
+  assert.equal(foldWeights({ ageCap: null }).refusal, null);
+  assert.equal(foldWeights({ ageCap: 10 }).value.ageCap, 10, "while a project wanting one sets the points");
+  assert.equal(foldWeights({ ageCap: 0 }).value.ageCap, 0, "including none at all, which is not the same reading");
+  const refused = foldWeights({ ageCap: "none" });
+  assert.match(refused.refusal ?? "", /`rank\.ageCap` is a number of points or `null` for no ceiling/u,
+    "and a word for it names both shapes rather than only the one it is not");
+  assert.deepEqual(refused.value, DEFAULTS, "with nothing of the given object folded in");
+});
+
+/* The row a project reads to find out what age is worth, which cannot print `null` and leave a
+   reader to guess whether that is a ceiling of nothing or no ceiling at all. */
+test("the ageCap row says which of the two shapes is in force", () => {
+  const uncapped = weightLines(DEFAULTS).find((one) => one.includes("ageCap"));
+  assert.match(uncapped, /none/u, "the word, not the value");
+  assert.match(uncapped, /age never stops/u, "and what it means for an issue nobody has worked");
+  const capped = weightLines(foldWeights({ ageCap: 10 }).value).find((one) => one.includes("ageCap"));
+  assert.match(capped, /10/u);
+  assert.match(capped, /two filing dates score alike/u, "and what a number costs the order");
 });
 
 test("the help prints the table it scores with, not a copy of it", () => {

@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { DEFAULTS } from "../../src/rank/weights.mjs";
+import { DEFAULTS, UNSET } from "../../src/rank/weights.mjs";
 import { complexityOf, complexitySaid, chainOf, holdingKeys, ordered, scoreOf, takeableKeys } from "../../src/rank/score.mjs";
 
 const NOW = Date.parse("2026-09-05T00:00:00.000Z");
@@ -80,6 +80,45 @@ test("the field is the whole of it, and a mark named in a body moves nothing", (
     ["xs", "s", "m", "l", "xl"], "and every one of the five is its own value, three rungs or not");
   const order = rank([row("ISS-2", { complexity: "s" }), row("ISS-1", { ...marked, complexity: "xs" })]);
   assert.deepEqual(order, ["ISS-1", "ISS-2"], "so an xs outranks an s whatever the body beside it claims");
+});
+
+/* The points are read rather than the order, because a tie already breaks oldest-first and an order
+   case would pass under the old ceiling too (ISS-1397). */
+test("the age term keeps accruing, so two filing dates score apart however old they are", () => {
+  const aged = (days) =>
+    scoreOf(row("ISS-1", { createdAt: new Date(NOW - (days * 86_400_000)).toISOString() }),
+      { weights: DEFAULTS, now: NOW }).parts.find(([name]) => name === "age")[2];
+  assert.equal(DEFAULTS.ageCap, null, "the shipped table names no ceiling");
+  assert.deepEqual([aged(100), aged(101)], [100, 101], "a ceiling of any size would score these alike");
+  assert.equal(aged(0), 0, "and the day it is filed is worth nothing");
+  const capped = { ...DEFAULTS, ageCap: 10 };
+  const under = (days) =>
+    scoreOf(row("ISS-1", { createdAt: new Date(NOW - (days * 86_400_000)).toISOString() }),
+      { weights: capped, now: NOW }).parts.find(([name]) => name === "age")[2];
+  assert.deepEqual([under(100), under(101)], [10, 10], "and a project that sets a number still gets one");
+});
+
+/* A large new capability at high priority was outside the order at every age (ISS-1397). */
+test("a large aged feature outranks a cheap fresh bug, which no ceiling would let it do", () => {
+  const filed = (days) => new Date(NOW - (days * 86_400_000)).toISOString();
+  const big = row("ISS-1", { priority: "high", category: "feature", complexity: "l", createdAt: filed(100) });
+  const cheap = row("ISS-2", { priority: "high", category: "bug", complexity: "xs", createdAt: filed(0) });
+  assert.deepEqual(rank([cheap, big]), ["ISS-1", "ISS-2"], "and it holds no blocking edge to get there");
+  const capped = [big, cheap].map((one) => ({ issueId: one.issueId, row: one,
+    score: scoreOf(one, { weights: { ...DEFAULTS, ageCap: 10 }, now: NOW }) }));
+  assert.deepEqual(ordered(capped).map((one) => one.issueId), ["ISS-2", "ISS-1"],
+    "under a ceiling the cheap one leads and no amount of waiting moves the other");
+});
+
+/* Declaring a size cost points against saying nothing: an incentive not to size, written into the thing that decides what gets worked (ISS-1397). */
+test("an issue holding no complexity scores below every size somebody could have declared", () => {
+  const unset = DEFAULTS.complexity[UNSET];
+  for (const size of ["xs", "s", "m", "l", "xl"]) {
+    assert.ok(DEFAULTS.complexity[size] > unset,
+      `${size} is worth ${DEFAULTS.complexity[size]} and declaring nothing is worth ${unset}`);
+    assert.deepEqual(rank([row("ISS-2"), row("ISS-1", { complexity: size })]), ["ISS-1", "ISS-2"],
+      `declaring ${size} did not outrank declaring nothing`);
+  }
 });
 
 test("two issues equal on every weight break on the filing date, oldest first", () => {

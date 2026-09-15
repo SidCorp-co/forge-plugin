@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import { releaseRows } from "../../../src/tools/services/doctor-release.mjs";
+import { releaseRows } from "../../../src/tools/services/doctor/release.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 import { patience } from "../../patience.mjs";
 

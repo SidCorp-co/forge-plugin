@@ -12,7 +12,7 @@ mkdirSync(join(HOME, "forge"));
 writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t" }));
 process.env.XDG_CONFIG_HOME = HOME;
 
-const { harnessLines } = await import("../../../src/tools/services/doctor-harness.mjs");
+const { harnessLines } = await import("../../../src/tools/services/doctor/harness.mjs");
 const { userConfig } = await import("../../../src/resolve/config.mjs");
 
 /* The same write `saveConfig` makes, without the file: it assigns into the memoised object, so a reader called after this sees what a `forge doctor --chatgpt-key` in the same process would have left. */

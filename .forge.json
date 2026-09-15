@@ -31,7 +31,6 @@
   "rank": {
     "readCap": 400,
     "agePerDay": 2,
-    "ageCap": 40,
     "kind": {
       "bug": 20,
       "enhancement": 12,
