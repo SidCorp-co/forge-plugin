@@ -25,6 +25,14 @@ reader has the text and not the shell that will run it, so `"$RUN_ID"` names not
 one run: two different ids, or a second id mentioned anywhere in the text, and the reader declines
 rather than guess. An `unset`, a `source`, a `sudo`, a `su` or an `env -i` takes the name back.
 
+**A second id is a second assignment to this name**, read wider than a grant is. A longer variable
+whose name ends in this one is a different variable and costs nothing. Everything else assigning
+*this* name is a second id, the unresolvable ones included: `FORGE_SESSION_ID=` with no value,
+`FORGE_SESSION_ID="$OTHER"`, and `FORGE_SESSION_ID=X"other"`, the one word `Xother` a shell joins.
+That last is why wide is safe — read narrowly it looks like `X`, and a text exporting `X` further
+out would grant a name the process never holds. A grant has to be a name; a mention only has to be
+there.
+
 ## The prefix form covers one command
 
 `FORGE_SESSION_ID=<id> forge …` is an assignment on a single command. The prefixed process does hold
@@ -76,6 +84,29 @@ just made. A move joined by `;` may have failed; the reading taken is the one wh
 wrong only where it did not and costing the same round a lost name costs. Two `forge` calls in one
 text standing in trees that answer differently name no id at all, and a text carrying an opener is
 left unread whole, as the prefix form is: the writer inside one stands where this cannot follow.
+
+## The other reader, and the other question
+
+The stop gate asks something else: not *which run do the writes in this command belong to*, but
+*which run did this turn's writes go under*. There is no one command and no one shell — a transcript
+is a sequence of Bash calls — so the answer is the last name one of them granted. Both readers spell
+the name and the value the same way, out of `plugin/src/resolve/session/granted-id.mjs`, so one
+run's work is never credited to two holders; what they do not share is the reach rule above, which
+has nothing to answer over a turn.
+
+Each call is read alone, because a later shell cannot revoke what an earlier one already wrote
+under: a call ending having taken the name back or assigned it nothing granted nothing, and one that
+granted nothing leaves the turn's answer where the call before it left it. What counts is an
+assignment and never a mention — `echo FORGE_SESSION_ID=X` hands the name to a command as a word and
+no write goes under it, where the wide read above is asked another question and counts it. An
+assignment is one at the head of a command, through any run of `export`, `env` and other assignment
+words; the first word that is neither ends the run, which keeps `echo` and `grep` out.
+Where a command begins is `spans`' answer, and each word is taken whole — so a quoted separator
+starts nothing and this name inside another word's value is no assignment. A prefix assignment's own
+name has to be unquoted, as a shell asks, and only its value is dequoted; a word handed to `export`
+or `env` is that wrapper's argument and is dequoted whole. A subshell's is that subshell's. Where the turn granted no name at all the gate falls back to
+the session's own key, and the cost of that is a lease the gate does not notice rather than one it
+names wrongly.
 
 ## Where a lost name shows
 

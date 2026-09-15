@@ -5,7 +5,7 @@ import { quoting, spans } from "../../hooks/shell-spans.mjs";
 const BACKTICK = "\\x60";
 const LITERAL = String.raw`[\w.@:+/-]+`;
 const ID_VALUE = String.raw`(?:"(${LITERAL})"|'(${LITERAL})'|(${LITERAL}))`;
-const valueIn = (hit) => hit?.[1] ?? hit?.[2] ?? hit?.[3] ?? "";
+export const valueIn = (hit) => hit?.[1] ?? hit?.[2] ?? hit?.[3] ?? "";
 
 const TOP_LEVEL_EXPORT =
   new RegExp(String.raw`^\s*export\s+FORGE_SESSION_ID=${ID_VALUE}\s*$`, "u");
@@ -48,16 +48,30 @@ const OPENS_A_BODY = new RegExp(String.raw`[(${BACKTICK}]|<<`, "u");
 const SEPARATOR = /^[ \t]*(&&|\|\||;|\n|\||&)/u;
 
 const TAKEN_BACK = /(?:^|[;&|\n({])\s*(?:unset\b|source\b|\.\s|sudo\b|su\b|env\s+-[ui]\b)/u;
-const EVERY_VALUE = /FORGE_SESSION_ID=(?:"([^"]*)"|'([^']*)'|([^\s;&|]*))/gu;
-const unquoted = (text) => text.replace(/"[^"]*"|'[^']*'/gu, " ");
+const EVERY_TAKE_BACK = new RegExp(TAKEN_BACK.source, "gu");
+
+const VAR = "FORGE_SESSION_ID";
+const ANY_WORD = String.raw`(?:"[^"]*"|'[^']*'|[^\s;&|])`;
+const ANY_VALUE = String.raw`(?:"([^"]*)"|'([^']*)'|([^\s;&|)]*))`;
+
+/** Every id the text names, read wider than one it may grant, and why that asymmetry is the safe direction: docs/cli/the-granted-id.md. */
+const EVERY_VALUE = new RegExp(String.raw`\bFORGE_SESSION_ID=${ANY_VALUE}`, "gu");
+
+const EVERY_WORD = new RegExp(String.raw`${ANY_WORD}+`, "gu");
+const WRAPPER = /^(?:export|env)$/u;
+const ASSIGNS = /^([A-Za-z_]\w*)=([\s\S]*)$/u;
+const ONE_NAME = new RegExp(String.raw`^${LITERAL}$`, "u");
+const dequoted = (word) => word.replace(/"([^"]*)"|'([^']*)'/gu, "$1$2");
+
+const masked = (text) => text.replace(/"[^"]*"|'[^']*'/gu, (one) => " ".repeat(one.length));
 
 const commandsIn = (text) => spans(text, { pipes: true })
-  .map(({ start, end }) => ({ said: text.slice(start, end), after: text.slice(end) }));
+  .map(({ start, end }) => ({ at: start, said: text.slice(start, end), after: text.slice(end) }));
 
 const sepAfter = (one) => SEPARATOR.exec(one?.after ?? "")?.[1] ?? "";
 
 const reachOf = (found) => {
-  const at = found.findIndex(({ said }) => OPENS_A_BODY.test(unquoted(said)));
+  const at = found.findIndex(({ said }) => OPENS_A_BODY.test(masked(said)));
   return at < 0 ? found.length : at + 1;
 };
 
@@ -83,10 +97,39 @@ const grantedIn = (found) => {
   return prefixes.find(Boolean) ?? TOP_LEVEL_EXPORT.exec(found[at].said);
 };
 
+/** What one command assigns the name, read as a shell reads a command's head: the words in front of the first that is neither a wrapper nor an assignment. A prefix assignment's name is unquoted or it is a command word, which is why only an argument to a wrapper is dequoted whole; the value is the same `LITERAL` a grant is, so one this reader cannot spell is no id rather than a holder nothing matches.
+ *  `undefined` where the command said nothing about the name, which is not assigning it nothing. */
+const grantIn = (said) => {
+  let found;
+  let wrapped = false;
+  for (const [word] of said.matchAll(EVERY_WORD)) {
+    if (WRAPPER.test(word)) wrapped = true;
+    else {
+      const hit = ASSIGNS.exec(wrapped ? dequoted(word) : word);
+      if (!hit) break;
+      if (hit[1] === VAR) found = ONE_NAME.exec(dequoted(hit[2]))?.[0] ?? null;
+    }
+  }
+  return found;
+};
+
+const grantEnding = (text, joined = text.replace(CONTINUED, "")) => [
+  ...commandsIn(joined).map(({ at, said }) => ({ at, id: grantIn(said) }))
+    .filter(({ id }) => id !== undefined),
+  ...[...masked(joined).matchAll(EVERY_TAKE_BACK)].map((hit) => ({ at: hit.index, id: null })),
+].sort((one, two) => one.at - two.at).at(-1)?.id ?? null;
+
+/** The other reader's question — which run a whole turn's writes went under — and why each call is read alone: docs/cli/the-granted-id.md. */
+export const lastIdGranted = (commands) => {
+  let found = null;
+  for (const command of [commands ?? []].flat()) found = grantEnding(String(command ?? "")) ?? found;
+  return found;
+};
+
 export const idGrantedBy = (command) => {
   const text = Array.isArray(command) ? command.join("\n") : String(command ?? "");
   const granted = grantedIn(commandsIn(text));
-  if (!granted || TAKEN_BACK.test(unquoted(text))) return null;
+  if (!granted || TAKEN_BACK.test(masked(text))) return null;
   const named = new Set([...text.matchAll(EVERY_VALUE)].map(valueIn));
   return named.size === 1 ? valueIn(granted) : null;
 };

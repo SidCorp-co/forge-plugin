@@ -13,6 +13,7 @@ import { FIELD, KEY } from "../../../src/flow/lease.mjs";
 import { gitProbe } from "../../../src/hooks/git-probe.mjs";
 import { linting } from "../../../src/hooks/lint-delegate.mjs";
 import { projectStop } from "../../../src/resolve/settings.mjs";
+import { lastIdGranted, valueIn } from "../../../src/resolve/session/granted-id.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
 import { keysIn } from "../../../src/tracker/issues.mjs";
 import { askedAlready, block, done, how, isSubagent, remaining, sinceTurn, transcriptOf, turnAt,
@@ -43,24 +44,16 @@ const readTurn = (records) => {
   return { shell, said };
 };
 
-const value = (hit) => hit[1] ?? hit[2] ?? hit[3];
 const CD = /(?:^|&&|\|\||[;\n])\s*cd\s+(?:"([^"]+)"|'([^']+)'|([^\s;&|]+))/gu;
-const EXPORTED_ID = /\bFORGE_SESSION_ID=(?:"([^"]+)"|'([^']+)'|([^\s;&|)]+))/gu;
 
-const lastExported = (commands) => {
-  let found = null;
-  for (const command of commands) for (const hit of command.matchAll(EXPORTED_ID)) found = value(hit);
-  return found;
-};
-
-/* Each shell call starts over at `from`; within one, every `cd` moves from where the last one left. */
+/* Each shell call starts over at `from`; within one, every `cd` moves from where the last one left. A path keeps a character class of its own where an id's is imported: the two are not one question. */
 const movedTo = (commands, from) => {
   let last = null;
   for (const command of commands) {
     let at = from;
     let moved = false;
     for (const hit of command.matchAll(CD)) {
-      at = resolve(at, value(hit));
+      at = resolve(at, valueIn(hit));
       moved = true;
     }
     if (moved) last = at;
@@ -80,8 +73,8 @@ const treeOf = (ev, records, shell) => {
   return at && existsSync(at) ? (repoRoot(at) ?? at) : fallback;
 };
 
-/** The id the turn's own writes went under: a run exports its own (ISS-445), which no hook inherits. */
-const holderOf = (ev, shell) => (isSubagent(ev) && lastExported(shell)) || sessionKey(ev);
+/** The id the turn's own writes went under: a run exports its own (ISS-445), which no hook inherits. Read through the file `sessionKey` resolves from, so one run's work is not credited to two holders (ISS-583). */
+const holderOf = (ev, shell) => (isSubagent(ev) && lastIdGranted(shell)) || sessionKey(ev);
 
 /** Every `Stop`; a `SubagentStop` only where the project lists its agent type in `stop.agents` — a
  *  plugin's hooks reach every session on the machine, so no subagent is judged until a project says. */

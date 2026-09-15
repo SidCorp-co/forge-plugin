@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { quoting } from "../../../src/hooks/shell-spans.mjs";
-import { idGrantedBy } from "../../../src/resolve/session/granted-id.mjs";
+import { idGrantedBy, lastIdGranted } from "../../../src/resolve/session/granted-id.mjs";
 
 const WRITE = "./plugin/bin/forge comment ISS-29 -";
 
@@ -57,6 +57,8 @@ test("an id the writer would not receive is not granted", () => {
       "a second id, however it is spelled",
     [`cd /tmp && export FORGE_SESSION_ID=a-run && FORGE_SESSION_ID=other ${WRITE}`]: "two ids granted",
     [`cd /tmp && FORGE_SESSION_ID=a-run ${WRITE}; unset FORGE_SESSION_ID`]: "the id is taken back",
+    [`export FORGE_SESSION_ID=a-run; ""unset FORGE_SESSION_ID; ${WRITE}`]:
+      "the same, behind a pair of quotes that spell nothing and the shell removes",
     [`cd /tmp && FORGE_SESSION_ID="$RUN_ID" ${WRITE}`]: "a value only the shell could resolve",
     [`cd /tmp && ${WRITE}`]: "no assignment at all",
     [`cd /tmp; echo $(true; export FORGE_SESSION_ID=a-run; true); ${WRITE}`]: "a substitution keeps its export",
@@ -179,5 +181,121 @@ test("a granted call that can start a second command is granted nothing", () => 
   };
   for (const [command, what] of Object.entries(refuses)) {
     assert.equal(idGrantedBy(command), null, what);
+  }
+});
+
+/* ISS-583. `plugin/hooks/gates/turn/stop-check.mjs` spelt this variable and its value a second time,
+   the two spellings had drifted four ways, and one run's work reached the two gates under two
+   holders. Below is what the write-side reader answered wrongly: a mention that assigns this name
+   nothing counted as a second id, and the grant the same text made was dropped. */
+test("a mention that assigns this name nothing does not cost the text its grant", () => {
+  const reads = {
+    [`export FORGE_SESSION_ID=a-run && ${WRITE} && echo MY_FORGE_SESSION_ID=other`]:
+      "a longer variable whose name ends in this one, which is a different variable",
+    [`export FORGE_SESSION_ID=a-run && ${WRITE} && echo "(FORGE_SESSION_ID=a-run)"`]:
+      "the same id quoted inside parentheses, whose value ends where the parenthesis closes",
+    [`export FORGE_SESSION_ID=a-run && ${WRITE} && grep MY_FORGE_SESSION_ID=a-run f`]:
+      "the longer name carrying the granted value, which is still not this variable",
+  };
+  for (const [command, what] of Object.entries(reads)) {
+    assert.equal(idGrantedBy(command), "a-run", what);
+  }
+});
+
+/* The other half, and why the guard reads a mention wider than a grant: every row assigns the name
+   something this reader cannot resolve, and a guard narrow enough to miss one hands the writer an id
+   its process will not hold. `X"other"` is the sharpest — bash joins the word into `Xother`. */
+test("an assignment this reader cannot resolve is a second id, and refuses", () => {
+  const refuses = {
+    [`export FORGE_SESSION_ID=X && FORGE_SESSION_ID="$OTHER" forge issue ISS-29`]:
+      "a prefix naming a variable only the shell could resolve",
+    [`export FORGE_SESSION_ID=X && FORGE_SESSION_ID=X"other" forge issue ISS-29`]:
+      "a prefix whose quoted half bash joins onto the bare one",
+    "export FORGE_SESSION_ID=X; FORGE_SESSION_ID=; forge issue ISS-29":
+      "a standalone assignment clearing the name between the export and the writer",
+    [`export FORGE_SESSION_ID=a-run && ${WRITE} && FORGE_SESSION_ID= true`]:
+      "an assignment to nothing further along the text",
+    [`export FORGE_SESSION_ID=a-run && ${WRITE}; unset FORGE_SESSION_ID`]:
+      "the name taken back after the writer",
+  };
+  for (const [command, what] of Object.entries(refuses)) {
+    assert.equal(idGrantedBy(command), null, what);
+  }
+});
+
+/* The turn-wide question: a transcript has no single shell, only a sequence of Bash calls, so each is
+   read alone and inside one an assignment and a take-back undo each other in the order they are
+   written. What seeds the answer is an assignment and never a mention, because a name a command
+   merely hands to something as a word is a name no write of that turn went under. */
+test("the turn is credited to the last id one of its shell calls granted", () => {
+  const reads = [
+    [[`export FORGE_SESSION_ID=a-run && ${WRITE}`], "a-run", "the one call that grants"],
+    [["export MY_FORGE_SESSION_ID=other"], null, "a longer variable name grants nothing"],
+    [["export FORGE_SESSION_ID=a-run && FORGE_SESSION_ID= true"], null,
+      "the call ends having assigned the name nothing"],
+    [["export FORGE_SESSION_ID=a-run && unset FORGE_SESSION_ID"], null,
+      "the call ends having taken the name back"],
+    [["export FORGE_SESSION_ID=X; unset FORGE_SESSION_ID; export FORGE_SESSION_ID=Y"], "Y",
+      "a grant after a take-back in the same call is the one still standing"],
+    [[`export FORGE_SESSION_ID=a-run && ${WRITE}`, "unset FORGE_SESSION_ID"], "a-run",
+      "a later call that only takes the name back cannot revoke what the first wrote under"],
+    [[`export FORGE_SESSION_ID=X && ${WRITE}`, `export FORGE_SESSION_ID=Y && ${WRITE}`], "Y",
+      "the last of several granting calls"],
+    [["echo FORGE_SESSION_ID=X", `export FORGE_SESSION_ID=Y; ${WRITE}; unset FORGE_SESSION_ID`], null,
+      "a word a command was handed never seeds the answer, so nothing survives the take-back"],
+    [["export FORGE_SESSION_ID=a-run", 'grep "FORGE_SESSION_ID=other" f'], "a-run",
+      "nor does an id quoted into an argument displace the call that granted one"],
+    [["export FORGE_SESSION_ID=a-run", `export OTHER=1 FORGE_SESSION_ID=b-run; ${WRITE}`], "b-run",
+      "an assignment word standing in front of this one does not stop it being an assignment"],
+    [[`cd /wt && OTHER=1 FORGE_SESSION_ID=b-run ${WRITE}`], "b-run", "the same, as a prefix on the writer"],
+    [["export FORGE_SESSION_ID=a-run", `OTHER=1 env FORGE_SESSION_ID=b-run ${WRITE}`], "b-run",
+      "an env wrapper behind an assignment word, which a run in one order alone would drop"],
+    [["exportx FORGE_SESSION_ID=X"], null, "a word that merely opens with one of the wrappers is not one"],
+    [["export FORGE_SESSION_ID=a-run", `export ""FORGE_SESSION_ID=b-run; ${WRITE}`], "b-run",
+      "an empty pair of quotes the shell removes leaves the assignment an assignment"],
+    [["export FORGE_SESSION_ID=a-run", `export "x"FORGE_SESSION_ID=b-run; ${WRITE}`], "a-run",
+      "and one carrying a character does not, the word being another variable's by then"],
+    [["export FORGE_SESSION_ID=a-run", `export "FORGE_SESSION_ID=b-run"; ${WRITE}`], "b-run",
+      "a word quoted whole, which is the assignment the quoting removal leaves"],
+    [["export FORGE_SESSION_ID=a-run", `FORGE_SESSION_ID=X"other" ${WRITE}`], "Xother",
+      "and one a quote inside it joins, which is the value the process holds"],
+    [["export FORGE_SESSION_ID=a-run", `FORGE_"SESSION_ID"=b-run ${WRITE}`], "a-run",
+      "a name a quote touches is no prefix assignment at all, it is the command word"],
+    [["export FORGE_SESSION_ID=a-run", 'export FORGE_"SESSION_ID"=b-run'], "b-run",
+      "the same word handed to a wrapper is its argument, and quote removal makes it one"],
+    [['export FORGE_SESSION_ID="$RUN_ID"'], null,
+      "a value only the shell could resolve is no id here either, the two readers spelling one"],
+    [["export FORGE_SESSION_ID=a-run", `printf '%s\\n' ";"FORGE_SESSION_ID=b-run`], "a-run",
+      "the separator a candidate starts at is shell syntax or it is none, so a quoted one starts nothing"],
+    [["export FORGE_SESSION_ID=a-run", 'echo "; export FORGE_SESSION_ID=b-run"'], "a-run",
+      "the same for a whole command a quote carries"],
+    [["export FORGE_SESSION_ID=a-run", "export \\\nFORGE_SESSION_ID=b-run; git status"], "b-run",
+      "a continuation the shell joins, and this reader with it, before either reads a word"],
+    [["echo a=b FORGE_SESSION_ID=X"], null, "a word carrying no equals ends the run, so this is an argument"],
+    [['export FORGE_SESSION_ID=a-run && ""unset FORGE_SESSION_ID'], null,
+      "a take-back the shell reaches through an empty pair of quotes is one this reads too"],
+    [["export FORGE_SESSION_ID=a-run", `export OTHER='text FORGE_SESSION_ID=b-run '; ${WRITE}`], "a-run",
+      "an assignment word whose quoted value carries this name assigns only itself"],
+    [["export FORGE_SESSION_ID=a-run", `export OTHER='x'y FORGE_SESSION_ID=b-run; ${WRITE}`], "b-run",
+      "and one whose value a quote inside it joins is still the one word in front of this assignment"],
+    [["export FORGE_SESSION_ID=a-run", `FOO="a b" FORGE_SESSION_ID=b-run ${WRITE}`], "b-run",
+      "the same where the quoted half carries a space"],
+    [[`(FORGE_SESSION_ID=b-run) && ${WRITE}`], null, "a subshell's assignment is that subshell's own environment"],
+    [[`cd /tmp\nexport FORGE_SESSION_ID=a-run\n${WRITE}`], "a-run", "a line down, as a worktree run writes it"],
+    [[], null, "a turn with no shell call at all"],
+  ];
+  for (const [commands, id, what] of reads) {
+    assert.equal(lastIdGranted(commands), id, what);
+  }
+});
+
+/* The defect this issue names, in one assertion: one text, both readers, one holder. */
+test("a text both readers grant names the same id to each", () => {
+  for (const command of [
+    `export FORGE_SESSION_ID=a-run && cd /tmp && ${WRITE}`,
+    `cd /tmp && FORGE_SESSION_ID=a-run ${WRITE}`,
+    `export FORGE_SESSION_ID=a-run && ${WRITE} && echo "(FORGE_SESSION_ID=a-run)"`,
+  ]) {
+    assert.equal(idGrantedBy(command), lastIdGranted([command]), command);
   }
 });

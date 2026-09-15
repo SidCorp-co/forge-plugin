@@ -5,11 +5,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdirSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { callHook, cleanRepo, tempRoom } from "../../fixtures.mjs";
 import { FIELD, KEY } from "../../../src/flow/lease.mjs";
+import { sessionKey } from "../../../src/shown/ledger.mjs";
 
 const HOOK = new URL("../../../hooks/entries/turn/stop-check.mjs", import.meta.url).pathname;
 const GATE = new URL("../../../hooks/gate.mjs", import.meta.url).pathname;
@@ -275,6 +276,51 @@ test("the lease a subagent is judged on is the id its own commands exported", ()
   assert.deepEqual(asked, ["iss-1-abc"], "the exported id, not the parent's session key");
   const plain = decided(subagentStop({ session_id: "s-parent", agent_transcript_path: handed(), cwd: cleanRepo() }), held);
   assert.equal(plain.kind, "none", `with nothing exported the parent's key stands and holds nothing: ${plain.said}`);
+});
+
+/* ISS-583. This gate spelt the variable and its value itself, and its spelling had drifted from the
+   one the write gate credits under, so a run could be held under one holder here and checked under
+   another there. The holder is read through `granted-id.mjs` now, and the three rows are the ones
+   that answered differently before: a call that ends having given the name up grants nothing, and
+   the last call that granted one is what the turn is credited to whatever a later call does. */
+test("a subagent turn that gave its name up is credited to the session's own key", () => {
+  const asked = [];
+  const held = (...given) => {
+    asked.push(given[3]);
+    return [];
+  };
+  /* A session of its own per row: this gate says a thing once, and two rows under one id are one. */
+  const turn = (...commands) => {
+    asked.length = 0;
+    const own = handed(...commands.map((command) => used("Bash", { command })));
+    const ev = subagentStop({ session_id: `s-${randomUUID()}`, agent_transcript_path: own, cwd: cleanRepo() });
+    decided(ev, held);
+    return { holder: asked[0], fallback: sessionKey(ev) };
+  };
+  const kept = turn("export FORGE_SESSION_ID=iss-1-abc && forge claim ISS-1");
+  assert.equal(kept.holder, "iss-1-abc", "the call granted a name and kept it");
+  const cleared = turn("export FORGE_SESSION_ID=iss-1-abc && forge claim ISS-1 && FORGE_SESSION_ID= true");
+  assert.equal(cleared.holder, cleared.fallback, "the call ends having assigned the name nothing");
+  const back = turn("export FORGE_SESSION_ID=iss-1-abc && forge claim ISS-1 && unset FORGE_SESSION_ID");
+  assert.equal(back.holder, back.fallback, "the call ends having taken the name back");
+  const later = turn("export FORGE_SESSION_ID=iss-1-abc && forge claim ISS-1", "unset FORGE_SESSION_ID");
+  assert.equal(later.holder, "iss-1-abc", "a later call cannot revoke what the call before it wrote under");
+  const said = turn("echo FORGE_SESSION_ID=iss-1-abc",
+    "export FORGE_SESSION_ID=iss-2-def; forge claim ISS-2; unset FORGE_SESSION_ID");
+  assert.equal(said.holder, said.fallback, "a name a command was handed as a word is no call's grant");
+  const wrapped = turn("export FORGE_SESSION_ID=iss-1-abc",
+    "OTHER=1 env FORGE_SESSION_ID=iss-2-def forge claim ISS-2");
+  assert.equal(wrapped.holder, "iss-2-def", "the wrappers a prefix carries do not cost the call its grant");
+  assert.notEqual(cleared.fallback, "iss-1-abc", "the fallback would have hidden the two rows above");
+});
+
+/* And the shape of the fix, not only its answers: a second spelling of this variable anywhere in
+   this file is the defect coming back, and nothing else would fail while it did. */
+test("this gate spells the granted id nowhere", () => {
+  const said = readFileSync(new URL("../../../hooks/gates/turn/stop-check.mjs", import.meta.url), "utf8");
+  const code = said.replace(/\/\*[\s\S]*?\*\/|\/\/.*/gu, "");
+  assert.equal(code.includes("FORGE_SESSION_ID"), false, "the variable is named in this gate's code");
+  assert.equal(/\bconst value\b/u.test(code), false, "the gate carries a value extractor of its own");
 });
 
 /* The two readings of a turn are collected in one walk, and a Bash-only one would lose this: the
