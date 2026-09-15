@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { clearInterval, setInterval } from "node:timers";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tempRoom } from "../../fixtures.mjs";
+import { patience } from "../../patience.mjs";
 
 /* A config of its own, and imported after it: on the developer's machine this suite otherwise
    loads four live tokens and what it proves becomes a property of that file. The import has to
@@ -10,7 +12,11 @@ import { tempRoom } from "../../fixtures.mjs";
 const HOME = tempRoom("cloudflare-home-");
 const CONFIG = join(HOME, "forge", "config.json");
 mkdirSync(join(HOME, "forge"));
+/* A deadline that fires is what proves the refusal, the way `retrySeconds: 0` proves the ladder's
+   message: every stub below answers on a microtask, so nothing but a request that never answers
+   reaches this number. */
 writeFileSync(CONFIG, JSON.stringify({
+  waitSeconds: 0.05,
   cloudflare: { accounts: [{ name: "saved", accountId: "acct-config", apiToken: "cf-config" }] },
 }));
 process.env.XDG_CONFIG_HOME = HOME;
@@ -82,6 +88,40 @@ test("a failing account is named, and the others still aggregate", async (t) => 
   );
   assert.deepEqual(failed, ["revoked"]);
   assert.match(errors.join("\n"), /account revoked answered Invalid API token/u);
+});
+
+test("an endpoint that never answers is refused inside the deadline, naming the request and the key", async (t) => {
+  /* A real stalled request holds a socket open; a stubbed one holds nothing, and the timer under
+     `AbortSignal.timeout` is unref'd — so without this the loop drains before the clock fires. */
+  const awake = setInterval(() => {}, 1000);
+  t.after(() => clearInterval(awake));
+  let cancelled = false;
+  const errors = stub(t, (url, init) => new Promise((done, no) => {
+    init.signal.addEventListener("abort", () => {
+      cancelled = true;
+      no(init.signal.reason);
+    });
+  }));
+  const began = Date.now();
+  const { zones, failed } = await everyZone([{ name: "stalled", accountId: "a1", apiToken: "cf" }]);
+  assert.ok(Date.now() - began < patience(3000), "a Cloudflare endpoint that never answers does not hold the caller open");
+  assert.ok(cancelled, "and the request is aborted rather than left in flight");
+  assert.deepEqual(zones, [], "nothing is projected out of a request that never arrived");
+  assert.deepEqual(failed, ["stalled"]);
+  assert.match(errors.join("\n"), /Cloudflare did not answer GET \/zones\?/u, errors.join("\n"));
+  assert.match(errors.join("\n"), /ran out after 0\.05s \(waitSeconds in config\.json\)/u,
+    "the seconds it had and the key that raises them, which is the tracker's own number and wording");
+});
+
+/* The clock is the one failure this client could not report; every other one already had words, and
+   wrapping those too would have reworded a revoked token and a refused connection alike. */
+test("a failure that is not the clock's keeps the words it arrived with", async (t) => {
+  const errors = stub(t, async () => {
+    throw new TypeError("fetch failed");
+  });
+  const { failed } = await everyZone([{ name: "unreachable", accountId: "a1", apiToken: "cf" }]);
+  assert.deepEqual(failed, ["unreachable"]);
+  assert.match(errors.join("\n"), /account unreachable answered fetch failed$/mu, errors.join("\n"));
 });
 
 test("the account holding a zone is found by probing, never typed", async (t) => {

@@ -105,6 +105,10 @@ precedence rule.
 - **AC-19-6-1** · Rev: 1 · Proof: plugin/test/tools/services/cloudflare.test.mjs "an environment pair is not an account"
   WHEN a zone or record call is made THEN the credential SHALL come from the account's own
   configuration.
+- **AC-19-6-2** · Rev: 1 · Proof: plugin/test/tools/services/cloudflare.test.mjs "an endpoint that never answers is refused inside the deadline, naming the request and the key"
+  WHEN a zone or record call is made THEN it SHALL run under the deadline the same configuration
+  states for every client of this product, and one that runs out SHALL be refused naming the
+  request, the seconds it was given and the key that raises them.
 
 ### EI-10 — The deployment platform
 

@@ -7,7 +7,7 @@
 import { configPath, saveNested, userConfig } from "../../resolve/config.mjs";
 import { NO_ACCOUNT, cloudflareAccounts } from "./tool-config.mjs";
 import { abbreviated, masked } from "./masked.mjs";
-import { parsedOr } from "../../wire/request.mjs";
+import { clockFor, deadlineOf, parsedOr, ranOut } from "../../wire/request.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { firstLine, flags, helpAskedOf, pullRepeated } from "../../resolve/flags.mjs";
 import { didYouMean } from "../../suggest.mjs";
@@ -78,14 +78,27 @@ const configured = () => {
   return accounts;
 };
 
-/* Cloudflare answers 200 with `success: false`, so the status alone is not the verdict. */
+/* Cloudflare answers 200 with `success: false`, so the status alone is not the verdict. It also
+   answers nothing at all, which no status reports: the clock is the tracker transport's own, so the
+   one `waitSeconds` a project sets bounds both clients and neither carries a number of its own.
+   Everything that is not the clock running out is rethrown as it arrived, because the callers below
+   word a Cloudflare error and only the timeout had no words (ISS-852). docs/cli/the-deadline.md. */
 const cfFetch = async (token, path, method = "GET", body) => {
-  const response = await fetch(`${CF_BASE}${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
-  const text = await response.text();
+  const deadline = deadlineOf(null);
+  let response = null;
+  let text = "";
+  try {
+    response = await fetch(`${CF_BASE}${path}`, {
+      method,
+      signal: clockFor(deadline),
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+    text = await response.text();
+  } catch (dropped) {
+    if (dropped?.name !== "TimeoutError") throw dropped;
+    throw new Error(`Cloudflare did not answer ${method} ${path}: ${ranOut(dropped, deadline)}`);
+  }
   const parsed = parsedOr(text);
   if (!response.ok || !parsed?.success) {
     throw new Error(parsed?.errors?.[0]?.message ?? `HTTP ${response.status}: ${text.slice(0, 200)}`);

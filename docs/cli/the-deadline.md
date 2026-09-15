@@ -1,8 +1,10 @@
 # The deadline — what bounds an attempt in time, where the ladder bounds their number
 
-`plugin/src/tracker/rest.mjs` sends every request this CLI makes, and the ladder beside it —
-[one transport](one-transport.md) — counts how often a request that answers *badly* is sent again. It
-says nothing about one that answers not at all.
+`plugin/src/wire/request.mjs` holds the clock one attempt runs under, and every client that sends a
+request takes it from there: the tracker, Cloudflare and the chat backend read one `waitSeconds`
+rather than three. The ladder beside the tracker's own transport — [one transport](one-transport.md)
+— counts how often a request that answers *badly* is sent again. It says nothing about one that
+answers not at all.
 
 ## Why counting attempts is not a bound
 
