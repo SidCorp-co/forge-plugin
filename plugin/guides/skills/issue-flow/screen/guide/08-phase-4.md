@@ -45,7 +45,8 @@ the same file and only one of them is a fresh subject to read. Without that line
 terminate, because a finding asking for a clearer sentence is answered by changing what the code
 prints, and every such change reads as a change to what the code does.
 
-**That read is pinned to the head it was taken at, and that head stays reachable from what lands.** A
+**That read is pinned to the head it was taken at, so nothing you do afterwards takes that head off
+the branch.** A
 fix answering a finding goes on top of it and is never folded into it: the fold can leave a tree
 byte-identical and still leave the review answering for a commit the branch no longer carries, so the
 cheapest fix the lines above allow ends up owing the whole set after all. What is stated here is the

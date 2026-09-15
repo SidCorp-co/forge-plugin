@@ -225,7 +225,7 @@ test("Phase 4 says the head the read was taken at survives to the landing, and n
   const phases = phasesOf(SKILL);
   for (const [beat, phrase] of [
     ["what the read is pinned to", "pinned to the head it was taken at"],
-    ["the property that keeps it", "that head stays reachable from what lands"],
+    ["the property that keeps it", "nothing you do afterwards takes that head off the branch"],
     ["where the answering fix goes", "goes on top of it and is never folded into it"],
     ["why a byte-identical tree is no defence", "leave the review answering for a commit the branch no longer carries"],
     ["that the rule is the property rather than one verb", "an amend, a reset and a rebase of your own each break it alike"],
@@ -235,7 +235,7 @@ test("Phase 4 says the head the read was taken at survives to the landing, and n
       + "finding with an amend follows the phase exactly and arrives at the landing with a review "
       + "that answers for a commit nothing carries (ISS-1395)");
   }
-  const naming = Object.keys(phases).filter((n) => /stays reachable from what lands/u.test(phases[n]));
+  const naming = Object.keys(phases).filter((n) => /takes that head off the branch/u.test(phases[n]));
   assert.deepEqual(naming, ["4"], "and the phase that takes the read is the only one that says the "
     + "head it was taken at has to survive to the landing");
 });
