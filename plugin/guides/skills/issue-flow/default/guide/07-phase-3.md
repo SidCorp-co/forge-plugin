@@ -8,6 +8,15 @@ because the steps name the criteria they serve, and declaring a screen change is
 credential ask from worth making into owed: the declaration is what makes a rendered state this
 issue's evidence.
 
+**A payload file is this run's and not the tree's, so it is written outside the checkout** — under
+whatever directory the project names for this run's own scratch, where that directory is itself
+outside the checkout, and the system's temporary one in every other case. Both writes take a path
+and nothing but a path, so a file left in the working tree is one the project's own checkers walk,
+and what comes back names a repository checker rather than the change: at the baseline that is the
+shape of a tree already red, which a run either believes or spends the round disproving. Outside the
+checkout is also the only answer that holds where the worktree is not the checkout root, which is
+where a delegated run always stands. Every later file a verb reads off a path goes the same way.
+
 Criteria are numbered, one outcome per line a reader could check without opening the diff, and the
 write refuses the compounds it can prove. What it cannot prove is a conjunction inside one outcome —
 two nouns, two subjects under one verb, a condition joined to its outcome — which is one claim and
