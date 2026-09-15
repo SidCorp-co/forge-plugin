@@ -25,7 +25,10 @@ const {
   statesContract,
 } = await import("../../src/guides/contract.mjs");
 const { DEFAULT } = await import("../../src/guides/flow.mjs");
-const { servedBody, skillGuideAnswer } = await import("../../src/guides/skill-guides.mjs");
+const { servedBody } = await import("../../src/guides/skill-guides.mjs");
+const { render: rendered } = await import("../../src/guides/render.mjs");
+const { conditionsAt } = await import("../../src/guides/conditions.mjs");
+const { TOOL_STATES } = await import("../../src/tools/services/tool-config.mjs");
 const { CHECKS, ORDER, deployedOwed, judgedOwed, viewFrom } = await import("../../src/flow/earned.mjs");
 const { PHASE } = await import("../../src/guides/phases.mjs");
 const { FLOW_SLUGS } = await import("../../src/guides/flow.mjs");
@@ -223,10 +226,13 @@ test("Phase 4 says what separates a change that owes a fresh read, and what a fi
    commit followed the phase exactly and lost the read the landing asks for (ISS-923, ISS-1395). */
 test("Phase 4 says the head the read was taken at survives to the landing, and no other phase does", () => {
   const phases = phasesOf(SKILL);
-  /* The rendered part, not the joined source, where a fenced paragraph sits unserved. */
-  const held = skillGuideAnswer("issue-flow", PLUGIN)({ part: "4" });
-  assert.ok(!held.refusal, `\`forge guide issue-flow 4\` refused: ${held.refusal}`);
-  const served4 = flat(held.lines.join("\n"));
+  /* Rendered under each reviewer state rather than joined: a fenced paragraph is in `SKILL` whatever
+     this machine saved, and a rule about the read is owed to a run under either. */
+  const under = (state) => {
+    const held = conditionsAt(null);
+    return rendered(SKILL, { ...held, "tool.codex": { ...held["tool.codex"], value: state } }).text;
+  };
+  const served = TOOL_STATES.map(under);
   for (const [beat, phrase] of [
     ["what the read is pinned to", "pinned to the head it was taken at"],
     ["the property that keeps it", "nothing you do afterwards takes that head off the branch"],
@@ -235,9 +241,12 @@ test("Phase 4 says the head the read was taken at survives to the landing, and n
     ["that the rule is the property rather than one verb", "an amend, a reset and a rebase of your own each break it alike"],
     ["when a run may collapse its commits instead", "collapses the branch before it takes the read"],
   ]) {
-    assert.ok(served4.includes(phrase), `Phase 4 no longer names ${beat}, so a run answering a `
-      + "finding with an amend follows the phase exactly and arrives at the landing with a review "
-      + "that answers for a commit nothing carries (ISS-1395)");
+    for (const [at, state] of TOOL_STATES.entries()) {
+      assert.ok(phasesOf(served[at])["4"].includes(phrase), `Phase 4 under a ${state} reviewer no `
+        + `longer names ${beat}, so a run answering a finding with an amend follows the phase `
+        + "exactly and arrives at the landing with a review that answers for a commit nothing "
+        + "carries (ISS-1395)");
+    }
   }
   const naming = Object.keys(phases).filter((n) => /takes that head off the branch/u.test(phases[n]));
   assert.deepEqual(naming, ["4"], "and the phase that takes the read is the only one that says the "
