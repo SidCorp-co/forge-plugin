@@ -42,7 +42,7 @@ citation that does.
 | **BR-14** | 1 | an input used or refused | `CLAUDE.md`, the refusal paragraph |
 | **BR-15** | 1 | a stop only for the irreversible | `plugin/guides/skills/issue-flow/default/guide/03-autonomy-and-the-three-things-that-stop-it.md` |
 | **BR-16** | 1 | the half no gate reaches | `CLAUDE.md`, "The half no gate reaches" |
-| **BR-17** | 1 | never the developer's own credential | `CLAUDE.md`, "The live config directory is one environment variable away" |
+| **BR-17** | 2 | never the developer's own machine | `CLAUDE.md`, "Nothing a run touches is the developer's own" |
 | **BR-18** | 1 | a wait that does not ask again | `plugin/hooks/how/polling.md` |
 
 ## How a rule enters this table

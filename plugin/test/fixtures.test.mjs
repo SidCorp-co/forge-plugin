@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { tempRoom } from "./fixtures.mjs";
@@ -144,4 +144,57 @@ test("a gate root the flag asked to keep outlives its process, at the path it pr
     `the gate root was taken anyway, so every room kept under it went with it: ${run.stdout}`);
   assert.ok(run.stderr.includes(run.stdout),
     `the kept root's path was never printed, so what a step left in it is unreadable: ${run.stderr || "(silent)"}`);
+});
+
+/* Pointing a run's configuration somewhere of its own leaves it on the developer's `~/.claude` and
+   `~/.local/bin`, which is where the gateway profile, the install record and the links a session
+   start writes all live. So the environment the fixture hands out names a home too (ISS-1425). */
+const handsOut = (fixture) => `
+  import { homeEnv } from "${pathToFileURL(fixture).href}";
+  const env = homeEnv("borrowed");
+  process.stdout.write(JSON.stringify([env.HOME, env.XDG_CONFIG_HOME]));
+`;
+
+test("the environment the fixture hands out names a home of the run's own", () => {
+  const room = tempRoom("fixture-home-");
+  const theirs = join(room, "somebody-elses-home");
+  mkdirSync(theirs, { recursive: true });
+  const argv = ["--input-type=module", "-e", handsOut(join(ROOT, FIXTURES[0]))];
+  const run = spawnSync(process.execPath, argv, { encoding: "utf8", env: { ...WITHOUT, TMPDIR: room, HOME: theirs } });
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const [home, config] = JSON.parse(run.stdout);
+  assert.notEqual(home, theirs,
+    "the fixture handed a child the home it was started under, so everything that child reads under `~` is the developer's");
+  assert.match(home, /\/forge-plugin-test-\d+-[^/]+\//u, `the home it handed out is outside the root it removes: ${home}`);
+  assert.equal(config, home, "the config home and the home are one room, so a leak is one directory to look in");
+});
+
+/* A home-rooted path built into a module constant is resolved at import, so no caller can move it
+   afterwards and no test can vary it. These two hold the install record; `resolve/config.mjs` is the
+   shape that was already right. Read at the call, a `HOME` set after the import reaches them. */
+const READERS = ["plugin/src/tools/plugin-copy.mjs", "plugin/src/stats/versions.mjs"];
+
+const afterImport = (home) => `
+  const copy = await import("${pathToFileURL(join(ROOT, READERS[0])).href}");
+  const versions = await import("${pathToFileURL(join(ROOT, READERS[1])).href}");
+  process.env.HOME = ${JSON.stringify(home)};
+  process.stdout.write(JSON.stringify([copy.installedPaths(), versions.cacheRoot()]));
+`;
+
+test("a home-rooted path is read from the home the process holds, not the one it was imported under", () => {
+  const room = tempRoom("fixture-record-");
+  const started = join(room, "home-at-import");
+  const later = join(room, "home-at-the-call");
+  const installed = join(later, "cache", "forge", "9.9.9");
+  mkdirSync(started, { recursive: true });
+  mkdirSync(join(later, ".claude", "plugins"), { recursive: true });
+  writeFileSync(join(later, ".claude", "plugins", "installed_plugins.json"), JSON.stringify({
+    version: 2,
+    plugins: { "forge@forge-local": [{ scope: "user", version: "9.9.9", installPath: installed, lastUpdated: "2026-01-01T00:00:00.000Z" }] },
+  }));
+  const argv = ["--input-type=module", "-e", afterImport(later)];
+  const run = spawnSync(process.execPath, argv, { encoding: "utf8", env: { ...WITHOUT, TMPDIR: room, HOME: started } });
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.deepEqual(JSON.parse(run.stdout), [[installed], join(later, "cache", "forge")],
+    `${READERS.join(" and ")} answered about the home they were imported under, so nothing a caller sets afterwards can move them`);
 });

@@ -287,11 +287,11 @@ const plannedSaid = ({ model, effort, kind, budget, ceiling, lines, clipped }) =
   + `${budget < ceiling ? `, up to ${ceiling} if the review comes back incomplete` : ""}.`;
 
 const consult = async (given) => {
+  const { named, issues, risks, only, allowEcho, base, namedBase, effort: askedEffort, cap, bodies, recheck, angles, scope, checks } = consultArgs(given);
   const { problem, values, path } = profile();
   if (problem) fail(`codex: ${problem}. It needs the gateway the consult is sent to.`);
   const root = repoRoot(process.cwd());
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
-  const { named, issues, risks, only, allowEcho, base, namedBase, effort: askedEffort, cap, bodies, recheck, angles, scope, checks } = consultArgs(given);
   const set = reviewSet({ root, named, keys: issues, base, namedBase, recheck, pattern: recordPattern().value, held: pendingIn(readState(), root) });
   const { offered, gone } = set;
   let rels = set.rels;

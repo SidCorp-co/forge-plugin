@@ -8,10 +8,10 @@ import { readJson } from "../resolve/config.mjs";
 
 export const UNRECORDED = "unrecorded";
 
-const RECORD = join(homedir(), ".claude", "plugins", "installed_plugins.json");
+const installRecord = () => join(homedir(), ".claude", "plugins", "installed_plugins.json");
 const OWN = new URL("../../.claude-plugin/plugin.json", import.meta.url);
 
-/* The record plugin-copy.mjs reads, read again: that module is frozen, and an export there costs a restart. */
+/* The record plugin-copy.mjs reads, read again and at the call: that module is frozen, an export there costs a restart. */
 const installPathOf = (name, record) => {
   const held = readJson(record)?.plugins;
   if (!held || typeof held !== "object") return null;
@@ -23,7 +23,7 @@ const installPathOf = (name, record) => {
     .at(-1) ?? null;
 };
 
-export const cacheRoot = (record = RECORD) => {
+export const cacheRoot = (record = installRecord()) => {
   const name = readJson(OWN)?.name;
   const path = name ? installPathOf(name, record) : null;
   return path ? dirname(path) : null;

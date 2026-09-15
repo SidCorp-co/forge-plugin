@@ -57,11 +57,14 @@ payload. What comes back is not diffable, so a change to a prompt, a style contr
 level is verified by running it and reading the output. A green tree says the plumbing survived, not
 that the answer is good.
 
-## The live config directory is one environment variable away
+## Nothing a run touches is the developer's own
 
-`~/.config/forge/` holds a working token and the consult log. Anything exercising plugin state
-points the `XDG_CONFIG_HOME` environment variable at a temporary directory first; a test that skips
-it runs on the developer's own credential, then overwrites it.
+The property, not the variable: a run reads and writes state of its own, never the state of the
+person whose machine it is. `~/.config/forge/` holds a working token and the consult log,
+`~/.claude/` the gateway profile and the install record, `~/.local/bin` the links a session start
+writes — and a run pointed only at the one of those that was known to leak still has the rest. Every
+home-rooted path is therefore read where it is used, so a home the caller sets reaches it, and the
+suite's own fixture is what hands a run that home.
 
 ## The steps around a change are the repository's
 

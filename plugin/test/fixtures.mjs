@@ -118,10 +118,10 @@ export const tempHome = (name) => {
   return { path, remove: () => rmSync(path, { recursive: true, force: true }) };
 };
 
-export const homeEnv = (name) => ({
-  ...process.env,
-  XDG_CONFIG_HOME: tempRoom(`${name}-home-`),
-});
+export const homeEnv = (name) => {
+  const room = tempRoom(`${name}-home-`);
+  return { ...process.env, HOME: room, XDG_CONFIG_HOME: room };
+};
 
 export const git = (room, ...args) =>
   spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });

@@ -336,11 +336,15 @@ const ARGS = {
   ...Object.fromEntries(KINDS.map((kind) => [`record ${kind}`, ["ISS-1"]])),
 };
 
+/* The seeded profile above is what this one case may not have: whether a verb reads this machine before its argv is what is asked here, and a machine holding a profile answers yes unasked (ISS-1425). */
+const NO_GATEWAY = { ...process.env, HOME, XDG_CONFIG_HOME: HOME, CLAUDE_PROXY_ENV: join(HOME, "saved-nothing.env") };
+
 test("every verb and every action hands the parser its text before it reads or asks", () => {
   const wrong = [];
   for (const argv of EVERY_HELP) {
     const name = argv.join(" ");
-    const run = ask(...argv, ...(ARGS[name] ?? []), "--zzz", "x");
+    const run = spawnSync(FORGE, [...argv, ...(ARGS[name] ?? []), "--zzz", "x"],
+      { encoding: "utf8", env: NO_GATEWAY });
     const said = `${run.stdout}${run.stderr}`;
     if (run.status !== 1) wrong.push(`forge ${name} --zzz x exited ${run.status}: ${said}`);
     else if (!said.includes("--zzz")) wrong.push(`forge ${name} --zzz x named nothing: ${said}`);

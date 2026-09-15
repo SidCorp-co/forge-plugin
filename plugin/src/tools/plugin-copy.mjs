@@ -5,7 +5,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-const RECORD = join(homedir(), ".claude", "plugins", "installed_plugins.json");
+const installRecord = () => join(homedir(), ".claude", "plugins", "installed_plugins.json");
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 const read = (path) => {
@@ -34,7 +34,7 @@ const newestOf = (records) =>
 export const pluginCopy = (root = HERE) => {
   const mine = read(join(root, ".claude-plugin", "plugin.json"));
   if (!mine?.name || !mine?.version) return null;
-  const records = recordsOf(mine.name, RECORD);
+  const records = recordsOf(mine.name, installRecord());
   if (!records.length) return null;
   return {
     name: mine.name,
@@ -46,7 +46,7 @@ export const pluginCopy = (root = HERE) => {
 
 const nameAt = (root) => read(join(root, ".claude-plugin", "plugin.json"))?.name ?? null;
 
-export const installedPaths = (record = RECORD, root = HERE) =>
+export const installedPaths = (record = installRecord(), root = HERE) =>
   recordsOf(nameAt(root) ?? "", record).map((one) => one.installPath).filter((one) => typeof one === "string");
 
 const shippedBy = (path, name) => {
@@ -82,7 +82,7 @@ export const hereCopy = (root = HERE) => ({ dir: resolve(root), version: version
 /** Which copy a call through the link on PATH runs, and why that one: the checkout the working
  *  directory sits in, else the newest installed copy that resolves, else this one. `entry` defaults
  *  to this CLI's, which is the copy doctor asks about. */
-export const copyToRun = ({ cwd = process.cwd(), entry = join("src", "cli.mjs"), root = HERE, record = RECORD } = {}) => {
+export const copyToRun = ({ cwd = process.cwd(), entry = join("src", "cli.mjs"), root = HERE, record = installRecord() } = {}) => {
   const name = nameAt(root);
   const installed = name ? installedAbleToRun(name, entry, record) : null;
   const checkout = name ? checkoutAbove(cwd, name) : null;
