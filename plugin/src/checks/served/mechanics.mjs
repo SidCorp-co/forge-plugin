@@ -11,7 +11,7 @@ const CLI_SPAN = /^`(?:forge|vi-natural|node|npm|git)\b/u;
 const DOC_SPAN = /(?:-h|--help|--how|--why)`$|^`forge (?:guide|spec|hooks|doctor --credentials)\b/u;
 
 /** Closed, because an open list reaches "the run" and "the record", which are not calls. */
-const ANAPHOR = /^(?:the|a|an|one|both|each|its|that|this|those|these)\s+(?:writes?|verbs?|calls?|refusals?|rechecks?|consults?|landings?|captures?)\b/u;
+const ANAPHOR = /^(?:the|a|an|one|both|each|its|that|this|those|these)\s+(?:writes?|verbs?|calls?|refusals?|rechecks?|consults?|landings?|captures?)\b/iu;
 
 /* Effect verbs only. Whether a saying verb's complement defers to the verb or supplies the verb's
    own answer is not decidable from the text, and a rule that guessed would be refused here. */
@@ -55,7 +55,7 @@ const segments = (text) => {
   let opens = true;
   for (const hit of text.matchAll(BOUNDARY)) {
     out.push({ text: text.slice(at, hit.index), at, to: hit.index, opens });
-    opens = !/^\s*[—–,]/u.test(hit[0]);
+    opens = !/^\s*[—–]/u.test(hit[0]);
     at = hit.index + hit[0].length;
   }
   out.push({ text: text.slice(at), at, to: text.length, opens });
@@ -99,7 +99,7 @@ const joined = (found) => {
    comma cannot leave half a list standing where the obligation was. */
 const RESUMES = /^\s*(?:before|after|until|while|during|since|once|unless|so|then|at|on|in|by|for|from|with|without|against|beyond|past|is|are|was|were)\b/u;
 const resumesAfter = (segment, from) => {
-  for (let at = segment.length - 1; at > from; at -= 1) {
+  for (let at = from; at < segment.length; at += 1) {
     if (segment[at] === "," && RESUMES.test(segment.slice(at + 1))) return at;
   }
   return -1;
@@ -136,7 +136,8 @@ export const mechanicsIn = (text, rel) => {
   for (const part of joined(segments(body))) {
     const here = opensWith(part.text);
     const relative = RELATIVE.exec(part.text);
-    const ref = here ?? (relative && carried ? { at: 0, to: relative[0].length } : null);
+    const ref = here ?? (relative && carried
+      ? { at: relative[0].length - relative[0].trimStart().length, to: relative[0].length } : null);
     carried = endsOn(part.text);
     if (!ref) continue;
     const rest = part.text.slice(ref.to);

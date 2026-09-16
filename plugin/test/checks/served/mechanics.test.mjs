@@ -30,6 +30,9 @@ const REFUSED = {
   "two commands under one predicate": "`forge record plan` and `forge record criteria` each refuse a file no consult has read.",
   "a plural subject standing for two calls": "both calls refuse unread files.",
   "the same plural subject set off by an em-dash": "both calls — refuse unread files.",
+  "the same plural subject opening its own sentence": "Both calls refuse unread files.",
+  "a coordinated subject set off by an em-dash":
+    "Criteria are numbered, and the write — refuses the compounds it can prove.",
 };
 
 for (const [route, source] of Object.entries(REFUSED)) {
@@ -139,6 +142,23 @@ test("a relative clause the main clause does not resume after is cut whole", () 
   assert.ok(said[0].includes('what remains is "It is answered by `forge record plan`."'), said[0]);
 });
 
+/* Two adjuncts after the clause: the cut has to stop at the first place the main clause takes over,
+   because stopping at the last one leaves the reader deleting an obligation that was never the
+   clause's. The line is the refused span's own and not the sentence's, or a cut lands on the wrong one. */
+test("a cut stops where the main clause first resumes, however many adjuncts follow", () => {
+  const said = mechanicsIn("Run `forge record plan`, which reads plans, before pushing, after review.", "guide.md");
+  assert.equal(said.length, 1, said.join("\n"));
+  assert.ok(said[0].includes('"which reads plans"'), `the cut ran past the resumption: ${said[0]}`);
+  assert.ok(said[0].includes('what remains is "Run `forge record plan` before pushing, after review."'), said[0]);
+});
+
+test("a refusal names the line the refused span starts on", () => {
+  const said = mechanicsIn("Run `forge record plan` — \nwhich refuses unread files — before pushing.", "guide.md");
+  assert.equal(said.length, 1, said.join("\n"));
+  assert.match(said[0], /^guide\.md:2 /u, `the line is the sentence's rather than the span's: ${said[0]}`);
+  assert.ok(said[0].includes('"which refuses unread files"'), said[0]);
+});
+
 test("the walk reaches the served text, so a clean answer is a clean corpus and not an empty selector", () => {
   const found = served();
   assert.ok(found.length > 100, `${found.length} file(s) walked; the selector matches too little`);
@@ -157,16 +177,20 @@ test("the walk reaches the served text, so a clean answer is a clean corpus and 
 const OWED = [
   ["contract/default/01-the-issue-flow-contract.md:3", "`forge doctor` reads the contract for it"],
   ["contract/screen/01-the-issue-flow-contract.md:3", "`forge doctor` reads the contract for it"],
+  ["skills/dispatch/default/guide/08-phase-6.md:26", "The landing takes each issue as far as its record earns and the project's release allows"],
+  ["skills/dispatch/screen/guide/08-phase-6.md:26", "The landing takes each issue as far as its record earns and the project's release allows"],
   ["skills/forge/default/references/configuration.md:25", "the verb then leaves the usage list"],
   ["skills/forge/default/references/dependencies.md:5", "`forge issue ISS-nn --blocks ISS-mm` writes an edge there, `--relates ISS-mm` writes one that orders nothing"],
   ["skills/forge/default/references/dependencies.md:7", "`forge issue ISS-mm --fields relations` reads them back, under `blockedBy` for the edges holding that issue up, `blocks` for the ones it holds up"],
   ["skills/forge/screen/references/configuration.md:25", "the verb then leaves the usage list"],
   ["skills/forge/screen/references/dependencies.md:5", "`forge issue ISS-nn --blocks ISS-mm` writes an edge there, `--relates ISS-mm` writes one that orders nothing"],
   ["skills/forge/screen/references/dependencies.md:7", "`forge issue ISS-mm --fields relations` reads them back, under `blockedBy` for the edges holding that issue up, `blocks` for the ones it holds up"],
+  ["skills/issue-flow/default/guide/07-phase-3.md:13", "Both writes take a path and nothing but a path"],
   ["skills/issue-flow/default/guide/07-phase-3.md:20", "the write refuses the compounds it can prove"],
   ["skills/issue-flow/default/guide/07-phase-3.md:28", "`forge record plan` and `forge record criteria` each refuse a file no consult has read"],
   ["skills/issue-flow/default/guide/07-phase-3.md:37", "`forge record plan` and `forge record criteria` each refuse a file no consult has read"],
   ["skills/issue-flow/default/guide/08-phase-4.md:57", "which verifies that consult's findings rather than roaming for new ones"],
+  ["skills/issue-flow/screen/guide/07-phase-3.md:13", "Both writes take a path and nothing but a path"],
   ["skills/issue-flow/screen/guide/07-phase-3.md:20", "the write refuses the compounds it can prove"],
   ["skills/issue-flow/screen/guide/07-phase-3.md:28", "`forge record plan` and `forge record criteria` each refuse a file no consult has read"],
   ["skills/issue-flow/screen/guide/07-phase-3.md:37", "`forge record plan` and `forge record criteria` each refuse a file no consult has read"],
