@@ -99,18 +99,21 @@ test("a directory whose name carries a character a name usually does not is read
   }
 });
 
-/* A `(` is a shell operator where it stands bare and a character of a name where it stands inside a
-   quote, and the reading asked the text rather than the walk — so a write into `paren(one)` named a
-   rooted `/written.md` nobody wrote and the gates saw no write at all (ISS-1555). */
+/* A `(` ends a word where it stands bare and is a character of a name where it stands under a quote,
+   and the reading asked the text rather than the walk, so a write into `paren(one)` named a rooted
+   `/written.md` nobody wrote (ISS-1555). The space is not of that class, and the list case is why. */
 test("a quoted target is read as a shell reads it, so a parenthesis in it opens no command", () => {
   const at = asked(NOW - 10_000);
-  for (const odd of ["paren(one)", "paren (one)", "wt(2)"]) {
+  for (const odd of ["paren(one)", "wt(2)"]) {
     mkdirSync(join(room, odd), { recursive: true });
     const file = stamped(join(odd, "written.md"), NOW - 1_000);
     const command = `printf x > '${odd}/written.md'`;
     assert.deepEqual(touched(bash(command, at)), [file], odd);
     assert.deepEqual(writtenPaths(command, room).map((one) => one.token), [`${odd}/written.md`], odd);
   }
+  const two = ["listed-1.md", "listed-2.md"].map((one) => stamped(one, NOW - 1_000));
+  assert.deepEqual(touched(bash("touch 'listed-1.md listed-2.md'", at)), two,
+    "and a quoted list is still two candidates, which is what a space ending a word is for");
 });
 
 test("a name is read from the word the command spelled it in, and never from the middle of one", () => {
@@ -148,9 +151,9 @@ test("a name is read from the word the command spelled it in, and never from the
   assert.deepEqual(names("tee /tmp/a[1]/memory/x.md"), [], "and the `/memory/x.md` inside one is no path either");
   assert.deepEqual(names("printf x > 'plus(one)/notes.md'"), ["plus(one)/notes.md"],
     "a parenthesis under a quote is a character of the name and starts no command of its own");
-  assert.deepEqual(names("printf x > '/tmp/p (1)/notes.md'"), ["/tmp/p (1)/notes.md"],
-    "as is the space beside it, one quoted word being one name however many operators it carries");
-  assert.equal(namesOf("printf x > '/tmp/p (1)/notes.md'")[0].at, "printf x > '".length,
+  assert.deepEqual(names("printf x > '/tmp/p (1)/notes.md'"), ["(1)/notes.md"],
+    "while the space beside it goes on ending a word, so that name is the tail it always was");
+  assert.equal(namesOf("printf x > 'plus(one)/notes.md'")[0].at, "printf x > '".length,
     "and the offset handed back still indexes the text, which is what places a name against a tree");
 });
 

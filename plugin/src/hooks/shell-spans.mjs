@@ -207,17 +207,18 @@ export const waitsIn = (text) => {
 };
 
 /* A word is what a shell hands on as one, so only what ends a word ends a name: the operators, the quotes, a `$` and a backslash. Everything else a filesystem allows stands inside a name, which is why this is written as what a name may not carry rather than as what it may — an allow-list cut a path at the first `+` in it and handed on the tail, which is shorter, relative and still resolves. */
-const OPERATOR = /[\s;&|()<>$\\]/u;
+const OPERATOR = /[;&|()<>$\\]/u;
+/* Whitespace is not one of them and does not ask the walk. A shell holds a quoted span together across a space, and this reading deliberately does not: `spoken` in the harness blanks a quoted span carrying one because such a span is a sentence or a payload far more often than it is a filename, and a `touch 'a.md b.md'` whose two candidates arrived by this split is the other half of the same choice. So the space stays a word's end, quoted or not, and what changes here is the operator beside it. */
+const SPLITS = /\s/u;
 /* The quotes, each spelt as its code point, since a lone one in a source file is an unclosed string to everything that reads this repository as text and the checks here do read it that way. These end a word wherever they stand, the delimiters of a span as much as a quote inside one: what arrives here is as often an interpreter's body carrying its own quotes as it is one name, and `open("--trap.md", "w")` spells the file in the inner pair. */
 const QUOTE = /[\x27\x22\x60]/u;
 
-/** Every word of a command, as the walk reads it: the text of one, and the offset each of its characters stood at — kept per character rather than as one start, because a word is the characters of it that survive and a name read out of one is still placed where it was written.
- *  A word ends at an operator the shell is spending as shell, which is what `quoting` answers and no regular expression over the raw text can: under a single quote a `(` opens no subshell, a space splits nothing and a `$` expands nothing, so `'a/p (1)/b.md'` is one name rather than a tail that resolves somewhere else entirely. A character under a double quote is read as it always was, because the shell may be running a substitution there and this walk cannot yet say where one begins (ISS-1533). */
+/** Every word of a command, as the walk reads it: the text of one, and the offset each of its characters stood at — kept per character because a word is the characters of it that survive, and a name read out of one is still placed where it was written. A word ends at an operator the shell is spending as shell, which is what `quoting` answers and no regular expression over the raw text can: under a single quote a `(` opens no subshell and a `$` expands nothing, so `'a/p(1)/b.md'` is one name rather than a tail that resolves somewhere else entirely. A character under a double quote is read as it always was, because a shell may be running a substitution there and this walk cannot yet say where one begins (ISS-1533). */
 const worded = (text) => {
   const out = [];
   let word = null;
   for (const { at, one, under } of quoting(text)) {
-    if (QUOTE.test(one) || (under !== "'" && OPERATOR.test(one))) {
+    if (QUOTE.test(one) || SPLITS.test(one) || (under !== "'" && OPERATOR.test(one))) {
       word = null;
       continue;
     }
