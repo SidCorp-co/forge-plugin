@@ -78,10 +78,15 @@ const viewOf = async (reference, given) => {
    `soft` is the caller with a record up already, which is one fact and not two: the renewal its own write made a call earlier is not made twice, and the tracker's refusal comes back to it rather than exiting the process, because a second renewal is a second place to exit and exiting there would leave that record claiming a move nothing attempted. */
 export const transitionTo = async (view, status, ref, { note = "", next = null, said = null, soft = false, say = console.log } = {}) => {
   if (!soft) await renew(view.documentId, ref, next);
+  /* Asked softly whoever the caller is, so the refusal is worded here rather than printed bare by the transport: a refusal that makes a claim about this issue's status is read as true by a run that has nothing beside it to compare, and both statuses it could be compared against are values this call is already holding (ISS-1422). */
   const answer = await write("forge_issues",
-    { action: "transition", documentId: view.documentId, data: { status, ...(said ?? {}) } }, undefined, soft);
-  /* Soft is for the caller that has already written something: the tracker's own refusal exits the process, and one route needs it back to say what its record left behind. */
-  if (answer?.refused) return answer.refused;
+    { action: "transition", documentId: view.documentId, data: { status, ...(said ?? {}) } }, undefined, true);
+  /* Soft is for the caller that has already written something: it words its own refusal around the record it left behind, so nothing is framed for it here. */
+  if (answer?.refused) {
+    if (soft) return answer.refused;
+    refuse(`${ref} is ${view.issue.status} and the move to ${status} was refused, so nothing was `
+      + `written. What refused it:\n${answer.refused}`);
+  }
   const held = answer?.status ?? answer?.issue?.status;
   if (held && held !== status) refuse(`The transition answered with status ${held}, not ${status}. Nothing to rely on.`);
   scopeFrom(status, ref, namedIn(view));
