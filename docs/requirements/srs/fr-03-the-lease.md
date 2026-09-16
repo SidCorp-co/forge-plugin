@@ -263,6 +263,12 @@ a wait no party can end.
   to what it landed THEN that release SHALL leave the checkpoint where it stands, because a branch
   name outlives the work captured under it and a release that reads only the name would finish a
   capture that never went anywhere.
+- **AC-03-6-14** · Rev: 1 · Proof: none yet — ISS-1655
+  WHERE a checkpoint still declares a branch ready and the default branch is proved, off refs the
+  checkout already holds, to carry the head that checkpoint was written at, the CLI SHALL offer a
+  write that moves it to the state naming no turn and that builds no candidate, runs no gate and
+  pushes nothing, because the workspace whose release landed that branch is often gone by then and
+  every other route to that state is itself a release.
 
 ## Business rules enforced
 
