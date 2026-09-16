@@ -32,9 +32,7 @@ const filesFor = (tree, now) => {
   return out;
 };
 
-/* A file nothing wrote inside the window holds a plan past it, which reads as no plan at all, so the listing above takes it. A save that can neither write its file nor remove it is the one case where a correction lands and the write it clears stays refused, so the caller is told: the old text names fewer paths than the record now does, and no entry at all is what stands a gate down. Where even the removal fails nothing further is this module's, and `developed` still reads the rule.
-
-   That case is the whole of what `false` means here, and every writer below answers the same question so the caller never has to guess which one it got: does the directory now say what this call meant it to say. A call naming no tree, a reference with no entry, and an entry the sweep already owns all leave nothing disagreeing with the record, so all of them are `true` — the caller has nothing it could act on, and the only advice this module's failure carries stands a working gate down. */
+/* A file nothing wrote inside the window holds a plan past it, which reads as no plan at all, so the listing above takes it. A save that can neither write its file nor remove it is the one case where a correction lands and the write it clears stays refused, so the caller is told: the old text names fewer paths than the record now does, and no entry at all is what stands a gate down. Where even the removal fails nothing further is this module's, and `developed` still reads the rule. That case is the whole of what `false` means here, and every writer below answers the same question so the caller never has to guess which one it got: does the directory now say what this call meant it to say. A call naming no tree, a reference with no entry, and an entry the sweep already owns all leave nothing disagreeing with the record, so all of them are `true` — the caller has nothing it could act on, and the only advice this module's failure carries stands a working gate down. */
 const saved = (tree, ref, row) => {
   const at = scopePath(tree, ref);
   try {
