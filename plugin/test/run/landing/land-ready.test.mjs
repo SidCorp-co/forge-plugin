@@ -210,7 +210,7 @@ test("a base that moved a line of the change's own file hands the branch back, r
   /* What the stop asks for is the reading, and the branch is left alone: a stop asking for a rebase
      is one that sends the run to force-push the head this landing fetches into an orphan (ISS-1638). */
   assert.match(said, /the branch stays where it is/u, said);
-  assert.match(said, new RegExp(`read ${OWNED} as ${held.candidate.slice(0, 7)} has them`, "u"), said);
+  assert.ok(said.includes(`read ${OWNED} as ${held.candidate.slice(0, 7)} has them`), said);
   assert.equal(/rebas/iu.test(said.split("is parked as blocked")[0]), false,
     `nothing the hand-back prints asks for a rebase:\n${said}`);
   assert.equal(remote(at), pinned, `nothing was pushed:\n${said}`);

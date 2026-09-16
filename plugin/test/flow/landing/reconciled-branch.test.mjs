@@ -116,14 +116,14 @@ test("a reconciliation over a branch that let the judged head go is refused, nam
   const before = JSON.stringify(state.issues[0].sessionContext);
   const run = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], room);
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, new RegExp(`${BRANCH} no longer carries ${judged.slice(0, 7)}`, "u"), run.stderr);
-  assert.match(run.stderr, new RegExp(`stands at ${tip.slice(0, 7)}`, "u"),
-    "and the tip it stands at instead, which is what tells a forgotten push from a rewritten branch");
-  assert.match(run.stderr,
-    new RegExp(`git push --force-with-lease=${BRANCH}:${tip} origin ${judged}:refs/heads/${BRANCH}`, "u"),
-    "with the push that puts the judged head back");
-  assert.match(run.stderr, new RegExp(`git fetch origin ${BRANCH}`, "u"),
-    "and the fetch that moves the evidence it is read off, a push made elsewhere leaving it as it was");
+  assert.ok(run.stderr.includes(`${BRANCH} no longer carries ${judged.slice(0, 7)}`), run.stderr);
+  assert.ok(run.stderr.includes(`stands at ${tip.slice(0, 7)}`),
+    `the tip it stands at instead tells a forgotten push from a rewritten branch:\n${run.stderr}`);
+  assert.ok(run.stderr.includes(
+    `git push --force-with-lease=${BRANCH}:${tip} origin ${judged}:refs/heads/${BRANCH}`),
+  `the push that puts the judged head back:\n${run.stderr}`);
+  assert.ok(run.stderr.includes(`git fetch origin ${BRANCH}`),
+    `the fetch that moves the evidence it is read off, a push made elsewhere leaving it:\n${run.stderr}`);
   assert.equal(JSON.stringify(state.issues[0].sessionContext), before, "and the checkpoint is as it was");
 });
 
