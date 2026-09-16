@@ -190,6 +190,8 @@ test("every ancestry reading this checkout cannot make refuses, saying which one
   const unrecorded = await ran(["claim", "ISS-1655", "--landed"], room);
   assert.equal(unrecorded.status, 1, unrecorded.stdout);
   assert.ok(unrecorded.stderr.includes("recorded no default branch"), unrecorded.stderr);
+  assert.ok(unrecorded.stderr.includes("git remote set-head origin -a"),
+    `and the command that records one, an ordinary fetch leaving this refusal where it is:\n${unrecorded.stderr}`);
   git(room, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/master");
 
   const gone = landedRoom("unreadable");
@@ -199,6 +201,7 @@ test("every ancestry reading this checkout cannot make refuses, saying which one
   const unreadable = await ran(["claim", "ISS-1655", "--landed"], gone.room);
   assert.equal(unreadable.status, 1, unreadable.stdout);
   assert.ok(unreadable.stderr.includes("holds no commit of that name"), unreadable.stderr);
+  assert.ok(unreadable.stderr.includes("git fetch origin"), unreadable.stderr);
 
   const shallow = tempRoom("landed-shallow-");
   spawnSync("git", ["clone", "-q", "--depth", "1", "--branch", "master", `file://${room}`, shallow],
@@ -209,6 +212,8 @@ test("every ancestry reading this checkout cannot make refuses, saying which one
   const boundary = await ran(["claim", "ISS-1655", "--landed"], shallow);
   assert.equal(boundary.status, 1, boundary.stdout);
   assert.ok(boundary.stderr.includes("shallow"), boundary.stderr);
+  assert.ok(boundary.stderr.includes("git fetch --unshallow origin"),
+    `and the fetch that removes the boundary rather than one that leaves it:\n${boundary.stderr}`);
 
   const bare = tempRoom("landed-no-tree-");
   writeFileSync(join(bare, ".forge.json"), JSON.stringify({ slug: "forge-plugin" }));
@@ -216,6 +221,8 @@ test("every ancestry reading this checkout cannot make refuses, saying which one
   const notree = await ran(["claim", "ISS-1655", "--landed"], bare);
   assert.equal(notree.status, 1, notree.stdout);
   assert.ok(notree.stderr.includes("no git checkout"), notree.stderr);
+  assert.ok(notree.stderr.includes("Ask from a checkout that can read that history"),
+    `and a reading nothing here settles asks for another checkout rather than a command:\n${notree.stderr}`);
   assert.equal(checkpoint().state, "ready", "and no reading that fell short ended a landing");
 });
 
@@ -241,6 +248,27 @@ test("the call runs git and nothing else, over refs this checkout already holds"
     assert.ok(!["fetch", "push", "ls-remote", "tag", "commit"].includes(one.split(" ")[0]),
       `nothing this call asked git for reaches a remote or writes one: ${one}`);
   }
+});
+
+/* A replacement object rewrites what every reading of the store answers, so an ancestry proved under
+   one is a fact about a local overlay and not about what the remote carries (consult 8faf61 F1). */
+test("an ancestry standing only under a replacement object does not end the landing", async () => {
+  const { room, judged } = landedRoom("replaced");
+  const tip = releasedOnto(room, "main");
+  git(room, "update-ref", "refs/remotes/origin/master", tip);
+  assert.equal(git(room, "merge-base", "--is-ancestor", judged, tip).status, 0, "before the branch is cut back");
+  git(room, "update-ref", "refs/remotes/origin/master", git(room, "rev-parse", `${tip}^1`).stdout.trim());
+  const base = git(room, "rev-parse", "refs/remotes/origin/master").stdout.trim();
+  assert.notEqual(git(room, "merge-base", "--is-ancestor", judged, base).status, 0,
+    "the recorded default does not carry the judged head");
+  assert.equal(git(room, "replace", "--graft", base, judged).status, 0, "and a graft says it does");
+  assert.equal(git(room, "merge-base", "--is-ancestor", judged, base).status, 0,
+    "which every reading of this store that honours replacements now answers");
+  ready(judged);
+  const run = await ran(["claim", "ISS-1655", "--landed"], room);
+  assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
+  assert.ok(run.stderr.includes("does not reach it"), run.stderr);
+  assert.equal(checkpoint().state, "ready", "and no landing is ended over a history somebody overlaid");
 });
 
 test("--landed beside another turn of the same verb is refused, each being a different move", async () => {

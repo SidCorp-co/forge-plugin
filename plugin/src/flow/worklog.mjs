@@ -231,29 +231,37 @@ export const droppedHead = (branch, head) => {
 };
 
 /* Whether the default branch carries a head, off the ref this checkout recorded as the remote's own
-   and never a name `baseOf` guesses at. A reading it cannot make answers no and says which one fell
-   short: what rests on it ends a landing, where the refusal above only costs a builder its write. */
+   and never a name `baseOf` guesses at. A reading it cannot make answers no with what settles it:
+   what rests on this ends a landing, where the refusal above only costs a builder its write. Under
+   no replacement objects, an ancestry proved over an overlay proving only the overlay (8faf61 F1). */
+const PROVEN = { ...OFFLINE, GIT_NO_REPLACE_OBJECTS: "1" };
+
 export const carriedByDefault = (head) => {
-  const short = (why, ref = null, tip = null) => ({ ref, tip, carries: false, why });
-  if (git(["rev-parse", "--git-dir"], OFFLINE) === null) return short("this directory is no git checkout");
-  const ref = git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], OFFLINE);
+  const short = (why, route, ref = null, tip = null) => ({ ref, tip, carries: false, why, route });
+  if (git(["rev-parse", "--git-dir"], PROVEN) === null) return short("this directory is no git checkout", null);
+  const ref = git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], PROVEN);
   if (!ref) {
     return short("this checkout has recorded no default branch for `origin`, so there is no branch "
-      + "to read the ancestry against");
+      + "to read the ancestry against", "git remote set-head origin -a");
   }
-  const tip = git(["rev-parse", "--verify", `refs/remotes/${ref}^{commit}`], OFFLINE);
-  if (!tip) return short(`${ref} is recorded as the default branch and resolves to no commit here`, ref);
-  if (git(["rev-parse", "--is-shallow-repository"], OFFLINE) !== "false") {
-    return short("this checkout is shallow, so no ancestry read over it settles anything", ref, tip);
+  const tip = git(["rev-parse", "--verify", `refs/remotes/${ref}^{commit}`], PROVEN);
+  if (!tip) {
+    return short(`${ref} is the recorded default branch and resolves to no commit here`, "git fetch origin", ref);
   }
-  if (git(["cat-file", "-e", `${head}^{commit}`], OFFLINE) === null) {
-    return short("this checkout holds no commit of that name", ref, tip);
+  if (git(["rev-parse", "--is-shallow-repository"], PROVEN) !== "false") {
+    return short("this checkout is shallow, so no ancestry read over it settles anything",
+      "git fetch --unshallow origin", ref, tip);
+  }
+  if (git(["cat-file", "-e", `${head}^{commit}`], PROVEN) === null) {
+    return short("this checkout holds no commit of that name", "git fetch origin", ref, tip);
   }
   const asked = spawnSync("git", ["merge-base", "--is-ancestor", head, tip],
-    { encoding: "utf8", env: { ...process.env, ...OFFLINE } });
-  if (asked.status === 0) return { ref, tip, carries: true, why: null };
-  if (asked.status === 1) return short(`${ref} stands at ${shortSha(tip)} and does not reach it`, ref, tip);
-  return short(`git could not answer whether ${ref} reaches it`, ref, tip);
+    { encoding: "utf8", env: { ...process.env, ...PROVEN } });
+  if (asked.status === 0) return { ref, tip, carries: true, why: null, route: null };
+  if (asked.status === 1) {
+    return short(`${ref} stands at ${shortSha(tip)} and does not reach it`, "git fetch origin", ref, tip);
+  }
+  return short(`git could not answer whether ${ref} reaches it`, null, ref, tip);
 };
 
 export const workNow = (work) => (work?.branch ? { ...work, reach: reachOf(work) } : null);

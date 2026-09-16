@@ -332,9 +332,11 @@ const finishLanded = async (documentId, ref, context) => {
     fail(`claim --landed writes \`${LANDING_DONE}\` on the default branch already carrying `
       + `${shortSha(landing.head)}, the head ${landing.branch || "this checkpoint"} was written at, `
       + `and this checkout cannot prove it does: ${read.why}. The reading is made off refs already `
-      + `here, since a claim may not wait on a remote, so fetch and ask again — and where that branch `
-      + `is genuinely unlanded what is owed is the landing and not this write:\n`
-      + `  git fetch origin\n  forge claim ${ref} --landed`);
+      + `here, a claim being one of the writes that may not wait on a remote — and where that branch `
+      + `is genuinely unlanded what is owed is the landing and not this write. ${read.route
+        ? "Settle the reading, then ask again"
+        : "Ask from a checkout that can read that history"}:\n`
+      + (read.route ? `  ${read.route}\n` : "") + `  forge claim ${ref} --landed`);
   }
   const saved = await landingSaved(documentId, ref, { state: LANDING_DONE }, { was: landing });
   console.log(`${ref}  landed: ${landingLine(saved)}`);
