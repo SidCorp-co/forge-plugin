@@ -23,13 +23,16 @@ refused at the write rather than at the promotion, and the same independence `--
 holds here: at that state the turn is the builder the checkpoint names, and an id a whole wave carries
 is not proof of being it.
 
-The branch is not the builder's to move while that turn is owed. Only the head the checkpoint names
-is ever promoted, so rewriting the branch cannot add anything to what lands, and it can subtract:
-that head then hangs off no ref, and the checkout that fetches the branch to build the release finds
-nothing there. So the answer is refused where the branch has provably let go of it — provably, off
-the remote-tracking ref this checkout already holds, since the alternative is a reading that waits on
-a remote, and a reading that cannot see the commit refusing a builder whose branch was right all
-along.
+The branch under that turn is not the builder's to move, and the rule is enforced at the answer
+rather than at the promotion, for the reason the candidate is compared there: a refusal written here
+reaches a run with the tree still in hand, where the same trouble met by the landing reaches somebody
+else, in another checkout, days later.
+
+What it is enforced on is evidence this checkout already holds, a claim being one of the writes that
+may not wait on a remote. So the guard refuses only what a local ref proves and lets every other
+outcome through — a history too shallow to settle it, an object it cannot read, a call that failed —
+since the cost of the two mistakes is not the same: one landing stops at a state somebody can still
+answer from, and the other leaves a builder with a branch that was right and no write left to make.
 
 `--recorded` is the builder's too, and the one turn that is handed back for something no state of the
 landing writes. Every rung left once the mark is up is earned by a record — a correction naming what
