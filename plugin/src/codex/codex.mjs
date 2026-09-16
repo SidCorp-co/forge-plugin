@@ -98,8 +98,10 @@ const CONSULT_USAGE = [
   "",
   "  --diff         send each file's diff and refuse findings about code this turn did not touch",
   "  --base <ref>   what to diff against; implies --diff. HEAD unless you say otherwise",
-  "  --send m       diffs (default) sends each change, bodies sends every file whole; bodies over the",
-  "                 whole set earns an approving review, and one too large is refused with the passes",
+  "  --send m       diffs (default) sends each change, bodies sends every file whole; a set holding a",
+  "                 path outside this checkout sends bodies unless you name a mode, no diff of such",
+  "                 a path existing. bodies over the whole set earns an approving review, and one",
+  "                 too large is refused with the passes",
   "  --only s,s     report only these severities: blocker, major, minor",
   "  --verify <risk>  a named risk to rule on rather than an open review; repeatable",
   "  --recheck      verify the last consult's findings on these files instead of roaming for new ones",
@@ -210,9 +212,9 @@ export const consultArgs = (given) => {
     namedBase: held.base ?? null,
     effort: chosenEffort(held.effort),
     cap: askedRounds(held.rounds),
-    /* Bodies off by default when the reviewer has tools: it reads what it needs, and the payload
-       stops paying twice. `--send bodies` is for a consult with no repository to read from. */
-    bodies: chosenSend(held.send),
+    /* The mode named and not the mode resolved: which paths this consult carries is settled well
+       after the flags are, and a path outside the checkout has no diff to be sent as. */
+    send: chosenSend(held.send),
     recheck: Boolean(held.recheck),
     angles: chosenAngles(held.angles),
     /* The issue's own sentence and the checkout's own command: a scope this end composes moves the boundary the reviewer is judged against. */
@@ -240,10 +242,44 @@ const projectCheck = () => {
 
 const SENDS = ["diffs", "bodies"];
 
+/* `null` where nobody named one, which is not `diffs`: the default is the one thing the set may
+   overrule, and a mode the command or this account's own configuration asked for is never
+   overruled. The account and not the checkout, which names no send mode: what of a file travels is
+   the caller's business per consult, where `codex.pathRe` and `codex.check` are the project's. */
 const chosenSend = (raw) => {
-  const named = raw ?? userConfig().codex?.send ?? "diffs";
-  if (!SENDS.includes(named)) fail(`codex: --send takes ${SENDS.join(" | ")}, not \`${named}\`.`);
-  return named === "bodies";
+  const named = raw ?? userConfig().codex?.send ?? null;
+  if (named !== null && !SENDS.includes(named)) fail(`codex: --send takes ${SENDS.join(" | ")}, not \`${named}\`.`);
+  return named;
+};
+
+/** Whether this set travels whole, and what is owed the caller about why. Bodies off where the
+ *  reviewer has tools and a diff to read: it fetches what it needs and the payload stops paying
+ *  twice. But `locate` names a path outside the root by its absolute path, and of such a path there
+ *  is no diff at all — a diffs consult over one sends a heading with no bytes under it, the reviewer
+ *  reads the file for itself, and the write that takes a plan or criteria refuses a body no consult
+ *  carried, a whole round later (ISS-1311). So the default alone is resolved from the set, and it is
+ *  resolved here rather than at parse time because `--recheck` narrows the set after the flags are
+ *  read and would otherwise walk back into the same refusal. */
+export const modeFor = (send, rels) => {
+  const outside = rels.filter(isAbsolute);
+  if (send === null) {
+    return {
+      bodies: outside.length > 0,
+      said: outside.length
+        ? `codex: ${outside.length} file(s) lie outside this checkout, where no diff of them exists, `
+          + `so this consult sends them whole: ${outside.join(", ")}. `
+          + "Pass --send diffs for what the default would otherwise have sent."
+        : null,
+    };
+  }
+  const bodies = send === "bodies";
+  return {
+    bodies,
+    said: outside.length && !bodies
+      ? `codex: ${send} was named rather than defaulted, so it stands over the ${outside.length} `
+        + `file(s) lying outside this checkout, of which no diff exists: ${outside.join(", ")}.`
+      : null,
+  };
 };
 
 /* Named rather than clamped: an unknown value would otherwise be sent to the gateway, which accepts
@@ -287,7 +323,7 @@ const plannedSaid = ({ model, effort, kind, budget, ceiling, lines, clipped }) =
   + `${budget < ceiling ? `, up to ${ceiling} if the review comes back incomplete` : ""}.`;
 
 const consult = async (given) => {
-  const { named, issues, risks, only, allowEcho, base, namedBase, effort: askedEffort, cap, bodies, recheck, angles, scope, checks } = consultArgs(given);
+  const { named, issues, risks, only, allowEcho, base, namedBase, effort: askedEffort, cap, send, recheck, angles, scope, checks } = consultArgs(given);
   const { problem, values, path } = profile();
   if (problem) fail(`codex: ${problem}. It needs the gateway the consult is sent to.`);
   const root = repoRoot(process.cwd());
@@ -340,6 +376,9 @@ const consult = async (given) => {
     clearConsulted(root, empty);
   }
   if (!rels.length && !issues.length) fail("codex: nothing to consult on: every path it was offered is absent from the tree.");
+  /* Here and no earlier: this is the first line at which `rels` is the set that will travel. */
+  const { bodies, said: mode } = modeFor(send, rels);
+  if (mode) console.error(mode);
   const short = bodies && cannotCarry(bundled.filter((part) => rels.includes(part.rel)));
   if (short) fail(`codex: ${short}`);
   /* A review of nothing is still billed: after a commit every file reads UNCHANGED against HEAD. A
@@ -363,7 +402,7 @@ const consult = async (given) => {
      an open stdin with nothing on it was read to EOF and never returned (ISS-65). */
   console.error(`codex: ${rels.length} file(s) to review`
     + `${issues.length ? `, ${issues.join(", ")} for the reviewer to read off the tracker` : ""}`
-    + "; reading the intent from stdin.");
+    + `, sending ${bodies ? "bodies" : "diffs"}; reading the intent from stdin.`);
   const said = await stdinText();
   if (said === null) console.error(`codex: nothing on stdin inside ${INTENT_MS}ms, so the consult carries no intent.`);
   const intent = (said ?? "").trim();

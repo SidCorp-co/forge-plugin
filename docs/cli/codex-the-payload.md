@@ -7,8 +7,13 @@ round is for: [the round](codex-the-round.md).
 **The diff travels, not the body.** Sending files whole *and* offering tools paid twice: two consults
 spent 12 and 17 calls re-reading text already in front of them. Telling it not to re-read did not
 work; sending less did — 4,381 characters against 32,233 on a two-file review, 5,266 against 59,462 on
-a four-file one, same findings. `bodies` remains for a file outside any checkout, and for the one
-pass below that is owed whatever the payload costs.
+a four-file one, same findings. `bodies` is then where the set decides for itself: of a file outside
+any checkout there is no diff at all, so a mode nobody named resolves to whole bodies over that
+consult's whole set. A heading with no bytes under it is what sent the plan and criteria writes back
+for a second consult, over text the first had already been shown (ISS-1311); a mode the command or this
+account's own configuration names is never resolved that way, the default being the only thing the
+set overrules.
+`bodies` is also what the one pass below is owed, whatever the payload costs.
 
 **One pass reads the whole set, and it is the one a review is earned by.** A diff consult judges the
 diff and answers *not verified* on the rest, which nobody can approve on. So the earning read is a

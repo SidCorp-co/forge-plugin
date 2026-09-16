@@ -10,7 +10,7 @@ const sandbox = tempRoom("forge-codex-");
 process.env.XDG_CONFIG_HOME = sandbox;
 delete process.env.FORGE_CODEX_DISABLE;
 
-const { SAYS, ageOf, consultArgs, rounds, unchangedAll } = await import("../../src/codex/codex.mjs");
+const { SAYS, ageOf, consultArgs, modeFor, rounds, unchangedAll } = await import("../../src/codex/codex.mjs");
 const {
   ANGLES,
   askApi,
@@ -450,8 +450,54 @@ test("a dash where a file goes is refused naming standard input", () => {
 test("the cap and the payload mode are the consult's own", () => {
   assert.equal(consultArgs([]).cap, undefined, "unset means the config, then the default");
   assert.equal(consultArgs(["--rounds", "3"]).cap, 3);
-  assert.equal(consultArgs([]).bodies, false, "diffs by default, because it can read");
-  assert.equal(consultArgs(["--send", "bodies"]).bodies, true);
+  assert.equal(consultArgs([]).send, null, "nothing named is not `diffs`: the set has yet to be seen");
+  assert.equal(consultArgs(["--send", "bodies"]).send, "bodies");
+  assert.equal(consultArgs(["--send", "diffs"]).send, "diffs");
+});
+
+/* Five runs this week spent a consult each on the round this closes: the file a plan or criteria is
+   written to is outside the checkout by the method's own instruction, the reviewer read it with
+   read_file and ruled on it, and the write then refused it for a mode nobody had chosen (ISS-1311). */
+test("an outside path sends bodies where no mode was named, and a named mode stands", () => {
+  const out = "/tmp/forge-run-iss-1311/criteria.md";
+
+  const chose = modeFor(null, [out]);
+  assert.equal(chose.bodies, true, "there is no diff of a path outside the checkout to send instead");
+  assert.match(chose.said, /lie outside this checkout/u);
+  assert.ok(chose.said.includes(out), "and the caller is told which paths decided it");
+  assert.match(chose.said, /--send diffs/u, "with the way back to what the default would have sent");
+
+  assert.deepEqual(modeFor(null, ["a.mjs"]), { bodies: false, said: null },
+    "a set the checkout holds whole keeps the default, and says nothing about a case it is not in");
+  assert.equal(modeFor(null, ["a.mjs", out]).bodies, true,
+    "one path with no diff decides the set: a consult sends under one mode, not per file");
+
+  const stands = modeFor("diffs", [out]);
+  assert.equal(stands.bodies, false, "a mode the command or this account's configuration named is never overruled");
+  assert.match(stands.said, /stands/u, "and the standing is said, the write downstream turning on it");
+
+  assert.deepEqual(modeFor("bodies", [out]), { bodies: true, said: null },
+    "bodies named where bodies is what the set would have chosen overrules nothing to report");
+  assert.deepEqual(modeFor("diffs", ["a.mjs"]), { bodies: false, said: null });
+});
+
+/* `~/.config/forge/config.json` is read once per process, so an account naming its own send mode
+   has to be another one. It is the caller's choice as much as the flag is, and is not overruled. */
+test("a configured send mode is named, so the path does not resolve one", () => {
+  const home = tempRoom("forge-codex-send-home-");
+  mkdirSync(join(home, "forge"), { recursive: true });
+  writeFileSync(join(home, "forge", "config.json"), JSON.stringify({ codex: { send: "diffs" } }));
+  const source = new URL("../../src/codex/codex.mjs", import.meta.url).pathname;
+  const run = spawnSync(
+    process.execPath,
+    ["-e", `import(${JSON.stringify(source)}).then((m) => process.stdout.write(JSON.stringify(`
+      + `m.modeFor(m.consultArgs([]).send, ["/tmp/forge-run-iss-1311/criteria.md"]))))`],
+    { cwd: process.cwd(), encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home } },
+  );
+  assert.equal(run.status, 0, run.stderr);
+  const held = JSON.parse(run.stdout);
+  assert.equal(held.bodies, false, "the configuration named it, so the outside path does not");
+  assert.match(held.said, /diffs was named rather than defaulted/u);
 });
 
 test("a command line becomes a request in one place", () => {
