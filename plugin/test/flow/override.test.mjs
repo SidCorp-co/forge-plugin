@@ -251,7 +251,7 @@ test("a field a record writes is refused by name, the override being no route ro
 
 /* The write a triage pass owes on the one verdict that ends nothing. Two runs on one instruction and one head split on whether to claim for it:
    the rule sat in a reference about dispositions, while this surface, which both of them did reach, said only that a lease was owed (ISS-840).
-   The surface is no longer a refusal (ISS-1260): the lease that reading is owed is the one the write now gives itself, so what is watched here is that it is still the short one and still says on the record that no work followed. */
+   The surface is no longer a refusal (ISS-1260): the lease that reading is owed is the one the write now gives itself, so what is watched here is that it says on the record that no work followed and is given back when the write lands. */
 test("a holding verdict's complexity write with no lease takes the short lease and lands, with what the record owes on it", async () => {
   before("open");
   ISSUE.sessionContext = null;
@@ -263,8 +263,9 @@ test("a holding verdict's complexity write with no lease takes the short lease a
   assert.match(run.stderr, /ISS-96 carried no lease and this write took one/u, "and the take is said, never silent");
   assert.equal(sent("update", "complexity").complexity, "s", "the field the reading judged is written in the one call");
   const took = ISSUE.sessionContext.lease;
-  assert.equal(took.holder, MINE.lease.holder, "held by the run that made the write and by nobody else");
-  assert.equal(took.minutes, 10, "the lease the reading is owed is the short one");
+  assert.equal(took.history[0].holder, MINE.lease.holder, "taken by the run that made the write and by nobody else");
+  assert.equal(took.holder, "", "and given back with the write, a triage pass's reading being the whole of what it does");
+  assert.match(run.stderr, /ISS-96 is free again/u, "which is said rather than left for the next run to find");
   assert.equal(took.next, "nothing was worked under this lease", "with the line the record owes on it");
 });
 
@@ -304,7 +305,7 @@ test("a status set by hand carries the reason the tracker demands, and says no c
     "and the correction says where it came from, which the status field no longer holds");
 });
 
-/* The round this removes, end to end and on the verb that was spending it most: the move lands in the one call that asked for it, on an issue no run had ever taken (ISS-1260). The transition's own `--next` is a clearing of a line the issue was carrying, and a field holding no lease carries none, so the lease gets the line that says no work followed the write. */
+/* The round this removes, end to end and on the verb that was spending it most: the move lands in the one call that asked for it, on an issue no run had ever taken (ISS-1260). The transition's own `--next` is a clearing of a line the issue was carrying, and a field holding no lease carries none, so the lease gets the line that says no work followed the write, and the write gives that lease back. */
 test("a status set on an issue nobody holds moves in the one call, the write taking the lease it was refused for", async () => {
   before("confirmed");
   ISSUE.sessionContext = null;
@@ -313,11 +314,11 @@ test("a status set on an issue nobody holds moves in the one call, the write tak
   assert.equal(ISSUE.status, "on_hold", "the move the caller asked for landed, with no claim typed before it");
   assert.match(run.stderr, /ISS-96 carried no lease and this write took one/u, "and the take is on the caller's screen");
   const took = ISSUE.sessionContext.lease;
-  assert.equal(took.holder, MINE.lease.holder,
-    "and the holder the field now carries is the run that made the write, which is the whole of what a take is for");
-  assert.equal(took.minutes, 10, "the short lease, a call that had to take its own being the whole of what it does");
-  assert.equal(took.next, "nothing was worked under this lease");
   assert.deepEqual(took.history.map((one) => one.how), ["write"], "under the word only a write's take writes");
+  assert.equal(took.history[0].holder, MINE.lease.holder,
+    "by the run that made the write, which is the whole of what a take is for");
+  assert.equal(took.holder, "", "and the field holds nobody after it, the lease having covered the write");
+  assert.equal(took.next, "nothing was worked under this lease");
 });
 
 test("a status that waits on a person carries the kind the tracker demands of one", async () => {

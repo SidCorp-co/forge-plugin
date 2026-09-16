@@ -1,15 +1,16 @@
 /* The issue's session field read as a lease. Every write it covers carries the value it read, and the tracker refuses one whose value moved. docs/cli/claim.md, docs/cli/the-precondition.md. */
-import { ASKED, INHERITED, INHERITED_MEANS, OWN_ID, WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
+import { INHERITED, INHERITED_MEANS, OWN_ID, WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
 import { MINTED_FOR, RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames } from "../resolve/session/run-id.mjs";
 import { TAKEABLE } from "../rank/weights.mjs";
 import { sharedNow, sharedStamp, slackNow, stampOf } from "../wire/shared-clock.mjs";
 import { thisCall } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
+import { refuse } from "../refusal.mjs";
 import { enforcementOf, writeField } from "../tracker/field-write.mjs";
 import { scoped, tried } from "../tracker/rest.mjs";
 import {
   LANDING, LANDING_BUILDER_OWED, LANDING_JUDGED, LANDING_STATES, READ_THE_STATE, SPENT_AT,
-  landingNext, landingOf, landingTurn,
+  landingNext, landingOf,
 } from "./landing/checkpoint.mjs";
 import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
 
@@ -50,14 +51,6 @@ export const RENEWED_BY_WRITING =
 export const MINUTES_ASKS =
   `${RENEWED_BY_WRITING} So what --minutes asks for is the gap to this run's next write: a step `
   + "that writes nothing is the whole of what a lease has to survive.";
-
-/* Said, not refused: `stateOf` reads an inherited holder as this run's own. docs/cli/claim.md. */
-export const SHARED_HOLDER =
-  `That holder id is ${INHERITED_MEANS}. A lease matching it is no proof another run is not on this `
-  + `issue. ${OWN_ID}`;
-
-export const sharedHolder = (lease, held = sessionSourced()) =>
-  held.source === INHERITED && lease?.holder === held.id;
 
 /* Which of the two ids the tree standing here minted, said and never refused: a run that claimed
    under the wave's id and then stood in its own worktree is otherwise refused by an id it has no
@@ -179,6 +172,23 @@ export const nextLeft = (context) => {
   return typeof held?.next === "string" && held.next ? held.next : null;
 };
 
+/* What the field keeps once the holder comes off, and the mark saying the holder came off on purpose. Without the mark a field a release emptied is the field a run that died leaves — three readings a person has to pick between rather than one write's own doing — so a take reaches a released field wherever the issue stands, while an unmarked empty one is refused past the dispatch statuses exactly as it was. A holder back on the row means a later take wrote over the mark, which is why the two are read together and never apart (ISS-1617). */
+export const remnantOf = (context) => {
+  const held = context?.[KEY];
+  return held && typeof held === "object" ? held : null;
+};
+
+export const RELEASED = "released";
+
+export const releasedIn = (context) => {
+  const held = remnantOf(context);
+  if (typeof held?.holder === "string" && held.holder) return "";
+  return typeof held?.[RELEASED] === "string" ? held[RELEASED] : "";
+};
+
+export const takeableFree = (status, context) =>
+  TAKEABLE.includes(String(status)) || Boolean(releasedIn(context));
+
 const workBlock = (work) => {
   if (work === null) return "";
   return work.length
@@ -290,11 +300,13 @@ export const takeRefusal = (ref, landing, holder, lease, { now = sharedNow(), so
 /* Read, not passed: a caller that could supply the writer's own identity could supply a false one.
    Silence about `next` means unchanged, or a claim would drop the note the dead run left. */
 export const claimed = (context, { holder, at = sharedStamp(), minutes, next, worklog, landing, how = null, status = null }) => {
-  const held = leaseOf(context);
-  const history = [...(held?.history ?? [])];
+  /* The remnant and not the lease: a field a release emptied answers `null` to `leaseOf`, so reading through it would drop every earlier row at the next take and the line the release left with them. What the remnant holds is unjudged, hence the two guards below — a history that is not a list spreads into a throw. The row this builds carries no release mark, the field being held again. */
+  const held = remnantOf(context);
+  const history = Array.isArray(held?.history) ? [...held.history] : [];
+  const line = typeof held?.next === "string" && held.next ? held.next : null;
   const state = landing?.state ?? landingOf(context)?.state ?? null;
   /* The outgoing line, not the incoming one: what a crash loop is asked is where each attempt died. */
-  if (how) history.push({ holder, at, how, status, next: held?.next ?? null, ...(state ? { landing: state } : {}) });
+  if (how) history.push({ holder, at, how, status, next: line, ...(state ? { landing: state } : {}) });
   return {
     ...(context && typeof context === "object" ? context : {}),
     ...(worklog ? { [WORKLOG]: worklog } : {}),
@@ -306,7 +318,7 @@ export const claimed = (context, { holder, at = sharedStamp(), minutes, next, wo
       renewedAt: at,
       ...(slackNow() === null ? {} : { clock: slackNow() }),
       minutes,
-      next: next === undefined ? held?.next ?? null : nextLine(next),
+      next: next === undefined ? line : nextLine(next),
       history: history.slice(-HISTORY_KEPT),
     },
   };
@@ -318,46 +330,6 @@ export const historyLine = (lease, status) =>
     .filter((one) => !status || one?.status === status)
     .map((one) => `${one.how} by ${one.holder} at ${stamp(Date.parse(one.at ?? ""))}`)
     .join(" | ");
-
-/* The one live lease a claim may take, and the fact that licenses it is the caller's own id rather than any judgement about the holder: a run standing in the tree cut for this issue IS the run the issue was dispatched to, and the id ISS-467 gave that tree already names which issue. Until this, a dispatcher's own lease over a triage write was waited out by the runner it had just dispatched — fifteen minutes of a 25-minute lease when this was filed, forty-five of the hour a default one runs now (ISS-1091). Three conditions keep it to the dispatch, each one a case where a live lease is work rather than a hold: the checkpoint governs wherever its state names a turn, so a landing's turns stay `--take`'s alone; the take reaches only the statuses a run is dispatched at, so a lease past them is a run at work; and a holder cut for this same issue is the run the dispatch already reached. */
-export const handedOn = (key, context, status, holder = sessionOf()) => {
-  if (!runNames(holder, key)) return false;
-  if (!TAKEABLE.includes(String(status))) return false;
-  if (landingTurn(landingOf(context))) return false;
-  return !runNames(leaseOf(context)?.holder, key);
-};
-
-/* One sentence per condition above, because four of them refuse here and a single way out sends three of the four back to the refusal they have just read. */
-export const notHandedHere = (ref, key, context, status, holder = sessionOf(), at = process.cwd(), held = sessionSourced()) => {
-  const named = String(key).trim().toLowerCase();
-  if (!runNames(holder, named)) {
-    /* A tree is outranked by the variable, so a route naming only the tree sends this caller back to the refusal it has just read — whether it is standing in that tree already or has still to move to it. The tree named is the one cut for the run and not one cut for the issue, a batch being one tree under one id: a member past the head has no tree of its own, and a sentence naming one would name a path nothing will ever cut (ISS-1295). */
-    const asked = held.id === holder && held.source === ASKED
-      ? ` ${RUN_ID_VAR} is what this call resolved and it outranks any tree, so unset it too.` : "";
-    return `This call holds ${holder}, which names no run dispatched to ${ref}. `
-      + (runNames(runIdAt(at), named)
-        ? `The tree it stands in does name one, in ${besideGit(at, RUN_ID)}, and ${RUN_ID_VAR} is `
-          + `outranking it. Unset that variable and send this again.`
-        : `Where this is the run ${ref} was dispatched to, make the call from the tree cut for that `
-          + `run: the ${RUN_ID} beside its git directory names every issue the run was dispatched `
-          + `to, and a lease its dispatcher is only holding is the dispatched run's to take.${asked}`);
-  }
-  if (!TAKEABLE.includes(String(status))) {
-    return `This call's id names ${ref} and the issue is at \`${status}\`, past the statuses a run `
-      + `is dispatched at, so a live lease here is a run at work and not a dispatcher holding one.`;
-  }
-  const turn = landingTurn(landingOf(context));
-  if (turn) {
-    return `A landing checkpoint on ${ref} names the ${turn}'s turn, and a turn changes hands `
-      + `through the checkpoint and not through a claim. ${READ_THE_STATE(ref)}`;
-  }
-  return `That holder is another run dispatched to ${ref}, so the issue is already with a run it `
-    + `was handed to and the lease is doing work.`;
-};
-
-export const handedSaid = (ref, lease) =>
-  `The lease on ${ref} was live and ${describe(lease)} held it. This run is the one ${ref} was `
-  + `dispatched to, so the claim took it rather than waiting the lease out.`;
 
 /* A duration past the expiry and not the expiry, which is where a reclaim stops being refused
    rather than where it starts (ISS-1224); rounded up, a truncated minute still being held. */
@@ -411,19 +383,24 @@ export const writeRefusal = (state, ref, lease) => WRITE_REFUSAL[state](ref, lea
 export const TAKEN_BY_WRITING = "write";
 
 /* Which of the two a payload write owes a field holding no lease, and the only place the question is answered: take it where a bare `forge claim` would have granted it, refuse in that claim's own words where the claim is itself refused (ISS-1260, ISS-1252). Past the dispatch statuses the empty field names three readings — a run that died, a write that erased one, a filing sent straight there — and a silent take would pick one of them; that judgement is what the flag exists to ask a person for. */
-export const freeRefusal = (ref, status, context = null) =>
-  (TAKEABLE.includes(String(status))
-    ? WRITE_REFUSAL.free(ref)
-    : unheldRefusal(ref, status, { next: nextLeft(context) }));
+export const freeRefusal = (ref, status, context = null) => {
+  if (TAKEABLE.includes(String(status))) return WRITE_REFUSAL.free(ref);
+  const at = releasedIn(context);
+  if (!at) return unheldRefusal(ref, status, { next: nextLeft(context) });
+  return `${ref} is at \`${status}\` and the write before it gave the lease back at ${stamp(Date.parse(at))}, `
+    + `so nothing is on the issue and nothing died holding it. Take it:\n  forge claim ${ref}`
+    + `${nextLeft(context) ? `\nThe step that write named: ${nextLeft(context)}.` : ""}`;
+};
 
 /* Said rather than refused, on ISS-65's shape and for the emptier state (ISS-1260): there a lease existed and lapsed, here no run ever held the issue, and what separates two callers is the tracker's compare either way rather than the order two commands were sent in. What it names is the duration, because a lease nobody asked for is one nobody would otherwise know the length of. */
 export const tookByWriting = (ref, lease, left = null) =>
-  `${ref} carried no lease and this write took one: ${describe(lease)}. Nobody held the issue and it `
-  + `is at a status a run is dispatched at, so the claim the refusal here used to name is one this `
-  + `write could make, and it made it. It is the short lease, whose line says no work followed it, `
-  + `because a call that had to take its own lease is the whole of what it does to the issue.`
-  + `${left ? ` The step the emptied field still named: ${left}.` : ""}`
-  + ` Work that follows this takes its own duration:\n  forge claim ${ref}`;
+  `${ref} carried no lease and this write took one: ${describe(lease)}. Nobody held the issue, so the `
+  + `claim the refusal here used to name is one this write could make, and it made it. The lease `
+  + `covers the write and not this run: it goes back when the write lands, because a call that had to `
+  + `take its own lease is the whole of what it does to the issue, and the duration above is only what `
+  + `stands if the call does not finish.`
+  + `${left ? ` The step the field still named: ${left}.` : ""}`
+  + ` Work that follows this says so by claiming, which is the lease that is kept:\n  forge claim ${ref}`;
 
 /* The one read a free field costs, made here and on no other path: the status is what separates the take from the refusal, and reading it for every payload write would be a round trip per write (ISS-1252). */
 const statusFor = async (documentId) => {
@@ -468,8 +445,8 @@ export const leaseMismatch = (ref, back) => {
 };
 
 /* `on` answers with the context the value was built from, which is what the write is conditional on: a function rather than the value itself because the two writes whose value is built inside the write's own callback read that context there, after this call was made. A caller naming none conditions nothing — the safe way for a call site to be missed, where an expectation of `null` would read as *the field is empty* and refuse every write to an issue that has a lease. */
-export const setLease = async (documentId, value, ref, on) =>
-  writeField(documentId, FIELD, value, { ref, refuse: fail, expect: on });
+export const setLease = async (documentId, value, ref, on, refuse = fail) =>
+  writeField(documentId, FIELD, value, { ref, refuse, expect: on });
 
 /* An edge touches two issues and one of them is being worked: the other is only checked, so a blocker just filed, holding no lease at all, can still be named. */
 export const notAnothers = async (documentId, ref) => {
@@ -490,7 +467,7 @@ export const anothersHold = async (documentId, ref) => {
 /* The take a payload write makes for itself, which is a claim in everything but the typing: the caller asked for the write, the field is empty, and the tracker's compare is what separates two callers who both read it empty — the refusal this replaces separated nobody (ISS-1260). The lease is the short one and carries the line that says so, derived rather than asked for, because a call that had to take its own lease is by construction the whole of what it does to the issue; the notice waits for the write, as the lapsed one does, a claim printed before the update being one a failed update would leave standing. It sits before the refusal below and after the finder, which claims nothing anywhere; and a `null` line reaching it is the transition clearing a line the issue was carrying, which a field holding no lease never had, so silence resolves to the derived line and a caller with a line of its own still writes it. */
 const takenByWriting = async (documentId, ref, context, next, patch) => {
   const status = await statusFor(documentId);
-  if (!TAKEABLE.includes(status)) fail(freeRefusal(ref, status, context));
+  if (!takeableFree(status, context)) fail(freeRefusal(ref, status, context));
   const left = nextLeft(context);
   const sent = claimed(context, {
     holder: sessionOf(),
@@ -502,7 +479,42 @@ const takenByWriting = async (documentId, ref, context, next, patch) => {
   });
   await setLease(documentId, sent, ref, () => context);
   console.error(tookByWriting(ref, leaseOf(sent), left));
+  OWED.set(documentId, ref);
   return sent;
+};
+
+/* Registered here and spent by `plugin/src/cli.mjs`, the only place a verb's success is known: `renew` runs before the payload write on every route that calls it, so none of them can tell the write landed. Process state because that is the fact it carries — one call, one lease it did not ask for — and a call exiting through `fail` never reaches the spend, which is how a call that did not complete keeps what it took (ISS-1617). */
+const OWED = new Map();
+
+/* What a release says and what it writes. The sentence is for whoever reads the terminal the run ran in; the value takes the holder off so `leaseOf` reads no lease and records the moment so the field is not the one a run that died leaves, touching nothing else — the line the write left and every row of the claim history are the record of what happened here, and a release is not a reclaim and adds no row of its own. */
+export const releasedSaid = (ref) =>
+  `${ref} is free again: the lease this write took covered the write, and the write has landed. `
+  + `Nothing holds the issue, so the run after it claims with no wait.`;
+
+export const releasedWrite = (context, at = sharedStamp()) => ({
+  ...(context && typeof context === "object" ? context : {}),
+  [KEY]: { ...(remnantOf(context) ?? {}), holder: "", [RELEASED]: at },
+});
+
+/** Every lease a write took for itself in this process, given back. Read back first and judged on what came back: a take that landed between the write and here is a run this must not write over, and a lease already gone is nothing to give back. The one lease write that may not exit — the payload it covered has landed, so a transport that refuses here owes a line and never this call's exit code. */
+export const releaseOwed = async (say = console.error) => {
+  const owed = [...OWED.entries()];
+  OWED.clear();
+  for (const [documentId, ref] of owed) {
+    try {
+      const context = await readContext(documentId, true);
+      if (context?.refused) {
+        say(`${ref}'s lease was not given back: the field did not read back. ${context.refused}`);
+        continue;
+      }
+      const state = stateOf(leaseOf(context), sessionOf());
+      if (state !== "mine" && state !== "lapsed") continue;
+      await setLease(documentId, releasedWrite(context), ref, () => context, refuse);
+      say(releasedSaid(ref));
+    } catch (error) {
+      say(`${ref}'s lease was not given back and stands until it lapses: ${error?.message ?? error}`);
+    }
+  }
 };
 
 /* Every payload write renews the lease; another run's is refused, a read needs none, and `finder` is the one conditional renewal, answered by the return, which is the `sessionContext` this call SENT — the object the write after it is conditional on, and the one the tracker certainly holds, a reply having passed the transport's fence strip (ISS-1219): asked for by the two writes a finder may make, a comment and an edge, and inherited by nobody, because the field writer awaits this and reads none of it, and a `false` handed back unasked would license a write on another run's issue. What it answers nothing about is whether a LIVE lease may be written past: a comment is additive and is posted anyway, an edge moves what a dispatch may take and is not, so the caller that cares reads `notAnothers` or `anothersHold` for itself — after this call, so that nothing is written having read another run's lease. The lapsed reread below is outside the option — a handoff mid-write is a handoff whoever is writing. */

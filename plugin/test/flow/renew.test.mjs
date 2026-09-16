@@ -50,7 +50,8 @@ globalThis.fetch = async (address, init = {}) => {
   return answer({ id: ISSUE, status, sessionContext: field });
 };
 
-const { landingSaved, leaseOf, renew, renewedLapsed, writeRefusal } = await import("../../src/flow/lease.mjs");
+const { landingSaved, leaseOf, releaseOwed, releasedIn, renew, renewedLapsed, writeRefusal }
+  = await import("../../src/flow/lease.mjs");
 
 const ago = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString();
 const lease = (holder, at, history = []) =>
@@ -416,4 +417,83 @@ test("the notice names the lease and the refusals stay four", () => {
   }
   assert.throws(() => writeRefusal("lapsed", "ISS-65", held), /not a function/u,
     "and `lapsed` is no longer a refusal at all, which is the change this file exists for");
+});
+
+/* The half the take was missing. A lease the write claimed for itself covers that write: without the
+   give-back the field names a run that has ended for the whole of the short duration, which is the
+   1h58m ISS-291 stood still for. `releaseOwed` is what `plugin/src/cli.mjs` spends once a verb has
+   returned, so a case that takes and then spends it is the call from end to end (ISS-1617). */
+test("the lease a write took for itself is given back once the write has landed, and the claim history is unchanged", async () => {
+  field = null;
+  status = "open";
+  await said(() => renew(ISSUE, "ISS-1617"));
+  const took = leaseOf(field);
+  assert.equal(took.holder, "this-run", "the take is the one that already existed");
+  const { lines } = await said(() => releaseOwed());
+  assert.equal(leaseOf(field), null, "and afterwards the field holds no lease at all");
+  assert.ok(releasedIn(field), "read as a lease given back rather than as a field something emptied");
+  assert.match(releasedIn(field), /^20\d\d-\d\d-\d\dT/u, "which names the moment it happened");
+  assert.deepEqual(field.lease.history.map((one) => one.how), ["write"],
+    "and the row the take wrote stands alone: releasing is not a reclaim and adds none");
+  assert.equal(field.lease.next, "nothing was worked under this lease", "the line the write left is kept");
+  const notice = lines.find((one) => one.includes("is free again"));
+  assert.ok(notice, `nothing said the lease went back: ${lines.join(" | ")}`);
+  assert.match(notice, /claims with no wait/u, "which is what the give-back buys the run after it");
+});
+
+/* The other half of the same rule, and the one the issue's fourth rule is about: in ship mode `self`
+   one run carries past `developed` and lands, so a release reaching a lease that run asked for would
+   take the issue out from under it. Claiming is how a run says it means to keep the issue. */
+test("a lease the run claimed for itself outlives the write made under it", async () => {
+  field = lease("this-run", ago(1));
+  await said(() => renew(ISSUE, "ISS-1617"));
+  await said(() => releaseOwed());
+  assert.equal(leaseOf(field)?.holder, "this-run", "the lease is still this run's");
+  assert.equal(leaseOf(field).minutes, 30, "for the duration that run claimed");
+  assert.equal(releasedIn(field), "", "and nothing on the field says it was given back");
+});
+
+/* Every lease released is one this process took, so a take landing in between is another run's and
+   the compare-and-set is what stops this writing over it. Asserted on the field rather than on the
+   call, a release that refused and a release that was skipped reading alike from the return. */
+test("a lease another run took between the write and the release is not written over", async () => {
+  field = null;
+  status = "open";
+  await said(() => renew(ISSUE, "ISS-1617"));
+  field = lease("the-other-run", ago(0));
+  await said(() => releaseOwed());
+  assert.equal(leaseOf(field).holder, "the-other-run", "the run that took it keeps it");
+  assert.equal(releasedIn(field), "", "and nothing of this run's release reached the field");
+});
+
+/* The boundary the release moves, and the only one: a field a lease was given back in is one write's
+   own doing and names no reading to pick between, so the write after it takes where an empty field is
+   still refused. The case above it, which asserts that refusal, is what holds the other side. */
+test("a write takes a field a lease was given back in, at a status an empty one is refused at", async () => {
+  for (const at of ["in_progress", "developed", "awaiting_release"]) {
+    field = null;
+    status = "open";
+    await said(() => renew(ISSUE, "ISS-1617"));
+    await said(() => releaseOwed());
+    status = at;
+    const { lines } = await said(() => renew(ISSUE, "ISS-1617"));
+    assert.equal(leaseOf(field)?.holder, "this-run", `${at}: the write takes what the release left`);
+    assert.equal(releasedIn(field), "", `${at}: and the lease it took carries no give-back mark`);
+    assert.deepEqual(field.lease.history.map((one) => one.how), ["write", "write"],
+      `${at}: with the row the first take wrote still on the record`);
+    assert.ok(lines.some((one) => one.includes("carried no lease")), `${at}: and the take says so`);
+  }
+});
+
+/* The message a run reads at the moment it learns it took a lease it did not ask for. It said the
+   duration and stopped, which read as ten minutes of hold; what it has to say now is that the hold
+   is the write and that the duration is only what stands if the call does not finish. */
+test("the take's notice says the lease it took goes back when the write lands", async () => {
+  field = null;
+  status = "open";
+  const { lines } = await said(() => renew(ISSUE, "ISS-1617"));
+  const notice = lines.find((one) => one.includes("carried no lease"));
+  assert.match(notice, /goes back when the write lands/u, "which is what the lease covers");
+  assert.match(notice, /only what\s+stands if the call does not finish/u, "and what the duration is for");
+  assert.match(notice, /forge claim ISS-1617/u, "with the claim that is the lease a run keeps");
 });

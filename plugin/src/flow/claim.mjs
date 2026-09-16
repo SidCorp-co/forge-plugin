@@ -8,7 +8,6 @@ import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
 import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
-import { TAKEABLE } from "../rank/weights.mjs";
 import { rungOf } from "../ladder.mjs";
 import { namedIn, rungFieldsOf, viewFrom } from "./earned.mjs";
 import { scopeFrom } from "./record/plan-scope.mjs";
@@ -34,7 +33,6 @@ import {
   MINUTES,
   MINUTES_ASKS,
   RECLAIMS_BEFORE_PARK,
-  SHARED_HOLDER,
   STOPPED,
   UNHELD,
   claimRefusal,
@@ -42,15 +40,12 @@ import {
   describe,
   expiryOf,
   freshLapse,
-  handedOn,
-  handedSaid,
   heldBy,
   historyLine,
   landingSaved,
   leaseOf,
   nextLeft,
   nextLine,
-  notHandedHere,
   nothingWorked,
   parkAnswers,
   readContext,
@@ -58,13 +53,14 @@ import {
   reclaimRefusal,
   reclaimsOf,
   setLease,
-  sharedHolder,
   stateOf,
+  takeableFree,
   writeRefusal,
   takeLease,
   takeRefusal,
   unheldRefusal,
 } from "./lease.mjs";
+import { SHARED_HOLDER, handedOn, handedSaid, notHandedHere, sharedHolder } from "./lease/dispatched.mjs";
 import { bandWith, straddleSaid, straddles, unplaceable } from "../wire/shared-clock.mjs";
 
 const MAX_MINUTES = 24 * 60;
@@ -162,10 +158,9 @@ export const nextLines = (how, left, taken) => [
   taken && taken !== left ? `Next: ${taken}` : null,
 ].filter(Boolean);
 
-/* Off the same capture the worklog took, so the head the checkpoint calls judged is the head the
-   review was taken at. The paths and not the count: what the lander compares with what the landing moved
-   is a list, and a capture that read no diff is a checkpoint nobody can land — which is why the guard
-   below reads the diff and not the head, the pointer being written either way. */
+/* Off the same capture the worklog took, so the head the checkpoint calls judged is the head the review was
+   taken at. The paths and not the count: what the lander compares with what the landing moved is a list, and
+   a capture that read no diff is a checkpoint nobody can land, which is why the guard reads the diff. */
 export const readyCheckpoint = (ref, holder, patch, landing) => {
   if (!patch?.head || !patch.base || !patch.touched) {
     fail(`claim --ready writes the checkpoint off the capture --pushed makes, and this one captured `
@@ -404,8 +399,8 @@ export const claim = async (argv) => {
   if (state === "live" && !handed) {
     fail(claimRefusal(ref, lease, notHandedHere(ref, key, context, issue.status, holder), takeOpen));
   }
-  /* The anomaly and not the flag: a field with no lease in it, at a status only a run's own writes reach. Named here so the refusal and the word the history keeps cannot come to disagree about which claim was the anomalous one. */
-  const unheld = state === "free" && !TAKEABLE.includes(String(issue.status));
+  /* The anomaly and not the flag: a field with no lease in it, at a status only a run's own writes reach. Named here so the refusal and the word the history keeps cannot come to disagree about which claim was the anomalous one. A field a write gave the lease back in is none of the readings that anomaly stands for — one write emptied it on purpose and said so — so it is an ordinary claim wherever the issue stands (ISS-1617). */
+  const unheld = state === "free" && !takeableFree(issue.status, context);
   if (unheld && !given.unheld) {
     fail(unheldRefusal(ref, issue.status,
       { next: nextLeft(context), work: workLines(workNow(worklog)) }));
