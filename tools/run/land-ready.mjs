@@ -16,7 +16,7 @@ import {
 } from "./land-ready/candidate.mjs";
 import {
   asked, caughtUp, DEVELOPED, intendedOf, keysOf, markStep, notReconciled, OWED_TO_QA, perMember,
-  JUDGED, releaseOf, saveOn, statusStep, viewOf, voidSaid,
+  JUDGED, releaseOf, saveOn, statusStep, viewOf, voidedAt, voidSaid,
 } from "./land-ready/member.mjs";
 import { sessionOf } from "../../plugin/src/resolve/config.mjs";
 import { documentIdOf } from "../../plugin/src/tracker/issues.mjs";
@@ -109,8 +109,9 @@ const pinStep = async (one) => {
     }
     const said = await voidSaid(documentId, landing);
     console.log(`  the pin this landing held was ${shortly(landing.pinned)} and ${base} is now `
-      + `${shortly(at.pin)}, so the candidate and every reading taken at it are void.${said}`);
-    await saveOn(member, landingVoided(at.pin));
+      + `${shortly(at.pin)}, so the candidate and the readings taken over the whole of it are `
+      + `void.${said}`);
+    await voidedAt(root, member, at.pin);
   });
 };
 
@@ -224,7 +225,7 @@ const chainStep = async (one) => {
 /* Held back rather than refused: what waits on the judgement is the push and not the candidate. A
    set never reaches the turn below, the formation making none where it sits. */
 const judgeStep = async (one) => {
-  const { at, ctx: { route, judgement } } = one;
+  const { at, ctx: { root, route, judgement } } = one;
   if (judgement !== INDEPENDENT || route !== BEFORE_MERGE) {
     return console.log(`  no judge's turn sits here: this project lands ${route} and its judgement `
       + `between ${DEVELOPED} and ${JUDGED} is ${judgement}`);
@@ -236,7 +237,7 @@ const judgeStep = async (one) => {
       return console.log(`  judged at ${shortly(at.candidate)}, the candidate this landing built`);
     }
     const said = await voidSaid(documentId, landing);
-    await saveOn(member, landingVoided(at.pin));
+    await voidedAt(root, member, at.pin);
     at.rebuild = true;
     return stop(`the turn came back judged at ${shortly(landing.deployment)} and this landing built `
       + `${shortly(at.candidate)}, so what was judged is not what would be promoted.${said} The `
@@ -259,7 +260,7 @@ const pushStep = async (one) => {
   const intended = intendedOf(at);
   const named = keysOf(at);
   const rebuilt = async (now, why) => {
-    for (const member of at.members) await saveOn(member, landingVoided(now));
+    for (const member of at.members) await voidedAt(root, member, now);
     at.rebuild = true;
     stop(why);
   };
@@ -436,7 +437,7 @@ const landSet = async (taking, ctx, from) => {
           + `names before any other branch lands: this run stops here rather than shipping over it.`);
       }
       if (at.split) {
-        for (const member of at.members) await saveOn(member, landingVoided(at.pin));
+        for (const member of at.members) await voidedAt(ctx.root, member, at.pin);
         return [...at.members, ...at.dropped.filter((one) => one.again)];
       }
       if (!at.rebuild) return at.dropped.filter((one) => one.again);

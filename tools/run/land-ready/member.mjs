@@ -3,6 +3,7 @@
    hold, and why these are the only steps it spends per member: docs/cli/the-checkpoint.md. */
 import { stop, Stop } from "../../checkout.mjs";
 import { shortly } from "../install.mjs";
+import { stillReads } from "./candidate.mjs";
 import { Refusal, refusing } from "../../../plugin/src/resolve/settings.mjs";
 import { Refused } from "../../../plugin/src/refusal.mjs";
 import { commentPage } from "../../../plugin/src/tracker/comments.mjs";
@@ -12,7 +13,8 @@ import { ORDER, atLeast, viewFrom } from "../../../plugin/src/flow/earned.mjs";
 import { CLOSES_FROM } from "../../../plugin/src/flow/machine.mjs";
 import { markMerged, markNote, markedCommit, namedFor } from "../../../plugin/src/flow/record/merged.mjs";
 import { landingSaved } from "../../../plugin/src/flow/lease.mjs";
-import { LANDING_DONE, LANDING_JUDGED, LANDING_MARKED, LANDING_QA_OWED, LANDING_RECORDS_OWED } from "../../../plugin/src/flow/landing/checkpoint.mjs";
+import { LANDING_DONE, LANDING_JUDGED, LANDING_MARKED, LANDING_QA_OWED, LANDING_RECONCILED,
+  LANDING_RECORDS_OWED, landingVoided } from "../../../plugin/src/flow/landing/checkpoint.mjs";
 import { INDEPENDENT, judgedAt } from "../../../plugin/src/flow/qa/verdicts.mjs";
 import { personOwedForRelease, releasePolicy } from "../../../plugin/src/tracker/project-config.mjs";
 
@@ -40,6 +42,26 @@ export const saveOn = async (member, patch) => {
 };
 
 export const keysOf = (at) => at.members.map((one) => one.key).join(" ");
+
+/* The void, and the one reading it does not take with it. What a builder answered is a reading of
+   that change's own paths, so where the candidate a fresh pin makes holds them as the candidate the
+   reading was taken at held them, the reading is carried to the new sha instead of blanked. The
+   readings taken over the whole candidate — the judge's turn and the release it was spent on — go
+   whatever the paths do, which is why this writes the void first and puts back the one field. Two
+   saves because the table carries no edge from `reconciled` to itself, the chain step's own
+   rebuild being written the same way. */
+export const voidedAt = async (root, member, pin) => {
+  const { key, landing } = member;
+  const { moved, reconciled } = landing;
+  const kept = stillReads(root, landing, pin);
+  await saveOn(member, landingVoided(pin));
+  if (!kept) return null;
+  console.log(`  what ${key} came back reconciled is not void with it: the candidate this pin makes `
+    + `is ${shortly(kept)} and holds ${moved} as ${shortly(reconciled)} did, so that reading carries `
+    + `to it and the branch is not handed back a second time for the same answer.`);
+  await saveOn(member, { state: LANDING_RECONCILED, candidate: kept, reconciled: kept, moved });
+  return kept;
+};
 
 export const releaseOf = (at) => at.release ?? at.members[0].landing.release;
 

@@ -60,6 +60,31 @@ export const linked = (tree, tip, head) => {
 export const movedBy = (tree, judged, candidate, files) =>
   (files.length ? lines(gitOut(["diff", "--name-only", judged, candidate, "--", ...files], tree)) : []);
 
+/* Clean only: a conflicted merge-tree still names a tree, and a candidate built over one is a commit
+   no step of this landing goes on to build. */
+const cleanly = (tree, pin, head) => {
+  const merged = mergedTree(tree, pin, head);
+  return merged.conflicts.length ? null : candidateOf(tree, merged.tree, pin, head);
+};
+
+/** A builder's reconciliation re-keyed to a fresh pin, or null where it does not survive one. The
+ *  candidate it was taken at is rebuilt from the pin the checkpoint itself names and has to come
+ *  back as the sha that reading names — a candidate this checkout cannot reproduce is one it cannot
+ *  vouch for, which is the whole of what ISS-726 bought. Past that the reading is about the change's
+ *  own paths and nothing else, so paths identical across the old candidate and the new make one
+ *  reading true of both: the-checkpoint.md says why that, and not the sha, is what stales it. */
+export const stillReads = (tree, landing, pin) => {
+  if (!landing.reconciled || !landing.moved || !landing.pinned || !landing.head) return null;
+  const readable = [landing.pinned, landing.head, pin]
+    .every((one) => gitOut(["rev-parse", "--verify", `${one}^{commit}`], tree));
+  if (!readable) return null;
+  const was = cleanly(tree, landing.pinned, landing.head);
+  if (!was || was !== landing.reconciled) return null;
+  const now = cleanly(tree, pin, landing.head);
+  if (!now) return null;
+  return movedBy(tree, was, now, landing.files).length ? null : now;
+};
+
 export const roomFor = (root, candidate) => {
   const path = mkdtempSync(join(tmpdir(), "forge-landing-"));
   loud("git", ["worktree", "add", "--detach", path, candidate], root,

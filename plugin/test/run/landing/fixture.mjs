@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { fakeTracker, pathed, tempRoom } from "../../fixtures.mjs";
+import { fakeTracker, pathed, ranAsync, tempRoom } from "../../fixtures.mjs";
 import { render } from "../../../src/flow/record/page.mjs";
 import { noteShown } from "../../../src/tracker/comments.mjs";
 
@@ -337,6 +337,18 @@ export const serverPushes = (at, version) => {
   return sha(clone, "HEAD");
 };
 
+/** Another clone's commit over the change's own file, which `serverPushes` deliberately leaves
+ *  alone: a base that moved this change's paths again reads differently from one that only moved. */
+export const serverRewrites = (at, name, rewrite) => {
+  const clone = join(at, `clone-${name}`);
+  spawnSync("git", ["clone", "-q", join(at, "origin.git"), clone], { encoding: "utf8" });
+  written(clone, OWNED, rewrite(readFileSync(join(clone, OWNED), "utf8")));
+  git(clone, "add", OWNED);
+  git(clone, "commit", "-qm", `another clone over ${OWNED}: ${name}`);
+  git(clone, "push", "-q", "origin", `HEAD:${BASE}`);
+  return sha(clone, "HEAD");
+};
+
 /** The checkpoint a build leaves, as `forge claim --pushed --ready` writes it. */
 export const ready = (head, base, extra = {}) => ({
   state: "ready",
@@ -369,3 +381,40 @@ export const strayWrites = () => state.calls
     return one.args.action !== "mark_merged" && one.args.action !== "transition";
   })
   .map((one) => `${one.name} ${one.args.action} ${Object.keys(one.args.data ?? {}).join(",")}`);
+
+/* Imported here rather than at the top: `plugin-copy.mjs` fixes the install record's path when it is
+   loaded, and the line above that gives this process its own HOME has to have run first. */
+const { landReady } = await import("../../../../tools/run/land-ready.mjs");
+const { Stop } = await import("../../../../tools/checkout.mjs");
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+
+/** The verb, its output captured: a step's own `Stop` is caught by the driver and printed, so what
+ *  a refused landing said is the only place the reason is. */
+export const landingRan = async (keys, work) => {
+  const out = [];
+  const kept = [console.log, console.error];
+  console.log = (...said) => out.push(said.join(" "));
+  console.error = (...said) => out.push(said.join(" "));
+  try {
+    await landReady({ flags: new Map(), words: keys }, ctx(work));
+  } catch (error) {
+    if (!(error instanceof Stop)) throw error;
+    out.push(error.message);
+  } finally {
+    [console.log, console.error] = kept;
+    process.exitCode = 0;
+  }
+  return out.join("\n");
+};
+
+/** The builder's own commands, through the shipped verb: a landing hands the branch back to a run of
+ *  its own, so what that run types is what a case has to ask for. Twice, since the gate every write
+ *  passes delivers a comment this session has not read and refuses once. */
+export const builderRan = async (argv) => {
+  let run = null;
+  for (const again of [1, 2]) {
+    run = await ranAsync(FORGE, argv, { ...process.env, FORGE_SESSION_ID: BUILDER }, process.cwd());
+    if (run.status === 0 || again === 2) return run;
+  }
+  return run;
+};
