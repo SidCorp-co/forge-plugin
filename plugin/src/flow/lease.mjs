@@ -10,7 +10,7 @@ import { enforcementOf, writeField } from "../tracker/field-write.mjs";
 import { scoped, tried } from "../tracker/rest.mjs";
 import {
   LANDING, LANDING_BUILDER_OWED, LANDING_JUDGED, LANDING_STATES, READ_THE_STATE, SPENT_AT,
-  landingNext, landingOf, takeRoute,
+  landingMoved, landingNext, landingOf, takeRoute,
 } from "./landing/checkpoint.mjs";
 import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
 
@@ -602,7 +602,7 @@ export const takeLease = async (documentId, ref, context,
 };
 
 /* Every landing state is written here and nowhere else, which is what makes the landing's own writes one function's business to hold to (ISS-673): the state it moves from is the one the field holds at the moment of the write, not the one the caller last read, and a move the table refuses is refused before the field is touched. The lease is checked and renewed here rather than by the field writer, whose `sessionContext` row renews nothing — that row is how a claim writes a lease without recursing, and a landing step is a payload write like any other: a gate outlasting the lease must not push under another run's. */
-export const landingSaved = async (documentId, ref, patch) => {
+export const landingSaved = async (documentId, ref, patch, { was = null } = {}) => {
   const holder = sessionOf();
   let saved = null;
   let read = null;
@@ -615,6 +615,13 @@ export const landingSaved = async (documentId, ref, patch) => {
     if (state === "free") fail(freeRefusal(ref, await statusFor(documentId), context));
     if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, lease));
     const held = landingOf(context);
+    /* Asked before the table is, for the caller whose eligibility was read a request earlier: the
+       table would allow the same move off a checkpoint somebody replaced in between. */
+    const moved = landingMoved(was, held);
+    if (moved) {
+      fail(`the landing on ${ref} moved between the read this write was decided on and the write: `
+        + `${moved}. ${READ_THE_STATE(ref)}`);
+    }
     const refused = landingNext(held, patch.state);
     if (refused) {
       fail(`the landing on ${ref} cannot move to \`${patch.state}\`: ${refused}. ${READ_THE_STATE(ref)}`);

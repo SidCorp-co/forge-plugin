@@ -167,3 +167,20 @@ test("a checkpoint this release finished leaves the issue at the status it held"
   assert.deepEqual([...new Set(seen("update").flatMap((one) => Object.keys(one.args.data ?? {})))],
     ["sessionContext"], `the release wrote a field that is not the checkpoint:\n${run.stdout}`);
 });
+
+/* The resume onto the last step starts below the install, so the step cannot take the run's word for
+   it that a release was installed: it asks the install record and names the step that writes one. */
+test("a resume onto the last step past a failed install leaves the checkpoint ready, and the install finishes it", () => {
+  const room = released();
+  switched(room.at, "claude-update-refuses");
+  assert.notEqual(runIn(room.tree, ["ship"], room.env).status, 0, "the install was meant to refuse");
+  const stopped = runIn(room.tree, ["ship", "--from", "10"], room.env);
+  assert.deepEqual(sent(), [], `a release nothing installed finished a checkpoint:\n${stopped.stdout}`);
+  assert.match(stopped.stderr, /no install record answers for this plugin, so nothing says this release was installed/u,
+    `the step did not say why it finished nothing:\n${stopped.stderr}`);
+  assert.match(stopped.stderr, /install it, and the checkpoints follow: node .*run\.mjs ship --from 9/u,
+    `the report carries no way out:\n${stopped.stderr}`);
+  rmSync(join(room.at, "claude-update-refuses"), { force: true });
+  const run = runIn(room.tree, ["ship", "--from", "9"], room.env);
+  assert.deepEqual(sent(), ["done"], `the install resume left the checkpoint standing:\n${run.stdout}${run.stderr}`);
+});

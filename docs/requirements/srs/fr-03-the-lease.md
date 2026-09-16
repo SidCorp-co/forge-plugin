@@ -248,10 +248,16 @@ a wait no party can end.
   branch, because the landing merges the judged head and a release cut over a branch that moved
   leaves the rest of it unlanded with nothing said.
 - **AC-03-6-11** · Rev: 1 · Proof: plugin/test/run/run-checkpoint.test.mjs "a release finishes the ready checkpoint of the branch it landed"
-  WHEN a release lands the branch a checkpoint declared ready THEN that release SHALL leave the
-  checkpoint in the state that names no turn, because a checkpoint still declaring a landed branch
-  ready is what the next landing reads when it asks what this project left ready, and it would spend
-  a gate, a version and a push on a merge that changes nothing.
+  WHEN a release has landed and installed the change on the branch a checkpoint declared ready THEN
+  that release SHALL leave the checkpoint in the state that names no turn, because a checkpoint
+  still declaring a landed branch ready is what the next landing reads when it asks what this
+  project left ready, and it would spend a gate, a version and a push on a merge that changes
+  nothing.
+- **AC-03-6-12** · Rev: 1 · Proof: plugin/test/flow/landing/moved-under-the-write.test.mjs "a checkpoint moved to a state the table would allow the move from is refused too"
+  IF the checkpoint a landing write was decided on has been replaced by the time that write is made
+  THEN the CLI SHALL refuse the write naming what moved, because the table of states cannot tell a
+  checkpoint that stood still from one another run put a different change's landing on, and the same
+  move is allowed from more than one state.
 
 ## Business rules enforced
 

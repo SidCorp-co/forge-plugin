@@ -1251,7 +1251,11 @@
     },
     "AC-03-6-11": {
       "rev": 1,
-      "digest": "11b8b7a6ed351ca3ea7a18576658be0ca01da35ce5b1f0291634356b904d7db2"
+      "digest": "c0f16a3d01233c72ebb66e27b65aa714c0c1502dc66adc3ec5db8a4bd9c54e5f"
+    },
+    "AC-03-6-12": {
+      "rev": 1,
+      "digest": "1a094e6d0b04a5aba9432252d8f7cbaa6adf5160b8d457aa0fc12dbe06a000c1"
     },
     "FR-04": {
       "rev": 1,

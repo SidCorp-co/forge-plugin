@@ -42,7 +42,7 @@ const finished = async (key, branch, resume, { say, groan }) => {
       + `and this release landed ${branch}. Read where it is: forge resume ${key}`);
   }
   try {
-    await refusing(() => landingSaved(documentId, key, { state: LANDING_DONE }));
+    await refusing(() => landingSaved(documentId, key, { state: LANDING_DONE }, { was: landing }));
   } catch (error) {
     return groan(`  ${key} stays \`${landing.state}\`, which is the branch this release landed, and the `
       + `write was refused — ${said(error)}\n    finish it: ${resume}`);
@@ -51,12 +51,21 @@ const finished = async (key, branch, resume, { say, groan }) => {
     + `landing is left for anybody to take`);
 };
 
-/** Called from the release's last step, so a `--from` resume onto that step runs it again. */
-export const checkpointsFinished = async (tree, resume, { say = console.log, groan = console.error } = {}) => {
+/** Called from the release's last step, so a `--from` resume onto that step runs it again — which is
+ *  why `copy` is asked for: that resume starts below the install, and a checkpoint finished over a
+ *  release nothing installed says a landing is over that is not. */
+export const checkpointsFinished = async ({ tree, copy, resume, installs },
+  { say = console.log, groan = console.error } = {}) => {
   const keys = keysHere(tree);
   if (!keys.length) {
     return say(`  no landing checkpoint is finished here: this tree's git directory names no run, so `
       + `this release answers for no issue key`);
+  }
+  if (!copy || copy.stale) {
+    return groan(`  no landing checkpoint is finished here: ${copy
+      ? `the install record holds ${copy.installed} and this tree ships ${copy.running}`
+      : "no install record answers for this plugin"}, so nothing says this release was installed.\n`
+      + `    install it, and the checkpoints follow: ${installs}`);
   }
   const branch = gitOut(["rev-parse", "--abbrev-ref", "HEAD"], tree);
   if (!branch) {

@@ -16,7 +16,7 @@ import {
 import { recordDir, runSays } from "./gates/timing.mjs";
 import { acrossVersion } from "./gates/carried.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
-import { follows, installs } from "./run/install.mjs";
+import { follows, installs as installed } from "./run/install.mjs";
 import { REPLAY_HELP, REPLAYED, replaySays, replayedBy } from "./run/replayed.mjs";
 import { checkpointsFinished } from "./run/checkpoint.mjs";
 import { cleanTree, INSTALLS, land, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./run/land.mjs";
@@ -490,11 +490,14 @@ const shipSteps = (tree, root, base, note) => {
   const { market, plugin } = named();
   if (!market || !plugin) stop("this checkout names no marketplace or no plugin, so there is nothing to install.");
   const push = `push to ${REMOTE}/${base}`;
+  const install = `install ${plugin}@${market} from the tree that shipped`;
   const resume = () => `Resume the release at its push step, where the branch push is a no-op and `
     + `this is retried: ${SELF} ship --from ${rows.findIndex(([one]) => one === push) + 1}`;
   /* The last step and not the push: what this one clears is a tracker write, and a resume onto the
-     push would spend the whole release again to reach it. */
+     push would spend the whole release again to reach it. The install's own is named beside it,
+     that being the step a checkpoint left standing for want of an install is waiting on. */
   const again = () => `${SELF} ship --from ${rows.length}`;
+  const installs = () => `${SELF} ship --from ${rows.findIndex(([one]) => one === install) + 1}`;
   const rows = [
     ["the tree is clean", () => cleanTree(tree)],
     [`fetch ${REMOTE}/${base}`, () => {
@@ -522,8 +525,7 @@ const shipSteps = (tree, root, base, note) => {
       publishesVersion(tree, gitOut(["rev-parse", "HEAD"], tree), versionIn(tree), resume());
     }, PUSHES],
     ["the checkout follows", () => follows(root, base, tree)],
-    [`install ${plugin}@${market} from the tree that shipped`, () =>
-      installs({ tree, root, base, market, plugin, self: SELF }), INSTALLS],
+    [install, () => installed({ tree, root, base, market, plugin, self: SELF }), INSTALLS],
     ["the copy the next session loads", async () => {
       const copy = pluginCopy(join(tree, "plugin"));
       console.log(copy
@@ -542,7 +544,7 @@ const shipSteps = (tree, root, base, note) => {
          the head are the two things a reading taken later cannot work out for itself. */
       const held = releaseMark(root, { version: copy?.installed, head: gitOut(["rev-parse", "HEAD"], tree) });
       if (held) console.log(`  ${held}`);
-      await checkpointsFinished(tree, again());
+      await checkpointsFinished({ tree, copy, resume: again(), installs: installs() });
       /* Inside the step and not after the whole run, so a `--from 9` resume carries it too. */
       partForLanding((phase) => console.log(`\n${phase}`));
     }],

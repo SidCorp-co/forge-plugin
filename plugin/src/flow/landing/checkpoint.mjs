@@ -48,6 +48,17 @@ export const landingOf = (context) => {
 
 export const landingTurn = (landing) => LANDING_STATES[landing?.state]?.turn ?? null;
 
+/* What a caller read its eligibility off, asked again at the write: the table alone cannot tell a
+   checkpoint that stood still from one that was replaced by another the table would also allow. */
+const READ_ON = ["state", "branch", "head"];
+
+export const landingMoved = (was, held) => {
+  if (!was) return null;
+  if (!held) return "there is no checkpoint on it any more";
+  const off = READ_ON.filter((name) => (was[name] ?? null) !== (held[name] ?? null));
+  return off.length ? off.map((name) => `${name} reads \`${held[name] ?? "nothing"}\` and not \`${was[name] ?? "nothing"}\``).join(", ") : null;
+};
+
 /* The one move the table above cannot carry, being backwards, and never past the push. */
 export const LANDING_CANDIDATE = "candidate";
 const REBUILDS = new Set([LANDING_CANDIDATE, LANDING_RECONCILED, LANDING_QA_OWED, LANDING_JUDGED, "promoting"]);
