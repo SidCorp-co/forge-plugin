@@ -77,6 +77,18 @@ threshold calibrated on real documents rather than guessed.
   WHERE a document lives below the documents directory rather than in it the same check SHALL reach
   it, and WHERE that document is a clause of the requirements tree the check SHALL leave it to the
   gate that measures that tree against its own threshold.
+- **AC-12-2-5** · Rev: 1 · Proof: plugin/test/checks/served/mechanics.test.mjs "the Phase 3 sentence ISS-1311 disproved is refused, and the pointer beside it is not"
+  IF a segment of the method or contract text this plugin serves puts a verb of this CLI in subject
+  position under a predicate naming what that verb refuses, accepts, writes or reads THEN the check
+  SHALL fail and SHALL name the file, the line, the span to delete and the sentence left once that
+  span is cut, since a run that deleted the whole sentence would take the obligation with it.
+- **AC-12-2-6** · Rev: 1 · Proof: plugin/test/checks/served/mechanics.test.mjs "punctuation alone does not change a verdict"
+  IF that same text names a verb anywhere but in subject position THEN the check SHALL pass, and the
+  verdict SHALL be the same whether the sentence is written with commas or with em-dashes, because a
+  rule a correct directive has to be obscured to evade is worse than the decay it was written for.
+- **AC-12-2-7** · Rev: 1 · Proof: plugin/test/checks/served/mechanics.test.mjs "the walk reaches the served text, so a clean answer is a clean corpus and not an empty selector"
+  WHILE the check runs it SHALL assert that its walk reached the served text, because a selector
+  matching nothing looks exactly like text that carries no such claim.
 
 ### UC-12-3 — A skill stays method
 
