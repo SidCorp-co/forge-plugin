@@ -1,9 +1,9 @@
 /* `forge codex` — a second opinion from GPT-5 Codex over the gateway's own API, on the files this
    turn changed. docs/cli/codex-the-consult.md.
 
-   Four pieces: the call and what it may read (codex-api.mjs), the log that is both its memory and
-   its eval set (codex-log.mjs), the turn's bookkeeping (codex-state.mjs), and this — the verb and
-   the hook halves. */
+   Four pieces: the call and what it may read (codex-api.mjs), the log that is both its memory and its
+   eval set (codex-log.mjs), the turn's bookkeeping (codex-state.mjs), and this — the verb and the
+   hook halves. */
 export { afterTouch, ageOf, apartFrom, demandIn, holding, pendingIn, pendingNow, pendingState, stagedIn, statePath }
   from "./codex-state.mjs";
 export { reviewed, rounds } from "./codex-rounds.mjs";
@@ -25,8 +25,8 @@ import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid
 import { PER_KEY, READ_ISSUE, SPARE, TOOLS, scopeFor } from "./codex-tools.mjs";
 import { noDiffIn, reviewSet, shownOf } from "./codex-set.mjs";
 import { reviewed } from "./codex-rounds.mjs";
-import { EFFORTS, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools, newFindingsIn,
-  plannedFor, plannedLimits, rungFor, rungLadder } from "./codex-plan.mjs";
+import { EFFORTS, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
+  modeFor, newFindingsIn, plannedFor, plannedLimits, rungFor, rungLadder } from "./codex-plan.mjs";
 import {
   ANGLES,
   askApi,
@@ -212,8 +212,7 @@ export const consultArgs = (given) => {
     namedBase: held.base ?? null,
     effort: chosenEffort(held.effort),
     cap: askedRounds(held.rounds),
-    /* The mode named and not the mode resolved: which paths this consult carries is settled well
-       after the flags are, and a path outside the checkout has no diff to be sent as. */
+    /* The mode named and not the mode resolved, the set that decides the default being settled well after the flags are. */
     send: chosenSend(held.send),
     recheck: Boolean(held.recheck),
     angles: chosenAngles(held.angles),
@@ -238,48 +237,6 @@ const projectCheck = () => {
   const { check, checkMs } = projectCodex();
   if (!check || typeof check !== "string") return null;
   return { command: check, ms: Number(checkMs) > 0 ? Number(checkMs) : undefined };
-};
-
-const SENDS = ["diffs", "bodies"];
-
-/* `null` where nobody named one, which is not `diffs`: the default is the one thing the set may
-   overrule, and a mode the command or this account's own configuration asked for is never
-   overruled. The account and not the checkout, which names no send mode: what of a file travels is
-   the caller's business per consult, where `codex.pathRe` and `codex.check` are the project's. */
-const chosenSend = (raw) => {
-  const named = raw ?? userConfig().codex?.send ?? null;
-  if (named !== null && !SENDS.includes(named)) fail(`codex: --send takes ${SENDS.join(" | ")}, not \`${named}\`.`);
-  return named;
-};
-
-/** Whether this set travels whole, and what is owed the caller about why. Bodies off where the
- *  reviewer has tools and a diff to read: it fetches what it needs and the payload stops paying
- *  twice. But `locate` names a path outside the root by its absolute path, and of such a path there
- *  is no diff at all — a diffs consult over one sends a heading with no bytes under it, the reviewer
- *  reads the file for itself, and the write that takes a plan or criteria refuses a body no consult
- *  carried, a whole round later (ISS-1311). So the default alone is resolved from the set, and it is
- *  resolved here rather than at parse time because `--recheck` narrows the set after the flags are
- *  read and would otherwise walk back into the same refusal. */
-export const modeFor = (send, rels) => {
-  const outside = rels.filter(isAbsolute);
-  if (send === null) {
-    return {
-      bodies: outside.length > 0,
-      said: outside.length
-        ? `codex: ${outside.length} file(s) lie outside this checkout, where no diff of them exists, `
-          + `so this consult sends them whole: ${outside.join(", ")}. `
-          + "Pass --send diffs for what the default would otherwise have sent."
-        : null,
-    };
-  }
-  const bodies = send === "bodies";
-  return {
-    bodies,
-    said: outside.length && !bodies
-      ? `codex: ${send} was named rather than defaulted, so it stands over the ${outside.length} `
-        + `file(s) lying outside this checkout, of which no diff exists: ${outside.join(", ")}.`
-      : null,
-  };
 };
 
 /* Named rather than clamped: an unknown value would otherwise be sent to the gateway, which accepts

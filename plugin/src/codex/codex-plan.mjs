@@ -1,6 +1,9 @@
 /* What the harness settles before a call and reads off the reply after it, with no gateway in
    reach: a rule you cannot run offline is a rule nobody checks. docs/cli/codex-the-consult.md. */
+import { isAbsolute } from "node:path";
+
 import { userConfig } from "../resolve/config.mjs";
+import { fail } from "../resolve/settings.mjs";
 
 export const EFFORTS = ["minimal", "low", "medium", "high"];
 export const defaultEffort = () => userConfig().codex?.effort || "medium";
@@ -19,6 +22,38 @@ const stepped = (level, by) => {
 export const budgetFor = ({ base, ceiling, bodies = false, clipped = 0 }) => {
   const want = (bodies && !clipped ? Math.max(FLOOR, base - 1) : base) + clipped;
   return Math.max(1, Math.min(want, Math.max(base, ceiling)));
+};
+
+const SENDS = ["diffs", "bodies"];
+
+/* `null` where nobody named one, which is not `diffs`: the default is the one thing the set may overrule. The account's and never the checkout's, which names no send mode, because what of a file travels is the caller's business per consult where `codex.pathRe` and `codex.check` are the project's. */
+export const chosenSend = (raw) => {
+  const named = raw ?? userConfig().codex?.send ?? null;
+  if (named !== null && !SENDS.includes(named)) fail(`codex: --send takes ${SENDS.join(" | ")}, not \`${named}\`.`);
+  return named;
+};
+
+/** Whether this set travels whole, and what is owed the caller about why. Bodies off where the reviewer has tools and a diff to read: it fetches what it needs and the payload stops paying twice. But an absolute rel is `locate`'s word for a path outside the root, of which there is no diff at all, so a diffs consult over one sends a heading with no bytes under it and the write that takes a plan or criteria then refuses a body no consult carried, a whole round after the review (ISS-1311). Which is why the caller is answered from the set, and answered after `--recheck` has narrowed it rather than while the flags are read, a mode chosen before the set walking back into the same refusal. */
+export const modeFor = (send, rels) => {
+  const outside = rels.filter(isAbsolute);
+  if (send === null) {
+    return {
+      bodies: outside.length > 0,
+      said: outside.length
+        ? `codex: ${outside.length} file(s) lie outside this checkout, where no diff of them exists, `
+          + `so this consult sends them whole: ${outside.join(", ")}. `
+          + "Pass --send diffs for what the default would otherwise have sent."
+        : null,
+    };
+  }
+  const bodies = send === "bodies";
+  return {
+    bodies,
+    said: outside.length && !bodies
+      ? `codex: ${send} was named rather than defaulted, so it stands over the ${outside.length} `
+        + `file(s) lying outside this checkout, of which no diff exists: ${outside.join(", ")}.`
+      : null,
+  };
 };
 
 /* Four jobs, and the size decides only for the one that says nothing about itself. */

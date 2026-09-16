@@ -10,7 +10,8 @@ const sandbox = tempRoom("forge-codex-");
 process.env.XDG_CONFIG_HOME = sandbox;
 delete process.env.FORGE_CODEX_DISABLE;
 
-const { SAYS, ageOf, consultArgs, modeFor, rounds, unchangedAll } = await import("../../src/codex/codex.mjs");
+const { SAYS, ageOf, consultArgs, rounds, unchangedAll } = await import("../../src/codex/codex.mjs");
+const { modeFor } = await import("../../src/codex/codex-plan.mjs");
 const {
   ANGLES,
   askApi,
@@ -488,10 +489,12 @@ test("a configured send mode is named, so the path does not resolve one", () => 
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "forge", "config.json"), JSON.stringify({ codex: { send: "diffs" } }));
   const source = new URL("../../src/codex/codex.mjs", import.meta.url).pathname;
+  const plan = new URL("../../src/codex/codex-plan.mjs", import.meta.url).pathname;
   const run = spawnSync(
     process.execPath,
-    ["-e", `import(${JSON.stringify(source)}).then((m) => process.stdout.write(JSON.stringify(`
-      + `m.modeFor(m.consultArgs([]).send, ["/tmp/forge-run-iss-1311/criteria.md"]))))`],
+    ["-e", `Promise.all([import(${JSON.stringify(source)}), import(${JSON.stringify(plan)})])`
+      + `.then(([c, p]) => process.stdout.write(JSON.stringify(`
+      + `p.modeFor(c.consultArgs([]).send, ["/tmp/forge-run-iss-1311/criteria.md"]))))`],
     { cwd: process.cwd(), encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home } },
   );
   assert.equal(run.status, 0, run.stderr);
