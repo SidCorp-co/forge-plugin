@@ -55,11 +55,12 @@ const segments = (text) => {
   let at = 0;
   let opens = true;
   for (const hit of text.matchAll(BOUNDARY)) {
-    out.push({ text: text.slice(at, hit.index), at, to: hit.index, opens });
-    opens = !/^\s*[—–]/u.test(hit[0]);
+    const dash = /^\s*[—–]/u.test(hit[0]);
+    out.push({ text: text.slice(at, hit.index), at, to: hit.index, opens, dash });
+    opens = !dash;
     at = hit.index + hit[0].length;
   }
-  out.push({ text: text.slice(at), at, to: text.length, opens });
+  out.push({ text: text.slice(at), at, to: text.length, opens, dash: false });
   return out.filter((one) => one.text.trim());
 };
 
@@ -90,7 +91,7 @@ const joined = (found) => {
     const next = found[at + 1];
     const bare = opensWith(one.text);
     const alone = bare && !one.text.slice(bare.to).trim().replace(/^[\s,*_]+/u, "");
-    if (alone && one.opens && next && !RELATIVE.test(next.text)) {
+    if (alone && one.opens && one.dash && next && !RELATIVE.test(next.text)) {
       out.push({ text: `${one.text.trimEnd()} ${next.text.trimStart()}`, at: one.at, to: next.to, opens: true });
       at += 1;
       continue;

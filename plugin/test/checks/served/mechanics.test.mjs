@@ -65,6 +65,8 @@ const ACCEPTED = {
     "Capture it, `forge claim <ref> --pushed`, then write the handoff.",
   "the same directive with an em-dash aside around the instrument":
     "Capture it — `forge claim <ref> --pushed` — then write the handoff.",
+  "a command ending one clause and an imperative opening the next":
+    "Run this before pushing: `forge record plan`; write the handoff afterwards.",
 };
 
 for (const [route, source] of Object.entries(ACCEPTED)) {
