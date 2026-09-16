@@ -25,6 +25,11 @@ export const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "ut
 export const runIn = (cwd, argv, env = process.env) =>
   spawnSync(process.execPath, [SCRIPT, ...argv], { cwd, encoding: "utf8", env });
 
+export const tiedSpawn = (argv, outputs = ["pipe", "inherit"]) =>
+  spawn(process.execPath, argv, { stdio: ["pipe", ...outputs] });
+
+export const alive = () => tiedSpawn([join(import.meta.dirname, "ends-with-spawner.mjs")], ["ignore", "ignore"]);
+
 /* `check` stands in for the repository's gate, which ship spends by name — the real one needs a tree
    this scratch checkout is not. */
 export const GATE = "node -e \"console.log('scratch gate ran')\"";
@@ -81,13 +86,10 @@ export const noBacklog = (seed = {}) => {
 };
 
 noBacklog();
-const served = spawn(process.execPath,
-  [join(import.meta.dirname, "tracker-process.mjs"), ROOM, SEED, CALLS, HOME],
-  { stdio: ["ignore", "pipe", "inherit"] });
+const served = tiedSpawn([join(import.meta.dirname, "tracker-process.mjs"), ROOM, SEED, CALLS, HOME]);
 await new Promise((ready) => served.stdout.once("data", ready));
 served.stdout.destroy();
 served.unref();
-process.on("exit", () => served.kill());
 
 Object.assign(BARE, { XDG_CONFIG_HOME: readFileSync(join(ROOM, HOME), "utf8").trim() });
 

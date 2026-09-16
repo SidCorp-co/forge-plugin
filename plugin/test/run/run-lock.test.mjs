@@ -10,7 +10,7 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { BARE, committed, GATE, git, landIn, LAST_STEP, pushed, ROOT, runIn, scratch, withReview }
+import { alive, BARE, committed, GATE, git, landIn, LAST_STEP, pushed, ROOT, runIn, scratch, withReview }
   from "./run-fixtures.mjs";
 
 const MODULE = join(ROOT, "tools", "run", "lock.mjs");
@@ -23,10 +23,9 @@ const at = (work, name) => join(work, ".git", name);
 
 const held = (work, one) => writeFileSync(at(work, LOCK), JSON.stringify(one));
 
-/* A process this test can point a lock at and be sure of: alive until it is killed, and its exit
-   awaited so a case about a dead holder never reads a pid that is still winding down. */
-const idle = () => spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
-
+/* `alive` is the process this test points a lock at and is sure of, tied to this runner so a case
+   killed before its own kill leaves nothing serving (ISS-1619); `ended` has its exit awaited, so a
+   case about a dead holder never reads a pid that is still winding down. */
 const ended = async () => {
   const one = spawn(process.execPath, ["-e", ""], { stdio: "ignore" });
   await new Promise((done) => one.on("exit", done));
@@ -171,7 +170,7 @@ test("a lock is never removed by a run that did not take it", () => {
 
 test("a ship waiting behind a landing names it, reaches no step, and refuses rather than hanging", () => {
   const { work } = remoted("lock-waits");
-  const other = idle();
+  const other = alive();
   held(work, { tree: "/run/wt-ISS-999", pid: other.pid, branch: "iss-999", since: "2026-09-06T06:00:00.000Z" });
   const was = git(work, "rev-parse", "HEAD").stdout.trim();
 
@@ -248,7 +247,7 @@ test("the landing drops its lock after the last shared step, and not on its way 
 test("a resume aimed past the install takes no lock and runs to its last step behind one", () => {
   const room = remoted("lock-install-only");
   const env = claudeSaying(room, "claude-saw");
-  const other = idle();
+  const other = alive();
   held(room.work, { tree: "/run/wt-ISS-997", pid: other.pid, since: "2026-09-06T06:00:00.000Z" });
 
   const run = runIn(room.work, ["ship", "--from", String(LAST_STEP)], env);
@@ -263,7 +262,7 @@ test("a resume aimed past the install takes no lock and runs to its last step be
 test("a resume that reaches the install waits behind a landing that holds the lock", () => {
   const room = remoted("lock-resume-install");
   const env = claudeSaying(room, "claude-saw");
-  const other = idle();
+  const other = alive();
   held(room.work, { tree: "/run/wt-ISS-996", pid: other.pid, since: "2026-09-06T06:00:00.000Z" });
 
   const run = runIn(room.work, ["ship", "--from", "9", "--wait", "0.05"], env);
@@ -477,7 +476,7 @@ test("land runs no install step, so nothing asks for the marketplace or the plug
 test("a land behind a held landing names the tree holding it, waits, and reaches no push", () => {
   const room = remoted("land-waits");
   landIn(room.work, join("docs", "wave.md"), 1, "the wave's own record");
-  const other = idle();
+  const other = alive();
   held(room.work, { tree: "/run/wt-ISS-996", pid: other.pid, branch: "iss-996", since: "2026-09-06T06:00:00.000Z" });
   const was = git(REMOTE_AT(room), "rev-parse", "master").stdout.trim();
 
@@ -500,7 +499,7 @@ test("a land behind a held landing names the tree holding it, waits, and reaches
    very file is the case above, and the two compose. */
 test("a ship waits behind the lock record a land from the checkout leaves, on the one sentence", () => {
   const room = remoted("ship-waits-behind-land");
-  const other = idle();
+  const other = alive();
   held(room.work, { tree: room.work, pid: other.pid, branch: "master", since: "2026-09-06T06:00:00.000Z" });
 
   const shipped = runIn(room.work, ["ship", "--wait", "0.05"], BARE);
@@ -520,7 +519,7 @@ test("a ship waits behind the lock record a land from the checkout leaves, on th
    ordering rather than about tidying up: a guard behind the acquisition would meet that lock and say
    so, and an absent lock afterwards would look the same either way. */
 const behindALandingIn = (room) => {
-  const other = idle();
+  const other = alive();
   held(room.work, { tree: "/run/wt-ISS-995", pid: other.pid, branch: "iss-995", since: "2026-09-06T06:00:00.000Z" });
   return other;
 };

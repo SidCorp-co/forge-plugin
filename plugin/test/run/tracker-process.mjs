@@ -4,6 +4,7 @@ import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs
 import { join } from "node:path";
 
 import { fakeTracker } from "../fixtures.mjs";
+import "./ends-with-spawner.mjs";
 
 const [room, seed, calls, home] = process.argv.slice(2);
 const at = (name) => join(room, name);
