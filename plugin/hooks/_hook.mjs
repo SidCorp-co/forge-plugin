@@ -279,7 +279,7 @@ const EXECUTES_STDIN = new RegExp(
   "u",
 );
 
-/** A redirect is judged by its target: `2>&1` writes nothing, and one holding a `$(…)` holds spaces. The target is every part of the one word, since a quote closing is not the operand ending: `> 'a(1).md'.txt` writes the `.txt`, and a capture stopping at the quote hands the reader a word it will take for the whole of one. The word ends on the three characters a shell splits on and not on every space this language knows, for the same reason (ISS-1555). */
+/** A redirect is judged by its target: `2>&1` writes nothing, and one holding a `$(…)` holds spaces. The target is every part of the one word, since a quote closing is not the operand ending: `> 'a(1).md'.txt` writes the `.txt`, and a capture stopping at the quote hands the reader a word it will take for the whole of one. Where the word ends is the walk's answer in `plugin/src/hooks/shell-spans.mjs`, spelt the same here (ISS-1555). */
 export const REDIRECT = new RegExp(
   String.raw`(?:^|[\s;&|(])\d?>>?[ \t]*(?!&\d)((?:"[^"]*"|'[^']*'|\$\([^)]*\)|[^ \t\n;&|<>])+)`,
   "gu",
