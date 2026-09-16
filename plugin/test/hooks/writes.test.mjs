@@ -170,6 +170,8 @@ test("a name is read from the word the command spelled it in, and never from the
     "including one in front of it, where the `)` closes a word as readily as it closes a command");
   assert.deepEqual(held("(printf x > '/tmp/memory/(report).md')"), ["/tmp/memory/(report).md"],
     "while a `)` after the span closes the command around it, and there the span is the whole operand");
+  assert.deepEqual(held("printf x > '/tmp/memory/(report).md' .txt"), [],
+    "and what parts one operand from the next is the three characters a shell splits on, not every space this language calls one");
   assert.deepEqual(held("printf x > '/tmp/memory/(report)/note.md'"), ["/tmp/memory/(report)/note.md", "/note.md"],
     "while the one it reaches the end of is exactly that file, guard and all");
   assert.equal(namesOf("printf x > 'plus(one)/notes.md'").find((one) => one.token[0] === "p").at,

@@ -218,9 +218,9 @@ const BRACKET = /[()]/u;
 const cuts = (mark) => !mark
   || ALWAYS.test(mark.one)
   || ((mark.under !== "'" || !BRACKET.test(mark.one)) && OPERATOR.test(mark.one));
-/* Where one operand ends, which is a bare shell metacharacter and not where a word this reads ends: a `$`, a backslash and a quote each end a word here and carry the operand on, so `'a(1).md'$(printf .txt)` and `'a(1).md'.txt` are one operand apiece and neither is the span. Bare, because a metacharacter a quote or a comment holds separates nothing. And a `)` in front of a span is the one this leaves out, since it closes a substitution the shell joins to that span as often as a subshell around it, and which of the two is what this walk cannot yet say (ISS-1533). */
-const OPENED = /[\s;&|<>(]/u;
-const CLOSED = /[\s;&|<>)]/u;
+/* Where one operand ends, which is a bare shell metacharacter and not where a word this reads ends: a `$`, a backslash and a quote each end a word here and carry the operand on, so `'a(1).md'$(printf .txt)` and `'a(1).md'.txt` are one operand apiece and neither is the span. Bare, because a metacharacter a quote or a comment holds separates nothing, and the three characters a shell splits on rather than every space this language knows, since `'a(1).md'<U+00A0>.txt` is one operand to a shell and two words to a `\s`. And a `)` in front of a span is the one this leaves out, since it closes a substitution the shell joins to that span as often as a subshell around it, and which of the two is what this walk cannot yet say (ISS-1533). */
+const OPENED = /[ \t\n;&|<>(]/u;
+const CLOSED = /[ \t\n;&|<>)]/u;
 const parts = (mark, shape) => !mark || (mark.under === " " && shape.test(mark.one));
 
 const worded = (text) => {
