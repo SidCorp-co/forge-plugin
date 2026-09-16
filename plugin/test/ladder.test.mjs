@@ -1,4 +1,4 @@
-/* The ladder has three rungs and two of them stop owing the same three payloads, so what keeps the
+/* The ladder has three rungs and two of them stop owing the same two payloads, so what keeps the
    shortest from being the middle one wearing another word is the report and the rounds it names.
    Spawned against a tracker rather than called: `--owed` reads the record before it says anything,
    and a run learns its rung from the same verb and the same record it learns the shortfall from. */

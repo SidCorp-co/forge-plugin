@@ -94,11 +94,13 @@ test("the deploying rung keeps every refusal about the deploy, and asks nothing 
     "and the judging rung says nothing about which commit the deployment reported");
 });
 
-/* The rung report is what says a lighter rung dropped a payload, so both rows have to stay where
-   they were: the note's waiver is the deploying rung's and the verdict is waived by nobody. */
-test("a fix is waived the note at the deploying rung and is still asked for a verdict at the judging one", () => {
+/* The two rungs a lighter path once told apart here, and it no longer tells them apart at all: the
+   note's waiver went when the tracker turned out to refuse a close without the field at every rung
+   (ISS-1485), and the verdict was waived by nobody to begin with. */
+test("a fix is asked for the note at the deploying rung and for a verdict at the judging one", () => {
   const fix = whole({ complexity: "s", releaseNotes: undefined });
-  assert.deepEqual(owed(CLOSES_FROM, fix), [], "no release note is owed at a fix");
+  assert.deepEqual(owed(CLOSES_FROM, fix), ["no release note and no withholding either"],
+    "the note is owed at a fix as at every other rung, and it is the only thing this record still lacks");
   const unjudged = viewFrom(
     "the-uuid",
     { acceptanceCriteria: CRITERIA, plan: NO_SCREEN, complexity: "s" },

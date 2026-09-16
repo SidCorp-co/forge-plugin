@@ -44,7 +44,7 @@ spending five minutes there.
 ## The rung table
 
 The ladder's rungs are what a change's cost is meant to differ by, so the profile groups by them: a
-row per rung and one more for the runs that claimed none. What a rung *drops* is three payloads and
+row per rung and one more for the runs that claimed none. What a rung *drops* is payloads, which are
 visible in the record; what it *saves* is rounds, and rounds are only ever visible here. That is the
 whole reason this table exists — without it the two rungs below `feature` differ in nothing a reader
 can act on, and the next change to the ladder would be argued from memory.
