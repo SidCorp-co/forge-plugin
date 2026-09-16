@@ -137,6 +137,9 @@ export const planFlags = (plan) => {
 export const looksTo = ({ screen, look }) =>
   (look === "yes" ? "a user-facing outcome" : (screen === "yes" ? "a screen change" : null));
 
+/* The witnessed section's other answer, read by `witnessedOn` and held across a prose rewrite as the citations beside it are — one source for both, because a reader and a protector spelling one answer differently accept a plan they cannot hand back. It reaches from the line's own indent through whatever separates the word from the reading after it, so a rewrite that replaces that reading leaves the word standing alone rather than joined to it. */
+const WITNESSED_NONE = "^[^\\S\\n]*none\\b[^\\p{L}\\p{N}\\n]*";
+
 /* What a typed plan answers, one section per question: the name is the whole text of the heading that
    opens it, `owed` the declarations behind which the tree puts a way back. Presence is the whole of the
    check; whether a section answers well is the reviewer's. */
@@ -221,17 +224,18 @@ export const planSteps = (plan) => {
   return out.map((one) => ({ ...one, cites: [...new Set(numbers(one.text))].sort((a, b) => a - b) }));
 };
 
-/* The word standing alone, so prose that happens to carry the letters is not read as the answer. */
-const SAYS_NONE = /(?:^|[^\p{L}])none(?:[^\p{L}]|$)/iu;
+const SAYS_NONE = new RegExp(WITNESSED_NONE, "iu");
 
-/** What a plan says only a person at the running product can witness. Both answers come back rather than one winning: a section giving neither and one giving both each leave a reader guessing, and only the caller that refuses them can say which happened. */
+/** What a plan says only a person at the running product can witness, and which way it answered — `cites` and `none` being the two, read off one reading by the write that refuses a file and by the status that reads the plan the issue stored, or a plan edited anywhere but here enters at a shape the write turns back. It is read where an answer stands — the section's opening word — so `display: none` in a criterion it names is prose, as it would be anywhere else. Both answers come back rather than one winning: a section giving neither and one giving both each leave a reader guessing, and only the caller that refuses them can say which happened. */
 export const witnessedOn = (plan) => {
   const body = planSections(plan).get("Witnessed on screen");
   if (body === undefined) return null;
   const said = fenceMarked(body).filter((one) => !one.fenced).map((one) => one.line).join("\n");
   const cites = [...said.matchAll(CITES)].flatMap((one) => (one[0].match(/\d+/gu) ?? []).map(Number));
-  return { cites: [...new Set(cites)].sort((one, two) => one - two), none: SAYS_NONE.test(said) };
+  const opens = said.split("\n").find((one) => one.trim()) ?? "";
+  return { cites: [...new Set(cites)].sort((one, two) => one - two), none: SAYS_NONE.test(opens) };
 };
+export const witnessedAnswers = (witnessed) => [witnessed?.cites.length ? "cites" : null, witnessed?.none ? "none" : null].filter(Boolean);
 
 /** The sections a typed plan is missing, the way back among them where a declaration owes one. */
 export const sectionsOwed = (plan, flags = {}) => {
@@ -263,7 +267,7 @@ export const criteriaUncovered = (steps, criteria) => {
 
 const MACHINE = {
   plan: new RegExp(
-    `${HEADING}|(?:${Object.values(DECLARED).join("|")})${DECLARED_VALUE}|${CITED}`,
+    `${HEADING}|(?:${Object.values(DECLARED).join("|")})${DECLARED_VALUE}|${CITED}|${WITNESSED_NONE}`,
     "gimu",
   ),
 };

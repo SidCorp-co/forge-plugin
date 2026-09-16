@@ -447,6 +447,14 @@ test("approved refuses a witnessed set citing a criterion the issue does not hol
     /citing under that heading from 1, 2$/u, "and the numbers it could have cited");
   const held = typedPlan({ "Witnessed on screen": "What only somebody at the product sees. criteria: 2" });
   assert.deepEqual(missing("approved", planned(held)), [], "and a number this issue holds owes nothing");
+  /* The write's other refusal, asked again for the same reason: a plan edited on the tracker never met it. */
+  const blank = typedPlan({ "Witnessed on screen": "The section nobody answered." });
+  assert.deepEqual(missing("approved", planned(blank)),
+    ["`## Witnessed on screen` answers neither way, so nothing there says whether a person at the running product is owed a look"]);
+  assert.match(commands("approved", planned(blank))[0], /citing what only a person there can witness or saying `none`$/u);
+  const both = typedPlan({ "Witnessed on screen": "none — and the panel besides. criteria: 2" });
+  assert.deepEqual(missing("approved", planned(both)),
+    ["`## Witnessed on screen` cites criterion 2 and says `none` as well, so nothing there says whether a person at the running product is owed a look"]);
 });
 
 /* The two declarations are what the ship steps read, so a plan that answers neither earns nothing —

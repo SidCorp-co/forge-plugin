@@ -129,13 +129,16 @@ test("the witnessed section is refused where it answers neither way, and where i
   assert.match(blank.stderr, /^`## Witnessed on screen` answers neither way, so nothing was written:$/mu);
   assert.match(blank.stderr, /as `criteria: 3`, or write `none`/u, "and both ways of answering it");
   assert.equal(state.issues[0].plan, undefined, "the field is untouched");
-  const both = await wrote(MINE, planAt(typedPlan({ "Witnessed on screen": "criteria: 2 — and none besides." })));
+  const both = await wrote(MINE, planAt(typedPlan({ "Witnessed on screen": "none — and the panel besides. criteria: 2" })));
   assert.equal(both.status, 1);
   assert.match(both.stderr, /cites criterion 2 and says `none` as well/u);
   const cited = await wrote(MINE, planAt(typedPlan({ "Witnessed on screen": "The list a person reads back. criteria: 2" })));
   assert.equal(cited.status, 0, cited.stderr);
   const said = await wrote(MINE, planAt(typedPlan({ "Witnessed on screen": "none — nothing here reaches a screen." })));
   assert.equal(said.status, 0, said.stderr);
+  const prose = "The panel a person reads back. criteria: 2 — the empty state no longer has display: none";
+  const inside = await wrote(MINE, planAt(typedPlan({ "Witnessed on screen": prose })));
+  assert.equal(inside.status, 0, "the word inside a criterion's own prose is not the section's answer");
 });
 
 /* The file's own bytes reach the check, and a plan written on Windows carries a `\r` the reader kept

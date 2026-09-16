@@ -5,7 +5,7 @@
    docs/cli/record-the-rung.md. */
 import { refuse } from "../../refusal.mjs";
 import { citationsChecked, criteriaChecked } from "../../spec/checked.mjs";
-import { SECTIONS, declaredAs, planFlags, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, witnessedOn } from "../machine.mjs";
+import { SECTIONS, declaredAs, planFlags, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, witnessedAnswers, witnessedOn } from "../machine.mjs";
 import { compoundCriteria } from "../../prose.mjs";
 import { flowPinned, requiresOf } from "../../guides/flow.mjs";
 import { translateTo } from "../../resolve/settings.mjs";
@@ -88,7 +88,7 @@ export const requiresRefusal = (flow, declared, requires = requiresOf(flow)) => 
    two, sends that reader back to the guess the section exists to replace. UC-04-7 carries the
    exception and why it is one. */
 const witnessedChecked = (witnessed) => {
-  const answers = [witnessed?.cites.length ? "cites" : null, witnessed?.none ? "none" : null].filter(Boolean);
+  const answers = witnessedAnswers(witnessed);
   if (!witnessed || answers.length === 1) return null;
   if (answers.length === 2) {
     return refuse([

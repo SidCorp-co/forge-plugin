@@ -1,7 +1,7 @@
 /* Every rule here is asked a second time, of the stored plan rather than the file, and over the
    criteria field the write cannot see: a plan that arrived by any route answers to the same shape,
    and a number it cites is weighed against the criteria only the issue holds. */
-import { criteriaUncovered, need, planSteps, planTyped, sectionsOwed, stepsUncited, witnessedOn } from "../machine.mjs";
+import { criteriaUncovered, need, planSteps, planTyped, sectionsOwed, stepsUncited, witnessedAnswers, witnessedOn } from "../machine.mjs";
 
 /** Every shortfall of a plan's shape at `approved`; `asks` is false where the rung waives the plan. */
 export const planShapeOwed = (asks, plan, flags, criteria, ref) => {
@@ -37,9 +37,19 @@ export const planShapeOwed = (asks, plan, flags, criteria, ref) => {
       ));
     }
     /* The plan's other set of criterion numbers: a witnessed set pointing at nothing asks a person to
-       look at nothing. */
+       look at nothing, and a section answering no way at all or both ways says nothing about whether
+       one is owed — which the write refuses too, and a plan edited on the tracker never met. */
+    const witnessed = witnessedOn(plan);
+    const answers = witnessedAnswers(witnessed);
+    if (witnessed && answers.length !== 1) {
+      out.push(need(
+        `\`## Witnessed on screen\` ${answers.length ? `cites criterion ${witnessed.cites.join(", ")} and says \`none\` as well` : "answers neither way"}, `
+          + "so nothing there says whether a person at the running product is owed a look",
+        `forge record plan ${ref} <plan.md>, that section citing what only a person there can witness or saying \`none\``,
+      ));
+    }
     const held = new Set(criteria.map((one) => one.number));
-    const adrift = (witnessedOn(plan)?.cites ?? []).filter((number) => !held.has(number));
+    const adrift = (witnessed?.cites ?? []).filter((number) => !held.has(number));
     if (adrift.length) {
       out.push(need(
         `\`## Witnessed on screen\` cites criterion ${adrift.join(", ")}, which this issue does not hold, `

@@ -14,7 +14,7 @@ const { assemble, parse, render } = await import("../../src/flow/record/page.mjs
 const { landedAs, noteLandedAs } = await import("../../src/tracker/field-write.mjs");
 const { SHAPES } = await import("../../src/flow/machine.mjs");
 const {
-  PLAN_SECTIONS, planFlags, planSections, planSteps, protectMachine, restoreMachine, sectionsOwed,
+  PLAN_SECTIONS, planFlags, planSections, planSteps, protectMachine, restoreMachine, sectionsOwed, witnessedOn,
 } = await import("../../src/flow/machine.mjs");
 const { CHECKS, ORDER, judgedOwed, viewFrom } = await import("../../src/flow/earned.mjs");
 
@@ -95,6 +95,13 @@ test("a status is earned from records that came back through the rewrite, with n
   const plan = throughVi(typedPlan());
   const criteria = rewritten("1. The first outcome.\n2. The second outcome.");
   assert.deepEqual(planFlags(plan), { screen: "no", schema: "no", deploy: null, look: null }, "the declarations are read through it");
+  assert.deepEqual(witnessedOn(plan), { cites: [], none: true }, "and a considered `none` is still the answer it was");
+  /* Every shape the reader takes as the answer, through the boundary: what it accepts and what the
+     protector holds are one pattern, so a form one of them took alone would come back unanswered. */
+  for (const said of ["  none — indented", "\u00A0none — opened with a space that is not one", "none—nothing between the word and the reading", "none"]) {
+    const other = throughVi(typedPlan({ "Witnessed on screen": said }));
+    assert.deepEqual(witnessedOn(other), { cites: [], none: true }, said);
+  }
   assert.match(criteria, /^1\. /mu, "and a criterion keeps the number a verdict names");
   const verdict = (number) => posted("verdict", { ...FIELDS.verdict, criterion: `${number} — an outcome` });
   const issue = {
