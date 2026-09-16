@@ -23,6 +23,7 @@ import { sessionOf } from "../../plugin/src/resolve/config.mjs";
 import { documentIdOf } from "../../plugin/src/tracker/issues.mjs";
 import { pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
 import { publishesVersion } from "./release/released-tag.mjs";
+import { readyKeys } from "./land-ready/ready.mjs";
 import { parkAs } from "../../plugin/src/flow/advance.mjs";
 import { takeLease } from "../../plugin/src/flow/lease.mjs";
 import {
@@ -497,10 +498,6 @@ const NO_SET = (route) =>
  *  checkpoints allow it. A parked or handed-back branch is not the end of the run, because the branch
  *  after it is somebody else's release. */
 export const landReady = async ({ flags, words }, ctx) => {
-  if (!words.length) {
-    stop(`land-ready takes the issues whose branches are ready, in the order they land:\n`
-      + `    ${ctx.self} land-ready ISS-45`);
-  }
   const tree = process.cwd();
   if (resolve(tree) !== resolve(ctx.root)) {
     stop(`land-ready is the checkout's verb and this is ${tree}, a worktree of ${ctx.root}. It builds `
@@ -518,9 +515,12 @@ export const landReady = async ({ flags, words }, ctx) => {
       + `.forge.json, and land again: forge doctor`);
   }
   console.log(`\nlanding ${route}, judgement ${judgement}`);
+  /* Named or found, and one list from here down: discovery is a convenience over the set a caller
+     could have typed, so nothing below it knows which of the two it was handed. */
+  const keys = words.length ? words : await readyKeys(ctx, (landing) => owedAt(landing) === ORDER[0]);
   const held = [];
   const read = [];
-  for (const key of words) {
+  for (const key of keys) {
     let one = null;
     try {
       one = await readOf(key);
@@ -561,7 +561,7 @@ export const landReady = async ({ flags, words }, ctx) => {
     console.log(NO_SET(route));
   }
   const left = [...rest.filter((one) => !set.includes(one)), ...over];
-  for (const key of words) {
+  for (const key of keys) {
     const one = left.find((member) => member.key === key);
     if (one) await alone({ ...one, from: ORDER.indexOf(owedAt(one.landing)) });
   }
