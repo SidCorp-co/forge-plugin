@@ -384,7 +384,7 @@ test("a destination spelled in fragments is one shell word", () => {
     "a quoted fragment and a bare run are one word, and the reading stopped at the closing quote",
   );
   assert.match(
-    from(clean, `cd ${parent}/"dirty tree" && git ${verb}`),
+    from(clean, `cd ${pathed(parent)}/"dirty tree" && git ${verb}`),
     /stash silently reverts/u,
     "and a quoted space is inside the word rather than the end of it",
   );

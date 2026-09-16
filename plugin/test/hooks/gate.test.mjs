@@ -70,7 +70,7 @@ test("before a call, the first gate to refuse is the answer and the rest are not
   assert.equal(out(run(["bash-guard"], { ...ev, tool_input: { command: "git stash list" } })), null, "silence is silence");
   /* Two gates with a reason: one answer, the first's, and the second is never asked. Its own
      session, because what this asks is which gate answered and not what the answer said in full. */
-  const twice = `git stash; sed -i s/a/b/ ${cwd}/.claude/projects/x/memory/note.md`;
+  const twice = `git stash; sed -i s/a/b/ ${pathed(`${cwd}/.claude/projects/x/memory/note.md`)}`;
   const both = run(["bash-guard", "learning-gate"], { ...ev, session_id: "g1-both", tool_input: { command: twice } },
     { FORGE_SESSION_ID: "g1-both" });
   assert.doesNotThrow(() => JSON.parse(both.stdout), "one JSON answer, not two");
