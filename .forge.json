@@ -26,7 +26,8 @@
     "angles": [
       "tech"
     ],
-    "check": "npm test"
+    "check": "npm test",
+    "owed": ["gate"]
   },
   "rank": {
     "readCap": 400,

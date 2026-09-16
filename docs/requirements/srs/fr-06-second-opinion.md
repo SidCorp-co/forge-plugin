@@ -99,14 +99,23 @@ is not offered again however recently it was touched.
 - **AC-06-2-3** · Rev: 1 · Proof: plugin/test/gates/codex/codex-turn.test.mjs "giving up on the lock leaves a note, and the note is not counted as a refusal"
   WHILE a turn is in progress the CLI SHALL never stop it for an unread document.
 
-### UC-06-3 — A commit waits for the reading and for the verdict
+### UC-06-3 — A commit waits for the reading and for the verdict, where the project asks it to
 
-Rev: 2 · Actors: agent · Enforces: BR-01
+Rev: 3 · Actors: agent · Enforces: BR-01
 
 Before a commit, two things are asked for: that documents recorded and never consulted on are read,
 and that the last consult which made findings heard a disposition of each. A finding nobody ruled on
-is an open finding. Nothing between commits is asked anything: a gate deciding per write reviewed
-fragments, and the trigger it decided on could not be read at all.
+is an open finding. Which doors ask at all is the project's, in one list read by every door, and the
+commit is the one that list holds when nobody has written it — so a project that has not decided is
+asked exactly what it was asked before there was a list. Nothing between commits is asked anything: a
+gate deciding per write reviewed fragments, and the trigger it decided on could not be read at all.
+
+- **AC-06-3-10** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a door the project did not name holds nothing, and the key absent holds only the commit"
+  WHERE the project has not said which doors ask, the CLI SHALL ask at the commit and at no other,
+  which is what it asked before the saying was possible.
+- **AC-06-3-11** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "the commit door is the same key, so a project naming only the gate is not asked twice"
+  WHERE the project says which doors ask and the commit is not among them, the CLI SHALL let a commit
+  through without asking, whatever that record holds.
 
 - **AC-06-3-1** · Rev: 3 · Proof: plugin/test/gates/codex/codex-second.test.mjs "a commit waits for the documents it stages, and not for one left dirty beside them"
   WHEN a commit stages a document recorded as unread THEN the gate SHALL refuse the commit and SHALL
@@ -226,6 +235,35 @@ alone.
   WHERE the log does not reach two full windows the CLI SHALL compare as far back as it reaches and
   SHALL say how far short of a window it fell, rather than compare against consults the log does not
   hold.
+
+### UC-06-7 — A call the project names waits for the same reading the commit waits for
+
+Rev: 1 · Actors: agent · Enforces: BR-01
+
+What a commit is held for is knowable the moment a document is written, and the call that costs the
+most stands between that moment and the commit. Asked there in the commit's own words it is one
+reading and not two, so a run that meets it reaches the commit with nothing left to answer;
+`plugin/hooks/how/codex-owed.md` carries the figures and the trade.
+
+- **AC-06-7-1** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a gate the project named waits for the documents it would judge, and says what reads them"
+  WHEN a call the project named would judge a document no consult has read THEN the CLI SHALL refuse
+  that call and SHALL name the documents, the consult that reads them, the route that discards them
+  unread, and the switch that stands the rule down.
+- **AC-06-7-2** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a consult read and ruled before the gate clears the gate and the commit alike"
+  WHERE one reading satisfies a call the project named, the CLI SHALL let the commit after it through
+  without asking again, both doors reading one record through one reader.
+- **AC-06-7-3** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a value the key does not take is refused with the key named, and nothing is guessed"
+  IF the project lists a door this does not serve THEN the CLI SHALL refuse and SHALL name the key and
+  what it takes, rather than fall back on a value nobody typed.
+- **AC-06-7-4** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a finding nobody ruled on holds the gate, with the disposition that closes it"
+  IF the last consult made findings nobody has ruled on THEN the CLI SHALL refuse the named call and
+  SHALL name the disposition that closes them.
+- **AC-06-7-5** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "the tree is where the cd in the same command left the shell, and every tree the line gates in"
+  WHEN the call moves the shell before it runs THEN the CLI SHALL read the list, the commands and the
+  record of every tree the call would judge in, rather than of the one it was made from.
+- **AC-06-7-6** · Rev: 1 · Proof: plugin/test/gates/codex/codex-owed.test.mjs "a call whose tree cannot be read is refused where this project asks at that door, and nowhere else"
+  WHERE the call moves the shell somewhere no reading can name, the CLI SHALL refuse it and SHALL ask
+  for that destination to be spelled out, rather than judge it by the tree the call was made from.
 
 ## Business rules enforced
 

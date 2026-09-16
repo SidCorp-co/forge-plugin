@@ -489,6 +489,31 @@ test("a project that declares no number of runs is told the key is unset and wha
     withRuns({}));
 });
 
+/* The doors a consult is demanded at are a setting like the rest: a switch nobody can read the
+   current value of is one people guess at, and the empty list has to be told from the absent key. */
+const withOwed = (codex) => report(null, {}, { ".forge.json": JSON.stringify({ slug: "p", codex }) });
+
+test("the doors a consult is demanded at are reported with the file they were read from", () => {
+  assert.match(withOwed({ owed: ["gate", "commit"] }), /\[ {2}ok {2}\] codex\.owed\s+gate, commit — each held until a consult has read what it would judge {2}← \.forge\.json/u,
+    withOwed({ owed: ["gate", "commit"] }));
+});
+
+test("the key absent is the commit alone and the empty list is no door, and the report tells them apart", () => {
+  assert.match(withOwed({}), /\[ {2}ok {2}\] codex\.owed\s+commit — each held until a consult has read what it would judge {2}← the plugin's default/u,
+    "absent, the commit asks, which is what this did before the key");
+  assert.match(withOwed({ owed: [] }), /\[ {2}ok {2}\] codex\.owed\s+nothing — the key is an empty list, so no door asks {2}← \.forge\.json/u,
+    "and an empty list is the off switch, read off the project rather than off the default");
+});
+
+test("a door the key does not take is reported as one, naming what the key takes, and holds nothing", () => {
+  for (const given of [["refuse"], "gate", [1], 3]) {
+    const out = withOwed({ owed: given });
+    assert.match(out, /\[ miss \] codex\.owed\s+\S+ is no value of this key/u, `\`${JSON.stringify(given)}\` was taken: ${out}`);
+    assert.match(out, /it takes gate, commit, ship/u, "the report does not say what the key takes");
+    assert.match(out, /reading commit {2}←/u, "nor that the default is what it fell back on");
+  }
+});
+
 test("a number of runs the key does not take is reported as one, naming what the key takes, and bounds nothing", () => {
   for (const given of [0, -1, "two", 1.5]) {
     const out = withRuns({ runs: given });

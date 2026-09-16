@@ -20,9 +20,8 @@ import { deadlineSeconds, waitSeconds } from "../wire/request.mjs";
 import { measured, offsetSaid } from "../wire/shared-clock.mjs";
 import { BUNDLED } from "./vi.mjs";
 import {
-  FEEDBACK_CHANNELS, LANDING_ROUTES, RUNS_TAKES, Refusal, SHIP_MODES, accountCredentials,
-  checkoutRoot, fail, feedbackScope, landingScope, mcpForgeIgnored, parallelRuns, projectScope,
-  refusing, shipMode, translateScope,
+  Refusal, accountCredentials, checkoutRoot, fail, mcpForgeIgnored, projectScope, refusing,
+  translateScope,
 } from "../resolve/settings.mjs";
 import {
   MAX_CLAUDE_MD_LINES,
@@ -46,8 +45,9 @@ import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } f
 import { usageOf } from "../resolve/visibility.mjs";
 import { PROJECT_USAGE, WITH_BODY, WRITES } from "../tracker/project-flags.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
-import { FLOW_SLUGS, flowPinned, flowRefusal } from "../guides/flow.mjs";
+import { FLOW_SLUGS, flowRefusal } from "../guides/flow.mjs";
 import { rankLines } from "./services/doctor/rank.mjs";
+import { held, projectKeyLines } from "./services/doctor/keys.mjs";
 import { ORDER } from "../flow/earned.mjs";
 import {
   addressed, contractParts, contractPath, contractProblems, flowProblems, identityOf, unansweredIn,
@@ -405,11 +405,10 @@ const checkProject = async (credentials, graph = null) => {
   for (const said of brief) console.log(said);
 };
 
-/** The one read left in this report that refuses through `fail()`, taken soft so it cannot: an exit
- *  here costs the report its project id, its probes, the guide table, the project's settings and the
- *  brief's goal list, with the reason on stderr — where a caller matching this report has only the
- *  lines that never came, and blames whatever it came for (ISS-891, AC-01-3-1). A refusal is a
- *  finding to print; a `TypeError` under it is this file's bug and stays a crash (3aa1cb, F1). */
+/** The one read left in this report that refuses through `fail()`, taken soft so it cannot: an exit here costs
+ *  the report its project id, its probes, the guide table, the project's settings and the brief's goal list, with
+ *  the reason on stderr — where a caller matching this report has only the lines that never came, and blames
+ *  whatever it came for (ISS-891, AC-01-3-1). A refusal is a finding to print; a `TypeError` under it is this file's bug and stays a crash (3aa1cb, F1). */
 export const trackerId = async (projectId) => {
   try {
     return { id: await refusing(projectId) };
@@ -451,33 +450,8 @@ const checkEndpoint = async (full, credentials) => {
   await checkProject(credentials, findings.answered?.forge_project_pm ?? null);
 };
 
-/* This is the surface allowed to say what a project or a machine turned off, so each key prints its
-   value and where it was read; a value the key does not take is named here and nowhere else. */
-const held = (one, allowed) =>
-  (one.unknown ? `${one.unknown} is no value of this key — it takes ${allowed.join(", ")}; reading ${one.value}  ← ${one.from}`
-    : `${one.value}  ← ${one.from}`);
-
 const checkFlowKeys = () => {
-  for (const [which, one] of Object.entries(feedbackScope())) {
-    line(one.unknown ? BAD : OK, `feedback.${which}`, held(one, FEEDBACK_CHANNELS));
-  }
-  const flow = flowPinned();
-  const refused = flowRefusal();
-  if (refused) line(BAD, "flow", refused);
-  else if (flow.retired) {
-    line(BAD, "flow", `${flow.value}, read off the retired \`method: ${flow.retired}\``
-      + `  ← ${flow.from}. Set \`flow\` instead`);
-  } else line(OK, "flow", `${flow.value}  ← ${flow.from}`);
-  const landing = landingScope();
-  if (landing.unknown) line(BAD, "landing", held({ ...landing, value: "the derived route" }, LANDING_ROUTES));
-  else if (landing.value) line(OK, "landing", `${landing.value}  ← ${landing.from}`);
-  else line(OK, "landing", "unset, so the branches on the tracker's record derive where the merge sits");
-  const ship = shipMode();
-  line(ship.unknown ? BAD : OK, "ship", held(ship, SHIP_MODES));
-  const runs = parallelRuns();
-  if (runs.unknown) line(BAD, "parallel runs", held({ ...runs, value: "no bound" }, [RUNS_TAKES]));
-  else if (runs.value) line(OK, "parallel runs", `${runs.value}  ← ${runs.from}`);
-  else line(OK, "parallel runs", "unset, so a wave is sized by whoever dispatches it and a gate declines for no sibling");
+  report(projectKeyLines());
   report(rankLines());
   const given = userConfig().retrySeconds;
   const own = retrySeconds({ retrySeconds: given }) === given;
