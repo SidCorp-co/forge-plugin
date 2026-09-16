@@ -245,10 +245,12 @@ const reconcile = async (documentId, ref, context, holder, given) => {
     fail(`${landing.branch} no longer carries ${shortSha(landing.head)}, the head this landing was `
       + `judged at: in this checkout that branch stands at ${shortSha(gone.tip)}, which does not `
       + `reach it. What lands is the judged head, so moving the branch changes nothing the landing `
-      + `merges and orphans the commit it fetches. Put that head back, from the tree that holds it, `
-      + `and write the reconciliation again:\n`
+      + `merges and orphans the commit it fetches. Put that head back, from whichever tree holds it, `
+      + `then read the branch here again — this refusal is off the ref below and a push made in `
+      + `another checkout leaves it saying what it says now:\n`
       + `  git push --force-with-lease=${landing.branch}:${gone.tip} origin `
       + `${landing.head}:refs/heads/${landing.branch}\n`
+      + `  git fetch origin ${landing.branch}\n`
       + `  forge claim ${ref} --reconciled ${landing.candidate}`);
   }
   const saved = await landingSaved(documentId, ref,

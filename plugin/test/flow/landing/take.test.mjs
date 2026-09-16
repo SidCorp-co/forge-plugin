@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
-import { writeFileSync } from "node:fs";
+import { rmSync, writeFileSync } from "node:fs";
 
 import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
 
@@ -340,6 +340,8 @@ test("a reconciliation over a branch that let the judged head go is refused, nam
   assert.match(run.stderr,
     new RegExp(`git push --force-with-lease=iss-673-6:${tip} origin ${judged}:refs/heads/iss-673-6`, "u"),
     "with the push that puts the judged head back");
+  assert.match(run.stderr, /git fetch origin iss-673-6/u,
+    "and the fetch that moves the evidence this refusal is read off, a push made elsewhere leaving it as it was");
   assert.equal(JSON.stringify(state.issues[0].sessionContext), before, "and the checkpoint is as it was");
 });
 
@@ -372,6 +374,20 @@ test("a reading that proves neither answer lets the reconciliation through", asy
   assert.equal(unknown.status, 0, `${unknown.stdout}${unknown.stderr}`,
     "and a checkout holding no remote-tracking ref for that branch has read nothing about it");
   assert.equal(checkpoint().state, "reconciled");
+});
+
+/* A complete history is not a promise that every object in it can be read, and the two look the same
+   to a probe that asks only whether the store answers: the branch here carries the judged head and
+   the reading still cannot say so, which is the reading that may not refuse (consult 7d5528 F1). */
+test("a judged head this store cannot read is no proof the branch let it go", async () => {
+  const { room, judged } = handedRoom("unreadable");
+  git(room, "update-ref", "refs/remotes/origin/iss-673-6", onTop(room, "two.mjs", "on top of the judged head"));
+  rmSync(join(room, ".git", "objects", judged.slice(0, 2), judged.slice(2)));
+  assert.notEqual(git(room, "cat-file", "-e", `${judged}^{commit}`).status, 0, "the object is gone");
+  field({ ...OWED, head: judged }, lease(BUILDER));
+  const run = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], BUILDER, room);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(checkpoint().state, "reconciled", "the turn ends, no push being owed by a branch that is right");
 });
 
 test("a reconciliation at any state but builder-owed is refused naming the state it read", async () => {

@@ -220,20 +220,20 @@ export const reachOf = (work) => {
 
 /* Whether a branch dropped a commit it was carrying, which the hand-back at `builder-owed` asks of
    the head the landing is about to merge. Offline for the reason `reachOf` is, so the remote-tracking
-   ref this checkout already holds is the whole of the evidence. One answer is proven and the rest are
-   not: a tip whose history is complete here holds every commit it reaches, so a head that history
-   places elsewhere, or that no object store here can read, is a head that branch no longer carries.
-   Everything else — no checkout, no such ref, a shallow history, a git call that failed — proves
-   nothing either way and says so, since a refusal resting on a reading that could not see the commit
-   would send a builder to push a branch that is already right. */
+   ref this checkout already holds is the whole of the evidence. One reading proves a drop and nothing
+   else is taken for one: an ancestry this checkout answered, over a history deep enough for the
+   answer to mean anything. No checkout, no such ref, a shallow history, an object it could not read,
+   a call that failed — each leaves the question open and is reported as no drop, since a refusal
+   resting on a reading that could not see the commit sends a builder to push a branch already right
+   (consult 7d5528 F1). */
 export const droppedHead = (branch, head) => {
   if (!branch || !head || git(["rev-parse", "--git-dir"], OFFLINE) === null) return null;
   const tip = git(["rev-parse", "--verify", `refs/remotes/origin/${branch}^{commit}`], OFFLINE);
   if (!tip) return null;
   if (git(["rev-parse", "--is-shallow-repository"], OFFLINE) !== "false") return { tip, dropped: false };
-  if (git(["cat-file", "-e", `${head}^{commit}`], OFFLINE) === null) return { tip, dropped: true };
-  /* The one reading here taken from an exit code: `--is-ancestor` prints nothing either way, and 1
-     is the answer where anything above it is the question going unanswered. */
+  /* The one reading here taken from an exit code: `--is-ancestor` prints nothing either way, so 1 is
+     the answer and everything above it is the question going unanswered — an unreadable head among
+     them, which is why no separate probe asks whether this store holds it. */
   const asked = spawnSync("git", ["merge-base", "--is-ancestor", head, tip],
     { encoding: "utf8", env: { ...process.env, ...OFFLINE } });
   return { tip, dropped: asked.status === 1 };
