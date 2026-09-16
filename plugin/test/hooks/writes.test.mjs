@@ -168,8 +168,10 @@ test("a name is read from the word the command spelled it in, and never from the
     "and what the operand goes on with is the shell's question, so a substitution beside the quote carries it on too");
   assert.deepEqual(held("$(printf p)'/tmp/memory/(report).md'"), [],
     "including one in front of it, where the `)` closes a word as readily as it closes a command");
-  assert.deepEqual(held("printf x > $(printf '%s.txt' '/tmp/memory/(report).md' )"), [],
-    "and a span inside a substitution is an argument of that command rather than the target of this one, whatever stands beside it");
+  assert.deepEqual(held("printf x > $(true; printf '%s.txt' '/tmp/memory/(report).md' )"), [],
+    "and a span inside a substitution is an argument of that command rather than the target of this one, however far into it the span stands");
+  assert.deepEqual(held("(printf x > '/tmp/memory/(report).md'; ls)"), ["/tmp/memory/(report).md"],
+    "while a subshell hands its commands no arguments, and the target inside one is the target");
   assert.deepEqual(held("printf x > '/tmp/memory/(report).md' .txt"), [],
     "and what parts one operand from the next is the three characters a shell splits on, not every space this language calls one");
   assert.deepEqual(held("printf x > 'cache=/tmp/(report).md'"), ["cache=/tmp/(report).md"],

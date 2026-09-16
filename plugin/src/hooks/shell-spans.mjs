@@ -223,16 +223,12 @@ const OPENED = /[ \t\n;&|<>(]/u;
 const CLOSED = /[ \t\n;&|<>]/u;
 const parts = (mark, shape) => !mark || (mark.under === " " && shape.test(mark.one));
 
-/* Whether anything before this point in the same command opened a substitution: `> $(printf '%s.txt' 'a(1).md')` puts a quoted operand inside one, where it is an argument of that command and not the target of this one, and no rule over the neighbours of the span can tell. What closes a substitution is a `)` this walk cannot place, so what opens one is where it stops offering the whole reading (ISS-1533). */
-const RUNS_IN = (marks, before) => {
-  for (let at = before - 1; at >= 0; at -= 1) {
-    const { one, under } = marks[at];
-    if (under !== " ") continue;
-    if (one === "\n" || one === ";" || one === "&" || one === "|") return false;
-    if (one === "(" && marks[at - 1]?.one === "$" && marks[at - 1]?.under === " ") return true;
-  }
-  return false;
-};
+/* Whether a substitution was opened anywhere before this point, which is where the whole reading stops being offered: `> $(printf '%s.txt' 'a(1).md')` puts a quoted operand inside one, where it is an argument of that command and not the target of this one, and nothing about the span or its neighbours says so. Anywhere and not in the same command, because what ends a substitution is the `)` this walk cannot place and a separator inside one ends nothing (ISS-1533) — so a text that opened one is a text this declines to place a span in at all, and the span keeps the reading it had. */
+const OPENERS = /[$<>]/u;
+const RUNS_IN = (marks, before) => marks.slice(0, before).some(({ one, under }, at) =>
+  under === " "
+  && (one === "\x60"
+    || (one === "(" && marks[at - 1]?.under === " " && OPENERS.test(marks[at - 1]?.one ?? ""))));
 
 const worded = (text) => {
   const marks = quoting(text);
