@@ -258,6 +258,11 @@ a wait no party can end.
   THEN the CLI SHALL refuse the write naming what moved, because the table of states cannot tell a
   checkpoint that stood still from one another run put a different change's landing on, and the same
   move is allowed from more than one state.
+- **AC-03-6-13** · Rev: 1 · Proof: plugin/test/run/run-checkpoint.test.mjs "a checkpoint whose head this release does not carry is named and left where it stands"
+  IF the head a checkpoint was written at is one the release neither carries nor replayed on its way
+  to what it landed THEN that release SHALL leave the checkpoint where it stands, because a branch
+  name outlives the work captured under it and a release that reads only the name would finish a
+  capture that never went anywhere.
 
 ## Business rules enforced
 

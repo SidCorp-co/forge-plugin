@@ -2,6 +2,8 @@
    run released stayed on the record as waiting to be landed and the next empty `land-ready` found it
    (ISS-1654). It reports and refuses nothing. docs/cli/the-checkpoint.md. */
 import { gitOut } from "../checkout.mjs";
+import { carries } from "./land-ready/candidate.mjs";
+import { ownReplay } from "./replayed.mjs";
 import { unshippedSays } from "./publish.mjs";
 import { landingOf, LANDING_DONE, LANDING_READY } from "../../plugin/src/flow/landing/checkpoint.mjs";
 import { landingSaved, readContext } from "../../plugin/src/flow/lease.mjs";
@@ -22,7 +24,7 @@ const held = async (key) => {
 };
 
 /* Why it was left standing and not only that it was: a refusal and another branch's are different things. */
-const finished = async (key, branch, resume, { say, groan }) => {
+const finished = async (key, { tree, branch, head, resume }, { say, groan }) => {
   let read = null;
   try {
     read = await refusing(() => held(key));
@@ -40,6 +42,11 @@ const finished = async (key, branch, resume, { say, groan }) => {
   if (landing.branch !== branch) {
     return say(`  ${key} stays \`${landing.state}\`: its checkpoint names ${landing.branch ?? "no branch"} `
       + `and this release landed ${branch}. Read where it is: forge resume ${key}`);
+  }
+  if (!carries(tree, head, landing.head) && !ownReplay(tree, landing.head, head)) {
+    return say(`  ${key} stays \`${landing.state}\`: its checkpoint was written at ${landing.head}, which `
+      + `is no head this release carries and none its own replay answers for. Read where it is: `
+      + `forge resume ${key}`);
   }
   try {
     await refusing(() => landingSaved(documentId, key, { state: LANDING_DONE }, { was: landing }));
@@ -68,7 +75,8 @@ export const checkpointsFinished = async ({ tree, base, copy, resume, installs, 
   }
   /* The install answers for a version and this for the content: a resume reaches this step over a tree
      grown a commit since the push, under the version already installed. */
-  const unshipped = unshippedSays(tree, base, gitOut(["rev-parse", "HEAD"], tree));
+  const head = gitOut(["rev-parse", "HEAD"], tree);
+  const unshipped = unshippedSays(tree, base, head);
   if (unshipped) {
     return groan(`  no landing checkpoint is finished here: ${unshipped}, so nothing says what stands `
       + `here is what was released.\n    release this tree, and the checkpoints follow: ${ships}`);
@@ -78,5 +86,5 @@ export const checkpointsFinished = async ({ tree, base, copy, resume, installs, 
     return groan(`  no landing checkpoint is finished here: this tree could not be asked which branch `
       + `it is on, and a checkpoint is finished only for the branch this release landed`);
   }
-  for (const key of keys) await finished(key, branch, resume, { say, groan });
+  for (const key of keys) await finished(key, { tree, branch, head, resume }, { say, groan });
 };

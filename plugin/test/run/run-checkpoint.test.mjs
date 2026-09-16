@@ -6,7 +6,7 @@ import test from "node:test";
 import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { landIn, noBacklog, runIn, seen, switched, worktreeRoom } from "./run-fixtures.mjs";
+import { git, landIn, noBacklog, runIn, seen, switched, worktreeRoom } from "./run-fixtures.mjs";
 import { mintRunId } from "../../../tools/run/workspace/run-id.mjs";
 import { RUN_ID, besideGit } from "../../src/resolve/session/run-id.mjs";
 
@@ -19,11 +19,13 @@ const BRANCH = "iss-673";
 const lease = (holder) => ({ holder, agent: "a-test-agent", pid: "4242",
   renewedAt: new Date().toISOString(), minutes: 60, next: null, history: [] });
 
-const checkpoint = (extra = {}) => ({
+const at = (tree) => git(tree, "rev-parse", "HEAD").stdout.trim();
+
+const checkpoint = (head, extra = {}) => ({
   state: "ready",
   builder: "the-builder-run",
   branch: BRANCH,
-  head: "0".repeat(40),
+  head,
   base: "1".repeat(40),
   files: [join("plugin", "src", "one.mjs")],
   at: new Date().toISOString(),
@@ -31,10 +33,10 @@ const checkpoint = (extra = {}) => ({
 });
 
 /** The backlog one room's cases are run against: whatever checkpoint and lease each is about. */
-const seeded = ({ landing = checkpoint(), holder, mine = holder, batch = false }) => noBacklog({
+const seeded = ({ landing, holder, mine = holder, batch = false }) => noBacklog({
   issues: [
     row(UUID, KEY, landing, holder),
-    ...(batch ? [row(NEXT_UUID, NEXT_KEY, checkpoint(), mine)] : []),
+    ...(batch ? [row(NEXT_UUID, NEXT_KEY, landing, mine)] : []),
   ],
 });
 
@@ -49,14 +51,15 @@ const row = (documentId, issueId, landing, holder) => ({
   sessionContext: { ...(landing ? { landing } : {}), lease: lease(holder) },
 });
 
-const released = ({ landing = checkpoint(), holder = null, batch = false } = {}) => {
+const released = ({ over = {}, holder = null, batch = false } = {}) => {
   const room = worktreeRoom("finishes-the-checkpoint", KEY);
   const id = mintRunId(room.tree, batch ? [KEY, NEXT_KEY] : [KEY]);
-  seeded({ landing, holder: holder ?? id, mine: id, batch });
   landIn(room.tree, join("plugin", "src", "one.mjs"), 4, "the change this release ships");
+  const built = over === null ? null : checkpoint(at(room.tree), over);
+  seeded({ landing: built, holder: holder ?? id, mine: id, batch });
   const env = { ...room.env };
   delete env.FORGE_SESSION_ID;
-  return { ...room, id, env };
+  return { ...room, id, built, env };
 };
 
 /** Every landing state this release sent to the tracker, in the order it sent them. */
@@ -80,7 +83,7 @@ test("a release finishes the ready checkpoint of the branch it landed", () => {
 });
 
 test("a checkpoint naming another branch is named and left where it stands", () => {
-  const room = released({ landing: checkpoint({ branch: "iss-999" }) });
+  const room = released({ over: { branch: "iss-999" } });
   const run = runIn(room.tree, ["ship"], room.env);
   assert.match(run.stdout, /step 10\/10/u, `${run.stdout}${run.stderr}`);
   assert.deepEqual(sent(), [], `a checkpoint of another branch was written:\n${run.stdout}`);
@@ -89,7 +92,7 @@ test("a checkpoint naming another branch is named and left where it stands", () 
 });
 
 test("a checkpoint past ready is named and left where it stands", () => {
-  const room = released({ landing: checkpoint({ state: "builder-owed" }) });
+  const room = released({ over: { state: "builder-owed" } });
   const run = runIn(room.tree, ["ship"], room.env);
   assert.match(run.stdout, /step 10\/10/u, `${run.stdout}${run.stderr}`);
   assert.deepEqual(sent(), [], `a state the landing owns was written over:\n${run.stdout}`);
@@ -98,7 +101,7 @@ test("a checkpoint past ready is named and left where it stands", () => {
 });
 
 test("an issue carrying no checkpoint leaves the release saying there was none", () => {
-  const room = released({ landing: null });
+  const room = released({ over: null });
   const run = runIn(room.tree, ["ship"], room.env);
   assert.match(run.stdout, /step 10\/10/u, `${run.stdout}${run.stderr}`);
   assert.deepEqual(sent(), [], run.stdout);
@@ -194,7 +197,7 @@ test("a resume onto the last step over a tree that moved since the push leaves t
   const room = released();
   assert.deepEqual(sent(), [], "the room was seeded with something already written");
   runIn(room.tree, ["ship"], room.env);
-  seeded({ holder: room.id });
+  seeded({ landing: checkpoint(at(room.tree)), holder: room.id });
   landIn(room.tree, join("plugin", "src", "two.mjs"), 2, "work the release did not carry");
   const run = runIn(room.tree, ["ship", "--from", "10"], room.env);
   assert.deepEqual(sent(), [], `a checkpoint was finished over work nothing pushed:\n${run.stdout}${run.stderr}`);
@@ -202,4 +205,33 @@ test("a resume onto the last step over a tree that moved since the push leaves t
     `the step did not say why it finished nothing:\n${run.stderr}`);
   assert.match(run.stderr, /release this tree, and the checkpoints follow: node .*run\.mjs ship/u,
     `the report carries no way out:\n${run.stderr}`);
+});
+
+/* The branch name is not the release: a capture taken after one, over a tree since reset back to the
+   commit that release landed, names the same branch and a head that never went anywhere. */
+test("a checkpoint whose head this release does not carry is named and left where it stands", () => {
+  const room = released();
+  runIn(room.tree, ["ship"], room.env);
+  const landed = at(room.tree);
+  landIn(room.tree, join("plugin", "src", "two.mjs"), 2, "work captured after the release");
+  seeded({ landing: checkpoint(at(room.tree)), holder: room.id });
+  git(room.tree, "reset", "--hard", landed);
+  const run = runIn(room.tree, ["ship", "--from", "10"], room.env);
+  assert.deepEqual(sent(), [], `a checkpoint was finished at a head nothing landed:\n${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /is no head this release carries and none its own replay answers for/u,
+    `the step did not say why it left it standing:\n${run.stdout}`);
+});
+
+/* The head a capture names is orphaned by the release's own rebase, so ancestry alone would leave
+   every checkpoint standing the moment somebody else lands first. */
+test("a checkpoint written at the head this release replayed is finished all the same", () => {
+  const room = released();
+  const captured = room.built.head;
+  landIn(room.work, join("docs", "another-run.md"), 1, "somebody else landed first");
+  git(room.work, "push", "origin", "HEAD:master");
+  const run = runIn(room.tree, ["ship"], room.env);
+  assert.match(run.stdout, /step 10\/10/u, `${run.stdout}${run.stderr}`);
+  assert.equal(git(room.tree, "merge-base", "--is-ancestor", captured, "HEAD").status, 1,
+    "the release did not rebase, so this case proves nothing about a replayed head");
+  assert.deepEqual(sent(), ["done"], `the release left its own replayed capture standing:\n${run.stdout}${run.stderr}`);
 });
