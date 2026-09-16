@@ -13,6 +13,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { ranAsync, tempHome } from "../../../fixtures.mjs";
+import { reached } from "../../../patience.mjs";
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../../../..", import.meta.url).pathname;
@@ -348,7 +349,7 @@ test("a body that never finishes runs out on the deadline, the headers having al
   const run = await asked("stalls", "wait for me");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /ran out after 2s \(waitSeconds in config\.json\)/u);
-  assert.equal(state.calls.length, 1);
+  assert.equal(await reached(() => state.calls.length, 1), 1, "the turn the deadline ran out on is the one turn the stub was sent");
 });
 
 /* One turn means one request on the wire, not one call to fetch. */
