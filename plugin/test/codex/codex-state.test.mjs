@@ -8,7 +8,8 @@ import { mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "no
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { apartFrom, clearableOf, demandIn, demandOf, goneFrom, heldSaid, stagedApart, stagedIn } from "../../src/codex/codex-state.mjs";
+import { apartFrom, clearableOf, demandIn, demandOf, goneFrom, heldSaid, settledIn, stagedApart,
+  stagedIn } from "../../src/codex/codex-state.mjs";
 import { digest } from "../../src/codex/codex-api.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
@@ -308,4 +309,31 @@ test("a path deleted while the consult was in flight is held", () => {
   const { clear, held } = clearableOf(root, sent);
   assert.deepEqual(held, ["docs/C.md"], "it went up as content and the tree no longer holds it");
   assert.deepEqual(clear, []);
+});
+
+/* The route a refusal names is `consult --diff`, which is handed nothing for a path carrying no diff,
+   so a record over one could never be cleared by the command the refusal printed (ISS-1642). */
+test("a recorded path carrying no diff and nothing staged is settled, and one that differs is not", () => {
+  const root = tree();
+  writeFileSync(join(root, "docs/B.md"), "docs/B.md changed\n");
+  assert.deepEqual(settledIn(root, ["docs/C.md"]), ["docs/C.md"], "untouched against HEAD");
+  assert.deepEqual(settledIn(root, ["docs/B.md"]), [], "a working-copy change is work a consult reads");
+});
+
+test("a staged path is never settled, so the commit door is unmoved", () => {
+  const root = tree();
+  writeFileSync(join(root, "docs/C.md"), "docs/C.md staged\n");
+  git(root, "add", "docs/C.md");
+  assert.deepEqual(settledIn(root, ["docs/C.md"]), [], "staged work is owed however the tree reads");
+});
+
+test("an untracked file is never settled, whatever the untracked enumeration managed to say", () => {
+  const root = tree();
+  writeFileSync(join(root, "docs/new.md"), "never committed\n");
+  assert.deepEqual(settledIn(root, ["docs/new.md"]), [], "content no commit holds is content a consult reads");
+});
+
+test("a git that cannot answer settles nothing, so doubt never retires a record", () => {
+  const root = tree();
+  assert.deepEqual(settledIn(root, ["docs/C.md"], "no-such-ref"), []);
 });

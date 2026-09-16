@@ -4,7 +4,7 @@
    Four pieces: the call and what it may read (codex-api.mjs), the log that is both its memory and its
    eval set (codex-log.mjs), the turn's bookkeeping (codex-state.mjs), and this — the verb and the
    hook halves. */
-export { afterTouch, ageOf, apartFrom, demandIn, holding, pendingIn, pendingNow, pendingState, stagedIn, statePath }
+export { afterTouch, ageOf, apartFrom, demandIn, holding, pendingIn, pendingNow, pendingState, settledIn, stagedIn, statePath }
   from "./codex-state.mjs";
 export { reviewed, rounds } from "./codex-rounds.mjs";
 export { plannedFor } from "./codex-plan.mjs";

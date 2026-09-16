@@ -151,6 +151,11 @@ gate deciding per write reviewed fragments, and the trigger it decided on could 
   WHERE a document the refusal names is staged at a copy that is not the one on disk, the refusal
   SHALL name staging that document as the route out and SHALL name no consult for it, every consult
   reading the copy on disk and none being able to reach the copy the index holds.
+- **AC-06-3-12** · Rev: 1 · Proof: plugin/test/codex/codex-state.test.mjs "a recorded path carrying no diff and nothing staged is settled, and one that differs is not"
+  WHERE the turn's record holds a path the tree still has, tracked, carrying no change against the
+  tree's own head and nothing of it staged, the CLI SHALL take it out of the record as it lists what
+  is asked for, a consult over it being handed no bytes and so unable to clear it by the route the
+  refusal names; and it SHALL settle no path on a probe that failed to answer.
 
 ### UC-06-4 — What the built-in advisor said travels into the consult
 
