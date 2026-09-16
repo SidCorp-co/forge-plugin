@@ -7,7 +7,8 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { GUIDE_INDEX, guidePartOf, slugFor } from "../../src/stats/transcripts.mjs";
+import { GUIDE_INDEX, guidePartOf } from "../../src/stats/classes.mjs";
+import { slugFor } from "../../src/stats/corpus.mjs";
 import { DEFAULT } from "../../src/guides/flow.mjs";
 import { tempRoom } from "../fixtures.mjs";
 

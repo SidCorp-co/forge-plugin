@@ -5,9 +5,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { PHASES, methodOf } from "../../src/guides/phases.mjs";
-import {
-  MARKERS, RUNG_UNKNOWN, WHOLE_SET_CLASS, classOf, markerOf, shellOf, slugFor,
-} from "../../src/stats/transcripts.mjs";
+import { MARKERS, RUNG_UNKNOWN, markerOf, shellOf } from "../../src/stats/transcripts.mjs";
+import { WHOLE_SET_CLASS, classOf } from "../../src/stats/classes.mjs";
+import { slugFor } from "../../src/stats/corpus.mjs";
 import { runFrom, segmented } from "../../src/stats/runs.mjs";
 import { RUNGS } from "../../src/ladder.mjs";
 import { tempRoom } from "../fixtures.mjs";
@@ -154,3 +154,50 @@ test("a consult before the plan write is the plan's, and the review opens on the
 
 /* One call per route a run writes files through, with what each carried, and a landing that took two
    passes: the two lines the eval reads are pinned against a transcript that adds up by hand. */
+
+/* The method posts the note after the landing under one ship mode and before the ready checkpoint
+   under the other, so a marker that opened a segment measured neither order's phase 6: the late
+   note fell into phase 8, and the early one swallowed every call to the end of a run that never
+   invoked the ship at all (ISS-1583). */
+const noteRun = (order) => {
+  const upTo5 = [
+    ["p1", 10, "forge claim ISS-99"],
+    ["p2", 20, "forge record baseline ISS-99 --gate 'npm run check' --result green"],
+    ["p3", 30, "forge codex consult --send bodies plugin/src/cli.mjs"],
+  ];
+  const calls = [...upTo5, ...(order === "before"
+    ? [["n1", 50, "forge record note ISS-99 --section Fixed --user x"],
+      ["n2", 70, "npm run check"],
+      ["n3", 90, "node /w/tools/run.mjs ship"]]
+    : [["n1", 50, "node /w/tools/run.mjs ship"],
+      ["n2", 70, "npm run check"],
+      ["n3", 90, "forge record note ISS-99 --section Fixed --user x"]])];
+  const text = [
+    JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-99" } }),
+    ...calls.flatMap(([id, start, command]) =>
+      [use(id, start, "Bash", { command }), result(id, start + 5, "done")]),
+  ].join("\n");
+  return runFrom("/f/a.output", "s", text).phases;
+};
+
+test("the note is counted in phase 6 in either order, and opens no segment behind it", () => {
+  const late = noteRun("after");
+  assert.equal(late[6].calls, 1, "a note posted after the landing is phase 6 work, not phase 8's");
+  assert.equal(late[8].calls, 1, "and the gate between the ship and it stays where the run was");
+  assert.equal(late[5].calls, 1, "the whole-set read that opened the proving is still its own phase's");
+  assert.equal(late[7].calls, 1, "the ship is the last call of its own phase");
+
+  const early = noteRun("before");
+  assert.equal(early[6].calls, 1, "a note posted before the ship is the same one call");
+  assert.equal(early[5].calls, 2,
+    "and the pre-ship gate is the phase the run was already in, never the note's");
+  assert.equal(early[7].calls, 1);
+});
+
+test("the profile says which order each run took over the note and the ship", () => {
+  const run = ask(corpus());
+  assert.match(run.stdout, /^notes {11}0 posted before a ship, 0 after one, 0 in a run that never shipped$/mu,
+    "the fixture run posts none, and three zeroes is the answer rather than a missing line");
+  assert.equal(segmented([{ class: "forge record note" }, { class: "read" }])[1].phase, 0,
+    "the note moves the phase for nothing after it, which is what the two orders need");
+});

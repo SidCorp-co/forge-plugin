@@ -2,32 +2,29 @@
    Two profiles of this corpus were written by hand as throwaway scripts, which is a measurement
    taken once. What each figure means, and what it deliberately does not: docs/cli/stats.md. */
 import {
-  FLOW_BRIEF,
   EDIT_ROUTES,
   GUIDE_INDEX,
   POLL,
-  RUNG_UNKNOWN,
   WHOLE_SET_CLASS,
-  callsIn,
+  classesFor,
+  declaredIn,
   guidePartOf,
   guideFlowOf,
-  markerOf,
-  readTranscript,
-  rootFor,
-  rungRun,
-  transcriptsUnder,
-} from "./transcripts.mjs";
+} from "./classes.mjs";
+import { FLOW_BRIEF, callsIn, markerOf, rungRun } from "./transcripts.mjs";
+import { corpusUnder, readTranscript, rootFor } from "./corpus.mjs";
+import {
+  countIn, declareLines, foldPhases, listing, perRung, phaseLines, rungLines, shipLine, unrecognisedIn,
+} from "./tables.mjs";
+import { add, medianOrZero, minutes, share, stamp } from "./figures.mjs";
 import { reachOf, reachSaid } from "./marks/reach.mjs";
 import { claimedIn, parkWritersIn, rulingsIn } from "./joined.mjs";
-import { median } from "./median.mjs";
 import { PHASES } from "../guides/phases.mjs";
-import { RUNGS } from "../ladder.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
 import { FORMS, READ_AS } from "../resolve/handler.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 
-const ROWS = 10;
 const REPEATED = 3;
 const LONG_WAIT_MINUTES = 10;
 const WINDOW = /^(?<many>\d+)(?<unit>[dhm])$/u;
@@ -45,13 +42,6 @@ export const RUNS_USAGE = [
   "                 the checkout the runs were worked in",
   "  --json         the whole table rather than the top rows, for a diff between two weeks",
 ].join("\n");
-
-const medianOrZero = (values) => median(values) ?? 0;
-
-const minutes = (seconds) => Math.round((seconds / 60) * 10) / 10;
-const share = (part, whole) => (whole ? `${Math.round((part / whole) * 100)}%` : "—");
-const add = (map, key, by = 1) => map.set(key, (map.get(key) ?? 0) + by);
-export const stamp = (at) => new Date(at).toISOString().slice(0, 16).replace("T", " ");
 
 /* 143 is the shell's own answer to a killed command; the words alone appear in a log a run was
    reading, and counting those made a transcript that MENTIONED a timeout into one that hit it. */
@@ -124,6 +114,7 @@ export const segmented = (calls) => {
   let phase = 0;
   return calls.map((call) => {
     const marker = markerOf(call.class);
+    if (marker?.only) return { ...call, phase: marker.phase };
     if (marker && marker.phase > phase && !seen.has(marker.phase) && phase >= (marker.after ?? 0)) {
       seen.add(marker.phase);
       phase = marker.phase;
@@ -134,24 +125,6 @@ export const segmented = (calls) => {
     if (marker?.last && phase === marker.phase) phase = marker.phase + 1;
     return { ...call, phase: held };
   });
-};
-
-const emptyPhase = () => PHASES.map(() => ({ seconds: 0, calls: 0, byClass: new Map() }));
-
-const foldPhases = (calls, startedAt, endedAt) => {
-  const phases = emptyPhase();
-  let last = startedAt;
-  for (const call of calls) {
-    const held = phases[call.phase];
-    held.calls += 1;
-    held.seconds += Math.max(0, call.endedAt - last) / 1000;
-    const was = held.byClass.get(call.class) ?? { calls: 0, wait: 0 };
-    held.byClass.set(call.class, { calls: was.calls + 1, wait: was.wait + call.wait });
-    last = Math.max(last, call.endedAt);
-  }
-  /* The closing report is generation the wall counts and no phase did, off the loop's own cursor (ISS-308). */
-  if (calls.length) phases[calls.at(-1).phase].seconds += Math.max(0, endedAt - last) / 1000;
-  return phases;
 };
 
 /* Waits overlap: the host issues several calls in one turn and they run at once, so their durations
@@ -211,14 +184,25 @@ const shipsIn = (calls) => {
   };
 };
 
-/* Per route, the calls and what each carried. */
+const NOTE = "forge record note";
+export const NOTE_ORDERS = ["before", "after", "unshipped"];
+
+/* The split the phase table stopped showing once the note row opened no segment: three answers, so a run that wrote one and reached no landing is a reading rather than a gap. */
+const noteOrder = (calls) => {
+  const note = calls.findIndex((call) => call.class === NOTE);
+  if (note < 0) return null;
+  const ship = calls.findIndex((call) => call.class === "ship");
+  if (ship < 0) return "unshipped";
+  return note < ship ? "before" : "after";
+};
+
 const editsIn = (calls) => new Map(EDIT_ROUTES.map((route) => {
   const sizes = calls.filter((call) => call.class === route).map((call) => call.size);
   return [route, { calls: sizes.length, sizes }];
 }));
 
-export const runFrom = (path, session, text) => {
-  const read = callsIn(text);
+export const runFrom = (path, session, text, classes = undefined) => {
+  const read = callsIn(text, classes);
   const calls = segmented(read.calls);
   if (!calls.length) return null;
   /* The transcript's own bounds rather than the calls', for the reason callsIn states. */
@@ -280,6 +264,7 @@ export const runFrom = (path, session, text) => {
     rechecks: counted("forge codex recheck"),
     verdicts: counted("forge record verdict"),
     ships: shipsIn(calls),
+    notes: noteOrder(calls),
     edits: editsIn(calls),
     byClass,
     refusals,
@@ -292,9 +277,8 @@ export const runFrom = (path, session, text) => {
   };
 };
 
-/* Its brief said so, or it took an issue's lease — the two the marker means, transcripts.mjs. */
-const flowRun = (path, session, text) => {
-  const run = runFrom(path, session, text);
+const flowRun = (path, session, text, classes) => {
+  const run = runFrom(path, session, text, classes);
   if (!run) return null;
   return FLOW_BRIEF.test(run.brief) || run.byClass.has("forge claim") ? run : null;
 };
@@ -302,12 +286,13 @@ const flowRun = (path, session, text) => {
 /** Every transcript under the derived root, folded. A file that is not an issue-flow run is
  *  counted rather than dropped: a corpus that shrank because the marker changed reads exactly like
  *  a quiet week. */
-export const runsUnder = (root, since) => {
+export const runsUnder = (root, since, classes = undefined) => {
   const runs = [];
   let skipped = 0;
   let outsideWindow = 0;
   let unreadable = 0;
-  for (const { session, path } of transcriptsUnder(root)) {
+  const { transcripts, sources } = corpusUnder(root);
+  for (const { session, path } of transcripts) {
     const text = readTranscript(path);
     if (text === null) {
       unreadable += 1;
@@ -317,7 +302,7 @@ export const runsUnder = (root, since) => {
        that transcript rather than the corpus. What it cost is printed rather than swallowed. */
     let run = null;
     try {
-      run = flowRun(path, session, text);
+      run = flowRun(path, session, text, classes);
     } catch {
       unreadable += 1;
       continue;
@@ -335,7 +320,7 @@ export const runsUnder = (root, since) => {
     runs.push(run);
   }
   runs.sort((left, right) => left.startedAt - right.startedAt);
-  return { runs, skipped, outsideWindow, unreadable };
+  return { runs, skipped, outsideWindow, unreadable, sources };
 };
 
 const mergedClasses = (runs, pick) => {
@@ -376,8 +361,9 @@ const mergedParts = (runs) => {
   return [...merged].sort((left, right) => right[1].calls - left[1].calls);
 };
 
-export const profileOf = (runs) => {
+export const profileOf = (runs, declared = null) => {
   const seconds = runs.map((run) => run.seconds);
+  const byClass = mergedClasses(runs, (run) => run.byClass);
   const waited = runs.reduce((sum, run) => sum + run.waited, 0);
   const toolSeconds = runs.reduce((sum, run) => sum + run.toolSeconds, 0);
   const whole = runs.reduce((sum, run) => sum + run.seconds, 0);
@@ -434,9 +420,12 @@ export const profileOf = (runs) => {
       resumed: runs.reduce((sum, run) => sum + run.ships.resumed, 0),
       rejectedRuns: runs.reduce((sum, run) => sum + run.ships.rejected, 0),
     },
+    notes: Object.fromEntries(NOTE_ORDERS.map((one) =>
+      [one, runs.filter((run) => run.notes === one).length])),
     phases,
     rungs: perRung(runs),
-    byClass: mergedClasses(runs, (run) => run.byClass),
+    byClass,
+    unrecognised: unrecognisedIn(byClass, declared),
     refusals: mergedCounts(runs, (run) => run.refusals),
     forms: mergedCounts(runs, (run) => run.forms),
     errors: mergedCounts(runs, (run) => run.errors),
@@ -446,65 +435,22 @@ export const profileOf = (runs) => {
   };
 };
 
-/* One row per rung the ladder has, plus one for the runs that named none: folded into a rung those
-   would flatter it, and dropped they would make the rows fail to add up to the corpus. The rungs'
-   own order, so the table reads as the ladder and a rung no run reached still has its row saying so
-   — a rung absent from a profile is indistinguishable from a rung that costs nothing. */
-export const perRung = (runs) => [...RUNGS, RUNG_UNKNOWN].map((rung) => {
-  const held = runs.filter((run) => run.rung === rung);
-  const seconds = held.map((run) => run.seconds);
-  return {
-    rung,
-    runs: held.length,
-    medianMinutes: minutes(medianOrZero(seconds)),
-    totalMinutes: minutes(seconds.reduce((sum, one) => sum + one, 0)),
-    medianCalls: medianOrZero(held.map((run) => run.calls)),
-    medianConsults: medianOrZero(held.map((run) => run.consults)),
-    medianGates: medianOrZero(held.map((run) => run.gates)),
-  };
-});
-
-const RUNG_WIDTH = 10;
-const rungLines = (held) => [
-  "",
-  `${"rung".padEnd(RUNG_WIDTH)}${"runs".padStart(5)}${"min med".padStart(9)}${"min sum".padStart(9)}`
-  + `${"calls med".padStart(11)}${"consults".padStart(10)}${"gates".padStart(7)}`,
-  ...held.rungs.map((row) =>
-    `${row.rung.padEnd(RUNG_WIDTH)}${String(row.runs).padStart(5)}${row.medianMinutes.toFixed(1).padStart(9)}`
-    + `${row.totalMinutes.toFixed(0).padStart(9)}${row.medianCalls.toFixed(1).padStart(11)}`
-    + `${row.medianConsults.toFixed(1).padStart(10)}${row.medianGates.toFixed(1).padStart(7)}`),
-];
-
-const capped = (rows, all) => (all ? rows : rows.slice(0, ROWS));
-const elided = (rows, all) =>
-  (!all && rows.length > ROWS ? [`  (${rows.length - ROWS} more; --json for all)`] : []);
-
-const listing = (title, rows, line, all) =>
-  (rows.length ? ["", title, ...capped(rows, all).map(line), ...elided(rows, all)] : []);
-
-const phaseLines = (held) => [
-  "",
-  `${"phase".padEnd(12)}${"runs".padStart(5)}${"min med".padStart(9)}${"min sum".padStart(9)}`
-  + `${"calls med".padStart(11)}  what fills it (calls, wait)`,
-  ...held.phases.map((phase) =>
-    `${phase.name.padEnd(12)}${String(phase.runs).padStart(5)}${phase.medianMinutes.toFixed(1).padStart(9)}`
-    + `${phase.totalMinutes.toFixed(0).padStart(9)}${phase.medianCalls.toFixed(1).padStart(11)}  `
-    + phase.byClass.map(([label, one]) => `${label} ${one.calls} ${minutes(one.wait).toFixed(0)}m`).join(" · ")),
-];
-
 export const profileLines = (held, all = false) => [
   `wall            ${held.totalMinutes} min in all, median ${held.medianMinutes}/run, longest ${held.longestMinutes}`,
   `where it went   ${held.waitMinutes} min waiting on a tool (${held.waitShare}), `
     + `${held.modelMinutes} min model (${held.modelShare})`,
   `calls           median ${held.medianCalls}/run, ${held.calls} in all, ${held.unanswered} never answered`,
   `to first claim  median ${held.toFirstClaim} min`,
-  `per run         ${held.perRun.gate} gate, ${held.perRun.test} test, ${held.perRun.consult} consult, `
+  `per run         ${countIn(held, "gate", held.perRun.gate)} gate, ${countIn(held, "test", held.perRun.test)} test, `
+    + `${held.perRun.consult} consult, `
     + `${held.perRun.recheck} recheck, ${held.perRun.verdict} verdict, ${held.perRun.advance} advance `
     + `(${held.perRun.advanceAfterRecord} of them after a record)`,
   `edits           per run ${held.edits.map((one) => `${one.route} ${one.perRun}`).join(", ")} · `
     + `median chars/call ${held.edits.map((one) => `${one.route} ${one.medianChars}`).join(", ")}`,
-  `ships           ${held.ships.passes} pass(es), median ${held.ships.perRun}/run, ${held.ships.resumed} resumed with --from, `
-    + `a push rejected in ${held.ships.rejectedRuns} run(s)`,
+  shipLine(held),
+  `notes           ${held.notes.before} posted before a ship, ${held.notes.after} after one, `
+    + `${held.notes.unshipped} in a run that never shipped`,
+  ...declareLines(held),
   `timeouts        ${held.timeouts}`,
   `other errors    ${held.errors.reduce((sum, [, many]) => sum + many, 0)} non-zero exit(s) refused by no rule of this plugin`
     + `${held.errors.length ? `: ${held.errors.map(([label, many]) => `${label} ${many}`).join(", ")}` : ""}`,
@@ -553,10 +499,14 @@ export const readingAside = ({ skipped, outsideWindow = 0, unreadable = 0 }) =>
   + `${outsideWindow ? `, ${outsideWindow} outside the window` : ""}`
   + `${unreadable ? `, ${unreadable} this reading could not parse` : ""}`;
 
-/** Where the root came from, said once: a reader who sees an empty corpus is looking at a path
- *  derived from a directory rather than named, and `--checkout` is the whole of the way out. */
+/** Where the roots came from, said once: a reader who sees an empty corpus is looking at paths derived from a directory rather than named, and `--checkout` is the whole of the way out. */
 export const derivedFrom = (directory) =>
-  `\nThat root is derived from ${directory}; name the checkout the runs were worked in with --checkout.`;
+  `\nThose roots are derived from ${directory}; name the checkout the runs were worked in with --checkout.`;
+
+/** Every place the reading was taken from, with what each held: a reader who finds depth missing cannot act on one root, and the two differ in whether the system sweeps them. */
+export const sourceLines = (sources) => sources.map((one) =>
+  `${one.path}  ${one.transcripts} transcript(s), ${one.taken} counted here`
+  + `${one.temporary ? "  — a temporary filesystem, swept on reboot and between" : ""}`);
 
 export const checkoutFrom = (given, verb) => {
   if (given === undefined) return process.cwd();
@@ -574,22 +524,25 @@ export const printRuns = (rest) => {
   const from = windowFrom(since);
   const directory = checkoutFrom(checkout, "stats runs");
   const root = rootFor(directory);
-  const { runs, skipped, outsideWindow, unreadable } = runsUnder(root, from);
+  const declared = declaredIn(directory);
+  const { runs, skipped, outsideWindow, unreadable, sources } = runsUnder(root, from, classesFor(declared));
   const aside = readingAside({ skipped, outsideWindow, unreadable });
-  const held = profileOf(runs);
+  const held = profileOf(runs, declared);
   const reach = since === undefined ? reachOf(root, held.from) : null;
   if (json) {
     return console.log(JSON.stringify(
-      { root, project: directory, skipped, outsideWindow, unreadable, ...(reach ? { reach } : {}), ...held },
+      { root, sources, project: directory, skipped, outsideWindow, unreadable, ...(reach ? { reach } : {}), ...held },
       null, 2));
   }
   if (!runs.length) {
-    return console.log(`No issue-flow run under ${root}${since ? ` in the last ${since}` : ""}. ${aside}.`
+    return console.log(`No issue-flow run for this project${since ? ` in the last ${since}` : ""}. ${aside}.\n`
+      + `${sourceLines(sources).join("\n")}`
       + derivedFrom(directory));
   }
   console.log(`${held.runs} issue-flow run(s)${since ? ` in the last ${since}` : ""}, `
     + `${stamp(held.from)} to ${stamp(held.to)}`);
-  console.log(`${root}\n${aside}${reach ? `\n${reachSaid(reach)}` : ""}\n`);
+  console.log(`${sourceLines(sources).join("\n")}\n${aside}`
+    + `${reach ? `\n${reachSaid(reach, sources)}` : ""}\n`);
   for (const line of profileLines(held)) console.log(line);
   return null;
 };

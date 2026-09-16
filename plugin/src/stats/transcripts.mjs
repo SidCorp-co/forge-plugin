@@ -1,24 +1,9 @@
 /* A subagent run as the harness recorded it, read back as pairs of call and result — docs/cli/stats.md. */
-import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-
-import { DEFAULT } from "../guides/flow.mjs";
+import { CLASSES, POLL, WHOLE_SET_CLASS, classOf } from "./classes.mjs";
 import { NOTHING, logRead } from "../hooks/log-reads.mjs";
 import { quoting } from "../hooks/shell-spans.mjs";
-import { VERB_NAMES } from "../resolve/visibility.mjs";
-import { handledBy } from "../resolve/handler.mjs";
 import { RUNGS, highest } from "../ladder.mjs";
 import { stampedIn } from "../flow/machine.mjs";
-
-export const transcriptBase = () => join(tmpdir(), `claude-${process.getuid?.() ?? 0}`);
-
-export const slugFor = (directory) => directory.replaceAll(/[^a-zA-Z0-9]/gu, "-");
-
-/** Where one project's transcripts sit; the trailing separator is cut first, or one checkout named two ways answers as two corpora. */
-export const rootFor = (directory) => join(transcriptBase(), slugFor(directory.replace(/\/+$/u, "") || "/"));
-
-const OUTPUT = /^a\S*\.output$/u;
 
 /* The brief, never the whole file: over raw text a transcript that had only GREPPED the words was admitted as a run, and the rung below is off a record for the same reason — docs/cli/stats.md. */
 export const FLOW_BRIEF = /issue-flow/u;
@@ -39,81 +24,6 @@ export const rungRun = (calls) => {
     .filter((one) => RUNGS.includes(one));
   /* The largest, which is the batch rule: a run of three issues is as heavy as its heaviest. */
   return said.length ? highest(said) : RUNG_UNKNOWN;
-};
-
-const namesIn = (directory) => {
-  try {
-    return readdirSync(directory, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-};
-
-export const transcriptsUnder = (root) =>
-  namesIn(root)
-    .filter((entry) => entry.isDirectory())
-    .flatMap((session) => {
-      const tasks = join(root, session.name, "tasks");
-      return namesIn(tasks)
-        .filter((entry) => !entry.isDirectory() && OUTPUT.test(entry.name))
-        .map((entry) => ({ session: session.name, path: join(tasks, entry.name) }));
-    });
-
-/* Where a command actually starts. A bare space is not a command position: read as one, an echoed
-   line was a record and a grep argument a claim, each advancing a phase the run had not reached. */
-const LEADS = String.raw`(?:^|[\n;|&(){}])[ \t]*`
-  + String.raw`(?:(?:[A-Za-z_][\w.]*=\S*|sudo|time|timeout|env|xargs|do|then|else|if|!)[ \t]+(?:\d+[ \t]+)?)*`;
-
-const at = (what) => new RegExp(LEADS + what, "u");
-
-/* One spelling of the call for both readings below — the binary, the verb, the word after it and the word after that. The guide reading fixes the verb rather than filtering the first call, so a `forge guide` later in a compound command is still the part that run read. A sub is that second word as a verb name reads it, stopping at the first character no verb carries, where a slug and its part are read whole: one token, two word classes. */
-const CALL = (verb) => String.raw`(?:\S*/)?forge[ \t]+${verb}`
-  + String.raw`(?:[ \t]+(?<slug>[a-z][\w-]*)(?:[ \t]+(?<part>[a-z][\w-]*))?)?`;
-const FORGE = at(CALL(String.raw`(?<verb>[a-z][a-z-]*)`));
-const SUB_WORD = /^[a-z][a-z-]*/u;
-
-/* Two verbs whose actions cost differently enough to earn rows; `forge guide` would be thirteen. */
-const SUBBED = new Set(["codex", "record"]);
-
-/** The consult reading every file the change touched, which is the pass a review is earned by. Told by the flag and never by a `codex.send` setting, which no transcript records: docs/cli/stats-rows.md. */
-export const WHOLE_SET_CLASS = "forge codex whole-set";
-const WHOLE_SET = /--send[= \t]+bodies\b/u;
-
-/* The binary by path and by name is one row, and what follows has to be a verb this CLI has. */
-const forgeClass = (shell) => {
-  const found = FORGE.exec(shell)?.groups;
-  if (!found) return null;
-  /* A form is a `forge` command, classed by the word typed: read as a verb it is none, so `forge close` fell to `shell` and the tool-seconds table filed it under nothing (ISS-704). */
-  if (handledBy(found.verb)) return `forge ${found.verb}`;
-  if (!VERB_NAMES.includes(found.verb)) return null;
-  const sub = found.slug ? SUB_WORD.exec(found.slug)?.[0] : undefined;
-  if (found.verb === "codex" && sub === "consult") {
-    if (shell.includes("--recheck")) return "forge codex recheck";
-    return WHOLE_SET.test(shell) ? WHOLE_SET_CLASS : "forge codex consult";
-  }
-  return SUBBED.has(found.verb) && sub ? `forge ${found.verb} ${sub}` : `forge ${found.verb}`;
-};
-
-export const GUIDE_INDEX = "(index)";
-
-/* The class table keeps `forge guide` one row; which part a run read is a table of its own. */
-const GUIDE = at(CALL("guide"));
-
-export const guidePartOf = (shell) => {
-  const found = GUIDE.exec(shell)?.groups;
-  if (!found) return null;
-  return [found.slug, found.part].filter(Boolean).join(" ") || GUIDE_INDEX;
-};
-
-/* Off the line the part ends with, never this copy's own flow — which for an older transcript would
-   be this machine's configuration passed off as that run's fact (ISS-673). The second shape is the
-   retired key's, read as the flow it named, so an older window is a window (ISS-902). */
-const SERVED_FLOW = /^Flow ([a-z][a-z0-9-]*), which this project runs/mu;
-const SERVED_METHOD = /^Method version 1, which this project runs;/mu;
-
-export const guideFlowOf = (body) => {
-  const held = String(body ?? "");
-  return SERVED_FLOW.exec(held)?.[1] ?? (SERVED_METHOD.test(held) ? DEFAULT : null);
 };
 
 /* Text a command carries is not a command it ran: read as one, heredoc bodies named `npm run
@@ -151,46 +61,6 @@ export const shellOf = (command) => {
   return said.join("");
 };
 
-/* The invocation, never the mention: `pgrep -f "tools/run.mjs ship"` is a run WAITING for one. */
-const SHIP = at(String.raw`node[ \t]+\S*tools/run\.mjs[ \t]+ship\b`);
-
-export const POLL = "poll";
-
-export const CLASSES = [
-  ["gate", at(String.raw`(?:npm run check|node\s+\S*tools/gates\.mjs)`)],
-  ["ship", SHIP],
-  ["test", at(String.raw`(?:node --test|npm (?:run )?test|npx vitest|npx playwright)`)],
-  ["forge", forgeClass],
-  ["git", at(String.raw`git\s`)],
-  [POLL, at(String.raw`(?:sleep|until|while|pgrep)\s`)],
-  ["edit heredoc", at(String.raw`(?:python3|node) - <<`)],
-  ["edit sed", at(String.raw`sed -i\s`)],
-  ["edit file", at(String.raw`(?:cat|tee)\s+>`)],
-  ["read", at(String.raw`(?:cat|sed -n|head|tail|grep|rg|ls|wc|find)\s`)],
-];
-
-const TOOL_CLASS = { Read: "read", Grep: "read", Glob: "read", Edit: "edit", Write: "write", NotebookEdit: "edit" };
-
-/** The routes a run writes a file through, each a class above. */
-export const EDIT_ROUTES = ["edit", "write", "edit heredoc", "edit file", "edit sed"];
-
-/** What a call carried, in characters of the model's own output. */
-const sizeOf = (name, input) => {
-  if (name === "Bash") return string(input?.command).length;
-  if (name === "Edit") return string(input?.old_string).length + string(input?.new_string).length;
-  if (name === "Write") return string(input?.content).length;
-  return 0;
-};
-
-export const classOf = (name, shell) => {
-  if (name !== "Bash") return TOOL_CLASS[name] ?? name.toLowerCase();
-  for (const [label, match] of CLASSES) {
-    const found = typeof match === "function" ? match(shell) : match.test(shell) && label;
-    if (found) return found;
-  }
-  return "shell";
-};
-
 /* A poll is only in the order, so: off the same function `bash-guard.mjs` refuses with, forgetting
    where that gate forgets — one class here is one refusal there, and the third read is the recovery. */
 const polled = (calls) => {
@@ -214,7 +84,8 @@ export const MARKERS = [
   { phase: 3, classes: ["forge record decision"] },
   { phase: 4, classes: ["forge record plan", "forge record criteria", "forge record baseline"] },
   { phase: 5, classes: [WHOLE_SET_CLASS], after: 4 },
-  { phase: 6, classes: ["forge record note"] },
+  /* `only` books its own call and moves the run's phase for nothing after it: the method posts the note after the landing under one ship mode and before the ready checkpoint under the other, so a row that opened a segment measured the interval to whatever came next rather than the note (ISS-1583). */
+  { phase: 6, classes: ["forge record note"], only: true },
   { phase: 7, classes: ["ship"], last: true },
 ];
 
@@ -222,6 +93,14 @@ export const markerOf = (label) => MARKERS.find((row) => row.classes.includes(la
 
 /* A name that is not a string is what a change on the host's side looks like from here. */
 const string = (value) => (typeof value === "string" ? value : "");
+
+/** What a call carried, in characters of the model's own output. */
+const sizeOf = (name, input) => {
+  if (name === "Bash") return string(input?.command).length;
+  if (name === "Edit") return string(input?.old_string).length + string(input?.new_string).length;
+  if (name === "Write") return string(input?.content).length;
+  return 0;
+};
 
 const textOf = (content) => {
   if (typeof content === "string") return content;
@@ -231,7 +110,7 @@ const textOf = (content) => {
 
 /** A transcript folded into its calls, the moments it ran between and the brief it opened with. The
  *  bounds are every record's: the opening prompt and the closing report are generation the run spent, and a window it belongs to. */
-export const callsIn = (whole) => {
+export const callsIn = (whole, classes = CLASSES) => {
   const uses = new Map();
   const results = new Map();
   const order = [];
@@ -275,7 +154,7 @@ export const callsIn = (whole) => {
       command: use.command,
       size: use.size,
       shell,
-      class: classOf(use.name, shell),
+      class: classOf(use.name, shell, classes),
       answered: Boolean(result),
       /* Zero for a call that never returned, neither skipped nor stretched to the next: the hand
          profilers took one of the three each, and a run cut mid-gate is the common case. */
@@ -286,12 +165,4 @@ export const callsIn = (whole) => {
     };
   }));
   return { calls, brief, firstAt, lastAt: Math.max(lastAt, ...calls.map((one) => one.endedAt)) };
-};
-
-export const readTranscript = (path) => {
-  try {
-    return readFileSync(path, "utf8");
-  } catch {
-    return null;
-  }
 };

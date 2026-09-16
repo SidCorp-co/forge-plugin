@@ -31,6 +31,16 @@ fold has reached rather than from the last call's, because the harness issues se
 turn and a pair whose later call returned first would otherwise have its overlap counted twice and
 push the phases past the wall (ISS-308).
 
+**The note is counted where it is posted, and opens nothing behind it.** The method has no single
+order for it: under one ship mode Phase 7 posts the note after the landing, and under the other the
+note is written before the ready checkpoint of a run that never invokes the ship at all. A row that
+opened a segment measured neither — the late note fell past the ship into the last phase, and the
+early one swallowed every call to the end of a run with no ship to close it, which is how 222
+minutes of pre-ship gate came to be read as the cost of writing release prose. So that row books its
+own call and moves the run's phase for nothing after it, and the two orders are counted instead:
+over 434 runs, 101 posted the note before a ship, 157 after one and 37 in a run that never shipped.
+A run taking either order is visible rather than reclassified into the other (ISS-1583).
+
 Each of those last two rules is declared on the marker row it constrains rather than beside the cut
 it makes, so a phase number is written once. Renumbering a phase then moves the cut with it; a
 second copy of the number would go on matching a phase that had moved.

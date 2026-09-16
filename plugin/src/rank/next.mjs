@@ -6,7 +6,7 @@ import { chainOf, complexitySaid, holdingKeys, ordered, scoreOf, takeableKeys } 
 import { everyIssue, keysIn, shortOf } from "../tracker/issues.mjs";
 import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { asksOf } from "../tracker/issue-shape.mjs";
-import { rootFor } from "../stats/transcripts.mjs";
+import { rootFor } from "../stats/corpus.mjs";
 import { resolverIn, treeAt } from "./checkout.mjs";
 import { batchesOf } from "./batch.mjs";
 import { candidateLines, droppedLine, graphLines, HEAD } from "./print.mjs";

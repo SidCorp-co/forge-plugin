@@ -4,7 +4,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { runsUnder } from "../../src/stats/runs.mjs";
-import { slugFor } from "../../src/stats/transcripts.mjs";
+import { slugFor } from "../../src/stats/corpus.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 export const FORGE = new URL("../../bin/forge", import.meta.url).pathname;

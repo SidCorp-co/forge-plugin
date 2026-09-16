@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 import { WINDOW, evalLines, evalRuns, releaseMark, runsMark } from "../../../src/stats/eval.mjs";
 import { marksOf, marksPath, writeMark } from "../../../src/stats/marks/marks.mjs";
-import { slugFor } from "../../../src/stats/transcripts.mjs";
+import { slugFor } from "../../../src/stats/corpus.mjs";
 import { escaped, tempRoom } from "../../fixtures.mjs";
 import { HOUR, PROJECT, ask, askStats, at, corpusOf, runsOf } from "../fixture-eval.mjs";
 
@@ -95,7 +95,7 @@ test("a stored reading is the before window, and the screen says where the windo
     assert.deepEqual(json.before, record.now, "the stored recent window, byte for byte, as the before");
     assert.equal(json.before.outcomes, undefined, "which is why the before side of a pinned comparison has no outcome figure");
     assert.equal(json.now.runs, 50);
-    assert.deepEqual(Object.keys(json).slice(5, 9), ["requests", "size", "total", "against"]);
+    assert.deepEqual(Object.keys(json).slice(6, 10), ["requests", "size", "total", "against"]);
 
     const newest = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--against", "--json"], home).stdout);
     assert.equal(newest.against, 50, "criterion 8: bare --against is the newest held");
