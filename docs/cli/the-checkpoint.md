@@ -22,6 +22,21 @@ step, and what this landing did is a fact about it where the route is not.
 
 Where nothing asks for a second judge the state is not written at all and the landing runs through.
 
+## A release finishes the checkpoint whatever route it took
+
+`ready` says a lander owes this branch its first step, so it has to stop being true the moment the
+branch is landed and released — by whichever of the two routes did it. The batch landing writes
+`done` at the end of its own walk. A run that lands its own change writes it from the release's last
+step, over the branch that release landed and over no other, having read which issues the tree
+answers for off the id its workspace was minted under. Left unwritten, the field outlives the release
+it describes and the next landing that asks what is ready is told this branch is, which buys a gate,
+a version and a push for a merge that changes nothing.
+
+Neither route reads that write back as a status. `done` says no turn of the landing is left; how far
+up the ladder the record has carried the issue is the record's own answer, and a release that owes a
+person an act leaves the issue standing at the rung it earned with the checkpoint finished all the
+same.
+
 ## A candidate is a fact about the branches on it
 
 The landing takes the branches it is given as one candidate: the pin merged with the first head,

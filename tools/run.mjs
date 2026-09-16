@@ -18,6 +18,7 @@ import { acrossVersion } from "./gates/carried.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { follows, installs } from "./run/install.mjs";
 import { REPLAY_HELP, REPLAYED, replaySays, replayedBy } from "./run/replayed.mjs";
+import { checkpointsFinished } from "./run/checkpoint.mjs";
 import { cleanTree, INSTALLS, land, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./run/land.mjs";
 import { landReady } from "./run/land-ready.mjs";
 import { onlyRelease, RELEASE_FILES } from "./run/landing.mjs";
@@ -75,7 +76,8 @@ const usage = () => [
   "                          rebase, `npm run check`, a version above the remote head, push, the",
   "                          checkout offered that head, the marketplace and the plugin installed",
   "                          from the tree that shipped, then the installed copy named, the sha the",
-  "                          change landed as, and every file of it a session cannot pick up",
+  "                          change landed as, the landing checkpoint of every issue this tree was",
+  "                          started for finished, and every file of it a session cannot pick up",
   "                          without restarting",
   `  ${sig("land")}         land a commit that is not a release: clean tree, fetch, rebase, push,`,
   "                          under the same lock the ship takes and nothing else of it. It spends no",
@@ -144,6 +146,16 @@ const usage = () => [
   "It names beside those the sha the change landed as, which is not the pushed head the push printed:",
   "the rebase rewrote the commit the run reviewed and the version commit sits above it, so a mark that",
   "is about the change rather than about the release reads its sha from there and not off a log by eye.",
+  "",
+  "The same step finishes the landing checkpoint each issue this tree was started for left, because a",
+  "release is a landing and this one wrote no landing state at all: a branch its own run released read",
+  "`ready` afterwards, which is the state saying a lander still owes it a first step, and `land-ready`",
+  "naming no issue then found that branch and would build a candidate whose merge changes nothing. The",
+  "keys come off the id `start` minted into this tree\u0027s git directory, never off the branch name, a",
+  "batch being one tree under one id. Only a checkpoint reading `ready` and naming the branch this",
+  "release landed is finished; every other one is named and left where it stands, as is one whose write",
+  "the tracker refused, since a release already pushed and installed is no place to fail. The checkpoint",
+  "is not the status: what the record earns is the run\u0027s own to advance afterwards.",
   "",
   `That last step also counts what landed under ${REVIEW_PATHS.join(", ")} since ${REVIEWED}, and`,
   `says one reading of the whole of it is owed once the range holds ${reviewLines()} changed line(s).`,
@@ -480,6 +492,9 @@ const shipSteps = (tree, root, base, note) => {
   const push = `push to ${REMOTE}/${base}`;
   const resume = () => `Resume the release at its push step, where the branch push is a no-op and `
     + `this is retried: ${SELF} ship --from ${rows.findIndex(([one]) => one === push) + 1}`;
+  /* The last step and not the push: what this one clears is a tracker write, and a resume onto the
+     push would spend the whole release again to reach it. */
+  const again = () => `${SELF} ship --from ${rows.length}`;
   const rows = [
     ["the tree is clean", () => cleanTree(tree)],
     [`fetch ${REMOTE}/${base}`, () => {
@@ -527,6 +542,7 @@ const shipSteps = (tree, root, base, note) => {
          the head are the two things a reading taken later cannot work out for itself. */
       const held = releaseMark(root, { version: copy?.installed, head: gitOut(["rev-parse", "HEAD"], tree) });
       if (held) console.log(`  ${held}`);
+      await checkpointsFinished(tree, again());
       /* Inside the step and not after the whole run, so a `--from 9` resume carries it too. */
       partForLanding((phase) => console.log(`\n${phase}`));
     }],

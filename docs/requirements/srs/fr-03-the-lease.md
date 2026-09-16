@@ -247,6 +247,11 @@ a wait no party can end.
   naming both commits, what stands between them and the push that puts the judged head back on the
   branch, because the landing merges the judged head and a release cut over a branch that moved
   leaves the rest of it unlanded with nothing said.
+- **AC-03-6-11** · Rev: 1 · Proof: plugin/test/run/run-checkpoint.test.mjs "a release finishes the ready checkpoint of the branch it landed"
+  WHEN a release lands the branch a checkpoint declared ready THEN that release SHALL leave the
+  checkpoint in the state that names no turn, because a checkpoint still declaring a landed branch
+  ready is what the next landing reads when it asks what this project left ready, and it would spend
+  a gate, a version and a push on a merge that changes nothing.
 
 ## Business rules enforced
 

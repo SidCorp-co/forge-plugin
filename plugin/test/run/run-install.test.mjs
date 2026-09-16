@@ -1,8 +1,9 @@
 /* Which tree a release installs from, and what the shared checkout's state decides. The marketplace
    installs from one registered directory, so a release that had to move that checkout to the pushed
    head first was stopped after its own push by whatever any session left unpushed there (ISS-374).
-   The other three readers of `tools/run.mjs` are `run-script.test.mjs` for the steps,
-   `run-lock.test.mjs` for the span and `run-review.test.mjs` for the count. */
+   The other four readers of `tools/run.mjs` are `run-script.test.mjs` for the steps,
+   `run-lock.test.mjs` for the span, `run-review.test.mjs` for the count and
+   `run-checkpoint.test.mjs` for the landing checkpoint a release leaves. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";

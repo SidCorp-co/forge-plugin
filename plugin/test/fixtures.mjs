@@ -393,8 +393,11 @@ export const fakeTracker = async (state) => {
       : { pipelineConfig: held.pipelineConfig };
   };
   const builtIn = (name, args) => {
+    /* A handler answering `undefined` has taken the call and not the answer, and the built-in below
+       serves it: that is how a fixture records a write without restating every read beside it. */
     const own = (state.answer ?? {})[name];
-    if (own) return own(args);
+    const said = own ? own(args) : undefined;
+    if (said !== undefined) return said;
     if (name === "forge_config" && SETTINGS[args.action]) return settings(SETTINGS[args.action], args);
     if (name === "forge_memory.search") return { hits: memory(args) };
     if (name === "forge_issues") return issues(args);

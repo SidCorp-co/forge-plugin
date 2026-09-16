@@ -10,9 +10,26 @@ const [room, seed, calls, home] = process.argv.slice(2);
 const at = (name) => join(room, name);
 const recorded = { push: (one) => appendFileSync(at(calls), `${JSON.stringify(one)}\n`) };
 
+const held = () => (existsSync(at(seed)) ? JSON.parse(readFileSync(at(seed), "utf8")) : {});
+
+/* The seed is the store and not a script: a writer that reads its own write back — the lease and the
+   landing checkpoint do — is refused by a tracker whose update only echoes. Reads stay the built-in's,
+   which is what answering `undefined` asks for. */
+const answer = {
+  forge_issues: (args) => {
+    if (args.action !== "update" && args.action !== "transition") return undefined;
+    const seeded = held();
+    const rows = seeded.issues ?? [];
+    const found = rows.findIndex((one) => one.documentId === (args.documentId ?? args.data?.issueId));
+    if (found < 0) return undefined;
+    rows[found] = { ...rows[found], ...(args.data ?? {}) };
+    writeFileSync(at(seed), JSON.stringify({ ...seeded, issues: rows }));
+    return rows[found];
+  },
+};
+
 const state = new Proxy({}, {
-  get: (_, key) => (key === "calls" ? recorded
-    : (existsSync(at(seed)) ? JSON.parse(readFileSync(at(seed), "utf8")) : {})[key]),
+  get: (_, key) => (key === "calls" ? recorded : (key === "answer" ? answer : held()[key])),
   set: () => true,
 });
 

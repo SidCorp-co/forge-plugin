@@ -14,7 +14,10 @@ export const LANDING_RECORDS_OWED = "records-owed";
 export const LANDING_DONE = "done";
 
 export const LANDING_STATES = {
-  ready: { turn: "lander", next: ["candidate"] },
+  /* `done` because a release is a landing too: under ship mode `self` the run that built the
+     change lands it itself, holds every turn this table could name and leaves no candidate for a
+     second landing to read (ISS-1654). */
+  ready: { turn: "lander", next: ["candidate", "done"] },
   candidate: { turn: "lander", next: ["reconciled", "builder-owed"] },
   "builder-owed": { turn: "builder", next: ["reconciled"] },
   reconciled: { turn: "lander", next: ["qa-owed", "promoting"] },
