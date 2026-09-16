@@ -8,7 +8,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, realpathSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { callHook, escaped, homeEnv, tempRoom } from "../fixtures.mjs";
+import { callHook, escaped, homeEnv, pathed, tempRoom } from "../fixtures.mjs";
 
 const HOOK = new URL("../../hooks/entries/learning-landed.mjs", import.meta.url).pathname;
 const HOME = homeEnv("learning-landed");
@@ -22,7 +22,7 @@ const landed = (session, name, { dir = room, old, existing } = {}) => {
   if (old) utimesSync(file, new Date(Date.now() - old), new Date(Date.now() - old));
   const run = callHook(
     HOOK,
-    { session_id: session, tool_name: "Bash", tool_input: { command: `printf x > ${file}` }, cwd: dir },
+    { session_id: session, tool_name: "Bash", tool_input: { command: `printf x > ${pathed(file)}` }, cwd: dir },
     HOME,
   );
   assert.equal(run.status, 0, run.stderr);

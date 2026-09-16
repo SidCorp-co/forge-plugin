@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { callHook, tempRoom } from "../../fixtures.mjs";
+import { callHook, pathed, tempRoom, typed } from "../../fixtures.mjs";
 import { commitAim } from "../../../hooks/gates/codex/codex-second.mjs";
 import { stagedIn } from "../../../src/codex/codex-state.mjs";
 import { digest } from "../../../src/codex/codex-api.mjs";
@@ -102,9 +102,9 @@ test("a call that commits in two trees says which one it judged", () => {
   const record = ["docs/PLAN.md"];
   mkdirSync(join(REPO, "docs"), { recursive: true });
   writeFileSync(join(REPO, "docs", "PLAN.md"), "# PLAN\n");
-  const out = because(gate({ command: `git commit -m a && git -C ${other} commit -m b`, pending: record }));
+  const out = because(gate({ command: `git commit -m a && git -C ${pathed(other)} commit -m b`, pending: record }));
   assert.ok(out.includes(`stages in ${realpathSync(REPO)}`), "the tree it judged");
-  assert.ok(out.includes(`also commits in ${other}, which went unchecked`), "and the one it did not");
+  assert.ok(out.includes(`also commits in ${typed(other)}, which went unchecked`), "and the one it did not");
   const one = because(gate({ command: "git commit -m a && git commit -m b", pending: record }));
   rmSync(join(REPO, "docs"), { recursive: true, force: true });
   assert.doesNotMatch(one, /went unchecked/u, "two commits in one tree leave nothing unjudged");
@@ -112,17 +112,17 @@ test("a call that commits in two trees says which one it judged", () => {
 
 test("a commit is judged by the tree it names, not the shell's", () => {
   const elsewhere = realpathSync(away(true));
-  assert.equal(gate({ command: `git -C ${elsewhere} commit -m x`, pending: ["work.mjs"] }), null,
+  assert.equal(gate({ command: `git -C ${pathed(elsewhere)} commit -m x`, pending: ["work.mjs"] }), null,
     "the shell's own record is not the commit's to answer for");
-  assert.equal(gate({ command: `git -C ${realpathSync(away(false))} commit -m x`, pending: ["work.mjs"] }), null,
+  assert.equal(gate({ command: `git -C ${pathed(realpathSync(away(false)))} commit -m x`, pending: ["work.mjs"] }), null,
     "and a tree staging nothing owes nothing wherever the record is");
-  const out = because(gate({ command: `git -C ${elsewhere} commit -m x`, pending: ["work.mjs"], pendingIn: elsewhere }));
+  const out = because(gate({ command: `git -C ${pathed(elsewhere)} commit -m x`, pending: ["work.mjs"], pendingIn: elsewhere }));
   assert.ok(out.includes(`stages in ${elsewhere}`), "the tree the command names is the one judged");
   /* Judged there, it has to be consulted there: the paths listed are that tree's, and so is the log. */
-  assert.ok(out.includes(`Do this: \`cd ${elsewhere} && echo`), "the command runs where the commit lands");
+  assert.ok(out.includes(`Do this: \`cd ${typed(elsewhere)} && echo`), "the command runs where the commit lands");
   const held = realpathSync(away(true));
   assert.ok(
-    gate({ command: `git --git-dir=${join(held, ".git")} commit -m x`, pending: ["work.mjs"], pendingIn: held }),
+    gate({ command: `git --git-dir=${pathed(join(held, ".git"))} commit -m x`, pending: ["work.mjs"], pendingIn: held }),
     "and the tree holding a git directory is that directory's",
   );
 });
@@ -132,12 +132,12 @@ test("a --git-dir naming no tree does not carry the commit out of this gate", ()
   const meta = tempRoom("codex-second-meta-");
   const elsewhere = realpathSync(away(true));
   const out = because(gate({
-    command: `git -C ${elsewhere} --git-dir ${join(meta, "repo.git")} commit -m x`,
+    command: `git -C ${pathed(elsewhere)} --git-dir ${pathed(join(meta, "repo.git"))} commit -m x`,
     pending: ["work.mjs"],
     pendingIn: elsewhere,
   }));
   assert.match(out, /has not read what this commit stages/u, out);
-  assert.ok(out.includes(`cd ${elsewhere} && echo`), "and it is consulted in the tree -C named");
+  assert.ok(out.includes(`cd ${typed(elsewhere)} && echo`), "and it is consulted in the tree -C named");
 });
 
 /* 7 of 30 commits landed with the turn's documents recorded and unread, in turns the advisor never
@@ -207,7 +207,7 @@ test("a document recorded in one tree does not hold a commit in another", () => 
     writeFileSync(join(home, "forge", "codex.json"), JSON.stringify({ turns: { [root]: { files: ["docs/A.md"], at: Date.now() - 120_000 } } }));
     const out = callHook(
       HOOK,
-      { tool_name: "Bash", tool_input: { command: `cd ${worktree} && git commit -m x` }, session_id: `wt-${root}-${Date.now()}`, cwd: main },
+      { tool_name: "Bash", tool_input: { command: `cd ${pathed(worktree)} && git commit -m x` }, session_id: `wt-${root}-${Date.now()}`, cwd: main },
       { ...process.env, XDG_CONFIG_HOME: home },
     );
     return because(out.stdout.trim() ? JSON.parse(out.stdout) : null);

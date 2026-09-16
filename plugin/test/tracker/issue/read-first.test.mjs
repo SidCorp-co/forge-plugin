@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { joined, targetsOfTool, writeTargets } from "../../../src/tracker/issue-read.mjs";
 import { isReference } from "../../../src/tracker/issues.mjs";
 import { shellText, starts } from "../../../hooks/_hook.mjs";
-import { callHookAsync, fakeTracker, tempHome, tempRoom } from "../../fixtures.mjs";
+import { callHookAsync, fakeTracker, pathed, tempHome, tempRoom } from "../../fixtures.mjs";
 
 const bash = (command) => ({ name: "Bash", input: { command } });
 /* The hook's own wiring: the target is read where a command starts, so it is given the starts. */
@@ -238,16 +238,16 @@ test("a command granting an id nobody credited is denied, whatever the harness w
    the command runs in and says nothing where a directory names none (ISS-1190). */
 test("a run whose assignment stands behind a cd is one run across its writes", async () => {
   state.comments = { [UUID]: [comment("c3", "the record this run wrote a minute ago")] };
-  const exported = `cd ${SAME_PROJECT} && export FORGE_SESSION_ID=behind-a-cd && forge advance ISS-29`;
+  const exported = `cd ${pathed(SAME_PROJECT)} && export FORGE_SESSION_ID=behind-a-cd && forge advance ISS-29`;
   const held = await gate(exported, { harness: "harness-four" });
   assert.equal(held.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
   assert.equal((await gate(exported, { harness: "harness-five" })).out, null,
     "and the second write is the same run, whatever session the harness names");
-  const prefixed = `cd ${SAME_PROJECT} && FORGE_SESSION_ID=on-the-writer /usr/bin/forge advance ISS-29`;
+  const prefixed = `cd ${pathed(SAME_PROJECT)} && FORGE_SESSION_ID=on-the-writer /usr/bin/forge advance ISS-29`;
   const alone = await gate(prefixed, { harness: "harness-six" });
   assert.equal(alone.out.hookSpecificOutput.permissionDecision, "deny", "the prefix names a run of its own");
   assert.equal((await gate(prefixed, { harness: "harness-seven" })).out, null, "and its own second write passes");
-  const other = `cd ${SAME_PROJECT} && export FORGE_SESSION_ID=another-worktree-run && forge advance ISS-29`;
+  const other = `cd ${pathed(SAME_PROJECT)} && export FORGE_SESSION_ID=another-worktree-run && forge advance ISS-29`;
   const stranger = await gate(other, { harness: "harness-four" });
   assert.equal(stranger.out.hookSpecificOutput.permissionDecision, "deny",
     "while a third run is shown nothing by either of them having looked");
@@ -472,7 +472,7 @@ test("a write in a second checkout is held on that checkout's own thread for the
     [OTHER_DOC]: [comment("second", "the thread of the checkout the command runs in")],
   };
   state.calls = [];
-  const run = await gate(`cd ${SECOND} && forge advance ISS-29`);
+  const run = await gate(`cd ${pathed(SECOND)} && forge advance ISS-29`);
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
   assert.ok(because(run).includes("the thread of the checkout the command runs in"),
     "the hold quotes the comments of the project the command will act on");
@@ -487,7 +487,7 @@ test("a command whose directory names no project draws no lookup and refuses not
   twoProjects();
   state.comments = { [UUID]: [comment("own", "unread and unquoted")] };
   state.calls = [];
-  const run = await gate(`cd ${NOWHERE_AT_ALL} && forge advance ISS-29`);
+  const run = await gate(`cd ${pathed(NOWHERE_AT_ALL)} && forge advance ISS-29`);
   assert.equal(run.out, null, "a hold on no evidence is worse than no hold");
   assert.equal(run.status, 0);
   assert.deepEqual(issueCalls(0), [], "and no issue is looked up under a project nobody named");

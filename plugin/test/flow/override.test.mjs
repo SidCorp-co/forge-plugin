@@ -8,7 +8,7 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, pathed, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("override").path;
 const { UNREAD } = await import("../../src/flow/override.mjs");
@@ -475,7 +475,7 @@ test("a description set to a file route is refused, and the route out sends the 
   const run = await setField("--set", `description=@${BODY_FILE}`, "--why", WHY);
   assert.equal(run.status, 1);
   assert.ok(run.stderr.includes(`reads as the file \`${BODY_FILE}\``), "the route it read, named");
-  assert.ok(run.stderr.includes(`--set description="$(cat -- ${BODY_FILE})"`),
+  assert.ok(run.stderr.includes(`--set description="$(cat -- ${pathed(BODY_FILE)})"`),
     "and the call that sends the file's own text as the description");
   assert.deepEqual(updates(), [], "nothing was sent, so the body on the page is the body that was there");
 });
@@ -511,7 +511,8 @@ test("the newline that opens the escape is read where the caller put it", async 
 
 /* The route out is a line a caller runs next, and an unquoted substitution over a name with a space
    in it is several arguments — `cat` would concatenate whatever they name and the body would be
-   lost to the very fix that refused it (review 8b3a01 F2). */
+   lost to the very fix that refused it (review 8b3a01 F2). The quoting is this case's whole subject,
+   so the expectation spells the quotes rather than taking them from the quoter under test (ISS-1543). */
 test("the route out quotes the path it names", async () => {
   before();
   const spaced = join(tempRoom("set-spaced-"), "a body.md");

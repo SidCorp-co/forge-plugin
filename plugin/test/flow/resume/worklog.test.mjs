@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { escaped, jsonlOf, tempHome, tempRoom } from "../../fixtures.mjs";
+import { escaped, jsonlOf, pathed, tempHome, tempRoom } from "../../fixtures.mjs";
 
 const HOME = tempHome("worklog");
 process.env.XDG_CONFIG_HOME = HOME.path;
@@ -248,7 +248,7 @@ test("no reachability read is one git may fetch to answer", () => {
   const bin = tempRoom("offline-bin-");
   const log = join(bin, "asked.txt");
   writeFileSync(join(bin, "git"),
-    `#!/bin/sh\nprintf '%s %s\\n' "\${GIT_NO_LAZY_FETCH-unset}" "$*" >> ${log}\nexec ${real} "$@"\n`,
+    `#!/bin/sh\nprintf '%s %s\\n' "\${GIT_NO_LAZY_FETCH-unset}" "$*" >> ${pathed(log)}\nexec ${pathed(real)} "$@"\n`,
     { mode: 0o755 });
   const path = process.env.PATH;
   try {

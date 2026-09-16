@@ -6,7 +6,7 @@ import test from "node:test";
 import { accessSync, chmodSync, constants, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempRoom } from "../../fixtures.mjs";
+import { pathed, tempRoom } from "../../fixtures.mjs";
 
 import { RUN_ID, besideGit, gitDirAt, runHeldWhere, runIdAt } from "../../../src/resolve/session/run-id.mjs";
 import { mintRunId } from "../../../../tools/run/workspace/run-id.mjs";
@@ -64,9 +64,9 @@ test("the gate reads the tree the write will stand in, and not the tree the hook
   const wt = join(at, "wt-one");
   const here = join(at, "checkout");
   for (const command of [
-    `cd ${wt} && ./plugin/bin/forge comment ISS-467 -`,
-    `cd ${wt}; ./plugin/bin/forge comment ISS-467 -`,
-    `cd ${wt} && echo hi && /a/b/plugin/bin/forge issue ISS-467`,
+    `cd ${pathed(wt)} && ./plugin/bin/forge comment ISS-467 -`,
+    `cd ${pathed(wt)}; ./plugin/bin/forge comment ISS-467 -`,
+    `cd ${pathed(wt)} && echo hi && /a/b/plugin/bin/forge issue ISS-467`,
   ]) {
     assert.deepEqual(runHeldWhere(event(command, here)), { id: "iss-467-abcd1234", at: wt }, command);
   }
@@ -86,8 +86,8 @@ test("two `forge` calls standing in trees that answer differently name no id at 
   idIn(at, "iss-467-abcd1234");
   const wt = join(at, "wt-one");
   const here = join(at, "checkout");
-  assert.equal(runHeldWhere(event(`forge issue ISS-1; cd ${wt} && forge issue ISS-2`, here)).id, null);
-  assert.equal(runHeldWhere(event(`cd ${wt} && forge issue ISS-1 && forge issue ISS-2`, here)).id,
+  assert.equal(runHeldWhere(event(`forge issue ISS-1; cd ${pathed(wt)} && forge issue ISS-2`, here)).id, null);
+  assert.equal(runHeldWhere(event(`cd ${pathed(wt)} && forge issue ISS-1 && forge issue ISS-2`, here)).id,
     "iss-467-abcd1234");
 });
 
@@ -141,7 +141,7 @@ test("the walk starts at the physical path, so a symlink into another repository
   symlinkSync(join(other, "sub"), join(at, "wt-one", "link"));
   assert.equal(runIdAt(join(at, "wt-one", "link")), "iss-999-ffff0000",
     "lexically this ascends into wt-one, and the write standing there is in the other repository");
-  assert.equal(runHeldWhere(event(`cd ${join(at, "wt-one", "link")} && forge issue ISS-467`, join(at, "checkout"))).id,
+  assert.equal(runHeldWhere(event(`cd ${pathed(join(at, "wt-one", "link"))} && forge issue ISS-467`, join(at, "checkout"))).id,
     "iss-999-ffff0000");
 });
 

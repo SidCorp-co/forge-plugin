@@ -28,6 +28,9 @@ export const flat = (text) => text.replace(/\s+/gu, " ");
 
 export const escaped = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 
+/* The same problem where the path reaches a shell rather than a `RegExp`: a bare `(` is syntax, so a case spells the word the product's own quoter spells (ISS-1543). */
+export { pathed, typed } from "../src/hooks/shell-spans.mjs";
+
 export const jsonlOf = (rows) => Buffer.from(rows.map((one) => `${JSON.stringify(one)}\n`).join(""));
 
 /* `cwd` is the project the hook stands in, a different question from the event's `cwd`: the settings resolver walks up from the process, so a case varying a `.forge.json` key sets this. */

@@ -8,7 +8,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { callHook, cleanRepo, tempRoom } from "../../fixtures.mjs";
+import { callHook, cleanRepo, escaped, pathed, tempRoom, typed } from "../../fixtures.mjs";
 import { FIELD, KEY } from "../../../src/flow/lease.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
 
@@ -254,10 +254,11 @@ test("the tree a subagent stood in is the one its commands moved to, whatever th
   writeFileSync(join(wt, "one.txt"), "changed, and never committed\n");
   /* One command per line, as a run types them; the `cd` not first, and a second `cd` relative to it. */
   mkdirSync(join(wt, "sub"));
-  const own = handed(used("Bash", { command: `export FORGE_SESSION_ID=iss-1-abc\ncd ${wt}\ncd sub && git status --short` }));
+  const own = handed(used("Bash", { command: `export FORGE_SESSION_ID=iss-1-abc\ncd ${pathed(wt)}\ncd sub && git status --short` }));
   const said = stopped(room(), subagentStop({ agent_transcript_path: own, cwd: checkout }));
   assert.match(said?.reason ?? "", /is a worktree this turn left with tracked changes/u, said?.reason);
-  assert.match(said.reason, /git -C \S*wt add -u/u, "the worktree, not the checkout the event names");
+  assert.match(said.reason, new RegExp(`git -C ${escaped(typed(wt))} add -u`, "u"),
+    "the worktree, not the checkout the event names");
 });
 
 test("the lease a subagent is judged on is the id its own commands exported", () => {

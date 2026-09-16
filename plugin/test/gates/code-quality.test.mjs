@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { callHook, homeEnv, tempRoom } from "../fixtures.mjs";
+import { callHook, homeEnv, pathed, tempRoom } from "../fixtures.mjs";
 
 const HOOK = new URL("../../hooks/entries/code-quality.mjs", import.meta.url).pathname;
 const REPO = new URL("../../..", import.meta.url).pathname.replace(/\/$/u, "");
@@ -33,7 +33,7 @@ test("a finding is refused in the delegate's protocol and written to the log lik
     assert.equal(entry.decision, "block");
     assert.match(entry.reason, /code-quality: .*cq-probe.* — code-quality\/comment-density/u, "the log names the rule, not only the file");
     /* The same content named again — a grep, say — is not a second block. */
-    const again = callHook(HOOK, { session_id: entry.session, tool_name: "Bash", tool_input: { command: `grep -n one ${file}` }, cwd: REPO }, HOME);
+    const again = callHook(HOOK, { session_id: entry.session, tool_name: "Bash", tool_input: { command: `grep -n one ${pathed(file)}` }, cwd: REPO }, HOME);
     assert.equal(again.stdout.trim(), "", "reported once per content");
     writeFileSync(file, `${readFileSync(file, "utf8")}// five\n`);
     const changed = callHook(HOOK, { session_id: entry.session, tool_name: "Write", tool_input: { file_path: file }, cwd: REPO }, HOME);

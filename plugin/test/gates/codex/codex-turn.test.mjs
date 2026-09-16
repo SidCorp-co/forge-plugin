@@ -8,7 +8,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { callHook, homeEnv, tempRoom } from "../../fixtures.mjs";
+import { callHook, homeEnv, pathed, tempRoom } from "../../fixtures.mjs";
 
 const HOOK = new URL("../../../hooks/entries/codex/codex-turn.mjs", import.meta.url).pathname;
 const HOME = homeEnv("codex-turn");
@@ -48,7 +48,7 @@ const fired = (root, rel, at, session = "s1") => {
     {
       session_id: session,
       tool_name: "Bash",
-      tool_input: { command: `printf x > ${file}` },
+      tool_input: { command: `printf x > ${pathed(file)}` },
       transcript_path: transcript(at),
       cwd: root,
     },
@@ -101,7 +101,7 @@ const firedAs = (session, root, rel, at) => {
     {
       session_id: "an-event-id-that-loses",
       tool_name: "Bash",
-      tool_input: { command: `printf x > ${file}` },
+      tool_input: { command: `printf x > ${pathed(file)}` },
       transcript_path: transcript(at),
       cwd: root,
     },
@@ -138,7 +138,7 @@ test("a read in a checkout stamped moments ago is no document this turn changed"
   ].join("\n"));
   const run = callHook(
     HOOK,
-    { session_id: "s3", tool_name: "Bash", tool_input: { command: `cat ${file}` }, transcript_path: path, cwd: root },
+    { session_id: "s3", tool_name: "Bash", tool_input: { command: `cat ${pathed(file)}` }, transcript_path: path, cwd: root },
     HOME,
   );
   assert.equal(run.status, 0, run.stderr);

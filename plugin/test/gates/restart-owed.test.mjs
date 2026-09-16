@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { FROZEN } from "../../src/tools/plugin-copy.mjs";
-import { callHook, escaped, tempRoom } from "../fixtures.mjs";
+import { callHook, escaped, pathed, tempRoom } from "../fixtures.mjs";
 
 const PLUGIN = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const HOOK = join(PLUGIN, "hooks", "entries", "restart-owed.mjs");
@@ -109,7 +109,7 @@ test("through the shell a write shape beside the name holds, and a read of it do
    out of the checkout first refuses the file it left behind, which is not the file it writes. */
 test("a command that leaves the checkout writes elsewhere, whatever the path is spelled", () => {
   const elsewhere = tempRoom("left-the-checkout-");
-  assert.equal(runs(`cd ${elsewhere} && printf x > plugin/hooks/hooks.json`).allowed, true,
+  assert.equal(runs(`cd ${pathed(elsewhere)} && printf x > plugin/hooks/hooks.json`).allowed, true,
     "the write lands outside any checkout of this plugin, so there is nothing to hold");
   assert.equal(runs("cd plugin && printf x > hooks/hooks.json").allowed, false,
     "and a move inside the checkout still lands on the frozen file");

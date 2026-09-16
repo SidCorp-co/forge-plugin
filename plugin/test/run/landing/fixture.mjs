@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { fakeTracker, tempRoom } from "../../fixtures.mjs";
+import { fakeTracker, pathed, tempRoom } from "../../fixtures.mjs";
 import { render } from "../../../src/flow/record/page.mjs";
 import { noteShown } from "../../../src/tracker/comments.mjs";
 
@@ -54,7 +54,7 @@ try {
   appendFileSync(said, \`waited: \${error.message.split("\\n")[0]}\\n\`);
 }
 `;
-export const PROBE_GATE = `node tools/probe.mjs . ${PROBE_SAID}`;
+export const PROBE_GATE = `node tools/probe.mjs . ${pathed(PROBE_SAID)}`;
 export const probeSaid = () =>
   (existsSync(PROBE_SAID) ? readFileSync(PROBE_SAID, "utf8") : "").split("\n").filter(Boolean);
 export const forgetProbe = () => rmSync(PROBE_SAID, { force: true });

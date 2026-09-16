@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { dirtyRepo, tempRoom } from "../fixtures.mjs";
+import { dirtyRepo, pathed, tempRoom } from "../fixtures.mjs";
 import { patience } from "../patience.mjs";
 import { gateFile } from "../../src/hooks/hook-switch.mjs";
 
@@ -209,6 +209,6 @@ test("a transcript holding an advisor result stops neither the consult after it 
     session_id: `advised-${Date.now()}`,
   };
   assert.equal(out(run(registered, ev)), null, "the consult goes, whatever the advisor said and the intent left out");
-  const wrote = { ...ev, tool_input: { command: `printf x > ${join(cwd, "work.mjs")}` } };
+  const wrote = { ...ev, tool_input: { command: `printf x > ${pathed(join(cwd, "work.mjs"))}` } };
   assert.equal(out(run(registered, wrote)), null, "and so does the write after it, with the tree unconsulted");
 });
