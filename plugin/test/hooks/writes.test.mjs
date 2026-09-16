@@ -99,6 +99,20 @@ test("a directory whose name carries a character a name usually does not is read
   }
 });
 
+/* A `(` is a shell operator where it stands bare and a character of a name where it stands inside a
+   quote, and the reading asked the text rather than the walk — so a write into `paren(one)` named a
+   rooted `/written.md` nobody wrote and the gates saw no write at all (ISS-1555). */
+test("a quoted target is read as a shell reads it, so a parenthesis in it opens no command", () => {
+  const at = asked(NOW - 10_000);
+  for (const odd of ["paren(one)", "paren (one)", "wt(2)"]) {
+    mkdirSync(join(room, odd), { recursive: true });
+    const file = stamped(join(odd, "written.md"), NOW - 1_000);
+    const command = `printf x > '${odd}/written.md'`;
+    assert.deepEqual(touched(bash(command, at)), [file], odd);
+    assert.deepEqual(writtenPaths(command, room).map((one) => one.token), [`${odd}/written.md`], odd);
+  }
+});
+
 test("a name is read from the word the command spelled it in, and never from the middle of one", () => {
   const names = (command) => namesOf(command).map((one) => one.token);
   assert.deepEqual(names("curl --output=/tmp/a/notes.md https://x"), ["/tmp/a/notes.md"],
@@ -132,6 +146,12 @@ test("a name is read from the word the command spelled it in, and never from the
     "and one name spelled twice is two readings, the second standing where no `$` precedes it");
   assert.deepEqual(names("sed -i s/x/y/ *.md"), [], "a pattern names a file this text does not spell");
   assert.deepEqual(names("tee /tmp/a[1]/memory/x.md"), [], "and the `/memory/x.md` inside one is no path either");
+  assert.deepEqual(names("printf x > 'plus(one)/notes.md'"), ["plus(one)/notes.md"],
+    "a parenthesis under a quote is a character of the name and starts no command of its own");
+  assert.deepEqual(names("printf x > '/tmp/p (1)/notes.md'"), ["/tmp/p (1)/notes.md"],
+    "as is the space beside it, one quoted word being one name however many operators it carries");
+  assert.equal(namesOf("printf x > '/tmp/p (1)/notes.md'")[0].at, "printf x > '".length,
+    "and the offset handed back still indexes the text, which is what places a name against a tree");
 });
 
 /* `WRITES` answers whether a command counts as a write at all, and it answers before `namesOf` is

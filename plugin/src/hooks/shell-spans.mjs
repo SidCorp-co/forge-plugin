@@ -206,8 +206,27 @@ export const waitsIn = (text) => {
   return out;
 };
 
-/* A word is what a shell hands on as one, so only what ends a word ends a name: the operators, the quotes, a `$` and a backslash — each quote spelt as its code point, since a lone one in a source file is an unclosed string to everything that reads this repository as text and the checks here do read it that way. Everything else a filesystem allows stands inside a name, which is why this is written as what a name may not carry rather than as what it may — an allow-list cut a path at the first `+` in it and handed on the tail, which is shorter, relative and still resolves. */
-const BARE = /[^\s;&|()<>\x27\x22\x60$\\]+/gu;
+/* A word is what a shell hands on as one, so only what ends a word ends a name: the operators, the quotes, a `$` and a backslash. Everything else a filesystem allows stands inside a name, which is why this is written as what a name may not carry rather than as what it may — an allow-list cut a path at the first `+` in it and handed on the tail, which is shorter, relative and still resolves. */
+const OPERATOR = /[\s;&|()<>$\\]/u;
+/* The quotes, each spelt as its code point, since a lone one in a source file is an unclosed string to everything that reads this repository as text and the checks here do read it that way. These end a word wherever they stand, the delimiters of a span as much as a quote inside one: what arrives here is as often an interpreter's body carrying its own quotes as it is one name, and `open("--trap.md", "w")` spells the file in the inner pair. */
+const QUOTE = /[\x27\x22\x60]/u;
+
+/** Every word of a command, as the walk reads it: the text of one, and the offset each of its characters stood at — kept per character rather than as one start, because a word is the characters of it that survive and a name read out of one is still placed where it was written.
+ *  A word ends at an operator the shell is spending as shell, which is what `quoting` answers and no regular expression over the raw text can: under a single quote a `(` opens no subshell, a space splits nothing and a `$` expands nothing, so `'a/p (1)/b.md'` is one name rather than a tail that resolves somewhere else entirely. A character under a double quote is read as it always was, because the shell may be running a substitution there and this walk cannot yet say where one begins (ISS-1533). */
+const worded = (text) => {
+  const out = [];
+  let word = null;
+  for (const { at, one, under } of quoting(text)) {
+    if (QUOTE.test(one) || (under !== "'" && OPERATOR.test(one))) {
+      word = null;
+      continue;
+    }
+    if (!word) out.push((word = { text: "", at: [] }));
+    word.text += one;
+    word.at.push(at);
+  }
+  return out;
+};
 /* Where a name may begin inside its word, besides its start. Before it: the option a value may be attached to, which is one letter after a single hyphen and the whole word after two — `curl -onotes.md` writes what `--output=notes.md` does, and past a bare `--` there are no options left, so a file whose own name opens with a hyphen is read as one — and the first `=` or `:`, a key standing in front of the value it names. After it: the last `}`, since what follows the last substitution is the literal tail the program will build, and `f"{root}/skills/x/SKILL.md"` spells a guarded path while naming no `root` this can read. One of each and no more, so one word is read four ways rather than once per character of a 40 000-character operand. And a word standing against a quote is no option at all but a literal a body carries, an interpreter's own body arriving here with its quotes still in it — all three of them, a template's backtick as much as the other two — and `open("--trap.md", "w")` naming a file. */
 const OPTION = /^--[\w-]+|^-[A-Za-z0-9]/u;
 const KEYED = /[=:]/u;
@@ -223,19 +242,19 @@ export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true } = {}) =>
   const names = [];
   const past = (mark) => (mark < 0 ? [] : [mark + 1]);
   let ended = false;
-  for (const word of text.matchAll(BARE)) {
-    if (word[0] === "--") ended = true;
-    const literal = QUOTES.test(text[word.index - 1] ?? " ");
-    const option = (options && !ended && !literal && OPTION.exec(word[0])?.[0].length) || 0;
+  for (const word of worded(text)) {
+    if (word.text === "--") ended = true;
+    const literal = QUOTES.test(text[word.at[0] - 1] ?? " ");
+    const option = (options && !ended && !literal && OPTION.exec(word.text)?.[0].length) || 0;
     const starts = [
-      ...(option || KEY.test(word[0]) ? [] : [0]),
-      ...(option && word[0][option] !== "=" ? [option] : []),
-      ...past(KEYED.exec(word[0])?.index ?? -1),
-      ...past(word[0].lastIndexOf("}")),
+      ...(option || KEY.test(word.text) ? [] : [0]),
+      ...(option && word.text[option] !== "=" ? [option] : []),
+      ...past(KEYED.exec(word.text)?.index ?? -1),
+      ...past(word.text.lastIndexOf("}")),
     ];
     for (const at of new Set(starts)) {
-      const name = ending.exec(word[0].slice(at))?.[0];
-      if (name) names.push({ token: name, at: word.index + at });
+      const name = ending.exec(word.text.slice(at))?.[0];
+      if (name) names.push({ token: name, at: word.at[at] });
     }
   }
   const rooted = (one) => one.token.startsWith("/") || one.token.startsWith("~/");

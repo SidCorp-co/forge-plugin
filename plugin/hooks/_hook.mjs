@@ -456,8 +456,9 @@ export const writtenPaths = (text, cwd, tail) => {
     const said = spoken(text.slice(start, end).trim());
     return WRITES.test(said) ? namesIn(said, tail).map((one) => ({ ...one, at: start })) : [];
   });
+  /* The target as the command wrote it, quotes and all: `namesOf` is where a shell word is read, and taking the pair off first hands it a `(` standing bare that stood inside a quote — which ends the name there and leaves a rooted tail nothing wrote (ISS-1555). */
   const aimed = [...text.matchAll(REDIRECT)]
-    .flatMap((one) => namesIn(unquote(one[1]), tail, AIMED_AT).map((each) => ({ ...each, at: one.index })));
+    .flatMap((one) => namesIn(one[1], tail, AIMED_AT).map((each) => ({ ...each, at: one.index })));
   return [...aimed, ...named].map(({ token, placed, at }) => {
     const trees = placed && !token.startsWith("/") ? standing(at) : [];
     return { token, trees, paths: [token, ...trees.map((tree) => join(tree, token))] };
