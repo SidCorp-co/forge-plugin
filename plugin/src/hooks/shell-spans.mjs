@@ -215,9 +215,13 @@ const BRACKET = /[()]/u;
 
 /** Every word of a command, as the walk reads it: the text of one, and the offset each of its characters stood at — kept per character because a word is the characters of it that survive, and a name read out of one is still placed where it was written. An operator ends a word wherever the shell is spending it as shell, which is what `quoting` answers and no regular expression over the raw text can. Under a single quote it is spending no bracket, so `'a/p(1)/b.md'` is one word and one name rather than a tail that resolves somewhere else entirely.
  *  Both readings of such a span and not one, since nothing in the text says which it is: `'a/p(1)/b.md'` is a path and `'system(q(touch),q(b.md))'` is code, and a caller that must not miss a target is handed the whole word for the first and the brackets still ending words for the second. So nothing a name was read from before this is read from less. `joined` is which words the first reading made, and `namesOf` takes a name from one only where the name is the whole of it: the claim such a word makes is that the span is one filename, and a `'…/(report.md).txt'` whose extension stops short of its end is refuting that claim rather than spelling a file. */
+const cuts = (mark) => !mark
+  || ALWAYS.test(mark.one)
+  || ((mark.under !== "'" || !BRACKET.test(mark.one)) && OPERATOR.test(mark.one));
+
 const worded = (text) => {
   const marks = quoting(text);
-  /* Which single-quoted spans hold one word and so could be one filename: a span another operator still cuts is not the thing the whole reading claims it is, and `'/tmp/m/(r).md;o.txt'` writes the `.txt` while handing a `.md` scan a guarded name nobody wrote. */
+  /* Which single-quoted spans are a whole operand and so could be one filename. Closed, holding nothing that still cuts a word, and with a word's end on either side of it — each of the three because the whole reading claims the span *is* the file: `'/tmp/m/(r).md;o.txt'` and `'/tmp/m/(r).md'.txt` both write the `.txt`, and either would hand a `.md` scan a guarded name nobody wrote. */
   const alone = new Array(marks.length).fill(false);
   for (let from = 0; from < marks.length;) {
     if (marks[from].under !== "'") {
@@ -227,7 +231,9 @@ const worded = (text) => {
     let to = from + 1;
     while (to < marks.length && marks[to].under === "'") to += 1;
     const body = marks.slice(from + 1, to - 1);
-    if (!body.some(({ one }) => ALWAYS.test(one) || (OPERATOR.test(one) && !BRACKET.test(one)))) {
+    const shut = to - from >= 2 && marks[to - 1].one === "'";
+    if (shut && cuts(marks[from - 1]) && cuts(marks[to])
+      && !body.some(({ one }) => ALWAYS.test(one) || (OPERATOR.test(one) && !BRACKET.test(one)))) {
       for (let at = from; at < to; at += 1) alone[at] = true;
     }
     from = to;
@@ -235,8 +241,8 @@ const worded = (text) => {
   const whole = [];
   let word = null;
   for (let n = 0; n < marks.length; n += 1) {
-    const { at, one, under } = marks[n];
-    if (ALWAYS.test(one) || ((under !== "'" || !BRACKET.test(one)) && OPERATOR.test(one))) {
+    const { at, one } = marks[n];
+    if (cuts(marks[n])) {
       word = null;
       continue;
     }

@@ -160,6 +160,8 @@ test("a name is read from the word the command spelled it in, and never from the
     "a word whose extension stops short of its end spells no file the span is, so a `.txt` target is no guarded write");
   assert.deepEqual(held("printf x > '/tmp/memory/(report).md;other.txt'"), [],
     "nor does a word an operator still cut out of its span, whose end is the cut and not the operand's");
+  assert.deepEqual(held("printf x > '/tmp/memory/(report).md'.txt"), [],
+    "nor a span the operand goes on past, where the quote closes and the word does not");
   assert.deepEqual(held("printf x > '/tmp/memory/(report)/note.md'"), ["/tmp/memory/(report)/note.md", "/note.md"],
     "while the one it reaches the end of is exactly that file, guard and all");
   assert.equal(namesOf("printf x > 'plus(one)/notes.md'").find((one) => one.token[0] === "p").at,
