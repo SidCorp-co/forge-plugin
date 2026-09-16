@@ -408,8 +408,7 @@ export const landingRan = async (keys, work) => {
 };
 
 /** The builder's own commands, through the shipped verb: a landing hands the branch back to a run of
- *  its own, so what that run types is what a case has to ask for. Twice, since the gate every write
- *  passes delivers a comment this session has not read and refuses once. */
+ *  its own. Twice, since every write is refused once on a comment this session has not been shown. */
 export const builderRan = async (argv) => {
   let run = null;
   for (const again of [1, 2]) {

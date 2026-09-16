@@ -43,13 +43,9 @@ export const saveOn = async (member, patch) => {
 
 export const keysOf = (at) => at.members.map((one) => one.key).join(" ");
 
-/* The void, and the one reading it does not take with it. What a builder answered is a reading of
-   that change's own paths, so where the candidate a fresh pin makes holds them as the candidate the
-   reading was taken at held them, the reading is carried to the new sha instead of blanked. The
-   readings taken over the whole candidate — the judge's turn and the release it was spent on — go
-   whatever the paths do, which is why this writes the void first and puts back the one field. Two
-   saves because the table carries no edge from `reconciled` to itself, the chain step's own
-   rebuild being written the same way. */
+/* The void, and the one reading it does not take with it: what was taken over the whole candidate
+   goes whatever the paths do, which is why this writes the void first and puts one field back. Two
+   saves because the table carries no edge from `reconciled` to itself. the-checkpoint.md. */
 export const voidedAt = async (root, member, pin) => {
   const { key, landing } = member;
   const { moved, reconciled } = landing;
