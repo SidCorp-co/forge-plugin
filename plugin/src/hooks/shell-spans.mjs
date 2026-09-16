@@ -225,12 +225,15 @@ const parts = (mark, shape) => !mark || (mark.under === " " && shape.test(mark.o
 
 /* Whether a substitution was opened anywhere before this point, which is where the whole reading stops being offered: `> $(printf '%s.txt' 'a(1).md')` puts a quoted operand inside one, where it is an argument of that command and not the target of this one, and nothing about the span or its neighbours says so. Anywhere and not in the same command, because what ends a substitution is the `)` this walk cannot place and a separator inside one ends nothing (ISS-1533) — so a text that opened one is a text this declines to place a span in at all, and the span keeps the reading it had. */
 const OPENERS = /[$<>]/u;
-const RUNS_IN = (marks, before) => marks.slice(0, before).some(({ one, under }, at) =>
+const opened = (marks, before) => marks.slice(0, before).some(({ one, under }, at) =>
   under === " "
   && (one === "\x60"
     || (one === "(" && marks[at - 1]?.under === " " && OPENERS.test(marks[at - 1]?.one ?? ""))));
 
-const worded = (text) => {
+/** Whether a substitution stands open before this offset, so a name read past it may be an argument of some other command. A caller that reads one span of a command at a time asks this of the whole text, since the answer is not in the slice. */
+export const computed = (text, before) => opened(quoting(text), before);
+
+const worded = (text, alike) => {
   const marks = quoting(text);
   /* Which single-quoted spans are a whole operand and so could be one filename. Closed, holding nothing that still cuts a word, and with an operand's end on either side of it — each of the three because the whole reading claims the span *is* the file: `'/tmp/m/(r).md;o.txt'` and `'/tmp/m/(r).md'.txt` both write a `.txt`, and either would hand a `.md` scan a guarded name nobody wrote. */
   const alone = new Array(marks.length).fill(false);
@@ -243,7 +246,7 @@ const worded = (text) => {
     while (to < marks.length && marks[to].under === "'") to += 1;
     const body = marks.slice(from + 1, to - 1);
     const shut = to - from >= 2 && marks[to - 1].one === "'";
-    if (shut && parts(marks[from - 1], OPENED) && parts(marks[to], CLOSED) && !RUNS_IN(marks, from)
+    if (alike && shut && parts(marks[from - 1], OPENED) && parts(marks[to], CLOSED) && !opened(marks, from)
       && !body.some(({ one }) => ALWAYS.test(one) || (OPERATOR.test(one) && !BRACKET.test(one)))) {
       for (let at = from; at < to; at += 1) alone[at] = true;
     }
@@ -291,13 +294,13 @@ const KEY = /^[^/=:]*[=:](?:~|\.{0,2})\//u;
 const PATTERN = String.raw`[^*?[\]{}]`;
 
 /** A name with an extension, as a command spells one, with where each begins: the readings above, so a directory carrying a character a name usually does not is read whole rather than cut at it, while one word may still spell the value behind its option or its key and the tail behind its substitution. `tail` is which extensions a caller wants, one gate judging `.md` alone. The names written from the root come first, those being the ones a reader resolves without the call's own cwd. Spelt here and nowhere else. */
-export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true } = {}) => {
+export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true, whole = true } = {}) => {
   const ending = new RegExp(`^${PATTERN}+\\.${tail}`, "u");
   const names = [];
   const seen = new Set();
   const past = (mark) => (mark < 0 ? [] : [mark + 1]);
   let ended = false;
-  for (const word of worded(text)) {
+  for (const word of worded(text, whole)) {
     if (word.text === "--") ended = true;
     const literal = QUOTES.test(text[word.at[0] - 1] ?? " ");
     const option = (options && !ended && !literal && OPTION.exec(word.text)?.[0].length) || 0;

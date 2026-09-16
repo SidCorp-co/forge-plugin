@@ -170,6 +170,12 @@ test("a name is read from the word the command spelled it in, and never from the
     "including one in front of it, where the `)` closes a word as readily as it closes a command");
   assert.deepEqual(held("printf x > $(true; printf '%s.txt' '/tmp/memory/(report).md' )"), [],
     "and a span inside a substitution is an argument of that command rather than the target of this one, however far into it the span stands");
+  assert.deepEqual(
+    writtenPaths("printf x > $(true; printf '%s.txt' '/tmp/memory/(report).md' | tee /dev/null )", room, "md")
+      .map((one) => one.token),
+    [],
+    "which a reader of one span at a time asks of the whole text, the answer not being in the slice it was handed",
+  );
   assert.deepEqual(held("(printf x > '/tmp/memory/(report).md'; ls)"), ["/tmp/memory/(report).md"],
     "while a subshell hands its commands no arguments, and the target inside one is the target");
   assert.deepEqual(held("printf x > '/tmp/memory/(report).md' .txt"), [],
