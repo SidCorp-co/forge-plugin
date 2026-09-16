@@ -5,6 +5,7 @@ import { rmSync } from "node:fs";
 import { join } from "node:path";
 
 import { corpusUnder, durableBase, rootFor, sourcesFor } from "../../../src/stats/corpus/corpus.mjs";
+import { reachSaid } from "../../../src/stats/marks/reach.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 import { ask, corpus, linkedIn, storedIn, transcript } from "../fixture-runs.mjs";
 
@@ -72,4 +73,18 @@ test("the depth line carries its cause", () => {
     "the object carries the same two places, so a reading held at a mark can be read for them");
   assert.match(json.root, /\/claude-\d+\/-fixture-project$/u,
     "and the key a mark is held under is the one it always was, or every reading held for this project is orphaned");
+});
+
+/* A reader told only that depth is gone cannot act on it; told which of the two places the system
+   sweeps, and that the other is what still holds a run, they can (ISS-1578). */
+test("the depth line names the place that is swept, and says nothing where none is", () => {
+  const lost = { from: Date.parse("2026-09-12T00:00:00Z"), earlier: { by: "mark 200", from: Date.parse("2026-09-06T00:00:00Z") } };
+  const sources = [{ path: "/home/x/.claude/projects/-p", temporary: false }, { path: "/tmp/claude-1000/-p", temporary: true }];
+  const said = reachSaid(lost, sources);
+  assert.match(said, /depth this project once read is no longer here\. \/tmp\/claude-1000\/-p is a temporary filesystem/u);
+  assert.match(said, /readable only where the host's own store still holds it$/u);
+  assert.equal(reachSaid(lost, sources.slice(0, 1)).endsWith("no longer here"), true,
+    "with nothing swept there is no cause to name, and a sentence that named one anyway would be a guess");
+  assert.doesNotMatch(reachSaid({ from: lost.from, earlier: null }, sources), /temporary filesystem/u,
+    "and a corpus that lost nothing is told nothing about what would have kept it");
 });
