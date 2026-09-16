@@ -241,6 +241,12 @@ a wait no party can end.
   head the checkpoint was written at, THEN the CLI SHALL refuse the reconciliation naming the push
   that puts that head back, because what a landing merges is that head and a branch moved under the
   hand-back leaves it reachable from no ref.
+- **AC-03-6-10** · Rev: 1 · Proof: plugin/test/run/landing/moved-branch.test.mjs "a branch standing past the judged head refuses the landing, naming what is between them"
+  IF the branch the checkpoint names stands on the remote at a commit other than the head the
+  checkpoint was written at, THEN the landing SHALL refuse that change before it merges anything,
+  naming both commits, what stands between them and the push that puts the judged head back on the
+  branch, because the landing merges the judged head and a release cut over a branch that moved
+  leaves the rest of it unlanded with nothing said.
 
 ## Business rules enforced
 
