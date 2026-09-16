@@ -26,10 +26,11 @@ in the field so the issue carries one plan, the current one.
 
 <!-- forge:when tool.codex configured -->
 **Both are read before the issue takes them**: `forge record plan` and `forge record criteria` each
-refuse a file no consult has read, and one consult over both clears both writes — `forge codex
-consult -h` says how the issue and the two bodies reach the reviewer. Every later phase is built
-against this text, so the intent names the load-bearing assumption rather than the prose, and the
-findings are owed a verdict as any consult's are.
+refuse a file no consult has read, and one consult over both clears both writes with no flag to
+remember, unless this machine's own configuration names a send mode — `forge codex consult -h` says
+how the issue and the two bodies reach the reviewer. Every later phase is built against this text, so
+the intent names the load-bearing assumption rather than the prose, and the findings are owed a
+verdict as any consult's are.
 <!-- forge:end -->
 <!-- forge:when tool.codex unconfigured -->
 **Both are read before the issue takes them, and this machine has no reviewer to read them.**

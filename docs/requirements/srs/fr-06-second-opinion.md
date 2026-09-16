@@ -73,6 +73,11 @@ checkout's decision rather than the account's, and `README.md` says why that lev
   THEN the CLI SHALL keep that path in the turn's record, SHALL name it, and SHALL name the command
   that clears it; and it SHALL keep every path it sent wherever the index cannot be read, a clear
   decided on the copy on disk alone having answered for bytes no reviewer was shown.
+- **AC-06-1-11** · Rev: 1 · Proof: plugin/test/codex/codex.test.mjs "an outside path sends bodies where no mode was named, and a named mode stands"
+  WHERE the set a consult settled on holds a path no checkout of this repository contains, the CLI
+  SHALL send every file of that consult whole where neither the command nor the configuration named
+  a send mode, SHALL leave a named mode standing and say that it stands, and SHALL name on every
+  consult the mode it is sending under.
 
 ### UC-06-2 — List the documents a turn changed, once, at the end
 

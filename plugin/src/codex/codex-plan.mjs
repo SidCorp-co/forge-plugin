@@ -1,6 +1,9 @@
 /* What the harness settles before a call and reads off the reply after it, with no gateway in
    reach: a rule you cannot run offline is a rule nobody checks. docs/cli/codex-the-consult.md. */
+import { isAbsolute } from "node:path";
+
 import { userConfig } from "../resolve/config.mjs";
+import { fail } from "../resolve/settings.mjs";
 
 export const EFFORTS = ["minimal", "low", "medium", "high"];
 export const defaultEffort = () => userConfig().codex?.effort || "medium";
@@ -19,6 +22,39 @@ const stepped = (level, by) => {
 export const budgetFor = ({ base, ceiling, bodies = false, clipped = 0 }) => {
   const want = (bodies && !clipped ? Math.max(FLOOR, base - 1) : base) + clipped;
   return Math.max(1, Math.min(want, Math.max(base, ceiling)));
+};
+
+const SENDS = ["diffs", "bodies"];
+
+/* `null` where nobody named one, which is not `diffs`: the default is the one thing the set may overrule. The account's and never the checkout's, which names no send mode, because what of a file travels is the caller's business per consult where `codex.pathRe` and `codex.check` are the project's. */
+export const chosenSend = (raw) => {
+  const named = raw ?? userConfig().codex?.send ?? null;
+  if (named !== null && !SENDS.includes(named)) fail(`codex: --send takes ${SENDS.join(" | ")}, not \`${named}\`.`);
+  return named;
+};
+
+/** Whether this set travels whole, and what is owed the caller about why. Bodies off where the reviewer has tools and a diff to read: it fetches what it needs and the payload stops paying twice. But an absolute rel is `locate`'s word for a path outside the root, and what a consult names one for is a plan or a criteria file — the run's own scratch, in no checkout at all, so nothing can be shown of it as a change and its text is the whole of what the write that takes it asks for, which a diffs consult is refused by a round after the review (ISS-1311). Bodies over the set for that reason, and decided after `--recheck` has narrowed it rather than while the flags are read, a mode chosen before the set walking back into the same refusal. `changedIn` will diff an absolute path that does belong to another checkout, so this is a policy about where a path lies and never a claim that no diff of it exists. */
+export const modeFor = (send, rels) => {
+  const outside = rels.filter(isAbsolute);
+  if (send === null) {
+    return {
+      bodies: outside.length > 0,
+      said: outside.length
+        ? `codex: ${outside.length} file(s) lie outside this checkout, so this consult sends them `
+          + `whole rather than as a change of this repository: ${outside.join(", ")}. `
+          + "Pass --send diffs for what the default would otherwise have sent."
+        : null,
+    };
+  }
+  const bodies = send === "bodies";
+  return {
+    bodies,
+    said: outside.length && !bodies
+      ? `codex: ${send} was named rather than defaulted, so it stands over the ${outside.length} `
+        + "file(s) lying outside this checkout, which a plan or criteria write will then refuse for "
+        + `carrying no whole body: ${outside.join(", ")}.`
+      : null,
+  };
 };
 
 /* Four jobs, and the size decides only for the one that says nothing about itself. */
