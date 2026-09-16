@@ -49,6 +49,17 @@ landing wrote itself is void, said with the verdicts it takes, and made again at
 set does build. A builder's is refused instead: that one is work somebody did, and none of the
 landing's to write over.
 
+A pin that moved is not that event. The membership is unchanged there and only the base has grown,
+so what the landing rebuilds is a second sha over the same two commits — and a builder's answer, an
+answer about that change's own paths and about nothing else, is as true of the new candidate as of
+the old wherever those paths read the same in both. What stales it is the merge's content, not the
+sha it was filed under, so the sha is re-keyed and the branch is not sent back to answer what it has
+answered. It is carried only where the candidate rebuilt from the pin the checkpoint itself names
+comes back as the sha that answer names: a reading this checkout cannot reproduce is one it cannot
+vouch for, and that is the whole of what stops a builder waving through a candidate it never saw.
+The readings taken over the candidate as a whole — the judge's turn and the release it was spent on —
+go with the pin whatever the paths do.
+
 A branch joins the chain only where its link moves neither its own paths nor a sibling's. One the pin
 alone moved goes back to its builder against the merge of that branch alone — a sha a later landing
 rebuilds. One only a sibling moved leaves the set owing nobody anything and lands after it: there

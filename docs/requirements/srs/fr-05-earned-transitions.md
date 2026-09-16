@@ -337,6 +337,10 @@ so a death between the two is recovered by reading back rather than by doing aga
   IF the base at the server has moved from the pin THEN the landing SHALL refuse to promote, SHALL
   rebuild from a fresh pin, and SHALL void the review and judgement evidence held for the old
   candidate.
+- **AC-05-10-13** · Rev: 1 · Proof: plugin/test/run/landing/moved-pin.test.mjs "a base that moved none of the change's own paths carries the builder's reading to the rebuilt candidate"
+  WHERE a rebuilt candidate holds a change's own paths as the candidate its builder reconciled held
+  them, the landing SHALL carry that reconciliation to the rebuilt candidate rather than ask its
+  builder a second time.
 - **AC-05-10-4** · Rev: 1 · Proof: plugin/test/run/landing/resume.test.mjs "a checkpoint at `judged` past its own push rebuilds nothing and releases nothing twice"
   WHEN a landing is resumed after a death THEN it SHALL finish only the steps the checkpoint, the
   server and the record say are still owed, and SHALL write no mark twice and no second release.
