@@ -18,7 +18,8 @@ import { PUTS_IT_BACK, said as saidMissing, unresolvedIn } from "../plugin/src/r
 import { DECLINED, placeFor, RAISE, runnersOf, SLOT, WAIT } from "./gates/machine.mjs";
 import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
-import { gateSteps, TEST_FILE } from "./gates/steps.mjs";
+import { parallelRuns } from "../plugin/src/resolve/settings.mjs";
+import { gateSteps, TEST_FILE, testWorkers } from "./gates/steps.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
 import { alonePath, casesPath, CEILING_SECONDS, REVIEW, fileTimesPath, recordDir, recordRun, seriesFile } from "./gates/timing.mjs";
 
@@ -144,11 +145,12 @@ process table cannot be read, which declines nobody. Only the process running a 
 never one that merely names its path, because a run declined for somebody's \`grep\` costs a wave a
 round.
 
-Test concurrency is untouched by the number and stays the whole core count. Measured here over 175
-files and 2368 cases: the same work took 276s at 3 workers, 223s at 6, 228s at 12 and 231s at 18, so
-sizing a lone gate down by the declared number would cost it a quarter to save a crowded box a
-thirtieth — and the crowded box has no deficit to recover, three whole gates at once having finished
-in 726s against 789s for the same three taken in turn.
+The number also divides the cores a test step spends, and the run prints what it sized itself to, so
+a step that took longer for a smaller fan-out cannot be read as a starved machine. A box that has
+declared nothing spends every core, as it always did. What that costs is measured here over 175 files
+and 2368 cases — the same work took 276s at 3 workers, 223s at 6, 228s at 12 and 231s at 18 — and it
+is paid deliberately: a gate that overruns the machine does not come back slower, it comes back
+\`unproved\` and is spent again whole.
 
 A run in the shared checkout is refused while that checkout holds uncommitted paths: more than one
 session stands there, so the result would be about a tree none of them owns. A worktree is never
@@ -400,6 +402,12 @@ if (planned.length > 0) {
 const started = Date.now();
 const [load] = loadavg();
 const cores = availableParallelism();
+const declared = parallelRuns();
+const workers = testWorkers({ cores, declared });
+if (planned.some((step) => step.tests)) {
+  console.log(`\n=== ${workers} test worker(s) of ${cores} core(s)`
+    + `${workers === cores ? ", this box having declared no runs" : `, ${declared.value} run(s) declared in ${declared.from}`} ===`);
+}
 const record = recordDir(ROOT);
 const unproved = [];
 const owned = [];

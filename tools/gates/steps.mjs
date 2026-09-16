@@ -1,14 +1,19 @@
 import { availableParallelism } from "node:os";
 import { fileURLToPath } from "node:url";
 
+import { parallelRuns } from "../../plugin/src/resolve/settings.mjs";
 import { HUMAN_REPORTER } from "./isolation.mjs";
 import { under } from "./scope.mjs";
 
 const ours = (name) => fileURLToPath(new URL(`./${name}`, import.meta.url));
 
-// Every core, since the gate spends one step at a time; node's own reporter named so the per-file seconds and the failing cases can ride beside it.
-export const TEST_FLAGS = [
-  `--test-concurrency=${availableParallelism()}`,
+/* A gate that runs out of machine reports no verdict and is spent again, so the runs this box
+   declares divide its cores; never to zero, and nothing declared is the whole machine (ISS-1613). */
+export const testWorkers = ({ cores = availableParallelism(), declared = parallelRuns() } = {}) =>
+  (declared.value === null ? cores : Math.max(1, Math.floor(cores / declared.value)));
+
+export const testFlags = (workers = testWorkers()) => [
+  `--test-concurrency=${workers}`,
   `--test-reporter=${HUMAN_REPORTER}`, "--test-reporter-destination=stdout",
   `--test-reporter=${ours("file-times.mjs")}`, "--test-reporter-destination=stdout",
   `--test-reporter=${ours("isolation.mjs")}`, "--test-reporter-destination=stdout",
@@ -91,6 +96,6 @@ export const gateSteps = (found) => {
       throw new Error(`step ${step.label} matches no test file of the ${found.length} git reports; `
         + `its selector is broken and the step would pass without running anything.`);
     }
-    return { ...step, argv: [process.execPath, "--test", ...TEST_FLAGS, ...files[step.tests]] };
+    return { ...step, argv: [process.execPath, "--test", ...testFlags(), ...files[step.tests]] };
   });
 };

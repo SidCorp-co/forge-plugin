@@ -4,11 +4,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync } from "node:child_process";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
-import { availableParallelism } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { EVERYTHING, gateSteps, STEPS, TEST_FILE, WHOLE_TREE_TESTS } from "../../../tools/gates/steps.mjs";
+import { EVERYTHING, gateSteps, STEPS, TEST_FILE, testWorkers, WHOLE_TREE_TESTS }
+  from "../../../tools/gates/steps.mjs";
 import { derivationFiles, planFor, under } from "../../../tools/gates/scope.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
@@ -62,11 +62,25 @@ test("a test step whose half is empty is refused, because it would pass having r
   assert.throws(() => gateSteps(WHOLE_TREE_TESTS), /step test matches no test file/u);
 });
 
-// A tripwire on a derivation this repository refused rather than forgot: the number of runs a machine declares sizes nothing here, and `node tools/gates.mjs -h` carries the figures that refused it (ISS-917).
-test("a test step spends the whole machine, whatever number of runs this box declares", () => {
+/* Both directions of ISS-1613, which reversed ISS-917's criterion 24: a case for the default alone
+   would pass against a derivation that had been deleted. */
+test("a test step spends the whole machine where this box declares no runs", () => {
+  assert.equal(testWorkers({ cores: 6, declared: { value: null, from: "plugin" } }), 6);
+});
+
+test("the runs a box declares divide the cores its test step spends", () => {
+  assert.equal(testWorkers({ cores: 6, declared: { value: 2, from: "project" } }), 3);
+  assert.equal(testWorkers({ cores: 6, declared: { value: 4, from: "project" } }), 1);
+});
+
+test("a declaration above the core count still leaves a worker to run the step", () => {
+  assert.equal(testWorkers({ cores: 6, declared: { value: 12, from: "project" } }), 1);
+});
+
+test("every test step spends the number this box's own declaration derives", () => {
   for (const step of gateSteps(tracked()).filter((one) => one.tests)) {
-    assert.ok(step.argv.includes(`--test-concurrency=${availableParallelism()}`),
-      `${step.label} sizes its concurrency by something other than the core count: ${step.argv.slice(0, 4).join(" ")}`);
+    assert.ok(step.argv.includes(`--test-concurrency=${testWorkers()}`),
+      `${step.label} sizes its concurrency by something other than the declared runs: ${step.argv.slice(0, 4).join(" ")}`);
   }
 });
 
