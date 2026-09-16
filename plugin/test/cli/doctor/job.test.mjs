@@ -145,11 +145,13 @@ test("a job naming a word that is no verb is refused before anything is written"
 
 test("a job flag beside a project flag is refused with neither store written", () => {
   const { run, saved } = room(declared);
-  const refused = run("doctor", "--job", "ba", "--set", "runs=2");
+  const ours = join(process.cwd(), ".forge.json");
+  const held = JSON.parse(readFileSync(ours, "utf8")).runs;
+  const refused = run("doctor", "--job", "ba", "--set", `runs=${held + 1}`);
   assert.equal(refused.status, 1, refused.stdout);
   assert.match(refused.stderr, /`--set` writes the project's own record and `--job` writes this machine's/u);
   assert.equal(saved().withheld, undefined, "the machine's half was not written before the refusal");
-  assert.equal(JSON.parse(readFileSync(join(process.cwd(), ".forge.json"), "utf8")).runs, 1,
+  assert.equal(JSON.parse(readFileSync(ours, "utf8")).runs, held,
     "and the project's file is this checkout's own, untouched by a refused call in another");
 });
 
