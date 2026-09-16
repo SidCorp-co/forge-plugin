@@ -294,7 +294,8 @@ export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true } = {}) =>
     if (word.text === "--") ended = true;
     const literal = QUOTES.test(text[word.at[0] - 1] ?? " ");
     const option = (options && !ended && !literal && OPTION.exec(word.text)?.[0].length) || 0;
-    const starts = [
+    /* A joined word is read from its start and nowhere else. The other three readings each say the name begins partway in, which is the opposite of what this word claims — that the span is one filename — and `'cache=/tmp/(r).md'` is a relative name the key reading would turn into a rooted one somewhere else entirely. */
+    const starts = word.joined ? [0] : [
       ...(option || KEY.test(word.text) ? [] : [0]),
       ...(option && word.text[option] !== "=" ? [option] : []),
       ...past(KEYED.exec(word.text)?.index ?? -1),

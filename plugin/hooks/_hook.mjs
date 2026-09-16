@@ -288,6 +288,7 @@ export const REDIRECT = new RegExp(
 const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
 export const QUOTED = /'[^']*'|"(?:[^"\\]|\\[\s\S])*"/gu;
+const BLANK = /^[ \t\n]+|[ \t\n]+$/gu;
 
 /** A heredoc body is data; `onProgram` reads one an interpreter executes, and is told where in the text being returned the interpreter sits — for the `cd` it inherited — and which
  *  interpreter it is. how/learning-gate.md. */
@@ -453,7 +454,7 @@ export const writtenPaths = (text, cwd, tail) => {
     return held.get(at);
   };
   const named = spans(text).flatMap(({ start, end }) => {
-    const said = spoken(text.slice(start, end).trim());
+    const said = spoken(text.slice(start, end).replace(BLANK, ""));
     return WRITES.test(said) ? namesIn(said, tail).map((one) => ({ ...one, at: start })) : [];
   });
   /* The target as the command wrote it, quotes and all: `namesOf` is where a shell word is read, and taking the pair off first hands it a `(` standing bare that stood inside a quote — which ends the name there and leaves a rooted tail nothing wrote (ISS-1555). */

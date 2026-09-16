@@ -172,6 +172,10 @@ test("a name is read from the word the command spelled it in, and never from the
     "while a `)` after the span closes the command around it, and there the span is the whole operand");
   assert.deepEqual(held("printf x > '/tmp/memory/(report).md' .txt"), [],
     "and what parts one operand from the next is the three characters a shell splits on, not every space this language calls one");
+  assert.deepEqual(held("printf x > 'cache=/tmp/(report).md'"), ["cache=/tmp/(report).md"],
+    "a word read whole is read from its start, the key and the option readings each saying a name begins where this one says it does not");
+  assert.deepEqual(writtenPaths(`tee '/tmp/memory/(report).md'\u00a0`, room, "md").map((one) => one.token), [],
+    "and the span a span reader hands on keeps what a shell would keep, since what it trims off is part of the name");
   assert.deepEqual(held("printf x > '/tmp/memory/(report)/note.md'"), ["/tmp/memory/(report)/note.md", "/note.md"],
     "while the one it reaches the end of is exactly that file, guard and all");
   assert.equal(namesOf("printf x > 'plus(one)/notes.md'").find((one) => one.token[0] === "p").at,
