@@ -272,3 +272,50 @@ test("a record written while the issue is off the ladder says nothing where the 
     tracker.close();
   }
 });
+
+/* The other half of the same close: the entry is there and the filesystem will not give it up, which
+   is the one state this module cannot leave on its own, so the escape it names is the one to take. */
+test("a record whose entry cannot be removed still names the file and the way out", async () => {
+  const at = tempRoom("plan-scope-stuck-");
+  execFileSync("git", ["init", "-q", at]);
+  copyFileSync(new URL("../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
+  const worked = realpathSync(at);
+  const issue = { documentId: "stuck-uuid", issueId: "ISS-98", status: "closed",
+    title: "a run whose entry will not go", plan: typedPlan(), acceptanceCriteria: "1. The one outcome." };
+  const project = {
+    issues: [issue],
+    comments: { "stuck-uuid": [] },
+    answer: {
+      forge_issues: (args) => {
+        if (args.action === "list") return { issues: [issue], returned: 1, hasMore: false };
+        if (args.action === "get") return issue;
+        if (args.action === "update") return Object.assign(issue, args.data);
+        return { documentId: args.documentId, ...(args.data ?? {}) };
+      },
+      forge_comments: (args) => {
+        if (args.action === "list") return { comments: project.comments["stuck-uuid"], returned: 0, hasMore: false };
+        project.comments["stuck-uuid"].push({ createdAt: "2026-09-15T00:00:00.000Z", body: args.data.body });
+        return { documentId: "comment-1", authorDeviceId: "a-fake-device", ...(args.data ?? {}) };
+      },
+    },
+  };
+  const tracker = await fakeTracker(project);
+  try {
+    for (const again of [1, 2]) {
+      assert.ok(again && (await ranAsync(FORGE, ["claim", "ISS-98", "--unheld"], tracker.env, worked)).status === 0);
+    }
+    /* A directory where the entry's file has to be: `rmSync` without `recursive` refuses it. */
+    const was = process.env.XDG_CONFIG_HOME;
+    process.env.XDG_CONFIG_HOME = tracker.env.XDG_CONFIG_HOME;
+    const entry = scopePath(worked, "ISS-98");
+    process.env.XDG_CONFIG_HOME = was;
+    mkdirSync(join(entry, "in the way"), { recursive: true });
+    const wrote = await ranAsync(FORGE, ["record", "gap", "ISS-98", "--none", "the method answered"], tracker.env, worked);
+    assert.equal(wrote.status, 0, wrote.stderr);
+    assert.ok(wrote.stderr.includes(entry), wrote.stderr);
+    assert.match(wrote.stderr, /could not be written or removed/u);
+    assert.match(wrote.stderr, /forge hooks --off plan-scope/u);
+  } finally {
+    tracker.close();
+  }
+});
