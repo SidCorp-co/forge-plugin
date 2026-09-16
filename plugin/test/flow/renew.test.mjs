@@ -497,3 +497,45 @@ test("the take's notice says the lease it took goes back when the write lands", 
   assert.match(notice, /only what\s+stands if the call does not finish/u, "and what the duration is for");
   assert.match(notice, /forge claim ISS-1617/u, "with the claim that is the lease a run keeps");
 });
+
+/* The line is the last thing the record says about the run that is gone, so the write that takes a
+   released field and names none of its own carries it forward. The derived line belongs to a field
+   nobody released, where no line is owed to anybody (codex F2 of the whole-set read). */
+test("a write taking a released field keeps the line the release left, and a bare one still gets the derived line", async () => {
+  field = { lease: { holder: "", released: new Date(Date.now() - 120_000).toISOString(), next: "fold F1", history: [{ holder: "a-run-before", at: ago(30), how: "write", status: "approved" }] } };
+  status = "developed";
+  await said(() => renew(ISSUE, "ISS-1617"));
+  assert.equal(leaseOf(field).next, "fold F1", "the line survives the take");
+  assert.deepEqual(leaseOf(field).history.map((one) => one.holder), ["a-run-before", "this-run"],
+    "and so does the row already on the field");
+
+  field = null;
+  status = "open";
+  await said(() => renew(ISSUE, "ISS-1617"));
+  assert.equal(leaseOf(field).next, "nothing was worked under this lease",
+    "while a field nobody released gets the derived line, no line being owed to anybody there");
+});
+
+/* The release is the one lease write whose payload has already landed, so a transport that refuses it
+   owes a line and never this call's exit code: a run told its record failed would go back and write it
+   again (codex F1 of the whole-set read). */
+test("a release the transport refuses says so and does not take the call down with it", async () => {
+  field = null;
+  status = "open";
+  await said(() => renew(ISSUE, "ISS-1617"));
+  const held = leaseOf(field);
+  const stub = globalThis.fetch;
+  globalThis.fetch = async (url, init = {}) =>
+    ((init.method ?? "GET") === "PATCH"
+      ? { ok: false, status: 503, headers: new Map(), text: async () => "the tracker is down" }
+      : stub(url, init));
+  let lines = [];
+  try {
+    ({ lines } = await said(() => releaseOwed()));
+  } finally {
+    globalThis.fetch = stub;
+  }
+  assert.ok(lines.some((one) => /ISS-1617/u.test(one) && /not given back|did not read back/u.test(one)),
+    `the refusal is said rather than swallowed: ${lines.join(" | ")}`);
+  assert.equal(leaseOf(field)?.holder, held.holder, "and the lease the write took stands, nothing having been written");
+});

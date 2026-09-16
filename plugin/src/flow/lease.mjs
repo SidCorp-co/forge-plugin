@@ -445,8 +445,8 @@ export const leaseMismatch = (ref, back) => {
 };
 
 /* `on` answers with the context the value was built from, which is what the write is conditional on: a function rather than the value itself because the two writes whose value is built inside the write's own callback read that context there, after this call was made. A caller naming none conditions nothing — the safe way for a call site to be missed, where an expectation of `null` would read as *the field is empty* and refuse every write to an issue that has a lease. */
-export const setLease = async (documentId, value, ref, on, refuse = fail) =>
-  writeField(documentId, FIELD, value, { ref, refuse, expect: on });
+export const setLease = async (documentId, value, ref, on, said = {}) =>
+  writeField(documentId, FIELD, value, { ref, refuse: fail, expect: on, ...said });
 
 /* An edge touches two issues and one of them is being worked: the other is only checked, so a blocker just filed, holding no lease at all, can still be named. */
 export const notAnothers = async (documentId, ref) => {
@@ -464,7 +464,7 @@ export const anothersHold = async (documentId, ref) => {
   return { unknown: false, said: writeRefusal(state, ref, lease) };
 };
 
-/* The take a payload write makes for itself, which is a claim in everything but the typing: the caller asked for the write, the field is empty, and the tracker's compare is what separates two callers who both read it empty — the refusal this replaces separated nobody (ISS-1260). The lease is the short one and carries the line that says so, derived rather than asked for, because a call that had to take its own lease is by construction the whole of what it does to the issue; the notice waits for the write, as the lapsed one does, a claim printed before the update being one a failed update would leave standing. It sits before the refusal below and after the finder, which claims nothing anywhere; and a `null` line reaching it is the transition clearing a line the issue was carrying, which a field holding no lease never had, so silence resolves to the derived line and a caller with a line of its own still writes it. */
+/* The take a payload write makes for itself, which is a claim in everything but the typing: the caller asked for the write, the field is empty, and the tracker's compare is what separates two callers who both read it empty — the refusal this replaces separated nobody (ISS-1260). The lease is the short one and carries the line that says so, derived rather than asked for, because a call that had to take its own lease is by construction the whole of what it does to the issue; the notice waits for the write, as the lapsed one does, a claim printed before the update being one a failed update would leave standing. It sits before the refusal below and after the finder, which claims nothing anywhere; and a `null` line reaching it is the transition clearing a line the issue was carrying, which a field holding no lease never had, so silence resolves to the derived line and a caller with a line of its own still writes it — unless a release emptied the field, whose line is one write's own doing and is carried forward where the caller names none (codex F2). */
 const takenByWriting = async (documentId, ref, context, next, patch) => {
   const status = await statusFor(documentId);
   if (!takeableFree(status, context)) fail(freeRefusal(ref, status, context));
@@ -472,7 +472,7 @@ const takenByWriting = async (documentId, ref, context, next, patch) => {
   const sent = claimed(context, {
     holder: sessionOf(),
     minutes: READING_MINUTES,
-    next: next ?? NOTHING_WORKED,
+    next: next ?? (releasedIn(context) && left ? left : NOTHING_WORKED),
     worklog: worklogFor(context, patch),
     how: TAKEN_BY_WRITING,
     status,
@@ -496,7 +496,7 @@ export const releasedWrite = (context, at = sharedStamp()) => ({
   [KEY]: { ...(remnantOf(context) ?? {}), holder: "", [RELEASED]: at },
 });
 
-/** Every lease a write took for itself in this process, given back. Read back first and judged on what came back: a take that landed between the write and here is a run this must not write over, and a lease already gone is nothing to give back. The one lease write that may not exit — the payload it covered has landed, so a transport that refuses here owes a line and never this call's exit code. */
+/** Every lease a write took for itself in this process, given back. Read back first and judged on what came back: a take that landed between the write and here is a run this must not write over, and a lease already gone is nothing to give back. Its write is the writer's soft one, which no other lease write is: everything the call was asked for is already on the tracker by the time this runs, and `writeFields` carries what that buys. */
 export const releaseOwed = async (say = console.error) => {
   const owed = [...OWED.entries()];
   OWED.clear();
@@ -509,7 +509,7 @@ export const releaseOwed = async (say = console.error) => {
       }
       const state = stateOf(leaseOf(context), sessionOf());
       if (state !== "mine" && state !== "lapsed") continue;
-      await setLease(documentId, releasedWrite(context), ref, () => context, refuse);
+      await setLease(documentId, releasedWrite(context), ref, () => context, { refuse, soft: true });
       say(releasedSaid(ref));
     } catch (error) {
       say(`${ref}'s lease was not given back and stands until it lapses: ${error?.message ?? error}`);
