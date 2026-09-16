@@ -92,9 +92,7 @@ test("a take with no checkpoint and a take at done are each refused naming what 
   assert.match(unknown, /forge resume ISS-673/u);
 });
 
-/* Whose liveness the successor is read against. Read off whatever lease the record carries, the
-   lander's own stood in for the builder's after a hand-back and refused the one run left for being
-   alive itself (ISS-1639), so each of the three readings is asserted by the sentence it earns. */
+/* Whose liveness the successor is read against: taken off the record's lease, the lander's own stood in for the builder's after a hand-back and refused the one run left for being alive itself, so each reading is asserted by the sentence it earns (ISS-1639). */
 test("at builder-owed a successor is held out by the builder's own lease and by nothing else", () => {
   const take = { taking: true };
   const BUILDS = { ...LIVE, holder: "the-builder" };
@@ -114,8 +112,7 @@ test("at builder-owed a successor is held out by the builder's own lease and by 
   assert.match(third, /reads `builder-owed`/u, third);
 });
 
-/* The take and not the lease licenses the write it was taken for: the row it leaves is what says a
-   successor answered for the builder, where the lease was that run's already (ISS-726). */
+/* The take and not the lease licenses the write it was taken for, the row it leaves being what says a successor answered for the builder (ISS-726). */
 test("a successor's write at builder-owed is licensed by its own take and not by the lease it holds", () => {
   const took = { ...LIVE, history: [{ holder: "the-lander", at: AT, how: "take", status: "developed", landing: "builder-owed" }] };
   const early = refused("builder-owed", "the-lander", LIVE);
@@ -124,8 +121,7 @@ test("a successor's write at builder-owed is licensed by its own take and not by
   assert.equal(refused("builder-owed", "the-lander", took), null, "and the write lands once that row is on the record");
 });
 
-/* The other state whose turn is the builder's keeps the reading it has: the records it is owed
-   answer for a judgement only the run that built the change can sign, and ISS-1649 reads it. */
+/* The other builder state keeps the reading it has, the records it is owed answering for a judgement only the run that built the change can sign (ISS-1649). */
 test("at records-owed the run holding the lease is held out until nothing live is on the issue", () => {
   const owed = refused("records-owed", "the-lander", LIVE, { taking: true });
   assert.match(owed, /reads `records-owed`/u, owed);

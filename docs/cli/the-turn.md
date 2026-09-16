@@ -48,8 +48,9 @@ builder's own lease — never whatever lease the record happens to carry. After 
 the issue is the lander's, so a reader that takes liveness off the record is reading the successor's
 own run in the builder's place and refusing it for being alive: holding the lease becomes the whole of
 the disqualification, and a run is eligible exactly when it is holding nothing. What the record's lease
-still answers is its own question, one state at a time: a live lease that is neither the builder's nor
-the caller's own is nobody's to take over from here, as it is at every lander's state.
+still answers is its own question: a live lease that is neither the builder's nor the caller's own is
+nobody's to take over at this state, the exceptions a lander's states carry being theirs and not
+this one's.
 
 The take and the write it was taken for are separate questions, and a lease the caller already held
 answers only the first. The write is licensed by the claim history's row — the take, naming the run at
