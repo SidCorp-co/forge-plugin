@@ -505,16 +505,21 @@ const takenByWriting = async (documentId, ref, context, next, patch) => {
   });
   await setLease(documentId, sent, ref, () => context);
   console.error(tookByWriting(ref, leaseOf(sent), left));
-  OWED.set(documentId, ref);
+  OWED.set(documentId, { ref, turn: false });
   return sent;
 };
 
 /* Registered here and spent by `plugin/src/cli.mjs`, the only place a verb's success is known: `renew` runs before the payload write on every route that calls it, so none of them can tell the write landed. Process state because that is the fact it carries — one call, one lease it did not ask for — and a call exiting through `fail` never reaches the spend, which is how a call that did not complete keeps what it took (ISS-1617). */
 const OWED = new Map();
 
-/* What a release says and what it writes. The sentence is for whoever reads the terminal the run ran in; the value takes the holder off so `leaseOf` reads no lease and records the moment so the field is not the one a run that died leaves, touching nothing else — the line the write left and every row of the claim history are the record of what happened here, and a release is not a reclaim and adds no row of its own. */
-export const releasedSaid = (ref) =>
-  `${ref} is free again: the lease this write took covered the write, and the write has landed. `
+/* The same give-back, asked for by a verb that is ending a turn rather than by a write that took a lease for itself. What the two share is the moment: the lease goes back once the call has completed, so a hand-back that fails past its own write keeps the issue rather than freeing one it left half-finished. What only this one knows is that the turn is over, which no lease can be read for — the lease was claimed by hand and says nothing about what the run meant to do under it — so the caller says it and this file does not guess. docs/cli/the-turn.md. */
+export const oweRelease = (documentId, ref) => OWED.set(documentId, { ref, turn: true });
+
+/* What a release says and what it writes. The sentence is for whoever reads the terminal the run ran in, and it is two sentences because the two releases are two different facts: one lease was taken by the write that is now landing, the other was claimed by hand and covered a turn the caller has just ended, and a run told the first about the second would read that its own claim had been a write's doing. The value takes the holder off so `leaseOf` reads no lease and records the moment so the field is not the one a run that died leaves, touching nothing else — the line the write left and every row of the claim history are the record of what happened here, and a release is not a reclaim and adds no row of its own. */
+export const releasedSaid = (ref, turn = false) =>
+  `${ref} is free again: ${turn
+    ? `the turn this run held is over, and the lease it was held under went back with it`
+    : `the lease this write took covered the write, and the write has landed`}. `
   + `Nothing holds the issue, so the run after it claims with no wait.`;
 
 export const releasedWrite = (context, at = sharedStamp()) => ({
@@ -526,7 +531,7 @@ export const releasedWrite = (context, at = sharedStamp()) => ({
 export const releaseOwed = async (say = console.error) => {
   const owed = [...OWED.entries()];
   OWED.clear();
-  for (const [documentId, ref] of owed) {
+  for (const [documentId, { ref, turn }] of owed) {
     try {
       const context = await readContext(documentId, true);
       if (context?.refused) {
@@ -536,7 +541,7 @@ export const releaseOwed = async (say = console.error) => {
       const state = stateOf(leaseOf(context), sessionOf());
       if (state !== "mine" && state !== "lapsed") continue;
       await setLease(documentId, releasedWrite(context), ref, () => context, { refuse, settling: true });
-      say(releasedSaid(ref));
+      say(releasedSaid(ref, turn));
     } catch (error) {
       say(`${ref}'s lease was not given back and stands until it lapses: ${error?.message ?? error}`);
     }

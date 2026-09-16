@@ -15,6 +15,20 @@ is over. What those verdicts have to carry — a judge that is not the builder, 
 deployment identity the checkpoint holds — is the contract's at `testing` and is not
 re-judged here, because a judge this claim refused could neither hand back nor be replaced.
 
+It is also the one hand-back that gives the lease back, and the one an issue carrying no checkpoint at
+all still takes. Both follow from what a judge is: its run ends at the verdicts, so the lease it
+claimed by hand covers a turn that is now over, and a project that judges a deployment rather than a
+merge writes those verdicts before anything has landed — no checkpoint exists to name a turn, and a
+hand-back that insisted on one would be refused at exactly the boundary it is for. With nothing to
+move, the release is the whole of what saying so can mean, and the state stays absent rather than
+being invented to carry it. A caller holding no lease is handed the claim that takes the issue
+instead, because a release asked for by a run that holds nothing would free whatever run does.
+
+The other two leave the lease standing, and that is not an oversight of theirs: the state each writes
+names a turn the run after it takes live, so nothing is waiting on the field emptying. This is also
+why the judge stays named on the checkpoint even now the hand-back frees the lease — a release is a
+write, a write can fail, and what the landing then meets is the live lease the guard is cut for.
+
 `--reconciled <sha>` is the builder's, and the sha is what that state is for: the run is asked which
 candidate it read, and the candidate the checkpoint names is what proves the reading rather than the
 run's word for it. Seven digits or forty, because seven is what the hand-back prints; the checkpoint's own string

@@ -39,6 +39,7 @@ import {
   claimed,
   describe,
   expiryOf,
+  freeRefusal,
   freshLapse,
   heldBy,
   historyLine,
@@ -47,6 +48,7 @@ import {
   nextLeft,
   nextLine,
   nothingWorked,
+  oweRelease,
   parkAnswers,
   readContext,
   parksAsCrashed,
@@ -107,13 +109,18 @@ export const USAGE = [
   `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest is dropped`,
   "  --ready         with --pushed: the landing checkpoint, in state `ready`, from that capture",
   "  --take          the lease at whatever state the checkpoint names your turn",
-  "  --judged        the QA turn handed back, from `qa-owed`",
+  "  --judged        the QA turn handed back, from `qa-owed` or from no checkpoint, and the lease with it",
   "  --reconciled <sha>  the builder's turn handed back, from `builder-owed` at that sha",
   "  --recorded      the builder's records turn handed back, from `records-owed`",
   "",
   "--pushed, --review and --open write the worklog beside the lease, which `forge resume` reads",
   "first; neither capture is automatic. What the checkpoint holds: docs/cli/the-checkpoint.md.",
   "Whose turn each state names, and what each hand-back moves it to: docs/cli/the-turn.md.",
+  "",
+  "--judged is the hand-back that gives the lease back, and the one an issue carrying no checkpoint",
+  "at all still takes: a judge whose verdicts come before the landing has no turn to move, and the",
+  "lease is the whole of what it is holding. The other two leave the lease standing, the state they",
+  "write naming a turn the run after them takes live.",
   "",
   nothingWorked(),
   "",
@@ -182,15 +189,28 @@ export const readyCheckpoint = (ref, holder, patch, landing) => {
   };
 };
 
+/* The hand-back of a judge whose verdicts came before any landing, the ordinary case wherever a deployment is judged rather than a merge: there is no checkpoint, so there is no turn to move and none is written, and the lease is the whole of what such a judge is holding. The lease is read here because no landing write follows to read it, and a caller holding nothing is owed the claim that takes the issue rather than a release that would free another run's (ISS-1429). */
+const handBackUnlanded = (documentId, ref, status, context, holder) => {
+  const lease = leaseOf(context);
+  const state = stateOf(lease, holder);
+  if (state === "free") fail(freeRefusal(ref, status, context));
+  if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, lease));
+  oweRelease(documentId, ref);
+  console.log(`${ref}  judged: no landing checkpoint, so no turn was moved and none was written.`);
+  return console.log(`The verdicts on the record are the judgement, so nothing more of ${ref} is `
+    + `this run's. The lease goes back as this call ends, and the run after it claims with no wait.`);
+};
+
 /* The one route out of `qa-owed`, and the reason the state is not a dead end: the judge writes its
    verdicts as any run does and then says the turn is over, which is all this writes. What those
    verdicts have to carry is the contract's at `testing` and not this claim's to re-judge — a judge
    refused here could neither hand back nor be replaced. docs/cli/the-checkpoint.md. */
-const handBack = async (documentId, ref, context, holder) => {
+const handBack = async (documentId, ref, status, context, holder) => {
   const landing = landingOf(context);
-  if (landing?.state !== LANDING_QA_OWED) {
+  if (!landing) return handBackUnlanded(documentId, ref, status, context, holder);
+  if (landing.state !== LANDING_QA_OWED) {
     fail(`claim --judged ends the QA turn, and the landing checkpoint on ${ref} reads `
-      + `\`${landing?.state ?? "nothing at all"}\`: the turn is handed back from \`${LANDING_QA_OWED}\` `
+      + `\`${landing.state}\`: the turn is handed back from \`${LANDING_QA_OWED}\` `
       + `and from no other state. Read where the landing is:\n  forge resume ${ref}`);
   }
   /* The same independence `--take` is refused by one move earlier, asked of the same function so the
@@ -201,9 +221,11 @@ const handBack = async (documentId, ref, context, holder) => {
     { source: mine.id === holder ? mine.source : null });
   if (refused) fail(refused);
   const saved = await landingSaved(documentId, ref, { state: LANDING_JUDGED, judge: holder });
+  oweRelease(documentId, ref);
   console.log(`${ref}  judged: ${landingLine(saved)}`);
   return console.log(`The verdicts on the record are the judgement, so nothing more of ${ref} is `
-    + `this run's. The landing takes it from here:\n  ${takeRoute(ref)}`);
+    + `this run's. The lease goes back as this call ends, and the landing takes it from here:\n`
+    + `  ${takeRoute(ref)}`);
 };
 
 /* The other route out, the same shape as the hand-back above. What is its own is the sha: the
@@ -388,7 +410,7 @@ export const claim = async (argv) => {
     return advise(documentId, issue, merged(worklog, patch).worklog);
   }
   if (given.judged) {
-    await handBack(documentId, ref, context, holder);
+    await handBack(documentId, ref, issue.status, context, holder);
     return advise(documentId, issue, worklog);
   }
   if (given.reconciled) {
