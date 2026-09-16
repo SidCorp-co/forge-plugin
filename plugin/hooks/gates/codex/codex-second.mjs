@@ -6,6 +6,7 @@ import { ageOf, apartFrom, demandIn, pendingNow, pendingState, repoRoot, stagedI
 import { logBytes } from "../../../src/codex/codex-log.mjs";
 import { unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
 import { configDir } from "../../../src/resolve/config.mjs";
+import { OWED_DOORS, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { probeMs } from "../../../src/hooks/git-probe.mjs";
 import {
   REDIRECT,
@@ -90,6 +91,10 @@ export const commitAim = (ev) => {
 const ESCAPE = "For the session: `forge hooks --off codex-second` — an inline `FORGE_CODEX_DISABLE=1` "
   + "prefix never reaches a hook.";
 
+const DOOR = "commit";
+const MALFORMED = "`codex.owed` in .forge.json is a list of the doors a consult is demanded at, out of "
+  + `${OWED_DOORS.join(", ")}. Drop the key and the commit alone asks.`;
+
 /* The record and the log resolve under XDG_CONFIG_HOME and a hook reads the session's, so a consult made under another one is recorded where this never looks: unsaid, that refused files a consult had already read while `pending` answered nothing pending about them, and the only way out it offered was turning the review off (ISS-189). */
 const readIn = () => `Read from ${typed(configDir("forge"))}, so a consult recorded under another `
   + "XDG_CONFIG_HOME clears nothing here.";
@@ -120,7 +125,8 @@ export const run = (ev) => {
 
   /* The tree the commit names, not the shell's; and a commit is in it by construction, redirect or not. */
   const aim = commitAim(ev);
-  /* No tree to pick and no way to ask about one: the event's cwd is a different repository's answer. */
+  /* No tree to pick and no way to ask about one: the event's cwd is a different repository's answer.
+     Ahead of the door key, which is that tree's to set and unreadable while the tree is. */
   if (aim.tree === NOWHERE) {
     deny(
       "Which tree this commit closes over cannot be read from the command — a `cd -`, a bare `cd` or a "
@@ -130,7 +136,11 @@ export const run = (ev) => {
         + how(),
     );
   }
-  const root = repoRoot(resolve(ev.cwd ?? process.cwd(), aim.tree ?? "."));
+  const at = resolve(ev.cwd ?? process.cwd(), aim.tree ?? ".");
+  const owed = codexOwedOf(projectFileAt(at)?.codex);
+  if (owed.unknown) deny(`${owed.unknown} is no door this reads. ${MALFORMED}${how()}`);
+  if (!owed.value.includes(DOOR)) done();
+  const root = repoRoot(at);
   if (!root) done();
 
   const also = unjudged(ev, root, aim.others);

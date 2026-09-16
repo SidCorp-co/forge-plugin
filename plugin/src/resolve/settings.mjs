@@ -250,6 +250,24 @@ const chosen = (given, allowed, fallback, { source = FROM_PROJECT, absent = PLUG
     : { value: fallback, from: absent, unknown: held };
 };
 
+export const OWED_DOORS = ["gate", "commit", "ship"];
+const OWED_ABSENT = ["commit"];
+
+/** Every door at which a consult is demanded, read by each hook that holds one so none keeps a second
+ *  copy. Absent is the commit alone, what this did before the key; an empty list is the off switch. */
+export const codexOwedOf = (codex) => {
+  const given = codex?.owed;
+  if (given === undefined || given === null) return { value: OWED_ABSENT, from: PLUGIN_DEFAULT };
+  const listed = Array.isArray(given) && given.every((one) => typeof one === "string") ? given : null;
+  const wrong = listed ? listed.filter((one) => !OWED_DOORS.includes(one)) : null;
+  if (!listed || wrong.length) {
+    return { value: OWED_ABSENT, from: PLUGIN_DEFAULT, unknown: wrong?.join(", ") || JSON.stringify(given) };
+  }
+  return { value: [...new Set(listed)], from: FROM_PROJECT };
+};
+
+export const codexOwed = () => codexOwedOf(projectCodex());
+
 export const FEEDBACK_CHANNELS = ["off", "bugs", "all"];
 const FEEDBACK_DEFAULTS = { plugin: "bugs", project: "all" };
 

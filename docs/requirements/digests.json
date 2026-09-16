@@ -1846,8 +1846,16 @@
       "digest": "cda502c0d825b6fbc4a7d1e05e1ffdd7d199e54aeb17671a783c60a08213d84d"
     },
     "UC-06-3": {
-      "rev": 2,
-      "digest": "77145d9ea0c92780d0c6e4197d22d0809259d94a674b7e58a8565e76ad5e2e2e"
+      "rev": 3,
+      "digest": "5e10966b90024695f4f616e331d3a3c245ebde6c09d35ad04d2cbe2eef7ef831"
+    },
+    "AC-06-3-10": {
+      "rev": 1,
+      "digest": "fdb1a2ce22703399a33c581ec54a9c836ad5f34cddc325442292ade497c21ecd"
+    },
+    "AC-06-3-11": {
+      "rev": 1,
+      "digest": "1cbe0c787528e1714490cc3fcc82f75cd12d71ee70358c49dd7a5758637eaded"
     },
     "AC-06-3-1": {
       "rev": 3,
@@ -1956,6 +1964,34 @@
     "AC-06-6-7": {
       "rev": 1,
       "digest": "4cf6d4b9a627d2f04cc0bda37988204a004b5bd83ccde24c36889dde23ce7e26"
+    },
+    "UC-06-7": {
+      "rev": 1,
+      "digest": "bc16b32ede5359237b116416cc9410d964342c26696a71971f5daaeedf7adbcf"
+    },
+    "AC-06-7-1": {
+      "rev": 1,
+      "digest": "7e46fe0d1ec3da566f97768ee005fcc10dd620f20cd2d3ca74e6392544f5a146"
+    },
+    "AC-06-7-2": {
+      "rev": 1,
+      "digest": "015e5af4196dbb114c84c8103073225cf3ba0696173f3edb7050588775337915"
+    },
+    "AC-06-7-3": {
+      "rev": 1,
+      "digest": "1816c15744b4e977daac60063e3451604d20d9a93ee9586723908fb4645ca229"
+    },
+    "AC-06-7-4": {
+      "rev": 1,
+      "digest": "c7131886155355fd88822c5c523fcfc1c3665bf30d1661645be7893bc51d38e3"
+    },
+    "AC-06-7-5": {
+      "rev": 1,
+      "digest": "32d4c92ba4b40db176f74c6a9268b91964631b4a0ac145c6f91127ec2da939c3"
+    },
+    "AC-06-7-6": {
+      "rev": 1,
+      "digest": "f62a0cb978e329707ce15d7ebab12bd4a998d9a1b5725c48b26149db21568a7f"
     },
     "FR-07": {
       "rev": 1,
