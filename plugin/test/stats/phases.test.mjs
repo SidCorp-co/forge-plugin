@@ -165,13 +165,14 @@ const noteRun = (order) => {
     ["p2", 20, "forge record baseline ISS-99 --gate 'npm run check' --result green"],
     ["p3", 30, "forge codex consult --send bodies plugin/src/cli.mjs"],
   ];
-  const calls = [...upTo5, ...(order === "before"
-    ? [["n1", 50, "forge record note ISS-99 --section Fixed --user x"],
-      ["n2", 70, "npm run check"],
-      ["n3", 90, "node /w/tools/run.mjs ship"]]
-    : [["n1", 50, "node /w/tools/run.mjs ship"],
-      ["n2", 70, "npm run check"],
-      ["n3", 90, "forge record note ISS-99 --section Fixed --user x"]])];
+  const note = ["forge record note ISS-99 --section Fixed --user x"];
+  const ship = ["node /w/tools/run.mjs ship"];
+  const tail = {
+    before: [[50, ...note], [70, "npm run check"], [90, ...ship]],
+    after: [[50, ...ship], [70, "npm run check"], [90, ...note]],
+    unshipped: [[50, ...note], [70, "npm run check"], [90, "forge claim ISS-99 --pushed --ready"]],
+  }[order];
+  const calls = [...upTo5, ...tail.map(([start, command], n) => [`n${n}`, start, command])];
   const text = [
     JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-99" } }),
     ...calls.flatMap(([id, start, command]) =>
@@ -192,6 +193,12 @@ test("the note is counted in phase 6 in either order, and opens no segment behin
   assert.equal(early[5].calls, 2,
     "and the pre-ship gate is the phase the run was already in, never the note's");
   assert.equal(early[7].calls, 1);
+
+  const never = noteRun("unshipped");
+  assert.equal(never[6].calls, 1, "a run under a ship mode that lands nothing posts its note all the same");
+  assert.equal(never[5].calls, 3,
+    "and every call after it is the phase the run was in, where once the note swallowed the rest of the run");
+  assert.equal(never[7].calls, 0, "no ship of its own, which is the mode and not a phase the run skipped");
 });
 
 test("the profile says which order each run took over the note and the ship", () => {
