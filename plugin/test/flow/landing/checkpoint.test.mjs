@@ -92,16 +92,45 @@ test("a take with no checkpoint and a take at done are each refused naming what 
   assert.match(unknown, /forge resume ISS-673/u);
 });
 
-test("at builder-owed the named builder takes the turn, and a live lease refuses everybody else", () => {
-  assert.equal(refused("builder-owed", "the-builder"), null, "the run the state names, whoever holds the lease");
-  const third = refused("builder-owed", "a-third-run");
+/* Whose liveness the successor is read against. Read off whatever lease the record carries, the
+   lander's own stood in for the builder's after a hand-back and refused the one run left for being
+   alive itself (ISS-1639), so each of the three readings is asserted by the sentence it earns. */
+test("at builder-owed a successor is held out by the builder's own lease and by nothing else", () => {
+  const take = { taking: true };
+  const BUILDS = { ...LIVE, holder: "the-builder" };
+  assert.equal(refused("builder-owed", "the-builder", LIVE, take), null, "the run the state names, whoever holds the lease");
+  const alive = refused("builder-owed", "a-third-run", BUILDS, take);
+  assert.match(alive, /reads `builder-owed`/u, alive);
+  assert.match(alive, /the builder the-builder's/u, "the refusal says whose turn it is");
+  assert.match(alive, /that builder is on the issue under a lease of its own/u, "and that it is the builder's own run holding it out");
+  assert.match(alive, /forge claim ISS-673 --take$/mu, "with the one command that clears it");
+  assert.equal(refused("builder-owed", "a-third-run", { ...BUILDS, renewedAt: DEAD.renewedAt }, take), null,
+    "a builder's lease dead by the reclaim rules is any run's, so a successor may take the turn");
+  assert.equal(refused("builder-owed", "a-third-run", null, take), null, "and a field holding no lease holds nobody out");
+  assert.equal(refused("builder-owed", "the-lander", LIVE, take), null,
+    "the run whose own live lease is on the record succeeds the builder rather than being refused for being alive");
+  const third = refused("builder-owed", "a-third-run", LIVE, take);
+  assert.match(third, /is already on it/u, "and a live lease that is neither run's is nobody's to take over from");
   assert.match(third, /reads `builder-owed`/u, third);
-  assert.match(third, /the builder the-builder's/u, "the refusal says whose turn it is");
-  assert.match(third, /a successor is eligible only once that lease is dead/u, "and what would make it this run's");
-  assert.equal(refused("builder-owed", "a-third-run", DEAD), null,
-    "a lease dead by the reclaim rules is any run's, so a successor may reconcile where the builder is gone");
-  const lander = refused("builder-owed", "the-lander");
-  assert.match(lander, /reads `builder-owed`/u, "the lander is refused at the builder's state as any other run is");
+});
+
+/* The take and not the lease licenses the write it was taken for: the row it leaves is what says a
+   successor answered for the builder, where the lease was that run's already (ISS-726). */
+test("a successor's write at builder-owed is licensed by its own take and not by the lease it holds", () => {
+  const took = { ...LIVE, history: [{ holder: "the-lander", at: AT, how: "take", status: "developed", landing: "builder-owed" }] };
+  const early = refused("builder-owed", "the-lander", LIVE);
+  assert.match(early, /has taken no turn/u, early);
+  assert.match(early, /forge claim ISS-673 --take$/mu, "and the take it owes first");
+  assert.equal(refused("builder-owed", "the-lander", took), null, "and the write lands once that row is on the record");
+});
+
+/* The other state whose turn is the builder's keeps the reading it has: the records it is owed
+   answer for a judgement only the run that built the change can sign, and ISS-1649 reads it. */
+test("at records-owed the run holding the lease is held out until nothing live is on the issue", () => {
+  const owed = refused("records-owed", "the-lander", LIVE, { taking: true });
+  assert.match(owed, /reads `records-owed`/u, owed);
+  assert.match(owed, /answer for a judgement the run that built the change made/u, "naming what that turn is owed");
+  assert.equal(refused("records-owed", "the-lander", DEAD, { taking: true }), null, "and a lease no longer live opens it");
 });
 
 test("at the lander's states the builder is refused, and so is a second lander on a live lease", () => {

@@ -355,9 +355,8 @@ test("the lease a successor reconciled under is taken back from at once, and its
   assert.equal(held().holder, "a-successor-run");
 });
 
-/* The history outlives the holder, and a row that licensed a run once would license it forever: the
-   run that took this turn and lost the lease is any other run again, and the live lease it would be
-   taking is a second successor's own turn. */
+/* A run that took this turn and lost the lease is any other run again: what holds it out now is the
+   live lease of the run after it, which is that second successor's own turn. */
 test("a successor whose lease went to the run after it is refused the turn it once held", async () => {
   const gone = { ...lease("the-first-successor"), renewedAt: "2026-09-07T10:00:00.000Z" };
   field(OWED, { ...gone, history: [{ holder: "the-first-successor", at: gone.renewedAt, how: "take", status: "developed", next: null, landing: "builder-owed" }] });
@@ -366,16 +365,38 @@ test("a successor whose lease went to the run after it is refused the turn it on
   assert.equal(held().holder, "the-second-successor");
   const again = await ran(["claim", "ISS-673", "--take"], "the-first-successor");
   assert.equal(again.status, 1, `${again.stdout}${again.stderr}`);
-  assert.match(again.stderr, /neither it nor a successor/u, again.stderr);
+  assert.match(again.stderr, /is already on it/u, again.stderr);
   assert.equal(held().holder, "the-second-successor", "and the live lease it would have taken is where it was");
 });
 
-test("the lander that wrote the hand-back cannot sign the reconciliation, holding an older lease", async () => {
+/* The run the landing handed the branch back to has gone, and the lander that wrote the hand-back is
+   the only one left: read off whatever lease the record carries, the liveness that refused it was its
+   own (ISS-1639). The take is still what licenses the write, so the record names who answered. */
+test("the lander handed the branch back succeeds a builder that has gone, once it takes the turn", async () => {
   field(OWED, lease(LANDER));
-  const run = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], LANDER);
+  const early = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], LANDER);
+  assert.equal(early.status, 1, early.stdout);
+  assert.match(early.stderr, new RegExp(`the builder ${BUILDER}'s`, "u"), early.stderr);
+  assert.match(early.stderr, /has taken no turn/u, "and the take it owes before it signs anything");
+  assert.equal(checkpoint().state, "builder-owed", "the turn is still owed");
+  const took = await ran(["claim", "ISS-673", "--take"], LANDER);
+  assert.equal(took.status, 0, `${took.stdout}${took.stderr}`, "the builder holds no lease, so the turn is this run's to succeed to");
+  assert.equal(held().history.at(-1).landing, "builder-owed", "and the row says which state it was taken at");
+  const wrote = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], LANDER);
+  assert.equal(wrote.status, 0, `${wrote.stdout}${wrote.stderr}`);
+  assert.equal(checkpoint().state, "reconciled");
+  assert.equal(checkpoint().reconciled, CANDIDATE);
+});
+
+/* The refusal that keeps its job: the builder is on the issue under a lease of its own. */
+test("at builder-owed the builder's own live lease holds a successor out, naming that builder's run", async () => {
+  field(OWED, lease(BUILDER));
+  const run = await ran(["claim", "ISS-673", "--take"], "a-successor-run");
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, new RegExp(`the builder ${BUILDER}'s`, "u"), run.stderr);
-  assert.equal(checkpoint().state, "builder-owed", "the reading is the builder's to make and the turn is still owed");
+  assert.match(run.stderr, /that builder is on the issue under a lease of its own/u, run.stderr);
+  assert.match(run.stderr, new RegExp(`session ${BUILDER} `, "u"), "naming the builder's own lease and not the reader's");
+  assert.match(run.stderr, /forge claim ISS-673 --take$/mu, "with the one command that clears it");
+  assert.equal(held().holder, BUILDER, "and nothing of the successor's was written");
 });
 
 test("a reconciliation by a run the state does not license is refused, naming whose turn it is", async () => {
@@ -399,7 +420,8 @@ test("at builder-owed a run that is neither the builder nor a successor is refus
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /reads `builder-owed`/u, run.stderr);
   assert.match(run.stderr, new RegExp(`the builder ${BUILDER}'s`, "u"), "and names whose turn it is");
-  assert.match(run.stderr, /forge resume ISS-673/u, "with the read that says where the landing is");
+  assert.match(run.stderr, /is already on it/u, "and the live lease that is neither run's");
+  assert.match(run.stderr, /forge claim ISS-673 --take$/mu, "with the one command that clears it");
   assert.equal(held().holder, LANDER, "and nothing of the third run's was written");
 });
 
@@ -496,7 +518,9 @@ test("the builder ends its records turn and the checkpoint goes back to the stat
   }
 });
 
-/* The refusal the state check alone would not make: the lander still holds its own lease here. */
+/* The refusal the state check alone would not make: the lander still holds its own lease here. The
+   records this turn is owed answer for a judgement only the run that built the change can sign, so
+   this state keeps the reading `builder-owed` gave up at ISS-1639, and ISS-1649 is where it is read. */
 test("the lander that handed the records turn over cannot take it back", async () => {
   field(RECORDS, lease(LANDER));
   const run = await ran(["claim", "ISS-673", "--recorded"], LANDER);
@@ -504,7 +528,13 @@ test("the lander that handed the records turn over cannot take it back", async (
   assert.match(run.stderr, /reads `records-owed`/u, run.stderr);
   assert.match(run.stderr, new RegExp(`whose turn is the builder ${BUILDER}'s`, "u"),
     "naming the run whose turn it is, and not the state alone");
+  assert.match(run.stderr, /answer for a judgement the run that built the change made/u,
+    "and what the turn is owed, which is why the lease it holds does not open it");
+  assert.match(run.stderr, /forge claim ISS-673 --take$/mu, "with the one command that clears it");
   assert.equal(checkpoint().state, "records-owed", "and nothing was written");
+  const take = await ran(["claim", "ISS-673", "--take"], LANDER);
+  assert.equal(take.status, 1, take.stdout, "and the take it would make first is refused for the same reason");
+  assert.equal(held().holder, LANDER, "so the lease is where it was");
 });
 
 test("a successor that took the builder's dead records turn ends it, and the lander takes the lease back", async () => {

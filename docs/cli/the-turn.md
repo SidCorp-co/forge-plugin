@@ -43,13 +43,26 @@ same reason: a hand-back its own holder could be refused is a state nobody can l
 back with nothing written is answered by the walk, which stops at the same rung and hands it over
 again, having earned nothing on the way.
 
-Where the builder is gone its dead lease is any run's, and the run that takes the turn there may make
-that write too. Its own take is what says so — the claim history's row, naming the run at that state
-— because a successor holds a live lease from the moment it takes and the lease alone cannot tell it
-from the lander that wrote the hand-back under a lease it already held. The row read is the holder's
-own latest and no earlier one, because the history outlives both the holder and the state: a run that
-took the turn and lost the lease is any other run again, and one that has since taken another turn is
-at that one.
+Where the builder is gone a successor takes the turn, and what says the builder has gone is the
+builder's own lease — never whatever lease the record happens to carry. After a hand-back the lease on
+the issue is the lander's, so a reader that takes liveness off the record is reading the successor's
+own run in the builder's place and refusing it for being alive: holding the lease becomes the whole of
+the disqualification, and a run is eligible exactly when it is holding nothing. What the record's lease
+still answers is its own question, one state at a time: a live lease that is neither the builder's nor
+the caller's own is nobody's to take over from here, as it is at every lander's state.
+
+The take and the write it was taken for are separate questions, and a lease the caller already held
+answers only the first. The write is licensed by the claim history's row — the take, naming the run at
+that state — because a hand-back signed without one leaves the run that answered for the builder named
+nowhere, and the lander that wrote the hand-back is holding that same lease. The row read is the
+holder's own latest and no earlier one, because the history outlives both the holder and the state: a
+run that took the turn and lost the lease is any other run again, and one that has since taken another
+turn is at that one.
+
+The records turn keeps the reading the reconciliation gave up. What it is owed answers for a judgement
+the run that built the change made, which no other run can sign, so a successor takes that turn only
+once nothing live is on the issue at all — and the duration a caller waits out there is a duration and
+not a fact about the builder, which is what ISS-1649 reads.
 
 The lease such a run leaves is spent where the judge's is, one state along: at the state each
 hand-back writes, the lander's turn comes back at once rather than after a run whose own turn ended

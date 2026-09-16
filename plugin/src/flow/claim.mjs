@@ -393,7 +393,7 @@ export const claim = async (argv) => {
   const mineHere = sessionSourced();
   const landingHere = landingOf(context);
   const takeOpen = landingHere && !takeRefusal(ref, landingHere, holder, lease,
-    { source: mineHere.id === holder ? mineHere.source : null })
+    { source: mineHere.id === holder ? mineHere.source : null, taking: true })
     ? takeRoute(ref)
     : null;
   if (state === "live" && !handed) {

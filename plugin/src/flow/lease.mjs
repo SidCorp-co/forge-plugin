@@ -10,7 +10,7 @@ import { enforcementOf, writeField } from "../tracker/field-write.mjs";
 import { scoped, tried } from "../tracker/rest.mjs";
 import {
   LANDING, LANDING_BUILDER_OWED, LANDING_JUDGED, LANDING_STATES, READ_THE_STATE, SPENT_AT,
-  landingNext, landingOf,
+  landingNext, landingOf, takeRoute,
 } from "./landing/checkpoint.mjs";
 import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
 
@@ -236,10 +236,40 @@ export const tookAt = (lease, holder, state) => {
   return last?.how === "take" && last?.landing === state;
 };
 
-/* `--take` is the one route that may take a lease which is still live, so what licenses it is the
-   state naming the taker's turn and nothing else. A lease no longer live is anybody's by the
-   reclaim rules already, which is what makes a successor eligible where the run named has gone. */
-export const takeRefusal = (ref, landing, holder, lease, { now = sharedNow(), source = null } = {}) => {
+/* When a take is open: the expiry, and not the later moment a reclaim waits for that `freeFrom` names. */
+const takeableAfter = (ref) =>
+  `Unless a write renews it, the turn is takeable once that lease expires:\n  ${takeRoute(ref)}`;
+
+/* A builder's turn asked for by a run that is not the builder it names. What says the builder has gone is
+   the builder's own lease: after a hand-back the record carries the lander's, whose liveness stood in for
+   the builder's and refused the one run left (ISS-1639). A live lease that is neither run's is nobody's to
+   take over here, the take licenses the write after it, and the records turn keeps its reading (ISS-1649). */
+const successionRefusal = (ref, landing, holder, lease, said, taking) => {
+  const whose = `${said}, whose turn is the builder ${landing.builder}'s and this session is ${holder}`;
+  if (lease.holder === landing.builder) {
+    return `${whose}: that builder is on the issue under a lease of its own, ${describe(lease)}, and `
+      + `a successor is eligible only once the builder's own lease is dead by the reclaim rules. `
+      + `${takeableAfter(ref)}`;
+  }
+  if (lease.holder !== holder) {
+    return `${whose}, which succeeds that builder where it has gone — but ${describe(lease)} is `
+      + `already on it, and a lease that is neither the builder's nor this session's own is not taken `
+      + `over from here. ${takeableAfter(ref)}`;
+  }
+  if (tookAt(lease, holder, landing.state)) return null;
+  if (landing.state !== LANDING_BUILDER_OWED) {
+    return `${whose}: the records that turn is owed answer for a judgement the run that built the `
+      + `change made, so a successor takes it only once nothing live is on the issue — and what is `
+      + `on it is this session's own lease, ${describe(lease)}. ${takeableAfter(ref)}`;
+  }
+  if (taking) return null;
+  return `${whose}, which holds the lease and has taken no turn: the take is what puts a successor `
+    + `on the record, and a write signed without one leaves the run that answered for the builder `
+    + `named nowhere. Take the turn first:\n  ${takeRoute(ref)}`;
+};
+
+/* `--take` is the one route that may take a live lease, so the state naming the taker's turn is the whole of what licenses it, a lease no longer live being anybody's already. */
+export const takeRefusal = (ref, landing, holder, lease, { now = sharedNow(), source = null, taking = false } = {}) => {
   if (!landing) {
     return `${ref} carries no landing checkpoint, so no turn is handed off and --take is refused. `
       + `A build writes one where it ends:\n  forge claim ${ref} --pushed --ready`;
@@ -256,12 +286,7 @@ export const takeRefusal = (ref, landing, holder, lease, { now = sharedNow(), so
       + `on it takes its lease as any other does:\n  forge claim ${ref}`;
   }
   if (row.turn === "builder") {
-    if (holder !== landing.builder) {
-      if (!live || (lease.holder === holder && tookAt(lease, holder, landing.state))) return null;
-      return `${said}, whose turn is the builder ${landing.builder}'s, and this session is ${holder}: `
-        + `neither it nor a successor, since a successor is eligible only once that lease is dead by `
-        + `the reclaim rules and ${describe(lease)} is on it. ${READ_THE_STATE(ref)}`;
-    }
+    if (holder !== landing.builder) return live ? successionRefusal(ref, landing, holder, lease, said, taking) : null;
     /* Refused rather than told, alone among the writes a shared id makes: this one takes a live lease. */
     if (!live || lease.holder === holder || source !== INHERITED) return null;
     return `${said}, and the builder it names is ${landing.builder}, which is ${INHERITED_MEANS}: `
@@ -563,7 +588,7 @@ export const takeLease = async (documentId, ref, context,
   const mine = sessionSourced();
   const source = mine.id === holder ? mine.source : null;
   const held = landingOf(context);
-  const refused = takeRefusal(ref, held, holder, leaseOf(context), { source });
+  const refused = takeRefusal(ref, held, holder, leaseOf(context), { source, taking: true });
   if (refused) fail(refused);
   /* Spent by every take at that state, the judge's own included: a marker the judge's own take left
      behind would make the lander lease it goes on to hold a third run's to take. */

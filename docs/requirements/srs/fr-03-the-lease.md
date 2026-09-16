@@ -216,7 +216,7 @@ a wait no party can end.
   issue holding the run's identity, the branch, the judged head, the base and the files touched.
 - **AC-03-6-2** · Rev: 1 · Proof: none yet — ISS-673
   WHEN a transition moves the issue THEN it SHALL leave the landing checkpoint intact.
-- **AC-03-6-3** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-03-6-3** · Rev: 1 · Proof: plugin/test/flow/landing/checkpoint.test.mjs "at builder-owed a successor is held out by the builder's own lease and by nothing else"
   WHEN a lease is taken over THEN the CLI SHALL allow it only while the checkpoint's state names the
   taker's turn.
 - **AC-03-6-4** · Rev: 1 · Proof: none yet — ISS-673
