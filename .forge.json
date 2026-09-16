@@ -4,7 +4,7 @@
     "plugin": "bugs",
     "project": "bugs"
   },
-  "runs": 1,
+  "runs": 2,
   "jobs": {
     "ba": {
       "verbs": ["issue", "new", "comment", "attach", "next", "spec", "guide", "project", "knowledge"],
