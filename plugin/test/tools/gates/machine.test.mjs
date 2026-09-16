@@ -174,3 +174,19 @@ test("a machine that declares no number lets a second gate of the same checkout 
     rmSync(at, { recursive: true, force: true });
   }
 });
+
+/* The line a run reads a smaller fan-out off, watched both ways. `runs: 1` is the case that tells
+   the two branches apart at all: the workers it derives equal the core count, exactly as an
+   undeclared box's do, so a line keyed on that equality calls a declared box undeclared (ISS-1613). */
+test("the worker line names the number this box declared, and says so where it declared none", () => {
+  for (const [runs, expected] of [
+    [1, /=== \d+ test worker\(s\) of \d+ core\(s\), 1 run\(s\) declared in \.forge\.json ===/u],
+    [null, /=== \d+ test worker\(s\) of \d+ core\(s\), this box having declared no runs ===/u]]) {
+    const { at, work } = scratch(`machine-worker-line-${runs ?? "none"}`, null, null, { runs });
+    try {
+      assert.match(run(work, ["--full"]).stdout, expected, `declared runs: ${runs}`);
+    } finally {
+      rmSync(at, { recursive: true, force: true });
+    }
+  }
+});

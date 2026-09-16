@@ -406,7 +406,7 @@ const declared = parallelRuns();
 const workers = testWorkers({ cores, declared });
 if (planned.some((step) => step.tests)) {
   console.log(`\n=== ${workers} test worker(s) of ${cores} core(s)`
-    + `${workers === cores ? ", this box having declared no runs" : `, ${declared.value} run(s) declared in ${declared.from}`} ===`);
+    + `${declared.value === null ? ", this box having declared no runs" : `, ${declared.value} run(s) declared in ${declared.from}`} ===`);
 }
 const record = recordDir(ROOT);
 const unproved = [];
