@@ -115,12 +115,10 @@ test("a hand-back on an issue no run holds is refused naming the claim that take
   assert.doesNotMatch(refused.stderr, /is free again/u, "and nothing was released");
 });
 
-/* The two facts a judge needs before it types the verb, in the one place it reads. */
-test("forge claim -h says --judged gives the lease back and takes an issue carrying no checkpoint", async () => {
+/* The two facts a judge needs before it types the verb, on the flag's own line and not in prose below it: this help is within bytes of the cap the suite holds every verb to, so what carries them has to be the line that is there anyway. */
+test("forge claim -h says --judged takes a checkpoint or none, and gives the lease back", async () => {
   const help = await ran(["claim", "-h"], JUDGE);
   assert.equal(help.status, 0, help.stderr);
-  assert.match(help.stdout, /--judged.*from `qa-owed` or from no checkpoint, and the lease with it/u,
-    "the flag's own line carries both");
-  assert.match(help.stdout, /--judged is the hand-back that gives the lease back/u,
-    "and the prose says which of the three it is");
+  assert.match(help.stdout, /--judged +the QA turn handed back, from `qa-owed` or from none, and the lease with it/u,
+    "the flag's own line carries the state it takes, the absence of one, and the lease");
 });
