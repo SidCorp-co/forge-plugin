@@ -1,7 +1,7 @@
-# the turn — whose each landing state is, how one is handed back, and what a state may not do
+# the turn — whose each landing state is, and how the run holding one hands it back
 
-One state of the landing checkpoint at a time names a turn, and a takeover is allowed by that state
-and refused naming it. What the checkpoint holds, which routes the table walks and what a candidate
+One state of the landing checkpoint at a time names a turn, and this is how the run holding one gives
+it back. What the checkpoint holds, which routes the table walks and what a candidate
 is a fact about: [`the-checkpoint.md`](the-checkpoint.md). Why the lease it sits beside promises what
 it does: [`claim.md`](claim.md).
 
@@ -25,9 +25,7 @@ being invented to carry it. A caller holding no lease is handed the claim that t
 instead, because a release asked for by a run that holds nothing would free whatever run does.
 
 The other two leave the lease standing, and that is not an oversight of theirs: the state each writes
-names a turn the run after it takes live, so nothing is waiting on the field emptying. This is also
-why the judge stays named on the checkpoint even now the hand-back frees the lease — a release is a
-write, a write can fail, and what the landing then meets is the live lease the guard is cut for.
+names a turn the run after it takes live, so nothing is waiting on the field emptying.
 
 `--reconciled <sha>` is the builder's, and the sha is what that state is for: the run is asked which
 candidate it read, and the candidate the checkpoint names is what proves the reading rather than the
@@ -67,58 +65,3 @@ What `--recorded` does not do is read those records back. It is the reading `--j
 same reason: a hand-back its own holder could be refused is a state nobody can leave. A turn handed
 back with nothing written is answered by the walk, which stops at the same rung and hands it over
 again, having earned nothing on the way.
-
-Where the builder is gone a successor takes the turn, and what says the builder has gone is the
-builder's own lease — never whatever lease the record happens to carry. After a hand-back the lease on
-the issue is the lander's, so a reader that takes liveness off the record is reading the successor's
-own run in the builder's place and refusing it for being alive: holding the lease becomes the whole of
-the disqualification, and a run is eligible exactly when it is holding nothing. What the record's lease
-still answers is its own question: a live lease that is neither the builder's nor the caller's own is
-nobody's to take over at this state, the exceptions a lander's states carry being theirs and not
-this one's.
-
-The take and the write it was taken for are separate questions, and a lease the caller already held
-answers only the first. The write is licensed by the claim history's row — the take, naming the run at
-that state — because a hand-back signed without one leaves the run that answered for the builder named
-nowhere, and the lander that wrote the hand-back is holding that same lease. The row read is the
-holder's own latest and no earlier one, because the history outlives both the holder and the state: a
-run that took the turn and lost the lease is any other run again, and one that has since taken another
-turn is at that one.
-
-The records turn keeps the reading the reconciliation gave up. What it is owed answers for a judgement
-the run that built the change made, which no other run can sign, so a successor takes that turn only
-once nothing live is on the issue at all — and the duration a caller waits out there is a duration and
-not a fact about the builder, which is what ISS-1649 reads.
-
-The lease such a run leaves is spent where the judge's is, one state along: at the state each
-hand-back writes, the lander's turn comes back at once rather than after a run whose own turn ended
-with that write. Nothing
-is marked and nothing has to be cleared: the take that spends the row is the same take that writes a
-newer one, so the lease the lander then holds — that run's own, or the successor's if it goes on to
-land — is an ordinary lander's, which a third run may not take.
-
-The hand-back names the judge, because the lease it wrote under is still live and the landing has to
-be able to take it: that is a hole in the guard refusing a live lease, so it is cut at that one state
-and spent by the take that uses it, the judge's own included. Left set, a judge that went on to land
-its own change would hold a lander's lease any third run could take.
-
-A base or a branch head that moved after those verdicts voids them, and the landing names the numbers
-rather than describing the loss: whoever judges again is owed the list. The numbers are the verdicts
-taken at the identity being given up, and not every verdict a promotion would refuse — one citing
-some third head was void before this landing and is nothing this void takes. Whether a verdict still
-standing cites what is running is read per verdict at that rung, and is not a second list here.
-
-## What a state may not do
-
-Nothing writes a state the table does not offer as its successor, and the move is checked against the
-field as it reads at the moment of the write rather than against what the caller last read. One state
-is terminal, and no turn may take it: it says the landing is over. It is written on the status the
-record earned and not on the attempt to move one, because a checkpoint closed over a status nothing
-earned would leave the issue reachable by no route at all.
-
-A state whose successor nothing writes is the same defect wearing a table's clothes — the table's own
-reachability walk cannot see it — so the sources that write one are read for every state, twice. Once
-for the state written at all, which catches a row nobody writes; and once for a row whose turn is a
-run's own, whose every successor has to be written by that run's verb, because a turn the holder
-cannot leave is a landing parked for good. Both readings are of the source and of the one spelling a
-state is written in, so a write spelled otherwise is refused by them rather than missed.

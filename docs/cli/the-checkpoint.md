@@ -88,5 +88,5 @@ candidate is void and the branches are landed one at a time against the base as 
 that fails there fails on its own account.
 The runs that bounds is one for the candidate and one per branch, named before the first is spent.
 
-Whose turn each state names, the three routes a turn is handed back by, and what a state may not do:
-[`the-turn.md`](the-turn.md).
+Whose turn each state names and the three routes a turn is handed back by: [`the-turn.md`](the-turn.md).
+Who takes a turn its holder left, and what a state may not do: [`the-takeover.md`](the-takeover.md).

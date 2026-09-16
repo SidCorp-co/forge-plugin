@@ -258,7 +258,7 @@ const reconcile = async (documentId, ref, context, holder, given) => {
     { source: mine.id === holder ? mine.source : null });
   if (refused) fail(refused);
   /* After the independence check and not before it: the push this names is the builder's own to
-     make, and a run the state does not license is owed whose turn it is. docs/cli/the-turn.md. */
+     make, and a run the state does not license is owed whose turn it is. docs/cli/the-takeover.md. */
   const gone = droppedHead(landing.branch, landing.head);
   if (gone?.dropped) {
     fail(`${landing.branch} no longer carries ${shortSha(landing.head)}, the head this landing was `
