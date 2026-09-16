@@ -24,6 +24,14 @@ stands. They are written before the code; a wrong one is corrected in the open w
 correction` rather than relaxed to match what got built, and a plan that turns out wrong is replaced
 in the field so the issue carries one plan, the current one.
 
+**Which of those criteria only a person at the running product can witness is the plan's own answer,
+never a later reader's guess.** `## Witnessed on screen` names them by number, or answers `none` with
+the reading behind it. A criterion belongs there when what it claims is something a user sees or does;
+one a reader could check by opening the source is the builder's, and filing it there is the sign it
+was written about the code rather than about the product. The split moves none of the builder's
+obligation: it proves every criterion it can reach, user-facing ones included, and one it cannot reach
+is a `skipped` verdict naming what it lacked rather than a criterion handed on.
+
 <!-- forge:when tool.codex configured -->
 **Both are read before the issue takes them**: `forge record plan` and `forge record criteria` each
 refuse a file no consult has read, and one consult over both clears both writes with no flag to

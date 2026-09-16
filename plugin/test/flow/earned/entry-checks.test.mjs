@@ -437,6 +437,18 @@ test("approved refuses an untyped plan, and a criterion no plan step names", () 
     "and a plan carrying every section, both declarations and a step per criterion owes nothing");
 });
 
+/* The plan's other set of criterion numbers: the write reads no criteria field, so a witnessed set
+   pointing at nothing is caught at the one status that reads both (ISS-1591). */
+test("approved refuses a witnessed set citing a criterion the issue does not hold", () => {
+  const adrift = typedPlan({ "Witnessed on screen": "What only somebody at the product sees. criteria: 999" });
+  assert.deepEqual(missing("approved", planned(adrift)),
+    ["`## Witnessed on screen` cites criterion 999, which this issue does not hold, so what a person is asked to witness resolves to nothing"]);
+  assert.match(commands("approved", planned(adrift))[0],
+    /citing under that heading from 1, 2$/u, "and the numbers it could have cited");
+  const held = typedPlan({ "Witnessed on screen": "What only somebody at the product sees. criteria: 2" });
+  assert.deepEqual(missing("approved", planned(held)), [], "and a number this issue holds owes nothing");
+});
+
 /* The two declarations are what the ship steps read, so a plan that answers neither earns nothing —
    and each is answered by a line, never by prose saying the same thing (AC-05-7-3). */
 test("approved needs the plan with both its declarations, and numbered criteria", () => {

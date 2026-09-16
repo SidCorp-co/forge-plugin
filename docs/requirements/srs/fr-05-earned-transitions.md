@@ -289,14 +289,14 @@ follows carries an obligation of its own to deliver a thread nobody has been sho
 
 ### UC-05-9 — A plan whose shape is unfinished earns no approval
 
-Rev: 1 · Actors: agent · Enforces: BR-01, BR-02
+Rev: 2 · Actors: agent · Enforces: BR-01, BR-02
 
 The write judges the file it is handed and this judges the plan the issue holds, so a plan that
 arrived by any route answers to the same shape. What only the issue can decide is decided here rather
 than at the write: that a plan carrying no section at all is untyped, which is what keeps a plan
 written before this shape existed writable, and — because the criteria are a field of their own,
-which the write does not read — both that every criterion is served by a step and that every step
-cites one the issue holds.
+which the write does not read — that every criterion is served by a step, that every step cites one
+the issue holds, and that every number the witnessed section names is one the issue holds.
 
 - **AC-05-9-1** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "approved refuses an untyped plan, and a criterion no plan step names"
   IF the plan carries none of the sections a typed plan owes THEN the CLI SHALL refuse `approved` and
@@ -313,6 +313,9 @@ cites one the issue holds.
 - **AC-05-9-5** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "approved refuses an untyped plan, and a criterion no plan step names"
   IF a step of the plan cites no criterion, or cites only numbers the issue does not hold, THEN the
   CLI SHALL refuse `approved` and SHALL name that step and what it cites.
+- **AC-05-9-6** · Rev: 1 · Proof: plugin/test/flow/earned/entry-checks.test.mjs "approved refuses a witnessed set citing a criterion the issue does not hold"
+  IF the witnessed section of the plan cites a number no criterion of the issue carries THEN the CLI
+  SHALL refuse `approved` and SHALL name that number.
 
 ### UC-05-10 — One actor lands, and recovers off the checkpoint
 

@@ -17,8 +17,10 @@ head says what somebody pushed; neither is the identity, and a judge dispatched 
 refused and comes back having judged nothing. Which head, what each kind of change owes as evidence
 and how to capture it: `forge guide issue-flow verification`.
 
-**Then dispatch the judge and wait.** The brief is the issue, its criteria, the environment and that
-identity, and the role is the `qa` one this plugin ships. It exercises the change as a person using
+**Then dispatch the judge and wait.** The brief is the issue, the criteria its plan named under `##
+Witnessed on screen`, the environment and that identity, and the role is the `qa` one this plugin
+ships. Those are the criteria written to be judged at the product, so a judge briefed with them
+exercises what somebody asked for rather than re-deriving it from the builder's own proof. It exercises the change as a person using
 it, writes one verdict per criterion under an id of its own citing that identity, and writes a
 finding for anything a user meets that no criterion named. Nothing advances from this phase; what a
 record holds before either status is earned: `forge guide contract developed`,

@@ -225,13 +225,13 @@ const OWED = [
   ["skills/forge/screen/references/dependencies.md:7", "`forge issue ISS-mm --fields relations` reads them back, under `blockedBy` for the edges holding that issue up, `blocks` for the ones it holds up"],
   ["skills/issue-flow/default/guide/07-phase-3.md:13", "Both writes take a path and nothing but a path"],
   ["skills/issue-flow/default/guide/07-phase-3.md:20", "the write refuses the compounds it can prove"],
-  ["skills/issue-flow/default/guide/07-phase-3.md:28", "`forge record plan` and `forge record criteria` each refuse a file no consult has read"],
-  ["skills/issue-flow/default/guide/07-phase-3.md:37", "`forge record plan` and `forge record criteria` each refuse a file no consult has read"],
+  ["skills/issue-flow/default/guide/07-phase-3.md:36", "`forge record plan` and `forge record criteria` each refuse a file no consult has read"],
+  ["skills/issue-flow/default/guide/07-phase-3.md:45", "`forge record plan` and `forge record criteria` each refuse a file no consult has read"],
   ["skills/issue-flow/default/guide/08-phase-4.md:57", "which verifies that consult's findings rather than roaming for new ones"],
   ["skills/issue-flow/screen/guide/07-phase-3.md:13", "Both writes take a path and nothing but a path"],
   ["skills/issue-flow/screen/guide/07-phase-3.md:20", "the write refuses the compounds it can prove"],
-  ["skills/issue-flow/screen/guide/07-phase-3.md:28", "`forge record plan` and `forge record criteria` each refuse a file no consult has read"],
-  ["skills/issue-flow/screen/guide/07-phase-3.md:37", "`forge record plan` and `forge record criteria` each refuse a file no consult has read"],
+  ["skills/issue-flow/screen/guide/07-phase-3.md:36", "`forge record plan` and `forge record criteria` each refuse a file no consult has read"],
+  ["skills/issue-flow/screen/guide/07-phase-3.md:45", "`forge record plan` and `forge record criteria` each refuse a file no consult has read"],
   ["skills/issue-flow/screen/guide/08-phase-4.md:57", "which verifies that consult's findings rather than roaming for new ones"],
 ].map(([at, cut]) => `${at} ${cut}`);
 

@@ -119,6 +119,25 @@ test("a step naming no criterion is refused, and the step is quoted", async () =
   assert.equal(both.status, 0, both.stderr);
 });
 
+/* The one section whose answer is read: the blank it refuses is the shape every plan written before
+   this section existed carries, and a reader that cannot tell it from a considered `none` is back to
+   the guess the section replaced (ISS-1591). */
+test("the witnessed section is refused where it answers neither way, and where it answers both", async () => {
+  heldBy(MINE);
+  const blank = await wrote(MINE, planAt(typedPlan({ "Witnessed on screen": "The section nobody answered." })));
+  assert.equal(blank.status, 1);
+  assert.match(blank.stderr, /^`## Witnessed on screen` answers neither way, so nothing was written:$/mu);
+  assert.match(blank.stderr, /as `criteria: 3`, or write `none`/u, "and both ways of answering it");
+  assert.equal(state.issues[0].plan, undefined, "the field is untouched");
+  const both = await wrote(MINE, planAt(typedPlan({ "Witnessed on screen": "criteria: 2 — and none besides." })));
+  assert.equal(both.status, 1);
+  assert.match(both.stderr, /cites criterion 2 and says `none` as well/u);
+  const cited = await wrote(MINE, planAt(typedPlan({ "Witnessed on screen": "The list a person reads back. criteria: 2" })));
+  assert.equal(cited.status, 0, cited.stderr);
+  const said = await wrote(MINE, planAt(typedPlan({ "Witnessed on screen": "none — nothing here reaches a screen." })));
+  assert.equal(said.status, 0, said.stderr);
+});
+
 /* The file's own bytes reach the check, and a plan written on Windows carries a `\r` the reader kept
    until it split on both: unsplit, every heading of a complete plan was one nothing matched. */
 test("a plan whose lines end in CRLF is judged by the same reading as one that does not", async () => {

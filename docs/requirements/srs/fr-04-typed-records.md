@@ -162,15 +162,19 @@ counts, and nobody writes a report from memory.
 
 ### UC-04-7 — The plan is a typed payload, and its shape is checked at the write
 
-Rev: 1 · Actors: agent · Enforces: BR-01, BR-14
+Rev: 2 · Actors: agent · Enforces: BR-01, BR-14
 
 The plan carries a section per question the write's own help prints, each opened by a heading whose
 text is the section's name. The shape is markdown and not a fenced block because the plan is a field
 an author writes as a file, a review reads whole and a reader reads back, and a decoder in front of
-all three buys nothing. Presence is the whole of the check: whether a section answers its question
-is the reviewer's judgement, and a check that tried for it would refuse prose nobody could fix. A
-plan carrying none of the sections is stored as the free text this field held before them, so a plan
-already on a tracker stays writable and no status is earned on it.
+all three buys nothing. Presence is the whole of the check for every section but one: whether a
+section answers its question is the reviewer's judgement, and a check that tried for it would refuse
+prose nobody could fix. The exception is the section naming what only a person at the running product
+can witness, whose answer is a criterion number or the word `none` and is therefore read without being
+judged — an unanswered one reads to its next reader exactly like a considered `none`, which is the
+confusion that section exists to end. A plan carrying none of the sections is stored as the free text
+this field held before them, so a plan already on a tracker stays writable and no status is earned on
+it.
 
 - **AC-04-7-1** · Rev: 1 · Proof: plugin/test/flow/record/plan.test.mjs "`record plan -h` prints every section a typed plan owes, as the question it answers"
   WHEN the plan write's help is asked for THEN it SHALL print every section a typed plan carries, each
@@ -193,6 +197,10 @@ already on a tracker stays writable and no status is earned on it.
 - **AC-04-7-7** · Rev: 1 · Proof: plugin/test/flow/record/plan.test.mjs "a section a plan quotes inside a fence is text it shows and not one it carries"
   WHERE a plan quotes a heading or a numbered step inside a fenced block, the CLI SHALL read it as
   text the plan shows and SHALL open no section and count no step from it.
+- **AC-04-7-8** · Rev: 1 · Proof: plugin/test/flow/record/plan.test.mjs "the witnessed section is refused where it answers neither way, and where it answers both"
+  IF the section naming what only a person at the running product can witness answers with neither a
+  criterion number nor `none`, or answers with both, THEN the CLI SHALL refuse the write and SHALL name
+  both ways of answering it.
 
 ### UC-04-8 — The merged mark is a record, and a field is shaped as well as present
 

@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { tempRoom } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("criteria-");
-const { compoundCriteria } = await import("../../src/flow/machine.mjs");
+const { compoundCriteria } = await import("../../src/prose.mjs");
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process.env });
 

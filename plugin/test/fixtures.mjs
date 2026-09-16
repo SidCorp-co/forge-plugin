@@ -11,6 +11,7 @@ import { PLAN_SECTIONS } from "../src/flow/machine.mjs";
 
 const PLAN_BODY = {
   Declarations: "Screen change: no\nSchema coupling: no",
+  "Witnessed on screen": "none — nothing this change moves is a thing a person could look at.",
   Steps: "1. The one step — criteria 1, 2",
 };
 

@@ -3,9 +3,9 @@
    writes, fetches or reads the repository. What it checks against is the contract's table for that
    status, printed by `forge guide contract`. */
 import {
-  CLOSES_FROM, FINDINGS, SHAPES, TRIAGES, criteriaUncovered, looksTo, need, planFlags, planSteps,
-  planTyped, sectionsOwed, stepsUncited, unwrap,
+  CLOSES_FROM, FINDINGS, SHAPES, TRIAGES, looksTo, need, planFlags, unwrap,
 } from "./machine.mjs";
+import { planShapeOwed } from "./earned/plan-owed.mjs";
 import { correctionForm, judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead } from "./record/merged.mjs";
 import { eachProblem } from "./record/content.mjs";
 import { FORMS } from "../spec/parse.mjs";
@@ -499,41 +499,7 @@ export const CHECKS = {
         `forge record plan ${ref} <plan.md>, with both lines in it`,
       ));
     }
-    /* Read of the stored plan and not of the file, so a plan written by any route answers to it:
-       the write judges what it is handed and this is what the record itself says. */
-    if (asks && plan && !planTyped(plan)) {
-      out.push(need(
-        `the plan is untyped — it carries none of the sections a typed plan owes: ${sectionsOwed(plan, flags).join(" · ")}`,
-        `forge record plan ${ref} <plan.md>, each section opened by a heading whose text is its name`,
-      ));
-    } else if (asks && plan) {
-      const owed = sectionsOwed(plan, flags);
-      if (owed.length) {
-        out.push(need(
-          `the plan carries no ${owed.length === 1 ? "section" : "sections"} ${owed.map((name) => `\`## ${name}\``).join(", ")}`,
-          `forge record plan ${ref} <plan.md>, with each in it`,
-        ));
-      }
-      const steps = planSteps(plan);
-      const bare = criteriaUncovered(steps, view.criteria);
-      if (bare.length) {
-        out.push(need(
-          `no plan step names criterion ${bare.join(", ")}, so nothing the plan does serves ${bare.length === 1 ? "it" : "them"}`,
-          `forge record plan ${ref} <plan.md>, with a step naming each as \`criteria: ${bare[0]}\``,
-        ));
-      }
-      /* The write's own refusal, asked again over the criteria the write cannot see: a step citing a
-         number the issue does not hold serves as little as one citing nothing. */
-      const uncited = stepsUncited(steps, view.criteria);
-      if (uncited.length) {
-        const named = uncited.map((one) => (one.cites.length ? `${one.number} (citing ${one.cites.join(", ")})` : `${one.number}`));
-        out.push(need(
-          `plan step ${named.join(", ")} ${uncited.length === 1 ? "serves" : "serve"} no criterion this issue holds, `
-            + `so no verdict reaches what ${uncited.length === 1 ? "it does" : "they do"}`,
-          `forge record plan ${ref} <plan.md>, with \`criteria: <n>\` on each, from ${view.criteria.map((one) => one.number).join(", ")}`,
-        ));
-      }
-    }
+    out.push(...planShapeOwed(asks, plan, flags, view.criteria, ref));
     if (!view.criteria.length) {
       out.push(need("the criteria field holds no numbered line `N. outcome`", `forge record criteria ${ref} <criteria.md>`));
     }

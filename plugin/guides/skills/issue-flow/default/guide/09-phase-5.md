@@ -14,7 +14,9 @@ record holds before either status is earned, and on which outcomes:
 
 **A change to a screen parks the issue for human review before Phase 7.** Nothing here judges one
 for you: the park is a person's look, and what stands as a verdict's evidence in the meantime is
-`forge guide issue-flow verification`. A change that proves unshippable is an outcome: post the
+`forge guide issue-flow verification`. What that person is asked to look at is what the plan named under
+`## Witnessed on screen`; a park naming the change instead asks for a reading of a diff, which is the
+one thing a person's look was not for. A change that proves unshippable is an outcome: post the
 finding, leave the branch named, park the issue.
 
 Something you found that belongs to another issue goes there with `forge comment -h`.

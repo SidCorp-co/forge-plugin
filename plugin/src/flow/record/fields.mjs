@@ -5,7 +5,8 @@
    docs/cli/record-the-rung.md. */
 import { refuse } from "../../refusal.mjs";
 import { citationsChecked, criteriaChecked } from "../../spec/checked.mjs";
-import { SECTIONS, compoundCriteria, declaredAs, planFlags, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited } from "../machine.mjs";
+import { SECTIONS, declaredAs, planFlags, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, witnessedOn } from "../machine.mjs";
+import { compoundCriteria } from "../../prose.mjs";
 import { flowPinned, requiresOf } from "../../guides/flow.mjs";
 import { translateTo } from "../../resolve/settings.mjs";
 import { readOrRefuse } from "../../codex/codex-read.mjs";
@@ -82,6 +83,28 @@ export const requiresRefusal = (flow, declared, requires = requiresOf(flow)) => 
   ].join("\n");
 };
 
+/* The one section whose answer is read and not only its presence: it is written to be looked up by
+   whoever decides whether this change owes a person's eye, and a lookup with no answer in it, or with
+   two, sends that reader back to the guess the section exists to replace. UC-04-7 carries the
+   exception and why it is one. */
+const witnessedChecked = (witnessed) => {
+  const answers = [witnessed?.cites.length ? "cites" : null, witnessed?.none ? "none" : null].filter(Boolean);
+  if (!witnessed || answers.length === 1) return null;
+  if (answers.length === 2) {
+    return refuse([
+      `\`## Witnessed on screen\` cites criterion ${witnessed.cites.join(", ")} and says \`none\` as well, so nothing was written:`,
+      "a section answering both ways leaves whoever reads it to pick which answer was meant.",
+      "Drop the `none`, or drop the citation.",
+    ].join("\n"));
+  }
+  return refuse([
+    "`## Witnessed on screen` answers neither way, so nothing was written:",
+    "an unanswered section reads exactly like a considered `none` to whoever is deciding whether this",
+    "change owes a person at the running product a look.",
+    "Name what only a person there can witness as `criteria: 3`, or write `none` and the reading that makes it none.",
+  ].join("\n"));
+};
+
 /* Every shape rule of a typed plan, before the field is written. A plan carrying no section at all
    is the free text this verb has always stored, so its shape is nobody's here to judge and what it
    owes is `approved`'s to say — which is what keeps a plan already on the tracker writable. */
@@ -105,6 +128,7 @@ const planChecked = (plan) => {
   }
   const said = requiresRefusal(flowPinned().value, declared);
   if (said) refuse(said);
+  witnessedChecked(witnessedOn(plan));
   const bare = stepsUncited(planSteps(plan));
   if (bare.length) {
     refuse([

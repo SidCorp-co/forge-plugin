@@ -1,0 +1,52 @@
+/* Every rule here is asked a second time, of the stored plan rather than the file, and over the
+   criteria field the write cannot see: a plan that arrived by any route answers to the same shape,
+   and a number it cites is weighed against the criteria only the issue holds. */
+import { criteriaUncovered, need, planSteps, planTyped, sectionsOwed, stepsUncited, witnessedOn } from "../machine.mjs";
+
+/** Every shortfall of a plan's shape at `approved`; `asks` is false where the rung waives the plan. */
+export const planShapeOwed = (asks, plan, flags, criteria, ref) => {
+  const out = [];
+  if (asks && plan && !planTyped(plan)) {
+    out.push(need(
+      `the plan is untyped — it carries none of the sections a typed plan owes: ${sectionsOwed(plan, flags).join(" · ")}`,
+      `forge record plan ${ref} <plan.md>, each section opened by a heading whose text is its name`,
+    ));
+  } else if (asks && plan) {
+    const owed = sectionsOwed(plan, flags);
+    if (owed.length) {
+      out.push(need(
+        `the plan carries no ${owed.length === 1 ? "section" : "sections"} ${owed.map((name) => `\`## ${name}\``).join(", ")}`,
+        `forge record plan ${ref} <plan.md>, with each in it`,
+      ));
+    }
+    const steps = planSteps(plan);
+    const bare = criteriaUncovered(steps, criteria);
+    if (bare.length) {
+      out.push(need(
+        `no plan step names criterion ${bare.join(", ")}, so nothing the plan does serves ${bare.length === 1 ? "it" : "them"}`,
+        `forge record plan ${ref} <plan.md>, with a step naming each as \`criteria: ${bare[0]}\``,
+      ));
+    }
+    const uncited = stepsUncited(steps, criteria);
+    if (uncited.length) {
+      const named = uncited.map((one) => (one.cites.length ? `${one.number} (citing ${one.cites.join(", ")})` : `${one.number}`));
+      out.push(need(
+        `plan step ${named.join(", ")} ${uncited.length === 1 ? "serves" : "serve"} no criterion this issue holds, `
+          + `so no verdict reaches what ${uncited.length === 1 ? "it does" : "they do"}`,
+        `forge record plan ${ref} <plan.md>, with \`criteria: <n>\` on each, from ${criteria.map((one) => one.number).join(", ")}`,
+      ));
+    }
+    /* The plan's other set of criterion numbers: a witnessed set pointing at nothing asks a person to
+       look at nothing. */
+    const held = new Set(criteria.map((one) => one.number));
+    const adrift = (witnessedOn(plan)?.cites ?? []).filter((number) => !held.has(number));
+    if (adrift.length) {
+      out.push(need(
+        `\`## Witnessed on screen\` cites criterion ${adrift.join(", ")}, which this issue does not hold, `
+          + "so what a person is asked to witness resolves to nothing",
+        `forge record plan ${ref} <plan.md>, citing under that heading from ${[...held].join(", ")}`,
+      ));
+    }
+  }
+  return out;
+};
