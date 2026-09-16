@@ -15,9 +15,10 @@ import { laneLines, openingLines, workLines } from "../guides/phases.mjs";
 import { partForStatus } from "../guides/served.mjs";
 import { kindsHeld, parse } from "./record/page.mjs";
 import { parkAs, transitionTo } from "./advance.mjs";
-import { OPEN_KEPT, droppedHead, merged, patchFrom, worklogFor, worklogOf, workNow } from "./worklog.mjs";
+import { OPEN_KEPT, carriedByDefault, droppedHead, merged, patchFrom, worklogFor, worklogOf, workNow } from "./worklog.mjs";
 import {
   LANDING_BUILDER_OWED,
+  LANDING_DONE,
   LANDING_JUDGED,
   LANDING_MARKED,
   LANDING_QA_OWED,
@@ -97,24 +98,25 @@ const advise = async (documentId, issue, held = null) => {
 
 export const USAGE = [
   usageOf("claim"),
-  "The lease on an issue, in the session field the issue already has: a holder, a renew time, a",
-  "duration and the claims before this one. Nothing else about a run is remembered anywhere.",
+  "The lease on an issue, in the session field it already has: a holder, a renew time, a",
+  "duration and the claims before this one. Nothing else of a run is remembered.",
   "",
   `  --minutes <n>   how long the lease runs from now, instead of ${MINUTES}`,
-  `  ${STOPPED}       reclaim a lease that has only just lapsed, the run having been established stopped`,
+  `  ${STOPPED}       reclaim a lease only just lapsed, the run having been established stopped`,
   `  ${UNHELD}        no run is on it: take it anyway`,
   "  --next <line>   one line, the step whoever comes next starts on; a transition clears it",
-  "  --pushed        the branch, head, base and files touched, read from git at this moment",
-  "  --review        the last codex consult, its findings and what it owes, read from the log now",
-  `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest is dropped`,
-  "  --ready         with --pushed: the landing checkpoint, in state `ready`, from that capture",
+  "  --pushed        the branch, head, base and files touched, off git now",
+  "  --review        the last codex consult, its findings and what it owes, off the log",
+  `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest goes`,
+  "  --ready         with --pushed: the landing checkpoint at `ready`, off that capture",
   "  --take          the lease at whatever state the checkpoint names your turn",
   "  --judged        the QA turn handed back, from `qa-owed` or from none, and the lease with it",
   "  --reconciled <sha>  the builder's turn handed back, from `builder-owed` at that sha",
   "  --recorded      the builder's records turn handed back, from `records-owed`",
+  "  --landed        the landing over, from `ready`: the default branch has the head",
   "",
   "--pushed, --review and --open write the worklog beside the lease, which `forge resume` reads",
-  "first; neither capture is automatic. What the checkpoint holds: docs/cli/the-checkpoint.md.",
+  "first; no capture is automatic. What the checkpoint holds: docs/cli/the-checkpoint.md.",
   "Whose turn each state names and how one is handed back: docs/cli/the-turn.md.",
   "",
   nothingWorked(),
@@ -312,6 +314,35 @@ const handRecords = async (documentId, ref, context, holder) => {
     + `of ${ref} is this run's. The landing takes it from here:\n  ${takeRoute(ref)}`);
 };
 
+/* The fourth route out, and the one that ends a landing rather than handing a turn back: the state a
+   release leaves where the workspace that made it is gone before anybody reads the checkpoint. Git's
+   reading licenses the write and not the caller's word, so none of the independence the three
+   hand-backs ask is asked here — nothing is judged, and the lease `landingSaved` checks holds a
+   second run off. docs/cli/the-checkpoint.md. */
+const finishLanded = async (documentId, ref, context) => {
+  const landing = landingOf(context);
+  if (landing?.state !== LANDING_READY) {
+    fail(`claim --landed ends a landing the default branch already carries, and the landing `
+      + `checkpoint on ${ref} reads \`${landing?.state ?? "nothing at all"}\`: it is ended from `
+      + `\`${LANDING_READY}\` and from no other state, every later one being a landing under way whose `
+      + `remaining steps are its own. Read where the landing is:\n  forge resume ${ref}`);
+  }
+  const read = carriedByDefault(landing.head);
+  if (!read.carries) {
+    fail(`claim --landed writes \`${LANDING_DONE}\` on the default branch already carrying `
+      + `${shortSha(landing.head)}, the head ${landing.branch || "this checkpoint"} was written at, `
+      + `and this checkout cannot prove it does: ${read.why}. The reading is made off refs already `
+      + `here, since a claim may not wait on a remote, so fetch and ask again — and where that branch `
+      + `is genuinely unlanded what is owed is the landing and not this write:\n`
+      + `  git fetch origin\n  forge claim ${ref} --landed`);
+  }
+  const saved = await landingSaved(documentId, ref, { state: LANDING_DONE }, { was: landing });
+  console.log(`${ref}  landed: ${landingLine(saved)}`);
+  return console.log(`${read.ref} stands at ${shortSha(read.tip)} and carries ${shortSha(landing.head)}, `
+    + `so this change is on the default branch already and no release is owed to put it there. No turn `
+    + `of this landing is left for anybody to take.`);
+};
+
 /* The turn is read before anything is written, because this is the one claim that may take a live
    lease: a take the state does not name is refused and no field is touched. */
 const takeTurn = async (documentId, ref, issue, context, { holder, minutes, line, patch }) => {
@@ -366,11 +397,11 @@ export const claim = async (argv) => {
   if (ref.startsWith("--")) fail(`claim takes the issue first. ${usageOf("claim")}`);
   const pulled = pullRepeated(rest, "--open", "claim", { usage: USAGE });
   const given = flags(pulled.rest, "claim",
-    ["--pushed", "--review", "--ready", "--take", "--judged", "--recorded", STOPPED, UNHELD],
+    ["--pushed", "--review", "--ready", "--take", "--judged", "--recorded", "--landed", STOPPED, UNHELD],
     { usage: USAGE });
-  const turns = ["ready", "take", "judged", "reconciled", "recorded"].filter((one) => given[one]);
+  const turns = ["ready", "take", "judged", "reconciled", "recorded", "landed"].filter((one) => given[one]);
   if (turns.length > 1) {
-    fail(`claim takes one of --ready, --take, --judged, --reconciled and --recorded and this one takes `
+    fail(`claim takes one of --ready, --take, --judged, --reconciled, --recorded and --landed and this one takes `
       + `${turns.map((one) => `--${one}`).join(" and ")}: each is a different turn's own move. To end `
       + `this build:\n  forge claim ${ref} --pushed --ready`);
   }
@@ -414,6 +445,10 @@ export const claim = async (argv) => {
   }
   if (given.recorded) {
     await handRecords(documentId, ref, context, holder);
+    return advise(documentId, issue, worklog);
+  }
+  if (given.landed) {
+    await finishLanded(documentId, ref, context);
     return advise(documentId, issue, worklog);
   }
   /* The issue's own key and never the caller's spelling of it: `documentIdOf` takes a uuid too, and

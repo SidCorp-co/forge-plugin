@@ -32,6 +32,23 @@ answers for off the id its workspace was minted under. Left unwritten, the field
 it describes and the next landing that asks what is ready is told this branch is, which buys a gate,
 a version and a push for a merge that changes nothing.
 
+Neither of those reaches back. A release made before that step shipped left its checkpoint standing,
+and so does one whose workspace is gone by the time anybody reads it: each answers for the tree it
+ran in. `forge claim --landed` is the third route and it asks the repository instead of the caller —
+the branch this checkout has recorded as the remote's own either carries the head the checkpoint was
+written at or it does not, and where it does there is nothing left for a lander to do. Nothing is
+judged there, so no turn is taken and no independence is read. It builds nothing, gates nothing and
+pushes nothing, which is the point: what stands between such a checkpoint and the end of its landing
+is a fact about the repository, and buying a release to establish it is paying for work already done.
+
+That reading refuses what it cannot settle, which is the opposite of the branch reading a hand-back
+is held to one file along. There a refusal leaves a builder with a branch that was right and no write
+left to make, so everything but a proof of the bad case goes through. Here a pass ends the landing,
+so a shallow history, an object the store will not read, a checkout that has recorded no default
+branch and a call git would not answer each refuse, saying which of them fell short. The default
+branch is that recorded ref and never a conventional name that happens to resolve: a repository
+carrying both of the usual two would have the ancestry settled against whichever answered first.
+
 Neither route reads that write back as a status. `done` says no turn of the landing is left; how far
 up the ladder the record has carried the issue is the record's own answer, and a release that owes a
 person an act leaves the issue standing at the rung it earned with the checkpoint finished all the
