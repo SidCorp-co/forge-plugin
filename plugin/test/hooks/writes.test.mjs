@@ -182,6 +182,8 @@ test("a name is read from the word the command spelled it in, and never from the
     "and a redirect written inside a comment is prose, which writes nothing whatever it spells");
   assert.deepEqual(held("unset OUT; tee ${OUT:+ '/tmp/memory/(report).md' } </dev/null"), [],
     "nor does a span an expansion may drop altogether, which is any span standing past a bare `$`");
+  assert.deepEqual(held("tee prefix@('/tmp/memory/(report).md'|other) </dev/null"), [],
+    "nor one a pattern holds, where a `(` something else opened makes the span an alternative and not the word");
   assert.deepEqual(held("printf x > '/tmp/memory/(report).md' .txt"), [],
     "and what parts one operand from the next is the three characters a shell splits on, not every space this language calls one");
   assert.deepEqual(held("printf x > 'cache=/tmp/(report).md'"), ["cache=/tmp/(report).md"],
