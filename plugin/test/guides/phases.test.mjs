@@ -210,7 +210,7 @@ test("the lane names what earns each status ahead, and what the rung drops on th
     "  in_progress      baseline",
     "  developed        review, merged",
     "  testing          verdict",
-    "  awaiting_release verification; no note at this rung",
+    "  awaiting_release verification, note",
     "  closed           nothing owed at any rung",
     "Each name is a record kind: `forge record <kind> -h`.",
   ], "a fix reads its whole route: what it writes, what it does not, and where it ends");
@@ -220,7 +220,7 @@ test("the lane names what earns each status ahead, and what the rung drops on th
   assert.deepEqual(feature.filter((one) => /approved|awaiting_release/u.test(one)), [
     "  approved         decision, plan, criteria",
     "  awaiting_release verification, note",
-  ], "and each of the two rows a lighter rung touches asks for the whole of its payload");
+  ], "and the one row a lighter rung touches asks for the whole of its payload, the other reading alike at every rung");
   assert.deepEqual(laneLines({ status: "open", fields: fieldsOf("s", ["Size: fix -> feature"]) }), feature,
     "a correction that climbed a rung prints the feature lane, the field having claimed a fix");
 });
@@ -244,9 +244,9 @@ test("neither verb that prints the opening composes a line of it", () => {
 test("a rung's waiver is printed against the status it is granted from, and waives no phase", () => {
   const owed = (complexity) => phaseIndex({ status: "confirmed", fields: fieldsOf(complexity), held: EVERY_KIND }).owed;
   const waived = owed("s").filter((one) => one.waivers.length);
-  /* The status below the one dropping it: for the reading and the plan the cell `confirmed` owes, both being written there, and for the note the phase `testing` owes, the deploying rung being entered from there (ISS-1065, ISS-1066). */
-  assert.deepEqual(waived.map((one) => one.phase), ["2 Clarify; 3 Plan", "6, 7 Ship"],
-    "the reading and the plan are waived on the way into approved, the note on the way into the deploying rung");
+  /* The status below the one dropping it: for the reading and the plan that is the cell `confirmed` owes, both being written there (ISS-1065, ISS-1066). One cell and not two since the release note stopped being waived, the tracker refusing a close without it at every rung (ISS-1485). */
+  assert.deepEqual(waived.map((one) => one.phase), ["2 Clarify; 3 Plan"],
+    "the reading and the plan are waived on the way into approved, and nothing is waived after it");
   assert.ok(owed("s").every((one) => PHASE[one.status]),
     "and every phase is still owed: a waiver drops a record, never the work");
   /* Two rows on one status: the first alone is what `find` answered, and the plan's row is the second, so a reader taking it would report the plan and say nothing of the reading (ISS-1066). */

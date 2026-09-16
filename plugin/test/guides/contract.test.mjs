@@ -225,9 +225,6 @@ const recorded = (kind, fields) =>
 const UNMARKED = "`forge issue` should take the `data.relations` route.";
 const VERIFIED = [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["43b811e"] })];
 const climbed = (moved) => [recorded("correction", { moved, why: "what the work turned out to be" })];
-/* One rung asks both halves, so a case reading the note's drop satisfies the judging half as well, on the one criterion `weighed` carries: judging items left owed would answer for the deploying half never being asked (ISS-1022). */
-const JUDGED = [recorded("verdict", { criterion: "1. The one check that fails without the change.",
-  verdict: "pass", commit: "43b811e", evidence: ["43b811e"] })];
 /* A rung is the tracker's complexity and nothing else, so a case at a rung sets the field the entry
    checks read; `null` is the issue that holds none, which is the top rung by the upward rule. */
 const weighed = (rung, extra = {}) => ({
@@ -246,7 +243,6 @@ const deploying = (issue, comments = []) =>
 const CASES = {
   decision: { owed: /^no decision record/u },
   plan: { owed: /^the plan field is empty$/u },
-  note: { comments: [...VERIFIED, ...JUDGED], owed: /^no release note/u },
 };
 
 test("every payload a rung lightens is dropped by its own check, and the rung report is the one home", () => {
@@ -319,10 +315,12 @@ test("the rung drops nothing the contract keeps, and a declared person takes a f
   assert.equal(missing("confirmed", weighed("fix")).length, 1, "the confirmation with its where");
   assert.deepEqual(missing("approved", weighed("fix", { acceptanceCriteria: "" })),
     ["the criteria field holds no numbered line `N. outcome`"], "the criteria, being the whole of a fix's plan");
-  assert.deepEqual(deploying(weighed("fix")).map((one) => one.slice(0, 16)), ["no verification:"]);
+  assert.deepEqual(deploying(weighed("fix")).map((one) => one.slice(0, 16)),
+    ["no verification:", "no release note "],
+    "and the note beside it: no rung drops that one, the tracker refusing the close without the field (ISS-1485)");
   const seen = missing("awaiting_release", weighed("fix", { plan: "User-facing outcome: yes" }), VERIFIED);
-  assert.ok(seen.includes("no release note and no withholding either"), "declaring a person owes the note again");
-  assert.ok(seen.some((one) => /no person has answered/u.test(one)), "and the park with it");
+  assert.ok(seen.includes("no release note and no withholding either"), "the note, at this rung as at every other");
+  assert.ok(seen.some((one) => /no person has answered/u.test(one)), "and the park a declared person adds to it");
 });
 
 test("a climb outlives the corrections written after it, and a shortened page never lightens", () => {

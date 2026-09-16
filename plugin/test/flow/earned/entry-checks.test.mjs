@@ -330,6 +330,31 @@ test("a project that deploys on its own earns released by proving the deploy, no
   assert.match(half[0].what, /is not a whole payload/u);
 });
 
+/* The waiver that was never honoured. The two rungs below the top were granted the release note at
+   this check, and the tracker refused the close without the field at every one of them, so the only
+   thing the grant bought a run was the round it spent discovering the refusal (ISS-1485). Driven at
+   `s`, the rung the grant named, and through both forms of the write, because a line naming one of
+   them spends that round again. */
+test("the release note is owed at a lighter rung, and the owed line names both forms of the write", () => {
+  const NOTE = "merged to master at 43b811e; reviewed head 43b811e; judged head 43b811e; "
+    + "landing moved nothing; landing wrote nothing";
+  const landed = () => [mark(NOTE),
+    recorded("verification", { where: "https://app.example", commit: "43b811e", evidence: ["https://app.example/build/9"] })];
+  const at = (issue) => viewFrom("the-uuid", { complexity: "s", attachments: ATTACHED, ...issue }, landed());
+  const owed = (issue) => deployedOwed(at(issue), "ISS-3");
+
+  assert.equal(rungOf(rungFieldsOf(at({}))), "fix", "the rung the grant named, read off the complexity");
+  const none = owed({});
+  assert.equal(none.length, 1, "the note is the one thing a landed change at this rung still owes");
+  assert.match(none[0].what, /no release note and no withholding either/u);
+  assert.match(none[0].command, /--section Added --user/u, "the form for a change somebody reads");
+  assert.match(none[0].command, /--skip --why/u, "and the withholding, which is the form this rung most often wants");
+
+  assert.deepEqual(owed({ releaseNotes: { section: "Fixed" } }), [], "a note written clears it");
+  assert.deepEqual(owed({ releaseNotes: { section: "Skip" } }), [],
+    "and so does the withholding, which is a record written and not a record dropped");
+});
+
 const PLAN = typedPlan();
 const UNTYPED = "Screen change: no. Schema coupling: no.\n\nThe plan itself.";
 

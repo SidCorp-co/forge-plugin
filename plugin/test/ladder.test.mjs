@@ -157,6 +157,19 @@ test("what a rung stops owing is the row's, and a rung absent from a row owes th
   }
 });
 
+/* The claim the table cannot make about itself: the two tests above are driven over `LIGHTER`, so a
+   row for the release note would pass both and the rungs would go on saying the note is not owed
+   while the tracker refuses the close for the field it never wrote (ISS-1485). Named here as the
+   payload it is, so a row put back fails a case rather than a run. */
+test("no rung is waived the release note, which the tracker refuses a close without at every rung", () => {
+  for (const rung of RUNGS) {
+    assert.equal(lightens("awaiting_release", "note", at(rung)), false,
+      `a \`${rung}\` is waived the release note, and it is the close that pays for the waiver`);
+  }
+  assert.deepEqual([...new Set(LIGHTER.map((one) => one.status))], ["approved"],
+    "and the only status a rung buys anything at is the one whose payloads a lighter rung already spent");
+});
+
 /* Driven over a table of its own: the live one waives every kind of a status at the same rungs, so
    a reader keying on the status alone answers it correctly and the equality could not fail. What
    fails without the kind is exactly a rung that bought one payload of a status and not the other. */

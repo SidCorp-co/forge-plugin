@@ -59,7 +59,8 @@ export const climbForm = (ref, from = FIX) =>
   `forge record correction ${ref} --moved "Rung: ${from} -> ${RUNGS[Math.min(heightOf(from) + 1, RUNGS.length - 1)]}" `
   + `--why "<what the work turned out to be>"`;
 
-/* One row per payload a rung below the top stops owing, so a status demanding several carries several. `kind` is the record kind the row drops, and it is what both readers below match on: `drops` and `because` are the report's own prose and no key. */
+/* One row per payload a rung below the top stops owing, so a status demanding several carries several. `kind` is the record kind the row drops, and it is what both readers below match on: `drops` and `because` are the report's own prose and no key.
+   Both rows are at `approved` and a release note is not a third: the tracker refuses `closed` with no `releaseNotes` field and reads no rung doing it, so a row here states a rule this repository owns the other end of, and a run that believed it was refused the close anyway (ISS-1485). What a rung may buy is the second of a judgement already spent, which a note never is. */
 export const LIGHTER = [
   {
     status: "approved",
@@ -74,13 +75,6 @@ export const LIGHTER = [
     kind: "plan",
     drops: "the plan field, and the declarations it would carry, which absent read `no`",
     because: "a fix's criteria are the one check that fails without it, which is the whole of its plan",
-  },
-  {
-    status: "awaiting_release",
-    rungs: BELOW_TOP,
-    kind: "note",
-    drops: "a release note",
-    because: "no person sees the change, so the withholding is the rule and not a record to type",
   },
 ];
 
