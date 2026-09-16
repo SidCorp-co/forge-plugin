@@ -4,9 +4,9 @@ import test from "node:test";
 import { rmSync } from "node:fs";
 import { join } from "node:path";
 
-import { corpusUnder, durableBase, rootFor, sourcesFor } from "../../src/stats/corpus.mjs";
-import { tempRoom } from "../fixtures.mjs";
-import { ask, corpus, linkedIn, storedIn, transcript } from "./fixture-runs.mjs";
+import { corpusUnder, durableBase, rootFor, sourcesFor } from "../../../src/stats/corpus/corpus.mjs";
+import { tempRoom } from "../../fixtures.mjs";
+import { ask, corpus, linkedIn, storedIn, transcript } from "../fixture-runs.mjs";
 
 /* The home is read where it is used, so a case that left it would read the developer's own store. */
 const read = (room) => {

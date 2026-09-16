@@ -1,8 +1,8 @@
 /* What one call of a transcript was — the classifier and the wrong rows it was built to avoid: docs/cli/stats-rows.md. */
-import { DEFAULT } from "../guides/flow.mjs";
-import { VERB_NAMES } from "../resolve/visibility.mjs";
-import { handledBy } from "../resolve/handler.mjs";
-import { projectFileAt } from "../resolve/settings.mjs";
+import { DEFAULT } from "../../guides/flow.mjs";
+import { VERB_NAMES } from "../../resolve/visibility.mjs";
+import { handledBy } from "../../resolve/handler.mjs";
+import { projectFileAt } from "../../resolve/settings.mjs";
 
 /* Where a command actually starts. A bare space is not a command position: read as one, an echoed line was a record and a grep argument a claim, each advancing a phase the run had not reached. */
 const LEADS = String.raw`(?:^|[\n;|&(){}])[ \t]*`

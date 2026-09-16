@@ -1,6 +1,6 @@
 /* The three signals printed beside the score and folded into none of it: docs/cli/next.md. */
-import { callsIn } from "../stats/transcripts.mjs";
-import { readTranscript } from "../stats/corpus.mjs";
+import { callsIn } from "../stats/corpus/transcripts.mjs";
+import { readTranscript } from "../stats/corpus/corpus.mjs";
 import { keysIn } from "../tracker/issues.mjs";
 import { meets, pathsNamed } from "./eligible.mjs";
 import { complexityOf } from "./score.mjs";

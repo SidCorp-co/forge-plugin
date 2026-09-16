@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { slugFor } from "../../src/stats/corpus.mjs";
+import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 export const FORGE = new URL("../../bin/forge", import.meta.url).pathname;

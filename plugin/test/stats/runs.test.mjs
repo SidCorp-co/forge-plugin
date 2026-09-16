@@ -7,9 +7,9 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { callsIn, shellOf } from "../../src/stats/transcripts.mjs";
-import { classOf } from "../../src/stats/classes.mjs";
-import { slugFor } from "../../src/stats/corpus.mjs";
+import { callsIn, shellOf } from "../../src/stats/corpus/transcripts.mjs";
+import { classOf } from "../../src/stats/corpus/classes.mjs";
+import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { unionSeconds } from "../../src/stats/runs.mjs";
 import { writeMark } from "../../src/stats/marks/marks.mjs";
 import { tempRoom } from "../fixtures.mjs";

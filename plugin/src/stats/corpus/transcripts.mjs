@@ -1,9 +1,9 @@
 /* A subagent run as the harness recorded it, read back as pairs of call and result — docs/cli/stats.md. */
 import { CLASSES, POLL, WHOLE_SET_CLASS, classOf } from "./classes.mjs";
-import { NOTHING, logRead } from "../hooks/log-reads.mjs";
-import { quoting } from "../hooks/shell-spans.mjs";
-import { RUNGS, highest } from "../ladder.mjs";
-import { stampedIn } from "../flow/machine.mjs";
+import { NOTHING, logRead } from "../../hooks/log-reads.mjs";
+import { quoting } from "../../hooks/shell-spans.mjs";
+import { RUNGS, highest } from "../../ladder.mjs";
+import { stampedIn } from "../../flow/machine.mjs";
 
 /* The brief, never the whole file: over raw text a transcript that had only GREPPED the words was admitted as a run, and the rung below is off a record for the same reason — docs/cli/stats.md. */
 export const FLOW_BRIEF = /issue-flow/u;

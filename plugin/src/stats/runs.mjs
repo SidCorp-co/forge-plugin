@@ -10,9 +10,9 @@ import {
   declaredIn,
   guidePartOf,
   guideFlowOf,
-} from "./classes.mjs";
-import { FLOW_BRIEF, callsIn, markerOf, rungRun } from "./transcripts.mjs";
-import { corpusUnder, readTranscript, rootFor } from "./corpus.mjs";
+} from "./corpus/classes.mjs";
+import { FLOW_BRIEF, callsIn, markerOf, rungRun } from "./corpus/transcripts.mjs";
+import { corpusUnder, readTranscript, rootFor } from "./corpus/corpus.mjs";
 import {
   countIn, declareLines, foldPhases, listing, perRung, phaseLines, rungLines, shipLine, unrecognisedIn,
 } from "./tables.mjs";

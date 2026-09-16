@@ -4,10 +4,10 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { classOf, classesFor, declaredIn } from "../../src/stats/classes.mjs";
-import { slugFor } from "../../src/stats/corpus.mjs";
-import { tempRoom } from "../fixtures.mjs";
-import { asked, at, result, transcript, use } from "./fixture-runs.mjs";
+import { classOf, classesFor, declaredIn } from "../../../src/stats/corpus/classes.mjs";
+import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
+import { tempRoom } from "../../fixtures.mjs";
+import { asked, at, result, transcript, use } from "../fixture-runs.mjs";
 
 const said = (shell, declared) => classOf("Bash", shell, classesFor(declared));
 

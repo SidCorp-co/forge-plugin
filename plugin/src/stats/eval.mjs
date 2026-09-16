@@ -3,9 +3,9 @@
    not the profile's. What a comparison since a release is confounded by, and what a reading too
    shallow for its own window says instead — docs/cli/stats-the-eval.md; the line the ship prints at a
    multiple of the window and the reading it writes there — docs/cli/stats-the-mark.md. */
-import { RUNG_UNKNOWN } from "./transcripts.mjs";
-import { classesFor, declaredIn } from "./classes.mjs";
-import { rootFor } from "./corpus.mjs";
+import { RUNG_UNKNOWN } from "./corpus/transcripts.mjs";
+import { classesFor, declaredIn } from "./corpus/classes.mjs";
+import { rootFor } from "./corpus/corpus.mjs";
 import { checkoutFrom, derivedFrom, profileOf, readingAside, runsUnder } from "./runs.mjs";
 import { stamp } from "./figures.mjs";
 import { UNRECORDED, cacheRoot, copyAt, installedCopies, spansInstall } from "./versions.mjs";

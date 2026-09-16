@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 import { WINDOW, evalRuns, evalLines, scopeFor } from "../../src/stats/eval.mjs";
 import { profileOf } from "../../src/stats/runs.mjs";
-import { slugFor } from "../../src/stats/corpus.mjs";
+import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { UNRECORDED, copyAt, installedCopies, spansInstall } from "../../src/stats/versions.mjs";
 import { shiftBetween, tallied, twoWindows } from "../../src/stats/windows.mjs";
 import { evalObject, evalWindows } from "../../src/codex/codex-stats.mjs";

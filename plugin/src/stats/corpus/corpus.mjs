@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { basename, join } from "node:path";
 import { homedir, tmpdir } from "node:os";
 
-import { canonical } from "../resolve/canonical.mjs";
+import { canonical } from "../../resolve/canonical.mjs";
 
 export const transcriptBase = () => join(tmpdir(), `claude-${process.getuid?.() ?? 0}`);
 

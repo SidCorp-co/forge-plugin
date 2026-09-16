@@ -2,9 +2,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { render } from "../../src/flow/record/page.mjs";
-import { RUNG_UNKNOWN, rungRun } from "../../src/stats/transcripts.mjs";
-import { RUNGS } from "../../src/ladder.mjs";
+import { render } from "../../../src/flow/record/page.mjs";
+import { RUNG_UNKNOWN, rungRun } from "../../../src/stats/corpus/transcripts.mjs";
+import { RUNGS } from "../../../src/ladder.mjs";
 
 /* The call's own class says which call posted the record. Every line below carries the same words in a body some other verb printed: read from those, a run is filed at the rung of whatever issue it happened to read. */
 const said = (klass, body) => ({ class: klass, body });

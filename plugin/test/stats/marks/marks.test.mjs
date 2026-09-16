@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 import { WINDOW, evalLines, evalRuns, releaseMark, runsMark } from "../../../src/stats/eval.mjs";
 import { marksOf, marksPath, writeMark } from "../../../src/stats/marks/marks.mjs";
-import { slugFor } from "../../../src/stats/corpus.mjs";
+import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 import { escaped, tempRoom } from "../../fixtures.mjs";
 import { HOUR, PROJECT, ask, askStats, at, corpusOf, runsOf } from "../fixture-eval.mjs";
 

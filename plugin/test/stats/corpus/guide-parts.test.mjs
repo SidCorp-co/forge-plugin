@@ -7,12 +7,12 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { GUIDE_INDEX, guidePartOf } from "../../src/stats/classes.mjs";
-import { slugFor } from "../../src/stats/corpus.mjs";
-import { DEFAULT } from "../../src/guides/flow.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { GUIDE_INDEX, guidePartOf } from "../../../src/stats/corpus/classes.mjs";
+import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
+import { DEFAULT } from "../../../src/guides/flow.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const PROJECT = "/fixture/project";
 const BASE = Date.parse("2026-09-01T00:00:00.000Z");
 const at = (seconds) => new Date(BASE + seconds * 1000).toISOString();
@@ -57,7 +57,7 @@ const corpus = () => {
 const ask = (room, ...argv) =>
   spawnSync(FORGE, ["stats", "runs", "--checkout", PROJECT, ...argv], {
     encoding: "utf8",
-    env: { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-guide-home-"), TMPDIR: room },
+    env: { ...process.env, HOME: room, XDG_CONFIG_HOME: tempRoom("stats-guide-home-"), TMPDIR: room },
   });
 
 test("a guide call's part is read by the same lead-in as its class, and a bare call is the index", () => {

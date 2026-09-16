@@ -5,9 +5,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { PHASES, methodOf } from "../../src/guides/phases.mjs";
-import { MARKERS, RUNG_UNKNOWN, markerOf, shellOf } from "../../src/stats/transcripts.mjs";
-import { WHOLE_SET_CLASS, classOf } from "../../src/stats/classes.mjs";
-import { slugFor } from "../../src/stats/corpus.mjs";
+import { MARKERS, RUNG_UNKNOWN, markerOf, shellOf } from "../../src/stats/corpus/transcripts.mjs";
+import { WHOLE_SET_CLASS, classOf } from "../../src/stats/corpus/classes.mjs";
+import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { runFrom, segmented } from "../../src/stats/runs.mjs";
 import { RUNGS } from "../../src/ladder.mjs";
 import { tempRoom } from "../fixtures.mjs";
