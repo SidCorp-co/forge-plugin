@@ -3,8 +3,11 @@
    not the profile's. What a comparison since a release is confounded by, and what a reading too
    shallow for its own window says instead — docs/cli/stats-the-eval.md; the line the ship prints at a
    multiple of the window and the reading it writes there — docs/cli/stats-the-mark.md. */
-import { RUNG_UNKNOWN, rootFor } from "./transcripts.mjs";
-import { checkoutFrom, derivedFrom, profileOf, readingAside, runsUnder, stamp } from "./runs.mjs";
+import { RUNG_UNKNOWN } from "./corpus/transcripts.mjs";
+import { classesFor, declaredIn } from "./corpus/classes.mjs";
+import { rootFor } from "./corpus/corpus.mjs";
+import { checkoutFrom, derivedFrom, profileOf, readingAside, runsUnder } from "./runs.mjs";
+import { stamp } from "./figures.mjs";
 import { UNRECORDED, cacheRoot, copyAt, installedCopies, spansInstall } from "./versions.mjs";
 import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows } from "./windows.mjs";
 import {
@@ -109,8 +112,9 @@ const versioned = (runs, copies) => runs.map((run) => ({
   spanned: spansInstall(copies, run) ? SPANNED : STEADY,
 }));
 
-const groupsOf = (rows) =>
-  [...groupBy(rows, (row) => row.copy)].map(([copy, runs]) => ({ copy, runs: runs.length, profile: profileOf(runs) }));
+const groupsOf = (rows, declared) =>
+  [...groupBy(rows, (row) => row.copy)]
+    .map(([copy, runs]) => ({ copy, runs: runs.length, profile: profileOf(runs, declared) }));
 
 /* Over rows present on both sides with runs on both: a row one window never reached has no median to
    move, and reading its zero as a fall is the mistake the phase table was built against. */
@@ -138,11 +142,11 @@ const movedIn = (nowRows, beforeRows, key) => {
 
 /* Nothing a reader can derive: the profile carries the bounds and the rung counts, the shortfall is the
    size less the runs, and `spanned` is the one count the shifts need that nothing else holds. */
-const windowOf = (rows, read) => ({
+const windowOf = (rows, read, declared) => ({
   runs: rows.length,
   spanned: rows.filter((row) => row.spanned === SPANNED).length,
-  profile: profileOf(rows),
-  groups: groupsOf(rows),
+  profile: profileOf(rows, declared),
+  groups: groupsOf(rows, declared),
   /* Absent rather than empty where no tracker was read, so a window computed without one is not a
      window that read and found nothing. */
   ...(read ? { outcomes: outcomesOf(rows, read) } : {}),
@@ -197,10 +201,10 @@ const comparabilityOf = ({ size, now, before, reach }) => {
 /** The comparison, every cost figure of it one `profileOf` computes over a window or a group. With a
  *  stored reading, its recent window stands where the earlier one would, through the same lines; a
  *  reading held before the outcome figures existed carries none, which is not the same as zeroes. */
-export const evalRuns = (runs, copies, size = WINDOW, against = null, read = null, reach = null) => {
+export const evalRuns = (runs, copies, size = WINDOW, against = null, read = null, reach = null, declared = null) => {
   const { now, before } = twoWindows(versioned(byEnd(runs), copies), size);
-  const nowHeld = windowOf(now, read);
-  const beforeHeld = against ? against.now : before.length ? windowOf(before, read) : null;
+  const nowHeld = windowOf(now, read, declared);
+  const beforeHeld = against ? against.now : before.length ? windowOf(before, read, declared) : null;
   return comparedWindows({
     size,
     total: runs.length,
@@ -343,7 +347,7 @@ const judgedLines = (held) => {
   if (said.comparable) return [];
   return [
     `not a comparison: ${said.short.join(", and ")}, over a corpus holding ${held.total} run(s) in all.`,
-    ...(said.reach ? [`  ${reachSaid(said.reach)}.`] : []),
+    ...(said.reach ? [`  ${reachSaid(said.reach, held.sources ?? [])}.`] : []),
   ];
 };
 
@@ -401,7 +405,8 @@ export const evalLines = (held, anchor = null, copies = []) => {
 
 const corpusOf = (directory) => {
   const root = rootFor(directory);
-  return { root, ...runsUnder(root, null), copies: installedCopies(cacheRoot()) };
+  const declared = declaredIn(directory);
+  return { root, declared, ...runsUnder(root, null, classesFor(declared)), copies: installedCopies(cacheRoot()) };
 };
 
 /** The tracker read both windows share, taken once for the union of their pairs and keyed so each
@@ -439,13 +444,14 @@ const outcomeRead = async (corpus, directory, size, { horizon, most }) => {
  *  what the verb would have computed at that moment. */
 const readingOf = (directory, corpus, size, against = null, read = null) => ({
   root: corpus.root,
+  sources: corpus.sources,
   project: directory,
   skipped: corpus.skipped,
   unreadable: corpus.unreadable,
   copies: corpus.copies.length,
   ...(read ? { requests: read.spent.requests } : {}),
   ...evalRuns(corpus.runs, corpus.copies, size, against, read,
-    reachOf(corpus.root, corpus.runs[0]?.startedAt)),
+    reachOf(corpus.root, corpus.runs[0]?.startedAt), corpus.declared),
 });
 
 const WRITES = "the release step writes one at every multiple of fifty runs in the corpus";

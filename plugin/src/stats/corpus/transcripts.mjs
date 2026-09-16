@@ -1,0 +1,168 @@
+/* A subagent run as the harness recorded it, read back as pairs of call and result — docs/cli/stats.md. */
+import { CLASSES, POLL, WHOLE_SET_CLASS, classOf } from "./classes.mjs";
+import { NOTHING, logRead } from "../../hooks/log-reads.mjs";
+import { quoting } from "../../hooks/shell-spans.mjs";
+import { RUNGS, highest } from "../../ladder.mjs";
+import { stampedIn } from "../../flow/machine.mjs";
+
+/* The brief, never the whole file: over raw text a transcript that had only GREPPED the words was admitted as a run, and the rung below is off a record for the same reason — docs/cli/stats.md. */
+export const FLOW_BRIEF = /issue-flow/u;
+
+const CONFIRMS = "forge record confirmation";
+const CONFIRMED = "confirmation";
+
+export const RUNG_UNKNOWN = "unknown";
+
+const RETIRED_STAMP = "tier";
+
+/* Which rung a whole run was worked at, off the records its writes posted and never off the output a class covers whole: the-ladder.md. Named apart from `ladder.mjs`'s `rungOf`, which answers for one issue's fields where this reads a transcript, and `RUNG_UNKNOWN` is no rung of the ladder rather than its cheapest. Either stamp reads, so a transcript written before the record's field was renamed classifies at the rung it always did (ISS-822). */
+export const rungRun = (calls) => {
+  const said = calls
+    .filter((call) => call.class === CONFIRMS)
+    .map((call) => String(stampedIn(call.body ?? "", CONFIRMED, "rung")
+      ?? stampedIn(call.body ?? "", CONFIRMED, RETIRED_STAMP) ?? "").trim().toLowerCase())
+    .filter((one) => RUNGS.includes(one));
+  /* The largest, which is the batch rule: a run of three issues is as heavy as its heaviest. */
+  return said.length ? highest(said) : RUNG_UNKNOWN;
+};
+
+/* Text a command carries is not a command it ran: read as one, heredoc bodies named `npm run
+   check` 423 times and `printf '%s\n' '; forge close ISS-45'` was a close that never happened.
+   Which spans go back to a shell, and what an operator is struck to: docs/cli/stats.md. */
+const HEREDOC = /<<-?\s*(['"]?)(\w+)\1(?:[\s\S]*?^[ \t]*\2[ \t]*$|[\s\S]*)/gmu;
+const OPERATOR = /[\n;|&(){}]/u;
+const TEXT = new Set(["'", "#", "\\"]);
+const RUNS = /(?:^|[\s;&|(){}])(?:\S*\/)?(?:ba|da|k|z|a)?sh\s+(?:(?:-\S+|[A-Za-z][\w-]*)\s+)*-[a-zA-Z]*c[a-zA-Z]*\s*$/u;
+const SPENT = "\u0000";
+const ENDS_A_WORD = /[\s;|&(){}<>]/u;
+
+export const shellOf = (command) => {
+  const text = command.replaceAll(HEREDOC, "<<");
+  const said = [];
+  const outer = [];
+  let word = 0;
+  let handed = false;
+  let last = " ";
+  for (const { at, one, under } of quoting(text)) {
+    if (under === " ") {
+      if (one === "(") {
+        outer.push(text[at - 1] === "$" ? word : null);
+        word = at + 1;
+      } else if (one === ")") {
+        const back = outer.pop();
+        word = typeof back === "number" ? back : at + 1;
+      } else if (ENDS_A_WORD.test(one)) word = at + 1;
+    }
+    if (under === "'" && last !== "'") handed = RUNS.test(text.slice(0, word));
+    last = under;
+    const ran = under === "'" ? handed : !TEXT.has(under);
+    said.push(ran || !OPERATOR.test(one) ? one : SPENT);
+  }
+  return said.join("");
+};
+
+/* A poll is only in the order, so: off the same function `bash-guard.mjs` refuses with, forgetting
+   where that gate forgets — one class here is one refusal there, and the third read is the recovery. */
+const polled = (calls) => {
+  let before = "";
+  for (const call of calls) {
+    const key = call.name === "Bash" ? logRead(call.command) : null;
+    if (key && key === before) {
+      call.class = POLL;
+      before = "";
+      continue;
+    }
+    if (key !== NOTHING) before = key ?? "";
+  }
+  return calls;
+};
+
+/* Off the class the call already has, so the two cannot disagree: no run writes a phase into its transcript. `after` is the phase that must have opened first; `last` closes its own phase. The numbers are the method's, read off `PHASES`: this table said 5 for the ship where the contract says 5 for the proving, and a figure is only worth a phase both readings can name (ISS-700). */
+export const MARKERS = [
+  { phase: 1, classes: ["forge claim"] },
+  { phase: 2, classes: ["forge record confirmation"] },
+  { phase: 3, classes: ["forge record decision"] },
+  { phase: 4, classes: ["forge record plan", "forge record criteria", "forge record baseline"] },
+  { phase: 5, classes: [WHOLE_SET_CLASS], after: 4 },
+  /* `only` books its own call and moves the run's phase for nothing after it: the method posts the note after the landing under one ship mode and before the ready checkpoint under the other, so a row that opened a segment measured the interval to whatever came next rather than the note (ISS-1583). */
+  { phase: 6, classes: ["forge record note"], only: true },
+  { phase: 7, classes: ["ship"], last: true },
+];
+
+export const markerOf = (label) => MARKERS.find((row) => row.classes.includes(label)) ?? null;
+
+/* A name that is not a string is what a change on the host's side looks like from here. */
+const string = (value) => (typeof value === "string" ? value : "");
+
+/** What a call carried, in characters of the model's own output. */
+const sizeOf = (name, input) => {
+  if (name === "Bash") return string(input?.command).length;
+  if (name === "Edit") return string(input?.old_string).length + string(input?.new_string).length;
+  if (name === "Write") return string(input?.content).length;
+  return 0;
+};
+
+const textOf = (content) => {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return content.map((part) => (typeof part === "object" && part ? part.text ?? "" : "")).join(" ");
+};
+
+/** A transcript folded into its calls, the moments it ran between and the brief it opened with. The
+ *  bounds are every record's: the opening prompt and the closing report are generation the run spent, and a window it belongs to. */
+export const callsIn = (whole, classes = CLASSES) => {
+  const uses = new Map();
+  const results = new Map();
+  const order = [];
+  let firstAt = null;
+  let lastAt = 0;
+  let brief = "";
+  for (const line of whole.split("\n")) {
+    if (!line.startsWith("{")) continue;
+    let record;
+    try {
+      record = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    const stamp = Date.parse(record.timestamp);
+    if (!stamp) continue;
+    if (firstAt === null) {
+      firstAt = stamp;
+      brief = textOf(record.message?.content);
+    }
+    lastAt = Math.max(lastAt, stamp);
+    const content = record.message?.content;
+    if (!Array.isArray(content)) continue;
+    for (const block of content) {
+      if (block?.type === "tool_use") {
+        const name = string(block.name) || "Bash";
+        uses.set(block.id, { at: stamp, name, command: string(block.input?.command), size: sizeOf(name, block.input) });
+        order.push(block.id);
+      } else if (block?.type === "tool_result") {
+        results.set(block.tool_use_id, { at: stamp, body: textOf(block.content), error: Boolean(block.is_error) });
+      }
+    }
+  }
+  const calls = polled(order.map((id) => {
+    const use = uses.get(id);
+    const result = results.get(id);
+    const shell = use.name === "Bash" ? shellOf(use.command) : "";
+    return {
+      at: use.at,
+      name: use.name,
+      command: use.command,
+      size: use.size,
+      shell,
+      class: classOf(use.name, shell, classes),
+      answered: Boolean(result),
+      /* Zero for a call that never returned, neither skipped nor stretched to the next: the hand
+         profilers took one of the three each, and a run cut mid-gate is the common case. */
+      wait: result ? Math.max(0, result.at - use.at) / 1000 : 0,
+      endedAt: result ? result.at : use.at,
+      body: result?.body ?? "",
+      error: result?.error ?? false,
+    };
+  }));
+  return { calls, brief, firstAt, lastAt: Math.max(lastAt, ...calls.map((one) => one.endedAt)) };
+};

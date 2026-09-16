@@ -7,7 +7,9 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { callsIn, classOf, shellOf, slugFor } from "../../src/stats/transcripts.mjs";
+import { callsIn, shellOf } from "../../src/stats/corpus/transcripts.mjs";
+import { classOf } from "../../src/stats/corpus/classes.mjs";
+import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { unionSeconds } from "../../src/stats/runs.mjs";
 import { writeMark } from "../../src/stats/marks/marks.mjs";
 import { tempRoom } from "../fixtures.mjs";
@@ -82,8 +84,10 @@ test("an empty window is JSON under the flag and prose without it", () => {
   assert.equal(held.reach, undefined, "a windowed reading reaches back as far as the flag asked and no further");
 
   const prose = ask(room, "--since", "1d");
-  assert.match(prose.stdout, /No issue-flow run under .*-fixture-project in the last 1d/u,
-    "the sentence keeps its wording; only its order with the flag moved");
+  assert.match(prose.stdout, /No issue-flow run for this project in the last 1d/u,
+    "the sentence keeps its shape; only its order with the flag moved");
+  assert.match(prose.stdout, /claude-\d+\/-fixture-project {2}2 transcript\(s\)/u,
+    "and an empty window still names every place it looked");
 });
 
 /* How far the corpus reaches, before any reading is taken off it: a corpus swept an hour ago holds
@@ -125,7 +129,7 @@ test("a window is read off the run's own clock, not the file's", () => {
   const room = corpus();
   const empty = ask(room, "--since", "1d");
   assert.equal(empty.status, 0, empty.stderr);
-  assert.match(empty.stdout, /No issue-flow run under .*-fixture-project in the last 1d/u);
+  assert.match(empty.stdout, /No issue-flow run for this project in the last 1d/u);
   assert.match(empty.stdout, /1 outside the window/u, empty.stdout);
   assert.match(empty.stdout, /name the checkout the runs were worked in with --checkout/u);
 });

@@ -121,16 +121,18 @@ export const settings = once(() => {
 
 export const projectScope = once(() => sourced(FROM_PROJECT, forgeJson().parsed?.slug));
 
-/** The project a NAMED directory belongs to, for a verb reading one checkout while standing in another: the same walk, off that path rather than this process's, and null where it names none. */
-export const projectAt = (directory) => {
+/** The project file a NAMED directory resolves to, whole, for a verb reading one checkout while standing in another: the same walk, off that path rather than this process's, and null where it names none. Whole rather than one key, since a reader of a second key would otherwise walk again and could disagree with this one about which file is the project's. */
+export const projectFileAt = (directory) => {
   const shared = git(["rev-parse", "--git-common-dir"], directory);
   const roots = [...ancestors(directory), ...(shared === null ? [] : [dirname(resolve(directory, shared))])];
   for (const root of roots) {
     const parsed = readJson(join(root, FROM_PROJECT));
-    if (parsed) return parsed.slug ?? null;
+    if (parsed) return parsed;
   }
   return null;
 };
+
+export const projectAt = (directory) => projectFileAt(directory)?.slug ?? null;
 
 /* Where a project-scoped call GOES and in whose prose — the target's, not the caller's: docs/cli/feedback.md. */
 let aimed = null;

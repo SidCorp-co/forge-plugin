@@ -22,10 +22,18 @@ const earlierReach = (root, from) => {
 export const reachOf = (root, from) =>
   (Number.isFinite(from) ? { from, earlier: earlierReach(root, from) } : null);
 
-export const reachSaid = (reach) =>
+/* What a reader told only that depth is gone cannot work out: which of the places the corpus was read from the system sweeps, and so whether the loss is the host's or this reading's (ISS-1578). */
+const sweptSaid = (sources) => {
+  const swept = sources.filter((one) => one.temporary).map((one) => one.path);
+  if (!swept.length) return "";
+  return `. ${swept.join(", ")} is a temporary filesystem, so a run whose entry there is gone is `
+    + "readable only where the host's own store still holds it";
+};
+
+export const reachSaid = (reach, sources = []) =>
   `the corpus reaches back to ${at(reach.from)}; `
   + (reach.earlier
     ? `${reach.earlier.by}'s reading reached back to ${at(reach.earlier.from)}, `
-      + "so depth this project once read is no longer here"
+      + `so depth this project once read is no longer here${sweptSaid(sources)}`
     : "no reading held for this project records an earlier reach, which is not to say the corpus was "
       + "never deeper — a mark is a snapshot and not a history");

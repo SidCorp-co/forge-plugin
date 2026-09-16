@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 import { WINDOW, evalRuns, evalLines, scopeFor } from "../../src/stats/eval.mjs";
 import { profileOf } from "../../src/stats/runs.mjs";
-import { slugFor } from "../../src/stats/transcripts.mjs";
+import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { UNRECORDED, copyAt, installedCopies, spansInstall } from "../../src/stats/versions.mjs";
 import { shiftBetween, tallied, twoWindows } from "../../src/stats/windows.mjs";
 import { evalObject, evalWindows } from "../../src/codex/codex-stats.mjs";
@@ -208,8 +208,8 @@ test("--json is the comparison alone, --size sets both windows, and a bad size i
   assert.equal(held.project, PROJECT);
   assert.equal(held.copies, 0);
   assert.deepEqual(Object.keys(held),
-    ["root", "project", "skipped", "unreadable", "copies", "requests", "size", "total", "now", "before",
-      "comparability", "moved", "shifts"]);
+    ["root", "sources", "project", "skipped", "unreadable", "copies", "requests", "size", "total", "now",
+      "before", "comparability", "moved", "shifts"]);
   assert.deepEqual(held.comparability,
     { comparable: true, short: [], reach: { from: BASE, earlier: null } },
     "two full windows: the judgement is on the record either way, and the reach is the corpus's own floor, not the window's");

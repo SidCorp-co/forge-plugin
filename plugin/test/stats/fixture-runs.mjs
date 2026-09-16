@@ -1,9 +1,9 @@
 /* One made transcript and the corpus around it, small enough to add up by hand. */
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { slugFor } from "../../src/stats/transcripts.mjs";
+import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 export const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
@@ -63,24 +63,44 @@ export const OTHER = [
   result("x1", 3, "12 README.md"),
 ].join("\n");
 
+export const indexIn = (room, session, name, text) => {
+  const tasks = join(room, `claude-${process.getuid()}`, slugFor(PROJECT), session, "tasks");
+  mkdirSync(tasks, { recursive: true });
+  const path = join(tasks, name);
+  writeFileSync(path, `${text}\n`);
+  return path;
+};
+
+export const storedIn = (room, session, name, text) => {
+  const held = join(room, ".claude", "projects", slugFor(PROJECT), session, "subagents");
+  mkdirSync(held, { recursive: true });
+  const path = join(held, name);
+  writeFileSync(path, `${text}\n`);
+  return path;
+};
+
 export const corpus = () => {
   const room = tempRoom("stats-runs-");
-  const write = (session, name, text) => {
-    const tasks = join(room, `claude-${process.getuid()}`, slugFor(PROJECT), session, "tasks");
-    mkdirSync(tasks, { recursive: true });
-    writeFileSync(join(tasks, name), `${text}\n`);
-  };
-  write("session-one", "a0001.output", transcript());
-  write("session-one", "a0002.output", OTHER);
+  indexIn(room, "session-one", "a0001.output", transcript());
+  indexIn(room, "session-one", "a0002.output", OTHER);
   return room;
 };
 
 export const asked = (room, ...argv) =>
   spawnSync(FORGE, ["stats", "runs", ...argv], {
     encoding: "utf8",
-    env: { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-home-"), TMPDIR: room },
+    /* The home is the room's own: every home-rooted path this verb reads is read where it is used, so a case that left it would profile the developer's own store. */
+    env: { ...process.env, HOME: room, XDG_CONFIG_HOME: tempRoom("stats-home-"), TMPDIR: room },
   });
 
 /* A case about --checkout itself calls `asked`: a helper naming a flag makes the caller's own
    occurrence a second one, which the parser refuses rather than overrides (ISS-930). */
 export const ask = (room, ...argv) => asked(room, "--checkout", PROJECT, ...argv);
+
+/* The two halves as the host writes them: the transcript in the store, and the index entry that is a symlink to it. */
+export const linkedIn = (room, session, name, text) => {
+  const held = storedIn(room, session, `agent-${name}.jsonl`, text);
+  const tasks = join(room, `claude-${process.getuid()}`, slugFor(PROJECT), session, "tasks");
+  mkdirSync(tasks, { recursive: true });
+  symlinkSync(held, join(tasks, `a${name}.output`));
+};

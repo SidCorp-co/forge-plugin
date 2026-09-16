@@ -203,7 +203,7 @@ it. Reading is all this product does there.
   WHERE a stored reading is named as the before window the CLI SHALL compare the current window with
   the recent window that reading holds, through the reader the sliding comparison uses, and SHALL say
   that the two overlap where they do.
-- **AC-19-8-10** · Rev: 1 · Proof: plugin/test/stats/guide-parts.test.mjs "guide parts are a table of their own — calls, runs, runs that read again — and the class table keeps one row"
+- **AC-19-8-10** · Rev: 1 · Proof: plugin/test/stats/corpus/guide-parts.test.mjs "guide parts are a table of their own — calls, runs, runs that read again — and the class table keeps one row"
   WHEN a profile is printed THEN the CLI SHALL list each guide part the window's runs read with its
   calls, the runs that read it and the runs that read it more than once, read off the call's own
   words by the reading the class uses, and SHALL keep the class table's one row for the verb.
@@ -259,7 +259,7 @@ it. Reading is all this product does there.
   WHEN a profile is printed THEN the CLI SHALL list per wave the time from ready to landed, from
   landed to judged and in total, the batch size, the gate time and lock wait, the reviews and
   verdicts written twice, and the minutes and calls of every actor in the wave.
-- **AC-19-8-12** · Rev: 2 · Proof: plugin/test/stats/guide-parts.test.mjs "the flow is the one that call was served, so a reading does not move when this copy's does"
+- **AC-19-8-12** · Rev: 2 · Proof: plugin/test/stats/corpus/guide-parts.test.mjs "the flow is the one that call was served, so a reading does not move when this copy's does"
   WHEN the guide parts are listed THEN each SHALL carry the flow it was rendered for.
 
 ### EI-09 — The chat backend

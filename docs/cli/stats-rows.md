@@ -31,6 +31,25 @@ got wrong:
   space: with a space, `'/tmp/forge;close'` turned into a `forge close` nobody typed, and a reading
   that may only ever take a call away had invented one.
 
+**The gate, the test and the ship are the project's own words, where it has said them.** Those
+three rows were literal alternations of the commands this repository runs, applied to every project
+profiled: on one whose gate is spelled `make check` they read zero, the time went into whatever
+class ran next, and the ship phase and the phase past it read zero runs apiece. A project says what
+its own are under `stats.commands` in the `.forge.json` the profiled checkout resolves to — the
+checkout the reading is about, never the one the caller is standing in — and a declaration
+**replaces** the built-in pattern for its class rather than joining it, because a project that has
+said what its gate is has said what its gate is. The command is matched as the text the project
+typed, at a command position, and nothing is read out of its shape: guessing that a script whose
+name merely looks like a gate's is one is how a profiler starts counting a project's unrelated
+tooling. A project that declares nothing keeps the built-in patterns and reads exactly as it did.
+
+**A class nothing was classed as, on a checkout that declared none, prints as unrecognised rather
+than as nought** — the rule the outcome figures already keep, applied to the half that lacked it.
+That covers the per-run line, the ships line whole, and the phase rows: a phase whose marker class
+is unrecognised says so, and so does a phase reachable only past one, which would otherwise print
+the most confident zero in the table. Beside them is the one line naming what would declare each
+class (ISS-1586).
+
 Two verbs earn a row per action, because their actions cost differently: a verdict against the other
 records, and a consult in the three shapes it comes in. The whole-set read that earns a review, the
 consult a commit gate asks for over what a commit stages, and a recheck are one verb and three

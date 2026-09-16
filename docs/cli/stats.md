@@ -11,20 +11,30 @@ is — the same reading, in the tree, with a case holding its arithmetic.
 **One verb, one subject.** The next thing worth profiling is not runs, and a verb per subject widens
 the surface faster than a subject per verb; `forge codex` had already settled that shape here.
 
-## What the root is, and why no path is ever passed
+## What the roots are, and why no path is ever passed
 
-The transcripts are the harness's, in its own scratch directory, and the directory is derived from
-the project's absolute path rather than named by the caller: a flag that could name that directory
+The transcripts are the harness's, and this verb reads two places for them. Both are derived from
+the project's absolute path rather than named by the caller: a flag that could name a directory
 could name any directory, and this verb reads files a session wrote about work it did. So
 `--checkout` takes a directory and nothing else, and the only files opened are the ones a
-fixed pattern one level under the derived root returns.
+fixed pattern one level under each derived root returns.
 
 The obvious second guard — resolve each entry and refuse one that leaves the root — is the one thing
 that must **not** be done here, and it is worth saying why, because it passes every test that uses a
-fixture. The harness writes those entries as symlinks pointing back out into the session store under
-the home directory. A containment check by resolved path therefore refuses all 121 of this project's
-real transcripts and reports a clean, confident zero, while a fixture built from regular files goes
-green. The refusal belongs at the argument, where a caller's input actually is.
+fixture. The harness writes the scratch directory's entries as symlinks pointing back out into the
+session store under the home directory. A containment check by resolved path therefore refuses all
+121 of this project's real transcripts and reports a clean, confident zero, while a fixture built
+from regular files goes green. The refusal belongs at the argument, where a caller's input actually
+is.
+
+**That symlink is also why the scratch directory is the thinner of the two.** It is on a temporary
+filesystem, swept on reboot and between; the store it points into is not. Read through the scratch
+directory alone, this project's corpus reached back four days and 110 runs while the store still
+held 434 from twelve days earlier, and `stats runs` reported depth it had never looked at as depth
+that was gone. So the store is read first and the scratch directory beside it, an entry both reach
+is counted once by the path it resolves to, and each place prints what it held and what it added —
+because a store swept an hour ago holds as few runs as a young project's, and only the two counts
+side by side tell them apart (ISS-1578).
 
 The slug is the project path with every non-alphanumeric character replaced. Both that and the
 narrower reading — slashes alone — fit every slug on this disk; only this one survives a project
