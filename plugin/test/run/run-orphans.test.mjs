@@ -2,14 +2,14 @@
    found serving at 2h24m long after the gate that started them wrote its verdict (ISS-1619), an
    `exit` hook reaping the clean exit alone. The child watches the spawner instead, and without that
    tie each case below leaves the very process the issue found. A leak is found here on the process
-   table under the runner that started it and never by a file the leaker wrote, which would have to be
-   reclaimed by whoever found it — the race this repository already refuses for gate counting. */
+   table under the runner that started it, never in a file the leaker wrote for a finder to reclaim. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { tiedSpawn } from "./run-fixtures.mjs";
+import { startedAt } from "../../../tools/gates/machine.mjs";
 
 const PROC = "/proc";
 const HAS_PROC = existsSync(join(PROC, "self", "stat"));
@@ -28,19 +28,22 @@ const read = (at) => {
 
 const cmdlineOf = (pid) => (read(join(PROC, String(pid), "cmdline")) ?? "").split("\0").join(" ");
 
-// Field 4 of the status line, counted from after its last `)`, the command name holding both spaces and parentheses.
-const ppidOf = (pid) => {
+/* Fields 4 and 22 of the status line, counted from after its last `)` as `startedAt` counts. The tick
+   a process started at keeps it the same process at the next read: a pid alone is reused, and a reaper
+   holding one alone would end whatever took the number — another project's work, on this box. */
+const oneProcess = (pid) => {
   const stat = read(join(PROC, String(pid), "stat"));
-  return stat === null ? null : Number(stat.slice(stat.lastIndexOf(")") + 2).split(" ")[1]);
+  if (stat === null) return null;
+  return { pid, ppid: Number(stat.slice(stat.lastIndexOf(")") + 2).split(" ")[1]), since: startedAt(stat) };
 };
 
-/** Still a running process: a zombie and a pid that is gone both read as no command at all. */
-const running = (pid) => cmdlineOf(pid) !== "";
+/** Still the process that was found: a zombie, a pid that is gone and a pid since reused all read false. */
+const running = (one) => oneProcess(one.pid)?.since === one.since && cmdlineOf(one.pid) !== "";
 
 const startedBy = (word, parent) => readdirSync(PROC)
   .filter((one) => /^\d+$/u.test(one))
-  .map(Number)
-  .filter((pid) => cmdlineOf(pid).includes(word) && ppidOf(pid) === parent);
+  .map((one) => oneProcess(Number(one)))
+  .filter((one) => one !== null && one.ppid === parent && cmdlineOf(one.pid).includes(word));
 
 const waited = async (until) => {
   const stop = Date.now() + GONE;
@@ -70,13 +73,12 @@ const trackerOf = (child) => {
   return served[0];
 };
 
-/* By pid, and only the pids this case's own runner started: a failing case is the run that leaks, and
-   an orphan holding the suite's stderr keeps the gate itself from exiting rather than only a case. */
-const reaped = async (pids) => {
-  await waited(() => pids.every((pid) => !running(pid)));
-  const left = pids.filter(running);
-  for (const pid of left) process.kill(pid, "SIGKILL");
-  return left;
+// Only what this case's own runner started and still is: a failing case is the run that leaks, and an orphan holding the suite's stderr keeps the gate itself from exiting rather than only a case.
+const reaped = async (ones) => {
+  await waited(() => ones.every((one) => !running(one)));
+  const left = ones.filter(running);
+  for (const one of left) process.kill(one.pid, "SIGKILL");
+  return left.map((one) => one.pid);
 };
 
 // The clean exit is judged beside the three signals rather than trusted: it is the one ending the hook this replaces did cover, so a tie that broke it would trade one leak for another.
@@ -103,9 +105,10 @@ for (const [ending, end] of ENDINGS) {
     { skip: !HAS_PROC }, async () => {
       const child = runner(`const { alive } = await import(${JSON.stringify(FIXTURES)});\n`
         + `process.stdout.write(alive().pid + "\\n");`);
-      const held = Number(await spoke(child));
+      const pid = Number(await spoke(child));
+      const held = oneProcess(pid);
       const served = trackerOf(child);
-      assert.ok(running(held), `the fixtures started no process to point a lock at: ${held}`);
+      assert.ok(held !== null, `the fixtures started no process to point a lock at: ${pid}`);
 
       end(child);
       const left = await reaped([held, served]);
