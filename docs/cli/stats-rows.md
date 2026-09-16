@@ -39,9 +39,9 @@ its own are under `stats.commands` in the `.forge.json` the profiled checkout re
 checkout the reading is about, never the one the caller is standing in — and a declaration
 **replaces** the built-in pattern for its class rather than joining it, because a project that has
 said what its gate is has said what its gate is. The command is matched as the text the project
-typed, at a command position, and nothing is read out of its shape: guessing that anything whose
-name ends in `gates.mjs` is a gate is how a profiler starts counting a project's unrelated tooling. A project
-that declares nothing keeps the built-in patterns and reads exactly as it did.
+typed, at a command position, and nothing is read out of its shape: guessing that a script whose
+name merely looks like a gate's is one is how a profiler starts counting a project's unrelated
+tooling. A project that declares nothing keeps the built-in patterns and reads exactly as it did.
 
 **A class nothing was classed as, on a checkout that declared none, prints as unrecognised rather
 than as nought** — the rule the outcome figures already keep, applied to the half that lacked it.

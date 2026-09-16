@@ -1,7 +1,9 @@
 /* Where one project's run transcripts are, and every one of them read back — docs/cli/stats.md. */
-import { readFileSync, readdirSync, realpathSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { basename, join } from "node:path";
 import { homedir, tmpdir } from "node:os";
+
+import { canonical } from "../resolve/canonical.mjs";
 
 export const transcriptBase = () => join(tmpdir(), `claude-${process.getuid?.() ?? 0}`);
 
@@ -42,16 +44,8 @@ export const sourcesFor = (root) => [
   { path: root, temporary: true, held: TASKS, shape: OUTPUT },
 ];
 
-/* The index entries are symlinks into the store, so the same transcript is under both roots and the resolved path is what says so: counted twice it would double every figure computed over the corpus. A path that cannot be resolved stands for itself rather than being dropped (ISS-1578). */
-const canonical = (path) => {
-  try {
-    return realpathSync(path);
-  } catch {
-    return path;
-  }
-};
-
 /** Every transcript of one project, each source's own count beside it — the count being what a reader needs to tell a swept index from a corpus that was never deeper. */
+/* The index entries are symlinks into the store, so the same transcript is under both roots and only the path each resolves to says so: counted twice it would double every figure computed over the corpus (ISS-1578). */
 export const corpusUnder = (root) => {
   const seen = new Set();
   const transcripts = [];
