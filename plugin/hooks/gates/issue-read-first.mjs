@@ -5,7 +5,8 @@ import { resolve as resolvePath } from "node:path";
 
 import { NOWHERE, deny, done, how, movedTo, shellText, startsAt } from "../_hook.mjs";
 import { refusalFor } from "../../src/tracker/comments.mjs";
-import { sessionKey } from "../../src/shown/ledger.mjs";
+import { sessionSourced } from "../../src/resolve/config.mjs";
+import { liveAlias } from "../../src/flow/lease.mjs";
 import { filingsOf, joined, toolOfCall, writeTargets } from "../../src/tracker/issue-read.mjs";
 import { actionIn, wrappedRefusal } from "../../src/resolve/visibility.mjs";
 import { refusalFrom, shapeOf } from "../../src/tracker/issue-shape.mjs";
@@ -73,7 +74,14 @@ export const run = async (ev) => {
     if (!group.refs.length || !aimedAt(group.at)) continue;
     for (const one of await resolved(group.refs)) targets.set(one.documentId, one);
   }
-  const { refusal } = await refusalFor([...targets.values()], sessionKey(ev));
+  const primary = sessionSourced(ev);
+  const id = primary.id || "";
+  /* Also checked, never credited: the target's own live, minted lease holder, the one caller any write that could land already has to be — a delivery this call causes is this call's own (ISS-1558). */
+  const keysFor = async (target) => ({
+    check: [id, primary.environment ? await liveAlias(target.documentId) : null],
+    credit: id,
+  });
+  const { refusal } = await refusalFor([...targets.values()], keysFor);
   if (refusal) deny(refusal + how());
   done();
 };

@@ -19,7 +19,7 @@ writeFileSync(
 );
 process.env.XDG_CONFIG_HOME = HOME.path;
 
-const { KEPT, credit, creditedTo, shedable } = await import("../../src/shown/journal.mjs");
+const { KEPT, credit, creditedTo, creditsForAny, shedable } = await import("../../src/shown/journal.mjs");
 
 const STORE = join(HOME.path, "forge", "shown.json");
 const LOG = join(HOME.path, "forge", "shown.jsonl");
@@ -49,6 +49,15 @@ test("the state is keyed by session and by surface, and an empty credit records 
   assert.equal(creditedTo("session-one", "surface-B").size, 0, "one key per surface under it");
   assert.equal(credit("session-one", "surface-C", []), false, "an empty credit is not written");
   assert.equal(creditedTo("session-one", "surface-C").size, 0, "so that surface is owed the text again");
+});
+
+test("a surface credited under either key in a set answers found, and a hole and a missing key cost nothing", () => {
+  seed({});
+  credit("session-alias", "surface-D", ["c1"]);
+  assert.ok(creditsForAny(["session-guess", "session-alias"])("surface-D").has("c1"),
+    "the alias's own credit answers even where the guess named first has none");
+  assert.equal(creditsForAny(["session-guess", null, ""])("surface-D").size, 0,
+    "a hole in the set costs nothing, and a set with no real key finds nothing");
 });
 
 /* The defect ISS-650 is: eight was fitted to one device, and a wave writes under nine names or more,

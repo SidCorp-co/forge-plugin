@@ -1,6 +1,6 @@
 /* The issue's session field read as a lease. Every write it covers carries the value it read, and the tracker refuses one whose value moved. docs/cli/claim.md, docs/cli/the-precondition.md. */
 import { ASKED, INHERITED, INHERITED_MEANS, OWN_ID, WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
-import { RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames } from "../resolve/session/run-id.mjs";
+import { MINTED_FOR, RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames } from "../resolve/session/run-id.mjs";
 import { TAKEABLE } from "../rank/weights.mjs";
 import { sharedNow, sharedStamp, slackNow, stampOf } from "../wire/shared-clock.mjs";
 import { thisCall } from "../resolve/flags.mjs";
@@ -134,6 +134,17 @@ export const describe = (lease) =>
   `session ${lease.holder} (${lease.agent}, pid ${lease.pid}), renewed `
   + `${stamp(Date.parse(lease.renewedAt))} for ${lease.minutes} minute(s), expiring `
   + `${stamp(expiryOf(lease))}`;
+
+/* A live lease's own, minted holder: trusted as an alias because any write that could land already
+   has to be made by it, the precondition refusing every other caller, so it credits no wider than a
+   landing write already trusts where a hook's own directory cannot follow a shell's `cd` (ISS-1558). */
+export const liveAlias = async (documentId, now = null) => {
+  const held = await scoped("forge_issues", { action: "get", documentId }, true);
+  if (held?.refused) return null;
+  const lease = leaseOf(held?.sessionContext);
+  if (!lease || !MINTED_FOR.test(lease.holder) || expiryOf(lease) <= (now ?? sharedNow())) return null;
+  return lease.holder;
+};
 
 export const STOPPED = "--stopped";
 

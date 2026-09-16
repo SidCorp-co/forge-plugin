@@ -1,6 +1,6 @@
 /* An issue's comments, and the delivery owed a session not shown them: the gate refusing a write and
    the verb making it must agree. One surface of the ledger, docs/cli/the-shown-ledger.md. */
-import { KEPT, credit, creditedTo, creditsFor } from "../shown/journal.mjs";
+import { KEPT, credit, creditedTo, creditsForAny } from "../shown/journal.mjs";
 import { sessionKey } from "../shown/ledger.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { rowsOf } from "./issues.mjs";
@@ -170,9 +170,16 @@ const readOf = async (shown, { ref, documentId }) => {
   return { ref, documentId, page, unshown, owes: owes && { ...owes, told: shown(threadOn(documentId)).has(owes.mark) } };
 };
 
-export const unshownFor = async (targets, session) => {
-  const shown = creditsFor(session);
-  const read = await Promise.all(targets.map((one) => readOf(shown, one)));
+/* One key, as every caller but the gate hands it, or a function of the target naming the wider set to check and the one a fresh credit belongs under (ISS-1558). */
+const keysOf = async (sessions, target) => (typeof sessions === "function"
+  ? sessions(target)
+  : { check: [sessions], credit: sessions });
+
+export const unshownFor = async (targets, sessions) => {
+  const read = await Promise.all(targets.map(async (one) => {
+    const { check } = await keysOf(sessions, one);
+    return readOf(creditsForAny(check), one);
+  }));
   return {
     none: read.filter(({ page }) => !page.comments.length).map(({ ref }) => ref),
     owed: read.filter(({ unshown }) => unshown.length)
@@ -182,14 +189,14 @@ export const unshownFor = async (targets, session) => {
 };
 
 /* Recorded once the text exists, so a list that fails halfway credits nothing it never delivered. */
-export const refusalFor = async (targets, session) => {
-  const { none, owed, short } = await unshownFor(targets, session);
+export const refusalFor = async (targets, sessions) => {
+  const { none, owed, short } = await unshownFor(targets, sessions);
   const first = short.filter((one) => one.holds && !one.told);
   if (!owed.length && !first.length) return { none, short, refusal: null };
   const refusal = [...(owed.length ? [delivery(owed)] : []), ...(first.length ? [shortSaid(first)] : [])]
     .join("\n\n");
-  for (const one of owed) noteShown(session, one.documentId, one.unshown);
-  for (const one of first) credit(session, threadOn(one.documentId), [one.mark]);
+  for (const one of owed) noteShown((await keysOf(sessions, one)).credit, one.documentId, one.unshown);
+  for (const one of first) credit((await keysOf(sessions, one)).credit, threadOn(one.documentId), [one.mark]);
   return { none, short, refusal };
 };
 

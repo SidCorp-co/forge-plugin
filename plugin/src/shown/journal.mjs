@@ -101,6 +101,11 @@ export const creditsFor = (session) => {
   return (surface) => new Set(surfaces[surface] ?? []);
 };
 
+export const creditsForAny = (sessions) => {
+  const fns = [sessions].flat().filter(Boolean).map(creditsFor);
+  return (surface) => new Set(fns.flatMap((fn) => [...fn(surface)]));
+};
+
 /** The newest item on a surface, or null: the list is kept in the order it was credited. */
 export const lastCredited = (session, surface) => creditsOf(session, surface).at(-1) ?? null;
 
