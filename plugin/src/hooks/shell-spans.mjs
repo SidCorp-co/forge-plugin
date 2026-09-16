@@ -223,6 +223,17 @@ const OPENED = /[ \t\n;&|<>(]/u;
 const CLOSED = /[ \t\n;&|<>]/u;
 const parts = (mark, shape) => !mark || (mark.under === " " && shape.test(mark.one));
 
+/* Whether anything before this point in the same command opened a substitution: `> $(printf '%s.txt' 'a(1).md')` puts a quoted operand inside one, where it is an argument of that command and not the target of this one, and no rule over the neighbours of the span can tell. What closes a substitution is a `)` this walk cannot place, so what opens one is where it stops offering the whole reading (ISS-1533). */
+const RUNS_IN = (marks, before) => {
+  for (let at = before - 1; at >= 0; at -= 1) {
+    const { one, under } = marks[at];
+    if (under !== " ") continue;
+    if (one === "\n" || one === ";" || one === "&" || one === "|") return false;
+    if (one === "(" && marks[at - 1]?.one === "$" && marks[at - 1]?.under === " ") return true;
+  }
+  return false;
+};
+
 const worded = (text) => {
   const marks = quoting(text);
   /* Which single-quoted spans are a whole operand and so could be one filename. Closed, holding nothing that still cuts a word, and with an operand's end on either side of it — each of the three because the whole reading claims the span *is* the file: `'/tmp/m/(r).md;o.txt'` and `'/tmp/m/(r).md'.txt` both write a `.txt`, and either would hand a `.md` scan a guarded name nobody wrote. */
@@ -236,7 +247,7 @@ const worded = (text) => {
     while (to < marks.length && marks[to].under === "'") to += 1;
     const body = marks.slice(from + 1, to - 1);
     const shut = to - from >= 2 && marks[to - 1].one === "'";
-    if (shut && parts(marks[from - 1], OPENED) && parts(marks[to], CLOSED)
+    if (shut && parts(marks[from - 1], OPENED) && parts(marks[to], CLOSED) && !RUNS_IN(marks, from)
       && !body.some(({ one }) => ALWAYS.test(one) || (OPERATOR.test(one) && !BRACKET.test(one)))) {
       for (let at = from; at < to; at += 1) alone[at] = true;
     }
