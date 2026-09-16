@@ -235,11 +235,8 @@ const reconcile = async (documentId, ref, context, holder, given) => {
   const refused = takeRefusal(ref, landing, holder, leaseOf(context),
     { source: mine.id === holder ? mine.source : null });
   if (refused) fail(refused);
-  /* Asked after the independence check above and not before it, because the push this names is the
-     builder's own to make and a run the state does not license is owed whose turn it is instead.
-     The landing merges the judged head and never the branch tip, so a branch rewritten under the
-     hand-back lands nothing new and leaves that head where the next landing cannot fetch it — which
-     is a failure in another checkout days later unless it is refused at the write that follows it. */
+  /* After the independence check and not before it: the push this names is the builder's own to
+     make, and a run the state does not license is owed whose turn it is. docs/cli/the-turn.md. */
   const gone = droppedHead(landing.branch, landing.head);
   if (gone?.dropped) {
     fail(`${landing.branch} no longer carries ${shortSha(landing.head)}, the head this landing was `

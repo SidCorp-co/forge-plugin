@@ -207,8 +207,8 @@ test("a base that moved a line of the change's own file hands the branch back, r
   assert.equal(held.moved, OWNED, `the path it moved is named:\n${said}`);
   assert.ok(said.includes(`landing moved ${OWNED}`), said);
   assert.match(said, /reads `reconciled` at/u, said);
-  /* What the stop asks for is the reading, and the branch is left alone: the sentence that used to
-     ask for a rebase sent two runs to force-push the judged head into an orphan (ISS-1638). */
+  /* What the stop asks for is the reading, and the branch is left alone: a stop asking for a rebase
+     is one that sends the run to force-push the head this landing fetches into an orphan (ISS-1638). */
   assert.match(said, /the branch stays where it is/u, said);
   assert.match(said, new RegExp(`read ${OWNED} as ${held.candidate.slice(0, 7)} has them`, "u"), said);
   assert.equal(/rebas/iu.test(said.split("is parked as blocked")[0]), false,

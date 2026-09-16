@@ -236,7 +236,7 @@ a wait no party can end.
 - **AC-03-6-8** · Rev: 1 · Proof: plugin/test/flow/landing/take.test.mjs "the builder ends its records turn and the checkpoint goes back to the state it came from"
   WHEN the run holding that turn ends it THEN the CLI SHALL return the checkpoint to the state the
   turn was handed back from, without reading back the records it was handed over for.
-- **AC-03-6-9** · Rev: 1 · Proof: plugin/test/flow/landing/take.test.mjs "a reconciliation over a branch that let the judged head go is refused, naming the push back"
+- **AC-03-6-9** · Rev: 1 · Proof: plugin/test/flow/landing/reconciled-branch.test.mjs "a reconciliation over a branch that let the judged head go is refused, naming the push back"
   IF the branch the checkpoint names is proved, without reaching a remote, to no longer carry the
   head the checkpoint was written at, THEN the CLI SHALL refuse the reconciliation naming the push
   that puts that head back, because what a landing merges is that head and a branch moved under the
