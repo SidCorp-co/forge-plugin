@@ -7,7 +7,8 @@ import test from "node:test";
 import { join } from "node:path";
 
 import {
-  BASE, NEXT_BRANCH, NEXT_OWNED, PAIRED_GATE, THIRD_BRANCH, THIRD_OWNED,
+  BASE, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, NEXT_UUID, PAIRED_GATE, THIRD_BRANCH, THIRD_KEY,
+  THIRD_OWNED, THIRD_UUID,
   forgetGateRuns, forgetInstall, gateRuns, git, landingRan, ready, seeded, sha, state, tracker, world,
 } from "./fixture.mjs";
 
@@ -73,6 +74,13 @@ test("an empty call that found no checkpoint at all still says which statuses it
   const { at, work } = world({ base: "other" });
   const pinned = remote(at);
   seeded({});
+  /* Every identifier the one walk of this file cached, each answering for itself and carrying no
+     checkpoint: a row the fixture cannot find answers with its first issue, which would leave this
+     case proving one absence three times over. */
+  for (const [documentId, issueId] of [[NEXT_UUID, NEXT_KEY], [THIRD_UUID, THIRD_KEY]]) {
+    state.issues.push({ documentId, issueId, status: "in_progress", title: "one with no checkpoint",
+      description: "a body.\n", sessionContext: {} });
+  }
   forgetGateRuns();
   const said = await landingRan([], work);
   assert.match(said, /off the checkpoints of every issue at in_progress, developed, testing, awaiting_release, needs_info, waiting, on_hold:/u,

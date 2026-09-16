@@ -44,11 +44,12 @@ const shown = (found, taking, self) => {
   for (const one of found) {
     const at = `${one.key}  \`${one.landing.state}\`  ${one.landing.branch || "no branch"}`;
     console.log(taking.includes(one)
-      ? `  ${at}  — this landing's, in the order below`
+      ? `  ${at}  — this landing's`
       : `  ${at}  — left out: read where it is, forge resume ${one.key}`);
   }
   if (!taking.length) return;
-  console.log(`  in that order, and a different set or order is the caller's to type:\n`
+  console.log(`  handed to the landing in that order, which schedules them as it would a call typing `
+    + `the same keys; a different set, or a different order, is the caller's to type:\n`
     + `    ${self} land-ready ${taking.map((one) => one.key).join(" ")}`);
 };
 
