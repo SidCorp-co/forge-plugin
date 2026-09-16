@@ -28,6 +28,8 @@ const REFUSED = {
   "a noun standing for a call already named": "Criteria are numbered, and the write refuses the compounds it can prove.",
   "a command bound by a relative pronoun": "Answer it with `forge codex consult --recheck`, which verifies that consult's findings.",
   "two commands under one predicate": "`forge record plan` and `forge record criteria` each refuse a file no consult has read.",
+  "a plural subject standing for two calls": "both calls refuse unread files.",
+  "the same plural subject set off by an em-dash": "both calls — refuse unread files.",
 };
 
 for (const [route, source] of Object.entries(REFUSED)) {
@@ -119,6 +121,22 @@ test("a cut at a relative clause stops at that clause and leaves the obligation 
   assert.ok(said[0].includes('"which verifies findings"'), `the cut ran past the clause: ${said[0]}`);
   assert.ok(said[0].includes('what remains is "Run `forge codex consult --recheck` before pushing."'),
     `a run taking this cut would lose the timing obligation: ${said[0]}`);
+});
+
+/* A comma inside the clause's own object is not where the clause ends, and a cut taken there would
+   leave half a list standing in the sentence the obligation is made of. */
+test("a cut at a relative clause carrying a list keeps the list with the cut", () => {
+  const said = mechanicsIn("Run `forge record plan`, which reads plans, criteria and decisions, before pushing.", "guide.md");
+  assert.equal(said.length, 1, said.join("\n"));
+  assert.ok(said[0].includes('"which reads plans, criteria and decisions"'), `the cut stopped inside the list: ${said[0]}`);
+  assert.ok(said[0].includes('what remains is "Run `forge record plan` before pushing."'), said[0]);
+});
+
+test("a relative clause the main clause does not resume after is cut whole", () => {
+  const said = mechanicsIn("It is answered by `forge record plan`, which reads plans, criteria and decisions.", "guide.md");
+  assert.equal(said.length, 1, said.join("\n"));
+  assert.ok(said[0].includes('"which reads plans, criteria and decisions"'), said[0]);
+  assert.ok(said[0].includes('what remains is "It is answered by `forge record plan`."'), said[0]);
 });
 
 test("the walk reaches the served text, so a clean answer is a clean corpus and not an empty selector", () => {

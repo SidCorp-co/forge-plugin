@@ -52,11 +52,13 @@ const prose = (text) => String(text)
 const segments = (text) => {
   const out = [];
   let at = 0;
+  let opens = true;
   for (const hit of text.matchAll(BOUNDARY)) {
-    out.push({ text: text.slice(at, hit.index), at, to: hit.index });
+    out.push({ text: text.slice(at, hit.index), at, to: hit.index, opens });
+    opens = !/^\s*[—–,]/u.test(hit[0]);
     at = hit.index + hit[0].length;
   }
-  out.push({ text: text.slice(at), at, to: text.length });
+  out.push({ text: text.slice(at), at, to: text.length, opens });
   return out.filter((one) => one.text.trim());
 };
 
@@ -82,14 +84,25 @@ const joined = (found) => {
     const next = found[at + 1];
     const bare = opensWith(one.text);
     const alone = bare && !one.text.slice(bare.to).trim().replace(/^[\s,*_]+/u, "");
-    if (alone && next && !RELATIVE.test(next.text)) {
-      out.push({ text: `${one.text.trimEnd()} ${next.text.trimStart()}`, at: one.at, to: next.to, merged: true });
+    if (alone && one.opens && next && !RELATIVE.test(next.text)) {
+      out.push({ text: `${one.text.trimEnd()} ${next.text.trimStart()}`, at: one.at, to: next.to, opens: true });
       at += 1;
       continue;
     }
     out.push(one);
   }
   return out;
+};
+
+/* Where a relative clause gives the sentence back: the rightmost comma the main clause resumes
+   after, so an enumeration inside the clause is not read as its end and a cut taken at the first
+   comma cannot leave half a list standing where the obligation was. */
+const RESUMES = /^\s*(?:before|after|until|while|during|since|once|unless|so|then|at|on|in|by|for|from|with|without|against|beyond|past|is|are|was|were)\b/u;
+const resumesAfter = (segment, from) => {
+  for (let at = segment.length - 1; at > from; at -= 1) {
+    if (segment[at] === "," && RESUMES.test(segment.slice(at + 1))) return at;
+  }
+  return -1;
 };
 
 const tidy = (text) => text.trim().replace(/\s+/gu, " ");
@@ -128,12 +141,10 @@ export const mechanicsIn = (text, rel) => {
     if (!ref) continue;
     const rest = part.text.slice(ref.to);
     const skip = CONNECTIVE.exec(rest)?.[0] ?? "";
-    const verb = PREDICATE.exec(rest.slice(skip.length));
-    if (!verb) continue;
-    if (part.merged && !verb[0].endsWith("s")) continue;
+    if (!PREDICATE.test(rest.slice(skip.length))) continue;
     const from = part.at + ref.at;
-    const ends = part.text.indexOf(",", ref.to);
-    const stop = here || ends === -1 ? part.to : part.at + ends;
+    const ends = here ? -1 : resumesAfter(part.text, ref.to);
+    const stop = ends === -1 ? part.to : part.at + ends;
     const to = body.slice(0, stop).replace(/\s+$/u, "").length;
     const opens = sentenceOpens(body, from);
     const shuts = sentenceShuts(body, to);
