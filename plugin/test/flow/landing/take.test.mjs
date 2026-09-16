@@ -530,12 +530,33 @@ test("a records hand-back at any other state is refused naming the state it read
   }
 });
 
-test("a hand-back names the route the run after it takes, rather than describing a handoff it does not hand off", async () => {
+/* One literal across every hand-back, and the same one the checkpoint-writing case above asserts: a
+   site naming another verb or another ref hands nothing over, however centrally it is spelled (F2). */
+test("each hand-back names the route the run after it takes, and every site names the same one", async () => {
+  const route = "forge claim ISS-673 --take";
+  const said = [];
+
   field(RECORDS, lease(BUILDER));
-  const back = await ran(["claim", "ISS-673", "--recorded"], BUILDER);
-  assert.equal(back.status, 0, `${back.stdout}${back.stderr}`);
-  assert.match(back.stdout, /forge claim ISS-673 --take/u,
-    "the verb the lander uses, where the run that hands over is standing and its report is written");
+  const recorded = await ran(["claim", "ISS-673", "--recorded"], BUILDER);
+  assert.equal(recorded.status, 0, `${recorded.stdout}${recorded.stderr}`);
+  said.push(["--recorded", recorded.stdout]);
+
+  field(OWED, lease(BUILDER));
+  const reconciled = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], BUILDER);
+  assert.equal(reconciled.status, 0, `${reconciled.stdout}${reconciled.stderr}`);
+  said.push(["--reconciled", reconciled.stdout]);
+
+  field({ ...BUILT, state: "qa-owed" }, lease(LANDER));
+  const took = await ran(["claim", "ISS-673", "--take"], "an-independent-judge");
+  assert.equal(took.status, 0, `${took.stdout}${took.stderr}`, "the judge takes the turn the state names");
+  const judged = await ran(["claim", "ISS-673", "--judged"], "an-independent-judge");
+  assert.equal(judged.status, 0, `${judged.stdout}${judged.stderr}`);
+  said.push(["--judged", judged.stdout]);
+
+  for (const [flag, out] of said) {
+    assert.ok(out.includes(route),
+      `${flag} names the route the run after it runs, and not a handoff described without a verb: ${out}`);
+  }
 });
 
 /* An `owed` naming no state the status step runs at: refused rather than resumed into. */
