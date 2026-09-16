@@ -1,4 +1,4 @@
-# `forge next`'s weights — the one source of a complexity, the age term that does not stop, and what an unweighed issue is worth
+# `forge next`'s weights — the one source of a complexity, the age term that does not stop, what a kind is worth, and what an unweighed issue is worth
 
 `forge next -h` prints the table and the points in it; a `rank` object in a project's own settings
 overrides one weight at a time. What follows is what the table cannot carry: which of these numbers
@@ -30,6 +30,28 @@ tracker's field. A project that set it scores exactly as it did: the reader fold
 `rank.complexity` before it validates and says on stderr which key it read, and where a project sets
 both, the canonical one scores and the line says the other was passed over. Nothing writes the old
 key back, and `forge next -h` prints the canonical one alone.
+
+## A kind is worth how certain the cost of leaving it is
+
+`bug` 8, `enhancement` 4, `review` 2, `feature` 0 — and the rows are keyed off the kinds this CLI can
+file rather than written out beside them. The two lists were written at different times: `review`
+reached the tracker's vocabulary, no row reached this table, and a `review` issue then scored through
+the fallback exactly as a `feature` did while a project trying to weigh it was refused by name
+(ISS-1534). A name on one list and not the other refuses at load now, in both directions, because a
+weight no kind can reach is as silent as a kind no weight scores.
+
+What the four numbers order is how certain the cost of leaving the issue undone is. A bug is a cost
+already being paid, and one in the tool the flow runs on is paid again by every later run. An
+enhancement is a smaller cost, already being paid by somebody who has not called the thing broken. A
+feature names no cost at all, only an absence — nobody has the thing to miss it — so the kind adds
+nothing and the priority, the age and the size decide.
+
+**A `review` sits between the last two.** Its subject is code that already runs, so whatever that
+code costs is already being paid, and the reading is what finds out whether it is: a weaker claim
+than an enhancement's, which names the improvement it is asking for, and a stronger one than a
+feature's, which names no cost to go looking for. Strictly above zero is the other half of the
+number. A row worth what the fallback was worth is the fallback under a name, and an order nobody
+could tell from the one that had the defect in it.
 
 ## Age does not stop, and an order whose top is held by age is the answer rather than a fault
 

@@ -2,14 +2,35 @@
    number here was set by the issue that asked for the verb; what each is FOR is
    docs/cli/next-weights.md's, and why the reading stops where it does is docs/cli/next.md's. */
 import { FROM_PROJECT, rankConvention } from "../resolve/settings.mjs";
+import { KIND_NAMES } from "../tracker/issue-shape.mjs";
 
 export const TAKEABLE = ["open", "confirmed", "approved", "reopen"];
 
 export const UNSET = "unset";
 
+/* Keyed off the tracker's kind vocabulary rather than off this object, so a kind this CLI can file
+   and nobody weighed refuses in either direction rather than scoring by `points`'s fallback. */
+const KIND_POINTS = { bug: 8, enhancement: 4, review: 2, feature: 0 };
+
+export const kindWeights = (names = KIND_NAMES, points = KIND_POINTS) => {
+  const unweighed = names.filter((name) => !Object.hasOwn(points, name));
+  const unscored = Object.keys(points).filter((name) => !names.includes(name));
+  if (unweighed.length || unscored.length) {
+    throw new Error([
+      "The rank's kind weights and the kinds this CLI can file are one list, and they disagree.",
+      unweighed.length ? `Weighed by nothing: ${unweighed.join(", ")}.` : "",
+      unscored.length ? `Weighing no kind this CLI files: ${unscored.join(", ")}.` : "",
+      "Set or drop that row in `KIND_POINTS` in plugin/src/rank/weights.mjs;"
+        + " the kinds are `KINDS` in plugin/src/tracker/issue-shape.mjs.",
+    ].filter(Boolean).join(" "));
+  }
+  const ranked = [...names].sort((one, other) => points[other] - points[one]);
+  return Object.fromEntries(ranked.map((name) => [name, points[name]]));
+};
+
 export const DEFAULTS = {
   priority: { critical: 40, high: 30, medium: 20, low: 10, none: 0 },
-  kind: { bug: 8, enhancement: 4, feature: 0 },
+  kind: kindWeights(),
   complexity: { xs: 8, s: 6, m: 4, l: 2, xl: 1, [UNSET]: 0 },
   agePerDay: 1,
   ageCap: null,

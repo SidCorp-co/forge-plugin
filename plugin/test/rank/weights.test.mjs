@@ -3,7 +3,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { DEFAULTS, canonicalKeys, complexitySpread, foldWeights, weightLines } from "../../src/rank/weights.mjs";
+import { DEFAULTS, canonicalKeys, complexitySpread, foldWeights, kindWeights, weightLines } from "../../src/rank/weights.mjs";
+import { KIND_NAMES } from "../../src/tracker/issue-shape.mjs";
 
 test("a project overrides one weight and keeps every other", () => {
   const { value, from, refusal } = foldWeights({ priority: { critical: 100 }, blocks: 7 });
@@ -98,5 +99,41 @@ test("the help prints the table it scores with, not a copy of it", () => {
   assert.match(lines, /9 members/u);
   for (const name of Object.keys(DEFAULTS)) {
     assert.ok(lines.includes(name), `${name} is a weight and no line of the help names it`);
+  }
+});
+
+/* Two lists of one set, written at different times: `review` reached the tracker and no row reached
+   the table, so it scored by a fallback and a project weighing it was refused by name (ISS-1534). */
+test("every kind the CLI can file has a row, and it is the vocabulary that says which", () => {
+  assert.deepEqual([...Object.keys(DEFAULTS.kind)].sort(), [...KIND_NAMES].sort(),
+    "the rows are the kinds, neither list holding a name the other does not");
+  assert.equal(DEFAULTS.kind.review, 2, "a reading of landed work is worth more than a feature and less than an enhancement");
+  assert.deepEqual(Object.values(DEFAULTS.kind), [...Object.values(DEFAULTS.kind)].sort((one, other) => other - one),
+    "and the rows are in the order they rank, which is how the help prints them");
+});
+
+/* Either direction is the same silence: a kind nothing weighs scores by a fallback, and a weight no
+   kind can reach is a number written here and read by nobody. */
+test("a name on one of the two lists alone is refused, and named", () => {
+  const unweighed = () => kindWeights([...KIND_NAMES, "nomination"]);
+  assert.throws(unweighed, /Weighed by nothing: nomination/u);
+  assert.throws(unweighed, /plugin\/src\/tracker\/issue-shape\.mjs/u, "and the file the kind came from");
+  const unscored = () => kindWeights(["bug"], { bug: 8, ghost: 1 });
+  assert.throws(unscored, /Weighing no kind this CLI files: ghost/u);
+  assert.throws(unscored, /plugin\/src\/rank\/weights\.mjs/u, "and the file the weight is set in");
+});
+
+test("a project weighs a kind the CLI can file rather than being refused by name", () => {
+  const held = foldWeights({ kind: { review: 5 } });
+  assert.equal(held.refusal, null, "where `rank.kind.review` named no row of that table");
+  assert.equal(held.value.kind.review, 5);
+  assert.equal(held.value.kind.bug, DEFAULTS.kind.bug, "and the rest of that table stands");
+});
+
+test("the kind row carries every kind the CLI can file and what each is worth", () => {
+  const line = weightLines(DEFAULTS).find((one) => one.includes("kind"));
+  for (const name of KIND_NAMES) {
+    assert.ok(line.includes(`${name} ${DEFAULTS.kind[name]}`),
+      `${name} is a kind this CLI files and the help row does not say what it is worth`);
   }
 });

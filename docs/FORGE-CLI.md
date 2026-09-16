@@ -42,7 +42,7 @@ how many topics there may be.
 | [one primitive, or two](cli/one-primitive-or-two.md) | Why the capturing and stripping spans are two readers rather than a copy, which link target a verifier spends and which a parser does, and what an exclusion row owes the issue that clears it. |
 | [the help predicate](cli/the-help-predicate.md) | Why a predicate spelled in ten places is its own finding, what proving each site neutral cost, and why nothing looser is the needle. |
 | [`next`](cli/next.md) | The call budget a 503 set, where the module reading stops rather than inferring a layout, and what the cost column does not say. |
-| [`next` weights](cli/next-weights.md) | Why the complexity field is the one source, why age has no ceiling and an order held by it is the answer, and what an issue nobody sized is worth. |
+| [`next` weights](cli/next-weights.md) | Why the complexity field is the one source, why age has no ceiling and an order held by it is the answer, what each kind is worth, and what an issue nobody sized is worth. |
 | [`next` — the edges](cli/next-the-edges.md) | Why an edge lives in two stores and neither proves the other, and what a landing frees against what it only reaches. |
 | [`knowledge`](cli/knowledge.md) | What the store held after forty-three runs, why a write carries forward what the caller did not name, and who refuses an entry restating a rules file. |
 | [the shown ledger](cli/the-shown-ledger.md) | What a repeat costs a refusal and what it costs advice, the two readings of "already shown", and why the journal is appended. |

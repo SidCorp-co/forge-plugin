@@ -46,6 +46,17 @@ test("every weight in the table moves the order on its own", () => {
   assert.deepEqual(blocked, ["ISS-1", "ISS-2"], "blocks did not move the order");
 });
 
+/* The kind table held three rows while the CLI could file four, so a `review` issue took `points`'s
+   fallback and could not be separated from a `feature` by any weight (ISS-1534). */
+test("a review issue scores its own kind rather than a feature's fallback", () => {
+  const scored = (category) => scoreOf(row("ISS-1", { category }), { weights: DEFAULTS, now: NOW });
+  const review = scored("review");
+  assert.equal(review.total - scored("feature").total, 2,
+    "the two rows differ in the kind field alone, so the gap is what that field is worth");
+  assert.deepEqual(review.parts.find((one) => one[0] === "kind"), ["kind", "review", 2],
+    "and the part names the kind the tracker holds rather than the one the fallback read it as");
+});
+
 /* Five values and five weights: a rung is three names over them, and the score weighs none of it. */
 test("the complexity's own weight moves the order, the five values ranking apart", () => {
   const COMPLEXITIES = ["xs", "s", "m", "l", "xl"];
