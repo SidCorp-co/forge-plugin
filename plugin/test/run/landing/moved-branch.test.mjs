@@ -3,6 +3,7 @@
    so the only thing these judge is whether it is said before the push (ISS-1644). */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -12,7 +13,10 @@ import {
 } from "./fixture.mjs";
 
 const { landReady } = await import("../../../../tools/run/land-ready.mjs");
+const { tipSaid } = await import("../../../../tools/run/land-ready/branch.mjs");
 const { Stop } = await import("../../../../tools/checkout.mjs");
+
+const SELF = "node tools/run.mjs";
 
 test.after(() => tracker.close());
 
@@ -56,7 +60,7 @@ test("a branch standing past the judged head refuses the landing, naming what is
   assert.ok(said.includes(short(tip)), `and so is the tip:\n${said}`);
   assert.match(said, /1 commit\(s\) past it/u, said);
   assert.match(said, /the fix the builder wrote after --ready/u, "the subject, not only a count");
-  assert.ok(said.includes(`--force-with-lease=${BRANCH}:${short(tip)} origin ${head}:refs/heads/${BRANCH}`),
+  assert.ok(said.includes(`--force-with-lease=${BRANCH}:${tip} origin ${head}:refs/heads/${BRANCH}`),
     `the push that clears it, leased on the tip:\n${said}`);
   assert.match(said, /forge claim ISS-673 --pushed --ready/u, "and the second route, this being `ready`");
   assert.equal(remote(at), base, `nothing was landed:\n${said}`);
@@ -85,7 +89,7 @@ test("a branch that let the judged head go is refused on that reading, not on th
   const said = await ran([KEY], work);
   assert.match(said, /does not reach it/u, said);
   assert.doesNotMatch(said, /cannot read/u, "the checkout holds the orphan, so that is not the reason");
-  assert.ok(said.includes(`--force-with-lease=${BRANCH}:${short(tip)} origin ${head}:refs/heads/${BRANCH}`), said);
+  assert.ok(said.includes(`--force-with-lease=${BRANCH}:${tip} origin ${head}:refs/heads/${BRANCH}`), said);
   assert.equal(remote(at), base, `nothing was landed:\n${said}`);
 });
 
@@ -123,4 +127,27 @@ test("a branch standing at the judged head is refused nothing and says what it s
   assert.match(said, /iss-673 was judged at/u, said);
   assert.doesNotMatch(said, /stands at/u, `no word of a tip on the clean path:\n${said}`);
   assert.notEqual(remote(at), base, `and it landed:\n${said}`);
+});
+
+test("a remote that will not name the branch is the question unanswered, not a branch standing still", async () => {
+  const { at, work, head, base } = world();
+  git(join(at, "origin.git"), "update-ref", "-d", `refs/heads/${BRANCH}`);
+  const said = tipSaid(work, KEY, ready(head, base), SELF);
+  assert.match(said, /named nothing for iss-673/u, said);
+  assert.match(said, /Nothing is merged on a reading this uncertain/u, said);
+  assert.ok(said.includes(`${SELF} land-ready ${KEY}`), said);
+});
+
+test("a tip pushed after the fetch is the question unanswered, not a branch that was rewritten", async () => {
+  const { at, work, head, base } = world();
+  const clone = join(at, "clone-ahead");
+  spawnSync("git", ["clone", "-q", "-b", BRANCH, join(at, "origin.git"), clone], { encoding: "utf8" });
+  writeFileSync(join(clone, OWNED), "a line the landing's checkout never fetched\n", { flag: "a" });
+  git(clone, "add", OWNED);
+  git(clone, "commit", "-qm", "a commit pushed after the landing fetched");
+  git(clone, "push", "-q", "origin", BRANCH);
+  const said = tipSaid(work, KEY, ready(head, base), SELF);
+  assert.match(said, /does not hold/u, said);
+  assert.doesNotMatch(said, /rewritten/u, "the ancestry went unanswered, so nothing is claimed of it");
+  assert.doesNotMatch(said, /force-with-lease/u, "and no push is advised off a reading it could not make");
 });

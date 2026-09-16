@@ -11,9 +11,10 @@ const subjects = (ahead) => [
   ...(ahead.length > NAMED ? [`    ... and ${ahead.length - NAMED} more`] : []),
 ].join("\n");
 
-/* Leased on the tip this landing read, so a branch moved again between the two is refused by git. */
+/* The whole sha and not the short one: this push is run from whichever tree holds the judged head,
+   and a tree that has not fetched the tip cannot resolve an abbreviation of it. */
 const putBack = (branch, tip, judged) =>
-  `    git push --force-with-lease=${branch}:${shortly(tip)} ${REMOTE} ${judged}:refs/heads/${branch}`;
+  `    git push --force-with-lease=${branch}:${tip} ${REMOTE} ${judged}:refs/heads/${branch}`;
 
 /* Only from the state that has it: past `ready` the capture is refused, which is ISS-1652's shape. */
 const readAgain = (key, landing, tip) =>
@@ -22,13 +23,16 @@ const readAgain = (key, landing, tip) =>
       + `    forge claim ${key} --pushed --ready`
     : "");
 
-/** The refusal a branch not standing at the judged head earns, or null. A tip the remote will not
- *  name is the question going unanswered rather than a branch that moved, so it reads as clean. */
-export const tipSaid = (tree, key, landing) => {
+/* Three answers and not two, as `landedAlready` has: unreadable is the question unanswered, not a no. */
+const unread = (key, self, why) =>
+  `${why} Nothing is merged on a reading this uncertain — run this landing again, which fetches `
+  + `that branch before it reads anything:\n    ${self} land-ready ${key}`;
+
+/** The refusal a branch not standing at the judged head earns, or null. */
+export const tipSaid = (tree, key, landing, self) => {
   const { branch, head } = landing;
   const judged = gitOut(["rev-parse", "--verify", `${head}^{commit}`], tree);
   const tip = remoteHeadOf(tree, branch);
-  if (judged && (!tip || tip === judged)) return null;
   if (!judged) {
     return `${key} was judged at ${shortly(head)}, a commit this checkout cannot read even after `
       + `fetching ${branch}. ${tip ? `That branch stands at ${shortly(tip)} and this landing merges `
@@ -36,7 +40,18 @@ export const tipSaid = (tree, key, landing) => {
         + `${putBack(branch, tip, head)}`
         : `The build's own tree holds it — push that branch again.`}`;
   }
-  if (git(["merge-base", "--is-ancestor", judged, tip], tree).status !== 0) {
+  if (!tip) {
+    return unread(key, self, `${REMOTE} named nothing for ${branch}, which it answered for a moment `
+      + `ago when this landing fetched that branch, so where the branch stands cannot be read here.`);
+  }
+  if (tip === judged) return null;
+  const asked = git(["merge-base", "--is-ancestor", judged, tip], tree).status;
+  if (asked > 1) {
+    return unread(key, self, `${key} was judged at ${shortly(judged)} and ${branch} stands at `
+      + `${shortly(tip)}, a commit this checkout does not hold: it was pushed after this landing `
+      + `fetched the branch, so what is between the two cannot be read here.`);
+  }
+  if (asked === 1) {
     return `${key} was judged at ${shortly(judged)} and ${branch} stands at ${shortly(tip)}, which `
       + `does not reach it: the branch was rewritten and the head this landing merges is on no ref `
       + `of it. Nothing of the rewrite would be released and the landing after this one would fetch `

@@ -77,7 +77,7 @@ const setMember = (landing) =>
    in memory, because a second process resumes into four of them. `at` is the set's side of that
    reading: its members, the pin, the candidate the chain came to and what this attempt built. */
 const pinStep = async (one) => {
-  const { at, ctx: { base, root } } = one;
+  const { at, ctx: { base, root, self } } = one;
   const nameless = at.members.find((member) => !member.landing.branch);
   if (nameless) stop(`the checkpoint on ${nameless.key} names no branch, so there is nothing to land.`);
   loud("git", ["fetch", REMOTE, ...at.members.map((member) => member.landing.branch), base], root,
@@ -86,7 +86,7 @@ const pinStep = async (one) => {
   console.log(`  ${base} is pinned at ${shortly(at.pin)}`);
   await perMember(at, async (member) => {
     const { key, documentId, landing } = member;
-    const moved = tipSaid(root, key, landing);
+    const moved = tipSaid(root, key, landing, self);
     if (moved) stop(moved);
     console.log(`  ${landing.branch} was judged at ${shortly(landing.head)}`);
     if (landing.state === LANDING_READY) {
