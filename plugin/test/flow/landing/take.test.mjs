@@ -300,6 +300,80 @@ test("a reconciliation naming another candidate is refused with both shas, and w
   assert.equal(JSON.stringify(state.issues[0].sessionContext), before);
 });
 
+/* The branch under a hand-back, read as git has it: the landing merges the judged head and fetches
+   the branch to find it, so a reconciliation written over a branch that has let that head go is a
+   landing that dies in some other checkout days later. Real refs and real commits, the reading being
+   git's own, and a room per answer so no case reads through the one before it (ISS-1638). */
+const handedRoom = (name) => {
+  const room = tempRoom(`landing-${name}-`);
+  spawnSync("git", ["init", "-q", "-b", "iss-673-6", room], { encoding: "utf8" });
+  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "forge-plugin" }));
+  writeFileSync(join(room, "one.mjs"), "the judged head\n");
+  git(room, "add", "one.mjs", ".forge.json");
+  git(room, "commit", "-qm", "the judged head");
+  const judged = git(room, "rev-parse", "HEAD").stdout.trim();
+  git(room, "update-ref", "refs/remotes/origin/iss-673-6", judged);
+  return { room, judged };
+};
+
+const onTop = (room, file, said) => {
+  writeFileSync(join(room, file), `${said}\n`);
+  git(room, "add", file);
+  git(room, "commit", "-qm", said);
+  return git(room, "rev-parse", "HEAD").stdout.trim();
+};
+
+test("a reconciliation over a branch that let the judged head go is refused, naming the push back", async () => {
+  const { room, judged } = handedRoom("forced");
+  writeFileSync(join(room, "one.mjs"), "what a rebase leaves\n");
+  git(room, "add", "one.mjs");
+  git(room, "commit", "-q", "--amend", "-m", "the rebase the hand-back used to ask for");
+  const tip = git(room, "rev-parse", "HEAD").stdout.trim();
+  git(room, "update-ref", "refs/remotes/origin/iss-673-6", tip);
+  field({ ...OWED, head: judged }, lease(BUILDER));
+  const before = JSON.stringify(state.issues[0].sessionContext);
+  const run = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], BUILDER, room);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, new RegExp(`iss-673-6 no longer carries ${judged.slice(0, 7)}`, "u"), run.stderr);
+  assert.match(run.stderr, new RegExp(`stands at ${tip.slice(0, 7)}`, "u"),
+    "and the tip it stands at instead, which is what tells a forgotten push from a rewritten branch");
+  assert.match(run.stderr,
+    new RegExp(`git push --force-with-lease=iss-673-6:${tip} origin ${judged}:refs/heads/iss-673-6`, "u"),
+    "with the push that puts the judged head back");
+  assert.equal(JSON.stringify(state.issues[0].sessionContext), before, "and the checkpoint is as it was");
+});
+
+test("a reconciliation over a branch whose tip has moved past the judged head is written", async () => {
+  const { room, judged } = handedRoom("ahead");
+  git(room, "update-ref", "refs/remotes/origin/iss-673-6", onTop(room, "two.mjs", "a commit made after the capture"));
+  field({ ...OWED, head: judged }, lease(BUILDER));
+  const run = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], BUILDER, room);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  /* The branch still carries what lands, so this write is none of this refusal's business. That the
+     landing says nothing of the commit on top is the other half of the reading, and is ISS-1644. */
+  assert.equal(checkpoint().state, "reconciled", `${run.stdout}${run.stderr}`);
+});
+
+test("a reading that proves neither answer lets the reconciliation through", async () => {
+  const { room, judged } = handedRoom("unknown");
+  git(room, "update-ref", "refs/heads/iss-673-6", onTop(room, "two.mjs", "the tip a shallow clone fetches"));
+  const shallow = tempRoom("landing-shallow-");
+  spawnSync("git", ["clone", "-q", "--depth", "1", "--branch", "iss-673-6", `file://${room}`, shallow],
+    { encoding: "utf8" });
+  assert.notEqual(git(shallow, "cat-file", "-e", `${judged}^{commit}`).status, 0,
+    "the judged head is behind the shallow boundary, which is a history that cannot settle it");
+  field({ ...OWED, head: judged }, lease(BUILDER));
+  const boundary = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], BUILDER, shallow);
+  assert.equal(boundary.status, 0, `${boundary.stdout}${boundary.stderr}`,
+    "an unreadable head under a shallow history proves nothing, and a refusal there is a branch that was right");
+  assert.equal(checkpoint().state, "reconciled");
+  field({ ...OWED, head: judged }, lease(BUILDER));
+  const unknown = await ran(["claim", "ISS-673", "--reconciled", CANDIDATE], BUILDER, CHANGED);
+  assert.equal(unknown.status, 0, `${unknown.stdout}${unknown.stderr}`,
+    "and a checkout holding no remote-tracking ref for that branch has read nothing about it");
+  assert.equal(checkpoint().state, "reconciled");
+});
+
 test("a reconciliation at any state but builder-owed is refused naming the state it read", async () => {
   for (const state of ["ready", "candidate", "reconciled", "qa-owed", "judged", "marked", "records-owed", "done"]) {
     field({ ...OWED, state }, lease(BUILDER));

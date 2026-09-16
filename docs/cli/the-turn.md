@@ -23,6 +23,14 @@ refused at the write rather than at the promotion, and the same independence `--
 holds here: at that state the turn is the builder the checkpoint names, and an id a whole wave carries
 is not proof of being it.
 
+The branch is not the builder's to move while that turn is owed. Only the head the checkpoint names
+is ever promoted, so rewriting the branch cannot add anything to what lands, and it can subtract:
+that head then hangs off no ref, and the checkout that fetches the branch to build the release finds
+nothing there. So the answer is refused where the branch has provably let go of it — provably, off
+the remote-tracking ref this checkout already holds, since the alternative is a reading that waits on
+a remote, and a reading that cannot see the commit refusing a builder whose branch was right all
+along.
+
 `--recorded` is the builder's too, and the one turn that is handed back for something no state of the
 landing writes. Every rung left once the mark is up is earned by a record — a correction naming what
 the landing wrote outside the plan, a verdict, a verification — and each of them answers for a

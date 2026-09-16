@@ -148,9 +148,13 @@ const handedBack = async (member, alone, moved) => {
   await saveOn(member, { state: LANDING_BUILDER_OWED, candidate: alone, moved: moved.join(", ") });
   return stop(`the landing moved ${moved.join(", ")}, so this change's own paths are not what was judged `
     + `and the branch goes back to the run that built it. Nothing of ${key} is pushed, deployed or `
-    + `installed until the checkpoint reads \`${LANDING_RECONCILED}\` at ${shortly(alone)}:\n`
+    + `installed until the checkpoint reads \`${LANDING_RECONCILED}\` at ${shortly(alone)}. What is `
+    + `owed is a reading and not a commit: the branch stays where it is, since what lands is `
+    + `${shortly(landing.head)} merged again and never the branch tip, so moving it lands nothing new `
+    + `and orphans the head the next landing fetches.\n`
     + `    forge claim ${key} --take\n`
-    + `    ... rebased onto that candidate, then: forge claim ${key} --reconciled ${alone}`);
+    + `    ... read ${moved.join(", ")} as ${shortly(alone)} has them, then: `
+    + `forge claim ${key} --reconciled ${alone}`);
 };
 
 /* The reconciliation the landing can make itself, and the one it cannot: a merge that left a

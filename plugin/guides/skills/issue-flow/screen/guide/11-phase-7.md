@@ -51,8 +51,10 @@ writes none of them.
 **What the landing does with it is not this run's to do**, and one outcome comes back: a merge that
 touched a path the change owns, which leaves the checkpoint at `builder-owed` for the run that built
 it to take, read the candidate named there, and answer for that candidate by its sha — `forge claim
-ISS-nn --take`, then `forge claim ISS-nn --reconciled <sha>`. Anything else the landing settles
-itself, and `forge resume ISS-nn` says which happened.
+ISS-nn --take`, then `forge claim ISS-nn --reconciled <sha>`. The branch is left where it stands:
+what lands is the head the checkpoint already names, so moving the branch adds nothing to the
+landing and can leave that head hanging off no ref for the checkout that fetches it. Anything else
+the landing settles itself, and `forge resume ISS-nn` says which happened.
 
 **The judging is this run's and the statuses past it are the landing's**, because the release they
 answer for does not exist while this phase runs. The landing walks as far as the record earns and
