@@ -20,8 +20,8 @@ import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
 import { fail, projectCodex, projectRecordPattern } from "../resolve/settings.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, pending, pendingIn, readByCodex, readState,
-  stagedApart, stagedReader, turnsOf, updateState } from "./codex-state.mjs";
+import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid, pending, pendingIn,
+  readByCodex, readState, stagedApart, stagedReader, turnsOf, updateState } from "./codex-state.mjs";
 import { PER_KEY, READ_ISSUE, SPARE, TOOLS, scopeFor } from "./codex-tools.mjs";
 import { noDiffIn, reviewSet, shownOf } from "./codex-set.mjs";
 import { reviewed } from "./codex-rounds.mjs";
@@ -439,7 +439,9 @@ const consult = async (given) => {
       ...(recheck ? { newFindings: newFindingsIn(numbered(held.text, rels)) } : {}),
       reply: held.text,
     });
-    const { left, since } = clearConsulted(root, rels);
+    const { clear, held: standing } = clearableOf(root, record.sent);
+    const { left, since } = clearConsulted(root, clear);
+    if (standing.length) console.error(`codex: ${heldSaid(standing)}`);
     if (plan) {
       const auto = verdictFromRulings(plan, offset, held.text, id, verdictsBy(entries).get(plan.judged.id ?? plan.judged.at) ?? null);
       if (auto) {

@@ -78,9 +78,10 @@ What a row of this log can be replayed into, and what a rebuild proves, is
 
 What counts as a document is `codex.pathRe`, `^docs/.*\.md$` by default, because prose is what nothing
 else here checks — and a document written by a heredoc is a document. The turn is keyed by canonical git
-root, one state file for every checkout, and a consult clears only the files it was given: one recorded
-while the call was in flight survives it. It records paths and the log records what went up, so
-nothing keeps a digest twice (ISS-952).
+root, one state file for every checkout, and a consult clears the files it was given at the bytes it
+was given them: one recorded in flight survives, and so does one whose index holds a copy nobody
+was shown (ISS-1011). It records paths, the log what went up, so no digest is
+kept twice (ISS-952).
 
 **Scoped to the working tree, the commit gate was a function of other people's work.** In a checkout
 shared with another session, a three-file commit was refused five times over with a list of 726 paths
@@ -94,7 +95,7 @@ that compares it cannot drift apart. The 726 became one.
 half of that same cap arming itself forever: five consults, four verdicts and every finding ruled on,
 and 727 dirty paths still said *changed now*, listing another agent's uncommitted files as work to go
 and read. Above the cap the demand is now bounded by this root's unread record, so what a refusal
-names is what consulting it clears, and where nothing is recorded nothing is owed. Two prices, both
+names is this root's own unread work, and where nothing is recorded nothing is owed. Two prices, both
 taken deliberately. The record is the root's and carries no session dimension, so a co-tenant's
 recordable file can still be demanded of you — satisfiably, which is the whole of the change. And what
 it holds is what `codex.pathRe` matches, so above the cap a write outside that pattern is not asked

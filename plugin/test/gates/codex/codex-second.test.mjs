@@ -3,10 +3,10 @@ import test from "node:test";
 
 import { callHook, pathed, tempRoom, typed } from "../../fixtures.mjs";
 import { commitAim } from "../../../hooks/gates/codex/codex-second.mjs";
-import { stagedIn } from "../../../src/codex/codex-state.mjs";
+import { clearableOf, stagedIn } from "../../../src/codex/codex-state.mjs";
 import { digest } from "../../../src/codex/codex-api.mjs";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
@@ -337,4 +337,36 @@ test("a record under one configuration home and a gate reading another are each 
   assert.match(said.stdout, /^nothing pending$/mu, "the second home holds no record of that file");
   assert.ok(said.stdout.includes(join(other, "forge")),
     `so the two answers name two records rather than reading as one: ${said.stdout}`);
+});
+
+/* Every consult reads the working copy, so the one this refusal named could not reach the copy the
+   index held — and clearing on the send alone meant that consult emptied the record and the commit
+   landed bytes nobody had seen (ISS-1011). */
+test("a staged copy apart from the disk is refused with a route no consult can take", () => {
+  const { repo, home } = four();
+  const said = fourSaid(repo, home, "git commit -m x");
+  const [route] = said.match(/forge codex consult [^`]*/u) ?? [""];
+  assert.doesNotMatch(route, /restaged\.mjs/u, "no consult reads the copy the index holds for it");
+  assert.match(route, /unread\.mjs/u, "one staged at the copy on disk is a consult's to clear");
+  assert.match(said, /`git add [^`]*restaged\.mjs`/u, "and staging what was read is the other route");
+});
+
+test("the consult a refusal asks for leaves the path whose staged copy nobody read", () => {
+  const { repo, home } = four();
+  const root = realpathSync(repo);
+  const rels = ["seen.mjs", "changed.mjs", "unread.mjs", "restaged.mjs"];
+  const sent = rels.map((rel) => {
+    const text = readFileSync(join(repo, rel), "utf8");
+    return { rel, sha: digest(text), chars: text.length, clipped: false };
+  });
+  const { clear, held } = clearableOf(root, sent);
+  assert.deepEqual(held, ["restaged.mjs"], "what the index holds for it is not what that consult was shown");
+  assert.deepEqual(clear.sort(), ["changed.mjs", "seen.mjs", "unread.mjs"], "and the rest of the set leaves as before");
+  writeFileSync(join(home, "forge", "codex.json"),
+    JSON.stringify({ turns: { [root]: { files: held, at: Date.now() - 90_000 } } }));
+  const said = fourSaid(repo, home, "git commit -m x");
+  assert.match(said, /has not read what this commit stages/u, "the record that consult left still refuses the commit");
+  assert.match(said, /restaged\.mjs/u);
+  const staged = spawnSync("git", ["-C", repo, "show", ":restaged.mjs"], { encoding: "utf8" }).stdout;
+  assert.equal(staged, "// staged unread\n", "which is the copy that refusal stands between and the history");
 });

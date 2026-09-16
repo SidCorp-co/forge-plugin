@@ -68,6 +68,11 @@ checkout's decision rather than the account's, and `README.md` says why that lev
   WHERE one run took several whole-body consults at one recorded head with no working-tree change
   under any of them, those consults SHALL answer together as the read a review of that set is
   earned by.
+- **AC-06-1-10** · Rev: 1 · Proof: plugin/test/codex/codex-state.test.mjs "a consult holds a path whose staged copy is not the copy it was sent"
+  IF a path a consult sent is one whose bytes a commit would carry are not the bytes that went up
+  THEN the CLI SHALL keep that path in the turn's record, SHALL name it, and SHALL name the command
+  that clears it; and it SHALL keep every path it sent wherever the index cannot be read, a clear
+  decided on the copy on disk alone having answered for bytes no reviewer was shown.
 
 ### UC-06-2 — List the documents a turn changed, once, at the end
 
@@ -128,6 +133,10 @@ fragments, and the trigger it decided on could not be read at all.
   WHEN the CLI lists what a commit is asked for THEN it SHALL name the configuration directory it
   read the turn record from, including where it holds nothing to list, so that an empty answer and a
   refusal about the same file cannot both be read as facts about one record.
+- **AC-06-3-9** · Rev: 1 · Proof: plugin/test/gates/codex/codex-second.test.mjs "a staged copy apart from the disk is refused with a route no consult can take"
+  WHERE a document the refusal names is staged at a copy that is not the one on disk, the refusal
+  SHALL name staging that document as the route out and SHALL name no consult for it, every consult
+  reading the copy on disk and none being able to reach the copy the index holds.
 
 ### UC-06-4 — What the built-in advisor said travels into the consult
 

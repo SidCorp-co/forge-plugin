@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "no
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { apartFrom, demandIn, demandOf, goneFrom, stagedApart, stagedIn } from "../../src/codex/codex-state.mjs";
+import { apartFrom, clearableOf, demandIn, demandOf, goneFrom, heldSaid, stagedApart, stagedIn } from "../../src/codex/codex-state.mjs";
 import { digest } from "../../src/codex/codex-api.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
@@ -240,4 +240,72 @@ test("a staged addition is work nobody read, whatever became of its working copy
   const out = forge(root, home, "pending");
   assert.match(out.stdout, /^docs\/NEW\.md$/mu, "so a commit made now is asked for it");
   assert.doesNotMatch(out.stdout, /out of the record now/u, "and nothing dropped it");
+});
+
+/* The clear after an answer was the last reader still deciding on the working copy: it dropped a
+   path whose index held bytes nobody had been shown, so the consult the commit gate asks for is
+   what took that gate's own refusal away (ISS-1011). */
+const sentOf = (rel, text) => ({ rel, sha: digest(text), chars: text.length, clipped: false });
+
+test("a consult holds a path whose staged copy is not the copy it was sent", () => {
+  const root = tree();
+  writeFileSync(join(root, "docs/A.md"), "docs/A.md\n");
+  const sent = [sentOf("docs/A.md", "docs/A.md\n"), sentOf("docs/B.md", "docs/B.md again\n"), sentOf("docs/C.md", "docs/C.md\n")];
+  const { clear, held } = clearableOf(root, sent);
+  assert.deepEqual(held, ["docs/A.md"], "the index holds a copy this consult was never shown");
+  assert.deepEqual(clear, ["docs/B.md", "docs/C.md"], "nothing stages these two, and both are still the bytes that went up");
+});
+
+test("a path staged at the bytes that went up leaves the record", () => {
+  const root = tree();
+  const { clear, held } = clearableOf(root, [sentOf("docs/A.md", "docs/A.md again\n")]);
+  assert.deepEqual(clear, ["docs/A.md"], "what a commit would carry is what the reviewer read");
+  assert.deepEqual(held, []);
+});
+
+/* Staged-versus-disk alone would approve this one: both hold bytes that went nowhere near the reviewer. */
+test("a path written and staged while the consult was in flight is held", () => {
+  const root = tree();
+  const sent = [sentOf("docs/A.md", "docs/A.md again\n")];
+  writeFileSync(join(root, "docs/A.md"), "// what nobody sent\n");
+  git(root, "add", "docs/A.md");
+  const { clear, held } = clearableOf(root, sent);
+  assert.deepEqual(held, ["docs/A.md"], "the index and the disk agree with each other and not with what went up");
+  assert.deepEqual(clear, []);
+});
+
+test("a repository whose index git will not read holds every path a consult sent", () => {
+  const room = tempRoom("codex-clearable-bare-");
+  rooms.push(room);
+  const sent = [sentOf("docs/A.md", "one\n"), sentOf("docs/B.md", "two\n")];
+  assert.deepEqual(clearableOf(room, sent).held, ["docs/A.md", "docs/B.md"], "no answer is no evidence a reviewer saw what would land");
+  assert.deepEqual(clearableOf(room, sent).clear, []);
+});
+
+test("the line a consult prints names every path it held and the commands that clear one", () => {
+  const said = heldSaid(["docs/A.md", "docs/B.md"]);
+  assert.match(said, /docs\/A\.md, docs\/B\.md/u, "a count alone leaves a reader nothing to act on");
+  assert.match(said, /`git add`/u, "staging what was read is the route no consult can take for you");
+  assert.match(said, /`forge codex pending --drop`/u);
+});
+
+/* A deletion is what went up for a path with nothing on disk, and holding it on an unreadable copy
+   kept a staged removal and a rename's source in the record forever. */
+test("a path the tree no longer holds is not held on a copy nobody can read", () => {
+  const root = tree();
+  git(root, "rm", "-q", "docs/C.md");
+  const { clear, held } = clearableOf(root, [{ rel: "docs/C.md", chars: 0, clipped: false }]);
+  assert.deepEqual(clear, ["docs/C.md"], "what a commit would carry for it is the deletion the reviewer was shown");
+  assert.deepEqual(held, []);
+});
+
+/* The other way round: a path deleted under the call went up as content and comes back as absence,
+   which is a change nobody was shown rather than the deletion the reviewer read (consult 7bee0a F1). */
+test("a path deleted while the consult was in flight is held", () => {
+  const root = tree();
+  const sent = [sentOf("docs/C.md", "docs/C.md\n")];
+  git(root, "rm", "-q", "docs/C.md");
+  const { clear, held } = clearableOf(root, sent);
+  assert.deepEqual(held, ["docs/C.md"], "it went up as content and the tree no longer holds it");
+  assert.deepEqual(clear, []);
 });

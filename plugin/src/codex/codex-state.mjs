@@ -213,6 +213,31 @@ export const stagedApart = (root, rel, { staged, ms = GIT_MS } = {}) => {
   return apartFrom(root, [rel], ms).includes(rel);
 };
 
+/* Whether the copy on disk has moved off the one that went up: a consult's own row carries the digest of the whole file, so a call the tree outlived is read against what the reviewer saw rather than against the log. A row with no digest is a path that was already absent when the set was bundled, and a deletion is what went up for it, so nothing on disk contradicts it; one carrying a digest and holding nothing on disk now was deleted under the call, which is a change nobody was shown. A file that is there and will not open is read as moved, no answer being no evidence. */
+const movedSince = (root, { rel, sha }) => {
+  try {
+    return digest(readFileSync(isAbsolute(rel) ? rel : join(root, rel), "utf8")) !== sha;
+  } catch {
+    return sha !== undefined || !absentFrom(root, rel);
+  }
+};
+
+/** Which of a set a consult sent the record lets go, on the reading the gate makes of the same paths: the working copy still the bytes that went up, and no copy staged apart from it. A consult reads the working copy, so a path whose index holds something else is one no consult can answer for — and clearing it on the send alone is what let the very consult a refusal asks for take that refusal away (ISS-1011). A git that will not answer holds every path, no answer being no evidence a reviewer saw what would land. */
+export const clearableOf = (root, sent, ms = GIT_MS) => {
+  const rels = sent.map((one) => one.rel);
+  if (!rels.length) return { clear: [], held: [] };
+  const staged = stagedIn(root, {}, ms);
+  if (staged === null) return { clear: [], held: rels };
+  const apart = apartFrom(root, rels.filter((rel) => staged.includes(rel)), ms);
+  const held = sent.filter((one) => apart.includes(one.rel) || movedSince(root, one)).map((one) => one.rel);
+  return { clear: rels.filter((rel) => !held.includes(rel)), held };
+};
+
+export const heldSaid = (held) => `${held.length} file(s) this consult sent stay in the record: what a `
+  + `commit would carry for them is not what went up — ${held.join(", ")}. Stage the copy that was read `
+  + "with `git add`, since the next consult reads that same working copy, or drop them with `forge "
+  + "codex pending --drop`.";
+
 /** One index read per checkout, for a caller asking about several paths of it: git answers the same for every path of one checkout, and a memo any longer-lived than the caller would answer from an index that had moved. */
 export const stagedReader = () => {
   const held = new Map();

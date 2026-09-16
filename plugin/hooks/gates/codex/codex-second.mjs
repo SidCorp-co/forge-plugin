@@ -94,6 +94,8 @@ const ESCAPE = "For the session: `forge hooks --off codex-second` — an inline 
 const readIn = () => `Read from ${typed(configDir("forge"))}, so a consult recorded under another `
   + "XDG_CONFIG_HOME clears nothing here.";
 
+const six = (rels) => rels.slice(0, 6).map(typed).join(" ");
+
 /* One call, two commits, one answer: the tree judged is the first commit's, and the second's is
    inspected by nothing. Saying which was judged is what the reader needs to split the call. */
 const unjudged = (ev, root, others) => {
@@ -144,12 +146,19 @@ export const run = (ev) => {
   const apart = aim.all ? [] : apartFrom(root, asked, probeMs(remaining()));
   const demand = pendingNow(root, asked, log, { apart, ms: probeMs(remaining()) }).owed;
   if (demand.length) {
+    const cd = root === (ev.cwd ?? process.cwd()) ? "" : `cd ${typed(root)} && `;
+    /* Every consult reads the working copy, so for a path the index holds apart from it no consult clears the hold and naming one is a refusal nobody can act on: staging what was read is the route (ISS-1011). */
+    const stale = demand.filter((rel) => apart.includes(rel));
+    const unread = demand.filter((rel) => !apart.includes(rel));
     deny(
-      `Codex has not read what this commit stages in ${root} (${demand.slice(0, 6).map(typed).join(" ")}`
+      `Codex has not read what this commit stages in ${root} (${six(demand)}`
         + `${demand.length > 6 ? ` and ${demand.length - 6} more` : ""}, recorded ${ageOf(waiting.at)}).${also}\n\n`
-        + `Do this: \`${root === (ev.cwd ?? process.cwd()) ? "" : `cd ${typed(root)} && `}`
-        + 'echo "<what you were doing>" | forge codex consult --diff --only blocker,major '
-        + `${demand.slice(0, 6).map(typed).join(" ")}\`, then re-send. ${readIn()} `
+        + `Do this: ${unread.length ? `\`${cd}echo "<what you were doing>" | forge codex consult --diff `
+          + `--only blocker,major ${six(unread)}\`.` : ""}`
+        + `${stale.length ? `${unread.length ? " And the" : "The"} staged copy of ${six(stale)} is not the `
+          + `copy on disk a consult would read, so no consult clears ${stale.length > 1 ? "them" : "it"}: `
+          + `\`${cd}git add ${six(stale)}\`, or commit with \`-a\`.` : ""}`
+        + ` Then re-send. ${readIn()} `
         + `\`forge codex pending --drop\` discards them unread. ${ESCAPE}`
         + how(),
     );

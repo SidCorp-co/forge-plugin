@@ -1821,6 +1821,10 @@
       "rev": 1,
       "digest": "ba95e164d1eb12fceb79baed3770f682ccec973732c2e01229ecbdd52fbb4160"
     },
+    "AC-06-1-10": {
+      "rev": 1,
+      "digest": "99c40e57ac3a8f6431f5ce70c0b4250cb80d32522bdf3cfe2b98b9323ebf4553"
+    },
     "UC-06-2": {
       "rev": 1,
       "digest": "d8a214d05f4e34cd1a2d387b823cf5d4d011fbfce64e45e4db88c7816af9d0c2"
@@ -1872,6 +1876,10 @@
     "AC-06-3-8": {
       "rev": 1,
       "digest": "c0e85dcb4adab0fab8984025eb1c6a6400d3fd9fedaa28f3273d830ca73ea4bd"
+    },
+    "AC-06-3-9": {
+      "rev": 1,
+      "digest": "681a5b196e302fe872a94369340fd2f52b334eb204d08d7ceb85802b6fd09e58"
     },
     "UC-06-4": {
       "rev": 1,
