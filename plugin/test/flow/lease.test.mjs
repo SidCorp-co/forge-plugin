@@ -81,6 +81,22 @@ test("a lapse is fresh while it is younger than the duration the holder named, a
     "and a lease carrying no line says nothing about one");
 });
 
+test("a refusal names the take where the checkpoint licenses it, and asks for no claim about the other run", () => {
+  const lease = held("other", AT);
+  const route = "forge claim ISS-4 --take";
+  const fresh = reclaimRefusal("ISS-4", lease, NOW + 33 * 60_000, route);
+  assert.match(fresh, /forge claim ISS-4 --take/u, "the route the checkpoint already opened");
+  assert.doesNotMatch(fresh, /--stopped/u,
+    "and not the one asserting a run this caller never watched had stopped");
+  assert.doesNotMatch(fresh, /Ask that run/u, "nor a wait on a run whose turn is already over");
+  const live = claimRefusal("ISS-4", lease, "", route);
+  assert.match(live, /forge claim ISS-4 --take/u,
+    "the same at a live lease, which is the one a take may still have");
+  assert.doesNotMatch(live, /anybodys|anybody's from/u, "so no reader is told to wait the lease out");
+  assert.match(reclaimRefusal("ISS-4", lease, NOW + 33 * 60_000), /--stopped/u,
+    "and with no turn to name, the assertion is still the only route there is");
+});
+
 test("`forge claim -h` says what --minutes is asking for, which is not how long the work will take", () => {
   assert.ok(USAGE.includes(MINUTES_ASKS), "so the help and the refusal cannot come to disagree");
   assert.ok(MINUTES_ASKS.includes(RENEWED_BY_WRITING));

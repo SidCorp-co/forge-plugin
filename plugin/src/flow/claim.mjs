@@ -26,6 +26,7 @@ import {
   LANDING_RECONCILED,
   LANDING_RECORDS_OWED,
   landingLine,
+  takeRoute,
   landingOf,
 } from "./landing/checkpoint.mjs";
 import {
@@ -206,8 +207,8 @@ const handBack = async (documentId, ref, context, holder) => {
   if (refused) fail(refused);
   const saved = await landingSaved(documentId, ref, { state: LANDING_JUDGED, judge: holder });
   console.log(`${ref}  judged: ${landingLine(saved)}`);
-  return console.log(`The verdicts on the record are the judgement and the landing takes it from `
-    + `here, so nothing more of ${ref} is this run's.`);
+  return console.log(`The verdicts on the record are the judgement, so nothing more of ${ref} is `
+    + `this run's. The landing takes it from here:\n  ${takeRoute(ref)}`);
 };
 
 /* The other route out, the same shape as the hand-back above. What is its own is the sha: the
@@ -243,7 +244,8 @@ const reconcile = async (documentId, ref, context, holder, given) => {
     { state: LANDING_RECONCILED, reconciled: landing.candidate });
   console.log(`${ref}  reconciled: ${landingLine(saved)}`);
   return console.log(`The candidate ${shortSha(landing.candidate)} is what this run says it read, `
-    + `and the landing promotes that commit and no other, so nothing more of ${ref} is this run's.`);
+    + `and the landing promotes that commit and no other, so nothing more of ${ref} is this run's. `
+    + `The landing takes it from here:\n  ${takeRoute(ref)}`);
 };
 
 /* The two states a records turn returns to, written out one apiece rather than composed, because the
@@ -279,8 +281,8 @@ const handRecords = async (documentId, ref, context, holder) => {
   if (refused) fail(refused);
   const saved = await landingSaved(documentId, ref, back);
   console.log(`${ref}  recorded: ${landingLine(saved)}`);
-  return console.log(`The records this turn was handed back for are on the issue, so the landing `
-    + `takes it from here and nothing more of ${ref} is this run's.`);
+  return console.log(`The records this turn was handed back for are on the issue, so nothing more `
+    + `of ${ref} is this run's. The landing takes it from here:\n  ${takeRoute(ref)}`);
 };
 
 /* The turn is read before anything is written, because this is the one claim that may take a live
@@ -391,8 +393,16 @@ export const claim = async (argv) => {
      a run refused for how it typed the reference is refused by nothing on the record (codex F1). */
   const key = issue.issueId ?? ref;
   const handed = handedOn(key, context, issue.status, holder);
+  /* Read once for both refusals below: where the checkpoint names this caller's turn, `--take` is
+     open and is the route that asserts nothing about the run being taken from (ISS-1600). */
+  const mineHere = sessionSourced();
+  const landingHere = landingOf(context);
+  const takeOpen = landingHere && !takeRefusal(ref, landingHere, holder, lease,
+    { source: mineHere.id === holder ? mineHere.source : null })
+    ? takeRoute(ref)
+    : null;
   if (state === "live" && !handed) {
-    fail(claimRefusal(ref, lease, notHandedHere(ref, key, context, issue.status, holder)));
+    fail(claimRefusal(ref, lease, notHandedHere(ref, key, context, issue.status, holder), takeOpen));
   }
   /* The anomaly and not the flag: a field with no lease in it, at a status only a run's own writes reach. Named here so the refusal and the word the history keeps cannot come to disagree about which claim was the anomalous one. */
   const unheld = state === "free" && !TAKEABLE.includes(String(issue.status));
@@ -401,7 +411,7 @@ export const claim = async (argv) => {
       { next: nextLeft(context), work: workLines(workNow(worklog)) }));
   }
   if (state === "expired" && !given.stopped && !handed && freshLapse(lease)) {
-    fail(reclaimRefusal(ref, lease));
+    fail(reclaimRefusal(ref, lease, undefined, takeOpen));
   }
   /* After the refusal above, which owns the lapse the record can tell is fresh; this owns only the lapse read as stale that cannot be ruled fresh, the direction that takes an issue off a working run (ISS-1212). */
   if (state === "expired" && !given.stopped && !handed && straddles(anybodys, band)) {
@@ -421,7 +431,7 @@ export const claim = async (argv) => {
   const taken = leaseOf(next);
   console.log(`${ref}  ${how ?? "renewed"}: ${describe(taken)}`);
   if (state === "live") console.log(handedSaid(ref, lease));
-  if (checkpoint) console.log(`${landingLine(checkpoint)} — taken from here by \`forge claim ${ref} --take\`.`);
+  if (checkpoint) console.log(`${landingLine(checkpoint)} — taken from here by \`${takeRoute(ref)}\`.`);
   for (const one of nextLines(how, left, taken.next)) console.log(one);
   /* Beside the lease it is about, and above every route out of here: a claim that answers a park
      returns below, and the run would take the lease without being told what it matched on. */

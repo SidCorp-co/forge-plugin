@@ -530,6 +530,14 @@ test("a records hand-back at any other state is refused naming the state it read
   }
 });
 
+test("a hand-back names the route the run after it takes, rather than describing a handoff it does not hand off", async () => {
+  field(RECORDS, lease(BUILDER));
+  const back = await ran(["claim", "ISS-673", "--recorded"], BUILDER);
+  assert.equal(back.status, 0, `${back.stdout}${back.stderr}`);
+  assert.match(back.stdout, /forge claim ISS-673 --take/u,
+    "the verb the lander uses, where the run that hands over is standing and its report is written");
+});
+
 /* An `owed` naming no state the status step runs at: refused rather than resumed into. */
 test("a records turn naming no state to return to is refused rather than guessed at", async () => {
   field({ ...RECORDS, owed: "promoting" }, lease(BUILDER));

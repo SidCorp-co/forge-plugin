@@ -149,13 +149,16 @@ const agoIn = (ms) => {
 };
 
 /* Refused rather than said, alone among the lease's notices, because here the taking is the damage: the reclaim this was filed from took a live run's issue and cost it forty minutes of writes, and a line printed by the command that has already written the field warns nobody in time. It judges nothing and withholds one flag's worth — the record it describes is the one a stopped run leaves too, which is why the caller decides and this only says what is being decided (ISS-1224). */
-export const reclaimRefusal = (ref, lease, now = sharedNow()) =>
+export const reclaimRefusal = (ref, lease, now = sharedNow(), take = null) =>
   `the lease on ${ref} ran out ${agoIn(now - expiryOf(lease))}, and this reclaim would take the `
   + `issue off ${describe(lease)}. ${RENEWED_BY_WRITING} A run inside one of those leaves the `
   + `record a stopped run leaves, so a lapse this fresh proves neither.`
   + `${lease.next ? ` The step it left named: ${lease.next}.` : ""}`
-  + ` Ask that run: where it answers, its own next write takes the lease back. Where you have `
-  + `established it stopped, say so:\n  forge claim ${ref} ${STOPPED}`;
+  + (take
+    ? ` The landing checkpoint names your turn, so the lease is yours to take and nothing about that `
+      + `run has to be established:\n  ${take}`
+    : ` Ask that run: where it answers, its own next write takes the lease back. Where you have `
+      + `established it stopped, say so:\n  forge claim ${ref} ${STOPPED}`);
 
 export const UNHELD = "--unheld";
 
@@ -372,10 +375,12 @@ export const asItsHolder = (ref, lease, { held = sessionSourced(), at = process.
     + `under an id it has lost, carry the id it named back:\n  ${RUN_ID_VAR}=${lease.holder} ${call}`;
 };
 
-export const claimRefusal = (ref, lease, said = "") =>
+export const claimRefusal = (ref, lease, said = "", take = null) =>
   `${ref} is claimed: ${describe(lease)}. A live lease is that run's, and this claim is refused. `
   + `${alsoSay(idsHere(lease))}${lease.next ? `The step it left named: ${lease.next}. ` : ""}`
-  + `${alsoSay(said)}${asItsHolder(ref, lease) ?? waitItOut(ref, lease)}`;
+  + `${alsoSay(said)}${take
+    ? `The landing checkpoint names your turn, so this lease is yours to take:\n  ${take}`
+    : asItsHolder(ref, lease) ?? waitItOut(ref, lease)}`;
 
 const WRITE_REFUSAL = {
   free: (ref) =>
