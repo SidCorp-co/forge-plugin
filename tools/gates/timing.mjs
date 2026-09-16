@@ -1,7 +1,8 @@
 /* How long each green run took, beside the step records it shares a directory with. The gate
    measures it and the process takes it away, so nothing said whether this gate had grown (ISS-166). */
+import { createHash } from "node:crypto";
 import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 import { gitCommonDir } from "../checkout.mjs";
 
@@ -18,6 +19,12 @@ export const CEILING_SECONDS = ceilingOf(REVIEW);
 
 export const recordDir = (root) => join(gitCommonDir(root), "gate-ledger");
 
+/* Linked worktrees share one record directory, so what a run writes there for itself is named for
+   its own tree and never for the step alone: the basename to read it by, the digest because two
+   worktrees may share a basename. */
+export const treeKey = (root) => `${basename(root).replace(/[^\w.-]+/gu, "-")}`
+  + `.${createHash("sha256").update(root).digest("hex").slice(0, 8)}`;
+
 export const seriesFile = (dir) => join(dir, FILE);
 
 const beside = (dir, label, what) => join(dir, `${label.replace(/[^\w.-]+/gu, "-")}-${what}`);
@@ -28,7 +35,7 @@ export const alonePath = (dir, label) => beside(dir, label, "alone");
 
 export const casesPath = (dir, label) => beside(dir, label, "failed");
 
-export const roomPath = (dir, label) => beside(dir, label, "room");
+export const roomPath = (dir, label, root) => beside(dir, label, `room.${treeKey(root)}`);
 
 export const runSeries = (dir) => {
   let text;

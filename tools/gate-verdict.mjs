@@ -3,11 +3,10 @@
    A wait exits on the line and never on the process, one that exited having written nothing being its own answer and not a pass. */
 import { gitOut, lines, parsed } from "./checkout.mjs";
 import { gatesOn, placeFor, PROC, runnersOf, SLOT, startedAt, WAIT } from "./gates/machine.mjs";
-import { recordDir } from "./gates/timing.mjs";
+import { recordDir, treeKey } from "./gates/timing.mjs";
 import { watching } from "./watching.mjs";
-import { createHash } from "node:crypto";
 import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 
 // The wait's own answers, past every code a gate run exits with — 0, a step's status, 75 declined — so one number says which of the five it got.
 export const GONE = 76;
@@ -20,10 +19,9 @@ export const WAITED = "gate wait:";
 // A killed gate changes no file and so wakes no watcher: this tick re-reads the table, spending a syscall inside one call and no turn, which is what NFR-11 prices.
 const TICK_MS = 3000;
 
-export const verdictPath = (root) => join(recordDir(root), `verdict-${basename(root).replace(/[^\w.-]+/gu, "-")}`
-  + `.${createHash("sha256").update(root).digest("hex").slice(0, 8)}`);
+export const verdictPath = (root) => join(recordDir(root), `verdict-${treeKey(root)}`);
 
-// One file per tree — the basename to read it by, the digest because two worktrees may share one — appended and never rewritten, since two gates of one tree would overwrite each other and B's verdict over A's is A's waiter told that A wrote none.
+// Appended and never rewritten, since two gates of one tree would overwrite each other and B's verdict over A's is A's waiter told that A wrote none.
 const wrote = (root, record) => {
   mkdirSync(recordDir(root), { recursive: true });
   appendFileSync(verdictPath(root), `${JSON.stringify(record)}\n`);

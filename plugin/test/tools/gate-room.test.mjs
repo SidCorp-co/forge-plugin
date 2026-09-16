@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { escaped, tempRoom } from "../fixtures.mjs";
 import { landed, run, scratch } from "./gates/scratch.mjs";
 import { forgetRoomRefusal, madeIn, roomRefused, roomRefusal, ROOM_ENV } from "../../../tools/room.mjs";
+import { roomPath } from "../../../tools/gates/timing.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const FIXTURES = join(ROOT, "plugin", "test", "fixtures.mjs");
@@ -44,6 +45,21 @@ const ranNode = (body, over) =>
   spawnSync(process.execPath, ["--input-type=module", "-e", imports(body)],
     { encoding: "utf8", env: withEnv(over), cwd: ROOT });
 
+/* Every refusal below is provoked on purpose, and this suite runs under a gate whose own channel it
+   would otherwise write to — one deliberate refusal would then read as the machine having refused
+   the real step its room, and the gate would attribute somebody else's failure to this box. */
+const apart = (name, use) => {
+  const was = process.env[ROOM_ENV];
+  const note = join(tempRoom(name), "room");
+  process.env[ROOM_ENV] = note;
+  try {
+    return use(note);
+  } finally {
+    if (was === undefined) delete process.env[ROOM_ENV];
+    else process.env[ROOM_ENV] = was;
+  }
+};
+
 // `assert.throws` answers with nothing, and every case here is about what the refusal said.
 const thrown = (build) => {
   try {
@@ -65,7 +81,8 @@ test("an errno the runtime cannot name is decoded to the platform's own name for
 test("a room that cannot be made names the path it tried, the TMPDIR in force and the way out", () => {
   const at = shut("refused-room-");
   try {
-    const refused = thrown(() => madeIn(join(at, "room-"), () => mkdtempSync(join(at, "room-"))));
+    const refused = apart("refused-room-note-",
+      () => thrown(() => madeIn(join(at, "room-"), () => mkdtempSync(join(at, "room-")))));
     assert.match(refused.message, new RegExp(`Could not make the temporary room at ${escaped(at)}/room-: EACCES`, "u"),
       refused.message);
     assert.match(refused.message, new RegExp(`TMPDIR in force: ${escaped(process.env.TMPDIR)}$`, "mu"), refused.message);
@@ -86,21 +103,19 @@ test("a throw that is not the filesystem's reaches the run exactly as it was thr
 });
 
 test("the refusal is left where the gate reads it, and is forgotten on demand", () => {
-  const room = tempRoom("refused-note-");
-  const note = join(room, "record", "test-room");
   const at = shut("refused-noted-");
   try {
-    process.env[ROOM_ENV] = note;
-    for (const each of [1, 2]) {
-      thrown(() => madeIn(join(at, `room-${each}`), () => mkdtempSync(join(at, `room-${each}`))));
-    }
-    const read = roomRefused(note);
-    assert.equal(read.times, 2, "each refusal is one entry");
-    assert.match(read.said, /Could not make the temporary room at .*room-1: EACCES/u, read.said);
-    forgetRoomRefusal(note);
-    assert.equal(roomRefused(note), null, "a forgotten note still read");
+    apart("refused-note-", (note) => {
+      for (const each of [1, 2]) {
+        thrown(() => madeIn(join(at, `room-${each}`), () => mkdtempSync(join(at, `room-${each}`))));
+      }
+      const read = roomRefused(note);
+      assert.equal(read.times, 2, "each refusal is one entry");
+      assert.match(read.said, /Could not make the temporary room at .*room-1: EACCES/u, read.said);
+      forgetRoomRefusal(note);
+      assert.equal(roomRefused(note), null, "a forgotten note still read");
+    });
   } finally {
-    delete process.env[ROOM_ENV];
     openAgain(at);
   }
 });
@@ -108,7 +123,7 @@ test("the refusal is left where the gate reads it, and is forgotten on demand", 
 test("a fixture handed a TMPDIR it cannot write in says so instead of an unknown error", () => {
   const at = shut("refused-fixture-");
   try {
-    const said = ranNode("made;", { TMPDIR: at });
+    const said = ranNode("made;", { TMPDIR: at, [ROOM_ENV]: join(tempRoom("refused-fixture-note-"), "room") });
     assert.equal(said.status, 1, said.stdout + said.stderr);
     assert.match(said.stderr, new RegExp(`Could not make the temporary room at ${escaped(at)}/forge-plugin-test-`, "u"),
       said.stderr);
@@ -131,6 +146,14 @@ test("a fixture given no TMPDIR still makes its rooms under the platform's tempo
   assert.ok(said.stdout.startsWith(`${machine}/forge-plugin-test-`), `${said.stdout} is not under ${machine}`);
 });
 
+test("two worktrees sharing one record directory get a note each, not one between them", () => {
+  const dir = tempRoom("refused-two-trees-");
+  const mine = roomPath(dir, "test", "/checkouts/wt-ISS-1611");
+  const theirs = roomPath(dir, "test", "/checkouts/wt-ISS-1593");
+  assert.notEqual(mine, theirs, "one run's refusal would erase the other's, or be read as it");
+  assert.equal(dirname(mine), dir, "a note outside the record directory is one a full disk loses");
+});
+
 /* The case body a scratch checkout runs: the real wrapper, refused by a directory of its own, which
    is the whole chain from a fixture's room to what the gate prints. */
 const REFUSES_A_ROOM = `import test from "node:test";
@@ -149,14 +172,14 @@ test("a test step whose fixture was refused a room says the machine did it, not 
   const { at, work } = scratch("refused-gate-");
   try {
     landed(work, "plugin/test/tools/two.test.mjs", REFUSES_A_ROOM);
-    const said = run(work);
+    const said = run(work, [], work, { [ROOM_ENV]: join(tempRoom("refused-gate-note-"), "room") });
     assert.equal(said.status, 1, said.stdout);
     assert.match(said.stderr, new RegExp(`Gate failed: test — the machine refused a fixture its temporary `
       + `room \\d+ time\\(s\\), so this step judged nothing about the tree: ${escaped(work)}`, "u"), said.stderr);
     assert.match(said.stderr, /Could not make the temporary room at .*: EACCES/u, said.stderr);
     assert.ok(!said.stderr.includes("no failing case was named"), said.stderr);
     assert.ok(!said.stdout.includes("=== isolation:"), `a case was re-run on a machine with no room:\n${said.stdout}`);
-    assert.ok(existsSync(join(work, ".git", "gate-ledger", "test-room")),
+    assert.ok(existsSync(roomPath(join(work, ".git", "gate-ledger"), "test", work)),
       "the note went somewhere other than the record directory, so a full filesystem would lose it");
   } finally {
     rmSync(at, { recursive: true, force: true });
@@ -168,7 +191,8 @@ test("a gate that cannot make its own temporary root refuses before any step run
   const blocked = join(at, "blocked");
   try {
     mkdirSync(blocked, { mode: 0o500 });
-    const said = run(work, [], work, { TMPDIR: blocked });
+    const said = run(work, [], work,
+      { TMPDIR: blocked, [ROOM_ENV]: join(tempRoom("refused-root-note-"), "room") });
     assert.equal(said.status, 1, said.stdout + said.stderr);
     assert.match(said.stderr,
       new RegExp(`Could not make the temporary room at ${escaped(blocked)}/forge-gate-tmp-: EACCES`, "u"), said.stderr);

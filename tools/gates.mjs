@@ -424,7 +424,7 @@ const owned = [];
 
 const testEnv = (step) => step.tests
   ? { GATE_FILE_TIMES: fileTimesPath(record, step.label), [CASES_ENV]: casesPath(scratch, step.label),
-      [ROOM_ENV]: roomPath(record, step.label) }
+      [ROOM_ENV]: roomPath(record, step.label, ROOT) }
   : {};
 
 /* Every exit past an attribution says what its findings reached, the leak refusal included: a key
@@ -444,7 +444,7 @@ for (const step of planned) {
   const at = Date.now();
   const env = { ...process.env, TMPDIR: scratch, ...testEnv(step) };
   // Before the step, never after: a note the last run left would read as this one's.
-  if (step.tests) forgetRoomRefusal(roomPath(record, step.label));
+  if (step.tests) forgetRoomRefusal(roomPath(record, step.label, ROOT));
   const { status, error } = spawnSync(step.argv[0], step.argv.slice(1), { cwd: ROOT, env, stdio: "inherit" });
   const took = Math.round((Date.now() - at) / 1000);
   const failed = Boolean(error) || status !== 0;
@@ -452,7 +452,7 @@ for (const step of planned) {
   if (failed) {
     /* Before the attribution, which would spend a re-run per case on a machine that has no room to
        give one: a step whose fixture was refused its room judged nothing about the tree (ISS-1611). */
-    const refused = step.tests ? roomRefused(roomPath(record, step.label)) : null;
+    const refused = step.tests ? roomRefused(roomPath(record, step.label, ROOT)) : null;
     if (refused) {
       console.error(`\nGate failed: ${step.label} — the machine refused a fixture its temporary room `
         + `${refused.times} time(s), so this step judged nothing about the tree: ${ROOT}`);
