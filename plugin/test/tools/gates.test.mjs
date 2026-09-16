@@ -5,10 +5,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { availableParallelism } from "node:os";
 import { join } from "node:path";
 
-import { STEPS, gateSteps } from "../../../tools/gates/steps.mjs";
+import { STEPS, gateSteps, testWorkers } from "../../../tools/gates/steps.mjs";
 import { DEADLINE, DEFAULT_MINUTES, GONE, NO_GATE, TERMINAL } from "../../../tools/gate-verdict.mjs";
 import { REVIEW } from "../../../tools/gates/timing.mjs";
 import { tempRoom } from "../fixtures.mjs";
@@ -513,7 +512,7 @@ test("a test step runs on every core with node's own reporter, the per-file one 
   const ours = (name) => `--test-reporter=${join(ROOT, "tools", "gates", name)}`;
   for (const step of [tree, rest]) {
     const flags = step.argv.slice(2, 9);
-    assert.deepEqual(flags, [`--test-concurrency=${availableParallelism()}`,
+    assert.deepEqual(flags, [`--test-concurrency=${testWorkers()}`,
       `--test-reporter=${process.stdout.isTTY ? "spec" : "tap"}`, "--test-reporter-destination=stdout",
       ours("file-times.mjs"), "--test-reporter-destination=stdout",
       ours("isolation.mjs"), "--test-reporter-destination=stdout"], step.label);
