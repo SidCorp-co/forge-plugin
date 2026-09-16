@@ -4,7 +4,7 @@
    and docs/cli/the-precondition.md. */
 import { randomUUID } from "node:crypto";
 
-import { declaredFor, scoped, write } from "./rest.mjs";
+import { declaredFor, scoped, tried, write } from "./rest.mjs";
 import { partsAmong } from "./routes.mjs";
 import { mustBeShown } from "./comments.mjs";
 import { askedInSource, shortOfAsk } from "../resolve/flags.mjs";
@@ -127,7 +127,7 @@ export const rowOf = (field) => fields()[field];
 export const ownsField = (field) => Boolean(rowOf(field));
 
 /** Every field of one write, in one update, so a caller naming several either writes all of them or names none as written. The gate and the renewal are the write's rather than each field's, and the read-back reports per field because a `PATCH` the tracker refuses for one key documents nothing about the others. */
-export const writeFields = async (documentId, given, { ref, next, patch, refuse, partly, ask, expect, override = false }) => {
+export const writeFields = async (documentId, given, { ref, next, patch, refuse, partly, ask, expect, override = false, settling = false }) => {
   const rows = given.map(({ field, value }) => {
     const row = override ? { same: landedAs } : rowOf(field);
     if (!row) {
@@ -139,7 +139,7 @@ export const writeFields = async (documentId, given, { ref, next, patch, refuse,
   const short = shortOfAsk(ask, rows);
   if (short) refuse(short);
   const caps = capsOf();
-  if (rows.some((one) => one.row.shows)) await mustBeShown([{ ref, documentId }]);
+  if (!settling && rows.some((one) => one.row.shows)) await mustBeShown([{ ref, documentId }]);
   const renews = rows.some((one) => one.row.renews !== false);
   /* The renewal's own answer is the payload write's precondition — the lease as this process left it a moment ago, so a reclaim landing between the two refuses the payload rather than overwriting it. The object the renewal SENT and never a reply read back: the transport strips the tracker's fence out of every string of every answer and the tracker stores what it was sent, so only the sent copy is certainly the stored one (ISS-1219). A row declaring a precondition of its own is the lease's, which brings the value it read; and where nothing has established whether this far end honours one, the establishing write is this write, whose answer either settles it and stands as the write, or is nothing at all and the write is still owed. docs/cli/the-precondition.md. */
   const renewed = renews ? await renew(documentId, ref, next, patch) : null;
@@ -167,13 +167,15 @@ export const writeFields = async (documentId, given, { ref, next, patch, refuse,
   const covered = enforcementOf() === true && (asks || Boolean(held));
   /* Soft on the override arm alone, the one caller sending a name no row above declares. */
   if (!asked) {
-    const answer = await send(covered ? expecting(held ?? null) : null, override);
+    const answer = await send(covered ? expecting(held ?? null) : null, override || settling);
     if (answer?.refused) refuse(unrecognisedRefusal(answer.refused, ref) ?? answer.refused);
   }
-  /* The lease's own read-back was the compare-and-set this CLI made in the tracker's stead, so where the tracker made it that read is not spent; every other field's answers whether the text landed, which is a different question no precondition replaces. Nothing reads a lease write's return, which is why dropping the read leaves it null rather than owing a call for it. */
+  /* The lease's own read-back was the compare-and-set this CLI made in the tracker's stead, so where the tracker made it that read is not spent; every other field's answers whether the text landed, which is a different question no precondition replaces. Nothing reads a lease write's return, which is why dropping the read leaves it null rather than owing a call for it. Softly for the one caller that is settling a call whose payload has landed, whom a transport refusing this read owes a line and never the exit code of a call that did what it was asked; the read-first gate above is skipped for the same caller, that payload having spent it one write earlier in the same process. */
   const owed = rows.filter((one) => !(covered && one.row.expects));
   if (!owed.length) return null;
-  const back = await scoped("forge_issues", { action: "get", documentId, fields: partsAmong(owed.map((one) => one.field)) });
+  const back = await (settling ? tried : scoped)("forge_issues",
+    { action: "get", documentId, fields: partsAmong(owed.map((one) => one.field)) });
+  if (back?.refused) return refuse(back.refused) ?? null;
   const wrong = owed.filter((one) => !one.row.same(back?.[one.field], one.sent));
   if (!wrong.length) return back;
   /* A field that read back as written has moved, and the caller's record of why is owed before this exits: refusing on its neighbour would leave the tracker holding a value with nothing on the page saying who set it. */

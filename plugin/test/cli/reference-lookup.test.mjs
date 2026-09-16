@@ -61,7 +61,7 @@ test("a finder reaches the same key through forge comment, and is asked for no l
   assert.match(run.stdout, /No lease on ISS-1 is yours/u, "and the reply says the post took none");
 });
 
-/* The record path's own take, beside the advance path's: a defect in the ownership either of them writes is invisible until a second run collides with the lease, so the holder is compared with a name this file chose (consult a64e9b F1). */
+/* The record path's own take and give-back, beside the advance path's: a defect in the ownership either of them writes is invisible until a second run collides with the lease, so the holder is read off the field and compared with a name this file chose (consult a64e9b F1). The lease covers the write, so what the field holds once the verb has returned is the row with no holder on it. */
 test("the holder's verbs reach it too, the lookup being one, and the lease they wanted is taken", async () => {
   cutTo(BACKLOG, 2);
   const run = await ranAsync(FORGE, ["record", "note", "ISS-1", "--section", "Fixed", "--user", "a line"],
@@ -72,10 +72,11 @@ test("the holder's verbs reach it too, the lookup being one, and the lease they 
   const held = BACKLOG.find((one) => one.documentId === "u-1");
   assert.ok(held.releaseNotes, "the record the caller asked for is on the issue, written in the one call");
   const took = held.sessionContext.lease;
-  assert.equal(took.holder, WRITER, "held by the run that made the write and by nobody else");
-  assert.equal(took.minutes, 10, "for the ten minutes a write with no work under it is owed");
-  assert.equal(took.next, "nothing was worked under this lease");
   assert.deepEqual(took.history.map((one) => one.how), ["write"], "under the word only a write's take writes");
+  assert.equal(took.history[0].holder, WRITER, "by the run that made the write and by nobody else");
+  assert.equal(took.holder, "", "and given back once the write had landed, the lease covering the write");
+  assert.match(run.stderr, /ISS-1 is free again/u, "which the caller is told on the same screen");
+  assert.equal(took.next, "nothing was worked under this lease");
 });
 
 test("a key the tracker does not hold is refused as a fact about the tracker", async () => {

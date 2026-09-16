@@ -31,7 +31,7 @@ the only thing that expires.
 
 ### UC-03-1 — Take an issue
 
-Rev: 2 · Actors: agent · Enforces: BR-05
+Rev: 3 · Actors: agent · Enforces: BR-05
 
 A claim writes the holder, the renew time and the duration, and appends itself to the claim history
 in the same write — so who held the issue when is on the record with no second write that could
@@ -39,12 +39,15 @@ fail or lie.
 
 A payload write to an issue no run holds is a claim the caller has already made in everything but
 the typing, and the exclusion is the tracker's compare rather than the order two commands were sent
-in, so the write takes the lease instead of refusing and naming the command that takes it. The
-duration it takes is the one a write with no work under it is owed, because a call that had to take
-its own lease is the whole of what that call does to the issue, and a run with work following says
-so by claiming for itself. Where the field is empty at a status only a lease's own writes reach,
-the write refuses as the claim would: that state is a run that died or a write that erased one, and
-nothing may pick between those readings silently.
+in, so the write takes the lease instead of refusing and naming the command that takes it. A lease
+taken that way covers the write and not the run: a call that had to claim for itself is the whole
+of what that call does to the issue, so the lease goes back when the write lands rather than
+standing until a clock runs out, and a run with work following says so by claiming for itself. An
+issue therefore arrives at the status its next run claims from with nothing holding it. Where the
+field is empty at a status only a lease's own writes reach, the write refuses as the claim would:
+that state is a run that died or a write that erased one, and nothing may pick between those
+readings silently. A field a lease was given back in is none of those three and says so, so the
+next write and the next claim take it where an empty one is refused.
 
 - **AC-03-1-1** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "the claim history is appended by the write that made it, and a renew appends nothing"
   WHEN an issue is claimed THEN the CLI SHALL record the holder, the renew time, the duration and
@@ -54,16 +57,36 @@ nothing may pick between those readings silently.
   as a claim it can renew.
 - **AC-03-1-3** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "a renew keeps the line the lease already held, and only a caller that says so clears it"
   WHEN a payload is written THEN the CLI SHALL renew the lease as part of that write.
-- **AC-03-1-4** · Rev: 1 · Proof: plugin/test/flow/renew.test.mjs "an issue nobody holds is taken by the payload write itself, for the duration a write with no work under it is owed"
+- **AC-03-1-4** · Rev: 2 · Proof: plugin/test/flow/renew.test.mjs "an issue nobody holds is taken by the payload write itself, for the duration a write with no work under it is owed"
   IF a payload is written to an issue whose lease field holds no lease, and the issue stands at a
   status a run is dispatched at, THEN the CLI SHALL take the lease as part of that write, SHALL take
   it for the duration a write with no work under it is owed, SHALL record on the lease that no work
   followed it, SHALL name that take in the claim history under a word no other claim writes, and
-  SHALL tell the caller that the write took it.
-- **AC-03-1-5** · Rev: 1 · Proof: plugin/test/flow/renew.test.mjs "a write finding no lease past the dispatch statuses is refused in the words the claim itself would have used"
-  IF a payload is written to an issue whose lease field holds no lease, and the issue stands past
-  the statuses a run is dispatched at, THEN the CLI SHALL refuse the write and SHALL name the claim
-  that takes an issue no run is on, rather than one that is itself refused there.
+  SHALL tell the caller that the write took it and will give it back.
+- **AC-03-1-5** · Rev: 2 · Proof: plugin/test/flow/renew.test.mjs "a write finding no lease past the dispatch statuses is refused in the words the claim itself would have used"
+  IF a payload is written to an issue whose lease field holds no lease and no record that one was
+  given back, and the issue stands past the statuses a run is dispatched at, THEN the CLI SHALL
+  refuse the write and SHALL name the claim that takes an issue no run is on, rather than one that
+  is itself refused there.
+- **AC-03-1-6** · Rev: 1 · Proof: plugin/test/flow/renew.test.mjs "the lease a write took for itself is given back once the write has landed, and the claim history is unchanged"
+  WHEN a write that took the lease for itself has landed THEN the CLI SHALL give that lease back
+  before the call ends, SHALL say on the record that it was given back rather than taken over, and
+  SHALL add nothing to the claim history for it.
+- **AC-03-1-7** · Rev: 1 · Proof: plugin/test/flow/claim/released.test.mjs "an advance to developed leaves nothing holding the issue, and another run claims it with no wait and no flag"
+  IF the lease field records that a lease was given back THEN the CLI SHALL let the next write take
+  it and the next claim be granted at whatever status the issue stands, rather than refusing as it
+  does for a field no run left a lease in.
+- **AC-03-1-8** · Rev: 1 · Proof: plugin/test/flow/renew.test.mjs "a lease the run claimed for itself outlives the write made under it"
+  WHERE a run holds a lease it claimed for itself, the CLI SHALL leave that lease standing when a
+  write of that run's lands, so a run carrying one issue across several calls keeps it.
+- **AC-03-1-9** · Rev: 1 · Proof: plugin/test/flow/claim/released.test.mjs "a call that took the lease and then did not complete leaves the lease standing"
+  IF a call that took the lease for itself does not complete THEN the CLI SHALL leave that lease
+  standing, whether or not part of what it was asked for landed, because the run still owes the
+  write that finishes it.
+- **AC-03-1-10** · Rev: 1 · Proof: plugin/test/flow/claim/released.test.mjs "a take on a field a lease was given back in keeps the history and the line it left"
+  WHEN a lease is taken on a field a lease was given back in THEN the CLI SHALL keep the claim
+  history rows that field already carried, SHALL keep the line it left where the caller names none
+  of its own, and SHALL leave nothing on the new lease saying it was given back.
 
 ### UC-03-2 — Refuse a second run
 

@@ -48,6 +48,36 @@ lease's own writes reach, the write refuses as before: that field is a run that 
 erased one, never an issue waiting to be started, and choosing between those readings is the
 judgement a person is asked for rather than one a write may make quietly.
 
+## And it gives that lease back
+
+The same construction that derives the duration derives the end of it. A call that had to take its
+own lease is the whole of what that call does to the issue, so the lease covers the write and not
+the run that made it: when the write has landed, the holder comes off the field before the call
+ends. The duration is what stands if the call does not finish, and nothing more.
+
+**The measurement again.** On project `erp` an issue stood still for 1h58m over a judge that had
+already finished: its lease was live, no verb released it, and the builder's escape was to message a
+stopped agent and ask it to shorten its own lease — a move the method does not name. The write that
+earns a status is the write that renews the claim on it, so an issue arrived at the status its next
+run was supposed to claim from still held by the run that left it there. Waiting the clock out is
+the failure, not the fallback for it (ISS-1617).
+
+**A run that means to keep the issue says so, and `forge claim` is how.** Keeping does not get to be
+the default: a lease held past the run that took it is invisible until a second run collides with
+it, while a lease released under a run still working is that run's very next write, refused by name.
+So the release follows the action and never the status — in ship mode `self` one run carries past
+`developed` and lands, and a release keyed to that rung would take the issue out from under it.
+
+**Carrying a session id from one run to the next is not this and was refused.** It would let the
+field name which run holds an issue and would change nothing about a run that has ended still
+holding it. The lease's lifetime is the defect, not its labelling.
+
+**A field a lease was given back in is not the field a run that died leaves.** It says so on the
+record, and it is one write's own doing rather than three readings to pick between — so the next
+write takes it and the next claim is granted wherever the issue stands, which is what lets a run
+claim from a status the run before it left. The empty field with no such mark on it is refused
+exactly as it was, and asks the same person for the same judgement.
+
 ## And the run it was costing no longer pays for it
 
 The discipline above is a discipline, and the write it is about is the one a dispatcher makes on its

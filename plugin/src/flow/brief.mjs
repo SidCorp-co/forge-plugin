@@ -2,7 +2,8 @@
    the printer is resume.mjs and `--json` is this object, so the screen and a tool's reading cannot
    disagree. Under earned.mjs's rule about what it may touch, for the same reason (ISS-44). */
 import { sessionSourced } from "../resolve/config.mjs";
-import { FIELD, leaseOf, sharedHolder, stateOf } from "./lease.mjs";
+import { FIELD, leaseOf, stateOf } from "./lease.mjs";
+import { sharedHolder } from "./lease/dispatched.mjs";
 import { atMinute, unwrap } from "./machine.mjs";
 import { PARK_STATUS, SIDE, atLeast, holdsBack, parkRecord, rungFieldsOf } from "./earned.mjs";
 import { methodOf } from "../guides/phases.mjs";

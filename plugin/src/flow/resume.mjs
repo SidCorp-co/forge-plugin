@@ -16,7 +16,7 @@ import { shortfall } from "./advance.mjs";
 import { owedLine, policyFor } from "./route.mjs";
 import { worklogLines, workNow } from "./worklog.mjs";
 import { briefOf } from "./brief.mjs";
-import { SHARED_HOLDER } from "./lease.mjs";
+import { SHARED_HOLDER } from "./lease/dispatched.mjs";
 import { landingLine, landingTurn } from "./landing/checkpoint.mjs";
 import { atMinute, heldSaid } from "./machine.mjs";
 

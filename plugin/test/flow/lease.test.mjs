@@ -16,10 +16,11 @@ process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const {
   MECHANISM, MINUTES, MINUTES_ASKS, READING_MINUTES, RECLAIMS_BEFORE_PARK, RENEWED_BY_WRITING,
-  SHARED_HOLDER, agentOf, canonical, claimRefusal, claimed, describe, expiryOf, freshLapse,
+  agentOf, canonical, claimRefusal, claimed, describe, expiryOf, freshLapse,
   historyLine, leaseOf, nextLine, nothingWorked, idsHere, parksAsCrashed, pidOf, reclaimRefusal,
-  reclaimsOf, sharedHolder, stateOf, writeRefusal, writtenBy,
+  reclaimsOf, stateOf, writeRefusal, writtenBy,
 } = await import("../../src/flow/lease.mjs");
+const { SHARED_HOLDER, sharedHolder } = await import("../../src/flow/lease/dispatched.mjs");
 const {
   MINTED, sessionAsked, sessionHeld, sessionOf, sessionPath, sessionSourced, sessionWriting,
 } = await import("../../src/resolve/config.mjs");
