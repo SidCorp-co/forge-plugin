@@ -67,6 +67,8 @@ export const landingNext = (held, to) => {
   return null;
 };
 
+export const takeRoute = (ref) => `forge claim ${ref} --take`;
+
 export const landingLine = (landing) =>
   `landing \`${landing.state}\`: ${landing.branch ?? "no branch"} at ${shortSha(landing.head)}, `
   + `base ${shortSha(landing.base)}, ${landing.files.length} file(s), built by ${landing.builder}`;
