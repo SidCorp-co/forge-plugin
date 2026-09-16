@@ -248,12 +248,13 @@ export const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 export const STARTS = String.raw`(?:[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+|\bxargs\s+(?:-\S+\s+)*`
   + String.raw`|\b(?:sudo|command|nohup|time|env|do|then|else|if|elif|while|until)\s+|^)`;
 
+/* Both verbs read one letter after a single hyphen and take the rest of the word as the value, so no boundary may follow `-o` or `-O`: `curl -otrap.md` writes `trap.md` and `curl -output` writes `utput`. The long spellings keep theirs, which is what leaves `--outputting` the unknown option curl refuses rather than a write. `namesOf` above draws the same line. */
 /** Verbs count where a command starts, a library call anywhere, and only with a target it names. how/writes.md. */
 export const WRITES = new RegExp(
   STARTS
     + String.raw`(?:sed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)`
     + String.raw`|(?:tee|cp|mv|truncate|touch|install|rsync)\b`
-    + String.raw`|dd\b[^|;]*\bof=|curl\b[^|;]*\s(?:-o|--output)\b|wget\b[^|;]*\s(?:-O|--output-document)\b)`
+    + String.raw`|dd\b[^|;]*\bof=|curl\b[^|;]*\s(?:-o|--output\b)|wget\b[^|;]*\s(?:-O|--output-document\b))`
     + String.raw`|open\([^)]*['"][wa]|\bwrite_(?:text|bytes)\b|\b(?:append|write)FileSync\b`
     + String.raw`|\bwriteFile\b|\bDeno\.write(?:TextFile|File)\b|\bBun\.write\b`
     + String.raw`|\bshutil\.(?:copy|copyfile|copy2|move)|\bos\.(?:replace|rename|symlink)\b`,

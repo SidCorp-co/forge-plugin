@@ -12,7 +12,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, realpathSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { FRESH_MS, callAt, namesOf, shellWrites, touched } from "../../hooks/_hook.mjs";
+import { FRESH_MS, WRITES, callAt, namesOf, shellWrites, touched, writtenPaths } from "../../hooks/_hook.mjs";
 import { glued } from "../../src/hooks/assembled.mjs";
 import { agreedWithHead, LEAST_MS } from "../../src/hooks/git-probe.mjs";
 import { tempRoom } from "../fixtures.mjs";
@@ -132,6 +132,29 @@ test("a name is read from the word the command spelled it in, and never from the
     "and one name spelled twice is two readings, the second standing where no `$` precedes it");
   assert.deepEqual(names("sed -i s/x/y/ *.md"), [], "a pattern names a file this text does not spell");
   assert.deepEqual(names("tee /tmp/a[1]/memory/x.md"), [], "and the `/memory/x.md` inside one is no path either");
+});
+
+/* `WRITES` answers whether a command counts as a write at all, and it answers before `namesOf` is
+   asked which file, so a spelling it cannot see is a write no gate reports and no refusal argues
+   with (ISS-1547). Both verbs read one letter after a single hyphen, which is what a boundary after
+   `-o` denied every target not spelled from the root: run here, `curl -output file://<a file>`
+   creates `utput`, and `wget -Output` the same. */
+test("a write verb's target written against its own option letter counts as a write", () => {
+  for (const command of [
+    "curl -otrap.md https://x",
+    "wget -Onotes.md https://x",
+    "curl -output https://x",
+    "curl -o trap.md https://x",
+    "curl -o/tmp/x.md https://x",
+  ]) assert.equal(WRITES.test(command), true, command);
+  for (const command of ["curl --outputting https://x", "wget --output-documented https://x"]) {
+    assert.equal(WRITES.test(command), false, `${command} spells an option neither verb has`);
+  }
+  assert.deepEqual(
+    writtenPaths("curl -otrap.md https://x", room).map((one) => one.token),
+    ["trap.md"],
+    "and the name reader is reached through that answer, so the gates see the file",
+  );
 });
 
 /* Anchored nowhere, the scan was attempted at every position: one 40 000-character word cost 4.1 s
