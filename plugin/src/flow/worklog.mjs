@@ -232,19 +232,21 @@ export const droppedHead = (branch, head) => {
 
 /* Whether the default branch carries a head, off the ref this checkout recorded as the remote's own
    and never a name `baseOf` guesses at. A reading it cannot make answers no with what settles it:
-   what rests on this ends a landing, where the refusal above only costs a builder its write. Under
-   no overlay, replacement or graft, an ancestry proved over one proving only it (8faf61 F1). */
+   what rests on this ends a landing, where the refusal above only costs a builder its write, and
+   under no overlay: one proved over a replacement or a graft proves only it (8faf61 F1). */
 const PROVEN = { ...OFFLINE, GIT_NO_REPLACE_OBJECTS: "1", GIT_GRAFT_FILE: "/dev/null" };
 
 export const carriedByDefault = (head) => {
   const short = (why, route, ref = null, tip = null) => ({ ref, tip, carries: false, why, route });
   if (git(["rev-parse", "--git-dir"], PROVEN) === null) return short("this directory is no git checkout", null);
-  const ref = git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], PROVEN);
-  if (!ref) {
+  /* Whole: a local `origin/master` makes git disambiguate the short form (consult ee55fe F1). */
+  const held = git(["symbolic-ref", "refs/remotes/origin/HEAD"], PROVEN);
+  if (!held) {
     return short("this checkout has recorded no default branch for `origin`, so there is no branch "
       + "to read the ancestry against", "git remote set-head origin -a");
   }
-  const tip = git(["rev-parse", "--verify", `refs/remotes/${ref}^{commit}`], PROVEN);
+  const ref = held.replace(/^refs\/remotes\//u, "");
+  const tip = git(["rev-parse", "--verify", `${held}^{commit}`], PROVEN);
   if (!tip) {
     return short(`${ref} is the recorded default branch and resolves to no commit here`, "git fetch origin", ref);
   }

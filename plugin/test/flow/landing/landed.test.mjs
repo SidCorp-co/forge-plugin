@@ -151,6 +151,20 @@ test("a default branch already carrying the judged head ends the landing, on the
   assert.ok(run.stdout.includes(`carries ${judged.slice(0, 7)}`), `and the head proved to be on it:\n${run.stdout}`);
 });
 
+/* A branch of that name is legal and git disambiguates the shortened form against it, so a checkout
+   holding one would have the landing refused on a ref that names nothing (consult ee55fe F1). */
+test("a local branch named after the remote's own does not refuse a landing that stands", async () => {
+  const { room, judged } = landedRoom("collision");
+  const tip = releasedOnto(room, "master");
+  git(room, "update-ref", "refs/heads/origin/master", tip);
+  assert.equal(git(room, "symbolic-ref", "--short", "refs/remotes/origin/HEAD").stdout.trim(),
+    "remotes/origin/master", "the shortened target git gives where the name is ambiguous");
+  ready(judged);
+  const run = await ran(["claim", "ISS-1655", "--landed"], room);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(checkpoint().state, "done", `${run.stdout}${run.stderr}`);
+});
+
 test("a checkpoint at any state but the one a build leaves is refused, naming the state it read", async () => {
   const { room, judged } = landedRoom("mid-landing");
   releasedOnto(room, "master");
