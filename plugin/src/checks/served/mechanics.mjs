@@ -28,8 +28,12 @@ const CONNECTIVE = /^(?:\s|,|\band\b|\bor\b|\bboth\b|\beach\b|\balone\b|\bthen\b
 
 const RELATIVE = /^\s*(?:which|that)\b/u;
 
-/** Emphasis, then one introductory adverbial: "Normally, `forge record plan` refuses" is still the subject. */
-const LEADING = /^[\s*_>-]*(?:(?:and|but|or|nor|so|then)\s+)?(?:[A-Za-z][\w'-]*(?:\s+[A-Za-z][\w'-]*){0,3},\s*)?[\s*_"']*/u;
+/* Emphasis, a coordinator and one sentence adverb: "Normally, `forge record plan` refuses" is still
+   its subject. The adverbs are a closed set, because any word before a comma would swallow the
+   imperative in "Capture it, `forge claim <ref> --pushed`, then …" and make the instrument a subject. */
+const ADVERB = "Normally|Otherwise|Instead|Again|Meanwhile|Similarly|Conversely|Ordinarily|Typically"
+  + "|Usually|Elsewhere|Afterwards|Equally|Alternatively|Accordingly|Consequently";
+const LEADING = new RegExp(`^[\\s*_>-]*(?:(?:and|but|or|nor|so|then)\\s+)?(?:(?:${ADVERB})\\s*,\\s*)?[\\s*_"']*`, "iu");
 
 /* A bare comma is no boundary, so one sentence punctuated either way reads the same. */
 const BOUNDARY = new RegExp([
@@ -75,10 +79,11 @@ const joined = (found) => {
   const out = [];
   for (let at = 0; at < found.length; at += 1) {
     const one = found[at];
+    const next = found[at + 1];
     const bare = opensWith(one.text);
     const alone = bare && !one.text.slice(bare.to).trim().replace(/^[\s,*_]+/u, "");
-    if (alone && at < found.length - 1) {
-      out.push({ text: `${one.text.trimEnd()} ${found[at + 1].text.trimStart()}`, at: one.at, to: found[at + 1].to });
+    if (alone && next && !RELATIVE.test(next.text)) {
+      out.push({ text: `${one.text.trimEnd()} ${next.text.trimStart()}`, at: one.at, to: next.to, merged: true });
       at += 1;
       continue;
     }
@@ -123,12 +128,16 @@ export const mechanicsIn = (text, rel) => {
     if (!ref) continue;
     const rest = part.text.slice(ref.to);
     const skip = CONNECTIVE.exec(rest)?.[0] ?? "";
-    if (!PREDICATE.test(rest.slice(skip.length))) continue;
+    const verb = PREDICATE.exec(rest.slice(skip.length));
+    if (!verb) continue;
+    if (part.merged && !verb[0].endsWith("s")) continue;
     const from = part.at + ref.at;
-    const to = body.slice(0, part.to).replace(/\s+$/u, "").length;
+    const ends = part.text.indexOf(",", ref.to);
+    const stop = here || ends === -1 ? part.to : part.at + ends;
+    const to = body.slice(0, stop).replace(/\s+$/u, "").length;
     const opens = sentenceOpens(body, from);
     const shuts = sentenceShuts(body, to);
-    const kept = `${body.slice(opens, from).replace(/[\s,;:—–]+$/u, "")} ${body.slice(to, shuts)}`;
+    const kept = `${body.slice(opens, from).replace(/[\s,;:—–]+$/u, "")} ${body.slice(to, shuts).replace(/^[\s,—–]+/u, "")}`;
     found.push(says(rel, lineAt(body, from), tidy(body.slice(from, to)), remainder(kept)));
   }
   return found;

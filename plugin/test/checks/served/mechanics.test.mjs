@@ -53,6 +53,10 @@ const ACCEPTED = {
   "an imperative carrying the verb mid-sentence":
     "Take the reading that is cheaper to reverse, write it up in the shape `forge record decision -h` takes, and carry on.",
   "a sequencing directive naming a status that moves": "Push the branch before the status moves, and capture it again.",
+  "a directive whose instrument is followed by a second obligation":
+    "Capture it, `forge claim <ref> --pushed`, then write the handoff.",
+  "the same directive with an em-dash aside around the instrument":
+    "Capture it — `forge claim <ref> --pushed` — then write the handoff.",
 };
 
 for (const [route, source] of Object.entries(ACCEPTED)) {
@@ -98,6 +102,23 @@ test("the recheck sentence is cut at its relative clause and keeps its obligatio
   assert.ok(said[0].includes('what remains is "A fix made to close a finding is answered by a recheck, '
     + '`forge codex consult --recheck`; what a recheck may not do is that verb\'s own help."'),
     `what remains is not the obligation and the pointer: ${said[0]}`);
+});
+
+/* An aside is joined to the predicate after it so an em-dash cannot be written into a description to
+   escape the rule, and that join must not swallow the relative clause the rule reads instead. */
+test("a description inside an aside is refused, and the obligation the aside sits in is not", () => {
+  const said = mechanicsIn("`forge record plan`, which refuses unread files, is the next call.", "guide.md");
+  assert.equal(said.length, 1, said.join("\n"));
+  assert.ok(said[0].includes('"which refuses unread files"'), `the cut is not the relative clause: ${said[0]}`);
+  assert.ok(said[0].includes('what remains is "`forge record plan` is the next call."'), said[0]);
+});
+
+test("a cut at a relative clause stops at that clause and leaves the obligation after it standing", () => {
+  const said = mechanicsIn("Run `forge codex consult --recheck`, which verifies findings, before pushing.", "guide.md");
+  assert.equal(said.length, 1, said.join("\n"));
+  assert.ok(said[0].includes('"which verifies findings"'), `the cut ran past the clause: ${said[0]}`);
+  assert.ok(said[0].includes('what remains is "Run `forge codex consult --recheck` before pushing."'),
+    `a run taking this cut would lose the timing obligation: ${said[0]}`);
 });
 
 test("the walk reaches the served text, so a clean answer is a clean corpus and not an empty selector", () => {
