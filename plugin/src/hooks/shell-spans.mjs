@@ -218,10 +218,13 @@ const BRACKET = /[()]/u;
 const cuts = (mark) => !mark
   || ALWAYS.test(mark.one)
   || ((mark.under !== "'" || !BRACKET.test(mark.one)) && OPERATOR.test(mark.one));
+/* Where one operand ends, which is not where a word this reads ends: a `$`, a backslash and a quote each end a word here and carry the operand on, so `'a(1).md'$(printf .txt)` and `'a(1).md'.txt` are one operand apiece and neither is the span. Bare, because an operator a quote or a comment holds separates nothing. */
+const APART = /[\s;&|()<>]/u;
+const parts = (mark) => !mark || (mark.under === " " && APART.test(mark.one));
 
 const worded = (text) => {
   const marks = quoting(text);
-  /* Which single-quoted spans are a whole operand and so could be one filename. Closed, holding nothing that still cuts a word, and with a word's end on either side of it — each of the three because the whole reading claims the span *is* the file: `'/tmp/m/(r).md;o.txt'` and `'/tmp/m/(r).md'.txt` both write the `.txt`, and either would hand a `.md` scan a guarded name nobody wrote. */
+  /* Which single-quoted spans are a whole operand and so could be one filename. Closed, holding nothing that still cuts a word, and with an operand's end on either side of it — each of the three because the whole reading claims the span *is* the file: `'/tmp/m/(r).md;o.txt'` and `'/tmp/m/(r).md'.txt` both write a `.txt`, and either would hand a `.md` scan a guarded name nobody wrote. */
   const alone = new Array(marks.length).fill(false);
   for (let from = 0; from < marks.length;) {
     if (marks[from].under !== "'") {
@@ -232,7 +235,7 @@ const worded = (text) => {
     while (to < marks.length && marks[to].under === "'") to += 1;
     const body = marks.slice(from + 1, to - 1);
     const shut = to - from >= 2 && marks[to - 1].one === "'";
-    if (shut && cuts(marks[from - 1]) && cuts(marks[to])
+    if (shut && parts(marks[from - 1]) && parts(marks[to])
       && !body.some(({ one }) => ALWAYS.test(one) || (OPERATOR.test(one) && !BRACKET.test(one)))) {
       for (let at = from; at < to; at += 1) alone[at] = true;
     }
