@@ -8,13 +8,13 @@ import test from "node:test";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { tiedSpawn } from "./run-fixtures.mjs";
-import { startedAt } from "../../../tools/gates/machine.mjs";
+import { tiedSpawn } from "../run-fixtures.mjs";
+import { startedAt } from "../../../../tools/gates/machine.mjs";
 
 const PROC = "/proc";
 const HAS_PROC = existsSync(join(PROC, "self", "stat"));
 const TRACKER = "tracker-process.mjs";
-const FIXTURES = join(import.meta.dirname, "run-fixtures.mjs");
+const FIXTURES = join(import.meta.dirname, "..", "run-fixtures.mjs");
 const SPAWNER = join(import.meta.dirname, "ends-with-spawner.mjs");
 const GONE = 10_000;
 

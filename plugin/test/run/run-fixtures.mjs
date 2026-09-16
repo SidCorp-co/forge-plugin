@@ -28,7 +28,7 @@ export const runIn = (cwd, argv, env = process.env) =>
 export const tiedSpawn = (argv, outputs = ["pipe", "inherit"]) =>
   spawn(process.execPath, argv, { stdio: ["pipe", ...outputs] });
 
-export const alive = () => tiedSpawn([join(import.meta.dirname, "ends-with-spawner.mjs")], ["ignore", "ignore"]);
+export const alive = () => tiedSpawn([join(import.meta.dirname, "processes", "ends-with-spawner.mjs")], ["ignore", "ignore"]);
 
 /* `check` stands in for the repository's gate, which ship spends by name — the real one needs a tree
    this scratch checkout is not. */
@@ -86,7 +86,7 @@ export const noBacklog = (seed = {}) => {
 };
 
 noBacklog();
-const served = tiedSpawn([join(import.meta.dirname, "tracker-process.mjs"), ROOM, SEED, CALLS, HOME]);
+const served = tiedSpawn([join(import.meta.dirname, "processes", "tracker-process.mjs"), ROOM, SEED, CALLS, HOME]);
 await new Promise((ready) => served.stdout.once("data", ready));
 served.stdout.destroy();
 served.unref();
