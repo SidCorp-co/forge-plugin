@@ -143,14 +143,33 @@ export const readByCodex = (root, rel, log) => {
   return digest(text) === sentShaOf(log(), root, rel);
 };
 
-/** The three classes a recorded path can be in, one home, so the gate and `pending` cannot differ. */
+/** The same reading as `goneFrom` of a path still on disk: no diff against the base and nothing of it
+ *  staged, so a consult would be handed no bytes for it and the route a refusal names cannot clear it
+ *  (ISS-1642). Asked of the paths themselves and never of `changedAgainst`, whose untracked half
+ *  substitutes an empty list for its own failure: harmless where every subject is absent, and here it
+ *  would read an unenumerated untracked file as settled. Tracked is therefore proven, not inferred. */
+export const settledIn = (root, record, base = "HEAD", ms) => {
+  const standing = record.filter((rel) => !absentFrom(root, rel));
+  if (!standing.length) return [];
+  const of = (argv) => names(root, [...argv, "--end-of-options", "--", ...standing], ms);
+  const tracked = of(["ls-files", "-z"]);
+  const differing = of(["diff", "--name-only", "-z", base]);
+  const staged = of(["diff", "--cached", "--name-only", "-z", base]);
+  if (tracked === null || differing === null || staged === null) return [];
+  return standing.filter((rel) => tracked.includes(rel)
+    && !differing.includes(rel) && !staged.includes(rel));
+};
+
+/** The four classes a recorded path can be in, one home, so the gate and `pending` cannot differ. */
 export const pendingNow = (root, files, log = logBytes, { apart = [], ms } = {}) => {
   let entries = null;
   const read = () => (entries ??= log());
   const gone = goneFrom(root, files, "HEAD", false, ms);
-  const left = files.filter((rel) => !gone.includes(rel));
-  const seen = left.filter((rel) => !apart.includes(rel) && readByCodex(root, rel, read));
-  return { owed: left.filter((rel) => !seen.includes(rel)), read: seen, gone };
+  const standing = files.filter((rel) => !gone.includes(rel));
+  const seen = standing.filter((rel) => !apart.includes(rel) && readByCodex(root, rel, read));
+  const rest = standing.filter((rel) => !seen.includes(rel));
+  const settled = settledIn(root, rest, "HEAD", ms);
+  return { owed: rest.filter((rel) => !settled.includes(rel)), read: seen, gone, settled };
 };
 
 /* Only what was consulted on is dropped; a file recorded while the call was in flight survives. */
@@ -292,13 +311,16 @@ export const pending = (rest, root) => {
     console.log("nothing pending");
     return from();
   }
-  const { owed, read, gone } = pendingNow(root, waiting, logBytes, { apart: apartFrom(root, waiting) });
-  /* Dropped as the record is read: a path no write stands behind was reported as work owed by every later consult, and `--drop` declines for it (ISS-952). */
-  if (gone.length) clearConsulted(root, gone);
+  const { owed, read, gone, settled } = pendingNow(root, waiting, logBytes, { apart: apartFrom(root, waiting) });
+  /* Dropped as the record is read: a path no write stands behind was reported as work owed by every later consult, and `--drop` declines for it (ISS-952). A settled path is the same case standing still (ISS-1642). */
+  const behind = [...gone, ...settled];
+  if (behind.length) clearConsulted(root, behind);
   const goneLine = `recorded and no longer in the tree, so out of the record now: ${gone.join(", ")}`;
+  const settledLine = `recorded and carrying no diff a consult could be handed, so out of the record `
+    + `now: ${settled.join(", ")}`;
   const kept = owed.length + read.length;
   if (!kept) {
-    console.log(`nothing pending. ${goneLine}`);
+    console.log(`nothing pending. ${[gone.length ? goneLine : "", settled.length ? settledLine : ""].filter(Boolean).join("\n")}`);
     return from();
   }
   const demand = demandOf(root, owed);
@@ -324,5 +346,6 @@ export const pending = (rest, root) => {
     console.log(`recorded and read at the bytes a commit would carry, so none is held for them: ${read.join(", ")}`);
   }
   if (gone.length) console.log(goneLine);
+  if (settled.length) console.log(settledLine);
   return from();
 };
