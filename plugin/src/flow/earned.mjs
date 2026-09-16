@@ -446,7 +446,7 @@ export const deployedOwed = (view, ref) => {
   );
   /* One or the other: a payload with gaps has no fields to compare against anything. */
   const out = verification.length ? verification : deployOwed(view, ref);
-  /* Both forms, because the sentence above offers two and a line naming one sends a change with no user-facing half hunting for the other — which is the round this check used to cost outright, a rung having said the note was not owed while the tracker refused the close without the field (ISS-1485). */
+  /* Both forms, the sentence above offering two: a line naming one sends a change with no user-facing half hunting for the other, and the tracker refuses the close without the field at every rung (ISS-1485). */
   if (!view.issue.releaseNotes?.section && !lightPath(view, CLOSES_FROM, "note")) {
     out.push(need("no release note and no withholding either",
       `forge record note ${ref} --section Added --user "<what the reporter sees>", `

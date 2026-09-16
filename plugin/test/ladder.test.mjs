@@ -157,10 +157,8 @@ test("what a rung stops owing is the row's, and a rung absent from a row owes th
   }
 });
 
-/* The claim the table cannot make about itself: the two tests above are driven over `LIGHTER`, so a
-   row for the release note would pass both and the rungs would go on saying the note is not owed
-   while the tracker refuses the close for the field it never wrote (ISS-1485). Named here as the
-   payload it is, so a row put back fails a case rather than a run. */
+/* Named as the payload it is, because the two tests above are driven over `LIGHTER` and a row for the
+   release note would pass both while the tracker refuses the close for the field (ISS-1485). */
 test("no rung is waived the release note, which the tracker refuses a close without at every rung", () => {
   for (const rung of RUNGS) {
     assert.equal(lightens("awaiting_release", "note", at(rung)), false,
@@ -332,8 +330,7 @@ test("--owed reports the rung the checks run, what it drops and every route up f
 });
 
 /* A rung whose saving is rounds rather than payloads is invisible to LIGHTER, so this report is the
-   only place the difference between it and the rung above can be read: a run shown the same three
-   drops and nothing else has been told the two rungs are the same thing. */
+   only place the difference between it and the rung above can be read: a run shown the same drops and nothing else has been told the two rungs are the same thing. */
 test("the shortest rung drops what the one above drops, and is told what else it may spend fewer of", async () => {
   const [trivial, fix, feature] = [await owed("ISS-70"), await owed("ISS-71"), await owed("ISS-72")];
   assert.match(trivial.stdout, /is a `trivial`: the tracker's complexity is `xs`/u);

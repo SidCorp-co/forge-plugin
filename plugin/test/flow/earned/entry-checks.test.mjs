@@ -330,11 +330,9 @@ test("a project that deploys on its own earns released by proving the deploy, no
   assert.match(half[0].what, /is not a whole payload/u);
 });
 
-/* The waiver that was never honoured. The two rungs below the top were granted the release note at
-   this check, and the tracker refused the close without the field at every one of them, so the only
-   thing the grant bought a run was the round it spent discovering the refusal (ISS-1485). Driven at
-   `s`, the rung the grant named, and through both forms of the write, because a line naming one of
-   them spends that round again. */
+/* The waiver that was never honoured: the tracker refuses the close without the field at every rung,
+   so the two below the top buy a round spent discovering that and nothing else (ISS-1485). Driven at
+   `s` and through both forms, a line naming one of them spending the round again. */
 test("the release note is owed at a lighter rung, and the owed line names both forms of the write", () => {
   const NOTE = "merged to master at 43b811e; reviewed head 43b811e; judged head 43b811e; "
     + "landing moved nothing; landing wrote nothing";

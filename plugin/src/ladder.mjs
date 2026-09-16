@@ -1,5 +1,4 @@
-/* Which rung of the ladder an issue is at and what it stops owing; the report about it is ladder-report.mjs. Out of `flow/` because three trees read it and a primitive each could declare drifts on one side (docs/cli/the-primitives.md). Smallest first, so an index is a height.
-   What each rung is for and what it may not buy: `forge guide contract`; why a doubtful reading resolves upward, here and in every function below: docs/cli/the-ladder.md. */
+/* Which rung of the ladder an issue is at and what it stops owing; the report about it is ladder-report.mjs. Out of `flow/` because three trees read it and a primitive each could declare drifts on one side (docs/cli/the-primitives.md). Smallest first, so an index is a height. What each rung is for and what it may not buy: `forge guide contract`; why a doubtful reading resolves upward, here and in every function below: docs/cli/the-ladder.md. */
 import { looksTo, planFlags } from "./flow/machine.mjs";
 
 export const RUNGS = ["trivial", "fix", "feature"];
@@ -59,8 +58,7 @@ export const climbForm = (ref, from = FIX) =>
   `forge record correction ${ref} --moved "Rung: ${from} -> ${RUNGS[Math.min(heightOf(from) + 1, RUNGS.length - 1)]}" `
   + `--why "<what the work turned out to be>"`;
 
-/* One row per payload a rung below the top stops owing, so a status demanding several carries several. `kind` is the record kind the row drops, and it is what both readers below match on: `drops` and `because` are the report's own prose and no key.
-   Both rows are at `approved` and a release note is not a third: the tracker refuses `closed` with no `releaseNotes` field and reads no rung doing it, so a row here states a rule this repository owns the other end of, and a run that believed it was refused the close anyway (ISS-1485). What a rung may buy is the second of a judgement already spent, which a note never is. */
+/* One row per payload a rung below the top stops owing, so a status demanding several carries several. `kind` is the record kind the row drops, and it is what both readers below match on: `drops` and `because` are the report's own prose and no key. Both rows are at `approved` and a release note is not a third: the tracker refuses `closed` with no `releaseNotes` field and reads no rung doing it, so a row here would state a rule this repository owns the other end of, and the close is refused whatever it says (ISS-1485). What a rung may buy is the second of a judgement already spent, which a note never is. */
 export const LIGHTER = [
   {
     status: "approved",
