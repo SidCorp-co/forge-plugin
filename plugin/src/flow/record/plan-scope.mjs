@@ -32,7 +32,9 @@ const filesFor = (tree, now) => {
   return out;
 };
 
-/* A file nothing wrote inside the window holds a plan past it, which reads as no plan at all, so the listing above takes it. A save that can neither write its file nor remove it is the one case where a correction lands and the write it clears stays refused, so the caller is told: the old text names fewer paths than the record now does, and no entry at all is what stands a gate down. Where even the removal fails nothing further is this module's, and `developed` still reads the rule. */
+/* A file nothing wrote inside the window holds a plan past it, which reads as no plan at all, so the listing above takes it. A save that can neither write its file nor remove it is the one case where a correction lands and the write it clears stays refused, so the caller is told: the old text names fewer paths than the record now does, and no entry at all is what stands a gate down. Where even the removal fails nothing further is this module's, and `developed` still reads the rule.
+
+   That case is the whole of what `false` means here, and every writer below answers the same question so the caller never has to guess which one it got: does the directory now say what this call meant it to say. A call naming no tree, a reference with no entry, and an entry the sweep already owns all leave nothing disagreeing with the record, so all of them are `true` — the caller has nothing it could act on, and the only advice this module's failure carries stands a working gate down. */
 const saved = (tree, ref, row) => {
   const at = scopePath(tree, ref);
   try {
@@ -50,16 +52,16 @@ const saved = (tree, ref, row) => {
 
 /** What `namedIn` gave for one issue, against the tree it is being worked in — the caller's own directory, since a run's writes and its records stand in one tree. A tree this cannot name writes nothing, and so does a call with no reference. */
 export const noteScope = (ref, text, { tree = repoRoot(process.cwd()), now = Date.now() } = {}) => {
-  if (!tree || !ref) return false;
+  if (!tree || !ref) return true;
   filesFor(tree, now);
   return saved(tree, ref, { tree, ref: String(ref).toUpperCase(), at: new Date(now).toISOString(), named: String(text ?? "") });
 };
 
-/** An issue this tree no longer holds. The entry goes rather than emptying, an issue with no plan and an issue that is gone being two different silences. */
+/** An issue this tree no longer holds. The entry goes rather than emptying, an issue with no plan and an issue that is gone being two different silences. Nothing to remove is this call's success and not its failure: the entry the record wanted gone is gone, and so is one the sweep already owns. */
 export const dropScope = (ref, { tree = repoRoot(process.cwd()), now = Date.now() } = {}) => {
-  if (!tree || !ref) return false;
+  if (!tree || !ref) return true;
   const at = scopePath(tree, ref);
-  if (!statSync(at, { throwIfNoEntry: false }) || stale(at, now)) return false;
+  if (!statSync(at, { throwIfNoEntry: false }) || stale(at, now)) return true;
   return saved(tree, ref, null);
 };
 

@@ -403,7 +403,7 @@ const writeRung = async (reference, blocks, { next, patch }) => {
   for (const one of blocks) sayPart(one.kind, rung);
 };
 
-/* Taken as each write lands rather than once this call returns: a correction the tracker holds whose call failed after it would otherwise leave a cache that still refuses the retry (ISS-411). The import is at the call, `earned.mjs` reading this module for its criteria; a scope this cannot read is a gate that says nothing, never a record write that failed, so the catch is empty. A write outside a repository has no scope to keep and says nothing, and a save that answers false is what `saved` in `plan-scope.mjs` says it is: the run is told rather than left to meet it. */
+/* Taken as each write lands rather than once this call returns: a correction the tracker holds whose call failed after it would otherwise leave a cache that still refuses the retry (ISS-411). The import is at the call, `earned.mjs` reading this module for its criteria; a scope this cannot read is a gate that says nothing, never a record write that failed, so the catch is empty. A write outside a repository has no scope to keep and says nothing, and a false from `plan-scope.mjs` is a write or a removal the filesystem refused, the one state that module cannot leave on its own: the run is told rather than left to meet it. */
 const scopeNoted = async (documentId, reference, issue, comments) => {
   const tree = repoRoot(process.cwd());
   if (!tree) return;

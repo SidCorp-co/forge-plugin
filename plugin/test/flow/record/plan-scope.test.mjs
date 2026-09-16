@@ -2,7 +2,7 @@
    and reader over an injected tree and clock, so no case depends on where this suite is run. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, statSync, utimesSync } from "node:fs";
 import { join } from "node:path";
 
 import { tempRoom } from "../../fixtures.mjs";
@@ -57,7 +57,33 @@ test("an issue dropped is gone from the tree, which is not the same answer as on
   noteScope("ISS-801", "", { tree: "/dropped", now: NOW });
   assert.equal(dropScope("ISS-800", { tree: "/dropped", now: NOW }), true);
   assert.deepEqual(scopeHeld("/dropped", NOW), [{ ref: "ISS-801", named: "", at: new Date(NOW).toISOString() }]);
-  assert.equal(dropScope("ISS-800", { tree: "/dropped", now: NOW }), false);
+});
+
+/* The answer the caller acts on: `record.mjs` prints a warning naming the file and offering to turn
+   the gate off, so a drop with nothing to remove has to read as the success it is. */
+test("a drop with nothing to remove answers as the drop that removed something did", () => {
+  noteScope("ISS-802", "gone.mjs", { tree: "/twice", now: NOW });
+  assert.equal(dropScope("ISS-802", { tree: "/twice", now: NOW }), true);
+  assert.equal(dropScope("ISS-802", { tree: "/twice", now: NOW }), true);
+  assert.equal(dropScope("ISS-803", { tree: "/never", now: NOW }), true);
+});
+
+/* Read off the file's own mtime and not the stamp inside it, which is the branch `stale` takes. */
+test("an entry the sweep already owns is dropped as a success, and left for the sweep", () => {
+  noteScope("ISS-804", "old.mjs", { tree: "/swept", now: NOW });
+  const at = scopePath("/swept", "ISS-804");
+  const aged = (Date.now() - SCOPE_KEPT_MS - 60_000) / 1000;
+  utimesSync(at, aged, aged);
+  assert.equal(dropScope("ISS-804", { tree: "/swept" }), true);
+  assert.ok(statSync(at, { throwIfNoEntry: false }), "the sweep owns it, so the drop leaves it standing");
+});
+
+/* A directory where the entry's file has to be: `rmSync` without `recursive` refuses it, and so
+   does the second removal in the catch, which is the one shape the caller is told about. */
+test("a removal the filesystem refuses is the one answer the caller is told", () => {
+  const at = scopePath("/refused", "ISS-805");
+  mkdirSync(join(at, "in the way"), { recursive: true });
+  assert.equal(dropScope("ISS-805", { tree: "/refused" }), false);
 });
 
 test("a status off the ladder drops the entry and every other status writes it", () => {
@@ -72,9 +98,11 @@ test("a status off the ladder drops the entry and every other status writes it",
 });
 
 test("a call naming no tree and a call naming no reference write nothing", () => {
-  assert.equal(noteScope("ISS-411", "a.mjs", { tree: null, now: NOW }), false);
-  assert.equal(noteScope("", "a.mjs", { tree: TREE, now: NOW }), false);
-  assert.equal(dropScope("", { tree: TREE, now: NOW }), false);
+  const before = readdirSync(scopeDir()).length;
+  noteScope("ISS-411", "a.mjs", { tree: null, now: NOW });
+  noteScope("", "a.mjs", { tree: TREE, now: NOW });
+  dropScope("", { tree: TREE, now: NOW });
+  assert.equal(readdirSync(scopeDir()).length, before);
 });
 
 test("each tree has a file of its own under this machine's config directory, and never a shared one", () => {
@@ -101,11 +129,19 @@ test("a write against one issue does not touch the file another issue's scope is
 /* The one case driven through the CLI: what the gate refuses turns on a refresh that has to survive
    the call it was taken in, and only a real record write over a real tracker can show that. */
 const { execFileSync } = await import("node:child_process");
-const { copyFileSync, mkdirSync, realpathSync, rmSync, writeFileSync } = await import("node:fs");
+const { copyFileSync, realpathSync, rmSync, writeFileSync } = await import("node:fs");
 const { fakeTracker, ranAsync, typedPlan } = await import("../../fixtures.mjs");
 
 const PLANNED = "plugin/src/planned.mjs";
 const GREW = "plugin/src/grew.mjs";
+
+const scopeHeldUnder = (tracker, tree) => {
+  const was = process.env.XDG_CONFIG_HOME;
+  process.env.XDG_CONFIG_HOME = tracker.env.XDG_CONFIG_HOME;
+  const rows = scopeHeld(tree);
+  process.env.XDG_CONFIG_HOME = was;
+  return rows;
+};
 
 test("a correction the tracker took is held by the cache though the write after it failed", async () => {
   const issue = { documentId: "scope-uuid", issueId: "ISS-77", status: "in_progress",
@@ -138,13 +174,7 @@ test("a correction the tracker took is held by the cache though the write after 
   mkdirSync(join(at, "plugin", "src"), { recursive: true });
   copyFileSync(new URL("../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
   const worked = realpathSync(at);
-  const held = () => {
-    const was = process.env.XDG_CONFIG_HOME;
-    process.env.XDG_CONFIG_HOME = tracker.env.XDG_CONFIG_HOME;
-    const rows = scopeHeld(worked);
-    process.env.XDG_CONFIG_HOME = was;
-    return rows;
-  };
+  const held = () => scopeHeldUnder(tracker, worked);
   try {
     for (const again of [1, 2]) {
       assert.ok(again && (await ranAsync(FORGE, ["claim", "ISS-77", "--unheld"], tracker.env, worked)).status === 0);
@@ -196,6 +226,48 @@ test("a record whose scope can be neither written nor removed says so, and names
     assert.equal(wrote.status, 0, wrote.stderr);
     assert.match(wrote.stderr, /could not be written or removed/u);
     assert.match(wrote.stderr, /forge hooks --off plan-scope/u);
+  } finally {
+    tracker.close();
+  }
+});
+
+/* The ordinary close: the entry was written from the checkout the dispatcher claimed in and the
+   record is written from the run's own worktree, so there is nothing under this tree's key to
+   remove. Driven through the CLI because the warning is `record.mjs`'s and not this module's. */
+test("a record written while the issue is off the ladder says nothing where the tree holds no entry", async () => {
+  const at = tempRoom("plan-scope-silent-");
+  execFileSync("git", ["init", "-q", at]);
+  copyFileSync(new URL("../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
+  const worked = realpathSync(at);
+  const issue = { documentId: "silent-uuid", issueId: "ISS-99", status: "closed",
+    title: "a run posting after the close", plan: typedPlan(), acceptanceCriteria: "1. The one outcome." };
+  const project = {
+    issues: [issue],
+    comments: { "silent-uuid": [] },
+    answer: {
+      forge_issues: (args) => {
+        if (args.action === "list") return { issues: [issue], returned: 1, hasMore: false };
+        if (args.action === "get") return issue;
+        if (args.action === "update") return Object.assign(issue, args.data);
+        return { documentId: args.documentId, ...(args.data ?? {}) };
+      },
+      forge_comments: (args) => {
+        if (args.action === "list") return { comments: project.comments["silent-uuid"], returned: 0, hasMore: false };
+        project.comments["silent-uuid"].push({ createdAt: "2026-09-15T00:00:00.000Z", body: args.data.body });
+        return { documentId: "comment-1", authorDeviceId: "a-fake-device", ...(args.data ?? {}) };
+      },
+    },
+  };
+  const tracker = await fakeTracker(project);
+  try {
+    for (const again of [1, 2]) {
+      assert.ok(again && (await ranAsync(FORGE, ["claim", "ISS-99", "--unheld"], tracker.env, worked)).status === 0);
+    }
+    assert.equal(scopeHeldUnder(tracker, worked).length, 0, "an issue off the ladder leaves no entry to remove");
+    const wrote = await ranAsync(FORGE, ["record", "gap", "ISS-99", "--none", "the method answered"], tracker.env, worked);
+    assert.equal(wrote.status, 0, wrote.stderr);
+    assert.doesNotMatch(wrote.stderr, /could not be written or removed/u);
+    assert.doesNotMatch(wrote.stderr, /hooks --off plan-scope/u);
   } finally {
     tracker.close();
   }
