@@ -507,7 +507,7 @@ test("a green run records its whole-run seconds and how many steps it spent; a r
   }
 });
 
-test("a test step runs on every core with node's own reporter, the per-file one and the failing-case one", () => {
+test("a test step runs on the workers this box derives, with node's own reporter, the per-file one and the failing-case one", () => {
   const [tree, rest] = gateSteps([...NAMED, "plugin/test/tools/one.test.mjs"]).filter((step) => step.tests);
   const ours = (name) => `--test-reporter=${join(ROOT, "tools", "gates", name)}`;
   for (const step of [tree, rest]) {
