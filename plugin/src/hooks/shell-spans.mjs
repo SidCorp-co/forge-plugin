@@ -207,35 +207,38 @@ export const waitsIn = (text) => {
 };
 
 /* A word is what a shell hands on as one, so only what ends a word ends a name: the operators, the quotes, a `$` and a backslash. Everything else a filesystem allows stands inside a name, which is why this is written as what a name may not carry rather than as what it may — an allow-list cut a path at the first `+` in it and handed on the tail, which is shorter, relative and still resolves. */
-const OPERATOR = /[\s;&|()<>$\\]/u;
-/* The quotes, each spelt as its code point, since a lone one in a source file is an unclosed string to everything that reads this repository as text and the checks here do read it that way. These end a word wherever they stand, the delimiters of a span as much as a quote inside one: what arrives here is as often an interpreter's body carrying its own quotes as it is one name, and `open("--trap.md", "w")` spells the file in the inner pair. */
-const QUOTE = /[\x27\x22\x60]/u;
-const SPLIT = /[\s\x27\x22\x60]/u;
+const OPERATOR = /[;&|()<>$\\]/u;
+/* Whitespace and the quotes end a word wherever they stand, under a quote as much as outside one. The space because a quoted span carrying one is a sentence or a payload far more often than a filename, which is the narrowing `spoken` makes in the harness and the split that hands `touch 'a.md b.md'` its two candidates; the quotes — each spelt as its code point, a lone one in a source file being an unclosed string to everything that reads this repository as text — because what arrives here is as often an interpreter's body carrying its own quotes as it is one name, and `open("--trap.md", "w")` spells the file in the inner pair. */
+const ALWAYS = /[\s\x27\x22\x60]/u;
 
-/** Every word of a command, as the walk reads it: the text of one, and the offset each of its characters stood at — kept per character because a word is the characters of it that survive, and a name read out of one is still placed where it was written. An operator ends a word wherever the shell is spending it as shell, which is what `quoting` answers and no regular expression over the raw text can. */
+/** Every word of a command, as the walk reads it: the text of one, and the offset each of its characters stood at — kept per character because a word is the characters of it that survive, and a name read out of one is still placed where it was written. An operator ends a word wherever the shell is spending it as shell, which is what `quoting` answers and no regular expression over the raw text can. Under a single quote it is spending none, so `'a/p(1)/b.md'` is one word and one name rather than a tail that resolves somewhere else entirely.
+ *  Both readings of such a span and not one, since nothing in the text says which it is: `'a/p(1)/b.md'` is a path and `'system(q(touch),q(b.md))'` is code, and a caller that must not miss a target is handed the whole word for the first and the operators still ending words for the second. So nothing a name was read from before this is read from less. */
 const worded = (text) => {
-  const marks = quoting(text);
-  /* And where it is not: inside a single-quoted span holding one shell word, where a `(` opens no subshell and a `$` expands nothing, so `'a/p(1)/b.md'` is one name rather than a tail that resolves somewhere else entirely. One word and no more — a span carrying whitespace or another quote is a sentence or an interpreter's body far more often than a filename, which is the narrowing `spoken` already makes in the harness, and inside one the operators go on ending words: `'…os.system("printf x>one.md")'` names the file it writes and `'a.md b.md'` names two. The double quote is in neither class and keeps the old reading whole, a shell there may be running a substitution and this walk cannot yet say where one begins (ISS-1533). */
-  const plain = new Array(marks.length).fill(false);
-  for (let from = 0; from < marks.length;) {
-    if (marks[from].under !== "'") { from += 1; continue; }
-    let to = from + 1;
-    while (to < marks.length && marks[to].under === "'") to += 1;
-    const body = marks.slice(from + 1, to - 1);
-    if (!body.some(({ one }) => SPLIT.test(one))) for (let at = from; at < to; at += 1) plain[at] = true;
-    from = to;
-  }
-  const out = [];
+  const whole = [];
   let word = null;
-  for (let n = 0; n < marks.length; n += 1) {
-    const { at, one } = marks[n];
-    if (QUOTE.test(one) || (!plain[n] && OPERATOR.test(one))) {
+  for (const { at, one, under } of quoting(text)) {
+    if (ALWAYS.test(one) || (under !== "'" && OPERATOR.test(one))) {
       word = null;
       continue;
     }
-    if (!word) out.push((word = { text: "", at: [] }));
+    if (!word) whole.push((word = { text: "", at: [] }));
     word.text += one;
     word.at.push(at);
+  }
+  const out = [];
+  for (const one of whole) {
+    out.push(one);
+    if (!OPERATOR.test(one.text)) continue;
+    let part = null;
+    for (let at = 0; at < one.text.length; at += 1) {
+      if (OPERATOR.test(one.text[at])) {
+        part = null;
+        continue;
+      }
+      if (!part) out.push((part = { text: "", at: [] }));
+      part.text += one.text[at];
+      part.at.push(one.at[at]);
+    }
   }
   return out;
 };
@@ -266,7 +269,8 @@ export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true } = {}) =>
     ];
     for (const at of new Set(starts)) {
       const name = ending.exec(word.text.slice(at))?.[0];
-      if (name) names.push({ token: name, at: word.at[at] });
+      /* One reading of a word and the other can spell the same name at the same place — `'a.md)'` whole and `'a.md'` past the operator — and one name read twice from one offset is one name. */
+      if (name && !names.some((one) => one.at === word.at[at] && one.token === name)) names.push({ token: name, at: word.at[at] });
     }
   }
   const rooted = (one) => one.token.startsWith("/") || one.token.startsWith("~/");

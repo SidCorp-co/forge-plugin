@@ -106,10 +106,10 @@ test("a quoted target is read as a shell reads it, so a parenthesis in it opens 
   const at = asked(NOW - 10_000);
   for (const odd of ["paren(one)", "wt(2)"]) {
     mkdirSync(join(room, odd), { recursive: true });
-    const file = stamped(join(odd, "written.md"), NOW - 1_000);
-    const command = `printf x > '${odd}/written.md'`;
+    const file = stamped(join(odd, "inside.md"), NOW - 1_000);
+    const command = `printf x > '${odd}/inside.md'`;
     assert.deepEqual(touched(bash(command, at)), [file], odd);
-    assert.deepEqual(writtenPaths(command, room).map((one) => one.token), [`${odd}/written.md`], odd);
+    assert.ok(writtenPaths(command, room).some((one) => one.token === `${odd}/inside.md`), odd);
   }
   const two = ["listed-1.md", "listed-2.md"].map((one) => stamped(one, NOW - 1_000));
   assert.deepEqual(touched(bash("touch 'listed-1.md listed-2.md'", at)), two,
@@ -149,13 +149,14 @@ test("a name is read from the word the command spelled it in, and never from the
     "and one name spelled twice is two readings, the second standing where no `$` precedes it");
   assert.deepEqual(names("sed -i s/x/y/ *.md"), [], "a pattern names a file this text does not spell");
   assert.deepEqual(names("tee /tmp/a[1]/memory/x.md"), [], "and the `/memory/x.md` inside one is no path either");
-  assert.deepEqual(names("printf x > 'plus(one)/notes.md'"), ["plus(one)/notes.md"],
-    "a parenthesis under a quote is a character of the name and starts no command of its own");
-  assert.deepEqual(names("printf x > '/tmp/p (1)/notes.md'"), ["/notes.md"],
-    "while a span carrying a space is no one word, and reads as it read before");
-  assert.deepEqual(names(`python3 -c 'import os;os.system("printf x>one.md")'`), ["os.system", "one.md"],
-    "nor is an interpreter's body, whose own operators go on ending the words inside it");
-  assert.equal(namesOf("printf x > 'plus(one)/notes.md'")[0].at, "printf x > '".length,
+  assert.deepEqual(names("printf x > 'plus(one)/notes.md'"), ["/notes.md", "plus(one)/notes.md"],
+    "a parenthesis under a quote is a character of the name, and the tail it used to cut to stands beside that name rather than instead of it");
+  assert.deepEqual(names("perl -e 'system(q(touch),q(one.md))'"), ["system(q(touch),q(one.md", "one.md"],
+    "both readings, because the same span spells a path in one command and code in the next and the text does not say which");
+  assert.deepEqual(names("tee /tmp/a\\\nb.md"), ["/tmp/ab.md"],
+    "and a line continuation is gone from the word, as a shell removes it, rather than ending the word there");
+  assert.equal(namesOf("printf x > 'plus(one)/notes.md'").find((one) => one.token[0] === "p").at,
+    "printf x > '".length,
     "and the offset handed back still indexes the text, which is what places a name against a tree");
 });
 
