@@ -7,6 +7,7 @@ import { gitOut, loud, REMOTE, stop, Stop } from "../checkout.mjs";
 import { acrossVersion } from "../gates/carried.mjs";
 import { INSTALLS, LANDS, PUSHES, runLanding, waitMs } from "./land.mjs";
 import { follows, installs, shortly } from "./install.mjs";
+import { tipSaid } from "./land-ready/branch.mjs";
 import { publishes } from "./publish.mjs";
 import { above, forgetBump, versionAbove } from "./release/version.mjs";
 import { RELEASE_FILES, versionAt } from "./landing.mjs";
@@ -85,10 +86,8 @@ const pinStep = async (one) => {
   console.log(`  ${base} is pinned at ${shortly(at.pin)}`);
   await perMember(at, async (member) => {
     const { key, documentId, landing } = member;
-    if (!gitOut(["rev-parse", "--verify", `${landing.head}^{commit}`], root)) {
-      stop(`${key} was judged at ${shortly(landing.head)}, a commit this checkout cannot read even after `
-        + `fetching ${landing.branch}. The build's own tree holds it — push that branch again.`);
-    }
+    const moved = tipSaid(root, key, landing);
+    if (moved) stop(moved);
     console.log(`  ${landing.branch} was judged at ${shortly(landing.head)}`);
     if (landing.state === LANDING_READY) {
       await saveOn(member, { state: LANDING_CANDIDATE, pinned: at.pin });
