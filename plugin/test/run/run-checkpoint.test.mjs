@@ -30,6 +30,14 @@ const checkpoint = (extra = {}) => ({
   ...extra,
 });
 
+/** The backlog one room's cases are run against: whatever checkpoint and lease each is about. */
+const seeded = ({ landing = checkpoint(), holder, mine = holder, batch = false }) => noBacklog({
+  issues: [
+    row(UUID, KEY, landing, holder),
+    ...(batch ? [row(NEXT_UUID, NEXT_KEY, checkpoint(), mine)] : []),
+  ],
+});
+
 /** A room whose worktree names the run `start` would have minted for it, with one issue on the
  *  tracker carrying whatever checkpoint and lease the case is about. */
 const row = (documentId, issueId, landing, holder) => ({
@@ -44,12 +52,7 @@ const row = (documentId, issueId, landing, holder) => ({
 const released = ({ landing = checkpoint(), holder = null, batch = false } = {}) => {
   const room = worktreeRoom("finishes-the-checkpoint", KEY);
   const id = mintRunId(room.tree, batch ? [KEY, NEXT_KEY] : [KEY]);
-  noBacklog({
-    issues: [
-      row(UUID, KEY, landing, holder ?? id),
-      ...(batch ? [row(NEXT_UUID, NEXT_KEY, checkpoint(), id)] : []),
-    ],
-  });
+  seeded({ landing, holder: holder ?? id, mine: id, batch });
   landIn(room.tree, join("plugin", "src", "one.mjs"), 4, "the change this release ships");
   const env = { ...room.env };
   delete env.FORGE_SESSION_ID;
@@ -183,4 +186,20 @@ test("a resume onto the last step past a failed install leaves the checkpoint re
   rmSync(join(room.at, "claude-update-refuses"), { force: true });
   const run = runIn(room.tree, ["ship", "--from", "9"], room.env);
   assert.deepEqual(sent(), ["done"], `the install resume left the checkpoint standing:\n${run.stdout}${run.stderr}`);
+});
+
+/* The install answers for a version and not for the content: a resume onto the last step reaches it
+   over a tree that grew a commit after the push, under the version the cache already holds. */
+test("a resume onto the last step over a tree that moved since the push leaves the checkpoint ready", () => {
+  const room = released();
+  assert.deepEqual(sent(), [], "the room was seeded with something already written");
+  runIn(room.tree, ["ship"], room.env);
+  seeded({ holder: room.id });
+  landIn(room.tree, join("plugin", "src", "two.mjs"), 2, "work the release did not carry");
+  const run = runIn(room.tree, ["ship", "--from", "10"], room.env);
+  assert.deepEqual(sent(), [], `a checkpoint was finished over work nothing pushed:\n${run.stdout}${run.stderr}`);
+  assert.match(run.stderr, /and this tree is at .*, so nothing says what stands here is what was released/u,
+    `the step did not say why it finished nothing:\n${run.stderr}`);
+  assert.match(run.stderr, /release this tree, and the checkpoints follow: node .*run\.mjs ship/u,
+    `the report carries no way out:\n${run.stderr}`);
 });

@@ -13,7 +13,7 @@ export const CHECK = ["run", "check"];
    And nothing is uncommitted, because the reading is taken over the content on disk while the record names HEAD: a dirty tree would certify a committed head from a measurement of different files. The flags are the ones `cleanHead` asks the same question with on the baseline write — untracked files counted, submodules not ignored — so the two halves of this feature agree about what a stampable tree is. */
 const CLEAN = ["status", "--porcelain", "--untracked-files=all", "--ignore-submodules=none"];
 
-const unshippedSays = (tree, base, commit) => {
+export const unshippedSays = (tree, base, commit) => {
   const held = remoteHeadOf(tree, base);
   if (!held) return `${base} could not be read off the remote, so nothing says this commit is shipped`;
   if (held !== commit) {

@@ -544,7 +544,7 @@ const shipSteps = (tree, root, base, note) => {
          the head are the two things a reading taken later cannot work out for itself. */
       const held = releaseMark(root, { version: copy?.installed, head: gitOut(["rev-parse", "HEAD"], tree) });
       if (held) console.log(`  ${held}`);
-      await checkpointsFinished({ tree, copy, resume: again(), installs: installs() });
+      await checkpointsFinished({ tree, base, copy, resume: again(), installs: installs(), ships: SELF + " ship" });
       /* Inside the step and not after the whole run, so a `--from 9` resume carries it too. */
       partForLanding((phase) => console.log(`\n${phase}`));
     }],

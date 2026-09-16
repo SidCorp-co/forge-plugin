@@ -1,8 +1,8 @@
 /* The landing checkpoint a release finishes. A ship wrote no landing state at all, so a branch its own
-   run released stayed on the record as one waiting to be landed and the next empty `land-ready` found it
-   (ISS-1654). It reports and refuses nothing: a release is pushed and installed by the time this runs,
-   and no tracker answer is a reason to end it. docs/cli/the-checkpoint.md. */
+   run released stayed on the record as waiting to be landed and the next empty `land-ready` found it
+   (ISS-1654). It reports and refuses nothing. docs/cli/the-checkpoint.md. */
 import { gitOut } from "../checkout.mjs";
+import { unshippedSays } from "./publish.mjs";
 import { landingOf, LANDING_DONE, LANDING_READY } from "../../plugin/src/flow/landing/checkpoint.mjs";
 import { landingSaved, readContext } from "../../plugin/src/flow/lease.mjs";
 import { runIdAt, runsFor } from "../../plugin/src/resolve/session/run-id.mjs";
@@ -52,9 +52,8 @@ const finished = async (key, branch, resume, { say, groan }) => {
 };
 
 /** Called from the release's last step, so a `--from` resume onto that step runs it again — which is
- *  why `copy` is asked for: that resume starts below the install, and a checkpoint finished over a
- *  release nothing installed says a landing is over that is not. */
-export const checkpointsFinished = async ({ tree, copy, resume, installs },
+ *  why this proves the release rather than taking the step's place in the table for it. */
+export const checkpointsFinished = async ({ tree, base, copy, resume, installs, ships },
   { say = console.log, groan = console.error } = {}) => {
   const keys = keysHere(tree);
   if (!keys.length) {
@@ -66,6 +65,13 @@ export const checkpointsFinished = async ({ tree, copy, resume, installs },
       ? `the install record holds ${copy.installed} and this tree ships ${copy.running}`
       : "no install record answers for this plugin"}, so nothing says this release was installed.\n`
       + `    install it, and the checkpoints follow: ${installs}`);
+  }
+  /* The install answers for a version and this for the content: a resume reaches this step over a tree
+     grown a commit since the push, under the version already installed. */
+  const unshipped = unshippedSays(tree, base, gitOut(["rev-parse", "HEAD"], tree));
+  if (unshipped) {
+    return groan(`  no landing checkpoint is finished here: ${unshipped}, so nothing says what stands `
+      + `here is what was released.\n    release this tree, and the checkpoints follow: ${ships}`);
   }
   const branch = gitOut(["rev-parse", "--abbrev-ref", "HEAD"], tree);
   if (!branch) {
