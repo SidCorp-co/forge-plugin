@@ -151,10 +151,15 @@ test("a name is read from the word the command spelled it in, and never from the
   assert.deepEqual(names("tee /tmp/a[1]/memory/x.md"), [], "and the `/memory/x.md` inside one is no path either");
   assert.deepEqual(names("printf x > 'plus(one)/notes.md'"), ["/notes.md", "plus(one)/notes.md"],
     "a parenthesis under a quote is a character of the name, and the tail it used to cut to stands beside that name rather than instead of it");
-  assert.deepEqual(names("perl -e 'system(q(touch),q(one.md))'"), ["system(q(touch),q(one.md", "one.md"],
-    "both readings, because the same span spells a path in one command and code in the next and the text does not say which");
+  assert.deepEqual(names("perl -e 'system(q(touch),q(one.md))'"), ["one.md"],
+    "both readings, because the same span spells a path in one command and code in the next, and a whole word the extension stops short of is the second");
   assert.deepEqual(names("tee /tmp/a\\\nb.md"), ["/tmp/ab.md"],
     "and a line continuation is gone from the word, as a shell removes it, rather than ending the word there");
+  const held = (command) => namesOf(command, "md").map((one) => one.token);
+  assert.deepEqual(held("printf x > '/tmp/memory/(report.md).txt'"), ["report.md"],
+    "a word whose extension stops short of its end spells no file the span is, so a `.txt` target is no guarded write");
+  assert.deepEqual(held("printf x > '/tmp/memory/(report)/note.md'"), ["/tmp/memory/(report)/note.md", "/note.md"],
+    "while the one it reaches the end of is exactly that file, guard and all");
   assert.equal(namesOf("printf x > 'plus(one)/notes.md'").find((one) => one.token[0] === "p").at,
     "printf x > '".length,
     "and the offset handed back still indexes the text, which is what places a name against a tree");

@@ -210,14 +210,16 @@ export const waitsIn = (text) => {
 const OPERATOR = /[;&|()<>$\\]/u;
 /* Whitespace and the quotes end a word wherever they stand, under a quote as much as outside one. The space because a quoted span carrying one is a sentence or a payload far more often than a filename, which is the narrowing `spoken` makes in the harness and the split that hands `touch 'a.md b.md'` its two candidates; the quotes — each spelt as its code point, a lone one in a source file being an unclosed string to everything that reads this repository as text — because what arrives here is as often an interpreter's body carrying its own quotes as it is one name, and `open("--trap.md", "w")` spells the file in the inner pair. */
 const ALWAYS = /[\s\x27\x22\x60]/u;
+/* And the two of the operators a single quote takes back, which is where a shell opens no subshell and a path plausibly carries one: the `;`, the `|`, the `<`, the `>`, the `$` and the backslash inside a quoted span say interpreter's body far more often than they say filename, and a reading that must not invent a target leaves them ending words as they always did. */
+const BRACKET = /[()]/u;
 
-/** Every word of a command, as the walk reads it: the text of one, and the offset each of its characters stood at — kept per character because a word is the characters of it that survive, and a name read out of one is still placed where it was written. An operator ends a word wherever the shell is spending it as shell, which is what `quoting` answers and no regular expression over the raw text can. Under a single quote it is spending none, so `'a/p(1)/b.md'` is one word and one name rather than a tail that resolves somewhere else entirely.
- *  Both readings of such a span and not one, since nothing in the text says which it is: `'a/p(1)/b.md'` is a path and `'system(q(touch),q(b.md))'` is code, and a caller that must not miss a target is handed the whole word for the first and the operators still ending words for the second. So nothing a name was read from before this is read from less. */
+/** Every word of a command, as the walk reads it: the text of one, and the offset each of its characters stood at — kept per character because a word is the characters of it that survive, and a name read out of one is still placed where it was written. An operator ends a word wherever the shell is spending it as shell, which is what `quoting` answers and no regular expression over the raw text can. Under a single quote it is spending no bracket, so `'a/p(1)/b.md'` is one word and one name rather than a tail that resolves somewhere else entirely.
+ *  Both readings of such a span and not one, since nothing in the text says which it is: `'a/p(1)/b.md'` is a path and `'system(q(touch),q(b.md))'` is code, and a caller that must not miss a target is handed the whole word for the first and the brackets still ending words for the second. So nothing a name was read from before this is read from less. `joined` is which words the first reading made, and `namesOf` takes a name from one only where the name is the whole of it: the claim such a word makes is that the span is one filename, and a `'…/(report.md).txt'` whose extension stops short of its end is refuting that claim rather than spelling a file. */
 const worded = (text) => {
   const whole = [];
   let word = null;
   for (const { at, one, under } of quoting(text)) {
-    if (ALWAYS.test(one) || (under !== "'" && OPERATOR.test(one))) {
+    if (ALWAYS.test(one) || ((under !== "'" || !BRACKET.test(one)) && OPERATOR.test(one))) {
       word = null;
       continue;
     }
@@ -227,11 +229,14 @@ const worded = (text) => {
   }
   const out = [];
   for (const one of whole) {
-    out.push(one);
-    if (!OPERATOR.test(one.text)) continue;
+    if (!BRACKET.test(one.text)) {
+      out.push(one);
+      continue;
+    }
+    out.push({ ...one, joined: true });
     let part = null;
     for (let at = 0; at < one.text.length; at += 1) {
-      if (OPERATOR.test(one.text[at])) {
+      if (BRACKET.test(one.text[at])) {
         part = null;
         continue;
       }
@@ -255,6 +260,7 @@ const PATTERN = String.raw`[^*?[\]{}]`;
 export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true } = {}) => {
   const ending = new RegExp(`^${PATTERN}+\\.${tail}`, "u");
   const names = [];
+  const seen = new Set();
   const past = (mark) => (mark < 0 ? [] : [mark + 1]);
   let ended = false;
   for (const word of worded(text)) {
@@ -270,7 +276,11 @@ export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true } = {}) =>
     for (const at of new Set(starts)) {
       const name = ending.exec(word.text.slice(at))?.[0];
       /* One reading of a word and the other can spell the same name at the same place — `'a.md)'` whole and `'a.md'` past the operator — and one name read twice from one offset is one name. */
-      if (name && !names.some((one) => one.at === word.at[at] && one.token === name)) names.push({ token: name, at: word.at[at] });
+      const once = name && `${word.at[at]} ${name}`;
+      if (once && !seen.has(once) && !(word.joined && name.length < word.text.length - at)) {
+        seen.add(once);
+        names.push({ token: name, at: word.at[at] });
+      }
     }
   }
   const rooted = (one) => one.token.startsWith("/") || one.token.startsWith("~/");
