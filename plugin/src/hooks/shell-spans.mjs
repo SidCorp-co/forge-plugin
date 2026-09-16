@@ -224,11 +224,11 @@ const CLOSED = /[ \t\n;&|<>]/u;
 const parts = (mark, shape) => !mark || (mark.under === " " && shape.test(mark.one));
 
 /* Whether a substitution was opened anywhere before this point, which is where the whole reading stops being offered: `> $(printf '%s.txt' 'a(1).md')` puts a quoted operand inside one, where it is an argument of that command and not the target of this one, and nothing about the span or its neighbours says so. Anywhere and not in the same command, because what ends a substitution is the `)` this walk cannot place and a separator inside one ends nothing (ISS-1533) — so a text that opened one is a text this declines to place a span in at all, and the span keeps the reading it had. */
-const OPENERS = /[$<>]/u;
+/* What may put a value into the command that this text does not spell: a `$` opening an expansion of any kind, a backtick pair, and the `(` of a process substitution. Any of them and this stops claiming a span is a whole operand — `${OUT:+ 'a(1).md' }` is a filename or nothing at all depending on a variable, and `$(printf …)` is an argument of the printf. Written as the openers rather than as their shapes, because what closes each of them is a bracket this walk cannot place (ISS-1533) and a shape it cannot close is one it cannot leave. */
 const openedAt = (marks) => {
   const at = marks.findIndex(({ one, under }, n) => under === " "
-    && (one === "\x60"
-      || (one === "(" && marks[n - 1]?.under === " " && OPENERS.test(marks[n - 1]?.one ?? ""))));
+    && (one === "$" || one === "\x60"
+      || (one === "(" && marks[n - 1]?.under === " " && /[<>]/u.test(marks[n - 1]?.one ?? ""))));
   return at < 0 ? marks.length : at;
 };
 

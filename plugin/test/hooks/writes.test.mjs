@@ -180,6 +180,8 @@ test("a name is read from the word the command spelled it in, and never from the
     "while a subshell hands its commands no arguments, and the target inside one is the target");
   assert.deepEqual(writtenPaths("printf x # > '/tmp/memory/(report).md'", room, "md").map((one) => one.token), [],
     "and a redirect written inside a comment is prose, which writes nothing whatever it spells");
+  assert.deepEqual(held("unset OUT; tee ${OUT:+ '/tmp/memory/(report).md' } </dev/null"), [],
+    "nor does a span an expansion may drop altogether, which is any span standing past a bare `$`");
   assert.deepEqual(held("printf x > '/tmp/memory/(report).md' .txt"), [],
     "and what parts one operand from the next is the three characters a shell splits on, not every space this language calls one");
   assert.deepEqual(held("printf x > 'cache=/tmp/(report).md'"), ["cache=/tmp/(report).md"],
