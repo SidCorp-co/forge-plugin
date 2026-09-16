@@ -250,9 +250,11 @@ test("the call runs git and nothing else, over refs this checkout already holds"
   }
 });
 
-/* A replacement object rewrites what every reading of the store answers, so an ancestry proved under
-   one is a fact about a local overlay and not about what the remote carries (consult 8faf61 F1). */
-test("an ancestry standing only under a replacement object does not end the landing", async () => {
+/* An overlay rewrites what every reading of the store answers, so an ancestry proved under one is a
+   fact about the overlay and not about what the remote carries. Both mechanisms, since the graft file
+   is deprecated and still honoured, and the replacement it is converted to is a different switch
+   (consult 8faf61 F1, consult 6f5c5b F1). */
+test("an ancestry standing only under a local overlay does not end the landing", async () => {
   const { room, judged } = landedRoom("replaced");
   const tip = releasedOnto(room, "main");
   git(room, "update-ref", "refs/remotes/origin/master", tip);
@@ -269,6 +271,16 @@ test("an ancestry standing only under a replacement object does not end the land
   assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
   assert.ok(run.stderr.includes("does not reach it"), run.stderr);
   assert.equal(checkpoint().state, "ready", "and no landing is ended over a history somebody overlaid");
+
+  git(room, "replace", "-d", base);
+  writeFileSync(join(room, ".git", "info", "grafts"), `${base} ${judged}\n`);
+  assert.equal(git(room, "merge-base", "--is-ancestor", judged, base).status, 0,
+    "the graft file is deprecated and still answers, which is why it is its own switch");
+  ready(judged);
+  const grafted = await ran(["claim", "ISS-1655", "--landed"], room);
+  assert.equal(grafted.status, 1, `${grafted.stdout}${grafted.stderr}`);
+  assert.ok(grafted.stderr.includes("does not reach it"), grafted.stderr);
+  assert.equal(checkpoint().state, "ready", "and a graft ends no landing either");
 });
 
 test("--landed beside another turn of the same verb is refused, each being a different move", async () => {

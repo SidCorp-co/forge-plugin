@@ -233,8 +233,8 @@ export const droppedHead = (branch, head) => {
 /* Whether the default branch carries a head, off the ref this checkout recorded as the remote's own
    and never a name `baseOf` guesses at. A reading it cannot make answers no with what settles it:
    what rests on this ends a landing, where the refusal above only costs a builder its write. Under
-   no replacement objects, an ancestry proved over an overlay proving only the overlay (8faf61 F1). */
-const PROVEN = { ...OFFLINE, GIT_NO_REPLACE_OBJECTS: "1" };
+   no overlay, replacement or graft, an ancestry proved over one proving only it (8faf61 F1). */
+const PROVEN = { ...OFFLINE, GIT_NO_REPLACE_OBJECTS: "1", GIT_GRAFT_FILE: "/dev/null" };
 
 export const carriedByDefault = (head) => {
   const short = (why, route, ref = null, tip = null) => ({ ref, tip, carries: false, why, route });
@@ -253,7 +253,8 @@ export const carriedByDefault = (head) => {
       "git fetch --unshallow origin", ref, tip);
   }
   if (git(["cat-file", "-e", `${head}^{commit}`], PROVEN) === null) {
-    return short("this checkout holds no commit of that name", "git fetch origin", ref, tip);
+    return short("this checkout holds no commit of that name, whether the branch was never fetched "
+      + "here or the object is gone from a store that has the rest", "git fetch origin", ref, tip);
   }
   const asked = spawnSync("git", ["merge-base", "--is-ancestor", head, tip],
     { encoding: "utf8", env: { ...process.env, ...PROVEN } });
