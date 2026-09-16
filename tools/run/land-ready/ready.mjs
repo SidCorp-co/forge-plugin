@@ -17,10 +17,10 @@ const SHORT = (said, self) =>
   + `came back short. Name the branches this landing is to take:\n    ${self} land-ready ISS-45`;
 
 const NOTHING = (self, seen) =>
-  `no checkpoint on this project reads a state this landing would start at the pin from, so there is `
-  + `nothing ready to land${seen ? `: the ${seen} above name another turn or another step` : ""}. A `
-  + `build writes one where it ends, and a landing past its pin is named rather than found:\n`
-  + `    forge claim ISS-45 --pushed --ready\n    ${self} land-ready ISS-45`;
+  `no checkpoint at the statuses above reads a state this landing would start at the pin from, so `
+  + `there is nothing here ready to land${seen ? `: the ${seen} above name another turn or another `
+    + `step` : ""}. A build writes one where it ends, and a landing past its pin is named rather than `
+  + `found:\n    forge claim ISS-45 --pushed --ready\n    ${self} land-ready ISS-45`;
 
 /* Oldest capture first, the order a caller wanting this candidate would have typed; no stamp sorts last. */
 const LAST = "￿";
@@ -59,7 +59,7 @@ export const readyKeys = async (ctx, startsAtPin) => {
   if (short) stop(SHORT(short, ctx.self));
   const found = await foundIn(read.rows.filter((row) => BAND.includes(String(row.status ?? ""))));
   const taking = found.filter((one) => startsAtPin(one.landing));
-  if (found.length) shown(found, taking, ctx.self);
+  shown(found, taking, ctx.self);
   if (!taking.length) stop(NOTHING(ctx.self, found.length));
   return taking.map((one) => one.key);
 };

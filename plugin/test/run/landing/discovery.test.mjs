@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 import {
   BASE, NEXT_BRANCH, NEXT_OWNED, PAIRED_GATE, THIRD_BRANCH, THIRD_OWNED,
-  forgetGateRuns, forgetInstall, gateRuns, git, landingRan, ready, seeded, sha, tracker, world,
+  forgetGateRuns, forgetInstall, gateRuns, git, landingRan, ready, seeded, sha, state, tracker, world,
 } from "./fixture.mjs";
 
 test.after(() => tracker.close());
@@ -27,9 +27,14 @@ test("an empty call lands what the checkpoints say is ready, and says the set an
     next: ready(next, base, { branch: NEXT_BRANCH, files: [NEXT_OWNED], at: EARLIER }),
     last: ready(last, base, { branch: THIRD_BRANCH, files: [THIRD_OWNED], state: "builder-owed" }),
   });
+  /* Outside the band and carrying a checkpoint the lander's turn would name: the one shape the
+     printed bound exists for, so it is here from the first walk, which is the only walk. */
+  state.issues.push({ documentId: "closed-uuid", issueId: "ISS-999", status: "closed", title: "one that closed",
+    description: "a body.\n", sessionContext: { landing: ready(head, base, { branch: "iss-999" }) } });
   forgetGateRuns();
   forgetInstall();
   const said = await landingRan([], work);
+  assert.equal(said.includes("ISS-999"), false, `a checkpoint outside the band is not taken:\n${said}`);
   assert.match(said, /off the checkpoints of every issue at in_progress, developed, testing, awaiting_release, needs_info, waiting, on_hold:/u,
     `the statuses it read are named, so what the bound cannot see is said:\n${said}`);
   assert.match(said, /ISS-675 {2}`builder-owed` {2}iss-675 {2}— left out: read where it is, forge resume ISS-675/u,
@@ -57,9 +62,24 @@ test("an empty call where no checkpoint names the pin lands nothing and says wha
   });
   forgetGateRuns();
   const said = await landingRan([], work);
-  assert.match(said, /nothing ready to land/u, said);
+  assert.match(said, /nothing here ready to land/u, said);
   assert.match(said, /forge claim ISS-45 --pushed --ready/u,
     `and the refusal carries what writes a checkpoint:\n${said}`);
   assert.deepEqual(gateRuns(), [], `no gate is spent on a set it did not find:\n${said}`);
   assert.equal(remote(at), pinned, `and nothing landed:\n${said}`);
+});
+
+test("an empty call that found no checkpoint at all still says which statuses it read", async () => {
+  const { at, work } = world({ base: "other" });
+  const pinned = remote(at);
+  seeded({});
+  forgetGateRuns();
+  const said = await landingRan([], work);
+  assert.match(said, /off the checkpoints of every issue at in_progress, developed, testing, awaiting_release, needs_info, waiting, on_hold:/u,
+    `the bound is printed on the empty result too, where it is the only thing said:\n${said}`);
+  assert.match(said, /no checkpoint at the statuses above/u,
+    `and the refusal claims nothing of what it did not read:\n${said}`);
+  assert.equal(/no checkpoint on this project/u.test(said), false, said);
+  assert.deepEqual(gateRuns(), [], said);
+  assert.equal(remote(at), pinned, said);
 });
