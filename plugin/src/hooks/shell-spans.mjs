@@ -248,8 +248,7 @@ export const unquote = (value) => value.replace(/^(["'])([\s\S]*)\1$/u, "$2");
 export const STARTS = String.raw`(?:[\n;&|(]\s*|-exec\s+|\b[A-Za-z_]\w*=\S*\s+|\bxargs\s+(?:-\S+\s+)*`
   + String.raw`|\b(?:sudo|command|nohup|time|env|do|then|else|if|elif|while|until)\s+|^)`;
 
-/* Both verbs read one letter after a single hyphen and take the rest of the word as the value — `curl -output` writes a file called `utput` — so no boundary may follow `-o` or `-O`, or a target written against the letter is seen only where a `/` happens to supply one. The long spellings keep theirs, which is what leaves `--outputting` the unknown option curl refuses rather than a write. `namesOf` above draws the same line. */
-/** Verbs count where a command starts, a library call anywhere, and only with a target it names. how/writes.md. */
+/** Verbs count where a command starts, a library call anywhere, and only with a target it names. `curl` and `wget` name theirs in an option, and both read one letter after a single hyphen and take the rest of the word as the value — `curl -output` writes a file called `utput` — so no boundary may follow `-o` or `-O`, and only the long spellings keep one, which is what leaves `--outputting` the unknown option curl refuses rather than a write. how/writes.md. */
 export const WRITES = new RegExp(
   STARTS
     + String.raw`(?:sed\b[^|;]*\s(?:-[a-hj-z]*i(?![\w-])|--in-place)`
