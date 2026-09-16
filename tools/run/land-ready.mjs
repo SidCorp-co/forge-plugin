@@ -515,8 +515,7 @@ export const landReady = async ({ flags, words }, ctx) => {
       + `.forge.json, and land again: forge doctor`);
   }
   console.log(`\nlanding ${route}, judgement ${judgement}`);
-  /* Named or found, and one list from here down: discovery is a convenience over the set a caller
-     could have typed, so nothing below it knows which of the two it was handed. */
+  /* Named or found, one list from here down: nothing below it knows which of the two it was given. */
   const keys = words.length ? words : await readyKeys(ctx, (landing) => owedAt(landing) === ORDER[0]);
   const held = [];
   const read = [];
