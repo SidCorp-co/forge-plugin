@@ -179,7 +179,7 @@ const live = () => tracker.url;
 let session = 0;
 /* `harness` is the shape production has: no hook is handed a `FORGE_SESSION_ID`, so the id it holds
    is whatever dispatched the session and the run's own is in the command it is judging (ISS-497). */
-const gate = async (command, { url = live(), fresh = true, harness = null } = {}) => {
+const gate = async (command, { url = live(), fresh = true, harness = null, cwd = process.cwd() } = {}) => {
   if (fresh) session += 1;
   endpoint(url);
   const env = { ...process.env, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: `probe-${session}` };
@@ -187,7 +187,7 @@ const gate = async (command, { url = live(), fresh = true, harness = null } = {}
     delete env.FORGE_SESSION_ID;
     env.CLAUDE_CODE_SESSION_ID = harness;
   }
-  const run = await callHookAsync(HOOK, { tool_name: "Bash", tool_input: { command }, cwd: process.cwd() }, env);
+  const run = await callHookAsync(HOOK, { tool_name: "Bash", tool_input: { command }, cwd }, env, cwd);
   return { ...run, out: run.stdout.trim() ? JSON.parse(run.stdout) : null };
 };
 const because = (run) => run.out?.hookSpecificOutput?.permissionDecisionReason ?? "";
@@ -284,14 +284,17 @@ const leased = (holder, renewedAt = new Date().toISOString(), minutes = 60) => (
   lease: { holder, agent: "a", pid: "1", renewedAt, minutes, next: null, history: [] },
 });
 
+const noTree = tempRoom("read-first-alias-no-tree-");
+writeFileSync(join(noTree, ".forge.json"), readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
+
 test("a live lease's own minted holder is trusted as an alias where the hook's own guess falls to the wave", async () => {
   const holder = "iss-950-aaaaaaaa";
   state.comments = { [UUID]: [comment("c10", "the record this run wrote from its own worktree")] };
   state.issues[0].sessionContext = leased(holder);
   const granted = `export FORGE_SESSION_ID=${holder} && forge claim ISS-29 --pushed`;
-  const first = await gate(granted, { harness: "harness-worktree-a" });
+  const first = await gate(granted, { harness: "harness-worktree-a", cwd: noTree });
   assert.equal(first.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
-  const bare = await gate("forge claim ISS-29 --pushed", { harness: "harness-worktree-b" });
+  const bare = await gate("forge claim ISS-29 --pushed", { harness: "harness-worktree-b", cwd: noTree });
   assert.equal(bare.out, null,
     "the hook's own guess falls to the wave id, but the issue's own live lease holder already read this");
   delete state.issues[0].sessionContext;
@@ -301,7 +304,7 @@ test("a live lease alias never covers a comment its holder has not actually read
   const holder = "iss-951-bbbbbbbb";
   state.comments = { [UUID]: [comment("c11", "a correction nobody under this holder has read yet")] };
   state.issues[0].sessionContext = leased(holder);
-  const run = await gate("forge claim ISS-29 --pushed", { harness: "harness-worktree-c" });
+  const run = await gate("forge claim ISS-29 --pushed", { harness: "harness-worktree-c", cwd: noTree });
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny",
     "neither the hook's own guess nor the live holder's own record has seen this comment");
   assert.ok(because(run).includes("a correction nobody under this holder has read yet"));
@@ -313,9 +316,9 @@ test("an expired lease's holder is not trusted as an alias, even where that hold
   state.comments = { [UUID]: [comment("c12", "credited to a holder whose lease has since lapsed")] };
   state.issues[0].sessionContext = leased(holder, "2020-01-01T00:00:00.000Z", 1);
   const granted = `export FORGE_SESSION_ID=${holder} && forge claim ISS-29 --pushed`;
-  const first = await gate(granted, { harness: "harness-worktree-d" });
+  const first = await gate(granted, { harness: "harness-worktree-d", cwd: noTree });
   assert.equal(first.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
-  const bare = await gate("forge claim ISS-29 --pushed", { harness: "harness-worktree-e" });
+  const bare = await gate("forge claim ISS-29 --pushed", { harness: "harness-worktree-e", cwd: noTree });
   assert.equal(bare.out.hookSpecificOutput.permissionDecision, "deny",
     "a lapsed lease's holder is nobody's proof of who stands here now");
   delete state.issues[0].sessionContext;
@@ -326,9 +329,9 @@ test("a lease held by an id shaped like a shared one, not a minted run, is not t
   state.comments = { [UUID]: [comment("c13", "credited to an id shaped like a wave's own, not a minted run's")] };
   state.issues[0].sessionContext = leased(holder);
   const granted = `export FORGE_SESSION_ID=${holder} && forge claim ISS-29 --pushed`;
-  const first = await gate(granted, { harness: "harness-worktree-f" });
+  const first = await gate(granted, { harness: "harness-worktree-f", cwd: noTree });
   assert.equal(first.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
-  const bare = await gate("forge claim ISS-29 --pushed", { harness: "harness-worktree-g" });
+  const bare = await gate("forge claim ISS-29 --pushed", { harness: "harness-worktree-g", cwd: noTree });
   assert.equal(bare.out.hookSpecificOutput.permissionDecision, "deny",
     "only a minted, run-specific holder is trusted as an alias, and a shared-shaped one is not, "
     + "even if credited");
