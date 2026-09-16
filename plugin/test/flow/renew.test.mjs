@@ -516,6 +516,23 @@ test("a write taking a released field keeps the line the release left, and a bar
     "while a field nobody released gets the derived line, no line being owed to anybody there");
 });
 
+/* Omission and a clearing are two answers, and only a released field has a line to tell them apart on:
+   a transition passes an explicit null to clear the line the issue was carrying, and a coalesce would
+   read that as silence and put the line back (F1 of the read after the fix above). */
+test("a transition's explicit null clears the line a release left, where silence would have carried it", async () => {
+  const released = () => ({ lease: { holder: "", released: new Date(Date.now() - 120_000).toISOString(), next: "fold F1", history: [] } });
+  field = released();
+  status = "developed";
+  await said(() => renew(ISSUE, "ISS-1617", null));
+  assert.equal(leaseOf(field).next, null, "the clearing is honoured on a released field");
+
+  field = null;
+  status = "open";
+  await said(() => renew(ISSUE, "ISS-1617", null));
+  assert.equal(leaseOf(field).next, "nothing was worked under this lease",
+    "and on a bare field, which has no line to clear, the null still resolves to the derived one");
+});
+
 /* The release is the one lease write whose payload has already landed, so a transport that refuses it
    owes a line and never this call's exit code: a run told its record failed would go back and write it
    again (codex F1 of the whole-set read). */

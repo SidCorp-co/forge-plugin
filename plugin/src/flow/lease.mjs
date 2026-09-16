@@ -464,15 +464,16 @@ export const anothersHold = async (documentId, ref) => {
   return { unknown: false, said: writeRefusal(state, ref, lease) };
 };
 
-/* The take a payload write makes for itself, which is a claim in everything but the typing: the caller asked for the write, the field is empty, and the tracker's compare is what separates two callers who both read it empty — the refusal this replaces separated nobody (ISS-1260). The lease is the short one and carries the line that says so, derived rather than asked for, because a call that had to take its own lease is by construction the whole of what it does to the issue; the notice waits for the write, as the lapsed one does, a claim printed before the update being one a failed update would leave standing. It sits before the refusal below and after the finder, which claims nothing anywhere; and a `null` line reaching it is the transition clearing a line the issue was carrying, which a field holding no lease never had, so silence resolves to the derived line and a caller with a line of its own still writes it — unless a release emptied the field, whose line is one write's own doing and is carried forward where the caller names none (codex F2). */
+/* The take a payload write makes for itself, which is a claim in everything but the typing: the caller asked for the write, the field is empty, and the tracker's compare is what separates two callers who both read it empty — the refusal this replaces separated nobody (ISS-1260). The lease is the short one and carries the line that says so, derived rather than asked for, because a call that had to take its own lease is by construction the whole of what it does to the issue; the notice waits for the write, as the lapsed one does, a claim printed before the update being one a failed update would leave standing. It sits before the refusal below and after the finder, which claims nothing anywhere; and a `null` line reaching it is the transition clearing a line the issue was carrying, which a field holding no lease never had, so silence resolves to the derived line and a caller with a line of its own still writes it. A release emptied the field leaves a line that IS one write's own doing: silence carries it forward and the transition's null clears it, which is the one place the two answers differ (codex F2, then F1 of the read after it). */
 const takenByWriting = async (documentId, ref, context, next, patch) => {
   const status = await statusFor(documentId);
   if (!takeableFree(status, context)) fail(freeRefusal(ref, status, context));
   const left = nextLeft(context);
+  const carried = releasedIn(context) ? left : null;
   const sent = claimed(context, {
     holder: sessionOf(),
     minutes: READING_MINUTES,
-    next: next ?? (releasedIn(context) && left ? left : NOTHING_WORKED),
+    next: next === undefined ? carried ?? NOTHING_WORKED : next ?? (carried === null ? NOTHING_WORKED : null),
     worklog: worklogFor(context, patch),
     how: TAKEN_BY_WRITING,
     status,
