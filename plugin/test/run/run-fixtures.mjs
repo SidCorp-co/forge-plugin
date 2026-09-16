@@ -5,6 +5,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSyn
 import { dirname, join } from "node:path";
 
 import { tempRoom } from "../fixtures.mjs";
+import { madeIn } from "../../../tools/room.mjs";
 import { derivationFiles } from "../../../tools/gates/scope.mjs";
 
 /* Before the shape reader is loaded: it reaches the tracker's own settings, and a module that read
@@ -35,6 +36,10 @@ const COPIED = derivationFiles(join(ROOT, SCRIPT), ROOT).filter((one) => one.sta
 export const scratch = (name, gate = GATE) => {
   const at = tempRoom(`${name}-`);
   const work = join(at, "checkout");
+  return madeIn(at, () => filled(at, work, gate));
+};
+
+const filled = (at, work, gate) => {
   for (const one of COPIED) {
     mkdirSync(join(work, dirname(one)), { recursive: true });
     cpSync(join(ROOT, one), join(work, one));
@@ -170,11 +175,13 @@ export const worktreeRoom = (name, key = "ISS-374") => {
   const tree = join(at, `wt-${key}`);
   git(work, "worktree", "add", tree, "-b", `iss-${key.slice(4)}`);
   const bin = join(at, "bin");
-  mkdirSync(bin, { recursive: true });
-  writeFileSync(join(bin, "claude"), CLAUDE_STUB, { mode: 0o755 });
-  mkdirSync(join(at, "home"), { recursive: true });
-  // Where an installed machine starts, so a release writing no registration is one that read it.
-  writeFileSync(join(at, "marketplace-source"), `${work}\n`);
+  madeIn(at, () => {
+    mkdirSync(bin, { recursive: true });
+    writeFileSync(join(bin, "claude"), CLAUDE_STUB, { mode: 0o755 });
+    mkdirSync(join(at, "home"), { recursive: true });
+    // Where an installed machine starts, so a release writing no registration is one that read it.
+    writeFileSync(join(at, "marketplace-source"), `${work}\n`);
+  });
   return { at, work, tree, env: { ...BARE, HOME: join(at, "home"), PATH: `${bin}:${BARE.PATH}` } };
 };
 

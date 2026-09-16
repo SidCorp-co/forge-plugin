@@ -6,6 +6,7 @@ import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { madeIn } from "../../tools/room.mjs";
 import { PLAN_SECTIONS } from "../src/flow/machine.mjs";
 
 const PLAN_BODY = {
@@ -99,14 +100,15 @@ const sweep = () => {
 };
 
 const KEPT = process.env.KEEP_TEST_ROOMS === "1";
-const root = mkdtempSync(join(MACHINE, `forge-plugin-test-${KEPT ? "kept-" : ""}${process.pid}-`));
+const PREFIX = join(MACHINE, `forge-plugin-test-${KEPT ? "kept-" : ""}${process.pid}-`);
+const root = madeIn(PREFIX, () => mkdtempSync(PREFIX));
 if (KEPT) process.stderr.write(`keeping this test process's room: ${root}\n`);
 else process.on("exit", () => rmSync(root, { recursive: true, force: true }));
 sweep();
 
 process.env.TMPDIR = root;
 
-export const tempRoom = (prefix) => mkdtempSync(join(root, prefix));
+export const tempRoom = (prefix) => madeIn(join(root, prefix), () => mkdtempSync(join(root, prefix)));
 
 /* A case about which run a call is controls the tree it stands in as it controls the config home: a suite run from a worktree naming its own run resolves that id, where a case written about the inherited one wants a tree naming none. It carries the checkout's project file, so leaving the checkout moves nothing else (ISS-467). */
 export const standsInNoTree = (name) => {

@@ -17,11 +17,13 @@ import { cheapestFirst, ENTRIES_PER_STEP, ledgerFor, LEDGER_UNSEEN, recordPass, 
 import { PUTS_IT_BACK, said as saidMissing, unresolvedIn } from "../plugin/src/resolve/installed.mjs";
 import { DECLINED, placeFor, RAISE, runnersOf, SLOT, WAIT } from "./gates/machine.mjs";
 import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mjs";
+import { forgetRoomRefusal, ROOM_ENV, roomRefused } from "./room.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
 import { parallelRuns } from "../plugin/src/resolve/settings.mjs";
 import { gateSteps, TEST_FILE, testWorkers } from "./gates/steps.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
-import { alonePath, casesPath, CEILING_SECONDS, REVIEW, fileTimesPath, recordDir, recordRun, seriesFile } from "./gates/timing.mjs";
+import { alonePath, casesPath, CEILING_SECONDS, REVIEW, fileTimesPath, recordDir, recordRun, roomPath, seriesFile }
+  from "./gates/timing.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(SELF), "..");
@@ -293,8 +295,16 @@ if (dirty.length > 0) {
 }
 
 /* Every step runs under this and not under the machine's temp root, so what a step leaves there is
-   this run's alone and no live session's hooks are mixed into it. It removes itself at exit. */
-const scratch = gateTmp();
+   this run's alone and no live session's hooks are mixed into it. It removes itself at exit. A
+   machine that will not give it one is said in the same words a fixture's refusal uses (ISS-1611). */
+let scratch;
+try {
+  scratch = gateTmp();
+} catch (refusal) {
+  console.error(`\n${refusal.message}`);
+  console.error(`No step ran and nothing was recorded, so nothing here judges ${ROOT}.`);
+  finish(1, "refused");
+}
 
 /* Before the table, the record and the first step, because a refusal that cost the caller a step has
    already lost the argument. It says nothing about the tree and records nothing of it. */
@@ -413,7 +423,8 @@ const unproved = [];
 const owned = [];
 
 const testEnv = (step) => step.tests
-  ? { GATE_FILE_TIMES: fileTimesPath(record, step.label), [CASES_ENV]: casesPath(scratch, step.label) }
+  ? { GATE_FILE_TIMES: fileTimesPath(record, step.label), [CASES_ENV]: casesPath(scratch, step.label),
+      [ROOM_ENV]: roomPath(record, step.label) }
   : {};
 
 /* Every exit past an attribution says what its findings reached, the leak refusal included: a key
@@ -432,11 +443,23 @@ for (const step of planned) {
   console.log(`\n=== ${step.label} ===`);
   const at = Date.now();
   const env = { ...process.env, TMPDIR: scratch, ...testEnv(step) };
+  // Before the step, never after: a note the last run left would read as this one's.
+  if (step.tests) forgetRoomRefusal(roomPath(record, step.label));
   const { status, error } = spawnSync(step.argv[0], step.argv.slice(1), { cwd: ROOT, env, stdio: "inherit" });
   const took = Math.round((Date.now() - at) / 1000);
   const failed = Boolean(error) || status !== 0;
   console.log(`\n--- ${step.label}: ${took}s`);
   if (failed) {
+    /* Before the attribution, which would spend a re-run per case on a machine that has no room to
+       give one: a step whose fixture was refused its room judged nothing about the tree (ISS-1611). */
+    const refused = step.tests ? roomRefused(roomPath(record, step.label)) : null;
+    if (refused) {
+      console.error(`\nGate failed: ${step.label} — the machine refused a fixture its temporary room `
+        + `${refused.times} time(s), so this step judged nothing about the tree: ${ROOT}`);
+      console.error(refused.said);
+      for (const line of ownedLines()) console.error(line);
+      finish(status ?? 1, "failed", { step: step.label });
+    }
     /* A step of thousands of cases that refuses on three of them says which three, and whether
        re-running each once, alone, at this head reproduces any of them (ISS-907). */
     const said = step.tests && !error ? attribute(step, {

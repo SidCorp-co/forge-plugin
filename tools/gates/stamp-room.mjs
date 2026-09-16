@@ -2,12 +2,14 @@ import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
 
+import { madeIn } from "../room.mjs";
 import { stampRoom } from "../../plugin/src/hooks/stamps.mjs";
 
 /** One temp root per run, every step spawned under it. Removed however the run ends, since a throw from a step or the
  *  ledger exits past every verdict, and nothing else sweeps one; a kill leaves it, and `KEEP_TEST_ROOMS` keeps it. */
 export const gateTmp = () => {
-  const dir = mkdtempSync(join(tmpdir(), "forge-gate-tmp-"));
+  const at = join(tmpdir(), "forge-gate-tmp-");
+  const dir = madeIn(at, () => mkdtempSync(at));
   if (process.env.KEEP_TEST_ROOMS === "1") process.stderr.write(`keeping this gate's temp root: ${dir}\n`);
   else process.on("exit", () => rmSync(dir, { recursive: true, force: true }));
   return dir;

@@ -28,6 +28,8 @@ export const alonePath = (dir, label) => beside(dir, label, "alone");
 
 export const casesPath = (dir, label) => beside(dir, label, "failed");
 
+export const roomPath = (dir, label) => beside(dir, label, "room");
+
 export const runSeries = (dir) => {
   let text;
   try {
