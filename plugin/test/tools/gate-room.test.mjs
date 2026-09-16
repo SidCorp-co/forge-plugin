@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { chmodSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -82,7 +82,7 @@ test("a room that cannot be made names the path it tried, the TMPDIR in force an
   const at = shut("refused-room-");
   try {
     const refused = apart("refused-room-note-",
-      () => thrown(() => madeIn(join(at, "room-"), () => mkdtempSync(join(at, "room-")))));
+      () => thrown(() => madeIn(join(at, "room-"), () => mkdirSync(join(at, "room-")))));
     assert.match(refused.message, new RegExp(`Could not make the temporary room at ${escaped(at)}/room-: EACCES`, "u"),
       refused.message);
     assert.match(refused.message, new RegExp(`TMPDIR in force: ${escaped(process.env.TMPDIR)}$`, "mu"), refused.message);
@@ -107,7 +107,7 @@ test("the refusal is left where the gate reads it, and is forgotten on demand", 
   try {
     apart("refused-note-", (note) => {
       for (const each of [1, 2]) {
-        thrown(() => madeIn(join(at, `room-${each}`), () => mkdtempSync(join(at, `room-${each}`))));
+        thrown(() => madeIn(join(at, `room-${each}`), () => mkdirSync(join(at, `room-${each}`))));
       }
       const read = roomRefused(note);
       assert.equal(read.times, 2, "each refusal is one entry");
@@ -160,14 +160,16 @@ test("two gates sharing one record directory get a note each, not one between th
 /* The case body a scratch checkout runs: the real wrapper, refused by a directory of its own, which
    is the whole chain from a fixture's room to what the gate prints. */
 const REFUSES_A_ROOM = `import test from "node:test";
-import { mkdirSync, mkdtempSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { madeIn } from "../../../tools/room.mjs";
 test("a case of this scratch's own", () => {
-  const shut = join(mkdtempSync(join(tmpdir(), "scratch-refused-")), "shut");
+  const under = join(tmpdir(), \`scratch-refused-\${process.pid}\`);
+  mkdirSync(under, { recursive: true });
+  const shut = join(under, "shut");
   mkdirSync(shut, { mode: 0o500 });
-  madeIn(join(shut, "room-"), () => mkdtempSync(join(shut, "room-")));
+  madeIn(join(shut, "room-"), () => mkdirSync(join(shut, "room-")));
 });
 `;
 
