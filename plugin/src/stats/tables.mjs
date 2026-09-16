@@ -1,5 +1,6 @@
 /* The two tables a run's time is divided by, the listing every other block is printed through, and what a class this reading could not recognise prints instead — docs/cli/stats-the-tables.md. */
 import { DECLARABLE, DECLARES, declares } from "./corpus/classes.mjs";
+import { FROM_PROJECT } from "../resolve/settings.mjs";
 import { MARKERS, RUNG_UNKNOWN } from "./corpus/transcripts.mjs";
 import { PHASES } from "../guides/phases.mjs";
 import { RUNGS } from "../ladder.mjs";
@@ -107,5 +108,5 @@ export const shipLine = (held) => {
 /** What an unrecognised class says to do about it, and nothing where every class was recognised. */
 export const declareLines = (held) => (held.unrecognised.length
   ? [`  declare ${held.unrecognised.map((one) => `\`${DECLARES}.${one}\``).join(", ")} `
-    + "in the .forge.json at the root of the checkout profiled, or this reading counts none of it"]
+    + `in the ${FROM_PROJECT} at the root of the checkout profiled, or this reading counts none of it`]
   : []);
