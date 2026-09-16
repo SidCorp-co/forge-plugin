@@ -9,7 +9,7 @@ import { pathToFileURL } from "node:url";
 
 import { jsonLines as parsed, logHook } from "../src/hooks/hook-log-file.mjs";
 import { scrubbed } from "../src/hooks/hook-log.mjs";
-import { NOWHERE, STARTS, WRITES, namesOf, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, STARTS, WRITES, namesOf, placeable, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
 import { glued } from "../src/hooks/assembled.mjs";
 import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
 import { agreedWithHead } from "../src/hooks/git-probe.mjs";
@@ -279,15 +279,16 @@ const EXECUTES_STDIN = new RegExp(
   "u",
 );
 
-/** A redirect is judged by its target: `2>&1` writes nothing, and one holding a `$(…)` holds spaces. */
+/** A redirect is judged by its target: `2>&1` writes nothing, and one holding a `$(…)` holds spaces. The target is every part of the one word, since a quote closing is not the operand ending: `> 'a(1).md'.txt` writes the `.txt`, and a capture stopping at the quote hands the reader a word it will take for the whole of one. Where the word ends is the walk's answer in `plugin/src/hooks/shell-spans.mjs`, spelt the same here (ISS-1555). */
 export const REDIRECT = new RegExp(
-  String.raw`(?:^|[\s;&|(])\d?>>?\s*(?!&\d)("[^"]*"|'[^']*'|\$\([^)]*\)[^\s;&|<>]*|[^\s;&|<>]+)`,
+  String.raw`(?:^|[\s;&|(])\d?>>?[ \t]*(?!&\d)((?:"[^"]*"|'[^']*'|\$\([^)]*\)|[^ \t\n;&|<>])+)`,
   "gu",
 );
 
 const HEREDOC = /<<-?\s*(['"]?)(\w+)\1/u;
 
 export const QUOTED = /'[^']*'|"(?:[^"\\]|\\[\s\S])*"/gu;
+const BLANK = /^[ \t\n]+|[ \t\n]+$/gu;
 
 /** A heredoc body is data; `onProgram` reads one an interpreter executes, and is told where in the text being returned the interpreter sits — for the `cd` it inherited — and which
  *  interpreter it is. how/learning-gate.md. */
@@ -452,12 +453,16 @@ export const writtenPaths = (text, cwd, tail) => {
     }
     return held.get(at);
   };
+  /* Each reading below is one span or one capture, and what decides whether a quoted span there is this command's target or another command's argument is not in the slice. So the whole text answers, once. */
+  const placed = placeable(text);
   const named = spans(text).flatMap(({ start, end }) => {
-    const said = spoken(text.slice(start, end).trim());
-    return WRITES.test(said) ? namesIn(said, tail).map((one) => ({ ...one, at: start })) : [];
+    const said = spoken(text.slice(start, end).replace(BLANK, ""));
+    return WRITES.test(said) ? namesIn(said, tail, { whole: placed(start) }).map((one) => ({ ...one, at: start })) : [];
   });
+  /* The target as the command wrote it, quotes and all: `namesOf` is where a shell word is read, and taking the pair off first hands it a `(` standing bare that stood inside a quote — which ends the name there and leaves a rooted tail nothing wrote (ISS-1555). */
   const aimed = [...text.matchAll(REDIRECT)]
-    .flatMap((one) => namesIn(unquote(one[1]), tail, AIMED_AT).map((each) => ({ ...each, at: one.index })));
+    .flatMap((one) => namesIn(one[1], tail, { ...AIMED_AT, whole: placed(one.index) })
+      .map((each) => ({ ...each, at: one.index })));
   return [...aimed, ...named].map(({ token, placed, at }) => {
     const trees = placed && !token.startsWith("/") ? standing(at) : [];
     return { token, trees, paths: [token, ...trees.map((tree) => join(tree, token))] };

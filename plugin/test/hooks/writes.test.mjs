@@ -99,6 +99,25 @@ test("a directory whose name carries a character a name usually does not is read
   }
 });
 
+/* A `(` ends a word where it stands bare and is a character of a name where it stands under a quote,
+   and the reading asked the text rather than the walk, so a write into `paren(one)` named a rooted
+   `/written.md` nobody wrote (ISS-1555). The space is not of that class, and the list case is why. */
+test("a quoted target is read as a shell reads it, so a parenthesis in it opens no command", () => {
+  const at = asked(NOW - 10_000);
+  for (const odd of ["paren(one)", "wt(2)"]) {
+    mkdirSync(join(room, odd), { recursive: true });
+    const file = stamped(join(odd, "inside.md"), NOW - 1_000);
+    const command = `printf x > '${odd}/inside.md'`;
+    assert.deepEqual(touched(bash(command, at)), [file], odd);
+    assert.ok(writtenPaths(command, room).some((one) => one.token === `${odd}/inside.md`), odd);
+  }
+  const two = ["listed-1.md", "listed-2.md"].map((one) => stamped(one, NOW - 1_000));
+  assert.deepEqual(touched(bash("touch 'listed-1.md listed-2.md'", at)), two,
+    "and a quoted list is still two candidates, which is what a space ending a word is for");
+  assert.deepEqual(writtenPaths("printf x > '/tmp/memory/(report).md'.txt", room, "md").map((one) => one.token), [],
+    "and the redirect reader is handed the whole operand, since a quote closing is not where a target ends");
+});
+
 test("a name is read from the word the command spelled it in, and never from the middle of one", () => {
   const names = (command) => namesOf(command).map((one) => one.token);
   assert.deepEqual(names("curl --output=/tmp/a/notes.md https://x"), ["/tmp/a/notes.md"],
@@ -132,6 +151,50 @@ test("a name is read from the word the command spelled it in, and never from the
     "and one name spelled twice is two readings, the second standing where no `$` precedes it");
   assert.deepEqual(names("sed -i s/x/y/ *.md"), [], "a pattern names a file this text does not spell");
   assert.deepEqual(names("tee /tmp/a[1]/memory/x.md"), [], "and the `/memory/x.md` inside one is no path either");
+  assert.deepEqual(names("printf x > 'plus(one)/notes.md'"), ["/notes.md", "plus(one)/notes.md"],
+    "a parenthesis under a quote is a character of the name, and the tail it used to cut to stands beside that name rather than instead of it");
+  assert.deepEqual(names("perl -e 'system(q(touch),q(one.md))'"), ["one.md"],
+    "both readings, because the same span spells a path in one command and code in the next, and a whole word the extension stops short of is the second");
+  assert.deepEqual(names("tee /tmp/a\\\nb.md"), ["/tmp/ab.md"],
+    "and a line continuation is gone from the word, as a shell removes it, rather than ending the word there");
+  const held = (command) => namesOf(command, "md").map((one) => one.token);
+  assert.deepEqual(held("printf x > '/tmp/memory/(report.md).txt'"), ["report.md"],
+    "a word whose extension stops short of its end spells no file the span is, so a `.txt` target is no guarded write");
+  assert.deepEqual(held("printf x > '/tmp/memory/(report).md;other.txt'"), [],
+    "nor does a word an operator still cut out of its span, whose end is the cut and not the operand's");
+  assert.deepEqual(held("printf x > '/tmp/memory/(report).md'.txt"), [],
+    "nor a span the operand goes on past, where the quote closes and the word does not");
+  assert.deepEqual(held("printf x > '/tmp/memory/(report).md'$(printf .txt)"), [],
+    "and what the operand goes on with is the shell's question, so a substitution beside the quote carries it on too");
+  assert.deepEqual(held("$(printf p)'/tmp/memory/(report).md'"), [],
+    "including one in front of it, where the `)` closes a word as readily as it closes a command");
+  assert.deepEqual(held("printf x > $(true; printf '%s.txt' '/tmp/memory/(report).md' )"), [],
+    "and a span inside a substitution is an argument of that command rather than the target of this one, however far into it the span stands");
+  assert.deepEqual(
+    writtenPaths("printf x > $(true; printf '%s.txt' '/tmp/memory/(report).md' | tee /dev/null )", room, "md")
+      .map((one) => one.token),
+    [],
+    "which a reader of one span at a time asks of the whole text, the answer not being in the slice it was handed",
+  );
+  assert.deepEqual(held("(printf x > '/tmp/memory/(report).md'; ls)"), ["/tmp/memory/(report).md"],
+    "while a subshell hands its commands no arguments, and the target inside one is the target");
+  assert.deepEqual(writtenPaths("printf x # > '/tmp/memory/(report).md'", room, "md").map((one) => one.token), [],
+    "and a redirect written inside a comment is prose, which writes nothing whatever it spells");
+  assert.deepEqual(held("unset OUT; tee ${OUT:+ '/tmp/memory/(report).md' } </dev/null"), [],
+    "nor does a span an expansion may drop altogether, which is any span standing past a bare `$`");
+  assert.deepEqual(held("tee prefix@('/tmp/memory/(report).md'|other) </dev/null"), [],
+    "nor one a pattern holds, where a `(` something else opened makes the span an alternative and not the word");
+  assert.deepEqual(held("printf x > '/tmp/memory/(report).md' .txt"), [],
+    "and what parts one operand from the next is the three characters a shell splits on, not every space this language calls one");
+  assert.deepEqual(held("printf x > 'cache=/tmp/(report).md'"), ["cache=/tmp/(report).md"],
+    "a word read whole is read from its start, the key and the option readings each saying a name begins where this one says it does not");
+  assert.deepEqual(writtenPaths(`tee '/tmp/memory/(report).md'\u00a0`, room, "md").map((one) => one.token), [],
+    "and the span a span reader hands on keeps what a shell would keep, since what it trims off is part of the name");
+  assert.deepEqual(held("printf x > '/tmp/memory/(report)/note.md'"), ["/tmp/memory/(report)/note.md", "/note.md"],
+    "while the one it reaches the end of is exactly that file, guard and all");
+  assert.equal(namesOf("printf x > 'plus(one)/notes.md'").find((one) => one.token[0] === "p").at,
+    "printf x > '".length,
+    "and the offset handed back still indexes the text, which is what places a name against a tree");
 });
 
 /* `WRITES` answers whether a command counts as a write at all, and it answers before `namesOf` is
@@ -159,6 +222,15 @@ test("a write verb's target written against its own option letter counts as a wr
 
 /* Anchored nowhere, the scan was attempted at every position: one 40 000-character word cost 4.1 s
    inside a hook running under a deadline, so the guard here is against a hang and not a budget. */
+/* Whether a span is this command's target or another's is a fact about the whole command, so a
+   reader of one span at a time was asking the whole text once per span, which is a square (ISS-1555). */
+test("a command of many spans is placed once and not once per span", () => {
+  const began = Date.now();
+  assert.deepEqual(writtenPaths(":;".repeat(20_000), room, "md"), []);
+  const spent = Date.now() - began;
+  assert.ok(spent < patience(1_000), `20 000 spans took ${spent} ms to place`);
+});
+
 test("a long operand is scanned once for the word it is, not once for each character in it", () => {
   const blob = `${"A".repeat(20_000)}+/${"B".repeat(20_000)}`;
   const began = Date.now();

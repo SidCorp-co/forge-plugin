@@ -206,8 +206,92 @@ export const waitsIn = (text) => {
   return out;
 };
 
-/* A word is what a shell hands on as one, so only what ends a word ends a name: the operators, the quotes, a `$` and a backslash — each quote spelt as its code point, since a lone one in a source file is an unclosed string to everything that reads this repository as text and the checks here do read it that way. Everything else a filesystem allows stands inside a name, which is why this is written as what a name may not carry rather than as what it may — an allow-list cut a path at the first `+` in it and handed on the tail, which is shorter, relative and still resolves. */
-const BARE = /[^\s;&|()<>\x27\x22\x60$\\]+/gu;
+/* A word is what a shell hands on as one, so only what ends a word ends a name: the operators, the quotes, a `$` and a backslash. Everything else a filesystem allows stands inside a name, which is why this is written as what a name may not carry rather than as what it may — an allow-list cut a path at the first `+` in it and handed on the tail, which is shorter, relative and still resolves. */
+const OPERATOR = /[;&|()<>$\\]/u;
+/* Whitespace and the quotes end a word wherever they stand, under a quote as much as outside one. The space because a quoted span carrying one is a sentence or a payload far more often than a filename, which is the narrowing `spoken` makes in the harness and the split that hands `touch 'a.md b.md'` its two candidates; the quotes — each spelt as its code point, a lone one in a source file being an unclosed string to everything that reads this repository as text — because what arrives here is as often an interpreter's body carrying its own quotes as it is one name, and `open("--trap.md", "w")` spells the file in the inner pair. */
+const ALWAYS = /[\s\x27\x22\x60]/u;
+/* And the two of the operators a single quote takes back, which is where a shell opens no subshell and a path plausibly carries one: the `;`, the `|`, the `<`, the `>`, the `$` and the backslash inside a quoted span say interpreter's body far more often than they say filename, and a reading that must not invent a target leaves them ending words as they always did. */
+const BRACKET = /[()]/u;
+
+/** Every word of a command, as the walk reads it: the text of one, and the offset each of its characters stood at — kept per character because a word is the characters of it that survive, and a name read out of one is still placed where it was written. An operator ends a word wherever the shell is spending it as shell, which is what `quoting` answers and no regular expression over the raw text can. Under a single quote it is spending no bracket, so `'a/p(1)/b.md'` is one word and one name rather than a tail that resolves somewhere else entirely.
+ *  Both readings of such a span and not one, since nothing in the text says which it is: `'a/p(1)/b.md'` is a path and `'system(q(touch),q(b.md))'` is code, and a caller that must not miss a target is handed the whole word for the first and the brackets still ending words for the second. So nothing a name was read from before this is read from less. `joined` is which words the first reading made, and `namesOf` takes a name from one only where the name is the whole of it: the claim such a word makes is that the span is one filename, and a `'…/(report.md).txt'` whose extension stops short of its end is refuting that claim rather than spelling a file. */
+const cuts = (mark) => !mark
+  || ALWAYS.test(mark.one)
+  || ((mark.under !== "'" || !BRACKET.test(mark.one)) && OPERATOR.test(mark.one));
+/* Where one operand ends, which is a bare shell metacharacter and not where a word this reads ends: a `$`, a backslash and a quote each end a word here and carry the operand on, so `'a(1).md'$(printf .txt)` and `'a(1).md'.txt` are one operand apiece and neither is the span. Bare, because a metacharacter a quote or a comment holds separates nothing, and the three characters a shell splits on rather than every space this language knows, since `'a(1).md'<U+00A0>.txt` is one operand to a shell and two words to a `\s`. And a `)` on either side of a span is the one this leaves out: in front it closes a substitution the shell joins to that span as often as a subshell around it, and behind it closes a substitution the span was computed *inside* — `> $(printf '%s.txt' 'a(1).md')` writes the `.txt` and the span is an argument of the printf. Which of the two a `)` is, is what this walk cannot yet say (ISS-1533), and until it can, the span beside one keeps the reading it had. */
+const OPENED = /[ \t\n;&|<>(]/u;
+const CLOSED = /[ \t\n;&|<>]/u;
+const parts = (mark, shape) => !mark || (mark.under === " " && shape.test(mark.one));
+
+/* Whether a substitution was opened anywhere before this point, which is where the whole reading stops being offered: `> $(printf '%s.txt' 'a(1).md')` puts a quoted operand inside one, where it is an argument of that command and not the target of this one, and nothing about the span or its neighbours says so. Anywhere and not in the same command, because what ends a substitution is the `)` this walk cannot place and a separator inside one ends nothing (ISS-1533) — so a text that opened one is a text this declines to place a span in at all, and the span keeps the reading it had. */
+/* What may put a value into the command that this text does not spell: a `$` opening an expansion of any kind, a backtick pair, and a `(` some other character put in front of — a process substitution's, and the pattern openers a shell with `extglob` on reads `x@('a(1).md'|y)` with. Any of them and this stops claiming a span is a whole operand — `${OUT:+ 'a(1).md' }` is a filename or nothing at all depending on a variable, and `$(printf …)` is an argument of the printf. Written as the openers rather than as their shapes, because what closes each of them is a bracket this walk cannot place (ISS-1533) and a shape it cannot close is one it cannot leave. */
+const openedAt = (marks) => {
+  const at = marks.findIndex(({ one, under }, n) => under === " "
+    && (one === "$" || one === "\x60"
+      || (one === "(" && marks[n - 1]?.under === " " && /[<>?*+@!]/u.test(marks[n - 1]?.one ?? ""))));
+  return at < 0 ? marks.length : at;
+};
+
+/** Whether a name read at an offset of this text may be claimed as the whole of an operand: not past a substitution, where it may be an argument of some other command, and not inside a comment, where a redirect is prose and writes nothing. One walk for the text, so a caller reading it span by span asks it once — the answer is about the whole command and is not in any slice of it. */
+export const placeable = (text) => {
+  const marks = quoting(text);
+  const opens = marks[openedAt(marks)]?.at ?? Infinity;
+  const said = new Set(marks.filter(({ under }) => under === "#").map(({ at }) => at));
+  return (at) => at < opens && !said.has(at);
+};
+
+const worded = (text, alike) => {
+  const marks = quoting(text);
+  const opens = openedAt(marks);
+  /* Which single-quoted spans are a whole operand and so could be one filename. Closed, holding nothing that still cuts a word, and with an operand's end on either side of it — each of the three because the whole reading claims the span *is* the file: `'/tmp/m/(r).md;o.txt'` and `'/tmp/m/(r).md'.txt` both write a `.txt`, and either would hand a `.md` scan a guarded name nobody wrote. */
+  const alone = new Array(marks.length).fill(false);
+  for (let from = 0; from < marks.length;) {
+    if (marks[from].under !== "'") {
+      from += 1;
+      continue;
+    }
+    let to = from + 1;
+    while (to < marks.length && marks[to].under === "'") to += 1;
+    const body = marks.slice(from + 1, to - 1);
+    const shut = to - from >= 2 && marks[to - 1].one === "'";
+    if (alike && shut && from < opens && parts(marks[from - 1], OPENED) && parts(marks[to], CLOSED)
+      && !body.some(({ one }) => ALWAYS.test(one) || (OPERATOR.test(one) && !BRACKET.test(one)))) {
+      for (let at = from; at < to; at += 1) alone[at] = true;
+    }
+    from = to;
+  }
+  const whole = [];
+  let word = null;
+  for (let n = 0; n < marks.length; n += 1) {
+    const { at, one } = marks[n];
+    if (cuts(marks[n])) {
+      word = null;
+      continue;
+    }
+    if (!word) whole.push((word = { text: "", at: [], alone: alone[n] }));
+    word.text += one;
+    word.at.push(at);
+  }
+  const out = [];
+  for (const one of whole) {
+    if (!BRACKET.test(one.text)) {
+      out.push(one);
+      continue;
+    }
+    if (one.alone) out.push({ ...one, joined: true });
+    let part = null;
+    for (let at = 0; at < one.text.length; at += 1) {
+      if (BRACKET.test(one.text[at])) {
+        part = null;
+        continue;
+      }
+      if (!part) out.push((part = { text: "", at: [] }));
+      part.text += one.text[at];
+      part.at.push(one.at[at]);
+    }
+  }
+  return out;
+};
 /* Where a name may begin inside its word, besides its start. Before it: the option a value may be attached to, which is one letter after a single hyphen and the whole word after two — `curl -onotes.md` writes what `--output=notes.md` does, and past a bare `--` there are no options left, so a file whose own name opens with a hyphen is read as one — and the first `=` or `:`, a key standing in front of the value it names. After it: the last `}`, since what follows the last substitution is the literal tail the program will build, and `f"{root}/skills/x/SKILL.md"` spells a guarded path while naming no `root` this can read. One of each and no more, so one word is read four ways rather than once per character of a 40 000-character operand. And a word standing against a quote is no option at all but a literal a body carries, an interpreter's own body arriving here with its quotes still in it — all three of them, a template's backtick as much as the other two — and `open("--trap.md", "w")` naming a file. */
 const OPTION = /^--[\w-]+|^-[A-Za-z0-9]/u;
 const KEYED = /[=:]/u;
@@ -218,24 +302,31 @@ const KEY = /^[^/=:]*[=:](?:~|\.{0,2})\//u;
 const PATTERN = String.raw`[^*?[\]{}]`;
 
 /** A name with an extension, as a command spells one, with where each begins: the readings above, so a directory carrying a character a name usually does not is read whole rather than cut at it, while one word may still spell the value behind its option or its key and the tail behind its substitution. `tail` is which extensions a caller wants, one gate judging `.md` alone. The names written from the root come first, those being the ones a reader resolves without the call's own cwd. Spelt here and nowhere else. */
-export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true } = {}) => {
+export const namesOf = (text, tail = "[A-Za-z0-9]+", { options = true, whole = true } = {}) => {
   const ending = new RegExp(`^${PATTERN}+\\.${tail}`, "u");
   const names = [];
+  const seen = new Set();
   const past = (mark) => (mark < 0 ? [] : [mark + 1]);
   let ended = false;
-  for (const word of text.matchAll(BARE)) {
-    if (word[0] === "--") ended = true;
-    const literal = QUOTES.test(text[word.index - 1] ?? " ");
-    const option = (options && !ended && !literal && OPTION.exec(word[0])?.[0].length) || 0;
-    const starts = [
-      ...(option || KEY.test(word[0]) ? [] : [0]),
-      ...(option && word[0][option] !== "=" ? [option] : []),
-      ...past(KEYED.exec(word[0])?.index ?? -1),
-      ...past(word[0].lastIndexOf("}")),
+  for (const word of worded(text, whole)) {
+    if (word.text === "--") ended = true;
+    const literal = QUOTES.test(text[word.at[0] - 1] ?? " ");
+    const option = (options && !ended && !literal && OPTION.exec(word.text)?.[0].length) || 0;
+    /* A joined word is read from its start and nowhere else. The other three readings each say the name begins partway in, which is the opposite of what this word claims — that the span is one filename — and `'cache=/tmp/(r).md'` is a relative name the key reading would turn into a rooted one somewhere else entirely. */
+    const starts = word.joined ? [0] : [
+      ...(option || KEY.test(word.text) ? [] : [0]),
+      ...(option && word.text[option] !== "=" ? [option] : []),
+      ...past(KEYED.exec(word.text)?.index ?? -1),
+      ...past(word.text.lastIndexOf("}")),
     ];
     for (const at of new Set(starts)) {
-      const name = ending.exec(word[0].slice(at))?.[0];
-      if (name) names.push({ token: name, at: word.index + at });
+      const name = ending.exec(word.text.slice(at))?.[0];
+      /* One reading of a word and the other can spell the same name at the same place — `'a.md)'` whole and `'a.md'` past the operator — and one name read twice from one offset is one name. */
+      const once = name && `${word.at[at]} ${name}`;
+      if (once && !seen.has(once) && !(word.joined && name.length < word.text.length - at)) {
+        seen.add(once);
+        names.push({ token: name, at: word.at[at] });
+      }
     }
   }
   const rooted = (one) => one.token.startsWith("/") || one.token.startsWith("~/");
