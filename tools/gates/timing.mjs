@@ -19,11 +19,12 @@ export const CEILING_SECONDS = ceilingOf(REVIEW);
 
 export const recordDir = (root) => join(gitCommonDir(root), "gate-ledger");
 
-/* Linked worktrees share one record directory, so what a run writes there for itself is named for
-   its own tree and never for the step alone: the basename to read it by, the digest because two
-   worktrees may share a basename. */
+/* Linked worktrees share one record directory, and the place a gate waits for is this checkout's
+   rather than this worktree's: named for the step alone, one gate reads what another wrote. */
 export const treeKey = (root) => `${basename(root).replace(/[^\w.-]+/gu, "-")}`
   + `.${createHash("sha256").update(root).digest("hex").slice(0, 8)}`;
+
+export const runKey = (root, pid = process.pid) => `${treeKey(root)}.${pid}`;
 
 export const seriesFile = (dir) => join(dir, FILE);
 
@@ -35,7 +36,7 @@ export const alonePath = (dir, label) => beside(dir, label, "alone");
 
 export const casesPath = (dir, label) => beside(dir, label, "failed");
 
-export const roomPath = (dir, label, root) => beside(dir, label, `room.${treeKey(root)}`);
+export const roomPath = (dir, label, run) => beside(dir, label, `room.${run}`);
 
 export const runSeries = (dir) => {
   let text;

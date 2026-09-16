@@ -22,7 +22,7 @@ import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/sc
 import { parallelRuns } from "../plugin/src/resolve/settings.mjs";
 import { gateSteps, TEST_FILE, testWorkers } from "./gates/steps.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
-import { alonePath, casesPath, CEILING_SECONDS, REVIEW, fileTimesPath, recordDir, recordRun, roomPath, seriesFile }
+import { alonePath, casesPath, CEILING_SECONDS, REVIEW, fileTimesPath, recordDir, recordRun, roomPath, runKey, seriesFile }
   from "./gates/timing.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
@@ -419,12 +419,13 @@ if (planned.some((step) => step.tests)) {
     + `${declared.value === null ? ", this box having declared no runs" : `, ${declared.value} run(s) declared in ${declared.from}`} ===`);
 }
 const record = recordDir(ROOT);
+const mine = runKey(ROOT);
 const unproved = [];
 const owned = [];
 
 const testEnv = (step) => step.tests
   ? { GATE_FILE_TIMES: fileTimesPath(record, step.label), [CASES_ENV]: casesPath(scratch, step.label),
-      [ROOM_ENV]: roomPath(record, step.label, ROOT) }
+      [ROOM_ENV]: roomPath(record, step.label, mine) }
   : {};
 
 /* Every exit past an attribution says what its findings reached, the leak refusal included: a key
@@ -443,8 +444,9 @@ for (const step of planned) {
   console.log(`\n=== ${step.label} ===`);
   const at = Date.now();
   const env = { ...process.env, TMPDIR: scratch, ...testEnv(step) };
-  // Before the step, never after: a note the last run left would read as this one's.
-  if (step.tests) forgetRoomRefusal(roomPath(record, step.label, ROOT));
+  /* Before the step and again once it has passed, so the only note left standing is a refusal this
+     run exited on or one a killed gate abandoned — as a killed gate abandons its temp root. */
+  if (step.tests) forgetRoomRefusal(roomPath(record, step.label, mine));
   const { status, error } = spawnSync(step.argv[0], step.argv.slice(1), { cwd: ROOT, env, stdio: "inherit" });
   const took = Math.round((Date.now() - at) / 1000);
   const failed = Boolean(error) || status !== 0;
@@ -452,7 +454,7 @@ for (const step of planned) {
   if (failed) {
     /* Before the attribution, which would spend a re-run per case on a machine that has no room to
        give one: a step whose fixture was refused its room judged nothing about the tree (ISS-1611). */
-    const refused = step.tests ? roomRefused(roomPath(record, step.label, ROOT)) : null;
+    const refused = step.tests ? roomRefused(roomPath(record, step.label, mine)) : null;
     if (refused) {
       console.error(`\nGate failed: ${step.label} — the machine refused a fixture its temporary room `
         + `${refused.times} time(s), so this step judged nothing about the tree: ${ROOT}`);
@@ -484,6 +486,7 @@ for (const step of planned) {
       finish(status ?? 1, "failed", { step: step.label });
     }
   }
+  if (step.tests) forgetRoomRefusal(roomPath(record, step.label, mine));
   /* Before the pass is recorded, or the ledger holds a step green that left the machine dirtier. */
   const leak = roomLeft(scratch);
   if (leak) {

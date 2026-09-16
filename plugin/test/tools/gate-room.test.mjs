@@ -4,14 +4,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { escaped, tempRoom } from "../fixtures.mjs";
 import { landed, run, scratch } from "./gates/scratch.mjs";
 import { forgetRoomRefusal, madeIn, roomRefused, roomRefusal, ROOM_ENV } from "../../../tools/room.mjs";
-import { roomPath } from "../../../tools/gates/timing.mjs";
+import { roomPath, runKey } from "../../../tools/gates/timing.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const FIXTURES = join(ROOT, "plugin", "test", "fixtures.mjs");
@@ -146,11 +146,14 @@ test("a fixture given no TMPDIR still makes its rooms under the platform's tempo
   assert.ok(said.stdout.startsWith(`${machine}/forge-plugin-test-`), `${said.stdout} is not under ${machine}`);
 });
 
-test("two worktrees sharing one record directory get a note each, not one between them", () => {
-  const dir = tempRoom("refused-two-trees-");
-  const mine = roomPath(dir, "test", "/checkouts/wt-ISS-1611");
-  const theirs = roomPath(dir, "test", "/checkouts/wt-ISS-1593");
-  assert.notEqual(mine, theirs, "one run's refusal would erase the other's, or be read as it");
+test("two gates sharing one record directory get a note each, not one between them", () => {
+  const dir = tempRoom("refused-two-runs-");
+  const mine = roomPath(dir, "test", runKey("/checkouts/wt-ISS-1611", 11));
+  const other = roomPath(dir, "test", runKey("/checkouts/wt-ISS-1593", 11));
+  const again = roomPath(dir, "test", runKey("/checkouts/wt-ISS-1611", 22));
+  for (const [what, theirs] of [["worktree", other], ["gate of one worktree", again]]) {
+    assert.notEqual(mine, theirs, `a second ${what} would erase this run's refusal, or be read as it`);
+  }
   assert.equal(dirname(mine), dir, "a note outside the record directory is one a full disk loses");
 });
 
@@ -179,7 +182,7 @@ test("a test step whose fixture was refused a room says the machine did it, not 
     assert.match(said.stderr, /Could not make the temporary room at .*: EACCES/u, said.stderr);
     assert.ok(!said.stderr.includes("no failing case was named"), said.stderr);
     assert.ok(!said.stdout.includes("=== isolation:"), `a case was re-run on a machine with no room:\n${said.stdout}`);
-    assert.ok(existsSync(roomPath(join(work, ".git", "gate-ledger"), "test", work)),
+    assert.match(readdirSync(join(work, ".git", "gate-ledger")).join(" "), /(?<= |^)test-room\./u,
       "the note went somewhere other than the record directory, so a full filesystem would lose it");
   } finally {
     rmSync(at, { recursive: true, force: true });
