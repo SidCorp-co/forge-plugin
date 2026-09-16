@@ -475,7 +475,9 @@ test("an outside path sends bodies where no mode was named, and a named mode sta
 
   const stands = modeFor("diffs", [out]);
   assert.equal(stands.bodies, false, "a mode the command or this account's configuration named is never overruled");
-  assert.match(stands.said, /stands/u, "and the standing is said, the write downstream turning on it");
+  assert.match(stands.said, /stands/u, "and the standing is said");
+  assert.match(stands.said, /a plan or criteria write will then refuse/u,
+    "naming what turns on it, which is the one thing the caller cannot see from the mode alone");
 
   assert.deepEqual(modeFor("bodies", [out]), { bodies: true, said: null },
     "bodies named where bodies is what the set would have chosen overrules nothing to report");
