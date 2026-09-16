@@ -114,6 +114,8 @@ test("a quoted target is read as a shell reads it, so a parenthesis in it opens 
   const two = ["listed-1.md", "listed-2.md"].map((one) => stamped(one, NOW - 1_000));
   assert.deepEqual(touched(bash("touch 'listed-1.md listed-2.md'", at)), two,
     "and a quoted list is still two candidates, which is what a space ending a word is for");
+  assert.deepEqual(writtenPaths("printf x > '/tmp/memory/(report).md'.txt", room, "md").map((one) => one.token), [],
+    "and the redirect reader is handed the whole operand, since a quote closing is not where a target ends");
 });
 
 test("a name is read from the word the command spelled it in, and never from the middle of one", () => {

@@ -279,9 +279,9 @@ const EXECUTES_STDIN = new RegExp(
   "u",
 );
 
-/** A redirect is judged by its target: `2>&1` writes nothing, and one holding a `$(…)` holds spaces. */
+/** A redirect is judged by its target: `2>&1` writes nothing, and one holding a `$(…)` holds spaces. The target is every part of the one word, since a quote closing is not the operand ending: `> 'a(1).md'.txt` writes the `.txt`, and a capture stopping at the quote hands the reader a word it will take for the whole of one (ISS-1555). */
 export const REDIRECT = new RegExp(
-  String.raw`(?:^|[\s;&|(])\d?>>?\s*(?!&\d)("[^"]*"|'[^']*'|\$\([^)]*\)[^\s;&|<>]*|[^\s;&|<>]+)`,
+  String.raw`(?:^|[\s;&|(])\d?>>?\s*(?!&\d)((?:"[^"]*"|'[^']*'|\$\([^)]*\)|[^\s;&|<>])+)`,
   "gu",
 );
 
