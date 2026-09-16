@@ -157,6 +157,22 @@ test("a cut stops where the main clause first resumes, however many adjuncts fol
   assert.ok(said[0].includes('what remains is "Run `forge record plan` before pushing, after review."'), said[0]);
 });
 
+/* A resumption the main clause qualifies: "only after" and "immediately before" are the obligation
+   resuming, not the clause continuing, and a cut that ran past them would delete the timing (F1). */
+test("a cut stops at a resumption the main clause qualifies, and leaves the timing standing", () => {
+  for (const [source, remains] of [
+    ["Run `forge record plan`, which refuses unread files, only after review.",
+      'what remains is "Run `forge record plan` only after review."'],
+    ["Run `forge record plan`, which refuses unread files, immediately before pushing.",
+      'what remains is "Run `forge record plan` immediately before pushing."'],
+  ]) {
+    const said = mechanicsIn(source, "guide.md");
+    assert.equal(said.length, 1, said.join("\n"));
+    assert.ok(said[0].includes('"which refuses unread files"'), `the cut swallowed the timing: ${said[0]}`);
+    assert.ok(said[0].includes(remains), `a run taking this cut would lose the obligation: ${said[0]}`);
+  }
+});
+
 test("a refusal names the line the refused span starts on", () => {
   const said = mechanicsIn("Run `forge record plan` — \nwhich refuses unread files — before pushing.", "guide.md");
   assert.equal(said.length, 1, said.join("\n"));

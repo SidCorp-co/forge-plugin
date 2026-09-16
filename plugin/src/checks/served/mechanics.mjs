@@ -104,7 +104,10 @@ const joined = (found) => {
 /* Where a relative clause gives the sentence back: the rightmost comma the main clause resumes
    after, so an enumeration inside the clause is not read as its end and a cut taken at the first
    comma cannot leave half a list standing where the obligation was. */
-const RESUMES = /^\s*(?:before|after|until|while|during|since|once|unless|so|then|at|on|in|by|for|from|with|without|against|beyond|past|is|are|was|were|must|should|can|may|will|shall|has|have|had|does|do|goes|stands|remains|becomes)\b/u;
+const QUALIFIER = "(?:only|just|immediately|right|always|never|again|first|last|not)";
+const RESUMES = new RegExp(`^\\s*(?:${QUALIFIER}\\s+)*(?:before|after|until|while|during|since|once|unless|so|then`
+  + `|at|on|in|by|for|from|with|without|against|beyond|past|is|are|was|were|must|should|can|may|will|shall`
+  + `|has|have|had|does|do|goes|stands|remains|becomes)\\b`, "u");
 const resumesAfter = (segment, from) => {
   for (let at = from; at < segment.length; at += 1) {
     if (segment[at] === "," && RESUMES.test(segment.slice(at + 1))) return at;
