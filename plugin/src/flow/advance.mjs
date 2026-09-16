@@ -84,6 +84,12 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
   /* Soft is for the caller that has already written something: it words its own refusal around the record it left behind, so nothing is framed for it here. */
   if (answer?.refused) {
     if (soft) return answer.refused;
+    /* A dropped write is not a rejected one, and only the transport knows which it was: told the issue is still where it was, a run would act on a move that may have landed. */
+    if (afterRefused(answer.refused).unknown) {
+      refuse(`${ref} read ${view.issue.status} and was asked for ${status}, and the move neither `
+        + `landed nor failed cleanly. What came back:\n${answer.refused}\nRead the status before `
+        + `writing anything else:\n  forge issue ${ref} --fields status`);
+    }
     refuse(`${ref} is ${view.issue.status} and the move to ${status} was refused, so nothing was `
       + `written. What refused it:\n${answer.refused}`);
   }

@@ -8,6 +8,8 @@ import test from "node:test";
 
 import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
 
+const { AMBIGUOUS } = await import("../../../src/tracker/rest.mjs");
+
 process.env.XDG_CONFIG_HOME = tempHome("advance-refused-move").path;
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -82,4 +84,14 @@ test("--owed answers the same whatever pipelineConfig.states holds", async () =>
   const configured = await advance("--owed");
   assert.equal(configured.stdout, bare.stdout, configured.stdout);
   assert.match(bare.stdout, /closed is next/u, bare.stdout);
+});
+
+test("a move that neither landed nor failed claims nothing about the status and sends the run to read it", async () => {
+  state.refuses = `Forge did not answer POST /api/issues/parked-uuid/transition: socket hang up\n${AMBIGUOUS}`;
+  PARKED.status = "awaiting_release";
+  const run = await advance();
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /neither landed nor failed cleanly/u, run.stderr);
+  assert.match(run.stderr, /forge issue ISS-99 --fields status/u, "the read that settles it comes first");
+  assert.doesNotMatch(run.stderr, /nothing was written/u, "and nothing asserts a move the transport could not see");
 });
