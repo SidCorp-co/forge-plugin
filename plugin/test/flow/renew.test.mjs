@@ -516,9 +516,7 @@ test("a write taking a released field keeps the line the release left, and a bar
     "while a field nobody released gets the derived line, no line being owed to anybody there");
 });
 
-/* Omission and a clearing are two answers, and only a released field has a line to tell them apart on:
-   a transition passes an explicit null to clear the line the issue was carrying, and a coalesce would
-   read that as silence and put the line back (F1 of the read after the fix above). */
+/* Omission and a clearing are two answers: a transition passes an explicit null to clear the line the issue was carrying, and a coalesce reads that as silence and puts the line back (F1 of the read after the fix above). */
 test("a transition's explicit null clears the line a release left, where silence would have carried it", async () => {
   const released = () => ({ lease: { holder: "", released: new Date(Date.now() - 120_000).toISOString(), next: "fold F1", history: [] } });
   field = released();
@@ -526,11 +524,31 @@ test("a transition's explicit null clears the line a release left, where silence
   await said(() => renew(ISSUE, "ISS-1617", null));
   assert.equal(leaseOf(field).next, null, "the clearing is honoured on a released field");
 
+  field = { lease: { holder: "", released: new Date(Date.now() - 120_000).toISOString(), next: null, history: [] } };
+  status = "developed";
+  await said(() => renew(ISSUE, "ISS-1617", null));
+  assert.equal(leaseOf(field).next, null,
+    "and on a released field carrying no line either, which is released all the same");
+
   field = null;
   status = "open";
   await said(() => renew(ISSUE, "ISS-1617", null));
   assert.equal(leaseOf(field).next, "nothing was worked under this lease",
     "and on a bare field, which has no line to clear, the null still resolves to the derived one");
+});
+
+/* The release settles a call whose payload has landed: the read-first gate was spent by that payload one
+   write earlier in the same process, and asking it again is a round trip for a question already answered
+   — one whose own refusal exits, and would fail a call that did what it was asked. */
+test("the release asks the read-first gate nothing, that gate having been spent by the write it settles", async () => {
+  field = null;
+  status = "open";
+  await said(() => renew(ISSUE, "ISS-1617"));
+  sent.length = 0;
+  await said(() => releaseOwed());
+  assert.deepEqual(sent.filter((one) => one === "forge_comments:list"), [],
+    "no comment page is read for the give-back");
+  assert.equal(leaseOf(field), null, "and the lease went back all the same");
 });
 
 /* The release is the one lease write whose payload has already landed, so a transport that refuses it

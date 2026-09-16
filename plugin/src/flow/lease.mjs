@@ -473,7 +473,7 @@ const takenByWriting = async (documentId, ref, context, next, patch) => {
   const sent = claimed(context, {
     holder: sessionOf(),
     minutes: READING_MINUTES,
-    next: next === undefined ? carried ?? NOTHING_WORKED : next ?? (carried === null ? NOTHING_WORKED : null),
+    next: next === undefined ? carried ?? NOTHING_WORKED : next ?? (releasedIn(context) ? null : NOTHING_WORKED),
     worklog: worklogFor(context, patch),
     how: TAKEN_BY_WRITING,
     status,
@@ -497,7 +497,7 @@ export const releasedWrite = (context, at = sharedStamp()) => ({
   [KEY]: { ...(remnantOf(context) ?? {}), holder: "", [RELEASED]: at },
 });
 
-/** Every lease a write took for itself in this process, given back. Read back first and judged on what came back: a take that landed between the write and here is a run this must not write over, and a lease already gone is nothing to give back. Its write is the writer's soft one, which no other lease write is: everything the call was asked for is already on the tracker by the time this runs, and `writeFields` carries what that buys. */
+/** Every lease a write took for itself in this process, given back. Read back first and judged on what came back: a take that landed between the write and here is a run this must not write over, and a lease already gone is nothing to give back. Its write is the writer's settling one, which no other lease write is: everything the call was asked for is already on the tracker by the time this runs, and `writeFields` carries what that buys. */
 export const releaseOwed = async (say = console.error) => {
   const owed = [...OWED.entries()];
   OWED.clear();
@@ -510,7 +510,7 @@ export const releaseOwed = async (say = console.error) => {
       }
       const state = stateOf(leaseOf(context), sessionOf());
       if (state !== "mine" && state !== "lapsed") continue;
-      await setLease(documentId, releasedWrite(context), ref, () => context, { refuse, soft: true });
+      await setLease(documentId, releasedWrite(context), ref, () => context, { refuse, settling: true });
       say(releasedSaid(ref));
     } catch (error) {
       say(`${ref}'s lease was not given back and stands until it lapses: ${error?.message ?? error}`);
