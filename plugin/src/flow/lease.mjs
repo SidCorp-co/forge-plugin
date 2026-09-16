@@ -615,8 +615,7 @@ export const landingSaved = async (documentId, ref, patch, { was = null } = {}) 
     if (state === "free") fail(freeRefusal(ref, await statusFor(documentId), context));
     if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, lease));
     const held = landingOf(context);
-    /* Asked before the table is, for the caller whose eligibility was read a request earlier: the
-       table would allow the same move off a checkpoint somebody replaced in between. */
+    /* Before the table, which would allow the same move off a checkpoint somebody replaced. */
     const moved = landingMoved(was, held);
     if (moved) {
       fail(`the landing on ${ref} moved between the read this write was decided on and the write: `

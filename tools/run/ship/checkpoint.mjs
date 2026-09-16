@@ -1,16 +1,16 @@
 /* The landing checkpoint a release finishes. A ship wrote no landing state at all, so a branch its own
    run released stayed on the record as waiting to be landed and the next empty `land-ready` found it
    (ISS-1654). It reports and refuses nothing. docs/cli/the-checkpoint.md. */
-import { gitOut } from "../checkout.mjs";
-import { carries } from "./land-ready/candidate.mjs";
-import { ownReplay } from "./replayed.mjs";
-import { unshippedSays } from "./publish.mjs";
-import { landingOf, LANDING_DONE, LANDING_READY } from "../../plugin/src/flow/landing/checkpoint.mjs";
-import { landingSaved, readContext } from "../../plugin/src/flow/lease.mjs";
-import { runIdAt, runsFor } from "../../plugin/src/resolve/session/run-id.mjs";
-import { Refusal, refusing } from "../../plugin/src/resolve/settings.mjs";
-import { Refused } from "../../plugin/src/refusal.mjs";
-import { documentIdOf } from "../../plugin/src/tracker/issues.mjs";
+import { gitOut } from "../../checkout.mjs";
+import { carries } from "../land-ready/candidate.mjs";
+import { ownReplay } from "../replayed.mjs";
+import { unshippedSays } from "../publish.mjs";
+import { landingOf, LANDING_DONE, LANDING_READY } from "../../../plugin/src/flow/landing/checkpoint.mjs";
+import { landingSaved, readContext } from "../../../plugin/src/flow/lease.mjs";
+import { runIdAt, runsFor } from "../../../plugin/src/resolve/session/run-id.mjs";
+import { Refusal, refusing } from "../../../plugin/src/resolve/settings.mjs";
+import { Refused } from "../../../plugin/src/refusal.mjs";
+import { documentIdOf } from "../../../plugin/src/tracker/issues.mjs";
 
 /** The issues this tree was started for, off the id `start` minted into its git directory rather than
  *  off the branch name: a batch is one tree under one id, and the branch is named for its first key alone. */

@@ -136,8 +136,6 @@ export const replayedBy = (tree, from) => {
   writeFileSync(markAt(tree), `${[...kept, from, to].join(" ")}\n`);
 };
 
-/** Whether `at` is a head this ship's own replay chain still answers for: exported so the checkpoint
- *  step can ask the one question a rebase makes unanswerable by ancestry alone. */
 export const ownReplay = (tree, at, head) => {
   const held = markRead(tree);
   return Boolean(held.length && carries(tree, held.at(-1), head)

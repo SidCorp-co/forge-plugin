@@ -12,9 +12,8 @@ const recorded = { push: (one) => appendFileSync(at(calls), `${JSON.stringify(on
 
 const held = () => (existsSync(at(seed)) ? JSON.parse(readFileSync(at(seed), "utf8")) : {});
 
-/* The seed is the store and not a script: a writer that reads its own write back — the lease and the
-   landing checkpoint do — is refused by a tracker whose update only echoes. Reads stay the built-in's,
-   which is what answering `undefined` asks for. */
+/* The seed is the store: a writer that reads its own write back is refused by a tracker that only
+   echoes. Reads stay the built-in's, which is what answering `undefined` leaves to it. */
 const answer = {
   forge_issues: (args) => {
     if (args.action !== "update" && args.action !== "transition") return undefined;

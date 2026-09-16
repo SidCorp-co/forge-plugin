@@ -14,9 +14,7 @@ export const LANDING_RECORDS_OWED = "records-owed";
 export const LANDING_DONE = "done";
 
 export const LANDING_STATES = {
-  /* `done` because a release is a landing too: under ship mode `self` the run that built the
-     change lands it itself, holds every turn this table could name and leaves no candidate for a
-     second landing to read (ISS-1654). */
+  /* `done` because a release is a landing that built no candidate for a second one to read. */
   ready: { turn: "lander", next: ["candidate", "done"] },
   candidate: { turn: "lander", next: ["reconciled", "builder-owed"] },
   "builder-owed": { turn: "builder", next: ["reconciled"] },
@@ -48,8 +46,6 @@ export const landingOf = (context) => {
 
 export const landingTurn = (landing) => LANDING_STATES[landing?.state]?.turn ?? null;
 
-/* What a caller read its eligibility off, asked again at the write: the table alone cannot tell a
-   checkpoint that stood still from one that was replaced by another the table would also allow. */
 const READ_ON = ["state", "branch", "head"];
 
 export const landingMoved = (was, held) => {
