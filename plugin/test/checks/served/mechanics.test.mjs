@@ -33,6 +33,9 @@ const REFUSED = {
   "the same plural subject opening its own sentence": "Both calls refuse unread files.",
   "a coordinated subject set off by an em-dash":
     "Criteria are numbered, and the write — refuses the compounds it can prove.",
+  "a subject written in bold": "**`forge record plan`** refuses unread files.",
+  "a predicate in its bare form under a singular subject": "The call blocks unread files.",
+  "the same predicate under a plural subject": "Both calls block unread files.",
 };
 
 for (const [route, source] of Object.entries(REFUSED)) {
@@ -157,6 +160,23 @@ test("a refusal names the line the refused span starts on", () => {
   assert.equal(said.length, 1, said.join("\n"));
   assert.match(said[0], /^guide\.md:2 /u, `the line is the sentence's rather than the span's: ${said[0]}`);
   assert.ok(said[0].includes('"which refuses unread files"'), said[0]);
+});
+
+/* A description and a directive coordinated in one sentence, each way round. Whichever side the
+   description is on, the cut is its side and the directive is what remains. */
+test("a directive coordinated after a description is not part of the cut", () => {
+  const said = mechanicsIn("`forge record plan` refuses unread files, then run the consult before pushing.", "guide.md");
+  assert.equal(said.length, 1, said.join("\n"));
+  assert.ok(said[0].includes('"`forge record plan` refuses unread files"'), said[0]);
+  assert.ok(said[0].includes('what remains is "run the consult before pushing."'),
+    `a run taking this cut would lose the directive: ${said[0]}`);
+});
+
+test("a main clause resuming under a modal is where a cut at a relative clause stops", () => {
+  const said = mechanicsIn("`forge record plan`, which refuses unread files, must be run before pushing.", "guide.md");
+  assert.equal(said.length, 1, said.join("\n"));
+  assert.ok(said[0].includes('"which refuses unread files"'), said[0]);
+  assert.ok(said[0].includes('what remains is "`forge record plan` must be run before pushing."'), said[0]);
 });
 
 test("the walk reaches the served text, so a clean answer is a clean corpus and not an empty selector", () => {

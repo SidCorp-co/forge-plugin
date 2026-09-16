@@ -19,12 +19,13 @@ const EFFECT = [
   "refuses", "refuse", "accepts", "accept", "takes", "take", "requires", "require",
   "allows", "allow", "rejects", "reject", "ignores", "ignore", "renews", "renew",
   "removes", "remove", "clears", "clear", "verifies", "verify", "spends", "spend",
-  "defaults", "returns", "return", "leaves", "leave", "blocks", "overwrites", "overwrite",
+  "defaults", "default", "returns", "return", "leaves", "leave", "blocks", "block",
+  "overwrites", "overwrite",
   "writes", "write", "reads", "read",
 ].join("|");
 const PREDICATE = new RegExp(`^(?:${EFFECT})\\b`, "u");
 
-const CONNECTIVE = /^(?:\s|,|\band\b|\bor\b|\bboth\b|\beach\b|\balone\b|\bthen\b|\balso\b|\bstill\b|\bonly\b|\bitself\b|\bnever\b|\balways\b|\bhere\b|\bthere\b|`[^`\n]+`)+/u;
+const CONNECTIVE = /^(?:\s|,|\*|_|\band\b|\bor\b|\bboth\b|\beach\b|\balone\b|\bthen\b|\balso\b|\bstill\b|\bonly\b|\bitself\b|\bnever\b|\balways\b|\bhere\b|\bthere\b|`[^`\n]+`)+/u;
 
 const RELATIVE = /^\s*(?:which|that)\b/u;
 
@@ -39,7 +40,7 @@ const LEADING = new RegExp(`^[\\s*_>-]*(?:(?:and|but|or|nor|so|then)\\s+)?(?:(?:
 const BOUNDARY = new RegExp([
   String.raw`(?<![A-Z])[.!?;:](?=[*_"')\]]*(?:\s|$))`,
   String.raw`\s[—–]\s`,
-  String.raw`,\s+(?=(?:and|but|or|nor|so|which|that|where|because|unless|while|since)\s)`,
+  String.raw`,\s+(?=(?:and|but|or|nor|so|then|which|that|where|because|unless|while|since)\s)`,
   String.raw`\n\s*\n`,
   String.raw`\n\s*(?=[-*+]\s|\d+\.\s|\|)`,
 ].join("|"), "gu");
@@ -63,12 +64,17 @@ const segments = (text) => {
 };
 
 const opensWith = (segment) => {
-  const lead = LEADING.exec(segment)?.[0].length ?? 0;
-  const rest = segment.slice(lead);
+  const lead = LEADING.exec(segment)?.[0] ?? "";
+  const rest = segment.slice(lead.length);
+  /* Emphasis around the subject is the subject's, so a cut takes the marks that would be orphaned. */
+  const at = lead.length - (/[*_]+$/u.exec(lead)?.[0].length ?? 0);
   const span = /^`[^`\n]+`/u.exec(rest);
-  if (span) return CLI_SPAN.test(span[0]) && !DOC_SPAN.test(span[0]) ? { at: lead, to: lead + span[0].length } : null;
+  if (span) {
+    if (!CLI_SPAN.test(span[0]) || DOC_SPAN.test(span[0])) return null;
+    return { at, to: lead.length + span[0].length };
+  }
   const noun = ANAPHOR.exec(rest);
-  return noun ? { at: lead, to: lead + noun[0].length } : null;
+  return noun ? { at, to: lead.length + noun[0].length } : null;
 };
 
 const endsOn = (segment) => {
@@ -97,7 +103,7 @@ const joined = (found) => {
 /* Where a relative clause gives the sentence back: the rightmost comma the main clause resumes
    after, so an enumeration inside the clause is not read as its end and a cut taken at the first
    comma cannot leave half a list standing where the obligation was. */
-const RESUMES = /^\s*(?:before|after|until|while|during|since|once|unless|so|then|at|on|in|by|for|from|with|without|against|beyond|past|is|are|was|were)\b/u;
+const RESUMES = /^\s*(?:before|after|until|while|during|since|once|unless|so|then|at|on|in|by|for|from|with|without|against|beyond|past|is|are|was|were|must|should|can|may|will|shall|has|have|had|does|do|goes|stands|remains|becomes)\b/u;
 const resumesAfter = (segment, from) => {
   for (let at = from; at < segment.length; at += 1) {
     if (segment[at] === "," && RESUMES.test(segment.slice(at + 1))) return at;
