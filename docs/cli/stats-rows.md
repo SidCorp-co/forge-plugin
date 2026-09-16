@@ -33,14 +33,14 @@ got wrong:
 
 **The gate, the test and the ship are the project's own words, where it has said them.** Those
 three rows were literal alternations of the commands this repository runs, applied to every project
-profiled: on one whose gate is `node scripts/gates.mjs` they read zero, the time went into whatever
+profiled: on one whose gate is spelled `make check` they read zero, the time went into whatever
 class ran next, and the ship phase and the phase past it read zero runs apiece. A project says what
 its own are under `stats.commands` in the `.forge.json` the profiled checkout resolves to — the
 checkout the reading is about, never the one the caller is standing in — and a declaration
 **replaces** the built-in pattern for its class rather than joining it, because a project that has
 said what its gate is has said what its gate is. The command is matched as the text the project
-typed, at a command position, and nothing is read out of its shape: guessing that any script named
-`gates.mjs` is a gate is how a profiler starts counting a project's unrelated tooling. A project
+typed, at a command position, and nothing is read out of its shape: guessing that anything whose
+name ends in `gates.mjs` is a gate is how a profiler starts counting a project's unrelated tooling. A project
 that declares nothing keeps the built-in patterns and reads exactly as it did.
 
 **A class nothing was classed as, on a checkout that declared none, prints as unrecognised rather

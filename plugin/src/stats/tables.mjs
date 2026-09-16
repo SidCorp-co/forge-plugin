@@ -6,6 +6,7 @@ import { RUNGS } from "../ladder.mjs";
 import { medianOrZero, minutes } from "./figures.mjs";
 
 const ROWS = 10;
+export const UNRECOGNISED = "unrecognised";
 
 export const emptyPhase = () => PHASES.map(() => ({ seconds: 0, calls: 0, byClass: new Map() }));
 
@@ -44,14 +45,17 @@ export const perRung = (runs) => [...RUNGS, RUNG_UNKNOWN].map((rung) => {
 });
 
 const RUNG_WIDTH = 10;
+/* Wide enough for the word rather than the figure, a rung's gate median being the second place the same unrecognised class would otherwise print a measured nought (consult 3a4f1e F1). */
+const GATES = UNRECOGNISED.length + 2;
 export const rungLines = (held) => [
   "",
   `${"rung".padEnd(RUNG_WIDTH)}${"runs".padStart(5)}${"min med".padStart(9)}${"min sum".padStart(9)}`
-  + `${"calls med".padStart(11)}${"consults".padStart(10)}${"gates".padStart(7)}`,
+  + `${"calls med".padStart(11)}${"consults".padStart(10)}${"gates".padStart(GATES)}`,
   ...held.rungs.map((row) =>
     `${row.rung.padEnd(RUNG_WIDTH)}${String(row.runs).padStart(5)}${row.medianMinutes.toFixed(1).padStart(9)}`
     + `${row.totalMinutes.toFixed(0).padStart(9)}${row.medianCalls.toFixed(1).padStart(11)}`
-    + `${row.medianConsults.toFixed(1).padStart(10)}${row.medianGates.toFixed(1).padStart(7)}`),
+    + `${row.medianConsults.toFixed(1).padStart(10)}`
+    + `${String(countIn(held, "gate", row.medianGates.toFixed(1))).padStart(GATES)}`),
 ];
 
 export const capped = (rows, all) => (all ? rows : rows.slice(0, ROWS));
@@ -60,8 +64,6 @@ export const elided = (rows, all) =>
 
 export const listing = (title, rows, line, all) =>
   (rows.length ? ["", title, ...capped(rows, all).map(line), ...elided(rows, all)] : []);
-
-export const UNRECOGNISED = "unrecognised";
 
 /* A phase opened by nothing this reading recognises has no runs for a reason it can state, which is not the same answer as a flow that never reached it. The nearest marker at or below the row, because a phase past an unrecognised one is unreachable for that same reason and would otherwise print the most confident zero in the table (ISS-1586). */
 const phaseReason = (held, at) => {

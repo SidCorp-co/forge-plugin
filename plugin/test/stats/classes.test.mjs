@@ -92,6 +92,8 @@ test("a class nothing was classed as and no checkout declared is unrecognised, n
   assert.match(run.stdout, /^7 Ship {6}unrecognised: nothing here was classed ship$/mu);
   assert.match(run.stdout, /^8 Learn {5}unrecognised: reached only past a call classed ship, and nothing here was$/mu,
     "a phase reachable only past an unrecognised one would otherwise print the most confident zero in the table");
+  assert.match(run.stdout, /^unknown\s+1\s.*\sunrecognised$/mu,
+    "and the rung table's gate cell says it too, a populated rung being where a nought reads most like measurement");
 });
 
 test("this repository's own reading does not move: a checkout declaring nothing keeps every built-in", () => {
@@ -101,4 +103,5 @@ test("this repository's own reading does not move: a checkout declaring nothing 
   assert.match(run.stdout, /^per run {9}1 gate, 1 test,/mu,
     "the fixture run's `npm run check` and `node --test` are still its gate and its test");
   assert.match(run.stdout, /^ships {11}1 pass\(es\)/mu, "and its ship is still a ship");
+  assert.match(run.stdout, /^unknown\s+1\s.*\s1\.0$/mu, "and the rung table carries its gate as a figure");
 });
