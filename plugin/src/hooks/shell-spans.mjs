@@ -207,18 +207,29 @@ export const waitsIn = (text) => {
 };
 
 /* A word is what a shell hands on as one, so only what ends a word ends a name: the operators, the quotes, a `$` and a backslash. Everything else a filesystem allows stands inside a name, which is why this is written as what a name may not carry rather than as what it may — an allow-list cut a path at the first `+` in it and handed on the tail, which is shorter, relative and still resolves. */
-const OPERATOR = /[;&|()<>$\\]/u;
-/* Whitespace is not one of them and does not ask the walk. A shell holds a quoted span together across a space, and this reading deliberately does not: `spoken` in the harness blanks a quoted span carrying one because such a span is a sentence or a payload far more often than it is a filename, and a `touch 'a.md b.md'` whose two candidates arrived by this split is the other half of the same choice. So the space stays a word's end, quoted or not, and what changes here is the operator beside it. */
-const SPLITS = /\s/u;
+const OPERATOR = /[\s;&|()<>$\\]/u;
 /* The quotes, each spelt as its code point, since a lone one in a source file is an unclosed string to everything that reads this repository as text and the checks here do read it that way. These end a word wherever they stand, the delimiters of a span as much as a quote inside one: what arrives here is as often an interpreter's body carrying its own quotes as it is one name, and `open("--trap.md", "w")` spells the file in the inner pair. */
 const QUOTE = /[\x27\x22\x60]/u;
+const SPLIT = /[\s\x27\x22\x60]/u;
 
-/** Every word of a command, as the walk reads it: the text of one, and the offset each of its characters stood at — kept per character because a word is the characters of it that survive, and a name read out of one is still placed where it was written. A word ends at an operator the shell is spending as shell, which is what `quoting` answers and no regular expression over the raw text can: under a single quote a `(` opens no subshell and a `$` expands nothing, so `'a/p(1)/b.md'` is one name rather than a tail that resolves somewhere else entirely. A character under a double quote is read as it always was, because a shell may be running a substitution there and this walk cannot yet say where one begins (ISS-1533). */
+/** Every word of a command, as the walk reads it: the text of one, and the offset each of its characters stood at — kept per character because a word is the characters of it that survive, and a name read out of one is still placed where it was written. An operator ends a word wherever the shell is spending it as shell, which is what `quoting` answers and no regular expression over the raw text can. */
 const worded = (text) => {
+  const marks = quoting(text);
+  /* And where it is not: inside a single-quoted span holding one shell word, where a `(` opens no subshell and a `$` expands nothing, so `'a/p(1)/b.md'` is one name rather than a tail that resolves somewhere else entirely. One word and no more — a span carrying whitespace or another quote is a sentence or an interpreter's body far more often than a filename, which is the narrowing `spoken` already makes in the harness, and inside one the operators go on ending words: `'…os.system("printf x>one.md")'` names the file it writes and `'a.md b.md'` names two. The double quote is in neither class and keeps the old reading whole, a shell there may be running a substitution and this walk cannot yet say where one begins (ISS-1533). */
+  const plain = new Array(marks.length).fill(false);
+  for (let from = 0; from < marks.length;) {
+    if (marks[from].under !== "'") { from += 1; continue; }
+    let to = from + 1;
+    while (to < marks.length && marks[to].under === "'") to += 1;
+    const body = marks.slice(from + 1, to - 1);
+    if (!body.some(({ one }) => SPLIT.test(one))) for (let at = from; at < to; at += 1) plain[at] = true;
+    from = to;
+  }
   const out = [];
   let word = null;
-  for (const { at, one, under } of quoting(text)) {
-    if (QUOTE.test(one) || SPLITS.test(one) || (under !== "'" && OPERATOR.test(one))) {
+  for (let n = 0; n < marks.length; n += 1) {
+    const { at, one } = marks[n];
+    if (QUOTE.test(one) || (!plain[n] && OPERATOR.test(one))) {
       word = null;
       continue;
     }

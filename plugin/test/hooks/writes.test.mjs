@@ -151,8 +151,10 @@ test("a name is read from the word the command spelled it in, and never from the
   assert.deepEqual(names("tee /tmp/a[1]/memory/x.md"), [], "and the `/memory/x.md` inside one is no path either");
   assert.deepEqual(names("printf x > 'plus(one)/notes.md'"), ["plus(one)/notes.md"],
     "a parenthesis under a quote is a character of the name and starts no command of its own");
-  assert.deepEqual(names("printf x > '/tmp/p (1)/notes.md'"), ["(1)/notes.md"],
-    "while the space beside it goes on ending a word, so that name is the tail it always was");
+  assert.deepEqual(names("printf x > '/tmp/p (1)/notes.md'"), ["/notes.md"],
+    "while a span carrying a space is no one word, and reads as it read before");
+  assert.deepEqual(names(`python3 -c 'import os;os.system("printf x>one.md")'`), ["os.system", "one.md"],
+    "nor is an interpreter's body, whose own operators go on ending the words inside it");
   assert.equal(namesOf("printf x > 'plus(one)/notes.md'")[0].at, "printf x > '".length,
     "and the offset handed back still indexes the text, which is what places a name against a tree");
 });
