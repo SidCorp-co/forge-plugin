@@ -178,6 +178,8 @@ test("a name is read from the word the command spelled it in, and never from the
   );
   assert.deepEqual(held("(printf x > '/tmp/memory/(report).md'; ls)"), ["/tmp/memory/(report).md"],
     "while a subshell hands its commands no arguments, and the target inside one is the target");
+  assert.deepEqual(writtenPaths("printf x # > '/tmp/memory/(report).md'", room, "md").map((one) => one.token), [],
+    "and a redirect written inside a comment is prose, which writes nothing whatever it spells");
   assert.deepEqual(held("printf x > '/tmp/memory/(report).md' .txt"), [],
     "and what parts one operand from the next is the three characters a shell splits on, not every space this language calls one");
   assert.deepEqual(held("printf x > 'cache=/tmp/(report).md'"), ["cache=/tmp/(report).md"],
@@ -216,6 +218,15 @@ test("a write verb's target written against its own option letter counts as a wr
 
 /* Anchored nowhere, the scan was attempted at every position: one 40 000-character word cost 4.1 s
    inside a hook running under a deadline, so the guard here is against a hang and not a budget. */
+/* Whether a span is this command's target or another's is a fact about the whole command, so a
+   reader of one span at a time was asking the whole text once per span, which is a square (ISS-1555). */
+test("a command of many spans is placed once and not once per span", () => {
+  const began = Date.now();
+  assert.deepEqual(writtenPaths(":;".repeat(20_000), room, "md"), []);
+  const spent = Date.now() - began;
+  assert.ok(spent < patience(1_000), `20 000 spans took ${spent} ms to place`);
+});
+
 test("a long operand is scanned once for the word it is, not once for each character in it", () => {
   const blob = `${"A".repeat(20_000)}+/${"B".repeat(20_000)}`;
   const began = Date.now();

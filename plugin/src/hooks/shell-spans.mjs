@@ -225,16 +225,24 @@ const parts = (mark, shape) => !mark || (mark.under === " " && shape.test(mark.o
 
 /* Whether a substitution was opened anywhere before this point, which is where the whole reading stops being offered: `> $(printf '%s.txt' 'a(1).md')` puts a quoted operand inside one, where it is an argument of that command and not the target of this one, and nothing about the span or its neighbours says so. Anywhere and not in the same command, because what ends a substitution is the `)` this walk cannot place and a separator inside one ends nothing (ISS-1533) — so a text that opened one is a text this declines to place a span in at all, and the span keeps the reading it had. */
 const OPENERS = /[$<>]/u;
-const opened = (marks, before) => marks.slice(0, before).some(({ one, under }, at) =>
-  under === " "
-  && (one === "\x60"
-    || (one === "(" && marks[at - 1]?.under === " " && OPENERS.test(marks[at - 1]?.one ?? ""))));
+const openedAt = (marks) => {
+  const at = marks.findIndex(({ one, under }, n) => under === " "
+    && (one === "\x60"
+      || (one === "(" && marks[n - 1]?.under === " " && OPENERS.test(marks[n - 1]?.one ?? ""))));
+  return at < 0 ? marks.length : at;
+};
 
-/** Whether a substitution stands open before this offset, so a name read past it may be an argument of some other command. A caller that reads one span of a command at a time asks this of the whole text, since the answer is not in the slice. */
-export const computed = (text, before) => opened(quoting(text), before);
+/** Whether a name read at an offset of this text may be claimed as the whole of an operand: not past a substitution, where it may be an argument of some other command, and not inside a comment, where a redirect is prose and writes nothing. One walk for the text, so a caller reading it span by span asks it once — the answer is about the whole command and is not in any slice of it. */
+export const placeable = (text) => {
+  const marks = quoting(text);
+  const opens = marks[openedAt(marks)]?.at ?? Infinity;
+  const said = new Set(marks.filter(({ under }) => under === "#").map(({ at }) => at));
+  return (at) => at < opens && !said.has(at);
+};
 
 const worded = (text, alike) => {
   const marks = quoting(text);
+  const opens = openedAt(marks);
   /* Which single-quoted spans are a whole operand and so could be one filename. Closed, holding nothing that still cuts a word, and with an operand's end on either side of it — each of the three because the whole reading claims the span *is* the file: `'/tmp/m/(r).md;o.txt'` and `'/tmp/m/(r).md'.txt` both write a `.txt`, and either would hand a `.md` scan a guarded name nobody wrote. */
   const alone = new Array(marks.length).fill(false);
   for (let from = 0; from < marks.length;) {
@@ -246,7 +254,7 @@ const worded = (text, alike) => {
     while (to < marks.length && marks[to].under === "'") to += 1;
     const body = marks.slice(from + 1, to - 1);
     const shut = to - from >= 2 && marks[to - 1].one === "'";
-    if (alike && shut && parts(marks[from - 1], OPENED) && parts(marks[to], CLOSED) && !opened(marks, from)
+    if (alike && shut && from < opens && parts(marks[from - 1], OPENED) && parts(marks[to], CLOSED)
       && !body.some(({ one }) => ALWAYS.test(one) || (OPERATOR.test(one) && !BRACKET.test(one)))) {
       for (let at = from; at < to; at += 1) alone[at] = true;
     }

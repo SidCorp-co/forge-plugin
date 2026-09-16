@@ -9,7 +9,7 @@ import { pathToFileURL } from "node:url";
 
 import { jsonLines as parsed, logHook } from "../src/hooks/hook-log-file.mjs";
 import { scrubbed } from "../src/hooks/hook-log.mjs";
-import { NOWHERE, STARTS, WRITES, computed, namesOf, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
+import { NOWHERE, STARTS, WRITES, namesOf, placeable, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
 import { glued } from "../src/hooks/assembled.mjs";
 import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
 import { agreedWithHead } from "../src/hooks/git-probe.mjs";
@@ -453,15 +453,15 @@ export const writtenPaths = (text, cwd, tail) => {
     }
     return held.get(at);
   };
-  /* Each reading below is one span or one capture, so the text it is given cannot say whether a substitution stands open in front of it — which is what decides whether a quoted span there is this command's target or some other command's argument. The whole text is asked once per span instead. */
+  /* Each reading below is one span or one capture, and what decides whether a quoted span there is this command's target or another command's argument is not in the slice. So the whole text answers, once. */
+  const placed = placeable(text);
   const named = spans(text).flatMap(({ start, end }) => {
     const said = spoken(text.slice(start, end).replace(BLANK, ""));
-    const read = { whole: !computed(text, start) };
-    return WRITES.test(said) ? namesIn(said, tail, read).map((one) => ({ ...one, at: start })) : [];
+    return WRITES.test(said) ? namesIn(said, tail, { whole: placed(start) }).map((one) => ({ ...one, at: start })) : [];
   });
   /* The target as the command wrote it, quotes and all: `namesOf` is where a shell word is read, and taking the pair off first hands it a `(` standing bare that stood inside a quote — which ends the name there and leaves a rooted tail nothing wrote (ISS-1555). */
   const aimed = [...text.matchAll(REDIRECT)]
-    .flatMap((one) => namesIn(one[1], tail, { ...AIMED_AT, whole: !computed(text, one.index) })
+    .flatMap((one) => namesIn(one[1], tail, { ...AIMED_AT, whole: placed(one.index) })
       .map((each) => ({ ...each, at: one.index })));
   return [...aimed, ...named].map(({ token, placed, at }) => {
     const trees = placed && !token.startsWith("/") ? standing(at) : [];
