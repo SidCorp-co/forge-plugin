@@ -218,9 +218,10 @@ const BRACKET = /[()]/u;
 const cuts = (mark) => !mark
   || ALWAYS.test(mark.one)
   || ((mark.under !== "'" || !BRACKET.test(mark.one)) && OPERATOR.test(mark.one));
-/* Where one operand ends, which is not where a word this reads ends: a `$`, a backslash and a quote each end a word here and carry the operand on, so `'a(1).md'$(printf .txt)` and `'a(1).md'.txt` are one operand apiece and neither is the span. Bare, because an operator a quote or a comment holds separates nothing. */
-const APART = /[\s;&|()<>]/u;
-const parts = (mark) => !mark || (mark.under === " " && APART.test(mark.one));
+/* Where one operand ends, which is a bare shell metacharacter and not where a word this reads ends: a `$`, a backslash and a quote each end a word here and carry the operand on, so `'a(1).md'$(printf .txt)` and `'a(1).md'.txt` are one operand apiece and neither is the span. Bare, because a metacharacter a quote or a comment holds separates nothing. And a `)` in front of a span is the one this leaves out, since it closes a substitution the shell joins to that span as often as a subshell around it, and which of the two is what this walk cannot yet say (ISS-1533). */
+const OPENED = /[\s;&|<>(]/u;
+const CLOSED = /[\s;&|<>)]/u;
+const parts = (mark, shape) => !mark || (mark.under === " " && shape.test(mark.one));
 
 const worded = (text) => {
   const marks = quoting(text);
@@ -235,7 +236,7 @@ const worded = (text) => {
     while (to < marks.length && marks[to].under === "'") to += 1;
     const body = marks.slice(from + 1, to - 1);
     const shut = to - from >= 2 && marks[to - 1].one === "'";
-    if (shut && parts(marks[from - 1]) && parts(marks[to])
+    if (shut && parts(marks[from - 1], OPENED) && parts(marks[to], CLOSED)
       && !body.some(({ one }) => ALWAYS.test(one) || (OPERATOR.test(one) && !BRACKET.test(one)))) {
       for (let at = from; at < to; at += 1) alone[at] = true;
     }
