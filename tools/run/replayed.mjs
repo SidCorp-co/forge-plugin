@@ -69,10 +69,11 @@ export const REPLAY_HELP = [
   "it prints the pass that completes the read at this head. Where one of them can be carried by no",
   "pass at all it says so and lets the ship through, a refusal no command clears being a run",
   "stranded at its landing rather than a review made honest.",
-  "It is silent where the log holds no read of this change at all, where the read was taken over a",
-  "working tree and its head is therefore where the pass was taken rather than what it read, and",
-  "where that head is no commit this checkout can resolve; it says which of the three, because a",
-  "check that found nothing to judge and one that judged read alike otherwise.",
+  "It is silent where the log holds no read of this change at all, where the only read of the whole",
+  "set sent diffs rather than bodies, where the read was taken over a working tree and its head is",
+  "therefore where the pass was taken rather than what it read, and where that head is no commit",
+  "this checkout can resolve; it says which of the four, because a check that found nothing to judge",
+  "and one that judged read alike otherwise.",
 ];
 
 const notFetched = (base, pin, self) =>
@@ -193,6 +194,14 @@ const stuckOn = (missing, stuck) =>
   + `consult clears it, so this step names it rather than refusing a ship nothing would let through: `
   + `the review answers for the rest of the set, and what it does not answer for is the line above`;
 
+const sentDiffs = (of, at, head, held) =>
+  `  consult ${of} read this change's whole set of ${held.length} file(s) at ${shortly(at)}, and `
+  + `sent diffs rather than bodies. The head, the root and the set are each what this step asks for; `
+  + `the send mode is the one thing that is not, and only a bodies pass earns an approving review. `
+  + `Nothing here re-reads for you:\n`
+  + `    echo "<what you were doing>" | forge codex consult --send bodies ${held.map(pathed).join(" ")}\n`
+  + `  Then rewrite the review record at ${shortly(head)}, and ship.`;
+
 /* A read of this change and not of a file it happens to name: the same question `outgrew` asks, and
    for the same reason — at a head the change had no paths at, a whole body is the old file. */
 const ofThisChange = (tree, was, one) => {
@@ -239,6 +248,21 @@ const shortSays = (tree, was, root, held, head) => {
   return true;
 };
 
+/* The newest read of this change that fell on the send mode alone: `shortOfWhole` says so itself, so
+   nothing here restates what whole means. A clipped diff leaves `part` and is no such read — the
+   absence notice below is right about that one, and this branch is only for the read whose every
+   other clause held. */
+const sentDiffsFor = (tree, was, root, held, head) => {
+  for (const one of judgedBy(logEntries(), root, held).reverse()) {
+    const short = shortOfWhole(one, held);
+    if (one.dirty || !one.head || !short.diffs || short.unread.length || short.part.length) continue;
+    if (!gitOut(["rev-parse", "--verify", `${one.head}^{commit}`], tree)) continue;
+    if (!carries(tree, one.head, "HEAD") && !ownReplay(tree, one.head, head)) continue;
+    if (ofThisChange(tree, was, one)) return one;
+  }
+  return null;
+};
+
 /* `--is-ancestor` and not equality: a rebase drops the reviewed commit, while a commit made after the
    read to fix one of its findings keeps it and lands above it by design. */
 const readSays = (tree, was) => {
@@ -250,6 +274,8 @@ const readSays = (tree, was) => {
     const grew = root ? outgrew(tree, was, root, held, head) : null;
     if (grew) stop(outgrewSince(grew.one.id ?? grew.one.at, grew.one.head, head, grew.added, held));
     if (root && shortSays(tree, was, root, held, head)) return undefined;
+    const diffed = root ? sentDiffsFor(tree, was, root, held, head) : null;
+    if (diffed) return console.log(sentDiffs(diffed.id ?? diffed.at, diffed.head, head, held));
     return console.log(`  no consult in this log read the whole of this change's ${held.length} `
       + `file(s) at a recorded head of ${root ?? "this tree"}, so the head the review was earned at `
       + `is not something this can read — it judges nothing here and the read stands where it was taken`);

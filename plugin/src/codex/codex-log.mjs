@@ -101,12 +101,13 @@ export const judgedBy = (entries, root, rels) =>
 /* A `sent` entry is not a body: `bundle` records one for a file it could not read, and a clipped one, a missing one and an empty one each close a review on something nobody read. */
 export const bodied = (one) => one && !one.clipped && Number(one.chars) > 0;
 
-/** What of this set a consult did not read whole, and whether it read the whole of it: `send` bodies with every file among its own and a whole body carried for each. The recheck explains a shortfall and the ship names the head there was none at, so what "whole" is has one home. */
+/** What of this set a consult did not read whole, and whether it read the whole of it: `send` bodies with every file among its own and a whole body carried for each. The recheck explains a shortfall and the ship names the head there was none at, so what "whole" is has one home. Each of the three clauses is carried out beside the answer, `diffs` for the send mode as `unread` and `part` are for the set, because a caller that has only `whole: false` has to guess which one refused and names the wrong one (ISS-1542). */
 export const shortOfWhole = (one, rels) => {
   const unread = rels.filter((rel) => !(one?.files ?? []).includes(rel));
   const carried = new Map((one?.sent ?? []).map((sent) => [sent.rel, sent]));
   const part = rels.filter((rel) => !unread.includes(rel) && !bodied(carried.get(rel)));
-  return { unread, part, whole: one?.send === "bodies" && !unread.length && !part.length };
+  const diffs = one?.send !== "bodies";
+  return { unread, part, diffs, whole: !diffs && !unread.length && !part.length };
 };
 
 /* The passes one run took over one clean head, keyed on both: a shared head pins shared content only where the tree was clean at each, and one writing run is what makes them a sequence somebody declared rather than two unrelated consults having touched the same file at the same commit. Groups of one are left out, being what the single-consult answer already covers. */

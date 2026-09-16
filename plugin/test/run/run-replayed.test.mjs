@@ -149,16 +149,20 @@ test("a rename under review puts both of its paths in the set the landing is int
 /* The replay above clears the base question and answers the other one not at all: nothing in git
    tells a branch replayed and re-read from one replayed and shipped, because the two leave the same
    tree. What separates them is when the read was taken, which the consult log records (ISS-972). */
-const readTaken = (root, head, files, more = {}) => {
+const readsTaken = (root, reads) => {
   const home = tempRoom("run-replayed-home-");
   mkdirSync(join(home, "forge"), { recursive: true });
-  writeFileSync(join(home, "forge", "codex-log.jsonl"), `${JSON.stringify({
-    kind: "consult", id: "c1", at: "1", ok: true, reply: "CODEX: 0 findings", send: "bodies",
-    root: realpathSync(root), head, files, sent: files.map((rel) => ({ rel, chars: 40, clipped: false })),
-    ...more,
-  })}\n`);
+  writeFileSync(join(home, "forge", "codex-log.jsonl"), reads.map(({ head, files, ...more }, at) =>
+    `${JSON.stringify({
+      kind: "consult", id: `c${at + 1}`, at: String(at + 1), ok: true, reply: "CODEX: 0 findings",
+      send: "bodies", root: realpathSync(root), head, files,
+      sent: files.map((rel) => ({ rel, chars: 40, clipped: false })),
+      ...more,
+    })}\n`).join(""));
   return { ...BARE, XDG_CONFIG_HOME: home };
 };
+
+const readTaken = (root, head, files, more = {}) => readsTaken(root, [{ head, files, ...more }]);
 
 /* One ship per case: a pass runs the release out and moves master, so a second assertion in the
    same checkout would be about a branch with nothing left on it. `beside.mjs` is what the landing
@@ -541,6 +545,35 @@ test("a shortfall whose covering read cannot be taken names the file in the way 
     `the file that put the covering read out of reach is not named:\n${run.stdout}`);
   assert.match(run.stdout, /the read that would cover that cannot be taken/u,
     `the step named the files without saying which way it went:\n${run.stdout}`);
+});
+
+/* The send mode was the one clause of `shortOfWhole` the step never named. A --diff pass over the
+   complete set at the head that lands leaves the head, the root and the file count all correct, so
+   the absence notice sent its reader to the three facts that held, and the run it was met on spent
+   a step chasing the head before reading the predicate (ISS-1542). */
+test("a whole-set read that sent diffs is told the send mode is why", () => {
+  const { work, mine } = baseMoved("read-diffs", ELSEWHERE);
+  const run = runIn(work, ["ship"], readTaken(work, mine, [UNDER_REVIEW], { send: "diffs" }));
+  assert.match(run.stdout, /sent diffs rather than bodies/u,
+    `the send mode is not named as the reason:\n${run.stdout}${run.stderr}`);
+  assert.ok(run.stdout.includes(`--send bodies ${UNDER_REVIEW}`),
+    `the read that would earn the review is not printed over the whole set:\n${run.stdout}`);
+  assert.doesNotMatch(run.stdout, /no consult in this log read the whole/u,
+    `the head, the root and the file count were offered as what could not be found:\n${run.stdout}`);
+  assert.match(run.stdout, /step 4\/10 {2}rebase onto origin\/master/u,
+    `a notice this step cannot judge stopped the ship:\n${run.stdout}${run.stderr}`);
+});
+
+test("a bodies read beside a diffs read is still the read that earned the review", () => {
+  const { work, mine } = baseMoved("read-diffs-and-bodies", ELSEWHERE);
+  const run = runIn(work, ["ship"], readsTaken(work, [
+    { head: mine, files: [UNDER_REVIEW] },
+    { head: mine, files: [UNDER_REVIEW], send: "diffs" },
+  ]));
+  assert.ok(run.stdout.includes(`taken at ${mine.slice(0, 7)}`),
+    `the bodies pass was not the read this reported:\n${run.stdout}${run.stderr}`);
+  assert.doesNotMatch(run.stdout, /sent diffs rather than bodies/u,
+    `a later diffs pass displaced the read that earned the review:\n${run.stdout}`);
 });
 
 const NO_LOG = { ...BARE, XDG_CONFIG_HOME: tempRoom("run-replayed-no-log-") };
