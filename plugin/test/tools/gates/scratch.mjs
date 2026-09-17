@@ -146,9 +146,10 @@ export const scratch = (name, failing, leaking,
     write(work, one, readFileSync(join(ROOT, one), "utf8"));
   }
   for (const one of [...PLACED, ...NAMED, "plugin/test/tools/one.test.mjs"]) {
-    // In prose, never after its own path: that is how node reports a file that failed to load.
+    // In prose, never its own path, which is how node reports a file that failed to load; and reading a source, or every content answers for it and a scoped run spends no test step at all.
     write(work, one, one.endsWith(".test.mjs")
-      ? `import test from "node:test";\ntest("the green case of ${one}", () => {});\n`
+      ? `import test from "node:test";\nimport { readFileSync } from "node:fs";\n`
+        + `test("the green case of ${one}", () => { readFileSync("plugin/src/one.mjs"); });\n`
       : `${one}\n`);
   }
   /* Written before the tree is committed: the number is the project's now, and a file placed
