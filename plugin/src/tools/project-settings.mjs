@@ -1,7 +1,8 @@
 /* The project's own configuration: the two typed resources the tracker keeps per project, reported
    with the source each key was read from and written one key at a time. Whose the decision is, and
    why a key is never re-declared in a checkout: docs/cli/doctor.md. */
-import { closeSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { closeSync, fchmodSync, openSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync }
+  from "node:fs";
 
 import { FROM_PROJECT, fail, projectFilePath, projectSlug } from "../resolve/settings.mjs";
 import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../guides/flow.mjs";
@@ -261,12 +262,14 @@ const flowRead = (path) => {
   }
 };
 
-/* Through a sibling and renamed into place, the install and the restore alike: a plain write opens the destination truncating, so one that fails part way leaves neither the bytes it replaced nor the ones it was writing, and a restore doing that would destroy the very state its refusal is about to report. The mode carries over, this file being the repository's. */
+/* Through a sibling and renamed into place, the install and the restore alike: a plain write opens the destination truncating, so one that fails part way leaves neither the bytes it replaced nor the ones it was writing, and a restore doing that would destroy the very state its refusal is about to report. The mode is set on the handle rather than asked for at creation, a umask otherwise narrowing a file this project shares. */
 const wroteWhole = (path, text) => {
   const temporary = `${path}.${process.pid}.tmp`;
   try {
-    const handle = openSync(temporary, "w", statSync(path).mode & 0o777);
+    const mode = statSync(path).mode & 0o777;
+    const handle = openSync(temporary, "w", mode);
     try {
+      fchmodSync(handle, mode);
       writeFileSync(handle, text);
     } finally {
       closeSync(handle);
@@ -284,14 +287,18 @@ const flowFile = (slug) => {
     fail(`--flow: \`${slug}\` is no flow this copy serves — it serves ${FLOW_SLUGS.join(", ")}. `
       + `Nothing was sent: ${FLOW_USAGE}`);
   }
-  const path = projectFilePath();
-  if (!path) {
+  const named = projectFilePath();
+  if (!named) {
     fail(`--flow: \`flow\` is a key of ${FROM_PROJECT} and no such file was found on the way up from `
       + `here, so nothing was written and nothing was sent. Run this from a checkout that has one.`);
   }
+  /* The file the link points at and not the link: the resolver read through it, and a rename onto
+     the name would put a regular file where the link was and leave what it pointed at untouched. */
+  let path = named;
   let held = null;
   let parsed = null;
   try {
+    path = realpathSync(named);
     held = readFileSync(path, "utf8");
     parsed = JSON.parse(held);
   } catch (error) {

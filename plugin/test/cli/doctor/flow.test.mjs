@@ -3,7 +3,7 @@
    the tracker says the other half did not land: docs/cli/the-flow-axis.md. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { chmodSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, lstatSync, readFileSync, realpathSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { escaped, fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
@@ -64,7 +64,7 @@ test("one call sets the flow in the project's file and the judgement that flow a
   assert.equal(run.status, 0, run.stderr);
   assert.equal(JSON.parse(readFileSync(file, "utf8")).flow, "screen");
   assert.equal(state.settings.pipelineConfig.qa, "independent");
-  assert.match(run.stdout, new RegExp(`^flow: screen {2}← ${escaped(file)}$`, "mu"),
+  assert.match(run.stdout, new RegExp(`^flow: screen {2}← ${escaped(realpathSync(file))}$`, "mu"),
     "the flow half, with the file it was read back off");
   assert.match(run.stdout, /^pipeline\.qa: independent {2}← the tracker's pipeline configuration$/mu,
     "and the tracker half, with the resource it was read back off");
@@ -193,6 +193,48 @@ test("the report after an unread write says which of the two outcomes it was, an
   const again = await ask("--flow", "screen");
   assert.equal(again.status, 0, again.stderr);
   assert.equal(state.settings.pipelineConfig.qa, "independent");
+});
+
+/* A checkout whose project file is a link into shared configuration: the resolver read through it,
+   so a rename onto the name would leave a regular file where the link was and the file every other
+   checkout reads untouched. */
+test("a project file that is a link is followed, and the link survives the write", async () => {
+  const shared = tempHome("doctor-flow-shared");
+  const linked = tempHome("doctor-flow-linked");
+  try {
+    const target = join(shared.path, "shared.json");
+    writeFileSync(target, HELD);
+    symlinkSync(target, join(linked.path, ".forge.json"));
+    state.settings = { pipelineConfig: { autoProdDeploy: false, qa: "builder" }, projectFacts: {} };
+    const run = await ranAsync(FORGE, ["doctor", "--flow", "screen"], tracker.env, linked.path);
+    assert.equal(run.status, 0, run.stderr);
+    assert.ok(lstatSync(join(linked.path, ".forge.json")).isSymbolicLink(), "the link is still a link");
+    assert.equal(JSON.parse(readFileSync(target, "utf8")).flow, "screen", "and what it points at was written");
+  } finally {
+    shared.remove();
+    linked.remove();
+  }
+});
+
+/* A mode asked for at creation is narrowed by the process umask, and this file is one a project
+   shares: what another member of it could edit before the call has to be editable after. */
+test("the project file keeps the mode it had, umask or no umask", async () => {
+  fresh();
+  chmodSync(file, 0o664);
+  await ask("--flow", "screen");
+  assert.equal(statSync(file).mode & 0o777, 0o664, "after the write that kept");
+  writeFileSync(file, HELD);
+  chmodSync(file, 0o664);
+  state.settings.pipelineConfig.qa = "builder";
+  state.stripped = ["qa"];
+  try {
+    await ask("--flow", "screen");
+    assert.equal(statSync(file).mode & 0o777, 0o664, "and after the restore");
+    assert.equal(readFileSync(file, "utf8"), HELD);
+  } finally {
+    state.stripped = [];
+    chmodSync(file, 0o644);
+  }
 });
 
 test("a slug no flow declares is refused with the flows this copy serves, and nothing is written", async () => {
