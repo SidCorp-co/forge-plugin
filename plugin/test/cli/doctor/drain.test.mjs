@@ -127,10 +127,57 @@ test("a project file that cannot be rewritten refuses the write before the track
   assert.equal(state.settings.pipelineConfig.qa, "independent");
 });
 
-test("a file that fails after the tracker kept the judgement names what stands and the call that settles it", { skip: asRoot }, async () => {
+test("a directory the replacement cannot write in refuses the write too, the file itself being writable", { skip: asRoot }, async () => {
   fresh("qa-master");
   chmodSync(room.path, 0o555);
   const run = await ask("--set", "pipeline.qa=builder");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /could not be read and rewritten, so that half is out of reach and nothing was sent/u,
+    "the replacement writes a sibling and renames it, so the file's own mode answers half the question");
+  assert.equal(sent().length, 0);
+});
+
+test("a key declared twice is cleared out of the file entirely, not down to the one the resolver reads", async () => {
+  fresh("qa-master");
+  writeFileSync(file,
+    `{\n  "slug": "forge-plugin",\n  "drainedBy": "dispatcher",\n  "drainedBy": "qa-master",\n  "runs": 2\n}\n`);
+  const run = await ask("--set", "pipeline.qa=builder");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(Object.hasOwn(held(), "drainedBy"), false,
+    "a document declaring one key twice parses to the last of them, so clearing the first clears nothing");
+  assert.deepEqual(Object.keys(held()), ["slug", "runs"]);
+});
+
+test("a project file another session moved under the call is refused rather than written back", async () => {
+  fresh("qa-master");
+  const held0 = state.answer.forge_config;
+  state.answer.forge_config = (args) => {
+    if (args.action === "set_pipeline") {
+      writeFileSync(file, `{\n  "slug": "forge-plugin",\n  "drainedBy": "qa-master",\n  "runs": 4\n}\n`);
+    }
+    return held0(args);
+  };
+  try {
+    const run = await ask("--set", "pipeline.qa=builder");
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /changed while that write was in flight/u, run.stderr);
+    assert.equal(held().runs, 4, "the other session's edit stands, which writing the snapshot back would have lost");
+  } finally {
+    state.answer.forge_config = held0;
+  }
+});
+
+test("a file that fails after the tracker kept the judgement names what stands and the call that settles it", { skip: asRoot }, async () => {
+  fresh("qa-master");
+  const held0 = state.answer.forge_config;
+  /* Broken during the tracker call and not before, which is the only window the preflight leaves. */
+  state.answer.forge_config = (args) => {
+    if (args.action === "set_pipeline") chmodSync(room.path, 0o555);
+    return held0(args);
+  };
+  const run = await ask("--set", "pipeline.qa=builder").finally(() => {
+    state.answer.forge_config = held0;
+  });
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /pipeline\.qa is "builder" on the tracker now and .* could not be written/u,
     run.stderr);

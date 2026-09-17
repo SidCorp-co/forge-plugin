@@ -3,6 +3,7 @@
    why a key is never re-declared in a checkout: docs/cli/doctor.md. */
 import { accessSync, closeSync, constants, fchmodSync, openSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync }
   from "node:fs";
+import { dirname } from "node:path";
 
 import { FROM_PROJECT, drainScope, fail, projectFilePath, projectSlug } from "../resolve/settings.mjs";
 import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../guides/flow.mjs";
@@ -165,7 +166,10 @@ const drainFile = () => {
   try {
     const path = realpathSync(named);
     const held = readFileSync(path, "utf8");
+    /* The directory too: the replacement writes a sibling and renames it, so a writable file under
+       a directory that is not passes a check of the file alone and fails after the tracker write. */
     accessSync(path, constants.W_OK);
+    accessSync(dirname(path), constants.W_OK);
     return { path, held };
   } catch (error) {
     return fail(`--set: this would clear ${DRAIN_SAID}, and ${named} could not be read and rewritten, `
@@ -177,11 +181,18 @@ const drainFile = () => {
    file cleared over a write that never landed would drop a declaration still in force. */
 const clearedDrain = (file, kept) => {
   if (!file) return [];
+  const at = `pipeline.qa is ${JSON.stringify(kept ?? null)} on the tracker now and ${file.path}`;
+  /* Re-read rather than written from the snapshot: this call held those bytes across a network
+     round trip, and writing them back would replace whatever another session put there meanwhile. */
+  if (readFileSync(file.path, "utf8") !== file.held) {
+    fail(`--set: ${at} changed while that write was in flight, so clearing ${DRAIN_SAID} from the `
+      + "bytes this call is holding would put back what another session has already replaced. That "
+      + `file was not written — read what it holds and send this again: ${READS_IT}`);
+  }
   try {
     wroteWhole(file.path, withoutKey(file.held, DRAIN_KEY));
   } catch (error) {
-    fail(`--set: pipeline.qa is ${JSON.stringify(kept ?? null)} on the tracker now and ${file.path} `
-      + `could not be written, so it still sets ${DRAIN_SAID} — a master named for a judgement `
+    fail(`--set: ${at} could not be written, so it still sets ${DRAIN_SAID} — a master named for a judgement `
       + `nobody asked for: ${error.message}. Send the same command again once that file can be `
       + `written: ${SET_USAGE}`);
   }
@@ -302,14 +313,20 @@ export const withKey = (text, key, value) => {
     : `${text.slice(0, open + 1)}\n  ${pair},${text.slice(open + 1)}`;
 };
 
-/** The same walk the other way: the pair removed and the document otherwise untouched. */
-export const withoutKey = (text, key) => {
-  const held = valueSpan(text, key);
-  if (!held) return text;
+const cutPair = (text, held) => {
   const after = pastSpace(text, held.end);
   if (held.previous !== null) return `${text.slice(0, held.previous)}${text.slice(held.end)}`;
   if (text[after] === ",") return `${text.slice(0, held.name)}${text.slice(pastSpace(text, after + 1))}`;
   return `${text.slice(0, held.open + 1)}${text.slice(after)}`;
+};
+
+/** The same walk the other way, and every declaration of that name rather than the first: a document
+ *  declaring one key twice parses to the last of them, so removing one would report a key cleared
+ *  that is still the value the resolver reads. */
+export const withoutKey = (text, key) => {
+  let held = text;
+  for (let span = valueSpan(held, key); span; span = valueSpan(held, key)) held = cutPair(held, span);
+  return held;
 };
 
 const FLOW_USAGE = "forge doctor --flow <slug>";

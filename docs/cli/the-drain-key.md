@@ -6,7 +6,7 @@ checkout, and the tracker's. `drainedBy` says which master claims what that judg
 is a key of the project's own file beside `flow` and `landing`.
 
 **The split is the schema's doing rather than a preference.** The tracker's pipeline configuration
-strips a key it does not declare, silently, on the way in. A live write of `qaDrainedBy` to that
+strips a key it does not declare, silently, on the way in. A live write of a drain key to that
 resource on 2026-09-17 answered and read back null, which is the read-back's whole purpose and is
 the one signal a caller gets. So the second key could not be stored beside the first by any call
 this CLI has, and the file that already holds how this checkout is worked is where it went. If the
