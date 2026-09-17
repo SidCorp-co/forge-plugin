@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import { checkoutAt } from "../../git/checkout-at.mjs";
+import { gitEntryAt } from "../../git/checkout-at.mjs";
 import { CALLS_THE_WRITER, runsACommand } from "./granted-id.mjs";
 import { NOWHERE, spans, standsIn } from "../../hooks/shell-spans.mjs";
 
@@ -19,7 +19,7 @@ const answered = (read) => {
   }
 };
 
-export const gitDirAt = (from) => checkoutAt(from)?.gitDir ?? null;
+export const gitDirAt = (from) => gitEntryAt(from)?.gitDir ?? null;
 
 export const besideGit = (from, name) => {
   const dir = gitDirAt(from);

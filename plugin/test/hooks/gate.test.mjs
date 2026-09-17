@@ -23,9 +23,8 @@ const run = (names, event, env = {}) =>
   });
 const out = (held) => (held.stdout.trim() ? JSON.parse(held.stdout) : null);
 
-/* The line about where to file a wrong refusal costs a read of the project's key, and finding the
-   checkout behind a linked worktree runs `git` — a wrapper on PATH can hold that open past the
-   event's whole clock (ISS-761). A refusal already decided must never be lost to it. */
+/* The line about where to file a wrong refusal costs a read of the project's key, bounded because a
+   reader that hangs must never take a refusal already decided with it (ISS-761). */
 test("a refusal near the end of its budget is emitted without the line about filing it", async () => {
   const { FILING_MS, filed } = await import("../../hooks/_hook.mjs");
   const ev = { session_id: `budget-${Date.now()}` };
@@ -41,9 +40,10 @@ test("a refusal near the end of its budget is emitted without the line about fil
   assert.match(said, /^Refused\. The rule\./u, "after the refusal and never instead of it");
 });
 
-/* The margin admits the read; this is what bounds it. A wrapper first on PATH that never answers is
-   the shape ISS-761 names, and the whole point of the child is that this process outlives it. */
-test("a git that never answers costs the line about filing and never the refusal", () => {
+/* The shape ISS-761 was filed for: a `git` wrapper first on PATH that never answers. Nothing on this
+   path asks git anything (ISS-1732), so the refusal, its reason and the line about filing all arrive,
+   and the whole event still lands inside the read's own ceiling. */
+test("a git that never answers costs neither the refusal nor the line about filing", () => {
   const bin = tempRoom("slow-git-");
   /* Twenty times the ceiling and no more: the timeout kills the child that asked, never the wrapper
      it is waiting on, so a longer sleep is a process this suite leaves behind for minutes. */
@@ -56,7 +56,7 @@ test("a git that never answers costs the line about filing and never the refusal
   const answer = out(held)?.hookSpecificOutput;
   assert.equal(answer?.permissionDecision, "deny", `the refusal still arrives: ${held.stderr}`);
   assert.match(answer.permissionDecisionReason, /select by name/u, "and it is the rule's own reason");
-  assert.doesNotMatch(answer.permissionDecisionReason, /forge feedback/u, "with no route resolved for it");
+  assert.match(answer.permissionDecisionReason, /forge feedback/u, "and the route still resolves, no git being asked");
   assert.ok(took < patience(6_000), `costing the read's own ceiling and not the event's clock: ${took}ms`);
 });
 

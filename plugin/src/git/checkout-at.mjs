@@ -24,21 +24,28 @@ const commonOf = (dir) => {
   return answered(() => realpathSync.native(spelt)) ?? against(dir, named);
 };
 
-const found = (tree, gitDir) => ({ tree, gitDir, repository: dirname(commonOf(gitDir)) });
+const anything = () => true;
 
-/** That checkout's own root, its git directory, and the root of the repository that directory belongs to; null where no checkout holds the path. */
-export const checkoutAt = (from) => {
+const walked = (from, takes) => {
   const start = answered(() => realpathSync(resolve(from ?? ".")));
   if (!start) return null;
   for (let at = start; ; at = dirname(at)) {
     const dot = join(at, ".git");
     const kind = answered(() => statSync(dot));
-    if (kind?.isDirectory() && holdsGit(dot)) return found(at, dot);
+    if (kind?.isDirectory() && takes(dot)) return { tree: at, gitDir: dot };
     if (kind?.isFile()) {
       const named = GITDIR.exec(answered(() => readFileSync(dot, "utf8")) ?? "")?.[1]?.trim();
       const gitDir = named ? against(at, named) : null;
-      return gitDir && holdsGit(gitDir) ? found(at, gitDir) : null;
+      return gitDir && takes(gitDir) ? { tree: at, gitDir } : null;
     }
     if (dirname(at) === at) return null;
   }
+};
+
+export const gitEntryAt = (from) => walked(from, anything);
+
+/** That checkout's own root, its git directory, and the root of the repository that directory belongs to; null where no checkout holds the path. */
+export const checkoutAt = (from) => {
+  const one = walked(from, holdsGit);
+  return one === null ? null : { ...one, repository: dirname(commonOf(one.gitDir)) };
 };

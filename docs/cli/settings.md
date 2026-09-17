@@ -43,6 +43,13 @@ took the path at its word would have resolved a project file from a directory th
 alone is one this accepts and git does not — and it is asked for without being followed, git's older
 symbolic-link spelling of `HEAD` pointing at a branch that has no commit yet.
 
+**That test is the checkout answer's and not the git directory's**, which is why the walk takes what
+counts as one from its caller. The run id is kept beside `.git` because that is where the tree's own
+file goes (`docs/cli/claim.md`), a question no repository has to be valid to answer, and the walk that
+finds it has always taken a `.git` at its word. Tying the two together was tried and the suite said
+no: forty-two cases across four files build a `.git` directory by hand to stand for a tree, and every
+one of them is right to — what they are about is where a file lands, not what git would discover.
+
 **A named common directory is canonicalised before its parent is taken**, because git canonicalises
 it: a `commondir` naming a symlink would otherwise put the repository beside the symlink rather than
 beside the directory it points at, and a worktree carrying no project file would lose the one its main

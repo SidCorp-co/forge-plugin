@@ -15,8 +15,6 @@ const root = () => {
   const at = tempRoom("forge-run-id-");
   mkdirSync(join(at, "checkout", ".git", "worktrees", "wt-one"), { recursive: true });
   mkdirSync(join(at, "wt-one", "deep", "deeper"), { recursive: true });
-  writeFileSync(join(at, "checkout", ".git", "HEAD"), "ref: refs/heads/master\n");
-  writeFileSync(join(at, "checkout", ".git", "worktrees", "wt-one", "HEAD"), "ref: refs/heads/wt-one\n");
   writeFileSync(join(at, "wt-one", ".git"), `gitdir: ${join(at, "checkout", ".git", "worktrees", "wt-one")}\n`);
   return at;
 };
@@ -139,7 +137,6 @@ test("the walk starts at the physical path, so a symlink into another repository
   const other = join(at, "other");
   mkdirSync(join(other, ".git"), { recursive: true });
   mkdirSync(join(other, "sub"), { recursive: true });
-  writeFileSync(join(other, ".git", "HEAD"), "ref: refs/heads/master\n");
   writeFileSync(join(other, ".git", RUN_ID), "iss-999-ffff0000\n");
   symlinkSync(join(other, "sub"), join(at, "wt-one", "link"));
   assert.equal(runIdAt(join(at, "wt-one", "link")), "iss-999-ffff0000",
@@ -176,18 +173,4 @@ test("a writer inside a span the shell would run is left unread, not credited to
   ]) {
     assert.equal(runHeldWhere(event(command, wt)).id, null, command);
   }
-});
-
-/* The walk ascends past a `.git` directory git would not accept as one (ISS-1732), which is what
-   keeps a checkout holding a stub from answering for the checkout that holds it. */
-test("a .git directory with no HEAD in it is not a git directory, and the walk goes past it", () => {
-  const at = root();
-  mkdirSync(join(at, "checkout", "stub", ".git"), { recursive: true });
-  assert.equal(gitDirAt(join(at, "checkout", "stub")), join(at, "checkout", ".git"));
-});
-
-test("a .git file naming a directory that is no git directory names none, rather than that path", () => {
-  const at = root();
-  writeFileSync(join(at, "wt-one", ".git"), `gitdir: ${join(at, "gone")}\n`);
-  assert.equal(gitDirAt(join(at, "wt-one")), null);
 });
