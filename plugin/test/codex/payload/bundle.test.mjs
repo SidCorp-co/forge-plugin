@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { tempRoom } from "../../fixtures.mjs";
@@ -110,11 +110,11 @@ const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const repoOf = (name, each) => {
   const room = tempRoom(name);
   const home = tempRoom(`${name}home-`);
-  spawnSync("git", ["init", "-q", room]);
+  spawnSync("git", ["init", "-q", room], { cwd: dirname(room) });
   mkdirSync(join(room, "src"), { recursive: true });
   for (const [rel, chars] of each) writeFileSync(join(room, rel), "x".repeat(chars));
-  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", "add", "."]);
-  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "one"]);
+  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", "add", "."], { cwd: room });
+  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "one"], { cwd: room });
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "proxy.env"), [
     'export ANTHROPIC_BASE_URL="http://127.0.0.1:1"',

@@ -11,7 +11,7 @@ import { citedIn, problems } from "../../src/checks/cited-paths.mjs";
 const ROOT = new URL("../../..", import.meta.url).pathname;
 /* The working tree, not the index: a file this commit adds is a path a clause may already cite. */
 const lines = (...args) =>
-  execFileSync("git", ["-C", ROOT, ...args], { encoding: "utf8" })
+  execFileSync("git", ["-C", ROOT, ...args], { cwd: ROOT, encoding: "utf8" })
     .trim()
     .split("\n")
     .filter(Boolean);

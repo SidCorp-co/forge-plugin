@@ -15,7 +15,7 @@ const ROOT = new URL("../../../..", import.meta.url).pathname;
 const chars = (rel) => readFileSync(join(ROOT, rel), "utf8").length;
 
 const tracked = (pattern) =>
-  execFileSync("git", ["-C", ROOT, "ls-files", pattern], { encoding: "utf8" })
+  execFileSync("git", ["-C", ROOT, "ls-files", pattern], { cwd: ROOT, encoding: "utf8" })
     .trim()
     .split("\n")
     .filter(Boolean);

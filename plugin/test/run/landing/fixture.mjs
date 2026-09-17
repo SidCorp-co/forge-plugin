@@ -239,7 +239,7 @@ export const marks = (documentId = UUID) =>
   state.comments[documentId].filter((one) => one.body.startsWith("mark_merged"));
 
 export const git = (room, ...args) =>
-  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
+  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: room, encoding: "utf8" });
 
 export const sha = (room, rev) => git(room, "rev-parse", rev).stdout.trim();
 
@@ -327,7 +327,7 @@ export const world = ({
  *  was, which is the state a landing that pinned a head and looked again has to survive. */
 export const serverPushes = (at, version) => {
   const clone = join(at, `clone-${version}`);
-  spawnSync("git", ["clone", "-q", join(at, "origin.git"), clone], { encoding: "utf8" });
+  spawnSync("git", ["clone", "-q", join(at, "origin.git"), clone], { cwd: dirname(clone), encoding: "utf8" });
   const held = JSON.parse(readFileSync(join(clone, "package.json"), "utf8"));
   written(clone, "package.json", JSON.stringify({ ...held, version }, null, 2));
   written(clone, join("plugin", ".claude-plugin", "plugin.json"), JSON.stringify({ name: PLUGIN, version }, null, 2));
@@ -341,7 +341,7 @@ export const serverPushes = (at, version) => {
  *  alone: a base that moved this change's paths again reads differently from one that only moved. */
 export const serverRewrites = (at, name, rewrite) => {
   const clone = join(at, `clone-${name}`);
-  spawnSync("git", ["clone", "-q", join(at, "origin.git"), clone], { encoding: "utf8" });
+  spawnSync("git", ["clone", "-q", join(at, "origin.git"), clone], { cwd: dirname(clone), encoding: "utf8" });
   written(clone, OWNED, rewrite(readFileSync(join(clone, OWNED), "utf8")));
   git(clone, "add", OWNED);
   git(clone, "commit", "-qm", `another clone over ${OWNED}: ${name}`);

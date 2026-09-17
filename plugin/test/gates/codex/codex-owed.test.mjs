@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { spawnSync } from "node:child_process";
 import { mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { callHook, tempRoom } from "../../fixtures.mjs";
 import { digest } from "../../../src/codex/codex-api.mjs";
@@ -14,7 +14,7 @@ const COMMIT_HOOK = new URL("../../../hooks/entries/codex/codex-second.mjs", imp
 const room = tempRoom("codex-owed-");
 const REPO = join(room, "repo");
 mkdirSync(join(room, "forge"), { recursive: true });
-spawnSync("git", ["init", "-q", REPO]);
+spawnSync("git", ["init", "-q", REPO], { cwd: dirname(REPO) });
 test.after(() => rmSync(room, { recursive: true, force: true }));
 
 const at = (msAgo) => new Date(Date.now() - msAgo).toISOString();
@@ -35,8 +35,8 @@ const gate = ({ command, pending = ["work.mjs"], log = "", project = GATED, env 
     JSON.stringify({ turns: pending ? { [realpathSync(REPO)]: { files: pending, at: Date.now() - 90_000 } } : {} }),
   );
   /* A commit is asked only for what it stages, so the index is each case's to set and never the last one's. */
-  spawnSync("git", ["-C", REPO, "read-tree", "--empty"]);
-  if (stage) spawnSync("git", ["-C", REPO, "add", ...stage]);
+  spawnSync("git", ["-C", REPO, "read-tree", "--empty"], { cwd: REPO });
+  if (stage) spawnSync("git", ["-C", REPO, "add", ...stage], { cwd: REPO });
   const run = callHook(
     hook,
     { hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command }, session_id: `s${count}`, cwd: REPO },
@@ -144,7 +144,7 @@ test("a value the key does not take is refused with the key named, and nothing i
 test("the tree is where the cd in the same command left the shell, and every tree the line gates in", () => {
   const other = join(room, "other");
   mkdirSync(other, { recursive: true });
-  spawnSync("git", ["init", "-q", other]);
+  spawnSync("git", ["init", "-q", other], { cwd: dirname(other) });
   writeFileSync(join(other, "make.mjs"), "// b\n");
   writeFileSync(join(other, ".forge.json"),
     JSON.stringify({ slug: "other", codex: { owed: ["gate"] }, stats: { commands: { gate: "make verify" } } }));

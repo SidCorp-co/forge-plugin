@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { dirtyRepo, pathed, tempRoom } from "../fixtures.mjs";
 import { patience } from "../patience.mjs";
@@ -93,7 +93,7 @@ test("a gate switched off on the line is skipped, and one that is not still answ
 
 test("after a call, every gate's block and context travel together", () => {
   const room = tempRoom("gate-post-");
-  spawnSync("git", ["init", "-q", room]);
+  spawnSync("git", ["init", "-q", room], { cwd: dirname(room) });
   const checker = join(room, "scripts", "check-things.mjs");
   mkdirIfNeeded(join(room, "scripts"));
   writeFileSync(checker, 'const KINDS = ["ALPHA", "BETA", "GAMMA"];\nexport default KINDS;\n');
@@ -136,7 +136,7 @@ test("the deadline runs from the process start, and the last gate reads what is 
 
 test("a gate that crashes is skipped and logged, and the line goes on", () => {
   const room = tempRoom("gate-boom-");
-  spawnSync("git", ["init", "-q", room]);
+  spawnSync("git", ["init", "-q", room], { cwd: dirname(room) });
   mkdirIfNeeded(join(room, "docs"));
   writeFileSync(join(room, "docs", "PLAN.md"), "# plan\n");
   const ev = { tool_name: "Write", tool_input: { file_path: join(room, "docs", "PLAN.md") }, cwd: room, session_id: `g4-${Date.now()}` };

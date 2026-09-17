@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdirSync, readFileSync, readdirSync, statSync, utimesSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { tempRoom } from "../../fixtures.mjs";
 
@@ -170,7 +170,7 @@ test("a correction the tracker took is held by the cache though the write after 
   };
   const tracker = await fakeTracker(project);
   const at = tempRoom("plan-scope-run-");
-  execFileSync("git", ["init", "-q", at]);
+  execFileSync("git", ["init", "-q", at], { cwd: dirname(at) });
   mkdirSync(join(at, "plugin", "src"), { recursive: true });
   copyFileSync(new URL("../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
   const worked = realpathSync(at);
@@ -194,7 +194,7 @@ test("a correction the tracker took is held by the cache though the write after 
 
 test("a record whose scope can be neither written nor removed says so, and names the way through", async () => {
   const at = tempRoom("plan-scope-blocked-");
-  execFileSync("git", ["init", "-q", at]);
+  execFileSync("git", ["init", "-q", at], { cwd: dirname(at) });
   copyFileSync(new URL("../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
   const worked = realpathSync(at);
   const issue = { documentId: "blocked-uuid", issueId: "ISS-88", status: "in_progress",
@@ -236,7 +236,7 @@ test("a record whose scope can be neither written nor removed says so, and names
    remove. Driven through the CLI because the warning is `record.mjs`'s and not this module's. */
 test("a record written while the issue is off the ladder says nothing where the tree holds no entry", async () => {
   const at = tempRoom("plan-scope-silent-");
-  execFileSync("git", ["init", "-q", at]);
+  execFileSync("git", ["init", "-q", at], { cwd: dirname(at) });
   copyFileSync(new URL("../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
   const worked = realpathSync(at);
   const issue = { documentId: "silent-uuid", issueId: "ISS-99", status: "closed",
@@ -277,7 +277,7 @@ test("a record written while the issue is off the ladder says nothing where the 
    is the one state this module cannot leave on its own, so the escape it names is the one to take. */
 test("a record whose entry cannot be removed still names the file and the way out", async () => {
   const at = tempRoom("plan-scope-stuck-");
-  execFileSync("git", ["init", "-q", at]);
+  execFileSync("git", ["init", "-q", at], { cwd: dirname(at) });
   copyFileSync(new URL("../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
   const worked = realpathSync(at);
   const issue = { documentId: "stuck-uuid", issueId: "ISS-98", status: "closed",

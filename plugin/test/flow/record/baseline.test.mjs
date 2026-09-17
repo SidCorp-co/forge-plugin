@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync, spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { dirtyRepo, tempRoom } from "../../fixtures.mjs";
 
@@ -23,7 +23,7 @@ test("a baseline stamps the head its checkout is at, and reads it back off its o
   assert.equal(head.stamped, "head", "the bit `stampedNow` filters on");
   assert.ok(!head.derived, "and not the bit that would keep it off every read-back");
   assert.ok(head.optional, "absent off a checkout, where a stamp would be an invention");
-  const at = execFileSync("git", ["-C", ROOT, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const at = execFileSync("git", ["-C", ROOT, "rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim();
   assert.ok("head" in stampedNow({ fields: [{ flag: "head", stamped: "nowhere" }] }),
     "every stamped key is present, so a value a caller typed is cleared and not left standing");
   const typed = spawnSync(new URL("../../../bin/forge", import.meta.url).pathname,
@@ -53,7 +53,7 @@ test("a checkout with uncommitted work stamps no head, and a clean one stamps th
   const was = process.cwd();
   const room = dirtyRepo();
   const inRoom = (...args) => execFileSync("git",
-    ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
+    ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: room, encoding: "utf8" });
   try {
     process.chdir(room);
     assert.ok("head" in stampedNow(SHAPES.baseline), "the key is there either way");
@@ -84,11 +84,11 @@ test("a submodule told to ignore its own changes does not make the checkout read
   const room = tempRoom("submodule-repo-");
   const git = (cwd, ...args) => execFileSync("git",
     ["-C", cwd, "-c", "user.email=t@t", "-c", "user.name=t", "-c", "protocol.file.allow=always", ...args],
-    { encoding: "utf8" });
+    { cwd, encoding: "utf8" });
   try {
     const inner = join(room, "inner");
     const outer = join(room, "outer");
-    for (const one of [inner, outer]) execFileSync("git", ["init", "-q", one]);
+    for (const one of [inner, outer]) execFileSync("git", ["init", "-q", one], { cwd: dirname(one) });
     writeFileSync(join(inner, "f.txt"), "one\n");
     git(inner, "add", "f.txt");
     git(inner, "commit", "-qm", "base");

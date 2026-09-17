@@ -15,7 +15,7 @@ import { tempRoom } from "../fixtures.mjs";
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
 
 const tracked = () =>
-  execFileSync("git", ["-C", ROOT, "ls-files"], { encoding: "utf8" })
+  execFileSync("git", ["-C", ROOT, "ls-files"], { cwd: ROOT, encoding: "utf8" })
     .split("\n")
     .filter((one) => TEST_FILE.test(one));
 

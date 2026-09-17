@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { chmodSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
 
@@ -22,7 +22,7 @@ const BRANCH = "iss-1655-6";
 const AT = "2026-09-07T12:00:00.000Z";
 
 const git = (room, ...args) =>
-  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
+  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: room, encoding: "utf8" });
 
 const ISSUE = {
   documentId: "landed-uuid",
@@ -117,7 +117,7 @@ const onTop = (room, file, said) => {
    the branch alone: the shape the ancestry is read against, before anything lands it. */
 const landedRoom = (name) => {
   const room = tempRoom(`landed-${name}-`);
-  spawnSync("git", ["init", "-q", "-b", "master", room], { encoding: "utf8" });
+  spawnSync("git", ["init", "-q", "-b", "master", room], { cwd: dirname(room), encoding: "utf8" });
   writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "forge-plugin" }));
   writeFileSync(join(room, "one.mjs"), "the base\n");
   git(room, "add", "one.mjs", ".forge.json");
@@ -219,7 +219,7 @@ test("every ancestry reading this checkout cannot make refuses, saying which one
 
   const shallow = tempRoom("landed-shallow-");
   spawnSync("git", ["clone", "-q", "--depth", "1", "--branch", "master", `file://${room}`, shallow],
-    { encoding: "utf8" });
+    { cwd: dirname(shallow), encoding: "utf8" });
   git(shallow, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/master");
   writeFileSync(join(shallow, ".forge.json"), JSON.stringify({ slug: "forge-plugin" }));
   ready(judged);

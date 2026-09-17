@@ -16,7 +16,7 @@ const HIDDEN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/u;
 const TEXT = /\.(?:mjs|js|ts|tsx|json|md|py|sh|yml|yaml|toml|css|html)$/u;
 
 const tracked = () =>
-  execFileSync("git", ["-C", ROOT, "ls-files", "-z"], { encoding: "utf8", maxBuffer: 8e6 })
+  execFileSync("git", ["-C", ROOT, "ls-files", "-z"], { cwd: ROOT, encoding: "utf8", maxBuffer: 8e6 })
     .split("\0")
     .filter((one) => one && TEXT.test(one));
 

@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { callHook, jsonlOf, pathed, tempRoom } from "../fixtures.mjs";
 
 const HOOK = new URL("../../hooks/entries/codex/codex-second.mjs", import.meta.url).pathname;
@@ -229,8 +229,8 @@ test("the disable switch silences the record", (t) => {
 test("a write at the bytes read is recorded where the index holds another copy, and cleared where it does not", () => {
   clearState();
   const root = realpathSync(tempRoom("forge-codex-restore-"));
-  const git = (...argv) => spawnSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { encoding: "utf8" });
-  spawnSync("git", ["init", "-q", root]);
+  const git = (...argv) => spawnSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { cwd: root, encoding: "utf8" });
+  spawnSync("git", ["init", "-q", root], { cwd: dirname(root) });
   mkdirSync(join(root, "docs"), { recursive: true });
   const READ = "read by codex\n";
   const UNREAD = "no reviewer has seen this\n";
@@ -280,8 +280,8 @@ test("a write at the bytes read is recorded where the index holds another copy, 
 test("a commit is refused for a path the record took only because the index held the write", () => {
   clearState();
   const root = realpathSync(tempRoom("forge-codex-gate-"));
-  const git = (...argv) => spawnSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { encoding: "utf8" });
-  spawnSync("git", ["init", "-q", root]);
+  const git = (...argv) => spawnSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { cwd: root, encoding: "utf8" });
+  spawnSync("git", ["init", "-q", root], { cwd: dirname(root) });
   mkdirSync(join(root, "docs"), { recursive: true });
   const file = join(root, "docs", "READ.md");
   const READ = "read by codex\n";

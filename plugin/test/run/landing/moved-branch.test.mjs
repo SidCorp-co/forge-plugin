@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import {
   BASE, BRANCH, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, OWNED,
@@ -141,7 +141,7 @@ test("a remote that will not name the branch is the question unanswered, not a b
 test("a tip pushed after the fetch is the question unanswered, not a branch that was rewritten", async () => {
   const { at, work, head, base } = world();
   const clone = join(at, "clone-ahead");
-  spawnSync("git", ["clone", "-q", "-b", BRANCH, join(at, "origin.git"), clone], { encoding: "utf8" });
+  spawnSync("git", ["clone", "-q", "-b", BRANCH, join(at, "origin.git"), clone], { cwd: dirname(clone), encoding: "utf8" });
   writeFileSync(join(clone, OWNED), "a line the landing's checkout never fetched\n", { flag: "a" });
   git(clone, "add", OWNED);
   git(clone, "commit", "-qm", "a commit pushed after the landing fetched");

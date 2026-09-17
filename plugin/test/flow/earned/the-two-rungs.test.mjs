@@ -117,7 +117,7 @@ test("the judging rung is a declared step, so it is neither retired nor written 
 
 /* Every surface a run reads before the refusal: one still naming the deploying rung as the rung a
    verdict earns sends a run to write its verdicts against a rung that does not ask for them. */
-const tracked = (glob) => execFileSync("git", ["-C", ROOT, "ls-files", glob], { encoding: "utf8" })
+const tracked = (glob) => execFileSync("git", ["-C", ROOT, "ls-files", glob], { cwd: ROOT, encoding: "utf8" })
   .trim().split("\n").filter(Boolean);
 /* One sentence naming the deploying rung with a verdict and not the judging rung attributes the
    verdict to the rung that does not ask for it; naming both rungs is the boundary itself, which the

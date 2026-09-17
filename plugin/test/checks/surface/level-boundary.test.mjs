@@ -9,7 +9,7 @@ const ROOT = new URL("../../../../", import.meta.url).pathname;
 const TOOLS = join(ROOT, "tools") + sep;
 const LEDGER = "gate-ledger";
 
-const tracked = (glob) => execFileSync("git", ["-C", ROOT, "ls-files", glob], { encoding: "utf8" })
+const tracked = (glob) => execFileSync("git", ["-C", ROOT, "ls-files", glob], { cwd: ROOT, encoding: "utf8" })
   .trim().split("\n").filter(Boolean);
 
 /* Both spellings the tree uses, static and dynamic; a specifier built from a variable is none this can read. */

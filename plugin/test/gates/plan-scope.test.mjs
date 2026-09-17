@@ -25,7 +25,7 @@ delete ENV.FORGE_TOKEN;
    directory case needs a directory that is really there. */
 const tree = (() => {
   const at = tempRoom("plan-scope-tree-");
-  execFileSync("git", ["init", "-q", at]);
+  execFileSync("git", ["init", "-q", at], { cwd: dirname(at) });
   mkdirSync(join(at, "plugin", "src"), { recursive: true });
   mkdirSync(join(at, "elsewhere"), { recursive: true });
   mkdirSync(join(at, "plugin", "src", "held.dir"), { recursive: true });
@@ -131,7 +131,7 @@ test("where a tree holds two plans, a path either one names passes and a path ne
 test("a write in another repository is judged against that tree's scope and not this one's", async () => {
   await scope([["ISS-411", PLAN]]);
   const away = tempRoom("plan-scope-away-");
-  execFileSync("git", ["init", "-q", away]);
+  execFileSync("git", ["init", "-q", away], { cwd: dirname(away) });
   assert.equal(ask({ tool_name: "Write", tool_input: { file_path: join(realpathSync(away), "anything.mjs") } }).allowed, true);
 });
 

@@ -152,10 +152,10 @@ test("a read in a checkout stamped moments ago is no document this turn changed"
 test("a checkout and the names in one call leave the gate with nothing to announce", () => {
   const root = tempRoom("codex-turn-checkout-");
   const git = (...args) =>
-    spawnSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
+    spawnSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: root, encoding: "utf8" });
   mkdirSync(join(root, "docs"), { recursive: true });
   const names = ["docs/G.md", "docs/H.md", "docs/I.md"];
-  spawnSync("git", ["init", "-q", "-b", "one", root], { encoding: "utf8" });
+  spawnSync("git", ["init", "-q", "-b", "one", root], { cwd: dirname(root), encoding: "utf8" });
   for (const name of names) writeFileSync(join(root, name), "one\n");
   git("add", ...names);
   git("commit", "-qm", "one");

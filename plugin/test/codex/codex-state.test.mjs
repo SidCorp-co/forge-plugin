@@ -21,7 +21,7 @@ test.after(() => {
 });
 
 const git = (root, ...args) => {
-  const run = spawnSync("git", ["-C", root, ...args], { encoding: "utf8", env: { ...process.env, ...ENV } });
+  const run = spawnSync("git", ["-C", root, ...args], { cwd: root, encoding: "utf8", env: { ...process.env, ...ENV } });
   assert.equal(run.status, 0, run.stderr);
   return run.stdout;
 };

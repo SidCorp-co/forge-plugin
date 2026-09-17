@@ -84,9 +84,9 @@ test("a citation names a commit something published, or it is refused before the
 const repo = () => {
   const room = tempRoom("published-ship-");
   const bare = tempRoom("published-remote-");
-  const as = (...args) => spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
-  spawnSync("git", ["init", "-q", "--bare", bare], { encoding: "utf8" });
-  spawnSync("git", ["init", "-q", "-b", "master", room], { encoding: "utf8" });
+  const as = (...args) => spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: room, encoding: "utf8" });
+  spawnSync("git", ["init", "-q", "--bare", bare], { cwd: dirname(bare), encoding: "utf8" });
+  spawnSync("git", ["init", "-q", "-b", "master", room], { cwd: dirname(room), encoding: "utf8" });
   writeFileSync(join(room, "package.json"), JSON.stringify({ name: "shipped", version: "9.9.9" }));
   as("add", ".");
   as("commit", "-qm", "base");

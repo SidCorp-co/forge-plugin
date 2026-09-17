@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import test from "node:test";
 
 import { NOWHERE, movedTo, standsIn } from "../../hooks/_hook.mjs";
@@ -45,11 +45,11 @@ test("a tree named by --git-dir and --work-tree is the tree judged", () => {
 test("a repeated -C is judged in the tree the hops compose to", () => {
   const parent = tempRoom("parent-");
   const dirty = join(parent, "child");
-  spawnSync("git", ["init", "-q", dirty]);
+  spawnSync("git", ["init", "-q", dirty], { cwd: dirname(dirty) });
   writeFileSync(join(dirty, "a.txt"), "x\n");
   /* A clean `child` beside the shell, so reading the last hop alone finds a tree with nothing to lose. */
   const beside = tempRoom("beside-");
-  spawnSync("git", ["init", "-q", join(beside, "child")]);
+  spawnSync("git", ["init", "-q", join(beside, "child")], { cwd: beside });
   assert.match(from(beside, `git -C ${pathed(parent)} -C child reset --hard`), /reset --hard discards/u);
   assert.equal(
     from(dirty, `git -C ${pathed(parent)} -C ${pathed(join(beside, "child"))} reset --hard`).trim(),
@@ -73,7 +73,7 @@ test("-C outranks what --git-dir implies, so the tree at stake is the tree judge
   const dirty = dirtyRepo();
   const clean = cleanRepo();
   const third = tempRoom("third-");
-  spawnSync("git", ["init", "-q", third]);
+  spawnSync("git", ["init", "-q", third], { cwd: dirname(third) });
   assert.match(from(third, `git -C ${pathed(dirty)} --git-dir ${pathed(clean)}/.git reset --hard`), /reset --hard discards/u);
   assert.equal(
     from(third, `git -C ${pathed(clean)} --git-dir ${pathed(dirty)}/.git reset --hard`).trim(),
@@ -118,9 +118,9 @@ test("a git rule is judged in the tree a preceding cd moved to", () => {
 test("a relative -C after a cd resolves against the move, as it does for a commit", () => {
   const verb = "stash";
   const parent = tempRoom("parent-");
-  spawnSync("git", ["init", "-q", join(parent, "dirty")]);
+  spawnSync("git", ["init", "-q", join(parent, "dirty")], { cwd: parent });
   writeFileSync(join(parent, "dirty", "a.txt"), "x\n");
-  spawnSync("git", ["init", "-q", join(parent, "clean")]);
+  spawnSync("git", ["init", "-q", join(parent, "clean")], { cwd: parent });
   const elsewhere = dirtyRepo();
   assert.match(from(elsewhere, `cd ${pathed(parent)} && git -C dirty ${verb}`), /git stash silently reverts/u);
   assert.equal(
@@ -375,7 +375,7 @@ test("a destination spelled in fragments is one shell word", () => {
   const parent = tempRoom("parent-");
   const clean = cleanRepo();
   for (const name of ["dirty", "dirty tree"]) {
-    spawnSync("git", ["init", "-q", join(parent, name)]);
+    spawnSync("git", ["init", "-q", join(parent, name)], { cwd: parent });
     writeFileSync(join(parent, name, "a.txt"), "x\n");
   }
   assert.match(
@@ -426,7 +426,7 @@ test("a git rule still stands down where the tree the reading names is clean", (
   /* Under a plain directory, so the outer name is no repository the inner one could make dirty. */
   const parent = tempRoom("parent-");
   const inner = join(parent, "inner");
-  spawnSync("git", ["init", "-q", inner]);
+  spawnSync("git", ["init", "-q", inner], { cwd: dirname(inner) });
   for (const [command, why] of [
     [`if cd ${pathed(clean)}; then git ${verb}; fi`, "the compound's move is read, and what it reaches is clean"],
     [`cd "${parent}"/inner && git ${verb}`, "and so is a fragmented destination's, which keeps its own quotes"],

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { TOOLS, runTool, scopeFor, toolsFor } from "../../src/codex/codex-tools.mjs";
 import { bundle, changedAgainst, divergedFrom, roleFor, withDiffs } from "../../src/codex/codex-api.mjs";
@@ -10,7 +10,7 @@ import { patience } from "../patience.mjs";
 
 const repo = () => {
   const dir = tempRoom("codex-check-");
-  execFileSync("git", ["init", "-q", dir]);
+  execFileSync("git", ["init", "-q", dir], { cwd: dirname(dir) });
   writeFileSync(join(dir, "a.txt"), "x\n");
   return dir;
 };
@@ -35,8 +35,8 @@ test("the tools whose path is the checkout take it when none was given", async (
   assert.match((await runTool(scope, "list_dir", {})).text, /^a\.txt$/mu, "the root, listed");
   assert.equal((await runTool(scope, "list_dir", {})).error, undefined);
   writeFileSync(join(root, "a.txt"), "y\n");
-  execFileSync("git", ["-C", root, "add", "a.txt"]);
-  execFileSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "one"]);
+  execFileSync("git", ["-C", root, "add", "a.txt"], { cwd: root });
+  execFileSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "one"], { cwd: root });
   writeFileSync(join(root, "a.txt"), "z\n");
   const whole = await runTool(scope, "git_diff", {});
   assert.equal(whole.error, undefined);
@@ -52,7 +52,7 @@ test("the tools whose path is the checkout take it when none was given", async (
    `git diff --name-only` and typed the list back (ISS-65). */
 test("what changed against a ref is what the tree says, a deletion included", () => {
   const root = repo();
-  const git = (...argv) => execFileSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...argv]);
+  const git = (...argv) => execFileSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { cwd: root });
   writeFileSync(join(root, "b.txt"), "y\n");
   git("add", ".");
   git("commit", "-qm", "one");
@@ -73,7 +73,7 @@ test("what changed against a ref is what the tree says, a deletion included", ()
    raised two findings on code the branch never touched, and its run rejected them by name. */
 const parted = () => {
   const root = repo();
-  const git = (...argv) => execFileSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...argv]);
+  const git = (...argv) => execFileSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { cwd: root });
   writeFileSync(join(root, "kept.txt"), "kept\n");
   git("add", ".");
   git("commit", "-qm", "one");
@@ -194,11 +194,11 @@ test("a run the buffer ends takes its process group with it too", async () => {
    "the diff" is reading one side of the change while being told it is the other (ISS-51). */
 test("git_diff with neither path nor base answers the diff this consult was given", async () => {
   const root = repo();
-  const git = (...argv) => execFileSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...argv]);
+  const git = (...argv) => execFileSync("git", ["-C", root, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { cwd: root });
   writeFileSync(join(root, "b.txt"), "kept\n");
   git("add", ".");
   git("commit", "-qm", "one");
-  const first = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+  const first = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
   writeFileSync(join(root, "a.txt"), "moved\n");
   git("add", "a.txt");
   git("commit", "-qm", "two");

@@ -7,7 +7,7 @@ import { clearableOf, stagedIn } from "../../../src/codex/codex-state.mjs";
 import { digest } from "../../../src/codex/codex-api.mjs";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
 
@@ -16,7 +16,7 @@ const room = tempRoom("codex-second-");
 const REPO = join(room, "repo");
 mkdirSync(join(REPO, ".git"), { recursive: true });
 mkdirSync(join(room, "forge"), { recursive: true });
-spawnSync("git", ["init", "-q", REPO]);
+spawnSync("git", ["init", "-q", REPO], { cwd: dirname(REPO) });
 test.after(() => rmSync(room, { recursive: true, force: true }));
 
 /* Real clock, because a record's age is printed and a consult's timestamp is read against it — and
@@ -36,8 +36,8 @@ const gate = ({ session, env = {}, command, log, pending, pendingIn, stage } = {
   );
   writeFileSync(join(REPO, "work.mjs"), `// ${count}\n`);
   /* A commit is asked for what it stages, so the index is the case's to set and never the last one's. */
-  spawnSync("git", ["-C", REPO, "read-tree", "--empty"]);
-  if (stage) spawnSync("git", ["-C", REPO, "add", ...stage]);
+  spawnSync("git", ["-C", REPO, "read-tree", "--empty"], { cwd: REPO });
+  if (stage) spawnSync("git", ["-C", REPO, "add", ...stage], { cwd: REPO });
   const run = callHook(
     HOOK,
     {
@@ -84,10 +84,10 @@ test("a commit shape this cannot enumerate asks for the record whole", () => {
    refusing for work the commit does not carry, and passing the work it does. */
 const away = (dirty) => {
   const repo = tempRoom("codex-second-away-");
-  spawnSync("git", ["init", "-q", repo]);
+  spawnSync("git", ["init", "-q", repo], { cwd: dirname(repo) });
   if (dirty) {
     writeFileSync(join(repo, "work.mjs"), "// a line\n");
-    spawnSync("git", ["-C", repo, "add", "work.mjs"]);
+    spawnSync("git", ["-C", repo, "add", "work.mjs"], { cwd: repo });
   }
   return repo;
 };
@@ -186,7 +186,7 @@ test("every refusal names the switch a session can reach, and what an inline pre
 test("a document recorded in one tree does not hold a commit in another", () => {
   const main = realpathSync(tempRoom("codex-second-main-"));
   const run = (...args) => {
-    const out = spawnSync("git", args, { encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" } });
+    const out = spawnSync("git", args, { cwd: dirname(main), encoding: "utf8", env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" } });
     assert.equal(out.status, 0, out.stderr);
   };
   mkdirSync(join(main, "docs"), { recursive: true });
@@ -271,8 +271,8 @@ const four = () => {
   const home = join(held, "home");
   mkdirSync(join(home, "forge"), { recursive: true });
   mkdirSync(repo, { recursive: true });
-  const git = (...argv) => spawnSync("git", ["-C", repo, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { encoding: "utf8" });
-  spawnSync("git", ["init", "-q", repo]);
+  const git = (...argv) => spawnSync("git", ["-C", repo, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { cwd: repo, encoding: "utf8" });
+  spawnSync("git", ["init", "-q", repo], { cwd: dirname(repo) });
   const wrote = (rel, text) => writeFileSync(join(repo, rel), text);
   for (const rel of ["seen.mjs", "changed.mjs", "unread.mjs", "restaged.mjs", "erased.mjs"]) wrote(rel, "// the base\n");
   git("add", "-A");
@@ -371,6 +371,6 @@ test("the consult a refusal asks for leaves the path whose staged copy nobody re
   const said = fourSaid(repo, home, "git commit -m x");
   assert.match(said, /has not read what this commit stages/u, "the record that consult left still refuses the commit");
   assert.match(said, /restaged\.mjs/u);
-  const staged = spawnSync("git", ["-C", repo, "show", ":restaged.mjs"], { encoding: "utf8" }).stdout;
+  const staged = spawnSync("git", ["-C", repo, "show", ":restaged.mjs"], { cwd: repo, encoding: "utf8" }).stdout;
   assert.equal(staged, "// staged unread\n", "which is the copy that refusal stands between and the history");
 });

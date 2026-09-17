@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn } from "node:child_process";
 import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { tempRoom } from "../fixtures.mjs";
 import { canonical } from "../../src/resolve/canonical.mjs";
@@ -44,8 +44,8 @@ const standIn = async (answerCalls, { tool = true } = {}) => {
 test("a recheck's reviewer is handed the head its findings were made against, not HEAD", async () => {
   const room = tempRoom("codex-anchor-");
   const home = tempRoom("codex-anchor-home-");
-  const git = (...argv) => spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { encoding: "utf8" });
-  spawnSync("git", ["init", "-q", room]);
+  const git = (...argv) => spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { cwd: room, encoding: "utf8" });
+  spawnSync("git", ["init", "-q", room], { cwd: dirname(room) });
   writeFileSync(join(room, "judged.txt"), "reviewed\n");
   writeFileSync(join(room, "elsewhere.txt"), "not this consult's business\n");
   git("add", ".");
@@ -97,8 +97,8 @@ test("a recheck's reviewer is handed the head its findings were made against, no
 test("a recheck given no file reads the range its consult recorded, not what an aged base now offers", async () => {
   const room = tempRoom("codex-range-");
   const home = tempRoom("codex-range-home-");
-  const git = (...argv) => spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { encoding: "utf8" });
-  spawnSync("git", ["init", "-q", room]);
+  const git = (...argv) => spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { cwd: room, encoding: "utf8" });
+  spawnSync("git", ["init", "-q", room], { cwd: dirname(room) });
   writeFileSync(join(room, "reviewed.txt"), "reviewed\n");
   git("add", ".");
   git("commit", "-qm", "the branch point");
@@ -176,8 +176,8 @@ const PATTERN = "^(src|test|ignored)/.*\\.mjs$";
 const disagreeing = (label) => {
   const room = tempRoom(label);
   const home = tempRoom(`${label}home-`);
-  const git = (...argv) => spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { encoding: "utf8" });
-  spawnSync("git", ["init", "-q", room]);
+  const git = (...argv) => spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { cwd: room, encoding: "utf8" });
+  spawnSync("git", ["init", "-q", room], { cwd: dirname(room) });
   mkdirSync(join(room, "src"), { recursive: true });
   mkdirSync(join(room, "test"), { recursive: true });
   mkdirSync(join(room, "ignored"), { recursive: true });
@@ -332,8 +332,8 @@ test("a consult with no base keeps a tracked deletion the record holds, and drop
 test("a recheck reaches the file its findings are about, whatever else the tree has dirty", async () => {
   const room = tempRoom("codex-recheck-set-");
   const home = tempRoom("codex-recheck-set-home-");
-  const git = (...argv) => spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { encoding: "utf8" });
-  spawnSync("git", ["init", "-q", room]);
+  const git = (...argv) => spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { cwd: room, encoding: "utf8" });
+  spawnSync("git", ["init", "-q", room], { cwd: dirname(room) });
   writeFileSync(join(room, "judged.txt"), "reviewed, and fixed\n");
   writeFileSync(join(room, "elsewhere.txt"), "not this recheck's business\n");
   git("add", ".");
@@ -380,7 +380,7 @@ test("a rename travels as both its ends, and a deletion-only change travels as i
 
   const { room: bare } = disagreeing("codex-onlydel-");
   const { home: barehome } = disagreeing("codex-onlydel-spare-");
-  spawnSync("git", ["-C", bare, "-c", "user.email=t@t", "-c", "user.name=t", "rm", "-q", "doomed.txt"]);
+  spawnSync("git", ["-C", bare, "-c", "user.email=t@t", "-c", "user.name=t", "rm", "-q", "doomed.txt"], { cwd: bare });
   const second = await withGateway(barehome, async (gateway) => {
     const ran = await consulted(bare, barehome, ["--diff", "--rounds", "1"]);
     return { ...ran, shown: gateway.shown() };

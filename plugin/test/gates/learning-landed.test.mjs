@@ -31,7 +31,7 @@ const landed = (session, name, { dir = room, old, existing } = {}) => {
 
 const committed = (repo, what) => {
   for (const args of [["init", "-q"], ["add", what], ["commit", "-qm", "first"]]) {
-    const run = spawnSync("git", ["-C", repo, ...args], {
+    const run = spawnSync("git", ["-C", repo, ...args], { cwd: repo,
       encoding: "utf8",
       env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" },
     });

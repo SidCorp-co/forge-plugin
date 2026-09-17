@@ -224,7 +224,7 @@ const from = (cwd, command) => {
 test("a git aimed at another tree is judged by that tree", () => {
   const dirty = dirtyRepo();
   const clean = tempRoom("clean-repo-");
-  spawnSync("git", ["init", "-q", clean]);
+  spawnSync("git", ["init", "-q", clean], { cwd: dirname(clean) });
   assert.equal(from(dirty, `git -C ${clean} stash`).trim(), "", "a clean tree named from a dirty cwd has nothing to lose");
   assert.match(from(clean, `git -C ${dirty} stash`), /git stash silently reverts/u, "a dirty tree named from a clean cwd does");
 });
@@ -232,7 +232,7 @@ test("a git aimed at another tree is judged by that tree", () => {
 /* A global's value may be quoted and hold a space, and a flag with no value must not eat `-C`. */
 test("git's globals before the verb are read as git reads them", () => {
   const dirty = tempRoom("dirty tree-");
-  spawnSync("git", ["init", "-q", dirty]);
+  spawnSync("git", ["init", "-q", dirty], { cwd: dirname(dirty) });
   writeFileSync(join(dirty, "a.txt"), "x\n");
   const clean = cleanRepo();
   assert.match(from(clean, `git -C "${dirty}" reset --hard`), /reset --hard discards/u, "a quoted tree with a space is the tree");
@@ -358,8 +358,8 @@ test("a done closes the loop it belongs to, and only a wait is a range", () => {
 const sharedStack = () => {
   const room = tempRoom("shared-stack-");
   const git = (at, ...args) =>
-    spawnSync("git", ["-C", at, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
-  spawnSync("git", ["init", "-q", room], { encoding: "utf8" });
+    spawnSync("git", ["-C", at, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: at, encoding: "utf8" });
+  spawnSync("git", ["init", "-q", room], { cwd: dirname(room), encoding: "utf8" });
   writeFileSync(join(room, "tracked.txt"), "committed\n");
   git(room, "add", "tracked.txt");
   git(room, "commit", "-qm", "base");

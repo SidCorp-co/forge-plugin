@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import test, { after } from "node:test";
 import { spawn, spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { fakeTracker, tempRoom } from "../../fixtures.mjs";
 import { PER_KEY, SPARE, issueParts, pagedParts, runTool, scopeFor, toolsFor, trackerFor }
@@ -43,7 +43,7 @@ after(() => tracker.close());
 
 const room = () => {
   const dir = tempRoom("codex-tracker-");
-  spawnSync("git", ["init", "-q", dir]);
+  spawnSync("git", ["init", "-q", dir], { cwd: dirname(dir) });
   writeFileSync(join(dir, ".forge.json"), JSON.stringify({ slug: SLUG }));
   return dir;
 };
@@ -188,7 +188,7 @@ test("an issue key is an argument the consult takes, and the usage says so", () 
    whatever else the turn had touched — a set nobody named and no criterion covers. */
 test("keys with no file name the subject, and the turn's record is not pulled in behind them", () => {
   const dir = room();
-  const git = (...argv) => spawnSync("git", ["-C", dir, "-c", "user.email=t@t", "-c", "user.name=t", ...argv]);
+  const git = (...argv) => spawnSync("git", ["-C", dir, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { cwd: dir });
   git("add", ".");
   git("commit", "-qm", "one");
   writeFileSync(join(dir, "changed.md"), "this turn's own work\n");

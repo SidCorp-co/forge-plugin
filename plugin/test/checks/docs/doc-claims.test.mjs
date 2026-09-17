@@ -43,7 +43,7 @@ const held = {
   sources: sources(),
 };
 
-const markdown = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { encoding: "utf8" })
+const markdown = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { cwd: ROOT, encoding: "utf8" })
   .trim()
   .split("\n")
   .filter(Boolean);

@@ -130,11 +130,12 @@ export const homeEnv = (name) => {
 };
 
 export const git = (room, ...args) =>
-  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
+  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args],
+    { cwd: room, encoding: "utf8" });
 
 export const dirtyRepo = () => {
   const room = tempRoom("dirty-repo-");
-  spawnSync("git", ["init", "-q", room], { encoding: "utf8" });
+  spawnSync("git", ["init", "-q", room], { cwd: room, encoding: "utf8" });
   writeFileSync(join(room, "tracked.txt"), "committed\n");
   git(room, "add", "tracked.txt");
   git(room, "commit", "-qm", "base");
@@ -145,7 +146,7 @@ export const dirtyRepo = () => {
 /** A repository with nothing to lose, which is where every git rule in bash-guard stands down. */
 export const cleanRepo = () => {
   const room = tempRoom("clean-repo-");
-  spawnSync("git", ["init", "-q", room], { encoding: "utf8" });
+  spawnSync("git", ["init", "-q", room], { cwd: room, encoding: "utf8" });
   return room;
 };
 

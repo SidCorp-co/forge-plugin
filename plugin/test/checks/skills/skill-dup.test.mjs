@@ -64,7 +64,7 @@ test("a file gone by the time the walk reads it is skipped, and the rest still c
   const room = cleanRepo();
   writeFileSync(join(room, "a.mjs"), `// ${A}\n`);
   writeFileSync(join(room, "gone.mjs"), `// ${B}\n`);
-  spawnSync("git", ["-C", room, "add", "gone.mjs"]);
+  spawnSync("git", ["-C", room, "add", "gone.mjs"], { cwd: room });
   rmSync(join(room, "gone.mjs"));
 
   assert.deepEqual(load(room, new Set(), "comments").map(([label]) => label), ["a.mjs"]);

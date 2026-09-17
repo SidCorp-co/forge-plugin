@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { writeFileSync } from "node:fs";
 
 import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
@@ -20,13 +20,13 @@ const BUILDER = "the-builder-run";
 const LANDER = "the-lander-run";
 
 const git = (room, ...args) =>
-  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
+  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: room, encoding: "utf8" });
 
 /* What `--pushed` reads: a base a remote head names, and a diff above it. The remote ref is written
    by hand because a fixture with a real remote is a second repository for one merge-base. */
 const pushedRepo = (files) => {
   const room = tempRoom("landing-repo-");
-  spawnSync("git", ["init", "-q", "-b", "iss-673-6", room], { encoding: "utf8" });
+  spawnSync("git", ["init", "-q", "-b", "iss-673-6", room], { cwd: dirname(room), encoding: "utf8" });
   writeFileSync(join(room, "base.txt"), "the base\n");
   /* The verb is project-scoped wherever it runs, and the capture's checkout is where it runs. */
   writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "forge-plugin" }));

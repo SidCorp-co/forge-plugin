@@ -115,7 +115,7 @@ test("a batch of three rides together and the fourth prints as related", async (
    repository has ever held, and the batch was dispatched on it. */
 const standingInTree = (...files) => {
   const room = standing(null);
-  spawnSync("git", ["-C", room, "init", "-q"], { encoding: "utf8" });
+  spawnSync("git", ["-C", room, "init", "-q"], { cwd: room, encoding: "utf8" });
   for (const rel of files) {
     mkdirSync(join(room, dirname(rel)), { recursive: true });
     writeFileSync(join(room, rel), "");

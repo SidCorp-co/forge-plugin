@@ -36,7 +36,7 @@ const PLUGIN = join(ROOT, "plugin");
 const TEXT = readContract();
 const PARTS = partsOf(TEXT);
 const STAGED = [...ORDER, "dropped"];
-const TRACKED = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { encoding: "utf8" })
+const TRACKED = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { cwd: ROOT, encoding: "utf8" })
   .trim().split("\n").filter(Boolean);
 const SKILL = servedBody("issue-flow", PLUGIN);
 const VERIFICATION = join(PLUGIN, "guides", "skills", "issue-flow", DEFAULT, "references", "verification.md");
@@ -130,7 +130,7 @@ test("the gate's cadence is stated in the verification reference and restated no
     assert.ok(held.includes(phrase), `the verification reference no longer states ${beat}, so a run `
       + `reading it is back to guessing how often to spend the gate (ISS-290)`);
   }
-  const tracked = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { encoding: "utf8" })
+  const tracked = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { cwd: ROOT, encoding: "utf8" })
     .trim().split("\n").filter(Boolean);
   const holding = tracked.filter((rel) => RETIRED_CADENCE.test(readFileSync(join(ROOT, rel), "utf8")));
   assert.deepEqual(holding, [], "a surface still tells a run to spend the gate as often as the work "
@@ -370,7 +370,7 @@ const RETIRED_BY_CHECK = [
 ];
 
 test("a sentence an entry check now enforces is stated by the check and by no guide", () => {
-  const tracked = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { encoding: "utf8" })
+  const tracked = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { cwd: ROOT, encoding: "utf8" })
     .trim().split("\n").filter(Boolean);
   for (const [pattern, what] of RETIRED_BY_CHECK) {
     const holding = tracked.filter((rel) => pattern.test(readFileSync(join(ROOT, rel), "utf8")));

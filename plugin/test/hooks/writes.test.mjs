@@ -432,12 +432,12 @@ test("more than one assembly in a body, and more than two members in one", () =>
    separates the two is the tree: a file it still agrees with HEAD about was restamped, not written. */
 
 const git = (at, ...args) =>
-  spawnSync("git", ["-C", at, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
+  spawnSync("git", ["-C", at, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: at, encoding: "utf8" });
 
 /* Two branches whose files differ, so checking one out rewrites all three and stamps them now. */
 const repoWithBranches = () => {
   const at = tempRoom("writes-repo-");
-  spawnSync("git", ["init", "-q", "-b", "one", at], { encoding: "utf8" });
+  spawnSync("git", ["init", "-q", "-b", "one", at], { cwd: dirname(at), encoding: "utf8" });
   for (const name of ["a.md", "b.md", "c.md"]) writeFileSync(join(at, name), "one\n");
   git(at, "add", "a.md", "b.md", "c.md");
   git(at, "commit", "-qm", "one");

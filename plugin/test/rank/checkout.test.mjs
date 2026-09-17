@@ -12,7 +12,7 @@ import { tempRoom } from "../fixtures.mjs";
 
 const repo = () => {
   const room = tempRoom("rank-checkout-");
-  spawnSync("git", ["-C", room, "init", "-q"], { encoding: "utf8" });
+  spawnSync("git", ["-C", room, "init", "-q"], { cwd: room, encoding: "utf8" });
   mkdirSync(join(room, "plugin/src/rank"), { recursive: true });
   writeFileSync(join(room, "plugin/src/rank/batch.mjs"), "");
   return room;

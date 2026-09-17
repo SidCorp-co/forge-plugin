@@ -53,7 +53,7 @@ const stopped = (env, event) => {
 };
 
 const git = (dir, ...argv) =>
-  spawnSync("git", ["-C", dir, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { encoding: "utf8" });
+  spawnSync("git", ["-C", dir, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { cwd: dir, encoding: "utf8" });
 
 const consult = (root) => JSON.stringify({
   kind: "consult",

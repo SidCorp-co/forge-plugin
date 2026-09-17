@@ -12,7 +12,7 @@ const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", ".."
 const version = (path) => JSON.parse(readFileSync(path, "utf8")).version;
 
 const manifests = () => {
-  const git = spawnSync("git", ["-C", ROOT, "ls-files", "-z", "*.claude-plugin/plugin.json"], {
+  const git = spawnSync("git", ["-C", ROOT, "ls-files", "-z", "*.claude-plugin/plugin.json"], { cwd: ROOT,
     encoding: "utf8",
   });
   assert.equal(git.status, 0, git.stderr);

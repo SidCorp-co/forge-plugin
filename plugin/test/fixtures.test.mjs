@@ -47,7 +47,7 @@ test("a test process removes every directory its fixture made", () => {
 });
 
 test("no test file makes a temporary directory of its own", () => {
-  const files = execFileSync("git", ["-C", ROOT, "ls-files", "-z"], { encoding: "utf8", maxBuffer: 8e6 })
+  const files = execFileSync("git", ["-C", ROOT, "ls-files", "-z"], { cwd: ROOT, encoding: "utf8", maxBuffer: 8e6 })
     .split("\0")
     .filter((one) => /(?:^|\/)test\/.+\.[cm]?[jt]sx?$/u.test(one) && !STATED.includes(one));
   assert.ok(files.length > 50, `${files.length} test files tracked; the selector matches too little`);

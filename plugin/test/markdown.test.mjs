@@ -134,7 +134,7 @@ const redeclared = (sources) =>
       .map(([what, home]) => `${rel} declares ${what} of its own; ${home} holds it`));
 
 const listed = (...paths) =>
-  execFileSync("git", ["-C", ROOT, "ls-files", "-z", ...paths], { encoding: "utf8", maxBuffer: 8e6 })
+  execFileSync("git", ["-C", ROOT, "ls-files", "-z", ...paths], { cwd: ROOT, encoding: "utf8", maxBuffer: 8e6 })
     .split("\0")
     .filter(Boolean);
 

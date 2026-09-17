@@ -7,7 +7,7 @@ import test from "node:test";
 
 import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { fakeTracker, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
 
@@ -133,8 +133,8 @@ test("the line is said at every status below the one a baseline earns, and it re
    `headNow` wired to the wrong reader, the seam above taking the head as a parameter. */
 test("the rehearsal cites the published head from a clean checkout, reading the head for itself", async () => {
   const room = tempRoom("ahead-checkout-");
-  const as = (...args) => spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
-  spawnSync("git", ["init", "-q", "-b", "master", room], { encoding: "utf8" });
+  const as = (...args) => spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: room, encoding: "utf8" });
+  spawnSync("git", ["init", "-q", "-b", "master", room], { cwd: dirname(room), encoding: "utf8" });
   writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "forge-plugin" }));
   as("add", ".");
   as("commit", "-qm", "base");

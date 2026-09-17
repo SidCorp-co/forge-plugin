@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { rmSync, writeFileSync } from "node:fs";
 
 import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
@@ -21,7 +21,7 @@ const BRANCH = "iss-673-6";
 const CANDIDATE = "7c1d0e5b0000000000000000000000000000face";
 
 const git = (room, ...args) =>
-  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { encoding: "utf8" });
+  spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: room, encoding: "utf8" });
 
 const ISSUE = {
   documentId: "landing-uuid",
@@ -88,7 +88,7 @@ const ran = async (argv, cwd) => {
 
 const handedRoom = (name) => {
   const room = tempRoom(`reconciled-${name}-`);
-  spawnSync("git", ["init", "-q", "-b", BRANCH, room], { encoding: "utf8" });
+  spawnSync("git", ["init", "-q", "-b", BRANCH, room], { cwd: dirname(room), encoding: "utf8" });
   writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "forge-plugin" }));
   writeFileSync(join(room, "one.mjs"), "the judged head\n");
   git(room, "add", "one.mjs", ".forge.json");
@@ -143,7 +143,7 @@ test("a reading that proves neither answer lets the reconciliation through", asy
   git(room, "update-ref", `refs/heads/${BRANCH}`, onTop(room, "two.mjs", "the tip a shallow clone fetches"));
   const shallow = tempRoom("reconciled-shallow-");
   spawnSync("git", ["clone", "-q", "--depth", "1", "--branch", BRANCH, `file://${room}`, shallow],
-    { encoding: "utf8" });
+    { cwd: dirname(shallow), encoding: "utf8" });
   assert.notEqual(git(shallow, "cat-file", "-e", `${judged}^{commit}`).status, 0,
     "the judged head is behind the shallow boundary, which is a history that cannot settle it");
   owed(judged);
