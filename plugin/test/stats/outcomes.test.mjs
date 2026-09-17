@@ -342,6 +342,18 @@ test("the rejected-findings figure counts findings, needs no tracker, and is una
   const ruledNothing = figureOf(heldOf([owner], read({ ruled: zero })), "consult findings rejected");
   assert.equal(ruledNothing.count, null, "a paired ruling that ruled on nothing has no denominator either");
   assert.equal(ruledNothing.paired, 1);
+  assert.equal(ruledNothing.runs, 0, "and it lends the figure no run: pairing and contributing differ");
+
+  const other = { at: 2000, endedAt: 2100, of: "def" };
+  const quiet = { ...run({ endedAt: NOW - 5 * DAY }), issues: ["ISS-2"], rulings: [other] };
+  const mixed = new Map([
+    [span, { at: 1050, of: "abc", accepted: 3, rejected: 1 }],
+    [other, { at: 2050, of: "def", accepted: 0, rejected: 0 }],
+  ]);
+  const shared = figureOf(heldOf([owner, quiet], read({ ruled: mixed })), "consult findings rejected");
+  assert.equal(shared.over, 4, "the findings are one run's");
+  assert.equal(shared.paired, 2, "both rulings paired");
+  assert.equal(shared.runs, 1, "and one run stands behind the figure, not both");
 });
 
 test("a thread is read whole or not at all: every way a page falls short leaves its records unreachable", () => {

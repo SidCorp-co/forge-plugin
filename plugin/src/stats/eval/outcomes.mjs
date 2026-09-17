@@ -67,9 +67,7 @@ const inBatches = async (list, most, each) => {
   await Promise.all(Array.from({ length: Math.max(1, Math.min(most, list.length)) }, worker));
 };
 
-/** Every issue the corpus's runs owned, read once: the walk maps a reference to a row and a thread
- *  read per issue carries the records. Both spend the one budget. */
-/* Every alias the project's rows answer to, off the walk already paid for: what makes an issue one issue whichever name a claim printed. */
+/** Every issue the corpus's runs owned, read once: the walk maps a reference to a row and a thread read per issue carries the records, and both spend the one budget. Every alias the rows answer to is kept, which is what makes an issue one issue whichever name a claim printed. */
 const documentsOf = (rows) => new Map([...rows].map(([alias, row]) => [alias, row.documentId]));
 const complexitiesOf = (rows) => new Map([...rows].map(([alias, row]) => [alias, row.complexity ?? null]));
 
@@ -281,7 +279,8 @@ export const rejectedFor = (runs, ruled) => {
         continue;
       }
       paired += 1;
-      behind.add(run.path);
+      /* Paired and contributing differ: a ruling on nothing lends the figure no finding and no run. */
+      if (entry.accepted + entry.rejected > 0) behind.add(run.path);
       rejected += entry.rejected;
       over += entry.accepted + entry.rejected;
     }
