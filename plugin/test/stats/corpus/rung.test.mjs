@@ -120,6 +120,14 @@ test("an ordinary fenced example is not a record whose head was cut off", () => 
   assert.match(example(feature), /forge-record: confirmation/u, "the fixture really does carry the tag a record carries");
   assert.equal(rungRun([said("forge record confirmation", example(feature))]), RUNG_UNKNOWN,
     "the example opens a fence of its own, which a truncated payload cannot have above the fence that closed it");
+  for (const lead of ["", " ", "  ", "   "]) {
+    const cited = ["- **Nơi đã xem:** src/a.mjs", "finding: quoted", "```", tagFor("confirmation", 1),
+      `${lead}\`\`\``, "", tagFor("confirmation", 1)].join("\n");
+    const read = readRecords(cited, (kind) => SHAPES[kind])[0];
+    assert.equal(read?.rewritten, true,
+      "a comment quoting a record whole reaches readRecords with no call class in front of it, and markdown closes a fence three spaces in");
+    assert.equal(read?.fields.finding, undefined, "so the quotation's keys are nobody's record");
+  }
   const whole = ["rung: feature", "```", tagFor("confirmation", 1), "```"].join("\n");
   assert.equal(rungRun([said("forge record confirmation", whole)]), RUNG_UNKNOWN,
     "a second bare fence says the first one opened an example rather than closed a payload, which has nothing below it to close");

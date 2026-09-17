@@ -10,6 +10,7 @@ const INFO = "forge-record";
 const KEY = /^([a-z][a-z0-9-]*): ?(.*)$/u;
 const OPEN = new RegExp(`^(\`{3,})${INFO}\\s*$`, "u");
 const CLOSE = /^`{3,}[ \t]*$/u;
+const CLOSES = /^ {0,3}`{3,}[ \t]*$/u;
 /* What the first record in a body stamped, which is the one a write printed, matched over the whole line because a sentence ending in those words quotes a record rather than making one: docs/cli/the-ladder.md. */
 const FIRST_TAG = new RegExp(`^\`?${INFO}: ([a-z]+) · contract \\d+\`?[ \t]*$`, "mu");
 const TAG = new RegExp(`\`?${INFO}: ([a-z]+) · contract (\\d+)\`?\\s*$`, "u");
@@ -51,13 +52,13 @@ export const payloadIn = (body) => {
 
 /* The same payload with its head off: a host truncates a long tool result from the top, so a record
    this CLI printed can arrive without its opening fence. What stands in for the one it lost is the
-   trailer `render` writes — a bare fence, the tag alone beneath, no second fence saying the first opened something. */
+   trailer `render` writes — a fence where `blockOf` puts one, the tag alone beneath, and nothing below that markdown would have closed the first on, which it would three spaces in. */
 const headlessIn = (body) => {
   const lines = fenceMarked(body);
   const at = lines.findIndex((one) => one.fenced);
   if (at < 0 || !CLOSE.test(lines[at].line)) return null;
   const under = lines.slice(at + 1);
-  if (under.some((one) => CLOSE.test(one.line))) return null;
+  if (under.some((one) => CLOSES.test(one.line))) return null;
   const said = under.find((one) => one.line.trim());
   if (!said || !FIRST_TAG.test(said.line)) return null;
   const out = keyedIn(lines.slice(0, at).map((one) => one.line), () => false);
