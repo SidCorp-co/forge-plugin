@@ -18,8 +18,10 @@ const PREFIX = "gate-reads:";
 const ASKS = new Set(["readFileSync", "openSync", "existsSync", "statSync", "lstatSync", "realpathSync",
   "accessSync", "createReadStream", "readFile", "open", "stat", "lstat", "access", "realpath", "copyFileSync"]);
 
-// A listing is the set of names, so a file added under it moves the digest though nothing in it did.
-const LISTS = new Set(["readdirSync", "readdir", "opendirSync", "opendir", "globSync", "glob"]);
+const LISTS = new Set(["readdirSync", "readdir", "opendirSync", "opendir"]);
+
+// A pattern is not a path and what it matched was asked for by no name: nothing here can key on it.
+const GLOBS = new Set(["globSync", "glob"]);
 
 const SPAWNS = new Set(["spawn", "spawnSync", "execFile", "execFileSync", "fork"]);
 
@@ -33,23 +35,39 @@ export const optionsIn = (args) => {
   return { before: has ? rest.slice(0, -1) : rest, options: has ? last : {}, after };
 };
 
+const NAMED = /^[A-Za-z_$][\w$]*$/u;
+
+const wrapping = (key, from) => {
+  if (ASKS.has(key)) return `asked(${from}.${key})`;
+  if (LISTS.has(key)) return `listed(${from}.${key})`;
+  if (GLOBS.has(key)) return `blinded(${from}.${key}, ${JSON.stringify(`${key} matched by pattern`)})`;
+  if (SPAWNS.has(key)) return `spawns(${from}.${key})`;
+  return key === "exec" || key === "execSync" ? `shelled(${from}.${key})` : null;
+};
+
 // Generated and not written: a name this repository does not use today is a hole tomorrow.
 export const shimSource = (name, real) => {
-  const keys = Object.keys(real).filter((one) => /^[A-Za-z_$][\w$]*$/u.test(one));
+  const keys = Object.keys(real).filter((one) => NAMED.test(one));
   const out = [
     `const real = process.getBuiltinModule(${JSON.stringify(name)});`,
     `const audit = globalThis[Symbol.for("forge.gate.reads")];`,
-    `const asked = (fn, kind) => function (one, ...rest) { audit.asked(kind, one); return fn.apply(this, [one, ...rest]); };`,
+    `const asked = (fn) => function (one, ...rest) { audit.asked(one); return fn.apply(this, [one, ...rest]); };`,
+    `const listed = (fn) => function (one, ...rest) { audit.listed(one, rest[0]); return fn.apply(this, [one, ...rest]); };`,
     `const spawns = (fn) => function (...args) { return fn.apply(this, audit.ticketed(args)); };`,
     `const shelled = (fn) => function (...args) { audit.shelled(args); return fn.apply(this, args); };`,
+    `const blinded = (fn, why) => function (...args) { audit.blind(why); return fn.apply(this, args); };`,
   ];
+  const nested = name === "node:fs" && real.promises ? Object.keys(real.promises).filter((one) => NAMED.test(one)) : [];
+  if (nested.length > 0) {
+    out.push(`const promises = { ...real.promises };`);
+    for (const key of nested) {
+      const how = wrapping(key, "real.promises");
+      if (how) out.push(`promises.${key} = ${how};`);
+    }
+  }
   for (const key of keys) {
-    const how = ASKS.has(key) ? `asked(real.${key}, "path")`
-      : LISTS.has(key) ? `asked(real.${key}, "dir")`
-      : SPAWNS.has(key) ? `spawns(real.${key})`
-      : key === "exec" || key === "execSync" ? `shelled(real.${key})`
-      : `real.${key}`;
-    out.push(`export const ${key} = ${how};`);
+    if (key === "promises" && nested.length > 0) out.push(`export { promises };`);
+    else out.push(`export const ${key} = ${wrapping(key, "real") ?? `real.${key}`};`);
   }
   out.push(`const held = { ...real };`);
   for (const key of keys) out.push(`held.${key} = ${key};`);
@@ -69,7 +87,9 @@ const start = (out, root) => {
 
   const paths = new Set();
   const dirs = new Set();
+  const trees = new Set();
   const spawned = [];
+  const blind = new Set();
   let issued = 0;
 
   // What the ledger already declares itself blind to; counting it would spend every test on a fetch.
@@ -92,9 +112,17 @@ const start = (out, root) => {
   const entry = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
 
   const audit = {
-    asked(kind, one) {
+    asked(one) {
       const rel = inside(one);
-      if (rel) (kind === "dir" ? dirs : paths).add(rel);
+      if (rel) paths.add(rel);
+    },
+    // A walk of everything below is a different claim from the names in one directory.
+    listed(one, how) {
+      const rel = inside(one);
+      if (rel) (how && how.recursive ? trees : dirs).add(rel);
+    },
+    blind(why) {
+      blind.add(why);
     },
     shelled(args) {
       const { before, options } = optionsIn(args);
@@ -126,10 +154,14 @@ const start = (out, root) => {
   };
 
   registerHooks({
+    /* The candidate goes in before the resolution is attempted: an import that failed is recorded
+       nowhere else, and a test passing on its fallback would answer for the file appearing. */
     resolve(specifier, context, next) {
       if (SHIMMED.has(specifier) && ours(context.parentURL)) {
         return { url: `${PREFIX}${specifier.replace("node:", "")}`, format: "module", shortCircuit: true };
       }
+      const from = context.parentURL ?? entry;
+      if (specifier.startsWith(".") && ours(from)) audit.asked(new URL(specifier, from));
       return next(specifier, context);
     },
     load(url, context, next) {
@@ -137,12 +169,12 @@ const start = (out, root) => {
         const name = `node:${url.slice(PREFIX.length)}`;
         return { format: "module", source: shimSource(name, process.getBuiltinModule(name)), shortCircuit: true };
       }
-      if (url.startsWith("file:")) audit.asked("path", new URL(url));
+      if (url.startsWith("file:")) audit.asked(new URL(url));
       return next(url, context);
     },
   });
 
-  if (process.argv[1]) audit.asked("path", process.argv[1]);
+  if (process.argv[1]) audit.asked(process.argv[1]);
 
   /* At exit and not incrementally: a process killed before it gets here leaves no record at all, and
      the ticket its parent holds is then a child the collector cannot answer for. */
@@ -151,8 +183,8 @@ const start = (out, root) => {
     try {
       mkdirSync(out, { recursive: true });
       writeFileSync(join(out, `${mine ?? `own-${process.pid}`}.json`), `${JSON.stringify({
-        ticket: mine, argv: process.argv.slice(1), paths: [...paths].sort(), dirs: [...dirs].sort(),
-        spawned, done: true,
+        ticket: mine, argv: process.argv.slice(1), paths: [...paths].sort(),
+        dirs: [...dirs].sort(), trees: [...trees].sort(), spawned, blind: [...blind], done: true,
       })}\n`);
     } catch {
       /* Nothing to report it to; the missing record is what spends the test file. */

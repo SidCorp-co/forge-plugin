@@ -24,7 +24,8 @@ const room = (files = {}) => {
   return { at, root, dir: join(at, "records") };
 };
 
-const setOf = (paths, dirs = []) => ({ file: FILE, paths: new Set(paths), dirs: new Set(dirs) });
+const setOf = (paths, dirs = [], trees = []) =>
+  ({ file: FILE, paths: new Set(paths), dirs: new Set(dirs), trees: new Set(trees) });
 
 const held = ({ root, dir }, sets, manifests = []) => {
   forgetReads();
@@ -155,8 +156,8 @@ test("a child that left no record blinds its test file where it could have read 
   const out = join(where.at, "out");
   mkdirSync(out, { recursive: true });
   try {
-    const one = { ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], done: true,
-      spawned: [{ ticket: "gone", file: "git", cwd: where.root, args: ["status"] }] };
+    const one = { ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [],
+      blind: [], done: true, spawned: [{ ticket: "gone", file: "git", cwd: where.root, args: ["status"] }] };
     writeFileSync(join(out, "own-1.json"), JSON.stringify(one));
     assert.equal(setsFrom(out, where.root)[0].blind, `git in ${where.root}`);
   } finally {
@@ -180,7 +181,8 @@ test("a process record no completion marker closed is not read at all", () => {
   const out = join(where.at, "out");
   mkdirSync(out, { recursive: true });
   try {
-    const one = { ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], spawned: [] };
+    const one = { ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [],
+      blind: [], spawned: [] };
     writeFileSync(join(out, "own-1.json"), JSON.stringify(one));
     assert.deepEqual(setsFrom(out, where.root), [], "unclosed");
     writeFileSync(join(out, "own-1.json"), JSON.stringify({ ...one, done: true }));
@@ -286,5 +288,69 @@ test("--full spends every test file whatever the record holds", () => {
     assert.match(stdout, /=== test ===/u);
   } finally {
     rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* A walk of everything below a directory is a different claim from the names in it: a file added
+   under a directory that already existed moves neither the names above it nor any path read. */
+test("a file appearing deep under a directory the test walked spends it, where a listing would not", () => {
+  const where = room({ "plugin/src/deep/one.mjs": "one\n" });
+  try {
+    assert.deepEqual(held(where, [setOf([], [], ["plugin/src"])]).spend, []);
+    write(where.root, "plugin/src/deep/two.mjs", "two\n");
+    assert.deepEqual(again(where).spend, [FILE], "the walk");
+    forgetReads();
+    recordSets(where.dir, [setOf([], ["plugin/src"])], { root: where.root, context: CONTEXT, manifests: [] });
+    forgetReads();
+    write(where.root, "plugin/src/deep/three.mjs", "three\n");
+    assert.deepEqual(again(where).spend, [], "the names one level down, which did not move");
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+test("a file read through the promises export of node:fs is in the set", () => {
+  const where = room({ "plugin/src/one.mjs": "one\n" });
+  const out = join(where.at, "out");
+  try {
+    const said = audited(where.root, out, [`import { promises } from "node:fs";`,
+      `await promises.readFile("plugin/src/one.mjs");`].join("\n"));
+    assert.equal(said.status, 0, said.stderr);
+    assert.ok(recordsIn(out)[0].paths.includes("plugin/src/one.mjs"), recordsIn(out)[0].paths.join(" "));
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+/* An import that failed resolves through no load hook, so the candidate goes in before the attempt:
+   a test passing on its fallback would otherwise answer for the file appearing. */
+test("an import that did not resolve is in the set, and a walk by pattern blinds the file instead", () => {
+  const where = room();
+  const out = join(where.at, "out");
+  try {
+    const said = audited(where.root, out, [`try { await import("./plugin/src/optional.mjs"); } catch { /* the fallback */ }`,
+      `const { globSync } = await import("node:fs");`, `globSync("plugin/**/*.mjs");`].join("\n"));
+    assert.equal(said.status, 0, said.stderr);
+    const [one] = recordsIn(out);
+    assert.ok(one.paths.includes("plugin/src/optional.mjs"), one.paths.join(" "));
+    assert.deepEqual(one.blind, ["globSync matched by pattern"]);
+    assert.equal(setsFrom(out, where.root).length, 0, "no test file, so no set; the blindness is the record's");
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+test("a process that walked by pattern blinds the test file whose tree it is in", () => {
+  const where = room();
+  const out = join(where.at, "out");
+  mkdirSync(out, { recursive: true });
+  try {
+    writeFileSync(join(out, "own-1.json"), JSON.stringify({
+      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [],
+      blind: ["globSync matched by pattern"], spawned: [], done: true,
+    }));
+    assert.equal(setsFrom(out, where.root)[0].blind, "globSync matched by pattern");
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
   }
 });

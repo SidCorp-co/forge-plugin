@@ -27,9 +27,9 @@ const hashed = (root, one) => {
   return held.get(one);
 };
 
-const listing = (root, one) => {
+const listing = (root, one, deep = false) => {
   try {
-    return readdirSync(join(root, one)).sort().join("\n");
+    return readdirSync(join(root, one), deep ? { recursive: true } : undefined).sort().join("\n");
   } catch {
     return "absent";
   }
@@ -56,6 +56,7 @@ export const setDigest = (root, set, context) => {
   const hash = createHash("sha256").update(`${context}\n`);
   for (const one of [...set.paths].sort()) hash.update(`p ${one} ${hashed(root, one)}\n`);
   for (const one of [...set.dirs].sort()) hash.update(`d ${one} ${listing(root, one)}\n`);
+  for (const one of [...set.trees].sort()) hash.update(`t ${one} ${listing(root, one, true)}\n`);
   return hash.digest("hex").slice(0, DIGEST_LENGTH);
 };
 
@@ -75,7 +76,8 @@ const entriesFor = (dir, file) => {
 const setAt = (path, file) => {
   try {
     const found = JSON.parse(readFileSync(path, "utf8"));
-    return found.file === file && Array.isArray(found.paths) && Array.isArray(found.dirs) ? found : null;
+    return found.file === file && Array.isArray(found.paths) && Array.isArray(found.dirs)
+      && Array.isArray(found.trees) ? found : null;
   } catch {
     return null;
   }
@@ -133,23 +135,27 @@ export const reaches = (root, one) => {
 const gather = (start, byTicket, root) => {
   const paths = new Set();
   const dirs = new Set();
+  const trees = new Set();
   const queue = [start];
   let blind = null;
   while (queue.length > 0) {
     const one = queue.pop();
     for (const path of one.paths) paths.add(path);
     for (const path of one.dirs) dirs.add(path);
+    for (const path of one.trees) trees.add(path);
+    if (one.blind.length > 0) blind ??= one.blind[0];
     for (const each of one.spawned) {
       const child = each.ticket === null ? null : byTicket.get(each.ticket);
       if (child) queue.push(child);
       else if (reaches(root, each)) blind ??= `${each.file} in ${each.cwd}`;
     }
   }
-  return { paths, dirs, blind };
+  return { paths, dirs, trees, blind };
 };
 
 const wellFormed = (one) => one !== null && typeof one === "object" && one.done === true
-  && Array.isArray(one.paths) && Array.isArray(one.dirs) && Array.isArray(one.spawned);
+  && Array.isArray(one.paths) && Array.isArray(one.dirs) && Array.isArray(one.trees)
+  && Array.isArray(one.spawned) && Array.isArray(one.blind);
 
 /** One set per test file, from the process records a step's audit left. A file whose tree reached a
  *  route the audit could not follow comes back `blind`, and nothing is written for it. */
@@ -184,7 +190,7 @@ export const recordSets = (dir, sets, { root, context, manifests }) => {
   for (const set of sets) {
     if (set.blind) continue;
     const paths = [...new Set([...set.paths, ...manifests])].sort();
-    const body = { file: set.file, paths, dirs: [...set.dirs].sort() };
+    const body = { file: set.file, paths, dirs: [...set.dirs].sort(), trees: [...set.trees].sort() };
     const digest = setDigest(root, body, context);
     mkdirSync(dir, { recursive: true });
     const staging = join(dir, `.${process.pid}.${digest}.${nameOf(set.file)}`);
