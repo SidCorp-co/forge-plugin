@@ -9,7 +9,6 @@ export const atMinute = (at) => String(at ?? "").slice(0, 16);
 const INFO = "forge-record";
 const KEY = /^([a-z][a-z0-9-]*): ?(.*)$/u;
 const OPEN = new RegExp(`^(\`{3,})${INFO}\\s*$`, "u");
-const FENCE = /^\s*`{3,}/u;
 const CLOSE = /^`{3,}[ \t]*$/u;
 const TAG = new RegExp(`\`?${INFO}: ([a-z]+) · contract (\\d+)\`?\\s*$`, "u");
 const LABELLED = /^- \*\*([^*]+):\*\* (.*)$/u;
@@ -49,13 +48,13 @@ export const payloadIn = (body) => {
 };
 
 /* The same payload with its head off: a host truncates a long tool result from the top, so a record
-   this CLI printed can arrive without its opening fence. The closing one bounds it both ways — nothing
-   below it is the record's, no line above it is a fence at any indent — or an example reads as a record. */
+   this CLI printed can arrive without its opening fence. What says the rest is a payload is that the
+   body's first fenced line is the bare one that closed it, read through the one fence reader there is. */
 const headlessIn = (body) => {
-  const lines = String(body ?? "").split("\n");
-  const at = lines.findIndex((line) => CLOSE.test(line));
-  if (at < 0 || lines.slice(0, at).some((line) => FENCE.test(line))) return null;
-  const out = keyedIn(lines.slice(0, at), () => false);
+  const lines = fenceMarked(body);
+  const at = lines.findIndex((one) => one.fenced);
+  if (at < 0 || !CLOSE.test(lines[at].line)) return null;
+  const out = keyedIn(lines.slice(0, at).map((one) => one.line), () => false);
   return out.length ? out : null;
 };
 
