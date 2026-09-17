@@ -79,9 +79,8 @@ export const pluginDefectHold = (description) => {
 
 /** So a fold does not read a configured silence as a clean round; the destinations are records'. */
 export const pluginFilingLine = (destinations = []) => {
-  /* Which backlog a destination had to reach is the checkout's answer, asked of the same predicate
-     the routing block routes by: off this one the slug that block tells a run to name, on it any
-     issue of this project, there being no second backlog for a destination to name (ISS-1700). */
+  /* Which backlog a destination reached is the checkout's answer, off the predicate the routing
+     block routes by: off this one the slug it names, on it any issue of this project (ISS-1700). */
   const here = onThisRepository();
   const filed = destinations.filter((one) => (here ? ISSUE_KEY : PLUGIN_SLUG).test(String(one ?? "")));
   if (filed.length) return `Plugin defect  ${filed.join("; ")}`;

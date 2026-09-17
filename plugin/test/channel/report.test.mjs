@@ -22,8 +22,7 @@ const roomOn = (slug, plugin) => {
 
 const closed = roomOn("somewhere-else", "off");
 const open = roomOn("somewhere-else", "bugs");
-/* The one room whose slug is this plugin's: what a run standing on the plugin's own checkout reads,
-   and the only place the line's on-repository answer can be watched. */
+/* The one room whose slug is this plugin's: where the on-repository answer can be watched. */
 const here = roomOn("forge-plugin", "off");
 
 /* Each room's slug is a project the fixture lists: the line is the key's answer, not the slug's. */
@@ -71,8 +70,7 @@ test("a report on a project that allows it says a round that filed none filed no
 
 /* Read off the `routed` records rather than asked of the run: what a report says was filed is what
    a record on the issue says went there. Run in the room rather than called in this process, whose
-   own checkout is the plugin's: the assertion is about a project that is not this one, and calling
-   it here made that claim standing in the one checkout where it is untrue. */
+   own checkout is the plugin's: this claim is about a project that is not this one. */
 test("a routed finding that reached this plugin's backlog is what the line carries instead", async () => {
   state.comments[HELD] = routedTo("ISS-661 on forge-plugin, as a bug", "ISS-4 of this project");
   const named = await report(open);
@@ -105,8 +103,7 @@ test("a round on this checkout that routed nothing reads none filed, the closed 
     "a channel this checkout's routing block never reads withholds nothing here");
 });
 
-/* The default argument, in the checkout the suite itself stands in: the room above proves the
-   branch, this proves the fact reaching it is the one `routingBlock` already asks. */
+/* The room above proves the branch; this proves the fact reaching it is the checkout's own. */
 test("the line asks the checkout it is called in, and this one is the plugin's", () => {
   assert.equal(onThisRepository(), true, "the suite runs from this plugin's own checkout");
   assert.match(pluginFilingLine(["ISS-1698"]), /^Plugin defect {2}ISS-1698$/u);
