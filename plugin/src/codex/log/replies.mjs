@@ -59,11 +59,11 @@ export const historyFor = (entries, root, pairs = HISTORY_PAIRS, rels = []) => {
     });
 };
 
-/* The word at the head of a line the reply numbered, behind emphasis and the finding's own id but never
-   behind prose: a whole-bold-run wrapper was a shape the prompt never asked for and seven replies answered
-   outside it (ISS-1336, ISS-1681), while closing a finding on a word only `the earlier answer was REFUTED`
-   reaches would be worse than the silence that replaced. docs/cli/codex-the-round.md. */
-const RULING_LINE = /^[ \t]*(\d+)\.[ \t]+\**[ \t]*(?:F\d+\b\**[ \t]*[—–\-:.]*[ \t]*)?\**[ \t]*(CONFIRMED|REFUTED|CANNOT TELL)\b.*$/gimu;
+/* The word at the head of a line the reply numbered at the margin, behind emphasis and the finding's own
+   id but never behind prose or the four spaces markdown shows code with: a whole-bold-run wrapper was a
+   shape the prompt never asked for that seven replies answered outside (ISS-1336), and closing a finding
+   on a word only `the earlier answer was REFUTED` reaches is worse. docs/cli/codex-the-round.md. */
+const RULING_LINE = /^ {0,3}(\d+)\.[ \t]+\**[ \t]*(?:F\d+\b\**[ \t]*[—–\-:.]*[ \t]*)?\**[ \t]*(CONFIRMED|REFUTED|CANNOT TELL)\b.*$/gimu;
 
 /* A reply quoting an example of a ruling is showing one, not making one, and the grammar cannot tell
    them apart: a fenced `1. F1 - REFUTED` under a real `1. **CONFIRMED**` would close what was left open. */
@@ -291,7 +291,7 @@ export const verdictFromRulings = (plan, offset, reply, recheckId, prior = null)
   };
 };
 
-const NUMBERED = /^\d+\.[ \t]+\S/u;
+const NUMBERED = /^ {0,3}\d+\.[ \t]+\S/u;
 
 /** Why a recheck recorded nothing, naming the recheck itself — the one place that id is printed, so a run
  *  ruling by hand stops writing a placeholder for it (ISS-1681). Three reasons, because a line that ruled
@@ -301,8 +301,8 @@ export const rulingsUnread = (plan, offset, reply, recheckId) => {
   const ruled = rulingsIn(reply);
   const of = plan.judged.id ?? plan.judged.at;
   const said = new Set(ruled.map((one) => one.line.trim()));
-  const unread = unfenced(reply).split("\n").map((line) => line.trim())
-    .filter((line) => NUMBERED.test(line) && !said.has(line));
+  const unread = unfenced(reply).split("\n").filter((line) => NUMBERED.test(line))
+    .map((line) => line.trim()).filter((line) => !said.has(line));
   const ids = plan.ids.join(", ");
   const why = unread.length
     ? `\`${unread[0].slice(0, FINDING_CHARS)}\` does not open with CONFIRMED, REFUTED or CANNOT TELL`
