@@ -64,13 +64,15 @@ export const spendOf = (runs, declared, unrecognised = []) => {
   };
 };
 
+const TOP = COMPLEXITY_NAMES.at(-1);
+
 export const complexityOf = (run, complexities) => {
-  const held = run.issues
-    .map((reference) => complexities?.get(reference) ?? null)
-    .filter((one) => COMPLEXITY_NAMES.includes(one));
-  if (!held.length) return RUNG_UNKNOWN;
-  return held.reduce((deep, one) =>
+  const held = run.issues.map((reference) => complexities?.get(reference) ?? null);
+  const read = held.filter((one) => COMPLEXITY_NAMES.includes(one));
+  if (!read.length) return RUNG_UNKNOWN;
+  const largest = read.reduce((deep, one) =>
     (COMPLEXITY_NAMES.indexOf(one) > COMPLEXITY_NAMES.indexOf(deep) ? one : deep));
+  return read.length === held.length || largest === TOP ? largest : RUNG_UNKNOWN;
 };
 
 const grouped = (runs, key) => {
@@ -91,7 +93,7 @@ export const modelRows = (runs, read, declared, unrecognised = []) =>
     .sort((left, right) => right.runs - left.runs || left.model.localeCompare(right.model));
 
 /** A run at no rung keeps its own row, or the cut comes out short of the corpus it cut; a run of
- *  several issues is filed under the largest complexity among them, as its rung is. */
+ *  several takes the largest complexity among them, and none where one it could not read may beat it. */
 export const cutRows = (runs, read, declared, unrecognised = []) =>
   [...grouped(runs, (run) => `${run.rung}/${complexityOf(run, read?.complexities)}`)]
     .flatMap(([cell, held]) =>

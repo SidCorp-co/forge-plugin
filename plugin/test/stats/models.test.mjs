@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 
-import { FLOOR, THIN, WHOLE, cellsOf, comparableIn } from "../../src/stats/model-rows.mjs";
+import { FLOOR, THIN, WHOLE, cellsOf, comparableIn, complexityOf } from "../../src/stats/model-rows.mjs";
 import { comparableLines, modelLines } from "../../src/stats/models.mjs";
 import { callsIn, modelRun } from "../../src/stats/corpus/transcripts.mjs";
 import { FORGE, OPUS, PROJECT, at, indexIn, result, use } from "./fixture-runs.mjs";
@@ -244,4 +244,15 @@ test("every cut row the spend table printed has all of its delivery figures prin
         `${cell} lost ${one.name}`);
     }
   }
+});
+
+test("a batch holding one complexity it could not read is at no complexity, unless it already holds the top", () => {
+  const owning = (...issues) => ({ issues });
+  const read = new Map([["ISS-1", "s"], ["ISS-3", "xl"]]);
+  assert.equal(complexityOf(owning("ISS-1"), read), "s", "one issue read is that issue's own");
+  assert.equal(complexityOf(owning("ISS-1", "ISS-2"), read), "unknown",
+    "the unread one could be larger than the largest read, so the batch rule has no answer");
+  assert.equal(complexityOf(owning("ISS-3", "ISS-2"), read), "xl",
+    "except at the top, which nothing unread could beat");
+  assert.equal(complexityOf(owning("ISS-2"), read), "unknown");
 });

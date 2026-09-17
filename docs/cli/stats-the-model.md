@@ -88,8 +88,10 @@ up to the part of it with a name are different readings, and only one of them ca
 Nobody dispatches a model. They dispatch an issue to a model, so the second table cuts the same rows
 by the rung the run worked at and the complexity of the issue it owned — the form of answer this
 exists to make possible being *at the `fix` rung and `s` complexity these two are indistinguishable,
-and at `l` they are not*. A run that owned several issues is filed under the largest complexity among
-them, which is the batch rule the rung already keeps.
+and at `l` they are not*. A run that owned several issues takes the largest complexity among them,
+which is the batch rule the rung already keeps — and no complexity at all where one of those issues
+could not be read, because the unread one may be larger than the largest read. The exception is a
+batch already holding the top complexity, which nothing unread could beat.
 
 A run at no rung keeps a row of its own. An observation at no rung establishes nothing about a named
 one, and dropping it would leave the cut short of the corpus it was cut from. At the time of writing
