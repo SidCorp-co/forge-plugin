@@ -32,8 +32,9 @@ out of the message: the checker is its one home.
 
 **The number of runs this project declared is that project's total at once, and not this session's
 own allowance.** Every run the project carries counts against it, whoever dispatched it, so two
-masters each taking the whole number put twice what was declared on one box, each correct about its
-own half. What this session can see of the other half is what the tracker already holds: an issue
-under a lease that is not this session's is a run in flight, and it takes a place out of the number
-before anything is dispatched here. Whatever share is still unseen is said rather than assumed —
-how many judging runs went out, and what they were counted against.
+masters each taking the whole number put twice what was declared on one box, each correct about
+its own half. What this session can see of the other half is what the tracker already holds: a
+lease holder that is not this session's is a run in flight, and it takes one place out of the
+number however many issues it holds, a batch being one run under one id. Whatever share is still
+unseen is said rather than assumed — how many judging runs went out, and what they were counted
+against.
