@@ -1,6 +1,6 @@
 # SRS §12 — FR-10 — Comments read before a write
 
-Rev: 1 · Actors: agent · Enforces: BR-01, BR-02, BR-06 · Source: plugin/hooks/how/issue-read-first.md
+Rev: 2 · Actors: agent · Enforces: BR-01, BR-02, BR-06 · Source: plugin/hooks/how/issue-read-first.md
 
 ← [Index](./README.md) · [§11 FR-09 The learning gates](./fr-09-learning-gates.md) · Next: [§13 FR-11 The project's own code rules](./fr-11-project-code-rules.md)
 
@@ -10,8 +10,12 @@ Rev: 1 · Actors: agent · Enforces: BR-01, BR-02, BR-06 · Source: plugin/hooks
 
 A full read of an issue returns no comments at all, so the read that looks complete is not: the two
 halves of an issue differ in age, and the gate's own document has the sentence for it. So a write to
-an issue is refused until this session has asked the tracker about that issue's comments. An empty answer satisfies it: the condition is having looked,
-and what the gate can check is that the asking happened — UC-10-1 states exactly how much that is.
+an issue does not land until this session has been shown that issue's comments. Refusing the write is
+one way to show them and the expensive one, since the run's only move after it is to send the same
+command again; delivering them and carrying on is the other, and it is open to whatever is close
+enough to the write to put text in front of the model without stopping the call. An empty answer
+satisfies it: the condition is having looked, and what can be checked is that the showing
+happened — UC-10-1 states exactly how much that is.
 
 ## Actors
 
@@ -23,9 +27,9 @@ and what the gate can check is that the asking happened — UC-10-1 states exact
 
 *When does it fire, and what clears it?*
 
-### UC-10-1 — Refuse a write to an issue nobody has read
+### UC-10-1 — Show the thread to a write nobody has read it for
 
-Rev: 1 · Actors: agent · Enforces: BR-01, BR-02
+Rev: 2 · Actors: agent · Enforces: BR-01, BR-02
 
 Every key the command names has to have been read, and the listing and the key have to be one
 invocation — a search for either that merely names the other satisfied nothing. What the gate can
@@ -33,9 +37,10 @@ check is that a comments call of this session named the key, which is narrower t
 gate's own document asks for: the condition is having looked, and looking is what a call naming the
 key evidences.
 
-- **AC-10-1-1** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "a write to an issue with comments nobody was shown is denied, and they are in the deny"
-  IF a write names a key that no comments call of this session asked about THEN the gate SHALL
-  refuse and SHALL print the listing call for that key.
+- **AC-10-1-1** · Rev: 2 · Proof: plugin/test/tracker/issue/read-first.test.mjs "a shell write is not held for a delivery the verb itself will make"
+  IF a write names a key that no comments call of this session asked about THEN the product SHALL
+  put that key's comments in front of the model before the write's own answer, and SHALL refuse the
+  write only where nothing standing between the model and the tracker will carry them.
 - **AC-10-1-2** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "an issue with no comments is not denied, and no round is spent on a read"
   WHEN a comments call of this session names that key in the same invocation THEN the gate SHALL
   allow the write, and an empty listing SHALL satisfy it.

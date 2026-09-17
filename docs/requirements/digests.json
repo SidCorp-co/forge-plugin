@@ -2382,16 +2382,16 @@
       "digest": "73061df87016c41a0038b922610d585dda2559b1e20c0d7fc3d4b8fa7f7b5fd9"
     },
     "FR-10": {
-      "rev": 1,
-      "digest": "def16cca8d2541d40006f67a27fbf099d544279efa4a5d611d2e85c69cdc4c22"
+      "rev": 2,
+      "digest": "40d887a6f38f2e9bdb3f6e67813e329f48409550addf673eb0ae746a6e0fe133"
     },
     "UC-10-1": {
-      "rev": 1,
-      "digest": "de1d9b0f01ce00cfc6bddd20ecb172180194f9e53413380b8d9212d6cd570226"
+      "rev": 2,
+      "digest": "3d0af8a57366852e30dd855868e83368cfee2498d2e06da0b54978575224e778"
     },
     "AC-10-1-1": {
-      "rev": 1,
-      "digest": "d4d9f7a4a9409d47cca48510ff82955aaaeb7bfe39b28023a1408903f1c8353c"
+      "rev": 2,
+      "digest": "7cd68ea595a3ff57bccc72072df761443c1088c3b45b425fca984e8369cd1d2a"
     },
     "AC-10-1-2": {
       "rev": 1,
