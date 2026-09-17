@@ -370,6 +370,26 @@ test("a comment owed a thread delivers it and sends its create in the one call",
   assert.equal(creates(), 2);
 });
 
+/* One call is not one order, and the case above cannot tell which half of it ran first. So the
+   tracker stops answering the moment the delivery's own read is served: the thread reaching the
+   model with no create behind it is the delivery standing ahead of the write (ISS-1715). */
+test("the thread goes out before the write is attempted, not merely in the same call", async () => {
+  before();
+  stores();
+  state.comments = { [ISSUE.documentId]: [{ documentId: "c-old", body: "read me first", createdAt: "2026-09-01T00:00:00Z" }] };
+  state.answer = { forge_comments: (args) => {
+    if (args.action === "list") state.status = 403;
+    return undefined;
+  } };
+  const env = { ...tracker.env, FORGE_SESSION_ID: "landed-order" };
+  const run = await ranAsync(FORGE, ["comment", ISSUE.issueId, bodyFile(), "--title", TITLE], env);
+  state.status = undefined;
+  assert.notEqual(run.status, 0, `the create was meant to be refused:\n${run.stdout}${run.stderr}`);
+  assert.match(run.stderr, /read me first/u, "the thread reached the model on a call whose write never landed");
+  assert.equal(state.calls.filter((one) => one.name === "forge_comments" && one.args.action === "create").length, 0,
+    "and it reached the model before the write, not after it");
+});
+
 // -------------------------------------------------------------------- forge feedback
 
 const NOTE = [
