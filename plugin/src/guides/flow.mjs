@@ -17,6 +17,14 @@ export const requiresOf = (flow, flows = FLOWS) => flows[flow]?.requires ?? [];
 /** The judgement this flow asks the project for, or null where it asks for none. It asks and never decides: who judges is the project's key, and a flow reading it a second time is a precedence rule with nothing to settle it. */
 export const judgeOf = (flow, flows = FLOWS) => flows[flow]?.judge ?? null;
 
+/** What a flow asks the project itself for, each as the configuration key it is written through and the value it is written to. Derived from the table rather than restated beside it, so a flow declaring a judge asks for one by that alone and a flow declaring nothing asks for nothing: the empty list is what makes setting such a flow one write rather than a case in the verb that sets it. */
+export const projectAsksOf = (flow, flows = FLOWS) => {
+  const judge = judgeOf(flow, flows);
+  return judge
+    ? [{ key: "pipeline.qa", value: judge, said: "the judgement between developed and testing" }]
+    : [];
+};
+
 const RETIRED = 1;
 
 const ROUTE = "Set `flow` to one of those, or take the key out — `forge doctor` reports what this"

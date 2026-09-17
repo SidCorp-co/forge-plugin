@@ -1,8 +1,10 @@
 /* The project's own configuration: the two typed resources the tracker keeps per project, reported
    with the source each key was read from and written one key at a time. Whose the decision is, and
    why a key is never re-declared in a checkout: docs/cli/doctor.md. */
-import { fail, projectSlug } from "../resolve/settings.mjs";
-import { flowPinned, judgeOf, requiresOf } from "../guides/flow.mjs";
+import { readFileSync, writeFileSync } from "node:fs";
+
+import { FROM_PROJECT, fail, projectFilePath, projectSlug } from "../resolve/settings.mjs";
+import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../guides/flow.mjs";
 import { flowJudgeConflict, flowPolicyConflict } from "../flow/earned.mjs";
 import { scoped, write } from "../tracker/rest.mjs";
 import { WITH_BODY, WRITES } from "../tracker/project-flags.mjs";
@@ -130,6 +132,14 @@ const routeFor = async (given) => {
   return { name: found[0], key: given };
 };
 
+/** Why the resource did not keep what was sent, or null where it did. Two writers read this same
+ *  answer, and a second copy of it would be a second reading of what *kept* means. */
+const notKept = (route, value, kept) =>
+  (String(kept) === String(value) ? null
+    : `${route.name}.${route.key} was sent as ${JSON.stringify(value)} and ${RESOURCES[route.name].said} `
+      + `reads back ${JSON.stringify(kept ?? null)}. The tracker did not keep it — a key its own `
+      + "schema does not declare is dropped on the way in, and this is that key.");
+
 /** Read back off the resource's own route before it is reported set: this tracker's pipeline schema
  *  drops a key it does not declare, so a write that answered 200 and kept nothing would print as a
  *  setting that took. */
@@ -154,12 +164,199 @@ export const writeSetting = async (given) => {
       + `back, so nothing here can say what it now holds: ${now.refused}`);
   }
   const kept = resource.keysIn(now)[route.key];
-  if (String(kept) !== String(value)) {
-    fail(`--set: ${route.name}.${route.key} was sent as ${JSON.stringify(value)} and ${resource.said} `
-      + `reads back ${JSON.stringify(kept ?? null)}. The tracker did not keep it — a key its own `
-      + "schema does not declare is dropped on the way in, and this is that key.");
-  }
+  const why = notKept(route, value, kept);
+  if (why) fail(`--set: ${why}`);
   return [`${route.name}.${route.key}: ${shown(kept)}  ← ${resource.said}`];
+};
+
+/* One top-level key of the project's own file, set in that file's own text rather than in a
+   document re-serialized from it: the file is written by hand and holds its owner's line breaks, so
+   a rewrite through JSON.stringify lands a diff nobody asked for in somebody else's review. The
+   scan tracks strings and nesting because a key of the same name inside another object is not this
+   key, and a text it cannot walk answers with no span rather than with a guess. */
+const SPACE = /\s/u;
+
+const pastSpace = (text, at) => {
+  let held = at;
+  while (held < text.length && SPACE.test(text[held])) held += 1;
+  return held;
+};
+
+const endOfString = (text, at) => {
+  let held = at + 1;
+  while (held < text.length) {
+    if (text[held] === "\\") held += 2;
+    else if (text[held] === `"`) return held + 1;
+    else held += 1;
+  }
+  return -1;
+};
+
+const endOfValue = (text, at) => {
+  if (text[at] === `"`) return endOfString(text, at);
+  if (!"{[".includes(text[at])) {
+    let held = at;
+    while (held < text.length && !`,}]\r\n\t `.includes(text[held])) held += 1;
+    return held;
+  }
+  let depth = 0;
+  let held = at;
+  while (held < text.length) {
+    if (text[held] === `"`) {
+      held = endOfString(text, held);
+      if (held < 0) return -1;
+      continue;
+    }
+    if ("{[".includes(text[held])) depth += 1;
+    else if ("}]".includes(text[held]) && --depth === 0) return held + 1;
+    held += 1;
+  }
+  return -1;
+};
+
+/** Where one top-level key's value sits in the text, or null where the document has no such key. */
+const valueSpan = (text, key) => {
+  let at = pastSpace(text, 0);
+  if (text[at] !== "{") return null;
+  at = pastSpace(text, at + 1);
+  while (text[at] === `"`) {
+    const nameEnd = endOfString(text, at);
+    if (nameEnd < 0) return null;
+    const colon = pastSpace(text, nameEnd);
+    if (text[colon] !== ":") return null;
+    const valueAt = pastSpace(text, colon + 1);
+    const valueEnd = endOfValue(text, valueAt);
+    if (valueEnd < 0) return null;
+    if (JSON.parse(text.slice(at, nameEnd)) === key) return { at: valueAt, end: valueEnd };
+    at = pastSpace(text, valueEnd);
+    if (text[at] !== ",") return null;
+    at = pastSpace(text, at + 1);
+  }
+  return null;
+};
+
+/** The file's text with one top-level key set to a value, every other byte of it as it was. */
+export const withKey = (text, key, value) => {
+  const held = valueSpan(text, key);
+  const written = JSON.stringify(value);
+  if (held) return `${text.slice(0, held.at)}${written}${text.slice(held.end)}`;
+  const open = text.indexOf("{");
+  const pair = `${JSON.stringify(key)}: ${written}`;
+  const first = pastSpace(text, open + 1);
+  return text[first] === "}"
+    ? `${text.slice(0, open + 1)}\n  ${pair}\n${text.slice(first)}`
+    : `${text.slice(0, open + 1)}\n  ${pair},${text.slice(open + 1)}`;
+};
+
+const FLOW_USAGE = "forge doctor --flow <slug>";
+const READS_IT = "forge doctor";
+
+/** What the one failure this route cannot undo says. Exported so a case can read it: a write of a
+ *  file that succeeds and a write of the same bytes back that does not is a pair no call through
+ *  the CLI can be made to produce, and a state nobody is told about is the thing being avoided. */
+export const restoreFailed = (path, slug, why) =>
+  `--flow: ${path} was set to \`flow: ${slug}\` and putting its previous bytes back failed: ${why}. `
+  + `That file holds the new flow now and nothing here changed it further — read it, then set the `
+  + `flow this project wants with \`${FLOW_USAGE}\`.`;
+
+const flowRead = (path) => {
+  try {
+    return JSON.parse(readFileSync(path, "utf8"))?.flow ?? null;
+  } catch {
+    return null;
+  }
+};
+
+/* Refused before a byte is written anywhere: an undeclared slug, a project file this process cannot
+   read, parse or write, and — where the flow asks the tracker for anything — a checkout naming no
+   project. What is left after these is the tracker, which is the half no check here can make. */
+const flowFile = (slug) => {
+  if (!FLOW_SLUGS.includes(slug)) {
+    fail(`--flow: \`${slug}\` is no flow this copy serves — it serves ${FLOW_SLUGS.join(", ")}. `
+      + `Nothing was sent: ${FLOW_USAGE}`);
+  }
+  const path = projectFilePath();
+  if (!path) {
+    fail(`--flow: \`flow\` is a key of ${FROM_PROJECT} and no such file was found on the way up from `
+      + `here, so nothing was written and nothing was sent. Run this from a checkout that has one.`);
+  }
+  let held = null;
+  try {
+    held = readFileSync(path, "utf8");
+    JSON.parse(held);
+  } catch (error) {
+    fail(`--flow: ${path} is the file \`flow\` is a key of and this could not read it as JSON, so `
+      + `that half is out of reach and nothing was sent: ${error.message}`);
+  }
+  return { path, held };
+};
+
+/** The flow and everything that flow asks the project for, in one call. The checkout's file goes
+ *  first because its undo is local and certain, and a tracker that says the setting did not land
+ *  sends the previous bytes straight back; a tracker that says nothing leaves the flow standing,
+ *  because putting it back would be a guess against the half that may well have landed.
+ *  docs/cli/the-flow-axis.md. */
+export const writeFlow = async (slug) => {
+  const { path, held } = flowFile(slug);
+  const asks = projectAsksOf(slug);
+  /* After the file, because the slug is a key of that same file: a checkout without one is told
+     about the file it has not got rather than about a key of a file nobody would find. */
+  if (asks.length) projectSlug();
+  try {
+    writeFileSync(path, withKey(held, "flow", slug));
+  } catch (error) {
+    fail(`--flow: ${path} is the file \`flow\` is a key of and this could not write it, so that half `
+      + `is out of reach and nothing was sent: ${error.message}`);
+  }
+  /* Registered the moment the file is written, because the refusals below this line are other
+     modules' and a refusal ends the process where it is raised: a catch here reaches the ones that
+     throw and none of the ones that exit, and both leave the same half-written file behind. It is
+     taken off again at the one outcome that keeps the write and at the end of a call that kept it. */
+  const onExit = () => {
+    try {
+      writeFileSync(path, held);
+    } catch {
+      /* The exit is already under way and there is nowhere left to say this; the explicit restore
+         below is the path that reports a failure, and it runs first on every route but a crash. */
+    }
+  };
+  process.on("exit", onExit);
+  const keepWrite = () => process.off("exit", onExit);
+  const putBack = (why) => {
+    keepWrite();
+    try {
+      writeFileSync(path, held);
+    } catch (error) {
+      fail(restoreFailed(path, slug, error.message));
+    }
+    fail(`--flow: ${why} The project file is as it was, so this project is on the flow it had.`);
+  };
+  const said = [`flow: ${flowRead(path)}  ← ${path}`];
+  for (const ask of asks) {
+    const route = { name: ask.key.slice(0, ask.key.indexOf(".")), key: ask.key.slice(ask.key.indexOf(".") + 1) };
+    const resource = RESOURCES[route.name];
+    /* Every way the send can fail, not only the one the soft flag catches: the payload guard throws
+       before the call goes out, and a throw that walked past here would leave the file written. */
+    const sent = await write("forge_config",
+      { action: resource.written, data: resource.bodyFor(route.key, ask.value) }, undefined, true)
+      .catch((error) => ({ refused: error.message }));
+    if (sent?.refused) putBack(`flow ${slug} asks this project for ${ask.said}, and ${resource.said} refused the write: ${sent.refused}.`);
+    const now = await scoped("forge_config", { action: resource.read }, true)
+      .catch((error) => ({ refused: error.message }));
+    if (now?.refused) {
+      keepWrite();
+      fail(`--flow: ${ask.key} was sent as ${JSON.stringify(ask.value)} and ${resource.said} would `
+        + `not say what it now holds, so this setting is unconfirmed: ${now.refused}. ${path} sets `
+        + `\`flow: ${slug}\` and is left that way, the write having as likely landed as not — read `
+        + `what it holds with \`${READS_IT}\`.`);
+    }
+    const why = notKept(route, ask.value, resource.keysIn(now)[route.key]);
+    if (why) putBack(`flow ${slug} asks this project for ${ask.said}, and ${why}`);
+    said.push(`${ask.key}: ${shown(resource.keysIn(now)[route.key])}  ← ${resource.said}`);
+  }
+  if (!asks.length) said.push(`flow ${slug} asks this project for nothing further`);
+  keepWrite();
+  return said;
 };
 
 /* The project's work as the tracker counts it, beside its configuration because both are the project's

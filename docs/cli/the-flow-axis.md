@@ -18,6 +18,30 @@ says the key is retired; a `method` present and reading as anything else resolve
 refused naming `flow`. Presence is read rather than truthiness, so an explicit `null` is a value a
 project wrote and not an absence. Both keys absent is `default`.
 
+## Setting one is one call, and the file is the half that goes first
+
+The key is the project's, but a flow asks the project for things the key cannot carry: `screen`
+wants an independent judgement between `developed` and `testing`, and that lives on the tracker,
+where `judgementOf` reads it. Two writes in two resources with no verb making both is how a project
+ends up on a flow whose ask nobody answered. So `forge doctor --flow <slug>` makes both, and what a
+flow asks for is derived from the table that declares the slug, so a flow that starts asking for a
+second thing extends that table and not the verb.
+
+**The checkout's file goes first because its undo is the certain one.** Its previous bytes are
+held, the tracker's settings go after it, and a tracker that refuses the write or reads the value
+back as something else has said the setting did not land: the bytes go straight back. The other
+order costs that and buys nothing — a judgement written and not taken back is read by
+`asksIndependent` whatever the flow says, and where the key was absent there is nothing to put
+back, the schema taking two values and no third.
+
+**Neither order rules out a write the tracker took and will not report on**, and the answer there
+is not to restore: that puts the flow back while the half that may well have landed stands. So the
+flow stays written, the call refuses naming that setting unconfirmed, and the report settles it —
+either there is no clash row or the row says so, and the same call run again ends it.
+
+The write is made in the file's own text, not in a document re-serialized from it: that file is
+written by hand and holds its owner's spacing.
+
 ## A flow nobody serves is refused where the key is read
 
 Serving used to look in a pinned version's root and then a plain one, and for a number this copy had

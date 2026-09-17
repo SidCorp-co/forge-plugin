@@ -474,21 +474,26 @@ const checkFlowKeys = () => {
 const BOOLEAN = ["--full", "--credentials"];
 /* The machine's, the checkout's and the project's, in one surface: `--set` and the brief's three
    are the project's half, and the keys doctor-keys.mjs writes this machine's. */
-const PROJECT_FLAGS = ["set", "was", ...WRITES, ...WITH_BODY];
+const PROJECT_FLAGS = ["set", "flow", "was", ...WRITES, ...WITH_BODY];
 
 /** One write per call, then the report, because a run that asked to write is not asking to be
  *  diagnosed: the project's own writes print their lines and stop there. */
 const wroteProject = async (asked, pairs, positionals) => {
-  const { briefAsked, briefRoute, refuseCarried, refuseUnchecked, writeSetting } = await projectSettings();
+  const { briefAsked, briefRoute, refuseCarried, refuseUnchecked, writeFlow, writeSetting } = await projectSettings();
   refuseUnchecked(asked);
   const brief = briefAsked(asked);
-  if (asked.set !== undefined && brief) {
+  if (asked.set !== undefined && asked.flow !== undefined) {
+    fail("doctor: --set writes one key you name and --flow writes the flow with every key that flow "
+      + "asks for, which are two answers to what this call writes. Send one of them.");
+  }
+  const key = asked.set ?? asked.flow;
+  if (key !== undefined && brief) {
     fail("doctor: --set writes a key of the project's configuration and the brief's flags write the "
       + "brief, which are two resources and two calls. Send one of them.");
   }
-  if (asked.set !== undefined) {
+  if (key !== undefined) {
     refuseCarried(asked, pairs, "--set writes one key of the project's configuration and takes neither.");
-    return writeSetting(asked.set);
+    return asked.set === undefined ? writeFlow(asked.flow) : writeSetting(asked.set);
   }
   return brief ? briefRoute(asked, pairs, positionals) : null;
 };

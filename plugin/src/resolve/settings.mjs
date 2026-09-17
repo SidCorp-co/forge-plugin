@@ -287,6 +287,9 @@ const written = (key) => {
 
 export const flowScope = once(() => written("flow"));
 
+/** Where the project file every line above was read from actually is, or null where the search found none. A write to a project key takes this rather than building a path of its own: the search runs once per process and reaches a linked worktree's shared checkout, so a path composed from `cwd` at the moment of the write is a different file on exactly the trees a delegated run works in. */
+export const projectFilePath = () => (forgeJson().root ? join(forgeJson().root, FROM_PROJECT) : null);
+
 export const methodScope = once(() => written("method"));
 
 export const LANDING_ROUTES = ["after-merge", "before-merge"];
