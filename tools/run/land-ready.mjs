@@ -25,7 +25,7 @@ import { pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
 import { publishesVersion } from "./release/released-tag.mjs";
 import { readyKeys } from "./land-ready/ready.mjs";
 import { parkAs } from "../../plugin/src/flow/advance.mjs";
-import { takeLease } from "../../plugin/src/flow/lease.mjs";
+import { takeLease } from "../../plugin/src/flow/lease/takeover.mjs";
 import {
   LANDING_BUILDER_OWED, LANDING_CANDIDATE, LANDING_DONE, LANDING_JUDGED, LANDING_QA_OWED,
   LANDING_READY, LANDING_RECONCILED, LANDING_RECORDS_OWED, landingOf, landingVoided,

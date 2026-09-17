@@ -30,15 +30,22 @@ const ISSUE = {
 
 /* Each case starts from the lease it is about and from the status the round was charged at, so no
    case reads through the one before it. */
+let displaced = null;
 const heldBy = (holder, since, minutes) => {
   ISSUE.status = "awaiting_release";
+  displaced = { renewedAt: ago(since), minutes };
   ISSUE.sessionContext = {
     lease: {
-      holder, agent: "a-test-agent", pid: "4242", renewedAt: ago(since), minutes, next: LEFT,
-      history: [{ holder, at: ago(since), how: "claim", status: "in_progress", next: null }],
+      holder, agent: "a-test-agent", pid: "4242", renewedAt: displaced.renewedAt, minutes, next: LEFT,
+      history: [{ holder, at: displaced.renewedAt, how: "claim", status: "in_progress", next: null }],
     },
   };
 };
+
+/* The stamp the CLI writes, cut to the minute the record keeps expiries at, derived from the very
+   lease the case put on the issue rather than from a tolerance around a second reading of the clock. */
+const ranOutOf = () =>
+  new Date(Date.parse(displaced.renewedAt) + displaced.minutes * 60_000).toISOString().slice(0, 16);
 
 const state = {
   calls: [],
@@ -88,10 +95,8 @@ test("a write meeting a lease the record proves dead reclaims it and lands, in o
     "the history keeps the word a typed reclaim writes, so the crash park still counts this pickup");
   assert.equal(row.status, "awaiting_release", "at the status the issue stood at when it was taken");
   assert.equal(row.from, THEIRS, "and names the run it went over, which no earlier row has to survive for");
-  assert.match(row.ranOut, /^20\d\d-\d\d-\d\dT\d\d:\d\d$/u,
-    "and when that lease ran out, which nothing else on the record holds");
-  assert.ok(Math.abs(Date.parse(`${row.ranOut}:00Z`) - (Date.parse(ago(121)) + 60 * 60_000)) < 60_000,
-    "read off the displaced lease's own renew time and duration");
+  assert.equal(row.ranOut, ranOutOf(),
+    "and when that lease ran out, off its own renew time and duration, which nothing else on the record holds");
   assert.equal(onTheRecord().holder, "",
     "and the lease the write took for itself went back once the write had landed");
 });

@@ -9,7 +9,7 @@ import { refuse } from "../refusal.mjs";
 import { enforcementOf, writeField } from "../tracker/field-write.mjs";
 import { scoped, tried } from "../tracker/rest.mjs";
 import {
-  LANDING, LANDING_JUDGED, READ_THE_STATE, landingMoved, landingNext, landingOf,
+  LANDING, READ_THE_STATE, landingMoved, landingNext, landingOf,
 } from "./landing/checkpoint.mjs";
 import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
 
