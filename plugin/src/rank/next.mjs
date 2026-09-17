@@ -9,14 +9,15 @@ import { asksOf } from "../tracker/issue-shape.mjs";
 import { rootFor } from "../stats/corpus/corpus.mjs";
 import { resolverIn, treeAt } from "./checkout.mjs";
 import { batchesOf } from "./batch.mjs";
-import { candidateLines, droppedLine, graphLines, HEAD } from "./print.mjs";
+import { candidateLines, droppedLine, graphLines, HEAD, judgingLines } from "./print.mjs";
 import { carriersOf, graphOf, PROSE_FROM, PROSE_MARKER } from "./prose-edges.mjs";
-import { eligibilityOf, heldPaths, pathsNamed } from "./eligible.mjs";
+import { eligibilityOf, heldPaths, judgingFrom, pathsNamed } from "./eligible.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { RELATES, otherOf } from "../tracker/routes.mjs";
 import { holdsBack, holdsBackFrom, ordersSaid } from "../flow/earned.mjs";
 import { neighboursOf } from "../tracker/filing/neighbours.mjs";
 import { scoped } from "../tracker/rest.mjs";
+import { releasePolicy } from "../tracker/project-config.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 
 const DEFAULT_COUNT = 5;
@@ -150,6 +151,15 @@ const bodiesFor = async (window) =>
     await scoped("forge_issues", { action: "get", documentId: one.row.documentId, fields: ["relations"] }),
   ])));
 
+/* The one fact the browse projection does not carry, asked for a row at a time: a judging candidate
+   is offerable on its lease alone, and the listing every other reading here is computed over answers
+   nothing about one. The edges are not named because nothing orders these rows. */
+const leaseOn = async (row) =>
+  (await scoped("forge_issues", { action: "get", documentId: row.documentId, fields: [] }))?.sessionContext;
+
+const judgingIn = async (rows, weights) =>
+  judgingFrom(rows, { policy: await releasePolicy(), leaseFor: leaseOn, cap: weights.windowCap });
+
 /** How many eligible candidates the printing can need: a batch absorbs members, so `count` batches
  *  can consume `count` times the cap before the last head is settled. */
 export const wanted = (count, weights) => count * weights.batchCap;
@@ -225,10 +235,15 @@ const nearFor = async (head, bodies, live, weights) => {
     .map((one) => [one.issueId, one.score]));
 };
 
-const jsonOf = (batches, dropped, weights, from, read) => ({
+const jsonOf = (batches, dropped, weights, from, read, judging) => ({
   weights,
   weightsFrom: from,
   read,
+  judging: judging && {
+    offered: judging.offered.map((one) => ({ issueId: one.issueId, title: one.row.title })),
+    left: judging.left.map((one) => ({ issueId: one.issueId, reason: one.reason })),
+    unreached: judging.unreached,
+  },
   candidates: batches.map((batch) => ({
     issueId: batch.head.issueId,
     title: batch.head.row.title,
@@ -314,6 +329,7 @@ export const next = async (argv) => {
     score: scoreOf(row, { weights, chain: chainOf(row.issueId, blocks, alive) }),
   })));
   const held = await heldFrom(holding.flatMap((one) => keysIn(one)), rows);
+  const judging = await judgingIn(rows, weights);
   const runs = measuredRuns(rootFor(asked.checkout ?? process.cwd()));
   const complexities = complexitiesOf(rows);
   const landed = lastLanded(rows);
@@ -417,7 +433,9 @@ export const next = async (argv) => {
         : ", and the read stopped at readCap before the rest could be ruled out"}. Raise \`rank.readCap\``
       + " in this project's own settings, which `forge doctor` names, or narrow the ask.");
   }
-  if (asked.json) return console.log(JSON.stringify(jsonOf(batches, dropped, weights, from, readSaid), null, 2));
+  const asJson = () => JSON.stringify(jsonOf(batches, dropped, weights, from, readSaid, judging), null, 2);
+  if (asked.json) return console.log(asJson());
+  for (const line of judgingLines(judging, weights)) console.log(line);
   if (!batches.length) {
     console.log(`Nothing is eligible: ${takeable.length} issue(s) could be taken and every one was dropped.`);
   } else {

@@ -3,6 +3,7 @@
 import { servesIn, servesSaid } from "../goals.mjs";
 import { COMPLEXITY_NAMES } from "../ladder.mjs";
 import { UNSET } from "./weights.mjs";
+import { JUDGING } from "./eligible.mjs";
 
 const KEY = 8;
 const TITLE = 96;
@@ -91,6 +92,29 @@ const hasWave = ({ frees, waiting, behind }) => Boolean(frees.length || waiting.
 
 export const droppedLine = (one) =>
   `  ${one.issueId.padEnd(KEY)} ${one.reason}`;
+
+const judgingRow = (one) => `  ${one.issueId.padEnd(KEY)} ${cut(one.row.title, TITLE)}`;
+
+/* Its own section above the ranking and not a row inside it, one scored among the rest taking a
+   place in `--count` from the building work that count was asked for: docs/cli/next.md. */
+export const judgingLines = (judging, weights) => {
+  if (!judging) return [];
+  const at = JUDGING.join(" or ");
+  return [
+    `judging — ${judging.offered.length} issue(s) at ${at} with no live lease, this project having`,
+    `declared the judgement above ${at} an independent run's. Each is a judging run's to claim, and`,
+    "the run that built it holds nothing.",
+    ...judging.offered.map(judgingRow),
+    ...(judging.left.length ? [`  left out — ${judging.left.length}:`] : []),
+    ...judging.left.map(droppedLine),
+    ...(judging.unreached
+      ? [`  ${judging.unreached} further issue(s) at ${at} went unread: no listing carries a lease, so`
+        + ` each row costs a read of its own and the reading stops at windowCap ${weights.windowCap}.`
+        + " Raise `rank.windowCap` in this project's own settings, which `forge doctor` names."]
+      : []),
+    "",
+  ];
+};
 
 /** Every line of one candidate, so the caller composes the answer out of whole candidates. */
 export const candidateLines = (batch, { why = false } = {}) => [

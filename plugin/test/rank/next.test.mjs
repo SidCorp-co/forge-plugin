@@ -447,3 +447,49 @@ test("a file a held issue's plan names sets a candidate aside, and the line says
   assert.match(run.stdout, /ISS-1\s+holds plugin\/src\/flow\/ with ISS-9/u);
   assert.match(run.stdout.split("left out")[0], /ISS-2/u, "and the one that does not collide still ranks");
 });
+
+/* The judging side end to end: what a wave reads to dispatch a second run at a landed change. The
+   declaration is the tracker's own project config, so a case sets it there rather than in the
+   checkout's file. */
+const judged = (t, qa) => {
+  state.config = { pipelineConfig: { qa } };
+  state.answer.forge_config = () => ({ config: state.config });
+  t.after(() => { delete state.answer.forge_config; delete state.config; });
+};
+
+test("a developed issue with no live lease is offered as judging work, apart from the ranked rows", async (t) => {
+  load([issue("ISS-1", { priority: "critical" }), issue("ISS-5", { status: "developed" })]);
+  judged(t, "independent");
+  const run = await ran(["next"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /judging — 1 issue\(s\) at developed with no live lease,/u);
+  assert.match(run.stdout, /ISS-5[^\n]*\n\nissue\s+pts/u, "and a blank line between the two");
+  assert.match(run.stdout, /judging[\s\S]*ISS-5[\s\S]*issue\s+pts/u,
+    "the section stands above the ranked table rather than inside it");
+  assert.match(run.stdout, /independent run's/u, "and says which declaration offered them");
+  assert.match(run.stdout, /1 eligible of 1 takeable/u,
+    "the ranked count is the building side's and a judging candidate is not in it");
+});
+
+test("a project that declared the judgement the builder's own is offered no judging section", async (t) => {
+  load([issue("ISS-1"), issue("ISS-5", { status: "developed" })]);
+  for (const qa of ["builder", null]) {
+    judged(t, qa);
+    const run = await ran(["next"]);
+    assert.equal(run.status, 0, run.stderr);
+    assert.doesNotMatch(run.stdout, /judging —/u, `qa ${qa} names nobody to hand a landed issue to`);
+  }
+});
+
+test("the machine-readable form carries the judging candidates under a key of their own", async (t) => {
+  load([issue("ISS-1"), issue("ISS-5", { status: "developed" })]);
+  judged(t, "independent");
+  const run = await ran(["next", "--json"]);
+  assert.equal(run.status, 0, run.stderr);
+  const held = JSON.parse(run.stdout);
+  assert.deepEqual(held.judging.offered.map((one) => one.issueId), ["ISS-5"]);
+  assert.deepEqual(held.judging.left, []);
+  assert.equal(held.judging.unreached, 0);
+  assert.deepEqual(held.candidates.map((one) => one.issueId), ["ISS-1"],
+    "and the ranked list is untouched by it");
+});

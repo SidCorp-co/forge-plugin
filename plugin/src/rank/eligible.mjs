@@ -5,6 +5,9 @@ import { describe, leaseOf, stateOf } from "../flow/lease.mjs";
 import { TAKEABLE } from "./weights.mjs";
 import { holdsBack } from "../flow/earned.mjs";
 import { sessionOf } from "../resolve/config.mjs";
+import { INDEPENDENT } from "../flow/qa/verdicts.mjs";
+import { judgementOf } from "../tracker/project-config.mjs";
+import { filedAt } from "./score.mjs";
 
 /* A path in a code span, in the segment shape a repository names a file or a tree by. */
 const SPAN = new RegExp(CODE_SPAN_NONEMPTY_PATTERN, "gu");
@@ -63,4 +66,35 @@ export const eligibilityOf = (row,
     return { eligible: false, soft: true, reason: `holds ${shared.path} with ${shared.issueId}` };
   }
   return { eligible: true, soft: false, reason: null };
+};
+
+/** The status a judging run claims from, the declaration that offers one, and the lease that leaves
+ *  one out. Why these are listed apart from the ranked rows, and what the per-row read costs to
+ *  answer, is docs/cli/next.md's. */
+export const JUDGING = ["developed"];
+
+export const offersJudging = (policy) => judgementOf(policy) === INDEPENDENT;
+
+export const judgingVerdict = (lease) => {
+  const taken = leaseOf(lease);
+  return stateOf(taken, sessionOf()) === "live"
+    ? { offerable: false, reason: `lease held by ${describe(taken)}` }
+    : { offerable: true, reason: null };
+};
+
+/** Offered, left out, and what the bound did not reach. Oldest first, so the bound covers the same
+ *  rows on every call; `leaseFor` is the caller's, this module answering off values. */
+export const judgingFrom = async (rows, { policy, leaseFor, cap }) => {
+  if (!offersJudging(policy)) return null;
+  const at = rows
+    .filter((one) => JUDGING.includes(String(one?.status ?? "")))
+    .sort((one, other) => filedAt(one) - filedAt(other));
+  const window = at.slice(0, cap);
+  const judged = await Promise.all(window.map(async (row) =>
+    ({ row, issueId: row.issueId, ...judgingVerdict(await leaseFor(row)) })));
+  return {
+    offered: judged.filter((one) => one.offerable),
+    left: judged.filter((one) => !one.offerable),
+    unreached: at.length - window.length,
+  };
 };

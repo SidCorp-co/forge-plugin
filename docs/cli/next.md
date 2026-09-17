@@ -41,6 +41,26 @@ filled at all, so the first has always held here and the second has not.
 and in a field of the machine-readable one both — an order a budget cut is not one whatever
 dispatches on it may treat as bounded, and a notice only the human form carries hides exactly that.
 
+## The judging candidates are listed apart, and the lease is what costs
+
+An issue at `developed` is not a lighter case of one at `open`. Where a project declares the
+judgement between `developed` and `testing` an independent run's, that issue is a judging run's to
+claim, and the weights have no reading for it: priority, kind, complexity, age and the chain are
+arithmetic about what to build next, and a change already landed and waiting to be exercised scores
+against none of them. Scored among the rest it would take a place in `--count` from the building
+work that count was asked for, and a wave needing two answers would get one list to re-sort.
+
+Silence is the answer where a project has declared nothing. Who judges is `pipelineConfig.qa`, the
+project's own key; the `screen` flow asks for `independent` and does not decide it, so a project
+that declared neither is offered nothing rather than handed a guess about whose its landed work is.
+
+The lease is the one fact the browse projection does not carry, so each of these rows costs a `get`
+of its own. They are read oldest first, which makes the set a bound covers the same on every call,
+and the reading stops at `windowCap`. Where it stops short the answer says how many rows it did not
+reach and names the weight that raises it: a leased front row would otherwise hide every free row
+behind it for as long as those leases renewed, and a bound whose shortfall went unsaid reads exactly
+like a backlog with nothing at `developed` in it.
+
 ## What the edges cost, and where they are read
 
 The measured cost of the whole verb against this backlog is about twenty-eight seconds: four for the

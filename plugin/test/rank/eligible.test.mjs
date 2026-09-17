@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { eligibilityOf, heldPaths, meets, pathsNamed } from "../../src/rank/eligible.mjs";
+import { eligibilityOf, heldPaths, judgingFrom, meets, pathsNamed } from "../../src/rank/eligible.mjs";
 
 const row = (held = {}) => ({ issueId: "ISS-1", status: "open", ...held });
 
@@ -86,4 +86,65 @@ test("a path is read out of a code span and matched by tree", () => {
   assert.ok(meets("plugin/src/flow/record.mjs", "plugin/src/flow/"));
   assert.ok(meets("plugin/src/flow", "plugin/src/flow/record.mjs"));
   assert.equal(meets("plugin/src/flowers", "plugin/src/flow"), false, "a prefix is not a tree");
+});
+
+/* The judging side. Every case here is watched failing against the read as it stands: the offer
+   exists on one declaration only, and a bound that reported nothing would look exactly like a
+   backlog with nothing at `developed` in it. */
+const at = (issueId, status = "developed", createdAt = "2026-01-01T00:00:00.000Z") =>
+  ({ issueId, documentId: `uuid-${issueId}`, title: `${issueId} title`, status, createdAt });
+
+const free = () => Promise.resolve(null);
+
+test("an issue at developed with no live lease is offered to a judging run", async () => {
+  const held = await judgingFrom([at("ISS-1"), at("ISS-2", "open"), at("ISS-3", "testing")],
+    { policy: { qa: "independent" }, leaseFor: free, cap: 12 });
+  assert.deepEqual(held.offered.map((one) => one.issueId), ["ISS-1"],
+    "only the status a judging run claims from, and every other status is another reading's");
+  assert.equal(held.left.length, 0);
+  assert.equal(held.unreached, 0);
+});
+
+test("a live lease leaves a developed issue out, and the sentence names the run holding it", async () => {
+  const held = await judgingFrom([at("ISS-1")],
+    { policy: { qa: "independent" }, leaseFor: () => leaseFor("a-builder-run"), cap: 12 });
+  assert.equal(held.offered.length, 0);
+  assert.match(held.left[0].reason, /lease held by session a-builder-run/u);
+});
+
+test("a declaration other than independent, and none at all, offer nothing", async () => {
+  for (const policy of [{ qa: "builder" }, {}, null]) {
+    assert.equal(await judgingFrom([at("ISS-1")], { policy, leaseFor: free, cap: 12 }), null,
+      `${JSON.stringify(policy)} names nobody to hand a landed issue to, so nothing is offered`);
+  }
+});
+
+/* The soft filter above is the building side's: two runs writing one tree is what it is for, and a
+   judging run writes none. */
+test("a judging candidate naming a file another run's plan holds is offered all the same", async () => {
+  const body = "This one rewrites `plugin/src/flow/`.";
+  const held = heldPaths([{ issueId: "ISS-9", plan: "`plugin/src/flow/record.mjs`" }]);
+  assert.equal(eligibilityOf(row({ status: "open" }), { body, held }).eligible, false,
+    "the same collision that stops a builder");
+  const judging = await judgingFrom([at("ISS-1")],
+    { policy: { qa: "independent" }, leaseFor: free, cap: 12 });
+  assert.deepEqual(judging.offered.map((one) => one.issueId), ["ISS-1"]);
+});
+
+test("the read is oldest first, and a bound it spends says how many rows it did not reach", async () => {
+  const rows = [
+    at("ISS-3", "developed", "2026-03-01T00:00:00.000Z"),
+    at("ISS-1", "developed", "2026-01-01T00:00:00.000Z"),
+    at("ISS-2", "developed", "2026-02-01T00:00:00.000Z"),
+  ];
+  const seen = [];
+  const held = await judgingFrom(rows, {
+    policy: { qa: "independent" },
+    leaseFor: (one) => { seen.push(one.issueId); return leaseFor("a-builder-run"); },
+    cap: 2,
+  });
+  assert.deepEqual(seen, ["ISS-1", "ISS-2"], "the bound covers the same two on every call");
+  assert.equal(held.offered.length, 0, "a leased front window offers nothing");
+  assert.equal(held.unreached, 1,
+    "and says so, or the free row behind it is hidden for as long as those leases renew");
 });

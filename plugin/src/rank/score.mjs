@@ -49,7 +49,7 @@ export const scoreOf = (row, { weights, chain = [], now = Date.now() }) => {
   return { total: parts.reduce((sum, one) => sum + one[2], 0), parts, complexity, days, chain };
 };
 
-const filedAt = (row) => Date.parse(row?.createdAt ?? "") || Infinity;
+export const filedAt = (row) => Date.parse(row?.createdAt ?? "") || Infinity;
 
 export const ordered = (scored) =>
   scored
