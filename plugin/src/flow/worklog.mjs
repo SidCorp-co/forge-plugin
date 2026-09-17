@@ -84,7 +84,7 @@ export const gitNow = () => {
   };
 };
 
-/* What the review owes: a verdict on findings nobody decided, or the recheck one folded owes — and whether a recheck is takeable at all is the refusal's own reading, never a second one (ISS-230). */
+/* What the review owes: a verdict on findings nobody decided, or the recheck one folded owes — and whether a recheck is takeable at all is the refusal's own reading, never a second one (ISS-230). The open findings carry the consult that made them, which after a clean round is not the one this line opens with, and the ids alone sent a run to `--of` the consult the verb refused them on (ISS-1679). */
 /* The mirror of `writtenBy` for facts git holds rather than the session: every key is present, so a value a caller typed is cleared and not left standing. A head names a commit and not the tree in hand, so a dirty checkout stamps nothing and neither does no checkout — either way the field is absent, and a citation resting on it is refused rather than claiming a green for files no gate run measured. The two flags are what makes that reading the tree's rather than the machine's: `status.showUntrackedFiles=no` empties the default output over an uncommitted source file, and a submodule set to `ignore=all` hides its own. */
 const CLEAN = ["status", "--porcelain", "--untracked-files=all", "--ignore-submodules=none"];
 
@@ -98,10 +98,6 @@ export const stampedNow = (shape) => Object.fromEntries(shape.fields
 
 export const owedOn = (bytes, entries, last) => {
   const open = unverdicted(bytes, last.root);
-  /* The consult that made the open findings, said where they are listed and again in the command
-     that rules on them: it is not always the consult this line opens with, and printing the ids
-     behind that one sent a run to `--of` the consult the verb then refused them on (ISS-1679). One
-     shape whichever consult it is, so no reader has to tell the two apart to know which it read. */
   if (open) return `verdict owed on ${open.open.join(", ")} of consult ${open.id} \u2014 ${verdictForm(open.id)}`;
   const ids = numbered(last.reply).map((one) => one.id);
   if (undecidedIn(ids, verdictsBy(entries).get(last.id ?? last.at)).length) return "verdict owed";
