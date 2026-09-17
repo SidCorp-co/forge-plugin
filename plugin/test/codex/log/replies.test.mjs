@@ -460,6 +460,8 @@ test("a ruling is the word at the head of a numbered line, whatever the reply wr
   assert.doesNotMatch(digestOf(indented, null), /F1 - REFUTED/u, "and the indent is not stripped into a replayed ruling");
   assert.deepEqual(keptOf("1. **Tech Lead / Business Analyst — F1: REFUTED — Resolved.**"), ["F1"],
     "the angle's own name is a wrapper like the id is; this shape alone was 50 of 931 logged rechecks");
+  assert.equal(keptOf("## Tech Lead — Example only; I cannot decide the finding:\n\n1. F1 - REFUTED"), null,
+    "the label is matched whole, so an angle's name in front of a disclaimer buys it nothing");
   assert.equal(keptOf("## Example only; I cannot decide the finding:\n\n1. F1 - REFUTED"), null,
     "a disclaimer is as free to be a heading as a label is, so only the angle's own name opens ahead of the block");
   const disclaimed = ["CODEX: 0 findings", "", "Example only; I cannot decide the finding:", "", "1. F1 - REFUTED"].join("\n");

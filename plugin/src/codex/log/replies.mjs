@@ -66,10 +66,11 @@ export const historyFor = (entries, root, pairs = HISTORY_PAIRS, rels = []) => {
 const RULING_LINE = /^ {0,3}(\d+)\.[ \t]+\**[ \t]*(?:[^*\n;.]{1,40}[—–:][ \t]*)?\**[ \t]*(?:F\d+\b\**[ \t]*[—–\-:.]*[ \t]*)?\**[ \t]*(CONFIRMED|REFUTED|CANNOT TELL)\b/iu;
 /* Only the angle's own name opens ahead of the block: `## Example only; I cannot decide` is a heading too. */
 const LABEL = /^ {0,3}(?:#{1,6}[ \t]+|\*\*)([^*\n]+?)(?:\*\*)?[ \t]*$/u;
-const ANGLE_NAMES = Object.values(ANGLES).map((one) => one.split(" — ")[0]);
+const ANGLE_NAMES = Object.values(ANGLES).map((one) => one.split(" — ")[0].replace(/[/\\^$*+?.()|[\]{}]/gu, "\\$&")).join("|");
+const ANGLE_LABEL = new RegExp(`^(?:${ANGLE_NAMES})(?:[ \t]*[/&+,][ \t]*(?:${ANGLE_NAMES}))*$`, "iu");
 const isLabel = (line) => {
   const found = LABEL.exec(line);
-  return Boolean(found) && ANGLE_NAMES.some((name) => found[1].trim().startsWith(name));
+  return Boolean(found) && ANGLE_LABEL.test(found[1].trim());
 };
 
 /* A reply quoting an example of a ruling is showing one, not making one, and the grammar cannot tell
