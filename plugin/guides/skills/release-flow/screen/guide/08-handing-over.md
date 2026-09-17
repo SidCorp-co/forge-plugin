@@ -8,10 +8,11 @@ Four conditions, and any one of them ends this run's authority rather than its u
 - **Several causes of equal weight.** The grading says name them; the boundary says do not pick.
 - **A decision that is a person's to make.** Cost, risk to people, a trade nobody delegated.
 
-**A failed production observation is a handover, not a close.** The success path ends there: the
-release is not announced, the status is not moved past the rung, and nothing is marked done on the
-strength of a reading that failed. Repair forward while a bound allows it and the cause is yours to
-act on; where it is not, hand over.
+**A failed production observation ends the success path, and never in a close.** The release is not
+announced, the status is not moved past the rung, and nothing is marked done on the strength of a
+reading that failed. Where the repair is yours to make and no bound has been crossed, repair forward
+and read again — that is the ordinary case, not an exception to this. Where it is not yours, or a
+bound has been crossed, hand over.
 
 The handoff is written where the work is tracked, and it names four things:
 

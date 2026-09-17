@@ -13,6 +13,11 @@ ended the attempt.
   the spot, whatever the other two clocks say: the world is now worse than it was, and the next
   action is a person's.
 
+**The two clocks have limits, and they are not yours to choose.** How long is too long, and how long
+without a reading is too long, are the job's own policy. Read both before you act on either clock. A
+policy that carries neither leaves you unable to say whether a bound has been crossed, which is a
+state you cannot determine — hand over rather than settle on a number of your own.
+
 **Time remaining is never on its own a reason to continue.** It is the reasoning that turns a run
 with no leading hypothesis into six more attempts, and it is what the first two bounds are written
 against. Having time left permits continuing only where there is also something to try that a reading
