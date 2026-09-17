@@ -10,8 +10,8 @@ const INFO = "forge-record";
 const KEY = /^([a-z][a-z0-9-]*): ?(.*)$/u;
 const OPEN = new RegExp(`^(\`{3,})${INFO}\\s*$`, "u");
 const CLOSE = /^`{3,}[ \t]*$/u;
-/* What the first record in a body stamped, which is the one a write printed: docs/cli/the-ladder.md. */
-const FIRST_TAG = new RegExp(`\`?${INFO}: ([a-z]+) · contract \\d+\`?[ \t]*$`, "mu");
+/* What the first record in a body stamped, which is the one a write printed, matched over the whole line because a sentence ending in those words quotes a record rather than making one: docs/cli/the-ladder.md. */
+const FIRST_TAG = new RegExp(`^\`?${INFO}: ([a-z]+) · contract \\d+\`?[ \t]*$`, "mu");
 const TAG = new RegExp(`\`?${INFO}: ([a-z]+) · contract (\\d+)\`?\\s*$`, "u");
 const LABELLED = /^- \*\*([^*]+):\*\* (.*)$/u;
 
