@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 import { auditEnv, contextOf, ENTRIES_PER_FILE, forgetReads, heldSets, reaches, recordSets, selectTests,
   setsFrom } from "../../../tools/gates/reads/sets.mjs";
 import { CLASSIFIED, optionsIn, shimSource, SHIMMED } from "../../../tools/gates/reads/audit.mjs";
-import { entryNames, landed, run, scratch, write } from "./gates/scratch.mjs";
+import { landed, run, scratch, write } from "./gates/scratch.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const AUDIT = fileURLToPath(new URL("../../../tools/gates/reads/audit.mjs", import.meta.url));
@@ -260,19 +260,20 @@ test("every spawning signature gets its options, and a callback stays last", () 
 });
 
 /* The whole of it against the runner itself: a landing under a path the `test` step reads that no
-   test file reads is exactly the rebase this issue is about. */
+   test file reads is exactly the rebase this issue is about. What it spent, it proved; what it held
+   back, a record at this same content proved — so the step passed, and the gate after it skips the
+   step outright rather than re-deciding file by file. */
 test("a gate whose diff moved nothing any test file reads spends none of them, and names each", () => {
   const { at, work } = scratch("reads-gate", null, null);
   try {
     landed(work, "plugin/src/one.mjs", "one, moved\n");
     assert.match(run(work).stdout, /reads: \d+ of \d+ test file\(s\) recorded what they asked for/u);
-    const before = entryNames(work).filter((one) => one.endsWith(".test")).length;
     landed(work, "docs/requirements/one.md", "the requirement moved\n");
     const { stdout } = run(work);
     assert.match(stdout, /=== reads: test — \d+ of \d+ test file\(s\) already answered for at this content ===/u);
     assert.match(stdout, /skip plugin\/test\/tools\/one\.test\.mjs {2}digest [0-9a-f]{12}/u);
-    assert.equal(entryNames(work).filter((one) => one.endsWith(".test")).length, before,
-      "a step that spent fewer files than its half holds recorded a pass of its own");
+    assert.match(run(work).stdout, /skip test {19}digest [0-9a-f]{12}/u,
+      "the narrowed step recorded no pass of its own, so the whole of it is spent again");
   } finally {
     rmSync(at, { recursive: true, force: true });
   }

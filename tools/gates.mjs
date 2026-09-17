@@ -89,8 +89,10 @@ skipped only on positive evidence, so all of these are spent: one the record hol
 whose process left an unfinished record, one that spawned a child no record answers for, one that
 reached a shell this cannot follow, and one whose execution context — this node, the launcher, the
 audit itself — has moved. Every set carries this repository's manifests, since a specifier's target
-is chosen by a manifest node reads through internals no audit here sees. A step that spent fewer
-files than its half holds records no pass of its own: what it proved is per file and is stored there.
+is chosen by a manifest node reads through internals no audit here sees. A step that spent a narrowed
+set, down to one that spent nothing at all, still records its own pass: what it did not spend it held
+back on a record answering for this same content, so the step is proven here exactly as far as those
+records are — and without it a second gate at content already passed re-decides every file again.
 
 Past that, a step whose inputs are byte for byte what one of its recorded passes covered is skipped
 and says which digest matched. Only passes are recorded, so a red step is red again next time. The
@@ -412,7 +414,8 @@ if (!full) {
 }
 
 /* Inside a step the diff already reaches, the unit is the file, and only a file this content has a
-   recorded set for is held back. A step left with nothing to spend is not spent at all. */
+   recorded set for is held back. A step left with nothing to spend is not spent at all, and passes
+   here: every file it holds was answered for at this content, which is the whole of its claim. */
 if (ledger) {
   const dir = readsDir(recordDir(ROOT));
   const answered = [];
@@ -421,7 +424,9 @@ if (ledger) {
     const { spend, kept } = selectTests(dir, step.files, { root: ROOT, context: contextOf(launcherOf(step)) });
     if (kept.length === 0) return [step];
     answered.push({ step, kept, spend });
-    return spend.length === 0 ? [] : [{ ...step, files: spend, argv: argvForTests(spend), narrowed: true }];
+    if (spend.length > 0) return [{ ...step, files: spend, argv: argvForTests(spend), narrowed: true }];
+    recordPass(ledger.dir, step, null);
+    return [];
   });
   for (const one of answered) {
     console.log(`\n=== reads: ${one.step.label} — ${one.kept.length} of `
@@ -529,8 +534,7 @@ for (const step of planned) {
     for (const line of ownedLines()) console.error(line);
     finish(1, "failed", { step: step.label });
   }
-  /* What the audit saw, before the step pass and whether or not one is recorded: a step that spent a
-     narrowed set proved its files and not its own digest, and the files are where that is kept. */
+  // What the audit saw, before the pass, since the pass is keyed on the sets this writes.
   if (step.tests && !failed) {
     const sets = setsFrom(readsOut(step.label), ROOT);
     const wrote = recordSets(readsDir(record), sets, {
@@ -539,7 +543,7 @@ for (const step of planned) {
     console.log(`reads: ${wrote} of ${step.files.length} test file(s) recorded what they asked for; `
       + `${step.files.length - wrote} answered for nothing and are spent again`);
   }
-  if (ledger && !failed && !step.narrowed) recordPass(ledger.dir, step, took);
+  if (ledger && !failed) recordPass(ledger.dir, step, took);
 }
 
 const elapsed = Math.round((Date.now() - started) / 1000);
