@@ -99,6 +99,10 @@ const judgingRow = (one) => `  ${one.issueId.padEnd(KEY)} ${cut(one.row.title, T
    the building work that count was asked for: docs/cli/next.md. */
 export const judgingLines = (judging) => {
   if (!judging) return [];
+  if (judging.unread) {
+    return ["", "judging — this project's declaration about who judges went unread, so no issue is "
+      + `offered for judging here and none was ruled out: ${judging.unread.split("\n")[0]}`, ""];
+  }
   const at = JUDGING.join(" or ");
   return [
     `judging — ${judging.offered.length} issue(s) at ${at} with no live lease, this project having`,

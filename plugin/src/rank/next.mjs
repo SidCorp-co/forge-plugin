@@ -239,11 +239,11 @@ const jsonOf = (batches, dropped, weights, from, read, judging) => ({
   weights,
   weightsFrom: from,
   read,
-  judging: judging && {
+  judging: judging && (judging.unread ? { unread: judging.unread } : {
     offered: judging.offered.map((one) => ({ issueId: one.issueId, title: one.row.title })),
     left: judging.left.map((one) => ({ issueId: one.issueId, reason: one.reason })),
     unreached: judging.unreached,
-  },
+  }),
   candidates: batches.map((batch) => ({
     issueId: batch.head.issueId,
     title: batch.head.row.title,

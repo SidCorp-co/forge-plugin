@@ -17,7 +17,11 @@ import {
   leakRefusal,
   personOwedForRelease,
   projectRows,
+  releaseConflict,
   releaseFrom,
+  releaseLine,
+  unreadFrom,
+  waitsForPerson,
   staleIn,
   unhashable,
 } from "../../src/tracker/project-config.mjs";
@@ -168,13 +172,49 @@ test("a project with no deploy is told so, ends on the credential line, and inve
   assert.doesNotMatch(out, /https?:\/\//u);
 });
 
-test("a config that did not answer is said rather than defaulted", () => {
+test("a checkout naming no project is said rather than defaulted", () => {
   const out = lines(projectRows({ policy: null, deploy: null }));
-  assert.match(out, /^release policy: the project config did not answer — the park before awaiting_release stands$/mu);
+  assert.match(out, /^release policy: this checkout names no project, so there is no release policy to read/mu);
   assert.doesNotMatch(out, /staging branch/u);
   assert.doesNotMatch(out, /test credentials/u,
     "an unanswered call is not a decision, so *none* is not said on its behalf: that silence is "
     + "what a run tells apart from the `none` the case above earns");
+});
+
+/* The two absences a reader used to get one value for. A report printing `not stated` for a call
+   that was refused is telling a developer the project decided nothing, which is the one thing this
+   report exists to tell apart from a read that did not happen (ISS-1663). */
+test("a config read that failed is told apart from a checkout that names no project", () => {
+  const out = lines(projectRows({ policy: unreadFrom("Forge answered 503\nno available server"), deploy: null }));
+  assert.match(out, /^release policy: the project config could not be read, so nothing below it was read rather than declared: Forge answered 503$/mu,
+    "the sentence the transport handed back travels to the row, first line only");
+  assert.doesNotMatch(out, /names no project/u, "and it is not the slugless checkout's row");
+  assert.doesNotMatch(out, /not stated/u, "nothing derived off an unread policy is printed at all");
+  assert.doesNotMatch(out, /staging branch/u);
+  assert.equal(projectRows({ policy: unreadFrom("gone"), deploy: null })[0].level, "miss",
+    "a read that did not happen is a failure of the report, not a note about the project");
+});
+
+/* Every reader the fix leaves alone, held to the same answer across the three states, because the
+   new value is truthy where `null` was falsy and a `policy &&` guard is exactly what that moves. */
+test("the readers that do not decide on the difference answer the same across all three states", () => {
+  const unread = unreadFrom("Forge answered 503");
+  for (const [name, read] of [
+    ["landingRoute", (policy) => landingRoute(policy, NONE).value],
+    ["waitsForPerson", waitsForPerson],
+    ["releaseLine", releaseLine],
+    ["releaseConflict", releaseConflict],
+    ["the staging read", (policy) => policy?.staging ?? null],
+    ["judgementOf", judgementOf],
+  ]) {
+    assert.deepEqual(read(unread), read(null),
+      `${name} answers one thing for a checkout with no project and another for a read that failed`);
+  }
+  assert.equal(landingRoute(POLICY, NONE).value, "after-merge", "and a config that answers is untouched");
+  assert.equal(waitsForPerson(POLICY), false);
+  assert.deepEqual(releaseLine(POLICY), ["promotion", "to master, a person's, owed"]);
+  assert.equal(releaseConflict(POLICY), null);
+  assert.equal(judgementOf(POLICY), NOT_STATED);
 });
 
 test("a payload carrying a credential names the field it sits in and the credential it is", () => {
@@ -382,8 +422,11 @@ test("what a person owes before the close is the policy's own answer, and silenc
     "and so does a promotion no flag makes automatic, which is the shape the branch pair alone reads as automatic");
   /* The one the twelve stranded issues would have been closed by, had the read been optimistic. */
   assert.match(personOwedForRelease(null),
-    /the project config did not answer, so nothing here says a release happened/u,
-    "a policy nothing answered for owes a person, never an automatic release");
+    /this checkout names no project, so nothing here says a release happened/u,
+    "a checkout with no project to read one for owes a person, never an automatic release");
+  assert.match(personOwedForRelease(unreadFrom("Forge answered 503\nno available server")),
+    /^the project config could not be read, so nothing here says a release happened: Forge answered 503$/u,
+    "and a read that did not happen says so, with the tracker's own sentence on it");
   assert.match(owed({ productionBranch: "master", pipelineConfig: { autoProdDeploy: true } }),
     /^the staging branch is unset/u, "an unsettled pair names which side is missing");
   assert.match(owed({ baseBranch: "staging", pipelineConfig: { autoProdDeploy: true } }),

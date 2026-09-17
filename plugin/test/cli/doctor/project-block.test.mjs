@@ -98,6 +98,32 @@ test("a qa key in the checkout moves nothing the report prints", async () => {
     "the checkout said independent and the record said nothing, and the record is what answers");
 });
 
+/* `not stated` is what this report prints for a project that decided nothing, so printing it for a
+   call the tracker refused hands a developer a decision nobody made. The rows below it are derived
+   off the same unread value, which is why they go rather than print beside the refusal (ISS-1663). */
+test("a config read the tracker refused is a miss naming it, not a page of not-stated rows", async () => {
+  const held = state.answer.forge_config;
+  state.answer.forge_config = () => ({ refused: "no available server" });
+  try {
+    const run = await ask("doctor");
+    assert.match(run.stdout,
+      /^\[ miss \] release policy\s+the project config could not be read, so nothing below it was read rather than declared: BAD_REQUEST: no available server$/mu,
+      run.stdout);
+    /* Anchored on the row and not the phrase: `landing` names the merge in its own detail, and a
+       loose match would pass on a report that printed every derived row beside the refusal. */
+    const noRow = (label) => assert.doesNotMatch(run.stdout, new RegExp(`^\\[[^\\]]+\\] ${label}\\s`, "mu"),
+      `${label} is derived off the value that went unread, so it says nothing at all`);
+    noRow("independent judgement");
+    noRow("where the merge sits");
+    noRow("staging branch");
+    noRow("production deploy");
+    assert.match(run.stderr, /release policy: the project config could not be read/u,
+      "and the read itself says so once, for every reader that cannot carry the difference");
+  } finally {
+    state.answer.forge_config = held;
+  }
+});
+
 test("the credential is named and not printed until the flag asks for it", async () => {
   const held = await ask("doctor");
   assert.match(held.stdout, ROW("test credentials", "present, forge doctor --credentials"));

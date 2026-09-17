@@ -6,7 +6,7 @@ import { TAKEABLE } from "./weights.mjs";
 import { holdsBack } from "../flow/earned.mjs";
 import { sessionOf } from "../resolve/config.mjs";
 import { INDEPENDENT } from "../flow/qa/verdicts.mjs";
-import { judgementOf } from "../tracker/project-config.mjs";
+import { judgementOf, policyUnread } from "../tracker/project-config.mjs";
 import { filedAt } from "./score.mjs";
 
 /* A path in a code span, in the segment shape a repository names a file or a tree by. */
@@ -85,6 +85,8 @@ export const judgingVerdict = (lease) => {
 /** Offered, left out, and what the bound did not reach, oldest first so the bound covers the same
  *  rows on every call. `leaseFor` is the caller's, this module answering off values. */
 export const judgingFrom = async (rows, { policy, leaseFor, cap }) => {
+  const why = policyUnread(policy);
+  if (why) return { unread: why };
   if (!offersJudging(policy)) return null;
   const at = rows
     .filter((one) => JUDGING.includes(String(one?.status ?? "")))

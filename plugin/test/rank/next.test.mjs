@@ -513,6 +513,35 @@ test("a judging read that spent its bound says so on the error stream, in either
   assert.equal(JSON.parse(run.stdout).judging.unreached, 2, "and the count is a field a machine reads");
 });
 
+/* The one the judging section vanished in: a project that does declare an independent judgement and
+   a config call the tracker would not answer for used to print exactly what a deliberate opt-out
+   prints, which is nothing at all (ISS-1663). Only the config read is refused here — the issue reads
+   go on answering, which is what makes the silence invisible rather than obviously broken. */
+test("a config read the tracker refused says so rather than printing the judging section away", async (t) => {
+  load([issue("ISS-1", { priority: "critical" }), issue("ISS-5", { status: "developed" })]);
+  state.config = { pipelineConfig: { qa: "independent" } };
+  state.answer.forge_config = () => ({ refused: "no available server" });
+  t.after(() => { delete state.answer.forge_config; delete state.config; });
+
+  const run = await ran(["next"]);
+  assert.equal(run.status, 0, `a failed configuration read refused the whole verb: ${run.stderr}`);
+  assert.match(run.stdout, /judging — this project's declaration about who judges went unread/u,
+    "the section says the declaration went unread instead of standing down as an opt-out");
+  assert.match(run.stdout, /BAD_REQUEST: no available server/u, "carrying the tracker's own sentence");
+  assert.doesNotMatch(run.stdout, /1 issue\(s\) at developed/u, "and offers nothing it could not know");
+  assert.match(run.stderr, /release policy: the project config could not be read/u,
+    "said once at the read, for every reader that answers with a boolean and has nowhere to put it");
+  assert.match(run.stdout, /ISS-1/u, "and the ranking this verb was asked for is unchanged");
+  assert.match(run.stdout, /1 eligible of 1 takeable/u);
+
+  const json = await ran(["next", "--json"]);
+  assert.equal(json.status, 0, json.stderr);
+  const held = JSON.parse(json.stdout);
+  assert.match(held.judging.unread, /BAD_REQUEST: no available server/u,
+    "and the machine-readable form carries the refusal where it used to carry null");
+  assert.deepEqual(held.candidates.map((one) => one.issueId), ["ISS-1"]);
+});
+
 test("the machine-readable form carries the judging candidates under a key of their own", async (t) => {
   load([issue("ISS-1"), issue("ISS-5", { status: "developed" })]);
   judged(t, "independent");

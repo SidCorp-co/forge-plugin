@@ -54,6 +54,11 @@ Silence is the answer where a project has declared nothing. Who judges is `pipel
 project's own key; the `screen` flow asks for `independent` and does not decide it, so a project
 that declared neither is offered nothing rather than handed a guess about whose its landed work is.
 
+A declaration this verb could not read is not that silence, and the section says so instead of
+standing down: the same empty output would otherwise be what a project gets for opting out and what
+it gets for a tracker that refused the call, and the work waiting to be judged would disappear for
+as long as the outage lasted with nothing said about why.
+
 The lease is the one fact the browse projection does not carry, so each of these rows costs a `get`
 of its own. They are read oldest first, which makes the set a bound covers the same on every call,
 and the reading stops at `windowCap`. Where it stops short the answer says how many rows it did not

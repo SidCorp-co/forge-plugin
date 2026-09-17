@@ -33,6 +33,19 @@ export const releaseFrom = (config) => ({
 
 const readable = (policy) => Boolean(policy?.staging && policy?.production);
 
+export const UNREAD_CONFIG = "the project config could not be read";
+
+/* Three states, one value each. A policy is a read that happened; `null` is a checkout naming no
+   project to read one for; this is the read that did not happen, carrying the sentence the transport
+   already handed back. `releaseFrom` covers the fourth — a project that answered and declared
+   nothing is a policy of nulls, never an absence. Told apart here and nowhere else: a reader
+   inferring it from a second signal is the precedence rule this repository refuses (ISS-1663). */
+export const unreadFrom = (why) => ({ unread: why, from: CONFIG_SOURCE });
+
+export const policyUnread = (policy) => policy?.unread ?? null;
+
+const firstLine = (said) => String(said).split("\n")[0];
+
 export const QA_MODES = ["independent", "builder"];
 
 /* Derived, never asked for again: one branch deploying production means a push IS the deploy, so the
@@ -68,7 +81,9 @@ const nothingSaysWhere = (policy) => {
    and answers no for any pair of distinct branches: reading it here would close an issue whose
    promotion nobody had made. Silence is a person's, never an automatic release (ISS-1147). */
 export const personOwedForRelease = (policy) => {
-  if (!policy) return "the project config did not answer, so nothing here says a release happened";
+  const why = policyUnread(policy);
+  if (why) return `${UNREAD_CONFIG}, so nothing here says a release happened: ${firstLine(why)}`;
+  if (!policy) return "this checkout names no project, so nothing here says a release happened";
   if (!readable(policy)) return nothingSaysWhere(policy);
   if (policy.autoProd) return null;
   return policy.staging === policy.production
@@ -90,10 +105,17 @@ export const releaseConflict = (policy) => {
     + "until the branch is set";
 };
 
+/* Said here because this is the one place that knows the read failed, and because the readers that
+   decide on a boolean — `judgementOf` through `asksIndependent`, which turns the independent-judge
+   check off — have nowhere to put it without starting to refuse what the issue put out of scope. */
 export const releasePolicy = once(async () => {
   if (!slugIfAny()) return null;
   const answer = await scoped("forge_config", { action: "get" }, true);
-  return answer?.config ? releaseFrom(answer.config) : null;
+  if (answer?.config) return releaseFrom(answer.config);
+  const why = answer?.refused ?? "the tracker answered for this project with no config on it";
+  console.error(`release policy: ${UNREAD_CONFIG}, so every reading of it this command makes is of a `
+    + `project that has declared nothing — which this one may not be: ${firstLine(why)}`);
+  return unreadFrom(why);
 });
 
 const HOST = /^https?:\/\//u;
@@ -213,9 +235,15 @@ const branchRow = (label, held, from) => (held
     + " awaiting_release stands until it is set" });
 
 const policyRows = (policy, landing) => {
+  const why = policyUnread(policy);
+  if (why) {
+    return [{ level: "miss", label: "release policy",
+      detail: `${UNREAD_CONFIG}, so nothing below it was read rather than declared: ${firstLine(why)}` }];
+  }
   if (!policy) {
     return [{ level: "note", label: "release policy",
-      detail: "the project config did not answer — the park before awaiting_release stands" }];
+      detail: "this checkout names no project, so there is no release policy to read — the park "
+        + "before awaiting_release stands" }];
   }
   const route = landingRoute(policy, landing);
   const out = [
