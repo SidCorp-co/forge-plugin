@@ -29,8 +29,11 @@ never a later reader's guess.** `## Witnessed on screen` names them by number, o
 the reading behind it. A criterion belongs there when what it claims is something a user sees or does;
 one a reader could check by opening the source is the builder's, and filing it there is the sign it
 was written about the code rather than about the product. The split moves none of the builder's
-obligation: it proves every criterion it can reach, user-facing ones included, and one it cannot reach
-is a `skipped` verdict naming what it lacked rather than a criterion handed on.
+obligation: it proves every criterion it can reach, user-facing ones included, and one it cannot
+reach is recorded rather than handed on as a criterion. Which record it is turns on who this project
+made the judge: under the builder's own judgement, a `skipped` verdict naming what it lacked; under
+an independent one, the access shortfall by itself, the verdict there belonging to the run that
+judges.
 
 <!-- forge:when tool.codex configured -->
 **Both are read before the issue takes them**: `forge record plan` and `forge record criteria` each

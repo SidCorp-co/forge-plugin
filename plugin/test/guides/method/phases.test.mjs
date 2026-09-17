@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { flat, tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("method-phases").path;
-const { DEFAULT, FLOW_SLUGS } = await import("../../../src/guides/flow.mjs");
+const { DEFAULT, FLOW_SLUGS, SCREEN } = await import("../../../src/guides/flow.mjs");
 const { servedBody } = await import("../../../src/guides/skill-guides.mjs");
 const { render: rendered } = await import("../../../src/guides/render.mjs");
 const { conditionsAt } = await import("../../../src/guides/conditions.mjs");
@@ -182,4 +182,26 @@ test("Phase 3 says where a payload file is written, in every flow and under eith
       + "write a payload file is the only one that says where it goes, on that flow's own unrendered "
       + "body, since a copy behind a `forge:when` fence reads as absent in the state rendered away");
   }
+});
+
+/* The flow with a screen is the one that has an independent judge, and this clause was written before
+   it did: a builder read Phase 3 for a `skipped` verdict and `judgeProblem` in
+   `src/flow/qa/verdicts.mjs` refused it for carrying the builder's own id (ISS-1696). Watched failing
+   by taking the condition back out of the paragraph. */
+test("Phase 3 of the screen flow says whose the record for a criterion the builder cannot reach is", () => {
+  const phases = phasesOf(servedBody("issue-flow", PLUGIN, SCREEN));
+  const beats = [
+    ["that proving carries no condition", "it proves every criterion it can reach, user-facing ones included"],
+    ["that which record is owed is a question", "Which record it is turns on who this project made the judge"],
+    ["what a builder judging its own change writes", "under the builder's own judgement, a `skipped` verdict"],
+    ["what it leaves where another run judges", "the access shortfall by itself"],
+  ];
+  for (const [beat, phrase] of beats) {
+    assert.ok(phases["3"].includes(phrase), `Phase 3 of the ${SCREEN} flow no longer names ${beat}, so `
+      + "a builder under an independent judgement is sent here to write a verdict the tracker refuses "
+      + "for carrying its own id, and spends the round learning that (ISS-1696)");
+  }
+  const naming = Object.keys(phases).filter((n) => /Which record it is turns on/u.test(phases[n]));
+  assert.deepEqual(naming, ["3"], "and the phase that splits the criteria is the only one saying whose "
+    + "that record is, a second copy being a second rule from the moment one of them is edited");
 });
