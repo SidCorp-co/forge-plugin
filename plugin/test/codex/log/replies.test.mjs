@@ -215,6 +215,39 @@ test("a recheck's range is the range the consult it verifies was given", () => {
   assert.equal(recheckRange({ judged: { files: [] } }, ["a.mjs"]), null, "a consult that recorded no range narrows nothing");
 });
 
+/* Five issues were filed on this one parser and three runs wrote a false verdict to clear the commit
+   gate, because `--only blocker,major` is what puts those words in front of the reviewer and a clean
+   summary echoes them back to say none was found. The labels below are three of the fourteen the log
+   actually held; the count line was the reading that was right for all fourteen. ISS-651. */
+test("a reply that counts itself at zero made no findings, whatever its bullets are labelled", () => {
+  const clean = [
+    "- **Shared primitives — no blocker or major regression found in the supplied diffs.** The JSONL helper preserves directory selection.",
+    "- **Blocker floor is `developed`:** Matches the stated intent; the contract was not independently checked.",
+    "- **Tech Lead — không thấy blocker/major mới:** mốc đọc giữ được cả một nhịp trước hiện tại.",
+    "",
+    "CODEX: 0 findings",
+  ].join("\n");
+  assert.deepEqual(numbered(clean), [], "three labels naming a severity, and the reply counted itself at zero");
+  assert.deepEqual(findingsIn(clean), [], "so the round is handed none of them");
+
+  const own = `- **F1 — Still open — major:** \`a.mjs:12\` — the lock is released by path.\n${clean}`;
+  assert.deepEqual(numbered(own).map((one) => one.id), ["F1"], "an id the reviewer wrote stands whatever the count says");
+
+  const headerless = "- **New — major:** `a.mjs:1` — a.\n- **New — minor:** `a.mjs:2` — b.";
+  assert.deepEqual(numbered(headerless).map((one) => one.id), ["F1", "F2"], "no count line, so the positional fallback is untouched");
+  assert.deepEqual(numbered(`CODEX: 2 findings (2 major)\n${headerless}`).map((one) => one.id), ["F1", "F2"], "a count above zero leaves the fallback alone");
+
+  const last = { id: "c1", at: "1", files: ["a.mjs"], reply: clean };
+  const bare = verdictRecord(last, { note: "nothing to decide" });
+  assert.deepEqual([bare.record.accepted, bare.record.rejected, bare.undecided], [0, 0, 0], "a bare note closes it rather than being refused over F1");
+  assert.match(verdictRecord(last, { rejected: "F1=the reply made none" }).problem, /made no finding F1; it made none/u, "and the id it never gave is refused");
+  assert.equal(
+    unverdicted(jsonlOf([{ kind: "consult", id: "c1", ok: true, root: "/a", at: "1", files: ["a.mjs"], reply: clean }]), "/a"),
+    null,
+    "so the commit gate holds nothing on it",
+  );
+});
+
 test("the log scores itself per model", () => {
   const entries = [
     { kind: "consult", id: "1", ok: true, root: "/a", at: "1", model: "m", ms: 60000, reply: "CODEX: 2 findings", usage: { input_tokens: 100, cache_read_input_tokens: 50 } },

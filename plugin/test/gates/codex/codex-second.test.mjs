@@ -235,6 +235,10 @@ test("a commit waits for a verdict on the last consult that made findings", () =
   assert.equal(gate({ command, log: lines(found, quiet, { kind: "verdict", of: "c9", accepted: 1, rejected: 1, kept: ["F1"], dropped: { F2: "no" } }) }), null, "ruled on, it lands");
   assert.equal(gate({ command, log: lines({ ...found, root: "/elsewhere" }) }), null, "another tree's consult is not this one's");
   assert.equal(gate({ log: lines(found) }), null, "a write is not asked");
+  /* The reply as consult 253a35 stored it, with no verdict row: three runs typed a false one to get
+     past this door before the count line was read as the reviewer's own word on it. ISS-651. */
+  const summary = { kind: "consult", id: "c11", at: at(100_000), root, ok: true, files: ["a.mjs"], reply: "- **Claims versus implementation — No major mismatch found.** AC-19-8-27 names the targeted contexts.\n\nCODEX: 0 findings" };
+  assert.equal(gate({ command, log: lines(summary) }), null, "a clean summary bullet naming a severity holds nothing");
 });
 
 test("a commit in a tree the command does not name is refused, and the refusal says the reading failed", () => {

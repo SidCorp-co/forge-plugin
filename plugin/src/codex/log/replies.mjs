@@ -114,14 +114,16 @@ const clausesAfter = (reply, from) => {
   return held.length ? `\n${held.join("\n")}` : "";
 };
 
-/* Each finding with its id, `F<n>` as the reply numbered it or by its place in the whole reply where it did not — before any file filter, so a recheck on one file keeps the ids a verdict was given against. `head` is the bullet alone, because a Fix clause naming a second path is not where this finding lives. An empty list is no list — it says the caller named none, never that none may be cited — and it is what a consult given only issue keys records: read as a range admitting no path, it dropped every finding anchored to one, which is most of what a reviewer told to read the checkout writes. */
+/* Each finding with its id, `F<n>` as the reply numbered it or by its place in the whole reply where it did not — before any file filter, so a recheck on one file keeps the ids a verdict was given against. `head` is the bullet alone, because a Fix clause naming a second path is not where this finding lives. An empty list is no list — it says the caller named none, never that none may be cited — and it is what a consult given only issue keys records: read as a range admitting no path, it dropped every finding anchored to one, which is most of what a reviewer told to read the checkout writes. A reply that counts itself at zero made no findings, so nothing here is given a positional id: the severity words are the ones the prompt puts in front of the reviewer, and a summary bullet echoing them to say none was found was read as one for fourteen of 4409 logged replies, every one of which then had a verdict written against an id nobody raised (ISS-352, ISS-651, ISS-707, ISS-1532, ISS-1665). An id the reviewer wrote itself still stands, whatever the count says, because that is the model numbering a finding and not this parser inventing one. No predicate over the label's prose is attempted: two of the fourteen negate in Vietnamese and one, `Blocker floor is developed`, negates nothing at all. */
 export const numbered = (reply, files = null) => {
   const whole = String(reply ?? "");
+  const none = countedIn(whole)?.total === 0;
   const seen = new Set();
   return [...whole.matchAll(FINDING)]
     .filter(([, kind]) => !RULING.test(kind))
     .map((found, at) => {
       const own = ID.exec(found[1]);
+      if (!own && none) return null;
       const head = `${found[1].replace(ID, "").replace(/:\s*$/u, "")}: ${found[2]}`;
       return {
         id: `F${own ? own[1] : at + 1}`,
@@ -129,7 +131,7 @@ export const numbered = (reply, files = null) => {
         text: `${head}${clausesAfter(whole, found.index + found[0].length)}`.slice(0, FINDING_CHARS),
       };
     })
-    .filter((one) => !seen.has(one.id) && seen.add(one.id))
+    .filter((one) => one && !seen.has(one.id) && seen.add(one.id))
     .filter((one) => {
       const found = files?.length ? ANCHOR.exec(one.head) : null;
       return !found || onTracker(found[1]) || files.includes(found[1]);
