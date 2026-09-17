@@ -11,9 +11,12 @@ export const PROJECT = "/fixture/project";
 export const BASE = Date.parse("2026-09-01T00:00:00.000Z");
 export const at = (seconds) => new Date(BASE + seconds * 1000).toISOString();
 
-export const use = (id, seconds, name, input) => JSON.stringify({
+export const OPUS = "claude-opus-5";
+
+/* The model is on the assistant record the host writes, so a made transcript carries one too. */
+export const use = (id, seconds, name, input, model = OPUS) => JSON.stringify({
   timestamp: at(seconds),
-  message: { role: "assistant", content: [{ type: "tool_use", id, name, input }] },
+  message: { role: "assistant", model, content: [{ type: "tool_use", id, name, input }] },
 });
 
 export const result = (id, seconds, content, isError = false) => JSON.stringify({

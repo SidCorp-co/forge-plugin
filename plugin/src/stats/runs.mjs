@@ -11,7 +11,7 @@ import {
   guidePartOf,
   guideFlowOf,
 } from "./corpus/classes.mjs";
-import { FLOW_BRIEF, callsIn, markerOf, rungRun } from "./corpus/transcripts.mjs";
+import { FLOW_BRIEF, callsIn, markerOf, modelRun, rungRun } from "./corpus/transcripts.mjs";
 import { corpusUnder, readTranscript, rootFor } from "./corpus/corpus.mjs";
 import {
   countIn, declareLines, foldPhases, listing, perRung, phaseLines, rungLines, shipLine, unrecognisedIn,
@@ -172,6 +172,8 @@ const READS_A_LOG = new Set(["read", POLL]);
 const reportsShip = (call) =>
   call.class === "ship" || (READS_A_LOG.has(call.class) && LOG_READ.test(call.shell));
 const RESUMED = /--from\s+\d/u;
+/* The other way a run leaves a change for the branch: the mode that lands a batch calls no ship. */
+const READY = /--ready\b/u;
 
 /* The passes a landing took: every ship call, those resumed with --from, and whether a push came
    back rejected. */
@@ -181,6 +183,7 @@ const shipsIn = (calls) => {
     passes: passes.length,
     resumed: passes.filter((call) => RESUMED.test(call.shell)).length,
     rejected: calls.some((call) => reportsShip(call) && REJECTED_PUSH.test(call.body)) ? 1 : 0,
+    ready: calls.some((call) => call.class === "forge claim" && READY.test(call.shell)) ? 1 : 0,
   };
 };
 
@@ -243,6 +246,7 @@ export const runFrom = (path, session, text, classes = undefined) => {
     startedAt,
     endedAt,
     rung: rungRun(calls),
+    model: modelRun(read.models),
     /* What the eval joins a run to its work by; the profile prints neither, so this reads no tracker. */
     issues: claimedIn(calls),
     rulings: rulingsIn(calls),
@@ -483,7 +487,7 @@ export const profileLines = (held, all = false) => [
     (one) => `  ${one.minutes.toFixed(1).padStart(6)} min  ${one.what}`, all),
 ];
 
-const windowFrom = (since) => {
+export const windowFrom = (since) => {
   if (since === undefined) return null;
   const asked = WINDOW.exec(since)?.groups;
   if (!asked || Number(asked.many) < 1) {

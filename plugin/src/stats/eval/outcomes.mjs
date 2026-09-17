@@ -1,11 +1,11 @@
 /* The half of the eval the tracker holds: what became of the work a window's runs did, counted over
    run-and-issue pairs and never over issues. What each figure claims: docs/cli/stats-the-eval.md. */
-import { commentPage } from "../tracker/comments.mjs";
-import { everyIssue } from "../tracker/issues.mjs";
-import { criterionNumber } from "../flow/machine.mjs";
-import { parseAll } from "../flow/record/page.mjs";
-import { pairedOneToOne } from "./joined.mjs";
-import { accountCredentials } from "../resolve/settings.mjs";
+import { commentPage } from "../../tracker/comments.mjs";
+import { everyIssue } from "../../tracker/issues.mjs";
+import { criterionNumber } from "../../flow/machine.mjs";
+import { parseAll } from "../../flow/record/page.mjs";
+import { pairedOneToOne } from "../joined.mjs";
+import { accountCredentials } from "../../resolve/settings.mjs";
 
 export const HORIZON = 86_400_000;
 export const BUDGET = 400;
@@ -71,17 +71,18 @@ const inBatches = async (list, most, each) => {
  *  read per issue carries the records. Both spend the one budget. */
 /* Every alias the project's rows answer to, off the walk already paid for: what makes an issue one issue whichever name a claim printed. */
 const documentsOf = (rows) => new Map([...rows].map(([alias, row]) => [alias, row.documentId]));
+const complexitiesOf = (rows) => new Map([...rows].map(([alias, row]) => [alias, row.complexity ?? null]));
 
 export const readThreads = async (references, bound) => {
   const held = new Map();
-  if (!references.length) return { threads: held, documents: new Map() };
+  if (!references.length) return { threads: held, documents: new Map(), complexities: new Map() };
   /* Asked here and not left to the transport: `settings()` exits the process where no endpoint
      resolves, soft caller or not, so an eval that would have said `unavailable` would instead take
      its own cost figures down with it. */
   const account = accountCredentials();
   if (!account.url.value || !account.token.value) {
     for (const one of references) held.set(one, { unread: NO_ENDPOINT });
-    return { threads: held, documents: new Map() };
+    return { threads: held, documents: new Map(), complexities: new Map() };
   }
   const read = await everyIssue({}, bound);
   /* Indexed under both names a claim can print: a row missed under one alias is a pair lost for nothing. */
@@ -105,7 +106,7 @@ export const readThreads = async (references, bound) => {
     const thread = threadOf(await commentPage(documentId, true, bound));
     for (const reference of named) held.set(reference, thread);
   });
-  return { threads: held, documents: documentsOf(rows) };
+  return { threads: held, documents: documentsOf(rows), complexities: complexitiesOf(rows) };
 };
 
 /* A pair is a run and one issue it owned; the run carries the cost and the pair carries none, which
@@ -145,7 +146,7 @@ const matured = (pair, horizon, now) => pair.run.endedAt + horizon <= now;
 
 /** A figure observed after its run, so counted only inside one common interval and only for a pair
  *  whose run has finished that interval; an outcome landing later is counted apart, never inside. */
-const afterRun = (name, pairs, threads, horizon, now, hit) => {
+export const afterRun = (name, pairs, threads, horizon, now, hit) => {
   const unread = [];
   let over = 0;
   let count = 0;

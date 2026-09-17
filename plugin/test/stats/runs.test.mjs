@@ -160,7 +160,7 @@ test("the subject is named, and a wrong one says which there is", () => {
     env: { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-home-") },
   });
   assert.equal(asked.status, 0);
-  assert.match(asked.stdout, /Usage: forge stats <runs\|eval\|marks>/u);
+  assert.match(asked.stdout, /Usage: forge stats <runs\|models\|eval\|marks>/u);
 
   const wrong = spawnSync(FORGE, ["stats", "consults"], {
     encoding: "utf8",

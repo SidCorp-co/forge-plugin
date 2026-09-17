@@ -122,7 +122,7 @@ test("a first argument the verb refuses is a finding, with the word and the set 
   assert.match(said[0], /^`forge record report` is no word it takes: /u, "the word it refused");
   for (const kind of KINDS) assert.ok(said[0].includes(kind), `${kind} is missing from the set printed`);
   assert.deepEqual(claimProblems("`forge stats summary --since 3d`", held),
-    ["`forge stats summary` is no word it takes: runs or eval or marks"],
+    ["`forge stats summary` is no word it takes: runs or models or eval or marks"],
     "and the flags of a word the verb refuses go unjudged: they belong to a surface that is not there");
 });
 

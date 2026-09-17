@@ -109,7 +109,7 @@ const SUBJECT_HELP = [
   ["knowledge", KNOWLEDGE, KNOWLEDGE_SAYS, ["list", "get", "write", "search", "delete"]],
   ["cloudflare", CLOUDFLARE, CLOUDFLARE_SAYS,
     ["zones", "zone", "dns", "purge", "search", "login", "accounts"]],
-  ["stats", STATS, STATS_SAYS, ["runs", "eval", "marks"]],
+  ["stats", STATS, STATS_SAYS, ["runs", "models", "eval", "marks"]],
   ["codex", CODEX, CODEX_SAYS,
     ["consult", "verdict", "pending", "show", "log", "stats", "eval", "marks", "replay"]],
   ["spec", SPEC, { check: CHECK_USAGE }, ["check"]],

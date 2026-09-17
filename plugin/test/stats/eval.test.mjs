@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { WINDOW, evalRuns, evalLines, scopeFor } from "../../src/stats/eval.mjs";
+import { WINDOW, evalRuns, evalLines, scopeFor } from "../../src/stats/eval/eval.mjs";
 import { profileOf } from "../../src/stats/runs.mjs";
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { UNRECORDED, copyAt, installedCopies, spansInstall } from "../../src/stats/versions.mjs";
@@ -252,7 +252,7 @@ test("the eval subject stands beside runs in the verb's own help", () => {
   assert.match(help.stdout, /Usage: forge stats eval/u);
   const wrong = spawnSync(FORGE, ["stats", "consults"], { encoding: "utf8", env });
   assert.equal(wrong.status, 1);
-  assert.match(wrong.stderr, /no subject named consults\. There is: runs, eval, marks\./u);
+  assert.match(wrong.stderr, /no subject named consults\. There is: runs, models, eval, marks\./u);
 });
 
 test("each outcome figure discloses both windows' coverage, and says which window every reason is about", () => {

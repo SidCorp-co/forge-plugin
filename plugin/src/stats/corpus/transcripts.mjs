@@ -13,6 +13,21 @@ const CONFIRMED = "confirmation";
 
 export const RUNG_UNKNOWN = "unknown";
 
+/* A model id the host wrapped in angle brackets is a marker for a turn no model generated —
+   `<synthetic>` is the one this corpus carries — so it names no arm and is dropped before the
+   attribution rather than counted as a model nobody can dispatch to. */
+const MARKER = /^<.*>$/u;
+export const MODEL_MIXED = "mixed";
+export const MODEL_NONE = "unattributed";
+
+/** Which model ran a whole run, off the models its assistant records name. Two real models is
+ *  `MODEL_MIXED` and never the busier of them: a run two models generated is one neither answers for. */
+export const modelRun = (models) => {
+  const real = [...models.keys()].filter((name) => !MARKER.test(name));
+  if (!real.length) return MODEL_NONE;
+  return real.length === 1 ? real[0] : MODEL_MIXED;
+};
+
 const RETIRED_STAMP = "tier";
 
 /* Which rung a whole run was worked at, off the records its writes posted and never off the output a class covers whole: the-ladder.md. Named apart from `ladder.mjs`'s `rungOf`, which answers for one issue's fields where this reads a transcript, and `RUNG_UNKNOWN` is no rung of the ladder rather than its cheapest. Either stamp reads, so a transcript written before the record's field was renamed classifies at the rung it always did (ISS-822). */
@@ -117,6 +132,7 @@ export const callsIn = (whole, classes = CLASSES) => {
   let firstAt = null;
   let lastAt = 0;
   let brief = "";
+  const models = new Map();
   for (const line of whole.split("\n")) {
     if (!line.startsWith("{")) continue;
     let record;
@@ -126,6 +142,9 @@ export const callsIn = (whole, classes = CLASSES) => {
       continue;
     }
     const stamp = Date.parse(record.timestamp);
+    if (record.message?.role === "assistant" && typeof record.message.model === "string") {
+      models.set(record.message.model, (models.get(record.message.model) ?? 0) + 1);
+    }
     if (!stamp) continue;
     if (firstAt === null) {
       firstAt = stamp;
@@ -164,5 +183,5 @@ export const callsIn = (whole, classes = CLASSES) => {
       error: result?.error ?? false,
     };
   }));
-  return { calls, brief, firstAt, lastAt: Math.max(lastAt, ...calls.map((one) => one.endedAt)) };
+  return { calls, brief, models, firstAt, lastAt: Math.max(lastAt, ...calls.map((one) => one.endedAt)) };
 };

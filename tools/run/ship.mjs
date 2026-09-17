@@ -26,7 +26,7 @@ import { REVIEWED, REVIEW_PATHS, reviewBody, reviewLines, reviewSays, spannedIn 
 import { hookEntries } from "../../plugin/src/hooks/log/hook-log-file.mjs";
 import { typed } from "../../plugin/src/hooks/shell-spans.mjs";
 import { freezesSession, FROZEN, pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
-import { releaseMark, runsMark } from "../../plugin/src/stats/eval.mjs";
+import { releaseMark, runsMark } from "../../plugin/src/stats/eval/eval.mjs";
 import { partForLanding } from "../../plugin/src/guides/served.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");

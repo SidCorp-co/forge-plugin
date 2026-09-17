@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { WINDOW, evalLines, evalRuns, releaseMark, runsMark } from "../../../src/stats/eval.mjs";
+import { WINDOW, evalLines, evalRuns, releaseMark, runsMark } from "../../../src/stats/eval/eval.mjs";
 import { marksOf, marksPath, writeMark } from "../../../src/stats/marks/marks.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 import { escaped, tempRoom } from "../../fixtures.mjs";

@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { claimedIn, pairedOneToOne, parkWritersIn, rulingsIn } from "../../src/stats/joined.mjs";
 import {
   AFTER_RUN, DURING_RUN, UNAVAILABLE, budgetOf, outcomesOf, pairsOf, parkedFor, parkedOver, threadOf, unreadIn,
-} from "../../src/stats/outcomes.mjs";
+} from "../../src/stats/eval/outcomes.mjs";
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { runsUnder } from "../../src/stats/runs.mjs";
 import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";

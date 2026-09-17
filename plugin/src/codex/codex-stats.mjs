@@ -293,7 +293,7 @@ export const windowObject = (rows, verdicts) => ({
   groups: [...byKey(rows).values()].map((group) => groupObject(group, verdicts)),
 });
 
-/** The comparison in the outer shape `stats eval --json` prints (`evalRuns` in stats/eval.mjs). */
+/** The comparison in the outer shape `stats eval --json` prints (`evalRuns` in stats/eval/eval.mjs). */
 export const compared = (now, before, verdicts, total, against = null) => comparedWindows({
   size: MARK,
   total,

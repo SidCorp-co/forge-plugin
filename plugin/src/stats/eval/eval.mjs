@@ -3,22 +3,22 @@
    not the profile's. What a comparison since a release is confounded by, and what a reading too
    shallow for its own window says instead — docs/cli/stats-the-eval.md; the line the ship prints at a
    multiple of the window and the reading it writes there — docs/cli/stats-the-mark.md. */
-import { RUNG_UNKNOWN } from "./corpus/transcripts.mjs";
-import { classesFor, declaredIn } from "./corpus/classes.mjs";
-import { rootFor } from "./corpus/corpus.mjs";
-import { checkoutFrom, derivedFrom, profileOf, readingAside, runsUnder } from "./runs.mjs";
-import { stamp } from "./figures.mjs";
-import { UNRECORDED, cacheRoot, copyAt, installedCopies, spansInstall } from "./versions.mjs";
-import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows } from "./windows.mjs";
+import { RUNG_UNKNOWN } from "../corpus/transcripts.mjs";
+import { classesFor, declaredIn } from "../corpus/classes.mjs";
+import { rootFor } from "../corpus/corpus.mjs";
+import { checkoutFrom, derivedFrom, profileOf, readingAside, runsUnder } from "../runs.mjs";
+import { stamp } from "../figures.mjs";
+import { UNRECORDED, cacheRoot, copyAt, installedCopies, spansInstall } from "../versions.mjs";
+import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows } from "../windows.mjs";
 import {
   RELEASES, RUNS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, resolveRelease,
   releaseSaid, sinceReleaseIn, writeMark, wroteSaid,
-} from "./marks/marks.mjs";
-import { reachOf, reachSaid } from "./marks/reach.mjs";
+} from "../marks/marks.mjs";
+import { reachOf, reachSaid } from "../marks/reach.mjs";
 import { BUDGET, HORIZON, UNAVAILABLE, budgetOf, outcomesOf, parkedOver, readThreads, ruledOver } from "./outcomes.mjs";
-import { logEntries } from "../codex/codex-log.mjs";
-import { fail, projectAt, projectTarget, useProject } from "../resolve/settings.mjs";
-import { flags } from "../resolve/flags.mjs";
+import { logEntries } from "../../codex/codex-log.mjs";
+import { fail, projectAt, projectTarget, useProject } from "../../resolve/settings.mjs";
+import { flags } from "../../resolve/flags.mjs";
 
 export const WINDOW = 50;
 
@@ -74,25 +74,25 @@ const sized = (raw) => {
   return value;
 };
 
-const spend = (raw) => {
+export const spend = (raw, verb = "stats eval") => {
   if (raw === undefined) return BUDGET;
   const value = Number(raw);
   if (!Number.isInteger(value) || value < 1) {
-    fail(`stats eval: --requests takes an integer of 1 or more, not \`${raw}\`.`);
+    fail(`${verb}: --requests takes an integer of 1 or more, not \`${raw}\`.`);
   }
   return value;
 };
 
-const horizonOf = (raw) => {
+export const horizonOf = (raw, verb = "stats eval") => {
   if (raw === undefined) return HORIZON;
   const asked = ASKED.exec(raw)?.groups;
   if (!asked || Number(asked.many) < 1) {
-    fail(`stats eval: --horizon takes a window like \`3d\`, \`12h\` or \`90m\`, not \`${raw}\`.`);
+    fail(`${verb}: --horizon takes a window like \`3d\`, \`12h\` or \`90m\`, not \`${raw}\`.`);
   }
   return Number(asked.many) * UNITS[asked.unit];
 };
 
-const saidHorizon = (ms) => {
+export const saidHorizon = (ms) => {
   for (const [unit, size] of [["d", UNITS.d], ["h", UNITS.h], ["m", UNITS.m]]) {
     if (ms % size === 0) return `${ms / size}${unit}`;
   }
@@ -421,23 +421,27 @@ export const scopeFor = (directory) => {
     : null;
 };
 
-const outcomeRead = async (corpus, directory, size, { horizon, most }) => {
-  const rows = byEnd(corpus.runs);
-  const { now, before } = twoWindows(rows, size);
-  const wanted = [...new Set([...now, ...before].flatMap((run) => run.issues))];
+export const outcomeReadFor = async (corpusRuns, owners, directory, { horizon, most }) => {
+  const wanted = [...new Set(owners.flatMap((run) => run.issues))];
   const { spent, bound } = budgetOf(most);
   const aimed = scopeFor(directory);
   if (aimed) useProject(aimed);
-  const { threads, documents } = await readThreads(wanted, bound);
+  const { threads, documents, complexities } = await readThreads(wanted, bound);
   return {
     threads,
     documents,
-    ruled: ruledOver(corpus.runs, logEntries()),
-    parks: parkedOver(corpus.runs, threads, documents),
+    complexities,
+    ruled: ruledOver(corpusRuns, logEntries()),
+    parks: parkedOver(corpusRuns, threads, documents),
     horizon,
     now: Date.now(),
     spent,
   };
+};
+
+const outcomeRead = async (corpus, directory, size, spending) => {
+  const { now, before } = twoWindows(byEnd(corpus.runs), size);
+  return outcomeReadFor(corpus.runs, [...now, ...before], directory, spending);
 };
 
 /** The object `--json` prints, and the record the ship writes: one assembly, so a stored reading is
