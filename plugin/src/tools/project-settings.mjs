@@ -249,7 +249,11 @@ export const writeSetting = async (given) => {
   }
   const kept = resource.keysIn(now)[route.key];
   const why = notKept(route, value, kept);
-  if (why) fail(`--set: ${why}`);
+  if (why) {
+    fail(`--set: ${why}`
+      + (file ? ` ${file.path} is untouched and still sets ${DRAIN_SAID}, which is right where the `
+        + `read back is the tracker's own word and wrong where it is not: ${READS_IT}` : ""));
+  }
   return [`${route.name}.${route.key}: ${shown(kept)}  ← ${resource.said}`, ...clearedDrain(file, kept)];
 };
 

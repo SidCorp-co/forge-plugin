@@ -184,6 +184,22 @@ test("a send that never answered names the key it left standing rather than the 
   assert.equal(held().drainedBy, "qa-master");
 });
 
+test("a read back that kept nothing names the key still on the file beside what it says of the tracker", async () => {
+  fresh("qa-master");
+  const held0 = state.answer.forge_config;
+  state.answer.forge_config = (args) => (args.action === "pipeline"
+    ? { pipelineConfig: { autoProdDeploy: false } }
+    : held0(args));
+  const run = await ask("--set", "pipeline.qa=builder").finally(() => {
+    state.answer.forge_config = held0;
+  });
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /The tracker did not keep it/u, run.stderr);
+  assert.match(run.stderr, /is untouched and still sets `drainedBy`/u,
+    "the branch that reads the write as refused says nothing of the half it left standing");
+  assert.equal(held().drainedBy, "qa-master");
+});
+
 test("a project file another session moved under the call is refused rather than written back", async () => {
   fresh("qa-master");
   const held0 = state.answer.forge_config;
