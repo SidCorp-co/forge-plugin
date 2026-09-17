@@ -4,7 +4,7 @@
    a process that reached a route this cannot follow, or an execution context that has moved all
    spend the file, which is what it does today. */
 import { createHash } from "node:crypto";
-import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -83,6 +83,11 @@ const entriesFor = (dir, file) => {
   }
   return names.filter((one) => ENTRY_NAME.exec(one)?.[2] === want).map((one) => join(dir, one));
 };
+
+// Newest first, so what a write evicts is the oldest and never the entry it has just recorded.
+const newestFirst = (paths) => paths
+  .map((path) => ({ path, at: lstatSync(path, { throwIfNoEntry: false })?.mtimeMs ?? 0 }))
+  .sort((one, other) => other.at - one.at).map((one) => one.path);
 
 const setAt = (path, file) => {
   try {
@@ -208,7 +213,7 @@ export const recordSets = (dir, sets, { root, context, manifests }) => {
     writeFileSync(staging, `${JSON.stringify(body)}\n`);
     renameSync(staging, join(dir, `${digest}.${nameOf(set.file)}`));
     wrote += 1;
-    for (const path of entriesFor(dir, set.file).slice(ENTRIES_PER_FILE)) rmSync(path, { force: true });
+    for (const path of newestFirst(entriesFor(dir, set.file)).slice(ENTRIES_PER_FILE)) rmSync(path, { force: true });
   }
   return wrote;
 };

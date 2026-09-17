@@ -7,8 +7,8 @@ import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { auditEnv, contextOf, forgetReads, heldSets, reaches, recordSets, selectTests, setsFrom }
-  from "../../../tools/gates/reads/sets.mjs";
+import { auditEnv, contextOf, ENTRIES_PER_FILE, forgetReads, heldSets, reaches, recordSets, selectTests,
+  setsFrom } from "../../../tools/gates/reads/sets.mjs";
 import { CLASSIFIED, optionsIn, shimSource, SHIMMED } from "../../../tools/gates/reads/audit.mjs";
 import { entryNames, landed, run, scratch, write } from "./gates/scratch.mjs";
 import { tempRoom } from "../fixtures.mjs";
@@ -444,6 +444,23 @@ test("a wrapper carries what the export it replaces held, and what it carries re
     for (const path of ["plugin/src/one.mjs", "plugin/src/gone.mjs", "plugin/src/read-me.md"]) {
       assert.ok(one.paths.includes(path), `${path} is in none of ${one.paths.join(" ")}`);
     }
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+// What a write evicts is the oldest entry: evicting the one it just made costs that file every run.
+test("a file past the entries a record keeps for it loses its oldest and keeps the newest", () => {
+  const where = room({ "plugin/src/one.mjs": "one\n" });
+  const how = { root: where.root, context: CONTEXT, manifests: [] };
+  try {
+    for (const each of ["one", "two", "three", "four", "five"]) {
+      write(where.root, "plugin/src/one.mjs", `${each}\n`);
+      forgetReads();
+      recordSets(where.dir, [setOf(["plugin/src/one.mjs"])], how);
+    }
+    assert.equal(readdirSync(where.dir).length, ENTRIES_PER_FILE);
+    assert.deepEqual(again(where).spend, [], "the content the newest entry was written at");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
