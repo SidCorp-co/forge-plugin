@@ -129,3 +129,15 @@ test("a blank line inside a finding's clauses is not the end of them", () => {
   );
   assert.match(risks[0], /\*\*Proven by\*\*/u, "so the round that follows the finding is asked about the whole of it");
 });
+
+/* The block and the reader are one decision, and only the block is shown to the model: a wrapper asked
+   for nowhere was what seven replies were held to and failed, each recording no verdict. */
+test("the verification block asks for the ruling in the shape the reader takes", () => {
+  const said = promptFor("i", [], [], { risks: ["the lock is still the gateway's", "the cap moved"] })
+    .replace(/\s+/gu, " ");
+  assert.match(said, /answer CONFIRMED, REFUTED or CANNOT TELL on a line opening with that risk's own number/u,
+    "the numbering the reader maps a ruling to a finding by");
+  assert.match(said, /the ruling word first after the number or behind nothing but the finding's id/u,
+    "and the head the reader stops reading at, so prose past it is never a ruling");
+  assert.match(said, /1\. the lock is still the gateway's 2\. the cap moved/u, "against a list the block numbered");
+});

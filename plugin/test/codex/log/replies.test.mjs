@@ -24,6 +24,7 @@ const {
   recheckRange,
   recheckRisks,
   rulingsIn,
+  rulingsUnread,
   scoreOf,
   undecidedIn,
   unverdicted,
@@ -427,4 +428,41 @@ test("two consults answered by one rung score as one group, whatever level each 
   const scored = scoreOf(rows);
   assert.equal(scored.length, 1, "one rung is one treatment");
   assert.equal(scored[0].consults, 2);
+});
+
+/* Every shape logged against ISS-1336 and ISS-1681 in one case, plus the one the head grammar refuses:
+   a ruling word reached through prose is a recollection and not an answer, and closing on it would be
+   worse than leaving the finding open. */
+test("a ruling is the word at the head of a numbered line, whatever the reply wraps it in", () => {
+  const judged = { id: "c1", files: ["a.mjs"], reply: "- **F1 — New — blocker:** `a.mjs:12` — x." };
+  const plan = { judged, ids: ["F1"], risks: [] };
+  const keptOf = (reply) => verdictFromRulings(plan, 0, reply, "r1")?.record.kept ?? null;
+  assert.deepEqual(keptOf("1. **F1 — REFUTED (resolved).**"), ["F1"], "the id in front of the word, inside the bold run");
+  assert.deepEqual(keptOf("1. **REFUTED — F1 resolved.**"), ["F1"], "the word first and the resolution behind it");
+  assert.deepEqual(keptOf("1. **F1 - REFUTED (Resolved).**\nCODEX: 0 findings"), ["F1"], "a hyphen, a capital, and a zero count under it");
+  assert.deepEqual(keptOf("1. REFUTED"), ["F1"], "no bold anywhere on the line");
+  assert.deepEqual(keptOf("1. F1 — REFUTED (resolved)"), ["F1"], "the id in front and no bold at all");
+  assert.equal(keptOf("1. The earlier answer was REFUTED; my ruling is CONFIRMED."), null,
+    "a ruling word only prose reaches is not a ruling, so nothing is closed on it");
+  const seven = { id: "c2", files: ["a.mjs"], reply: "- **F7 — New — major:** `a.mjs:9` — y." };
+  const byPlace = verdictFromRulings({ judged: seven, ids: ["F7"], risks: [] }, 0, "1. **F3 — REFUTED (resolved).**", "r2");
+  assert.deepEqual(byPlace.record.kept, ["F7"], "the ruling answers the risk of its number; the id it names is wrapper, not mapping");
+});
+
+/* Nothing else prints a recheck's own id, so a run ruling by hand had the judged consult's and wrote a
+   placeholder for this one; and silence where no ruling was read is what sent five runs to a later door. */
+test("a recheck the reader could not rule from says so, naming itself and the way out", () => {
+  const judged = { id: "c1", files: ["a.mjs"], reply: "- **F1 — New — blocker:** `a.mjs:12` — x." };
+  const plan = { judged, ids: ["F1"], risks: [] };
+  const prose = rulingsUnread(plan, 0, "1. The earlier answer was REFUTED; my ruling is CONFIRMED.\nCODEX: 0 findings", "r7");
+  assert.match(prose, /recheck r7 ruled on none of F1 of consult c1/u, "the recheck, the findings and the consult");
+  assert.match(prose, /The earlier answer was REFUTED/u, "the numbered line it could not rule from, quoted back");
+  assert.match(prose, /does not open with CONFIRMED, REFUTED or CANNOT TELL/u, "and why that line ruled nothing");
+  assert.match(prose, /forge codex verdict --of c1/u, "the one command that clears it");
+  assert.match(rulingsUnread(plan, 0, "It all reads fine to me now.", "r8"), /numbered no line at all/u,
+    "a reply that numbered nothing has no line to quote and says that instead");
+  assert.match(rulingsUnread(plan, 1, "1. **REFUTED** — the caller's own risk", "r9"), /numbered rulings 1, and F1 answer 2 to 2/u,
+    "a --verify risk ahead of the list shifts the numbering, which is a third reason and not a missing line");
+  assert.match(verdictFromRulings(plan, 0, "1. **REFUTED** — a", "r9").said, /from recheck r9/u,
+    "a recorded verdict names the recheck too, so the id is printed either way");
 });

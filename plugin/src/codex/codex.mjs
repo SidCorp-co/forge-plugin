@@ -59,6 +59,7 @@ import {
   historyFor,
   recheckOwed,
   recheckPlan,
+  rulingsUnread,
   recheckRange,
   verdictFromRulings,
 } from "./log/replies.mjs";
@@ -279,6 +280,14 @@ const plannedSaid = ({ model, effort, kind, budget, ceiling, lines, clipped }) =
   + `${clipped.length ? `, ${clipped.length} of them clipped` : ""}`
   + `${budget < ceiling ? `, up to ${ceiling} if the review comes back incomplete` : ""}.`;
 
+const ruledSaid = (plan, offset, reply, id, entries) => {
+  const prior = verdictsBy(entries).get(plan.judged.id ?? plan.judged.at) ?? null;
+  const auto = verdictFromRulings(plan, offset, reply, id, prior);
+  if (!auto) return rulingsUnread(plan, offset, reply, id);
+  logConsult(auto.record);
+  return auto.said;
+};
+
 const consult = async (given) => {
   const { named, issues, risks, only, allowEcho, base, namedBase, effort: askedEffort, cap, send, recheck, angles, scope, checks } = consultArgs(given);
   const { problem, values, path } = profile();
@@ -439,11 +448,7 @@ const consult = async (given) => {
     const { left, since } = clearConsulted(root, clear);
     if (standing.length) console.error(`codex: ${heldSaid(standing)}`);
     if (plan) {
-      const auto = verdictFromRulings(plan, offset, held.text, id, verdictsBy(entries).get(plan.judged.id ?? plan.judged.at) ?? null);
-      if (auto) {
-        logConsult(auto.record);
-        console.error(`codex: ${auto.said}`);
-      }
+      console.error(`codex: ${ruledSaid(plan, offset, held.text, id, entries)}`);
     }
     const kinds = held.tools.reduce((seen, one) => ({ ...seen, [one.name]: (seen[one.name] ?? 0) + 1 }), {});
     const spent = Object.entries(kinds).map(([name, n]) => `${name} ${n}`).join(", ");

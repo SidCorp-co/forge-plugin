@@ -31,6 +31,16 @@ definition, shared by the field on the row, the retry's trigger and the stats li
 it must never match is `CANNOT TELL`: that ruling is what the verification grammar *asks for* on a risk
 the reviewer cannot decide, and retrying there buys the same answer at twice the price.
 
+**The grammar is asked for where it is read.** A ruling is the word at the head of a line the reply
+numbered — behind emphasis and the finding's own id, never behind prose — and the block that asks for
+it says exactly that, so a reply is held to no shape nothing told it. Demanding instead that the word
+be the whole of the first bold run was such a shape: seven replies answered outside it, with the id in
+front, a parenthetical behind or the whole resolution behind, and each recorded no verdict at all. The
+head is where the reading stops, because a ruling word a sentence merely recalls is not an answer and
+closing a finding on it would be worse than the silence. Where no numbered line ruled, the recheck says
+so on its way out, naming itself — the only place a recheck's own id is printed, and what a run ruling
+by hand had been writing a placeholder for.
+
 Thinking tokens come out of the same ceiling as the reply, which is why 8,000 was mostly spent before
 the review began.
 

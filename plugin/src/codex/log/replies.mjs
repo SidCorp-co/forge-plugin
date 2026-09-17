@@ -59,11 +59,19 @@ export const historyFor = (entries, root, pairs = HISTORY_PAIRS, rels = []) => {
     });
 };
 
-/* The rulings and the numbered findings, each with what became of it — not the prose around them.
-   The gateway cached none of 108 replays, so every call paid for the whole reply three times over. */
-const RULING_LINE = /^\s*(\d+)\.\s+\*\*(CONFIRMED|REFUTED|CANNOT TELL)\*\*.*$/gimu;
+/* The word at the head of a line the reply numbered, behind whatever the reply wraps it in: emphasis,
+   the finding's own id, and the dashes around it. Demanding the word be the whole of the first bold run
+   was a shape the prompt never asked for, and seven replies answered outside it — with the id in front,
+   a parenthetical behind, the whole resolution behind — each recording nothing and sending the run to a
+   later door to find out (ISS-1336, ISS-1681). The head is where it stops: a word further in belongs to
+   prose, and `the earlier answer was REFUTED; my ruling is CONFIRMED` closing a finding on its first
+   word is worse than the silence this replaces. */
+const RULING_LINE = /^[ \t]*(\d+)\.[ \t]+\**[ \t]*(?:F\d+\b[ \t]*[—–\-:.]*[ \t]*)?\**[ \t]*(CONFIRMED|REFUTED|CANNOT TELL)\b.*$/gimu;
 export const rulingsIn = (reply) =>
   [...String(reply ?? "").matchAll(RULING_LINE)].map(([line, n, ruling]) => ({ n: Number(n), ruling: ruling.toUpperCase(), line }));
+
+/* The rulings and the numbered findings, each with what became of it — not the prose around them.
+   The gateway cached none of 108 replays, so every call paid for the whole reply three times over. */
 
 export const digestOf = (reply, held = null) => {
   const findings = numbered(reply);
@@ -262,9 +270,31 @@ export const verdictFromRulings = (plan, offset, reply, recheckId, prior = null)
   const held = joined(prior, kept.map((id) => ({ id })), open.map((id) => ({ id, reopen: true })), numbered(plan.judged.reply).length);
   return {
     record: { kind: "verdict", at: new Date().toISOString(), of, files: plan.judged.files, ...held, from: recheckId, note },
-    said: `verdict on ${of} recorded from this recheck — accepted: ${kept.join(", ") || "none"}`
+    said: `verdict on ${of} recorded from recheck ${recheckId} — accepted: ${kept.join(", ") || "none"}`
       + `${open.length ? `; still open: ${open.join(", ")}` : ""}. \`forge codex verdict --of ${of}\` overrides it.`,
   };
+};
+
+const NUMBERED = /^\d+\.[ \t]+\S/u;
+
+/** Why a recheck recorded nothing, naming the recheck itself — the one place that id is printed, so a run
+ *  ruling by hand stops writing a placeholder for it (ISS-1681). Three reasons, because a line that ruled
+ *  nothing, a reply that numbered nothing and a numbering the risks ahead of the list shifted are three
+ *  different next moves. */
+export const rulingsUnread = (plan, offset, reply, recheckId) => {
+  const ruled = rulingsIn(reply);
+  const of = plan.judged.id ?? plan.judged.at;
+  const said = new Set(ruled.map((one) => one.line.trim()));
+  const unread = String(reply ?? "").split("\n").map((line) => line.trim())
+    .filter((line) => NUMBERED.test(line) && !said.has(line));
+  const ids = plan.ids.join(", ");
+  const why = unread.length
+    ? `\`${unread[0].slice(0, FINDING_CHARS)}\` does not open with CONFIRMED, REFUTED or CANNOT TELL`
+    : ruled.length
+      ? `it numbered rulings ${ruled.map((one) => one.n).join(", ")}, and ${ids} answer ${offset + 1} to ${offset + plan.ids.length}`
+      : "its reply numbered no line at all";
+  return `recheck ${recheckId} ruled on none of ${ids} of consult ${of}: ${why}.\n`
+    + `Rule on them yourself: \`${verdictForm(of)}\`.`;
 };
 
 /* Added to the prior record, never over it; the newer word wins, and a reopened finding leaves both sides. */
