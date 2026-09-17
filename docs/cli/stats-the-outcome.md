@@ -3,9 +3,7 @@
 **Every figure the eval printed was a cost, and a cost is a figure an optimizer moves by making
 runs worse.** A run that skips the consult, parks less and ships something wrong is cheaper on every
 line of the profile. ISS-821 put something beside each of them that gets worse when the work does.
-This topic is what each of those four figures claims, what none of them claims, the budget the
-tracker reads behind them are held to, and the release mark a comparison since one change needs.
-The eval they sit inside — its windows and its copy grouping — is [stats — the
+The eval these sit inside — its windows and its copy grouping — is [stats — the
 eval](stats-the-eval.md); what a crossing writes and what reads it back is [stats — the
 mark](stats-the-mark.md).
 
@@ -27,8 +25,7 @@ name to the one row, walks that thread once, and keys the pair on the row: one r
 issue twice is one observation, and two runs that named it differently are two owners competing for
 the same record.
 
-**Two figures are observed after the run and two during it, and the screen groups them so.** The
-rates are not interchangeable.
+**Two figures are observed after the run and two during it, and the screen groups them so.**
 
 | Figure | Read from | Counted over |
 |---|---|---|
@@ -51,17 +48,16 @@ issue resumed or not — and the screen says as much on the line. Which run wrot
 issue: among that issue's owners, the one whose own park-writing call the record landed inside, and
 exactly one of them, or the record is disclosed as unattributed and counted for no pair. Both routes
 that write the record are candidates, `forge record park` and `forge advance --park`/`--drop`, and
-keying on the issue rather than the call is what lets one call that parked two answer for both. That
-resolution is taken over the whole corpus before either window is cut, as the ruling pairing below
-is: two owners either side of a boundary would otherwise each be the only candidate its own window
-could see, and both would count the one record.
+keying on the issue rather than the call is what lets one call that parked two answer for both.
 
 **The findings figure stands on its own unit and its own sources.** It counts findings, not pairs,
 and it reads the transcripts and the consult log rather than the tracker — so a refused or
 budget-stopped tracker read leaves it printed while the other three go unavailable. A ruling pairs to
 the log by the `--of` the call names and otherwise by the log's own entry inside that call's span, and
-the pairing is one-to-one **over the whole corpus, resolved before the windows are cut**: a
-competitor outside the displayed windows still spoils a match, so `--size` cannot decide what paired.
+the pairing is one-to-one. Both this and the park attribution above are resolved **over the whole
+corpus, before either window is cut**: a competitor outside the displayed windows still spoils a
+match, and two owners either side of a boundary would each be the only candidate its own window could
+see. So `--size` cannot decide what paired, or what a park was counted against.
 Under a wave of concurrent runs most spans overlap and most calls therefore go unpaired, which the
 screen prints as a count rather than hiding; a row of the log now says which run wrote it and this
 pairing does not read that yet, which is why (ISS-853).
