@@ -30,9 +30,9 @@ const method = (flow) => served(flow, "guide", "issue-flow");
 const verification = (flow) => served(flow, "guide", "issue-flow", "verification");
 
 test("the handover to a judge is the screen flow's, and no flow serves it to a project with no screen", () => {
-  assert.match(method(SCREEN), /The handoff is the status, not a message and not a lease/u,
+  assert.match(method(SCREEN), /the handoff is that status\*\* — not a message and not a lease/u,
     "criterion 1: the screen method does not serve the phase that hands the issue to a judge");
-  assert.doesNotMatch(method(null), /The handoff is the status/u,
+  assert.doesNotMatch(method(null), /the handoff is that status/u,
     "criterion 1: a project pinning nothing is told to hand off to a judge this flow has no rung for");
   assert.match(method(SCREEN), /Flow screen, which this project runs/u, "and the answer names the flow it was served for");
 });
@@ -91,6 +91,31 @@ test("the screen flow's Phase 5 serves both arms of the judging declaration", ()
     "the independent arm: the building run is still told to dispatch a judge and wait on it");
   assert.match(held, /declared the judgement the builder's own, or declared nothing/u,
     "the builder arm: a project that declared no independent judge is told nothing about what to do");
+});
+
+/* And the endpoint each arm reaches is the ship mode's, not the declaration's: a rung named across
+   both modes tells a run that lands nothing to reach one only its lander can write. */
+const shipping = (mode, ...argv) => {
+  const room = tempRoom("screen-ship-");
+  const home = tempHome(`screen-${mode}`);
+  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "screen-fixture", flow: SCREEN }));
+  spawnSync(FORGE, ["doctor", "--ship", mode],
+    { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home.path }, cwd: room });
+  const run = spawnSync(FORGE, argv,
+    { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home.path }, cwd: room });
+  assert.equal(run.status, 0, `\`forge ${argv.join(" ")}\` under ship ${mode} exited ${run.status}: ${run.stderr}`);
+  return flat(run.stdout);
+};
+
+test("the rung the independent arm ends at is the ship mode's, and the mode that lands nothing names none", () => {
+  const self = shipping("self", "guide", "issue-flow", "5");
+  assert.match(self, /it ends at `developed` and the handoff is that status/u,
+    "a run that lands its own change is not told which rung it hands over at");
+  const ready = shipping("ready", "guide", "issue-flow", "5");
+  assert.match(ready, /This run reaches no rung/u,
+    "a run that lands nothing is not told that the rung is not its to reach");
+  assert.doesNotMatch(ready, /it ends at `developed`/u,
+    "and it is told to end at a rung only the run that lands the change can write");
 });
 
 test("an automatic release is looked at where it landed, and what the run leaves is legible", () => {

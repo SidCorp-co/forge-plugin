@@ -21,13 +21,21 @@ issue-flow verification`.
 
 **Then the two runs part, and which of them judges is the declaration Phase 0 read.**
 
-**Where that judgement is an independent run's, this run's work ends at `developed`.** It writes the
-records that rung is earned by, judges what Phase 3 left it to judge, and stops. It dispatches
-nobody and it waits for nothing. The criteria the plan named under `## Witnessed on screen` stay on
-the issue, which is where the judging run reads its own brief. **The handoff is the status, not a
-message and not a lease**: a lease ends with the run that took it, so an issue left at `developed`
-is a free issue at a status somebody else claims from, and nothing in this route asks for a tool a
-judging role does not ship.
+**Where that judgement is an independent run's, this run judges none of it and ends where its ship
+mode leaves it.** It writes the records it has earned, judges what Phase 3 left it to judge, and
+stops. It dispatches nobody and it waits for nothing. The criteria the plan named under `##
+Witnessed on screen` stay on the issue, which is where the judging run reads its own brief.
+
+<!-- forge:when ship self -->
+**This run lands the change itself, so it ends at `developed` and the handoff is that status** —
+not a message and not a lease. A lease ends with the run that took it, so an issue left there is a
+free issue at a status somebody else claims from, and nothing in the route asks for a tool a judging
+role does not ship.
+<!-- forge:end -->
+<!-- forge:when ship ready -->
+**This run reaches no rung**, so the identity and the records it left on the issue are the whole of
+what it hands over, and the judging is dispatched off the landing rather than off a status.
+<!-- forge:end -->
 
 **Where the project declared the judgement the builder's own, or declared nothing, no second run
 exists to hand to and this one carries on.** It judges its own change against the criteria, writes
