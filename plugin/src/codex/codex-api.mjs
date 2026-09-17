@@ -332,8 +332,9 @@ const ANCHORED = `ANCHOR EVERY FINDING TO THIS TURN'S CHANGE.
 A file marked CHANGED THIS TURN carries its own diff; a file marked UNCHANGED is context and is not under review. A finding must be about a changed line, or about how unchanged code now breaks BECAUSE of one. Anything true of the code before this turn goes in a single closing section headed PRE-EXISTING, at most three lines, unqualified by severity.`;
 
 const verifyBlock = (risks) =>
-  `VERIFY THESE, and lead with them. For each, answer CONFIRMED, REFUTED or CANNOT TELL on an unindented line
-opening with that risk's own number from the list below, the ruling word first after the number or behind nothing
+  `VERIFY THESE, and lead with them. For each, answer CONFIRMED, REFUTED or CANNOT TELL in a block that
+opens your reply before any explanation, one unindented line per risk opening with that risk's own number
+from the list below, the ruling word first after the number or behind nothing
 but the finding's id, and quote the line that decides it. A risk you cannot decide from what you were
 given is CANNOT TELL and says what you would need. Only after all of them, add anything else you
 found.\n\n${risks.map((one, at) => `${at + 1}. ${one}`).join("\n")}`;

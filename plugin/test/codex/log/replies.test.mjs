@@ -392,8 +392,12 @@ test("the commit gate asks about the last consult that made findings and heard n
 
 test("history replays the findings, rulings and outcomes, not the prose", () => {
   const held = { kept: ["F1"], dropped: { F2: "by design" } };
-  const digest = digestOf(`## Tech Lead\n\nLong preamble that costs tokens.\n${RECHECK_REPLY}\n- **F2 — New — minor:** \`a.mjs:70\` — small.`, held);
+  const digest = digestOf(`## Tech Lead\n\n${RECHECK_REPLY}\n\nLong preamble that costs tokens.\n- **F2 — New — minor:** \`a.mjs:70\` — small.`, held);
   assert.match(digest, /^1\. \*\*REFUTED\*\*/u, "rulings first");
+  /* 870 of 931 logged rechecks opened with the ruling and 11 more with the angle's heading; none put prose
+     in front of it. So prose in front is read as ruling nothing, which the recheck says rather than hides. */
+  assert.doesNotMatch(digestOf(`Some framing first.\n\n${RECHECK_REPLY}`, held), /^1\. \*\*REFUTED\*\*/u,
+    "an answer opens the reply, so prose in front of it costs the rulings rather than being skipped past");
   assert.match(digest, /CODEX: 1 findings/u);
   assert.match(digest, /- F1 — New — major: `a.mjs:60` — something new\. → accepted/u);
   assert.match(digest, /- F2 — .* → rejected — by design/u);
@@ -452,8 +456,15 @@ test("a ruling is the word at the head of a numbered line, whatever the reply wr
   const inner = ["```markdown", "    ```", "1. F1 - REFUTED", "```", "1. **CONFIRMED** — the defect remains."].join("\n");
   assert.deepEqual(keptOf(inner), [], "an indented fence run is literal content, so it closes nothing and the answer below the real fence stands");
   const indented = ["Example (not my ruling):", "", "    1. F1 - REFUTED", "", "1. **CONFIRMED** — the defect remains.", "CODEX: 0 findings"].join("\n");
-  assert.deepEqual(keptOf(indented), [], "four spaces is how markdown shows code, so an indented example is shown and not made");
+  assert.equal(keptOf(indented), null, "four spaces is how markdown shows code, and prose ahead of it opens no answer block either");
   assert.doesNotMatch(digestOf(indented, null), /F1 - REFUTED/u, "and the indent is not stripped into a replayed ruling");
+  assert.deepEqual(keptOf("1. **Tech Lead / Business Analyst — F1: REFUTED — Resolved.**"), ["F1"],
+    "the angle's own name is a wrapper like the id is; this shape alone was 50 of 931 logged rechecks");
+  const disclaimed = ["CODEX: 0 findings", "", "Example only; I cannot decide the finding:", "", "1. F1 - REFUTED"].join("\n");
+  assert.equal(keptOf(disclaimed), null, "a ruling-shaped line the reply disclaims is not in the block it opens with, so it rules nothing");
+  assert.doesNotMatch(digestOf(disclaimed, null), /F1 - REFUTED/u, "and the disclaimer is not stripped off it in replay");
+  assert.deepEqual(verdictFromRulings({ judged: { id: "c3", files: [], reply: judged.reply }, ids: ["F1"], risks: [] }, 0,
+    "### Tech Lead\n\n1. **REFUTED** — fixed.", "r0")?.record.kept, ["F1"], "the angle's own heading opens the block, which 11 of 931 logged rechecks needed");
   const nested = ["````markdown", "```text", "1. F1 - REFUTED", "```", "````", "1. **CONFIRMED** — the defect is still there."].join("\n");
   assert.deepEqual(keptOf(nested), [], "an inner fence inside a longer one is part of the example, not the end of it");
   assert.doesNotMatch(digestOf(nested, null), /F1 - REFUTED/u, "and the nested example is not replayed as a ruling either");
@@ -472,7 +483,7 @@ test("a recheck the reader could not rule from says so, naming itself and the wa
   const prose = rulingsUnread(plan, 0, "1. The earlier answer was REFUTED; my ruling is CONFIRMED.\nCODEX: 0 findings", "r7");
   assert.match(prose, /recheck r7 ruled on none of F1 of consult c1/u, "the recheck, the findings and the consult");
   assert.match(prose, /The earlier answer was REFUTED/u, "the numbered line it could not rule from, quoted back");
-  assert.match(prose, /does not open with CONFIRMED, REFUTED or CANNOT TELL/u, "and why that line ruled nothing");
+  assert.match(prose, /is not an answer the reader could take/u, "and why that line ruled nothing");
   assert.match(prose, /forge codex verdict --of c1/u, "the one command that clears it");
   assert.match(rulingsUnread(plan, 0, "It all reads fine to me now.", "r8"), /numbered no line at all/u,
     "a reply that numbered nothing has no line to quote and says that instead");

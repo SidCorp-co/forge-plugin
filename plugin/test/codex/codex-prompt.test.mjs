@@ -135,7 +135,7 @@ test("a blank line inside a finding's clauses is not the end of them", () => {
 test("the verification block asks for the ruling in the shape the reader takes", () => {
   const said = promptFor("i", [], [], { risks: ["the lock is still the gateway's", "the cap moved"] })
     .replace(/\s+/gu, " ");
-  assert.match(said, /answer CONFIRMED, REFUTED or CANNOT TELL on an unindented line opening with that risk's own number/u,
+  assert.match(said, /answer CONFIRMED, REFUTED or CANNOT TELL in a block that opens your reply before any explanation, one unindented line per risk opening with that risk's own number/u,
     "the numbering the reader maps a ruling to a finding by");
   assert.match(said, /the ruling word first after the number or behind nothing but the finding's id/u,
     "and the head the reader stops reading at, so prose past it is never a ruling");

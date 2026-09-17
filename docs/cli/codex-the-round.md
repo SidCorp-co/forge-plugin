@@ -31,15 +31,20 @@ definition, shared by the field on the row, the retry's trigger and the stats li
 it must never match is `CANNOT TELL`: that ruling is what the verification grammar *asks for* on a risk
 the reviewer cannot decide, and retrying there buys the same answer at twice the price.
 
-**The grammar is asked for where it is read.** A ruling is the word at the head of a line the reply
-numbered — behind emphasis and the finding's own id, never behind prose — and the block that asks for
-it says exactly that, so a reply is held to no shape nothing told it. Demanding instead that the word
-be the whole of the first bold run was such a shape: seven replies answered outside it, with the id in
-front, a parenthetical behind or the whole resolution behind, and each recorded no verdict at all. The
-head is where the reading stops, because a ruling word a sentence merely recalls is not an answer and
-closing a finding on it would be worse than the silence. Where no numbered line ruled, the recheck says
-so on its way out, naming itself — the only place a recheck's own id is printed, and what a run ruling
-by hand had been writing a placeholder for.
+**The answers are a place, not a shape.** Demanding that the ruling word be the whole of the first bold
+run left 674 of 931 logged rechecks unread: the reply is free-form prose and a fixed wrapper is a shape
+nothing asked it for, so enumerating the wrappers never terminates. Nor does excluding the ways a reply
+can *show* a ruling rather than make one — fenced, fenced inside a longer fence, indented four spaces,
+disclaimed in the line above. What terminates is a region. The rulings are the block the reply opens
+with, after any heading the angle writes, and nothing found later in it is an answer.
+
+Inside that block the word may sit behind emphasis, the finding's own id and the angle's own name, but
+never behind a sentence — a wrapper ends none — because closing a finding on a word that `the earlier
+answer was REFUTED` merely recalls is worse than reading nothing. It is at the margin, since four spaces
+is how markdown shows code. The block that asks for the ruling says all of this, so a reply is held to no
+shape nothing told it. Where no line in that block ruled, the recheck says so on its way out, naming
+itself — the only place a recheck's own id is printed, and what a run ruling by hand wrote a placeholder
+for.
 
 Thinking tokens come out of the same ceiling as the reply, which is why 8,000 was mostly spent before
 the review began.
