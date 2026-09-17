@@ -182,6 +182,20 @@ test("a figure over many pairs of few runs is many observations of few runs, and
   assert.match(printed, /^left\s+parked or dropped\s+41\/41\s+thin$/mu);
 });
 
+test("a figure's own runs qualify it, so nine unread threads do not lend the tenth their count", () => {
+  const behind = (runs) => [{ name: "parked or dropped", count: 1, over: 41, runs }];
+  const alone = ["left", "right"].map((model) => rowOver(model, FLOOR, behind(1)));
+  assert.equal(comparableIn(cellsOf(alone, [])).filter((one) => one.figure === "parked or dropped").length, 0,
+    "forty-one pairs one run wrote is one run, whatever the nine beside it did");
+  assert.ok(comparableIn(cellsOf(alone, [])).some((one) => one.figure === "wall"),
+    "and the spend figures, which every one of the ten runs stands in, still compare");
+  assert.match(modelLines(reading(alone, [])).join("\n"), /^left\s+parked or dropped\s+1\/41\s+thin$/mu);
+
+  const spread = ["left", "right"].map((model) => rowOver(model, FLOOR, behind(FLOOR)));
+  assert.equal(comparableIn(cellsOf(spread, [])).filter((one) => one.figure === "parked or dropped").length, 1,
+    "the same forty-one pairs over ten runs is ten observations of the model");
+});
+
 test("an outcome figure is compared on its own population and not on the arm's run count", () => {
   const models = ["left", "right"].map((model) =>
     rowOver(model, 12,

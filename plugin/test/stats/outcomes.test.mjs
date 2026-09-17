@@ -115,6 +115,22 @@ test("each outcome figure prints over its own population, and an empty populatio
     [AFTER_RUN, AFTER_RUN, DURING_RUN, DURING_RUN], "and the figures carry the period each is observed over");
 });
 
+test("a figure carries the distinct runs its observations came from, not the runs of the window", () => {
+  const older = () => run({ endedAt: NOW - 5 * DAY });
+  const threads = new Map([["ISS-1", { records: [] }], ["ISS-2", { records: [] }], ["ISS-3", { records: [] }]]);
+  const batched = heldOf([{ ...older(), issues: ["ISS-1", "ISS-2", "ISS-3"] }, older(), older()],
+    read({ threads }));
+  assert.equal(figureOf(batched, "reopened").over, 3, "three pairs, all of them one run's");
+  assert.equal(figureOf(batched, "reopened").runs, 1,
+    "so the figure stands on one run, whatever the window holds");
+
+  const spread = heldOf(
+    [{ ...older(), issues: ["ISS-1"] }, { ...older(), issues: ["ISS-2"] }, { ...older(), issues: ["ISS-3"] }],
+    read({ threads }));
+  assert.equal(figureOf(spread, "reopened").over, 3);
+  assert.equal(figureOf(spread, "reopened").runs, 3, "and three pairs of three runs stand on three");
+});
+
 test("an outcome after the run is counted inside one interval both windows share, and a run short of it is counted in neither figure", () => {
   const ended = NOW - 5 * DAY;
   const owner = { ...run({ endedAt: ended }), issues: ["ISS-1"] };

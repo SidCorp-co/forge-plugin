@@ -22,7 +22,8 @@ const CORRECTED = "corrected after the run";
 /* Not that the landing succeeded, only that the run got that far. Both forms are `shipsIn`'s. */
 const reachedOn = (run) => run.ships.passes > 0 || run.ships.ready > 0;
 
-const countFigure = (name, count, over) => ({ name, count: over > 0 ? count : null, over });
+const countFigure = (name, count, over, runs = over) =>
+  ({ name, count: over > 0 ? count : null, over, runs });
 
 const correctionsIn = (pair, records) => records
   .filter((one) => one.kind === "correction" && one.at > pair.run.endedAt)
@@ -30,7 +31,8 @@ const correctionsIn = (pair, records) => records
 
 /* The complement of the rejected figure over one population, so neither number can move alone. */
 const acceptedFrom = (rejected) =>
-  countFigure(ACCEPTED, rejected.count === null ? 0 : rejected.over - rejected.count, rejected.over);
+  countFigure(ACCEPTED, rejected.count === null ? 0 : rejected.over - rejected.count,
+    rejected.over, rejected.runs);
 
 export const gotOf = (runs, read) => {
   const reached = countFigure(REACHED, runs.filter(reachedOn).length, runs.length);
@@ -126,15 +128,16 @@ export const SPEND_FIGURES = ["wall", "tool", "calls", "gate", "consult", "reche
    figure's its own, and a class never recognised measured nothing, so it stands as no population. */
 const figuresIn = (rows) => {
   const held = new Map();
-  const put = (name, row, over) => {
+  const put = (name, row, over, runs) => {
     if (!held.has(name)) held.set(name, []);
-    held.get(name).push({ model: row.model, over, runs: row.runs });
+    held.get(name).push({ model: row.model, over, runs });
   };
   for (const row of rows) {
     for (const name of SPEND_FIGURES) {
-      if (!(row.spend.unrecognised ?? []).includes(name)) put(name, row, row.spend.over);
+      if (!(row.spend.unrecognised ?? []).includes(name)) put(name, row, row.spend.over, row.runs);
     }
-    for (const one of row.got ?? []) put(one.name, row, one.over);
+    /* The figure's own contributing runs, never the row's: nine unread threads leave one run. */
+    for (const one of row.got ?? []) put(one.name, row, one.over, one.runs ?? row.runs);
   }
   return held;
 };

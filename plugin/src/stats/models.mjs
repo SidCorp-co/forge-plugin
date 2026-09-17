@@ -65,7 +65,7 @@ const gotLines = (rows, read) => [
   `${"model".padEnd(MODEL_WIDE)}${"figure".padEnd(FIGURE_WIDE)}${"count/over".padStart(COUNT_WIDE)}`,
   ...rows.flatMap((row) => row.got.map((one) =>
     `${row.model.padEnd(MODEL_WIDE)}${one.name.padEnd(FIGURE_WIDE)}`
-    + `${said(one).padStart(COUNT_WIDE)}${thin(one.over, row.runs)}`)),
+    + `${said(one).padStart(COUNT_WIDE)}${thin(one.over, one.runs ?? row.runs)}`)),
 ];
 
 const cutLines = (cut, all) => [
@@ -88,7 +88,7 @@ const cutGotLines = (cut, all) => [
   + `${"count/over".padStart(COUNT_WIDE)}`,
   ...capped(cut, all).flatMap((row) => row.got.map((one) =>
     `${row.model.padEnd(MODEL_WIDE)}${row.cell.padEnd(CELL_WIDE)}${one.name.padEnd(FIGURE_WIDE)}`
-    + `${said(one).padStart(COUNT_WIDE)}${thin(one.over, row.runs)}`)),
+    + `${said(one).padStart(COUNT_WIDE)}${thin(one.over, one.runs ?? row.runs)}`)),
   ...elided(cut, all),
 ];
 

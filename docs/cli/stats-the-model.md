@@ -29,6 +29,12 @@ corpus printed `parked or dropped 41/41` for an arm with three runs and called i
 those three had claimed forty-one issues, and a figure counted over run-and-issue pairs had cleared a
 floor asked of the pairs alone. Forty-one observations of one run is one observation of the model.
 
+And the runs behind a figure are the runs that *contributed to it*, not the runs of the row. An arm
+of ten runs whose tracker threads went unread for nine of them has one run answering for every
+outcome figure it prints, and the row's count would have lent that figure the other nine. So each
+outcome figure carries the distinct runs its observations came from, and it is that number the floor
+reads.
+
 The figure's own population is never replaced by the arm's total, which is where an aggregate floor
 goes wrong in both directions at once. A model with twelve runs and two of them at the `fix` rung is
 thin at that rung, whatever its total says. A model with twelve runs whose tracker thread could be

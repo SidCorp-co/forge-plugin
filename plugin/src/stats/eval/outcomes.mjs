@@ -133,11 +133,13 @@ const grouped = (reasons) => {
 };
 
 /* `count` null is `unavailable` and is not zero: a population of nothing has no rate to print, and printing one is how a reading that saw nothing comes to look like a reading that saw no problem. */
-const figure = ({ name, when, over, count, later = null, unread = [] }) => ({
+/* `runs` is the distinct runs the observations came from, which the window's count is not: forty-one pairs one run claimed is one run, and a reader weighing this figure against another needs which it has. */
+const figure = ({ name, when, over, count, runs = over, later = null, unread = [] }) => ({
   name,
   when,
   count: over > 0 ? count : null,
   over,
+  runs,
   ...(later === null ? {} : { later }),
   unread: grouped(unread),
 });
@@ -148,6 +150,7 @@ const matured = (pair, horizon, now) => pair.run.endedAt + horizon <= now;
  *  whose run has finished that interval; an outcome landing later is counted apart, never inside. */
 export const afterRun = (name, pairs, threads, horizon, now, hit) => {
   const unread = [];
+  const behind = new Set();
   let over = 0;
   let count = 0;
   let later = 0;
@@ -162,13 +165,14 @@ export const afterRun = (name, pairs, threads, horizon, now, hit) => {
       continue;
     }
     over += 1;
+    behind.add(pair.run.path);
     const at = hit(pair, held.records);
     if (at.length) {
       if (at.some((one) => one <= pair.run.endedAt + horizon)) count += 1;
       else later += 1;
     }
   }
-  return figure({ name, when: AFTER_RUN, over, count, later, unread });
+  return figure({ name, when: AFTER_RUN, over, count, runs: behind.size, later, unread });
 };
 
 const reopensIn = (pair, records) => records
@@ -226,6 +230,7 @@ export const parkedOver = (runs, threads, documents = null) => {
 export const parkedFor = (pairs, threads, { owned, loose }) => {
   const unread = [];
   const refs = new Set();
+  const behind = new Set();
   let over = 0;
   let count = 0;
   for (const pair of pairs) {
@@ -236,12 +241,13 @@ export const parkedFor = (pairs, threads, { owned, loose }) => {
     }
     over += 1;
     refs.add(pair.key);
+    behind.add(pair.run.path);
     if (owned.get(pair.run.path)?.has(pair.key)) count += 1;
   }
   let unattributed = 0;
   for (const key of refs) unattributed += loose.get(key) ?? 0;
   return {
-    ...figure({ name: "parked or dropped", when: DURING_RUN, over, count, unread }),
+    ...figure({ name: "parked or dropped", when: DURING_RUN, over, count, runs: behind.size, unread }),
     unattributed,
   };
 };
@@ -262,6 +268,7 @@ export const ruledOver = (runs, entries) => {
  *  refused tracker read leaves this row standing. Its population is the findings RULED, so a window
  *  whose rulings never paired and one whose paired rulings ruled on nothing both have none. */
 export const rejectedFor = (runs, ruled) => {
+  const behind = new Set();
   let rejected = 0;
   let over = 0;
   let paired = 0;
@@ -274,12 +281,13 @@ export const rejectedFor = (runs, ruled) => {
         continue;
       }
       paired += 1;
+      behind.add(run.path);
       rejected += entry.rejected;
       over += entry.accepted + entry.rejected;
     }
   }
   return {
-    ...figure({ name: "consult findings rejected", when: DURING_RUN, over, count: rejected }),
+    ...figure({ name: "consult findings rejected", when: DURING_RUN, over, count: rejected, runs: behind.size }),
     unit: "finding",
     paired,
     unpaired,
@@ -291,7 +299,8 @@ export const rejectedFor = (runs, ruled) => {
  *  fourth does not read the tracker and answers whatever the log and the transcripts said. */
 export const outcomesOf = (runs, { threads, ruled, parks, documents, horizon, now }) => {
   const pairs = pairsOf(runs, documents);
-  const none = (name, when) => figure({ name, when, over: 0, count: 0, unread: pairs.length ? [] : [NO_PAIRS] });
+  const none = (name, when) =>
+    figure({ name, when, over: 0, count: 0, runs: 0, unread: pairs.length ? [] : [NO_PAIRS] });
   return {
     pairs: pairs.length,
     unread: unreadIn(runs),
