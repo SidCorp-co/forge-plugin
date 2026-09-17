@@ -46,6 +46,21 @@ const gate = ({ command, pending = ["work.mjs"], log = "", project = GATED, env 
 };
 const because = (out) => out?.hookSpecificOutput?.permissionDecisionReason ?? "";
 
+const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
+/* The escape the refusal names, run as a caller would run it and never simulated: the record it
+   reads is the one the gate just refused over, and the call after it is the same call. */
+const dropped = () => spawnSync(process.execPath, [CLI, "codex", "pending", "--drop"],
+  { cwd: REPO, encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: room } });
+const again = (command) => {
+  count += 1;
+  const run = callHook(
+    HOOK,
+    { hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command }, session_id: `s${count}`, cwd: REPO },
+    { ...process.env, XDG_CONFIG_HOME: room },
+  );
+  return run.stdout.trim() ? JSON.parse(run.stdout) : null;
+};
+
 test("a gate the project named waits for the documents it would judge, and says what reads them", () => {
   const out = gate({ command: "npm run check" });
   assert.equal(out.hookSpecificOutput.permissionDecision, "deny", "named in codex.owed, the gate is held");
@@ -157,4 +172,29 @@ test("the tree is where the cd in the same command left the shell, and every tre
 
 test("the review switched off takes this with it", () => {
   assert.equal(gate({ command: "npm run check", env: { FORGE_CODEX_DISABLE: "1" } }), null);
+});
+
+/* A refusal carries the one command that clears it, and this one carried a command that cleared
+   nothing: `--drop` took the staged set while the gate refused over the working copy, so under
+   `owed: ["gate"]` with nothing staged the escape was unreachable by construction (ISS-392). */
+test("the escape this refusal names clears the refusal", () => {
+  assert.match(because(gate({ command: "npm run check" })), /forge codex pending --drop/u,
+    "the refusal offers it");
+  const out = dropped();
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /dropped 1 recorded file\(s\), 1 of which no consult had read/u);
+  assert.equal(again("npm run check"), null, "and the call it was offered for goes");
+});
+
+/* The drop is of the record and of nothing else: a finding nobody ruled on is this gate's own
+   second subject, and an escape that took it with the record would clear a hold it never named. */
+test("a finding nobody ruled on survives the drop that clears the unread record", () => {
+  const found = { kind: "consult", id: "c7", at: at(300_000), root: realpathSync(REPO), ok: true, files: ["a.mjs"],
+    reply: "- **F1 — New — major:** `a.mjs:1` — x." };
+  assert.match(because(gate({ command: "npm run check", log: lines(found) })),
+    /Codex has not read what this call would judge/u, "the unread record is what it names first");
+  assert.equal(dropped().status, 0);
+  const after = because(again("npm run check"));
+  assert.doesNotMatch(after, /has not read what this call would judge/u, "the hold the escape named is gone");
+  assert.match(after, /Consult c7 made F1/u, "and the one it never named is still the gate's");
 });

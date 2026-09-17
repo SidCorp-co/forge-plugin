@@ -143,11 +143,9 @@ export const readByCodex = (root, rel, log) => {
   return digest(text) === sentShaOf(log(), root, rel);
 };
 
-/** The same reading as `goneFrom` of a path still on disk: no diff against the base and nothing of it
- *  staged, so a consult would be handed no bytes for it and the route a refusal names cannot clear it
- *  (ISS-1642). Asked of the paths themselves and never of `changedAgainst`, whose untracked half
- *  substitutes an empty list for its own failure: harmless where every subject is absent, and here it
- *  would read an unenumerated untracked file as settled. Tracked is therefore proven, not inferred. */
+/** The same reading as `goneFrom` of a path still on disk: no diff against the base and nothing of it staged, so a consult would be handed no bytes for it (ISS-1642).
+ *  Asked of the paths themselves and never of `changedAgainst`, whose untracked half substitutes an empty list for its own failure: harmless where every subject is
+ *  absent, and here it would read an unenumerated untracked file as settled. Tracked is therefore proven, not inferred. */
 export const settledIn = (root, record, base = "HEAD", ms) => {
   const standing = record.filter((rel) => !absentFrom(root, rel));
   if (!standing.length) return [];
@@ -296,7 +294,8 @@ export const PENDING_USAGE = [
   "Usage: forge codex pending [--drop]",
   "What this turn touched and has not been consulted on, which is what a commit is asked for.",
   "",
-  "  --drop         clear the unconsulted files a commit made now would be asked for",
+  "  --drop         discard every path this checkout's record still holds, staged or not,",
+  "                 read or not. Two sessions in one checkout share that record",
 ].join("\n");
 
 export const pending = (rest, root) => {
@@ -312,7 +311,7 @@ export const pending = (rest, root) => {
     return from();
   }
   const { owed, read, gone, settled } = pendingNow(root, waiting, logBytes, { apart: apartFrom(root, waiting) });
-  /* Dropped as the record is read: a path no write stands behind was reported as work owed by every later consult, and `--drop` declines for it (ISS-952). A settled path is the same case standing still (ISS-1642). */
+  /* Dropped as the record is read: a path no write stands behind was reported as work owed by every later consult, and no consult could ever be handed bytes for it (ISS-952). A settled path is the same case standing still (ISS-1642). */
   const behind = [...gone, ...settled];
   if (behind.length) clearConsulted(root, behind);
   const goneLine = `recorded and no longer in the tree, so out of the record now: ${gone.join(", ")}`;
@@ -323,22 +322,19 @@ export const pending = (rest, root) => {
     console.log(`nothing pending. ${[gone.length ? goneLine : "", settled.length ? settledLine : ""].filter(Boolean).join("\n")}`);
     return from();
   }
-  const demand = demandOf(root, owed);
-  const unstaged = owed.filter((rel) => !demand.includes(rel));
+  /* The record's own set and never the index's: scoped to what a commit stages, this discard left the gate's own hold over the working copy standing while three surfaces named it as the way out (ISS-392). `gone` and `settled` left above, and a consult's rows stay in the log with every verdict they are owed. */
   if (drop) {
-    if (!demand.length) {
-      console.log(`nothing of the ${kept} recorded file(s) is staged, so no commit is `
-        + "held for them and there is nothing to drop. Name one to a consult to clear it.");
-      return from();
-    }
-    const { left } = clearConsulted(root, demand);
-    console.log(`dropped ${demand.length} unconsulted file(s), which is what a commit made now would be asked for.`);
-    if (left.length) console.log(`still recorded, unstaged: ${left.join(", ")}`);
+    const { left } = clearConsulted(root, [...owed, ...read]);
+    console.log(`dropped ${kept} recorded file(s), ${owed.length} of which no consult had read; `
+      + "nothing recorded for this checkout is owed a reading now.");
+    if (left.length) console.log(`still recorded, written while this call read: ${left.join(", ")}`);
     return from();
   }
+  const demand = demandOf(root, owed);
+  const unstaged = owed.filter((rel) => !demand.includes(rel));
   console.log(demand.length ? demand.join("\n") : "nothing staged that codex has not read");
   console.log(`\nwhat a commit made now is asked for, out of ${kept} file(s) recorded `
-    + `${ageOf(held.turns?.[root]?.at)}; \`forge codex pending --drop\` clears it.`);
+    + `${ageOf(held.turns?.[root]?.at)}; \`forge codex pending --drop\` discards all ${kept} unread.`);
   if (unstaged.length) {
     console.log(`recorded and not staged, which a commit takes only with -a or a pathspec: ${unstaged.join(", ")}`);
   }

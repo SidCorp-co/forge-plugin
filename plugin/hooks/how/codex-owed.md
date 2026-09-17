@@ -4,8 +4,8 @@ Why: over 437 runs the commit's consult demand landed after a gate 89 times of 1
 in 81 of those, and 230 gate minutes went on judging content the consult was about to move.
 
 How to clear it: consult the files it names, then re-send — the same reading the commit asks for, in
-the same words, so meeting it once meets both. `forge codex pending --drop` discards a file no
-consult can reach; where findings are the hold, rule on them.
+the same words, so meeting it once meets both. `forge codex pending --drop` discards this
+checkout's record whole, read or not; where a finding holds it, rule on it.
 
 Which calls ask is the project's, in `codex.owed`: a list out of `gate`, `commit` and `ship`. The
 key **absent** is `commit` alone, which is what this did before the key, so a tree that has not

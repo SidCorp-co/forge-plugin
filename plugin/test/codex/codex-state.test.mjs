@@ -108,13 +108,17 @@ const forge = (root, home, ...argv) =>
     env: { ...process.env, ...ENV, XDG_CONFIG_HOME: home },
   });
 
-const state = (root, files) => {
+const stateOf = (entries) => {
   const home = tempRoom("codex-demand-home-");
   rooms.push(home);
   mkdirSync(join(home, "forge"), { recursive: true });
-  writeFileSync(join(home, "forge", "codex.json"), JSON.stringify({ turns: { [root]: { files, at: Date.now() - 120_000 } } }));
+  const turns = Object.fromEntries(Object.entries(entries)
+    .map(([root, files]) => [root, { files, at: Date.now() - 120_000 }]));
+  writeFileSync(join(home, "forge", "codex.json"), JSON.stringify({ turns }));
   return home;
 };
+
+const state = (root, files) => stateOf({ [root]: files });
 
 /* `pending` reported one file, dropping it changed nothing, and the refusal named 726 others. */
 test("`codex pending` prints the set a commit made now is asked for", () => {
@@ -145,24 +149,50 @@ test("the listing names the configuration directory it read, with files to list 
     `an empty answer says which record it is about: ${empty.stdout}`);
 });
 
-test("`codex pending --drop` drops that set and leaves the rest of the record", () => {
+/* The mailpilot session's `dropped 1 unconsulted file(s)` changed nothing the gate compared: the drop
+   cleared the index while the gate read the tree. The record's own set is what goes now, which is
+   that complaint's own answer and was unreachable while the commit was the only door asking. */
+test("`codex pending --drop` clears the record's own set, staged and unstaged alike", () => {
   const root = tree();
   const home = state(root, ["docs/A.md", "docs/B.md"]);
   const out = forge(root, home, "pending", "--drop");
   assert.equal(out.status, 0, out.stderr);
-  assert.match(out.stdout, /dropped 1 unconsulted file\(s\)/u);
-  assert.match(out.stdout, /still recorded, unstaged: docs\/B\.md/u);
-  assert.match(forge(root, home, "pending").stdout, /nothing staged that codex has not read/u);
+  assert.match(out.stdout, /dropped 2 recorded file\(s\), 2 of which no consult had read/u);
+  assert.match(forge(root, home, "pending").stdout, /^nothing pending$/mu, "and the next call is offered none of it");
 });
 
-/* The mailpilot session's `dropped 1 unconsulted file(s)` changed nothing the gate compared. */
-test("`--drop` with nothing staged says so rather than reporting a drop", () => {
+/* The listing named `--drop` and `--drop` declined, so the one command all three surfaces offer left
+   the state they described exactly as it was, however many times it was run (ISS-392). */
+test("`--drop` clears a record with nothing of it staged rather than declining", () => {
   const root = tree();
   git(root, "reset", "-q");
   const home = state(root, ["docs/A.md", "docs/B.md"]);
   const out = forge(root, home, "pending", "--drop");
-  assert.match(out.stdout, /nothing to drop/u);
-  assert.match(forge(root, home, "pending").stdout, /2 file\(s\) recorded/u, "and the record is still there");
+  assert.equal(out.status, 0, out.stderr);
+  assert.doesNotMatch(out.stdout, /nothing to drop/u, "the escape the refusals name is one this record can take");
+  assert.match(out.stdout, /dropped 2 recorded file\(s\)/u);
+  assert.match(forge(root, home, "pending").stdout, /^nothing pending$/mu, "and the record it described is gone");
+});
+
+/* Checkout isolation and not run isolation: two sessions standing in one checkout share the entry a
+   drop takes, and the usage row is where that is said rather than here. */
+test("a drop reaches this checkout's entry and no other checkout's", () => {
+  const root = tree();
+  const other = tree();
+  const home = stateOf({ [root]: ["docs/A.md", "docs/B.md"], [other]: ["docs/A.md"] });
+  assert.equal(forge(root, home, "pending", "--drop").status, 0);
+  assert.match(forge(other, home, "pending").stdout, /1 file\(s\) recorded/u, "the other checkout's entry stands");
+  assert.match(forge(root, home, "pending").stdout, /^nothing pending$/mu, "and this one's is gone");
+});
+
+test("the listing offers the drop at the count it takes, and `-h` says the scope before it is spent", () => {
+  const root = tree();
+  const home = state(root, ["docs/A.md", "docs/B.md"]);
+  assert.match(forge(root, home, "pending").stdout, /`forge codex pending --drop` discards all 2 unread\./u,
+    "the count offered is the count the drop takes, so the line and the verb cannot disagree");
+  const help = forge(root, home, "pending", "-h");
+  assert.match(`${help.stdout}${help.stderr}`, /--drop +discard every path this checkout's record still holds/u,
+    "and a caller reading -h before discarding is told that scope, not the commit's subset");
 });
 
 /* A path a rename took out of the tree was reported by every later consult as work owed, and the
@@ -171,6 +201,17 @@ const logging = (home, root, sent) => writeFileSync(join(home, "forge", "codex-l
   kind: "consult", id: "c1", ok: true, root, at: new Date(Date.now() - 300_000).toISOString(),
   reply: "no blocker found", files: sent.map((one) => one.rel), sent,
 })}\n`);
+
+/* Two different facts about one record: what a reader let go, and how much of it nobody had looked
+   at. A reader told only the first cannot tell a tidy-up from a review skipped. */
+test("the drop names how many files went and how many of those no consult had read", () => {
+  const root = tree();
+  const home = state(root, ["docs/A.md", "docs/C.md"]);
+  logging(home, root, [{ rel: "docs/C.md", sha: digest(readFileSync(join(root, "docs/C.md"), "utf8")), clipped: false }]);
+  const out = forge(root, home, "pending", "--drop");
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /dropped 2 recorded file\(s\), 1 of which no consult had read/u);
+});
 
 test("a recorded path the tree no longer holds leaves the record when the listing reads it", () => {
   const root = tree();
