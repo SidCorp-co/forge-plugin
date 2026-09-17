@@ -16,12 +16,14 @@ export const SHIMMED = new Set([
 const PREFIX = "gate-reads:";
 
 const ASKS = new Set(["readFileSync", "openSync", "existsSync", "statSync", "lstatSync", "realpathSync",
-  "accessSync", "createReadStream", "readFile", "open", "stat", "lstat", "access", "realpath", "copyFileSync"]);
+  "accessSync", "createReadStream", "readFile", "open", "stat", "lstat", "access", "realpath",
+  "copyFileSync", "copyFile"]);
 
 const LISTS = new Set(["readdirSync", "readdir", "opendirSync", "opendir"]);
 
-// A pattern is not a path and what it matched was asked for by no name: nothing here can key on it.
-const GLOBS = new Set(["globSync", "glob"]);
+// What these read was named by no argument of theirs, so nothing here can key a digest on it.
+const BLIND = new Map([["globSync", "a listing by pattern"], ["glob", "a listing by pattern"],
+  ["cp", "a tree copied whole"], ["cpSync", "a tree copied whole"]]);
 
 const SPAWNS = new Set(["spawn", "spawnSync", "execFile", "execFileSync", "fork"]);
 
@@ -40,7 +42,7 @@ const NAMED = /^[A-Za-z_$][\w$]*$/u;
 const wrapping = (key, from) => {
   if (ASKS.has(key)) return `asked(${from}.${key})`;
   if (LISTS.has(key)) return `listed(${from}.${key})`;
-  if (GLOBS.has(key)) return `blinded(${from}.${key}, ${JSON.stringify(`${key} matched by pattern`)})`;
+  if (BLIND.has(key)) return `blinded(${from}.${key}, ${JSON.stringify(`${key}: ${BLIND.get(key)}`)})`;
   if (SPAWNS.has(key)) return `spawns(${from}.${key})`;
   return key === "exec" || key === "execSync" ? `shelled(${from}.${key})` : null;
 };
@@ -105,8 +107,10 @@ const start = (out, root) => {
       return null;
     }
     const rel = relative(root, abs);
-    if (!rel || rel.startsWith("..") || isAbsolute(rel)) return null;
-    return rel.startsWith("node_modules/") || rel === ".git" || rel.startsWith(".git/") ? null : rel;
+    if (rel.startsWith("..") || isAbsolute(rel)) return null;
+    if (rel.startsWith("node_modules/") || rel === ".git" || rel.startsWith(".git/")) return null;
+    // The root itself is a name a listing of the whole tree is keyed on, and `relative` gives it none.
+    return rel === "" ? "." : rel;
   };
 
   const entry = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;

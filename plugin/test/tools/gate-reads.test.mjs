@@ -333,7 +333,7 @@ test("an import that did not resolve is in the set, and a walk by pattern blinds
     assert.equal(said.status, 0, said.stderr);
     const [one] = recordsIn(out);
     assert.ok(one.paths.includes("plugin/src/optional.mjs"), one.paths.join(" "));
-    assert.deepEqual(one.blind, ["globSync matched by pattern"]);
+    assert.deepEqual(one.blind, ["globSync: a listing by pattern"]);
     assert.equal(setsFrom(out, where.root).length, 0, "no test file, so no set; the blindness is the record's");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
@@ -347,9 +347,64 @@ test("a process that walked by pattern blinds the test file whose tree it is in"
   try {
     writeFileSync(join(out, "own-1.json"), JSON.stringify({
       ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [],
-      blind: ["globSync matched by pattern"], spawned: [], done: true,
+      blind: ["globSync: a listing by pattern"], spawned: [], done: true,
     }));
-    assert.equal(setsFrom(out, where.root)[0].blind, "globSync matched by pattern");
+    assert.equal(setsFrom(out, where.root)[0].blind, "globSync: a listing by pattern");
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+/* The whole-tree readers list the root itself, and `relative` gives that no name at all: dropped, a
+   file appearing at the top would move nothing they hold. */
+test("a listing of the repository root is a claim about the names in it", () => {
+  const where = room();
+  const out = join(where.at, "out");
+  try {
+    const said = audited(where.root, out, [`import { readdirSync } from "node:fs";`, `readdirSync(".");`].join("\n"));
+    assert.equal(said.status, 0, said.stderr);
+    assert.deepEqual(recordsIn(out)[0].dirs, ["."]);
+    assert.deepEqual(held(where, [setOf([], ["."])]).spend, []);
+    write(where.root, "one-more.md", "at the top\n");
+    assert.deepEqual(again(where).spend, [FILE]);
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+test("a path in the set that is a directory digests as one rather than refusing the whole set", () => {
+  const where = room({ "plugin/src/one.mjs": "one\n" });
+  try {
+    assert.deepEqual(held(where, [setOf(["plugin/src", "plugin/src/one.mjs"])]).spend, []);
+    write(where.root, "plugin/src/two.mjs", "two\n");
+    assert.deepEqual(again(where).spend, [], "the names in it are a listing's claim and not this one's");
+    write(where.root, "plugin/src/one.mjs", "one, moved\n");
+    assert.deepEqual(again(where).spend, [FILE], "the file it did read");
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+test("a file copied out of this repository is a read of it, whichever half of the copy answers", () => {
+  const where = room({ "plugin/src/one.mjs": "one\n" });
+  const out = join(where.at, "out");
+  mkdirSync(out, { recursive: true });
+  try {
+    const said = audited(where.root, out, [`import { promises } from "node:fs";`,
+      `await promises.copyFile("plugin/src/one.mjs", process.env.GATE_READS + "/../copied.mjs");`].join("\n"));
+    assert.equal(said.status, 0, said.stderr);
+    assert.ok(recordsIn(out).some((one) => one.paths.includes("plugin/src/one.mjs")),
+      recordsIn(out).flatMap((one) => one.paths).join(" "));
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+test("a set recorded under other node options answers for nothing", () => {
+  const where = room({ "plugin/src/one.mjs": "one\n" });
+  try {
+    assert.deepEqual(held(where, [setOf(["plugin/src/one.mjs"])]).spend, []);
+    assert.deepEqual(again(where, contextOf(["--test"], "--conditions=other")).spend, [FILE]);
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }

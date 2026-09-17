@@ -22,8 +22,18 @@ const MANIFEST = /(?:^|\/)package(?:-lock)?\.json$/u;
 
 const held = new Map();
 
+/* A path that is there and is not a file digests as that and no more: a test that probed a
+   directory claimed its presence, and the names in it are a listing's claim rather than this one's. */
 const hashed = (root, one) => {
-  if (!held.has(one)) held.set(one, digestFile(join(root, one)));
+  if (!held.has(one)) {
+    let found;
+    try {
+      found = digestFile(join(root, one));
+    } catch {
+      found = "not a file";
+    }
+    held.set(one, found);
+  }
   return held.get(one);
 };
 
@@ -42,10 +52,11 @@ export const readsDir = (record) => join(record, "test-reads");
 export const manifestsIn = (files) => files.filter((one) => MANIFEST.test(one));
 
 /** What a recorded set answers to beyond its own paths: this node, the launcher the step spends
- *  apart from its file list, and the content of the audit and this collector. A record made under
- *  other conditions, other flags or another audit answers for nothing here. */
-export const contextOf = (argv) => {
-  const hash = createHash("sha256").update(`${process.version}\n`).update(`${argv.join(" ")}\n`);
+ *  apart from its file list, the node options a step's processes inherit, and the content of the
+ *  audit and this collector. A record made under other conditions answers for nothing here. */
+export const contextOf = (argv, options = process.env.NODE_OPTIONS ?? "") => {
+  const hash = createHash("sha256").update(`${process.version}\n`).update(`${argv.join(" ")}\n`)
+    .update(`${options}\n`);
   for (const one of ["./audit.mjs", "./sets.mjs"]) {
     hash.update(digestFile(fileURLToPath(new URL(one, import.meta.url))));
   }
