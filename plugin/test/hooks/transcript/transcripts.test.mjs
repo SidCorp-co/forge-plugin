@@ -1,6 +1,9 @@
 /* One home for which transcript an event means, read by a gate through the harness and by a check
-   under src/ that cannot import it. The cases that matter are the ones where the two sides would
-   disagree: a delegated run, whose memory is its dispatcher's and whose turn records are its own. */
+   under src/ that cannot import it. What the cases are about is a delegated run, the one shape
+   where the two readings disagree: its turn records are its own, its memory is its dispatcher's.
+   The host keeps a session's transcript under the project's directory, an agent's two levels
+   below that, and one memory directory per project — 632 agent transcripts and 20 memory
+   directories on this machine, none of the latter under a session (ISS-587). */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, readdirSync } from "node:fs";

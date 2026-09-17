@@ -1,5 +1,5 @@
-// Which transcript an event means, and where the memory beside it lives: one reading for both sides
-// of the hook boundary, since a check under src/ cannot import the harness. Why each: docs/HOOKS.md.
+// Which transcript an event means, once for both sides of the hook boundary, since a check under
+// src/ cannot import the harness. Memory is one project's, so memoryDir is never transcriptOf.
 import { basename, dirname, join } from "node:path";
 
 const SUBAGENTS = "subagents";
