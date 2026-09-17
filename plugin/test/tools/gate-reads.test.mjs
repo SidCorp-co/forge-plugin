@@ -7,13 +7,13 @@ import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { auditEnv, contextOf, forgetReads, reaches, recordSets, selectTests, setsFrom }
-  from "../../../tools/gates/read-sets.mjs";
-import { optionsIn } from "../../../tools/gates/reads.mjs";
+import { auditEnv, contextOf, forgetReads, heldSets, reaches, recordSets, selectTests, setsFrom }
+  from "../../../tools/gates/reads/sets.mjs";
+import { optionsIn } from "../../../tools/gates/reads/audit.mjs";
 import { entryNames, landed, run, scratch, write } from "./gates/scratch.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
-const AUDIT = fileURLToPath(new URL("../../../tools/gates/reads.mjs", import.meta.url));
+const AUDIT = fileURLToPath(new URL("../../../tools/gates/reads/audit.mjs", import.meta.url));
 const FILE = "plugin/test/one.test.mjs";
 const CONTEXT = contextOf(["--test"]);
 
@@ -117,6 +117,25 @@ test("a set recorded under another execution context answers for nothing", () =>
   try {
     assert.deepEqual(held(where, [setOf(["plugin/src/one.mjs"])]).spend, []);
     assert.deepEqual(again(where, contextOf(["--test", "--conditions=other"])).spend, [FILE]);
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+/* The carry a release makes across its version commit, which is these two calls: without it every
+   test file is spent again on the head every branch is cut from. */
+test("a set the record holds green is re-keyed onto the content a release leaves, and holds after it", () => {
+  const where = room({ "package.json": `{ "version": "1.0.0" }\n`, "plugin/src/one.mjs": "one\n" });
+  const how = { root: where.root, context: CONTEXT };
+  try {
+    assert.deepEqual(held(where, [setOf(["plugin/src/one.mjs"])], ["package.json"]).spend, []);
+    forgetReads();
+    const carried = heldSets(where.dir, [FILE], how);
+    write(where.root, "package.json", `{ "version": "1.0.1" }\n`);
+    assert.deepEqual(again(where).spend, [FILE], "before the carry");
+    forgetReads();
+    recordSets(where.dir, carried, { ...how, manifests: ["package.json"] });
+    assert.deepEqual(again(where).spend, [], "after it");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }

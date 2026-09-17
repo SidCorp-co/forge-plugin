@@ -7,7 +7,7 @@ import { basename, join, resolve } from "node:path";
 import { gitFiles } from "../checkout.mjs";
 import { contentOf, digestFile, forgetContent, ledgerFor, recordPass } from "./ledger.mjs";
 import { contextOf, forgetReads, heldSets, manifestsIn as manifestPaths, readsDir, recordSets }
-  from "./read-sets.mjs";
+  from "./reads/sets.mjs";
 import { gateSteps, launcherOf, TEST_FILE } from "./steps.mjs";
 import { recordDir } from "./timing.mjs";
 

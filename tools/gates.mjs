@@ -22,7 +22,7 @@ import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/sc
 import { parallelRuns } from "../plugin/src/resolve/settings.mjs";
 import { argvForTests, gateSteps, launcherOf, TEST_FILE, testWorkers } from "./gates/steps.mjs";
 import { auditEnv, contextOf, manifestsIn, readsDir, recordSets, selectTests, setsFrom }
-  from "./gates/read-sets.mjs";
+  from "./gates/reads/sets.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
 import { alonePath, casesPath, CEILING_SECONDS, REVIEW, fileTimesPath, recordDir, recordRun, roomPath, runKey, seriesFile }
   from "./gates/timing.mjs";

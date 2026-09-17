@@ -8,9 +8,9 @@ import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { digestFile } from "./ledger.mjs";
-import { READS_DIR, READS_ROOT } from "./reads.mjs";
-import { TEST_FILE } from "./steps.mjs";
+import { digestFile } from "../ledger.mjs";
+import { READS_DIR, READS_ROOT } from "./audit.mjs";
+import { TEST_FILE } from "../steps.mjs";
 
 const DIGEST_LENGTH = 12;
 const ENTRY_NAME = new RegExp(`^([0-9a-f]{${DIGEST_LENGTH}})\\.(.+)$`, "u");
@@ -46,7 +46,7 @@ export const manifestsIn = (files) => files.filter((one) => MANIFEST.test(one));
  *  other conditions, other flags or another audit answers for nothing here. */
 export const contextOf = (argv) => {
   const hash = createHash("sha256").update(`${process.version}\n`).update(`${argv.join(" ")}\n`);
-  for (const one of ["./reads.mjs", "./read-sets.mjs"]) {
+  for (const one of ["./audit.mjs", "./sets.mjs"]) {
     hash.update(digestFile(fileURLToPath(new URL(one, import.meta.url))));
   }
   return hash.digest("hex").slice(0, DIGEST_LENGTH);
@@ -201,5 +201,5 @@ export const recordSets = (dir, sets, { root, context, manifests }) => {
 export const auditEnv = (out, root) => ({
   [READS_DIR]: out,
   [READS_ROOT]: root,
-  NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --import=${new URL("./reads.mjs", import.meta.url).href}`.trim(),
+  NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --import=${new URL("./audit.mjs", import.meta.url).href}`.trim(),
 });
