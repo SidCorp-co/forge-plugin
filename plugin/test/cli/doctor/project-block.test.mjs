@@ -111,6 +111,9 @@ test("a config read the tracker refused is a miss naming it, not a page of not-s
     noRow("production deploy");
     assert.match(run.stderr, /release policy: the project config could not be read/u,
       "and the read itself says so once, for every reader that cannot carry the difference");
+    /* A report's exit is its verdict on the machine, so a reading it could not make is a miss and
+       the status follows the row; nothing here refuses, which is the thing the issue ruled out. */
+    assert.equal(run.status, 1, "the exit says the report reached less than it was asked for");
   } finally {
     state.answer.forge_config = held;
   }
