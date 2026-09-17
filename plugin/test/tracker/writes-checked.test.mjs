@@ -126,3 +126,24 @@ test("every tracker write in the source is behind the check, or named as exempt"
     + "first: renew() for a payload write, mustBeShown() for a raw call. Add one, or name the site "
     + "in EXEMPT here with the reason it needs none.");
 });
+
+/* The other half of the same funnel, and what the read-first gate's stand-down rests on: a finder's renewal writes no lease on an issue this session does not hold, so it satisfies the scan above while making no comment check at all. Two sites do it, each named here with why it is safe; a third is a shape the gate may be standing down for on a check nobody makes (ISS-1715, ISS-1724). */
+const FINDER = /\brenew\([^)]*\{\s*finder:\s*true\s*\}/gu;
+const FINDERS = {
+  "commands.mjs:comment": "the comment verb, which calls mustBeShown itself one line before this",
+  "commands.mjs:issue --blocks": "the edge write, which makes no check of its own — so its row in "
+    + "the verb table carries no `own`, and the gate refuses it rather than standing down (ISS-1724)",
+};
+
+test("a finder's renewal is one of the two sites named here, and nothing else", () => {
+  const found = [];
+  for (const path of sources(SRC)) {
+    const hits = readFileSync(path, "utf8").match(FINDER) ?? [];
+    for (const hit of hits) found.push(`${path.slice(SRC.length + 1)}: ${hit.replace(/\s+/gu, " ")}`);
+  }
+  assert.equal(found.length, Object.keys(FINDERS).length,
+    `${found.join("\n")}\nA finder's renewal takes no lease on an issue this session does not hold, so it `
+    + "makes no comments check. Every verb shape the read-first gate stands down for is marked `own` in "
+    + "plugin/src/tracker/issue-read.mjs on the strength of one. Give this site a check of its own, or "
+    + "leave its shape unmarked, and name it in FINDERS here with which of the two it is.");
+});
