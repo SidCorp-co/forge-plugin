@@ -13,8 +13,7 @@ export const keepOnFailure = (text) => {
   kept = text;
 };
 
-/** What `fail` throws inside `refusing`, where there is no process of this CLI's own to end — the
- *  release script files an issue mid-release, and an exit there leaves one half done. */
+/** What `fail` throws inside `refusing`, where there is no process of this CLI's own to end — the release script files an issue mid-release, and an exit there leaves one half done. */
 export class Refusal extends Error {}
 
 let embedded = 0;

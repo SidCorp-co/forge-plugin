@@ -6,7 +6,7 @@ import test from "node:test";
 import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { escaped, fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
 import { restoreFailed, withKey } from "../../../src/tools/project-settings.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -64,7 +64,7 @@ test("one call sets the flow in the project's file and the judgement that flow a
   assert.equal(run.status, 0, run.stderr);
   assert.equal(JSON.parse(readFileSync(file, "utf8")).flow, "screen");
   assert.equal(state.settings.pipelineConfig.qa, "independent");
-  assert.match(run.stdout, new RegExp(`^flow: screen {2}← ${file}$`, "mu"),
+  assert.match(run.stdout, new RegExp(`^flow: screen {2}← ${escaped(file)}$`, "mu"),
     "the flow half, with the file it was read back off");
   assert.match(run.stdout, /^pipeline\.qa: independent {2}← the tracker's pipeline configuration$/mu,
     "and the tracker half, with the resource it was read back off");

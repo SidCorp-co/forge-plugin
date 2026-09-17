@@ -169,11 +169,7 @@ export const writeSetting = async (given) => {
   return [`${route.name}.${route.key}: ${shown(kept)}  ← ${resource.said}`];
 };
 
-/* One top-level key of the project's own file, set in that file's own text rather than in a
-   document re-serialized from it: the file is written by hand and holds its owner's line breaks, so
-   a rewrite through JSON.stringify lands a diff nobody asked for in somebody else's review. The
-   scan tracks strings and nesting because a key of the same name inside another object is not this
-   key, and a text it cannot walk answers with no span rather than with a guess. */
+/* One top-level key set in the project file's own text rather than in a document re-serialized from it: that file is written by hand and holds its owner's line breaks, and a rewrite through JSON.stringify lands a diff nobody asked for in somebody else's review. The scan tracks strings and nesting, a key of the same name inside another object not being this key, and answers with no span where it cannot walk the text. */
 const SPACE = /\s/u;
 
 const pastSpace = (text, at) => {
@@ -251,9 +247,7 @@ export const withKey = (text, key, value) => {
 const FLOW_USAGE = "forge doctor --flow <slug>";
 const READS_IT = "forge doctor";
 
-/** What the one failure this route cannot undo says. Exported so a case can read it: a write of a
- *  file that succeeds and a write of the same bytes back that does not is a pair no call through
- *  the CLI can be made to produce, and a state nobody is told about is the thing being avoided. */
+/** What the one failure this route cannot undo says. Exported so a case can read it: a write of a file that succeeds and a write of the same bytes back that does not is a pair no call through the CLI can be made to produce, and a state nobody is told about is the thing being avoided. */
 export const restoreFailed = (path, slug, why) =>
   `--flow: ${path} was set to \`flow: ${slug}\` and putting its previous bytes back failed: ${why}. `
   + `That file holds the new flow now and nothing here changed it further — read it, then set the `
@@ -267,10 +261,7 @@ const flowRead = (path) => {
   }
 };
 
-/* Through a sibling and renamed into place, the install and the restore alike: a plain write opens
-   the destination truncating, so one that fails part way leaves neither the bytes it replaced nor
-   the ones it was writing — and a restore doing that would destroy the very state whose refusal is
-   about to report it. The mode is carried over, this file being the repository's and not ours. */
+/* Through a sibling and renamed into place, the install and the restore alike: a plain write opens the destination truncating, so one that fails part way leaves neither the bytes it replaced nor the ones it was writing, and a restore doing that would destroy the very state its refusal is about to report. The mode carries over, this file being the repository's. */
 const wroteWhole = (path, text) => {
   const temporary = `${path}.${process.pid}.tmp`;
   try {
@@ -287,9 +278,7 @@ const wroteWhole = (path, text) => {
   }
 };
 
-/* Refused before a byte is written anywhere: an undeclared slug, a project file this process cannot
-   read, parse or write, and — where the flow asks the tracker for anything — a checkout naming no
-   project. What is left after these is the tracker, which is the half no check here can make. */
+/* Refused before a byte is written anywhere: an undeclared slug, and a project file this process cannot read or parse. What is left after these is the tracker, the half no check here can make. */
 const flowFile = (slug) => {
   if (!FLOW_SLUGS.includes(slug)) {
     fail(`--flow: \`${slug}\` is no flow this copy serves — it serves ${FLOW_SLUGS.join(", ")}. `
@@ -309,9 +298,7 @@ const flowFile = (slug) => {
     fail(`--flow: ${path} is the file \`flow\` is a key of and this could not read it as JSON, so `
       + `that half is out of reach and nothing was sent: ${error.message}`);
   }
-  /* A list and a bare string are JSON this parses and no document a key can be set in, and the
-     resolver takes either: an insert made anyway would land a property in a file with no object to
-     hold it, which is the one way this route can destroy a setting rather than fail to write one. */
+  /* A list and a bare string are JSON this parses and no document a key can be set in, and the resolver takes either: an insert made anyway lands a property in a file with no object to hold it, which is the one way this route destroys a setting rather than failing to write one. */
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
     fail(`--flow: ${path} holds ${Array.isArray(parsed) ? "a list" : JSON.stringify(parsed)} where a `
       + "JSON object with this project's keys in it belongs, and `flow` is a key of that object. "
@@ -320,16 +307,11 @@ const flowFile = (slug) => {
   return { path, held };
 };
 
-/** The flow and everything that flow asks the project for, in one call. The checkout's file goes
- *  first because its undo is local and certain, and a tracker that says the setting did not land
- *  sends the previous bytes straight back; a tracker that says nothing leaves the flow standing,
- *  because putting it back would be a guess against the half that may well have landed.
- *  docs/cli/the-flow-axis.md. */
+/** The flow and everything that flow asks the project for, in one call. The checkout's file goes first because its undo is local and certain, and a tracker that says the setting did not land sends the previous bytes straight back; one that says nothing leaves the flow standing, putting it back being a guess against the half that may well have landed. docs/cli/the-flow-axis.md. */
 export const writeFlow = async (slug) => {
   const { path, held } = flowFile(slug);
   const asks = projectAsksOf(slug);
-  /* After the file, because the slug is a key of that same file: a checkout without one is told
-     about the file it has not got rather than about a key of a file nobody would find. */
+  /* After the file, the slug being a key of that same file: a checkout without one is told about the file it has not got rather than about a key of a file nobody would find. */
   if (asks.length) projectSlug();
   try {
     wroteWhole(path, withKey(held, "flow", slug));
@@ -337,16 +319,12 @@ export const writeFlow = async (slug) => {
     fail(`--flow: ${path} is the file \`flow\` is a key of and this could not write it, so that half `
       + `is out of reach and nothing was sent: ${error.message}`);
   }
-  /* Registered the moment the file is written, because the refusals below this line are other
-     modules' and a refusal ends the process where it is raised: a catch here reaches the ones that
-     throw and none of the ones that exit, and both leave the same half-written file behind. It is
-     taken off again at the one outcome that keeps the write and at the end of a call that kept it. */
+  /* Registered the moment the file is written, the refusals below this line being other modules' and a refusal ending the process where it is raised: a catch here reaches the ones that throw and none of the ones that exit, and both leave the same half-written file. Taken off again at the one outcome that keeps the write and at the end of a call that kept it. */
   const onExit = () => {
     try {
       wroteWhole(path, held);
     } catch {
-      /* The exit is already under way and there is nowhere left to say this; the explicit restore
-         below is the path that reports a failure, and it runs first on every route but a crash. */
+      /* The exit is under way and there is nowhere left to say this; the explicit restore below reports a failure, and it runs first on every route but a crash. */
     }
   };
   process.on("exit", onExit);
@@ -369,16 +347,11 @@ export const writeFlow = async (slug) => {
   for (const ask of asks) {
     const route = { name: ask.key.slice(0, ask.key.indexOf(".")), key: ask.key.slice(ask.key.indexOf(".") + 1) };
     const resource = RESOURCES[route.name];
-    /* Every way the send can fail, not only the one the soft flag catches: the payload guard throws
-       before the call goes out, and a throw that walked past here would leave the file written. */
-    /* Every way the send can fail, not only the one the soft flag catches: the payload guard throws
-       before the call goes out, and a throw that walked past here would leave the file written. */
+    /* Every way the send can fail, not only the one the soft flag catches: the payload guard throws before the call goes out, and a throw walking past here would leave the file written. */
     const sent = await write("forge_config",
       { action: resource.written, data: resource.bodyFor(route.key, ask.value) }, undefined, true)
       .catch((error) => ({ refused: error.message }));
-    /* Read back even where the send said it failed, and decide on the read: a write whose response
-       was lost is reported the same way as one the tracker declined, and restoring on that word
-       alone would put the flow back over a judgement that did land. */
+    /* Read back even where the send said it failed, and decide on the read: a write whose response was lost is reported exactly as one the tracker declined, and restoring on that word alone would put the flow back over a judgement that did land. */
     const now = await scoped("forge_config", { action: resource.read }, true)
       .catch((error) => ({ refused: error.message }));
     const declined = sent?.refused ? ` ${resource.said} said of the write: ${sent.refused}.` : "";
@@ -390,11 +363,12 @@ export const writeFlow = async (slug) => {
         + `not — read what it holds with \`${READS_IT}\`.`);
     }
     const kept = resource.keysIn(now)[route.key];
-    if (notKept(route, ask.value, kept)) {
+    const why = notKept(route, ask.value, kept);
+    if (why) {
       putBack(`flow ${slug} asks this project for ${ask.said}, and ${sent?.refused
         ? `${resource.said} declined the write: ${sent.refused}. ${ask.key} reads back `
           + `${JSON.stringify(kept ?? null)}.`
-        : notKept(route, ask.value, kept)}`);
+        : why}`);
     }
     said.push(`${ask.key}: ${shown(kept)}  ← ${resource.said}`);
   }
