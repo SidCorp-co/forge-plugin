@@ -1,8 +1,8 @@
 /* What each step's inputs hashed to when it last passed, and how long that pass took. Keyed on
    content, never on a sha: a rebase rewrites the sha, and the tree a session gates most has none. */
 import { createHash } from "node:crypto";
-import { lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 
 import { RELEASE_FILES } from "../run/landing.mjs";
 import { derivationFiles, under } from "./scope.mjs";
@@ -46,12 +46,23 @@ export const digestFile = (path, rewrite = null) => {
 const LOCK = "package-lock.json";
 const versionLocations = (one) => basename(one) === LOCK ? [["version"], ["packages", "", "version"]] : [["version"]];
 
-const releaseVersion = (root) => {
-  try {
-    const { version } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-    return typeof version === "string" && version.length > 0 ? version : null;
-  } catch {
-    return null;
+// The number this file's own package is at, by the ownership `sync-manifest-version.mjs` writes under and `shipped-version` reads back — the nearest package.json at or above it, which for the lock file and for a manifest with no package of its own is the root's. Agreement with some other package is not the agreement any step tests. And a release number this repository cannot have written is no release number: a string outside the grammar takes the raw-byte path, so nothing a checker over the text can see is struck out as though it were a version.
+const VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u;
+
+const releaseVersion = (root, rel) => {
+  let dir = dirname(rel);
+  for (;;) {
+    const owner = join(root, dir, "package.json");
+    if (existsSync(owner)) {
+      try {
+        const { version } = JSON.parse(readFileSync(owner, "utf8"));
+        return typeof version === "string" && VERSION.test(version) ? version : null;
+      } catch {
+        return null;
+      }
+    }
+    if (dir === "." || dir === "" || dir === dirname(dir)) return null;
+    dir = dirname(dir);
   }
 };
 
@@ -64,9 +75,9 @@ const masked = (found, [key, ...deeper], was) => {
   return { ...found, [key]: masked(found[key], deeper, was) };
 };
 
-// Two halves, because neither answers alone. The values say whether each location agrees, which is the only thing about these numbers any step reads — `shipped-version` compares them and nothing compares their value. The bytes beside them, that number struck out wherever it stands, say everything else the file holds: re-serialised values alone would lose whitespace and an escape a checker over the raw text can tell apart, and a dependency pinned at the release's own number is struck from the bytes and kept in the values. A file this cannot parse, and a tree with no release version to compare against, digest as their bytes: either costs a step spent and excuses none.
+// Two halves, because neither answers alone. The values say whether each location agrees, which is the only thing about these numbers any step reads — `shipped-version` compares them and nothing compares their value. The bytes beside them, that number struck out wherever it stands, say everything else the file holds: re-serialised values alone would lose whitespace and an escape a checker over the raw text can tell apart, and a dependency pinned at the release's own number is struck from the bytes and kept in the values. A file this cannot parse, and one whose own package names no release number, digest as their bytes: either costs a step spent and excuses none.
 const besideVersion = (root, rel) => {
-  const was = releaseVersion(root);
+  const was = releaseVersion(root, rel);
   if (was === null) return null;
   const quoted = JSON.stringify(was);
   return (text) => {

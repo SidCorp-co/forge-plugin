@@ -53,8 +53,9 @@ const bump = (work, version, { manifest = version, dep = "4.10.1" } = {}) => {
 /* A checkout carrying the three files a release writes, sitting on master with nothing differing,
    which is the head a release is made on. The package is re-written in the shape a bump leaves it in,
    so what a case moves afterwards is the number and never the serialiser's own whitespace. */
-const planted = (name) => {
+const planted = (name, beside = {}) => {
   const { at, work } = scratch(name);
+  for (const [path, text] of Object.entries(beside)) landed(work, path, text);
   landed(work, PACKAGE, json(read(work, PACKAGE)));
   landed(work, LOCK, lockAt("1.0.0"));
   landed(work, MANIFEST, manifestAt("1.0.0"));
@@ -65,8 +66,8 @@ const planted = (name) => {
 
 /* The same tree with the record holding every step of the table green at that content, which costs
    the one gate run the cases about a skip need and the cases about a digest do not. */
-const gated = (name) => {
-  const { at, work } = planted(name);
+const gated = (name, beside = {}) => {
+  const { at, work } = planted(name, beside);
   const said = run(work);
   assert.equal(said.status, 0, said.stdout + said.stderr);
   assert.match(said.stdout, /the full gate — nothing differs from master/u, said.stdout);
@@ -151,6 +152,36 @@ test("a form the raw text distinguishes and the parsed values do not moves the d
       "a manifest digests as its bytes beside its values, so what the text alone separates is separated here");
   } finally {
     for (const room of [one.at, other.at]) rmSync(room, { recursive: true, force: true });
+  }
+});
+
+/* The manifest's own package and not the root's: `shipped-version` compares each manifest with the
+   nearest package.json above it, so a tree that grew one between them is a tree where agreeing with
+   the root is agreeing with the wrong file. */
+test("a manifest whose own package did not move spends every step that reads it", () => {
+  const { at, work } = gated("owned", { [join("plugin", "package.json")]: json({ name: "inner", version: "1.0.0" }) });
+  try {
+    const reads = STEPS.filter((step) => step.reads.some((claim) => under(MANIFEST, claim)))
+      .map((step) => step.label);
+    bump(work, "1.0.1");
+    const green = new Set(greenLabels(work));
+    assert.deepEqual(reads.filter((label) => green.has(label)), [],
+      "the manifest moved past the package that owns it, and every step reading the two of them keys afresh");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* A character JSON accepts inside a version and `sources-are-text` rejects anywhere: struck out of
+   the bytes as part of the number, it would leave the tree the text checker refuses keying green. */
+test("a release number this repository could not have written takes the raw bytes", () => {
+  const { at, work } = gated("ungrammatical");
+  try {
+    bump(work, "1.0.0\u007f");
+    assert.deepEqual(greenLabels(work), [],
+      "nothing outside the release grammar is masked, so the whole of such a file is in every digest");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
   }
 });
 
