@@ -757,6 +757,22 @@
       "rev": 2,
       "digest": "b2dfdac9f7c04949d4f7b4ceb5bae903e271f0626ba296da3751762a83dc5182"
     },
+    "AC-01-5-9": {
+      "rev": 1,
+      "digest": "1bc5c68e182acb0164c694230b13f64da0bb6af1dfb368f451578bf3ea767d16"
+    },
+    "AC-01-5-10": {
+      "rev": 1,
+      "digest": "1f43c67e71dfdded4e176fe0e72859063ee6ef1582e9d44e0618c86c3c1ba768"
+    },
+    "AC-01-5-11": {
+      "rev": 1,
+      "digest": "43e704901567c4a7bb48be37f3ba0fb0df738f4e55ea2e408de36b941cc750a6"
+    },
+    "AC-01-5-12": {
+      "rev": 1,
+      "digest": "3e8a2b4907bd6c3eeedfa00ab6c39dc27ac7eff5be90ea48baf4fa7ec947bb93"
+    },
     "FR-02": {
       "rev": 1,
       "digest": "05b99a74e144baef35d20a335601ec7e56dae1b4a75ff5859d772b14e1560dc0"

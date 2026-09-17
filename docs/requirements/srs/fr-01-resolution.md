@@ -293,6 +293,22 @@ about.
 - **AC-01-5-8** · Rev: 2 · Proof: plugin/test/tools/doctor.test.mjs "a project that declares no number of runs is told the key is unset and what follows from that"
   IF the project declares no number of runs THEN the resolution report SHALL say the key is unset
   and SHALL say what follows for a wave and for a gate.
+- **AC-01-5-9** · Rev: 1 · Proof: none yet — ISS-1409
+  WHEN the developer sets the project's flow through the report verb THEN the CLI SHALL write the
+  flow into the project's own file and every project setting that flow asks for into the resource
+  that holds it, and SHALL read each back off the resource it was written to before reporting it
+  set.
+- **AC-01-5-10** · Rev: 1 · Proof: none yet — ISS-1409
+  IF either half of the configuration a flow asks for cannot be written THEN the CLI SHALL refuse
+  naming the half that is out of reach, and SHALL leave the project on the flow it already had
+  wherever it can be known that the other half did not land.
+- **AC-01-5-11** · Rev: 1 · Proof: none yet — ISS-1409
+  WHERE a flow asks the project for nothing beyond the flow itself, the CLI SHALL write the project
+  file's key alone and SHALL say that the flow asks for nothing further.
+- **AC-01-5-12** · Rev: 1 · Proof: none yet — ISS-1409
+  IF a setting a flow asks for is sent and the resource will not say what it now holds THEN the CLI
+  SHALL refuse naming that setting unconfirmed beside the call that reads it, and SHALL leave the
+  flow it wrote standing rather than putting back a state the unread half may contradict.
 
 ## The way back
 
