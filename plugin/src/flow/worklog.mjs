@@ -9,7 +9,7 @@ import { pluginCopy } from "../tools/plugin-copy.mjs";
 
 import { answered, logBytes, verdictsBy } from "../codex/codex-log.mjs";
 import {
-  countedIn, numbered, recheckOwed, recheckPlan, undecidedIn, unverdicted,
+  countedIn, numbered, recheckOwed, recheckPlan, undecidedIn, unverdicted, verdictForm,
 } from "../codex/log/replies.mjs";
 import { jsonLines } from "../hooks/log/hook-log-file.mjs";
 import { atMinute } from "./machine.mjs";
@@ -98,7 +98,11 @@ export const stampedNow = (shape) => Object.fromEntries(shape.fields
 
 export const owedOn = (bytes, entries, last) => {
   const open = unverdicted(bytes, last.root);
-  if (open) return `verdict owed on ${open.open.join(", ")}`;
+  /* The consult that made the open findings, said where they are listed and again in the command
+     that rules on them: it is not always the consult this line opens with, and printing the ids
+     behind that one sent a run to `--of` the consult the verb then refused them on (ISS-1679). One
+     shape whichever consult it is, so no reader has to tell the two apart to know which it read. */
+  if (open) return `verdict owed on ${open.open.join(", ")} of consult ${open.id} \u2014 ${verdictForm(open.id)}`;
   const ids = numbered(last.reply).map((one) => one.id);
   if (undecidedIn(ids, verdictsBy(entries).get(last.id ?? last.at)).length) return "verdict owed";
   const rels = last.files ?? [];

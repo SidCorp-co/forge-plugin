@@ -154,7 +154,7 @@ test("the owed line names a recheck only where `consult --recheck` would take on
     ["a diff round that found nothing", [consult({})], "clean"],
     ["a recheck that found nothing", [consult({ recheck: true })], "clean"],
     ["a header counting findings the log cannot name", [consult({ reply: "CODEX: 3 findings\n\nprose, no bullet" })], "clean"],
-    ["a finding nobody decided", [found], "verdict owed on F1"],
+    ["a finding nobody decided", [found], "verdict owed on F1 of consult abc123 \u2014 forge codex verdict --of abc123 --accepted <ids> --rejected <id>=<why>"],
     ["a finding the record folded", [found, folded], "recheck owed"],
   ];
   for (const [what, entries, said] of shapes) {
@@ -165,6 +165,33 @@ test("the owed line names a recheck only where `consult --recheck` would take on
       `${what}: the line says \`${owed}\` and the verb refuses one`,
     );
   }
+});
+
+/* The line opens with the last consult to answer and lists the findings of the last one to make any,
+   which are not the same consult after a clean pass over an unruled round: the ids went out behind an
+   id the verb then refused them on, and a run typing what it read got `--of` the consult that made
+   none (ISS-1679). One shape either way, so nothing reads the id's presence as meaning they differ. */
+test("the owed line names the consult the open findings are on, not the one the line opens with", () => {
+  const rels = ["plugin/src/flow/worklog.mjs"];
+  const consult = (id, extra) => ({
+    kind: "consult", id, root: "/nowhere", ok: true, files: rels, send: "diffs",
+    reply: "CODEX: 0 findings",
+    sent: rels.map((rel) => ({ rel, sha: "deadbee", chars: 40, clipped: false })),
+    ...extra,
+  });
+  const found = consult("d29878", {
+    at: "2026-09-17T05:27:58.987Z",
+    reply: "CODEX: 2 findings\n- **F1 \u2014 minor:** x\n- **F2 \u2014 minor:** y",
+  });
+  const quiet = consult("e3337d", { at: "2026-09-17T06:02:00.000Z" });
+  const said = "verdict owed on F1, F2 of consult d29878 \u2014 forge codex verdict --of d29878 --accepted <ids> --rejected <id>=<why>";
+
+  assert.equal(owedOn(jsonlOf([found, quiet]), [found, quiet], quiet), said,
+    "the clean consult the line opens with carries the earlier one's findings and its id");
+  assert.equal(owedOn(jsonlOf([found]), [found], found), said,
+    "and the same shape where the open findings are the line's own consult's");
+  assert.ok(!owedOn(jsonlOf([found, quiet]), [found, quiet], quiet).includes("e3337d"),
+    "the consult that made no finding is named nowhere in what a verdict is owed on");
 });
 
 test("the block prints one line per fact, and a fact nobody wrote is left out", () => {
