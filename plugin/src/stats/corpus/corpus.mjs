@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { basename, join } from "node:path";
 import { homedir, tmpdir } from "node:os";
 
+import { AGENTS_DIR, AGENT_FILE, TASKS_DIR, TASK_FILE } from "../../host/layout.mjs";
 import { canonical } from "../../resolve/canonical.mjs";
 
 export const transcriptBase = () => join(tmpdir(), `claude-${process.getuid?.() ?? 0}`);
@@ -14,11 +15,6 @@ export const rootFor = (directory) => join(transcriptBase(), slugFor(directory.r
 
 /** Where the host keeps the transcripts themselves. Read at the call and never at load, so a home the caller sets reaches it. */
 export const durableBase = () => join(homedir(), ".claude", "projects");
-
-const OUTPUT = /^a\S*\.output$/u;
-const AGENT = /^agent-\S*\.jsonl$/u;
-const TASKS = "tasks";
-const SUBAGENTS = "subagents";
 
 const namesIn = (directory) => {
   try {
@@ -40,8 +36,8 @@ const filesUnder = (root, held, shape) =>
 
 /** Both places one project's runs are readable from, the durable store first so a run counted from there is named by the file that will still be there. Each is worked out from the one slug `rootFor` derived, so neither reaches this module from a caller. */
 export const sourcesFor = (root) => [
-  { path: join(durableBase(), basename(root)), temporary: false, held: SUBAGENTS, shape: AGENT },
-  { path: root, temporary: true, held: TASKS, shape: OUTPUT },
+  { path: join(durableBase(), basename(root)), temporary: false, held: AGENTS_DIR, shape: AGENT_FILE.shape },
+  { path: root, temporary: true, held: TASKS_DIR, shape: TASK_FILE.shape },
 ];
 
 /** Every transcript of one project, each source's own count beside it — the count being what a reader needs to tell a swept index from a corpus that was never deeper. */

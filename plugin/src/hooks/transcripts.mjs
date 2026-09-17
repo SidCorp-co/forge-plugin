@@ -2,11 +2,10 @@
 // since a check under src/ cannot import the harness. Memory is one project's, so memoryDir is
 // never transcriptOf.
 import { closeSync, openSync, readFileSync, readSync, statSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { dirname, join } from "node:path";
 
+import { agentTranscript, isAgentsDir } from "../host/layout.mjs";
 import { jsonLines as parsed } from "./log/hook-log-file.mjs";
-
-const SUBAGENTS = "subagents";
 
 export const isSubagent = (ev) => ev.hook_event_name === "SubagentStop";
 export const transcriptOf = (ev) => (isSubagent(ev) && ev.agent_transcript_path) || ev.transcript_path || "";
@@ -14,12 +13,12 @@ export const transcriptOf = (ev) => (isSubagent(ev) && ev.agent_transcript_path)
 export const ownTranscript = (ev) => {
   const held = ev.transcript_path || "";
   if (!ev.agent_id || !held) return held;
-  return join(held.replace(/\.jsonl$/u, ""), SUBAGENTS, `agent-${ev.agent_id}.jsonl`);
+  return agentTranscript(held, ev.agent_id);
 };
 
 const projectDir = (path) => {
   const held = dirname(path);
-  return basename(held) === SUBAGENTS ? dirname(dirname(held)) : held;
+  return isAgentsDir(held) ? dirname(dirname(held)) : held;
 };
 
 export const memoryDir = (ev) => {
