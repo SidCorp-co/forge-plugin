@@ -293,6 +293,10 @@ about.
 - **AC-01-5-8** · Rev: 2 · Proof: plugin/test/tools/doctor.test.mjs "a project that declares no number of runs is told the key is unset and what follows from that"
   IF the project declares no number of runs THEN the resolution report SHALL say the key is unset
   and SHALL say what follows for a wave and for a gate.
+- **AC-01-5-13** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "a declared number is reported as the whole project's at once, not as one this session may take afresh"
+  WHEN the project declares how many runs it carries at once THEN the resolution report SHALL say on
+  that same line that the number is the whole project's at once whoever dispatched the runs, so that
+  a session reading the value reads what bounds it and cannot supply a reading of its own.
 - **AC-01-5-9** · Rev: 1 · Proof: plugin/test/cli/doctor/flow.test.mjs "one call sets the flow in the project's file and the judgement that flow asks for"
   WHEN the developer sets the project's flow through the report verb THEN the CLI SHALL write the
   flow into the project's own file and every project setting that flow asks for into the resource

@@ -30,6 +30,10 @@ whole shape was built to remove. Take the issue back once that run has reported,
 phase below starts. A rule a checker already enforces stays
 out of the message: the checker is its one home.
 
-**The cap is the number of runs this project declared, and this session gets it in full.** Another
-master separately at that number is not this one's concern, and the number is not permission to
-exceed it.
+**The number of runs this project declared is that project's total at once, and not this session's
+own allowance.** Every run the project carries counts against it, whoever dispatched it, so two
+masters each taking the whole number put twice what was declared on one box, each correct about its
+own half. What this session can see of the other half is what the tracker already holds: an issue
+under a lease that is not this session's is a run in flight, and it takes a place out of the number
+before anything is dispatched here. Whatever share is still unseen is said rather than assumed —
+how many judging runs went out, and what they were counted against.

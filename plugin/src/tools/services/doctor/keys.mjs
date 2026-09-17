@@ -49,7 +49,8 @@ const runsRow = () => {
   const runs = parallelRuns();
   if (runs.unknown) return { level: MISS, label: "parallel runs", detail: held({ ...runs, value: "no bound" }, [RUNS_TAKES]) };
   return { label: "parallel runs", detail: runs.value
-    ? `${runs.value}  ← ${runs.from}`
+    ? `${runs.value} at once for the whole project, whoever dispatched them, so a second master sizes `
+      + `itself by what is left rather than taking this number afresh  ← ${runs.from}`
     : "unset, so a wave is sized by whoever dispatches it and a gate declines for no sibling" };
 };
 

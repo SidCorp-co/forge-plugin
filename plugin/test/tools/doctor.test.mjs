@@ -464,7 +464,7 @@ test("the number of parallel runs is the project's: it is read out of the projec
   const run = spawnSync(process.execPath, [CLI, "doctor"], {
     encoding: "utf8", cwd, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });
-  assert.match(run.stdout, /\[ {2}ok {2}\] parallel runs\s+3 {2}← \.forge\.json/u, run.stdout);
+  assert.match(run.stdout, /\[ {2}ok {2}\] parallel runs\s+3\b[^\n]*← \.forge\.json/u, run.stdout);
   assert.equal(existsSync(join(home, "forge", "config.json")), false,
     "and nothing of it reached the account's own file: the project decided, not the machine");
 });
@@ -479,9 +479,19 @@ test("a number left behind in the account's own configuration is not read, and i
   const run = spawnSync(process.execPath, [CLI, "doctor"], {
     encoding: "utf8", cwd, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });
-  assert.match(run.stdout, /\[ {2}ok {2}\] parallel runs\s+3 {2}← \.forge\.json/u, run.stdout);
+  assert.match(run.stdout, /\[ {2}ok {2}\] parallel runs\s+3\b[^\n]*← \.forge\.json/u, run.stdout);
   assert.equal(JSON.parse(readFileSync(stale, "utf8")).runs, 9,
     "the stale value was rewritten, so the migration this project chose is not the one it got");
+});
+
+/* The number is one ceiling over the project and every master reads its value here, so the meaning
+   travels on the line the value travels on: a report printing the value alone left each master to
+   supply a reading of its own, and two of them supplied opposite ones (ISS-1707). */
+test("a declared number is reported as the whole project's at once, not as one this session may take afresh", () => {
+  const out = withRuns({ runs: 3 });
+  assert.match(out, /\[ {2}ok {2}\] parallel runs\s+3 at once for the whole project, whoever dispatched them/u, out);
+  assert.match(out, /a second master sizes itself by what is left rather than taking this number afresh/u,
+    "the line says the number is shared, so a second master reading it cannot take the whole of it");
 });
 
 test("a project that declares no number of runs is told the key is unset and what follows from that", () => {

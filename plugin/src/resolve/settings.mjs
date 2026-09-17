@@ -338,7 +338,7 @@ export const shipMode = () => chosen(userConfig().ship, SHIP_MODES, SHIP_MODES[0
 
 export const RUNS_TAKES = "a whole number above 0";
 
-// How many runs this project carries at once: the width of a wave the dispatcher fills and the ceiling a gate of this project admits itself against, which are one number because they bound one thing. The project's and not the machine's — ISS-1157 reverses ISS-917 on that, the user's decision on 2026-09-11 — so two checkouts on one box each answer for their own work, and neither inherits the other's. Absent it is null, and every reader then behaves as it did before the key existed.
+// How many runs this project carries at once, whoever dispatched them: the width of a wave the dispatcher fills and the ceiling a gate of this project admits itself against, which are one number because they bound one thing. One ceiling over the project is not one allowance per master, so a session that cannot see another master's runs is bounded by what the project is already carrying rather than by this number afresh. The project's and not the machine's — ISS-1157 reverses ISS-917 on that, the user's decision on 2026-09-11 — so two checkouts on one box each answer for their own work, and neither inherits the other's. Absent it is null, and every reader then behaves as it did before the key existed.
 export const parallelRuns = () => {
   const given = forgeJson().parsed?.runs;
   if (given === undefined || given === null) return { value: null, from: PLUGIN_DEFAULT };
