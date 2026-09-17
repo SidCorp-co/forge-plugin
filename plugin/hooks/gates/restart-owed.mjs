@@ -3,7 +3,7 @@
 
 import { dirname, join, relative, resolve } from "node:path";
 
-import { askedAlready, deny, done, how, logged, named, settled, shellWrites, transcriptOf, turnRecords, writtenPaths } from "../_hook.mjs";
+import { askedAlready, deny, done, how, lastRecords, logged, named, ownTranscript, settled, shellWrites, writtenPaths } from "../_hook.mjs";
 import { FROZEN, copyToRun, freezesSession } from "../../src/tools/plugin-copy.mjs";
 
 /** The repository-relative name `freezesSession` reads — the set is its and nothing here narrows or widens it — or null where the write is not in a checkout of this plugin at all. A marketplace `source` is one directory below the checkout root, which is what `copyToRun` answers with and what this reads the root back off. */
@@ -32,17 +32,18 @@ const frozen = (path, here) => {
   return rel && freezesSession(rel) ? rel : null;
 };
 
-/** What the agent said when it re-sent, kept so the ship can print it beside the file. A transcript this cannot read leaves the line empty rather than refusing the write it already asked about. */
+/** What the agent said when it re-sent, kept so the ship can print it beside the file. The transcript read is the writing run's own and never the one a delegated run's event hands it, which is the dispatcher's and whose last line is about another issue (ISS-510). A transcript this cannot read leaves the line empty rather than refusing the write it already asked about. */
 const lineGiven = (ev) => {
-  const records = turnRecords(transcriptOf(ev)) ?? [];
-  for (let at = records.length - 1; at >= 0; at -= 1) {
-    if (records[at]?.type !== "assistant") continue;
-    return (records[at].message?.content ?? [])
+  const records = lastRecords(ownTranscript(ev)) ?? [];
+  /* The re-send is the last record and carries no text, so the line is behind it; a record that is not the agent's is the hold, and what was said before the hold was not said about this. */
+  for (let at = records.length - 1; at >= 0 && records[at]?.type === "assistant"; at -= 1) {
+    const said = (records[at].message?.content ?? [])
       .filter((one) => one?.type === "text")
       .map((one) => String(one.text ?? ""))
       .join(" ")
       .replace(/\s+/gu, " ")
       .trim();
+    if (said) return said;
   }
   return "";
 };

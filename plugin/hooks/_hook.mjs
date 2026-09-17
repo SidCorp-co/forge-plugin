@@ -491,6 +491,13 @@ export const turnAt = (records) => records[promptIndex(records)]?.timestamp ?? "
 export const isSubagent = (ev) => ev.hook_event_name === "SubagentStop";
 export const transcriptOf = (ev) => (isSubagent(ev) && ev.agent_transcript_path) || ev.transcript_path || "";
 
+/** The transcript of the agent whose call this is: every other event of a delegated run names the dispatching session in `transcript_path` and names the run only in `agent_id`, and the host keeps each agent's under the session's own directory. A path that does not resolve is read as nothing said, never as the parent's last line, which is another run's (ISS-510). */
+export const ownTranscript = (ev) => {
+  const held = ev.transcript_path || "";
+  if (!ev.agent_id || !held) return held;
+  return join(held.replace(/\.jsonl$/u, ""), "subagents", `agent-${ev.agent_id}.jsonl`);
+};
+
 /** From this turn's prompt on: `turnRecords` hands back the whole tail it read. */
 const turnTail = new WeakMap();
 
@@ -600,6 +607,22 @@ function readTurn(path, tail, cap) {
     return null;
   } finally {
     closeSync(handle);
+  }
+}
+
+/** The last records of a transcript, whichever turn they fall in: an agent's own carries no prompt record, so nothing in it marks a turn and `turnRecords` would parse the file whole to learn that. A record the window cut is dropped, a line read in part not being the line. */
+export function lastRecords(path, span = TAIL) {
+  let handle = null;
+  try {
+    const size = statSync(path).size;
+    handle = openSync(path, "r");
+    const from = Math.max(0, size - span);
+    const text = spanOf(handle, from, size).toString("utf8");
+    return parsed(from > 0 ? text.slice(text.indexOf("\n") + 1) : text);
+  } catch {
+    return null;
+  } finally {
+    if (handle !== null) closeSync(handle);
   }
 }
 

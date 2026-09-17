@@ -177,6 +177,76 @@ test("the note carries the line the transcript holds, under the name the release
   assert.equal(note.reason, said);
 });
 
+/* A transcript as the host writes one: one content block per record, so the call the gate is judging
+   is its own record and carries no text at all. A record built with both in it would pass the reading
+   this replaces. */
+const AT = new Date().toISOString();
+const spoke = (text) => ({ type: "assistant", timestamp: AT, message: { content: [{ type: "text", text }] } });
+const resent = () => ({ type: "assistant", timestamp: AT, message: { content: [{ type: "tool_use", name: "Write", input: {} }] } });
+const heldIt = () => ({ type: "user", timestamp: AT, message: { content: [{ type: "tool_result" }] } });
+
+const wrote = (path, records) => {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${records.map((one) => JSON.stringify(one)).join("\n")}\n`);
+  return path;
+};
+
+const noteOn = (path) => logged().filter((one) => one.decision === "note" && one.target === path).at(-1);
+
+/* The whole of this issue: the event a delegated run's write arrives on names the session that
+   dispatched it, in both `session_id` and `transcript_path`, and names the run only in `agent_id`.
+   Without the resolver this reads the dispatcher's sentence, which is about another issue. */
+test("a delegated run's note carries that run's own line, not the dispatching session's", () => {
+  const session = `delegated-${Date.now()}`;
+  const agent = "a1b2c3d4e5f6a7b8c";
+  const path = join("plugin", "skills", "delegated", "SKILL.md");
+  const elsewhere = "ISS-333 is shipping through its own changed script, and the lock is live.";
+  const line = "a role is dispatched from the registration a session read at start.";
+  const parent = wrote(join(room, `${session}.jsonl`), [{ type: "user", promptSource: "typed", timestamp: AT }, spoke(elsewhere)]);
+  wrote(join(room, session, "subagents", `agent-${agent}.jsonl`), [heldIt(), spoke(line), resent()]);
+
+  const event = { tool_name: "Write", tool_input: { file_path: join(checkout, path) }, cwd: checkout, transcript_path: parent, agent_id: agent };
+  assert.equal(ask(event, session).allowed, false, "the first write is held");
+  assert.equal(ask(event, session).allowed, true, "and the re-send passes");
+  assert.equal(noteOn(path)?.reason, line, `the note does not carry the run's own line: ${JSON.stringify(noteOn(path))}`);
+});
+
+test("a delegated run whose own transcript is not there says so rather than borrowing one", () => {
+  const session = `no-transcript-${Date.now()}`;
+  const path = join("plugin", "skills", "unreadable", "SKILL.md");
+  const elsewhere = "**ISS-1429 closed — forge 3.36.82.** `forge claim --judged` now accepts an issue.";
+  const parent = wrote(join(room, `${session}.jsonl`), [{ type: "user", promptSource: "typed", timestamp: AT }, spoke(elsewhere)]);
+
+  const event = { tool_name: "Write", tool_input: { file_path: join(checkout, path) }, cwd: checkout, transcript_path: parent, agent_id: "anothertranscript" };
+  assert.equal(ask(event, session).allowed, false);
+  assert.equal(ask(event, session).allowed, true);
+  assert.equal(noteOn(path)?.reason, "no line given", "an empty reason is visibly empty; a borrowed one reads as a stated one");
+});
+
+test("the line is taken from behind the re-sent call, which is a record of its own carrying no text", () => {
+  const session = `re-sent-${Date.now()}`;
+  const path = join("plugin", "skills", "own-session", "SKILL.md");
+  const line = "no live home fits: the registration is what a session reads at start.";
+  const transcript = wrote(join(room, `${session}.jsonl`), [heldIt(), spoke(line), resent()]);
+
+  const event = { tool_name: "Write", tool_input: { file_path: join(checkout, path) }, cwd: checkout, transcript_path: transcript };
+  assert.equal(ask(event, session).allowed, false);
+  assert.equal(ask(event, session).allowed, true);
+  assert.equal(noteOn(path)?.reason, line);
+});
+
+test("the walk stops at the hold, so what the run said before it is not the reason", () => {
+  const session = `before-the-hold-${Date.now()}`;
+  const path = join("plugin", "skills", "before-the-hold", "SKILL.md");
+  const before = "Now the stub, which must carry the could-not-load announcement itself.";
+  const transcript = wrote(join(room, `${session}.jsonl`), [spoke(before), heldIt(), resent()]);
+
+  const event = { tool_name: "Write", tool_input: { file_path: join(checkout, path) }, cwd: checkout, transcript_path: transcript };
+  assert.equal(ask(event, session).allowed, false);
+  assert.equal(ask(event, session).allowed, true);
+  assert.equal(noteOn(path)?.reason, "no line given", "the hold sits between the re-send and anything said before it");
+});
+
 test("doctor names the restart set, read from the one place the release step reads it", () => {
   const run = spawnSync(process.execPath, [CLI, "doctor"], { encoding: "utf8", env: ENV, cwd: checkout });
   const said = new RegExp(`restart set\\s+${escaped(FROZEN.join(", "))}`, "u");
