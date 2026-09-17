@@ -109,9 +109,8 @@ test("a judgement over a candidate the landing no longer holds is voided by the 
   /* The base moves under the judgement, which is what makes it stale: what is built over the new pin is not the commit the verdicts cite. */
   const moved = serverPushes(at, "1.0.5");
   issue().sessionContext.landing = { ...landing(), state: "judged", judge: QA };
-  const held = await ran([KEY], work);
-  assert.match(held, /has not been shown/u, `the judgement is delivered before it is spent:\n${held}`);
   const said = await ran([KEY], work);
+  assert.match(said, /has not been shown/u, `the judgement is delivered before it is spent:\n${said}`);
   assert.match(said, /QA verdict\(s\) on criterion 1, 2/u,
     `the judge is owed the list rather than a description of the loss:\n${said}`);
   assert.match(said, new RegExp(`judged ${gone.slice(0, 7)}`, "u"),

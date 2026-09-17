@@ -351,23 +351,23 @@ test("a same-place neighbour inside the printed band is shown and not folded ont
 });
 
 /* A destination the filer did not name is one whose thread may already carry this finding. */
-test("the fold reads the target's thread once before it writes to it", async () => {
+test("the fold reads the target's thread, delivers it, and writes to it in the same call", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.83);
   state.comments = { [OPEN.documentId]: [{ documentId: "c-1", body: "already reported here", createdAt: "2026-09-04T00:00:00Z" }] };
-  const held = await filed("--complexity", "s");
+  const run = await filed("--complexity", "s");
   state.comments = {};
-  assert.equal(held.status, 1, held.stdout);
-  assert.match(held.stderr, /Hold — this writes to ISS-45/u);
-  assert.match(held.stderr, /already reported here/u, "the thread is delivered rather than described");
-  assert.equal(commented(), undefined, "and nothing was written while it was unread");
-  /* Criterion 12: that hold exits the process, so a block printed after the fold would be a block
-     this filer never saw at all — the one filing whose neighbours most want reading. */
-  assert.match(held.stdout, /^ {2}ISS-45 {3}0\.83 {2}same place/mu,
-    "the block goes out before the fold acts, so a held fold has already printed it");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stderr, /already reported here/u, "the thread is delivered rather than described");
+  assert.doesNotMatch(run.stderr, /re-send the same command/u, "and it costs no second call (ISS-1715)");
+  assert.equal(commented().args.data.issue, OPEN.documentId, "the fold went through under the thread");
+  /* Criterion 12: the block goes out before the fold acts, so a fold that could not write has
+     already printed it — the one filing whose neighbours most want reading. */
+  assert.match(run.stdout, /^ {2}ISS-45 {3}0\.83 {2}same place/mu,
+    "the block goes out before the fold acts");
 });
 
-test("and folds on the re-send, the thread having been shown to that session", async () => {
+test("and a second filing in that session folds with no thread printed again", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.83);
   state.comments = { [OPEN.documentId]: [{ documentId: "c-1", body: "already reported here", createdAt: "2026-09-04T00:00:00Z" }] };
@@ -375,10 +375,11 @@ test("and folds on the re-send, the thread having been shown to that session", a
   const path = join(room, "body.md");
   writeFileSync(path, `${BODY}\n`);
   const argv = ["new", path, "--title", TITLE, "--category", "bug", "--complexity", "s"];
-  assert.equal((await ranAsync(FORGE, argv, env)).status, 1, "held once");
+  assert.equal((await ranAsync(FORGE, argv, env)).status, 0, "the first delivers and folds");
   const again = await ranAsync(FORGE, argv, env);
   state.comments = {};
   assert.equal(again.status, 0, again.stderr);
+  assert.doesNotMatch(again.stderr, /already reported here/u, "shown once, and not again");
   assert.equal(created(), undefined, "no second issue");
   assert.equal(commented().args.data.issue, OPEN.documentId);
 });

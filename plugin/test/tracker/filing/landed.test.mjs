@@ -344,9 +344,9 @@ test("forge comment ends its stdout with the comment id it posted", async () => 
   assert.equal(lastOf(run.stdout), `Comment c-1 is posted on ${ISSUE.issueId}, read back from the tracker.`);
 });
 
-/* The three sightings this issue was filed for. The gate refuses once and credits what it
-   delivered, so the re-send writes — and the first call is non-zero with nothing sent. */
-test("a comment held by the read-before-write gate exits non-zero and sends no create", async () => {
+/* The three sightings this issue was filed for. The verb delivers what the session has not been
+   shown and its create goes out in the same call, so no round is spent on a re-send (ISS-1715). */
+test("a comment owed a thread delivers it and sends its create in the one call", async () => {
   before();
   stores();
   state.comments = { [ISSUE.documentId]: [{ documentId: "c-old", body: "read me first", createdAt: "2026-09-01T00:00:00Z" }] };
@@ -358,12 +358,16 @@ test("a comment held by the read-before-write gate exits non-zero and sends no c
   } };
   const env = { ...tracker.env, FORGE_SESSION_ID: "landed-held" };
   const argv = ["comment", ISSUE.issueId, bodyFile(), "--title", TITLE];
-  const held = await ranAsync(FORGE, argv, env);
-  assert.equal(held.status, 1, "the gate refuses the first call");
-  assert.equal(state.calls.filter((one) => one.name === "forge_comments" && one.args.action === "create").length, 0);
+  const creates = () =>
+    state.calls.filter((one) => one.name === "forge_comments" && one.args.action === "create").length;
+  const run = await ranAsync(FORGE, argv, env);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stderr, /read me first/u, "the thread it owed, ahead of its own answer");
+  assert.equal(creates(), 1, "and the create went out in that same call");
   const again = await ranAsync(FORGE, argv, env);
   assert.equal(again.status, 0, again.stderr);
-  assert.equal(state.calls.filter((one) => one.name === "forge_comments" && one.args.action === "create").length, 1);
+  assert.doesNotMatch(again.stderr, /read me first/u, "shown once, and not again");
+  assert.equal(creates(), 2);
 });
 
 // -------------------------------------------------------------------- forge feedback
