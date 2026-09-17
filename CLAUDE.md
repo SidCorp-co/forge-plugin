@@ -3,6 +3,21 @@
 **forge-plugin** — the Claude Code plugin for the Forge tracker: a CLI, the hooks that guard a
 session, and the skills that drive both.
 
+**Three goals rank above the rest of this file.** Where two shapes are both defensible and only one
+can ship, the first of these that reaches the decision settles it.
+
+1. **Time, and the person out of the loop.** A change costs less of a session than the last window's
+   did, and every point a person is still required is one the flow names rather than one it assumes.
+2. **Configuration, not a special case.** What this plugin does in a project is read from that
+   project's own configuration, so a tree it has never seen adopts it by declaring rather than by
+   patching.
+3. **The cause, and everything it reaches.** A defect is answered at its cause and the answer covers
+   every case that cause reaches, because what ships from here runs in production.
+
+They are `G-11`, `G-12` and `G-13`, and a filing or a decision cites them the same way it cites the
+ten standing goals behind them: `forge doctor` prints the list, and
+[`docs/requirements/README.md`](docs/requirements/README.md) carries the clause each was read from.
+
 **Rules only.** Facts live in the code, mechanics in each tool's `-h`, history in `git`. A rule with
 a checker is stated once — in the checker, whose message is what a developer reads when it fires.
 Every `.md` here obeys the same division: it carries what the code cannot — the decision behind a
