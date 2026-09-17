@@ -48,7 +48,7 @@ const withSkills = { ba: { verbs: VERBS, skills: SKILLS } };
 test("one call withholds every skill the job does not name, beside the verbs it does not name", () => {
   const { run, saved } = room(withSkills);
   const wrote = run("doctor", "--job", "ba");
-  assert.match(wrote.stdout, /17 verb\(s\) and 6 skill\(s\) off/u, wrote.stderr);
+  assert.match(wrote.stdout, /17 verb\(s\) and 7 skill\(s\) off/u, wrote.stderr);
   const held = saved().withheldSkills;
   for (const slug of SKILLS) assert.ok(!held.includes(slug), `${slug} is the job's and is offered`);
   for (const slug of ["issue-flow", "dispatch", "harness-eval"]) {
@@ -68,7 +68,7 @@ test("a job declaring no skills leaves every shipped skill offered", () => {
 test("an empty skills list is the empty set, where an absent one is every skill", () => {
   const { run, saved } = room({ ba: { verbs: VERBS, skills: [] } });
   run("doctor", "--job", "ba");
-  assert.equal(saved().withheldSkills.length, 8,
+  assert.equal(saved().withheldSkills.length, 9,
     "absent means undecided and `[]` means decided against, which is how a role with no method is written");
   assert.doesNotMatch(run("doctor").stdout, /skills on/u, "and nothing is left under the offered row");
 });
@@ -103,7 +103,7 @@ test("the report names every shipped skill under its state, and which withheld o
   const { run } = room(withSkills);
   run("doctor", "--job", "ba");
   const said = run("doctor").stdout;
-  assert.match(said, /skills off\s+audit-code-quality, dispatch, gate-review, harness-eval, issue-flow, setup-code-quality/u);
+  assert.match(said, /skills off\s+audit-code-quality, dispatch, gate-review, harness-eval, issue-flow, release-flow, setup-code-quality/u);
   assert.match(said, /skills on\s+forge, vi-natural/u);
   assert.match(said, /audit-code-quality, setup-code-quality are withheld from nothing else, this copy serving no guide for them/u,
     "the report claims no reach it has not: this CLI offers a skill through `forge guide` and nowhere else");
