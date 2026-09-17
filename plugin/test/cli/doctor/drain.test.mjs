@@ -166,6 +166,24 @@ test("a file made unreadable under the call gets the same account as one that co
   assert.equal(held().drainedBy, "qa-master", "and the key stands, which is what the account is about");
 });
 
+test("a send that never answered names the key it left standing rather than the transport alone", async () => {
+  fresh("qa-master");
+  const held0 = state.answer.forge_config;
+  state.answer.forge_config = (args) => {
+    if (args.action === "set_pipeline") return { refused: "the tracker would not answer" };
+    return held0(args);
+  };
+  const run = await ask("--set", "pipeline.qa=builder").finally(() => {
+    state.answer.forge_config = held0;
+  });
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /the send did not answer, so nothing here can say whether the tracker took it/u,
+    run.stderr);
+  assert.match(run.stderr, /is untouched and still sets `drainedBy`/u,
+    "the transport error alone leaves the caller to find the surviving key on some later report");
+  assert.equal(held().drainedBy, "qa-master");
+});
+
 test("a project file another session moved under the call is refused rather than written back", async () => {
   fresh("qa-master");
   const held0 = state.answer.forge_config;

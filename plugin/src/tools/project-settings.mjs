@@ -203,6 +203,24 @@ const clearedDrain = (file, kept) => {
   return [`${DRAIN_KEY}: cleared, the judgement it named a master for having moved  ← ${file.path}`];
 };
 
+/* Soft only where the pair is in play, the hard send being every other key's as it was: a send that
+   ends the process carries the transport and nothing about the local half it left standing, and
+   whether that send landed is exactly what nobody can say afterwards. `writeFlow` sends the same way
+   for the same reason. */
+const sent = async (resource, route, value, file) => {
+  const data = resource.bodyFor(route.key, value);
+  if (!file) return write("forge_config", { action: resource.written, data });
+  const said = await write("forge_config", { action: resource.written, data }, undefined, true)
+    .catch((error) => ({ refused: error.message }));
+  if (said?.refused) {
+    fail(`--set: ${route.name}.${route.key} was sent as ${JSON.stringify(value)} and the send did `
+      + `not answer, so nothing here can say whether the tracker took it: ${said.refused} `
+      + `${file.path} is untouched and still sets ${DRAIN_SAID}. Read which judgement the tracker `
+      + `holds and send this again against that: ${READS_IT}`);
+  }
+  return said;
+};
+
 /** Read back off the resource's own route before it is reported set: this tracker's pipeline schema
  *  drops a key it does not declare, so a write that answered 200 and kept nothing would print as a
  *  setting that took. */
@@ -221,7 +239,7 @@ export const writeSetting = async (given) => {
   const resource = RESOURCES[route.name];
   const value = valueFor(resource, raw);
   const file = clearsDrain(route, value) ? drainFile() : null;
-  await write("forge_config", { action: resource.written, data: resource.bodyFor(route.key, value) });
+  await sent(resource, route, value, file);
   const now = await scoped("forge_config", { action: resource.read }, true);
   if (now?.refused) {
     fail(`--set: ${route.name}.${route.key} was sent and ${resource.said} would not answer the read `

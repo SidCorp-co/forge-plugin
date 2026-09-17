@@ -21,7 +21,13 @@ moves the status, which is what makes either reading safe to audit later.
 role this copy ships rather than a general agent with a model typed in beside it. The message carries
 the issue, the criterion numbers the plan named, the deployment identity, the route to a rendered
 state and what this project holds to reach one, and nothing else; the role decides its own model,
-effort and tools, and its method is `forge guide qa judging`. A rule a checker already enforces stays
+effort and tools, and its method is `forge guide qa judging`.
+
+**The issue is that run's while it works, and this session lets it go before dispatching.** Whatever
+reading this one took is already written; holding the lease past it would refuse the judge the very
+claim its verdicts have to be written under, and waiting for the clock to run out is the cost the
+whole shape was built to remove. Take the issue back once that run has reported, which is where the
+phase below starts. A rule a checker already enforces stays
 out of the message: the checker is its one home.
 
 **The cap is the number of runs this project declared, and this session gets it in full.** Another

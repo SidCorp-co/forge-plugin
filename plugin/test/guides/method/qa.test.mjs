@@ -84,6 +84,18 @@ test("the witnessed section is read as it stands, and answered where it is absen
   }
 });
 
+test("the master does not hold the issue while a judging run works on it", () => {
+  for (const flow of [DEFAULT, SCREEN]) {
+    const held = method(flow);
+    assert.match(held, /Take a lease the size of what this session will write/u,
+      `${flow} has the master take an ordinary lease, which refuses the judge the claim it needs`);
+    assert.match(held, /The issue is that run's while it works, and this session lets it go before dispatching/u,
+      `${flow} dispatches a judge into a lease this session is still holding`);
+    assert.match(held, /Claim the issue again first where a judging run has just had it/u,
+      `${flow} writes the rungs under a lease the judge took, or under none`);
+  }
+});
+
 test("the judging reference is the dispatched run's method and not the builder's", () => {
   for (const flow of [DEFAULT, SCREEN]) {
     const held = judging(flow);
