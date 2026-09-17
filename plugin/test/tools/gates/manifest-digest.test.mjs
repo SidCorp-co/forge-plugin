@@ -185,6 +185,26 @@ test("a release number this repository could not have written takes the raw byte
   }
 });
 
+/* Watched failing: what the bytes leave of an agreeing file is text a parser refuses, so a digest
+   made of those bytes alone would key a manifest nothing can read where a good one keys. */
+test("a manifest the parser refuses does not key where the file it is the wreck of keys", () => {
+  const { at, work } = gated("wreck");
+  try {
+    const reads = STEPS.filter((step) => step.reads.some((claim) => under(MANIFEST, claim)))
+      .map((step) => step.label);
+    write(work, MANIFEST, manifestAt("1.0.0").replace(`"1.0.0"`, ""));
+    assert.throws(() => JSON.parse(readFileSync(join(work, MANIFEST), "utf8")),
+      "the case is about a file no parser takes, so it has to be one");
+    git(work, "add", "-A");
+    git(work, "commit", "-m", "the manifest lost its number and its quotes");
+    const green = new Set(greenLabels(work));
+    assert.deepEqual(reads.filter((label) => green.has(label)), [],
+      "the values read beside the bytes say the number was there, and this file has no values at all");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
 test("two trees alike but for the number they are at derive the same digest for every step", () => {
   const one = planted("at-one");
   const other = planted("at-three");
