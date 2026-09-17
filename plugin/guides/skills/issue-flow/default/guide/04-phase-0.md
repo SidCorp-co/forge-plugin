@@ -4,7 +4,7 @@
 stated*, or a source the `stale:` line says has moved, is discovered by hand: `forge guide issue-flow
 project-discovery`, which is the whole of this phase where a project has no brief yet.
 
-Four of its lines are read here rather than later, because the phase that owes each cannot go back
+Three of its lines are read here rather than later, because the phase that owes each cannot go back
 for it. **The brief's goal line** is what *cause or surface* is judged against, so a run deciding how
 far to fix something answers to the project's goals rather than its own taste, and it is that list a
 `Serves:` names. **Where the merge sits** and **whether the judgement between `developed` and
@@ -12,10 +12,7 @@ far to fix something answers to the project's goals rather than its own taste, a
 unstated cannot know whether the judging comes before the push or after it, and discovers it rather
 than assuming.
 
-**The ship mode** says how far Phase 7 goes. **The test credential line** is read here because a
-screen is proved by a rendered state and a login is what reaches one on a deployed host: a *none*
-found now is a shortfall a run can still act on, and the same line found at Phase 7 is a criterion
-already gone unjudged.
+**The ship mode** says how far Phase 7 goes.
 
 Then `forge knowledge search` on the issue's title: an entry about the module this issue touches is
 read before the code, and against the source it cites.

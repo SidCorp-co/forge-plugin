@@ -53,10 +53,10 @@ test("the rendered state is the screen flow's page, and default holds only what 
     "criterion 2: default serves a section about taking a screenshot to a project with no screen");
   assert.doesNotMatch(held, /suspect the environment before/u,
     "criterion 2: default serves the browser-shaped environment section");
-  /* What stays, and why: `testing` refuses a screenless verdict under every flow, so the route out
-     of that refusal is served here too — plugin/test/guides/contract.test.mjs holds the rule. */
-  assert.match(held, /refuses a verdict under a declared screen change/u,
-    "default drops the row whose refusal a default project can still meet");
+  /* And the row it was kept for: a plan on this flow may not declare a screen change at all, so the
+     refusal that row is the route out of is one no project here can meet (ISS-1694). */
+  assert.doesNotMatch(held, /refuses a verdict under a declared screen change/u,
+    "default serves the rendered-state row to a project whose plans cannot declare a screen change");
   assert.doesNotMatch(held, /flow: screen/u,
     "criterion 8: default names another flow, and a flow's text is read by a project that runs it alone");
   const screen = verification(SCREEN);

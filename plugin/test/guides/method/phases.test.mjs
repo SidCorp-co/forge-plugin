@@ -205,3 +205,51 @@ test("Phase 3 of the screen flow says whose the record for a criterion the build
   assert.deepEqual(naming, ["3"], "and the phase that splits the criteria is the only one saying whose "
     + "that record is, a second copy being a second rule from the moment one of them is edited");
 });
+
+/* The flow named for having no screen kept the whole screen apparatus until ISS-1694: a run on it was
+   asked what a person witnesses, told to park a change for human eyes, and given no branch at all for
+   the independent judgement its own Phase 0 had it read. Watched failing by putting either half back. */
+test("the default flow describes a project with no screen, and branches on who judges", () => {
+  const body = servedBody("issue-flow", PLUGIN, DEFAULT);
+  const phases = phasesOf(body);
+  const held = flat(body);
+  for (const [beat, phrase] of [
+    ["what a run does where the judging is another run's", "this run stops short of judging"],
+    ["the declaration that branch is read off", "an independent run's"],
+    ["that the deployment is named by what it answers it is serving", "reading back what that deployment answers it is serving"],
+    ["whose the record for a criterion out of reach is", "Which record carries that naming turns on who"],
+  ]) {
+    assert.ok(held.includes(phrase), `the ${DEFAULT} flow no longer names ${beat}, so a project that `
+      + "declared an independent judgement is walked into a round of verdicts the rung refuses");
+  }
+  for (const [beat, phrase] of [
+    ["the screen park", "parks the issue for human review"],
+    ["the witnessed section", "## Witnessed on screen"],
+    ["the credential a rendered state needs", "a login is what reaches one on a deployed host"],
+    ["a screen change as a park", "A screen change is a park"],
+  ]) {
+    assert.ok(!held.includes(phrase), `the ${DEFAULT} flow still names ${beat}, and it serves the `
+      + "projects that have no screen at all: what it asks for there, nobody can answer");
+  }
+  assert.ok(!/\bscreen\b/u.test(flat(phases["5"])), `Phase 5 of the ${DEFAULT} flow still mentions a `
+    + "screen, which is the half of this phase that was written for the other flow");
+  const naming = Object.keys(phases).filter((n) => /stops short of judging/u.test(phases[n]));
+  assert.deepEqual(naming, ["5"], "and the phase where the judging happens is the only one that says "
+    + "what replaces it, a second copy being a second rule from the moment one of them is edited");
+});
+
+/* The reference is the builder's, and the two sections above are a screen's: a CLI has no rendered
+   state to reach and no login that reaches one, and the line saying so is the one that belongs. */
+test("the default flow's verification reference keeps the skip and drops the rendered state", () => {
+  const held = flat(readFileSync(join(PLUGIN, "guides", "skills", "issue-flow", DEFAULT, "references", "verification.md"), "utf8"));
+  assert.ok(held.includes("A library has no deployment; a CLI has no screen"),
+    `the ${DEFAULT} flow's verification reference no longer says which items a project skips, which `
+      + "is the line written for a project with no screen and the one that stays");
+  for (const [beat, phrase] of [
+    ["the rendered-state row", "| A screen |"],
+    ["the login fallback", "When no login reaches the rendered state"],
+  ]) {
+    assert.ok(!held.includes(phrase), `the ${DEFAULT} flow's verification reference still carries `
+      + `${beat}, which asks a project with no screen for evidence it has no way to produce`);
+  }
+});

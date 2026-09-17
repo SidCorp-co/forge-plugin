@@ -13,8 +13,8 @@ Everything else proceeds unasked: plan, comments, evidence, branch, commits, pus
 release note, close.
 
 **A park is not a stop.** It sets one issue down with its reason recorded and moves you to the next;
-`forge record park -h` lists the kinds. A screen change is a park, not a fourth stop: the deploy
-rolls back, the people who saw the wrong screen do not.
+`forge record park -h` lists the kinds. A change a person is owed a reading of is a park, not a
+fourth stop: it is set down with the thing to read attached, and the run carries on elsewhere.
 
 Two obligations stand in for a gate before the work: know the way back before the step that needs
 one, established in Phase 0; and a decision ledger in the report, every choice taken under an

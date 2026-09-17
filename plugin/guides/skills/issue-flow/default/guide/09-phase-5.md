@@ -1,6 +1,11 @@
 ## Phase 5 — Prove it by running it, and post what you proved
 
-Read the criteria back off the issue and judge each one at the head Phase 4's last step left, one
+**Who writes the verdicts is the declaration Phase 0 read off the project** — whether the judgement
+between `developed` and `testing` is an independent run's — and it is read here again rather than
+carried in the head, because the two answers end this phase in different places.
+
+Where the project made the builder its judge, or answered nothing, that is this run. Read the
+criteria back off the issue and judge each one at the head Phase 4's last step left, one
 typed verdict per criterion citing its own evidence, and judge a criterion against the issue before
 judging the code against it. Where the proof is a test, what a criterion is matched against is the
 assertion lines that would go red and never a case's name: a name is prose, one carrying two claims
@@ -12,12 +17,21 @@ kind of change owes as evidence and how to capture it: `forge guide issue-flow v
 record holds before either status is earned, and on which outcomes:
 `forge guide contract developed`, `forge guide contract testing`.
 
-**A change to a screen parks the issue for human review before Phase 7.** Nothing here judges one
-for you: the park is a person's look, and what stands as a verdict's evidence in the meantime is
-`forge guide issue-flow verification`. What that person is asked to look at is what the plan named under
-`## Witnessed on screen`; a park naming the change instead asks for a reading of a diff, which is the
-one thing a person's look was not for. A change that proves unshippable is an outcome: post the
-finding, leave the branch named, park the issue.
+**Where that judgement is an independent run's, this run stops short of judging and prepares what
+that run cannot get anywhere else.** A verdict carrying this run's id counts towards
+nothing at `testing` under that declaration, so the round spent writing one buys the issue no rung.
+What is owed instead is the thing under test made reachable and named: whatever the change was
+deployed to, identified by reading back what that deployment answers it is serving rather than by an
+exit code or a branch head, written onto the issue. The criteria are left as they stand, being the
+brief the judging run works from.
+
+**Nothing is handed to a named somebody.** This run posts the records it earned, takes whatever
+rungs those records earn, and stops there. It dispatches no agent, sends no message and waits on
+nothing at all — the issue is simply left where the next run finds it, holding everything that run
+has to read.
+
+A change that proves unshippable is an outcome: post the finding, leave the branch named, park the
+issue.
 
 Something you found that belongs to another issue goes there with `forge comment -h`.
 

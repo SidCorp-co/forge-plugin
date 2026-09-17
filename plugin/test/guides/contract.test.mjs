@@ -26,7 +26,7 @@ const {
 } = await import("../../src/guides/contract.mjs");
 const { servedBody } = await import("../../src/guides/skill-guides.mjs");
 const { CHECKS, ORDER, deployedOwed, judgedOwed, viewFrom } = await import("../../src/flow/earned.mjs");
-const { DEFAULT, FLOW_SLUGS } = await import("../../src/guides/flow.mjs");
+const { DEFAULT, FLOW_SLUGS, SCREEN } = await import("../../src/guides/flow.mjs");
 const { LIGHTER, RUNGS, SPARES, complexityFor } = await import("../../src/ladder.mjs");
 const { rungReport } = await import("../../src/ladder-report.mjs");
 const { render } = await import("../../src/flow/record/page.mjs");
@@ -40,6 +40,8 @@ const TRACKED = execFileSync("git", ["-C", ROOT, "ls-files", "*.md"], { encoding
   .trim().split("\n").filter(Boolean);
 const SKILL = servedBody("issue-flow", PLUGIN);
 const VERIFICATION = join(PLUGIN, "guides", "skills", "issue-flow", DEFAULT, "references", "verification.md");
+/* The rendered state and the login that reaches one are a screen's, so they are read off the flow whose projects have one: the other copy stopped carrying them when `default` stopped describing a product with a screen (ISS-1694). */
+const SCREEN_VERIFICATION = join(PLUGIN, "guides", "skills", "issue-flow", SCREEN, "references", "verification.md");
 
 test("the contract is inside the plugin, at one path, and nothing else in the tree holds it", () => {
   assert.equal(contractPath(), join(PLUGIN, "guides", "contract", "default"));
@@ -382,11 +384,14 @@ test("the checks point back from the guides, and the evidence table keeps the ki
   for (const [beat, phrase] of [
     ["that the baseline's scope is the check's demand", "`in_progress` refuses one saying it was not"],
     ["what the check cannot judge", "a gate that stops at its first failure has measured only what"],
-    ["that a screen's verdict owes an attachment", "refuses a verdict under a declared screen change"],
   ]) {
     assert.ok(held.toLowerCase().includes(phrase.toLowerCase()),
       `the verification reference no longer names ${beat}, so a run meets the refusal with no page behind it`);
   }
+  assert.ok(flat(readFileSync(SCREEN_VERIFICATION, "utf8")).toLowerCase()
+    .includes("refuses a verdict under a declared screen change".toLowerCase()),
+  "the screen flow's verification reference no longer says a screen's verdict owes an attachment, "
+    + "so a run meets that refusal with no page behind it");
   /* The half ISS-318's fold would have deleted: no declaration says a change is an API or a batch
      job, so no check can speak for those rows and the prose is still the only thing that does. */
   for (const kind of ["An API", "A CLI", "A library", "A batch or data job", "Generated output", "Infrastructure"]) {
@@ -412,7 +417,7 @@ const shapesIn = (text) => {
 };
 
 test("the fallback for a screen with no credential names the two shapes the judging check leaves", () => {
-  const text = readFileSync(VERIFICATION, "utf8");
+  const text = readFileSync(SCREEN_VERIFICATION, "utf8");
   const held = flat(text);
   for (const [beat, phrase] of [
     ["that a missing credential does not park the issue", "not a reason to set the work down"],

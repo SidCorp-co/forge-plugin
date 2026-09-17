@@ -4,9 +4,7 @@ Both land in fields of the issue, one each, never a comment and never a local fi
 plan -h` and `forge record criteria -h` each print every demand that write makes, read before the
 file is written rather than after a refusal turns it back, and `forge guide contract approved`
 prints what the status reads. The two are written together rather than one and then the other,
-because the steps name the criteria they serve, and declaring a screen change is what turns the
-credential ask from worth making into owed: the declaration is what makes a rendered state this
-issue's evidence.
+because the steps name the criteria they serve.
 
 **A payload file is this run's and not the tree's, so it is written outside the checkout** — under
 whatever directory the project names for this run's own scratch, where that directory is itself
@@ -24,13 +22,12 @@ stands. They are written before the code; a wrong one is corrected in the open w
 correction` rather than relaxed to match what got built, and a plan that turns out wrong is replaced
 in the field so the issue carries one plan, the current one.
 
-**Which of those criteria only a person at the running product can witness is the plan's own answer,
-never a later reader's guess.** `## Witnessed on screen` names them by number, or answers `none` with
-the reading behind it. A criterion belongs there when what it claims is something a user sees or does;
-one a reader could check by opening the source is the builder's, and filing it there is the sign it
-was written about the code rather than about the product. The split moves none of the builder's
-obligation: it proves every criterion it can reach, user-facing ones included, and one it cannot reach
-is a `skipped` verdict naming what it lacked rather than a criterion handed on.
+**A criterion this run cannot reach is still this run's to prove, and reaching none of them is a
+finding rather than a gap to leave open.** What it lacked — an environment, a fixture, a route, a
+credential — is named where the criterion is judged. Which record carries that naming turns on who
+this project made the judge: under the builder's own judgement, a `skipped` verdict saying what was
+out of reach; under an independent one, the shortfall on its own, since the verdict there is written
+by the run that judges.
 
 <!-- forge:when tool.codex configured -->
 **Both are read before the issue takes them**: `forge record plan` and `forge record criteria` each
