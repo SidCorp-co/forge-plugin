@@ -426,3 +426,25 @@ test("a member the audit classifies nowhere is wrapped to blind the file that ca
   assert.match(source, /export const readFileSync = asked\(real\.readFileSync\);/u);
   assert.match(source, /export const inventedRead = blinded\(real\.inventedRead, "inventedRead: classified in no set/u);
 });
+
+/* A wrapper that dropped what the export held would change what the suite does — `promisify(exists)`
+   rejects with `true` where the custom promisify is gone — and what it carries has to record too. */
+test("a wrapper carries what the export it replaces held, and what it carries records as well", () => {
+  const where = room({ "plugin/src/one.mjs": "one\n", "plugin/src/read-me.md": "read\n" });
+  const out = join(where.at, "out");
+  try {
+    const said = audited(where.root, out, [`import { exists, realpathSync, ReadStream } from "node:fs";`,
+      `import { promisify } from "node:util";`,
+      `if (await promisify(exists)("plugin/src/one.mjs") !== true) throw new Error("exists lost its promisify");`,
+      `if (await promisify(exists)("plugin/src/gone.mjs") !== false) throw new Error("absent read as a failure");`,
+      `realpathSync.native("plugin/src/one.mjs");`,
+      `await new Promise((done) => new ReadStream("plugin/src/read-me.md").on("close", done).resume());`].join("\n"));
+    assert.equal(said.status, 0, said.stderr);
+    const [one] = recordsIn(out);
+    for (const path of ["plugin/src/one.mjs", "plugin/src/gone.mjs", "plugin/src/read-me.md"]) {
+      assert.ok(one.paths.includes(path), `${path} is in none of ${one.paths.join(" ")}`);
+    }
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});

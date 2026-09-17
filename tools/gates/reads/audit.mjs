@@ -1,7 +1,7 @@
 /* What one node process of a test step asked this repository for, loaded with `--import` into every
-   process the step runs. Patching the `fs` object does not reach `import { readFileSync } from
-   "node:fs"`, which is how this repository imports it everywhere, so the builtins are resolved to a
-   module this generates. Nothing runs where the gate named no directory. */
+   process the step runs, and nothing at all where the gate named no directory. Patching the `fs`
+   object does not reach `import { readFileSync } from "node:fs"`, which is how this repository
+   imports it everywhere, so the builtins resolve to a module this generates. */
 
 export const READS_DIR = "GATE_READS";
 export const READS_ROOT = "GATE_READS_ROOT";
@@ -14,8 +14,11 @@ export const SHIMMED = new Set([
 const PREFIX = "gate-reads:";
 
 /* Every export is classified and one classified nowhere blinds the file that called it, a name a
-   later node adds being a read nobody sees otherwise. ASKS is a path named in the call, asked for
-   whatever the answer; LISTS the names in a directory, or all below it where the call says so. */
+   later node adds being a read nobody sees otherwise: ASKS a path named in the call, asked for
+   whatever the answer; LISTS the names in a directory, or all below it where the call says so; BUILDS
+   a path taken on construction; NEITHER nothing a pass keys on, a descriptor having been asked for
+   when it was opened and a write being no read. A wrapper carries what the export it replaces held —
+   `realpathSync.native`, the promisify on `exists`, itself on `fs/promises.opendir` — once. */
 const ASKS = new Set(["access", "accessSync", "copyFile", "copyFileSync", "createReadStream", "exists",
   "existsSync", "lstat", "lstatSync", "open", "openAsBlob", "openSync", "readFile", "readFileSync",
   "readlink", "readlinkSync", "realpath", "realpathSync", "stat", "statSync", "statfs", "statfsSync"]);
@@ -32,8 +35,10 @@ const SPAWNS = new Set(["spawn", "spawnSync", "execFile", "execFileSync", "fork"
 const SHELLS = new Set(["exec", "execSync"]);
 
 // Read nothing a pass keys on: a descriptor was asked for when it was opened, a write is no read.
+const BUILDS = new Set(["FileReadStream", "ReadStream"]);
+
 const NEITHER = new Set([
-  "Dir", "Dirent", "F_OK", "FileReadStream", "FileWriteStream", "R_OK", "ReadStream", "Stats",
+  "Dir", "Dirent", "F_OK", "FileWriteStream", "R_OK", "Stats",
   "W_OK", "WriteStream", "X_OK", "_toUnixTimestamp", "ChildProcess", "_forkChild", "constants",
   "promises", "appendFile", "appendFileSync", "chmod", "chmodSync", "chown", "chownSync", "close",
   "closeSync", "createWriteStream", "fchmod", "fchmodSync", "fchown", "fchownSync", "fdatasync",
@@ -45,7 +50,7 @@ const NEITHER = new Set([
   "utimesSync", "write", "writeFile", "writeFileSync", "writeSync", "writev", "writevSync",
 ]);
 
-export const CLASSIFIED = [ASKS, LISTS, new Set(BLIND.keys()), SPAWNS, SHELLS, NEITHER];
+export const CLASSIFIED = [ASKS, LISTS, new Set(BLIND.keys()), BUILDS, SPAWNS, SHELLS, NEITHER];
 
 // The options argument of every spawning signature, and a fresh one where the call passed none.
 export const optionsIn = (args) => {
@@ -64,6 +69,7 @@ const blinding = (key, from, why) => `blinded(${from}.${key}, ${JSON.stringify(`
 const wrapping = (key, from) => {
   if (ASKS.has(key)) return `asked(${from}.${key})`;
   if (LISTS.has(key)) return `listed(${from}.${key})`;
+  if (BUILDS.has(key)) return `built(${from}.${key})`;
   if (BLIND.has(key)) return blinding(key, from, BLIND.get(key));
   if (SPAWNS.has(key)) return `spawns(${from}.${key})`;
   if (SHELLS.has(key)) return `shelled(${from}.${key})`;
@@ -77,8 +83,16 @@ export const shimSource = (name, real) => {
   const out = [
     `const real = process.getBuiltinModule(${JSON.stringify(name)});`,
     `const audit = globalThis[Symbol.for("forge.gate.reads")];`,
-    `const asked = (fn) => function (one, ...rest) { audit.asked(one); return fn.apply(this, [one, ...rest]); };`,
-    `const listed = (fn) => function (one, ...rest) { audit.listed(one, rest[0]); return fn.apply(this, [one, ...rest]); };`,
+    `const SKIP = new Set(["length", "name", "prototype", "caller", "arguments"]);`,
+    `const carry = (made, from, wrap) => { for (const key of Reflect.ownKeys(from)) { if (SKIP.has(key)) continue;`
+      + ` const held = from[key]; made[key] = typeof held === "function" ? wrap(held) : held; } return made; };`,
+    `const wrapper = (make) => { const done = new WeakMap(); const wrap = (fn) => { if (done.has(fn)) return done.get(fn);`
+      + ` const made = make(fn); done.set(fn, made); return carry(made, fn, wrap); }; return wrap; };`,
+    `const asked = wrapper((fn) => function (one, ...rest) { audit.asked(one); return fn.apply(this, [one, ...rest]); });`,
+    `const listed = wrapper((fn) => function (one, ...rest) { audit.listed(one, rest[0]); return fn.apply(this, [one, ...rest]); });`,
+    `const built = (klass) => new Proxy(klass, {`
+      + ` construct(one, args, at) { audit.asked(args[0]); return Reflect.construct(one, args, at); },`
+      + ` apply(one, self, args) { audit.asked(args[0]); return Reflect.apply(one, self, args); } });`,
     `const spawns = (fn) => function (...args) { return fn.apply(this, audit.ticketed(args)); };`,
     `const shelled = (fn) => function (...args) { audit.shelled(args); return fn.apply(this, args); };`,
     `const blinded = (fn, why) => function (...args) { audit.blind(why); return fn.apply(this, args); };`,
@@ -204,8 +218,7 @@ const start = (out, root) => {
 
   if (process.argv[1]) audit.asked(process.argv[1]);
 
-  /* At exit and not incrementally: a process killed before it gets here leaves no record at all, and
-     the ticket its parent holds is then a child the collector cannot answer for. */
+  // At exit: a process killed first leaves no record, and the ticket its parent holds answers for nothing.
   process.on("exit", () => {
     const mine = process.env[READS_TICKET] || null;
     try {
