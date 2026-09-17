@@ -185,6 +185,29 @@ test("a release number this repository could not have written takes the raw byte
   }
 });
 
+/* Watched failing: a file whose whole content is what the reading of a good one produces. Nothing
+   stops a manifest holding that text, so the reading a parse failure falls back to has to be one no
+   successful reading can be mistaken for. */
+test("a manifest holding what the reading of a good one produces does not key where that one keys", () => {
+  const { at, work } = gated("imitation");
+  try {
+    const reads = STEPS.filter((step) => step.reads.some((claim) => under(MANIFEST, claim)))
+      .map((step) => step.label);
+    const good = manifestAt("1.0.0");
+    const imitation = `${JSON.stringify({ name: "scratch", version: { release: true } })}\n`
+      + good.replace(`"1.0.0"`, "");
+    assert.throws(() => JSON.parse(imitation), "the imitation is text no parser takes, which is the point of it");
+    write(work, MANIFEST, imitation);
+    git(work, "add", "-A");
+    git(work, "commit", "-m", "the manifest is the reading of itself");
+    const green = new Set(greenLabels(work));
+    assert.deepEqual(reads.filter((label) => green.has(label)), [],
+      "a reading that could be written into a file is a reading a file can key where it should not");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
 /* Watched failing: what the bytes leave of an agreeing file is text a parser refuses, so a digest
    made of those bytes alone would key a manifest nothing can read where a good one keys. */
 test("a manifest the parser refuses does not key where the file it is the wreck of keys", () => {

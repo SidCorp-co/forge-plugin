@@ -39,7 +39,7 @@ export const digestFile = (path, rewrite = null) => {
   }
   const bytes = readFileSync(path);
   return createHash("sha256").update(found.mode & 0o111 ? "x" : "-")
-    .update(rewrite ? rewrite(bytes.toString("utf8")) : bytes).digest("hex");
+    .update(rewrite ? rewrite(bytes) : bytes).digest("hex");
 };
 
 // Where a release writes a version and nowhere else: the file's own field, and in a lock file the root package's second copy at `packages[""]`.
@@ -75,17 +75,23 @@ const masked = (found, [key, ...deeper], was) => {
   return { ...found, [key]: masked(found[key], deeper, was) };
 };
 
-// Two halves, because neither answers alone. The values say whether each location agrees, which is the only thing about these numbers any step reads — `shipped-version` compares them and nothing compares their value. The bytes beside them, that number struck out wherever it stands, say everything else the file holds: re-serialised values alone would lose whitespace and an escape a checker over the raw text can tell apart, and a dependency pinned at the release's own number is struck from the bytes and kept in the values. A file this cannot parse, and one whose own package names no release number, digest as their bytes: either costs a step spent and excuses none.
+// Two halves, because neither answers alone. The values say whether each location agrees, which is the only thing about these numbers any step reads — `shipped-version` compares them and nothing compares their value. The bytes beside them, that number struck out wherever it stands, say everything else the file holds: re-serialised values alone would lose whitespace and an escape a checker over the raw text can tell apart, and a dependency pinned at the release's own number is struck from the bytes and kept in the values. Each of the three readings opens with a word of its own, because a file this cannot parse is digested as itself and a file holding exactly what the reading above it produces would otherwise key where that file keys. `latin1` and not `utf8`: every byte is one code point back and forth, so a sequence no decoder agrees on is still its own.
+const OWNED = "owned";
+const UNREAD = "unread";
+const UNOWNED = "unowned";
+
 const besideVersion = (root, rel) => {
   const was = releaseVersion(root, rel);
-  if (was === null) return null;
-  const quoted = JSON.stringify(was);
-  return (text) => {
+  const quoted = was === null ? null : JSON.stringify(was);
+  return (bytes) => {
+    const raw = bytes.toString("latin1");
+    if (quoted === null) return `${UNOWNED}\u0000${raw}`;
     try {
-      const values = versionLocations(rel).reduce((found, at) => masked(found, at, was), JSON.parse(text));
-      return `${JSON.stringify(values)}\n${text.split(quoted).join("")}`;
+      const values = versionLocations(rel)
+        .reduce((found, at) => masked(found, at, was), JSON.parse(bytes.toString("utf8")));
+      return `${OWNED}\u0000${JSON.stringify(values)}\u0000${raw.split(quoted).join("")}`;
     } catch {
-      return text;
+      return `${UNREAD}\u0000${raw}`;
     }
   };
 };
