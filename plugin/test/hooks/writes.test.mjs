@@ -9,10 +9,10 @@
 import assert from "node:assert/strict";
 import test, { beforeEach } from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, realpathSync, utimesSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, realpathSync, statSync, utimesSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 
-import { FRESH_MS, WRITES, callAt, namesOf, shellWrites, touched, writtenPaths } from "../../hooks/_hook.mjs";
+import { FRESH_MS, WRITES, callAt, namesOf, promptIndex, shellWrites, touched, turnRecords, writtenPaths } from "../../hooks/_hook.mjs";
 import { glued } from "../../src/hooks/assembled.mjs";
 import { agreedWithHead, LEAST_MS } from "../../src/hooks/git-probe.mjs";
 import { tempRoom } from "../fixtures.mjs";
@@ -85,6 +85,72 @@ test("where nothing says when the call began, a young file answers as written", 
     [file],
     "a transcript holding no assistant record",
   );
+});
+
+/* A delegated run's call arrives on an event naming the dispatching session in `transcript_path` and
+   naming the run only in `agent_id`, so a floor read off the transcript the event hands over is the
+   dispatcher's last message — hours old while a wave waits, which is no floor at all (ISS-1672). The
+   run's own transcript sits beside it, under the session's directory and named for the agent. */
+const ownAsked = (parent, agent, at, { assistant = true, padding = 0 } = {}) => {
+  const path = join(parent.replace(/\.jsonl$/u, ""), "subagents", `agent-${agent}.jsonl`);
+  mkdirSync(dirname(path), { recursive: true });
+  const lines = [{ type: "user", timestamp: new Date(at - 60_000).toISOString() }];
+  if (assistant) {
+    lines.push({
+      type: "assistant",
+      timestamp: new Date(at).toISOString(),
+      message: { content: [{ type: "tool_use", name: "Bash", input: { command: "x" } }] },
+    });
+  }
+  for (let n = 0; n < padding; n += 1) {
+    lines.push({ type: "user", timestamp: new Date(at + 1).toISOString(), result: "x".repeat(1 << 16) });
+  }
+  writeFileSync(path, `${lines.map((one) => JSON.stringify(one)).join("\n")}\n`);
+  return path;
+};
+
+const delegated = (command, parentAt, ownAt, held = {}) => {
+  const agent = `a${(made += 1)}c`;
+  const parent = asked(parentAt);
+  const own = ownAt === null ? "" : ownAsked(parent, agent, ownAt, held);
+  return { ...bash(command, parent), hook_event_name: "PostToolUse", agent_id: agent, own };
+};
+
+test("a delegated run's call is floored by its own last message, not by the dispatcher's", () => {
+  const ev = delegated("cat handed-down.md", NOW - 3 * 60 * 60_000, NOW - 10_000);
+  stamped("handed-down.md", NOW - 30_000);
+  assert.deepEqual(touched(ev), [], "the dispatcher spoke three hours ago and the file is nobody's write");
+  assert.equal(promptIndex(turnRecords(ev.own)), -1, "and no prompt record in it marks a turn");
+});
+
+test("a file a delegated run's call redirected to is that run's own write", () => {
+  const ev = delegated("printf x > written-by-run.md", NOW - 3 * 60 * 60_000, NOW - 10_000);
+  const file = stamped("written-by-run.md", NOW - 5_000);
+  assert.deepEqual(touched(ev), [file]);
+});
+
+/* The other direction, which a floor taken from the dispatcher gets wrong the expensive way: the
+   dispatcher spoke a moment ago and the run has been working for a minute, so a file the run really
+   did touch reads as older than a call that had not been asked for yet. */
+test("a dispatcher's fresher message does not date a delegated run's call", () => {
+  const ev = delegated("cat mine-all-along.md", NOW - 1_000, NOW - 60_000);
+  const file = stamped("mine-all-along.md", NOW - 30_000);
+  assert.deepEqual(touched(ev), [file]);
+});
+
+test("a delegated run whose own transcript is not there leaves the call undated", () => {
+  const ev = delegated("cat no-transcript.md", NOW - 1_000, null);
+  const file = stamped("no-transcript.md", NOW - 30_000);
+  assert.deepEqual(touched(ev), [file], "undated, as an unreadable transcript always was");
+});
+
+/* A tool result standing between the call's own record and the end of the file can be larger than
+   any one window, so the read grows rather than reporting the transcript as saying nothing. */
+test("the call is dated where its own record sits behind a megabyte of results", () => {
+  const ev = delegated("cat deep-tail.md", NOW - 3 * 60 * 60_000, NOW - 10_000, { padding: 18 });
+  stamped("deep-tail.md", NOW - 30_000);
+  assert.ok(statSync(ev.own).size > (1 << 20), `${ev.own} is ${statSync(ev.own).size} bytes`);
+  assert.deepEqual(touched(ev), []);
 });
 
 /* An allow-list cut a path at the first character it left out and handed on the tail — shorter,

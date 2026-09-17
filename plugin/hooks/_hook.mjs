@@ -3,17 +3,17 @@
 // Why write detection asks the disk: docs/HOOKS.md. Which copy this one is: how/copies.md.
 
 import { spawnSync } from "node:child_process";
-import { closeSync, openSync, readFileSync, readSync, realpathSync, statSync } from "node:fs";
+import { readFileSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { jsonLines as parsed, logHook } from "../src/hooks/log/hook-log-file.mjs";
+import { logHook } from "../src/hooks/log/hook-log-file.mjs";
 import { scrubbed } from "../src/hooks/log/hook-log.mjs";
 import { NOWHERE, STARTS, WRITES, namesOf, placeable, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
 import { glued } from "../src/hooks/assembled.mjs";
 import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
 import { agreedWithHead } from "../src/hooks/git-probe.mjs";
-import { isSubagent, ownTranscript, transcriptOf } from "../src/hooks/transcripts.mjs";
+import { isSubagent, calledAt, memo, ownTranscript, sinceTurn, transcriptOf } from "../src/hooks/transcripts.mjs";
 
 export { DEADLINES };
 export { askedAlready, askedByAnyone, clearNote, note, noted } from "../src/hooks/stamps.mjs";
@@ -21,6 +21,8 @@ export { movedTo, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
 export { NOWHERE, STARTS, WRITES, namesOf, spans, standsIn, unquote };
 export { struck } from "../src/hooks/shell-spans.mjs";
 export { isSubagent, ownTranscript, transcriptOf };
+export { callAt, calledAt, lastRecords, promptIndex, sinceTurn, transcript, turnAt, turnRecords }
+  from "../src/hooks/transcripts.mjs";
 
 /** How long after a call a file's mtime still answers for it. */
 export const FRESH_MS = 120_000;
@@ -159,11 +161,6 @@ export const logged = (decision, reason, target = null) => {
   });
 };
 
-/* One get/compute/set for both maps below. `has` and never a falsy answer: a computed `-1` and an index nobody has computed read the same otherwise. And the caller hands it the very array it will spend, since that is the key. */
-const memo = (held, key, make) => {
-  if (!held.has(key)) held.set(key, make());
-  return held.get(key);
-};
 
 const touchedBy = new WeakMap();
 export function touched(ev, freshMs = FRESH_MS) {
@@ -192,7 +189,8 @@ function touching(ev, freshMs) {
   const tokens = [...new Set([command, resolved]
     .flatMap((one) => [...namesOf(one), ...namesOf(one, undefined, AIMED_AT)])
     .map((one) => one.token))];
-  const since = tokens.length ? callAt(turnRecords(transcriptOf(ev))) : 0;
+  /* The run's own transcript, not the one the event hands over: a delegated run's call names the dispatching session, whose last message is a wave's idle wait away (ISS-1672). */
+  const since = tokens.length ? calledAt(ownTranscript(ev)) : 0;
   /* What the text claims answers on the stamp alone: a write putting back HEAD's bytes is one the tree cannot report. The rest are mentions, which a git operation in this same call stamps too. */
   const claims = new Set(tokens.length ? writtenPaths(resolved, cwd).map((one) => one.token) : []);
   const out = new Map();
@@ -471,158 +469,24 @@ export const writtenPaths = (text, cwd, tail) => {
   });
 };
 
-/* Kept per array: one stop event asks three times over a tail that reaches hundreds of thousands of records, and `turnRecords` hands every caller the same array. `NONE` is the key a caller with nothing gets, since the answer for it is the same -1 every time. */
-const begunAt = new WeakMap();
-const NONE = [];
-
-/** Where this turn begins: only a user record carrying `promptSource` is a prompt somebody typed. */
-export const promptIndex = (given) => {
-  const records = given ?? NONE;
-  return memo(begunAt, records, () => {
-    let from = -1;
-    for (let at = 0; at < records.length; at += 1) {
-      if (records[at]?.type === "user" && typeof records[at].promptSource === "string") from = at;
-    }
-    return from;
-  });
-};
-
-export const turnAt = (records) => records[promptIndex(records)]?.timestamp ?? "";
-
-/** From this turn's prompt on: `turnRecords` hands back the whole tail it read. */
-const turnTail = new WeakMap();
-
-export const sinceTurn = (records) => {
-  const held = records ?? NONE;
-  return memo(turnTail, held, () => held.slice(Math.max(0, promptIndex(held))));
-};
-
 /** The files a turn wrote through the file tools: a stop carries no tool input, so what `touched`
  *  answers for a call is answered here for a turn. A shell write has no call to be dated against. */
 const WRITES_A_FILE = ["Write", "Edit", "MultiEdit", "NotebookEdit"];
 
 const writtenIn = new WeakMap();
 
-export const turnWrites = (records) => memo(writtenIn, records ?? NONE, () => {
-  const out = new Set();
-  for (const record of sinceTurn(records)) {
-    if (record?.type !== "assistant" || !Array.isArray(record.message?.content)) continue;
-    for (const block of record.message.content) {
-      if (block?.type !== "tool_use" || !WRITES_A_FILE.includes(block.name)) continue;
-      const path = block.input?.file_path ?? block.input?.notebook_path;
-      if (path) out.add(settled(String(path)));
-    }
-  }
-  return [...out];
-});
-
-/** When this call began, in epoch ms, and 0 where the transcript cannot say: the last assistant record asks for this tool and lands before the tool runs, so a stamp older than it is the checkout's and not the call's. `forge hooks --how writes`. */
-export const callAt = (records) => {
-  for (let at = (records ?? []).length - 1; at >= 0; at -= 1) {
-    if (records[at]?.type === "assistant") return Date.parse(records[at].timestamp) || 0;
-  }
-  return 0;
-};
-
-const TAIL = 1 << 20;
-const TAIL_CAP = 64 << 20;
-const PROMPT_KEY = Buffer.from('"promptSource"');
-const NEWLINE = 0x0a;
-
-const spanOf = (handle, from, to) => {
-  const held = Buffer.alloc(to - from);
-  readSync(handle, held, 0, held.length, from);
-  return held;
-};
-
-/* The key is in quoted content too — a record about a record, this session's own transcript included —
-   so a hit is read as a line and has to parse as the prompt. Bounded: past the cap it is one read. */
-const isPrompt = (handle, start, size) => {
-  const room = Math.min(TAIL, size - start);
-  const line = spanOf(handle, start, start + room);
-  const end = line.indexOf(NEWLINE);
-  try {
-    return typeof JSON.parse(line.subarray(0, end < 0 ? room : end).toString("utf8")).promptSource === "string";
-  } catch {
-    return false;
-  }
-};
-
-/* Where the last prompt is, searched as bytes rather than parsed as records: past the window this is
-   what a turn costs, and the alternative was answering "no turn" — once a session, not once a turn. */
-const promptAt = (handle, size) => {
-  for (let end = size; end > 0; ) {
-    const from = Math.max(0, end - TAIL);
-    const held = spanOf(handle, from, end);
-    for (let at = held.lastIndexOf(PROMPT_KEY); at >= 0; at = held.lastIndexOf(PROMPT_KEY, at - 1)) {
-      const start = from + held.lastIndexOf(NEWLINE, at) + 1;
-      if (isPrompt(handle, start, size)) return start;
-    }
-    if (from === 0) return -1;
-    end = from + PROMPT_KEY.length - 1;
-  }
-  return -1;
-};
-
-/** This turn, without reading the session for it: a transcript reaches hundreds of megabytes and the
- *  last prompt is at the end. Grown rather than fixed, because one turn's records can outrun a
- *  window, and a partial first line is dropped since a read cuts wherever the offset lands. */
-const turns = new Map();
-export function turnRecords(path, { tail = TAIL, cap = TAIL_CAP } = {}) {
-  const key = `${path}\0${tail}\0${cap}`;
-  if (!turns.has(key)) turns.set(key, readTurn(path, tail, cap));
-  return turns.get(key);
-}
-
-function readTurn(path, tail, cap) {
-  let size = 0;
-  let handle = null;
-  try {
-    size = statSync(path).size;
-    handle = openSync(path, "r");
-  } catch {
-    return null;
-  }
-  try {
-    for (let span = tail; ; span *= 2) {
-      const from = Math.max(0, size - span);
-      const text = spanOf(handle, from, size).toString("utf8");
-      const records = parsed(from > 0 ? text.slice(text.indexOf("\n") + 1) : text);
-      if (promptIndex(records) >= 0 || from === 0) return records;
-      if (span >= cap) {
-        const at = promptAt(handle, size);
-        return at >= 0 ? parsed(spanOf(handle, at, size).toString("utf8")) : records;
+export const turnWrites = (records) => {
+  const held = sinceTurn(records);
+  return memo(writtenIn, held, () => {
+    const out = new Set();
+    for (const record of held) {
+      if (record?.type !== "assistant" || !Array.isArray(record.message?.content)) continue;
+      for (const block of record.message.content) {
+        if (block?.type !== "tool_use" || !WRITES_A_FILE.includes(block.name)) continue;
+        const path = block.input?.file_path ?? block.input?.notebook_path;
+        if (path) out.add(settled(String(path)));
       }
     }
-  } catch {
-    return null;
-  } finally {
-    closeSync(handle);
-  }
-}
-
-/** The last records of a transcript, whichever turn they fall in: an agent's own carries no prompt record, so nothing in it marks a turn and `turnRecords` would parse the file whole to learn that. A record the window cut is dropped, a line read in part not being the line. */
-export function lastRecords(path, span = TAIL) {
-  let handle = null;
-  try {
-    const size = statSync(path).size;
-    handle = openSync(path, "r");
-    const from = Math.max(0, size - span);
-    const text = spanOf(handle, from, size).toString("utf8");
-    return parsed(from > 0 ? text.slice(text.indexOf("\n") + 1) : text);
-  } catch {
-    return null;
-  } finally {
-    if (handle !== null) closeSync(handle);
-  }
-}
-
-/** Null and not an empty list: a gate that reads "no advice" from a transcript it could not open
- *  would stop the work it exists to order. */
-export function transcript(path) {
-  try {
-    return parsed(readFileSync(path, "utf8"));
-  } catch {
-    return null;
-  }
-}
+    return [...out];
+  });
+};
