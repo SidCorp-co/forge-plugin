@@ -14,7 +14,7 @@
       "verbs": ["issue", "new", "comment", "claim", "resume", "record", "advance", "spec", "attach",
         "next", "guide", "project", "knowledge", "codex", "hooks", "feedback", "stats"],
       "skills": ["audit-code-quality", "dispatch", "forge", "gate-review", "harness-eval",
-        "issue-flow", "release-flow", "setup-code-quality", "vi-natural"]
+        "issue-flow", "qa", "release-flow", "setup-code-quality", "vi-natural"]
     },
     "pm": {
       "verbs": ["issue", "resume", "next", "spec", "guide", "project", "stats"],

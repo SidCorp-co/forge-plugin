@@ -11,6 +11,7 @@ how many topics there may be.
 |---|---|
 | [the way in](cli/the-way-in.md) | Why `-h` is intercepted before the verb, answers on stdout, and carries the tracker's write-time rules in the binary. |
 | [what the projections leave out](cli/the-projections.md) | Which fields the browse and issue projections drop, and why no local copy of a server-published name is kept. |
+| [the drain key](cli/the-drain-key.md) | Why who judges is the tracker's key and who drains is the checkout's, what the pair's undo costs, and why a value it does not take names no master. |
 | [the guides](cli/the-guides.md) | Why seven of the twelve guides the tracker serves are withheld, and what the disposition table still decides. |
 | [the flow axis](cli/the-flow-axis.md) | Why the axis over served text is a flow slug rather than a version number, and why a flow's directory is the whole of what it serves. |
 | [what a flow asks for](cli/what-a-flow-asks-for.md) | The flows this copy serves, what a flow may require of a plan and ask of a project, and what it may not decide. |

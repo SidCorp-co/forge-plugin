@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { tempRoom } from "../fixtures.mjs";
 
 import { WITHIN, keysDeclared, roleNames, roleText, rolesDiffer, rolesIn } from "../../src/tools/roles.mjs";
+import { skillGuideAnswer } from "../../src/guides/skill-guides.mjs";
 import { FROZEN, freezesSession } from "../../src/tools/plugin-copy.mjs";
 
 const PLUGIN = new URL("../..", import.meta.url).pathname;
@@ -92,30 +93,55 @@ test("the qa role ships beside the other four, and doctor names it where the loa
     { missing: ["qa"], extra: [] }, "a copy predating it must be told, or a dispatch naming qa refuses");
 });
 
-/* The definition is the only text a run reads before it works, so its one refusing input is stated there. */
-test("the qa role's text names the deployment identity as an input it is refused without", () => {
+/* The card is the only text loaded with the role, so it carries the one call that serves the rest:
+   a method inside it would be a second copy of the served text, stale a release later. */
+test("the qa role's card sends the run to the method served for it", () => {
   const text = roleText("qa");
-  const paragraph = text.split(/\n\s*\n/u).find((one) => /deployment identity/u.test(one));
-  assert.ok(paragraph, "the role does not name the deployment identity at all");
-  assert.match(paragraph, /\brefused\b/u,
-    "the input is named in one place and the refusal stated in another, so neither reads as the other's");
-  assert.match(paragraph, /exit code/u, "nothing says a deploy command's exit code is not the identity");
+  assert.match(text, /`forge guide qa judging`/u, "the role names no method, so it has none");
+  assert.doesNotMatch(text, /forge guide issue-flow/u,
+    "the judge is sent to the builder's own skill, written for the run that wrote the code");
+});
+
+/* The rules below were the card's until the role had a method of its own; they are asserted where
+   they now live, which is the text the call above serves, read before a run works. */
+const judging = (flow) => {
+  const held = skillGuideAnswer("qa", PLUGIN, flow)({ part: "judging" });
+  assert.ok(held.lines, `qa's judging reference is not served under ${flow}: ${held.refusal}`);
+  return held.lines.join("\n");
+};
+const FLOWS = ["default", "screen"];
+
+test("the judging method names the deployment identity as an input it is refused without", () => {
+  for (const flow of FLOWS) {
+    const paragraph = judging(flow).split(/\n\s*\n/u).find((one) => /deployment identity/u.test(one));
+    assert.ok(paragraph, `${flow} does not name the deployment identity at all`);
+    assert.match(paragraph, /\brefused\b/u,
+      "the input is named in one place and the refusal stated in another, so neither reads as the other's");
+    assert.match(paragraph, /deriving one of your own/u,
+      "nothing says a judge may not work one out from a branch or a deploy log");
+  }
 });
 
 /* The plan's boundary: judging what a declaration asks a person for answers a question nobody asked. */
-test("the qa role does not stand in for a review a plan declares a person's", () => {
-  assert.match(roleText("qa"), /person's review/u, "nothing in the role marks that boundary");
+test("the judging method does not stand in for a review a plan declares a person's", () => {
+  for (const flow of FLOWS) {
+    assert.match(judging(flow), /person's review/u, `${flow} marks that boundary nowhere`);
+  }
 });
 
 /* A role's instructions and its tool list are one decision, and this is the instruction a tree may
    not be equipped for: nothing a subagent is granted renders a page (ISS-706). */
-test("the qa role's ask for an artifact carries the route that produces it", () => {
-  const paragraph = roleText("qa").split(/\n\s*\n/u).find((one) => /attach it/u.test(one));
-  assert.ok(paragraph, "nothing in the role asks for the thing it looked at");
-  assert.match(paragraph, /Where a route reaches/u, "the ask is unconditional, and no tree guarantees a route");
-  assert.match(paragraph, /`script`/u, "no route is named, so which tool takes the artifact is the tree's guess");
-  assert.match(paragraph, /check for it by name/u, "a capture tool the project installs is counted on unchecked");
-  assert.match(paragraph, /say it is absent/u, "and its absence goes unsaid, reading as a state nobody took");
+test("the ask for an artifact carries the route that produces it", () => {
+  for (const flow of FLOWS) {
+    const paragraph = judging(flow).split(/\n\s*\n/u).find((one) => /ttach/u.test(one));
+    assert.ok(paragraph, `${flow} asks for the thing it looked at nowhere`);
+    assert.match(paragraph, /`script`/u, "no route is named, so which tool takes the artifact is the tree's guess");
+    assert.match(paragraph, /check for it by name/u, "a capture tool the project installs is counted on unchecked");
+    assert.match(paragraph, /say it is absent/u, "and its absence goes unsaid, reading as a state nobody took");
+    assert.match(paragraph, /goes through the shell/u, "nothing says how the file it attaches gets written");
+  }
+  assert.match(judging("default"), /Where a route reaches what you looked at, attach it/u,
+    "the flow with no screen asks unconditionally, and no tree guarantees a route");
 });
 
 test("a tool the qa role's frontmatter withholds is named as one it does not have", () => {
@@ -124,23 +150,24 @@ test("a tool the qa role's frontmatter withholds is named as one it does not hav
   for (const withheld of ["Write", "Edit"]) {
     assert.ok(!granted.includes(withheld), `${withheld} is granted, so the text says the opposite of the frontmatter`);
   }
-  assert.match(text, /`Write` and\s+`Edit` are off that list on purpose/u,
+  assert.match(text, /`Write` and `Edit` are off your tool list on purpose/u,
     "a missing writing tool reads as an oversight, and the next reader grants it back");
-  assert.match(text, /goes through the shell/u, "nothing says how the file it attaches gets written");
 });
 
 /* The escape is worth having only ahead of the work: at the verdict write the run is already spent. */
-test("the qa role reads what tested will want before it judges a criterion", () => {
-  const text = roleText("qa");
-  const ahead = text.indexOf("--owed");
-  assert.ok(ahead > 0, "the role names no read that says what the write at the end will want");
-  assert.ok(ahead < text.indexOf("Work each criterion"),
-    "that read sits after the judging, which is where the refusal already was");
-  const paragraph = text.split(/\n\s*\n/u).find((one) => /--owed/u.test(one));
-  assert.match(paragraph, /screen change/u, "and nothing says which declaration makes the attachment owed");
-  assert.match(paragraph, /skip/u, "no verdict shape is named for the criterion no route reaches");
-  assert.match(paragraph, /forge guide issue-flow verification/u, "and the rest of that case is cited nowhere");
-  assert.match(text, /stop before judging/u, "a run whose every criterion would be a skip spends itself to say so");
+test("the judging method reads what tested will want before it judges a criterion", () => {
+  for (const flow of FLOWS) {
+    const text = judging(flow);
+    const ahead = text.indexOf("--owed");
+    assert.ok(ahead > 0, `${flow} names no read that says what the write at the end will want`);
+    assert.ok(ahead < text.indexOf("Work each criterion"),
+      "that read sits after the judging, which is where the refusal already was");
+    assert.match(text, /skip/u, "no verdict shape is named for the criterion no route reaches");
+    assert.match(text, /stop before judging/u,
+      "a run whose every criterion would be a skip spends itself to say so");
+  }
+  assert.match(judging("screen"), /demands of a screen\s+change/u,
+    "and the flow with a screen says nothing about what that declaration makes owed");
 });
 
 test("the roles ship inside the plugin directory, where a copy of it travels alone", () => {

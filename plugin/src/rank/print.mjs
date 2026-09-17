@@ -3,6 +3,7 @@
 import { servesIn, servesSaid } from "../goals.mjs";
 import { COMPLEXITY_NAMES } from "../ladder.mjs";
 import { UNSET } from "./weights.mjs";
+import { DRAINS, drainScope } from "../resolve/settings.mjs";
 import { JUDGING } from "./eligible.mjs";
 
 const KEY = 8;
@@ -95,6 +96,19 @@ export const droppedLine = (one) =>
 
 const judgingRow = (one) => `  ${one.issueId.padEnd(KEY)} ${cut(one.row.title, TITLE)}`;
 
+/* Which master the project said claims these, said at the queue rather than only in the report: a
+   master reads here whether the set in front of it is its own. A key the pair does not take names
+   nobody, so neither master takes the rows on a fallback (ISS-1590). */
+const drainSaid = () => {
+  const held = drainScope();
+  if (held.unknown !== undefined) {
+    return `drained by — \`drainedBy\` is \`${held.unknown}\`, which is no master that drains `
+      + `${JUDGING.join(" or ")}: nothing here says whose these are. \`forge doctor\` names the key.`;
+  }
+  return `drained by — ${held.value}, ${held.declared ? "declared" : `absent the key, ${DRAINS[0]}`
+    + " being what a project that has not decided gets"}. Another master leaves these standing.`;
+};
+
 /* Its own section and not a row in the ranking, one scored there taking a place in `--count` from
    the building work that count was asked for: docs/cli/next.md. */
 export const judgingLines = (judging) => {
@@ -108,6 +122,7 @@ export const judgingLines = (judging) => {
     `judging — ${judging.offered.length} issue(s) at ${at} with no live lease, this project having`,
     `declared the judgement above ${at} an independent run's. Each is a judging run's to claim, and`,
     "the run that built it holds nothing.",
+    `  ${drainSaid()}`,
     ...judging.offered.map(judgingRow),
     ...(judging.left.length ? [`  left out — ${judging.left.length}:`] : []),
     ...judging.left.map(droppedLine),

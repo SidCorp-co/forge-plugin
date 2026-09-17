@@ -16,6 +16,12 @@ export const standing = (rank) => {
   return room;
 };
 
+export const declaring = (drain) => {
+  const room = tempRoom("rank-drain-");
+  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: OWN.slug, drainedBy: drain }));
+  return room;
+};
+
 export const issue = (issueId, held = {}) => ({
   issueId,
   documentId: `u-${issueId}`,

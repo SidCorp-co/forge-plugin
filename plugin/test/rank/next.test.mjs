@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 
 import { DEFAULTS } from "../../src/rank/weights.mjs";
-import { claims, issue, rankRoom, standing } from "./room.mjs";
+import { claims, declaring, issue, rankRoom, standing } from "./room.mjs";
 import { bounded, waveUnder, wanted } from "../../src/rank/next.mjs";
 
 const { load, ran, state, close } = await rankRoom();
@@ -552,4 +552,49 @@ test("the machine-readable form carries the judging candidates under a key of th
   assert.equal(held.judging.unreached, 0);
   assert.deepEqual(held.candidates.map((one) => one.issueId), ["ISS-1"],
     "and the ranked list is untouched by it");
+});
+
+/* The second key, which decides who is dispatched and never whether an issue is offered: a master
+   reads at the queue whether the set in front of it is its own. docs/cli/next.md. */
+test("the judging section names the master the project declared drains it", async (t) => {
+  load([issue("ISS-1"), issue("ISS-5", { status: "developed" })]);
+  judged(t, "independent");
+  const run = await ran(["next"], declaring("qa-master"));
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /drained by — qa-master, declared\./u, run.stdout);
+  assert.match(run.stdout, /Another master leaves these standing\./u,
+    "the line says what the declaration costs the master it does not name");
+});
+
+test("a project that declared nothing is told which master the rows fall to and that it is a default", async (t) => {
+  load([issue("ISS-1"), issue("ISS-5", { status: "developed" })]);
+  judged(t, "independent");
+  const run = await ran(["next"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /drained by — dispatcher, absent the key, dispatcher being what a project that has not decided gets\./u,
+    run.stdout);
+});
+
+test("a drain key the pair does not take names no master at the queue either", async (t) => {
+  load([issue("ISS-1"), issue("ISS-5", { status: "developed" })]);
+  judged(t, "independent");
+  const run = await ran(["next"], declaring("qa-mastre"));
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /drained by — `drainedBy` is `qa-mastre`, which is no master that drains developed/u,
+    run.stdout);
+  assert.match(run.stdout, /nothing here says whose these are/u,
+    "a fallback on a typo would put a wave and a QA master on one issue");
+  assert.match(run.stdout, /judging — 1 issue\(s\)/u,
+    "and the rows are still offered: the drain says who is dispatched, never whether an issue is offered");
+});
+
+test("the machine-readable form carries the declared master beside the candidates", async (t) => {
+  load([issue("ISS-1"), issue("ISS-5", { status: "developed" })]);
+  judged(t, "independent");
+  const run = await ran(["next", "--json"], declaring("qa-master"));
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(JSON.parse(run.stdout).judging.drainedBy, "qa-master");
+  const typo = await ran(["next", "--json"], declaring("qa-mastre"));
+  assert.equal(JSON.parse(typo.stdout).judging.drainedBy, null,
+    "and a value the key does not take carries no master rather than the default");
 });

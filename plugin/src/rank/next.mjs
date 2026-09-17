@@ -13,7 +13,7 @@ import { boundShort, candidateLines, droppedLine, graphLines, HEAD, judgingLines
   from "./print.mjs";
 import { carriersOf, graphOf, PROSE_FROM, PROSE_MARKER } from "./prose-edges.mjs";
 import { eligibilityOf, heldPaths, judgingFrom, pathsNamed } from "./eligible.mjs";
-import { fail } from "../resolve/settings.mjs";
+import { drainScope, fail } from "../resolve/settings.mjs";
 import { RELATES, otherOf } from "../tracker/routes.mjs";
 import { holdsBack, holdsBackFrom, ordersSaid } from "../flow/earned.mjs";
 import { neighboursOf } from "../tracker/filing/neighbours.mjs";
@@ -240,6 +240,7 @@ const jsonOf = (batches, dropped, weights, from, read, judging) => ({
   weightsFrom: from,
   read,
   judging: judging && (judging.unread ? { unread: judging.unread } : {
+    drainedBy: drainScope().value,
     offered: judging.offered.map((one) => ({ issueId: one.issueId, title: one.row.title })),
     left: judging.left.map((one) => ({ issueId: one.issueId, reason: one.reason })),
     unreached: judging.unreached,

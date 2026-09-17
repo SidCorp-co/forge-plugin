@@ -7,8 +7,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { once } from "../resolve/config.mjs";
-import { accountCredentials, checkoutRoot, fail, keepOnFailure, landingScope, slugIfAny }
-  from "../resolve/settings.mjs";
+import { DRAINS, accountCredentials, checkoutRoot, drainScope, fail, keepOnFailure, landingScope,
+  slugIfAny } from "../resolve/settings.mjs";
 
 import { didYouMean } from "../suggest.mjs";
 import { bodyFrom } from "../resolve/payload.mjs";
@@ -228,6 +228,24 @@ const branchRow = (label, held, from) => (held
   : { level: "note", label, detail: `${UNSET} — a release has no named ${label}, and the park before`
     + " awaiting_release stands until it is set" });
 
+/* The other half of who judges, and the half no tracker schema declares: `qa` says whether the
+   judgement is an independent run's and this says which master claims what that offers. */
+const drainRows = (policy) => {
+  const held = drainScope();
+  const takes = `it takes ${DRAINS.join(" or ")}`;
+  if (held.unknown !== undefined) {
+    return [{ level: "miss", label: "drained by", detail: `\`drainedBy\` is \`${held.unknown}\`, `
+      + `which is no master that drains developed: ${takes}. Nothing here says who claims this `
+      + `project's issues at that status until it does  ← ${held.from}` }];
+  }
+  const row = { level: "ok", label: "drained by",
+    detail: `${held.value} claims this project's issues at developed  ← ${held.from}` };
+  if (!held.declared || judgementOf(policy) === QA_MODES[0]) return [row];
+  return [row, { level: "miss", label: "drained by", detail: `\`drainedBy\` names ${held.value} and `
+    + `the judgement between developed and testing is ${judgementOf(policy)}, so nothing is offered `
+    + "at that status for it to drain: set the judgement to independent, or take the key out" }];
+};
+
 const policyRows = (policy, landing) => {
   const why = policyUnread(policy);
   if (why) {
@@ -249,6 +267,7 @@ const policyRows = (policy, landing) => {
     { level: "ok", label: "where the merge sits", detail: `${route.value}  ← ${route.from}` },
     { level: "ok", label: "independent judgement", detail: `${judgementOf(policy)} between developed`
       + ` and testing  ← ${policy.from}` },
+    ...drainRows(policy),
   ];
   if (policy.autoProd) out.push({ level: "ok", label: "", detail: NOTHING_DEPLOYS });
   const said = releaseConflict(policy);

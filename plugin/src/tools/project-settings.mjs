@@ -1,10 +1,10 @@
 /* The project's own configuration: the two typed resources the tracker keeps per project, reported
    with the source each key was read from and written one key at a time. Whose the decision is, and
    why a key is never re-declared in a checkout: docs/cli/doctor.md. */
-import { closeSync, fchmodSync, openSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync }
+import { accessSync, closeSync, constants, fchmodSync, openSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync }
   from "node:fs";
 
-import { FROM_PROJECT, fail, projectFilePath, projectSlug } from "../resolve/settings.mjs";
+import { FROM_PROJECT, drainScope, fail, projectFilePath, projectSlug } from "../resolve/settings.mjs";
 import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../guides/flow.mjs";
 import { flowJudgeConflict, flowPolicyConflict } from "../flow/earned.mjs";
 import { scoped, write } from "../tracker/rest.mjs";
@@ -14,6 +14,7 @@ import {
   confirmSource,
   projectRows,
   readBrief,
+  QA_MODES,
   refreshBrief,
   releasePolicy,
   replaceBriefLine,
@@ -141,6 +142,52 @@ const notKept = (route, value, kept) =>
       + `reads back ${JSON.stringify(kept ?? null)}. The tracker did not keep it — a key its own `
       + "schema does not declare is dropped on the way in, and this is that key.");
 
+const DRAIN_KEY = "drainedBy";
+const [INDEPENDENT] = QA_MODES;
+
+/* The one write that moves the judgement the drain key answers to, and therefore the one that clears
+   it: the two live in different stores and there is one undo between them. docs/cli/doctor.md. */
+const clearsDrain = (route, value) =>
+  route.name === "pipeline" && route.key === "qa" && String(value) !== INDEPENDENT
+  && drainScope().declared;
+
+const DRAIN_SAID = `\`${DRAIN_KEY}\` in ${FROM_PROJECT}, which names the master that claims this `
+  + "project's issues at developed";
+
+/* Proved rewritable before the tracker is sent anything: a judgement that lands over a file this
+   could not have rewritten leaves exactly the orphaned drain the pair is cleared together to stop. */
+const drainFile = () => {
+  const named = projectFilePath();
+  if (!named) {
+    fail(`--set: this would clear ${DRAIN_SAID}, and no such file was found on the way up from here. `
+      + "Nothing was sent. Run this from the checkout that declares it.");
+  }
+  try {
+    const path = realpathSync(named);
+    const held = readFileSync(path, "utf8");
+    accessSync(path, constants.W_OK);
+    return { path, held };
+  } catch (error) {
+    return fail(`--set: this would clear ${DRAIN_SAID}, and ${named} could not be read and rewritten, `
+      + `so that half is out of reach and nothing was sent: ${error.message}`);
+  }
+};
+
+/* After the tracker has confirmed and not before: the judgement is the fact the key answers to, so a
+   file cleared over a write that never landed would drop a declaration still in force. */
+const clearedDrain = (file, kept) => {
+  if (!file) return [];
+  try {
+    wroteWhole(file.path, withoutKey(file.held, DRAIN_KEY));
+  } catch (error) {
+    fail(`--set: pipeline.qa is ${JSON.stringify(kept ?? null)} on the tracker now and ${file.path} `
+      + `could not be written, so it still sets ${DRAIN_SAID} — a master named for a judgement `
+      + `nobody asked for: ${error.message}. Send the same command again once that file can be `
+      + `written: ${SET_USAGE}`);
+  }
+  return [`${DRAIN_KEY}: cleared, the judgement it named a master for having moved  ← ${file.path}`];
+};
+
 /** Read back off the resource's own route before it is reported set: this tracker's pipeline schema
  *  drops a key it does not declare, so a write that answered 200 and kept nothing would print as a
  *  setting that took. */
@@ -158,16 +205,19 @@ export const writeSetting = async (given) => {
   if (!route.key) fail(`--set: \`${asked}\` names the resource and no key of it. ${SET_USAGE}`);
   const resource = RESOURCES[route.name];
   const value = valueFor(resource, raw);
+  const file = clearsDrain(route, value) ? drainFile() : null;
   await write("forge_config", { action: resource.written, data: resource.bodyFor(route.key, value) });
   const now = await scoped("forge_config", { action: resource.read }, true);
   if (now?.refused) {
     fail(`--set: ${route.name}.${route.key} was sent and ${resource.said} would not answer the read `
-      + `back, so nothing here can say what it now holds: ${now.refused}`);
+      + `back, so nothing here can say what it now holds: ${now.refused}`
+      + (file ? `. ${file.path} still sets ${DRAIN_SAID}, and whether that now names a master for a `
+        + `judgement nobody asked for is what the read would have said: ${READS_IT}` : ""));
   }
   const kept = resource.keysIn(now)[route.key];
   const why = notKept(route, value, kept);
   if (why) fail(`--set: ${why}`);
-  return [`${route.name}.${route.key}: ${shown(kept)}  ← ${resource.said}`];
+  return [`${route.name}.${route.key}: ${shown(kept)}  ← ${resource.said}`, ...clearedDrain(file, kept)];
 };
 
 /* One top-level key set in the project file's own text rather than in a document re-serialized from it: that file is written by hand and holds its owner's line breaks, and a rewrite through JSON.stringify lands a diff nobody asked for in somebody else's review. The scan tracks strings and nesting, a key of the same name inside another object not being this key, and answers with no span where it cannot walk the text. */
@@ -211,10 +261,14 @@ const endOfValue = (text, at) => {
   return -1;
 };
 
-/** Where one top-level key's value sits in the text, or null where the document has no such key. */
+/** Where one top-level pair sits in the text, or null where the document has no such key: the
+ *  quoted name, the value, and where the pair before it ended, which is what a removal cuts back to
+ *  so the file is left without a hole where the key was. */
 const valueSpan = (text, key) => {
   let at = pastSpace(text, 0);
   if (text[at] !== "{") return null;
+  const open = at;
+  let previous = null;
   at = pastSpace(text, at + 1);
   while (text[at] === `"`) {
     const nameEnd = endOfString(text, at);
@@ -224,7 +278,10 @@ const valueSpan = (text, key) => {
     const valueAt = pastSpace(text, colon + 1);
     const valueEnd = endOfValue(text, valueAt);
     if (valueEnd < 0) return null;
-    if (JSON.parse(text.slice(at, nameEnd)) === key) return { at: valueAt, end: valueEnd };
+    if (JSON.parse(text.slice(at, nameEnd)) === key) {
+      return { open, name: at, at: valueAt, end: valueEnd, previous };
+    }
+    previous = valueEnd;
     at = pastSpace(text, valueEnd);
     if (text[at] !== ",") return null;
     at = pastSpace(text, at + 1);
@@ -243,6 +300,16 @@ export const withKey = (text, key, value) => {
   return text[first] === "}"
     ? `${text.slice(0, open + 1)}\n  ${pair}\n${text.slice(first)}`
     : `${text.slice(0, open + 1)}\n  ${pair},${text.slice(open + 1)}`;
+};
+
+/** The same walk the other way: the pair removed and the document otherwise untouched. */
+export const withoutKey = (text, key) => {
+  const held = valueSpan(text, key);
+  if (!held) return text;
+  const after = pastSpace(text, held.end);
+  if (held.previous !== null) return `${text.slice(0, held.previous)}${text.slice(held.end)}`;
+  if (text[after] === ",") return `${text.slice(0, held.name)}${text.slice(pastSpace(text, after + 1))}`;
+  return `${text.slice(0, held.open + 1)}${text.slice(after)}`;
 };
 
 const FLOW_USAGE = "forge doctor --flow <slug>";
