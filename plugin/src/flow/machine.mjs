@@ -51,12 +51,15 @@ export const payloadIn = (body) => {
 
 /* The same payload with its head off: a host truncates a long tool result from the top, so a record
    this CLI printed can arrive without its opening fence. What stands in for the one it lost is the
-   trailer `render` writes — a bare fence, blank lines, the tag — read through the one fence reader. */
+   trailer `render` writes — a bare fence with the tag alone beneath it and no second fence to say
+   the first opened something — read through the one reader of a fence there is. */
 const headlessIn = (body) => {
   const lines = fenceMarked(body);
   const at = lines.findIndex((one) => one.fenced);
   if (at < 0 || !CLOSE.test(lines[at].line)) return null;
-  const said = lines.slice(at + 1).find((one) => one.line.trim());
+  const under = lines.slice(at + 1);
+  if (under.some((one) => CLOSE.test(one.line))) return null;
+  const said = under.find((one) => one.line.trim());
   if (!said || !FIRST_TAG.test(said.line)) return null;
   const out = keyedIn(lines.slice(0, at).map((one) => one.line), () => false);
   return out.length ? out : null;

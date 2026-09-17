@@ -120,6 +120,10 @@ test("an ordinary fenced example is not a record whose head was cut off", () => 
   assert.match(example(feature), /forge-record: confirmation/u, "the fixture really does carry the tag a record carries");
   assert.equal(rungRun([said("forge record confirmation", example(feature))]), RUNG_UNKNOWN,
     "the example opens a fence of its own, which a truncated payload cannot have above the fence that closed it");
+  const whole = ["rung: feature", "```", tagFor("confirmation", 1), "```"].join("\n");
+  assert.equal(rungRun([said("forge record confirmation", whole)]), RUNG_UNKNOWN,
+    "a second bare fence says the first one opened an example rather than closed a payload, which has nothing below it to close");
+  assert.equal(stampedIn(whole, "confirmation", "rung"), null, "the stamped read says so too");
   const quoted = ["rung: feature", "```", `Example: ${tagFor("confirmation", 1)}`, "```"].join("\n");
   assert.equal(rungRun([said("forge record confirmation", quoted)]), RUNG_UNKNOWN,
     "a sentence ending in the tag quotes a record rather than making one, and the tag is matched over the whole line");

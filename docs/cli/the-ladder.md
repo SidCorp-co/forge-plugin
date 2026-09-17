@@ -91,11 +91,14 @@ prose rewrite is what the reader refuses to count — which is why the protectio
 it takes back rather than a span it leaves behind.
 
 **A line a call printed is not a field a write stamped.** A run's rung is read off the confirmation
-record in the call's output — its tag and the trailer that stands under its payload — and never off
-the words in it. The trailer rather than the opening fence, because the host truncates a long result
-from the head and the record echo is long: what arrives has lost the fence it opened with and kept
-the bare one that closed it with the tag beneath. A body truncated past the tag as well stays
-unread, nothing left in it saying which record the keys belong to. A class covers
+record in the call's output — its tag, and the payload in whichever form the tag stands over — and
+never off the words in it. Three forms and one reading: the fenced block a write prints, the labelled
+lines a prose rewrite leaves of that block, and the same block with its head off, which is what the
+host makes of a long record echo by truncating a long result from the top. Only the headless one has
+a bound to state, having lost the fence that said where it began: what survived is the bare fence
+that closed it, with the tag alone on the line beneath and no second bare fence below to say that
+fence opened something instead. A body truncated past the tag as well stays unread, nothing left in
+it saying which record the keys belong to. A class covers
 the whole shell call, so `forge record confirmation …; printf 'rung: feature'` is a confirmation
 whose output carries a rung nothing stamped; and `blockOf` indents every continuation line of a
 multi-line value, so a sentence somebody typed under `detail` carries the key as well. Neither is an
