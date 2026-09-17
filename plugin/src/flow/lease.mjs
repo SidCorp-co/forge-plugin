@@ -229,7 +229,7 @@ export const claimed = (context, { holder, at = sharedStamp(), minutes, next, wo
     history.push({
       holder, at, how, status, next: line,
       ...(state ? { landing: state } : {}),
-      ...(over ? { from: over.holder, ranOut: stampOf(expiryOf(over)) } : {}),
+      ...(over ? { from: over.holder, ranOut: stamp(expiryOf(over)) } : {}),
     });
   }
   return {
@@ -401,10 +401,12 @@ const takenByWriting = async (documentId, ref, context, next, patch, over = null
   if (!over && !takeableFree(status, context)) fail(freeRefusal(ref, status, context));
   const left = nextLeft(context);
   const carried = releasedIn(context) ? left : null;
+  const derived = next === undefined ? carried ?? NOTHING_WORKED : next ?? (releasedIn(context) ? null : NOTHING_WORKED);
   const sent = claimed(context, {
     holder: sessionOf(),
     minutes: READING_MINUTES,
-    next: next === undefined ? carried ?? NOTHING_WORKED : next ?? (releasedIn(context) ? null : NOTHING_WORKED),
+    /* Where a lease was displaced the line is handled as any reclaim handles it — silence carries the dead run's step forward and a transition clears it — because the two calls this replaces did exactly that, and a run that came back to read where its predecessor died would find the step gone instead (codex F1). The derived line is the empty field's alone, which had no step to carry. */
+    next: over ? next : derived,
     worklog: worklogFor(context, patch),
     /* The word a typed reclaim writes, because that is the call this replaces: the crash park counts the reclaims of a status to find where runs die, and a pickup that stopped being typed is no less a run that died there. */
     how: over ? RECLAIM : TAKEN_BY_WRITING,

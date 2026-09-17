@@ -576,3 +576,36 @@ test("a release the transport refuses says so and does not take the call down wi
     `the refusal is said rather than swallowed: ${lines.join(" | ")}`);
   assert.equal(leaseOf(field)?.holder, held.holder, "and the lease the write took stands, nothing having been written");
 });
+
+/* What the two calls this route replaces left on the record is what the one call has to leave: a
+   typed `forge claim` carried the dead run's step forward, so the take that stands in for it does
+   too, and the transition after it is what clears the line (codex F1 of the whole-set read). */
+test("a write reclaiming a lease the record proves dead carries the dead run's step, and a transition clears it", async () => {
+  field = lease("the-other-run", ago(90));
+  status = "awaiting_release";
+  await said(() => renew(ISSUE, "ISS-1660"));
+  const took = leaseOf(field);
+  assert.equal(took.holder, "this-run", "the write took the lease rather than refusing");
+  assert.equal(took.next, "fold F1", "and kept the step the run that is gone left behind");
+  assert.equal(took.minutes, 10, "on the short lease, a call that had to claim for itself doing no more");
+
+  field = lease("the-other-run", ago(90));
+  await said(() => renew(ISSUE, "ISS-1660", null));
+  assert.equal(leaseOf(field).next, null, "and a transition's own null clears it, as it does on any lease");
+});
+
+/* The reclaim reaches a lease whose renew time cannot be read — `expiryOf` answers zero and every
+   guard reads that as long expired — so the row it writes must not name the epoch as a fact about
+   anybody's run (codex F2 of the whole-set read). */
+test("a displaced lease whose renew time cannot be read is recorded as unreadable, not as 1970", async () => {
+  field = lease("the-other-run", ago(90));
+  field.lease.renewedAt = "not a time";
+  status = "awaiting_release";
+  await said(() => renew(ISSUE, "ISS-1660"));
+  const row = leaseOf(field).history.at(-1);
+  assert.equal(row.how, "reclaim");
+  assert.equal(row.from, "the-other-run");
+  assert.equal(row.ranOut, "an unreadable time", "said, rather than a date nothing on the record supports");
+  assert.doesNotMatch(row.ranOut, /1970/u);
+});
+

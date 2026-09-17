@@ -32,6 +32,6 @@ export const historyLine = (lease, status) =>
   (lease?.history ?? [])
     .filter((one) => !status || one?.status === status)
     /* The displaced run where the row names one: only a take made by a write carries it, and that is the row whose caller was shown no refusal naming whom it went over. */
-    .map((one) => `${one.how} by ${one.holder}${one.from ? ` over ${one.from}, whose lease ran out ${one.ranOut}` : ""}`
+    .map((one) => `${one.how} by ${one.holder}${one.from ? ` over ${one.from}, whose lease ran out at ${one.ranOut}` : ""}`
       + ` at ${stamp(Date.parse(one.at ?? ""))}`)
     .join(" | ");
