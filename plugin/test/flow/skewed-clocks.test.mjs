@@ -58,9 +58,7 @@ test("what the correction does not buy is agreement inside the two measurements'
     "200ms apart and inside a band of 1200, so which side of expiry an instant falls is not a thing either clock settles");
 });
 
-/* One lapse, one question, asked by the claim a caller types and by the write that takes the lease
-   for itself: the duration is the first half of it and the band is the second, and a write reading
-   only the first would take an issue the typed reclaim beside it refuses (ISS-1660). */
+/* One lapse, one question, asked by the claim a caller types and by the write that takes the lease for itself: the duration is the first half of it and the band is the second, and a write reading only the first would take an issue the typed reclaim beside it refuses (ISS-1660). */
 test("a lapse the duration has outlasted is unproven again inside the band the two clocks leave", () => {
   anHourFast();
   const held = shifted(writtenNow(60), 121 * 60_000);

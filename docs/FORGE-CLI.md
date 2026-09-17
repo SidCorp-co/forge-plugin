@@ -27,6 +27,7 @@ how many topics there may be.
 | [`claim`](cli/claim.md) | What a lease is, what the step line is for, and why every write lists the issue's comments first. |
 | [`the precondition`](cli/the-precondition.md) | What every write the lease covers carries, the one call that establishes the far end honours it, and which read-back stops being spent once it does. |
 | [the short lease](cli/the-short-lease.md) | Why a write no work follows takes a lease of minutes, why the refusal is where that is said, and the split it was measured on. |
+| [the proven lapse](cli/the-proven-lapse.md) | Why a lease the record puts past its own duration is as free as none, which seam decides that and why it is the reclaim's own, and what the row a write writes over it holds. |
 | [the granted id](cli/the-granted-id.md) | Why an export reaches a substitution and a prefix does not, which openers lose a call its name unread, and which quoting leaves one as the prose it looks like. |
 | [`the checkpoint`](cli/the-checkpoint.md) | What a build ready to land leaves whoever lands it, why both merge routes are one table, and what a candidate is a fact about. |
 | [`the turn`](cli/the-turn.md) | Whose turn each landing state names, the three routes one is handed back by, and why only the judge's gives the lease back and takes an issue carrying no checkpoint. |

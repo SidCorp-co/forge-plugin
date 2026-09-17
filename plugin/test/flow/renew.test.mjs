@@ -163,8 +163,7 @@ test("a payload write is refused across two ids and goes through across one shar
   }
 });
 
-/* Both rungs that still refuse: a live lease, and a lapse of fifteen minutes on a thirty-minute
-   lease, which is younger than the duration the holder named and so proves nothing (ISS-1660). */
+/* Both rungs that still refuse: a live lease, and a lapse of fifteen minutes on a thirty-minute lease, which is younger than the duration the holder named and so proves nothing (ISS-1660). */
 test("another run's lease is refused as it was, live or lapsed inside its own duration", async () => {
   field = lease("the-other-run", ago(1));
   const live = await refused(() => renew(ISSUE, "ISS-65"));
@@ -577,9 +576,7 @@ test("a release the transport refuses says so and does not take the call down wi
   assert.equal(leaseOf(field)?.holder, held.holder, "and the lease the write took stands, nothing having been written");
 });
 
-/* What the two calls this route replaces left on the record is what the one call has to leave: a
-   typed `forge claim` carried the dead run's step forward, so the take that stands in for it does
-   too, and the transition after it is what clears the line (codex F1 of the whole-set read). */
+/* What the two calls this route replaces left on the record is what the one call has to leave: a typed `forge claim` carried the dead run's step forward, so the take that stands in for it does too, and the transition after it is what clears the line (codex F1 of the whole-set read). */
 test("a write reclaiming a lease the record proves dead carries the dead run's step, and a transition clears it", async () => {
   field = lease("the-other-run", ago(90));
   status = "awaiting_release";
@@ -594,9 +591,7 @@ test("a write reclaiming a lease the record proves dead carries the dead run's s
   assert.equal(leaseOf(field).next, null, "and a transition's own null clears it, as it does on any lease");
 });
 
-/* The reclaim reaches a lease whose renew time cannot be read — `expiryOf` answers zero and every
-   guard reads that as long expired — so the row it writes must not name the epoch as a fact about
-   anybody's run (codex F2 of the whole-set read). */
+/* The reclaim reaches a lease whose renew time cannot be read — `expiryOf` answers zero and every guard reads that as long expired — so the row it writes must not name the epoch as a fact about anybody's run (codex F2 of the whole-set read). */
 test("a displaced lease whose renew time cannot be read is recorded as unreadable, not as 1970", async () => {
   field = lease("the-other-run", ago(90));
   field.lease.renewedAt = "not a time";

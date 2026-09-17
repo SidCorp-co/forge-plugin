@@ -322,7 +322,7 @@ export const tookByWriting = (ref, lease, left = null) =>
   + `${left ? ` The step the field still named: ${left}.` : ""}`
   + ` Work that follows this says so by claiming, which is the lease that is kept:\n  forge claim ${ref}`;
 
-/* The same sentence one rung down, where the field held a lease rather than nothing (ISS-1660): the reclaim the refusal here used to name is one a bare `forge claim` would have granted, the lapse being older than the duration the holder itself named, so the write makes it. It names the run it came off and how long ago that lease ran out, because this caller read no refusal before the write and is the one caller a takeover is invisible to. */
+/* The same sentence one rung down, where the field holds a lease rather than nothing (ISS-1660): a bare `forge claim` grants the reclaim outright at this age, the lapse outlasting the duration the holder itself named, so the write makes that claim. It names the run it came off and how long ago that lease ran out, because this caller reads no refusal before the write and is the one caller a takeover is invisible to. */
 export const reclaimedByWriting = (ref, lease, over, now = sharedNow()) =>
   `${ref} was held by a lease that ran out ${agoIn(now - expiryOf(over))} and this write reclaimed `
   + `it: it came off ${describe(over)}, and ${describe(lease)} holds the issue now. A lapse that old `

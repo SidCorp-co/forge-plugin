@@ -1,5 +1,4 @@
-/* Who may take a turn its holder left, and the sentences that name the state refusing one. The lease
-   itself is `../lease.mjs`; what a state may not do is `landing/checkpoint.mjs`. docs/cli/the-takeover.md. */
+/* Who may take a turn its holder left, and the sentences that name the state refusing one. The lease itself is `../lease.mjs`; what a state may not do is `landing/checkpoint.mjs`. docs/cli/the-takeover.md. */
 import { INHERITED, INHERITED_MEANS, OWN_ID } from "../../resolve/config.mjs";
 import {
   LANDING_BUILDER_OWED, LANDING_JUDGED, LANDING_STATES, READ_THE_STATE, SPENT_AT, landingOf, takeRoute,
@@ -20,10 +19,7 @@ export const tookAt = (lease, holder, state) => {
 const takeableAfter = (ref) =>
   `Unless a write renews it, the turn is takeable once that lease expires:\n  ${takeRoute(ref)}`;
 
-/* A builder's turn asked for by a run that is not the builder it names. What says the builder has gone is
-   the builder's own lease: after a hand-back the record carries the lander's, whose liveness stood in for
-   the builder's and refused the one run left (ISS-1639). A live lease that is neither run's is nobody's to
-   take over here, the take licenses the write after it, and the records turn keeps its reading (ISS-1649). */
+/* A builder's turn asked for by a run that is not the builder it names. What says the builder has gone is the builder's own lease: after a hand-back the record carries the lander's, whose liveness stood in for the builder's and refused the one run left (ISS-1639). A live lease that is neither run's is nobody's to take over here, the take licenses the write after it, and the records turn keeps its reading (ISS-1649). */
 const successionRefusal = (ref, landing, holder, lease, said, taking) => {
   const whose = `${said}, whose turn is the builder ${landing.builder}'s and this session is ${holder}`;
   if (lease.holder === landing.builder) {
@@ -79,8 +75,7 @@ export const takeRefusal = (ref, landing, holder, lease, { now = sharedNow(), so
       return `${said}, whose turn is the lander's, and this session built it: the builder's turn `
         + `comes back at \`${LANDING_BUILDER_OWED}\` and nowhere else. ${READ_THE_STATE(ref)}`;
     }
-    /* At `judged` alone and spent by the take: a judge that went on to land under that same lease
-       holds an ordinary lander's, which a third run may not take. docs/cli/the-checkpoint.md. */
+    /* At `judged` alone and spent by the take: a judge that went on to land under that same lease holds an ordinary lander's, which a third run may not take. docs/cli/the-checkpoint.md. */
     if (!live || lease.holder === holder || lease.holder === landing.builder) return null;
     if (landing.state === LANDING_JUDGED && landing.judge && lease.holder === landing.judge) return null;
     /* And one state over, a successor's own lease after the write its turn ended with: spent by the take, and with no marker to clear, the row saying nothing once the lease moves. */
@@ -90,8 +85,7 @@ export const takeRefusal = (ref, landing, holder, lease, { now = sharedNow(), so
       + `${READ_THE_STATE(ref)}`;
   }
   if (row.turn === "qa") {
-    /* No lander is named here to spare its live lease, and a take at a state naming the judge is
-       what `--take` is for, so being other than the builder is the whole of the independence. */
+    /* No lander is named here to spare its live lease, and a take at a state naming the judge is what `--take` is for, so being other than the builder is the whole of the independence. */
     if (holder !== landing.builder) return null;
     return `${said}, whose turn is an independent judge's, and this session is the builder `
       + `${landing.builder} it names: no run may judge its own work, and an id a run inherited is the `
@@ -111,8 +105,7 @@ export const takeLease = async (documentId, ref, context,
   const held = landingOf(context);
   const refused = takeRefusal(ref, held, holder, leaseOf(context), { source, taking: true });
   if (refused) fail(refused);
-  /* Spent by every take at that state, the judge's own included: a marker the judge's own take left
-     behind would make the lander lease it goes on to hold a third run's to take. */
+  /* Spent by every take at that state, the judge's own included: a marker the judge's own take left behind would make the lander lease it goes on to hold a third run's to take. */
   const landing = held?.state === LANDING_JUDGED && held.judge ? { ...held, judge: "" } : undefined;
   const next = claimed(context, {
     holder, minutes, next: line, worklog: worklogFor(context, patch),
