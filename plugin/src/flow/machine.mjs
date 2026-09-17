@@ -11,7 +11,7 @@ const KEY = /^([a-z][a-z0-9-]*): ?(.*)$/u;
 const OPEN = new RegExp(`^(\`{3,})${INFO}\\s*$`, "u");
 const CLOSE = /^`{3,}[ \t]*$/u;
 const CLOSES = /^ {0,3}`{3,}[ \t]*$/u;
-/* What the first record in a body stamped, which is the one a write printed, matched over the whole line because a sentence ending in those words quotes a record rather than making one: docs/cli/the-ladder.md. */
+/* What the first record in a body stamped, which is the one a write printed, matched over the whole line because a sentence ending in those words quotes a record rather than making one: docs/cli/the-rung-in-text.md. */
 const FIRST_TAG = new RegExp(`^\`?${INFO}: ([a-z]+) · contract \\d+\`?[ \t]*$`, "mu");
 const TAG = new RegExp(`\`?${INFO}: ([a-z]+) · contract (\\d+)\`?\\s*$`, "u");
 const LABELLED = /^- \*\*([^*]+):\*\* (.*)$/u;
@@ -144,7 +144,7 @@ export const criterionNumber = (value) => {
 /* A trim: the fence is off before a field reaches here, so this goes with its callers (ISS-470). */
 export const unwrap = (text) => String(text ?? "").trim();
 
-/* Machine data in prose; every occurrence outside a code span decides, not the first (docs/cli/the-ladder.md). */
+/* Machine data in prose; every occurrence outside a code span decides, not the first (docs/cli/the-rung-in-text.md). */
 const DECLARED = {
   screen: "screen change", schema: "schema coupling", deploy: "deploy coupling", look: "user-facing outcome",
 };

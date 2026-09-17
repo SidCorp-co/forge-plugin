@@ -41,6 +41,7 @@ how many topics there may be.
 | [the work](cli/the-work.md) | What the opening says about a branch already carrying the phase it names, why reaching it is two offline readings, and why a capture with no diff behind it still writes one. |
 | [the published baseline](cli/the-published-baseline.md) | Why only a ship publishes the whole-tree result a baseline may cite, why the lookup is one exact commit, and why the authority is settled at the write. |
 | [the ladder](cli/the-ladder.md) | Why a doubtful rung answers with the rung that owes more, why the complexity field is its one source, and what the rule is not. |
+| [the rung in text](cli/the-rung-in-text.md) | Why a declaration a plan quotes is not one it makes, and why a run's rung is read off the record its own write printed rather than off the words beside it. |
 | [the primitives](cli/the-primitives.md) | What two verbs' own copies of the paging primitives cost, why one list serves a process, the measurements behind the shared markdown set, and where the SSE frame reader's home stops. |
 | [one primitive, or two](cli/one-primitive-or-two.md) | Why the capturing and stripping spans are two readers rather than a copy, which link target a verifier spends and which a parser does, and what an exclusion row owes the issue that clears it. |
 | [the help predicate](cli/the-help-predicate.md) | Why a predicate spelled in ten places is its own finding, what proving each site neutral cost, and why nothing looser is the needle. |

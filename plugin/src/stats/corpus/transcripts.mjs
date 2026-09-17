@@ -30,7 +30,7 @@ export const modelRun = (models) => {
 
 const RETIRED_STAMP = "tier";
 
-/* Which rung a whole run was worked at, off the records its writes posted and never off the output a class covers whole: the-ladder.md. Named apart from `ladder.mjs`'s `rungOf`, which answers for one issue's fields where this reads a transcript, and `RUNG_UNKNOWN` is no rung of the ladder rather than its cheapest. Either stamp reads, so a transcript written before the record's field was renamed classifies at the rung it always did (ISS-822). */
+/* Which rung a whole run was worked at, off the records its writes posted and never off the output a class covers whole: docs/cli/the-rung-in-text.md. Named apart from `ladder.mjs`'s `rungOf`, which answers for one issue's fields where this reads a transcript, and `RUNG_UNKNOWN` is no rung of the ladder rather than its cheapest. Either stamp reads, so a transcript written before the record's field was renamed classifies at the rung it always did (ISS-822). */
 export const rungRun = (calls) => {
   const said = calls
     .filter((call) => call.class === CONFIRMS)
