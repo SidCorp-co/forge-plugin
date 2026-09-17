@@ -465,3 +465,20 @@ test("a file past the entries a record keeps for it loses its oldest and keeps t
     rmSync(where.at, { recursive: true, force: true });
   }
 });
+
+/* A run that may not trust the ledger's digests may not trust these either: no digest here covers a
+   path no step claims, so the record would hand the widening straight back. */
+test("a run that may not read the ledger's digests spends every test file too", () => {
+  const { at, work } = scratch("reads-unread", null, null);
+  try {
+    landed(work, "plugin/src/one.mjs", "one, moved\n");
+    assert.match(run(work).stdout, /reads: \d+ of \d+ test file\(s\) recorded/u);
+    landed(work, "newdir/one.mjs", "export const one = 1;\n");
+    const { stdout } = run(work);
+    assert.match(stdout, /=== ledger: digests not read — no step claims newdir\/one\.mjs/u, stdout);
+    assert.doesNotMatch(stdout, /=== reads: /u, stdout);
+    for (const label of ["test", "test:tree"]) assert.match(stdout, new RegExp(`=== ${label} ===`, "u"), stdout);
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
