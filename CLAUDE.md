@@ -15,7 +15,8 @@ can ship, the first of these that reaches the decision settles it.
    every case that cause reaches, because what ships from here runs in production.
 
 They are `G-11`, `G-12` and `G-13`, and a filing or a decision cites them the same way it cites the
-ten standing goals behind them: `forge doctor` prints the list, and
+seven that stand behind them — the list is ten in total, three of the old ten having been folded into
+the goals that took their clause whole. `forge doctor` prints it, and
 [`docs/requirements/README.md`](docs/requirements/README.md) carries the clause each was read from.
 
 **Rules only.** Facts live in the code, mechanics in each tool's `-h`, history in `git`. A rule with
