@@ -67,11 +67,16 @@ const RULING_LINE = /^[ \t]*(\d+)\.[ \t]+\**[ \t]*(?:F\d+\b\**[ \t]*[—–\-:.]
 
 /* A reply quoting an example of a ruling is showing one, not making one, and the grammar cannot tell
    them apart: a fenced `1. F1 - REFUTED` under a real `1. **CONFIRMED**` would close what was left open. */
+const FENCE = /^[ \t]*(`{3,}|~{3,})(.*)$/u;
 const unfenced = (reply) => {
-  let inside = false;
+  let open = null;
   return String(reply ?? "").split("\n").map((line) => {
-    if (/^[ \t]*(?:```|~~~)/u.test(line)) inside = !inside;
-    else if (!inside) return line;
+    const found = FENCE.exec(line);
+    /* A markdown example of a fence opens with a longer run than the one it shows, so only a run of the
+       opener's own character, at least as long and carrying nothing after it, closes what it opened. */
+    if (found && !open) open = found[1];
+    else if (found && open && found[1][0] === open[0] && found[1].length >= open.length && !found[2].trim()) open = null;
+    else if (!open) return line;
     return "";
   }).join("\n");
 };

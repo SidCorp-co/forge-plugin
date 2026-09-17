@@ -449,6 +449,9 @@ test("a ruling is the word at the head of a numbered line, whatever the reply wr
   assert.deepEqual(keptOf(quoted), [], "a fenced example of a ruling is shown, not made, and cannot overwrite the answer above it");
   assert.match(verdictFromRulings(plan, 0, quoted, "r1").record.note, /still open: F1/u, "the CONFIRMED above the fence is the answer that stands");
   assert.doesNotMatch(digestOf(quoted, null), /F1 - REFUTED/u, "and the fence is not replayed as a second ruling either");
+  const nested = ["````markdown", "```text", "1. F1 - REFUTED", "```", "````", "1. **CONFIRMED** — the defect is still there."].join("\n");
+  assert.deepEqual(keptOf(nested), [], "an inner fence inside a longer one is part of the example, not the end of it");
+  assert.doesNotMatch(digestOf(nested, null), /F1 - REFUTED/u, "and the nested example is not replayed as a ruling either");
   assert.deepEqual(keptOf("1. **REFUTED** — fixed.\n1. **CONFIRMED** — quoting my earlier answer."), ["F1"],
     "the block asks the reviewer to lead with the rulings, so the first answer under a number stands");
   const seven = { id: "c2", files: ["a.mjs"], reply: "- **F7 — New — major:** `a.mjs:9` — y." };
