@@ -9,7 +9,7 @@ import { isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { digestFile } from "../ledger.mjs";
-import { READS_DIR, READS_ROOT } from "./audit.mjs";
+import { READS_DIR, READS_ROOT, READS_TICKET } from "./audit.mjs";
 import { TEST_FILE } from "../steps.mjs";
 
 const DIGEST_LENGTH = 12;
@@ -197,9 +197,11 @@ export const recordSets = (dir, sets, { root, context, manifests }) => {
 };
 
 /** The environment a step's processes are audited under: where each writes its record, what counts
- *  as inside this repository, and the preload that does it, kept beside whatever this box declares. */
+ *  as inside this repository, and the preload that does it. The ticket is emptied: a step's
+ *  processes begin a tree of their own, and one inherited would file them under somebody else's. */
 export const auditEnv = (out, root) => ({
   [READS_DIR]: out,
   [READS_ROOT]: root,
+  [READS_TICKET]: "",
   NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --import=${new URL("./audit.mjs", import.meta.url).href}`.trim(),
 });

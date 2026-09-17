@@ -221,7 +221,8 @@ test("a node child's own reads are recorded under the ticket the process that sp
       `if (said.status !== 0) { console.error(said.stderr); process.exit(1); }`].join("\n"));
     assert.equal(said.status, 0, said.stderr);
     const records = recordsIn(out);
-    const parent = records.find((one) => one.ticket === null);
+    const parent = records.find((one) => one.argv[0].endsWith("ran.mjs"));
+    assert.ok(parent, `no record for the process that spawned it: ${records.length}`);
     assert.equal(parent.spawned.length, 1);
     const child = records.find((one) => one.ticket === parent.spawned[0].ticket);
     assert.ok(child, `no record under the ticket: ${records.map((one) => one.ticket).join(" ")}`);

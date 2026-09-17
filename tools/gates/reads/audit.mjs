@@ -57,7 +57,11 @@ export const shimSource = (name, real) => {
   return out.join("\n");
 };
 
+const HERE = Symbol.for("forge.gate.reads");
+
+// Once per process: a second audit would take the global the first writes its record through.
 const start = (out, root) => {
+  if (globalThis[HERE]) return;
   const { registerHooks } = process.getBuiltinModule("node:module");
   const { mkdirSync, writeFileSync } = process.getBuiltinModule("node:fs");
   const { isAbsolute, join, relative, resolve } = process.getBuiltinModule("node:path");
@@ -109,7 +113,7 @@ const start = (out, root) => {
       return [...before, { ...options, env: { ...(options.env ?? process.env), [READS_TICKET]: mine } }, ...after];
     },
   };
-  globalThis[Symbol.for("forge.gate.reads")] = audit;
+  globalThis[HERE] = audit;
 
   /* This repository's own code and no one else's: `graceful-fs`, which npm loads, defines a property
      on the fs module object and a namespace has none to give. What a dependency reads for repository
@@ -143,7 +147,7 @@ const start = (out, root) => {
   /* At exit and not incrementally: a process killed before it gets here leaves no record at all, and
      the ticket its parent holds is then a child the collector cannot answer for. */
   process.on("exit", () => {
-    const mine = process.env[READS_TICKET] ?? null;
+    const mine = process.env[READS_TICKET] || null;
     try {
       mkdirSync(out, { recursive: true });
       writeFileSync(join(out, `${mine ?? `own-${process.pid}`}.json`), `${JSON.stringify({
