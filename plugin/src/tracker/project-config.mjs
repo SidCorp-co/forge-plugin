@@ -35,11 +35,6 @@ const readable = (policy) => Boolean(policy?.staging && policy?.production);
 
 export const UNREAD_CONFIG = "the project config could not be read";
 
-/* Three states, one value each. A policy is a read that happened; `null` is a checkout naming no
-   project to read one for; this is the read that did not happen, carrying the sentence the transport
-   already handed back. `releaseFrom` covers the fourth — a project that answered and declared
-   nothing is a policy of nulls, never an absence. Told apart here and nowhere else: a reader
-   inferring it from a second signal is the precedence rule this repository refuses (ISS-1663). */
 export const unreadFrom = (why) => ({ unread: why, from: CONFIG_SOURCE });
 
 export const policyUnread = (policy) => policy?.unread ?? null;
@@ -105,9 +100,8 @@ export const releaseConflict = (policy) => {
     + "until the branch is set";
 };
 
-/* Said here because this is the one place that knows the read failed, and because the readers that
-   decide on a boolean — `judgementOf` through `asksIndependent`, which turns the independent-judge
-   check off — have nowhere to put it without starting to refuse what the issue put out of scope. */
+/* Three states, one value each: a policy read, `null` where no project is named, and this where the
+   read did not happen, said here too since a boolean reader has nowhere to put it (ISS-1663). */
 export const releasePolicy = once(async () => {
   if (!slugIfAny()) return null;
   const answer = await scoped("forge_config", { action: "get" }, true);

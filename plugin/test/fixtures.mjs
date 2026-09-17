@@ -502,8 +502,6 @@ export const fakeTracker = async (state) => {
       if (state.answer?.["forge_projects.read"]) return answered("forge_projects.read", { projectRef: id });
       const config = answered("forge_config", { action: "get" });
       const detail = state.answer?.["forge_projects.get"] ? answered("forge_projects.get", {}) : {};
-      /* Either half may refuse, this being the one GET both are read off: a case about a config the
-         tracker would not answer for has no other route to fail (ISS-1663). */
       if (config?.refused) return config;
       return detail.refused ? detail : projectRow({ ...config, ...detail });
     }],

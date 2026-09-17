@@ -513,10 +513,9 @@ test("a judging read that spent its bound says so on the error stream, in either
   assert.equal(JSON.parse(run.stdout).judging.unreached, 2, "and the count is a field a machine reads");
 });
 
-/* The one the judging section vanished in: a project that does declare an independent judgement and
-   a config call the tracker would not answer for used to print exactly what a deliberate opt-out
-   prints, which is nothing at all (ISS-1663). Only the config read is refused here — the issue reads
-   go on answering, which is what makes the silence invisible rather than obviously broken. */
+/* A project that declares an independent judgement and a config call the tracker refuses must not
+   print what a deliberate opt-out prints, which is nothing at all. Only the config read is refused
+   here — the issue reads answer, which is what makes such a silence invisible (ISS-1663). */
 test("a config read the tracker refused says so rather than printing the judging section away", async (t) => {
   load([issue("ISS-1", { priority: "critical" }), issue("ISS-5", { status: "developed" })]);
   state.config = { pipelineConfig: { qa: "independent" } };

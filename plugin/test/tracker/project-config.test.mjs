@@ -181,9 +181,9 @@ test("a checkout naming no project is said rather than defaulted", () => {
     + "what a run tells apart from the `none` the case above earns");
 });
 
-/* The two absences a reader used to get one value for. A report printing `not stated` for a call
-   that was refused is telling a developer the project decided nothing, which is the one thing this
-   report exists to tell apart from a read that did not happen (ISS-1663). */
+/* A report printing `not stated` for a call that was refused tells a developer the project decided
+   nothing, which is the one thing this report exists to tell apart from a read that did not
+   happen (ISS-1663). */
 test("a config read that failed is told apart from a checkout that names no project", () => {
   const out = lines(projectRows({ policy: unreadFrom("Forge answered 503\nno available server"), deploy: null }));
   assert.match(out, /^release policy: the project config could not be read, so nothing below it was read rather than declared: Forge answered 503$/mu,
