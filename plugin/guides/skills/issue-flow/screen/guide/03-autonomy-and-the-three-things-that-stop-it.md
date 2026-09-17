@@ -9,12 +9,13 @@ Exactly three:
 3. **A failure with no way back**: a deploy that will not roll back, a gate still red after the fix,
    an integration path that changed underneath you.
 
-Everything else proceeds unasked: plan, comments, evidence, branch, commits, push, deploy, the
-judge, status, release note, close.
+Everything else proceeds unasked: plan, comments, evidence, branch, commits, push, deploy, status,
+release note, close.
 
-**Dispatching the judge is not a stop.** The run waits for it and carries on with what it returns;
-what a stop means is that this session ends with the issue in somebody else's hands, and Phase 5's
-dispatch ends with the findings in this one's.
+**Ending at `developed` for a judging run is not a stop.** A stop leaves this session waiting on a
+named somebody; that ending leaves the issue in nobody's hands at all — at a status any run may
+claim from, under no lease, with the record carrying everything the next one needs. Nothing is asked
+of a person and nothing is waited on, so the phase that ends there takes itself.
 
 **A park is not a stop either.** It sets one issue down with its reason recorded and moves you to
 the next; `forge record park -h` lists the kinds. A screen change is still a park where the

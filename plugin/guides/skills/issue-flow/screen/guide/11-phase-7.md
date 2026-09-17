@@ -6,6 +6,12 @@ Take the integration and deploy path Phase 0 discovered, on the route the ship m
 **The landing is this phase's first step where Phase 5 has not already taken it**, and it is one
 landing and one mark either way. What the mark carries: `forge guide contract developed`.
 
+**Where the judgement is an independent run's, the building run's part of this phase is the landing,
+that mark and the note Phase 6 drafted, and it ends there.** The note is written here rather than
+carried off in a report, because the run that built the change is the one that can say what a user
+will now see, and the rung it earns is moved by whoever holds the issue next. Everything below is
+then taken by the judging run, standing at `developed` where this one stopped.
+
 **The ship is the longest wait a run has**, and it obeys the rule every other wait here does, which
 the poll guard enforces on its own log too: `forge hooks --how polling`, read before the first read
 of that log rather than after the guard refuses the second.

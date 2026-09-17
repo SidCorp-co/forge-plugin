@@ -29,11 +29,11 @@ const served = (flow, ...argv) => {
 const method = (flow) => served(flow, "guide", "issue-flow");
 const verification = (flow) => served(flow, "guide", "issue-flow", "verification");
 
-test("the judge's dispatch is the screen flow's, and no flow serves it to a project with no screen", () => {
-  assert.match(method(SCREEN), /dispatch the judge and wait/iu,
-    "criterion 1: the screen method does not serve the phase that dispatches the judge");
-  assert.doesNotMatch(method(null), /dispatch the judge/iu,
-    "criterion 1: a project pinning nothing is told to dispatch a judge this flow has no rung for");
+test("the handover to a judge is the screen flow's, and no flow serves it to a project with no screen", () => {
+  assert.match(method(SCREEN), /The handoff is the status, not a message and not a lease/u,
+    "criterion 1: the screen method does not serve the phase that hands the issue to a judge");
+  assert.doesNotMatch(method(null), /The handoff is the status/u,
+    "criterion 1: a project pinning nothing is told to hand off to a judge this flow has no rung for");
   assert.match(method(SCREEN), /Flow screen, which this project runs/u, "and the answer names the flow it was served for");
 });
 
@@ -69,17 +69,28 @@ test("the judge's charter is written before a criterion is mapped, and only a ha
   assert.doesNotMatch(none, /material harm/u, "and no blocking line, which is what these selectors are watched on");
 });
 
-test("the screen flow acquires the identity before it dispatches, and a repair is judged again at the new one", () => {
+test("the screen flow leaves the identity on the issue, and a repair is judged again at the new one", () => {
   const held = served(SCREEN, "guide", "issue-flow", "5");
-  assert.match(held, /acquired before the dispatch, never after it/u,
-    "criterion 13: nothing puts the identity before the dispatch");
-  assert.match(held, /The verdicts taken at the identity the repair replaced do not carry/u,
+  assert.match(held, /identity is acquired here and left on the issue/u,
+    "criterion 13: nothing leaves the identity where the run that judges it reads its own brief");
+  assert.match(held, /verdicts taken at the identity it replaced do not carry/u,
     "criterion 14: a repair carries its old verdicts, so a rung answers for code nobody shipped");
   /* The same phase under the flow with no judge, which is what each selector above is watched
      failing on: a rule that reads the same under both flows is one the flow axis did not carry. */
   const none = served(DEFAULT, "guide", "issue-flow", "5");
-  assert.doesNotMatch(none, /acquired before the dispatch/u, "and default dispatches nothing to order");
+  assert.doesNotMatch(none, /left on the issue/u, "and default hands nobody an identity to read");
   assert.doesNotMatch(none, /do not carry/u, "and default has no identity for a repair to move");
+});
+
+/* The two arms of the split, which is the one thing a project's own declaration decides inside a
+   flow: a phase serving only the arm this project happens to run would end a builder whose successor
+   the ranking verb declines to offer. */
+test("the screen flow's Phase 5 serves both arms of the judging declaration", () => {
+  const held = served(SCREEN, "guide", "issue-flow", "5");
+  assert.match(held, /It dispatches nobody and it waits for nothing/u,
+    "the independent arm: the building run is still told to dispatch a judge and wait on it");
+  assert.match(held, /declared the judgement the builder's own, or declared nothing/u,
+    "the builder arm: a project that declared no independent judge is told nothing about what to do");
 });
 
 test("an automatic release is looked at where it landed, and what the run leaves is legible", () => {

@@ -1,8 +1,8 @@
-## Phase 5 — Make it judgeable, hand it to the judge, and answer what comes back
+## Phase 5 — Make the change judgeable, and hand it over by status
 
-**This run does not judge its own change**: a verdict under its own id earns nothing here, so writing
-one is a round spent to be refused. What it does is make the change judgeable, dispatch the judge,
-and answer what comes back.
+**This run does not judge its own change where the project asks for a judgement other than the
+builder's**: a verdict under its own id earns nothing there, so writing one is a round spent to be
+refused. What it does is make the change judgeable and leave the record a judging run claims from.
 
 **Where the judging sits inside the run is the project's route, read in Phase 0.** Where a candidate
 is deployed before it is promoted, the deploy comes first and the promotion waits on the judgement.
@@ -11,30 +11,41 @@ this phase resumes at the deployment that landing produced. The statuses move in
 way — `developed` on the mark the landing writes, `testing` on the judgement — and neither moves
 before what earns it.
 
-**The deployment identity is acquired before the dispatch, never after it.** Read back the commit the
+**The deployment identity is acquired here and left on the issue.** Read back the commit the
 deployment itself reports serving. A deploy command's exit code says a command returned and a branch
-head says what somebody pushed; neither is the identity, and a judge dispatched without one is
-refused and comes back having judged nothing. Which head, what each kind of change owes as evidence
-and how to capture it: `forge guide issue-flow verification`.
+head says what somebody pushed; neither is the identity, and a judging run that finds none is
+refused and comes back having judged nothing. It reads the identity back for itself rather than
+taking this run's word for it, so what this phase leaves is what its own reading is compared
+against. Which head, what each kind of change owes as evidence and how to capture it: `forge guide
+issue-flow verification`.
 
-**Then dispatch the judge and wait.** The brief is the issue, the criteria its plan named under `##
-Witnessed on screen`, the environment and that identity, and the role is the `qa` one this plugin
-ships. Those are the criteria written to be judged at the product, so a judge briefed with them
-exercises what somebody asked for rather than re-deriving it from the builder's own proof. It exercises the change as a person using
-it, writes one verdict per criterion under an id of its own citing that identity, and writes a
-finding for anything a user meets that no criterion named. Nothing advances from this phase; what a
-record holds before either status is earned: `forge guide contract developed`,
-`forge guide contract testing`.
+**Then the two runs part, and which of them judges is the declaration Phase 0 read.**
 
-**A finding that blocks is this run's work, not a note on the issue.** Which findings block, and
-where the others go instead, is `forge guide issue-flow verification`. Answer it in the tree, deploy
-again, acquire the identity that deployment now reports, and dispatch the judge again against it.
-**The verdicts taken at the identity the repair replaced do not carry**: they judged a thing that is
-no longer running, and a rung that accepted them would be answering for code nobody shipped.
+**Where that judgement is an independent run's, this run's work ends at `developed`.** It writes the
+records that rung is earned by, judges what Phase 3 left it to judge, and stops. It dispatches
+nobody and it waits for nothing. The criteria the plan named under `## Witnessed on screen` stay on
+the issue, which is where the judging run reads its own brief. **The handoff is the status, not a
+message and not a lease**: a lease ends with the run that took it, so an issue left at `developed`
+is a free issue at a status somebody else claims from, and nothing in this route asks for a tool a
+judging role does not ship.
 
-**A criterion the judge could not reach is a shortfall, not a pass.** Where every criterion under a
-declared screen change would be a skip, what was owed was a credential, a capture route or a person
-— and that is asked for the way Phase 2 asks, not reported at Phase 7 when the judging is over.
+**Where the project declared the judgement the builder's own, or declared nothing, no second run
+exists to hand to and this one carries on.** It judges its own change against the criteria, writes
+the verdicts under its own id, and takes the rungs the phases below name. A `screen` project that
+has declared neither is a clash `forge doctor` reports on every run, met in Phase 0 rather than
+discovered here.
+
+**A repair replaces the thing that was judged, and the verdicts taken at the identity it replaced do
+not carry**: they judged something that is no longer running, and a rung that accepted them would be
+answering for code nobody shipped. Which findings are worth a repair, and where the others go
+instead, is `forge guide issue-flow verification`. Under an independent judgement that repair is a
+fresh dispatch against this issue rather than this run resumed, so what it needs is on the record
+and not in a session.
+
+**A criterion the judging run could not reach is a shortfall, not a pass.** Where every criterion
+under a declared screen change would be a skip, what was owed was a credential, a capture route or a
+person — and that is asked for the way Phase 2 asks, not reported at Phase 7 when the judging is
+over.
 
 A change that proves unshippable is an outcome: post the finding, leave the branch named, park the
 issue.
