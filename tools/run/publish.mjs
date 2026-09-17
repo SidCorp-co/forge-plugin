@@ -1,6 +1,6 @@
 /* The gate a release passed, published for the head it pushed, so a branch cut from that head cites the result instead of invoking a gate of its own (ISS-1101). The whole-scope claim is read here and handed over as a word: the gate's record is a content-keyed `tools/` artefact the plugin may not read, and the ship is the only thing that may say `whole` of a run that was itself scoped. Every field is read off the tree being published for and none off the process's own checkout — sharing a repository is no guarantee of sharing a `.forge.json`, and a publication filed under the invoking project is one the release's own checkout cannot discover. */
 import { gitOut } from "../checkout.mjs";
-import { greenHeld } from "../gates/carried.mjs";
+import { greenHeld } from "../gates/green.mjs";
 import { remoteHeadOf, shortly } from "./install.mjs";
 import { publishBaseline, publishedSaid } from "../../plugin/src/flow/earned/published.mjs";
 import { projectAt } from "../../plugin/src/resolve/settings.mjs";
@@ -27,7 +27,7 @@ export const unshippedSays = (tree, base, commit) => {
   return null;
 };
 
-/** Called from every route that releases a head, the ship and the landing alike, because a rule reading `the ship publishes the baseline for the head it shipped` is incomplete while a second route releases one and publishes nothing. Reports and refuses nothing, as the record's carry does — a record this cannot read is not a release this may stop. `read` is a seam so a case can drive the outcomes a real step table will not produce to order, and the real reader is driven as well, over a repository whose gate ledger is its own. */
+/** Called from every route that releases a head, the ship and the landing alike, because a rule reading `the ship publishes the baseline for the head it shipped` is incomplete while a second route releases one and publishes nothing. Reports and refuses nothing: a record this cannot read is not a release this may stop. `read` is a seam so a case can drive the outcomes a real step table will not produce to order, and the real reader is driven as well, over a repository whose gate ledger is its own. */
 export const publishes = (tree, base, version, { say = console.log, read = greenHeld } = {}) => {
   const commit = gitOut(["rev-parse", "HEAD"], tree);
   try {

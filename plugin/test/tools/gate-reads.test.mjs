@@ -7,7 +7,7 @@ import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { auditEnv, contextOf, ENTRIES_PER_FILE, forgetReads, heldSets, reaches, recordSets, selectTests,
+import { auditEnv, contextOf, ENTRIES_PER_FILE, forgetReads, reaches, recordSets, selectTests,
   setsFrom } from "../../../tools/gates/reads/sets.mjs";
 import { CLASSIFIED, optionsIn, shimSource, SHIMMED } from "../../../tools/gates/reads/audit.mjs";
 import { landed, run, scratch, write } from "./gates/scratch.mjs";
@@ -123,20 +123,16 @@ test("a set recorded under another execution context answers for nothing", () =>
   }
 });
 
-/* The carry a release makes across its version commit, which is these two calls: without it every
-   test file is spent again on the head every branch is cut from. */
-test("a set the record holds green is re-keyed onto the content a release leaves, and holds after it", () => {
+/* Every recorded set carries the manifests, so a release moving the number in one of them would
+   otherwise spend every test file on the head every branch is cut from. */
+test("the number a release writes leaves a set the record holds green, and a dependency beside it does not", () => {
   const where = room({ "package.json": `{ "version": "1.0.0" }\n`, "plugin/src/one.mjs": "one\n" });
-  const how = { root: where.root, context: CONTEXT };
   try {
     assert.deepEqual(held(where, [setOf(["plugin/src/one.mjs"])], ["package.json"]).spend, []);
-    forgetReads();
-    const carried = heldSets(where.dir, [FILE], how);
     write(where.root, "package.json", `{ "version": "1.0.1" }\n`);
-    assert.deepEqual(again(where).spend, [FILE], "before the carry");
-    forgetReads();
-    recordSets(where.dir, carried, { ...how, manifests: ["package.json"] });
-    assert.deepEqual(again(where).spend, [], "after it");
+    assert.deepEqual(again(where).spend, [], "the number alone moved, and nothing carried it");
+    write(where.root, "package.json", `{ "version": "1.0.1", "dependencies": { "dep": "1.0.0" } }\n`);
+    assert.deepEqual(again(where).spend, [FILE], "and a dependency moved with it is content");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }

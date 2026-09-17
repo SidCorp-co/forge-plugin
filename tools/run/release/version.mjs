@@ -58,7 +58,7 @@ export const versionAbove = (tree, base, note, at = null) => {
   ].filter(Boolean);
   const local = read(join(tree, "package.json"))?.version;
   const want = nextVersion(local, upstream);
-  /* Judged before `npm version` writes, so a refused note leaves the tree at the content the gate's record is keyed on and the resume that fixes it carries every pass rather than spending the gate again — `acrossVersion` re-keys that record only once this returns. The condition is the early return below, one line ahead of it: where HEAD already carries the version, no commit is made and there is no subject to be wrong. */
+  /* Judged before `npm version` writes, so a refused note leaves the tree at the content the gate's record is keyed on and the resume that fixes it finds every pass standing rather than spending the gate again. The condition is the early return below, one line ahead of it: where HEAD already carries the version, no commit is made and there is no subject to be wrong. */
   if (versionAt(tree, "HEAD") !== (want ?? local)) noteAgrees(note, want ?? local);
   if (want) {
     console.log(`  ${REMOTE}/${base} carries ${upstream}; taking ${want}`);

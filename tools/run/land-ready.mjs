@@ -4,13 +4,12 @@
 import { join, resolve } from "node:path";
 
 import { gitOut, loud, REMOTE, stop, Stop } from "../checkout.mjs";
-import { acrossVersion } from "../gates/carried.mjs";
 import { INSTALLS, LANDS, PUSHES, runLanding, waitMs } from "./land.mjs";
 import { follows, installs, shortly } from "./install.mjs";
 import { tipSaid } from "./land-ready/branch.mjs";
 import { publishes } from "./publish.mjs";
 import { above, forgetBump, versionAbove } from "./release/version.mjs";
-import { RELEASE_FILES, versionAt } from "./landing.mjs";
+import { versionAt } from "./landing.mjs";
 import {
   candidateOf, carries, dropRoom, landedAlready, linked, mergedTree, movedBy, NOT_KNOWN, pushed,
   remoteHead, roomFor,
@@ -369,7 +368,7 @@ const landingSteps = (one) => {
     ["the candidate, and what the landing moved", () => chainStep(one)],
     ["the gate over the candidate", () => gateStep(one)],
     ["a version above the pin", () => {
-      acrossVersion(one.at.room, RELEASE_FILES, () => versionAbove(one.at.room, base, null, one.at.pin));
+      versionAbove(one.at.room, base, null, one.at.pin);
       one.at.release = versionAt(one.at.room, "HEAD");
       one.at.intended = gitOut(["rev-parse", "HEAD"], one.at.room);
     }],

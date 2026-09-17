@@ -8,7 +8,7 @@ import { lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, wr
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { digestFile } from "../ledger.mjs";
+import { digestFile, digestIn } from "../ledger.mjs";
 import { READS_DIR, READS_ROOT, READS_TICKET } from "./audit.mjs";
 import { TEST_FILE } from "../steps.mjs";
 
@@ -28,7 +28,7 @@ const hashed = (root, one) => {
   if (!held.has(one)) {
     let found;
     try {
-      found = digestFile(join(root, one));
+      found = digestIn(root, one);
     } catch {
       found = "not a file";
     }
@@ -121,10 +121,6 @@ export const selectTests = (dir, files, { root, context }) => {
   }
   return { spend, kept };
 };
-
-/** The sets this content holds green, for a caller about to change the content under them. */
-export const heldSets = (dir, files, { root, context }) =>
-  selectTests(dir, files, { root, context }).kept.map((one) => one.set);
 
 const subjectOf = (record, root) => {
   if (!Array.isArray(record.argv) || record.argv.length !== 1) return null;

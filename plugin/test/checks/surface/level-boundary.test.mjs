@@ -38,8 +38,8 @@ test("no module under plugin/src imports or reads a file under this repository's
    a selector matching nothing cannot pass as a clean tree. */
 test("the reader finds a specifier that reaches tools, and leaves the plugin's own tools tree alone", () => {
   const at = "plugin/src/flow/record/record.mjs";
-  assert.deepEqual(reachesTools(at, `import { greenHeld } from "../../../../tools/gates/carried.mjs";`),
-    [join(ROOT, "tools", "gates", "carried.mjs")], "a specifier escaping into tools/ is found");
+  assert.deepEqual(reachesTools(at, `import { greenHeld } from "../../../../tools/gates/green.mjs";`),
+    [join(ROOT, "tools", "gates", "green.mjs")], "a specifier escaping into tools/ is found");
   assert.deepEqual(reachesTools(at, `import { pluginCopy } from "../../tools/plugin-copy.mjs";`), [],
     "and plugin/src/tools, which is the plugin's own, is no finding");
   assert.deepEqual(reachesTools(at, `import { x } from "node:path";`), [], "nor is a bare specifier");
@@ -53,6 +53,6 @@ test("the ship imports the plugin, which is the direction this boundary allows",
   const ship = readFileSync(join(ROOT, "tools", "run", "publish.mjs"), "utf8");
   assert.match(ship, /from "\.\.\/\.\.\/plugin\/src\/flow\/earned\/published\.mjs"/u,
     "the publish reads the store through the plugin, so the record's shape has one owner");
-  assert.match(ship, /from "\.\.\/gates\/carried\.mjs"/u,
+  assert.match(ship, /from "\.\.\/gates\/green\.mjs"/u,
     "and reads the gate's record here, where the ledger belongs");
 });

@@ -31,7 +31,7 @@ test("a note naming the version below the one the step takes is refused, and bot
   assert.match(run.stderr, /ship --from 6/u, `the refusal named no way back:\n${run.stderr}`);
 });
 
-/* Judged before `npm version` writes: the gate's pass record is keyed on file content and `acrossVersion` re-keys it onto the bumped content only once the bump returns, so a refusal thrown past the write would leave a manifest no pass answers for and charge the resume a whole gate for a one-word fix. */
+/* Judged before `npm version` writes: the gate's pass record is keyed on file content, so a refusal thrown past the write would leave a manifest no pass answers for and charge the resume a whole gate for a one-word fix. */
 test("that refusal leaves the release files, the index and HEAD where the step found them", () => {
   const { work } = owing("note-unmoved");
   const was = {

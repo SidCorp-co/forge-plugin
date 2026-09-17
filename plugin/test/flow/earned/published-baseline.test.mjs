@@ -15,7 +15,7 @@ process.env.XDG_CONFIG_HOME = tempHome("published-baseline").path;
 const { HELD, PART, WROTE, citationProblem, citeForm, publishBaseline, publishedFor, publishedPath, publishedSaid }
   = await import("../../../src/flow/earned/published.mjs");
 const { publishes } = await import("../../../../tools/run/publish.mjs");
-const { greenHeld } = await import("../../../../tools/gates/carried.mjs");
+const { greenHeld } = await import("../../../../tools/gates/green.mjs");
 const { recordDir } = await import("../../../../tools/gates/timing.mjs");
 const { recordPass } = await import("../../../../tools/gates/ledger.mjs");
 const { ledgerFor } = await import("../../../../tools/gates/ledger.mjs");

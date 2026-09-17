@@ -2,8 +2,9 @@
    content, never on a sha: a rebase rewrites the sha, and the tree a session gates most has none. */
 import { createHash } from "node:crypto";
 import { lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
+import { RELEASE_FILES } from "../run/landing.mjs";
 import { derivationFiles, under } from "./scope.mjs";
 import { recordDir } from "./timing.mjs";
 
@@ -15,6 +16,9 @@ const ENTRY = new RegExp(`^([0-9a-f]{${DIGEST_LENGTH}}) (?:(\\d+)s )?(.+)$`, "u"
 const SHARED = /^package(?:-lock)?\.json$/u;
 
 export const LEDGER_UNSEEN = `Keyed on repository file content, the manifests, this runner's own modules and ${process.version}.
+A file a release writes a version into is keyed on its values with that version taken out of them, so a rebase past
+another release leaves every step where it stood; one left behind at a number the others moved past keeps that number
+in the digest, and everything in those files that is not that number is content like any other.
 It cannot see node_modules as installed, anything outside the repository, or a tool on PATH. --full ignores
 those digests, and reads the seconds beside them all the same, for the order and for nothing else.`;
 
@@ -38,12 +42,50 @@ export const digestFile = (path, rewrite = null) => {
     .update(rewrite ? rewrite(bytes.toString("utf8")) : bytes).digest("hex");
 };
 
-const hashFile = (path) => {
-  if (!hashed.has(path)) hashed.set(path, digestFile(path));
-  return hashed.get(path);
+// Where a release writes a version and nowhere else: the file's own field, and in a lock file the root package's second copy at `packages[""]`.
+const LOCK = "package-lock.json";
+const versionLocations = (one) => basename(one) === LOCK ? [["version"], ["packages", "", "version"]] : [["version"]];
+
+const releaseVersion = (root) => {
+  try {
+    const { version } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+    return typeof version === "string" ? version : null;
+  } catch {
+    return null;
+  }
 };
 
-export const contentOf = (root, files) => new Map(files.map((file) => [file, hashFile(join(root, file))]));
+// The empty string and not a deletion: a file holding no version at all would otherwise digest exactly as one holding the release's, and the step that refuses the first would be skipped on the second's pass.
+const AGREED = "";
+
+const masked = (found, [key, ...deeper], was) => {
+  if (found === null || typeof found !== "object" || !(key in found)) return found;
+  if (deeper.length === 0) return found[key] === was ? { ...found, [key]: AGREED } : found;
+  return { ...found, [key]: masked(found[key], deeper, was) };
+};
+
+// Nothing the gate runs reads which number a release wrote — `shipped-version` reads only whether these files agree on it — so a location holding this tree's own release version digests as agreement and one holding any other string digests as itself. A file this cannot parse, and a tree with no release version to compare against, digest as their bytes: the cost of either is a step spent and never a step excused.
+const besideVersion = (root, rel) => {
+  const was = releaseVersion(root);
+  if (was === null) return null;
+  return (text) => {
+    try {
+      return JSON.stringify(versionLocations(rel).reduce((found, at) => masked(found, at, was), JSON.parse(text)));
+    } catch {
+      return text;
+    }
+  };
+};
+
+/** What one file of a checkout hashes to, and the only derivation of it: two are free to disagree about a manifest, which is how a release's own version survived ISS-939 inside every step's digest and charged the next run to rebase a whole gate (ISS-1716). */
+export const digestIn = (root, rel) =>
+  digestFile(join(root, rel), RELEASE_FILES.includes(rel) ? besideVersion(root, rel) : null);
+
+const hashFile = (root, rel) => {
+  const path = join(root, rel);
+  if (!hashed.has(path)) hashed.set(path, digestIn(root, rel));
+  return hashed.get(path);
+};
 
 export const forgetContent = () => hashed.clear();
 
@@ -52,7 +94,7 @@ const digestOf = (root, files) => {
   hash.update(`${process.version}\n`);
   for (const file of [...files].sort()) {
     hash.update(file);
-    hash.update(hashFile(join(root, file)));
+    hash.update(hashFile(root, file));
   }
   return hash.digest("hex").slice(0, DIGEST_LENGTH);
 };

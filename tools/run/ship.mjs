@@ -9,7 +9,6 @@ import { fileURLToPath } from "node:url";
 
 import { checkoutRoot, defaultBranch, gitOut, loud, parsed, read, REMOTE, remoteRef, revAt, stop }
   from "../checkout.mjs";
-import { acrossVersion } from "../gates/carried.mjs";
 import { follows, installs as installed } from "./install.mjs";
 import { recordDir, runSays } from "../gates/timing.mjs";
 import { edgesLeft, fileIssue } from "../../plugin/src/tracker/filing/route.mjs";
@@ -18,7 +17,7 @@ import { CEILINGS, climbForm, overCeiling } from "../../plugin/src/ladder.mjs";
 import { REPLAYED, replaySays, replayedBy } from "./replayed.mjs";
 import { cleanTree, INSTALLS, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./land.mjs";
 import { checkpointsFinished } from "./ship/checkpoint.mjs";
-import { onlyRelease, RELEASE_FILES } from "./landing.mjs";
+import { onlyRelease } from "./landing.mjs";
 import { CHECK, publishes } from "./publish.mjs";
 import { publishesVersion, statesVersion, versionIn } from "./release/released-tag.mjs";
 import { forgetBump, unwound, versionAbove } from "./release/version.mjs";
@@ -40,18 +39,16 @@ export const SHIP_HELP = [
   "the run before it, so a release that made the gate slower is visible where a release that wrote a",
   "lot of unread code already is.",
   "",
-  "The version step carries the gate's record onto the version it wrote. Every step's digest is keyed",
-  "on the manifests, so the commit naming a release used to leave the whole record unreadable at the",
-  "one head every later branch is cut from, and a worktree holding no change paid for the whole table",
-  "to re-prove content this gate had passed minutes earlier. So the step reads what the record holds",
-  "green before the bump and re-keys those same entries after it, deciding nothing green that the",
-  "record did not already hold. It carries nothing at all unless the only difference between the two",
-  "reads is the release's own: every path that moved is one of the manifests a release writes, each of",
-  "those is unchanged once its version fields are taken out, and they all name one version afterwards.",
-  "Whatever it does it says so, and it refuses nothing — a record that cannot be read or written is",
-  "not a release this stops. `npm run check -- --full` reads no digest and writes no pass, so it",
-  "proves a tree independently and repairs nothing; a carried entry is dropped by removing the",
-  "gate-ledger directory under the common git directory, which the gate prints.",
+  "The version step costs the gate's record nothing. Every step's digest is keyed on the manifests,",
+  "so the commit naming a release used to leave the whole record unreadable at the one head every",
+  "later branch is cut from, and a worktree holding no change paid for the whole table to re-prove",
+  "content this gate had passed minutes earlier. A file a release writes a version into is now keyed",
+  "on its values with that version taken out of them, so the bump moves no digest and a rebase past",
+  "somebody else's release moves none either. What still moves one is a manifest that disagrees with",
+  "its package about the number, and anything in those files that is not the number — a dependency",
+  "added or removed spends every step, as it always did. `npm run check -- --full` reads no digest",
+  "and writes no pass, so it proves a tree independently and repairs nothing; the record is dropped",
+  "by removing the gate-ledger directory under the common git directory, which the gate prints.",
   "",
   "The install reads the tree that shipped. The marketplace installs from one registered directory,",
   "so a release used to have to move the shared checkout to the pushed head before it could install,",
@@ -220,13 +217,11 @@ const shipSteps = (tree, root, base, note) => {
       loud("git", ["rebase", remoteRef(base)], tree, "Resolve it, or `git rebase --abort`.");
       replayedBy(tree, from);
     }, LANDS],
-    /* After the rebase, the range being what the release ships, and before the bump, whose manifests
-       the gate's record is keyed on too: run it after and every release pays a whole gate for one
-       version string. */
+    /* After the rebase, the range being what the release ships, so the gate judges the content that goes out. Where it sits relative to the bump decides nothing now: a release's own version is no part of a step's digest (ISS-1716). */
     [GATE, () => loud("npm", CHECK, tree,
       "Fix the tree and ship again; a release ships what a gate has passed, and nothing after this step has run."), LANDS],
     [`a version above ${REMOTE}/${base}`,
-      () => acrossVersion(tree, RELEASE_FILES, () => versionAbove(tree, base, note)), LANDS],
+      () => versionAbove(tree, base, note), LANDS],
     [push, () => {
       pushing(tree, base, () => `Rejected means the remote `
         + `moved${unwound(tree)}: rebase, re-run the review of the rebased head, then ${SELF} ship --from 2`);
