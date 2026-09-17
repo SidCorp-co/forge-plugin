@@ -26,6 +26,16 @@ const served = (flow, ...argv) => {
   return flat(run.stdout);
 };
 
+/* The same call with its line breaks kept, which is the only way a heading can be told from the
+   paragraph under it once `flat` has run. */
+const headings = (flow, ...argv) => {
+  const dir = tempRoom("screen-flow-");
+  writeFileSync(join(dir, ".forge.json"), JSON.stringify({ slug: "screen-fixture", ...(flow ? { flow } : {}) }));
+  const run = spawnSync(FORGE, argv, { encoding: "utf8", env: { ...process.env }, cwd: dir });
+  assert.equal(run.status, 0, `\`forge ${argv.join(" ")}\` under ${flow ?? "no key"} exited ${run.status}: ${run.stderr}`);
+  return run.stdout.split("\n").filter((one) => one.startsWith("#"));
+};
+
 const method = (flow) => served(flow, "guide", "issue-flow");
 const verification = (flow) => served(flow, "guide", "issue-flow", "verification");
 
@@ -54,19 +64,53 @@ test("the rendered state is the screen flow's page, and default holds only what 
   assert.match(screen, /the rendered state, driven/u, "criterion 2: the screen flow serves no rendered-state row");
 });
 
-test("the judge's charter is written before a criterion is mapped, and only a harm blocks", () => {
+/* Which reader a paragraph is addressed to is the one thing no fence could decide, so the placement
+   is the method's: the branch of Phase 5 that sorts the reader by who this project made the judge is
+   what serves the judging method, and the reference a builder reads while proving carries none of it
+   (ISS-1695). Every selector below is watched failing by putting the section back. */
+test("the builder's proving reference carries no judging method, and keeps everything it proves with", () => {
+  for (const line of headings(SCREEN, "guide", "issue-flow", "verification")) {
+    assert.doesNotMatch(line, /judge/u, `criterion 1: the proving reference still heads a section at a judge: ${line}`);
+  }
   const held = verification(SCREEN);
-  assert.match(held, /before any observation is mapped to a criterion/u,
-    "criterion 10: the charter is served without the ordering that is the whole of it");
-  assert.match(held, /the screen the journey enters by and the one it leaves by/u,
-    "criterion 10: the charter does not say what it has to cover");
-  assert.match(held, /demonstrates material harm to a task the change is meant to support/u,
-    "criterion 11: nothing says which finding blocks");
-  assert.match(held, /A preference about a layout no harm was demonstrated\s+from, and a defect that was there before this change/u,
-    "criterion 11: nothing says where a finding that does not block goes instead");
+  assert.doesNotMatch(held, /mapped to a criterion/u,
+    "criterion 2: the proving reference still instructs the charter, which only a run that judges writes");
+  assert.doesNotMatch(held, /material harm/u,
+    "criterion 3: the proving reference still carries the threshold a finding is judged against");
+  assert.doesNotMatch(held, /QA report/u,
+    "criterion 4: the proving reference still sends a capture to a report the builder never writes");
+  assert.match(held, /suspect the environment before/u,
+    "criterion 5: a hot-reload connection is a local symptom, and the section that names it went with the judging method");
+  assert.match(held, /development overlays and error badges land in the image/u,
+    "criterion 6: the builder is a capturer, and the craft of capturing went with the judging method");
+  assert.match(held, /Two verdict shapes get past `testing`/u,
+    "criterion 7: the shapes the entry check lets past went, and the flow with no judge still carries them");
   const none = verification(DEFAULT);
   assert.doesNotMatch(none, /mapped to a criterion/u, "and the flow with no judge serves no charter");
   assert.doesNotMatch(none, /material harm/u, "and no blocking line, which is what these selectors are watched on");
+});
+
+test("Phase 5 serves the judging method to the builder this project made the judge, and names no other skill", () => {
+  const held = served(SCREEN, "guide", "issue-flow", "5");
+  assert.match(held, /charter is written before any observation is mapped to a criterion/u,
+    "criterion 8: the charter is served without the ordering that is the whole of it");
+  assert.match(held, /the role being played, the task being attempted, the state it starts from, the result it intends/u,
+    "criterion 9: the charter does not say what it has to cover");
+  assert.match(held, /one alternate state or role/u,
+    "criterion 9: the charter reaches no state the person arrives at by accident");
+  assert.match(held, /demonstrates material harm to a task this change is meant to support/u,
+    "criterion 10: nothing says which finding is worth a repair");
+  assert.match(held, /the steps that reproduce it, the behaviour expected/u,
+    "criterion 11: nothing says what a finding worth a repair carries");
+  assert.match(held, /each an issue of their own rather than this one's to answer/u,
+    "criterion 12: nothing says where a finding that earns no repair goes instead");
+  assert.doesNotMatch(held, /Which findings are worth a repair/u,
+    "criterion 13: the disposition is served here and the phase still sends a reader elsewhere for it");
+  assert.doesNotMatch(held, /forge guide qa/u,
+    "criterion 14: a phase of one skill sends its reader into another skill's text");
+  const none = served(DEFAULT, "guide", "issue-flow", "5");
+  assert.doesNotMatch(none, /charter/u, "and the flow with no screen serves no charter");
+  assert.doesNotMatch(none, /material harm/u, "and no threshold, which is what these selectors are watched on");
 });
 
 test("the screen flow leaves the identity on the issue, and a repair is judged again at the new one", () => {

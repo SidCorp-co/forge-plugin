@@ -32,9 +32,13 @@ run worth making: judge that one, and report the skips beside it.
 
 ## How a criterion is exercised
 
-Write the charter before any observation is mapped to a criterion: the journey you are going to walk,
-the screen it enters by and the one it leaves by, and what you expect at each. Then walk it. Mapping
-afterwards is how a run finds what it was looking for.
+Write the charter before any observation is mapped to a criterion: the role you are playing, the task
+you are attempting, the state it starts from, the result it intends, and the journey you are going to
+walk — the screen it enters by and the one it leaves by, what you expect at each, one interruption or
+recovery, and one alternate state or role. Then walk it, keeping the short trace of acts and outcomes
+it took. Mapping afterwards is how a run finds what it was looking for. What a charter is not: a
+redesign nobody asked for, a requirement nobody stated, or a destructive act taken on a live system to
+see what happens.
 
 Work each criterion the way the person in it would, and include the states that person reaches by
 accident rather than on purpose — the empty list, the lapsed session, the field left blank, the
@@ -49,9 +53,12 @@ file. The tool is the project's equipment and not yours: check for it by name be
 and say it is absent rather than reporting a state you could not take.
 
 **Only a demonstrated harm blocks.** A finding blocks where it demonstrates material harm to a task
-the change is meant to support. A preference about a layout no harm was demonstrated from, and a
-defect that was there before this change, are both real and neither is this issue's: they go on the
-backlog as their own rows.
+the change is meant to support: the task cannot be completed, its result is materially wrong, work is
+lost, or an accessibility barrier stands with no reasonable way round it. It carries the steps that
+reproduce it, the behaviour expected and what that expectation rests on — the task, or a rule of the
+product, and never taste — the harm observed, and the deployment identity it was seen at. A preference
+about a layout no harm was demonstrated from, and a defect that was there before this change, are both
+real and neither is this issue's: they go on the backlog as their own rows.
 
 ## What you do not do
 

@@ -90,34 +90,6 @@ and the suite runs again only for a criterion whose evidence is its own.
 | Generated output | the artefact opened, not the generator's exit code |
 | Infrastructure | the plan, and a validation against a real environment |
 
-## What the judge writes before it maps a criterion
-
-A judge that starts from the criteria re-reads the list the run wrote, and a change that answers
-every line on it can still lose the person using it. So the first thing written is a charter, and it
-is written before any observation is mapped to a criterion: the role being played, the task being
-attempted, the state it starts from, the result it intends, and the short trace of acts and outcomes
-it took. It covers the screen the journey enters by and the one it leaves by, one interruption or
-recovery — the lapsed session, the second submit, the back button — and one alternate state or role.
-Only then are the observations read against the criteria.
-
-The case that says the ordering earns its place: every criterion answers, and returning to an
-unchanged list loses the work the person just did. A charter written first meets that; a walk down
-the path that works does not. What a charter is not: a redesign nobody asked for, a requirement
-nobody stated, or a destructive act taken on a live system to see what happens.
-
-## Which finding blocks, and where the others go
-
-A finding blocks where it demonstrates material harm to a task the change is meant to support — the
-task cannot be completed, its result is materially wrong, work is lost, or an accessibility barrier
-stands with no reasonable way round it. It carries the steps that reproduce it, the behaviour
-expected and what that expectation rests on — the task, or a rule of the product, and never taste —
-the harm observed, and the deployment identity it was seen at.
-
-Everything else is written and holds nothing. A preference about a layout no harm was demonstrated
-from, and a defect that was there before this change, are each an issue of their own rather than
-this one's to answer: they go to the backlog in the shape `forge new -h` prints, and the rung they
-were met at moves on the verdicts.
-
 ## When no login reaches the rendered state
 
 Phase 0 read the credential line and Phase 2 asked; the answer has not come, or there is none to
@@ -185,7 +157,7 @@ Screenshot the state a user reaches — create the data the screen needs, and re
 afterwards. If seeding advanced a counter or a sequence, restore it; if the store was
 disposable, destroy it wholesale instead, which is safer than editing a counter back.
 
-It belongs on the issue with the QA report that cites it, uploaded rather than pasted through
+It belongs on the issue with the verdict that cites it, uploaded rather than pasted through
 context — `forge -h` names the verb. A verdict citing no attachment under a declared screen change
 is refused at `testing`, so the rule is the entry check's; what no check can judge is whether the
 image shows the state a reader needs, which is what the paragraphs above are for.

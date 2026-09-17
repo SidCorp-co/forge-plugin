@@ -49,12 +49,30 @@ the verdicts under its own id, and takes the rungs the phases below name. A `scr
 has declared neither is a clash `forge doctor` reports on every run, met in Phase 0 rather than
 discovered here.
 
+**Judging your own change starts with a charter and not with the criteria.** Starting from the list
+means re-reading your own intent, and a change that answers every line of it can still lose the
+person using it. So the charter is written before any observation is mapped to a criterion: the role
+being played, the task being attempted, the state it starts from, the result it intends, and the
+short trace of acts and outcomes it took. It covers the screen the journey enters by and the one it
+leaves by, one interruption or recovery — the lapsed session, the second submit, the back button —
+and one alternate state or role. Only then are the observations read against the criteria. What a
+charter is not: a redesign nobody asked for, a requirement nobody stated, or a destructive act taken
+on a live system to see what happens.
+
+**Only a demonstrated harm is worth a repair.** A finding earns one where it demonstrates material
+harm to a task this change is meant to support — the task cannot be completed, its result is
+materially wrong, work is lost, or an accessibility barrier stands with no reasonable way round it —
+and it carries the steps that reproduce it, the behaviour expected and what that expectation rests
+on, the harm observed, and the identity it was seen at. Everything else is written and holds
+nothing: a preference about a layout no harm was demonstrated from, and a defect that was there
+before this change, are each an issue of their own rather than this one's to answer, and the rung
+they were met at moves on the verdicts.
+
 **A repair replaces the thing that was judged, and the verdicts taken at the identity it replaced do
 not carry**: they judged something that is no longer running, and a rung that accepted them would be
-answering for code nobody shipped. Which findings are worth a repair, and where the others go
-instead, is `forge guide issue-flow verification`. Under an independent judgement that repair is a
-fresh dispatch against this issue rather than this run resumed, so what it needs is on the record
-and not in a session.
+answering for code nobody shipped. Under an independent judgement that repair is a fresh dispatch
+against this issue rather than this run resumed, so what it needs is on the record and not in a
+session.
 
 **A criterion the judging run could not reach is a shortfall, not a pass.** Where every criterion
 under a declared screen change would be a skip, what was owed was a credential, a capture route or a

@@ -110,6 +110,25 @@ test("the judging reference is the dispatched run's method and not the builder's
     "and the flow with none does not, which is what that selector is watched on");
 });
 
+/* The judging method has one statement per reader and the reader is what selects it, so what the
+   builder's proving reference stopped carrying is owed here whole rather than by a pointer into a
+   skill this run is not reading (ISS-1695). */
+test("the judge's own reference carries the whole charter and the whole threshold", () => {
+  const held = judging(SCREEN);
+  assert.match(held, /the role you are playing, the task you are attempting, the state it starts from, the result it intends/u,
+    "criterion 18: the charter does not say what it has to cover");
+  assert.match(held, /one interruption or recovery, and one alternate state or role/u,
+    "criterion 18: the charter reaches no state the person arrives at by accident");
+  assert.match(held, /What a charter is not: a redesign nobody asked for/u,
+    "criterion 19: nothing bounds the charter, so a redesign nobody asked for is one");
+  assert.match(held, /the task cannot be completed, its result is materially wrong, work is lost/u,
+    "criterion 15: nothing says which harms make a finding blocking");
+  assert.match(held, /the steps that reproduce it, the behaviour expected/u,
+    "criterion 16: nothing says what a blocking finding carries");
+  assert.doesNotMatch(judging(DEFAULT), /material harm to a task the change is meant to support: the task cannot/u,
+    "and the judge with no screen is not given the screen judge's threshold");
+});
+
 test("a wave takes the judging candidates only where the project declared them the dispatcher's", () => {
   for (const flow of [DEFAULT, SCREEN]) {
     const held = served(flow, "guide", "dispatch");
