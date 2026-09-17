@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 import { git, tempRoom } from "../fixtures.mjs";
 
-import { checkoutAt } from "../../src/resolve/checkout-at.mjs";
+import { checkoutAt } from "../../src/git/checkout-at.mjs";
 
 const ran = (room, ...args) => {
   const done = git(room, ...args);
@@ -78,9 +78,7 @@ test("every answer is the one git prints for the same directory", () => {
   for (const at of [rooms.main, rooms.nested, rooms.beside, join(rooms.main, "docs", "deep")]) likeGit(at);
 });
 
-/* An empty `.git` is not a git directory and git's discovery ascends past it, so a checkout holding
-   one must not answer for itself — a project file would otherwise resolve from a directory that is
-   no checkout. */
+// Each of the four below is a shape a review found and a probe reproduced against git first.
 test("a .git directory git will not accept is ascended past, as git ascends past it", () => {
   const stub = join(rooms.main, "stub");
   mkdirSync(join(stub, ".git"), { recursive: true });
@@ -88,12 +86,26 @@ test("a .git directory git will not accept is ascended past, as git ascends past
   likeGit(stub);
 });
 
-/* git canonicalises the common directory, so a `commondir` naming a symlink must not put the
-   repository beside the symlink: a worktree carrying no project file would lose its main checkout's. */
 test("a commondir naming a symlink answers with the directory it points at, as git does", () => {
   const shared = join(rooms.room, "shared-git");
   symlinkSync(join(rooms.main, ".git"), shared);
   writeFileSync(join(rooms.main, ".git", "worktrees", "beside", "commondir"), `${shared}\n`);
   assert.equal(checkoutAt(rooms.beside).repository, rooms.main);
   likeGit(rooms.beside);
+});
+
+test("a .git file naming a directory that is not a git directory answers null, as git refuses", () => {
+  const stale = join(rooms.room, "stale");
+  mkdirSync(stale, { recursive: true });
+  writeFileSync(join(stale, ".git"), `gitdir: ${join(rooms.room, "gone")}\n`);
+  assert.equal(checkoutAt(stale), null);
+  assert.notEqual(git(stale, "rev-parse", "--show-toplevel").status, 0);
+});
+
+test("a commondir whose relative path climbs through a symlink answers what git answers", () => {
+  const admin = join(rooms.main, ".git", "worktrees", "nested");
+  symlinkSync(join(rooms.main, "docs"), join(admin, "jump"));
+  writeFileSync(join(admin, "commondir"), "jump/../.git\n");
+  assert.equal(checkoutAt(rooms.nested).repository, rooms.main);
+  likeGit(rooms.nested);
 });

@@ -16,6 +16,7 @@ const root = () => {
   mkdirSync(join(at, "checkout", ".git", "worktrees", "wt-one"), { recursive: true });
   mkdirSync(join(at, "wt-one", "deep", "deeper"), { recursive: true });
   writeFileSync(join(at, "checkout", ".git", "HEAD"), "ref: refs/heads/master\n");
+  writeFileSync(join(at, "checkout", ".git", "worktrees", "wt-one", "HEAD"), "ref: refs/heads/wt-one\n");
   writeFileSync(join(at, "wt-one", ".git"), `gitdir: ${join(at, "checkout", ".git", "worktrees", "wt-one")}\n`);
   return at;
 };
@@ -183,4 +184,10 @@ test("a .git directory with no HEAD in it is not a git directory, and the walk g
   const at = root();
   mkdirSync(join(at, "checkout", "stub", ".git"), { recursive: true });
   assert.equal(gitDirAt(join(at, "checkout", "stub")), join(at, "checkout", ".git"));
+});
+
+test("a .git file naming a directory that is no git directory names none, rather than that path", () => {
+  const at = root();
+  writeFileSync(join(at, "wt-one", ".git"), `gitdir: ${join(at, "gone")}\n`);
+  assert.equal(gitDirAt(join(at, "wt-one")), null);
 });

@@ -23,7 +23,7 @@ two dropped a valueless flag silently, which reads as an unfiltered answer.
 brought nine spawns down to two, and two per process is still a process per test file: the gate's read
 audit has to treat any child standing in the checkout as able to have read all of it, so each of those
 two blinded the file that spawned it and the gate spent it again whatever moved (ISS-1732).
-`plugin/src/resolve/checkout-at.mjs` ascends for `.git`, follows the `gitdir:` pointer a linked
+`plugin/src/git/checkout-at.mjs` ascends for `.git`, follows the `gitdir:` pointer a linked
 worktree's `.git` file carries, and reads that admin directory's `commondir` for the repository — git's
 own fallback where there is none being that a git directory is its own common one. It reads nothing
 else, and `.git` is what the audit already declares itself blind to, so no read set gains a path from
@@ -31,15 +31,26 @@ it. Null means no checkout holds the path, which is the cue `checkoutRoot` falls
 failure, and the walk starts at the physical path so a symlink into another repository ascends into the
 one it was spelt under.
 
-Two places it has to do what git does rather than what the path says. **A `.git` directory that is not
-a git directory is ascended past**, because git's discovery does: a checkout holding an empty
-`sub/.git` answers with the checkout and not with `sub`, and a walk that stopped there would resolve a
-project file from a directory that is not a checkout. What it asks for is `HEAD`, where git also wants
-`refs` and `objects`, so a directory holding `HEAD` alone is one this accepts and git does not.
+Three places it has to do what git does rather than what the path says, each one a review of this
+change found and each one reproduced against git before it moved.
+
+**Anything named `.git` is accepted only where it holds a `HEAD`**, because git's discovery accepts
+only a git directory: a checkout holding an empty `sub/.git` answers with the checkout and not with
+`sub`, and a `.git` file naming a directory that is not there — a stale worktree whose main checkout
+was moved — answers with nothing rather than with a repository that is not one. Either way a walk that
+took the path at its word would have resolved a project file from a directory that is no checkout.
+`HEAD` is what this asks for where git also wants `refs` and `objects`, so a directory holding `HEAD`
+alone is one this accepts and git does not.
+
 **A named common directory is canonicalised before its parent is taken**, because git canonicalises
 it: a `commondir` naming a symlink would otherwise put the repository beside the symlink rather than
 beside the directory it points at, and a worktree carrying no project file would lose the one its main
 checkout holds.
+
+**It is canonicalised uncollapsed, and through the native call.** A `..` is taken off after the symlink
+before it by the filesystem git reads through, and lexically by `path.resolve` and by node's own
+`realpathSync`; only `realpathSync.native`, handed a path nothing has collapsed, answers as git does
+for a `commondir` spelt `jump/../.git`.
 
 It assumes the working tree is the directory holding `.git`, and git answers differently in five
 shapes. Four are environment — `GIT_DIR`, `GIT_WORK_TREE`, `GIT_COMMON_DIR` and

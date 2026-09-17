@@ -3,7 +3,7 @@
    resolves to `{ value, from }`, because provenance is what doctor reports. docs/cli/settings.md. */
 import { dirname, join, resolve } from "node:path";
 
-import { checkoutAt } from "./checkout-at.mjs";
+import { checkoutAt } from "../git/checkout-at.mjs";
 import { configPath, once, readJson, userConfig } from "./config.mjs";
 
 /* Registered by a caller holding something no exit may lose — a body that arrived on stdin. */
