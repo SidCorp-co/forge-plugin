@@ -1,16 +1,15 @@
 /* The issue's session field read as a lease. Every write it covers carries the value it read, and the tracker refuses one whose value moved. docs/cli/claim.md, docs/cli/the-precondition.md. */
-import { INHERITED, INHERITED_MEANS, OWN_ID, WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
+import { WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
 import { MINTED_FOR, RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames } from "../resolve/session/run-id.mjs";
 import { TAKEABLE } from "../rank/weights.mjs";
-import { sharedNow, sharedStamp, slackNow, stampOf } from "../wire/shared-clock.mjs";
+import { bandWith, sharedNow, sharedStamp, slackNow, stampOf, straddles } from "../wire/shared-clock.mjs";
 import { thisCall } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { refuse } from "../refusal.mjs";
 import { enforcementOf, writeField } from "../tracker/field-write.mjs";
 import { scoped, tried } from "../tracker/rest.mjs";
 import {
-  LANDING, LANDING_BUILDER_OWED, LANDING_JUDGED, LANDING_STATES, READ_THE_STATE, SPENT_AT,
-  landingMoved, landingNext, landingOf, takeRoute,
+  LANDING, LANDING_JUDGED, READ_THE_STATE, landingMoved, landingNext, landingOf,
 } from "./landing/checkpoint.mjs";
 import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
 
@@ -19,7 +18,6 @@ export const KEY = "lease";
 /* 60 and not the 30 it was, off the corpus rather than named: a quarter of runs went longer than that between two payload writes, twelve of those gaps with the run working right through and the longest of them 58 minutes, and past 60 there is no such gap left. It buys a smaller window and never liveness, which no duration can be — the record says when a run last wrote and nothing about whether it is alive (ISS-1224). */
 export const MINUTES = 60;
 export const READING_MINUTES = 10;
-export const RECLAIMS_BEFORE_PARK = 2;
 const HISTORY_KEPT = 12;
 
 /** What the mechanism is, claiming nothing of any far end, because `forge claim -h` has made no write and a run reading it is owed the shape rather than a guess. */
@@ -112,7 +110,7 @@ export const expiryOf = (lease) => {
   return Number.isFinite(at) ? at + lease.minutes * 60_000 : 0;
 };
 
-const stamp = (ms) => (ms ? stampOf(ms) : "an unreadable time");
+export const stamp = (ms) => (ms ? stampOf(ms) : "an unreadable time");
 
 /* A lease past its duration is another run's. The holder's own lapsed one is its own state because
    the field still naming this session proves nobody took the issue; a reclaim is a handoff. */
@@ -146,6 +144,16 @@ export const freshLapse = (lease, now = sharedNow()) => {
   const expiry = expiryOf(lease);
   return expiry > 0 && now < expiry + lease.minutes * 60_000;
 };
+
+/* When a lapsed lease becomes anybody's: a duration past the expiry, which is where a reclaim stops being refused rather than where it starts (ISS-1224). Unrounded, the rounding being the sentence's that prints it. */
+export const anybodysAt = (lease) => {
+  const expiry = expiryOf(lease);
+  return expiry ? expiry + lease.minutes * 60_000 : 0;
+};
+
+/* The one question a lapse is asked, by the claim that is typed and by the write that takes the lease for itself alike (ISS-1660): whether the record on its own separates a stopped run from a working one. It does not while the lapse is younger than the duration, and it does not at the moment the two clocks cannot order, and those are the two the caller answers with `--stopped` rather than a route either of them may take quietly. Stated here rather than at the two call sites because a second copy of it would let the write take a lease the claim refuses. */
+export const lapseUnproven = (lease, { now = sharedNow(), band = bandWith(lease?.slack) } = {}) =>
+  freshLapse(lease, now) || straddles(anybodysAt(lease), band, now);
 
 const agoIn = (ms) => {
   const minutes = Math.round(ms / 60_000);
@@ -207,131 +215,23 @@ export const unheldRefusal = (ref, status, { next = null, work = null } = {}) =>
   + `Where you have established no run is on it, say so and the claim history keeps that it was `
   + `taken this way:\n  forge claim ${ref} ${UNHELD}`;
 
-/* Counted since the park that answered them: a resumed issue does not walk straight back in. */
-const since = (history, status) => {
-  const parked = history.findLastIndex((one) => one?.how === "parked" && one?.status === status);
-  return parked < 0 ? history : history.slice(parked + 1);
-};
-
-export const reclaimsOf = (lease, status) =>
-  since(lease?.history ?? [], status).filter((one) => one?.how === "reclaim" && one?.status === status).length;
-
-/* Crashed is not failed: the third reclaim of one status says the status is where runs die. Read
-   from the history the claim wrote, so a park whose later writes never landed is still owed. */
-export const parksAsCrashed = (lease, status) => reclaimsOf(lease, status) > RECLAIMS_BEFORE_PARK;
-
-const lastReclaimAt = (lease, status) =>
-  since(lease?.history ?? [], status)
-    .filter((one) => one?.how === "reclaim" && one?.status === status)
-    .reduce((newest, one) => (String(one.at) > newest ? String(one.at) : newest), "");
-
-/* A crashed park answers the reclaims older than it; one written before the newest of them
-   answered an earlier crash, and calling it this one's would swallow the park now owed. */
-export const parkAnswers = (lease, status, parkedAt) =>
-  parksAsCrashed(lease, status) && lastReclaimAt(lease, status) <= String(parkedAt ?? "");
-
-/** Whether this session's own last claim was a take at this state, which a lease held from before that handoff is not. The holder's latest row and no earlier one, because the history outlives both the holder and the state: a run that took this turn and lost the lease is any other run again, and one that has since taken another turn is at that one. */
-export const tookAt = (lease, holder, state) => {
-  const last = (lease?.history ?? []).findLast((one) => one?.holder === holder);
-  return last?.how === "take" && last?.landing === state;
-};
-
-/* When a take is open: the expiry, and not the later moment a reclaim waits for that `freeFrom` names. */
-const takeableAfter = (ref) =>
-  `Unless a write renews it, the turn is takeable once that lease expires:\n  ${takeRoute(ref)}`;
-
-/* A builder's turn asked for by a run that is not the builder it names. What says the builder has gone is
-   the builder's own lease: after a hand-back the record carries the lander's, whose liveness stood in for
-   the builder's and refused the one run left (ISS-1639). A live lease that is neither run's is nobody's to
-   take over here, the take licenses the write after it, and the records turn keeps its reading (ISS-1649). */
-const successionRefusal = (ref, landing, holder, lease, said, taking) => {
-  const whose = `${said}, whose turn is the builder ${landing.builder}'s and this session is ${holder}`;
-  if (lease.holder === landing.builder) {
-    return `${whose}: that builder is on the issue under a lease of its own, ${describe(lease)}, and `
-      + `a successor is eligible only once the builder's own lease is dead by the reclaim rules. `
-      + `${takeableAfter(ref)}`;
-  }
-  if (lease.holder !== holder) {
-    return `${whose}, which succeeds that builder where it has gone — but ${describe(lease)} is `
-      + `already on it, and a lease that is neither the builder's nor this session's own is not taken `
-      + `over from here. ${takeableAfter(ref)}`;
-  }
-  if (tookAt(lease, holder, landing.state)) return null;
-  if (landing.state !== LANDING_BUILDER_OWED) {
-    return `${whose}: the records that turn is owed answer for a judgement the run that built the `
-      + `change made, so a successor takes it only once nothing live is on the issue — and what is `
-      + `on it is this session's own lease, ${describe(lease)}. ${takeableAfter(ref)}`;
-  }
-  if (taking) return null;
-  return `${whose}, which holds the lease and has taken no turn: the take is what puts a successor `
-    + `on the record, and a write signed without one leaves the run that answered for the builder `
-    + `named nowhere. Take the turn first:\n  ${takeRoute(ref)}`;
-};
-
-/* `--take` is the one route that may take a live lease, so the state naming the taker's turn is the whole of what licenses it, a lease no longer live being anybody's already. */
-export const takeRefusal = (ref, landing, holder, lease, { now = sharedNow(), source = null, taking = false } = {}) => {
-  if (!landing) {
-    return `${ref} carries no landing checkpoint, so no turn is handed off and --take is refused. `
-      + `A build writes one where it ends:\n  forge claim ${ref} --pushed --ready`;
-  }
-  const said = `the landing checkpoint on ${ref} reads \`${landing.state}\``;
-  const row = LANDING_STATES[landing.state];
-  const live = Boolean(lease) && expiryOf(lease) > now;
-  if (!row) {
-    return `${said}, which is no state this version knows, so whose turn it is cannot be read. `
-      + `${READ_THE_STATE(ref)}`;
-  }
-  if (!row.turn) {
-    return `${said}, so the landing is over and no turn is left to take. An issue with work still `
-      + `on it takes its lease as any other does:\n  forge claim ${ref}`;
-  }
-  if (row.turn === "builder") {
-    if (holder !== landing.builder) return live ? successionRefusal(ref, landing, holder, lease, said, taking) : null;
-    /* Refused rather than told, alone among the writes a shared id makes: this one takes a live lease. */
-    if (!live || lease.holder === holder || source !== INHERITED) return null;
-    return `${said}, and the builder it names is ${landing.builder}, which is ${INHERITED_MEANS}: `
-      + `nothing here can tell this session from the run that built it, and the take would replace `
-      + `a live lease — ${describe(lease)} is on it. Give the run that reconciles an id of its own `
-      + `and write the checkpoint under it. ${OWN_ID}`;
-  }
-  if (row.turn === "lander") {
-    if (holder === landing.builder) {
-      return `${said}, whose turn is the lander's, and this session built it: the builder's turn `
-        + `comes back at \`${LANDING_BUILDER_OWED}\` and nowhere else. ${READ_THE_STATE(ref)}`;
-    }
-    /* At `judged` alone and spent by the take: a judge that went on to land under that same lease
-       holds an ordinary lander's, which a third run may not take. docs/cli/the-checkpoint.md. */
-    if (!live || lease.holder === holder || lease.holder === landing.builder) return null;
-    if (landing.state === LANDING_JUDGED && landing.judge && lease.holder === landing.judge) return null;
-    /* And one state over, a successor's own lease after the write its turn ended with: spent by the take, and with no marker to clear, the row saying nothing once the lease moves. */
-    const spent = SPENT_AT[landing.state];
-    if (spent && tookAt(lease, lease.holder, spent)) return null;
-    return `${said}, whose turn is the lander's, and ${describe(lease)} is already on it. `
-      + `${READ_THE_STATE(ref)}`;
-  }
-  if (row.turn === "qa") {
-    /* No lander is named here to spare its live lease, and a take at a state naming the judge is
-       what `--take` is for, so being other than the builder is the whole of the independence. */
-    if (holder !== landing.builder) return null;
-    return `${said}, whose turn is an independent judge's, and this session is the builder `
-      + `${landing.builder} it names: no run may judge its own work, and an id a run inherited is the `
-      + `builder's however it arrived. Give the judging run an id of its own and take the turn `
-      + `under it. ${OWN_ID}`;
-  }
-  return `${said}, whose turn is one this version cannot read, so nothing here may take it. `
-    + `${READ_THE_STATE(ref)}`;
-};
-
 /* Read, not passed: a caller that could supply the writer's own identity could supply a false one.
    Silence about `next` means unchanged, or a claim would drop the note the dead run left. */
-export const claimed = (context, { holder, at = sharedStamp(), minutes, next, worklog, landing, how = null, status = null }) => {
+export const claimed = (context, { holder, at = sharedStamp(), minutes, next, worklog, landing, how = null, status = null, over = null }) => {
   /* The remnant and not the lease: a field a release emptied answers `null` to `leaseOf`, so reading through it would drop every earlier row at the next take and the line the release left with them. What the remnant holds is unjudged, hence the two guards below — a history that is not a list spreads into a throw. The row this builds carries no release mark, the field being held again. */
   const held = remnantOf(context);
   const history = Array.isArray(held?.history) ? [...held.history] : [];
   const line = typeof held?.next === "string" && held.next ? held.next : null;
   const state = landing?.state ?? landingOf(context)?.state ?? null;
   /* The outgoing line, not the incoming one: what a crash loop is asked is where each attempt died. */
-  if (how) history.push({ holder, at, how, status, next: line, ...(state ? { landing: state } : {}) });
+  /* `over` is the lease this row's claim went over the top of, carried only where the caller never read a refusal naming it: a run that typed a reclaim was shown the holder and the expiry by the refusal it answered, and the write that takes a lapsed lease for itself is shown nothing before it writes. Without it the displaced run is recoverable only from an earlier row, which the history's own window drops, and the moment its lease ran out from nowhere at all (ISS-1660). */
+  if (how) {
+    history.push({
+      holder, at, how, status, next: line,
+      ...(state ? { landing: state } : {}),
+      ...(over ? { from: over.holder, ranOut: stampOf(expiryOf(over)) } : {}),
+    });
+  }
   return {
     ...(context && typeof context === "object" ? context : {}),
     ...(worklog ? { [WORKLOG]: worklog } : {}),
@@ -349,18 +249,10 @@ export const claimed = (context, { holder, at = sharedStamp(), minutes, next, wo
   };
 };
 
-/* One line: the park's reason carries it, because its evidence field takes no history. */
-export const historyLine = (lease, status) =>
-  (lease?.history ?? [])
-    .filter((one) => !status || one?.status === status)
-    .map((one) => `${one.how} by ${one.holder} at ${stamp(Date.parse(one.at ?? ""))}`)
-    .join(" | ");
-
-/* A duration past the expiry and not the expiry, which is where a reclaim stops being refused
-   rather than where it starts (ISS-1224); rounded up, a truncated minute still being held. */
+/* Rounded up for the sentence below, a truncated minute still being held. */
 const anybodysFrom = (lease) => {
-  const expiry = expiryOf(lease);
-  return expiry ? Math.ceil((expiry + lease.minutes * 60_000) / 60_000) * 60_000 : 0;
+  const at = anybodysAt(lease);
+  return at ? Math.ceil(at / 60_000) * 60_000 : 0;
 };
 
 const freeFrom = (lease) =>
@@ -407,6 +299,9 @@ export const writeRefusal = (state, ref, lease) => WRITE_REFUSAL[state](ref, lea
 /** The word a take made by a payload write keeps in the claim history, which no other claim writes: a first claim typed by hand is `claim` and an anomaly taken past the dispatch statuses is `unheld`, so a reader counting how an issue was picked up can tell a run that took it from a write that did. */
 export const TAKEN_BY_WRITING = "write";
 
+/** And the word both a typed reclaim and a write that reclaims for itself keep, which is what the crash park counts. */
+export const RECLAIM = "reclaim";
+
 /* Which of the two a payload write owes a field holding no lease, and the only place the question is answered: take it where a bare `forge claim` would have granted it, refuse in that claim's own words where the claim is itself refused (ISS-1260, ISS-1252). Past the dispatch statuses the empty field names three readings — a run that died, a write that erased one, a filing sent straight there — and a silent take would pick one of them; that judgement is what the flag exists to ask a person for. */
 export const freeRefusal = (ref, status, context = null) => {
   if (TAKEABLE.includes(String(status))) return WRITE_REFUSAL.free(ref);
@@ -426,6 +321,16 @@ export const tookByWriting = (ref, lease, left = null) =>
   + `stands if the call does not finish.`
   + `${left ? ` The step the field still named: ${left}.` : ""}`
   + ` Work that follows this says so by claiming, which is the lease that is kept:\n  forge claim ${ref}`;
+
+/* The same sentence one rung down, where the field held a lease rather than nothing (ISS-1660): the reclaim the refusal here used to name is one a bare `forge claim` would have granted, the lapse being older than the duration the holder itself named, so the write makes it. It names the run it came off and how long ago that lease ran out, because this caller read no refusal before the write and is the one caller a takeover is invisible to. */
+export const reclaimedByWriting = (ref, lease, over, now = sharedNow()) =>
+  `${ref} was held by a lease that ran out ${agoIn(now - expiryOf(over))} and this write reclaimed `
+  + `it: it came off ${describe(over)}, and ${describe(lease)} holds the issue now. A lapse that old `
+  + `is one a reclaim needs nothing established about, so the claim the refusal here used to name is `
+  + `one this write could make, and it made it.`
+  + `${over.next ? ` The step that run left named: ${over.next}.` : ""}`
+  + ` The lease covers the write and not this run: it goes back when the write lands. Work that `
+  + `follows this says so by claiming, which is the lease that is kept:\n  forge claim ${ref}`;
 
 /* The one read a free field costs, made here and on no other path: the status is what separates the take from the refusal, and reading it for every payload write would be a round trip per write (ISS-1252). */
 const statusFor = async (documentId) => {
@@ -490,9 +395,10 @@ export const anothersHold = async (documentId, ref) => {
 };
 
 /* The take a payload write makes for itself, which is a claim in everything but the typing: the caller asked for the write, the field is empty, and the tracker's compare is what separates two callers who both read it empty — the refusal this replaces separated nobody (ISS-1260). The lease is the short one and carries the line that says so, derived rather than asked for, because a call that had to take its own lease is by construction the whole of what it does to the issue; the notice waits for the write, as the lapsed one does, a claim printed before the update being one a failed update would leave standing. It sits before the refusal below and after the finder, which claims nothing anywhere; and a `null` line reaching it is the transition clearing a line the issue was carrying, which a field holding no lease never had, so silence resolves to the derived line and a caller with a line of its own still writes it. A release emptied the field leaves a line that IS one write's own doing: silence carries it forward and the transition's null clears it, which is the one place the two answers differ (codex F2, then F1 of the read after it). */
-const takenByWriting = async (documentId, ref, context, next, patch) => {
+const takenByWriting = async (documentId, ref, context, next, patch, over = null) => {
   const status = await statusFor(documentId);
-  if (!takeableFree(status, context)) fail(freeRefusal(ref, status, context));
+  /* Asked of the empty field alone: the three readings that guard names are what an empty field at such a status could be, and a field naming a holder and an expiry is none of them — the record says who was on it and that the lapse outlived the duration, which is the whole of what a bare reclaim asks anywhere (ISS-1660). */
+  if (!over && !takeableFree(status, context)) fail(freeRefusal(ref, status, context));
   const left = nextLeft(context);
   const carried = releasedIn(context) ? left : null;
   const sent = claimed(context, {
@@ -500,11 +406,13 @@ const takenByWriting = async (documentId, ref, context, next, patch) => {
     minutes: READING_MINUTES,
     next: next === undefined ? carried ?? NOTHING_WORKED : next ?? (releasedIn(context) ? null : NOTHING_WORKED),
     worklog: worklogFor(context, patch),
-    how: TAKEN_BY_WRITING,
+    /* The word a typed reclaim writes, because that is the call this replaces: the crash park counts the reclaims of a status to find where runs die, and a pickup that stopped being typed is no less a run that died there. */
+    how: over ? RECLAIM : TAKEN_BY_WRITING,
     status,
+    over,
   });
   await setLease(documentId, sent, ref, () => context);
-  console.error(tookByWriting(ref, leaseOf(sent), left));
+  console.error(over ? reclaimedByWriting(ref, leaseOf(sent), over) : tookByWriting(ref, leaseOf(sent), left));
   OWED.set(documentId, { ref, turn: false });
   return sent;
 };
@@ -555,6 +463,10 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
   const lease = leaseOf(context);
   const state = stateOf(lease, holder);
   if (state === "free" && !finder) return takenByWriting(documentId, ref, context, next, patch);
+  /* The second rung of the same reading: a lease the record proves dead is as free as no lease at all, and the round the refusal charged bought nothing the caller had not already read off it. A lapse the record cannot vouch for keeps the refusal below, which is `forge claim`'s own answer at that age — one seam, read from `lapseUnproven`, so no write takes a lease that claim would refuse (ISS-1660). */
+  if (state === "expired" && !finder && !lapseUnproven(lease)) {
+    return takenByWriting(documentId, ref, context, next, patch, lease);
+  }
   if (state !== "mine" && state !== "lapsed") {
     if (finder) return false;
     fail(writeRefusal(state, ref, lease));
@@ -584,26 +496,6 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
   }, ref, () => read);
   if (renewed) console.error(renewedLapsed(ref, renewed));
   return sent;
-};
-
-/** The take itself, apart from the verb that prints it, so the landing task and `forge claim --take` cannot come to disagree about what licenses one. */
-export const takeLease = async (documentId, ref, context,
-  { holder, minutes = MINUTES, line = undefined, patch = null, status = null }) => {
-  /* Where the id came from is this session's to say only where the holder is this session. */
-  const mine = sessionSourced();
-  const source = mine.id === holder ? mine.source : null;
-  const held = landingOf(context);
-  const refused = takeRefusal(ref, held, holder, leaseOf(context), { source, taking: true });
-  if (refused) fail(refused);
-  /* Spent by every take at that state, the judge's own included: a marker the judge's own take left
-     behind would make the lander lease it goes on to hold a third run's to take. */
-  const landing = held?.state === LANDING_JUDGED && held.judge ? { ...held, judge: "" } : undefined;
-  const next = claimed(context, {
-    holder, minutes, next: line, worklog: worklogFor(context, patch),
-    how: "take", status, landing,
-  });
-  await setLease(documentId, next, ref, () => context);
-  return leaseOf(next);
 };
 
 /* Every landing state is written here and nowhere else, which is what makes the landing's own writes one function's business to hold to (ISS-673): the state it moves from is the one the field holds at the moment of the write, not the one the caller last read, and a move the table refuses is refused before the field is touched. The lease is checked and renewed here rather than by the field writer, whose `sessionContext` row renews nothing — that row is how a claim writes a lease without recursing, and a landing step is a payload write like any other: a gate outlasting the lease must not push under another run's. */

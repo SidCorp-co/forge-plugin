@@ -155,6 +155,15 @@ history keeps a word of its own for that claim rather than the one an ordinary f
   SHALL refuse the claim, SHALL name that status and whatever the record still holds of the work
   the missing run left, and SHALL write the claim the clearing flag then takes under a name of its
   own in the claim history.
+- **AC-03-3-5** · Rev: 1 · Proof: plugin/test/flow/claim/lapsed-write.test.mjs "a write meeting a lease the record proves dead reclaims it and lands, in one call"
+  IF a payload is written to an issue whose lease is another run's and is past its duration by at
+  least that duration THEN the CLI SHALL take that lease as part of the write, SHALL keep the take in
+  the claim history under the word a reclaim keeps, SHALL hold on that record the run it displaced
+  and the moment that run's lease ran out, and SHALL tell the caller what it took.
+- **AC-03-3-6** · Rev: 1 · Proof: plugin/test/flow/claim/lapsed-write.test.mjs "a lease lapsed inside the threshold refuses the write, and the claim it names asks for --stopped"
+  IF a payload is written to an issue whose lease is another run's and the record does not put the
+  lapse past that lease's own duration THEN the CLI SHALL refuse the write and SHALL name the reclaim
+  that takes it.
 
 ### UC-03-4 — A status that keeps dying reaches a person
 

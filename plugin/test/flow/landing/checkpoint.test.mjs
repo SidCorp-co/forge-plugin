@@ -11,7 +11,8 @@ import { tempHome } from "../../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("landing-checkpoint").path;
 process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
-const { claimed, leaseOf, takeRefusal } = await import("../../../src/flow/lease.mjs");
+const { claimed, leaseOf } = await import("../../../src/flow/lease.mjs");
+const { takeRefusal } = await import("../../../src/flow/lease/takeover.mjs");
 const {
   LANDING_READY, LANDING_STATES, landingLine, landingOf, landingTurn, landingVoided,
 } = await import("../../../src/flow/landing/checkpoint.mjs");

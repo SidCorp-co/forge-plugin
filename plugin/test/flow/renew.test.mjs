@@ -163,7 +163,9 @@ test("a payload write is refused across two ids and goes through across one shar
   }
 });
 
-test("another run's lease is refused as it was, live or expired", async () => {
+/* Both rungs that still refuse: a live lease, and a lapse of fifteen minutes on a thirty-minute
+   lease, which is younger than the duration the holder named and so proves nothing (ISS-1660). */
+test("another run's lease is refused as it was, live or lapsed inside its own duration", async () => {
   field = lease("the-other-run", ago(1));
   const live = await refused(() => renew(ISSUE, "ISS-65"));
   assert.match(live, /ISS-65 is held by another run/u);

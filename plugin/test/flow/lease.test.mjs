@@ -15,11 +15,14 @@ standsInNoTree("lease");
 process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const {
-  MECHANISM, MINUTES, MINUTES_ASKS, READING_MINUTES, RECLAIMS_BEFORE_PARK, RENEWED_BY_WRITING,
+  MECHANISM, MINUTES, MINUTES_ASKS, READING_MINUTES, RENEWED_BY_WRITING,
   agentOf, canonical, claimRefusal, claimed, describe, expiryOf, freshLapse,
-  historyLine, leaseOf, nextLine, nothingWorked, idsHere, parksAsCrashed, pidOf, reclaimRefusal,
-  reclaimsOf, stateOf, writeRefusal, writtenBy,
+  leaseOf, nextLine, nothingWorked, idsHere, pidOf, reclaimRefusal,
+  stateOf, writeRefusal, writtenBy,
 } = await import("../../src/flow/lease.mjs");
+const {
+  RECLAIMS_BEFORE_PARK, historyLine, parkAnswers, parksAsCrashed, reclaimsOf,
+} = await import("../../src/flow/lease/crash-park.mjs");
 const { SHARED_HOLDER, sharedHolder } = await import("../../src/flow/lease/dispatched.mjs");
 const {
   MINTED, sessionAsked, sessionHeld, sessionOf, sessionPath, sessionSourced, sessionWriting,
@@ -27,7 +30,6 @@ const {
 const { sessionKey } = await import("../../src/shown/ledger.mjs");
 const { retryOf } = await import("../../src/tracker/rest.mjs");
 const { ROUTES } = await import("../../src/tracker/routes.mjs");
-const { parkAnswers } = await import("../../src/flow/lease.mjs");
 const { USAGE, nextLines, parkWrite } = await import("../../src/flow/claim.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;

@@ -33,9 +33,10 @@ import {
   MECHANISM,
   MINUTES,
   MINUTES_ASKS,
-  RECLAIMS_BEFORE_PARK,
+  RECLAIM,
   STOPPED,
   UNHELD,
+  anybodysAt,
   claimRefusal,
   claimed,
   describe,
@@ -43,26 +44,24 @@ import {
   freeRefusal,
   freshLapse,
   heldBy,
-  historyLine,
   landingSaved,
   leaseOf,
   nextLeft,
   nextLine,
   nothingWorked,
   oweRelease,
-  parkAnswers,
   readContext,
-  parksAsCrashed,
   reclaimRefusal,
-  reclaimsOf,
   setLease,
   stateOf,
   takeableFree,
   writeRefusal,
-  takeLease,
-  takeRefusal,
   unheldRefusal,
 } from "./lease.mjs";
+import {
+  RECLAIMS_BEFORE_PARK, historyLine, parkAnswers, parksAsCrashed, reclaimsOf,
+} from "./lease/crash-park.mjs";
+import { takeLease, takeRefusal } from "./lease/takeover.mjs";
 import { SHARED_HOLDER, handedOn, handedSaid, notHandedHere, sharedHolder } from "./lease/dispatched.mjs";
 import { bandWith, straddleSaid, straddles, unplaceable } from "../wire/shared-clock.mjs";
 
@@ -426,7 +425,7 @@ export const claim = async (argv) => {
   /* Above every route out of here, including the three turns below, because what it qualifies is the state each of them reads, and a claim told afterwards has already been answered on it. */
   const band = bandWith(lease?.slack);
   const expiry = lease ? expiryOf(lease) : 0;
-  const anybodys = lease ? expiry + lease.minutes * 60_000 : 0;
+  const anybodys = lease ? anybodysAt(lease) : 0;
   if (lease) {
     const untold = unplaceable(lease.slack)
       ?? (straddles(expiry, band) ? straddleSaid(`the expiry of the lease on ${ref}`, expiry, band) : null);
@@ -485,7 +484,7 @@ export const claim = async (argv) => {
   }
   /* Off the remnant where there is no lease to read it from, so the flag that clears the refusal is not the way to lose the one line the refusal just printed. */
   const left = lease?.next ?? nextLeft(context);
-  const how = { free: unheld ? "unheld" : "claim", live: "handed", expired: "reclaim", mine: null, lapsed: null }[state];
+  const how = { free: unheld ? "unheld" : "claim", live: "handed", expired: RECLAIM, mine: null, lapsed: null }[state];
   const checkpoint = given.ready ? readyCheckpoint(ref, holder, patch, landingOf(context)) : null;
   const next = claimed(context, {
     holder, minutes, next: line, worklog: worklogFor(context, patch), how, status: issue.status,
@@ -506,7 +505,7 @@ export const claim = async (argv) => {
   } else if (parksAsCrashed(taken, issue.status)) {
     return parkCrashed(documentId, ref, issue, next, line);
   }
-  if (how === "reclaim") {
+  if (how === RECLAIM) {
     console.log(`Reclaim ${reclaimsOf(taken, issue.status)} of ${issue.status}: `
       + `the one after ${RECLAIMS_BEFORE_PARK} parks the issue as crashed.`);
   }
