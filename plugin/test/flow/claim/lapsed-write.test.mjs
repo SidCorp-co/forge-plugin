@@ -42,8 +42,7 @@ const heldBy = (holder, since, minutes) => {
   };
 };
 
-/* The stamp the CLI writes, cut to the minute the record keeps expiries at, derived from the very
-   lease the case put on the issue rather than from a tolerance around a second reading of the clock. */
+/* The stamp the CLI writes, cut to the minute the record keeps expiries at, derived from the very lease the case put on the issue rather than from a tolerance around a second reading of the clock. */
 const ranOutOf = () =>
   new Date(Date.parse(displaced.renewedAt) + displaced.minutes * 60_000).toISOString().slice(0, 16);
 
