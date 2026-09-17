@@ -104,6 +104,16 @@ test("finish never forces a branch delete: one git refuses is left, named, and s
   assert.doesNotMatch(run.stderr + run.stdout, /branch -D/u, "a forced delete is named as a way out");
 });
 
+/* The distinction the refusal above rests on: a status git would not report is not a clean tree, and
+   a reader collapsing the two would let this preflight remove a worktree it never managed to read
+   (ISS-1129). Asked of a directory that is no checkout at all, which is the only way to get that
+   answer out of git without breaking a tree somebody is standing in. */
+test("the reading finish shares answers null where git will not report a status", async () => {
+  const { uncommittedIn } = await import("../../../../tools/checkout.mjs");
+  const at = tempRoom("finish-unreadable-");
+  assert.equal(uncommittedIn(at), null);
+});
+
 test("finish leaves a worktree holding an uncommitted path, names it, keeps the scratch and exits non-zero", () => {
   const { work, tree } = started("finish-dirty");
   const scratch = scratchOf(work);

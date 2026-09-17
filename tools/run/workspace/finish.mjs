@@ -12,7 +12,8 @@ import { join, resolve, sep } from "node:path";
 import { consults } from "../../../plugin/src/codex/codex-log.mjs";
 import { jsonlAt } from "../../../plugin/src/hooks/hook-log-file.mjs";
 import { copyToRun } from "../../../plugin/src/tools/plugin-copy.mjs";
-import { checkoutRoot, defaultBranch, git, gitOut, lines, loud, REMOTE, remoteRef } from "../../checkout.mjs";
+import { checkoutRoot, defaultBranch, git, gitOut, lines, loud, REMOTE, remoteRef,
+  uncommittedIn } from "../../checkout.mjs";
 import { gatesHere, verdictPath } from "../../gate-verdict.mjs";
 import { runnersOf } from "../../gates/machine.mjs";
 import { KEY, whoseTree, worktreePath } from "./occupant.mjs";
@@ -61,14 +62,6 @@ export const FINISH_HELP = [
    the caller to the wrong one. */
 const runnerIn = (tree, script) => `node ${join(tree, "tools", script)}`;
 
-/* `status --porcelain` and not a diff against HEAD: an untracked file a run never staged is work
-   too. Read through `git` rather than `gitOut`, which trims the first status column away. */
-const uncommitted = (path) => {
-  const run = git(["status", "--porcelain"], path);
-  if (run.status !== 0) return null;
-  return (run.stdout ?? "").split("\n").filter(Boolean).map((one) => one.slice(3));
-};
-
 /* Against the remote-tracking ref and never the remote: a ref this checkout has not fetched can only
    name fewer commits than the remote holds, so a stale one refuses and never lets a commit die. This
    is the reading nothing else here makes — `git worktree remove` refuses a dirty tree by itself, and
@@ -91,7 +84,9 @@ const lockedOn = (root, path) => (gitOut(["worktree", "list", "--porcelain"], ro
 const readTree = (root, path, base, gates) => ({
   branch: gitOut(["rev-parse", "--abbrev-ref", "HEAD"], path),
   scratch: scratchAt(path),
-  dirty: uncommitted(path),
+  /* `status --porcelain` and not a diff against HEAD: an untracked file a run never staged is work
+     too, and null from here is a status git would not report rather than a clean tree. */
+  dirty: uncommittedIn(path),
   ahead: ahead(path, base),
   gates: gates(path, runnersOf(root)),
   locked: lockedOn(root, path),

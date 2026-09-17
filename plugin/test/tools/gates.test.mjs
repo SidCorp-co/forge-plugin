@@ -411,6 +411,52 @@ test("the dirty shared checkout is refused, --anyway gates it and says so at bot
   }
 });
 
+/* The commonest record `status --porcelain` writes is an unstaged modification, one space then one
+   letter then one space, and a reading that trims the whole output before it slices by offset takes a
+   character of that first path with it. The case above never caught it: an untracked file's status is
+   two characters wide, so nothing of it was trimmed (ISS-1129). */
+test("the refusal names a lone unstaged modification whole", () => {
+  const { at, work } = scratch("dirty-modified");
+  try {
+    landed(work, "docs/two.md", "a second document\n");
+    write(work, "docs/two.md", "changed, never staged\n");
+    const refused = run(work);
+    assert.equal(refused.status, 1, refused.stdout);
+    assert.ok(refused.stderr.includes("\n    docs/two.md\n"), refused.stderr);
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* Escaped, so this file stays ASCII and no reader has to guess which character it carries. */
+const OUTSIDE_ASCII = "docs/\u00e9.md";
+
+/* The other two ways the same reading names a path nobody can paste into a command: git C-quotes a
+   path holding a space or a byte outside ASCII, and it writes a rename as one record with an arrow
+   in it rather than as a path. `core.quotePath` is set here rather than assumed, since a developer
+   who turned it off globally would see this case pass for a reason the fix has nothing to do with. */
+test("the refusal names a spaced path, a path outside ASCII and both ends of a rename", () => {
+  const { at, work } = scratch("dirty-shapes");
+  try {
+    git(work, "config", "core.quotePath", "true");
+    landed(work, "docs/a b.md", "spaced\n");
+    landed(work, OUTSIDE_ASCII, "outside ascii\n");
+    landed(work, "docs/moved.md", "renamed away\n");
+    write(work, "docs/a b.md", "changed, never staged\n");
+    write(work, OUTSIDE_ASCII, "changed, never staged\n");
+    git(work, "mv", "docs/moved.md", "docs/landed-elsewhere.md");
+
+    const refused = run(work);
+    assert.equal(refused.status, 1, refused.stdout);
+    for (const one of ["docs/a b.md", OUTSIDE_ASCII, "docs/moved.md", "docs/landed-elsewhere.md"]) {
+      assert.ok(refused.stderr.includes(`\n    ${one}\n`), `${one} is not named whole:\n${refused.stderr}`);
+    }
+    assert.doesNotMatch(refused.stderr, /->/u, refused.stderr);
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
 test("a worktree is never refused for its uncommitted paths", () => {
   const { at, work } = scratch("worktree");
   try {
