@@ -122,3 +122,19 @@ test("forge claim -h says --judged takes a checkpoint or none, and gives the lea
   assert.match(help.stdout, /--judged +the QA turn handed back, from `qa-owed` or from none, and the lease with it/u,
     "the flag's own line carries the state it takes, the absence of one, and the lease");
 });
+
+/* The one arm that queues the give-back having written nothing before it: the settling write skips the check every other write of this process has already spent, so before ISS-1715 the hook was what delivered here, and the hook now stands down for this shape. */
+test("a hand-back with no checkpoint delivers the comments it owes, and hands back anyway", async () => {
+  stands({ lease: lease(JUDGE) });
+  state.comments[UUID] = [{
+    documentId: "c-unread",
+    createdAt: "2026-09-17T09:00:00.000Z",
+    body: "a person answered after the verdicts went up",
+  }];
+  const done = await ran(["claim", "ISS-1429", "--judged"], JUDGE);
+  assert.equal(done.status, 0, `the hand-back should have gone through:\n${done.stdout}${done.stderr}`);
+  assert.ok(done.stderr.includes("a person answered after the verdicts went up"),
+    `the comment itself, ahead of the hand-back's own answer:\n${done.stderr}`);
+  assert.match(done.stdout, /no landing checkpoint, so no turn was moved and none was written/u,
+    "and the write it was owed for went through in the same call");
+});

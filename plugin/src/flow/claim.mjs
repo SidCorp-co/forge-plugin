@@ -6,7 +6,7 @@ import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
-import { commentPage, cutIn } from "../tracker/comments.mjs";
+import { commentPage, cutIn, mustBeShown } from "../tracker/comments.mjs";
 import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
 import { rungOf } from "../ladder.mjs";
 import { namedIn, rungFieldsOf, viewFrom } from "./earned.mjs";
@@ -186,11 +186,13 @@ export const readyCheckpoint = (ref, holder, patch, landing) => {
 };
 
 /* The hand-back of a judge whose verdicts came before any landing, the ordinary case wherever a deployment is judged rather than a merge: there is no checkpoint, so there is no turn to move and none is written, and the lease is the whole of what such a judge is holding. The lease is read here because no landing write follows to read it, and a caller holding nothing is owed the claim that takes the issue rather than a release that would free another run's (ISS-1429). */
-const handBackUnlanded = (documentId, ref, status, context, holder) => {
+const handBackUnlanded = async (documentId, ref, status, context, holder) => {
   const lease = leaseOf(context);
   const state = stateOf(lease, holder);
   if (state === "free") fail(freeRefusal(ref, status, context));
   if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, lease));
+  /* The one arm that queues the give-back having written nothing before it, so the settling write skips the check every other write of this process has already spent (ISS-1715). */
+  await mustBeShown([{ ref, documentId }]);
   oweRelease(documentId, ref);
   console.log(`${ref}  judged: no landing checkpoint, so no turn was moved and none was written.`);
   return console.log(`The verdicts on the record are the judgement, so nothing more of ${ref} is `
