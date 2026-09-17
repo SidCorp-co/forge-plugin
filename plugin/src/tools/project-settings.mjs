@@ -1,7 +1,7 @@
 /* The project's own configuration: the two typed resources the tracker keeps per project, reported
    with the source each key was read from and written one key at a time. Whose the decision is, and
    why a key is never re-declared in a checkout: docs/cli/doctor.md. */
-import { readFileSync, writeFileSync } from "node:fs";
+import { closeSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 
 import { FROM_PROJECT, fail, projectFilePath, projectSlug } from "../resolve/settings.mjs";
 import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../guides/flow.mjs";
@@ -267,6 +267,26 @@ const flowRead = (path) => {
   }
 };
 
+/* Through a sibling and renamed into place, the install and the restore alike: a plain write opens
+   the destination truncating, so one that fails part way leaves neither the bytes it replaced nor
+   the ones it was writing — and a restore doing that would destroy the very state whose refusal is
+   about to report it. The mode is carried over, this file being the repository's and not ours. */
+const wroteWhole = (path, text) => {
+  const temporary = `${path}.${process.pid}.tmp`;
+  try {
+    const handle = openSync(temporary, "w", statSync(path).mode & 0o777);
+    try {
+      writeFileSync(handle, text);
+    } finally {
+      closeSync(handle);
+    }
+    renameSync(temporary, path);
+  } catch (error) {
+    rmSync(temporary, { force: true });
+    throw error;
+  }
+};
+
 /* Refused before a byte is written anywhere: an undeclared slug, a project file this process cannot
    read, parse or write, and — where the flow asks the tracker for anything — a checkout naming no
    project. What is left after these is the tracker, which is the half no check here can make. */
@@ -281,12 +301,21 @@ const flowFile = (slug) => {
       + `here, so nothing was written and nothing was sent. Run this from a checkout that has one.`);
   }
   let held = null;
+  let parsed = null;
   try {
     held = readFileSync(path, "utf8");
-    JSON.parse(held);
+    parsed = JSON.parse(held);
   } catch (error) {
     fail(`--flow: ${path} is the file \`flow\` is a key of and this could not read it as JSON, so `
       + `that half is out of reach and nothing was sent: ${error.message}`);
+  }
+  /* A list and a bare string are JSON this parses and no document a key can be set in, and the
+     resolver takes either: an insert made anyway would land a property in a file with no object to
+     hold it, which is the one way this route can destroy a setting rather than fail to write one. */
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    fail(`--flow: ${path} holds ${Array.isArray(parsed) ? "a list" : JSON.stringify(parsed)} where a `
+      + "JSON object with this project's keys in it belongs, and `flow` is a key of that object. "
+      + "Nothing was written and nothing was sent.");
   }
   return { path, held };
 };
@@ -303,7 +332,7 @@ export const writeFlow = async (slug) => {
      about the file it has not got rather than about a key of a file nobody would find. */
   if (asks.length) projectSlug();
   try {
-    writeFileSync(path, withKey(held, "flow", slug));
+    wroteWhole(path, withKey(held, "flow", slug));
   } catch (error) {
     fail(`--flow: ${path} is the file \`flow\` is a key of and this could not write it, so that half `
       + `is out of reach and nothing was sent: ${error.message}`);
@@ -314,7 +343,7 @@ export const writeFlow = async (slug) => {
      taken off again at the one outcome that keeps the write and at the end of a call that kept it. */
   const onExit = () => {
     try {
-      writeFileSync(path, held);
+      wroteWhole(path, held);
     } catch {
       /* The exit is already under way and there is nowhere left to say this; the explicit restore
          below is the path that reports a failure, and it runs first on every route but a crash. */
@@ -325,34 +354,49 @@ export const writeFlow = async (slug) => {
   const putBack = (why) => {
     keepWrite();
     try {
-      writeFileSync(path, held);
+      wroteWhole(path, held);
     } catch (error) {
       fail(restoreFailed(path, slug, error.message));
     }
     fail(`--flow: ${why} The project file is as it was, so this project is on the flow it had.`);
   };
-  const said = [`flow: ${flowRead(path)}  ← ${path}`];
+  const back = flowRead(path);
+  if (back !== slug) {
+    putBack(`${path} was written and reads back \`flow: ${JSON.stringify(back)}\` rather than `
+      + `\`${slug}\`, so nothing was sent.`);
+  }
+  const said = [`flow: ${back}  ← ${path}`];
   for (const ask of asks) {
     const route = { name: ask.key.slice(0, ask.key.indexOf(".")), key: ask.key.slice(ask.key.indexOf(".") + 1) };
     const resource = RESOURCES[route.name];
     /* Every way the send can fail, not only the one the soft flag catches: the payload guard throws
        before the call goes out, and a throw that walked past here would leave the file written. */
+    /* Every way the send can fail, not only the one the soft flag catches: the payload guard throws
+       before the call goes out, and a throw that walked past here would leave the file written. */
     const sent = await write("forge_config",
       { action: resource.written, data: resource.bodyFor(route.key, ask.value) }, undefined, true)
       .catch((error) => ({ refused: error.message }));
-    if (sent?.refused) putBack(`flow ${slug} asks this project for ${ask.said}, and ${resource.said} refused the write: ${sent.refused}.`);
+    /* Read back even where the send said it failed, and decide on the read: a write whose response
+       was lost is reported the same way as one the tracker declined, and restoring on that word
+       alone would put the flow back over a judgement that did land. */
     const now = await scoped("forge_config", { action: resource.read }, true)
       .catch((error) => ({ refused: error.message }));
+    const declined = sent?.refused ? ` ${resource.said} said of the write: ${sent.refused}.` : "";
     if (now?.refused) {
       keepWrite();
       fail(`--flow: ${ask.key} was sent as ${JSON.stringify(ask.value)} and ${resource.said} would `
-        + `not say what it now holds, so this setting is unconfirmed: ${now.refused}. ${path} sets `
-        + `\`flow: ${slug}\` and is left that way, the write having as likely landed as not — read `
-        + `what it holds with \`${READS_IT}\`.`);
+        + `not say what it now holds, so this setting is unconfirmed: ${now.refused}.${declined} `
+        + `${path} sets \`flow: ${slug}\` and is left that way, the write having as likely landed as `
+        + `not — read what it holds with \`${READS_IT}\`.`);
     }
-    const why = notKept(route, ask.value, resource.keysIn(now)[route.key]);
-    if (why) putBack(`flow ${slug} asks this project for ${ask.said}, and ${why}`);
-    said.push(`${ask.key}: ${shown(resource.keysIn(now)[route.key])}  ← ${resource.said}`);
+    const kept = resource.keysIn(now)[route.key];
+    if (notKept(route, ask.value, kept)) {
+      putBack(`flow ${slug} asks this project for ${ask.said}, and ${sent?.refused
+        ? `${resource.said} declined the write: ${sent.refused}. ${ask.key} reads back `
+          + `${JSON.stringify(kept ?? null)}.`
+        : notKept(route, ask.value, kept)}`);
+    }
+    said.push(`${ask.key}: ${shown(kept)}  ← ${resource.said}`);
   }
   if (!asks.length) said.push(`flow ${slug} asks this project for nothing further`);
   keepWrite();

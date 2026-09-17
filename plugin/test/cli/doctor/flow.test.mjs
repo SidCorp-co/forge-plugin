@@ -3,7 +3,7 @@
    the tracker says the other half did not land: docs/cli/the-flow-axis.md. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
@@ -112,13 +112,56 @@ test("a tracker that takes the key and keeps it not is refused, and the file goe
   }
 });
 
-test("a tracker that refuses the write outright leaves the project file as it was", async () => {
+/* Decided on the read and not on the word: a write whose response was lost is reported exactly as
+   one the tracker declined, so restoring on the word alone would undo a judgement that did land. */
+test("a tracker that declines the write is read back all the same, and the file goes back on what it says", async () => {
   fresh();
   state.dead = ["set_pipeline"];
   const run = await ask("--flow", "screen");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /refused the write/u, run.stderr);
+  assert.match(run.stderr, /declined the write/u, run.stderr);
+  assert.match(run.stderr, /pipeline\.qa reads back "builder"/u, "which is what decided it");
   assert.equal(readFileSync(file, "utf8"), HELD);
+});
+
+test("a write the tracker declined and kept anyway is reported set rather than undone", async () => {
+  fresh();
+  state.dead = ["set_pipeline"];
+  state.settings.pipelineConfig.qa = "independent";
+  const run = await ask("--flow", "screen");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(JSON.parse(readFileSync(file, "utf8")).flow, "screen");
+  assert.match(run.stdout, /^pipeline\.qa: independent {2}← the tracker's pipeline configuration$/mu);
+});
+
+/* The resolver takes any JSON, and a list is a document no property can be set in: an insert made
+   anyway is the one way this route destroys a setting rather than failing to write one. */
+test("a project file holding JSON that is no object is refused, and its bytes stand", async () => {
+  for (const body of ["[]\n", '"text"\n', "true\n"]) {
+    writeFileSync(file, body);
+    state.calls = [];
+    const run = await ask("--flow", "default");
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /where a JSON object with this project's keys in it belongs/u, run.stderr);
+    assert.equal(readFileSync(file, "utf8"), body);
+    assert.equal(sent().length, 0);
+  }
+});
+
+/* A write straight at the destination opens it truncating, so one that fails part way leaves
+   neither the old bytes nor the new. The sibling is what this asserts, through the one failure a
+   case can cause: a directory the temporary cannot be made in. */
+test("a file this cannot write is refused with that file untouched", async () => {
+  fresh();
+  chmodSync(room.path, 0o500);
+  try {
+    const run = await ask("--flow", "screen");
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /could not write it, so that half is out of reach and nothing was sent/u, run.stderr);
+    assert.equal(readFileSync(file, "utf8"), HELD);
+  } finally {
+    chmodSync(room.path, 0o700);
+  }
 });
 
 /* Neither restoring nor reporting success: the write may have landed and nothing here can say. */
