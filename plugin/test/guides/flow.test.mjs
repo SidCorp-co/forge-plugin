@@ -16,7 +16,7 @@ const {
   partFileProblem, partFor, readContract, unansweredIn,
 } = await import("../../src/guides/contract.mjs");
 const flowModule = await import("../../src/guides/flow.mjs");
-const { DEFAULT, FLOWS, FLOW_SLUGS, SCREEN } = flowModule;
+const { DEFAULT, FLOWS, FLOW_SLUGS, SCREEN, screensOf } = flowModule;
 const { QA_MODES } = await import("../../src/tracker/project-config.mjs");
 /* The plan's declaration keys, read off the flags a plan parses to rather than named again here. */
 const DECLARED_KEYS = Object.keys((await import("../../src/flow/machine.mjs")).planFlags(""));
@@ -42,13 +42,15 @@ test("this copy ships two flows, and the declaration says nothing about what a f
   assert.deepEqual(FLOW_SLUGS, [DEFAULT, SCREEN], "the slugs this copy serves, in the order it declares them");
   assert.deepEqual(FLOWS[DEFAULT], { requires: [] },
     "an `overrides` key would be a flow declaring a part, and a flow's directory declares that");
-  assert.deepEqual(FLOWS[SCREEN], { requires: [], judge: "independent" },
+  assert.deepEqual(FLOWS[SCREEN], { requires: [], judge: "independent", screens: true },
     "screen asks the project for a judge and requires no declaration of a plan, which is ISS-1088's decision");
   for (const [flow, held] of Object.entries(FLOWS)) {
     assert.deepEqual(held.requires.filter((key) => !DECLARED_KEYS.includes(key)), [],
       `${flow} requires a declaration the plan vocabulary does not hold, so no plan can ever answer it`);
     assert.ok(held.judge === undefined || QA_MODES.includes(held.judge),
       `${flow} asks for a judgement \`${held.judge}\`, which is no value of the project's own key`);
+    assert.equal(screensOf(flow), held.screens === true,
+      `${flow} says one thing about having a screen in the table and another through its reader`);
   }
   assert.equal(Object.hasOwn(flowModule, "overridesOf"), false,
     "the override lookup is gone, or a caller can still resolve a part against a base");

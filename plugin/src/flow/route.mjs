@@ -4,7 +4,7 @@
 import { citedClauses } from "../spec/checked.mjs";
 import { sayIfChanged, sessionKey } from "../shown/ledger.mjs";
 import { Refused, refuse } from "../refusal.mjs";
-import { CLOSES_FROM, SHAPES, TRIAGES, atMinute, criterionNumber, missingLines, need, planFlags, unwrap }
+import { CLOSES_FROM, SHAPES, TRIAGES, atMinute, criterionNumber, looksIn, missingLines, need, planFlags, unwrap }
   from "./machine.mjs";
 import { statusKind } from "../tracker/rest.mjs";
 import { slugIfAny } from "../resolve/settings.mjs";
@@ -20,12 +20,12 @@ import {
   SIDE,
   SILENT,
   announcedAt,
-  answered,
   atLeast,
   atThisReopen,
   blockersOwed,
   holdsBack,
   nextOf,
+  lookAnswered,
   parkRecord,
   parkThatSet,
   personLooks,
@@ -201,11 +201,11 @@ const reopenTarget = (view, ref) => {
 /* What the last rung will want, said at the rehearsal rather than at the refusal two statuses later:
    ISS-3's run showed that an obligation nobody is told about early is one that slips. */
 export const lookAhead = (view, ref) => {
-  const said = personLooks(view.flags, view.release);
-  if (!said || atLeast(view.issue.status, CLOSES_FROM) || answered(view, "screen-review")) return null;
+  const said = personLooks(view.flags, view.release, view.witnessed);
+  if (!said || atLeast(view.issue.status, CLOSES_FROM) || lookAnswered(view)) return null;
   return `Ahead: ${CLOSES_FROM} owes a person's look, because the plan declares ${said}. Ask for it with
 `
-    + `  forge advance ${ref} --park screen-review --why "<why>" --evidence <attachment|url|sha>`;
+    + `  forge advance ${ref} --park ${looksIn(view.flags)} --why "<why>" --evidence <attachment|url|sha>`;
 };
 
 /* One gate, read by the line and by the fetch that feeds it: a screen change below the judging rung,

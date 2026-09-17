@@ -5,9 +5,9 @@
    docs/cli/record-the-rung.md. */
 import { refuse } from "../../refusal.mjs";
 import { citationsChecked, criteriaChecked } from "../../spec/checked.mjs";
-import { SECTIONS, declaredAs, planFlags, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, witnessedAnswers, witnessedOn } from "../machine.mjs";
+import { SECTIONS, WITNESSED, declaredAs, planFlags, planSections, planSteps, planTyped, sectionOwedBy, sectionsOwed, stepsUncited, witnessedAnswers, witnessedOn } from "../machine.mjs";
 import { compoundCriteria } from "../../prose.mjs";
-import { flowPinned, requiresOf } from "../../guides/flow.mjs";
+import { flowPinned, requiresOf, screensOf } from "../../guides/flow.mjs";
 import { translateTo } from "../../resolve/settings.mjs";
 import { readOrRefuse } from "../../codex/codex-read.mjs";
 import { bodyFrom } from "../../resolve/payload.mjs";
@@ -83,6 +83,27 @@ export const requiresRefusal = (flow, declared, requires = requiresOf(flow)) => 
   ].join("\n");
 };
 
+/** The other half of the same boundary: whether this flow's own projects have a screen, and what that makes of a plan. The pair are the whole of what a flow says about a plan beyond `requires`: a flow whose projects have a screen asks every plan what a person witnesses, whichever way it declared, because a section left out reads to its next reader exactly like a considered `none`; and a flow whose projects have none refuses a declared screen change outright, since a plan claiming one on a project that has no screen promises a look nobody can take. Read here and at no rung, for the reason beside `requiresRefusal`, and taking its flow so a case proves it on a planted one. */
+export const screensRefusal = (flow, declared, held, screens = screensOf(flow)) => {
+  if (screens) {
+    return held.has(WITNESSED) ? null : [
+      `Flow ${flow} serves projects with a screen, so every plan answers what a person at the running`
+        + " product witnesses, and this one carries no such section, so nothing was written:",
+      `  ## ${WITNESSED}`,
+      "Name what only a person there can witness as `criteria: 3`, or write `none` and the reading"
+        + " that makes it none.",
+    ].join("\n");
+  }
+  if (declared.screen !== "yes") return null;
+  return [
+    `Flow ${flow} serves projects with no screen and this plan declares a screen change, so nothing`
+      + " was written:",
+    "  screen change: no",
+    "Write that under `## Declarations` where the change has no screen, or run a flow whose projects"
+      + " have one — `forge doctor` names where this one is set.",
+  ].join("\n");
+};
+
 /* The one section whose answer is read and not only its presence: it is written to be looked up by
    whoever decides whether this change owes a person's eye, and a lookup with no answer in it, or with
    two, sends that reader back to the guess the section exists to replace. UC-04-7 carries the
@@ -115,6 +136,7 @@ const planChecked = (plan) => {
       + " `approved` while it stays untyped.");
   }
   const declared = planFlags(plan);
+  const held = planSections(plan);
   const owed = sectionsOwed(plan, declared);
   if (owed.length) {
     refuse([
@@ -126,7 +148,8 @@ const planChecked = (plan) => {
       "Each opens on a heading whose text is the name and nothing else. What each answers: `forge record plan -h`.",
     ].join("\n"));
   }
-  const said = requiresRefusal(flowPinned().value, declared);
+  const flow = flowPinned().value;
+  const said = requiresRefusal(flow, declared) ?? screensRefusal(flow, declared, held);
   if (said) refuse(said);
   witnessedChecked(witnessedOn(plan));
   const bare = stepsUncited(planSteps(plan));

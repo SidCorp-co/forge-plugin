@@ -4,10 +4,10 @@ import { flowScope, methodScope } from "../resolve/settings.mjs";
 export const DEFAULT = "default";
 export const SCREEN = "screen";
 
-/* Slugs, declared and never read off the tree, and nothing about what a flow holds: its directory is that, so a vanished one refuses rather than serving a shorter list. What a flow asks the project for sits beside the slug — `requires`, the plan declarations it wants answered `yes`, and `judge`, the judgement it wants — as plain values checked against the tables that own them where those are already in scope, this module being one every guide call loads. */
+/* Slugs, declared and never read off the tree, and nothing about what a flow holds: its directory is that, so a vanished one refuses rather than serving a shorter list. What a flow asks the project for sits beside the slug — `requires`, the plan declarations it wants answered `yes`, and `judge`, the judgement it wants — and `screens`, whether its projects have a screen at all, the axis docs/two-levels.md names these two slugs for — as plain values checked against the tables that own them where those are already in scope, this module being one every guide call loads. `screens` is read where a plan is written and at no rung (ISS-902). */
 export const FLOWS = {
   [DEFAULT]: { requires: [] },
-  [SCREEN]: { requires: [], judge: "independent" },
+  [SCREEN]: { requires: [], judge: "independent", screens: true },
 };
 
 export const FLOW_SLUGS = Object.keys(FLOWS);
@@ -16,6 +16,8 @@ export const requiresOf = (flow, flows = FLOWS) => flows[flow]?.requires ?? [];
 
 /** The judgement this flow asks the project for, or null where it asks for none. It asks and never decides: who judges is the project's key, and a flow reading it a second time is a precedence rule with nothing to settle it. */
 export const judgeOf = (flow, flows = FLOWS) => flows[flow]?.judge ?? null;
+
+export const screensOf = (flow, flows = FLOWS) => Boolean(flows[flow]?.screens);
 
 /** What a flow asks the project itself for, each as the configuration key it is written through and the value it is written to. Derived from the table rather than restated beside it, so a flow declaring a judge asks for one by that alone and a flow declaring nothing asks for nothing: the empty list is what makes setting such a flow one write rather than a case in the verb that sets it. */
 export const projectAsksOf = (flow, flows = FLOWS) => {

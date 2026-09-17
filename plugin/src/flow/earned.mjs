@@ -3,7 +3,8 @@
    writes, fetches or reads the repository. What it checks against is the contract's table for that
    status, printed by `forge guide contract`. */
 import {
-  CLOSES_FROM, FINDINGS, SHAPES, TRIAGES, looksTo, need, planFlags, unwrap,
+  ANSWERS_LOOK, CLOSES_FROM, FINDINGS, SHAPES, TRIAGES, looksIn, looksTo, need, planFlags, unwrap,
+  witnessedOn,
 } from "./machine.mjs";
 import { planShapeOwed } from "./earned/plan-owed.mjs";
 import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding } from "./earned/park-status.mjs";
@@ -108,9 +109,13 @@ export const nextOf = (status, view) =>
   (status === "confirmed" && dispositionOf(view) ? "dropped" : stepAfter(status));
 
 /* The park is a look at the evidence either way, which the project's own policy may say it does
-   not want: the declaration is the plan's and whether a person is waited for is the project's. */
-export const personLooks = (flags, policy = null) =>
-  (policy && !waitsForPerson(policy) ? null : looksTo(flags));
+   not want: the declaration is the plan's and whether a person is waited for is the project's.
+   `witnessed` is the plan's own answer to the question this park asks: a `none` is owed no park, and
+   an absent section is no answer, the question never having been put (ISS-1607). */
+export const personLooks = (flags, policy = null, witnessed = null) =>
+  (witnessed?.none || (policy && !waitsForPerson(policy)) ? null : looksTo(flags));
+
+export const lookAnswered = (view) => ANSWERS_LOOK.some((kind) => answered(view, kind));
 
 /** Reported rather than reconciled, there being no precedence rule between the two sources to introduce: a flow requiring a look this project's release policy waives promises one nobody takes. */
 export const flowPolicyConflict = (flow, requires, policy) => {
@@ -434,11 +439,11 @@ export const deployedOwed = (view, ref) => {
       `forge record note ${ref} --section Added --user "<what the reporter sees>", `
       + `or --skip --why "<why the change has no user-facing half>"`));
   }
-  const declared = personLooks(view.flags, view.release);
-  if (declared && !answered(view, "screen-review")) {
+  const declared = personLooks(view.flags, view.release, view.witnessed);
+  if (declared && !lookAnswered(view)) {
     out.push(need(
       `the plan declares ${declared}, and no person has answered since it was parked for review`,
-      `forge advance ${ref} --park screen-review --why "<why>" --evidence <attachment|url|sha>`,
+      `forge advance ${ref} --park ${looksIn(view.flags)} --why "<why>" --evidence <attachment|url|sha>`,
     ));
   }
   return out;
@@ -525,7 +530,7 @@ export const viewFrom = (documentId, issue, comments, cut = null, release = null
   const names = attachmentNames(issue, comments);
   /* Parsed once: six readers here and in route.mjs each ran it over the same plan for the same answer. */
   const flags = planFlags(unwrap(issue.plan));
-  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, deploy, flags, landing: landingOf(issue?.[SESSION]), work: worklogOf(issue?.[SESSION]), ...assemble(comments, criteria) };
+  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, deploy, flags, witnessed: witnessedOn(unwrap(issue.plan)), landing: landingOf(issue?.[SESSION]), work: worklogOf(issue?.[SESSION]), ...assemble(comments, criteria) };
 };
 export const parkRecord = (view, wanted = () => true, since = null, until = null) => {
   const found = view.comments

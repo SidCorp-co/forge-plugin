@@ -137,12 +137,16 @@ export const planFlags = (plan) => {
 export const looksTo = ({ screen, look }) =>
   (look === "yes" ? "a user-facing outcome" : (screen === "yes" ? "a screen change" : null));
 
+/** Which park kind that person is asked for: a screen change is looked at on a screen, anything else wherever it is read. `SHOWS_EVIDENCE` holds both, so a project with no screen is asked for a look it can take. Read off the declaration and never the flow (ISS-902). */
+export const looksIn = ({ screen }) => (screen === "yes" ? "screen-review" : "code-review");
+
 /* The witnessed section's other answer, read by `witnessedOn` and held across a prose rewrite as the citations beside it are — one source for both, because a reader and a protector spelling one answer differently accept a plan they cannot hand back. It reaches from the line's own indent through whatever separates the word from the reading after it, so a rewrite that replaces that reading leaves the word standing alone rather than joined to it. */
 const WITNESSED_NONE = "^[^\\S\\n]*none\\b[^\\p{L}\\p{N}\\n]*";
 
-/* What a typed plan answers, one section per question: the name is the whole text of the heading that
-   opens it, `owed` the declarations behind which the tree puts a way back. Presence is the whole of the
-   check; whether a section answers well is the reviewer's. */
+export const WITNESSED = "Witnessed on screen";
+
+/* What a typed plan answers, one section per question: the name is the whole text of the heading that opens it, `owed` the declarations behind which the tree puts a section, `screens` what a flow whose projects have one asks for whichever way the plan declared — only the write reading that second one, under the rule `screensOf` carries.
+   Presence is the whole of the check; whether a section answers well is the reviewer's. */
 export const PLAN_SECTIONS = [
   { name: "Files touched", asks: "which files this change opens" },
   { name: "Before", asks: "what the code does today" },
@@ -151,7 +155,7 @@ export const PLAN_SECTIONS = [
   { name: "Verified in code", asks: "the one thing read in the source that makes this possible" },
   { name: "Conventions reversed", asks: "which documented convention this reverses, and where the same change rewrites it" },
   { name: "Declarations", asks: `each of ${Object.values(DECLARED).join(", ")}, written \`yes\` or \`no\`` },
-  { name: "Witnessed on screen", asks: "which criteria only a person at the running product can witness, by number, or `none` and the reading that makes it none" },
+  { name: WITNESSED, asks: "which criteria only a person at the running product can witness, by number, or `none` and the reading that makes it none", owed: ["screen"], screens: true },
   { name: "Steps", asks: "the ordered steps, each naming the criterion number it serves" },
   { name: "The way back", asks: "what triggers it, the steps, who is told", owed: ["schema", "deploy"] },
 ];
@@ -209,7 +213,7 @@ const SAYS_NONE = new RegExp(WITNESSED_NONE, "iu");
 
 /** What a plan says only a person at the running product can witness, and which way it answered — `cites` and `none` being the two, read off one reading by the write that refuses a file and by the status that reads the plan the issue stored, or a plan edited anywhere but here enters at a shape the write turns back. It is read where an answer stands — the section's opening word — so `display: none` in a criterion it names is prose, as it would be anywhere else. Both answers come back rather than one winning: a section giving neither and one giving both each leave a reader guessing, and only the caller that refuses them can say which happened. */
 export const witnessedOn = (plan) => {
-  const body = planSections(plan).get("Witnessed on screen");
+  const body = planSections(plan).get(WITNESSED);
   if (body === undefined) return null;
   const said = fenceMarked(body).filter((one) => !one.fenced).map((one) => one.line).join("\n");
   const cites = [...said.matchAll(CITES)].flatMap((one) => (one[0].match(/\d+/gu) ?? []).map(Number));
@@ -299,9 +303,10 @@ export const PARKS = [
   "question", "screen-review", "destructive-migration", "rolled-back", "no-way-back",
   "unshippable", "blocked", "paused", "crashed", "release-decision", "code-review", "dropped",
 ];
-/* The three parks that speak to a reviewer, who cannot answer without the thing to look at. One
-   list, because the read-back judges a park a hand wrote by the same rule the write applies. */
+/* The three parks that speak to a reviewer, who cannot answer without the thing to look at. One list, because the read-back judges a park a hand wrote by the same rule the write applies.
+   The two of them that are a person's look answer it whichever kind was asked for, the kind saying where a person looked rather than whether they did. */
 export const SHOWS_EVIDENCE = ["screen-review", "code-review", "destructive-migration"];
+export const ANSWERS_LOOK = ["screen-review", "code-review"];
 export const FAIL = "fail";
 export const VERDICTS = ["pass", FAIL, "skipped"];
 export const JUDGE_FROM = "judge-from";

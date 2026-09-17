@@ -83,20 +83,17 @@ const phraseRows = () =>
    in a second list: the contract and `forge resume -h` both point at this line for the answer. */
 const REPEATS = Object.keys(SHAPES).filter((kind) => SHAPES[kind].repeats);
 
-/* The sections a typed plan owes, each as the question it answers, so a plan is written against the list rather than against the refusal. The heading is the section's whole name and nothing else on its line; a plan carrying none of them writes as the free text it is and `approved` says so.
-   The section a declaration puts a way back behind, and the declarations that do, are both off the table below, so a third one growing it is not a sentence here to hand-edit. */
-const OWED_BY = PLAN_SECTIONS.find((one) => one.owed);
-const TRIGGERS = sectionOwedBy(OWED_BY.name,
-  Object.fromEntries(OWED_BY.owed.map((key) => [key, "yes"])));
+/* The sections a typed plan owes, each as the question it answers, so a plan is written against the list rather than against the refusal. The heading is the section's whole name and nothing else on its line; a plan carrying none of them writes as the free text it is and `approved` says so. Every section a declaration stands behind says so on a line of its own, read off the table, so one added there is not a sentence here to hand-edit. */
+const conditionOn = (one) => `${one.name} is owed only where the plan declares ${sectionOwedBy(one.name, Object.fromEntries(one.owed.map((key) => [key, "yes"]))).join(" or ")}.`;
 
 const PLAN_BLOCKS = [
   "The plan file is markdown, and a typed one carries these sections, each opened by a heading whose",
   "text is the name:",
   ...PLAN_SECTIONS.map((one) => `  ## ${one.name.padEnd(23)}${one.asks}`),
-  `${OWED_BY.name} is owed only where the plan declares ${TRIGGERS.join(" or ")}. Every`,
-  "numbered step under Steps names what it serves as `criteria: 3` or `criteria: 3, 4`, and a step",
-  "naming none is refused here. At `approved`, where the criteria field is read, so is a step whose",
-  "numbers name no criterion the issue holds, and a criterion no step names.",
+  ...PLAN_SECTIONS.filter((one) => one.owed).map(conditionOn),
+  "Every numbered step under Steps names what it serves as `criteria: 3` or `criteria: 3, 4`, and a",
+  "step naming none is refused here. At `approved`, where the criteria field is read, so is a step",
+  "whose numbers name no criterion the issue holds, and a criterion no step names.",
 ];
 
 /* The two kinds whose file is written from what a consult read, which is why the citation belongs on their help and not only in the entry check's refusal: by the refusal the consult has been spent. */

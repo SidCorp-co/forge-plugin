@@ -175,8 +175,11 @@ test("`record plan -h` prints every section a typed plan owes, as the question i
   for (const one of PLAN_SECTIONS) {
     assert.match(run.stdout, new RegExp(`^ {2}## ${escaped(one.name)} +${escaped(one.asks)}$`, "mu"), one.name);
   }
+  /* One line per section a declaration stands behind, in the table's own order: a help that names one
+     of them sends a run reading it to a refusal it was told nothing about (ISS-1694). */
+  assert.match(run.stdout, /Witnessed on screen is owed only where the plan declares screen change\./u);
   assert.match(run.stdout, /The way back is owed only where the plan declares schema coupling or deploy coupling\./u);
-  assert.match(run.stdout, /naming none is refused here\. At `approved`, where the criteria field is read, so is a step whose\nnumbers name no criterion the issue holds, and a criterion no step names\./u);
+  assert.match(run.stdout, /step naming none is refused here\. At `approved`, where the criteria field is read, so is a step\nwhose numbers name no criterion the issue holds, and a criterion no step names\./u);
 });
 
 /* A field accepted and dropped answers 200 exactly like one that was stored, which is why the write

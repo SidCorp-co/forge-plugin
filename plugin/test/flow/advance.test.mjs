@@ -238,7 +238,8 @@ test("a user-facing outcome owes a person's look, and --owed says so first", () 
   assert.equal(personLooks({ look: "no", screen: "no" }), null, "and a plan declaring neither owes nobody");
   const ahead = lookAhead(view({ ...shipped, status: "developed" }, []), "ISS-3");
   assert.match(ahead, /^Ahead: awaiting_release owes a person's look, because the plan declares a user-facing outcome/u);
-  assert.match(ahead, /--park screen-review/u);
+  assert.match(ahead, /--park code-review/u,
+    "the kind a change with no screen is asked for, which is the one it can answer (ISS-1694)");
   assert.equal(lookAhead(view({ ...shipped, plan: PLAN }, []), "ISS-3"), null, "a plan declaring neither says nothing ahead");
   assert.equal(lookAhead(view({ ...shipped, status: "awaiting_release" }, []), "ISS-3"), null, "and past it there is nothing ahead");
 });

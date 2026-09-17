@@ -1,5 +1,5 @@
 /* What a clause's rung is derived from, and nothing that fetches. AC-14-4-3, docs/cli/spec-the-status.md. */
-import { answered, criteriaOf } from "../flow/earned.mjs";
+import { criteriaOf, lookAnswered } from "../flow/earned.mjs";
 import { verdictHeads } from "../flow/record/merged.mjs";
 import { sameCommit } from "../tracker/evidence.mjs";
 import { opensWith } from "../spec/parse.mjs";
@@ -26,7 +26,7 @@ const proved = (row, id, view) => {
 
 /* Declared, never inferred: a plan answering neither question has not said no look was owed. */
 const declaresNoScreen = ({ screen, look }) => screen === "no" && look === "no";
-const looked = (view) => declaresNoScreen(view.flags) || answered(view, "screen-review");
+const looked = (view) => declaresNoScreen(view.flags) || lookAnswered(view);
 
 const rungOf = (provers) => {
   if (!provers.length) return "partial";

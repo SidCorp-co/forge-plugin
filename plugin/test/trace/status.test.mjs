@@ -32,8 +32,8 @@ const verdict = (number, fields) => comment(render("verdict", {
 const PLAN_NO_SCREEN = "## Declarations\n\nscreen change: no\nuser-facing outcome: no\n";
 
 /* A park a person answered: the park record, then a comment from a token that is no device's. */
-const answeredPark = () => [
-  comment(render("park", { kind: "screen-review", why: "a person looks", evidence: ["run.txt"] }, "developed")),
+const answeredPark = (kind = "screen-review") => [
+  comment(render("park", { kind, why: "a person looks", evidence: ["run.txt"] }, "developed")),
   { createdAt: at(), authorId: "a-person", body: "looked, and it is right." },
 ];
 const PLAN_SCREEN = "## Declarations\n\nscreen change: yes\nuser-facing outcome: no\n";
@@ -111,6 +111,21 @@ test("verified needs an affirmative answer about the person's look, never an abs
   assert.equal(rungFor(row({ plan: PLAN_SCREEN, attachments: [{ name: "run.txt" }] }),
     [LANDING, verdict(1), answeredPark()]), "verified",
     "and a park a person answered is the other affirmative");
+});
+
+/* The kind says where a person looked and not whether they did, so a project with no screen earns the
+   rung on the review kind it can answer, and one whose issue was parked under the older kind keeps
+   what it earned (ISS-1694). */
+const PLAN_OUTPUT = "## Declarations\n\nscreen change: no\nuser-facing outcome: yes\n";
+test("either review kind answers the look, so a change with no screen can reach verified", () => {
+  const looked = (kind) => rungFor(row({ plan: PLAN_OUTPUT, attachments: [{ name: "run.txt" }] }),
+    [LANDING, verdict(1), answeredPark(kind)]);
+  assert.equal(rungFor(row({ plan: PLAN_OUTPUT }), [LANDING, verdict(1)]), "implemented",
+    "a declared user-facing outcome nobody answered for is a look not taken");
+  assert.equal(looked("code-review"), "verified",
+    "and the kind a project with no screen is asked for is one it can answer");
+  assert.equal(looked("screen-review"), "verified",
+    "as is the other, which issues already on the tracker carry");
 });
 
 test("a clause one issue proved is not demoted by another that only mentions it", () => {
