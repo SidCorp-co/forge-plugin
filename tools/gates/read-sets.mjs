@@ -1,0 +1,205 @@
+/* One set of repository paths per test file, collected from what that file's own process tree was
+   watched to ask for, and the answer to which of a step's files this content still has to spend.
+   A file is skipped only on positive evidence: a set nothing recorded, a child that left no record,
+   a process that reached a route this cannot follow, or an execution context that has moved all
+   spend the file, which is what it does today. */
+import { createHash } from "node:crypto";
+import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { isAbsolute, join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { digestFile } from "./ledger.mjs";
+import { READS_DIR, READS_ROOT } from "./reads.mjs";
+import { TEST_FILE } from "./steps.mjs";
+
+const DIGEST_LENGTH = 12;
+const ENTRY_NAME = new RegExp(`^([0-9a-f]{${DIGEST_LENGTH}})\\.(.+)$`, "u");
+
+// A test file costs one re-run when its oldest entry is evicted, and the store holds every path it read.
+export const ENTRIES_PER_FILE = 3;
+
+const MANIFEST = /(?:^|\/)package(?:-lock)?\.json$/u;
+
+const held = new Map();
+
+const hashed = (root, one) => {
+  if (!held.has(one)) held.set(one, digestFile(join(root, one)));
+  return held.get(one);
+};
+
+const listing = (root, one) => {
+  try {
+    return readdirSync(join(root, one)).sort().join("\n");
+  } catch {
+    return "absent";
+  }
+};
+
+export const forgetReads = () => held.clear();
+
+export const readsDir = (record) => join(record, "test-reads");
+
+export const manifestsIn = (files) => files.filter((one) => MANIFEST.test(one));
+
+/** What a recorded set answers to beyond its own paths: this node, the launcher the step spends
+ *  apart from its file list, and the content of the audit and this collector. A record made under
+ *  other conditions, other flags or another audit answers for nothing here. */
+export const contextOf = (argv) => {
+  const hash = createHash("sha256").update(`${process.version}\n`).update(`${argv.join(" ")}\n`);
+  for (const one of ["./reads.mjs", "./read-sets.mjs"]) {
+    hash.update(digestFile(fileURLToPath(new URL(one, import.meta.url))));
+  }
+  return hash.digest("hex").slice(0, DIGEST_LENGTH);
+};
+
+export const setDigest = (root, set, context) => {
+  const hash = createHash("sha256").update(`${context}\n`);
+  for (const one of [...set.paths].sort()) hash.update(`p ${one} ${hashed(root, one)}\n`);
+  for (const one of [...set.dirs].sort()) hash.update(`d ${one} ${listing(root, one)}\n`);
+  return hash.digest("hex").slice(0, DIGEST_LENGTH);
+};
+
+const nameOf = (file) => file.replace(/[^\w.-]+/gu, "-");
+
+const entriesFor = (dir, file) => {
+  const want = nameOf(file);
+  let names;
+  try {
+    names = readdirSync(dir);
+  } catch {
+    return [];
+  }
+  return names.filter((one) => ENTRY_NAME.exec(one)?.[2] === want).map((one) => join(dir, one));
+};
+
+const setAt = (path, file) => {
+  try {
+    const found = JSON.parse(readFileSync(path, "utf8"));
+    return found.file === file && Array.isArray(found.paths) && Array.isArray(found.dirs) ? found : null;
+  } catch {
+    return null;
+  }
+};
+
+/** The entry this content matches, or null. Digested off the entry's own set rather than trusted
+ *  from its name: the name is what that set digested to when the file passed. */
+const matchIn = (dir, file, root, context) => {
+  for (const path of entriesFor(dir, file)) {
+    const found = setAt(path, file);
+    const digest = ENTRY_NAME.exec(path.split("/").at(-1))[1];
+    if (found && setDigest(root, found, context) === digest) return { digest, set: found };
+  }
+  return null;
+};
+
+/** Which of a step's files this content spends, and which the record already answers for. */
+export const selectTests = (dir, files, { root, context }) => {
+  const kept = [];
+  const spend = [];
+  for (const file of files) {
+    const found = matchIn(dir, file, root, context);
+    if (found) kept.push({ file, ...found });
+    else spend.push(file);
+  }
+  return { spend, kept };
+};
+
+/** The sets this content holds green, for a caller about to change the content under them. */
+export const heldSets = (dir, files, { root, context }) =>
+  selectTests(dir, files, { root, context }).kept.map((one) => one.set);
+
+const subjectOf = (record, root) => {
+  if (!Array.isArray(record.argv) || record.argv.length !== 1) return null;
+  const one = String(record.argv[0]);
+  const rel = one.startsWith(`${root}/`) ? one.slice(root.length + 1) : one;
+  return TEST_FILE.test(rel) ? rel : null;
+};
+
+const within = (root, at) => {
+  const rel = relative(root, at);
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+};
+
+/** Whether a child that left no record could have read this repository at all: it could where it
+ *  stood in the tree, or where something it was handed names a path in it. A child that stood
+ *  outside and was handed nothing in here read none of this content, and holds nothing back. */
+export const reaches = (root, one) => {
+  const cwd = typeof one.cwd === "string" ? one.cwd : root;
+  if (within(root, cwd)) return true;
+  return [one.file, ...(one.args ?? [])].flatMap((each) => String(each).split(/\s+/u))
+    .some((each) => each.length > 0 && within(root, resolve(cwd, each)));
+};
+
+const gather = (start, byTicket, root) => {
+  const paths = new Set();
+  const dirs = new Set();
+  const queue = [start];
+  let blind = null;
+  while (queue.length > 0) {
+    const one = queue.pop();
+    for (const path of one.paths) paths.add(path);
+    for (const path of one.dirs) dirs.add(path);
+    for (const each of one.spawned) {
+      const child = each.ticket === null ? null : byTicket.get(each.ticket);
+      if (child) queue.push(child);
+      else if (reaches(root, each)) blind ??= `${each.file} in ${each.cwd}`;
+    }
+  }
+  return { paths, dirs, blind };
+};
+
+const wellFormed = (one) => one !== null && typeof one === "object" && one.done === true
+  && Array.isArray(one.paths) && Array.isArray(one.dirs) && Array.isArray(one.spawned);
+
+/** One set per test file, from the process records a step's audit left. A file whose tree reached a
+ *  route the audit could not follow comes back `blind`, and nothing is written for it. */
+export const setsFrom = (out, root) => {
+  let names;
+  try {
+    names = readdirSync(out);
+  } catch {
+    return [];
+  }
+  const byTicket = new Map();
+  const roots = [];
+  for (const name of names) {
+    let one;
+    try {
+      one = JSON.parse(readFileSync(join(out, name), "utf8"));
+    } catch {
+      continue;
+    }
+    if (!wellFormed(one)) continue;
+    if (one.ticket) byTicket.set(one.ticket, one);
+    else roots.push(one);
+  }
+  return roots.map((one) => ({ file: subjectOf(one, root), ...gather(one, byTicket, root) }))
+    .filter((one) => one.file !== null);
+};
+
+/** Written whole and renamed into place, one entry per file and content, so a worktree gating other
+ *  content adds an entry beside this tree's rather than replacing it. */
+export const recordSets = (dir, sets, { root, context, manifests }) => {
+  let wrote = 0;
+  for (const set of sets) {
+    if (set.blind) continue;
+    const paths = [...new Set([...set.paths, ...manifests])].sort();
+    const body = { file: set.file, paths, dirs: [...set.dirs].sort() };
+    const digest = setDigest(root, body, context);
+    mkdirSync(dir, { recursive: true });
+    const staging = join(dir, `.${process.pid}.${digest}.${nameOf(set.file)}`);
+    writeFileSync(staging, `${JSON.stringify(body)}\n`);
+    renameSync(staging, join(dir, `${digest}.${nameOf(set.file)}`));
+    wrote += 1;
+    for (const path of entriesFor(dir, set.file).slice(ENTRIES_PER_FILE)) rmSync(path, { force: true });
+  }
+  return wrote;
+};
+
+/** The environment a step's processes are audited under: where each writes its record, what counts
+ *  as inside this repository, and the preload that does it, kept beside whatever this box declares. */
+export const auditEnv = (out, root) => ({
+  [READS_DIR]: out,
+  [READS_ROOT]: root,
+  NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --import=${new URL("./reads.mjs", import.meta.url).href}`.trim(),
+});

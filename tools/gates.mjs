@@ -20,7 +20,9 @@ import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mj
 import { forgetRoomRefusal, ROOM_ENV, roomRefused } from "./room.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
 import { parallelRuns } from "../plugin/src/resolve/settings.mjs";
-import { gateSteps, TEST_FILE, testWorkers } from "./gates/steps.mjs";
+import { argvForTests, gateSteps, launcherOf, TEST_FILE, testWorkers } from "./gates/steps.mjs";
+import { auditEnv, contextOf, manifestsIn, readsDir, recordSets, selectTests, setsFrom }
+  from "./gates/read-sets.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
 import { alonePath, casesPath, CEILING_SECONDS, REVIEW, fileTimesPath, recordDir, recordRun, roomPath, runKey, seriesFile }
   from "./gates/timing.mjs";
@@ -77,6 +79,18 @@ and not an absence. A filing that cannot be made at all — no credential, no ne
 without this plugin's own CLI — prints why, prints the body, prints the one command that files it by
 hand, and leaves the run's status alone: a gate that cannot reach the tracker may not become a gate
 that refuses. A run with nothing to file reaches none of this and sends no request.
+
+Inside a test step the unit is the file, and what it is keyed on is measured rather than declared.
+Every node process a test step runs is preloaded with an audit that records the repository paths it
+asked for — asking is the read, so a probe that found nothing is one too — every directory it listed,
+and a ticket for every process it spawned. A file that passed is stored with that set; the next run
+digests each set at the content on disk now, and a file whose digest matches is not spent. A file is
+skipped only on positive evidence, so all of these are spent: one the record holds nothing for, one
+whose process left an unfinished record, one that spawned a child no record answers for, one that
+reached a shell this cannot follow, and one whose execution context — this node, the launcher, the
+audit itself — has moved. Every set carries this repository's manifests, since a specifier's target
+is chosen by a manifest node reads through internals no audit here sees. A step that spent fewer
+files than its half holds records no pass of its own: what it proved is per file and is stored there.
 
 Past that, a step whose inputs are byte for byte what one of its recorded passes covered is skipped
 and says which digest matched. Only passes are recorded, so a red step is red again next time. The
@@ -397,6 +411,25 @@ if (!full) {
   }
 }
 
+/* Inside a step the diff already reaches, the unit is the file, and only a file this content has a
+   recorded set for is held back. A step left with nothing to spend is not spent at all. */
+if (ledger) {
+  const dir = readsDir(recordDir(ROOT));
+  const answered = [];
+  planned = planned.flatMap((step) => {
+    if (!step.tests) return [step];
+    const { spend, kept } = selectTests(dir, step.files, { root: ROOT, context: contextOf(launcherOf(step)) });
+    if (kept.length === 0) return [step];
+    answered.push({ step, kept, spend });
+    return spend.length === 0 ? [] : [{ ...step, files: spend, argv: argvForTests(spend), narrowed: true }];
+  });
+  for (const one of answered) {
+    console.log(`\n=== reads: ${one.step.label} — ${one.kept.length} of `
+      + `${one.kept.length + one.spend.length} test file(s) already answered for at this content ===`);
+    for (const each of one.kept) console.log(`skip ${each.file}  digest ${each.digest}`);
+  }
+}
+
 /* Every arrival at the loop is ordered by the same read, the two trusting no digest included: what they
    withhold trust from decides whether a step is spent, and this only which spent step goes first. */
 planned = orRefuse("cannot read the seconds its steps last took", () => cheapestFirst(secondsFor(ROOT, planned)));
@@ -423,9 +456,11 @@ const mine = runKey(ROOT);
 const unproved = [];
 const owned = [];
 
+const readsOut = (label) => resolve(scratch, "gate-reads", label.replace(/[^\w.-]+/gu, "-"));
+
 const testEnv = (step) => step.tests
   ? { GATE_FILE_TIMES: fileTimesPath(record, step.label), [CASES_ENV]: casesPath(scratch, step.label),
-      [ROOM_ENV]: roomPath(record, step.label, mine) }
+      [ROOM_ENV]: roomPath(record, step.label, mine), ...auditEnv(readsOut(step.label), ROOT) }
   : {};
 
 /* Every exit past an attribution says what its findings reached, the leak refusal included: a key
@@ -494,7 +529,17 @@ for (const step of planned) {
     for (const line of ownedLines()) console.error(line);
     finish(1, "failed", { step: step.label });
   }
-  if (ledger && !failed) recordPass(ledger.dir, step, took);
+  /* What the audit saw, before the step pass and whether or not one is recorded: a step that spent a
+     narrowed set proved its files and not its own digest, and the files are where that is kept. */
+  if (step.tests && !failed) {
+    const sets = setsFrom(readsOut(step.label), ROOT);
+    const wrote = recordSets(readsDir(record), sets, {
+      root: ROOT, context: contextOf(launcherOf(step)), manifests: manifestsIn(files),
+    });
+    console.log(`reads: ${wrote} of ${step.files.length} test file(s) recorded what they asked for; `
+      + `${step.files.length - wrote} answered for nothing and are spent again`);
+  }
+  if (ledger && !failed && !step.narrowed) recordPass(ledger.dir, step, took);
 }
 
 const elapsed = Math.round((Date.now() - started) / 1000);

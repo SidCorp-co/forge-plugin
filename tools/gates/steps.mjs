@@ -79,6 +79,11 @@ export const STEPS = [
 
 export const readsWholeTree = (path) => WHOLE_TREE_TESTS.some((claim) => under(path, claim));
 
+export const argvForTests = (files) => [process.execPath, "--test", ...testFlags(), ...files];
+
+// What a step spends apart from its files: the context a per-file record answers under.
+export const launcherOf = (step) => step.argv.slice(0, step.argv.length - step.files.length);
+
 export const gateSteps = (found) => {
   const absent = WHOLE_TREE_TESTS.filter((claim) => !found.some((one) => under(one, claim)));
   if (absent.length > 0) {
@@ -96,6 +101,6 @@ export const gateSteps = (found) => {
       throw new Error(`step ${step.label} matches no test file of the ${found.length} git reports; `
         + `its selector is broken and the step would pass without running anything.`);
     }
-    return { ...step, argv: [process.execPath, "--test", ...testFlags(), ...files[step.tests]] };
+    return { ...step, files: files[step.tests], argv: argvForTests(files[step.tests]) };
   });
 };

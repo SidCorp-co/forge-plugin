@@ -7,8 +7,8 @@ import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { EVERYTHING, gateSteps, STEPS, TEST_FILE, testWorkers, WHOLE_TREE_TESTS }
-  from "../../../tools/gates/steps.mjs";
+import { argvForTests, EVERYTHING, gateSteps, launcherOf, STEPS, TEST_FILE, testWorkers,
+  WHOLE_TREE_TESTS } from "../../../tools/gates/steps.mjs";
 import { derivationFiles, planFor, under } from "../../../tools/gates/scope.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
@@ -148,5 +148,23 @@ test("a new top-level directory belongs to no step", () => {
   }
   for (const name of EVERYTHING) {
     assert.ok(steps.some((step) => step.reads.includes(name)), `${name} is in EVERYTHING and no step reads it`);
+  }
+});
+
+/* Narrowing `reads` is the mistake the per-file selection may not make, and a test file in the
+   launcher would key every record on which files happened to run beside it (ISS-654). */
+test("a test step narrowed to fewer files keeps its reads, and its launcher names no test file", () => {
+  const step = gateSteps(tracked()).find((one) => one.tests === "rest");
+  const one = step.files[0];
+  const narrowed = { ...step, files: [one], argv: argvForTests([one]) };
+  assert.deepEqual(narrowed.reads, step.reads);
+  assert.deepEqual(launcherOf(narrowed), launcherOf(step));
+  assert.deepEqual(launcherOf(step).filter((each) => TEST_FILE.test(each)), []);
+  assert.deepEqual(narrowed.argv.filter((each) => TEST_FILE.test(each)), [one]);
+});
+
+test("every test step's declared files are exactly the test files on its own command line", () => {
+  for (const step of gateSteps(tracked()).filter((one) => one.tests)) {
+    assert.deepEqual(step.files, step.argv.filter((one) => TEST_FILE.test(one)), step.label);
   }
 });

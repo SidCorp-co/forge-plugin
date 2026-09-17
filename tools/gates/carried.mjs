@@ -6,7 +6,10 @@ import { basename, join, resolve } from "node:path";
 
 import { gitFiles } from "../checkout.mjs";
 import { contentOf, digestFile, forgetContent, ledgerFor, recordPass } from "./ledger.mjs";
-import { gateSteps, TEST_FILE } from "./steps.mjs";
+import { contextOf, forgetReads, heldSets, manifestsIn as manifestPaths, readsDir, recordSets }
+  from "./read-sets.mjs";
+import { gateSteps, launcherOf, TEST_FILE } from "./steps.mjs";
+import { recordDir } from "./timing.mjs";
 
 /* The gate's own entry point, whose module graph is part of every digest: this has to name the file
    `tools/gates.mjs` passes as its own, or these digests key on another derivation and match none. */
@@ -52,12 +55,22 @@ const manifestsIn = (root, wrote) => wrote.filter((one) => existsSync(join(root,
 const ledgerAt = (root, files) => ledgerFor(gateSteps(files.filter((one) => TEST_FILE.test(one))),
   { root, files, runner: resolve(root, ...RUNNER) });
 
+/* The per-file sets a test step holds green, beside the step passes: both are keyed on content, so a
+   release that writes only a version would otherwise re-spend a suite it changed nothing in. */
+const readsHeld = (root, files) =>
+  gateSteps(files.filter((one) => TEST_FILE.test(one))).filter((step) => step.tests)
+    .map((step) => ({ context: contextOf(launcherOf(step)) , files: step.files }))
+    .map(({ context, files: own }) =>
+      ({ context, sets: heldSets(readsDir(recordDir(root)), own, { root, context }) }));
+
 /** What the record holds green at the content on disk now, and that content's own digests beside it.
  *  Taken before the commit: after it, the digests these matched are gone. */
 export const passesHeld = (root, wrote) => {
   forgetContent();
+  forgetReads();
   const files = gitFiles(root);
   return {
+    reads: readsHeld(root, files),
     content: contentOf(root, files),
     beside: new Map(manifestsIn(root, wrote).map((one) => [one, besideVersion(root, one)])),
     kept: ledgerAt(root, files).entries.filter((step) => step.green)
@@ -94,16 +107,23 @@ const unauthorized = (root, moved, held, wrote) => {
 /** Those same passes re-keyed onto the content on disk now, or the one line saying why none was. */
 export const carryPasses = (root, held, wrote) => {
   forgetContent();
+  forgetReads();
   const files = gitFiles(root);
   const why = unauthorized(root, movedBetween(held.content, contentOf(root, files)), held, wrote);
   if (why) return `no pass was carried: ${why}. The next gate spends every step that reads it`;
-  if (held.kept.length === 0) return `the record held no pass at the content the gate judged, so there was none to carry`;
+  const manifests = manifestPaths(files);
+  const reads = (held.reads ?? []).reduce((count, one) =>
+    count + recordSets(readsDir(recordDir(root)), one.sets, { root, context: one.context, manifests }), 0);
+  const also = `, and ${reads} test file(s) carried with them`;
+  if (held.kept.length === 0) {
+    return `the record held no pass at the content the gate judged, so there was none to carry${also}`;
+  }
   const { dir, entries } = ledgerAt(root, files);
   const seconds = new Map(held.kept.map((one) => [one.label, one.seconds]));
   const carried = entries.filter((step) => seconds.has(step.label));
   for (const step of carried) recordPass(dir, step, seconds.get(step.label));
-  return `${carried.length} of ${entries.length} gate step(s) carried onto this content, so a worktree `
-    + `cut from this head spends none of them — ${dir}`;
+  return `${carried.length} of ${entries.length} gate step(s) carried onto this content${also}, so a `
+    + `worktree cut from this head spends none of them — ${dir}`;
 };
 
 /** The bump, with the record read before it and re-keyed after. Both halves report and neither

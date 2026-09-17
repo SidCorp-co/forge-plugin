@@ -1,0 +1,161 @@
+/* What one node process of a test step asked this repository for, loaded with `--import` into every
+   process the step runs. Asking is the read, whatever the answer: a probe that found nothing is what
+   makes the file appearing later a change to that test. Patching the `fs` object does not reach
+   `import { readFileSync } from "node:fs"`, which is how this repository imports it everywhere, so
+   the builtins are resolved to a module this generates. Nothing runs where the gate named no
+   directory, so a suite spent by hand is untouched. */
+
+export const READS_DIR = "GATE_READS";
+export const READS_ROOT = "GATE_READS_ROOT";
+export const READS_TICKET = "GATE_READS_TICKET";
+
+export const SHIMMED = new Set([
+  "fs", "node:fs", "fs/promises", "node:fs/promises", "child_process", "node:child_process",
+]);
+
+const PREFIX = "gate-reads:";
+
+const ASKS = new Set(["readFileSync", "openSync", "existsSync", "statSync", "lstatSync", "realpathSync",
+  "accessSync", "createReadStream", "readFile", "open", "stat", "lstat", "access", "realpath", "copyFileSync"]);
+
+// A listing is the set of names, so a file added under it moves the digest though nothing in it did.
+const LISTS = new Set(["readdirSync", "readdir", "opendirSync", "opendir", "globSync", "glob"]);
+
+const SPAWNS = new Set(["spawn", "spawnSync", "execFile", "execFileSync", "fork"]);
+
+// The options argument of every spawning signature, and a fresh one where the call passed none.
+export const optionsIn = (args) => {
+  const after = [];
+  const rest = [...args];
+  while (rest.length > 1 && typeof rest.at(-1) === "function") after.unshift(rest.pop());
+  const last = rest.at(-1);
+  const has = rest.length > 1 && last !== null && typeof last === "object" && !Array.isArray(last);
+  return { before: has ? rest.slice(0, -1) : rest, options: has ? last : {}, after };
+};
+
+// Generated and not written: a name this repository does not use today is a hole tomorrow.
+export const shimSource = (name, real) => {
+  const keys = Object.keys(real).filter((one) => /^[A-Za-z_$][\w$]*$/u.test(one));
+  const out = [
+    `const real = process.getBuiltinModule(${JSON.stringify(name)});`,
+    `const audit = globalThis[Symbol.for("forge.gate.reads")];`,
+    `const asked = (fn, kind) => function (one, ...rest) { audit.asked(kind, one); return fn.apply(this, [one, ...rest]); };`,
+    `const spawns = (fn) => function (...args) { return fn.apply(this, audit.ticketed(args)); };`,
+    `const shelled = (fn) => function (...args) { audit.shelled(args); return fn.apply(this, args); };`,
+  ];
+  for (const key of keys) {
+    const how = ASKS.has(key) ? `asked(real.${key}, "path")`
+      : LISTS.has(key) ? `asked(real.${key}, "dir")`
+      : SPAWNS.has(key) ? `spawns(real.${key})`
+      : key === "exec" || key === "execSync" ? `shelled(real.${key})`
+      : `real.${key}`;
+    out.push(`export const ${key} = ${how};`);
+  }
+  out.push(`const held = { ...real };`);
+  for (const key of keys) out.push(`held.${key} = ${key};`);
+  out.push(`export default held;`);
+  return out.join("\n");
+};
+
+const start = (out, root) => {
+  const { registerHooks } = process.getBuiltinModule("node:module");
+  const { mkdirSync, writeFileSync } = process.getBuiltinModule("node:fs");
+  const { isAbsolute, join, relative, resolve } = process.getBuiltinModule("node:path");
+  const { fileURLToPath, pathToFileURL } = process.getBuiltinModule("node:url");
+
+  const paths = new Set();
+  const dirs = new Set();
+  const spawned = [];
+  let issued = 0;
+
+  // What the ledger already declares itself blind to; counting it would spend every test on a fetch.
+  const inside = (one) => {
+    let named = one;
+    if (named instanceof URL) named = fileURLToPath(named);
+    if (Buffer.isBuffer(named)) named = named.toString("utf8");
+    if (typeof named !== "string" || named.length === 0) return null;
+    let abs;
+    try {
+      abs = isAbsolute(named) ? named : resolve(process.cwd(), named);
+    } catch {
+      return null;
+    }
+    const rel = relative(root, abs);
+    if (!rel || rel.startsWith("..") || isAbsolute(rel)) return null;
+    return rel.startsWith("node_modules/") || rel === ".git" || rel.startsWith(".git/") ? null : rel;
+  };
+
+  const entry = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
+
+  const audit = {
+    asked(kind, one) {
+      const rel = inside(one);
+      if (rel) (kind === "dir" ? dirs : paths).add(rel);
+    },
+    shelled(args) {
+      const { before, options } = optionsIn(args);
+      spawned.push({ ticket: null, file: String(before[0]), args: [], cwd: options.cwd ?? process.cwd() });
+    },
+    /* A ticket and not the child's pid, `execFileSync` answering with its output and never a pid;
+       and where it stood and what it was handed, which is what rules on a child that left no record. */
+    ticketed(args) {
+      const { before, options, after } = optionsIn(args);
+      issued += 1;
+      const mine = `${process.pid}-${issued}`;
+      spawned.push({
+        ticket: mine, file: String(before[0]), cwd: options.cwd ?? process.cwd(),
+        args: (Array.isArray(before[1]) ? before[1] : []).map(String),
+      });
+      return [...before, { ...options, env: { ...(options.env ?? process.env), [READS_TICKET]: mine } }, ...after];
+    },
+  };
+  globalThis[Symbol.for("forge.gate.reads")] = audit;
+
+  /* This repository's own code and no one else's: `graceful-fs`, which npm loads, defines a property
+     on the fs module object and a namespace has none to give. What a dependency reads for repository
+     code is unseen here, beside node_modules, which the ledger already declares itself blind to. */
+  const ours = (parent) => {
+    const at = parent ?? entry;
+    if (typeof at !== "string" || !at.startsWith("file:")) return false;
+    const rel = inside(fileURLToPath(at));
+    return rel !== null;
+  };
+
+  registerHooks({
+    resolve(specifier, context, next) {
+      if (SHIMMED.has(specifier) && ours(context.parentURL)) {
+        return { url: `${PREFIX}${specifier.replace("node:", "")}`, format: "module", shortCircuit: true };
+      }
+      return next(specifier, context);
+    },
+    load(url, context, next) {
+      if (url.startsWith(PREFIX)) {
+        const name = `node:${url.slice(PREFIX.length)}`;
+        return { format: "module", source: shimSource(name, process.getBuiltinModule(name)), shortCircuit: true };
+      }
+      if (url.startsWith("file:")) audit.asked("path", new URL(url));
+      return next(url, context);
+    },
+  });
+
+  if (process.argv[1]) audit.asked("path", process.argv[1]);
+
+  /* At exit and not incrementally: a process killed before it gets here leaves no record at all, and
+     the ticket its parent holds is then a child the collector cannot answer for. */
+  process.on("exit", () => {
+    const mine = process.env[READS_TICKET] ?? null;
+    try {
+      mkdirSync(out, { recursive: true });
+      writeFileSync(join(out, `${mine ?? `own-${process.pid}`}.json`), `${JSON.stringify({
+        ticket: mine, argv: process.argv.slice(1), paths: [...paths].sort(), dirs: [...dirs].sort(),
+        spawned, done: true,
+      })}\n`);
+    } catch {
+      /* Nothing to report it to; the missing record is what spends the test file. */
+    }
+  });
+};
+
+const out = process.env[READS_DIR];
+const root = process.env[READS_ROOT];
+if (out && root) start(out, root);
