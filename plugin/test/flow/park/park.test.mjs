@@ -206,11 +206,10 @@ test("a park written by the verb is resumed by the verb, back to the status it l
   assert.match(page[0].body, /forge-record: park/u, "the record went up first");
   assert.match(page[1].body, /moved from `awaiting_release`/u, "and the tracker announced the move under it");
   state.comments["parking-uuid"].push(comment("looked, and it is right", { authorId: "a-person" }));
-  /* The answer is a comment this session has not been shown, so the first advance delivers it and
-     the second is the one that acts on it — which is the gate working, not a step of the park. */
-  const held = await ranAsync(FORGE, ["advance", "ISS-97"], tracker.env);
-  assert.match(held.stderr, /looked, and it is right/u, "the reply is delivered before it is acted on");
+  /* The answer is a comment this session has not been shown, so the advance delivers it and makes
+     the move in the one call — which is the gate working, not a step of the park (ISS-1715). */
   const back = await ranAsync(FORGE, ["advance", "ISS-97"], tracker.env);
+  assert.match(back.stderr, /looked, and it is right/u, "the reply is delivered ahead of the move it answers");
   assert.equal(back.status, 0, `${back.stdout}${back.stderr}`);
   assert.match(back.stdout, /^ISS-97 {2}waiting -> awaiting_release {2}\(resumed where its park left it\)$/mu, back.stdout);
 });

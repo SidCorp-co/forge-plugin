@@ -3,23 +3,19 @@
 Why: `forge issue ISS-nn --full` returns no comments at all. The body says what was asked; the
 comments say the state now.
 
-A thread owed only as a delivery is not refused at all: the verb prints every comment this session
-has not been shown, ahead of its own answer, and the write goes through in the same call. There is
-nothing to clear and nothing to send again — the round a re-send costs bought only the retyping.
+A thread owed only as a delivery is not refused: the verb prints what you have not been shown, and
+the write goes through in the same call. Nothing to clear, nothing to send again.
 
-The hook still refuses where no verb of this CLI stands between you and the tracker, which is a call
-to the tracker's own tool and an edge write, the one verb shape that makes no such check for itself.
-How to clear those: re-send the command. The refusal carries every comment on the issue this session
-has not been shown, the reader walking the thread to its end; one it cannot walk holds the write
-once, then says how far it got on every write. An issue with no comments refuses nothing, and this
-CLI says so in one line.
+The hook still refuses where no verb of this CLI stands between you and the tracker — its own tool,
+and an edge write — and where a thread cannot be accounted for: one the walk could not finish holds
+once, then says how far it got on every write. Clear those by re-sending: the refusal is the
+delivery.
 
-How to work through it: what a session has been shown is remembered per issue, so later writes pass
-in silence until a comment nobody here has seen appears — a person's, or the audit line a merged
-mark leaves. It is not kept forever: your comment budget sheds what you touched longest ago, and a
-run that stops writing for a day is forgotten. A record through this CLI never refuses you. A run
-that names itself owes its own delivery, not yours: the name is read off the command judged.
+What a session has been shown is remembered per issue, so later writes pass in silence until a
+comment nobody here has seen appears — a person's, or the audit line a merged mark leaves. Your
+budget sheds what you touched longest ago, and a day without writing is forgotten. A run that names
+itself owes its own delivery, not yours.
 
 Not judged: what you write once you have read, whether you read it, or a mention of a write verb —
-the target is the argument the verb takes, so one in a heredoc, a path or prose is not one.
-Silent with no endpoint configured, on a tracker that will not answer, and outside a project.
+the target is the argument the verb takes, so one in a heredoc, a path or prose is not one. Silent
+with no endpoint configured, on a tracker that will not answer, and outside a project.

@@ -159,9 +159,8 @@ test("a record that earns its move still earns it, and the line is said over the
   assert.match(said.stdout, /in_progress is next and the record earns it/u, said.stdout);
   assert.doesNotMatch(said.stdout, /item\(s\) owed/u, "the line is no item owed");
   assert.match(said.stdout, /holds no test credential/u, "and it is said all the same");
-  /* The tracker holds a session's first write until it has been shown the page, so a run reads and
-     re-sends; the store above keeps the issue where it was, and the second send makes the move. */
-  await ranAsync(FORGE, ["advance", "ISS-99"], env);
+  /* The page this session has not been shown is delivered by the write that owes it, which makes
+     the move in the same call rather than spending one on a re-send (ISS-1715). */
   const moved = await ranAsync(FORGE, ["advance", "ISS-99"], env);
   assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
   assert.match(moved.stdout, /approved -> in_progress/u, "a project with no login is refused nothing");
