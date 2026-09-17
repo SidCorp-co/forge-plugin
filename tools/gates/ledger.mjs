@@ -49,28 +49,30 @@ const versionLocations = (one) => basename(one) === LOCK ? [["version"], ["packa
 const releaseVersion = (root) => {
   try {
     const { version } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-    return typeof version === "string" ? version : null;
+    return typeof version === "string" && version.length > 0 ? version : null;
   } catch {
     return null;
   }
 };
 
-// The empty string and not a deletion: a file holding no version at all would otherwise digest exactly as one holding the release's, and the step that refuses the first would be skipped on the second's pass.
-const AGREED = "";
+// A tag and never a value put in the number's place: any string chosen to stand for agreement is one a file could really hold, and a file holding it would then digest exactly as an agreeing one and skip the step that reads whether these files agree at all.
+const AGREES = { release: true };
 
 const masked = (found, [key, ...deeper], was) => {
   if (found === null || typeof found !== "object" || !(key in found)) return found;
-  if (deeper.length === 0) return found[key] === was ? { ...found, [key]: AGREED } : found;
+  if (deeper.length === 0) return { ...found, [key]: found[key] === was ? AGREES : { held: found[key] } };
   return { ...found, [key]: masked(found[key], deeper, was) };
 };
 
-// Nothing the gate runs reads which number a release wrote — `shipped-version` reads only whether these files agree on it — so a location holding this tree's own release version digests as agreement and one holding any other string digests as itself. A file this cannot parse, and a tree with no release version to compare against, digest as their bytes: the cost of either is a step spent and never a step excused.
+// Two halves, because neither answers alone. The values say whether each location agrees, which is the only thing about these numbers any step reads — `shipped-version` compares them and nothing compares their value. The bytes beside them, that number struck out wherever it stands, say everything else the file holds: re-serialised values alone would lose whitespace and an escape a checker over the raw text can tell apart, and a dependency pinned at the release's own number is struck from the bytes and kept in the values. A file this cannot parse, and a tree with no release version to compare against, digest as their bytes: either costs a step spent and excuses none.
 const besideVersion = (root, rel) => {
   const was = releaseVersion(root);
   if (was === null) return null;
+  const quoted = JSON.stringify(was);
   return (text) => {
     try {
-      return JSON.stringify(versionLocations(rel).reduce((found, at) => masked(found, at, was), JSON.parse(text)));
+      const values = versionLocations(rel).reduce((found, at) => masked(found, at, was), JSON.parse(text));
+      return `${JSON.stringify(values)}\n${text.split(quoted).join("")}`;
     } catch {
       return text;
     }

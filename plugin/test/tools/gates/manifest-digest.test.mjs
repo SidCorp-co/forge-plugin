@@ -51,9 +51,11 @@ const bump = (work, version, { manifest = version, dep = "4.10.1" } = {}) => {
 };
 
 /* A checkout carrying the three files a release writes, sitting on master with nothing differing,
-   which is the head a release is made on. */
+   which is the head a release is made on. The package is re-written in the shape a bump leaves it in,
+   so what a case moves afterwards is the number and never the serialiser's own whitespace. */
 const planted = (name) => {
   const { at, work } = scratch(name);
+  landed(work, PACKAGE, json(read(work, PACKAGE)));
   landed(work, LOCK, lockAt("1.0.0"));
   landed(work, MANIFEST, manifestAt("1.0.0"));
   git(work, "checkout", "master");
@@ -111,6 +113,44 @@ test("a manifest left behind at the number the others moved past spends every st
       "a file disagreeing with its package about the number keeps that number in every digest reading it");
   } finally {
     rmSync(at, { recursive: true, force: true });
+  }
+});
+
+test("a manifest holding no number at all spends every step that reads it, whatever stands for agreement", () => {
+  const { at, work } = gated("emptied");
+  try {
+    const reads = STEPS.filter((step) => step.reads.some((claim) => under(MANIFEST, claim)))
+      .map((step) => step.label);
+    write(work, MANIFEST, manifestAt(""));
+    git(work, "add", "-A");
+    git(work, "commit", "-m", "the manifest lost its number");
+    const green = new Set(greenLabels(work));
+    assert.deepEqual(reads.filter((label) => green.has(label)), [],
+      "whatever the digest puts where an agreeing number stood is a shape no manifest can hold, so this is not that");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* Watched failing: a checker over the raw text tells a literal control character from its escape,
+   and a manifest digested as its parsed values alone would key those two alike. */
+test("a form the raw text distinguishes and the parsed values do not moves the digest too", () => {
+  const one = planted("escaped-one");
+  const other = planted("escaped-two");
+  const bodies = [`{\n  "name": "a\u007fb",\n  "version": "1.0.0"\n}\n`,
+    `{\n  "name": "a\\u007fb",\n  "version": "1.0.0"\n}\n`];
+  try {
+    assert.deepEqual(JSON.parse(bodies[1]), JSON.parse(bodies[0]), "the two bodies parse to one value");
+    assert.notEqual(bodies[1], bodies[0], "and are not the same text");
+    for (const [work, body] of [[one.work, bodies[0]], [other.work, bodies[1]]]) {
+      write(work, MANIFEST, body);
+      git(work, "add", "-A");
+      git(work, "commit", "-m", "the manifest's own text");
+    }
+    assert.notDeepEqual(digests(other.work), digests(one.work),
+      "a manifest digests as its bytes beside its values, so what the text alone separates is separated here");
+  } finally {
+    for (const room of [one.at, other.at]) rmSync(room, { recursive: true, force: true });
   }
 });
 
