@@ -5,7 +5,8 @@ import { accessSync, closeSync, constants, fchmodSync, openSync, readFileSync, r
   from "node:fs";
 import { dirname } from "node:path";
 
-import { FROM_PROJECT, drainScope, fail, projectFilePath, projectSlug } from "../resolve/settings.mjs";
+import { FROM_PROJECT, Refusal, drainScope, fail, projectFilePath, projectSlug }
+  from "../resolve/settings.mjs";
 import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../guides/flow.mjs";
 import { flowJudgeConflict, flowPolicyConflict } from "../flow/earned.mjs";
 import { scoped, write } from "../tracker/rest.mjs";
@@ -183,18 +184,21 @@ const clearedDrain = (file, kept) => {
   if (!file) return [];
   const at = `pipeline.qa is ${JSON.stringify(kept ?? null)} on the tracker now and ${file.path}`;
   /* Re-read rather than written from the snapshot: this call held those bytes across a network
-     round trip, and writing them back would replace whatever another session put there meanwhile. */
-  if (readFileSync(file.path, "utf8") !== file.held) {
-    fail(`--set: ${at} changed while that write was in flight, so clearing ${DRAIN_SAID} from the `
-      + "bytes this call is holding would put back what another session has already replaced. That "
-      + `file was not written — read what it holds and send this again: ${READS_IT}`);
-  }
+     round trip, and writing them back would replace whatever another session put there meanwhile.
+     Inside the same guard as the replacement, a read that throws leaving the caller exactly as
+     uninformed as a write that does. */
   try {
+    if (readFileSync(file.path, "utf8") !== file.held) {
+      fail(`--set: ${at} changed while that write was in flight, so clearing ${DRAIN_SAID} from the `
+        + "bytes this call is holding would put back what another session has already replaced. "
+        + `That file was not written — read what it holds and send this again: ${READS_IT}`);
+    }
     wroteWhole(file.path, withoutKey(file.held, DRAIN_KEY));
   } catch (error) {
-    fail(`--set: ${at} could not be written, so it still sets ${DRAIN_SAID} — a master named for a judgement `
-      + `nobody asked for: ${error.message}. Send the same command again once that file can be `
-      + `written: ${SET_USAGE}`);
+    if (error instanceof Refusal) throw error;
+    fail(`--set: ${at} could not be read back and written, so it still sets ${DRAIN_SAID} — a master `
+      + `named for a judgement nobody asked for: ${error.message}. Send the same command again once `
+      + `that file can be written: ${SET_USAGE}`);
   }
   return [`${DRAIN_KEY}: cleared, the judgement it named a master for having moved  ← ${file.path}`];
 };

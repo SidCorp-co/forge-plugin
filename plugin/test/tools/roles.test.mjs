@@ -166,8 +166,13 @@ test("the judging method reads what tested will want before it judges a criterio
     assert.match(text, /stop before judging/u,
       "a run whose every criterion would be a skip spends itself to say so");
   }
-  assert.match(judging("screen"), /demands of a screen\s+change/u,
+  const screen = judging("screen");
+  assert.match(screen, /stricter under a plan declaring a screen\s+change/u,
     "and the flow with a screen says nothing about what that declaration makes owed");
+  assert.match(screen, /Where it holds nothing that reaches one, two shapes still get past/u,
+    "the two shapes read as the acceptable verdicts rather than as the route past a credential nobody has");
+  assert.match(screen, /the ordinary shape is what you write/u,
+    "so a judge with a route to the product is sent down the escape it does not need");
 });
 
 test("the roles ship inside the plugin directory, where a copy of it travels alone", () => {

@@ -16,10 +16,14 @@ before judging anything. You were sent to judge one artifact and there is a diff
 
 ## Read what the write at the end will want, before you judge anything
 
-`forge advance <the issue> --owed` prints it, and two shapes get past what it demands of a screen
-change: a skip whose reason names what was missing, and a pass citing a render taken where no login
-is needed. Establish which of your criteria you have a route to while whoever dispatched you can
-still equip you, rather than at the write that refuses you.
+`forge advance <the issue> --owed` prints it, and it is stricter under a plan declaring a screen
+change: a verdict that captured nothing earns nothing there, whatever its value. Where this project
+holds what reaches the running product, the ordinary shape is what you write — every verdict citing
+the state you took. **Where it holds nothing that reaches one, two shapes still get past**: a skip
+whose reason names what was missing, and a pass citing a render taken where no login is needed.
+Neither is a route round a state you could have captured. Establish which of your criteria you have
+a route to while whoever dispatched you can still equip you, rather than at the write that refuses
+you.
 
 Where every criterion you were given would be a skip, say so and stop before judging. A run that
 returns nothing but skips has spent a whole judging run to report that nobody looked, and a

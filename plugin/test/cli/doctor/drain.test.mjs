@@ -148,6 +148,24 @@ test("a key declared twice is cleared out of the file entirely, not down to the 
   assert.deepEqual(Object.keys(held()), ["slug", "runs"]);
 });
 
+test("a file made unreadable under the call gets the same account as one that could not be written", { skip: asRoot }, async () => {
+  fresh("qa-master");
+  const held0 = state.answer.forge_config;
+  state.answer.forge_config = (args) => {
+    if (args.action === "set_pipeline") chmodSync(file, 0o000);
+    return held0(args);
+  };
+  const run = await ask("--set", "pipeline.qa=builder").finally(() => {
+    state.answer.forge_config = held0;
+  });
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /pipeline\.qa is "builder" on the tracker now and .* could not be read back and written/u,
+    "a read that throws leaves the caller as uninformed as a write that does");
+  assert.match(run.stderr, /Send the same command again once that file can be written/u);
+  chmodSync(file, 0o644);
+  assert.equal(held().drainedBy, "qa-master", "and the key stands, which is what the account is about");
+});
+
 test("a project file another session moved under the call is refused rather than written back", async () => {
   fresh("qa-master");
   const held0 = state.answer.forge_config;
@@ -179,7 +197,7 @@ test("a file that fails after the tracker kept the judgement names what stands a
     state.answer.forge_config = held0;
   });
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /pipeline\.qa is "builder" on the tracker now and .* could not be written/u,
+  assert.match(run.stderr, /pipeline\.qa is "builder" on the tracker now and .* could not be read back and written/u,
     run.stderr);
   assert.match(run.stderr, /a master named for a judgement nobody asked for/u);
   assert.match(run.stderr, /Send the same command again once that file can be written/u,
