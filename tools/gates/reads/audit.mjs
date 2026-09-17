@@ -1,9 +1,7 @@
 /* What one node process of a test step asked this repository for, loaded with `--import` into every
-   process the step runs. Asking is the read, whatever the answer: a probe that found nothing is what
-   makes the file appearing later a change to that test. Patching the `fs` object does not reach
-   `import { readFileSync } from "node:fs"`, which is how this repository imports it everywhere, so
-   the builtins are resolved to a module this generates. Nothing runs where the gate named no
-   directory, so a suite spent by hand is untouched. */
+   process the step runs. Patching the `fs` object does not reach `import { readFileSync } from
+   "node:fs"`, which is how this repository imports it everywhere, so the builtins are resolved to a
+   module this generates. Nothing runs where the gate named no directory. */
 
 export const READS_DIR = "GATE_READS";
 export const READS_ROOT = "GATE_READS_ROOT";
@@ -15,17 +13,39 @@ export const SHIMMED = new Set([
 
 const PREFIX = "gate-reads:";
 
-const ASKS = new Set(["readFileSync", "openSync", "existsSync", "statSync", "lstatSync", "realpathSync",
-  "accessSync", "createReadStream", "readFile", "open", "stat", "lstat", "access", "realpath",
-  "copyFileSync", "copyFile"]);
+/* Every export is classified and one classified nowhere blinds the file that called it, a name a
+   later node adds being a read nobody sees otherwise. ASKS is a path named in the call, asked for
+   whatever the answer; LISTS the names in a directory, or all below it where the call says so. */
+const ASKS = new Set(["access", "accessSync", "copyFile", "copyFileSync", "createReadStream", "exists",
+  "existsSync", "lstat", "lstatSync", "open", "openAsBlob", "openSync", "readFile", "readFileSync",
+  "readlink", "readlinkSync", "realpath", "realpathSync", "stat", "statSync", "statfs", "statfsSync"]);
 
-const LISTS = new Set(["readdirSync", "readdir", "opendirSync", "opendir"]);
+const LISTS = new Set(["opendir", "opendirSync", "readdir", "readdirSync"]);
 
 // What these read was named by no argument of theirs, so nothing here can key a digest on it.
-const BLIND = new Map([["globSync", "a listing by pattern"], ["glob", "a listing by pattern"],
-  ["cp", "a tree copied whole"], ["cpSync", "a tree copied whole"]]);
+const BLIND = new Map([["glob", "a listing by pattern"], ["globSync", "a listing by pattern"],
+  ["cp", "a tree copied whole"], ["cpSync", "a tree copied whole"],
+  ["watch", "a watch on what changes"], ["watchFile", "a watch on what changes"]]);
 
 const SPAWNS = new Set(["spawn", "spawnSync", "execFile", "execFileSync", "fork"]);
+
+const SHELLS = new Set(["exec", "execSync"]);
+
+// Read nothing a pass keys on: a descriptor was asked for when it was opened, a write is no read.
+const NEITHER = new Set([
+  "Dir", "Dirent", "F_OK", "FileReadStream", "FileWriteStream", "R_OK", "ReadStream", "Stats",
+  "W_OK", "WriteStream", "X_OK", "_toUnixTimestamp", "ChildProcess", "_forkChild", "constants",
+  "promises", "appendFile", "appendFileSync", "chmod", "chmodSync", "chown", "chownSync", "close",
+  "closeSync", "createWriteStream", "fchmod", "fchmodSync", "fchown", "fchownSync", "fdatasync",
+  "fdatasyncSync", "fstat", "fstatSync", "fsync", "fsyncSync", "ftruncate", "ftruncateSync",
+  "futimes", "futimesSync", "lchmod", "lchmodSync", "lchown", "lchownSync", "link", "linkSync",
+  "lutimes", "lutimesSync", "mkdir", "mkdirSync", "mkdtemp", "mkdtempSync", "read", "readSync",
+  "readv", "readvSync", "rename", "renameSync", "rm", "rmSync", "rmdir", "rmdirSync", "symlink",
+  "symlinkSync", "truncate", "truncateSync", "unlink", "unlinkSync", "unwatchFile", "utimes",
+  "utimesSync", "write", "writeFile", "writeFileSync", "writeSync", "writev", "writevSync",
+]);
+
+export const CLASSIFIED = [ASKS, LISTS, new Set(BLIND.keys()), SPAWNS, SHELLS, NEITHER];
 
 // The options argument of every spawning signature, and a fresh one where the call passed none.
 export const optionsIn = (args) => {
@@ -39,12 +59,16 @@ export const optionsIn = (args) => {
 
 const NAMED = /^[A-Za-z_$][\w$]*$/u;
 
+const blinding = (key, from, why) => `blinded(${from}.${key}, ${JSON.stringify(`${key}: ${why}`)})`;
+
 const wrapping = (key, from) => {
   if (ASKS.has(key)) return `asked(${from}.${key})`;
   if (LISTS.has(key)) return `listed(${from}.${key})`;
-  if (BLIND.has(key)) return `blinded(${from}.${key}, ${JSON.stringify(`${key}: ${BLIND.get(key)}`)})`;
+  if (BLIND.has(key)) return blinding(key, from, BLIND.get(key));
   if (SPAWNS.has(key)) return `spawns(${from}.${key})`;
-  return key === "exec" || key === "execSync" ? `shelled(${from}.${key})` : null;
+  if (SHELLS.has(key)) return `shelled(${from}.${key})`;
+  if (NEITHER.has(key)) return null;
+  return typeof from === "string" ? blinding(key, from, "classified in no set of the audit's") : null;
 };
 
 // Generated and not written: a name this repository does not use today is a hole tomorrow.

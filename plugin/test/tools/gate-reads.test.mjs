@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import { auditEnv, contextOf, forgetReads, heldSets, reaches, recordSets, selectTests, setsFrom }
   from "../../../tools/gates/reads/sets.mjs";
-import { optionsIn } from "../../../tools/gates/reads/audit.mjs";
+import { CLASSIFIED, optionsIn, shimSource, SHIMMED } from "../../../tools/gates/reads/audit.mjs";
 import { entryNames, landed, run, scratch, write } from "./gates/scratch.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
@@ -408,4 +408,21 @@ test("a set recorded under other node options answers for nothing", () => {
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
+});
+
+/* The one rule that keeps the rest honest as node moves: a member classified nowhere blinds the file
+   that called it, and a member nobody has looked at is a read this would never have seen. */
+test("every export of every shimmed builtin is classified, so a name node adds fails here", () => {
+  for (const specifier of [...SHIMMED].filter((one) => one.startsWith("node:"))) {
+    const real = process.getBuiltinModule(specifier);
+    const loose = Object.keys(real).filter((one) => /^[A-Za-z_$][\w$]*$/u.test(one)
+      && !CLASSIFIED.some((set) => set.has(one)));
+    assert.deepEqual(loose, [], `${specifier} exports these, and the audit says nothing about them`);
+  }
+});
+
+test("a member the audit classifies nowhere is wrapped to blind the file that called it", () => {
+  const source = shimSource("node:fs", { readFileSync: () => {}, inventedRead: () => {} });
+  assert.match(source, /export const readFileSync = asked\(real\.readFileSync\);/u);
+  assert.match(source, /export const inventedRead = blinded\(real\.inventedRead, "inventedRead: classified in no set/u);
 });
