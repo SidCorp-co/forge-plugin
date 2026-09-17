@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -70,13 +70,23 @@ const spec = (cwd, id) =>
   spawnSync(process.execPath, [CLI, "spec", id], { cwd, encoding: "utf8", env: homeEnv("checkout-root") });
 
 /* The resolver in a process of its own, because it memoises what it reads off this one's directory. */
-const probe = (cwd) => {
+const probe = (cwd, env = {}) => {
   const run = spawnSync(process.execPath, ["--input-type=module", "-e",
     `const held = await import(${JSON.stringify(SETTINGS)});\n`
       + "process.stdout.write(JSON.stringify({ root: held.checkoutRoot(), slug: held.projectScope() }));"],
-  { cwd, encoding: "utf8", env: homeEnv("checkout-root") });
+  { cwd, encoding: "utf8", env: { ...homeEnv("checkout-root"), ...env } });
   assert.equal(run.status, 0, run.stderr);
   return JSON.parse(run.stdout);
+};
+
+/* The only `git` a process can reach, which records every call and answers none. A resolution that
+   needs one comes back empty here; one that walks the disk comes back with the log never written. */
+const refusingGit = () => {
+  const bin = tempRoom("checkout-root-nogit-");
+  const log = join(bin, "asked.txt");
+  writeFileSync(join(bin, "git"), `#!/bin/sh\necho "$@" >> ${JSON.stringify(log)}\nexit 1\n`);
+  chmodSync(join(bin, "git"), 0o755);
+  return { bin, log };
 };
 
 for (const [layout, tree] of LAYOUTS) {
@@ -110,4 +120,12 @@ test("a directory holding a project file and no checkout answers with itself", (
   const alone = realpathSync(tempRoom("checkout-root-alone-"));
   writeFileSync(join(alone, ".forge.json"), `{ "slug": "${SLUG}" }\n`);
   assert.equal(probe(alone).root, alone);
+});
+
+test("a worktree resolves the project with no git it can run, and runs none", () => {
+  const { bin, log } = refusingGit();
+  const found = probe(rooms.beside, { PATH: bin });
+  assert.deepEqual(found.slug, { value: SLUG, from: ".forge.json" });
+  assert.equal(found.root, rooms.beside);
+  assert.equal(existsSync(log), false, `git was run: ${existsSync(log) ? readFileSync(log, "utf8") : ""}`);
 });

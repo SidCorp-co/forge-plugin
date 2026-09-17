@@ -19,6 +19,29 @@ the value for truthiness and re-ran on a valid `null`. Unmemoised, one `forge is
 `git rev-parse` nine times. Flag parsing lives in one place: three verbs had grown their own copy and
 two dropped a valueless flag silently, which reads as an unfiltered answer.
 
+**Which checkout, and which repository, are now read off the disk rather than asked of git.** The memo
+brought nine spawns down to two, and two per process is still a process per test file: the gate's read
+audit has to treat any child standing in the checkout as able to have read all of it, so each of those
+two blinded the file that spawned it and the gate spent it again whatever moved (ISS-1732).
+`plugin/src/resolve/checkout-at.mjs` ascends for `.git`, follows the `gitdir:` pointer a linked
+worktree's `.git` file carries, and reads that admin directory's `commondir` for the repository — git's
+own fallback where there is none being that a git directory is its own common one. It reads nothing
+else, and `.git` is what the audit already declares itself blind to, so no read set gains a path from
+it. Null means no checkout holds the path, which is the cue `checkoutRoot` falls back on rather than a
+failure, and the walk starts at the physical path so a symlink into another repository ascends into the
+one it was spelt under.
+
+It assumes the working tree is the directory holding `.git`, and git answers differently in five
+shapes. Four are environment — `GIT_DIR`, `GIT_WORK_TREE`, `GIT_COMMON_DIR` and
+`GIT_CEILING_DIRECTORIES` each move `git rev-parse`'s answer and move nothing here. The fifth needs no
+environment at all: `core.worktree` in a repository's own config names a working tree somewhere else
+and `--show-toplevel` follows it, where this names the directory holding `.git` regardless. That layout
+is **unsupported rather than equivalent** — reading it means parsing a git config file for an answer
+this product has no shape for, and a walk that half-followed it would be worse than one that says it
+does not. Two narrower differences: `git rev-parse` refuses a checkout whose ownership `safe.directory`
+does not cover, where the walk answers; and in a bare repository it names the directory above, where the
+walk finds no `.git` and answers null.
+
 **A project's release policy is the tracker's and not a checkout's.** The staging branch, the
 production branch and the automatic production deploy are project columns already, and `forge
 project` prints them under the names their owner uses — the tracker's `baseBranch` is the staging

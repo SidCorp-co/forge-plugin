@@ -1,9 +1,9 @@
 /* Where every setting comes from — never from an argument. Two scopes: the url and token are the
    ACCOUNT's, the slug and prose language the PROJECT's, so the slug is demanded lazily. Each
    resolves to `{ value, from }`, because provenance is what doctor reports. docs/cli/settings.md. */
-import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 
+import { checkoutAt } from "./checkout-at.mjs";
 import { configPath, once, readJson, userConfig } from "./config.mjs";
 
 /* Registered by a caller holding something no exit may lose — a body that arrived on stdin. */
@@ -37,12 +37,6 @@ export const fail = (message) => {
   process.exit(1);
 };
 
-/* Trimmed stdout, or null. A caller destructuring `{ status, stdout }` gets two undefineds. */
-const git = (args, cwd) => {
-  const { status, stdout } = spawnSync("git", args, { cwd, encoding: "utf8" });
-  return status === 0 ? (stdout ?? "").trim() : null;
-};
-
 const ancestors = (start) => {
   const seen = [];
   let current = resolve(start);
@@ -54,15 +48,12 @@ const ancestors = (start) => {
   }
 };
 
-/* Which REPOSITORY: a linked worktree owns neither settings file and `--git-common-dir` names the
-   checkout that does. Memoised — unmemoised this spawned nine `git rev-parse` for one `forge issue`. */
-const repositoryRoot = once(() => {
-  const common = git(["rev-parse", "--git-common-dir"], process.cwd());
-  return common === null ? null : dirname(resolve(process.cwd(), common));
-});
+/* Walked once for this process, and both answers come off it: which CHECKOUT this process stands in,
+   and which REPOSITORY that checkout belongs to, a linked worktree owning neither settings file. */
+const standing = once(() => checkoutAt(process.cwd()));
 
 const searchRoots = once(() => {
-  const shared = repositoryRoot();
+  const shared = standing()?.repository ?? null;
   return [...ancestors(process.cwd()), ...(shared ? [shared] : [])];
 });
 
@@ -122,8 +113,8 @@ export const projectScope = once(() => sourced(FROM_PROJECT, forgeJson().parsed?
 
 /** The project file a NAMED directory resolves to, whole, for a verb reading one checkout while standing in another: the same walk, off that path rather than this process's, and null where it names none. Whole rather than one key, since a reader of a second key would otherwise walk again and could disagree with this one about which file is the project's. */
 export const projectFileAt = (directory) => {
-  const shared = git(["rev-parse", "--git-common-dir"], directory);
-  const roots = [...ancestors(directory), ...(shared === null ? [] : [dirname(resolve(directory, shared))])];
+  const shared = checkoutAt(directory)?.repository ?? null;
+  const roots = [...ancestors(directory), ...(shared === null ? [] : [shared])];
   for (const root of roots) {
     const parsed = readJson(join(root, FROM_PROJECT));
     if (parsed) return parsed;
@@ -148,8 +139,7 @@ export const projectCodex = () => forgeJson().parsed?.codex ?? {};
 
 /** Which CHECKOUT this process stands in — what a caller reading FILES off a root wants, and what
  *  `--git-common-dir` gets wrong in a worktree (ISS-1245); else the project file's own directory. */
-export const checkoutRoot = once(() =>
-  git(["rev-parse", "--show-toplevel"], process.cwd()) ?? forgeJson().root);
+export const checkoutRoot = once(() => standing()?.tree ?? forgeJson().root);
 
 /* The slug is a header when there is one, and an error only for a call needing a project id. */
 export const slugIfAny = () => projectTarget().value;

@@ -1,16 +1,15 @@
 /* The id a run holds by standing in the tree it was given, kept in that tree's own git directory
    because every agent of a wave inherits one session id and the tree is the one thing each has to
    itself (ISS-467). The file's name is spelt here; the rest of the why: docs/cli/claim.md. */
-import { readFileSync, realpathSync, statSync } from "node:fs";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
+import { checkoutAt } from "../checkout-at.mjs";
 import { CALLS_THE_WRITER, runsACommand } from "./granted-id.mjs";
 import { NOWHERE, spans, standsIn } from "../../hooks/shell-spans.mjs";
 
 export const RUN_ID = "forge-run-id";
 export const RUN_ID_VAR = "FORGE_SESSION_ID";
-
-const GITDIR = /^gitdir:\s*(\S.*)$/mu;
 
 const answered = (read) => {
   try {
@@ -20,22 +19,8 @@ const answered = (read) => {
   }
 };
 
-/** Off the disk and never spawned: a gate has a deadline and `git rev-parse` is a process. Started
- *  at the physical path: a symlink into another repository ascends into the one it was spelt under. */
-export const gitDirAt = (from) => {
-  const start = answered(() => realpathSync(resolve(from ?? ".")));
-  if (!start) return null;
-  for (let at = start; ; at = dirname(at)) {
-    const dot = join(at, ".git");
-    const kind = answered(() => statSync(dot));
-    if (kind?.isDirectory()) return dot;
-    if (kind?.isFile()) {
-      const named = GITDIR.exec(answered(() => readFileSync(dot, "utf8")) ?? "")?.[1]?.trim();
-      return named ? (isAbsolute(named) ? named : resolve(at, named)) : null;
-    }
-    if (dirname(at) === at) return null;
-  }
-};
+/** Off the disk and never spawned: a gate has a deadline and `git rev-parse` is a process. */
+export const gitDirAt = (from) => checkoutAt(from)?.gitDir ?? null;
 
 export const besideGit = (from, name) => {
   const dir = gitDirAt(from);
