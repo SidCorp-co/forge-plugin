@@ -9,6 +9,7 @@ export const atMinute = (at) => String(at ?? "").slice(0, 16);
 const INFO = "forge-record";
 const KEY = /^([a-z][a-z0-9-]*): ?(.*)$/u;
 const OPEN = new RegExp(`^(\`{3,})${INFO}\\s*$`, "u");
+const CLOSE = /^`{3,}[ \t]*$/u;
 const TAG = new RegExp(`\`?${INFO}: ([a-z]+) · contract (\\d+)\`?\\s*$`, "u");
 const LABELLED = /^- \*\*([^*]+):\*\* (.*)$/u;
 
@@ -26,20 +27,35 @@ export const blockOf = (entries) => {
   return [`${fence}${INFO}`, ...lines, fence].join("\n");
 };
 
-export const payloadIn = (body) => {
-  const lines = String(body ?? "").split("\n");
-  const at = lines.findIndex((line) => OPEN.test(line));
-  if (at < 0) return null;
-  const fence = OPEN.exec(lines[at])[1];
+const keyedIn = (lines, closes) => {
   const out = [];
-  for (const line of lines.slice(at + 1)) {
-    if (line.trim().startsWith(fence)) return out;
+  for (const line of lines) {
+    if (closes(line)) return out;
     const indented = /^ {2}(.*)$/u.exec(line);
     const key = indented ? null : KEY.exec(line);
     if (key) out.push([key[1], key[2]]);
     else if (out.length) out[out.length - 1][1] += `\n${indented ? indented[1] : line}`;
   }
   return out;
+};
+
+export const payloadIn = (body) => {
+  const lines = String(body ?? "").split("\n");
+  const at = lines.findIndex((line) => OPEN.test(line));
+  if (at < 0) return null;
+  const fence = OPEN.exec(lines[at])[1];
+  return keyedIn(lines.slice(at + 1), (line) => line.trim().startsWith(fence));
+};
+
+/* The same payload with its head off: a host truncates a long tool result from the top, so a record
+   this CLI printed can arrive without its opening fence, still carrying the closing one and the tag.
+   That fence is required — prose is `key: value` too — and nothing below it is the record's. */
+const headlessIn = (body) => {
+  const lines = String(body ?? "").split("\n");
+  const at = lines.findIndex((line) => CLOSE.test(line));
+  if (at < 0) return null;
+  const out = keyedIn(lines.slice(0, at), () => false);
+  return out.length ? out : null;
 };
 
 /* The label is the key in this form alone: resolved once, here, and nowhere further in. It also
@@ -57,6 +73,13 @@ const labelledIn = (body, shape) => {
     if (field) for (const one of field.many ? found[2].split("; ") : [found[2]]) out.push([field.flag, one]);
   }
   return { entries: out, rewritten: seen > 0 && out.length === 0 };
+};
+
+/* One reading of a body, so no two callers can come to disagree over what a record said. */
+const entriesIn = (body, shape) => {
+  const keyed = payloadIn(body) ?? headlessIn(body);
+  if (keyed) return { entries: keyed, rewritten: false };
+  return shape ? labelledIn(body, shape) : { entries: [], rewritten: false };
 };
 
 const valuesFor = (entries, field) => {
@@ -86,8 +109,7 @@ export const readRecords = (body, shapeOf) => {
   const tag = TAG.exec(body ?? "");
   const shape = tag ? shapeOf(tag[1]) : null;
   if (!shape) return [];
-  const fenced = payloadIn(body);
-  const { entries, rewritten } = fenced ? { entries: fenced, rewritten: false } : labelledIn(body, shape);
+  const { entries, rewritten } = entriesIn(body, shape);
   const read = [...shape.fields.filter((one) => !one.derived), ...(shape.stamp ? [shape.stamp] : [])];
   const single = read.filter((one) => !one.many).map((one) => one.flag);
   return groupsIn(entries, shape.per, single).map((group) => {
@@ -105,7 +127,7 @@ const FIRST_TAG = new RegExp(`\`?${INFO}: ([a-z]+) · contract \\d+\`?[ \t]*$`, 
 
 export const stampedIn = (body, kind, flag) => {
   if (FIRST_TAG.exec(body ?? "")?.[1] !== kind) return null;
-  return (payloadIn(body) ?? []).find(([key]) => key === flag)?.[1] ?? null;
+  return entriesIn(body, SHAPES[kind]).entries.find(([key]) => key === flag)?.[1] ?? null;
 };
 
 /** A number or nothing: a caller keys a map by this, and `NaN` is a key nothing can supply. */

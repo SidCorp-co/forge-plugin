@@ -2,8 +2,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { render } from "../../../src/flow/record/page.mjs";
+import { SHAPES, readRecords, stampedIn } from "../../../src/flow/machine.mjs";
 import { RUNG_UNKNOWN, rungRun } from "../../../src/stats/corpus/transcripts.mjs";
+import { render } from "../../../src/flow/record/page.mjs";
 import { RUNGS } from "../../../src/ladder.mjs";
 
 /* The call's own class says which call posted the record. Every line below carries the same words in a body some other verb printed: read from those, a run is filed at the rung of whatever issue it happened to read. */
@@ -59,4 +60,53 @@ test("a transcript stamped in the retired spelling classifies at the rung the ca
     "and the record boundary holds for the retired key: a thread read is not a claim");
   assert.equal(rungRun([said("forge record confirmation", retired(trivial).replace(/^tier: /mu, "  tier: "))]),
     RUNG_UNKNOWN, "as does the indentation rule, an indented lookalike being prose inside a field");
+});
+
+/* The host truncates a long tool result from the top, and a confirmation echo is long: what reaches the reading begins part way down the payload, having lost the opening fence and kept the closing one and the tag. Read through a fenced block alone, 73% of this project's own corpus filed at no rung at all (ISS-1689). */
+const headless = (body) => {
+  const lines = body.split("\n");
+  const at = lines.findIndex((line) => /^`{3,}forge-record$/u.test(line));
+  return lines.slice(at + 1).join("\n");
+};
+
+test("a record echo whose opening fence the host truncated away stamps the rung it wrote", () => {
+  const [trivial, , feature] = RUNGS;
+  const cut = headless(wrote(feature));
+  assert.doesNotMatch(cut, /^`{3,}forge-record$/mu, "the fixture really has lost the fence that opened it");
+  assert.match(cut, /forge-record: confirmation/u, "and really has kept the tag that says which record it is");
+  assert.equal(rungRun([said("forge record confirmation", cut)]), feature);
+  assert.equal(rungRun([said("forge record confirmation", headless(wrote(trivial)).replace(/^rung: /mu, "tier: "))]),
+    trivial, "in the retired spelling too, which is most of what a truncated corpus holds");
+});
+
+test("a truncated body says which record it is by its tag line, or it says nothing", () => {
+  const [trivial] = RUNGS;
+  const cut = headless(wrote(trivial));
+  assert.equal(rungRun([said("forge record confirmation", cut.replace(/`?forge-record: .*`?/u, ""))]),
+    RUNG_UNKNOWN, "a body truncated past its own tag has nothing left saying which record the keys belong to");
+  assert.equal(rungRun([said("forge record confirmation", cut.replace(/: confirmation ·/u, ": verdict ·"))]),
+    RUNG_UNKNOWN, "and a tag naming another kind is that kind's body, whatever keys it carries");
+});
+
+test("what bounds a headless payload is the fence that closed it, above and below", () => {
+  const [trivial, , feature] = RUNGS;
+  const cut = headless(wrote(trivial));
+  assert.equal(rungRun([said("forge record confirmation", cut.replace(/^`{3,}$/mu, ""))]),
+    RUNG_UNKNOWN, "with no closing fence there is nothing to say the keys are a record's rather than prose");
+  assert.equal(rungRun([said("forge record confirmation", cut.replace(/^rung: /mu, "  rung: "))]),
+    RUNG_UNKNOWN, "an indented lookalike continues the field above it, as it does inside a fence");
+  assert.equal(
+    rungRun([said("forge record confirmation", cut.replace(/^rung: .*\n/mu, "").replace(/^(`{3,})$/mu, "$1\n\nrung: feature"))]),
+    RUNG_UNKNOWN,
+    `a \`${feature}\` the same call printed below that fence is prose, the record having ended at it`,
+  );
+});
+
+test("a truncated body reads the same whichever of the two readers is asked", () => {
+  const [, , feature] = RUNGS;
+  const cut = headless(wrote(feature));
+  assert.equal(readRecords(cut, (kind) => SHAPES[kind])[0]?.fields.finding, stampedIn(cut, "confirmation", "finding"),
+    "the whole record and one stamped key come off one reading, so neither reads a body the other cannot");
+  assert.equal(stampedIn(cut, "confirmation", "rung"), feature,
+    "and the rung is there for the reading that wants it, being the stamp rather than a field of the record");
 });
