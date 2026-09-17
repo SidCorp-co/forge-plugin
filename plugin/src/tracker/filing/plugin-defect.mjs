@@ -30,6 +30,7 @@ const PLUGIN_PATH = once(() => {
   return dirs.length ? new RegExp(`\\bplugin/(?:${dirs.join("|")})/`, "u") : null;
 });
 const PLUGIN_SLUG = new RegExp(`\\b${PROJECT}\\b`, "u");
+const ISSUE_KEY = /\bISS-\d+\b/u;
 const IN_THE_PLUGIN = "A defect in this plugin itself — one of its verbs, its hooks or its gates —\nis not this project's issue";
 
 /** `bugs` is the one kind the channel carried before the key existed; `all` is every kind. */
@@ -78,10 +79,14 @@ export const pluginDefectHold = (description) => {
 
 /** So a fold does not read a configured silence as a clean round; the destinations are records'. */
 export const pluginFilingLine = (destinations = []) => {
-  const filed = destinations.filter((one) => PLUGIN_SLUG.test(String(one ?? "")));
+  /* Which backlog a destination had to reach is the checkout's answer, asked of the same predicate
+     the routing block routes by: off this one the slug that block tells a run to name, on it any
+     issue of this project, there being no second backlog for a destination to name (ISS-1700). */
+  const here = onThisRepository();
+  const filed = destinations.filter((one) => (here ? ISSUE_KEY : PLUGIN_SLUG).test(String(one ?? "")));
   if (filed.length) return `Plugin defect  ${filed.join("; ")}`;
   const channel = pluginChannel();
-  return channel.value === "off"
+  return !here && channel.value === "off"
     ? `Plugin defect  withheld by the project (feedback.plugin: off ← ${channel.from})`
     : "Plugin defect  none filed";
 };
