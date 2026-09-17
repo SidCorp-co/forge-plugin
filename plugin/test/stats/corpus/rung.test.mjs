@@ -120,6 +120,11 @@ test("an ordinary fenced example is not a record whose head was cut off", () => 
   assert.match(example(feature), /forge-record: confirmation/u, "the fixture really does carry the tag a record carries");
   assert.equal(rungRun([said("forge record confirmation", example(feature))]), RUNG_UNKNOWN,
     "the example opens a fence of its own, which a truncated payload cannot have above the fence that closed it");
+  const opener = ["rung: feature", "```", "ordinary example", "```", "", tagFor("confirmation", 1)].join("\n");
+  assert.equal(rungRun([said("forge record confirmation", opener)]), RUNG_UNKNOWN,
+    "a bare fence that opens an example is not the one that closed a payload: `render` writes the tag under that one");
+  assert.equal(stampedIn(opener, "confirmation", "rung"), null, "the stamped read says so too");
+  assert.equal(readRecords(`- **Nơi đã xem:** src/a.mjs\n\n${opener}`, (kind) => SHAPES[kind])[0]?.rewritten, true);
   const tilde = example(feature, "", "~~~", "```\n~~~");
   assert.equal(rungRun([said("forge record confirmation", tilde)]), RUNG_UNKNOWN,
     "markdown fences under tildes too, and a backtick run inside one is the example's text and not a fence");

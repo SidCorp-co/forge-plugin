@@ -10,6 +10,8 @@ const INFO = "forge-record";
 const KEY = /^([a-z][a-z0-9-]*): ?(.*)$/u;
 const OPEN = new RegExp(`^(\`{3,})${INFO}\\s*$`, "u");
 const CLOSE = /^`{3,}[ \t]*$/u;
+/* What the first record in a body stamped, which is the one a write printed: docs/cli/the-ladder.md. */
+const FIRST_TAG = new RegExp(`\`?${INFO}: ([a-z]+) · contract \\d+\`?[ \t]*$`, "mu");
 const TAG = new RegExp(`\`?${INFO}: ([a-z]+) · contract (\\d+)\`?\\s*$`, "u");
 const LABELLED = /^- \*\*([^*]+):\*\* (.*)$/u;
 
@@ -48,12 +50,14 @@ export const payloadIn = (body) => {
 };
 
 /* The same payload with its head off: a host truncates a long tool result from the top, so a record
-   this CLI printed can arrive without its opening fence. What says the rest is a payload is that the
-   body's first fenced line is the bare one that closed it, read through the one fence reader there is. */
+   this CLI printed can arrive without its opening fence. What stands in for the one it lost is the
+   trailer `render` writes — a bare fence, blank lines, the tag — read through the one fence reader. */
 const headlessIn = (body) => {
   const lines = fenceMarked(body);
   const at = lines.findIndex((one) => one.fenced);
   if (at < 0 || !CLOSE.test(lines[at].line)) return null;
+  const said = lines.slice(at + 1).find((one) => one.line.trim());
+  if (!said || !FIRST_TAG.test(said.line)) return null;
   const out = keyedIn(lines.slice(0, at).map((one) => one.line), () => false);
   return out.length ? out : null;
 };
@@ -121,9 +125,6 @@ export const readRecords = (body, shapeOf) => {
     return { kind: tag[1], contract: Number(tag[2]), fields, rewritten };
   });
 };
-
-/* What the first record in a body stamped, which is the one a write printed: docs/cli/the-ladder.md. */
-const FIRST_TAG = new RegExp(`\`?${INFO}: ([a-z]+) · contract \\d+\`?[ \t]*$`, "mu");
 
 export const stampedIn = (body, kind, flag) => {
   if (FIRST_TAG.exec(body ?? "")?.[1] !== kind) return null;
