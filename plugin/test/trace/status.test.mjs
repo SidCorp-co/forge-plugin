@@ -126,6 +126,9 @@ test("either review kind answers the look, so a change with no screen can reach 
     "and the kind a project with no screen is asked for is one it can answer");
   assert.equal(looked("screen-review"), "verified",
     "as is the other, which issues already on the tracker carry");
+  const answered = `${PLAN_OUTPUT}\n## Witnessed on screen\n\nnone — nothing here is a thing a person could look at.\n`;
+  assert.equal(rungFor(row({ plan: answered }), [LANDING, verdict(1)]), "verified",
+    "and a plan that answered `none` is owed no park, so waiting on one holds the clause short of what it proved");
 });
 
 test("a clause one issue proved is not demoted by another that only mentions it", () => {

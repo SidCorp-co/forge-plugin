@@ -84,13 +84,17 @@ const phraseRows = () =>
 const REPEATS = Object.keys(SHAPES).filter((kind) => SHAPES[kind].repeats);
 
 /* The sections a typed plan owes, each as the question it answers, so a plan is written against the list rather than against the refusal. The heading is the section's whole name and nothing else on its line; a plan carrying none of them writes as the free text it is and `approved` says so. Every section a declaration stands behind says so on a line of its own, read off the table, so one added there is not a sentence here to hand-edit. */
-const conditionOn = (one) => `${one.name} is owed only where the plan declares ${sectionOwedBy(one.name, Object.fromEntries(one.owed.map((key) => [key, "yes"]))).join(" or ")}.`;
+const declaringIt = (one) => sectionOwedBy(one.name, Object.fromEntries(one.owed.map((key) => [key, "yes"]))).join(" or ");
+const conditionOn = (one) => (one.screens
+  ? [`${one.name} is owed of every plan where this project's flow serves projects with a screen,`,
+    `and at \`approved\` where the plan declares ${declaringIt(one)}.`]
+  : [`${one.name} is owed only where the plan declares ${declaringIt(one)}.`]);
 
 const PLAN_BLOCKS = [
   "The plan file is markdown, and a typed one carries these sections, each opened by a heading whose",
   "text is the name:",
   ...PLAN_SECTIONS.map((one) => `  ## ${one.name.padEnd(23)}${one.asks}`),
-  ...PLAN_SECTIONS.filter((one) => one.owed).map(conditionOn),
+  ...PLAN_SECTIONS.filter((one) => one.owed).flatMap(conditionOn),
   "Every numbered step under Steps names what it serves as `criteria: 3` or `criteria: 3, 4`, and a",
   "step naming none is refused here. At `approved`, where the criteria field is read, so is a step",
   "whose numbers name no criterion the issue holds, and a criterion no step names.",

@@ -24,9 +24,10 @@ const proved = (row, id, view) => {
   });
 };
 
-/* Declared, never inferred: a plan answering neither question has not said no look was owed. */
+/* Declared, never inferred: a plan answering neither question, or carrying no witnessed section, has not said no look was owed.
+   A `none` under that section has, and is read here as it is at the rung that asks for the park, or a clause proved by an issue owed none stays short of the top rung waiting for one. */
 const declaresNoScreen = ({ screen, look }) => screen === "no" && look === "no";
-const looked = (view) => declaresNoScreen(view.flags) || lookAnswered(view);
+const looked = (view) => declaresNoScreen(view.flags) || view.witnessed?.none === true || lookAnswered(view);
 
 const rungOf = (provers) => {
   if (!provers.length) return "partial";
