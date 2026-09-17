@@ -19,21 +19,32 @@ moving in the others.
 
 ## The floor is per figure and per cell, and that is the whole of what is comparable
 
-This is the rule that terminates. **One arm's figure is comparable with another arm's exactly where
-that figure's own population reaches ten on both arms inside the same cell.** Everything outside that
-region prints its count and the word `thin`, and the reading names the pairs inside it figure by
-figure rather than leaving a reader to divide.
+This is the rule that terminates. **One arm's figure is comparable with another arm's exactly where,
+inside the same cell and on both arms, that figure's own population reaches ten and at least ten runs
+stand behind it.** Everything outside that region prints its count and the word `thin`, and the
+reading names the pairs inside it figure by figure rather than leaving a reader to divide.
 
-The population is the figure's own and never the arm's total, which is where an aggregate floor goes
-wrong in both directions at once. A model with twelve runs and two of them at the `fix` rung is thin
-at that rung, whatever its total says. A model with twelve runs whose tracker thread could be read
-for one of them has a population of one on every outcome figure, and the same twelve runs say
+Both halves, because they are not the same population. The first run of this reading over a real
+corpus printed `parked or dropped 41/41` for an arm with three runs and called it comparable: one of
+those three had claimed forty-one issues, and a figure counted over run-and-issue pairs had cleared a
+floor asked of the pairs alone. Forty-one observations of one run is one observation of the model.
+
+The figure's own population is never replaced by the arm's total, which is where an aggregate floor
+goes wrong in both directions at once. A model with twelve runs and two of them at the `fix` rung is
+thin at that rung, whatever its total says. A model with twelve runs whose tracker thread could be
+read for one of them has a population of one on every outcome figure, and the same twelve runs say
 nothing about it.
 
 A cell is read exactly as the whole reading is, spend half and got half both, and that is deliberate
 rather than thorough: a cell declared comparable on minutes alone, silent on what those minutes
 delivered, is the same wrong recommendation one rung further down — and the cut is where a dispatcher
 actually decides, so it is the last place to leave the half out.
+
+A class this reading never recognised has no population at all, which is a third answer beside a
+figure and a zero. Where nothing in the corpus was classed as the gate and the checkout declares no
+gate command, the column says so and the arms are compared on everything else: a median of nought
+over a class nobody measured, set beside another arm's, is the most confident wrong number the
+reading could print.
 
 **`mixed` and `unattributed` are accounting, not arms.** Both keep every row and every figure, because
 the rows have to add up to the corpus. Neither is ever a side of a comparison: `unattributed` names no

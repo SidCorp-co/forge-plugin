@@ -5,9 +5,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 
-import {
-  FLOOR, THIN, WHOLE, cellsOf, comparableIn, comparableLines, modelLines,
-} from "../../src/stats/models.mjs";
+import { FLOOR, THIN, WHOLE, cellsOf, comparableIn } from "../../src/stats/model-rows.mjs";
+import { comparableLines, modelLines } from "../../src/stats/models.mjs";
 import { callsIn, modelRun } from "../../src/stats/corpus/transcripts.mjs";
 import { FORGE, OPUS, PROJECT, at, indexIn, result, use } from "./fixture-runs.mjs";
 import { UNAVAILABLE } from "../../src/stats/eval/outcomes.mjs";
@@ -114,8 +113,10 @@ test("a window narrows what is reported and never the corpus the pairing is reso
   assert.equal(windowed.corpus, 2, "and the whole corpus is still what a ruling is paired against");
 });
 
-const spendOver = (over) => ({ over, wall: 1, tool: 1, calls: 1, gate: 1, consult: 1, recheck: 1 });
-const rowOver = (model, over, got = []) => ({ model, runs: over, spend: spendOver(over), got });
+const spendOver = (over, unrecognised = []) =>
+  ({ over, unrecognised, wall: 1, tool: 1, calls: 1, gate: 1, consult: 1, recheck: 1 });
+const rowOver = (model, over, got = [], unrecognised = []) =>
+  ({ model, runs: over, spend: spendOver(over, unrecognised), got });
 const cellOver = (model, cell, over, got = []) =>
   ({ cell, model, runs: over, spend: spendOver(over), got });
 const reading = (models, cut = []) => ({
@@ -170,9 +171,21 @@ test("an arm with runs to spare is thin in a cell it barely entered", () => {
     "and neither clears it inside the cell, whatever the arm's total is");
 });
 
+test("a figure over many pairs of few runs is many observations of few runs, and is not compared", () => {
+  /* The shape the real corpus printed: three runs on one arm, one of which owned forty-one issues,
+     so the pair figures cleared a floor asked of the pairs alone. */
+  const models = ["left", "right"].map((model) =>
+    ({ model, runs: 3, spend: spendOver(3), got: [{ name: "parked or dropped", count: 41, over: 41 }] }));
+  const held = comparableIn(cellsOf(models, []));
+  assert.equal(held.length, 0, "forty-one observations of three runs is three observations of the model");
+  const printed = modelLines(reading(models, [])).join("\n");
+  assert.match(printed, /^left\s+parked or dropped\s+41\/41\s+thin$/mu);
+});
+
 test("an outcome figure is compared on its own population and not on the arm's run count", () => {
   const models = ["left", "right"].map((model) =>
-    rowOver(model, 12, [{ name: "reopened", count: 0, over: 1 }, { name: "parked or dropped", count: 1, over: FLOOR }]));
+    rowOver(model, 12,
+      [{ name: "reopened", count: 0, over: 1 }, { name: "parked or dropped", count: 1, over: FLOOR }]));
   const held = comparableIn(cellsOf(models, []));
   assert.equal(held.filter((one) => one.figure === "reopened").length, 0);
   assert.equal(held.filter((one) => one.figure === "parked or dropped").length, 1);
@@ -184,4 +197,37 @@ test("the pairs that clear the floor are named, figure by figure", () => {
   const printed = comparableLines(comparable, models.length, true).join("\n");
   assert.match(printed, /^\s+all\s+wall\s+left with right$/mu);
   assert.doesNotMatch(printed, /thin-one/u);
+});
+
+test("an empty window answers a reader asking for JSON in JSON", () => {
+  const run = asked(corpus(), "--json", "--since", "1d");
+  assert.equal(run.status, 0, run.stderr);
+  const held = JSON.parse(run.stdout);
+  assert.equal(held.runs, 0);
+  assert.equal(held.corpus, 5, "and the corpus behind the empty window is still counted");
+  assert.deepEqual([held.models, held.cut, held.comparable], [[], [], []]);
+});
+
+test("a class this reading never recognised prints the word and is compared on nothing", () => {
+  const printed = asked(corpus()).stdout;
+  assert.match(printed, new RegExp(String.raw`^${OPUS}\s+1\s+[\d.]+\s+[\d.]+\s+[\d.]+\s+unrecognised`, "mu"));
+  const models = ["left", "right"].map((model) => rowOver(model, FLOOR, [], ["gate"]));
+  const held = comparableIn(cellsOf(models, []));
+  assert.equal(held.filter((one) => one.figure === "gate").length, 0, "a gate nobody measured is no evidence");
+  assert.ok(held.some((one) => one.figure === "wall"), "and the figures that were measured still compare");
+});
+
+test("every cut row the spend table printed has all of its delivery figures printed too", () => {
+  const delivered = ["reached the landing", "reopened", "parked or dropped"]
+    .map((name) => ({ name, count: 1, over: FLOOR }));
+  const cut = Array.from({ length: 12 }, (_, at) => cellOver("arm", `fix/c${at}`, FLOOR, delivered));
+  const printed = modelLines({ ...reading([], cut), cut }, false).join("\n");
+  const spent = [...printed.matchAll(/^arm\s+(fix\/c\d+)\s+\d+\s+[\d.]/gmu)].map((one) => one[1]);
+  assert.equal(spent.length, 10, "the cap is the rows, and it is the same cap on both tables");
+  for (const cell of spent) {
+    for (const one of delivered) {
+      assert.match(printed, new RegExp(String.raw`^arm\s+${cell}\s+${one.name}\s`, "mu"),
+        `${cell} lost ${one.name}`);
+    }
+  }
 });
