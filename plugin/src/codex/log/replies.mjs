@@ -1,4 +1,5 @@
 /* What a reviewer's reply says, and what a round then makes of it: the count it gives of itself, the findings and their ids, the rulings a recheck answers with, the digest a later request replays instead of the prose, the record a disposition becomes, what is still undecided, what a recheck has to verify, and the per-model score the log is kept as an eval set for. Nothing here opens the file — it is handed rows, which is what keeps the dependency running one way. docs/cli/codex-the-log.md. */
+import { ANGLES } from "../codex-api.mjs";
 import { HUMAN_REF } from "../../tracker/issues.mjs";
 import { jsonlBack, jsonlMark } from "../../hooks/log/hook-log-file.mjs";
 import { masked } from "../../hooks/log/hook-log.mjs";
@@ -63,7 +64,13 @@ export const historyFor = (entries, root, pairs = HISTORY_PAIRS, rels = []) => {
    own name, but never behind a sentence — nothing a wrapper holds ends one. The whole-bold-run shape the
    prompt never asked for left 674 of 931 logged rechecks unread. docs/cli/codex-the-round.md. */
 const RULING_LINE = /^ {0,3}(\d+)\.[ \t]+\**[ \t]*(?:[^*\n;.]{1,40}[—–:][ \t]*)?\**[ \t]*(?:F\d+\b\**[ \t]*[—–\-:.]*[ \t]*)?\**[ \t]*(CONFIRMED|REFUTED|CANNOT TELL)\b/iu;
-const LABEL = /^ {0,3}(?:#{1,6}[ \t]|\*\*[^*]+\*\*[ \t]*$)/u;
+/* Only the angle's own name opens ahead of the block: `## Example only; I cannot decide` is a heading too. */
+const LABEL = /^ {0,3}(?:#{1,6}[ \t]+|\*\*)([^*\n]+?)(?:\*\*)?[ \t]*$/u;
+const ANGLE_NAMES = Object.values(ANGLES).map((one) => one.split(" — ")[0]);
+const isLabel = (line) => {
+  const found = LABEL.exec(line);
+  return Boolean(found) && ANGLE_NAMES.some((name) => found[1].trim().startsWith(name));
+};
 
 /* A reply quoting an example of a ruling is showing one, not making one, and the grammar cannot tell
    them apart: a fenced `1. F1 - REFUTED` under a real `1. **CONFIRMED**` would close what was left open. */
@@ -87,7 +94,7 @@ const unfenced = (reply) => {
 const rulingBlock = (reply) => {
   const lines = unfenced(reply).split("\n");
   let at = 0;
-  while (at < lines.length && (!lines[at].trim() || LABEL.test(lines[at]))) at += 1;
+  while (at < lines.length && (!lines[at].trim() || isLabel(lines[at]))) at += 1;
   const held = [];
   for (; at < lines.length; at += 1) {
     if (RULING_LINE.test(lines[at])) held.push(lines[at]);
