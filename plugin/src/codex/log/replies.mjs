@@ -71,9 +71,9 @@ const isLabel = (line) => {
   return Boolean(found) && ANGLE_LABEL.test(found[1].trim());
 };
 
-/* The word at the head of a numbered line at the margin, behind emphasis, the finding's id and that name.
+/* The word at the head of a numbered line at column zero, behind emphasis, the finding's id and that name.
    The whole-bold-run shape read 257 of 931 logged rechecks; this reads 926. docs/cli/codex-the-round.md. */
-const RULING_LINE = new RegExp(`^ {0,3}(\\d+)\\.[ \t]+\\**[ \t]*(?:${ANGLE_RUN}[ \t]*[—–:][ \t]*)?`
+const RULING_LINE = new RegExp(`^(\\d+)\\.[ \t]+\\**[ \t]*(?:${ANGLE_RUN}[ \t]*[—–:][ \t]*)?`
   + `\\**[ \t]*(?:F\\d+\\b\\**[ \t]*[—–\\-:.]*[ \t]*)?\\**[ \t]*(CONFIRMED|REFUTED|CANNOT TELL)\\b`, "iu");
 
 /* A reply quoting an example of a ruling is showing one, not making one, and the grammar cannot tell

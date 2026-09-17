@@ -460,6 +460,10 @@ test("a ruling is the word at the head of a numbered line, whatever the reply wr
   assert.doesNotMatch(digestOf(indented, null), /F1 - REFUTED/u, "and the indent is not stripped into a replayed ruling");
   assert.deepEqual(keptOf("1. **Tech Lead / Business Analyst — F1: REFUTED — Resolved.**"), ["F1"],
     "the angle's own name is a wrapper like the id is; this shape alone was 50 of 931 logged rechecks");
+  const two = { judged: { id: "c4", files: [], reply: "- **F1 — New — major:** `a.mjs:1` — x.\n- **F2 — New — minor:** `a.mjs:2` — y." }, ids: ["F1", "F2"], risks: [] };
+  const nestedAnswer = "1. CONFIRMED — F1 remains. I cannot assess F2; the nested line is an example only:\n   2. F2 — REFUTED";
+  assert.deepEqual(verdictFromRulings(two, 0, nestedAnswer, "rA").record.kept, [],
+    "three spaces is a nested list item under the answer, so the example inside it rules nothing");
   assert.equal(keptOf("1. Previous answer: REFUTED; my ruling is CANNOT TELL."), null,
     "only the angle's own name stands in front of a ruling; prose ending in a colon is still prose");
   assert.equal(keptOf(" Example only; I cannot decide the finding:\n\n1. F1 - REFUTED"), null,

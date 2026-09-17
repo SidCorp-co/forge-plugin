@@ -42,8 +42,10 @@ The block opens with a ruling or there is none, since skipping on to find one is
 disclaimer vanished and left its own example standing as the answer. Inside it the word may sit behind
 emphasis, the finding's own id and whose review it is spelled as the prompt spells it — and behind nothing
 else, because `Previous answer: REFUTED; my ruling is CANNOT TELL` closes a finding the reviewer left
-undecided. It is at the margin, since four spaces is how markdown shows code. The block that asks for the
-ruling says all of this, so a reply is held to no shape nothing told it.
+undecided. It is at column zero: four spaces is how markdown shows code, and one
+to three is a nested list item, which is where an example of an answer sits under the answer that
+disclaims it. The block that asks for the ruling says all of this, so a reply is held to no shape
+nothing told it.
 
 Over the log's 931 rechecks the old reader ruled from 257 and this one from 926. The five it gives up fail
 closed and are said out loud: where no line in that block ruled, the recheck says so on its way out,
