@@ -33,3 +33,29 @@ measure this CLI has, which counts no higher than a code-unit count can: the bod
 cannot take outright and takes the status write down with it, so a text over the cap is refused here
 and never sent to find out. What the tracker does with the row once it has it — who may answer, and
 the rule that refuses the mint for a person's own credential — is the tracker's and not this verb's.
+
+And the landing a park asks for, which is not always the one it gets. Four kinds name `waiting` and
+this tracker answers `needs_info`; a set to `waiting` from there comes back `NO_OP: issue already in
+toStatus`, which is the tracker's own word that the issue is where it was asked to go. It is not a
+project's configured remap — this project holds one key in `pipelineConfig.states`, `open`, and the
+landing is the same — so nothing a caller can read before it sends predicts which name comes back.
+That decides three things. A transition answering with the other name of its own landing is a write
+that took, so it is reported rather than refused, naming both spellings; a name outside the landing
+still refuses, and a write that did not take is caught above by the transport. A park's record goes
+up before its move for that whole landing rather than for the name `needs_info` alone, because a
+call cannot know which of the two it will land on and a record posted onto an issue already at
+`needs_info` is read as the answer that unparks it. And a record is paired with an entry by the
+landing rather than the spelling, in the two places the two write orders put one: under the last
+announcement, where a move-first park left it, and failing that over it, where a record-first park
+did. The second of those has to be told from a record an earlier entry left and somebody already
+answered, since both sit in the same stretch of page. What tells them apart is that the older order
+wrote its record straight after the announcement it belonged to, and the newer one writes it before
+any move has been asked for: so a record sitting immediately under the announcement before last is
+that announcement's, and nothing pairs the later entry. Neither the reason nor the status a record
+names as the one it left can do that work — a page in this repository's own suite carries a later
+entry repeating both. An entry that wrote no record of its own pairs with nothing and is refused,
+which is the answer it was owed. What that reading still admits is one issue of its own: a page
+where something was said between an old announcement and the record straight after it. The same
+reversal is why the
+tracker's announcement no longer counts as the person's look a screen park waits for: what kept it
+out was where it sat, and it now sits under the record rather than over it.

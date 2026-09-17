@@ -349,8 +349,9 @@ test("a parked issue resumes where its park record says it left, once somebody a
   /* A park for a reviewer names what to look at, and the read-back holds it to that the way the
      write does: the shape's own rule, so a hand's copy cannot skip it. */
   const asked = (kind, left) => recorded("park", { kind, why: "asked", evidence: ["https://example.test/shot.png"] }, left);
-  /* The tracker announces the move, and the park that set a status is the one written after that
-     announcement, so a fixture for a status it announces writes the two in the order they happen. */
+  /* The tracker announces the move, and a park is written on either side of that announcement — the
+     order changed at ISS-1633 — so a fixture for a status it announces writes the two in an order
+     the pairing has to read back. */
   const moved = (from, said = "⏸ **Waiting on a human decision**") => comment(`${said} — moved from \`${from}\``);
   const at = (status, comments, issue = {}) => targetOf(view({ status, ...issue }, comments), "ISS-3");
   assert.throws(() => at("waiting", []), /no park record/u);
@@ -383,7 +384,11 @@ test("a parked issue resumes where its park record says it left, once somebody a
      outside, with an older park of another kind behind it, would resume by that park's policy. */
   const stale = at("waiting", [asked("paused", "in_progress"), moved("awaiting_release"), asked("screen-review", "awaiting_release")]);
   assert.equal(stale.next, "awaiting_release", "the screen-review park is the one that lands in waiting");
-  assert.throws(() => at("needs_info", [moved("awaiting_release"), asked("screen-review", "awaiting_release")]), /no park record/u,
+  /* `waiting` and `needs_info` are two names for one landing, so a screen-review park pairs with an
+     entry into either of them (ISS-1633); a kind landing anywhere else still resumes nothing. */
+  assert.equal(at("needs_info", [moved("awaiting_release"), asked("screen-review", "awaiting_release")]).next,
+    "awaiting_release", "the screen-review park is the one that landed here, under the tracker's own name for it");
+  assert.throws(() => at("needs_info", [moved("in_progress"), asked("paused", "in_progress")]), /no park record/u,
     "and a park of a kind that lands elsewhere resumes nothing");
 });
 

@@ -66,12 +66,15 @@ const state = {
       if (args.action === "get") return found ?? {};
       if (args.action === "update" && found) return Object.assign(found, args.data);
       if (args.action === "transition" && found) {
-        const said = ANNOUNCE[args.data.status];
+        /* The tracker this defect was met on answers a `waiting` ask with `needs_info` and says so
+           nowhere a caller can read first, which is the whole of ISS-1633. */
+        const landed = state.remap?.[args.data.status] ?? args.data.status;
+        const said = ANNOUNCE[landed];
         if (said) {
           (state.comments[found.documentId] ??= []).push(
             comment(`${said} — moved from \`${found.status}\`\n\n${args.data.reason ?? ""}`));
         }
-        found.status = args.data.status;
+        found.status = landed;
         return { ...found };
       }
       return { documentId: args.documentId, ...(args.data ?? {}) };
@@ -111,23 +114,53 @@ test("a park sends the reason it was typed and the kind the tracker takes, in on
   assert.equal(moved.waitingKind, "needs_decision", "and the kind is derived from the park kind");
 });
 
-test("a park whose move the tracker refuses leaves no park record behind", async () => {
-  state.refuse = { transition: "TRANSITION_REASON_REQUIRED: a transition to `waiting` must carry a reason" };
+test("a park whose move the tracker refuses leaves no park record behind, where the kind lands in on_hold", async () => {
+  state.refuse = { transition: "TRANSITION_REASON_REQUIRED: a transition to `on_hold` must carry a reason" };
   const before = filed();
-  const run = await parked("ISS-97");
+  const run = await parked("ISS-97", "blocked");
   delete state.refuse;
   assert.equal(run.status, 1, run.stdout);
   assert.equal(filed(), before, "the move goes first, so nothing was written to disagree with it");
 });
 
-test("the move is the first of a park's two writes and the record the second", async () => {
-  state.calls.length = 0;
+/* The other landing cannot be written that way round, so its refused move is worded around the
+   record standing above it instead — which is the whole of what it costs (ISS-1633). */
+test("a park landing in waiting names the record it left above a move the tracker refused", async () => {
+  Object.assign(PARKING, { status: "awaiting_release" });
+  state.comments["parking-uuid"] = [];
+  state.refuse = { transition: "TRANSITION_REASON_REQUIRED: a transition to `waiting` must carry a reason" };
   const run = await parked("ISS-97");
+  delete state.refuse;
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /the record for waiting went up and the move was refused/u, run.stderr);
+  assert.ok(state.comments["parking-uuid"].some((one) => /forge-record: park/u.test(one.body)),
+    "and the record it names is on the page");
+});
+
+test("the move is the first of a park's two writes where the kind lands in on_hold", async () => {
+  Object.assign(PARKING, { status: "awaiting_release" });
+  state.comments["parking-uuid"] = [];
+  state.calls.length = 0;
+  const run = await parked("ISS-97", "blocked");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   const moved = state.calls.findIndex((one) => one.args.action === "transition");
   const wrote = state.calls.findIndex((one) => one.name === "forge_comments" && one.args.action === "create");
   assert.ok(moved >= 0 && wrote >= 0, `moved ${moved}, wrote ${wrote}`);
   assert.ok(moved < wrote, "the record is written against a status that has already moved");
+});
+
+/* A call asked for `waiting` cannot know before it sends whether it will land on `needs_info`, so
+   the record goes up first for the whole landing or it goes up where the tracker reads it as the
+   answer that unparks the issue (ISS-1633). */
+test("a park landing in waiting writes its record before its transition", async () => {
+  Object.assign(PARKING, { status: "awaiting_release" });
+  state.comments["parking-uuid"] = [];
+  state.calls.length = 0;
+  const run = await parked("ISS-97");
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const moved = state.calls.findIndex((one) => one.args.action === "transition");
+  const wrote = state.calls.findIndex((one) => one.name === "forge_comments" && one.args.action === "create");
+  assert.ok(wrote >= 0 && moved > wrote, `wrote ${wrote}, moved ${moved}`);
 });
 
 test("every park kind that lands in waiting carries the kind the tracker demands", async () => {
@@ -170,8 +203,8 @@ test("a park written by the verb is resumed by the verb, back to the status it l
   assert.equal(park.status, 0, `${park.stdout}${park.stderr}`);
   assert.equal(PARKING.status, "waiting", "the move landed");
   const page = state.comments["parking-uuid"];
-  assert.match(page[0].body, /moved from `awaiting_release`/u, "the tracker announced the move first");
-  assert.match(page[1].body, /forge-record: park/u, "and the record went up under it");
+  assert.match(page[0].body, /forge-record: park/u, "the record went up first");
+  assert.match(page[1].body, /moved from `awaiting_release`/u, "and the tracker announced the move under it");
   state.comments["parking-uuid"].push(comment("looked, and it is right", { authorId: "a-person" }));
   /* The answer is a comment this session has not been shown, so the first advance delivers it and
      the second is the one that acts on it — which is the gate working, not a step of the park. */
@@ -324,4 +357,179 @@ test("advance's own help puts needs on the row of each call that takes it", asyn
   const rows = run.stdout.split("\n");
   assert.ok(rows.some((line) => /^\s+--park <kind>.*--needs/u.test(line)), run.stdout);
   assert.ok(rows.some((line) => /^\s+--set <status>.*--needs/u.test(line)), run.stdout);
+});
+
+/* Every case below fails on a CLI that reads the answer as a mismatch: the refusal fires with the
+   move already landed, so the record it was about to write never goes up and nothing on the page
+   says where the status came from. */
+const REMAPPED = { waiting: "needs_info" };
+const remapped = async (kind = "screen-review") => {
+  Object.assign(PARKING, { status: "awaiting_release" });
+  state.comments["parking-uuid"] = [];
+  state.calls.length = 0;
+  state.remap = REMAPPED;
+  const run = await parked("ISS-97", kind);
+  delete state.remap;
+  return run;
+};
+const pageOf = () => state.comments["parking-uuid"];
+
+test("a park lands its record where the tracker answers the other name of the landing asked for", async () => {
+  const run = await remapped();
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(PARKING.status, "needs_info", "the move landed on the tracker's own name for it");
+  const record = pageOf().find((one) => /forge-record: park/u.test(one.body));
+  assert.ok(record, `no park record on the page: ${pageOf().map((one) => one.body).join("\n--\n")}`);
+  assert.match(record.body, /left: awaiting_release/u, "stamped with the step it left, not the side status");
+});
+
+test("the reply names the status the tracker landed on and the one the kind asked for", async () => {
+  const run = await remapped();
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /^ISS-97 {2}awaiting_release -> needs_info {2}\(asked for waiting, which this tracker spells needs_info\)$/mu,
+    run.stdout);
+});
+
+test("the record a remapped park left pairs with the entry, and the way back is the step it named", async () => {
+  const park = await remapped();
+  assert.equal(park.status, 0, `${park.stdout}${park.stderr}`);
+  const owed = await ranAsync(FORGE, ["advance", "ISS-97", "--owed"], tracker.env);
+  assert.equal(owed.status, 0, `${owed.stdout}${owed.stderr}`);
+  const said = `${owed.stdout}${owed.stderr}`;
+  assert.doesNotMatch(said, /no park record on the page is paired with the entry into it/u, said);
+  assert.match(said, /awaiting_release/u, said);
+});
+
+test("the report shows the park a remapped landing left, under the side status it landed on", async () => {
+  const park = await remapped();
+  assert.equal(park.status, 0, `${park.stdout}${park.stderr}`);
+  const read = await ranAsync(FORGE, ["resume", "ISS-97"], tracker.env);
+  assert.equal(read.status, 0, `${read.stdout}${read.stderr}`);
+  assert.match(read.stdout, /screen-review/u, read.stdout);
+});
+
+/* The order the record was written in is not the order it is read back in: both shipped, so a page
+   carrying either has to resume. */
+test("a record written after its own announcement still pairs with that entry", async () => {
+  Object.assign(PARKING, { status: "needs_info" });
+  state.comments["parking-uuid"] = [
+    comment("⏸ **Waiting on a human decision** — moved from `awaiting_release`"),
+    recorded("park", { kind: "screen-review", why: "look at it", evidence: ["c8c3550"] }, "awaiting_release"),
+  ];
+  const owed = await ranAsync(FORGE, ["advance", "ISS-97", "--owed"], tracker.env);
+  assert.equal(owed.status, 0, `${owed.stdout}${owed.stderr}`);
+  const said = `${owed.stdout}${owed.stderr}`;
+  assert.doesNotMatch(said, /no park record on the page is paired with the entry into it/u, said);
+  assert.match(said, /awaiting_release/u, said);
+});
+
+test("an entry nothing announced says which park on the page it could not pair", async () => {
+  Object.assign(PARKING, { status: "needs_info" });
+  state.comments["parking-uuid"] = [
+    recorded("park", { kind: "screen-review", why: "look at it", evidence: ["c8c3550"] }, "awaiting_release"),
+  ];
+  const owed = await ranAsync(FORGE, ["advance", "ISS-97", "--owed"], tracker.env);
+  assert.equal(owed.status, 1, `${owed.stdout}${owed.stderr}`);
+  assert.match(owed.stderr, /park of kind `screen-review`/u, owed.stderr);
+});
+
+/* Under the old order the announcement sat above the record and could not be read as an answer to
+   it. It sits below one now, so it is named rather than kept out by where it is. */
+test("the announcement under a record-first park is not the person's look that answers it", () => {
+  const asking = recorded("park", { kind: "screen-review", why: "look at it", evidence: ["c8c3550"] }, "awaiting_release");
+  const announcement = comment("⏸ **Waiting on a human decision** — moved from `awaiting_release`\n\nlook at it");
+  const view = (comments) => viewFrom("the-uuid", { status: "needs_info" }, comments);
+  assert.equal(answered(view([asking, announcement]), "screen-review"), false, "nobody has looked yet");
+  const looked = view([asking, announcement, comment("looked, and it is right", { authorId: "a-person" })]);
+  assert.equal(answered(looked, "screen-review"), true, "and a comment after it is the answer");
+});
+
+/* A preservation case and not a regression witness: strict name equality refused this too. It is
+   here because the landing is what replaced that equality, and a pair that swallowed everything
+   would look exactly like one that swallowed only its own two names. */
+test("a status outside the landing asked for is still refused", async () => {
+  Object.assign(PARKING, { status: "awaiting_release" });
+  state.comments["parking-uuid"] = [];
+  state.remap = { waiting: "on_hold" };
+  const run = await parked("ISS-97");
+  delete state.remap;
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /answered with status on_hold, not waiting/u, run.stderr);
+});
+
+test("a set to a status of that landing writes its correction before its transition", async () => {
+  Object.assign(PARKING, { status: "awaiting_release" });
+  state.comments["parking-uuid"] = [];
+  state.calls.length = 0;
+  state.remap = REMAPPED;
+  const run = await ranAsync(FORGE, ["advance", "ISS-97", "--set", "waiting", "--why",
+    "the person who knows where it belongs put it here"], tracker.env);
+  delete state.remap;
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const moved = state.calls.findIndex((one) => one.args.action === "transition");
+  const wrote = state.calls.findIndex((one) => one.name === "forge_comments" && one.args.action === "create");
+  assert.ok(wrote >= 0 && moved > wrote, `wrote ${wrote}, moved ${moved}`);
+});
+
+/* A record reachable above the announcement that a later entry did not write: reading it again
+   would send the issue back by a park somebody already answered. What tells the two apart is that
+   the older order wrote its record straight after the announcement it belonged to, and the newer
+   one writes it before any move was asked for (ISS-1633, codex F1). */
+test("an entry that wrote no record of its own does not pair with an answered one before it", async () => {
+  Object.assign(PARKING, { status: "needs_info" });
+  state.comments["parking-uuid"] = [
+    comment("⏸ **Waiting on a human decision** — moved from `awaiting_release`"),
+    recorded("park", { kind: "screen-review", why: "look at it", evidence: ["c8c3550"] }, "awaiting_release"),
+    comment("looked, and it is right", { authorId: "a-person" }),
+    comment("⏸ **Waiting on a human decision** — moved from `testing`"),
+  ];
+  const owed = await ranAsync(FORGE, ["advance", "ISS-97", "--owed"], tracker.env);
+  assert.equal(owed.status, 1, `${owed.stdout}${owed.stderr}`);
+  assert.match(owed.stderr, /no park record on the page is paired with the entry into it/u, owed.stderr);
+});
+
+test("a record before its own announcement pairs with the entry that announcement names", async () => {
+  Object.assign(PARKING, { status: "needs_info" });
+  state.comments["parking-uuid"] = [
+    comment("⏸ **Waiting on a human decision** — moved from `awaiting_release`"),
+    recorded("park", { kind: "screen-review", why: "look at it", evidence: ["c8c3550"] }, "awaiting_release"),
+    comment("looked, and it is right", { authorId: "a-person" }),
+    recorded("park", { kind: "screen-review", why: "look again", evidence: ["c8c3550"] }, "testing"),
+    comment("⏸ **Waiting on a human decision** — moved from `testing`"),
+  ];
+  const owed = await ranAsync(FORGE, ["advance", "ISS-97", "--owed"], tracker.env);
+  assert.equal(owed.status, 0, `${owed.stdout}${owed.stderr}`);
+  const said = `${owed.stdout}${owed.stderr}`;
+  assert.match(said, /testing/u, said);
+});
+
+test("nor with one that left the same status it did, where an answer stands between them", async () => {
+  Object.assign(PARKING, { status: "needs_info" });
+  state.comments["parking-uuid"] = [
+    comment("⏸ **Waiting on a human decision** — moved from `awaiting_release`"),
+    recorded("park", { kind: "screen-review", why: "look at it", evidence: ["c8c3550"] }, "awaiting_release"),
+    comment("looked, and it is right", { authorId: "a-person" }),
+    comment("⏸ **Waiting on a human decision** — moved from `awaiting_release`"),
+  ];
+  const owed = await ranAsync(FORGE, ["advance", "ISS-97", "--owed"], tracker.env);
+  assert.equal(owed.status, 1, `${owed.stdout}${owed.stderr}`);
+  assert.match(owed.stderr, /no park record on the page is paired with the entry into it/u, owed.stderr);
+});
+
+/* The record and the move are two writes with a lease read between them, so a person's comment can
+   land between the record and the announcement of the move it belongs to. What tells that record
+   from one an earlier entry left is which announcement it sits beside: a move-first record is the
+   comment straight after its own, and a record-first one never is (ISS-1633, codex F1). */
+test("a comment landing between a park's record and its announcement does not unpair them", async () => {
+  Object.assign(PARKING, { status: "needs_info" });
+  state.comments["parking-uuid"] = [
+    recorded("park", { kind: "screen-review", why: "look at it", evidence: ["c8c3550"] }, "awaiting_release"),
+    comment("one more thing before you look", { authorId: "a-person" }),
+    comment("⏸ **Waiting on a human decision** — moved from `awaiting_release`"),
+  ];
+  const owed = await ranAsync(FORGE, ["advance", "ISS-97", "--owed"], tracker.env);
+  assert.equal(owed.status, 0, `${owed.stdout}${owed.stderr}`);
+  const said = `${owed.stdout}${owed.stderr}`;
+  assert.doesNotMatch(said, /no park record on the page is paired with the entry into it/u, said);
+  assert.match(said, /awaiting_release/u, said);
 });

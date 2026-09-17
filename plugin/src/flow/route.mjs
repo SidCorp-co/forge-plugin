@@ -29,6 +29,7 @@ import {
   parkRecord,
   parkThatSet,
   personLooks,
+  sameLanding,
   setForm,
   shapeGaps,
   stepAfter,
@@ -250,7 +251,7 @@ export const baselineAhead = (view, ref, head = headNow()) => {
 
 /* Said only where a park of the right kind is on the page and nothing pairs it with the move. */
 const unpaired = (view, status) => {
-  const stale = status !== SILENT && parkRecord(view, (one) => PARK_STATUS[one] === status);
+  const stale = status !== SILENT && parkRecord(view, (one) => sameLanding(PARK_STATUS[one], status));
   if (!stale) return "";
   const carries = `The page carries a park of kind \`${stale.record.fields.kind}\`, and `;
   return announcedAt(view)

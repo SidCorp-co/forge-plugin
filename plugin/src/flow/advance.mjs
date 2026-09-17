@@ -15,7 +15,7 @@ import { citedClauses } from "../spec/checked.mjs";
 import { Refused, refuse } from "../refusal.mjs";
 import { issueOf, post } from "./record/record.mjs";
 import { render } from "./record/page.mjs";
-import { ANSWERED_BY_COMMENT, ORDER, PARK_STATUS, SIDE, atLeast, fixReport, namedIn, payloadOwed, rungFieldsOf, setForm, viewFrom } from "./earned.mjs";
+import { ANSWERED_BY_COMMENT, ORDER, PARK_STATUS, SIDE, answersByComment, atLeast, fixReport, namedIn, payloadOwed, rungFieldsOf, sameLanding, setForm, viewFrom } from "./earned.mjs";
 import { scopeFrom } from "./record/plan-scope.mjs";
 import { rungOf } from "../ladder.mjs";
 import { CITED, laneLines } from "../guides/phases.mjs";
@@ -93,10 +93,21 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
     refuse(`${ref} is ${view.issue.status} and the move to ${status} was refused, so nothing was `
       + `written. What refused it:\n${answer.refused}`);
   }
+  /* The write landed, so what comes back is the tracker's answer and not a failure to detect: the
+     branch above is what catches one that did not take. Outside the landing it still refuses. */
   const held = answer?.status ?? answer?.issue?.status;
-  if (held && held !== status) refuse(`The transition answered with status ${held}, not ${status}. Nothing to rely on.`);
-  scopeFrom(status, ref, namedIn(view));
-  say(`${ref}  ${view.issue.status} -> ${status}${note}`);
+  if (held && !sameLanding(held, status)) {
+    refuse(`The transition answered with status ${held}, not ${status}. Nothing to rely on.`
+      + (soft
+        ? `\nThe record above it claims ${status} and this issue holds ${held}. Say on the record `
+          + `that it did not move:\n  forge record correction ${ref} --moved "the record above `
+          + `claims ${status}, which the move answered ${held}" --why <w>`
+        : ""));
+  }
+  const landed = held ?? status;
+  const spelt = landed === status ? "" : `  (asked for ${status}, which this tracker spells ${landed})`;
+  scopeFrom(landed, ref, namedIn(view));
+  say(`${ref}  ${view.issue.status} -> ${landed}${note}${spelt}`);
   return null;
 };
 
@@ -135,10 +146,11 @@ const asksFor = (view, asked, ref) => {
 
 /* The two writes of one park: the typed `why` travels with the move, which the tracker refuses
    without one (ISS-157), and the status goes first so a refused move leaves no record to disagree
-   with it — except at `ANSWERED_BY_COMMENT`, where the record has to go first. What that order
-   costs, said by the one route both writers of it spend: a move refused after the record went up
-   leaves a page reading as a status the issue does not hold, and the transition's own refusal says
-   nothing about the record above it. */
+   with it — except where it lands where a comment is read as an answer, which is
+   `answersByComment` and is docs/cli/advance-what-it-sends.md. What that order costs, said by the
+   one route both writers of it spend: a move refused after the record went up leaves a page
+   reading as a status the issue does not hold, and the transition's own refusal says nothing about
+   the record above it. */
 const movedAfterRecord = async (view, ref, status, move) => {
   /* The record's write renewed the lease, so the move does not renew it again — but a handoff between the two is still a handoff, and the move must not be the write that learns it. Asked rather than asserted, and asked softly, because a read that exits here reports a transport and never the record standing above it. */
   const held = await anothersHold(view.documentId, ref);
@@ -183,7 +195,7 @@ export const parkAs = async (view, ref, kind, why, evidence = [], { left = null,
   const body = render("park", { kind, why, evidence }, left ?? view.issue.status);
   const move = (soft = false) =>
     moveTo(view, ref, status, { said, credit: "the park's transition" }, soft);
-  if (status === ANSWERED_BY_COMMENT) {
+  if (answersByComment(status)) {
     await post(view.documentId, body, { ref });
     await movedAfterRecord(view, ref, status, move);
     return;
@@ -337,7 +349,7 @@ const setStatus = async (view, ref, status, why, asked) => {
     console.log(UNREAD);
     return null;
   };
-  if (status === ANSWERED_BY_COMMENT) {
+  if (answersByComment(status)) {
     await correctionFor(view.documentId, ref, moved, said, { done: false });
     return movedAfterRecord(view, ref, status, move);
   }

@@ -6,6 +6,7 @@ import {
   CLOSES_FROM, FINDINGS, SHAPES, TRIAGES, looksTo, need, planFlags, unwrap,
 } from "./machine.mjs";
 import { planShapeOwed } from "./earned/plan-owed.mjs";
+import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding } from "./earned/park-status.mjs";
 import { correctionForm, judgedHead, judgedStands, landingMoved, landingWrote, markedCommit, mergedForm, namesPath, reviewedHead } from "./record/merged.mjs";
 import { eachProblem } from "./record/content.mjs";
 import { FORMS } from "../spec/parse.mjs";
@@ -35,26 +36,7 @@ export const JUDGED_AT = ORDER[ORDER.indexOf("developed") + 1];
 /** The rung the baseline is owed at, read off the sequence for the same reason. */
 export const BASELINE_AT = ORDER[ORDER.indexOf("developed") - 1];
 
-/* Which reader each park kind speaks to, and so which side status it lands in. Every kind in PARKS has a row: a park with nowhere to go is a status set from nothing. */
-/** The status on which the tracker reads any comment as the reporter's answer and puts the issue back to `open` (ISS-429): the one a park's record goes up on before its move, and the one an override is refused on. */
-export const ANSWERED_BY_COMMENT = "needs_info";
-
-export const PARK_STATUS = {
-  question: ANSWERED_BY_COMMENT,
-  "screen-review": "waiting",
-  "destructive-migration": "waiting",
-  "release-decision": "waiting",
-  "code-review": "waiting",
-  "rolled-back": "on_hold",
-  "no-way-back": "on_hold",
-  unshippable: "on_hold",
-  blocked: "on_hold",
-  paused: "on_hold",
-  crashed: "on_hold",
-  dropped: "dropped",
-};
-
-export const SIDE = [ANSWERED_BY_COMMENT, "waiting", "on_hold"];
+export { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding };
 
 export const atLeast = (status, floor) =>
   ORDER.indexOf(status) >= 0 && ORDER.indexOf(status) >= ORDER.indexOf(floor);
@@ -556,27 +538,32 @@ export const parkRecord = (view, wanted = () => true, since = null, until = null
 
 export const SILENT = "on_hold";
 const ANNOUNCED = /—\s*moved from `[a-z_]+`$/u;
-const announcements = (view) =>
-  view.comments.filter((one) => ANNOUNCED.test(unwrap(one.body).split("\n")[0]?.trim() ?? ""));
+const announces = (one) => ANNOUNCED.test(unwrap(one.body).split("\n")[0]?.trim() ?? "");
+const announcements = (view) => view.comments.filter(announces);
 export const announcedAt = (view) => announcements(view).at(-1)?.createdAt ?? null;
 
-/* The park that set a side status, not the newest of a kind: `waiting` files after the announcement
-   and `needs_info` before it (ISS-429); `on_hold` announces nothing and reads as it did (ISS-420). */
+/* The park that set a side status, not the newest of a kind, and the two orders one may be written
+   in — docs/cli/advance-what-it-sends.md. `on_hold` announces nothing, as it did (ISS-420). */
 export const parkThatSet = (view, status) => {
-  const wanted = (one) => PARK_STATUS[one] === status;
+  const wanted = (one) => sameLanding(PARK_STATUS[one], status);
   if (status === SILENT) return parkRecord(view, wanted);
-  const said = announcements(view).map((one) => one.createdAt);
+  const said = announcements(view);
   if (!said.length) return null;
-  return status === "needs_info"
-    ? parkRecord(view, wanted, said.at(-2) ?? null, said.at(-1))
-    : parkRecord(view, wanted, said.at(-1));
+  const last = said.at(-1);
+  const under = parkRecord(view, wanted, last.createdAt ?? null);
+  if (under) return under;
+  const prior = said.at(-2) ?? null;
+  const over = parkRecord(view, wanted, prior?.createdAt ?? null, last.createdAt);
+  const spent = over && prior && view.comments[view.comments.indexOf(prior) + 1] === over.comment;
+  return spent ? null : over;
 };
 
 /* A screen is the change a deploy does not undo for whoever already read it, so a person answers: a
-   comment from a token that is not a device's, later than the park. An agent on a person's PAT can. */
+   comment later than the park, from a token that is neither a device's nor the tracker's own. */
 export const answered = (view, kind) => {
   const asked = parkRecord(view, (one) => one === kind);
+  const at = asked?.comment?.createdAt ?? "";
   return Boolean(asked) && view.comments.some(
-    (one) => !one.authorDeviceId && (one.createdAt ?? "") > (asked.comment.createdAt ?? ""),
+    (one) => !one.authorDeviceId && !announces(one) && (one.createdAt ?? "") > at,
   );
 };

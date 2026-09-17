@@ -5,7 +5,7 @@ import { sessionSourced } from "../resolve/config.mjs";
 import { FIELD, leaseOf, stateOf } from "./lease.mjs";
 import { sharedHolder } from "./lease/dispatched.mjs";
 import { atMinute, unwrap } from "./machine.mjs";
-import { PARK_STATUS, SIDE, atLeast, holdsBack, parkRecord, rungFieldsOf } from "./earned.mjs";
+import { PARK_STATUS, SIDE, atLeast, holdsBack, parkRecord, rungFieldsOf, sameLanding } from "./earned.mjs";
 import { methodOf } from "../guides/phases.mjs";
 import { rungOf } from "../ladder.mjs";
 import { lookAhead, owedIn } from "./route.mjs";
@@ -114,7 +114,7 @@ export const briefOf = (view, ref) => {
     landing: view.landing,
     /* The park the route resumes from, chosen the way the route chooses it: the newest park may
        land in another side status, and a brief showing that one would disagree with its own owed. */
-    park: SIDE.includes(status) ? headlineOf(parkRecord(view, (one) => PARK_STATUS[one] === status), "park") : null,
+    park: SIDE.includes(status) ? headlineOf(parkRecord(view, (one) => sameLanding(PARK_STATUS[one], status)), "park") : null,
     blockers: blockersOf(view),
     /* The one fact that says this has happened before, and the tracker keeps it as a field rather
        than a record, so nothing on the record would show it. */
