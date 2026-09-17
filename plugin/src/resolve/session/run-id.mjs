@@ -19,7 +19,6 @@ const answered = (read) => {
   }
 };
 
-/** Off the disk and never spawned: a gate has a deadline and `git rev-parse` is a process. */
 export const gitDirAt = (from) => checkoutAt(from)?.gitDir ?? null;
 
 export const besideGit = (from, name) => {

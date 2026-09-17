@@ -16,9 +16,12 @@ const GITDIR = /^gitdir:\s*(\S.*)$/mu;
 
 const against = (at, named) => (isAbsolute(named) ? named : resolve(at, named));
 
+const holdsGit = (dot) => Boolean(answered(() => statSync(join(dot, "HEAD"))));
+
 const commonOf = (dir) => {
   const named = answered(() => readFileSync(join(dir, "commondir"), "utf8"))?.trim();
-  return named ? against(dir, named) : dir;
+  const at = named ? against(dir, named) : dir;
+  return answered(() => realpathSync(at)) ?? at;
 };
 
 const found = (tree, gitDir) => ({ tree, gitDir, repository: dirname(commonOf(gitDir)) });
@@ -30,7 +33,7 @@ export const checkoutAt = (from) => {
   for (let at = start; ; at = dirname(at)) {
     const dot = join(at, ".git");
     const kind = answered(() => statSync(dot));
-    if (kind?.isDirectory()) return found(at, dot);
+    if (kind?.isDirectory() && holdsGit(dot)) return found(at, dot);
     if (kind?.isFile()) {
       const named = GITDIR.exec(answered(() => readFileSync(dot, "utf8")) ?? "")?.[1]?.trim();
       return named ? found(at, against(at, named)) : null;

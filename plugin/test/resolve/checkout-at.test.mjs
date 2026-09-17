@@ -3,7 +3,7 @@
    repository answer hangs off, and nothing but git writes it. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, realpathSync } from "node:fs";
+import { mkdirSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { git, tempRoom } from "../fixtures.mjs";
@@ -64,14 +64,36 @@ test("a directory no checkout holds answers null", () => {
   assert.equal(checkoutAt(realpathSync(tempRoom("checkout-at-none-"))), null);
 });
 
-/* Each of the two is what `--show-toplevel` and `--git-common-dir` printed in the same directory
-   before this walk replaced them, so the walk is judged against git rather than against itself. */
-test("both answers are the ones git prints for the same directory", () => {
-  for (const at of [rooms.main, rooms.nested, rooms.beside, join(rooms.main, "docs", "deep")]) {
-    const found = checkoutAt(at);
-    const top = git(at, "rev-parse", "--show-toplevel");
-    const shared = git(at, "rev-parse", "--path-format=absolute", "--git-common-dir");
-    assert.equal(found.tree, realpathSync(top.stdout.trim()), at);
-    assert.equal(found.repository, realpathSync(join(shared.stdout.trim(), "..")), at);
-  }
+/* Each answer is what `--show-toplevel`, `--git-dir` and `--git-common-dir` print in the same
+   directory, so the walk is judged against git rather than against itself. */
+const likeGit = (at) => {
+  const found = checkoutAt(at);
+  const asked = (...args) => git(at, "rev-parse", "--path-format=absolute", ...args).stdout.trim();
+  assert.equal(found.tree, realpathSync(asked("--show-toplevel")), at);
+  assert.equal(found.gitDir, asked("--git-dir"), at);
+  assert.equal(found.repository, realpathSync(join(asked("--git-common-dir"), "..")), at);
+};
+
+test("every answer is the one git prints for the same directory", () => {
+  for (const at of [rooms.main, rooms.nested, rooms.beside, join(rooms.main, "docs", "deep")]) likeGit(at);
+});
+
+/* An empty `.git` is not a git directory and git's discovery ascends past it, so a checkout holding
+   one must not answer for itself — a project file would otherwise resolve from a directory that is
+   no checkout. */
+test("a .git directory git will not accept is ascended past, as git ascends past it", () => {
+  const stub = join(rooms.main, "stub");
+  mkdirSync(join(stub, ".git"), { recursive: true });
+  assert.equal(checkoutAt(stub).tree, rooms.main);
+  likeGit(stub);
+});
+
+/* git canonicalises the common directory, so a `commondir` naming a symlink must not put the
+   repository beside the symlink: a worktree carrying no project file would lose its main checkout's. */
+test("a commondir naming a symlink answers with the directory it points at, as git does", () => {
+  const shared = join(rooms.room, "shared-git");
+  symlinkSync(join(rooms.main, ".git"), shared);
+  writeFileSync(join(rooms.main, ".git", "worktrees", "beside", "commondir"), `${shared}\n`);
+  assert.equal(checkoutAt(rooms.beside).repository, rooms.main);
+  likeGit(rooms.beside);
 });

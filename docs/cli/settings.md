@@ -31,6 +31,16 @@ it. Null means no checkout holds the path, which is the cue `checkoutRoot` falls
 failure, and the walk starts at the physical path so a symlink into another repository ascends into the
 one it was spelt under.
 
+Two places it has to do what git does rather than what the path says. **A `.git` directory that is not
+a git directory is ascended past**, because git's discovery does: a checkout holding an empty
+`sub/.git` answers with the checkout and not with `sub`, and a walk that stopped there would resolve a
+project file from a directory that is not a checkout. What it asks for is `HEAD`, where git also wants
+`refs` and `objects`, so a directory holding `HEAD` alone is one this accepts and git does not.
+**A named common directory is canonicalised before its parent is taken**, because git canonicalises
+it: a `commondir` naming a symlink would otherwise put the repository beside the symlink rather than
+beside the directory it points at, and a worktree carrying no project file would lose the one its main
+checkout holds.
+
 It assumes the working tree is the directory holding `.git`, and git answers differently in five
 shapes. Four are environment — `GIT_DIR`, `GIT_WORK_TREE`, `GIT_COMMON_DIR` and
 `GIT_CEILING_DIRECTORIES` each move `git rev-parse`'s answer and move nothing here. The fifth needs no
