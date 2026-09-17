@@ -59,16 +59,25 @@ export const historyFor = (entries, root, pairs = HISTORY_PAIRS, rels = []) => {
     });
 };
 
-/* The word at the head of a line the reply numbered, behind whatever the reply wraps it in: emphasis,
-   the finding's own id, and the dashes around it. Demanding the word be the whole of the first bold run
-   was a shape the prompt never asked for, and seven replies answered outside it — with the id in front,
-   a parenthetical behind, the whole resolution behind — each recording nothing and sending the run to a
-   later door to find out (ISS-1336, ISS-1681). The head is where it stops: a word further in belongs to
-   prose, and `the earlier answer was REFUTED; my ruling is CONFIRMED` closing a finding on its first
-   word is worse than the silence this replaces. */
-const RULING_LINE = /^[ \t]*(\d+)\.[ \t]+\**[ \t]*(?:F\d+\b[ \t]*[—–\-:.]*[ \t]*)?\**[ \t]*(CONFIRMED|REFUTED|CANNOT TELL)\b.*$/gimu;
+/* The word at the head of a line the reply numbered, behind emphasis and the finding's own id but never
+   behind prose: a whole-bold-run wrapper was a shape the prompt never asked for and seven replies answered
+   outside it (ISS-1336, ISS-1681), while closing a finding on a word only `the earlier answer was REFUTED`
+   reaches would be worse than the silence that replaced. docs/cli/codex-the-round.md. */
+const RULING_LINE = /^[ \t]*(\d+)\.[ \t]+\**[ \t]*(?:F\d+\b\**[ \t]*[—–\-:.]*[ \t]*)?\**[ \t]*(CONFIRMED|REFUTED|CANNOT TELL)\b.*$/gimu;
+
+/* A reply quoting an example of a ruling is showing one, not making one, and the grammar cannot tell
+   them apart: a fenced `1. F1 - REFUTED` under a real `1. **CONFIRMED**` would close what was left open. */
+const unfenced = (reply) => {
+  let inside = false;
+  return String(reply ?? "").split("\n").map((line) => {
+    if (/^[ \t]*(?:```|~~~)/u.test(line)) inside = !inside;
+    else if (!inside) return line;
+    return "";
+  }).join("\n");
+};
+
 export const rulingsIn = (reply) =>
-  [...String(reply ?? "").matchAll(RULING_LINE)].map(([line, n, ruling]) => ({ n: Number(n), ruling: ruling.toUpperCase(), line }));
+  [...unfenced(reply).matchAll(RULING_LINE)].map(([line, n, ruling]) => ({ n: Number(n), ruling: ruling.toUpperCase(), line }));
 
 /* The rulings and the numbered findings, each with what became of it — not the prose around them.
    The gateway cached none of 108 replays, so every call paid for the whole reply three times over. */
@@ -256,7 +265,9 @@ export const recheckOwed = (plan, rels) => {
 };
 /* A recheck's rulings are the verdict on what it re-verified: REFUTED is a finding the tree no longer shows. 37 consults with findings closed with nothing recorded, and 10 of them had a recheck that said exactly what became of each. The n-th ruling answers the n-th risk, whatever else the reply says; a CONFIRMED one stays open, and the caller's own verdict overrides this one. */
 export const verdictFromRulings = (plan, offset, reply, recheckId, prior = null) => {
-  const rulings = new Map(rulingsIn(reply).map((one) => [one.n, one.ruling]));
+  const rulings = new Map();
+  /* The block asks the reviewer to lead with the rulings, so a number repeated later is an echo of one. */
+  for (const one of rulingsIn(reply)) if (!rulings.has(one.n)) rulings.set(one.n, one.ruling);
   const kept = [];
   const open = [];
   plan.ids.forEach((id, at) => {
@@ -285,7 +296,7 @@ export const rulingsUnread = (plan, offset, reply, recheckId) => {
   const ruled = rulingsIn(reply);
   const of = plan.judged.id ?? plan.judged.at;
   const said = new Set(ruled.map((one) => one.line.trim()));
-  const unread = String(reply ?? "").split("\n").map((line) => line.trim())
+  const unread = unfenced(reply).split("\n").map((line) => line.trim())
     .filter((line) => NUMBERED.test(line) && !said.has(line));
   const ids = plan.ids.join(", ");
   const why = unread.length

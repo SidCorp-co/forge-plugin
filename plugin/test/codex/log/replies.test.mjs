@@ -444,6 +444,13 @@ test("a ruling is the word at the head of a numbered line, whatever the reply wr
   assert.deepEqual(keptOf("1. F1 — REFUTED (resolved)"), ["F1"], "the id in front and no bold at all");
   assert.equal(keptOf("1. The earlier answer was REFUTED; my ruling is CONFIRMED."), null,
     "a ruling word only prose reaches is not a ruling, so nothing is closed on it");
+  assert.deepEqual(keptOf("1. **F1** — **REFUTED**"), ["F1"], "the id emphasised apart from the dash that follows it");
+  const quoted = ["1. **CONFIRMED** — the defect is still there.", "", "```", "1. F1 - REFUTED", "```"].join("\n");
+  assert.deepEqual(keptOf(quoted), [], "a fenced example of a ruling is shown, not made, and cannot overwrite the answer above it");
+  assert.match(verdictFromRulings(plan, 0, quoted, "r1").record.note, /still open: F1/u, "the CONFIRMED above the fence is the answer that stands");
+  assert.doesNotMatch(digestOf(quoted, null), /F1 - REFUTED/u, "and the fence is not replayed as a second ruling either");
+  assert.deepEqual(keptOf("1. **REFUTED** — fixed.\n1. **CONFIRMED** — quoting my earlier answer."), ["F1"],
+    "the block asks the reviewer to lead with the rulings, so the first answer under a number stands");
   const seven = { id: "c2", files: ["a.mjs"], reply: "- **F7 — New — major:** `a.mjs:9` — y." };
   const byPlace = verdictFromRulings({ judged: seven, ids: ["F7"], risks: [] }, 0, "1. **F3 — REFUTED (resolved).**", "r2");
   assert.deepEqual(byPlace.record.kept, ["F7"], "the ruling answers the risk of its number; the id it names is wrapper, not mapping");
