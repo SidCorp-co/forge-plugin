@@ -69,21 +69,21 @@ export const eligibilityOf = (row,
 };
 
 /** The status a judging run claims from, the declaration that offers one, and the lease that leaves
- *  one out. Why these are listed apart from the ranked rows, and what the per-row read costs to
- *  answer, is docs/cli/next.md's. */
+ *  one out — this session's own included, where `eligibilityOf` lets it through, an issue a run
+ *  holds being its own to carry on with. Listed apart and what a row costs: docs/cli/next.md. */
 export const JUDGING = ["developed"];
 
 export const offersJudging = (policy) => judgementOf(policy) === INDEPENDENT;
 
 export const judgingVerdict = (lease) => {
   const taken = leaseOf(lease);
-  return stateOf(taken, sessionOf()) === "live"
+  return ["live", "mine"].includes(stateOf(taken, sessionOf()))
     ? { offerable: false, reason: `lease held by ${describe(taken)}` }
     : { offerable: true, reason: null };
 };
 
-/** Offered, left out, and what the bound did not reach. Oldest first, so the bound covers the same
- *  rows on every call; `leaseFor` is the caller's, this module answering off values. */
+/** Offered, left out, and what the bound did not reach, oldest first so the bound covers the same
+ *  rows on every call. `leaseFor` is the caller's, this module answering off values. */
 export const judgingFrom = async (rows, { policy, leaseFor, cap }) => {
   if (!offersJudging(policy)) return null;
   const at = rows

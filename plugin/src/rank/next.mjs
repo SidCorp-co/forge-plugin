@@ -9,7 +9,8 @@ import { asksOf } from "../tracker/issue-shape.mjs";
 import { rootFor } from "../stats/corpus/corpus.mjs";
 import { resolverIn, treeAt } from "./checkout.mjs";
 import { batchesOf } from "./batch.mjs";
-import { candidateLines, droppedLine, graphLines, HEAD, judgingLines } from "./print.mjs";
+import { boundShort, candidateLines, droppedLine, graphLines, HEAD, judgingLines, judgingShort }
+  from "./print.mjs";
 import { carriersOf, graphOf, PROSE_FROM, PROSE_MARKER } from "./prose-edges.mjs";
 import { eligibilityOf, heldPaths, judgingFrom, pathsNamed } from "./eligible.mjs";
 import { fail } from "../resolve/settings.mjs";
@@ -151,9 +152,8 @@ const bodiesFor = async (window) =>
     await scoped("forge_issues", { action: "get", documentId: one.row.documentId, fields: ["relations"] }),
   ])));
 
-/* The one fact the browse projection does not carry, asked for a row at a time: a judging candidate
-   is offerable on its lease alone, and the listing every other reading here is computed over answers
-   nothing about one. The edges are not named because nothing orders these rows. */
+/* The one fact the browse projection does not carry, asked a row at a time: a judging candidate is
+   offerable on its lease alone, and no listing answers for one. */
 const leaseOn = async (row) =>
   (await scoped("forge_issues", { action: "get", documentId: row.documentId, fields: [] }))?.sessionContext;
 
@@ -425,17 +425,12 @@ export const next = async (argv) => {
     relationsSeen: edges,
     readCap: weights.readCap,
   };
-  if (!holds) {
-    console.error(`warning: this order is not bounded — ${cursor} of ${preScored.length} takeable`
-      + ` issue(s) were read whole${edges
-        ? `, and ${edges} of them declared a blocking relation, which no bound over the unread ones`
-          + " survives: an issue further down could be holding up work nothing here counted"
-        : ", and the read stopped at readCap before the rest could be ruled out"}. Raise \`rank.readCap\``
-      + " in this project's own settings, which `forge doctor` names, or narrow the ask.");
+  for (const line of [holds ? null : boundShort(cursor, preScored.length, edges),
+    judgingShort(judging, weights)].filter(Boolean)) console.error(line);
+  if (asked.json) {
+    return console.log(JSON.stringify(jsonOf(batches, dropped, weights, from, readSaid, judging), null, 2));
   }
-  const asJson = () => JSON.stringify(jsonOf(batches, dropped, weights, from, readSaid, judging), null, 2);
-  if (asked.json) return console.log(asJson());
-  for (const line of judgingLines(judging, weights)) console.log(line);
+  for (const line of judgingLines(judging)) console.log(line);
   if (!batches.length) {
     console.log(`Nothing is eligible: ${takeable.length} issue(s) could be taken and every one was dropped.`);
   } else {

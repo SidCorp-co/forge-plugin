@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { eligibilityOf, heldPaths, judgingFrom, meets, pathsNamed } from "../../src/rank/eligible.mjs";
+import { sessionOf } from "../../src/resolve/config.mjs";
 
 const row = (held = {}) => ({ issueId: "ISS-1", status: "open", ...held });
 
@@ -119,16 +120,15 @@ test("a declaration other than independent, and none at all, offer nothing", asy
   }
 });
 
-/* The soft filter above is the building side's: two runs writing one tree is what it is for, and a
-   judging run writes none. */
-test("a judging candidate naming a file another run's plan holds is offered all the same", async () => {
-  const body = "This one rewrites `plugin/src/flow/`.";
-  const held = heldPaths([{ issueId: "ISS-9", plan: "`plugin/src/flow/record.mjs`" }]);
-  assert.equal(eligibilityOf(row({ status: "open" }), { body, held }).eligible, false,
-    "the same collision that stops a builder");
-  const judging = await judgingFrom([at("ISS-1")],
-    { policy: { qa: "independent" }, leaseFor: free, cap: 12 });
-  assert.deepEqual(judging.offered.map((one) => one.issueId), ["ISS-1"]);
+/* The reading this run's own lease gets is the opposite of `eligibilityOf`'s: an issue this session
+   holds is its own to carry on with, and the whole claim of an offer is that the builder let go. */
+test("a lease this session holds leaves a developed issue out too, not only another run's", async () => {
+  const held = await judgingFrom([at("ISS-1")],
+    { policy: { qa: "independent" }, leaseFor: () => leaseFor(sessionOf()), cap: 12 });
+  assert.equal(eligibilityOf(row(), { lease: leaseFor(sessionOf()) }).eligible, true,
+    "the same lease a builder is allowed to carry on under");
+  assert.equal(held.offered.length, 0, "and a judging candidate is not offered under it");
+  assert.match(held.left[0].reason, new RegExp(`lease held by session ${sessionOf()}`, "u"));
 });
 
 test("the read is oldest first, and a bound it spends says how many rows it did not reach", async () => {
@@ -147,4 +147,12 @@ test("the read is oldest first, and a bound it spends says how many rows it did 
   assert.equal(held.offered.length, 0, "a leased front window offers nothing");
   assert.equal(held.unreached, 1,
     "and says so, or the free row behind it is hidden for as long as those leases renew");
+  const reached = await judgingFrom(rows, {
+    policy: { qa: "independent" },
+    leaseFor: (one) => (one.issueId === "ISS-3" ? null : leaseFor("a-builder-run")),
+    cap: 3,
+  });
+  assert.deepEqual(reached.offered.map((one) => one.issueId), ["ISS-3"],
+    "and the weight the shortfall names is a route to the row behind them, with no lease changing");
+  assert.equal(reached.unreached, 0);
 });

@@ -481,6 +481,38 @@ test("a project that declared the judgement the builder's own is offered no judg
   }
 });
 
+/* The soft filter is the building side's — two runs writing one tree is what it is for — and a
+   judging run writes none, so the same collision that sets a builder aside leaves it offered. */
+test("a file another run's plan holds sets a builder aside and leaves a judging candidate offered", async (t) => {
+  const names = "It rewrites `plugin/src/flow/record.mjs` and nothing else.";
+  load([
+    issue("ISS-9", { plan: "It edits `plugin/src/flow/record.mjs`." }),
+    issue("ISS-2", { description: names }),
+    issue("ISS-5", { status: "developed", description: names }),
+  ]);
+  judged(t, "independent");
+  const run = await ran(["next", "--holding", "ISS-9"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /ISS-2\s+holds plugin\/src\/flow\/record\.mjs with ISS-9/u,
+    "the builder is set aside by the path its body names");
+  assert.match(run.stdout, /judging[\s\S]*ISS-5/u, "and the judging candidate naming the same path is not");
+});
+
+test("a judging read that spent its bound says so on the error stream, in either output form", async (t) => {
+  const rows = [issue("ISS-1")];
+  for (let n = 10; n < 24; n += 1) rows.push(issue(`ISS-${n}`, { status: "developed" }));
+  load(rows);
+  judged(t, "independent");
+  for (const argv of [["next"], ["next", "--json"]]) {
+    const run = await ran(argv);
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(run.stderr, /2 further issue\(s\) at developed went unread/u, argv.join(" "));
+    assert.match(run.stderr, /windowCap 12[\s\S]*rank\.windowCap/u, argv.join(" "));
+  }
+  const run = await ran(["next", "--json"]);
+  assert.equal(JSON.parse(run.stdout).judging.unreached, 2, "and the count is a field a machine reads");
+});
+
 test("the machine-readable form carries the judging candidates under a key of their own", async (t) => {
   load([issue("ISS-1"), issue("ISS-5", { status: "developed" })]);
   judged(t, "independent");

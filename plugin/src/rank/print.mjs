@@ -95,9 +95,9 @@ export const droppedLine = (one) =>
 
 const judgingRow = (one) => `  ${one.issueId.padEnd(KEY)} ${cut(one.row.title, TITLE)}`;
 
-/* Its own section above the ranking and not a row inside it, one scored among the rest taking a
-   place in `--count` from the building work that count was asked for: docs/cli/next.md. */
-export const judgingLines = (judging, weights) => {
+/* Its own section and not a row in the ranking, one scored there taking a place in `--count` from
+   the building work that count was asked for: docs/cli/next.md. */
+export const judgingLines = (judging) => {
   if (!judging) return [];
   const at = JUDGING.join(" or ");
   return [
@@ -107,14 +107,26 @@ export const judgingLines = (judging, weights) => {
     ...judging.offered.map(judgingRow),
     ...(judging.left.length ? [`  left out — ${judging.left.length}:`] : []),
     ...judging.left.map(droppedLine),
-    ...(judging.unreached
-      ? [`  ${judging.unreached} further issue(s) at ${at} went unread: no listing carries a lease, so`
-        + ` each row costs a read of its own and the reading stops at windowCap ${weights.windowCap}.`
-        + " Raise `rank.windowCap` in this project's own settings, which `forge doctor` names."]
-      : []),
     "",
   ];
 };
+
+/** Why an order is not bounded, in the words the read's own shortfall is reported in. */
+export const boundShort = (cursor, takeable, edges) =>
+  `warning: this order is not bounded — ${cursor} of ${takeable} takeable`
+  + ` issue(s) were read whole${edges
+    ? `, and ${edges} of them declared a blocking relation, which no bound over the unread ones`
+      + " survives: an issue further down could be holding up work nothing here counted"
+    : ", and the read stopped at readCap before the rest could be ruled out"}. Raise \`rank.readCap\``
+  + " in this project's own settings, which `forge doctor` names, or narrow the ask.";
+
+/** What the judging bound did not reach, said on the error stream so both output forms carry it. */
+export const judgingShort = (judging, weights) => (judging?.unreached
+  ? `warning: ${judging.unreached} further issue(s) at ${JUDGING.join(" or ")} went unread. No`
+    + " listing carries a lease, so each row costs a read of its own and the reading stops at"
+    + ` windowCap ${weights.windowCap}. Raise \`rank.windowCap\` in this project's own settings,`
+    + " which `forge doctor` names, or the rows behind a leased one stay out of reach."
+  : null);
 
 /** Every line of one candidate, so the caller composes the answer out of whole candidates. */
 export const candidateLines = (batch, { why = false } = {}) => [
