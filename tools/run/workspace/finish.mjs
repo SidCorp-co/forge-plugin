@@ -10,7 +10,7 @@ import { homedir } from "node:os";
 import { join, resolve, sep } from "node:path";
 
 import { consults } from "../../../plugin/src/codex/codex-log.mjs";
-import { jsonlAt } from "../../../plugin/src/hooks/hook-log-file.mjs";
+import { jsonlAt } from "../../../plugin/src/hooks/log/hook-log-file.mjs";
 import { copyToRun } from "../../../plugin/src/tools/plugin-copy.mjs";
 import { checkoutRoot, defaultBranch, git, gitOut, lines, loud, REMOTE, remoteRef,
   uncommittedIn } from "../../checkout.mjs";

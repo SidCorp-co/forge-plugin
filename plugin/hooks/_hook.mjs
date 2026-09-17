@@ -7,18 +7,20 @@ import { closeSync, openSync, readFileSync, readSync, realpathSync, statSync } f
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { jsonLines as parsed, logHook } from "../src/hooks/hook-log-file.mjs";
-import { scrubbed } from "../src/hooks/hook-log.mjs";
+import { jsonLines as parsed, logHook } from "../src/hooks/log/hook-log-file.mjs";
+import { scrubbed } from "../src/hooks/log/hook-log.mjs";
 import { NOWHERE, STARTS, WRITES, namesOf, placeable, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
 import { glued } from "../src/hooks/assembled.mjs";
 import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";
 import { agreedWithHead } from "../src/hooks/git-probe.mjs";
+import { isSubagent, ownTranscript, transcriptOf } from "../src/hooks/transcripts.mjs";
 
 export { DEADLINES };
 export { askedAlready, askedByAnyone, clearNote, note, noted } from "../src/hooks/stamps.mjs";
 export { movedTo, spelled, typed, waitsIn } from "../src/hooks/shell-spans.mjs";
 export { NOWHERE, STARTS, WRITES, namesOf, spans, standsIn, unquote };
 export { struck } from "../src/hooks/shell-spans.mjs";
+export { isSubagent, ownTranscript, transcriptOf };
 
 /** How long after a call a file's mtime still answers for it. */
 export const FRESH_MS = 120_000;
@@ -486,17 +488,6 @@ export const promptIndex = (given) => {
 };
 
 export const turnAt = (records) => records[promptIndex(records)]?.timestamp ?? "";
-
-/** A subagent's stop names the parent's transcript in the common fields and its own beside them, so the agent's is the one to read (ISS-530). Learned here, once per event shape. */
-export const isSubagent = (ev) => ev.hook_event_name === "SubagentStop";
-export const transcriptOf = (ev) => (isSubagent(ev) && ev.agent_transcript_path) || ev.transcript_path || "";
-
-/** The transcript of the agent whose call this is: every other event of a delegated run names the dispatching session in `transcript_path` and names the run only in `agent_id`, and the host keeps each agent's under the session's own directory. A path that does not resolve is read as nothing said, never as the parent's last line, which is another run's (ISS-510). */
-export const ownTranscript = (ev) => {
-  const held = ev.transcript_path || "";
-  if (!ev.agent_id || !held) return held;
-  return join(held.replace(/\.jsonl$/u, ""), "subagents", `agent-${ev.agent_id}.jsonl`);
-};
 
 /** From this turn's prompt on: `turnRecords` hands back the whole tail it read. */
 const turnTail = new WeakMap();

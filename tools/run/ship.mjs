@@ -23,7 +23,7 @@ import { CHECK, publishes } from "./publish.mjs";
 import { publishesVersion, statesVersion, versionIn } from "./release/released-tag.mjs";
 import { forgetBump, unwound, versionAbove } from "./release/version.mjs";
 import { REVIEWED, REVIEW_PATHS, reviewBody, reviewLines, reviewSays, spannedIn } from "./review.mjs";
-import { hookEntries } from "../../plugin/src/hooks/hook-log-file.mjs";
+import { hookEntries } from "../../plugin/src/hooks/log/hook-log-file.mjs";
 import { typed } from "../../plugin/src/hooks/shell-spans.mjs";
 import { freezesSession, FROZEN, pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
 import { releaseMark, runsMark } from "../../plugin/src/stats/eval.mjs";

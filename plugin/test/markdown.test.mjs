@@ -38,7 +38,7 @@ const LOG_READS = "plugin/src/hooks/log-reads.mjs";
 const SPEC_PARSE = "plugin/src/spec/parse.mjs";
 const CANONICAL = "plugin/src/resolve/canonical.mjs";
 const MEDIAN = "plugin/src/stats/median.mjs";
-const JSONL = "plugin/src/hooks/hook-log-file.mjs";
+const JSONL = "plugin/src/hooks/log/hook-log-file.mjs";
 
 /* The forms replaced, as they stood at 70674ca, and the markup class as it stood at 29e74e9. A copy
    in a test is a historical record and not a second authority: it exists so a later run cannot move

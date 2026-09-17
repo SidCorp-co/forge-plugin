@@ -3,7 +3,7 @@
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { configDir } from "../resolve/config.mjs";
+import { configDir } from "../../resolve/config.mjs";
 
 export const hookLogPath = () => join(configDir("forge"), "hook-log.jsonl");
 

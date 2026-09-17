@@ -7,7 +7,7 @@ import { randomBytes } from "node:crypto";
 import { basename, join } from "node:path";
 
 import { configDir, readJson, writeJsonPrivate } from "../resolve/config.mjs";
-import { jsonlAt } from "../hooks/hook-log-file.mjs";
+import { jsonlAt } from "../hooks/log/hook-log-file.mjs";
 
 /* A credit is an append and a read is the fold: two appending lose neither line, where two that
    rebuild this file leave only the later's, and no lock closes that (ISS-661). */

@@ -7,7 +7,7 @@ import { basename, isAbsolute, join } from "node:path";
 
 import { configDir, readJson, writeJsonPrivate } from "../resolve/config.mjs";
 import { flags } from "../resolve/flags.mjs";
-import { logHook } from "../hooks/hook-log-file.mjs";
+import { logHook } from "../hooks/log/hook-log-file.mjs";
 import { changedAgainst, digest } from "./codex-api.mjs";
 import { logBytes } from "./codex-log.mjs";
 import { sentShaOf } from "./log/asked.mjs";

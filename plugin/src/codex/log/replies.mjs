@@ -1,7 +1,7 @@
 /* What a reviewer's reply says, and what a round then makes of it: the count it gives of itself, the findings and their ids, the rulings a recheck answers with, the digest a later request replays instead of the prose, the record a disposition becomes, what is still undecided, what a recheck has to verify, and the per-model score the log is kept as an eval set for. Nothing here opens the file — it is handed rows, which is what keeps the dependency running one way. docs/cli/codex-the-log.md. */
 import { HUMAN_REF } from "../../tracker/issues.mjs";
-import { jsonlBack, jsonlMark } from "../../hooks/hook-log-file.mjs";
-import { masked } from "../../hooks/hook-log.mjs";
+import { jsonlBack, jsonlMark } from "../../hooks/log/hook-log-file.mjs";
+import { masked } from "../../hooks/log/hook-log.mjs";
 import { pathed } from "../../hooks/shell-spans.mjs";
 import { median } from "../../stats/median.mjs";
 import { answered, isAnswered, judgedBy, maskedDeep, shortOfWhole, verdictsBy } from "../codex-log.mjs";

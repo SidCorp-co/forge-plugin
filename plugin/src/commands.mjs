@@ -43,7 +43,7 @@ import { feedback } from "./tools/feedback.mjs";
 import { codex } from "./codex/codex.mjs";
 import { chatgpt } from "./tools/services/chatgpt.mjs";
 import { stats } from "./stats/stats.mjs";
-import { hooks } from "./hooks/hook-log.mjs";
+import { hooks } from "./hooks/log/hook-log.mjs";
 import { record } from "./flow/record/record.mjs";
 import { advance } from "./flow/advance.mjs";
 import { overrideFields } from "./flow/override.mjs";

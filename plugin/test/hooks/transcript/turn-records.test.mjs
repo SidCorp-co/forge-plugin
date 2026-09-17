@@ -5,9 +5,9 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { callAt, turnAt, turnRecords } from "../../hooks/_hook.mjs";
-import { tempRoom } from "../fixtures.mjs";
-import { patience } from "../patience.mjs";
+import { callAt, turnAt, turnRecords } from "../../../hooks/_hook.mjs";
+import { tempRoom } from "../../fixtures.mjs";
+import { patience } from "../../patience.mjs";
 
 const room = tempRoom("turn-records-");
 

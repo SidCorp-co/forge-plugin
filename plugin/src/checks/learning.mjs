@@ -4,6 +4,7 @@ import { readdirSync, statSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 
 import { canonical } from "../resolve/canonical.mjs";
+import { memoryDir } from "../hooks/transcripts.mjs";
 
 export const GUARDED = /\/memory\/|\/skills\//;
 export const FILE_TYPES = ["user", "feedback", "project", "reference"];
@@ -26,12 +27,12 @@ const git = (cwd, args) => {
   return run.status === 0 ? String(run.stdout) : "";
 };
 
-/* Where a guarded file lands with nothing naming it: the memory directory beside the transcript rather
-   than at a slug spelled out here, and the skill directories git reports — a layout is the tree's. */
+/* Where a guarded file lands with nothing naming it: the project's memory directory rather than a
+   slug spelled out here, and the skill directories git reports — a layout is the tree's. */
 const guardedDirs = (ev, root) => {
   const out = [];
-  const transcript = ev.transcript_path ?? "";
-  if (transcript) out.push(join(dirname(transcript), "memory"));
+  const memory = memoryDir(ev);
+  if (memory) out.push(memory);
   const listed = root
     ? git(root, ["ls-files", "-c", "-o", "--exclude-standard", "--full-name", "--", "*/SKILL.md", "SKILL.md",
       "*/skills/*/guide.md", "*/skills/*/*/guide/*.md", "*/skills/*/*/references/*.md"])

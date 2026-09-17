@@ -18,6 +18,24 @@ event's cwd. Three gates need that — whose work a `git stash` takes, which tre
 where a relative write lands — so it is the harness's. Read wrong it is silent in the dangerous
 direction: a clean checkout stands the rules down and nothing is refused.
 
+## Which transcript an event means
+
+Three readings, one home, because `plugin/src/` may not import the hook harness and the check that
+sweeps for guarded files lives there: `plugin/src/hooks/transcripts.mjs` holds them and
+`plugin/hooks/_hook.mjs` re-exports them, so a gate's import is unchanged.
+
+A subagent's stop names the dispatching session in the common fields and the run's own transcript
+beside them, and for weeks the stop gate read the parent's and passed every delegated run (ISS-530).
+Every other event of a delegated run names the parent in both fields and the run only by its id, so
+an agent's own transcript is composed from the two rather than read off one (ISS-510).
+
+Memory is the third, and it is not a transcript at all. One project keeps one memory directory and
+every agent it dispatches writes into that same one, so the reading climbs out of the directory the
+host keeps agents' transcripts in rather than following whichever transcript the event named. Taking
+the transcript reading for this one instead would send a delegated run's sweep to a directory the
+host keeps no memory in, and the sweep would report a clean tree for the same reason an empty
+directory does (ISS-587).
+
 ## Writing a refusal, and the document behind it
 
 Both are literals in their hook, never loaded from a file: the wording belongs beside the decision

@@ -1,9 +1,9 @@
 /* The log is codex's memory and its eval set at once. It has no session of its own — one HTTPS request knows nothing of the last — so continuity is these entries replayed, and scoring the advice later is the same file read a different way. This half is the file itself: what is written to it, what is read back, and every question answerable off the rows without reading a word of what the reviewer wrote. docs/cli/codex-the-log.md. */
 import { isAbsolute, join } from "node:path";
 
-import { appendJsonl, jsonlAt, jsonlBytes } from "../hooks/hook-log-file.mjs";
+import { appendJsonl, jsonlAt, jsonlBytes } from "../hooks/log/hook-log-file.mjs";
 import { configDir, NO_SESSION, sessionSourced, userConfig } from "../resolve/config.mjs";
-import { masked } from "../hooks/hook-log.mjs";
+import { masked } from "../hooks/log/hook-log.mjs";
 
 export const logPath = () => join(configDir("forge"), "codex-log.jsonl");
 export const budgetMs = () => Number(userConfig().codex?.budgetMs || 900_000);

@@ -11,7 +11,7 @@ import { answered, logBytes, verdictsBy } from "../codex/codex-log.mjs";
 import {
   countedIn, numbered, recheckOwed, recheckPlan, undecidedIn, unverdicted,
 } from "../codex/log/replies.mjs";
-import { jsonLines } from "../hooks/hook-log-file.mjs";
+import { jsonLines } from "../hooks/log/hook-log-file.mjs";
 import { atMinute } from "./machine.mjs";
 
 export const KEY = "worklog";

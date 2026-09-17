@@ -1,7 +1,7 @@
 /* The whole-tree gate result a ship published for the head it released, which is the one authority a baseline citation rests on. Keyed on the project and the commit, because a commit is the only thing here that says the tree is the same tree: no ancestry walk and no newest-published fallback answers for a head nothing was published for. A ship writes it and the citing write reads it — no verb of this CLI writes one, or one run's own gate would become the next run's authority, and settling the authority at the write is what leaves every entry check judging the record alone. */
 import { join } from "node:path";
 
-import { appendJsonl, jsonlAt } from "../../hooks/hook-log-file.mjs";
+import { appendJsonl, jsonlAt } from "../../hooks/log/hook-log-file.mjs";
 import { configDir } from "../../resolve/config.mjs";
 import { freshForm } from "./baseline.mjs";
 

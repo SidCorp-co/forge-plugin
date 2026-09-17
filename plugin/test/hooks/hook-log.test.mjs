@@ -8,8 +8,8 @@ import { join } from "node:path";
 
 const room = tempRoom("hook-log-");
 process.env.XDG_CONFIG_HOME = room;
-const { hookEntries, hookLogPath, roundsBy, scrubbed } = await import("../../src/hooks/hook-log.mjs");
-const { jsonLines, jsonlBack, jsonlBytes, jsonlMark } = await import("../../src/hooks/hook-log-file.mjs");
+const { hookEntries, hookLogPath, roundsBy, scrubbed } = await import("../../src/hooks/log/hook-log.mjs");
+const { jsonLines, jsonlBack, jsonlBytes, jsonlMark } = await import("../../src/hooks/log/hook-log-file.mjs");
 const CLI = new URL("../../src/cli.mjs", import.meta.url).pathname;
 test.after(() => rmSync(room, { recursive: true, force: true }));
 

@@ -1,7 +1,7 @@
 /* `forge codex log` and `forge codex verdict`: where a person reads the log back and writes what
    became of a review. This is the piece with no module above it, so it is the one that may import
    both the rows and the grammar, and the only import of it is the verb table's. docs/cli/codex-the-log.md. */
-import { jsonLines } from "../../hooks/hook-log-file.mjs";
+import { jsonLines } from "../../hooks/log/hook-log-file.mjs";
 import { NO_SESSION } from "../../resolve/config.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { flags, pullRepeated } from "../../resolve/flags.mjs";

@@ -2,7 +2,7 @@
    consult log keeps its entries. A runs reading carries the root whose corpus was counted; a consult reading is the device's and carries none. docs/cli/stats-the-mark.md. */
 import { join } from "node:path";
 
-import { appendJsonl, jsonlAt } from "../../hooks/hook-log-file.mjs";
+import { appendJsonl, jsonlAt } from "../../hooks/log/hook-log-file.mjs";
 import { configDir } from "../../resolve/config.mjs";
 import { fail } from "../../resolve/settings.mjs";
 

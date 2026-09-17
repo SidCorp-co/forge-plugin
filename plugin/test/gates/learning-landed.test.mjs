@@ -112,6 +112,32 @@ test("a memory file no call named at all is found by reading the directory", () 
   assert.match(JSON.parse(run.stdout).reason, /by-a-script\.md/u, "nothing in the command names it");
 });
 
+/* The one shape where the two readings disagree: a delegated run names its own transcript beside the
+   session's, and memory is the project's either way. Nothing is put where the agent's would point. */
+test("a delegated run's sweep reads the project's memory and not its own transcript's neighbour", () => {
+  const session = randomUUID();
+  const project = tempRoom("landed-agent-");
+  mkdirSync(join(project, "memory"));
+  mkdirSync(join(project, session, "subagents"), { recursive: true });
+  writeFileSync(join(project, "memory", "by-a-delegated-script.md"), "a line\n");
+  const run = callHook(
+    HOOK,
+    {
+      hook_event_name: "SubagentStop",
+      session_id: session,
+      tool_name: "Bash",
+      tool_input: { command: "node build-notes.mjs" },
+      cwd: project,
+      transcript_path: join(project, `${session}.jsonl`),
+      agent_transcript_path: join(project, session, "subagents", "agent-b2c.jsonl"),
+    },
+    HOME,
+  );
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout.trim() && JSON.parse(run.stdout).reason || "", /by-a-delegated-script\.md/u,
+    "the sweep looked beside the agent's transcript, where the host keeps no memory");
+});
+
 test("a file the directory has held for a day is not this call's", () => {
   const session = randomUUID();
   const project = tempRoom("landed-stale-");
