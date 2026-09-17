@@ -4,10 +4,10 @@
 import { resolve as resolvePath } from "node:path";
 
 import { NOWHERE, deny, done, how, movedTo, shellText, startsAt } from "../_hook.mjs";
-import { refusalFor } from "../../src/tracker/comments.mjs";
+import { owedFor, refusalOf } from "../../src/tracker/comments.mjs";
 import { sessionSourced } from "../../src/resolve/config.mjs";
 import { liveAlias } from "../../src/flow/lease.mjs";
-import { filingsOf, joined, toolOfCall, writeTargets } from "../../src/tracker/issue-read.mjs";
+import { filingsOf, joined, ownChecked, toolOfCall, writeTargets } from "../../src/tracker/issue-read.mjs";
 import { actionIn, wrappedRefusal } from "../../src/resolve/visibility.mjs";
 import { refusalFrom, shapeOf } from "../../src/tracker/issue-shape.mjs";
 import { documentIdOf } from "../../src/tracker/issues.mjs";
@@ -81,7 +81,9 @@ export const run = async (ev) => {
     check: [id, primary.environment ? await liveAlias(target.documentId) : null],
     credit: id,
   });
-  const { refusal } = await refusalFor([...targets.values()], keysFor);
+  const looked = await owedFor([...targets.values()], keysFor);
+  if (!looked.first.length && ownChecked(call, said)) done();
+  const refusal = await refusalOf(looked, keysFor);
   if (refusal) deny(refusal + how());
   done();
 };

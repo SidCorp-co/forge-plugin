@@ -192,9 +192,12 @@ const gate = async (command, { url = live(), fresh = true, harness = null, cwd =
 };
 const because = (run) => run.out?.hookSpecificOutput?.permissionDecisionReason ?? "";
 
+/* The write shape this gate still answers for, so a case about the key it reads has something to read it off: a shape whose own verb makes the comment check is left to make it and this stands down saying nothing, where an edge write makes none. `ISS-31` is the other end, which an edge is never taken against, so nothing resolves it (ISS-1715). */
+const edgeWrite = (ref = "ISS-29") => `forge issue ${ref} --relates ISS-31`;
+
 test("a write to an issue with comments nobody was shown is denied, and they are in the deny", async () => {
   state.comments = { [UUID]: [comment("c1", "read this before you write")] };
-  const run = await gate("forge advance ISS-29");
+  const run = await gate(edgeWrite());
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
   assert.ok(because(run).includes("read this before you write"), "the comment itself, not a pointer to it");
   assert.ok(!because(run).includes("UNTRUSTED_DATA"), "and the tracker's marker is off it: the transport took it");
@@ -202,7 +205,7 @@ test("a write to an issue with comments nobody was shown is denied, and they are
 });
 
 test("the re-send passes, and no read of the transcript decided either answer", async () => {
-  assert.equal((await gate("forge advance ISS-29", { fresh: false })).out, null);
+  assert.equal((await gate(edgeWrite(), { fresh: false })).out, null);
   const source = readFileSync(new URL("../../../hooks/gates/issue-read-first.mjs", import.meta.url), "utf8");
   assert.ok(!/transcript/u.test(source), "the gate that read one credited another turn's read and missed its own");
 });
@@ -212,7 +215,7 @@ test("the re-send passes, and no read of the transcript decided either answer", 
    was handed. Two harness ids and one run is the shape that tells those two readings apart. */
 test("the id the command grants is whose reading counts, and a second harness id is not a second run", async () => {
   state.comments = { [UUID]: [comment("c1", "the record this run wrote thirty seconds ago")] };
-  const command = "export FORGE_SESSION_ID=the-run && forge advance ISS-29";
+  const command = `export FORGE_SESSION_ID=the-run && ${edgeWrite()}`;
   const first = await gate(command, { harness: "harness-one" });
   assert.equal(first.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
   assert.equal((await gate(command, { harness: "harness-two" })).out, null,
@@ -223,10 +226,10 @@ test("the id the command grants is whose reading counts, and a second harness id
    run of its own has been shown nothing by its dispatcher having looked. */
 test("a command granting an id nobody credited is denied, whatever the harness was shown", async () => {
   state.comments = { [UUID]: [comment("c2", "shown to the harness and to no run of its own")] };
-  const shown = await gate("forge advance ISS-29", { harness: "harness-three" });
+  const shown = await gate(edgeWrite(), { harness: "harness-three" });
   assert.equal(shown.out.hookSpecificOutput.permissionDecision, "deny", "the harness has not looked either");
-  assert.equal((await gate("forge advance ISS-29", { harness: "harness-three" })).out, null, "and now it has");
-  const own = await gate("export FORGE_SESSION_ID=another-run && forge advance ISS-29", { harness: "harness-three" });
+  assert.equal((await gate(edgeWrite(), { harness: "harness-three" })).out, null, "and now it has");
+  const own = await gate(`export FORGE_SESSION_ID=another-run && ${edgeWrite()}`, { harness: "harness-three" });
   assert.equal(own.out.hookSpecificOutput.permissionDecision, "deny",
     "which satisfies nothing for a run that has not");
 });
@@ -238,16 +241,16 @@ test("a command granting an id nobody credited is denied, whatever the harness w
    the command runs in and says nothing where a directory names none (ISS-1190). */
 test("a run whose assignment stands behind a cd is one run across its writes", async () => {
   state.comments = { [UUID]: [comment("c3", "the record this run wrote a minute ago")] };
-  const exported = `cd ${pathed(SAME_PROJECT)} && export FORGE_SESSION_ID=behind-a-cd && forge advance ISS-29`;
+  const exported = `cd ${pathed(SAME_PROJECT)} && export FORGE_SESSION_ID=behind-a-cd && ${edgeWrite()}`;
   const held = await gate(exported, { harness: "harness-four" });
   assert.equal(held.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
   assert.equal((await gate(exported, { harness: "harness-five" })).out, null,
     "and the second write is the same run, whatever session the harness names");
-  const prefixed = `cd ${pathed(SAME_PROJECT)} && FORGE_SESSION_ID=on-the-writer /usr/bin/forge advance ISS-29`;
+  const prefixed = `cd ${pathed(SAME_PROJECT)} && FORGE_SESSION_ID=on-the-writer /usr/bin/${edgeWrite()}`;
   const alone = await gate(prefixed, { harness: "harness-six" });
   assert.equal(alone.out.hookSpecificOutput.permissionDecision, "deny", "the prefix names a run of its own");
   assert.equal((await gate(prefixed, { harness: "harness-seven" })).out, null, "and its own second write passes");
-  const other = `cd ${pathed(SAME_PROJECT)} && export FORGE_SESSION_ID=another-worktree-run && forge advance ISS-29`;
+  const other = `cd ${pathed(SAME_PROJECT)} && export FORGE_SESSION_ID=another-worktree-run && ${edgeWrite()}`;
   const stranger = await gate(other, { harness: "harness-four" });
   assert.equal(stranger.out.hookSpecificOutput.permissionDecision, "deny",
     "while a third run is shown nothing by either of them having looked");
@@ -260,16 +263,16 @@ test("a run whose assignment stands behind a cd is one run across its writes", a
    metacharacter inside a quoted value — in nearly every `--why` it types (ISS-858). */
 test("a granted call keeps its name through a redirection and through a quoted metacharacter", async () => {
   state.comments = { [UUID]: [comment("c4", "the record this run wrote a moment ago")] };
-  const redirected = "FORGE_SESSION_ID=through-a-redirect forge advance ISS-29 2>&1";
+  const redirected = `FORGE_SESSION_ID=through-a-redirect ${edgeWrite()} 2>&1`;
   const held = await gate(redirected, { harness: "harness-eight" });
   assert.equal(held.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
   assert.equal((await gate(redirected, { harness: "harness-nine" })).out, null,
     "and the re-send is the same run, whatever session the harness names");
-  const other = "FORGE_SESSION_ID=another-redirected-run forge advance ISS-29 2>&1";
+  const other = `FORGE_SESSION_ID=another-redirected-run ${edgeWrite()} 2>&1`;
   const stranger = await gate(other, { harness: "harness-eight" });
   assert.equal(stranger.out.hookSpecificOutput.permissionDecision, "deny",
     "while a second name is shown nothing by the first having looked");
-  const quoted = `FORGE_SESSION_ID=through-a-quote forge advance ISS-29 --why "flags & payload (both)"`;
+  const quoted = `FORGE_SESSION_ID=through-a-quote ${edgeWrite()} --why "flags & payload (both)"`;
   const first = await gate(quoted, { harness: "harness-ten" });
   assert.equal(first.out.hookSpecificOutput.permissionDecision, "deny", "the value names a run of its own");
   assert.equal((await gate(quoted, { harness: "harness-eleven" })).out, null, "whose own second write passes");
@@ -291,10 +294,10 @@ test("a live lease's own minted holder is trusted as an alias where the hook's o
   const holder = "iss-950-aaaaaaaa";
   state.comments = { [UUID]: [comment("c10", "the record this run wrote from its own worktree")] };
   state.issues[0].sessionContext = leased(holder);
-  const granted = `export FORGE_SESSION_ID=${holder} && forge claim ISS-29 --pushed`;
+  const granted = `export FORGE_SESSION_ID=${holder} && ${edgeWrite()}`;
   const first = await gate(granted, { harness: "harness-worktree-a", cwd: noTree });
   assert.equal(first.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
-  const bare = await gate("forge claim ISS-29 --pushed", { harness: "harness-worktree-b", cwd: noTree });
+  const bare = await gate(edgeWrite(), { harness: "harness-worktree-b", cwd: noTree });
   assert.equal(bare.out, null,
     "the hook's own guess falls to the wave id, but the issue's own live lease holder already read this");
   delete state.issues[0].sessionContext;
@@ -304,7 +307,7 @@ test("a live lease alias never covers a comment its holder has not actually read
   const holder = "iss-951-bbbbbbbb";
   state.comments = { [UUID]: [comment("c11", "a correction nobody under this holder has read yet")] };
   state.issues[0].sessionContext = leased(holder);
-  const run = await gate("forge claim ISS-29 --pushed", { harness: "harness-worktree-c", cwd: noTree });
+  const run = await gate(edgeWrite(), { harness: "harness-worktree-c", cwd: noTree });
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny",
     "neither the hook's own guess nor the live holder's own record has seen this comment");
   assert.ok(because(run).includes("a correction nobody under this holder has read yet"));
@@ -315,10 +318,10 @@ test("an expired lease's holder is not trusted as an alias, even where that hold
   const holder = "iss-952-cccccccc";
   state.comments = { [UUID]: [comment("c12", "credited to a holder whose lease has since lapsed")] };
   state.issues[0].sessionContext = leased(holder, "2020-01-01T00:00:00.000Z", 1);
-  const granted = `export FORGE_SESSION_ID=${holder} && forge claim ISS-29 --pushed`;
+  const granted = `export FORGE_SESSION_ID=${holder} && ${edgeWrite()}`;
   const first = await gate(granted, { harness: "harness-worktree-d", cwd: noTree });
   assert.equal(first.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
-  const bare = await gate("forge claim ISS-29 --pushed", { harness: "harness-worktree-e", cwd: noTree });
+  const bare = await gate(edgeWrite(), { harness: "harness-worktree-e", cwd: noTree });
   assert.equal(bare.out.hookSpecificOutput.permissionDecision, "deny",
     "a lapsed lease's holder is nobody's proof of who stands here now");
   delete state.issues[0].sessionContext;
@@ -328,10 +331,10 @@ test("a lease held by an id shaped like a shared one, not a minted run, is not t
   const holder = "9d42c759-0b53-4fb1-83e8-1f08a98d58a7";
   state.comments = { [UUID]: [comment("c13", "credited to an id shaped like a wave's own, not a minted run's")] };
   state.issues[0].sessionContext = leased(holder);
-  const granted = `export FORGE_SESSION_ID=${holder} && forge claim ISS-29 --pushed`;
+  const granted = `export FORGE_SESSION_ID=${holder} && ${edgeWrite()}`;
   const first = await gate(granted, { harness: "harness-worktree-f", cwd: noTree });
   assert.equal(first.out.hookSpecificOutput.permissionDecision, "deny", "nobody has been shown it yet");
-  const bare = await gate("forge claim ISS-29 --pushed", { harness: "harness-worktree-g", cwd: noTree });
+  const bare = await gate(edgeWrite(), { harness: "harness-worktree-g", cwd: noTree });
   assert.equal(bare.out.hookSpecificOutput.permissionDecision, "deny",
     "only a minted, run-specific holder is trusted as an alias, and a shared-shaped one is not, "
     + "even if credited");
@@ -345,9 +348,9 @@ test("a delivery this call causes credits only this call, never the lease holder
   const holder = "iss-953-dddddddd";
   state.comments = { [UUID]: [comment("c14", "shown to a stranger, and owed to the holder still")] };
   state.issues[0].sessionContext = leased(holder);
-  const stranger = await gate("forge claim ISS-29 --pushed", { harness: "harness-worktree-h" });
+  const stranger = await gate(edgeWrite(), { harness: "harness-worktree-h" });
   assert.equal(stranger.out.hookSpecificOutput.permissionDecision, "deny", "a genuine miss, for anyone");
-  const asHolder = await gate(`export FORGE_SESSION_ID=${holder} && forge claim ISS-29 --pushed`,
+  const asHolder = await gate(`export FORGE_SESSION_ID=${holder} && ${edgeWrite()}`,
     { harness: "harness-worktree-i" });
   assert.equal(asHolder.out.hookSpecificOutput.permissionDecision, "deny",
     "the stranger's own write was refused, so it credited nobody's alias but its own guess");
@@ -355,31 +358,64 @@ test("a delivery this call causes credits only this call, never the lease holder
 });
 
 test("the uuid form is denied where the reference form is", async () => {
-  const run = await gate(`forge comment ${UUID} @note.md`);
+  const run = await gate(edgeWrite(UUID));
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
   assert.match(because(run), new RegExp(UUID, "u"));
 });
 
 test("two issues in one command are one deny naming both", async () => {
   state.comments = { [UUID]: [comment("c1", "one issue owes this")], [OTHER]: [comment("c2", "the other owes this")] };
-  const run = await gate("forge advance ISS-29 && forge advance ISS-30");
+  const run = await gate(`${edgeWrite()} && ${edgeWrite("ISS-30")}`);
   assert.match(because(run), /this writes to ISS-29, ISS-30/u);
 });
 
 test("an issue with no comments is not denied, and no round is spent on a read", async () => {
   state.comments = {};
-  assert.equal((await gate("forge advance ISS-29")).out, null);
+  assert.equal((await gate(edgeWrite())).out, null);
+});
+
+/* The case that fails without ISS-1715, and the credit is half of it: a credit written here would
+   silence the half that is going to print the thread, and it would reach nobody. */
+test("a shell write is not held for a delivery the verb itself will make", async () => {
+  state.comments = { [UUID]: [comment("c20", "a person answered while this run was building")] };
+  assert.equal((await gate("forge advance ISS-29")).out, null, "the verb's own half is what delivers this");
+  const edge = await gate(edgeWrite(), { fresh: false });
+  assert.equal(edge.out.hookSpecificOutput.permissionDecision, "deny",
+    "and nothing was credited, so the thread is still owed to whichever half does deliver it");
+  assert.ok(because(edge).includes("a person answered while this run was building"));
+});
+
+/* Nothing stands between the model and the tracker's own tool, so the refusal is still the only
+   delivery. The action is one no verb claims, every claimed one being refused for its route first. */
+test("a write through the tracker's own tool is held, no verb standing between it and the write", async () => {
+  state.comments = { [UUID]: [comment("c21", "nothing here will deliver this but the refusal")] };
+  const run = await raw({ action: "archive", documentId: UUID }, { session: "probe-tool-delivery" });
+  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
+  assert.ok(because(run).includes("nothing here will deliver this but the refusal"),
+    "the comment itself, quoted whole, as the only delivery this route has");
+  assert.doesNotMatch(because(run), /wraps/u, "and it is the comments that answered, not the route");
+});
+
+/* Refused on every route, because no half may deliver it: the credit would evict what it was for. */
+test("a thread past the credits one issue keeps still holds a shell write", async () => {
+  state.comments = {
+    [UUID]: Array.from({ length: 401 }, (_, at) => comment(`over${at}`, "one of four hundred and one")),
+  };
+  const run = await gate("forge advance ISS-29");
+  assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny",
+    "the verb cannot deliver what nothing can credit, so this is not stood down for");
+  assert.match(because(run), /past the 400 one issue's credits keep/u, "and the refusal names the reason");
 });
 
 test("with no endpoint saved the gate stands down", async () => {
   state.comments = { [UUID]: [comment("c9", "unread")] };
-  const run = await gate("forge advance ISS-29", { url: "" });
+  const run = await gate(edgeWrite(), { url: "" });
   assert.equal(run.out, null);
   assert.equal(run.status, 0, "silently: a project that never configured this CLI is not owed a refusal");
 });
 
 test("a tracker that will not answer leaves the write alone and says why", async () => {
-  const run = await gate("forge advance ISS-29", { url: "http://127.0.0.1:1/mcp" });
+  const run = await gate(edgeWrite(), { url: "http://127.0.0.1:1/mcp" });
   assert.equal(run.out, null, "nothing is denied on no evidence");
   assert.match(run.stderr, /Forge did not answer/u, "and the reason is on the line");
 });
@@ -551,7 +587,7 @@ test("a write in a second checkout is held on that checkout's own thread for the
     [OTHER_DOC]: [comment("second", "the thread of the checkout the command runs in")],
   };
   state.calls = [];
-  const run = await gate(`cd ${pathed(SECOND)} && forge advance ISS-29`);
+  const run = await gate(`cd ${pathed(SECOND)} && ${edgeWrite()}`);
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
   assert.ok(because(run).includes("the thread of the checkout the command runs in"),
     "the hold quotes the comments of the project the command will act on");
@@ -566,7 +602,7 @@ test("a command whose directory names no project draws no lookup and refuses not
   twoProjects();
   state.comments = { [UUID]: [comment("own", "unread and unquoted")] };
   state.calls = [];
-  const run = await gate(`cd ${pathed(NOWHERE_AT_ALL)} && forge advance ISS-29`);
+  const run = await gate(`cd ${pathed(NOWHERE_AT_ALL)} && ${edgeWrite()}`);
   assert.equal(run.out, null, "a hold on no evidence is worse than no hold");
   assert.equal(run.status, 0);
   assert.deepEqual(issueCalls(0), [], "and no issue is looked up under a project nobody named");
@@ -580,7 +616,7 @@ test("a command that moves nowhere is resolved in the event's own directory", as
     [OTHER_DOC]: [comment("second", "the thread of the checkout the command runs in")],
   };
   state.calls = [];
-  const run = await gate("forge advance ISS-29");
+  const run = await gate(edgeWrite());
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
   assert.ok(because(run).includes("the thread of the project this session stands in"));
   assert.deepEqual([...new Set(issueCalls(0).map((one) => one.slug))], [OWN_SLUG],

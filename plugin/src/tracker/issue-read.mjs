@@ -69,12 +69,12 @@ const EDGE_FLAGS = [...EDGE_KINDS, "unlink"].map((one) => `--${one}`);
 const positionalsIn = (args) =>
   args.filter((one, at) => !one.startsWith("--") && !(at > 0 && args[at - 1].startsWith("--")));
 
-/* Which argument is the issue, read off the words themselves. */
+/* Which argument is the issue, read off the words themselves, and whether the verb makes the write's own comment check before it sends — one row for both, so a shape added without the second is one no gate stands down for (ISS-1715). */
 const VERBS = {
-  comment: { words: positionalsIn, at: () => [0], when: (args) => args.length > 1 },
-  claim: { at: () => [0] },
-  attach: { at: () => [1], when: (args) => args[0] === "issue" },
-  /* An edge write is taken against the end whose order moves, so that end is the read owed. */
+  comment: { words: positionalsIn, at: () => [0], when: (args) => args.length > 1, own: true },
+  claim: { at: () => [0], own: true },
+  attach: { at: () => [1], when: (args) => args[0] === "issue", own: true },
+  /* An edge write is taken against the end whose order moves, so that end is the read owed; its renewal takes no lease on an issue nobody holds, so this one shape checks nothing for itself (ISS-1724). */
   issue: {
     when: (args) => args.some((one) => EDGE_FLAGS.includes(one)),
     at: (args) => {
@@ -82,8 +82,8 @@ const VERBS = {
       return [blocks < 0 ? 0 : blocks + 1];
     },
   },
-  record: { at: () => [1] },
-  advance: { at: () => [0], when: (args) => !args.includes("--owed") },
+  record: { at: () => [1], own: true },
+  advance: { at: () => [0], when: (args) => !args.includes("--owed"), own: true },
 };
 
 const VERB = /^(?:\S*\/)?forge\s+([a-z]+)\b/u;
@@ -92,15 +92,18 @@ const MCP = /^mcp__forge__(forge_\w+)$/u;
 
 export const toolOfCall = (name) => MCP.exec(name ?? "")?.[1] ?? null;
 
-const spokenTargets = (one) => {
+const spokenWrite = (one) => {
   const said = VERB.exec(one);
   const verb = VERBS[said?.[1]];
-  if (!verb) return [];
+  if (!verb) return null;
   const words = (one.match(WORDS) ?? []).slice(2).map((word) => (CUT.test(word) ? "" : unquoted(word)));
   const args = verb.words ? verb.words(words) : words;
-  if (verb.when && !verb.when(args)) return [];
-  return verb.at(args).map((index) => args[index]).filter(isReference);
+  if (verb.when && !verb.when(args)) return null;
+  const targets = verb.at(args).map((index) => args[index]).filter(isReference);
+  return targets.length ? { verb, targets } : null;
 };
+
+const spokenTargets = (one) => spokenWrite(one)?.targets ?? [];
 
 /** The physical lines a shell joins before it reads a word: the shared grammar cuts at a newline, right for where a command starts and wrong for the word this reads. A backslash escaping a backslash leaves the newline a separator, and single quotes join nothing. */
 export const joined = (command) => {
@@ -127,6 +130,13 @@ export const writeTargets = ({ name, input }, spoken = []) => {
   const tool = toolOfCall(name);
   const found = tool ? targetsOfTool(tool, input) : spoken.flatMap(spokenTargets);
   return [...new Set(found)];
+};
+
+/** Whether every target named is written by a verb that checks for itself: the tracker's own tool reaches it through no verb, and a text naming no write is nothing to stand down for either. */
+export const ownChecked = ({ name }, spoken = []) => {
+  if (toolOfCall(name)) return false;
+  const writes = spoken.map(spokenWrite).filter(Boolean);
+  return writes.length > 0 && writes.every(({ verb }) => verb.own === true);
 };
 
 /* The kind and the complexity travel with the body: what a description is read against is the kind's own shape, and which rung it claims is what decides the light path. */

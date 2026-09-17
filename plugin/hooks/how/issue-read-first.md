@@ -3,7 +3,13 @@
 Why: `forge issue ISS-nn --full` returns no comments at all. The body says what was asked; the
 comments say the state now.
 
-How to clear it: re-send the command. The refusal carries every comment on the issue this session
+A thread owed only as a delivery is not refused at all: the verb prints every comment this session
+has not been shown, ahead of its own answer, and the write goes through in the same call. There is
+nothing to clear and nothing to send again — the round a re-send costs bought only the retyping.
+
+The hook still refuses where no verb of this CLI stands between you and the tracker, which is a call
+to the tracker's own tool and an edge write, the one verb shape that makes no such check for itself.
+How to clear those: re-send the command. The refusal carries every comment on the issue this session
 has not been shown, the reader walking the thread to its end; one it cannot walk holds the write
 once, then says how far it got on every write. An issue with no comments refuses nothing, and this
 CLI says so in one line.
