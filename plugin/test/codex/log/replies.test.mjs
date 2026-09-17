@@ -449,6 +449,8 @@ test("a ruling is the word at the head of a numbered line, whatever the reply wr
   assert.deepEqual(keptOf(quoted), [], "a fenced example of a ruling is shown, not made, and cannot overwrite the answer above it");
   assert.match(verdictFromRulings(plan, 0, quoted, "r1").record.note, /still open: F1/u, "the CONFIRMED above the fence is the answer that stands");
   assert.doesNotMatch(digestOf(quoted, null), /F1 - REFUTED/u, "and the fence is not replayed as a second ruling either");
+  const inner = ["```markdown", "    ```", "1. F1 - REFUTED", "```", "1. **CONFIRMED** — the defect remains."].join("\n");
+  assert.deepEqual(keptOf(inner), [], "an indented fence run is literal content, so it closes nothing and the answer below the real fence stands");
   const indented = ["Example (not my ruling):", "", "    1. F1 - REFUTED", "", "1. **CONFIRMED** — the defect remains.", "CODEX: 0 findings"].join("\n");
   assert.deepEqual(keptOf(indented), [], "four spaces is how markdown shows code, so an indented example is shown and not made");
   assert.doesNotMatch(digestOf(indented, null), /F1 - REFUTED/u, "and the indent is not stripped into a replayed ruling");

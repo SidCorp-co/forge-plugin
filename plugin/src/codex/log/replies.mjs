@@ -67,7 +67,7 @@ const RULING_LINE = /^ {0,3}(\d+)\.[ \t]+\**[ \t]*(?:F\d+\b\**[ \t]*[—–\-:.]
 
 /* A reply quoting an example of a ruling is showing one, not making one, and the grammar cannot tell
    them apart: a fenced `1. F1 - REFUTED` under a real `1. **CONFIRMED**` would close what was left open. */
-const FENCE = /^[ \t]*(`{3,}|~{3,})(.*)$/u;
+const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/u;
 const unfenced = (reply) => {
   let open = null;
   return String(reply ?? "").split("\n").map((line) => {
