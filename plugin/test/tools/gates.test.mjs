@@ -431,10 +431,12 @@ test("the refusal names a lone unstaged modification whole", () => {
 /* Escaped, so this file stays ASCII and no reader has to guess which character it carries. */
 const OUTSIDE_ASCII = "docs/\u00e9.md";
 
-/* The other two ways the same reading names a path nobody can paste into a command: git C-quotes a
-   path holding a space or a byte outside ASCII, and it writes a rename as one record with an arrow
-   in it rather than as a path. `core.quotePath` is set here rather than assumed, since a developer
-   who turned it off globally would see this case pass for a reason the fix has nothing to do with. */
+/* The other two ways the same reading names a path nobody can paste into a command, and so the two
+   flags `uncommittedIn` asks for beyond the trim. `-z`, because the default form C-quotes a path
+   holding a space or a byte outside ASCII. `--no-renames`, because a rename under `-z` writes two
+   NUL-separated fields, so a reader splitting on NUL without it takes the source path for a record
+   of its own and cuts three characters off it. `core.quotePath` is set here rather than assumed,
+   since a developer who turned it off globally would see this case pass for another reason. */
 test("the refusal names a spaced path, a path outside ASCII and both ends of a rename", () => {
   const { at, work } = scratch("dirty-shapes");
   try {

@@ -85,13 +85,7 @@ export const gitFiles = (root) =>
     ]),
   ].sort();
 
-/* The one reading of `status --porcelain`, for every caller that wants the paths out of it. Not
-   through `gitOut`, whose trim takes the leading space of the first record and a character of that
-   path with it; `-z` because the default form C-quotes a path holding a space or a byte outside
-   ASCII, which is a path no reader can paste into a command; `--no-renames` because a rename under
-   `-z` writes two NUL-separated fields, so a reader splitting on NUL without it takes the source
-   path for a record of its own and cuts three characters off it. null where git would not answer,
-   which is not the same as nothing uncommitted (ISS-1129). */
+/** The one reading of `status --porcelain`, for both readers of that table: every uncommitted path whole, and null where git would not report a status at all, which is not the same as nothing uncommitted. What each flag is doing here is `plugin/test/tools/gates.test.mjs`, whose two cases fail without them (ISS-1129). */
 export const uncommittedIn = (root) => {
   const run = git(["status", "--porcelain", "-z", "--no-renames"], root);
   if (run.status !== 0) return null;
