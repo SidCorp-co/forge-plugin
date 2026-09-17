@@ -1,51 +1,34 @@
 # The ladder — three rungs, and why every doubtful reading resolves upward
 
 `plugin/src/ladder.mjs` answers one question: which rung of the contract's ladder an issue is on.
-`forge guide contract` says what each rung is for and what none of them may buy. This file carries
-the one rule that runs through every function there and would otherwise be six comments saying it
-six ways.
+`forge guide contract` says what each rung is for and what none of them may buy. This file carries the
+one rule that runs through every function there and would otherwise be six comments saying it six ways.
+A rung read out of prose rather than out of the field is [its own topic](the-rung-in-text.md).
 
 ## One source, and why it is the field
 
-A rung is claimed once: by the `complexity` the tracker holds for the issue, five values wide, each
-claiming one rung — the smallest a `trivial`, the next a `fix`, the top three a `feature`, since a
-feature is everything else. An issue holding none is a `feature`, the top rung being what an
-unclaimed issue falls to, and `forge advance --owed` names the value that claimed it.
+A rung is claimed once, by the `complexity` the tracker holds. The body claimed one too until ISS-701,
+and two sources for one switch is a precedence rule, a report about which of them lost, and an undo that
+only half works. So the `Size:` line is read by nothing: bodies already carrying one are not edited, the
+line is prose now claiming nothing, and `forge issue ISS-nn --set complexity=<value> --why <w>` is how
+an issue only ever marked in its body gets the field.
 
-The rung is also the height the lane is printed at — the statuses ahead of an issue with what earns
-each — so it reaches `forge claim` and `forge resume` as well, and a correction that climbs changes
-what all three say the statuses ahead are owed. Which is why the claim reads the issue's comment page
-for a rung it once had no use for.
-
-The body claimed one too until ISS-701, on a `Size:` line, and two sources for one switch is a precedence
-rule, a report about which of them lost, and an undo that only half works: the field said `xs`, the
-body said `feature`, and neither a run nor a reader could say which the checks would run. So the
-line is read by nothing. Bodies already carrying one are not edited — the line is prose now, claiming
-nothing — and `forge issue ISS-nn --set complexity=<value> --why <w>` is how one that was only ever
-marked in its body gets the field. An upward correction still outranks the field, and a cut comment
-page is still a `feature` whatever the field says.
-
-The two largest of the five values also earn a question rather than a payload: one change, or
-several? What a rung owes is the contract's, and a report that grew a demand of its own would be a
-second ladder.
+The rung is also the height the lane is printed at, so it reaches `forge claim` and `forge resume` as
+well as the contract, and a correction that climbs changes what all three say is owed ahead. The two
+largest complexities earn a question rather than a payload — one change, or several? What a rung owes
+stays the contract's; a report that grew a demand of its own would be a second ladder.
 
 **Two things this module reads outlive the words they were written in, so it reads two spellings and
-writes one.** The correction that climbs a rung was handed to an agent as `Size: fix -> feature` until
-ISS-822 and is handed to one as `Rung: fix -> feature` now; the confirmation's stamp was `tier:` and is
-`rung:`. Records and transcripts carrying the retired spelling are read exactly as they were, so a
-climb posted last month still climbs and a run recorded last month still classifies at the rung it
-did — and nothing emits the old word, so no screen and no hand-off carries two vocabularies. A
-window stored at an eval mark is the third such reading: its rows were keyed by the retired word, so
-a mark spent as a before window is read into the canonical one and no comparison reports a rung as
-newly arrived. Each retired spelling lives in one declaration whose name says it is retired, which
-is the only shape `plugin/src/checks/tracker-names.mjs` lets an alias stand in.
+writes one.** `Size:` for `Rung:` on a climb, `tier:` for `rung:` on a stamp, and the same pair in a
+window stored at an eval mark. A record written last month still reads as it did, nothing emits the
+retired word, and each retired spelling lives in one declaration whose name says it is retired — the
+only shape `plugin/src/checks/tracker-names.mjs` lets an alias stand in.
 
 ## The rule
 
-**Where the reading is doubtful, the answer is the rung that owes more.** Every input this module
-can be unsure about resolves upward, and the argument is the same each time: being wrong upward
-costs a run a payload it did not need to write, and being wrong downward costs the record something
-nobody established. The first is a round; the second is a status that claims what no one checked.
+**Where the reading is doubtful, the answer is the rung that owes more.** Being wrong upward costs a run
+a payload it did not need to write; being wrong downward costs the record something nobody established.
+The first is a round, the second a status claiming what no one checked.
 
 Where it applies, and what each case would have done read the other way:
 
@@ -60,37 +43,21 @@ Where it applies, and what each case would have done read the other way:
 | a run's transcript naming several rungs | the largest among them | file a batch under its cheapest member, so every rung looks better the more work is batched onto it |
 | a plan declaring one name twice | `yes`, wherever outside a code span it stands | read the first, so `no` above `yes` waives a payload the plan explicitly declared, and the same two lines reordered do not |
 
-## The ship's ceiling
-
-`tools/run.mjs` prints the landed file and line count against the rung's ceiling, and it is the
-backstop rather than the decision: by the time a ship runs, a refusal protects nothing, so it prints
-and returns. It is contained whole for the same reason: an advisory number is not worth the lines
-that say what landed. Every doubtful read makes it silent rather than loud: an unnamed branch, a
-tracker that could not answer, an answer that is not an object. What it counts is the change and not
-the push: the range ends at the sha the change landed as, never at HEAD, which by that step carries
-the version commit the same release just made, and a push that added no commit of its own is
-measured against nothing (ISS-860).
-
-**The rung is asked for, never worked out here.** `forge resume <ref> --json` carries the one the
-lane reads off the record's whole corrections, so ship and tracker cannot answer differently about
-one issue. It came off the report page until ISS-1012, and a page carries a verdict's prose beside a
-correction's field: a sentence quoting the climb form took ISS-860 from 5 and 150 to 15 and 500 on a
-record holding no correction. The argument that excused the page — a correction it lost only lowers
-the rung, which tightens a print that refuses nothing — covers a loss and reaches no gain. A rung
-climbed on prose is that gain, and it loosens the only number here that means anything.
-
 ## What the rule is not
 
-It is not a licence to escalate. The rungs are claimed by meaning — one tree and nothing a person
-sees, one behaviour and its replacement, or everything else — and that claim is the author's. This
-rule decides only what to do when the *reading* is ambiguous, never when the claim is merely small.
+It is not a licence to escalate. The rungs are claimed by meaning — one tree and nothing a person sees,
+one behaviour and its replacement, or everything else — and that claim is the author's. This rule decides
+what to do when the *reading* is ambiguous, never when the claim is merely small.
 
-Nor is urgency an input to it. Priority is the order `forge next` ranks by and it reaches no rung:
-an urgent change whose meaning is new behaviour, or a screen, is a `feature` at the top of the queue,
-and a one-line fix nobody is waiting for is still a `fix`. So there is no rung for a hotfix, and the
-way to make an urgent change cheap is to make it small — `complexityFor` writes the rung back as a
-complexity, and the two axes meet nowhere else.
+Urgency is not an input. Priority is the order `forge next` ranks by and it reaches no rung, so there is
+no rung for a hotfix: the way to make an urgent change cheap is to make it small.
 
-Nor does it reach the ceiling. `CEILINGS` is arithmetic the ship prints after the judging, and it
-refuses nothing: by then a refusal would have nothing left to protect, and the correction is the
-run's to write.
+Nor does it reach the ceiling. `CEILINGS` is arithmetic `tools/run.mjs` prints after the judging and it
+refuses nothing — by then a refusal would have nothing left to protect, and the correction is the run's
+to write. Being advisory is why every doubtful read there is silent rather than loud, and why it is
+contained whole: an advisory number is not worth the lines that say what landed. What it counts is the
+change and not the push — the range ends at the sha the change landed as, never at HEAD, which by that
+step carries the version commit the same release just made. The rung that print uses is asked for and never worked out there: `forge resume <ref> --json`
+carries the one the lane reads off the record's corrections, so ship and tracker cannot answer
+differently about one issue. It came off the report page until ISS-1012, where a verdict's prose quoting
+the climb form loosened the rung on a record holding no correction at all.
