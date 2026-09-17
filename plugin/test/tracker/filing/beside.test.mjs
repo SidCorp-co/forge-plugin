@@ -367,6 +367,27 @@ test("the fold reads the target's thread, delivers it, and writes to it in the s
     "the block goes out before the fold acts");
 });
 
+/* Criterion 12's own case, which the pair above no longer carries now that a delivery-only fold goes
+   through: a fold that is refused exits the process, so a block printed after the fold would be a
+   block this filer never saw at all. A thread past what the ledger can credit is the refusal that is
+   left, and it delivers no body — which is exactly the fold whose neighbours most want reading. */
+test("a fold the accounting refuses has already printed the block, and writes nothing", async () => {
+  before();
+  state.memory = both(OPEN.issueId, 0.83);
+  state.comments = { [OPEN.documentId]: Array.from({ length: 401 }, (_, at) =>
+    ({ documentId: `k${at}`, body: "one of four hundred and one", createdAt: "2026-09-04T00:00:00Z" })) };
+  const path = join(room, "body.md");
+  writeFileSync(path, `${BODY}\n`);
+  const argv = ["new", path, "--title", TITLE, "--category", "bug", "--complexity", "s"];
+  const run = await ranAsync(FORGE, argv, { ...tracker.env, FORGE_SESSION_ID: "beside-over-keep" });
+  state.comments = {};
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /past the 400 one issue's credits keep/u, "the accounting, not the delivery");
+  assert.equal(commented(), undefined, "and nothing was written under a thread nothing can account for");
+  assert.match(run.stdout, /^ {2}ISS-45 {3}0\.83 {2}same place/mu,
+    "the block goes out before the fold acts, so a fold that could not write has already printed it");
+});
+
 test("and a second filing in that session folds with no thread printed again", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.83);
