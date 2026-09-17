@@ -119,9 +119,12 @@ test("an ordinary fenced example is not a record whose head was cut off", () => 
   assert.match(example(feature), /forge-record: confirmation/u, "the fixture really does carry the tag a record carries");
   assert.equal(rungRun([said("forge record confirmation", example(feature))]), RUNG_UNKNOWN,
     "the example opens a fence of its own, which a truncated payload cannot have above the fence that closed it");
-  assert.equal(rungRun([said("forge record confirmation", example(feature, " "))]), RUNG_UNKNOWN,
-    "and markdown opens a fence under one space too, which is a space short of the two that continue a field");
-  for (const lead of ["", " "]) {
+  for (const lead of [" ", "  ", "   "]) {
+    assert.equal(rungRun([said("forge record confirmation", example(feature, lead))]), RUNG_UNKNOWN,
+      "markdown opens a fence under three spaces, and a payload of this CLI's own has no fence above the one that closed it");
+    assert.equal(stampedIn(example(feature, lead), "confirmation", "rung"), null, "the stamped read says so too");
+  }
+  for (const lead of ["", " ", "  ", "   "]) {
     const rewritten = `- **Nơi đã xem:** src/a.mjs\n\n${example(feature, lead)}`;
     assert.equal(readRecords(rewritten, (kind) => SHAPES[kind])[0]?.rewritten, true,
       "so a body the prose pipeline rewrote still reads as rewritten, and not as the example's keys");
