@@ -1,7 +1,7 @@
 /* Which checkout a directory stands in and which repository it belongs to, walked off the disk:
    `git rev-parse` is a process, and one standing in the checkout is a test file the gate's read
    audit spends every run (ISS-1732). What this walk reads and where git disagrees: docs/cli/settings.md. */
-import { readFileSync, realpathSync, statSync } from "node:fs";
+import { lstatSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
 const answered = (read) => {
@@ -16,7 +16,7 @@ const GITDIR = /^gitdir:\s*(\S.*)$/mu;
 
 const against = (at, named) => (isAbsolute(named) ? named : resolve(at, named));
 
-const holdsGit = (dir) => Boolean(answered(() => statSync(join(dir, "HEAD"))));
+const holdsGit = (dir) => Boolean(answered(() => lstatSync(join(dir, "HEAD"))));
 
 const commonOf = (dir) => {
   const named = answered(() => readFileSync(join(dir, "commondir"), "utf8"))?.trim() || ".";

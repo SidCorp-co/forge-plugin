@@ -40,7 +40,8 @@ only a git directory: a checkout holding an empty `sub/.git` answers with the ch
 was moved — answers with nothing rather than with a repository that is not one. Either way a walk that
 took the path at its word would have resolved a project file from a directory that is no checkout.
 `HEAD` is what this asks for where git also wants `refs` and `objects`, so a directory holding `HEAD`
-alone is one this accepts and git does not.
+alone is one this accepts and git does not — and it is asked for without being followed, git's older
+symbolic-link spelling of `HEAD` pointing at a branch that has no commit yet.
 
 **A named common directory is canonicalised before its parent is taken**, because git canonicalises
 it: a `commondir` naming a symlink would otherwise put the repository beside the symlink rather than

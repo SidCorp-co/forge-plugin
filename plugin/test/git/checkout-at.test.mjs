@@ -3,7 +3,7 @@
    repository answer hangs off, and nothing but git writes it. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { git, tempRoom } from "../fixtures.mjs";
@@ -108,4 +108,13 @@ test("a commondir whose relative path climbs through a symlink answers what git 
   writeFileSync(join(admin, "commondir"), "jump/../.git\n");
   assert.equal(checkoutAt(rooms.nested).repository, rooms.main);
   likeGit(rooms.nested);
+});
+
+test("a HEAD that is a symlink to an unborn branch is a git directory, as git reads it", () => {
+  const born = realpathSync(tempRoom("checkout-at-unborn-"));
+  ran(born, "init", "-q", "-b", "master", ".");
+  rmSync(join(born, ".git", "HEAD"));
+  symlinkSync("refs/heads/master", join(born, ".git", "HEAD"));
+  assert.equal(git(born, "rev-parse", "--show-toplevel").status, 0);
+  assert.equal(checkoutAt(born).tree, born);
 });
