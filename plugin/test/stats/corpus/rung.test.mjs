@@ -112,14 +112,18 @@ test("a truncated body reads the same whichever of the two readers is asked", ()
 });
 
 /* A body carrying a fenced example of its own closes that example on a bare fence too, so the fence alone does not say a record's head was cut off: one standing whole above the closing fence is an example, and the payload of a truncated record has none, every continuation of a field being indented (ISS-1689 F1). */
-const example = (rung) => ["```yaml", `rung: ${rung}`, "```", "", tagFor("confirmation", 1)].join("\n");
+const example = (rung, lead = "") => [`${lead}\`\`\`yaml`, `rung: ${rung}`, "```", "", tagFor("confirmation", 1)].join("\n");
 
 test("an ordinary fenced example is not a record whose head was cut off", () => {
   const [, , feature] = RUNGS;
   assert.match(example(feature), /forge-record: confirmation/u, "the fixture really does carry the tag a record carries");
   assert.equal(rungRun([said("forge record confirmation", example(feature))]), RUNG_UNKNOWN,
     "the example opens a fence of its own, which a truncated payload cannot have above the fence that closed it");
-  const rewritten = `- **Nơi đã xem:** src/a.mjs\n\n${example(feature)}`;
-  assert.equal(readRecords(rewritten, (kind) => SHAPES[kind])[0]?.rewritten, true,
-    "so a body the prose pipeline rewrote still reads as rewritten, and not as the example's keys");
+  assert.equal(rungRun([said("forge record confirmation", example(feature, " "))]), RUNG_UNKNOWN,
+    "and markdown opens a fence under one space too, which is a space short of the two that continue a field");
+  for (const lead of ["", " "]) {
+    const rewritten = `- **Nơi đã xem:** src/a.mjs\n\n${example(feature, lead)}`;
+    assert.equal(readRecords(rewritten, (kind) => SHAPES[kind])[0]?.rewritten, true,
+      "so a body the prose pipeline rewrote still reads as rewritten, and not as the example's keys");
+  }
 });

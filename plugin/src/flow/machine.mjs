@@ -9,7 +9,7 @@ export const atMinute = (at) => String(at ?? "").slice(0, 16);
 const INFO = "forge-record";
 const KEY = /^([a-z][a-z0-9-]*): ?(.*)$/u;
 const OPEN = new RegExp(`^(\`{3,})${INFO}\\s*$`, "u");
-const FENCE = /^`{3,}/u;
+const FENCE = /^ ?`{3,}/u;
 const CLOSE = /^`{3,}[ \t]*$/u;
 const TAG = new RegExp(`\`?${INFO}: ([a-z]+) · contract (\\d+)\`?\\s*$`, "u");
 const LABELLED = /^- \*\*([^*]+):\*\* (.*)$/u;
