@@ -1,12 +1,14 @@
 # A rung read out of text — what a plan quotes, and what a call printed
 
 A rung is claimed in a field, and [the ladder](the-ladder.md) holds why. Two readings take one out of
-prose instead: `planFlags` in `plugin/src/flow/machine.mjs` reads the declarations a plan makes, and
-`rungRun` in `plugin/src/stats/corpus/transcripts.mjs` reads the rung a run worked at off the output
-of the call that stamped it. Both are text a person wrote sitting beside text a machine did, so each
-is defined by what it refuses to read rather than by what it looks for. Neither is governed by the
-upward rule, because neither is a doubtful reading: each is a reading of the wrong text if it goes
-wrong, and answering higher would not save it.
+prose instead: the declarations a plan makes, and the rung a run stamped on the record its own write
+printed. Both are text a person wrote sitting beside text a machine did, so each is defined by what
+it refuses to read rather than by what it looks for.
+
+Which text counts is what the two rules below decide, and the upward rule does not reach that: a
+declaration a plan quotes and a line some other call printed are the wrong text, not a doubtful
+reading of the right text, and answering higher would not save either. Once the text is admitted,
+several declarations or several records resolve as they always did, which is the ladder's.
 
 ## A declaration a plan quotes is not a doubtful declaration — it is not a declaration
 
