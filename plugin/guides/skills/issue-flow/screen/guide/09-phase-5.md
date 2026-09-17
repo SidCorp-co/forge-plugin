@@ -21,6 +21,12 @@ issue-flow verification`.
 
 **Then the two runs part, and which of them judges is the declaration Phase 0 read.**
 
+**The parting below is for the route that judges after the landing**, and the other route has no
+version of it: where the candidate is judged before it is promoted, nothing has landed for a second
+run to claim from, and a status nothing has reached hands nothing over. That combination — an
+independent judge and a judging route that comes first — is not one this method answers, and the
+run that meets it says so in its report rather than inventing a handover to fit.
+
 **Where that judgement is an independent run's, this run judges none of it and ends where its ship
 mode leaves it.** It writes the records it has earned, judges what Phase 3 left it to judge, and
 stops. It dispatches nobody and it waits for nothing. The criteria the plan named under `##
