@@ -3,6 +3,7 @@ import { ANGLES } from "../codex-api.mjs";
 import { HUMAN_REF } from "../../tracker/issues.mjs";
 import { jsonlBack, jsonlMark } from "../../hooks/log/hook-log-file.mjs";
 import { masked } from "../../hooks/log/hook-log.mjs";
+import { fenceMarked } from "../../prose.mjs";
 import { pathed } from "../../hooks/shell-spans.mjs";
 import { median } from "../../stats/median.mjs";
 import { answered, isAnswered, judgedBy, maskedDeep, shortOfWhole, verdictsBy } from "../codex-log.mjs";
@@ -76,21 +77,9 @@ const isLabel = (line) => {
 const RULING_LINE = new RegExp(`^(\\d+)\\.[ \t]+\\**[ \t]*(?:${ANGLE_RUN}[ \t]*[—–:][ \t]*)?`
   + `\\**[ \t]*(?:F\\d+\\b\\**[ \t]*[—–\\-:.]*[ \t]*)?\\**[ \t]*(CONFIRMED|REFUTED|CANNOT TELL)\\b`, "iu");
 
-/* A reply quoting an example of a ruling is showing one, not making one, and the grammar cannot tell
-   them apart: a fenced `1. F1 - REFUTED` under a real `1. **CONFIRMED**` would close what was left open. */
-const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/u;
-const unfenced = (reply) => {
-  let open = null;
-  return String(reply ?? "").split("\n").map((line) => {
-    const found = FENCE.exec(line);
-    /* A markdown example of a fence opens with a longer run than the one it shows, so only a run of the
-       opener's own character, at least as long and carrying nothing after it, closes what it opened. */
-    if (found && !open) open = found[1];
-    else if (found && open && found[1][0] === open[0] && found[1].length >= open.length && !found[2].trim()) open = null;
-    else if (!open) return line;
-    return "";
-  }).join("\n");
-};
+/* A reply quoting an example of a ruling is showing one, not making one: a fenced `1. F1 - REFUTED`
+   under a real `1. **CONFIRMED**` would close what that answer left open. */
+const unfenced = (reply) => fenceMarked(reply).map((one) => (one.fenced ? "" : one.line)).join("\n");
 
 /* The answers are the block the reply opens with, after any heading: excluding the ways a reply can *show*
    a ruling — fenced, nested, indented, disclaimed — does not terminate, whereas a place does. 870 of 931

@@ -36,6 +36,25 @@ export const SPAN = new RegExp(CODE_SPAN, "gu");
 const SPANS = new RegExp(`${CODE_SPAN}|"[^"\\n]*"|\\([^)\\n]*\\)`, "gu");
 const BREAKS = /[,;:—]$/u;
 
+const FENCE = /^ {0,3}(`{3,}|~{3,})[ \t]*(.*)$/u;
+
+/** Each line with whether a fence holds it, openers and closers included: what a fence holds is text a
+ *  document quotes and never structure it makes. Only markdown's own closer closes — the opener's
+ *  character, at least its length, nothing after it — so a longer fence holds a shorter one whole. */
+export const fenceMarked = (text) => {
+  const out = [];
+  let opener = null;
+  for (const line of String(text ?? "").split(/\r?\n/u)) {
+    const found = FENCE.exec(line);
+    const closes = opener && found && found[1][0] === opener[0]
+      && found[1].length >= opener.length && !found[2].trim();
+    if (closes) opener = null;
+    else if (found && !opener) opener = found[1];
+    out.push({ line, fenced: Boolean(found ?? opener) });
+  }
+  return out;
+};
+
 export const blanked = (text, spans) => text.replace(spans, (span) => "·".repeat(span.length));
 const masked = (text) => blanked(text, SPANS);
 

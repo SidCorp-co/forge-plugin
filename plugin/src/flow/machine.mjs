@@ -1,7 +1,7 @@
 /* A project whose `.forge.json` names a prose language has every body and prose field rewritten on
    the way out (tools/vi.mjs), and a rewrite renames prose, so a key travels in a form the rewrite copies byte for byte: a fenced block, or a code span. `content.mjs` is the one thing imported here and imports nothing itself, so both sides can still import this. */
 import { decisionProblem, whereProblem } from "./record/content.mjs";
-import { CODE_SPAN, SPAN, blanked } from "../prose.mjs";
+import { CODE_SPAN, SPAN, blanked, fenceMarked } from "../prose.mjs";
 
 /** An ISO stamp to the minute, as every screen in this tree shows one; apart from `lease.mjs`'s and `stats/runs.mjs`'s, which take milliseconds. */
 export const atMinute = (at) => String(at ?? "").slice(0, 16);
@@ -170,25 +170,6 @@ const NUMBERED_STEP = /^\s*(\d+)\.\s+(.*)$/u;
 const sectionAt = (line) => {
   const found = NAMED_HEADING.exec(line);
   return found ? CANONICAL.get(found[1].toLowerCase()) ?? null : null;
-};
-
-const FENCE = /^ {0,3}(`{3,}|~{3,})[ \t]*(.*)$/u;
-
-/** A plan's lines with the fenced ones marked: what a fence holds is text a plan quotes and never
-    structure it makes. Only markdown's own closer closes — the opener's character, at least its
-    length and nothing after it — so a longer fence quoting a shorter one holds all of it. */
-const fenceMarked = (text) => {
-  const out = [];
-  let opener = null;
-  for (const line of String(text ?? "").split(/\r?\n/u)) {
-    const found = FENCE.exec(line);
-    const closes = opener && found && found[1][0] === opener[0]
-      && found[1].length >= opener.length && !found[2].trim();
-    if (closes) opener = null;
-    else if (found && !opener) opener = found[1];
-    out.push({ line, fenced: Boolean(found ?? opener) });
-  }
-  return out;
 };
 
 /** The sections a plan carries by canonical name; a heading the table does not name closes the one above and opens none. */
