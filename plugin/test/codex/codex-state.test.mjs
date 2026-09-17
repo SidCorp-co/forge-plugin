@@ -211,6 +211,8 @@ test("the drop names how many files went and how many of those no consult had re
   const out = forge(root, home, "pending", "--drop");
   assert.equal(out.status, 0, out.stderr);
   assert.match(out.stdout, /dropped 2 recorded file\(s\), 1 of which no consult had read/u);
+  assert.match(forge(root, home, "pending").stdout, /^nothing pending$/mu,
+    "and the already-read one left the record with the rest, rather than being counted and kept");
 });
 
 test("a recorded path the tree no longer holds leaves the record when the listing reads it", () => {
