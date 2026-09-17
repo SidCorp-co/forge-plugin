@@ -82,6 +82,7 @@ const {
   commentPage, creditCaused, cutIn, cutLine, mustBeShown, owedFor, postComment, readThread, refusalOf,
 } = await import("../../src/tracker/comments.mjs");
 const { sessionKey } = await import("../../src/shown/ledger.mjs");
+const { refusing } = await import("../../src/resolve/settings.mjs");
 /* How a credit survives is the journal's, and its cases went with it to test/shown/journal.test.mjs. */
 const { creditedTo: shownTo } = await import("../../src/shown/journal.mjs");
 
@@ -516,4 +517,18 @@ test("what the delivery printed is credited, so the next write in that session p
   const printed = await saidBy(() => mustBeShown(target));
   assert.equal(printed, "", "the thread was delivered once and is not owed again");
   assert.ok(shownTo(sessionKey(), ISSUE).has("d1"), "credited under the session that was shown it");
+});
+
+/* Delivery is one cause of a hold and not the only one, so a write with a second cause is refused as it always was and the comments go out with the refusal. A target of its own, because the accounting mark this session already carries for the issue above would say this one had been told. */
+test("a write held for a reason besides delivery is refused, and the comments go out with it", async () => {
+  page = { comments: [one("s1", "a comment the walk did reach")], hasMore: true };
+  await assert.rejects(
+    () => refusing(() => mustBeShown([{ ref: "ISS-58", documentId: "second-issue-of-its-own" }])),
+    (error) => {
+      assert.match(error.message, /cannot be accounted for to this write/u, error.message);
+      assert.ok(error.message.includes("a comment the walk did reach"), "the delivery rides out with the refusal");
+      assert.match(error.message, /re-send the same command/u, "which is still the way out of one");
+      return true;
+    },
+  );
 });
