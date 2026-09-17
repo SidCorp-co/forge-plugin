@@ -38,13 +38,17 @@ can *show* a ruling rather than make one — fenced, fenced inside a longer fenc
 disclaimed in the line above. What terminates is a region. The rulings are the block the reply opens
 with, after any heading the angle writes, and nothing found later in it is an answer.
 
-Inside that block the word may sit behind emphasis, the finding's own id and the angle's own name, but
-never behind a sentence — a wrapper ends none — because closing a finding on a word that `the earlier
-answer was REFUTED` merely recalls is worse than reading nothing. It is at the margin, since four spaces
-is how markdown shows code. The block that asks for the ruling says all of this, so a reply is held to no
-shape nothing told it. Where no line in that block ruled, the recheck says so on its way out, naming
-itself — the only place a recheck's own id is printed, and what a run ruling by hand wrote a placeholder
-for.
+The block opens with a ruling or there is none, since skipping on to find one is how an indented
+disclaimer vanished and left its own example standing as the answer. Inside it the word may sit behind
+emphasis, the finding's own id and whose review it is spelled as the prompt spells it — and behind nothing
+else, because `Previous answer: REFUTED; my ruling is CANNOT TELL` closes a finding the reviewer left
+undecided. It is at the margin, since four spaces is how markdown shows code. The block that asks for the
+ruling says all of this, so a reply is held to no shape nothing told it.
+
+Over the log's 931 rechecks the old reader ruled from 257 and this one from 926. The five it gives up fail
+closed and are said out loud: where no line in that block ruled, the recheck says so on its way out,
+naming itself — the only place a recheck's own id is printed, and what a run ruling by hand wrote a
+placeholder for.
 
 Thinking tokens come out of the same ceiling as the reply, which is why 8,000 was mostly spent before
 the review began.

@@ -60,18 +60,21 @@ export const historyFor = (entries, root, pairs = HISTORY_PAIRS, rels = []) => {
     });
 };
 
-/* The word at the head of a numbered line at the margin, behind emphasis, the finding's id and the angle's
-   own name, but never behind a sentence — nothing a wrapper holds ends one. The whole-bold-run shape the
-   prompt never asked for left 674 of 931 logged rechecks unread. docs/cli/codex-the-round.md. */
-const RULING_LINE = /^ {0,3}(\d+)\.[ \t]+\**[ \t]*(?:[^*\n;.]{1,40}[—–:][ \t]*)?\**[ \t]*(?:F\d+\b\**[ \t]*[—–\-:.]*[ \t]*)?\**[ \t]*(CONFIRMED|REFUTED|CANNOT TELL)\b/iu;
-/* Only the angle's own name opens ahead of the block: `## Example only; I cannot decide` is a heading too. */
-const LABEL = /^ {0,3}(?:#{1,6}[ \t]+|\*\*)([^*\n]+?)(?:\*\*)?[ \t]*$/u;
+/* Whose review it is, spelled as the prompt spells it, is all that may stand in front of a ruling or ahead
+   of the block. `Previous answer: REFUTED; my ruling is CANNOT TELL` is why prose may not. */
 const ANGLE_NAMES = Object.values(ANGLES).map((one) => one.split(" — ")[0].replace(/[/\\^$*+?.()|[\]{}]/gu, "\\$&")).join("|");
-const ANGLE_LABEL = new RegExp(`^(?:${ANGLE_NAMES})(?:[ \t]*[/&+,][ \t]*(?:${ANGLE_NAMES}))*$`, "iu");
+const ANGLE_RUN = `(?:${ANGLE_NAMES})(?:[ \t]*[/&+,][ \t]*(?:${ANGLE_NAMES}))*`;
+const ANGLE_LABEL = new RegExp(`^${ANGLE_RUN}$`, "iu");
+const LABEL = /^ {0,3}(?:#{1,6}[ \t]+|\*\*)([^*\n]+?)(?:\*\*)?[ \t]*$/u;
 const isLabel = (line) => {
   const found = LABEL.exec(line);
   return Boolean(found) && ANGLE_LABEL.test(found[1].trim());
 };
+
+/* The word at the head of a numbered line at the margin, behind emphasis, the finding's id and that name.
+   The whole-bold-run shape read 257 of 931 logged rechecks; this reads 926. docs/cli/codex-the-round.md. */
+const RULING_LINE = new RegExp(`^ {0,3}(\\d+)\\.[ \t]+\\**[ \t]*(?:${ANGLE_RUN}[ \t]*[—–:][ \t]*)?`
+  + `\\**[ \t]*(?:F\\d+\\b\\**[ \t]*[—–\\-:.]*[ \t]*)?\\**[ \t]*(CONFIRMED|REFUTED|CANNOT TELL)\\b`, "iu");
 
 /* A reply quoting an example of a ruling is showing one, not making one, and the grammar cannot tell
    them apart: a fenced `1. F1 - REFUTED` under a real `1. **CONFIRMED**` would close what was left open. */
@@ -96,6 +99,8 @@ const rulingBlock = (reply) => {
   const lines = unfenced(reply).split("\n");
   let at = 0;
   while (at < lines.length && (!lines[at].trim() || isLabel(lines[at]))) at += 1;
+  /* The block opens with a ruling or there is none: skipping on to find one lost an indented disclaimer. */
+  if (at >= lines.length || !RULING_LINE.test(lines[at])) return [];
   const held = [];
   for (; at < lines.length; at += 1) {
     if (RULING_LINE.test(lines[at])) held.push(lines[at]);
