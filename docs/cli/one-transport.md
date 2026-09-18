@@ -85,21 +85,7 @@ start of a line and a marker with `field: ` ahead of it starting none.
 slug-to-identifier answer is cached beside the configuration and keyed by endpoint: an issue's
 project never changes, and a credential change is what drops it.
 
-**A write's answer is what the caller could not already know, and nothing it just sent.** The read
-path's list of columns that say nothing to a caller governs the write path too, because a keep-list
-is what that list was chosen over and a second one on the write rows would be that refusal taken
-back for three routes. On top of it, a field the very same call sent and got back byte-for-byte as
-sent is dropped: the process holding the payload learns nothing by reading it again, and on this CLI
-that process is an agent paying for it by the token. What the tracker coerced, defaulted or ignored
-is precisely what differs from what was sent, so it survives the same test that drops the echo — a
-status the move did not land at, a priority the tracker ranked for itself, a field it stored as
-null. The comparison is over the JSON text of the two values, which can only ever keep a field it
-could have dropped: an object whose keys came back in another order reads as changed and is
-answered, where the reverse would be a caller told nothing about a value that moved. The two
-identifiers are built above all of it, both of their sources being columns the list drops.
-
-**Announcing a write is not a courtesy owed per verb**, which is how two of them were written without
-it. It happens in the transport, so a verb added later cannot forget.
+**What a write says about itself, and what its answer carries back**, is one topic of its own: [what a write says](what-a-write-says.md).
 
 **A write that took half of what it was asked for says which half beside the row, and that sentence
 is read off the answer rather than out of a row's projection.** The transport reads it off every

@@ -96,7 +96,7 @@ const refusalFor = async (targets, sessions) => {
 };
 const asked = (session = "session-one") => refusalFor(target, session);
 
-test("an empty list is not a refusal, and the write is told so in one line", async () => {
+test("an empty thread is not a refusal, and the gate not holding is said by not holding", async () => {
   page = { comments: [], hasMore: false };
   const said = [];
   const held = console.error;
@@ -106,7 +106,7 @@ test("an empty list is not a refusal, and the write is told so in one line", asy
   } finally {
     console.error = held;
   }
-  assert.deepEqual(said, ["no comments on ISS-57"], "the round a read would have cost is not spent");
+  assert.deepEqual(said, [], "a line saying the gate did not hold is the fact a caller already has");
 });
 
 test("comments nobody has been shown are refused, and the refusal carries them whole", async () => {

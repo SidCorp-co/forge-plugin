@@ -197,7 +197,6 @@ export const unshownFor = async (targets, sessions) => {
     return readOf(creditsForAny(check), one);
   }));
   return {
-    none: read.filter(({ page }) => !page.comments.length).map(({ ref }) => ref),
     owed: read.filter(({ unshown }) => unshown.length)
       .map(({ ref, documentId, page, unshown }) => ({ ref, documentId, ...page, unshown })),
     short: read.filter(({ owes }) => owes).map(({ ref, documentId, owes }) => ({ ref, documentId, ...owes })),
@@ -206,8 +205,8 @@ export const unshownFor = async (targets, sessions) => {
 
 /** What a write owes its reader, looked at and not consumed: a credit written here has delivered nothing, and the half that does deliver would then find the thread already shown. `first` is the accounting owed that holds and was not said on this surface before (ISS-1715). */
 export const owedFor = async (targets, sessions) => {
-  const { none, owed, short } = await unshownFor(targets, sessions);
-  return { none, owed, short, first: short.filter((one) => one.holds && !one.told) };
+  const { owed, short } = await unshownFor(targets, sessions);
+  return { owed, short, first: short.filter((one) => one.holds && !one.told) };
 };
 
 /* Recorded once the text exists, so a list that fails halfway credits nothing it never delivered. */
@@ -277,7 +276,7 @@ const told = new Set();
 export const mustBeShown = async (targets, ev = null) => {
   const session = sessionKey(ev);
   const looked = await owedFor(targets, session);
-  const { none, short, owed, first } = looked;
+  const { short, owed, first } = looked;
   if (first.length) fail(await refusalOf(looked, session));
   if (owed.length) {
     console.error(delivered(owed));
@@ -287,9 +286,5 @@ export const mustBeShown = async (targets, ev = null) => {
     const line = `${one.ref}: ${one.said}`;
     if (!told.has(line)) console.error(line);
     told.add(line);
-  }
-  for (const one of none) {
-    if (!told.has(one)) console.error(`no comments on ${one}`);
-    told.add(one);
   }
 };

@@ -316,16 +316,20 @@ const wroteFor = (name, args) => {
   return { target: projectTarget(), own: true };
 };
 
+const announced = new Set();
+
 export const write = async (name, args, onSent, soft = false) => {
   await refuseCredential(args.data, `The payload ${name} was about to send`);
   const { target, own } = wroteFor(name, args);
   const language = own ? translateTarget() : {};
-  /* The source in a reader's words: the project file is `forge doctor`'s to name, and dropping the source took with it the line saying the CLI itself re-aimed this write (ISS-700). */
+  /* The source in a reader's words: the project file is `forge doctor`'s to name, and dropping the source took with it the line saying the CLI itself re-aimed this write (ISS-700) — which is now the only sort of case that says it at all, and says it once for the command rather than once for each send the transport happened to make: docs/cli/what-a-write-says.md (ISS-1192). */
   const from = target.from === FROM_PROJECT ? "the project file" : target.from ?? "nowhere";
-  console.error(
-    `${name} -> project ${target.value ?? "(none)"} (from ${from}), `
-      + `prose ${language.value ?? "as written"}`,
-  );
+  const usual = own && target.from === FROM_PROJECT && !language.value;
+  const said = `project ${target.value ?? "(none)"} (from ${from}), prose ${language.value ?? "as written"}`;
+  if (!usual && !announced.has(said)) {
+    console.error(`${name} -> ${said}`);
+    announced.add(said);
+  }
   const data = own && args.data ? translated(args.data) : args.data ?? null;
   onSent?.(data);
   return scoped(name, data ? { ...args, data } : args, soft);
