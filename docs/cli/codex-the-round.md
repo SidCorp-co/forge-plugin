@@ -23,13 +23,28 @@ lower; each clipped file is the one thing that reliably costs a retrieval round,
 `--rounds n` is still used exactly as typed.
 
 **A review that says it could not check is not shown and then patched by the next consult.** It is one
-attempt short, so it gets one more at `codex.roundsMax`, and the caller sees nothing until that one
-answers. Which is why the first attempt is buffered rather than streamed: "retried before it is shown"
-and a stream to stdout cannot both hold, and what streaming was actually for — telling a slow review
-from a hung one — is the `call N of M` and tool lines, which print either way. The predicate is one
-definition, shared by the field on the row, the retry's trigger and the stats line, and the one thing
-it must never match is `CANNOT TELL`: that ruling is what the verification grammar *asks for* on a risk
-the reviewer cannot decide, and retrying there buys the same answer at twice the price.
+attempt short, so it is given the rest of that attempt up to `codex.roundsMax`, and the caller sees
+nothing until it answers. Which is why the first attempt is buffered rather than streamed: "retried
+before it is shown" and a stream to stdout cannot both hold, and what streaming was actually for —
+telling a slow review from a hung one — is the `call N of M` and tool lines, which print either way.
+The predicate is one definition, shared by the field on the row, the trigger and the stats line, and
+the one thing it must never match is `CANNOT TELL`: that ruling is what the verification grammar
+*asks for* on a risk the reviewer cannot decide, and reading further there buys the same answer at
+twice the price.
+
+**The rest of the attempt, and not another one.** Opening a second conversation over the same payload
+was 1,053 model calls in seven days whose whole product was reading that was then thrown away: 463 of
+1,308 non-recheck consults were cut short, 356 of them at a budget of two, and each paid its first
+attempt's calls and then the ceiling. So the messages the first attempt built are what the raised cap
+runs on — the tool calls it stopped on are served rather than refused past a cap that no longer
+stands, and the reviewer is told once that more calls are available, because it was told they were
+gone and that has to stop being true before it reads anything else. What this does *not* do is make a
+consult less likely to be cut short: the trigger, the predicate and the ceiling are untouched, so the
+retried-at-ceiling share the stats print is not a figure this shape moves. What it moves is the price.
+One consequence is worth knowing before two windows are compared: the row's `calls` field now counts
+the whole conversation rather than the second attempt alone, so a budget-two consult answering on its
+first resumed call reads 3 where it used to read 1, and the calls histogram is comparable only inside
+one side of that change.
 
 **The answers are a place, not a shape.** Demanding that the ruling word be the whole of the first bold
 run left 674 of 931 logged rechecks unread: the reply is free-form prose and a fixed wrapper is a shape
