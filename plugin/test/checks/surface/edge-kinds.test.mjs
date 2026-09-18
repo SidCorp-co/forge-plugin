@@ -64,6 +64,16 @@ test("a switch on the kind and a parenthesised operand are the same decision, an
     "a key spelt like a kind decides nothing, and a colon after one is not a case arm");
 });
 
+/* A comment between the operator and its operand is the same decision typed around the selector,
+   and the operator and the operand are the only two things a comment can be held between. */
+test("a comment holding the operator and its name apart does not hide the comparison", () => {
+  const each = (line) => comparedIn(line, "plugin/src/one.mjs").length;
+  assert.equal(each('if (kind === /* the ordering kind */ "blocks") return 1;'), 1);
+  assert.equal(each('if ("blocks" /* the ordering kind */ === kind) return 1;'), 1);
+  assert.equal(each("if (kind ===\n  // the ordering kind\n  RELATES) return 1;"), 1);
+  assert.equal(each('switch (edge.kind) { case /* ordering */ "blocks": return 1; }'), 1);
+});
+
 /* Only an equality test: a kind handed on as a value, filed as one or printed in a usage row
    decides nothing about what it means, and refusing those would stand in the way of every call that
    has a kind to hand. */
