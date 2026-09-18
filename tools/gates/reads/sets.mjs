@@ -99,10 +99,9 @@ const setAt = (path, file) => {
   }
 };
 
-/** The entry this content matches, or null. Digested off the entry's own set rather than trusted
- *  from its name: the name is what that set digested to when the file passed. */
-const matchIn = (dir, file, root, context) => {
-  for (const path of entriesFor(dir, file)) {
+/** The entry this content matches, or null; digested off the entry's own set rather than trusted from its name, which is what that set digested to when the file passed. */
+const matchAmong = (paths, file, root, context) => {
+  for (const path of paths) {
     const found = setAt(path, file);
     const digest = ENTRY_NAME.exec(path.split("/").at(-1))[1];
     if (found && setDigest(root, found, context) === digest) return { digest, set: found };
@@ -110,16 +109,46 @@ const matchIn = (dir, file, root, context) => {
   return null;
 };
 
-/** Which of a step's files this content spends, and which the record already answers for. */
+/** The newest set of this file's that reads back at all, no digest consulted: it answers for the content that recorded it
+ *  and is still the only evidence anything holds of what the file reads, which is a claim about the file (ISS-1746). */
+const closureAmong = (paths, file) => {
+  for (const path of paths) {
+    const found = setAt(path, file);
+    if (found) return found;
+  }
+  return null;
+};
+
+const entriesIn = (dir, file) => newestFirst(entriesFor(dir, file));
+
+/** The reach evidence alone, for the run that distrusts every digest here and narrows nothing: what a file reads is a different question from whether a pass covers it, and only the second is refused. */
+export const closuresFor = (dir, files) => {
+  const closures = new Map();
+  for (const file of files) {
+    const closure = closureAmong(entriesIn(dir, file), file);
+    if (closure) closures.set(file, closure);
+  }
+  return closures;
+};
+
+/** Which of a step's files this content spends, and which the record already answers for. `unknown` are the spent files no readable set covers and `closures` the set of each of the rest, which decide nothing and report much (ISS-1746). */
 export const selectTests = (dir, files, { root, context }) => {
   const kept = [];
   const spend = [];
+  const unknown = [];
+  const closures = new Map();
   for (const file of files) {
-    const found = matchIn(dir, file, root, context);
+    const entries = entriesIn(dir, file);
+    const found = matchAmong(entries, file, root, context);
     if (found) kept.push({ file, ...found });
-    else spend.push(file);
+    else {
+      spend.push(file);
+      const closure = closureAmong(entries, file);
+      if (closure) closures.set(file, closure);
+      else unknown.push(file);
+    }
   }
-  return { spend, kept };
+  return { spend, kept, unknown, closures };
 };
 
 const subjectOf = (record, root) => {
@@ -202,7 +231,8 @@ export const recordSets = (dir, sets, { root, context, manifests }) => {
   for (const set of sets) {
     if (set.blind) continue;
     const paths = [...new Set([...set.paths, ...manifests])].sort();
-    const body = { file: set.file, paths, dirs: [...set.dirs].sort(), trees: [...set.trees].sort() };
+    // In the body and not in the name, which every digest here is keyed on already: nothing digests it, so an entry written before this reads back the same, and a later run can say a file was spent because the context moved rather than leave it in the residual (ISS-1746).
+    const body = { file: set.file, context, paths, dirs: [...set.dirs].sort(), trees: [...set.trees].sort() };
     const digest = setDigest(root, body, context);
     mkdirSync(dir, { recursive: true });
     const staging = join(dir, `.${process.pid}.${digest}.${nameOf(set.file)}`);

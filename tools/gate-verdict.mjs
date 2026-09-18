@@ -3,6 +3,7 @@
    A wait exits on the line and never on the process, one that exited having written nothing being its own answer and not a pass. */
 import { gitOut, lines, parsed } from "./checkout.mjs";
 import { gatesOn, placeFor, PROC, runnersOf, SLOT, startedAt, WAIT } from "./gates/machine.mjs";
+import { verdictSaid } from "./gates/report/said.mjs";
 import { recordDir, treeKey } from "./gates/timing.mjs";
 import { watching } from "./watching.mjs";
 import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
@@ -70,12 +71,15 @@ export const gateDecided = (root, started, decided) =>
 
 const spent = (ms) => (ms < 60_000 ? `${Math.round(ms / 1000)} second(s)` : `${Math.round(ms / 60_000)} minute(s)`);
 
-const figures = (record) => {
+const steps = (record) => {
   if (Number.isInteger(record.ran)) {
     return `${record.ran} of ${record.total} step(s)${Number.isInteger(record.seconds) ? ` in ${record.seconds}s` : ""}`;
   }
   return record.step ? `at the step ${record.step}` : "with no step spent";
 };
+
+// The file unit after the step count and never in place of it, so a run that spent no step still reads as one.
+const figures = (record) => [steps(record), ...verdictSaid(record)].join(", ");
 
 /** The one line both a gate's exit and the wait print; `since` is the wait's own start, because a verdict written before it is the resume case, which answers at once and must not read as this run's. */
 export const said = (record, { since = null } = {}) => {

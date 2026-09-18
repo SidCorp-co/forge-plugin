@@ -17,6 +17,8 @@ import { cheapestFirst, ENTRIES_PER_STEP, ledgerFor, LEDGER_UNSEEN, recordPass, 
 import { PUTS_IT_BACK, said as saidMissing, unresolvedIn } from "../plugin/src/resolve/installed.mjs";
 import { DECLINED, placeFor, RAISE, runnersOf, SLOT, WAIT } from "./gates/machine.mjs";
 import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mjs";
+import { ledgerSaid, readsSaid, stepSaid } from "./gates/report/said.mjs";
+import { spendOf } from "./gates/report/spend.mjs";
 import { forgetRoomRefusal, ROOM_ENV, roomRefused } from "./room.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
 import { parallelRuns } from "../plugin/src/resolve/settings.mjs";
@@ -24,8 +26,8 @@ import { argvForTests, gateSteps, launcherOf, TEST_FILE, testWorkers } from "./g
 import { auditEnv, contextOf, manifestsIn, readsDir, recordSets, selectTests, setsFrom }
   from "./gates/reads/sets.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
-import { alonePath, casesPath, CEILING_SECONDS, REVIEW, fileTimesPath, recordDir, recordRun, roomPath, runKey, seriesFile }
-  from "./gates/timing.mjs";
+import { alonePath, casesPath, CEILING_SECONDS, REVIEW, fileTimesPath, recordDir, recordRun, roomPath,
+  runKey, seriesFile } from "./gates/timing.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(SELF), "..");
@@ -93,6 +95,42 @@ is chosen by a manifest node reads through internals no audit here sees. A step 
 set, down to one that spent nothing at all, still records its own pass: what it did not spend it held
 back on a record answering for this same content, so the step is proven here exactly as far as those
 records are — and without it a second gate at content already passed re-decides every file again.
+
+Each step says what it spent in the unit it has. A step whose unit is the file names the files it
+spent of the files it knows, the seconds, and how many it held back — \`test: 6 of 290 file(s), 41s
+(284 held back, 604s when they last ran)\`. The files it knows are its whole list before any
+narrowing and never the subset the record answers for, so spent plus held back is that list and a
+file nothing is recorded for is counted spent: a denominator restricted to what the record answers
+for would read \`0 of 0\` on the one run this exists to show. The seconds beside the count held back
+are read off the per-file record below, before the step is spawned, and are the sum over the
+held-back files that record prices; the ones it prices nothing for are counted beside the sum rather
+than added into it as zero. A step whose unit is not the file prints its seconds and no fraction,
+and the verdict line says once how many such steps ran whole.
+
+The same line carries the arithmetic of what that spend was for, in files rather than in seconds,
+seconds being the machine's and a faster box shrinking every one of them while the same waste stands:
+\`spent 6 = 4 reached + 2 blind\`. A file is reached where the newest read set the record holds for it
+names a path this change touched — its own, or a directory whose listing it claimed, or a tree it
+walked — and blind where the record holds no set for it at all, which is where a file whose audit
+could not be followed ends up, nothing being written for one. Where the spend runs past their sum the
+line names the excess as \`accounted for neither way\`, and it is not a measured waste: the listing rule
+over-counts the reach, while a set recorded before the file gained a dependency this change touches
+holds no claim that dependency answers and under-counts it. So the excess is the number to go and read
+the sets over. A run that never learned which paths changed — \`--full\`, or a diff git refused — carries
+no count of reach rather than a reach of nought. A run that distrusts these digests and narrows
+nothing still carries the counts, which are read off the recorded sets and not off the digests.
+
+One cause of an excess a run can prove off its own diff, and where it holds it accounts for the whole
+of it: a change to either file every context is digested from invalidates every set already recorded,
+so nothing could have been held back and the spend followed from the change rather than ran past it.
+The line says so — \`+ 202 invalidated by this change to the reads collector\` — and the counts read as
+a sum again. A context also moves with the node and with the tree the launcher stands in, and neither
+of those shows in a diff, so an excess from one of them stays in \`accounted for neither way\`.
+
+A step the run could not skip says which of the two it is: one the record holds no pass for at any
+content, or one whose recorded passes are all at other content. A test step under a readable record
+says the same of its files, whether or not it held any of them back. Both printed nothing, and that
+silence is what hid ISS-1739 for a day after ISS-654 landed (ISS-1746).
 
 Past that, a step whose inputs are byte for byte what one of its recorded passes covered is skipped
 and says which digest matched. Only passes are recorded, so a red step is red again next time. The
@@ -290,9 +328,15 @@ const opened = gateStarted(ROOT, { full });
 
 /* Every exit past the banner, not the green one alone: the run that stops at a failing step is the
    one whose reader most needs to know it was told about a tree two sessions were writing. */
+/* Filled as the steps are spent and read by every exit past this tree, the refusals before the first
+   step included, which is why they stand above the call that reads them rather than beside the loop. */
+const spentFiles = [];
+let unitless = 0;
+const spent = () => (spentFiles.length > 0 || unitless > 0 ? { files: spentFiles, unitless } : {});
+
 const finish = (code, verdict, figures = {}) => {
   if (dirty.length > 0 && allowDirty) console.log(`\n${banner}`);
-  console.log(said(gateDecided(ROOT, opened, { verdict, code, ...figures })));
+  console.log(said(gateDecided(ROOT, opened, { verdict, code, ...spent(), ...figures })));
   process.exit(code);
 };
 
@@ -357,6 +401,11 @@ const steps = orRefuse("has no runnable step table",
    out. Not `full` itself: an empty diff widens too, and that is the re-run the record exists for. */
 const unreadable = (why, act) => ({ unread: why, act });
 
+/* The paths the diff named, null where no diff was read at all. A run that never learned what changed
+   says nothing about reach rather than reporting a reach of nought, which reads as a run that spent
+   everything for nothing when it is a run that cannot tell. */
+let changed = null;
+
 const scoped = () => {
   const diff = mergeBaseDiff(ROOT);
   /* Not knowing what changed is not knowing that nothing did. The record answers for the paths a
@@ -364,6 +413,7 @@ const scoped = () => {
   if (diff.error) {
     return { full: true, reason: diff.error, ...unreadable(diff.error, `Gate with --full, or give this tree a base it shares with the default branch.`) };
   }
+  changed = diff.changed;
   if (diff.changed.length === 0) return { full: true, reason: `nothing differs from ${diff.branch}` };
   /* Before the return below and not inside planFor, which that return never reaches: a diff holding
      both a runner-module edit and an unclaimed path would carry no marker, and its second run would
@@ -408,6 +458,7 @@ if (!full) {
       console.log(`skip ${step.label.padEnd(22)} digest ${step.digest}`
         + (step.took === null ? ", passing before this record kept seconds" : `, ${step.took}s when it passed`));
     }
+    for (const step of ledger.entries.filter((one) => !one.green)) console.log(ledgerSaid(step));
     console.log(`${ledger.dir}\n${LEDGER_UNSEEN}`);
     planned = ledger.entries.filter((step) => !step.green);
   }
@@ -421,18 +472,15 @@ if (ledger) {
   const answered = [];
   planned = planned.flatMap((step) => {
     if (!step.tests) return [step];
-    const { spend, kept } = selectTests(dir, step.files, { root: ROOT, context: contextOf(launcherOf(step)) });
-    if (kept.length === 0) return [step];
-    answered.push({ step, kept, spend });
-    if (spend.length > 0) return [{ ...step, files: spend, argv: argvForTests(spend), narrowed: true }];
+    const { spend, kept, unknown, closures } = selectTests(dir, step.files, { root: ROOT, context: contextOf(launcherOf(step)) });
+    answered.push({ step, kept, spend, unknown });
+    const carried = { known: step.files.length, held: kept.map((each) => each.file), closures };
+    if (kept.length === 0) return [{ ...step, ...carried }];
+    if (spend.length > 0) return [{ ...step, ...carried, files: spend, argv: argvForTests(spend), narrowed: true }];
     recordPass(ledger.dir, step, null);
     return [];
   });
-  for (const one of answered) {
-    console.log(`\n=== reads: ${one.step.label} — ${one.kept.length} of `
-      + `${one.kept.length + one.spend.length} test file(s) already answered for at this content ===`);
-    for (const each of one.kept) console.log(`skip ${each.file}  digest ${each.digest}`);
-  }
+  for (const line of answered.flatMap((one) => readsSaid(one))) console.log(line);
 }
 
 /* Every arrival at the loop is ordered by the same read, the two trusting no digest included: what they
@@ -482,6 +530,7 @@ const because = (step, said, error) => {
 
 for (const step of planned) {
   console.log(`\n=== ${step.label} ===`);
+  const spend = spendOf(step, { record, changed });
   const at = Date.now();
   const env = { ...process.env, TMPDIR: scratch, ...testEnv(step) };
   /* Before the step and again once it has passed, so the only note left standing is a refusal this
@@ -490,7 +539,9 @@ for (const step of planned) {
   const { status, error } = spawnSync(step.argv[0], step.argv.slice(1), { cwd: ROOT, env, stdio: "inherit" });
   const took = Math.round((Date.now() - at) / 1000);
   const failed = Boolean(error) || status !== 0;
-  console.log(`\n--- ${step.label}: ${took}s`);
+  if (spend === null) unitless += 1;
+  else spentFiles.push({ step: step.label, spent: spend.spent, known: spend.known });
+  console.log(`\n${stepSaid(step.label, took, spend)}`);
   if (failed) {
     /* Before the attribution, which would spend a re-run per case on a machine that has no room to
        give one: a step whose fixture was refused its room judged nothing about the tree (ISS-1611). */

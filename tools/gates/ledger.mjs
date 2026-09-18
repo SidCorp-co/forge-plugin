@@ -202,6 +202,10 @@ const entryAt = (path, label) => {
 
 const recorded = (dir, label, digest) => entryAt(fileFor(dir, label, digest), label);
 
+// Only entries that read back as this step's: none at all is nothing to compare against, which is not one whose passes are all stale, and the two printed alike (ISS-1746).
+const contentsFor = (dir, label) =>
+  heldFor(dir, label).filter((one) => entryAt(one.path, label).digest !== undefined).length;
+
 // One entry per step and content, added and never replaced, so a worktree gating other content takes nothing from this one; forced, an entry a sibling pruned first being the state this wants (ISS-948).
 export const recordPass = (dir, step, seconds) => {
   const staging = stagingFor(dir, step.label, step.digest);
@@ -243,7 +247,8 @@ export const ledgerFor = (steps, { root, files, runner }) => {
     }
     const digest = digestOf(root, inputs);
     const was = recorded(dir, step.label, digest);
-    return { ...step, digest, green: was.digest === digest, took: was.seconds };
+    return { ...step, digest, green: was.digest === digest, took: was.seconds,
+      contents: contentsFor(dir, step.label) };
   });
   return { dir, entries };
 };

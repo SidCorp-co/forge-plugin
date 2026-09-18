@@ -32,6 +32,20 @@ const beside = (dir, label, what) => join(dir, `${label.replace(/[^\w.-]+/gu, "-
 
 export const fileTimesPath = (dir, label) => beside(dir, label, "files");
 
+// Read before the step is spawned, which rewrites it with whatever set that spend was; absent is nothing priced, which is not nothing costed.
+const TIMED = /^(\d+(?:\.\d+)?)s (.+)$/u;
+
+export const fileSeconds = (dir, label) => {
+  let text;
+  try {
+    text = readFileSync(fileTimesPath(dir, label), "utf8");
+  } catch {
+    return new Map();
+  }
+  return new Map(text.split("\n").map((one) => TIMED.exec(one.trim())).filter(Boolean)
+    .map(([, seconds, file]) => [file, Number(seconds)]));
+};
+
 export const alonePath = (dir, label) => beside(dir, label, "alone");
 
 export const casesPath = (dir, label) => beside(dir, label, "failed");
