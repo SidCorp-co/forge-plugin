@@ -368,3 +368,21 @@ test("a root that is no checkout records no permission for any path in it, and i
     rmSync(at, { recursive: true, force: true });
   }
 });
+
+/* Watched failing: a checkout whose listing git could not deliver is not a checkout that records
+   nothing. Read as the latter it keys every path alike, and the next commit to move a mode and no
+   byte keys where the pass already banked keys — a green held over the one change this reads for. */
+test("a checkout whose index listing git could not deliver refuses rather than recording nothing", () => {
+  const { at, work } = scratch("permission-unreadable");
+  const path = process.env.PATH;
+  try {
+    forgetContent();
+    process.env.PATH = join(at, "no-git");
+    assert.throws(() => digestIn(work, SOURCE), /--full/u,
+      "git that could not be run at all has said nothing about a permission, which is not saying there is none");
+  } finally {
+    process.env.PATH = path;
+    forgetContent();
+    rmSync(at, { recursive: true, force: true });
+  }
+});

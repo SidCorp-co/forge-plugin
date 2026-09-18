@@ -46,23 +46,32 @@ export const digestFile = (path, rewrite = null) => {
 
 /* The permission git records and never `lstat`'s: `core.fileMode=false` makes a chmod after checkout
    a difference git declares is not one, and one that keyed this shared ledger into a copy per tree
-   (ISS-1739). Read rather than dropped, because the suite spawns `plugin/bin/forge` by path, so a
-   recorded mode is a change a step goes red over; no `core.fileMode` read, git having applied it when
-   it wrote the index; and untracked its own third reading, which is what a root git will not answer
-   for records for every path in it, so nothing throws and no caller needs a checkout to digest one. */
+   (ISS-1739). Read rather than dropped, the suite spawning `plugin/bin/forge` by path; no
+   `core.fileMode` read, git having applied it when it wrote the index; and untracked its own third
+   reading, which a root git refuses to list records for every path, so no caller needs a checkout.
+   Git failing to run is not that answer: a listing past the buffer arrives as `error`, and keying
+   such a tree as recording nothing would hold a pass over a mode change it never saw. */
 const EXECUTABLE = "100755";
 const UNTRACKED = "untracked";
+const INDEX_BYTES = 64 * 1024 * 1024;
 
 const modesIn = new Map();
 
 const STAGED = /^(\d{6}) [0-9a-f]+ \d\t([\s\S]+)$/u;
 
-const recordedModes = (root) => {
-  if (!modesIn.has(root)) {
-    const run = git(["ls-files", "-s", "-z"], root);
-    modesIn.set(root, new Map(run.status !== 0 ? [] : (run.stdout ?? "").split("\0")
-      .map((one) => STAGED.exec(one)).filter(Boolean).map(([, mode, path]) => [path, mode])));
+const staged = (root) => {
+  const run = git(["ls-files", "-s", "-z"], root, { maxBuffer: INDEX_BYTES });
+  if (run.error) {
+    throw new Error(`git could not list the index of ${root}: ${run.error.message}. What it records about `
+      + "each file is unknown rather than absent, so no digest here answers. Gate with --full until it can.");
   }
+  if (run.status !== 0) return new Map();
+  return new Map((run.stdout ?? "").split("\0")
+    .map((one) => STAGED.exec(one)).filter(Boolean).map(([, mode, path]) => [path, mode]));
+};
+
+const recordedModes = (root) => {
+  if (!modesIn.has(root)) modesIn.set(root, staged(root));
   return modesIn.get(root);
 };
 

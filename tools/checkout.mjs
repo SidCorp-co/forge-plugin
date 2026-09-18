@@ -14,7 +14,8 @@ export const stop = (message) => {
   throw new Stop(message);
 };
 
-export const git = (args, cwd = process.cwd()) => spawnSync("git", args, { cwd, encoding: "utf8" });
+export const git = (args, cwd = process.cwd(), beside = {}) =>
+  spawnSync("git", args, { cwd, encoding: "utf8", ...beside });
 
 /** Loud, because a step's own output is the evidence that it did what it says. */
 export const loud = (command, args, cwd, why) => {
