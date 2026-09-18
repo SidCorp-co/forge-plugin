@@ -8,7 +8,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { tempRoom } from "../../../fixtures.mjs";
+import { escaped, tempRoom } from "../../../fixtures.mjs";
 
 const CENSUS = fileURLToPath(new URL("../../../../../tools/gates/reads/census.mjs", import.meta.url));
 
@@ -47,9 +47,9 @@ test("every cause of every blind file is named, with the kind each one is", () =
     assert.match(said.stdout, /\| export \| `cpSync: a tree copied whole` \| 1 \|/u);
     assert.match(said.stdout, /\| child \| `git standing in the checkout` \| 1 \|/u);
     assert.match(said.stdout, /export: cpSync: a tree copied whole/u);
-    assert.match(said.stdout, new RegExp(`^ {10}git grep -l in ${where.root}$`, "mu"),
+    assert.match(said.stdout, new RegExp(`^ {10}git grep -l in ${escaped(where.root)}$`, "mu"),
       "the shape groups them, and the exact cause a ceiling is written against is under it");
-    assert.doesNotMatch(said.stdout, new RegExp(TWO.replace(/\./gu, "\\."), "u"),
+    assert.doesNotMatch(said.stdout, new RegExp(escaped(TWO), "u"),
       "and a file nothing blinds is in the population and not in the causes");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
