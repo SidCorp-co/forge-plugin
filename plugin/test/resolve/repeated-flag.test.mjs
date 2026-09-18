@@ -4,12 +4,13 @@
    is watched still accumulating beside it (ISS-930). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { flags, pairOf, pairsFrom, pullRepeated, repeatedFlag, shortOfAsk } from "../../src/resolve/flags.mjs";
 import { Refusal, fail, refusing } from "../../src/resolve/settings.mjs";
-import { homeEnv, ranAsync } from "../fixtures.mjs";
+import { metaFrom } from "../../src/tracker/knowledge/store.mjs";
+import { homeEnv, ranAsync, tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const env = homeEnv("repeated-flag");
@@ -246,6 +247,36 @@ test("the two `--set`-taking verbs print one rule, before either resolves an end
   assert.match(issue.stderr, /--set names a 2 times, as `1` and `2`, /u, issue.stderr);
   for (const run of [project, issue]) {
     assert.match(run.stderr, /one call writes each field once\./u, run.stderr);
+    assert.doesNotMatch(run.stderr, /No Forge endpoint/u, "neither got as far as needing one");
+  }
+});
+
+/* ISS-1313. `--meta` was the last repeated `key=value` flag keying an object of its own, so a
+   repeat kept the last value and the write exited zero over metadata nobody asked for last. */
+test("a --meta key named twice is refused in the sentence the --set verbs print, the flag word its own", async () => {
+  const said = await refused(() => metaFrom(["a=1", "a=2", "b=3"]));
+  assert.match(said, /^--meta names a 2 times, as `1` and `2`, /u, said);
+  assert.match(said, /one call writes each field once\./u, "the rule, said once");
+  assert.match(said, /Ask for the one you meant: --meta a=<value>\./u, "and the form that works");
+  assert.doesNotMatch(said, /--set/u, "the flag word is composed, never the one the reading was written for");
+  assert.doesNotMatch(said, /knowledge write|doctor/u, "two verbs spell --meta, so the shared sentence names neither");
+});
+
+test("distinct --meta names are two answers to two questions, kept in the order they were given", () => {
+  assert.deepEqual(metaFrom(["a=1", "b=2"]), { a: "1", b: "2" });
+});
+
+test("both `--meta`-taking verbs print one rule, before either resolves an endpoint", async () => {
+  const room = tempRoom("repeated-meta-");
+  const body = join(room, "body.md");
+  writeFileSync(body, "# an entry\n\nwith a body to read.\n");
+  const write = await ran("knowledge", "write", "a-slug", body, "--kind", "reference", "--title", "T",
+    "--meta", "a=1", "--meta", "a=2");
+  const brief = await ran("doctor", "--refresh", body, "--meta", "a=1", "--meta", "a=2");
+  for (const run of [write, brief]) {
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /^--meta names a 2 times, as `1` and `2`, /mu, run.stderr);
+    assert.match(run.stderr, /Nothing was sent\./u, run.stderr);
     assert.doesNotMatch(run.stderr, /No Forge endpoint/u, "neither got as far as needing one");
   }
 });

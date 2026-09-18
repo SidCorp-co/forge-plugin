@@ -1,6 +1,6 @@
 /* The project's knowledge store as a client. `forge knowledge` is one caller and the project brief another, so it lives beside the tracker's other clients rather than inside either verb. docs/cli/knowledge.md. */
 import { fail, keepOnFailure } from "../../resolve/settings.mjs";
-import { pairOf } from "../../resolve/flags.mjs";
+import { pairOf, pairsFrom } from "../../resolve/flags.mjs";
 import { refuseCredential, scoped, write } from "../rest.mjs";
 
 export const SLUG_WIDTH = 28;
@@ -36,15 +36,15 @@ export const entryLine = (row) =>
   + `${(row.injection ?? "").padEnd(10)} ${(row.confidence ?? "").padEnd(10)} `
   + `${(row.updatedAt ?? "").slice(0, 10)}  ${row.title ?? ""}`;
 
-/* Overlaid on what is stored rather than replacing it: a correction adds `correctedBy` and keeps what was there. */
-export const metaFrom = (pairs) => {
-  const out = {};
-  for (const pair of pairs) {
-    const { key, value } = pairOf(pair, "--meta");
-    out[key] = value;
-  }
-  return out;
+const metaPair = (given) => {
+  const { key, value } = pairOf(given, "--meta");
+  return { field: key, value };
 };
+
+/* Overlaid on what is stored rather than replacing it: a correction adds `correctedBy` and keeps what was there — which is why a key named twice cannot be the caller meaning the second, and is refused through the shared reading instead of keying an object here and dropping the first in silence (ISS-1313). Two verbs spell `--meta` and neither is named: no refuser of one of theirs is passed, so the sentence names the flag alone (ISS-1449). */
+export const metaFrom = (pairs) => Object.fromEntries(
+  pairsFrom(pairs, "--meta", { each: metaPair }).map(({ field, value }) => [field, value]),
+);
 
 /* A field the tracker holds is compared through this rather than by identity: the store round-trips metadata through json, which does not promise the key order it was handed. */
 const stable = (value) => {
