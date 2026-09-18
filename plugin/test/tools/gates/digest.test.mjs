@@ -1,16 +1,18 @@
-/* What a file a release writes a version into hashes to, on the gate runner's own scratch checkout:
-   the number alone moving, the number disagreeing between two of those files, and a dependency moving
-   beside it. Driven at the ledger's own derivation and never through a release: what a release does
-   with these digests is the ship's, and a case that cut one would cost minutes and prove less. */
+/* What one file of a checkout hashes to, on the gate runner's own scratch checkouts: the release
+   number alone moving, that number disagreeing between two of the files a release writes, a dependency
+   moving beside it, and the permission — the disk's bit moving under a fixed index, the index's under a
+   fixed disk, a path git stops recording. Driven at the ledger's own derivation and never through a
+   release: what a release does with these digests is the ship's, and a case that cut one proves less. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync, rmSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { digestIn, forgetContent, ledgerFor } from "../../../../tools/gates/ledger.mjs";
 import { gateSteps, STEPS, TEST_FILE } from "../../../../tools/gates/steps.mjs";
 import { under } from "../../../../tools/gates/scope.mjs";
 import { gitFiles } from "../../../../tools/checkout.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 import { git, landed, run, scratch, write } from "./scratch.mjs";
 
 const MANIFEST = join("plugin", ".claude-plugin", "plugin.json");
@@ -266,6 +268,100 @@ test("a file outside the ones a release writes digests as what is in it", () => 
     write(work, PACKAGE, json({ ...read(work, PACKAGE), version: "9.9.9" }));
     assert.equal(digestIn(work, PACKAGE), held, "and the number a release writes is out of the manifest's");
   } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+const readingSource = () => {
+  const labels = STEPS.filter((step) => step.reads.some((claim) => under(SOURCE, claim)))
+    .map((step) => step.label);
+  assert.ok(labels.length > 0, `no step of the table reads ${SOURCE}, so these cases cover nothing`);
+  return labels;
+};
+
+const movedFor = (before, after) => {
+  const was = new Map(before.map((one) => one.split(" ")));
+  return after.map((one) => one.split(" ")).filter(([label, digest]) => was.get(label) !== digest)
+    .map(([label]) => label).sort();
+};
+
+const recordedMode = (work, path) => git(work, "ls-files", "-s", "--", path).stdout.trim().split(" ")[0];
+
+/* Watched failing: this is the defect itself. Two trees of one content whose umasks left different
+   bits on the disk shared one gate ledger and could read nothing of each other's in it (ISS-1739). */
+test("two trees of one content whose disks disagree about an execute bit derive the same digest for every step", () => {
+  const one = scratch("permission-bare");
+  const other = scratch("permission-marked");
+  try {
+    chmodSync(join(other.work, SOURCE), 0o755);
+    assert.equal(recordedMode(other.work, SOURCE), recordedMode(one.work, SOURCE),
+      "the case is about two trees whose index agrees and whose disk does not, so the index has to agree");
+    assert.deepEqual(digests(other.work), digests(one.work),
+      "a permission the repository does not record is no part of what a step's inputs hashed to");
+  } finally {
+    for (const room of [one.at, other.at]) rmSync(room, { recursive: true, force: true });
+  }
+});
+
+/* Watched failing: without it, dropping the permission outright passes the case above for the wrong
+   reason. 69031648 changed one file's mode and nothing else, and the suite spawns files by path. */
+test("a permission the index records moving alone moves the digest of every step that reads the file", () => {
+  const { at, work } = scratch("permission-recorded");
+  try {
+    const reads = readingSource();
+    const before = digests(work);
+    git(work, "update-index", "--chmod=+x", "--", SOURCE);
+    git(work, "commit", "-m", "the source is executable now");
+    assert.equal(recordedMode(work, SOURCE), "100755", "the index records the new permission");
+    assert.deepEqual(movedFor(before, digests(work)), [...reads].sort(),
+      "what git records about a file is what every step reading it keys on");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* Watched failing: a digest reading the permission and nothing else would pass both cases above. */
+test("a byte moving under a fixed permission moves the digest of every step that reads the file", () => {
+  const { at, work } = scratch("permission-bytes");
+  try {
+    const reads = readingSource();
+    const before = digests(work);
+    write(work, SOURCE, "export const one = 11;\n");
+    git(work, "commit", "-am", "the source moved");
+    assert.deepEqual(movedFor(before, digests(work)), [...reads].sort(),
+      "content is content whatever the permission beside it says");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* Watched failing: a path the index does not hold has no recorded permission at all, and reading it
+   as an unexecutable one would key a file git has stopped recording where a recorded 100644 keys. */
+test("a file git stops recording does not key where it keyed while it was recorded", () => {
+  const { at, work } = scratch("permission-dropped");
+  try {
+    const was = digestIn(work, SOURCE);
+    git(work, "rm", "--cached", "--", SOURCE);
+    git(work, "commit", "-m", "the source is nobody's now");
+    forgetContent();
+    assert.notEqual(digestIn(work, SOURCE), was,
+      "a repository that records nothing about a file says something different from one that records 100644");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* The permission comes from git, so a root git will not answer for is a root with no permissions to
+   read, and a digest that guessed one would bank a pass under a key nothing else derives. */
+test("a root that is no checkout is refused rather than digested, and the refusal names the way past it", () => {
+  const at = tempRoom("permission-unread-");
+  try {
+    mkdirSync(join(at, "plugin", "src"), { recursive: true });
+    writeFileSync(join(at, SOURCE), "export const one = 1;\n");
+    assert.throws(() => digestIn(at, SOURCE), /--full/u,
+      "a listing git refused leaves every digest of that tree unknown, and says so");
+  } finally {
+    forgetContent();
     rmSync(at, { recursive: true, force: true });
   }
 });
