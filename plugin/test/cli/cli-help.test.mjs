@@ -479,11 +479,7 @@ test("codex -h names no configuration key", () => {
   assert.match(said, /forge codex show/u, "and it says where what is in effect is printed");
 });
 
-/* The rule that a `--set` value is the text and never a route to it is the refusal's, whose message
-   names the file it read, what storing it would cost and the call to run instead. A second copy in
-   help drifts from it in silence: these two already disagreed about how many fields the rule covered,
-   the help naming one where the checker named three (ISS-1451). The names come off the checker, so a
-   field added there cannot leave this case behind. */
+/* The rule that a `--set` value is the text and never a route to it is the refusal's, which names the file, the cost and the call to run instead; the help's copy drifted from it in silence, naming one body field where the checker named three, and the names below come off the checker so a fourth cannot leave this case behind (ISS-1451). */
 test("issue -h restates no part of the rule its own --set refusal owns", () => {
   const said = ask("issue", "-h").stdout;
   for (const form of ["@file", "$(cat", "as it is typed", ...BODY_FIELDS]) {
@@ -494,11 +490,7 @@ test("issue -h restates no part of the rule its own --set refusal owns", () => {
     "and the refusal is still where the rule is learnt");
 });
 
-/* The help said the value is written as it is typed, which is false wherever the project's own
-   configuration names a prose language: `tracker/rest.mjs` runs every prose field of the payload
-   through `tools/vi.mjs` before the send. What is said is what that does to the value; which
-   language, which file it came from and which setting stay `forge doctor`'s, as the configuration
-   keys `codex -h` leaves to `forge codex show` do (ISS-1790). */
+/* The help said the value is written as it is typed, which is false wherever the project's configuration names a prose language — `tracker/rest.mjs` sends every prose field through `tools/vi.mjs` first — so what is said here is what that does to the value, the language and file and setting staying `forge doctor`'s as `codex -h`'s keys stay `forge codex show`'s (ISS-1790). */
 test("issue -h says what a prose language does to a --set value, and leaves the settings to doctor", () => {
   const said = ask("issue", "-h").stdout;
   assert.match(said, /prose language/u, "so a caller learns it before the write, not from a read-back");

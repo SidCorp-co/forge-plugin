@@ -530,10 +530,7 @@ test("the route out quotes the path it names", async () => {
     `the path quoted whole, and \`cat --\` so a leading hyphen stays a name: ${run.stderr}`);
 });
 
-/* What `forge issue -h` now says about a value and a prose language rests on this half: with none
-   set, what the update puts on the wire is the body as it was typed, its trailing blank line
-   included. The read-back cannot answer for that line — `landedAs` trims both sides before it
-   compares — so the payload itself is what is read here (ISS-1790). */
+/* What `forge issue -h` now says about a value and a prose language rests on this half: with none set, what the update puts on the wire is the body as typed, trailing blank line included — and the read-back cannot answer for that line, `landedAs` trimming both sides, so the payload itself is read (ISS-1790). */
 test("a body written where this project names no prose language goes to the wire byte for byte", async () => {
   before();
   const body = "# A heading\n\nA paragraph that ends,\nwraps, and carries a list:\n\n- one\n- two\n\n";
