@@ -92,7 +92,7 @@ const polled = (calls) => {
   return calls;
 };
 
-/* Off the class the call already has, so the two cannot disagree: no run writes a phase into its transcript. `after` is the phase that must have opened first; `last` closes its own phase. The numbers are the method's, read off `PHASES`: this table said 5 for the ship where the contract says 5 for the proving, and a figure is only worth a phase both readings can name (ISS-700). */
+/* Off the class the call already has, so the two cannot disagree: no run writes a phase into its transcript. `after` is the phase that must have opened first, and the last row carries one because the method types a gap where the run met it and reads the knowledge store at phase 0, so without it either would take a run that landed nothing to the last phase; the row above it carries none, having once closed its own phase and left the rest of the transcript in this one (ISS-1714). The numbers are the method's, read off `PHASES`: this table said 5 for the ship where the contract says 5 for the proving, and a figure is only worth a phase both readings can name (ISS-700). */
 export const MARKERS = [
   { phase: 1, classes: ["forge claim"] },
   { phase: 2, classes: ["forge record confirmation"] },
@@ -101,7 +101,8 @@ export const MARKERS = [
   { phase: 5, classes: [WHOLE_SET_CLASS], after: 4 },
   /* `only` books its own call and moves the run's phase for nothing after it: the method posts the note after the landing under one ship mode and before the ready checkpoint under the other, so a row that opened a segment measured the interval to whatever came next rather than the note (ISS-1583). */
   { phase: 6, classes: ["forge record note"], only: true },
-  { phase: 7, classes: ["ship"], last: true },
+  { phase: 7, classes: ["ship"] },
+  { phase: 8, classes: ["cleanup", "forge record gap", "forge knowledge write"], after: 7 },
 ];
 
 export const markerOf = (label) => MARKERS.find((row) => row.classes.includes(label)) ?? null;

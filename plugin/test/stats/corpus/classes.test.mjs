@@ -87,13 +87,38 @@ test("a class nothing was classed as and no checkout declared is unrecognised, n
   assert.match(run.stdout, /^per run {9}unrecognised gate, unrecognised test,/mu);
   assert.match(run.stdout, /^ships {11}unrecognised$/mu,
     "a pass count and a median over a class nothing was classed as are two more zeroes read as measurement");
-  assert.match(run.stdout, /^ {2}declare `stats\.commands\.gate`, `stats\.commands\.ship`, `stats\.commands\.test` in the \.forge\.json/mu,
+  assert.match(run.stdout, /^ {2}declare `stats\.commands\.gate`, `stats\.commands\.ship`, `stats\.commands\.test`, `stats\.commands\.cleanup` in the \.forge\.json/mu,
     "and what would declare each of them is named rather than left to be known");
   assert.match(run.stdout, /^7 Ship {6}unrecognised: nothing here was classed ship$/mu);
-  assert.match(run.stdout, /^8 Learn {5}unrecognised: reached only past a call classed ship, and nothing here was$/mu,
+  assert.match(run.stdout, /^8 Clean up {2}unrecognised: reached only past a call classed ship, and nothing here was$/mu,
     "a phase reachable only past an unrecognised one would otherwise print the most confident zero in the table");
   assert.match(run.stdout, /^unknown\s+1\s.*\sunrecognised$/mu,
     "and the rung table's gate cell says it too, a populated rung being where a nought reads most like measurement");
+});
+
+/* A landing and the call that ends the workspace after it, spelled as a project other than this one
+   would spell the second: the phase the method ends a run in opens on a command every project names
+   for itself, so it is declared beside the gate, the ship and the test rather than pattern-matched. */
+const SHIPPED_THEN_CLEANED = [
+  JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-99" } }),
+  use("c1", 10, "Bash", { command: "node /w/tools/run.mjs ship" }),
+  result("c1", 20, "released"),
+  use("c2", 30, "Bash", { command: "workspace finish ISS-99" }),
+  result("c2", 40, "ended"),
+].join("\n");
+
+test("a cleanup command the checkout declares opens the last phase, and nothing is read from its shape", () => {
+  const project = declaring({ stats: { commands: { cleanup: "workspace finish" } } });
+  const run = asked(corpusFor(project, SHIPPED_THEN_CLEANED), "--checkout", project);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^7 Ship\s+1\s/mu, "the landing opens the phase it always did");
+  assert.match(run.stdout, /^8 Clean up\s+1\s+[\d.]+\s+\d+\s+1\.0\s+cleanup 1 0m$/mu,
+    "and the word this project typed for ending a workspace opens the phase the method ends a run in");
+
+  const bare = declaring({});
+  const held = asked(corpusFor(bare, SHIPPED_THEN_CLEANED), "--checkout", bare);
+  assert.match(held.stdout, /^8 Clean up\s+0\s+0\.0/mu,
+    "while the same transcript reaches it nowhere under the built-in, which is this repository's own command and not a shape");
 });
 
 test("this repository's own reading does not move: a checkout declaring nothing keeps every built-in", () => {

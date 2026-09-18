@@ -9,7 +9,7 @@ import { lighterRows, rungOf } from "../ladder.mjs";
 
 /* The method's phases, numbered as the guide numbers them and indexed by that number. The one table: the flow table below builds its phrases from it and the transcript miner counts a run's calls against it, so phase 5 is one phase rather than two that shared a number and meant "prove" in one reading and "ship" in the other (ISS-700, BR-09). */
 export const PHASES = [
-  "0 Project", "1 Triage", "2 Clarify", "3 Plan", "4 Implement", "5 Prove", "6 Note", "7 Ship", "8 Learn",
+  "0 Project", "1 Triage", "2 Clarify", "3 Plan", "4 Implement", "5 Prove", "6 Note", "7 Ship", "8 Clean up",
 ];
 
 /* The flow table's last column: which phase a status owes, and where its method lives — the reference the phase cites, or null where the body itself carries the phase. Here rather than beside `ORDER`, the sequence being what a record earns and this what the method owes at each rung. A cell names as many phases as are worked while the status is held, so a rung the ladder folded two into names both and holds the records that earn the status above it across the pair. ISS-18 owns typing it; a pointer beats a number nobody can look up. */

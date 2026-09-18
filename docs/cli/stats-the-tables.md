@@ -11,10 +11,22 @@ refusals listing that shares that classifier: [`stats-rows.md`](stats-rows.md).
 **The rows are the method's phases, as `forge guide issue-flow` numbers them, and that table is the
 only one.** Phase boundaries are read off the first call of each kind, because no run writes a phase into its own
 transcript — and off the **class** the call already carries, so two readings of one call cannot
-disagree about what it was. A phase already passed cannot pull a run backwards,
+disagree about what it was. A phase already passed cannot pull a run backwards, and
 the review does not open before the build has — the plan is consulted before it is written, and that
-consult is the plan's — and the ship call is the last call of its own phase rather than the first of
-the next. A boundary is the write that discharges the phase before it, so a row holds its own work.
+consult is the plan's. A boundary is the write that discharges the phase before it, so a row holds its own work.
+
+**Every phase is opened by a row, including the last.** The ship row once closed its own phase, which
+put the run in the phase past it at its first landing call with nothing able to move it out: the
+shipping phase measured one call, and the phase after it measured every call to the end of the
+transcript. The method ends the shipping phase at the close and gives the phase after it the cleanup
+and the learning, so over 354 of this project's runs that unbounded row held the release wait, a
+resumed landing, a post-ship gate and the shipping phase's own verification and merged marks — 4,523
+of its 5,757 minutes fell before the last status move, under a label reading `Learn`. So the landing
+opens the shipping phase and leaves it open, and the row after it opens on the call that ends the
+run's workspace or on a write of what the run learned. That last row waits on the shipping phase
+having opened, because the method types a gap where the run met it and reads the knowledge store
+before it has read any code: without the wait, either would take a run that landed nothing to the
+last phase (ISS-1714).
 
 **The review opens on the read that earns it and on no other consult.** A build commits several
 times and each commit is gated by a consult over what that commit stages, so a boundary drawn at the

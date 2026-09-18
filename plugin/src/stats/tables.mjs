@@ -66,10 +66,17 @@ export const elided = (rows, all) =>
 export const listing = (title, rows, line, all) =>
   (rows.length ? ["", title, ...capped(rows, all).map(line), ...elided(rows, all)] : []);
 
+/* Which row leaves a phase unreachable: the row itself where nothing was classed as anything it opens on, else the row its `after` names — a row whose own classes are recognised is still shut where the phase it waits on cannot open, and the last phase is now such a row rather than one a fallback to the nearest number reached (ISS-1586, ISS-1714). */
+const blocking = (held, row) => {
+  if (!row) return null;
+  if (row.classes.every((one) => held.unrecognised.includes(one))) return row;
+  return row.after === undefined ? null : blocking(held, MARKERS.find((one) => one.phase === row.after));
+};
+
 /* A phase opened by nothing this reading recognises has no runs for a reason it can state, which is not the same answer as a flow that never reached it. The nearest marker at or below the row, because a phase past an unrecognised one is unreachable for that same reason and would otherwise print the most confident zero in the table (ISS-1586). */
 const phaseReason = (held, at) => {
-  const marker = MARKERS.filter((row) => row.phase <= at).at(-1);
-  if (!marker?.classes.every((one) => held.unrecognised.includes(one))) return null;
+  const marker = blocking(held, MARKERS.filter((row) => row.phase <= at).at(-1));
+  if (!marker) return null;
   const said = marker.classes.join(" or ");
   return marker.phase === at
     ? `${UNRECOGNISED}: nothing here was classed ${said}`

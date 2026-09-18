@@ -10,13 +10,13 @@ const LEADS = String.raw`(?:^|[\n;|&(){}])[ \t]*`
 
 const at = (what) => new RegExp(LEADS + what, "u");
 
-/* One spelling of the call for both readings below — the binary, the verb, the word after it and the word after that. The guide reading fixes the verb rather than filtering the first call, so a `forge guide` later in a compound command is still the part that run read. A sub is that second word as a verb name reads it, stopping at the first character no verb carries, where a slug and its part are read whole: one token, two word classes. */
+/* One spelling of the call for both readings below — the binary, the verb, the word after it and the word after that. The guide reading fixes the verb rather than filtering the first call, so a `forge guide` later in a compound command is still the part that run read. A sub is that second word as a verb name reads it, stopping at the first character no verb carries, where a slug and its part are read whole: one token, two word classes. `knowledge` is subbed because the store is read in phase 0 and written in the last phase, and one row over both filed a run's opening read under what it learned (ISS-1714). */
 const CALL = (verb) => String.raw`(?:\S*/)?forge[ \t]+${verb}`
   + String.raw`(?:[ \t]+(?<slug>[a-z][\w-]*)(?:[ \t]+(?<part>[a-z][\w-]*))?)?`;
 const FORGE = at(CALL(String.raw`(?<verb>[a-z][a-z-]*)`));
 const SUB_WORD = /^[a-z][a-z-]*/u;
 
-const SUBBED = new Set(["codex", "record"]);
+const SUBBED = new Set(["codex", "knowledge", "record"]);
 
 /** The consult reading every file the change touched, which is the pass a review is earned by. Told by the flag and never by a `codex.send` setting, which no transcript records: docs/cli/stats-rows.md. */
 export const WHOLE_SET_CLASS = "forge codex whole-set";
@@ -60,13 +60,16 @@ export const POLL = "poll";
 
 /** What a checkout says its own gate, test and ship are, off the project file that directory resolves to, so `--checkout` reads the profiled project's commands and not this process's. */
 export const DECLARES = "stats.commands";
-export const DECLARABLE = ["gate", "ship", "test"];
+export const DECLARABLE = ["gate", "ship", "test", "cleanup"];
 export const declaredIn = (directory) => projectFileAt(directory)?.stats?.commands ?? null;
 
-/* This repository's own commands, and the fallback for every project that declares none, so a reading taken here does not move. The ship one is the invocation and never the mention: `pgrep -f "tools/run.mjs ship"` is a run WAITING for one. */
+const VERB_ENDS = String.raw`(?![\w-])`;
+
+/* This repository's own commands, and the fallback for every project that declares none, so a reading taken here does not move. The ship one and the cleanup one are the invocation and never the mention, which is what the leading binary buys: `pgrep -f "tools/run.mjs ship"` is a run WAITING for one. Each stops where a verb name stops and not at a word boundary, which ends a word at a hyphen and would read the sibling verb this repository ships, `land-ready`, as `land` (ISS-1714). */
 const BUILT_IN = {
+  cleanup: String.raw`node[ \t]+\S*tools/run\.mjs[ \t]+finish` + VERB_ENDS,
   gate: String.raw`(?:npm run check|node\s+\S*tools/gates\.mjs)`,
-  ship: String.raw`node[ \t]+\S*tools/run\.mjs[ \t]+ship\b`,
+  ship: String.raw`node[ \t]+\S*tools/run\.mjs[ \t]+ship` + VERB_ENDS,
   test: String.raw`(?:node --test|npm (?:run )?test|npx vitest|npx playwright)`,
 };
 

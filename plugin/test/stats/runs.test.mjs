@@ -33,15 +33,18 @@ test("every row of a fixture run is what the transcript adds up to", () => {
   has("edits           per run edit 0, write 0, edit heredoc 0, edit file 0, edit sed 0 · median chars/call edit 0, write 0, edit heredoc 0, edit file 0, edit sed 0");
   has("ships           1 pass(es), median 1/run, 0 resumed with --from, a push rejected in 0 run(s)");
 
-  /* The ship call is the last of its own phase; the `pgrep` line that waits for one is a poll and
-     leaves the run where it was, which is what moved every real run into the closing phase before.
+  /* The ship call opens its own phase and the run stays in it to the close, so the `pgrep` line that
+     waits for the release, the reads after it and the refused advance are all the shipping phase's.
+     This fixture ends its workspace nowhere and writes nothing it learned, so the phase past the
+     shipping one is a nought it can state rather than a bucket holding the tail (ISS-1714).
      The rows are the method's phases, so a figure here names a phase a brief can name (ISS-700). */
   has("0 Project       1      0.2        0        1.0  read 1 0m");
   has("4 Implement     1      4.9        5        3.0  gate 1 2m · test 1 1m · forge record plan 1 0m");
   has("5 Prove         1     25.4       25        4.0  forge codex whole-set 1 15m · forge codex recheck 1 5m"
     + " · forge record verdict 1 0m · forge advance 1 0m");
-  has("7 Ship          1      4.8        5        1.0  ship 1 4m");
-  has("8 Learn         1      6.0        6        6.0  poll 1 0m · forge issue 3 0m · forge advance 1 0m · git 1 0m");
+  has("7 Ship          1     10.8       11        7.0  ship 1 4m · poll 1 0m · forge issue 3 0m · forge advance 1 0m");
+  has("8 Clean up      0      0.0        0        0.0  ");
+  has("  declare `stats.commands.cleanup` in the .forge.json");
 
   has("forge codex whole-set           15.0    54%      1");
   has("gate                             2.0     7%      1");

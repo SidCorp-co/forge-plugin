@@ -31,11 +31,11 @@ got wrong:
   space: with a space, `'/tmp/forge;close'` turned into a `forge close` nobody typed, and a reading
   that may only ever take a call away had invented one.
 
-**The gate, the test and the ship are the project's own words, where it has said them.** Those
-three rows were literal alternations of the commands this repository runs, applied to every project
-profiled: on one whose gate is spelled `make check` they read zero, the time went into whatever
-class ran next, and the ship phase and the phase past it read zero runs apiece. A project says what
-its own are under `stats.commands` in the `.forge.json` the profiled checkout resolves to — the
+**The gate, the test, the ship and the call that ends a run's workspace are the project's own words,
+where it has said them.** Those rows were literal alternations of the commands this repository runs,
+applied to every project profiled: on one whose gate is spelled `make check` they read zero, the time
+went into whatever class ran next, and the ship phase and the phase past it read zero runs apiece. A
+project says what its own are under `stats.commands` in the `.forge.json` the profiled checkout resolves to — the
 checkout the reading is about, never the one the caller is standing in — and a declaration
 **replaces** the built-in pattern for its class rather than joining it, because a project that has
 said what its gate is has said what its gate is. The command is matched as the text the project
@@ -50,8 +50,11 @@ is unrecognised says so, and so does a phase reachable only past one, which woul
 the most confident zero in the table. Beside them is the one line naming what would declare each
 class (ISS-1586).
 
-Two verbs earn a row per action, because their actions cost differently: a verdict against the other
-records, and a consult in the three shapes it comes in. The whole-set read that earns a review, the
+Three verbs earn a row per action, because their actions cost differently: a verdict against the other
+records, a consult in the three shapes it comes in, and a knowledge write against a knowledge read.
+The store is read where a run orients and written where it says what it learned, two phases at
+opposite ends of a run, so one row over both put an opening read into the figure for what the run
+took away from it. The whole-set read that earns a review, the
 consult a commit gate asks for over what a commit stages, and a recheck are one verb and three
 costs, and folding them left the review's own read indistinguishable from the build's. Which of the
 three a call was is read off the flag its command line carries. A `codex.send` setting in a user's

@@ -119,11 +119,7 @@ export const segmented = (calls) => {
       seen.add(marker.phase);
       phase = marker.phase;
     }
-    const held = phase;
-    /* A `last` call closes the phase it opened rather than leaving the run in it: the ship is the
-       last call of its own phase, never the first of the next. */
-    if (marker?.last && phase === marker.phase) phase = marker.phase + 1;
-    return { ...call, phase: held };
+    return { ...call, phase };
   });
 };
 

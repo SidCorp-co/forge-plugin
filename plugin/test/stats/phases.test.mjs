@@ -1,7 +1,7 @@
 /* The two tables a run's time is divided by; what one call is read as is `runs.test.mjs`. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { PHASES, methodOf } from "../../src/guides/phases.mjs";
@@ -12,6 +12,10 @@ import { runFrom, segmented } from "../../src/stats/runs.mjs";
 import { RUNGS } from "../../src/ladder.mjs";
 import { tempRoom } from "../fixtures.mjs";
 import { PROJECT, ask, at, corpus, result, use } from "./fixture-runs.mjs";
+
+/* Through the classifier, so a case proves the whole chain: the words typed, the class, the row. */
+const phasesOf = (commands) =>
+  segmented(commands.map((command) => ({ class: classOf("Bash", shellOf(command)) }))).map((one) => one.phase);
 
 test("the table has a row per rung and one for the runs that named none, and they add up", () => {
   const run = ask(corpus());
@@ -42,7 +46,14 @@ test("a phase opens on the call that makes it, not on a line that names it", () 
     ["forge codex consult --diff", null],
     ["forge codex consult --recheck", null],
     ["node /w/tools/run.mjs ship", 7],
+    ["node /w/tools/run.mjs finish ISS-99", 8],
+    ["node /w/tools/run.mjs finish-now ISS-99", null],
+    ["node /w/tools/run.mjs ship-it", null],
+    ["forge record gap ISS-99 --none 'the method answered'", 8],
+    ["forge knowledge write module-stats /tmp/body.md --kind reference", 8],
+    ["forge knowledge search 'the phase table'", null],
     ['until ! pgrep -f "tools/run.mjs ship"; do sleep 10; done', null],
+    ['pgrep -f "tools/run.mjs finish"', null],
     ['echo "next: forge record verdict ISS-99" >> /tmp/notes', null],
     ["grep -rn 'forge claim' docs/", null],
     ["grep -n 'sed -i' docs/cli/stats.md", null],
@@ -52,6 +63,63 @@ test("a phase opens on the call that makes it, not on a line that names it", () 
   }
   assert.equal(markerOf("forge record verdict"), null,
     "the verdicts are the proving phase's own writes, so they open nothing: the note past them is that boundary");
+  assert.equal(classOf("Bash", shellOf("forge knowledge search 'the phase table'")), "forge knowledge search",
+    "the store is read in phase 0 and written in the last one, so one row over both filed a run's opening read under what it learned");
+  assert.equal(classOf("Bash", shellOf("forge knowledge write module-stats /tmp/body.md --kind reference")),
+    "forge knowledge write");
+});
+
+/* The method's phase 7 runs from the landing to the close, and the phase after it is the cleanup and
+   the learning. The ship row once closed its own phase, so the run went to 8 at its first landing
+   call and nothing moved it out: the release wait, a resumed landing, a post-ship gate, the
+   verification and the close were all booked to a row labelled for learning (ISS-1714). */
+test("the tail after the landing is the shipping phase's, and the cleanup or a learning write opens the last one", () => {
+  assert.deepEqual(phasesOf([
+    "forge claim ISS-99",
+    "forge record baseline ISS-99 --gate 'npm run check' --result green",
+    "forge codex consult --send bodies plugin/src/stats/runs.mjs",
+    "node /w/tools/run.mjs ship --note x",
+    'until ! pgrep -f "tools/run.mjs ship"; do sleep 10; done',
+    "npm run check",
+    "node /w/tools/run.mjs ship --from 6",
+    "forge record verification ISS-99 --where prod --evidence x",
+    "forge advance ISS-99",
+    "node /w/tools/run.mjs finish ISS-99",
+    "forge record gap ISS-99 --none 'the method answered'",
+    "forge knowledge write module-stats /tmp/body.md --kind reference",
+    "cat plugin/src/stats/runs.mjs",
+  ]), [1, 4, 5, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8],
+  "the release wait, the second landing, the post-ship gate, the verification and the close are the"
+  + " shipping phase's, and the cleanup opens the phase after it");
+});
+
+/* `after` on the last row rather than a rule inside the cutter: the method types a gap where the run
+   met it and reads the knowledge store at phase 0, and without the guard either would take a run
+   that landed nothing to the last phase. */
+test("a run that made no landing call reaches the last phase through none of its openers", () => {
+  const opened = [
+    "forge claim ISS-99",
+    "forge record baseline ISS-99 --gate 'npm run check' --result green",
+  ];
+  for (const [command, what] of [
+    ["forge knowledge write module-stats /tmp/body.md --kind reference", "a write to the store"],
+    ["forge record gap ISS-99 --where phase-5 --lacked x --did y", "a gap typed where it was met"],
+    ["node /w/tools/run.mjs finish ISS-99", "a workspace ended early"],
+  ]) {
+    assert.deepEqual(phasesOf([...opened, command, "cat plugin/src/cli.mjs"]), [1, 4, 4, 4],
+      `${what} before any landing is the phase the run was already in, and opens nothing`);
+  }
+});
+
+/* The label is held to the method's own heading rather than typed beside it: `8 Learn` named the
+   second half of a phase whose first half is the cleanup, and the bucket it labelled held neither
+   (ISS-1714). */
+test("the last phase is labelled for the work the method defines at that number", () => {
+  const part = readFileSync(new URL("../../guides/skills/issue-flow/default/guide/12-phase-8.md",
+    import.meta.url), "utf8");
+  const heading = /^## Phase (\d+) — (.+)$/mu.exec(part);
+  assert.equal(Number(heading[1]), PHASES.length - 1, "which is the number the last row carries");
+  assert.equal(PHASES.at(-1), `${heading[1]} ${heading[2].split(",")[0]}`, heading[2]);
 });
 
 /* One table for the method and the miner, or a brief that says "start at phase 5" and a row that
@@ -170,6 +238,9 @@ const noteRun = (order) => {
   const tail = {
     before: [[50, ...note], [70, "npm run check"], [90, ...ship]],
     after: [[50, ...ship], [70, "npm run check"], [90, ...note]],
+    shipping: [[50, ...ship], [70, ...note], [90, "cat plugin/src/cli.mjs"]],
+    cleaned: [[50, ...ship], [70, "node /w/tools/run.mjs finish ISS-99"], [90, ...note],
+      [110, "cat plugin/src/cli.mjs"]],
     unshipped: [[50, ...note], [70, "npm run check"], [90, "forge claim ISS-99 --pushed --ready"]],
   }[order];
   const calls = [...upTo5, ...tail.map(([start, command], n) => [`n${n}`, start, command])];
@@ -183,10 +254,22 @@ const noteRun = (order) => {
 
 test("the note is counted in phase 6 in either order, and opens no segment behind it", () => {
   const late = noteRun("after");
-  assert.equal(late[6].calls, 1, "a note posted after the landing is phase 6 work, not phase 8's");
-  assert.equal(late[8].calls, 1, "and the gate between the ship and it stays where the run was");
+  assert.equal(late[6].calls, 1, "a note posted after the landing is phase 6 work, not the last phase's");
+  assert.equal(late[8].calls, 0, "and the gate between the ship and it stays where the run was, which is shipping");
   assert.equal(late[5].calls, 1, "the whole-set read that opened the proving is still its own phase's");
-  assert.equal(late[7].calls, 1, "the ship is the last call of its own phase");
+  assert.equal(late[7].calls, 2, "the ship opens its own phase and the gate after it is that phase's");
+
+  const shipping = noteRun("shipping");
+  assert.equal(shipping[6].calls, 1, "a note posted between the landing and the close is phase 6 work");
+  assert.equal(shipping[7].calls, 2,
+    "and the call after it is the shipping phase's, the note having moved the phase for nothing behind it");
+  assert.equal(shipping[8].calls, 0, "which is the phase no call of this run opened");
+
+  const cleaned = noteRun("cleaned");
+  assert.equal(cleaned[6].calls, 1, "a note posted once the cleanup has opened the last phase is still phase 6 work");
+  assert.equal(cleaned[8].calls, 2,
+    "and the call after it is the last phase's, the note moving the phase for nothing behind it either side of that boundary");
+  assert.equal(cleaned[7].calls, 1, "the landing alone, the cleanup having closed the phase it opened");
 
   const early = noteRun("before");
   assert.equal(early[6].calls, 1, "a note posted before the ship is the same one call");

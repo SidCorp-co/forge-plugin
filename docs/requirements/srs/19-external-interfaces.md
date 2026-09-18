@@ -190,6 +190,11 @@ it. Reading is all this product does there.
   WHEN a run's calls are cut into phases THEN the CLI SHALL open the review phase only on a
   whole-set consult taken after the build has begun, and SHALL count in the phase the run was
   already in both a consult taken before that and a consult sent only what a commit stages.
+- **AC-19-8-28** · Rev: 1 · Proof: plugin/test/stats/phases.test.mjs "the tail after the landing is the shipping phase's, and the cleanup or a learning write opens the last one"
+  WHEN a run's calls are cut into phases THEN the CLI SHALL count the wait for the release, the
+  reading of what now runs and the closing of the work in the phase the landing opened, SHALL open
+  the phase after it only on the call that ends the run's workspace or on a write of what the run
+  learned, and SHALL name each phase for the work the method defines at that number.
 - **AC-19-8-7** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "the edits line names each route with its calls and characters, and the ships line counts passes, resumes and rejected pushes"
   WHEN a profile is printed THEN the CLI SHALL name each route a run wrote files through with its
   calls per run and the characters a call carried, and SHALL count the passes a landing took, the
