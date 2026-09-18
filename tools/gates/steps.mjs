@@ -45,49 +45,60 @@ export const WHOLE_TREE_TESTS = [
 
 export const TEST_FILE = /^plugin\/test\/.*\.test\.mjs$/u;
 
-/* The ceiling a test file gets while the audit cannot derive its set, and never the answer: `where`
-   is the file, `reads` what it may read, `blind` what justified the claim. One key per file, since a
-   file enrolled under a directory would inherit a ceiling nobody read it against. A file whose
-   unfollowable child reads the whole tree belongs in none of this: `run-lock.test.mjs` greps every
-   `.mjs` git knows and is left out for it, and no check here can find the next one (ISS-1761). */
-const RUN = [".", ".forge.json", "plugin/guides", "plugin/hooks/vendor", "plugin/src",
-  "plugin/test/fixtures.mjs", "plugin/test/run", "tools"];
+/* The ceiling a test file gets while the audit cannot derive its set: `where` the file, `reads` what
+   it may read, `blind` the route that justified the claim and what that route was measured to read
+   here. One key per file, a file enrolled under a directory inheriting a ceiling nobody read it
+   against; `run-lock.test.mjs` greps every `.mjs` git knows, so it is left out rather than given one
+   (ISS-1761), as is `doctor.test.mjs`, one of whose children runs this CLI's `doctor` in the checkout
+   itself. A ceiling answers for every route that blinds its files and nothing else, the audit's own
+   reads being unioned in and failing the gate where they escape, so a directory stands only where a
+   route reaches it (ISS-1774). */
+const COPIED = "cpSync: plugin/src whole, plugin/hooks/vendor whole and the tools closure of run.mjs";
+const WATCHED = "watch: a watch on a directory outside this tree";
+const CLI = "a node child that left no record: the CLI, reading plugin/ and 168 of plugin/src's 190";
+const SPAWNED = "a node child that left no record: a node standing here, importing plugin/test/run";
+const SHELL = "a shell asking the box where git is, which reads no path in this repository";
+
+const RUN = [".", ".forge.json", "plugin/hooks/vendor", "plugin/src", "plugin/test/fixtures.mjs",
+  "plugin/test/run", "tools"];
+
+const LANDING = [...RUN, "plugin/guides/skills"];
 
 const DOCTOR = [".", ".forge.json", "plugin/.claude-plugin", "plugin/agents", "plugin/guides",
   "plugin/hooks", "plugin/skills", "plugin/src", "plugin/test/fixtures.mjs", "plugin/vi-natural",
   "tools/room.mjs"];
 
-const GATE = [".", ".forge.json", "plugin/src", "plugin/test/fixtures.mjs",
+const GATE = [".", ".forge.json", "plugin/src/flow", "plugin/src/git", "plugin/src/hooks",
+  "plugin/src/prose.mjs", "plugin/src/resolve", "plugin/test/fixtures.mjs",
   "plugin/test/tools/gates", "tools"];
 
 export const DECLARED_READS = [
-  { where: "plugin/test/cli/doctor/job.test.mjs", reads: DOCTOR, blind: "a node child that left no record" },
-  { where: "plugin/test/cli/doctor/machine-keys.test.mjs", reads: DOCTOR, blind: "a node child that left no record" },
-  { where: "plugin/test/cli/doctor/off.test.mjs", reads: DOCTOR, blind: "a node child that left no record" },
-  { where: "plugin/test/cli/doctor/skills.test.mjs", reads: DOCTOR, blind: "a node child that left no record" },
-  { where: "plugin/test/run/landing/auto-release.test.mjs", reads: RUN, blind: "watch: a watch on what changes" },
-  { where: "plugin/test/run/landing/batch.test.mjs", reads: RUN, blind: "watch: a watch on what changes" },
-  { where: "plugin/test/run/landing/discovery.test.mjs", reads: RUN, blind: "watch: a watch on what changes" },
-  { where: "plugin/test/run/landing/independent.test.mjs", reads: RUN, blind: "watch: a watch on what changes" },
-  { where: "plugin/test/run/landing/land-ready.test.mjs", reads: RUN, blind: "watch: a watch on what changes" },
-  { where: "plugin/test/run/landing/moved-branch.test.mjs", reads: RUN, blind: "watch: a watch on what changes" },
-  { where: "plugin/test/run/landing/moved-pin.test.mjs", reads: RUN, blind: "watch: a watch on what changes" },
-  { where: "plugin/test/run/landing/resume.test.mjs", reads: RUN, blind: "watch: a watch on what changes" },
-  { where: "plugin/test/run/processes/orphans.test.mjs", reads: RUN, blind: "a node child that left no record" },
-  { where: "plugin/test/run/release/run-note.test.mjs", reads: RUN, blind: "cpSync: a tree copied whole" },
-  { where: "plugin/test/run/release/run-released-version.test.mjs", reads: RUN, blind: "cpSync: a tree copied whole" },
-  { where: "plugin/test/run/run-checkpoint.test.mjs", reads: RUN, blind: "cpSync: a tree copied whole" },
-  { where: "plugin/test/run/run-install.test.mjs", reads: RUN, blind: "cpSync: a tree copied whole" },
-  { where: "plugin/test/run/run-replayed.test.mjs", reads: RUN, blind: "cpSync: a tree copied whole" },
-  { where: "plugin/test/run/run-review.test.mjs", reads: RUN, blind: "cpSync: a tree copied whole" },
-  { where: "plugin/test/run/run-script.test.mjs", reads: RUN, blind: "cpSync: a tree copied whole" },
-  { where: "plugin/test/run/run-shadowed-ref.test.mjs", reads: RUN, blind: "cpSync: a tree copied whole" },
-  { where: "plugin/test/run/run-wrote-line.test.mjs", reads: RUN, blind: "cpSync: a tree copied whole" },
-  { where: "plugin/test/run/workspace/finish.test.mjs", reads: RUN, blind: "cpSync: a tree copied whole" },
-  { where: "plugin/test/run/workspace/links.test.mjs", reads: RUN, blind: "cpSync: a tree copied whole" },
-  { where: "plugin/test/run/workspace/start.test.mjs", reads: RUN, blind: "cpSync: a tree copied whole" },
-  { where: "plugin/test/tools/doctor.test.mjs", reads: DOCTOR, blind: "a node child that left no record" },
-  { where: "plugin/test/tools/gates.test.mjs", reads: GATE, blind: "a shell asking the box where git is" },
+  { where: "plugin/test/cli/doctor/job.test.mjs", reads: DOCTOR, blind: CLI },
+  { where: "plugin/test/cli/doctor/machine-keys.test.mjs", reads: DOCTOR, blind: CLI },
+  { where: "plugin/test/cli/doctor/off.test.mjs", reads: DOCTOR, blind: CLI },
+  { where: "plugin/test/cli/doctor/skills.test.mjs", reads: DOCTOR, blind: CLI },
+  { where: "plugin/test/run/landing/auto-release.test.mjs", reads: LANDING, blind: WATCHED },
+  { where: "plugin/test/run/landing/batch.test.mjs", reads: LANDING, blind: WATCHED },
+  { where: "plugin/test/run/landing/discovery.test.mjs", reads: LANDING, blind: WATCHED },
+  { where: "plugin/test/run/landing/independent.test.mjs", reads: LANDING, blind: WATCHED },
+  { where: "plugin/test/run/landing/land-ready.test.mjs", reads: LANDING, blind: WATCHED },
+  { where: "plugin/test/run/landing/moved-branch.test.mjs", reads: LANDING, blind: WATCHED },
+  { where: "plugin/test/run/landing/moved-pin.test.mjs", reads: LANDING, blind: WATCHED },
+  { where: "plugin/test/run/landing/resume.test.mjs", reads: LANDING, blind: WATCHED },
+  { where: "plugin/test/run/processes/orphans.test.mjs", reads: RUN, blind: SPAWNED },
+  { where: "plugin/test/run/release/run-note.test.mjs", reads: RUN, blind: COPIED },
+  { where: "plugin/test/run/release/run-released-version.test.mjs", reads: RUN, blind: COPIED },
+  { where: "plugin/test/run/run-checkpoint.test.mjs", reads: RUN, blind: COPIED },
+  { where: "plugin/test/run/run-install.test.mjs", reads: RUN, blind: COPIED },
+  { where: "plugin/test/run/run-replayed.test.mjs", reads: RUN, blind: COPIED },
+  { where: "plugin/test/run/run-review.test.mjs", reads: RUN, blind: COPIED },
+  { where: "plugin/test/run/run-script.test.mjs", reads: RUN, blind: COPIED },
+  { where: "plugin/test/run/run-shadowed-ref.test.mjs", reads: RUN, blind: COPIED },
+  { where: "plugin/test/run/run-wrote-line.test.mjs", reads: RUN, blind: COPIED },
+  { where: "plugin/test/run/workspace/finish.test.mjs", reads: RUN, blind: COPIED },
+  { where: "plugin/test/run/workspace/links.test.mjs", reads: RUN, blind: COPIED },
+  { where: "plugin/test/run/workspace/start.test.mjs", reads: RUN, blind: COPIED },
+  { where: "plugin/test/tools/gates.test.mjs", reads: GATE, blind: SHELL },
 ];
 
 export const declarationFor = (file, table = DECLARED_READS) => {
