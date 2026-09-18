@@ -168,3 +168,24 @@ test("a child that stood outside this repository and was handed nothing in it ho
     rmSync(where.at, { recursive: true, force: true });
   }
 });
+
+/* The exemption ISS-1793 adds, at the one place that spends a test file for it: a shell asked where a
+   program is stood in the checkout and opened nothing there, while one asked to read a tracked path
+   is the child nothing here can follow. Which shell command lines are which is shell.test.mjs. */
+test("a shell that opens no file derives its file's set, and one that reads the tree still blinds it", () => {
+  const where = room();
+  const out = join(where.at, "out");
+  mkdirSync(out, { recursive: true });
+  const ran = (args) => JSON.stringify({ ticket: null, argv: [join(where.root, FILE)], paths: [FILE],
+    dirs: [], trees: [], blind: [], done: true,
+    spawned: [{ ticket: "gone", file: "/bin/sh", cwd: where.root, args, pathIn: false, funcIn: false }] });
+  try {
+    writeFileSync(join(out, "own-1.json"), ran(["-c", "command -v git"]));
+    assert.deepEqual(setsFrom(out, where.root)[0].blind, []);
+    writeFileSync(join(out, "own-1.json"), ran(["-c", `cat ${FILE}`]));
+    assert.deepEqual(setsFrom(out, where.root)[0].blind,
+      [child("/bin/sh", where.root, ["-c", `cat ${FILE}`])]);
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});

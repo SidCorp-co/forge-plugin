@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import { digestFile, digestIn } from "../ledger.mjs";
 import { READS_DIR, READS_ROOT, READS_TICKET } from "./audit.mjs";
+import { opensNothing } from "./shell.mjs";
 import { DECLARED_READS, declarationFor, TEST_FILE } from "../steps.mjs";
 import { under } from "../scope.mjs";
 
@@ -52,13 +53,13 @@ export const readsDir = (record) => join(record, "test-reads");
 export const manifestsIn = (files) => files.filter((one) => MANIFEST.test(one));
 
 /** What a recorded set answers to beyond its own paths: this node, the launcher, the node options a
- *  step's processes inherit, the audit, this collector, and the declarations — a claim widened or
- *  dropped unseats the entry written under the ceiling before it, and nothing else can, `matchIn`
- *  answering with the first entry whose own body digests to its own name. */
+ *  step's processes inherit, the audit, what it reads of a shell, this collector, and the
+ *  declarations — a claim widened or dropped unseats the entry written under the ceiling before it,
+ *  and nothing else can, `matchIn` answering with the entry whose body digests to its own name. */
 export const contextOf = (argv, options = process.env.NODE_OPTIONS ?? "", table = DECLARED_READS) => {
   const hash = createHash("sha256").update(`${process.version}\n`).update(`${argv.join(" ")}\n`)
     .update(`${options}\n`).update(`${JSON.stringify(table)}\n`);
-  for (const one of ["./audit.mjs", "./sets.mjs"]) {
+  for (const one of ["./audit.mjs", "./sets.mjs", "./shell.mjs"]) {
     hash.update(digestFile(fileURLToPath(new URL(one, import.meta.url))));
   }
   return hash.digest("hex").slice(0, DIGEST_LENGTH);
@@ -166,8 +167,10 @@ const within = (root, at) => {
 
 /** Whether a child that left no record could have read this repository at all: it could where it
  *  stood in the tree, or where something it was handed names a path in it. A child that stood
- *  outside and was handed nothing in here read none of this content, and holds nothing back. */
+ *  outside and was handed nothing in here read none of this content, and holds nothing back — and so
+ *  does one whose own command line says it opened no file wherever it stood (ISS-1793). */
 export const reaches = (root, one) => {
+  if (opensNothing(one)) return false;
   const cwd = typeof one.cwd === "string" ? one.cwd : root;
   if (within(root, cwd)) return true;
   return [one.file, ...(one.args ?? [])].flatMap((each) => String(each).split(/\s+/u))

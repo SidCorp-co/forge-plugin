@@ -16,6 +16,21 @@ set, down to one that spent nothing at all, still records its own pass: what it 
 back on a record answering for this same content, so the step is proven here exactly as far as those
 records are — and without it a second gate at content already passed re-decides every file again.
 
+**A child that left no record is not always a child that could have read.** What a shell was asked to
+run is on its command line, and four things have to hold before that is read as opening nothing. The
+shell is \`sh\` or \`dash\`, named by the record and never assumed, neither of which reads a startup file
+when it is handed \`-c\`. The environment it ran under reaches nothing: no directory of its \`PATH\` lies
+inside this tree, since a name resolved along one would be answered from this tree's content, and
+nothing in it can put something else behind a builtin's name. The line reads whole as bare words,
+single-quoted runs and backslash escapes, an expansion, a substitution, a redirection, a list, a pipe,
+a glob or a double quote refusing it outright. And the program is one of the shell's own builtins that
+opens no file: the writers, whose operands are text they print rather than paths they open, and the
+lookups, which say where a name would be found and are refused an operand holding a slash, that being
+a path they answer about. Failing any of the four blinds exactly as before, so a shape added to the
+reading narrows what is blind and widens nothing that is trusted. It reaches a shell and nothing else:
+a node child handed a path into the checkout can read it, and closing that boundary is a test file's
+own work.
+
 Each step says what it spent in the unit it has. A step whose unit is the file names the files it
 spent of the files it knows, the seconds, and how many it held back — \`test: 6 of 290 file(s), 41s
 (284 held back, 604s when they last ran)\`. The files it knows are its whole list before any
@@ -58,7 +73,7 @@ says the same of its files, whether or not it held any of them back. Both printe
 silence is what hid ISS-1739 for a day after ISS-654 landed (ISS-1746).
 
 A file the audit could not follow to the end records nothing at all, so nothing can ever say it is
-unaffected: 82 of this suite's 297 files, and 2154s of the 3600s its own price record holds. Such a
+unaffected: 81 of this suite's 305 files, and 991s of the 2255s its own price record holds. Such a
 file may instead be given a **declaration** in \`tools/gates/steps.mjs\` — the repository paths it
 may read, written against the file by somebody who read it. A declaration is a ceiling and never the
 answer: the derived set is the answer, and this is what a file gets until its blindness is fixed.

@@ -1,6 +1,6 @@
 /* A test file the audit could not follow to the end records nothing, so nothing can ever say it is
-   unaffected and the gate spends it on every change: 82 of this suite's 297 files, 2154s of the
-   3600s its price record holds. These are the rules a declared ceiling stands on (ISS-1761). */
+   unaffected and the gate spends it on every change — what that costs this suite is a figure the
+   gate's own help states. These are the rules a declared ceiling stands on (ISS-1761). */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { rmSync } from "node:fs";
@@ -49,7 +49,7 @@ const again = ({ root, dir }, context = CONTEXT) => {
 };
 
 /* The whole point: the reads were computed and thrown away, so a file nothing can ever say is
-   unaffected was spent on every change — 82 of this suite's 297 files (ISS-1761). */
+   unaffected was spent on every change (ISS-1761). */
 test("a blind file a declaration covers is recorded and held back at that same content", () => {
   const where = room({ "plugin/src/one.mjs": "one\n" });
   try {

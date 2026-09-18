@@ -46,19 +46,16 @@ export const WHOLE_TREE_TESTS = [
 export const TEST_FILE = /^plugin\/test\/.*\.test\.mjs$/u;
 
 /* The ceiling a test file gets while the audit cannot derive its set: `where` the file, `reads` what
-   it may read, `blind` the route that justified the claim and what that route was measured to read
-   here. One key per file, a file enrolled under a directory inheriting a ceiling nobody read it
-   against; `run-lock.test.mjs` greps every `.mjs` git knows, so it is left out rather than given one
-   (ISS-1761), as is `doctor.test.mjs`, one of whose children runs this CLI's `doctor` in the checkout
-   itself. A ceiling answers for every route that blinds its files and nothing else, the audit's own
-   reads being unioned in and failing the gate where they escape, so a directory stands only where a
-   route reaches it or the files themselves read across it, which each string below says (ISS-1774). */
+   it may read, `blind` the route that justified the claim and what it was measured to read here. One
+   key per file, a file enrolled under a directory inheriting a ceiling nobody read it against;
+   `run-lock.test.mjs`, which greps every `.mjs` git knows, and `doctor.test.mjs`, whose child runs
+   this CLI in the checkout, are left out instead (ISS-1761). A ceiling answers for every route that
+   blinds its files and nothing else, the audit's own reads unioned in and failing the gate where they
+   escape, so a directory stands only where a route reaches it or the files read across it (ISS-1774). */
 const COPIED = "cpSync: plugin/src whole, plugin/hooks/vendor whole and the tools closure of run.mjs";
 const WATCHED = "watch: a directory outside this tree; the eight read 189 of plugin/src's 190";
 const CLI = "a node child that left no record: the CLI, reading plugin/ and 168 of plugin/src's 190";
 const SPAWNED = "a node child that left no record: a node standing here, importing plugin/test/run";
-const SHELL = "a shell asking the box where git is, which reads no path in this repository";
-
 const RUN = [".", ".forge.json", "plugin/hooks/vendor", "plugin/src", "plugin/test/fixtures.mjs",
   "plugin/test/run", "tools"];
 
@@ -67,10 +64,6 @@ const LANDING = [...RUN, "plugin/guides/skills"];
 const DOCTOR = [".", ".forge.json", "plugin/.claude-plugin", "plugin/agents", "plugin/guides",
   "plugin/hooks", "plugin/skills", "plugin/src", "plugin/test/fixtures.mjs", "plugin/vi-natural",
   "tools/room.mjs"];
-
-const GATE = [".", ".forge.json", "plugin/src/flow", "plugin/src/git", "plugin/src/hooks",
-  "plugin/src/prose.mjs", "plugin/src/resolve", "plugin/test/fixtures.mjs",
-  "plugin/test/tools/gates", "tools"];
 
 export const DECLARED_READS = [
   { where: "plugin/test/cli/doctor/job.test.mjs", reads: DOCTOR, blind: CLI },
@@ -98,7 +91,6 @@ export const DECLARED_READS = [
   { where: "plugin/test/run/workspace/finish.test.mjs", reads: RUN, blind: COPIED },
   { where: "plugin/test/run/workspace/links.test.mjs", reads: RUN, blind: COPIED },
   { where: "plugin/test/run/workspace/start.test.mjs", reads: RUN, blind: COPIED },
-  { where: "plugin/test/tools/gates.test.mjs", reads: GATE, blind: SHELL },
 ];
 
 export const declarationFor = (file, table = DECLARED_READS) => {
