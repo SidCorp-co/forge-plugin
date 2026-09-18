@@ -68,13 +68,15 @@ const walked = (root, one) => {
     return "unreadable";
   }
   if (found?.isSymbolicLink()) {
-    const to = linkInto(root, at);
-    if (to !== null) return `link into ${contents(root, to)}`;
+    let text;
     try {
-      return `link ${readlinkSync(at)}`;
+      text = readlinkSync(at);
     } catch {
-      return "link unreadable";
+      text = "unreadable";
     }
+    const to = linkInto(root, at);
+    // Its own text as well as what it points at: a copy keeps the link, and a reader may ask for either.
+    return to === null ? `link ${text}` : `link ${text} into ${contents(root, to)}`;
   }
   if (!found?.isDirectory()) return `file ${hashed(root, one)}`;
   let names;
@@ -91,16 +93,25 @@ const walked = (root, one) => {
   return `dir ${hash.digest("hex")}`;
 };
 
+let ringed = false;
+
 const contents = (root, one) => {
   if (walks.has(one)) return walks.get(one);
-  // A link into what is already being walked is a ring, and a ring has no content of its own.
-  if (walking.has(one)) return "a ring of links";
+  if (walking.has(one)) {
+    ringed = true;
+    return "a ring of links";
+  }
   walking.add(one);
+  const outer = ringed;
+  ringed = false;
   try {
     const found = walked(root, one);
-    walks.set(one, found);
+    /* A ring has no content of its own, and a digest that stopped at one answers for the walk that
+       reached it: cached, it would hold a second claim over what it reaches the long way round. */
+    if (!ringed) walks.set(one, found);
     return found;
   } finally {
+    ringed = ringed || outer;
     walking.delete(one);
   }
 };
@@ -109,6 +120,7 @@ export const forgetReads = () => {
   held.clear();
   walks.clear();
   walking.clear();
+  ringed = false;
 };
 
 export const readsDir = (record) => join(record, "test-reads");

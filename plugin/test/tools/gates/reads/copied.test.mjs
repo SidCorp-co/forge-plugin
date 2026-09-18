@@ -6,10 +6,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync }
+  from "node:fs";
 import { join } from "node:path";
 
-import { auditEnv, contextOf, forgetReads, recordSets, selectTests, setsFrom }
+import { auditEnv, contextOf, forgetReads, recordSets, selectTests, setDigest, setsFrom }
   from "../../../../../tools/gates/reads/sets.mjs";
 import { prefixOf } from "../../../../../tools/gates/reads/placing.mjs";
 import { write } from "../scratch.mjs";
@@ -227,6 +228,43 @@ test("a link kept inside a copied source carries the content it points at into t
     recorded(where, setOf({ whole: new Set(["plugin/fixture"]) }));
     write(where.root, "plugin/real/one.mjs", "one, edited\n");
     assert.deepEqual(again(where), [FILE], "the copy carries the link, and reading through it reads this");
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+/* What a copy keeps is the link, so its own text is a claim beside what it points at: two trees of one
+   content are one digest, and a reader asking the link where it goes is answered differently. */
+test("a link retargeted to a tree of the same content spends the file that copied it", () => {
+  const where = room({ "plugin/real/one.mjs": "same\n", "plugin/other/one.mjs": "same\n",
+    "plugin/fixture/kept.mjs": "kept\n" });
+  try {
+    symlinkSync(join(where.root, "plugin", "real"), join(where.root, "plugin", "fixture", "alias"));
+    recorded(where, setOf({ whole: new Set(["plugin/fixture"]) }));
+    assert.deepEqual(again(where), []);
+    unlinkSync(join(where.root, "plugin", "fixture", "alias"));
+    symlinkSync(join(where.root, "plugin", "other"), join(where.root, "plugin", "fixture", "alias"));
+    assert.deepEqual(again(where), [FILE], "the content below is the same, and the link is not");
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+/* Two claims of one process share the walk's cache, and the one digested inside the other's walk
+   stopped at the ring between them: kept, it answers for a claim whose own walk never stopped. */
+test("a digest that stopped at a ring is not the answer for another claim", () => {
+  const where = room({ "plugin/a/one.mjs": "one\n", "plugin/b/kept.mjs": "kept\n" });
+  try {
+    symlinkSync("../b", join(where.root, "plugin", "a", "toB"));
+    symlinkSync("../a", join(where.root, "plugin", "b", "toA"));
+    const of = (one) => setDigest(where.root, { paths: [], dirs: [], trees: [], whole: [one] }, CONTEXT);
+    forgetReads();
+    of("plugin/a");
+    const before = of("plugin/b");
+    write(where.root, "plugin/a/one.mjs", "one, edited\n");
+    forgetReads();
+    of("plugin/a");
+    assert.notEqual(of("plugin/b"), before, "b reaches that file through its own link");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
