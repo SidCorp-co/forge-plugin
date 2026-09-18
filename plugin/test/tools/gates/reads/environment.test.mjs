@@ -154,12 +154,12 @@ test("a name the search path would answer out of this repository is recorded as 
     assert.equal(ran("command -v helper").pathIn, true,
       "the directory stands outside and the name in it does not");
     assert.equal(ran("command -v git").pathIn, false, "and a name none of them answers from here");
-    // The program's own name is looked up along the same path as anything else on the line.
-    symlinkSync(join(where.root, "bin/helper"), join(outside, "sh"));
-    assert.equal(ran("true").pathIn, true, "the shell itself is a name this tree could answer");
     // The words this asks about are the words the exemption reads, quotes and escapes and all.
     assert.equal(ran("command -v 'helper'").pathIn, true, "however the line spells that name");
     assert.equal(ran(`command -v hel\\per`).pathIn, true, "and however it escapes it");
+    // The program's own name is looked up along the same path as anything else on the line.
+    symlinkSync(join(where.root, "bin/helper"), join(outside, "sh"));
+    assert.equal(ran("true").pathIn, true, "the shell itself is a name this tree could answer");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
