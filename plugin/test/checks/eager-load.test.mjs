@@ -74,6 +74,17 @@ test("a handler imported anywhere the entry reaches is one finding, naming the m
     "the finding names the edge somebody wrote, not the whole chain");
 });
 
+test("a handler import is read behind a helper-only one that reached the module first", () => {
+  const graph = new Map([...GRAPH,
+    ["plugin/src/commands.mjs", ["plugin/src/helper.mjs", "plugin/src/beside.mjs"]],
+    ["plugin/src/helper.mjs", ["plugin/src/codex/codex.mjs"]]]);
+  const texts = { ...TEXTS,
+    "plugin/src/commands.mjs": `${TEXTS["plugin/src/commands.mjs"]}import { held } from "./helper.mjs";\n`,
+    "plugin/src/helper.mjs": 'import { repoRoot } from "./codex/codex.mjs";\n' };
+  assert.equal(said(texts, graph).length, 1,
+    "the edge that took the handler is behind the one a walk arrived by, and is read all the same");
+});
+
 test("what the same module is imported for decides it, and a namespace takes everything", () => {
   assert.deepEqual(said({ ...TEXTS, "plugin/src/beside.mjs": 'import { repoRoot } from "./codex/codex.mjs";\n' }),
     [], "a binding that is not the handler is another rule's subject");

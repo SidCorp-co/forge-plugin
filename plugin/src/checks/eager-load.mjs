@@ -3,7 +3,9 @@
    ISS-1775, and an import put back beside the table undoes a loader in it without being visible in
    it. Which module answers which verb is read off the table's own loaders, and a dynamic import is
    out of this graph on purpose: it is what a path the invocation did not take does not spend. A
-   module reached for something other than its handler is another rule's subject, not this one's. */
+   module reached for something other than its handler is another rule's subject, not this one's —
+   so every reachable edge into a verb's module is read, and not the one a walk happened to arrive
+   by, an earlier helper-only import having hidden a handler import behind it otherwise. */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 
@@ -56,15 +58,16 @@ export const takesFrom = (text, tail, name) => {
 };
 
 export const problems = (edges, entry, verbs, read) => {
-  const by = reachedFrom(edges, entry);
   const found = [];
-  for (const [module, verb] of verbs) {
-    const from = by.get(module);
-    if (from === undefined || from === null) continue;
-    if (!takesFrom(read(from), `/${module.split("/").pop()}`, verb)) continue;
-    found.push(`${entry} loads the \`${verb}\` handler: ${from} imports it from ${module} at the top `
-      + `of the file, so every call this entry takes pays for \`forge ${verb}\` whatever it was asked `
-      + "for. The command table's loaders are the one route to a handler — take it there.");
+  for (const from of reachedFrom(edges, entry).keys()) {
+    for (const module of edges.get(from) ?? []) {
+      const verb = verbs.get(module);
+      if (!verb) continue;
+      if (!takesFrom(read(from), `/${module.split("/").pop()}`, verb)) continue;
+      found.push(`${entry} loads the \`${verb}\` handler: ${from} imports it from ${module} at the top `
+        + `of the file, so every call this entry takes pays for \`forge ${verb}\` whatever it was asked `
+        + "for. The command table's loaders are the one route to a handler — take it there.");
+    }
   }
   return found;
 };
