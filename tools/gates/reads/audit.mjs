@@ -152,10 +152,8 @@ const start = (out, root) => {
 
   const entry = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
 
-  /* Where a name with no slash would be looked for, through the links as well as by the name: an
-     entry this cannot place, and one it cannot resolve, each count as inside the tree. Kept by the
-     path it was read from, a spawn per test case otherwise resolving the same dozen entries again. */
-  const searched = new Map();
+  /* Where a name with no slash would be looked for, through the links as well as by the name: one
+     this cannot place, and one it cannot resolve, count as inside. Asked per spawn and never kept. */
   const reaching = (one) => {
     if (!one.startsWith("/")) return true;
     if (inside(one) !== null) return true;
@@ -165,11 +163,7 @@ const start = (out, root) => {
       return true;
     }
   };
-  const searching = (env) => {
-    const path = String(env.PATH ?? "");
-    if (!searched.has(path)) searched.set(path, path.split(":").some(reaching));
-    return searched.get(path);
-  };
+  const searching = (env) => String(env.PATH ?? "").split(":").some(reaching);
 
   // What could stand behind a builtin's name: an exported function, or a startup file read first.
   const renaming = (env) => Object.entries(env).some(([key, value]) => key.startsWith("BASH_FUNC_")
