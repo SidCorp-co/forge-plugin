@@ -9,7 +9,9 @@ export const INSTEAD = "Ask the kind's own row — `edgeRow(kind)`, `ordersEdge(
   + " column rather than the comparison.";
 
 const NAMES = String.raw`RELATES|"blocks"|"relates"|'blocks'|'relates'`;
-const COMPARED = new RegExp(String.raw`(?:(?:===|!==)\s*(?:${NAMES})|(?:${NAMES})\s*(?:===|!==))`, "gu");
+const HELD = String.raw`\(*\s*(?:${NAMES})\s*\)*`;
+const COMPARED = new RegExp(
+  String.raw`(?:(?:===|!==)\s*${HELD}|${HELD}\s*(?:===|!==)|\bcase\s+${HELD}\s*:)`, "gu");
 
 export const comparedIn = (text, where) =>
   [...String(text).matchAll(COMPARED)].map(({ index, 0: said }) =>

@@ -52,6 +52,18 @@ test("both operators, both spellings and both sides of the comparison are the sa
   assert.equal(each("if ('relates' !== kind) return 1;"), 1);
 });
 
+/* The two readings a comparison takes when it is not written as one: a switch decides the same
+   thing branch by branch, and a parenthesised operand is the same test with a bracket on it. */
+test("a switch on the kind and a parenthesised operand are the same decision, and are found", () => {
+  const each = (line) => comparedIn(line, "plugin/src/one.mjs").length;
+  assert.equal(each('switch (edge.kind) { case "blocks": return 1; default: return 0; }'), 1);
+  assert.equal(each("switch (edge.kind) { case RELATES: return 1; default: return 0; }"), 1);
+  assert.equal(each('if (kind === ("blocks")) return 1;'), 1);
+  assert.equal(each('if (("relates") !== kind) return 1;'), 1);
+  assert.deepEqual(comparedIn('const kinds = { "blocks": 1, "relates": 2 };', "plugin/src/one.mjs"), [],
+    "a key spelt like a kind decides nothing, and a colon after one is not a case arm");
+});
+
 /* Only an equality test: a kind handed on as a value, filed as one or printed in a usage row
    decides nothing about what it means, and refusing those would stand in the way of every call that
    has a kind to hand. */

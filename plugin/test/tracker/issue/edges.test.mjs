@@ -224,6 +224,27 @@ test("two edges of one kind are sent to the read, not to a flag that cannot tell
   delete rows[0].relations;
 });
 
+/* A kind the pair carries twice selects nothing, so it is not offered: the route out of a refusal
+   has to be a call that works, and the one kind still standing alone is what the line names. */
+test("the kind offered is one that selects a single edge, never one the pair carries twice", async () => {
+  rows[0].relations = {
+    blocks: [
+      { edgeId: "e-a", kind: "blocks", toIssueId: "u-ISS-47", otherDisplayId: "ISS-47", otherStatus: "open" },
+      { edgeId: "e-b", kind: "blocks", toIssueId: "u-ISS-47", otherDisplayId: "ISS-47", otherStatus: "open" },
+      { edgeId: "e-c", kind: "relates", toIssueId: "u-ISS-47", otherDisplayId: "ISS-47", otherStatus: "open" },
+    ],
+    blockedBy: [],
+  };
+  await read("ISS-45");
+  state.calls = [];
+  const run = await ran("issue", "ISS-45", "--unlink", "ISS-47");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /forge issue ISS-45 --unlink ISS-47 --kind relates/u, run.stderr);
+  assert.doesNotMatch(run.stderr, /--kind blocks/u, "the kind it carries twice would refuse a second time");
+  assert.equal((state.calls ?? []).filter((one) => one.method === "DELETE").length, 0);
+  delete rows[0].relations;
+});
+
 /* Every input a call is given is used or refused: `--kind` names one of a pair's edges, so a call
    that removes none of them has typed a flag that could only have been read and dropped. */
 test("--kind on any call but a removal is refused, and nothing is sent", async () => {

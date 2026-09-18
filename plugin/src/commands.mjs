@@ -157,8 +157,7 @@ const newUsage = (goals) =>
   [helpOf("new"), NEW_FLAGS, routingBlock(), goalBlock(goals, "A body filed here").join("\n"), KINDS_HELP]
     .join("\n\n");
 
-/* One flag per kind of edge, one for its removal, and `--kind` for which edge a removal takes. What
-   each kind means, and the column each answer is read off: tracker/edges/kinds.mjs. */
+/* What each kind means, and the column each answer below is read off: tracker/edges/kinds.mjs. */
 const kindOf = (edge) => edge?.kind ?? "an unnamed kind";
 
 const kindBelongsTo = (wrote) =>
@@ -179,20 +178,18 @@ const edgesBetween = async (subjectId, subject, otherId, other) => {
   return found;
 };
 
-/* One edge, or a refusal saying which of the two it could not do: name no edge of the pair, or name
-   several. The route out is `--kind` only where a kind still tells them apart — a pair holding two
-   of one kind, or an edge the tracker named no kind for, is sent to the read instead of to a flag
-   that would answer it no better than the order they came in. */
+/* One edge, or a refusal saying which it could not do: name an edge the pair has, or name one of
+   them. `--kind` is offered only for a kind that selects exactly one edge, so no route out refuses. */
 const oneEdgeOf = (held, subject, other, kind) => {
   const wanted = kind === undefined ? held : held.filter((edge) => edge.kind === kind);
   if (wanted.length === 1) return wanted[0];
   const has = [...new Set(held.map(kindOf))].join(", ");
   const apart = [...new Set((wanted.length ? wanted : held).map((edge) => edge.kind))]
-    .filter((one) => EDGE_KINDS.includes(one));
+    .filter((one) => EDGE_KINDS.includes(one) && held.filter((edge) => edge.kind === one).length === 1);
   const said = wanted.length
     ? `${subject} and ${other} have ${wanted.length} edges between them, ${has}, and --unlink removes one`
     : `${subject} and ${other} have no ${kind} edge between them, and what they do have is ${has}`;
-  fail(`issue: ${said}. Nothing was sent. ${apart.length > (wanted.length ? 1 : 0)
+  fail(`issue: ${said}. Nothing was sent. ${apart.length
     ? `Name which:\n  forge issue ${subject} --unlink ${other} --kind ${apart[0]}`
     : `Read them with the id the tracker holds each under:\n  forge issue ${subject} --fields relations`}`);
   return null;
