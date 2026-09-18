@@ -268,7 +268,8 @@ test("all three `--set`-taking verbs refuse a malformed pair in the one sentence
   assert.match(project.stderr, /^project: --set takes/mu, "and the verb that has a name for itself keeps it");
 });
 
-const SPLIT = /\.indexOf\("="\)/gu;
+/* Without `g`: a walk reuses this, and a sticky `lastIndex` left by one file reads the next as clean. */
+const SPLIT = /\.indexOf\("="\)/u;
 const ROOT = new URL("../../src", import.meta.url).pathname;
 const OWNER = "resolve/flags.mjs";
 
@@ -281,7 +282,7 @@ const splitters = (dir = ROOT, at = "") => readdirSync(dir, { withFileTypes: tru
 
 /* CLAUDE.md, Verifying: a selector matching nothing reads exactly like a tree with one home. */
 test("the selector finds a second copy of the split where one is written", () => {
-  assert.equal(new RegExp(SPLIT.source, "u").test('const at = given.indexOf("=");'), true);
+  assert.equal(SPLIT.test('const at = given.indexOf("=");'), true);
 });
 
 test("one file in `plugin/src` decides where a `key=value` pair splits and what a leading `=` is", () => {
