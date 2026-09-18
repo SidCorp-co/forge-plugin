@@ -41,7 +41,7 @@ const metaPair = (given) => {
   return { field: key, value };
 };
 
-/* Overlaid on what is stored rather than replacing it: a correction adds `correctedBy` and keeps what was there — which is why a key named twice cannot be the caller meaning the second, and is refused through the shared reading instead of keying an object here and dropping the first in silence (ISS-1313). Two verbs spell `--meta` and neither is named: no refuser of one of theirs is passed, so the sentence names the flag alone (ISS-1449). */
+/* Overlaid on what is stored rather than replacing it: a correction adds `correctedBy` and keeps what was there. Two verbs spell `--meta` and the shared reading names neither, so no refuser of one of theirs is passed here and the flag word is the whole of what a repeat is refused by (ISS-1313, ISS-1449). */
 export const metaFrom = (pairs) => Object.fromEntries(
   pairsFrom(pairs, "--meta", { each: metaPair }).map(({ field, value }) => [field, value]),
 );
