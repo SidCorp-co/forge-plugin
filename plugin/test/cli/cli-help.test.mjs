@@ -494,7 +494,9 @@ test("issue -h restates no part of the rule its own --set refusal owns", () => {
 test("issue -h says what a prose language does to a --set value, and leaves the settings to doctor", () => {
   const said = ask("issue", "-h").stdout;
   assert.match(said, /prose language/u, "so a caller learns it before the write, not from a read-back");
-  assert.match(said, /rewritten before it is stored/u, "which is what happens to the value");
+  assert.match(said, /none of it is\nstored as you typed it/u, "which is what happens to the value");
+  assert.match(said, /the write refuses where this CLI does not\nwrite that language/u,
+    "on the third reading of the setting, which stores nothing at all (review F1)");
   assert.match(said, /`--why`/u, "and the rest of the command's prose goes the same way");
   assert.match(said, /forge doctor/u, "which is where the setting that stores prose unchanged is named");
   for (const resolved of [".forge.json", "translate", "vietnamese"]) {

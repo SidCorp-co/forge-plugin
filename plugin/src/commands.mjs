@@ -137,10 +137,11 @@ export const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--fu
   + " [--blocks ISS-46|--relates ISS-46|--unlink ISS-46 --kind k]";
 
 /* The one thing a row cannot hold: what this project's own configuration does to a value before it is stored, which a caller otherwise learns by reading the body back. Which language, which file it came from and which setting are `forge doctor`'s to name, so none of the three is here (ISS-1790). */
-const SET_PROSE = "`--set f=v` sends the value through this project's prose language: where one is set, the value\n"
-  + "is rewritten before it is stored and what comes back is not what you typed, and so is the rest\n"
-  + "of the prose the same command writes, its `--why` note included. `forge doctor` names the\n"
-  + "language, where it was read from, and the setting that stores prose unchanged.";
+const SET_PROSE = "`--set f=v` sends the value through this project's prose language, and so goes the rest of\n"
+  + "the prose the same command writes, its `--why` note included: where one is set, none of it is\n"
+  + "stored as you typed it — it is rewritten first, or the write refuses where this CLI does not\n"
+  + "write that language. `forge doctor` names the language, where it was read from, and the\n"
+  + "setting that stores prose unchanged.";
 
 /* One line per flag, then the one table a row cannot hold: what a body is read against depends on the kind it names. What is open beside a filing prints on the filing, and which rank it took is in the reply — the reasoning behind both is docs/cli/beside.md and docs/cli/new.md, whose second copy this help was. */
 const NEW_FLAGS = [
