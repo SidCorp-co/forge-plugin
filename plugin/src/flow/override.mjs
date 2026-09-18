@@ -1,9 +1,7 @@
 /* The two recorded overrides: a field set and a status set that no entry check read. Both say so in the reply and leave a correction, because the point of them is that the record shows a person went round the ladder rather than that the ladder let them. Why a route round the checks exists at all, and what it costs: docs/cli/the-entry-checks.md. */
-import { existsSync } from "node:fs";
-
 import { refuse } from "../refusal.mjs";
-import { pathed } from "../hooks/shell-spans.mjs";
 import { pairOf, pairsFrom } from "../resolve/flags.mjs";
+import { fieldReplaced, routeIn, routeRefusal } from "../resolve/payload.mjs";
 import { keepOnFailure } from "../resolve/settings.mjs";
 import { lengthOf, ownsField, writeFields } from "../tracker/field-write.mjs";
 import { AMBIGUOUS } from "../tracker/rest.mjs";
@@ -54,19 +52,6 @@ export const correctionFor = async (documentId, ref, moved, why, { done = true }
    above by `ownsField` and stay named here anyway, so the rule below survives that check moving. */
 const BODY_FIELDS = ["description", "plan", "acceptanceCriteria"];
 
-/* `@file` and `-` are the routes every body-taking verb of this CLI has and this flag has not, so one
-   typed here lands as text and the body it replaced is gone, the tracker keeping no revision of a
-   field (ISS-1158). A newline is never in one of those, which is how a body opening `@` still goes up. */
-const routeIn = (value) => {
-  const said = value.trim();
-  if (value.includes("\n")) return null;
-  if (said === "-") return { said: "stdin", spelt: said, path: "<file>" };
-  const named = said.replace(/^@/u, "");
-  if (!said.startsWith("@") && !existsSync(named)) return null;
-  /* Written back as a shell reads it: this line is the one a caller runs next. */
-  return { said: `the file \`${named}\``, spelt: said, path: pathed(named) };
-};
-
 const setPair = (given, ref) => {
   const { key: field, value } = pairOf(String(given ?? ""), "--set");
   if (!value.trim()) refuse(`--set ${field}= names no value, and an override that clears a field is not one this verb writes.`);
@@ -76,12 +61,13 @@ const setPair = (given, ref) => {
   }
   const route = BODY_FIELDS.includes(field) ? routeIn(value) : null;
   if (route) {
-    const held = lengthOf(route.spelt);
-    refuse(`--set ${field}=${route.spelt} reads as ${route.said}, and --set takes the text to store `
-      + `rather than a route to it: this would store ${held} character${held === 1 ? "" : "s"} as the `
-      + `${field}, and the ${field} it replaced would not be recoverable — the tracker keeps no `
-      + `revision of a field. Send the text itself:\n  forge issue ${ref} --set ${field}="$(cat -- ${route.path})" --why <w>`
-      + "\nNothing was sent.");
+    refuse(routeRefusal({
+      asked: `--set ${field}=${route.spelt}`,
+      flag: "--set",
+      route,
+      cost: fieldReplaced(field, lengthOf(route.spelt)),
+      call: `forge issue ${ref} --set ${field}="$(cat -- ${route.path})" --why <w>`,
+    }));
   }
   return { field, value };
 };

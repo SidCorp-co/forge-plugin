@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { FLAG_WORD, typedArgv } from "./flags.mjs";
+import { pathed } from "../hooks/shell-spans.mjs";
 import { fail } from "./settings.mjs";
 
 const NAMED = "Write it to a file and name it, or pipe it in.";
@@ -116,3 +117,22 @@ export const bodyFrom = async (path, refusal = null) => {
   if (bodyItself(path)) fail(notAPath(path));
   return readFileSync(path.startsWith("@") ? path.slice(1) : path, "utf8");
 };
+
+/* The mirror of the slot above: `@file` and `-` are routes a body slot has and a flag taking text has not, so one typed at such a flag lands as text and whatever it replaced is gone, the tracker keeping no revision of a field (ISS-1158). A newline is in no route, which is how a body opening `@` still goes up; the path comes back as a shell reads it, that line being the one a caller runs next; and which of a verb's fields take a body is that verb's own declaration, read nowhere here (ISS-1314). */
+export const routeIn = (value) => {
+  const said = value.trim();
+  if (value.includes("\n")) return null;
+  if (said === "-") return { said: "stdin", spelt: said, path: "<file>" };
+  const named = said.replace(/^@/u, "");
+  if (!said.startsWith("@") && !existsSync(named)) return null;
+  return { said: `the file \`${named}\``, spelt: said, path: pathed(named) };
+};
+
+export const fieldReplaced = (field, held) =>
+  `this would store ${held} character${held === 1 ? "" : "s"} as the ${field}, and the ${field} it `
+  + `replaced would not be recoverable — the tracker keeps no revision of a field`;
+
+/** `cost` and `call` are the caller's: a flag that replaces nothing loses nothing, so what a wrong value costs and the way out of it are per flag, and `fieldReplaced` above is the clause the two `--set` verbs share because both replace a field no revision is kept of. */
+export const routeRefusal = ({ asked, flag, route, cost, call }) =>
+  `${asked} reads as ${route.said}, and ${flag} takes the text to store rather than a route to it: `
+  + `${cost}. Send the text itself:\n  ${call}\nNothing was sent.`;

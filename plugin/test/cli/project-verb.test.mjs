@@ -4,7 +4,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { fakeTracker, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
+import { pathed } from "../../src/hooks/shell-spans.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../..", import.meta.url).pathname;
@@ -239,4 +243,48 @@ test("two projects in one call are refused, one record being what each act takes
   const run = await ask("forge-plugin", "sid-erp");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /one project at a time, not `forge-plugin sid-erp`/u);
+});
+
+/* ISS-1314. `--set description=@notes.md` stored the eight-or-so characters of the route and the
+   description they replaced was gone, the tracker keeping no revision of a project field and this
+   CLI no read-back of the old one. The issue verb refused it and this one did not, the reading
+   living inside that verb's own `setPair`. */
+const NOTES = join(tempRoom("project-body-"), "notes.md");
+writeFileSync(NOTES, "# the description a run meant to store\n");
+const wrote = () => state.calls.filter((one) => one.name === "forge_projects.update");
+
+test("a description set to a file route is refused, and the route out sends the file's own text", async () => {
+  state.calls = [];
+  const run = await ask("forge-plugin", "--set", `description=@${NOTES}`);
+  assert.equal(run.status, 1, run.stdout);
+  assert.ok(run.stderr.includes(`reads as the file \`${NOTES}\``), run.stderr);
+  assert.ok(run.stderr.includes(`this would store ${[...`@${NOTES}`].length} characters as the description`), run.stderr);
+  assert.ok(run.stderr.includes("the description it replaced would not be recoverable"), run.stderr);
+  assert.ok(run.stderr.includes(`forge project forge-plugin --set description="$(cat -- ${pathed(NOTES)})"`),
+    "and the call that sends the file's own text");
+  assert.deepEqual(wrote(), [], "nothing was sent, so the description on the record is the one that was there");
+});
+
+test("a description set to stdin's dash is refused too, naming what it read", async () => {
+  state.calls = [];
+  const run = await ask("forge-plugin", "--set", "description=-");
+  assert.equal(run.status, 1, run.stdout);
+  assert.ok(run.stderr.includes("reads as stdin"), run.stderr);
+  assert.deepEqual(wrote(), []);
+});
+
+/* Which fields are bodies is this verb's own statement, and a name is typed: one that looks like a
+   path is a name. */
+test("a name that reads as a file route is stored, `name` not being a body of this verb", async () => {
+  state.calls = [];
+  const run = await ask("forge-plugin", "--set", `name=@${NOTES}`);
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(wrote()[0].args.data.name, `@${NOTES}`, "the text as it was typed");
+});
+
+test("a description that is prose is stored as it was typed", async () => {
+  state.calls = [];
+  const run = await ask("forge-plugin", "--set", "description=some prose");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(wrote()[0].args.data.description, "some prose");
 });

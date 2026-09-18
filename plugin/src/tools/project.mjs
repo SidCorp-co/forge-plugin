@@ -4,7 +4,9 @@
 import { deployFrom, deployRows, deployed } from "../tracker/project-config.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { exclusive, flags, pairOf, pairsFrom, partition, pullRepeated, shortOfAsk, wantsHelp } from "../resolve/flags.mjs";
+import { fieldReplaced, routeIn, routeRefusal } from "../resolve/payload.mjs";
 import { projectIdOf, scoped, write } from "../tracker/rest.mjs";
+import { lengthOf } from "../tracker/field-write.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { SLUG_WIDTH } from "../tracker/knowledge/store.mjs";
@@ -16,6 +18,11 @@ const ACTS = ["set", "archive", "unarchive"];
    and prints none, so a flag naming one would be the first place it typed one. The settings screen
    the tracker serves is where a branch is chosen. */
 const FIELDS = ["name", "description"];
+
+/* Which of this verb's fields hold a body rather than a word, which is the half of the route reading
+   that is a statement about this verb's fields and never about a value (ISS-1314). A name is typed,
+   so a name that looks like a path is a name. */
+const BODY_FIELDS = ["description"];
 
 const USAGE = [
   usageOf("project"),
@@ -87,18 +94,29 @@ const created = async (asked) => {
    caller told only what `--set` takes cannot tell which of them turned the call back (ISS-1449). */
 const refusing = (said) => fail(`project: ${said}`);
 
-const setPair = (given) => {
+const setPair = (given, slug) => {
   const { key: field, value } = pairOf(given, "--set", { refusing });
   if (!FIELDS.includes(field)) {
     fail(`${didYouMean("field of a project", field, FIELDS)} A branch is chosen on the tracker's own`
       + " settings screen, and nothing was sent.");
+  }
+  /* After the field is known, so a misspelt name still gets the did-you-mean rather than this. */
+  const route = BODY_FIELDS.includes(field) ? routeIn(value) : null;
+  if (route) {
+    refusing(routeRefusal({
+      asked: `--set ${field}=${route.spelt}`,
+      flag: "--set",
+      route,
+      cost: fieldReplaced(field, lengthOf(route.spelt)),
+      call: `forge project ${slug} --set ${field}="$(cat -- ${route.path})"`,
+    }));
   }
   return { field, value };
 };
 
 const updated = async (slug, given, ask) => {
   /* Through the shared reading rather than a keyed object of its own, so a field named twice is refused here by name as it is on the other `--set`-taking verb, instead of the first value being dropped and the check below blaming this CLI for the caller's repeat (ISS-1056). */
-  const pairs = pairsFrom(given, "--set", { each: setPair, refusing });
+  const pairs = pairsFrom(given, "--set", { each: (one) => setPair(one, slug), refusing });
   /* What reached this layer against what the call asked for, and no write has happened yet on this route (ISS-945). */
   const short = shortOfAsk(ask, pairs);
   if (short) fail(short);

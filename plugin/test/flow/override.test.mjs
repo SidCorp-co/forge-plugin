@@ -471,13 +471,19 @@ const BODY_FILE = join(tempRoom("set-body-"), "body.md");
 writeFileSync(BODY_FILE, "# a replacement body\n\nthe text a run meant to store\n");
 const updates = () => state.calls.filter((one) => one.args.action === "update" && one.args.data?.description !== undefined);
 
+/* ISS-1314 moved this reading to `resolve/payload.mjs` so a third verb could reach it; the sentence is what a caller of this one has to find unchanged across the move. */
+const SPELT = `@${BODY_FILE}`;
+const WHOLE = `--set description=${SPELT} reads as the file \`${BODY_FILE}\`, and --set takes the `
+  + `text to store rather than a route to it: this would store ${[...SPELT].length} characters as `
+  + "the description, and the description it replaced would not be recoverable — the tracker keeps "
+  + `no revision of a field. Send the text itself:\n  forge issue ISS-96 --set description="$(cat `
+  + `-- ${pathed(BODY_FILE)})" --why <w>\nNothing was sent.`;
+
 test("a description set to a file route is refused, and the route out sends the file's own text", async () => {
   before();
-  const run = await setField("--set", `description=@${BODY_FILE}`, "--why", WHY);
+  const run = await setField("--set", `description=${SPELT}`, "--why", WHY);
   assert.equal(run.status, 1);
-  assert.ok(run.stderr.includes(`reads as the file \`${BODY_FILE}\``), "the route it read, named");
-  assert.ok(run.stderr.includes(`--set description="$(cat -- ${pathed(BODY_FILE)})"`),
-    "and the call that sends the file's own text as the description");
+  assert.ok(run.stderr.includes(WHOLE), `the sentence, word for word:\n${run.stderr}`);
   assert.deepEqual(updates(), [], "nothing was sent, so the body on the page is the body that was there");
 });
 

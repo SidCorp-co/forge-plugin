@@ -3,10 +3,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { bodyFrom, bodyItself } from "../../src/resolve/payload.mjs";
+import { bodyFrom, bodyItself, fieldReplaced, routeIn, routeRefusal } from "../../src/resolve/payload.mjs";
 import { Refusal, refusing } from "../../src/resolve/settings.mjs";
 import { fakeTracker, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
 
@@ -248,4 +248,53 @@ test("the account of what counts as a body rather than a path has one home", () 
   assert.equal(found.status, 0, found.stderr);
   assert.deepEqual(found.stdout.trim().split("\n"), ["plugin/src/resolve/payload.mjs"],
     "one reader refuses it, and no verb carries a copy of the reading");
+});
+
+/* ISS-1314. The same reading, from the other side: `@file` and `-` typed at a flag that takes the
+   text itself. It sat inside `forge issue --set`'s own pair reader, so `forge project --set` stored
+   the route and lost what it replaced, and `forge record`'s prose flags could not reach it either. */
+test("a value carrying a body slot's own routes is read as one, and prose is not", () => {
+  assert.equal(routeIn("-").said, "stdin");
+  assert.equal(routeIn("@notes.md").said, "the file `notes.md`");
+  assert.equal(routeIn("just some prose"), null);
+  assert.equal(routeIn("@the-handle opens this\nand a second line"), null,
+    "a newline is in no route, which is how a body opening `@` still goes up");
+});
+
+/* The cost is the caller's because a flag that replaces nothing loses nothing: `forge record`'s
+   prose flags publish a path and replace no field, so they inherit the reading and not this. */
+test("the refusal is built from the caller's own cost and its own way out", () => {
+  const said = routeRefusal({
+    asked: "--detail @notes.md",
+    flag: "--detail",
+    route: routeIn("@notes.md"),
+    cost: "this would publish the path",
+    call: "forge record confirmation ISS-1 --detail \"$(cat -- ./notes.md)\"",
+  });
+  assert.match(said, /^--detail @notes\.md reads as the file `notes\.md`, and --detail takes the text to store rather than a route to it: this would publish the path\. Send the text itself:\n/u, said);
+  assert.match(said, /\nNothing was sent\.$/u);
+  assert.equal(fieldReplaced("description", 1), "this would store 1 character as the description, "
+    + "and the description it replaced would not be recoverable — the tracker keeps no revision of a field",
+    "and the clause both `--set` verbs share counts one character as one");
+});
+
+const SENTENCE = "rather than a route to it";
+const SRC = new URL("../../src", import.meta.url).pathname;
+const HOME = "resolve/payload.mjs";
+
+const spellers = (dir = SRC, at = "") => readdirSync(dir, { withFileTypes: true }).flatMap((one) => {
+  const rel = at ? `${at}/${one.name}` : one.name;
+  if (one.isDirectory()) return spellers(join(dir, one.name), rel);
+  if (!one.name.endsWith(".mjs")) return [];
+  return readFileSync(join(dir, one.name), "utf8").includes(SENTENCE) ? [rel] : [];
+});
+
+/* CLAUDE.md, Verifying: a selector matching nothing reads exactly like a tree with one home. */
+test("the selector finds a verb that spells the route refusal for itself", () => {
+  assert.equal("and --why takes the text to store rather than a route to it: ".includes(SENTENCE), true);
+});
+
+test("one file in `plugin/src` says what a route typed at a text flag is", () => {
+  assert.deepEqual(spellers(), [HOME],
+    `each of these spells the refusal itself; call \`routeRefusal\` in ${HOME} with this flag's own cost and way out`);
 });
