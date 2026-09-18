@@ -85,7 +85,7 @@ test("a review names its reviewer, head and outcome, and each finding is an id w
 
 /* The person's voice and the agent's answer to it, the two writes a reopen is made of: before
    them, what a person found lived in a plain comment the report never read (ISS-43). */
-test("a finding carries the person's words and at most one thing it is about", () => {
+test("a finding renders, reads back and is stamped with the reopen it belongs to", () => {
   const body = render("finding", {
     expected: "the list sorted by name", seen: "sorted by id",
     evidence: ["run.txt"], quoted: "I cannot find anything in it",
@@ -95,10 +95,11 @@ test("a finding carries the person's words and at most one thing it is about", (
   assert.match(body, /^quoted: I cannot find anything in it$/mu);
   assert.equal(parse(body).kind, "finding");
   const { check, fields, repeats } = SHAPES.finding;
-  assert.equal(check({ criterion: "3" }), null);
-  assert.equal(check({ uc: "UC-05-2" }), null);
-  assert.match(check({ criterion: "3", uc: "UC-05-2" }), /one of --criterion and --uc, not both/u);
-  assert.deepEqual(fields.filter((one) => !one.optional).map((one) => one.flag), ["expected", "seen", "evidence", "quoted"]);
+  const whole = { expected: "e", seen: "s", evidence: ["run.txt"], quoted: "q" };
+  assert.equal(check({ ...whole, criterion: "3" }), null);
+  assert.equal(check({ ...whole, uc: "UC-05-2" }), null);
+  assert.match(check({ ...whole, criterion: "3", uc: "UC-05-2" }), /one of --criterion and --uc, not both/u);
+  assert.deepEqual(fields.filter((one) => !one.optional && !one.many).map((one) => one.flag), ["expected", "seen"]);
   assert.ok(repeats, "a second look finds a second thing, and the report shows both");
   /* Stamped from the issue rather than typed, because a value the author could get wrong is the
      very value the record is matched by when a second reopen asks which pair is its own. */

@@ -76,6 +76,18 @@ fourteen carried the meaning. The verdicts' check now takes the same escape the 
 more clauses of the same note; the rule those clauses answer to is the contract's `developed` part and
 is not repeated here.
 
+A sixth, and it is the reopen again from the other side. That status had one write reaching it,
+`--set`, whose whole job is to put on a status nothing earned and leave a correction saying so — so
+the single outcome an independent judge exists to produce spent the escape hatch every time, and the
+alternative on offer put the issue in `on_hold`, which nothing that ranks work ever picks up.
+`--reopen` is that outcome's own write and leaves no correction behind it. What it reads before it
+moves anything is the reading the fall-back was already computed from, the merged mark else the
+status a dropped park names, so it declines to strand an issue where nothing can route it onwards;
+and it names no rung of its own, which is what leaves it standing wherever the judging settles. The
+finding under it took the other half of the same change. `--quoted` had been mandatory and a run
+that watched the defect happen has nobody to quote, so a capture and a person's word are each a
+whole finding now, and what is turned back is the record carrying neither.
+
 Two things about the shape of it, which are this verb's and not the contract's. The predicate is a
 clause on the record rather than a `git diff` at the transition, because the landing run has all three
 refs and the change's own paths in hand, and the transition has an issue, a page of comments and a

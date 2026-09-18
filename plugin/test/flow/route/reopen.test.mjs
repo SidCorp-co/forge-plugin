@@ -130,7 +130,8 @@ test("a wrong-test triage names its criterion, and is refused while that line st
 test("a reopen with no finding or no triage names both writes", () => {
   const bare = targetOf(view({ status: "reopen", mergedAt: MARKED }, []), "ISS-3");
   assert.deepEqual(bare.missing.map((one) => one.what), [
-    "no finding: what the person expected, what they saw, the evidence, and their own words",
+    "no finding: what was expected, what was seen, and either the words of whoever reported it or "
+      + "the evidence this run captured when it saw the defect itself",
     "no triage of the finding: one of wrong-test, not-met, not-in-spec, and what would have caught it",
   ]);
   assert.match(bare.missing[0].command, /^forge record finding ISS-3 --expected/u);
@@ -156,6 +157,34 @@ test("each reopen owes the finding and the triage written at it, and not the one
   const ruled = () => [recorded("finding", FOUND, "2"), recorded("triage", WRONG, "2"), corrected()];
   const routed = targetOf(reopened(NOT_MET, { reopenCount: 2 }, ruled, "1"), "ISS-3");
   assert.equal(routed.next, "developed", "and it is this reopen's triage that routes, not the latest of the kind");
+});
+
+/* A judging run is the actor the flow dispatches to find the defect, and it has nobody to quote.
+   What it has instead is what it captured, and the pair is grounds rather than fields (ISS-1815). */
+const looked = (found, comments = () => []) => targetOf(view(
+  { status: "reopen", mergedAt: MARKED, plan: PLAN, acceptanceCriteria: CRITERIA, attachments: ATTACHED },
+  [recorded("finding", found, "0"), recorded("triage", NOT_MET, "0"), ...comments()],
+), "ISS-3");
+const SAW = { expected: FOUND.expected, seen: FOUND.seen, evidence: ["run.txt"] };
+
+test("a finding the run made itself is whole on the evidence it captured", () => {
+  const held = looked(SAW, () => [judged("fail")]);
+  assert.deepEqual(held.missing, [], "no quote is owed where the record carries what the run saw");
+  assert.equal(held.next, "in_progress", "and the triage routes it as it routes a person's");
+});
+
+test("a finding that quotes nobody and captured nothing is no finding", () => {
+  const held = looked({ expected: FOUND.expected, seen: FOUND.seen, evidence: [] }, () => [judged("fail")]);
+  assert.equal(held.missing.length, 1);
+  assert.match(held.missing[0].what, /finding is not a whole payload: it lacks/u);
+  assert.match(held.missing[0].what, /--quoted .+ or --evidence /u, "and it names both grounds");
+});
+
+/* The command an owed finding is asked for by is one a run with nobody to quote can send. */
+test("the write a reopen asks for offers the quote as the case where a person reported it", () => {
+  const bare = targetOf(view({ status: "reopen", mergedAt: MARKED }, []), "ISS-3");
+  assert.match(bare.missing[0].command, /^forge record finding ISS-3 --expected .+--evidence <attachment\|url\|sha>/u);
+  assert.match(bare.missing[0].command, /\(--quoted "<their words>" where a person reported it/u);
 });
 
 test("not-in-spec parks the issue behind the edge that gates it", () => {

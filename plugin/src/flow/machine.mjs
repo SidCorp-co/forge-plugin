@@ -380,6 +380,11 @@ const OWES = {
   verdict: (got) => got.verdict !== "skipped",
 };
 
+/* Said once, by the shape and by whatever turns a write back, so both name the same two grounds. */
+export const ON_EITHER_GROUND = "--quoted \"<their words>\" where a person reported it, or --evidence "
+  + "<attachment|url|sha> where this run saw it: a finding that quotes nobody and captured nothing "
+  + "is an assertion nothing on the record stands behind";
+
 export const SHAPES = {
   confirmation: {
     heading: "Confirmation",
@@ -476,24 +481,25 @@ export const SHAPES = {
       return null;
     },
   },
-  /* The person's voice, written by the agent on their behalf: a reopen with no finding is a status
-     that moved and nothing that says why. `repeats` because a second look finds a second thing. */
+  /* What one look found: a person's voice carried for them, or the agent's own where the flow sent
+     it to look. A reopen with no finding is a status that moved and nothing saying why. */
   finding: {
     heading: "Finding",
     repeats: true,
     fields: [
       FIELD("expected", "Expected"),
       FIELD("seen", "Seen"),
-      FIELD("evidence", "Evidence", { many: true, least: 1, evidence: true }),
+      FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true }),
       FIELD("criterion", "Criterion", { criterion: true, optional: true }),
       FIELD("uc", "Use case", { optional: true }),
-      FIELD("quoted", "In their words"),
+      FIELD("quoted", "In their words", { optional: true }),
     ],
     stamp: FIELD("reopen", "Reopen", { from: "reopenCount" }),
     check: (got) => {
       if (got.criterion !== undefined && got.uc !== undefined) {
         return "one of --criterion and --uc, not both: a finding names one thing it is about";
       }
+      if (!got.quoted && !got.evidence.length) return ON_EITHER_GROUND;
       return null;
     },
   },

@@ -21,8 +21,10 @@ what a check attempting fit would cost, is stated in the contract's flow table.
 *Who acts here?*
 
 - **The agent** holding the issue's lease (`FR-03`). It is the only actor that moves a status.
-- **A person**, who moves nothing here: their comments are what a park waits for, and `reopen` is
-  their word — this requirement covers no reopen, and the open items say why.
+- **A person**, who moves nothing here: their comments are what a park waits for, and the agent
+  holding the lease carries their word onto the record for them. `reopen` is the one status two
+  actors' findings reach through that agent: a person disagreeing with a close or a drop, and a
+  judging run whose finding blocks the change it was sent to judge.
 
 ## Use cases
 
@@ -413,6 +415,33 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
   WHERE the project's record asks for an independent judgement, IF a standing verdict's identity was
   inherited from the session that dispatched the run THEN the CLI SHALL refuse `testing` naming the
   environment variable that gives a run an identity of its own.
+
+### UC-05-12 — A judging run's blocking finding reopens the issue
+
+Rev: 1 · Actors: agent · Enforces: BR-01, BR-02
+
+A judgement that blocks has to reach a building run without anybody noticing it first. The status
+that reaches one is the tracker's reopen: the ranked queue offers it, and the triage already routes
+what falls out of it. A park lands the issue where work waits on somebody instead, and the unearned
+set spends a correction on an outcome the flow produces every day. So the reopen is a write of this
+verb's own, refused before the status moves where the record cannot say what the work got to, and
+the finding under it is worth reading on either of two grounds: the words of whoever reported the
+defect, or the evidence the run captured when it saw the defect itself.
+
+- **AC-05-12-1** · Rev: 1 · Proof: plugin/test/flow/advance/reopen.test.mjs "a reopen moves the status and writes no correction for it"
+  WHEN the agent reopens an issue THEN the CLI SHALL transition it to the tracker's reopen status and
+  SHALL write no correction for that move.
+- **AC-05-12-2** · Rev: 1 · Proof: plugin/test/flow/advance/reopen.test.mjs "a reopen is refused where nothing on the record says what the work got to"
+  IF the record names neither a merged mark nor the status a dropped park left THEN the CLI SHALL
+  refuse the reopen before the status moves.
+- **AC-05-12-3** · Rev: 1 · Proof: plugin/test/flow/route/reopen.test.mjs "a finding the run made itself is whole on the evidence it captured"
+  WHERE a finding carries the evidence the run captured, the CLI SHALL take it as whole without the
+  words of anybody.
+- **AC-05-12-4** · Rev: 1 · Proof: plugin/test/flow/route/reopen.test.mjs "a finding that quotes nobody and captured nothing is no finding"
+  IF a finding carries neither the reporter's words nor any evidence THEN the CLI SHALL refuse it
+  naming both of the two grounds.
+- **AC-05-12-5** · Rev: 1 · Proof: plugin/test/flow/advance/reopen.test.mjs "a failing verdict moves no status, the reopen being an act of its own"
+  WHEN a verdict fails THEN the CLI SHALL leave the issue's status where it stands.
 
 ## Business rules enforced
 

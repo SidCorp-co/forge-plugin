@@ -1503,7 +1503,7 @@
     },
     "FR-05": {
       "rev": 1,
-      "digest": "950b20698898c9ec4a1f234cd4bd599a359841045635c93307e5c5001578c438"
+      "digest": "c16db5a437099470aa75c2ffb0547149984412ad6e6d6b58533c13fff75e3300"
     },
     "UC-05-1": {
       "rev": 1,
@@ -1864,6 +1864,30 @@
     "AC-05-11-8": {
       "rev": 1,
       "digest": "5695d5d90542c228734b63b05dee7eafbf86878a3318a52c95f3e306b35093d5"
+    },
+    "UC-05-12": {
+      "rev": 1,
+      "digest": "bcb6ba0ed91052e5018f341c111245e638396ba86f534d2f6234168fc9cf3200"
+    },
+    "AC-05-12-1": {
+      "rev": 1,
+      "digest": "a3eb4eb389de0b6a5e060f0c5fcd69edd6c82dd0fa3123b33c51ba40f5ea60e0"
+    },
+    "AC-05-12-2": {
+      "rev": 1,
+      "digest": "26ae49181a06a3a28155857199004b7487e22a4eb213d4ffad3a21cc94aaad17"
+    },
+    "AC-05-12-3": {
+      "rev": 1,
+      "digest": "326daa2b99b2d3aa35b4d47c99ada6aede06a8028001d69f9290dc48a3e4227a"
+    },
+    "AC-05-12-4": {
+      "rev": 1,
+      "digest": "0bb5da00751114db0296e686eff0582e34c2b1d8eedc4dfbe0e10901d9d8eb36"
+    },
+    "AC-05-12-5": {
+      "rev": 1,
+      "digest": "8e54f6983bbc68635e1d56f875c563c9b2dd202782c00376c1004c4cf42d4982"
     },
     "FR-06": {
       "rev": 1,

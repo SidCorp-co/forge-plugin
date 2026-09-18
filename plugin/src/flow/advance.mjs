@@ -20,7 +20,7 @@ import { scopeFrom } from "./record/plan-scope.mjs";
 import { rungOf } from "../ladder.mjs";
 import { CITED, laneLines } from "../guides/phases.mjs";
 import { undoForm } from "./record/merged.mjs";
-import { baselineAhead, credentialAhead, deployFor, lookAhead, owedIn, owedLine, owedSaid, policyFor, targetOf } from "./route.mjs";
+import { REOPEN, baselineAhead, credentialAhead, deployFor, lookAhead, owedIn, owedLine, owedSaid, policyFor, reopenProblem, targetOf } from "./route.mjs";
 import { FIELD, anothersHold, leaseOf, nextLine, renew } from "./lease.mjs";
 
 /* A needs_info park owes the readings only the question shape carries. */
@@ -41,6 +41,9 @@ export const USAGE = [
   "  --park <kind> --why W [--needs N] [--evidence E]...  a park record, then the side status the",
   "                          kind implies",
   "  --drop --why W          park as dropped; refused once the merged mark is set",
+  `  --reopen --why W        the tracker's \`${REOPEN}\`, where a finding blocks the change: a person's`,
+  "                          word or this run's own. The finding and the triage under it are what",
+  "                          route where the work goes back to, and no correction is written for it",
   "  --set <status> --why W [--needs N]  the status outright, no entry check read; the reply says",
   "                          so and a correction goes on the record naming the status and the reason",
   "",
@@ -55,7 +58,8 @@ export const USAGE = [
 
 /* A plain advance from the rung `closed` is entered from, whose whole entry criterion is that status, so the page is not worth the call. A park or a drop from it is another transition: its kind, its evidence and the question a needs_info park owes are all judged against the record, so those read the page. */
 const readsTheRecord = (body, given) =>
-  !given.set && (body.status !== CLOSES_FROM || Boolean(given.park) || Boolean(given.drop));
+  !given.set && (body.status !== CLOSES_FROM || Boolean(given.park) || Boolean(given.drop)
+    || Boolean(given.reopen));
 
 const viewOf = async (reference, given) => {
   const { documentId, body } = await issueOf(reference);
@@ -76,7 +80,7 @@ const viewOf = async (reference, given) => {
 
 /* The renew before it is where the line is cleared: the transition is refused before this runs unless the record earns it, and a second lease write would cost three more calls. `said` is what a park adds to the payload; a plain advance sends the status alone and nothing else.
    `soft` is the caller with a record up already, which is one fact and not two: the renewal its own write made a call earlier is not made twice, and the tracker's refusal comes back to it rather than exiting the process, because a second renewal is a second place to exit and exiting there would leave that record claiming a move nothing attempted. */
-export const transitionTo = async (view, status, ref, { note = "", next = null, said = null, soft = false, say = console.log } = {}) => {
+export const transitionTo = async (view, status, ref, { note = "", next = null, said = null, soft = false, say = console.log, heard = null } = {}) => {
   if (!soft) await renew(view.documentId, ref, next);
   /* Asked softly whoever the caller is, so the refusal is worded here rather than printed bare by the transport: a refusal that makes a claim about this issue's status is read as true by a run that has nothing beside it to compare, and both statuses it could be compared against are values this call is already holding (ISS-1422). */
   const answer = await write("forge_issues",
@@ -104,6 +108,7 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
           + `claims ${status}, which the move answered ${held}" --why <w>`
         : ""));
   }
+  heard?.(answer);
   const landed = held ?? status;
   const spelt = landed === status ? "" : `  (asked for ${status}, which this tracker spells ${landed})`;
   scopeFrom(landed, ref, namedIn(view));
@@ -181,8 +186,8 @@ const movedAfterRecord = async (view, ref, status, move) => {
 };
 
 /* A move into a side status, with the announcement the tracker writes for it credited in the same breath, for the reason `markMerged` states. It asks softly because it has a record up already, which is the one fact `transitionTo` reads that flag for. */
-const moveTo = async (view, ref, status, { note = "", said, credit }, soft = false) => {
-  const refused = await transitionTo(view, status, ref, { note, said, soft });
+const moveTo = async (view, ref, status, { note = "", said, credit, heard = null }, soft = false) => {
+  const refused = await transitionTo(view, status, ref, { note, said, soft, heard });
   if (refused) return refused;
   await creditAfter(credit, [{ ref, documentId: view.documentId }]);
   return null;
@@ -324,6 +329,27 @@ export const movedByRecord = async (documentId, issue, ref, kinds, held = null) 
   return { moved: moves ? next : null, rung: rungOf(rungFieldsOf(view)) };
 };
 
+/* An ordinary outcome and so no override; the reading is spent before the status moves, not after. */
+const reopenTo = async (view, ref, why) => {
+  const bad = reopenProblem(view, ref);
+  if (bad) refuse(bad);
+  let count;
+  await moveTo(view, ref, REOPEN, {
+    said: { reason: whyChecked("advance --reopen", why) },
+    credit: "the reopen transition",
+    heard: (answer) => { count = (answer?.issue ?? answer)?.reopenCount; },
+  });
+  /* Off the tracker's own answer and never worked out here: each look is stamped with the reopen it
+     belongs to, so a shortfall read against the count this call arrived with answers for the look
+     before and says the record already earns the fall. No count in the answer, no guess. */
+  if (count === undefined || count === null) {
+    return console.log(`\nWhat this reopen owes is read against the count the tracker keeps of them, `
+      + `and its answer to this move carried none:\n  forge advance ${ref} --owed`);
+  }
+  const held = { ...view, issue: { ...view.issue, status: REOPEN, reopenCount: count } };
+  return shortfall(ref, held, owedIn(held, ref));
+};
+
 /* The status set with nothing earning it, judged against what `declaredValue` declares and against nothing else, with the reply and the correction saying no check read it. A side status is reached with the payload the tracker demands of one, so `--set` writes what a park writes and skips only the entry checks. */
 const setStatus = async (view, ref, status, why, asked) => {
   /* Declaring a name is what would otherwise let it through, `declaredValue` being the only check a set passes, so the kind beside the name in that same table is what refuses — and each refusal names where the caller goes instead of what it may not write (ISS-1022, consult 8736c3 F1; ISS-1043). */
@@ -376,10 +402,10 @@ const needsChecked = (given, ref) => {
 
 const readFlags = (rest, ref) => {
   const pulled = pullRepeated(rest, "--evidence", "advance", { usage: USAGE });
-  const given = flags(pulled.rest, "advance", ["--owed", "--drop"], { usage: USAGE });
+  const given = flags(pulled.rest, "advance", ["--owed", "--drop", "--reopen"], { usage: USAGE });
   const evidence = pulled.values;
-  const [wrote] = exclusive(given, ["park", "drop", "set"], "advance",
-    "forms: a drop is the park kind `dropped`, and --set names the status outright; a park goes where its kind says");
+  const [wrote] = exclusive(given, ["park", "drop", "set", "reopen"], "advance",
+    "forms: a drop is the park kind `dropped`, --reopen is the one status a finding earns, and --set names the status outright; a park goes where its kind says");
   const writes = wrote !== undefined;
   if (writes && given.owed) refuse("--owed moves nothing, and --park, --drop and --set write. Ask for one.");
   if (writes && given.to) refuse("--to names the status to advance to; --set and a park each say where they go.");
@@ -404,6 +430,7 @@ const run = async (argv, readAs) => {
   if (!view.whole) console.log(cutSays(view.cut, ref));
   if (view.counted) console.log(countSays(view.counted));
   if (given.set) return setStatus(view, ref, given.set, given.why, given.needs);
+  if (given.reopen) return reopenTo(view, ref, given.why);
   if (given.park || given.drop) {
     return park(view, ref, given.park ?? "dropped", given.why, given.evidence, given.needs);
   }

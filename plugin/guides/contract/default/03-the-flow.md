@@ -10,7 +10,7 @@
 | `testing` | the evidence is here to be judged | 6, 7 Ship |
 | `awaiting_release` | the change is running where it landed, and you can see it now | 7 Ship, the close |
 | `closed` | nothing more happens unless reopened; code landed | none |
-| `reopen` | a person disagreed with a close or a drop, and their finding is here | 1 Triage, of the person's finding |
+| `reopen` | a close or a drop is disagreed with — by a person, or by the run sent to judge the change — and the finding is here | 1 Triage, of that finding |
 
 Ask `forge advance <ref> --owed` what a row is earned by. The phase a status owes produces the
 payload that earns the next row, with one break: the landing that earns `developed` is a step of

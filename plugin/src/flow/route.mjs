@@ -63,31 +63,49 @@ const resumeOwed = (view, held, ref) => {
     )];
 };
 
-/* The tracker's own status for a reopen, which is no step of the flow: it is where a person's word
-   leaves an issue, and what follows is routed by the agent's triage of their finding. */
+/* The tracker's own status for a reopen, which is no step of the flow: it is where a finding leaves
+   an issue — a person's, or a judging run's — and the agent's triage of it routes what follows. */
 export const REOPEN = "reopen";
 const FALLS_TO = { "wrong-test": "developed", "not-met": "in_progress" };
 
-/* Where the reopen landed, read from the record: a merged mark means code landed, so this is the reopen of a close and the contract sends it to the rung merged work waits on. No mark means nothing landed, so it is the reopen of a drop and it goes back to the status the dropped park recorded. */
-const landedOn = (view, ref) => {
+/* Where a reopen goes back to, read from the record: a merged mark means code landed, so this is the reopen of a close and the contract sends it to the rung merged work waits on. No mark means nothing landed, so it is the reopen of a drop and it goes back to the status the dropped park recorded. Null where the record says neither, which is the one answer both readers of this part. No status of the issue's own is read, so which rung a judging run holds when it blocks is not a fact this has to be told. */
+const landedFrom = (view) => {
   if (view.issue.mergedAt) return CLOSES_FROM;
   const left = parkRecord(view, (one) => one === "dropped")?.record.fields.left;
-  if (!ORDER.includes(left)) {
-    refuse(`${ref} is ${REOPEN} and has no merged mark, so nothing landed and this is the reopen of a `
-      + `drop — but no park record of kind dropped on the page names the status it left, so nothing `
-      + `says where it goes back to. ${view.cut ? `${view.cut} The record that would say may be behind `
-      + `the cut. ` : ""}Whoever knows where it belongs sets it, and this writes a status no entry `
-      + `check read:\n  ${setForm(ref, "<status>")}`);
+  return ORDER.includes(left) ? left : null;
+};
+
+/* Said once by both: the one refusing to send an issue there, and the one finding it there already. */
+const NOTHING_LANDED = "has no merged mark, so nothing landed, and no park record of kind dropped "
+  + "on the page names the status a drop left, so nothing says where a reopen goes back to.";
+const behindTheCut = (view) => (view.cut ? `${view.cut} The record that would say may be behind the cut. ` : "");
+
+/** Why a reopen may not be written, before the status moves: one this cannot route out of, it never enters. */
+export const reopenProblem = (view, ref) => {
+  if (landedFrom(view)) return null;
+  return `${ref} ${NOTHING_LANDED} ${behindTheCut(view)}Nothing was sent. Whoever knows where it `
+    + `belongs sets the status, and that writes one no entry check read:\n  ${setForm(ref, REOPEN)}`;
+};
+
+const landedOn = (view, ref) => {
+  const left = landedFrom(view);
+  if (!left) {
+    refuse(`${ref} is ${REOPEN} and ${NOTHING_LANDED} ${behindTheCut(view)}Whoever knows where it `
+      + `belongs sets it, and this writes a status no entry check read:\n  ${setForm(ref, "<status>")}`);
   }
   return left;
 };
 
+const FOUND = (ref, about = "") => `forge record finding ${ref} ${about}--expected "<what was `
+  + `expected>" --seen "<what was seen>" --evidence <attachment|url|sha>`
+  + `    (--quoted "<their words>" where a person reported it rather than this run seeing it)`;
+
 const REOPEN_OWED = [
   [
     "finding",
-    "no finding: what the person expected, what they saw, the evidence, and their own words",
-    (ref) => `forge record finding ${ref} --expected "<what they expected>" --seen "<what they saw>" `
-      + `--evidence <attachment|url|sha> --quoted "<their words>"`,
+    "no finding: what was expected, what was seen, and either the words of whoever reported it or "
+      + "the evidence this run captured when it saw the defect itself",
+    FOUND,
   ],
   [
     "triage",
@@ -143,8 +161,7 @@ const OUTCOME_OWED = {
     if (!number) {
       return [need(
         "the triage rules a criterion the wrong test, and the finding names none, so nothing says which",
-        `forge record finding ${ref} --criterion <n> --expected "<what they expected>" `
-          + `--seen "<what they saw>" --evidence <attachment|url|sha> --quoted "<their words>"`,
+        FOUND(ref, "--criterion <n> "),
       )];
     }
     const fixed = view.latest.correction;
