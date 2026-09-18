@@ -17,7 +17,7 @@ const TREE = fileURLToPath(new URL("../../../docs/requirements", import.meta.url
 
 const SLUG = "checkout-root-fixture";
 const GOALS = join("docs", "requirements", "brd", "03-goals-non-goals.md");
-const ADDED = "G-11";
+const ADDED = "G-14";
 const REMOVED = "G-09";
 
 const ran = (room, ...args) => {

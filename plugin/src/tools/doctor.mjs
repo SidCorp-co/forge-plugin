@@ -233,6 +233,7 @@ const CLAIMS = [
   ["presentForbidden", "claude.md absence", "is said not to exist, and it does"],
   ["strandedShas", "claude.md sha", "is cited and is no ancestor of HEAD"],
   ["uncitedIdentifiers", "claude.md id", "is cited and is defined nowhere else in the repo"],
+  ["uncitedGoals", "claude.md goal", "is named and this project's requirements tree holds no clause for it"],
 ];
 
 /* Imprecise rather than dangling — the file exists, under another path. Volume is the reason this is

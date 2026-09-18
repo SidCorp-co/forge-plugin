@@ -189,7 +189,9 @@ const criterion = (state, line) => {
 const rowClause = (cells, header, found) => {
   const fields = {};
   for (const [at, name] of (header ?? []).entries()) {
-    if (at && name && cells[at] !== undefined) fields[name] = cells[at];
+    /* A blank cell states nothing, and a field read out of one prints its key over an empty value
+       — a column only some rows of a table answer is how a clause gained `Status:` and no status. */
+    if (at && name && cells[at]) fields[name] = cells[at];
   }
   const rest = cells.slice(1).filter((cell) => cell && cell !== fields.Rev);
   const trailing = found[3].trim();

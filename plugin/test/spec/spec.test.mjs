@@ -91,9 +91,10 @@ const RULES = `# BRD §4 — Business rules
 | **BR-01** | 1 | the shape of a refusal | CLAUDE.md |
 | **BR-02** | 2 | the record as the only witness | the contract |
 
-| Goal | Met by |
-|---|---|
-| **G-01** A status is earned by a record. | [FR-01](../srs/a.md) |
+| Goal | Met by | Status |
+|---|---|---|
+| **G-01** A status is earned by a record. | [FR-01](../srs/a.md) | |
+| **G-02** A goal this table has retired. | [FR-01](../srs/a.md) | retired (ISS-1) |
 `;
 
 /* Every requirement closes with a table naming the rules it carries out, in a plain cell. */
@@ -179,6 +180,14 @@ test("a sequence whose table has no revision column carries none, rather than a 
   assert.equal(held(index, "G-01").title, "A status is earned by a record.");
   assert.equal(held(index, "G-01").fields["Met by"], "[FR-01](../srs/a.md)");
   assert.equal(held(index, "BR-02").rev, 2, "and one whose table has the column carries it");
+});
+
+/* A column only some rows answer: the blank cells read back as a field whose value is nothing, and
+   `forge spec` printed `Status:` over it for every goal the column was not about (ISS-1764). */
+test("a column a row leaves blank is no field of that row, and one it fills is", () => {
+  const index = tree();
+  assert.equal(held(index, "G-02").fields.Status, "retired (ISS-1)");
+  assert.equal("Status" in held(index, "G-01").fields, false);
 });
 
 test("an identifier two documents define is ambiguous, and neither answer is given", () => {

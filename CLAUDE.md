@@ -4,20 +4,12 @@
 session, and the skills that drive both.
 
 **Three goals rank above the rest of this file.** Where two shapes are both defensible and only one
-can ship, the first of these that reaches the decision settles it.
-
-1. **Time, and the person out of the loop.** A change costs less of a session than the last window's
-   did, and every point a person is still required is one the flow names rather than one it assumes.
-2. **Configuration, not a special case.** What this plugin does in a project is read from that
-   project's own configuration, so a tree it has never seen adopts it by declaring rather than by
-   patching.
-3. **The cause, and everything it reaches.** A defect is answered at its cause and the answer covers
-   every case that cause reaches, because what ships from here runs in production.
-
-They are `G-11`, `G-12` and `G-13`, and a filing or a decision cites them the same way it cites the
-seven that stand behind them — the list is ten in total, three of the old ten having been folded into
-the goals that took their clause whole. `forge doctor` prints it, and
-[`docs/requirements/README.md`](docs/requirements/README.md) carries the clause each was read from.
+can ship, the first of these that reaches the decision settles it: `G-11`, time and the person out
+of the loop; `G-12`, configuration rather than a special case; `G-13`, the cause and everything it
+reaches. A filing or a decision cites one of them the way it cites the goals standing behind them.
+Every goal this project holds, live or retired, has its clause in
+[`docs/requirements/brd/03-goals-non-goals.md`](docs/requirements/brd/03-goals-non-goals.md) and
+nowhere else: `forge spec G-11` prints one, `forge doctor` prints which are live.
 
 **Rules only.** Facts live in the code, mechanics in each tool's `-h`, history in `git`. A rule with
 a checker is stated once — in the checker, whose message is what a developer reads when it fires.
