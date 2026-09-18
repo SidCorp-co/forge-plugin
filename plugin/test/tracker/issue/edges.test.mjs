@@ -142,19 +142,117 @@ test("--unlink reads the pair's edges, removes the one it found, and says which"
   state.calls = [];
   const run = await ran("issue", "ISS-45", "--unlink", "ISS-47");
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^ISS-45 —\/— ISS-47: removed the edge to ISS-47 by relates\.$/mu);
+  assert.match(run.stdout, /^ISS-45 —\/— ISS-47: removed the relates edge to ISS-47\.$/mu);
   assert.equal(sentTo("/api/issues/u-ISS-45/dependencies/e-1", "DELETE").length, 1);
   delete rows[0].relations;
 });
 
-test("a pair with no edge between them is refused with the read that prints what they have", async () => {
+/* `Object.values(relations).flat().find(...)` took whichever edge the tracker's insertion order put
+   first and then reported the kind it happened to take, so the pair that carries both lost the one
+   nobody asked about and there was no way to name the other (ISS-769). */
+const bothKinds = () => {
+  rows[0].relations = {
+    blocks: [
+      { edgeId: "e-blocks", kind: "blocks", toIssueId: "u-ISS-47", otherDisplayId: "ISS-47", otherStatus: "open" },
+      { edgeId: "e-relates", kind: "relates", toIssueId: "u-ISS-47", otherDisplayId: "ISS-47", otherStatus: "open" },
+    ],
+    blockedBy: [],
+  };
+};
+
+test("a pair holding two edges is refused, both kinds named and nothing deleted", async () => {
+  bothKinds();
   await read("ISS-45");
   state.calls = [];
-  const run = await ran("issue", "ISS-45", "--unlink", "ISS-46");
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /ISS-45 and ISS-46 have no edge between them/u);
-  assert.match(run.stderr, /forge issue ISS-45 --fields relations/u);
+  const run = await ran("issue", "ISS-45", "--unlink", "ISS-47");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /ISS-45 and ISS-47 have 2 edges between them, blocks, relates/u, run.stderr);
+  assert.match(run.stderr, /forge issue ISS-45 --unlink ISS-47 --kind blocks/u,
+    "a refusal a caller cannot act on is the defect this replaces");
   assert.equal((state.calls ?? []).filter((one) => one.method === "DELETE").length, 0);
+  delete rows[0].relations;
+});
+
+test("--kind names which of the two goes, and the other is left standing", async () => {
+  bothKinds();
+  await read("ISS-45");
+  state.calls = [];
+  const run = await ran("issue", "ISS-45", "--unlink", "ISS-47", "--kind", "relates");
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^ISS-45 —\/— ISS-47: removed the relates edge to ISS-47\.$/mu);
+  assert.equal(sentTo("/api/issues/u-ISS-45/dependencies/e-relates", "DELETE").length, 1);
+  assert.equal(sentTo("/api/issues/u-ISS-45/dependencies/e-blocks", "DELETE").length, 0,
+    "the ordering edge nobody named is still there");
+  delete rows[0].relations;
+});
+
+test("a --kind the pair does not have is refused, and the refusal names what it does have", async () => {
+  rows[0].relations = {
+    blocks: [{ edgeId: "e-1", kind: "relates", toIssueId: "u-ISS-47", otherDisplayId: "ISS-47", otherStatus: "open" }],
+    blockedBy: [],
+  };
+  await read("ISS-45");
+  state.calls = [];
+  const run = await ran("issue", "ISS-45", "--unlink", "ISS-47", "--kind", "blocks");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /have no blocks edge between them/u, run.stderr);
+  assert.match(run.stderr, /what they do have is relates/u, "and what is there to remove");
+  assert.match(run.stderr, /forge issue ISS-45 --unlink ISS-47 --kind relates/u);
+  assert.equal((state.calls ?? []).filter((one) => one.method === "DELETE").length, 0);
+  delete rows[0].relations;
+});
+
+/* The bound on `--kind`: it tells two edges apart only where their kinds differ, so a pair carrying
+   two of one kind is sent to the read rather than to a flag that would answer it no better. */
+test("two edges of one kind are sent to the read, not to a flag that cannot tell them apart", async () => {
+  rows[0].relations = {
+    blocks: [
+      { edgeId: "e-a", kind: "relates", toIssueId: "u-ISS-47", otherDisplayId: "ISS-47", otherStatus: "open" },
+      { edgeId: "e-b", kind: "relates", toIssueId: "u-ISS-47", otherDisplayId: "ISS-47", otherStatus: "open" },
+    ],
+    blockedBy: [],
+  };
+  await read("ISS-45");
+  state.calls = [];
+  const run = await ran("issue", "ISS-45", "--unlink", "ISS-47");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /have 2 edges between them, relates, and --unlink removes one/u, run.stderr);
+  assert.match(run.stderr, /forge issue ISS-45 --fields relations/u,
+    "a --kind line here would be a route that refuses the caller a second time");
+  assert.doesNotMatch(run.stderr, /--kind relates/u);
+  assert.equal((state.calls ?? []).filter((one) => one.method === "DELETE").length, 0);
+  delete rows[0].relations;
+});
+
+/* Every input a call is given is used or refused: `--kind` names one of a pair's edges, so a call
+   that removes none of them has typed a flag that could only have been read and dropped. */
+test("--kind on any call but a removal is refused, and nothing is sent", async () => {
+  await read("ISS-45", "ISS-46");
+  state.calls = [];
+  const read_ = await ran("issue", "ISS-45", "--kind", "blocks");
+  assert.equal(read_.status, 1, read_.stdout);
+  assert.match(read_.stderr, /--kind names which edge --unlink removes, and this call removes none/u, read_.stderr);
+  const written = await ran("issue", "ISS-45", "--blocks", "ISS-46", "--kind", "relates");
+  assert.equal(written.status, 1, written.stdout);
+  assert.match(written.stderr, /asks for --blocks, which names its own/u, written.stderr);
+  assert.equal((state.calls ?? []).filter((one) => one.method !== "GET").length, 0);
+});
+
+test("a --kind naming no kind this CLI serves is refused against the set it takes", async () => {
+  await read("ISS-45");
+  state.calls = [];
+  const run = await ran("issue", "ISS-45", "--unlink", "ISS-47", "--kind", "duplicates");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /--kind takes blocks or relates, and `duplicates` is neither/u, run.stderr);
+  assert.equal((state.calls ?? []).filter((one) => one.method !== "GET").length, 0);
+});
+
+test("both help texts name the flag, so a caller meeting the refusal can find it", async () => {
+  for (const argv of [["issue", "-h"], ["-h"]]) {
+    const run = await ran(...argv);
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(run.stdout, /--unlink ISS-46 --kind k/u, `forge ${argv.join(" ")} names no --kind`);
+  }
 });
 
 /* ISS-1423: the renewal and the route both take one end, and the line between them asked after
@@ -220,4 +318,14 @@ test("--unlink keeps its check on the subject, which is the row the removal is w
   assert.equal(gone.status, 0, gone.stderr);
   assert.equal(sentTo("/api/issues/u-ISS-45/dependencies/e-1", "DELETE").length, 1);
   delete rows[0].relations;
+});
+
+test("a pair with no edge between them is refused with the read that prints what they have", async () => {
+  await read("ISS-45");
+  state.calls = [];
+  const run = await ran("issue", "ISS-45", "--unlink", "ISS-46");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /ISS-45 and ISS-46 have no edge between them/u);
+  assert.match(run.stderr, /forge issue ISS-45 --fields relations/u);
+  assert.equal((state.calls ?? []).filter((one) => one.method === "DELETE").length, 0);
 });

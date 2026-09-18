@@ -15,6 +15,7 @@ import { lightens } from "../ladder.mjs";
 import { citedOwed, wholeOwed } from "./earned/baseline.mjs";
 import { rungReport } from "../ladder-report.mjs";
 import { attachmentNames, evidenceHeld, isCommit, sameCommit } from "../tracker/evidence.mjs";
+import { ordersEdge } from "../tracker/edges/kinds.mjs";
 
 import { Refused } from "../refusal.mjs";
 import { FIELD as SESSION } from "./lease.mjs";
@@ -155,11 +156,11 @@ export const fixReport = (view, ref) => rungReport(rungFieldsOf(view), ref);
 export const setForm = (ref, status) =>
   `forge advance ${ref} --set ${status} --why "<why this status is set with nothing earning it>"`;
 
-/* The tracker answers this on the edge itself, so the check reads the edge rather than inferring an
-   order from the list it arrived in: `relations.blockedBy` carries mentions beside orderings. `kind`
-   is the fallback where no such field came, and an edge carrying neither came from somewhere else. */
+/* The tracker answers this on the edge itself, so the check reads the edge rather than the list it
+   arrived in: `relations.blockedBy` carries mentions beside orderings. The kind's row is the
+   fallback where no such field came, and an edge carrying neither came from somewhere else. */
 const gatesDispatch = (edge) =>
-  edge.gatesDispatch === undefined ? edge.kind === "blocks" : edge.gatesDispatch === true;
+  edge.gatesDispatch === undefined ? ordersEdge(edge) : edge.gatesDispatch === true;
 
 /* The tracker gates on a merged mark and this contract's floor is `developed`, so the status is a
    second and independent test — the *blocker's*, which a caller reading the blocker's own row names. */

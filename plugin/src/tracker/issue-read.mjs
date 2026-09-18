@@ -2,7 +2,7 @@
    text: a reference in a heredoc, a quoted value or a path is no target, and one by uuid is. And
    which call files a new one, which names no issue yet and so owes no comment delivery. */
 import { isReference } from "./issues.mjs";
-import { EDGE_KINDS } from "./routes.mjs";
+import { EDGE_KINDS, edgeRow } from "./edges/kinds.mjs";
 
 const READS = new Set(["list", "get"]);
 const DEPTH = 4;
@@ -74,12 +74,13 @@ const VERBS = {
   comment: { words: positionalsIn, at: () => [0], when: (args) => args.length > 1, own: true },
   claim: { at: () => [0], own: true },
   attach: { at: () => [1], when: (args) => args[0] === "issue", own: true },
-  /* An edge write is taken against the end whose order moves, so that end is the read owed; its renewal takes no lease on an issue nobody holds, so this one shape checks nothing for itself (ISS-1724). */
+  /* An edge write is taken against one end, so that end is the read owed; its renewal takes no lease on an issue nobody holds, so this one shape checks nothing for itself (ISS-1724). Which word names that end comes off the kind's own row: a kind written on the other end puts it after its flag, and every other call of this verb — `--relates`, `--unlink` — writes on the subject at 0. */
   issue: {
     when: (args) => args.some((one) => EDGE_FLAGS.includes(one)),
     at: (args) => {
-      const blocks = args.indexOf("--blocks");
-      return [blocks < 0 ? 0 : blocks + 1];
+      const at = args.findIndex((one) =>
+        one.startsWith("--") && edgeRow(one.slice(2))?.writtenOn === "other");
+      return [at < 0 ? 0 : at + 1];
     },
   },
   record: { at: () => [1], own: true },

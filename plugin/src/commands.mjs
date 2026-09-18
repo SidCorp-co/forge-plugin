@@ -1,7 +1,8 @@
 import { fail, keepOnFailure } from "./resolve/settings.mjs";
 import { bodyFrom, notABody } from "./resolve/payload.mjs";
 import { declaredFor, refuseUndeclared, refuseUnreadableDate, scoped, write } from "./tracker/rest.mjs";
-import { EDGE_KINDS, otherOf, partsAmong } from "./tracker/routes.mjs";
+import { EDGE_KINDS, edgeRow, otherOf } from "./tracker/edges/kinds.mjs";
+import { partsAmong } from "./tracker/routes.mjs";
 import {
   DEFAULT_LIMIT,
   MAX_LIMIT,
@@ -133,7 +134,7 @@ export const LIST_USAGE = "Usage: forge issue [--status s] [--search q] [--limit
 const STATUSES_SEEN = "`forge doctor` counts the statuses this project's issues carry.";
 
 export const READ_USAGE = "Usage: forge issue <uuid|ISS-45> [--fields a,b] [--full] [--set f=v... --why W]"
-  + " [--blocks ISS-46|--relates ISS-46|--unlink ISS-46]";
+  + " [--blocks ISS-46|--relates ISS-46|--unlink ISS-46 --kind k]";
 
 /* The one thing a row cannot hold: the form a body takes, learnt before the refusal (ISS-1158). */
 const SET_TAKES = "`--set f=v` writes the value as it is typed. For a body field — description — that\n"
@@ -156,20 +157,45 @@ const newUsage = (goals) =>
   [helpOf("new"), NEW_FLAGS, routingBlock(), goalBlock(goals, "A body filed here").join("\n"), KINDS_HELP]
     .join("\n\n");
 
-/* One flag per kind of edge, and one for its removal. Which end the tracker stores as `from`, and
-   which route the write takes: tracker/routes.mjs's link row. */
-const edgeSaid = (edge) => `${otherOf(edge) ?? "the other end"} by ${edge?.kind ?? "an unnamed kind"}`;
+/* One flag per kind of edge, one for its removal, and `--kind` for which edge a removal takes. What
+   each kind means, and the column each answer is read off: tracker/edges/kinds.mjs. */
+const kindOf = (edge) => edge?.kind ?? "an unnamed kind";
 
-/* The edge id is the tracker's and no caller holds one, so the removal reads the pair's edges. */
-const edgeBetween = async (subjectId, subject, otherId, other) => {
+const kindBelongsTo = (wrote) =>
+  `issue: --kind names which edge --unlink removes, and this call ${wrote === undefined
+    ? "removes none — a read takes no kind"
+    : `asks for --${wrote}, which names its own`}. Nothing was sent.`;
+
+/* The edge id is the tracker's and no caller holds one, so the removal reads the pair's edges — all
+   of them, the first of an object's values being an insertion order rather than an answer. */
+const edgesBetween = async (subjectId, subject, otherId, other) => {
   const held = await scoped("forge_issues", { action: "get", documentId: subjectId, fields: ["relations"] });
-  const every = Object.values(held?.relations ?? {}).flat();
-  const found = every.find((edge) => edge.otherIssueId === otherId);
-  if (!found) {
+  const found = Object.values(held?.relations ?? {}).flat()
+    .filter((edge) => edge.otherIssueId === otherId);
+  if (!found.length) {
     fail(`issue: ${subject} and ${other} have no edge between them, so there is none to remove and `
       + `nothing was sent. \`forge issue ${subject} --fields relations\` prints what it does have.`);
   }
   return found;
+};
+
+/* One edge, or a refusal saying which of the two it could not do: name no edge of the pair, or name
+   several. The route out is `--kind` only where a kind still tells them apart — a pair holding two
+   of one kind, or an edge the tracker named no kind for, is sent to the read instead of to a flag
+   that would answer it no better than the order they came in. */
+const oneEdgeOf = (held, subject, other, kind) => {
+  const wanted = kind === undefined ? held : held.filter((edge) => edge.kind === kind);
+  if (wanted.length === 1) return wanted[0];
+  const has = [...new Set(held.map(kindOf))].join(", ");
+  const apart = [...new Set((wanted.length ? wanted : held).map((edge) => edge.kind))]
+    .filter((one) => EDGE_KINDS.includes(one));
+  const said = wanted.length
+    ? `${subject} and ${other} have ${wanted.length} edges between them, ${has}, and --unlink removes one`
+    : `${subject} and ${other} have no ${kind} edge between them, and what they do have is ${has}`;
+  fail(`issue: ${said}. Nothing was sent. ${apart.length > (wanted.length ? 1 : 0)
+    ? `Name which:\n  forge issue ${subject} --unlink ${other} --kind ${apart[0]}`
+    : `Read them with the id the tracker holds each under:\n  forge issue ${subject} --fields relations`}`);
+  return null;
 };
 
 const wroteEdge = async (subject, asked) => {
@@ -180,24 +206,26 @@ const wroteEdge = async (subject, asked) => {
     fail(`issue: ${subject} and ${other} are one issue, and an issue neither blocks nor relates to `
       + "itself. Nothing was sent.");
   }
-  /* The blocked end's order moves, so it is the end the route is taken against, and a removal is
-     taken against the subject. Neither end is claimed for an edge, and the live check asks after
-     the row this call writes and not the other, whose payload nothing here touches (ISS-1423). */
-  const blocked = kind === "blocks"
+  /* The end the kind's row names is the end the route is taken against, and a removal is taken
+     against the subject, whose row holds the edge id. Neither end is claimed for an edge, and the
+     live check asks after the row this call writes and not the other (ISS-1423). */
+  const row = edgeRow(kind);
+  const written = row?.writtenOn === "other"
     ? { id: otherId, ref: other, dependsOnId: subjectId }
     : { id: subjectId, ref: subject, dependsOnId: otherId };
-  const renewed = await renew(blocked.id, blocked.ref, undefined, null, { finder: true });
-  await notAnothers(blocked.id, blocked.ref);
-  console.log(finderSaid(blocked.ref, renewed));
-  if (!kind) {
-    const found = await edgeBetween(subjectId, subject, otherId, other);
+  const renewed = await renew(written.id, written.ref, undefined, null, { finder: true });
+  await notAnothers(written.id, written.ref);
+  console.log(finderSaid(written.ref, renewed));
+  if (!row) {
+    const found = oneEdgeOf(await edgesBetween(subjectId, subject, otherId, other), subject, other, asked.kind);
     await write("forge_issues", { action: "unlink_edge", documentId: subjectId, edgeId: found.edgeId });
-    return `${subject} —/— ${other}: removed the edge to ${edgeSaid(found)}.`;
+    return `${subject} —/— ${other}: removed the ${kindOf(found)} edge to `
+      + `${otherOf(found) ?? "the other end"}.`;
   }
-  await write("forge_issues", { action: "link", documentId: blocked.id,
-    data: { dependsOnId: blocked.dependsOnId, kind } });
-  return `${subject} ${kind} ${other}: written on the ${blocked.ref} dependency route, and reads back `
-    + `under ${kind === "blocks" ? "blockedBy" : "relates"} there.`;
+  await write("forge_issues", { action: "link", documentId: written.id,
+    data: { dependsOnId: written.dependsOnId, kind } });
+  return `${subject} ${kind} ${other}: written on the ${written.ref} dependency route, and reads back `
+    + `under ${row.readsBack} there.`;
 };
 
 /* The five this table answers itself: each is a handler like an imported verb's, and `commands` below hands every one of them over by the same loader an imported verb gets, so the dispatch has one contract to hold and no entry of it is a handler to be called by mistake. */
@@ -230,6 +258,14 @@ const own = {
     const { fields, full, why, ...single } = flags(pulled.rest, "issue", ["--full"], { usage: READ_USAGE, modes: [LIST_USAGE] });
     const asked = { ...single, ...(pulled.values.length ? { set: pulled.values } : {}) };
     const [wrote] = exclusive(asked, [...EDGE_KINDS, "unlink", "set"], "issue", "writes and a call makes one");
+    /* Used or refused rather than read and dropped: `--kind` belongs to `--unlink` alone, and a call
+       that named neither a kind this CLI serves nor a removal is turned away before anything is sent. */
+    if (asked.kind !== undefined) {
+      if (wrote !== "unlink") fail(kindBelongsTo(wrote));
+      if (!EDGE_KINDS.includes(asked.kind)) {
+        fail(`issue: --kind takes ${EDGE_KINDS.join(" or ")}, and \`${asked.kind}\` is neither. Nothing was sent.`);
+      }
+    }
     if (wrote === "set") {
       const { overrideFields } = await import("./flow/override.mjs");
       return overrideFields(reference, asked.set, why, { ask: pulled.ask });

@@ -33,7 +33,8 @@ const STATUS_JUDGE = `${JUDGE}("issue", "status", filters.status,\n`
    argument. A flag added to a row belongs here, which is the point — it is what classifies it. */
 const SURFACE = {
   issue: ["status", "search", "limit", "offset", "fields", "set", "why", "blocks", "relates", "unlink",
-    "statusNot", "priority", "category", "complexity", "createdAfter", "createdBefore", "updatedAfter"],
+    "kind", "statusNot", "priority", "category", "complexity", "createdAfter", "createdBefore",
+    "updatedAfter"],
   new: ["title", "category", "status", "priority", "complexity", "with"],
   comment: ["title"],
   claim: ["minutes", "next", "open", "reconciled"],

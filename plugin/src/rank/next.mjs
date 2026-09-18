@@ -14,7 +14,7 @@ import { boundShort, candidateLines, droppedLine, graphLines, HEAD, judgingLines
 import { carriersOf, graphOf, PROSE_FROM, PROSE_MARKER } from "./prose-edges.mjs";
 import { eligibilityOf, heldPaths, judgingFrom, pathsNamed } from "./eligible.mjs";
 import { drainScope, fail } from "../resolve/settings.mjs";
-import { RELATES, otherOf } from "../tracker/routes.mjs";
+import { directedEdge, ordersEdge, otherOf } from "../tracker/edges/kinds.mjs";
 import { holdsBack, holdsBackFrom, ordersSaid } from "../flow/earned.mjs";
 import { neighboursOf } from "../tracker/filing/neighbours.mjs";
 import { scoped } from "../tracker/rest.mjs";
@@ -50,11 +50,11 @@ const takeableRows = (rows) => {
 };
 
 /* One edge read from both its ends is one edge, and the tracker's own id is what says so. Where it
-   named none, the kind decides: `relates` is the one kind with no direction of its own, arriving in
-   one list from either end, so its pair is sorted rather than counted twice. A directed pair keeps
-   the ends as read — whether it orders anything today is the blockers' status and not the edge. */
+   named none, the kind's own row decides: a kind with no direction of its own arrives in one list
+   from either end, so its pair is sorted rather than counted twice. A directed pair keeps the ends
+   as read — whether it orders anything today is the blockers' status and not the edge. */
 const edgeKey = (edge) => edge.edgeId
-  ?? `${(edge.kind === RELATES ? [edge.from, edge.to].sort() : [edge.from, edge.to]).join(" ")} ${edge.kind}`;
+  ?? `${(directedEdge(edge) ? [edge.from, edge.to] : [edge.from, edge.to].sort()).join(" ")} ${edge.kind}`;
 
 /* One reading, the takeable set first and bounded by the same cap the ranking reads under, and in
    the same passes: every body at once is the shape that answered 503 after three backoffs, which
@@ -264,10 +264,10 @@ const jsonOf = (batches, dropped, weights, from, read, judging) => ({
   dropped: dropped.map((one) => ({ issueId: one.issueId, soft: one.soft, reason: one.reason })),
 });
 
-/* The claims a body makes that the tracker does not hold, and only a `blocks` edge answers one: a
-   `relates` edge on the same pair orders nothing, so matching it would retire the claim for free. */
+/* The claims a body makes that the tracker does not hold, and only an edge whose kind orders answers
+   one: an edge on the same pair that orders nothing would retire the claim for free. */
 const onlyInProse = (claims, edges) => {
-  const held = new Set(edges.filter((edge) => edge.kind !== RELATES).map((edge) => `${edge.from} ${edge.to}`));
+  const held = new Set(edges.filter(ordersEdge).map((edge) => `${edge.from} ${edge.to}`));
   return claims.filter((claim) => !held.has(`${claim.from} ${claim.to}`));
 };
 

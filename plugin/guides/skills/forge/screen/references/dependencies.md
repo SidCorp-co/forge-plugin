@@ -3,10 +3,11 @@
 Read this before answering what blocks what, and before trusting anything called a dependency.
 
 **The tracker's own store is the one that orders.** `forge issue ISS-nn --blocks ISS-mm` writes an
-edge there, `--relates ISS-mm` writes one that orders nothing, and `--unlink ISS-mm` removes whatever
-edge the two have. `forge issue ISS-mm --fields relations` reads them back, under `blockedBy` for the
-edges holding that issue up, `blocks` for the ones it holds up, and `relates` for the ones that order
-nothing. One field is worth knowing before the list is read: `expired`, because an edge whose
+edge there, `--relates ISS-mm` writes one that orders nothing, and `--unlink ISS-mm` takes away the
+single edge the two have. A pair carrying both kinds loses neither: the removal is refused, both are
+printed, and `--kind` chooses. `forge issue ISS-mm --fields relations` reads them back, under
+`blockedBy` for the edges holding that issue up, `blocks` for the ones it holds up, and `relates` for
+the ones that order nothing. One field is worth knowing before the list is read: `expired`, because an edge whose
 `validUntil` has passed comes back with the live ones, so a count of relations is not a count of
 blockers.
 

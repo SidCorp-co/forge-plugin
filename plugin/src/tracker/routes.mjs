@@ -2,6 +2,8 @@
    caller above it reads. Pure — it builds requests and reads bodies and makes none, which is what
    lets the captured pairs under plugin/test/fixtures/rest judge it. docs/cli/one-transport.md. */
 
+import { relationsOf } from "./edges/kinds.mjs";
+
 const pick = (row, names) =>
   Object.fromEntries(names.map((name) => [name, Object.hasOwn(row ?? {}, name) ? row[name] : null]));
 
@@ -56,42 +58,6 @@ const projectOf = (row) => {
     productionBranch, defaultDeviceId, previewDeploy, createdAt, archivedAt } = row ?? {};
   return { id, slug, name, description, orgId, createdBy, role, repoPath, workspaceSetup, baseBranch,
     productionBranch, defaultDeviceId, previewDeploy: previewDeploy ?? NO_DEPLOY, createdAt, archivedAt };
-};
-
-const expired = (until) => Boolean(until) && Date.parse(until) < Date.now();
-
-/* An edge is one row whichever side it is read from; which end is *the other issue* is the whole
-   difference. `gatesDispatch` is carried only where the row has it: absent falls back to the kind,
-   false is the tracker saying this edge orders nothing, and filling it in decides that for it. */
-const edgeOf = (edge, side) => ({
-  edgeId: edge?.id ?? null,
-  kind: edge?.kind ?? null,
-  ...(edge?.gatesDispatch === undefined ? {} : { gatesDispatch: edge.gatesDispatch }),
-  fromIssueId: edge?.fromIssueId ?? null,
-  toIssueId: edge?.toIssueId ?? null,
-  otherIssueId: edge?.[`${side}IssueId`] ?? null,
-  otherDisplayId: edge?.[`${side}DisplayId`] ?? null,
-  otherStatus: edge?.[`${side}Status`] ?? null,
-  otherMergedAt: edge?.[`${side}MergedAt`] ?? null,
-  validUntil: edge?.validUntil ?? null,
-  expired: expired(edge?.validUntil),
-});
-
-/* Three lists: a `relates` edge orders nothing, and sat in `blockedBy` under a key no read answered. */
-export const RELATES = "relates";
-const ORDERS = (edge) => edge.kind !== RELATES;
-
-export const EDGE_KINDS = ["blocks", RELATES];
-export const otherOf = (edge) => edge?.otherDisplayId ?? edge?.otherIssueId ?? null;
-
-export const relationsOf = (deps) => {
-  const out = (deps?.outgoing ?? []).map((edge) => edgeOf(edge, "to"));
-  const held = (deps?.incoming ?? []).map((edge) => edgeOf(edge, "from"));
-  return {
-    blocks: out.filter(ORDERS),
-    blockedBy: held.filter(ORDERS),
-    relates: [...out, ...held].filter((edge) => edge.kind === RELATES),
-  };
 };
 
 /* Two of the three parts are separate requests, so a reader that named neither is not made to pay

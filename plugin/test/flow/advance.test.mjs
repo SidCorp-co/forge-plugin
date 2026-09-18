@@ -147,6 +147,8 @@ test("an edge the tracker sent no answer for falls back to its kind, and one wit
   assert.ok(holdsBack({ kind: "blocks", otherStatus: "open" }), "the kind answers where the field does not");
   assert.ok(!holdsBack({ kind: "relates", otherStatus: "open" }));
   assert.ok(!holdsBack({ otherStatus: "open" }));
+  assert.ok(!holdsBack({ kind: "duplicates", otherStatus: "open" }),
+    "and a kind this CLI has no row for gates nothing, the fallback being the table's and not a guess here");
   assert.ok(!holdsBack({ kind: "blocks", otherStatus: "developed", gatesDispatch: true }),
     "and the one answer the screen reads is the one the check acted on, floor included");
 });

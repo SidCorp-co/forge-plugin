@@ -116,6 +116,30 @@ test("an edge the tracker named no id for is one edge where its kind has no dire
     `two opposite blocks edges are two edges, whatever their blockers' status: ${both.stdout}`);
 });
 
+/* A kind the tracker serves and this CLI has no row for: it keeps a direction, so two rows stating
+   it in opposite directions are two edges as a pair of `blocks` edges is, and it orders nothing, so
+   it neither gates a dispatch nor answers a blocking claim somebody wrote in prose (ISS-769). */
+test("an edge of a kind the table does not name is directed, orders nothing, and retires no claim", async () => {
+  const strange = { kind: "duplicates", edgeId: "e-9" };
+  load([
+    issue("ISS-1", { title: "the first thing", relations: { blocks: [edge("ISS-2", strange)], blockedBy: [] } }),
+    issue("ISS-2", { title: "the second thing", description: `${claims("first thing")} It waits.`,
+      relations: { blocks: [], blockedBy: [edge("ISS-1", strange)] } }),
+  ]);
+  const run = await ran(["next", "--graph"]);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^edges the ranking reads — 1 on this reading$/mu,
+    `one edge read from both its ends is one edge whatever its kind: ${run.stdout}`);
+  assert.match(run.stdout, /^ {2}none of them orders a dispatch$/mu,
+    `a kind with no row gated a dispatch on a guess: ${run.stdout}`);
+  assert.match(run.stdout, /^claims found only in prose, which gate nothing — 1$/mu,
+    `an edge that orders nothing retired the claim: ${run.stdout}`);
+  const one = await ran(["next", "--graph", "ISS-1"]);
+  assert.equal(one.status, 0, one.stderr);
+  assert.match(one.stdout, /a duplicates edge orders none/u,
+    "and the reading names the kind it read rather than inventing one it has a row for");
+});
+
 test("a name no issue on the tracker carries is refused rather than read as an empty graph", async () => {
   load([issue("ISS-1")]);
   const run = await ran(["next", "--graph", "ISS-404"]);
