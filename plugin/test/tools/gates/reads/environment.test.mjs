@@ -46,6 +46,11 @@ test("a search path reaching this repository through a link outside it is record
   try {
     assert.equal(ran(`${alias}:/usr/bin:/bin`).pathIn, true, "the entry is absolute and outside by its name alone");
     assert.equal(ran("/usr/bin:/bin").pathIn, false, "and a path that reaches nothing of this tree does not");
+    /* An entry this tree names is its own wherever it points, the link being a file of this tree
+       that a later change is free to retarget. */
+    symlinkSync("/usr/bin", join(where.root, "bin-out"));
+    assert.equal(ran(`${join(where.root, "bin-out")}:/usr/bin`).pathIn, true,
+      "a name of this tree's on the search path, pointing out of it");
     // Counting an unresolvable entry as inside took the exemption from every child in the suite.
     assert.equal(ran(`${join(where.at, "gone")}:/usr/bin:/bin`).pathIn, false,
       "an entry that resolves to nothing holds no program to find, so it reaches nothing");

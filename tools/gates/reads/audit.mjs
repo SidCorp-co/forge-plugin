@@ -187,20 +187,16 @@ const start = (out, root) => {
     return inside(one) !== null || at === null || inside(at) !== null;
   };
 
-  // Every directory a name with no slash is looked for in, one this cannot place standing as itself.
-  const along = (env) => String(env.PATH ?? "").split(":")
-    .map((one) => (one.startsWith("/") ? placed(one) : null));
-
-  /* Whether the search path could answer out of this tree: a directory of it in here, or a name
-     looked up along it that one of them holds — the program's own among them, and the line's. */
+  /* Whether the search path could answer out of this tree: an entry of it this tree holds, or a
+     name looked up along one that it holds — the program's own among them, and the line's. */
   const answering = (env, file, args) => {
-    const dirs = along(env);
-    if (dirs.some((one) => one === null || inside(one) !== null)) return true;
+    const entries = String(env.PATH ?? "").split(":");
+    if (entries.some((one) => !one.startsWith("/") || holds(one))) return true;
     const named = String(file);
     if (!/sh$/u.test(basename(named)) || String(args[0]) !== "-c") return false;
     return [named, ...(worded(String(args[1] ?? "")) ?? [])]
       .filter((one) => one.length > 0 && !one.includes("/"))
-      .some((one) => dirs.some((dir) => holds(join(dir, one))));
+      .some((one) => entries.some((dir) => holds(join(dir, one))));
   };
 
   /* What could stand behind a builtin's name or behind the program itself: an exported function, a
