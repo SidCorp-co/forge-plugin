@@ -75,12 +75,16 @@ const PAIRS = {
     key: "forge_issues.list",
     differs: {
       notice: "the list route sends no sentence about its own cap, and this CLI writes none in the tracker's name",
+      truncated: "the tool said a second time, in a key of its own, what hasMore beside it already said; the reader that spent it was deleted and none replaced it (ISS-584)",
+      truncatedBy: "the tool named the cap that bound the page, which is the limit the caller passed and already holds (ISS-584)",
     },
   },
   "issues-search": {
     key: "forge_issues.list",
     differs: {
       notice: "the search route sends no sentence about its own cap, and this CLI writes none in the tracker's name",
+      truncated: "the search row answers through the same projection and drops the pair with it (ISS-584)",
+      truncatedBy: "the search row answers through the same projection and drops the pair with it (ISS-584)",
     },
   },
   "comments-list": {
@@ -195,6 +199,24 @@ describe("the offset lookup's two reads", () => {
     assert.match(row.documentId, /^[0-9a-f-]{36}$/u);
     assert.ok(total > 1, "a total of one row would be the page's count and not the set's");
   });
+});
+
+/* The three rows that page answer a cut page the same way: the window is `hasMore` and the cap is
+   the limit the caller passed, so a second key for either is a byte no reader spends (ISS-584). */
+describe("a cut page says it was cut and says it once", () => {
+  const CUT = { items: [], returned: 2, limit: 2, hasMore: true, nextCursor: "c2" };
+  const rows = [["forge_issues.list", "issues"], ["forge_issues.citing", "issues"],
+    ["forge_comments.list", "comments"]];
+
+  for (const [key, held] of rows) {
+    it(`${key} answers hasMore and neither truncated nor truncatedBy`, () => {
+      const answer = ROUTES[key].answers({ page: CUT }, {});
+      assert.equal(answer.hasMore, true, "the one reading of completeness every caller uses");
+      assert.equal(Object.hasOwn(answer, "truncated"), false, "a second way to say hasMore");
+      assert.equal(Object.hasOwn(answer, "truncatedBy"), false, "the limit the caller passed in");
+      assert.ok(Object.hasOwn(answer, held), `${key} answered no ${held}`);
+    });
+  }
 });
 
 describe("every row of the table is judged", () => {

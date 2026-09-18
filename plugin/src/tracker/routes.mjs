@@ -9,18 +9,13 @@ const rowsIn = (payload, key) => payload?.[key] ?? (Array.isArray(payload) ? pay
 
 const filled = (held) => Object.fromEntries(Object.entries(held).filter(([, value]) => value !== undefined));
 
-/* Only a row whose route takes a window may name what held a page back, `hasMore` there meaning the
-   window did not cover the set; one taking neither guesses no cap, and none carries `notice`. */
-const paged = (payload, key, rows, by = null) => {
-  const more = payload?.hasMore ?? null;
-  return {
-    [key]: rows,
-    returned: Number(payload?.returned ?? rows.length),
-    limit: payload?.limit ?? null,
-    hasMore: more,
-    ...(more === true && by ? { truncated: true, truncatedBy: by } : {}),
-  };
-};
+/* `hasMore` is the route's own word for the window not covering the set, and a route that says nothing about its own completeness answers null rather than a cap this CLI guessed for it. */
+const paged = (payload, key, rows) => ({
+  [key]: rows,
+  returned: Number(payload?.returned ?? rows.length),
+  limit: payload?.limit ?? null,
+  hasMore: payload?.hasMore ?? null,
+});
 
 /* The full read is the row whole, less these. A keep-list would put the column the tracker grows
    next out of reach of `--fields`, so what is named is what says nothing to a caller (ISS-151). */
@@ -126,7 +121,7 @@ export const citingOf = (row) => ({
 export const commentOf = (row) => ({ documentId: row?.id ?? null, ...pick(row, COMMENT) });
 
 const threadOf = (page) => ({
-  ...paged(page, "comments", rowsIn(page, "items").map(commentOf), "cursor"),
+  ...paged(page, "comments", rowsIn(page, "items").map(commentOf)),
   ...filled({ total: page?.total, nextCursor: page?.nextCursor }),
 });
 
@@ -292,14 +287,14 @@ export const ROUTES = {
   "forge_issues.list": {
     project: true,
     requests: issueList,
-    answers: ({ page }) => paged(page, "issues", rowsIn(page, "items").map(browseOf), "limit"),
+    answers: ({ page }) => paged(page, "issues", rowsIn(page, "items").map(browseOf)),
     sends: ["limit", "offset", "filters"],
   },
   /* One wire route, two actions: a projection chosen at the call is one no capture can pin. */
   "forge_issues.citing": {
     project: true,
     requests: issueList,
-    answers: ({ page }) => paged(page, "issues", rowsIn(page, "items").map(citingOf), "limit"),
+    answers: ({ page }) => paged(page, "issues", rowsIn(page, "items").map(citingOf)),
     sends: ["limit", "offset", "filters"],
   },
   "forge_issues.at": {
