@@ -73,7 +73,7 @@ says the same of its files, whether or not it held any of them back. Both printe
 silence is what hid ISS-1739 for a day after ISS-654 landed (ISS-1746).
 
 A file the audit could not follow to the end records nothing at all, so nothing can ever say it is
-unaffected: 81 of this suite's 305 files, and 991s of the 2255s its own price record holds. Such a
+unaffected: 81 of the 305 files a full audited run records, the census below pricing them. Such a
 file may instead be given a **declaration** in \`tools/gates/steps.mjs\` — the repository paths it
 may read, written against the file by somebody who read it. A declaration is a ceiling and never the
 answer: the derived set is the answer, and this is what a file gets until its blindness is fixed.
