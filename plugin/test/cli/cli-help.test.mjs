@@ -56,6 +56,18 @@ test("every verb says what to type", () => {
   }
 });
 
+/* Two surfaces carry a status and neither said which a program may key on, so a run parsed the one
+   written for a person; a column added to it a week later moved every field along and the parse
+   read the wrong word without failing (ISS-174). The verb's own help is where that is settled. */
+test("the issue verb says which of its two outputs a program may key on", () => {
+  const said = `${ask("issue", "-h").stdout}`;
+  assert.match(said, /rows a call prints with no `--fields` are for a person to read/u);
+  assert.match(said, /nothing keys on\n?their positions/u);
+  assert.match(said, /`--fields a,b` is the surface a program reads/u);
+  assert.match(said, /in the order asked/u);
+  assert.match(said, /forge issue ISS-45 --fields status/u);
+});
+
 /* On stderr, `forge -h | head` printed nothing, and callers learned to write `2>&1` first. */
 test("help is an answer, not a failure", () => {
   const run = ask("-h");

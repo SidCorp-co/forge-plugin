@@ -93,16 +93,16 @@ test("a flag the other call requires is named once and not twice", () => {
 });
 
 test("a flag of another call of the verb is refused as that call's, never as one the verb has not got", () => {
-  const said = unknownFlag("issue", ["--fields", "a,b"], { usage: LIST_USAGE, modes: [READ_USAGE] });
+  const said = unknownFlag("issue", ["--full"], { usage: LIST_USAGE, modes: [READ_USAGE] });
   assert.doesNotMatch(said, /No issue flag named/u, "which the caller can see is false");
-  assert.match(said, /^ {2}forge issue <uuid\|ISS-45> --fields a,b$/mu);
+  assert.match(said, /^ {2}forge issue <uuid\|ISS-45> --full$/mu);
   assert.match(said, /^Usage: forge issue \[--status s\]/mu, "and this call's own row is still under it");
 });
 
 /* On no call of this verb: the suggestion is right where the name really is not there. */
 test("a name no call of the verb takes is still answered by this call's own set", () => {
-  assert.match(unknownFlag("issue", ["--feilds"], { usage: LIST_USAGE, modes: [READ_USAGE] }),
-    /No issue flag named --feilds\. The set is --status, --search, --limit, --offset\./u);
+  assert.match(unknownFlag("issue", ["--nosuchflag"], { usage: LIST_USAGE, modes: [READ_USAGE] }),
+    /No issue flag named --nosuchflag\. The set is --status, --search, --limit, --offset, --fields\./u);
 });
 
 /* Read off the other call's own text at the refusal, so nothing beside either usage names a flag. */
@@ -325,13 +325,13 @@ test("a verb taking one flag names the set and the row it read the set off", asy
   assert.doesNotMatch(run.stderr, /ENOENT|no such file/u, "and not as a file nobody meant");
 });
 
-/* The refusal the caller could see was false: --fields of one issue works on this same verb (ISS-932). */
+/* The refusal the caller could see was false: --full of one issue works on this same verb (ISS-932). */
 test("a flag of the verb's other call is refused as that call's, with the command that reaches it", async () => {
-  const run = await ran("issue", "--search", "x", "--limit", "5", "--fields", "issueId,title");
+  const run = await ran("issue", "--search", "x", "--limit", "5", "--full");
   assert.equal(run.status, 1);
-  assert.doesNotMatch(run.stderr, /No issue flag named --fields/u);
-  assert.match(run.stderr, /^ {2}forge issue <uuid\|ISS-45> --fields a,b$/mu);
-  assert.match(run.stderr, /^Usage: forge issue \[--status s\] \[--search q\] \[--limit n\] \[--offset n\]$/mu);
+  assert.doesNotMatch(run.stderr, /No issue flag named --full/u);
+  assert.match(run.stderr, /^ {2}forge issue <uuid\|ISS-45> --full$/mu);
+  assert.match(run.stderr, /^Usage: forge issue \[--status s\] \[--search q\] \[--limit n\] \[--offset n\] \[--fields a,b\]$/mu);
   assert.equal(run.stdout, "", "and nothing was read to say it");
 });
 

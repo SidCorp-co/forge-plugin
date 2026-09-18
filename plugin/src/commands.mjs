@@ -10,6 +10,7 @@ import {
   everyIssue,
   projectedTo,
   queued,
+  rowLine,
   rowsOf,
   shortOf,
 } from "./tracker/issues.mjs";
@@ -93,6 +94,7 @@ const nextCall = (asked, offset) => [
     .filter(([, value]) => value !== undefined)
     .map(([name, value]) => `--${name} ${typedBack(String(value))}`),
   ...(asked.raw === undefined ? [] : [`--limit ${asked.limit}`]),
+  ...(asked.fields ? [`--fields ${typedBack(asked.fields.join(","))}`] : []),
   `--offset ${offset}`,
 ].join(" ");
 
@@ -120,16 +122,24 @@ const countSaid = (shown, read, asked) => {
    because an order a reader cannot see reads as a shuffle. */
 const printIssues = (read, asked, order) => {
   const shown = queued(read.rows, order).slice(asked.offset, asked.offset + asked.limit);
+  /* Judged against a row the walk holds rather than one this page prints, so a name nobody carries is a typo at any offset; a set that came back empty has no row to judge one against and the count line is what that caller reads. */
+  if (asked.fields && read.rows.length) rowLine(read.rows[0], asked.fields);
   for (const issue of shown) {
-    console.log(`${(issue.issueId ?? "").padEnd(8)} ${(issue.priority ?? "").padEnd(8)} `
-      + `${(issue.status ?? "").padEnd(12)} ${issue.title}`);
+    console.log(asked.fields
+      ? rowLine(issue, asked.fields)
+      : `${(issue.issueId ?? "").padEnd(8)} ${(issue.priority ?? "").padEnd(8)} `
+        + `${(issue.status ?? "").padEnd(12)} ${issue.title}`);
   }
-  console.log(`\n${countSaid(shown.length, read, asked)}`);
+  const say = asked.fields ? console.error : console.log;
+  say(`${asked.fields ? "" : "\n"}${countSaid(shown.length, read, asked)}`);
   const said = shortOf(read, "This reading");
-  if (said) console.log(said);
+  if (said) say(said);
 };
 
-export const LIST_USAGE = "Usage: forge issue [--status s] [--search q] [--limit n] [--offset n]";
+const fieldsIn = (given) =>
+  (given ? { fields: given.split(",").map((name) => name.trim()) } : {});
+
+export const LIST_USAGE = "Usage: forge issue [--status s] [--search q] [--limit n] [--offset n] [--fields a,b]";
 /* Seventeen names are a list rather than a sentence, so the route out is where they are counted. */
 const STATUSES_SEEN = "`forge doctor` counts the statuses this project's issues carry.";
 
@@ -142,6 +152,13 @@ const SET_PROSE = "`--set f=v` sends the value through this project's prose lang
   + "stored as you typed it — it is rewritten first, or the write refuses where this CLI does not\n"
   + "write that language. `forge doctor` names the language, where it was read from, and the\n"
   + "setting that stores prose unchanged.";
+
+/* Which of this verb's two outputs a program may key on, said where a caller looks for it: a column added to the browse rows once moved a positional parse one field along, and it kept finding the right issue and reading the wrong word off it (ISS-174). */
+const WHICH_SURFACE = "The rows a call prints with no `--fields` are for a person to read. Which columns they are,\n"
+  + "and in what order, is a judgement that has changed and will change again, so nothing keys on\n"
+  + "their positions. `--fields a,b` is the surface a program reads: a listed row is the names asked\n"
+  + "for, in the order asked; one issue is those names and the two identifiers, keyed by name. One\n"
+  + "issue's status on its own is `forge issue ISS-45 --fields status`.";
 
 /* One line per flag, then the one table a row cannot hold: what a body is read against depends on the kind it names. What is open beside a filing prints on the filing, and which rank it took is in the reply — the reasoning behind both is docs/cli/beside.md and docs/cli/new.md, whose second copy this help was. */
 const NEW_FLAGS = [
@@ -231,11 +248,11 @@ const wroteEdge = async (subject, asked) => {
 const own = {
   /* One verb, two asks, and a flag of one is a stranger to the other, so each path hands the parser its own text and names the other as its `modes`: a combined set would take `--status` beside a key and answer nothing about it, and one text alone called the other's flag a flag nobody has (ISS-932). */
   issue: async (argv) => {
-    if (wantsHelp(argv)) return console.log(`${helpOf("issue")}\n\n${SET_PROSE}`);
+    if (wantsHelp(argv)) return console.log(`${helpOf("issue")}\n\n${WHICH_SURFACE}\n\n${SET_PROSE}`);
     const [first, ...rest] = argv;
     if (first === undefined || first.startsWith("--")) {
       const declared = declaredFor("forge_issues", "filters").map((one) => `--${one}`);
-      const { limit: raw, offset: atRaw, ...filters } = flags(argv, "issue", [], { usage: LIST_USAGE, hidden: declared, modes: [READ_USAGE] });
+      const { limit: raw, offset: atRaw, fields: named, ...filters } = flags(argv, "issue", [], { usage: LIST_USAGE, hidden: declared, modes: [READ_USAGE] });
       /* Each named at its own call, not looped: the value a caller typed is what the judge is handed, and a loop would name the field and pass whatever the loop held (ISS-936). */
       refuseUndeclared("issue", "status", filters.status,
         { values: declaredFor("forge_issues", "status"), hint: STATUSES_SEEN });
@@ -249,7 +266,7 @@ const own = {
       refuseUnreadableDate("issue", "createdAfter", filters.createdAfter);
       refuseUnreadableDate("issue", "createdBefore", filters.createdBefore);
       refuseUnreadableDate("issue", "updatedAfter", filters.updatedAfter);
-      const asked = { filters, raw, limit: limitFrom(raw), offset: offsetFrom(atRaw) };
+      const asked = { filters, raw, limit: limitFrom(raw), offset: offsetFrom(atRaw), ...fieldsIn(named) };
       return printIssues(await everyIssue(filters), asked, declaredFor("forge_issues", "priority"));
     }
     const reference = first;
@@ -271,7 +288,7 @@ const own = {
     }
     if (wrote !== undefined) return console.log(await wroteEdge(reference, asked));
     if (why !== undefined) fail("--why belongs to --set; a read takes no reason.");
-    const names = fields ? fields.split(",").map((name) => name.trim()) : null;
+    const names = fieldsIn(fields).fields ?? null;
     const documentId = await documentIdOf(reference);
     /* The parts among the names ride along so the read skips the routes nothing asked for; the answer is the row whole either way, and the projection off it is this verb's own, which is why the names it cannot choose a route by are dropped here rather than sent to be refused. */
     const held = await scoped("forge_issues", { action: "get", documentId, ...(names ? { fields: partsAmong(names) } : {}) });

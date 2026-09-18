@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { fakeTracker, ranAsync } from "../../fixtures.mjs";
+import { rowLine } from "../../../src/tracker/issues.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../../..", import.meta.url).pathname;
@@ -149,4 +150,69 @@ test("a name the answer does not carry is a typo, and no declaration excuses it"
   const run = await asked("--fields", "fixture-only");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /No field named fixture-only\./u);
+});
+
+/* The other call of this verb, which took no --fields at all until ISS-1526: a caller listing issues
+   owed one further call per row for the uuid a link is built from, and a model with one repair turn
+   had none to spend. The rows are already in hand, so the projection is over what the walk holds. */
+const listed = async (...argv) => {
+  state.calls.length = 0;
+  return ranAsync(FORGE, ["issue", ...argv], tracker.env, ROOT, null);
+};
+
+const sent = () => state.calls.map((one) => `${one.method} ${one.path}`);
+
+test("the list call takes --fields, and the uuid a link is built from is one of them", async () => {
+  const run = await listed("--fields", "documentId,issueId");
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(run.stdout.trim().split("\n"), [`${ISSUE.documentId}\t${ISSUE.issueId}`]);
+});
+
+test("a listed row is the names asked for, in the order asked", async () => {
+  const run = await listed("--fields", "title,status");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(run.stdout.trim(), `${ISSUE.title}\t${ISSUE.status}`);
+});
+
+test("stdout holds the rows alone, the reading's own count going to stderr", async () => {
+  const run = await listed("--fields", "issueId");
+  assert.equal(run.stdout.trim(), ISSUE.issueId);
+  assert.match(run.stderr, /1 issue\(s\) over \d+ page\(s\)/u);
+});
+
+test("a list call naming no fields prints the four columns it always printed", async () => {
+  const run = await listed();
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^ISS-1\s+medium\s+open\s+one$/mu);
+});
+
+/* A listed row is the browse projection, so sending this caller to `--full` would name keys the row
+   never carried and refuse them again; the names it does carry are what the refusal prints. */
+test("a name the listed row does not carry is refused, naming the ones it does", async () => {
+  const run = await listed("--fields", "plan");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /No field named plan\./u);
+  assert.match(run.stderr, /A listed row carries documentId, issueId, title/u);
+});
+
+/* The page this call prints is a slice of what the walk holds, so a typo judged only against a
+   printed row is not judged at all where the offset lands past the last one. */
+test("a name nothing carries is refused at an offset that prints no row", async () => {
+  const run = await listed("--offset", "9", "--fields", "plan");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /No field named plan\./u);
+});
+
+test("a list read naming fields sends no request the same read without them sends", async () => {
+  await listed();
+  const bare = sent();
+  await listed("--fields", "documentId,title");
+  assert.deepEqual(sent(), bare);
+});
+
+/* A tab inside a value would put a column where none was asked for, which is the parse this surface
+   exists to make safe. */
+test("a value carrying a tab or a newline travels as one line and one column", () => {
+  assert.equal(rowLine({ issueId: "ISS-9", title: "one\ttwo\nthree" }, ["issueId", "title"]),
+    "ISS-9\tone two three");
 });

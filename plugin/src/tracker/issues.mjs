@@ -125,19 +125,34 @@ export const everyIssue = async (filters = {}, bound = {}) => {
 };
 
 /** The names a body projects to are its own keys and the ones the tracker declares, read off each
- *  answer and never listed here; a declared name the answer left out is empty. */
-export const projectedTo = (body, names, declared = []) => {
+ *  answer and never listed here; a declared name the answer left out is empty. `hint` is the route
+ *  out for a caller whose body is narrower than the full read. */
+export const projectedTo = (body, names, { declared = [], hint } = {}) => {
   const held = body ?? {};
   const out = { documentId: held.documentId, issueId: held.issueId };
   const taken = [...new Set([...Object.keys(held), ...declared])];
   for (const name of names) {
     if (!taken.includes(name)) {
-      fail(didYouMean("field", name, taken,
-        `\`forge issue ${out.issueId ?? out.documentId} --full\` prints the body these are the keys of.`));
+      fail(didYouMean("field", name, taken, hint
+        ?? `\`forge issue ${out.issueId ?? out.documentId} --full\` prints the body these are the keys of.`));
     }
     out[name] = Object.hasOwn(held, name) ? held[name] : null;
   }
   return out;
+};
+
+const columnOf = (value) =>
+  (value === null || value === undefined ? "" : String(value).replaceAll(/\s/gu, " "));
+
+const listHint = (row) =>
+  `A listed row carries ${Object.keys(row ?? {}).join(", ")}, which is the browse projection; `
+  + "`forge issue ISS-45 --fields <name>` reads one issue's wider set.";
+
+/** One listed row as the names asked for, in the order asked and tab-separated: the columns are the
+ *  caller's own ask, and whitespace inside a value travels as a space so none of it splits one. */
+export const rowLine = (row, names) => {
+  const held = projectedTo(row, names, { hint: listHint(row) });
+  return names.map((name) => columnOf(held[name])).join("\t");
 };
 
 export const readSaid = (read) => `${read.rows.length} issue(s) over ${read.pages} page(s)`;

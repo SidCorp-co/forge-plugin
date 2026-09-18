@@ -23,7 +23,7 @@ a tool name — the live read stays where it is and the refusal waits for it.
 **And a verb with more than one call has more than one row.** `forge issue` reads a list against one
 usage text and one issue against another; `forge chatgpt` parses four. The set the parser is holding
 is then that call's and never the verb's, so *no such flag* is false — and the caller who asked
-`--fields` of one issue a moment earlier can see it is false, which teaches them nothing except that
+`--full` of one issue a moment earlier can see it is false, which teaches them nothing except that
 the refusal is unreliable. What they are owed instead is where the flag does live, so the refusal
 names it as another call's and carries the one command that reaches it there. That command is
 composed at the moment of the refusal from the other call's own usage text, its first line up to the
