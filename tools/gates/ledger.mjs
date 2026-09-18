@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
+import { git } from "../checkout.mjs";
 import { RELEASE_FILES } from "../run/landing.mjs";
 import { derivationFiles, under } from "./scope.mjs";
 import { recordDir } from "./timing.mjs";
@@ -19,13 +20,15 @@ export const LEDGER_UNSEEN = `Keyed on repository file content, the manifests, t
 A file a release writes a version into is keyed on its values with that version taken out of them, so a rebase past
 another release leaves every step where it stood; one left behind at a number the others moved past keeps that number
 in the digest, and everything in those files that is not that number is content like any other.
-It cannot see node_modules as installed, anything outside the repository, or a tool on PATH. --full ignores
-those digests, and reads the seconds beside them all the same, for the order and for nothing else.`;
+A file's permission is the one git records for it, so two checkouts of one commit key alike whatever their umasks
+did to the disk. It cannot see node_modules as installed, anything outside the repository, a tool on PATH, or a
+permission nobody committed. --full ignores those digests, and reads the seconds beside them all the same, for
+the order and for nothing else.`;
 
 const hashed = new Map();
 
-/* The mode with the bytes, because the suite executes files of this tree; a deletion answers as
-   itself; and a path git calls a file that the disk does not is a shape no digest here models. */
+/* The bytes alone, a permission being `digestIn`'s and this reached for files addressed by no repository path;
+   a deletion answers as itself; and a path git calls a file that the disk does not, no digest here models. */
 export const digestFile = (path, rewrite = null) => {
   let found;
   try {
@@ -38,8 +41,39 @@ export const digestFile = (path, rewrite = null) => {
       + `there, so it is a submodule or a link no digest here models. Gate with --full until it is.`);
   }
   const bytes = readFileSync(path);
-  return createHash("sha256").update(found.mode & 0o111 ? "x" : "-")
-    .update(rewrite ? rewrite(bytes) : bytes).digest("hex");
+  return createHash("sha256").update(rewrite ? rewrite(bytes) : bytes).digest("hex");
+};
+
+/* The permission git records and never `lstat`'s: `core.fileMode=false` makes a chmod after checkout
+   a difference git declares is not one, and one that keyed this shared ledger into a copy per tree
+   (ISS-1739). Read rather than dropped, because the suite spawns `plugin/bin/forge` by path, so a
+   recorded mode is a change a step goes red over; no `core.fileMode` read, git having applied it
+   when it wrote the index; and untracked a third reading of its own, not `100644`. Listed under
+   `-z`, so a path holding a quote or a newline arrives whole rather than as git's quoting of it. */
+const EXECUTABLE = "100755";
+const UNTRACKED = "untracked";
+
+const modesIn = new Map();
+
+const STAGED = /^(\d{6}) [0-9a-f]+ \d\t([\s\S]+)$/u;
+
+const recordedModes = (root) => {
+  if (!modesIn.has(root)) {
+    const run = git(["ls-files", "-s", "-z"], root);
+    if (run.status !== 0) {
+      throw new Error(`git would not list the index of ${root}, so what permission it records for each file `
+        + "is unknown and no digest here answers for anything. Gate with --full until it will.");
+    }
+    modesIn.set(root, new Map((run.stdout ?? "").split("\0")
+      .map((one) => STAGED.exec(one)).filter(Boolean).map(([, mode, path]) => [path, mode])));
+  }
+  return modesIn.get(root);
+};
+
+const permissionOf = (root, rel) => {
+  const mode = recordedModes(root).get(rel);
+  if (mode === undefined) return UNTRACKED;
+  return mode === EXECUTABLE ? "x" : "-";
 };
 
 // Where a release writes a version and nowhere else: the file's own field, and in a lock file the root package's second copy at `packages[""]`.
@@ -98,7 +132,9 @@ const besideVersion = (root, rel) => {
 
 /** What one file of a checkout hashes to, and the only derivation of it: two are free to disagree about a manifest, which is how a release's own version survived ISS-939 inside every step's digest and charged the next run to rebase a whole gate (ISS-1716). */
 export const digestIn = (root, rel) =>
-  digestFile(join(root, rel), RELEASE_FILES.includes(rel) ? besideVersion(root, rel) : null);
+  createHash("sha256").update(`${permissionOf(root, rel)}\u0000`)
+    .update(digestFile(join(root, rel), RELEASE_FILES.includes(rel) ? besideVersion(root, rel) : null))
+    .digest("hex");
 
 const hashFile = (root, rel) => {
   const path = join(root, rel);
@@ -106,7 +142,10 @@ const hashFile = (root, rel) => {
   return hashed.get(path);
 };
 
-export const forgetContent = () => hashed.clear();
+export const forgetContent = () => {
+  hashed.clear();
+  modesIn.clear();
+};
 
 const digestOf = (root, files) => {
   const hash = createHash("sha256");
