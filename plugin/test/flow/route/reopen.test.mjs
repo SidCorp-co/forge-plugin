@@ -187,6 +187,19 @@ test("the write a reopen asks for offers the quote as the case where a person re
   assert.match(bare.missing[0].command, /\(--quoted "<their words>" where a person reported it/u);
 });
 
+/* The one refusal that tells a caller how to reach the status named `--set` until ISS-1815 gave the
+   status a write of its own, so the route out of a dead end was the escape hatch by instruction. */
+test("the dead end sends a caller to the reopen write and not to the unearned set", () => {
+  assert.throws(() => targetOf(view({ status: "closed", mergedAt: MARKED }, []), "ISS-3"), (error) => {
+    assert.match(error.message, /^ISS-3 is closed; nothing advances from it\./u);
+    assert.match(error.message, /forge advance ISS-3 --reopen --why /u, "the write the status has now");
+    assert.doesNotMatch(error.message, /--set/u, "and not the one that writes a correction for it");
+    assert.match(error.message, /a person's, or that of a run sent to judge the change/u,
+      "named as both actors' finding, the row of the flow table saying the same");
+    return true;
+  });
+});
+
 test("not-in-spec parks the issue behind the edge that gates it", () => {
   const triage = { outcome: "not-in-spec", "would-have-caught": "a clause that never promised it" };
   const edged = (edge) => reopened(triage, { relations: { blockedBy: [edge] } });

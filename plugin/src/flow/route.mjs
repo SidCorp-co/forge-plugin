@@ -80,7 +80,9 @@ const NOTHING_LANDED = "has no merged mark, so nothing landed, and no park recor
   + "on the page names the status a drop left, so nothing says where a reopen goes back to.";
 const behindTheCut = (view) => (view.cut ? `${view.cut} The record that would say may be behind the cut. ` : "");
 
-/** Why a reopen may not be written, before the status moves: one this cannot route out of, it never enters. */
+export const reopenForm = (ref) => `forge advance ${ref} --reopen --why "<what the finding is>"`;
+
+/** Why one may not be written, before the status moves: what cannot be routed out of is never entered. */
 export const reopenProblem = (view, ref) => {
   if (landedFrom(view)) return null;
   return `${ref} ${NOTHING_LANDED} ${behindTheCut(view)}Nothing was sent. Whoever knows where it `
@@ -307,8 +309,9 @@ export const targetOf = (view, ref) => {
   if (status === REOPEN) return reopenTarget(view, ref);
   const next = nextOf(status, view);
   if (!next) {
-    refuse(`${ref} is ${status}; nothing advances from it. A reopen is a person's word, and this verb `
-      + `routes what follows it — a finding, then a triage:\n  ${setForm(ref, REOPEN)}`);
+    refuse(`${ref} is ${status}; nothing advances from it. What sends work back from here is a `
+      + `finding — a person's, or that of a run sent to judge the change — and this verb routes what `
+      + `follows one, a finding then a triage:\n  ${reopenForm(ref)}`);
   }
   return { next, missing: CHECKS[next](view, ref), resumed: false };
 };
