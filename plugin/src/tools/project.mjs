@@ -3,7 +3,7 @@
    naming picks between. Why deletion is not among them: docs/cli/doctor.md. */
 import { deployFrom, deployRows, deployed } from "../tracker/project-config.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { exclusive, flags, pairsFrom, partition, pullRepeated, shortOfAsk, wantsHelp } from "../resolve/flags.mjs";
+import { exclusive, flags, pairOf, pairsFrom, partition, pullRepeated, shortOfAsk, wantsHelp } from "../resolve/flags.mjs";
 import { projectIdOf, scoped, write } from "../tracker/rest.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
@@ -83,20 +83,22 @@ const created = async (asked) => {
   return [`created: ${answer?.project?.slug ?? asked.slug}`, ...recordLines(answer?.project)];
 };
 
+/* Both readings this verb borrows refuse in words that name no verb, and two verbs take `--set`: a
+   caller told only what `--set` takes cannot tell which of them turned the call back (ISS-1449). */
+const refusing = (said) => fail(`project: ${said}`);
+
 const setPair = (given) => {
-  const at = given.indexOf("=");
-  if (at < 1) fail(`project: --set takes one field and its value joined by \`=\`, not \`${given}\`.`);
-  const field = given.slice(0, at);
+  const { key: field, value } = pairOf(given, "--set", { refusing });
   if (!FIELDS.includes(field)) {
     fail(`${didYouMean("field of a project", field, FIELDS)} A branch is chosen on the tracker's own`
       + " settings screen, and nothing was sent.");
   }
-  return { field, value: given.slice(at + 1) };
+  return { field, value };
 };
 
 const updated = async (slug, given, ask) => {
   /* Through the shared reading rather than a keyed object of its own, so a field named twice is refused here by name as it is on the other `--set`-taking verb, instead of the first value being dropped and the check below blaming this CLI for the caller's repeat (ISS-1056). */
-  const pairs = pairsFrom(given, "--set", { each: setPair, refusing: (said) => fail(`project: ${said}`) });
+  const pairs = pairsFrom(given, "--set", { each: setPair, refusing });
   /* What reached this layer against what the call asked for, and no write has happened yet on this route (ISS-945). */
   const short = shortOfAsk(ask, pairs);
   if (short) fail(short);

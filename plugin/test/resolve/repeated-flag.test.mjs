@@ -4,9 +4,11 @@
    is watched still accumulating beside it (ISS-930). */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 
 import { flags, pairOf, pairsFrom, pullRepeated, repeatedFlag, shortOfAsk } from "../../src/resolve/flags.mjs";
-import { Refusal, refusing } from "../../src/resolve/settings.mjs";
+import { Refusal, fail, refusing } from "../../src/resolve/settings.mjs";
 import { homeEnv, ranAsync } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
@@ -246,4 +248,43 @@ test("the two `--set`-taking verbs print one rule, before either resolves an end
     assert.match(run.stderr, /one call writes each field once\./u, run.stderr);
     assert.doesNotMatch(run.stderr, /No Forge endpoint/u, "neither got as far as needing one");
   }
+});
+
+test("the flag's own refuser is what names the verb, the shared sentence naming none", async () => {
+  const said = await refused(() => pairOf("name", "--set", { refusing: (one) => fail(`project: ${one}`) }));
+  assert.match(said, /^project: --set takes `key=value`, not `name`\.$/u, said);
+});
+
+/* ISS-1449. The malformed pair is the half ISS-1056 left behind: three verbs take `--set` and each
+   spelt this split, so a caller met three sentences for one mistake. */
+test("all three `--set`-taking verbs refuse a malformed pair in the one sentence", async () => {
+  const project = await ran("project", "forge-plugin", "--set", "name");
+  const issue = await ran("issue", "ISS-1", "--set", "name", "--why", "w");
+  const doctor = await ran("doctor", "--set", "autoProdDeploy");
+  for (const run of [project, issue, doctor]) {
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /--set takes `key=value`, not `(name|autoProdDeploy)`\./u, run.stderr);
+  }
+  assert.match(project.stderr, /^project: --set takes/mu, "and the verb that has a name for itself keeps it");
+});
+
+const SPLIT = /\.indexOf\("="\)/gu;
+const ROOT = new URL("../../src", import.meta.url).pathname;
+const OWNER = "resolve/flags.mjs";
+
+const splitters = (dir = ROOT, at = "") => readdirSync(dir, { withFileTypes: true }).flatMap((one) => {
+  const rel = at ? `${at}/${one.name}` : one.name;
+  if (one.isDirectory()) return splitters(join(dir, one.name), rel);
+  if (!one.name.endsWith(".mjs")) return [];
+  return SPLIT.test(readFileSync(join(dir, one.name), "utf8")) ? [rel] : [];
+});
+
+/* CLAUDE.md, Verifying: a selector matching nothing reads exactly like a tree with one home. */
+test("the selector finds a second copy of the split where one is written", () => {
+  assert.equal(new RegExp(SPLIT.source, "u").test('const at = given.indexOf("=");'), true);
+});
+
+test("one file in `plugin/src` decides where a `key=value` pair splits and what a leading `=` is", () => {
+  assert.deepEqual(splitters(), [OWNER],
+    `each of these re-spells the split; call \`pairOf\` in ${OWNER} with the flag and this verb's own refuser`);
 });

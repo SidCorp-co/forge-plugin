@@ -136,10 +136,21 @@ test("the write says which project it went to, not which one the checkout is aim
     "the checkout's own project is not the subject of an account-level write");
 });
 
+/* ISS-1449. This verb spelt the split, the leading-`=` case and the refusal in its own words while
+   the other `--set`-taking verb read the shared one, so the two agreed about a repeated field and
+   disagreed about a malformed one. The reading is shared now and the prefix is what survives it. */
 test("a pair with no `=` in it is refused rather than read as a field set to nothing", async () => {
   const run = await ask("forge-plugin", "--set", "name");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /--set takes one field and its value joined by `=`, not `name`/u);
+  assert.match(run.stderr, /^project: --set takes `key=value`, not `name`\./mu, run.stderr);
+});
+
+test("a pair opening with `=` names no field, and the one reading refuses it for both verbs", async () => {
+  state.calls = [];
+  const run = await ask("forge-plugin", "--set", "=the product");
+  assert.equal(run.status, 1);
+  assert.match(run.stderr, /^project: --set takes `key=value`, not `=the product`\./mu, run.stderr);
+  assert.equal(state.calls.filter((one) => one.name === "forge_projects.update").length, 0);
 });
 
 /* ISS-945, then ISS-1056. The object this verb built was keyed by field, so a second `--set` on one

@@ -7,6 +7,7 @@ import { dirname } from "node:path";
 
 import { FROM_PROJECT, Refusal, drainScope, fail, projectFilePath, projectSlug }
   from "../resolve/settings.mjs";
+import { pairOf } from "../resolve/flags.mjs";
 import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../guides/flow.mjs";
 import { flowJudgeConflict, flowPolicyConflict } from "../flow/earned.mjs";
 import { scoped, write } from "../tracker/rest.mjs";
@@ -227,13 +228,10 @@ const sent = async (resource, route, value, file) => {
 export const writeSetting = async (given) => {
   /* Before the read and before the write: a checkout naming no project has nowhere to send this. */
   projectSlug();
-  const at = given.indexOf("=");
-  if (at < 1) {
-    fail(`--set takes one key and its value, joined by \`=\`, and \`${given}\` is not that pair. `
-      + `Nothing was sent: ${SET_USAGE}`);
-  }
-  const asked = given.slice(0, at);
-  const raw = given.slice(at + 1);
+  /* The split is the shared one, this verb adding only where to look the pair up (ISS-1449). */
+  const { key: asked, value: raw } = pairOf(given, "--set", {
+    refusing: (said) => fail(`${said} Nothing was sent: ${SET_USAGE}`),
+  });
   const route = await routeFor(asked);
   if (!route.key) fail(`--set: \`${asked}\` names the resource and no key of it. ${SET_USAGE}`);
   const resource = RESOURCES[route.name];

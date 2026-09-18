@@ -224,7 +224,7 @@ export const partition = (argv, booleans = [], row = {}) => {
   return { positionals, flagArgv };
 };
 
-/** Two readings every verb's own flags needed. `exclusive`: the flags among `names` the caller gave, refused where two were, in the one sentence every such verb prints — `verb: --a and --b are separate <what>. Nothing was sent.` `pairOf`: `key=value` split on the first `=` only, so a value carrying one survives, and no key before it is refused naming the flag. */
+/** Two readings every verb's own flags needed. `exclusive`: the flags among `names` the caller gave, refused where two were, in the one sentence every such verb prints — `verb: --a and --b are separate <what>. Nothing was sent.` `pairOf`: `key=value` split on the first `=` only, so a value carrying one survives, and no key before it is refused naming the flag — through `refusing` where the caller has a verb to name, since two verbs take `--set` and this sentence names neither (ISS-1449). */
 export const exclusive = (asked, names, verb, what) => {
   const given = names.filter((one) => asked[one] !== undefined);
   if (given.length > 1) {
@@ -233,9 +233,9 @@ export const exclusive = (asked, names, verb, what) => {
   return given;
 };
 
-export const pairOf = (given, flag) => {
+export const pairOf = (given, flag, { refusing = fail } = {}) => {
   const at = given.indexOf("=");
-  if (at < 1) fail(`${flag} takes \`key=value\`, not \`${given}\`.`);
+  if (at < 1) refusing(`${flag} takes \`key=value\`, not \`${given}\`.`);
   return { key: given.slice(0, at), value: given.slice(at + 1) };
 };
 

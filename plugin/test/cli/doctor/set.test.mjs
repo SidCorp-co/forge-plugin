@@ -78,7 +78,9 @@ test("a pair with no `=` in it is refused before either resource is read", async
   state.calls = [];
   const run = await ask("--set", "autoProdDeploy");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /--set takes one key and its value, joined by `=`/u);
+  assert.match(run.stderr, /--set takes `key=value`, not `autoProdDeploy`\./u, run.stderr);
+  assert.match(run.stderr, /Nothing was sent: forge doctor --set <key>=<value>/u,
+    "the shared reading refuses, and this verb's own way out is still on the end of it");
   assert.equal(state.calls.length, 0);
 });
 
