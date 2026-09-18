@@ -49,8 +49,8 @@ export const digestFile = (path, rewrite = null) => {
    (ISS-1739). Read rather than dropped, the suite spawning `plugin/bin/forge` by path; no
    `core.fileMode` read, git having applied it when it wrote the index; and untracked its own third
    reading, which a root git refuses to list records for every path, so no caller needs a checkout.
-   Git failing to run is not that answer: a listing past the buffer arrives as `error`, and keying
-   such a tree as recording nothing would hold a pass over a mode change it never saw. */
+   Git never answering is not that answer — no status at all, run or not, signalled or past the
+   buffer — and keying such a tree as recording nothing holds a pass over the change this reads for. */
 const EXECUTABLE = "100755";
 const UNTRACKED = "untracked";
 const INDEX_BYTES = 64 * 1024 * 1024;
@@ -61,9 +61,10 @@ const STAGED = /^(\d{6}) [0-9a-f]+ \d\t([\s\S]+)$/u;
 
 const staged = (root) => {
   const run = git(["ls-files", "-s", "-z"], root, { maxBuffer: INDEX_BYTES });
-  if (run.error) {
-    throw new Error(`git could not list the index of ${root}: ${run.error.message}. What it records about `
-      + "each file is unknown rather than absent, so no digest here answers. Gate with --full until it can.");
+  if (run.status === null) {
+    throw new Error(`git never answered for the index of ${root}: `
+      + `${run.error?.message ?? `it was ended by ${run.signal}`}. What it records about each file is `
+      + "unknown rather than absent, so no digest here answers. Gate with --full until it does.");
   }
   if (run.status !== 0) return new Map();
   return new Map((run.stdout ?? "").split("\0")

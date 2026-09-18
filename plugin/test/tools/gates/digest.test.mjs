@@ -369,17 +369,24 @@ test("a root that is no checkout records no permission for any path in it, and i
   }
 });
 
-/* Watched failing: a checkout whose listing git could not deliver is not a checkout that records
+/* Watched failing: a checkout whose listing git never delivered is not a checkout that records
    nothing. Read as the latter it keys every path alike, and the next commit to move a mode and no
-   byte keys where the pass already banked keys — a green held over the one change this reads for. */
-test("a checkout whose index listing git could not deliver refuses rather than recording nothing", () => {
-  const { at, work } = scratch("permission-unreadable");
+   byte keys where the pass already banked keys — a green held over the change this reads for. Both
+   arrangements, because a git that cannot be run and one a signal ended are one rule and two shapes:
+   the first leaves an `error` beside the missing status and the second leaves only a `signal`. */
+test("a checkout whose index listing git never answered for refuses rather than recording nothing", () => {
+  const { at, work } = scratch("permission-unanswered");
   const path = process.env.PATH;
+  const shim = join(at, "shim");
   try {
-    forgetContent();
-    process.env.PATH = join(at, "no-git");
-    assert.throws(() => digestIn(work, SOURCE), /--full/u,
-      "git that could not be run at all has said nothing about a permission, which is not saying there is none");
+    mkdirSync(shim, { recursive: true });
+    writeFileSync(join(shim, "git"), "#!/bin/sh\nkill -TERM $$\n", { mode: 0o755 });
+    for (const [where, why] of [[join(at, "no-git"), "could not be run at all"], [shim, "was ended by a signal"]]) {
+      forgetContent();
+      process.env.PATH = where;
+      assert.throws(() => digestIn(work, SOURCE), /--full/u,
+        `git that ${why} said nothing about a permission, which is not saying there is none`);
+    }
   } finally {
     process.env.PATH = path;
     forgetContent();
