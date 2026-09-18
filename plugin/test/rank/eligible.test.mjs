@@ -128,7 +128,7 @@ test("a lease this session holds leaves a developed issue out too, not only anot
   assert.equal(eligibilityOf(row(), { lease: leaseFor(sessionOf()) }).eligible, true,
     "the same lease a builder is allowed to carry on under");
   assert.equal(held.offered.length, 0, "and a judging candidate is not offered under it");
-  assert.match(held.left[0].reason, new RegExp(`lease held by session ${sessionOf()}`, "u"));
+  assert.ok(held.left[0].reason.includes(`lease held by session ${sessionOf()}`), held.left[0].reason);
 });
 
 test("the read is oldest first, and a bound it spends says how many rows it did not reach", async () => {
