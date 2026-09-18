@@ -1,11 +1,5 @@
-/* The command table is the only route to a verb's handler, so an entry loads the one verb it was
-   asked for and nothing else runs. The table named every verb module at the top of the file until
-   ISS-1775, and an import put back beside the table undoes a loader in it without being visible in
-   it. Which module answers which verb is read off the table's own loaders, and a dynamic import is
-   out of this graph on purpose: it is what a path the invocation did not take does not spend. A
-   module reached for something other than its handler is another rule's subject, not this one's —
-   so every reachable edge into a verb's module is read, and not the one a walk happened to arrive
-   by, an earlier helper-only import having hidden a handler import behind it otherwise. */
+/* The command table is the only route to a verb's handler, so an entry loads the one verb it was asked for and nothing else runs. The table named every verb module at the top of the file until ISS-1775, and an import put back beside the table undoes a loader in it without being visible in it. Which module answers which verb is read off the table's own loaders, and a dynamic import is out of this graph on purpose: it is what a path the invocation did not take does not spend.
+   A module reached for something other than its handler is another rule's subject, not this one's — so every reachable edge into a verb's module is read, and not the one a walk happened to arrive by, an earlier helper-only import having hidden a handler import behind it otherwise. */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 

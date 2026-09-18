@@ -114,6 +114,5 @@ export const feedback = async (argv) => {
     { withKeys, intro: `The note is a new ${kind} on ${PROJECT}.`, lost });
 };
 
-/* Its own help, like every other verb that answers `-h` itself: the body slot takes a path, and the
-   dispatcher answering first would read `-h` as one. */
+/* Its own help, like every other verb that answers `-h` itself: the body slot takes a path, and the dispatcher answering first would read `-h` as one. */
 feedback.answersHelp = true;

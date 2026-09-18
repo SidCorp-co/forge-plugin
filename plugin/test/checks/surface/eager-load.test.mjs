@@ -14,9 +14,9 @@ import {
   reachedFrom,
   takesFrom,
   verbModules,
-} from "../../src/checks/eager-load.mjs";
+} from "../../../src/checks/surface/eager-load.mjs";
 
-const ROOT = new URL("../../..", import.meta.url).pathname;
+const ROOT = new URL("../../../..", import.meta.url).pathname;
 const ENTRY = "plugin/src/cli.mjs";
 const TABLE = "plugin/src/commands.mjs";
 

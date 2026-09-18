@@ -38,12 +38,7 @@ import { retiredFlagIn } from "./resolve/retiring.mjs";
 const show = (value) =>
   console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
 
-/* Every entry of the table below is a loader: called with nothing, it answers with the verb's own
-   handler and runs none of it. The table named all nineteen verb modules at the top of this file
-   until ISS-1775, so `forge -h` loaded every verb's imports to print a list of names and any one
-   verb cost the lot. A specifier here is the only place a verb's module is named, which is what
-   `sourceFor` in checks/surface/judged-arguments.mjs reads to find where a verb judges its
-   arguments. */
+/* Every entry of the table below is a loader: called with nothing, it answers with the verb's own handler and runs none of it. The table named all nineteen verb modules at the top of this file until ISS-1775, so `forge -h` loaded every verb's imports to print a list of names and any one verb cost the lot. A specifier here is the only place a verb's module is named, which is what `sourceFor` in checks/surface/judged-arguments.mjs reads to find where a verb judges its arguments. */
 const loads = (module, name) => async () => (await import(module))[name];
 
 /* Absence means empty; the schema already says the field exists. */
@@ -204,12 +199,9 @@ const wroteEdge = async (subject, asked) => {
     + `under ${kind === "blocks" ? "blockedBy" : "relates"} there.`;
 };
 
-/* The five this table answers itself: each is a handler like an imported verb's, and `commands`
-   below hands every one of them over by the same loader an imported verb gets, so the dispatch has
-   one contract to hold and no entry of it is a handler to be called by mistake. */
+/* The five this table answers itself: each is a handler like an imported verb's, and `commands` below hands every one of them over by the same loader an imported verb gets, so the dispatch has one contract to hold and no entry of it is a handler to be called by mistake. */
 const own = {
-  /* One verb, two asks, and a flag of one is a stranger to the other, so each path hands the parser its
-     own text and names the other as its `modes`: a combined set would take `--status` beside a key and answer nothing about it, and one text alone called the other's flag a flag nobody has (ISS-932). */
+  /* One verb, two asks, and a flag of one is a stranger to the other, so each path hands the parser its own text and names the other as its `modes`: a combined set would take `--status` beside a key and answer nothing about it, and one text alone called the other's flag a flag nobody has (ISS-932). */
   issue: async (argv) => {
     if (wantsHelp(argv)) return console.log(`${helpOf("issue")}\n\n${SET_TAKES}`);
     const [first, ...rest] = argv;
@@ -346,10 +338,8 @@ const own = {
       renewing: target === "issue" ? () => renew(targetId, targetRef) : undefined,
     });
   },
-  /* Read through this plugin's disposition of them, which guides/guides.mjs holds and explains. A
-     held slug is answered as one the tracker never served, through that refusal's own call site so
-     the two cannot drift, and its body is never fetched: a line saying a page exists and is stale
-     is what sends an agent to read it. --tracker is the maintainer's way past that, and the only one. The contract is on disk, so it is answered before the transport is touched. */
+  /* Read through this plugin's disposition of them, which guides/guides.mjs holds and explains. A held slug is answered as one the tracker never served, through that refusal's own call site so the two cannot drift, and its body is never fetched: a line saying a page exists and is stale is what sends an agent to read it.
+     --tracker is the maintainer's way past that, and the only one. The contract is on disk, so it is answered before the transport is touched. */
   guide: async (argv) => {
     const usage = usageOf("guide");
     const { positionals, flagArgv } = partition(argv, ["--tracker"], { verb: "guide", usage });
@@ -415,9 +405,7 @@ export const commands = {
   resume: loads("./flow/resume.mjs", "resume"),
   record: loads("./flow/record/record.mjs", "record"),
   advance: loads("./flow/advance.mjs", "advance"),
-  /* The one composition in this table: `spec/` reads the checkout and may not import the workflow,
-     and the rung `--status` prints is derived from workflow records, so the two halves are wired
-     here — and loaded here, a caller typing any other verb needing neither of them. */
+  /* The one composition in this table: `spec/` reads the checkout and may not import the workflow, and the rung `--status` prints is derived from workflow records, so the two halves are wired here — and loaded here, a caller typing any other verb needing neither of them. */
   spec: async () => {
     const [{ spec }, { statusOf }] = await Promise.all([
       import("./spec/verbs.mjs"),

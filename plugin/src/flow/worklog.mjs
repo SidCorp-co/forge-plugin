@@ -8,10 +8,7 @@ import { shortSha } from "../tracker/evidence.mjs";
 import { pluginCopy } from "../tools/plugin-copy.mjs";
 
 
-/* The consult log is loaded by the two readings below and by nothing else here, so a run that never
-   asks what the review owes never loads it: named at module scope, it put the whole reply reader and
-   everything under it on the path of every `forge` call, this module being what the lease reaches
-   (ISS-1775). */
+/* The consult log is loaded by the two readings below and by nothing else here, so a run that never asks what the review owes never loads it: named at module scope, it put the whole reply reader and everything under it on the path of every `forge` call, this module being what the lease reaches (ISS-1775). */
 const consultLog = () => import("../codex/codex-log.mjs");
 const replies = () => import("../codex/log/replies.mjs");
 import { jsonLines } from "../hooks/log/hook-log-file.mjs";
@@ -238,10 +235,7 @@ export const droppedHead = (branch, head) => {
   return { tip, dropped: asked.status === 1 };
 };
 
-/* Whether the default branch carries a head, off the ref this checkout recorded as the remote's own
-   and never a name `baseOf` guesses at. A reading it cannot make answers no with what settles it:
-   what rests on this ends a landing, where the refusal above only costs a builder its write, and
-   under no overlay: one proved over a replacement or a graft proves only it (8faf61 F1). */
+/* Whether the default branch carries a head, off the ref this checkout recorded as the remote's own and never a name `baseOf` guesses at. A reading it cannot make answers no with what settles it: what rests on this ends a landing, where the refusal above only costs a builder its write, and under no overlay: one proved over a replacement or a graft proves only it (8faf61 F1). */
 const PROVEN = { ...OFFLINE, GIT_NO_REPLACE_OBJECTS: "1", GIT_GRAFT_FILE: "/dev/null" };
 
 export const carriedByDefault = (head) => {

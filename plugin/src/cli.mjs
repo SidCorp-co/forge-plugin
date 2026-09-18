@@ -98,9 +98,7 @@ if (needs) {
   process.exit(1);
 }
 
-/* The table answers with the verb rather than being it, so the one verb this call names is the only
-   implementation loaded — and `answersHelp` is read off the handler, which is where the verb's own
-   module declares it. */
+/* The table answers with the verb rather than being it, so the one verb this call names is the only implementation loaded — and `answersHelp` is read off the handler, which is where the verb's own module declares it. */
 if (form) {
   const refused = refusedFor(command, rest);
   if (refused) fail(refused);
