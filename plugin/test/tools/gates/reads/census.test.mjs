@@ -120,7 +120,7 @@ test("the script says what it takes when it is asked, and refuses a candidate it
      spent; a census reading it that way would report a swept temp root as a run with nothing blind. */
   const gone = spawnSync(process.execPath, [CENSUS, "/no/such/records"], { encoding: "utf8" });
   assert.equal(gone.status, 1);
-  assert.match(gone.stderr, /is no directory of audit records/u);
+  assert.match(gone.stderr, /could not be read as a directory of audit records/u);
   const where = room((root) => [record(root, ONE, {})]);
   const empty = join(where.at, "nothing.mjs");
   writeFileSync(empty, "export const other = 1;\n");

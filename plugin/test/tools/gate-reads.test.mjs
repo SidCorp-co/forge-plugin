@@ -203,6 +203,15 @@ test("two children of one program in one directory are two causes where their co
       `git grep -l -- *.mjs in ${where.root}`,
       `git status --porcelain in ${where.root}`,
     ], "and the same command twice is the same cause");
+    writeFileSync(join(out, "own-1.json"), JSON.stringify({
+      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], blind: [],
+      done: true, spawned: [
+        { ticket: "gone-1", file: "git", cwd: where.root, args: ["grep", "--", "a b"] },
+        { ticket: "gone-2", file: "git", cwd: where.root, args: ["grep", "--", "a", "b"] },
+      ],
+    }));
+    assert.equal(setsFrom(out, where.root)[0].blind.length, 2,
+      "and the arguments themselves are the identity, not the line they render to");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }

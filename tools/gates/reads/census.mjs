@@ -1,7 +1,7 @@
 /* What blinds each test file of an audited run, every cause of it, and what a candidate change would
    free — derived through the collector the gate itself runs, never by matching a rendered cause
    string, which is how three readers before this one were wrong (ISS-1756). */
-import { readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { basename, isAbsolute, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -46,21 +46,22 @@ const secondsIn = (path) => {
 
 /* The collector answers an unreadable directory with no records, a step whose audit wrote nothing
    being a file spent rather than a run refused. Here that reads as a census of nothing, so a
-   mistyped path or a swept temp root would be a measurement instead of a mistake. */
+   mistyped path, a swept temp root or a directory this may not list would be a measurement. */
 const readAll = (dirs) => {
   const byTicket = new Map();
   const roots = [];
   for (const dir of dirs) {
     let held;
     try {
-      held = statSync(dir).isDirectory() ? recordsIn(dir) : null;
+      readdirSync(dir);
+      held = recordsIn(dir);
     } catch {
       held = null;
     }
     if (held === null) {
-      console.error(`${dir} is no directory of audit records, so this would census nothing and read `
-        + `as a run with nothing blind. A gate leaves them under <gate temp root>/gate-reads/<step>, `
-        + `and keeps that root when KEEP_TEST_ROOMS=1 is set.`);
+      console.error(`${dir} could not be read as a directory of audit records, so this would census `
+        + `nothing and read as a run with nothing blind. A gate leaves them under `
+        + `<gate temp root>/gate-reads/<step>, and keeps that root when KEEP_TEST_ROOMS=1 is set.`);
       process.exit(1);
     }
     for (const [ticket, one] of held.byTicket) byTicket.set(ticket, one);

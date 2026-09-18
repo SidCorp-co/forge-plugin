@@ -176,7 +176,7 @@ export const reaches = (root, one) => {
 
 const byCause = (one, other) => one.kind.localeCompare(other.kind) || one.why.localeCompare(other.why);
 
-// Every cause, never the first a LIFO queue popped: that one was traversal order (ISS-1756).
+// Every cause and not the first a LIFO queue popped, a child keyed on its arguments (ISS-1756).
 const gather = (start, byTicket, root) => {
   const paths = new Set();
   const dirs = new Set();
@@ -188,14 +188,15 @@ const gather = (start, byTicket, root) => {
     for (const path of one.paths) paths.add(path);
     for (const path of one.dirs) dirs.add(path);
     for (const path of one.trees) trees.add(path);
-    for (const why of one.blind) blind.set(`export ${why}`, { kind: "export", why });
+    for (const why of one.blind) blind.set(JSON.stringify(["export", why]), { kind: "export", why });
     for (const each of one.spawned) {
       const child = each.ticket === null ? null : byTicket.get(each.ticket);
       if (child) queue.push(child);
       else if (reaches(root, each)) {
         const args = (each.args ?? []).map(String);
         const why = `${[each.file, ...args].join(" ")} in ${each.cwd}`;
-        blind.set(`child ${why}`, { kind: "child", why, file: each.file, cwd: each.cwd, args });
+        blind.set(JSON.stringify(["child", each.file, args, each.cwd]),
+          { kind: "child", why, file: each.file, cwd: each.cwd, args });
       }
     }
   }
