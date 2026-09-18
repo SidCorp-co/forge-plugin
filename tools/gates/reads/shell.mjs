@@ -9,7 +9,7 @@ const based = (one) => one.replace(/^.*\//u, "");
 // What stands for itself in a shell word; anything else means more, and refuses the whole line.
 const BARE = /[\w.,:@%+/-]/u;
 
-const worded = (line) => {
+export const worded = (line) => {
   const words = [];
   let word = null;
   for (let at = 0; at < line.length; at += 1) {

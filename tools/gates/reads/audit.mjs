@@ -3,6 +3,8 @@
    object does not reach `import { readFileSync } from "node:fs"`, which is how this repository
    imports it everywhere, so the builtins resolve to a module this generates. */
 
+import { worded } from "./shell.mjs";
+
 export const READS_DIR = "GATE_READS";
 export const READS_ROOT = "GATE_READS_ROOT";
 export const READS_TICKET = "GATE_READS_TICKET";
@@ -152,9 +154,9 @@ const start = (out, root) => {
 
   const entry = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
 
-  /* Where a path lands once its links are followed: the deepest part of it that is there, resolved,
-     with what is not hung back on. A name under a link into this tree is in it, and so is where a
-     dangling one points, a later change being free to put something there. */
+  /* Where a path lands once its links are followed: the deepest part that is there, resolved, with
+     what is not hung back on — so a name under a link into this tree is in it, as is where a
+     dangling one points, a later change being free to fill either. Null is out of hops, not out. */
   const placed = (one) => {
     const rest = [];
     let at = one;
@@ -174,7 +176,12 @@ const start = (out, root) => {
       rest.unshift(basename(at));
       at = up;
     }
-    return resolve(one);
+    return null;
+  };
+
+  const holds = (one) => {
+    const at = placed(one);
+    return at === null || inside(at) !== null;
   };
 
   // Every directory a name with no slash is looked for in, one this cannot place standing as itself.
@@ -187,9 +194,10 @@ const start = (out, root) => {
     const dirs = along(env);
     if (dirs.some((one) => one === null || inside(one) !== null)) return true;
     if (!/sh$/u.test(basename(String(file))) || String(args[0]) !== "-c") return false;
-    return String(args[1] ?? "").split(/\s+/u)
+    // The words the shell would make, so a name the reading approves is the name this asks about.
+    return (worded(String(args[1] ?? "")) ?? [])
       .filter((one) => one.length > 0 && !one.includes("/"))
-      .some((one) => dirs.some((dir) => inside(placed(join(dir, one))) !== null));
+      .some((one) => dirs.some((dir) => holds(join(dir, one))));
   };
 
   /* What could stand behind a builtin's name: an exported function, or a startup file read first.
@@ -208,7 +216,7 @@ const start = (out, root) => {
     const named = String(file);
     return {
       plain: !options.argv0,
-      mine: named.includes("/") && inside(placed(resolve(options.cwd ?? process.cwd(), named))) !== null,
+      mine: named.includes("/") && holds(resolve(options.cwd ?? process.cwd(), named)),
       pathIn: answering(env, file, args),
       funcIn: renaming(env),
     };

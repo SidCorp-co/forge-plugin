@@ -550,6 +550,10 @@ test("a search path entry under a link into this repository is placed inside it"
       "nothing is at the end of it, and what a later change puts there would answer the lookup");
     assert.equal(ran(`${join(where.at, "gone", "deeper")}:/usr/bin`).pathIn, false,
       "where no part of the name reaches this tree, nothing a later change does to it can");
+    /* The walk up to something that is there is bounded, and running out of it says nothing about
+       where the path lands — so it is not the answer that it lands outside. */
+    assert.equal(ran(`${join(alias, ...Array.from({ length: 40 }, () => "deep"))}:/usr/bin`).pathIn, true,
+      "a name too deep to walk is a name this cannot place, and one it cannot place is not outside");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
@@ -574,6 +578,10 @@ test("a name the search path would answer out of this repository is recorded as 
     assert.equal(ran("command -v helper").pathIn, true,
       "the directory stands outside and the name in it does not");
     assert.equal(ran("command -v git").pathIn, false, "and a name none of them answers from here");
+    /* The words this asks about have to be the words the exemption reads, or a quote that the one
+       strips and the other keeps is a lookup approved against a candidate nobody placed. */
+    assert.equal(ran("command -v 'helper'").pathIn, true, "however the line spells that name");
+    assert.equal(ran(`command -v hel\\per`).pathIn, true, "and however it escapes it");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
