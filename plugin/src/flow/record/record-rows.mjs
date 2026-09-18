@@ -42,7 +42,7 @@ export const kindRows = (caps) => [
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
   "  gap          --where W --lacked L --did D | --none <why>       where the method did not answer",
   "  verification --where W --commit C --evidence E... [--contains C]",
-  "  finding      --expected E --seen S --evidence E... --quoted Q [--criterion N | --uc UC-nn-m]",
+  "  finding      --expected E --seen S [--evidence E]... [--quoted Q] [--criterion N | --uc UC-nn-m]   one of --evidence and --quoted",
   "  triage       --outcome O --would-have-caught W [--detail D]  O: " + TRIAGES.join("|"),
   "  merged       " + CLAUSES.map((one) => `--${one.flag} V`).join(" ") + " [--to B] | --undo",
   "  note         --section S --user " + withCap("T", caps.releaseNotes?.halves?.userFacing)
@@ -68,7 +68,7 @@ const KIND_PHRASE = {
   routed: "a finding this run sent to the issue that owns it",
   gap: "where the method did not answer, and what the run did instead",
   verification: "the change read where it now runs, with the evidence",
-  finding: "what was expected, what was seen, and what it was quoted from",
+  finding: "what was expected, what was seen, and either a person's words or what this run captured",
   triage: "a reopen judged: which of the three it was, and what would have caught it",
   merged: "the tracker's own mark, its note built from the five clauses the next statuses read",
   note: "the release note, in the words of whoever filed the issue",

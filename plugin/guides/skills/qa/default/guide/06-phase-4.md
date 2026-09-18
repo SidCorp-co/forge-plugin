@@ -9,9 +9,18 @@ the contract decides, and the verb prints its answer for this issue. **No rung i
 skipped is a status nothing was judged at, and the record it would have read is the record whoever
 reopens this issue reads instead.
 
-**A blocking finding sends the issue back to a building run**, by moving its status and saying what
-was found. That is a fresh dispatch on a change that needs work — not this session resuming somebody
-else's run, and not this session fixing what it found.
+**A blocking finding reopens the issue**: `forge advance <ref> --reopen --why "<what blocks it>"`,
+which is the one move that puts a judged rejection back in front of whoever ranks work to be built.
+A park is for an issue waiting on a person, and this is not waiting on one. Under the move go the
+two writes that say what was found and what it was, each stamped with the reopen it belongs to, and
+the second of them carries the ruling that decides which rung the work returns to. What that ruling
+then owes before the issue moves is the verb's own answer — a rejection judges the change again from
+the start, so a verdict written before the ruling speaks for nothing. Nothing of this is a quote: the
+words of a person go in the flag built for them, and what this session has instead is what it
+captured while it was looking.
+
+That is a fresh dispatch on a change that needs work — not this session resuming somebody else's
+run, and not this session fixing what it found.
 
 **An issue this session cannot judge is set down once, with what it was missing.** A change with no
 deployment identity to judge against is the case that names the rule: it is parked with the reason,
