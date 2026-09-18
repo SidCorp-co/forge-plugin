@@ -560,7 +560,7 @@ export const doctor = async (argv) => {
 
   const language = translateScope();
   if (language.value === "vi") {
-    line(OK, "prose language", `vi  ← ${language.from} — every title and body is rewritten`);
+    line(OK, "prose language", `vi  ← ${language.from} — every title and body is rewritten; set translate to off there to store prose as it is typed`);
   } else if (language.value) {
     line(BAD, "prose language", `${language.value}  ← ${language.from} — vi is the only language this CLI writes; writes refuse`);
   } else {

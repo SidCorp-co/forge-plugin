@@ -79,6 +79,25 @@ test("the report answers where the merge sits and whether a judge is independent
     "unanswered is discovered and recorded, never read as either value");
 });
 
+/* Both readings of the one setting, because the line a project reads is the line it needs: a
+   checkout that rewrites its prose is the one whose run may have to store text unchanged, and the
+   route was named only on the line taken where nothing is rewritten. `forge issue -h` points here
+   for it, so the pointer resolves on both (ISS-1790). */
+test("the prose language row names the setting on both readings of it", async () => {
+  const room = tempHome("project-prose");
+  writeFileSync(join(room.path, ".forge.json"), JSON.stringify({ slug: "forge-plugin", translate: "vi" }));
+  const rewritten = await ranAsync(FORGE, ["doctor"], tracker.env, room.path);
+  assert.match(rewritten.stdout,
+    ROW("prose language", "vi {2}← .forge.json — every title and body is rewritten; "
+      + "set translate to off there to store prose as it is typed"),
+    rewritten.stdout);
+  const plain = tempHome("project-as-written");
+  writeFileSync(join(plain.path, ".forge.json"), JSON.stringify({ slug: "forge-plugin" }));
+  const written = await ranAsync(FORGE, ["doctor"], tracker.env, plain.path);
+  assert.match(written.stdout, ROW("prose language", "as written; set translate in \.forge\.json to rewrite"),
+    written.stdout);
+});
+
 /* The judge is the tracker record's because a project has one record and many checkouts, so a key in
    a checkout is not a second place to answer it — read as one, two clones would judge differently. */
 test("a qa key in the checkout moves nothing the report prints", async () => {

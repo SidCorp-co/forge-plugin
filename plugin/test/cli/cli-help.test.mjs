@@ -493,3 +493,20 @@ test("issue -h restates no part of the rule its own --set refusal owns", () => {
   assert.match(`${refused.stdout}${refused.stderr}`, /takes the text to store rather than a route to it/u,
     "and the refusal is still where the rule is learnt");
 });
+
+/* The help said the value is written as it is typed, which is false wherever the project's own
+   configuration names a prose language: `tracker/rest.mjs` runs every prose field of the payload
+   through `tools/vi.mjs` before the send. What is said is what that does to the value; which
+   language, which file it came from and which setting stay `forge doctor`'s, as the configuration
+   keys `codex -h` leaves to `forge codex show` do (ISS-1790). */
+test("issue -h says what a prose language does to a --set value, and leaves the settings to doctor", () => {
+  const said = ask("issue", "-h").stdout;
+  assert.match(said, /prose language/u, "so a caller learns it before the write, not from a read-back");
+  assert.match(said, /rewritten before it is stored/u, "which is what happens to the value");
+  assert.match(said, /`--why`/u, "and the rest of the command's prose goes the same way");
+  assert.match(said, /forge doctor/u, "which is where the setting that stores prose unchanged is named");
+  for (const resolved of [".forge.json", "translate", "vietnamese"]) {
+    assert.ok(!said.toLowerCase().includes(resolved),
+      `issue -h names ${resolved}, which is what forge doctor resolved and prints: ${said}`);
+  }
+});
