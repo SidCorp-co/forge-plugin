@@ -466,6 +466,10 @@ test("a search path reaching this repository through a link outside it is record
   try {
     assert.equal(ran(`${alias}:/usr/bin:/bin`).pathIn, true, "the entry is absolute and outside by its name alone");
     assert.equal(ran("/usr/bin:/bin").pathIn, false, "and a path that reaches nothing of this tree does not");
+    /* Three entries of this machine's own PATH name directories that are not there, and counting
+       those as unresolved-so-inside took the exemption away from every child in the suite. */
+    assert.equal(ran(`${join(where.at, "gone")}:/usr/bin:/bin`).pathIn, false,
+      "an entry that resolves to nothing holds no program to find, so it reaches nothing");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
