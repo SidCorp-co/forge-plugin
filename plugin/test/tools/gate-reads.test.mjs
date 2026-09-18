@@ -7,7 +7,7 @@ import { mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { auditEnv, contextOf, ENTRIES_PER_FILE, forgetReads, recordSets, selectTests, setsFrom }
+import { auditEnv, contextOf, ENTRIES_PER_FILE, forgetReads, reaches, recordSets, selectTests, setsFrom }
   from "../../../tools/gates/reads/sets.mjs";
 import { CLASSIFIED, optionsIn, shimSource, SHIMMED } from "../../../tools/gates/reads/audit.mjs";
 import { landed, run, scratch, write } from "./gates/scratch.mjs";
@@ -470,6 +470,9 @@ test("a search path reaching this repository through a link outside it is record
        those as unresolved-so-inside took the exemption away from every child in the suite. */
     assert.equal(ran(`${join(where.at, "gone")}:/usr/bin:/bin`).pathIn, false,
       "an entry that resolves to nothing holds no program to find, so it reaches nothing");
+    symlinkSync(join(where.root, "later"), join(where.at, "dangling"));
+    assert.equal(ran(`${join(where.at, "dangling")}:/usr/bin:/bin`).pathIn, true,
+      "a link with nothing at its end still names where a later change could put a program");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
@@ -494,6 +497,22 @@ test("a name the environment inherits rather than owns is one the child gets, an
     assert.equal(ran(`Object.create({ "BASH_FUNC_printf%%": "() { cat README.md; }" })`).funcIn, true,
       "the function is on the prototype, and node passes it all the same");
     assert.equal(ran("{}").funcIn, false, "and an environment carrying none of it says so");
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+/* Naming a program `sh` does not make it one: a wrapper of this tree's own could read anything before
+   it delegates, and the command line it was handed says nothing about that (ISS-1793). */
+test("a shell named by a path in this repository is this repository's, whatever it is called", () => {
+  const where = room();
+  const here = (file, cwd) => reaches(where.root, { plain: true, pathIn: false, funcIn: false,
+    file, cwd, args: ["-c", "command -v git"] });
+  try {
+    assert.equal(here("sh", where.root), false, "the name a search path answers is the covered case");
+    assert.equal(here("/bin/sh", where.root), false, "and a path outside this tree with it");
+    assert.equal(here("./bin/sh", where.root), true, "a wrapper of this tree's own, reached from here");
+    assert.equal(here(join(where.root, "bin/sh"), "/anywhere"), true, "and named whole from outside");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }

@@ -120,7 +120,7 @@ const HERE = Symbol.for("forge.gate.reads");
 const start = (out, root) => {
   if (globalThis[HERE]) return;
   const { registerHooks } = process.getBuiltinModule("node:module");
-  const { mkdirSync, realpathSync, writeFileSync } = process.getBuiltinModule("node:fs");
+  const { lstatSync, mkdirSync, realpathSync, writeFileSync } = process.getBuiltinModule("node:fs");
   const { isAbsolute, join, relative, resolve } = process.getBuiltinModule("node:path");
   const { fileURLToPath, pathToFileURL } = process.getBuiltinModule("node:url");
 
@@ -152,15 +152,15 @@ const start = (out, root) => {
 
   const entry = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
 
-  /* Where a name with no slash would be looked for, through the links as well as by the name: one
-     this cannot place counts as inside, one resolving to nothing holds no program at all. Per spawn. */
+  /* Where a name with no slash would be looked for, by the name and through the links: one this
+     cannot place counts as inside, as does a dangling link, and one with nothing there holds none. */
   const reaching = (one) => {
     if (!one.startsWith("/")) return true;
     if (inside(one) !== null) return true;
     try {
       return inside(realpathSync(one)) !== null;
     } catch {
-      return false;
+      return lstatSync(one, { throwIfNoEntry: false }) !== undefined;
     }
   };
   const searching = (env) => String(env.PATH ?? "").split(":").some(reaching);

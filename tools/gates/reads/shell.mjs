@@ -51,6 +51,8 @@ const OPENS_NOTHING = new Map([
   ["type", NAMED_ONLY], ["hash", NAMED_ONLY], ["command", ASKED_WHERE],
 ]);
 
+export const programOf = (one) => (typeof one.shell === "string" ? String(one.shell) : String(one.file));
+
 const lineOf = (one) => {
   if (one.plain !== true) return null;
   if (typeof one.shell === "string") return SHELL_PROGRAM.has(based(one.shell)) ? String(one.file) : null;
