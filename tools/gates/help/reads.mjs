@@ -42,12 +42,15 @@ nothing still carries the counts, which are read off the recorded sets and not o
 
 One part of that excess a run can prove, and names: \`202 spent under a context the record does not
 hold\`. A set's digest is keyed on the execution context as well as the content, and that context moves
-with this collector's own files, the node version and the absolute paths the launcher carries — any of
-which leaves every recorded set unable to match whatever the tree says, so the spend follows from the
+with this collector's own files, the node version and the launcher, which names a file of this tree by
+its repository path and its content and never by where the tree stands — any of which leaves every
+recorded set unable to match whatever the tree says, so the spend follows from the
 key having moved. Each set therefore carries the context it was keyed on, a field no digest here reads,
 and a spent file keyed on another one is counted as that; a set carrying none is evidence either way for
 neither, and stays in what nothing explains. The \`>\` stands regardless: a context the record does not
 hold explains an excess and never licences it, those files having been spent for nothing reached.
+A worktree therefore keys the launcher the checkout it was cut from keyed, and the record under the
+common git directory is one both of them read rather than one each of them writes into (ISS-1763).
 
 A step the run could not skip says which of the two it is: one the record holds no pass for at any
 content, or one whose recorded passes are all at other content. A test step under a readable record

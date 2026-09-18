@@ -3,7 +3,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync } from "node:child_process";
-import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -161,6 +162,65 @@ test("a test step narrowed to fewer files keeps its reads, and its launcher name
   assert.deepEqual(launcherOf(narrowed), launcherOf(step));
   assert.deepEqual(launcherOf(step).filter((each) => TEST_FILE.test(each)), []);
   assert.deepEqual(narrowed.argv.filter((each) => TEST_FILE.test(each)), [one]);
+});
+
+/* The key every per-file read set is stored under is digested off the launcher, so one naming the tree it
+   stands in left every worktree spending all 290 test files off a record it shares and cannot read (ISS-1763). */
+test("a launcher names a file of this tree by its repository path and content, and the tree nowhere", () => {
+  const launcher = launcherOf(gateSteps(tracked()).find((one) => one.tests === "rest"));
+  assert.deepEqual(launcher.filter((one) => one.includes(ROOT)), []);
+  const reporters = launcher.filter((one) => one.includes("tools/gates/"));
+  assert.equal(reporters.length, 2, `the launcher names ${reporters.length} file(s) of this tree`);
+  for (const one of reporters) {
+    assert.match(one, /^--test-reporter=tools\/gates\/[\w.-]+\.mjs@[0-9a-f]{12}$/u);
+  }
+});
+
+const treeWith = (at, name, text) => {
+  const tree = join(at, name);
+  mkdirSync(join(tree, "tools", "gates"), { recursive: true });
+  writeFileSync(join(tree, "tools", "gates", "file-times.mjs"), text);
+  return tree;
+};
+
+const stepIn = (tree, rel = "tools/gates/file-times.mjs") => ({
+  files: ["plugin/test/one.test.mjs"],
+  argv: [process.execPath, "--test", "--test-concurrency=3", `--test-reporter=${join(tree, rel)}`,
+    "--test-reporter-destination=stdout", "plugin/test/one.test.mjs"],
+});
+
+const digestOf = (text) => createHash("sha256").update(text).digest("hex").slice(0, 12);
+
+test("a launcher keeps every token naming no file of its tree, and gives the one that does its path and content", () => {
+  const at = tempRoom("gate-launcher-");
+  try {
+    const launcher = launcherOf(stepIn(treeWith(at, "checkout", "the reporter\n")), join(at, "checkout"));
+    assert.deepEqual(launcher, [process.execPath, "--test", "--test-concurrency=3",
+      `--test-reporter=tools/gates/file-times.mjs@${digestOf("the reporter\n")}`,
+      "--test-reporter-destination=stdout"]);
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* The two trees a wave really runs in: one commit, one content, and an argv differing in nothing but the
+   root it is spelt from. Dropping that root alone would be worse than the cost it saves — a reporter one
+   tree really changed, or a second file of the same bytes, would key as the one the record answers for. */
+test("two trees of one content key alike, and a reporter differing in content or in path keys apart", () => {
+  const at = tempRoom("gate-launcher-");
+  try {
+    const checkout = treeWith(at, "checkout", "the reporter\n");
+    const worktree = treeWith(at, "worktree", "the reporter\n");
+    assert.deepEqual(launcherOf(stepIn(worktree), worktree), launcherOf(stepIn(checkout), checkout));
+    writeFileSync(join(worktree, "tools", "gates", "other.mjs"), "the reporter\n");
+    assert.notDeepEqual(launcherOf(stepIn(worktree, "tools/gates/other.mjs"), worktree),
+      launcherOf(stepIn(checkout), checkout), "the same bytes at another repository path");
+    writeFileSync(join(worktree, "tools", "gates", "file-times.mjs"), "the reporter, moved\n");
+    assert.notDeepEqual(launcherOf(stepIn(worktree), worktree),
+      launcherOf(stepIn(checkout), checkout), "other bytes at the same repository path");
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
 });
 
 test("every test step's declared files are exactly the test files on its own command line", () => {

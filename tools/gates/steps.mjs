@@ -1,9 +1,15 @@
 import { availableParallelism } from "node:os";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { parallelRuns } from "../../plugin/src/resolve/settings.mjs";
 import { HUMAN_REPORTER } from "./isolation.mjs";
+import { digestFile } from "./ledger.mjs";
 import { under } from "./scope.mjs";
+
+const DIGEST_LENGTH = 12;
+
+const TREE = resolve(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 
 const ours = (name) => fileURLToPath(new URL(`./${name}`, import.meta.url));
 
@@ -135,8 +141,17 @@ export const readsWholeTree = (path) => WHOLE_TREE_TESTS.some((claim) => under(p
 
 export const argvForTests = (files) => [process.execPath, "--test", ...testFlags(), ...files];
 
+// A path of this tree, to the end of its argument, stands for that file's content and not for where the tree sits (ISS-1763).
+const identity = (one, tree) => {
+  const at = one.indexOf(`${tree}/`);
+  if (at < 0) return one;
+  const rel = one.slice(at + tree.length + 1);
+  return `${one.slice(0, at)}${rel}@${digestFile(join(tree, rel)).slice(0, DIGEST_LENGTH)}`;
+};
+
 // What a step spends apart from its files: the context a per-file record answers under.
-export const launcherOf = (step) => step.argv.slice(0, step.argv.length - step.files.length);
+export const launcherOf = (step, tree = TREE) =>
+  step.argv.slice(0, step.argv.length - step.files.length).map((one) => identity(one, tree));
 
 export const gateSteps = (found) => {
   const absent = WHOLE_TREE_TESTS.filter((claim) => !found.some((one) => under(one, claim)));
