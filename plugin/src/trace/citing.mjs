@@ -18,7 +18,7 @@ const pageAt = async (id, offset, held) => scoped("forge_issues", {
 }, held.soft !== false, held);
 
 /** Every citation of `id` in a row, through the reader the write side spends, with its revision. */
-export const citedIn = (row, index, id) => CITED_FIELDS
+const citedIn = (row, index, id) => CITED_FIELDS
   .flatMap(({ field }) => citationsIn(row?.[field]).map((one) => ({ ...one, field })))
   .filter((one) => one.id === id && lookup(index, one.id).clause);
 
@@ -43,7 +43,7 @@ const walk = async (id, index, held) => {
 };
 
 /** The count and the way out for a citing set the route did not finish; status.mjs rules on it. */
-export const cutSaid = (read, id) => (read.whole ? null
+const cutSaid = (read, id) => (read.whole ? null
   : `The issues citing ${id} reached ${readSaid(read)} and the reading is incomplete: `
     + (read.refused
       ? `the tracker refused it — ${read.refused}.`
@@ -51,7 +51,7 @@ export const cutSaid = (read, id) => (read.whole ? null
     + "\nNo status is derived from a set that may be short.");
 
 /** The issues citing this clause; `null` is a project with no tree, saying nothing rather than none. */
-export const issuesCiting = async (id, index = specTreeIfAny(), held = {}) => {
+const issuesCiting = async (id, index = specTreeIfAny(), held = {}) => {
   if (!index) return null;
   const read = await walk(id, index, held);
   return { id, ...read, cut: cutSaid(read, id) };

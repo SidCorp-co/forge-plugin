@@ -182,14 +182,14 @@ const sentence = (one) => {
   return typeof one === "string" ? one : one.message ?? JSON.stringify(one);
 };
 
-export const warningsIn = (body) => {
+const warningsIn = (body) => {
   const held = body?.warnings;
   return (Array.isArray(held) ? held : [held]).map(sentence).filter((one) => one.trim() !== "");
 };
 
-const sayDeclined = (key, bodies, say = console.error) => {
+const sayDeclined = (key, bodies) => {
   for (const body of bodies) {
-    for (const said of unfencedIn(warningsIn(body))) say(`${key}: ${said}`);
+    for (const said of unfencedIn(warningsIn(body))) console.error(`${key}: ${said}`);
   }
 };
 

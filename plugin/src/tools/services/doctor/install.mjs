@@ -1,4 +1,4 @@
-// Read and never repaired: the row names what is missing and the install stays the developer's own call. Rows rather than printed lines, for the same reason doctor-harness.mjs returns them (ISS-885).
+// Read and never repaired: the row names what is missing and the install stays the developer's own call. Rows rather than printed lines, for the same reason harness.mjs returns them (ISS-885).
 import { PUTS_IT_BACK, said, unresolvedIn } from "../../../resolve/installed.mjs";
 
 export const installRows = (root) => {

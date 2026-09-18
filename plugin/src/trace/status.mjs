@@ -35,7 +35,7 @@ const rungOf = (provers) => {
 };
 
 /** A verdict this did not reach and one nobody wrote read alike, so a prefix costs the rung too. */
-export const threadCut = (short) => `${short.join("\n")}\nNo rung is derived where the record of an `
+const threadCut = (short) => `${short.join("\n")}\nNo rung is derived where the record of an `
   + "issue that could prove the clause came back a prefix.";
 
 /** One clause's rung; null where the set was cut, those rows then saying nothing about it. */

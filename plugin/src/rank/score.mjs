@@ -28,7 +28,7 @@ const points = (table, name, fallback = 0) =>
   (Object.hasOwn(table, String(name)) ? table[String(name)] : fallback);
 
 const aged = (days, weights) =>
-  (weights.ageCap === null ? days * weights.agePerDay : Math.min(days * weights.agePerDay, weights.ageCap));
+  Math.min(days * weights.agePerDay, weights.ageCap === null ? Infinity : weights.ageCap);
 
 /** The total and its parts, `now` passed rather than read: age is the one weight a clock moves, and
  *  a case that could not fix the clock could not pin the order. */
