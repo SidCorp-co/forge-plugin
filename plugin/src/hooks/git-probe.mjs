@@ -27,7 +27,7 @@ const byRoot = (paths, left) => {
     const at = dirname(path);
     if (!known.has(at)) {
       if (left() < LEAST_MS) break;
-      const said = gitProbe(["-C", at, "rev-parse", "--show-toplevel"], { ms: probeMs(left()) });
+      const said = gitProbe(["rev-parse", "--show-toplevel"], { cwd: at, ms: probeMs(left()) });
       known.set(at, said && said.status === 0 && said.out.trim() ? canonical(said.out.trim()) : null);
     }
     const root = known.get(at);
@@ -45,7 +45,7 @@ export const agreedWithHead = (paths, left) => {
   const out = new Set();
   for (const [root, held] of byRoot(paths, left)) {
     if (left() < LEAST_MS) break;
-    const said = gitProbe(["-C", root, ...ASK, ...held], { ms: probeMs(left()) });
+    const said = gitProbe([...ASK, ...held], { cwd: root, ms: probeMs(left()) });
     if (!said || said.status !== 0) continue;
     const seen = new Set(said.out.split("\0").filter(Boolean).map((one) => one.slice(3)));
     for (const path of held) {

@@ -52,7 +52,8 @@ export const merged = (held, patch) => {
 
 /* Null where git would not answer: otherwise a failed diff and an empty one read the same. */
 const git = (args, env = null) => {
-  const run = spawnSync("git", args, { encoding: "utf8", ...(env ? { env: { ...process.env, ...env } } : {}) });
+  const run = spawnSync("git", args,
+    { cwd: process.cwd(), encoding: "utf8", ...(env ? { env: { ...process.env, ...env } } : {}) });
   return run.status === 0 ? (run.stdout ?? "").trim() : null;
 };
 
@@ -226,7 +227,7 @@ export const droppedHead = (branch, head) => {
   if (!tip) return null;
   if (git(["rev-parse", "--is-shallow-repository"], OFFLINE) !== "false") return { tip, dropped: false };
   const asked = spawnSync("git", ["merge-base", "--is-ancestor", head, tip],
-    { encoding: "utf8", env: { ...process.env, ...OFFLINE } });
+    { cwd: process.cwd(), encoding: "utf8", env: { ...process.env, ...OFFLINE } });
   return { tip, dropped: asked.status === 1 };
 };
 
@@ -259,7 +260,7 @@ export const carriedByDefault = (head) => {
       + "here or the object is gone from a store that has the rest", "git fetch origin", ref, tip);
   }
   const asked = spawnSync("git", ["merge-base", "--is-ancestor", head, tip],
-    { encoding: "utf8", env: { ...process.env, ...PROVEN } });
+    { cwd: process.cwd(), encoding: "utf8", env: { ...process.env, ...PROVEN } });
   if (asked.status === 0) return { ref, tip, carries: true, why: null, route: null };
   if (asked.status === 1) {
     return short(`${ref} stands at ${shortSha(tip)} and does not reach it`, "git fetch origin", ref, tip);

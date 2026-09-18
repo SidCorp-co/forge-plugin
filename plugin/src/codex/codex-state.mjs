@@ -190,7 +190,7 @@ export const clearConsulted = (root, rels) => {
 const GIT_MS = 3_000;
 
 const names = (root, args, ms) => {
-  const run = spawnSync("git", ["-C", root, ...args], { encoding: "utf8", timeout: ms });
+  const run = spawnSync("git", args, { cwd: root, encoding: "utf8", timeout: ms });
   if (run.status !== 0) return null;
   return (run.stdout ?? "").split("\0").filter(Boolean);
 };

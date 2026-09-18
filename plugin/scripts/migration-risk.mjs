@@ -89,6 +89,7 @@ function since(ref, directory) {
   let known = new Set();
   try {
     const out = spawnSync("git", ["ls-tree", "-r", "--name-only", ref, "--", directory], {
+      cwd: process.cwd(),
       encoding: "utf8",
       timeout: 10_000,
     });

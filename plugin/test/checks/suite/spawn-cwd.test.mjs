@@ -2,7 +2,14 @@
    in the checkout, and 139 of this suite's 294 files answered for nothing on that alone (ISS-1721).
    Almost every one of those children was a git working in a temporary room it had already named,
    standing in the checkout only because its spawn said nothing. The cwds are one commit; the shape
-   comes back with the next case that runs git against a room, so the rule is held here. */
+   comes back with the next case that runs git against a room, so the rule is held here.
+
+   The walk is every `.mjs` this repository ships and not the suite alone, because the audit follows
+   the whole process tree: a helper in `plugin/src/` that a test imports blinds that test exactly as
+   the test's own spawn does, and bounding the rule at `plugin/test/` let the identical shape survive
+   at eight sites worth ten files of the suite (ISS-1736). What the rule asks for is a git child that
+   says where it stands, not one that stands somewhere else — a child reading this checkout on
+   purpose answers it by naming the checkout, which is what `plugin/src/flow/worklog.mjs` does. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, readdirSync } from "node:fs";
@@ -10,30 +17,37 @@ import { join } from "node:path";
 
 import { spawnsIn } from "../../../src/checks/suite/spawn-cwd.mjs";
 
-const SUITE = new URL("../../", import.meta.url).pathname;
+const ROOT = new URL("../../../../", import.meta.url).pathname;
+
+/* The directories this repository ships code in. `node_modules` is nobody's rule to hold here. */
+const TREES = ["plugin", "tools", "packages"];
 
 const files = () => {
   const out = [];
   const walk = (dir, at) => {
     for (const one of readdirSync(dir, { withFileTypes: true })) {
+      if (one.name === "node_modules") continue;
       if (one.isDirectory()) walk(join(dir, one.name), `${at}/${one.name}`);
       else if (one.name.endsWith(".mjs")) out.push({ rel: `${at}/${one.name}`, text: readFileSync(join(dir, one.name), "utf8") });
     }
   };
-  walk(SUITE, "plugin/test");
+  for (const tree of TREES) walk(join(ROOT, tree), tree);
   return out;
 };
 
 const said = (text, rel = "one.mjs") => spawnsIn(text, rel);
 
-test("the walk reaches the suite, so a clean answer is a clean suite and not an empty selector", () => {
+test("the walk reaches every tree this repository ships, so a clean answer is not an empty selector", () => {
   const walked = files();
-  assert.ok(walked.length > 200, `the walk found ${walked.length} files, and this suite has hundreds`);
-  assert.ok(walked.some((one) => one.rel === "plugin/test/fixtures.mjs"),
-    "the shared fixtures are in the walk, which is where the suite's own git helper lives");
+  assert.ok(walked.length > 500, `the walk found ${walked.length} files, and this repository has hundreds`);
+  for (const one of ["plugin/test/fixtures.mjs", "plugin/src/checks/duplication.mjs",
+    "plugin/scripts/blast-radius.mjs", "plugin/hooks/gates/learning-gate.mjs",
+    "tools/gates.mjs", "packages/code-quality/bin/code-quality-gate.mjs"]) {
+    assert.ok(walked.some((each) => each.rel === one), `${one} is in the walk`);
+  }
 });
 
-test("every git child this suite spawns names the directory it stands in", () => {
+test("every git child this repository spawns names the directory it stands in", () => {
   assert.deepEqual(files().flatMap((one) => spawnsIn(one.text, one.rel)), []);
 });
 

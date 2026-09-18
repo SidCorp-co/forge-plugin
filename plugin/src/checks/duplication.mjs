@@ -109,7 +109,7 @@ function walk(dir, kind, out = []) {
  *  names guessed at here; a tree that is not a repository falls back to walking it. */
 function tracked(root, kind) {
   const args = ["ls-files", "-z", "--cached", "--others", "--exclude-standard"];
-  const git = spawnSync("git", ["-C", root, ...args], { encoding: "utf8", maxBuffer: 1 << 28 });
+  const git = spawnSync("git", args, { cwd: root, encoding: "utf8", maxBuffer: 1 << 28 });
   if (git.status !== 0) return null;
   return git.stdout
     .split("\0")

@@ -23,7 +23,7 @@ const GIT_MS = 2_000;
 const DEPTH = 3;
 
 const git = (cwd, args) => {
-  const run = spawnSync("git", ["-C", cwd, ...args], { encoding: "utf8", timeout: GIT_MS });
+  const run = spawnSync("git", args, { cwd, encoding: "utf8", timeout: GIT_MS });
   return run.status === 0 ? String(run.stdout) : "";
 };
 

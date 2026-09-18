@@ -297,8 +297,8 @@ export const changedAgainst = (root, base, fromParting = false, ms) => {
  *  `--exclude-standard`, so an ignored path is in neither list and reads as unchanged. `1` is none. */
 export const ignoredIn = (root, rels) => {
   if (!rels.length) return new Set();
-  const run = spawnSync("git", ["-C", root, "check-ignore", "-z", "--stdin"],
-    { input: `${rels.join("\0")}\0`, encoding: "utf8" });
+  const run = spawnSync("git", ["check-ignore", "-z", "--stdin"],
+    { cwd: root, input: `${rels.join("\0")}\0`, encoding: "utf8" });
   if (run.status !== 0 && run.status !== 1) return new Set();
   return new Set((run.stdout ?? "").split("\0").filter(Boolean));
 };

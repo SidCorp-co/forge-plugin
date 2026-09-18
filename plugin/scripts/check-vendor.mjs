@@ -13,7 +13,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const VENDOR = join(HERE, "..", "hooks", "vendor");
 const upstream = process.argv[2] ?? join(HERE, "..", "..", "packages", "code-quality");
 
-const head = spawnSync("git", ["-C", upstream, "rev-parse", "--short", "HEAD"], {
+const head = spawnSync("git", ["rev-parse", "--short", "HEAD"], {
+  cwd: upstream,
   encoding: "utf8",
 });
 const now = (head.stdout ?? "").trim();

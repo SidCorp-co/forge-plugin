@@ -11,7 +11,7 @@ import { diffIdentifiers, rank } from "../src/checks/blast-radius.mjs";
 const MAX_BYTES = 512 * 1024;
 
 function git(root, args) {
-  const run = spawnSync("git", ["-C", root, ...args], { encoding: "utf8", maxBuffer: 1 << 28 });
+  const run = spawnSync("git", args, { cwd: root, encoding: "utf8", maxBuffer: 1 << 28 });
   if (run.status !== 0) throw new Error((run.stderr || run.stdout || "git failed").trim());
   return run.stdout;
 }
