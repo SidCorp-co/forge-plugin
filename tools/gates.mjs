@@ -84,7 +84,9 @@ without this plugin's own CLI — prints why, prints the body, prints the one co
 hand, and leaves the run's status alone: a gate that cannot reach the tracker may not become a gate
 that refuses. A run with nothing to file reaches none of this and sends no request.
 
-${READS_HELP}Past that, a step whose inputs are byte for byte what one of its recorded passes covered is skipped
+${READS_HELP}
+
+Past that, a step whose inputs are byte for byte what one of its recorded passes covered is skipped
 and says which digest matched. Only passes are recorded, so a red step is red again next time. The
 record lives under the common git directory, so a worktree's pass counts for the checkout's re-run
 of the same tree, and carries the seconds that step took when it passed.

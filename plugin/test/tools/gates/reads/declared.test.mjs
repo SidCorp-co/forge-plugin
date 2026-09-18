@@ -262,6 +262,8 @@ test("the report names both counts, the dead claim's own blindness, and the esca
     /read docs \(walk\), which the declaration at .+ does not cover: plugin\/src\. Widen it in tools\/gates\/steps\.mjs, or drop it/u);
 });
 
+/* The last clause is the seam the section's own file leaves: the help is one document whichever
+   module each paragraph is typed in, and a lost blank line joins two of them into one sentence. */
 test("the help says what verifies a declaration and that the verification stops at the observed reads", () => {
   const said = run(ROOT.replace(/\/$/u, ""), ["-h"]).stdout;
   for (const clause of [/may instead be given a \*\*declaration\*\* in `tools\/gates\/steps\.mjs`/u,
@@ -270,7 +272,8 @@ test("the help says what verifies a declaration and that the verification stops 
     /That verification reaches the observed reads and stops there/u,
     /no check can say a\nceiling covers it, and this does not claim to/u,
     /its declaration is said to have had no effect against the blindness it was recorded under/u,
-    /how\nmany files recorded a set by derivation and how many against a declaration/u]) {
+    /how\nmany files recorded a set by derivation and how many against a declaration/u,
+    /held back were held back by one\.\n\nPast that, a step whose inputs/u]) {
     assert.match(said, clause);
   }
   assert.doesNotMatch(said, /are both refused before a step is spent/u,
