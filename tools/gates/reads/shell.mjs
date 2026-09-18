@@ -52,8 +52,8 @@ const OPENS_NOTHING = new Map([
 ]);
 
 const lineOf = (one) => {
-  if (typeof one.shell === "string") return SHELL_PROGRAM.has(based(one.shell)) ? String(one.file) : null;
   if (one.plain !== true) return null;
+  if (typeof one.shell === "string") return SHELL_PROGRAM.has(based(one.shell)) ? String(one.file) : null;
   const args = (one.args ?? []).map(String);
   return args.length === 2 && args[0] === "-c" && SHELL_PROGRAM.has(based(String(one.file)))
     ? args[1] : null;

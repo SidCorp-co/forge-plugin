@@ -470,3 +470,27 @@ test("a search path reaching this repository through a link outside it is record
     rmSync(where.at, { recursive: true, force: true });
   }
 });
+
+/* node hands a child every enumerable name of the environment it is given and not only the own ones,
+   its own comment saying prototype values are intentionally included — so a reading over the own
+   names would call an environment clean that arrives carrying a function (ISS-1793). */
+test("a name the environment inherits rather than owns is one the child gets, and is recorded", () => {
+  const where = room();
+  const out = join(where.at, "out");
+  mkdirSync(out, { recursive: true });
+  const ran = (made) => {
+    rmSync(out, { recursive: true, force: true });
+    mkdirSync(out, { recursive: true });
+    audited(where.root, out, `import { execSync } from "node:child_process";\n`
+      + `const env = ${made};\nenv.PATH = process.env.PATH;\n`
+      + `try { execSync("printf %s hello", { env }); } catch { /* the answer is the record */ }\n`);
+    return recordsIn(out).flatMap((one) => one.spawned).find((one) => one.shell !== undefined);
+  };
+  try {
+    assert.equal(ran(`Object.create({ "BASH_FUNC_printf%%": "() { cat README.md; }" })`).funcIn, true,
+      "the function is on the prototype, and node passes it all the same");
+    assert.equal(ran("{}").funcIn, false, "and an environment carrying none of it says so");
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});

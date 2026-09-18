@@ -165,13 +165,20 @@ const start = (out, root) => {
   };
   const searching = (env) => String(env.PATH ?? "").split(":").some(reaching);
 
-  // What could stand behind a builtin's name: an exported function, or a startup file read first.
-  const renaming = (env) => Object.entries(env).some(([key, value]) => key.startsWith("BASH_FUNC_")
-    || key === "BASH_ENV" || key === "ENV" || String(value ?? "").startsWith("() {"));
+  /* What could stand behind a builtin's name: an exported function, or a startup file read first.
+     Over the names node itself hands the child, which are every enumerable one and not the own ones. */
+  const renaming = (env) => {
+    for (const key in env) {
+      if (key.startsWith("BASH_FUNC_") || key === "BASH_ENV" || key === "ENV"
+        || String(env[key] ?? "").startsWith("() {")) return true;
+    }
+    return false;
+  };
 
+  // `argv0` is what makes a shell a login shell, which reads a startup file before the line.
   const reading = (options) => {
     const env = options.env ?? process.env;
-    return { pathIn: searching(env), funcIn: renaming(env) };
+    return { plain: !options.argv0, pathIn: searching(env), funcIn: renaming(env) };
   };
 
   const audit = {
@@ -201,8 +208,7 @@ const start = (out, root) => {
       spawned.push({
         ticket: mine, file: String(before[0]), cwd: options.cwd ?? process.cwd(),
         args: (Array.isArray(before[1]) ? before[1] : []).map(String),
-        // False where node runs this through a shell of its own, or under an argv0 the program did not choose.
-        plain: !options.shell && !options.argv0, ...reading(options),
+        ...reading(options), plain: !options.shell && !options.argv0,
       });
       return [...before, { ...options, env: { ...(options.env ?? process.env), [READS_TICKET]: mine } }, ...after];
     },

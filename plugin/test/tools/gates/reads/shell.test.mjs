@@ -108,12 +108,16 @@ test("a spawn node did not run as it was written is not a line this reads", () =
    guessed from a program name holding spaces. */
 test("the line exec and execSync record is read the same way, under the shell they named", () => {
   const ran = (file, shell) =>
-    ({ ticket: null, shell, file, args: [], cwd: "/anywhere", pathIn: false, funcIn: false });
+    ({ ticket: null, shell, file, args: [], cwd: "/anywhere", plain: true, pathIn: false, funcIn: false });
   assert.equal(opensNothing(ran("command -v git", "sh")), true);
   assert.equal(opensNothing(ran("cat one", "sh")), false);
   assert.equal(opensNothing(ran("command -v git", "/usr/bin/zsh")), false,
     "the shell the call chose is the one that runs the line");
   assert.equal(opensNothing({ ticket: "t-1", file: "command -v git", args: [], cwd: "/anywhere",
-    pathIn: false, funcIn: false }), false,
+    plain: true, pathIn: false, funcIn: false }), false,
   "a spawned program whose own name is that string is not a shell line");
+  assert.equal(opensNothing({ ...ran("command -v git", "sh"), plain: false }), false,
+    "an argv0 makes the same shell a login shell, which reads a startup file first");
+  assert.equal(opensNothing({ ...ran("command -v git", "sh"), plain: undefined }), false,
+    "and a record that never said is refused as every other unsaid thing is");
 });
