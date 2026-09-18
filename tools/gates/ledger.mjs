@@ -47,9 +47,9 @@ export const digestFile = (path, rewrite = null) => {
 /* The permission git records and never `lstat`'s: `core.fileMode=false` makes a chmod after checkout
    a difference git declares is not one, and one that keyed this shared ledger into a copy per tree
    (ISS-1739). Read rather than dropped, because the suite spawns `plugin/bin/forge` by path, so a
-   recorded mode is a change a step goes red over; no `core.fileMode` read, git having applied it
-   when it wrote the index; and untracked a third reading of its own, not `100644`. Listed under
-   `-z`, so a path holding a quote or a newline arrives whole rather than as git's quoting of it. */
+   recorded mode is a change a step goes red over; no `core.fileMode` read, git having applied it when
+   it wrote the index; and untracked its own third reading, which is what a root git will not answer
+   for records for every path in it, so nothing throws and no caller needs a checkout to digest one. */
 const EXECUTABLE = "100755";
 const UNTRACKED = "untracked";
 
@@ -60,11 +60,7 @@ const STAGED = /^(\d{6}) [0-9a-f]+ \d\t([\s\S]+)$/u;
 const recordedModes = (root) => {
   if (!modesIn.has(root)) {
     const run = git(["ls-files", "-s", "-z"], root);
-    if (run.status !== 0) {
-      throw new Error(`git would not list the index of ${root}, so what permission it records for each file `
-        + "is unknown and no digest here answers for anything. Gate with --full until it will.");
-    }
-    modesIn.set(root, new Map((run.stdout ?? "").split("\0")
+    modesIn.set(root, new Map(run.status !== 0 ? [] : (run.stdout ?? "").split("\0")
       .map((one) => STAGED.exec(one)).filter(Boolean).map(([, mode, path]) => [path, mode])));
   }
   return modesIn.get(root);

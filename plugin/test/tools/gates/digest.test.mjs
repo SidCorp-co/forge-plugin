@@ -351,15 +351,18 @@ test("a file git stops recording does not key where it keyed while it was record
   }
 });
 
-/* The permission comes from git, so a root git will not answer for is a root with no permissions to
-   read, and a digest that guessed one would bank a pass under a key nothing else derives. */
-test("a root that is no checkout is refused rather than digested, and the refusal names the way past it", () => {
+/* Watched failing: the read-set store digests paths against roots that are no checkout at all, and a
+   permission read that refused one keyed every path in it alike — which is content stopped being read
+   at all, six cases of `gate-reads.test.mjs` going red on a tree whose files really had moved. */
+test("a root that is no checkout records no permission for any path in it, and its files digest as their content", () => {
   const at = tempRoom("permission-unread-");
   try {
     mkdirSync(join(at, "plugin", "src"), { recursive: true });
     writeFileSync(join(at, SOURCE), "export const one = 1;\n");
-    assert.throws(() => digestIn(at, SOURCE), /--full/u,
-      "a listing git refused leaves every digest of that tree unknown, and says so");
+    const was = digestIn(at, SOURCE);
+    writeFileSync(join(at, SOURCE), "export const one = 11;\n");
+    forgetContent();
+    assert.notEqual(digestIn(at, SOURCE), was, "a root with no index is still a root whose files have content");
   } finally {
     forgetContent();
     rmSync(at, { recursive: true, force: true });
