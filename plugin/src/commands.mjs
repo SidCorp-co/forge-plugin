@@ -180,13 +180,14 @@ const wroteEdge = async (subject, asked) => {
     fail(`issue: ${subject} and ${other} are one issue, and an issue neither blocks nor relates to `
       + "itself. Nothing was sent.");
   }
-  /* The blocked end's order moves, so it is the end the route is taken against. Neither end is
-     claimed for an edge, and the live check is the last read before the write. */
+  /* The blocked end's order moves, so it is the end the route is taken against, and a removal is
+     taken against the subject. Neither end is claimed for an edge, and the live check asks after
+     the row this call writes and not the other, whose payload nothing here touches (ISS-1423). */
   const blocked = kind === "blocks"
     ? { id: otherId, ref: other, dependsOnId: subjectId }
     : { id: subjectId, ref: subject, dependsOnId: otherId };
   const renewed = await renew(blocked.id, blocked.ref, undefined, null, { finder: true });
-  await Promise.all([notAnothers(subjectId, subject), notAnothers(otherId, other)]);
+  await notAnothers(blocked.id, blocked.ref);
   console.log(finderSaid(blocked.ref, renewed));
   if (!kind) {
     const found = await edgeBetween(subjectId, subject, otherId, other);

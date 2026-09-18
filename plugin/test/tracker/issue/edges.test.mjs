@@ -156,3 +156,68 @@ test("a pair with no edge between them is refused with the read that prints what
   assert.match(run.stderr, /forge issue ISS-45 --fields relations/u);
   assert.equal((state.calls ?? []).filter((one) => one.method === "DELETE").length, 0);
 });
+
+/* ISS-1423: the renewal and the route both take one end, and the line between them asked after
+   both — so a lease on the end this call never writes to refused the write, in words naming a
+   payload nothing was going to touch. The check follows the write. */
+const LIVE = () => ({ lease: { holder: "another-run", agent: "an agent", pid: "9",
+  renewedAt: new Date().toISOString(), minutes: 60, history: [] } });
+
+const holding = async (key, run) => {
+  const row = rows.find((one) => one.issueId === key);
+  row.sessionContext = LIVE();
+  try {
+    return await run();
+  } finally {
+    delete row.sessionContext;
+  }
+};
+
+test("--blocks lands though the subject is held, the row it writes to being the other end", async () => {
+  await read("ISS-45", "ISS-46");
+  state.calls = [];
+  const run = await holding("ISS-45", () => ran("issue", "ISS-45", "--blocks", "ISS-46"));
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(sentTo("/api/issues/u-ISS-46/dependencies", "POST").length, 1,
+    "a lease on the end the edge is not written to refused the write");
+});
+
+test("--blocks is refused where the end it writes to is held, and the refusal names that run", async () => {
+  await read("ISS-45", "ISS-46");
+  state.calls = [];
+  const run = await holding("ISS-46", () => ran("issue", "ISS-45", "--blocks", "ISS-46"));
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /another-run/u, run.stderr);
+  assert.equal(sentTo("/api/issues/u-ISS-46/dependencies", "POST").length, 0);
+});
+
+test("--relates is refused on a held subject and lands on a held other end, the subject being its row", async () => {
+  await read("ISS-45", "ISS-47");
+  state.calls = [];
+  const refused = await holding("ISS-45", () => ran("issue", "ISS-45", "--relates", "ISS-47"));
+  assert.equal(refused.status, 1, refused.stdout);
+  assert.match(refused.stderr, /another-run/u, refused.stderr);
+  assert.equal(sentTo("/api/issues/u-ISS-45/dependencies", "POST").length, 0);
+  state.calls = [];
+  const wrote = await holding("ISS-47", () => ran("issue", "ISS-45", "--relates", "ISS-47"));
+  assert.equal(wrote.status, 0, wrote.stderr);
+  assert.equal(sentTo("/api/issues/u-ISS-45/dependencies", "POST").length, 1);
+});
+
+test("--unlink keeps its check on the subject, which is the row the removal is written to", async () => {
+  rows[0].relations = {
+    blocks: [{ edgeId: "e-1", kind: "relates", toIssueId: "u-ISS-47", otherDisplayId: "ISS-47", otherStatus: "open" }],
+    blockedBy: [],
+  };
+  await read("ISS-45");
+  state.calls = [];
+  const refused = await holding("ISS-45", () => ran("issue", "ISS-45", "--unlink", "ISS-47"));
+  assert.equal(refused.status, 1, refused.stdout);
+  assert.match(refused.stderr, /another-run/u, refused.stderr);
+  assert.equal(sentTo("/api/issues/u-ISS-45/dependencies/e-1", "DELETE").length, 0);
+  state.calls = [];
+  const gone = await holding("ISS-47", () => ran("issue", "ISS-45", "--unlink", "ISS-47"));
+  assert.equal(gone.status, 0, gone.stderr);
+  assert.equal(sentTo("/api/issues/u-ISS-45/dependencies/e-1", "DELETE").length, 1);
+  delete rows[0].relations;
+});
