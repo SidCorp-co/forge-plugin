@@ -120,12 +120,14 @@ the sets over. A run that never learned which paths changed — \`--full\`, or a
 no count of reach rather than a reach of nought. A run that distrusts these digests and narrows
 nothing still carries the counts, which are read off the recorded sets and not off the digests.
 
-One cause of an excess a run can prove off its own diff, and where it holds it accounts for the whole
-of it: a change to either file every context is digested from invalidates every set already recorded,
-so nothing could have been held back and the spend followed from the change rather than ran past it.
-The line says so — \`+ 202 invalidated by this change to the reads collector\` — and the counts read as
-a sum again. A context also moves with the node and with the tree the launcher stands in, and neither
-of those shows in a diff, so an excess from one of them stays in \`accounted for neither way\`.
+One part of that excess a run can prove, and names: \`202 spent under a context the record does not
+hold\`. A set's digest is keyed on the execution context as well as the content, and that context moves
+with this collector's own files, the node version and the absolute paths the launcher carries — any of
+which leaves every recorded set unable to match whatever the tree says, so the spend follows from the
+key having moved. Each set therefore carries the context it was keyed on, a field no digest here reads,
+and a spent file keyed on another one is counted as that; a set carrying none is evidence either way for
+neither, and stays in what nothing explains. The \`>\` stands regardless: a context the record does not
+hold explains an excess and never licences it, those files having been spent for nothing reached.
 
 A step the run could not skip says which of the two it is: one the record holds no pass for at any
 content, or one whose recorded passes are all at other content. A test step under a readable record

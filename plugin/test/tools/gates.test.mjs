@@ -75,9 +75,16 @@ test("-h names every flag it reads and what the record cannot see", () => {
     `${DEFAULT_MINUTES} where none is given`, `one line beginning \`${TERMINAL}\``,
     "never a log, and never a process's exit code either", "answers a verdict already written",
     `${GONE} a gate that exited having written no verdict`, `${DEADLINE} this wait's own deadline`,
-    `${NO_GATE} no gate of this`, "refused\nbeside --full"]) {
+    `${NO_GATE} no gate of this`, "refused\nbeside --full",
+    "spent 6 = 4 reached + 2 blind", "The files it knows are its whole list before any",
+    "would read `0 of 0`", "accounted for neither way", "a set recorded before the file gained a",
+    "202 spent under a context the record does not\nhold", "a field no digest here reads",
+    "a set carrying none is evidence either way for\nneither", "The `>` stands regardless",
+    "no count of reach rather than a reach of nought"]) {
     assert.ok(said.includes(one), `${one} is not in the usage:\n${said}`);
   }
+  // The attribution a diff was once read for, which the record cannot prove and which no longer prints (ISS-1746).
+  assert.ok(!said.includes("invalidated by this change"), `the superseded clause is still in the usage:\n${said}`);
 });
 
 test("a docs-only change runs the steps that read docs and no others", () => {
