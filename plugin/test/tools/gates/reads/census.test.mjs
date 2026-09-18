@@ -64,7 +64,24 @@ test("the overlap between the cause rows is stated rather than left to be summed
   })]);
   try {
     assert.match(census(where).stdout,
-      /2 file-and-cause pair\(s\) over 1 blind file\(s\): 1 of them carry more than one cause/u);
+      /2 cause\(s\) and 2 file-and-shape pair\(s\) over 1 blind file\(s\), 1 of which carry more than one cause\. The files column sums past the population/u);
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+/* The table groups on the shape and the file carries the causes, so the two counts are not one: a
+   census claiming an overlap its own rows do not show is the reading this issue exists to stop. */
+test("two commands of one program in one directory are two causes and one row", () => {
+  const where = room((root) => [record(root, ONE, { spawned: [
+    { ticket: "gone-1", file: "git", cwd: root, args: ["grep", "-l"] },
+    { ticket: "gone-2", file: "git", cwd: root, args: ["status"] },
+  ] })]);
+  try {
+    const said = census(where).stdout;
+    assert.match(said, /2 cause\(s\) and 1 file-and-shape pair\(s\) over 1 blind file\(s\), 1 of which carry more than one cause\. No shape reaches a file another reaches/u);
+    assert.match(said, /\| child \| `git standing in the checkout` \| 1 \|/u);
+    assert.match(said, /child: git standing in the checkout ×2/u);
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }

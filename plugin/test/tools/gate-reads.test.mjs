@@ -27,7 +27,10 @@ const room = (files = {}) => {
 const setOf = (paths, dirs = [], trees = []) =>
   ({ file: FILE, paths: new Set(paths), dirs: new Set(dirs), trees: new Set(trees), blind: [] });
 
-const child = (file, cwd, args = []) => ({ kind: "child", why: `${[file, ...args].join(" ")} in ${cwd}`, file, cwd, args });
+const said = (one) => (/^[\w.,:@=/+-]+$/u.test(one) ? one : JSON.stringify(one));
+
+const child = (file, cwd, args = []) =>
+  ({ kind: "child", why: `${[file, ...args].map(said).join(" ")} in ${cwd}`, file, cwd, args });
 
 const held = ({ root, dir }, sets, manifests = []) => {
   forgetReads();
@@ -200,7 +203,7 @@ test("two children of one program in one directory are two causes where their co
       ],
     }));
     assert.deepEqual(setsFrom(out, where.root)[0].blind.map((one) => one.why), [
-      `git grep -l -- *.mjs in ${where.root}`,
+      `git grep -l -- "*.mjs" in ${where.root}`,
       `git status --porcelain in ${where.root}`,
     ], "and the same command twice is the same cause");
     writeFileSync(join(out, "own-1.json"), JSON.stringify({
@@ -210,8 +213,10 @@ test("two children of one program in one directory are two causes where their co
         { ticket: "gone-2", file: "git", cwd: where.root, args: ["grep", "--", "a", "b"] },
       ],
     }));
-    assert.equal(setsFrom(out, where.root)[0].blind.length, 2,
-      "and the arguments themselves are the identity, not the line they render to");
+    assert.deepEqual(setsFrom(out, where.root)[0].blind.map((one) => one.why), [
+      `git grep -- "a b" in ${where.root}`,
+      `git grep -- a b in ${where.root}`,
+    ], "the arguments themselves are the identity, and the quoting says which is which");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }

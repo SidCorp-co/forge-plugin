@@ -118,14 +118,18 @@ const causeTable = (table) => [
   ...table.map((one) => `| ${one.kind} | \`${one.shape}\` | ${one.rows.length} | ${sum(one.rows)}s |`),
 ];
 
-/* The count that made four filings wrong: summing this column double-counts every file more than one
-   cause reaches, so it is printed beside the population it is a sum over rather than instead of it. */
+/* The count that made four filings wrong: a file every one of its causes is counted against is in
+   as many rows as it has, so the column is printed beside the population it is a sum over rather
+   than instead of it — and the shapes are counted apart from the causes they group. */
 const overlapSaid = (blind, table) => {
-  const summed = table.reduce((at, one) => at + one.rows.length, 0);
+  const causes = blind.reduce((at, one) => at + one.causes.length, 0);
+  const shapes = table.reduce((at, one) => at + one.rows.length, 0);
   const several = blind.filter((one) => one.causes.length > 1);
-  return `${summed} file-and-cause pair(s) over ${blind.length} blind file(s): `
-    + `${several.length} of them carry more than one cause, so the files column sums to more than the `
-    + `population and a per-cause figure predicts nothing on its own.`;
+  return `${causes} cause(s) and ${shapes} file-and-shape pair(s) over ${blind.length} blind `
+    + `file(s), ${several.length} of which carry more than one cause. `
+    + (shapes > blind.length
+      ? "The files column sums past the population, so a per-cause figure predicts nothing on its own."
+      : "No shape reaches a file another reaches, and a per-cause figure still predicts nothing until a candidate is applied.");
 };
 
 /* Grouped under the shape and never reduced to it: a run's hundred children of one shape stand in a

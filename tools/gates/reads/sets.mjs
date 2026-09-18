@@ -174,9 +174,11 @@ export const reaches = (root, one) => {
     .some((each) => each.length > 0 && within(root, resolve(cwd, each)));
 };
 
+// Every cause, not the first a LIFO queue popped; a child keyed on its arguments, quoted (ISS-1756).
 const byCause = (one, other) => one.kind.localeCompare(other.kind) || one.why.localeCompare(other.why);
 
-// Every cause and not the first a LIFO queue popped, a child keyed on its arguments (ISS-1756).
+const said = (one) => (/^[\w.,:@=/+-]+$/u.test(one) ? one : JSON.stringify(one));
+
 const gather = (start, byTicket, root) => {
   const paths = new Set();
   const dirs = new Set();
@@ -194,7 +196,7 @@ const gather = (start, byTicket, root) => {
       if (child) queue.push(child);
       else if (reaches(root, each)) {
         const args = (each.args ?? []).map(String);
-        const why = `${[each.file, ...args].join(" ")} in ${each.cwd}`;
+        const why = `${[each.file, ...args].map(said).join(" ")} in ${each.cwd}`;
         blind.set(JSON.stringify(["child", each.file, args, each.cwd]),
           { kind: "child", why, file: each.file, cwd: each.cwd, args });
       }
