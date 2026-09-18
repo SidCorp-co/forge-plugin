@@ -50,7 +50,7 @@ export const correctionFor = async (documentId, ref, moved, why, { done = true }
 
 /* The fields whose value is a document and not a word. `plan` and `acceptanceCriteria` are refused
    above by `ownsField` and stay named here anyway, so the rule below survives that check moving. */
-const BODY_FIELDS = ["description", "plan", "acceptanceCriteria"];
+export const BODY_FIELDS = ["description", "plan", "acceptanceCriteria"];
 
 const setPair = (given, ref) => {
   const { key: field, value } = pairOf(String(given ?? ""), "--set");

@@ -17,6 +17,7 @@ import { KINDS, USAGE as RECORD, kindUsage } from "../../src/flow/record/record-
 import { RETIRED, commandShapes } from "../../src/checks/retired-names.mjs";
 import { WHY, goalBlock } from "../../src/goals.mjs";
 import { SHAPES } from "../../src/flow/machine.mjs";
+import { BODY_FIELDS } from "../../src/flow/override.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
@@ -476,4 +477,19 @@ test("codex -h names no configuration key", () => {
     assert.ok(!said.includes(key), `codex -h names ${key}: ${said}`);
   }
   assert.match(said, /forge codex show/u, "and it says where what is in effect is printed");
+});
+
+/* The rule that a `--set` value is the text and never a route to it is the refusal's, whose message
+   names the file it read, what storing it would cost and the call to run instead. A second copy in
+   help drifts from it in silence: these two already disagreed about how many fields the rule covered,
+   the help naming one where the checker named three (ISS-1451). The names come off the checker, so a
+   field added there cannot leave this case behind. */
+test("issue -h restates no part of the rule its own --set refusal owns", () => {
+  const said = ask("issue", "-h").stdout;
+  for (const form of ["@file", "$(cat", "as it is typed", ...BODY_FIELDS]) {
+    assert.ok(!said.includes(form), `issue -h states the route rule again, at \`${form}\`: ${said}`);
+  }
+  const refused = ask("issue", "ISS-1", "--set", "description=@body.md", "--why", "w");
+  assert.match(`${refused.stdout}${refused.stderr}`, /takes the text to store rather than a route to it/u,
+    "and the refusal is still where the rule is learnt");
 });
