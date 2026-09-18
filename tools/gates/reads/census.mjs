@@ -1,7 +1,7 @@
 /* What blinds each test file of an audited run, every cause of it, and what a candidate change would
    free — derived through the collector the gate itself runs, never by matching a rendered cause
    string, which is how three readers before this one were wrong (ISS-1756). */
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { basename, isAbsolute, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -16,8 +16,8 @@ A run leaves its records under <gate temp root>/gate-reads/<step>, one directory
 keeps that root when KEEP_TEST_ROOMS=1 is set. Name each directory; several are read as one run.
 
   --root <dir>      the repository those records were taken against. The working directory otherwise
-  --times <file>    per-file seconds, as '12.3s plugin/test/one.test.mjs' lines. The gate writes one
-                    per test step at <gate ledger>/<step>.files
+  --times <file>    per-file seconds, as '12.3s <the test file>' lines. The gate writes one per
+                    test step at <gate ledger>/<step>.files
   --change <module> a candidate change, as an ES module exporting record(one, root): one audited
                     process record as that change would have left it. Drop a name from its 'blind'
                     array where an export stops blinding, or move a 'spawned' entry's cwd where a
@@ -44,11 +44,25 @@ const secondsIn = (path) => {
   return took;
 };
 
+/* The collector answers an unreadable directory with no records, a step whose audit wrote nothing
+   being a file spent rather than a run refused. Here that reads as a census of nothing, so a
+   mistyped path or a swept temp root would be a measurement instead of a mistake. */
 const readAll = (dirs) => {
   const byTicket = new Map();
   const roots = [];
   for (const dir of dirs) {
-    const held = recordsIn(dir);
+    let held;
+    try {
+      held = statSync(dir).isDirectory() ? recordsIn(dir) : null;
+    } catch {
+      held = null;
+    }
+    if (held === null) {
+      console.error(`${dir} is no directory of audit records, so this would census nothing and read `
+        + `as a run with nothing blind. A gate leaves them under <gate temp root>/gate-reads/<step>, `
+        + `and keeps that root when KEEP_TEST_ROOMS=1 is set.`);
+      process.exit(1);
+    }
     for (const [ticket, one] of held.byTicket) byTicket.set(ticket, one);
     roots.push(...held.roots);
   }
@@ -164,6 +178,10 @@ const root = flagged(argv, "--root") ?? process.cwd();
 const times = flagged(argv, "--times");
 const change = flagged(argv, "--change");
 const dirs = argv.filter((one, at) => !one.startsWith("--") && !argv[at - 1]?.startsWith("--"));
+if (dirs.length === 0) {
+  console.error("Name at least one directory of audit records; flags alone census nothing.");
+  process.exit(1);
+}
 
 const took = secondsIn(times);
 const records = readAll(dirs);

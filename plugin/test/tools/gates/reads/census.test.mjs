@@ -47,7 +47,7 @@ test("every cause of every blind file is named, with the kind each one is", () =
     assert.match(said.stdout, /\| export \| `cpSync: a tree copied whole` \| 1 \|/u);
     assert.match(said.stdout, /\| child \| `git standing in the checkout` \| 1 \|/u);
     assert.match(said.stdout, /export: cpSync: a tree copied whole/u);
-    assert.match(said.stdout, new RegExp(`^ {10}git in ${where.root}$`, "mu"),
+    assert.match(said.stdout, new RegExp(`^ {10}git grep -l in ${where.root}$`, "mu"),
       "the shape groups them, and the exact cause a ceiling is written against is under it");
     assert.doesNotMatch(said.stdout, new RegExp(TWO.replace(/\./gu, "\\."), "u"),
       "and a file nothing blinds is in the population and not in the causes");
@@ -113,6 +113,14 @@ test("the script says what it takes when it is asked, and refuses a candidate it
   assert.match(help.stdout, /re-derived through the gate's own\n {20}reaches/u);
   assert.equal(spawnSync(process.execPath, [CENSUS], { encoding: "utf8" }).status, 1,
     "and named no records at all, it says so rather than reporting an empty run as a clean one");
+  const flags = spawnSync(process.execPath, [CENSUS, "--root", "/tmp"], { encoding: "utf8" });
+  assert.equal(flags.status, 1, "flags alone name no records either");
+  assert.match(flags.stderr, /Name at least one directory of audit records/u);
+  /* The collector answers an unreadable directory with no records, which the gate reads as a file
+     spent; a census reading it that way would report a swept temp root as a run with nothing blind. */
+  const gone = spawnSync(process.execPath, [CENSUS, "/no/such/records"], { encoding: "utf8" });
+  assert.equal(gone.status, 1);
+  assert.match(gone.stderr, /is no directory of audit records/u);
   const where = room((root) => [record(root, ONE, {})]);
   const empty = join(where.at, "nothing.mjs");
   writeFileSync(empty, "export const other = 1;\n");

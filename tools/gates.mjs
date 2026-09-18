@@ -555,7 +555,7 @@ for (const step of planned) {
       console.log(wroteSets({ files: step.files.length, wrote, declared: declared.length }));
     }
     for (const one of dead) console.log(deadClaim(one));
-    for (const one of several) console.log(severalCauses(one));
+    for (const one of several) for (const line of severalCauses(one)) console.log(line);
     if (escaped.length > 0) {
       console.error(`\nGate failed: ${step.label} — the tree judged: ${ROOT}`);
       for (const one of escaped) console.error(escapedClaim(one));

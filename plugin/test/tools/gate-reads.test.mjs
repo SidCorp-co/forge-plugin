@@ -27,7 +27,7 @@ const room = (files = {}) => {
 const setOf = (paths, dirs = [], trees = []) =>
   ({ file: FILE, paths: new Set(paths), dirs: new Set(dirs), trees: new Set(trees), blind: [] });
 
-const child = (file, cwd) => ({ kind: "child", why: `${file} in ${cwd}`, file, cwd });
+const child = (file, cwd, args = []) => ({ kind: "child", why: `${[file, ...args].join(" ")} in ${cwd}`, file, cwd, args });
 
 const held = ({ root, dir }, sets, manifests = []) => {
   forgetReads();
@@ -157,7 +157,7 @@ test("a child that left no record blinds its test file where it could have read 
     const one = { ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [],
       blind: [], done: true, spawned: [{ ticket: "gone", file: "git", cwd: where.root, args: ["status"] }] };
     writeFileSync(join(out, "own-1.json"), JSON.stringify(one));
-    assert.deepEqual(setsFrom(out, where.root)[0].blind, [child("git", where.root)]);
+    assert.deepEqual(setsFrom(out, where.root)[0].blind, [child("git", where.root, ["status"])]);
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
@@ -178,7 +178,31 @@ test("a file two unrecorded children reached reports both causes and not whichev
       ],
     }));
     assert.deepEqual(setsFrom(out, where.root)[0].blind,
-      [child("git", where.root), child("sh", where.root)]);
+      [child("git", where.root, ["grep", "-l", "--", "*.mjs"]), child("sh", where.root, ["-c", "ls"])]);
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+/* A bounded command and a walk of the whole tree are two causes, and standing in the same directory
+   is not what makes them one: a ceiling written against the first is wrong about the second. */
+test("two children of one program in one directory are two causes where their commands differ", () => {
+  const where = room();
+  const out = join(where.at, "out");
+  mkdirSync(out, { recursive: true });
+  try {
+    writeFileSync(join(out, "own-1.json"), JSON.stringify({
+      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], blind: [],
+      done: true, spawned: [
+        { ticket: "gone-1", file: "git", cwd: where.root, args: ["grep", "-l", "--", "*.mjs"] },
+        { ticket: "gone-2", file: "git", cwd: where.root, args: ["status", "--porcelain"] },
+        { ticket: "gone-3", file: "git", cwd: where.root, args: ["status", "--porcelain"] },
+      ],
+    }));
+    assert.deepEqual(setsFrom(out, where.root)[0].blind.map((one) => one.why), [
+      `git grep -l -- *.mjs in ${where.root}`,
+      `git status --porcelain in ${where.root}`,
+    ], "and the same command twice is the same cause");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
@@ -197,7 +221,7 @@ test("an unfollowable export and an unrecorded child are both reported, each und
       spawned: [{ ticket: "gone", file: "git", cwd: where.root, args: ["grep", "-l"] }],
     }));
     assert.deepEqual(setsFrom(out, where.root)[0].blind, [
-      child("git", where.root),
+      child("git", where.root, ["grep", "-l"]),
       { kind: "export", why: "cpSync: a tree copied whole" },
     ]);
   } finally {

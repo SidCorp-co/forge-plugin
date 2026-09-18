@@ -254,9 +254,12 @@ test("a declared file blind on more than one cause is named with every one of th
   const judged = claimsJudged([set], { manifests: [], declared: table });
   assert.deepEqual(judged.escaped, [], "the ceiling covers what was observed, and the causes are a separate reading");
   assert.equal(judged.several.length, 1);
-  assert.match(severalCauses(judged.several[0]),
-    new RegExp(`^reads: ${FILE} is blind on 2 causes — ${BLIND} \\(child\\); cpSync: a tree copied whole `
-      + `\\(export\\) — while the declaration at ${FILE} was written against ${BLIND}\\.`, "u"));
+  assert.deepEqual(severalCauses(judged.several[0]), [
+    `reads: ${FILE} is blind on 2 cause(s) while the declaration at ${FILE} was written against `
+    + `${BLIND}. A ceiling answers for every one of them:`,
+    `  child: ${BLIND}`,
+    "  export: cpSync: a tree copied whole",
+  ]);
   assert.deepEqual(claimsJudged([{ ...set, blind: [CAUSE] }], { manifests: [], declared: table }).several, [],
     "and one cause is no finding at all");
 });

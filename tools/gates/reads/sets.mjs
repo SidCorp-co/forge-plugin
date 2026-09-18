@@ -193,8 +193,9 @@ const gather = (start, byTicket, root) => {
       const child = each.ticket === null ? null : byTicket.get(each.ticket);
       if (child) queue.push(child);
       else if (reaches(root, each)) {
-        const why = `${each.file} in ${each.cwd}`;
-        blind.set(`child ${why}`, { kind: "child", why, file: each.file, cwd: each.cwd });
+        const args = (each.args ?? []).map(String);
+        const why = `${[each.file, ...args].join(" ")} in ${each.cwd}`;
+        blind.set(`child ${why}`, { kind: "child", why, file: each.file, cwd: each.cwd, args });
       }
     }
   }
