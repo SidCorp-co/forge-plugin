@@ -39,12 +39,31 @@ const spentSaid = (spend, unknown) => {
 };
 
 /** Printed for every test step under a read ledger: a block that appears on success alone is silent on the run that needs it. */
-export const readsSaid = ({ step, kept, spend, unknown }) => [
-  `\n=== reads: ${step.label} — ${kept.length} of ${kept.length + spend.length} `
-    + "test file(s) already answered for at this content ===",
-  ...kept.map((each) => `skip ${each.file}  digest ${each.digest}`),
-  ...(spend.length === 0 ? [] : [`spend ${spend.length} test file(s): ${spentSaid(spend, unknown)}`]),
-];
+export const readsSaid = ({ step, kept, spend, unknown }) => {
+  const byClaim = kept.filter((one) => one.set?.declared).length;
+  return [
+    `\n=== reads: ${step.label} — ${kept.length} of ${kept.length + spend.length} test file(s) `
+      + `already answered for at this content${byClaim === 0 ? "" : `, ${byClaim} of them by a declaration`} ===`,
+    ...kept.map((each) => `skip ${each.file}  digest ${each.digest}`
+      + (each.set?.declared ? `  declared while blind on ${each.set.declared}` : "")),
+    ...(spend.length === 0 ? [] : [`spend ${spend.length} test file(s): ${spentSaid(spend, unknown)}`]),
+  ];
+};
+
+export const wroteSets = ({ files, wrote, declared }) =>
+  `reads: ${wrote} of ${files} test file(s) recorded what they asked for, ${wrote - declared} by `
+  + `derivation and ${declared} against a declaration; ${files - wrote} answered for nothing and `
+  + `are spent again`;
+
+/** The ceiling a file no longer needs, named with the blindness it was written against, that being what a reader has to check has really gone before deleting it. */
+export const deadClaim = (one) =>
+  `reads: ${one.file} derived its own set, so the declaration at ${one.where} had no effect — it `
+  + `was recorded against ${one.blind}, and the audit reports no blindness now`;
+
+export const escapedClaim = (one) =>
+  `${one.file} read ${one.escapes.map((each) => `${each.one} (${each.kind})`).join(", ")}, which the `
+  + `declaration at ${one.where} does not cover: ${one.claims.join(", ")}. Widen it in `
+  + `tools/gates/steps.mjs, or drop it and let the file be spent.`;
 
 export const verdictSaid = ({ files = [], unitless = 0 }) => [
   ...files.map((one) => `${one.step} ${one.spent} of ${one.known} file(s)`),

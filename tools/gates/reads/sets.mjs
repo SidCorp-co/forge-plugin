@@ -1,8 +1,7 @@
 /* One set of repository paths per test file, collected from what that file's own process tree was
-   watched to ask for, and the answer to which of a step's files this content still has to spend.
-   A file is skipped only on positive evidence: a set nothing recorded, a child that left no record,
-   a process that reached a route this cannot follow, or an execution context that has moved all
-   spend the file, which is what it does today. */
+   watched to ask for, and the answer to which of a step's files this content still has to spend. A
+   file is skipped only on positive evidence: a set nothing recorded, an unfinished record, a route
+   this cannot follow and a moved execution context each spend it, bar a declared ceiling. */
 import { createHash } from "node:crypto";
 import { lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
@@ -10,7 +9,8 @@ import { fileURLToPath } from "node:url";
 
 import { digestFile, digestIn } from "../ledger.mjs";
 import { READS_DIR, READS_ROOT, READS_TICKET } from "./audit.mjs";
-import { TEST_FILE } from "../steps.mjs";
+import { DECLARED_READS, declarationFor, TEST_FILE } from "../steps.mjs";
+import { under } from "../scope.mjs";
 
 const DIGEST_LENGTH = 12;
 const ENTRY_NAME = new RegExp(`^([0-9a-f]{${DIGEST_LENGTH}})\\.(.+)$`, "u");
@@ -51,12 +51,13 @@ export const readsDir = (record) => join(record, "test-reads");
 
 export const manifestsIn = (files) => files.filter((one) => MANIFEST.test(one));
 
-/** What a recorded set answers to beyond its own paths: this node, the launcher the step spends
- *  apart from its file list, the node options a step's processes inherit, and the content of the
- *  audit and this collector. A record made under other conditions answers for nothing here. */
-export const contextOf = (argv, options = process.env.NODE_OPTIONS ?? "") => {
+/** What a recorded set answers to beyond its own paths: this node, the launcher, the node options a
+ *  step's processes inherit, the audit, this collector, and the declarations — a claim widened or
+ *  dropped unseats the entry written under the ceiling before it, and nothing else can, `matchIn`
+ *  answering with the first entry whose own body digests to its own name. */
+export const contextOf = (argv, options = process.env.NODE_OPTIONS ?? "", table = DECLARED_READS) => {
   const hash = createHash("sha256").update(`${process.version}\n`).update(`${argv.join(" ")}\n`)
-    .update(`${options}\n`);
+    .update(`${options}\n`).update(`${JSON.stringify(table)}\n`);
   for (const one of ["./audit.mjs", "./sets.mjs"]) {
     hash.update(digestFile(fileURLToPath(new URL(one, import.meta.url))));
   }
@@ -224,15 +225,79 @@ export const setsFrom = (out, root) => {
     .filter((one) => one.file !== null);
 };
 
-/** Written whole and renamed into place, one entry per file and content, so a worktree gating other
- *  content adds an entry beside this tree's rather than replacing it. */
-export const recordSets = (dir, sets, { root, context, manifests }) => {
-  let wrote = 0;
+/** A declaration's claims in the shape a derived set has, so one comparison answers for both; a
+ *  claim no tracked path is is a directory: the walk below it and every tracked file in it. */
+export const declaredSet = (claims, tracked) => {
+  const paths = new Set();
+  const dirs = new Set();
+  const trees = new Set();
+  for (const claim of claims) {
+    if (tracked.includes(claim)) {
+      paths.add(claim);
+      continue;
+    }
+    if (claim === ".") dirs.add(claim);
+    else trees.add(claim);
+    for (const one of tracked) if (under(one, claim)) paths.add(one);
+  }
+  return { paths, dirs, trees };
+};
+
+// The audit's reads kept beside the ceiling: a path git does not track has a content it cannot reach.
+const withSeen = (held, seen) => ({
+  paths: new Set([...held.paths, ...seen.paths]),
+  dirs: new Set([...held.dirs, ...seen.dirs]),
+  trees: new Set([...held.trees, ...seen.trees]),
+});
+
+// Every read the audit saw against the ceiling: the one failure here nothing else would report.
+const escapesIn = (set, claims) => {
+  const covered = (one) => claims.some((claim) => under(one, claim));
+  return [["path", set.paths], ["listing", set.dirs], ["walk", set.trees]]
+    .flatMap(([kind, seen]) => [...seen].filter((one) => !covered(one)).map((one) => ({ kind, one })));
+};
+
+/** Every declared file's observed reads against its own ceiling, judged whichever way the step went:
+ *  a ceiling the evidence contradicts is the tree's defect, not the step's, and a step that failed
+ *  spent those files too. Writing is `recordSets`, which only a step that passed reaches. */
+export const claimsJudged = (sets, { manifests, declared: table = [] }) => {
+  const dead = [];
+  const escaped = [];
   for (const set of sets) {
-    if (set.blind) continue;
-    const paths = [...new Set([...set.paths, ...manifests])].sort();
-    // In the body and not in the name, which every digest here is keyed on already: nothing digests it, so an entry written before this reads back the same, and a later run can say a file was spent because the context moved rather than leave it in the residual (ISS-1746).
-    const body = { file: set.file, context, paths, dirs: [...set.dirs].sort(), trees: [...set.trees].sort() };
+    const claim = declarationFor(set.file, table);
+    if (!claim) continue;
+    if (!set.blind) {
+      dead.push({ file: set.file, blind: claim.blind, where: claim.where });
+      continue;
+    }
+    const escapes = escapesIn(set, [...claim.reads, ...manifests, set.file]);
+    if (escapes.length > 0) {
+      escaped.push({ file: set.file, where: claim.where, claims: claim.reads, escapes });
+    }
+  }
+  return { dead, escaped };
+};
+
+/** Written whole and renamed into place, one entry per file and content, so a worktree gating other
+ *  content adds an entry beside this tree's rather than replacing it. A blind file is written from
+ *  its declaration, and never one `claimsJudged` found reading outside it. */
+export const recordSets = (dir, sets, { root, context, manifests, tracked = [], declared: table = [], escaped = [] }) => {
+  let wrote = 0;
+  const declared = [];
+  const refused = new Set(escaped.map((one) => one.file));
+  for (const set of sets) {
+    const claim = set.blind ? declarationFor(set.file, table) : null;
+    if (set.blind && (!claim || refused.has(set.file))) continue;
+    let held = set;
+    if (set.blind) {
+      held = withSeen(declaredSet([...claim.reads, set.file], tracked), set);
+      declared.push(set.file);
+    }
+    const paths = [...new Set([...held.paths, ...manifests])].sort();
+    /* `context` is in the body and not in the name every digest here is keyed on: an entry written
+       before it reads back the same, and a run can name the context as why it spent (ISS-1746). */
+    const body = { file: set.file, context, ...(claim && { declared: claim.blind }), paths,
+      dirs: [...held.dirs].sort(), trees: [...held.trees].sort() };
     const digest = setDigest(root, body, context);
     mkdirSync(dir, { recursive: true });
     const staging = join(dir, `.${process.pid}.${digest}.${nameOf(set.file)}`);
@@ -241,7 +306,7 @@ export const recordSets = (dir, sets, { root, context, manifests }) => {
     wrote += 1;
     for (const path of newestFirst(entriesFor(dir, set.file)).slice(ENTRIES_PER_FILE)) rmSync(path, { force: true });
   }
-  return wrote;
+  return { wrote, declared };
 };
 
 /** The environment a step's processes are audited under: where each writes its record, what counts

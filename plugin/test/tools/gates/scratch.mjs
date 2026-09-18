@@ -5,7 +5,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { stampRoom } from "../../../src/hooks/stamps.mjs";
-import { STEPS, WHOLE_TREE_TESTS } from "../../../../tools/gates/steps.mjs";
+import { DECLARED_READS, STEPS, WHOLE_TREE_TESTS } from "../../../../tools/gates/steps.mjs";
 import { ranAsync, tempRoom } from "../../fixtures.mjs";
 
 export const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
@@ -64,6 +64,16 @@ export const write = (work, path, text) => {
 };
 
 export const NAMED = WHOLE_TREE_TESTS.map((one) => one.endsWith(".test.mjs") ? one : join(one, "one.test.mjs"));
+
+export const declaredReads = (where) => DECLARED_READS.find((one) => one.where === where).reads;
+
+/* A test whose tree crossed a boundary the audit cannot follow, which is the shape a declaration
+   exists for, reading only the paths it is handed. */
+const blindTest = (reads) => [`import test from "node:test";`,
+  `import { readFileSync } from "node:fs";`, `import { spawnSync } from "node:child_process";`,
+  `test("the blind case", () => {`,
+  ...reads.map((one) => `  readFileSync(${JSON.stringify(one)});`),
+  `  spawnSync("sh", ["-c", "exit 0"]);`, `});`].join("\n") + "\n";
 
 export const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "utf8" });
 
@@ -139,7 +149,8 @@ const scripts = (marks) =>
    `also` are roots beyond the runner's, `slug` the project a filing from inside would be aimed at,
    `hanging` a step that prints `HOLDING` and then never returns, so a gate can be held open. */
 export const scratch = (name, failing, leaking,
-  { also = [], slug = null, hanging = null, runs = null, declares = null, needing = null } = {}) => {
+  { also = [], slug = null, hanging = null, runs = null, declares = null, needing = null,
+    declaring = null, reading = [] } = {}) => {
   const at = tempRoom(`${name}-`);
   const work = join(at, "checkout");
   for (const one of [...COPIED, ...reachedFrom(also)]) {
@@ -154,6 +165,7 @@ export const scratch = (name, failing, leaking,
   }
   /* Written before the tree is committed: the number is the project's now, and a file placed
      after the commit would leave the scratch dirty and refuse its gate for another reason. */
+  if (declaring) write(work, declaring, blindTest(reading));
   if (slug || runs) write(work, ".forge.json", JSON.stringify({ ...(slug && { slug }), ...(runs && { runs }) }));
   write(work, "package.json",
     JSON.stringify({ name: "scratch", version: "1.0.0", ...(declares && { devDependencies: declares }),

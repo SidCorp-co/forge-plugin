@@ -1,0 +1,87 @@
+/* Everything this gate's help says about the unit inside a test step, which is the file: what the
+   set is measured from, what the run reports of it, and the ceiling a file the audit cannot follow
+   is given instead. Its own file because the runner's is at the line limit its own checker sets,
+   and this is the section that grows. `tools/gates.mjs -h` prints it in place. */
+export const READS_HELP = `Inside a test step the unit is the file, and what it is keyed on is measured rather than declared.
+Every node process a test step runs is preloaded with an audit that records the repository paths it
+asked for — asking is the read, so a probe that found nothing is one too — every directory it listed,
+and a ticket for every process it spawned. A file that passed is stored with that set; the next run
+digests each set at the content on disk now, and a file whose digest matches is not spent. A file is
+skipped only on positive evidence, so all of these are spent: one the record holds nothing for, one
+whose process left an unfinished record, one that spawned a child no record answers for, one that
+reached a shell this cannot follow, and one whose execution context — this node, the launcher, the
+audit itself — has moved. Every set carries this repository's manifests, since a specifier's target
+is chosen by a manifest node reads through internals no audit here sees. A step that spent a narrowed
+set, down to one that spent nothing at all, still records its own pass: what it did not spend it held
+back on a record answering for this same content, so the step is proven here exactly as far as those
+records are — and without it a second gate at content already passed re-decides every file again.
+
+Each step says what it spent in the unit it has. A step whose unit is the file names the files it
+spent of the files it knows, the seconds, and how many it held back — \`test: 6 of 290 file(s), 41s
+(284 held back, 604s when they last ran)\`. The files it knows are its whole list before any
+narrowing and never the subset the record answers for, so spent plus held back is that list and a
+file nothing is recorded for is counted spent: a denominator restricted to what the record answers
+for would read \`0 of 0\` on the one run this exists to show. The seconds beside the count held back
+are read off the per-file record below, before the step is spawned, and are the sum over the
+held-back files that record prices; the ones it prices nothing for are counted beside the sum rather
+than added into it as zero. A step whose unit is not the file prints its seconds and no fraction,
+and the verdict line says once how many such steps ran whole.
+
+The same line carries the arithmetic of what that spend was for, in files rather than in seconds,
+seconds being the machine's and a faster box shrinking every one of them while the same waste stands:
+\`spent 6 = 4 reached + 2 blind\`. A file is reached where the newest read set the record holds for it
+names a path this change touched — its own, or a directory whose listing it claimed, or a tree it
+walked — and blind where the record holds no set for it at all, which is where a file whose audit
+could not be followed and which carries no declaration ends up, nothing being written for one. Where the spend runs past their sum the
+line names the excess as \`accounted for neither way\`, and it is not a measured waste: the listing rule
+over-counts the reach, while a set recorded before the file gained a dependency this change touches
+holds no claim that dependency answers and under-counts it. So the excess is the number to go and read
+the sets over. A run that never learned which paths changed — \`--full\`, or a diff git refused — carries
+no count of reach rather than a reach of nought. A run that distrusts these digests and narrows
+nothing still carries the counts, which are read off the recorded sets and not off the digests.
+
+One part of that excess a run can prove, and names: \`202 spent under a context the record does not
+hold\`. A set's digest is keyed on the execution context as well as the content, and that context moves
+with this collector's own files, the node version and the absolute paths the launcher carries — any of
+which leaves every recorded set unable to match whatever the tree says, so the spend follows from the
+key having moved. Each set therefore carries the context it was keyed on, a field no digest here reads,
+and a spent file keyed on another one is counted as that; a set carrying none is evidence either way for
+neither, and stays in what nothing explains. The \`>\` stands regardless: a context the record does not
+hold explains an excess and never licences it, those files having been spent for nothing reached.
+
+A step the run could not skip says which of the two it is: one the record holds no pass for at any
+content, or one whose recorded passes are all at other content. A test step under a readable record
+says the same of its files, whether or not it held any of them back. Both printed nothing, and that
+silence is what hid ISS-1739 for a day after ISS-654 landed (ISS-1746).
+
+A file the audit could not follow to the end records nothing at all, so nothing can ever say it is
+unaffected: 82 of this suite's 297 files, and 2154s of the 3600s its own price record holds. Such a
+file may instead be given a **declaration** in \`tools/gates/steps.mjs\` — the repository paths it
+may read, written against the file by somebody who read it. A declaration is a ceiling and never the
+answer: the derived set is the answer, and this is what a file gets until its blindness is fixed.
+What keeps it honest is that the reads the audit *did* see are checked against the ceiling on every
+run that spends the file. A path, a listing or a walk the claims do not cover fails the gate, naming
+the file, the path and the claims it escaped, and writes no entry for it. The check is on the spend
+and never on a pass: a file skipped on its declaration was not observed that run and nothing about it
+is claimed.
+
+**That verification reaches the observed reads and stops there.** What the unfollowable child read is
+what nothing here can see — it is why the file has a declaration at all — so no check can say a
+ceiling covers it, and this does not claim to. For that half a declaration is somebody's reading of
+the file, accepted one file at a time, which is why a key names one file and never a directory of
+them: a file enrolled by a prefix would inherit a reading nobody made of it. A ceiling wrong about
+the unseen half holds a file back on a change it should have been spent on, and no line here says so.
+The answer to that is closing the boundary, never widening the ceiling.
+
+A declared set is written, digested and compared exactly as a derived one is, so a change inside the
+claims spends the file and a change outside them does not, and nothing in the selection reads a
+declaration. A claim that is a directory carries the walk below it and the content of every tracked
+file in it, and the entry carries every read the audit saw as well, so a path appearing, vanishing or
+changing under a claim all spend the file. A file declared twice is refused at the lookup, which has
+no answer for it; a key matching no test file git reports and a claim git tracks nothing at are this
+repository's own checker and no condition of a run, both being inert — refusing for them would refuse
+in every tree the table was not written for. A file the audit stops reporting blind derives its own
+set, and its declaration is said to have had no effect against the blindness it was recorded under,
+so a declaration cannot become the cheap path for a file that could be derived. The report names how
+many files recorded a set by derivation and how many against a declaration, and how many of the files
+held back were held back by one.`;
