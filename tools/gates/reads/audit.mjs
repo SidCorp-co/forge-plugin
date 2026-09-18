@@ -36,6 +36,9 @@ const SPAWNS = new Set(["spawn", "spawnSync", "execFile", "execFileSync", "fork"
 
 const SHELLS = new Set(["exec", "execSync"]);
 
+// What the dynamic loader maps in before a program's own code runs.
+const LOADER = /^(?:LD_|DYLD_)/u;
+
 const BUILDS = new Set(["FileReadStream", "ReadStream"]);
 
 const NEITHER = new Set([
@@ -155,8 +158,7 @@ const start = (out, root) => {
   const entry = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
 
   /* Where a path lands once its links are followed: the deepest part that is there, resolved, with
-     what is not hung back on — so a name under a link into this tree is in it, as is where a
-     dangling one points, a later change being free to fill either. Null is out of hops, not out. */
+     what is not hung back on. Null is out of hops rather than out of this tree. */
   const placed = (one) => {
     const rest = [];
     let at = one;
@@ -179,33 +181,34 @@ const start = (out, root) => {
     return null;
   };
 
+  // A path this tree names is its own wherever it points, and one this cannot place is not outside.
   const holds = (one) => {
     const at = placed(one);
-    return at === null || inside(at) !== null;
+    return inside(one) !== null || at === null || inside(at) !== null;
   };
 
   // Every directory a name with no slash is looked for in, one this cannot place standing as itself.
   const along = (env) => String(env.PATH ?? "").split(":")
     .map((one) => (one.startsWith("/") ? placed(one) : null));
 
-  /* Whether the search path could answer out of this tree: a directory of it in here, or a name the
-     line could ask about that one of them holds. The words over-count, which is the safe way. */
+  /* Whether the search path could answer out of this tree: a directory of it in here, or a name
+     looked up along it that one of them holds — the program's own among them, and the line's. */
   const answering = (env, file, args) => {
     const dirs = along(env);
     if (dirs.some((one) => one === null || inside(one) !== null)) return true;
-    if (!/sh$/u.test(basename(String(file))) || String(args[0]) !== "-c") return false;
-    // The words the shell would make, so a name the reading approves is the name this asks about.
-    return (worded(String(args[1] ?? "")) ?? [])
+    const named = String(file);
+    if (!/sh$/u.test(basename(named)) || String(args[0]) !== "-c") return false;
+    return [named, ...(worded(String(args[1] ?? "")) ?? [])]
       .filter((one) => one.length > 0 && !one.includes("/"))
       .some((one) => dirs.some((dir) => holds(join(dir, one))));
   };
 
-  /* What could stand behind a builtin's name: an exported function, or a startup file read first.
-     Over the names node itself hands the child, which are every enumerable one and not the own ones. */
+  /* What could stand behind a builtin's name or behind the program itself: an exported function, a
+     startup file, a library the loader maps in. Over every enumerable name, node's own reading. */
   const renaming = (env) => {
     for (const key in env) {
       if (key.startsWith("BASH_FUNC_") || key === "BASH_ENV" || key === "ENV"
-        || String(env[key] ?? "").startsWith("() {")) return true;
+        || LOADER.test(key) || String(env[key] ?? "").startsWith("() {")) return true;
     }
     return false;
   };
