@@ -37,7 +37,10 @@ const ATTACHMENT = ["name", "mime", "size", "url", "createdAt"];
 /* Only the identifiers the row carries: an `issueId: null` reads as an issue with no key. */
 const named = (row) => filled({ documentId: row?.id, issueId: row?.displayId });
 
-const writtenRow = ({ page }) => ({ ...named(page), ...page });
+/* The answer is what the caller could not already know: the row less the columns the read path drops, less every field this same call sent and got back unchanged — docs/cli/one-transport.md (ISS-1400). */
+const writtenRow = ({ page }, args) => ({ ...named(page), ...Object.fromEntries(
+  Object.entries(columns(page)).filter(([name, held]) =>
+    JSON.stringify(args?.data?.[name]) !== JSON.stringify(held))) });
 
 const PAGE = ({ page }) => page;
 

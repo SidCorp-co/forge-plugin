@@ -118,9 +118,11 @@ test("the category the filing names is what the body is read against, and what t
   assert.equal(run.status, 0, run.stderr);
   const create = state.calls.find((one) => one.args.action === "create");
   assert.equal(create.args.data.category, "bug");
-  assert.match(run.stdout, /"category": "bug"/u,
-    "and the answer is read back in the field's own name, which is the one the flag took");
-  assert.doesNotMatch(run.stdout, /"kind"/u, "with no second word for it anywhere in the reply");
+  assert.equal(Object.hasOwn(create.args.data, "kind"), false,
+    "and the field is sent under the name the flag took, with no second word for it in the payload");
+  assert.doesNotMatch(run.stdout, /"kind"/u, "nor anywhere in the reply");
+  assert.doesNotMatch(run.stdout, /"category"/u,
+    "which the reply does not echo either, the caller having just typed it");
 });
 
 /* The ship step's own kind, filed by nobody: the body it generates is a feature's shape and the

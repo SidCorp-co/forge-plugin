@@ -219,6 +219,66 @@ describe("a cut page says it was cut and says it once", () => {
   }
 });
 
+/* The three write rows answer through one reader, and what it leaves out is two things at once: the
+   columns the read path already drops, and every field this same call sent and got back as sent. */
+describe("a write answers what the caller could not already know", () => {
+  const row = held("issues-create").rest.answer;
+  const sent = { title: row.title, description: row.description, status: row.status,
+    priority: "urgent", plan: "a plan the tracker did not store" };
+  const answer = ROUTES["forge_issues.create"].answers({ page: row }, { data: sent });
+
+  it("the tracker's search index and its identity columns never reach the caller", () => {
+    for (const name of ["identSearch", "createdById", "metadata", "source", "releaseBatchRunId"]) {
+      assert.equal(Object.hasOwn(answer, name), false, `${name} reached the caller`);
+    }
+  });
+
+  it("a column the read path drops goes whether or not the call sent a value for it", () => {
+    assert.ok(Object.hasOwn(row, "identSearch"), "the capture carries no dropped column to judge");
+    assert.equal(Object.hasOwn(sent, "identSearch"), false, "and the call sent none for it");
+    assert.equal(Object.hasOwn(answer, "identSearch"), false);
+  });
+
+  it("a field the call sent and got back as sent is not handed to the process that sent it", () => {
+    for (const name of ["title", "description", "status"]) {
+      assert.equal(row[name], sent[name], `the capture disagrees with the call about ${name}`);
+      assert.equal(Object.hasOwn(answer, name), false, `${name} was read back to its own writer`);
+    }
+  });
+
+  it("a value the tracker did not store as sent stays, that being what the caller cannot derive", () => {
+    assert.notEqual(row.priority, sent.priority, "the capture agrees with the call about priority");
+    assert.equal(answer.priority, row.priority);
+    assert.notEqual(row.plan, sent.plan, "the capture agrees with the call about the plan");
+    assert.equal(Object.hasOwn(answer, "plan"), true, "a field the tracker ignored reads as ignored");
+  });
+
+  it("a field the call never sent stays", () => {
+    assert.equal(answer.createdAt, row.createdAt);
+  });
+
+  it("the two ids are derived above the filter, both their sources being dropped columns", () => {
+    assert.equal(answer.documentId, row.id);
+    assert.equal(answer.issueId, row.displayId);
+  });
+
+  it("the update and the transition answer through the create's own reader", () => {
+    for (const key of ["forge_issues.update", "forge_issues.transition"]) {
+      assert.equal(ROUTES[key].answers, ROUTES["forge_issues.create"].answers,
+        `${key} answers through a reader of its own, which is a second list`);
+    }
+  });
+
+  it("a status the tracker answered other than the one asked for is what survives", () => {
+    const moved = ROUTES["forge_issues.transition"]
+      .answers({ page: { ...row, status: "developed" } }, { data: { status: "testing" } });
+    assert.equal(moved.status, "developed", "the guard that reads it back has nothing to read");
+    const landed = ROUTES["forge_issues.transition"]
+      .answers({ page: { ...row, status: "testing" } }, { data: { status: "testing" } });
+    assert.equal(Object.hasOwn(landed, "status"), false, "a move that landed as asked says nothing");
+  });
+});
+
 describe("every row of the table is judged", () => {
   it("each row is paired against the tool or shape-checked", () => {
     const judged = new Set([...Object.values(PAIRS), ...Object.values(SHAPES)].map((one) => one.key));
