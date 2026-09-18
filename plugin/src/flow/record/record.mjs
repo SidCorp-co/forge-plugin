@@ -28,7 +28,7 @@ import { refuseIfGated } from "../../resolve/visibility.mjs";
 import { pluginFilingLine } from "../../tracker/filing/plugin-defect.mjs";
 import { partForRecord } from "../../guides/served.mjs";
 import { scopeFrom, scopePath } from "./plan-scope.mjs";
-import { repoRoot } from "../../codex/codex.mjs";
+import { repoRoot } from "../../git/repo-root.mjs";
 import { workLines } from "../../guides/phases.mjs";
 import { askedInSource } from "../../resolve/flags.mjs";
 import { FIELD as SESSION, renew, writtenBy } from "../lease.mjs";

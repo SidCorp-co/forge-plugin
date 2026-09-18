@@ -7,7 +7,7 @@ import { exclusive, flags, pairsFrom, partition, pullRepeated, shortOfAsk, wants
 import { projectIdOf, scoped, write } from "../tracker/rest.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
-import { SLUG_WIDTH } from "./knowledge.mjs";
+import { SLUG_WIDTH } from "../tracker/knowledge/store.mjs";
 
 const BOOLEAN = ["--archive", "--unarchive"];
 const ACTS = ["set", "archive", "unarchive"];

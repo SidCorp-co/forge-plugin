@@ -17,7 +17,7 @@ delete process.env.FORGE_CODEX_DISABLE;
 
 const { digest, locate } = await import("../../src/codex/codex-api.mjs");
 const { logConsult, logPath } = await import("../../src/codex/codex-log.mjs");
-const { repoRoot } = await import("../../src/codex/codex.mjs");
+const { repoRoot } = await import("../../src/git/repo-root.mjs");
 const { readOrRefuse } = await import("../../src/codex/codex-read.mjs");
 
 /* The refusal alone where a case is about the wording, and the pair where it is about the bytes. */

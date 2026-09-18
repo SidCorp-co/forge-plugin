@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 import { digest, locate } from "./codex-api.mjs";
 import { bodied, judgedBy, logEntries } from "./codex-log.mjs";
-import { repoRoot } from "./codex.mjs";
+import { repoRoot } from "../git/repo-root.mjs";
 import { typed } from "../hooks/shell-spans.mjs";
 import { bodyItself, notAPath } from "../resolve/payload.mjs";
 

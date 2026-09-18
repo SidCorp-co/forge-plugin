@@ -2,7 +2,8 @@
 
 import { resolve } from "node:path";
 
-import { ageOf, pendingNow, pendingState, repoRoot } from "../../../src/codex/codex.mjs";
+import { ageOf, pendingNow, pendingState } from "../../../src/codex/codex.mjs";
+import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { logBytes } from "../../../src/codex/codex-log.mjs";
 import { unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
 import { classesFor } from "../../../src/stats/corpus/classes.mjs";

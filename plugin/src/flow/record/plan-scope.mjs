@@ -4,7 +4,7 @@ import { mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { configDir, readJson, writeJsonPrivate } from "../../resolve/config.mjs";
-import { repoRoot } from "../../codex/codex.mjs";
+import { repoRoot } from "../../git/repo-root.mjs";
 
 /** How long an entry answers for. A lease outlives no window and no window outlives a day: past it a plan neither refuses a path nor admits one, which is the same answer as a tree nobody has claimed in. */
 export const SCOPE_KEPT_MS = 86_400_000;

@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { git, gitOut, lines, REMOTE, stop } from "../checkout.mjs";
 import { FILE_CHARS, bundle } from "../../plugin/src/codex/codex-api.mjs";
 import { judgedBy, logEntries, shortOfWhole, wholeReadOf } from "../../plugin/src/codex/codex-log.mjs";
-import { repoRoot } from "../../plugin/src/codex/codex.mjs";
+import { repoRoot } from "../../plugin/src/git/repo-root.mjs";
 import { pathed } from "../../plugin/src/hooks/shell-spans.mjs";
 import { shortly } from "./install.mjs";
 import { movedBy, remoteHead } from "./land-ready/candidate.mjs";

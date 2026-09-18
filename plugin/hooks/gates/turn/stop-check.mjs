@@ -6,7 +6,7 @@ import { existsSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { repoRoot } from "../../../src/codex/codex.mjs";
+import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { logBytes } from "../../../src/codex/codex-log.mjs";
 import { unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
 import { FIELD, KEY } from "../../../src/flow/lease.mjs";

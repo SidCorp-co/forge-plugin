@@ -2,7 +2,8 @@
 
 import { isAbsolute, resolve } from "node:path";
 
-import { ageOf, apartFrom, demandIn, pendingNow, pendingState, repoRoot, stagedIn } from "../../../src/codex/codex.mjs";
+import { ageOf, apartFrom, demandIn, pendingNow, pendingState, stagedIn } from "../../../src/codex/codex.mjs";
+import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { logBytes } from "../../../src/codex/codex-log.mjs";
 import { unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
 import { configDir } from "../../../src/resolve/config.mjs";

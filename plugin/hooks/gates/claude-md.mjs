@@ -4,7 +4,7 @@
 import { relative } from "node:path";
 
 import { checkClaims, readClaudeMd } from "../../src/checks/claude-md.mjs";
-import { repoRoot } from "../../src/codex/codex.mjs";
+import { repoRoot } from "../../src/git/repo-root.mjs";
 import { gitProbe, probeMs } from "../../src/hooks/git-probe.mjs";
 import { block, remaining, touched, how, done } from "../_hook.mjs";
 

@@ -17,7 +17,7 @@ import { CODE_SPAN_PATTERN } from "../markdown.mjs";
 import { NOT_STATED, SOURCE_MARK, WHY, goalLine, goalsIn, servesIn, servesRefusal }
   from "../goals.mjs";
 import { BRIEF_SLUG, metaFrom, same, softEntryAt, upsertEntry, wroteLines }
-  from "../tools/knowledge.mjs";
+  from "./knowledge/store.mjs";
 import { scoped } from "./rest.mjs";
 
 const CONFIG_SOURCE = "the tracker's project config";

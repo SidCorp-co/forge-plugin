@@ -9,12 +9,11 @@ export { afterTouch, ageOf, apartFrom, demandIn, holding, pendingIn, pendingNow,
 export { reviewed, rounds } from "./codex-rounds.mjs";
 export { plannedFor } from "./codex-plan.mjs";
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
 import { randomBytes } from "node:crypto";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 
 import { HUMAN_REF } from "../tracker/issues.mjs";
-import { canonical } from "../resolve/canonical.mjs";
+import { repoRoot } from "../git/repo-root.mjs";
 import { configPath, userConfig } from "../resolve/config.mjs";
 import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
 import { fail, projectCodex, projectRecordPattern } from "../resolve/settings.mjs";
@@ -120,18 +119,6 @@ const SHOW_USAGE = [
   "Usage: forge codex show",
   "Profile, model, records, rounds, effort, angles, check, pending and log, in effect here.",
 ].join("\n");
-
-/* Canonical, because the root is the key the state file and the log are grouped by: one checkout
-   reached through a symlink would otherwise be two repositories. */
-export const repoRoot = (start) => {
-  let directory = resolve(start);
-  for (;;) {
-    if (existsSync(join(directory, ".git"))) return canonical(directory);
-    const up = dirname(directory);
-    if (up === directory) return null;
-    directory = up;
-  }
-};
 
 /* A pattern that does not compile is worse than no pattern: the gate would throw on every write of
    whatever repository carries it. It is skipped for the next source, and `show` names what resolved. */
