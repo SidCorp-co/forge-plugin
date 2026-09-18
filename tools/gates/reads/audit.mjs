@@ -120,8 +120,8 @@ const HERE = Symbol.for("forge.gate.reads");
 const start = (out, root) => {
   if (globalThis[HERE]) return;
   const { registerHooks } = process.getBuiltinModule("node:module");
-  const { lstatSync, mkdirSync, realpathSync, writeFileSync } = process.getBuiltinModule("node:fs");
-  const { isAbsolute, join, relative, resolve } = process.getBuiltinModule("node:path");
+  const { lstatSync, mkdirSync, readlinkSync, realpathSync, writeFileSync } = process.getBuiltinModule("node:fs");
+  const { basename, dirname, isAbsolute, join, relative, resolve } = process.getBuiltinModule("node:path");
   const { fileURLToPath, pathToFileURL } = process.getBuiltinModule("node:url");
 
   const paths = new Set();
@@ -152,18 +152,45 @@ const start = (out, root) => {
 
   const entry = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
 
-  /* Where a name with no slash would be looked for, by the name and through the links: one this
-     cannot place counts as inside, as does a dangling link, and one with nothing there holds none. */
-  const reaching = (one) => {
-    if (!one.startsWith("/")) return true;
-    if (inside(one) !== null) return true;
-    try {
-      return inside(realpathSync(one)) !== null;
-    } catch {
-      return lstatSync(one, { throwIfNoEntry: false }) !== undefined;
+  /* Where a path lands once its links are followed: the deepest part of it that is there, resolved,
+     with what is not hung back on. A name under a link into this tree is in it, and so is where a
+     dangling one points, a later change being free to put something there. */
+  const placed = (one) => {
+    const rest = [];
+    let at = one;
+    for (let hop = 0; hop < 32; hop += 1) {
+      let link = null;
+      try {
+        return resolve(realpathSync(at), ...rest);
+      } catch {
+        link = lstatSync(at, { throwIfNoEntry: false })?.isSymbolicLink() ? readlinkSync(at) : null;
+      }
+      if (link !== null) {
+        at = resolve(dirname(at), link);
+        continue;
+      }
+      const up = dirname(at);
+      if (up === at) return resolve(one);
+      rest.unshift(basename(at));
+      at = up;
     }
+    return resolve(one);
   };
-  const searching = (env) => String(env.PATH ?? "").split(":").some(reaching);
+
+  // Every directory a name with no slash is looked for in, one this cannot place standing as itself.
+  const along = (env) => String(env.PATH ?? "").split(":")
+    .map((one) => (one.startsWith("/") ? placed(one) : null));
+
+  /* Whether the search path could answer out of this tree: a directory of it in here, or a name the
+     line could ask about that one of them holds. The words over-count, which is the safe way. */
+  const answering = (env, file, args) => {
+    const dirs = along(env);
+    if (dirs.some((one) => one === null || inside(one) !== null)) return true;
+    if (!/sh$/u.test(basename(String(file))) || String(args[0]) !== "-c") return false;
+    return String(args[1] ?? "").split(/\s+/u)
+      .filter((one) => one.length > 0 && !one.includes("/"))
+      .some((one) => dirs.some((dir) => inside(placed(join(dir, one))) !== null));
+  };
 
   /* What could stand behind a builtin's name: an exported function, or a startup file read first.
      Over the names node itself hands the child, which are every enumerable one and not the own ones. */
@@ -176,9 +203,15 @@ const start = (out, root) => {
   };
 
   // `argv0` is what makes a shell a login shell, which reads a startup file before the line.
-  const reading = (options) => {
+  const reading = (options, file, args) => {
     const env = options.env ?? process.env;
-    return { plain: !options.argv0, pathIn: searching(env), funcIn: renaming(env) };
+    const named = String(file);
+    return {
+      plain: !options.argv0,
+      mine: named.includes("/") && inside(placed(resolve(options.cwd ?? process.cwd(), named))) !== null,
+      pathIn: answering(env, file, args),
+      funcIn: renaming(env),
+    };
   };
 
   const audit = {
@@ -196,8 +229,9 @@ const start = (out, root) => {
     },
     shelled(args) {
       const { before, options } = optionsIn(args);
-      spawned.push({ ticket: null, shell: String(options.shell ?? "sh"), file: String(before[0]),
-        args: [], cwd: options.cwd ?? process.cwd(), ...reading(options) });
+      const shell = String(options.shell ?? "sh");
+      spawned.push({ ticket: null, shell, file: String(before[0]), args: [],
+        cwd: options.cwd ?? process.cwd(), ...reading(options, shell, ["-c", String(before[0])]) });
     },
     /* A ticket and not the child's pid, `execFileSync` answering with its output and never a pid;
        and where it stood and what it was handed, which is what rules on a child that left no record. */
@@ -205,10 +239,10 @@ const start = (out, root) => {
       const { before, options, after } = optionsIn(args);
       issued += 1;
       const mine = `${process.pid}-${issued}`;
+      const handed = (Array.isArray(before[1]) ? before[1] : []).map(String);
       spawned.push({
-        ticket: mine, file: String(before[0]), cwd: options.cwd ?? process.cwd(),
-        args: (Array.isArray(before[1]) ? before[1] : []).map(String),
-        ...reading(options), plain: !options.shell && !options.argv0,
+        ticket: mine, file: String(before[0]), cwd: options.cwd ?? process.cwd(), args: handed,
+        ...reading(options, before[0], handed), plain: !options.shell && !options.argv0,
       });
       return [...before, { ...options, env: { ...(options.env ?? process.env), [READS_TICKET]: mine } }, ...after];
     },

@@ -178,7 +178,7 @@ test("a shell that opens no file derives its file's set, and one that reads the 
   mkdirSync(out, { recursive: true });
   const ran = (args) => JSON.stringify({ ticket: null, argv: [join(where.root, FILE)], paths: [FILE],
     dirs: [], trees: [], blind: [], done: true,
-    spawned: [{ ticket: "gone", file: "/bin/sh", cwd: where.root, args, plain: true, pathIn: false, funcIn: false }] });
+    spawned: [{ ticket: "gone", file: "/bin/sh", cwd: where.root, args, plain: true, mine: false, pathIn: false, funcIn: false }] });
   try {
     writeFileSync(join(out, "own-1.json"), ran(["-c", "command -v git"]));
     assert.deepEqual(setsFrom(out, where.root)[0].blind, []);

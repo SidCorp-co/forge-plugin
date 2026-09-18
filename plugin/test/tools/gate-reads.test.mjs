@@ -3,11 +3,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { auditEnv, contextOf, ENTRIES_PER_FILE, forgetReads, reaches, recordSets, selectTests, setsFrom }
+import { auditEnv, contextOf, ENTRIES_PER_FILE, forgetReads, recordSets, selectTests, setsFrom }
   from "../../../tools/gates/reads/sets.mjs";
 import { CLASSIFIED, optionsIn, shimSource, SHIMMED } from "../../../tools/gates/reads/audit.mjs";
 import { landed, run, scratch, write } from "./gates/scratch.mjs";
@@ -503,16 +503,77 @@ test("a name the environment inherits rather than owns is one the child gets, an
 });
 
 /* Naming a program `sh` does not make it one: a wrapper of this tree's own could read anything before
-   it delegates, and the command line it was handed says nothing about that (ISS-1793). */
-test("a shell named by a path in this repository is this repository's, whatever it is called", () => {
+   it delegates, and the line it was handed says nothing about that. Nor is a path outside evidence
+   that what it names is outside, so the program is placed through its links too (ISS-1793). */
+test("a shell this repository holds itself is this repository's, however it is reached", () => {
   const where = room();
-  const here = (file, cwd) => reaches(where.root, { plain: true, pathIn: false, funcIn: false,
-    file, cwd, args: ["-c", "command -v git"] });
+  const out = join(where.at, "out");
+  const alias = join(where.at, "sh-alias");
+  mkdirSync(out, { recursive: true });
+  write(where.root, "bin/sh", "#!/bin/sh\nexec /bin/sh \"$@\"\n");
+  chmodSync(join(where.root, "bin/sh"), 0o755);
+  symlinkSync(join(where.root, "bin/sh"), alias);
+  const ran = (program) => {
+    rmSync(out, { recursive: true, force: true });
+    mkdirSync(out, { recursive: true });
+    audited(where.root, out, `import { spawnSync } from "node:child_process";\n`
+      + `spawnSync(${JSON.stringify(program)}, ["-c", "command -v git"], `
+      + `{ env: { ...process.env, PATH: "/usr/bin:/bin" } });\n`);
+    return recordsIn(out).flatMap((one) => one.spawned).find((one) => one.args?.[0] === "-c");
+  };
   try {
-    assert.equal(here("sh", where.root), false, "the name a search path answers is the covered case");
-    assert.equal(here("/bin/sh", where.root), false, "and a path outside this tree with it");
-    assert.equal(here("./bin/sh", where.root), true, "a wrapper of this tree's own, reached from here");
-    assert.equal(here(join(where.root, "bin/sh"), "/anywhere"), true, "and named whole from outside");
+    assert.equal(ran("/bin/sh").mine, false, "the shell the box holds is the covered case");
+    assert.equal(ran(join(where.root, "bin/sh")).mine, true, "a wrapper of this tree's own is not");
+    assert.equal(ran(alias).mine, true, "and a path outside that is a link to it is the same wrapper");
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+/* The entry itself resolving is not the question: a name under a directory that links into this tree
+   is in this tree, whether or not anything is there yet (ISS-1793). */
+test("a search path entry under a link into this repository is placed inside it", () => {
+  const where = room({ "bin/helper": "#!/bin/sh\n" });
+  const out = join(where.at, "out");
+  const alias = join(where.at, "under");
+  mkdirSync(out, { recursive: true });
+  symlinkSync(join(where.root, "bin"), alias);
+  const ran = (path) => {
+    rmSync(out, { recursive: true, force: true });
+    mkdirSync(out, { recursive: true });
+    audited(where.root, out, `import { spawnSync } from "node:child_process";\n`
+      + `spawnSync("sh", ["-c", "command -v helper"], { env: { ...process.env, PATH: ${JSON.stringify(path)} } });\n`);
+    return recordsIn(out).flatMap((one) => one.spawned).find((one) => one.file === "sh");
+  };
+  try {
+    assert.equal(ran(`${join(alias, "optional")}:/usr/bin`).pathIn, true,
+      "nothing is at the end of it, and what a later change puts there would answer the lookup");
+    assert.equal(ran(`${join(where.at, "gone", "deeper")}:/usr/bin`).pathIn, false,
+      "where no part of the name reaches this tree, nothing a later change does to it can");
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+/* A directory of the search path can stand outside this tree and hold a name that resolves into it,
+   which is the lookup's answer coming out of here (ISS-1793); the wider case is ISS-1804. */
+test("a name the search path would answer out of this repository is recorded as reaching it", () => {
+  const where = room({ "bin/helper": "#!/bin/sh\n" });
+  const out = join(where.at, "out");
+  const outside = join(where.at, "outside");
+  mkdirSync(outside, { recursive: true });
+  symlinkSync(join(where.root, "bin/helper"), join(outside, "helper"));
+  const ran = (line) => {
+    rmSync(out, { recursive: true, force: true });
+    mkdirSync(out, { recursive: true });
+    audited(where.root, out, `import { spawnSync } from "node:child_process";\n`
+      + `spawnSync("sh", ["-c", ${JSON.stringify(line)}], { env: { ...process.env, PATH: ${JSON.stringify(`${outside}:/usr/bin`)} } });\n`);
+    return recordsIn(out).flatMap((one) => one.spawned).find((one) => one.file === "sh");
+  };
+  try {
+    assert.equal(ran("command -v helper").pathIn, true,
+      "the directory stands outside and the name in it does not");
+    assert.equal(ran("command -v git").pathIn, false, "and a name none of them answers from here");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }

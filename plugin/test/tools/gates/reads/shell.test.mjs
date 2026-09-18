@@ -7,7 +7,7 @@ import test from "node:test";
 import { opensNothing } from "../../../../../tools/gates/reads/shell.mjs";
 
 const sh = (line, file = "sh") =>
-  ({ ticket: null, file, cwd: "/anywhere", args: ["-c", line], plain: true, pathIn: false, funcIn: false });
+  ({ ticket: null, file, cwd: "/anywhere", args: ["-c", line], plain: true, mine: false, pathIn: false, funcIn: false });
 
 const OPENS_NOTHING = [
   ["command -v git", "the shape gates.test.mjs spawns, which asks the box where a program is"],
@@ -80,6 +80,10 @@ test("an environment that can reach this repository blinds whatever the line ask
     "a record that never said what its search path was");
   assert.equal(opensNothing({ ...sh("command -v git"), funcIn: undefined }), false,
     "nor what its environment could rename");
+  assert.equal(opensNothing({ ...sh("command -v git"), mine: true }), false,
+    "a program this tree holds itself reads what it likes before it does what its name says");
+  assert.equal(opensNothing({ ...sh("command -v git"), mine: undefined }), false,
+    "and a record that never said which it was");
 });
 
 test("the shell a record names decides whether the line is a shell's at all", () => {
@@ -108,13 +112,13 @@ test("a spawn node did not run as it was written is not a line this reads", () =
    guessed from a program name holding spaces. */
 test("the line exec and execSync record is read the same way, under the shell they named", () => {
   const ran = (file, shell) =>
-    ({ ticket: null, shell, file, args: [], cwd: "/anywhere", plain: true, pathIn: false, funcIn: false });
+    ({ ticket: null, shell, file, args: [], cwd: "/anywhere", plain: true, mine: false, pathIn: false, funcIn: false });
   assert.equal(opensNothing(ran("command -v git", "sh")), true);
   assert.equal(opensNothing(ran("cat one", "sh")), false);
   assert.equal(opensNothing(ran("command -v git", "/usr/bin/zsh")), false,
     "the shell the call chose is the one that runs the line");
   assert.equal(opensNothing({ ticket: "t-1", file: "command -v git", args: [], cwd: "/anywhere",
-    plain: true, pathIn: false, funcIn: false }), false,
+    plain: true, mine: false, pathIn: false, funcIn: false }), false,
   "a spawned program whose own name is that string is not a shell line");
   assert.equal(opensNothing({ ...ran("command -v git", "sh"), plain: false }), false,
     "an argv0 makes the same shell a login shell, which reads a startup file first");

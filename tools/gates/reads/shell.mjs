@@ -51,8 +51,6 @@ const OPENS_NOTHING = new Map([
   ["type", NAMED_ONLY], ["hash", NAMED_ONLY], ["command", ASKED_WHERE],
 ]);
 
-export const programOf = (one) => (typeof one.shell === "string" ? String(one.shell) : String(one.file));
-
 const lineOf = (one) => {
   if (one.plain !== true) return null;
   if (typeof one.shell === "string") return SHELL_PROGRAM.has(based(one.shell)) ? String(one.file) : null;
@@ -61,9 +59,9 @@ const lineOf = (one) => {
     ? args[1] : null;
 };
 
-// The environment could put something else behind any name below, so it is read before the line.
+// What the child ran under could put something else behind a name below, so it is read first.
 export const opensNothing = (one) => {
-  if (one.pathIn !== false || one.funcIn !== false) return false;
+  if (one.pathIn !== false || one.funcIn !== false || one.mine !== false) return false;
   const line = lineOf(one);
   if (line === null) return false;
   const words = worded(line);

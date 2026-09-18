@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import { digestFile, digestIn } from "../ledger.mjs";
 import { READS_DIR, READS_ROOT, READS_TICKET } from "./audit.mjs";
-import { opensNothing, programOf } from "./shell.mjs";
+import { opensNothing } from "./shell.mjs";
 import { DECLARED_READS, declarationFor, TEST_FILE } from "../steps.mjs";
 import { under } from "../scope.mjs";
 
@@ -167,13 +167,11 @@ const within = (root, at) => {
 
 /** Whether a child that left no record could have read this repository at all: it could where it
  *  stood in the tree, or where something it was handed names a path in it. One that stood outside and
- *  was handed nothing in here read none of this content, and so did one whose own command line says
- *  it opened no file — unless the program that ran it is named by a path in here (ISS-1793). */
+ *  was handed nothing in here read none of this content, and so did one whose own record says it
+ *  opened no file of this repository, wherever it stood (ISS-1793). */
 export const reaches = (root, one) => {
   const cwd = typeof one.cwd === "string" ? one.cwd : root;
-  const named = programOf(one);
-  const ours = named.includes("/") && within(root, resolve(cwd, named));
-  if (!ours && opensNothing(one)) return false;
+  if (opensNothing(one)) return false;
   if (within(root, cwd)) return true;
   return [one.file, ...(one.args ?? [])].flatMap((each) => String(each).split(/\s+/u))
     .some((each) => each.length > 0 && within(root, resolve(cwd, each)));
