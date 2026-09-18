@@ -9,7 +9,7 @@ import { DEFAULT_OVERLAP_THRESHOLD, findOverlapsAgainst } from "../../hooks/vend
 import { sentences } from "../checks/duplication.mjs";
 import { COMPLEXITY_NAMES, FIX, MARK_LINE, complexityFor, belowTop, rungFrom } from "../ladder.mjs";
 import { CODE_SPAN_NONEMPTY_PATTERN } from "../markdown.mjs";
-import { didYouMean } from "../suggest.mjs";
+import { didYouMean, suggest } from "../suggest.mjs";
 import { MAX_LIMIT, everyIssue, keysIn, listIssues, rowsOf, shortOf } from "./issues.mjs";
 import { declaredFor } from "./rest.mjs";
 
@@ -179,6 +179,24 @@ export const priorityFor = (given, allowed = []) => {
 /** The reading with the set read, which is where both filing routes take it from: the declaration is
  *  named once, and neither route decides for itself what an empty set would mean. */
 export const rankOf = async (given) => priorityFor(given, declaredFor("forge_issues", "priority"));
+
+/* What a field of an issue may hold, where a route takes field and value by hand: going round the
+   entry checks is not going round a field's own set, and a field with no row is the tracker's to judge. */
+const SET_VALUES = {
+  category: { values: () => KIND_NAMES, said: kindRefusal },
+  complexity: { values: () => COMPLEXITY_NAMES, said: complexityRefusal },
+  priority: { values: () => declaredFor("forge_issues", "priority"),
+    said: (given) => priorityFor(given, declaredFor("forge_issues", "priority")).refusal },
+};
+
+export const valueOutsideSet = (field, given) => {
+  const row = SET_VALUES[field];
+  if (!row) return null;
+  const values = row.values();
+  if (values.includes(given)) return null;
+  const close = suggest(given, values);
+  return { said: row.said(given), meant: close.length === 1 ? close[0] : null };
+};
 
 export const filedAs = (answer, said) => {
   const key = answer?.issueId ?? answer?.documentId ?? null;

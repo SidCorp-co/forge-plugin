@@ -4,6 +4,7 @@ import { pairOf, pairsFrom } from "../resolve/flags.mjs";
 import { fieldReplaced, routeIn, routeRefusal } from "../resolve/payload.mjs";
 import { keepOnFailure } from "../resolve/settings.mjs";
 import { lengthOf, ownsField, writeFields } from "../tracker/field-write.mjs";
+import { valueOutsideSet } from "../tracker/issue-shape.mjs";
 import { AMBIGUOUS } from "../tracker/rest.mjs";
 import { ANSWERED_BY_COMMENT } from "./earned.mjs";
 import { issueOf, post } from "./record/record.mjs";
@@ -68,6 +69,16 @@ const setPair = (given, ref) => {
       cost: fieldReplaced(field, lengthOf(route.spelt)),
       call: `forge issue ${ref} --set ${field}="$(cat -- ${route.path})" --why <w>`,
     }));
+  }
+  /* The field questions above ask who writes it; this one asks what it takes, and the set is the
+     filing route's own, so a value no entry check would have passed is not passed by going round one.
+     The call goes out only where one name is nearer than the rest: past that the set is what a caller
+     chooses from, and a line naming whichever name sorted first is one an agent would simply run. */
+  const outside = valueOutsideSet(field, value);
+  if (outside) {
+    refuse(`--set ${field}=${value}: ${outside.said}\nAn override is a route round the entry checks `
+      + "a status is earned by, not round the set a field's own value comes from, so nothing of this "
+      + `call was sent.${outside.meant ? `\n  forge issue ${ref} --set ${field}=${outside.meant} --why <w>` : ""}`);
   }
   return { field, value };
 };

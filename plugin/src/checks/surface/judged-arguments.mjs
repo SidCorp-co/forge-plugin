@@ -26,6 +26,18 @@ const OWN_SETS = {
 
 const ALIAS = { statusNot: "status" };
 
+/* Every field of a tool's record this CLI declares a set for: the scan below starts from the flags a
+   verb invites, so a field with a set and no flag is absent there and present here (ISS-767). */
+const NOT_A_FIELD_OF_THE_RECORD = ["filters"];
+export const fieldSets = (tool, declared = DECLARES) => [
+  ...Object.entries(declared[tool] ?? {})
+    .filter(([name, held]) => Array.isArray(held) && !NOT_A_FIELD_OF_THE_RECORD.includes(name))
+    .map(([field, held]) => ({ field, values: held.map((one) => one?.name ?? one) })),
+  ...Object.entries(OWN_SETS)
+    .filter(([key]) => key.startsWith(`${tool}.`))
+    .map(([key, set]) => ({ field: key.slice(tool.length + 1), values: set.values })),
+];
+
 /* Where a verb judges its own way; a rename leaves the slot unjudged rather than quietly excused.
    Each row is the whole statement of its judgement: `guard` where the call composes the sentence,
    `acts` where it answers with a value and a second statement is what acts on the answer. */

@@ -9,6 +9,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { fakeTracker, pathed, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
+import { fieldSets } from "../../src/checks/surface/judged-arguments.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("override").path;
 const { UNREAD } = await import("../../src/flow/override.mjs");
@@ -195,6 +196,49 @@ test("a --set naming status is refused with the verb that moves one, before anyt
   assert.match(run.stderr, /nothing of this one\s+was sent/u);
   assert.equal(state.calls.length, 0, "no request at all, not merely no update");
   assert.equal(ISSUE.priority, "medium", "and the field beside it is untouched");
+});
+
+/* ISS-767: the override asked who wrote a field and never what it takes, so a band `COMPLEXITIES`
+   has no row for landed and the issue read afterwards as claiming no rung. The population is
+   `fieldSets`, the declarations, and not the flags the verb invites — where a field may have none. */
+const OUTSIDE = {
+  category: { typed: "bugg", says: [/No category named bugg\./u, /bug, enhancement, feature, review/u,
+    /forge issue ISS-96 --set category=bug --why <w>/u] },
+  complexity: { typed: "xxl", says: [/--set complexity=xxl:/u, /The set is xs, s, m, l, xl\./u] },
+  priority: { typed: "urgent", says: [/No priority named urgent\./u, /the route table\s+declares this tracker takes/u] },
+  status: { typed: "shipped", says: [/is not a field an update writes/u, /forge advance ISS-96 --set shipped --why <w>/u] },
+};
+
+test("every field of an issue this CLI declares a set for refuses a value outside it, sending nothing", async () => {
+  const held = fieldSets("forge_issues");
+  assert.deepEqual(held.map((one) => one.field).sort(), Object.keys(OUTSIDE).sort());
+  for (const { field } of held) {
+    before();
+    const run = await setField("--set", `${field}=${OUTSIDE[field].typed}`, "--why", WHY);
+    assert.equal(run.status, 1, `${field} took a value outside its set: ${run.stdout}`);
+    for (const said of OUTSIDE[field].says) assert.match(run.stderr, said, `${field}: ${run.stderr}`);
+    assert.equal(state.calls.length, 0, `${field} spent a request before refusing`);
+  }
+});
+
+test("a field this CLI declares no set for is written, so what is refused is a value and not a field", async () => {
+  before();
+  const run = await setField("--set", "title=@a-name-no-file-answers-to", "--why", WHY);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(sent("update", "title").title, "@a-name-no-file-answers-to", "and no route was read into it");
+});
+
+/* One spelling of the set: the two routes are a filing and an override, and a second copy of the
+   five would let them come to disagree about what a complexity is. */
+test("the sentence about the value is the one the filing route prints for it", async () => {
+  before();
+  const set = await setField("--set", "complexity=xxl", "--why", WHY);
+  const filed = await ranAsync(FORGE,
+    ["new", "a-body-never-opened.md", "--title", "t", "--category", "bug", "--complexity", "xxl"], tracker.env);
+  assert.equal(filed.status, 1, filed.stdout);
+  const said = /No complexity named xxl\.[^\n]*/u;
+  assert.match(set.stderr, said, set.stderr);
+  assert.equal(said.exec(set.stderr)[0], said.exec(filed.stderr)[0], "one sentence, held in one place");
 });
 
 /* Where the read-back says one field moved and another did not, the one that moved is owed its reason before the refusal exits: the alternative is a value in the tracker with nothing on the page saying who set it. */
@@ -542,11 +586,10 @@ test("a body written where this project names no prose language goes to the wire
 });
 
 test("a field that holds no body is untouched by the rule", async () => {
-  for (const [field, value] of [["priority", "@high"], ["category", "@x"]]) {
+  for (const field of ["priority", "category"]) {
     before();
-    const run = await setField("--set", `${field}=${value}`, "--why", WHY);
-    assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
-    assert.equal(sent("update", field)[field], value,
+    const run = await setField("--set", `${field}=@x`, "--why", WHY);
+    assert.doesNotMatch(run.stderr, /reads as/u,
       `a route is only a route where a body is what it would replace: ${field}`);
   }
 });
