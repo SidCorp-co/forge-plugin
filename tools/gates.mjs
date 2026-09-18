@@ -17,7 +17,7 @@ import { cheapestFirst, ENTRIES_PER_STEP, ledgerFor, LEDGER_UNSEEN, recordPass, 
 import { PUTS_IT_BACK, said as saidMissing, unresolvedIn } from "../plugin/src/resolve/installed.mjs";
 import { DECLINED, placeFor, RAISE, runnersOf, SLOT, WAIT } from "./gates/machine.mjs";
 import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mjs";
-import { deadClaim, escapedClaim, ledgerSaid, readsSaid, stepSaid, wroteSets } from "./gates/report/said.mjs";
+import { deadClaim, escapedClaim, ledgerSaid, readsSaid, severalCauses, stepSaid, wroteSets } from "./gates/report/said.mjs";
 import { spendOf } from "./gates/report/spend.mjs";
 import { forgetRoomRefusal, ROOM_ENV, roomRefused } from "./room.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
@@ -546,7 +546,7 @@ for (const step of planned) {
   if (step.tests) {
     const manifests = manifestsIn(files);
     const sets = setsFrom(readsOut(step.label), ROOT);
-    const { dead, escaped } = claimsJudged(sets, { manifests, declared: DECLARED_READS });
+    const { dead, escaped, several } = claimsJudged(sets, { manifests, declared: DECLARED_READS });
     if (!failed) {
       const { wrote, declared } = recordSets(readsDir(record), sets, {
         root: ROOT, context: contextOf(launcherOf(step)), manifests, tracked: files,
@@ -555,6 +555,7 @@ for (const step of planned) {
       console.log(wroteSets({ files: step.files.length, wrote, declared: declared.length }));
     }
     for (const one of dead) console.log(deadClaim(one));
+    for (const one of several) console.log(severalCauses(one));
     if (escaped.length > 0) {
       console.error(`\nGate failed: ${step.label} — the tree judged: ${ROOT}`);
       for (const one of escaped) console.error(escapedClaim(one));

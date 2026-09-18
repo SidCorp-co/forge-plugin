@@ -9,12 +9,14 @@ import { join } from "node:path";
 import { claimsJudged, contextOf, declaredSet, forgetReads, recordSets, selectTests }
   from "../../../../../tools/gates/reads/sets.mjs";
 import { declarationFor } from "../../../../../tools/gates/steps.mjs";
-import { deadClaim, escapedClaim, readsSaid, wroteSets } from "../../../../../tools/gates/report/said.mjs";
+import { deadClaim, escapedClaim, readsSaid, severalCauses, wroteSets }
+  from "../../../../../tools/gates/report/said.mjs";
 import { declaredReads, landed, ROOT, run, scratch, write } from "../scratch.mjs";
 import { tempRoom } from "../../../fixtures.mjs";
 
 const FILE = "plugin/test/one.test.mjs";
 const BLIND = "git in the checkout";
+const CAUSE = { kind: "child", why: BLIND };
 
 const declaring = (reads) => [{ where: FILE, reads, blind: BLIND }];
 
@@ -28,7 +30,7 @@ const room = (files = {}) => {
 };
 
 const setOf = (paths, dirs = [], trees = []) =>
-  ({ file: FILE, paths: new Set(paths), dirs: new Set(dirs), trees: new Set(trees) });
+  ({ file: FILE, paths: new Set(paths), dirs: new Set(dirs), trees: new Set(trees), blind: [] });
 
 /* A blind set and a table in one call, so a case says only which claims it is about. The tracked
    list is what a directory claim expands over, and the gate hands it git's own. */
@@ -51,7 +53,7 @@ const again = ({ root, dir }, context = CONTEXT) => {
 test("a blind file a declaration covers is recorded and held back at that same content", () => {
   const where = room({ "plugin/src/one.mjs": "one\n" });
   try {
-    const set = { ...setOf(["plugin/src/one.mjs"]), blind: BLIND };
+    const set = { ...setOf(["plugin/src/one.mjs"]), blind: [CAUSE] };
     const said = declared(where, set, declaring(["plugin/src"]), ["plugin/src/one.mjs", FILE]);
     assert.deepEqual(said.escaped, [], "nothing observed escaped the claim");
     assert.deepEqual(said.declared, [FILE]);
@@ -65,7 +67,7 @@ test("a blind file a declaration covers is recorded and held back at that same c
 test("a path the audit saw that no claim covers fails, names what escaped, and writes no entry", () => {
   const where = room({ "plugin/src/one.mjs": "one\n", "docs/two.md": "two\n" });
   try {
-    const set = { ...setOf(["plugin/src/one.mjs", "docs/two.md"]), blind: BLIND };
+    const set = { ...setOf(["plugin/src/one.mjs", "docs/two.md"]), blind: [CAUSE] };
     const said = declared(where, set, declaring(["plugin/src"]), ["plugin/src/one.mjs", "docs/two.md", FILE]);
     assert.equal(said.wrote, 0, "the entry a wrong ceiling would have banked");
     assert.deepEqual(said.spend, [FILE]);
@@ -81,7 +83,7 @@ test("a path the audit saw that no claim covers fails, names what escaped, and w
 test("a listing and a walk the claims do not cover escape as well, each said as what it was", () => {
   const where = room({ "plugin/src/one.mjs": "one\n", "docs/two.md": "two\n" });
   try {
-    const set = { ...setOf([], ["docs"], ["packages"]), blind: BLIND };
+    const set = { ...setOf([], ["docs"], ["packages"]), blind: [CAUSE] };
     const said = declared(where, set, declaring(["plugin/src"]), [FILE]);
     assert.deepEqual(said.escaped[0].escapes.map((one) => one.kind).sort(), ["listing", "walk"]);
   } finally {
@@ -95,7 +97,7 @@ test("a change to a tracked file inside a directory claim spends the file, and o
   const where = room({ "plugin/src/one.mjs": "one\n", "plugin/src/two.mjs": "two\n", "docs/two.md": "two\n" });
   const tracked = ["docs/two.md", "plugin/src/one.mjs", "plugin/src/two.mjs", FILE];
   try {
-    const set = { ...setOf(["plugin/src/one.mjs"]), blind: BLIND };
+    const set = { ...setOf(["plugin/src/one.mjs"]), blind: [CAUSE] };
     assert.deepEqual(declared(where, set, declaring(["plugin/src"]), tracked).spend, []);
     write(where.root, "plugin/src/two.mjs", "two, moved\n");
     assert.deepEqual(again(where).spend, [FILE], "a claimed path the audit never saw");
@@ -114,7 +116,7 @@ test("a change to a tracked file inside a directory claim spends the file, and o
 test("a path the audit saw under a claim that git does not track keeps its own content in the entry", () => {
   const where = room({ "plugin/src/one.mjs": "one\n", "plugin/src/untracked.json": "{}\n" });
   try {
-    const set = { ...setOf(["plugin/src/untracked.json"]), blind: BLIND };
+    const set = { ...setOf(["plugin/src/untracked.json"]), blind: [CAUSE] };
     assert.deepEqual(declared(where, set, declaring(["plugin/src"]), ["plugin/src/one.mjs", FILE]).spend, []);
     write(where.root, "plugin/src/untracked.json", `{ "moved": true }\n`);
     assert.deepEqual(again(where).spend, [FILE]);
@@ -129,7 +131,7 @@ test("a path the audit saw under a claim that git does not track keeps its own c
 test("a walk of the root the audit saw stays a walk in the entry, though the claim of `.` is shallow", () => {
   const where = room({ "CLAUDE.md": "the rules\n", "plugin/src/deep/one.mjs": "one\n" });
   try {
-    const set = { ...setOf([], [], ["."]), blind: BLIND };
+    const set = { ...setOf([], [], ["."]), blind: [CAUSE] };
     const said = declared(where, set, declaring(["."]), ["CLAUDE.md", FILE]);
     assert.deepEqual(said.escaped, [], "`.` covers a read of the root, by `under`'s own reading of it");
     assert.deepEqual(said.spend, []);
@@ -157,7 +159,7 @@ test("a declaration whose file derives its own set is reported as having had no 
 test("a claim widened or dropped unseats the entry the ceiling before it wrote", () => {
   const where = room({ "plugin/src/one.mjs": "one\n", "docs/two.md": "two\n" });
   const tracked = ["docs/two.md", "plugin/src/one.mjs", FILE];
-  const set = { ...setOf(["plugin/src/one.mjs"]), blind: BLIND };
+  const set = { ...setOf(["plugin/src/one.mjs"]), blind: [CAUSE] };
   try {
     assert.deepEqual(declared(where, set, declaring(["plugin/src"]), tracked).spend, []);
     const wider = contextOf(["--test"], "", declaring(["plugin/src", "docs"]));
@@ -195,7 +197,7 @@ const OUTSIDE = "docs/requirements/one.md";
    not that step's: without this the one path where the gate exits 0 on a red step reports nothing. */
 test("a declaration is judged on a step that failed, though nothing is written for one", () => {
   const where = room({ "plugin/src/one.mjs": "one\n", "docs/two.md": "two\n" });
-  const set = { ...setOf(["plugin/src/one.mjs", "docs/two.md"]), blind: BLIND };
+  const set = { ...setOf(["plugin/src/one.mjs", "docs/two.md"]), blind: [CAUSE] };
   const table = declaring(["plugin/src"]);
   try {
     const judged = claimsJudged([set], { manifests: [], declared: table });
@@ -243,6 +245,22 @@ test("a declared file whose real reads escape its ceiling fails the gate rather 
   }
 });
 
+/* A ceiling is written against the blindness a run reported, so a file blind on two causes and
+   reported on one is how ISS-1761's run aimed a ceiling at the wrong tree (ISS-1756). */
+test("a declared file blind on more than one cause is named with every one of them", () => {
+  const set = { ...setOf(["plugin/src/one.mjs"]),
+    blind: [CAUSE, { kind: "export", why: "cpSync: a tree copied whole" }] };
+  const table = declaring(["plugin/src"]);
+  const judged = claimsJudged([set], { manifests: [], declared: table });
+  assert.deepEqual(judged.escaped, [], "the ceiling covers what was observed, and the causes are a separate reading");
+  assert.equal(judged.several.length, 1);
+  assert.match(severalCauses(judged.several[0]),
+    new RegExp(`^reads: ${FILE} is blind on 2 causes — ${BLIND} \\(child\\); cpSync: a tree copied whole `
+      + `\\(export\\) — while the declaration at ${FILE} was written against ${BLIND}\\.`, "u"));
+  assert.deepEqual(claimsJudged([{ ...set, blind: [CAUSE] }], { manifests: [], declared: table }).several, [],
+    "and one cause is no finding at all");
+});
+
 /* The lines themselves, pure: what the gate prints is what a run reads to decide whether a
    declaration is working, and the one clause this help may not drop is the residual it cannot check. */
 test("the report names both counts, the dead claim's own blindness, and the escape's remedy", () => {
@@ -273,7 +291,8 @@ test("the help says what verifies a declaration and that the verification stops 
     /no check can say a\nceiling covers it, and this does not claim to/u,
     /its declaration is said to have had no effect against the blindness it was recorded under/u,
     /how\nmany files recorded a set by derivation and how many against a declaration/u,
-    /held back were held back by one\.\n\nPast that, a step whose inputs/u]) {
+    /A blind file carries \*\*every\*\* cause of its blindness/u,
+    /re-taken\.\n\nPast that, a step whose inputs/u]) {
     assert.match(said, clause);
   }
   assert.doesNotMatch(said, /are both refused before a step is spent/u,

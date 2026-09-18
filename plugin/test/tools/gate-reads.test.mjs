@@ -25,7 +25,9 @@ const room = (files = {}) => {
 };
 
 const setOf = (paths, dirs = [], trees = []) =>
-  ({ file: FILE, paths: new Set(paths), dirs: new Set(dirs), trees: new Set(trees) });
+  ({ file: FILE, paths: new Set(paths), dirs: new Set(dirs), trees: new Set(trees), blind: [] });
+
+const child = (file, cwd) => ({ kind: "child", why: `${file} in ${cwd}`, file, cwd });
 
 const held = ({ root, dir }, sets, manifests = []) => {
   forgetReads();
@@ -141,7 +143,7 @@ test("the number a release writes leaves a set the record holds green, and a dep
 test("a blind set is written for nothing, so the file it belongs to is spent", () => {
   const where = room({ "plugin/src/one.mjs": "one\n" });
   try {
-    assert.deepEqual(held(where, [{ ...setOf(["plugin/src/one.mjs"]), blind: "git in the checkout" }]).spend, [FILE]);
+    assert.deepEqual(held(where, [{ ...setOf(["plugin/src/one.mjs"]), blind: [child("git", "the checkout")] }]).spend, [FILE]);
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
@@ -155,7 +157,71 @@ test("a child that left no record blinds its test file where it could have read 
     const one = { ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [],
       blind: [], done: true, spawned: [{ ticket: "gone", file: "git", cwd: where.root, args: ["status"] }] };
     writeFileSync(join(out, "own-1.json"), JSON.stringify(one));
-    assert.equal(setsFrom(out, where.root)[0].blind, `git in ${where.root}`);
+    assert.deepEqual(setsFrom(out, where.root)[0].blind, [child("git", where.root)]);
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+/* The first cause a `pop()` reached was the one kept, so which of several survived was traversal
+   order — and it is the field a read ceiling gets written against (ISS-1756). */
+test("a file two unrecorded children reached reports both causes and not whichever came first", () => {
+  const where = room();
+  const out = join(where.at, "out");
+  mkdirSync(out, { recursive: true });
+  try {
+    writeFileSync(join(out, "own-1.json"), JSON.stringify({
+      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], blind: [],
+      done: true, spawned: [
+        { ticket: "gone-1", file: "git", cwd: where.root, args: ["grep", "-l", "--", "*.mjs"] },
+        { ticket: "gone-2", file: "sh", cwd: where.root, args: ["-c", "ls"] },
+      ],
+    }));
+    assert.deepEqual(setsFrom(out, where.root)[0].blind,
+      [child("git", where.root), child("sh", where.root)]);
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+/* The two kinds are different work — a classification the audit owns against a boundary one test
+   file opens — so a census that fuses them tells nobody which of the two it is asking for. */
+test("an unfollowable export and an unrecorded child are both reported, each under its own kind", () => {
+  const where = room();
+  const out = join(where.at, "out");
+  mkdirSync(out, { recursive: true });
+  try {
+    writeFileSync(join(out, "own-1.json"), JSON.stringify({
+      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], done: true,
+      blind: ["cpSync: a tree copied whole"],
+      spawned: [{ ticket: "gone", file: "git", cwd: where.root, args: ["grep", "-l"] }],
+    }));
+    assert.deepEqual(setsFrom(out, where.root)[0].blind, [
+      child("git", where.root),
+      { kind: "export", why: "cpSync: a tree copied whole" },
+    ]);
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+// A cause a descendant record carried, which the root's own tree only reaches by following a ticket.
+test("a cause a descendant process carried is the file's too, beside the root's own", () => {
+  const where = room();
+  const out = join(where.at, "out");
+  mkdirSync(out, { recursive: true });
+  try {
+    writeFileSync(join(out, "own-1.json"), JSON.stringify({
+      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], done: true,
+      blind: ["globSync: a listing by pattern"],
+      spawned: [{ ticket: "t-1", file: "node", cwd: where.root, args: ["child.mjs"] }],
+    }));
+    writeFileSync(join(out, "t-1.json"), JSON.stringify({
+      ticket: "t-1", argv: ["child.mjs"], paths: [], dirs: [], trees: [], done: true,
+      blind: ["cpSync: a tree copied whole"], spawned: [],
+    }));
+    assert.deepEqual(setsFrom(out, where.root)[0].blind.map((one) => one.why),
+      ["cpSync: a tree copied whole", "globSync: a listing by pattern"]);
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
@@ -346,7 +412,8 @@ test("a process that walked by pattern blinds the test file whose tree it is in"
       ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [],
       blind: ["globSync: a listing by pattern"], spawned: [], done: true,
     }));
-    assert.equal(setsFrom(out, where.root)[0].blind, "globSync: a listing by pattern");
+    assert.deepEqual(setsFrom(out, where.root)[0].blind,
+      [{ kind: "export", why: "globSync: a listing by pattern" }]);
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }

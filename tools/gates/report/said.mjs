@@ -60,6 +60,12 @@ export const deadClaim = (one) =>
   `reads: ${one.file} derived its own set, so the declaration at ${one.where} had no effect — it `
   + `was recorded against ${one.blind}, and the audit reports no blindness now`;
 
+/** A ceiling is written against one cause and the audit may have seen several, which is how a file blinded by a grep over every `.mjs` git knows was held back against a ceiling written for a bounded copy (ISS-1761). */
+export const severalCauses = (one) =>
+  `reads: ${one.file} is blind on ${one.causes.length} causes — `
+  + `${one.causes.map((each) => `${each.why} (${each.kind})`).join("; ")} — while the declaration at `
+  + `${one.where} was written against ${one.blind}. A ceiling answers for every one of them.`;
+
 export const escapedClaim = (one) =>
   `${one.file} read ${one.escapes.map((each) => `${each.one} (${each.kind})`).join(", ")}, which the `
   + `declaration at ${one.where} does not cover: ${one.claims.join(", ")}. Widen it in `

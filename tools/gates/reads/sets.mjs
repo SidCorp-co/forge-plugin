@@ -174,39 +174,44 @@ export const reaches = (root, one) => {
     .some((each) => each.length > 0 && within(root, resolve(cwd, each)));
 };
 
+const byCause = (one, other) => one.kind.localeCompare(other.kind) || one.why.localeCompare(other.why);
+
+// Every cause, never the first a LIFO queue popped: that one was traversal order (ISS-1756).
 const gather = (start, byTicket, root) => {
   const paths = new Set();
   const dirs = new Set();
   const trees = new Set();
   const queue = [start];
-  let blind = null;
+  const blind = new Map();
   while (queue.length > 0) {
     const one = queue.pop();
     for (const path of one.paths) paths.add(path);
     for (const path of one.dirs) dirs.add(path);
     for (const path of one.trees) trees.add(path);
-    if (one.blind.length > 0) blind ??= one.blind[0];
+    for (const why of one.blind) blind.set(`export ${why}`, { kind: "export", why });
     for (const each of one.spawned) {
       const child = each.ticket === null ? null : byTicket.get(each.ticket);
       if (child) queue.push(child);
-      else if (reaches(root, each)) blind ??= `${each.file} in ${each.cwd}`;
+      else if (reaches(root, each)) {
+        const why = `${each.file} in ${each.cwd}`;
+        blind.set(`child ${why}`, { kind: "child", why, file: each.file, cwd: each.cwd });
+      }
     }
   }
-  return { paths, dirs, trees, blind };
+  return { paths, dirs, trees, blind: [...blind.values()].sort(byCause) };
 };
 
 const wellFormed = (one) => one !== null && typeof one === "object" && one.done === true
   && Array.isArray(one.paths) && Array.isArray(one.dirs) && Array.isArray(one.trees)
   && Array.isArray(one.spawned) && Array.isArray(one.blind);
 
-/** One set per test file, from the process records a step's audit left. A file whose tree reached a
- *  route the audit could not follow comes back `blind`, and nothing is written for it. */
-export const setsFrom = (out, root) => {
+/** The records a step left, apart from the sets, so a candidate change applied to them re-derives through this same code (ISS-1756). */
+export const recordsIn = (out) => {
   let names;
   try {
     names = readdirSync(out);
   } catch {
-    return [];
+    return { byTicket: new Map(), roots: [] };
   }
   const byTicket = new Map();
   const roots = [];
@@ -221,9 +226,15 @@ export const setsFrom = (out, root) => {
     if (one.ticket) byTicket.set(one.ticket, one);
     else roots.push(one);
   }
-  return roots.map((one) => ({ file: subjectOf(one, root), ...gather(one, byTicket, root) }))
-    .filter((one) => one.file !== null);
+  return { byTicket, roots };
 };
+
+/** One set per test file, from records already read; a file the audit could not follow carries every cause of it, and nothing is written for it. */
+export const setsOf = ({ byTicket, roots }, root) =>
+  roots.map((one) => ({ file: subjectOf(one, root), ...gather(one, byTicket, root) }))
+    .filter((one) => one.file !== null);
+
+export const setsFrom = (out, root) => setsOf(recordsIn(out), root);
 
 /** A declaration's claims in the shape a derived set has, so one comparison answers for both; a
  *  claim no tracked path is is a directory: the walk below it and every tracked file in it. */
@@ -263,19 +274,24 @@ const escapesIn = (set, claims) => {
 export const claimsJudged = (sets, { manifests, declared: table = [] }) => {
   const dead = [];
   const escaped = [];
+  const several = [];
   for (const set of sets) {
     const claim = declarationFor(set.file, table);
     if (!claim) continue;
-    if (!set.blind) {
+    if (set.blind.length === 0) {
       dead.push({ file: set.file, blind: claim.blind, where: claim.where });
       continue;
+    }
+    // A ceiling is written against one cause, and nothing said the audit had seen two (ISS-1761).
+    if (set.blind.length > 1) {
+      several.push({ file: set.file, where: claim.where, blind: claim.blind, causes: set.blind });
     }
     const escapes = escapesIn(set, [...claim.reads, ...manifests, set.file]);
     if (escapes.length > 0) {
       escaped.push({ file: set.file, where: claim.where, claims: claim.reads, escapes });
     }
   }
-  return { dead, escaped };
+  return { dead, escaped, several };
 };
 
 /** Written whole and renamed into place, one entry per file and content, so a worktree gating other
@@ -286,10 +302,11 @@ export const recordSets = (dir, sets, { root, context, manifests, tracked = [], 
   const declared = [];
   const refused = new Set(escaped.map((one) => one.file));
   for (const set of sets) {
-    const claim = set.blind ? declarationFor(set.file, table) : null;
-    if (set.blind && (!claim || refused.has(set.file))) continue;
+    const blind = set.blind.length > 0;
+    const claim = blind ? declarationFor(set.file, table) : null;
+    if (blind && (!claim || refused.has(set.file))) continue;
     let held = set;
-    if (set.blind) {
+    if (blind) {
       held = withSeen(declaredSet([...claim.reads, set.file], tracked), set);
       declared.push(set.file);
     }

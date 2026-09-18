@@ -87,4 +87,19 @@ in every tree the table was not written for. A file the audit stops reporting bl
 set, and its declaration is said to have had no effect against the blindness it was recorded under,
 so a declaration cannot become the cheap path for a file that could be derived. The report names how
 many files recorded a set by derivation and how many against a declaration, and how many of the files
-held back were held back by one.`;
+held back were held back by one.
+
+A blind file carries **every** cause of its blindness and not the first one the collector reached,
+and each says which of two kinds it is. An \`export\` cause is a name the audit classifies as
+unfollowable: it is answered in that table, and no test moves for it. A \`child\` cause is a process
+that left no record and could have read this repository: it is answered by closing that boundary in
+the one test file that opens it. Removing one cause of three frees nothing, which is why a figure
+summed by cause predicts nothing until every cause is known — four filings in a row overstated what a
+change was worth by counting each file against whichever cause the collector reached first. A run
+that spends a declared file blind on more than one cause is told so by name, a ceiling written
+against the harmless half of a pair holding the file back on changes it must be spent on.
+
+What blinds each file of one audited run, and what a candidate change would actually free, is
+\`node tools/gates/reads/census.mjs -h\`. It re-derives every cause through this same collector with
+the candidate applied to the records, rather than matching a rendered cause string, and a figure in a
+filing states the command that produced it or says that it cannot be re-taken.`;
