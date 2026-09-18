@@ -124,12 +124,12 @@ test("the git block is what git said when it was asked, with the time it was ask
   assert.equal(gitNow.length, 0, "it takes nothing: there is no reading it from anywhere else");
 });
 
-test("a patch is built only from what was asked for, and nothing else is invented", () => {
-  assert.equal(patchFrom({}), null, "a write that captures nothing writes no block");
-  assert.deepEqual(patchFrom({ open: ["a dead end"] }), { open: ["a dead end"] });
+test("a patch is built only from what was asked for, and nothing else is invented", async () => {
+  assert.equal(await patchFrom({}), null, "a write that captures nothing writes no block");
+  assert.deepEqual(await patchFrom({ open: ["a dead end"] }), { open: ["a dead end"] });
   /* Whatever git said, diff or none: a branch is at its own base the moment it is cut (ISS-1183). */
   const now = gitNow();
-  const block = patchFrom({ pushed: true });
+  const block = await patchFrom({ pushed: true });
   assert.equal(block.branch, now.branch, "--pushed is the git block");
   assert.ok(block.head, "and the head it stands at, diff or none");
   assert.equal(block.review, undefined, "and says nothing about the review");
@@ -139,7 +139,7 @@ test("a patch is built only from what was asked for, and nothing else is invente
    leave no finding, the CLI refuses a recheck after either, and the line asked for one anyway
    (ISS-230). The rule is one-directional — the recheck word only where the verb would take it, since
    an owed verdict outranks a takeable recheck. Each shape is a whole log, not one field. */
-test("the owed line names a recheck only where `consult --recheck` would take one", () => {
+test("the owed line names a recheck only where `consult --recheck` would take one", async () => {
   const rels = ["plugin/src/flow/worklog.mjs", "plugin/src/flow/earned.mjs"];
   const consult = (extra) => ({
     kind: "consult", id: "abc123", at: "2026-09-05T01:00:00.000Z", root: "/nowhere", ok: true,
@@ -158,7 +158,7 @@ test("the owed line names a recheck only where `consult --recheck` would take on
     ["a finding the record folded", [found, folded], "recheck owed"],
   ];
   for (const [what, entries, said] of shapes) {
-    const owed = owedOn(jsonlOf(entries), entries, entries[0]);
+    const owed = await owedOn(jsonlOf(entries), entries, entries[0]);
     assert.equal(owed, said, what);
     assert.ok(
       !/recheck/u.test(owed) || recheckOwed(recheckPlan(entries, "/nowhere", rels), rels) === null,
@@ -171,7 +171,7 @@ test("the owed line names a recheck only where `consult --recheck` would take on
    which are not the same consult after a clean pass over an unruled round: the ids went out behind an
    id the verb then refused them on, and a run typing what it read got `--of` the consult that made
    none (ISS-1679). One shape either way, so nothing reads the id's presence as meaning they differ. */
-test("the owed line names the consult the open findings are on, not the one the line opens with", () => {
+test("the owed line names the consult the open findings are on, not the one the line opens with", async () => {
   const rels = ["plugin/src/flow/worklog.mjs"];
   const consult = (id, extra) => ({
     kind: "consult", id, root: "/nowhere", ok: true, files: rels, send: "diffs",
@@ -186,11 +186,11 @@ test("the owed line names the consult the open findings are on, not the one the 
   const quiet = consult("e3337d", { at: "2026-09-17T06:02:00.000Z" });
   const said = "verdict owed on F1, F2 of consult d29878 \u2014 forge codex verdict --of d29878 --accepted <ids> --rejected <id>=<why>";
 
-  assert.equal(owedOn(jsonlOf([found, quiet]), [found, quiet], quiet), said,
+  assert.equal(await owedOn(jsonlOf([found, quiet]), [found, quiet], quiet), said,
     "the clean consult the line opens with carries the earlier one's findings and its id");
-  assert.equal(owedOn(jsonlOf([found]), [found], found), said,
+  assert.equal(await owedOn(jsonlOf([found]), [found], found), said,
     "and the same shape where the open findings are the line's own consult's");
-  assert.ok(!owedOn(jsonlOf([found, quiet]), [found, quiet], quiet).includes("e3337d"),
+  assert.ok(!(await owedOn(jsonlOf([found, quiet]), [found, quiet], quiet)).includes("e3337d"),
     "the consult that made no finding is named nowhere in what a verdict is owed on");
 });
 
@@ -379,7 +379,7 @@ test("the two captures and the open line are on the flag list of both verbs that
 /* A run three releases behind the tree writes records that read exactly like one on the tree's own
    head, and ISS-70's run was that run. The capture answers it, from the install record
    rather than from anything typed (ISS-79). */
-test("a capture carries the plugin copy it was made under, and the lines print it", () => {
+test("a capture carries the plugin copy it was made under, and the lines print it", async () => {
   const held = worklogOf(field({ head: "abc1234", copy: "forge 3.35.12" }));
   assert.equal(held.copy, "forge 3.35.12", "and it round-trips like any other fact of the run");
   assert.ok(worklogLines(held).some((one) => /^copy\s+forge 3\.35\.12$/u.test(one)), worklogLines(held).join("\n"));
@@ -388,7 +388,7 @@ test("a capture carries the plugin copy it was made under, and the lines print i
   const was = process.cwd();
   try {
     process.chdir(pushedRepo());
-    const made = patchFrom({ pushed: true });
+    const made = await patchFrom({ pushed: true });
     assert.ok(made && "copy" in made, "a capture that read the git facts read the copy too");
   } finally {
     process.chdir(was);

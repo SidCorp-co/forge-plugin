@@ -98,16 +98,20 @@ if (needs) {
   process.exit(1);
 }
 
+/* The table answers with the verb rather than being it, so the one verb this call names is the only
+   implementation loaded — and `answersHelp` is read off the handler, which is where the verb's own
+   module declares it. */
 if (form) {
   const refused = refusedFor(command, rest);
   if (refused) fail(refused);
   console.error(saidFor(command, rest));
   const argv = argvOf(command, rest);
-  if (!commands[form.verb].answersHelp && wantsHelp(rest)) {
+  const verb = await commands[form.verb]();
+  if (!verb.answersHelp && wantsHelp(rest)) {
     console.log(helpOf(form.verb));
     process.exit(0);
   }
-  await commands[form.verb](argv, { readAs: `forge ${form.verb}` });
+  await verb(argv, { readAs: `forge ${form.verb}` });
   await releaseOwed();
   process.exit(0);
 }
@@ -129,15 +133,17 @@ if (asked || !command || !Object.hasOwn(commands, command)) {
   process.exit(0);
 }
 
+const verb = await commands[command]();
+
 /* Before the verb sees it: every one but codex read `-h` as a filename, a uuid or a tool name. */
-if (!commands[command].answersHelp && wantsHelp(rest)) {
+if (!verb.answersHelp && wantsHelp(rest)) {
   console.log(helpOf(command));
   process.exit(0);
 }
 
 /* An unhandled fetch rejection reads as a bug in this CLI rather than a network that is down. */
 try {
-  await commands[command](rest);
+  await verb(rest);
   await releaseOwed();
 } catch (error) {
   /* Through `fail`, so a verb holding a payload nothing else holds gets it printed on a throw too. */

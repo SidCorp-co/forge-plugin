@@ -414,7 +414,7 @@ export const claim = async (argv) => {
   }
   const asked = minutesFrom(given.minutes);
   const line = nextLine(given.next);
-  const patch = patchFrom({ pushed: given.pushed, review: given.review, open: pulled.values });
+  const patch = await patchFrom({ pushed: given.pushed, review: given.review, open: pulled.values });
   const documentId = await documentIdOf(ref);
   const issue = await scoped("forge_issues", { action: "get", documentId, fields: [] });
   const context = issue?.sessionContext ?? null;

@@ -517,7 +517,7 @@ const run = async ([kind, reference, ...argv]) => {
      position was spent as an issue key — the one flag its own refusal could not answer for. */
   if (wantsHelp([reference])) return console.log(kindHelp(kind, await capsOf(), await briefGoals()));
   if (!reference) refuse(firstLine(USAGE));
-  const { next, patch, rest } = pullRun(kindBlocks(kind, argv));
+  const { next, patch, rest } = await pullRun(kindBlocks(kind, argv));
   return writeRung(reference, rest, { next, patch });
 };
 

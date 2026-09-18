@@ -7,10 +7,13 @@ import { fail } from "../resolve/settings.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
 import { pluginCopy } from "../tools/plugin-copy.mjs";
 
-import { answered, logBytes, verdictsBy } from "../codex/codex-log.mjs";
-import {
-  countedIn, numbered, recheckOwed, recheckPlan, undecidedIn, unverdicted, verdictForm,
-} from "../codex/log/replies.mjs";
+
+/* The consult log is loaded by the two readings below and by nothing else here, so a run that never
+   asks what the review owes never loads it: named at module scope, it put the whole reply reader and
+   everything under it on the path of every `forge` call, this module being what the lease reaches
+   (ISS-1775). */
+const consultLog = () => import("../codex/codex-log.mjs");
+const replies = () => import("../codex/log/replies.mjs");
 import { jsonLines } from "../hooks/log/hook-log-file.mjs";
 import { atMinute } from "./machine.mjs";
 
@@ -97,7 +100,9 @@ export const stampedNow = (shape) => Object.fromEntries(shape.fields
   .filter((one) => one.stamped)
   .map((one) => [one.flag, STAMPS[one.stamped]?.()]));
 
-export const owedOn = (bytes, entries, last) => {
+export const owedOn = async (bytes, entries, last) => {
+  const { numbered, recheckOwed, recheckPlan, undecidedIn, unverdicted, verdictForm } = await replies();
+  const { verdictsBy } = await consultLog();
   const open = unverdicted(bytes, last.root);
   if (open) return `verdict owed on ${open.open.join(", ")} of consult ${open.id} \u2014 ${verdictForm(open.id)}`;
   const ids = numbered(last.reply).map((one) => one.id);
@@ -108,7 +113,9 @@ export const owedOn = (bytes, entries, last) => {
 
 /* The consult id is the round: the log numbers no rounds, and a streak rule only this code knew
    would be a number nobody could check. `forge codex log --id <id>` expands it. */
-export const reviewNow = (root = process.cwd()) => {
+export const reviewNow = async (root = process.cwd()) => {
+  const { answered, logBytes } = await consultLog();
+  const { countedIn, numbered } = await replies();
   const bytes = logBytes();
   const entries = jsonLines(bytes.toString("utf8"));
   const last = answered(entries).filter((one) => one.root === root).at(-1);
@@ -117,7 +124,7 @@ export const reviewNow = (root = process.cwd()) => {
     consult: String(last.id ?? last.at),
     recheck: Boolean(last.recheck),
     findings: countedIn(last.reply)?.total ?? numbered(last.reply).length,
-    owed: owedOn(bytes, entries, last),
+    owed: await owedOn(bytes, entries, last),
   };
 };
 
@@ -163,7 +170,7 @@ const copyNow = () => {
 };
 
 /* Asked for and not made is not written silently: no git is the wrong directory, no consult is early. */
-export const patchFrom = ({ pushed = false, review = false, open = [] }) => {
+export const patchFrom = async ({ pushed = false, review = false, open = [] }) => {
   const patch = {};
   if (pushed) {
     const now = gitNow();
@@ -171,7 +178,7 @@ export const patchFrom = ({ pushed = false, review = false, open = [] }) => {
     console.error(capturedLine(now));
     Object.assign(patch, now, { copy: copyNow() });
   }
-  const held = review ? reviewNow() : null;
+  const held = review ? await reviewNow() : null;
   if (review && !held) console.error("--review: no answered consult for this checkout yet, so the review block is unchanged.");
   if (held) patch.review = held;
   if (open.length) patch.open = open;

@@ -230,12 +230,12 @@ const TABLE = "plugin/src/commands.mjs";
 const inlineAt = (verb) => new RegExp(String.raw`^  ${verb}: (?:async )?\(`, "mu");
 
 /** Where one verb's arguments are read, off the command table itself: a key with the body inline is
- *  read where it stands, and a shorthand key names the import that answers for it. */
+ *  read where it stands, and a key whose loader names a module is read in that module. */
 export const sourceFor = (root) => {
   const table = readFileSync(join(root, TABLE), "utf8");
   return (verb) => {
     if (inlineAt(verb).test(table)) return table;
-    const held = table.match(new RegExp(String.raw`^import \{[^}]*\b${verb}\b[^}]*\} from "\.(/[^"]+)"`, "mu"));
+    const held = table.match(new RegExp(String.raw`^  ${verb}: loads\("\.(/[^"]+)"`, "mu"));
     return held ? readFileSync(join(root, "plugin/src", held[1]), "utf8") : null;
   };
 };

@@ -218,5 +218,6 @@ test("the clause reader still imports no workflow, and the verb table is what jo
   const table = readFileSync(new URL("../../src/commands.mjs", import.meta.url).pathname, "utf8");
   assert.match(table, /readStatus: statusOf/u,
     "the verb table wires the reader, or `--status` is a flag read and dropped");
-  assert.match(table, /from "\.\/trace\/citing\.mjs"/u, "and takes it from the module that reads both sides");
+  assert.match(table, /import\("\.\/trace\/citing\.mjs"\)/u,
+    "and takes it from the module that reads both sides, loaded where the verb is");
 });

@@ -32,30 +32,19 @@ import { exclusive, flags, partition, pullRepeated, unknownFlag, wantsHelp } fro
 import { dispositionOf, localGuide, localRows, localSlugs, trackerHeader, visibleGuides } from "./guides/guides.mjs";
 import { briefGoals, servesOwed } from "./tracker/project-config.mjs";
 import { goalBlock } from "./goals.mjs";
-import { doctor } from "./tools/doctor.mjs";
-import { project } from "./tools/project.mjs";
-import { next } from "./rank/next.mjs";
-import { alike } from "./alike/alike.mjs";
-import { cloudflare } from "./tools/services/cloudflare.mjs";
-import { coolify } from "./tools/services/coolify/coolify.mjs";
-import { knowledge } from "./tools/knowledge.mjs";
-import { feedback } from "./tools/feedback.mjs";
-import { codex } from "./codex/codex.mjs";
-import { chatgpt } from "./tools/services/chatgpt.mjs";
-import { stats } from "./stats/stats.mjs";
-import { hooks } from "./hooks/log/hook-log.mjs";
-import { record } from "./flow/record/record.mjs";
-import { advance } from "./flow/advance.mjs";
-import { overrideFields } from "./flow/override.mjs";
-import { spec as clauseVerb } from "./spec/verbs.mjs";
-import { statusOf } from "./trace/citing.mjs";
-import { claim } from "./flow/claim.mjs";
-import { indexFor, resume } from "./flow/resume.mjs";
 import { finderSaid, notAnothers, renew } from "./flow/lease.mjs";
 import { retiredFlagIn } from "./resolve/retiring.mjs";
 
 const show = (value) =>
   console.log(typeof value === "string" ? value : JSON.stringify(value, null, 2));
+
+/* Every entry of the table below is a loader: called with nothing, it answers with the verb's own
+   handler and runs none of it. The table named all nineteen verb modules at the top of this file
+   until ISS-1775, so `forge -h` loaded every verb's imports to print a list of names and any one
+   verb cost the lot. A specifier here is the only place a verb's module is named, which is what
+   `sourceFor` in checks/surface/judged-arguments.mjs reads to find where a verb judges its
+   arguments. */
+const loads = (module, name) => async () => (await import(module))[name];
 
 /* Absence means empty; the schema already says the field exists. */
 const filled = (record) => {
@@ -215,29 +204,10 @@ const wroteEdge = async (subject, asked) => {
     + `under ${kind === "blocks" ? "blockedBy" : "relates"} there.`;
 };
 
-/* The one composition in this table: `spec/` reads the checkout and may not import the workflow, and
-   the rung `--status` prints is derived from workflow records, so the two halves are wired here. */
-const spec = (argv) => clauseVerb(argv, { readStatus: statusOf });
-spec.answersHelp = true;
-
-export const commands = {
-  doctor,
-  claim,
-  resume,
-  record,
-  advance,
-  spec,
-  project,
-  next,
-  alike,
-  knowledge,
-  cloudflare,
-  coolify,
-  feedback,
-  codex,
-  chatgpt,
-  hooks,
-  stats,
+/* The five this table answers itself: each is a handler like an imported verb's, and `commands`
+   below hands every one of them over by the same loader an imported verb gets, so the dispatch has
+   one contract to hold and no entry of it is a handler to be called by mistake. */
+const own = {
   /* One verb, two asks, and a flag of one is a stranger to the other, so each path hands the parser its
      own text and names the other as its `modes`: a combined set would take `--status` beside a key and answer nothing about it, and one text alone called the other's flag a flag nobody has (ISS-932). */
   issue: async (argv) => {
@@ -267,7 +237,10 @@ export const commands = {
     const { fields, full, why, ...single } = flags(pulled.rest, "issue", ["--full"], { usage: READ_USAGE, modes: [LIST_USAGE] });
     const asked = { ...single, ...(pulled.values.length ? { set: pulled.values } : {}) };
     const [wrote] = exclusive(asked, [...EDGE_KINDS, "unlink", "set"], "issue", "writes and a call makes one");
-    if (wrote === "set") return overrideFields(reference, asked.set, why, { ask: pulled.ask });
+    if (wrote === "set") {
+      const { overrideFields } = await import("./flow/override.mjs");
+      return overrideFields(reference, asked.set, why, { ask: pulled.ask });
+    }
     if (wrote !== undefined) return console.log(await wroteEdge(reference, asked));
     if (why !== undefined) fail("--why belongs to --set; a read takes no reason.");
     const names = fields ? fields.split(",").map((name) => name.trim()) : null;
@@ -388,6 +361,7 @@ export const commands = {
     if (asked.for) {
       if (extra.length) fail(`guide: --for takes the slug alone, not \`${positionals.join(" ")}\`. ${usageOf("guide")}`);
       if (asked.rung) fail(`guide: --for ${asked.for} reads the rung off that issue, so --rung ${asked.rung} decides nothing. Ask for one: \`forge guide ${slug} --for ${asked.for}\`, or \`forge guide ${slug} <part> --rung ${asked.rung}\`.`);
+      const { indexFor } = await import("./flow/resume.mjs");
       return console.log((await indexFor(slug, asked.for)).join("\n"));
     }
     /* This copy's own guides — the contract and each skill's method — answer off disk through one
@@ -432,6 +406,37 @@ export const commands = {
   },
 };
 
-commands.issue.answersHelp = true;
-commands.new.answersHelp = true;
-commands.feedback.answersHelp = true;
+own.issue.answersHelp = true;
+own.new.answersHelp = true;
+
+export const commands = {
+  doctor: loads("./tools/doctor.mjs", "doctor"),
+  claim: loads("./flow/claim.mjs", "claim"),
+  resume: loads("./flow/resume.mjs", "resume"),
+  record: loads("./flow/record/record.mjs", "record"),
+  advance: loads("./flow/advance.mjs", "advance"),
+  /* The one composition in this table: `spec/` reads the checkout and may not import the workflow,
+     and the rung `--status` prints is derived from workflow records, so the two halves are wired
+     here — and loaded here, a caller typing any other verb needing neither of them. */
+  spec: async () => {
+    const [{ spec }, { statusOf }] = await Promise.all([
+      import("./spec/verbs.mjs"),
+      import("./trace/citing.mjs"),
+    ]);
+    const composed = (argv) => spec(argv, { readStatus: statusOf });
+    composed.answersHelp = true;
+    return composed;
+  },
+  project: loads("./tools/project.mjs", "project"),
+  next: loads("./rank/next.mjs", "next"),
+  alike: loads("./alike/alike.mjs", "alike"),
+  knowledge: loads("./tools/knowledge.mjs", "knowledge"),
+  cloudflare: loads("./tools/services/cloudflare.mjs", "cloudflare"),
+  coolify: loads("./tools/services/coolify/coolify.mjs", "coolify"),
+  feedback: loads("./tools/feedback.mjs", "feedback"),
+  codex: loads("./codex/codex.mjs", "codex"),
+  chatgpt: loads("./tools/services/chatgpt.mjs", "chatgpt"),
+  hooks: loads("./hooks/log/hook-log.mjs", "hooks"),
+  stats: loads("./stats/stats.mjs", "stats"),
+  ...Object.fromEntries(Object.entries(own).map(([verb, held]) => [verb, () => held])),
+};

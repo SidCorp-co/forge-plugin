@@ -24,7 +24,7 @@ const pullOne = (argv, flag) => {
 
 /** The run flags of a whole call, and what is left of each block. Pulled block by block so a flag is
  *  judged against the usage of the kind it stands under, and merged: they are the call's, not one payload's. */
-export const pullRun = (blocks) => {
+export const pullRun = async (blocks) => {
   const open = [];
   const took = Object.fromEntries(TOGGLES.map((flag) => [flag.slice(2), false]));
   let next;
@@ -41,7 +41,7 @@ export const pullRun = (blocks) => {
     }
     return { kind: one.kind, argv: held };
   });
-  return { next: nextLine(next), patch: patchFrom({ ...took, open }), rest };
+  return { next: nextLine(next), patch: await patchFrom({ ...took, open }), rest };
 };
 
 /** Every kind of one call: the first is the positional one, each `--also <kind>` opens another, and
