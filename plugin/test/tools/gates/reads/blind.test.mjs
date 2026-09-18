@@ -21,8 +21,9 @@ const room = (files = {}) => {
   return { at, root, dir: join(at, "records") };
 };
 
-const setOf = (paths, dirs = [], trees = []) =>
-  ({ file: FILE, paths: new Set(paths), dirs: new Set(dirs), trees: new Set(trees), blind: [] });
+const setOf = (paths, dirs = [], trees = [], whole = []) =>
+  ({ file: FILE, paths: new Set(paths), dirs: new Set(dirs), trees: new Set(trees),
+    whole: new Set(whole), blind: [] });
 
 const said = (one) => (/^[\w.,:@=/+-]+$/u.test(one) ? one : JSON.stringify(one));
 
@@ -50,7 +51,7 @@ test("a child that left no record blinds its test file where it could have read 
   const out = join(where.at, "out");
   mkdirSync(out, { recursive: true });
   try {
-    const one = { ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [],
+    const one = { ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], whole: [],
       blind: [], done: true, spawned: [{ ticket: "gone", file: "git", cwd: where.root, args: ["status"] }] };
     writeFileSync(join(out, "own-1.json"), JSON.stringify(one));
     assert.deepEqual(setsFrom(out, where.root)[0].blind, [child("git", where.root, ["status"])]);
@@ -67,7 +68,7 @@ test("a file two unrecorded children reached reports both causes and not whichev
   mkdirSync(out, { recursive: true });
   try {
     writeFileSync(join(out, "own-1.json"), JSON.stringify({
-      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], blind: [],
+      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], whole: [], blind: [],
       done: true, spawned: [
         { ticket: "gone-1", file: "git", cwd: where.root, args: ["grep", "-l", "--", "*.mjs"] },
         { ticket: "gone-2", file: "sh", cwd: where.root, args: ["-c", "ls"] },
@@ -88,7 +89,7 @@ test("two children of one program in one directory are two causes where their co
   mkdirSync(out, { recursive: true });
   try {
     writeFileSync(join(out, "own-1.json"), JSON.stringify({
-      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], blind: [],
+      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], whole: [], blind: [],
       done: true, spawned: [
         { ticket: "gone-1", file: "git", cwd: where.root, args: ["grep", "-l", "--", "*.mjs"] },
         { ticket: "gone-2", file: "git", cwd: where.root, args: ["status", "--porcelain"] },
@@ -100,7 +101,7 @@ test("two children of one program in one directory are two causes where their co
       `git status --porcelain in ${where.root}`,
     ], "and the same command twice is the same cause");
     writeFileSync(join(out, "own-1.json"), JSON.stringify({
-      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], blind: [],
+      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], whole: [], blind: [],
       done: true, spawned: [
         { ticket: "gone-1", file: "git", cwd: where.root, args: ["grep", "--", "a b"] },
         { ticket: "gone-2", file: "git", cwd: where.root, args: ["grep", "--", "a", "b"] },
@@ -123,13 +124,13 @@ test("an unfollowable export and an unrecorded child are both reported, each und
   mkdirSync(out, { recursive: true });
   try {
     writeFileSync(join(out, "own-1.json"), JSON.stringify({
-      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], done: true,
-      blind: ["cpSync: a tree copied whole"],
+      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], whole: [], done: true,
+      blind: ["cpSync: a copy of a tree this one stands under"],
       spawned: [{ ticket: "gone", file: "git", cwd: where.root, args: ["grep", "-l"] }],
     }));
     assert.deepEqual(setsFrom(out, where.root)[0].blind, [
       child("git", where.root, ["grep", "-l"]),
-      { kind: "export", why: "cpSync: a tree copied whole" },
+      { kind: "export", why: "cpSync: a copy of a tree this one stands under" },
     ]);
   } finally {
     rmSync(where.at, { recursive: true, force: true });
@@ -143,16 +144,16 @@ test("a cause a descendant process carried is the file's too, beside the root's 
   mkdirSync(out, { recursive: true });
   try {
     writeFileSync(join(out, "own-1.json"), JSON.stringify({
-      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], done: true,
-      blind: ["globSync: a listing by pattern"],
+      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], whole: [], done: true,
+      blind: ["globSync: a listing by a pattern rooted outside this tree"],
       spawned: [{ ticket: "t-1", file: "node", cwd: where.root, args: ["child.mjs"] }],
     }));
     writeFileSync(join(out, "t-1.json"), JSON.stringify({
-      ticket: "t-1", argv: ["child.mjs"], paths: [], dirs: [], trees: [], done: true,
-      blind: ["cpSync: a tree copied whole"], spawned: [],
+      ticket: "t-1", argv: ["child.mjs"], paths: [], dirs: [], trees: [], whole: [], done: true,
+      blind: ["cpSync: a copy of a tree this one stands under"], spawned: [],
     }));
     assert.deepEqual(setsFrom(out, where.root)[0].blind.map((one) => one.why),
-      ["cpSync: a tree copied whole", "globSync: a listing by pattern"]);
+      ["cpSync: a copy of a tree this one stands under", "globSync: a listing by a pattern rooted outside this tree"]);
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
@@ -177,7 +178,7 @@ test("a shell that opens no file derives its file's set, and one that reads the 
   const out = join(where.at, "out");
   mkdirSync(out, { recursive: true });
   const ran = (args) => JSON.stringify({ ticket: null, argv: [join(where.root, FILE)], paths: [FILE],
-    dirs: [], trees: [], blind: [], done: true,
+    dirs: [], trees: [], whole: [], blind: [], done: true,
     spawned: [{ ticket: "gone", file: "/bin/sh", cwd: where.root, args, plain: true, mine: false, pathIn: false, funcIn: false }] });
   try {
     writeFileSync(join(out, "own-1.json"), ran(["-c", "command -v git"]));

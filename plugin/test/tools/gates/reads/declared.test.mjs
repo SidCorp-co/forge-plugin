@@ -29,8 +29,9 @@ const room = (files = {}) => {
   return { at, root, dir: join(at, "records") };
 };
 
-const setOf = (paths, dirs = [], trees = []) =>
-  ({ file: FILE, paths: new Set(paths), dirs: new Set(dirs), trees: new Set(trees), blind: [] });
+const setOf = (paths, dirs = [], trees = [], whole = []) =>
+  ({ file: FILE, paths: new Set(paths), dirs: new Set(dirs), trees: new Set(trees),
+    whole: new Set(whole), blind: [] });
 
 /* A blind set and a table in one call, so a case says only which claims it is about. The tracked
    list is what a directory claim expands over, and the gate hands it git's own. */
@@ -180,17 +181,17 @@ test("a file declared twice has no answer for which paths it may read, and is re
 
 test("a claim that is a tracked file is that path, a directory is the walk and its files, and `.` the names at the top", () => {
   const tracked = ["CLAUDE.md", "plugin/src/one.mjs", "plugin/src/deep/two.mjs"];
-  assert.deepEqual(declaredSet(["CLAUDE.md"], tracked), { paths: new Set(["CLAUDE.md"]), dirs: new Set(), trees: new Set() });
+  const none = { dirs: new Set(), trees: new Set(), whole: new Set() };
+  assert.deepEqual(declaredSet(["CLAUDE.md"], tracked), { ...none, paths: new Set(["CLAUDE.md"]) });
   assert.deepEqual(declaredSet(["plugin/src"], tracked),
-    { paths: new Set(["plugin/src/one.mjs", "plugin/src/deep/two.mjs"]), dirs: new Set(), trees: new Set(["plugin/src"]) });
-  assert.deepEqual(declaredSet(["."], tracked),
-    { paths: new Set(["CLAUDE.md"]), dirs: new Set(["."]), trees: new Set() });
+    { ...none, paths: new Set(["plugin/src/one.mjs", "plugin/src/deep/two.mjs"]), trees: new Set(["plugin/src"]) });
+  assert.deepEqual(declaredSet(["."], tracked), { ...none, paths: new Set(["CLAUDE.md"]), dirs: new Set(["."]) });
 });
 
 
 /* The scratch's own gate, over the one path this repository's table really declares, so the wiring
    from the table through `recordSets` to the held-back block is proved and not only its parts. */
-const DECLARING = "plugin/test/run/run-review.test.mjs";
+const DECLARING = "plugin/test/run/release/run-released-version.test.mjs";
 const OUTSIDE = "docs/requirements/one.md";
 
 /* A step that failed spent its files too, so a ceiling their reads escape is the tree's defect and
@@ -225,7 +226,7 @@ test("a declared blind file in a real run records against its declaration and is
     landed(work, OUTSIDE, "the requirement moved\n");
     const { stdout } = run(work);
     assert.match(stdout, /=== reads: test — \d+ of \d+ test file\(s\) already answered for at this content, 1 of them by a declaration ===/u, stdout);
-    assert.match(stdout, new RegExp(`skip ${DECLARING} {2}digest [0-9a-f]{12} {2}declared while blind on cpSync`, "u"), stdout);
+    assert.match(stdout, new RegExp(`skip ${DECLARING} {2}digest [0-9a-f]{12} {2}declared while blind on a git child that left no record`, "u"), stdout);
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
@@ -249,7 +250,7 @@ test("a declared file whose real reads escape its ceiling fails the gate rather 
    reported on one is how ISS-1761's run aimed a ceiling at the wrong tree (ISS-1756). */
 test("a declared file blind on more than one cause is named with every one of them", () => {
   const set = { ...setOf(["plugin/src/one.mjs"]),
-    blind: [CAUSE, { kind: "export", why: "cpSync: a tree copied whole" }] };
+    blind: [CAUSE, { kind: "export", why: "cpSync: a copy of a tree this one stands under" }] };
   const table = declaring(["plugin/src"]);
   const judged = claimsJudged([set], { manifests: [], declared: table });
   assert.deepEqual(judged.escaped, [], "the ceiling covers what was observed, and the causes are a separate reading");
@@ -258,7 +259,7 @@ test("a declared file blind on more than one cause is named with every one of th
     `reads: ${FILE} is blind on 2 cause(s) while the declaration at ${FILE} was written against `
     + `${BLIND}. A ceiling answers for every one of them:`,
     `  child: ${BLIND}`,
-    "  export: cpSync: a tree copied whole",
+    "  export: cpSync: a copy of a tree this one stands under",
   ]);
   assert.deepEqual(claimsJudged([{ ...set, blind: [CAUSE] }], { manifests: [], declared: table }).several, [],
     "and one cause is no finding at all");
@@ -283,21 +284,29 @@ test("the report names both counts, the dead claim's own blindness, and the esca
     /read docs \(walk\), which the declaration at .+ does not cover: plugin\/src\. Widen it in tools\/gates\/steps\.mjs, or drop it/u);
 });
 
-/* The last clause is the seam the section's own file leaves: the help is one document whichever
-   module each paragraph is typed in, and a lost blank line joins two of them into one sentence. */
+/* The seam the section's own file leaves: the help is one document whichever module each paragraph
+   is typed in, and a lost blank line joins two of them into one sentence. That seam is the only break
+   asserted as one. Every other clause is read off the help with its paragraphs flowed onto one line
+   each, because where a sentence wraps is typesetting that any rewrite of it moves, while a blank
+   line inside one survives the flow and still fails here. */
+const flowed = (text) => text.replace(/([^\n])\n(?!\n)/gu, "$1 ");
+
 test("the help says what verifies a declaration and that the verification stops at the observed reads", () => {
   const said = run(ROOT.replace(/\/$/u, ""), ["-h"]).stdout;
-  for (const clause of [/may instead be given a \*\*declaration\*\* in `tools\/gates\/steps\.mjs`/u,
-    /the reads the audit \*did\* see are checked against the ceiling on every\nrun that spends the file/u,
-    /The check is on the spend\nand never on a pass/u,
-    /That verification reaches the observed reads and stops there/u,
-    /no check can say a\nceiling covers it, and this does not claim to/u,
-    /its declaration is said to have had no effect against the blindness it was recorded under/u,
-    /how\nmany files recorded a set by derivation and how many against a declaration/u,
-    /A blind file carries \*\*every\*\* cause of its blindness/u,
-    /re-taken\.\n\nPast that, a step whose inputs/u]) {
-    assert.match(said, clause);
+  const flat = flowed(said);
+  for (const clause of [
+    "may instead be given a **declaration** in `tools/gates/steps.mjs`",
+    "the reads the audit *did* see are checked against the ceiling on every run that spends the file",
+    "The check is on the spend and never on a pass",
+    "That verification reaches the observed reads and stops there",
+    "no check can say a ceiling covers it, and this does not claim to",
+    "its declaration is said to have had no effect against the blindness it was recorded under",
+    "many files recorded a set by derivation and how many against a declaration",
+    "A blind file carries **every** cause of its blindness",
+  ]) {
+    assert.ok(flat.includes(clause), `the help no longer says: ${clause}`);
   }
-  assert.doesNotMatch(said, /are both refused before a step is spent/u,
+  assert.match(said, /re-taken\.\n\nPast that, a step whose inputs/u, "the seam between two files' sections");
+  assert.ok(!flat.includes("are both refused before a step is spent"),
     "the table's own two failures are this repository's checker and no condition of a run");
 });

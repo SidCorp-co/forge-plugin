@@ -20,7 +20,7 @@ const step = (over = {}) => ({ label: "test", tests: true, files: [FIRST, "b.tes
 const setFor = (dir, file, body) => {
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, `0123456789ab.${file.replace(/[^\w.-]+/gu, "-")}`),
-    `${JSON.stringify({ file, paths: [], dirs: [], trees: [], ...body })}\n`);
+    `${JSON.stringify({ file, paths: [], dirs: [], trees: [], whole: [], ...body })}\n`);
 };
 
 const room = (run) => {

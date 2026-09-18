@@ -3,7 +3,7 @@
    object does not reach `import { readFileSync } from "node:fs"`, which is how this repository
    imports it everywhere, so the builtins resolve to a module this generates. */
 
-import { worded } from "./shell.mjs";
+import { absolute, inside as insideOf, over as overOf, prefixOf, reading } from "./placing.mjs";
 
 export const READS_DIR = "GATE_READS";
 export const READS_ROOT = "GATE_READS_ROOT";
@@ -27,17 +27,18 @@ const ASKS = new Set(["access", "accessSync", "copyFile", "copyFileSync", "creat
 
 const LISTS = new Set(["opendir", "opendirSync", "readdir", "readdirSync"]);
 
-// What these read was named by no argument of theirs, so nothing here can key a digest on it.
-const BLIND = new Map([["glob", "a listing by pattern"], ["globSync", "a listing by pattern"],
-  ["cp", "a tree copied whole"], ["cpSync", "a tree copied whole"],
-  ["watch", "a watch on what changes"], ["watchFile", "a watch on what changes"]]);
+/* Each of these names its subject in argument one, so what it read is the walk below that path and
+   never the names in it: COPIES take the bytes, WATCHES depend on them, GLOBS answer with names
+   chosen by them. What argument one leaves unestablished blinds at the call instead (ISS-1760). */
+const COPIES = new Set(["cp", "cpSync"]);
+
+const WATCHES = new Set(["watch", "watchFile"]);
+
+const GLOBS = new Set(["glob", "globSync"]);
 
 const SPAWNS = new Set(["spawn", "spawnSync", "execFile", "execFileSync", "fork"]);
 
 const SHELLS = new Set(["exec", "execSync"]);
-
-// What the dynamic loader maps in before a program's own code runs.
-const LOADER = /^(?:LD_|DYLD_)/u;
 
 const BUILDS = new Set(["FileReadStream", "ReadStream"]);
 
@@ -54,7 +55,7 @@ const NEITHER = new Set([
   "utimesSync", "write", "writeFile", "writeFileSync", "writeSync", "writev", "writevSync",
 ]);
 
-export const CLASSIFIED = [ASKS, LISTS, new Set(BLIND.keys()), BUILDS, SPAWNS, SHELLS, NEITHER];
+export const CLASSIFIED = [ASKS, LISTS, COPIES, WATCHES, GLOBS, BUILDS, SPAWNS, SHELLS, NEITHER];
 
 // The options argument of every spawning signature, and a fresh one where the call passed none.
 export const optionsIn = (args) => {
@@ -74,7 +75,9 @@ const wrapping = (key, from) => {
   if (ASKS.has(key)) return `asked(${from}.${key})`;
   if (LISTS.has(key)) return `listed(${from}.${key})`;
   if (BUILDS.has(key)) return `built(${from}.${key})`;
-  if (BLIND.has(key)) return blinding(key, from, BLIND.get(key));
+  if (COPIES.has(key)) return `copied(${from}.${key}, ${JSON.stringify(key)})`;
+  if (WATCHES.has(key)) return `watched(${from}.${key}, ${JSON.stringify(key)})`;
+  if (GLOBS.has(key)) return `globbed(${from}.${key}, ${JSON.stringify(key)})`;
   if (SPAWNS.has(key)) return `spawns(${from}.${key})`;
   if (SHELLS.has(key)) return `shelled(${from}.${key})`;
   if (NEITHER.has(key)) return null;
@@ -100,6 +103,9 @@ export const shimSource = (name, real) => {
     `const spawns = (fn) => function (...args) { return fn.apply(this, audit.ticketed(args)); };`,
     `const shelled = (fn) => function (...args) { audit.shelled(args); return fn.apply(this, args); };`,
     `const blinded = (fn, why) => function (...args) { audit.blind(why); return fn.apply(this, args); };`,
+    `const copied = (fn, name) => function (one, ...rest) { audit.copied(one, rest[1], name); return fn.apply(this, [one, ...rest]); };`,
+    `const watched = (fn, name) => function (one, ...rest) { audit.watched(one, name); return fn.apply(this, [one, ...rest]); };`,
+    `const globbed = (fn, name) => function (one, ...rest) { audit.globbed(one, rest[0], name); return fn.apply(this, [one, ...rest]); };`,
   ];
   const nested = name === "node:fs" && real.promises ? Object.keys(real.promises).filter((one) => NAMED.test(one)) : [];
   if (nested.length > 0) {
@@ -125,101 +131,21 @@ const HERE = Symbol.for("forge.gate.reads");
 const start = (out, root) => {
   if (globalThis[HERE]) return;
   const { registerHooks } = process.getBuiltinModule("node:module");
-  const { lstatSync, mkdirSync, readlinkSync, realpathSync, writeFileSync } = process.getBuiltinModule("node:fs");
-  const { basename, dirname, isAbsolute, join, relative, resolve } = process.getBuiltinModule("node:path");
+  const { lstatSync, mkdirSync, writeFileSync } = process.getBuiltinModule("node:fs");
+  const { join } = process.getBuiltinModule("node:path");
   const { fileURLToPath, pathToFileURL } = process.getBuiltinModule("node:url");
 
   const paths = new Set();
   const dirs = new Set();
   const trees = new Set();
+  const whole = new Set();
   const spawned = [];
   const blind = new Set();
   let issued = 0;
 
-  // What the ledger already declares itself blind to; counting it would spend every test on a fetch.
-  const inside = (one) => {
-    let named = one;
-    if (named instanceof URL) named = fileURLToPath(named);
-    if (Buffer.isBuffer(named)) named = named.toString("utf8");
-    if (typeof named !== "string" || named.length === 0) return null;
-    let abs;
-    try {
-      abs = isAbsolute(named) ? named : resolve(process.cwd(), named);
-    } catch {
-      return null;
-    }
-    const rel = relative(root, abs);
-    if (rel.startsWith("..") || isAbsolute(rel)) return null;
-    if (rel.startsWith("node_modules/") || rel === ".git" || rel.startsWith(".git/")) return null;
-    // The root itself is a name a listing of the whole tree is keyed on, and `relative` gives it none.
-    return rel === "" ? "." : rel;
-  };
-
+  const inside = (one) => insideOf(root, one);
+  const over = (one) => overOf(root, one);
   const entry = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
-
-  /* Where a path lands once its links are followed: the deepest part that is there, resolved, with
-     what is not hung back on. Null is out of hops rather than out of this tree. */
-  const placed = (one) => {
-    const rest = [];
-    let at = one;
-    for (let hop = 0; hop < 32; hop += 1) {
-      let link = null;
-      try {
-        return resolve(realpathSync(at), ...rest);
-      } catch {
-        link = lstatSync(at, { throwIfNoEntry: false })?.isSymbolicLink() ? readlinkSync(at) : null;
-      }
-      if (link !== null) {
-        at = resolve(dirname(at), link);
-        continue;
-      }
-      const up = dirname(at);
-      if (up === at) return resolve(one);
-      rest.unshift(basename(at));
-      at = up;
-    }
-    return null;
-  };
-
-  // A path this tree names is its own wherever it points, and one this cannot place is not outside.
-  const holds = (one) => {
-    const at = placed(one);
-    return inside(one) !== null || at === null || inside(at) !== null;
-  };
-
-  /* Whether the search path could answer out of this tree: an entry of it this tree holds, or a
-     name looked up along one that it holds — the program's own among them, and the line's. */
-  const answering = (env, file, args) => {
-    const entries = String(env.PATH ?? "").split(":");
-    if (entries.some((one) => !one.startsWith("/") || holds(one))) return true;
-    const named = String(file);
-    if (!/sh$/u.test(basename(named)) || String(args[0]) !== "-c") return false;
-    return [named, ...(worded(String(args[1] ?? "")) ?? [])]
-      .filter((one) => one.length > 0 && !one.includes("/"))
-      .some((one) => entries.some((dir) => holds(join(dir, one))));
-  };
-
-  /* What could stand behind a builtin's name or behind the program itself: an exported function, a
-     startup file, a library the loader maps in. Over every enumerable name, node's own reading. */
-  const renaming = (env) => {
-    for (const key in env) {
-      if (key.startsWith("BASH_FUNC_") || key === "BASH_ENV" || key === "ENV"
-        || LOADER.test(key) || String(env[key] ?? "").startsWith("() {")) return true;
-    }
-    return false;
-  };
-
-  // `argv0` is what makes a shell a login shell, which reads a startup file before the line.
-  const reading = (options, file, args) => {
-    const env = options.env ?? process.env;
-    const named = String(file);
-    return {
-      plain: !options.argv0,
-      mine: named.includes("/") && holds(resolve(options.cwd ?? process.cwd(), named)),
-      pathIn: answering(env, file, args),
-      funcIn: renaming(env),
-    };
-  };
 
   const audit = {
     asked(one) {
@@ -234,11 +160,49 @@ const start = (out, root) => {
     blind(why) {
       blind.add(why);
     },
+    // One told to follow its links reads a target no claim here models, and blinds instead.
+    copied(one, how, name) {
+      if (how !== null && typeof how === "object" && how.dereference) {
+        blind.add(`${name}: a copy that follows its links`);
+        return;
+      }
+      const rel = inside(one);
+      if (rel) whole.add(rel);
+      else if (over(one)) blind.add(`${name}: a copy of a tree this one stands under`);
+    },
+    // A watch on a link watches the target, which is not what the link's own claim would be keyed on.
+    watched(one, name) {
+      const rel = inside(one);
+      if (!rel) {
+        if (over(one)) blind.add(`${name}: a watch on a tree this one stands under`);
+        return;
+      }
+      let found;
+      try {
+        found = lstatSync(join(root, rel), { throwIfNoEntry: false });
+      } catch {
+        found = undefined;
+      }
+      if (found?.isSymbolicLink()) blind.add(`${name}: a watch on a link, whose target this follows nowhere`);
+      else if (found?.isFile()) paths.add(rel);
+      else whole.add(rel);
+    },
+    /* Which names a pattern answers with turns on the kind of each entry below its prefix as well, so
+       the claim is the walk; a prefix outside this tree can still descend back into it, and blinds. */
+    globbed(one, how, name) {
+      const held = how !== null && typeof how === "object" && !Array.isArray(how) ? how : {};
+      const from = absolute(held.cwd) ?? process.cwd();
+      for (const pattern of Array.isArray(one) ? one : [one]) {
+        const rel = inside(absolute(prefixOf(pattern), from));
+        if (rel === null) blind.add(`${name}: a listing by a pattern rooted outside this tree`);
+        else whole.add(rel);
+      }
+    },
     shelled(args) {
       const { before, options } = optionsIn(args);
       const shell = String(options.shell ?? "sh");
       spawned.push({ ticket: null, shell, file: String(before[0]), args: [],
-        cwd: options.cwd ?? process.cwd(), ...reading(options, shell, ["-c", String(before[0])]) });
+        cwd: options.cwd ?? process.cwd(), ...reading(root, options, shell, ["-c", String(before[0])]) });
     },
     /* A ticket and not the child's pid, `execFileSync` answering with its output and never a pid;
        and where it stood and what it was handed, which is what rules on a child that left no record. */
@@ -249,7 +213,7 @@ const start = (out, root) => {
       const handed = (Array.isArray(before[1]) ? before[1] : []).map(String);
       spawned.push({
         ticket: mine, file: String(before[0]), cwd: options.cwd ?? process.cwd(), args: handed,
-        ...reading(options, before[0], handed), plain: !options.shell && !options.argv0,
+        ...reading(root, options, before[0], handed), plain: !options.shell && !options.argv0,
       });
       return [...before, { ...options, env: { ...(options.env ?? process.env), [READS_TICKET]: mine } }, ...after];
     },
@@ -296,7 +260,8 @@ const start = (out, root) => {
       mkdirSync(out, { recursive: true });
       writeFileSync(join(out, `${mine ?? `own-${process.pid}`}.json`), `${JSON.stringify({
         ticket: mine, argv: process.argv.slice(1), paths: [...paths].sort(),
-        dirs: [...dirs].sort(), trees: [...trees].sort(), spawned, blind: [...blind], done: true,
+        dirs: [...dirs].sort(), trees: [...trees].sort(), whole: [...whole].sort(),
+        spawned, blind: [...blind], done: true,
       })}\n`);
     } catch {
       /* Nothing to report it to; the missing record is what spends the test file. */

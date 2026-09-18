@@ -5,7 +5,7 @@ import test from "node:test";
 
 import { reachOf } from "../../../../../tools/gates/report/reach.mjs";
 
-const set = (over = {}) => ({ paths: [], dirs: [], trees: [], ...over });
+const set = (over = {}) => ({ paths: [], dirs: [], trees: [], whole: [], ...over });
 
 const over = (entries) => new Map(Object.entries(entries));
 

@@ -24,10 +24,11 @@ keeps that root when KEEP_TEST_ROOMS=1 is set. Name each directory; several are 
                     child really stands. Every cause is then re-derived through the gate's own
                     reaches over the rewritten records, so nothing here reads a cause string
 
-A cause is of one of two kinds, and they are different work: 'export' is a name the audit classifies
-as unfollowable, fixed in the table in tools/gates/reads/audit.mjs with no test moving; 'child' is a
-process that left no record and could have read this repository, fixed by closing that boundary in
-the one test file that opens it. A file blinded by three causes is freed by none of them alone.`;
+A cause is of one of two kinds, and they are different work: 'export' is a call the audit could
+derive no claim from, either a name classified in no set of tools/gates/reads/audit.mjs or one whose
+own arguments left what it read unestablished; 'child' is a process that left no record and could
+have read this repository, fixed by closing that boundary in the one test file that opens it. A file
+blinded by three causes is freed by none of them alone.`;
 
 const flagged = (argv, name) => {
   const at = argv.indexOf(name);

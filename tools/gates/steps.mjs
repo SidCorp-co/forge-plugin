@@ -46,20 +46,14 @@ export const WHOLE_TREE_TESTS = [
 export const TEST_FILE = /^plugin\/test\/.*\.test\.mjs$/u;
 
 /* The ceiling a test file gets while the audit cannot derive its set: `where` the file, `reads` what
-   it may read, `blind` the route that justified the claim and what it was measured to read here. One
-   key per file, a file enrolled under a directory inheriting a ceiling nobody read it against;
-   `run-lock.test.mjs`, which greps every `.mjs` git knows, and `doctor.test.mjs`, whose child runs
-   this CLI in the checkout, are left out instead (ISS-1761). A ceiling answers for every route that
-   blinds its files and nothing else, the audit's own reads unioned in and failing the gate where they
-   escape, so a directory stands only where a route reaches it or the files read across it (ISS-1774). */
-const COPIED = "cpSync: plugin/src whole, plugin/hooks/vendor whole and the tools closure of run.mjs";
-const WATCHED = "watch: a directory outside this tree; the eight read 189 of plugin/src's 190";
+   it may read, `blind` the route that justified it. One key per file and never a directory of them; a
+   ceiling answers for every route that blinds its file, the audit's own reads unioned in and failing
+   the gate where they escape; and a file blind on a route nobody read is left out (ISS-1761, ISS-1774). */
 const CLI = "a node child that left no record: the CLI, reading plugin/ and 168 of plugin/src's 190";
 const SPAWNED = "a node child that left no record: a node standing here, importing plugin/test/run";
+const TAGS = "a git child that left no record: ls-remote against a scratch origin, standing here";
 const RUN = [".", ".forge.json", "plugin/hooks/vendor", "plugin/src", "plugin/test/fixtures.mjs",
   "plugin/test/run", "tools"];
-
-const LANDING = [...RUN, "plugin/guides/skills"];
 
 const DOCTOR = [".", ".forge.json", "plugin/.claude-plugin", "plugin/agents", "plugin/guides",
   "plugin/hooks", "plugin/skills", "plugin/src", "plugin/test/fixtures.mjs", "plugin/vi-natural",
@@ -70,27 +64,8 @@ export const DECLARED_READS = [
   { where: "plugin/test/cli/doctor/machine-keys.test.mjs", reads: DOCTOR, blind: CLI },
   { where: "plugin/test/cli/doctor/off.test.mjs", reads: DOCTOR, blind: CLI },
   { where: "plugin/test/cli/doctor/skills.test.mjs", reads: DOCTOR, blind: CLI },
-  { where: "plugin/test/run/landing/auto-release.test.mjs", reads: LANDING, blind: WATCHED },
-  { where: "plugin/test/run/landing/batch.test.mjs", reads: LANDING, blind: WATCHED },
-  { where: "plugin/test/run/landing/discovery.test.mjs", reads: LANDING, blind: WATCHED },
-  { where: "plugin/test/run/landing/independent.test.mjs", reads: LANDING, blind: WATCHED },
-  { where: "plugin/test/run/landing/land-ready.test.mjs", reads: LANDING, blind: WATCHED },
-  { where: "plugin/test/run/landing/moved-branch.test.mjs", reads: LANDING, blind: WATCHED },
-  { where: "plugin/test/run/landing/moved-pin.test.mjs", reads: LANDING, blind: WATCHED },
-  { where: "plugin/test/run/landing/resume.test.mjs", reads: LANDING, blind: WATCHED },
   { where: "plugin/test/run/processes/orphans.test.mjs", reads: RUN, blind: SPAWNED },
-  { where: "plugin/test/run/release/run-note.test.mjs", reads: RUN, blind: COPIED },
-  { where: "plugin/test/run/release/run-released-version.test.mjs", reads: RUN, blind: COPIED },
-  { where: "plugin/test/run/run-checkpoint.test.mjs", reads: RUN, blind: COPIED },
-  { where: "plugin/test/run/run-install.test.mjs", reads: RUN, blind: COPIED },
-  { where: "plugin/test/run/run-replayed.test.mjs", reads: RUN, blind: COPIED },
-  { where: "plugin/test/run/run-review.test.mjs", reads: RUN, blind: COPIED },
-  { where: "plugin/test/run/run-script.test.mjs", reads: RUN, blind: COPIED },
-  { where: "plugin/test/run/run-shadowed-ref.test.mjs", reads: RUN, blind: COPIED },
-  { where: "plugin/test/run/run-wrote-line.test.mjs", reads: RUN, blind: COPIED },
-  { where: "plugin/test/run/workspace/finish.test.mjs", reads: RUN, blind: COPIED },
-  { where: "plugin/test/run/workspace/links.test.mjs", reads: RUN, blind: COPIED },
-  { where: "plugin/test/run/workspace/start.test.mjs", reads: RUN, blind: COPIED },
+  { where: "plugin/test/run/release/run-released-version.test.mjs", reads: RUN, blind: TAGS },
 ];
 
 export const declarationFor = (file, table = DECLARED_READS) => {

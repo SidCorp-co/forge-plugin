@@ -3,13 +3,15 @@
    file is skipped only on positive evidence: a set nothing recorded, an unfinished record, a route
    this cannot follow and a moved execution context each spend it, bar a declared ceiling. */
 import { createHash } from "node:crypto";
-import { lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, renameSync, rmSync, writeFileSync }
+  from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { digestFile, digestIn } from "../ledger.mjs";
 import { READS_DIR, READS_ROOT, READS_TICKET } from "./audit.mjs";
 import { opensNothing } from "./shell.mjs";
+import { linkInto } from "./placing.mjs";
 import { DECLARED_READS, declarationFor, TEST_FILE } from "../steps.mjs";
 import { under } from "../scope.mjs";
 
@@ -46,20 +48,81 @@ const listing = (root, one, deep = false) => {
   }
 };
 
-export const forgetReads = () => held.clear();
+/* Everything below a path, by content: what a copy reads and what a glob's or a directory watch's
+   answer turns on. Each name and each entry's kind are in the hash beside the content — a file
+   becoming an empty directory of that name moves what such a call answers with while the names alone
+   stand — and a link hashes as its own target text, a copy told to follow one blinding instead. Out
+   of the walk are the two the collector itself refuses, under the same repository-relative names, so
+   a `node_modules` a fixture keeps below a copied source is walked like anything else (ISS-1760). */
+const UNSEEN = new Set(["node_modules", ".git"]);
+
+const walks = new Map();
+const walking = new Set();
+
+const walked = (root, one) => {
+  const at = join(root, one);
+  let found;
+  try {
+    found = lstatSync(at, { throwIfNoEntry: false });
+  } catch {
+    return "unreadable";
+  }
+  if (found?.isSymbolicLink()) {
+    const to = linkInto(root, at);
+    if (to !== null) return `link into ${contents(root, to)}`;
+    try {
+      return `link ${readlinkSync(at)}`;
+    } catch {
+      return "link unreadable";
+    }
+  }
+  if (!found?.isDirectory()) return `file ${hashed(root, one)}`;
+  let names;
+  try {
+    names = readdirSync(at);
+  } catch {
+    return "unreadable";
+  }
+  const hash = createHash("sha256");
+  for (const name of [...names].sort()) {
+    const rel = join(one, name);
+    if (!UNSEEN.has(rel)) hash.update(`${name} ${contents(root, rel)}\n`);
+  }
+  return `dir ${hash.digest("hex")}`;
+};
+
+const contents = (root, one) => {
+  if (walks.has(one)) return walks.get(one);
+  // A link into what is already being walked is a ring, and a ring has no content of its own.
+  if (walking.has(one)) return "a ring of links";
+  walking.add(one);
+  try {
+    const found = walked(root, one);
+    walks.set(one, found);
+    return found;
+  } finally {
+    walking.delete(one);
+  }
+};
+
+export const forgetReads = () => {
+  held.clear();
+  walks.clear();
+  walking.clear();
+};
 
 export const readsDir = (record) => join(record, "test-reads");
 
 export const manifestsIn = (files) => files.filter((one) => MANIFEST.test(one));
 
 /** What a recorded set answers to beyond its own paths: this node, the launcher, the node options a
- *  step's processes inherit, the audit, what it reads of a shell, this collector, and the
- *  declarations — a claim widened or dropped unseats the entry written under the ceiling before it,
+ *  step's processes inherit, the audit, where it places a name, what it reads of a shell, this
+ *  collector, and the declarations — a claim widened or dropped unseats the entry written under the ceiling before it,
  *  and nothing else can, `matchIn` answering with the entry whose body digests to its own name. */
 export const contextOf = (argv, options = process.env.NODE_OPTIONS ?? "", table = DECLARED_READS) => {
   const hash = createHash("sha256").update(`${process.version}\n`).update(`${argv.join(" ")}\n`)
     .update(`${options}\n`).update(`${JSON.stringify(table)}\n`);
-  for (const one of ["./audit.mjs", "./sets.mjs", "./shell.mjs"]) {
+  for (const one of ["./audit.mjs", "./placing.mjs", "./sets.mjs", "./shell.mjs"]) {
     hash.update(digestFile(fileURLToPath(new URL(one, import.meta.url))));
   }
   return hash.digest("hex").slice(0, DIGEST_LENGTH);
@@ -70,6 +133,7 @@ export const setDigest = (root, set, context) => {
   for (const one of [...set.paths].sort()) hash.update(`p ${one} ${hashed(root, one)}\n`);
   for (const one of [...set.dirs].sort()) hash.update(`d ${one} ${listing(root, one)}\n`);
   for (const one of [...set.trees].sort()) hash.update(`t ${one} ${listing(root, one, true)}\n`);
+  for (const one of [...set.whole].sort()) hash.update(`w ${one} ${contents(root, one)}\n`);
   return hash.digest("hex").slice(0, DIGEST_LENGTH);
 };
 
@@ -95,7 +159,7 @@ const setAt = (path, file) => {
   try {
     const found = JSON.parse(readFileSync(path, "utf8"));
     return found.file === file && Array.isArray(found.paths) && Array.isArray(found.dirs)
-      && Array.isArray(found.trees) ? found : null;
+      && Array.isArray(found.trees) && Array.isArray(found.whole) ? found : null;
   } catch {
     return null;
   }
@@ -186,6 +250,7 @@ const gather = (start, byTicket, root) => {
   const paths = new Set();
   const dirs = new Set();
   const trees = new Set();
+  const whole = new Set();
   const queue = [start];
   const blind = new Map();
   while (queue.length > 0) {
@@ -193,6 +258,7 @@ const gather = (start, byTicket, root) => {
     for (const path of one.paths) paths.add(path);
     for (const path of one.dirs) dirs.add(path);
     for (const path of one.trees) trees.add(path);
+    for (const path of one.whole) whole.add(path);
     for (const why of one.blind) blind.set(JSON.stringify(["export", why]), { kind: "export", why });
     for (const each of one.spawned) {
       const child = each.ticket === null ? null : byTicket.get(each.ticket);
@@ -205,12 +271,12 @@ const gather = (start, byTicket, root) => {
       }
     }
   }
-  return { paths, dirs, trees, blind: [...blind.values()].sort(byCause) };
+  return { paths, dirs, trees, whole, blind: [...blind.values()].sort(byCause) };
 };
 
 const wellFormed = (one) => one !== null && typeof one === "object" && one.done === true
   && Array.isArray(one.paths) && Array.isArray(one.dirs) && Array.isArray(one.trees)
-  && Array.isArray(one.spawned) && Array.isArray(one.blind);
+  && Array.isArray(one.whole) && Array.isArray(one.spawned) && Array.isArray(one.blind);
 
 /** The records a step left, apart from the sets, so a candidate change applied to them re-derives through this same code (ISS-1756). */
 export const recordsIn = (out) => {
@@ -249,6 +315,7 @@ export const declaredSet = (claims, tracked) => {
   const paths = new Set();
   const dirs = new Set();
   const trees = new Set();
+  const whole = new Set();
   for (const claim of claims) {
     if (tracked.includes(claim)) {
       paths.add(claim);
@@ -258,7 +325,7 @@ export const declaredSet = (claims, tracked) => {
     else trees.add(claim);
     for (const one of tracked) if (under(one, claim)) paths.add(one);
   }
-  return { paths, dirs, trees };
+  return { paths, dirs, trees, whole };
 };
 
 // The audit's reads kept beside the ceiling: a path git does not track has a content it cannot reach.
@@ -266,12 +333,13 @@ const withSeen = (held, seen) => ({
   paths: new Set([...held.paths, ...seen.paths]),
   dirs: new Set([...held.dirs, ...seen.dirs]),
   trees: new Set([...held.trees, ...seen.trees]),
+  whole: new Set([...held.whole, ...seen.whole]),
 });
 
 // Every read the audit saw against the ceiling: the one failure here nothing else would report.
 const escapesIn = (set, claims) => {
   const covered = (one) => claims.some((claim) => under(one, claim));
-  return [["path", set.paths], ["listing", set.dirs], ["walk", set.trees]]
+  return [["path", set.paths], ["listing", set.dirs], ["walk", set.trees], ["content", set.whole]]
     .flatMap(([kind, seen]) => [...seen].filter((one) => !covered(one)).map((one) => ({ kind, one })));
 };
 
@@ -321,7 +389,7 @@ export const recordSets = (dir, sets, { root, context, manifests, tracked = [], 
     /* `context` is in the body and not in the name every digest here is keyed on: an entry written
        before it reads back the same, and a run can name the context as why it spent (ISS-1746). */
     const body = { file: set.file, context, ...(claim && { declared: claim.blind }), paths,
-      dirs: [...held.dirs].sort(), trees: [...held.trees].sort() };
+      dirs: [...held.dirs].sort(), trees: [...held.trees].sort(), whole: [...held.whole].sort() };
     const digest = setDigest(root, body, context);
     mkdirSync(dir, { recursive: true });
     const staging = join(dir, `.${process.pid}.${digest}.${nameOf(set.file)}`);

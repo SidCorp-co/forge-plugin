@@ -16,7 +16,7 @@ const ONE = "plugin/test/one.test.mjs";
 const TWO = "plugin/test/two.test.mjs";
 
 const record = (root, file, { blind = [], spawned = [] }) => ({
-  ticket: null, argv: [join(root, file)], paths: [file], dirs: [], trees: [],
+  ticket: null, argv: [join(root, file)], paths: [file], dirs: [], trees: [], whole: [],
   blind, spawned, done: true,
 });
 
@@ -35,7 +35,7 @@ const census = (where, rest = []) =>
 test("every cause of every blind file is named, with the kind each one is", () => {
   const where = room((root) => [
     record(root, ONE, {
-      blind: ["cpSync: a tree copied whole"],
+      blind: ["cpSync: a copy of a tree this one stands under"],
       spawned: [{ ticket: "gone", file: "git", cwd: root, args: ["grep", "-l"] }],
     }),
     record(root, TWO, {}),
@@ -44,9 +44,9 @@ test("every cause of every blind file is named, with the kind each one is", () =
     const said = census(where);
     assert.equal(said.status, 0, said.stderr);
     assert.match(said.stdout, /2 test file\(s\) left a record; 1 blind/u);
-    assert.match(said.stdout, /\| export \| `cpSync: a tree copied whole` \| 1 \|/u);
+    assert.match(said.stdout, /\| export \| `cpSync: a copy of a tree this one stands under` \| 1 \|/u);
     assert.match(said.stdout, /\| child \| `git standing in the checkout` \| 1 \|/u);
-    assert.match(said.stdout, /export: cpSync: a tree copied whole/u);
+    assert.match(said.stdout, /export: cpSync: a copy of a tree this one stands under/u);
     assert.match(said.stdout, new RegExp(`^ {10}git grep -l in ${escaped(where.root)}$`, "mu"),
       "the shape groups them, and the exact cause a ceiling is written against is under it");
     assert.doesNotMatch(said.stdout, new RegExp(escaped(TWO), "u"),
@@ -60,7 +60,7 @@ test("every cause of every blind file is named, with the kind each one is", () =
    the column sums past the population and removing either cause frees the file from neither. */
 test("the overlap between the cause rows is stated rather than left to be summed", () => {
   const where = room((root) => [record(root, ONE, {
-    blind: ["cpSync: a tree copied whole", "globSync: a listing by pattern"],
+    blind: ["cpSync: a copy of a tree this one stands under", "globSync: a listing by a pattern rooted outside this tree"],
   })]);
   try {
     assert.match(census(where).stdout,
@@ -93,7 +93,7 @@ test("a candidate frees only the files whose every cause it removes, re-derived 
   const where = room((root) => [
     record(root, ONE, { spawned: [{ ticket: "gone", file: "git", cwd: root, args: ["-C", "/elsewhere"] }] }),
     record(root, TWO, {
-      blind: ["cpSync: a tree copied whole"],
+      blind: ["cpSync: a copy of a tree this one stands under"],
       spawned: [{ ticket: "gone", file: "git", cwd: root, args: ["-C", "/elsewhere"] }],
     }),
   ]);
@@ -113,11 +113,11 @@ test("a candidate frees only the files whose every cause it removes, re-derived 
 });
 
 test("the seconds a run measured are carried, so a row says what it costs as well as what it counts", () => {
-  const where = room((root) => [record(root, ONE, { blind: ["cpSync: a tree copied whole"] })]);
+  const where = room((root) => [record(root, ONE, { blind: ["cpSync: a copy of a tree this one stands under"] })]);
   const times = join(where.at, "files");
   writeFileSync(times, `51.9s ${ONE}\n0.3s ${TWO}\n`);
   try {
-    assert.match(census(where, ["--times", times]).stdout, /`cpSync: a tree copied whole` \| 1 \| 52s \|/u);
+    assert.match(census(where, ["--times", times]).stdout, /`cpSync: a copy of a tree this one stands under` \| 1 \| 52s \|/u);
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }

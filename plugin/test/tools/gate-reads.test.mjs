@@ -24,8 +24,9 @@ const room = (files = {}) => {
   return { at, root, dir: join(at, "records") };
 };
 
-const setOf = (paths, dirs = [], trees = []) =>
-  ({ file: FILE, paths: new Set(paths), dirs: new Set(dirs), trees: new Set(trees), blind: [] });
+const setOf = (paths, dirs = [], trees = [], whole = []) =>
+  ({ file: FILE, paths: new Set(paths), dirs: new Set(dirs), trees: new Set(trees),
+    whole: new Set(whole), blind: [] });
 
 const held = ({ root, dir }, sets, manifests = []) => {
   forgetReads();
@@ -143,7 +144,7 @@ test("a process record no completion marker closed is not read at all", () => {
   const out = join(where.at, "out");
   mkdirSync(out, { recursive: true });
   try {
-    const one = { ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [],
+    const one = { ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], whole: [],
       blind: [], spawned: [] };
     writeFileSync(join(out, "own-1.json"), JSON.stringify(one));
     assert.deepEqual(setsFrom(out, where.root), [], "unclosed");
@@ -287,33 +288,31 @@ test("a file read through the promises export of node:fs is in the set", () => {
 
 /* An import that failed resolves through no load hook, so the candidate goes in before the attempt:
    a test passing on its fallback would otherwise answer for the file appearing. */
-test("an import that did not resolve is in the set, and a walk by pattern blinds the file instead", () => {
+test("an import that did not resolve is in the set, and a record of no test file is no set", () => {
   const where = room();
   const out = join(where.at, "out");
   try {
-    const said = audited(where.root, out, [`try { await import("./plugin/src/optional.mjs"); } catch { /* the fallback */ }`,
-      `const { globSync } = await import("node:fs");`, `globSync("plugin/**/*.mjs");`].join("\n"));
+    const said = audited(where.root, out, [`try { await import("./plugin/src/optional.mjs"); } catch { /* the fallback */ }`].join("\n"));
     assert.equal(said.status, 0, said.stderr);
     const [one] = recordsIn(out);
     assert.ok(one.paths.includes("plugin/src/optional.mjs"), one.paths.join(" "));
-    assert.deepEqual(one.blind, ["globSync: a listing by pattern"]);
-    assert.equal(setsFrom(out, where.root).length, 0, "no test file, so no set; the blindness is the record's");
+    assert.equal(setsFrom(out, where.root).length, 0, "no test file, so no set of anybody's");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
 });
 
-test("a process that walked by pattern blinds the test file whose tree it is in", () => {
+test("a process that walked by a pattern rooted outside blinds the test file whose tree it is in", () => {
   const where = room();
   const out = join(where.at, "out");
   mkdirSync(out, { recursive: true });
   try {
     writeFileSync(join(out, "own-1.json"), JSON.stringify({
-      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [],
-      blind: ["globSync: a listing by pattern"], spawned: [], done: true,
+      ticket: null, argv: [join(where.root, FILE)], paths: [FILE], dirs: [], trees: [], whole: [],
+      blind: ["globSync: a listing by a pattern rooted outside this tree"], spawned: [], done: true,
     }));
     assert.deepEqual(setsFrom(out, where.root)[0].blind,
-      [{ kind: "export", why: "globSync: a listing by pattern" }]);
+      [{ kind: "export", why: "globSync: a listing by a pattern rooted outside this tree" }]);
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }

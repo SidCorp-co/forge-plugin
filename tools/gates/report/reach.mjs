@@ -6,7 +6,8 @@ const under = (path, tree) => tree === "." || path === tree || path.startsWith(`
 
 const touches = (closure, changed) => changed.some((one) =>
   closure.paths.includes(one) || closure.dirs.includes(dirname(one))
-  || closure.trees.some((tree) => under(one, tree)));
+  || closure.trees.some((tree) => under(one, tree))
+  || closure.whole.some((tree) => under(one, tree)));
 
 export const reachOf = (spend, closures, changed, context) => {
   const at = { reached: 0, blind: 0, elsewhere: 0 };
