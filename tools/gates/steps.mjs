@@ -52,9 +52,9 @@ export const TEST_FILE = /^plugin\/test\/.*\.test\.mjs$/u;
    (ISS-1761), as is `doctor.test.mjs`, one of whose children runs this CLI's `doctor` in the checkout
    itself. A ceiling answers for every route that blinds its files and nothing else, the audit's own
    reads being unioned in and failing the gate where they escape, so a directory stands only where a
-   route reaches it (ISS-1774). */
+   route reaches it or the files themselves read across it, which each string below says (ISS-1774). */
 const COPIED = "cpSync: plugin/src whole, plugin/hooks/vendor whole and the tools closure of run.mjs";
-const WATCHED = "watch: a watch on a directory outside this tree";
+const WATCHED = "watch: a directory outside this tree; the eight read 189 of plugin/src's 190";
 const CLI = "a node child that left no record: the CLI, reading plugin/ and 168 of plugin/src's 190";
 const SPAWNED = "a node child that left no record: a node standing here, importing plugin/test/run";
 const SHELL = "a shell asking the box where git is, which reads no path in this repository";
