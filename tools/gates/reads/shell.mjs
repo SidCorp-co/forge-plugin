@@ -1,8 +1,7 @@
 /* Whether a shell child that left no record opened a file of this repository, read off what it was
    asked to run; unreadable answers false. What the four gates are: `node tools/gates.mjs -h`. */
 
-/* Handed `-c`, these read no startup file: bash invoked as `sh` reads none non-interactively, and
-   dash's `ENV` is an interactive shell's. A bash by its own name reads `BASH_ENV`, a zsh its own. */
+// Handed `-c`, these read no startup file, where a bash by its own name reads `BASH_ENV`.
 const SHELL_PROGRAM = new Set(["sh", "dash"]);
 
 const based = (one) => one.replace(/^.*\//u, "");
@@ -39,9 +38,10 @@ const worded = (line) => {
 };
 
 /* A builtin of those shells, so no `PATH` entry chooses what runs — which is why `which` is absent.
-   The writers print their operands; the lookups take a name and never a path, `command` only at `-v`. */
+   The writers take no option, bash's `printf -v` evaluating a subscript; the lookups take a name
+   and never a path, `command` only behind a first `-v`. */
 const NAMED_ONLY = (operands) => operands.every((one) => !one.includes("/"));
-const WRITES_THEM = () => true;
+const WRITES_THEM = (operands) => operands.every((one) => !one.startsWith("-"));
 const ASKED_WHERE = (one) => one.length > 1 && (one[0] === "-v" || one[0] === "-V")
   && one.slice(1).every((each) => !each.startsWith("-")) && NAMED_ONLY(one.slice(1));
 
@@ -53,6 +53,7 @@ const OPENS_NOTHING = new Map([
 
 const lineOf = (one) => {
   if (typeof one.shell === "string") return SHELL_PROGRAM.has(based(one.shell)) ? String(one.file) : null;
+  if (one.plain !== true) return null;
   const args = (one.args ?? []).map(String);
   return args.length === 2 && args[0] === "-c" && SHELL_PROGRAM.has(based(String(one.file)))
     ? args[1] : null;

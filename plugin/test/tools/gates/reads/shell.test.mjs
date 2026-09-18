@@ -7,7 +7,7 @@ import test from "node:test";
 import { opensNothing } from "../../../../../tools/gates/reads/shell.mjs";
 
 const sh = (line, file = "sh") =>
-  ({ ticket: null, file, cwd: "/anywhere", args: ["-c", line], pathIn: false, funcIn: false });
+  ({ ticket: null, file, cwd: "/anywhere", args: ["-c", line], plain: true, pathIn: false, funcIn: false });
 
 const OPENS_NOTHING = [
   ["command -v git", "the shape gates.test.mjs spawns, which asks the box where a program is"],
@@ -35,6 +35,9 @@ const BLINDS = [
   ["command -v ./plugin/bin/forge", "an operand holding a slash is a path answered about, not a name"],
   ["type plugin/src/one.mjs", "the same of a lookup under its own name"],
   ["which git", "`which` is a program `PATH` chooses, not a builtin of the shell"],
+  ["printf -v a %s x", "bash evaluates `printf -v`'s array subscript, so its operand is a command"],
+  ["printf -v 'a[$(cat README.md)0]' %s x", "which is how a tracked file gets read behind a quote"],
+  ["echo -n one", "the writers take no option at all, that being the narrow answer rather than a list"],
   ["command -v git; cat one", "a second command"],
   ["command -v git && cat one", "a second command reached the other way"],
   ["command -v git | cat", "a pipe"],
@@ -90,6 +93,15 @@ test("the shell a record names decides whether the line is a shell's at all", ()
     "a shell handed anything beside -c is not a line this reads");
   assert.equal(opensNothing({ ...sh("x"), args: ["script.sh"] }), false,
     "a shell handed a script reads that script");
+});
+
+/* node runs a spawn through a shell of its own where `shell` is set, and the record's own program is
+   then not what ran; `argv0` can make a shell a login shell, which reads a startup file. */
+test("a spawn node did not run as it was written is not a line this reads", () => {
+  assert.equal(opensNothing({ ...sh("command -v git"), plain: false }), false,
+    "a shell option or an argv0 stood between the record and what ran");
+  assert.equal(opensNothing({ ...sh("command -v git"), plain: undefined }), false,
+    "a record that never said which it was");
 });
 
 /* `exec` and `execSync` record the line itself and the shell they were given, so neither has to be

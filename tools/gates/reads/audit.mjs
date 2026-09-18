@@ -120,7 +120,7 @@ const HERE = Symbol.for("forge.gate.reads");
 const start = (out, root) => {
   if (globalThis[HERE]) return;
   const { registerHooks } = process.getBuiltinModule("node:module");
-  const { mkdirSync, writeFileSync } = process.getBuiltinModule("node:fs");
+  const { mkdirSync, realpathSync, writeFileSync } = process.getBuiltinModule("node:fs");
   const { isAbsolute, join, relative, resolve } = process.getBuiltinModule("node:path");
   const { fileURLToPath, pathToFileURL } = process.getBuiltinModule("node:url");
 
@@ -152,15 +152,33 @@ const start = (out, root) => {
 
   const entry = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
 
-  // Where a name with no slash would be looked for; one this cannot place counts as inside the tree.
-  const searching = (env) => String(env.PATH ?? "").split(":")
-    .some((one) => !one.startsWith("/") || inside(one) !== null);
+  /* Where a name with no slash would be looked for, through the links as well as by the name: an
+     entry this cannot place, and one it cannot resolve, each count as inside the tree. Kept by the
+     path it was read from, a spawn per test case otherwise resolving the same dozen entries again. */
+  const searched = new Map();
+  const reaching = (one) => {
+    if (!one.startsWith("/")) return true;
+    if (inside(one) !== null) return true;
+    try {
+      return inside(realpathSync(one)) !== null;
+    } catch {
+      return true;
+    }
+  };
+  const searching = (env) => {
+    const path = String(env.PATH ?? "");
+    if (!searched.has(path)) searched.set(path, path.split(":").some(reaching));
+    return searched.get(path);
+  };
 
   // What could stand behind a builtin's name: an exported function, or a startup file read first.
   const renaming = (env) => Object.entries(env).some(([key, value]) => key.startsWith("BASH_FUNC_")
     || key === "BASH_ENV" || key === "ENV" || String(value ?? "").startsWith("() {"));
 
-  const reading = (env) => ({ pathIn: searching(env), funcIn: renaming(env) });
+  const reading = (options) => {
+    const env = options.env ?? process.env;
+    return { pathIn: searching(env), funcIn: renaming(env) };
+  };
 
   const audit = {
     asked(one) {
@@ -178,7 +196,7 @@ const start = (out, root) => {
     shelled(args) {
       const { before, options } = optionsIn(args);
       spawned.push({ ticket: null, shell: String(options.shell ?? "sh"), file: String(before[0]),
-        args: [], cwd: options.cwd ?? process.cwd(), ...reading(options.env ?? process.env) });
+        args: [], cwd: options.cwd ?? process.cwd(), ...reading(options) });
     },
     /* A ticket and not the child's pid, `execFileSync` answering with its output and never a pid;
        and where it stood and what it was handed, which is what rules on a child that left no record. */
@@ -189,7 +207,8 @@ const start = (out, root) => {
       spawned.push({
         ticket: mine, file: String(before[0]), cwd: options.cwd ?? process.cwd(),
         args: (Array.isArray(before[1]) ? before[1] : []).map(String),
-        ...reading(options.env ?? process.env),
+        // False where node runs this through a shell of its own, or under an argv0 the program did not choose.
+        plain: !options.shell && !options.argv0, ...reading(options),
       });
       return [...before, { ...options, env: { ...(options.env ?? process.env), [READS_TICKET]: mine } }, ...after];
     },

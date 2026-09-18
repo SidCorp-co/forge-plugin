@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -444,5 +444,29 @@ test("a run that may not read the ledger's digests spends every test file too", 
     for (const label of ["test", "test:tree"]) assert.match(stdout, new RegExp(`=== ${label} ===`, "u"), stdout);
   } finally {
     rmSync(at, { recursive: true, force: true });
+  }
+});
+
+/* What a shell asked where a program is would have been answered from decides whether it read this
+   repository, so the search path is recorded per spawn — through its links, an absolute entry
+   elsewhere being no evidence at all that what it names is elsewhere (ISS-1793). */
+test("a search path reaching this repository through a link outside it is recorded as reaching it", () => {
+  const where = room({ "bin/helper": "#!/bin/sh\n" });
+  const out = join(where.at, "out");
+  const alias = join(where.at, "alias");
+  mkdirSync(out, { recursive: true });
+  symlinkSync(join(where.root, "bin"), alias);
+  const ran = (path) => {
+    rmSync(out, { recursive: true, force: true });
+    mkdirSync(out, { recursive: true });
+    audited(where.root, out, `import { spawnSync } from "node:child_process";\n`
+      + `spawnSync("sh", ["-c", "command -v helper"], { env: { ...process.env, PATH: ${JSON.stringify(path)} } });\n`);
+    return recordsIn(out).flatMap((one) => one.spawned).find((one) => one.file === "sh");
+  };
+  try {
+    assert.equal(ran(`${alias}:/usr/bin:/bin`).pathIn, true, "the entry is absolute and outside by its name alone");
+    assert.equal(ran("/usr/bin:/bin").pathIn, false, "and a path that reaches nothing of this tree does not");
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
   }
 });
