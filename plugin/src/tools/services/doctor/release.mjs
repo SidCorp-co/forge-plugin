@@ -1,5 +1,5 @@
 /* Which copies are installed is a fact about one box, so a box nobody has updated agrees with itself and reads green — sixteen filings over three days against defects already released (ISS-1324). The newest released version is therefore asked of the remote a release publishes to, never of anything on this machine, and every way that ask can fail is said by name: an unknown that reads as agreement is the defect, not a quieter version of it. docs/cli/doctor.md. */
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -47,16 +47,32 @@ export const registeredSource = (home) => {
 };
 
 /* Named and never git's own default, which is the branch's upstream and can be a second remote whose tags are older: a release publishes to origin, so a row agreeing with anything else agrees wrongly. And no terminal prompt and no ssh that can ask for anything — a blocked prompt is a phase that never starts, and a report is no place to discover a box's credential has expired. */
-const asked = (at, ms) => spawnSync("git", ["ls-remote", "--tags", REMOTE], {
-  cwd: at,
-  encoding: "utf8",
-  timeout: ms,
-  env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_SSH_COMMAND: "ssh -oBatchMode=yes" },
+const asked = (at, ms) => new Promise((settle) => {
+  const child = spawn("git", ["ls-remote", "--tags", REMOTE], {
+    cwd: at,
+    env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_SSH_COMMAND: "ssh -oBatchMode=yes" },
+  });
+  let out = "";
+  let bad = "";
+  /* The bound is on the report and not on the process: git's transport helper can outlive the kill
+     still holding the pipe, so waiting for the child to close would be the wait this bound refuses. */
+  const bound = setTimeout(() => {
+    child.kill("SIGKILL");
+    child.stdout.destroy();
+    child.stderr.destroy();
+    child.unref();
+    settle({ late: true });
+  }, ms);
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+  child.stdout.on("data", (part) => { out += part; });
+  child.stderr.on("data", (part) => { bad += part; });
+  child.on("error", (error) => { clearTimeout(bound); settle({ error }); });
+  child.on("close", (status) => { clearTimeout(bound); settle({ status, stdout: out, stderr: bad }); });
 });
 
-export const releasedVersions = (at, ms = MS) => {
-  const run = asked(at, ms);
-  if (run.error?.code === "ETIMEDOUT") return { problem: `the remote did not answer inside ${ms / 1000}s` };
+const releasedVersions = (run, ms) => {
+  if (run.late) return { problem: `the remote did not answer inside ${ms / 1000}s` };
   if (run.error) return { problem: `git could not be run: ${run.error.message}` };
   if (run.status !== 0) return { problem: `git ls-remote origin exited ${run.status}: ${firstLine(String(run.stderr ?? "").trim()) || "no output"}` };
   const held = [...String(run.stdout).matchAll(/refs\/tags\/(\S+?)(?:\^\{\})?$/gmu)]
@@ -66,6 +82,16 @@ export const releasedVersions = (at, ms = MS) => {
   const once = [...new Map(held.map((one) => [one.join("."), one])).values()];
   if (!once.length) return { problem: "the remote carries no version tag" };
   return { versions: once.sort((one, two) => (above(one, two) ? 1 : -1)) };
+};
+
+/** The ask, started before the report's own local checks so the round trip runs while they do and
+ *  costs the report only what it is slower than them by (ISS-1460). Everything the row needs before
+ *  the remote answers is resolved here, so a reading that makes the ask pointless never spawns one
+ *  and no child outlives the report. */
+export const startRelease = ({ home = homedir(), running = hereCopy().version, ms = MS } = {}) => {
+  const source = registeredSource(home);
+  const mine = triple(running);
+  return { ms, running, source, mine, answer: source && mine ? asked(source.tree, ms) : null };
 };
 
 /* Counting tags and never releases: every release before this one published nothing to count, so a
@@ -87,15 +113,14 @@ const wayOut = (source, released) => {
 };
 
 /** What the newest released version is, against what is running here, or which step could not say. */
-export const releaseRows = ({ home = homedir(), running = hereCopy().version, ms = MS } = {}) => {
-  const source = registeredSource(home);
+export const releaseRows = async (started = startRelease()) => {
+  const { answer, mine, ms, running, source } = started;
   if (!source) {
     return note("not read: no marketplace registration on this box names a directory this plugin is "
       + "installed from, so nothing here can say whether the copy running is the current one");
   }
-  const mine = triple(running);
   if (!mine) return note(`not read: the running copy states no version, so there is nothing to compare  ← ${source.at}`);
-  const { versions, problem } = releasedVersions(source.tree, ms);
+  const { versions, problem } = releasedVersions(await answer, ms);
   if (problem) {
     return note(`not read: ${problem}  ← git ls-remote ${REMOTE} in ${source.tree} — this box cannot tell `
       + "whether the copy it runs is current, which is not the same as it being current");
@@ -119,7 +144,7 @@ const hereRow = (copy) => (copy.stale
     + "session keeps the registration it started with: `claude plugin update` then restart" }
   : { level: "ok", label: "plugin copy", detail: `${copy.running} — running and installed` });
 
-export const copyRows = () => {
+export const copyRows = async (started = startRelease()) => {
   const copy = pluginCopy();
-  return [...(copy ? [hereRow(copy)] : []), ...releaseRows()];
+  return [...(copy ? [hereRow(copy)] : []), ...(await releaseRows(started))];
 };

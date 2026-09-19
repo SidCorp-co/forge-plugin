@@ -34,7 +34,7 @@ import {
 } from "../checks/claude-md.mjs";
 import { harnessLines } from "./services/doctor/harness.mjs";
 import { installRows } from "./services/doctor/install.mjs";
-import { copyRows } from "./services/doctor/release.mjs";
+import { copyRows, startRelease } from "./services/doctor/release.mjs";
 import { withholdingLines } from "./services/doctor/jobs.mjs";
 import { masked } from "./services/masked.mjs";
 import { copyToRun, FROZEN } from "./plugin-copy.mjs";
@@ -523,6 +523,7 @@ export const doctor = async (argv) => {
     if (row.flags.some((flag) => asked[flag] !== undefined)) row.write(asked);
   }
 
+  const release = startRelease();
   const { url, token } = accountCredentials();
   if (url.value) line(OK, "endpoint url", `${url.value}  ← ${url.from}`);
   else line(BAD, "endpoint url", "nothing saved — `forge doctor --url <endpoint>`");
@@ -566,7 +567,6 @@ export const doctor = async (argv) => {
   } else {
     line(OK, "prose language", "as written; set translate in .forge.json to rewrite");
   }
-  report(copyRows());
   /* Which copy `forge` on PATH is, from here — the answer changes with the directory, and the link
      itself names one copy for the whole machine. */
   const dispatched = copyToRun();
@@ -586,6 +586,9 @@ export const doctor = async (argv) => {
   checkHarness(full);
   report(installRows(checkoutRoot()));
   checkClaudeMdLocally();
+
+  /* Below the work this overlaps and above the endpoint check: higher costs the report the whole round trip, lower drops the row on a box with no credential, which is the box least able to tell (ISS-1324). */
+  report(await copyRows(release));
 
   if (!url.value || !token.value) {
     console.log("\nNot reaching the endpoint: the account half is incomplete.");
