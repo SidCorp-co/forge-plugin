@@ -1,7 +1,8 @@
 /* The keys a project sets for itself, each with the value in force and where it was read; why rows
    and not lines is doctor/harness.mjs's. docs/cli/doctor.md. */
 import { FEEDBACK_CHANNELS, LANDING_ROUTES, OWED_DOORS, RUNS_TAKES, SHIP_MODES, codexOwed,
-  feedbackScope, landingScope, parallelRuns, projectWorkPattern, shipMode } from "../../../resolve/settings.mjs";
+  checkoutRoot, feedbackScope, landingScope, parallelRuns, projectWorkPattern,
+  shipMode } from "../../../resolve/settings.mjs";
 import { flowPinned, flowRefusal } from "../../../guides/flow.mjs";
 
 const MISS = "miss";
@@ -54,11 +55,11 @@ const runsRow = () => {
     : "unset, so a wave is sized by whoever dispatches it and a gate declines for no sibling" };
 };
 
-/* Three answers and not two, because an absent key and a declared pattern that will not compile
-   decide the same claims and mean opposite things: one project chose silence, the other wrote a
-   declaration nothing can read. */
+/* Three answers: an absent key and a pattern that will not compile decide the same claim and mean
+   opposite things, one project having chosen silence and the other written what nothing reads. */
 const workRow = () => {
-  const work = projectWorkPattern();
+  /* The root a claim reads it off, a nested file otherwise advertising what no refusal applies. */
+  const work = projectWorkPattern(checkoutRoot());
   if (work.unreadable) {
     return { level: MISS, label: "lease.workingRe", detail: `${work.unreadable} is no regular expression, `
       + `so no process reads as a run's work and a claim over a live sibling is taken  ← ${work.from}` };

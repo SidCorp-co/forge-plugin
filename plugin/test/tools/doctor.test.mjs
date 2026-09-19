@@ -482,6 +482,25 @@ test("what a project calls a run's own work is printed with its source, and an u
     "and what the project loses by it, which is the whole reason the row is not silence");
 });
 
+/* The claim reads the declaration off the tree root the held id was minted for, so the row has to
+   read it off the same place: a row answering for this directory advertises a protection the
+   refusal never applies (ISS-1872). */
+test("the declaration reported is the one the tree root holds, not the one the directory this call stands in holds", () => {
+  const home = tempRoom("doctor-work-home-");
+  const root = tempRoom("doctor-work-root-");
+  spawnSync("git", ["init", "-q"], { cwd: root });
+  writeFileSync(join(root, ".forge.json"), JSON.stringify({ slug: "demo", lease: { workingRe: "the-root-declaration" } }));
+  const inner = join(root, "inner");
+  mkdirSync(inner);
+  writeFileSync(join(inner, ".forge.json"), JSON.stringify({ slug: "demo", lease: { workingRe: "the-nested-declaration" } }));
+  const run = spawnSync(process.execPath, [CLI, "doctor"], {
+    encoding: "utf8", cwd: inner, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
+  });
+  assert.match(run.stdout, /\[ {2}ok {2}\] lease\.workingRe\s+the-root-declaration\b/u, run.stdout);
+  assert.doesNotMatch(run.stdout, /the-nested-declaration/u,
+    "the file this directory happens to sit beside decides nothing the claim will read");
+});
+
 /* The project's, so the report reads it out of `.forge.json` and the account's own file has none of
    it; and no flag writes it, so a value the key cannot use is met there, not at a write (ISS-1157). */
 const withRuns = (runs) => report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo", ...runs }) });
