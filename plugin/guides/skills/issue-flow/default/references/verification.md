@@ -88,6 +88,34 @@ and the suite runs again only for a criterion whose evidence is its own.
 | A batch or data job | fixture in, resulting records out |
 | Generated output | the artefact opened, not the generator's exit code |
 | Infrastructure | the plan, and a validation against a real environment |
+| A rule a checker enforces | the case that fails without it, watched red twice (below) |
+
+## The case that proves a rule is watched red twice
+
+A change that adds a rule — a checker, a guard, a validation — is proved by a case that fails
+without it, and one reading of that red is not that proof. A case whose outcome turns on what ran
+before it, an overdue timer or a file an earlier case wrote or the share of the machine a process
+got, fails one way and passes the other, and from inside a single reading a case that fails cannot
+be told from a case that failed that time. Neither can the case that could never have failed: it
+reads green against the fix afterwards exactly as a real one does, and nothing ever says so.
+
+So take two readings, both against the source the fix is not in yet: **the case on its own**, and
+**the whole of the file it lives in**. Any runner that can select a case by name gives both, and
+how that selection is spelled is the project's, as the gate's own name is. What the two are
+compared on is that one case's own result in each reading and never the run's exit status — a case
+can pass in a file where a sibling fails, which leaves the run red and the case green, and an
+exit-status reading calls that a red watched twice.
+
+- **Red in both** — the red is the case's own, and the case is the proof.
+- **Green in both** — nothing was watched. Either the fix is already in the tree, and the reading
+  is owed before it, or the case cannot fail.
+- **One of each** — what ran before the case decided its outcome, so neither reading says anything
+  about the source. Reshape the case until the two agree; which of them was the honest one is not
+  something one pair of readings can answer.
+
+The second reading costs one more run of that file per case proven. Where the project's own tooling
+takes both and judges them, the project's rules name it; where there is none, the two runs and the
+comparison between them are the run's own.
 
 ## Standing up something to run against
 

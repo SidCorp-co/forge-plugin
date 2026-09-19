@@ -51,7 +51,7 @@
     },
     "BR-13": {
       "rev": 1,
-      "digest": "a297ad411d81caa24137122cecd6060259ab3fa8c03e28540c3c976add6bca95"
+      "digest": "c695637eb7be6b9edcd37fd83690d627afe465aa20c9af022ebdbd2ddac9b2e4"
     },
     "BR-14": {
       "rev": 1,
@@ -2760,6 +2760,10 @@
     "AC-12-2-7": {
       "rev": 1,
       "digest": "d4e75803b0318338d2489e36807a3dbfc2f6c0d532799d95c337130127aa3754"
+    },
+    "AC-12-2-8": {
+      "rev": 1,
+      "digest": "8c8671a60d837dc29be6b152e94fee6c78f509f8683f9dd5e4c187cfb70fdfd3"
     },
     "UC-12-3": {
       "rev": 1,

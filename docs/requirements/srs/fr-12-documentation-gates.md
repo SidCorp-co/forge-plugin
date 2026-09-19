@@ -89,6 +89,11 @@ threshold calibrated on real documents rather than guessed.
 - **AC-12-2-7** · Rev: 1 · Proof: plugin/test/checks/served/mechanics.test.mjs "the walk reaches the served text, so a clean answer is a clean corpus and not an empty selector"
   WHILE the check runs it SHALL assert that its walk reached the served text, because a selector
   matching nothing looks exactly like text that carries no such claim.
+- **AC-12-2-8** · Rev: 1 · Proof: plugin/test/checks/docs/docs-have-one-home.test.mjs "the rules file restates none of the text this plugin serves"
+  IF a sentence of the rules file overlaps the text this plugin serves past the threshold THEN the
+  check SHALL fail and SHALL print both sentences and the served file the collision is with, since a
+  rule served to every project that installs this plugin is one the rules file may point at and may
+  not state, and the copy an installed plugin never carries is the one here.
 
 ### UC-12-3 — A skill stays method
 

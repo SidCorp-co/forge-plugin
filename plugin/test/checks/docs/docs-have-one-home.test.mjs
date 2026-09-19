@@ -97,3 +97,29 @@ test("no skill restates a refusal or a usage line it could point at", () => {
     );
   }
 });
+
+/* The third direction, and the one that let a standard reach one repository: a rule the rules file
+   states and the served text does not is a rule no project installing this plugin is ever told,
+   because the installed copy carries the served text and no rules file. Pointing at where it is
+   read is not stating it, which is why the measure is the same sentence overlap and not a mention. */
+test("the rules file restates none of the text this plugin serves", () => {
+  const files = skillDocs();
+  assert.ok(files.length >= 6, `${files.length} skill document(s); the selector is broken`);
+  const served = files.flatMap(([rel, file]) => sentences(readFileSync(file, "utf8")
+    .replace(/^---\n[\s\S]*?\n---\n/u, "")).map((one) => [rel, one]));
+  const mine = sentences(readFileSync(join(ROOT, "CLAUDE.md"), "utf8")).map((one) => ["CLAUDE.md", one]);
+  assert.ok(mine.length >= 20, `${mine.length} sentence(s) in the rules file; the selector is broken`);
+  /* Live, so the green below is a clean rules file and not an empty read. */
+  const longest = served.reduce((one, next) => (next[1].length > one[1].length ? next : one));
+  assert.ok(compare([["planted", longest[1]]], served, 0.25, 5)[0],
+    "a sentence copied from the served text is not reported, so this check reads nothing");
+  const [worst] = compare(mine, served, 0.25, 5);
+  assert.equal(
+    worst,
+    undefined,
+    worst && `CLAUDE.md restates ${worst[2][0]} (${worst[0].toFixed(2)}), so the rule has two homes `
+      + `and the one no installed plugin carries is this one:\n`
+      + `  the rules file:  ${worst[1][1].slice(0, 120)}\n  the served text: ${worst[2][1].slice(0, 120)}\n`
+      + `  Cut it to a pointer at where the served text is read.`,
+  );
+});

@@ -91,8 +91,6 @@ paths it read off its own script, a claim every run holds it to by watching the 
 Fix the source, never the gate. A real violation that passes means the checker is wrong, and it gets
 fixed in the same task rather than exempted.
 
-A checker is only proven by watching it fire, so a new rule ships with a case that fails without it
-— and one reading of that red is not the proof. A case whose outcome turns on what ran before it
-fails one way and passes the other, and neither reading can be told from the other by itself, which
-is how a case that could never have failed gets accepted as the proof of a rule. Watch the red with
-`node tools/red.mjs`, which takes both readings and says what they are worth.
+The standard a new rule's own case is held to is the served one, read at `forge guide issue-flow
+verification` by every project this plugin is installed in and stated in no file here. The command
+this repository has for it is `node tools/red.mjs`.

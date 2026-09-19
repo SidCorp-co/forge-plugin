@@ -38,7 +38,7 @@ citation that does.
 | **BR-10** | 1 | an entry point imported by nothing | `CLAUDE.md`, "An entry point is not a library" |
 | **BR-11** | 1 | whose language is whose | `CLAUDE.md`, "Vietnamese is the tracker's and the product's"; `VI-NATURAL.md` |
 | **BR-12** | 1 | the source, not the gate | `CLAUDE.md`, "Verifying" |
-| **BR-13** | 1 | a checker watched to fire | `CLAUDE.md`, "Verifying" |
+| **BR-13** | 1 | a checker watched to fire | `plugin/guides/skills/issue-flow/default/references/verification.md` |
 | **BR-14** | 1 | an input used or refused | `CLAUDE.md`, the refusal paragraph |
 | **BR-15** | 1 | a stop only for the irreversible | `plugin/guides/skills/issue-flow/default/guide/03-autonomy-and-the-three-things-that-stop-it.md` |
 | **BR-16** | 1 | the half no gate reaches | `CLAUDE.md`, "The half no gate reaches" |
