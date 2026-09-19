@@ -172,10 +172,10 @@ history keeps a word of its own for that claim rather than the one an ordinary f
   least that duration THEN the CLI SHALL take that lease as part of the write, SHALL keep the take in
   the claim history under the word a reclaim keeps, SHALL hold on that record the run it displaced
   and the moment that run's lease ran out, and SHALL tell the caller what it took.
-- **AC-03-3-6** · Rev: 1 · Proof: plugin/test/flow/claim/lapsed-write.test.mjs "a lease lapsed inside the threshold refuses the write, and the claim it names asks for --stopped"
-  IF a payload is written to an issue whose lease is another run's and the record does not put the
-  lapse past that lease's own duration THEN the CLI SHALL refuse the write and SHALL name the reclaim
-  that takes it.
+- **AC-03-3-6** · Rev: 2 · Proof: plugin/test/flow/claim/lapsed-write.test.mjs "a lease lapsed inside the threshold refuses the write, and the claim it names asks for --stopped"
+  IF a payload is written to an issue whose lease is another run's, and the record does not put the
+  lapse past that lease's own duration, and the record does not prove the holder gone, THEN the CLI
+  SHALL refuse the write and SHALL name the reclaim that takes it.
 - **AC-03-3-7** · Rev: 1 · Proof: plugin/test/flow/claim/gone-holder.test.mjs "a claim on a lease whose holder the record proves gone is granted, and prints the id that proved it"
   WHERE a lease names a process that is not running in the domain that lease records, and the caller
   stands in that same domain, the CLI SHALL grant the reclaim whatever the duration says, SHALL name
