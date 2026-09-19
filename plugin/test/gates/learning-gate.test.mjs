@@ -35,6 +35,7 @@ const decided = (run) => {
 test("an answer carrying no decision is malformed, and only silence is this gate allowing", () => {
   assert.deepEqual(decided({ status: 0, stdout: "", stderr: "" }), { allowed: true });
   assert.throws(() => decided({ status: 0, stdout: "{}", stderr: "" }));
+  assert.throws(() => decided({ status: 0, stdout: "null", stderr: "" }));
 });
 
 const decide = (command) => decided(ask({ tool_name: "Bash", tool_input: { command } }));

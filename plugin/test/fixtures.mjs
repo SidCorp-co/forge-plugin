@@ -51,7 +51,11 @@ const spoke = (run, { exit = 0, skipped = [] } = {}) => {
 
 export const answered = (run, said) => {
   spoke(run, said);
-  return run.stdout.trim() ? JSON.parse(run.stdout) : null;
+  if (!run.stdout.trim()) return null;
+  const answer = JSON.parse(run.stdout);
+  assert.notEqual(answer, null,
+    "the child wrote `null`, which is an answer and not the silence of a gate allowing");
+  return answer;
 };
 
 /* `cwd` is the project the hook stands in, a different question from the event's `cwd`: the settings resolver walks up from the process, so a case varying a `.forge.json` key sets this. */

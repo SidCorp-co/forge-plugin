@@ -51,6 +51,8 @@ const context = (run) => {
 test("silence is this gate saying nothing, and an answer with no context in it is neither", () => {
   assert.equal(context({ status: 0, stdout: "", stderr: "" }), null);
   assert.throws(() => context({ status: 0, stdout: "{}", stderr: "" }));
+  assert.throws(() => context({ status: 0, stdout: "null", stderr: "" }),
+    "a child that wrote null wrote an answer, and only writing nothing is saying nothing");
 });
 
 const fired = (root, rel, at, session = "s1") => {
