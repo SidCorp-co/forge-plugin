@@ -136,6 +136,29 @@ test("a reading whose range ends at the mark holds nothing, the row saying none 
   assert.doesNotMatch(said, /ISS-77/u, said);
 });
 
+/* A page that carried the row carried it, whatever became of the page after: the answer is already
+   in hand and withholding it here would file a second row for a range that has one. */
+const refusingAfter = (rows) => {
+  let served = 0;
+  return () => (served++
+    ? { refused: "the page after the first would not come back" }
+    : { issues: rows, returned: rows.length, hasMore: false, beyond: 3 });
+};
+
+test("a holder on a page before one that refused is still the answer, and no reading is claimed short", async () => {
+  const said = await readingRow("held-then-refused", (mark) =>
+    ({ answer: { forge_issues: refusingAfter([reading(mark, "ISS-99")]) } }));
+  assert.match(said, /and ISS-99 holds it at in_progress/u, said);
+  assert.doesNotMatch(said, /unread/u, said);
+});
+
+test("a page that refused after one holding no such row leaves who holds the debt unread", async () => {
+  const said = await readingRow("none-then-refused", () =>
+    ({ answer: { forge_issues: refusingAfter([]) } }));
+  assert.match(said, /and which issue holds it is unread: .*the page after the first would not come back/u, said);
+  assert.doesNotMatch(said, /no issue holds it/u, said);
+});
+
 test("a backlog that came back short leaves who holds the debt unread, and claims no absence", async () => {
   const said = await readingRow("short", () => ({ answer: { forge_issues: shortPage([], 3) } }));
   assert.match(said, /and which issue holds it is unread: /u, said);

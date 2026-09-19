@@ -434,15 +434,19 @@ export const fakeTracker = async (state) => {
   /* One row per route the CLI may call: the pattern it matches, and the envelope its tool-shaped
      answer becomes. `parts` names what a route serves out of a body the handler answered whole. */
   const ROUTES = [
-    [/^\/api\/projects\/[^/]+\/issues\/search$/u, (q) =>
-      windowOn(q, answered("forge_issues", { action: "list", filters: { search: q.get("q") } }))],
+    /* A refusal travels out whole: paged, it answers 200 with no rows, which reads as an empty backlog. */
+    [/^\/api\/projects\/[^/]+\/issues\/search$/u, (q) => {
+      const held = answered("forge_issues", { action: "list", filters: { search: q.get("q") } });
+      return held?.refused ? held : windowOn(q, held);
+    }],
     [/^\/api\/projects\/([^/]+)\/issues$/u, (q, sent, method, [project]) => {
       if (method === "POST") return asRow(answered("forge_issues", { action: "create", project, data: sent }));
       /* Omitted where the query narrowed on nothing, exactly as the caller omits it: a handler
          asking whether a page was filtered may not be told it always was. */
       const narrowed = filtersFrom(q);
-      return windowOn(q, answered("forge_issues",
-        { action: "list", project, ...(Object.keys(narrowed).length ? { filters: narrowed } : {}) }), q.get("sort"));
+      const held = answered("forge_issues",
+        { action: "list", project, ...(Object.keys(narrowed).length ? { filters: narrowed } : {}) });
+      return held?.refused ? held : windowOn(q, held, q.get("sort"));
     }],
     [/^\/api\/issues\/([^/]+)\/dependencies\/([^/]+)$/u, (q, sent, method, [id, edgeId]) =>
       answered("forge_issues", { action: "unlink_edge", documentId: id, edgeId })],

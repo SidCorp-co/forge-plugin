@@ -25,9 +25,10 @@ const NOT_A_READING = "dropped";
 const UNREAD = "the search for the issue holding this mark's reading";
 
 /** Held, none, or unread — three answers, because an absence a page may have been cut off from is
- *  not an absence, and a dropped reading leaves the range an issue nobody reads. */
+ *  not an absence, and a dropped reading leaves the range an issue nobody reads. Soft, so a page
+ *  refusing after an earlier one carried the row leaves that row here rather than throwing it away. */
 export const readingFor = async (from) => {
-  const read = await everyIssue({ search: at(from) });
+  const read = await everyIssue({ search: at(from) }, { soft: true });
   const row = read.rows.find((one) => readingCovers(one.title, from) && one.status !== NOT_A_READING);
   if (row) return { key: row.issueId, status: row.status ?? null };
   const cut = read.refused ? String(read.refused) : shortOf(read, UNREAD);
