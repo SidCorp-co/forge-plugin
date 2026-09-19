@@ -6,7 +6,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { tempRoom } from "./fixtures.mjs";
+import { fakeTracker, tempRoom } from "./fixtures.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -197,4 +197,100 @@ test("a home-rooted path is read from the home the process holds, not the one it
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.deepEqual(JSON.parse(run.stdout), [[installed], join(later, "cache", "forge")],
     `${READERS.join(" and ")} answered about the home they were imported under, so nothing a caller sets afterwards can move them`);
+});
+
+/* A handler says the call failed by answering `refused`, `http` or `notARecord`, and the request
+   handler branches on exactly those three. A route that pages, projects or defaults that answer
+   served the wrapper instead, so a case saying the tracker refused was handed a 200 with no rows —
+   an empty backlog, an empty attachment list, no blockers — and could not fail (ISS-618). One
+   request per route row, with every tool failing, is what holds that seam in place. */
+const TOOLS = [
+  "forge_issues", "forge_uploads", "forge_comments", "forge_knowledge", "forge_memory.search",
+  "forge_guide", "forge_project_pm", "forge_config", "forge_projects.list", "forge_projects.create",
+  "forge_projects.update", "forge_projects.read", "forge_projects.get", "forge_projects.archive",
+  "forge_projects.unarchive",
+];
+
+const failing = (answer) => Object.fromEntries(TOOLS.map((name) => [name, () => ({ ...answer })]));
+
+/* One request per row of the fixture's own route table, in its order; the first case below refuses
+   a row nothing here reaches. */
+const PROBES = [
+  ["GET", "/api/projects/p1/issues/search?q=x"],
+  ["GET", "/api/projects/p1/issues"],
+  ["POST", "/api/projects/p1/issues"],
+  ["DELETE", "/api/issues/u1/dependencies/e1"],
+  ["GET", "/api/issues/u1/dependencies"],
+  ["POST", "/api/issues/u1/dependencies"],
+  ["GET", "/api/issues/u1/attachments"],
+  ["POST", "/api/comments/c1/attachments"],
+  ["GET", "/api/issues/u1/comments"],
+  ["POST", "/api/issues/u1/comments"],
+  ["POST", "/api/issues/u1/transition"],
+  ["POST", "/api/issues/u1/merge"],
+  ["GET", "/api/issues/u1"],
+  ["PATCH", "/api/issues/u1"],
+  ["GET", "/api/projects/p1/knowledge/slug1"],
+  ["GET", "/api/projects/p1/knowledge"],
+  ["POST", "/api/memory/search"],
+  ["GET", "/api/guides/g1"],
+  ["GET", "/api/guides"],
+  ["GET", "/api/projects/p1/pm/runner-load"],
+  ["GET", "/api/projects/p1/pipeline-config"],
+  ["GET", "/api/projects/p1/project-facts"],
+  ["POST", "/api/projects/p1/archive"],
+  ["GET", "/api/projects/p1"],
+  ["PATCH", "/api/projects/p1"],
+  ["GET", "/api/projects"],
+];
+
+const asked = async (server, [method, path]) => {
+  const sent = method === "GET" || method === "DELETE"
+    ? { method }
+    : { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ probe: true }) };
+  const got = await fetch(server.url.replace(/\/mcp$/u, "") + path, sent);
+  return { status: got.status, text: await got.text() };
+};
+
+/* Every probe against a tracker whose every handler failed, and what came back that `reads` will
+   not take as that failure reaching the caller. */
+const swallowedBy = async (answer, reads) => {
+  const server = await fakeTracker({ answer: failing(answer) });
+  const out = [];
+  for (const probe of PROBES) {
+    const got = await asked(server, probe);
+    if (!reads(got)) out.push(`${probe[0]} ${probe[1]} -> ${got.status} ${got.text.slice(0, 70)}`);
+  }
+  server.close();
+  return out;
+};
+
+test("every route of the fake tracker is asked what it does with a handler that failed", async () => {
+  const server = await fakeTracker({});
+  server.close();
+  const reached = new Set(PROBES.map(([, path]) =>
+    server.routes.findIndex((source) => new RegExp(source, "u").test(path.split("?")[0]))));
+  const missed = server.routes.filter((source, at) => !reached.has(at));
+  assert.deepEqual(missed, [], `${missed.length} route row(s) of ${FIXTURES[0]} that no probe in this file reaches: `
+    + `${missed.join(", ")}. Add one request per row to PROBES, or a route ships never having answered a refusal.`);
+});
+
+test("a refusal reaches the caller whichever route the handler refused on", async () => {
+  const swallowed = await swallowedBy({ refused: "the handler refused", code: "FORBIDDEN" },
+    (got) => got.status === 400 && got.text.includes("the handler refused"));
+  assert.deepEqual(swallowed, [], `${swallowed.length} route(s) served their own body over a handler's refusal, `
+    + `which a caller reads as a tracker holding nothing: ${swallowed.join("; ")}`);
+});
+
+test("a transport failure reaches the caller whichever route the handler failed on", async () => {
+  const swallowed = await swallowedBy({ http: 502 }, (got) => got.status === 502);
+  assert.deepEqual(swallowed, [], `${swallowed.length} route(s) answered 200 over a handler's transport failure, `
+    + `so no case on them can tell a read that failed from a read that found nothing: ${swallowed.join("; ")}`);
+});
+
+test("a 200 that is not a record reaches the caller whichever route answered it", async () => {
+  const swallowed = await swallowedBy({ notARecord: "<html>502</html>" },
+    (got) => got.status === 200 && got.text === "<html>502</html>");
+  assert.deepEqual(swallowed, [], `${swallowed.length} route(s) built a JSON envelope out of a body that is not a `
+    + `record, which reads as the tracker answering: ${swallowed.join("; ")}`);
 });
