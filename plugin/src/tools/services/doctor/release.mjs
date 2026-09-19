@@ -9,9 +9,7 @@ import { hereCopy, pluginCopy } from "../../plugin-copy.mjs";
 
 const LABEL = "newest release";
 const REMOTE = "origin";
-/* Long enough for a round trip to a git host on a slow link, short enough that a report nobody is
-   waiting on cannot hold up the phase that runs it. It bounds the wait for the answer and not the
-   span from the ask, which is where those two readings differ. */
+/* Long enough for a round trip to a git host on a slow link, short enough that a report nobody is waiting on cannot hold up the phase that runs it. */
 export const MS = 5000;
 
 const OWN = new URL("../../../../.claude-plugin/plugin.json", import.meta.url);
@@ -74,10 +72,8 @@ const asked = (at) => {
   return { done, stop };
 };
 
-/* Armed here and not where the child was spawned, because the ask is started before the checks it
-   overlaps and those checks hold the loop: node runs its timers before it polls for I/O, so a clock
-   armed at the spawn is spent by work the report was going to do anyway and fires on an answer
-   already sitting in the pipe. What is bounded is the wait, and nothing waits until this is called. */
+/* Armed at the wait and never at the spawn: the ask overlaps checks that hold the loop, and node runs
+   its timers before it polls, so a clock armed there fires on an answer already sitting in the pipe. */
 const answered = (ask, ms) => new Promise((settle) => {
   const bound = setTimeout(() => { ask.stop(); settle({ late: true }); }, ms);
   ask.done.then((run) => { clearTimeout(bound); settle(run); });

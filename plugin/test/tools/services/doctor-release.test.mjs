@@ -184,7 +184,7 @@ test("a block longer than the bound does not spend the remote's budget", async (
    long as this polls, nothing having spawned. The handshake says startRelease had returned before
    the transport could serve, so the footprint is not a spawn the row itself made. Neither bounds
    elapsed time, which this suite refuses, and neither reads the share of the machine it got. */
-test("the ask is already running before the row is read, not begun by reading it", async () => {
+test("the ask is already running before the row is read, not begun by reading it", async (t) => {
   const at = box("overlapping");
   const mark = join(at.room, "asked");
   const go = join(at.room, "go");
@@ -194,6 +194,10 @@ test("the ask is already running before the row is read, not begun by reading it
   git(at.tree, "config", "protocol.ext.allow", "always");
   git(at.tree, "remote", "set-url", "origin", `ext::${transport}`);
   const started = startRelease({ home: at.home, running: "1.0.0", ms: 20_000 });
+  /* Nothing bounds the ask until the row waits on it, and the reading below is taken before the row
+     is entered: a case that failed there would otherwise leave a live child holding its pipes and
+     hang the worker instead of going red. */
+  t.after(() => started.answer?.stop());
   assert.equal(await reached(() => existsSync(mark), true), true,
     "the ask had not begun while the report's own work ran, so the row is what started it");
   writeFileSync(go, "");
