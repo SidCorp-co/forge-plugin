@@ -3,6 +3,7 @@ import { WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/
 import { MINTED_FOR, RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames } from "../resolve/session/run-id.mjs";
 import { TAKEABLE } from "../rank/weights.mjs";
 import { holderGone, holderGoneSaid, placeOf } from "./lease/holder.mjs";
+import { handedOn } from "./lease/dispatched.mjs";
 import { bandWith, sharedNow, sharedStamp, slackNow, stampOf, straddles } from "../wire/shared-clock.mjs";
 import { thisCall } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
@@ -114,11 +115,7 @@ export const expiryOf = (lease) => {
 
 export const stamp = (ms) => (ms ? stampOf(ms) : "an unreadable time");
 
-/* A lease past its duration is another run's. The holder's own lapsed one is its own state because
-   the field still naming this session proves nobody took the issue; a reclaim is a handoff. And
-   `gone` above both clock readings rather than inside either, because what it answers is the
-   question a duration cannot: not when the lease ran out but whether anything still holds it
-   (ISS-919). */
+/* A lease past its duration is another run's. The holder's own lapsed one is its own state because the field still naming this session proves nobody took the issue; a reclaim is a handoff. And `gone` above both clock readings rather than inside either, because what it answers is the question a duration cannot: not when the lease ran out but whether anything still holds it (ISS-919). */
 export const stateOf = (lease, holder, now = sharedNow()) => {
   if (!lease) return "free";
   const live = expiryOf(lease) > now;
@@ -313,6 +310,9 @@ export const TAKEN_BY_WRITING = "write";
 /** And the word both a typed reclaim and a write that reclaims for itself keep, which is what the crash park counts. */
 export const RECLAIM = "reclaim";
 
+/** Beside it, the word a take the record calls a handoff keeps, counting toward no park. */
+export const HANDED = "handed";
+
 /* Which of the two a payload write owes a field holding no lease, and the only place the question is answered: take it where a bare `forge claim` would have granted it, refuse in that claim's own words where the claim is itself refused (ISS-1260, ISS-1252). Past the dispatch statuses the empty field names three readings — a run that died, a write that erased one, a filing sent straight there — and a silent take would pick one of them; that judgement is what the flag exists to ask a person for. */
 export const freeRefusal = (ref, status, context = null) => {
   if (TAKEABLE.includes(String(status))) return WRITE_REFUSAL.free(ref);
@@ -334,11 +334,12 @@ export const tookByWriting = (ref, lease, left = null) =>
   + ` Work that follows this says so by claiming, which is the lease that is kept:\n  forge claim ${ref}`;
 
 /* The same sentence one rung down, where the field holds a lease rather than nothing (ISS-1660): a bare `forge claim` grants the reclaim outright at this age, the lapse outlasting the duration the holder itself named, so the write makes that claim. It names the run it came off and how long ago that lease ran out, because this caller reads no refusal before the write and is the one caller a takeover is invisible to. */
-export const reclaimedByWriting = (ref, lease, over, now = sharedNow()) =>
-  `${ref} was held by a lease ${holderGone(over)
+export const reclaimedByWriting = (ref, lease, over, { gone = false, handed = false, now = sharedNow() } = {}) =>
+  `${ref} was held by a lease ${gone
     ? "whose holder the record proves gone"
-    : `that ran out ${agoIn(now - expiryOf(over))}`} and this write reclaimed `
-  + `it: it came off ${describe(over)}, and ${describe(lease)} holds the issue now. ${holderGone(over)
+    : `that ran out ${agoIn(now - expiryOf(over))}`} and this write `
+  + `${handed ? "took the turn it was dispatched for" : "reclaimed it"}: it came off ${describe(over)}, `
+  + `and ${describe(lease)} holds the issue now. ${gone
     ? holderGoneSaid(over)
     : "A lapse that old is one a reclaim needs nothing established about."} The claim the refusal `
   + `here used to name is one this write could make, and it made it.`
@@ -346,11 +347,8 @@ export const reclaimedByWriting = (ref, lease, over, now = sharedNow()) =>
   + ` The lease covers the write and not this run: it goes back when the write lands. Work that `
   + `follows this says so by claiming, which is the lease that is kept:\n  forge claim ${ref}`;
 
-/* The one read a free field costs, made here and on no other path: the status is what separates the take from the refusal, and reading it for every payload write would be a round trip per write (ISS-1252). */
-const statusFor = async (documentId) => {
-  const answer = await scoped("forge_issues", { action: "get", documentId, fields: [] });
-  return String(answer?.status ?? "");
-};
+/* The one read a take costs, made here and on no other path: the status separates the take from the refusal and the issue's own key separates a handoff from a reclaim, and reading either for every payload write would be a round trip per write (ISS-1252). The key is the issue's and never the caller's spelling of it, `ref` taking a uuid too (ISS-919). */
+const issueFor = async (documentId) => scoped("forge_issues", { action: "get", documentId, fields: [] });
 
 /* Said rather than refused (ISS-65): the command the old refusal named is one this write can make. */
 export const renewedLapsed = (ref, lease) =>
@@ -409,8 +407,11 @@ export const anothersHold = async (documentId, ref) => {
 };
 
 /* The take a payload write makes for itself, which is a claim in everything but the typing: the caller asked for the write, the field is empty, and the tracker's compare is what separates two callers who both read it empty — the refusal this replaces separated nobody (ISS-1260). The lease is the short one and carries the line that says so, derived rather than asked for, because a call that had to take its own lease is by construction the whole of what it does to the issue; the notice waits for the write, as the lapsed one does, a claim printed before the update being one a failed update would leave standing. It sits before the refusal below and after the finder, which claims nothing anywhere; and a `null` line reaching it is the transition clearing a line the issue was carrying, which a field holding no lease never had, so silence resolves to the derived line and a caller with a line of its own still writes it. A release emptied the field leaves a line that IS one write's own doing: silence carries it forward and the transition's null clears it, which is the one place the two answers differ (codex F2, then F1 of the read after it). */
-const takenByWriting = async (documentId, ref, context, next, patch, over = null) => {
-  const status = await statusFor(documentId);
+const takenByWriting = async (documentId, ref, context, next, patch, over = null, gone = false) => {
+  const issue = await issueFor(documentId);
+  const status = String(issue?.status ?? "");
+  /* The same question `forge claim` asks of the same record, so a run cannot be handed the issue when it types the claim and charged a crash when it writes instead (ISS-919). */
+  const handed = Boolean(over) && handedOn(issue?.issueId ?? ref, context, status);
   /* Asked of the empty field alone: the three readings that guard names are what an empty field at such a status could be, and a field naming a holder and an expiry is none of them — the record says who was on it and that the lapse outlived the duration, which is the whole of what a bare reclaim asks anywhere (ISS-1660). */
   if (!over && !takeableFree(status, context)) fail(freeRefusal(ref, status, context));
   const left = nextLeft(context);
@@ -423,12 +424,14 @@ const takenByWriting = async (documentId, ref, context, next, patch, over = null
     next: over ? next : derived,
     worklog: worklogFor(context, patch),
     /* The word a typed reclaim writes, because that is the call this replaces: the crash park counts the reclaims of a status to find where runs die, and a pickup that stopped being typed is no less a run that died there. */
-    how: over ? RECLAIM : TAKEN_BY_WRITING,
+    how: over ? (handed ? HANDED : RECLAIM) : TAKEN_BY_WRITING,
     status,
     over,
   });
   await setLease(documentId, sent, ref, () => context);
-  console.error(over ? reclaimedByWriting(ref, leaseOf(sent), over) : tookByWriting(ref, leaseOf(sent), left));
+  console.error(over
+    ? reclaimedByWriting(ref, leaseOf(sent), over, { gone, handed })
+    : tookByWriting(ref, leaseOf(sent), left));
   OWED.set(documentId, { ref, turn: false });
   return sent;
 };
@@ -481,7 +484,7 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
   if (state === "free" && !finder) return takenByWriting(documentId, ref, context, next, patch);
   /* The second rung of the same reading: a lease the record proves dead is as free as no lease at all, and the round the refusal charged bought nothing the caller had not already read off it. A lapse the record cannot vouch for keeps the refusal below, which is `forge claim`'s own answer at that age — one seam, read from `lapseUnproven`, so no write takes a lease that claim would refuse (ISS-1660). */
   if ((state === "gone" || (state === "expired" && !lapseUnproven(lease))) && !finder) {
-    return takenByWriting(documentId, ref, context, next, patch, lease);
+    return takenByWriting(documentId, ref, context, next, patch, lease, state === "gone");
   }
   if (state !== "mine" && state !== "lapsed") {
     if (finder) return false;
@@ -525,7 +528,7 @@ export const landingSaved = async (documentId, ref, patch, { was = null } = {}) 
     const lease = leaseOf(context);
     const state = stateOf(lease, holder);
     /* Refused where `renew` takes, this being no first write on untouched work: a landing state exists only where a build already carried the issue past the statuses a run is dispatched at, so an empty field here is the anomaly and not the opening. What it owed and did not have was the right claim to name (ISS-1252). */
-    if (state === "free") fail(freeRefusal(ref, await statusFor(documentId), context));
+    if (state === "free") fail(freeRefusal(ref, String((await issueFor(documentId))?.status ?? ""), context));
     if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, lease));
     const held = landingOf(context);
     /* Before the table, which would allow the same move off a checkpoint somebody replaced. */

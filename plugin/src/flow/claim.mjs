@@ -55,7 +55,7 @@ import {
   setLease,
   stateOf,
   takeableFree,
-  writeRefusal,
+  writeRefusal, HANDED,
   unheldRefusal,
 } from "./lease.mjs";
 import {
@@ -98,10 +98,8 @@ const advise = async (documentId, issue, held = null) => {
 
 export const USAGE = [
   usageOf("claim"),
-  "The lease on an issue, in the session field it already has: a holder, the process it ran as and",
-  "where that process was issued, a renew time, a duration and the claims before this one. Nothing",
-  "else of a run is remembered, and a lease whose process is gone from that same place is anybody's",
-  "at once: docs/cli/the-dead-holder.md.",
+  "The lease on an issue, in the session field it already has: a holder, a renew time, a",
+  "duration and the claims before this one. Nothing else of a run is remembered.",
   "",
   `  --minutes <n>   how long the lease runs from now, instead of ${MINUTES}`,
   `  ${STOPPED}       reclaim a lease only just lapsed, the run established stopped`,
@@ -490,8 +488,8 @@ export const claim = async (argv) => {
   /* Off the remnant where there is no lease to read it from, so the flag that clears the refusal is not the way to lose the one line the refusal just printed. */
   const left = lease?.next ?? nextLeft(context);
   /* A gone holder is a reclaim like any other, so the park counting reclaims of one status keeps counting the runs that died there — except where the record already calls the take a handoff, the dispatcher that exited being the one holder whose going is not a crash of this issue's (ISS-919). */
-  const how = { free: unheld ? "unheld" : "claim", live: "handed", expired: RECLAIM,
-    gone: handed ? "handed" : RECLAIM, mine: null, lapsed: null }[state];
+  const how = { free: unheld ? "unheld" : "claim", live: HANDED, expired: RECLAIM,
+    gone: handed ? HANDED : RECLAIM, mine: null, lapsed: null }[state];
   const checkpoint = given.ready ? readyCheckpoint(ref, holder, patch, landingOf(context)) : null;
   const next = claimed(context, {
     holder, minutes, next: line, worklog: worklogFor(context, patch), how, status: issue.status,

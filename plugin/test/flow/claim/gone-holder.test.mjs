@@ -102,6 +102,27 @@ test("the sixth state, which neither clock reading reaches and a run is never to
     "and a run is never told its own lease is gone, whatever it recorded as its process");
 });
 
+/* The probe rules on absence and on nothing else, so an id the caller may not signal has to be told
+   from one that is not there — a distinction the box this runs on may not be able to produce, root
+   owning every process it can see, so the error is made rather than looked for. */
+test("an id this call may not signal is an id that answers, whoever the suite runs as", () => {
+  const clock = { holder: THEIRS, agent: "a-test-agent", renewedAt: ago(5), minutes: 60, next: null, history: [] };
+  const gone = { ...clock, pid: GONE, place: HERE };
+  const real = process.kill;
+  process.kill = () => {
+    const error = new Error("operation not permitted");
+    error.code = "EPERM";
+    throw error;
+  };
+  try {
+    assert.equal(stateOf(gone, OURS), "live",
+      "a probe refused is a probe that proved nothing, and the clock decides");
+  } finally {
+    process.kill = real;
+  }
+  assert.equal(stateOf(gone, OURS), "gone", "while the same lease reads gone once the probe can answer");
+});
+
 test("a claim on a lease whose holder the record proves gone is granted, and prints the id that proved it", async () => {
   heldBy();
   const took = await ran(["claim", "ISS-919"]);
@@ -167,7 +188,8 @@ test("nothing is proven where the place, the id or the probe leaves any doubt", 
 
 /* The dispatcher that exited is the one holder whose going is not a crash of this issue's: the record
    already calls that take a handoff, and charging it as a reclaim would walk the issue toward a park
-   for a person that nothing died to earn. */
+   for a person that nothing died to earn. Both routes onto the issue answer alike, or a run
+   is handed the issue when it types the claim and charged a crash when it writes instead. */
 test("a run the issue was dispatched to takes a gone dispatcher's lease as the handoff the record calls it", async () => {
   heldBy({ history: [reclaimed(ago(300)), reclaimed(ago(200))] });
   const took = await ran(["claim", "ISS-919"], "iss-919-3ec73d70");
@@ -177,4 +199,15 @@ test("a run the issue was dispatched to takes a gone dispatcher's lease as the h
   assert.equal(ISSUE.status, "approved", "and the issue is not parked for a person");
   assert.match(took.stdout, new RegExp(`Process id ${GONE}`, "u"),
     "while the caller is still told what became of the run it took the lease from");
+});
+
+test("and takes it as that same handoff where it writes a payload instead of typing the claim", async () => {
+  heldBy({ history: [reclaimed(ago(300)), reclaimed(ago(200))] });
+  const wrote = await ran(["record", "correction", "ISS-919", "--moved", "the probe", "--why", "the holder is gone"],
+    "iss-919-3ec73d70");
+  assert.equal(wrote.status, 0, `the write should carry the turn through:\n${wrote.stdout}${wrote.stderr}`);
+  assert.equal(ISSUE.sessionContext.lease.history.at(-1).how, "handed",
+    "the word the typed claim writes, so neither route charges a crash the other would not");
+  assert.match(wrote.stderr, /took the turn it was dispatched for/u, "and the notice says which of the two it was");
+  assert.equal(ISSUE.status, "approved", "with nothing parked for a person");
 });
