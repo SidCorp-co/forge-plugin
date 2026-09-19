@@ -21,6 +21,7 @@ const {
   outcomeOf,
   recheckOwed,
   recheckPlan,
+  recheckSaid,
   recheckRange,
   recheckRisks,
   rulingsIn,
@@ -348,11 +349,11 @@ test("a recheck's rulings become the verdict on the consult it judged, by positi
   assert.equal(auto.record.accepted, 1);
   assert.equal(auto.record.of, "c1");
   assert.equal(auto.record.from, "r1");
-  assert.match(auto.record.note, /still open: F2/u, "CONFIRMED stays open, CANNOT TELL is neither");
+  assert.match(recheckSaid(auto.record), /still open: F2/u, "CONFIRMED stays open, CANNOT TELL is neither");
   assert.match(auto.said, /verdict --of c1/u);
   const shifted = verdictFromRulings(plan, 1, RECHECK_REPLY, "r1");
   assert.deepEqual(shifted.record.kept, [], "a --verify risk before the list shifts the numbering");
-  assert.match(shifted.record.note, /still open: F1/u);
+  assert.match(recheckSaid(shifted.record), /still open: F1/u);
   assert.equal(verdictFromRulings(plan, 0, "CODEX: 0 findings", "r1"), null, "no rulings, no verdict");
   const prior = { kept: ["F3", "F9"], dropped: { F2: "by design" } };
   const merged = verdictFromRulings(plan, 0, RECHECK_REPLY, "r2", prior);
@@ -386,8 +387,9 @@ test("a recheck leaves the author's ruling and its reason standing, and says wha
     "a confirmation is the reviewer standing by its finding, never the author withdrawing a rejection");
   assert.deepEqual([after.record.accepted, after.record.rejected], [1, 1], "the counts stay the ones the author recorded");
   assert.deepEqual(after.record.stood, { F1: "CONFIRMED", F2: "REFUTED" }, "and what the recheck found survives beside them");
-  assert.match(after.record.note, /both minor/u, "the author's note on the consult as a whole survives the write");
-  assert.match(after.record.note, /from recheck e433e1/u, "which still names the recheck, so the two writes stay apart in the log");
+  assert.equal(after.record.note, "both minor", "the author's note on the consult as a whole survives the write, and nothing is folded into it");
+  assert.equal(recheckSaid(after.record), "from recheck e433e1; your ruling stands on F1 (CONFIRMED), F2 (REFUTED)",
+    "the clause naming the recheck is composed from the row, so the two writes stay apart in the log");
   assert.match(after.said, /F1 \(rejected, and the recheck said CONFIRMED\)/u, "the run is told, rather than reading the log to find out");
   assert.match(after.said, /verdict --of 95d1dc/u, "with the one command that settles it");
   assert.deepEqual(undecidedIn(["F1", "F2"], after.record), [], "and the commit gate reads a review with nothing standing");
@@ -401,6 +403,17 @@ test("a recheck leaves the author's ruling and its reason standing, and says wha
   assert.equal(taken.record.auto, undefined, "the author ruling on them takes both ids out of the recheck's");
   const third = verdictFromRulings(plan, 0, "1. **REFUTED** — fixed now.\n2. **REFUTED** — fixed now.", "r3", taken.record);
   assert.deepEqual(third.record.dropped, { F1: "by design" }, "so the recheck after it moves nothing");
+
+  /* A status folded into the note outlives the write it was true of: r2 accepted what r1 left open,
+     and a note carrying r1's clause would have said both at once, for every recheck after it. */
+  assert.equal(second.record.note, undefined, "no recheck's status reaches the next record's note");
+  assert.equal(recheckSaid(second.record), "from recheck r2", "and the row's own clause names only the recheck that wrote it");
+  const noted = verdictFromRulings(plan, 0, "1. **CONFIRMED** — still there.\n2. **CONFIRMED** — still there.", "r4", { note: "both minor" });
+  const twice = verdictFromRulings(plan, 0, "1. **REFUTED** — fixed.\n2. **REFUTED** — fixed.", "r5", noted.record);
+  assert.equal(twice.record.note, "both minor", "the author's line is carried whole however many rechecks follow it");
+  assert.equal(recheckSaid(twice.record), "from recheck r5", "with no clause of r4's left saying they are still open");
+  assert.equal(recheckSaid({ from: "r6", note: "from recheck r6; still open: F1" }), "",
+    "a row of the older shape folded the clause into its note, and printing it twice is not a second write");
 });
 
 test("the commit gate asks about the last consult that made findings and heard nothing", () => {
@@ -480,7 +493,7 @@ test("a ruling is the word at the head of a numbered line, whatever the reply wr
   assert.deepEqual(keptOf("1. **F1** — **REFUTED**"), ["F1"], "the id emphasised apart from the dash that follows it");
   const quoted = ["1. **CONFIRMED** — the defect is still there.", "", "```", "1. F1 - REFUTED", "```"].join("\n");
   assert.deepEqual(keptOf(quoted), [], "a fenced example of a ruling is shown, not made, and cannot overwrite the answer above it");
-  assert.match(verdictFromRulings(plan, 0, quoted, "r1").record.note, /still open: F1/u, "the CONFIRMED above the fence is the answer that stands");
+  assert.match(recheckSaid(verdictFromRulings(plan, 0, quoted, "r1").record), /still open: F1/u, "the CONFIRMED above the fence is the answer that stands");
   assert.doesNotMatch(digestOf(quoted, null), /F1 - REFUTED/u, "and the fence is not replayed as a second ruling either");
   const inner = ["```markdown", "    ```", "1. F1 - REFUTED", "```", "1. **CONFIRMED** — the defect remains."].join("\n");
   assert.deepEqual(keptOf(inner), [], "an indented fence run is literal content, so it closes nothing and the answer below the real fence stands");

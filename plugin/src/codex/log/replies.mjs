@@ -8,12 +8,24 @@ import { pathed } from "../../hooks/shell-spans.mjs";
 import { median } from "../../stats/median.mjs";
 import { answered, isAnswered, judgedBy, maskedDeep, shortOfWhole, verdictsBy } from "../codex-log.mjs";
 
+/** What a recheck did to a verdict, composed from the row rather than stored in its note: the note is the author's line and is carried from write to write, so a status folded into it outlives the write it was true of and reads as the next one's — r1 left F1 open, r2 accepted it, and the row said both. Empty for a row of the older shape, which folded it in and would otherwise print it twice. */
+export const recheckSaid = (held) => {
+  if (!held?.from || held.note?.includes(`from recheck ${held.from}`)) return "";
+  const stood = held.stood ? Object.entries(held.stood) : [];
+  return [
+    `from recheck ${held.from}`,
+    held.reopened?.length ? `still open: ${held.reopened.join(", ")}` : null,
+    stood.length ? `your ruling stands on ${stood.map(([id, ruling]) => `${id} (${ruling})`).join(", ")}` : null,
+  ].filter(Boolean).join("; ");
+};
+
 const verdictLine = (held) => {
   const kept = held.kept?.length ? ` (${held.kept.join(", ")})` : "";
   const dropped = held.dropped && Object.keys(held.dropped).length
     ? ` (${Object.entries(held.dropped).map(([id, why]) => (why ? `${id}: ${why}` : id)).join("; ")})`
     : "";
-  return `${held.accepted} accepted${kept}, ${held.rejected} rejected${dropped}${held.note ? ` — ${held.note}` : ""}`;
+  const said = [held.note, recheckSaid(held)].filter(Boolean).join(" — ");
+  return `${held.accepted} accepted${kept}, ${held.rejected} rejected${dropped}${said ? ` — ${said}` : ""}`;
 };
 
 const HISTORY_PAIRS = 3;
@@ -196,7 +208,9 @@ const isCount = (raw) => raw !== undefined && /^\d+$/u.test(String(raw).trim());
 
 export const verdictRecord = (last, { accepted, rejected, note }, prior = null) => {
   const at = new Date().toISOString();
-  const base = { kind: "verdict", at, of: last.id ?? last.at, files: last.files, ...(note ? { note } : {}) };
+  /* A write that names no note keeps the one already recorded: a second ruling is about findings, and dropping the line about the consult is the same silent replacement a recheck made (ISS-1881). */
+  const said = note ?? prior?.note;
+  const base = { kind: "verdict", at, of: last.id ?? last.at, files: last.files, ...(said ? { note: said } : {}) };
   const known = numbered(last.reply).map((one) => one.id);
   const made = known.length ? `it made ${known.join(", ")}` : "it made no findings";
   if (isCount(accepted) || isCount(rejected)) {
@@ -313,20 +327,13 @@ export const verdictFromRulings = (plan, offset, reply, recheckId, prior = null)
   });
   if (!kept.length && !open.length && !stood.length) return null;
   const of = plan.judged.id ?? plan.judged.at;
-  const ids = stood.map(([id]) => id).join(", ");
-  /* The row in `codex log` is the note alone, so the recheck's clause is what tells the two writes apart there; the author's leads it. */
-  const note = [
-    prior?.note || null,
-    `from recheck ${recheckId}`,
-    open.length ? `still open: ${open.join(", ")}` : null,
-    stood.length ? `your ruling stands on ${ids}` : null,
-  ].filter(Boolean).join("; ");
   const held = joined(prior, kept.map((id) => ({ id })), open.map((id) => ({ id, reopen: true })), numbered(plan.judged.reply).length, true);
   const moved = Boolean(kept.length || open.length);
   return {
     record: {
       kind: "verdict", at: new Date().toISOString(), of, files: plan.judged.files, ...held,
-      from: recheckId, ...(stood.length ? { stood: Object.fromEntries(stood) } : {}), note,
+      from: recheckId, ...(stood.length ? { stood: Object.fromEntries(stood) } : {}),
+      ...(prior?.note ? { note: prior.note } : {}),
     },
     said: [
       moved

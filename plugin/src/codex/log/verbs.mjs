@@ -6,7 +6,7 @@ import { NO_SESSION } from "../../resolve/config.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { flags, pullRepeated } from "../../resolve/flags.mjs";
 import { answered, budgetMs, logBytes, logConsult, logEntries, logPath, maskedDeep, pairedLog, verdictsBy } from "../codex-log.mjs";
-import { countedIn, scoreOf, unverdicted, verdictRecord } from "./replies.mjs";
+import { countedIn, recheckSaid, scoreOf, unverdicted, verdictRecord } from "./replies.mjs";
 
 const LOG_TAIL = 10;
 
@@ -38,9 +38,9 @@ export const logLine = (stored, full) => {
       + `on ${(entry.files ?? []).join(" ")}${wroteIt(entry)}`;
   }
   if (entry.kind === "verdict") {
-    const note = entry.note ? `  ${entry.note}` : "";
+    const note = [entry.note, recheckSaid(entry)].filter(Boolean).join("  ");
     return `${entry.at}  verdict on ${entry.of}: ${entry.accepted} accepted, ${entry.rejected} rejected`
-      + `${wroteIt(entry)}${note}`;
+      + `${wroteIt(entry)}${note ? `  ${note}` : ""}`;
   }
   const answer = stored.ok ? `${(stored.reply ?? "").length}ch` : `failed: ${entry.error ?? "?"}`;
   const id = entry.id ? `${entry.id}  ` : "";
