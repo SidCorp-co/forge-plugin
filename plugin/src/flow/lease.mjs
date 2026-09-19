@@ -60,11 +60,12 @@ export const idsHere = (lease, held = sessionSourced(), at = process.cwd()) => {
   if (here && lease?.holder === here && held.id !== here) {
     return `That holder is the id ${besideGit(at, RUN_ID)} holds, so the lease is a run standing `
       + `where this call stands; this one resolved ${held.id} instead. Unset ${RUN_ID_VAR} and run `
-      + "from this tree, and the two are one run again.";
+      + "from this tree, and both calls hold that one id.";
   }
   return held.source === WORKTREE
-    ? `This call's own id was read off ${besideGit(at, RUN_ID)}, the tree it stands in, so it is `
-      + "this run's alone and names no wave."
+    ? `This call's own id was read off ${besideGit(at, RUN_ID)}, the tree it stands in, so it names `
+      + "no wave — and it names that tree rather than this run, every call made from here resolving "
+      + "the same one."
     : "";
 };
 

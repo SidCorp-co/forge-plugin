@@ -64,8 +64,8 @@ end refuses no stale write; and every one of them pays, because a park is three 
 of four files is four: a run reclaimed halfway through has to be refused at the next of them rather
 than carried to the end.
 
-What the lease records beside the holder, and the one thing the record can prove about the run
-behind it: [the dead holder](the-dead-holder.md).
+What the lease records beside the holder, and the two readings that settle a lease its duration
+cannot: [the dead holder](the-dead-holder.md).
 
 **The lease also carries one line naming the step whoever comes next starts on.** `--next` sets it on
 the claim, on `forge advance` and on any `forge record` that writes; every renew keeps it, because a

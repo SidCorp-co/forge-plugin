@@ -64,6 +64,7 @@ import {
 import { takeLease, takeRefusal } from "./lease/takeover.mjs";
 import { SHARED_HOLDER, handedOn, handedSaid, notHandedHere, sharedHolder } from "./lease/dispatched.mjs";
 import { holderGoneSaid } from "./lease/holder.mjs";
+import { workingHere, workingRefusal } from "./lease/working.mjs";
 import { bandWith, straddleSaid, straddles, unplaceable } from "../wire/shared-clock.mjs";
 
 const MAX_MINUTES = 24 * 60;
@@ -102,7 +103,7 @@ export const USAGE = [
   "duration and the claims before this one. Nothing else of a run is remembered.",
   "",
   `  --minutes <n>   how long the lease runs from now, instead of ${MINUTES}`,
-  `  ${STOPPED}       reclaim a lease only just lapsed, the run established stopped`,
+  `  ${STOPPED}       a lapse, or work in this tree: the run under the lease established stopped`,
   `  ${UNHELD}        no run is on it: take it anyway`,
   "  --next <line>   one line, the step whoever comes next starts on; a transition clears it",
   "  --pushed        the branch, head, base and files touched, off git now",
@@ -470,6 +471,8 @@ export const claim = async (argv) => {
   if (state === "live" && !handed) {
     fail(claimRefusal(ref, lease, notHandedHere(ref, key, context, issue.status, holder), takeOpen));
   }
+  const working = state === "mine" || state === "lapsed" ? workingHere(holder) : [];
+  if (working.length && !given.stopped) fail(workingRefusal(ref, lease, working));
   /* The anomaly and not the flag: a field with no lease in it, at a status only a run's own writes reach. Named here so the refusal and the word the history keeps cannot come to disagree about which claim was the anomalous one. A field a write gave the lease back in is none of the readings that anomaly stands for — one write emptied it on purpose and said so — so it is an ordinary claim wherever the issue stands (ISS-1617). */
   const unheld = state === "free" && !takeableFree(issue.status, context);
   if (unheld && !given.unheld) {

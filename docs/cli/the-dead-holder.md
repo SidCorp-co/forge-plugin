@@ -1,4 +1,4 @@
-# `claim` — what the record proves about a holder
+# `claim` — what the record and the tree prove about a holder
 
 **The holder names the kind of agent and the process id beside the session**, because a uuid places
 nobody: when ISS-26's shell died, whoever had to decide between waiting for that run and taking the
@@ -29,3 +29,34 @@ lease with no domain, or another's, is left to its clock exactly as every lease 
 The take is a reclaim like any other on the claim history, so the park that answers a status where
 runs keep dying counts it — except where the record already calls the take a handoff, the
 dispatcher that exited being the one holder whose going is not a crash of this issue's.
+
+**A holder a worktree minted names the tree and not the run standing in it.** The id lives beside
+that tree's git directory because every agent of a wave inherits one session id and the tree is the
+one thing each has to itself (ISS-467) — which fixes the wave and leaves this: two agents dispatched
+into one tree resolve one id, so the field naming that id is not evidence that the caller reading it
+is the caller that wrote it. Measured on ISS-1699: a second run was dispatched onto an issue a live
+run was mid-ship on, `forge claim` answered `renewed`, `forge resume` printed the lease under
+`mine`, and the two ran a gate and a release against one branch. Nothing either of them could call
+said so.
+
+Nothing ambient tells them apart, either. The process id, the socket, the session id and the shell
+all belong to the host every agent shares, and a second agent's environment is identical to the
+first's down to the snapshot its shell sources — so there is no per-process identity to hang a
+suffix on and nothing for a registration to bind to. What is left is the tree itself: the processes
+standing in it. A claim on a lease this caller would otherwise read as its own is refused while a
+process whose working directory is inside that tree is neither this call, nor anything above it,
+nor anything it started. Where none is, the claim is granted with no flag and no wait, which is
+what the reclaim above bought and this may not charge for.
+
+**The reading cannot say whose process it found, and does not pretend to.** A run's own gate stands
+in its own tree exactly as a stranger's does. So the refusal prints what is there — the id, the
+command line, the minute it started — and the caller rules on it, the same division `--stopped`
+already draws for a lapse no record can settle: it says what is being decided and the person or the
+run deciding says which way. And it stands only in front of the claim. A payload write is the work
+reaching the record, and a run writing down what it has just done while its own gate runs behind it
+would lose that write to a probe that cannot tell the gate from a sibling; a second run's first act
+is the claim, which is where the cost of being wrong is one command.
+
+What it does not see it does not guess at: a process in another process table, one belonging to a
+user this caller cannot read, and work that starts after the claim was granted. It is a floor rather
+than a census, and every case it misses is the case the duration was already deciding.

@@ -90,7 +90,7 @@ next write and the next claim take it where an empty one is refused.
 
 ### UC-03-2 — Refuse a second run
 
-Rev: 3 · Actors: agent · Enforces: BR-01, BR-05
+Rev: 4 · Actors: agent · Enforces: BR-01, BR-05
 
 A lease inside its duration held by another run refuses the claim and every payload write, and the
 refusal names the holder and the renew time — the two facts a person needs to decide whether to
@@ -99,6 +99,16 @@ the record settles it, the reclaim is UC-03-3's. The one second run it does not 
 the issue was dispatched to, which the record identifies without anybody being asked to remember a
 flag; a dispatcher holding a lease over a write it has already finished is not work, and waiting it
 out is the cost this exception exists to drop.
+
+A holder that matches is not always this caller. The id a worktree mints belongs to that tree, so
+every call made from there resolves it and the field naming it says a run standing there holds the
+issue rather than that this caller is that run. A holder therefore answers three ways and not two —
+gone, this caller's own, and a run of its own standing in the same tree — and the third is a refusal
+carrying the process it found, the tree that process is standing in and the assertion that takes the
+lease anyway, because no ambient fact separates two callers in one tree and the caller can settle
+what the record cannot. What that reading may not do is charge the second of the three: a tree with
+nothing standing in it grants the claim as it always did. It qualifies the claim and nothing else,
+the claim being the first call a second run makes and the one whose cost of being wrong is a command.
 
 - **AC-03-2-1** · Rev: 3 · Proof: plugin/test/flow/lease.test.mjs "every refusal names the holder, its renew time and the one command that clears it"
   IF a lease inside its duration is held by another run, and the record does not show that run gone,
@@ -119,6 +129,23 @@ out is the cost this exception exists to drop.
   past the statuses a run is dispatched at, or a landing checkpoint on it names a turn, or the
   holder is itself a run the issue was dispatched to, THEN the CLI SHALL refuse the claim as it
   refuses any second run's.
+- **AC-03-2-5** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "a second claim from one worktree is refused while work this call did not start stands in that tree"
+  IF a claim is made on a lease whose holder is the id the tree this call stands in mints, and a
+  process is standing in that tree which is neither this call, nor above it, nor started by it, THEN
+  the CLI SHALL refuse the claim and SHALL name that process, the tree it is standing in, the file
+  that mints the id and the assertion that takes the lease anyway.
+- **AC-03-2-6** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "the same claim is granted at once where nothing is standing in that tree"
+  WHERE no such process is standing in that tree, the CLI SHALL grant that claim with no assertion
+  asked for and no wait.
+- **AC-03-2-7** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "the flag takes the lease while that work is still standing, and the history keeps no row for it"
+  IF the caller asserts that no run is working under that lease THEN the CLI SHALL grant the claim
+  while that process is still standing and SHALL append nothing to the claim history.
+- **AC-03-2-8** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "a payload write under that same lease lands while the work stands"
+  WHILE such a process is standing in that tree the CLI SHALL let a payload write made under that
+  same lease land unrefused.
+- **AC-03-2-9** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "the brief says the work is standing there rather than leaving the lease's own state as the whole reading"
+  WHEN that lease is read rather than claimed THEN the CLI SHALL say that a process is standing in
+  that tree under the held id, beside the state the field itself carries.
 
 ### UC-03-3 — Reclaim what a dead run left
 
@@ -180,10 +207,11 @@ history keeps a word of its own for that claim rather than the one an ordinary f
   WHERE a lease names a process that is not running in the domain that lease records, and the caller
   stands in that same domain, the CLI SHALL grant the reclaim whatever the duration says, SHALL name
   the process the proof rests on, and SHALL record the domain of every lease it takes from then on.
-- **AC-03-3-8** · Rev: 1 · Proof: plugin/test/flow/claim/gone-holder.test.mjs "nothing is proven where the place, the id or the probe leaves any doubt"
+- **AC-03-3-8** · Rev: 2 · Proof: plugin/test/flow/claim/gone-holder.test.mjs "nothing is proven where the place, the id or the probe leaves any doubt"
   IF the lease records no domain, or records one other than the caller's, or names a process that
-  answers, or names none that reads as a process at all, THEN the CLI SHALL decide the lease by its
-  duration alone.
+  answers, or names none that reads as a process at all, THEN the CLI SHALL take that as proving
+  nothing either way and SHALL leave the lease to its duration, except where another reading of the
+  holder answers on evidence of its own.
 - **AC-03-3-9** · Rev: 1 · Proof: plugin/test/flow/claim/gone-holder.test.mjs "a payload write meeting that same lease takes it rather than being refused"
   IF a payload is written to an issue whose lease names a process the record proves gone THEN the CLI
   SHALL take that lease as part of the write and SHALL keep the take in the claim history under the
