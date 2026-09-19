@@ -162,3 +162,17 @@ test("an answer missing one of the four numbers states no budget, rather than a 
     assert.equal(reserveIn(KEY, 100_000), null, `and nothing is paced against it: ${missing}`);
   }
 });
+
+/* The same bucket, a second route: its calls before anything named its scope are as much this
+   process's as the first route's were, and the window they landed in is the one already open. */
+test("a second route joining a bucket already read brings the calls it made with it", () => {
+  const OTHER = "forge_comments.create";
+  forgetBudget();
+  call(100_000, { limit: 60, remaining: 59, resetAt: 200_000 });
+  for (let one = 0; one < 5; one += 1) assert.equal(reserveIn(OTHER, 100_000), null);
+  sawBudget(OTHER, stated({ limit: 60, remaining: 54, resetAt: 200_000 }));
+  for (let one = 0; one < 54; one += 1) reserveIn(KEY, 100_000);
+  sawBudget(KEY, stated({ limit: 60, remaining: 0, resetAt: 200_000 }));
+  assert.equal(reserveIn(KEY, 100_000).said.includes("by something else"), false,
+    "one, then five, then fifty-four: the window is spent and every call in it was this process's");
+});

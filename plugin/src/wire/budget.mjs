@@ -52,7 +52,10 @@ export const sawBudget = (key, headers) => {
   const held = scopes.get(scope);
   if (held && resetAt < held.resetAt) return;
   const now = !held || resetAt > held.resetAt ? opened(limit, remaining, resetAt, held, carried) : held;
-  if (now === held) now.sent += carried;
+  if (now === held) {
+    now.sent += carried;
+    now.spanning += carried;
+  }
   scopes.set(scope, now);
   now.answers += 1;
   now.limit = limit;
