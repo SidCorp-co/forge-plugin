@@ -93,9 +93,9 @@ and the suite runs again only for a criterion whose evidence is its own.
 ## The case that proves a rule is watched red twice
 
 A change that adds a rule — a checker, a guard, a validation — is proved by a case that fails
-without it, and one reading of that red is not that proof. A case whose outcome turns on what ran
-before it, an overdue timer or a file an earlier case wrote or the share of the machine a process
-got, fails one way and passes the other, and from inside a single reading a case that fails cannot
+without it, and one reading of that red is not that proof. A case whose outcome turns on anything
+but the source — an overdue timer, a file an earlier case wrote, the share of the machine a process
+got — fails one way and passes the other, and from inside a single reading a case that fails cannot
 be told from a case that failed that time. Neither can the case that could never have failed: it
 reads green against the fix afterwards exactly as a real one does, and nothing ever says so.
 
@@ -106,12 +106,15 @@ compared on is that one case's own result in each reading and never the run's ex
 can pass in a file where a sibling fails, which leaves the run red and the case green, and an
 exit-status reading calls that a red watched twice.
 
-- **Red in both** — the red is the case's own, and the case is the proof.
-- **Green in both** — nothing was watched. Either the fix is already in the tree, and the reading
-  is owed before it, or the case cannot fail.
-- **One of each** — what ran before the case decided its outcome, so neither reading says anything
-  about the source. Reshape the case until the two agree; which of them was the honest one is not
-  something one pair of readings can answer.
+- **Red in both** — what the pair establishes is that the red does not turn on what ran before the
+  case, and that is the whole of what it establishes. Whether it is the red the rule is about is
+  read off the assertion that failed: a case that never reached that assertion, a fixture or an
+  import having gone first, proved nothing in either reading.
+- **Green in both** — nothing was watched. The case showed no failure against this source: either
+  the fix is already in the tree, and the reading is owed before it, or the case cannot fail.
+- **One of each** — the readings disagree, so neither of them says anything about the source. One
+  pair cannot tell an interaction with what ran before from a process that got a different share of
+  the machine, and it is not asked to: reshape the case until the two agree.
 
 The second reading costs one more run of that file per case proven. Where the project's own tooling
 takes both and judges them, the project's rules name it; where there is none, the two runs and the

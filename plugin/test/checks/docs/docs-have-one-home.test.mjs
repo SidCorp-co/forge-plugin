@@ -109,7 +109,6 @@ test("the rules file restates none of the text this plugin serves", () => {
     .replace(/^---\n[\s\S]*?\n---\n/u, "")).map((one) => [rel, one]));
   const mine = sentences(readFileSync(join(ROOT, "CLAUDE.md"), "utf8")).map((one) => ["CLAUDE.md", one]);
   assert.ok(mine.length >= 20, `${mine.length} sentence(s) in the rules file; the selector is broken`);
-  /* Live, so the green below is a clean rules file and not an empty read. */
   const longest = served.reduce((one, next) => (next[1].length > one[1].length ? next : one));
   assert.ok(compare([["planted", longest[1]]], served, 0.25, 5)[0],
     "a sentence copied from the served text is not reported, so this check reads nothing");
