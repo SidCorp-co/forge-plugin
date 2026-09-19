@@ -20,7 +20,7 @@ const MACHINE = [
 ].join("\n");
 
 const OFFER = [
-  "Usage: forge doctor offer [--full]",
+  "Usage: forge doctor offer",
   "Which verbs and skills this machine offers, which it withholds, and the jobs this project",
   "declares. A verb can be unlisted for four reasons and the row names which, because a verb that",
   "has simply vanished from the usage list is the one thing a caller cannot act on.",
@@ -38,7 +38,7 @@ const OFFER = [
 ].join("\n");
 
 const PROJECT = [
-  "Usage: forge doctor project [--full]",
+  "Usage: forge doctor project",
   "The keys this project sets for itself, each with the value in force and where it was read, and",
   "the tracker's own record of the project: its branches, its deploys, each key of its pipeline, and",
   "what it counts.",
@@ -60,7 +60,7 @@ const PROJECT = [
 ].join("\n");
 
 const BRIEF = [
-  "Usage: forge doctor brief [--full]",
+  "Usage: forge doctor brief",
   "The brief a run reads instead of learning this repository by hand, its body numbered down the",
   "margin, and a `stale:` line naming which of the files it was read from have moved since.",
   "",
@@ -86,7 +86,7 @@ const BRIEF = [
 ].join("\n");
 
 const COPY = [
-  "Usage: forge doctor copy [--full]",
+  "Usage: forge doctor copy",
   "Which copy of this plugin answers a call from here, which copy the gates run, what a session",
   "keeps until it restarts whatever those two say, and the newest version released.",
   "",
@@ -99,7 +99,7 @@ const COPY = [
 ].join("\n");
 
 const SERVES = [
-  "Usage: forge doctor serves [--full]",
+  "Usage: forge doctor serves",
   "The roles this copy ships to dispatch through, the contract it states, every declared flow and",
   "which stages of the ladder its parts answer, the skill stubs a session loads, and this CLI's",
   "guide table against what the tracker now serves.",
@@ -129,7 +129,7 @@ const SERVICES = [
 ].join("\n");
 
 const REPO = [
-  "Usage: forge doctor repo [--full]",
+  "Usage: forge doctor repo",
   "This checkout's own health: whether every package its manifest declares resolves under",
   "node_modules, and what its CLAUDE.md claims — a path, a script, a `-h`, a ref or an identifier",
   "that has stopped being real, a rule a checker already states, and the sentences a guide or a",

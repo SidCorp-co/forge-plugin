@@ -56,11 +56,16 @@ test("a subject that needs the project and finds no slug says so and exits on it
   assert.equal(bare.status, 0, "and stays green: the note is the whole of what it counts");
 });
 
+/* The usage line offers --full where and only where the guard takes it: a help line naming a flag
+   the verb then refuses is the same defect as a flag silently dropped, read from the other end
+   (ISS-1692, codex F1). */
 test("the verb's help gives every subject a line, and each subject's help opens on its own call", () => {
-  for (const { slug, says, text } of SUBJECTS) {
+  for (const { slug, says, text, full } of SUBJECTS) {
     assert.ok(USAGE.includes(`  ${slug.padEnd(10)} ${says}`), `the verb's help gives ${slug} no line`);
-    assert.equal(text.split("\n")[0], `Usage: forge doctor ${slug} [--full]`,
+    assert.equal(text.split("\n")[0], `Usage: forge doctor ${slug}${full ? " [--full]" : ""}`,
       `${slug}'s own help does not open on the call that prints it`);
+    assert.equal(text.includes("--full"), Boolean(full),
+      `${slug} ${full ? "takes --full and its help never names it" : "refuses --full and its help offers it"}`);
     assert.equal(SAYS[slug], text, `${slug}'s text and the map the call answers from differ`);
   }
   assert.deepEqual(Object.keys(SAYS).sort(), [...SUBJECT_SLUGS].sort());
