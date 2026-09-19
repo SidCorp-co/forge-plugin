@@ -18,7 +18,7 @@ const OPENS_NOTHING = [
   ["hash git", "a lookup that fills the shell's own table"],
   ["printf %s hello", "a builtin that writes its operands and opens none"],
   ["printf %s 'docs/cli/$HOME-`id`.md, docs/cli/it'\\''s-here.md, plugin/bin/forge'", "the shape"
-    + " run-wrote-line.test.mjs spawns: a quoted run gives nothing inside it any meaning, and printf"
+    + " run-mark-clauses.test.mjs spawns: a quoted run gives nothing inside it any meaning, and printf"
     + " prints its operands rather than opening them, so a tracked path among them is still text"],
   ["echo one two", "the other writer"],
   ["true", "a program with no operand at all"],

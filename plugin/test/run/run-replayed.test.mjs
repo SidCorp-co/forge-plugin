@@ -403,7 +403,7 @@ test("a fix that added a file after the read is refused, naming what no read car
     `the head the read was taken at is not named:\n${run.stderr}`);
   assert.ok(run.stderr.includes(`--send bodies ${ADDED} ${UNDER_REVIEW}`),
     `the read it asks for does not name the whole set at the head that would land:\n${run.stderr}`);
-  assert.match(run.stdout, /^ {4}--moved nothing$/mu,
+  assert.match(run.stdout, /none of this change's \d+ file\(s\) moved with it/u,
     `the base question refused rather than passing, so this proves nothing about the read:\n${run.stdout}`);
   assert.doesNotMatch(run.stdout, /scratch gate ran/u, "a refused ship spent the gate");
   assert.equal(git(remote, "rev-parse", "master").stdout.trim(),
@@ -453,8 +453,12 @@ test("a landing that moved nothing this change writes leaves the ship alone, and
     `a landing outside this change's paths stopped the ship:\n${run.stdout}${run.stderr}`);
   assert.ok(run.stdout.includes(`${pin.slice(0, 7)}, moved from ${base.slice(0, 7)}`),
     `the step names neither head it compared:\n${run.stdout}`);
-  assert.match(run.stdout, /^ {4}--moved nothing$/mu,
-    `the flag the mark's clause is written by is not printed, or not as the value it takes:\n${run.stdout}`);
+  assert.match(run.stdout, /none of this change's \d+ file\(s\) moved with it/u,
+    `the step does not say the base moved none of this change's files:\n${run.stdout}`);
+  /* The flag is the last step's, which knows what the version commit wrote; answered here it would be
+     answered before that commit exists (ISS-1896). */
+  assert.doesNotMatch(run.stdout, /^ {4}--moved /mu,
+    `the step before the rebase writes the mark's moved clause, six steps early:\n${run.stdout}`);
 
   /* Replaying is the whole of what clears the refusal, which is why no flag has to. */
   const { work: second } = baseMoved("base-moved-replayed", UNDER_REVIEW);
@@ -464,7 +468,9 @@ test("a landing that moved nothing this change writes leaves the ship alone, and
   const again = runIn(second, ["ship"], BARE);
   assert.match(again.stdout, /step 4\/10 {2}rebase onto origin\/master/u,
     `a replayed change is still refused:\n${again.stdout}${again.stderr}`);
-  assert.match(again.stdout, /^ {4}--moved nothing$/mu, again.stdout);
+  assert.match(again.stdout, /none of this change's \d+ file\(s\) moved with it/u, again.stdout);
+  assert.doesNotMatch(again.stdout, /^ {4}--moved /mu,
+    `the replayed step writes the mark's moved clause, six steps early:\n${again.stdout}`);
 });
 
 /* The read that clipped. A bodies pass over a set above the bundle cap carries whole bodies for some

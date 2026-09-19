@@ -572,4 +572,4 @@ test("a release commit of an earlier attempt below the change is counted, and th
   assert.match(out, /a release commit sits among them/u, `the range's own clause is what says so:\n${out}`);
 });
 
-/* The flag the mark's `landing wrote` clause is typed into is printed by this same step, and its cases are `run-wrote-line.test.mjs`. */
+/* The flags the mark's two path clauses are typed into are printed by this same step, and their cases are `run-mark-clauses.test.mjs`. */

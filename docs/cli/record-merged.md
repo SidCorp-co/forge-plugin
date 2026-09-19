@@ -100,9 +100,21 @@ untrue:
 - one whose `landing moved` clause has no room for a single written path. That clause is what stands
   the verdicts down, and a partial list of it reads as a landing that moved less than it did.
 
-A run following the ship's last step types the flag and the value it printed, whole. The improvisation this replaced —
+A run following the ship's last step types each flag and the value it printed, whole. The improvisation this replaced —
 a shorter note invented per run, because the printed instruction was refused by the write it asked
 for — is what made the record of a large change whatever its run had time to type.
+
+## Both path clauses are computed at the same step, and neither earlier
+
+Where the landing is a release it writes files of its own on top of the change, so a `landing moved`
+answered before the version commit exists is answered about a landing that has not happened — and
+the ship gave one, six steps early. A run then had one clause computed and one promised, and the
+value it worked out instead, the judged head against the landed one, named the release's own three
+files as the change's. Every verdict fell with them, on every issue (ISS-1896).
+
+Both are answered at the one step that knows what landed, which names the commit it measured the
+moved clause above. That naming is the honest half: it measures movement the landing caused and
+proves no verdict current, so a run that committed a fix after judging owes the comparison itself.
 
 ## Marks already on the tracker still earn
 
