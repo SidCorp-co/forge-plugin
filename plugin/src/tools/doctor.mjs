@@ -314,8 +314,8 @@ const checkEndpoint = async (full, credentials) => {
   await checkProject(credentials, findings.answered?.forge_project_pm ?? null);
 };
 
-const checkFlowKeys = () => {
-  report(projectKeyLines());
+const checkFlowKeys = async () => {
+  report(await projectKeyLines());
   report(rankLines());
   const given = userConfig().retrySeconds;
   const own = retrySeconds({ retrySeconds: given }) === given;
@@ -427,7 +427,7 @@ export const doctor = async (argv) => {
   under("offer");
   report(withholdingLines());
   under("project");
-  checkFlowKeys();
+  await checkFlowKeys();
   under("machine");
   for (const { name, event } of offNow()) {
     line(OK, "hooks off", `${name} (${event}) — \`forge hooks --on ${name}\``);

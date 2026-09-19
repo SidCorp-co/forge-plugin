@@ -2,11 +2,12 @@
    batch reading is OWED — the last of these here and in no prompt, so the run reads it off its own
    issue and a person types none of it. The counting and the filing are the runner's;
    `docs/cli/knowledge.md` says why this half moved. */
-import { REVIEWED, reviewCounts, reviewedAt, reviewLines, reviewPaths } from "../../plugin/src/git/reviewed.mjs";
+import { readingFor, readingTitle, REVIEWED, reviewCounts, reviewedAt, reviewLines, reviewPaths }
+  from "../../plugin/src/git/reviewed.mjs";
 import { gitOut, REMOTE } from "../checkout.mjs";
 import { isRelease } from "./landing.mjs";
 
-export { REVIEWED, reviewedAt, reviewLines, reviewPaths };
+export { readingFor, readingTitle, REVIEWED, reviewedAt, reviewLines, reviewPaths };
 
 /* Volume alone, because the release count fired first on both readings it ever triggered — three
    releases at thirty-six changed lines the first time — so the trigger was the calendar of

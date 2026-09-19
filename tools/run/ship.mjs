@@ -7,12 +7,13 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { checkoutRoot, defaultBranch, gitOut, loud, parsed, read, REMOTE, remoteRef, revAt, stop }
+import { checkoutRoot, defaultBranch, gitOut, loud, read, REMOTE, remoteRef, revAt, stop }
   from "../checkout.mjs";
 import { follows, installs as installed } from "./install.mjs";
 import { recordDir, runSays } from "../gates/timing.mjs";
 import { edgesLeft, fileIssue } from "../../plugin/src/tracker/filing/route.mjs";
 import { refusing } from "../../plugin/src/resolve/settings.mjs";
+import { firstLine } from "../../plugin/src/resolve/flags.mjs";
 import { CEILINGS, climbForm, overCeiling } from "../../plugin/src/ladder.mjs";
 import { REPLAYED, replaySays, replayedBy } from "./replayed.mjs";
 import { cleanTree, INSTALLS, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./land.mjs";
@@ -22,7 +23,8 @@ import { onlyRelease } from "./landing.mjs";
 import { CHECK, publishes } from "./publish.mjs";
 import { publishesVersion, statesVersion, versionIn } from "./release/released-tag.mjs";
 import { forgetBump, unwound, versionAbove } from "./release/version.mjs";
-import { REVIEWED, reviewBody, reviewedAt, reviewLines, reviewPaths, reviewSays, spannedIn } from "./review.mjs";
+import { readingFor, readingTitle, REVIEWED, reviewBody, reviewedAt, reviewLines, reviewPaths,
+  reviewSays, spannedIn } from "./review.mjs";
 import { hookEntries } from "../../plugin/src/hooks/log/hook-log-file.mjs";
 import { typed } from "../../plugin/src/hooks/shell-spans.mjs";
 import { freezesSession, FROZEN, pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
@@ -295,54 +297,29 @@ const forgeSays = (tree, args, input) => {
 
 const whose = (said, call) => (said.unrun ? `${CLI} could not be run` : `the tracker did not answer ${call}`);
 
-const NOT_A_READING = "dropped";
 const READ = "closed";
 
-/** The review issue for this mark, at whatever status it has reached, or nothing: a run claims and
- *  advances its issue in its first minute, so `open` was the answer only before anybody had started
- *  (ISS-140). A dropped reading answers nothing — counted, it leaves the range an issue nobody reads
- *  and no route that files another. The filter is on the range's start, so a moved mark misses it. */
-const issueFor = (tree, from) => {
-  const at = from.slice(0, 7);
-  const found = forgeSays(tree, ["issue", "--search", at, "--limit", "100"]);
-  if (found.why) return { why: found.why, whose: whose(found, "the lookup") };
-  /* The row says which issue, the issue what status: those columns grew a rank mid-batch. */
-  const key = found.out.split("\n").map((line) => /^(ISS-\d+)\s+(.*)$/u.exec(line.trim()))
-    .find((row) => row?.[2].includes(`${at}..`))?.[1] ?? null;
-  if (!key) return { key: null, status: null };
-  const said = forgeSays(tree, ["issue", key]);
-  if (said.why) return { key, unread: said.why };
-  const status = parsed(said.out)?.status ?? null;
-  if (!status) return { key, unread: `${key} answered with no status:\n${said.out.trim()}` };
-  return status === NOT_A_READING ? { key: null, status: null } : { key, status };
-};
-
-/* Never twice outranks filing promptly, so a list that does not answer files nothing either: the
-   count keeps growing and the next ship reads the backlog again. The filing itself is in-process:
-   whether the body collided or was this repository's own to fix is what `fileIssue` returns, and a
-   release step reading it off another process's stdout read a paragraph written for a person. */
+/* Never twice outranks filing promptly, so a lookup that could not read the backlog whole files
+   nothing either. Both halves run in process and inside `refusing`: the answer is three-valued and a
+   page cut to a printed limit cannot say which, and a release is mid-flight here (ISS-1887). */
 const fileReview = async (tree, from, volume) => {
-  const held = issueFor(tree, from);
-  if (held.why || held.key) return held;
+  const held = await refusing(() => readingFor(from)).catch((error) => ({ short: error.message }));
+  if (held.short || held.key) return held;
   const to = gitOut(["rev-parse", "HEAD"], tree);
   if (!to) return { why: `${tree} has no HEAD to name as the range's end.`, whose: "this tree could not answer" };
-  const title = `The batch ${from.slice(0, 7)}..${to.slice(0, 7)} is read once as a whole by a run `
-    + `that wrote none of it, and the mark moves`;
-  /* Inside `refusing`, so a credential or a transport this CLI would exit over comes back here: a
-     release is mid-flight at this point and nothing about a filing may end it. */
-  /* Keys off the commit subjects, never the body, which cites the issues that shaped this step. */
   const filed = await refusing(() => fileIssue({
-    title,
+    title: readingTitle(from, to),
     body: reviewBody({ tree, from, to, volume }),
     kind: "review",
     relateKeys: spannedIn(tree, from),
+    /* Off deliberately and only here, the identity being the range, which the lookup above answered
+       exactly: the measure drops the two short hashes that are all two readings' titles differ in,
+       so it reads each reading as the one before it and refuses the filing. docs/cli/filing.md. */
+    duplicates: false,
     soft: true,
   })).catch((error) => ({ threw: error }));
   if (filed.threw) return { why: filed.threw.message, whose: "the filing could not be made" };
-  if (filed.refusal) {
-    return { why: filed.refusal.text, collided: filed.refusal.collided, mine: filed.refusal.mine,
-      whose: "this plugin refused the filing" };
-  }
+  if (filed.refusal) return { why: filed.refusal.text, mine: filed.refusal.mine, whose: "this plugin refused the filing" };
   if (filed.answer?.refused) return { why: filed.answer.refused, whose: whose({}, "the filing") };
   const key = filed.joined?.issueId ?? filed.answer?.issueId ?? null;
   return key
@@ -404,14 +381,13 @@ const reviewOwed = async (tree) => {
   console.log(`  a review of ${range} is owed: ${count} under ${reviewPaths().join(", ")}, at or past `
     + `${reviewLines()} line(s). It is a delegated run of its own:`);
   const asked = await fileReview(tree, from, volume);
-  /* Read, never launched: the check collides on similarity, so the key may not be a reading. */
-  if (asked.collided) {
-    console.error(`  this plugin's own filing check refused the body, the tracker having answered: it `
-      + `reads as ${asked.collided}: ${asked.why}`);
-    console.log(`    read it:         forge issue ${asked.collided}`);
-    console.log(`    it is this mark's reading under another range, or a title that only resembles `
-      + `one; the refusal's own \`clear:\` line is the write it leaves open, and the count keeps `
-      + `growing until one of them files`);
+  /* The one answer that is neither a row nor an absence: a second row for one range is what the
+     lookup alone now stands between, so a lookup that read part of the backlog files nothing. */
+  if (asked.short) {
+    console.error(`  whether an issue already holds this reading is unread, so nothing was filed and `
+      + `a second row for one range is not risked: ${firstLine(asked.short)}`);
+    console.log(`    read it yourself: forge issue --search ${from.slice(0, 7)}`);
+    console.log(`    the count keeps growing until that read comes back whole`);
     return;
   }
   /* A body no person typed, so the route is this repository's and never the filing just refused. */
@@ -421,12 +397,6 @@ const reviewOwed = async (tree) => {
     console.log(`    the body is ${SELF}'s own, so what the check asks for is this repository's to `
       + `write. File that: forge feedback - --title "<what the check asked the review body for>"`);
     console.log(`    the count keeps growing until the body it generates is one the check accepts`);
-    return;
-  }
-  if (asked.unread) {
-    console.error(`  ${asked.key} is this mark's reading, so nothing was filed; what could not be read `
-      + `is that issue's own status: ${asked.unread}`);
-    console.log(`    read it:         forge issue ${asked.key}`);
     return;
   }
   if (asked.why) {

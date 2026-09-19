@@ -13,9 +13,15 @@ const recorded = { push: (one) => appendFileSync(at(calls), `${JSON.stringify(on
 const held = () => (existsSync(at(seed)) ? JSON.parse(readFileSync(at(seed), "utf8")) : {});
 
 /* The seed is the store: a writer that reads its own write back is refused by a tracker that only
-   echoes. Reads stay the built-in's, which is what answering `undefined` leaves to it. */
+   echoes. Reads stay the built-in's, apart from `beyond`, rows a route counts and will not serve. */
 const answer = {
   forge_issues: (args) => {
+    if (args.action === "list" && held().beyond) {
+      const wanted = String(args.filters?.search ?? "").toLowerCase();
+      const rows = (held().issues ?? [])
+        .filter((one) => !wanted || JSON.stringify(one).toLowerCase().includes(wanted));
+      return { issues: rows, returned: rows.length, hasMore: false, beyond: held().beyond };
+    }
     if (args.action !== "update" && args.action !== "transition") return undefined;
     const seeded = held();
     const rows = seeded.issues ?? [];

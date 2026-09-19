@@ -3,10 +3,10 @@
    file resolves once per process (ISS-1883). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { git, homeEnv, ranAsync, tempRoom } from "../../fixtures.mjs";
+import { fakeTracker, git, homeEnv, ranAsync, shortPage, tempRoom } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
@@ -87,4 +87,58 @@ test("the row says a reading is owed once the count reaches the volume in force"
   ran(room, "commit", "-q", "-m", "four lines");
   const said = await rowIn(room, "owed");
   assert.match(said, /at or past the 4 that earn a reading of what has landed/u);
+});
+
+/* The debt is printed twice — here and by the release step that files its reading — so the row says
+   which of the three states it is in rather than a number a reader cannot act on (ISS-1887). */
+const DECLARED = { review: { lines: 4, paths: ["app"] } };
+const OWN_SLUG = JSON.parse(readFileSync(join(import.meta.dirname, "..", "..", "..", "..", ".forge.json"), "utf8")).slug;
+
+const owedRoom = (name) => {
+  const room = built(name, DECLARED);
+  /* The fixture serves this repository's own slug and no other, so a scoped read resolves only
+     where the room asks for that project. */
+  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: OWN_SLUG, ...DECLARED }));
+  wrote(room, join("app", "grew.txt"), 4);
+  ran(room, "add", "-A");
+  ran(room, "commit", "-q", "-m", "four lines");
+  return { room, mark: git(room, "rev-parse", "refs/forge/reviewed").stdout.trim().slice(0, 7) };
+};
+
+const readingRow = async (name, state) => {
+  const { room, mark } = owedRoom(name);
+  const tracker = await fakeTracker(state(mark));
+  const { stdout } = await ranAsync(FORGE, ["doctor", "project"], { ...tracker.env }, room);
+  tracker.close();
+  return stdout.split("\n").filter((one) => one.includes("] review ")).join("\n");
+};
+
+const reading = (mark, key) => ({ issueId: key, documentId: `u-${key}`, status: "in_progress",
+  title: `The batch ${mark}..deadbee is read once as a whole by a run that wrote none of it` });
+
+test("the row names the issue whose reading opens at the mark", async () => {
+  const said = await readingRow("held", (mark) => ({ issues: [reading(mark, "ISS-88")] }));
+  assert.match(said, /at or past the 4 that earn a reading of what has landed, and ISS-88 holds it at in_progress/u, said);
+});
+
+test("the row says no issue holds the debt where a whole reading of the backlog found none", async () => {
+  const said = await readingRow("unheld", () => ({ issues: [] }));
+  assert.match(said, /and no issue holds it — the next release files one/u, said);
+});
+
+/* A reading of another range is the previous batch, whose end the mark already is: named as this
+   debt's holder it would leave the range standing with no row and nobody looking for one. */
+test("a reading whose range ends at the mark holds nothing, the row saying none does", async () => {
+  const said = await readingRow("ended-here", (mark) => ({ issues: [{ issueId: "ISS-77",
+    documentId: "u-77", status: "open",
+    title: `The batch 0000000..${mark} is read once as a whole by a run that wrote none of it` }] }));
+  assert.match(said, /and no issue holds it — the next release files one/u, said);
+  assert.doesNotMatch(said, /ISS-77/u, said);
+});
+
+test("a backlog that came back short leaves who holds the debt unread, and claims no absence", async () => {
+  const said = await readingRow("short", () => ({ answer: { forge_issues: shortPage([], 3) } }));
+  assert.match(said, /and which issue holds it is unread: /u, said);
+  assert.doesNotMatch(said, /no issue holds it/u,
+    `a reading that could not finish was read as one that found nothing:\n${said}`);
 });

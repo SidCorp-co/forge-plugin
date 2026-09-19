@@ -85,6 +85,12 @@ export const noBacklog = (seed = {}) => {
   writeFileSync(CALLS_AT, "");
 };
 
+/** Rows onto a backlog a case has already spent calls against, those calls left where they are. */
+export const alsoOpen = (issues) => {
+  const held = JSON.parse(readFileSync(SEED_AT, "utf8"));
+  writeFileSync(SEED_AT, JSON.stringify({ ...held, issues: [...(held.issues ?? []), ...issues] }));
+};
+
 noBacklog();
 const served = tiedSpawn([join(import.meta.dirname, "processes", "tracker-process.mjs"), ROOM, SEED, CALLS, HOME]);
 await new Promise((ready) => served.stdout.once("data", ready));

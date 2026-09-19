@@ -6,8 +6,33 @@ import { existsSync } from "node:fs";
 import { isAbsolute, resolve, sep } from "node:path";
 
 import { fail, FROM_PROJECT, projectReview } from "../resolve/settings.mjs";
+import { everyIssue, shortOf } from "../tracker/issues.mjs";
 
 export const REVIEWED = "refs/forge/reviewed";
+
+const SHORT = 7;
+const at = (sha) => String(sha ?? "").slice(0, SHORT);
+
+export const readingTitle = (from, to) =>
+  `The batch ${at(from)}..${at(to)} is read once as a whole by a run that wrote none of it, and the `
+  + `mark moves`;
+
+/** A title holds this debt where the range it names opens at the mark; one that ends there is the
+ *  previous batch, already read, and answering with it leaves this range no row and no route to one. */
+export const readingCovers = (title, from) => String(title ?? "").includes(`${at(from)}..`);
+
+const NOT_A_READING = "dropped";
+const UNREAD = "the search for the issue holding this mark's reading";
+
+/** Held, none, or unread — three answers, because an absence a page may have been cut off from is
+ *  not an absence, and a dropped reading leaves the range an issue nobody reads. */
+export const readingFor = async (from) => {
+  const read = await everyIssue({ search: at(from) });
+  const row = read.rows.find((one) => readingCovers(one.title, from) && one.status !== NOT_A_READING);
+  if (row) return { key: row.issueId, status: row.status ?? null };
+  const cut = read.refused ? String(read.refused) : shortOf(read, UNREAD);
+  return cut ? { short: cut } : { key: null };
+};
 
 export const SHIPPED_PATHS = ["plugin/src", "plugin/hooks", "plugin/bin"];
 export const SHIPPED_LINES = 1500;

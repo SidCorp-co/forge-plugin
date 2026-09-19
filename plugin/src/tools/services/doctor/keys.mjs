@@ -6,7 +6,9 @@ import { CHECK_MS_TAKES, FEEDBACK_CHANNELS, FROM_PROJECT, LANDING_ROUTES, OWED_D
 import { budgetMs, logBytes } from "../../../codex/codex-log.mjs";
 import { checkStops } from "../../../codex/log/asked.mjs";
 import { flowPinned, flowRefusal } from "../../../guides/flow.mjs";
-import { REVIEWED, reviewStanding } from "../../../git/reviewed.mjs";
+import { readingFor, REVIEWED, reviewStanding } from "../../../git/reviewed.mjs";
+import { firstLine } from "../../../resolve/flags.mjs";
+import { accountCredentials, refusing } from "../../../resolve/settings.mjs";
 
 const MISS = "miss";
 
@@ -125,9 +127,25 @@ const cannotCount = ({ missing, checkout, paths }) => {
     + `under \`review.paths\` in ${FROM_PROJECT}${paths.from === FROM_PROJECT ? "" : `, the three above being this plugin's own layout`}`;
 };
 
+/* Asked only where a reading is owed and the account resolves: below the volume there is nothing to
+   hold, and a box with no credential is told that by the rows that read one (ISS-1887). */
+const holding = async (mark) => {
+  const { url, token } = accountCredentials();
+  if (!url.value || !token.value) return "";
+  try {
+    const found = await refusing(() => readingFor(mark));
+    if (found.key) return `, and ${found.key} holds it at ${found.status ?? "a status it did not carry"}`;
+    return found.short
+      ? `, and which issue holds it is unread: ${firstLine(found.short)}`
+      : ", and no issue holds it — the next release files one";
+  } catch (error) {
+    return `, and which issue holds it is unread: ${firstLine(error.message)}`;
+  }
+};
+
 /* The trigger a project declares for reading what has landed: silent where it declared neither key,
    and a miss where it declared one nothing here can ever count (ISS-1883). */
-const reviewRow = () => {
+const reviewRow = async () => {
   const standing = reviewStanding(checkoutRoot());
   if (!standing) return null;
   if (standing.refusal) return { level: MISS, label: "review", detail: standing.refusal };
@@ -141,11 +159,11 @@ const reviewRow = () => {
   }
   return { label: "review", detail: `${changed} changed line(s) in ${files} file(s) under ${counted} `
     + `since ${mark.slice(0, 7)}, ${owed ? "at or past" : "short of"} the ${lines.value} that earn a `
-    + `reading of what has landed  ← ${whereFrom(standing)}` };
+    + `reading of what has landed${owed ? await holding(mark) : ""}  ← ${whereFrom(standing)}` };
 };
 
 /** Every keyed choice this project makes, in the order the report prints them. */
-export const projectKeyLines = () => {
+export const projectKeyLines = async () => {
   const ship = shipMode();
   return [
     ...Object.entries(feedbackScope()).map(([which, one]) =>
@@ -157,6 +175,6 @@ export const projectKeyLines = () => {
     checkRow(),
     runsRow(),
     workRow(),
-    reviewRow(),
+    await reviewRow(),
   ].filter(Boolean);
 };

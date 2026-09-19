@@ -41,11 +41,16 @@ calls when it wants that assembly and its shape verdict before anything reaches 
 `forge feedback` asks it before it aims the project at this plugin, so a malformed note costs no
 call at all.
 
-**One thing stays a route's own, on purpose.** The duplicate check is off for `forge feedback`: a
-note refused as a near-duplicate is a finding lost, which is the one failure that verb exists to
+**Two routes turn the duplicate check off, each for a reason of its own.** `forge feedback`, because
+a note refused as a near-duplicate is a finding lost, which is the one failure that verb exists to
 prevent, and the neighbour block above its reply shows the filer everything the refusal would have
 said. Its own title fold went with ISS-334, so the reading it buys is now the filing's own and the
-route pays for one.
+route pays for one. And the ship's batch reading, because its identity is the range and the step
+answers that exactly before it files: the measure drops hex, which is the only part two readings'
+titles differ in, so it scores 1.00 against whichever previous range is still open and refuses the
+filing the count is asking for (ISS-1887). What stands in its place there is the lookup, which is
+why a lookup that did not come back whole files nothing rather than treating a short page as an
+absence. Neither route touches what the measure does for a body somebody typed.
 
 **Keys become edges on one route and an offer on the others.** A key in a body is as often the
 reason for a sentence as it is work the filing relates to, so `forge new` and `forge feedback` print
