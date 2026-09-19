@@ -171,7 +171,11 @@ test("the ask is already running before the row is read, not begun by reading it
   chmodSync(transport, 0o755);
   git(at.tree, "config", "protocol.ext.allow", "always");
   git(at.tree, "remote", "set-url", "origin", `ext::${transport}`);
+  const began = Date.now();
   const started = startRelease({ home: at.home, running: "1.0.0", ms: 900 });
+  /* Against the deadline and not against a clock: an ask that blocked where it is started would
+     spend the whole of it, so no load makes a returning call and a waiting one read alike. */
+  assert.ok(Date.now() - began < 900, `starting the ask waited on it: ${Date.now() - began}ms`);
   assert.equal(await reached(() => existsSync(mark), true), true,
     "the ask had not begun while the report's own work ran");
   const row = only(await releaseRows(started));
@@ -189,7 +193,9 @@ test("a block longer than the bound leaves the deadline enforced and the ask cos
   const started = startRelease({ home: at.home, running: "1.0.0", ms: 300 });
   const until = Date.now() + 700;
   while (Date.now() < until) { /* the report's own synchronous checks, which hold the loop */ }
+  const read = Date.now();
   const row = only(await releaseRows(started));
+  assert.ok(Date.now() - read < 300, `the read spent the deadline again: ${Date.now() - read}ms`);
   assert.equal(row.level, "note");
   assert.match(row.detail, /not read: the remote did not answer inside 0\.3s/u);
   assert.doesNotMatch(row.detail, /and the one running/u);
