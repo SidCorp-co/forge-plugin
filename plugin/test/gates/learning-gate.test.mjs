@@ -528,7 +528,8 @@ const write = (name, content, tool = "Write") => {
       HOME,
     );
     assert.equal(run.status, 0, run.stderr);
-    return answered(run)?.hookSpecificOutput?.permissionDecisionReason ?? null;
+    const answer = answered(run);
+    return answer === null ? null : answer.hookSpecificOutput.permissionDecisionReason;
   };
   return { first: once(), again: once() };
 };

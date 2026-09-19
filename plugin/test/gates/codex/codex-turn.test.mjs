@@ -41,6 +41,18 @@ const wrote = (root, rel) => {
   return join(root, rel);
 };
 
+/* Silence is this gate saying nothing; an answer with no context in it is a malformed answer and
+   not silence, so the two are read apart rather than both becoming `null` (ISS-1909). */
+const context = (run) => {
+  const answer = answered(run);
+  return answer === null ? null : answer.hookSpecificOutput.additionalContext;
+};
+
+test("silence is this gate saying nothing, and an answer with no context in it is neither", () => {
+  assert.equal(context({ status: 0, stdout: "", stderr: "" }), null);
+  assert.throws(() => context({ status: 0, stdout: "{}", stderr: "" }));
+});
+
 const fired = (root, rel, at, session = "s1") => {
   const file = wrote(root, rel);
   const run = callHook(
@@ -55,8 +67,7 @@ const fired = (root, rel, at, session = "s1") => {
     HOME,
   );
   assert.equal(run.status, 0, run.stderr);
-  const said = answered(run)?.hookSpecificOutput?.additionalContext ?? null;
-  return said ?? null;
+  return context(run);
 };
 
 const pending = (root) => {
@@ -108,7 +119,7 @@ const firedAs = (session, root, rel, at) => {
     { ...HOME, FORGE_SESSION_ID: session },
   );
   assert.equal(run.status, 0, run.stderr);
-  return answered(run)?.hookSpecificOutput?.additionalContext ?? null;
+  return context(run);
 };
 
 test("the hint is credited under the session, the surface codex-turn and the digest of its text", () => {

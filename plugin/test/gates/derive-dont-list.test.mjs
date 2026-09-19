@@ -25,7 +25,8 @@ const nudge = (name, content, session = randomUUID()) => {
     HOME,
   );
   assert.equal(run.status, 0, run.stderr);
-  return answered(run)?.reason ?? null;
+  const answer = answered(run);
+  return answer === null ? null : answer.reason;
 };
 
 test("a checker hard-coding what it could derive is asked once, and told where to look", () => {

@@ -26,7 +26,8 @@ const landed = (session, name, { dir = room, old, existing } = {}) => {
     HOME,
   );
   assert.equal(run.status, 0, run.stderr);
-  return answered(run)?.reason ?? null;
+  const answer = answered(run);
+  return answer === null ? null : answer.reason;
 };
 
 const committed = (repo, what) => {
