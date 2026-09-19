@@ -84,10 +84,8 @@ const releasedVersions = (run, ms) => {
   return { versions: once.sort((one, two) => (above(one, two) ? 1 : -1)) };
 };
 
-/** The ask, started before the report's own local checks so the round trip runs while they do and
- *  costs the report only what it is slower than them by (ISS-1460). Everything the row needs before
- *  the remote answers is resolved here, so a reading that makes the ask pointless never spawns one
- *  and no child outlives the report. */
+/** The ask, started before the checks it overlaps so it costs the report only what it is slower than
+ *  them by, resolving here all the row needs first so a reading that makes it pointless spawns nothing. */
 export const startRelease = ({ home = homedir(), running = hereCopy().version, ms = MS } = {}) => {
   const source = registeredSource(home);
   const mine = triple(running);

@@ -158,11 +158,9 @@ test("an ask that never answers is bounded, and comes back as an unknown rather 
   assert.doesNotMatch(row.detail, /and the one running/u);
 });
 
-/* The whole of ISS-1460: the ask used to be a synchronous spawn at the row, so the report paid the
-   round trip with nothing of its own in flight. What is under test is when the child starts, read
-   off the remote's own footprint rather than off a clock: an elapsed-time bound says the same thing
-   only on an unloaded box, and this one is never that. A run that still asked at the row would leave
-   the mark unwritten for as long as this polls, because nothing would have spawned anything. */
+/* When the child starts, read off the remote's own footprint rather than off a clock: an elapsed
+   bound says the same thing only on an unloaded box, and this one is never that. An ask made where
+   the row is read leaves the mark unwritten for as long as this polls, nothing having spawned. */
 test("the ask is already running before the row is read, not begun by reading it", async () => {
   const at = box("overlapping");
   const mark = join(at.room, "asked");
