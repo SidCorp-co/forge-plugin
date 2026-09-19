@@ -61,7 +61,7 @@ server is reported by `forge doctor` with the command that saves the same values
   "stop": { "agents": ["runner", "reviewer", "triage", "evaluator"] },
   "jobs": { "ba": { "verbs": ["issue", "new", "comment"], "skills": ["forge"] } },
   "rank": { "agePerDay": 2, "kind": { "bug": 20 } },
-  "review": { "lines": 1500 },
+  "review": { "lines": 1500, "paths": ["plugin/src", "plugin/hooks", "plugin/bin"] },
   "feedback": { "plugin": "bugs", "project": "all" },
   "flow": "default",
   "drainedBy": "dispatcher",
@@ -91,8 +91,16 @@ repository's own gate does with it: `node tools/gates.mjs -h`.
 Each key below is read from one place and nowhere else. `jobs` names the jobs this project has, a
 job being a name and the verbs and skills its usage list offers; absent, nothing is withheld.
 `rank` moves the weights `forge next` orders on, one weight at a time, the rest staying at the
-built-in table. `review.lines` is how many changed lines earn a reading of what has landed; absent,
-the number the script ships with stands. `feedback` says which channel each of the two feedback
+built-in table. `review.lines` is how many changed lines earn a reading of what has landed and
+`review.paths` is which paths of this repository are counted towards it, each relative to its root;
+absent, the number and the three paths this plugin ships with stand, and those three are this
+plugin's own source layout rather than a claim about anybody else's. A project that sets neither is
+one `forge doctor` says nothing about: the count runs from `refs/forge/reviewed` in that project's
+own repository, which the project plants and moves itself, so two checkouts on one machine never
+read each other's. A project that sets one of them and whose counted paths its repository does not
+hold is told so rather than counted at zero, because a trigger configured and never firing is worse
+than one refused where it is read; a `review.paths` that is present and is not a list of paths
+inside the repository is refused for the same reason, never quietly taking the shipped three. `feedback` says which channel each of the two feedback
 kinds takes, and each of them defaults on its own. `flow` names which of the served method sets
 this project runs, and `method` is retired: with no `flow` beside it, the one value that key ever
 took resolves to the default set and any other is refused with the route off the key. `drainedBy` says which master claims this project's issues once they are developed. `landing`

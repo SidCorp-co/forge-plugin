@@ -21,7 +21,7 @@ import { onlyRelease } from "./landing.mjs";
 import { CHECK, publishes } from "./publish.mjs";
 import { publishesVersion, statesVersion, versionIn } from "./release/released-tag.mjs";
 import { forgetBump, unwound, versionAbove } from "./release/version.mjs";
-import { REVIEWED, REVIEW_PATHS, reviewBody, reviewLines, reviewSays, spannedIn } from "./review.mjs";
+import { REVIEWED, reviewBody, reviewedAt, reviewLines, reviewPaths, reviewSays, spannedIn } from "./review.mjs";
 import { hookEntries } from "../../plugin/src/hooks/log/hook-log-file.mjs";
 import { typed } from "../../plugin/src/hooks/shell-spans.mjs";
 import { freezesSession, FROZEN, pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
@@ -77,7 +77,7 @@ export const SHIP_HELP = [
   "the tracker refused, since a release already pushed and installed is no place to fail. The checkpoint",
   "is not the status: what the record earns is the run\u0027s own to advance afterwards.",
   "",
-  `That last step also counts what landed under ${REVIEW_PATHS.join(", ")} since ${REVIEWED}, and`,
+  `That last step also counts what landed under ${reviewPaths().join(", ")} since ${REVIEWED}, and`,
   `says one reading of the whole of it is owed once the range holds ${reviewLines()} changed line(s).`,
   "The release count is printed beside it and decides nothing, so three one-line fixes owe no reading",
   "and one large landing owes one on its own. Past the threshold the step files the reading's issue",
@@ -260,8 +260,6 @@ export const NO_MARK = (self) => `no ${REVIEWED} in this repository, so what is 
   + `be counted. The first review reads from the release that introduced this rule: `
   + `${self} review --done <that release>.`;
 
-export const reviewedAt = (tree) => gitOut(["rev-parse", "--verify", "--quiet", REVIEWED], tree);
-
 const CLI = join(HERE, "plugin", "bin", "forge");
 const CLI_MS = 60_000;
 const launch = (key) => `Work ${key}. Use the Skill tool: skill forge:issue-flow, args ${key}.`;
@@ -380,10 +378,10 @@ const reviewOwed = async (tree) => {
   if (!from) return console.error(`  ${NO_MARK(SELF)}`);
   const { owed, range, count, volume } = reviewSays(tree, from);
   if (!owed) {
-    return console.log(`  ${count} under ${REVIEW_PATHS.join(", ")} since ${from.slice(0, 7)}, short `
+    return console.log(`  ${count} under ${reviewPaths().join(", ")} since ${from.slice(0, 7)}, short `
       + `of the ${reviewLines()} line(s) that call for a reading`);
   }
-  console.log(`  a review of ${range} is owed: ${count} under ${REVIEW_PATHS.join(", ")}, at or past `
+  console.log(`  a review of ${range} is owed: ${count} under ${reviewPaths().join(", ")}, at or past `
     + `${reviewLines()} line(s). It is a delegated run of its own:`);
   const asked = await fileReview(tree, from, volume);
   /* Read, never launched: the check collides on similarity, so the key may not be a reading. */

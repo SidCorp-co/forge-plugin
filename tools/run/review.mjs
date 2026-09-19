@@ -2,52 +2,26 @@
    batch reading is OWED — the last of these here and in no prompt, so the run reads it off its own
    issue and a person types none of it. The counting and the filing are the runner's;
    `docs/cli/knowledge.md` says why this half moved. */
-import { projectReview } from "../../plugin/src/resolve/settings.mjs";
-import { gitOut, REMOTE, stop } from "../checkout.mjs";
+import { REVIEWED, reviewCounts, reviewedAt, reviewLines, reviewPaths } from "../../plugin/src/git/reviewed.mjs";
+import { gitOut, REMOTE } from "../checkout.mjs";
 import { isRelease } from "./landing.mjs";
 
-export const REVIEWED = "refs/forge/reviewed";
-export const REVIEW_PATHS = ["plugin/src", "plugin/hooks", "plugin/bin"];
+export { REVIEWED, reviewedAt, reviewLines, reviewPaths };
+
 /* Volume alone, because the release count fired first on both readings it ever triggered — three
    releases at thirty-six changed lines the first time — so the trigger was the calendar of
    releases and not the code there is to read (ISS-112). Releases are still printed. */
-export const REVIEW_LINES = 1500;
-
-/** The count in force: the project's `review.lines`, absent only taking the default — a key set to
- *  null or to a typo silently taking it is a trigger nobody set (ISS-333). */
-export const reviewLines = () => {
-  const given = projectReview().lines;
-  if (given === undefined) return REVIEW_LINES;
-  if (!Number.isInteger(given) || given < 1) {
-    stop(`\`review.lines\` in .forge.json is a whole number of changed lines above zero, not `
-      + `\`${JSON.stringify(given)}\`. Drop the key to take the ${REVIEW_LINES} this script ships with.`);
-  }
-  return given;
-};
-
-/** What has landed in a range, walked `--first-parent` for the reason `isRelease` reads one: off it a
- *  merge that carried a bump in from a side branch is TREESAME while the side branch's own bumps are
- *  each counted, and neither is a release of this branch. Binary is `-\t-` and has no lines to add. */
-const landed = (tree, from) => {
-  const bumps = (gitOut(["log", "--first-parent", "--format=%H", `${from}..HEAD`, "--", "package.json"], tree) ?? "")
-    .split("\n").filter(Boolean);
-  const rows = (gitOut(["diff", "--numstat", `${from}..HEAD`, "--", ...REVIEW_PATHS], tree) ?? "")
-    .split("\n").filter(Boolean);
-  return {
-    releases: bumps.filter((sha) => isRelease(tree, sha)).length,
-    files: rows.length,
-    lines: rows.reduce((sum, row) => sum + row.split("\t").slice(0, 2)
-      .reduce((part, one) => part + (Number.parseInt(one, 10) || 0), 0), 0),
-  };
-};
+const releasesIn = (tree, from) =>
+  (gitOut(["log", "--first-parent", "--format=%H", `${from}..HEAD`, "--", "package.json"], tree) ?? "")
+    .split("\n").filter(Boolean).filter((sha) => isRelease(tree, sha)).length;
 
 /** The one sentence both readers print, so ship's last step and the review verb cannot disagree. */
 export const reviewSays = (tree, from) => {
-  const { releases, files, lines } = landed(tree, from);
+  const { files, lines } = reviewCounts({ tree, from, paths: reviewPaths() });
   return {
     owed: lines >= reviewLines(),
     range: `${from.slice(0, 7)}..HEAD`,
-    count: `${releases} release(s), ${files} file(s), ${lines} changed line(s)`,
+    count: `${releasesIn(tree, from)} release(s), ${files} file(s), ${lines} changed line(s)`,
     volume: `${files} file(s) and ${lines} changed line(s)`,
   };
 };
@@ -66,12 +40,13 @@ export const spannedIn = (tree, from) => {
 export const reviewBody = ({ tree, from, to, volume }) => {
   const owed = reviewLines();
   const keys = spannedIn(tree, from);
-  const paths = REVIEW_PATHS.join(" ");
+  const counted = reviewPaths();
+  const paths = counted.join(" ");
   return [
     "## Outcome",
     "",
     `The whole of ${from.slice(0, 7)}..${to.slice(0, 7)} is read once, as one batch, by a run that`,
-    `wrote none of it: ${volume} under ${REVIEW_PATHS.join(", ")}. What that reading finds is landed`,
+    `wrote none of it: ${volume} under ${counted.join(", ")}. What that reading finds is landed`,
     `or filed, and ${REVIEWED} then names the head it read to, so the next batch counts from there.`,
     "",
     "## Rules",
