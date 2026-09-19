@@ -194,7 +194,7 @@ test("the check runs under an environment this CLI composed, without the run tha
       command: `echo "session=[\${FORGE_SESSION_ID-absent}] tmpdir=[$TMPDIR]"`,
     }), "run_check", {})).text;
     assert.match(said, /session=\[absent\]/u, "a check is the project's command, not the run that consulted");
-    assert.match(said, new RegExp(`tmpdir=\\[${room}\\]`, "u"), "and the caller's own scratch root is where its leftovers go");
+    assert.ok(said.includes(`tmpdir=[${room}]`), "and the caller's own scratch root is where its leftovers go");
   } finally {
     if (was.session === undefined) delete process.env.FORGE_SESSION_ID; else process.env.FORGE_SESSION_ID = was.session;
     if (was.tmp === undefined) delete process.env.TMPDIR; else process.env.TMPDIR = was.tmp;

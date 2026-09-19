@@ -76,7 +76,8 @@ test("more failures than the bound are cut to it, and the block says how many it
   const lines = Array.from({ length: NAMED + over }, (nothing, at) =>
     `not ok ${at + 1} - case number ${at + 1}`).join("\n");
   const said = failuresSaid(`TAP version 13\n${lines}\n1..${NAMED + over}\n`);
-  assert.match(said, new RegExp(`^${NAMED + over} failing case\\(s\\) its output named, the first ${NAMED} of them, ${over} not named:$`, "mu"));
+  assert.equal(said.split("\n")[0],
+    `${NAMED + over} failing case(s) its output named, the first ${NAMED} of them, ${over} not named:`);
   assert.equal(said.split("\n").length, NAMED + 1, "one line of head and one per named case");
   assert.ok(!said.includes(`case number ${NAMED + 1}`), "and the ones past the bound are not in it");
 });
