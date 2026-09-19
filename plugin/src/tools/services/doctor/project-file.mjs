@@ -211,7 +211,9 @@ const statsRefusal = (given) => {
     return said("stats.commands", "a table", commands);
   }
   const unknown = Object.keys(commands).find((one) => !DECLARABLE.includes(one));
-  if (unknown) return said(`stats.commands.${unknown}`, `one of ${DECLARABLE.join(", ")}`, commands[unknown]);
+  if (unknown !== undefined) {
+    return said(`stats.commands.${unknown}`, `one of ${DECLARABLE.join(", ")}`, commands[unknown]);
+  }
   const empty = Object.keys(commands).find((one) => declares(one, commands) === null);
   return empty ? said(`stats.commands.${empty}`, "a command, or a list of them", commands[empty]) : null;
 };
@@ -278,7 +280,9 @@ const matches = (pattern, tail) => {
  *  its value is spelled, and the key whose reader judges the result — or the verb that writes it. */
 export const writableKey = (given) => {
   const segments = String(given).split(".");
-  if (!readsProjectKey(given)) return null;
+  /* An empty segment is a key with no name, which a wildcard would otherwise take: `stats.commands.`
+     would write a label nothing reads and read back as the value it was sent. */
+  if (!readsProjectKey(given) || segments.some((one) => one === "")) return null;
   const row = PROJECT_KEYS[segments[0]];
   if (row.routed) return { top: segments[0], routed: row.routed };
   const tail = segments.slice(1);

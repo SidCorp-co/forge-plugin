@@ -8,6 +8,7 @@ import { join } from "node:path";
 
 import { homeEnv, ranAsync, tempHome } from "../../fixtures.mjs";
 import { declares } from "../../../src/stats/corpus/classes.mjs";
+import { writableKey } from "../../../src/tools/services/doctor/project-file.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
@@ -211,6 +212,17 @@ test("a key naming an inherited property of that table is refused like any other
     assert.match(run.stderr, /review\.lines, review\.paths/u);
     assert.equal(now(), HELD);
   }
+});
+
+/* A wildcard takes any one name the project chooses, and an empty word is not one: it would write a label nothing reads and read back as exactly the value it was sent (consult 7c8b11). */
+test("a path with an empty segment names no key and is refused", async () => {
+  fresh();
+  assert.equal(writableKey("stats.commands."), null);
+  assert.equal(writableKey("jobs..verbs"), null);
+  const run = await ask("--set", "stats.commands.=npm test");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /is no key this plugin reads out of \.forge\.json/u, run.stderr);
+  assert.equal(now(), HELD);
 });
 
 /* The flow is two keys and a restore, not one value: a `--set` of it would write the flow and none of
