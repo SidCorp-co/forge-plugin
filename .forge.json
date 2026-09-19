@@ -44,7 +44,7 @@
     }
   },
   "lease": {
-    "workingRe": "^\\S*(node|sh) .*tools/run\\.mjs (ship|land|land-ready)( |$)"
+    "workingRe": "(^|-c )\\S*node \\S*tools/run\\.mjs (ship|land|land-ready)( |$)"
   },
   "stop": {
     "agents": [

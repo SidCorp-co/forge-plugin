@@ -373,3 +373,28 @@ test("declared work this call descends from is its own, and the same command bes
     beside.kill();
   }
 });
+
+/* This checkout's own declaration, against the command lines it will meet. The reading is the
+   plugin's and the pattern is the project's, so nothing but a case here holds the pattern to what it
+   is for: the first shape below refused a claim over a shell that only mentioned a ship. */
+test("what this checkout declares reaches its releases and nothing that merely names one", () => {
+  const declared = JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
+  const work = new RegExp(declared.lease.workingRe, "u");
+  const snapshot = "/home/one/.claude/shell-snapshots/snap.sh";
+  for (const [line, counts] of [
+    ["node tools/run.mjs ship --from 3 --note x", true],
+    ["/usr/lib/node/bin/node tools/run.mjs ship --wait 20", true],
+    ["/bin/sh -c node tools/run.mjs ship --wait 20", true],
+    ["bash -c node tools/run.mjs land --wait 20", true],
+    ["node /abs/tools/run.mjs land-ready", true],
+    [`/bin/bash -c source ${snapshot} && eval 'exec -a "node tools/run.mjs ship --wait" sleep 300'`, false],
+    ['/bin/bash -c grep -rn "node tools/run.mjs ship" docs/', false],
+    ['grep -rn "node tools/run.mjs ship" docs/', false],
+    ["node tools/run.mjs start ISS-1872", false],
+    ["node tools/run.mjs relink", false],
+    ["node tools/gates.mjs --full", false],
+    ["npm run check", false],
+    ["node --test plugin/test/flow/override.test.mjs", false],
+    ["/usr/bin/bash", false],
+  ]) assert.equal(work.test(line), counts, line);
+});
