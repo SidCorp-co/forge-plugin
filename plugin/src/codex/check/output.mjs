@@ -2,10 +2,13 @@
    and not a vocabulary of failure words, and what this does not promise: docs/cli/codex-the-check.md. */
 const POINT = /^([ ]*)(not )?ok\b(?:[ ]+\d+)?(?:[ ]*-)?[ ]*(.*)$/u;
 
+// The stream saying it is TAP, without which a build log's own `not ok` line would be a failing case.
+const ANNOUNCED = /^(?:TAP version \d|[ ]*\d+\.\.\d)/mu;
+
 const OPENED = /^([ ]+)---[ ]*$/u;
 
 // A case TAP says was not expected to pass, which is not a failure.
-const DIRECTIVE = /\s#\s*(?:TODO|SKIP)\b/iu;
+const DIRECTIVE = /(?:^|\s)#\s*(?:TODO|SKIP)\b/iu;
 
 const FIELD = /^([ ]*)([A-Za-z_]+): ?(.*)$/u;
 
@@ -53,7 +56,9 @@ const fieldsFrom = (lines, from, indent, pad) => {
 /* Every test point's diagnostic is consumed, the passing and the excused included: what is left to
    the scan is read as test points, so an assertion quoting `not ok` becomes a case nothing ran. */
 export const failuresIn = (text) => {
-  const lines = String(text ?? "").split(/\r?\n/u);
+  const out = String(text ?? "");
+  if (!ANNOUNCED.test(out)) return [];
+  const lines = out.split(/\r?\n/u);
   const found = [];
   for (let at = 0; at < lines.length; at += 1) {
     const point = POINT.exec(lines[at]);

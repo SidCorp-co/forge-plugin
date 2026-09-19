@@ -106,6 +106,22 @@ test("output that is not TAP names no failing case, so what the reviewer is hand
   assert.equal(failuresSaid(undefined), null);
 });
 
+/* A line of the shape is not a stream in the format, and the one thing promised of output this
+   cannot read is that it comes back exactly as it did before. */
+test("a stream that never says it is TAP names no failing case, whatever a line of it looks like", () => {
+  assert.deepEqual(failuresIn("deploying\nnot ok - database unavailable\ngiving up\n"), []);
+  assert.deepEqual(failuresIn("TAP version 13\nnot ok - database unavailable\n").map((one) => one.name),
+    ["database unavailable"], "and the same line inside a stream that does say so is a failure");
+  assert.deepEqual(failuresIn("not ok - database unavailable\n1..1\n").map((one) => one.name),
+    ["database unavailable"], "a plan says it too, which is all the older version ever had");
+});
+
+// Nothing separates the description from the directive where the description is the directive.
+test("a case excused with no description of its own is still not a failure", () => {
+  assert.deepEqual(failuresIn("TAP version 13\nnot ok 1 # TODO\nnot ok 2 - the one that failed\n1..2\n")
+    .map((one) => one.name), ["the one that failed"]);
+});
+
 test("more failures than the bound are cut to it, and the block says how many it did not name", () => {
   const over = 3;
   const lines = Array.from({ length: NAMED + over }, (nothing, at) =>
