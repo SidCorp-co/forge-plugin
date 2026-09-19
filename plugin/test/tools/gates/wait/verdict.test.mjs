@@ -7,31 +7,15 @@ import { appendFileSync, existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 import { DEADLINE, gateDecided, gateStarted, gatesHere, GONE, NO_GATE, verdictPath, verdictRuns, waitForSlot,
-  waitForVerdict } from "../../../../tools/gate-verdict.mjs";
-import { DECLINED, placeFor } from "../../../../tools/gates/machine.mjs";
-import { recordDir } from "../../../../tools/gates/timing.mjs";
-import { STEPS } from "../../../../tools/gates/steps.mjs";
-import { git, HANGS_IN, heldGate, reachedTheStep, run, scratch, stopGate } from "./scratch.mjs";
-import { patience } from "../../patience.mjs";
-
-// Minutes, and a tick fast enough that a case waits on the state under test rather than on a constant.
-const BRIEFLY = 0.02;
-const TICK = 40;
-
-const heard = () => {
-  const lines = [];
-  const collect = lines.push.bind(lines);
-  return { lines, say: collect, warn: collect };
-};
-
-const waited = (work, said, minutes = BRIEFLY) => waitForVerdict(work, { minutes, tick: TICK, ...said });
+  waitForVerdict } from "../../../../../tools/gate-verdict.mjs";
+import { DECLINED } from "../../../../../tools/gates/machine.mjs";
+import { recordDir } from "../../../../../tools/gates/timing.mjs";
+import { STEPS } from "../../../../../tools/gates/steps.mjs";
+import { git, heldGate, reachedTheStep, run, scratch, stopGate } from "../scratch.mjs";
+import { BRIEFLY, heard, holding, ofOne, TICK, waited } from "./waiting.mjs";
+import { patience } from "../../../patience.mjs";
 
 const recordOf = (work) => verdictRuns(work).at(-1);
-
-const holding = (name, runs = null) => scratch(name, null, null, { hanging: HANGS_IN, runs });
-
-// The ceiling the case declares, never the one this repository does: a suite that read `.forge.json` would answer to the box it runs on.
-const ofOne = (ours) => placeFor(ours, { declared: { value: 1, from: "the case" } });
 
 test("a wait for a tree no gate has ever run in says so at once and names what to start", async () => {
   const { at, work } = scratch("verdict-none");
@@ -117,8 +101,8 @@ test("a wait on a running gate returns once, at the verdict that gate writes", a
     const opened = recordOf(work);
     gateDecided(work, opened, { verdict: "failed", code: 1, step: STEPS.at(0).label });
     assert.equal(await answer, 1, said.lines.join("\n"));
-    assert.equal(said.lines.length, 1, `it said more than the verdict:\n${said.lines.join("\n")}`);
-    assert.ok(said.lines[0].includes(`gate verdict: failed — at the step ${STEPS.at(0).label}`), said.lines[0]);
+    assert.equal(said.lines.length, 2, `it said more than what it watched and the verdict:\n${said.lines.join("\n")}`);
+    assert.ok(said.lines[1].includes(`gate verdict: failed — at the step ${STEPS.at(0).label}`), said.lines[1]);
   } finally {
     await stopGate(gate);
     rmSync(at, { recursive: true, force: true });
@@ -452,8 +436,8 @@ test("the place subject is refused beside --full and beside --anyway, and the ve
       assert.match(both.stderr, /--wait slot runs no gate — it waits for a place/u, both.stderr);
       assert.ok(both.stderr.includes(`npm run check -- ${other}`), `the refusal names no way to run the gate:\n${both.stderr}`);
     }
-    const minutes = run(work, ["--wait", "30"]);
-    assert.equal(minutes.status, NO_GATE, `\`--wait 30\` was not read as a verdict wait of thirty minutes:\n${minutes.stdout}${minutes.stderr}`);
+    const minutes = run(work, ["--wait", "5"]);
+    assert.equal(minutes.status, NO_GATE, `\`--wait 5\` was not read as a verdict wait of five minutes:\n${minutes.stdout}${minutes.stderr}`);
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
@@ -483,3 +467,4 @@ test("a worktree cut while the wait is armed is counted before a place is report
     rmSync(at, { recursive: true, force: true });
   }
 });
+

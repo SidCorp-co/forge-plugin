@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { crossTree, gitFiles, uncommittedInShared } from "./checkout.mjs";
 import { DEADLINE, DEFAULT_MINUTES, gateDecided, gateStarted, GONE, NO_GATE, said, TERMINAL, waitForSlot, waitForVerdict }
   from "./gate-verdict.mjs";
+import { CALL_CEILING_SECONDS, pastCeiling } from "../plugin/src/host/call-ceiling.mjs";
 import { attribute, attributionLines, CASES_ENV } from "./gates/isolation.mjs";
 import { cheapestFirst, ENTRIES_PER_STEP, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from "./gates/ledger.mjs";
 import { PUTS_IT_BACK, said as saidMissing, unresolvedIn } from "../plugin/src/resolve/installed.mjs";
@@ -171,7 +172,9 @@ refused — its uncommitted work is the point of it.
              them when it starts and says again at the end that it used this, so a result reached
              this way cannot be mistaken for a clean one.
   ${WAIT} [M]  wait for the verdict of a gate of this tree instead of running one, up to M
-             minutes (${DEFAULT_MINUTES} where none is given), and exit on that verdict
+             minutes (${DEFAULT_MINUTES} where none is given, which is the most a call can hold:
+             one may live ${CALL_CEILING_SECONDS}s, and an M past that is refused), and exit on
+             that verdict
   ${WAIT} ${SLOT} [M]  wait for a place at the ceiling this project declares instead of declining for
              want of one, and exit 0 once a gate started then would not be declined
 
@@ -186,7 +189,11 @@ this gate uses: ${GONE} a gate that exited having written no verdict, which is a
 pass; ${DEADLINE} this wait's own deadline with the gate still running; ${NO_GATE} no gate of this
 tree having ever written one, answered at once rather than waited out. A verdict exits with the
 status the gate itself exited with. The line names the pid that wrote it and how long ago, because a
-wait attaches to a run it did not start. A wait runs no gate and judges no tree, so it is refused
+wait attaches to a run it did not start. One further line is written before the wait blocks, naming
+the tree and the deadline, so a result carrying that line alone is one where no answer was observed
+and a run holding it knows to wait again rather than to go looking. The deadline's own line carries
+what the newest whole gates recorded here took, which is what says whether one more wait reaches the
+verdict. A wait runs no gate and judges no tree, so it is refused
 beside --full and ${ANYWAY}, and the uncommitted paths of a shared checkout do not refuse it.
 
 ${WAIT} ${SLOT} is that same wait pointed at the other thing a run here waits on. A run declined for
@@ -238,7 +245,7 @@ if (waiting && (full || allowDirty)) {
   console.error(`${waitCall} runs no gate — it ${subject === SLOT
     ? "waits for a place at the ceiling this checkout declares"
     : "reads the verdict of one this tree already has"} — so ${other} has nothing here to act on.`);
-  console.error(`Wait for the ${waitedOn}: node tools/gates.mjs ${waitCall}${patience ? ` ${patience}` : ""}`);
+  console.error(`Wait for the ${waitedOn}: node tools/gates.mjs ${waitCall}`);
   console.error(`Or run the gate:      npm run check -- ${other}`);
   process.exit(1);
 }
@@ -248,6 +255,15 @@ const minutes = patience === null ? DEFAULT_MINUTES : Number(patience);
 if (waiting && !(minutes > 0)) {
   console.error(`${waitCall} takes the minutes to wait for a ${waitedOn}, not \`${patience}\`.`);
   console.error(`Wait ${DEFAULT_MINUTES} minutes: node tools/gates.mjs ${waitCall}`);
+  process.exit(1);
+}
+
+/* Refused and not taken: past the ceiling the host ends the call before the wait can answer, no route here holds one longer — `forge hooks --how polling` refuses a backgrounded loop with the rest — and thirty minutes of it defaulted to cost 310 of 4,102 wall minutes over 54 runs (ISS-1889). Here and not in the wait, the ceiling being the host's rather than the tree's: a caller under another host still gets the deadline it passes those functions. */
+if (waiting && pastCeiling(minutes * 60)) {
+  console.error(`${waitCall} ${patience} is ${Math.round(minutes * 60)}s and one call may live `
+    + `${CALL_CEILING_SECONDS}s, so the host would end this one before the wait could answer.`);
+  console.error(`Wait ${DEFAULT_MINUTES} minutes in a call that returns, as often as it takes: `
+    + `node tools/gates.mjs ${waitCall}`);
   process.exit(1);
 }
 

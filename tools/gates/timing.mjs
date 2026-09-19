@@ -68,6 +68,19 @@ export const runSeries = (dir) => {
 
 const whole = (run) => run.ran === run.total;
 
+/* The record goes back weeks and the figure a caller waiting now wants is what this box has been doing lately: over all of it the median is a suite and a load that no longer exist, and over one run it is an outlier. */
+const RECENT_WHOLE_RUNS = 20;
+
+/** The newest whole gates this record holds, as a median and a count, `null` where none is recorded; of the size the last whole one was, by the rule `rolling` already states — a gate that gained a step is another gate. The record sits under the common git directory, so this population is the checkout's and every worktree sharing it has appended to it: a line carries no tree and this derives none. */
+export const wholeGatesRecorded = (dir, most = RECENT_WHOLE_RUNS) => {
+  const wholes = runSeries(dir).filter(whole);
+  const now = wholes.at(-1);
+  if (!now) return null;
+  const seconds = wholes.filter((one) => one.total === now.total).slice(-most)
+    .map((one) => one.seconds).sort((one, other) => one - other);
+  return { median: seconds[Math.floor((seconds.length - 1) / 2)], runs: seconds.length, steps: now.total };
+};
+
 const loaded = (run) => (run.load === null ? "" : ` load ${run.load.toFixed(2)}/${run.cores}`);
 
 const line = (run) => `${run.at} ${run.seconds}s ${run.ran}/${run.total}${loaded(run)}`;

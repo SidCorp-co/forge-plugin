@@ -9,6 +9,7 @@ import { join } from "node:path";
 
 import { STEPS, gateSteps, testWorkers } from "../../../tools/gates/steps.mjs";
 import { DEADLINE, DEFAULT_MINUTES, GONE, NO_GATE, TERMINAL } from "../../../tools/gate-verdict.mjs";
+import { CALL_CEILING_SECONDS } from "../../src/host/call-ceiling.mjs";
 import { REVIEW } from "../../../tools/gates/timing.mjs";
 import { tempRoom } from "../fixtures.mjs";
 import { entries, entryDir, entryNames, git, landed, NAMED, passesDir, passesFor, ROOT, RUNNER, run,
@@ -72,7 +73,10 @@ test("-h names every flag it reads and what the record cannot see", () => {
     "An issue somebody has closed or dropped", "does not come back whole files nothing",
     "leaves the run's status alone", "sends no request",
     "--wait [M]", "wait for the verdict of a gate of this tree instead of running one",
-    `${DEFAULT_MINUTES} where none is given`, `one line beginning \`${TERMINAL}\``,
+    `${DEFAULT_MINUTES} where none is given, which is the most a call can hold`,
+    `one may live ${CALL_CEILING_SECONDS}s, and an M past that is refused`,
+    "One further line is written before the wait blocks", "one where no answer was observed",
+    `one line beginning \`${TERMINAL}\``,
     "never a log, and never a process's exit code either", "answers a verdict already written",
     `${GONE} a gate that exited having written no verdict`, `${DEADLINE} this wait's own deadline`,
     `${NO_GATE} no gate of this`, "refused\nbeside --full",

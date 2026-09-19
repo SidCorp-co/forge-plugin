@@ -4,7 +4,8 @@
 import { gitOut, lines, parsed } from "./checkout.mjs";
 import { gatesOn, placeFor, PROC, runnersOf, SLOT, startedAt, WAIT } from "./gates/machine.mjs";
 import { verdictSaid } from "./gates/report/said.mjs";
-import { recordDir, treeKey } from "./gates/timing.mjs";
+import { recordDir, treeKey, wholeGatesRecorded } from "./gates/timing.mjs";
+import { heldMinutes } from "../plugin/src/host/call-ceiling.mjs";
 import { watching } from "./watching.mjs";
 import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -14,7 +15,8 @@ export const GONE = 76;
 export const DEADLINE = 77;
 export const NO_GATE = 78;
 
-export const DEFAULT_MINUTES = 30;
+/* Derived and never chosen: at thirty minutes this was three times the seconds a call may live, so it could not be reached and every offer built on it sent the caller further past that ceiling than the one before (ISS-1889). The margin `heldMinutes` keeps back covers a round of the tick below, a node start and a caller that began the call late. */
+export const DEFAULT_MINUTES = heldMinutes();
 export const TERMINAL = "gate verdict:";
 export const WAITED = "gate wait:";
 // A killed gate changes no file and so wakes no watcher: this tick re-reads the table, spending a syscall inside one call and no turn, which is what NFR-11 prices.
@@ -100,10 +102,24 @@ const goneSaid = (root, pid, record) => `${TERMINAL} failed — the gate of this
     : ` and having written no record of itself at all`}, so nothing judged ${root}.\nA wait exits on a verdict and never `
   + `on a process, and a process that exited having written nothing is not a pass. Run the gate again:\n  npm run check`;
 
+/* Beside how far this one has got: a deadline saying only that the gate is still running is one a run stops believing and starts polling around, and this is the figure that answers "wait again or go and look" without a second call. */
+const recordedSaid = (root, held) => {
+  const was = wholeGatesRecorded(recordDir(root));
+  if (!was) {
+    return "No whole gate is recorded under this checkout, so nothing here says how much longer this one has.";
+  }
+  const left = was.median * 1000 - held;
+  return `The newest ${was.runs} whole gate(s) of ${was.steps} step(s) recorded under this checkout took `
+    + `${was.median}s median — every worktree sharing that record appends to it — so ${left > 0
+      ? `about ${spent(left)} of this one is left by that figure`
+      : "this one is already past that figure, and a gate that dies writes no verdict, which this same wait "
+        + `answers as \`${TERMINAL} failed\` rather than as silence`}.`;
+};
+
 const deadlineSaid = (root, pid, minutes, held) => `${WAITED} deadline — the gate of ${root} (pid ${pid}) has been `
   + `running ${spent(held)} and has written no verdict, and this wait was given ${minutes} minute(s), which is what it `
-  + `hit. The gate is still running, so nothing here judges that tree either way.\nWait again, longer:\n`
-  + `  node tools/gates.mjs --wait ${minutes * 2}`;
+  + `hit. The gate is still running, so nothing here judges that tree either way.\n${recordedSaid(root, held)}\n`
+  + `Wait again, in a call that returns:\n  node tools/gates.mjs ${WAIT}`;
 
 const holding = (ahead) => ahead.map((one) => `  pid ${one.pid}  gating ${one.tree}`).join("\n");
 
@@ -115,7 +131,12 @@ const slotFreeSaid = (root, ahead, waited) => `${WAITED} place — ${ahead.lengt
 const slotHeldSaid = (root, ahead, minutes) => `${WAITED} deadline — every place this checkout declares is still `
   + `held and this wait was given ${minutes} minute(s), which is what it hit:\n${holding(ahead)}\nNo gate of ${root} `
   + `ran at all, so this is not a tree that was judged and found red — it is one that never got a place.\n`
-  + `Wait again, longer:\n  node tools/gates.mjs ${WAIT} ${SLOT} ${minutes * 2}`;
+  + `Wait again, in a call that returns:\n  node tools/gates.mjs ${WAIT} ${SLOT}`;
+
+/* Written before the first round and read by a caller holding nothing else: a result carrying this line alone is one where no answer of its own was observed. Which of the ways that happened it does not say — a call the host ended and a failure in here after this line was written look alike from outside, and the next move is the same for both: the gate is untouched by either and waiting again is what reads it. */
+const watchingSaid = (root, minutes, subject) => `${WAITED} watching — the ${subject} of ${root}, for up to `
+  + `${minutes} minute(s). An answer is one more line of its own, so a result carrying this one alone `
+  + `is a call that reached none.`;
 
 /** The wait's other subject: a place at the ceiling this checkout declares, answered 0 where a gate starting now would not be declined and DEADLINE where it still would. It starts no gate, judges no tree and writes no verdict, so nothing it does can be read back as a result about this tree; what it watches is the verdict file of the gate ahead, since that is the last thing that gate writes, and the tick behind it is what answers a gate killed before it wrote one. `place` is the seam a case drives a ceiling through, this repository's own number being one a suite may not be made to answer to. */
 export const waitForSlot = async (root, { minutes = DEFAULT_MINUTES, say = console.log, warn = console.error,
@@ -123,6 +144,7 @@ export const waitForSlot = async (root, { minutes = DEFAULT_MINUTES, say = conso
   const began = Date.now();
   const until = began + minutes * 60_000;
   mkdirSync(recordDir(root), { recursive: true });
+  warn(watchingSaid(root, minutes, "place"));
   let ours = runnersOf(root);
   for (;;) {
     let where = place(ours);
@@ -159,6 +181,7 @@ export const waitForVerdict = async (root, { minutes = DEFAULT_MINUTES, say = co
   const path = verdictPath(root);
   // The directory, because `fs.watch` cannot arm on one the gate has not made yet, and this wait would then have no notification at all.
   mkdirSync(recordDir(root), { recursive: true });
+  warn(watchingSaid(root, minutes, "verdict"));
   const ours = runnersOf(root);
   const here = () => gates(root, ours);
   const held = here().at(0) ?? null;

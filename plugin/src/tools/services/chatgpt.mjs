@@ -11,6 +11,7 @@ import { sseEvents } from "../../wire/sse.mjs";
 import { CHATGPT_PREFIX, chatgptSettings, fail, refusing } from "../../resolve/settings.mjs";
 import { firstLine, flags, helpAskedOf, pullRepeated, wantsHelp } from "../../resolve/flags.mjs";
 import { didYouMean } from "../../suggest.mjs";
+import { CALL_CEILING_SECONDS, pastCeiling } from "../../host/call-ceiling.mjs";
 import {
   acknowledged,
   agedFor,
@@ -35,9 +36,6 @@ const MIN_WAIT_SECONDS = 0.001;
 const BODY_CHARS = 400;
 const URL_LIKE = /^https?:\/\//u;
 
-/* The shell tool's ten-minute cap, which `forge hooks --how polling` and bash-guard already name as
-   the longest a call of its own may wait: past it a caller is asking its own turn to die first. */
-const DETACH_ABOVE_SECONDS = 600;
 
 /** One sentence, so a turn given up and a turn that ran out say the same thing about the meter. */
 const SPENT = "This turn may have been spent and is not sent again — the tool cannot say whether it ran.";
@@ -76,7 +74,7 @@ const askUsage = () => [
   "  --wait s       seconds to hold this one call open, in place of the configured wait",
   "",
   `The wait is ${deadlineSeconds()}s, from waitSeconds in config.json; --wait sets this call's alone.`,
-  `Past ${DETACH_ABOVE_SECONDS}s the turn runs without you, and \`forge chatgpt collect\` reads it back.`,
+  `Past ${CALL_CEILING_SECONDS}s the turn runs without you, and \`forge chatgpt collect\` reads it back.`,
 ].join("\n");
 
 /* Its own screen rather than five more rows on `ask`: what an image ask requires of a caller is what
@@ -103,7 +101,7 @@ const imageUsage = () => [
   "  --wait s       seconds to hold this one call open, in place of the configured wait",
   "",
   `The wait is ${deadlineSeconds()}s, from waitSeconds in config.json; --wait sets this call's alone.`,
-  `Past ${DETACH_ABOVE_SECONDS}s the turn runs without you, and \`forge chatgpt collect\` reads it back.`,
+  `Past ${CALL_CEILING_SECONDS}s the turn runs without you, and \`forge chatgpt collect\` reads it back.`,
 ].join("\n");
 
 const COLLECT_USAGE = [
@@ -428,9 +426,8 @@ const turned = async (action, argv, prepare) => {
     console.error(`chatgpt: ${asked.asked}s is past the longest a timer here holds, so this turn waits ${deadline.value}s.`);
   }
   const parts = partsOf(asked.given);
-  /* The wait in force and not the one typed: a machine whose configured wait is an hour holds a run
-     open for an hour, which is the very thing this closes, and it never typed a flag to do it. */
-  if (deadline.value > DETACH_ABOVE_SECONDS) return detaching(action, argv, asked.shown, deadline);
+  /* The wait in force and not the one typed: a machine whose configured wait is an hour holds a run open for an hour, which is the very thing this closes, and it never typed a flag to do it. The ceiling it is measured against is the shell tool's own cap, which `forge hooks --how polling` and bash-guard already name as the longest a call of its own may wait: past it a caller is asking its own turn to die first. */
+  if (pastCeiling(deadline.value)) return detaching(action, argv, asked.shown, deadline);
   return printed(await sent({ ...asked, parts, held, deadline, signal: null }));
 };
 
