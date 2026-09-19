@@ -35,7 +35,8 @@ run believing it would answer `--none` over a routing already there. And the run
 from reads no page at all: its whole entry criterion is the status, a thread too long to walk must
 never be able to stall the close, and buying the claim with a read would put one in front of it. So
 the span runs from the rung the work starts at to the last one below that — `in_progress`,
-`developed`, `testing` — which is every rung at which a run is still working the issue and could
-have met something that is not it. And the sentence of the method that sends a finding to the issue that owns it
+`developed`, `testing` — the rungs at which a run is working the issue. A finding can be met outside
+them, at a triage or after a reopen; what the span decides is where the block is printed, and the
+kind stays writable at every rung either way. And the sentence of the method that sends a finding to the issue that owns it
 names the record that stays behind (ISS-1699). The report closes with the run's own worklog — the branch, the head, what it
 touched and the plugin copy the capture was made under — so one read answers which copy typed it.
