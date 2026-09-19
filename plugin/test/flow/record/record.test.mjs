@@ -26,7 +26,8 @@ const ask = (...argv) => spawnSync(FORGE, argv, { encoding: "utf8", env: process
 test("a missing flag that is not a help word is refused as it was", () => {
   const run = ask("record", "confirmation", "ISS-45");
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /record confirmation needs --where\./u);
+  assert.match(run.stderr, /record confirmation needs --is \(what it is\)\./u,
+    "the first field of the shape, which is now the sentence rather than the path list");
 });
 
 /* The keys are the flags and they sit in a fenced block, because a project with a prose language
@@ -61,6 +62,20 @@ test("a repeated value carrying the separator, a newline and a fence marker read
   assert.ok(fence.length > longest, `the fence is ${fence.length} ticks and a value holds ${longest}`);
   assert.match(body, /^where: line one\n {2}line two$/mu, "a newline inside a value is a continuation line");
   assert.deepEqual(parse(body).fields.where, values, "every value back as written, and none joined or split");
+});
+
+/* A payload is read by its keys and never by their order, which is what lets the confirmation's one
+   sentence sit above its path list: every confirmation written before that stands (ISS-1699). */
+test("a confirmation written in the field order that stood before reads back whole", () => {
+  const body = ["## Confirmation", "", "```forge-record", "where: a.mjs", "where: b.mjs",
+    "is: the hook keys by path", "finding: holds", "detail: and a second thing this run met", "```",
+    "", `\`forge-record: confirmation \u00b7 contract ${CONTRACT}\``].join("\n");
+  assert.deepEqual(parse(body).fields, {
+    where: ["a.mjs", "b.mjs"],
+    is: "the hook keys by path",
+    finding: "holds",
+    detail: "and a second thing this run met",
+  });
 });
 
 test("a correction says what moved and why, both required", () => {
@@ -535,8 +550,8 @@ test("a record write ends with the line advance --owed would print, and never fa
   assert.equal(earned.status, 0, earned.stderr);
   assert.match(earned.stderr, /^ISS-3 {2}testing -> awaiting_release$/mu, "the move is reported, never silent");
   assert.doesNotMatch(earned.stdout, /testing -> awaiting_release/u, "on stderr, stdout being the record");
-  assert.equal(earned.stderr.trim().split("\n").at(-1),
-    "ISS-3 is awaiting_release; closed is next and the record earns it. `forge advance ISS-3` moves it.",
+  assert.match(earned.stderr,
+    /^ISS-3 is awaiting_release; closed is next and the record earns it\. `forge advance ISS-3` moves it\.$/mu,
     "byte for byte the line advance --owed would print for the status the call left it at");
   /* A record that posted must not fail on the line printed under it: the reading refuses here. */
   await ranAsync(FORGE, ["claim", "ISS-5", "--unheld"], tracker.env);

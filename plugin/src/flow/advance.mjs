@@ -10,7 +10,7 @@ import { lengthOf } from "../tracker/field-write.mjs";
 import { UNREAD, afterRefused, correctionFor, whyChecked } from "./override.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../guides/contract.mjs";
-import { CLOSES_FROM, PARKS, SHOWS_EVIDENCE, missingLines } from "./machine.mjs";
+import { CLOSES_FROM, PARKS, SHOWS_EVIDENCE } from "./machine.mjs";
 import { citedClauses } from "../spec/checked.mjs";
 import { Refused, refuse } from "../refusal.mjs";
 import { issueOf, post } from "./record/record.mjs";
@@ -20,7 +20,7 @@ import { scopeFrom } from "./record/plan-scope.mjs";
 import { rungOf } from "../ladder.mjs";
 import { CITED, laneLines } from "../guides/phases.mjs";
 import { undoForm } from "./record/merged.mjs";
-import { REOPEN, baselineAhead, credentialAhead, deployFor, lookAhead, owedIn, owedLine, owedSaid, policyFor, reopenProblem, targetOf } from "./route.mjs";
+import { REOPEN, baselineAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, targetOf } from "./route.mjs";
 import { FIELD, anothersHold, leaseOf, nextLine, renew } from "./lease.mjs";
 
 /* A needs_info park owes the readings only the question shape carries. */
@@ -291,8 +291,7 @@ const countSays = (said) =>
   + "read hands back.";
 
 export const shortfall = (ref, view, held) => {
-  console.log(owedLine(view, ref, held));
-  for (const line of missingLines(held.missing)) console.log(line);
+  for (const line of owedBlock(view, ref, held)) console.log(line);
 };
 
 const pageFor = async (documentId, held) =>
@@ -443,7 +442,7 @@ const run = async (argv, readAs) => {
     return sayAhead(view, ref, next);
   }
   if (given.owed) {
-    console.log(owedLine(view, ref, { next, missing }));
+    for (const line of owedBlock(view, ref, { next, missing })) console.log(line);
     return sayAhead(view, ref, next);
   }
   /* The triage that puts the expectation outside the specification writes its park here, because a

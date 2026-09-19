@@ -386,11 +386,13 @@ export const ON_EITHER_GROUND = "--quoted \"<their words>\" where a person repor
   + "is an assertion nothing on the record stands behind";
 
 export const SHAPES = {
+  /* `is` leads: it is the one sentence saying what the issue is, and `where` is a repeatable path
+     list that runs to hundreds of code points, so the conclusion rendered under it (ISS-1699). */
   confirmation: {
     heading: "Confirmation",
     fields: [
-      FIELD("where", "Where looked", { many: true, each: whereProblem }),
       FIELD("is", "What it is"),
+      FIELD("where", "Where looked", { many: true, each: whereProblem }),
       FIELD("finding", "Finding", { oneOf: FINDINGS }),
       FIELD("detail", "Detail", { optional: true }),
       FIELD("rung", "Rung", { optional: true, derived: true }),

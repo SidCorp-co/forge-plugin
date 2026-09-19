@@ -58,6 +58,15 @@ test("naming a kind narrows -h to that kind's arguments rather than refusing for
   }
 });
 
+/* Both are read in the order they are typed, so both say which field leads the record (ISS-1699). */
+test("what describes the confirmation puts the sentence before the path list, on either surface", () => {
+  assert.match(ask("record", "confirmation", "-h").stdout,
+    /^ {2}confirmation --is I --where W\.\.\. --finding F/mu, "the flag row, on the kind's own help");
+  assert.match(ask("record", "-h").stdout,
+    /^ {2}confirmation what the issue is, where you looked, and the finding$/mu,
+    "and the one phrase the list of kinds carries");
+});
+
 test("the kind that opens a block carries what its one row cannot, and no other kind does", () => {
   const block = /^--criterion repeats/mu;
   assert.match(ask("record", "verdict", "-h").stdout, block);

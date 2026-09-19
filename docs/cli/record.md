@@ -85,7 +85,12 @@ is the one moment neither is accurate. `routed` names what was found and where i
 reason, the way `decision` does, so a run that met neither answers rather than leaving an absent
 record to read like an unasked question. Neither earns a status: a payload nothing told an older
 copy about would refuse a run for a rule it could not have read, and the point of the record is that
-nothing has to be told. The report closes with the run's own worklog — the branch, the head, what it
+nothing has to be told. Earning nothing and being asked for turned out to be different things, and
+for a year `routed` was neither: eighty records across two corpora hold none of it, while the finding
+that belongs in one sits inside `detail:` or a `decision:` clause instead. So the owed list carries a
+line for it from the rung the work starts at to the last one before the close — beside the shortfall,
+counted in nothing, silent from the first record of either sort — and the sentence of the method that
+sends a finding to the issue that owns it names the record that stays behind (ISS-1699). The report closes with the run's own worklog — the branch, the head, what it
 touched and the plugin copy the capture was made under — so one read answers which copy typed it.
 
 A write also ends by saying what the issue now owes, and takes the other kinds its rung cites in the

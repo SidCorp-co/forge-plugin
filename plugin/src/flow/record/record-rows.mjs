@@ -31,7 +31,7 @@ const VALUES = 19;
 const servesOn = (kind) => (SERVES_KINDS.includes(kind) ? "  [--serves G]" : "");
 
 export const kindRows = (caps) => [
-  "  confirmation --where W... --is I --finding F [--detail D]   F: " + FINDINGS.join("|"),
+  "  confirmation --is I --where W... --finding F [--detail D]   F: " + FINDINGS.join("|"),
   "  decision     --decision \"reading | assumption | undo\"... | --none <why>" + servesOn("decision"),
   "  question     --reading \"reading -> outcome\" (two or more) [--to who]",
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
@@ -57,7 +57,7 @@ export const kindRows = (caps) => [
    kind's own flags are `forge record <kind> -h`'s: a table of eighteen rows carrying every flag of
    every kind is read by nobody looking for one of them. */
 const KIND_PHRASE = {
-  confirmation: "where you looked, what the issue is, and the finding",
+  confirmation: "what the issue is, where you looked, and the finding",
   decision: "the reading taken, its assumption and the line that undoes it",
   question: "the readings a person is to choose between, as outcomes",
   park: "the issue set down, with the kind saying who it waits on",

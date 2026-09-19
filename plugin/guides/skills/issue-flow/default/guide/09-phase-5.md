@@ -33,7 +33,11 @@ has to read.
 A change that proves unshippable is an outcome: post the finding, leave the branch named, park the
 issue.
 
-Something you found that belongs to another issue goes there with `forge comment -h`.
+Something you found that belongs to another issue goes there with `forge comment -h`, and the record
+that it went stays on this one: `forge record routed` names what was found and where it went, and
+`--none` is how a run that met nothing beside its own subject says so. That record is the only thing
+the report's filing line is built from, so a finding delivered and never recorded reads afterwards as
+a run that found nothing.
 
 <!-- forge:when feedback.plugin bugs all -->
 A defect in this plugin that proving this change met is filed against this plugin's own backlog
