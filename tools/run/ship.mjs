@@ -34,10 +34,8 @@ import { partForLanding } from "../../plugin/src/guides/served.mjs";
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SELF = `node ${join(basename(HERE), "tools", "run.mjs")}`;
 
-/* What the count paragraph says where the project declared a reckoning the readers will not take: a
-   caller who typed `-h` asked what this does, and answering with a configuration fault instead is
-   withholding the one thing they asked for. Never the plugin's own numbers in its place — a present
-   and malformed declaration falls back to nothing, here as everywhere (ISS-1912). */
+/* A caller who typed `-h` asked what this does, and a configuration fault answered instead withholds
+   it; this plugin's own numbers in its place would be a fallback nothing here makes (ISS-1912). */
 const counting = () => {
   const declared = reviewReported();
   if (declared.refusal) {
@@ -50,9 +48,7 @@ const counting = () => {
     `  ← ${whereFrom(declared)}.`];
 };
 
-/** What `-h` prints about the release, after the verb table and the other parts' own paragraphs.
- *  Built when the usage is printed and never at import: a value resolved as this module loads is one
- *  every verb of the script pays for, and a refusal there answers a question nobody asked. */
+/** What `-h` prints about the release, built at print time: no verb pays for a value it never asks for. */
 export const shipHelp = () => [
   "What a session registered, and the skills it loaded, reach it at its next start — gate code does",
   "not, being chosen per call — so the last step says whether a restart is owed and names the set it",
