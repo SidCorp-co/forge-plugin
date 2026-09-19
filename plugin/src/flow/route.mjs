@@ -355,7 +355,7 @@ const ROUTES_FROM = ORDER.slice(ORDER.indexOf(BASELINE_AT), ORDER.indexOf(CLOSES
 
 /** The one kind no entry check may ask for and every reader reads: docs/cli/record-the-unwritten.md. */
 export const unaskedLines = (view, ref) => {
-  if (!ROUTES_FROM.includes(view.issue.status) || view.repeated?.routed?.length) return [];
+  if (!view.whole || !ROUTES_FROM.includes(view.issue.status) || view.repeated?.routed?.length) return [];
   return ["\n  nothing on the record says whether this run met anything that is not this issue's, "
     + "and the report reads that silence as none filed",
   `    forge record routed ${ref} --what "<what was found>" --to "<where it went>"`,

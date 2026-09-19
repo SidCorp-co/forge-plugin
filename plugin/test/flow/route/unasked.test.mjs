@@ -111,6 +111,12 @@ test("the three surfaces that print what is owed print this in the same words", 
   assert.equal(promptIn(brief.stdout), asked, "and resume, character for character");
 });
 
+test("a page the read could not finish is asked nothing, a routing past the cut disproving the claim", () => {
+  const cut = viewFrom("the-uuid", { status: "in_progress", acceptanceCriteria: CRITERIA }, [], { read: 200, of: 431 });
+  assert.deepEqual(unaskedLines(cut, "ISS-3"), [],
+    "the block says what the record does not hold, which a partial read cannot know");
+});
+
 /* The rung the close is taken from reads no page for a plain move, so a rehearsal that kept that
    shortcut would print this over a record already holding the answer. */
 test("the last rung before the close reads the record the block speaks about", async () => {

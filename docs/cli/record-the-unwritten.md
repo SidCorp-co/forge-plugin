@@ -28,6 +28,9 @@ cannot be asked for by an entry check, for the reason above. So it is asked in t
 one block under the shortfall, from the rung the work starts at to the last one before the close,
 counted in nothing, refusing nothing, silent from the first record of either sort. Three surfaces
 print what an issue owes and all three compose it from one list, a second composition being a fourth
-wording of one answer. And the sentence of the method that sends a finding to the issue that owns it
+wording of one answer. It is silent on a page the read could not finish, its claim being one a
+routing past the cut disproves and a run believing it would answer `--none` over a routing already
+there; and the rung the close is taken from reads the page for the rehearsal alone, a plain close
+having nothing to learn from it. And the sentence of the method that sends a finding to the issue that owns it
 names the record that stays behind (ISS-1699). The report closes with the run's own worklog — the branch, the head, what it
 touched and the plugin copy the capture was made under — so one read answers which copy typed it.
