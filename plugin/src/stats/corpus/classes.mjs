@@ -75,12 +75,27 @@ const BUILT_IN = {
 
 const ESCAPED = /[.*+?^${}()|[\]\\]/gu;
 
+/** The commands a project typed under one label, as it typed them: a blank string, a number and an empty list each declare nothing, so the three answer here exactly as an absent key does. */
+export const declaredCommands = (label, declared) => {
+  const said = declared?.[label];
+  return (Array.isArray(said) ? said : [said])
+    .filter((one) => typeof one === "string" && one.trim()).map((one) => one.trim());
+};
+
 /* A declared command is matched as the text the project typed and nothing is read out of its shape: guessing that any script named `gates.mjs` is a gate is how a profiler starts counting a project's unrelated tooling (ISS-1586). */
 export const declares = (label, declared) => {
-  const said = declared?.[label];
-  const many = (Array.isArray(said) ? said : [said]).filter((one) => typeof one === "string" && one.trim());
-  return many.length ? `(?:${many.map((one) => one.trim().replaceAll(ESCAPED, String.raw`\$&`)).join("|")})` : null;
+  const many = declaredCommands(label, declared);
+  return many.length ? `(?:${many.map((one) => one.replaceAll(ESCAPED, String.raw`\$&`)).join("|")})` : null;
 };
+
+/** The half of the table a route that REFUSES is handed — the labels this project declared a command for and no others — and beside it the doors among those given that no declared command arms, each with what the project wrote where that value is no command. A reading's fallback costs a miscounted row in a profile nobody is blocked on; the same fallback at a door costs an adopting project a refusal at a command it never named, which is why `BUILT_IN` is reachable from neither (G-12, ISS-1905). The two are one reading, so the gate that goes silent at a door and the row that says why cannot disagree about which is armed. */
+export const declaredClasses = (declared = null) => DECLARABLE
+  .map((label) => [label, declares(label, declared)])
+  .filter(([, said]) => said !== null).map(([label, said]) => [label, at(said)]);
+
+export const unarmedDoors = (doors, declared = null) => doors
+  .filter((label) => DECLARABLE.includes(label) && !declares(label, declared))
+  .map((label) => ({ label, wrote: declared?.[label] === undefined ? null : JSON.stringify(declared[label]) }));
 
 /** The class table a corpus is read by. A declaration REPLACES the built-in pattern for its class rather than joining it: a project that has said what its gate is has said what its gate is. */
 export const classesFor = (declared = null) => [

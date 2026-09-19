@@ -4,7 +4,8 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { classOf, classesFor, declaredIn } from "../../../src/stats/corpus/classes.mjs";
+import { classOf, classesFor, declaredClasses, declaredIn, unarmedDoors }
+  from "../../../src/stats/corpus/classes.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 import { asked, at, result, transcript, use } from "../fixture-runs.mjs";
@@ -39,6 +40,32 @@ test("a declared command is matched as text at a command position, never as a sh
     "a regular-expression character in the declaration is the character the project typed");
   assert.equal(said("xmake check", { gate: "make check" }), "shell", "and a word it is only the tail of is not one");
   assert.equal(said("cd /w && make check", { gate: "make check" }), "gate", "while a real command position is");
+});
+
+/* The half a route that refuses is handed. A reading's fallback costs a miscounted row; the same
+   fallback at a door refuses an adopting project at a command it never named (ISS-1905). */
+test("the declared half of the table holds what the project declared and nothing this repository calls its own", () => {
+  const declaredSaid = (shell, declared) => classOf("Bash", shell, declaredClasses(declared));
+  assert.equal(declaredSaid("npm run check", null), "shell", "a project that declared nothing arms no door");
+  assert.equal(declaredSaid("node tools/gates.mjs", null), "shell", "by either spelling this repository uses");
+  assert.equal(declaredSaid("make verify", { gate: "make verify" }), "gate", "what it did declare is its gate");
+  assert.equal(declaredSaid("npm run check", { gate: "make verify" }), "shell",
+    "and this repository's gate command is an ordinary call in a project that named its own");
+  for (const wrote of ["", "   ", 42, [], ["  "]]) {
+    assert.equal(declaredSaid("npm run check", { gate: wrote }), "shell",
+      `\`${JSON.stringify(wrote)}\` is no command, and no command is no declaration`);
+  }
+  assert.equal(said("npm run check", { gate: "" }), "gate",
+    "while the reading keeps the fallback it was built with: a wrong row there costs a number, not a door");
+});
+
+test("the doors nothing arms are read off the same declaration the table is built from", () => {
+  assert.deepEqual(unarmedDoors(["gate", "commit"], { gate: "make verify" }), [],
+    "a door with a command, and a door this plugin serves itself, are both armed");
+  assert.deepEqual(unarmedDoors(["gate"], null), [{ label: "gate", wrote: null }],
+    "a key nobody wrote is named with nothing quoted back");
+  assert.deepEqual(unarmedDoors(["gate", "ship"], { gate: "", ship: "pnpm ship" }),
+    [{ label: "gate", wrote: '""' }], "and a value that is no command is named with what was written");
 });
 
 test("the declarations are the profiled checkout's own, and absent where it declares none", () => {

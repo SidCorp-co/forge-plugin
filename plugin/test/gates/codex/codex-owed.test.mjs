@@ -19,7 +19,9 @@ test.after(() => rmSync(room, { recursive: true, force: true }));
 
 const at = (msAgo) => new Date(Date.now() - msAgo).toISOString();
 const lines = (...rows) => `${rows.map((one) => JSON.stringify(one)).join("\n")}\n`;
-const GATED = { slug: "fixture", codex: { owed: ["gate"] } };
+/* Every fixture that expects a refusal declares the command its own gate is: a door is armed by the
+   project's own declaration and by no table of this repository's commands (ISS-1905). */
+const GATED = { slug: "fixture", codex: { owed: ["gate"] }, stats: { commands: { gate: "npm run check" } } };
 
 let count = 0;
 /* No index is set and no transcript passed: this gate reads the working copy and neither of those,
@@ -85,6 +87,36 @@ test("a door the project did not name holds nothing, and the key absent holds on
     "absent, the commit still asks: that is what this plugin did before the key, and no installation moves");
 });
 
+/* The defect ISS-1905 names: a table of this repository's own commands, reached from a route that
+   refuses, denies `npm run check` in every project that adopted the plugin and spelled its gate for
+   itself — or never spelled it at all. Without the fix every assertion here refuses. */
+test("a door a project named and armed with no command holds nothing", () => {
+  const named = { slug: "fixture", codex: { owed: ["gate"] } };
+  assert.equal(gate({ command: "npm run check", project: named }), null,
+    "this repository's own gate command is no declaration of theirs");
+  assert.equal(gate({ command: "node tools/gates.mjs", project: named }), null, "nor is its other spelling");
+  for (const wrote of ["", "   ", 42, []]) {
+    assert.equal(gate({ command: "npm run check", project: { ...named, stats: { commands: { gate: wrote } } } }), null,
+      `\`${JSON.stringify(wrote)}\` is no command, and a value that is no command declares nothing`);
+  }
+});
+
+test("a project is held at the command it declared and never at this repository's", () => {
+  const theirs = { slug: "fixture", codex: { owed: ["gate"] }, stats: { commands: { gate: "make verify" } } };
+  assert.match(because(gate({ command: "make verify", project: theirs })),
+    /Codex has not read what this call would judge/u, "their own gate command is the door");
+  assert.equal(gate({ command: "npm run check", project: theirs }), null,
+    "and the command this repository calls its gate is an ordinary call in theirs");
+});
+
+test("an unarmed door leaves an armed sibling holding", () => {
+  const mixed = { slug: "fixture", codex: { owed: ["gate", "ship"] },
+    stats: { commands: { gate: "", ship: "pnpm ship" } } };
+  assert.equal(gate({ command: "npm run check", project: mixed }), null, "the door nothing arms holds nothing");
+  assert.match(because(gate({ command: "pnpm ship", project: mixed })),
+    /Codex has not read what this call would judge/u, "the one armed beside it is untouched");
+});
+
 test("the commit door is the same key, so a project naming only the gate is not asked twice", () => {
   assert.equal(gate({ command: "git commit -m x", hook: COMMIT_HOOK, stage: ["work.mjs"] }), null,
     "`owed: [gate]` takes the demand off the commit; the gate ahead of it made it");
@@ -134,7 +166,7 @@ test("a finding nobody ruled on holds the gate, with the disposition that closes
 
 test("a value the key does not take is refused with the key named, and nothing is guessed", () => {
   for (const owed of [["refuse"], "gate", [1]]) {
-    const out = because(gate({ command: "npm run check", project: { slug: "fixture", codex: { owed } } }));
+    const out = because(gate({ command: "npm run check", project: { ...GATED, codex: { owed } } }));
     assert.match(out, /is no door this reads/u, `\`${JSON.stringify(owed)}\` was taken for something`);
     assert.match(out, /`codex\.owed` in \.forge\.json is a list of the doors/u, "the key is named");
     assert.match(out, /gate, commit, ship/u, "with what it takes");

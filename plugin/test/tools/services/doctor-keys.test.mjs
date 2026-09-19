@@ -89,6 +89,47 @@ test("the row says a reading is owed once the count reaches the volume in force"
   assert.match(said, /at or past the 4 that earn a reading of what has landed/u);
 });
 
+/* The door the project named, and what arms it: a table of this repository's own commands is not
+   reachable from a route that refuses, so the row is the only thing that can tell an adopting
+   project its door is guarding nothing (ISS-1905). */
+const doorRoom = (name, project) => {
+  const room = tempRoom(`owed-row-${name}-`);
+  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: name, ...project }));
+  return room;
+};
+
+const doorRow = async (name, project) => {
+  const { stdout } = await ranAsync(FORGE, ["doctor", "project"], homeEnv(`owed-row-${name}`),
+    doorRoom(name, project));
+  return stdout.split("\n").filter((one) => one.includes("] codex.owed ")).join("\n");
+};
+
+test("a door the project named and armed with no command is a miss naming the key that arms it", async () => {
+  const said = await doorRow("unarmed", { codex: { owed: ["gate", "commit"] } });
+  assert.match(said, /^\[ miss \] codex\.owed/u, said);
+  assert.match(said, /gate is a door this project asks at that no command arms/u, said);
+  assert.match(said, /`stats\.commands\.gate` names none/u, "the key that arms it");
+  assert.match(said, /"stats": \{ "commands": \{ "gate": "<the command this project runs>" \} \}/u,
+    "and the shape of the value");
+  assert.match(said, /one command or a list of them/u, "including that it takes more than one");
+  assert.match(said, /commit is armed/u, "while the door that needs no command is still named");
+});
+
+test("a value that is no command is quoted back rather than read as a declaration", async () => {
+  const said = await doorRow("unusable", { codex: { owed: ["gate"] }, stats: { commands: { gate: [] } } });
+  assert.match(said, /^\[ miss \] codex\.owed/u, said);
+  assert.match(said, /`stats\.commands\.gate` is \[\], which is no command/u, said);
+});
+
+test("every named door armed reads ok and names the command in force at each", async () => {
+  const said = await doorRow("armed", { codex: { owed: ["gate", "ship"] },
+    stats: { commands: { gate: ["make verify", "make verify-fast"], ship: "./deploy.sh" } } });
+  assert.match(said, /^\[ {2}ok {2}\] codex\.owed/u, said);
+  assert.match(said, /gate at `make verify` or `make verify-fast`, ship at `\.\/deploy\.sh`/u, said);
+  assert.match(said, /each command door at what `stats\.commands` names {2}← \.forge\.json$/u,
+    "and the file every one of them was read from");
+});
+
 /* The debt is printed twice — here and by the release step that files its reading — so the row says
    which of the three states it is in rather than a number a reader cannot act on (ISS-1887). */
 const DECLARED = { review: { lines: 4, paths: ["app"] } };

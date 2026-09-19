@@ -6,7 +6,7 @@ import { ageOf, pendingNow, pendingState } from "../../../src/codex/codex.mjs";
 import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { logBytes } from "../../../src/codex/codex-log.mjs";
 import { unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
-import { classesFor } from "../../../src/stats/corpus/classes.mjs";
+import { declaredClasses } from "../../../src/stats/corpus/classes.mjs";
 import { OWED_DOORS, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { configDir } from "../../../src/resolve/config.mjs";
 import { NOWHERE, deny, how, movedTo, shellText, spans, typed, done } from "../../_hook.mjs";
@@ -21,11 +21,14 @@ const MALFORMED = "`codex.owed` in .forge.json is a list of the doors a consult 
   + `${OWED_DOORS.join(", ")}. Drop the key and the commit alone asks.`;
 
 /* One read of a tree's project file answers both halves: which commands that project calls its gate
-   and its ship, and which doors it named. `commit` is codex-second's and matches no class here. */
+   and its ship, and which doors it named. `commit` is codex-second's and matches no class here.
+   The declared half alone: a door this project named and armed with no command guards nothing, since
+   a table of one repository's own commands, reached from a route that refuses, is a refusal in every
+   tree that spells its gate differently and never chose this (G-12). `forge doctor` names it. */
 const heldIn = (tree) => {
   const parsed = projectFileAt(tree);
   const owed = codexOwedOf(parsed?.codex);
-  const classes = classesFor(parsed?.stats?.commands ?? null)
+  const classes = declaredClasses(parsed?.stats?.commands ?? null)
     .filter(([label]) => (owed.unknown ? OWED_DOORS : owed.value).includes(label));
   return { classes, unknown: owed.unknown };
 };

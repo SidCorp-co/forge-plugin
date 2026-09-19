@@ -113,6 +113,14 @@ this project runs, and `method` is retired: with no `flow` beside it, the one va
 took resolves to the default set and any other is refused with the route off the key. `drainedBy` says which master claims this project's issues once they are developed. `landing`
 says where the merge sits relative to the judging. `stats.commands` is what this checkout calls its
 own gate, test, ship and cleanup, which is what lets a run profile a project that is not this one.
+It is also what arms a door: a hook that **refuses** at one of the doors `codex.owed` names is
+handed the commands this project declared and no built-in table, because a table of one
+repository's commands reached from a route that denies is a refusal in every tree that spells its
+gate some other way. So a door named with no command declared for it guards nothing, an empty
+string, a number and an empty list each declaring nothing, and `forge doctor` prints which named
+door is unarmed, what was written where a value is no command, and the key that arms it. A reading
+keeps the fallback: `forge stats` counts this repository's own spellings where a project declared
+none, a miscounted row in a profile costing what a refused command does not.
 
 `lease.workingRe` is what a run working in one of this project's trees is running. The id a lease
 records names the tree a run was cut in and not the run, so two agents standing in one tree resolve

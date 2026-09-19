@@ -3,6 +3,7 @@
 import { CHECK_MS_TAKES, FEEDBACK_CHANNELS, FROM_PROJECT, LANDING_ROUTES, OWED_DOORS, RUNS_TAKES,
   SHIP_MODES, codexCheck, codexOwed, checkoutRoot, feedbackScope, landingScope, parallelRuns,
   projectWorkPattern, shipMode } from "../../../resolve/settings.mjs";
+import { DECLARES, declaredCommands, declaredIn, unarmedDoors } from "../../../stats/corpus/classes.mjs";
 import { budgetMs, logBytes } from "../../../codex/codex-log.mjs";
 import { checkStops } from "../../../codex/log/asked.mjs";
 import { flowPinned, flowRefusal } from "../../../guides/flow.mjs";
@@ -39,16 +40,42 @@ const landingRow = () => {
     : "unset, so the branches on the tracker's record derive where the merge sits" };
 };
 
+const armedSaid = (label, commands) =>
+  (commands.length ? `${label} at ${commands.map((one) => `\`${one}\``).join(" or ")}` : label);
+
+const unarmedSaid = (one) => (one.wrote === null
+  ? `\`${DECLARES}.${one.label}\` names none`
+  : `\`${DECLARES}.${one.label}\` is ${one.wrote}, which is no command`);
+
 /* Every door the list names, and the empty list apart from the absent key: the two are different
-   answers and a reader told only "nothing" cannot tell the off switch from a tree that never chose. */
+   answers and a reader told only "nothing" cannot tell the off switch from a tree that never chose.
+   A door no declared command arms is the third: the gate there is silent, because a hook guesses no
+   command for a repository it has never seen, and this row is the only thing that can say so
+   (ISS-1905). */
 const owedRow = () => {
   const owed = codexOwed();
   if (owed.unknown) {
     return { level: MISS, label: "codex.owed", detail: held({ ...owed, value: owed.value.join(", ") }, OWED_DOORS) };
   }
-  return { label: "codex.owed", detail: owed.value.length
-    ? `${owed.value.join(", ")} — each held until a consult has read what it would judge  ← ${owed.from}`
-    : `nothing — the key is an empty list, so no door asks  ← ${owed.from}` };
+  if (!owed.value.length) {
+    return { label: "codex.owed", detail: `nothing — the key is an empty list, so no door asks  ← ${owed.from}` };
+  }
+  const declared = declaredIn(checkoutRoot());
+  const unarmed = unarmedDoors(owed.value, declared);
+  const armed = owed.value.filter((one) => !unarmed.some((door) => door.label === one))
+    .map((one) => armedSaid(one, declaredCommands(one, declared)));
+  if (!unarmed.length) {
+    return { label: "codex.owed", detail: `${armed.join(", ")} — each held until a consult has read `
+      + `what it would judge, and each command door at what \`${DECLARES}\` names  ← ${owed.from}` };
+  }
+  return { level: MISS, label: "codex.owed", detail: `${unarmed.map((one) => one.label).join(", ")} `
+    + `${unarmed.length > 1 ? "are doors" : "is a door"} this project asks at that no command arms — `
+    + `${unarmed.map(unarmedSaid).join(", ")} — so nothing is held there, this plugin guessing no `
+    + `command for a repository it has never seen. Arm it in ${FROM_PROJECT}: `
+    + `"stats": { "commands": { "${unarmed[0].label}": "<the command this project runs>" } }, one `
+    + `command or a list of them; or drop the door from \`codex.owed\``
+    + `${armed.length ? `. ${armed.join(", ")} ${armed.length > 1 ? "are armed" : "is armed"}` : ""}`
+    + `  ← ${owed.from}` };
 };
 
 const WEEK = 7 * 24 * 60 * 60 * 1000;
