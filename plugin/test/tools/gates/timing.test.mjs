@@ -6,7 +6,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { CEILING_SECONDS, REVIEW, ceilingOf, fileTimesPath, recordRun, runSays, runSeries } from "../../../../tools/gates/timing.mjs";
+import { CEILING_SECONDS, REVIEW, ceilingOf, fileTimesPath, recordRun, runSays, runSeries, wholeGatesRecorded }
+  from "../../../../tools/gates/timing.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
@@ -111,4 +112,25 @@ test("eight runs recording at once each leave their figure", () => {
   assert.equal(together.status, 0, together.stderr);
   const seconds = runSeries(dir).map((run) => run.seconds).sort((a, b) => a - b);
   assert.deepEqual(seconds, [1, 2, 3, 4, 5, 6, 7, 8], `8 runs recorded ${seconds.length} figure(s)`);
+});
+
+/* What the gate wait offers a run at its deadline, so the run decides whether one more wait reaches the verdict rather
+   than deciding by polling. Both parities, because a lower-middle observation over an even window reads a box that is
+   half fast and half slow as the fast half alone, and a wait told 100s of a 300s gate declares it already overdue. */
+const WHOLE = 14;
+
+const of = (seconds) => planted(seconds.map((one, at) =>
+  `2026-09-1${at % 9}T0${at % 9}:00:00.000Z ${one}s ${WHOLE}/${WHOLE}`));
+
+test("the recorded figure a wait offers is the median of both parities, of the newest runs, at the last one's size", () => {
+  assert.equal(wholeGatesRecorded(planted([])), null);
+  assert.deepEqual(wholeGatesRecorded(of([100, 300, 500])), { median: 300, runs: 3, steps: WHOLE });
+  assert.deepEqual(wholeGatesRecorded(of([100, 100, 900, 900])), { median: 500, runs: 4, steps: WHOLE });
+  assert.deepEqual(wholeGatesRecorded(of([10, 20, 30, 40, 50]), 2), { median: 45, runs: 2, steps: WHOLE });
+  const mixed = planted(["2026-09-11T01:00:00.000Z 900s 13/13", `2026-09-11T02:00:00.000Z 100s ${WHOLE}/${WHOLE}`,
+    `2026-09-11T03:00:00.000Z 500s ${WHOLE}/${WHOLE}`]);
+  assert.deepEqual(wholeGatesRecorded(mixed), { median: 300, runs: 2, steps: WHOLE },
+    "a gate of another size was counted into the figure");
+  const scoped = planted([`2026-09-11T01:00:00.000Z 700s 3/${WHOLE}`]);
+  assert.equal(wholeGatesRecorded(scoped), null, "a scoped run was read as a whole gate");
 });

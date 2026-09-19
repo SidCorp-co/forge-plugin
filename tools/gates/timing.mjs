@@ -78,7 +78,11 @@ export const wholeGatesRecorded = (dir, most = RECENT_WHOLE_RUNS) => {
   if (!now) return null;
   const seconds = wholes.filter((one) => one.total === now.total).slice(-most)
     .map((one) => one.seconds).sort((one, other) => one - other);
-  return { median: seconds[Math.floor((seconds.length - 1) / 2)], runs: seconds.length, steps: now.total };
+  const middle = seconds.length / 2;
+  const median = seconds.length % 2 === 1
+    ? seconds[Math.floor(middle)]
+    : Math.round((seconds[middle - 1] + seconds[middle]) / 2);
+  return { median, runs: seconds.length, steps: now.total };
 };
 
 const loaded = (run) => (run.load === null ? "" : ` load ${run.load.toFixed(2)}/${run.cores}`);
