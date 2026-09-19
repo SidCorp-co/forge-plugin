@@ -47,6 +47,15 @@
   "lease": {
     "workingRe": "^(\\S*(sh|bash) -c )?\\S*node( -\\S+)* \\S*tools/run\\.mjs (ship|land|land-ready)( |$)"
   },
+  "review": {
+    "lines": 4400,
+    "paths": [
+      "plugin/src",
+      "plugin/hooks",
+      "plugin/bin",
+      "plugin/test"
+    ]
+  },
   "stop": {
     "agents": [
       "runner",
