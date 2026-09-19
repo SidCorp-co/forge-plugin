@@ -349,6 +349,29 @@ test("a named deletion whose base predates the file leaves the set, as it does o
   assert.deepEqual(logRows(home).find((one) => one.kind === "consult" && one.ok).files, ["src/thing.mjs"]);
 });
 
+/* `git rm -r` takes the directory with its files, so the commonest deletion of all leaves no parent
+   to resolve the name against; a set assembly that needed one refused the consult all over again. */
+test("a named deletion whose directory went with it travels too", async () => {
+  const { room, git } = disagreeing("codex-named-rmdir-");
+  const { home } = disagreeing("codex-named-rmdir-spare-");
+  mkdirSync(join(room, "retired"), { recursive: true });
+  writeFileSync(join(room, "retired/only.txt"), "the last file of its directory\n");
+  git("add", "retired/only.txt");
+  git("commit", "-qm", "a directory with one file in it");
+  git("rm", "-qr", "retired");
+  writeFileSync(join(room, "src/thing.mjs"), "export const one = 2;\n");
+
+  const { status, said, shown } = await withGateway(home, async (gateway) => {
+    const ran = await consulted(room, home, ["--diff", "--rounds", "1", "src/thing.mjs", "retired/only.txt"]);
+    return { ...ran, shown: gateway.shown() };
+  });
+  assert.equal(status, 0, said);
+  for (const rel of ["src/thing.mjs", "retired/only.txt"]) assert.ok(shown.includes(`### ${rel}`), `${rel} reached the reviewer`);
+  assert.ok(shown.includes("deleted file mode"), "carrying the deletion itself");
+  assert.deepEqual(logRows(home).find((one) => one.kind === "consult" && one.ok).files,
+    ["src/thing.mjs", "retired/only.txt"]);
+});
+
 test("a named path in neither the tree nor HEAD is refused apart from one the tree holds and cannot read", async () => {
   const { room } = disagreeing("codex-named-typo-");
   const { home } = disagreeing("codex-named-typo-spare-");

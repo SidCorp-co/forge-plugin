@@ -139,19 +139,31 @@ export const locate = (root, given) => {
   }
 };
 
-/** The rel a name would carry inside this root, present or not: `locate` realpaths the file itself and a tracked deletion has none, so the directory it sits in is realpath'd instead and a link out of the checkout still answers null (ISS-1880). */
+/** The rel a name would carry inside this root, present or not: `locate` realpaths the file itself and a tracked deletion has none, so the nearest ancestor that does exist is realpath'd and the rest of the name carried down — `git rm -r` takes the directory with its files, and a deletion HEAD holds is no less one for having lost its parent. A link out of the checkout still answers null (ISS-1880). */
 export const wouldSit = (root, given) => {
   const full = resolve(root, given);
   let base;
-  let dir;
   try {
     base = realpathSync(root);
-    dir = realpathSync(dirname(full));
   } catch {
     return null;
   }
-  if (dir !== base && !dir.startsWith(base + sep)) return null;
-  return relative(base, join(dir, basename(full))).split(sep).join("/");
+  const gone = [basename(full)];
+  let at = dirname(full);
+  for (;;) {
+    let real;
+    try {
+      real = realpathSync(at);
+    } catch {
+      const up = dirname(at);
+      if (up === at) return null;
+      gone.unshift(basename(at));
+      at = up;
+      continue;
+    }
+    if (real !== base && !real.startsWith(base + sep)) return null;
+    return relative(base, join(real, ...gone)).split(sep).join("/");
+  }
 };
 
 export const digest = (text) => createHash("sha256").update(text).digest("hex").slice(0, HASH_CHARS);
