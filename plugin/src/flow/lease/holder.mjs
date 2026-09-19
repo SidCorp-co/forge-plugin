@@ -117,14 +117,16 @@ export const workUnder = (lease, at = process.cwd(), said = pidOf()) => {
   const host = Number(said);
   const mine = chainOf(process.pid);
   const seat = Number.isInteger(host) && host >= 2 ? mine.indexOf(host) : -1;
-  /* No boundary, and a reading that cannot exclude its own work refuses every claim from a tree. */
   if (seat < 0) return null;
   const work = declared(tree);
   if (!work) return [];
+  const table = answered(() => readdirSync(TABLE));
+  /* A process table that would not enumerate is a reading that did not run, not an idle tree. */
+  if (!table) return null;
   const ours = new Set(mine);
   const below = new Set(mine.slice(0, seat));
   const found = [];
-  for (const name of answered(() => readdirSync(TABLE)) ?? []) {
+  for (const name of table) {
     const pid = Number(name);
     if (!Number.isInteger(pid) || pid < 2 || ours.has(pid)) continue;
     const cwd = answered(() => readlinkSync(`${TABLE}/${pid}/cwd`));
@@ -140,15 +142,17 @@ export const workUnder = (lease, at = process.cwd(), said = pidOf()) => {
    release it started keeps running, so its absence proves the run gone only where that run's tree
    holds none of its declared work. A reading that could not be made is not one that found nothing,
    and leaves the lease to its duration (ISS-1903). */
-export const holderGone = (lease, at = placeOf()) => {
+export const holderGone = (lease, at = placeOf(), { asserted = false } = {}) => {
   if (!lease?.place || lease.place !== at || !absent(lease.pid)) return false;
+  if (asserted) return true;
   const work = workUnder(lease);
   return work !== null && work.length === 0;
 };
 
-export const holderGoneSaid = (lease, at = process.cwd()) =>
+export const holderGoneSaid = (lease, at = process.cwd(), { asserted = false } = {}) =>
   `Process id ${lease.pid}, which that lease records as the host its holder ran under, is not `
   + `running where the lease was taken — the same kernel boot and the same process table this call `
-  + `stands in — and nothing this project calls a run's own work is standing in `
-  + `${treeOf(lease, at) ?? "that lease's own tree"}, so the record proves the run is gone and `
-  + `nothing about it had to be established.`;
+  + `stands in — and ${asserted
+    ? "you have established that no run is under this lease"
+    : `nothing this project calls a run's own work is standing in ${treeOf(lease, at) ?? "that lease's own tree"}`}`
+  + `, so the run behind it is gone.`;

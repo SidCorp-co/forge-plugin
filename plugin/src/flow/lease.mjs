@@ -3,7 +3,7 @@ import { WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/
 import { MINTED_FOR, RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames } from "../resolve/session/run-id.mjs";
 import { TAKEABLE } from "../rank/weights.mjs";
 import {
-  UNKNOWN, agentOf, holderGone, holderGoneSaid, pidOf, placeOf, treeHere,
+  UNKNOWN, agentOf, holderGone, holderGoneSaid, pidOf, placeOf, treeHere, workUnder,
 } from "./lease/holder.mjs";
 import { handedOn } from "./lease/dispatched.mjs";
 import { bandWith, sharedNow, sharedStamp, slackNow, stampOf, straddles } from "../wire/shared-clock.mjs";
@@ -115,11 +115,11 @@ export const expiryOf = (lease) => {
 export const stamp = (ms) => (ms ? stampOf(ms) : "an unreadable time");
 
 /* A lease past its duration is another run's. The holder's own lapsed one is its own state because the field still naming this session proves nobody took the issue; a reclaim is a handoff. And `gone` above both clock readings rather than inside either, because what it answers is the question a duration cannot: not when the lease ran out but whether anything still holds it (ISS-919). */
-export const stateOf = (lease, holder, now = sharedNow()) => {
+export const stateOf = (lease, holder, now = sharedNow(), { asserted = false } = {}) => {
   if (!lease) return "free";
   const live = expiryOf(lease) > now;
   if (lease.holder === holder) return live ? "mine" : "lapsed";
-  if (holderGone(lease)) return "gone";
+  if (holderGone(lease, undefined, { asserted })) return "gone";
   return live ? "live" : "expired";
 };
 
@@ -489,7 +489,9 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
   const state = stateOf(lease, holder);
   if (state === "free" && !finder) return takenByWriting(documentId, ref, context, next, patch);
   /* The second rung of the same reading: a lease the record proves dead is as free as no lease at all, and the round the refusal charged bought nothing the caller had not already read off it. A lapse the record cannot vouch for keeps the refusal below, which is `forge claim`'s own answer at that age — one seam, read from `lapseUnproven`, so no write takes a lease that claim would refuse (ISS-1660). */
-  if ((state === "gone" || (state === "expired" && !lapseUnproven(lease))) && !finder) {
+  /* And the same reading the typed claim makes, on the one route that takes a lease with no refusal in front of it: a write taking what the claim refuses is the seam this closes, and `gone` needs none, having been reached through it (ISS-1903). */
+  const stale = state === "expired" && !lapseUnproven(lease);
+  if ((state === "gone" || (stale && !(workUnder(lease) ?? []).length)) && !finder) {
     return takenByWriting(documentId, ref, context, next, patch, lease, state === "gone");
   }
   if (state !== "mine" && state !== "lapsed") {

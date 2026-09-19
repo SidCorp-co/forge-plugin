@@ -191,6 +191,19 @@ const hostExited = (tree = OTHER) => {
   };
 };
 
+/* The other route a lease is taken with no refusal in front of it: a lapse a whole duration older
+   than the lease's own, which a payload write takes for itself by the clock and not by the holder. */
+const longLapsed = () => {
+  ISSUE.status = "approved";
+  state.wrote = 0;
+  ISSUE.sessionContext = {
+    lease: {
+      holder: ELSEWHERE, agent: "a-test-agent", pid: String(process.pid), place: HERE, tree: OTHER,
+      renewedAt: ago(200), minutes: 60, next: "Phase 7: the ship", history: [],
+    },
+  };
+};
+
 test("the reading is of work outside this call's own, and of nothing else", async () => {
   const own = await standingIn(TREE);
   try {
@@ -522,4 +535,57 @@ test("the lease a claim writes records the checkout the claiming call stood in",
   assert.equal(took.status, 0, `${took.stdout}${took.stderr}`);
   assert.equal(onTheRecord().tree, TREE,
     "so a caller standing anywhere else can read the tree this run's work would stand in");
+});
+
+/* F2 of this change's own review: the refusal names `--stopped`, so `--stopped` has to reach the
+   thing it was refused for. The work reading is the half of the gone proof a caller can settle, and
+   a flag that cleared only the refusal would hand the caller back a live lease with no route at all. */
+test("the assertion reaches a young lease whose host exited, and an answering host is still protected", async () => {
+  hostExited();
+  const ship = await standingIn(OTHER);
+  try {
+    const refused = await ran(["claim", "ISS-1872"], AWAY, HOST, A_STRANGER);
+    assert.equal(refused.status, 1, `standing work refuses it first:\n${refused.stdout}`);
+    assert.match(refused.stderr, new RegExp(`pid ${ship.pid}`, "u"), "naming what it found");
+    const took = await ran(["claim", "ISS-1872", "--stopped"], AWAY, HOST, A_STRANGER);
+    assert.equal(took.status, 0, `and the flag it named has to take it:\n${took.stdout}${took.stderr}`);
+    assert.match(took.stdout, /you have established that no run is under this lease/u,
+      "said as the assertion it is, never as a tree the reading found idle");
+    assert.equal(onTheRecord().holder, A_STRANGER, "and the lease moved");
+  } finally {
+    ship.kill();
+  }
+
+  ISSUE.sessionContext.lease = { ...ISSUE.sessionContext.lease, holder: ELSEWHERE, pid: String(process.pid) };
+  state.wrote = 0;
+  const held = await ran(["claim", "ISS-1872", "--stopped"], AWAY, HOST, A_STRANGER);
+  assert.equal(held.status, 1, `a host that answers is a lease the flag may not take:\n${held.stdout}`);
+  assert.match(held.stderr, /A live lease is that run's/u, "the refusal a live lease has always had");
+  assert.equal(state.wrote, 0, "and nothing was written");
+});
+
+/* F1: the claim refuses a lapse this old while work stands, so the write that takes the same lease
+   for itself has to refuse it too, or the route a run never sees takes what the route it sees will not. */
+test("a payload write does not take a long-lapsed lease by the clock while work stands in its tree", async () => {
+  longLapsed();
+  const ship = await standingIn(OTHER);
+  try {
+    const refused = await ran(["claim", "ISS-1872"], AWAY, HOST, A_STRANGER);
+    assert.equal(refused.status, 1, `the typed claim refuses it:\n${refused.stdout}`);
+    const wrote = await ran(["record", "correction", "ISS-1872", "--moved", "the probe", "--why", "the lapse is old"],
+      AWAY, HOST, A_STRANGER);
+    assert.equal(wrote.status, 1, `and so must the write:\n${wrote.stdout}${wrote.stderr}`);
+    assert.match(wrote.stderr, /Reclaim it first/u, "sending the caller to the claim, which is where the reading is said");
+    assert.equal(state.wrote, 0, "with the field untouched");
+  } finally {
+    ship.kill();
+  }
+});
+
+test("that same write takes the long-lapsed lease as it always did once nothing is standing there", async () => {
+  longLapsed();
+  const wrote = await ran(["record", "correction", "ISS-1872", "--moved", "the probe", "--why", "the lapse is old"],
+    AWAY, HOST, A_STRANGER);
+  assert.equal(wrote.status, 0, `${wrote.stdout}${wrote.stderr}`);
+  assert.equal(onTheRecord().history.at(-1).how, "reclaim", "under the word a reclaim keeps");
 });

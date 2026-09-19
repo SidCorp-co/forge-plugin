@@ -1266,8 +1266,8 @@
       "digest": "d06c23d8c0a0d332fe14c46b506ce8ba84d45e8abba00cd49e2a2527a8a9d82a"
     },
     "AC-03-3-5": {
-      "rev": 1,
-      "digest": "df04a17552270894bb85848e8aaecd6d2d0ae5e9014faa03b3604508cff28fec"
+      "rev": 2,
+      "digest": "6f0fcb0fe55f798ccc2e0d7c4c854e0962d0dec1e5fd86abf58e3603bd78662f"
     },
     "AC-03-3-6": {
       "rev": 2,
@@ -1275,7 +1275,7 @@
     },
     "AC-03-3-7": {
       "rev": 2,
-      "digest": "d729d604330a18b267f98b5edf2d53725e2368edbbffc48772b6ca75b1040027"
+      "digest": "0cf3af30c8bc33bd6af20a93cfc463a0e8b26c95973c9acc4ba9b014d423db9e"
     },
     "AC-03-3-8": {
       "rev": 3,

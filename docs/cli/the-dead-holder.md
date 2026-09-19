@@ -22,9 +22,11 @@ process every agent of a dispatched wave inherits, and a host exits while the re
 keeps running — watched happening, on a lease this CLI then handed to a second run mid-ship. So an id
 absent in the domain the lease records, read by a call standing in that same domain, proves the
 holder gone only where the reading below was made against that lease's own tree and found none of
-that run's work standing there. Where it found work, the absent id settles nothing and the caller is
-asked to settle it instead. Where it could not be made at all, nothing is proven either way and the
-duration decides, a reading that did not run being no evidence of an idle tree.
+that run's work standing there. Where it found work, the absent id settles nothing on its own and
+the caller is asked to settle it instead — which is what `--stopped` does here as it does for a
+lapse, the work being the half of the proof a person can rule on and the answering host the half
+nobody may override. Where the reading could not be made at all, nothing is proven either way and
+the duration decides, a reading that did not run being no evidence of an idle tree.
 
 Absence is also the only direction that proves anything. An id that answers proves nothing in
 particular, being that same shared host, which is why `--stopped` exists for the lapse this cannot

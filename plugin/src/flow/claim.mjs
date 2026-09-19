@@ -425,10 +425,10 @@ export const claim = async (argv) => {
   const lease = leaseOf(context);
   const mine = sessionSourced();
   const holder = sessionOf();
-  const state = stateOf(lease, holder);
+  const state = stateOf(lease, holder, undefined, { asserted: given.stopped });
   const minutes = asked ?? (lease && lease.holder === holder ? lease.minutes : MINUTES);
   const worklog = worklogOf(context);
-  /* Above every route out of here, including the five turns below, because what each of the two qualifies is the state those routes read and a claim told afterwards has already been answered on it: the band is the moment the two clocks cannot order, and the work standing in the lease's own tree is the thing no state of the record reports (ISS-1903). */
+  /* Above every route out of here, including the five turns below, because what each of the two qualifies is the state those routes read and a claim told afterwards has already been answered on it: the band is the moment the two clocks cannot order, and the work standing in the lease's own tree is the thing no state of the record reports. That work is also the half of the gone reading `--stopped` settles, read into the state above: a flag that cleared only this refusal would leave the caller at a live lease it has no route to (ISS-1903). */
   const band = bandWith(lease?.slack);
   const expiry = lease ? expiryOf(lease) : 0;
   const anybodys = lease ? anybodysAt(lease) : 0;
@@ -503,7 +503,7 @@ export const claim = async (argv) => {
   const taken = leaseOf(next);
   console.log(`${ref}  ${how ?? "renewed"}: ${describe(taken)}`);
   if (state === "live") console.log(handedSaid(ref, lease));
-  if (state === "gone") console.log(holderGoneSaid(lease));
+  if (state === "gone") console.log(holderGoneSaid(lease, undefined, { asserted: given.stopped }));
   if (checkpoint) console.log(`${landingLine(checkpoint)} — taken from here by \`${takeRoute(ref)}\`.`);
   for (const one of nextLines(how, left, taken.next)) console.log(one);
   /* Beside the lease it is about, and above every route out of here: a claim that answers a park
