@@ -39,7 +39,8 @@ import {
   roleFor,
   sameFamily,
 } from "./codex-api.mjs";
-import { modelBehind, modelSlot, profile } from "../tools/services/tool-config.mjs";
+import { gateway, modelBehind, modelSlot } from "../resolve/machine/stores.mjs";
+import { masked } from "../tools/services/masked.mjs";
 import { EVAL_USAGE, MARKS_USAGE, REPLAY_USAGE, STATS_USAGE, crossingSaid, printEval, printMarks,
   printReplay, printStats } from "./codex-stats.mjs";
 import {
@@ -299,8 +300,8 @@ const ruledSaid = (plan, offset, reply, id, entries) => {
 
 const consult = async (given) => {
   const { named, issues, risks, only, allowEcho, base, namedBase, effort: askedEffort, cap, send, recheck, angles, scope, checks } = consultArgs(given);
-  const { problem, values, path } = profile();
-  if (problem) fail(`codex: ${problem}. It needs the gateway the consult is sent to.`);
+  const { problem, values, path } = gateway();
+  if (problem) fail(`codex: the consult has no gateway to be sent to — ${problem}.`);
   const root = repoRoot(process.cwd());
   if (!root) fail("codex: not in a git repository, so there is nothing to review against.");
   const set = reviewSet({ root, named, keys: issues, base, namedBase, recheck, pattern: recordPattern().value, held: pendingIn(readState(), root) });
@@ -472,7 +473,7 @@ const consult = async (given) => {
 
 const show = (rest = []) => {
   flags(rest, "codex show", [], { usage: SHOW_USAGE });
-  const { problem, values, path } = profile();
+  const { problem, values, path, url, key } = gateway();
   const root = repoRoot(process.cwd());
   const waiting = root ? pendingIn(readState(), root) : [];
   const entries = logEntries();
@@ -481,7 +482,9 @@ const show = (rest = []) => {
   const model = rungFor(base, modelBehind(values));
   const said = model && disagreement(base, model);
   console.log(`profile   : ${path}${problem ? `  (${problem})` : ""}`);
-  console.log(`endpoint  : ${values?.ANTHROPIC_BASE_URL ?? "<unresolved>"}/v1/messages  (streamed)`);
+  console.log(`endpoint  : ${url.value ? `${url.value}/v1/messages  (streamed)` : "<unresolved>"}`
+    + `${url.from ? `  \u2190 ${url.from}` : ""}`);
+  console.log(`credential: ${key.value ? `${masked(key.value)}  \u2190 ${key.from}` : "<unresolved>"}`);
   console.log(`model     : ${modelSlot()} -> ${model ?? "<unset>"} at ${base} effort, `
     + `carried on the ${effortVia(model)}`);
   console.log(`rungs     : ${ladder.length ? ladder.map(([level, one]) => `${level} -> ${one}`).join(", ")

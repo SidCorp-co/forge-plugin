@@ -114,18 +114,25 @@ const SERVES = [
 
 const SERVICES = [
   "Usage: forge doctor services [--full]",
-  "The hosts the harness calls and which of their keys this machine holds: the Vietnamese gateway,",
-  "Cloudflare, Coolify, the model that reviews a turn, and the ChatGPT endpoint.",
+  "The hosts the harness calls and which of their keys this machine holds — the Vietnamese gateway,",
+  "Cloudflare, Coolify, the model that reviews a turn, and the ChatGPT endpoint — one row per key,",
+  "each naming the file that answered for it.",
   "",
+  "  forge doctor --codex-url <url>        where a consult is sent",
+  "  forge doctor --codex-key <key>        its credential, which the row prints masked",
+  "  forge doctor --vi-url <url>           where Vietnamese prose is written",
+  "  forge doctor --vi-key <key>           its credential, masked in the row too",
+  "  forge doctor --vi-model <id>          which model of that gateway writes it",
   "  forge doctor --chatgpt-url <url>      where one ChatGPT turn is sent",
-  "  forge doctor --chatgpt-key <key>      its credential, which the row prints masked",
+  "  forge doctor --chatgpt-key <key>      its credential, masked as the two above are",
   "  forge doctor --chatgpt-prefix <text>  the framing every picture ask carries, which is a",
   "                                        direction to build toward and never a screenshot of",
   "                                        something already built",
   "",
-  "Each is typed on the verb rather than on this subject. The Vietnamese gateway is `vi-natural",
-  "login`'s to write and the reviewer's profile is the gateway's; the rows name the file each of the",
-  "others was read from, and none of them gates anything but its own verb.",
+  "Each is typed on the verb rather than on this subject. This machine's own configuration is the",
+  "source for all eight; the reviewer's gateway profile and the file `vi-natural login` writes answer",
+  "where a key here is unset, and the row says which of the two did. Cloudflare and Coolify have",
+  "their own login verbs, and none of these gates anything but its own verb.",
 ].join("\n");
 
 const REPO = [

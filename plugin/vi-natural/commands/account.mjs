@@ -4,7 +4,8 @@ import { createInterface } from "node:readline/promises";
 import { existsSync } from "node:fs";
 
 import { CliError, err } from "../util.mjs";
-import { CONFIG_PATH, save } from "../gateway/config.mjs";
+import { CONFIG_PATH, IN_STORE, save } from "../gateway/config.mjs";
+import { machineValue } from "../../src/resolve/machine/stores.mjs";
 import { translateItems } from "../gateway/engine.mjs";
 
 export async function login(args) {
@@ -23,6 +24,14 @@ export async function login(args) {
     region: args.region,
   });
   process.stdout.write(`saved ${path} (0600)\n`);
+  // This file is the fallback, so a key the plugin's own store holds is what a run still reads: said
+  // here, where somebody has just typed the value that did not take effect.
+  for (const stored of Object.values(IN_STORE)) {
+    const answer = machineValue("vi", stored);
+    if (answer.value && answer.from !== CONFIG_PATH) {
+      err(`! the ${stored} in force is ${answer.from}'s — \`forge doctor --vi-${stored} <value>\` writes that one`);
+    }
+  }
   return 0;
 }
 
@@ -38,13 +47,13 @@ export async function doctor(args, makeClient) {
   const { config, client } = makeClient(args);
   process.stdout.write(`config file : ${CONFIG_PATH}${existsSync(CONFIG_PATH) ? "" : " (absent)"}\n`);
   try {
-    process.stdout.write(`base url    : ${config.baseUrl}\n`);
+    process.stdout.write(`base url    : ${config.baseUrl}  \u2190 ${config.from("baseUrl")}\n`);
   } catch (error) {
     process.stdout.write("base url    : MISSING\n");
     throw error;
   }
   try {
-    process.stdout.write(`model       : ${config.model} (effort ${config.effort})\n`);
+    process.stdout.write(`model       : ${config.model} (effort ${config.effort})  \u2190 ${config.from("model")}\n`);
   } catch (error) {
     process.stdout.write("model       : MISSING\n");
     throw error;
@@ -56,7 +65,7 @@ export async function doctor(args, makeClient) {
     process.stdout.write("api key     : MISSING\n");
     throw error;
   }
-  process.stdout.write(`api key     : ${key.slice(0, 6)}…${key.slice(-4)}\n`);
+  process.stdout.write(`api key     : ${key.slice(0, 6)}…${key.slice(-4)}  \u2190 ${config.from("apiKey")}\n`);
 
   const glossary = config.glossary();
   process.stdout.write(`glossary    : ${config.glossaryPath ?? "none found"} (${glossary.size} term(s))\n`);

@@ -49,6 +49,28 @@ directory — an account setting that is the account's in name only. A `.mcp.jso
 server is reported by `forge doctor` with the command that saves the same values properly.
 `XDG_CONFIG_HOME` moves all of it, and is how a test runs on state that is not yours.
 
+**Machine** — what a harness service on this box reaches, beside the account's pair in the same
+file, each written by `forge doctor`:
+
+```
+forge doctor --codex-url <endpoint> --codex-key <key>
+forge doctor --vi-url <endpoint> --vi-key <key> --vi-model <id>
+forge doctor --chatgpt-url <endpoint> --chatgpt-key <key> --chatgpt-prefix <framing>
+```
+
+Two of those services had a file of their own before this one did and still answer from it where the
+key here is unset: the reviewer's gateway from `~/.claude/claude-proxy.env`, the Vietnamese gateway
+from the file `vi-natural login` writes. That is the one precedence rule this product keeps, and
+what buys it is not optional — every row `forge doctor` prints for one of these names the file that
+answered for it, so the fallback can be undone by whoever meets it. A change that drops the naming
+drops the fallback with it.
+
+`~/.claude/claude-proxy.env` is read here and written nowhere. A shim outside this repository reads
+it too, and Claude Code consumes its `ANTHROPIC_*` values as environment, where the model slots
+decide which model a subagent's `model:` frontmatter spawns on — so the slot a consult resolves
+through is still read from that file and nothing here touches it. Which values are this box's and
+can never be a project's: [settings](docs/cli/settings.md).
+
 **Project** — everything a tracker decides for itself, in a `.forge.json` at its root:
 
 ```json

@@ -1,11 +1,10 @@
 /* The credentials that are this machine's and a harness verb's, gating nothing: every other verb works with none of them saved, so each absence is a note. Rows out rather than printed lines, in the shape the project's rows already come in, because importing `line` from `doctor.mjs` would be a cycle. docs/cli/doctor.md. */
-import { CHATGPT_KEYS, CHATGPT_PREFIX, chatgptSettings } from "../../../resolve/settings.mjs";
 import { defaultEffort, disagreement, effortVia, rungFor, rungLadder } from "../../../codex/codex-plan.mjs";
 import { configPath } from "../../../resolve/config.mjs";
 import { logBytes, logPath } from "../../../codex/codex-log.mjs";
 import { consultCount } from "../../../codex/log/asked.mjs";
-import { CONFIGURABLE, absentSaid, cloudflareAccounts, configureSaid, unconfiguredTool, modelBehind,
-  profile } from "../tool-config.mjs";
+import { gateway, machineRows, modelBehind } from "../../../resolve/machine/stores.mjs";
+import { CONFIGURABLE, absentSaid, cloudflareAccounts, configureSaid, unconfiguredTool } from "../tool-config.mjs";
 import { SCOPE_FILE, coolifyTarget, pinned } from "../coolify/config.mjs";
 import { masked } from "../masked.mjs";
 
@@ -15,11 +14,10 @@ const cloudflareRow = (full) => {
   return { level: "ok", detail: `${held.join(", ")}  ← ${from}` };
 };
 
-/* The model, the level and the channel on one row rather than four lines apart: which of the two
-   channels the effort travels on is a fact about the model that resolved, and a reader given the model
-   alone cannot tell a ladder from one slot frozen at a rung. */
+/* The model, the level and the channel on one row: given the model alone a reader cannot tell a
+   ladder from one slot frozen at a rung. */
 const codexRow = () => {
-  const { values } = profile();
+  const { values } = gateway();
   const base = defaultEffort();
   const ladder = rungLadder();
   const model = rungFor(base, modelBehind(values));
@@ -38,29 +36,7 @@ const codexRow = () => {
       + `  ${consultCount(logBytes())} consult(s) logged at ${logPath()}` };
 };
 
-const chatgptRow = (full) => {
-  const held = chatgptSettings();
-  /* The endpoint whole and the key masked: one is a host somebody has to check against the backend they meant, the other a credential no report needs the value of. */
-  const shown = { url: (value) => value, key: (value) => masked(value, full) };
-  /* Off the settings this row already holds and not `missing`'s membership, which holds the very row objects `CHATGPT_KEYS` declares: the same answer through a coupling a `chatgptSettings` that ever copied its rows would break in silence. */
-  const parts = CHATGPT_KEYS.map((row) => (!held[row.key]
-    ? `no ${row.asks} — \`forge doctor --${row.flag} <${row.asks}>\``
-    : shown[row.key](held[row.key])));
-  return { level: held.missing.length ? "note" : "ok", detail: parts.join("  ") };
-};
-
-/* Its own row rather than a third part of the one above, because the value is a sentence somebody wrote and the two beside it are a host and a credential: joined, the row a reader scans for an endpoint would run to whatever length a framing was given. */
-const prefixRow = () => {
-  const { prefix, from } = chatgptSettings();
-  return prefix
-    ? { level: "ok", detail: `${prefix}  ← ${from}` }
-    : { level: "note",
-      detail: `no ${CHATGPT_PREFIX.asks} — \`forge doctor --${CHATGPT_PREFIX.flag} <${CHATGPT_PREFIX.asks}>\`, `
-        + "which `forge chatgpt image` is refused without" };
-};
-
-/* Read off the files and never off the instance: a doctor row that made a request would report a
-   network fault as a missing credential, and the pin is a property of this directory either way. */
+/* Off the files and never off the instance: a request would report a network fault as a missing credential. */
 const coolifyRow = (full) => {
   const { url, token, from } = coolifyTarget();
   const { at, spec } = pinned();
@@ -73,20 +49,29 @@ const SAVED = {
   cloudflare: cloudflareRow,
   coolify: coolifyRow,
   codex: codexRow,
-  chatgpt: chatgptRow,
 };
 
-/* Two facts and not one: the table says WHETHER a tool is configured — the same answer the help filtered on, which is what stops the two disagreeing about a verb — and a row above says which half of it is missing, which only that tool knows. */
-const HALVES = { chatgpt: (full) => chatgptRow(full).detail };
+/* Worth a line only when it is what withheld the verb: configured, it says nothing the rows below do. */
+const toolRow = (verb, full) => {
+  if (unconfiguredTool(verb)) {
+    return { label: verb, level: "note",
+      detail: `${absentSaid(verb)} — ${configureSaid(verb)}, so \`forge ${verb}\` is in no help` };
+  }
+  return SAVED[verb] ? { label: verb, ...SAVED[verb](full) } : null;
+};
 
-const toolRow = (verb, full) => (unconfiguredTool(verb)
-  ? { label: verb,
-    level: "note",
-    detail: `${HALVES[verb]?.(full) ?? `${absentSaid(verb)} — ${configureSaid(verb)}`}`
-      + `, so \`forge ${verb}\` is in no help` }
-  : { label: verb, ...SAVED[verb](full) });
+/* One row per key, carrying the `from` the reader answered with rather than a file this composes:
+   why that provenance travels at all is `resolve/machine/stores.mjs`'s (AC-01-3-1). */
+const keyRow = (row, full, required) => ({
+  label: `${row.label} ${row.said ?? row.key}`,
+  level: row.value ? "ok" : (required.includes(row.store) ? "miss" : "note"),
+  detail: row.value
+    ? `${row.secret ? masked(row.value, full) : row.value}  ← ${row.from}`
+    : `no ${row.asks} — \`forge doctor --${row.flag} <${row.asks}>\`${row.without ? `, ${row.without}` : ""}`,
+});
 
-export const harnessLines = (full) => [
-  ...CONFIGURABLE.map((verb) => toolRow(verb, full)),
-  { label: "chatgpt framing", ...prefixRow() },
+/** `required` names the stores this checkout cannot work without: an absence there is a fault. */
+export const harnessLines = (full, required = []) => [
+  ...CONFIGURABLE.map((verb) => toolRow(verb, full)).filter(Boolean),
+  ...machineRows().map((row) => keyRow(row, full, required)),
 ];

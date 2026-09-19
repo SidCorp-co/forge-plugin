@@ -26,7 +26,8 @@ const {
   withDiffs,
   sameFamily,
 } = await import("../../src/codex/codex-api.mjs");
-const { modelBehind, profileFrom } = await import("../../src/tools/services/tool-config.mjs");
+const { modelBehind } = await import("../../src/resolve/machine/stores.mjs");
+const { profileFrom } = await import("../../src/resolve/machine/profile.mjs");
 const { runTool, scopeFor } = await import("../../src/codex/codex-tools.mjs");
 const { codexCheckOf } = await import("../../src/resolve/settings.mjs");
 const { partition } = await import("../../src/resolve/flags.mjs");

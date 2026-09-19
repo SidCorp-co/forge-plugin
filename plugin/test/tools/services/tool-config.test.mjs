@@ -114,7 +114,8 @@ test("a reference wholly about an unconfigured tool is unlisted, and named direc
   assert.match(listed, /^ {2}dependencies /mu, "a reference about no tool is still listed");
   const asked = bare("guide", "forge", "codex");
   assert.notEqual(asked.status, 0);
-  assert.match(asked.stderr, /ANTHROPIC_AUTH_TOKEN/u, "and the refusal says what configures it");
+  assert.match(asked.stderr, /forge doctor --codex-url <endpoint> --codex-key <key>/u,
+    "and the refusal says what configures it");
   assert.match(saved("guide", "forge", "codex").stdout, /answers as a different model/u,
     "while a machine that saved one is served the text");
 });

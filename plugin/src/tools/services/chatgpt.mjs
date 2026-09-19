@@ -8,7 +8,8 @@ import { basename } from "node:path";
 
 import { apiBaseOf, clockFor, deadlineOf, deadlineSeconds, MAX_WAIT_SECONDS, parsedOr, ranOut } from "../../wire/request.mjs";
 import { sseEvents } from "../../wire/sse.mjs";
-import { CHATGPT_PREFIX, chatgptSettings, fail, refusing } from "../../resolve/settings.mjs";
+import { fail, refusing } from "../../resolve/settings.mjs";
+import { CHATGPT_PREFIX, chatgptSettings } from "../../resolve/machine/stores.mjs";
 import { firstLine, flags, helpAskedOf, pullRepeated, wantsHelp } from "../../resolve/flags.mjs";
 import { didYouMean } from "../../suggest.mjs";
 import { CALL_CEILING_SECONDS, pastCeiling } from "../../host/call-ceiling.mjs";

@@ -17,7 +17,7 @@ const { userConfig } = await import("../../../src/resolve/config.mjs");
 
 /* The same write `saveConfig` makes, without the file: it assigns into the memoised object, so a reader called after this sees what a `forge doctor --chatgpt-key` in the same process would have left. */
 const configured = (values) => {
-  for (const key of ["cloudflare", "coolify", "chatgpt", "codex"]) delete userConfig()[key];
+  for (const key of ["cloudflare", "coolify", "chatgpt", "codex", "vi"]) delete userConfig()[key];
   Object.assign(userConfig(), values);
 };
 
@@ -43,7 +43,9 @@ test("every harness row is a row of the report's own vocabulary, with no second 
   profiled(WHOLE_PROFILE);
   configured({});
   const rows = harnessLines(false);
-  assert.deepEqual(rows.map((row) => row.label), ["cloudflare", "coolify", "codex", "chatgpt", "chatgpt framing"]);
+  assert.deepEqual(rows.map((row) => row.label), ["cloudflare", "coolify", "codex", "chatgpt",
+    "codex url", "codex key", "vi-natural url", "vi-natural key", "vi-natural model",
+    "chatgpt url", "chatgpt key", "chatgpt framing"]);
   for (const row of rows) {
     assert.ok(["ok", "note", "miss"].includes(row.level), `${row.label} answered the level ${row.level}`);
     assert.equal(row.ok, undefined, `${row.label} still carries a boolean beside its level`);
@@ -96,19 +98,24 @@ test("the codex row is a note at each of its three bad readings, and never a mis
   assert.equal(levelOf("codex"), "ok");
 });
 
-test("the chatgpt row is a note while either half is absent and an ok once both are saved", () => {
+/* The verb-level row exists only to say the verb went, so once both halves are saved it is gone and
+   the two key rows below carry the values: two rows saying `held` would be the second answer. */
+test("the chatgpt row is a note while either half is absent and is gone once both are saved", () => {
   profiled(WHOLE_PROFILE);
   assert.equal(levelOf("chatgpt"), "note", "neither half");
   assert.equal(levelOf("chatgpt", { chatgpt: { url: "https://gpt.example/mcp" } }), "note", "an endpoint with no key");
   assert.equal(levelOf("chatgpt", { chatgpt: { key: "k" } }), "note", "a key with no endpoint");
-  assert.equal(levelOf("chatgpt", { chatgpt: { url: "https://gpt.example/mcp", key: "k" } }), "ok");
+  configured({ chatgpt: { url: "https://gpt.example/mcp", key: "k" } });
+  assert.equal(harnessLines(false).find((row) => row.label === "chatgpt"), undefined);
 });
 
-test("the chatgpt row names the flag that writes each half it is missing, and never types one", () => {
+test("each half a store is missing is a row of its own naming the flag that writes it", () => {
   profiled(WHOLE_PROFILE);
   configured({});
-  const { detail } = harnessLines(false).find((row) => row.label === "chatgpt");
-  assert.equal(detail, "no endpoint — `forge doctor --chatgpt-url <endpoint>`  no key — `forge doctor --chatgpt-key <key>`"
+  assert.equal(detailOf("chatgpt url"), "no endpoint — `forge doctor --chatgpt-url <endpoint>`");
+  assert.equal(detailOf("chatgpt key"), "no key — `forge doctor --chatgpt-key <key>`");
+  assert.equal(detailOf("chatgpt"),
+    "no endpoint and no key — `forge doctor --chatgpt-url <endpoint> --chatgpt-key <key>`"
     + ", so `forge chatgpt` is in no help");
 });
 
@@ -128,7 +135,7 @@ test("the framing row is a note naming the flag while none is saved, and reports
 /* The pair is read once, where the other machine-level settings are read, and answers the file that
    answered for it — which is what every other setting in that report already does (AC-01-3-1). */
 test("the chatgpt endpoint and key come off one reader that names the file they came from", async () => {
-  const { chatgptSettings, CHATGPT_KEYS } = await import("../../../src/resolve/settings.mjs");
+  const { chatgptSettings, CHATGPT_KEYS } = await import("../../../src/resolve/machine/stores.mjs");
   configured({});
   const absent = chatgptSettings();
   assert.deepEqual({ url: absent.url, key: absent.key, from: absent.from }, { url: null, key: null, from: null },
@@ -142,4 +149,18 @@ test("the chatgpt endpoint and key come off one reader that names the file they 
   assert.equal(held.prefix, "Flat vector.");
   assert.equal(held.from, join(HOME, "forge", "config.json"), "the file that answered, not merely that one did");
   assert.deepEqual(held.missing, []);
+});
+
+/* The one level a harness row reaches that the report's exit code counts, and the only store that
+   ever reaches it: a project declaring Vietnamese prose cannot post without that gateway. */
+test("a store named as required answers miss where it is unset, and note where it is not named", () => {
+  profiled(WHOLE_PROFILE);
+  configured({});
+  const required = harnessLines(false, ["vi"]);
+  for (const label of ["vi-natural url", "vi-natural key", "vi-natural model"]) {
+    assert.equal(required.find((row) => row.label === label).level, "miss", label);
+  }
+  assert.equal(required.find((row) => row.label === "chatgpt url").level, "note",
+    "a store the caller did not name is a note in the same reading");
+  assert.equal(harnessLines(false).find((row) => row.label === "vi-natural url").level, "note");
 });

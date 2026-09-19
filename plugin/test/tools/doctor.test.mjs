@@ -91,7 +91,7 @@ test("no .mcp.json means no line about one", () => {
 
 test("a saved key with no gateway is reported, not passed", () => {
   const out = report({ api_key: "k-abc123" });
-  assert.match(out, /\[ note \] vi-natural gateway\s+run `vi-natural login --base-url/);
+  assert.match(out, /\[ note \] vi-natural url\s+no endpoint — `forge doctor --vi-url <endpoint>`/u);
   assert.match(out, /\[ {2}ok {2}\] vi-natural key/, "the half that is configured still reads as configured");
 });
 
@@ -104,34 +104,34 @@ test("a machine with neither cloudflare nor codex configured reads as notes", ()
 
 test("all three configured read as configured", () => {
   const out = report({ api_key: "k-abc123", base_url: "https://gateway.example/v1", model: "gw/some-model" });
-  assert.match(out, /\[ {2}ok {2}\] vi-natural gateway/);
-  assert.match(out, /\[ {2}ok {2}\] vi-natural key/);
-  assert.match(out, /\[ {2}ok {2}\] vi-natural model/);
+  assert.match(out, /\[ {2}ok {2}\] vi-natural url/u);
+  assert.match(out, /\[ {2}ok {2}\] vi-natural key/u);
+  assert.match(out, /\[ {2}ok {2}\] vi-natural model/u);
 });
 
 test("a model is the third setting, and its absence is reported too", () => {
   const out = report({ api_key: "k-abc123", base_url: "https://gateway.example/v1" });
-  assert.match(out, /\[ note \] vi-natural model\s+run `vi-natural login --model/);
+  assert.match(out, /\[ note \] vi-natural model\s+no id — `forge doctor --vi-model <id>`/u);
 });
 
 /* Reads and writes differ: `new` translates before it posts, and a read never asks. */
 test("the same absent gateway is a miss where the project declares vi", () => {
   const out = report(null, {}, { ".forge.json": JSON.stringify({ slug: "x", translate: "vi" }) });
-  assert.match(out, /\[ miss \] vi-natural gateway/);
-  assert.match(out, /\[ miss \] vi-natural key/);
-  assert.match(out, /\[ miss \] vi-natural model/);
+  assert.match(out, /\[ miss \] vi-natural url/u);
+  assert.match(out, /\[ miss \] vi-natural key/u);
+  assert.match(out, /\[ miss \] vi-natural model/u);
 });
 
 /* The config file is the only source: a variable that once answered for the gateway now answers
    for nothing, and the report has to keep saying MISSING rather than counting it. */
 test("the environment is not a source for the gateway", () => {
   const out = report(null, { VI_NATURAL_BASE_URL: "https://gateway.example/v1" });
-  assert.match(out, /\[ note \] vi-natural gateway/);
-  assert.match(out, /\[ note \] vi-natural key/);
+  assert.match(out, /\[ note \] vi-natural url/u);
+  assert.match(out, /\[ note \] vi-natural key/u);
 });
 
 test("the gateway is reported with no translate scope set", () => {
-  assert.match(report(null), /\[ note \] vi-natural gateway/);
+  assert.match(report(null), /\[ note \] vi-natural url/u);
 });
 
 /* Which copy `forge` on PATH is depends on where it is typed, and one link serves the machine, so

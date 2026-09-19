@@ -6,15 +6,14 @@ import { join } from "node:path";
 
 import {
   INHERITED,
-  configDir,
   configPath,
-  readJson,
   saveConfig,
   sessionPath,
   sessionSourced,
   userConfig,
 } from "../resolve/config.mjs";
 import { MACHINE_FLAGS, MACHINE_WRITES, WITH_BODY, WRITES } from "./doctor-keys.mjs";
+import { SECRET_FLAGS } from "../resolve/machine/stores.mjs";
 import { backoff, retrySeconds } from "../tracker/rest.mjs";
 import { deadlineSeconds, waitSeconds } from "../wire/request.mjs";
 import { measured, offsetSaid } from "../wire/shared-clock.mjs";
@@ -53,8 +52,6 @@ import {
   addressed, contractParts, contractPath, contractProblems, flowProblems, identityOf, unansweredIn,
 } from "../guides/contract.mjs";
 
-const viConfig = () => join(configDir("vi-natural"), "config.json");
-
 /* Which part resolved and from where, never the value: `--full` is for a human holding two tokens. */
 /* The sentence rides on the row that answered: a table here keyed on those names is a second copy a
    new source would throw against. The level stays this file's, and the read mints nothing. */
@@ -90,28 +87,18 @@ const envHeld = () => {
   return found;
 };
 
-/* Reported every run and, like cloudflare's, gating nothing by itself: the vi-natural skill
-   translates a locale file with no tracker in sight. `translate` decides whether the tracker's own
-   writes wait on it, so it decides the level too. The bundled copy is this plugin's own file. */
-const checkVi = (waited) => {
+/* Which copy answers is this file's; what is in the gateway it reaches is a row of the harness
+   table, where every other service's keys are and where each names the file that answered. */
+const checkVi = () => {
   const run = spawnSync(BUNDLED, ["--help"], { encoding: "utf8" });
   if (run.error || run.status !== 0) {
     line(BAD, "vi-natural", `bundled copy will not run: ${run.error?.message ?? run.status}`);
     return;
   }
   line(OK, "vi-natural", BUNDLED);
-  const login = waited ? BAD : NOTE;
-  const saved = readJson(viConfig()) ?? {};
-  const held = (field) => Boolean(saved[field]);
-  if (held("base_url")) line(OK, "vi-natural gateway", viConfig());
-  else line(login, "vi-natural gateway", "run `vi-natural login --base-url <url>` — there is no default host");
-  if (held("api_key")) line(OK, "vi-natural key", viConfig());
-  else line(login, "vi-natural key", "run `vi-natural login --key <key>` — no issue can be posted");
-  if (held("model")) line(OK, "vi-natural model", viConfig());
-  else line(login, "vi-natural model", "run `vi-natural login --model <id>` — `vi-natural models` lists them");
 };
 
-const checkHarness = (full) => report(harnessLines(full));
+const checkHarness = (full, required) => report(harnessLines(full, required));
 
 /* Something saying no, against a fault of the moment: a dropped socket or a 5xx is one bad minute,
    and recorded as a gate it hides the verb from every run after it (codex F4). */
@@ -370,7 +357,7 @@ export const doctor = async (argv) => {
   reading(subject);
   const { values: pairs, rest } = pullRepeated(subject ? argv.slice(1) : argv, "--meta", "doctor", { usage });
   const { positionals, flagArgv } = partition(rest, BOOLEAN, { verb: "doctor", usage });
-  const asked = flags(flagArgv, "doctor", BOOLEAN, { usage, secret: ["--token", "--chatgpt-key"] });
+  const asked = flags(flagArgv, "doctor", BOOLEAN, { usage, secret: ["--token", ...SECRET_FLAGS] });
   const { full, credentials } = asked;
   /* Two readings of one stray word, told apart by whitespace: a mistyped subject earns the nearest
      names, and a sentence is --line's prose, which no suggestion could be about. */
@@ -471,8 +458,8 @@ export const doctor = async (argv) => {
   checkContract();
   under("services");
   /* Reads and writes differ: `new` translates before it posts, and a read never asks. */
-  checkVi(language.value === "vi");
-  checkHarness(full);
+  checkVi();
+  checkHarness(full, language.value === "vi" ? ["vi"] : []);
   under("repo");
   report(installRows(checkoutRoot()));
   checkClaudeMdLocally();

@@ -286,12 +286,16 @@
       "digest": "7c54073ace0fd5d7655b3ac52e15fee4d51efd26ca5841da758f5f86c41b4769"
     },
     "EI-05": {
-      "rev": 1,
-      "digest": "e547566f8cb9fc6e815fbf500ad194c4ee79d1d057f73e59146adbc8d1f8566f"
+      "rev": 2,
+      "digest": "00476739c25190a6ac06d59922c2898df935d0e55c2b7b860122502e5968fc6f"
     },
     "AC-19-5-1": {
       "rev": 1,
       "digest": "5f045e20c70a148b602da81d1f6db3d77960fd73ee602cc6dc68a3e01b3d50bc"
+    },
+    "AC-19-5-2": {
+      "rev": 1,
+      "digest": "e0bc752dcc359534158f168e2c34e3b4afd24d326e1b14c0c6d4f6dad679a97f"
     },
     "EI-06": {
       "rev": 1,

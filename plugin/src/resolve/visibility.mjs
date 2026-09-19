@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { ROUTES } from "../tracker/routes.mjs";
 import { userConfig } from "./config.mjs";
 import { declaredJobs, fail, feedbackScope, projectScope } from "./settings.mjs";
+import { STORES } from "./machine/stores.mjs";
 import { unconfiguredTool } from "../tools/services/tool-config.mjs";
 
 /* A row names its group; `forge -h`'s headings are folded off that, so a verb reaching the table
@@ -18,6 +19,10 @@ const METHOD = "The method";
 const HARNESS = "The harness";
 
 export const GROUPS = [BACKLOG, FLOW, METHOD, HARNESS];
+
+/* Off the store table rather than typed here, so a key added there reaches the parser that accepts it. */
+const STORE_FLAGS = STORES.flatMap((store) =>
+  store.keys.map((one) => `[--${one.flag} ${one.key[0]}]`)).join(" ");
 
 export const VERBS = [
   ["issue", "[<uuid|ISS-45>] [--status s] [--search q] [--limit n] [--offset n] [--fields a,b] [--full] [--set f=v... --why W] [--blocks|--relates|--unlink ISS-46 --kind k]",
@@ -97,8 +102,8 @@ export const VERBS = [
   ["feedback", "<file.md|@file|-> --title T [--kind K] [--with ISS-45,ISS-46] [--new]",
     "`forge new` with the kind, the project and the Where filled in: a defect in this plugin, from any checkout",
     null, { group: HARNESS }],
-  ["doctor", "[<subject>] [--token t] [--url u] [--chatgpt-url u] [--chatgpt-key k]"
-    + " [--chatgpt-prefix p] [--hide v|--show v] [--job name|all]"
+  ["doctor", `[<subject>] [--token t] [--url u] ${STORE_FLAGS}`
+    + " [--hide v|--show v] [--job name|all]"
     + " [--ship ready|self] [--set k=v] [--flow slug] [--credentials]"
     + " [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text> --was <prose>] [--title T]"
     + " [--confidence C] [--meta k=v]... [--full]",

@@ -84,15 +84,20 @@ configuration. Which copy of it answers is `README.md`'s; a project with neither
 
 ### EI-05 — The Vietnamese gateway
 
-Rev: 1 · Enforces: BR-11, BR-14
+Rev: 2 · Enforces: BR-08, BR-11, BR-14
 
-A streaming model call per segment, with its own key in its own configuration file. Placeholder
-accounting and segmentation are this product's; the prose is the model's and is judged by a person
-(NFR-10).
+A streaming model call per segment, reached on a key this machine holds beside every other service's.
+The file this gateway had of its own still answers for a key the machine's own configuration does not
+set, so a box set up before that configuration held one keeps working, and the report says which of
+the two answered. Placeholder accounting and segmentation are this product's; the prose is the
+model's and is judged by a person (NFR-10).
 
 - **AC-19-5-1** · Rev: 1 · Proof: plugin/test/vi/vi-gateway.test.mjs "a key reaches the results only where its translation carries the source's placeholders and no others"
   WHEN a batch is sent THEN the result SHALL be accepted only if every placeholder is accounted
   for.
+- **AC-19-5-2** · Rev: 1 · Proof: plugin/test/resolve/machine/stores.test.mjs "the plugin's own configuration answers before the file a tool owns, key by key"
+  WHERE a key of this gateway is held in both the machine's own configuration and the file this
+  gateway owns, the product SHALL take the machine's own and SHALL name the file it took it from.
 
 ### EI-06 — The zone and record service
 

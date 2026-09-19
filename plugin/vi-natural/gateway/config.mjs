@@ -5,6 +5,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 
 import { CliError, err, readJson, writeAtomic } from "../util.mjs";
+import { machineValue } from "../../src/resolve/machine/stores.mjs";
 
 const CONFIG_DIR = join(process.env.XDG_CONFIG_HOME || join(homedir(), ".config"), "vi-natural");
 export const CONFIG_PATH = join(CONFIG_DIR, "config.json");
@@ -30,19 +31,41 @@ export function findUp(filename, start) {
   }
 }
 
+// The plugin's own store is the source and this file the fallback, so `answered` says which one a
+// value came from rather than leaving a login that changed nothing.
+export const IN_STORE = { baseUrl: "url", apiKey: "key", model: "model" };
+
 export class Config {
   constructor(opts = {}) {
     this.opts = opts;
     this.file = readJson(CONFIG_PATH, {}) ?? {};
+    this.answered = {};
     this.glossaryMeta = {};
     this.glossaryPath = null;
     this.announced = false;
   }
 
-  // Snake_case file keys are the ones python wrote; only this CLI's own option names are camel.
+  // Snake_case file keys are python's, camel this CLI's options, and an option outranks both files.
   pick(key, fileKey, fallback) {
-    if (this.opts[key]) return this.opts[key];
-    return this.file[fileKey] || fallback;
+    if (this.opts[key]) {
+      this.answered[key] = "the option on this call";
+      return this.opts[key];
+    }
+    const named = IN_STORE[key];
+    const held = named ? machineValue("vi", named) : { value: null };
+    if (held.value) {
+      this.answered[key] = held.from;
+      return held.value;
+    }
+    if (this.file[fileKey]) {
+      this.answered[key] = CONFIG_PATH;
+      return this.file[fileKey];
+    }
+    return fallback;
+  }
+
+  from(key) {
+    return this.answered[key] ?? "nothing on this machine";
   }
 
   // No default host. The gateway is whoever runs one, and a baked-in default publishes the address
@@ -51,7 +74,7 @@ export class Config {
     const url = this.pick("baseUrl", "base_url");
     if (!url) {
       throw new CliError(
-        "no gateway configured.\n  run: vi-natural login --base-url <url> --key <key>\n" +
+        "no gateway configured.\n  run: forge doctor --vi-url <url> --vi-key <key>\n" +
           "  any OpenAI-compatible endpoint serving /chat/completions works",
       );
     }
@@ -62,8 +85,8 @@ export class Config {
     const key = this.pick("apiKey", "api_key");
     if (!key) {
       throw new CliError(
-        "no API key configured.\n  run: vi-natural login --key <key>\n" +
-          "  the key is read from that file only",
+        "no API key configured.\n  run: forge doctor --vi-key <key>\n" +
+          "  `vi-natural login --key` writes the file that answers where that key is unset",
       );
     }
     return key;
@@ -74,7 +97,7 @@ export class Config {
     const model = this.pick("model", "model");
     if (!model) {
       throw new CliError(
-        "no model configured.\n  run: vi-natural login --model <id>\n" +
+        "no model configured.\n  run: forge doctor --vi-model <id>\n" +
           "  the models verb lists what the gateway serves",
       );
     }

@@ -31,6 +31,8 @@ test("one call carrying every flag of the table reaches every writer, and each w
   const run = machineRun([
     "--token", "fresh-token", "--url", "https://fresh.example/mcp",
     "--ship", "ready", "--hide", "issue", "--show", "comment",
+    "--codex-url", "https://gateway.example", "--codex-key", "gateway-key",
+    "--vi-url", "https://vi.example", "--vi-key", "vi-key", "--vi-model", "vi/model",
     "--chatgpt-url", "https://gpt.example/mcp", "--chatgpt-key", "gpt-key",
     "--chatgpt-prefix", "Flat vector, no text.",
   ], { withheld: ["comment"] });
@@ -40,10 +42,13 @@ test("one call carrying every flag of the table reaches every writer, and each w
   assert.equal(saved.ship, "ready");
   assert.deepEqual(saved.withheld, { issue: "hidden" },
     "--hide added one and --show took the other away, so both writers ran");
+  assert.deepEqual(saved.codex, { url: "https://gateway.example", key: "gateway-key" });
+  assert.deepEqual(saved.vi, { url: "https://vi.example", key: "vi-key", model: "vi/model" });
   assert.deepEqual(saved.chatgpt,
     { url: "https://gpt.example/mcp", key: "gpt-key", prefix: "Flat vector, no text." });
   assert.deepEqual(MACHINE_FLAGS,
-    ["job", "hide", "show", "ship", "token", "url", "chatgpt-url", "chatgpt-key", "chatgpt-prefix"],
+    ["job", "hide", "show", "ship", "token", "url", "codex-url", "codex-key",
+      "vi-url", "vi-key", "vi-model", "chatgpt-url", "chatgpt-key", "chatgpt-prefix"],
     "and the flags that reached them are the flags the two-stores check filters, off the same table");
 });
 

@@ -1,6 +1,8 @@
 /* The keys `forge doctor` writes: a report is every finding at once, a write is one key. docs/cli/doctor.md. */
-import { saveNested, saveConfig } from "../resolve/config.mjs";
-import { CHATGPT_SAVED, FROM_PROJECT, JOB_ALL, SHIP_MODES, declaredJobs, fail } from "../resolve/settings.mjs";
+import { readJson, saveNested, saveConfig } from "../resolve/config.mjs";
+import { STORES } from "../resolve/machine/stores.mjs";
+import { masked } from "./services/masked.mjs";
+import { FROM_PROJECT, JOB_ALL, SHIP_MODES, declaredJobs, fail } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { HIDDEN, OFF, VERB_NAMES, shippedSkills, skillsWithheldForJob, verbStates,
   withheldForJob } from "../resolve/visibility.mjs";
@@ -16,10 +18,32 @@ const install = (values) => {
   console.log(`Saved ${Object.keys(values).join(" and ")} to ${written} (mode 0600).\n`);
 };
 
-const setChatgpt = (asked) => {
-  const named = CHATGPT_SAVED.filter((row) => asked[row.flag] !== undefined);
-  const written = saveNested("chatgpt", Object.fromEntries(named.map((row) => [row.key, asked[row.flag]])));
-  console.log(`Saved chatgpt ${named.map((row) => row.key).join(" and ")} to ${written} (mode 0600).\n`);
+/* Blank is a key written and never read back, so it is refused before the write and the file stands. */
+const refuseBlank = (store, named, asked) => {
+  const empty = named.filter((row) => !String(asked[row.flag]).trim());
+  if (empty.length) {
+    fail(`doctor: --${empty[0].flag} was given nothing, and a blank ${empty[0].asks} is a key every `
+      + `reader passes over rather than one that unsets anything. Nothing was written: give it the `
+      + `${empty[0].asks}, or remove \`${store.store}.${empty[0].key}\` from the file by hand.`);
+  }
+};
+
+/* Off the disk and not off the object this call merged, that being the one reading which tells a
+   write from the value a reader takes; a credential is reported by its shape. */
+const setStore = (store) => (asked) => {
+  const named = store.keys.filter((row) => asked[row.flag] !== undefined);
+  refuseBlank(store, named, asked);
+  const written = saveNested(store.store, Object.fromEntries(named.map((row) => [row.key, asked[row.flag]])));
+  const back = readJson(written)?.[store.store] ?? {};
+  const wrong = named.filter((row) => back[row.key] !== asked[row.flag]);
+  if (wrong.length) {
+    fail(`doctor: ${store.label} ${wrong.map((row) => row.key).join(" and ")} was written to ${written} `
+      + "and that file does not read it back, so nothing here can say what this machine now holds. "
+      + "Read it: `forge doctor services`");
+  }
+  const shown = named.map((row) => `  ${store.label} ${row.said ?? row.key}  `
+    + `${row.secret ? masked(back[row.key]) : back[row.key]}`);
+  console.log(`Saved to ${written} (mode 0600), which now reads back:\n${shown.join("\n")}\n`);
 };
 
 /* One verb at a time is the person's own tidying and stays reachable by hand, so this writes the
@@ -91,7 +115,7 @@ export const MACHINE_WRITES = [
   { flags: ["show"], write: (asked) => asked.show && setVisibility(asked.show, false) },
   { flags: ["ship"], write: (asked) => asked.ship && setShip(asked.ship) },
   { flags: SAVED, write: (asked) => install(given(asked, SAVED)) },
-  { flags: CHATGPT_SAVED.map((row) => row.flag), write: setChatgpt },
+  ...STORES.map((store) => ({ flags: store.keys.map((row) => row.flag), write: setStore(store) })),
 ];
 
 export const MACHINE_FLAGS = MACHINE_WRITES.flatMap((row) => row.flags);
