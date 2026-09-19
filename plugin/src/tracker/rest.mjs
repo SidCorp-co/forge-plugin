@@ -7,7 +7,7 @@ import { join } from "node:path";
 
 import { clockFor, deadlineOf, parsedOr, ranOut, secondsGiven } from "../wire/request.mjs";
 import { sawAnswer, sharedNow } from "../wire/shared-clock.mjs";
-import { reserveIn, sawBudget, unpredictedIn } from "../wire/budget.mjs";
+import { reserveIn, sawBudget, settled, unpredictedIn } from "../wire/budget.mjs";
 import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
 import { FROM_PROJECT, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
@@ -135,6 +135,8 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
       text = await response.text();
     } catch (error) {
       dropped = error;
+    } finally {
+      settled(key);
     }
     /* An attempt whose body dropped is a dropped attempt, whatever its headers said: those describe a request the server answered and `dropped` the connection dying before the answer arrived, so a 200 whose body stalled is no success and a 429's is judged no differently. What the rule costs rather than exempts: a 429 whose body stalls waits the ladder's number instead of the one the server sent (ISS-828). */
     if (response?.ok && !dropped) break;

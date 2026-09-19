@@ -27,5 +27,13 @@ accuses a sibling of spending the bucket on doubtful arithmetic: what is subtrac
 count is this process's own calls in the window *and* those outstanding when it adopted the window,
 since a call reserved before a reset may be charged after it. The sentence says *at least*.
 
+**What a window lends is not what its reading says.** The answer that opens a window was written
+before the calls still out of this process were counted, so lending the stated remainder to a caller
+with eleven in flight is how sixty becomes seventy-one. What is out is deducted, and it is counted
+live — every attempt retires its own reservation however it ended — because a count held against
+what was *sent* never comes down, and an outage would become a debt every later window paid. The
+conservative counters under the sharing sentence are the other kind on purpose: there, never coming
+down only ever claims less for somebody else.
+
 Where the four headers are absent, nothing is held and nothing is paced. A tracker that states no
 budget is one this cannot pace against, and it is sent what it was sent before.

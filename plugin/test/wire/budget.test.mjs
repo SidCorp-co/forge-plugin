@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  forgetBudget, pacedBy, reserveIn, sawBudget, unpredictedIn,
+  forgetBudget, pacedBy, reserveIn, sawBudget, settled, unpredictedIn,
 } from "../../src/wire/budget.mjs";
 
 const KEY = "forge_memory.search";
@@ -20,8 +20,10 @@ const headers = (held) => new globalThis.Headers(Object.fromEntries(
    that answers without reserving is one whose call this process never made. */
 const call = (at, reading) => {
   const held = reserveIn(KEY, at);
-  if (!held) sawBudget(KEY, stated(reading));
-  return held;
+  if (held) return held;
+  sawBudget(KEY, stated(reading));
+  settled(KEY);
+  return null;
 };
 
 const stated = ({ scope = "write", limit = 60, remaining = 59, resetAt }) => headers({
@@ -212,4 +214,19 @@ test("a window opened while calls are still out lends only what is left once the
     assert.equal(reserveIn(KEY, 100_000), null, `reservation ${one + 1} of the 48 the window has room for`);
   }
   assert.ok(reserveIn(KEY, 100_000), "the eleven still out are charged to this window too, so the next one waits");
+});
+
+/* The count that bounds admission is retired on every attempt however it ended. Held against what
+   was sent instead, sixty calls that died before a header would leave the next window owing sixty. */
+test("a call that never answered is not a debt the windows after it keep paying", () => {
+  forgetBudget();
+  for (let one = 0; one < 60; one += 1) {
+    assert.equal(reserveIn(KEY, 100_000), null);
+    settled(KEY);
+  }
+  sawBudget(KEY, stated({ limit: 60, remaining: 59, resetAt: 200_000 }));
+  for (let one = 0; one < 59; one += 1) {
+    assert.equal(reserveIn(KEY, 100_000), null, `reservation ${one + 1} of the 59 the window states`);
+  }
+  assert.ok(reserveIn(KEY, 100_000), "and the sixtieth waits, the window being spent rather than owed");
 });

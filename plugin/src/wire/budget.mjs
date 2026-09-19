@@ -10,6 +10,7 @@ const PAST_RESET_MS = 1000;
 let scopes = new Map();
 let routes = new Map();
 let unknown = new Map();
+let out = new Map();
 
 const numbered = (headers, name) => {
   const said = headers?.get?.(name);
@@ -17,18 +18,23 @@ const numbered = (headers, name) => {
   return Number.isFinite(held) ? held : null;
 };
 
-/* A dropped connection never answers, so this only drifts upward, claiming ever less for anybody else. */
 const outstandingIn = (held) => Math.max(0, held.sent - held.answers);
+
+/* What is out of this process right now, retired on every attempt however it ended, so an outage is
+   not a debt later windows keep paying. A route no answer has placed counts against every scope. */
+const inFlightIn = (scope) => [...out.entries()]
+  .filter(([key]) => (routes.get(key) ?? scope) === scope)
+  .reduce((sum, [, held]) => sum + held, 0);
 
 /* A call reserved before a reset may be charged after it, so what was outstanding at the adoption
    belongs to either window and is subtracted from both rather than credited to a sibling. */
-const opened = (limit, remaining, resetAt, held, carried) => {
+const opened = (limit, remaining, resetAt, held, carried, scope) => {
   const from = { sent: (held?.sent ?? 0) + carried, answers: held?.answers ?? 0 };
   const spanning = outstandingIn(from);
   return {
     limit,
     /* Those still out are not in the reading, so a window lends only what is left once they are off it. */
-    remaining: Math.max(0, remaining - Math.max(0, spanning - 1)),
+    remaining: Math.max(0, remaining - Math.max(0, inFlightIn(scope) - 1)),
     resetAt,
     sent: from.sent,
     answers: from.answers,
@@ -58,7 +64,9 @@ export const sawBudget = (key, headers) => {
   /* The reading is a window already past and says nothing of this one; the calls behind it are this
      process's either way, and dropping them with the reading is how they become somebody else's. */
   if (held && resetAt < held.resetAt) return charge(held, carried);
-  const now = !held || resetAt > held.resetAt ? opened(limit, remaining, resetAt, held, carried) : held;
+  const now = !held || resetAt > held.resetAt
+    ? opened(limit, remaining, resetAt, held, carried, scope)
+    : held;
   if (now === held) charge(now, carried);
   scopes.set(scope, now);
   now.answers += 1;
@@ -81,14 +89,13 @@ const wentSaid = (held, scope) => {
 
 export const reserveIn = (key, now, within = Infinity) => {
   const held = scopes.get(routes.get(key));
-  if (!held) {
-    unknown.set(key, (unknown.get(key) ?? 0) + 1);
-    return null;
-  }
   const went = () => {
-    held.sent += 1;
+    out.set(key, (out.get(key) ?? 0) + 1);
+    if (held) held.sent += 1;
+    else unknown.set(key, (unknown.get(key) ?? 0) + 1);
     return null;
   };
+  if (!held) return went();
   /* The window read is over and the next unknown, so the call goes and its answer opens that one. */
   if (now > held.resetAt) return went();
   if (held.remaining > 0) {
@@ -105,6 +112,8 @@ export const reserveIn = (key, now, within = Infinity) => {
   held.announced = true;
   return { seconds, said };
 };
+
+export const settled = (key) => out.set(key, Math.max(0, (out.get(key) ?? 0) - 1));
 
 export const unpredictedIn = (key) => {
   const scope = routes.get(key);
@@ -123,4 +132,5 @@ export const forgetBudget = () => {
   scopes = new Map();
   routes = new Map();
   unknown = new Map();
+  out = new Map();
 };

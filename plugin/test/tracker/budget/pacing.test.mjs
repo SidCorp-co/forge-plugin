@@ -159,3 +159,36 @@ test("a wait taken inside a caller's allowance does not hand the send a fresh on
     forgetClock();
   }
 });
+
+/* Every attempt retires the reservation it took, whatever became of it. Held against what was sent
+   instead, each window after the first would lend one call fewer than the tracker said it holds. */
+test("a call that has been answered is off the count the next window is sized against", async () => {
+  const { forgetBudget } = await import("../../../src/wire/budget.mjs");
+  const { forgetClock } = await import("../../../src/wire/shared-clock.mjs");
+  const live = globalThis.fetch;
+  const base = Math.ceil(Date.now() / 1000) + 1;
+  let at = 0;
+  forgetBudget();
+  forgetClock();
+  globalThis.fetch = async () => {
+    at += 1;
+    return {
+      ok: true,
+      status: 200,
+      headers: budgeted({ "x-ratelimit-limit": "2", "x-ratelimit-remaining": "1", "x-ratelimit-reset": base + at }),
+      text: async () => "{}",
+    };
+  };
+  try {
+    const said = await stderrOf(async () => {
+      for (let one = 0; one < 4; one += 1) await oneRead();
+    });
+    assert.equal(at, 4, "four calls went");
+    assert.doesNotMatch(said, /paced itself/u,
+      `each window lends what the tracker said it holds:\n${said}`);
+  } finally {
+    globalThis.fetch = live;
+    forgetBudget();
+    forgetClock();
+  }
+});
