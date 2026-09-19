@@ -20,6 +20,7 @@ const {
   numbered,
   outcomeOf,
   recheckOwed,
+  authorNote,
   recheckPlan,
   recheckSaid,
   recheckRange,
@@ -414,6 +415,24 @@ test("a recheck leaves the author's ruling and its reason standing, and says wha
   assert.equal(recheckSaid(twice.record), "from recheck r5", "with no clause of r4's left saying they are still open");
   assert.equal(recheckSaid({ from: "r6", note: "from recheck r6; still open: F1" }), "",
     "a row of the older shape folded the clause into its note, and printing it twice is not a second write");
+
+  /* Carrying an older row's note whole would have put that row's clause on the next recheck's. */
+  const legacy = { of: "c1", from: "r7", accepted: 0, rejected: 0, kept: [], dropped: {}, reopened: ["F1", "F2"], note: "both minor; from recheck r7; still open: F1, F2" };
+  const onto = verdictFromRulings(plan, 0, "1. **REFUTED** — fixed.\n2. **REFUTED** — fixed.", "r8", legacy);
+  assert.equal(onto.record.note, "both minor", "the author's line is kept and the older row's own clause is not");
+  assert.equal(recheckSaid(onto.record), "from recheck r8", "so the row says what this recheck did and nothing of the last one's");
+  assert.deepEqual(onto.record.kept, ["F1", "F2"], "and a ruling no author made is still the recheck's to revise");
+  const plain = verdictRecord(judged, { accepted: "F1,F2" }, legacy);
+  assert.equal(plain.record.note, "both minor", "an author write naming no note keeps theirs, not the older row's clause");
+
+  /* The older shape is read as a whole clause, so an author's prose naming a recheck is their line. */
+  const prose = { of: "c1", from: "r9", auto: [], kept: [], dropped: {}, note: "Evidence from recheck r9 supports my rejection" };
+  assert.equal(authorNote(prose), "Evidence from recheck r9 supports my rejection", "a substring inside a sentence is not the composed clause");
+  assert.equal(verdictFromRulings(plan, 0, "1. **REFUTED** — fixed.", "r10", prose).record.note,
+    "Evidence from recheck r9 supports my rejection", "so the carry keeps every word of it");
+  assert.equal(verdictRecord(judged, { accepted: "F1,F2" }, prose).record.note, "Evidence from recheck r9 supports my rejection",
+    "and so does the author's own next write");
+  assert.equal(recheckSaid(prose), "from recheck r9", "and the row's clause is still printed, not suppressed by their prose");
 });
 
 test("the commit gate asks about the last consult that made findings and heard nothing", () => {
