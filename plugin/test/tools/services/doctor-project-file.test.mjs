@@ -7,6 +7,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { homeEnv, ranAsync, tempHome } from "../../fixtures.mjs";
+import { declares } from "../../../src/stats/corpus/classes.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
@@ -160,6 +161,35 @@ test("a segment naming an inherited property writes nothing and moves no prototy
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /is neither a list of verb names nor a table of `verbs` and `skills`/u, run.stderr);
   assert.equal(now(), HELD);
+});
+
+/* `true` is a command a shell runs and a project may well declare, and no key of this file takes a
+   boolean, so a word that looks like one is the word (consult ee9b3a). */
+test("a command that reads as a boolean is written as the word it is", async () => {
+  fresh();
+  for (const key of ["codex.check", "stats.commands.test"]) {
+    const run = await ask("--set", `${key}=true`);
+    assert.equal(run.status, 0, run.stderr);
+  }
+  const after = JSON.parse(now());
+  assert.equal(after.codex.check, "true");
+  assert.equal(after.stats.commands.test, "true");
+});
+
+/* A stats label takes one command or several alternatives, and its reader already takes either, so
+   the route that writes it takes either too rather than flattening two into one literal. */
+test("a stats label takes one command as typed, and several when a comma makes them several", async () => {
+  fresh();
+  const one = await ask("--set", "stats.commands.gate=npm run check");
+  assert.equal(one.status, 0, one.stderr);
+  assert.equal(JSON.parse(now()).stats.commands.gate, "npm run check",
+    "one command is the string the file's own example shows, not a list of one");
+  const many = await ask("--set", "stats.commands.test=npm test,npx vitest");
+  assert.equal(many.status, 0, many.stderr);
+  const kept = JSON.parse(now()).stats.commands;
+  assert.deepEqual(kept.test, ["npm test", "npx vitest"]);
+  assert.equal(declares("test", kept), "(?:npm test|npx vitest)",
+    "and the reader reads them as two alternatives rather than one literal command");
 });
 
 test("a key this plugin reads nowhere is refused with what the file can hold", async () => {

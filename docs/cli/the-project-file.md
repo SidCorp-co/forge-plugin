@@ -47,5 +47,10 @@ until a command arrived beside it; that budget is now its own reading, which bot
 write take.
 
 A command-line word becomes JSON by what the key takes — a whole number, a comma-separated list,
-`null`, or text — and a word that is not the shape it was asked for is passed through as typed, so the
-key's own reader is what says so rather than a coercion inventing a second answer.
+`null`, a command, or text — and a word that is not the shape it was asked for is passed through as
+typed, so the key's own reader is what says so rather than a coercion inventing a second answer. No key
+of this file takes a boolean, so `true` is the word `true`, which is a command a shell runs and a
+project may well declare as its test. A command is the word as typed until a comma makes it several,
+because the reader of a stats command takes one or a list of alternatives and this route has to be
+able to write either; a single command carrying a comma is therefore split, which the value read back
+and printed is what shows.

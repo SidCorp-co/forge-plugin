@@ -258,7 +258,7 @@ export const PROJECT_KEYS = {
     judge: (given) => (workPatternOf(given?.workingRe).unreadable
       ? said("lease.workingRe", "a regular expression this CLI can compile", given?.workingRe) : null),
   },
-  stats: { paths: { "commands.*": "text" }, judge: statsRefusal },
+  stats: { paths: { "commands.*": "commands" }, judge: statsRefusal },
   method: { routed: ROUTED.method },
 };
 
@@ -292,16 +292,20 @@ export const writablePaths = () =>
     ? []
     : Object.keys(row.paths).map((tail) => [key, tail].filter(Boolean).join("."))));
 
-const TRUE_FALSE = { true: true, false: false };
 /* JSON's own number, not `Number`'s: `0x10` and `1e1000` are words this hands to the key's reader as text, rather than as 16 and Infinity. Which numbers a key takes is that reader's. */
 const A_NUMBER = /^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/u;
 
-/** The command-line word as JSON: `null` is the value everywhere, a list is comma-separated, and a number that is not one is passed through as typed so the key's own reader is what says so. */
+const listed = (raw) => raw.split(",").map((one) => one.trim()).filter(Boolean);
+
+/** The command-line word as JSON: `null` is the value everywhere, a list is comma-separated, a command
+ *  is the word as typed until a comma makes it several, and a number that is not one is passed through
+ *  as typed so the key's own reader is what says so. No key of this file takes a boolean, so `true` is
+ *  the word `true` — which is a command, and one a reader of a command accepts. */
 export const spelled = (takes, raw) => {
   if (raw === "null") return null;
-  if (takes === "list") return raw.split(",").map((one) => one.trim()).filter(Boolean);
-  if (takes === "number") return A_NUMBER.test(raw) ? Number(raw) : raw;
-  return Object.hasOwn(TRUE_FALSE, raw) ? TRUE_FALSE[raw] : raw;
+  if (takes === "list") return listed(raw);
+  if (takes === "commands") return raw.includes(",") ? listed(raw) : raw;
+  return takes === "number" && A_NUMBER.test(raw) ? Number(raw) : raw;
 };
 
 /* Own and defined properties throughout, a segment being a name off a command line: `__proto__` read as an inherited one walks into Object.prototype, a table every object answers with, and the judgement would then be handed a document this write is not about. */
