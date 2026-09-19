@@ -1,6 +1,5 @@
-/* What a recheck says about the findings its own file set left out. The narrower set dropped the
-   judged consult's findings and the sentence then claimed the CONSULT had found nothing, while the
-   commit gate went on refusing for the same unruled F1 (ISS-1873). */
+/* What a recheck says about the findings its own set left out: the narrower set dropped them and the
+   sentence then claimed the CONSULT found nothing, while the gate refused for the same F1 (ISS-1873). */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { tempRoom } from "../../fixtures.mjs";
@@ -40,8 +39,7 @@ test("a set that excluded the judged consult's findings says so and names what r
   assert.equal(/othing says what became of/u.test(ruled), false, "a finding the author ruled on is no gate obligation");
   assert.match(ruled, /already carries your ruling/u);
 
-  /* The reviewer reads files beyond the ones it was sent, so a finding can be anchored on a path no
-     recorded set holds — where the consult's own set leaves it out too, that route reprints itself. */
+  /* A reviewer reads beyond what it was sent, so a finding can be anchored where no route reaches. */
   const elsewhere = { ...JUDGED, reply: "CODEX: 1 findings\n- **New — major:** `tools/run.mjs:1` — the lock is released by path." };
   const unreachable = recheckOwed(recheckPlan([elsewhere], "/a", ["a.mjs"]), ["a.mjs"]);
   assert.equal(/--recheck/u.test(unreachable), false, "a route that leaves the finding out again is no route");
@@ -63,6 +61,8 @@ test("a recheck that does go ahead names the finding its set does not reach", ()
   /* This round writes a consult of its own over these files, so a wider recheck answers that one. */
   assert.equal(/--recheck/u.test(recheckMissed(plan)), false, "a route this very round invalidates is not offered");
   assert.match(recheckMissed(plan), /forge codex verdict --of c55/u);
+  const settled = recheckPlan([both, { kind: "verdict", of: "c55", kept: ["F1"], dropped: {} }], "/a", ["a.mjs"]);
+  assert.equal(recheckMissed(settled), null, "a finding already disposed of holds no gate, so it is not named mid-round");
   const answered = { kind: "consult", id: "c99", ok: true, root: "/a", at: "3", files: ["a.mjs"], send: "bodies", reply: "CODEX: 0 findings" };
   assert.equal(recheckPlan([both, answered], "/a", ["a.mjs", "docs/FORGE-CLI.md"]).judged.id, "c99",
     "which is what a wider recheck would then answer, and why the route was withheld");

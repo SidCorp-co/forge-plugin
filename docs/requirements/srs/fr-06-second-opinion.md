@@ -213,9 +213,11 @@ outcome; leaving it unruled makes "resolved or still open" a guess.
 - **AC-06-5-8** · Rev: 1 · Proof: plugin/test/codex/log/recheck.test.mjs "a set that excluded the judged consult's findings says so and names what reaches them"
   WHERE the file set a re-verification resolved to excludes a finding of the review it answers, the
   CLI SHALL name that review, the identifier it gave that finding and the file the finding is
-  anchored on, rather than report that the review found nothing, because the gate that refuses a
-  commit filters findings by no file set and the two surfaces would otherwise disagree over whether
-  the finding exists.
+  anchored on, rather than report that the review found nothing; where the re-verification goes ahead
+  regardless it SHALL do so for each excluded finding no disposition names, because the gate that
+  refuses a commit filters findings by no file set and the two surfaces would otherwise disagree over
+  whether the finding exists, while one already disposed of holds no gate and naming it mid-round
+  says nothing a caller can act on.
 - **AC-06-5-9** · Rev: 1 · Proof: plugin/test/codex/log/recheck.test.mjs "a set that excluded the judged consult's findings says so and names what reaches them"
   WHEN the CLI names the command that reaches such a finding THEN the file set that command carries
   SHALL resolve back to the review the finding was made by, and WHERE no such set does the CLI SHALL
