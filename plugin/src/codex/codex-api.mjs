@@ -4,7 +4,7 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync, realpathSync, statSync } from "node:fs";
-import { isAbsolute, relative, resolve, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import { defaultEffort, rungIn } from "./codex-plan.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
@@ -137,6 +137,21 @@ export const locate = (root, given) => {
   } catch {
     return null;
   }
+};
+
+/** The rel a name would carry inside this root, present or not: `locate` realpaths the file itself and a tracked deletion has none, so the directory it sits in is realpath'd instead and a link out of the checkout still answers null (ISS-1880). */
+export const wouldSit = (root, given) => {
+  const full = resolve(root, given);
+  let base;
+  let dir;
+  try {
+    base = realpathSync(root);
+    dir = realpathSync(dirname(full));
+  } catch {
+    return null;
+  }
+  if (dir !== base && !dir.startsWith(base + sep)) return null;
+  return relative(base, join(dir, basename(full))).split(sep).join("/");
 };
 
 export const digest = (text) => createHash("sha256").update(text).digest("hex").slice(0, HASH_CHARS);

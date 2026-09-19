@@ -64,6 +64,14 @@ else went dirty; and where nothing differs from the base the record travels too,
 committed. Every record path left out is classed absent, ignored by git, or unchanged: ignored is the
 one that is real work, and absent leaves the record, no consult being able to reach it.
 
+**A name with nothing under it is asked of HEAD.** Absence alone cannot tell a typo from a file the
+change deleted, and the set assembly answered both with the one refusal that ended the whole consult
+before any send mode, base or diff was considered — so the read whose set is defined as the files the
+change touched could not be asked for by naming that set, on any change that deleted one (ISS-1880).
+HEAD decides which it is: a tracked deletion joins the set and what is then shown of it is the same
+question answered on every other ground, and a path in neither the tree nor HEAD is refused saying
+which of the two it is, a typo and a deletion having shared one message that left neither a route out.
+
 **A base is read from where the branch left it.** `--base master` diffed against the ref as it
 stood, so a base that moved under the run — master taking another run's release mid-branch —
 presented the other side's commits as this branch's: ISS-117's review raised two findings on code

@@ -187,7 +187,7 @@ export const consultArgs = (given) => {
       + 'input. Pipe it: echo "<what you were doing>" | forge codex consult <file>...');
   }
   const held = flags(flagArgv, "codex consult", BOOLEAN, { usage });
-  /* Split here, where the positionals are read: `relsOf` exits on anything that is not a readable file. */
+  /* Split here, where the positionals are read: `relsOf` exits on a path neither the tree nor HEAD holds. */
   const keys = positionals.filter((one) => HUMAN_REF.test(one));
   return {
     named: positionals.filter((one) => !keys.includes(one)),

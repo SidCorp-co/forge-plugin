@@ -1,14 +1,30 @@
 /* Which files one consult is about, and which of them anything can be shown of. docs/cli/codex-the-consult.md. */
 import { fail } from "../resolve/settings.mjs";
 import { pathed } from "../hooks/shell-spans.mjs";
-import { changedAgainst, ignoredIn, locate } from "./codex-api.mjs";
+import { changedAgainst, ignoredIn, locate, wouldSit } from "./codex-api.mjs";
 import { absentFrom, goneFrom, goneSaid } from "./codex-state.mjs";
 
-export const relsOf = (root, named) => named.map((one) => {
-  const held = locate(root, one);
-  if (!held) fail(`codex: ${one} is not a readable file, from ${root}.`);
-  return held.rel;
-});
+/* Absence alone cannot tell a typo from a tracked deletion, so HEAD is asked, once for the set; what is then shown of the deletion stays `shownOf`'s question, two answers to it being why the named route refused a whole consult the tree-derived route ran, and a git that would not answer refuses nothing, as `goneFrom` does not (ISS-1880). */
+const deletedRel = (root, one, changed) => {
+  const rel = wouldSit(root, one);
+  if (rel === null || !absentFrom(root, rel)) {
+    fail(`codex: ${one} is not a readable file, from ${root}. Name a file rather than a directory or `
+      + "a link with nothing under it — `git diff --name-only HEAD` lists the ones this change touched.");
+  }
+  if (changed && !changed.includes(rel)) {
+    fail(`codex: ${one} is in neither the tree nor HEAD, from ${root}, so there is no file to review `
+      + "and no deletion to send. Name a path `git diff --name-only HEAD` lists, or name none and pass "
+      + "--diff to review that whole list.");
+  }
+  return rel;
+};
+
+export const relsOf = (root, named) => {
+  const held = named.map((one) => ({ one, rel: locate(root, one)?.rel ?? null }));
+  if (held.every((each) => each.rel !== null)) return held.map((each) => each.rel);
+  const changed = changedAgainst(root, "HEAD");
+  return held.map((each) => each.rel ?? deletedRel(root, each.one, changed));
+};
 
 /** One home for the question two readers ask: a diff git refused is not one that came back empty, and
  *  neither is one nobody asked for. `missing` covers a deletion and an unreadable file too, so `nothingToShow` — a heading handed over with none of the file under it — asks the disk about absence (ISS-703). */

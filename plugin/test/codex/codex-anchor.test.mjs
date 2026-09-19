@@ -153,7 +153,7 @@ test("a recheck given no file reads the range its consult recorded, not what an 
   assert.deepEqual(ran.sent.map((one) => one.clipped), [false]);
 });
 
-const { shownOf } = await import("../../src/codex/codex-set.mjs");
+const { relsOf, shownOf } = await import("../../src/codex/codex-set.mjs");
 
 /* A diff git refused is the one absence that is not an answer, and dropping on it clears a real
    deletion from the record before any reviewer has seen it. The unit reaches it; no room can. */
@@ -292,6 +292,82 @@ test("a consult given a file reviews that file, whatever the tree and the record
     "and a record path the tree does hold is neither classified nor cleared");
 });
 
+/* The named ground reaching the answer the tree-derived ground already had: `relsOf` exited on the
+   first path the tree does not hold, so the one read whose set is defined as the files the change
+   touched could not be asked for by naming that set whenever the change deleted one (ISS-1880). */
+test("a tracked deletion named beside a modified file travels with it, and the log records both", async () => {
+  const { room, git } = disagreeing("codex-named-gone-");
+  const { home } = disagreeing("codex-named-gone-spare-");
+  writeFileSync(join(room, "src/thing.mjs"), "export const one = 2;\n");
+  git("rm", "-q", "doomed.txt");
+
+  const { status, said, shown } = await withGateway(home, async (gateway) => {
+    const ran = await consulted(room, home, ["--rounds", "1", "src/thing.mjs", "doomed.txt"]);
+    return { ...ran, shown: gateway.shown() };
+  });
+  assert.equal(status, 0, said);
+  assert.match(said, /1 file\(s\) offered are deleted from the tree and travel with no diff[\s\S]*doomed\.txt[\s\S]*Pass --diff to send the deletion itself/u,
+    "the sentence the named route could never reach, because relsOf had already exited");
+  for (const rel of ["src/thing.mjs", "doomed.txt"]) assert.ok(shown.includes(`### ${rel}`), `${rel} reached the reviewer`);
+  assert.deepEqual(logRows(home).find((one) => one.kind === "consult" && one.ok).files,
+    ["src/thing.mjs", "doomed.txt"], "and the log records the deletion as part of the set");
+});
+
+test("a named deletion sent against a base that holds the file carries its deletion diff", async () => {
+  const { room, git } = disagreeing("codex-named-diff-");
+  const { home } = disagreeing("codex-named-diff-spare-");
+  git("rm", "-q", "doomed.txt");
+
+  const { status, said, shown } = await withGateway(home, async (gateway) => {
+    const ran = await consulted(room, home, ["--diff", "--rounds", "1", "doomed.txt"]);
+    return { ...ran, shown: gateway.shown() };
+  });
+  assert.equal(status, 0, said);
+  assert.ok(shown.includes("### doomed.txt"), "a set that is nothing but the deletion still reaches the reviewer");
+  assert.ok(shown.includes("deleted file mode"), "carrying the deletion itself");
+  assert.deepEqual(logRows(home).find((one) => one.kind === "consult" && one.ok).files, ["doomed.txt"]);
+});
+
+/* Admitted by `relsOf` is not kept by `shownOf`: a base older than the file has no side holding it,
+   so AC-06-1-6 drops it, and the named ground owes that answer as every other ground does. */
+test("a named deletion whose base predates the file leaves the set, as it does on any other ground", async () => {
+  const { room, git } = disagreeing("codex-named-young-");
+  const { home } = disagreeing("codex-named-young-spare-");
+  writeFileSync(join(room, "src/later.mjs"), "export const later = true;\n");
+  git("add", "src/later.mjs");
+  git("commit", "-qm", "the file the older base predates");
+  git("rm", "-q", "src/later.mjs");
+  writeFileSync(join(room, "src/thing.mjs"), "export const one = 2;\n");
+
+  const { status, said, shown } = await withGateway(home, async (gateway) => {
+    const ran = await consulted(room, home, ["--base", "HEAD~1", "--rounds", "1", "src/thing.mjs", "src/later.mjs"]);
+    return { ...ran, shown: gateway.shown() };
+  });
+  assert.equal(status, 0, said);
+  assert.match(said, /src\/later\.mjs\. Not reviewed, not recorded/u, "named, and still out of the review");
+  assert.ok(!shown.includes("### src/later.mjs"), "so it travels in no form");
+  assert.deepEqual(logRows(home).find((one) => one.kind === "consult" && one.ok).files, ["src/thing.mjs"]);
+});
+
+test("a named path in neither the tree nor HEAD is refused apart from one the tree holds and cannot read", async () => {
+  const { room } = disagreeing("codex-named-typo-");
+  const { home } = disagreeing("codex-named-typo-spare-");
+
+  const typo = await withGateway(home, async (gateway) => {
+    const ran = await consulted(room, home, ["--diff", "--rounds", "1", "src/thign.mjs"]);
+    return { ...ran, shown: gateway.shown() };
+  });
+  assert.equal(typo.status, 1);
+  assert.match(typo.said, /src\/thign\.mjs is in neither the tree nor HEAD/u, "a typo is told which of the two it is");
+  assert.match(typo.said, /`git diff --name-only HEAD` lists/u, "and the command that lists what it could have named");
+  assert.equal(typo.shown.length, 0, "and the reviewer was never called");
+
+  const held = await withGateway(home, () => consulted(room, home, ["--diff", "--rounds", "1", "src"]));
+  assert.equal(held.status, 1);
+  assert.match(held.said, /^codex: src is not a readable file, from /mu, "a path the tree does hold keeps its own refusal");
+  assert.match(held.said, /`git diff --name-only HEAD` lists/u, "with the same one command on it");
+});
+
 test("a path that is not in the tree and has no diff reaches neither the reviewer nor the log, and leaves the turn record", async () => {
   const { room } = disagreeing("codex-phantom-");
   const { home } = disagreeing("codex-phantom-spare-");
@@ -408,4 +484,13 @@ test("the turn record travels where nothing differs from the base, and says so b
   assert.equal(second.status, 0, second.said);
   assert.match(second.said, /1 file\(s\) from this turn's record, which holds only what `\^\(src\|test\|ignored\)/u);
   assert.match(second.said, /Pass --diff for the tree's own list/u, "with no base, the record is the only set there is");
+});
+
+/* Absence with no answer from git is the one case a refusal would decide wrongly: `goneFrom` and
+   `clearableOf` drop nothing on an unanswered probe, and a set assembly that exited here would lose
+   a real deletion to a git that was merely unreachable. `shownOf` then names what it could not rule
+   on. No room can reach it, a room being a repository. */
+test("a named path git cannot be asked about is kept rather than refused", () => {
+  const room = tempRoom("codex-named-ungit-");
+  assert.deepEqual(relsOf(room, ["gone.txt"]), ["gone.txt"]);
 });
