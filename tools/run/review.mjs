@@ -2,12 +2,12 @@
    batch reading is OWED — the last of these here and in no prompt, so the run reads it off its own
    issue and a person types none of it. The counting and the filing are the runner's;
    `docs/cli/knowledge.md` says why this half moved. */
-import { readingFor, readingTitle, REVIEWED, reviewCounts, reviewedAt, reviewLines, reviewPaths }
-  from "../../plugin/src/git/reviewed.mjs";
+import { readingFor, readingTitle, REVIEWED, reviewCounts, reviewedAt, reviewReported, reviewSourced,
+  whereFrom } from "../../plugin/src/git/reviewed.mjs";
 import { gitOut, REMOTE } from "../checkout.mjs";
 import { isRelease } from "./landing.mjs";
 
-export { readingFor, readingTitle, REVIEWED, reviewedAt, reviewLines, reviewPaths };
+export { readingFor, readingTitle, REVIEWED, reviewedAt, reviewReported, whereFrom };
 
 /* Volume alone, because the release count fired first on both readings it ever triggered — three
    releases at thirty-six changed lines the first time — so the trigger was the calendar of
@@ -16,14 +16,20 @@ const releasesIn = (tree, from) =>
   (gitOut(["log", "--first-parent", "--format=%H", `${from}..HEAD`, "--", "package.json"], tree) ?? "")
     .split("\n").filter(Boolean).filter((sha) => isRelease(tree, sha)).length;
 
-/** The one sentence both readers print, so ship's last step and the review verb cannot disagree. */
+/** The one sentence both readers print, so ship's last step and the review verb cannot disagree —
+ *  the reckoning with it, since a count whose threshold and paths are unsaid is a number a run
+ *  standing in another directory reads as its own (ISS-1912). */
 export const reviewSays = (tree, from) => {
-  const { files, lines } = reviewCounts({ tree, from, paths: reviewPaths() });
+  const declared = reviewSourced();
+  const { files, lines } = reviewCounts({ tree, from, paths: declared.paths.value });
   return {
-    owed: lines >= reviewLines(),
+    owed: lines >= declared.lines.value,
     range: `${from.slice(0, 7)}..HEAD`,
     count: `${releasesIn(tree, from)} release(s), ${files} file(s), ${lines} changed line(s)`,
     volume: `${files} file(s) and ${lines} changed line(s)`,
+    threshold: declared.lines.value,
+    paths: declared.paths.value,
+    source: whereFrom(declared),
   };
 };
 
@@ -39,9 +45,10 @@ export const spannedIn = (tree, from) => {
 };
 
 export const reviewBody = ({ tree, from, to, volume }) => {
-  const owed = reviewLines();
+  const declared = reviewSourced();
+  const owed = declared.lines.value;
   const keys = spannedIn(tree, from);
-  const counted = reviewPaths();
+  const counted = declared.paths.value;
   const paths = counted.join(" ");
   return [
     "## Outcome",
@@ -50,9 +57,12 @@ export const reviewBody = ({ tree, from, to, volume }) => {
     `wrote none of it: ${volume} under ${counted.join(", ")}. What that reading finds is landed`,
     `or filed, and ${REVIEWED} then names the head it read to, so the next batch counts from there.`,
     "",
+    `Reckoned at ${owed} changed line(s) over ${counted.length} path(s)  ← ${whereFrom(declared)}. A run`,
+    "standing where that declaration does not resolve counts a different range under this same title.",
+    "",
     "## Rules",
     "",
-    `- The range is a commit pair and the reading is its diff under those three paths, from the run's`,
+    `- The range is a commit pair and the reading is its diff under those ${counted.length} paths, from the run's`,
     `  own tree: \`git diff ${from}..${to} -- ${paths}\`.`,
     "- What it looks for is what no single issue's review can see: a helper two runs each wrote, a",
     "  simplification two changes apart, a parameter nothing passes any more, a shape one run left",

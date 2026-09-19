@@ -10,12 +10,12 @@ import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { REPLAY_HELP } from "./run/replayed.mjs";
 import { land } from "./run/land.mjs";
 import { landReady } from "./run/land-ready.mjs";
-import { named, NO_MARK, ship, SHIP_HELP } from "./run/ship.mjs";
+import { named, NO_MARK, ship, shipHelp } from "./run/ship.mjs";
 import { start } from "./run/workspace/start.mjs";
 import { finish, FINISH_HELP } from "./run/workspace/finish.mjs";
 import { LINKS_HELP } from "./run/workspace/links.mjs";
 import { relink } from "./run/workspace/relink.mjs";
-import { markRefused, REVIEWED, reviewedAt, reviewLines, reviewPaths, reviewSays } from "./run/review.mjs";
+import { markRefused, REVIEWED, reviewedAt, reviewSays } from "./run/review.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SELF = `node ${join(basename(HERE), "tools", "run.mjs")}`;
@@ -84,7 +84,7 @@ const usage = () => [
   ...FINISH_HELP,
   "",
   ...REPLAY_HELP,
-  ...SHIP_HELP,
+  ...shipHelp(),
 ].join("\n");
 
 /* The mark's only writer, so nothing else has to agree with it about where a reading reached. */
@@ -94,12 +94,12 @@ const review = ({ flags }) => {
   const from = reviewedAt(tree);
   if (!flags.has("--done")) {
     if (!from) stop(NO_MARK(SELF));
-    const { owed, range, count } = reviewSays(tree, from);
-    console.log(`${range} is the next review's, and holds ${count} under ${reviewPaths().join(", ")}.`);
-    console.log(`  git diff ${from}..HEAD -- ${reviewPaths().join(" ")}`);
+    const { owed, range, count, threshold, paths, source } = reviewSays(tree, from);
+    console.log(`${range} is the next review's, and holds ${count} under ${paths.join(", ")}  ← ${source}`);
+    console.log(`  git diff ${from}..HEAD -- ${paths.join(" ")}`);
     return console.log(owed
-      ? `A review is owed: ${reviewLines()} changed line(s) call for one, and this range is past that.`
-      : `Short of the ${reviewLines()} changed line(s) that call for a reading.`);
+      ? `A review is owed: ${threshold} changed line(s) call for one, and this range is past that.`
+      : `Short of the ${threshold} changed line(s) that call for a reading.`);
   }
   /* Refused, not reported: a mark too far forward reads like a reading that finished and grows
      nothing; the volume since it is a net diff, shrinking as later commits delete (ISS-146). */

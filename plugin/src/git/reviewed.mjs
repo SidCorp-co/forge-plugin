@@ -92,6 +92,19 @@ export const reviewPaths = () => {
   return given === undefined ? [...SHIPPED_PATHS] : [...given];
 };
 
+/* What a surface names beside a count: the declaration with each half's provenance, where each was
+   read, and — printing a reckoning it does not spend — the refusal rather than an exit (ISS-1912). */
+export const reviewSourced = () => ({ lines: sourced("lines", reviewLines()), paths: sourced("paths", reviewPaths()) });
+
+export const whereFrom = ({ lines, paths }) => (lines.from === paths.from
+  ? lines.from
+  : `the volume ${lines.from}, the paths ${paths.from}`);
+
+export const reviewReported = () => {
+  const refusal = reviewRefusal();
+  return refusal ? { refusal } : reviewSourced();
+};
+
 const gitOut = (argv, tree) => {
   const { status, stdout } = spawnSync("git", argv, { cwd: tree, encoding: "utf8" });
   return status === 0 ? String(stdout ?? "") : null;

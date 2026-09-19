@@ -7,7 +7,7 @@ import { DECLARES, declaredCommands, declaredIn, unarmedDoors } from "../../../s
 import { budgetMs, logBytes } from "../../../codex/codex-log.mjs";
 import { checkStops } from "../../../codex/log/asked.mjs";
 import { flowPinned, flowRefusal } from "../../../guides/flow.mjs";
-import { readingFor, REVIEWED, reviewStanding } from "../../../git/reviewed.mjs";
+import { readingFor, REVIEWED, reviewStanding, SHIPPED_PATHS, whereFrom } from "../../../git/reviewed.mjs";
 import { firstLine } from "../../../resolve/flags.mjs";
 import { accountCredentials, refusing } from "../../../resolve/settings.mjs";
 
@@ -143,10 +143,6 @@ const workRow = () => {
 
 const PLANT = `git update-ref ${REVIEWED}`;
 
-const whereFrom = ({ lines, paths }) => (lines.from === paths.from
-  ? lines.from
-  : `the volume ${lines.from}, the paths ${paths.from}`);
-
 const cannotCount = ({ missing, checkout, paths }) => {
   const named = missing.join(", ");
   if (!checkout) {
@@ -155,7 +151,8 @@ const cannotCount = ({ missing, checkout, paths }) => {
   }
   return `${named} ${missing.length > 1 ? "are counted paths" : "is a counted path"} this repository `
     + `does not hold, so nothing here can count towards the volume. Declare this repository's own `
-    + `under \`review.paths\` in ${FROM_PROJECT}${paths.from === FROM_PROJECT ? "" : `, the three above being this plugin's own layout`}`;
+    + `under \`review.paths\` in ${FROM_PROJECT}${paths.from === FROM_PROJECT ? ""
+      : `, ${SHIPPED_PATHS.join(", ")} being this plugin's own layout and no claim about this repository`}`;
 };
 
 /* Asked only where a reading is owed and the account resolves: below the volume there is nothing to

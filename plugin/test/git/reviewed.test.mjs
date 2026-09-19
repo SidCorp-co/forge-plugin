@@ -9,8 +9,8 @@ import { join } from "node:path";
 
 import { git, ranAsync, tempRoom } from "../fixtures.mjs";
 
-import { reviewCounts, reviewedAt, REVIEWED, SHIPPED_LINES,
-  SHIPPED_PATHS } from "../../src/git/reviewed.mjs";
+import { reviewCounts, reviewedAt, REVIEWED, SHIPPED_LINES, SHIPPED_PATHS,
+  whereFrom } from "../../src/git/reviewed.mjs";
 
 const MODULE = new URL("../../src/git/reviewed.mjs", import.meta.url).pathname;
 
@@ -48,6 +48,18 @@ const standing = async (room) => {
     process.env, room);
   assert.equal(run.status, 0, run.stderr);
   return { said: JSON.parse(run.stdout), stderr: run.stderr, status: run.status };
+};
+
+/* The reader a surface printing a reckoning it does not spend calls: it exits on nothing, so the
+   assert here is the proof rather than a guard, and what it hands back is what `-h` prints. */
+const reported = async (room) => {
+  const run = await ranAsync(process.execPath,
+    ["--input-type=module", "-e",
+      `import { reviewReported } from ${JSON.stringify(MODULE)};`
+      + ` console.log(JSON.stringify(reviewReported()));`],
+    process.env, room);
+  assert.equal(run.status, 0, `the reader a help screen calls exited: ${run.stderr}`);
+  return JSON.parse(run.stdout);
 };
 
 /* The readers a release step calls, which exit where the report's own reader hands back a sentence. */
@@ -182,4 +194,32 @@ test("a malformed paths declaration is refused rather than falling back to the s
     assert.equal(read.status, 0, `the report's own reader exited: ${read.stderr}`);
     assert.match(read.said.refusal, /`review\.paths` in \.forge\.json is/u);
   }
+});
+
+test("the reported reckoning carries each half's source, and a malformed one comes back as its refusal", async () => {
+  assert.deepEqual(await reported(built("reported-both", { review: { lines: 42, paths: ["src"] } })),
+    { lines: { value: 42, from: ".forge.json" }, paths: { value: ["src"], from: ".forge.json" } });
+
+  const half = await reported(built("reported-half", { review: { lines: 42 } }));
+  assert.deepEqual(half.paths, { value: SHIPPED_PATHS, from: "the plugin's default" });
+
+  assert.deepEqual(await reported(built("reported-none", {})),
+    { lines: { value: SHIPPED_LINES, from: "the plugin's default" },
+      paths: { value: SHIPPED_PATHS, from: "the plugin's default" } });
+
+  const wrong = await reported(built("reported-wrong", { review: { lines: "lots" } }));
+  assert.match(wrong.refusal, /`review\.lines` in \.forge\.json is a whole number/u);
+  assert.equal(wrong.lines, undefined, "a malformed declaration hands back no value to print");
+});
+
+test("a reckoning read from two declarations names both, and one read from a single source names it once", () => {
+  const volume = { value: 42, from: ".forge.json" };
+  const shipped = { value: SHIPPED_PATHS, from: "the plugin's default" };
+  assert.equal(whereFrom({ lines: volume, paths: { value: ["src"], from: ".forge.json" } }), ".forge.json");
+  assert.equal(whereFrom({ lines: volume, paths: shipped }),
+    "the volume .forge.json, the paths the plugin's default");
+  assert.equal(whereFrom({ lines: { value: SHIPPED_LINES, from: "the plugin's default" },
+    paths: { value: ["src"], from: ".forge.json" } }),
+  "the volume the plugin's default, the paths .forge.json");
+  assert.equal(whereFrom({ lines: shipped, paths: shipped }), "the plugin's default");
 });

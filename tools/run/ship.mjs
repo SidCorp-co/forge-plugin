@@ -23,8 +23,8 @@ import { onlyRelease } from "./landing.mjs";
 import { CHECK, publishes } from "./publish.mjs";
 import { publishesVersion, statesVersion, versionIn } from "./release/released-tag.mjs";
 import { forgetBump, unwound, versionAbove } from "./release/version.mjs";
-import { readingFor, readingTitle, REVIEWED, reviewBody, reviewedAt, reviewLines, reviewPaths,
-  reviewSays, spannedIn } from "./review.mjs";
+import { readingFor, readingTitle, REVIEWED, reviewBody, reviewedAt, reviewReported, reviewSays,
+  spannedIn, whereFrom } from "./review.mjs";
 import { hookEntries } from "../../plugin/src/hooks/log/hook-log-file.mjs";
 import { typed } from "../../plugin/src/hooks/shell-spans.mjs";
 import { freezesSession, FROZEN, pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
@@ -34,8 +34,26 @@ import { partForLanding } from "../../plugin/src/guides/served.mjs";
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SELF = `node ${join(basename(HERE), "tools", "run.mjs")}`;
 
-/** What `-h` prints about the release, after the verb table and the other parts' own paragraphs. */
-export const SHIP_HELP = [
+/* What the count paragraph says where the project declared a reckoning the readers will not take: a
+   caller who typed `-h` asked what this does, and answering with a configuration fault instead is
+   withholding the one thing they asked for. Never the plugin's own numbers in its place — a present
+   and malformed declaration falls back to nothing, here as everywhere (ISS-1912). */
+const counting = () => {
+  const declared = reviewReported();
+  if (declared.refusal) {
+    return [`That last step also counts what landed under the paths this project declares since ${REVIEWED},`,
+      "and says one reading of the whole of it is owed once the range holds the volume it declares. Not in",
+      `this checkout, whose declaration every reader of it refuses: ${declared.refusal}`];
+  }
+  return [`That last step also counts what landed under ${declared.paths.value.join(", ")} since ${REVIEWED}, and`,
+    `says one reading of the whole of it is owed once the range holds ${declared.lines.value} changed line(s)`,
+    `  ← ${whereFrom(declared)}.`];
+};
+
+/** What `-h` prints about the release, after the verb table and the other parts' own paragraphs.
+ *  Built when the usage is printed and never at import: a value resolved as this module loads is one
+ *  every verb of the script pays for, and a refusal there answers a question nobody asked. */
+export const shipHelp = () => [
   "What a session registered, and the skills it loaded, reach it at its next start — gate code does",
   "not, being chosen per call — so the last step says whether a restart is owed and names the set it",
   "filtered on. It says beside that what the gate run a step earlier took and how that compares with",
@@ -85,8 +103,7 @@ export const SHIP_HELP = [
   "the tracker refused, since a release already pushed and installed is no place to fail. The checkpoint",
   "is not the status: what the record earns is the run\u0027s own to advance afterwards.",
   "",
-  `That last step also counts what landed under ${reviewPaths().join(", ")} since ${REVIEWED}, and`,
-  `says one reading of the whole of it is owed once the range holds ${reviewLines()} changed line(s).`,
+  ...counting(),
   "The release count is printed beside it and decides nothing, so three one-line fixes owe no reading",
   "and one large landing owes one on its own. Past the threshold the step files the reading's issue",
   "itself, through this repository's own CLI, and prints the line that launches the run — and while",
@@ -373,13 +390,13 @@ const tierCeiling = (tree, was, at) => {
 const reviewOwed = async (tree) => {
   const from = reviewedAt(tree);
   if (!from) return console.error(`  ${NO_MARK(SELF)}`);
-  const { owed, range, count, volume } = reviewSays(tree, from);
+  const { owed, range, count, volume, threshold, paths, source } = reviewSays(tree, from);
   if (!owed) {
-    return console.log(`  ${count} under ${reviewPaths().join(", ")} since ${from.slice(0, 7)}, short `
-      + `of the ${reviewLines()} line(s) that call for a reading`);
+    return console.log(`  ${count} under ${paths.join(", ")} since ${from.slice(0, 7)}, short `
+      + `of the ${threshold} line(s) that call for a reading  ← ${source}`);
   }
-  console.log(`  a review of ${range} is owed: ${count} under ${reviewPaths().join(", ")}, at or past `
-    + `${reviewLines()} line(s). It is a delegated run of its own:`);
+  console.log(`  a review of ${range} is owed: ${count} under ${paths.join(", ")}, at or past `
+    + `${threshold} line(s)  ← ${source}. It is a delegated run of its own:`);
   const asked = await fileReview(tree, from, volume);
   /* The one answer that is neither a row nor an absence: a second row for one range is what the
      lookup alone now stands between, so a lookup that read part of the backlog files nothing. */
