@@ -26,6 +26,14 @@ can pass in a file where a sibling fails, which leaves the run red and the case 
 Take both readings against the source the fix is not in yet. Exit 0 where the two are red, 1 where
 they are green or disagree, 2 where one of them is not a reading at all.`;
 
+const WHOLE = "the whole of its file";
+const ALONE = "that case alone";
+
+const refuse = (text) => {
+  process.stdout.write(`\n${text}\n`);
+  process.exit(2);
+};
+
 /* The record goes in ahead of the file, which `argvFor` leaves last: the gate's re-run of a case and
    this reading of one are built by the same call, so they are the same reading. */
 const withRecord = (argv, at) => [...argv.slice(0, -1),
@@ -45,16 +53,13 @@ const taken = (one, room, at) => {
   return resultsFrom(at);
 };
 
-const refuse = (text) => {
-  process.stdout.write(`\n${text}\n`);
-  process.exit(2);
-};
-
 const roster = (rows) => (rows.length === 0
   ? "  — that reading reached no top-level case at all"
   : rows.map((one) => `  ${one.outcome.padEnd(5)} ${one.name}`).join("\n"));
 
-const NOT_A_RESULT = { skip: "was skipped", todo: "is marked todo" };
+const NOT_A_RESULT = { skip: "was skipped", todo: "is marked todo",
+  cancelled: "ended without the run naming any kind of failure for it, which is a case cancelled "
+    + "rather than a case judged" };
 
 const targetIn = (rows, name, where, shown) => {
   if (rows === null) {
@@ -113,15 +118,14 @@ const rel = relative(ROOT, at);
 const shown = rel && !rel.startsWith("..") ? rel : at;
 
 const room = gateTmp();
-const reading = (one, label, tag) => {
-  process.stdout.write(`\n=== ${label} ===\n`);
+const reading = (one, label, where, tag) => {
+  process.stdout.write(`\n=== reading ${label} of 2: ${where} ===\n`);
   return taken(one, mkdtempSync(join(room, `${tag}-`)), join(room, `${tag}.jsonl`));
 };
 
-const wholeRows = reading({ file: at, whole: true }, `reading 1 of 2: the whole of ${shown}`, "whole");
-const inFile = targetIn(wholeRows, name, "the whole of its file", shown);
-const aloneRows = reading({ file: at, whole: false, name }, `reading 2 of 2: that case alone`, "alone");
-const alone = targetIn(aloneRows, name, "that case alone", shown);
+process.stdout.write(`\nWatching \`${name}\` in ${shown}, twice.\n`);
+const inFile = targetIn(reading({ file: at, whole: true }, 1, WHOLE, "whole"), name, WHOLE, shown);
+const alone = targetIn(reading({ file: at, whole: false, name }, 2, ALONE, "alone"), name, ALONE, shown);
 
 process.stdout.write(shape(name, alone, inFile));
 if (alone === "fail" && inFile === "fail") {

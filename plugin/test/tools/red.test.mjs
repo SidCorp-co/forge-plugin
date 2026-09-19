@@ -8,6 +8,7 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { resultsFrom } from "../../../tools/gates/counted.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const ROOT = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
@@ -94,6 +95,32 @@ test("a file that throws before the target is refused, not read as a case that p
   const run = watching("throws", `throw new Error("this file does not load");\n${PASSES}`, "the subject");
   assert.equal(run.status, 2, run.stdout);
   assert.match(run.stdout, /reached no top-level case at all/u, run.stdout);
+});
+
+test("a todo target that throws is refused rather than read as a red", () => {
+  const run = watching("todo-throws",
+    `test("the subject", { todo: true }, () => { assert.fail("boom"); });\n`, "the subject");
+  assert.equal(run.status, 2, run.stdout);
+  assert.match(run.stdout, /the case is marked todo/u, run.stdout);
+});
+
+test("a target cancelled before its body runs is refused, the run naming no kind of failure", () => {
+  const run = watching("cancelled",
+    `test("the subject", { signal: AbortSignal.abort() }, async () => { await new Promise(() => {}); });\n`,
+    "the subject");
+  assert.equal(run.status, 2, run.stdout);
+  assert.match(run.stdout, /naming any kind of failure for it/u, run.stdout);
+});
+
+test("a roster whose count does not answer for its rows is not a reading", () => {
+  const at = join(tempRoom("red-short-"), "record.jsonl");
+  const row = `${JSON.stringify({ name: "the subject", outcome: "fail" })}\n`;
+  writeFileSync(at, row);
+  assert.equal(resultsFrom(at), null, "a record with no count read as a roster");
+  writeFileSync(at, `${row}${JSON.stringify({ rows: 2 })}\n`);
+  assert.equal(resultsFrom(at), null, "a count of two read a roster of one");
+  writeFileSync(at, `${row}${JSON.stringify({ rows: 1 })}\n`);
+  assert.deepEqual(resultsFrom(at), [{ name: "the subject", outcome: "fail" }], "a whole record refused");
 });
 
 test("the usage says what is compared and what each exit status means", () => {
