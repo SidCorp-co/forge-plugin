@@ -71,8 +71,7 @@ test("the diagnostic under a case that is not a failure is not scanned for cases
   assert.deepEqual(failuresIn(skipped).map((one) => one.name), ["the one that really failed"]);
 });
 
-/* Assume the indent rather than read it and the search for a delimiter that is not there runs to the
-   end of the stream, taking every real failure under it with the excused case it began at. */
+// Assume the indent and the search for a delimiter that is not there eats the rest of the stream.
 test("a diagnostic indented deeper than its case does not swallow the failures under it", () => {
   const deep = "TAP version 13\nnot ok 1 - pending # TODO\n    ---\n    error: 'pending'\n    ...\nnot ok 2 - the one that really failed\n1..2\n";
   assert.deepEqual(failuresIn(deep).map((one) => one.name), ["the one that really failed"]);
@@ -114,6 +113,12 @@ test("a stream that never says it is TAP names no failing case, whatever a line 
     ["database unavailable"], "and the same line inside a stream that does say so is a failure");
   assert.deepEqual(failuresIn("not ok - database unavailable\n1..1\n").map((one) => one.name),
     ["database unavailable"], "a plan says it too, which is all the older version ever had");
+});
+
+// The plan a stream that gives up would have ended with never arrives; its own word for it does.
+test("a stream that bails out before its plan is still TAP, and what it named before that stands", () => {
+  const bailed = "not ok 1 - database setup\nBail out! database unavailable\n";
+  assert.deepEqual(failuresIn(bailed).map((one) => one.name), ["database setup"]);
 });
 
 // Nothing separates the description from the directive where the description is the directive.

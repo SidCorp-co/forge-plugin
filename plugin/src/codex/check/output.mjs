@@ -3,7 +3,7 @@
 const POINT = /^([ ]*)(not )?ok\b(?:[ ]+\d+)?(?:[ ]*-)?[ ]*(.*)$/u;
 
 // The stream saying it is TAP, without which a build log's own `not ok` line would be a failing case.
-const ANNOUNCED = /^(?:TAP version \d|[ ]*\d+\.\.\d)/mu;
+const ANNOUNCED = /^(?:TAP version \d|[ ]*\d+\.\.\d|Bail out!)/mu;
 
 const OPENED = /^([ ]+)---[ ]*$/u;
 
