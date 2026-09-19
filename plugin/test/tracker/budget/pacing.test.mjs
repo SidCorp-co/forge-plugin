@@ -192,3 +192,58 @@ test("a call that has been answered is off the count the next window is sized ag
     forgetClock();
   }
 });
+
+const rested = (ms) => new Promise((done) => setTimeout(done, ms));
+
+/* A waiter whose caller gave up took no reservation, so retiring one on its way out retires another
+   call's, and the window after that lends the room that call is still holding. */
+test("a caller that gave up while waiting retires no other call's reservation", async () => {
+  const { forgetBudget } = await import("../../../src/wire/budget.mjs");
+  const { forgetClock } = await import("../../../src/wire/shared-clock.mjs");
+  const live = globalThis.fetch;
+  const base = Math.ceil(Date.now() / 1000) + 2;
+  const stalls = [];
+  let at = 0;
+  const answering = (reset) => ({
+    ok: true,
+    status: 200,
+    headers: budgeted({ "x-ratelimit-limit": "2", "x-ratelimit-remaining": "1", "x-ratelimit-reset": reset }),
+    text: async () => "{}",
+  });
+  forgetBudget();
+  forgetClock();
+  globalThis.fetch = (url, init) => {
+    at += 1;
+    if (init.signal.aborted) return Promise.reject(init.signal.reason);
+    /* The second call never answers, so its reservation is the one still out when the next window
+       opens — and the one a give-up would wrongly retire. */
+    if (at === 2) {
+      return new Promise((done, no) => {
+        const never = setTimeout(done, 30_000);
+        stalls.push(never);
+        init.signal.addEventListener("abort", () => {
+          clearTimeout(never);
+          no(init.signal.reason);
+        });
+      });
+    }
+    return Promise.resolve(answering(at <= 3 ? base : base + 60));
+  };
+  try {
+    await oneRead();
+    const stalling = callTool("forge_issues", { action: "get", documentId: "u-1", fields: [] }, true, { waits: 30 });
+    const gone = AbortSignal.abort();
+    await callTool("forge_issues", { action: "get", documentId: "u-1", fields: [] }, true, { waits: 10, signal: gone });
+    await rested(2_500);
+    await oneRead();
+    const said = await stderrOf(oneRead);
+    assert.match(said, /Forge paced itself/u,
+      `the stalled call still holds its room in the window that opened after it:\n${said}`);
+    for (const never of stalls) clearTimeout(never);
+    await stalling.catch(() => null);
+  } finally {
+    globalThis.fetch = live;
+    forgetBudget();
+    forgetClock();
+  }
+});
