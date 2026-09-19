@@ -547,11 +547,13 @@ test("a project that declares no number of runs is told the key is unset and wha
 
 /* The doors a consult is demanded at are a setting like the rest: a switch nobody can read the
    current value of is one people guess at, and the empty list has to be told from the absent key. */
-const withOwed = (codex) => report(null, {}, { ".forge.json": JSON.stringify({ slug: "p", codex }) });
+const withDoors = (project) => report(null, {}, { ".forge.json": JSON.stringify({ slug: "p", ...project }) });
+const withOwed = (codex) => withDoors({ codex });
 
 test("the doors a consult is demanded at are reported with the file they were read from", () => {
-  assert.match(withOwed({ owed: ["gate", "commit"] }), /\[ {2}ok {2}\] codex\.owed\s+gate, commit — each held until a consult has read what it would judge {2}← \.forge\.json/u,
-    withOwed({ owed: ["gate", "commit"] }));
+  const armed = { codex: { owed: ["gate", "commit"] }, stats: { commands: { gate: "make verify" } } };
+  assert.match(withDoors(armed), /\[ {2}ok {2}\] codex\.owed\s+gate at `make verify`, commit — each held until a consult has read what it would judge, and each command door at what `stats\.commands` names {2}← \.forge\.json/u,
+    withDoors(armed));
 });
 
 test("the key absent is the commit alone and the empty list is no door, and the report tells them apart", () => {

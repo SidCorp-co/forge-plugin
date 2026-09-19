@@ -47,11 +47,11 @@ const unarmedSaid = (one) => (one.wrote === null
   ? `\`${DECLARES}.${one.label}\` names none`
   : `\`${DECLARES}.${one.label}\` is ${one.wrote}, which is no command`);
 
-/* Every door the list names, and the empty list apart from the absent key: the two are different
-   answers and a reader told only "nothing" cannot tell the off switch from a tree that never chose.
-   A door no declared command arms is the third: the gate there is silent, because a hook guesses no
-   command for a repository it has never seen, and this row is the only thing that can say so
-   (ISS-1905). */
+/* Every door the list names, the empty list apart from the absent key, and the door no declared
+   command arms: three answers, and a reader told only "nothing" can tell neither the off switch from
+   a tree that never chose nor either from a door standing silent. The gate is silent at that third
+   one — a hook guesses no command for a repository it has never seen — so this row is the only thing
+   that can say the door is there (ISS-1905). */
 const owedRow = () => {
   const owed = codexOwed();
   if (owed.unknown) {
@@ -60,13 +60,17 @@ const owedRow = () => {
   if (!owed.value.length) {
     return { label: "codex.owed", detail: `nothing — the key is an empty list, so no door asks  ← ${owed.from}` };
   }
-  const declared = declaredIn(checkoutRoot());
+  const root = checkoutRoot();
+  const declared = root ? declaredIn(root) : null;
   const unarmed = unarmedDoors(owed.value, declared);
+  const commands = Object.fromEntries(owed.value.map((one) => [one, declaredCommands(one, declared)]));
   const armed = owed.value.filter((one) => !unarmed.some((door) => door.label === one))
-    .map((one) => armedSaid(one, declaredCommands(one, declared)));
+    .map((one) => armedSaid(one, commands[one]));
   if (!unarmed.length) {
+    const arming = owed.value.some((one) => commands[one].length)
+      ? `, and each command door at what \`${DECLARES}\` names` : "";
     return { label: "codex.owed", detail: `${armed.join(", ")} — each held until a consult has read `
-      + `what it would judge, and each command door at what \`${DECLARES}\` names  ← ${owed.from}` };
+      + `what it would judge${arming}  ← ${owed.from}` };
   }
   return { level: MISS, label: "codex.owed", detail: `${unarmed.map((one) => one.label).join(", ")} `
     + `${unarmed.length > 1 ? "are doors" : "is a door"} this project asks at that no command arms — `
