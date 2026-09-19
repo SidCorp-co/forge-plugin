@@ -324,13 +324,14 @@ export const setsFrom = (out, root) => setsOf(recordsIn(out), root);
 // The preload `auditEnv` adds, which is this gate's instrument and never a step's subject.
 const INSTRUMENT = ["./audit.mjs", "./placing.mjs", "./shell.mjs"];
 
-// Every record a step left as one set: a script step has no file unit to key anything on (ISS-1911).
+// Every record a step left, children no root reaches included, as the one set it is judged by (ISS-1911).
 export const stepSetOf = ({ byTicket, roots }, root) => {
-  const sets = roots.map((one) => gather(one, byTicket, root));
+  const sets = [...roots, ...byTicket.values()].map((one) => gather(one, byTicket, root));
   const mine = new Set(INSTRUMENT.map((one) => relative(root, fileURLToPath(new URL(one, import.meta.url)))));
   const all = (key) => new Set(sets.flatMap((one) => [...one[key]]).filter((each) => !mine.has(each)));
+  const causes = sets.flatMap((one) => one.blind).map((one) => [`${one.kind}\u0000${one.why}`, one]);
   return { paths: all("paths"), dirs: all("dirs"), trees: all("trees"), whole: all("whole"),
-    blind: [...new Map(sets.flatMap((one) => one.blind).map((one) => [one.why, one])).values()] };
+    blind: [...new Map(causes).values()].sort(byCause) };
 };
 
 export const stepSetFrom = (out, root) => stepSetOf(recordsIn(out), root);
