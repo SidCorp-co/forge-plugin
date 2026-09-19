@@ -85,7 +85,7 @@ const cannotCount = ({ missing, checkout, paths }) => {
   }
   return `${named} ${missing.length > 1 ? "are counted paths" : "is a counted path"} this repository `
     + `does not hold, so nothing here can count towards the volume. Declare this repository's own `
-    + `under \`review.paths\` in .forge.json${paths.from === FROM_PROJECT ? "" : `, the three above being this plugin's own layout`}`;
+    + `under \`review.paths\` in ${FROM_PROJECT}${paths.from === FROM_PROJECT ? "" : `, the three above being this plugin's own layout`}`;
 };
 
 /* The trigger a project declares for reading what has landed: silent where it declared neither key,
