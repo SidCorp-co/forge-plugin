@@ -80,15 +80,16 @@ holds as null is the incoherence its own schema warns of, and it is reported: un
 set, the person's look stands. What the same report does with the deploy behind that branch is
 [doctor](doctor.md).
 
-**One flow reads four settings, and each names the level that owns it** — which level, and why:
-[two levels](../two-levels.md). Three are the project's, in its own `.forge.json`: `feedback`, two
+**One flow reads five settings, and each names the level that owns it** — which level, and why:
+[two levels](../two-levels.md). Four are the project's, in its own `.forge.json`: `feedback`, two
 channels (`off | bugs | all`) saying whether a run may report on this plugin and on the project
-itself; `method`, the version of the served text this project runs, one number pinning the guide, the
-method and the contract together because they are one designed set and a project mixing them runs
-text nobody tested; and `landing`, where the merge sits. The fourth is the machine's, in the user
-config beside the withheld verbs: `ship`, whether a run lands its own change or ends ready for
-another actor to land it. `forge doctor` prints all four with their sources, and it is the only
-surface allowed to.
+itself; `flow`, which of the served method sets this project runs, pinning the guide, the method and
+the contract together because they are one designed set and a project mixing them runs text nobody
+tested; `landing`, where the merge sits; and `lease.workingRe`, what a run working in one of this
+project's trees is running, which is the only thing that separates two agents standing in one tree.
+The fifth is the machine's, in the user config beside the withheld verbs: `ship`, whether a run
+lands its own change or ends ready for another actor to land it. `forge doctor` prints all five with
+their sources, and it is the only surface allowed to.
 
 Two of those behave unlike the rest, each for a reason worth stating. **`landing` overrides and never
 defaults**: the project already told the tracker whether its default branch deploys production on its

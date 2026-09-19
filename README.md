@@ -66,6 +66,7 @@ server is reported by `forge doctor` with the command that saves the same values
   "flow": "default",
   "drainedBy": "dispatcher",
   "landing": "after-merge",
+  "lease": { "workingRe": "^\\S*(node|sh) .*tools/run\\.mjs (ship|land|land-ready)( |$)" },
   "stats": { "commands": { "gate": "npm run check" } }
 }
 ```
@@ -97,6 +98,18 @@ this project runs, and `method` is retired: with no `flow` beside it, the one va
 took resolves to the default set and any other is refused with the route off the key. `drainedBy` says which master claims this project's issues once they are developed. `landing`
 says where the merge sits relative to the judging. `stats.commands` is what this checkout calls its
 own gate, test, ship and cleanup, which is what lets a run profile a project that is not this one.
+
+`lease.workingRe` is what a run working in one of this project's trees is running. The id a lease
+records names the tree a run was cut in and not the run, so two agents standing in one tree resolve
+it alike and the field cannot tell the second from the first renewing; the one thing left readable
+is what is running in that tree, and a claim that would otherwise read the tree's own lease as its
+own is refused while a process matching this pattern stands there. Which command that is cannot be
+stated without naming the project — here it is the script that pushes and releases — so **absent,
+no process in a tree reads as a run working there and every claim is decided by the record alone**,
+which is how the plugin behaved before the key existed. Declare the commands that would cost
+something to run twice, not the gate: a run starts its own gate before it claims, and a pattern
+matching that refuses the run its own issue. A pattern that is not a regular expression is reported
+by `forge doctor` and read as no declaration at all.
 
 The project **id** is never configured — it is looked up from the slug at runtime.
 

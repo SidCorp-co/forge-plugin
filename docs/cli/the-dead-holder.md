@@ -45,8 +45,20 @@ first's down to the snapshot its shell sources — so there is no per-process id
 suffix on and nothing for a registration to bind to. What is left is the tree itself: the processes
 standing in it. A claim on a lease this caller would otherwise read as its own is refused while a
 process whose working directory is inside that tree is neither this call, nor anything above it,
-nor anything it started. Where none is, the claim is granted with no flag and no wait, which is
-what the reclaim above bought and this may not charge for.
+nor anything it started, **and is running what the project calls a run's own work**. Where none is,
+the claim is granted with no flag and no wait, which is what the reclaim above bought and this may
+not charge for.
+
+**Which command that is, is the project's to declare, and a project that declares nothing gets
+silence.** The key is `lease.workingRe` and the reason it is the project's rather than a default
+here is that no sentence naming the command holds in the next repository: the thing worth refusing a
+second run over is whatever that repository pushes and releases with. Reading every process in the
+tree instead was measured and does not stand — it refuses a run's own baseline gate, which the
+method starts before the claim is taken, and a refusal that fires on the ordinary case is cleared by
+typing `--stopped` at nothing, which spends the one flag carrying a caller's judgement. So the
+declaration names what costs something to run twice and never the gate, and the reading is off
+without it: the lease is decided by the record alone, exactly as before the key existed. What a
+project declared and what it lost by declaring nothing: `forge doctor`.
 
 **The reading cannot say whose process it found, and does not pretend to.** A run's own gate stands
 in its own tree exactly as a stranger's does. So the refusal prints what is there — the id, the
@@ -57,7 +69,8 @@ reaching the record, and a run writing down what it has just done while its own 
 would lose that write to a probe that cannot tell the gate from a sibling; a second run's first act
 is the claim, which is where the cost of being wrong is one command.
 
-**The reading has one prerequisite, and where it is missing there is no reading at all.** The host
+**The reading has two prerequisites, and where either is missing there is no reading at all.** The
+first is the declaration above. The second is the host
 process is what bounds this call's own work: the call itself, everything above it and everything it
 started are that boundary's inside, and the tree's other processes are what is left. A call that
 cannot place itself against a host — none recorded, or one that is not in this call's own ancestry —

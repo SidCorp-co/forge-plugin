@@ -27,7 +27,7 @@ how many topics there may be.
 | [`advance`](cli/advance.md) | What the entry criteria read, why git is never asked at a transition while the requirements tree is, and how a reopen routes. |
 | [`advance` — what a move sends](cli/advance-what-it-sends.md) | The two readings of one shortfall list, the reading that refuses nothing, and why a park's question and its reason are never written from each other. |
 | [`claim`](cli/claim.md) | What a lease is, what the step line is for, and why every write lists the issue's comments first. |
-| [`the dead holder`](cli/the-dead-holder.md) | What the lease records beside the holder, what a recorded process id proves and in which direction, why a holder a worktree minted is read off that tree rather than off the record, and what is left to the clock. |
+| [`the dead holder`](cli/the-dead-holder.md) | What the lease records beside the holder, what a recorded process id proves and in which direction, why a holder a worktree minted is read off that tree, which of its processes the project counts, and what is left to the clock. |
 | [`the precondition`](cli/the-precondition.md) | What every write the lease covers carries, the one call that establishes the far end honours it, and which read-back stops being spent once it does. |
 | [the short lease](cli/the-short-lease.md) | Why a write no work follows takes a lease of minutes, why the refusal is where that is said, and the split it was measured on. |
 | [the proven lapse](cli/the-proven-lapse.md) | Why a lease the record puts past its own duration is as free as none, which seam decides that and why it is the reclaim's own, and what the row a write writes over it holds. |

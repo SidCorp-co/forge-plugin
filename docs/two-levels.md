@@ -37,7 +37,7 @@ in.
 
 ## The keys one flow reads, and whose each is
 
-The flow's own settings obey the division above rather than sitting outside it. Three are the
+The flow's own settings obey the division above rather than sitting outside it. Four are the
 project's, in its own `.forge.json`, because none of them can be stated without naming the project:
 
 - **`feedback`** — whether a run working in this project may file about this plugin, and about the
@@ -53,6 +53,12 @@ project's, in its own `.forge.json`, because none of them can be stated without 
   for it: [the flow axis](cli/the-flow-axis.md).
 - **`landing`** — where the merge sits, as an override of what the tracker's own record already
   implies. The route itself is derived and not asked for twice.
+- **`lease.workingRe`** — what a run working in one of this project's trees is running. A lease's id
+  names the tree a run was cut in rather than the run, so two agents standing in one tree resolve it
+  alike and the field cannot tell a second run from the first renewing; what is left readable is the
+  tree's own processes, and the command that means one of them is a run holding that tree is this
+  repository's script here and somebody else's somewhere else. A project that declares nothing gets
+  the behaviour it had before the key existed, which is the silence the section above calls correct.
 
 One is the **machine's**, in the user config beside the withheld verbs: **`ship`**, whether a run
 lands its own change or ends ready for another actor to land it. It is neither level's above, and the

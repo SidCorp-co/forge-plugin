@@ -1,10 +1,10 @@
-/* The third way a holder answers, where the field alone cannot: an id a worktree mints belongs to
-   that tree, so two callers standing in one resolve it alike and a match places a run there without
-   identifying whoever is reading it. Which processes count, why no ambient fact tells two callers
-   apart, and what the caller is asked instead: docs/cli/the-dead-holder.md (ISS-1872). */
+/* The third way a holder answers: an id a worktree mints belongs to that tree, so two callers in one
+   resolve it alike and a match places a run there without identifying who is reading it. Which
+   processes count and what the caller is asked: docs/cli/the-dead-holder.md (ISS-1872). */
 import { readFileSync, readdirSync, readlinkSync, statSync } from "node:fs";
 
 import { gitEntryAt } from "../../git/checkout-at.mjs";
+import { projectWorkPattern } from "../../resolve/settings.mjs";
 import { RUN_ID, besideGit, runIdAt } from "../../resolve/session/run-id.mjs";
 import { STOPPED, describe, pidOf } from "../lease.mjs";
 
@@ -30,23 +30,30 @@ const chainOf = (pid) => {
 };
 
 /* The host is where one call of an agent ends and another's begins, so anything sharing an ancestor
-   with this call below it is this call's own however long it stands — the whole of what can be
-   excluded. It bounds that and does not qualify what is found: work whose own intermediate has
-   exited keeps its directory and is reparented off every chain the host is in (ISS-1872 F1). */
+   with this call below it is this call's own — the whole of what can be excluded. It bounds that and
+   never qualifies what is found: work whose intermediate exited is reparented off the host's chain. */
 const anothersCall = (pid, below) => !chainOf(pid).some((one) => below.has(one));
 
-const commandOf = (pid) => {
+/* Whole, being what the declaration matches; `comm` where there is no readable argument vector. */
+const lineOf = (pid) => {
   const line = answered(() => readFileSync(`${TABLE}/${pid}/cmdline`, "utf8"));
-  const said = (line ?? "").replaceAll("\0", " ").trim()
+  return (line ?? "").replaceAll("\0", " ").trim()
     || (answered(() => readFileSync(`${TABLE}/${pid}/comm`, "utf8")) ?? "").trim();
-  return said.length > COMMAND ? `${said.slice(0, COMMAND)}…` : said;
 };
 
-const rowOf = (pid) => ({
+const rowOf = (pid, said) => ({
   pid,
-  command: commandOf(pid),
+  command: said.length > COMMAND ? `${said.slice(0, COMMAND)}…` : said,
   since: answered(() => statSync(`${TABLE}/${pid}`).ctime.toISOString()) ?? null,
 });
+
+/* Which command means a run holds a tree is the project's to say and cannot be stated without
+   naming it, so nothing declared is answered with nothing found rather than with every process in
+   the tree — which refuses a run's own gate, the method starting one before the claim (ISS-1872). */
+const declared = (tree) => {
+  const said = projectWorkPattern(tree).value;
+  return said ? new RegExp(said, "u") : null;
+};
 
 const within = (cwd, tree) => cwd === tree || cwd.startsWith(`${tree}/`);
 
@@ -58,8 +65,9 @@ export const treeMinting = (holder, at = process.cwd()) => {
 
 export const workingHere = (holder, at = process.cwd(), said = pidOf()) => {
   const tree = treeMinting(holder, at);
+  const work = tree && declared(tree);
   const host = Number(said);
-  if (!tree || !Number.isInteger(host) || host < 2) return [];
+  if (!work || !Number.isInteger(host) || host < 2) return [];
   const mine = chainOf(process.pid);
   const seat = mine.indexOf(host);
   /* No boundary, and a reading that cannot exclude its own work refuses every claim from a tree. */
@@ -71,8 +79,10 @@ export const workingHere = (holder, at = process.cwd(), said = pidOf()) => {
     const pid = Number(name);
     if (!Number.isInteger(pid) || pid < 2 || ours.has(pid)) continue;
     const cwd = answered(() => readlinkSync(`${TABLE}/${pid}/cwd`));
-    if (!cwd || !within(cwd, tree) || !anothersCall(pid, below)) continue;
-    found.push(rowOf(pid));
+    if (!cwd || !within(cwd, tree)) continue;
+    const line = lineOf(pid);
+    if (!line || !work.test(line) || !anothersCall(pid, below)) continue;
+    found.push(rowOf(pid, line));
   }
   return found.sort((one, two) => String(one.since).localeCompare(String(two.since)));
 };
@@ -86,9 +96,11 @@ const rowLines = (rows) => [
 export const workingHereSaid = (rows, holder, at = process.cwd()) =>
   [`That holder is the id ${besideGit(at, RUN_ID)} mints, so it names this tree and not one run in `
     + `it: every call made from here resolves ${holder}. ${rows.length} process(es) standing in `
-    + `${treeMinting(holder, at)} are neither this call, nor above it, nor anything it started:`,
+    + `${treeMinting(holder, at)} run what this project declares a run's own work and are neither `
+    + "this call, nor above it, nor anything it started:",
   ...rowLines(rows),
-  `Nothing here can tell whose they are, so whether a run is working under that lease is yours to `
+  `They match \`lease.workingRe\`, which \`forge doctor\` prints. Nothing here can tell whose they `
+    + `are, so whether a run is working under that lease is yours to `
     + `establish: \`ps -o pid,lstart,args -p ${rows.map((one) => one.pid).join(",")}\` reads them `
     + `again, and whatever each one is running says which run it belongs to.`].join("\n");
 

@@ -135,6 +135,20 @@ export const projectTarget = () => aimed ?? projectScope();
 
 /* Which paths, and which angles, are the checkout's answer: the account's covers every one. */
 export const projectRecordPattern = () => sourced(FROM_PROJECT, forgeJson().parsed?.codex?.pathRe);
+
+/* No plugin default, and an unreadable pattern is no declaration: docs/two-levels.md, README. */
+const declaredWork = (at) => (at ? projectFileAt(at)?.lease?.workingRe : forgeJson().parsed?.lease?.workingRe);
+
+export const projectWorkPattern = (at = null) => {
+  const said = declaredWork(at);
+  if (!said) return { value: null, from: null, unreadable: false };
+  try {
+    new RegExp(said, "u");
+  } catch {
+    return { value: null, from: FROM_PROJECT, unreadable: said };
+  }
+  return { value: said, from: FROM_PROJECT, unreadable: false };
+};
 export const projectCodex = () => forgeJson().parsed?.codex ?? {};
 
 /** Which CHECKOUT this process stands in — what a caller reading FILES off a root wants, and what

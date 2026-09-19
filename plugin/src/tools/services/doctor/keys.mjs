@@ -1,7 +1,7 @@
 /* The keys a project sets for itself, each with the value in force and where it was read; why rows
    and not lines is doctor/harness.mjs's. docs/cli/doctor.md. */
 import { FEEDBACK_CHANNELS, LANDING_ROUTES, OWED_DOORS, RUNS_TAKES, SHIP_MODES, codexOwed,
-  feedbackScope, landingScope, parallelRuns, shipMode } from "../../../resolve/settings.mjs";
+  feedbackScope, landingScope, parallelRuns, projectWorkPattern, shipMode } from "../../../resolve/settings.mjs";
 import { flowPinned, flowRefusal } from "../../../guides/flow.mjs";
 
 const MISS = "miss";
@@ -54,6 +54,21 @@ const runsRow = () => {
     : "unset, so a wave is sized by whoever dispatches it and a gate declines for no sibling" };
 };
 
+/* Three answers and not two, because an absent key and a declared pattern that will not compile
+   decide the same claims and mean opposite things: one project chose silence, the other wrote a
+   declaration nothing can read. */
+const workRow = () => {
+  const work = projectWorkPattern();
+  if (work.unreadable) {
+    return { level: MISS, label: "lease.workingRe", detail: `${work.unreadable} is no regular expression, `
+      + `so no process reads as a run's work and a claim over a live sibling is taken  ← ${work.from}` };
+  }
+  return { label: "lease.workingRe", detail: work.value
+    ? `${work.value} — a process standing in a tree and running this holds that tree, so a claim `
+      + `reading the tree's own lease as its own is refused  ← ${work.from}`
+    : "unset, so no process in a tree reads as a run working there and a lease is decided by the record alone" };
+};
+
 /** Every keyed choice this project makes, in the order the report prints them. */
 export const projectKeyLines = () => {
   const ship = shipMode();
@@ -65,5 +80,6 @@ export const projectKeyLines = () => {
     { level: ship.unknown ? MISS : undefined, label: "ship", detail: held(ship, SHIP_MODES) },
     owedRow(),
     runsRow(),
+    workRow(),
   ];
 };

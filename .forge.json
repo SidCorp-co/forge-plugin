@@ -43,6 +43,9 @@
       "unset": 2
     }
   },
+  "lease": {
+    "workingRe": "^\\S*(node|sh) .*tools/run\\.mjs (ship|land|land-ready)( |$)"
+  },
   "stop": {
     "agents": [
       "runner",

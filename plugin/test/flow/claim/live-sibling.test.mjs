@@ -1,7 +1,9 @@
 /* Two agents dispatched into one worktree resolve one id, so the lease read the second as the first
    renewing and `forge claim` answered `renewed` while the first was mid-ship: ISS-1872's own account,
    measured on ISS-1699. Nothing ambient separates them, so each case below either finds work standing
-   in the tree and refuses, or finds none and takes the lease exactly as it did before. */
+   in the tree and refuses, or finds none and takes the lease exactly as it did before. Which process
+   counts is the project's own `lease.workingRe`, so each tree below declares its own and one of them
+   declares nothing at all. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn } from "node:child_process";
@@ -18,19 +20,26 @@ const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const UUID = "live-sibling-uuid";
 const OURS = "iss-1872-a4e81e39";
 const ELSEWHERE = "iss-1699-3727cd01";
+/* One token on a worker's argument vector, so a declaration reaches this suite's own work alone. */
+const MARK = "iss-1872-work-witness";
 
 /* A tree is its git directory and the id beside it, which is the whole of what the reading resolves
    a tree from; the project file travels with it so that leaving the checkout moves nothing else. */
-const treeMinting = (id) => {
+const treeMinting = (id, declares = MARK) => {
   const at = tempRoom(`live-sibling-${id}-`);
   mkdirSync(join(at, ".git"));
   writeFileSync(join(at, ".git", "forge-run-id"), `${id}\n`);
-  writeFileSync(join(at, ".forge.json"), readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
+  const project = JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
+  if (declares) project.lease = { workingRe: declares };
+  else delete project.lease;
+  writeFileSync(join(at, ".forge.json"), JSON.stringify(project));
   return at;
 };
 
 const TREE = treeMinting(OURS);
 const OTHER = treeMinting(ELSEWHERE);
+/* A tree of this project's own that declares nothing, which is every project that has not chosen. */
+const SILENT = treeMinting(OURS, null);
 /* The caller stands in the tree, as the run it is claiming for does: its own process and its parent
    are therefore standing there too, and a reading that did not exclude them would refuse every call
    ever made from a worktree — which is what the cases that are granted below prove it does not. */
@@ -40,8 +49,8 @@ process.chdir(TREE);
    below is one call of it, and the `forge` below is another — which is what two agents of one wave
    standing in one tree are, and all that separates them. Naming a host further up puts both under
    one call of it instead, which is what a run's own suite looks like from inside. */
-const standingIn = async (at) => {
-  const one = spawn(process.execPath, ["-e", "setTimeout(() => process.exit(0), 120_000)"],
+const standingIn = async (at, mark = MARK) => {
+  const one = spawn(process.execPath, ["-e", "setTimeout(() => process.exit(0), 120_000)", ...mark ? [mark] : []],
     { cwd: at, stdio: "ignore" });
   for (let waited = 0; waited < 200; waited += 1) {
     try {
@@ -60,10 +69,10 @@ const standingIn = async (at) => {
 const reparentedIn = async (at) => {
   const seed = spawn(process.execPath, ["-e",
     'const { spawn } = require("node:child_process");'
-    + 'const one = spawn(process.argv[1], ["-e", "setTimeout(() => process.exit(0), 120_000)"],'
+    + 'const one = spawn(process.argv[1], ["-e", "setTimeout(() => process.exit(0), 120_000)", process.argv[3]],'
     + ' { cwd: process.argv[2], stdio: "ignore", detached: true });'
     + 'one.unref(); process.stdout.write(String(one.pid) + "\\n"); process.exit(0);',
-    process.execPath, at], { stdio: ["ignore", "pipe", "ignore"] });
+    process.execPath, at, MARK], { stdio: ["ignore", "pipe", "ignore"] });
   let said = "";
   seed.stdout.on("data", (chunk) => { said += chunk; });
   await new Promise((done) => { seed.on("exit", done); });
@@ -283,5 +292,73 @@ test("work whose own intermediate has exited still refuses the claim, the host h
     assert.match(read.stdout, new RegExp(`pid ${orphan.pid}`, "u"), "and the brief reports it on the same terms");
   } finally {
     orphan.kill();
+  }
+});
+
+/* Criterion 2: the tree is busy and the claim is still granted, because what is standing in it is
+   not what this project calls a run's work. A gate is the case that matters — the method starts one
+   before the claim — and this is the shape of it. */
+test("work this project does not declare leaves the claim exactly as it was", async () => {
+  heldBy();
+  const idle = await standingIn(TREE, null);
+  try {
+    assert.deepEqual(workingHere(OURS, TREE, HOST), [], "the reading passes over it");
+    const took = await ran(["claim", "ISS-1872"]);
+    assert.equal(took.status, 0, `${took.stdout}${took.stderr}`);
+    assert.match(took.stdout, /renewed: session iss-1872-a4e81e39/u, "and the lease renews as it always did");
+    assert.doesNotMatch(took.stdout, /standing in/u, "with nothing said about a process no declaration reaches");
+  } finally {
+    idle.kill();
+  }
+});
+
+/* Criterion 3: a project that has not chosen gets the behaviour it had before the key existed.
+   Silence is the answer docs/two-levels.md asks for, a plugin installed into a tree that never
+   opted in imposing nothing. */
+test("a project that declares nothing reads no process at all, whatever is standing in its tree", async () => {
+  heldBy();
+  const sibling = await standingIn(SILENT);
+  try {
+    assert.deepEqual(workingHere(OURS, SILENT, HOST), [], "no declaration, so nothing to find");
+    const took = await ran(["claim", "ISS-1872"], SILENT);
+    assert.equal(took.status, 0, `${took.stdout}${took.stderr}`);
+    assert.match(took.stdout, /renewed: session iss-1872-a4e81e39/u,
+      "the claim a declared tree would refuse, taken where the key is absent");
+  } finally {
+    sibling.kill();
+  }
+});
+
+/* Criterion 7: the ship runs the gate itself, and the gate makes claims. So declared work this call
+   descends from is this call's own however well it matches, and the control below is the same
+   command standing beside the call rather than above it. */
+test("declared work this call descends from is its own, and the same command beside it is not", async () => {
+  heldBy();
+  const asked = ["claim", "ISS-1872"];
+  const under = await new Promise((done, broke) => {
+    const one = spawn(process.execPath, ["-e",
+      'const { spawnSync } = require("node:child_process");'
+      + 'const ran = spawnSync(process.argv[1], JSON.parse(process.argv[2]), { encoding: "utf8" });'
+      + "process.stdout.write(JSON.stringify({ status: ran.status, stdout: ran.stdout, stderr: ran.stderr }));",
+      FORGE, JSON.stringify(asked), MARK],
+    { cwd: TREE, stdio: ["ignore", "pipe", "ignore"],
+      env: { ...tracker.env, FORGE_SESSION_ID: OURS, CLAUDE_PID: String(HOST) } });
+    let said = "";
+    one.stdout.on("data", (chunk) => { said += chunk; });
+    one.on("error", broke);
+    one.on("exit", () => done(JSON.parse(said || "{}")));
+  });
+  assert.equal(under.status, 0, `a run's own ship is not a sibling of it:\n${under.stdout}${under.stderr}`);
+  assert.match(under.stdout, /renewed: session iss-1872-a4e81e39/u, "so the claim under it is taken");
+
+  heldBy();
+  const beside = await standingIn(TREE);
+  try {
+    const refused = await ran(asked);
+    assert.equal(refused.status, 1, `the same command, standing beside the call:\n${refused.stdout}`);
+    assert.match(refused.stderr, new RegExp(`pid ${beside.pid}`, "u"),
+      "which is what says the exclusion above is about ancestry and not about the declaration missing");
+  } finally {
+    beside.kill();
   }
 });

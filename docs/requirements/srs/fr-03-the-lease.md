@@ -90,7 +90,7 @@ next write and the next claim take it where an empty one is refused.
 
 ### UC-03-2 — Refuse a second run
 
-Rev: 4 · Actors: agent · Enforces: BR-01, BR-05
+Rev: 5 · Actors: agent · Enforces: BR-01, BR-05
 
 A lease inside its duration held by another run refuses the claim and every payload write, and the
 refusal names the holder and the renew time — the two facts a person needs to decide whether to
@@ -114,6 +114,14 @@ call that cannot place its own work against such a process reads nothing rather 
 may be its own — which leaves an empty reading meaning either an idle tree or a reading that did not
 run, and proving neither that no run holds the lease.
 
+Which of a tree's processes is a run working there is the project's to declare, and a project that
+declares nothing is answered with silence. No sentence naming the command holds in the next
+repository, and reading every process instead refuses a run's own gate — the method starting one
+before the claim is taken — so the refusal would fire on the ordinary case and be cleared by an
+assertion typed at nothing. The declaration therefore names what would cost something to run twice,
+never the gate, and work the claiming call descends from is its own however well it matches, a gate
+a release started standing under that release.
+
 - **AC-03-2-1** · Rev: 3 · Proof: plugin/test/flow/lease.test.mjs "every refusal names the holder, its renew time and the one command that clears it"
   IF a lease inside its duration is held by another run, and the record does not show that run gone,
   and that run is not handing the issue to this caller, THEN the CLI SHALL refuse and SHALL name that
@@ -133,14 +141,15 @@ run, and proving neither that no run holds the lease.
   past the statuses a run is dispatched at, or a landing checkpoint on it names a turn, or the
   holder is itself a run the issue was dispatched to, THEN the CLI SHALL refuse the claim as it
   refuses any second run's.
-- **AC-03-2-5** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "a second claim from one worktree is refused while work this call did not start stands in that tree"
+- **AC-03-2-5** · Rev: 2 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "a second claim from one worktree is refused while work this call did not start stands in that tree"
   IF a claim is made on a lease whose holder is the id the tree this call stands in mints, and a
-  process is standing in that tree which is neither this call, nor above it, nor started by it, THEN
-  the CLI SHALL refuse the claim and SHALL name that process, the tree it is standing in, the file
-  that mints the id and the assertion that takes the lease anyway.
-- **AC-03-2-6** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "the same claim is granted at once where nothing is standing in that tree"
-  WHERE no such process is standing in that tree, the CLI SHALL grant that claim with no assertion
-  asked for and no wait.
+  process running what that project declares a run's own work is standing in that tree which is
+  neither this call, nor above it, nor started by it, THEN the CLI SHALL refuse the claim and SHALL
+  name that process, the tree it is standing in, the file that mints the id and the assertion that
+  takes the lease anyway.
+- **AC-03-2-6** · Rev: 2 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "work this project does not declare leaves the claim exactly as it was"
+  WHERE no process the project declares is standing in that tree, the CLI SHALL grant that claim with
+  no assertion asked for and no wait, whatever else is standing there.
 - **AC-03-2-7** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "the flag takes the lease while that work is still standing, and the history keeps no row for it"
   IF the caller asserts that no run is working under that lease THEN the CLI SHALL grant the claim
   while that process is still standing and SHALL append nothing to the claim history.
@@ -153,6 +162,15 @@ run, and proving neither that no run holds the lease.
 - **AC-03-2-10** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "the reading is of work outside this call's own, and of nothing else"
   WHERE this call cannot place its own work against a host process, the CLI SHALL read nothing from
   that tree and SHALL grant the claim as it does where the tree is idle.
+- **AC-03-2-11** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "a project that declares nothing reads no process at all, whatever is standing in its tree"
+  WHERE the project declares no work of its own, the CLI SHALL read no process in that tree and SHALL
+  decide the lease by the record alone.
+- **AC-03-2-12** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "declared work this call descends from is its own, and the same command beside it is not"
+  WHERE declared work is in the ancestry of the call making the claim, the CLI SHALL read it as that
+  call's own and SHALL grant the claim.
+- **AC-03-2-13** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "what a project calls a run's own work is printed with its source, and an unreadable pattern is said rather than dropped"
+  WHEN the declaration is reported THEN the CLI SHALL distinguish a project that declared nothing from
+  one whose declaration cannot be read, and SHALL say what the second loses.
 
 ### UC-03-3 — Reclaim what a dead run left
 

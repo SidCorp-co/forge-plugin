@@ -465,6 +465,23 @@ test("the mode the report prints is the mode last written, either way", () => {
     "and self is written rather than cleared, so the report never has to guess which way a silence means");
 });
 
+/* Three answers, because an absent key and a pattern nothing can compile decide the same claim and
+   mean opposite things: one project chose silence, the other wrote a declaration that does not read.
+   Only this surface says so, the claim printing what it found and never what it could not read. */
+test("what a project calls a run's own work is printed with its source, and an unreadable pattern is said rather than dropped", () => {
+  const declared = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo", lease: { workingRe: "run\\.mjs ship" } }) });
+  assert.match(declared, /\[ {2}ok {2}\] lease\.workingRe\s+run\\\.mjs ship\b[^\n]*← \.forge\.json/u, declared);
+
+  const silent = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo" }) });
+  assert.match(silent, /\[ {2}ok {2}\] lease\.workingRe\s+unset, so no process in a tree reads as a run working there/u,
+    "the project that has not chosen is told it has not, rather than shown a default it never set");
+
+  const broken = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo", lease: { workingRe: "ship(" } }) });
+  assert.match(broken, /\[ miss \] lease\.workingRe\s+ship\( is no regular expression/u, broken);
+  assert.match(broken, /a claim over a live sibling is taken/u,
+    "and what the project loses by it, which is the whole reason the row is not silence");
+});
+
 /* The project's, so the report reads it out of `.forge.json` and the account's own file has none of
    it; and no flag writes it, so a value the key cannot use is met there, not at a write (ISS-1157). */
 const withRuns = (runs) => report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo", ...runs }) });
