@@ -96,3 +96,9 @@ refusal is asked before the narrowing and against the set the caller stood on, s
 to name files they can act on. The effort level is not a symptom of any of this: a recheck steps one
 below the base whatever the diff's size, so what moved with the range was the call budget, which
 rises with every clipped file.
+
+**A route that does not reach is withheld.** A recheck answers the last answered consult sharing any
+of its files, so the one route to a finding the resolved set excluded — that consult's own recorded
+set — can land the selection on a newer consult sharing one of those files, which would run and
+verify something else. Where it would, the refusal names the disposition written by hand instead,
+which is the form the commit gate names for the same finding.

@@ -56,6 +56,7 @@ import {
 import {
   numbered,
   historyFor,
+  recheckMissed,
   recheckOwed,
   recheckPlan,
   rulingsUnread,
@@ -297,6 +298,9 @@ const consult = async (given) => {
        files they can act on, and a path they typed is their range and is never narrowed (ISS-272). */
     const nothing = recheckOwed(plan, rels);
     if (nothing) fail(`codex: ${nothing}`);
+    /* The set holds some of that consult's findings and not others: this round answers only part. */
+    const missed = recheckMissed(plan);
+    if (missed) for (const line of missed.split("\n")) console.error(`codex: ${line}`);
     risks.push(...plan.risks);
     const range = named.length ? null : recheckRange(plan, rels);
     if (range) {

@@ -248,6 +248,24 @@ export const outcomeOf = (held, id) => {
   return held.note ?? null;
 };
 
+/* What the resolved set kept out of the judged consult's findings, or null. The gate filters findings
+   by no set, so a set narrower than that consult's leaves the two disagreeing over whether one exists
+   (ISS-1873). `route` is null where the consult's own set would select a newer one. */
+const leftOutOf = (entries, root, judged, reply, kept, ruled) => {
+  const held = new Set(kept.map((one) => one.id));
+  const out = numbered(reply).filter((one) => !held.has(one.id));
+  if (!out.length) return null;
+  const files = judged.files ?? [];
+  const lands = files.length ? judgedBy(entries, root, files).at(-1) : null;
+  return {
+    of: judged.id ?? judged.at,
+    made: out.map((one) => `${one.id} on ${ANCHOR.exec(one.head)?.[1] ?? "a file it did not name"}`),
+    owed: undecidedIn(out.map((one) => one.id), ruled),
+    route: lands === judged ? files : null,
+    instead: lands === judged ? null : lands?.id ?? lands?.at ?? null,
+  };
+};
+
 /* A follow-up round rules on the last consult's findings about these files — another file's would
    clear this one unread. Six open rounds each found a narrower nit; asked to confirm, one converges. */
 export const recheckPlan = (entries, root, rels) => {
@@ -256,10 +274,12 @@ export const recheckPlan = (entries, root, rels) => {
   /* The other half of what a request carries out of stored entries; `historyFor` above has the seat's reason, and `judged` stays as stored because its coverage fields are read here and never sent. */
   const ruled = verdictsBy(entries).get(judged.id ?? judged.at);
   const held = ruled ? maskedDeep(ruled) : null;
-  const findings = numbered(masked(judged.reply), rels);
+  const reply = masked(judged.reply);
+  const findings = numbered(reply, rels);
   return {
     judged,
     ids: findings.map((one) => one.id),
+    outside: leftOutOf(entries, root, judged, reply, findings, ruled),
     /* The defect, with the legend: "re-verify" drew CONFIRMED for a fix that held, then REFUTED. */
     risks: findings.map((one) => {
       const did = outcomeOf(held, one.id);
@@ -286,6 +306,24 @@ const listed = (rels) => {
   return rels.length > SHOWN ? `${shown} and ${rels.length - SHOWN} more` : shown;
 };
 
+const some = (items) => (items.length > SHOWN
+  ? `${items.slice(0, SHOWN).join(", ")} and ${items.length - SHOWN} more`
+  : items.join(", "));
+
+const missedRoute = (out) => (out.route
+  ? `Do this: \`echo "<what you were doing>" | forge codex consult --recheck ${out.route.map(pathed).join(" ")}\``
+    + ` — the set ${out.of} was given, which is where its findings are anchored.`
+  : `A recheck over that set lands on consult ${out.instead ?? "another"} instead, which is not where`
+    + ` this finding was made, so rule it where the gate names: \`${verdictForm(out.of)}\`.`);
+
+/** What a recheck that does go ahead still does not reach, or null where no disposition is owed. */
+export const recheckMissed = (plan) => {
+  const out = plan?.outside;
+  if (!out?.owed.length) return null;
+  return `consult ${out.of} also made ${some(out.made)}, which this set does not hold, so this recheck`
+    + ` does not reach ${some(out.owed)}.\n${missedRoute(out)}`;
+};
+
 /** Why a recheck has nothing to verify and which pass does earn the review, or null where it has.
  *  Three unlike situations shared one sentence naming no route, so it travelled by hand (ISS-51). */
 export const recheckOwed = (plan, rels) => {
@@ -296,6 +334,13 @@ export const recheckOwed = (plan, rels) => {
       + `${read} — the read of the whole set is the pass a review is earned by, and a recheck follows one of its findings.`;
   }
   const of = plan.judged.id ?? plan.judged.at;
+  /* Ahead of the coverage sentences, each of which claims the CONSULT found nothing (ISS-1873). */
+  if (plan.outside) {
+    return `consult ${of} made ${some(plan.outside.made)}, and this set holds no such file, so this`
+      + ` recheck has nothing of its findings to verify.${plan.outside.owed.length
+        ? ` Nothing says what became of ${some(plan.outside.owed)}, which is what a commit gate refuses for.`
+        : " Every one of them already carries your ruling."}\n${missedRoute(plan.outside)}`;
+  }
   // `plan.judged` is the last consult sharing ANY of these files, which is why a shortfall is likely.
   const { unread, part, whole } = shortOfWhole(plan.judged, rels);
   if (whole) {

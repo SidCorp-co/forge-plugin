@@ -210,6 +210,17 @@ outcome; leaving it unruled makes "resolved or still open" a guess.
   ruled on each such finding beside the disposition, and SHALL say so in the caller's own output
   naming the command that settles it, because a collision reachable only by reading the log
   afterwards is one nobody reads.
+- **AC-06-5-8** · Rev: 1 · Proof: plugin/test/codex/log/recheck.test.mjs "a set that excluded the judged consult's findings says so and names what reaches them"
+  WHERE the file set a re-verification resolved to excludes a finding of the review it answers, the
+  CLI SHALL name that review, the identifier it gave that finding and the file the finding is
+  anchored on, rather than report that the review found nothing, because the gate that refuses a
+  commit filters findings by no file set and the two surfaces would otherwise disagree over whether
+  the finding exists.
+- **AC-06-5-9** · Rev: 1 · Proof: plugin/test/codex/log/recheck.test.mjs "a set that excluded the judged consult's findings says so and names what reaches them"
+  WHEN the CLI names the command that reaches such a finding THEN the file set that command carries
+  SHALL resolve back to the review the finding was made by, and WHERE no such set does the CLI SHALL
+  name the form that records the disposition directly instead, because a command that runs and
+  verifies a different review is worse than no route at all.
 
 ### UC-06-6 — Compare the log's last hundred consults with the hundred before them
 

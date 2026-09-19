@@ -2113,6 +2113,14 @@
       "rev": 1,
       "digest": "7e90b197c7a46177c445fe0416345d3a2a7eaf8a9aa599348b1bd7d09c44749c"
     },
+    "AC-06-5-8": {
+      "rev": 1,
+      "digest": "12e759300f141cf210d339823949ba006218a15d325502b97a22aced7aa942d4"
+    },
+    "AC-06-5-9": {
+      "rev": 1,
+      "digest": "aad40c73f50dd26c4d2f149bb4a33513c45433d0b803048a701974c2f96df4d5"
+    },
     "UC-06-6": {
       "rev": 1,
       "digest": "14d9aca978d0ba8c6ac8c5b7e38c76d16f5df944c0adfa038553fd06a4c6e111"
