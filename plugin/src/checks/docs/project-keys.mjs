@@ -98,9 +98,34 @@ const WHERE = "README.md's Configuration section";
 const ADD = "Add it to the JSON example under **Project** there, with what it decides and what its"
   + " absence means.";
 
-/** Every way the two sides can disagree, each naming the side to change. An empty walk is one of
+const WRITTEN = "the table `forge doctor --set` writes this file through,"
+  + " `PROJECT_KEYS` in plugin/src/tools/project-file.mjs";
+
+/* The third side. A key read and not in that table is one the report names and no verb can set, which
+   is the hand edit this whole route exists to end; a key in it and read nowhere writes a line into
+   somebody's file that nothing will ever look at. */
+const writableProblems = (read, written) => {
+  const out = [];
+  for (const key of read.keys) {
+    if (!written.includes(key)) {
+      out.push(`\`${key}\` is a project-file key this plugin reads and ${WRITTEN} does not name, so`
+        + " nothing can write it and the report that prints it offers no route. Give it a row there,"
+        + " with the paths under it a value may be written to and the reader that judges one");
+    }
+  }
+  for (const key of written) {
+    if (!read.keys.includes(key)) {
+      out.push(`${WRITTEN} names \`${key}\` and this plugin reads no such key, so a value written`
+        + " under it would be a line in somebody's project file that nothing ever looks at. Take the"
+        + " row out, or name it where the code reads it");
+    }
+  }
+  return out;
+};
+
+/** Every way the three sides can disagree, each naming the side to change. An empty walk is one of
  *  them: a check whose patterns went stale reports a clean repository and reads exactly like one. */
-export const projectKeyProblems = ({ read, documented }) => {
+export const projectKeyProblems = ({ read, documented, written }) => {
   const out = [];
   if (!documented) {
     return [`${WHERE} carries no **Project** heading with a json example under it, so the keys this`
@@ -112,7 +137,7 @@ export const projectKeyProblems = ({ read, documented }) => {
       + " file(s), so it is reporting a clean repository off an empty walk. Its patterns name a"
       + " route this code no longer takes — fix them before trusting this check again");
   }
-  out.push(...read.unexplained);
+  out.push(...read.unexplained, ...writableProblems(read, written ?? []));
   const named = [...documented.shown, ...documented.retired];
   for (const key of read.keys) {
     if (!named.includes(key)) {

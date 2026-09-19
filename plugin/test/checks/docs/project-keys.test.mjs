@@ -1,12 +1,14 @@
-/* The keys of the project file and the section of README that claims to list them, held equal. Each
-   case below fails without the rule: the repository one fires on a key nobody documented, and the
-   four after it on the ways this walk could go quiet instead of red. */
+/* The keys of the project file, the section of README that claims to list them, and the table the
+   writing verb routes them through, held equal. Each case below fails without the rule: the repository
+   one fires on a key nobody documented or nothing can write, and the rest on the ways this walk could
+   go quiet instead of red. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { keysDocumented, keysRead, projectKeyProblems } from "../../../src/checks/docs/project-keys.mjs";
+import { PROJECT_KEY_NAMES } from "../../../src/tools/project-file.mjs";
 
 const ROOT = new URL("../../../..", import.meta.url).pathname;
 
@@ -32,7 +34,7 @@ const sources = () => {
 
 const readme = () => readFileSync(join(ROOT, "README.md"), "utf8");
 
-test("every project key this plugin reads is one README's Configuration section names", () => {
+test("every project key this plugin reads is one README names and one --set can write", () => {
   const read = keysRead(sources());
   const documented = keysDocumented(readme());
   /* The walk's own reach, before anything is asserted about the tree: a selector that matched no
@@ -42,7 +44,21 @@ test("every project key this plugin reads is one README's Configuration section 
   assert.ok(read.keys.includes("slug"), `found ${read.keys.join(", ")}`);
   assert.ok(read.keys.length > 10, `found ${read.keys.length} key(s)`);
   assert.notEqual(documented, null, "README.md's Configuration section was not found");
-  assert.deepEqual(projectKeyProblems({ read, documented }), []);
+  assert.deepEqual(projectKeyProblems({ read, documented, written: PROJECT_KEY_NAMES }), []);
+});
+
+test("a key this plugin reads and no --set route writes is refused, and one written and read nowhere too", () => {
+  const read = keysRead([{ path: "a.mjs", text: "forgeJson().parsed?.runs; forgeJson().parsed?.deps;" }]);
+  const documented = named(["runs", "deps"]);
+  assert.deepEqual(projectKeyProblems({ read, documented, written: ["deps", "runs"] }), []);
+  const unwritable = projectKeyProblems({ read, documented, written: ["runs"] });
+  assert.equal(unwritable.length, 1);
+  assert.match(unwritable[0], /`deps` is a project-file key this plugin reads and the table/u);
+  assert.match(unwritable[0], /nothing can write it/u);
+  const unread = projectKeyProblems({ read, documented, written: ["deps", "runs", "wokers"] });
+  assert.equal(unread.length, 1);
+  assert.match(unread[0], /names `wokers` and this plugin reads no such key/u);
+  assert.match(unread[0], /a line in somebody's project file that nothing ever looks at/u);
 });
 
 const EXAMPLE = `## Configuration
@@ -68,9 +84,9 @@ const named = (shown, retired = []) => ({ shown, retired });
 
 test("a key the code reads and that section names nowhere is refused", () => {
   const read = keysRead([{ path: "a.mjs", text: "forgeJson().parsed?.runs; forgeJson().parsed?.deps;" }]);
-  const problems = projectKeyProblems({ read, documented: named(["runs", "deps"]) });
+  const problems = projectKeyProblems({ read, documented: named(["runs", "deps"]), written: read.keys });
   assert.deepEqual(problems, []);
-  const short = projectKeyProblems({ read, documented: named(["runs"]) });
+  const short = projectKeyProblems({ read, documented: named(["runs"]), written: read.keys });
   assert.equal(short.length, 1);
   assert.match(short[0], /`deps` is a project-file key this plugin reads/u);
   assert.match(short[0], /JSON example under \*\*Project\*\*/u);
@@ -78,15 +94,15 @@ test("a key the code reads and that section names nowhere is refused", () => {
 
 test("a key the example shows and nothing reads is refused", () => {
   const read = keysRead([{ path: "a.mjs", text: "forgeJson().parsed?.runs;" }]);
-  const problems = projectKeyProblems({ read, documented: named(["runs", "wokers"]) });
+  const problems = projectKeyProblems({ read, documented: named(["runs", "wokers"]), written: read.keys });
   assert.equal(problems.length, 1);
   assert.match(problems[0], /shows `wokers` in its example and this plugin reads no such key/u);
 });
 
 test("a key the section calls retired is named, and one nothing reads at all is refused", () => {
   const read = keysRead([{ path: "a.mjs", text: 'written("method")' }]);
-  assert.deepEqual(projectKeyProblems({ read, documented: named([], ["method"]) }), []);
-  const problems = projectKeyProblems({ read, documented: named(["method"], ["flow"]) });
+  assert.deepEqual(projectKeyProblems({ read, documented: named([], ["method"]), written: read.keys }), []);
+  const problems = projectKeyProblems({ read, documented: named(["method"], ["flow"]), written: read.keys });
   assert.equal(problems.length, 1);
   assert.match(problems[0], /calls `flow` retired and this plugin reads it nowhere at all/u);
 });
@@ -136,6 +152,7 @@ test("a walk that matched nothing is a failure and not a clean repository", () =
   const problems = projectKeyProblems({
     read: { keys: [], unexplained: [], files: 214 },
     documented: named(["runs"]),
+    written: [],
   });
   assert.match(problems[0], /matched no project key in 214 source file\(s\)/u);
   assert.match(problems[0], /reporting a clean repository off an empty walk/u);
@@ -143,6 +160,6 @@ test("a walk that matched nothing is a failure and not a clean repository", () =
 
 test("a section with no example is reported rather than read as a document naming no keys", () => {
   const read = keysRead([{ path: "a.mjs", text: "forgeJson().parsed?.runs;" }]);
-  assert.match(projectKeyProblems({ read, documented: null }).join("\n"),
+  assert.match(projectKeyProblems({ read, documented: null, written: read.keys }).join("\n"),
     /carries no \*\*Project\*\* heading with a json example under it/u);
 });

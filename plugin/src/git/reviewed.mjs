@@ -70,14 +70,13 @@ const pathsRefusal = (given) => {
     + `other repository's.`;
 };
 
-/** What this project file gets wrong here, or null. A report prints it as a finding and carries on
- *  with its other rows; the two readers below exit on the same text, a release step having nothing
- *  to carry on to. Present and malformed never falls back: the three above are this repository's
- *  own, so counting them elsewhere would look exactly like the right answer. */
-export const reviewRefusal = () => {
-  const given = projectReview();
-  return linesRefusal(given.lines) || pathsRefusal(given.paths) || null;
-};
+/** What this project file gets wrong here, or null. A report prints it as a finding and carries on with
+ *  its other rows; the two readers below exit on the same text, a release step having nothing to carry
+ *  on to. Present and malformed never falls back: the three above are this repository's own. */
+export const reviewRefusalOf = (given) =>
+  linesRefusal(given?.lines) || pathsRefusal(given?.paths) || null;
+
+export const reviewRefusal = () => reviewRefusalOf(projectReview());
 
 export const reviewLines = () => {
   const given = projectReview().lines;

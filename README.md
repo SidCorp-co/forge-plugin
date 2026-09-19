@@ -141,7 +141,13 @@ by `forge doctor` and read as no declaration at all.
 The project **id** is never configured — it is looked up from the slug at runtime.
 
 `forge doctor` prints every one of these, says which source answered, and reaches the endpoint.
-Run it first when anything refuses.
+Run it first when anything refuses. **It also writes them**, one at a time and into this same file:
+`forge doctor --set review.paths=plugin/src,docs`, `forge doctor --set codex.checkMs=600000`,
+`forge doctor --set jobs.ba.skills=forge`. The value is judged by the reader that reads that key
+before anything is written, only the key named is touched, and `forge doctor --set` with a key this
+plugin reads nowhere lists what the file holds. `flow` is `forge doctor --flow <slug>`'s, which writes
+it with everything that flow asks for. Why the keys are declared rather than discovered and what a
+write may not do to the rest of the file: [the project's own file](docs/cli/the-project-file.md).
 
 ### What else lives in `~/.config/forge/`
 

@@ -85,8 +85,8 @@ schema *strips a key it does not declare*, silently, on the way in — so a writ
 kept nothing would print as a setting that took. The read-back is what turns that into a refusal
 naming the key, which is the only place an operator can learn it.
 
-A bare key belongs to whichever resource already answered with it, and a key neither holds is refused
-with both key sets rather than guessed at: a typo landing in the facts as a new guide is a write
+A bare key belongs to whichever resource already answered with it, and a key none holds is refused
+with every key set rather than guessed at: a typo landing in the facts as a new guide is a write
 nobody asked for and there is no delete for it. `pipeline.<k>` and `fact.<k>` name one outright, which
 is how a key the project has not got yet is created.
 
@@ -101,6 +101,10 @@ project all resolve, where a resolver probe would call two of them broken. No ma
 declared, and a Plug'n'Play loader each earn no row, the last because an absence below `node_modules`
 proves nothing where nothing resolves through it. And the row names the command rather than running
 it: an install is a write, and this verb makes none.
+
+The third resource `--set` writes is this checkout's own file, whose keys are declared rather than
+discovered, whose write is one key's span in that file's text, and whose value is judged by the reader
+that already reads it: [the project's own file](the-project-file.md).
 
 The two lines this report writes that Phase 0 reads before it plans a landing, and whose answer is
 the tracker's record rather than any checkout's: [the landing lines](the-landing-lines.md).

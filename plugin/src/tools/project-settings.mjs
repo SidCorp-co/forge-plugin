@@ -9,6 +9,10 @@ import { FROM_PROJECT, Refusal, drainScope, fail, projectFilePath, projectSlug }
   from "../resolve/settings.mjs";
 import { pairOf } from "../resolve/flags.mjs";
 import { WITH_BODY, WRITES } from "./doctor-keys.mjs";
+import {
+  PROJECT_KEYS, readAt, readsProjectKey, settingTo, spelled, withKey, withoutKey, withPath,
+  writableKey, writablePaths,
+} from "./project-file.mjs";
 import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../guides/flow.mjs";
 import { flowJudgeConflict, flowPolicyConflict } from "../flow/earned.mjs";
 import { scoped, write } from "../tracker/rest.mjs";
@@ -60,9 +64,18 @@ const RESOURCES = {
     typed: false,
     shown: factShown,
   },
+  /* This checkout's own file, its value printed as written: "3 entries" is what a read back cannot say. */
+  project: {
+    said: FROM_PROJECT,
+    local: true,
+    shown: (value) => JSON.stringify(value ?? null),
+  },
 };
 
 const NAMES = Object.keys(RESOURCES);
+const LOCAL = "project";
+/* The two the tracker answers for: `forge doctor` already reports the third key by key. */
+const TRACKED = NAMES.filter((name) => !RESOURCES[name].local);
 
 /* A pipeline key is typed and a fact is prose, so the coercion is the resource's: `enabled=false`
    arriving as the string "false" is a value the tracker's schema drops in silence. */
@@ -75,12 +88,12 @@ const valueFor = (resource, given) => {
 /** Every resource at once, and soft: one a credential cannot reach is a line saying so, never an
  *  empty key set that reads as a project having configured nothing. */
 const readSettings = async () =>
-  Object.fromEntries(await Promise.all(NAMES.map(async (name) =>
+  Object.fromEntries(await Promise.all(TRACKED.map(async (name) =>
     [name, await scoped("forge_config", { action: RESOURCES[name].read }, true)])));
 
 const settingRows = (read) => {
   const out = [];
-  for (const name of NAMES) {
+  for (const name of TRACKED) {
     const resource = RESOURCES[name];
     const answer = read[name];
     if (answer?.refused) {
@@ -104,19 +117,37 @@ const settingRows = (read) => {
 const SET_USAGE = "forge doctor --set <key>=<value>";
 
 const keySets = (read) =>
-  NAMES.map((name) =>
-    `${name}: ${Object.keys(RESOURCES[name].keysIn(read[name])).sort().join(", ") || "nothing set"}`);
+  NAMES.map((name) => `${name}: ${name === LOCAL
+    ? writablePaths().join(", ")
+    : Object.keys(RESOURCES[name].keysIn(read[name])).sort().join(", ") || "nothing set"}`);
 
 const ambiguous = (given, both) =>
   `--set: \`${given}\` is a key ${both.join(" and ")} both hold, so a bare name says nothing about `
   + `which one to write and nothing was sent. Name the resource: `
   + both.map((name) => `--set ${name}.${given}=<value>`).join(" or ");
 
+/* No prefix for the project's row: a route offered for a key nothing reads recommends a second refusal. */
 const unknownKey = (given, read) =>
-  `--set: \`${given}\` is no key either of this project's configuration resources holds, so nothing `
-  + `was sent.\n  ${keySets(read).join("\n  ")}\n`
-  + "Name the resource to write a key neither holds yet: "
-  + NAMES.map((name) => `--set ${name}.${given}=<value>`).join(" or ");
+  `--set: \`${given}\` is no key any of this project's configuration resources holds, so nothing was `
+  + `sent.\n  ${keySets(read).join("\n  ")}\n`
+  + "Name the resource to write a key the tracker does not hold yet: "
+  + TRACKED.map((name) => `--set ${name}.${given}=<value>`).join(" or ");
+
+/* What this plugin declares it reads out of the project file is known before any call goes out, so a
+   bare key of that set is that file's and the tracker is not read for it, which is also the only way
+   `slug` is settable in a checkout that names no project yet. docs/cli/doctor.md. */
+const projectRoute = (key) => {
+  const declared = writableKey(key);
+  if (!declared) {
+    fail(`--set: \`${key}\` is no key this plugin reads out of ${FROM_PROJECT}, so a value written `
+      + `under it would be a line in that file nothing reads. Nothing was written. That file holds:`
+      + `\n  ${writablePaths().join(", ")}`);
+  }
+  if (declared.routed) {
+    fail(`--set: \`${key}\` is written by ${declared.routed}. Nothing was written.`);
+  }
+  return { name: LOCAL, key, ...declared };
+};
 
 /* A prefixed key names its resource outright and costs no read — the only way to write a key the
    project does not hold yet, and the only way to write one both hold, a bare key both answer with
@@ -124,14 +155,16 @@ const unknownKey = (given, read) =>
 const routeFor = async (given) => {
   const at = given.indexOf(".");
   const head = at > 0 ? given.slice(0, at) : null;
+  if (head === LOCAL) return projectRoute(given.slice(at + 1));
   if (head && NAMES.includes(head)) return { name: head, key: given.slice(at + 1) };
+  if (readsProjectKey(given)) return projectRoute(given);
   const read = await readSettings();
   const refused = NAMES.filter((name) => read[name]?.refused);
   if (refused.length) {
     fail(`--set: ${refused.map((name) => RESOURCES[name].said).join(" and ")} would not answer, and a `
       + `key is routed by which resource holds it, so nothing was sent: ${read[refused[0]].refused}`);
   }
-  const found = NAMES.filter((name) => Object.hasOwn(RESOURCES[name].keysIn(read[name]), given));
+  const found = TRACKED.filter((name) => Object.hasOwn(RESOURCES[name].keysIn(read[name]), given));
   if (found.length > 1) fail(ambiguous(given, found));
   if (!found.length) fail(unknownKey(given, read));
   return { name: found[0], key: given };
@@ -222,12 +255,70 @@ const sent = async (resource, route, value, file) => {
   return said;
 };
 
+const projectFile = (key) => {
+  const named = projectFilePath();
+  if (!named) {
+    fail(`--set: \`${key}\` is a key of ${FROM_PROJECT} and no such file was found on the way up from `
+      + "here, so nothing was written. Run this from a checkout that has one.");
+  }
+  let path = named;
+  try {
+    path = realpathSync(named);
+    const held = readFileSync(path, "utf8");
+    const parsed = JSON.parse(held);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      fail(`--set: ${path} holds ${Array.isArray(parsed) ? "a list" : JSON.stringify(parsed)} where a `
+        + `JSON object with this project's keys in it belongs, and \`${key}\` is a key of that object. `
+        + "Nothing was written.");
+    }
+    return { path, held, parsed };
+  } catch (error) {
+    if (error instanceof Refusal) throw error;
+    return fail(`--set: ${path} is the file \`${key}\` is a key of and this could not read it as JSON, `
+      + `so nothing was written: ${error.message}`);
+  }
+};
+
+/** The one key written into the file's own text and read back off it, judged between the two by the
+ *  reader that already reads it: what this took and that reader refuses would fail later instead. */
+const projectWrite = (route, value) => {
+  const { path, held, parsed } = projectFile(route.key);
+  const would = settingTo(parsed, route.segments, value);
+  if (would.blocked) {
+    fail(`--set: \`${route.key}\` goes inside \`${would.blocked}\`, which this file holds as `
+      + `${JSON.stringify(would.holds)} rather than as a table. Nothing was written: ${path}`);
+  }
+  const refusal = PROJECT_KEYS[route.top].judge(would.parsed[route.top]);
+  if (refusal) fail(`--set: ${refusal} Nothing was written: ${path} is as it was.`);
+  const text = withPath(held, route.segments, value);
+  if (text === null) {
+    fail(`--set: ${path} parses as JSON and this could not find where \`${route.key}\` sits in its `
+      + "text, so writing it would mean re-serializing the whole document and reflowing every key "
+      + `beside it. Nothing was written — set this one by hand: ${READS_IT} prints what it holds.`);
+  }
+  try {
+    wroteWhole(path, text);
+  } catch (error) {
+    fail(`--set: ${path} is the file \`${route.key}\` is a key of and this could not write it, so `
+      + `nothing was written: ${error.message}`);
+  }
+  /* Off the disk, never off the text this call composed: a document declaring one key twice parses to
+     the last of them, so an edit to the first would report set a value nothing reads. */
+  const back = projectFile(route.key);
+  const kept = readAt(back.parsed, route.segments);
+  if (JSON.stringify(kept) !== JSON.stringify(value)) {
+    wroteWhole(path, held);
+    fail(`--set: ${route.key} was written as ${JSON.stringify(value)} and ${path} reads back `
+      + `${JSON.stringify(kept ?? null)}, so that file declares the key somewhere this write did not `
+      + `reach. It is back as it was — read what it holds and set that key by hand: ${READS_IT}`);
+  }
+  return [`${route.name}.${route.key}: ${RESOURCES[LOCAL].shown(kept)}  ← ${path}`];
+};
+
 /** Read back off the resource's own route before it is reported set: this tracker's pipeline schema
  *  drops a key it does not declare, so a write that answered 200 and kept nothing would print as a
  *  setting that took. */
 export const writeSetting = async (given) => {
-  /* Before the read and before the write: a checkout naming no project has nowhere to send this. */
-  projectSlug();
   /* The split is the shared one, this verb adding only where to look the pair up (ISS-1449). */
   const { key: asked, value: raw } = pairOf(given, "--set", {
     refusing: (said) => fail(`${said} Nothing was sent: ${SET_USAGE}`),
@@ -235,6 +326,9 @@ export const writeSetting = async (given) => {
   const route = await routeFor(asked);
   if (!route.key) fail(`--set: \`${asked}\` names the resource and no key of it. ${SET_USAGE}`);
   const resource = RESOURCES[route.name];
+  if (resource.local) return projectWrite(route, spelled(route.takes, raw));
+  /* After the routing: the file above is the one resource that answers without a slug. */
+  projectSlug();
   const value = valueFor(resource, raw);
   const file = clearsDrain(route, value) ? drainFile() : null;
   await sent(resource, route, value, file);
@@ -253,104 +347,6 @@ export const writeSetting = async (given) => {
         + `read back is the tracker's own word and wrong where it is not: ${READS_IT}` : ""));
   }
   return [`${route.name}.${route.key}: ${shown(kept)}  ← ${resource.said}`, ...clearedDrain(file, kept)];
-};
-
-/* One top-level key set in the project file's own text rather than in a document re-serialized from it: that file is written by hand and holds its owner's line breaks, and a rewrite through JSON.stringify lands a diff nobody asked for in somebody else's review. The scan tracks strings and nesting, a key of the same name inside another object not being this key, and answers with no span where it cannot walk the text. */
-const SPACE = /\s/u;
-
-const pastSpace = (text, at) => {
-  let held = at;
-  while (held < text.length && SPACE.test(text[held])) held += 1;
-  return held;
-};
-
-const endOfString = (text, at) => {
-  let held = at + 1;
-  while (held < text.length) {
-    if (text[held] === "\\") held += 2;
-    else if (text[held] === `"`) return held + 1;
-    else held += 1;
-  }
-  return -1;
-};
-
-const endOfValue = (text, at) => {
-  if (text[at] === `"`) return endOfString(text, at);
-  if (!"{[".includes(text[at])) {
-    let held = at;
-    while (held < text.length && !`,}]\r\n\t `.includes(text[held])) held += 1;
-    return held;
-  }
-  let depth = 0;
-  let held = at;
-  while (held < text.length) {
-    if (text[held] === `"`) {
-      held = endOfString(text, held);
-      if (held < 0) return -1;
-      continue;
-    }
-    if ("{[".includes(text[held])) depth += 1;
-    else if ("}]".includes(text[held]) && --depth === 0) return held + 1;
-    held += 1;
-  }
-  return -1;
-};
-
-/** Where one top-level pair sits in the text, or null where the document has no such key: the
- *  quoted name, the value, and where the pair before it ended, which is what a removal cuts back to
- *  so the file is left without a hole where the key was. */
-const valueSpan = (text, key) => {
-  let at = pastSpace(text, 0);
-  if (text[at] !== "{") return null;
-  const open = at;
-  let previous = null;
-  at = pastSpace(text, at + 1);
-  while (text[at] === `"`) {
-    const nameEnd = endOfString(text, at);
-    if (nameEnd < 0) return null;
-    const colon = pastSpace(text, nameEnd);
-    if (text[colon] !== ":") return null;
-    const valueAt = pastSpace(text, colon + 1);
-    const valueEnd = endOfValue(text, valueAt);
-    if (valueEnd < 0) return null;
-    if (JSON.parse(text.slice(at, nameEnd)) === key) {
-      return { open, name: at, at: valueAt, end: valueEnd, previous };
-    }
-    previous = valueEnd;
-    at = pastSpace(text, valueEnd);
-    if (text[at] !== ",") return null;
-    at = pastSpace(text, at + 1);
-  }
-  return null;
-};
-
-/** The file's text with one top-level key set to a value, every other byte of it as it was. */
-export const withKey = (text, key, value) => {
-  const held = valueSpan(text, key);
-  const written = JSON.stringify(value);
-  if (held) return `${text.slice(0, held.at)}${written}${text.slice(held.end)}`;
-  const open = text.indexOf("{");
-  const pair = `${JSON.stringify(key)}: ${written}`;
-  const first = pastSpace(text, open + 1);
-  return text[first] === "}"
-    ? `${text.slice(0, open + 1)}\n  ${pair}\n${text.slice(first)}`
-    : `${text.slice(0, open + 1)}\n  ${pair},${text.slice(open + 1)}`;
-};
-
-const cutPair = (text, held) => {
-  const after = pastSpace(text, held.end);
-  if (held.previous !== null) return `${text.slice(0, held.previous)}${text.slice(held.end)}`;
-  if (text[after] === ",") return `${text.slice(0, held.name)}${text.slice(pastSpace(text, after + 1))}`;
-  return `${text.slice(0, held.open + 1)}${text.slice(after)}`;
-};
-
-/** The same walk the other way, and every declaration of that name rather than the first: a document
- *  declaring one key twice parses to the last of them, so removing one would report a key cleared
- *  that is still the value the resolver reads. */
-export const withoutKey = (text, key) => {
-  let held = text;
-  for (let span = valueSpan(held, key); span; span = valueSpan(held, key)) held = cutPair(held, span);
-  return held;
 };
 
 const FLOW_USAGE = "forge doctor --flow <slug>";

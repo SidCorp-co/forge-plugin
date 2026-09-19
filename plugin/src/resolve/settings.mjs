@@ -139,8 +139,7 @@ export const projectRecordPattern = () => sourced(FROM_PROJECT, forgeJson().pars
 /* No plugin default, and an unreadable pattern is no declaration: docs/two-levels.md, README. */
 const declaredWork = (at) => (at ? projectFileAt(at)?.lease?.workingRe : forgeJson().parsed?.lease?.workingRe);
 
-export const projectWorkPattern = (at = null) => {
-  const said = declaredWork(at);
+export const workPatternOf = (said) => {
   if (!said) return { value: null, from: null, unreadable: false };
   try {
     new RegExp(said, "u");
@@ -149,6 +148,8 @@ export const projectWorkPattern = (at = null) => {
   }
   return { value: said, from: FROM_PROJECT, unreadable: false };
 };
+
+export const projectWorkPattern = (at = null) => workPatternOf(declaredWork(at));
 export const projectCodex = () => forgeJson().parsed?.codex ?? {};
 
 /** Which CHECKOUT this process stands in — what a caller reading FILES off a root wants, and what
@@ -219,8 +220,7 @@ const jobShape = (given) => {
 
 /* A job is the project's because which jobs exist cannot be stated without naming the project, and
    `all` clears one rather than naming one. Which words are verbs is the verb table's. */
-export const declaredJobs = () => {
-  const given = forgeJson().parsed?.jobs;
+export const jobsOf = (given) => {
   if (!given || typeof given !== "object" || Array.isArray(given)) return { jobs: {}, from: null, problems: [] };
   const jobs = {};
   const problems = [];
@@ -239,13 +239,15 @@ export const declaredJobs = () => {
   return { jobs, from: FROM_PROJECT, problems };
 };
 
+export const declaredJobs = () => jobsOf(forgeJson().parsed?.jobs);
+
 export const projectReview = () => forgeJson().parsed?.review ?? {};
 export const projectStop = () => forgeJson().parsed?.stop ?? {};
 
 const PLUGIN_DEFAULT = "the plugin's default";
 
-/* One shape for every keyed choice, so doctor and the guides' conditions read them all the same way. */
-const chosen = (given, allowed, fallback, { source = FROM_PROJECT, absent = PLUGIN_DEFAULT } = {}) => {
+/** One shape for every keyed choice, so doctor and the guides' conditions read them all the same way, and the judgement with it: `unknown` is what this key will not take, which is what a write of that key refuses on rather than deciding for itself what the set is. */
+export const chosen = (given, allowed, fallback, { source = FROM_PROJECT, absent = PLUGIN_DEFAULT } = {}) => {
   if (given === undefined || given === null) return { value: fallback, from: absent };
   const held = String(given);
   return allowed.includes(held)
@@ -276,16 +278,18 @@ export const CHECK_MS_TAKES = "a whole number of milliseconds above 0";
 export const CHECK_MS_ABSENT = 300_000;
 
 /** The check a project declares for the reviewer, with the clock it runs under: the command, the budget in milliseconds and where each was read. Null where the project declares no command, that being the case the reviewer is given no such tool at all rather than one with a default. The type is asked before the value, `Number` reading `true` as 1 and `[600000]` as 600000, and what the key will not take is carried stringified rather than cast, `""` and `[]` casting to nothing at all and a row naming nothing being the row a project that set the key legally would read (BR-14). */
+/** The budget alone, the reader below reaching it only once a command is declared: a `checkMs` written on its own is judged by nobody until one is, so a write of that key asks this directly rather than through the reader that would pass over it. */
+export const checkMsOf = (given) => {
+  if (given === undefined || given === null) return { ms: CHECK_MS_ABSENT, msFrom: PLUGIN_DEFAULT };
+  return typeof given === "number" && Number.isInteger(given) && given > 0
+    ? { ms: given, msFrom: FROM_PROJECT }
+    : { ms: CHECK_MS_ABSENT, msFrom: PLUGIN_DEFAULT, unknown: JSON.stringify(given) };
+};
+
 export const codexCheckOf = (codex) => {
   const command = codex?.check;
   if (!command || typeof command !== "string") return null;
-  const given = codex?.checkMs;
-  if (given === undefined || given === null) {
-    return { command, ms: CHECK_MS_ABSENT, from: FROM_PROJECT, msFrom: PLUGIN_DEFAULT };
-  }
-  return typeof given === "number" && Number.isInteger(given) && given > 0
-    ? { command, ms: given, from: FROM_PROJECT, msFrom: FROM_PROJECT }
-    : { command, ms: CHECK_MS_ABSENT, from: FROM_PROJECT, msFrom: PLUGIN_DEFAULT, unknown: JSON.stringify(given) };
+  return { command, from: FROM_PROJECT, ...checkMsOf(codex?.checkMs) };
 };
 
 export const codexCheck = () => codexCheckOf(projectCodex());
@@ -338,8 +342,7 @@ export const CHATGPT_KEYS = [
 export const CHATGPT_PREFIX = { key: "prefix", flag: "chatgpt-prefix", asks: "framing" };
 export const CHATGPT_SAVED = [...CHATGPT_KEYS, CHATGPT_PREFIX];
 
-/* The values and the file that answered for them, like every other machine-level reader here, and `missing` naming the rows a refusal builds its flags off rather than typing them. Unmemoised, as `shipMode` above is and for the same reason. */
-/* One decision about what counts as saved, so the row that reports a framing and the action that refuses without one cannot disagree: blank text is a value the file holds and nobody framed a picture with. */
+/* The values and the file that answered for them, like every other machine-level reader here, and `missing` naming the rows a refusal builds its flags off rather than typing them. Unmemoised, as `shipMode` above is and for the same reason. One decision about what counts as saved, so the row that reports a framing and the action that refuses without one cannot disagree: blank text is a value the file holds and nobody framed a picture with. */
 const savedText = (given) => (typeof given === "string" && given.trim() ? given : null);
 
 export const chatgptSettings = () => {
@@ -362,11 +365,12 @@ export const shipMode = () => chosen(userConfig().ship, SHIP_MODES, SHIP_MODES[0
 export const RUNS_TAKES = "a whole number above 0";
 
 // How many runs this project carries at once, whoever dispatched them: the width of a wave the dispatcher fills and the ceiling a gate of this project admits itself against, which are one number because they bound one thing. One ceiling over the project is not one allowance per master, so a session that cannot see another master's runs is bounded by what the project is already carrying rather than by this number afresh. The project's and not the machine's — ISS-1157 reverses ISS-917 on that, the user's decision on 2026-09-11 — so two checkouts on one box each answer for their own work, and neither inherits the other's. Absent it is null, and every reader then behaves as it did before the key existed.
-export const parallelRuns = () => {
-  const given = forgeJson().parsed?.runs;
+export const runsOf = (given) => {
   if (given === undefined || given === null) return { value: null, from: PLUGIN_DEFAULT };
   const held = Number(given);
   return Number.isInteger(held) && held > 0
     ? { value: held, from: FROM_PROJECT }
     : { value: null, from: PLUGIN_DEFAULT, unknown: String(given) };
 };
+
+export const parallelRuns = () => runsOf(forgeJson().parsed?.runs);

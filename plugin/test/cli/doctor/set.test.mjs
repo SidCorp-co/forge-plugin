@@ -49,14 +49,18 @@ test("a prefixed key names its resource outright, which is how one neither holds
   assert.equal(state.settings.projectFacts["the-gate"], "npm run check");
 });
 
-test("a key neither resource holds is refused with both key sets, and nothing is sent", async () => {
+test("a key no resource holds is refused with every key set, and nothing is sent", async () => {
   state.calls = [];
   const run = await ask("--set", "qa=independent");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /`qa` is no key either of this project's configuration resources holds/u);
+  assert.match(run.stderr, /`qa` is no key any of this project's configuration resources holds/u);
   assert.match(run.stderr, /^ {2}pipeline: autoProdDeploy$/mu);
   assert.match(run.stderr, /^ {2}fact: the-gate, the-stack$/mu);
+  assert.match(run.stderr, /^ {2}project: slug, translate, runs, /mu,
+    "the third resource lists the keys this plugin READS out of that file, not the ones it holds");
   assert.match(run.stderr, /--set pipeline\.qa=<value> or --set fact\.qa=<value>/u);
+  assert.doesNotMatch(run.stderr, /--set project\.qa=<value>/u,
+    "and no route is offered into a file where nothing would read the key (ISS-1643)");
   assert.equal(state.calls.filter((one) => one.method === "PATCH").length, 0);
 });
 
@@ -136,7 +140,7 @@ test("a project write beside a machine key is refused, and neither half is writt
 
 /* Routing by which resource holds the key answers nothing when both do, and one of the two here is
    a deploy switch: a bare name is refused so the prefix decides, rather than the order of a list. */
-test("a key both resources hold is refused bare, and each prefix writes only its own resource", async () => {
+test("a key two resources hold is refused bare, and each prefix writes only its own resource", async () => {
   await ask("--set", "fact.autoProdDeploy=what the branch means");
   try {
     state.calls = [];

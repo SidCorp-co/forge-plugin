@@ -123,7 +123,9 @@ const SHOW_USAGE = [
 
 /* A pattern that does not compile is worse than no pattern: the gate would throw on every write of
    whatever repository carries it. It is skipped for the next source, and `show` names what resolved. */
-const compiles = (source) => {
+/** Compiled the way `recordPattern` below will compile it, and nowhere else's flags: exported so a
+ *  write of `codex.pathRe` refuses exactly the patterns this reader would pass over. */
+export const compiles = (source) => {
   try {
     new RegExp(source);
     return true;
