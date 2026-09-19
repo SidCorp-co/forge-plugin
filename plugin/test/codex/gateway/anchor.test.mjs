@@ -9,8 +9,8 @@ import { spawn } from "node:child_process";
 import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { tempRoom } from "../fixtures.mjs";
-import { canonical } from "../../src/resolve/canonical.mjs";
+import { tempRoom } from "../../fixtures.mjs";
+import { canonical } from "../../../src/resolve/canonical.mjs";
 
 /* A stand-in gateway asks for `git_diff` with no arguments on its first call and answers on its
    second; what the tool returned is on the log row, and its size says which of the two possible
@@ -70,7 +70,7 @@ test("a recheck's reviewer is handed the head its findings were made against, no
   ].join("\n"));
   /* Spawned rather than spawnSync'd: the stand-in listens on this event loop, and a blocking child
      would leave it unable to answer the consult it is waiting on. */
-  const child = spawn(new URL("../../bin/forge", import.meta.url).pathname,
+  const child = spawn(new URL("../../../bin/forge", import.meta.url).pathname,
     ["codex", "consult", "--recheck", "--rounds", "2", "judged.txt"],
     { cwd: room, env: { ...process.env, XDG_CONFIG_HOME: home, CLAUDE_PROXY_ENV: join(home, "proxy.env") } });
   child.stdin.end("the fix is in");
@@ -127,7 +127,7 @@ test("a recheck given no file reads the range its consult recorded, not what an 
     "ANTHROPIC_AUTH_TOKEN=sk-stand-in",
     'ANTHROPIC_DEFAULT_FABLE_MODEL="cx/gpt-5.6-sol"',
   ].join("\n"));
-  const child = spawn(new URL("../../bin/forge", import.meta.url).pathname,
+  const child = spawn(new URL("../../../bin/forge", import.meta.url).pathname,
     ["codex", "consult", "--recheck", "--diff", "--base", base, "--rounds", "1"],
     { cwd: room, env: { ...process.env, XDG_CONFIG_HOME: home, CLAUDE_PROXY_ENV: join(home, "proxy.env") } });
   child.stdin.end("the fix is in");
@@ -153,8 +153,8 @@ test("a recheck given no file reads the range its consult recorded, not what an 
   assert.deepEqual(ran.sent.map((one) => one.clipped), [false]);
 });
 
-const { relsOf, shownOf } = await import("../../src/codex/codex-set.mjs");
-const { locate, wouldSit } = await import("../../src/codex/codex-api.mjs");
+const { relsOf, shownOf } = await import("../../../src/codex/codex-set.mjs");
+const { locate, wouldSit } = await import("../../../src/codex/codex-api.mjs");
 
 /* A diff git refused is the one absence that is not an answer, and dropping on it clears a real
    deletion from the record before any reviewer has seen it. The unit reaches it; no room can. */
@@ -205,7 +205,7 @@ const gatewayAt = (home, port) => writeFileSync(join(home, "proxy.env"), [
 ].join("\n"));
 
 const consulted = async (room, home, argv) => {
-  const child = spawn(new URL("../../bin/forge", import.meta.url).pathname, ["codex", "consult", ...argv],
+  const child = spawn(new URL("../../../bin/forge", import.meta.url).pathname, ["codex", "consult", ...argv],
     { cwd: room, env: { ...process.env, XDG_CONFIG_HOME: home, CLAUDE_PROXY_ENV: join(home, "proxy.env") } });
   child.stdin.end("the intent");
   let said = "";

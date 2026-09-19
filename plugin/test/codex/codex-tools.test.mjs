@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { TOOLS, runTool, scopeFor, toolsFor } from "../../src/codex/codex-tools.mjs";
+import { TOOLS, checkCommand, checkState, runTool, scopeFor, toolsFor } from "../../src/codex/codex-tools.mjs";
 import { bundle, changedAgainst, divergedFrom, roleFor, withDiffs } from "../../src/codex/codex-api.mjs";
 import { tempRoom } from "../fixtures.mjs";
 import { patience } from "../patience.mjs";
@@ -175,6 +175,34 @@ test("run_check keeps only the tail of a long output and stops a run past its cl
   const t0 = Date.now();
   while (alive(child) && !alive(child).startsWith("Z") && Date.now() - t0 < patience(2000)) execFileSync("sleep", ["0.05"]);
   assert.ok(!alive(child) || alive(child).startsWith("Z"), `the runner the shell started (${child}) went with it`);
+});
+
+/* The five words a round can end on, each read off the scope the tool ran against. `declined` and
+   `none` are the pair the log could not tell apart at all, and `failed` is the one an ordinary
+   non-zero exit must not reach: a check that answered is `ran` whatever it answered (ISS-1898). */
+test("the scope carries which state the declared check left the round in", async () => {
+  const root = repo();
+  assert.equal(checkState(scopeFor(root)), "none", "a checkout that declared no command");
+  assert.equal(checkCommand(scopeFor(root)), null);
+  const offered = scopeFor(root, [], { command: "true" });
+  assert.equal(checkState(offered), "declined", "offered and never called is not the same as never offered");
+  assert.equal(checkCommand(offered), "true", "and which command was declined is on the scope either way");
+
+  const red = scopeFor(root, [], { command: "exit 3" });
+  await runTool(red, "run_check", {});
+  assert.equal(checkState(red), "ran", "a check that answered is `ran` whatever it exited");
+
+  const stopped = scopeFor(root, [], { command: "sleep 30", ms: 300 });
+  await runTool(stopped, "run_check", {});
+  assert.equal(checkState(stopped), "cut");
+
+  const burst = scopeFor(root, [], { command: "yes | head -c 20000000" });
+  await runTool(burst, "run_check", {});
+  assert.equal(checkState(burst), "failed", "a command that gave no answer at all is not a clock and not a run");
+
+  /* The second call is refused before it spawns, so what the first reached stands. */
+  await runTool(red, "run_check", {});
+  assert.equal(checkState(red), "ran");
 });
 
 test("a run the buffer ends takes its process group with it too", async () => {

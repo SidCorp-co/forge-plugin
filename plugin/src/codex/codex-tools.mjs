@@ -232,15 +232,25 @@ const checkOnce = (scope) => {
   });
   if (run.error) {
     if (run.pid) try { process.kill(-run.pid, "SIGKILL"); } catch { /* already gone */ }
-    const why = run.error.code === "ETIMEDOUT"
+    const stopped = run.error.code === "ETIMEDOUT";
+    scope.check.outcome = stopped ? "cut" : "failed";
+    const why = stopped
       ? `ran past ${scope.check.ms / 1000}s and was stopped. That clock is ${clockSaid(scope.check)}`
       : `could not finish: ${run.error.message}`;
     return { text: `\`${scope.check.command}\` ${why}`, error: true };
   }
+  scope.check.outcome = run.status === null && run.signal ? "failed" : "ran";
   const out = `${run.stdout ?? ""}${run.stderr ?? ""}`;
   const tail = out.length > TAIL_CHARS ? `…\n${out.slice(-TAIL_CHARS)}` : out;
   return { text: `\`${scope.check.command}\` exited ${run.status}\n${tail.trim()}` };
 };
+
+/** Which of five states the declared check left this round in, `none` being a word rather than an absence: a row with no field at all is one from before any of this, and a signal that left no exit status is `failed` and not `ran`. docs/cli/codex-the-check.md. */
+export const checkState = (scope) => (scope?.check ? scope.check.outcome ?? "declined" : "none");
+
+export const checkCommand = (scope) => scope?.check?.command ?? null;
+
+export const checkRow = (scope) => ({ check: checkState(scope), ...(checkCommand(scope) ? { checkCommand: checkCommand(scope) } : {}) });
 
 /* Not `resolve/canonical.mjs`'s: a relative path falls inside any root it would be matched against. */
 const canonical = (path) => {

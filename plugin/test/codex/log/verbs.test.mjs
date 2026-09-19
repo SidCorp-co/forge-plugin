@@ -70,3 +70,17 @@ test("an entry already masked at the write passes through unchanged", () => {
   assert.ok(said.includes(clean.reply), "a record written since 3.35.88 prints its stored prose verbatim");
   assert.match(said, new RegExp(`\\s${clean.reply.length}ch\\s`, "u"), "and reports its own length");
 });
+
+/* The line a run reads back months later, the stderr it read at the time being long gone. A row from before any of this prints nothing in that place, which is what tells it apart from one whose checkout declared no command (ISS-1898). */
+test("the line says which state the declared check left the round in, and says nothing for a row from before", () => {
+  const of = (extra) => logLine({ ...STORED_UNMASKED, ...extra }, false).split("\n")[0];
+  assert.doesNotMatch(of({}), /check/u, "a row written before the field existed claims nothing");
+  assert.match(of({ check: "declined", checkCommand: "npm test" }), /\s{2}check declined\s{2}by |\s{2}check declined$/u);
+  assert.match(of({ check: "none" }), /\s{2}check none$/u, "and a checkout that declared none says so rather than reading as absent");
+  assert.match(of({ check: "cut", checkCommand: "npm test" }), /\s{2}check cut$/u);
+  /* Which command it was belongs to the entry read whole, being what a row is worth once the project's own `codex.check` has moved off the value this round ran. */
+  assert.match(logLine({ ...STORED_UNMASKED, check: "ran", checkCommand: "npm test" }, true),
+    /\n {2}check {3}ran {2}npm test\n/u);
+  assert.doesNotMatch(logLine({ ...STORED_UNMASKED, check: "none" }, true), /\n {2}check {3}/u,
+    "and there is no command to print where none was declared");
+});

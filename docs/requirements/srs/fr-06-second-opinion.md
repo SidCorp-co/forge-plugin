@@ -47,12 +47,12 @@ checkout's decision rather than the account's, and `README.md` says why that lev
 - **AC-06-1-4** · Rev: 1 · Proof: plugin/test/codex/codex-tools.test.mjs "run_check runs the named command once, from the checkout, and reports exit and tail"
   WHERE the checkout names a command the reviewer may run, the CLI SHALL run it once per consult,
   from that checkout, and SHALL report its exit status and the tail of its output.
-- **AC-06-1-5** · Rev: 1 · Proof: plugin/test/codex/codex-anchor.test.mjs "a diff consult reviews the tree's own change, tests and deletions included, and says what of the turn record it left out"
+- **AC-06-1-5** · Rev: 1 · Proof: plugin/test/codex/gateway/anchor.test.mjs "a diff consult reviews the tree's own change, tests and deletions included, and says what of the turn record it left out"
   WHEN a consult selects the files it reviews THEN the CLI SHALL take the paths the caller named
   where there are any, else the turn's record where the consult is a recheck holding one, else the
   checkout's own change against the base whatever that record holds, else the record; and it SHALL
   disclose each of those last three as the ground it selected on.
-- **AC-06-1-6** · Rev: 2 · Proof: plugin/test/codex/codex-anchor.test.mjs "a path that is not in the tree and has no diff reaches neither the reviewer nor the log, and leaves the turn record"
+- **AC-06-1-6** · Rev: 2 · Proof: plugin/test/codex/gateway/anchor.test.mjs "a path that is not in the tree and has no diff reaches neither the reviewer nor the log, and leaves the turn record"
   IF a path is absent from the tree and has no diff against the base THEN the CLI SHALL send it to
   the reviewer in no form, SHALL leave it out of the file list it records, SHALL drop it from the
   turn's record, and SHALL name what it dropped; and it SHALL take that course whatever ground the
@@ -86,6 +86,13 @@ checkout's decision rather than the account's, and `README.md` says why that lev
   IF that command is stopped at its clock THEN what comes back SHALL name the clock it was stopped
   at, where that clock was read from, and the key that moves it, so that the run which paid for the
   stopped call learns from it what to change.
+- **AC-06-1-14** · Rev: 1 · Proof: plugin/test/codex/gateway/check-state.test.mjs "a review that declined the offered check says so where the run reads what the round cost"
+  WHEN a consult ends THEN the CLI SHALL record on that consult's own log row which of five states
+  the check the checkout declared left the round in — run, stopped at its clock, unable to start,
+  offered and not taken, or never offered — SHALL record beside it the command that check was,
+  wherever the checkout declared one, and SHALL say that state to the caller in the same place it
+  says what the round cost, so that a review given by inspection alone is told apart from one that
+  executed the suite without either being read for an absence.
 
 ### UC-06-2 — List the documents a turn changed, once, at the end
 

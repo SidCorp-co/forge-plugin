@@ -21,7 +21,7 @@ import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mj
 import { didYouMean } from "../suggest.mjs";
 import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid, pending, pendingIn,
   readByCodex, readState, stagedApart, stagedReader, turnsOf, updateState } from "./codex-state.mjs";
-import { PER_KEY, READ_ISSUE, SPARE, TOOLS, scopeFor } from "./codex-tools.mjs";
+import { PER_KEY, READ_ISSUE, SPARE, TOOLS, checkCommand, checkRow, checkState, scopeFor } from "./codex-tools.mjs";
 import { noDiffIn, reviewSet, shownOf } from "./codex-set.mjs";
 import { reviewed } from "./codex-rounds.mjs";
 import { EFFORTS, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
@@ -211,6 +211,31 @@ export const consultArgs = (given) => {
   };
 };
 
+/* Said where the round's own cost is said, because otherwise a run learns it by reading the reply for an absence, after it has acted on the review. It judges nothing: declining is what the offer's condition asks for, and the defect was the silence (ISS-1898). docs/cli/codex-the-check.md. */
+const CHECK_SAID = {
+  ran: (command) => `check ran — \`${command}\`.`,
+  cut: (command) => `check cut — \`${command}\` was stopped at its clock, so none of it reached this review.`,
+  failed: (command) => `check failed — \`${command}\` gave no answer to reach this review.`,
+  declined: (command) => `check declined — \`${command}\` was offered and not run: this review is inspection, not execution.`,
+};
+
+export const checkSaid = (reach) => {
+  const state = checkState(reach);
+  return state === "none" ? null : `codex: ${CHECK_SAID[state](checkCommand(reach))}`;
+};
+
+/* Everything the run is told once the round is done, in one place: this list is what a run reads to decide whether the review answered, and the check's own word sits in it rather than two thirds of the way down a reply. */
+const toldAfter = (held, reach, { left, since, crossing }) => {
+  const kinds = held.tools.reduce((seen, one) => ({ ...seen, [one.name]: (seen[one.name] ?? 0) + 1 }), {});
+  const spent = Object.entries(kinds).map(([name, n]) => `${name} ${n}`).join(", ");
+  if (spent) console.error(`codex: ${held.calls} call(s), tools it ran: ${spent}.`);
+  if (checkSaid(reach)) console.error(checkSaid(reach));
+  if (held.refused.length) console.error(`codex: refused ${held.refused.length} tool call(s): ${held.refused.join("; ")}.`);
+  if (left.length) console.error(`codex: ${left.length} file(s) still pending, recorded ${ageOf(since)}: ${left.join(", ")}.`);
+  if (held.stop === "max_tokens") console.error("codex: the reply hit `codex.maxTokens`.");
+  if (crossing) console.error(crossingSaid(crossing));
+};
+
 /* The checkout's, else the account's, else all four — and a name not on the list is refused rather
    than sent, because a role the prompt never described would be reviewed by nobody. */
 const chosenAngles = (raw) => {
@@ -395,15 +420,12 @@ const consult = async (given) => {
     shown += text.length;
     process.stdout.write(text);
   };
+  /* Hoisted because the round writes the check's outcome onto it and both rows are owed that outcome. `reached` and not `anchoredTo`: a recheck whose tree has not moved sent no diff and so anchors no log row, but the reviewer asking for "the diff" still means the change since that head, and the tree at HEAD would hand it every file this consult is not about. */
+  const reach = scopeFor(root, rels.filter(isAbsolute), codexCheck(), { anchor: reached, files: rels, issues });
   try {
     const opening = openingFor(intent, parts, history, { risks, only, bodies, scope, checks, issues });
     const held = await reviewed(
-      values, model, opening,
-      /* `reached` and not `anchoredTo`: a recheck whose tree has not moved sent no diff and so
-         anchors no log row, but the reviewer asking for "the diff" still means the change since
-         that head, and the tree at HEAD would hand it every file this consult is not about. */
-      scopeFor(root, rels.filter(isAbsolute), codexCheck(), { anchor: reached, files: rels, issues }),
-      streamed, askApi,
+      values, model, opening, reach, streamed, askApi,
       { effort, budget, ceiling, system },
     );
     /* Buffered while a retry was still possible, so the review lands here in one piece. */
@@ -426,6 +448,7 @@ const consult = async (given) => {
       ...(held.retriedFrom === undefined ? {} : { retriedFrom: held.retriedFrom }),
       attempt: held.attempt,
       incomplete: incompleteIn(held.text),
+      ...checkRow(reach),
       ...(recheck ? { newFindings: newFindingsIn(numbered(held.text, rels)) } : {}),
       reply: held.text,
     });
@@ -435,15 +458,10 @@ const consult = async (given) => {
     if (plan) {
       console.error(`codex: ${ruledSaid(plan, offset, held.text, id, entries)}`);
     }
-    const kinds = held.tools.reduce((seen, one) => ({ ...seen, [one.name]: (seen[one.name] ?? 0) + 1 }), {});
-    const spent = Object.entries(kinds).map(([name, n]) => `${name} ${n}`).join(", ");
-    if (spent) console.error(`codex: ${held.calls} call(s), tools it ran: ${spent}.`);
-    if (held.refused.length) console.error(`codex: refused ${held.refused.length} tool call(s): ${held.refused.join("; ")}.`);
-    if (left.length) console.error(`codex: ${left.length} file(s) still pending, recorded ${ageOf(since)}: ${left.join(", ")}.`);
-    if (held.stop === "max_tokens") console.error("codex: the reply hit `codex.maxTokens`.");
-    if (crossing) console.error(crossingSaid(crossing));
+    toldAfter(held, reach, { left, since, crossing });
   } catch (error) {
-    logConsult({ ...record, kind: "consult", budget, ms: Date.now() - started, ok: false, error: error.message });
+    logConsult({ ...record, kind: "consult", budget, ms: Date.now() - started, ok: false, error: error.message, ...checkRow(reach) });
+    if (checkSaid(reach)) console.error(checkSaid(reach));
     const partial = shown ? `\n\ncodex: the ${shown} characters above are an incomplete reply and were `
       + "not recorded as a consult." : "";
     fail(`${partial}\ncodex: ${error.message}`);

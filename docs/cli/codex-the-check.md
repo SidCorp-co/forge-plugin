@@ -22,3 +22,18 @@ refusal the reviewer is handed names the clock and the key. None of those says t
 own recorded stops fall under, which is why the count is compared against the budget in force rather
 than kept flat. Set it below the clock a whole consult runs under: past that, the consult's own
 deadline expires first and the check takes the consult with it rather than coming back stopped.
+
+**And the round now says which of five things became of the offer.** Whether a reviewer took it was
+in no field at all: a row logged the tools called and the calls refused, and neither tells a consult
+that was offered the command and let it alone from one taken where nothing names a command. Over
+seven days on the machine that raised it, 1,778 of 1,814 answered consults called nothing and no
+artifact of any of them said so, so a run that wanted to know read the reply for an absence — which
+is a thing found after it has already acted on the review (ISS-1898). The row now carries `check`,
+one of `ran`, `cut`, `failed`, `declined` and `none`, and `checkCommand` beside it, the command as
+the scope froze it, so the row stays legible after the project has moved its own `codex.check` off
+that value. The consult prints the word where it prints what the round cost, `forge codex log` puts
+it on the line and the command under `--full`, and `none` is written rather than omitted because a
+row carrying no field is one from before any of this and that is something else to know. Nothing
+refuses on the word and no review is worth less for reading `declined`: the narrowing is deliberate
+and a review by inspection is most of what a review is. What was wrong was that taking the offer and
+leaving it alone read the same.

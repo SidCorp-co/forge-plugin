@@ -48,16 +48,21 @@ export const logLine = (stored, full) => {
   const served = entry.served?.length ? `  +${entry.served.length} served` : "";
   const counted = countedIn(stored.reply);
   const many = counted ? `  ${counted.total} finding(s)` : "";
+  /* Absent and `none` are two facts, so they print differently: a row with no field at all was
+     written before the round recorded what became of the declared check, and one reading `none` is a
+     checkout that declared no command to run (ISS-1898). */
+  const state = entry.check ? `  check ${entry.check}` : "";
   const head = `${id}${entry.at}  ${entry.model ?? entry.slot ?? "?"}  ${Math.round((entry.ms ?? 0) / 1000)}s  `
-    + `${at}  ${answer}${many}${served}${wroteIt(entry)}`;
+    + `${at}  ${answer}${many}${served}${state}${wroteIt(entry)}`;
   const files = `  files  ${(entry.files ?? []).join(" ")}`;
   if (!full) return `${head}\n${files}`;
+  const check = entry.checkCommand ? `  check   ${entry.check}  ${entry.checkCommand}` : null;
   /* The bytes that were judged: a field with no reader is a field nobody can trust. */
   const sent = (entry.sent ?? [])
     .map((one) => `  ${one.sha ?? "?"}  ${String(one.chars ?? "?").padStart(6)}  ${one.rel}${one.clipped ? "  clipped" : ""}`
       + `${one.text ? "  text kept" : ""}${one.textOmitted ? `  text over ${one.textOmitted}` : ""}`)
     .join("\n");
-  return [head, files, sent, "", entry.reply ?? entry.error ?? "", ""].filter((one) => one !== null).join("\n");
+  return [head, files, check, sent, "", entry.reply ?? entry.error ?? "", ""].filter((one) => one !== null).join("\n");
 };
 
 const scoreLine = (row) =>
