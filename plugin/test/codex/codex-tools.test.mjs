@@ -239,3 +239,20 @@ test("git_diff with neither path nor base answers the diff this consult was give
   assert.match(failed.text, /^git diff failed: /u, "the scoped command's own answer");
   assert.equal(/b\.txt/u.test(failed.text), false, "and not the tree it was asked not to hand over");
 });
+
+/* The refusal is the whole of what the run that paid for the stopped call is handed, so it carries
+   the clock, where the clock came from and the key that moves it: the two sources read differently
+   because a project that never named the key has first to learn it exists (ISS-1882). */
+test("a check stopped at its clock names the clock, where it was read, and the key that moves it", async () => {
+  const root = repo();
+  const slow = { command: "sleep 30", ms: 200 };
+  const set = await runTool(scopeFor(root, [], { ...slow, msFrom: ".forge.json" }), "run_check", {});
+  assert.equal(set.error, true);
+  assert.match(set.text,
+    /ran past 0\.2s and was stopped\. That clock is `codex\.checkMs` in \.forge\.json\. Raise it, or narrow `codex\.check` to what fits 0\.2s$/u,
+    set.text);
+  const fell = await runTool(scopeFor(root, [], { ...slow, msFrom: "the plugin's default" }), "run_check", {});
+  assert.match(fell.text,
+    /That clock is this plugin's default\. Set `codex\.checkMs` in \.forge\.json to raise it, or narrow `codex\.check` to what fits 0\.2s$/u,
+    fell.text);
+});

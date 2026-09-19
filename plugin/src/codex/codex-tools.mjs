@@ -9,7 +9,7 @@ import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { HUMAN_REF, documentIdIfAny } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
-import { refusing } from "../resolve/settings.mjs";
+import { FROM_PROJECT, refusing } from "../resolve/settings.mjs";
 
 const NEAREST_UP = 12;
 const RESULT_CHARS = 20_000;
@@ -209,8 +209,17 @@ export const scopeFor = (root, extras = [], check = null, consult = null) => {
   };
 };
 
-const CHECK_MS = 300_000;
 const TAIL_CHARS = 6_000;
+
+/* Where the clock came from and what moves it. The two cases read differently — a project that set
+   the key is told which file holds it, one that never named it is told the key exists at all — and
+   both are here because this string is the only thing the run that paid for the stopped call is
+   handed: a refusal saying a command was stopped and nothing else leaves the knob to be guessed at.
+   The seconds stay first in the sentence, being what the log's own readers parse out of it. */
+const clockSaid = ({ ms, msFrom }) => (msFrom === FROM_PROJECT
+  ? `\`codex.checkMs\` in ${msFrom}. Raise it, or narrow \`codex.check\` to what fits ${ms / 1000}s`
+  : `this plugin's default. Set \`codex.checkMs\` in ${FROM_PROJECT} to raise it, or narrow `
+    + `\`codex.check\` to what fits ${ms / 1000}s`);
 
 const checkOnce = (scope) => {
   if (!scope.check) return { text: "this checkout configures no `codex.check`, so there is nothing to run", error: true };
@@ -221,14 +230,17 @@ const checkOnce = (scope) => {
   const run = spawnSync("sh", ["-c", scope.check.command], {
     cwd: scope.check.root,
     encoding: "utf8",
-    timeout: scope.check.ms ?? CHECK_MS,
+    timeout: scope.check.ms,
     maxBuffer: 16 << 20,
     detached: true,
   });
   if (run.error) {
     if (run.pid) try { process.kill(-run.pid, "SIGKILL"); } catch { /* already gone */ }
+    /* The clock and the key that moves it, in the refusal itself: this string is what the reviewer
+       reads, what the consult prints to the run that asked for it and what the log keeps, and a run
+       told only that a command was stopped has to read this module to learn there is a knob. */
     const why = run.error.code === "ETIMEDOUT"
-      ? `ran past ${(scope.check.ms ?? CHECK_MS) / 1000}s and was stopped`
+      ? `ran past ${scope.check.ms / 1000}s and was stopped. That clock is ${clockSaid(scope.check)}`
       : `could not finish: ${run.error.message}`;
     return { text: `\`${scope.check.command}\` ${why}`, error: true };
   }

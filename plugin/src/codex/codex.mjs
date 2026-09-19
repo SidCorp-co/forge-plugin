@@ -16,7 +16,7 @@ import { HUMAN_REF } from "../tracker/issues.mjs";
 import { repoRoot } from "../git/repo-root.mjs";
 import { configPath, userConfig } from "../resolve/config.mjs";
 import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
-import { fail, projectCodex, projectRecordPattern } from "../resolve/settings.mjs";
+import { codexCheck, fail, projectCodex, projectRecordPattern } from "../resolve/settings.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid, pending, pendingIn,
@@ -207,7 +207,7 @@ export const consultArgs = (given) => {
     angles: chosenAngles(held.angles),
     /* The issue's own sentence and the checkout's own command: a scope this end composes moves the boundary the reviewer is judged against. */
     scope: held["out-of-scope"] ?? "",
-    checks: held.checks ?? projectCheck()?.command ?? "",
+    checks: held.checks ?? codexCheck()?.command ?? "",
   };
 };
 
@@ -221,12 +221,6 @@ const chosenAngles = (raw) => {
   return asked.length ? asked : Object.keys(ANGLES);
 };
 
-/* The checkout's, never the account's: what a project's check is, only the project can say. */
-const projectCheck = () => {
-  const { check, checkMs } = projectCodex();
-  if (!check || typeof check !== "string") return null;
-  return { command: check, ms: Number(checkMs) > 0 ? Number(checkMs) : undefined };
-};
 
 /* Named rather than clamped: an unknown value would otherwise be sent to the gateway, which accepts
    anything and reports nothing, so the consult would run at a level nobody chose. */
@@ -365,7 +359,7 @@ const consult = async (given) => {
   const intent = (said ?? "").trim();
   const id = randomBytes(3).toString("hex");
   const history = historyFor(entries, root, undefined, rels);
-  const system = roleFor(angles, { check: Boolean(projectCheck()), recheck, tracker: issues.length > 0 });
+  const system = roleFor(angles, { check: Boolean(codexCheck()), recheck, tracker: issues.length > 0 });
   const started = Date.now();
   const record = {
     id,
@@ -408,7 +402,7 @@ const consult = async (given) => {
       /* `reached` and not `anchoredTo`: a recheck whose tree has not moved sent no diff and so
          anchors no log row, but the reviewer asking for "the diff" still means the change since
          that head, and the tree at HEAD would hand it every file this consult is not about. */
-      scopeFor(root, rels.filter(isAbsolute), projectCheck(), { anchor: reached, files: rels, issues }),
+      scopeFor(root, rels.filter(isAbsolute), codexCheck(), { anchor: reached, files: rels, issues }),
       streamed, askApi,
       { effort, budget, ceiling, system },
     );
@@ -490,7 +484,10 @@ const show = (rest = []) => {
   console.log(`effort    : ${base}, a step down on a recheck or under ${limits.small} changed line(s), `
     + `a step up on a bodies pass, on a named risk or over ${limits.large}`);
   console.log(`angles    : ${chosenAngles(undefined).join(", ")}`);
-  console.log(`check     : ${projectCheck()?.command ?? "none — a codex.check in the project's own settings names one"}`);
+  const check = codexCheck();
+  console.log(`check     : ${check
+    ? `${check.command}, stopped at ${check.ms / 1000}s  \u2190 ${check.msFrom}`
+    : "none — a codex.check in the project's own settings names one"}`);
   console.log(`per call  : ${Math.round(budgetMs() / 1000)}s of budget, and the tool list is `
     + `${keepsTools() ? "kept on the last call with none asked for" : "dropped for the last call"}`);
   console.log(`pending   : ${waiting.length ? waiting.join(", ") : "nothing"}`);

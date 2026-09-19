@@ -57,7 +57,7 @@ server is reported by `forge doctor` with the command that saves the same values
   "translate": "vi",
   "runs": 2,
   "deps": { "marker": "those edges are recorded", "blockedBy": "blocked by", "blocks": "blocks" },
-  "codex": { "pathRe": "^(plugin|packages)/(src|hooks|scripts)/.*\\.mjs$|^docs/.*\\.md$" },
+  "codex": { "pathRe": "^(plugin|packages)/(src|hooks|scripts)/.*\\.mjs$|^docs/.*\\.md$", "check": "npm test", "checkMs": 600000 },
   "stop": { "agents": ["runner", "reviewer", "triage", "evaluator"] },
   "jobs": { "ba": { "verbs": ["issue", "new", "comment"], "skills": ["forge"] } },
   "rank": { "agePerDay": 2, "kind": { "bug": 20 } },
@@ -76,7 +76,14 @@ server is reported by `forge doctor` with the command that saves the same values
 and defaults to the English sentence shown. `codex.pathRe` decides which of a turn's writes are
 worth a second opinion, and belongs here rather than in the account's config: a docs tree and a
 code tree do not want the same answer. `forge codex show` names which of the three levels
-answered. `stop.agents` names the subagents whose stop the stop gate judges, bare or with their
+answered. `codex.check` is the one command the reviewer may run for itself, and `codex.checkMs` is
+the clock it runs under, in milliseconds; absent, that clock is 300000, and a value that is not a
+whole number above zero is reported by `forge doctor` rather than taken. A check stopped at the
+clock costs the consult a tool call and returns nothing, so the two are read together: `forge
+doctor` prints the command with the budget in force, and says how often this machine's consult log
+recorded that same command stopped at or above it. Set the clock below the one a whole consult runs
+under — `forge codex show` prints that too — because a check reaching a clock past it takes the
+consult with it instead of coming back as a call that was stopped. `stop.agents` names the subagents whose stop the stop gate judges, bare or with their
 plugin's prefix; absent, no subagent's stop is judged, and the main agent's is judged regardless. A
 plugin's hooks reach every session on the machine, so which delegated agents answer to this one is
 the project's to say, and this repository names the four roles its dispatch sets up.

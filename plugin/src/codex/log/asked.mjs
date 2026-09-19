@@ -1,4 +1,4 @@
-/* What a gate asks the consult log per tool call and per run, answered off the log's bytes: holding it as rows to answer either cost 503 ms and 167 MB of heap on a 43 MB log, where it is the history rather than the question that grew (ISS-1044). The questions needing the reply's own grammar are replies.mjs beside this; these two need none, and all three are a folder down because `plugin/src/codex/` is at the width limit whose stated remedy is a subfolder. */
+/* What a gate and the resolution report ask the consult log per tool call and per run, answered off the log's bytes: holding it as rows to answer either cost 503 ms and 167 MB of heap on a 43 MB log, where it is the history rather than the question that grew (ISS-1044). The questions needing the REPLY's own grammar are replies.mjs beside this; none here needs it, the one string parsed below being one this tool wrote itself, and all three are a folder down because `plugin/src/codex/` is at the width limit whose stated remedy is a subfolder. */
 import { jsonlBack, jsonlMark } from "../../hooks/log/hook-log-file.mjs";
 import { isAnswered } from "../codex-log.mjs";
 
@@ -18,4 +18,22 @@ export const sentShaOf = (bytes, root, rel) => {
     if (hit) return hit.sha ?? null;
   }
   return null;
+};
+
+/* The command and the clock, out of the one string `codex-tools.mjs` writes and `codex-rounds.mjs` carries into `refused`: the pair is what says whether a record still speaks about the budget a project has now, a stop at 300s saying nothing about a 600s clock. */
+const STOPPED = /^run_check : `(.+)` ran past ([0-9.]+)s and was stopped/u;
+
+/** Every consult of `command` whose check was stopped at or above `ms`, newest first, no older than `since`. A row carries `root`, the checkout it ran in, and nothing naming a project, so each one comes back with its own checkout for the caller to attribute rather than attributed here. */
+export const checkStops = (bytes, { command, ms, since }) => {
+  const mark = `run_check : \`${command}\` ran past `;
+  const out = [];
+  for (const one of jsonlBack(bytes, [mark])) {
+    const at = Date.parse(one.at);
+    if (Number.isFinite(at) && at < since) break;
+    for (const said of one.refused ?? []) {
+      const hit = STOPPED.exec(said);
+      if (hit?.[1] === command && Number(hit[2]) * 1000 >= ms) out.push({ at: one.at, root: one.root ?? null });
+    }
+  }
+  return out;
 };

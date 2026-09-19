@@ -78,6 +78,14 @@ checkout's decision rather than the account's, and `README.md` says why that lev
   SHALL send every file of that consult whole where neither the command nor the configuration named
   a send mode, SHALL leave a named mode standing and say that it stands, and SHALL name on every
   consult the mode it is sending under.
+- **AC-06-1-12** · Rev: 1 · Proof: plugin/test/codex/codex.test.mjs "the check's clock is the project's own where it names one, and the product's default otherwise"
+  WHEN the checkout names a command the reviewer may run THEN the clock that command runs under SHALL
+  be the project's own where it declares one as a whole number of milliseconds above zero, and the
+  product's default otherwise, resolved once so that no reader of it supplies a second default.
+- **AC-06-1-13** · Rev: 1 · Proof: plugin/test/codex/codex-tools.test.mjs "a check stopped at its clock names the clock, where it was read, and the key that moves it"
+  IF that command is stopped at its clock THEN what comes back SHALL name the clock it was stopped
+  at, where that clock was read from, and the key that moves it, so that the run which paid for the
+  stopped call learns from it what to change.
 
 ### UC-06-2 — List the documents a turn changed, once, at the end
 

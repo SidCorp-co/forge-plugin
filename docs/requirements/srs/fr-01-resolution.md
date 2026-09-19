@@ -321,6 +321,24 @@ about.
   IF a setting a flow asks for is sent and the resource will not say what it now holds THEN the CLI
   SHALL refuse naming that setting unconfirmed beside the call that reads it, and SHALL leave the
   flow it wrote standing rather than putting back a state the unread half may contradict.
+- **AC-01-5-14** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a declared check is printed with the clock it runs under and where that clock was read"
+  WHERE the project declares a command the reviewer may run, the resolution report SHALL print that
+  command with the clock it runs under and the source that clock was read from, the two being one
+  reading: a command a project declares and a clock it cannot see are a call spent for nothing.
+- **AC-01-5-15** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a check clock that is not a whole number above zero is named rather than taken"
+  IF the project sets that clock to anything but a whole number of milliseconds above zero THEN the
+  resolution report SHALL name the value it will not take beside the clock actually in force.
+- **AC-01-5-16** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a project declaring no check is one the report says nothing about"
+  IF the project declares no such command THEN the resolution report SHALL print no line about it at
+  all, the reviewer being given no such tool where nothing was declared.
+- **AC-01-5-17** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "recorded stops of that same command name each one's own checkout, and a larger clock clears them"
+  WHERE this machine's consult log records that same command stopped at or above the clock now in
+  force, the resolution report SHALL say how many and name the newest one's own checkout, and SHALL
+  count no record stopped under that clock, a record answering for the clock it was taken at.
+- **AC-01-5-18** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a check clock at or past the one a whole consult runs under is refused"
+  IF that clock is at or past the one a whole consult runs under THEN the resolution report SHALL
+  report it a fault, a check reaching such a clock costing the consult rather than coming back as a
+  call that was stopped.
 
 ## The way back
 

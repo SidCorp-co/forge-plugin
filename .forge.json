@@ -27,6 +27,7 @@
       "tech"
     ],
     "check": "npm test",
+    "checkMs": 600000,
     "owed": ["gate"]
   },
   "rank": {

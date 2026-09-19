@@ -1,8 +1,10 @@
 /* The keys a project sets for itself, each with the value in force and where it was read; why rows
    and not lines is doctor/harness.mjs's. docs/cli/doctor.md. */
-import { FEEDBACK_CHANNELS, FROM_PROJECT, LANDING_ROUTES, OWED_DOORS, RUNS_TAKES, SHIP_MODES,
-  codexOwed, checkoutRoot, feedbackScope, landingScope, parallelRuns, projectWorkPattern,
-  shipMode } from "../../../resolve/settings.mjs";
+import { CHECK_MS_TAKES, FEEDBACK_CHANNELS, FROM_PROJECT, LANDING_ROUTES, OWED_DOORS, RUNS_TAKES,
+  SHIP_MODES, codexCheck, codexOwed, checkoutRoot, feedbackScope, landingScope, parallelRuns,
+  projectWorkPattern, shipMode } from "../../../resolve/settings.mjs";
+import { budgetMs, logBytes } from "../../../codex/codex-log.mjs";
+import { checkStops } from "../../../codex/log/asked.mjs";
 import { flowPinned, flowRefusal } from "../../../guides/flow.mjs";
 import { REVIEWED, reviewStanding } from "../../../git/reviewed.mjs";
 
@@ -45,6 +47,41 @@ const owedRow = () => {
   return { label: "codex.owed", detail: owed.value.length
     ? `${owed.value.join(", ")} — each held until a consult has read what it would judge  ← ${owed.from}`
     : `nothing — the key is an empty list, so no door asks  ← ${owed.from}` };
+};
+
+const WEEK = 7 * 24 * 60 * 60 * 1000;
+
+/* What the log can and cannot settle. A consult row names the checkout it ran in and no project, so
+   two projects declaring one command are one record here: the recorded stops are reported as what
+   they are, each with its own checkout, and the two readings that ARE a miss are the ones
+   configuration settles on its own (ISS-1882, consult 30fdbc F1). Neither says the command will
+   fail — a check that returns early returns under any clock. */
+const stoppedSaid = (check) => {
+  const stops = checkStops(logBytes(), { command: check.command, ms: check.ms, since: Date.now() - WEEK });
+  if (!stops.length) return "";
+  return `. This machine's consult log holds ${stops.length} consult(s) in the last 7 days whose `
+    + `check of that command was stopped at or above ${check.ms / 1000}s, the newest on `
+    + `${stops[0].at.slice(0, 10)} in ${stops[0].root ?? "a checkout it did not record"}`;
+};
+
+/* Silent where the project declared no check: the reviewer is then given no such tool at all, and a
+   row about a clock nothing runs under is a line every project without the key would read (G-12). */
+const checkRow = () => {
+  const check = codexCheck();
+  if (!check) return null;
+  const clock = `${check.command} \u2014 stopped at ${check.ms / 1000}s  \u2190 ${check.msFrom}`;
+  if (check.unknown) {
+    return { level: MISS, label: "codex.check", detail: `${check.unknown} is no value of \`codex.checkMs\` `
+      + `\u2014 it takes ${CHECK_MS_TAKES}; reading ${clock}` };
+  }
+  const whole = budgetMs();
+  if (check.ms >= whole) {
+    return { level: MISS, label: "codex.check", detail: `${clock}, which is at or past the ${whole / 1000}s `
+      + `one whole consult runs under, so a check reaching that clock costs the consult instead of `
+      + `coming back as a call that was stopped. Set \`codex.checkMs\` below it` };
+  }
+  const stopped = stoppedSaid(check);
+  return { level: stopped ? "note" : undefined, label: "codex.check", detail: `${clock}${stopped}` };
 };
 
 const runsRow = () => {
@@ -117,6 +154,7 @@ export const projectKeyLines = () => {
     landingRow(),
     { level: ship.unknown ? MISS : undefined, label: "ship", detail: held(ship, SHIP_MODES) },
     owedRow(),
+    checkRow(),
     runsRow(),
     workRow(),
     reviewRow(),

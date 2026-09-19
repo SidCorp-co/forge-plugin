@@ -271,6 +271,30 @@ export const codexOwedOf = (codex) => {
 
 export const codexOwed = () => codexOwedOf(projectCodex());
 
+export const CHECK_MS_TAKES = "a whole number of milliseconds above 0";
+/* The clock a declared check runs under where the project names none. It lives beside the key that
+   overrides it rather than beside the spawn it is handed to, so the reader that reports what the
+   budget resolves to and the caller that enforces it read one number (BR-08). */
+export const CHECK_MS_ABSENT = 300_000;
+
+/** The check a project declares for the reviewer, with the clock it runs under: the command, the
+ *  budget in milliseconds and where each was read. Null where the project declares no command, that
+ *  being the case the reviewer is given no such tool at all rather than one with a default. */
+export const codexCheckOf = (codex) => {
+  const command = codex?.check;
+  if (!command || typeof command !== "string") return null;
+  const given = codex?.checkMs;
+  if (given === undefined || given === null) {
+    return { command, ms: CHECK_MS_ABSENT, from: FROM_PROJECT, msFrom: PLUGIN_DEFAULT };
+  }
+  const held = Number(given);
+  return Number.isInteger(held) && held > 0
+    ? { command, ms: held, from: FROM_PROJECT, msFrom: FROM_PROJECT }
+    : { command, ms: CHECK_MS_ABSENT, from: FROM_PROJECT, msFrom: PLUGIN_DEFAULT, unknown: String(given) };
+};
+
+export const codexCheck = () => codexCheckOf(projectCodex());
+
 export const FEEDBACK_CHANNELS = ["off", "bugs", "all"];
 const FEEDBACK_DEFAULTS = { plugin: "bugs", project: "all" };
 

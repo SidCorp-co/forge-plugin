@@ -3,7 +3,7 @@
    what a developer reads and the refusal has to arrive before the call goes out (ISS-92). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { writeFileSync } from "node:fs";
+import { cpSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { fakeStore, fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
@@ -265,4 +265,91 @@ test("the report says how far this device's clock stands from the tracker's, or 
   assert.match(blind.stdout,
     NOTE_ROW("tracker clock", "unmeasured — the tracker's answers carry no readable time"),
     "a figure nobody measured is not printed as one");
+});
+
+const MISS_ROW = (label, detail) => new RegExp(`^\\[ miss \\] ${label}\\s+${detail}`, "mu");
+
+/* A home of its own per reading, because the consult log the row is answered from lives beside the
+   credential and one written for a case would otherwise answer every case after it. */
+const roomWith = (name, codex, stops = []) => {
+  const room = tempHome(name);
+  cpSync(join(tracker.env.XDG_CONFIG_HOME, "forge"), join(room.path, "forge"), { recursive: true });
+  if (stops.length) {
+    writeFileSync(join(room.path, "forge", "codex-log.jsonl"),
+      `${stops.map((one) => JSON.stringify(one)).join("\n")}\n`);
+  }
+  const where = tempHome(`${name}-tree`);
+  writeFileSync(join(where.path, ".forge.json"), JSON.stringify({ slug: "forge-plugin", codex }));
+  return { where: where.path, env: { ...tracker.env, XDG_CONFIG_HOME: room.path } };
+};
+
+const stopAt = (seconds, root, at) => ({
+  kind: "consult", at, root, ok: true,
+  refused: [`run_check : \`npm test\` ran past ${seconds}s and was stopped. That clock is \`codex.checkMs\` in .forge.json`],
+});
+
+/* The command and the clock are one reading: a project that can see the first and not the second
+   has declared a call the reviewer spends and cannot finish, which is ISS-1882's whole subject. */
+test("a declared check is printed with the clock it runs under and where that clock was read", async () => {
+  const set = roomWith("check-clock", { check: "npm test", checkMs: 600000 });
+  const run = await ranAsync(FORGE, ["doctor", "project"], set.env, set.where);
+  assert.match(run.stdout, ROW("codex.check", "npm test — stopped at 600s {2}← \\.forge\\.json"), run.stdout);
+  const bare = roomWith("check-default", { check: "npm test" });
+  const fell = await ranAsync(FORGE, ["doctor", "project"], bare.env, bare.where);
+  assert.match(fell.stdout, ROW("codex.check", "npm test — stopped at 300s {2}← the plugin's default"), fell.stdout);
+});
+
+test("a check clock that is not a whole number above zero is named rather than taken", async () => {
+  const set = roomWith("check-unknown", { check: "npm test", checkMs: "soon" });
+  const run = await ranAsync(FORGE, ["doctor", "project"], set.env, set.where);
+  assert.match(run.stdout,
+    MISS_ROW("codex.check", "soon is no value of `codex.checkMs` — it takes a whole number of "
+      + "milliseconds above 0; reading npm test — stopped at 300s {2}← the plugin's default"),
+    run.stdout);
+});
+
+/* Silence and not a row reading none: a project that declared nothing is given no such tool at all,
+   and a line about a clock nothing runs under is one every project without the key would read. The
+   declared half is asserted in the same case and not left to its neighbour, an absence being what a
+   report that never learned to print the row at all looks like too. */
+test("a project declaring no check is one the report says nothing about", async () => {
+  const set = roomWith("check-absent", { pathRe: "^src/" });
+  const run = await ranAsync(FORGE, ["doctor", "project"], set.env, set.where);
+  assert.doesNotMatch(run.stdout, /^\[[^\]]+\] codex\.check\s/mu, run.stdout);
+  assert.match(run.stdout, /^\[[^\]]+\] codex\.owed\s/mu, "and the block's other key still reads");
+  const named = roomWith("check-named", { pathRe: "^src/", check: "npm test" });
+  const says = await ranAsync(FORGE, ["doctor", "project"], named.env, named.where);
+  assert.match(says.stdout, /^\[[^\]]+\] codex\.check\s/mu,
+    "the same project with a check declared does print the row, so the silence above is a decision");
+});
+
+/* A record answers for the clock it was taken at, so raising the clock past every recorded stop
+   clears the row on the next reading rather than after the window rolls. The checkout each stop
+   names is the whole of the attribution the log can carry: a consult row holds no project. */
+test("recorded stops of that same command name each one's own checkout, and a larger clock clears them", async () => {
+  const ago = (days) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const stops = [stopAt(300, "/tmp/wt-older", ago(3)), stopAt(300, "/tmp/wt-newest", ago(1))];
+  const set = roomWith("check-stops", { check: "npm test" }, stops);
+  const run = await ranAsync(FORGE, ["doctor", "project"], set.env, set.where);
+  assert.match(run.stdout,
+    NOTE_ROW("codex.check", "npm test — stopped at 300s {2}← the plugin's default\\. This machine's "
+      + "consult log holds 2 consult\\(s\\) in the last 7 days whose check of that command was "
+      + "stopped at or above 300s, the newest on [\\d-]+ in /tmp/wt-newest"),
+    run.stdout);
+  const raised = roomWith("check-raised", { check: "npm test", checkMs: 600000 }, stops);
+  const clear = await ranAsync(FORGE, ["doctor", "project"], raised.env, raised.where);
+  assert.match(clear.stdout, ROW("codex.check", "npm test — stopped at 600s {2}← \\.forge\\.json$"),
+    "every recorded stop was taken at a clock this project has moved past, so none of them counts");
+});
+
+/* The one reading configuration settles on its own, and the only one here that is a fault: past the
+   consult's own deadline the check takes the consult with it instead of coming back stopped. */
+test("a check clock at or past the one a whole consult runs under is refused", async () => {
+  const set = roomWith("check-past", { check: "npm test", checkMs: 900000 });
+  const run = await ranAsync(FORGE, ["doctor", "project"], set.env, set.where);
+  assert.match(run.stdout,
+    MISS_ROW("codex.check", "npm test — stopped at 900s {2}← \\.forge\\.json, which is at or past "
+      + "the 900s one whole consult runs under"),
+    run.stdout);
+  assert.match(run.stdout, /Set `codex\.checkMs` below it/u, "and the row names what to change");
 });

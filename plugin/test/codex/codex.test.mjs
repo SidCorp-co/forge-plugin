@@ -576,3 +576,28 @@ test("asking an action what to type prints that action's own usage", () => {
     assert.match(said, spelled, `${action}'s own flags, on its own text`);
   }
 });
+
+/* Resolved once and read by both the spawn that enforces it and the reports that print it, so no
+   caller supplies a default of its own: the one this repository had sat beside its spawn, where the
+   surfaces naming the key could not reach it and nothing could say what the pair resolved to. */
+test("the check's clock is the project's own where it names one, and the product's default otherwise", () => {
+  const forge = new URL("../../bin/forge", import.meta.url).pathname;
+  const shown = (codex) => {
+    const room = tempRoom("codex-clock-");
+    writeFileSync(join(room, ".forge.json"), JSON.stringify({ codex }));
+    const run = spawnSync(forge, ["codex", "show"], {
+      cwd: room,
+      encoding: "utf8",
+      env: { ...process.env, XDG_CONFIG_HOME: tempRoom("codex-clock-home-") },
+    });
+    return (run.stdout.split("\n").find((one) => one.startsWith("check")) ?? "").replace(/\s+/gu, " ");
+  };
+  assert.equal(shown({ check: "npm test" }), "check : npm test, stopped at 300s ← the plugin's default");
+  assert.equal(shown({ check: "npm test", checkMs: 600000 }), "check : npm test, stopped at 600s ← .forge.json");
+  for (const given of ["soon", 0, -1, 1.5]) {
+    assert.equal(shown({ check: "npm test", checkMs: given }),
+      "check : npm test, stopped at 300s ← the plugin's default",
+      `${given} is no clock, so the default stands and forge doctor is where the value is named`);
+  }
+  assert.match(shown({ pathRe: "^src/" }), /^check : none — a codex\.check in the project's own settings names one$/u);
+});
