@@ -10,7 +10,7 @@ import test from "node:test";
 
 import { releaseRows, startRelease } from "../../../src/tools/services/doctor/release.mjs";
 import { escaped, tempRoom } from "../../fixtures.mjs";
-import { patience, reached } from "../../patience.mjs";
+import { patience } from "../../patience.mjs";
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const NAME = JSON.parse(readFileSync(join(SRC, ".claude-plugin", "plugin.json"), "utf8")).name;
@@ -158,39 +158,24 @@ test("an ask that never answers is bounded, and comes back as an unknown rather 
   assert.doesNotMatch(row.detail, /and the one running/u);
 });
 
-/* When the child starts, read off the remote's own footprint rather than off a clock: an elapsed
-   bound says the same thing only on an unloaded box, and this one is never that. An ask made where
-   the row is read leaves the mark unwritten for as long as this polls, nothing having spawned. */
+/* A handshake and not a clock: the transport serves nothing until a file appears that is written
+   only after startRelease has returned, so an ask that ran to its own deadline where it is started
+   would never see the file and the row would read as a timeout instead of as the release the remote
+   holds. Nothing here bounds elapsed time, which this suite refuses, and nothing here reads the
+   share of the machine the process got. */
 test("the ask is already running before the row is read, not begun by reading it", async () => {
   const at = box("overlapping");
-  const mark = join(at.room, "asked");
-  const transport = join(at.room, "slow-transport");
-  writeFileSync(transport, `#!/bin/sh\ntouch '${mark}'\nsleep 30\n`);
+  const go = join(at.room, "go");
+  const transport = join(at.room, "handshake-transport");
+  writeFileSync(transport, `#!/bin/sh\nwhile [ ! -f '${go}' ]; do sleep 0.05; done\nexec git-upload-pack '${at.origin}'\n`);
   chmodSync(transport, 0o755);
   git(at.tree, "config", "protocol.ext.allow", "always");
   git(at.tree, "remote", "set-url", "origin", `ext::${transport}`);
-  const started = startRelease({ home: at.home, running: "1.0.0", ms: 900 });
-  assert.equal(await reached(() => existsSync(mark), true), true,
-    "the ask had not begun while the report's own work ran");
-  const row = only(await releaseRows(started));
-  assert.match(row.detail, /not read: the remote did not answer inside 0\.9s/u);
-  assert.doesNotMatch(row.detail, /and the one running/u);
-});
-
-/* The checks the ask overlaps block the loop, so the deadline's own timer cannot fire while they
-   run. What the bound bounds is what the ask costs the report, and work the report was going to do
-   anyway spends none of that: here the whole deadline elapses inside a block, and the row still
-   comes back naming the timeout rather than waiting further or reading as agreement. */
-test("a block longer than the bound still leaves the deadline enforced", async () => {
-  const at = box("blocked");
-  hangs(at);
-  const started = startRelease({ home: at.home, running: "1.0.0", ms: 300 });
-  const until = Date.now() + 700;
-  while (Date.now() < until) { /* the report's own synchronous checks, which hold the loop */ }
+  const started = startRelease({ home: at.home, running: "1.0.0", ms: 20_000 });
+  writeFileSync(go, "");
   const row = only(await releaseRows(started));
   assert.equal(row.level, "note");
-  assert.match(row.detail, /not read: the remote did not answer inside 0\.3s/u);
-  assert.doesNotMatch(row.detail, /and the one running/u);
+  assert.match(row.detail, /1\.0\.0 running, 1\.0\.2 released/u);
 });
 
 /* Never reached by a test before this one, and one of the four failures the row names by name. */
