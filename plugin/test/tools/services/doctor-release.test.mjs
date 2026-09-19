@@ -179,6 +179,22 @@ test("the ask is already running before the row is read, not begun by reading it
   assert.doesNotMatch(row.detail, /and the one running/u);
 });
 
+/* The checks the ask overlaps block the loop, so the deadline's own timer cannot fire while they
+   run. What the bound bounds is what the ask costs the report, and work the report was going to do
+   anyway spends none of that: here the whole deadline elapses inside a block, and the row still
+   comes back naming the timeout rather than waiting further or reading as agreement. */
+test("a block longer than the bound leaves the deadline enforced and the ask costing nothing", async () => {
+  const at = box("blocked");
+  hangs(at);
+  const started = startRelease({ home: at.home, running: "1.0.0", ms: 300 });
+  const until = Date.now() + 700;
+  while (Date.now() < until) { /* the report's own synchronous checks, which hold the loop */ }
+  const row = only(await releaseRows(started));
+  assert.equal(row.level, "note");
+  assert.match(row.detail, /not read: the remote did not answer inside 0\.3s/u);
+  assert.doesNotMatch(row.detail, /and the one running/u);
+});
+
 /* Never reached by a test before this one, and one of the four failures the row names by name. */
 test("git that cannot be run is said by name, never as agreement", async () => {
   const home = tempRoom("release-home-no-git-");
