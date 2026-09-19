@@ -211,11 +211,7 @@ export const scopeFor = (root, extras = [], check = null, consult = null) => {
 
 const TAIL_CHARS = 6_000;
 
-/* Where the clock came from and what moves it. The two cases read differently — a project that set
-   the key is told which file holds it, one that never named it is told the key exists at all — and
-   both are here because this string is the only thing the run that paid for the stopped call is
-   handed: a refusal saying a command was stopped and nothing else leaves the knob to be guessed at.
-   The seconds stay first in the sentence, being what the log's own readers parse out of it. */
+/* The clock and the key that moves it, spelled two ways because a project that set the key is told which file holds it and one that never named it is told the key exists at all. Both are here because this string is the whole of what the run that paid for the stopped call is handed, and the seconds stay first in it, being what the log's own readers parse back out. */
 const clockSaid = ({ ms, msFrom }) => (msFrom === FROM_PROJECT
   ? `\`codex.checkMs\` in ${msFrom}. Raise it, or narrow \`codex.check\` to what fits ${ms / 1000}s`
   : `this plugin's default. Set \`codex.checkMs\` in ${FROM_PROJECT} to raise it, or narrow `
@@ -236,9 +232,6 @@ const checkOnce = (scope) => {
   });
   if (run.error) {
     if (run.pid) try { process.kill(-run.pid, "SIGKILL"); } catch { /* already gone */ }
-    /* The clock and the key that moves it, in the refusal itself: this string is what the reviewer
-       reads, what the consult prints to the run that asked for it and what the log keeps, and a run
-       told only that a command was stopped has to read this module to learn there is a knob. */
     const why = run.error.code === "ETIMEDOUT"
       ? `ran past ${scope.check.ms / 1000}s and was stopped. That clock is ${clockSaid(scope.check)}`
       : `could not finish: ${run.error.message}`;

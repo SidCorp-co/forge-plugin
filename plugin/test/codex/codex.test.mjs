@@ -578,9 +578,7 @@ test("asking an action what to type prints that action's own usage", () => {
   }
 });
 
-/* Resolved once and read by both the spawn that enforces it and the reports that print it, so no
-   caller supplies a default of its own: the one this repository had sat beside its spawn, where the
-   surfaces naming the key could not reach it and nothing could say what the pair resolved to. */
+/* Resolved once and read by both the spawn that enforces it and the reports that print it, so no caller supplies a default of its own: the one this repository had sat beside its spawn, where the surfaces naming the key could not reach it and nothing could say what the pair resolved to. */
 test("the check's clock is the project's own where it names one, and the product's default otherwise", async () => {
   const forge = new URL("../../bin/forge", import.meta.url).pathname;
   const shown = (codex) => {
@@ -595,17 +593,14 @@ test("the check's clock is the project's own where it names one, and the product
   };
   assert.equal(shown({ check: "npm test" }), "check : npm test, stopped at 300s ← the plugin's default");
   assert.equal(shown({ check: "npm test", checkMs: 600000 }), "check : npm test, stopped at 600s ← .forge.json");
-  /* `true` reads as 1ms and `[600000]` as 600000 under a bare coercion, and both are a clock nobody
-     typed being reported as one the project chose. */
+  /* `true` reads as 1ms and `[600000]` as 600000 under a bare coercion, and both are a clock nobody typed being reported as one the project chose. */
   for (const given of ["soon", 0, -1, 1.5, true, [600000], "600000"]) {
     assert.equal(shown({ check: "npm test", checkMs: given }),
       "check : npm test, stopped at 300s ← the plugin's default",
       `${given} is no clock, so the default stands and forge doctor is where the value is named`);
   }
   assert.match(shown({ pathRe: "^src/" }), /^check : none — a codex\.check in the project's own settings names one$/u);
-  /* And the resolved clock through the scope the consult builds, not the line the report prints:
-     `codex show` staying right while the spawn takes some other number is the wiring this pair is
-     for, and the scope is where the two meet. */
+  /* And the resolved clock through the scope the consult builds, not the line the report prints: `codex show` staying right while the spawn takes some other number is the wiring this pair is for, and the scope is where the two meet. */
   const room = tempRoom("codex-clock-scope-");
   const stopped = await runTool(
     scopeFor(room, [], codexCheckOf({ check: "sleep 30", checkMs: 200 })), "run_check", {});

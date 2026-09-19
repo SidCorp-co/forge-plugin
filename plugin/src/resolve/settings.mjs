@@ -272,14 +272,10 @@ export const codexOwedOf = (codex) => {
 export const codexOwed = () => codexOwedOf(projectCodex());
 
 export const CHECK_MS_TAKES = "a whole number of milliseconds above 0";
-/* The clock a declared check runs under where the project names none. It lives beside the key that
-   overrides it rather than beside the spawn it is handed to, so the reader that reports what the
-   budget resolves to and the caller that enforces it read one number (BR-08). */
+/* Beside the key that overrides it and not beside the spawn it was handed to, so the reader that reports what resolved and the caller that enforces it read one number (BR-08). */
 export const CHECK_MS_ABSENT = 300_000;
 
-/** The check a project declares for the reviewer, with the clock it runs under: the command, the
- *  budget in milliseconds and where each was read. Null where the project declares no command, that
- *  being the case the reviewer is given no such tool at all rather than one with a default. */
+/** The check a project declares for the reviewer, with the clock it runs under: the command, the budget in milliseconds and where each was read. Null where the project declares no command, that being the case the reviewer is given no such tool at all rather than one with a default. The type is asked before the value, `Number` reading `true` as 1 and `[600000]` as 600000, and what the key will not take is carried stringified rather than cast, `""` and `[]` casting to nothing at all and a row naming nothing being the row a project that set the key legally would read (BR-14). */
 export const codexCheckOf = (codex) => {
   const command = codex?.check;
   if (!command || typeof command !== "string") return null;
@@ -287,12 +283,8 @@ export const codexCheckOf = (codex) => {
   if (given === undefined || given === null) {
     return { command, ms: CHECK_MS_ABSENT, from: FROM_PROJECT, msFrom: PLUGIN_DEFAULT };
   }
-  /* The type before the value: `Number` reads `true` as 1 and `[600000]` as 600000, so a coercion
-     alone takes two things the key does not take and calls them a clock a project chose (BR-14). */
   return typeof given === "number" && Number.isInteger(given) && given > 0
     ? { command, ms: given, from: FROM_PROJECT, msFrom: FROM_PROJECT }
-    /* Stringified rather than cast: `""` and `[]` cast to nothing at all, and a row naming nothing
-       is the row a project that set the key legally would read. */
     : { command, ms: CHECK_MS_ABSENT, from: FROM_PROJECT, msFrom: PLUGIN_DEFAULT, unknown: JSON.stringify(given) };
 };
 

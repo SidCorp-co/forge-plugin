@@ -269,8 +269,7 @@ test("the report says how far this device's clock stands from the tracker's, or 
 
 const MISS_ROW = (label, detail) => new RegExp(`^\\[ miss \\] ${label}\\s+${detail}`, "mu");
 
-/* A home of its own per reading, because the consult log the row is answered from lives beside the
-   credential and one written for a case would otherwise answer every case after it. */
+/* A home of its own per reading, because the consult log the row is answered from lives beside the credential and one written for a case would otherwise answer every case after it. */
 const roomWith = (name, codex, stops = []) => {
   const room = tempHome(name);
   cpSync(join(tracker.env.XDG_CONFIG_HOME, "forge"), join(room.path, "forge"), { recursive: true });
@@ -288,8 +287,7 @@ const stopAt = (seconds, root, at) => ({
   refused: [`run_check : \`npm test\` ran past ${seconds}s and was stopped. That clock is \`codex.checkMs\` in .forge.json`],
 });
 
-/* The command and the clock are one reading: a project that can see the first and not the second
-   has declared a call the reviewer spends and cannot finish, which is ISS-1882's whole subject. */
+/* The command and the clock are one reading: a project that can see the first and not the second has declared a call the reviewer spends and cannot finish, which is ISS-1882's whole subject. */
 test("a declared check is printed with the clock it runs under and where that clock was read", async () => {
   const set = roomWith("check-clock", { check: "npm test", checkMs: 600000 });
   const run = await ranAsync(FORGE, ["doctor", "project"], set.env, set.where);
@@ -306,8 +304,7 @@ test("a check clock that is not a whole number above zero is named rather than t
     MISS_ROW("codex.check", '"soon" is no value of `codex.checkMs` — it takes a whole number of '
       + "milliseconds above 0; reading npm test — stopped at 300s {2}← the plugin's default"),
     run.stdout);
-  /* The values that carry nothing to print are the ones a row naming the value can lose: a project
-     that set the key legally would read exactly the row a project that set it to `""` did. */
+  /* The values that carry nothing to print are the ones a row naming the value can lose: a project that set the key legally would read exactly the row a project that set it to `""` did. */
   for (const given of ["", [], 0]) {
     const odd = roomWith(`check-unknown-${JSON.stringify(given)}`, { check: "npm test", checkMs: given });
     const said = await ranAsync(FORGE, ["doctor", "project"], odd.env, odd.where);
@@ -318,10 +315,7 @@ test("a check clock that is not a whole number above zero is named rather than t
   }
 });
 
-/* Silence and not a row reading none: a project that declared nothing is given no such tool at all,
-   and a line about a clock nothing runs under is one every project without the key would read. The
-   declared half is asserted in the same case and not left to its neighbour, an absence being what a
-   report that never learned to print the row at all looks like too. */
+/* Silence and not a row reading none: a project that declared nothing is given no such tool at all, and a line about a clock nothing runs under is one every project without the key would read. The declared half is asserted in the same case and not left to its neighbour, an absence being what a report that never learned to print the row at all looks like too. */
 test("a project declaring no check is one the report says nothing about", async () => {
   const set = roomWith("check-absent", { pathRe: "^src/" });
   const run = await ranAsync(FORGE, ["doctor", "project"], set.env, set.where);
@@ -333,9 +327,7 @@ test("a project declaring no check is one the report says nothing about", async 
     "the same project with a check declared does print the row, so the silence above is a decision");
 });
 
-/* A record answers for the clock it was taken at, so raising the clock past every recorded stop
-   clears the row on the next reading rather than after the window rolls. The checkout each stop
-   names is the whole of the attribution the log can carry: a consult row holds no project. */
+/* A record answers for the clock it was taken at, so raising the clock past every recorded stop clears the row on the next reading rather than after the window rolls. The checkout each stop names is the whole of the attribution the log can carry: a consult row holds no project. */
 test("recorded stops of that same command name each one's own checkout, and a larger clock clears them", async () => {
   const ago = (days) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
   const stops = [stopAt(300, "/tmp/wt-older", ago(3)), stopAt(300, "/tmp/wt-newest", ago(1))];
@@ -352,8 +344,7 @@ test("recorded stops of that same command name each one's own checkout, and a la
     "every recorded stop was taken at a clock this project has moved past, so none of them counts");
 });
 
-/* The one reading configuration settles on its own, and the only one here that is a fault: past the
-   consult's own deadline the check takes the consult with it instead of coming back stopped. */
+/* The one reading configuration settles on its own, and the only one here that is a fault: past the consult's own deadline the check takes the consult with it instead of coming back stopped. */
 test("a check clock at or past the one a whole consult runs under is refused", async () => {
   const set = roomWith("check-past", { check: "npm test", checkMs: 900000 });
   const run = await ranAsync(FORGE, ["doctor", "project"], set.env, set.where);
