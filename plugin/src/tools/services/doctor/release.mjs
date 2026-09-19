@@ -10,7 +10,8 @@ import { hereCopy, pluginCopy } from "../../plugin-copy.mjs";
 const LABEL = "newest release";
 const REMOTE = "origin";
 /* Long enough for a round trip to a git host on a slow link, short enough that a report nobody is
-   waiting on cannot hold up the phase that runs it. */
+   waiting on cannot hold up the phase that runs it. It bounds the wait for the answer and not the
+   span from the ask, which is where those two readings differ. */
 export const MS = 5000;
 
 const OWN = new URL("../../../../.claude-plugin/plugin.json", import.meta.url);
@@ -47,28 +48,39 @@ export const registeredSource = (home) => {
 };
 
 /* Named and never git's own default, which is the branch's upstream and can be a second remote whose tags are older: a release publishes to origin, so a row agreeing with anything else agrees wrongly. And no terminal prompt and no ssh that can ask for anything — a blocked prompt is a phase that never starts, and a report is no place to discover a box's credential has expired. */
-const asked = (at, ms) => new Promise((settle) => {
+const asked = (at) => {
   const child = spawn("git", ["ls-remote", "--tags", REMOTE], {
     cwd: at,
     env: { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_SSH_COMMAND: "ssh -oBatchMode=yes" },
   });
   let out = "";
   let bad = "";
-  /* The bound is on the report and not on the process: git's transport helper can outlive the kill
-     still holding the pipe, so waiting for the child to close would be the wait this bound refuses. */
-  const bound = setTimeout(() => {
-    child.kill("SIGKILL");
-    child.stdout.destroy();
-    child.stderr.destroy();
-    child.unref();
-    settle({ late: true });
-  }, ms);
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
   child.stdout.on("data", (part) => { out += part; });
   child.stderr.on("data", (part) => { bad += part; });
-  child.on("error", (error) => { clearTimeout(bound); settle({ error }); });
-  child.on("close", (status) => { clearTimeout(bound); settle({ status, stdout: out, stderr: bad }); });
+  const done = new Promise((settle) => {
+    child.on("error", (error) => settle({ error }));
+    child.on("close", (status) => settle({ status, stdout: out, stderr: bad }));
+  });
+  /* Giving up is on the report and not on the process: git's transport helper can outlive the kill
+     still holding the pipe, so waiting for the child to close would be the wait this refuses. */
+  const stop = () => {
+    child.kill("SIGKILL");
+    child.stdout.destroy();
+    child.stderr.destroy();
+    child.unref();
+  };
+  return { done, stop };
+};
+
+/* Armed here and not where the child was spawned, because the ask is started before the checks it
+   overlaps and those checks hold the loop: node runs its timers before it polls for I/O, so a clock
+   armed at the spawn is spent by work the report was going to do anyway and fires on an answer
+   already sitting in the pipe. What is bounded is the wait, and nothing waits until this is called. */
+const answered = (ask, ms) => new Promise((settle) => {
+  const bound = setTimeout(() => { ask.stop(); settle({ late: true }); }, ms);
+  ask.done.then((run) => { clearTimeout(bound); settle(run); });
 });
 
 const releasedVersions = (run, ms) => {
@@ -89,7 +101,7 @@ const releasedVersions = (run, ms) => {
 export const startRelease = ({ home = homedir(), running = hereCopy().version, ms = MS } = {}) => {
   const source = registeredSource(home);
   const mine = triple(running);
-  return { ms, running, source, mine, answer: source && mine ? asked(source.tree, ms) : null };
+  return { ms, running, source, mine, answer: source && mine ? asked(source.tree) : null };
 };
 
 /* Counting tags and never releases: every release before this one published nothing to count, so a
@@ -118,7 +130,7 @@ export const releaseRows = async (started = startRelease()) => {
       + "installed from, so nothing here can say whether the copy running is the current one");
   }
   if (!mine) return note(`not read: the running copy states no version, so there is nothing to compare  ← ${source.at}`);
-  const { versions, problem } = releasedVersions(await answer, ms);
+  const { versions, problem } = releasedVersions(await answered(answer, ms), ms);
   if (problem) {
     return note(`not read: ${problem}  ← git ls-remote ${REMOTE} in ${source.tree} — this box cannot tell `
       + "whether the copy it runs is current, which is not the same as it being current");

@@ -10,7 +10,7 @@ import test from "node:test";
 
 import { releaseRows, startRelease } from "../../../src/tools/services/doctor/release.mjs";
 import { escaped, tempRoom } from "../../fixtures.mjs";
-import { patience } from "../../patience.mjs";
+import { patience, reached } from "../../patience.mjs";
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const NAME = JSON.parse(readFileSync(join(SRC, ".claude-plugin", "plugin.json"), "utf8")).name;
@@ -158,20 +158,44 @@ test("an ask that never answers is bounded, and comes back as an unknown rather 
   assert.doesNotMatch(row.detail, /and the one running/u);
 });
 
-/* A handshake and not a clock: the transport serves nothing until a file appears that is written
-   only after startRelease has returned, so an ask that ran to its own deadline where it is started
-   would never see the file and the row would read as a timeout instead of as the release the remote
-   holds. Nothing here bounds elapsed time, which this suite refuses, and nothing here reads the
-   share of the machine the process got. */
+/* Node runs its timers before it polls for I/O, so a clock armed where the ask is issued is already
+   overdue when a block ends and fires on the first turn the loop takes after it. The remote here is
+   held until the block is over, which is what makes the two readings differ: a bound on the span
+   from the ask has nothing left to spend, and a bound on the wait has all of it. */
+test("a block longer than the bound does not spend the remote's budget", async () => {
+  const at = box("blocked");
+  const go = join(at.room, "go");
+  const transport = join(at.room, "held-transport");
+  writeFileSync(transport, `#!/bin/sh\nwhile [ ! -f '${go}' ]; do sleep 0.02; done\nexec git-upload-pack '${at.origin}'\n`);
+  chmodSync(transport, 0o755);
+  git(at.tree, "config", "protocol.ext.allow", "always");
+  git(at.tree, "remote", "set-url", "origin", `ext::${transport}`);
+  const started = startRelease({ home: at.home, running: "1.0.0", ms: 700 });
+  const until = Date.now() + 1000;
+  while (Date.now() < until) { /* the report's own synchronous checks, which hold the loop */ }
+  writeFileSync(go, "");
+  const row = only(await releaseRows(started));
+  assert.equal(row.level, "note");
+  assert.match(row.detail, /1\.0\.0 running, 1\.0\.2 released/u);
+});
+
+/* Two readings, because either alone is half. The footprint says the child was already running
+   before the row was entered — an ask made where the row is read leaves the mark unwritten for as
+   long as this polls, nothing having spawned. The handshake says startRelease had returned before
+   the transport could serve, so the footprint is not a spawn the row itself made. Neither bounds
+   elapsed time, which this suite refuses, and neither reads the share of the machine it got. */
 test("the ask is already running before the row is read, not begun by reading it", async () => {
   const at = box("overlapping");
+  const mark = join(at.room, "asked");
   const go = join(at.room, "go");
   const transport = join(at.room, "handshake-transport");
-  writeFileSync(transport, `#!/bin/sh\nwhile [ ! -f '${go}' ]; do sleep 0.05; done\nexec git-upload-pack '${at.origin}'\n`);
+  writeFileSync(transport, `#!/bin/sh\ntouch '${mark}'\nwhile [ ! -f '${go}' ]; do sleep 0.05; done\nexec git-upload-pack '${at.origin}'\n`);
   chmodSync(transport, 0o755);
   git(at.tree, "config", "protocol.ext.allow", "always");
   git(at.tree, "remote", "set-url", "origin", `ext::${transport}`);
   const started = startRelease({ home: at.home, running: "1.0.0", ms: 20_000 });
+  assert.equal(await reached(() => existsSync(mark), true), true,
+    "the ask had not begun while the report's own work ran, so the row is what started it");
   writeFileSync(go, "");
   const row = only(await releaseRows(started));
   assert.equal(row.level, "note");

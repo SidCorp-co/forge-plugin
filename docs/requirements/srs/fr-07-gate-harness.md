@@ -248,6 +248,15 @@ this states and does not refuse.
 - **AC-07-9-9** · Rev: 1 · Proof: plugin/test/run/release/run-released-version.test.mjs "a release that cannot publish its version stops and names the resume that publishes it"
   IF a release cannot publish the version it shipped THEN it SHALL stop and SHALL name the step to
   resume from, rather than complete with that version unpublished.
+- **AC-07-9-10** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "a block longer than the bound does not spend the remote's budget"
+  WHILE the report is waiting for the newest released version, the bound SHALL be measured from
+  where the report begins waiting for the answer, because the ask is issued before the checks it
+  overlaps and a report that holds its own loop through them would otherwise charge that time to
+  the remote and call an answer that arrived a silence.
+- **AC-07-9-11** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "the ask is already running before the row is read, not begun by reading it"
+  WHEN the row for the newest released version is read THEN the ask SHALL already have been running
+  while the checks before it ran, because an ask begun by the reading costs the report its whole
+  round trip rather than only what it is slower than those checks by.
 
 ## Business rules enforced
 
