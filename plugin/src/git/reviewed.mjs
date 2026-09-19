@@ -17,16 +17,15 @@ export const readingTitle = (from, to) =>
   `The batch ${at(from)}..${at(to)} is read once as a whole by a run that wrote none of it, and the `
   + `mark moves`;
 
-/** A title holds this debt where the range it names opens at the mark; one that ends there is the
- *  previous batch, already read, and answering with it leaves this range no row and no route to one. */
+/** A title holds this debt where the range it names opens at the mark: one that ends there is the
+ *  previous batch, read already, and answering with it leaves this range no row and no route to one. */
 export const readingCovers = (title, from) => String(title ?? "").includes(`${at(from)}..`);
 
 const NOT_A_READING = "dropped";
 const UNREAD = "the search for the issue holding this mark's reading";
 
-/** Held, none, or unread — three answers, because an absence a page may have been cut off from is
- *  not an absence, and a dropped reading leaves the range an issue nobody reads. Soft, so a page
- *  refusing after an earlier one carried the row leaves that row here rather than throwing it away. */
+/** Held, none, or unread — an absence a page was cut off from is none, a dropped reading leaves the
+ *  range an issue nobody reads, and soft keeps the rows a later page's refusal would throw away. */
 export const readingFor = async (from) => {
   const read = await everyIssue({ search: at(from) }, { soft: true });
   const row = read.rows.find((one) => readingCovers(one.title, from) && one.status !== NOT_A_READING);
