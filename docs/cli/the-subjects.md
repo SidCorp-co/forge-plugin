@@ -37,11 +37,18 @@ a run that had to spend a second call for the gate command and the ship script w
 save thirty lines. A subject earns its way out of a bare reading by being the repository's health,
 this copy's internals or the tracker's own — not by being long.
 
-**A flag whose reading a subject does not hold is refused.** Every flag but one writes and returns
-before any report, so a reading never sees it. The exception is `--credentials`, which asks for a
-row of the project's own record; on a reading with no project row in it, it is refused with the call
-that answers rather than dropped. An input is used or refused, and a subject slot is a new way for
-one to be neither.
+**A flag whose reading a subject does not hold is refused.** Every flag but two writes and returns
+before any report, so a reading never sees it. The two are `--credentials`, which asks for a row of
+the project's own record, and `--full`, which widens a masked value and the project id; a reading
+holding neither is refused with what does hold it rather than given a flag that does nothing. An
+input is used or refused, and a subject slot is a new way for one to be neither.
+
+**A reading the report gives up on says so to whoever asked.** The reasons it gives up are the
+account half being incomplete, no project slug resolving, and the tracker refusing to resolve the
+project — each of which ends four subjects' readings rather than reporting on one. So none of the
+three is filtered: the first two print whatever is being read, and the third counts as a `miss` in
+the reading that asked for it, keeping the label that names where the failure was. Filtered there, a
+subject call would print nothing and exit green, which is the one outcome a diagnosis may not have.
 
 **A subject asked for spends only what it needs.** A reading with no row of the running copy in it
 never asks the remote, and one needing nothing of the tracker opens no connection: `forge doctor

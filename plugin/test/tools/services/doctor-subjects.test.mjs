@@ -2,12 +2,15 @@
    withholds. The 2,500-byte help cap forced the split — sixteen flags on one verb left nine named
    in the usage and described nowhere, which no care at the writing end fixes (ISS-1692). */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 import { tempRoom } from "../../fixtures.mjs";
-import { IN_BARE, SAYS, SUBJECTS, SUBJECT_SLUGS, USAGE } from "../../../src/tools/services/doctor/subjects.mjs";
+import {
+  IN_BARE, SAYS, SUBJECTS, SUBJECT_SLUGS, USAGE, WIDENED,
+} from "../../../src/tools/services/doctor/subjects.mjs";
 import { flagsNamed } from "../../../src/resolve/flags.mjs";
 import { usageOf } from "../../../src/resolve/visibility.mjs";
 
@@ -22,6 +25,35 @@ const doctor = (...argv) => {
   });
   return `${run.stdout}${run.stderr}`;
 };
+
+/* A credential saved and no project: the slug is read before any request, so nothing here waits on
+   a host. `mkdirSync` is the config directory the save would make. */
+const withCredential = (...argv) => {
+  const home = tempRoom("doctor-subjects-cred-");
+  mkdirSync(join(home, "forge"), { recursive: true });
+  writeFileSync(join(home, "forge", "config.json"),
+    JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t" }));
+  const run = spawnSync(process.execPath, [CLI, "doctor", ...argv], {
+    encoding: "utf8",
+    cwd: tempRoom("doctor-subjects-cwd-"),
+    env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
+  });
+  return { said: `${run.stdout}${run.stderr}`, status: run.status };
+};
+
+/* The second half of the same cause the review found: a reading the report gives up on is reported
+   to whoever asked for it, or a subject prints nothing and exits green (ISS-1692, codex F1 twice). */
+test("a subject that needs the project and finds no slug says so and exits on it", () => {
+  const asked = withCredential("brief");
+  assert.match(asked.said, /\[ miss \] project slug\s+no project slug resolves here/u);
+  assert.match(asked.said, /\.forge\.json at the root of this checkout/u, "and the one command that clears it");
+  assert.equal(asked.status, 1, "a reading nobody could take is not a green one");
+  const bare = withCredential();
+  assert.match(bare.said, /\[ note \] project slug\s+project-scoped calls will refuse/u,
+    "while a bare reading keeps the note: a credential outside any checkout is an ordinary state");
+  assert.doesNotMatch(bare.said, /\[ miss \] project slug/u);
+  assert.match(bare.said, /No project slug: capability probes are project-scoped and were skipped/u);
+});
 
 test("the verb's help gives every subject a line, and each subject's help opens on its own call", () => {
   for (const { slug, says, text } of SUBJECTS) {
@@ -77,12 +109,17 @@ test("a bare reading keeps a withheld subject's findings, drops its ok rows and 
     "and the call that prints it whole is named");
 });
 
-/* Every other flag writes and returns before the report; this one asks for a reading. */
+/* Every other flag writes and returns before the report; these two ask for a reading. */
 test("a flag whose reading a subject does not hold is refused, not dropped", () => {
   const said = doctor("machine", "--credentials");
   assert.match(said, /--credentials prints the test credentials/u);
   assert.match(said, /Send `forge doctor project --credentials`/u, "and the call that reads it");
   assert.doesNotMatch(said, /^\[/mu, "a refusal reports nothing");
+  const widened = doctor("copy", "--full");
+  assert.match(widened, new RegExp(`which is ${WIDENED.join(", ")}`, "u"), widened);
+  assert.doesNotMatch(widened, /^\[/mu);
+  assert.doesNotMatch(doctor("machine", "--full"), /--full prints a value a row masks/u,
+    "and a reading it does widen takes it");
 });
 
 test("a word that is no subject is refused with the nearest, and nothing is read", () => {

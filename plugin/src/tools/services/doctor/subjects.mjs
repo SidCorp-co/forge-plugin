@@ -161,18 +161,22 @@ const TRACKER = [
  *  whether a bare call reads it, and its own text. `bare` false is the reading a bare call prints
  *  only the faults of — the repository's health, the plugin's internals, the tracker's own. */
 export const SUBJECTS = [
-  { slug: "machine", bare: true, says: "the endpoint, the credential, the session id and the gates off here", text: MACHINE },
+  { slug: "machine", bare: true, full: true, says: "the endpoint, the credential, the session id and the gates off here", text: MACHINE },
   { slug: "offer", bare: true, says: "which verbs and skills this machine offers, and the jobs declared here", text: OFFER },
   { slug: "project", bare: true, says: "the keys this project sets, and the tracker's own record of it", text: PROJECT },
   { slug: "brief", bare: true, says: "the brief read instead of the repository, and the sources of it that moved", text: BRIEF },
   { slug: "copy", bare: true, says: "which copy answers a call, which the gates run, and the newest released", text: COPY },
   { slug: "serves", bare: false, says: "the roles, the contract, the flows and the stubs this copy serves", text: SERVES },
-  { slug: "services", bare: true, says: "the hosts the harness calls, and which of their keys are held", text: SERVICES },
+  { slug: "services", bare: true, full: true, says: "the hosts the harness calls, and which of their keys are held", text: SERVICES },
   { slug: "repo", bare: false, says: "this checkout's own health: what it declares, and what CLAUDE.md claims", text: REPO },
-  { slug: "tracker", bare: false, says: "what the tracker answers for: its routes, its clock, its capabilities", text: TRACKER },
+  { slug: "tracker", bare: false, full: true, says: "what the tracker answers for: its routes, its clock, its capabilities", text: TRACKER },
 ];
 
 export const SUBJECT_SLUGS = SUBJECTS.map((one) => one.slug);
+
+/** The subjects `--full` widens: a value a row masks, and the project id it prints rather than says
+ *  resolved. A reading holding none of them is a reading that flag does nothing to. */
+export const WIDENED = SUBJECTS.filter((one) => one.full).map((one) => one.slug);
 
 /* One text per subject, which is the set its own call answers help with, so neither can move
    alone — the same shape `forge stats` declares for its subjects. */

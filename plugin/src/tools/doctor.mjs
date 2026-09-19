@@ -39,10 +39,13 @@ import { usageOf } from "../resolve/visibility.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
 import { FLOW_SLUGS, flowRefusal } from "../guides/flow.mjs";
 import { rankLines } from "./services/doctor/rank.mjs";
-import { SAYS, SUBJECT_SLUGS, USAGE as SUBJECT_USAGE } from "./services/doctor/subjects.mjs";
+import {
+  SAYS, SUBJECT_SLUGS, USAGE as SUBJECT_USAGE, WIDENED,
+} from "./services/doctor/subjects.mjs";
 import { didYouMean } from "../suggest.mjs";
 import {
-  BAD, NOTE, OK, block, closing, line, missedHere, reading, report, shown, stopping, under,
+  BAD, NOTE, OK, asking, block, closing, line, missedHere, reading, report, shown, stopping,
+  under,
 } from "./services/doctor/showing.mjs";
 import { held, projectKeyLines } from "./services/doctor/keys.mjs";
 import { ORDER } from "../flow/earned.mjs";
@@ -278,8 +281,15 @@ const checkEndpoint = async (full, credentials) => {
   line(OK, "rest base", `${restBase()}  ← derived from the endpoint url above, its trailing /mcp off`);
   line(OK, "route table", `${declared.length} route(s) over ${groups(declared)} tool(s)`);
   const { value: slug } = projectScope();
+  /* Soft on a bare reading, where a working credential outside any checkout is an ordinary state and
+     the `project slug` row above already says so; a stop where a subject that needs the slug was the
+     whole of what was asked for, which would otherwise print nothing and exit green (codex F1). */
   if (!slug) {
-    block("\nNo project slug: capability probes are project-scoped and were skipped.");
+    if (asking()) {
+      return stopping("project slug", "no project slug resolves here, so nothing below this line "
+        + `was read — put \`{ "slug": "<project>" }\` in a .forge.json at the root of this checkout`);
+    }
+    console.log("\nNo project slug: capability probes are project-scoped and were skipped.");
     return;
   }
   const held = await trackerId(projectId);
@@ -371,8 +381,12 @@ export const doctor = async (argv) => {
       : `doctor: ${didYouMean("doctor subject", positionals[0], SUBJECT_SLUGS)} A word here is a `
         + `subject to read, ${route}`);
   }
-  /* The one flag that asks for a reading rather than writing one: a subject that never reaches the
-     project's rows would drop it in silence, and an input is used or refused. */
+  /* The two flags that ask for a reading rather than writing one. A subject the reading does not hold
+     would drop either in silence, and an input is used or refused. */
+  if (full && !shown(...WIDENED)) {
+    fail(`doctor: --full prints a value a row masks and the project id in full, which is ${WIDENED.join(", ")}`
+      + ". This reading holds none of them: drop the flag, or name one of those subjects.");
+  }
   if (credentials && !shown("project")) {
     fail("doctor: --credentials prints the test credentials the project's own deploy rows withhold, "
       + "and this reading holds no project row. Send `forge doctor project --credentials`.");

@@ -30,6 +30,8 @@ export const shown = (...subjects) =>
 
 export const missedHere = () => missed;
 
+export const asking = () => asked;
+
 /* A bare reading keeps every fault, whatever subject it is of, so the first command a session runs
    still diagnoses the whole box and exits as it did; a subject asked for answers for itself alone. */
 export const line = (mark, label, detail) => {
