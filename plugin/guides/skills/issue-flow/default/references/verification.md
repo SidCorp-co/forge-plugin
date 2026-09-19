@@ -106,12 +106,14 @@ compared on is that one case's own result in each reading and never the run's ex
 can pass in a file where a sibling fails, which leaves the run red and the case green, and an
 exit-status reading calls that a red watched twice.
 
-- **Red in both** — what the pair establishes is that the red does not turn on what ran before the
-  case, and that is the whole of what it establishes. Whether it is the red the rule is about is
-  read off the assertion that failed: a case that never reached that assertion, a fixture or an
-  import having gone first, proved nothing in either reading.
-- **Green in both** — nothing was watched. The case showed no failure against this source: either
-  the fix is already in the tree, and the reading is owed before it, or the case cannot fail.
+- **Red in both** — the case failed in both readings and the pair found no disagreement, which is
+  the reading a run goes on from. It says that and no more: it rules out neither a schedule under
+  which the case passes, nor a red the rule is not about, which is read off the assertion that
+  failed. A case that never reached that assertion, a fixture or an import having gone first,
+  proved nothing in either reading.
+- **Green in both** — nothing was watched. The case showed no failure against this source in either
+  reading: the fix may already be in the tree, and the reading is owed before it, or the case may
+  not be able to fail at all.
 - **One of each** — the readings disagree, so neither of them says anything about the source. One
   pair cannot tell an interaction with what ran before from a process that got a different share of
   the machine, and it is not asked to: reshape the case until the two agree.
