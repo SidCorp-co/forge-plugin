@@ -40,6 +40,14 @@ test("a set that excluded the judged consult's findings says so and names what r
   assert.equal(/othing says what became of/u.test(ruled), false, "a finding the author ruled on is no gate obligation");
   assert.match(ruled, /already carries your ruling/u);
 
+  /* The reviewer reads files beyond the ones it was sent, so a finding can be anchored on a path no
+     recorded set holds — where the consult's own set leaves it out too, that route reprints itself. */
+  const elsewhere = { ...JUDGED, reply: "CODEX: 1 findings\n- **New — major:** `tools/run.mjs:1` — the lock is released by path." };
+  const unreachable = recheckOwed(recheckPlan([elsewhere], "/a", ["a.mjs"]), ["a.mjs"]);
+  assert.equal(/--recheck/u.test(unreachable), false, "a route that leaves the finding out again is no route");
+  assert.match(unreachable, /anchored on a file that consult never recorded/u);
+  assert.match(unreachable, /forge codex verdict --of c55/u);
+
   const empty = recheckOwed(recheckPlan([{ ...JUDGED, reply: "CODEX: 0 findings" }], "/a", ["a.mjs"]), ["a.mjs"]);
   assert.match(empty, /read this set whole and found nothing/u, "a consult that made no findings still gets the coverage sentence");
   assert.equal(recheckMissed(recheckPlan([JUDGED], "/a", ["a.mjs", "docs/FORGE-CLI.md"])), null, "every finding inside the set: nothing left out");
@@ -52,5 +60,10 @@ test("a recheck that does go ahead names the finding its set does not reach", ()
   assert.deepEqual(plan.ids, ["F2"], "only the finding this set holds is verified");
   assert.equal(recheckOwed(plan, ["a.mjs"]), null, "there is something to recheck, so nothing is refused");
   assert.match(recheckMissed(plan), /also made F1 on docs\/FORGE-CLI\.md/u);
-  assert.match(recheckMissed(plan), /--recheck a\.mjs docs\/FORGE-CLI\.md/u, "and names the same route");
+  /* This round writes a consult of its own over these files, so a wider recheck answers that one. */
+  assert.equal(/--recheck/u.test(recheckMissed(plan)), false, "a route this very round invalidates is not offered");
+  assert.match(recheckMissed(plan), /forge codex verdict --of c55/u);
+  const answered = { kind: "consult", id: "c99", ok: true, root: "/a", at: "3", files: ["a.mjs"], send: "bodies", reply: "CODEX: 0 findings" };
+  assert.equal(recheckPlan([both, answered], "/a", ["a.mjs", "docs/FORGE-CLI.md"]).judged.id, "c99",
+    "which is what a wider recheck would then answer, and why the route was withheld");
 });

@@ -248,21 +248,27 @@ export const outcomeOf = (held, id) => {
   return held.note ?? null;
 };
 
-/* What the resolved set kept out of the judged consult's findings, or null. The gate filters findings
-   by no set, so a set narrower than that consult's leaves the two disagreeing over whether one exists
-   (ISS-1873). `route` is null where the consult's own set would select a newer one. */
+/* What the resolved set kept out of the judged consult's findings, or null: the gate filters findings
+   by no set, so a narrower one leaves the two disagreeing over whether one exists (ISS-1873). `why`
+   withholds the consult's own set as a route where it selects a newer consult or reprints this. */
 const leftOutOf = (entries, root, judged, reply, kept, ruled) => {
   const held = new Set(kept.map((one) => one.id));
   const out = numbered(reply).filter((one) => !held.has(one.id));
   if (!out.length) return null;
+  const of = judged.id ?? judged.at;
   const files = judged.files ?? [];
   const lands = files.length ? judgedBy(entries, root, files).at(-1) : null;
+  const reaches = new Set(numbered(reply, files).map((one) => one.id));
+  const why = !files.length ? `consult ${of} recorded no set of its own to recheck over`
+    : lands !== judged ? `a recheck over ${of}'s own set lands on consult ${lands.id ?? lands.at} instead`
+    : out.every((one) => reaches.has(one.id)) ? null
+    : `${of}'s own set leaves that finding out too, it being anchored on a file that consult never recorded`;
   return {
-    of: judged.id ?? judged.at,
+    of,
     made: out.map((one) => `${one.id} on ${ANCHOR.exec(one.head)?.[1] ?? "a file it did not name"}`),
     owed: undecidedIn(out.map((one) => one.id), ruled),
-    route: lands === judged ? files : null,
-    instead: lands === judged ? null : lands?.id ?? lands?.at ?? null,
+    route: why ? null : files,
+    why,
   };
 };
 
@@ -313,15 +319,16 @@ const some = (items) => (items.length > SHOWN
 const missedRoute = (out) => (out.route
   ? `Do this: \`echo "<what you were doing>" | forge codex consult --recheck ${out.route.map(pathed).join(" ")}\``
     + ` — the set ${out.of} was given, which is where its findings are anchored.`
-  : `A recheck over that set lands on consult ${out.instead ?? "another"} instead, which is not where`
-    + ` this finding was made, so rule it where the gate names: \`${verdictForm(out.of)}\`.`);
+  : `${out.why}, so rule it where the gate names: \`${verdictForm(out.of)}\`.`);
 
-/** What a recheck that does go ahead still does not reach, or null where no disposition is owed. */
+/** What a recheck that does go ahead still does not reach, or null where no disposition is owed. Never
+ *  a wider recheck: this round logs a consult of its own, which is then the one a wider set selects. */
 export const recheckMissed = (plan) => {
   const out = plan?.outside;
   if (!out?.owed.length) return null;
   return `consult ${out.of} also made ${some(out.made)}, which this set does not hold, so this recheck`
-    + ` does not reach ${some(out.owed)}.\n${missedRoute(out)}`;
+    + ` does not reach ${some(out.owed)}. This round logs a consult of its own over these files, which a`
+    + ` wider recheck would then answer instead, so rule it where the gate names: \`${verdictForm(out.of)}\`.`;
 };
 
 /** Why a recheck has nothing to verify and which pass does earn the review, or null where it has.
