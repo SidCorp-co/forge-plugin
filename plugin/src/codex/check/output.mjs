@@ -48,19 +48,17 @@ const fieldsFrom = (lines, from, indent) => {
 
 // Each carrying what its diagnostic gave of `KEPT`, nothing more. Empty for output that is not TAP.
 export const failuresIn = (text) => {
-  const lines = String(text ?? "").split("\n");
+  const lines = String(text ?? "").split(/\r?\n/u);
   const found = [];
   for (let at = 0; at < lines.length; at += 1) {
     const named = NOT_OK.exec(lines[at]);
-    if (!named || DIRECTIVE.test(named[2])) continue;
+    if (!named) continue;
     const indent = `${named[1]}  `;
-    if (lines[at + 1]?.trim() !== OPEN) {
-      found.push({ name: said(named[2]), fields: [] });
-      continue;
-    }
-    const { found: fields, ended } = fieldsFrom(lines, at + 2, indent);
-    found.push({ name: said(named[2]), fields });
-    at = ended;
+    /* Consumed before the directive is judged: a case that is not a failure still has a diagnostic,
+       and leaving it to the scan makes every line of it a test point this would read. */
+    const said_ = lines[at + 1]?.trim() === OPEN ? fieldsFrom(lines, at + 2, indent) : { found: [], ended: at };
+    at = said_.ended;
+    if (!DIRECTIVE.test(named[2])) found.push({ name: said(named[2]), fields: said_.found });
   }
   return found;
 };

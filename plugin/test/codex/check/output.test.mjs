@@ -64,6 +64,21 @@ test("a case TAP marked as not expected to pass is not a failure", () => {
   assert.equal(failuresSaid("TAP version 13\nnot ok 1 - the one not run here # SKIP\n1..1\n"), null);
 });
 
+/* A case that is not a failure still has a diagnostic, and the scan has to be past it either way:
+   left to the loop, every line of that block is a test point this would read. */
+test("the diagnostic under a case that is not a failure is not scanned for cases of its own", () => {
+  const skipped = "TAP version 13\nnot ok 1 - the one still to write # TODO\n  ---\n  error: |-\n    not ok 2 - a case nothing ran\n  ...\nnot ok 3 - the one that really failed\n1..3\n";
+  assert.deepEqual(failuresIn(skipped).map((one) => one.name), ["the one that really failed"]);
+});
+
+// A producer on another platform ends its lines with a carriage return, and its failures still are.
+test("a stream whose lines end the other way is read the same", () => {
+  const crlf = "TAP version 13\r\nnot ok 1 - the one that failed\r\n  ---\r\n  error: 'the assertion'\r\n  ...\r\nnot ok 2 - the one after it\r\n1..2\r\n";
+  const found = failuresIn(crlf);
+  assert.deepEqual(found.map((one) => one.name), ["the one that failed", "the one after it"]);
+  assert.deepEqual(found[0].fields, [["error", "the assertion"]]);
+});
+
 test("output that is not TAP names no failing case, so what the reviewer is handed is unchanged", () => {
   assert.deepEqual(failuresIn("make: *** [all] Error 2\nFAILED 1 of 3\n"), []);
   assert.equal(failuresSaid("make: *** [all] Error 2\nFAILED 1 of 3\n"), null);
