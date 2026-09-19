@@ -59,12 +59,33 @@ test("a deadline past what one call may live is refused before any waiting, and 
     const said = run(work, ["--wait", "25"]);
     assert.equal(said.status, 1, said.stdout + said.stderr);
     assert.ok(Date.now() - began < patience(5000), "it waited on the gate before refusing the deadline");
-    assert.ok(said.stderr.includes(`one call may live ${CALL_CEILING_SECONDS}s`),
-      `the refusal does not say what a call may live:\n${said.stderr}`);
+    assert.ok(said.stderr.includes(`the most a call can hold is ${DEFAULT_MINUTES * 60}s of the `
+      + `${CALL_CEILING_SECONDS}s it may live`), `the refusal does not say what a call may hold:\n${said.stderr}`);
     assert.ok(said.stderr.includes(`Wait ${DEFAULT_MINUTES} minutes in a call that returns`),
       `the refusal names no deadline that fits:\n${said.stderr}`);
     assert.ok(!`${said.stdout}${said.stderr}`.includes("gate wait: watching"),
       `it began the wait it refused:\n${said.stdout}${said.stderr}`);
+    /* The boundary itself, both subjects: a deadline of exactly the seconds a call may live starts after this
+       process does, so the host arrives first and the caller is cut at the one value that looked safe. */
+    for (const subject of [[], ["slot"]]) {
+      for (const over of ["10", "9.999", String(DEFAULT_MINUTES + 0.001)]) {
+        const refused = run(work, ["--wait", ...subject, over]);
+        const whole = `${refused.stdout}${refused.stderr}`;
+        assert.equal(refused.status, 1, `\`--wait ${subject.join(" ")} ${over}\` was not refused:\n${whole}`);
+        assert.ok(!whole.includes("gate wait: watching"),
+          `\`--wait ${subject.join(" ")} ${over}\` began the wait:\n${whole}`);
+      }
+    }
+    const none = scratch("wait-ceiling-held");
+    try {
+      for (const subject of [[], ["slot"]]) {
+        const held = run(none.work, ["--wait", ...subject, String(DEFAULT_MINUTES)]);
+        assert.ok(`${held.stdout}${held.stderr}`.includes("gate wait: watching"),
+          `the longest deadline a call can hold was refused:\n${held.stdout}${held.stderr}`);
+      }
+    } finally {
+      rmSync(none.at, { recursive: true, force: true });
+    }
   } finally {
     await stopGate(gate);
     rmSync(at, { recursive: true, force: true });

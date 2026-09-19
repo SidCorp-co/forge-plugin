@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { crossTree, gitFiles, uncommittedInShared } from "./checkout.mjs";
 import { DEADLINE, DEFAULT_MINUTES, gateDecided, gateStarted, GONE, NO_GATE, said, TERMINAL, waitForSlot, waitForVerdict }
   from "./gate-verdict.mjs";
-import { CALL_CEILING_SECONDS, pastCeiling } from "../plugin/src/host/call-ceiling.mjs";
+import { CALL_CEILING_SECONDS } from "../plugin/src/host/call-ceiling.mjs";
 import { attribute, attributionLines, CASES_ENV } from "./gates/isolation.mjs";
 import { cheapestFirst, ENTRIES_PER_STEP, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from "./gates/ledger.mjs";
 import { PUTS_IT_BACK, said as saidMissing, unresolvedIn } from "../plugin/src/resolve/installed.mjs";
@@ -258,10 +258,11 @@ if (waiting && !(minutes > 0)) {
   process.exit(1);
 }
 
-/* Refused and not taken: past the ceiling the host ends the call before the wait can answer, no route here holds one longer — `forge hooks --how polling` refuses a backgrounded loop with the rest — and thirty minutes of it defaulted to cost 310 of 4,102 wall minutes over 54 runs (ISS-1889). Here and not in the wait, the ceiling being the host's rather than the tree's: a caller under another host still gets the deadline it passes those functions. */
-if (waiting && pastCeiling(minutes * 60)) {
-  console.error(`${waitCall} ${patience} is ${Math.round(minutes * 60)}s and one call may live `
-    + `${CALL_CEILING_SECONDS}s, so the host would end this one before the wait could answer.`);
+/* Refused and not taken: past what a call can hold the host ends it before the wait can answer, no route here holds one longer — `forge hooks --how polling` refuses a backgrounded loop with the rest — and thirty minutes of it defaulted to cost 310 of 4,102 wall minutes over 54 runs (ISS-1889). Against what a call can hold and not against the ceiling itself, a deadline of exactly the ceiling starting after this process does and the host arriving first. Here and not in the wait, the ceiling being the host's rather than the tree's: a caller under another host still gets the deadline it passes those functions. */
+if (waiting && minutes > DEFAULT_MINUTES) {
+  console.error(`${waitCall} ${patience} is ${Math.round(minutes * 60)}s and the most a call can hold is `
+    + `${DEFAULT_MINUTES * 60}s of the ${CALL_CEILING_SECONDS}s it may live, so the host would end this one `
+    + `before the wait could answer.`);
   console.error(`Wait ${DEFAULT_MINUTES} minutes in a call that returns, as often as it takes: `
     + `node tools/gates.mjs ${waitCall}`);
   process.exit(1);
