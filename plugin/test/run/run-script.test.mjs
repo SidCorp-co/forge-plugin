@@ -9,13 +9,14 @@ import { join } from "node:path";
 import { atRung, BARE, brokenAnswer, called, committed, emptyAnswer, GATE, git, LAST_STEP, lastStep,
   landIn, laneAt, pageSays, pushed, ref, ROOT, runIn, scratch, stubbed } from "./run-fixtures.mjs";
 
-/* The threshold and the mark are typed here rather than imported: nothing imports an entry point,
-   and a second party that has to agree with the constants is what pins them to the help at all. */
+/* The constants are typed here rather than imported: nothing imports an entry point, and a second
+   party agreeing with them is what pins them to the help. The threshold and the counted paths are no
+   constants: `review` in this checkout's own `.forge.json` decides both, and `run-lock` pins those. */
 test("-h names all four steps, the resume flag and the threshold it counts against", () => {
   const run = runIn(ROOT, ["-h"]);
   assert.equal(run.status, 0, run.stderr);
   for (const said of ["start <ISS-nn>", "relink", "ship [--from N]", "land [--wait M]", "review [--done [ref]]",
-    "--from N", "worktree", "restart", "refs/forge/reviewed", "1500 changed line(s)", "npm run check",
+    "--from N", "worktree", "restart", "npm run check",
     "The release count is printed beside it and decides nothing",
     "the sha the change landed as", "not the pushed head the push printed",
     "--done <the range's end>", "land a commit that is not a release", "It spends no",
@@ -32,6 +33,10 @@ test("-h names all four steps, the resume flag and the threshold it counts again
     "the checkout's own copy refuses, that install being what a worktree borrows"]) {
     assert.ok(run.stdout.includes(said), `${said} is not in the usage:\n${run.stdout}`);
   }
+  assert.match(run.stdout, /counts what landed under \S[^\n]*? since refs\/forge\/reviewed/u,
+    `the counted paths and the mark they run from are no part of the usage:\n${run.stdout}`);
+  assert.match(run.stdout, /range holds \d+ changed line\(s\)/u,
+    `the volume that calls for a reading is no part of the usage:\n${run.stdout}`);
   assert.ok(!run.stdout.includes("3 release(s)"), `a release count is no part of the trigger:\n${run.stdout}`);
   /* Two verbs wait behind the one lock on the one flag, and the top-level list flattens both. */
   assert.equal((run.stdout.match(/^ {2}--wait M {4}/gmu) ?? []).length, 1,

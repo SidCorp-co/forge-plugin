@@ -394,13 +394,15 @@ test("uncommitted work at a rejected push stops the undo, and stays on disk", ()
     "work somebody has not committed\n", "a rejected push threw away work nobody had committed");
 });
 
-test("the reading threshold is the project's where it sets one, and reaches every sentence that prints it", () => {
+test("the reading threshold and the counted paths are the project's, and reach every sentence that prints them", () => {
   const { work } = pushed("review-lines-project");
-  withReview(work, 40);
+  withReview(work, 40, ["plugin/src", "tools"]);
   runIn(work, ["review", "--done"], BARE);
 
-  assert.match(runIn(work, ["-h"], BARE).stdout, /range holds 40 changed line\(s\)/u,
-    "the help names a number the project has replaced");
+  const help = runIn(work, ["-h"], BARE).stdout;
+  assert.match(help, /range holds 40 changed line\(s\)/u, "the help names a number the project has replaced");
+  assert.match(help, /counts what landed under plugin\/src, tools since/u,
+    "the help names the paths the project has replaced");
 
   landIn(work, join("plugin", "src", "wide.mjs"), 39, "a module a run grew");
   assert.match(runIn(work, ["review"], BARE).stdout, /^Short of the 40 changed line\(s\)/mu, "39 is one short");
@@ -409,11 +411,14 @@ test("the reading threshold is the project's where it sets one, and reaches ever
   assert.match(runIn(work, ["review"], BARE).stdout, /^A review is owed: 40 changed line\(s\)/mu, "40 is the boundary");
 });
 
-test("the threshold this script ships with stands where the project sets none", () => {
+test("the threshold and the counted paths this script ships with stand where the project declares neither", () => {
   const { work } = pushed("review-lines-default");
   runIn(work, ["review", "--done"], BARE);
   assert.match(runIn(work, ["review"], BARE).stdout, /^Short of the 1500 changed line\(s\)/mu, "the default is 1500");
-  assert.match(runIn(work, ["-h"], BARE).stdout, /range holds 1500 changed line\(s\)/u, "the help says the same");
+  const help = runIn(work, ["-h"], BARE).stdout;
+  assert.match(help, /range holds 1500 changed line\(s\)/u, "the help says the same");
+  assert.match(help, /counts what landed under plugin\/src, plugin\/hooks, plugin\/bin since/u,
+    "and the three this script ships with");
 });
 
 test("a review.lines that is no count of lines is refused by name rather than replaced", () => {

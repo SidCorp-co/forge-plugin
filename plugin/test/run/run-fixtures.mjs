@@ -318,10 +318,12 @@ export const called = (at) => (existsSync(join(at, "forge-calls.json"))
   : []);
 
 /* The range, the size and the rules are the step's to measure, never a person's to copy out (ISS-112). */
-/** The project's own reading threshold, committed: `.forge.json` is read out of the tree's head. */
-export const withReview = (work, lines) => {
+/** The project's own reading threshold and counted paths, committed: `.forge.json` is read out of
+ *  the tree's head. Paths left out leave the key out, which is a project declaring a volume alone. */
+export const withReview = (work, lines, paths) => {
   const kept = JSON.parse(readFileSync(join(work, ".forge.json"), "utf8"));
-  writeFileSync(join(work, ".forge.json"), JSON.stringify({ ...kept, review: { lines } }, null, 2));
+  const review = paths === undefined ? { lines } : { lines, paths };
+  writeFileSync(join(work, ".forge.json"), JSON.stringify({ ...kept, review }, null, 2));
   git(work, "add", ".forge.json");
   git(work, "commit", "-m", "this project's own reading threshold");
 };
