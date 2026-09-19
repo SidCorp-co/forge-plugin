@@ -26,13 +26,17 @@ const doctor = (...argv) => {
   return `${run.stdout}${run.stderr}`;
 };
 
+/* Long enough that the mask and the widened form differ: at or under twelve characters `abbreviated`
+   prints `set` either way, and a case reading a token that short cannot tell --full from no flag. */
+const TOKEN = `forge_${"z".repeat(30)}head`;
+
 /* A credential saved and no project: the slug is read before any request, so nothing here waits on
    a host. `mkdirSync` is the config directory the save would make. */
 const withCredential = (...argv) => {
   const home = tempRoom("doctor-subjects-cred-");
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "forge", "config.json"),
-    JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t" }));
+    JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: TOKEN }));
   const run = spawnSync(process.execPath, [CLI, "doctor", ...argv], {
     encoding: "utf8",
     cwd: tempRoom("doctor-subjects-cwd-"),
@@ -124,8 +128,13 @@ test("a flag whose reading a subject does not hold is refused, not dropped", () 
   const widened = doctor("copy", "--full");
   assert.match(widened, new RegExp(`which is ${WIDENED.join(", ")}`, "u"), widened);
   assert.doesNotMatch(widened, /^\[/mu);
-  assert.doesNotMatch(doctor("machine", "--full"), /--full prints a value a row masks/u,
-    "and a reading it does widen takes it");
+  /* Read off the row rather than off the absence of the refusal: a reading that returned before
+     printing anything satisfies a negative assertion just as well (ISS-1692, codex F2). */
+  assert.ok(withCredential("machine").said.includes(`set (${TOKEN.length} chars)`),
+    "the token row masks the value where the flag is not given");
+  assert.ok(withCredential("machine", "--full").said
+    .includes(`${TOKEN.slice(0, 6)}\u2026${TOKEN.slice(-4)} (${TOKEN.length} chars)`),
+    "and a reading --full does widen prints the ends of it");
 });
 
 test("a word that is no subject is refused with the nearest, and nothing is read", () => {
