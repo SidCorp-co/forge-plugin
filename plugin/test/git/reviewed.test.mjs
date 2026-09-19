@@ -9,7 +9,8 @@ import { join } from "node:path";
 
 import { git, ranAsync, tempRoom } from "../fixtures.mjs";
 
-import { reviewCounts, reviewedAt, REVIEWED, SHIPPED_LINES, SHIPPED_PATHS } from "../../src/git/reviewed.mjs";
+import { reviewCounts, reviewedAt, REVIEWED, SHIPPED_LINES,
+  SHIPPED_PATHS } from "../../src/git/reviewed.mjs";
 
 const MODULE = new URL("../../src/git/reviewed.mjs", import.meta.url).pathname;
 
@@ -45,6 +46,12 @@ const standing = async (room) => {
     process.env, room);
   return { said: status === 0 ? JSON.parse(stdout) : null, stderr, status };
 };
+
+/* The readers a release step calls, which exit where the report's own reader hands back a sentence. */
+const strict = (room, name) => ranAsync(process.execPath,
+  ["--input-type=module", "-e",
+    `import { ${name} } from ${JSON.stringify(MODULE)}; ${name}();`],
+  process.env, room);
 
 test("the count is the changed lines under the paths named, and a sibling directory is not in it", () => {
   const room = built("counts", { review: { lines: 10, paths: ["src"] } });
@@ -129,21 +136,47 @@ test("the count answers owed at the volume and short below it", async () => {
   assert.equal(past.said.owed, true);
 });
 
+/* The measurement that refuted a review finding: git 2.53 counts app/[slug] and not its sibling
+   app/s with no pathspec magic asked for, and a pattern that only globs names no directory on disk,
+   so the missing-path check above already refuses it. Pinned here rather than answered by a flag. */
+test("a declared directory whose name reads as a pathspec pattern counts it and not its sibling", () => {
+  const room = tempRoom("reviewed-bracketed-");
+  for (const path of ["app/[slug]", "app/s"]) wrote(room, join(path, "kept.txt"), 1);
+  writeFileSync(join(room, ".forge.json"),
+    JSON.stringify({ slug: "bracketed", review: { lines: 10, paths: ["app/[slug]"] } }));
+  ran(room, "init", "-q", "-b", "master", ".");
+  ran(room, "add", "-A");
+  ran(room, "commit", "-q", "-m", "the first commit");
+  ran(room, "update-ref", REVIEWED, "HEAD");
+  wrote(room, join("app", "[slug]", "grew.txt"), 6);
+  wrote(room, join("app", "s", "grew.txt"), 400);
+  ran(room, "add", "-A");
+  ran(room, "commit", "-q", "-m", "both grew");
+  assert.deepEqual(reviewCounts({ tree: room, from: reviewedAt(room), paths: ["app/[slug]"] }),
+    { files: 1, lines: 6 });
+});
+
 test("a mistyped volume is refused rather than taking the shipped number", async () => {
   for (const [at, lines] of [null, "1500", 0, -1, 1.5].entries()) {
-    const { status, stderr } = await standing(built(`volume-${at}`,
-      { review: { lines, paths: ["src"] } }));
+    const room = built(`volume-${at}`, { review: { lines, paths: ["src"] } });
+    const { status, stderr } = await strict(room, "reviewLines");
     assert.equal(status, 1, `${JSON.stringify(lines)} was accepted`);
     assert.match(stderr, /`review\.lines` in \.forge\.json is a whole number/u);
+    const read = await standing(room);
+    assert.equal(read.status, 0, `the report's own reader exited: ${read.stderr}`);
+    assert.match(read.said.refusal, /`review\.lines` in \.forge\.json is a whole number/u);
   }
 });
 
 test("a malformed paths declaration is refused rather than falling back to the shipped three", async () => {
   for (const [at, paths] of ["src", [], [""], [3], ["/etc"], ["../escaped"]].entries()) {
-    const { status, stderr } = await standing(built(`paths-${at}`,
-      { review: { lines: 10, paths } }));
+    const room = built(`paths-${at}`, { review: { lines: 10, paths } });
+    const { status, stderr } = await strict(room, "reviewPaths");
     assert.equal(status, 1, `${JSON.stringify(paths)} was accepted`);
     assert.match(stderr, /`review\.paths` in \.forge\.json is/u);
     assert.match(stderr, /Drop the key to count plugin\/src, plugin\/hooks, plugin\/bin/u);
+    const read = await standing(room);
+    assert.equal(read.status, 0, `the report's own reader exited: ${read.stderr}`);
+    assert.match(read.said.refusal, /`review\.paths` in \.forge\.json is/u);
   }
 });

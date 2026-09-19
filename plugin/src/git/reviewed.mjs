@@ -23,15 +23,10 @@ export const reviewDeclared = () => {
   return given.lines !== undefined || given.paths !== undefined;
 };
 
-/** Absent takes the default; a null or a mistyped value is refused rather than taking it (ISS-333). */
-export const reviewLines = () => {
-  const given = projectReview().lines;
-  if (given === undefined) return SHIPPED_LINES;
-  if (!Number.isInteger(given) || given < 1) {
-    fail(`\`review.lines\` in ${FROM_PROJECT} is a whole number of changed lines above zero, not `
-      + `\`${JSON.stringify(given)}\`. Drop the key to take the ${SHIPPED_LINES} this plugin ships with.`);
-  }
-  return given;
+const linesRefusal = (given) => {
+  if (given === undefined || (Number.isInteger(given) && given >= 1)) return null;
+  return `\`review.lines\` in ${FROM_PROJECT} is a whole number of changed lines above zero, not `
+    + `\`${JSON.stringify(given)}\`. Drop the key to take the ${SHIPPED_LINES} this plugin ships with.`;
 };
 
 const ESCAPES = (one) => isAbsolute(one) || one.startsWith("..") || one.includes(`${sep}..${sep}`);
@@ -43,18 +38,34 @@ const wrongShape = (given) => {
   return null;
 };
 
-/** Present and malformed is refused by the rule above rather than falling back: the three below are
- *  this repository's own, so counting them elsewhere would look exactly like the right answer. */
+const pathsRefusal = (given) => {
+  const wrong = given === undefined ? null : wrongShape(given);
+  return wrong && `\`review.paths\` in ${FROM_PROJECT} is ${wrong}, not \`${JSON.stringify(given)}\`. `
+    + `Drop the key to count ${SHIPPED_PATHS.join(", ")}, which is this plugin's own layout and no `
+    + `other repository's.`;
+};
+
+/** What this project file gets wrong here, or null. A report prints it as a finding and carries on
+ *  with its other rows; the two readers below exit on the same text, a release step having nothing
+ *  to carry on to. Present and malformed never falls back: the three above are this repository's
+ *  own, so counting them elsewhere would look exactly like the right answer. */
+export const reviewRefusal = () => {
+  const given = projectReview();
+  return linesRefusal(given.lines) || pathsRefusal(given.paths) || null;
+};
+
+export const reviewLines = () => {
+  const given = projectReview().lines;
+  const wrong = linesRefusal(given);
+  if (wrong) fail(wrong);
+  return given === undefined ? SHIPPED_LINES : given;
+};
+
 export const reviewPaths = () => {
   const given = projectReview().paths;
-  if (given === undefined) return [...SHIPPED_PATHS];
-  const wrong = wrongShape(given);
-  if (wrong) {
-    fail(`\`review.paths\` in ${FROM_PROJECT} is ${wrong}, not \`${JSON.stringify(given)}\`. Drop the `
-      + `key to count ${SHIPPED_PATHS.join(", ")}, which is this plugin's own layout and no other `
-      + `repository's.`);
-  }
-  return [...given];
+  const wrong = pathsRefusal(given);
+  if (wrong) fail(wrong);
+  return given === undefined ? [...SHIPPED_PATHS] : [...given];
 };
 
 const gitOut = (argv, tree) => {
@@ -79,6 +90,8 @@ export const reviewCounts = ({ tree, from, paths }) => {
  *  project can drive the trigger; a null `mark` is the state before the first reading, not a fault. */
 export const reviewStanding = (tree) => {
   if (!reviewDeclared()) return null;
+  const refusal = reviewRefusal();
+  if (refusal) return { refusal };
   const lines = sourced("lines", reviewLines());
   const paths = sourced("paths", reviewPaths());
   const checkout = Boolean(tree) && existsSync(resolve(tree, ".git"));

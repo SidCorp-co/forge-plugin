@@ -70,6 +70,16 @@ test("a declaration that counts prints the count since the mark, with the projec
   assert.match(said, /short of the 9 that earn a reading of what has landed {2}← \.forge\.json$/u);
 });
 
+test("a mistyped key is a miss on the row, and every other project row still prints", async () => {
+  for (const [at, review] of [{ lines: null }, { lines: 9, paths: [] }].entries()) {
+    const said = await ranAsync(FORGE, ["doctor", "project"], homeEnv(`review-row-wrong-${at}`),
+      built(`wrong-${at}`, { review }));
+    const rows = said.stdout.split("\n").filter((one) => one.startsWith("["));
+    assert.ok(rows.some((one) => /^\[ miss \] review/u.test(one)), `no miss row: ${said.stdout}`);
+    assert.ok(rows.some((one) => one.includes("flow ")), `the report stopped at the review row: ${said.stdout}`);
+  }
+});
+
 test("the row says a reading is owed once the count reaches the volume in force", async () => {
   const room = built("owed", { review: { lines: 4, paths: ["app"] } });
   wrote(room, join("app", "grew.txt"), 4);

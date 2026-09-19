@@ -93,6 +93,7 @@ const cannotCount = ({ missing, checkout, paths }) => {
 const reviewRow = () => {
   const standing = reviewStanding(checkoutRoot());
   if (!standing) return null;
+  if (standing.refusal) return { level: MISS, label: "review", detail: standing.refusal };
   const { lines, paths, missing, mark, files, changed, owed } = standing;
   const counted = paths.value.join(", ");
   if (missing.length) return { level: MISS, label: "review", detail: cannotCount(standing) };
