@@ -71,6 +71,28 @@ test("the diagnostic under a case that is not a failure is not scanned for cases
   assert.deepEqual(failuresIn(skipped).map((one) => one.name), ["the one that really failed"]);
 });
 
+/* The diagnostic's indent is whatever its own opener declared, and YAML allows deeper than two.
+   Assume two and the search for a closing delimiter that is not there runs to the end of the
+   stream, taking every real failure under it with the excused case it began at. */
+test("a diagnostic indented deeper than its case does not swallow the failures under it", () => {
+  const deep = "TAP version 13\nnot ok 1 - pending # TODO\n    ---\n    error: 'pending'\n    ...\nnot ok 2 - the one that really failed\n1..2\n";
+  assert.deepEqual(failuresIn(deep).map((one) => one.name), ["the one that really failed"]);
+});
+
+/* A passing case has a diagnostic too, and this repository's own check prints four thousand of them:
+   leave those to the scan and any assertion among them that quotes a test point is a failure. */
+test("the diagnostic under a passing case is consumed, so nothing it quotes becomes a case", () => {
+  const quoted = "TAP version 13\nok 1 - the one that passed\n  ---\n  error: |-\n    not ok 2 - a case nothing ran\n  ...\nnot ok 3 - the one that failed\n1..3\n";
+  assert.deepEqual(failuresIn(quoted).map((one) => one.name), ["the one that failed"]);
+});
+
+test("a block whose diagnostic never closes ends at the first line no deeper than its case", () => {
+  const torn = "TAP version 13\nnot ok 1 - the one whose block was cut off\n  ---\n  error: 'the assertion'\nnot ok 2 - the one after it\n1..2\n";
+  const found = failuresIn(torn);
+  assert.deepEqual(found.map((one) => one.name), ["the one whose block was cut off", "the one after it"]);
+  assert.deepEqual(found[0].fields, [["error", "the assertion"]]);
+});
+
 // A producer on another platform ends its lines with a carriage return, and its failures still are.
 test("a stream whose lines end the other way is read the same", () => {
   const crlf = "TAP version 13\r\nnot ok 1 - the one that failed\r\n  ---\r\n  error: 'the assertion'\r\n  ...\r\nnot ok 2 - the one after it\r\n1..2\r\n";
@@ -123,7 +145,7 @@ test("the block above the tail is never longer than the tail, whatever the outpu
   const one = (at) => `not ok ${at} - case ${at}\n  ---\n  location: 'a.test.mjs:${at}:1'\n  error: |-\n    ${long}\n  ...`;
   const many = Array.from({ length: NAMED * 2 }, (nothing, at) => one(at + 1)).join("\n");
   const said = failuresSaid(`TAP version 13\n${many}\n1..${NAMED * 2}\n`);
-  assert.ok(said.length <= FAILED_CHARS + said.split("\n")[0].length + 1, "the block is held to its own bound");
+  assert.ok(said.length <= FAILED_CHARS, "the block is held to its own bound, the count leading it included");
   assert.match(said, /^40 failing case\(s\) its output named, the first \d+ of them, \d+ not named:$/mu);
   assert.ok(said.split("\n")[0].startsWith("40 failing case(s) its output named, the first 1"),
     "the count cut by the block's own bound, below the count the case bound would have allowed");

@@ -1,6 +1,8 @@
 /* What a check's own output said failed, selected out of it rather than taken off its end. Why TAP
    and not a vocabulary of failure words, and what this does not promise: docs/cli/codex-the-check.md. */
-const NOT_OK = /^([ ]*)not ok\b(?:[ ]+\d+)?(?:[ ]*-)?[ ]*(.*)$/u;
+const POINT = /^([ ]*)(not )?ok\b(?:[ ]+\d+)?(?:[ ]*-)?[ ]*(.*)$/u;
+
+const OPENED = /^([ ]+)---[ ]*$/u;
 
 // A case TAP says was not expected to pass, which is not a failure.
 const DIRECTIVE = /\s#\s*(?:TODO|SKIP)\b/iu;
@@ -11,7 +13,6 @@ const FIELD = /^([ ]*)([A-Za-z_]+): ?(.*)$/u;
 const KEPT = ["location", "failureType", "error"];
 
 const BLOCK = "|-";
-const OPEN = "---";
 const CLOSE = "...";
 const QUOTED = /^'(.*)'$/su;
 
@@ -20,6 +21,7 @@ export const SAID_CHARS = 300;
 
 // Never more than the tail it sits above, whatever a producer repeats or how long a name runs.
 export const FAILED_CHARS = 6_000;
+const HEAD_CHARS = 200;
 
 const said = (value) => {
   const one = value.replace(QUOTED, "$1").replace(/\s+/gu, " ").trim();
@@ -28,15 +30,17 @@ const said = (value) => {
 
 const scalarAt = (lines, from, indent) => {
   const body = [];
-  for (let at = from; at < lines.length && lines[at].startsWith(`${indent}  `); at += 1) body.push(lines[at].trim());
+  for (let at = from; at < lines.length && lines[at].startsWith(`${indent} `); at += 1) body.push(lines[at].trim());
   return body.filter(Boolean).join(" ");
 };
 
-// Its own indent decides the keys and the end alike: a `...` inside a scalar is that scalar's text.
-const fieldsFrom = (lines, from, indent) => {
+/* Both ends read off the stream: the keys and the closing `...` at the indent the `---` declared, and
+   a line no deeper than the test point's outside it — or one unterminated block eats the rest. */
+const fieldsFrom = (lines, from, indent, pad) => {
   const found = [];
   let at = from;
   for (; at < lines.length && lines[at] !== `${indent}${CLOSE}`; at += 1) {
+    if (lines[at].trim() !== "" && !lines[at].startsWith(`${pad} `)) return { found, ended: at - 1 };
     const field = FIELD.exec(lines[at]);
     if (!field || field[1] !== indent || !KEPT.includes(field[2])) continue;
     if (found.some(([key]) => key === field[2])) continue;
@@ -46,19 +50,20 @@ const fieldsFrom = (lines, from, indent) => {
   return { found, ended: at };
 };
 
-// Each carrying what its diagnostic gave of `KEPT`, nothing more. Empty for output that is not TAP.
+/* Every test point's diagnostic is consumed, the passing and the excused included: what is left to
+   the scan is read as test points, so an assertion quoting `not ok` becomes a case nothing ran. */
 export const failuresIn = (text) => {
   const lines = String(text ?? "").split(/\r?\n/u);
   const found = [];
   for (let at = 0; at < lines.length; at += 1) {
-    const named = NOT_OK.exec(lines[at]);
-    if (!named) continue;
-    const indent = `${named[1]}  `;
-    /* Consumed before the directive is judged: a case that is not a failure still has a diagnostic,
-       and leaving it to the scan makes every line of it a test point this would read. */
-    const said_ = lines[at + 1]?.trim() === OPEN ? fieldsFrom(lines, at + 2, indent) : { found: [], ended: at };
-    at = said_.ended;
-    if (!DIRECTIVE.test(named[2])) found.push({ name: said(named[2]), fields: said_.found });
+    const point = POINT.exec(lines[at]);
+    if (!point) continue;
+    const opened = OPENED.exec(lines[at + 1] ?? "");
+    const block = opened && opened[1].length > point[1].length
+      ? fieldsFrom(lines, at + 2, opened[1], point[1])
+      : { found: [], ended: at };
+    at = block.ended;
+    if (point[2] && !DIRECTIVE.test(point[3])) found.push({ name: said(point[3]), fields: block.found });
   }
   return found;
 };
@@ -69,7 +74,7 @@ const linesFor = (one) => [`  ${one.name}`, ...one.fields.map(lineFor)];
 
 const within = (found) => {
   const kept = [];
-  let room = FAILED_CHARS;
+  let room = FAILED_CHARS - HEAD_CHARS;
   for (const one of found.slice(0, NAMED)) {
     const lines = linesFor(one);
     room -= lines.join("\n").length + 1;
