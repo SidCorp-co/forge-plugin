@@ -465,9 +465,8 @@ test("the mode the report prints is the mode last written, either way", () => {
     "and self is written rather than cleared, so the report never has to guess which way a silence means");
 });
 
-/* Three answers, because an absent key and a pattern nothing can compile decide the same claim and
-   mean opposite things: one project chose silence, the other wrote a declaration that does not read.
-   Only this surface says so, the claim printing what it found and never what it could not read. */
+/* Three answers: an absent key and a pattern nothing can compile decide the same claim and mean
+   opposite things, and only this surface says which of the two a project wrote (ISS-1872). */
 test("what a project calls a run's own work is printed with its source, and an unreadable pattern is said rather than dropped", () => {
   const declared = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo", lease: { workingRe: "run\\.mjs ship" } }) });
   assert.match(declared, /\[ {2}ok {2}\] lease\.workingRe\s+run\\\.mjs ship\b[^\n]*← \.forge\.json/u, declared);
