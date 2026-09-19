@@ -7,6 +7,7 @@ import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { reachOf } from "./fixtures/answer-reach.mjs";
 import { madeIn } from "../../tools/room.mjs";
 import { PLAN_SECTIONS } from "../src/flow/machine.mjs";
 
@@ -395,6 +396,7 @@ export const fakeTracker = async (state) => {
     if (pending) pending.stood = true;
   };
 
+  const reach = reachOf(state);
   let refusal = null;
   /* A handler a test registered wins over the built-in one, exactly as it did on the other
      transport: the key is the tool's name, and never a route. */
@@ -424,6 +426,7 @@ export const fakeTracker = async (state) => {
       : { pipelineConfig: held.pipelineConfig };
   };
   const builtIn = (name, args) => {
+    reach.asked(name);
     const own = (state.answer ?? {})[name];
     const said = own ? own(args) : undefined;
     if (said !== undefined) return said;
@@ -550,6 +553,7 @@ export const fakeTracker = async (state) => {
       return;
     }
     const url = new URL(request.url, "http://x");
+    reach.serving(`${request.method} ${url.pathname}`);
     if (MERGE_ROUTE.test(url.pathname) && emptyJson(request)) {
       response.writeHead(400, { "Content-Type": "application/json" });
       response.end(JSON.stringify({ code: "BAD_REQUEST", message: "Malformed JSON in request body" }));
@@ -600,8 +604,13 @@ export const fakeTracker = async (state) => {
   mkdirSync(join(home.path, "forge"), { recursive: true });
   const url = `http://127.0.0.1:${served.address().port}/mcp`;
   writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url, token: "t", retrySeconds: 0 }));
+  const close = () => {
+    served.close();
+    const said = reach.unreached();
+    if (said) throw new Error(said);
+  };
   return { url, routes: ROUTES.map(([pattern]) => pattern.source),
-    env: { ...process.env, XDG_CONFIG_HOME: home.path }, close: () => served.close(),
+    env: { ...process.env, XDG_CONFIG_HOME: home.path }, close,
     unref: () => served.unref() };
 };
 

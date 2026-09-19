@@ -149,9 +149,10 @@ const gated = async () => {
 };
 
 /* Written, not probed: doctor records four capabilities and `forge_issues` is none, so the state the `needs` rule was declared for is reachable only by seeding it. */
-const gatedTool = async (tool) => {
+const gatedTool = async (tool, unasked = []) => {
   const tracker = await fakeTracker({
     declared: [tool, "forge_project_pm"],
+    unasked,
     answer: {
       forge_guide: () => ({ guides: [] }),
       forge_project_pm: () => ({ nodes: [] }),
@@ -243,7 +244,8 @@ test("a withheld verb a declared job matches is refused by the route it wraps, i
 
 /* Judged on the word typed, `forge list` has no row, is blocked by nothing, and performs the gated `forge issue` anyway — a way round the refusal withholding-a-verb.md exists for (F1). */
 test("a form is refused by the capability its verb needs, and answers with the same line", async () => {
-  const { ran, close } = await gatedTool("forge_issues");
+  const { ran, close } = await gatedTool("forge_issues",
+    ["forge_guide", "forge_project_pm", "forge_projects.list"]);
   try {
     const verb = await ran("issue", "-h");
     assert.equal(verb.status, 1, verb.stdout);

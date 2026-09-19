@@ -7,6 +7,7 @@ import { join } from "node:path";
 
 import { BASE, forgetGateRuns, gateRuns, landingRan, ready, seeded, sha, state, tracker, world } from "./fixture.mjs";
 
+state.unasked = ["forge_comments"];
 test.after(() => tracker.close());
 
 const remote = (at) => sha(join(at, "origin.git"), `refs/heads/${BASE}`);

@@ -29,6 +29,7 @@ const before = () => {
   state.calls = [];
   state.memory = {};
   state.answer = {};
+  state.unasked = [];
   delete state.mint;
   delete state.key;
 };
@@ -227,7 +228,9 @@ const bodyFile = (text = BODY) => {
   return path;
 };
 
-const stores = () => {
+/* A case that files and does not fold posts no comment at all, which is a claim about the store
+   rather than about the reply, so it is the store that is asked to hold it (ISS-1934). */
+const stores = ({ posts = true } = {}) => {
   const posted = [];
   state.answer = {
     forge_issues: (args) => {
@@ -248,6 +251,7 @@ const stores = () => {
       return page(posted.filter((one) => one.issue === args.filters?.issue), false);
     },
   };
+  if (!posts) state.unasked = ["forge_comments"];
   return posted;
 };
 
@@ -255,7 +259,7 @@ const both = (key, score) => ({ semantic: [[key, score]], keyword: [[key, 0.0608
 
 test("a filing that lands ends its stdout with the key, read back, and not with the trailer", async () => {
   before();
-  stores();
+  stores({ posts: false });
   state.memory = both(NEAR.issueId, 0.72);
   const run = await ranAsync(FORGE, ["new", bodyFile(), "--title", TITLE, "--category", "bug"], tracker.env);
   assert.equal(run.status, 0, run.stderr);
@@ -428,7 +432,7 @@ const noted = (...argv) => {
 
 test("a note that files ends its stdout with the key it created", async () => {
   before();
-  stores();
+  stores({ posts: false });
   const run = await noted();
   assert.equal(run.status, 0, run.stderr);
   assert.equal(lastOf(run.stdout), "ISS-810 is filed at uuid-810, read back from the tracker.");
@@ -449,7 +453,7 @@ test("a note that folds ends its stdout with the comment id it posted", async ()
 test("a note whose title is already open is filed anyway, and its last line names the key", async () => {
   before();
   state.issues = [{ ...ISSUE, title: TITLE }, NEAR];
-  const posted = stores();
+  const posted = stores({ posts: false });
   state.issues = [{ ...ISSUE, title: TITLE }, NEAR];
   const run = await noted();
   assert.equal(run.status, 0, run.stderr);

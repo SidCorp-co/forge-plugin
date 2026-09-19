@@ -239,9 +239,11 @@ const PROBES = [
   ["GET", "/api/projects/p1/pipeline-config"],
   ["GET", "/api/projects/p1/project-facts"],
   ["POST", "/api/projects/p1/archive"],
+  ["POST", "/api/projects/p1/unarchive"],
   ["GET", "/api/projects/p1"],
   ["PATCH", "/api/projects/p1"],
   ["GET", "/api/projects"],
+  ["POST", "/api/projects"],
 ];
 
 const asked = async (server, [method, path]) => {
@@ -252,16 +254,27 @@ const asked = async (server, [method, path]) => {
   return { status: got.status, text: await got.text() };
 };
 
+/* One route has two readers and only one of them answers per tracker, so the sweep runs once
+   without each and the caller is told the union: with both registered the second reader is never
+   asked, and a pass that registers a handler nothing can reach is refused now (ISS-1934). */
+const EXCLUSIVE = ["forge_projects.get", "forge_projects.read"];
+
 /* Every probe against a tracker whose every handler failed, and what came back that `reads` will
    not take as that failure reaching the caller. */
 const swallowedBy = async (answer, reads) => {
-  const server = await fakeTracker({ answer: failing(answer) });
   const out = [];
-  for (const probe of PROBES) {
-    const got = await asked(server, probe);
-    if (!reads(got)) out.push(`${probe[0]} ${probe[1]} -> ${got.status} ${got.text.slice(0, 70)}`);
+  for (const shut of EXCLUSIVE) {
+    const handlers = failing(answer);
+    delete handlers[shut];
+    const server = await fakeTracker({ answer: handlers });
+    for (const probe of PROBES) {
+      const got = await asked(server, probe);
+      if (!reads(got)) {
+        out.push(`${probe[0]} ${probe[1]} without ${shut} -> ${got.status} ${got.text.slice(0, 70)}`);
+      }
+    }
+    server.close();
   }
-  server.close();
   return out;
 };
 
@@ -293,4 +306,50 @@ test("a 200 that is not a record reaches the caller whichever route answered it"
     (got) => got.status === 200 && got.text === "<html>502</html>");
   assert.deepEqual(swallowed, [], `${swallowed.length} route(s) built a JSON envelope out of a body that is not a `
     + `record, which reads as the tracker answering: ${swallowed.join("; ")}`);
+});
+
+/* A handler map is read by name, so a key no route looks up is answered by the fixture's own default
+   in the same shape a registered handler would have answered in: the case that registered it covers
+   nothing and passes all the same (ISS-1934). */
+const closing = async (state, probes) => {
+  const server = await fakeTracker(state);
+  for (const probe of probes) await asked(server, probe);
+  try {
+    server.close();
+    return null;
+  } catch (refused) {
+    return refused.message;
+  }
+};
+
+const ONE_ISSUE = ["GET", "/api/issues/u1"];
+
+test("a handler no route of the fake tracker asked for fails the suite that registered it", async () => {
+  const said = await closing({ answer: { forge_issues: () => ({}), forge_guide: () => ({ guides: [] }) } },
+    [ONE_ISSUE]);
+  assert.match(said ?? "", /asked for: forge_guide \(first asked at GET \/api\/issues\/u1\)\./u,
+    "the key is named with the map it sits in, one key standing for ten maps in a file that replaces it");
+  assert.doesNotMatch(said ?? "", /forge_issues/u, "and the one the route did ask for is not named");
+});
+
+test("a handler every route asked for closes the tracker with nothing to say", async () => {
+  assert.equal(await closing({ answer: { forge_issues: () => ({}) } }, [ONE_ISSUE]), null);
+});
+
+test("a key registered under a map a later case replaced is counted all the same", async () => {
+  const state = { answer: { forge_guide: () => ({ guides: [] }) } };
+  const server = await fakeTracker(state);
+  await asked(server, ONE_ISSUE);
+  state.answer = { forge_issues: () => ({}) };
+  await asked(server, ONE_ISSUE);
+  assert.throws(() => server.close(), /forge_guide/u,
+    "each map is read as the case that held it left it, not as the one standing at the close");
+});
+
+test("a key a case says nothing will reach is registered, and a route reaching it refuses the saying", async () => {
+  assert.equal(await closing({ unasked: ["forge_guide"], answer: { forge_guide: () => ({}) } }, [ONE_ISSUE]), null,
+    "which is what a case registering a handler for nothing to ask for says");
+  const said = await closing({ unasked: ["forge_issues"], answer: { forge_issues: () => ({}) } }, [ONE_ISSUE]);
+  assert.match(said ?? "", /state\.unasked names forge_issues/u,
+    "and an allowance nothing needs is refused, or the next handler to go dead hides under it");
 });

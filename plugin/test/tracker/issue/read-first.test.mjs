@@ -564,17 +564,18 @@ const NOWHERE_AT_ALL = tempRoom("names-no-project-");
 
 /* Both checkouts answer, and the second one's ISS-29 is a different document with a thread of its
    own. The own project keeps the fixture's default rows, so every case above this is unmoved. */
+const BOTH = {
+  "forge_projects.list": () => ({ projects: [{ id: OWN_ID, slug: OWN_SLUG }, { id: OTHER_ID, slug: OTHER_SLUG }] }),
+  forge_issues: (args) => {
+    if (args.action !== "list") return {};
+    const rows = args.project === OTHER_ID
+      ? [{ issueId: "ISS-29", documentId: OTHER_DOC }]
+      : state.issues;
+    return { issues: rows, returned: rows.length, hasMore: false };
+  },
+};
 const twoProjects = () => {
-  state.answer = {
-    "forge_projects.list": () => ({ projects: [{ id: OWN_ID, slug: OWN_SLUG }, { id: OTHER_ID, slug: OTHER_SLUG }] }),
-    forge_issues: (args) => {
-      if (args.action !== "list") return {};
-      const rows = args.project === OTHER_ID
-        ? [{ issueId: "ISS-29", documentId: OTHER_DOC }]
-        : state.issues;
-      return { issues: rows, returned: rows.length, hasMore: false };
-    },
-  };
+  state.answer = BOTH;
 };
 const oneProject = () => {
   delete state.answer;

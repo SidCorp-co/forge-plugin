@@ -57,7 +57,7 @@ const RUN = [".", ".forge.json", "plugin/hooks/vendor", "plugin/src", "plugin/te
 
 const DOCTOR = [".", ".claude-plugin", ".forge.json", "plugin/.claude-plugin", "plugin/agents",
   "plugin/guides", "plugin/hooks", "plugin/skills", "plugin/src", "plugin/test/fixtures.mjs",
-  "plugin/vi-natural", "tools/room.mjs"];
+  "plugin/test/fixtures/answer-reach.mjs", "plugin/vi-natural", "tools/room.mjs"];
 
 export const DECLARED_READS = [
   { where: "plugin/test/cli/doctor/job.test.mjs", reads: DOCTOR, blind: CLI },
