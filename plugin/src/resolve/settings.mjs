@@ -290,7 +290,9 @@ export const codexCheckOf = (codex) => {
   const held = Number(given);
   return Number.isInteger(held) && held > 0
     ? { command, ms: held, from: FROM_PROJECT, msFrom: FROM_PROJECT }
-    : { command, ms: CHECK_MS_ABSENT, from: FROM_PROJECT, msFrom: PLUGIN_DEFAULT, unknown: String(given) };
+    /* Stringified rather than cast: `""` and `[]` cast to nothing at all, and a row naming nothing
+       is the row a project that set the key legally would read. */
+    : { command, ms: CHECK_MS_ABSENT, from: FROM_PROJECT, msFrom: PLUGIN_DEFAULT, unknown: JSON.stringify(given) };
 };
 
 export const codexCheck = () => codexCheckOf(projectCodex());

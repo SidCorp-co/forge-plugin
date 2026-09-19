@@ -20,20 +20,20 @@ export const sentShaOf = (bytes, root, rel) => {
   return null;
 };
 
-/* The command and the clock, out of the one string `codex-tools.mjs` writes and `codex-rounds.mjs` carries into `refused`: the pair is what says whether a record still speaks about the budget a project has now, a stop at 300s saying nothing about a 600s clock. */
+/* The command and the clock, found in and then taken out of the one string `codex-tools.mjs` writes and `codex-rounds.mjs` carries into `refused`: the pair is what says whether a record still speaks about the budget a project has now, a stop at 300s saying nothing about a 600s clock. The mark is searched for as bytes, so it is escaped here the way the row was escaped when written, and the enclosing quotes come off because it is a fragment of a value rather than the value. */
 const STOPPED = /^run_check : `(.+)` ran past ([0-9.]+)s and was stopped/u;
+const markFor = (command) => JSON.stringify(`run_check : \`${command}\` ran past `).slice(1, -1);
 
-/** Every consult of `command` whose check was stopped at or above `ms`, newest first, no older than `since`. A row carries `root`, the checkout it ran in, and nothing naming a project, so each one comes back with its own checkout for the caller to attribute rather than attributed here. */
+/** Every consult of `command` whose check was stopped at or above `ms`, newest first, no older than `since`. The row carries `root`, the checkout it ran in, and nothing naming a project, so each one comes back with its own checkout for the caller to attribute rather than attributed here. Read whole and then ordered: `at` is stamped when a consult starts and its row appended when it ends, so append order is not time order and a walk that stopped at the first expired row would lose the live ones behind it. */
 export const checkStops = (bytes, { command, ms, since }) => {
-  const mark = `run_check : \`${command}\` ran past `;
   const out = [];
-  for (const one of jsonlBack(bytes, [mark])) {
+  for (const one of jsonlBack(bytes, [markFor(command)])) {
     const at = Date.parse(one.at);
-    if (Number.isFinite(at) && at < since) break;
+    if (!Number.isFinite(at) || at < since) continue;
     for (const said of one.refused ?? []) {
       const hit = STOPPED.exec(said);
       if (hit?.[1] === command && Number(hit[2]) * 1000 >= ms) out.push({ at: one.at, root: one.root ?? null });
     }
   }
-  return out;
+  return out.sort((first, next) => Date.parse(next.at) - Date.parse(first.at));
 };

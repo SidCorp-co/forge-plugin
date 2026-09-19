@@ -303,9 +303,19 @@ test("a check clock that is not a whole number above zero is named rather than t
   const set = roomWith("check-unknown", { check: "npm test", checkMs: "soon" });
   const run = await ranAsync(FORGE, ["doctor", "project"], set.env, set.where);
   assert.match(run.stdout,
-    MISS_ROW("codex.check", "soon is no value of `codex.checkMs` — it takes a whole number of "
+    MISS_ROW("codex.check", '"soon" is no value of `codex.checkMs` — it takes a whole number of '
       + "milliseconds above 0; reading npm test — stopped at 300s {2}← the plugin's default"),
     run.stdout);
+  /* The values that carry nothing to print are the ones a row naming the value can lose: a project
+     that set the key legally would read exactly the row a project that set it to `""` did. */
+  for (const given of ["", [], 0]) {
+    const odd = roomWith(`check-unknown-${JSON.stringify(given)}`, { check: "npm test", checkMs: given });
+    const said = await ranAsync(FORGE, ["doctor", "project"], odd.env, odd.where);
+    assert.match(said.stdout,
+      MISS_ROW("codex.check", `${JSON.stringify(given).replace(/[[\]]/gu, "\\$&")} is no value of `
+        + "`codex\\.checkMs`"),
+      said.stdout);
+  }
 });
 
 /* Silence and not a row reading none: a project that declared nothing is given no such tool at all,

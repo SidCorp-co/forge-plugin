@@ -70,7 +70,7 @@ const checkRow = () => {
   const check = codexCheck();
   if (!check) return null;
   const clock = `${check.command} \u2014 stopped at ${check.ms / 1000}s  \u2190 ${check.msFrom}`;
-  if (check.unknown) {
+  if (check.unknown !== undefined) {
     return { level: MISS, label: "codex.check", detail: `${check.unknown} is no value of \`codex.checkMs\` `
       + `\u2014 it takes ${CHECK_MS_TAKES}; reading ${clock}` };
   }

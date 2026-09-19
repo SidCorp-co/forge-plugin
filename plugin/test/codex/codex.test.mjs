@@ -28,6 +28,7 @@ const {
 } = await import("../../src/codex/codex-api.mjs");
 const { modelBehind, profileFrom } = await import("../../src/tools/services/tool-config.mjs");
 const { runTool, scopeFor } = await import("../../src/codex/codex-tools.mjs");
+const { codexCheckOf } = await import("../../src/resolve/settings.mjs");
 const { partition } = await import("../../src/resolve/flags.mjs");
 const BOOLEANS = ["--allow-echo"];
 
@@ -580,7 +581,7 @@ test("asking an action what to type prints that action's own usage", () => {
 /* Resolved once and read by both the spawn that enforces it and the reports that print it, so no
    caller supplies a default of its own: the one this repository had sat beside its spawn, where the
    surfaces naming the key could not reach it and nothing could say what the pair resolved to. */
-test("the check's clock is the project's own where it names one, and the product's default otherwise", () => {
+test("the check's clock is the project's own where it names one, and the product's default otherwise", async () => {
   const forge = new URL("../../bin/forge", import.meta.url).pathname;
   const shown = (codex) => {
     const room = tempRoom("codex-clock-");
@@ -600,4 +601,15 @@ test("the check's clock is the project's own where it names one, and the product
       `${given} is no clock, so the default stands and forge doctor is where the value is named`);
   }
   assert.match(shown({ pathRe: "^src/" }), /^check : none — a codex\.check in the project's own settings names one$/u);
+  /* And the resolved clock through the scope the consult builds, not the line the report prints:
+     `codex show` staying right while the spawn takes some other number is the wiring this pair is
+     for, and the scope is where the two meet. */
+  const room = tempRoom("codex-clock-scope-");
+  const stopped = await runTool(
+    scopeFor(room, [], codexCheckOf({ check: "sleep 30", checkMs: 200 })), "run_check", {});
+  assert.equal(stopped.error, true);
+  assert.match(stopped.text, /ran past 0\.2s and was stopped\. That clock is `codex\.checkMs` in \.forge\.json/u,
+    stopped.text);
+  assert.equal(scopeFor(room, [], codexCheckOf({ check: "true" })).check.ms, 300_000,
+    "and a project naming no clock reaches that scope with the resolved default, never with none");
 });
