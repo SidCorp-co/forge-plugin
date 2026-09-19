@@ -93,7 +93,7 @@ const COPY = [
   "No flag writes any of it: a copy is installed by `claude plugin update` and a release is the",
   "project's own to make. The rows are the whole of this subject.",
   "",
-  "The newest release is a `git ls-remote --tags origin`, asked for before the report's local checks",
+  "The newest release is read off the tags origin holds, asked for before the report's local checks",
   "and read after them, so the round trip overlaps work the report was going to do anyway. A call",
   "that prints no row of this subject does not ask at all.",
 ].join("\n");
