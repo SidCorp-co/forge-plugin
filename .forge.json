@@ -56,6 +56,14 @@
       "plugin/test"
     ]
   },
+  "stats": {
+    "commands": {
+      "gate": [
+        "npm run check",
+        "node tools/gates.mjs"
+      ]
+    }
+  },
   "stop": {
     "agents": [
       "runner",
