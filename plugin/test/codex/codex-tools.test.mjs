@@ -6,6 +6,7 @@ import { execFileSync } from "node:child_process";
 import { TOOLS, checkCommand, checkState, runTool, scopeFor, toolsFor } from "../../src/codex/codex-tools.mjs";
 import { bundle, changedAgainst, divergedFrom, roleFor, withDiffs } from "../../src/codex/codex-api.mjs";
 import { tempRoom } from "../fixtures.mjs";
+import { tapOf } from "./tap-of.mjs";
 import { patience } from "../patience.mjs";
 
 const repo = () => {
@@ -155,9 +156,49 @@ test("run_check runs the named command once, from the checkout, and reports exit
   assert.equal(first.error, undefined);
   assert.match(first.text, /^`echo start; .*` exited 3\n/u);
   assert.match(first.text, /start\na\.txt\noops/u, "stdout then stderr, run from the checkout");
+  assert.doesNotMatch(first.text, /failing case\(s\)/u, "a red naming no case reads as it always did");
   const again = await runTool(scope, "run_check", {});
   assert.equal(again.error, true);
   assert.match(again.text, /runs once per consult, and it has run/u);
+});
+
+/* The window is the end of the stream and a suite's `not ok` is thousands of lines above it: of the
+   1,047,557 characters this repository's own check prints over 4,195 top-level subtests, 23 start
+   inside the last 6,000, so one red in 182 could name its case and the rest arrived as a count
+   (ISS-1901). The tail stays; what goes above it is selected. */
+test("a red check names the cases its own output named, above the tail", async () => {
+  const root = repo();
+  const { out } = tapOf(`test("the case that went red", () => { throw new Error("the assertion that failed"); });
+`, "run-check-red-");
+  const filler = `seq 1 4000; cat ${JSON.stringify(join(root, "s.tap"))}`;
+  writeFileSync(join(root, "s.tap"), out);
+  const red = await runTool(scopeFor(root, [], { command: `${filler}; exit 1` }), "run_check", {});
+  assert.equal(red.error, undefined);
+  const [said, count, name, ...rest] = red.text.split("\n");
+  assert.match(said, /` exited 1$/u);
+  assert.equal(count, "1 failing case(s) its output named:");
+  assert.equal(name, "  the case that went red");
+  assert.match(rest.join("\n"), /^ {4}location: .*s\.test\.mjs:2:1\n {4}failureType: testCodeFailure\n {4}error: the assertion that failed\n\n…\n/u,
+    "the case, then the tail it would have been buried in");
+  assert.match(red.text.split("\n").at(-1), /^# duration_ms /u, "and the tail is still the end of the stream");
+});
+
+test("the check runs under an environment this CLI composed, without the run that consulted it", async () => {
+  const root = repo();
+  const room = tempRoom("run-check-env-");
+  const was = { session: process.env.FORGE_SESSION_ID, tmp: process.env.TMPDIR };
+  process.env.FORGE_SESSION_ID = "the-run-that-consulted";
+  process.env.TMPDIR = room;
+  try {
+    const said = (await runTool(scopeFor(root, [], {
+      command: `echo "session=[\${FORGE_SESSION_ID-absent}] tmpdir=[$TMPDIR]"`,
+    }), "run_check", {})).text;
+    assert.match(said, /session=\[absent\]/u, "a check is the project's command, not the run that consulted");
+    assert.match(said, new RegExp(`tmpdir=\\[${room}\\]`, "u"), "and the caller's own scratch root is where its leftovers go");
+  } finally {
+    if (was.session === undefined) delete process.env.FORGE_SESSION_ID; else process.env.FORGE_SESSION_ID = was.session;
+    if (was.tmp === undefined) delete process.env.TMPDIR; else process.env.TMPDIR = was.tmp;
+  }
 });
 
 test("run_check keeps only the tail of a long output and stops a run past its clock", async () => {

@@ -8,7 +8,7 @@ import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { argvFor, casesFrom, CASES_ENV, HUMAN_REPORTER, patternFor } from "../../../../tools/gates/isolation.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { SHELL_ENV, tempRoom } from "../../fixtures.mjs";
 
 const REPORTER = join(process.cwd(), "tools", "gates", "isolation.mjs");
 
@@ -19,11 +19,8 @@ test("outer (the enclosing one)", async (t) => {
 test("flat and green", () => {});
 `;
 
-// Without it a `node --test` spawned from a test file runs as this suite's child and spends no file.
-const ENV = Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== "NODE_TEST_CONTEXT"));
-
 const ran = (room, argv, env = {}) =>
-  spawnSync(process.execPath, argv, { cwd: room, encoding: "utf8", env: { ...ENV, ...env } });
+  spawnSync(process.execPath, argv, { cwd: room, encoding: "utf8", env: { ...SHELL_ENV, ...env } });
 
 const withNested = (name) => {
   const room = tempRoom(name);

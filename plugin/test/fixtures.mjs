@@ -111,6 +111,10 @@ process.env.TMPDIR = root;
 
 export const tempRoom = (prefix) => madeIn(join(root, prefix), () => mkdtempSync(join(root, prefix)));
 
+/* Without the variable node's runner sets in every test process: a `node --test` spawned under it
+   runs as a child of this suite, spends no file and exits zero whatever its cases did. */
+export const SHELL_ENV = Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== "NODE_TEST_CONTEXT"));
+
 /* A case about which run a call is controls the tree it stands in as it controls the config home: a suite run from a worktree naming its own run resolves that id, where a case written about the inherited one wants a tree naming none. It carries the checkout's project file, so leaving the checkout moves nothing else (ISS-467). */
 export const standsInNoTree = (name) => {
   const at = tempRoom(`${name}-no-tree-`);

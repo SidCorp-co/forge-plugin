@@ -11,9 +11,9 @@ import { STEPS, gateSteps, testWorkers } from "../../../tools/gates/steps.mjs";
 import { DEADLINE, DEFAULT_MINUTES, GONE, NO_GATE, TERMINAL } from "../../../tools/gate-verdict.mjs";
 import { CALL_CEILING_SECONDS } from "../../src/host/call-ceiling.mjs";
 import { REVIEW } from "../../../tools/gates/timing.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { SHELL_ENV, tempRoom } from "../fixtures.mjs";
 import { entries, entryDir, entryNames, git, landed, NAMED, passesDir, passesFor, ROOT, RUNNER, run,
-  runs, runsFile, scratch, SHELL_ENV, STAMPED, touchedEverywhere, write } from "./gates/scratch.mjs";
+  runs, runsFile, scratch, STAMPED, touchedEverywhere, write } from "./gates/scratch.mjs";
 
 /* Seconds no step of this scratch ever takes, over the digest each entry already holds. Without it
    a run that spent every step and then recorded over them leaves the same bytes, since every step

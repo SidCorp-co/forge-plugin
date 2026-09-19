@@ -37,3 +37,31 @@ row carrying no field is one from before any of this and that is something else 
 refuses on the word and no review is worth less for reading `declined`: the narrowing is deliberate
 and a review by inspection is most of what a review is. What was wrong was that taking the offer and
 leaving it alone read the same.
+
+**And a red now hands back what failed, not only that something did.** The window is the end of the
+output, and a suite puts its counts there and the line naming the case thousands of lines above:
+`npm test` in this repository prints 1,047,557 characters over 4,195 top-level TAP subtests and 23
+of them start inside the last 6,000, so one red in 182 could name its case and the rest reached the
+reviewer as a number with nothing attached — two consults on ISS-1898 reported a failing test that
+nobody, then or since, has been able to identify. What changed is what is selected into the window
+rather than how big it is: a non-zero run's failures are read out of the output's own TAP and put
+above the tail, each with whatever its diagnostic carried of where it failed, what kind of failure
+it was, and the assertion itself. The stack and the operands stay out, every line spent there being
+one the tail loses, and a run naming more failures than the bound says how many it did not name.
+TAP because a format that announces itself is read exactly where a vocabulary of failure words is
+guessed at, and node's runner writes TAP whenever its stdout is not a terminal, which under this
+spawn it never is. Output that is not TAP is handed back exactly as it was before, the tail and
+nothing else: this promises to read the failures a command named, never to invent them for one that
+named none. Nor does it say whose the failure is — the red that raised this was most likely the
+box refusing a fixture its temporary room, a thing this machine's own gate ledger has recorded 512
+times, and the reason that could not be said at the time is that the sentence saying it was outside
+the window (ISS-1901).
+
+**The environment the check runs under is composed rather than inherited.** The spawn passed none at
+all, so the command ran under whatever the consulting process happened to carry. It now runs under
+this CLI's own copy of that environment with `FORGE_SESSION_ID` taken out: a check is the project's
+command and not the run that consulted, and one reading that variable would write to the tracker as
+a run it is not. `TMPDIR` is kept on purpose — a delegated run's scratch root is where a check's
+leftovers belong, and it is what that run's own cleanup removes. What this does not claim is that
+the inheritance was the defect: one arm of the same spawn, with that environment in place and under
+three times the load of the occasion complained of, ran the same command green at 4,251 of 4,251.

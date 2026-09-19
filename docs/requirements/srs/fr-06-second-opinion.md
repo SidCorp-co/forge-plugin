@@ -44,9 +44,11 @@ checkout's decision rather than the account's, and `README.md` says why that lev
 - **AC-06-1-3** · Rev: 1 · Proof: plugin/test/codex/codex.test.mjs "a path escapes the repo by neither dots nor a symlink"
   IF a named path leaves the checkout, by relative segments or by a symbolic link, THEN the CLI
   SHALL refuse to send it.
-- **AC-06-1-4** · Rev: 1 · Proof: plugin/test/codex/codex-tools.test.mjs "run_check runs the named command once, from the checkout, and reports exit and tail"
+- **AC-06-1-4** · Rev: 2 · Proof: plugin/test/codex/codex-tools.test.mjs "a red check names the cases its own output named, above the tail"
   WHERE the checkout names a command the reviewer may run, the CLI SHALL run it once per consult,
-  from that checkout, and SHALL report its exit status and the tail of its output.
+  from that checkout, under an environment it composed, and SHALL report its exit status, the
+  failing cases that command's own output named up to a bound it states, and the tail of that
+  output.
 - **AC-06-1-5** · Rev: 1 · Proof: plugin/test/codex/gateway/anchor.test.mjs "a diff consult reviews the tree's own change, tests and deletions included, and says what of the turn record it left out"
   WHEN a consult selects the files it reviews THEN the CLI SHALL take the paths the caller named
   where there are any, else the turn's record where the consult is a recheck holding one, else the

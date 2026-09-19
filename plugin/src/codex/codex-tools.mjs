@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
+import { failuresSaid } from "./check-output.mjs";
 import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { HUMAN_REF, documentIdIfAny } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
@@ -217,6 +218,13 @@ const clockSaid = ({ ms, msFrom }) => (msFrom === FROM_PROJECT
   : `this plugin's default. Set \`codex.checkMs\` in ${FROM_PROJECT} to raise it, or narrow `
     + `\`codex.check\` to what fits ${ms / 1000}s`);
 
+// Composed, not inherited: a check is the project's command and not the run that consulted it.
+const checkEnv = () => {
+  const env = { ...process.env };
+  delete env.FORGE_SESSION_ID;
+  return env;
+};
+
 const checkOnce = (scope) => {
   if (!scope.check) return { text: "this checkout configures no `codex.check`, so there is nothing to run", error: true };
   if (scope.check.used) return { text: "run_check runs once per consult, and it has run", error: true };
@@ -226,6 +234,7 @@ const checkOnce = (scope) => {
   const run = spawnSync("sh", ["-c", scope.check.command], {
     cwd: scope.check.root,
     encoding: "utf8",
+    env: checkEnv(),
     timeout: scope.check.ms,
     maxBuffer: 16 << 20,
     detached: true,
@@ -242,7 +251,8 @@ const checkOnce = (scope) => {
   scope.check.outcome = run.status === null && run.signal ? "failed" : "ran";
   const out = `${run.stdout ?? ""}${run.stderr ?? ""}`;
   const tail = out.length > TAIL_CHARS ? `…\n${out.slice(-TAIL_CHARS)}` : out;
-  return { text: `\`${scope.check.command}\` exited ${run.status}\n${tail.trim()}` };
+  const failed = failuresSaid(out);
+  return { text: `\`${scope.check.command}\` exited ${run.status}\n${failed ? `${failed}\n\n` : ""}${tail.trim()}` };
 };
 
 /** Which of five states the declared check left this round in, `none` being a word rather than an absence: a row with no field at all is one from before any of this, and a signal that left no exit status is `failed` and not `ran`. docs/cli/codex-the-check.md. */
