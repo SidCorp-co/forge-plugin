@@ -55,9 +55,18 @@ server is reported by `forge doctor` with the command that saves the same values
 {
   "slug": "sid-growth",
   "translate": "vi",
+  "runs": 2,
   "deps": { "marker": "those edges are recorded", "blockedBy": "blocked by", "blocks": "blocks" },
   "codex": { "pathRe": "^(plugin|packages)/(src|hooks|scripts)/.*\\.mjs$|^docs/.*\\.md$" },
-  "stop": { "agents": ["runner", "reviewer", "triage", "evaluator"] }
+  "stop": { "agents": ["runner", "reviewer", "triage", "evaluator"] },
+  "jobs": { "ba": { "verbs": ["issue", "new", "comment"], "skills": ["forge"] } },
+  "rank": { "agePerDay": 2, "kind": { "bug": 20 } },
+  "review": { "lines": 1500 },
+  "feedback": { "plugin": "bugs", "project": "all" },
+  "flow": "default",
+  "drainedBy": "dispatcher",
+  "landing": "after-merge",
+  "stats": { "commands": { "gate": "npm run check" } }
 }
 ```
 
@@ -70,6 +79,24 @@ answered. `stop.agents` names the subagents whose stop the stop gate judges, bar
 plugin's prefix; absent, no subagent's stop is judged, and the main agent's is judged regardless. A
 plugin's hooks reach every session on the machine, so which delegated agents answer to this one is
 the project's to say, and this repository names the four roles its dispatch sets up.
+
+`runs` is how many runs this project carries at once, whoever dispatched them, and absent it
+resolves to no number at all — every reader then behaves as it did before the key existed, which is
+a box with more work on it than it can hold starving itself. It is one number rather than two keys
+because it bounds one thing, the work this checkout has taken on: both whether a gate of this
+checkout is admitted and how many test workers an admitted one gets are read off it. What this
+repository's own gate does with it: `node tools/gates.mjs -h`.
+
+Each key below is read from one place and nowhere else. `jobs` names the jobs this project has, a
+job being a name and the verbs and skills its usage list offers; absent, nothing is withheld.
+`rank` moves the weights `forge next` orders on, one weight at a time, the rest staying at the
+built-in table. `review.lines` is how many changed lines earn a reading of what has landed; absent,
+the number the script ships with stands. `feedback` says which channel each of the two feedback
+kinds takes, and each of them defaults on its own. `flow` names which of the served method sets
+this project runs, and `method` is retired: with no `flow` beside it, the one value that key ever
+took resolves to the default set and any other is refused with the route off the key. `drainedBy` says which master claims this project's issues once they are developed. `landing`
+says where the merge sits relative to the judging. `stats.commands` is what this checkout calls its
+own gate, test, ship and cleanup, which is what lets a run profile a project that is not this one.
 
 The project **id** is never configured — it is looked up from the slug at runtime.
 

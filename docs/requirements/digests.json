@@ -2733,6 +2733,38 @@
       "rev": 1,
       "digest": "de7ecc04cb07cb9f296e96a4fb267f75b2171ca24752c286748eda2fd74ed47d"
     },
+    "UC-12-8": {
+      "rev": 1,
+      "digest": "60d46272911d424a6c8f990bca18b9e085d663b89c4c9ae6fa0fa3b7d198a112"
+    },
+    "AC-12-8-1": {
+      "rev": 1,
+      "digest": "07593339c91c89953a30a1c666ee16db8c4d973f90ec75aa0c3d2ceebd7861e4"
+    },
+    "AC-12-8-2": {
+      "rev": 1,
+      "digest": "61b8a5a29b198ea29280bb1d7e22aeeb4ec35cea4f54fbd81996942645eb947a"
+    },
+    "AC-12-8-3": {
+      "rev": 1,
+      "digest": "38badf1ed3fe902894ef98cb35a5311bee8c46717d89c98cf5716e4af47f31dd"
+    },
+    "AC-12-8-4": {
+      "rev": 1,
+      "digest": "847527a86fa9a1d4efbeaee7910377fb0862fa13e56c4e51d0f5d0e183593d9f"
+    },
+    "AC-12-8-5": {
+      "rev": 1,
+      "digest": "8458858c5feed304e4a27867d6e1a945048ba0c25b1ed24ed2c7d64e54d0e6ca"
+    },
+    "AC-12-8-6": {
+      "rev": 1,
+      "digest": "4e3c3178e4acfcff6d5a97783a3a6ad5711bb6df8db4356a599bfaebb2123af9"
+    },
+    "AC-12-8-7": {
+      "rev": 1,
+      "digest": "47da883d12908559a6696c9a2582b7a5c9656599c90754abe2d9ae8f97ae7893"
+    },
     "FR-13": {
       "rev": 1,
       "digest": "f0d957f21090993b2def23dab3e79a1182c9d6cbe084d565433875566f48eb1a"

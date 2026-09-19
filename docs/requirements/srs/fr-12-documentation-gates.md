@@ -211,6 +211,41 @@ reports.
   two declaration lists as the way out however that file is named, because a refusal that reads a
   name exempts the next mistyped one.
 
+### UC-12-8 — A project's own keys are the keys the configuration document lists
+
+Rev: 1 · Actors: agent, developer · Enforces: BR-09, BR-13
+
+The document a project is configured from introduces that project's file and then shows it, so what
+it shows is a claim about the whole set of keys the file has. That claim decayed from five keys to
+fifteen while nothing failed, and the key it never named was the one a machine has to set to stop
+taking on more work than it can carry. A set decays from the other side too, so it is held in both
+directions. The walk that finds the reads is itself somewhere the check can go quiet rather than
+red: a key taken by a route that walk does not know is a key nothing compares.
+
+- **AC-12-8-1** · Rev: 1 · Proof: plugin/test/checks/docs/project-keys.test.mjs "a key the code reads and that section names nowhere is refused"
+  IF this product reads a top-level key of a project's own file that the configuration document
+  names nowhere THEN the check SHALL fail, SHALL name the key, and SHALL name the example to add it
+  to.
+- **AC-12-8-2** · Rev: 1 · Proof: plugin/test/checks/docs/project-keys.test.mjs "a key the example shows and nothing reads is refused"
+  IF that document's example shows a top-level key this product reads nowhere THEN the check SHALL
+  fail, since a key nothing reads is a setting a reader would write for no effect.
+- **AC-12-8-3** · Rev: 1 · Proof: plugin/test/checks/docs/project-keys.test.mjs "a key the section calls retired is named, and one nothing reads at all is refused"
+  WHERE a key is read only to refuse a file that still carries it, that document SHALL satisfy the
+  comparison by saying the key is retired rather than by showing it among the keys a project writes.
+- **AC-12-8-4** · Rev: 1 · Proof: plugin/test/checks/docs/project-keys.test.mjs "a key the section calls retired is named, and one nothing reads at all is refused"
+  IF that document says a key is retired and this product reads it nowhere at all THEN the check
+  SHALL fail, because the sentence is then telling a reader about a key that reaches nothing.
+- **AC-12-8-5** · Rev: 1 · Proof: plugin/test/checks/docs/project-keys.test.mjs "a read of the project file by a route the walk does not know is refused"
+  IF a read of a project's file takes a route the check does not know THEN the check SHALL fail,
+  SHALL name the file and the line, and SHALL name the routes it does know.
+- **AC-12-8-6** · Rev: 1 · Proof: plugin/test/checks/docs/project-keys.test.mjs "a walk that matched nothing is a failure and not a clean repository"
+  WHILE the check runs it SHALL fail where its walk found no key at all, because a pattern that has
+  gone stale reports a clean repository and reads exactly like one.
+- **AC-12-8-7** · Rev: 1 · Proof: plugin/test/checks/docs/project-keys.test.mjs "one recognised read off a bound value says nothing about the rest of its uses"
+  WHERE a read takes the whole of a project's file into a local of its own, every use of that local
+  SHALL name a key, and a use that names none SHALL fail on the line it is written on, because one
+  use the check can read is no evidence about the ones beside it.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*
