@@ -1,6 +1,5 @@
-/* The budget the tracker states on every answer, held per scope the server names, so a fanning-out
-   call waits for a window it has read rather than discovering it a hundred times over by being
-   refused (ISS-1849). An answer from a window already past may not unspend the window standing. */
+/* The budget the tracker states on every answer, per scope the server names, so a fanning-out call
+   waits for a window it has read rather than discovering it a hundred times over (ISS-1849). */
 
 const SCOPE = "x-ratelimit-scope";
 const LIMIT = "x-ratelimit-limit";
@@ -38,6 +37,11 @@ const opened = (limit, remaining, resetAt, held, carried) => {
   };
 };
 
+const charge = (held, carried) => {
+  held.sent += carried;
+  held.spanning += carried;
+};
+
 export const sawBudget = (key, headers) => {
   const scope = headers?.get?.(SCOPE);
   const [limit, remaining, reset] = [LIMIT, REMAINING, RESET].map((name) => numbered(headers, name));
@@ -49,12 +53,11 @@ export const sawBudget = (key, headers) => {
   }
   const resetAt = reset * 1000;
   const held = scopes.get(scope);
-  if (held && resetAt < held.resetAt) return;
+  /* The reading is a window already past and says nothing of this one; the calls behind it are this
+     process's either way, and dropping them with the reading is how they become somebody else's. */
+  if (held && resetAt < held.resetAt) return charge(held, carried);
   const now = !held || resetAt > held.resetAt ? opened(limit, remaining, resetAt, held, carried) : held;
-  if (now === held) {
-    now.sent += carried;
-    now.spanning += carried;
-  }
+  if (now === held) charge(now, carried);
   scopes.set(scope, now);
   now.answers += 1;
   now.limit = limit;
@@ -85,8 +88,7 @@ export const reserveIn = (key, now, within = Infinity) => {
     held.sent += 1;
     return null;
   };
-  /* Past the stated reset the window read is over and nothing of the next is known, so the call goes
-     and its answer opens that one — admitting the calls in flight, as this moment does today. */
+  /* The window read is over and the next unknown, so the call goes and its answer opens that one. */
   if (now > held.resetAt) return went();
   if (held.remaining > 0) {
     held.remaining -= 1;

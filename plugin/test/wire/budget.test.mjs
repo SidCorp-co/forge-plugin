@@ -189,3 +189,15 @@ test("a route whose bucket nothing has named yet is charged to the window that a
   assert.equal(reserveIn(KEY, 100_000).said.includes("by something else"), false,
     "the five the other route sent are unanswered, not somebody else's");
 });
+
+test("a route whose first answer is from a window already past still brings its calls with it", () => {
+  const OTHER = "forge_comments.create";
+  forgetBudget();
+  call(100_000, { limit: 60, remaining: 59, resetAt: 200_000 });
+  for (let one = 0; one < 5; one += 1) assert.equal(reserveIn(OTHER, 100_000), null);
+  sawBudget(OTHER, stated({ limit: 60, remaining: 40, resetAt: 140_000 }));
+  for (let one = 0; one < 54; one += 1) reserveIn(KEY, 100_000);
+  sawBudget(KEY, stated({ limit: 60, remaining: 0, resetAt: 200_000 }));
+  assert.equal(reserveIn(KEY, 100_000).said.includes("by something else"), false,
+    "the reading was dropped and the five calls under it were not");
+});
