@@ -201,3 +201,15 @@ test("a route whose first answer is from a window already past still brings its 
   assert.equal(reserveIn(KEY, 100_000).said.includes("by something else"), false,
     "the reading was dropped and the five calls under it were not");
 });
+
+/* The reading is written before the answers of calls still out are counted, so a window opened while
+   eleven are in flight would otherwise lend all sixty and this process would send seventy-one. */
+test("a window opened while calls are still out lends only what is left once they are off it", () => {
+  forgetBudget();
+  for (let one = 0; one < 12; one += 1) assert.equal(reserveIn(KEY, 100_000), null);
+  sawBudget(KEY, stated({ limit: 60, remaining: 59, resetAt: 200_000 }));
+  for (let one = 0; one < 48; one += 1) {
+    assert.equal(reserveIn(KEY, 100_000), null, `reservation ${one + 1} of the 48 the window has room for`);
+  }
+  assert.ok(reserveIn(KEY, 100_000), "the eleven still out are charged to this window too, so the next one waits");
+});

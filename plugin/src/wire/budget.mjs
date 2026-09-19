@@ -24,14 +24,16 @@ const outstandingIn = (held) => Math.max(0, held.sent - held.answers);
    belongs to either window and is subtracted from both rather than credited to a sibling. */
 const opened = (limit, remaining, resetAt, held, carried) => {
   const from = { sent: (held?.sent ?? 0) + carried, answers: held?.answers ?? 0 };
+  const spanning = outstandingIn(from);
   return {
     limit,
-    remaining,
+    /* Those still out are not in the reading, so a window lends only what is left once they are off it. */
+    remaining: Math.max(0, remaining - Math.max(0, spanning - 1)),
     resetAt,
     sent: from.sent,
     answers: from.answers,
     mine: 0,
-    spanning: outstandingIn(from),
+    spanning,
     spent: 0,
     announced: false,
   };
@@ -61,9 +63,8 @@ export const sawBudget = (key, headers) => {
   scopes.set(scope, now);
   now.answers += 1;
   now.limit = limit;
-  /* Downward only inside one window: a header is written before the calls still in flight are
-     counted, so a later one saying more is left is a stale view of it. */
-  now.remaining = now === held ? Math.min(now.remaining, remaining) : remaining;
+  /* Downward only: a header written before the calls in flight were counted overstates what is left. */
+  if (now === held) now.remaining = Math.min(now.remaining, remaining);
   now.spent = Math.max(now.spent, limit - remaining);
 };
 
