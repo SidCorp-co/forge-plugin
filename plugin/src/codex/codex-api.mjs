@@ -139,7 +139,7 @@ export const locate = (root, given) => {
   }
 };
 
-/** The rel a name would carry inside this root, present or not: `locate` realpaths the file itself and a tracked deletion has none, so the nearest ancestor that does exist is realpath'd and the rest of the name carried down — `git rm -r` takes the directory with its files, and a deletion HEAD holds is no less one for having lost its parent. A link out of the checkout still answers null (ISS-1880). */
+/** The rel a name would carry inside this root, present or not: `locate` realpaths the file itself and a tracked deletion has none, so the nearest ancestor that does resolve is realpath'd and the rest of the name carried down — `git rm -r` takes the directory with its files, and a deletion HEAD holds is no less one for having lost its parent. An ancestor resolving outside the checkout answers null; one resolving nowhere is climbed past, the rel then being a repository path git addresses and `locate` alone reads through (ISS-1880). */
 export const wouldSit = (root, given) => {
   const full = resolve(root, given);
   let base;

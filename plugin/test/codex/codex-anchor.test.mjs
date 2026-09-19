@@ -154,6 +154,7 @@ test("a recheck given no file reads the range its consult recorded, not what an 
 });
 
 const { relsOf, shownOf } = await import("../../src/codex/codex-set.mjs");
+const { locate, wouldSit } = await import("../../src/codex/codex-api.mjs");
 
 /* A diff git refused is the one absence that is not an answer, and dropping on it clears a real
    deletion from the record before any reviewer has seen it. The unit reaches it; no room can. */
@@ -516,4 +517,24 @@ test("the turn record travels where nothing differs from the base, and says so b
 test("a named path git cannot be asked about is kept rather than refused", () => {
   const room = tempRoom("codex-named-ungit-");
   assert.deepEqual(relsOf(room, ["gone.txt"]), ["gone.txt"]);
+});
+
+/* Naming is not reading, so the containment `wouldSit` owes is the ancestor's: `locate` needs the file
+   and a deletion has none. A link out stays null, and a link to nothing is climbed past rather than
+   refused — every deletion `git rm -r` makes sits under one, and no read goes that way (ISS-1880). */
+test("a name with nothing behind it is placed by its ancestors, and only locate ever reads one", () => {
+  const room = tempRoom("codex-wouldsit-");
+  const repo = join(room, "repo");
+  mkdirSync(join(repo, "docs"), { recursive: true });
+  mkdirSync(join(room, "elsewhere", "kept"), { recursive: true });
+  writeFileSync(join(room, "outside.md"), "secrets");
+  symlinkSync(join(room, "elsewhere"), join(repo, "linked"));
+  symlinkSync(join(room, "never-made"), join(repo, "retired"));
+
+  assert.equal(wouldSit(repo, "docs/GONE.md"), "docs/GONE.md");
+  assert.equal(wouldSit(repo, "retired/deep/only.txt"), "retired/deep/only.txt",
+    "a deletion that took its directory with it keeps the rel git addresses it by");
+  assert.equal(wouldSit(repo, "linked/kept/only.txt"), null, "an ancestor resolving outside the checkout does not");
+  assert.equal(wouldSit(repo, "../outside.md"), null);
+  assert.equal(locate(repo, "retired/deep/only.txt"), null, "and the reading route refuses both of them");
 });
