@@ -17,7 +17,7 @@ import { owedBlock, policyFor } from "./route.mjs";
 import { worklogLines, workNow } from "./worklog.mjs";
 import { briefOf } from "./brief.mjs";
 import { SHARED_HOLDER } from "./lease/dispatched.mjs";
-import { workingHereSaid } from "./lease/working.mjs";
+import { workingSaid } from "./lease/working.mjs";
 import { landingLine, landingTurn } from "./landing/checkpoint.mjs";
 import { atMinute, heldSaid } from "./machine.mjs";
 
@@ -60,7 +60,7 @@ const leased = (brief) => {
     `${one.state}: session ${one.holder} (${one.agent}, pid ${one.pid}), renewed `
     + `${atMinute(one.renewedAt)} for ${one.minutes} minute(s), ${one.claims} claim(s) on the record`,
     ...(one.holderShared ? [SHARED_HOLDER] : []),
-    ...(one.holderWorking ? workingHereSaid(one.holderWorking, one.holder).split("\n") : []),
+    ...(one.holderWorking ? workingSaid(one.holderWorking, one).split("\n") : []),
     /* Through the readers the refusals use, so this and `--take` cannot say different things. */
     ...(brief.landing
       ? [landingLine(brief.landing), `  whose turn: ${landingTurn(brief.landing) ?? "nobody's — the state names none"}`]

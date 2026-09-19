@@ -12,7 +12,7 @@ import { join } from "node:path";
 
 import { escaped, fakeTracker, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
 import { idsHere } from "../../../src/flow/lease.mjs";
-import { workingHere } from "../../../src/flow/lease/working.mjs";
+import { placeOf, workUnder } from "../../../src/flow/lease/holder.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("live-sibling").path;
 
@@ -38,6 +38,25 @@ const treeMinting = (id, declares = MARK) => {
 
 const TREE = treeMinting(OURS);
 const OTHER = treeMinting(ELSEWHERE);
+/* Where a dispatcher stands: no tree of its own, so nothing but the lease's own record can reach the
+   tree the work is in, which is the whole of what ISS-1903 turned on. */
+const AWAY = tempRoom("live-sibling-away-");
+writeFileSync(join(AWAY, ".forge.json"), readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
+const HERE = placeOf();
+
+/* An id nothing on this box answers to, found rather than guessed. */
+const goneId = () => {
+  for (let id = 4_194_301; id > 4_000_000; id -= 7) {
+    try {
+      process.kill(id, 0);
+    } catch (error) {
+      if (error.code === "ESRCH") return String(id);
+    }
+  }
+  throw new Error("no absent process id on this box, which is not a state this suite can run in");
+};
+
+const GONE = goneId();
 /* A tree of this project's own that declares nothing, which is every project that has not chosen. */
 const SILENT = treeMinting(OURS, null);
 /* The caller stands in the tree, as the run it is claiming for does: its own process and its parent
@@ -152,19 +171,37 @@ test.after(() => tracker.close());
 const HOST = process.pid;
 const UNDER_ONE_CALL = process.ppid;
 
-const ran = (argv, at = TREE, host = HOST) =>
-  ranAsync(FORGE, argv, { ...tracker.env, FORGE_SESSION_ID: OURS, CLAUDE_PID: String(host) }, at);
+const ran = (argv, at = TREE, host = HOST, who = OURS) =>
+  ranAsync(FORGE, argv, { ...tracker.env, FORGE_SESSION_ID: who, CLAUDE_PID: String(host) }, at);
+/* A caller the issue was never dispatched to, so what it meets is the lease's own state and not the
+   handoff a dispatched run is granted whatever the record says of the holder. */
+const A_STRANGER = "a-dispatching-session";
 const onTheRecord = () => ISSUE.sessionContext.lease;
+
+/* The lease ISS-1903 is about: another run's, inside its own duration, naming a host that has exited
+   and the tree that run took it in. Nothing but the tree can say whether that run is still working. */
+const hostExited = (tree = OTHER) => {
+  ISSUE.status = "approved";
+  state.wrote = 0;
+  ISSUE.sessionContext = {
+    lease: {
+      holder: ELSEWHERE, agent: "a-test-agent", pid: GONE, place: HERE, tree,
+      renewedAt: ago(5), minutes: 60, next: "Phase 7: the ship", history: [],
+    },
+  };
+};
 
 test("the reading is of work outside this call's own, and of nothing else", async () => {
   const own = await standingIn(TREE);
   try {
-    assert.ok(workingHere(OURS, TREE, HOST).some((one) => one.pid === own.pid),
+    assert.ok(workUnder({ holder: OURS }, TREE, HOST).some((one) => one.pid === own.pid),
       "work standing in the tree that is not this call, not above it and not anything it started");
-    assert.deepEqual(workingHere(OURS, TREE, UNDER_ONE_CALL), [],
+    assert.deepEqual(workUnder({ holder: OURS }, TREE, UNDER_ONE_CALL), [],
       "and the same work under one call of a host further up, which is this reading's blind spot and the suite's own shape");
-    assert.deepEqual(workingHere(ELSEWHERE, TREE, HOST), [], "a holder this tree does not mint is read from no tree at all");
-    assert.deepEqual(workingHere(OURS, TREE, "unknown"), [], "and a call that knows no host process reads nothing");
+    assert.equal(workUnder({ holder: ELSEWHERE }, TREE, HOST), null,
+      "a holder this tree does not mint and no checkout on the record is a reading that was not made");
+    assert.equal(workUnder({ holder: OURS }, TREE, "unknown"), null,
+      "and a call that knows no host process reads nothing, which is not the same answer as finding none");
   } finally {
     own.kill();
   }
@@ -290,7 +327,7 @@ test("work whose own intermediate has exited still refuses the claim, the host h
   heldBy();
   const orphan = await reparentedIn(TREE);
   try {
-    assert.ok(workingHere(OURS, TREE, HOST).some((one) => one.pid === orphan.pid),
+    assert.ok(workUnder({ holder: OURS }, TREE, HOST).some((one) => one.pid === orphan.pid),
       "the reading finds work the host no longer stands above");
     const refused = await ran(["claim", "ISS-1872"]);
     assert.equal(refused.status, 1, `a renewal is what asking the host to be found answered:\n${refused.stdout}`);
@@ -313,7 +350,7 @@ test("work this project does not declare leaves the claim exactly as it was", as
   heldBy();
   const idle = await standingIn(TREE, null);
   try {
-    assert.deepEqual(workingHere(OURS, TREE, HOST), [], "the reading passes over it");
+    assert.deepEqual(workUnder({ holder: OURS }, TREE, HOST), [], "the reading passes over it");
     const took = await ran(["claim", "ISS-1872"]);
     assert.equal(took.status, 0, `${took.stdout}${took.stderr}`);
     assert.match(took.stdout, /renewed: session iss-1872-a4e81e39/u, "and the lease renews as it always did");
@@ -330,7 +367,7 @@ test("a project that declares nothing reads no process at all, whatever is stand
   heldBy();
   const sibling = await standingIn(SILENT);
   try {
-    assert.deepEqual(workingHere(OURS, SILENT, HOST), [], "no declaration, so nothing to find");
+    assert.deepEqual(workUnder({ holder: OURS }, SILENT, HOST), [], "no declaration, so nothing to find");
     const took = await ran(["claim", "ISS-1872"], SILENT);
     assert.equal(took.status, 0, `${took.stdout}${took.stderr}`);
     assert.match(took.stdout, /renewed: session iss-1872-a4e81e39/u,
@@ -402,4 +439,87 @@ test("what this checkout declares reaches its releases, its options and its wrap
     ["node --test plugin/test/flow/override.test.mjs", false],
     ["/usr/bin/bash", false],
   ]) assert.equal(work.test(line), counts, line);
+});
+
+/* The seam ISS-1903 was filed for, in the shape it cost a run: the host the lease records has exited,
+   the release that host started is still standing in the tree, and the caller is a dispatcher
+   somewhere else entirely. Before this change the absent host alone read as proof and the reclaim was
+   granted; the tree the lease records is what the reading needs to be made from anywhere. */
+test("a reclaim from outside that tree is refused while the release the exited host started still stands", async () => {
+  hostExited();
+  const ship = await standingIn(OTHER);
+  try {
+    const refused = await ran(["claim", "ISS-1872"], AWAY);
+    assert.equal(refused.status, 1, `an exited host is not a stopped run:\n${refused.stdout}`);
+    assert.match(refused.stderr, new RegExp(`pid ${ship.pid}`, "u"), "the process still standing there");
+    assert.match(refused.stderr, new RegExp(escaped(OTHER), "u"), "in the tree the lease itself names");
+    assert.match(refused.stderr, /the one the record names and not the one this call stands in/u,
+      "which is how a caller outside that tree reached it at all");
+    assert.match(refused.stderr, /forge claim ISS-1872 --stopped/u, "and the one assertion that takes it anyway");
+    assert.equal(state.wrote, 0, "with no write of the field even attempted");
+  } finally {
+    ship.kill();
+  }
+});
+
+test("the same reclaim is granted with no flag once nothing is standing in that tree", async () => {
+  hostExited();
+  const took = await ran(["claim", "ISS-1872"], AWAY);
+  assert.equal(took.status, 0, `${took.stdout}${took.stderr}`);
+  assert.match(took.stdout, /the host its holder ran under/u, "the record saying which process the id names");
+  assert.match(took.stdout, new RegExp(escaped(OTHER), "u"), "beside the tree the other half of the proof was read in");
+  assert.equal(onTheRecord().holder, OURS, "and the lease is this run's on the record");
+});
+
+test("a lease naming a checkout that mints some other run is not proved gone by its absent host", async () => {
+  hostExited(TREE);
+  const refused = await ran(["claim", "ISS-1872"], AWAY, HOST, A_STRANGER);
+  assert.equal(refused.status, 1, `a checkout that is not that run's reads no tree at all:\n${refused.stdout}`);
+  assert.match(refused.stderr, /A live lease is that run's/u, "so the duration decides, as it does for every doubt");
+  assert.equal(onTheRecord().holder, ELSEWHERE, "and nothing of this caller's was written");
+});
+
+/* The payload write takes a gone holder's lease for itself without a refusal in front of it, which is
+   the route a run never sees. It reads the same composed answer or it takes what the claim refuses. */
+test("a payload write does not take that lease for itself while the work stands", async () => {
+  hostExited();
+  const ship = await standingIn(OTHER);
+  try {
+    const wrote = await ran(["record", "correction", "ISS-1872", "--moved", "the probe", "--why", "the host exited"], AWAY);
+    assert.equal(wrote.status, 1, `the write must not take what the claim refuses:\n${wrote.stdout}${wrote.stderr}`);
+    assert.match(wrote.stderr, /is held by another run/u, "in the words a live lease's write refusal uses");
+    assert.equal(state.wrote, 0, "and the field is untouched");
+  } finally {
+    ship.kill();
+  }
+});
+
+/* Every route out of the verb, because the refusal used to sit below all five and each of them writes. */
+const TURNS = [["--take"], ["--judged"], ["--reconciled", "0f7254aa"], ["--recorded"], ["--landed"]];
+
+test("every turn a claim can name meets the same refusal, and the assertion takes each of them", async () => {
+  for (const turn of TURNS) {
+    const named = turn[0];
+    heldBy();
+    const sibling = await standingIn(TREE);
+    try {
+      const refused = await ran(["claim", "ISS-1872", ...turn]);
+      assert.equal(refused.status, 1, `${named}: a turn is a write like any other:\n${refused.stdout}`);
+      assert.match(refused.stderr, new RegExp(`pid ${sibling.pid}`, "u"), `${named}: naming the work it found`);
+      assert.equal(state.wrote, 0, `${named}: with nothing written before the refusal`);
+      const asserted = await ran(["claim", "ISS-1872", ...turn, "--stopped"]);
+      assert.doesNotMatch(asserted.stderr, new RegExp(`pid ${sibling.pid}`, "u"),
+        `${named}: and the assertion clears this refusal, whatever that turn's own state then says`);
+    } finally {
+      sibling.kill();
+    }
+  }
+});
+
+test("the lease a claim writes records the checkout the claiming call stood in", async () => {
+  heldBy();
+  const took = await ran(["claim", "ISS-1872"]);
+  assert.equal(took.status, 0, `${took.stdout}${took.stderr}`);
+  assert.equal(onTheRecord().tree, TREE,
+    "so a caller standing anywhere else can read the tree this run's work would stand in");
 });

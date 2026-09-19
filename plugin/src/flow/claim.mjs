@@ -37,14 +37,16 @@ import {
   STOPPED,
   UNHELD,
   anybodysAt,
+  LAPSE_FRESH,
+  LAPSE_UNORDERED,
   claimRefusal,
   claimed,
   describe,
   expiryOf,
   freeRefusal,
-  freshLapse,
   heldBy,
   landingSaved,
+  lapseUnproven,
   leaseOf,
   nextLeft,
   nextLine,
@@ -63,8 +65,8 @@ import {
 } from "./lease/crash-park.mjs";
 import { takeLease, takeRefusal } from "./lease/takeover.mjs";
 import { SHARED_HOLDER, handedOn, handedSaid, notHandedHere, sharedHolder } from "./lease/dispatched.mjs";
-import { holderGoneSaid } from "./lease/holder.mjs";
-import { workingHere, workingRefusal } from "./lease/working.mjs";
+import { holderGoneSaid, workUnder } from "./lease/holder.mjs";
+import { workingRefusal } from "./lease/working.mjs";
 import { bandWith, straddleSaid, straddles, unplaceable } from "../wire/shared-clock.mjs";
 
 const MAX_MINUTES = 24 * 60;
@@ -426,15 +428,17 @@ export const claim = async (argv) => {
   const state = stateOf(lease, holder);
   const minutes = asked ?? (lease && lease.holder === holder ? lease.minutes : MINUTES);
   const worklog = worklogOf(context);
-  /* Above every route out of here, including the three turns below, because what it qualifies is the state each of them reads, and a claim told afterwards has already been answered on it. */
+  /* Above every route out of here, including the five turns below, because what each of the two qualifies is the state those routes read and a claim told afterwards has already been answered on it: the band is the moment the two clocks cannot order, and the work standing in the lease's own tree is the thing no state of the record reports (ISS-1903). */
   const band = bandWith(lease?.slack);
   const expiry = lease ? expiryOf(lease) : 0;
   const anybodys = lease ? anybodysAt(lease) : 0;
+  const working = lease ? workUnder(lease) ?? [] : [];
   if (lease) {
     const untold = unplaceable(lease.slack)
       ?? (straddles(expiry, band) ? straddleSaid(`the expiry of the lease on ${ref}`, expiry, band) : null);
     if (untold) console.error(untold);
   }
+  if (working.length && !given.stopped) fail(workingRefusal(ref, lease, working));
   if (given.take) {
     const took = await takeTurn(documentId, ref, issue, context, { holder, minutes, line, patch });
     if (sharedHolder(took, mine)) console.log(SHARED_HOLDER);
@@ -471,19 +475,16 @@ export const claim = async (argv) => {
   if (state === "live" && !handed) {
     fail(claimRefusal(ref, lease, notHandedHere(ref, key, context, issue.status, holder), takeOpen));
   }
-  const working = state === "mine" || state === "lapsed" ? workingHere(holder) : [];
-  if (working.length && !given.stopped) fail(workingRefusal(ref, lease, working));
   /* The anomaly and not the flag: a field with no lease in it, at a status only a run's own writes reach. Named here so the refusal and the word the history keeps cannot come to disagree about which claim was the anomalous one. A field a write gave the lease back in is none of the readings that anomaly stands for — one write emptied it on purpose and said so — so it is an ordinary claim wherever the issue stands (ISS-1617). */
   const unheld = state === "free" && !takeableFree(issue.status, context);
   if (unheld && !given.unheld) {
     fail(unheldRefusal(ref, issue.status,
       { next: nextLeft(context), work: workLines(workNow(worklog)) }));
   }
-  if (state === "expired" && !given.stopped && !handed && freshLapse(lease)) {
-    fail(reclaimRefusal(ref, lease, undefined, takeOpen));
-  }
-  /* After the refusal above, which owns the lapse the record can tell is fresh; this owns only the lapse read as stale that cannot be ruled fresh, the direction that takes an issue off a working run (ISS-1212). */
-  if (state === "expired" && !given.stopped && !handed && straddles(anybodys, band)) {
+  /* One reading, two sentences: the first owns the lapse the record can tell is fresh and the second only the lapse read as stale that cannot be ruled fresh, which is the direction that takes an issue off a working run (ISS-1212). */
+  const unproven = state === "expired" && !given.stopped && !handed ? lapseUnproven(lease, { band }) : "";
+  if (unproven === LAPSE_FRESH) fail(reclaimRefusal(ref, lease, undefined, takeOpen));
+  if (unproven === LAPSE_UNORDERED) {
     fail(`${straddleSaid(`the moment the lease on ${ref} becomes anybody's`, anybodys, band)} `
       + `Until then this reclaim would take the issue off ${describe(lease)}. Where you have `
       + `established that run stopped, say so:\n  forge claim ${ref} ${STOPPED}`);

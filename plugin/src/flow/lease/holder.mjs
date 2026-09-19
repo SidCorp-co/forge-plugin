@@ -1,12 +1,23 @@
 /* What the record proves about the run behind a lease, which the clock never could: the recorded
-   process id absent in the place that id was issued, and nothing else. Why only absence proves it,
-   and why a hostname is not that place: docs/cli/claim.md (ISS-919). An id that cannot be signalled
-   answers, another user's run being no call of this one's to make. */
-import { readFileSync, readlinkSync } from "node:fs";
+   process id absent in the place that id was issued, and nothing the project calls a run's own work
+   standing in the tree that lease was claimed in. docs/cli/the-dead-holder.md carries every why. */
+import { readFileSync, readdirSync, readlinkSync, statSync } from "node:fs";
 
-/* The kernel boot and the process table; both halves or nothing, so a platform exposing neither records no place and leaves its leases to the clock. */
+import { gitEntryAt } from "../../git/checkout-at.mjs";
+import { projectWorkPattern } from "../../resolve/settings.mjs";
+import { runIdAt } from "../../resolve/session/run-id.mjs";
+
 const BOOT = "/proc/sys/kernel/random/boot_id";
-const TABLE = "/proc/self/ns/pid";
+const NAMESPACE = "/proc/self/ns/pid";
+const TABLE = "/proc";
+const COMMAND = 120;
+
+export const UNKNOWN = "unknown";
+
+export const agentOf = () => process.env.AI_AGENT || UNKNOWN;
+
+/** The host process every agent of a dispatched wave shares, and never the process doing the work. */
+export const pidOf = () => process.env.CLAUDE_PID || UNKNOWN;
 
 const read = (how, path) => {
   try {
@@ -16,15 +27,30 @@ const read = (how, path) => {
   }
 };
 
+const answered = (how) => {
+  try {
+    return how();
+  } catch {
+    return null;
+  }
+};
+
 let here = null;
 
 export const placeOf = () => {
   if (here === null) {
     const boot = read(readFileSync, BOOT);
-    const table = read(readlinkSync, TABLE);
+    const table = read(readlinkSync, NAMESPACE);
     here = boot && table ? `${boot} ${table}` : "";
   }
   return here;
+};
+
+let standing = null;
+
+export const treeHere = () => {
+  if (standing === null) standing = gitEntryAt(process.cwd())?.tree ?? "";
+  return standing;
 };
 
 const absent = (pid) => {
@@ -38,10 +64,91 @@ const absent = (pid) => {
   }
 };
 
-export const holderGone = (lease, at = placeOf()) =>
-  Boolean(lease?.place) && lease.place === at && absent(lease.pid);
+const parentOf = (pid) =>
+  Number(/^PPid:\s*(\d+)$/mu.exec(answered(() => readFileSync(`${TABLE}/${pid}/status`, "utf8")) ?? "")?.[1]) || 0;
 
-export const holderGoneSaid = (lease) =>
-  `Process id ${lease.pid}, which that lease records as its holder's, is not running where the lease `
-  + `was taken — the same kernel boot and the same process table this call stands in — so the record `
-  + `proves the run is gone and nothing about it had to be established.`;
+const chainOf = (pid) => {
+  const seen = [];
+  for (let at = pid; at > 1 && !seen.includes(at); at = parentOf(at)) seen.push(at);
+  return seen;
+};
+
+/* The bound on this call's own work, never a qualification of what is found: reparented work has no host. */
+const anothersCall = (pid, below) => !chainOf(pid).some((one) => below.has(one));
+
+const lineOf = (pid) => {
+  const line = answered(() => readFileSync(`${TABLE}/${pid}/cmdline`, "utf8"));
+  return (line ?? "").replaceAll("\0", " ").trim()
+    || (answered(() => readFileSync(`${TABLE}/${pid}/comm`, "utf8")) ?? "").trim();
+};
+
+const rowOf = (pid, said) => ({
+  pid,
+  command: said.length > COMMAND ? `${said.slice(0, COMMAND)}…` : said,
+  since: answered(() => statSync(`${TABLE}/${pid}`).ctime.toISOString()) ?? null,
+});
+
+/* Nothing declared reads as nothing found: every process instead refuses a run's own gate (ISS-1872). */
+const declared = (tree) => {
+  const said = projectWorkPattern(tree).value;
+  return said ? new RegExp(said, "u") : null;
+};
+
+const within = (cwd, tree) => cwd === tree || cwd.startsWith(`${tree}/`);
+
+/** Which tree a lease's work stands in: the one this call stands in where that tree mints the holder,
+ *  else the checkout `treeHere` recorded on the lease — a name and not an identity across mount
+ *  namespaces, so it counts only where the id beside its git directory is still this holder. */
+export const treeOf = (lease, at = process.cwd()) => {
+  const holder = lease?.holder;
+  if (!holder) return null;
+  if (runIdAt(at) === holder) return gitEntryAt(at)?.tree ?? null;
+  const said = typeof lease.tree === "string" ? lease.tree : "";
+  if (!said || !lease.place || lease.place !== placeOf() || runIdAt(said) !== holder) return null;
+  return gitEntryAt(said)?.tree ?? null;
+};
+
+/** The declared work standing in that tree, none where the tree is idle or the project declares
+ *  nothing, and `null` where the reading could not be made — no tree of the lease's own to read, or
+ *  no host this call can place its own work against. An empty list says a tree was read. */
+export const workUnder = (lease, at = process.cwd(), said = pidOf()) => {
+  const tree = treeOf(lease, at);
+  if (!tree) return null;
+  const host = Number(said);
+  const mine = chainOf(process.pid);
+  const seat = Number.isInteger(host) && host >= 2 ? mine.indexOf(host) : -1;
+  /* No boundary, and a reading that cannot exclude its own work refuses every claim from a tree. */
+  if (seat < 0) return null;
+  const work = declared(tree);
+  if (!work) return [];
+  const ours = new Set(mine);
+  const below = new Set(mine.slice(0, seat));
+  const found = [];
+  for (const name of answered(() => readdirSync(TABLE)) ?? []) {
+    const pid = Number(name);
+    if (!Number.isInteger(pid) || pid < 2 || ours.has(pid)) continue;
+    const cwd = answered(() => readlinkSync(`${TABLE}/${pid}/cwd`));
+    if (!cwd || !within(cwd, tree)) continue;
+    const line = lineOf(pid);
+    if (!line || !work.test(line) || !anothersCall(pid, below)) continue;
+    found.push(rowOf(pid, line));
+  }
+  return found.sort((one, two) => String(one.since).localeCompare(String(two.since)));
+};
+
+/* Both halves or neither: the recorded id is the host a wave shares and a host exits while the
+   release it started keeps running, so its absence proves the run gone only where that run's tree
+   holds none of its declared work. A reading that could not be made is not one that found nothing,
+   and leaves the lease to its duration (ISS-1903). */
+export const holderGone = (lease, at = placeOf()) => {
+  if (!lease?.place || lease.place !== at || !absent(lease.pid)) return false;
+  const work = workUnder(lease);
+  return work !== null && work.length === 0;
+};
+
+export const holderGoneSaid = (lease, at = process.cwd()) =>
+  `Process id ${lease.pid}, which that lease records as the host its holder ran under, is not `
+  + `running where the lease was taken — the same kernel boot and the same process table this call `
+  + `stands in — and nothing this project calls a run's own work is standing in `
+  + `${treeOf(lease, at) ?? "that lease's own tree"}, so the record proves the run is gone and `
+  + `nothing about it had to be established.`;

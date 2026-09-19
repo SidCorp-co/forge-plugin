@@ -4,7 +4,7 @@ import { bodyFrom } from "../resolve/payload.mjs";
 import { flags, wantsHelp } from "../resolve/flags.mjs";
 import { fail, keepOnFailure, projectScope, translateScope, useProject } from "../resolve/settings.mjs";
 import { pluginChannel, usageOf } from "../resolve/visibility.mjs";
-import { agentOf } from "../flow/lease.mjs";
+import { agentOf } from "../flow/lease/holder.mjs";
 import { hereCopy, pluginCopy } from "./plugin-copy.mjs";
 import { documentIdOf, shortOf } from "../tracker/issues.mjs";
 import { CAUSE_HELP, KIND_NAMES, kindRefusal, liveTitles } from "../tracker/issue-shape.mjs";

@@ -90,7 +90,7 @@ next write and the next claim take it where an empty one is refused.
 
 ### UC-03-2 — Refuse a second run
 
-Rev: 5 · Actors: agent · Enforces: BR-01, BR-05
+Rev: 6 · Actors: agent · Enforces: BR-01, BR-05
 
 A lease inside its duration held by another run refuses the claim and every payload write, and the
 refusal names the holder and the renew time — the two facts a person needs to decide whether to
@@ -102,17 +102,20 @@ out is the cost this exception exists to drop.
 
 A holder that matches is not always this caller. The id a worktree mints belongs to that tree, so
 every call made from there resolves it and the field naming it says a run standing there holds the
-issue rather than that this caller is that run. A holder therefore answers three ways and not two —
-gone, this caller's own, and a run of its own standing in the same tree — and the third is a refusal
-carrying the process it found, the tree that process is standing in and the assertion that takes the
-lease anyway, because no ambient fact separates two callers in one tree and the caller can settle
-what the record cannot. What that reading may not do is charge the second of the three: a tree with
-nothing standing in it grants the claim as it always did. It qualifies the claim and nothing else,
-the claim being the first call a second run makes and the one whose cost of being wrong is a command.
-The third reading is bounded by the process that separates one call of an agent from another, so a
-call that cannot place its own work against such a process reads nothing rather than refusing what
-may be its own — which leaves an empty reading meaning either an idle tree or a reading that did not
-run, and proving neither that no run holds the lease.
+issue rather than that this caller is that run. So the tree itself is read, and what it holds
+qualifies every state the record can be in rather than the one where the ids happen to match: the
+reading is made for the caller standing in that tree and for the caller standing anywhere else,
+because the lease records which checkout its claim was made in. A recorded path is a name and not an
+identity, so it is read only where it still mints that lease's own holder, and a path that does not
+is a reading that was not made.
+
+That leaves three answers where there were two — the processes found, none found, and no reading at
+all — and only the first refuses. None found is what a tree with nothing in it says and what a
+project declaring nothing says, and it grants the claim as it always did; the claim is the first
+call a second run makes and the one whose cost of being wrong is a command. No reading at all is the
+answer a call that cannot place its own work against the process separating one call of an agent
+from another gets, and the answer a lease naming no readable checkout gets, and it refuses nothing
+and proves nothing.
 
 Which of a tree's processes is a run working there is the project's to declare, and a project that
 declares nothing is answered with silence. No sentence naming the command holds in the next
@@ -141,12 +144,12 @@ a release started standing under that release.
   past the statuses a run is dispatched at, or a landing checkpoint on it names a turn, or the
   holder is itself a run the issue was dispatched to, THEN the CLI SHALL refuse the claim as it
   refuses any second run's.
-- **AC-03-2-5** · Rev: 2 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "a second claim from one worktree is refused while work this call did not start stands in that tree"
-  IF a claim is made on a lease whose holder is the id the tree this call stands in mints, and a
-  process running what that project declares a run's own work is standing in that tree which is
-  neither this call, nor above it, nor started by it, THEN the CLI SHALL refuse the claim and SHALL
-  name that process, the tree it is standing in, the file that mints the id and the assertion that
-  takes the lease anyway.
+- **AC-03-2-5** · Rev: 3 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "a reclaim from outside that tree is refused while the release the exited host started still stands"
+  IF a claim is made on a lease a tree can be read for, and a process running what that project
+  declares a run's own work is standing in that tree which is neither this call, nor above it, nor
+  started by it, THEN the CLI SHALL refuse the claim whatever state the record puts the lease in, and
+  SHALL name that process, the tree it is standing in, what ties that tree to the lease and the
+  assertion that takes the lease anyway.
 - **AC-03-2-6** · Rev: 2 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "work this project does not declare leaves the claim exactly as it was"
   WHERE no process the project declares is standing in that tree, the CLI SHALL grant that claim with
   no assertion asked for and no wait, whatever else is standing there.
@@ -159,22 +162,31 @@ a release started standing under that release.
 - **AC-03-2-9** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "the brief says the work is standing there rather than leaving the lease's own state as the whole reading"
   WHEN that lease is read rather than claimed THEN the CLI SHALL say that a process is standing in
   that tree under the held id, beside the state the field itself carries.
-- **AC-03-2-10** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "the reading is of work outside this call's own, and of nothing else"
+- **AC-03-2-10** · Rev: 2 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "the reading is of work outside this call's own, and of nothing else"
   WHERE this call cannot place its own work against a host process, the CLI SHALL read nothing from
-  that tree and SHALL grant the claim as it does where the tree is idle.
-- **AC-03-2-11** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "a project that declares nothing reads no process at all, whatever is standing in its tree"
-  WHERE the project declares no work of its own, the CLI SHALL read no process in that tree and SHALL
-  decide the lease by the record alone.
+  that tree, SHALL refuse no claim on that reading, and SHALL take it as settling nothing about the
+  run behind the lease.
+- **AC-03-2-11** · Rev: 2 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "a project that declares nothing reads no process at all, whatever is standing in its tree"
+  WHERE the project declares no work of its own, the CLI SHALL find no process in that tree and SHALL
+  decide the lease by the record alone, as it does where the tree is idle.
 - **AC-03-2-12** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "declared work this call descends from is its own, and the same command beside it is not"
   WHERE declared work is in the ancestry of the call making the claim, the CLI SHALL read it as that
   call's own and SHALL grant the claim.
 - **AC-03-2-13** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "what a project calls a run's own work is printed with its source, and an unreadable pattern is said rather than dropped"
   WHEN the declaration is reported THEN the CLI SHALL distinguish a project that declared nothing from
   one whose declaration cannot be read, and SHALL say what the second loses.
+- **AC-03-2-14** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "every turn a claim can name meets the same refusal, and the assertion takes each of them"
+  WHEN a claim names a turn of a landing rather than taking the lease outright THEN the CLI SHALL make
+  that reading before it writes anything, SHALL refuse the turn while such a process is standing, and
+  SHALL grant it on the caller's assertion.
+- **AC-03-2-15** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "the lease a claim writes records the checkout the claiming call stood in"
+  WHEN a claim writes a lease THEN the CLI SHALL record the checkout the claiming call stood in, and
+  SHALL read a recorded checkout only where it lies in the domain that lease records and still mints
+  that lease's holder.
 
 ### UC-03-3 — Reclaim what a dead run left
 
-Rev: 4 · Actors: agent · Enforces: BR-05
+Rev: 5 · Actors: agent · Enforces: BR-05
 
 Once the duration has passed the lease is open to any run, and the run that held it is no more
 privileged than any other. The live test that settled that — and what it caught a build doing — is
@@ -190,12 +202,17 @@ it works loses every write it makes after that.
 One thing the record can settle without being asked. The lease names the process its holder ran as
 and where that number was issued — which kernel boot and which process table, the only domain such
 a number means anything in. An id absent in that domain, read by a call standing in the same one,
-is proof the holder is gone, and the reclaim is granted at once however young the lease is. The
-proof runs one way only: an id that answers is the host process every agent of a dispatched wave
-inherits and says nothing about the agent, and an id that exists but cannot be signalled counts as
-answering. Where the domain is unrecorded, or is another's, or the id is missing or unreadable, the
-duration decides as it always did, because a reclaim taken on a doubt is the damage this whole use
-case is written around.
+is half the proof the holder is gone; the other half is UC-03-2's reading of the tree, because the
+number recorded is the host every agent of a dispatched wave shares and a host exits while what it
+started keeps running. Where that reading was made and found nothing, the reclaim is granted at once
+however young the lease is. Where it found work, the absent id settles nothing and the caller is
+asked to settle it instead, which is the route every lapse this use case cannot read already takes.
+
+The proof runs one way only besides: an id that answers says nothing about the agent, and an id that
+exists but cannot be signalled counts as answering. Where the domain is unrecorded, or is another's,
+or the id is missing or unreadable, or no tree can be read for the lease at all, the duration decides
+as it always did, because a reclaim taken on a doubt is the damage this whole use case is written
+around.
 
 An empty field is the same uncertainty with less to read. A status past the ones a run is
 dispatched at was reached by writes a lease covered, so a field holding none is a run that died
@@ -228,19 +245,21 @@ history keeps a word of its own for that claim rather than the one an ordinary f
   IF a payload is written to an issue whose lease is another run's, and the record does not put the
   lapse past that lease's own duration, and the record does not prove the holder gone, THEN the CLI
   SHALL refuse the write and SHALL name the reclaim that takes it.
-- **AC-03-3-7** · Rev: 1 · Proof: plugin/test/flow/claim/gone-holder.test.mjs "a claim on a lease whose holder the record proves gone is granted, and prints the id that proved it"
-  WHERE a lease names a process that is not running in the domain that lease records, and the caller
-  stands in that same domain, the CLI SHALL grant the reclaim whatever the duration says, SHALL name
-  the process the proof rests on, and SHALL record the domain of every lease it takes from then on.
-- **AC-03-3-8** · Rev: 2 · Proof: plugin/test/flow/claim/gone-holder.test.mjs "nothing is proven where the place, the id or the probe leaves any doubt"
+- **AC-03-3-7** · Rev: 2 · Proof: plugin/test/flow/claim/gone-holder.test.mjs "a claim on a lease whose holder the record proves gone is granted, and prints the id that proved it"
+  WHERE a lease names a process that is not running in the domain that lease records, the caller
+  stands in that same domain, and a reading of that lease's own tree was made and found no declared
+  work, the CLI SHALL grant the reclaim whatever the duration says, SHALL name the process the proof
+  rests on, and SHALL record the domain and the checkout of every lease it takes from then on.
+- **AC-03-3-8** · Rev: 3 · Proof: plugin/test/flow/claim/gone-holder.test.mjs "nothing is proven where the place, the id or the probe leaves any doubt"
   IF the lease records no domain, or records one other than the caller's, or names a process that
-  answers, or names none that reads as a process at all, THEN the CLI SHALL take that as proving
-  nothing either way and SHALL leave the lease to its duration, except where another reading of the
-  holder answers on evidence of its own.
-- **AC-03-3-9** · Rev: 1 · Proof: plugin/test/flow/claim/gone-holder.test.mjs "a payload write meeting that same lease takes it rather than being refused"
+  answers, or names none that reads as a process at all, or no tree of its own can be read for it,
+  THEN the CLI SHALL take that as proving nothing either way and SHALL leave the lease to its
+  duration, except where another reading of the holder answers on evidence of its own.
+- **AC-03-3-9** · Rev: 2 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "a payload write does not take that lease for itself while the work stands"
   IF a payload is written to an issue whose lease names a process the record proves gone THEN the CLI
   SHALL take that lease as part of the write and SHALL keep the take in the claim history under the
-  word a reclaim keeps, except where the record already calls that take a handoff.
+  word a reclaim keeps, except where the record already calls that take a handoff or where work
+  standing in that lease's own tree is what stops the record proving it gone.
 
 ### UC-03-4 — A status that keeps dying reaches a person
 

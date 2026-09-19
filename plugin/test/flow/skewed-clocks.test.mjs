@@ -6,7 +6,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { forgetClock, sawAnswer, sharedNow } from "../../src/wire/shared-clock.mjs";
-import { claimed, freshLapse, lapseUnproven, leaseOf, stateOf } from "../../src/flow/lease.mjs";
+import {
+  LAPSE_UNORDERED, claimed, freshLapse, lapseUnproven, leaseOf, stateOf,
+} from "../../src/flow/lease.mjs";
 
 const HOUR = 60 * 60_000;
 const HELD = "the-run-that-holds-it";
@@ -63,7 +65,8 @@ test("a lapse the duration has outlasted is unproven again inside the band the t
   anHourFast();
   const held = shifted(writtenNow(60), 121 * 60_000);
   assert.equal(freshLapse(held), false, "sixty-one minutes into a lapse a sixty-minute lease does not cover");
-  assert.equal(lapseUnproven(held, { band: null }), false, "so nothing about that run is left to establish");
-  assert.equal(lapseUnproven(held, { band: 2 * 60_000 }), true,
-    "until the moment it becomes anybody's falls inside what the two clocks can order, where the reclaim waits too");
+  assert.equal(lapseUnproven(held, { band: null }), "", "so nothing about that run is left to establish");
+  assert.equal(lapseUnproven(held, { band: 2 * 60_000 }), LAPSE_UNORDERED,
+    "until the moment it becomes anybody's falls inside what the two clocks can order, where the reclaim waits too, "
+    + "and the answer names which of the two disjuncts held so that no caller derives it a second time");
 });

@@ -1,16 +1,24 @@
 /* A lease refused for the whole of its duration by a run nothing was holding: ten filings of one
    cause, every one of them a pid the refusal itself printed and a `ps` that returned no row. The
    clock cannot separate a run in a gate from a run that has died, and the record can, so each case
-   below either takes the lease on that proof or leaves it to the clock exactly as before (ISS-919). */
+   below either takes the lease on that proof or leaves it to the clock exactly as before (ISS-919).
+   The proof is two readings and not one: the id the lease records is the host a wave shares, so its
+   absence proves the run gone only beside a reading of the tree that lease was claimed in, and every
+   lease here therefore names one (ISS-1903). */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
-import { fakeTracker, ranAsync, standsInNoTree, tempHome } from "../../fixtures.mjs";
+import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
 import { placeOf } from "../../../src/flow/lease/holder.mjs";
 import { stateOf } from "../../../src/flow/lease.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("gone-holder").path;
 standsInNoTree("gone-holder");
+/* This process is the host every call below places its own work against; nothing is standing in the
+   trees it reads, so what each case turns on is which tree the lease names and never what is in it. */
+process.env.CLAUDE_PID = String(process.pid);
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const UUID = "gone-holder-uuid";
@@ -35,6 +43,19 @@ const goneId = () => {
 const GONE = goneId();
 const ago = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString();
 
+/* A tree is its git directory and the id beside it, and the project file travels with it so that the
+   declaration the reading needs is the tree's own rather than the directory this suite stands in. */
+const treeMinting = (id) => {
+  const at = tempRoom(`gone-holder-${id}-`);
+  mkdirSync(join(at, ".git"));
+  writeFileSync(join(at, ".git", "forge-run-id"), `${id}\n`);
+  writeFileSync(join(at, ".forge.json"), readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
+  return at;
+};
+
+const TREE = treeMinting(THEIRS);
+const ANOTHERS = treeMinting("some-other-run");
+
 const ISSUE = {
   documentId: UUID,
   issueId: "ISS-919",
@@ -49,13 +70,14 @@ const ISSUE = {
 /* Each case starts from the lease it is about, so no case reads through the one before it. The lease
    is inside its own duration throughout: a lapse would reach the reclaim by the clock and prove
    nothing about the probe. */
-const heldBy = ({ pid = GONE, place = HERE, history = [] } = {}) => {
+const heldBy = ({ pid = GONE, place = HERE, tree = TREE, history = [] } = {}) => {
   ISSUE.status = "approved";
   ISSUE.sessionContext = {
     lease: {
       holder: THEIRS, agent: "a-test-agent", renewedAt: ago(5), minutes: 60, next: LEFT, history,
       ...(pid === null ? {} : { pid }),
       ...(place === null ? {} : { place }),
+      ...(tree === null ? {} : { tree }),
     },
   };
 };
@@ -85,14 +107,15 @@ const state = {
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
-const ran = (argv, who = OURS) => ranAsync(FORGE, argv, { ...tracker.env, FORGE_SESSION_ID: who });
+const ran = (argv, who = OURS) =>
+  ranAsync(FORGE, argv, { ...tracker.env, FORGE_SESSION_ID: who, CLAUDE_PID: String(process.pid) });
 /* Read off the tracker after the call and not out of its output: the field is what a later run has. */
 const onTheRecord = () => ISSUE.sessionContext.lease;
 
 /* The state sits above both clock readings rather than inside either, because what it answers is the
    question a duration cannot: not when the lease ran out but whether anything is still holding it. */
 test("the sixth state, which neither clock reading reaches and a run is never told of its own lease", () => {
-  const clock = { holder: THEIRS, agent: "a-test-agent", renewedAt: ago(5), minutes: 60, next: null, history: [] };
+  const clock = { holder: THEIRS, agent: "a-test-agent", renewedAt: ago(5), minutes: 60, next: null, history: [], tree: TREE };
   const gone = { ...clock, pid: GONE, place: HERE };
   assert.equal(stateOf(gone, OURS), "gone", "inside its duration, where the clock alone says live");
   assert.equal(stateOf({ ...gone, renewedAt: ago(500) }, OURS), "gone", "and past it, where the clock says expired");
@@ -106,7 +129,7 @@ test("the sixth state, which neither clock reading reaches and a run is never to
    from one that is not there — a distinction the box this runs on may not be able to produce, root
    owning every process it can see, so the error is made rather than looked for. */
 test("an id this call may not signal is an id that answers, whoever the suite runs as", () => {
-  const clock = { holder: THEIRS, agent: "a-test-agent", renewedAt: ago(5), minutes: 60, next: null, history: [] };
+  const clock = { holder: THEIRS, agent: "a-test-agent", renewedAt: ago(5), minutes: 60, next: null, history: [], tree: TREE };
   const gone = { ...clock, pid: GONE, place: HERE };
   const real = process.kill;
   process.kill = () => {
@@ -133,6 +156,8 @@ test("a claim on a lease whose holder the record proves gone is granted, and pri
   assert.doesNotMatch(took.stderr, /is claimed/u, "and nothing was refused");
   assert.equal(onTheRecord().holder, OURS, "the lease is this run's on the record, not only in the output");
   assert.equal(onTheRecord().place, HERE, "and the claim records where it was taken, as the probe needs");
+  assert.match(took.stdout, new RegExp(TREE, "u"),
+    "naming the tree the other half of the proof was read from, which is the record's and not this caller's");
 });
 
 test("the take goes into the claim history as the reclaim it is", async () => {
@@ -176,6 +201,9 @@ test("nothing is proven where the place, the id or the probe leaves any doubt", 
     ["no id at all", { pid: null }],
     ["an id that is not a number", { pid: "unknown" }],
     ["an id this call may not signal", { pid: "1" }],
+    ["a lease naming no checkout of its own", { tree: null }],
+    ["a checkout that mints some other run", { tree: ANOTHERS }],
+    ["a checkout that is not there at all", { tree: "/nowhere-this-box-has" }],
   ]) {
     heldBy(lease);
     const refused = await ran(["claim", "ISS-919"]);

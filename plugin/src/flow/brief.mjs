@@ -4,7 +4,7 @@
 import { sessionSourced } from "../resolve/config.mjs";
 import { FIELD, leaseOf, stateOf } from "./lease.mjs";
 import { sharedHolder } from "./lease/dispatched.mjs";
-import { workingHere } from "./lease/working.mjs";
+import { workUnder } from "./lease/holder.mjs";
 import { atMinute, unwrap } from "./machine.mjs";
 import { PARK_STATUS, SIDE, atLeast, holdsBack, parkRecord, rungFieldsOf, sameLanding } from "./earned.mjs";
 import { methodOf } from "../guides/phases.mjs";
@@ -67,7 +67,7 @@ const leaseIn = (view) => {
   const { history, ...rest } = held;
   const mine = sessionSourced();
   const state = stateOf(held, mine.id);
-  const working = state === "mine" || state === "lapsed" ? workingHere(held.holder) : [];
+  const working = workUnder(held) ?? [];
   return {
     ...rest,
     state,

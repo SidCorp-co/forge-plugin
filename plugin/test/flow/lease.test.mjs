@@ -16,13 +16,14 @@ process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const {
   MECHANISM, MINUTES, MINUTES_ASKS, READING_MINUTES, RENEWED_BY_WRITING,
-  agentOf, canonical, claimRefusal, claimed, describe, expiryOf, freshLapse,
-  leaseOf, nextLine, nothingWorked, idsHere, pidOf, reclaimRefusal,
+  canonical, claimRefusal, claimed, describe, expiryOf, freshLapse,
+  leaseOf, nextLine, nothingWorked, idsHere, reclaimRefusal,
   stateOf, writeRefusal, writtenBy,
 } = await import("../../src/flow/lease.mjs");
 const {
   RECLAIMS_BEFORE_PARK, historyLine, parkAnswers, parksAsCrashed, reclaimsOf,
 } = await import("../../src/flow/lease/crash-park.mjs");
+const { agentOf, pidOf } = await import("../../src/flow/lease/holder.mjs");
 const { SHARED_HOLDER, sharedHolder } = await import("../../src/flow/lease/dispatched.mjs");
 const {
   MINTED, sessionAsked, sessionHeld, sessionOf, sessionPath, sessionSourced, sessionWriting,
@@ -41,7 +42,7 @@ const held = (holder, at = AT, minutes = 30, history = []) =>
 
 test("a lease is read out of the field, and anything else in it is no lease", () => {
   assert.deepEqual(leaseOf(field(held("a-run"))), {
-    holder: "a-run", agent: "a-test-agent", pid: "4242", place: "", renewedAt: AT, minutes: 30, slack: null, next: null, history: [],
+    holder: "a-run", agent: "a-test-agent", pid: "4242", place: "", tree: "", renewedAt: AT, minutes: 30, slack: null, next: null, history: [],
   });
   assert.equal(leaseOf(field({ ...held("a-run"), clock: 517 })).slack, 517,
     "the error the stamp was taken under, which a reader adds to its own");

@@ -2,7 +2,9 @@
 import { WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
 import { MINTED_FOR, RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames } from "../resolve/session/run-id.mjs";
 import { TAKEABLE } from "../rank/weights.mjs";
-import { holderGone, holderGoneSaid, placeOf } from "./lease/holder.mjs";
+import {
+  UNKNOWN, agentOf, holderGone, holderGoneSaid, pidOf, placeOf, treeHere,
+} from "./lease/holder.mjs";
 import { handedOn } from "./lease/dispatched.mjs";
 import { bandWith, sharedNow, sharedStamp, slackNow, stampOf, straddles } from "../wire/shared-clock.mjs";
 import { thisCall } from "../resolve/flags.mjs";
@@ -71,11 +73,6 @@ export const idsHere = (lease, held = sessionSourced(), at = process.cwd()) => {
 
 const alsoSay = (said) => (said ? `${said} ` : "");
 
-const UNKNOWN = "unknown";
-
-export const agentOf = () => process.env.AI_AGENT || UNKNOWN;
-export const pidOf = () => process.env.CLAUDE_PID || UNKNOWN;
-
 /* A shape's `written` field is filled from the session here and refused as a flag where the payload is gathered, for the reason `claimed` below states. Here, beside the other two the environment answers for. The marker names which half of the writing session the field takes, because an id says nothing about whether it is a run's own (ISS-705). */
 export const writtenBy = (shape) => {
   const writing = sessionWriting();
@@ -101,6 +98,7 @@ export const leaseOf = (context) => {
     agent: held.agent ? String(held.agent) : UNKNOWN,
     pid: held.pid === undefined || held.pid === null || held.pid === "" ? UNKNOWN : String(held.pid),
     place: typeof held.place === "string" && held.place ? held.place : "",
+    tree: typeof held.tree === "string" && held.tree ? held.tree : "",
     renewedAt: String(held.renewedAt ?? ""),
     minutes: Number.isFinite(minutes) && minutes > 0 ? minutes : MINUTES,
     slack: Number.isFinite(Number(held.clock)) && Number(held.clock) >= 0 ? Number(held.clock) : null,
@@ -155,9 +153,15 @@ export const anybodysAt = (lease) => {
   return expiry ? expiry + lease.minutes * 60_000 : 0;
 };
 
-/* The one question a lapse is asked, by the claim that is typed and by the write that takes the lease for itself alike (ISS-1660): whether the record on its own separates a stopped run from a working one. It does not while the lapse is younger than the duration, and it does not at the moment the two clocks cannot order, and those are the two the caller answers with `--stopped` rather than a route either of them may take quietly. Stated here rather than at the two call sites because a second copy of it would let the write take a lease the claim refuses. */
-export const lapseUnproven = (lease, { now = sharedNow(), band = bandWith(lease?.slack) } = {}) =>
-  freshLapse(lease, now) || straddles(anybodysAt(lease), band, now);
+/** Which lapse the record cannot settle, each its own refusal's: younger than the duration, or at the moment the two clocks cannot order it. */
+export const LAPSE_FRESH = "fresh";
+export const LAPSE_UNORDERED = "unordered";
+
+/* The one question a lapse is asked, by the claim that is typed and by the write that takes the lease for itself alike (ISS-1660): whether the record on its own separates a stopped run from a working one. It answers which of the two it is rather than only that it is one, because a caller needing the distinction for its own sentence would otherwise recompute the disjuncts here and the write would take a lease the claim refuses (ISS-1903). */
+export const lapseUnproven = (lease, { now = sharedNow(), band = bandWith(lease?.slack) } = {}) => {
+  if (freshLapse(lease, now)) return LAPSE_FRESH;
+  return straddles(anybodysAt(lease), band, now) ? LAPSE_UNORDERED : "";
+};
 
 const agoIn = (ms) => {
   const minutes = Math.round(ms / 60_000);
@@ -245,6 +249,7 @@ export const claimed = (context, { holder, at = sharedStamp(), minutes, next, wo
       agent: agentOf(),
       pid: pidOf(),
       ...(placeOf() ? { place: placeOf() } : {}),
+      ...(treeHere() ? { tree: treeHere() } : {}),
       renewedAt: at,
       ...(slackNow() === null ? {} : { clock: slackNow() }),
       minutes,
