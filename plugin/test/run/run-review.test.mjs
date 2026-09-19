@@ -111,6 +111,7 @@ test("past the threshold the step files the reading's issue itself, and prints t
   assert.ok(owed.stdout.includes("filed ISS-777"), owed.stdout);
   assert.ok(owed.stdout.includes("Work ISS-777. Use the Skill tool: skill forge:issue-flow, args ISS-777."),
     `the launch line is not printed as the parent reads it:\n${owed.stdout}`);
+  assert.equal(ref(work), from, "filing the reading is not reading it, so the mark stands still");
 });
 
 /* The threshold reaches the filing too: a body naming 1500 where the ship filed at 40 misleads it. */
@@ -193,6 +194,7 @@ test("a second ship at the same mark names the issue already there and files not
   assert.equal(seen("create").length, 1, `the mark's reading was filed twice:\n${again.stdout}`);
   assert.match(again.stdout, /ISS-777 is open for this mark already, so nothing was filed/u, again.stdout);
   assert.ok(again.stdout.includes("Work ISS-777."), `the run still has one thing to do:\n${again.stdout}`);
+  assert.equal(ref(work), from, "a row already there is no reason to move the mark either");
 });
 
 /* Two ships fifteen minutes apart read one mark and answered differently: its issue had left `open`
