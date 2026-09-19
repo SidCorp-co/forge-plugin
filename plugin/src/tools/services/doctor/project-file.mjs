@@ -119,14 +119,14 @@ const pathSpan = (text, segments) => {
   return null;
 };
 
-/* Two lines in, so the key a call named is the one the diff shows moving and the document keeps the
-   order its owner chose for the rest. */
+/* Beside the pairs the object already holds and in the shape they are written in — one written on a line takes the new pair on that line, one broken over lines takes it at the indentation its own pairs sit at, and one with no pair at all has no shape to copy — so the key a call named is the one line somebody's review has to read. */
 const inserted = (text, open, key, value) => {
   const pair = `${JSON.stringify(key)}: ${JSON.stringify(value)}`;
   const first = pastSpace(text, open + 1);
-  return text[first] === "}"
-    ? `${text.slice(0, open + 1)}\n  ${pair}\n${text.slice(first)}`
-    : `${text.slice(0, open + 1)}\n  ${pair},${text.slice(open + 1)}`;
+  if (text[first] === "}") return `${text.slice(0, open + 1)}\n  ${pair}\n${text.slice(first)}`;
+  const between = text.slice(open + 1, first);
+  const line = between.includes("\n") ? between.slice(between.lastIndexOf("\n")) : " ";
+  return `${text.slice(0, open + 1)}${line}${pair},${text.slice(open + 1)}`;
 };
 
 /** The file's text with the key this path names set, every other byte as it was, or null where the

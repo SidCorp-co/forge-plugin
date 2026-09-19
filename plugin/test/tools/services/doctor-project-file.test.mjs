@@ -79,6 +79,21 @@ test("a key inside a table the file already holds is written without its sibling
     "the job's other list is where it was, which one descent short of the key would have replaced");
 });
 
+/* A key added in the other shape is a second line in somebody's review for a change to one value. */
+test("a key added to a table takes the shape that table is already written in", async () => {
+  fresh();
+  const inline = await ask("--set", "codex.checkMs=600000");
+  assert.equal(inline.status, 0, inline.stderr);
+  assert.equal(moved(HELD, now()), 1, now());
+  assert.ok(now().includes(`"codex": { "checkMs": 600000, "check": "npm test" },`), now());
+  const deep = `{\n  "slug": "a-tree",\n  "jobs": {\n    "ba": { "verbs": ["issue"] }\n  }\n}\n`;
+  fresh(deep);
+  const broken = await ask("--set", "jobs.reviewer=issue");
+  assert.equal(broken.status, 0, broken.stderr);
+  assert.equal(moved(deep, now()), 1, now());
+  assert.ok(now().includes(`\n    "reviewer": ["issue"],\n`), now());
+});
+
 test("a key whose table the file does not hold creates that table holding it alone", async () => {
   fresh();
   await ask("--set", "lease.workingRe=^node tools/run");
