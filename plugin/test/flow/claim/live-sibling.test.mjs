@@ -492,8 +492,7 @@ test("a lease naming a checkout that mints some other run is not proved gone by 
   assert.equal(onTheRecord().holder, ELSEWHERE, "and nothing of this caller's was written");
 });
 
-/* The payload write takes a gone holder's lease for itself without a refusal in front of it, which is
-   the route a run never sees. It reads the same composed answer or it takes what the claim refuses. */
+/* The first of the two routes a run never sees: a lease the record would otherwise prove gone. */
 test("a payload write does not take that lease for itself while the work stands", async () => {
   hostExited();
   const ship = await standingIn(OTHER);
@@ -507,7 +506,7 @@ test("a payload write does not take that lease for itself while the work stands"
   }
 });
 
-/* Every route out of the verb, because the refusal used to sit below all five and each of them writes. */
+/* Every route out of the verb, each of which writes, so each meets the reading before it does. */
 const TURNS = [["--take"], ["--judged"], ["--reconciled", "0f7254aa"], ["--recorded"], ["--landed"]];
 
 test("every turn a claim can name meets the same refusal, and the assertion takes each of them", async () => {

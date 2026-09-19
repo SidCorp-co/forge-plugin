@@ -10,7 +10,7 @@ import test from "node:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
+import { escaped, fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
 import { placeOf } from "../../../src/flow/lease/holder.mjs";
 import { stateOf } from "../../../src/flow/lease.mjs";
 
@@ -43,8 +43,7 @@ const goneId = () => {
 const GONE = goneId();
 const ago = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString();
 
-/* A tree is its git directory and the id beside it, and the project file travels with it so that the
-   declaration the reading needs is the tree's own rather than the directory this suite stands in. */
+/* A tree is its git directory, the id beside it, and this project's own declaration. */
 const treeMinting = (id) => {
   const at = tempRoom(`gone-holder-${id}-`);
   mkdirSync(join(at, ".git"));
@@ -156,7 +155,7 @@ test("a claim on a lease whose holder the record proves gone is granted, and pri
   assert.doesNotMatch(took.stderr, /is claimed/u, "and nothing was refused");
   assert.equal(onTheRecord().holder, OURS, "the lease is this run's on the record, not only in the output");
   assert.equal(onTheRecord().place, HERE, "and the claim records where it was taken, as the probe needs");
-  assert.match(took.stdout, new RegExp(TREE, "u"),
+  assert.match(took.stdout, new RegExp(escaped(TREE), "u"),
     "naming the tree the other half of the proof was read from, which is the record's and not this caller's");
 });
 
