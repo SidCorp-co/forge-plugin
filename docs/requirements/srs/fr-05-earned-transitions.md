@@ -269,25 +269,31 @@ for.
   WHERE the project's configuration leaves a person an act to make before the release is out, the
   CLI SHALL report that act as what the deploying rung owes rather than the close, because a run
   told to close is one that closes an issue whose release nobody has made.
+- **AC-05-7-11** · Rev: 1 · Proof: plugin/test/flow/close.test.mjs "a policy that leaves a person the release refuses the close, in the report's own words"
+  IF the project's configuration leaves a person an act to make before the release is out THEN the
+  CLI SHALL refuse `closed` and SHALL name that act in the words it reports it in, because a rule a
+  careful run obeys and a careless one cannot detect is no rule.
 
 ### UC-05-8 — A record too large to read whole
 
-Rev: 2 · Actors: agent · Enforces: BR-02
+Rev: 3 · Actors: agent · Enforces: BR-02
 
 The check reads the whole record, so a record that cannot be read whole cannot be judged. Today such
-an issue is refused outright, and ISS-17 and ISS-18 own what replaces that. One status is judged on
-no record at all — its entry criterion is another status — and a refusal that reached it would stop
-a run one transition short of where the flow ends, so that move is exempt and the exemption is as
-narrow as the criterion: a park or a drop from the same status is judged on the record like any
-other move. The exemption is the judgement's and not the whole command's, because the write that
-follows carries an obligation of its own to deliver a thread nobody has been shown (`FR-10`).
+an issue is refused outright, and ISS-17 and ISS-18 own what replaces that. One status asks the
+record for nothing — what it is entered on is the status below it and the project's own declaration
+about who releases — so no page is fetched to judge it, and the exemption is as narrow as that: a
+park or a drop from the same status is judged on the record like any other move, and the project is
+read whichever way the page falls, being no part of what a page could hold. The exemption is the
+judgement's and not the whole command's, because the write that follows carries an obligation of its
+own to deliver a thread nobody has been shown (`FR-10`).
 
 - **AC-05-8-1** · Rev: 2 · Proof: none yet — ISS-17
   IF the issue's comments exceed one page THEN the CLI SHALL refuse rather than judge a status on a
   partial record, for every status whose entry criteria that record holds.
-- **AC-05-8-2** · Rev: 1 · Proof: plugin/test/flow/close.test.mjs "the status a close is earned from is the flow table's own tail, and it reads no record"
-  WHERE the entry criterion of the next status is the issue's present status and no payload, the CLI
-  SHALL judge that transition on the status alone and SHALL fetch no comment page to judge it.
+- **AC-05-8-2** · Rev: 2 · Proof: plugin/test/flow/close.test.mjs "the status a close is earned from is the flow table's own tail, and it reads no record"
+  WHERE the entry criteria of the next status name no payload, the CLI SHALL fetch no comment page
+  to judge that transition, the exemption being of the record a page carries and not of the
+  project's own configuration, which no page carries either.
 
 ### UC-05-9 — A plan whose shape is unfinished earns no approval
 

@@ -15,17 +15,9 @@ import {
 import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../guides/flow.mjs";
 import { flowJudgeConflict, flowPolicyConflict } from "../flow/earned.mjs";
 import { scoped, write } from "../tracker/rest.mjs";
-import {
-  briefLines,
-  confirmSource,
-  projectRows,
-  readBrief,
-  QA_MODES,
-  refreshBrief,
-  releasePolicy,
-  replaceBriefLine,
-  stagingDeploy,
-} from "../tracker/project-config.mjs";
+import { projectRows, QA_MODES, releasePolicy, stagingDeploy } from "../tracker/project-config.mjs";
+import { briefLines, confirmSource, readBrief, refreshBrief, replaceBriefLine }
+  from "../tracker/knowledge/brief.mjs";
 
 /* A nested value is its own width: a stage table printed whole is this report's longest line and
    says nothing a count of its keys does not. */

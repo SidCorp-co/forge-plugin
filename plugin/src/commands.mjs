@@ -32,7 +32,7 @@ import { helpOf, isGated, refuseIfGated, skillRefusal, usageOf } from "./resolve
 import { didYouMean } from "./suggest.mjs";
 import { exclusive, flags, partition, pullRepeated, unknownFlag, wantsHelp } from "./resolve/flags.mjs";
 import { dispositionOf, localGuide, localRows, localSlugs, trackerHeader, visibleGuides } from "./guides/guides.mjs";
-import { briefGoals, servesOwed } from "./tracker/project-config.mjs";
+import { briefGoals, servesOwed } from "./tracker/knowledge/brief.mjs";
 import { goalBlock } from "./goals.mjs";
 import { finderSaid, notAnothers, renew } from "./flow/lease.mjs";
 import { retiredFlagIn } from "./resolve/retiring.mjs";

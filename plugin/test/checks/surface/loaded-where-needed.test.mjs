@@ -29,16 +29,16 @@ const CODEX = "plugin/src/codex/codex.mjs";
 const KNOWLEDGE = "plugin/src/tools/knowledge.mjs";
 const MEDIAN = "plugin/src/stats/median.mjs";
 const STORE = "plugin/src/tracker/knowledge/store.mjs";
+const BRIEF = "plugin/src/tracker/knowledge/brief.mjs";
 const ROOTS = ["plugin/src/cli.mjs", "plugin/src/flow/record/record.mjs",
-  "plugin/src/flow/record/plan-scope.mjs", "plugin/src/tracker/project-config.mjs"];
+  "plugin/src/flow/record/plan-scope.mjs", "plugin/src/tracker/project-config.mjs", BRIEF];
 
 test("the walk reaches the tree and every module this rule is about is in it", () => {
   assert.ok(FILES.length > 250, `${FILES.length} file(s) walked; the selector matches too little`);
   for (const one of [...ROOTS, CODEX, KNOWLEDGE, MEDIAN, STORE]) {
     assert.ok(EDGES.has(one), `${one} is not in the walk, so nothing below is asserted about it`);
   }
-  assert.equal(chainTo(EDGES, "plugin/src/tracker/project-config.mjs", STORE),
-    "plugin/src/tracker/project-config.mjs -> plugin/src/tracker/knowledge/store.mjs",
+  assert.equal(chainTo(EDGES, BRIEF, STORE), `${BRIEF} -> ${STORE}`,
     "the brief still reads the store, so the rule below is about where the binding is and not whether it is gone");
 });
 

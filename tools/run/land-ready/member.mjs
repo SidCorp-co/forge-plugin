@@ -9,7 +9,7 @@ import { Refused } from "../../../plugin/src/refusal.mjs";
 import { commentPage } from "../../../plugin/src/tracker/comments.mjs";
 import { scoped } from "../../../plugin/src/tracker/rest.mjs";
 import { advance } from "../../../plugin/src/flow/advance.mjs";
-import { ORDER, atLeast, viewFrom } from "../../../plugin/src/flow/earned.mjs";
+import { CLOSES_AT, ORDER, atLeast, setForm, viewFrom } from "../../../plugin/src/flow/earned.mjs";
 import { CLOSES_FROM } from "../../../plugin/src/flow/machine.mjs";
 import { markMerged, markNote, markedCommit, namedFor } from "../../../plugin/src/flow/record/merged.mjs";
 import { landingSaved } from "../../../plugin/src/flow/lease.mjs";
@@ -227,7 +227,8 @@ export const statusStep = async (one) => {
     }
     if (owed) {
       console.log(`  ${key} rests at \`${CLOSES_FROM}\`: ${owed}, so the close is theirs and not this `
-        + `landing's. Once the release is out:\n    forge advance ${key}`);
+        + `landing's. Once the release is out, set rather than advanced, that same policy being what `
+        + `\`closed\` is entered on:\n    ${setForm(key, CLOSES_AT)}`);
     }
     await saveOn(member, { state: LANDING_DONE });
     return console.log(`  the checkpoint reads \`${LANDING_DONE}\`: no turn of this landing is left`);

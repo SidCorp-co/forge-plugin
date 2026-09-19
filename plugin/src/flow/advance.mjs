@@ -56,7 +56,7 @@ export const USAGE = [
   "`forge guide contract <status>` for the rule.",
 ].join("\n");
 
-/* A plain advance from the rung `closed` is entered from, whose whole entry criterion is that status, so the page is not worth the call. A park or a drop from it is another transition: its kind, its evidence and the question a needs_info park owes are all judged against the record, so those read the page. */
+/* A plain advance from the rung `closed` is entered from, whose entry criteria hold nothing a payload could supply, so the page is not worth the call — and the route that skips it is therefore the one route that has to fetch the release policy alone, that rung being entered on a policy no page carries (ISS-1918); a `--set` reads no entry check and so has nothing to spend it on. A park or a drop from it is another transition: its kind, its evidence and the question a needs_info park owes are all judged against the record, so those read the page. */
 const readsTheRecord = (body, given) =>
   !given.set && (body.status !== CLOSES_FROM || Boolean(given.park) || Boolean(given.drop)
     || Boolean(given.reopen));
@@ -64,7 +64,10 @@ const readsTheRecord = (body, given) =>
 const viewOf = async (reference, given) => {
   const { documentId, body } = await issueOf(reference);
   const cited = () => citedClauses(body);
-  if (!readsTheRecord(body, given)) return viewFrom(documentId, body, [], null, null, cited);
+  if (!readsTheRecord(body, given)) {
+    const held = given.set ? null : await policyFor(body.plan, body.status);
+    return viewFrom(documentId, body, [], null, held, cited);
+  }
   const page = await commentPage(documentId);
   /* Only the rehearsal prints the line, so only the rehearsal reads it; and neither read feeds the other. */
   const [deploy, release] = await Promise.all([

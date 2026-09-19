@@ -123,7 +123,9 @@ test("a status is earned from records that came back through the rewrite, with n
     verdict(2),
     posted("verification", FIELDS.verification),
   ];
-  const view = viewFrom("the-uuid", issue, comments);
+  /* A project that releases itself, `closed` being entered on that and never on prose a rewrite could reach. */
+  const view = viewFrom("the-uuid", issue, comments, null,
+    { staging: "master", production: "master", autoProd: true });
   for (const status of ORDER.slice(1)) {
     assert.deepEqual(CHECKS[status](view, "ISS-67").map((one) => one.what), [], `${status} is not earned`);
   }

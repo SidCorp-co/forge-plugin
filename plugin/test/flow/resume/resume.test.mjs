@@ -53,7 +53,10 @@ const issue = (extra = {}) => ({
   ...extra,
 });
 
-const brief = (extra = {}, comments = []) => briefOf(viewFrom("the-uuid", issue(extra), comments), "ISS-44");
+/* A project that releases itself, which is what the brief is read against unless a case says otherwise: the close is entered on that policy too, and a view holding none reads as a checkout naming no project. */
+const RELEASES_ITSELF = { staging: "master", production: "master", autoProd: true };
+const brief = (extra = {}, comments = [], release = RELEASES_ITSELF) =>
+  briefOf(viewFrom("the-uuid", issue(extra), comments, null, release), "ISS-44");
 
 /* The rung on the object, never the fields it came off: a tool handed those worked one out for
    itself and read a climb out of a verdict's prose, taking ISS-860's ceiling two rungs up on a
@@ -272,7 +275,8 @@ test("the brief carries the finding, the triage and the reopen count", () => {
   assert.equal(one.reopens, 2);
   assert.equal(brief().reopens, 0, "an issue nobody reopened says nothing about it");
   assert.equal(brief().ahead, null, "and a plan declaring no person's look says nothing ahead");
-  const looking = brief({ plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: yes." });
+  const looking = brief({ plan: "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: yes." },
+    [], { ...RELEASES_ITSELF, autoProd: false });
   assert.match(looking.ahead, /^Ahead: awaiting_release owes a person's look/u);
 });
 

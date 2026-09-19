@@ -25,7 +25,7 @@ import { judgeAsk, judgeProblems, numbered } from "./qa/verdicts.mjs";
 import { criteriaLines } from "./record/record.mjs";
 import { assemble, parse } from "./record/page.mjs";
 import { CONTRACT } from "../guides/contract.mjs";
-import { judgementOf, waitsForPerson } from "../tracker/project-config.mjs";
+import { judgementOf, releaseOwedOf, waitsForPerson } from "../tracker/project-config.mjs";
 
 /* The contract's flow table in its own order: the sequence is the rule, so listing it is the point. */
 export const ORDER = [
@@ -35,8 +35,9 @@ export const ORDER = [
 /** The rung the verdicts are owed at, read off the sequence rather than spelled a second time: `route.mjs` asks for it by name, and a literal there is a rung free to disagree with this order. */
 export const JUDGED_AT = ORDER[ORDER.indexOf("developed") + 1];
 
-/** The rung the baseline is owed at, read off the sequence for the same reason. */
+/** The rung the baseline is owed at, and the rung the release policy is read at — the last one, which is entered on the project rather than on the record. Both off the sequence, for the reason above. */
 export const BASELINE_AT = ORDER[ORDER.indexOf("developed") - 1];
+export const CLOSES_AT = ORDER.at(-1);
 
 export { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding };
 
@@ -457,6 +458,15 @@ const branchOwed = (view, ref) => (view.work?.branch ? [] : [need(
   `forge claim ${ref} --pushed, from the checkout the branch is cut in`,
 )]);
 
+/* The one rung entered on the project rather than on the record, and so the one check no payload can answer: where the release policy leaves a person an act, a run moving this has taken the keystroke the report already told it was theirs (ISS-1918). The sentence is the report's own derivation, not a second one, and what would end the rung is said beside it because the two states — a project that has declared nothing, and one whose release nobody automates — end it differently. The command is the set, which is what the person who made the release types and the only route past an entry check. */
+const releaseOwed = (view, ref) => {
+  const held = releaseOwedOf(view.release);
+  return held ? [need(
+    `the release is a person's and nothing here says they have made it: ${held.owed} — ${held.clears}`,
+    setForm(ref, CLOSES_AT),
+  )] : [];
+};
+
 /* One entry check per status, each answering with what the record lacks and the write that supplies
    it. Nothing here reads the repository: what git knows was written on at the step that knew it. */
 export const CHECKS = {
@@ -522,7 +532,7 @@ export const CHECKS = {
   },
   testing: judgedOwed,
   awaiting_release: deployedOwed,
-  closed: () => [],
+  closed: releaseOwed,
   dropped: () => [],
 };
 /* The whole record in one object, so every check reads fields rather than fetching. `cited` is the one argument passed unevaluated: resolving an issue's clauses walks the checkout, which only the `approved` check has a reason to do, and a caller handing over the answer would make every other transition pay for it and fail where the checkout is unreadable. */

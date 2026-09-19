@@ -18,7 +18,8 @@ import { commentPage, cutIn, cutLine, postComment } from "../../tracker/comments
 import {
   TWICE, attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadAll,
 } from "../../tracker/evidence.mjs";
-import { briefGoals, personOwedForRelease, releaseLine, releasePolicy } from "../../tracker/project-config.mjs";
+import { personOwedForRelease, releaseLine, releasePolicy } from "../../tracker/project-config.mjs";
+import { briefGoals } from "../../tracker/knowledge/brief.mjs";
 import { NONE_STATED, servesRefusal } from "../../goals.mjs";
 import { belowTop, climbForm, rungClaimed } from "../../ladder.mjs";
 import { documentIdOf } from "../../tracker/issues.mjs";
@@ -500,12 +501,13 @@ export const recordReport = async (reference) => {
   if (lines.length) console.log(["", "The run, from its own captures:", ...lines.map((one) => `  ${one}`)].join("\n"));
   console.log(pluginFilingLine((repeated.routed ?? []).map((one) => one.record.fields.to)));
   console.log(owed.length ? `\nOwed: a verdict on criterion ${owed.join(", ")}.` : `\nEvery criterion has a verdict.`);
-  /* A run's end is `closed`, or this rung where the policy leaves a person the release (ISS-105, ISS-1147). */
+  /* Where a run stops, and the route it leaves for whoever picks the issue up from here: a set, which is the only move out of this rung the entry check `earned.mjs` holds for `closed` admits (ISS-105, ISS-1147, ISS-1918). The import is late for the reason the one above it is. */
   if (body.status === CLOSES_FROM) {
     const person = personOwedForRelease(await releasePolicy());
+    const { CLOSES_AT, setForm } = await import("../earned.mjs");
     console.log(person
       ? `Owed: the release, which is a person's. ${person}, so this run ends at ${CLOSES_FROM} and the `
-        + `close is theirs:\n  forge advance ${reference}, once the release is out`
+        + `close is theirs, made once it is out and with the release named:\n  ${setForm(reference, CLOSES_AT)}`
       : `Owed: the close. A run ends at closed, not at ${CLOSES_FROM}:\n  forge advance ${reference}`);
   }
 };

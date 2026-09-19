@@ -153,7 +153,8 @@ const SHIPPED = {
 };
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  /* A project that releases itself, so the close this case walks to is a close no person is owed. */
+  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true } },
   issues: [SHIPPED],
   comments: {
     "two-rungs-uuid": [mark(),

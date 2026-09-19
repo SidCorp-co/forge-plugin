@@ -30,8 +30,8 @@ const asked = (status, complexity = null) => [{ acceptanceCriteria: "1. The outc
 
 /* The index invents nothing: every phase, citation and waiver is another table's row. */
 test("every citation names the record the check into the next status refuses without", () => {
-  /* Derived: a terminal check is `() => []`, so a new status sorts itself into one of the sets. */
-  const terminal = Object.keys(CHECKS).filter((status) => CHECKS[status].length === 0);
+  /* Derived off the citations rather than off an empty check, so a new status sorts itself into one of the sets: `dropped` asks nothing at all and `closed` asks the project rather than the record, and neither is a payload a phase could be discharged by (ISS-1918). */
+  const terminal = Object.keys(CHECKS).filter((status) => !CITED[status]);
   assert.deepEqual(terminal, ["closed", "dropped"], "the two ends of the ladder ask no payload");
   for (const status of Object.keys(CHECKS).filter((one) => !terminal.includes(one))) {
     assert.ok(CITED[status], `${status} has an entry check and no record named for it, so the phase `

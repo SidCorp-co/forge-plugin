@@ -46,11 +46,12 @@ test("each rung is entered on its own half, and neither check reaches the other'
   assert.deepEqual(CHECKS[RUNG](view, "ISS-3"), deployed);
 });
 
-test("closed is entered from that rung, and this change added nothing to what it owes", () => {
+test("closed is entered from that rung and the project's release policy, and no record", () => {
   assert.equal(CLOSES_FROM, RUNG, "the close reads the rung's own name");
   assert.equal(nextOf(CLOSES_FROM, {}), "closed");
-  assert.deepEqual(CHECKS.closed(viewFrom("the-uuid", { status: RUNG }, []), "ISS-3"), [],
-    "the rung is the whole criterion, as it was");
+  const releases = { staging: "master", production: "master", autoProd: true };
+  assert.deepEqual(CHECKS.closed(viewFrom("the-uuid", { status: RUNG }, [], null, releases), "ISS-3"),
+    [], "the rung and a project owing nobody an act are the whole criterion");
 });
 
 /* A write is checked against this list before its request is built, so it answers to the tracker

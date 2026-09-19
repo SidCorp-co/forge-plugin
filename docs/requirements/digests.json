@@ -1817,17 +1817,21 @@
       "rev": 1,
       "digest": "e2ca447c49a46b45a3a9fd16af5375c55687ac6afc4996af0e64c47d310354d7"
     },
+    "AC-05-7-11": {
+      "rev": 1,
+      "digest": "94eb14b5dd34506a8ef6119f9f0970a6472a3fb0186d4a528484c41cb3f5c4b9"
+    },
     "UC-05-8": {
-      "rev": 2,
-      "digest": "ceaba5c909f15f217418f53283fa79d55f85a400e0f0d609d6effc1824296548"
+      "rev": 3,
+      "digest": "efe993338b965e8a26cca576761306e2c584dda1cd70d57bd63f5c14d8201ab5"
     },
     "AC-05-8-1": {
       "rev": 2,
       "digest": "a64308a240b28394b5b63c134e3d1d0f940cce25648ec4d3e25a5a875eb6829b"
     },
     "AC-05-8-2": {
-      "rev": 1,
-      "digest": "60a633200a9d7974927f20ff5de44db00caaea7beb53f0f5fe0c20342169159f"
+      "rev": 2,
+      "digest": "4149134bb290c563f99cabeb3fee3883be0a725f83ad1a4a1486344365d790d2"
     },
     "UC-05-9": {
       "rev": 2,

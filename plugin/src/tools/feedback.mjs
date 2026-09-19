@@ -8,7 +8,7 @@ import { agentOf } from "../flow/lease/holder.mjs";
 import { hereCopy, pluginCopy } from "./plugin-copy.mjs";
 import { documentIdOf, shortOf } from "../tracker/issues.mjs";
 import { CAUSE_HELP, KIND_NAMES, kindRefusal, liveTitles } from "../tracker/issue-shape.mjs";
-import { briefGoals, servesOwed } from "../tracker/project-config.mjs";
+import { briefGoals, servesOwed } from "../tracker/knowledge/brief.mjs";
 import { goalBlock } from "../goals.mjs";
 import { bodyOf, keysFrom } from "../tracker/filing/route.mjs";
 import { fileAndSay } from "../tracker/filing/say.mjs";

@@ -48,7 +48,7 @@ const ranOutOf = () =>
 
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true } },
   issues: [ISSUE],
   comments: { [UUID]: [] },
   answer: {

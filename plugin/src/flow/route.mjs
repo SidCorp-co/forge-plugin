@@ -14,6 +14,7 @@ import { citeForm } from "./earned/published.mjs";
 import {
   BASELINE_AT,
   CHECKS,
+  CLOSES_AT,
   JUDGED_AT,
   ORDER,
   PARK_STATUS,
@@ -339,11 +340,11 @@ export const owedLine = (view, ref, held) => {
 };
 
 /* A call made only where its answer is read: a plan declaring neither line owes no person, and the
-   policy is fetched only where the status being entered reads it — the two rungs at the end, one
-   asking who judges and one what deploys. The step is `stepAfter`'s, null for a status the flow does
-   not hold. */
+   policy is fetched only where the status being entered reads it — the three rungs at the end, one
+   asking who judges, one what deploys and one whether the release was anybody's to make. The step is
+   `stepAfter`'s, null for a status the flow does not hold. */
 export const policyFor = async (plan, status = null) =>
-  (personLooks(planFlags(unwrap(plan))) || [JUDGED_AT, CLOSES_FROM].includes(stepAfter(status))
+  (personLooks(planFlags(unwrap(plan))) || [JUDGED_AT, CLOSES_FROM, CLOSES_AT].includes(stepAfter(status))
     ? releasePolicy()
     : null);
 

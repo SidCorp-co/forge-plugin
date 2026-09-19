@@ -11,9 +11,13 @@ here. The verification is that deployment's reported identity held against the c
 and a stale or unrelated identity leaves the rung unearned.
 
 The rung is where merged work waits for production, so the verification is read against what landed.
-Where the production branch is a different one, promotion is a step outside this ladder, and whether
-a person is waited for is the project's answer. Close it in the same run: no comment decides the
-close, and a thread too long to return whole cannot refuse it.
+Where the production branch is a different one, promotion is a step outside this ladder.
+
+**The close is entered on the project's release policy, and on nothing a record could carry.** Where
+that policy leaves a person an act before the release is out, the close is refused and the issue
+rests here until they make it; where it leaves them none, the close is made in the same run, no
+comment deciding it and no thread too long to return whole refusing it. The policy is read at the
+move itself, so the answer a rehearsal gives and the answer the write gives are one answer.
 
 **A failed reading is the release actor's to repair forward.** The actor that promotes and deploys
 takes no way back from here: it repairs in the same direction, or hands the release over carrying

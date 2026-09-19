@@ -514,9 +514,9 @@ test("what the report says is owed at the deploying rung is the release policy's
   assert.match(run.stdout, /^Owed: the release, which is a person's\./mu, run.stdout);
   assert.match(run.stdout, /master does not deploy on its own, so the release is a person's/u,
     "named in the project's own terms, so the reader knows which setting says so");
-  assert.match(run.stdout, /this run ends at awaiting_release and the close is theirs:$/mu, run.stdout);
-  assert.match(run.stdout, /^ {2}forge advance ISS-4, once the release is out$/mu,
-    "and the command is still printed, the rung being the person's to leave and not the run's");
+  assert.match(run.stdout, /close is theirs, made once it is out and with the release named:$/mu, run.stdout);
+  assert.match(run.stdout, /^ {2}forge advance ISS-4 --set closed --why "<[^"]+>"$/mu,
+    "the route printed is the one this policy leaves open, `closed` being entered on it (ISS-1918)");
   assert.doesNotMatch(run.stdout, /^Owed: the close\./mu, "the two lines are one line, never both");
   /* The branch pair alone says nothing about whether anyone owes the promotion. */
   project.config = { baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } };
@@ -537,8 +537,9 @@ test("a record write ends with the line advance --owed would print, and never fa
   assert.match(earned.stderr, /^ISS-3 {2}testing -> awaiting_release$/mu, "the move is reported, never silent");
   assert.doesNotMatch(earned.stdout, /testing -> awaiting_release/u, "on stderr, stdout being the record");
   assert.match(earned.stderr,
-    /^ISS-3 is awaiting_release; closed is next and the record earns it\. `forge advance ISS-3` moves it\.$/mu,
+    /^ISS-3 is awaiting_release; closed is next and the record does not earn it: 1 item\(s\) owed\.$/mu,
     "byte for byte the line advance --owed would print for the status the call left it at");
+  assert.match(earned.stderr, /the release is a person's/u, "and the item under it is the policy's");
   /* A record that posted must not fail on the line printed under it: the reading refuses here. */
   await ranAsync(FORGE, ["claim", "ISS-5", "--unheld"], tracker.env);
   const done = await ranAsync(FORGE, ["record", "gap", "ISS-5", "--none", "the method answered"], tracker.env);
