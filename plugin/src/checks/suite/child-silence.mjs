@@ -8,7 +8,7 @@ import { blanked } from "./wall-clock.mjs";
 export const READER = "plugin/test/fixtures.mjs";
 
 const QUOTE = "[\"'\\u0060]";
-const LITERAL = "(?:null|undefined|\\{\\}|\\[\\]|0|false|" + QUOTE + "(?:(?!" + QUOTE + ").)*" + QUOTE + ")";
+const LITERAL = "(?:(?:null|undefined|0|false)\\b|\\{\\}|\\[\\]|" + QUOTE + "(?:(?!" + QUOTE + ").)*" + QUOTE + ")";
 const ANSWER = "(?:\\.stdout\\b|\\bstatus\\s*[!=]==?\\s*0\\b)";
 const SHAPES = [
   new RegExp(ANSWER + "[^?;{}\\n]*\\?[^?:;{}\\n]*:\\s*" + LITERAL, "gu"),

@@ -63,6 +63,11 @@ test("the reader finds the sentinel in each shape it was written in, and leaves 
 test("a fallback that is not a value is a retry, and the file that owns the sentinel keeps it", () => {
   assert.deepEqual(said(`const taken = first.status === 0 ? first : await qa("claim", "ISS-8", "--take");`), [],
     "a fallback that calls something tries again rather than standing in for an answer");
+  assert.deepEqual(said(`return run.stdout.trim() ? run.stdout : nullRetry();`), [],
+    "a name that opens with a keyword is a name, so the fallback is still a call");
+  assert.deepEqual(said(`return run.stdout.trim() ? run.stdout : undefinedYet(run);`), []);
+  assert.equal(said(`return run.stdout.trim() ? run.stdout : null;`).length, 1,
+    "and the keyword where it ends is the value it is");
   assert.deepEqual(said(`  return run.stdout.trim() ? JSON.parse(run.stdout) : null;`, READER), [],
     "the one file this is written in is where every other file is sent");
   assert.deepEqual(said(`  return run.stdout.trim() ? JSON.parse(run.stdout) : null;`, `/abs/${READER}`), [],

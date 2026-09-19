@@ -45,9 +45,11 @@ const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
 const asked = async (...argv) => {
+  const { exit = 0 } = typeof argv[0] === "object" ? argv.shift() : {};
   state.calls.length = 0;
   const run = await ranAsync(FORGE, ["issue", "ISS-1", ...argv], tracker.env, ROOT, null);
-  return { ...run, get body() { return JSON.parse(run.stdout); } };
+  assert.equal(run.status, exit, run.stderr);
+  return { ...run, body: exit === 0 ? JSON.parse(run.stdout) : null };
 };
 
 /* Sorted, because the parts of one read are asked for together and arrive in no fixed order. */
@@ -114,19 +116,19 @@ test("a field comes back under the tracker's own name for it", async () => {
 });
 
 test("a word of this CLI's own for that field is refused, there being one name for it now", async () => {
-  const run = await asked("--fields", "kind");
+  const run = await asked({ exit: 1 }, "--fields", "kind");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /No field named kind\./u);
 });
 
 test("a name nothing carries is refused with the command that prints the names", async () => {
-  const run = await asked("--fields", "nosuchfield");
+  const run = await asked({ exit: 1 }, "--fields", "nosuchfield");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /forge issue ISS-1 --full/u);
 });
 
 test("a typo is answered by the nearest name the body carries", async () => {
-  const run = await asked("--fields", "staus");
+  const run = await asked({ exit: 1 }, "--fields", "staus");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /Did you mean: status\?/u);
 });
@@ -147,7 +149,7 @@ test("a key only the answer carries is selectable, with no name kept here", asyn
    name it does not carry is a typo and nothing else, and the column the tracker grows next is
    selectable the day it appears without a list here learning about it. */
 test("a name the answer does not carry is a typo, and no declaration excuses it", async () => {
-  const run = await asked("--fields", "fixture-only");
+  const run = await asked({ exit: 1 }, "--fields", "fixture-only");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /No field named fixture-only\./u);
 });
