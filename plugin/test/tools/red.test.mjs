@@ -94,7 +94,15 @@ test("a target marked todo is refused rather than read as a case that passed", (
 test("a file that throws before the target is refused, not read as a case that passed", () => {
   const run = watching("throws", `throw new Error("this file does not load");\n${PASSES}`, "the subject");
   assert.equal(run.status, 2, run.stdout);
-  assert.match(run.stdout, /reached no top-level case at all/u, run.stdout);
+  assert.match(run.stdout, /left no roster that answers for itself/u, run.stdout);
+});
+
+test("a file whose worker exits mid-run cannot say the name it recorded is carried once", () => {
+  const leaves = `test("the subject", async () => { await new Promise((r) => setTimeout(r, 30)); process.exit(1); });\n`;
+  const run = watching("half", `${FAILS}${leaves}`, "the subject");
+  assert.equal(run.status, 2, run.stdout);
+  assert.match(run.stdout, /left no roster that answers for itself/u, run.stdout);
+  assert.doesNotMatch(run.stdout, /The red is this case's own/u, run.stdout);
 });
 
 test("a todo target that throws is refused rather than read as a red", () => {
@@ -117,9 +125,11 @@ test("a roster whose count does not answer for its rows is not a reading", () =>
   const row = `${JSON.stringify({ name: "the subject", outcome: "fail" })}\n`;
   writeFileSync(at, row);
   assert.equal(resultsFrom(at), null, "a record with no count read as a roster");
-  writeFileSync(at, `${row}${JSON.stringify({ rows: 2 })}\n`);
+  writeFileSync(at, `${row}${JSON.stringify({ topLevel: null })}\n`);
+  assert.equal(resultsFrom(at), null, "a run that reported no count read as a roster");
+  writeFileSync(at, `${row}${JSON.stringify({ topLevel: 2 })}\n`);
   assert.equal(resultsFrom(at), null, "a count of two read a roster of one");
-  writeFileSync(at, `${row}${JSON.stringify({ rows: 1 })}\n`);
+  writeFileSync(at, `${row}${JSON.stringify({ topLevel: 1 })}\n`);
   assert.deepEqual(resultsFrom(at), [{ name: "the subject", outcome: "fail" }], "a whole record refused");
 });
 

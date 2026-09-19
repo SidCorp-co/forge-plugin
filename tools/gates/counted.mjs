@@ -1,7 +1,7 @@
 /* What became of each top-level case a run reached, by name: an exit status says some case failed
-   and never which, a skip, a todo and a failure node names no kind for are each something other
-   than a case judged, and a roster is a reading only where the count it ends with is the number of
-   rows above it — a record cut short would otherwise establish that a name is carried once. */
+   and never which, and a skip, a todo and a failure node names no kind for are each something other
+   than a case judged. The roster ends with node's own count of the file's top-level cases, reported
+   only where the file ran to its end: short of that, a roster missing a case says a name is unique. */
 import { readFileSync } from "node:fs";
 
 import { isFile } from "./isolation.mjs";
@@ -14,14 +14,14 @@ const outcomeOf = (type, data) => {
 };
 
 export default async function* counted(source) {
-  let rows = 0;
+  let topLevel = null;
   for await (const { type, data } of source) {
+    if (type === "test:summary" && data.file) topLevel = data.counts.topLevel;
     if (type !== "test:pass" && type !== "test:fail") continue;
     if (data.nesting !== 0 || isFile(data)) continue;
-    rows += 1;
     yield `${JSON.stringify({ name: data.name, outcome: outcomeOf(type, data) })}\n`;
   }
-  yield `${JSON.stringify({ rows })}\n`;
+  yield `${JSON.stringify({ topLevel })}\n`;
 }
 
 export const resultsFrom = (at) => {
@@ -32,6 +32,6 @@ export const resultsFrom = (at) => {
     return null;
   }
   const rows = lines.slice(0, -1);
-  if (lines.at(-1)?.rows !== rows.length) return null;
+  if (lines.at(-1)?.topLevel !== rows.length) return null;
   return rows.every((one) => typeof one?.name === "string" && typeof one?.outcome === "string") ? rows : null;
 };

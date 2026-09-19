@@ -63,8 +63,10 @@ const NOT_A_RESULT = { skip: "was skipped", todo: "is marked todo",
 
 const targetIn = (rows, name, where, shown) => {
   if (rows === null) {
-    refuse(`Reading ${where}, the record of what ran could not be read whole, so nothing in it is a `
-      + `reading of \`${name}\`.`);
+    refuse(`Reading ${where}, the run left no roster that answers for itself: it ended without `
+      + `node's count of the file's top-level cases, or reached fewer of them than that count. A `
+      + `record that may be short of a case cannot say this name is carried once, so nothing in it `
+      + `is a reading of \`${name}\`.`);
   }
   const found = rows.filter((one) => one.name === name);
   if (found.length === 0) {
