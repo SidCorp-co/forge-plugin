@@ -11,7 +11,7 @@ export const HUMAN_REPORTER = process.stdout.isTTY ? "spec" : "tap";
 
 const named = (one) => `${one.file}\t${one.name}`;
 
-const isFile = (data) => typeof data.file === "string" && resolve(data.name) === data.file;
+export const isFile = (data) => typeof data.file === "string" && resolve(data.name) === data.file;
 
 const jsonLines = (at) =>
   readFileSync(at, "utf8").trim().split("\n").filter(Boolean).map((one) => JSON.parse(one));
