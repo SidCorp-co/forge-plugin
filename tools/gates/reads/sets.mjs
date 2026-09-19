@@ -364,7 +364,8 @@ const withSeen = (held, seen) => ({
 });
 
 // One comparison, two doors: a ceiling keeps the walk it saw, a step keys its digest on the claim alone.
-const shallow = (kind, one, claim) => claim === "." && one === "." && (kind === "walk" || kind === "content");
+const shallow = (kind, one, claim) =>
+  claim === "." && kind !== "path" && !(kind === "listing" && one === ".");
 
 const escaping = (set, claims, past) =>
   [["path", set.paths], ["listing", set.dirs], ["walk", set.trees], ["content", set.whole]]

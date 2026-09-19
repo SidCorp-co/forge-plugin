@@ -139,15 +139,20 @@ test("`.` claims the top-level files and no path below them", () => {
 /* Containment alone reads a walk of the root as inside `.`, which claims the files at that level and
    nothing under them: a ceiling answers for it anyway, keeping the walk in its own entry, and a step
    whose digest keys on the claim alone answers for nothing below (ISS-1911). */
-test("a step claiming `.` has claimed the root's own level, and not a walk or a copy below it", () => {
-  const rooted = (key) => ({ paths: new Set(), dirs: new Set(), trees: new Set(), whole: new Set(),
-    [key]: new Set(["."]) });
+test("a step claiming `.` has claimed the root's own level, and nothing that reaches below it", () => {
+  const set = (key, one) => ({ paths: new Set(), dirs: new Set(), trees: new Set(), whole: new Set(),
+    [key]: new Set([one]) });
   for (const key of ["paths", "dirs", "trees", "whole"]) {
-    assert.deepEqual(escapesIn(rooted(key), ["."]), [], `a ceiling answers for a ${key} of the root`);
+    for (const one of [".", "docs"]) {
+      assert.deepEqual(escapesIn(set(key, one), ["."]), [], `a ceiling answers for a ${key} of ${one}`);
+    }
+    assert.deepEqual(stepEscapes(set(key, "docs"), ["docs"]), [], `a claim naming docs covers its ${key}`);
   }
-  for (const key of ["paths", "dirs"]) assert.deepEqual(stepEscapes(rooted(key), ["."]), []);
-  assert.deepEqual(stepEscapes(rooted("trees"), ["."]), [{ kind: "walk", one: "." }]);
-  assert.deepEqual(stepEscapes(rooted("whole"), ["."]), [{ kind: "content", one: "." }]);
+  for (const one of [".", "docs"]) assert.deepEqual(stepEscapes(set("paths", one), ["."]), []);
+  assert.deepEqual(stepEscapes(set("dirs", "."), ["."]), [], "the names beside the files it claims");
+  assert.deepEqual(stepEscapes(set("dirs", "docs"), ["."]), [{ kind: "listing", one: "docs" }]);
+  assert.deepEqual(stepEscapes(set("trees", "."), ["."]), [{ kind: "walk", one: "." }]);
+  assert.deepEqual(stepEscapes(set("whole", "docs"), ["."]), [{ kind: "content", one: "docs" }]);
 });
 
 /* A step reading everything must not swallow the widening: a new top-level directory has to arrive
