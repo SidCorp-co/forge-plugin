@@ -52,6 +52,43 @@ const standingIn = async (at) => {
   throw new Error("a spawned process never reached the process table, which is not a state this suite can run in");
 };
 
+/* The shape a sibling's work takes once its own intermediate has gone: the seed starts the worker
+   detached and exits, so the worker keeps the directory and is reparented off every chain the host
+   stands in. Measured on this box before it was written: a live gate in another run's tree answered
+   to `systemd --user` and to no host at all, which is why the host bounds this call's own work rather
+   than qualifying what is found (ISS-1872 F1). */
+const reparentedIn = async (at) => {
+  const seed = spawn(process.execPath, ["-e",
+    'const { spawn } = require("node:child_process");'
+    + 'const one = spawn(process.argv[1], ["-e", "setTimeout(() => process.exit(0), 120_000)"],'
+    + ' { cwd: process.argv[2], stdio: "ignore", detached: true });'
+    + 'one.unref(); process.stdout.write(String(one.pid) + "\\n"); process.exit(0);',
+    process.execPath, at], { stdio: ["ignore", "pipe", "ignore"] });
+  let said = "";
+  seed.stdout.on("data", (chunk) => { said += chunk; });
+  await new Promise((done) => { seed.on("exit", done); });
+  const pid = Number(said.trim());
+  assert.ok(Number.isInteger(pid) && pid > 1, `the seed named no worker: ${said}`);
+  for (let waited = 0; waited < 300; waited += 1) {
+    if (answeredCwd(pid) === at && !chainHolds(pid, process.pid)) return { pid, kill: () => { try { process.kill(pid); } catch { /* already gone */ } } };
+    await new Promise((wake) => { setTimeout(wake, 10); });
+  }
+  throw new Error(`a worker never left this process's ancestry, which is not a state this suite can run in: pid ${pid}`);
+};
+
+const answeredCwd = (pid) => { try { return readlinkSync(`/proc/${pid}/cwd`); } catch { return null; } };
+
+const chainHolds = (pid, want) => {
+  for (let at = pid; at > 1;) {
+    if (at === want) return true;
+    const said = (() => { try { return readFileSync(`/proc/${at}/status`, "utf8"); } catch { return ""; } })();
+    const up = Number(/^PPid:\s*(\d+)$/mu.exec(said)?.[1]) || 0;
+    if (up === at || up === 0) return false;
+    at = up;
+  }
+  return false;
+};
+
 const ago = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString();
 
 const ISSUE = {
@@ -216,13 +253,29 @@ test("the brief says the work is standing there rather than leaving the lease's 
   }
 });
 
-/* The same false reassurance the claim gave in a status, written out in prose: the sentence a
-   worktree-sourced caller used to be given called its id that run's alone, which is the one thing a
-   tree's id does not establish. */
+/* An id read off a tree is the one thing that cannot be called this caller's own, so the sentence a
+   worktree-sourced caller is given may not say so — the refusal's own reassurance, in prose. */
 test("the sentence a worktree-sourced caller is given names the tree rather than that caller's run", () => {
   const said = idsHere({ holder: ELSEWHERE, agent: "a-test-agent", pid: "1", renewedAt: ago(5), minutes: 60 },
     { id: OURS, source: "worktree" }, TREE);
   assert.match(said, new RegExp(escaped(join(TREE, ".git", "forge-run-id")), "u"), "the file the id was read off");
   assert.match(said, /names that tree rather than this run/u, "and what an id read off a tree identifies");
   assert.doesNotMatch(said, /this run's alone/u, "never that the id is this caller's own, which no tree can say");
+});
+
+/* F1 of this change's own review: the reading asked the host to appear in what it found, so a
+   sibling's worker whose intermediate had exited read as nothing at all — which is the shape a
+   backgrounded gate actually has on this box. */
+test("work whose own intermediate has exited still refuses the claim, the host having left its ancestry", async () => {
+  heldBy();
+  const orphan = await reparentedIn(TREE);
+  try {
+    assert.ok(workingHere(OURS, TREE, HOST).some((one) => one.pid === orphan.pid),
+      "the reading finds work the host no longer stands above");
+    const refused = await ran(["claim", "ISS-1872"]);
+    assert.equal(refused.status, 1, `a renewal is what asking the host to be found answered:\n${refused.stdout}`);
+    assert.match(refused.stderr, new RegExp(`pid ${orphan.pid}`, "u"), "and names it as it names any other");
+  } finally {
+    orphan.kill();
+  }
 });

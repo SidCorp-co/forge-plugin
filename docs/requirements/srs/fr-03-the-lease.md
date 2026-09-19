@@ -109,6 +109,10 @@ lease anyway, because no ambient fact separates two callers in one tree and the 
 what the record cannot. What that reading may not do is charge the second of the three: a tree with
 nothing standing in it grants the claim as it always did. It qualifies the claim and nothing else,
 the claim being the first call a second run makes and the one whose cost of being wrong is a command.
+The third reading is bounded by the process that separates one call of an agent from another, so a
+call that cannot place its own work against such a process reads nothing rather than refusing what
+may be its own — which leaves an empty reading meaning either an idle tree or a reading that did not
+run, and proving neither that no run holds the lease.
 
 - **AC-03-2-1** · Rev: 3 · Proof: plugin/test/flow/lease.test.mjs "every refusal names the holder, its renew time and the one command that clears it"
   IF a lease inside its duration is held by another run, and the record does not show that run gone,
@@ -146,6 +150,9 @@ the claim being the first call a second run makes and the one whose cost of bein
 - **AC-03-2-9** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "the brief says the work is standing there rather than leaving the lease's own state as the whole reading"
   WHEN that lease is read rather than claimed THEN the CLI SHALL say that a process is standing in
   that tree under the held id, beside the state the field itself carries.
+- **AC-03-2-10** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "the reading is of work under another call of the host, and of nothing else"
+  WHERE this call cannot place its own work against a host process, the CLI SHALL read nothing from
+  that tree and SHALL grant the claim as it does where the tree is idle.
 
 ### UC-03-3 — Reclaim what a dead run left
 

@@ -57,6 +57,15 @@ reaching the record, and a run writing down what it has just done while its own 
 would lose that write to a probe that cannot tell the gate from a sibling; a second run's first act
 is the claim, which is where the cost of being wrong is one command.
 
+**The reading has one prerequisite, and where it is missing there is no reading at all.** The host
+process is what bounds this call's own work: the call itself, everything above it and everything it
+started are that boundary's inside, and the tree's other processes are what is left. A call that
+cannot place itself against a host — none recorded, or one that is not in this call's own ancestry —
+can exclude nothing of its own, and a reading that cannot exclude its own work would refuse every
+claim ever made from a worktree. So it reads nothing and the claim is granted as it was before,
+which makes an empty reading two different things: a tree with nothing in it, and a reading that did
+not run. Neither is proof that no run is working under the lease.
+
 What it does not see it does not guess at: a process in another process table, one belonging to a
 user this caller cannot read, and work that starts after the claim was granted. It is a floor rather
 than a census, and every case it misses is the case the duration was already deciding.

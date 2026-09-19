@@ -29,15 +29,11 @@ const chainOf = (pid) => {
   return seen;
 };
 
-/* The host process is where one call of an agent ends and another's begins: every agent of a wave
-   descends from it and each call it makes descends from a shell of its own, so anything sharing an
-   ancestor with this call below the host was started by the command this call was started by and is
-   this call's own however long it stands. That is the whole of what can be excluded — above the host
-   two callers are indistinguishable, which is why what is left is printed for the caller to rule on. */
-const anothersCall = (pid, below, host) => {
-  const chain = chainOf(pid);
-  return chain.indexOf(host) > 0 && !chain.some((one) => below.has(one));
-};
+/* The host is where one call of an agent ends and another's begins, so anything sharing an ancestor
+   with this call below it is this call's own however long it stands — the whole of what can be
+   excluded. It bounds that and does not qualify what is found: work whose own intermediate has
+   exited keeps its directory and is reparented off every chain the host is in (ISS-1872 F1). */
+const anothersCall = (pid, below) => !chainOf(pid).some((one) => below.has(one));
 
 const commandOf = (pid) => {
   const line = answered(() => readFileSync(`${TABLE}/${pid}/cmdline`, "utf8"));
@@ -66,13 +62,16 @@ export const workingHere = (holder, at = process.cwd(), said = pidOf()) => {
   if (!tree || !Number.isInteger(host) || host < 2) return [];
   const mine = chainOf(process.pid);
   const seat = mine.indexOf(host);
-  const below = new Set(seat < 0 ? mine : mine.slice(0, seat));
+  /* No boundary, and a reading that cannot exclude its own work refuses every claim from a tree. */
+  if (seat < 0) return [];
+  const ours = new Set(mine);
+  const below = new Set(mine.slice(0, seat));
   const found = [];
   for (const name of answered(() => readdirSync(TABLE)) ?? []) {
     const pid = Number(name);
-    if (!Number.isInteger(pid) || pid < 2 || below.has(pid)) continue;
+    if (!Number.isInteger(pid) || pid < 2 || ours.has(pid)) continue;
     const cwd = answered(() => readlinkSync(`${TABLE}/${pid}/cwd`));
-    if (!cwd || !within(cwd, tree) || !anothersCall(pid, below, host)) continue;
+    if (!cwd || !within(cwd, tree) || !anothersCall(pid, below)) continue;
     found.push(rowOf(pid));
   }
   return found.sort((one, two) => String(one.since).localeCompare(String(two.since)));
