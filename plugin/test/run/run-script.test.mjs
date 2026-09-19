@@ -33,8 +33,8 @@ test("-h names all four steps, the resume flag and the threshold it counts again
     "the checkout's own copy refuses, that install being what a worktree borrows"]) {
     assert.ok(run.stdout.includes(said), `${said} is not in the usage:\n${run.stdout}`);
   }
-  assert.match(run.stdout, /counts what landed under \S[^\n]*? since refs\/forge\/reviewed/u,
-    `the counted paths and the mark they run from are no part of the usage:\n${run.stdout}`);
+  const counted = /counts what landed under (.+?) since refs\/forge\/reviewed/su.exec(run.stdout);
+  assert.ok(counted?.[1].trim(), `the counted paths and the mark they run from are no part of the usage:\n${run.stdout}`);
   assert.match(run.stdout, /range holds \d+ changed line\(s\)/u,
     `the volume that calls for a reading is no part of the usage:\n${run.stdout}`);
   assert.ok(!run.stdout.includes("3 release(s)"), `a release count is no part of the trigger:\n${run.stdout}`);
