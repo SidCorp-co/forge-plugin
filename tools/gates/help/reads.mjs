@@ -136,10 +136,14 @@ read and the claims it escaped. The comparison goes one way only, and the line e
 where it landed. It catches a declaration too narrow — which is the state a step is in when a change
 to a path it reads does not run it, and a banked pass covers that path anyway, one list deciding
 both — and it proves no declaration wide enough, since the audit follows this repository's own code
-and sees of a dependency only what crossed back. What no step's set carries is the preload this gate
-puts on its own command line, that being the instrument and not the subject, and an audit already
-running — a gate under a gate, as in this repository's own suite — watches it load; the runner's own
-graph reaches those files, so a change to one is a digest input of every step already. A
-step the audit saw nothing under is said to have had its declaration unchecked rather than held: \`npm\` records nothing of this repository, its own
-code standing outside the tree and so unshimmed, so a step whose real program left no record observes
-exactly nothing and the launcher's record never stands in for it.`;
+and sees of a dependency only what crossed back. \`.\` is the root's own level, and for a step it
+answers for a file there and for the names beside it and never for a walk or a copy of everything
+below, which names each top-level entry it reaches; a ceiling answers for that walk, its entry
+keeping what the audit saw, where a step's digest keys on the claim alone. What no step's set carries
+is the preload this gate puts on its own command line, that being the instrument and not the subject,
+and an audit already running — a gate under a gate, as in this repository's own suite — watches it
+load; the runner's own graph reaches those files, so a change to one is a digest input of every step
+already. A step the audit saw nothing under is said to have had its declaration unchecked rather than
+held: \`npm\` records nothing of this repository, its own code standing outside the tree and so
+unshimmed, so a step whose real program left no record observes exactly nothing and the launcher's
+record never stands in for it.`;

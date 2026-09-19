@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { argvForTests, EVERYTHING, gateSteps, launcherOf, STEPS, TEST_FILE, testWorkers,
   WHOLE_TREE_TESTS } from "../../../tools/gates/steps.mjs";
 import { derivationFiles, planFor, under } from "../../../tools/gates/scope.mjs";
+import { escapesIn, stepEscapes } from "../../../tools/gates/reads/sets.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
@@ -133,6 +134,20 @@ test("`.` claims the top-level files and no path below them", () => {
   assert.equal(under("plugin/src/cli.mjs", "."), false);
   assert.equal(under("plugin", "plugin"), true);
   assert.equal(under("plugins/other.mjs", "plugin"), false);
+});
+
+/* Containment alone reads a walk of the root as inside `.`, which claims the files at that level and
+   nothing under them: a ceiling answers for it anyway, keeping the walk in its own entry, and a step
+   whose digest keys on the claim alone answers for nothing below (ISS-1911). */
+test("a step claiming `.` has claimed the root's own level, and not a walk or a copy below it", () => {
+  const rooted = (key) => ({ paths: new Set(), dirs: new Set(), trees: new Set(), whole: new Set(),
+    [key]: new Set(["."]) });
+  for (const key of ["paths", "dirs", "trees", "whole"]) {
+    assert.deepEqual(escapesIn(rooted(key), ["."]), [], `a ceiling answers for a ${key} of the root`);
+  }
+  for (const key of ["paths", "dirs"]) assert.deepEqual(stepEscapes(rooted(key), ["."]), []);
+  assert.deepEqual(stepEscapes(rooted("trees"), ["."]), [{ kind: "walk", one: "." }]);
+  assert.deepEqual(stepEscapes(rooted("whole"), ["."]), [{ kind: "content", one: "." }]);
 });
 
 /* A step reading everything must not swallow the widening: a new top-level directory has to arrive

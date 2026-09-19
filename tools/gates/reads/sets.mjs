@@ -363,12 +363,18 @@ const withSeen = (held, seen) => ({
   whole: new Set([...held.whole, ...seen.whole]),
 });
 
-// The one failure nothing else here would report: a claim allowing none of what was watched.
-export const escapesIn = (set, claims) => {
-  const covered = (one) => claims.some((claim) => under(one, claim));
-  return [["path", set.paths], ["listing", set.dirs], ["walk", set.trees], ["content", set.whole]]
-    .flatMap(([kind, seen]) => [...seen].filter((one) => !covered(one)).map((one) => ({ kind, one })));
-};
+// One comparison, two doors: a ceiling keeps the walk it saw, a step keys its digest on the claim alone.
+const shallow = (kind, one, claim) => claim === "." && one === "." && (kind === "walk" || kind === "content");
+
+const escaping = (set, claims, past) =>
+  [["path", set.paths], ["listing", set.dirs], ["walk", set.trees], ["content", set.whole]]
+    .flatMap(([kind, seen]) => [...seen]
+      .filter((one) => !claims.some((claim) => under(one, claim) && !past(kind, one, claim)))
+      .map((one) => ({ kind, one })));
+
+export const escapesIn = (set, claims) => escaping(set, claims, () => false);
+
+export const stepEscapes = (set, claims) => escaping(set, claims, shallow);
 
 /** Every declared file's observed reads against its own ceiling, judged whichever way the step went:
  *  a ceiling the evidence contradicts is the tree's defect, not the step's, and a step that failed

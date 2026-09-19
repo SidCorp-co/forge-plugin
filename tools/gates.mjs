@@ -25,8 +25,8 @@ import { forgetRoomRefusal, ROOM_ENV, roomRefused } from "./room.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
 import { parallelRuns } from "../plugin/src/resolve/settings.mjs";
 import { argvForTests, DECLARED_READS, gateSteps, launcherOf, TEST_FILE, testWorkers } from "./gates/steps.mjs";
-import { auditEnv, claimsJudged, contextOf, escapesIn, manifestsIn, readsDir, recordSets, selectTests,
-  setsFrom, stepSetFrom } from "./gates/reads/sets.mjs";
+import { auditEnv, claimsJudged, contextOf, manifestsIn, readsDir, recordSets, selectTests, setsFrom,
+  stepEscapes, stepSetFrom } from "./gates/reads/sets.mjs";
 import { READS_HELP } from "./gates/help/reads.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
 import { alonePath, casesPath, CEILING_SECONDS, REVIEW, fileTimesPath, recordDir, recordRun, roomPath,
@@ -570,7 +570,7 @@ for (const step of planned) {
      refusal is the step's. Only a step that passed reaches this, a failed one having refused above. */
   if (!step.tests) {
     const set = stepSetFrom(readsOut(step.label), ROOT);
-    const escapes = escapesIn(set, step.reads);
+    const escapes = stepEscapes(set, step.reads);
     if (escapes.length === 0) console.log(stepRead(step, set));
     else {
       console.error(`\nGate failed: ${step.label} — the tree judged: ${ROOT}`);
