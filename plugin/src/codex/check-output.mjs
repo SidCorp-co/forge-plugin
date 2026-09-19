@@ -1,6 +1,6 @@
 /* What a check's own output said failed, selected out of it rather than taken off its end. Why TAP
    and not a vocabulary of failure words, and what this does not promise: docs/cli/codex-the-check.md. */
-const NOT_OK = /^([ ]*)not ok \d+ - (.*)$/u;
+const NOT_OK = /^([ ]*)not ok\b(?:[ ]+\d+)?(?:[ ]*-)?[ ]*(.*)$/u;
 
 // A case TAP says was not expected to pass, which is not a failure.
 const DIRECTIVE = /\s#\s*(?:TODO|SKIP)\b/iu;
@@ -18,7 +18,10 @@ const QUOTED = /^'(.*)'$/su;
 export const NAMED = 20;
 export const SAID_CHARS = 300;
 
-const said = (value) => value.replace(QUOTED, "$1").replace(/\s+/gu, " ").trim().slice(0, SAID_CHARS);
+const said = (value) => {
+  const one = value.replace(QUOTED, "$1").replace(/\s+/gu, " ").trim();
+  return one.length > SAID_CHARS ? `${one.slice(0, SAID_CHARS - 1)}…` : one;
+};
 
 const scalarAt = (lines, from, indent) => {
   const body = [];
@@ -26,11 +29,11 @@ const scalarAt = (lines, from, indent) => {
   return body.filter(Boolean).join(" ");
 };
 
-// Keys at the diagnostic's own indent only: a stack frame reading `at: ...` is a scalar's text.
+// Its own indent decides the keys and the end alike: a `...` inside a scalar is that scalar's text.
 const fieldsFrom = (lines, from, indent) => {
   const found = [];
   let at = from;
-  for (; at < lines.length && lines[at].trim() !== CLOSE; at += 1) {
+  for (; at < lines.length && lines[at] !== `${indent}${CLOSE}`; at += 1) {
     const field = FIELD.exec(lines[at]);
     if (!field || field[1] !== indent || !KEPT.includes(field[2])) continue;
     const value = field[3] === BLOCK ? scalarAt(lines, at + 1, indent) : field[3];
@@ -39,8 +42,7 @@ const fieldsFrom = (lines, from, indent) => {
   return { found, ended: at };
 };
 
-/** Every failing case the output named, each carrying what its diagnostic gave of `KEPT` and nothing
- *  it did not. Empty for output that is not TAP. */
+// Each carrying what its diagnostic gave of `KEPT`, nothing more. Empty for output that is not TAP.
 export const failuresIn = (text) => {
   const lines = String(text ?? "").split("\n");
   const found = [];
@@ -49,11 +51,11 @@ export const failuresIn = (text) => {
     if (!named || DIRECTIVE.test(named[2])) continue;
     const indent = `${named[1]}  `;
     if (lines[at + 1]?.trim() !== OPEN) {
-      found.push({ name: named[2].trim(), fields: [] });
+      found.push({ name: said(named[2]), fields: [] });
       continue;
     }
     const { found: fields, ended } = fieldsFrom(lines, at + 2, indent);
-    found.push({ name: named[2].trim(), fields });
+    found.push({ name: said(named[2]), fields });
     at = ended;
   }
   return found;

@@ -81,8 +81,43 @@ test("more failures than the bound are cut to it, and the block says how many it
   assert.ok(!said.includes(`case number ${NAMED + 1}`), "and the ones past the bound are not in it");
 });
 
-test("a field longer than the bound is cut to it", () => {
+test("a field longer than the bound is cut to it, and says it was", () => {
   const long = "x".repeat(SAID_CHARS * 2);
   const { out } = tapOf(`test("the long one", () => { throw new Error("${long}"); });\n`);
-  assert.equal(fieldOf(failuresIn(out)[0], "error").length, SAID_CHARS);
+  const error = fieldOf(failuresIn(out)[0], "error");
+  assert.equal(error.length, SAID_CHARS);
+  assert.ok(error.endsWith("…"), "and the cut is marked rather than left to look like the whole of it");
+});
+
+/* Nothing above the tail may be unbounded, and a name is not a field: a case named from a large
+   input can be longer than every diagnostic on the page put together. */
+test("a case name longer than the bound is cut to it as a field is", () => {
+  const { out } = tapOf(`test("${"n".repeat(SAID_CHARS * 400)}", () => { throw new Error("red"); });\n`);
+  const [one] = failuresIn(out);
+  assert.equal(one.name.length, SAID_CHARS);
+  assert.ok(one.name.startsWith("nnnn") && one.name.endsWith("…"));
+  assert.ok(failuresSaid(out).length < SAID_CHARS * 4, "so the block above the tail stays bounded");
+});
+
+/* A diagnostic ends at its own indent and nowhere else. Read a `...` inside an assertion as the end
+   and the scan resumes in the middle of that assertion, where a quoted `not ok` is a case nothing
+   ever ran and the count the reviewer reads is wrong in both directions. */
+test("a line of three dots inside an assertion is that assertion's text, not the end of its diagnostic", () => {
+  const { out } = tapOf(`test("the one that quotes a terminator", () => {
+  throw new Error("before\\n...\\nnot ok 9 - a case nothing ran\\nafter");
+});
+`);
+  const found = failuresIn(out);
+  assert.deepEqual(found.map((one) => one.name), ["the one that quotes a terminator"]);
+  assert.equal(fieldOf(found[0], "error"), "before ... not ok 9 - a case nothing ran after");
+});
+
+/* The decision was to read TAP, and TAP makes the number and the dash optional; reading only node's
+   spelling of it would hand back an unattributable red for every other producer of the format. */
+test("a test point TAP spells without a number or a dash is a failure all the same", () => {
+  const spellings = ["not ok 1 - with both", "not ok - without a number", "not ok 2 without a dash", "not ok"];
+  assert.deepEqual(failuresIn(`TAP version 13\n${spellings.join("\n")}\n1..4\n`).map((one) => one.name),
+    ["with both", "without a number", "without a dash", ""]);
+  assert.deepEqual(failuresIn("TAP version 13\nnot okay 1 - a word that merely opens with it\n1..1\n"), [],
+    "and a word that only begins that way is not a test point");
 });
