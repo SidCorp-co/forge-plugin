@@ -351,7 +351,7 @@ export const policyFor = async (plan, status = null) =>
 export const deployFor = async (plan, status = null) =>
   (credentialOwed(planFlags(unwrap(plan)), status) ? stagingDeploy() : null);
 
-const ROUTES_FROM = ORDER.slice(ORDER.indexOf(BASELINE_AT), ORDER.indexOf(CLOSES_FROM) + 1);
+const ROUTES_FROM = ORDER.slice(ORDER.indexOf(BASELINE_AT), ORDER.indexOf(CLOSES_FROM));
 
 /** The one kind no entry check may ask for and every reader reads: docs/cli/record-the-unwritten.md. */
 export const unaskedLines = (view, ref) => {

@@ -22,7 +22,7 @@ const view = (status, comments = []) =>
 const ROUTED = recorded("routed", { what: "the gate reads a checkout's mtime as a write", to: "ISS-80, filed" });
 const NONE = recorded("routed", { none: "nothing outside this issue came up" });
 
-const ASKED_AT = ["in_progress", "developed", "testing", "awaiting_release"];
+const ASKED_AT = ["in_progress", "developed", "testing"];
 
 test("a run that could have met something beside this issue is asked whether it did", () => {
   for (const status of ASKED_AT) {
@@ -71,6 +71,7 @@ const working = {
   plan: "## Files touched\n\na.mjs\n",
 };
 const project = {
+  calls: [],
   config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
   issues: [working],
   comments: { "working-uuid": [] },
@@ -88,6 +89,8 @@ const tracker = await fakeTracker(project);
 test.after(() => tracker.close());
 
 const inSession = (name) => ({ ...tracker.env, FORGE_SESSION_ID: name });
+const listed = () => project.calls.filter((one) =>
+  one.name === "forge_comments" && one.args.action === "list").length;
 const promptIn = (text) => text.split("\n").filter((one) => /routed|not this issue's/u.test(one)).join("\n");
 
 /* Three surfaces, one text: a second composition of the same parts is a fourth wording of one
@@ -117,16 +120,15 @@ test("a page the read could not finish is asked nothing, a routing past the cut 
     "the block says what the record does not hold, which a partial read cannot know");
 });
 
-/* The rung the close is taken from reads no page for a plain move, so a rehearsal that kept that
-   shortcut would print this over a record already holding the answer. */
-test("the last rung before the close reads the record the block speaks about", async () => {
+/* The rung the close is taken from reads no page for a plain move, so a block asked for there would
+   claim the record holds no routing over a page nothing walked — and buying the claim with a read
+   puts a thread too long to walk in front of the close. The span stops below it instead. */
+test("the rung the close is taken from is asked nothing, and its rehearsal still reads no page", async () => {
   Object.assign(working, { status: "awaiting_release" });
-  project.comments["working-uuid"] = [
-    { createdAt: "2026-09-04T09:30:00.000Z", authorId: "agent", body: render("routed", { none: "nothing outside this issue came up" }) },
-  ];
+  project.comments["working-uuid"] = [];
+  const before = listed();
   const owed = await ranAsync(FORGE, ["advance", "ISS-7", "--owed"], inSession("unasked-end-owed"));
   assert.equal(owed.status, 0, owed.stderr);
-  assert.equal(promptIn(owed.stdout), "", `the routed record is on the page: ${owed.stdout}`);
-  const brief = await ranAsync(FORGE, ["resume", "ISS-7"], inSession("unasked-end-resume"));
-  assert.equal(promptIn(brief.stdout), "", "and the surface that always read the page agrees");
+  assert.equal(promptIn(owed.stdout), "", `nothing is asked at this rung: ${owed.stdout}`);
+  assert.equal(listed(), before, "and no page was fetched to say so");
 });

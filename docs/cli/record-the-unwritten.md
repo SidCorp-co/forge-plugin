@@ -25,12 +25,17 @@ for a year `routed` was neither: eighty records across two corpora hold none of 
 that belongs in one sits inside `detail:` or a `decision:` clause instead, and the report's filing
 line — built from `routed` alone — read every one of those runs as having found nothing. It still
 cannot be asked for by an entry check, for the reason above. So it is asked in the printed answer:
-one block under the shortfall, from the rung the work starts at to the last one before the close,
-counted in nothing, refusing nothing, silent from the first record of either sort. Three surfaces
-print what an issue owes and all three compose it from one list, a second composition being a fourth
-wording of one answer. It is silent on a page the read could not finish, its claim being one a
-routing past the cut disproves and a run believing it would answer `--none` over a routing already
-there; and the rung the close is taken from reads the page for the rehearsal alone, a plain close
-having nothing to learn from it. And the sentence of the method that sends a finding to the issue that owns it
+one block under the shortfall, counted in nothing, refusing nothing, silent from the first record of
+either sort. Three surfaces print what an issue owes and all three compose it from one list, a second
+composition being a fourth wording of one answer.
+
+The block makes a claim about what the record does not hold, so it is silent wherever that claim
+cannot be established. On a page the walk could not finish, a routing past the cut disproves it and a
+run believing it would answer `--none` over a routing already there. And the rung the close is taken
+from reads no page at all: its whole entry criterion is the status, a thread too long to walk must
+never be able to stall the close, and buying the claim with a read would put one in front of it. So
+the span runs from the rung the work starts at to the last one below that — `in_progress`,
+`developed`, `testing` — which is every rung at which a run is still working the issue and could
+have met something that is not it. And the sentence of the method that sends a finding to the issue that owns it
 names the record that stays behind (ISS-1699). The report closes with the run's own worklog — the branch, the head, what it
 touched and the plugin copy the capture was made under — so one read answers which copy typed it.
