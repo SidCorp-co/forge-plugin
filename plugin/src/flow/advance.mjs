@@ -56,10 +56,10 @@ export const USAGE = [
   "`forge guide contract <status>` for the rule.",
 ].join("\n");
 
-/* A plain advance from the rung `closed` is entered from, whose whole entry criterion is that status, so the page is not worth the call. A park or a drop from it is another transition: its kind, its evidence and the question a needs_info park owes are all judged against the record, so those read the page. */
+/* A plain advance from the rung `closed` is entered from, whose whole entry criterion is that status, so the page is not worth the call. A park or a drop from it is another transition: its kind, its evidence and the question a needs_info park owes are all judged against the record, so those read the page. The rehearsal reads it there too: the block it prints says what the record does not hold, which a view assembled from no comments cannot tell from a record holding it. */
 const readsTheRecord = (body, given) =>
   !given.set && (body.status !== CLOSES_FROM || Boolean(given.park) || Boolean(given.drop)
-    || Boolean(given.reopen));
+    || Boolean(given.reopen) || Boolean(given.owed));
 
 const viewOf = async (reference, given) => {
   const { documentId, body } = await issueOf(reference);

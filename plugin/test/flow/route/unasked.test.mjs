@@ -110,3 +110,17 @@ test("the three surfaces that print what is owed print this in the same words", 
   const brief = await ranAsync(FORGE, ["resume", "ISS-7"], inSession("unasked-resume"));
   assert.equal(promptIn(brief.stdout), asked, "and resume, character for character");
 });
+
+/* The rung the close is taken from reads no page for a plain move, so a rehearsal that kept that
+   shortcut would print this over a record already holding the answer. */
+test("the last rung before the close reads the record the block speaks about", async () => {
+  Object.assign(working, { status: "awaiting_release" });
+  project.comments["working-uuid"] = [
+    { createdAt: "2026-09-04T09:30:00.000Z", authorId: "agent", body: render("routed", { none: "nothing outside this issue came up" }) },
+  ];
+  const owed = await ranAsync(FORGE, ["advance", "ISS-7", "--owed"], inSession("unasked-end-owed"));
+  assert.equal(owed.status, 0, owed.stderr);
+  assert.equal(promptIn(owed.stdout), "", `the routed record is on the page: ${owed.stdout}`);
+  const brief = await ranAsync(FORGE, ["resume", "ISS-7"], inSession("unasked-end-resume"));
+  assert.equal(promptIn(brief.stdout), "", "and the surface that always read the page agrees");
+});

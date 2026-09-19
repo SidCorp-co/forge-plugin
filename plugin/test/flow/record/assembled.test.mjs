@@ -82,6 +82,13 @@ test("every correction, park and question is kept and counted, and a kind that c
   assert.equal(heldSaid("gap", 1), null, "and nothing above a kind holding one, where the count is the line itself");
 });
 
+test("a confirmation is rendered with the sentence above the path list", () => {
+  const body = render("confirmation", { where: ["a.mjs", "b.mjs"], is: "the shape opens on the sentence", finding: "holds" });
+  const keyed = body.split("\n").filter((one) => /^[a-z-]+:/u.test(one)).map((one) => one.split(":")[0]);
+  assert.deepEqual(keyed, ["is", "where", "where", "finding"],
+    "the flags the writer gave in the order the shape declares them");
+});
+
 /* A record is read by its keys, whatever order its shape prints them in: docs/cli/record.md. */
 test("a confirmation written in the field order that stood before reads back whole", () => {
   const body = ["## Confirmation", "", "```forge-record", "where: a.mjs", "where: b.mjs",
