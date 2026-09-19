@@ -142,11 +142,11 @@ const ran = (argv, at = TREE, host = HOST) =>
   ranAsync(FORGE, argv, { ...tracker.env, FORGE_SESSION_ID: OURS, CLAUDE_PID: String(host) }, at);
 const onTheRecord = () => ISSUE.sessionContext.lease;
 
-test("the reading is of work under another call of the host, and of nothing else", async () => {
+test("the reading is of work outside this call's own, and of nothing else", async () => {
   const own = await standingIn(TREE);
   try {
     assert.ok(workingHere(OURS, TREE, HOST).some((one) => one.pid === own.pid),
-      "work under a call of this host that is not the caller's own call");
+      "work standing in the tree that is not this call, not above it and not anything it started");
     assert.deepEqual(workingHere(OURS, TREE, UNDER_ONE_CALL), [],
       "and the same work under one call of a host further up, which is this reading's blind spot and the suite's own shape");
     assert.deepEqual(workingHere(ELSEWHERE, TREE, HOST), [], "a holder this tree does not mint is read from no tree at all");
@@ -275,6 +275,12 @@ test("work whose own intermediate has exited still refuses the claim, the host h
     const refused = await ran(["claim", "ISS-1872"]);
     assert.equal(refused.status, 1, `a renewal is what asking the host to be found answered:\n${refused.stdout}`);
     assert.match(refused.stderr, new RegExp(`pid ${orphan.pid}`, "u"), "and names it as it names any other");
+    assert.match(refused.stderr, /neither this call, nor above it, nor anything it started/u,
+      "saying only what the reading establishes, the host being a boundary and not the origin it can claim for what it found");
+    assert.doesNotMatch(refused.stderr, /another call of this host/u,
+      "and not an origin this work does not have, its own chain reaching no host at all");
+    const read = await ran(["resume", "ISS-1872"]);
+    assert.match(read.stdout, new RegExp(`pid ${orphan.pid}`, "u"), "and the brief reports it on the same terms");
   } finally {
     orphan.kill();
   }

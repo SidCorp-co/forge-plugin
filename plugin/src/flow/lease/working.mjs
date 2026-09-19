@@ -85,8 +85,8 @@ const rowLines = (rows) => [
 
 export const workingHereSaid = (rows, holder, at = process.cwd()) =>
   [`That holder is the id ${besideGit(at, RUN_ID)} mints, so it names this tree and not one run in `
-    + `it: every call made from here resolves ${holder}. ${rows.length} process(es) started under `
-    + `another call of this host are standing in ${treeMinting(holder, at)}:`,
+    + `it: every call made from here resolves ${holder}. ${rows.length} process(es) standing in `
+    + `${treeMinting(holder, at)} are neither this call, nor above it, nor anything it started:`,
   ...rowLines(rows),
   `Nothing here can tell whose they are, so whether a run is working under that lease is yours to `
     + `establish: \`ps -o pid,lstart,args -p ${rows.map((one) => one.pid).join(",")}\` reads them `

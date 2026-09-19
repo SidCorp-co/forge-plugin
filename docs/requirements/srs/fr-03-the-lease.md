@@ -150,7 +150,7 @@ run, and proving neither that no run holds the lease.
 - **AC-03-2-9** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "the brief says the work is standing there rather than leaving the lease's own state as the whole reading"
   WHEN that lease is read rather than claimed THEN the CLI SHALL say that a process is standing in
   that tree under the held id, beside the state the field itself carries.
-- **AC-03-2-10** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "the reading is of work under another call of the host, and of nothing else"
+- **AC-03-2-10** · Rev: 1 · Proof: plugin/test/flow/claim/live-sibling.test.mjs "the reading is of work outside this call's own, and of nothing else"
   WHERE this call cannot place its own work against a host process, the CLI SHALL read nothing from
   that tree and SHALL grant the claim as it does where the tree is idle.
 
