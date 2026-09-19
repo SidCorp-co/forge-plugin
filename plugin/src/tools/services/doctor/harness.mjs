@@ -60,14 +60,19 @@ const toolRow = (verb, full) => {
   return SAVED[verb] ? { label: verb, ...SAVED[verb](full) } : null;
 };
 
-/* One row per key, carrying the `from` the reader answered with rather than a file this composes:
-   why that provenance travels at all is `resolve/machine/stores.mjs`'s (AC-01-3-1). */
+/** One key said in one line, carrying the `from` the reader answered with rather than a file the
+ *  caller composed: why that provenance travels at all is `resolve/machine/stores.mjs`'s
+ *  (AC-01-3-1). Exported because the write that saves a key reports it in this same shape. */
+export const keySaid = (row, full) => (row.value
+  ? `${row.secret ? masked(row.value, full) : row.value}  ← ${row.from}`
+  : `no ${row.asks} — \`forge doctor --${row.flag} <${row.asks}>\`${row.without ? `, ${row.without}` : ""}`);
+
+export const keyLabel = (row) => `${row.label} ${row.said ?? row.key}`;
+
 const keyRow = (row, full, required) => ({
-  label: `${row.label} ${row.said ?? row.key}`,
+  label: keyLabel(row),
   level: row.value ? "ok" : (required.includes(row.store) ? "miss" : "note"),
-  detail: row.value
-    ? `${row.secret ? masked(row.value, full) : row.value}  ← ${row.from}`
-    : `no ${row.asks} — \`forge doctor --${row.flag} <${row.asks}>\`${row.without ? `, ${row.without}` : ""}`,
+  detail: keySaid(row, full),
 });
 
 /** `required` names the stores this checkout cannot work without: an absence there is a fault. */

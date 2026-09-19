@@ -1,7 +1,7 @@
 /* The keys `forge doctor` writes: a report is every finding at once, a write is one key. docs/cli/doctor.md. */
 import { readJson, saveNested, saveConfig } from "../resolve/config.mjs";
 import { STORES } from "../resolve/machine/stores.mjs";
-import { masked } from "./services/masked.mjs";
+import { keyLabel, keySaid } from "./services/doctor/harness.mjs";
 import { FROM_PROJECT, JOB_ALL, SHIP_MODES, declaredJobs, fail } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { HIDDEN, OFF, VERB_NAMES, shippedSkills, skillsWithheldForJob, verbStates,
@@ -41,9 +41,9 @@ const setStore = (store) => (asked) => {
       + "and that file does not read it back, so nothing here can say what this machine now holds. "
       + "Read it: `forge doctor services`");
   }
-  const shown = named.map((row) => `  ${store.label} ${row.said ?? row.key}  `
-    + `${row.secret ? masked(back[row.key]) : back[row.key]}`);
-  console.log(`Saved to ${written} (mode 0600), which now reads back:\n${shown.join("\n")}\n`);
+  const shown = named.map((row) => `  ${keyLabel({ ...row, label: store.label })}  `
+    + `${keySaid({ ...row, value: back[row.key], from: written }, false)}`);
+  console.log(`Saved (mode 0600), which the file now reads back as:\n${shown.join("\n")}\n`);
 };
 
 /* One verb at a time is the person's own tidying and stays reachable by hand, so this writes the

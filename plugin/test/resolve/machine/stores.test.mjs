@@ -97,8 +97,12 @@ test("the gateway profile is left byte for byte, and its model slot still resolv
 test("a service key lands in the plugin's own configuration at owner-only permissions and is reported off it", () => {
   const home = homeWith({});
   const said = run(home, FORGE, "doctor", "--codex-url", "https://plugin.example", "--codex-key", "plugin-key-cccc");
-  assert.match(said.stdout, /which now reads back:/u, said.stderr);
-  assert.match(said.stdout, /codex url {2}https:\/\/plugin\.example/u);
+  assert.match(said.stdout, /which the file now reads back as:/u, said.stderr);
+  const own = join(home, "forge", "config.json");
+  assert.ok(said.stdout.includes(`codex url  https://plugin.example  ← ${own}`),
+    `the row a write reports names no file of its own: ${said.stdout}`);
+  assert.ok(said.stdout.split("\n").filter((line) => line.startsWith("  codex "))
+    .every((line) => line.endsWith(own)), "every row of the acknowledgement names it, not the heading alone");
   assert.deepEqual(configAt(home).codex, { url: "https://plugin.example", key: "plugin-key-cccc" });
   assert.equal(statSync(join(home, "forge", "config.json")).mode & 0o777, 0o600);
   run(home, FORGE, "doctor", "--vi-url", "https://vi-plugin.example",
