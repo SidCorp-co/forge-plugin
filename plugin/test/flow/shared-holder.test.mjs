@@ -39,9 +39,9 @@ const state = {
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
-/* The suite's own environment carries whatever dispatched it, so both variables are set by name. */
+/* The suite's own environment carries whatever dispatched it, so both variables are set by name. The pid answers: a claim here writes the place it was made in, and one nothing holds would prove the holder gone and take the lease these cases are about being refused (ISS-919). */
 const asRun = (asked) => {
-  const env = { ...tracker.env, AI_AGENT: "a-test-agent", CLAUDE_PID: "4242", CLAUDE_CODE_SESSION_ID: SHARED };
+  const env = { ...tracker.env, AI_AGENT: "a-test-agent", CLAUDE_PID: String(process.pid), CLAUDE_CODE_SESSION_ID: SHARED };
   if (asked) env.FORGE_SESSION_ID = asked;
   else delete env.FORGE_SESSION_ID;
   return env;

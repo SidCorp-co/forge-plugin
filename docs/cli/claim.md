@@ -64,14 +64,10 @@ end refuses no stale write; and every one of them pays, because a park is three 
 of four files is four: a run reclaimed halfway through has to be refused at the next of them rather
 than carried to the end.
 
-Two facts beside the lease itself. **The holder names the kind of agent and the process id
-beside the session**, because a uuid places nobody: when ISS-26's shell died, whoever had to decide
-between waiting for that run and taking the issue off it could read only a uuid, and could not tell
-what had held it or whether it still ran. Every refusal that names a holder names all three. Both
-come from the environment, since no file can name a run, and both read `unknown` where the harness
-set neither — a lease written before they existed is still a lease.
+What the lease records beside the holder, and the one thing the record can prove about the run
+behind it: [the dead holder](the-dead-holder.md).
 
-**And the lease carries one line naming the step whoever comes next starts on.** `--next` sets it on
+**The lease also carries one line naming the step whoever comes next starts on.** `--next` sets it on
 the claim, on `forge advance` and on any `forge record` that writes; every renew keeps it, because a
 payload write is not a new step; and the transition it precedes clears it, because that step is over.
 A claim that takes an issue over prints it, `forge advance --owed` prints it above the shortfall,

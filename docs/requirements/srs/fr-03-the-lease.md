@@ -90,19 +90,21 @@ next write and the next claim take it where an empty one is refused.
 
 ### UC-03-2 — Refuse a second run
 
-Rev: 2 · Actors: agent · Enforces: BR-01, BR-05
+Rev: 3 · Actors: agent · Enforces: BR-01, BR-05
 
-A live lease held by another run refuses the claim and every payload write, and the refusal names
-the holder and the renew time — the two facts a person needs to decide whether to wait. The one
-second run it does not refuse is the run the issue was dispatched to, which the record identifies
-without anybody being asked to remember a flag; a dispatcher holding a lease over a write it has
-already finished is not work, and waiting it out is the cost this exception exists to drop.
+A lease inside its duration held by another run refuses the claim and every payload write, and the
+refusal names the holder and the renew time — the two facts a person needs to decide whether to
+wait. It refuses on the duration alone only while the record leaves the holder's fate open; where
+the record settles it, the reclaim is UC-03-3's. The one second run it does not refuse is the run
+the issue was dispatched to, which the record identifies without anybody being asked to remember a
+flag; a dispatcher holding a lease over a write it has already finished is not work, and waiting it
+out is the cost this exception exists to drop.
 
-- **AC-03-2-1** · Rev: 2 · Proof: plugin/test/flow/lease.test.mjs "every refusal names the holder, its renew time and the one command that clears it"
-  IF a live lease is held by another run, and that run is not handing the issue to this caller, THEN
-  the CLI SHALL refuse and SHALL name that run and its renew time, and where the refusal is of a
-  claim it SHALL also name the line the holder left on the lease and a way out that answers the
-  reason this caller was refused.
+- **AC-03-2-1** · Rev: 3 · Proof: plugin/test/flow/lease.test.mjs "every refusal names the holder, its renew time and the one command that clears it"
+  IF a lease inside its duration is held by another run, and the record does not show that run gone,
+  and that run is not handing the issue to this caller, THEN the CLI SHALL refuse and SHALL name that
+  run and its renew time, and where the refusal is of a claim it SHALL also name the line the holder
+  left on the lease and a way out that answers the reason this caller was refused.
 - **AC-03-2-2** · Rev: 1 · Proof: plugin/test/tracker/precondition.test.mjs "the payload write carries the sessionContext its own renewal sent, and a moved one does not land"
   WHEN a payload is written THEN the tracker SHALL refuse the write if the lease field is no longer
   exactly what the writer read.
@@ -120,7 +122,7 @@ already finished is not work, and waiting it out is the cost this exception exis
 
 ### UC-03-3 — Reclaim what a dead run left
 
-Rev: 3 · Actors: agent · Enforces: BR-05
+Rev: 4 · Actors: agent · Enforces: BR-05
 
 Once the duration has passed the lease is open to any run, and the run that held it is no more
 privileged than any other. The live test that settled that — and what it caught a build doing — is
@@ -133,13 +135,23 @@ reclaim is therefore refused and says so, and the taker clears the refusal by sa
 established the run stopped — because the taking is the damage, and a run whose issue is taken while
 it works loses every write it makes after that.
 
+One thing the record can settle without being asked. The lease names the process its holder ran as
+and where that number was issued — which kernel boot and which process table, the only domain such
+a number means anything in. An id absent in that domain, read by a call standing in the same one,
+is proof the holder is gone, and the reclaim is granted at once however young the lease is. The
+proof runs one way only: an id that answers is the host process every agent of a dispatched wave
+inherits and says nothing about the agent, and an id that exists but cannot be signalled counts as
+answering. Where the domain is unrecorded, or is another's, or the id is missing or unreadable, the
+duration decides as it always did, because a reclaim taken on a doubt is the damage this whole use
+case is written around.
+
 An empty field is the same uncertainty with less to read. A status past the ones a run is
 dispatched at was reached by writes a lease covered, so a field holding none is a run that died
 or a write that erased one, and never a first claim on untouched work. The holder cannot be asked
 here, the record naming nobody, so the caller says instead that no run is on the issue, and the
 history keeps a word of its own for that claim rather than the one an ordinary first one writes.
 
-- **AC-03-3-1** · Rev: 2 · Proof: plugin/test/flow/lease.test.mjs "the five states, and a lease past its duration is another run's to take"
+- **AC-03-3-1** · Rev: 2 · Proof: plugin/test/flow/lease.test.mjs "the states the clock decides, and a lease past its duration is another run's to take"
   IF a lease is past its duration THEN the CLI SHALL let any run reclaim it, by the route the age of
   the lapse decides, and SHALL refuse the former holder's next write as stale.
 - **AC-03-3-2** · Rev: 1 · Proof: plugin/test/flow/lease.test.mjs "the claim history is appended by the write that made it, and a renew appends nothing"
@@ -164,6 +176,18 @@ history keeps a word of its own for that claim rather than the one an ordinary f
   IF a payload is written to an issue whose lease is another run's and the record does not put the
   lapse past that lease's own duration THEN the CLI SHALL refuse the write and SHALL name the reclaim
   that takes it.
+- **AC-03-3-7** · Rev: 1 · Proof: plugin/test/flow/claim/gone-holder.test.mjs "a claim on a lease whose holder the record proves gone is granted, and prints the id that proved it"
+  WHERE a lease names a process that is not running in the domain that lease records, and the caller
+  stands in that same domain, the CLI SHALL grant the reclaim whatever the duration says, SHALL name
+  the process the proof rests on, and SHALL record the domain of every lease it takes from then on.
+- **AC-03-3-8** · Rev: 1 · Proof: plugin/test/flow/claim/gone-holder.test.mjs "nothing is proven where the place, the id or the probe leaves any doubt"
+  IF the lease records no domain, or records one other than the caller's, or names a process that
+  answers, or names none that reads as a process at all, THEN the CLI SHALL decide the lease by its
+  duration alone.
+- **AC-03-3-9** · Rev: 1 · Proof: plugin/test/flow/claim/gone-holder.test.mjs "a payload write meeting that same lease takes it rather than being refused"
+  IF a payload is written to an issue whose lease names a process the record proves gone THEN the CLI
+  SHALL take that lease as part of the write and SHALL keep the take in the claim history under the
+  word a reclaim keeps, except where the record already calls that take a handoff.
 
 ### UC-03-4 — A status that keeps dying reaches a person
 

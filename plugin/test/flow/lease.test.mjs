@@ -41,7 +41,7 @@ const held = (holder, at = AT, minutes = 30, history = []) =>
 
 test("a lease is read out of the field, and anything else in it is no lease", () => {
   assert.deepEqual(leaseOf(field(held("a-run"))), {
-    holder: "a-run", agent: "a-test-agent", pid: "4242", renewedAt: AT, minutes: 30, slack: null, next: null, history: [],
+    holder: "a-run", agent: "a-test-agent", pid: "4242", place: "", renewedAt: AT, minutes: 30, slack: null, next: null, history: [],
   });
   assert.equal(leaseOf(field({ ...held("a-run"), clock: 517 })).slack, 517,
     "the error the stamp was taken under, which a reader adds to its own");
@@ -54,7 +54,7 @@ test("a lease is read out of the field, and anything else in it is no lease", ()
   assert.deepEqual(leaseOf(field(held("a-run", AT, 30, "not a list"))).history, []);
 });
 
-test("the five states, and a lease past its duration is another run's to take", () => {
+test("the states the clock decides, and a lease past its duration is another run's to take", () => {
   assert.equal(stateOf(null, "mine", NOW), "free");
   assert.equal(stateOf(held("mine"), "mine", NOW), "mine");
   assert.equal(stateOf(held("other", AT, 30), "mine", NOW + 29 * 60_000), "live");

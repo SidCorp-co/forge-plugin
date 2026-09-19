@@ -4,9 +4,23 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { eligibilityOf, heldPaths, judgingFrom, meets, pathsNamed } from "../../src/rank/eligible.mjs";
+import { placeOf } from "../../src/flow/lease/holder.mjs";
 import { sessionOf } from "../../src/resolve/config.mjs";
 
 const row = (held = {}) => ({ issueId: "ISS-1", status: "open", ...held });
+
+/* An id nothing on this box answers to, found rather than guessed: one in use would prove the
+   opposite of what the case below needs it to (ISS-919). */
+const GONE = (() => {
+  for (let id = 4_194_301; id > 4_000_000; id -= 7) {
+    try {
+      process.kill(id, 0);
+    } catch (error) {
+      if (error.code === "ESRCH") return id;
+    }
+  }
+  throw new Error("no absent process id on this box, which is not a state this suite can run in");
+})();
 
 const leaseFor = (holder, minutes = 30, at = new Date().toISOString()) =>
   ({ lease: { holder, agent: "an agent", pid: "1", renewedAt: at, minutes, history: [] } });
@@ -33,6 +47,19 @@ test("a live lease drops the issue and the sentence names the session and its ex
 test("a lease past its minutes is not a filter", () => {
   const stale = leaseFor("a-dead-run", 30, "2020-01-01T00:00:00.000Z");
   assert.equal(eligibilityOf(row(), { lease: stale }).eligible, true);
+});
+
+/* And neither is a lease inside its minutes whose holder the record proves gone: the row this filter
+   dropped was an issue nothing was working, offered to nobody for as long as the dead run had asked
+   for. The filter reads the state rather than the clock, so it needs no second copy of the rule. */
+test("a lease whose holder the record proves gone is not a filter either", () => {
+  const dead = leaseFor("a-run-that-is-not-there");
+  dead.lease.pid = String(GONE);
+  dead.lease.place = placeOf();
+  assert.equal(eligibilityOf(row(), { lease: dead }).eligible, true);
+  dead.lease.place = "another-boot another-table";
+  assert.equal(eligibilityOf(row(), { lease: dead }).eligible, false,
+    "while an id issued somewhere this box cannot probe leaves the row dropped, as it was");
 });
 
 /* The edge is the tracker's own shape, and whether it gates is the flow's own answer: a rank that

@@ -2,6 +2,7 @@
 import { WORKTREE, sessionOf, sessionSourced, sessionWriting } from "../resolve/config.mjs";
 import { MINTED_FOR, RUN_ID, RUN_ID_VAR, besideGit, runIdAt, runNames } from "../resolve/session/run-id.mjs";
 import { TAKEABLE } from "../rank/weights.mjs";
+import { holderGone, holderGoneSaid, placeOf } from "./lease/holder.mjs";
 import { bandWith, sharedNow, sharedStamp, slackNow, stampOf, straddles } from "../wire/shared-clock.mjs";
 import { thisCall } from "../resolve/flags.mjs";
 import { fail } from "../resolve/settings.mjs";
@@ -97,6 +98,7 @@ export const leaseOf = (context) => {
     holder: held.holder,
     agent: held.agent ? String(held.agent) : UNKNOWN,
     pid: held.pid === undefined || held.pid === null || held.pid === "" ? UNKNOWN : String(held.pid),
+    place: typeof held.place === "string" && held.place ? held.place : "",
     renewedAt: String(held.renewedAt ?? ""),
     minutes: Number.isFinite(minutes) && minutes > 0 ? minutes : MINUTES,
     slack: Number.isFinite(Number(held.clock)) && Number(held.clock) >= 0 ? Number(held.clock) : null,
@@ -113,11 +115,15 @@ export const expiryOf = (lease) => {
 export const stamp = (ms) => (ms ? stampOf(ms) : "an unreadable time");
 
 /* A lease past its duration is another run's. The holder's own lapsed one is its own state because
-   the field still naming this session proves nobody took the issue; a reclaim is a handoff. */
+   the field still naming this session proves nobody took the issue; a reclaim is a handoff. And
+   `gone` above both clock readings rather than inside either, because what it answers is the
+   question a duration cannot: not when the lease ran out but whether anything still holds it
+   (ISS-919). */
 export const stateOf = (lease, holder, now = sharedNow()) => {
   if (!lease) return "free";
   const live = expiryOf(lease) > now;
   if (lease.holder === holder) return live ? "mine" : "lapsed";
+  if (holderGone(lease)) return "gone";
   return live ? "live" : "expired";
 };
 
@@ -240,6 +246,7 @@ export const claimed = (context, { holder, at = sharedStamp(), minutes, next, wo
       holder,
       agent: agentOf(),
       pid: pidOf(),
+      ...(placeOf() ? { place: placeOf() } : {}),
       renewedAt: at,
       ...(slackNow() === null ? {} : { clock: slackNow() }),
       minutes,
@@ -292,6 +299,10 @@ const WRITE_REFUSAL = {
   expired: (ref, lease) =>
     `the lease on ${ref} is another run's and has expired: ${describe(lease)}. A write of yours `
     + `beside it is stale. ${alsoSay(idsHere(lease))}Reclaim it first:\n  forge claim ${ref}`,
+  /* Reached by the callers that ask rather than take — an edge, and the question a write already made asks of the record it left. `renew` takes this lease instead, so no ordinary payload write is sent here. */
+  gone: (ref, lease) =>
+    `the lease on ${ref} is another run's and the record proves that run is gone: ${describe(lease)}. `
+    + `${holderGoneSaid(lease)} ${alsoSay(idsHere(lease))}Take it:\n  forge claim ${ref}`,
 };
 
 export const writeRefusal = (state, ref, lease) => WRITE_REFUSAL[state](ref, lease);
@@ -324,10 +335,13 @@ export const tookByWriting = (ref, lease, left = null) =>
 
 /* The same sentence one rung down, where the field holds a lease rather than nothing (ISS-1660): a bare `forge claim` grants the reclaim outright at this age, the lapse outlasting the duration the holder itself named, so the write makes that claim. It names the run it came off and how long ago that lease ran out, because this caller reads no refusal before the write and is the one caller a takeover is invisible to. */
 export const reclaimedByWriting = (ref, lease, over, now = sharedNow()) =>
-  `${ref} was held by a lease that ran out ${agoIn(now - expiryOf(over))} and this write reclaimed `
-  + `it: it came off ${describe(over)}, and ${describe(lease)} holds the issue now. A lapse that old `
-  + `is one a reclaim needs nothing established about, so the claim the refusal here used to name is `
-  + `one this write could make, and it made it.`
+  `${ref} was held by a lease ${holderGone(over)
+    ? "whose holder the record proves gone"
+    : `that ran out ${agoIn(now - expiryOf(over))}`} and this write reclaimed `
+  + `it: it came off ${describe(over)}, and ${describe(lease)} holds the issue now. ${holderGone(over)
+    ? holderGoneSaid(over)
+    : "A lapse that old is one a reclaim needs nothing established about."} The claim the refusal `
+  + `here used to name is one this write could make, and it made it.`
   + `${over.next ? ` The step that run left named: ${over.next}.` : ""}`
   + ` The lease covers the write and not this run: it goes back when the write lands. Work that `
   + `follows this says so by claiming, which is the lease that is kept:\n  forge claim ${ref}`;
@@ -466,7 +480,7 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
   const state = stateOf(lease, holder);
   if (state === "free" && !finder) return takenByWriting(documentId, ref, context, next, patch);
   /* The second rung of the same reading: a lease the record proves dead is as free as no lease at all, and the round the refusal charged bought nothing the caller had not already read off it. A lapse the record cannot vouch for keeps the refusal below, which is `forge claim`'s own answer at that age — one seam, read from `lapseUnproven`, so no write takes a lease that claim would refuse (ISS-1660). */
-  if (state === "expired" && !finder && !lapseUnproven(lease)) {
+  if ((state === "gone" || (state === "expired" && !lapseUnproven(lease))) && !finder) {
     return takenByWriting(documentId, ref, context, next, patch, lease);
   }
   if (state !== "mine" && state !== "lapsed") {

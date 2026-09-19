@@ -19,7 +19,8 @@ process.env.XDG_CONFIG_HOME = HOME.path;
 standsInNoTree("renew");
 process.env.FORGE_SESSION_ID = "this-run";
 process.env.AI_AGENT = "a-test-agent";
-process.env.CLAUDE_PID = "4242";
+/* The suite's own, and it answers: a lease this file writes carries the place it was written in, so a pid nothing holds would prove its holder gone and every exclusion here would read as a reclaim (ISS-919). */
+process.env.CLAUDE_PID = String(process.pid);
 
 const ISSUE = "22222222-2222-4222-8222-222222222222";
 
