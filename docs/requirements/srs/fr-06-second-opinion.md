@@ -201,6 +201,15 @@ outcome; leaving it unruled makes "resolved or still open" a guess.
   WHEN a stored exchange is replayed into a request THEN every string it carries SHALL be masked
   before that request leaves the machine, because the exchange may have been written before the mask
   the write takes and nothing rewrites what is already stored.
+- **AC-06-5-6** · Rev: 1 · Proof: plugin/test/codex/log/replies.test.mjs "a recheck leaves the author's ruling and its reason standing, and says what it newly found anyway"
+  WHERE a re-verification rules on a finding the author has already disposed of by identifier, the
+  stored disposition SHALL stay as the author wrote it, reason included, because the reviewer's word
+  is what a re-verification carries and the disposition is the author's alone.
+- **AC-06-5-7** · Rev: 1 · Proof: plugin/test/codex/log/replies.test.mjs "a recheck leaves the author's ruling and its reason standing, and says what it newly found anyway"
+  WHEN a re-verification rules against a disposition it may not move THEN it SHALL record what it
+  ruled on each such finding beside the disposition, and SHALL say so in the caller's own output
+  naming the command that settles it, because a collision reachable only by reading the log
+  afterwards is one nobody reads.
 
 ### UC-06-6 — Compare the log's last hundred consults with the hundred before them
 

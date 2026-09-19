@@ -2,8 +2,9 @@
 
 What one finding has to carry before it is worth the round it costs, and where the two boundaries a
 reviewer cannot see for itself come from. What travels in the request: [the
-consult](codex-the-consult.md). What the log then reads back off a reply, and what a commit gate
-demands of it: [the log](codex-the-log.md).
+consult](codex-the-consult.md). What the log then reads back off a reply: [the
+log](codex-the-log.md). What a commit gate demands of it: [the commit
+gate](codex-the-commit.md).
 
 **A finding the reader has to finish is a round.** Prompt v2 asked for an anchor, a quotation and a
 severity, and left the reader to derive the failing case, the smallest fix and what would prove it —

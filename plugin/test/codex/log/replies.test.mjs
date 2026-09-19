@@ -356,11 +356,12 @@ test("a recheck's rulings become the verdict on the consult it judged, by positi
   assert.equal(verdictFromRulings(plan, 0, "CODEX: 0 findings", "r1"), null, "no rulings, no verdict");
   const prior = { kept: ["F3", "F9"], dropped: { F2: "by design" } };
   const merged = verdictFromRulings(plan, 0, RECHECK_REPLY, "r2", prior);
-  assert.deepEqual(merged.record.kept, ["F9", "F1"], "what an earlier verdict kept survives the recheck's, unless the recheck reopens it");
-  assert.deepEqual(merged.record.dropped, {}, "a finding the recheck confirms is open again, whatever was said before");
-  assert.deepEqual(merged.record.reopened, ["F2", "F3"], "CONFIRMED and CANNOT TELL both reopen");
+  assert.deepEqual(merged.record.kept, ["F3", "F9", "F1"], "what an earlier verdict kept survives the recheck's, and the recheck decides the rest");
+  assert.deepEqual(merged.record.dropped, { F2: "by design" }, "a finding the recheck confirms keeps the ruling the author gave it");
+  assert.equal(merged.record.reopened, undefined, "CONFIRMED and CANNOT TELL reopen nothing the author decided");
+  assert.deepEqual(merged.record.stood, { F2: "CONFIRMED", F3: "CANNOT TELL" }, "what the recheck said of them is kept beside the rulings, not over them");
   const unsure = verdictFromRulings(plan, 0, "1. **CANNOT TELL** — a\n2. **CANNOT TELL** — b\n3. **CANNOT TELL** — c", "r3", { kept: ["F1", "F2", "F3"], dropped: {} });
-  assert.deepEqual([unsure.record.kept, unsure.record.reopened], [[], ["F1", "F2", "F3"]], "all CANNOT TELL reopens everything it had closed");
+  assert.deepEqual([unsure.record.kept, unsure.record.reopened], [["F1", "F2", "F3"], undefined], "a recheck sure of nothing takes nothing back");
   const legacy = verdictFromRulings(plan, 0, RECHECK_REPLY, "r4", { accepted: 3, rejected: 0 });
   assert.equal(legacy.record.counted, true);
   assert.deepEqual(undecidedIn(["F1", "F2", "F3"], legacy.record), ["F2", "F3"], "a count-form prior decided F3 by count; only what this recheck reopened is open");
@@ -372,6 +373,34 @@ test("a recheck's rulings become the verdict on the consult it judged, by positi
   assert.match(recheckRisks([{ kind: "consult", id: "c1", ok: true, root: "/a", at: "1", files: ["a.mjs"], reply: judged.reply }], "/a", ["a.mjs"])[0],
     /^Your earlier finding F1 still stands in the tree as it is now — .*\(CONFIRMED = the defect is still there; REFUTED = it is fixed, or was never real\.\)$/u,
     "the risk is the defect, and the legend rides with it");
+});
+
+/* The incident ISS-1881 was filed from, at 3.36.142: the author accepted F2 and rejected F1 with a
+   reason, and the recheck that refuted F2 and confirmed F1 wrote 1 accepted, 0 rejected over both. */
+test("a recheck leaves the author's ruling and its reason standing, and says what it newly found anyway", () => {
+  const judged = { id: "95d1dc", files: ["a.mjs"], reply: "- **F1 — New — minor:** `a.mjs:1` — x.\n- **F2 — New — minor:** `a.mjs:2` — y." };
+  const plan = { judged, ids: ["F1", "F2"], risks: [] };
+  const ruled = verdictRecord(judged, { accepted: "F2", rejected: "F1=routed to the issue that owns it", note: "both minor" });
+  const after = verdictFromRulings(plan, 0, "1. **CONFIRMED** — still there.\n2. **REFUTED** — fixed.", "e433e1", ruled.record);
+  assert.deepEqual(after.record.dropped, { F1: "routed to the issue that owns it" },
+    "a confirmation is the reviewer standing by its finding, never the author withdrawing a rejection");
+  assert.deepEqual([after.record.accepted, after.record.rejected], [1, 1], "the counts stay the ones the author recorded");
+  assert.deepEqual(after.record.stood, { F1: "CONFIRMED", F2: "REFUTED" }, "and what the recheck found survives beside them");
+  assert.match(after.record.note, /both minor/u, "the author's note on the consult as a whole survives the write");
+  assert.match(after.record.note, /from recheck e433e1/u, "which still names the recheck, so the two writes stay apart in the log");
+  assert.match(after.said, /F1 \(rejected, and the recheck said CONFIRMED\)/u, "the run is told, rather than reading the log to find out");
+  assert.match(after.said, /verdict --of 95d1dc/u, "with the one command that settles it");
+  assert.deepEqual(undecidedIn(["F1", "F2"], after.record), [], "and the commit gate reads a review with nothing standing");
+
+  /* Provenance is per finding, so a recheck may revise its own earlier word and never the author's. */
+  const first = verdictFromRulings(plan, 0, "1. **CONFIRMED** — still there.\n2. **CONFIRMED** — still there.", "r1", null);
+  assert.deepEqual(first.record.auto, ["F1", "F2"], "a recheck marks the ids it decided as its own");
+  const second = verdictFromRulings(plan, 0, "1. **REFUTED** — fixed now.\n2. **REFUTED** — fixed now.", "r2", first.record);
+  assert.deepEqual([second.record.kept, second.record.stood], [["F1", "F2"], undefined], "a later recheck revises what an earlier one ruled");
+  const taken = verdictRecord(judged, { rejected: "F1=by design", accepted: "F2" }, first.record);
+  assert.equal(taken.record.auto, undefined, "the author ruling on them takes both ids out of the recheck's");
+  const third = verdictFromRulings(plan, 0, "1. **REFUTED** — fixed now.\n2. **REFUTED** — fixed now.", "r3", taken.record);
+  assert.deepEqual(third.record.dropped, { F1: "by design" }, "so the recheck after it moves nothing");
 });
 
 test("the commit gate asks about the last consult that made findings and heard nothing", () => {

@@ -2105,6 +2105,14 @@
       "rev": 1,
       "digest": "16460b6dbf8e53639beabc1f465361139faf60c85d769c4af66437fc12a4800f"
     },
+    "AC-06-5-6": {
+      "rev": 1,
+      "digest": "4bdc61b4f4a38cacf6b3f6aeece29943c5716de0e59646a97eedab7b92d0e3d9"
+    },
+    "AC-06-5-7": {
+      "rev": 1,
+      "digest": "7e90b197c7a46177c445fe0416345d3a2a7eaf8a9aa599348b1bd7d09c44749c"
+    },
     "UC-06-6": {
       "rev": 1,
       "digest": "14d9aca978d0ba8c6ac8c5b7e38c76d16f5df944c0adfa038553fd06a4c6e111"

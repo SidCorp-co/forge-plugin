@@ -62,7 +62,8 @@ how many topics there may be.
 | [codex — the finding](cli/codex-the-finding.md) | What one finding must carry to be worth its round, which clause a recheck still owes, where the issue's boundary and the project's checks come from, and what the replay settles. |
 | [codex — the round](cli/codex-the-round.md) | Why calls are the only lever on wall time, what moves a round's effort, what a review that could not check is owed, and what a recheck is anchored to. |
 | [codex — the request](cli/codex-the-request.md) | Which cache the request is written for, what a consult replays, what a path may reach, and what the reviewer's tools mean by no argument. |
-| [codex — the log](cli/codex-the-log.md) | What the log makes a session out of, what the stats window answers, what makes anyone run it, and what the commit gate demands. |
+| [codex — the log](cli/codex-the-log.md) | What the log makes a session out of, what the stats window answers, and what makes anyone run it. |
+| [codex — the commit gate](cli/codex-the-commit.md) | What a commit is asked for, what that demand is scoped to where a checkout is shared, and why the switch that turns the gate off is named rather than an environment variable. |
 | [codex — the replay](cli/codex-the-replay.md) | What proves a past payload can be rebuilt, which two cases refuse a row rather than replay it loosely, the one text the log keeps and its caps, and what a share of a window is worth. |
 | [`beside`](cli/beside.md) | The two questions the create path asks before it files, and the floor. |
 | [`the fold`](cli/the-fold.md) | Which filings land on a neighbour as a finding rather than a second issue, and what declines it. |

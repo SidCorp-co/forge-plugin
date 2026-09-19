@@ -288,26 +288,56 @@ export const recheckOwed = (plan, rels) => {
   return `consult ${of} is the last answered one on these files and it found nothing, so there is nothing to recheck.${short}${cut}\n`
     + `${read} — the read of the whole set is what earns the review; a recheck follows a finding and nothing else.`;
 };
-/* A recheck's rulings are the verdict on what it re-verified: REFUTED is a finding the tree no longer shows. 37 consults with findings closed with nothing recorded, and 10 of them had a recheck that said exactly what became of each. The n-th ruling answers the n-th risk, whatever else the reply says; a CONFIRMED one stays open, and the caller's own verdict overrides this one. */
+/* Whose word a disposition is, per finding: an id a verdict named and no recheck's write claimed is the
+   author's, and the contract gives it the last word. A count-form verdict names none, so it protects none. */
+const authorRuled = (prior, id) =>
+  Boolean(prior) && !(prior.auto ?? []).includes(id)
+  && Boolean(prior.kept?.includes(id) || id in (prior.dropped ?? {}));
+
+const ruledAs = (prior, id) => (prior?.kept?.includes(id) ? "accepted" : "rejected");
+
+/* A recheck's rulings are the verdict on what it re-verified: REFUTED is a finding the tree no longer shows. 37 consults with findings closed with nothing recorded, and 10 of them had a recheck that said exactly what became of each. The n-th ruling answers the n-th risk, whatever else the reply says; a CONFIRMED one stays open, and the caller's own verdict overrides this one. A ruling the author already made is not the recheck's to move: it goes to `stood`, where the reviewer's word sits beside the author's rather than over it, because a confirmation is the reviewer standing by its finding and never the author withdrawing a rejection, and deriving the whole verdict from the recheck took a rejection and its reason off the record (ISS-1881). One that moved nothing still writes, so the log says it ran and what it said. */
 export const verdictFromRulings = (plan, offset, reply, recheckId, prior = null) => {
   const rulings = new Map();
   /* The block asks the reviewer to lead with the rulings, so a number repeated later is an echo of one. */
   for (const one of rulingsIn(reply)) if (!rulings.has(one.n)) rulings.set(one.n, one.ruling);
   const kept = [];
   const open = [];
+  const stood = [];
   plan.ids.forEach((id, at) => {
     const ruling = rulings.get(offset + at + 1);
-    if (ruling === "REFUTED") kept.push(id);
-    else if (ruling === "CONFIRMED" || ruling === "CANNOT TELL") open.push(id);
+    if (ruling !== "REFUTED" && ruling !== "CONFIRMED" && ruling !== "CANNOT TELL") return;
+    if (authorRuled(prior, id)) stood.push([id, ruling]);
+    else if (ruling === "REFUTED") kept.push(id);
+    else open.push(id);
   });
-  if (!kept.length && !open.length) return null;
+  if (!kept.length && !open.length && !stood.length) return null;
   const of = plan.judged.id ?? plan.judged.at;
-  const note = `from recheck ${recheckId}${open.length ? `; still open: ${open.join(", ")}` : ""}`;
-  const held = joined(prior, kept.map((id) => ({ id })), open.map((id) => ({ id, reopen: true })), numbered(plan.judged.reply).length);
+  const ids = stood.map(([id]) => id).join(", ");
+  /* The row in `codex log` is the note alone, so the recheck's clause is what tells the two writes apart there; the author's leads it. */
+  const note = [
+    prior?.note || null,
+    `from recheck ${recheckId}`,
+    open.length ? `still open: ${open.join(", ")}` : null,
+    stood.length ? `your ruling stands on ${ids}` : null,
+  ].filter(Boolean).join("; ");
+  const held = joined(prior, kept.map((id) => ({ id })), open.map((id) => ({ id, reopen: true })), numbered(plan.judged.reply).length, true);
+  const moved = Boolean(kept.length || open.length);
   return {
-    record: { kind: "verdict", at: new Date().toISOString(), of, files: plan.judged.files, ...held, from: recheckId, note },
-    said: `verdict on ${of} recorded from recheck ${recheckId} — accepted: ${kept.join(", ") || "none"}`
-      + `${open.length ? `; still open: ${open.join(", ")}` : ""}. \`forge codex verdict --of ${of}\` overrides it.`,
+    record: {
+      kind: "verdict", at: new Date().toISOString(), of, files: plan.judged.files, ...held,
+      from: recheckId, ...(stood.length ? { stood: Object.fromEntries(stood) } : {}), note,
+    },
+    said: [
+      moved
+        ? `verdict on ${of} recorded from recheck ${recheckId} — accepted: ${kept.join(", ") || "none"}`
+          + `${open.length ? `; still open: ${open.join(", ")}` : ""}.`
+        : `recheck ${recheckId} moved no ruling on consult ${of}, and the verdict on it stands as you wrote it.`,
+      stood.length
+        ? `Your ruling stands on ${stood.map(([id, ruling]) => `${id} (${ruledAs(prior, id)}, and the recheck said ${ruling})`).join(", ")}`
+          + `, because a recheck does not rewrite one. Settle it yourself: \`${verdictForm(of)}\`.`
+        : `\`forge codex verdict --of ${of}\` overrides it.`,
+    ].join(" "),
   };
 };
 
@@ -334,8 +364,9 @@ export const rulingsUnread = (plan, offset, reply, recheckId) => {
     + `Rule on them yourself: \`${verdictForm(of)}\`.`;
 };
 
-/* Added to the prior record, never over it; the newer word wins, and a reopened finding leaves both sides. */
-const joined = (prior, kept, dropped, total) => {
+/* Added to the prior record, never over it; the newer word wins, and a reopened finding leaves both sides.
+   `auto` marks the ids a recheck's own write decided, which is how the next writer tells them from the author's. */
+const joined = (prior, kept, dropped, total, auto = false) => {
   const said = new Set([...kept, ...dropped].map((one) => one.id));
   const keptAll = [...(prior?.kept ?? []).filter((id) => !said.has(id)), ...kept.map((one) => one.id)];
   const droppedAll = {
@@ -345,6 +376,7 @@ const joined = (prior, kept, dropped, total) => {
   /* A count-form prior decided every id it never named; only what a recheck reopens is open again. Its totals are carried for `log --score`, the rejected side first and the accepted side capped so the two never exceed the findings made: a count cannot say which of its ids a later word moved. */
   const counted = Boolean(prior && (prior.counted || (!prior.kept && !prior.dropped)));
   const reopened = [...(prior?.reopened ?? []).filter((id) => !said.has(id)), ...dropped.filter((one) => one.reopen).map((one) => one.id)];
+  const autoAll = [...(prior?.auto ?? []).filter((id) => !said.has(id)), ...(auto ? [...said] : [])];
   const rejected = counted ? Math.max(prior.rejected ?? 0, Object.keys(droppedAll).length) : Object.keys(droppedAll).length;
   return {
     accepted: counted ? Math.max(keptAll.length, Math.min(prior.accepted ?? 0, total - rejected)) : keptAll.length,
@@ -353,6 +385,7 @@ const joined = (prior, kept, dropped, total) => {
     dropped: droppedAll,
     ...(counted ? { counted } : {}),
     ...(reopened.length ? { reopened } : {}),
+    ...(autoAll.length ? { auto: autoAll } : {}),
   };
 };
 

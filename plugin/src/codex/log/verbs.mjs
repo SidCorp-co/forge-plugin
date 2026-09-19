@@ -97,7 +97,8 @@ export const printLog = (rest) => {
 export const VERDICT_USAGE = [
   'Usage: forge codex verdict --accepted F1,F3 --rejected F2=why [--note "why"] [--of <id>]',
   "What became of each finding, which is the half of an eval set only the caller holds. A recheck",
-  "records one for what it refuted, and a commit waits for one.",
+  "records one for what it refuted, and a commit waits for one. What you record here is yours: a",
+  "recheck after it leaves it standing, reason and all, and says on its way out what it found instead.",
   "",
   "  --accepted F1,F3   the findings taken; repeatable",
   "  --rejected F2=why  the findings turned down, each with its reason; repeatable",
