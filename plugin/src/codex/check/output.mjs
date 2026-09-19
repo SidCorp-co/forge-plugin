@@ -18,6 +18,9 @@ const QUOTED = /^'(.*)'$/su;
 export const NAMED = 20;
 export const SAID_CHARS = 300;
 
+// Never more than the tail it sits above, whatever a producer repeats or how long a name runs.
+export const FAILED_CHARS = 6_000;
+
 const said = (value) => {
   const one = value.replace(QUOTED, "$1").replace(/\s+/gu, " ").trim();
   return one.length > SAID_CHARS ? `${one.slice(0, SAID_CHARS - 1)}…` : one;
@@ -36,6 +39,7 @@ const fieldsFrom = (lines, from, indent) => {
   for (; at < lines.length && lines[at] !== `${indent}${CLOSE}`; at += 1) {
     const field = FIELD.exec(lines[at]);
     if (!field || field[1] !== indent || !KEPT.includes(field[2])) continue;
+    if (found.some(([key]) => key === field[2])) continue;
     const value = field[3] === BLOCK ? scalarAt(lines, at + 1, indent) : field[3];
     found.push([field[2], said(value)]);
   }
@@ -65,13 +69,26 @@ const lineFor = ([key, value]) => `    ${key}: ${value}`;
 
 const linesFor = (one) => [`  ${one.name}`, ...one.fields.map(lineFor)];
 
+const within = (found) => {
+  const kept = [];
+  let room = FAILED_CHARS;
+  for (const one of found.slice(0, NAMED)) {
+    const lines = linesFor(one);
+    room -= lines.join("\n").length + 1;
+    if (room < 0) break;
+    kept.push(lines);
+  }
+  return kept;
+};
+
 // Null where the output named no failing case. The count leads: a bound that cut is read first.
 export const failuresSaid = (text) => {
   const found = failuresIn(text);
   if (found.length === 0) return null;
-  const over = found.length - NAMED;
+  const kept = within(found);
+  const over = found.length - kept.length;
   const head = over > 0
-    ? `${found.length} failing case(s) its output named, the first ${NAMED} of them, ${over} not named:`
+    ? `${found.length} failing case(s) its output named, the first ${kept.length} of them, ${over} not named:`
     : `${found.length} failing case(s) its output named:`;
-  return [head, ...found.slice(0, NAMED).flatMap(linesFor)].join("\n");
+  return [head, ...kept.flat()].join("\n");
 };

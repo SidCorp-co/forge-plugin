@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NAMED, SAID_CHARS, failuresIn, failuresSaid } from "../../../src/codex/check/output.mjs";
+import { FAILED_CHARS, NAMED, SAID_CHARS, failuresIn, failuresSaid } from "../../../src/codex/check/output.mjs";
 import { tapOf } from "./tap-of.mjs";
 
 const named = (found, name) => found.find((one) => one.name === name);
@@ -97,6 +97,25 @@ test("a case name longer than the bound is cut to it as a field is", () => {
   assert.equal(one.name.length, SAID_CHARS);
   assert.ok(one.name.startsWith("nnnn") && one.name.endsWith("…"));
   assert.ok(failuresSaid(out).length < SAID_CHARS * 4, "so the block above the tail stays bounded");
+});
+
+/* A bound on the count and a bound on each value still leave the block itself unbounded: the fields
+   of one case are however many the diagnostic repeats, and the block above the tail is meant never
+   to cost more than the tail below it. */
+test("the block above the tail is never longer than the tail, whatever the output named", () => {
+  const long = "e".repeat(SAID_CHARS * 2);
+  const one = (at) => `not ok ${at} - case ${at}\n  ---\n  location: 'a.test.mjs:${at}:1'\n  error: |-\n    ${long}\n  ...`;
+  const many = Array.from({ length: NAMED * 2 }, (nothing, at) => one(at + 1)).join("\n");
+  const said = failuresSaid(`TAP version 13\n${many}\n1..${NAMED * 2}\n`);
+  assert.ok(said.length <= FAILED_CHARS + said.split("\n")[0].length + 1, "the block is held to its own bound");
+  assert.match(said, /^40 failing case\(s\) its output named, the first \d+ of them, \d+ not named:$/mu);
+  assert.ok(said.split("\n")[0].startsWith("40 failing case(s) its output named, the first 1"),
+    "the count cut by the block's own bound, below the count the case bound would have allowed");
+});
+
+test("a key a diagnostic repeats is carried once, at the value it first gave", () => {
+  const twice = "TAP version 13\nnot ok 1 - the one that says it twice\n  ---\n  error: 'the first answer'\n  error: 'the second answer'\n  ...\n1..1\n";
+  assert.deepEqual(failuresIn(twice)[0].fields, [["error", "the first answer"]]);
 });
 
 /* A diagnostic ends at its own indent and nowhere else. Read a `...` inside an assertion as the end

@@ -47,7 +47,10 @@ nobody, then or since, has been able to identify. What changed is what is select
 rather than how big it is: a non-zero run's failures are read out of the output's own TAP and put
 above the tail, each with whatever its diagnostic carried of where it failed, what kind of failure
 it was, and the assertion itself. The stack and the operands stay out, every line spent there being
-one the tail loses, and a run naming more failures than the bound says how many it did not name.
+one the tail loses, and a run naming more failures than the bound says how many it did not name. The
+block is held to the size of the tail it sits above, so what a red costs is bounded whatever the
+command printed: a count, a value and a name are each bounded on their own, and none of the three
+settles what a page of them comes to.
 TAP because a format that announces itself is read exactly where a vocabulary of failure words is
 guessed at, and node's runner writes TAP whenever its stdout is not a terminal, which under this
 spawn it never is. Output that is not TAP is handed back exactly as it was before, the tail and
