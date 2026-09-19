@@ -321,6 +321,20 @@ export const setsOf = ({ byTicket, roots }, root) =>
 
 export const setsFrom = (out, root) => setsOf(recordsIn(out), root);
 
+// The preload `auditEnv` adds, which is this gate's instrument and never a step's subject.
+const INSTRUMENT = ["./audit.mjs", "./placing.mjs", "./shell.mjs"];
+
+// Every record a step left as one set: a script step has no file unit to key anything on (ISS-1911).
+export const stepSetOf = ({ byTicket, roots }, root) => {
+  const sets = roots.map((one) => gather(one, byTicket, root));
+  const mine = new Set(INSTRUMENT.map((one) => relative(root, fileURLToPath(new URL(one, import.meta.url)))));
+  const all = (key) => new Set(sets.flatMap((one) => [...one[key]]).filter((each) => !mine.has(each)));
+  return { paths: all("paths"), dirs: all("dirs"), trees: all("trees"), whole: all("whole"),
+    blind: [...new Map(sets.flatMap((one) => one.blind).map((one) => [one.why, one])).values()] };
+};
+
+export const stepSetFrom = (out, root) => stepSetOf(recordsIn(out), root);
+
 /** A declaration's claims in the shape a derived set has, so one comparison answers for both; a
  *  claim no tracked path is is a directory: the walk below it and every tracked file in it. */
 export const declaredSet = (claims, tracked) => {
@@ -348,8 +362,8 @@ const withSeen = (held, seen) => ({
   whole: new Set([...held.whole, ...seen.whole]),
 });
 
-// Every read the audit saw against the ceiling: the one failure here nothing else would report.
-const escapesIn = (set, claims) => {
+// The one failure nothing else here would report: a claim allowing none of what was watched.
+export const escapesIn = (set, claims) => {
   const covered = (one) => claims.some((claim) => under(one, claim));
   return [["path", set.paths], ["listing", set.dirs], ["walk", set.trees], ["content", set.whole]]
     .flatMap(([kind, seen]) => [...seen].filter((one) => !covered(one)).map((one) => ({ kind, one })));

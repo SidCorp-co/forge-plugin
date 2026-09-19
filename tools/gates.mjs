@@ -18,14 +18,15 @@ import { cheapestFirst, ENTRIES_PER_STEP, ledgerFor, LEDGER_UNSEEN, recordPass, 
 import { PUTS_IT_BACK, said as saidMissing, unresolvedIn } from "../plugin/src/resolve/installed.mjs";
 import { DECLINED, placeFor, RAISE, runnersOf, SLOT, WAIT } from "./gates/machine.mjs";
 import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mjs";
-import { deadClaim, escapedClaim, ledgerSaid, readsSaid, severalCauses, stepSaid, wroteSets } from "./gates/report/said.mjs";
+import { deadClaim, escapedClaim, escapedStep, ledgerSaid, readsSaid, severalCauses, stepRead, stepSaid,
+  wroteSets } from "./gates/report/said.mjs";
 import { spendOf } from "./gates/report/spend.mjs";
 import { forgetRoomRefusal, ROOM_ENV, roomRefused } from "./room.mjs";
 import { editsDerivation, mergeBaseDiff, planFor, unclaimedIn } from "./gates/scope.mjs";
 import { parallelRuns } from "../plugin/src/resolve/settings.mjs";
 import { argvForTests, DECLARED_READS, gateSteps, launcherOf, TEST_FILE, testWorkers } from "./gates/steps.mjs";
-import { auditEnv, claimsJudged, contextOf, manifestsIn, readsDir, recordSets, selectTests, setsFrom }
-  from "./gates/reads/sets.mjs";
+import { auditEnv, claimsJudged, contextOf, escapesIn, manifestsIn, readsDir, recordSets, selectTests,
+  setsFrom, stepSetFrom } from "./gates/reads/sets.mjs";
 import { READS_HELP } from "./gates/help/reads.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
 import { alonePath, casesPath, CEILING_SECONDS, REVIEW, fileTimesPath, recordDir, recordRun, roomPath,
@@ -482,10 +483,15 @@ const owned = [];
 
 const readsOut = (label) => resolve(scratch, "gate-reads", label.replace(/[^\w.-]+/gu, "-"));
 
-const testEnv = (step) => step.tests
-  ? { GATE_FILE_TIMES: fileTimesPath(record, step.label), [CASES_ENV]: casesPath(scratch, step.label),
-      [ROOM_ENV]: roomPath(record, step.label, mine), ...auditEnv(readsOut(step.label), ROOT) }
-  : {};
+/* Audited whichever kind it is: a test step to key each file on what it read, a script step because
+   its declaration is the only claim anything holds it to and nothing held it to that (ISS-1911). */
+const stepEnv = (step) => ({
+  ...auditEnv(readsOut(step.label), ROOT),
+  ...(step.tests
+    ? { GATE_FILE_TIMES: fileTimesPath(record, step.label), [CASES_ENV]: casesPath(scratch, step.label),
+        [ROOM_ENV]: roomPath(record, step.label, mine) }
+    : {}),
+});
 
 /* Every exit past an attribution says what its findings reached, the leak refusal included: a key
    printed only in the middle of a 2500-second log is the state ISS-925 exists to leave. */
@@ -503,7 +509,7 @@ for (const step of planned) {
   console.log(`\n=== ${step.label} ===`);
   const spend = spendOf(step, { record, changed });
   const at = Date.now();
-  const env = { ...process.env, TMPDIR: scratch, ...testEnv(step) };
+  const env = { ...process.env, TMPDIR: scratch, ...stepEnv(step) };
   /* Before the step and again once it has passed, so the only note left standing is a refusal this
      run exited on or one a killed gate abandoned — as a killed gate abandons its temp root. */
   if (step.tests) forgetRoomRefusal(roomPath(record, step.label, mine));
@@ -560,6 +566,19 @@ for (const step of planned) {
      declarations are judged whichever way the step went — a ceiling its own evidence contradicts is
      the tree's and not this step's, and the files it covers were spent either way — while only a
      step that passed writes an entry or a pass. */
+  /* A script step has no file unit, so what it read is judged against its own declaration and the
+     refusal is the step's. Only a step that passed reaches this, a failed one having refused above. */
+  if (!step.tests) {
+    const set = stepSetFrom(readsOut(step.label), ROOT);
+    const escapes = escapesIn(set, step.reads);
+    if (escapes.length === 0) console.log(stepRead(step, set));
+    else {
+      console.error(`\nGate failed: ${step.label} — the tree judged: ${ROOT}`);
+      console.error(escapedStep(step, escapes));
+      for (const line of ownedLines()) console.error(line);
+      finish(1, "failed", { step: step.label });
+    }
+  }
   if (step.tests) {
     const manifests = manifestsIn(files);
     const sets = setsFrom(readsOut(step.label), ROOT);

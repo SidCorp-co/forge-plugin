@@ -152,6 +152,18 @@ test("a new top-level directory belongs to no step", () => {
   }
 });
 
+/* Each was measured to be read by a step that declared it nowhere, so a change to it skipped that
+   step and the step's banked pass covered it either way (ISS-1911). */
+test("each path a script step reads puts that step in the run", () => {
+  const steps = STEPS.map((step) => ({ ...step }));
+  for (const [path, label] of [["plugin/src/suggest.mjs", "check:skill-boundaries"],
+    ["plugin/src/prose.mjs", "check:skill-figures"], [".forge.json", "check:spec"],
+    ["plugin/src/markdown.mjs", "check:vi-goldens"]]) {
+    const reached = planFor(steps, [path]).steps.filter((step) => step.run).map((step) => step.label);
+    assert.ok(reached.includes(label), `${path} reaches ${reached.join(", ")} and not ${label}`);
+  }
+});
+
 /* Narrowing `reads` is the mistake the per-file selection may not make, and a test file in the
    launcher would key every record on which files happened to run beside it (ISS-654). */
 test("a test step narrowed to fewer files keeps its reads, and its launcher names no test file", () => {

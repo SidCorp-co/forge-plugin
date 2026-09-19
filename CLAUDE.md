@@ -85,8 +85,8 @@ procedure, read by one session, with nothing to fail when it goes stale.
 Run `npm run check`. It is scoped and it remembers, so re-running the whole thing after a fix is
 what you do rather than something to avoid. That trades one danger for another: a step whose
 declared paths are too narrow is never red, it is absent. So a step is added to the table with the
-paths it read off its own script, a claim the tests hold it to, and `--full` is how a run distrusts
-the record. `node tools/gates.mjs -h` carries the rest.
+paths it read off its own script, a claim every run holds it to by watching the step read, and
+`--full` is how a run distrusts the record. `node tools/gates.mjs -h` carries the rest.
 
 Fix the source, never the gate. A real violation that passes means the checker is wrong, and it gets
 fixed in the same task rather than exempted.

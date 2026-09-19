@@ -72,6 +72,34 @@ export const escapedClaim = (one) =>
   + `declaration at ${one.where} does not cover: ${one.claims.join(", ")}. Widen it in `
   + `tools/gates/steps.mjs, or drop it and let the file be spent.`;
 
+const COUNTED = [["path", "paths"], ["listing", "dirs"], ["walk", "trees"], ["content", "whole"]];
+
+const observedIn = (set) => COUNTED
+  .filter(([, key]) => set[key].size > 0)
+  .map(([named, key]) => `${set[key].size} ${named}${set[key].size === 1 ? "" : "s"}`);
+
+/** What a script step was watched to ask this repository for. Nothing seen is said as that and never
+ *  as a declaration this run held to anything, being where a step whose real reader left no record
+ *  lands; and a count is not a proof either way, the audit following this repository's own code and
+ *  not a dependency's. Why each of those is so: `node tools/gates.mjs -h` (ISS-1911). */
+export const stepRead = ({ label, reads }, set) => {
+  const seen = observedIn(set);
+  const routes = set.blind.length === 0
+    ? "" : `, and ${set.blind.length} route${set.blind.length === 1 ? "" : "s"} it could not follow`;
+  return seen.length === 0
+    ? `reads: ${label} asked this repository for nothing the audit saw${routes}, so what it declares `
+      + `went unchecked here: ${reads.join(", ")}`
+    : `reads: ${label} was watched to ask this repository for ${seen.join(", ")}, every one of them `
+      + `inside what it declares${routes}`;
+};
+
+/** A step that reads outside its own declaration is skipped by the very change that should run it,
+ *  and banks a pass whose digest does not cover the path either, both keying on that one list. */
+export const escapedStep = ({ label, reads }, escapes) =>
+  `${label} read ${escapes.map((each) => `${each.one} (${each.kind})`).join(", ")}, which the reads `
+  + `it declares in tools/gates/steps.mjs do not cover: ${reads.join(", ")}. Widen them there, or `
+  + `stop the step reading what it does not declare.`;
+
 export const verdictSaid = ({ files = [], unitless = 0 }) => [
   ...files.map((one) => `${one.step} ${one.spent} of ${one.known} file(s)`),
   ...(unitless > 0 ? [`${unitless} step(s) with no file unit ran whole`] : []),

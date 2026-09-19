@@ -306,7 +306,7 @@ test("the help says what verifies a declaration and that the verification stops 
   ]) {
     assert.ok(flat.includes(clause), `the help no longer says: ${clause}`);
   }
-  assert.match(said, /re-taken\.\n\nPast that, a step whose inputs/u, "the seam between two files' sections");
+  assert.match(said, /stands in for it\.\n\nPast that, a step whose inputs/u, "the seam between two files' sections");
   assert.ok(!flat.includes("are both refused before a step is spent"),
     "the table's own two failures are this repository's checker and no condition of a run");
 });

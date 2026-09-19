@@ -1,7 +1,8 @@
-/* Everything this gate's help says about the unit inside a test step, which is the file: what the
-   set is measured from, what the run reports of it, and the ceiling a file the audit cannot follow
-   is given instead. Its own file because the runner's is at the line limit its own checker sets,
-   and this is the section that grows. `tools/gates.mjs -h` prints it in place. */
+/* Everything this gate's help says about what a step was watched to read: the unit inside a test
+   step, which is the file, the ceiling a file the audit cannot follow is given instead, and the
+   declaration that answers for a script step, which has no unit below itself. Its own file because
+   the runner's is at the line limit its own checker sets, and this is the section that grows.
+   `tools/gates.mjs -h` prints it in place. */
 export const READS_HELP = `Inside a test step the unit is the file, and what it is keyed on is measured rather than declared.
 Every node process a test step runs is preloaded with an audit that records the repository paths it
 asked for — asking is the read, so a probe that found nothing is one too — every directory it listed,
@@ -126,4 +127,19 @@ against the harmless half of a pair holding the file back on changes it must be 
 What blinds each file of one audited run, and what a candidate change would actually free, is
 \`node tools/gates/reads/census.mjs -h\`. It re-derives every cause through this same collector with
 the candidate applied to the records, rather than matching a rendered cause string, and a figure in a
-filing states the command that produced it or says that it cannot be re-taken.`;
+filing states the command that produced it or says that it cannot be re-taken.
+
+**A script step has no unit below itself, so what answers for it is its own declaration.** It runs
+under the same audit, and every record its processes leave is read as one set: a path, a listing, a
+walk or a content claim outside that step's declared reads fails the gate, naming the step, what it
+read and the claims it escaped. The comparison goes one way only, and the line each step prints says
+where it landed. It catches a declaration too narrow — which is the state a step is in when a change
+to a path it reads does not run it, and a banked pass covers that path anyway, one list deciding
+both — and it proves no declaration wide enough, since the audit follows this repository's own code
+and sees of a dependency only what crossed back. What no step's set carries is the preload this gate
+puts on its own command line, that being the instrument and not the subject, and an audit already
+running — a gate under a gate, as in this repository's own suite — watches it load; the runner's own
+graph reaches those files, so a change to one is a digest input of every step already. A
+step the audit saw nothing under is said to have had its declaration unchecked rather than held: \`npm\` records nothing of this repository, its own
+code standing outside the tree and so unshimmed, so a step whose real program left no record observes
+exactly nothing and the launcher's record never stands in for it.`;
