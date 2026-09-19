@@ -103,7 +103,11 @@ own gate, test, ship and cleanup, which is what lets a run profile a project tha
 records names the tree a run was cut in and not the run, so two agents standing in one tree resolve
 it alike and the field cannot tell the second from the first renewing; the one thing left readable
 is what is running in that tree, and a claim that would otherwise read the tree's own lease as its
-own is refused while a process matching this pattern stands there. Which command that is cannot be
+own is refused while a process matching this pattern stands there **and is none of this call's own
+work** — a match in the call's own ancestry is the release that started it, and a call that cannot
+place itself against the process separating one agent's calls from another's reads nothing at all.
+Neither limit is a guess; both are
+[what the reading can and cannot prove](docs/cli/the-dead-holder.md). Which command that is cannot be
 stated without naming the project — here it is the script that pushes and releases — so **absent,
 no process in a tree reads as a run working there and every claim is decided by the record alone**,
 which is how the plugin behaved before the key existed. Declare the commands that would cost

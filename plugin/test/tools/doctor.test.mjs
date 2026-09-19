@@ -482,9 +482,8 @@ test("what a project calls a run's own work is printed with its source, and an u
     "and what the project loses by it, which is the whole reason the row is not silence");
 });
 
-/* The claim reads the declaration off the tree root the held id was minted for, so the row has to
-   read it off the same place: a row answering for this directory advertises a protection the
-   refusal never applies (ISS-1872). */
+/* The claim reads the declaration off the tree root, so the row reads it off the same place: one
+   answering for this directory advertises a protection no refusal applies (ISS-1872). */
 test("the declaration reported is the one the tree root holds, not the one the directory this call stands in holds", () => {
   const home = tempRoom("doctor-work-home-");
   const root = tempRoom("doctor-work-root-");

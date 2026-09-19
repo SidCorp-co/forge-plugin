@@ -113,6 +113,7 @@ const ISSUE = {
 
 const heldBy = ({ holder = OURS, history = [] } = {}) => {
   ISSUE.status = "approved";
+  state.wrote = 0;
   ISSUE.sessionContext = {
     lease: {
       holder, agent: "a-test-agent", pid: String(process.pid), renewedAt: ago(5), minutes: 60,
@@ -123,6 +124,7 @@ const heldBy = ({ holder = OURS, history = [] } = {}) => {
 
 const state = {
   calls: [],
+  wrote: 0,
   config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
   issues: [ISSUE],
   comments: { [UUID]: [] },
@@ -130,7 +132,10 @@ const state = {
     forge_config: () => ({ config: state.config }),
     forge_issues: (args) => {
       if (args.action === "list") return { issues: state.issues, returned: 1, hasMore: false };
-      if (args.action === "update") Object.assign(ISSUE, args.data);
+      if (args.action === "update") {
+        state.wrote += 1;
+        Object.assign(ISSUE, args.data);
+      }
       if (args.action === "transition") ISSUE.status = args.data.status;
       return ISSUE;
     },
@@ -167,10 +172,13 @@ test("the reading is of work outside this call's own, and of nothing else", asyn
 
 test("a second claim from one worktree is refused while work this call did not start stands in that tree", async () => {
   heldBy();
+  /* Off the record before the call, because the reader below hands back the very object a write
+     would have changed: comparing it with itself passes however much the claim wrote. */
+  const was = onTheRecord().renewedAt;
   const sibling = await standingIn(TREE);
   try {
     const refused = await ran(["claim", "ISS-1872"]);
-    assert.equal(refused.status, 1, `a renewal is what this used to answer:\n${refused.stdout}`);
+    assert.equal(refused.status, 1, `a renewal is what asking nothing of the tree answered:\n${refused.stdout}`);
     assert.match(refused.stderr, new RegExp(`pid ${sibling.pid}`, "u"), "the process is named by its id");
     assert.match(refused.stderr, /setTimeout/u, "and by what it is running, which is what says whose it is");
     assert.match(refused.stderr, new RegExp(escaped(TREE), "u"), "beside the tree it is standing in");
@@ -178,8 +186,9 @@ test("a second claim from one worktree is refused while work this call did not s
       "and the file that mints the id, which is why the holder matched");
     assert.match(refused.stderr, /ps -o pid,lstart,args/u, "with the command that establishes who is under it");
     assert.match(refused.stderr, /forge claim ISS-1872 --stopped/u, "and the one flag that takes it anyway");
-    assert.equal(onTheRecord().renewedAt, ISSUE.sessionContext.lease.renewedAt,
-      "and nothing was written: the refusal is before the lease write, not after it");
+    assert.equal(onTheRecord().renewedAt, was,
+      "and the lease still reads as it did before the call, the refusal coming before the write");
+    assert.equal(state.wrote, 0, "which the tracker confirms: no write of the field was even attempted");
   } finally {
     sibling.kill();
   }
@@ -204,6 +213,8 @@ test("the flag takes the lease while that work is still standing, and the histor
     assert.match(took.stdout, /renewed: session iss-1872-a4e81e39/u, "the take the caller asserted");
     assert.equal(onTheRecord().history.length, 0,
       "and a holder retaking its own lease is no handoff, so the park counting crashes counts nothing here");
+    assert.equal(state.wrote, 1,
+      "one write reached the tracker, which is what makes the refusal's count of none an assertion that can fail");
   } finally {
     sibling.kill();
   }
