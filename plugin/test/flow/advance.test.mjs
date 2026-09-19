@@ -83,8 +83,8 @@ const PLAN = typedPlan();
 const NO_DECISION = "no decision record: each reading decided with its assumption and undo, or an explicit none";
 
 test("confirmed needs a confirmation, and approved the decision record beside the plan", () => {
-  assert.deepEqual(missing("confirmed", view({})), ["no confirmation: where you looked, what the issue is in the code's own terms, and the finding"]);
-  assert.match(commands("confirmed", view({}))[0], /^forge record confirmation ISS-3 --where/u);
+  assert.deepEqual(missing("confirmed", view({})), ["no confirmation: what the issue is in the code's own terms, where you looked, and the finding"]);
+  assert.match(commands("confirmed", view({}))[0], /^forge record confirmation ISS-3 --is/u);
   const confirmed = view({}, [recorded("confirmation", { where: ["a.mjs"], is: "it holds", finding: "holds" })]);
   assert.deepEqual(missing("confirmed", confirmed), []);
   /* The decision is owed at the rung the plan is owed at, and is asked for ahead of it: a run

@@ -351,16 +351,9 @@ export const policyFor = async (plan, status = null) =>
 export const deployFor = async (plan, status = null) =>
   (credentialOwed(planFlags(unwrap(plan)), status) ? stagingDeploy() : null);
 
-/* From the rung the work starts at to the last one before the close: the span in which a run can
-   have met something that is not this issue's. */
 const ROUTES_FROM = ORDER.slice(ORDER.indexOf(BASELINE_AT), ORDER.indexOf(CLOSES_FROM) + 1);
 
-/* `routed` is read — the report's filing line is built from it and the fold reads that line — and
-   no surface has ever asked for it, so eighty records across two corpora hold none and the finding
-   that belongs in one sits inside `detail:` instead (ISS-1699). It cannot be asked for by an entry
-   check: a payload nothing told an older installed copy about would refuse a run for a rule it
-   could not have read. So it is asked here, printed beside the shortfall, counted in nothing and
-   silent from the first record of either sort. */
+/** The one kind no entry check may ask for and every reader reads: docs/cli/record-the-unwritten.md. */
 export const unaskedLines = (view, ref) => {
   if (!ROUTES_FROM.includes(view.issue.status) || view.repeated?.routed?.length) return [];
   return ["\n  nothing on the record says whether this run met anything that is not this issue's, "
@@ -369,8 +362,7 @@ export const unaskedLines = (view, ref) => {
   `    forge record routed ${ref} --none "<why there was nothing>"`];
 };
 
-/** Where the issue stands and what stands in its way, as one set of lines: three surfaces print it
- *  and a second composition of the same parts is a fourth wording for one answer. */
+/** Where the issue stands and what stands in its way, as one set of lines for all three printers. */
 export const owedBlock = (view, ref, held) =>
   [owedLine(view, ref, held), ...missingLines(held.missing), ...unaskedLines(view, ref)];
 

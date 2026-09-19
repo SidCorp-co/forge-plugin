@@ -6,7 +6,12 @@ shaped them differently. `forge record <kind>` owns the shape, so the reader and
 same fields every time, and a missing field is refused by name before anything is posted.
 
 A record is a comment a person reads first: a heading, then the payload in a fenced block, then one
-parsed line naming the kind and the contract. Both of those the prose pipeline copies byte for byte,
+parsed line naming the kind and the contract. What a reader meets first is the shape's first field,
+which is a decision rather than an order the fields fell into: the confirmation leads with `is:`,
+the one sentence saying what the issue is, because `where:` repeats and holds a path list that ran
+to hundreds of code points and pushed that sentence under it (ISS-1699). Order is presentation
+alone — every reader finds a field by a property or by its key — so the records already written
+stand, and what moves is which line is read first and which flag a bare write is refused by. Both of those the prose pipeline copies byte for byte,
 which is why the keys inside are the flags rather than the labels a reader sees: on a project whose
 `.forge.json` names a prose language every body is rewritten on the way out, and a rewrite renames
 prose. Eight verdicts and a verification earned nothing on such a project because the labels the
@@ -66,32 +71,7 @@ year it said 200, the number the request asked for, on threads of half that (ISS
 note, the plan and the criteria go to their fields, which the tracker already types; everything else
 is a comment. Nothing is stored twice. The reading that assembles them all is `forge resume
 --report`, which writes nothing and so is no kind of this verb. The contract this serves:
-`forge guide contract`.
-
-Two of the kinds exist because a reopen recorded nothing. The tracker has had a `reopen` status and a
-`reopenCount` field all along, and neither says what the person found: what they expected, what they
-actually saw and their own words went into a plain comment nothing read back, so the gap that let it
-ship was never named. A finding is that comment typed, written by the agent on the person's behalf
-and quoting them; a triage is the ruling on it, one of three outcomes and one line naming what would
-have caught it. Both repeat, as correction, park, question, routed and gap do, so the report shows every one and
-says how many above them: ISS-3's run wrote four corrections and reported one.
-
-Two more exist because the fold of a run was prose. A parent reading the report got every payload that
-earned a status and nothing about what the run met on the way: a defect it found on something else
-and sent to the issue that owns it, and a place the method it followed did not answer. Sixteen runs
-put both in a closing message instead, typed at the end out of whatever the agent still held, which
-is the one moment neither is accurate. `routed` names what was found and where it went;
-`gap` names where the method fell short and what was done instead. Each takes `--none` with a
-reason, the way `decision` does, so a run that met neither answers rather than leaving an absent
-record to read like an unasked question. Neither earns a status: a payload nothing told an older
-copy about would refuse a run for a rule it could not have read, and the point of the record is that
-nothing has to be told. Earning nothing and being asked for turned out to be different things, and
-for a year `routed` was neither: eighty records across two corpora hold none of it, while the finding
-that belongs in one sits inside `detail:` or a `decision:` clause instead. So the owed list carries a
-line for it from the rung the work starts at to the last one before the close — beside the shortfall,
-counted in nothing, silent from the first record of either sort — and the sentence of the method that
-sends a finding to the issue that owns it names the record that stays behind (ISS-1699). The report closes with the run's own worklog — the branch, the head, what it
-touched and the plugin copy the capture was made under — so one read answers which copy typed it.
+`forge guide contract`. The four kinds that exist because what mattered was going into prose instead: [record-the-unwritten.md](record-the-unwritten.md).
 
 A write also ends by saying what the issue now owes, and takes the other kinds its rung cites in the
 same call — `--also <kind>` opens each one after the first with its own payload — and makes the move

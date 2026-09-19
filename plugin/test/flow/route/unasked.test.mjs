@@ -1,10 +1,5 @@
-/* The one kind every reader reads and nothing ever asked for. `routed` feeds the report's filing
-   line and the fold reads that line, and across eighty records in two corpora not one was written:
-   the finding that belongs in one went into `detail:` instead (ISS-1699). It cannot be asked for by
-   an entry check — a payload nothing told an older installed copy about would refuse a run for a
-   rule it could not have read — so it is asked in the printed answer, which earns and refuses
-   nothing. These cases hold that line to being present where a run could have one, absent where it
-   could not, and free. */
+/* The one kind no entry check may ask for and every reader reads, held to being present where a run
+   could have an answer, absent where it could not, and free: docs/cli/record-the-unwritten.md. */
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -27,8 +22,6 @@ const view = (status, comments = []) =>
 const ROUTED = recorded("routed", { what: "the gate reads a checkout's mtime as a write", to: "ISS-80, filed" });
 const NONE = recorded("routed", { none: "nothing outside this issue came up" });
 
-/* The span the work happens in: below it no run has built anything to find something beside, and
-   above it the issue is over. */
 const ASKED_AT = ["in_progress", "developed", "testing", "awaiting_release"];
 
 test("a run that could have met something beside this issue is asked whether it did", () => {
@@ -59,8 +52,6 @@ test("nothing is asked of a rung where no run could yet have an answer, or where
   }
 });
 
-/* The whole point of printing it rather than owing it: an older installed copy of any skill writes
-   exactly what it wrote before, and this line costs it nothing. */
 test("the prompt moves no count and earns no status", () => {
   const without = view("in_progress");
   const with_ = view("in_progress", [NONE]);

@@ -64,20 +64,6 @@ test("a repeated value carrying the separator, a newline and a fence marker read
   assert.deepEqual(parse(body).fields.where, values, "every value back as written, and none joined or split");
 });
 
-/* A payload is read by its keys and never by their order, which is what lets the confirmation's one
-   sentence sit above its path list: every confirmation written before that stands (ISS-1699). */
-test("a confirmation written in the field order that stood before reads back whole", () => {
-  const body = ["## Confirmation", "", "```forge-record", "where: a.mjs", "where: b.mjs",
-    "is: the hook keys by path", "finding: holds", "detail: and a second thing this run met", "```",
-    "", `\`forge-record: confirmation \u00b7 contract ${CONTRACT}\``].join("\n");
-  assert.deepEqual(parse(body).fields, {
-    where: ["a.mjs", "b.mjs"],
-    is: "the hook keys by path",
-    finding: "holds",
-    detail: "and a second thing this run met",
-  });
-});
-
 test("a correction says what moved and why, both required", () => {
   const body = render("correction", { moved: "package.json joins the files touched", why: "the ship path needs a version" });
   assert.match(body, /^moved: package\.json/mu);

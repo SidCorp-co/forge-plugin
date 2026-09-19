@@ -20,6 +20,7 @@ how many topics there may be.
 | [`new`](cli/new.md) | What a body is read against before the tracker sees it, the value a filing nobody ranked carries, and why the rung is the `complexity` field alone. |
 | [`the-kinds`](cli/the-kinds.md) | Why a filing names a category, what the four are, which sections each owes, and why both words are the tracker's. |
 | [`record`](cli/record.md) | Why the CLI owns a payload's shape, which two flags are read off the record, and what it cannot undo. |
+| [`record` — the four kinds prose was losing](cli/record-the-unwritten.md) | What a reopen, a fold and a run's own report were each losing to prose, and why two of the four earn no status and are asked for anyway. |
 | [`record merged`](cli/record-merged.md) | The mark's five clauses, one flag each, and what `--undo` removes. |
 | [`record` — a rung in one call](cli/record-the-rung.md) | The pair counts behind `--also`, the order a call writes in, and why the move is a cited kind's alone. |
 | [the field rules](cli/the-field-rules.md) | The three fields judged on what they say, and the two overrides round a check. |

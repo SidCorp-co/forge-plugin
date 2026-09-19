@@ -464,8 +464,8 @@ export const CHECKS = {
     payloadOwed(
       view,
       "confirmation",
-      "no confirmation: where you looked, what the issue is in the code's own terms, and the finding",
-      `forge record confirmation ${ref} --where <where> --is "<what it is>" --finding holds`,
+      "no confirmation: what the issue is in the code's own terms, where you looked, and the finding",
+      `forge record confirmation ${ref} --is "<what it is>" --where <where> --finding holds`,
     ),
   /* Three payloads and two phases behind them: the reading is decided and the plan written while the issue stands at `confirmed`, and this is the one rung that refuses without all three. Each is waived by its own row, so a rung dropping the plan still owes the decision if no row says otherwise (ISS-1066). */
   approved: (view, ref) => {

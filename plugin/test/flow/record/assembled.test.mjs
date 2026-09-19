@@ -7,8 +7,9 @@ import test from "node:test";
 import { tempRoom } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("assembled-");
-const { assemble, render } = await import("../../../src/flow/record/page.mjs");
+const { assemble, parse, render } = await import("../../../src/flow/record/page.mjs");
 const { SHAPES, heldSaid } = await import("../../../src/flow/machine.mjs");
+const { CONTRACT } = await import("../../../src/guides/contract.mjs");
 
 test("the report keeps the latest of each kind, the latest verdict per criterion, and names what is owed", () => {
   const at = (n) => `2026-09-02T10:0${n}:00.000Z`;
@@ -79,4 +80,17 @@ test("every correction, park and question is kept and counted, and a kind that c
   assert.equal(latest.baseline.record.fields.commit, "a862409", "and is read back as the later of the two");
   assert.equal(heldSaid("correction", repeated.correction.length), "2 Correction records", "the count above the records");
   assert.equal(heldSaid("gap", 1), null, "and nothing above a kind holding one, where the count is the line itself");
+});
+
+/* A record is read by its keys, whatever order its shape prints them in: docs/cli/record.md. */
+test("a confirmation written in the field order that stood before reads back whole", () => {
+  const body = ["## Confirmation", "", "```forge-record", "where: a.mjs", "where: b.mjs",
+    "is: the hook keys by path", "finding: holds", "detail: and a second thing this run met", "```",
+    "", `\`forge-record: confirmation \u00b7 contract ${CONTRACT}\``].join("\n");
+  assert.deepEqual(parse(body).fields, {
+    where: ["a.mjs", "b.mjs"],
+    is: "the hook keys by path",
+    finding: "holds",
+    detail: "and a second thing this run met",
+  });
 });
