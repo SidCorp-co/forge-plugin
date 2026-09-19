@@ -1,6 +1,5 @@
-/* `forge doctor`'s subjects: what each layer answers, and what a bare reading owes a subject it
-   withholds. The 2,500-byte help cap forced the split — sixteen flags on one verb left nine named
-   in the usage and described nowhere, which no care at the writing end fixes (ISS-1692). */
+/* `forge doctor`'s subjects, and what a bare reading owes one it withholds. The 2,500-byte help cap
+   forced the split: nine flags were named in the usage and described nowhere (ISS-1692). */
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -26,12 +25,10 @@ const doctor = (...argv) => {
   return `${run.stdout}${run.stderr}`;
 };
 
-/* Long enough that the mask and the widened form differ: at or under twelve characters `abbreviated`
-   prints `set` either way, and a case reading a token that short cannot tell --full from no flag. */
+/* Over twelve characters, under which `abbreviated` prints `set` whether --full is given or not. */
 const TOKEN = `forge_${"z".repeat(30)}head`;
 
-/* A credential saved and no project: the slug is read before any request, so nothing here waits on
-   a host. `mkdirSync` is the config directory the save would make. */
+/* A credential saved and no project: the slug is read before any request, so nothing waits on a host. */
 const withCredential = (...argv) => {
   const home = tempRoom("doctor-subjects-cred-");
   mkdirSync(join(home, "forge"), { recursive: true });
@@ -60,9 +57,8 @@ test("a subject that needs the project and finds no slug says so and exits on it
   assert.equal(bare.status, 0, "and stays green: the note is the whole of what it counts");
 });
 
-/* The usage line offers --full where and only where the guard takes it: a help line naming a flag
-   the verb then refuses is the same defect as a flag silently dropped, read from the other end
-   (ISS-1692, codex F1). */
+/* A help line naming a flag the verb then refuses is a dropped input read from the other end, so the
+   usage line offers --full where and only where the guard takes it (ISS-1692, codex F1). */
 test("the verb's help gives every subject a line, and each subject's help opens on its own call", () => {
   for (const { slug, says, text, full } of SUBJECTS) {
     assert.ok(USAGE.includes(`  ${slug.padEnd(10)} ${says}`), `the verb's help gives ${slug} no line`);
@@ -128,8 +124,7 @@ test("a flag whose reading a subject does not hold is refused, not dropped", () 
   const widened = doctor("copy", "--full");
   assert.match(widened, new RegExp(`which is ${WIDENED.join(", ")}`, "u"), widened);
   assert.doesNotMatch(widened, /^\[/mu);
-  /* Read off the row rather than off the absence of the refusal: a reading that returned before
-     printing anything satisfies a negative assertion just as well (ISS-1692, codex F2). */
+  /* Off the row, not off the refusal's absence, which empty output satisfies too (ISS-1692, F2). */
   assert.ok(withCredential("machine").said.includes(`set (${TOKEN.length} chars)`),
     "the token row masks the value where the flag is not given");
   assert.ok(withCredential("machine", "--full").said
