@@ -35,5 +35,10 @@ what was *sent* never comes down, and an outage would become a debt every later 
 conservative counters under the sharing sentence are the other kind on purpose: there, never coming
 down only ever claims less for somebody else.
 
+A route that learns its bucket while a window is already open takes its own earlier calls off what
+that window has left, as well as off what is claimed of a sibling. They spent it and no reservation
+took them off it, and the answer that named the bucket will not say so: it was written before the
+ones of them still out were counted, so taking its figure as it stands lends their room twice.
+
 Where the four headers are absent, nothing is held and nothing is paced. A tracker that states no
 budget is one this cannot pace against, and it is sent what it was sent before.

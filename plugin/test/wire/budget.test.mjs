@@ -230,3 +230,16 @@ test("a call that never answered is not a debt the windows after it keep paying"
   }
   assert.ok(reserveIn(KEY, 100_000), "and the sixtieth waits, the window being spent rather than owed");
 });
+
+test("a route joining a window already open takes its own calls off what that window has left", () => {
+  const OTHER = "forge_comments.create";
+  forgetBudget();
+  call(100_000, { limit: 60, remaining: 59, resetAt: 200_000 });
+  for (let one = 0; one < 5; one += 1) assert.equal(reserveIn(OTHER, 100_000), null);
+  sawBudget(OTHER, stated({ limit: 60, remaining: 58, resetAt: 200_000 }));
+  for (let one = 0; one < 54; one += 1) {
+    assert.equal(reserveIn(KEY, 100_000), null, `reservation ${one + 1} of the 54 this window has left`);
+  }
+  assert.ok(reserveIn(KEY, 100_000),
+    "the four of the other route the header had not counted are off this window too");
+});

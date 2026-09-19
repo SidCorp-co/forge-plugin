@@ -45,9 +45,11 @@ const opened = (limit, remaining, resetAt, held, carried, scope) => {
   };
 };
 
+/* They spent the window and no reservation took them off it: the route had no bucket when they went. */
 const charge = (held, carried) => {
   held.sent += carried;
   held.spanning += carried;
+  held.remaining = Math.max(0, held.remaining - carried);
 };
 
 export const sawBudget = (key, headers) => {
