@@ -201,6 +201,18 @@ test("a key this plugin reads nowhere is refused with what the file can hold", a
   assert.equal(now(), HELD);
 });
 
+/* A key is a name off a command line here too, so the table is asked for its own rows and not for what every object in the language answers with (consult 3d1c0f). */
+test("a key naming an inherited property of that table is refused like any other it does not hold", async () => {
+  fresh();
+  for (const key of ["project.constructor", "project.__proto__", "project.toString.paths"]) {
+    const run = await ask("--set", `${key}=x`);
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /is no key this plugin reads out of \.forge\.json/u, run.stderr);
+    assert.match(run.stderr, /review\.lines, review\.paths/u);
+    assert.equal(now(), HELD);
+  }
+});
+
 /* The flow is two keys and a restore, not one value: a `--set` of it would write the flow and none of
    what that flow asks the project for. */
 test("the flow key is refused with the verb that writes it", async () => {

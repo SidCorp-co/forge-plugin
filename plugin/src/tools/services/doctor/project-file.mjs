@@ -278,8 +278,8 @@ const matches = (pattern, tail) => {
  *  its value is spelled, and the key whose reader judges the result — or the verb that writes it. */
 export const writableKey = (given) => {
   const segments = String(given).split(".");
+  if (!readsProjectKey(given)) return null;
   const row = PROJECT_KEYS[segments[0]];
-  if (!row) return null;
   if (row.routed) return { top: segments[0], routed: row.routed };
   const tail = segments.slice(1);
   const pattern = Object.keys(row.paths).find((one) => matches(one, tail));
