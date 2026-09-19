@@ -1,10 +1,12 @@
-/* A TAP stream from node's own runner rather than one typed into a fixture: a stream written out by
-   hand is a guess at the format, and reading TAP instead of failure words rests on it not being one. */
+/* Node's own runner writes the stream, never this file: a typed one is a guess at the format, and the
+   environment drops the mark node sets or a runner under it exits zero whatever its cases did. */
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { SHELL_ENV, tempRoom } from "../fixtures.mjs";
+import { tempRoom } from "../../fixtures.mjs";
+
+const SHELL_ENV = Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== "NODE_TEST_CONTEXT"));
 
 export const tapOf = (cases, prefix = "tap-of-") => {
   const room = tempRoom(prefix);

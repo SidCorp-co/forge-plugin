@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NAMED, SAID_CHARS, failuresIn, failuresSaid } from "../../src/codex/check-output.mjs";
+import { NAMED, SAID_CHARS, failuresIn, failuresSaid } from "../../../src/codex/check/output.mjs";
 import { tapOf } from "./tap-of.mjs";
 
 const named = (found, name) => found.find((one) => one.name === name);

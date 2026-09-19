@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
-import { failuresSaid } from "./check-output.mjs";
+import { failuresSaid } from "./check/output.mjs";
 import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { HUMAN_REF, documentIdIfAny } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";

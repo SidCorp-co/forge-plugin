@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { stampRoom } from "../../../src/hooks/stamps.mjs";
 import { DECLARED_READS, STEPS, WHOLE_TREE_TESTS } from "../../../../tools/gates/steps.mjs";
-import { ranAsync, SHELL_ENV, tempRoom } from "../../fixtures.mjs";
+import { ranAsync, tempRoom } from "../../fixtures.mjs";
 
 export const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
 export const RUNNER = join("tools", "gates.mjs");
@@ -76,6 +76,10 @@ const blindTest = (reads) => [`import test from "node:test";`,
   `  spawnSync("sh", ["-c", "exit 0"]);`, `});`].join("\n") + "\n";
 
 export const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "utf8" });
+
+/* Without the variable node's runner sets in every test process: a `node --test` spawned under it
+   runs as a child of this suite and spends no file, so the scratch's test steps would pass empty. */
+export const SHELL_ENV = Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== "NODE_TEST_CONTEXT"));
 
 const scratchEnv = (work, env) =>
   ({ ...SHELL_ENV, XDG_CONFIG_HOME: join(work, "..", "config"), ...env });

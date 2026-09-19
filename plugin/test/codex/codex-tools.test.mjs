@@ -6,7 +6,7 @@ import { execFileSync } from "node:child_process";
 import { TOOLS, checkCommand, checkState, runTool, scopeFor, toolsFor } from "../../src/codex/codex-tools.mjs";
 import { bundle, changedAgainst, divergedFrom, roleFor, withDiffs } from "../../src/codex/codex-api.mjs";
 import { tempRoom } from "../fixtures.mjs";
-import { tapOf } from "./tap-of.mjs";
+import { tapOf } from "./check/tap-of.mjs";
 import { patience } from "../patience.mjs";
 
 const repo = () => {
