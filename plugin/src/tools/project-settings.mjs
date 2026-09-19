@@ -1,8 +1,7 @@
 /* The project's own configuration: the two typed resources the tracker keeps per project, reported
    with the source each key was read from and written one key at a time. Whose the decision is, and
    why a key is never re-declared in a checkout: docs/cli/doctor.md. */
-import { accessSync, closeSync, constants, fchmodSync, openSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync }
-  from "node:fs";
+import { accessSync, constants, readFileSync, realpathSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { FROM_PROJECT, Refusal, drainScope, fail, projectFilePath, projectSlug }
@@ -10,9 +9,9 @@ import { FROM_PROJECT, Refusal, drainScope, fail, projectFilePath, projectSlug }
 import { pairOf } from "../resolve/flags.mjs";
 import { WITH_BODY, WRITES } from "./doctor-keys.mjs";
 import {
-  PROJECT_KEYS, readAt, readsProjectKey, settingTo, spelled, withKey, withoutKey, withPath,
-  writableKey, writablePaths,
-} from "./project-file.mjs";
+  READS_IT, SET_USAGE, asWritten, projectWrite, readsProjectKey, spelled, withKey, withoutKey,
+  writableKey, writablePaths, wroteWhole,
+} from "./services/doctor/project-file.mjs";
 import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../guides/flow.mjs";
 import { flowJudgeConflict, flowPolicyConflict } from "../flow/earned.mjs";
 import { scoped, write } from "../tracker/rest.mjs";
@@ -64,11 +63,10 @@ const RESOURCES = {
     typed: false,
     shown: factShown,
   },
-  /* This checkout's own file, its value printed as written: "3 entries" is what a read back cannot say. */
   project: {
     said: FROM_PROJECT,
     local: true,
-    shown: (value) => JSON.stringify(value ?? null),
+    shown: asWritten,
   },
 };
 
@@ -114,8 +112,6 @@ const settingRows = (read) => {
   return out;
 };
 
-const SET_USAGE = "forge doctor --set <key>=<value>";
-
 const keySets = (read) =>
   NAMES.map((name) => `${name}: ${name === LOCAL
     ? writablePaths().join(", ")
@@ -133,9 +129,7 @@ const unknownKey = (given, read) =>
   + "Name the resource to write a key the tracker does not hold yet: "
   + TRACKED.map((name) => `--set ${name}.${given}=<value>`).join(" or ");
 
-/* What this plugin declares it reads out of the project file is known before any call goes out, so a
-   bare key of that set is that file's and the tracker is not read for it, which is also the only way
-   `slug` is settable in a checkout that names no project yet. docs/cli/doctor.md. */
+/* What this plugin declares it reads out of the project file is known before any call goes out, so a bare key of that set is that file's and the tracker is not read for it, which is also the only way `slug` is settable in a checkout that names no project yet. docs/cli/the-project-file.md. */
 const projectRoute = (key) => {
   const declared = writableKey(key);
   if (!declared) {
@@ -255,66 +249,6 @@ const sent = async (resource, route, value, file) => {
   return said;
 };
 
-const projectFile = (key) => {
-  const named = projectFilePath();
-  if (!named) {
-    fail(`--set: \`${key}\` is a key of ${FROM_PROJECT} and no such file was found on the way up from `
-      + "here, so nothing was written. Run this from a checkout that has one.");
-  }
-  let path = named;
-  try {
-    path = realpathSync(named);
-    const held = readFileSync(path, "utf8");
-    const parsed = JSON.parse(held);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      fail(`--set: ${path} holds ${Array.isArray(parsed) ? "a list" : JSON.stringify(parsed)} where a `
-        + `JSON object with this project's keys in it belongs, and \`${key}\` is a key of that object. `
-        + "Nothing was written.");
-    }
-    return { path, held, parsed };
-  } catch (error) {
-    if (error instanceof Refusal) throw error;
-    return fail(`--set: ${path} is the file \`${key}\` is a key of and this could not read it as JSON, `
-      + `so nothing was written: ${error.message}`);
-  }
-};
-
-/** The one key written into the file's own text and read back off it, judged between the two by the
- *  reader that already reads it: what this took and that reader refuses would fail later instead. */
-const projectWrite = (route, value) => {
-  const { path, held, parsed } = projectFile(route.key);
-  const would = settingTo(parsed, route.segments, value);
-  if (would.blocked) {
-    fail(`--set: \`${route.key}\` goes inside \`${would.blocked}\`, which this file holds as `
-      + `${JSON.stringify(would.holds)} rather than as a table. Nothing was written: ${path}`);
-  }
-  const refusal = PROJECT_KEYS[route.top].judge(would.parsed[route.top]);
-  if (refusal) fail(`--set: ${refusal} Nothing was written: ${path} is as it was.`);
-  const text = withPath(held, route.segments, value);
-  if (text === null) {
-    fail(`--set: ${path} parses as JSON and this could not find where \`${route.key}\` sits in its `
-      + "text, so writing it would mean re-serializing the whole document and reflowing every key "
-      + `beside it. Nothing was written — set this one by hand: ${READS_IT} prints what it holds.`);
-  }
-  try {
-    wroteWhole(path, text);
-  } catch (error) {
-    fail(`--set: ${path} is the file \`${route.key}\` is a key of and this could not write it, so `
-      + `nothing was written: ${error.message}`);
-  }
-  /* Off the disk, never off the text this call composed: a document declaring one key twice parses to
-     the last of them, so an edit to the first would report set a value nothing reads. */
-  const back = projectFile(route.key);
-  const kept = readAt(back.parsed, route.segments);
-  if (JSON.stringify(kept) !== JSON.stringify(value)) {
-    wroteWhole(path, held);
-    fail(`--set: ${route.key} was written as ${JSON.stringify(value)} and ${path} reads back `
-      + `${JSON.stringify(kept ?? null)}, so that file declares the key somewhere this write did not `
-      + `reach. It is back as it was — read what it holds and set that key by hand: ${READS_IT}`);
-  }
-  return [`${route.name}.${route.key}: ${RESOURCES[LOCAL].shown(kept)}  ← ${path}`];
-};
-
 /** Read back off the resource's own route before it is reported set: this tracker's pipeline schema
  *  drops a key it does not declare, so a write that answered 200 and kept nothing would print as a
  *  setting that took. */
@@ -350,7 +284,6 @@ export const writeSetting = async (given) => {
 };
 
 const FLOW_USAGE = "forge doctor --flow <slug>";
-const READS_IT = "forge doctor";
 
 /** What the one failure this route cannot undo says. Exported so a case can read it: a write of a file that succeeds and a write of the same bytes back that does not is a pair no call through the CLI can be made to produce, and a state nobody is told about is the thing being avoided. */
 export const restoreFailed = (path, slug, why) =>
@@ -363,25 +296,6 @@ const flowRead = (path) => {
     return JSON.parse(readFileSync(path, "utf8"))?.flow ?? null;
   } catch {
     return null;
-  }
-};
-
-/* Through a sibling and renamed into place, the install and the restore alike: a plain write opens the destination truncating, so one that fails part way leaves neither the bytes it replaced nor the ones it was writing, and a restore doing that would destroy the very state its refusal is about to report. The mode is set on the handle rather than asked for at creation, a umask otherwise narrowing a file this project shares. */
-const wroteWhole = (path, text) => {
-  const temporary = `${path}.${process.pid}.tmp`;
-  try {
-    const mode = statSync(path).mode & 0o777;
-    const handle = openSync(temporary, "w", mode);
-    try {
-      fchmodSync(handle, mode);
-      writeFileSync(handle, text);
-    } finally {
-      closeSync(handle);
-    }
-    renameSync(temporary, path);
-  } catch (error) {
-    rmSync(temporary, { force: true });
-    throw error;
   }
 };
 
@@ -546,9 +460,7 @@ export const projectReport = async ({ credentials, graph = null } = {}) => {
   };
 };
 
-/* Silently preferring a route would leave the caller reading a success about the write they did not
-   ask for, so the body's fields are refused beside any write that takes no body rather than
-   dropped — a caller told a field was set that nothing stored has been told the wrong thing. */
+/* Silently preferring a route would leave the caller reading a success about the write they did not ask for, so the body's fields are refused beside any write that takes no body rather than dropped — a caller told a field was set that nothing stored has been told the wrong thing. */
 export const briefAsked = (asked) => WRITES.some((one) => asked[one] !== undefined);
 
 export const refuseCarried = (asked, pairs, said) => {
@@ -559,9 +471,7 @@ export const refuseCarried = (asked, pairs, said) => {
   }
 };
 
-/* The number is checked against the prose before the store is read, because a number is all a
-   caller can be wrong about here and a line replaced is gone: this entry has no revision and no
-   conditional write, so the only repair is retyping from a scrollback the next session has not got. */
+/* The number is checked against the prose before the store is read, because a number is all a caller can be wrong about here and a line replaced is gone: this entry has no revision and no conditional write, so the only repair is retyping from a scrollback the next session has not got. */
 export const refuseUnchecked = (asked) => {
   if (asked.line !== undefined && asked.was === undefined) {
     fail("doctor: --line replaces a line of a store with no undo, so it names the prose that line "

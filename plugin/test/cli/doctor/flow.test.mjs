@@ -7,7 +7,7 @@ import { chmodSync, lstatSync, readFileSync, realpathSync, statSync, symlinkSync
 import { join } from "node:path";
 
 import { escaped, fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
-import { withKey } from "../../../src/tools/project-file.mjs";
+import { withKey } from "../../../src/tools/services/doctor/project-file.mjs";
 import { restoreFailed } from "../../../src/tools/project-settings.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;

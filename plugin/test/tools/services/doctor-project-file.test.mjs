@@ -1,6 +1,6 @@
 /* The project's own configuration file written one key at a time. Every case runs under a home with no
    credential saved in it, so a call that reached the tracker would refuse for want of an endpoint: that
-   these pass is the proof a declared key is routed to the file and nothing is sent. docs/cli/doctor.md. */
+   these pass is the proof a declared key is routed to the file and nothing is sent. docs/cli/the-project-file.md. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -118,6 +118,48 @@ test("a budget written where no command is declared is still judged", async () =
   assert.equal(good.status, 0, good.stderr);
   assert.deepEqual(JSON.parse(now()).codex, { checkMs: 600000 },
     "and a good one lands without inventing the command beside it");
+});
+
+/* The spelling is JSON's number and the judgement of which numbers a key takes is its reader's, so a
+   weight the table scores in fractions is writable and a count of lines is still whole (consult 8a37d4). */
+test("a fractional weight is written and a fractional count of lines is refused by its reader", async () => {
+  fresh();
+  const good = await ask("--set", "rank.similarity=0.85");
+  assert.equal(good.status, 0, good.stderr);
+  assert.equal(JSON.parse(now()).rank.similarity, 0.85);
+  assert.equal(moved(HELD, now()), 1);
+  fresh();
+  const bad = await ask("--set", "review.lines=1.5");
+  assert.equal(bad.status, 1, bad.stdout);
+  assert.match(bad.stderr, /a whole number of changed lines above zero, not `1\.5`/u);
+  assert.equal(now(), HELD);
+  /* An exponent JSON spells and the language rounds to Infinity, which stringifies to `null`: the
+     reader is what refuses it, as it is for every other number this spelling hands over. */
+  const huge = await ask("--set", "rank.agePerDay=1e1000");
+  assert.equal(huge.status, 1, huge.stdout);
+  assert.match(huge.stderr, /`rank\.agePerDay` is a number, not `null`/u, huge.stderr);
+  assert.equal(now(), HELD);
+});
+
+/* A job is a bare list of verbs or a table of two lists, and the reader takes either, so a checkout
+   holding the bare form has a route to its verbs without being rewritten into the other. */
+test("a job written as a bare list of verbs is replaced through the key that names it", async () => {
+  const bare = `{\n  "slug": "a-tree",\n  "jobs": { "reviewer": ["issue"] }\n}\n`;
+  fresh(bare);
+  const run = await ask("--set", "jobs.reviewer=issue,comment");
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(JSON.parse(now()).jobs.reviewer, ["issue", "comment"]);
+  assert.equal(moved(bare, now()), 1, now());
+});
+
+/* A segment is a name off a command line, so a walk reading inherited properties would find a table on
+   every object there is and hand the judgement a document this write is not about. */
+test("a segment naming an inherited property writes nothing and moves no prototype", async () => {
+  fresh();
+  const run = await ask("--set", "jobs.__proto__.skills=forge");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /is neither a list of verb names nor a table of `verbs` and `skills`/u, run.stderr);
+  assert.equal(now(), HELD);
 });
 
 test("a key this plugin reads nowhere is refused with what the file can hold", async () => {

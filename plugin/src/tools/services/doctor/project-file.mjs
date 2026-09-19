@@ -3,12 +3,18 @@
    that value may not be. The file is committed and read by every session, so a write edits the span it
    changes and nothing else — a document re-serialized from its parse lands a diff nobody asked for in
    somebody else's review. What a key means: README.md's Configuration. */
-import { compiles } from "../codex/codex.mjs";
-import { reviewRefusalOf } from "../git/reviewed.mjs";
-import { DECLARABLE, declares } from "../stats/corpus/classes.mjs";
-import { foldWeights } from "../rank/weights.mjs";
+import { closeSync, fchmodSync, openSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync }
+  from "node:fs";
+
+import { compiles } from "../../../codex/codex.mjs";
+import { reviewRefusalOf } from "../../../git/reviewed.mjs";
+import { DECLARABLE, declares } from "../../../stats/corpus/classes.mjs";
+import { foldWeights } from "../../../rank/weights.mjs";
 import {
   CHECK_MS_TAKES,
+  Refusal,
+  projectFilePath,
+  fail,
   DRAINS,
   FEEDBACK_CHANNELS,
   FROM_PROJECT,
@@ -21,7 +27,7 @@ import {
   jobsOf,
   runsOf,
   workPatternOf,
-} from "../resolve/settings.mjs";
+} from "../../../resolve/settings.mjs";
 
 const SPACE = /\s/u;
 
@@ -233,7 +239,10 @@ export const PROJECT_KEYS = {
     judge: codexRefusal,
   },
   stop: { paths: { agents: "list" }, judge: (given) => listOfNames("stop.agents", given?.agents) },
-  jobs: { paths: { "*.verbs": "list", "*.skills": "list" }, judge: (given) => jobsOf(given).problems[0] ?? null },
+  jobs: {
+    paths: { "*": "list", "*.verbs": "list", "*.skills": "list" },
+    judge: (given) => jobsOf(given).problems[0] ?? null,
+  },
   rank: { paths: { "*": "number", "*.*": "number" }, judge: (given) => foldWeights(given).refusal },
   review: { paths: { lines: "number", paths: "list" }, judge: reviewRefusalOf },
   feedback: {
@@ -284,31 +293,143 @@ export const writablePaths = () =>
     : Object.keys(row.paths).map((tail) => [key, tail].filter(Boolean).join("."))));
 
 const TRUE_FALSE = { true: true, false: false };
+/* JSON's own number, not `Number`'s: `0x10` and `1e1000` are words this hands to the key's reader as text, rather than as 16 and Infinity. Which numbers a key takes is that reader's. */
+const A_NUMBER = /^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/u;
 
-/** The command-line word as JSON: `null` is the value everywhere, a list is comma-separated, and a
- *  number that is not one is passed through as typed so the key's own reader is what says so. */
+/** The command-line word as JSON: `null` is the value everywhere, a list is comma-separated, and a number that is not one is passed through as typed so the key's own reader is what says so. */
 export const spelled = (takes, raw) => {
   if (raw === "null") return null;
   if (takes === "list") return raw.split(",").map((one) => one.trim()).filter(Boolean);
-  if (takes === "number") return /^-?\d+$/u.test(raw) ? Number(raw) : raw;
+  if (takes === "number") return A_NUMBER.test(raw) ? Number(raw) : raw;
   return Object.hasOwn(TRUE_FALSE, raw) ? TRUE_FALSE[raw] : raw;
 };
 
-/** The parsed document this write would leave, or the key on the way to it that holds something other
- *  than a table — the case the text walk refuses too, read first so the judgement comes before it. */
+/* Own and defined properties throughout, a segment being a name off a command line: `__proto__` read as an inherited one walks into Object.prototype, a table every object answers with, and the judgement would then be handed a document this write is not about. */
+const ownAt = (at, key) =>
+  (at !== null && typeof at === "object" && Object.hasOwn(at, key) ? at[key] : undefined);
+
+const define = (at, key, value) =>
+  Object.defineProperty(at, key, { value, writable: true, enumerable: true, configurable: true });
+
+/** The parsed document this write would leave, or the key on the way to it that holds something other than a table — the case the text walk refuses too, read first so the judgement comes before it. */
 export const settingTo = (parsed, segments, value) => {
   const held = structuredClone(parsed);
   let at = held;
   for (const [index, key] of segments.slice(0, -1).entries()) {
-    if (at[key] === undefined) at[key] = {};
-    if (!at[key] || typeof at[key] !== "object" || Array.isArray(at[key])) {
-      return { blocked: segments.slice(0, index + 1).join("."), holds: at[key] };
+    if (ownAt(at, key) === undefined) define(at, key, {});
+    const next = ownAt(at, key);
+    if (!next || typeof next !== "object" || Array.isArray(next)) {
+      return { blocked: segments.slice(0, index + 1).join("."), holds: next };
     }
-    at = at[key];
+    at = next;
   }
-  at[segments.at(-1)] = value;
+  define(at, segments.at(-1), value);
   return { parsed: held };
 };
 
-export const readAt = (parsed, segments) =>
-  segments.reduce((at, key) => (at === null || typeof at !== "object" ? undefined : at[key]), parsed);
+export const readAt = (parsed, segments) => segments.reduce((at, key) => ownAt(at, key), parsed);
+
+export const SET_USAGE = "forge doctor --set <key>=<value>";
+export const READS_IT = "forge doctor";
+
+/** A project key's value printed as it was written rather than measured: "3 entries" is the one thing
+ *  a read back of a list cannot say. */
+export const asWritten = (value) => JSON.stringify(value ?? null);
+
+/* Through a sibling and renamed into place, the install and the restore alike: a plain write opens the destination truncating, so one that fails part way leaves neither the bytes it replaced nor the ones it was writing, and a restore doing that would destroy the very state its refusal is about to report. The mode is set on the handle rather than asked for at creation, a umask otherwise narrowing a file this project shares. */
+export const wroteWhole = (path, text) => {
+  const temporary = `${path}.${process.pid}.tmp`;
+  try {
+    const mode = statSync(path).mode & 0o777;
+    const handle = openSync(temporary, "w", mode);
+    try {
+      fchmodSync(handle, mode);
+      writeFileSync(handle, text);
+    } finally {
+      closeSync(handle);
+    }
+    renameSync(temporary, path);
+  } catch (error) {
+    rmSync(temporary, { force: true });
+    throw error;
+  }
+};
+
+const openedFile = (key) => {
+  const named = projectFilePath();
+  if (!named) {
+    fail(`--set: \`${key}\` is a key of ${FROM_PROJECT} and no such file was found on the way up from `
+      + "here, so nothing was written. Run this from a checkout that has one.");
+  }
+  let path = named;
+  try {
+    path = realpathSync(named);
+    const held = readFileSync(path, "utf8");
+    const parsed = JSON.parse(held);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      fail(`--set: ${path} holds ${Array.isArray(parsed) ? "a list" : JSON.stringify(parsed)} where a `
+        + `JSON object with this project's keys in it belongs, and \`${key}\` is a key of that object. `
+        + "Nothing was written.");
+    }
+    return { path, held, parsed };
+  } catch (error) {
+    if (error instanceof Refusal) throw error;
+    return fail(`--set: ${path} is the file \`${key}\` is a key of and this could not read it as JSON, `
+      + `so nothing was written: ${error.message}`);
+  }
+};
+
+/* Both ways out after the bytes have landed, and neither may say nothing was written: a read that
+   throws and a value that is not the one sent leave the same new file behind, and a restore that fails
+   over either leaves a third state nobody would otherwise be told about. */
+const putBack = (path, held, why) => {
+  try {
+    wroteWhole(path, held);
+  } catch (error) {
+    fail(`--set: ${why} Putting the previous bytes back failed too: ${error.message}. That file holds `
+      + `what this call wrote and nothing here changed it further — read it: ${READS_IT}`);
+  }
+  fail(`--set: ${why} ${path} is back at what it held — read it and set that key by hand: ${READS_IT}`);
+};
+
+/** The one key written into the file's own text and read back off it, judged between the two by the
+ *  reader that already reads it: what this took and that reader refuses would fail later instead. */
+export const projectWrite = (route, value) => {
+  const { path, held, parsed } = openedFile(route.key);
+  const would = settingTo(parsed, route.segments, value);
+  if (would.blocked) {
+    fail(`--set: \`${route.key}\` goes inside \`${would.blocked}\`, which this file holds as `
+      + `${JSON.stringify(would.holds)} rather than as a table. Nothing was written: ${path}`);
+  }
+  const refusal = PROJECT_KEYS[route.top].judge(would.parsed[route.top]);
+  if (refusal) fail(`--set: ${refusal} Nothing was written: ${path} is as it was.`);
+  const text = withPath(held, route.segments, value);
+  if (text === null) {
+    fail(`--set: ${path} parses as JSON and this could not find where \`${route.key}\` sits in its `
+      + "text, so writing it would mean re-serializing the whole document and reflowing every key "
+      + `beside it. Nothing was written — set this one by hand: ${READS_IT} prints what it holds.`);
+  }
+  try {
+    wroteWhole(path, text);
+  } catch (error) {
+    fail(`--set: ${path} is the file \`${route.key}\` is a key of and this could not write it, so `
+      + `nothing was written: ${error.message}`);
+  }
+  /* Off the disk, never off the text this call composed, which is the only reading that can tell a
+     write from the span the resolver goes on to read. */
+  let back = null;
+  try {
+    back = JSON.parse(readFileSync(path, "utf8"));
+  } catch (error) {
+    putBack(path, held, `${path} was written and could not be read back, so nothing here can say what `
+      + `it now holds: ${error.message}.`);
+  }
+  const kept = readAt(back, route.segments);
+  if (JSON.stringify(kept) !== JSON.stringify(value)) {
+    putBack(path, held, `${route.key} was written as ${JSON.stringify(value)} and ${path} reads back `
+      + `${JSON.stringify(kept ?? null)}, so that file declares the key somewhere this write did not `
+      + "reach.");
+  }
+  return [`${route.name}.${route.key}: ${asWritten(kept)}  ← ${path}`];
+};
+
