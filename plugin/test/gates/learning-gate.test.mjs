@@ -24,11 +24,18 @@ const ask = (event) =>
   callHook(HOOK, { session_id: randomUUID(), ...event }, HOME);
 
 const decided = (run) => {
-  const answer = answered(run)?.hookSpecificOutput;
-  return answer
-    ? { allowed: answer.permissionDecision !== "deny", reason: answer.permissionDecisionReason }
-    : { allowed: true };
+  const said = answered(run);
+  if (said === null) return { allowed: true };
+  const answer = said.hookSpecificOutput;
+  return { allowed: answer.permissionDecision !== "deny", reason: answer.permissionDecisionReason };
 };
+
+/* Silence is this gate allowing; an answer with no decision in it is neither, and reading the two as
+   one would let a malformed answer stand for permission (ISS-1909). */
+test("an answer carrying no decision is malformed, and only silence is this gate allowing", () => {
+  assert.deepEqual(decided({ status: 0, stdout: "", stderr: "" }), { allowed: true });
+  assert.throws(() => decided({ status: 0, stdout: "{}", stderr: "" }));
+});
 
 const decide = (command) => decided(ask({ tool_name: "Bash", tool_input: { command } }));
 const at = (cwd, command) => decided(ask({ tool_name: "Bash", tool_input: { command }, cwd }));
