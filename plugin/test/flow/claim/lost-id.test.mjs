@@ -41,11 +41,9 @@ const heldBy = (holder, pid = "3448870") => {
 
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
   issues: [ISSUE],
   comments: { [UUID]: [] },
   answer: {
-    forge_config: () => ({ config: state.config }),
     forge_issues: (args) => {
       if (args.action === "list") return { issues: state.issues, returned: 1, hasMore: false };
       if (args.action === "update") Object.assign(ISSUE, args.data);

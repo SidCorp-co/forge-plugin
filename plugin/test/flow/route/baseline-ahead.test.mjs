@@ -70,12 +70,10 @@ const ISSUE = {
 };
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
   issues: [ISSUE],
   comments: { "ahead-uuid": [] },
   answer: {},
 };
-state.answer.forge_config = () => ({ config: state.config });
 state.answer.forge_issues = (args) => {
   if (args.action === "list") return { issues: state.issues, returned: 1, hasMore: false };
   if (args.action === "get") return ISSUE;

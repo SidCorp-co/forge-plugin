@@ -68,7 +68,6 @@ const APPROVED = {
 };
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
   issues: [CONFIRMED, APPROVED],
   comments: {
     "resumed-uuid": [
@@ -78,7 +77,6 @@ const state = {
         body: render("decision", { decision: [], none: "none found" }) },
     ],
   },
-  answer: { forge_config: () => ({ config: state.config }) },
 };
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());

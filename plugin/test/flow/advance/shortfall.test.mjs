@@ -20,7 +20,6 @@ const OPEN = {
 const COUNTED = { ...OPEN, documentId: "counted-uuid", issueId: "ISS-98" };
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
   issues: [OPEN, COUNTED],
   answer: {},
 };
@@ -32,7 +31,6 @@ state.answer.forge_comments = (args) => {
   if (args.filters?.issue === "short-uuid") return { comments: rows, hasMore: true };
   return { comments: rows, total: 9, hasMore: false };
 };
-state.answer.forge_config = () => ({ config: state.config });
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], tracker.env);

@@ -36,7 +36,6 @@ const state = {
     "forge_projects.update": (args) => ({ ...rows[0], ...args.data }),
     "forge_projects.archive": () => ({ ...rows[0], archivedAt: "2026-09-08T00:00:00.000Z" }),
     "forge_projects.unarchive": () => ({ ...rows[0], archivedAt: null }),
-    forge_guide: () => ({ guides: [] }),
   },
 };
 
