@@ -8,7 +8,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { callHook, homeEnv, pathed, tempRoom } from "../../fixtures.mjs";
+import { answered, callHook, homeEnv, pathed, tempRoom } from "../../fixtures.mjs";
 
 const HOOK = new URL("../../../hooks/entries/codex/codex-turn.mjs", import.meta.url).pathname;
 const HOME = homeEnv("codex-turn");
@@ -55,7 +55,7 @@ const fired = (root, rel, at, session = "s1") => {
     HOME,
   );
   assert.equal(run.status, 0, run.stderr);
-  const said = run.stdout.trim() ? JSON.parse(run.stdout).hookSpecificOutput.additionalContext : null;
+  const said = answered(run)?.hookSpecificOutput?.additionalContext ?? null;
   return said ?? null;
 };
 
@@ -108,7 +108,7 @@ const firedAs = (session, root, rel, at) => {
     { ...HOME, FORGE_SESSION_ID: session },
   );
   assert.equal(run.status, 0, run.stderr);
-  return run.stdout.trim() ? JSON.parse(run.stdout).hookSpecificOutput.additionalContext : null;
+  return answered(run)?.hookSpecificOutput?.additionalContext ?? null;
 };
 
 test("the hint is credited under the session, the surface codex-turn and the digest of its text", () => {

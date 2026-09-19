@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { callHook, tempRoom } from "../../fixtures.mjs";
+import { answered, callHook, tempRoom } from "../../fixtures.mjs";
 import { digest } from "../../../src/codex/codex-api.mjs";
 import { typed } from "../../../src/hooks/shell-spans.mjs";
 
@@ -44,7 +44,7 @@ const gate = ({ command, pending = ["work.mjs"], log = "", project = GATED, env 
     { hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command }, session_id: `s${count}`, cwd: REPO },
     { ...process.env, XDG_CONFIG_HOME: room, ...env },
   );
-  return run.stdout.trim() ? JSON.parse(run.stdout) : null;
+  return answered(run);
 };
 const because = (out) => out?.hookSpecificOutput?.permissionDecisionReason ?? "";
 
@@ -60,7 +60,7 @@ const again = (command) => {
     { hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command }, session_id: `s${count}`, cwd: REPO },
     { ...process.env, XDG_CONFIG_HOME: room },
   );
-  return run.stdout.trim() ? JSON.parse(run.stdout) : null;
+  return answered(run);
 };
 
 test("a gate the project named waits for the documents it would judge, and says what reads them", () => {
@@ -190,7 +190,7 @@ test("the tree is where the cd in the same command left the shell, and every tre
       { hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command }, session_id: "s-away", cwd: REPO },
       { ...process.env, XDG_CONFIG_HOME: room },
     );
-    return run.stdout.trim() ? JSON.parse(run.stdout) : null;
+    return answered(run);
   };
   const moved = because(away(`cd ${other} && make verify`));
   assert.match(moved, /make\.mjs/u, "classed against the tree it left, `make verify` is no gate of anybody's");

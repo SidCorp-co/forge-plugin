@@ -8,7 +8,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { callHook, cleanRepo, escaped, pathed, tempRoom, typed } from "../../fixtures.mjs";
+import { answered, callHook, cleanRepo, escaped, pathed, tempRoom, typed } from "../../fixtures.mjs";
 import { FIELD, KEY } from "../../../src/flow/lease.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
 
@@ -49,7 +49,7 @@ const written = (records) => {
 const stopped = (env, event) => {
   const held = callHook(HOOK, { hook_event_name: "Stop", session_id: randomUUID(), ...event }, env);
   assert.equal(held.status, 0, held.stderr);
-  return held.stdout.trim() ? JSON.parse(held.stdout) : null;
+  return answered(held);
 };
 
 const git = (dir, ...argv) =>

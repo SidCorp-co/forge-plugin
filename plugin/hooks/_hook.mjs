@@ -100,7 +100,7 @@ export const dispatch = async (given, ev = readEvent()) => {
   for (const name of names) {
     if (hookOff(name)) continue;
     current = name;
-    /* Out of time refuses a call (a re-send gets a fresh clock) and logs after one; a kill leaves neither. */
+    /* Out of time refuses a call (a re-send gets a fresh clock); after one it logs, and says so on stderr where whoever ran this can read it, since a gate that did not run writes exactly what one that allowed writes. A kill leaves neither. */
     if (remaining() <= 0) {
       if (kind === "pre") {
         const reason = `The hooks ran out of time before ${name} could decide this call. Re-send it.`;
@@ -109,6 +109,7 @@ export const dispatch = async (given, ev = readEvent()) => {
         return;
       }
       logged("error", `${name} skipped: the post clock ran out before it`);
+      process.stderr.write(`forge hooks: ${name} was skipped: the post clock ran out before it\n`);
       continue;
     }
     try {

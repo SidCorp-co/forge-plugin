@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { callHook, homeEnv, tempRoom } from "../fixtures.mjs";
+import { answered, callHook, homeEnv, tempRoom } from "../fixtures.mjs";
 
 const HOOK = new URL("../../hooks/entries/derive-dont-list.mjs", import.meta.url).pathname;
 const HOME = homeEnv("derive-dont-list");
@@ -25,7 +25,7 @@ const nudge = (name, content, session = randomUUID()) => {
     HOME,
   );
   assert.equal(run.status, 0, run.stderr);
-  return run.stdout.trim() ? JSON.parse(run.stdout).reason : null;
+  return answered(run)?.reason ?? null;
 };
 
 test("a checker hard-coding what it could derive is asked once, and told where to look", () => {

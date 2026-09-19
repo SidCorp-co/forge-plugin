@@ -8,7 +8,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, realpathSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { callHook, escaped, homeEnv, pathed, tempRoom } from "../fixtures.mjs";
+import { answered, callHook, escaped, homeEnv, pathed, tempRoom } from "../fixtures.mjs";
 
 const HOOK = new URL("../../hooks/entries/learning-landed.mjs", import.meta.url).pathname;
 const HOME = homeEnv("learning-landed");
@@ -26,7 +26,7 @@ const landed = (session, name, { dir = room, old, existing } = {}) => {
     HOME,
   );
   assert.equal(run.status, 0, run.stderr);
-  return run.stdout.trim() ? JSON.parse(run.stdout).reason : null;
+  return answered(run)?.reason ?? null;
 };
 
 const committed = (repo, what) => {
@@ -134,7 +134,7 @@ test("a delegated run's sweep reads the project's memory and not its own transcr
     HOME,
   );
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout.trim() && JSON.parse(run.stdout).reason || "", /by-a-delegated-script\.md/u,
+  assert.match(answered(run)?.reason ?? "", /by-a-delegated-script\.md/u,
     "the sweep looked beside the agent's transcript, where the host keeps no memory");
 });
 

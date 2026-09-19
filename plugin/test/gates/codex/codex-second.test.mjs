@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { callHook, pathed, tempRoom, typed } from "../../fixtures.mjs";
+import { answered, callHook, pathed, tempRoom, typed } from "../../fixtures.mjs";
 import { commitAim } from "../../../hooks/gates/codex/codex-second.mjs";
 import { clearableOf, stagedIn } from "../../../src/codex/codex-state.mjs";
 import { digest } from "../../../src/codex/codex-api.mjs";
@@ -49,7 +49,7 @@ const gate = ({ session, env = {}, command, log, pending, pendingIn, stage } = {
     { ...process.env, XDG_CONFIG_HOME: room, ...env },
   );
   stderrSaid = run.stderr;
-  return run.stdout.trim() ? JSON.parse(run.stdout) : null;
+  return answered(run);
 };
 const because = (out) => out?.hookSpecificOutput?.permissionDecisionReason ?? "";
 let stderrSaid = "";
@@ -210,7 +210,7 @@ test("a document recorded in one tree does not hold a commit in another", () => 
       { tool_name: "Bash", tool_input: { command: `cd ${pathed(worktree)} && git commit -m x` }, session_id: `wt-${root}-${Date.now()}`, cwd: main },
       { ...process.env, XDG_CONFIG_HOME: home },
     );
-    return because(out.stdout.trim() ? JSON.parse(out.stdout) : null);
+    return because(answered(out));
   };
   assert.equal(asked(main), "", "the main checkout's record is not the worktree commit's to answer for");
   assert.ok(asked(worktree).includes(`stages in ${worktree}`), "and the worktree's own record still holds it");
@@ -305,7 +305,7 @@ const fourSaid = (repo, home, command) => {
     { tool_name: "Bash", tool_input: { command }, session_id: "s-four", cwd: repo },
     { ...process.env, XDG_CONFIG_HOME: home },
   );
-  return because(out.stdout.trim() ? JSON.parse(out.stdout) : null);
+  return because(answered(out));
 };
 
 test("what a commit is asked for is the record's unread class, not the record", () => {

@@ -29,7 +29,7 @@ const ISSUE = {
 };
 
 /* The tracker's own `get`: it projects the names it declared and always carries both identifiers. */
-const answered = (args) => {
+const projects = (args) => {
   if (args.action === "list") return { issues: [ISSUE], returned: 1, hasMore: false };
   if (args.action !== "get") return {};
   if (!args.fields) return ISSUE;
@@ -40,14 +40,14 @@ const answered = (args) => {
   };
 };
 
-const state = { issues: [ISSUE], comments: {}, calls: [], answer: { forge_issues: answered } };
+const state = { issues: [ISSUE], comments: {}, calls: [], answer: { forge_issues: projects } };
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
 const asked = async (...argv) => {
   state.calls.length = 0;
   const run = await ranAsync(FORGE, ["issue", "ISS-1", ...argv], tracker.env, ROOT, null);
-  return { ...run, body: run.status === 0 ? JSON.parse(run.stdout) : null };
+  return { ...run, get body() { return JSON.parse(run.stdout); } };
 };
 
 /* Sorted, because the parts of one read are asked for together and arrive in no fixed order. */

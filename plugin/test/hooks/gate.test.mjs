@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { dirtyRepo, pathed, tempRoom } from "../fixtures.mjs";
+import { answered, dirtyRepo, pathed, tempRoom } from "../fixtures.mjs";
 import { patience } from "../patience.mjs";
 import { gateFile } from "../../src/hooks/hook-switch.mjs";
 
@@ -21,7 +21,6 @@ const run = (names, event, env = {}) =>
     encoding: "utf8",
     env: { ...process.env, XDG_CONFIG_HOME: HOME, ...env },
   });
-const out = (held) => (held.stdout.trim() ? JSON.parse(held.stdout) : null);
 
 /* The line about where to file a wrong refusal costs a read of the project's key, bounded because a
    reader that hangs must never take a refusal already decided with it (ISS-761). */
@@ -53,7 +52,7 @@ test("a git that never answers costs neither the refusal nor the line about fili
   const began = Date.now();
   const held = run(["pre", "bash-guard"], ev, { PATH: `${bin}:${process.env.PATH}`, FORGE_SESSION_ID: "stalled" });
   const took = Date.now() - began;
-  const answer = out(held)?.hookSpecificOutput;
+  const answer = answered(held)?.hookSpecificOutput;
   assert.equal(answer?.permissionDecision, "deny", `the refusal still arrives: ${held.stderr}`);
   assert.match(answer.permissionDecisionReason, /select by name/u, "and it is the rule's own reason");
   assert.match(answer.permissionDecisionReason, /forge feedback/u, "and the route still resolves, no git being asked");
@@ -63,11 +62,11 @@ test("a git that never answers costs neither the refusal nor the line about fili
 test("before a call, the first gate to refuse is the answer and the rest are not asked", () => {
   const cwd = dirtyRepo();
   const ev = { tool_name: "Bash", tool_input: { command: "git stash" }, cwd, session_id: "g1" };
-  const held = out(run(["bash-guard", "codex-second", "learning-gate", "issue-read-first"], ev, { FORGE_SESSION_ID: "g1" }));
+  const held = answered(run(["bash-guard", "codex-second", "learning-gate", "issue-read-first"], ev, { FORGE_SESSION_ID: "g1" }));
   assert.equal(held.hookSpecificOutput.permissionDecision, "deny");
   assert.match(held.hookSpecificOutput.permissionDecisionReason, /git stash silently reverts/u);
   assert.match(held.hookSpecificOutput.permissionDecisionReason, /forge hooks --how bash-guard/u, "the refusal names its own gate");
-  assert.equal(out(run(["bash-guard"], { ...ev, tool_input: { command: "git stash list" } })), null, "silence is silence");
+  assert.equal(answered(run(["bash-guard"], { ...ev, tool_input: { command: "git stash list" } })), null, "silence is silence");
   /* Two gates with a reason: one answer, the first's, and the second is never asked. Its own
      session, because what this asks is which gate answered and not what the answer said in full. */
   const twice = `git stash; sed -i s/a/b/ ${pathed(`${cwd}/.claude/projects/x/memory/note.md`)}`;
@@ -83,9 +82,9 @@ test("a gate switched off on the line is skipped, and one that is not still answ
   writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({ hooksOff: ["bash-guard"] }));
   try {
     const ev = { tool_name: "Bash", tool_input: { command: "git stash" }, cwd, session_id: "g2" };
-    assert.equal(out(run(["bash-guard", "codex-turn"], ev)), null, "the switched-off gate does not refuse");
+    assert.equal(answered(run(["bash-guard", "codex-turn"], ev)), null, "the switched-off gate does not refuse");
     writeFileSync(join(HOME, "forge", "config.json"), "{}");
-    assert.equal(out(run(["bash-guard"], ev))?.hookSpecificOutput?.permissionDecision, "deny");
+    assert.equal(answered(run(["bash-guard"], ev))?.hookSpecificOutput?.permissionDecision, "deny");
   } finally {
     writeFileSync(join(HOME, "forge", "config.json"), "{}");
   }
@@ -100,7 +99,7 @@ test("after a call, every gate's block and context travel together", () => {
   mkdirIfNeeded(join(room, "docs"));
   writeFileSync(join(room, "docs", "PLAN.md"), "# plan\n");
   const ev = { tool_name: "Bash", tool_input: { command: "touch scripts/check-things.mjs docs/PLAN.md" }, cwd: room, session_id: `g3-${Date.now()}` };
-  const held = out(run(["derive-dont-list", "codex-turn"], ev));
+  const held = answered(run(["derive-dont-list", "codex-turn"], ev));
   assert.equal(held.decision, "block", "derive-dont-list blocked");
   assert.match(held.reason, /hard-code 3 constants/u);
   assert.match(held.hookSpecificOutput.additionalContext, /You changed a document this turn/u, "and codex-turn still spoke");
@@ -142,7 +141,8 @@ test("a gate that crashes is skipped and logged, and the line goes on", () => {
   const ev = { tool_name: "Write", tool_input: { file_path: join(room, "docs", "PLAN.md") }, cwd: room, session_id: `g4-${Date.now()}` };
   const held = run(["post", "../../test/boom-gate", "codex-turn"], ev);
   assert.match(held.stderr, /boom-gate failed and was skipped: boom/u);
-  assert.match(out(held).hookSpecificOutput.additionalContext, /You changed a document/u, "the gate after it still spoke");
+  assert.match(answered(held, { skipped: ["../../test/boom-gate"] }).hookSpecificOutput.additionalContext,
+    /You changed a document/u, "the gate after it still spoke");
   const log = readFileSync(join(HOME, "forge", "hook-log.jsonl"), "utf8").trim().split("\n").map((one) => JSON.parse(one));
   assert.ok(log.some((one) => one.decision === "error" && /boom/u.test(one.reason)), "the crash is a line in the log");
 });
@@ -183,6 +183,23 @@ test("out of time before a call refuses it, and after one is a line in the log",
   assert.ok(log.some((one) => one.decision === "error" && /codex-turn skipped: the post clock ran out/u.test(one.reason)));
 });
 
+/* A gate the clock skipped writes no answer and exits zero, and so does a gate that allowed: one
+   value for two meanings, which is what a case reading that silence would assert (ISS-1909). Read
+   from a child, because what the rule is about is what a caller holding the result can tell. */
+test("a post gate the clock skipped says so where the caller reads it, and leaves the call allowed", () => {
+  const harness = new URL("../../hooks/_hook.mjs", import.meta.url).href;
+  const probe = `const { DEADLINES, dispatch } = await import(${JSON.stringify(harness)});\n`
+    + `DEADLINES.post = -1;\n`
+    + `await dispatch(["post", "codex-turn"], { tool_name: "Bash", tool_input: { command: "true" },`
+    + ` cwd: process.cwd(), session_id: "clock" });\n`;
+  const held = spawnSync(process.execPath, ["--input-type=module", "-e", probe],
+    { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: HOME } });
+  assert.equal(held.status, 0, held.stderr);
+  assert.equal(held.stdout, "", "the call still goes: a gate that did not run refuses nothing");
+  assert.match(held.stderr, /^forge hooks: codex-turn was skipped: the post clock ran out before it$/mu,
+    `the skip is only in the log, which the caller does not hold:\n${held.stderr}`);
+});
+
 /* The advisor is server-side: nothing fires when it speaks, so a transcript is all a gate could read
    and the carry could only be judged by a word. The line is read off hooks.json rather than listed,
    so a gate added to it is asked this too instead of bringing that reading back unnoticed. */
@@ -208,7 +225,7 @@ test("a transcript holding an advisor result stops neither the consult after it 
     cwd,
     session_id: `advised-${Date.now()}`,
   };
-  assert.equal(out(run(registered, ev)), null, "the consult goes, whatever the advisor said and the intent left out");
+  assert.equal(answered(run(registered, ev)), null, "the consult goes, whatever the advisor said and the intent left out");
   const wrote = { ...ev, tool_input: { command: `printf x > ${pathed(join(cwd, "work.mjs"))}` } };
-  assert.equal(out(run(registered, wrote)), null, "and so does the write after it, with the tree unconsulted");
+  assert.equal(answered(run(registered, wrote)), null, "and so does the write after it, with the tree unconsulted");
 });

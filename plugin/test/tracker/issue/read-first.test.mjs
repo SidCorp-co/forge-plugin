@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { joined, targetsOfTool, writeTargets } from "../../../src/tracker/issue-read.mjs";
 import { isReference } from "../../../src/tracker/issues.mjs";
 import { shellText, starts } from "../../../hooks/_hook.mjs";
-import { callHookAsync, fakeTracker, pathed, tempHome, tempRoom } from "../../fixtures.mjs";
+import { answered, callHookAsync, fakeTracker, pathed, tempHome, tempRoom } from "../../fixtures.mjs";
 
 const bash = (command) => ({ name: "Bash", input: { command } });
 /* The hook's own wiring: the target is read where a command starts, so it is given the starts. */
@@ -179,7 +179,7 @@ const live = () => tracker.url;
 let session = 0;
 /* `harness` is the shape production has: no hook is handed a `FORGE_SESSION_ID`, so the id it holds
    is whatever dispatched the session and the run's own is in the command it is judging (ISS-497). */
-const gate = async (command, { url = live(), fresh = true, harness = null, cwd = process.cwd() } = {}) => {
+const gate = async (command, { url = live(), fresh = true, harness = null, cwd = process.cwd(), exit = 0 } = {}) => {
   if (fresh) session += 1;
   endpoint(url);
   const env = { ...process.env, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: `probe-${session}` };
@@ -187,8 +187,8 @@ const gate = async (command, { url = live(), fresh = true, harness = null, cwd =
     delete env.FORGE_SESSION_ID;
     env.CLAUDE_CODE_SESSION_ID = harness;
   }
-  const run = await callHookAsync(HOOK, { tool_name: "Bash", tool_input: { command }, cwd }, env, cwd);
-  return { ...run, out: run.stdout.trim() ? JSON.parse(run.stdout) : null };
+  const run = await callHookAsync(HOOK, { tool_name: "Bash", tool_input: { command }, cwd }, env, cwd, { exit });
+  return { ...run, out: answered(run, { exit }) };
 };
 const because = (run) => run.out?.hookSpecificOutput?.permissionDecisionReason ?? "";
 
@@ -415,8 +415,9 @@ test("with no endpoint saved the gate stands down", async () => {
 });
 
 test("a tracker that will not answer leaves the write alone and says why", async () => {
-  const run = await gate(edgeWrite(), { url: "http://127.0.0.1:1/mcp" });
-  assert.equal(run.out, null, "nothing is denied on no evidence");
+  const run = await gate(edgeWrite(), { url: "http://127.0.0.1:1/mcp", exit: 1 });
+  assert.equal(run.out, null,
+    "nothing is denied on no evidence, this gate having ended the process rather than decided");
   assert.match(run.stderr, /Forge did not answer/u, "and the reason is on the line");
 });
 
@@ -440,7 +441,7 @@ const raw = async (input, { name = "mcp__forge__forge_issues", url = live(), wit
   const run = await callHookAsync(HOOK, { tool_name: name, tool_input: input, cwd: process.cwd() }, {
     ...process.env, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: session,
   });
-  return { ...run, out: run.stdout.trim() ? JSON.parse(run.stdout) : null };
+  return { ...run, out: answered(run) };
 };
 
 const filing = async (data, options = {}) => raw({ action: "create", data }, options);

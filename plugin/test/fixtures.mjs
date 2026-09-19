@@ -1,5 +1,6 @@
 /* How Claude Code calls a gate. Unwrapping the answer stays each suite's: `deny()` and `block()` do
    not answer alike, and the git rules need a tree with work to lose. */
+import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
@@ -35,9 +36,27 @@ export { pathed, typed } from "../src/hooks/shell-spans.mjs";
 
 export const jsonlOf = (rows) => Buffer.from(rows.map((one) => `${JSON.stringify(one)}\n`).join(""));
 
+/* A gate that allowed writes nothing, and so do a child that died, a gate that threw and a gate the clock skipped: the three that are not an answer are told apart here and nowhere else (ISS-1909).
+   A case whose subject is one of them says so — `exit` for a gate that ends the process rather than deciding, `skipped` for a gate it meant the runner to catch — and every other case is refused. */
+const SKIPPED = /^forge hooks: (\S+) (?:failed and )?was skipped:/gmu;
+const spoke = (run, { exit = 0, skipped = [] } = {}) => {
+  assert.equal(run.status, exit,
+    `the child exited ${run.signal ? `on ${run.signal}` : run.status} rather than answering: ${run.stderr}`);
+  assert.deepEqual([...String(run.stderr).matchAll(SKIPPED)].map((one) => one[1])
+    .filter((one) => !skipped.includes(one)), [],
+    "a gate did not run, so this silence is not a gate allowing: say so in the case that meant it, "
+    + "with { skipped: [gate] } on the call that spawned it or on answered()");
+  return run;
+};
+
+export const answered = (run, said) => {
+  spoke(run, said);
+  return run.stdout.trim() ? JSON.parse(run.stdout) : null;
+};
+
 /* `cwd` is the project the hook stands in, a different question from the event's `cwd`: the settings resolver walks up from the process, so a case varying a `.forge.json` key sets this. */
-export const callHook = (hook, event, env = process.env, cwd = process.cwd()) =>
-  spawnSync(process.execPath, [hook], { input: JSON.stringify(event), encoding: "utf8", env, cwd });
+export const callHook = (hook, event, env = process.env, cwd = process.cwd(), said) =>
+  spoke(spawnSync(process.execPath, [hook], { input: JSON.stringify(event), encoding: "utf8", env, cwd }), said);
 
 /* A child awaited rather than waited on: anything that asks a server the test itself is running
    deadlocks under `spawnSync`, which holds the loop that would answer it. */
@@ -56,7 +75,7 @@ export const ranAsync = (command, argv, env = process.env, cwd = process.cwd(), 
     child.stdin.end(stdin ?? undefined);
   });
 
-export const callHookAsync = (hook, event, env = process.env, cwd = process.cwd()) =>
+export const callHookAsync = (hook, event, env = process.env, cwd = process.cwd(), said) =>
   new Promise((done) => {
     const child = spawn(process.execPath, [hook], { env, cwd });
     let stdout = "";
@@ -67,9 +86,9 @@ export const callHookAsync = (hook, event, env = process.env, cwd = process.cwd(
     child.stderr.on("data", (chunk) => {
       stderr += chunk;
     });
-    child.on("close", (status) => done({ stdout, stderr, status }));
+    child.on("close", (status, signal) => done({ stdout, stderr, status, signal }));
     child.stdin.end(JSON.stringify(event));
-  });
+  }).then((run) => spoke(run, said));
 
 /* Thousands of these have filled the mount a shell needed (ISS-42, ISS-125), on a tmpfs out of inodes while gigabytes are free.
    So a suite's rooms go inside one root this process removes on its way out, the pid in its name because Ctrl-C runs no handler:

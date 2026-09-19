@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { callHook, homeEnv, tempRoom } from "../fixtures.mjs";
+import { answered, callHook, homeEnv, tempRoom } from "../fixtures.mjs";
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "learning-gate.mjs");
 /* A refusal writes to the config dir now, so a suite that skips this one logs onto the developer. */
@@ -23,17 +23,17 @@ const SKILL_DIR = "/home/dev/app/plugin/skills/issue-flow";
 const ask = (event) =>
   callHook(HOOK, { session_id: randomUUID(), ...event }, HOME);
 
-const answered = (run) => {
-  assert.equal(run.status, 0, run.stderr);
-  if (!run.stdout.trim()) return { allowed: true };
-  const answer = JSON.parse(run.stdout).hookSpecificOutput;
-  return { allowed: answer.permissionDecision !== "deny", reason: answer.permissionDecisionReason };
+const decided = (run) => {
+  const answer = answered(run)?.hookSpecificOutput;
+  return answer
+    ? { allowed: answer.permissionDecision !== "deny", reason: answer.permissionDecisionReason }
+    : { allowed: true };
 };
 
-const decide = (command) => answered(ask({ tool_name: "Bash", tool_input: { command } }));
-const at = (cwd, command) => answered(ask({ tool_name: "Bash", tool_input: { command }, cwd }));
+const decide = (command) => decided(ask({ tool_name: "Bash", tool_input: { command } }));
+const at = (cwd, command) => decided(ask({ tool_name: "Bash", tool_input: { command }, cwd }));
 /* The endpoint's one route: a connected client's own tool call, with its arguments already parsed. */
-const called = (input) => answered(ask({ tool_name: `mcp__forge__forge${"_"}memory${"_"}write`, tool_input: input }));
+const called = (input) => decided(ask({ tool_name: `mcp__forge__forge${"_"}memory${"_"}write`, tool_input: input }));
 
 /* A value naming another was dropped whole rather than carried, so this exact write — found by firing
    the live gate — landed a memory file with nothing asked. The `/memory/` it spells out is enough. */
@@ -521,7 +521,7 @@ const write = (name, content, tool = "Write") => {
       HOME,
     );
     assert.equal(run.status, 0, run.stderr);
-    return run.stdout.trim() ? JSON.parse(run.stdout).hookSpecificOutput.permissionDecisionReason : null;
+    return answered(run)?.hookSpecificOutput?.permissionDecisionReason ?? null;
   };
   return { first: once(), again: once() };
 };

@@ -7,7 +7,7 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { git, ranAsync, tempRoom } from "../fixtures.mjs";
+import { answered, git, ranAsync, tempRoom } from "../fixtures.mjs";
 
 import { reviewCounts, reviewedAt, REVIEWED, SHIPPED_LINES,
   SHIPPED_PATHS } from "../../src/git/reviewed.mjs";
@@ -38,13 +38,15 @@ const built = (name, review, { mark = true } = {}) => {
   return room;
 };
 
+/* The child prints its answer whatever that answer is, so `null` here is the reader deciding nothing
+   and never the reader failing to run: `answered` proves it exited before there is anything to read. */
 const standing = async (room) => {
-  const { stdout, stderr, status } = await ranAsync(process.execPath,
+  const run = await ranAsync(process.execPath,
     ["--input-type=module", "-e",
       `import { reviewStanding } from ${JSON.stringify(MODULE)};`
       + ` console.log(JSON.stringify(reviewStanding(process.cwd())));`],
     process.env, room);
-  return { said: status === 0 ? JSON.parse(stdout) : null, stderr, status };
+  return { said: answered(run), stderr: run.stderr, status: run.status };
 };
 
 /* The readers a release step calls, which exit where the report's own reader hands back a sentence. */

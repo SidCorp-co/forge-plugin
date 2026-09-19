@@ -12,7 +12,7 @@ import test from "node:test";
 import { VERBS, actionIn, gateKey, verbFor, wrappedRefusal, wrapsOf } from "../../src/resolve/visibility.mjs";
 import { noRouteRefusal } from "../../src/tracker/routes.mjs";
 import { toolOfCall } from "../../src/tracker/issue-read.mjs";
-import { callHookAsync, fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
+import { answered, callHookAsync, fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "cli.mjs");
 const SLUG = "wrapped-fixture";
@@ -196,7 +196,7 @@ const gatedKnowledge = async () => {
 const HOOK = new URL("../../hooks/entries/issue-read-first.mjs", import.meta.url).pathname;
 const refusedBy = async (env, cwd, name, input) => {
   const run = await callHookAsync(HOOK, { tool_name: name, tool_input: input, cwd }, env, cwd);
-  return JSON.parse(run.stdout || "{}")?.hookSpecificOutput?.permissionDecisionReason ?? run.stdout;
+  return answered(run)?.hookSpecificOutput?.permissionDecisionReason ?? run.stdout;
 };
 
 /* A pair no row claims is named back rather than offered a verb nobody has. */

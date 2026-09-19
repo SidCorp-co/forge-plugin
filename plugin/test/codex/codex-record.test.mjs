@@ -6,7 +6,7 @@ import test from "node:test";
 import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
-import { callHook, jsonlOf, pathed, tempRoom } from "../fixtures.mjs";
+import { answered, callHook, jsonlOf, pathed, tempRoom } from "../fixtures.mjs";
 
 const HOOK = new URL("../../hooks/entries/codex/codex-second.mjs", import.meta.url).pathname;
 
@@ -297,7 +297,7 @@ test("a commit is refused for a path the record took only because the index held
   assert.match(hookRecord({}, [file], teller()("t1")) ?? "", /docs\/READ\.md/u, "recorded off the index");
   const run = callHook(HOOK, { tool_name: "Bash", cwd: root, tool_input: { command: `git -C ${pathed(root)} commit -m work` } },
     { ...process.env, XDG_CONFIG_HOME: sandbox });
-  const out = run.stdout.trim() ? JSON.parse(run.stdout) : null;
+  const out = answered(run);
   assert.match(out?.hookSpecificOutput?.permissionDecisionReason ?? "", /has not read what this commit stages/u);
   assert.match(out?.hookSpecificOutput?.permissionDecisionReason ?? "", /docs\/READ\.md/u, "and it names the file");
   assert.equal(git("show", ":docs/READ.md").stdout, "no reviewer has seen this\n", "which is what the index still holds");
