@@ -44,7 +44,7 @@
     }
   },
   "lease": {
-    "workingRe": "(^|-c )\\S*node \\S*tools/run\\.mjs (ship|land|land-ready)( |$)"
+    "workingRe": "^(\\S*(sh|bash) -c )?\\S*node( -\\S+)* \\S*tools/run\\.mjs (ship|land|land-ready)( |$)"
   },
   "stop": {
     "agents": [

@@ -66,7 +66,7 @@ server is reported by `forge doctor` with the command that saves the same values
   "flow": "default",
   "drainedBy": "dispatcher",
   "landing": "after-merge",
-  "lease": { "workingRe": "(^|-c )\\S*node \\S*tools/run\\.mjs (ship|land|land-ready)( |$)" },
+  "lease": { "workingRe": "^(\\S*(sh|bash) -c )?\\S*node( -\\S+)* \\S*tools/run\\.mjs (ship|land|land-ready)( |$)" },
   "stats": { "commands": { "gate": "npm run check" } }
 }
 ```
