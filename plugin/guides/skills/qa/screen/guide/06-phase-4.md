@@ -9,6 +9,15 @@ the contract decides, and the verb prints its answer for this issue. **No rung i
 skipped is a status nothing was judged at, and the record it would have read is the record whoever
 reopens this issue reads instead.
 
+**Every judged issue resolves to one of three, and which one turns on whether anything blocks.**
+Nothing blocking means the issue goes on: the rungs are walked and the change reaches its release
+with the record saying what was judged and at which identity. Something blocking means the reopen
+below. The third is a criterion met short of its wording where what is missing demonstrates no harm
+or falls outside what this issue undertook — and that one goes on to release *as well as* becoming
+its own row, filed against this issue so the reference holds both ends. Holding a good change for a
+defect nobody was harmed by is the first failure; passing the observation over in silence is the
+second, and filing is what avoids both.
+
 **A blocking finding reopens the issue**: `forge advance <ref> --reopen --why "<what blocks it>"`,
 which is the one move that puts a judged rejection back in front of whoever ranks work to be built.
 A park is for an issue waiting on a person, and this is not waiting on one. Under the move go the

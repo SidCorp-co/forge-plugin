@@ -45,6 +45,14 @@ accident rather than on purpose — the empty list, the lapsed session, the fiel
 second submit, the back button. A criterion exercised only down the path that works is a criterion
 you have not tested.
 
+The screen comes first and the source second. A criterion is reached by using the thing answering at
+the identity you were given, and the charter is walked against what renders rather than against what
+the code says will render. Reading the source afterwards is how a finding gets a location — the file
+and the line a behaviour comes from, so the run that has to act on it starts where you finished
+rather than from your prose. Taken the other way round it settles the answer before the observation
+and then goes looking for it, and a verdict whose evidence is a file path and nothing else is a code
+review under a judge's name.
+
 A verdict is worth what its reader can re-run: the steps you took, what you expected, what you
 observed. Attach what you saw. The capture goes through the shell, because a judge that can write the
 tree is one that can fix what it found — so the artifact is a rendered state driven by whatever
