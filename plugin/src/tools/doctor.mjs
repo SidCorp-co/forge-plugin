@@ -42,7 +42,7 @@ import { rankLines } from "./services/doctor/rank.mjs";
 import { SAYS, SUBJECT_SLUGS, USAGE as SUBJECT_USAGE } from "./services/doctor/subjects.mjs";
 import { didYouMean } from "../suggest.mjs";
 import {
-  BAD, NOTE, OK, block, closing, line, missedHere, reading, report, shown, under,
+  BAD, NOTE, OK, block, closing, line, missedHere, reading, report, shown, stopping, under,
 } from "./services/doctor/showing.mjs";
 import { held, projectKeyLines } from "./services/doctor/keys.mjs";
 import { ORDER } from "../flow/earned.mjs";
@@ -286,7 +286,7 @@ const checkEndpoint = async (full, credentials) => {
   /* Neutral about which half: a dead host and a slug the tracker holds no project for both refuse
      here, and the refusal's own words are what tells them apart (consult 3aa1cb, F2). */
   if (held.refused) {
-    return line(BAD, "tracker", `${restBase()} did not answer for this project, so nothing below `
+    return stopping("tracker", `${restBase()} did not answer for this project, so nothing below `
       + `this line was read — ${held.refused}. Check \`endpoint url\` and \`project slug\` above`);
   }
   line(OK, "project id", full ? held.id : `resolved from the slug (--full to print it)`);

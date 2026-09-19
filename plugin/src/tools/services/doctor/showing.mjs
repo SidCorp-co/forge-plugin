@@ -42,6 +42,12 @@ export const report = (rows) => {
   for (const row of rows) line(LEVELS[row.level] ?? OK, row.label, row.detail);
 };
 
+/* A miss that stops the reading rather than reporting on part of it: the reason the rest could not be read is the answer to whatever subject was asked for, so it prints there and counts. */
+export const stopping = (label, detail) => {
+  under(asked ?? here);
+  line(BAD, label, detail);
+};
+
 /* A block a reader reads rather than scans, and never the finding itself. */
 export const block = (text) => {
   if (shown(here)) console.log(text);

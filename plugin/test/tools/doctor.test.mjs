@@ -204,7 +204,7 @@ const afterTheHostWent = async () => {
   const ran = (subject) => ranAsync(process.execPath, [CLI, "doctor", ...(subject ? [subject] : [])], tracker.env, cwd);
   const live = await ran("tracker");
   tracker.close();
-  return { live, gone: await ran() };
+  return { live, gone: await ran(), stopped: await ran("brief") };
 };
 
 /* AC-01-3-1: a setting that resolved to nothing is reported, not omitted. An exit at the project's
@@ -224,6 +224,16 @@ test("a tracker that stopped answering is a line of the report and not the end o
   assert.doesNotMatch(gone.stderr, /^Forge did not answer/mu,
     "the reason is on the surface a caller matches, not the one it never reads");
   assert.equal(gone.status, 1, "a report that reached none of its tracker half is a miss, and the exit says so");
+});
+
+/* A subject answers for itself alone, and the reason it could not be read is not another subject's
+   news: filtered there, `forge doctor brief` would print nothing and exit 0 (ISS-1692, codex F1). */
+test("a subject whose reading the tracker stopped says so and exits on it", async () => {
+  const { stopped } = await afterTheHostWent();
+  assert.match(stopped.stdout, /\[ miss \] tracker\s+http:\/\/127\.0\.0\.1:\d+\/api did not answer for this project/u,
+    "the stop prints in the reading that asked, whatever subject it names");
+  assert.doesNotMatch(stopped.stdout, /^project brief/mu, "and the brief it came for is not there");
+  assert.equal(stopped.status, 1, "so a reading nobody could take is not a green one");
 });
 
 /* Two things refuse at that one read — a host that is not there, and a host that is and holds no
