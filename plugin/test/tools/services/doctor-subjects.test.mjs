@@ -53,6 +53,7 @@ test("a subject that needs the project and finds no slug says so and exits on it
     "while a bare reading keeps the note: a credential outside any checkout is an ordinary state");
   assert.doesNotMatch(bare.said, /\[ miss \] project slug/u);
   assert.match(bare.said, /No project slug: capability probes are project-scoped and were skipped/u);
+  assert.equal(bare.status, 0, "and stays green: the note is the whole of what it counts");
 });
 
 test("the verb's help gives every subject a line, and each subject's help opens on its own call", () => {
