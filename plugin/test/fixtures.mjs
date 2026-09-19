@@ -266,7 +266,6 @@ const asAttachment = (held, part = {}) => {
     size: held?.size ?? part.bytes?.length ?? 0,
     createdAt: held?.createdAt ?? "2026-09-07T00:00:00.000Z",
     url: held?.url ?? `/api/attachments/${id}/download`,
-    ...(held?.refused ? { refused: held.refused, code: held.code } : {}),
   };
 };
 
@@ -311,6 +310,11 @@ const SETTINGS = {
 };
 
 const MERGE_ROUTE = /^\/api\/issues\/[^/]+\/merge$/u;
+
+/* The keys a handler fails with, read off its answer and never off a route's: a route that pages,
+   projects or defaults that answer drops them, and its 200 reads as a tracker holding nothing (ISS-618). */
+const FAILURE = ["refused", "http", "notARecord"];
+const failed = (held) => FAILURE.some((key) => held?.[key]);
 
 /* Declared JSON with nothing under it, which only the merge handler was measured refusing: every other route serves that shape, knowledge's own DELETE answering `deleted` with the header or without, so a fake refusing it everywhere would be a red for a request the tracker takes (ISS-729). */
 const emptyJson = ({ method, headers }) => (method === "POST" || method === "DELETE")
@@ -391,6 +395,7 @@ export const fakeTracker = async (state) => {
     if (pending) pending.stood = true;
   };
 
+  let refusal = null;
   /* A handler a test registered wins over the built-in one, exactly as it did on the other
      transport: the key is the tool's name, and never a route. */
   const answered = (name, args) => {
@@ -399,6 +404,7 @@ export const fakeTracker = async (state) => {
     if (name === "forge_projects.list") {
       for (const one of held.projects ?? []) SLUGS.set(one.id, one.slug);
     }
+    if (!refusal && failed(held)) refusal = held;
     return held;
   };
 
@@ -457,11 +463,8 @@ export const fakeTracker = async (state) => {
   /* One row per route the CLI may call: the pattern it matches, and the envelope its tool-shaped
      answer becomes. `parts` names what a route serves out of a body the handler answered whole. */
   const ROUTES = [
-    /* A refusal travels out whole: paged, it answers 200 with no rows, which reads as an empty backlog. */
-    [/^\/api\/projects\/[^/]+\/issues\/search$/u, (q) => {
-      const held = answered("forge_issues", { action: "list", filters: { search: q.get("q") } });
-      return held?.refused ? held : windowOn(q, held);
-    }],
+    [/^\/api\/projects\/[^/]+\/issues\/search$/u, (q) =>
+      windowOn(q, answered("forge_issues", { action: "list", filters: { search: q.get("q") } }))],
     [/^\/api\/projects\/([^/]+)\/issues$/u, (q, sent, method, [project]) => {
       if (method === "POST") return asRow(answered("forge_issues", { action: "create", project, data: sent }));
       /* Omitted where the query narrowed on nothing, exactly as the caller omits it: a handler
@@ -469,7 +472,7 @@ export const fakeTracker = async (state) => {
       const narrowed = filtersFrom(q);
       const held = answered("forge_issues",
         { action: "list", project, ...(Object.keys(narrowed).length ? { filters: narrowed } : {}) });
-      return held?.refused ? held : windowOn(q, held, q.get("sort"));
+      return windowOn(q, held, q.get("sort"));
     }],
     [/^\/api\/issues\/([^/]+)\/dependencies\/([^/]+)$/u, (q, sent, method, [id, edgeId]) =>
       answered("forge_issues", { action: "unlink_edge", documentId: id, edgeId })],
@@ -489,10 +492,9 @@ export const fakeTracker = async (state) => {
       /* Neither coerced nor derived: `hasMore: null` is an envelope saying nothing of its own
          completeness, and a `total` above the rows sent is one no reader may take off those rows. */
       const says = Object.hasOwn(held ?? {}, "hasMore") ? held.hasMore : false;
-      const failing = held.refused || held.notARecord;
       const counted = Object.hasOwn(held ?? {}, "total") ? { total: held.total } : {};
       const walking = Object.hasOwn(held ?? {}, "nextCursor") ? { nextCursor: held.nextCursor } : {};
-      return { ...asPage(rows, 0, rows.length, says), ...counted, ...walking, ...(failing ? held : {}) };
+      return { ...asPage(rows, 0, rows.length, says), ...counted, ...walking };
     }],
     [/^\/api\/issues\/([^/]+)\/transition$/u, (q, sent, method, [id]) => {
       const { toStatus, ...rest } = sent;
@@ -530,8 +532,7 @@ export const fakeTracker = async (state) => {
       if (state.answer?.["forge_projects.read"]) return answered("forge_projects.read", { projectRef: id });
       const config = answered("forge_config", { action: "get" });
       const detail = state.answer?.["forge_projects.get"] ? answered("forge_projects.get", {}) : {};
-      if (config?.refused) return config;
-      return detail.refused ? detail : projectRow({ ...config, ...detail });
+      return projectRow({ ...config, ...detail });
     }],
     [/^\/api\/projects$/u, (q, sent, method) => (method === "POST"
       ? answered("forge_projects.create", { data: sent })
@@ -570,8 +571,10 @@ export const fakeTracker = async (state) => {
       return;
     }
     const [, ...caught] = row[0].exec(url.pathname);
-    const answer = row[1](url.searchParams, sent, request.method, caught);
+    refusal = null;
+    const built = row[1](url.searchParams, sent, request.method, caught);
     if (!pending.stood) (state.calls ??= []).push(pending);
+    const answer = refusal ?? built;
     if (answer?.refused) {
       response.writeHead(400, { "Content-Type": "application/json" });
       /* The tracker's own code where a handler names one: what an upload's refusal is read by. */
@@ -597,7 +600,8 @@ export const fakeTracker = async (state) => {
   mkdirSync(join(home.path, "forge"), { recursive: true });
   const url = `http://127.0.0.1:${served.address().port}/mcp`;
   writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url, token: "t", retrySeconds: 0 }));
-  return { url, env: { ...process.env, XDG_CONFIG_HOME: home.path }, close: () => served.close(),
+  return { url, routes: ROUTES.map(([pattern]) => pattern.source),
+    env: { ...process.env, XDG_CONFIG_HOME: home.path }, close: () => served.close(),
     unref: () => served.unref() };
 };
 
