@@ -6,7 +6,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { clockFor, deadlineOf, parsedOr, ranOut, secondsGiven } from "../wire/request.mjs";
-import { sawAnswer } from "../wire/shared-clock.mjs";
+import { sawAnswer, sharedNow } from "../wire/shared-clock.mjs";
 import { reserveIn, sawBudget, unpredictedIn } from "../wire/budget.mjs";
 import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
 import { FROM_PROJECT, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
@@ -96,12 +96,24 @@ const send = ({ path, method = "GET", form, body }, signal) => {
 };
 
 /* What a caller inside somebody else's clock needs: one attempt rather than the ladder, `waits` for its own deadline, `signal` for its own abort, and `spend` charged before each attempt — so a refusal is one the other end never saw, and a retry and a nested lookup are both counted. A caller naming no deadline still gets one, fresh per attempt: no answer at all is the failure a count of attempts cannot bound. */
+const waited = (seconds, signal) => new Promise((done) => {
+  const timer = setTimeout(done, seconds * 1000);
+  signal?.addEventListener("abort", () => {
+    clearTimeout(timer);
+    done();
+  }, { once: true });
+});
+
 /* The wait the tracker's own stated budget makes predictable, taken before the send rather than
-   discovered by the refusal after it (ISS-1849). */
-const paced = async (key) => {
-  for (let held = reserveIn(key); held; held = reserveIn(key)) {
+   discovered by the refusal after it (ISS-1849). Against the tracker's own clock, the reset being an
+   instant in its frame, and inside the deadline and the abort the caller declared: a wait nobody
+   budgeted for is not this to take on their behalf. */
+const paced = async (key, { waits = null, signal = null } = {}) => {
+  const within = deadlineOf(waits).millis;
+  for (let held = reserveIn(key, sharedNow(), within); held; held = reserveIn(key, sharedNow(), within)) {
+    if (signal?.aborted) return;
     if (held.said) console.error(held.said);
-    await sleep(held.seconds);
+    await waited(held.seconds, signal);
   }
 };
 
@@ -117,7 +129,7 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
     if (stop) return { response: null, text: "", dropped: null, spent: stop };
     [text, response, dropped] = ["", null, null];
     try {
-      await paced(key);
+      await paced(key, { waits, signal });
       const sentAt = performance.now();
       response = await make(clock());
       sawAnswer(response.headers, sentAt, performance.now());

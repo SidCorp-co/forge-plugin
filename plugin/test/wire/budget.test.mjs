@@ -13,7 +13,16 @@ import {
 
 const KEY = "forge_memory.search";
 
-const headers = (held) => ({ get: (name) => (name in held ? String(held[name]) : null) });
+const headers = (held) => new Headers(Object.fromEntries(
+  Object.entries(held).map(([name, value]) => [name, String(value)])));
+
+/* The order every real call takes: the reservation, the send, then the answer's own reading. A case
+   that answers without reserving is one whose call this process never made. */
+const call = (at, reading) => {
+  const held = reserveIn(KEY, at);
+  if (!held) sawBudget(KEY, stated(reading));
+  return held;
+};
 
 const stated = ({ scope = "write", limit = 60, remaining = 59, resetAt }) => headers({
   "x-ratelimit-scope": scope,
@@ -70,14 +79,14 @@ test("past the stated reset the call goes rather than a window being computed to
 
 test("a window this process spent by itself accuses nobody, and one it did not says at least how much", () => {
   forgetBudget();
-  sawBudget(KEY, stated({ limit: 60, remaining: 59, resetAt: 500_000 }));
+  call(460_000, { limit: 60, remaining: 59, resetAt: 500_000 });
   for (let one = 0; one < 59; one += 1) reserveIn(KEY, 460_000);
   sawBudget(KEY, stated({ limit: 60, remaining: 0, resetAt: 500_000 }));
   assert.equal(reserveIn(KEY, 460_000).said.includes("by something else"), false,
-    "60 spent against 59 reserved and the answer that opened the window is the sixtieth");
+    "60 spent against 59 reserved and the call that opened the window is the sixtieth");
 
   forgetBudget();
-  sawBudget(KEY, stated({ limit: 60, remaining: 59, resetAt: 500_000 }));
+  call(460_000, { limit: 60, remaining: 59, resetAt: 500_000 });
   for (let one = 0; one < 30; one += 1) reserveIn(KEY, 460_000);
   sawBudget(KEY, stated({ limit: 60, remaining: 0, resetAt: 500_000 }));
   assert.match(reserveIn(KEY, 460_000).said, /at least 29 of it by something else on this credential/u);
@@ -87,7 +96,7 @@ test("a window this process spent by itself accuses nobody, and one it did not s
    on the credential is never told it has company. */
 test("a call reserved before a reset and charged after it accuses nobody", () => {
   forgetBudget();
-  sawBudget(KEY, stated({ limit: 60, remaining: 59, resetAt: 600_000 }));
+  call(590_000, { limit: 60, remaining: 59, resetAt: 600_000 });
   reserveIn(KEY, 590_000);
   sawBudget(KEY, stated({ limit: 60, remaining: 59, resetAt: 660_000 }));
   for (let one = 0; one < 59; one += 1) reserveIn(KEY, 610_000);
@@ -113,4 +122,43 @@ test("one route's budget is not another's, the scope being the server's own word
   assert.equal(pacedBy("forge_issues.get"), "the read budget of 3600 a window");
   assert.equal(reserveIn("forge_issues.get", 700_000), null, "the read bucket has room");
   assert.ok(reserveIn(KEY, 700_000), "and the write bucket, spent, does not lend it any");
+});
+
+/* Twelve workers send before any of them has been answered, so none of those sends was ever taken
+   against a scope nothing had named yet: counted nowhere, they read afterwards as somebody else's. */
+test("the calls a route made before its bucket was named are still counted as this process's", () => {
+  forgetBudget();
+  for (let one = 0; one < 12; one += 1) assert.equal(reserveIn(KEY, 100_000), null, "nothing stated, nothing paced");
+  for (let one = 0; one < 12; one += 1) {
+    sawBudget(KEY, stated({ limit: 60, remaining: 59 - one, resetAt: 200_000 }));
+  }
+  for (let one = 0; one < 48; one += 1) reserveIn(KEY, 100_000);
+  sawBudget(KEY, stated({ limit: 60, remaining: 0, resetAt: 200_000 }));
+  assert.equal(reserveIn(KEY, 100_000).said.includes("by something else"), false,
+    "the window is spent and every call in it was this process's own");
+});
+
+/* A caller inside somebody else's clock declared how long it may take, and a reset a minute out is
+   longer than that: the call goes and meets whatever it would have met before any of this. */
+test("a wait longer than the caller's own deadline is not taken on its behalf", () => {
+  forgetBudget();
+  call(100_000, { limit: 60, remaining: 0, resetAt: 160_000 });
+  assert.ok(reserveIn(KEY, 100_000, 90_000), "inside its own clock it waits");
+  assert.equal(reserveIn(KEY, 100_000, 5_000), null, "past it the call goes rather than the caller waiting");
+});
+
+test("an answer missing one of the four numbers states no budget, rather than a window already spent", () => {
+  for (const missing of ["x-ratelimit-limit", "x-ratelimit-remaining", "x-ratelimit-reset"]) {
+    forgetBudget();
+    const held = new Headers({
+      "x-ratelimit-scope": "write",
+      "x-ratelimit-limit": "60",
+      "x-ratelimit-remaining": "59",
+      "x-ratelimit-reset": "200",
+    });
+    held.delete(missing);
+    sawBudget(KEY, held);
+    assert.equal(pacedBy(KEY), null, `${missing} absent is a reading short of one, not a zero`);
+    assert.equal(reserveIn(KEY, 100_000), null, `and nothing is paced against it: ${missing}`);
+  }
 });

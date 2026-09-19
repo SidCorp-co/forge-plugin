@@ -533,10 +533,14 @@ const stderrOf = async (call) => {
   return lines.join("\n");
 };
 
+/* The shared clock is a module's and outlives one case, so a case that moves it an hour puts every
+   case after it an hour out: both readings are dropped either side of the call. */
 const reading = async (headers, call) => {
   const { forgetBudget } = await import("../../src/wire/budget.mjs");
+  const { forgetClock } = await import("../../src/wire/shared-clock.mjs");
   const live = globalThis.fetch;
   forgetBudget();
+  forgetClock();
   asks = 0;
   globalThis.fetch = async () => {
     asks += 1;
@@ -547,13 +551,14 @@ const reading = async (headers, call) => {
   } finally {
     globalThis.fetch = live;
     forgetBudget();
+    forgetClock();
   }
 };
 
 const oneRead = () => callTool("forge_issues", { action: "get", documentId: "u-1", fields: [] }, true);
 
 test("a call the stated budget has no room for waits for the reset the tracker named before it is sent", async () => {
-  const reset = Math.ceil(Date.now() / 1000);
+  const reset = Math.ceil(Date.now() / 1000) + 1;
   const headers = budgeted({ "x-ratelimit-reset": reset });
   const waited = await reading(headers, async () => {
     await oneRead();
@@ -562,7 +567,7 @@ test("a call the stated budget has no room for waits for the reset the tracker n
     return { spent: Date.now() - began, said };
   });
   assert.equal(asks, 2, "both calls reached the tracker, the second after the wait rather than instead of it");
-  assert.ok(waited.spent >= 900, `the second call waited ${waited.spent}ms for the window the first one read`);
+  assert.ok(waited.spent >= 1_500, `the second call waited ${waited.spent}ms for the window the first one read`);
   assert.ok(waited.spent <= patience(6_000), `and no longer than the reset it was told: ${waited.spent}ms`);
   assert.match(waited.said, /Forge paced itself: the write budget of 1 is spent for this window/u, waited.said);
   assert.match(waited.said, /waiting \ds for the reset the tracker named, rather than sending calls it would refuse\./u,
@@ -586,4 +591,35 @@ test("a tracker stating no budget is sent what it is sent today, and a refusal i
   assert.equal(unpredictedIn("forge_issues.get"),
     "on the write budget, which the reading it was paced against did not predict");
   forgetBudget();
+});
+
+/* The reset is an instant in the tracker's frame, so a device an hour out of step with it would read
+   every window as either long over or an hour away. The clock the answers already place is the one. */
+test("the reset is read against the tracker's own clock rather than this device's", async () => {
+  const ahead = 3_600_000;
+  const headers = budgeted({
+    date: new Date(Date.now() + ahead).toUTCString(),
+    "x-ratelimit-reset": Math.ceil((Date.now() + ahead) / 1000) + 1,
+  });
+  const spent = await reading(headers, async () => {
+    await oneRead();
+    const began = Date.now();
+    await stderrOf(oneRead);
+    return Date.now() - began;
+  });
+  assert.equal(asks, 2, "both calls reached the tracker");
+  assert.ok(spent >= 1_500, `the wait is the two seconds the tracker's own frame says, not none: ${spent}ms`);
+  assert.ok(spent <= patience(8_000), `and not the hour this device's clock would make of it: ${spent}ms`);
+});
+
+test("a caller with a deadline of its own is not held past it by a window it never budgeted for", async () => {
+  const headers = budgeted({ "x-ratelimit-reset": Math.ceil(Date.now() / 1000) + 30 });
+  const spent = await reading(headers, async () => {
+    await callTool("forge_issues", { action: "get", documentId: "u-1", fields: [] }, true, { waits: 2 });
+    const began = Date.now();
+    await callTool("forge_issues", { action: "get", documentId: "u-1", fields: [] }, true, { waits: 2 });
+    return Date.now() - began;
+  });
+  assert.equal(asks, 2, "the second call went rather than waiting half a minute for a window");
+  assert.ok(spent <= patience(1_500), `and it went at once: ${spent}ms`);
 });

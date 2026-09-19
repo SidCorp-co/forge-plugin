@@ -10,9 +10,12 @@ const PAST_RESET_MS = 1000;
 
 let scopes = new Map();
 let routes = new Map();
+let unknown = new Map();
 
+/* `Number(null)` is 0, which would read an answer missing only `remaining` as a window spent. */
 const numbered = (headers, name) => {
-  const held = Number(headers?.get?.(name));
+  const said = headers?.get?.(name);
+  const held = String(said ?? "").trim() === "" ? NaN : Number(said);
   return Number.isFinite(held) ? held : null;
 };
 
@@ -20,10 +23,9 @@ const numbered = (headers, name) => {
 const outstandingIn = (held) => Math.max(0, held.sent - held.answers);
 
 /* A call reserved before a reset may be charged after it, so what was outstanding at the adoption
-   belongs to either window and is subtracted from both rather than credited to a sibling. The first
-   answer of all is its own such call: it went out before this knew the route had a scope. */
-const opened = (limit, remaining, resetAt, held) => {
-  const from = held ?? { sent: 1, answers: 0 };
+   belongs to either window and is subtracted from both rather than credited to a sibling. */
+const opened = (limit, remaining, resetAt, held, carried) => {
+  const from = { sent: (held?.sent ?? 0) + carried, answers: held?.answers ?? 0 };
   return {
     limit,
     remaining,
@@ -41,11 +43,16 @@ export const sawBudget = (key, headers) => {
   const scope = headers?.get?.(SCOPE);
   const [limit, remaining, reset] = [LIMIT, REMAINING, RESET].map((name) => numbered(headers, name));
   if (!scope || limit === null || remaining === null || reset === null) return;
-  if (key) routes.set(key, scope);
+  const carried = key && !routes.has(key) ? (unknown.get(key) ?? 0) : 0;
+  if (key) {
+    routes.set(key, scope);
+    unknown.delete(key);
+  }
   const resetAt = reset * 1000;
   const held = scopes.get(scope);
   if (held && resetAt < held.resetAt) return;
-  const now = !held || resetAt > held.resetAt ? opened(limit, remaining, resetAt, held) : held;
+  const now = !held || resetAt > held.resetAt ? opened(limit, remaining, resetAt, held, carried) : held;
+  if (now === held) now.sent += carried;
   scopes.set(scope, now);
   now.answers += 1;
   now.limit = limit;
@@ -60,9 +67,12 @@ const wentSaid = (held, scope) =>
   + (held.elsewhere > 0 ? `, at least ${held.elsewhere} of it by something else on this credential` : "")
   + "; waiting ";
 
-export const reserveIn = (key, now = Date.now()) => {
+export const reserveIn = (key, now, within = Infinity) => {
   const held = scopes.get(routes.get(key));
-  if (!held) return null;
+  if (!held) {
+    unknown.set(key, (unknown.get(key) ?? 0) + 1);
+    return null;
+  }
   const went = () => {
     held.sent += 1;
     return null;
@@ -76,6 +86,9 @@ export const reserveIn = (key, now = Date.now()) => {
     return went();
   }
   const seconds = Math.max(0, (held.resetAt + PAST_RESET_MS - now) / 1000);
+  /* A caller inside somebody else's clock may not be held past it: the call goes, and the refusal it
+     may meet is the one it would have met with none of this. */
+  if (seconds * 1000 > within) return went();
   const said = held.announced ? null : `${wentSaid(held, routes.get(key))}${Math.ceil(seconds)}s for `
     + "the reset the tracker named, rather than sending calls it would refuse.";
   held.announced = true;
@@ -98,4 +111,5 @@ export const pacedBy = (key) => {
 export const forgetBudget = () => {
   scopes = new Map();
   routes = new Map();
+  unknown = new Map();
 };
