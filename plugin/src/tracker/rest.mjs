@@ -7,6 +7,7 @@ import { join } from "node:path";
 
 import { clockFor, deadlineOf, parsedOr, ranOut, secondsGiven } from "../wire/request.mjs";
 import { sawAnswer } from "../wire/shared-clock.mjs";
+import { reserveIn, sawBudget, unpredictedIn } from "../wire/budget.mjs";
 import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
 import { FROM_PROJECT, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
@@ -95,7 +96,16 @@ const send = ({ path, method = "GET", form, body }, signal) => {
 };
 
 /* What a caller inside somebody else's clock needs: one attempt rather than the ladder, `waits` for its own deadline, `signal` for its own abort, and `spend` charged before each attempt — so a refusal is one the other end never saw, and a retry and a nested lookup are both counted. A caller naming no deadline still gets one, fresh per attempt: no answer at all is the failure a count of attempts cannot bound. */
-const attempted = async (make, repeatable, { once = false, spend = null, waits = null, signal = null } = {}) => {
+/* The wait the tracker's own stated budget makes predictable, taken before the send rather than
+   discovered by the refusal after it (ISS-1849). */
+const paced = async (key) => {
+  for (let held = reserveIn(key); held; held = reserveIn(key)) {
+    if (held.said) console.error(held.said);
+    await sleep(held.seconds);
+  }
+};
+
+const attempted = async (make, repeatable, { once = false, spend = null, waits = null, signal = null } = {}, key = null) => {
   const deadline = deadlineOf(waits);
   const clock = () => clockFor(deadline, signal);
   const attempts = once ? 1 : RETRY_ATTEMPTS;
@@ -107,9 +117,11 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
     if (stop) return { response: null, text: "", dropped: null, spent: stop };
     [text, response, dropped] = ["", null, null];
     try {
+      await paced(key);
       const sentAt = performance.now();
       response = await make(clock());
       sawAnswer(response.headers, sentAt, performance.now());
+      sawBudget(key, response.headers);
       text = await response.text();
     } catch (error) {
       dropped = error;
@@ -121,7 +133,7 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
     const limited = again === "rate-limited";
     const wait = limited ? retryAfter(text, response.headers) : backoff(attempt);
     const answered = dropped ? ranOut(dropped, deadline) : `answered ${response.status}`;
-    const said = limited ? "rate-limited this call" : answered;
+    const said = limited ? `rate-limited this call ${unpredictedIn(key)}` : answered;
     console.error(`Forge ${said}; waiting ${wait}s (attempt ${attempt} of ${attempts}).`);
     await sleep(wait);
   }
@@ -149,7 +161,7 @@ const aimedAt = async (row, args, soft, held) => {
 const refused = (message) => ({ refused: message });
 
 /* Every part of a row's answer is asked for at once: three routes cost one round trip, not three. */
-const fetchedParts = async (row, args, soft, held) => {
+const fetchedParts = async (key, row, args, soft, held) => {
   const project = await aimedAt(row, args, soft, held);
   if (project.refused) return [["page", refused(project.refused)]];
   const requests = row.requests(args, project.id);
@@ -158,6 +170,7 @@ const fetchedParts = async (row, args, soft, held) => {
       (signal) => send(request, signal),
       !row.writes,
       held,
+      key,
     );
     if (spent) return [part, refused(spent)];
     if (dropped) return [part, refused(`Forge did not answer ${request.method ?? "GET"} ${request.path}: `
@@ -200,7 +213,7 @@ export const callTool = async (name, args, soft = false, held = {}) => {
   if (!row) return stop(noRouteRefusal(key));
   const dropped = undeclaredIn(row, args);
   if (dropped.length) return stop(droppedRefusal(key, dropped, row));
-  const parts = await fetchedParts(row, args, soft, held);
+  const parts = await fetchedParts(key, row, args, soft, held);
   /* The tracker's words with nothing in front: a caller reading the first line frames it itself. */
   const bad = parts.find(([, held]) => held.refused);
   if (bad) return stop(bad[1].refused);

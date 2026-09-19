@@ -511,3 +511,79 @@ test("a read carrying the same key says nothing, and a write carrying none says 
   assert.equal(Object.hasOwn(bare.answer, "status"), false,
     "the status it moved to being the one it was asked for, which the caller already held");
 });
+
+/* The budget the tracker states on every answer, reaching the transport rather than the module that
+   holds it: a sweep discovered one per-minute window 108 times because nothing here read it (ISS-1849). */
+const budgeted = (held) => new Map(Object.entries({
+  "x-ratelimit-scope": "write",
+  "x-ratelimit-limit": "1",
+  "x-ratelimit-remaining": "0",
+  ...held,
+}).map(([name, value]) => [name, String(value)]));
+
+const stderrOf = async (call) => {
+  const held = console.error;
+  const lines = [];
+  console.error = (...said) => lines.push(said.join(" "));
+  try {
+    await call();
+  } finally {
+    console.error = held;
+  }
+  return lines.join("\n");
+};
+
+const reading = async (headers, call) => {
+  const { forgetBudget } = await import("../../src/wire/budget.mjs");
+  const live = globalThis.fetch;
+  forgetBudget();
+  asks = 0;
+  globalThis.fetch = async () => {
+    asks += 1;
+    return { ok: true, status: 200, headers, text: async () => "{}" };
+  };
+  try {
+    return await call();
+  } finally {
+    globalThis.fetch = live;
+    forgetBudget();
+  }
+};
+
+const oneRead = () => callTool("forge_issues", { action: "get", documentId: "u-1", fields: [] }, true);
+
+test("a call the stated budget has no room for waits for the reset the tracker named before it is sent", async () => {
+  const reset = Math.ceil(Date.now() / 1000);
+  const headers = budgeted({ "x-ratelimit-reset": reset });
+  const waited = await reading(headers, async () => {
+    await oneRead();
+    const began = Date.now();
+    const said = await stderrOf(oneRead);
+    return { spent: Date.now() - began, said };
+  });
+  assert.equal(asks, 2, "both calls reached the tracker, the second after the wait rather than instead of it");
+  assert.ok(waited.spent >= 900, `the second call waited ${waited.spent}ms for the window the first one read`);
+  assert.ok(waited.spent <= patience(6_000), `and no longer than the reset it was told: ${waited.spent}ms`);
+  assert.match(waited.said, /Forge paced itself: the write budget of 1 is spent for this window/u, waited.said);
+  assert.match(waited.said, /waiting \ds for the reset the tracker named, rather than sending calls it would refuse\./u,
+    waited.said);
+});
+
+test("a tracker stating no budget is sent what it is sent today, and a refusal it did not predict says which", async () => {
+  const bare = await reading(new Map(), async () => {
+    const began = Date.now();
+    await oneRead();
+    await oneRead();
+    return Date.now() - began;
+  });
+  assert.equal(asks, 2, "two calls, neither paced");
+  assert.ok(bare <= patience(2_000), `and nothing waited on a budget nobody stated: ${bare}ms`);
+
+  const { forgetBudget, sawBudget, unpredictedIn } = await import("../../src/wire/budget.mjs");
+  forgetBudget();
+  assert.equal(unpredictedIn("forge_issues.get"), "having read no budget from this tracker to pace against");
+  sawBudget("forge_issues.get", budgeted({ "x-ratelimit-reset": Math.ceil(Date.now() / 1000) + 3600 }));
+  assert.equal(unpredictedIn("forge_issues.get"),
+    "on the write budget, which the reading it was paced against did not predict");
+  forgetBudget();
+});

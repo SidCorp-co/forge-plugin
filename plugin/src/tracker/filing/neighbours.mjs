@@ -4,7 +4,8 @@ import { owesCause } from "../issue-shape.mjs";
 import { tried } from "../rest.mjs";
 import { firstLine } from "../../resolve/flags.mjs";
 
-const TOOL = "forge_memory.search";
+/** The route a sweep and a filing both spend, so a caller can ask what budget that is. */
+export const SEARCH_ROUTE = "forge_memory.search";
 const SOURCE = ["issue"];
 export const TOP_K = 10;
 /** The place net's own width, and not a display budget: how many issues naming this place may be eligible to take a finding, where the block below still prints `TOP_K` of them. Fifty because the deepest place rank at which the fold's own destination sat, measured 2026-09-14 over 24 open issues, was 34 — a ceiling and not an exhaustion point, the scored answer for a place as broad as a common verb running past any ask. Where the net ends is that score rather than this number: over six terms every hit the tracker scored above zero held the place term verbatim in the text it embedded, and none of the forty it scored zero did. docs/cli/beside.md carries both measurements. */
@@ -24,7 +25,7 @@ const ask = async (query, strategy, want) => {
   const text = String(query ?? "").trim();
   /* A `note` means a query that COULD not run, so one with no subject leaves none. */
   if (!text) return { hits: [], note: null };
-  const answer = await tried(TOOL, {
+  const answer = await tried(SEARCH_ROUTE, {
     query: text.slice(0, QUERY_MAX),
     topK: want,
     strategy,

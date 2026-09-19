@@ -1,7 +1,8 @@
 /* Every open issue measured against every other, through the search and the floor the create path
    already spends on one filing. It reads and reports; the act it leads to is a person's. What the
    score can and cannot say, and what one sweep costs: docs/cli/alike.md. */
-import { neighboursOf } from "../tracker/filing/neighbours.mjs";
+import { SEARCH_ROUTE, neighboursOf } from "../tracker/filing/neighbours.mjs";
+import { pacedBy } from "../wire/budget.mjs";
 import { familiesOf, linksFrom, sweepLines } from "./families.mjs";
 import { liveTitles } from "../tracker/issue-shape.mjs";
 import { shortOf } from "../tracker/issues.mjs";
@@ -12,6 +13,7 @@ import { helpOf } from "../resolve/visibility.mjs";
    is the 503 that 171 reads issued together came back with: docs/cli/alike.md. */
 const AT_ONCE = 12;
 const SAID_EVERY = 50;
+const MINUTE = 60_000;
 
 const spread = async (rows, each) => {
   const queue = [...rows];
@@ -21,12 +23,25 @@ const spread = async (rows, each) => {
   await Promise.all(Array.from({ length: Math.min(AT_ONCE, rows.length) }, worker));
 };
 
-/* On the error stream, so a reader piping the report gets the report alone. */
+/* A sweep of this backlog is a quarter of an hour of a session, so what it has left is said in the
+   time it will take at the rate it has taken, which needs nothing of the limiter's own semantics
+   (ISS-1849). On the error stream, so a reader piping the report gets the report alone. */
+const aheadSaid = (left, each) =>
+  (left > 0 ? `, ${Math.ceil((left * each) / MINUTE)} more minute(s) at this rate` : "");
+
+const pacedSaid = () => {
+  const held = pacedBy(SEARCH_ROUTE);
+  return held ? `, paced by ${held}` : "";
+};
+
 const saying = (total) => {
+  const began = performance.now();
   let done = 0;
   return () => {
     done += 1;
-    if (done % SAID_EVERY === 0 || done === total) console.error(`alike: ${done} of ${total} measured`);
+    if (done % SAID_EVERY !== 0 && done !== total) return;
+    const ahead = aheadSaid(total - done, (performance.now() - began) / done);
+    console.error(`alike: ${done} of ${total} measured${ahead}${pacedSaid()}`);
   };
 };
 

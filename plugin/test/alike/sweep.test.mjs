@@ -8,6 +8,8 @@ import test from "node:test";
 import { fakeTracker, ranAsync, shortPage } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+/* The sweep says where it is every fiftieth measurement, which is where it says the rest too. */
+const SAID_EVERY = 50;
 
 const titleOf = (at) => `the ${at}th thing this backlog says about itself`;
 const row = (at, status = "open") =>
@@ -176,4 +178,29 @@ test("a walk that came back short is reported as incomplete, though every query 
   const said = (await swept()).stdout;
   assert.match(said, /family 1/u, "what it did reach is still reported");
   assert.match(said, /The walk over the open issues reached .* and the reading is incomplete/u);
+});
+
+/* A sweep of the real backlog is a quarter of an hour, and a session that cannot tell puts a
+   ceiling on it and gets 550 of 943 (ISS-1849). What it needed was the two things here: the rate it
+   is running at, and the budget the tracker is pacing it by, read off that tracker's own answers. */
+test("the progress line says how long the rest will take and which budget is pacing it", async () => {
+  const rows = Array.from({ length: SAID_EVERY + 1 }, (one, at) => row(at + 1));
+  backlog(rows, {});
+  state.budget = {
+    "x-ratelimit-scope": "write",
+    "x-ratelimit-limit": 60,
+    "x-ratelimit-remaining": 59,
+    "x-ratelimit-reset": Math.ceil(Date.now() / 1000) + 3600,
+  };
+  try {
+    const said = (await swept()).stderr;
+    assert.match(said, new RegExp(`alike: ${SAID_EVERY} of ${rows.length} measured, \\d+ more minute\\(s\\) at this rate`, "u"),
+      `the rate it has run at, priced in minutes:\n${said}`);
+    assert.match(said, /paced by the write budget of 60 a window/u,
+      `and the bucket it is spending, in the server's own word for it:\n${said}`);
+    assert.doesNotMatch(said, new RegExp(`${rows.length} of ${rows.length} measured, \\d+ more minute`, "u"),
+      "and the last line forecasts nothing, there being nothing ahead of it");
+  } finally {
+    state.budget = null;
+  }
 });

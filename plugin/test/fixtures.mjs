@@ -506,6 +506,8 @@ export const fakeTracker = async (state) => {
   const served = createServer(async (request, response) => {
     response.sendDate = state.noDate !== true && !state.dateOffset;
     if (state.dateOffset) response.setHeader("Date", new Date(Date.now() + state.dateOffset).toUTCString());
+    /* The four the tracker states on every answer, so a case can watch a caller pace itself off them. */
+    for (const [name, held] of Object.entries(state.budget ?? {})) response.setHeader(name, String(held));
     if (state.status) {
       response.writeHead(state.status, { "Content-Type": "text/plain" });
       response.end("no");
