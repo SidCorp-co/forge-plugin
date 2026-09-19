@@ -8,7 +8,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync }
 import { join } from "node:path";
 
 import { STEPS, gateSteps, testWorkers } from "../../../tools/gates/steps.mjs";
-import { DEADLINE, DEFAULT_MINUTES, GONE, NO_GATE, TERMINAL } from "../../../tools/gate-verdict.mjs";
+import { DEADLINE, DEFAULT_MINUTES, GONE, NO_GATE, TERMINAL } from "../../../tools/gates/verdict.mjs";
 import { CALL_CEILING_SECONDS } from "../../src/host/call-ceiling.mjs";
 import { REVIEW } from "../../../tools/gates/timing.mjs";
 import { tempRoom } from "../fixtures.mjs";
@@ -568,7 +568,7 @@ test("a green run records its whole-run seconds and how many steps it spent; a r
 
 test("a test step runs on the workers this box derives, with node's own reporter, the per-file one and the failing-case one", () => {
   const [tree, rest] = gateSteps([...NAMED, "plugin/test/tools/one.test.mjs"]).filter((step) => step.tests);
-  const ours = (name) => `--test-reporter=${join(ROOT, "tools", "gates", name)}`;
+  const ours = (name) => `--test-reporter=${join(ROOT, "tools", "gates", "reporters", name)}`;
   for (const step of [tree, rest]) {
     const flags = step.argv.slice(2, 9);
     assert.deepEqual(flags, [`--test-concurrency=${testWorkers()}`,

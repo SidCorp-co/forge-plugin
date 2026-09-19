@@ -7,7 +7,7 @@ import { appendFileSync, existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 import { DEADLINE, gateDecided, gateStarted, gatesHere, GONE, NO_GATE, verdictPath, verdictRuns, waitForSlot,
-  waitForVerdict } from "../../../../../tools/gate-verdict.mjs";
+  waitForVerdict } from "../../../../../tools/gates/verdict.mjs";
 import { DECLINED } from "../../../../../tools/gates/machine.mjs";
 import { recordDir } from "../../../../../tools/gates/timing.mjs";
 import { STEPS } from "../../../../../tools/gates/steps.mjs";

@@ -5,13 +5,13 @@ import { existsSync, mkdtempSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { resultsFrom } from "./gates/counted.mjs";
-import { argvFor, CASES_ENV } from "./gates/isolation.mjs";
+import { resultsFrom } from "./gates/reporters/counted.mjs";
+import { argvFor, CASES_ENV } from "./gates/reporters/isolation.mjs";
 import { gateTmp } from "./gates/stamp-room.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(SELF), "..");
-const REPORTER = fileURLToPath(new URL("./gates/counted.mjs", import.meta.url));
+const REPORTER = fileURLToPath(new URL("./gates/reporters/counted.mjs", import.meta.url));
 
 const USAGE = `Usage: node tools/red.mjs <test file> <case name>
 

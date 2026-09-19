@@ -14,7 +14,7 @@ import { jsonlAt } from "../../../plugin/src/hooks/log/hook-log-file.mjs";
 import { copyToRun } from "../../../plugin/src/tools/plugin-copy.mjs";
 import { checkoutRoot, defaultBranch, git, gitOut, lines, loud, REMOTE, remoteRef,
   uncommittedIn } from "../../checkout.mjs";
-import { gatesHere, verdictPath } from "../../gate-verdict.mjs";
+import { gatesHere, verdictPath } from "../../gates/verdict.mjs";
 import { runnersOf } from "../../gates/machine.mjs";
 import { KEY, whoseTree, worktreePath } from "./occupant.mjs";
 import { scratchAt } from "./run-id.mjs";

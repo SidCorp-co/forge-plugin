@@ -8,7 +8,7 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { resultsFrom } from "../../../tools/gates/counted.mjs";
+import { resultsFrom } from "../../../tools/gates/reporters/counted.mjs";
 import { tempRoom } from "../fixtures.mjs";
 
 const ROOT = resolve(fileURLToPath(new URL("../../..", import.meta.url)));

@@ -7,7 +7,7 @@ import test from "node:test";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 
-import { CASES_ENV } from "../../../../tools/gates/isolation.mjs";
+import { CASES_ENV } from "../../../../tools/gates/reporters/isolation.mjs";
 import { escaped, fakeTracker } from "../../fixtures.mjs";
 import { COPIED, entryDir, landed, passesFor, ranGate, reachedFrom, ROOT as SCRATCH_ROOT,
   ROUTE_ROOTS, run, runsFile, scratch, STAMPED } from "./scratch.mjs";

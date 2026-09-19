@@ -7,7 +7,7 @@ import test from "node:test";
 import { readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
-import { DEADLINE, DEFAULT_MINUTES, gatesHere, waitForSlot, waitForVerdict } from "../../../../../tools/gate-verdict.mjs";
+import { DEADLINE, DEFAULT_MINUTES, gatesHere, waitForSlot, waitForVerdict } from "../../../../../tools/gates/verdict.mjs";
 import { recordDir, recordRun } from "../../../../../tools/gates/timing.mjs";
 import { STEPS } from "../../../../../tools/gates/steps.mjs";
 import { CALL_CEILING_SECONDS } from "../../../../src/host/call-ceiling.mjs";

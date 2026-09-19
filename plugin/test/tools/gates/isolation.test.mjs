@@ -7,10 +7,10 @@ import { spawnSync } from "node:child_process";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { argvFor, casesFrom, CASES_ENV, HUMAN_REPORTER, patternFor } from "../../../../tools/gates/isolation.mjs";
+import { argvFor, casesFrom, CASES_ENV, HUMAN_REPORTER, patternFor } from "../../../../tools/gates/reporters/isolation.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 
-const REPORTER = join(process.cwd(), "tools", "gates", "isolation.mjs");
+const REPORTER = join(process.cwd(), "tools", "gates", "reporters", "isolation.mjs");
 
 const NESTED = `import test from "node:test";
 test("outer (the enclosing one)", async (t) => {

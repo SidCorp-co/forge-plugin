@@ -11,9 +11,9 @@ import { fileURLToPath } from "node:url";
 
 import { crossTree, gitFiles, uncommittedInShared } from "./checkout.mjs";
 import { DEADLINE, DEFAULT_MINUTES, gateDecided, gateStarted, GONE, NO_GATE, said, TERMINAL, waitForSlot, waitForVerdict }
-  from "./gate-verdict.mjs";
+  from "./gates/verdict.mjs";
 import { CALL_CEILING_SECONDS } from "../plugin/src/host/call-ceiling.mjs";
-import { attribute, attributionLines, CASES_ENV } from "./gates/isolation.mjs";
+import { attribute, attributionLines, CASES_ENV } from "./gates/reporters/isolation.mjs";
 import { cheapestFirst, ENTRIES_PER_STEP, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from "./gates/ledger.mjs";
 import { PUTS_IT_BACK, said as saidMissing, unresolvedIn } from "../plugin/src/resolve/installed.mjs";
 import { DECLINED, placeFor, RAISE, runnersOf, SLOT, WAIT } from "./gates/machine.mjs";

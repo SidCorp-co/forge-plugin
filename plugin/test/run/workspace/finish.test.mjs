@@ -24,7 +24,7 @@ const ledger = (work) => join(work, ".git", "gate-ledger");
 
 /** A verdict record for that tree, written the way a gate writes one: one JSON line, appended. */
 const verdictFor = async (work, tree) => {
-  const { verdictPath } = await import("../../../../tools/gate-verdict.mjs");
+  const { verdictPath } = await import("../../../../tools/gates/verdict.mjs");
   const at = verdictPath(tree);
   mkdirSync(dirname(at), { recursive: true });
   writeFileSync(at, `${JSON.stringify({ tree, pid: 1, verdict: "pass", code: 0 })}\n`);

@@ -1,12 +1,12 @@
 /* What the gate decided, written where a second process can read it: 230 calls of one wave asked that by re-reading a log, in seven
    spellings of a line no gate writes, and two runs parked on a notice that says a process ended and never what it decided (ISS-1102).
    A wait exits on the line and never on the process, one that exited having written nothing being its own answer and not a pass. */
-import { gitOut, lines, parsed } from "./checkout.mjs";
-import { gatesOn, placeFor, PROC, runnersOf, SLOT, startedAt, WAIT } from "./gates/machine.mjs";
-import { verdictSaid } from "./gates/report/said.mjs";
-import { recordDir, treeKey, wholeGatesRecorded } from "./gates/timing.mjs";
-import { heldMinutes } from "../plugin/src/host/call-ceiling.mjs";
-import { watching } from "./watching.mjs";
+import { gitOut, lines, parsed } from "../checkout.mjs";
+import { gatesOn, placeFor, PROC, runnersOf, SLOT, startedAt, WAIT } from "./machine.mjs";
+import { verdictSaid } from "./report/said.mjs";
+import { recordDir, treeKey, wholeGatesRecorded } from "./timing.mjs";
+import { heldMinutes } from "../../plugin/src/host/call-ceiling.mjs";
+import { watching } from "../watching.mjs";
 import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 

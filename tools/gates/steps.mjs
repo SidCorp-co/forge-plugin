@@ -3,7 +3,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { parallelRuns } from "../../plugin/src/resolve/settings.mjs";
-import { HUMAN_REPORTER } from "./isolation.mjs";
+import { HUMAN_REPORTER } from "./reporters/isolation.mjs";
 import { digestFile } from "./ledger.mjs";
 import { under } from "./scope.mjs";
 
@@ -21,8 +21,8 @@ export const testWorkers = ({ cores = availableParallelism(), declared = paralle
 export const testFlags = (workers = testWorkers()) => [
   `--test-concurrency=${workers}`,
   `--test-reporter=${HUMAN_REPORTER}`, "--test-reporter-destination=stdout",
-  `--test-reporter=${ours("file-times.mjs")}`, "--test-reporter-destination=stdout",
-  `--test-reporter=${ours("isolation.mjs")}`, "--test-reporter-destination=stdout",
+  `--test-reporter=${ours("reporters/file-times.mjs")}`, "--test-reporter-destination=stdout",
+  `--test-reporter=${ours("reporters/isolation.mjs")}`, "--test-reporter-destination=stdout",
 ];
 
 /* The gate's steps and the paths each one reads. Nothing is inferred: every step is a script this

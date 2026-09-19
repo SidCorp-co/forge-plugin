@@ -9,12 +9,12 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { argvForTests, EVERYTHING, gateSteps, launcherOf, STEPS, TEST_FILE, testWorkers,
-  WHOLE_TREE_TESTS } from "../../../tools/gates/steps.mjs";
-import { derivationFiles, planFor, under } from "../../../tools/gates/scope.mjs";
-import { escapesIn, stepEscapes } from "../../../tools/gates/reads/sets.mjs";
-import { tempRoom } from "../fixtures.mjs";
+  WHOLE_TREE_TESTS } from "../../../../tools/gates/steps.mjs";
+import { derivationFiles, planFor, under } from "../../../../tools/gates/scope.mjs";
+import { escapesIn, stepEscapes } from "../../../../tools/gates/reads/sets.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 
-const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
+const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
 
 const tracked = () =>
   execFileSync("git", ["-C", ROOT, "ls-files"], { cwd: ROOT, encoding: "utf8" })
@@ -204,18 +204,18 @@ test("a launcher names a file of this tree by its repository path and content, a
   const reporters = launcher.filter((one) => one.includes("tools/gates/"));
   assert.equal(reporters.length, 2, `the launcher names ${reporters.length} file(s) of this tree`);
   for (const one of reporters) {
-    assert.match(one, /^--test-reporter=tools\/gates\/[\w.-]+\.mjs@[0-9a-f]{12}$/u);
+    assert.match(one, /^--test-reporter=tools\/gates\/reporters\/[\w.-]+\.mjs@[0-9a-f]{12}$/u);
   }
 });
 
 const treeWith = (at, name, text) => {
   const tree = join(at, name);
-  mkdirSync(join(tree, "tools", "gates"), { recursive: true });
-  writeFileSync(join(tree, "tools", "gates", "file-times.mjs"), text);
+  mkdirSync(join(tree, "tools", "gates", "reporters"), { recursive: true });
+  writeFileSync(join(tree, "tools", "gates", "reporters", "file-times.mjs"), text);
   return tree;
 };
 
-const stepIn = (tree, rel = "tools/gates/file-times.mjs") => ({
+const stepIn = (tree, rel = "tools/gates/reporters/file-times.mjs") => ({
   files: ["plugin/test/one.test.mjs"],
   argv: [process.execPath, "--test", "--test-concurrency=3", `--test-reporter=${join(tree, rel)}`,
     "--test-reporter-destination=stdout", "plugin/test/one.test.mjs"],
@@ -228,7 +228,7 @@ test("a launcher keeps every token naming no file of its tree, and gives the one
   try {
     const launcher = launcherOf(stepIn(treeWith(at, "checkout", "the reporter\n")), join(at, "checkout"));
     assert.deepEqual(launcher, [process.execPath, "--test", "--test-concurrency=3",
-      `--test-reporter=tools/gates/file-times.mjs@${digestOf("the reporter\n")}`,
+      `--test-reporter=tools/gates/reporters/file-times.mjs@${digestOf("the reporter\n")}`,
       "--test-reporter-destination=stdout"]);
   } finally {
     rmSync(at, { recursive: true, force: true });
@@ -244,10 +244,10 @@ test("two trees of one content key alike, and a reporter differing in content or
     const checkout = treeWith(at, "checkout", "the reporter\n");
     const worktree = treeWith(at, "worktree", "the reporter\n");
     assert.deepEqual(launcherOf(stepIn(worktree), worktree), launcherOf(stepIn(checkout), checkout));
-    writeFileSync(join(worktree, "tools", "gates", "other.mjs"), "the reporter\n");
-    assert.notDeepEqual(launcherOf(stepIn(worktree, "tools/gates/other.mjs"), worktree),
+    writeFileSync(join(worktree, "tools", "gates", "reporters", "other.mjs"), "the reporter\n");
+    assert.notDeepEqual(launcherOf(stepIn(worktree, "tools/gates/reporters/other.mjs"), worktree),
       launcherOf(stepIn(checkout), checkout), "the same bytes at another repository path");
-    writeFileSync(join(worktree, "tools", "gates", "file-times.mjs"), "the reporter, moved\n");
+    writeFileSync(join(worktree, "tools", "gates", "reporters", "file-times.mjs"), "the reporter, moved\n");
     assert.notDeepEqual(launcherOf(stepIn(worktree), worktree),
       launcherOf(stepIn(checkout), checkout), "other bytes at the same repository path");
   } finally {

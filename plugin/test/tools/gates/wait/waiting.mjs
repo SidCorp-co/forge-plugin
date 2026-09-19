@@ -1,5 +1,5 @@
 /* What a case about the gate wait needs of a tree and of a wait's own output, shared by the two files that ask: one about the answers a wait can give, one about the deadline it may be given to give them in. The minutes are a tick fast enough that a case waits on the state under test rather than on a constant, and the ceiling is the one the case declares rather than the one this repository does — a suite reading `.forge.json` would answer to the box it runs on. */
-import { waitForVerdict } from "../../../../../tools/gate-verdict.mjs";
+import { waitForVerdict } from "../../../../../tools/gates/verdict.mjs";
 import { placeFor } from "../../../../../tools/gates/machine.mjs";
 import { HANGS_IN, scratch } from "../scratch.mjs";
 
