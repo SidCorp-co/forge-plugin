@@ -595,7 +595,9 @@ test("the check's clock is the project's own where it names one, and the product
   };
   assert.equal(shown({ check: "npm test" }), "check : npm test, stopped at 300s ← the plugin's default");
   assert.equal(shown({ check: "npm test", checkMs: 600000 }), "check : npm test, stopped at 600s ← .forge.json");
-  for (const given of ["soon", 0, -1, 1.5]) {
+  /* `true` reads as 1ms and `[600000]` as 600000 under a bare coercion, and both are a clock nobody
+     typed being reported as one the project chose. */
+  for (const given of ["soon", 0, -1, 1.5, true, [600000], "600000"]) {
     assert.equal(shown({ check: "npm test", checkMs: given }),
       "check : npm test, stopped at 300s ← the plugin's default",
       `${given} is no clock, so the default stands and forge doctor is where the value is named`);

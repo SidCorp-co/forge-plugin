@@ -287,9 +287,10 @@ export const codexCheckOf = (codex) => {
   if (given === undefined || given === null) {
     return { command, ms: CHECK_MS_ABSENT, from: FROM_PROJECT, msFrom: PLUGIN_DEFAULT };
   }
-  const held = Number(given);
-  return Number.isInteger(held) && held > 0
-    ? { command, ms: held, from: FROM_PROJECT, msFrom: FROM_PROJECT }
+  /* The type before the value: `Number` reads `true` as 1 and `[600000]` as 600000, so a coercion
+     alone takes two things the key does not take and calls them a clock a project chose (BR-14). */
+  return typeof given === "number" && Number.isInteger(given) && given > 0
+    ? { command, ms: given, from: FROM_PROJECT, msFrom: FROM_PROJECT }
     /* Stringified rather than cast: `""` and `[]` cast to nothing at all, and a row naming nothing
        is the row a project that set the key legally would read. */
     : { command, ms: CHECK_MS_ABSENT, from: FROM_PROJECT, msFrom: PLUGIN_DEFAULT, unknown: JSON.stringify(given) };

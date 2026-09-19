@@ -89,6 +89,9 @@ test("a declared command carrying a quote or a backslash is found in the log it 
   const rows = [stop({ at: ago(2), root: "/tmp/q", command })];
   assert.deepEqual(ask(rows, { command }).map((one) => one.root), ["/tmp/q"]);
   assert.deepEqual(ask(rows, { command }).length, 1, "and once, not once per appearance of the mark");
+  const lines = "echo preparing\nnpm test";
+  assert.deepEqual(ask([stop({ at: ago(2), root: "/tmp/n", command: lines })], { command: lines }).map((one) => one.root),
+    ["/tmp/n"], "and a command written over two lines is one a project declared, not one to lose");
 });
 
 /* A record answers for the clock it was taken at: a project that moved past every recorded stop has

@@ -333,8 +333,10 @@ about.
   all, the reviewer being given no such tool where nothing was declared.
 - **AC-01-5-17** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "recorded stops of that same command name each one's own checkout, and a larger clock clears them"
   WHERE this machine's consult log records that same command stopped at or above the clock now in
-  force, the resolution report SHALL say how many and name the newest one's own checkout, and SHALL
-  count no record stopped under that clock, a record answering for the clock it was taken at.
+  force, inside a window the report states, the resolution report SHALL say how many and name the
+  newest one's own checkout by the time each record carries rather than by the order they were
+  written, and SHALL count no record stopped under that clock, a record answering for the clock it
+  was taken at.
 - **AC-01-5-18** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a check clock at or past the one a whole consult runs under is refused"
   IF that clock is at or past the one a whole consult runs under THEN the resolution report SHALL
   report it a fault, a check reaching such a clock costing the consult rather than coming back as a
