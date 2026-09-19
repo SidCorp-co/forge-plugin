@@ -104,22 +104,18 @@ const waited = (seconds, signal) => new Promise((done) => {
   }, { once: true });
 });
 
-/* The wait the tracker's own stated budget makes predictable, taken before the send rather than
-   discovered by the refusal after it (ISS-1849). Against the tracker's own clock, the reset being an
-   instant in its frame, and inside the deadline and the abort the caller declared: a wait nobody
-   budgeted for is not this to take on their behalf. */
-const paced = async (key, { waits = null, signal = null } = {}) => {
-  const within = deadlineOf(waits).millis;
-  for (let held = reserveIn(key, sharedNow(), within); held; held = reserveIn(key, sharedNow(), within)) {
-    if (signal?.aborted) return;
+/* Predictable rather than discovered by the refusal after it (ISS-1849), against the tracker's own
+   clock, the reset being an instant in its frame, and inside what is left of the attempt's own. */
+const paced = async (key, clock, left) => {
+  for (let held = reserveIn(key, sharedNow(), left()); held; held = reserveIn(key, sharedNow(), left())) {
+    if (clock.aborted) return;
     if (held.said) console.error(held.said);
-    await waited(held.seconds, signal);
+    await waited(held.seconds, clock);
   }
 };
 
 const attempted = async (make, repeatable, { once = false, spend = null, waits = null, signal = null } = {}, key = null) => {
   const deadline = deadlineOf(waits);
-  const clock = () => clockFor(deadline, signal);
   const attempts = once ? 1 : RETRY_ATTEMPTS;
   let text = "";
   let response = null;
@@ -129,9 +125,11 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
     if (stop) return { response: null, text: "", dropped: null, spent: stop };
     [text, response, dropped] = ["", null, null];
     try {
-      await paced(key, { waits, signal });
+      const clock = clockFor(deadline, signal);
+      const armed = performance.now();
+      await paced(key, clock, () => deadline.millis - (performance.now() - armed));
       const sentAt = performance.now();
-      response = await make(clock());
+      response = await make(clock);
       sawAnswer(response.headers, sentAt, performance.now());
       sawBudget(key, response.headers);
       text = await response.text();

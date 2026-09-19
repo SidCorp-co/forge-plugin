@@ -4,7 +4,6 @@ import { owesCause } from "../issue-shape.mjs";
 import { tried } from "../rest.mjs";
 import { firstLine } from "../../resolve/flags.mjs";
 
-/** The route a sweep and a filing both spend, so a caller can ask what budget that is. */
 export const SEARCH_ROUTE = "forge_memory.search";
 const SOURCE = ["issue"];
 export const TOP_K = 10;

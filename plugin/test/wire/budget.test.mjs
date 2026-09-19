@@ -13,7 +13,7 @@ import {
 
 const KEY = "forge_memory.search";
 
-const headers = (held) => new Headers(Object.fromEntries(
+const headers = (held) => new globalThis.Headers(Object.fromEntries(
   Object.entries(held).map(([name, value]) => [name, String(value)])));
 
 /* The order every real call takes: the reservation, the send, then the answer's own reading. A case
@@ -150,7 +150,7 @@ test("a wait longer than the caller's own deadline is not taken on its behalf", 
 test("an answer missing one of the four numbers states no budget, rather than a window already spent", () => {
   for (const missing of ["x-ratelimit-limit", "x-ratelimit-remaining", "x-ratelimit-reset"]) {
     forgetBudget();
-    const held = new Headers({
+    const held = new globalThis.Headers({
       "x-ratelimit-scope": "write",
       "x-ratelimit-limit": "60",
       "x-ratelimit-remaining": "59",
@@ -175,4 +175,17 @@ test("a second route joining a bucket already read brings the calls it made with
   sawBudget(KEY, stated({ limit: 60, remaining: 0, resetAt: 200_000 }));
   assert.equal(reserveIn(KEY, 100_000).said.includes("by something else"), false,
     "one, then five, then fifty-four: the window is spent and every call in it was this process's");
+});
+
+/* The same bucket again, and the second route's answer has not come back yet: its calls are charged
+   to the window somewhere and nothing has said which, so the window standing is charged with them. */
+test("a route whose bucket nothing has named yet is charged to the window that announces", () => {
+  const OTHER = "forge_comments.create";
+  forgetBudget();
+  call(100_000, { limit: 60, remaining: 59, resetAt: 200_000 });
+  for (let one = 0; one < 5; one += 1) assert.equal(reserveIn(OTHER, 100_000), null);
+  for (let one = 0; one < 54; one += 1) reserveIn(KEY, 100_000);
+  sawBudget(KEY, stated({ limit: 60, remaining: 0, resetAt: 200_000 }));
+  assert.equal(reserveIn(KEY, 100_000).said.includes("by something else"), false,
+    "the five the other route sent are unanswered, not somebody else's");
 });

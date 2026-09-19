@@ -12,7 +12,6 @@ let scopes = new Map();
 let routes = new Map();
 let unknown = new Map();
 
-/* `Number(null)` is 0, which would read an answer missing only `remaining` as a window spent. */
 const numbered = (headers, name) => {
   const said = headers?.get?.(name);
   const held = String(said ?? "").trim() === "" ? NaN : Number(said);
@@ -34,7 +33,7 @@ const opened = (limit, remaining, resetAt, held, carried) => {
     answers: from.answers,
     mine: 0,
     spanning: outstandingIn(from),
-    elsewhere: 0,
+    spent: 0,
     announced: false,
   };
 };
@@ -62,13 +61,19 @@ export const sawBudget = (key, headers) => {
   /* Downward only inside one window: a header is written before the calls still in flight are
      counted, so a later one saying more is left is a stale view of it. */
   now.remaining = now === held ? Math.min(now.remaining, remaining) : remaining;
-  now.elsewhere = Math.max(0, limit - remaining - now.mine - now.spanning);
+  now.spent = Math.max(now.spent, limit - remaining);
 };
 
-const wentSaid = (held, scope) =>
-  `Forge paced itself: the ${scope} budget of ${held.limit} is spent for this window`
-  + (held.elsewhere > 0 ? `, at least ${held.elsewhere} of it by something else on this credential` : "")
-  + "; waiting ";
+/* Sent by this process against a route no answer has named a bucket for yet: they belong to one of
+   these windows and there is no telling which, so every window is charged with all of them. */
+const unattributed = () => [...unknown.values()].reduce((sum, one) => sum + one, 0);
+
+const wentSaid = (held, scope) => {
+  const elsewhere = Math.max(0, held.spent - held.mine - held.spanning - unattributed());
+  return `Forge paced itself: the ${scope} budget of ${held.limit} is spent for this window`
+    + (elsewhere > 0 ? `, at least ${elsewhere} of it by something else on this credential` : "")
+    + "; waiting ";
+};
 
 export const reserveIn = (key, now, within = Infinity) => {
   const held = scopes.get(routes.get(key));
@@ -89,8 +94,8 @@ export const reserveIn = (key, now, within = Infinity) => {
     return went();
   }
   const seconds = Math.max(0, (held.resetAt + PAST_RESET_MS - now) / 1000);
-  /* A caller inside somebody else's clock may not be held past it: the call goes, and the refusal it
-     may meet is the one it would have met with none of this. */
+  /* The bound handed down is the whole of what this may spend: past it the call goes, and meets
+     whatever it would have met with none of this. */
   if (seconds * 1000 > within) return went();
   const said = held.announced ? null : `${wentSaid(held, routes.get(key))}${Math.ceil(seconds)}s for `
     + "the reset the tracker named, rather than sending calls it would refuse.";

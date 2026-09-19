@@ -71,31 +71,7 @@ reads.
 tracker answers HTML with a 200, and an empty page built out of it reads as the tracker saying the
 row is not there. Every projection here is total, so the check has to happen before one runs.
 
-**Rate limits.** The server states its own wait. Failing instead of honouring it turns a two-second
-pause into a lost run; honouring it without a ceiling turns a server saying 3600 into an hour of
-sleep. Whether a call may be sent again at all is the row's own declaration and never a reading of
-the payload: an action that mutated outside its data field was a write the payload reading called a
-read.
-
-**The budget is read while calls are still succeeding, not out of the refusal that ends them.** The
-tracker states four headers on every answer — the window's size, what is left of it, when it resets
-and the scope it belongs to — and a caller reading only `retry-after` learns the window once per
-refusal: a sweep of this backlog discovered the same per-minute window 108 separate times.
-`plugin/src/wire/budget.mjs` holds the reading per scope, because the bucket is the server's and one
-route's spending is another's; a route is filed under the scope its own answers name. A call the
-last reading leaves no room for waits for the stated reset instead of being sent to be refused.
-
-Three things that reading will not do. It derives no window width: the stated reset is a deadline,
-so an answer ten seconds before one would teach a ten-second window, and two resets a quiet process
-saw are two deadlines rather than two adjacent windows. It computes no rollover either — past a
-stated reset the call simply goes, and its answer opens the next window, which admits what a caller
-already has in flight and no more than the same moment admits without any of this. And it never
-accuses a sibling of spending the bucket on doubtful arithmetic: what is subtracted from the server's
-count is this process's own calls in the window *and* those outstanding when it adopted the window,
-since a call reserved before a reset may be charged after it. The sentence says *at least*.
-
-Where the four headers are absent, nothing is held and nothing is paced. A tracker that states no
-budget is one this cannot pace against, and it is sent what it was sent before.
+**What the server states about a rate limit, and what a caller does with it before it is refused**, is one topic of its own: [the stated budget](the-stated-budget.md).
 
 **Errors.** The route's own body carries a code, a message and the field-by-field detail of a schema
 refusal; that is the whole diagnostic and nothing here re-derives it. Each message is stripped of the
