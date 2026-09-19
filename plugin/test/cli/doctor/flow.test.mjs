@@ -293,8 +293,11 @@ test("one top-level key is set in the text, and a key of that name inside anothe
   );
 });
 
-test("the flag is named in the verb's own help", async () => {
+test("the flag is named in the verb's own help and described under the subject that owns it", async () => {
   const run = await ask("-h");
   assert.match(run.stdout, /\[--flow slug\]/u);
-  assert.match(run.stdout, /^ {2}--flow <slug> {8}the flow, into the project's own file/mu);
+  assert.doesNotMatch(run.stdout, /the flow, into the project's own file/u,
+    "the verb's help names the flag and leaves the describing to the subject (ISS-1692)");
+  const project = await ask("project", "-h");
+  assert.match(project.stdout, /^ {2}forge doctor --flow <slug> {8}the flow, into the project's own file/mu);
 });

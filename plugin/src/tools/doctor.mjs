@@ -14,7 +14,7 @@ import {
   sessionSourced,
   userConfig,
 } from "../resolve/config.mjs";
-import { MACHINE_FLAGS, MACHINE_WRITES } from "./doctor-keys.mjs";
+import { MACHINE_FLAGS, MACHINE_WRITES, WITH_BODY, WRITES } from "./doctor-keys.mjs";
 import { backoff, retrySeconds } from "../tracker/rest.mjs";
 import { deadlineSeconds, waitSeconds } from "../wire/request.mjs";
 import { measured, offsetSaid } from "../wire/shared-clock.mjs";
@@ -23,15 +23,8 @@ import {
   Refusal, accountCredentials, checkoutRoot, fail, mcpForgeIgnored, projectScope, refusing,
   translateScope,
 } from "../resolve/settings.mjs";
-import {
-  MAX_CLAUDE_MD_LINES,
-  checkClaims,
-  checkStructure,
-  checkerOwned,
-  checkerRestated,
-  readClaudeMd,
-  reviewClaudeMd,
-} from "../checks/claude-md.mjs";
+import { readClaudeMd, reviewClaudeMd } from "../checks/claude-md.mjs";
+import { checkClaudeMdLocally, reportClaudeMd } from "./services/doctor/repo.mjs";
 import { harnessLines } from "./services/doctor/harness.mjs";
 import { installRows } from "./services/doctor/install.mjs";
 import { copyRows, startRelease } from "./services/doctor/release.mjs";
@@ -40,13 +33,17 @@ import { masked } from "./services/masked.mjs";
 import { copyToRun, FROZEN } from "./plugin-copy.mjs";
 import { stubRows } from "./services/skill-stubs.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
-import { flags, partition, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
+import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
-import { PROJECT_USAGE, WITH_BODY, WRITES } from "../tracker/project-flags.mjs";
 import { GUIDE_TABLE, REVIEWED_AT, reviewGuideTable, supersededSlugs } from "../guides/guides.mjs";
 import { FLOW_SLUGS, flowRefusal } from "../guides/flow.mjs";
 import { rankLines } from "./services/doctor/rank.mjs";
+import { SAYS, SUBJECT_SLUGS, USAGE as SUBJECT_USAGE } from "./services/doctor/subjects.mjs";
+import { didYouMean } from "../suggest.mjs";
+import {
+  BAD, NOTE, OK, block, closing, line, missedHere, reading, report, shown, under,
+} from "./services/doctor/showing.mjs";
 import { held, projectKeyLines } from "./services/doctor/keys.mjs";
 import { ORDER } from "../flow/earned.mjs";
 import {
@@ -54,28 +51,6 @@ import {
 } from "../guides/contract.mjs";
 
 const viConfig = () => join(configDir("vi-natural"), "config.json");
-
-const OK = "  ok  ";
-/* Counted in `line`, so the level and the exit code cannot disagree (ISS-102). */
-const BAD = " miss ";
-/* Whose the finding is, never how bad: prose doctor cannot classify, a guide the server owns, a
-   field of the tracker's own project no edit here clears, a credential no verb here waits on. A
-   check that stays red until somebody else acts gets switched off. */
-const NOTE = " note ";
-
-let missed = 0;
-
-const line = (mark, label, detail) => {
-  if (mark === BAD) missed += 1;
-  console.log(`[${mark}] ${label.padEnd(22)} ${detail}`);
-};
-
-/* One vocabulary for every row this report is handed, the project's and the harness's alike: a level the map does not carry is an `ok`, and `miss` is the one that reaches the exit code. Exported so the suite can hold it to being that one map rather than reading the marks back out of a report (ISS-102). */
-export const LEVELS = { note: NOTE, miss: BAD };
-
-const report = (rows) => {
-  for (const row of rows) line(LEVELS[row.level] ?? OK, row.label, row.detail);
-};
 
 /* Which part resolved and from where, never the value: `--full` is for a human holding two tokens. */
 /* The sentence rides on the row that answered: a table here keyed on those names is a second copy a
@@ -191,133 +166,6 @@ const guideBodies = async (scoped) => {
   return fetched.map((answer, index) => ({ slug: listed[index].slug, body: answer?.guide?.body ?? "" }));
 };
 
-/* The guide is the authority, so it is named first and the CLAUDE.md line second. Nothing here
-   claims which of the two a pair is — the measurement is blind to negation, so a contradiction and
-   a restatement score alike, and saying which would be a resolution it does not have. */
-const reportClaudeMd = (review, path) => {
-  for (const marker of review.overrides) {
-    const where = `CLAUDE.md:${marker.line}`;
-    if (marker.known) line(OK, "claude.md override", `${marker.slug} — ${marker.reason} (${where})`);
-    else line(BAD, "claude.md override", `${where} names no guide called ${marker.slug}`);
-  }
-  for (const { slug, evidence } of review.misScoped) {
-    line(NOTE, "guide scope", `${slug} is global and names ${evidence.join(", ")} — one project's tools`);
-  }
-  if (!review.overlaps.length) {
-    line(OK, "claude.md", `${path} restates no guide`);
-    return;
-  }
-  line(NOTE, "claude.md", `${review.overlaps.length} statement(s) a guide already owns — ${path}`);
-  for (const hit of review.overlaps) {
-    console.log(`      ${hit.score.toFixed(2)}  guide ${hit.slug}\n            ${hit.theirs}`);
-    console.log(`            CLAUDE.md:${hit.line}\n            ${hit.ours}`);
-  }
-  console.log(
-    "\nThe guide is the authority and the project file is the copy. Where the two agree, delete the\n" +
-      "CLAUDE.md line and let the guide carry it; where the project means to differ, say so on that\n" +
-      "line — `overrides: <guide-slug> — <why this project differs>` — and doctor stops asking.\n" +
-      "This is a measure of shared wording, not of meaning: a restatement and a contradiction score\n" +
-      "alike, and only reading the pair tells you which you have.",
-  );
-};
-
-/* A claim about the repo is the kind that rots without anyone noticing, and the kind a command can
-   settle. Measured over 28 real CLAUDE.md files; the shapes that produced only false positives —
-   a CIDR block, a date mask, a bare extension, a git ref — are excluded before this runs. */
-const CLAIMS = [
-  ["missingPaths", "claude.md path", "names no such path, and no file of that name anywhere"],
-  ["missingScripts", "claude.md script", "is in no package.json this project holds"],
-  ["missingHelp", "claude.md -h", "is told to answer `-h`, and handles no such flag"],
-  ["missingTools", "claude.md tool", "is told to answer `-h`, and is not on PATH"],
-  ["missingRefs", "claude.md ref", "is a git ref that does not resolve here"],
-  ["presentForbidden", "claude.md absence", "is said not to exist, and it does"],
-  ["strandedShas", "claude.md sha", "is cited and is no ancestor of HEAD"],
-  ["uncitedIdentifiers", "claude.md id", "is cited and is defined nowhere else in the repo"],
-  ["uncitedGoals", "claude.md goal", "is named and this project's requirements tree holds no clause for it"],
-];
-
-/* Imprecise rather than dangling — the file exists, under another path. Volume is the reason this is
-   a count: port-plan.md for the read tree's `<project>/docs/port-plan.md` is one line, not twenty-nine. */
-const reportStale = (stale) => {
-  if (!stale.length) return;
-  const shown = stale.slice(0, 3).join(", ");
-  const rest = stale.length > 3 ? `, +${stale.length - 3} more` : "";
-  line(NOTE, "claude.md stale path", `${shown}${rest} — exists, under another path`);
-};
-
-/* The published rules, not taste: code.claude.com/docs/en/memory gives the line target and the
-   emphasis rule, docs/en/best-practices the include/exclude table. */
-const reportStructure = (root, text) => {
-  const found = checkStructure(text, root);
-  if (found.overLineTarget) {
-    line(BAD, "claude.md size", `${found.lines} lines — target is under ${MAX_CLAUDE_MD_LINES}`);
-  }
-  for (const rel of found.brokenImports) {
-    line(BAD, "claude.md import", `@${rel} resolves to no file, and an import loads at launch`);
-  }
-  if (found.emphasisDiluted) {
-    line(NOTE, "claude.md emphasis", `${found.emphasised} of ${found.bullets} bullets are bold — emphasise many and none stands out`);
-  }
-  if (found.vague.length) {
-    line(NOTE, "claude.md vague", `${found.vague.join(", ")} — write what is concrete enough to verify`);
-  }
-  if (found.absentTopics.length) {
-    line(NOTE, "claude.md covers", `nothing on ${found.absentTopics.join(", ")} — a gap to look at, not a fault`);
-  }
-};
-
-const reportClaims = (root, text) => {
-  const found = checkClaims(text, root);
-  let named = 0;
-  for (const [key, label, why] of CLAIMS) {
-    for (const name of found[key]) {
-      named += 1;
-      line(BAD, label, `\`${name}\` ${why}`);
-    }
-  }
-  reportStale(found.stalePaths);
-  for (const { rule, line: at } of checkerOwned(text, root)) {
-    line(NOTE, "claude.md restates", `\`${rule}\` has a checker (CLAUDE.md:${at})`);
-  }
-  if (named) console.log(CLAIM_REMEDY);
-  else line(OK, "claude.md claims", "every path, script, `-h`, ref and id it names is real");
-};
-
-/* Printed once for the group: the move is the same whichever claim broke, and a report that names a
-   defect without it leaves the reader to guess which of the two sides is wrong. */
-const CLAIM_REMEDY = "\nA claim like these is read as fact by every session this file opens. Correct the claim, or\n"
-  + "delete it — the file it names is the authority, and a claim it has outlived is worse than silence.";
-
-/* Printed once, not per rule: the remedy is the same for all of them. */
-const RESTATES = "\nA rule with a checker is documented by the checker's own message, which is what a\n" +
-  "developer reads at the moment it fails. Delete the prose, or keep one line stating the invariant\n" +
-  "behind it and no more — an explanation in two places diverges at the first correction.";
-
-/* The comment is named first for the same reason the guide is: it is the authority, being what a
-   developer reads at the moment the checker fires. */
-const reportRestated = (hits) => {
-  if (!hits.length) return;
-  line(NOTE, "claude.md comment", `${hits.length} statement(s) a comment already owns`);
-  for (const hit of hits) {
-    console.log(`      ${hit.score.toFixed(2)}  ${hit.where}\n            ${hit.theirs}`);
-    console.log(`            CLAUDE.md:${hit.line}\n            ${hit.ours}`);
-  }
-  console.log(
-    "\nDelete the CLAUDE.md line and let the comment carry it. Where both copies have to exist, put\n" +
-      "`restated: deliberate — <why>` above the comment and this stops asking.",
-  );
-};
-
-const checkClaudeMdLocally = () => {
-  const root = checkoutRoot();
-  const found = readClaudeMd(root);
-  if (!found) return;
-  reportStructure(root, found.text);
-  reportClaims(root, found.text);
-  if (checkerOwned(found.text, root).length) console.log(RESTATES);
-  reportRestated(checkerRestated(found.text, root));
-};
-
 /* Whether an unknown guide contradicts the contract is a read and not a check: contradiction is
    meaning, and the one mechanical signal here is the slug. So a retired row is a finding and a
    guide the table has never seen is a note saying so. The replacements the rows name are checked by
@@ -369,7 +217,9 @@ const checkContract = () => {
 /* The guide half, which needs the server. */
 const checkAgainstGuides = async (scoped) => {
   const guides = await guideBodies(scoped);
+  under("serves");
   reportGuideTable(guides.map((guide) => guide.slug));
+  under("repo");
   const found = readClaudeMd(checkoutRoot());
   if (!found) return;
   const review = reviewClaudeMd(found.text, guides, { superseded: supersededSlugs() });
@@ -402,8 +252,8 @@ const checkProject = async (credentials, graph = null) => {
   const { rows, brief } = await projectReport({ credentials, graph });
   report(rows);
   if (!brief.length) return;
-  console.log("");
-  for (const said of brief) console.log(said);
+  under("brief");
+  block(["", ...brief].join("\n"));
 };
 
 /** The one read left in this report that refuses through `fail()`, taken soft so it cannot: an exit here costs
@@ -422,13 +272,14 @@ export const trackerId = async (projectId) => {
 const checkEndpoint = async (full, credentials) => {
   const { forgetProjects, projectId, restBase, scoped } = await import("../tracker/rest.mjs");
   const { served } = await import("../tracker/routes.mjs");
+  under("tracker");
   forgetProjects();
   const declared = served().map((row) => ({ name: row.tool }));
   line(OK, "rest base", `${restBase()}  ← derived from the endpoint url above, its trailing /mcp off`);
   line(OK, "route table", `${declared.length} route(s) over ${groups(declared)} tool(s)`);
   const { value: slug } = projectScope();
   if (!slug) {
-    console.log("\nNo project slug: capability probes are project-scoped and were skipped.");
+    block("\nNo project slug: capability probes are project-scoped and were skipped.");
     return;
   }
   const held = await trackerId(projectId);
@@ -442,12 +293,14 @@ const checkEndpoint = async (full, credentials) => {
   line(measured() ? OK : NOTE, "tracker clock", offsetSaid());
   const findings = await probe(scoped, slug);
   if (!findings.forge_guide) await checkAgainstGuides(scoped);
+  under("tracker");
   if (findings.gated) {
-    console.log(
+    block(
       `\n${findings.gated} declared capability(ies) refuse this credential. Declared is not callable —\n` +
         "recorded, so the usage list now withholds every verb that spends one of them.",
     );
   }
+  under("project");
   await checkProject(credentials, findings.answered?.forge_project_pm ?? null);
 };
 
@@ -501,14 +354,28 @@ const wroteProject = async (asked, pairs, positionals) => {
 
 export const doctor = async (argv) => {
   const usage = usageOf("doctor");
-  if (wantsHelp(argv)) return console.log(`${usage}\nwhat resolves, and from where.\n${PROJECT_USAGE}`);
-  const { values: pairs, rest } = pullRepeated(argv, "--meta", "doctor", { usage });
+  const help = helpAskedOf(argv, SUBJECT_SLUGS);
+  if (help) return console.log(help.subject ? SAYS[help.subject] : `${usage}\n${SUBJECT_USAGE}`);
+  const subject = SUBJECT_SLUGS.includes(argv[0]) ? argv[0] : null;
+  reading(subject);
+  const { values: pairs, rest } = pullRepeated(subject ? argv.slice(1) : argv, "--meta", "doctor", { usage });
   const { positionals, flagArgv } = partition(rest, BOOLEAN, { verb: "doctor", usage });
   const asked = flags(flagArgv, "doctor", BOOLEAN, { usage, secret: ["--token", "--chatgpt-key"] });
   const { full, credentials } = asked;
+  /* Two readings of one stray word, told apart by whitespace: a mistyped subject earns the nearest
+     names, and a sentence is --line's prose, which no suggestion could be about. */
   if (positionals.length && asked.line === undefined) {
-    fail(`doctor: \`${positionals[0]}\` names no flag, and the prose of a line is --line's: `
-      + "forge doctor --line <n> <text>");
+    const route = "and the prose of a line is --line's: forge doctor --line <n> <text>";
+    fail(/\s/u.test(positionals[0])
+      ? `doctor: \`${positionals[0]}\` names no flag, ${route}`
+      : `doctor: ${didYouMean("doctor subject", positionals[0], SUBJECT_SLUGS)} A word here is a `
+        + `subject to read, ${route}`);
+  }
+  /* The one flag that asks for a reading rather than writing one: a subject that never reaches the
+     project's rows would drop it in silence, and an input is used or refused. */
+  if (credentials && !shown("project")) {
+    fail("doctor: --credentials prints the test credentials the project's own deploy rows withhold, "
+      + "and this reading holds no project row. Send `forge doctor project --credentials`.");
   }
   /* Two stores: the project write returns before the report, dropping the machine's half silently. */
   const machine = MACHINE_FLAGS.filter((key) => asked[key] !== undefined);
@@ -523,7 +390,8 @@ export const doctor = async (argv) => {
     if (row.flags.some((flag) => asked[flag] !== undefined)) row.write(asked);
   }
 
-  const release = startRelease();
+  const release = shown("copy") ? startRelease() : null;
+  under("machine");
   const { url, token } = accountCredentials();
   if (url.value) line(OK, "endpoint url", `${url.value}  ← ${url.from}`);
   else line(BAD, "endpoint url", "nothing saved — `forge doctor --url <endpoint>`");
@@ -542,8 +410,11 @@ export const doctor = async (argv) => {
     line(BAD, "mcp.json", `${join(stale.root, ".mcp.json")} carries settings this CLI does not read`
       + ` — ${fix.join(", and ")}`);
   }
+  under("offer");
   report(withholdingLines());
+  under("project");
   checkFlowKeys();
+  under("machine");
   for (const { name, event } of offNow()) {
     line(OK, "hooks off", `${name} (${event}) — \`forge hooks --on ${name}\``);
   }
@@ -553,6 +424,7 @@ export const doctor = async (argv) => {
   for (const name of strandedSwitches()) {
     line(BAD, "hooks off", `${name} is switched off and is no hook here — \`forge hooks --on ${name}\``);
   }
+  under("project");
   const { value: slug, from } = projectScope();
   if (slug) line(OK, "project slug", `${slug}  ← ${from}`);
   /* Not the miss the endpoint and the token are: only the scoped verbs refuse, and counting it
@@ -569,6 +441,7 @@ export const doctor = async (argv) => {
   }
   /* Which copy `forge` on PATH is, from here — the answer changes with the directory, and the link
      itself names one copy for the whole machine. */
+  under("copy");
   const dispatched = copyToRun();
   line(OK, "copy on PATH", `${dispatched.kind} ${dispatched.version ?? "?"} at ${dispatched.dir}`
     + ` — ${dispatched.why}`);
@@ -578,25 +451,35 @@ export const doctor = async (argv) => {
   /* The two lines above say which copy answers a call; this one says what no call reaches. One reading, spent by the release step and by the gate that holds a write to any of them. */
   line(OK, "restart set", `${FROZEN.join(", ")} — a session keeps these as of its start, whatever `
     + "copy the lines above name");
+  under("serves");
   report(stubRows(dispatched.installed));
   checkRoles(dispatched);
   checkContract();
+  under("services");
   /* Reads and writes differ: `new` translates before it posts, and a read never asks. */
   checkVi(language.value === "vi");
   checkHarness(full);
+  under("repo");
   report(installRows(checkoutRoot()));
   checkClaudeMdLocally();
 
   /* Below the work this overlaps and above the endpoint check: higher costs the report the whole round trip, lower drops the row on a box with no credential, which is the box least able to tell (ISS-1324). */
-  report(await copyRows(release));
+  under("copy");
+  if (release) report(await copyRows(release));
 
-  if (!url.value || !token.value) {
-    console.log("\nNot reaching the endpoint: the account half is incomplete.");
-    process.exit(1);
+  /* One read answers for five subjects, so it is spent where any of them prints and not one alone. */
+  if (shown("tracker", "serves", "repo", "project", "brief")) {
+    if (!url.value || !token.value) {
+      for (const said of closing()) console.log(said);
+      console.log("\nNot reaching the endpoint: the account half is incomplete.");
+      process.exit(1);
+    }
+    await checkEndpoint(full, credentials);
   }
-  await checkEndpoint(full, credentials);
-  if (full) console.log(`\nConfig file: ${configPath()}`);
-  if (missed) process.exit(1);
+  under("machine");
+  if (full) block(`\nConfig file: ${configPath()}`);
+  for (const said of closing()) console.log(said);
+  if (missedHere()) process.exit(1);
 };
 
 /* Its own `-h`: what a stale line means and which resource holds a key are read nowhere else. */

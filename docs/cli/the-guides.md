@@ -60,9 +60,10 @@ Most of a contract is about a stage the reader is not at, so the verb serves one
 bare `forge guide contract` answers with the parts, their sizes and the call for each, in name
 order. Three consequences. A heading is the address, so renaming one moves the call that reaches it
 and the suite fails until the change admits that. A file with no heading, or with two, is named
-rather than served under the part before it. And `forge doctor` prints
+rather than served under the part before it. And `forge doctor serves` prints
 the directory's absolute path and the contract number it declares, because a copy that arrived
-without it is indistinguishable, from inside, from one whose rules say nothing.
+without it is indistinguishable, from inside, from one whose rules say nothing — a bare reading
+saying only that a copy arrived incomplete, which is the finding rather than the reading.
 
 The overlap measure has the same premise the verb just abandoned — the guide is the authority, the
 project's own file the copy — so it no longer scores a superseded guide. It would otherwise ask a

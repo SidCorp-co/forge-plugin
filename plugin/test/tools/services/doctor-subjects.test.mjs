@@ -1,0 +1,118 @@
+/* `forge doctor`'s subjects: what each layer answers, and what a bare reading owes a subject it
+   withholds. The 2,500-byte help cap forced the split — sixteen flags on one verb left nine named
+   in the usage and described nowhere, which no care at the writing end fixes (ISS-1692). */
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import test from "node:test";
+
+import { tempRoom } from "../../fixtures.mjs";
+import { IN_BARE, SAYS, SUBJECTS, SUBJECT_SLUGS, USAGE } from "../../../src/tools/services/doctor/subjects.mjs";
+import { flagsNamed } from "../../../src/resolve/flags.mjs";
+import { usageOf } from "../../../src/resolve/visibility.mjs";
+
+const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
+
+/* A home of its own and no credential, so no spawn below reaches a tracker. */
+const doctor = (...argv) => {
+  const home = tempRoom("doctor-subjects-home-");
+  const run = spawnSync(process.execPath, [CLI, "doctor", ...argv], {
+    encoding: "utf8",
+    env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
+  });
+  return `${run.stdout}${run.stderr}`;
+};
+
+test("the verb's help gives every subject a line, and each subject's help opens on its own call", () => {
+  for (const { slug, says, text } of SUBJECTS) {
+    assert.ok(USAGE.includes(`  ${slug.padEnd(10)} ${says}`), `the verb's help gives ${slug} no line`);
+    assert.equal(text.split("\n")[0], `Usage: forge doctor ${slug} [--full]`,
+      `${slug}'s own help does not open on the call that prints it`);
+    assert.equal(SAYS[slug], text, `${slug}'s text and the map the call answers from differ`);
+  }
+  assert.deepEqual(Object.keys(SAYS).sort(), [...SUBJECT_SLUGS].sort());
+});
+
+/* Read off the usage row rather than off a list here, so a flag added to the verb arrives in this
+   case with no second edit and lands on some subject or fails. */
+test("every flag the verb takes is described under exactly one subject, and --full under the verb", () => {
+  const owning = (flag) => SUBJECTS.filter(({ text }) => text.includes(flag)).map(({ slug }) => slug);
+  const wrong = [];
+  for (const flag of flagsNamed(usageOf("doctor"))) {
+    if (flag === "--full") {
+      if (!USAGE.includes(flag)) wrong.push(`${flag} is the report's own and the verb's help omits it`);
+      continue;
+    }
+    const held = owning(flag);
+    if (held.length !== 1) wrong.push(`${flag} is described by ${held.length} subject(s): ${held.join(", ") || "none"}`);
+  }
+  assert.deepEqual(wrong, []);
+});
+
+/* Checked at the layer that owns each: a flag a caller can find but not use has moved, not fixed. */
+test("the flags the top-level help had no room for are described where a caller reaches them", () => {
+  for (const [flag, slug] of [["--hide", "offer"], ["--show", "offer"], ["--ship", "project"], ["--job", "offer"]]) {
+    assert.ok(SAYS[slug].includes(`forge doctor ${flag}`),
+      `${flag} is not spelled as a call under ${slug}`);
+  }
+});
+
+test("a subject asked for prints its own rows and no other subject's", () => {
+  const said = doctor("machine");
+  assert.match(said, /^\[ miss \] endpoint url/mu, "the subject's own rows");
+  assert.match(said, /^\[ {2}ok {2}\] session id/mu);
+  assert.doesNotMatch(said, /^\[[^\]]+\] (jobs|copy on PATH|contract|dependencies|rest base)/mu,
+    "and nothing of offer, copy, serves, repo or tracker");
+  assert.match(said, /The rest of the reading, subject by subject: `forge doctor -h`/u,
+    "a layer that cannot carry something says which one does");
+});
+
+/* The scored prose that sat mid-list is the row's supporting reading, not the finding. */
+test("a bare reading keeps a withheld subject's findings, drops its ok rows and leaves its detail", () => {
+  const said = doctor();
+  assert.match(said, /^\[ note \] claude\.md comment/mu, "the finding of a subject a bare call withholds");
+  assert.doesNotMatch(said, /restated: deliberate/u, "and not the block under it");
+  assert.doesNotMatch(said, /^\[ {2}ok {2}\] dependencies/mu, "nor that subject's ok rows");
+  assert.match(said, /forge doctor repo {6}this checkout's own health/u,
+    "and the call that prints it whole is named");
+});
+
+/* Every other flag writes and returns before the report; this one asks for a reading. */
+test("a flag whose reading a subject does not hold is refused, not dropped", () => {
+  const said = doctor("machine", "--credentials");
+  assert.match(said, /--credentials prints the test credentials/u);
+  assert.match(said, /Send `forge doctor project --credentials`/u, "and the call that reads it");
+  assert.doesNotMatch(said, /^\[/mu, "a refusal reports nothing");
+});
+
+test("a word that is no subject is refused with the nearest, and nothing is read", () => {
+  const said = doctor("trakcer");
+  assert.match(said, /No doctor subject named trakcer\. Did you mean: tracker\?/u);
+  assert.doesNotMatch(said, /^\[/mu, "a refusal reports nothing");
+  const prose = doctor("A line of a brief.");
+  assert.match(prose, /`A line of a brief\.` names no flag/u,
+    "and a sentence is --line's prose, which no nearest name could be about");
+});
+
+test("the subjects a bare call reads are the table's own, and three are not among them", () => {
+  assert.deepEqual([...IN_BARE].sort(), ["brief", "copy", "machine", "offer", "project", "services"]);
+  assert.deepEqual(SUBJECTS.filter((one) => !one.bare).map((one) => one.slug), ["serves", "repo", "tracker"]);
+});
+
+/* The read point ISS-1460 measured, held as what it is: a position in the one order this report is
+   built in. Regrouping the row above the local checks reads correctly and silently costs the whole
+   3.4s round trip, and elapsed time is what this suite refuses to bound. That the ask is already
+   running when the row is read is doctor-release.test.mjs's half. */
+test("the release ask is started above the report's local checks and read below them", () => {
+  const source = readFileSync(new URL("../../../src/tools/doctor.mjs", import.meta.url), "utf8");
+  const at = (mark) => {
+    const found = source.indexOf(mark);
+    assert.notEqual(found, -1, `${mark} is no longer in the report, so this case measures nothing`);
+    return found;
+  };
+  const started = at("shown(\"copy\") ? startRelease()");
+  const local = at("checkClaudeMdLocally();");
+  const read = at("report(await copyRows(release))");
+  assert.ok(started < local, "the ask is started above the work it overlaps");
+  assert.ok(local < read, "and read below it: above these checks puts the whole round trip back");
+});

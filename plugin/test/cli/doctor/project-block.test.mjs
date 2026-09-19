@@ -252,8 +252,9 @@ test("a write is refused where the deploy could not be read at all, and the refu
     "the report says the reading did not answer, rather than that the project configured nothing");
 });
 
+/* Each read where it prints: the `ok` row under `forge doctor tracker`, the `note` on a bare call. */
 test("the report says how far this device's clock stands from the tracker's, or that it read none", async () => {
-  const run = await ask("doctor");
+  const run = await ask("doctor", "tracker");
   assert.match(run.stdout,
     ROW("tracker clock", "this device is \\d+\\.\\d\\ds (ahead of|behind) the tracker, known to ±\\d+\\.\\d\\ds"),
     run.stdout);

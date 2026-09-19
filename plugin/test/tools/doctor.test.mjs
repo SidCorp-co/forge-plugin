@@ -12,7 +12,7 @@ const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "cl
 
 /* Built rather than filtered: naming the variables to drop is a list that goes stale the day one is
    added, and the developer's own would otherwise answer for half of every fixture. */
-const report = (viConfig, extra = {}, project = {}) => {
+const report = (viConfig, extra = {}, project = {}, subject = null) => {
   const home = tempRoom("doctor-home-");
   if (viConfig) {
     mkdirSync(join(home, "vi-natural"));
@@ -20,7 +20,7 @@ const report = (viConfig, extra = {}, project = {}) => {
   }
   const cwd = tempRoom("doctor-cwd-");
   for (const [name, body] of Object.entries(project)) writeFileSync(join(cwd, name), body);
-  const run = spawnSync(process.execPath, [CLI, "doctor"], {
+  const run = spawnSync(process.execPath, [CLI, "doctor", ...(subject ? [subject] : [])], {
     encoding: "utf8",
     cwd,
     env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home, ...extra },
@@ -201,8 +201,8 @@ const afterTheHostWent = async () => {
   });
   const cwd = tempRoom("doctor-gone-");
   writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "gone-fixture" }));
-  const ran = () => ranAsync(process.execPath, [CLI, "doctor"], tracker.env, cwd);
-  const live = await ran();
+  const ran = (subject) => ranAsync(process.execPath, [CLI, "doctor", ...(subject ? [subject] : [])], tracker.env, cwd);
+  const live = await ran("tracker");
   tracker.close();
   return { live, gone: await ran() };
 };
@@ -214,6 +214,8 @@ test("a tracker that stopped answering is a line of the report and not the end o
   const { live, gone } = await afterTheHostWent();
   assert.match(live.stdout, /\[ {2}ok {2}\] project id\s+resolved from the slug/u,
     "the live run resolved the project, so a cached id is what the second run starts from");
+  assert.doesNotMatch(gone.stdout, /\[ {2}ok {2}\] project id/u,
+    "and the bare reading leaves that row to `forge doctor tracker` (ISS-1692)");
   assert.doesNotMatch(live.stdout, /\[ miss \] tracker/u, "and a tracker that answered earns no such line");
   assert.match(gone.stdout, /\[ miss \] tracker\s+http:\/\/127\.0\.0\.1:\d+\/api did not answer for this project/u);
   assert.match(gone.stdout, /Forge did not answer GET \/projects/u, "carrying the transport's own reason");
@@ -575,7 +577,7 @@ test("a project whose configuration names the judgement its flow asks for earns 
 /* One line per flow this copy serves: the set a project chooses between is visible where it is
    chosen, and a flow accidentally without a part is what the line catches (ISS-1088). */
 test("the contract each flow serves is reported, one line per flow", () => {
-  const out = report(null);
+  const out = report(null, {}, {}, "serves");
   assert.match(out, /\[ {2}ok {2}\] flow set\s+default: \d+ part\(s\)/u);
   assert.match(out, /\[ {2}ok {2}\] flow set\s+screen: \d+ part\(s\)/u,
     "the second flow's set is not reported, so a project choosing it chooses blind");

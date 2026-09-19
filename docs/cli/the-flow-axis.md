@@ -116,7 +116,7 @@ settings resolver as its input would re-run the check every time an unrelated ke
 
 ## The one completeness reading, and why it reports
 
-`forge doctor` prints one line per declared flow: how many parts that flow's contract holds, and
+`forge doctor serves` prints one line per flow: how many parts that flow's contract holds, and
 which statuses of the ladder it leaves unanswered. **It reports and it does not refuse.** A flow
 deliberately without a part is legal, and `stageLine` already answers for an absent one at the call,
 so the line exists to make the choice visible where a set is chosen — it catches the flow that is

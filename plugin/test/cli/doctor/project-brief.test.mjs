@@ -154,12 +154,16 @@ test("a brief carrying this project's credential is refused before anything is s
   assert.equal(store.get("project-brief").body, before, "and the stored brief is untouched");
 });
 
-/* Longer than its row: what a stale line means and what --refresh takes have nowhere else to go.
-   The pointer that row once earned is the helper's, and cli-help.test.mjs judges it there. */
-test("the verb's own help names the refresh and what it takes", async () => {
-  const run = await ask("doctor", "-h");
+/* Longer than its row: what a stale line means and what --refresh takes have nowhere else to go, and
+   that place is the brief subject's own cap rather than the verb's, which had nine bytes left of
+   2,500 (ISS-1692). The verb still names the flag, being the set its parse refuses against. */
+test("the brief subject's help names the refresh and what it takes", async () => {
+  const verb = await ask("doctor", "-h");
+  assert.equal(verb.status, 0, verb.stderr);
+  assert.match(verb.stdout, /--refresh <file\.md\|@file\|->/u);
+  const run = await ask("doctor", "brief", "-h");
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /--refresh <file\.md\|@file\|->/u);
+  assert.match(run.stdout, /forge doctor --refresh <body>/u);
   assert.match(run.stdout, /stale:/u);
 });
 

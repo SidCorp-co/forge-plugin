@@ -234,7 +234,7 @@ test("doctor names the missing file, and a file from another build, in the copy 
   assert.match(copyOfCode("**Contract 1.** No heading over it.\n"),
     /\[ miss \] contract\s+\S+: 01-only\.md opens with no heading/u,
     "a part file the install truncated is named, not served under the part before it");
-  assert.match(copyOfCode("whole"), /\[ {2}ok {2}\] contract\s+\S+ states contract 1/u);
+  assert.match(copyOfCode("whole", ["doctor", "serves"]), /\[ {2}ok {2}\] contract\s+\S+ states contract 1/u);
 });
 
 /* The completeness line through the report rather than through the function, because the mark is the
@@ -245,7 +245,8 @@ test("doctor reports a flow's set and what it leaves unanswered, at a mark that 
   assert.match(short, /which `stageLine` says at the call/u, "and names where a run would meet it");
   assert.doesNotMatch(short, /\[ miss \] flow set/u,
     "an unanswered status is a report; a miss here would make a flow's own set a refusal");
-  assert.match(copyOfCode("whole"), /\[ {2}ok {2}\] flow set\s+default: 19 part\(s\) — every stage of the ladder answered/u);
+  assert.match(copyOfCode("whole", ["doctor", "serves"]),
+    /\[ {2}ok {2}\] flow set\s+default: 19 part\(s\) — every stage of the ladder answered/u);
 });
 
 /* Serving is the same route as reporting and is asked by the verb rather than by a call: a copy

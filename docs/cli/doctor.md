@@ -47,12 +47,6 @@ the waiver names the guide and gives a reason, and one naming a guide that does 
 that is mechanical. A global guide whose body calls a foreign MCP namespace is a finding against the
 guide, and a note, since nobody can fix it from the checkout.
 
-**It exits non-zero when it printed a `miss` and never for a `note`.** So the level is a judgement
-about whose the finding is rather than about how bad it looks: a credential no verb here waits on, a
-branch on the tracker's own project, a tool the server gates against this token and prose nobody can
-classify are notes, and each still names its route out. Nine lines once said `miss` and failed
-nothing, which is a report that teaches a caller to read neither half (ISS-102).
-
 Writes translate before they post, so a missing `vi-natural` key is a miss exactly where the project
 declares the language that waits on it. The gateway url and model are read beside the key, because a
 saved key alone is configuration that looks complete and dies at the first call.
@@ -115,3 +109,6 @@ The test credentials the deploy lines withhold, and the guard that keeps them ou
 [the test credentials](test-credentials.md). The brief this report also writes — why `--refresh` takes
 the answer it is meant to produce, which files a digest covers, and what a store that will not answer
 is not: [the brief](the-brief.md).
+
+Which subject each row and each flag belongs to, which level a row carries, and what a bare reading
+withholds: [the subjects](the-subjects.md).

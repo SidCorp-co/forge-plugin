@@ -97,12 +97,12 @@ export const VERBS = [
   ["feedback", "<file.md|@file|-> --title T [--kind K] [--with ISS-45,ISS-46] [--new]",
     "`forge new` with the kind, the project and the Where filled in: a defect in this plugin, from any checkout",
     null, { group: HARNESS }],
-  ["doctor", "[--token t] [--url u] [--chatgpt-url u] [--chatgpt-key k] [--chatgpt-prefix p]"
-    + " [--hide v|--show v] [--job name|all]"
+  ["doctor", "[<subject>] [--token t] [--url u] [--chatgpt-url u] [--chatgpt-key k]"
+    + " [--chatgpt-prefix p] [--hide v|--show v] [--job name|all]"
     + " [--ship ready|self] [--set k=v] [--flow slug] [--credentials]"
     + " [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text> --was <prose>] [--title T]"
     + " [--confidence C] [--meta k=v]... [--full]",
-    "what resolves and from where, this project's own record included, and the keys of it that are written here",
+    "what resolves and from where, subject by subject, and the keys of it that are written here",
     "forge_config", { group: HARNESS, needs: null,
       wraps: {
         get: "`forge doctor`",

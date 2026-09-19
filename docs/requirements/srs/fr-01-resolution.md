@@ -79,6 +79,14 @@ can be reached. It is what a refusal points at, so it answers before the questio
 - **AC-01-3-3** · Rev: 1 · Proof: plugin/test/tools/services/doctor-install.test.mjs "the report prints the row and leaves the install exactly as it found it"
   IF a package the project's own manifest declares does not resolve THEN the report SHALL name it
   with the command that installs it, and SHALL install nothing of its own.
+- **AC-01-3-4** · Rev: 1 · Proof: plugin/test/tools/services/doctor-subjects.test.mjs "a subject asked for prints its own rows and no other subject's"
+  WHEN a subject of the report is named THEN the report SHALL print that subject's settings alone,
+  and every flag the verb accepts SHALL be described under exactly one subject, so that a flag the
+  verb names is one a caller can act on rather than one it can only find.
+- **AC-01-3-5** · Rev: 1 · Proof: plugin/test/tools/services/doctor-subjects.test.mjs "a bare reading keeps a withheld subject's findings, drops its ok rows and leaves its detail"
+  WHERE the report withholds a subject from the reading it SHALL print that subject's findings all
+  the same and SHALL name the call that prints that subject whole, so that narrowing what is read
+  loses no finding and leaves no reader without the route to the rest.
 
 ### UC-01-4 — Withhold a verb
 

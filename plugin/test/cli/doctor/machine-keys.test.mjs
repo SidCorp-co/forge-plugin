@@ -7,7 +7,7 @@ import test from "node:test";
 
 import { tempRoom } from "../../fixtures.mjs";
 import { MACHINE_FLAGS } from "../../../src/tools/doctor-keys.mjs";
-import { LEVELS } from "../../../src/tools/doctor.mjs";
+import { LEVELS } from "../../../src/tools/services/doctor/showing.mjs";
 
 const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
 

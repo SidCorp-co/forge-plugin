@@ -11,6 +11,9 @@ import { flagsNamed, helpAskedOf, unknownFlag, wantsHelp } from "../../src/resol
 import { USAGE as KNOWLEDGE, SAYS as KNOWLEDGE_SAYS } from "../../src/tools/knowledge.mjs";
 import { USAGE as CLOUDFLARE, SAYS as CLOUDFLARE_SAYS } from "../../src/tools/services/cloudflare.mjs";
 import { USAGE as STATS, SAYS as STATS_SAYS } from "../../src/stats/stats.mjs";
+import {
+  SAYS as DOCTOR_SAYS, SUBJECT_SLUGS, USAGE as DOCTOR,
+} from "../../src/tools/services/doctor/subjects.mjs";
 import { SAYS as CODEX_SAYS, USAGE as CODEX } from "../../src/codex/codex.mjs";
 import { CHECK_USAGE, USAGE as SPEC } from "../../src/spec/verbs.mjs";
 import { KINDS, USAGE as RECORD, kindUsage } from "../../src/flow/record/record-rows.mjs";
@@ -127,6 +130,7 @@ const SUBJECT_HELP = [
     ["consult", "verdict", "pending", "show", "log", "stats", "eval", "marks", "replay"]],
   ["spec", SPEC, { check: CHECK_USAGE }, ["check"]],
   ["record", RECORD, Object.fromEntries(KINDS.map((kind) => [kind, kindUsage(kind).split("\n")[0]])), KINDS],
+  ["doctor", DOCTOR, DOCTOR_SAYS, SUBJECT_SLUGS],
 ];
 
 /* The table above is what the cap and the stranger walk below measure, so a subject with a text of

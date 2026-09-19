@@ -66,15 +66,16 @@ mkdirSync(join(home.path, "forge"), { recursive: true });
 writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: tracker.url, token: "t" }));
 const ask = (...argv) => ranAsync(FORGE, argv, tracker.env, ROOT);
 
-/* The goal line is the last thing this report prints and every line under `route table` is a
-   tracker read, so a run whose fixture tracker went unread has no goal line to find: it is named
-   here, before the regex three lines down blames a goal list that moved (ISS-891). Doctor's status
-   is its own verdict on the machine — a fixture endpoint misses several probes — and says nothing
-   about which half of the report answered. */
+/* The brief is the last subject this report prints and reading it is a tracker read, so a run whose
+   fixture tracker went unread has no goal line to find: it is named here, before the regex three
+   lines down blames a goal list that moved (ISS-891). The sentinel is the brief's own header rather
+   than the project id, which a bare reading now leaves to `forge doctor tracker` (ISS-1692).
+   Doctor's status is its own verdict on the machine — a fixture endpoint misses several probes —
+   and says nothing about which half of the report answered. */
 const briefRead = (run) => {
   assert.ok([0, 1].includes(run.status), `${run.status}: ${run.stderr}`);
   const stopped = run.stdout.trimEnd().split("\n").at(-1);
-  assert.match(run.stdout, /^\[ {2}ok {2}\] project id/mu,
+  assert.match(run.stdout, /^project brief/mu,
     `this report never reached the tracker, so it read no brief. Stopped at: ${stopped}. Stderr: ${run.stderr}`);
   return run.stdout;
 };

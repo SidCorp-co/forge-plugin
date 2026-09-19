@@ -8,10 +8,10 @@ import { dirname } from "node:path";
 import { FROM_PROJECT, Refusal, drainScope, fail, projectFilePath, projectSlug }
   from "../resolve/settings.mjs";
 import { pairOf } from "../resolve/flags.mjs";
+import { WITH_BODY, WRITES } from "./doctor-keys.mjs";
 import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../guides/flow.mjs";
 import { flowJudgeConflict, flowPolicyConflict } from "../flow/earned.mjs";
 import { scoped, write } from "../tracker/rest.mjs";
-import { WITH_BODY, WRITES } from "../tracker/project-flags.mjs";
 import {
   briefLines,
   confirmSource,

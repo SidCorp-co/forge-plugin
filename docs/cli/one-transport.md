@@ -15,7 +15,8 @@ since is otherwise a defect with no route out of it.
 
 **One endpoint, so no fallback hides a gap.** Every row is a request under the API base: the one
 configured value with its trailing endpoint segment stripped, so a host saved in either form works
-and `forge doctor` prints both the value it read and the base derived from it.
+and both readings are printed: the configured value under `forge doctor machine`, the base derived
+from it under `forge doctor tracker`.
 
 **An upload is one authenticated request with the bytes in it, and its two targets are two routes.**
 The presigned dance — mint a ticket, then PUT the bytes to it unauthenticated — exists for a caller

@@ -95,3 +95,7 @@ export const MACHINE_WRITES = [
 ];
 
 export const MACHINE_FLAGS = MACHINE_WRITES.flatMap((row) => row.flags);
+
+/* The project's half, beside the machine's: the refusal keeping a call to one store reads both, and reading them here is what keeps the module that writes them a dynamic import. What each writes is `forge doctor brief -h`'s. */
+export const WRITES = ["refresh", "confirm", "line"];
+export const WITH_BODY = ["title", "confidence"];
