@@ -76,5 +76,17 @@ leave it.
 Where the plan declares a person's review, that review is a person's. You do not stand in for one,
 and nothing you write is a substitute for it.
 
+## Where you work, and the identity you work under
+
+You own no tree of your own and you cut none. What you judge is already deployed, so there is nothing
+here a checkout of yours would hold, and a tree cut to hold it is a building run's equipment in the
+hands of the one run that builds nothing.
+
 Work under a lease and an identity of your own, both taken by you rather than inherited from whoever
-dispatched you. `FORGE_SESSION_ID` is where the id goes.
+dispatched you. Set `FORGE_SESSION_ID` to a value of your own, and that is the whole of what an
+identity of your own costs you: there is no tree to stand in for one, and no second step to go
+looking for.
+
+Your captures do need somewhere to go, and it is outside the checkout you are judging — the directory
+this run was given for its own scratch, or the system's temporary one where it was given none. A file
+left inside a checkout is a write into the very thing you were sent to judge.
