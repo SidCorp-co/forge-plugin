@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
@@ -15,6 +15,7 @@ import {
 import { DIAGNOSTIC, answered, consults } from "../../../src/codex/codex-log.mjs";
 import { refusing } from "../../../src/resolve/settings.mjs";
 import { tempRoom } from "../../fixtures.mjs";
+import { classesFor } from "../../../src/stats/corpus/classes.mjs";
 import { runsUnder } from "../../../src/stats/runs.mjs";
 import { PROJECT, askStats, corpusOf, runsOf } from "../fixture-eval.mjs";
 
@@ -314,6 +315,67 @@ test("a call that is not a shell command travels as what it asked for, not as it
   assert.match(text, /Grep: deprecatedAPI\n\/w\/plugin\/src/u);
   assert.match(text, /Grep: anotherThing\n\/w\/plugin\/src/u,
     "a call carrying both a pattern and a place carries both");
+});
+
+/* The corpus is folded under the checkout's own class table, and the digest was parsed under the
+   built-in one: a project that has said what its gate is had its gate travel as a shell call beside
+   a run profile that called it a gate. */
+test("the digest is parsed under the checkout's own classes, not the built-in ones", () => {
+  const room = tempRoom("stats-diagnose-classes-");
+  const tasks = join(room, `claude-${process.getuid()}`, "-fixture-project", "session", "tasks");
+  mkdirSync(tasks, { recursive: true });
+  const at = (s) => new Date(Date.parse("2026-09-01T00:00:00.000Z") + s * 1000).toISOString();
+  const use = (id, s, command) => JSON.stringify({ timestamp: at(s),
+    message: { role: "assistant", content: [{ type: "tool_use", id, name: "Bash", input: { command } }] } });
+  const back = (id, s, body) => JSON.stringify({ timestamp: at(s),
+    message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: body }] } });
+  writeFileSync(join(tasks, "a0000.output"), [
+    JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-8" } }),
+    use("c1", 1, "forge claim ISS-8"),
+    back("c1", 2, "ISS-8  claim: session iss-8 (agent, pid 1), renewed for 30 minute(s)"),
+    use("c2", 3, "./verify"),
+    back("c2", 4, "all green"),
+    use("c3", 5, "npm run check"),
+    back("c3", 6, "all green"),
+  ].join("\n"));
+  const root = join(room, `claude-${process.getuid()}`, "-fixture-project");
+  const declared = classesFor({ gate: "./verify" });
+  const runs = runsUnder(root, null, declared).runs;
+  const [own] = payloadOf(runs, TOTAL_CHARS, "stats diagnose", declared).map((one) => one.text);
+  assert.match(own, /\[gate\] Bash: \.\/verify/u, "what this checkout calls its gate travels as its gate");
+  assert.doesNotMatch(own, /\[gate\] Bash: npm run check/u,
+    "and a command the checkout replaced does not, however the built-in table reads it");
+  const built = payloadOf(runs, TOTAL_CHARS).map((one) => one.text)[0];
+  assert.match(built, /\[gate\] Bash: npm run check/u, "which is exactly what the built-in table says");
+});
+
+/* A transcript the corpus walk could not open is evidence this reading lost, and it is lost whether
+   or not the set the caller named came out full. The count was read by `runsUnder` and dropped by
+   this caller, so a reading over two readable runs beside an unopenable file printed as a reading of
+   two runs and nothing else — which is a clean corpus with a hole in it. */
+test("a transcript this reading could not parse is said, beside a set that came out full", async () => {
+  const room = corpusOf(2);
+  const tasks = join(room, `claude-${process.getuid()}`, "-fixture-project", "session", "tasks");
+  const gone = join(tasks, "a0099.output");
+  writeFileSync(gone, "{}\n");
+  chmodSync(gone, 0o000);
+  const run = await asked(ONE, ["--json", "--last", "2"], { room });
+  chmodSync(gone, 0o600);
+  assert.equal(run.status, 0, run.stderr);
+  const held = JSON.parse(run.stdout);
+  assert.equal(held.read.length, 2, "the set the caller asked for came out full");
+  assert.deepEqual(held.notRead.map((one) => one.why), ["this reading could not parse them"]);
+  assert.match(held.notRead[0].named, /^1 transcript\(s\) under \//u, "with the count and where they are");
+
+  const screen = await asked(ONE, ["--last", "2"], { room: (() => {
+    const second = corpusOf(2);
+    const held2 = join(second, `claude-${process.getuid()}`, "-fixture-project", "session", "tasks", "a0099.output");
+    writeFileSync(held2, "{}\n");
+    chmodSync(held2, 0o000);
+    return second;
+  })() });
+  assert.match(screen.stdout, /^not read$/mu, "and the screen says it too, under its own heading");
+  assert.match(screen.stdout, /1 transcript\(s\) under .* — this reading could not parse them/u);
 });
 
 test("the model call is logged under a kind no consult reader admits", async () => {

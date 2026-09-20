@@ -149,9 +149,12 @@ const callLine = (at, call) => `  ${at}. [${call.class}] ${call.name}: `
 /** One run's half of the payload, and what of it was left out. `room` is this run's share of the
  *  whole payload: the calls go in order until it is spent, and the count left out is said rather
  *  than the run being reported as read whole. */
-export const digestOf = (run, label, room) => {
+export const digestOf = (run, label, room, classes = undefined) => {
   const text = readTranscript(run.path);
-  const calls = text === null ? [] : segmented(callsIn(text).calls);
+  /* The checkout's own classes and not the built-in ones: the corpus was folded under whatever this
+     project declares, and a digest parsed under another set hands the reviewer a `./verify` reading
+     as a shell call beside a run profile that called it a gate. */
+  const calls = text === null ? [] : segmented(callsIn(text, classes).calls);
   const head = `${label}  ${run.issues.join(", ") || "no issue claimed"}  `
     + `${stamp(run.startedAt)} to ${stamp(run.endedAt)}  ${calls.length} call(s)\n`;
   const lines = [];
@@ -198,9 +201,9 @@ export const bodyOf = (digests) => digests.map((one) => one.text).join(SEPARATOR
 export const roomFor = (many, total) => Math.max(1,
   Math.floor((total - SEPARATOR.length * Math.max(0, many - 1)) / Math.max(1, many)));
 
-export const payloadOf = (runs, total = TOTAL_CHARS, verb = "stats diagnose") => {
+export const payloadOf = (runs, total = TOTAL_CHARS, verb = "stats diagnose", classes = undefined) => {
   const room = roomFor(runs.length, total);
-  const held = runs.map((run, at) => digestOf(run, `R${at + 1}`, room));
+  const held = runs.map((run, at) => digestOf(run, `R${at + 1}`, room, classes));
   const over = held.filter((one) => !one.fits);
   if (over.length) {
     fail(`${verb}: ${runs.length} run(s) will not fit one payload of ${total} character(s) — `
@@ -427,23 +430,31 @@ export const printDiagnose = async (rest) => {
   const model = modelFor(values, path, effort);
   const directory = checkoutFrom(checkout, "stats diagnose");
   const root = rootFor(directory);
-  const { runs } = runsUnder(root, null, classesFor(declaredIn(directory)));
+  const classes = classesFor(declaredIn(directory));
+  const { runs, unreadable } = runsUnder(root, null, classes);
   /* Over the empty corpus as over a full one: a branch of its own answered with the root's name in
      place of the caller's keys, so `--issues ISS-404,ISS-405` over a corpus with nothing in it named
      neither key — and which names could not be read is the whole of what a caller is owed here. The
      empty corpus is said beside them rather than instead of them. */
   const { read, notRead } = chosenOf(runs, anchor);
+  /* A transcript the corpus walk could not parse is evidence this reading lost, and it is lost
+     whether or not the set the caller named came out full: a reading over twenty readable runs
+     beside one unreadable file is a reading of twenty-one runs minus one, and saying so is the same
+     duty as naming a key that matched nothing. */
+  const lost = unreadable
+    ? [{ named: `${unreadable} transcript(s) under ${root}`, why: "this reading could not parse them" }]
+    : [];
   const empty = runs.length ? [] : [{ named: root, why: "no issue-flow run is under it" }];
   /* Both empty exits answer in the reading's own keys: a machine consumer promised one object and
      handed a sentence cannot tell an empty set from a reading that found nothing (ISS-1995 F4). */
   if (!read.length) {
     const held = readingOf({ root, directory, model, effort, digests: [],
-      notRead: [...notRead, ...empty], sent: false });
+      notRead: [...notRead, ...lost, ...empty], sent: false });
     if (json) return console.log(JSON.stringify(held, null, 2));
     for (const line of diagnosisSaid(held)) console.log(line);
     return console.log(derivedFrom(directory).trim());
   }
-  const digests = payloadOf(read);
+  const digests = payloadOf(read, TOTAL_CHARS, "stats diagnose", classes);
   const record = {
     kind: DIAGNOSTIC,
     at: new Date().toISOString(),
@@ -468,7 +479,7 @@ export const printDiagnose = async (rest) => {
   const { read: replyRead, why, findings, leftOut } = findingsIn(answer.text, digests);
   logConsult({ ...record, ms: Date.now() - started, ok: true, usage: answer.usage, stop: answer.stop,
     replyRead, ...(why ? { why } : {}), findings: findings.length, leftOut, reply: answer.text });
-  const held = readingOf({ root, directory, model, effort, digests, notRead,
+  const held = readingOf({ root, directory, model, effort, digests, notRead: [...notRead, ...lost],
     sent: true, replyRead, why, findings, leftOut });
   if (json) return console.log(JSON.stringify(held, null, 2));
   for (const line of diagnosisSaid(held)) console.log(line);

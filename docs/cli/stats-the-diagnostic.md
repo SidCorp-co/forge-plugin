@@ -33,7 +33,15 @@ naming it is two readings sharing a screen.
 
 What it could not reach is printed with the reason. A key that no run of the corpus ever owned is the
 common case, and a conclusion drawn over a set the reader cannot reconstruct is worth nothing
-whatever it says.
+whatever it says. A transcript the corpus walk could not open is printed there too, and it is printed
+beside a set that came out full: a reading over twenty readable runs and one unopenable file is a
+reading of twenty-one minus one, and a screen that said only what it read would be a clean corpus
+with a hole in it.
+
+And the digest is parsed under the class table the checkout declares, the same one the corpus was
+folded by. A project that has said what its gate is has said what its gate is, and a reviewer handed
+that command as a shell call, beside a profile that calls it a gate, is being shown two readings of
+one corpus.
 
 ## Why a finding that cites nothing is not reported
 
