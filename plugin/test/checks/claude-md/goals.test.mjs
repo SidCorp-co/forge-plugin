@@ -6,8 +6,8 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { checkGoals } from "../../src/checks/claude-md-goals.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { checkGoals } from "../../../src/checks/claude-md-goals.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 
 const fixture = () => {
   const root = tempRoom("cm-goals-");

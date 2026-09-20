@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { misScoped, overrideMarkers, reviewClaudeMd, statements } from "../../src/checks/claude-md.mjs";
+import { misScoped, overrideMarkers, reviewClaudeMd, statements } from "../../../src/checks/claude-md.mjs";
 
 const GUIDES = [
   {
@@ -103,7 +103,7 @@ test("a marker inside a fence is an example, not a declaration", () => {
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { checkClaims, checkerOwned, claims } from "../../src/checks/claude-md.mjs";
+import { checkClaims, checkerOwned, claims } from "../../../src/checks/claude-md.mjs";
 
 function fixture() {
   const root = tempRoom("cm-claims-");
@@ -194,7 +194,7 @@ test("a rule a checker declares is reported where CLAUDE.md explains it", () => 
   assert.deepEqual(checkerOwned("- `no-such-rule` does a thing that is long enough to be a statement.\n", root), []);
 });
 
-import { MAX_CLAUDE_MD_LINES, checkStructure } from "../../src/checks/claude-md.mjs";
+import { MAX_CLAUDE_MD_LINES, checkStructure } from "../../../src/checks/claude-md.mjs";
 
 test("the line target is the published one, and a short file passes it", () => {
   assert.equal(MAX_CLAUDE_MD_LINES, 200);
@@ -222,8 +222,8 @@ test("an @import is checked against the tree, and one in backticks is not an imp
   assert.deepEqual(found.brokenImports, ["docs/gone.md"]);
 });
 
-import { checkerRestated } from "../../src/checks/claude-md.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { checkerRestated } from "../../../src/checks/claude-md.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 
 const OWNED = "A process started outside the stack script reads production-shaped data and can write it.";
 
