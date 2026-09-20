@@ -45,7 +45,7 @@ export default configure();
 export default [
   { files: ["**/*.{ts,tsx}"], languageOptions: { parser: tsParser } },
   ...configure({
-    "comment-density": ["warn", { maxRatio: 0.2, minCommentLines: 6 }],
+    "comment-density": ["warn", { maxChars: 20, minChars: 600 }],
     "no-pass-through-wrapper": "off",
     "max-lines": ["error", { max: 300 }],
     tokens: { tokenSource: "app/globals.css" },
@@ -115,7 +115,7 @@ None of these rules has a fixer. `eslint --fix` cannot delete or rewrite a comme
 
 ```js
 configure({
-  "comment-density": ["warn", { maxRatio: 0.2 }],
+  "comment-density": ["warn", { maxChars: 20 }],
   "no-duplicate-comment": ["warn", { threshold: 0.5 }],
   "max-consecutive-comment-lines": ["warn", { max: 12 }],
   "no-historical-narration": ["warn", { handoffNarration: false, allowPatterns: ["ADR-\\d+"] }],
@@ -146,18 +146,24 @@ The built-in lists are exported as `NARRATION_PATTERNS` and `HANDOFF_PATTERNS` i
 
 ### `comment-density`
 
-Limits physical comment lines relative to physical code lines.
+Limits what a file's comments say relative to its physical code lines.
 
 ```js
 {
   "code-quality/comment-density": ["error", {
-    maxRatio: 0.15,
-    minCommentLines: 0
+    maxChars: 12,
+    minChars: 0
   }]
 }
 ```
 
-A mixed line containing both code and a substantive comment belongs to both sets. Blank or decorative block-comment lines do not count. The recommended config measures every file with substantive comments and permits at most 15 comment lines per 100 code lines.
+`maxChars` is the comment characters one code line buys, counting every character that is not a blank. Blanks are the whole of what wrapping moves, so the same words measure the same at every column and a comment costs what it says rather than where its author pressed return. The default is `0.15` of a comment line per code line priced at a 100-column line, about 80 of whose characters are not blanks.
+
+`minChars` is a floor under the budget, not a threshold in front of the report: a module too short to buy a sentence is answered with what it may carry rather than going unmeasured.
+
+A mixed line containing both code and a substantive comment belongs to both sets. Blank or decorative block-comment lines say nothing and cost nothing, and neither does a waiver.
+
+`maxRatio` and `minCommentLines` counted comment lines, which a re-wrap moves; both are refused by name, each naming the option that replaces it.
 
 ### `no-duplicate-comment`
 

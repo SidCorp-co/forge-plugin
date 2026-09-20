@@ -36,10 +36,10 @@ function isDecorative(content) {
   return content === "" || /^[\s*\-=~_#]+$/.test(content);
 }
 
-function commentHasContentOnLine(comment, line, lineNumber) {
-  if (comment.type === "Line") return !isDecorative(comment.value.trim());
-  if (comment.type !== "Block") return false;
-  return !isDecorative(blockLineContent(line, lineNumber, comment));
+function commentContentOnLine(comment, line, lineNumber) {
+  if (comment.type === "Line") return comment.value.trim();
+  if (comment.type !== "Block") return "";
+  return blockLineContent(line, lineNumber, comment);
 }
 
 function lineHasCode(sourceCode, lineNumber, commentsOnLine) {
@@ -79,26 +79,29 @@ export function getLineMetrics(sourceCode) {
 
   const codeLines = new Set();
   const commentLines = new Set();
+  // What the comment says, with every blank taken out, because a re-wrap moves blanks and nothing
+  // else: the same paragraph at one column and at ninety has the same characters left.
+  let commentChars = 0;
   for (let lineNumber = 1; lineNumber <= sourceCode.lines.length; lineNumber += 1) {
     const line = sourceCode.lines[lineNumber - 1];
     const comments = commentsByLine.get(lineNumber) ?? [];
-    if (
-      comments.some(
-        (comment) =>
-          comment.type !== "Shebang" &&
-          !isIgnoredComment(comment) &&
-          // A waiver is the answer to a rule, not prose about the code: charging it to the density
-          // budget makes the escape cost a comment line and pushes a file at the budget over it.
-          !isWaiver(comment) &&
-          commentHasContentOnLine(comment, line, lineNumber),
-      )
-    ) {
+    let said = 0;
+    for (const comment of comments) {
+      // A waiver is the answer to a rule, not prose about the code: charging it to the density
+      // budget makes the escape cost a comment line and pushes a file at the budget over it.
+      if (comment.type === "Shebang" || isIgnoredComment(comment) || isWaiver(comment)) continue;
+      const content = commentContentOnLine(comment, line, lineNumber);
+      if (isDecorative(content)) continue;
+      said += content.replace(/\s+/gu, "").length;
+    }
+    if (said > 0) {
       commentLines.add(lineNumber);
+      commentChars += said;
     }
     if (lineHasCode(sourceCode, lineNumber, comments)) codeLines.add(lineNumber);
   }
 
-  const metrics = { codeLines, commentLines };
+  const metrics = { codeLines, commentLines, commentChars };
   metricsCache.set(sourceCode, metrics);
   return metrics;
 }

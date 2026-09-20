@@ -1,32 +1,51 @@
 import { getLineMetrics, longestConsecutiveRun } from "../line-metrics.js";
 
+/* What each retired option counted, and the one that replaces it. Both measured lines, which the
+   author chooses for free by where the text is wrapped, so neither can be translated silently. */
+const RETIRED = {
+  maxRatio:
+    "maxChars, the comment characters a code line buys; the old 0.15 of a 100-column line is maxChars: 12",
+  minCommentLines: "minChars, the smallest budget a file gets whatever its length, in those same characters",
+};
+
 export default {
   meta: {
     type: "suggestion",
-    docs: { description: "Limit comment lines relative to code lines", recommended: true },
+    docs: { description: "Limit comment content relative to code lines", recommended: true },
     schema: [
       {
         type: "object",
         properties: {
-          maxRatio: { type: "number", minimum: 0 },
-          minCommentLines: { type: "integer", minimum: 0 },
+          maxChars: { type: "number", minimum: 0 },
+          minChars: { type: "integer", minimum: 0 },
+          maxRatio: {},
+          minCommentLines: {},
         },
         additionalProperties: false,
       },
     ],
     messages: {
       excessiveDensity:
-        "Delete {{excess}} comment {{lineWord}}: {{codeLines}} code lines allow {{budget}} at {{maxRatio}}, this file has {{commentLines}}.",
+        "Cut {{excess}} non-blank characters of comment, which a re-wrap will not: {{codeLines}} code lines allow {{budget}}, this file has {{chars}}.",
     },
   },
   create(context) {
-    const { maxRatio = 0.15, minCommentLines = 0 } = context.options[0] ?? {};
+    const options = context.options[0] ?? {};
+    for (const [retired, replacement] of Object.entries(RETIRED)) {
+      if (retired in options) {
+        throw new TypeError(
+          `comment-density: ${retired} counted comment lines, which a re-wrap moves. Use ${replacement}.`,
+        );
+      }
+    }
+    const { maxChars = 12, minChars = 0 } = options;
     return {
       "Program:exit"(node) {
         const metrics = getLineMetrics(context.sourceCode);
-        if (metrics.commentLines.size < minCommentLines) return;
-        const ratio = metrics.codeLines.size === 0 ? Number.POSITIVE_INFINITY : metrics.commentLines.size / metrics.codeLines.size;
-        if (ratio <= maxRatio) return;
+        // The floor is under the budget rather than in front of the report, so a module too short
+        // to buy a sentence is answered with what it may carry instead of going unmeasured.
+        const budget = Math.max(minChars, Math.floor(maxChars * metrics.codeLines.size));
+        if (metrics.commentChars <= budget) return;
         // The densest block is where the deletions are, so the report points
         // there rather than at the program node the ratio was computed over.
         const run = longestConsecutiveRun(metrics.commentLines);
@@ -36,20 +55,14 @@ export default {
               start: { line: run[0], column: 0 },
               end: { line: run.at(-1), column: context.sourceCode.lines[run.at(-1) - 1].length },
             };
-        // The budget in lines, not the ratio it came from: a reader who has to divide to learn
-        // how many comments to cut does that arithmetic on every report.
-        const budget = Math.floor(maxRatio * metrics.codeLines.size);
-        const excess = metrics.commentLines.size - budget;
         context.report({
           loc,
           messageId: "excessiveDensity",
           data: {
-            excess,
-            lineWord: excess === 1 ? "line" : "lines",
+            excess: metrics.commentChars - budget,
             budget,
-            commentLines: metrics.commentLines.size,
+            chars: metrics.commentChars,
             codeLines: metrics.codeLines.size,
-            maxRatio,
           },
         });
       },

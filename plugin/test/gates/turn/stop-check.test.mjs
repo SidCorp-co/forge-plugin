@@ -16,6 +16,11 @@ const HOOK = new URL("../../../hooks/entries/turn/stop-check.mjs", import.meta.u
 const GATE = new URL("../../../hooks/gate.mjs", import.meta.url).pathname;
 const REPO = new URL("../../../..", import.meta.url).pathname.replace(/\/$/u, "");
 
+/* A probe that means to be refused says 1300 characters of comment, because that is what a
+   comment costs now. On one line, which is how the same file passed the ceiling before it. */
+const DENSE = `// ${"the unit is what the comment says and never the column its author wrapped it at. ".repeat(20)}\nexport const x = 1;\n`;
+
+
 /* Set before the gate is loaded and not after: the consult log's path is read once, at the import,
    and this suite must not read the developer's own log. Where its stamps land is the fixture's,
    which pointed `TMPDIR` at this process's own root before this line ran. */
@@ -69,7 +74,7 @@ const consult = (root) => JSON.stringify({
    left rather than the ceiling, and a budget that is not a whole number is one no child accepts. */
 test("the registered stop line refuses a dense write too, on the stop clock", () => {
   const file = join(REPO, "plugin", "test", `stop-clock-${randomUUID().slice(0, 8)}.mjs`);
-  writeFileSync(file, "// one\n// two\n// three\n// four\nexport const x = 1;\n");
+  writeFileSync(file, DENSE);
   try {
     const ev = { hook_event_name: "Stop", session_id: randomUUID(), transcript_path: transcript(used("Write", { file_path: file })), cwd: cleanRepo() };
     const said = spawnSync(process.execPath, [GATE, "stop", "stop-check"], { input: JSON.stringify(ev), encoding: "utf8", env: room() });
@@ -86,7 +91,7 @@ test("a turn that left nothing red ends in silence", () => {
 
 test("a file this turn wrote that the project's linter rejects refuses the stop, named", () => {
   const file = join(REPO, "plugin", "test", `stop-probe-${randomUUID().slice(0, 8)}.mjs`);
-  writeFileSync(file, "// one\n// two\n// three\n// four\nexport const x = 1;\n");
+  writeFileSync(file, DENSE);
   try {
     const said = stopped(room(), {
       transcript_path: transcript(used("Write", { file_path: file })),
@@ -134,7 +139,7 @@ test("tracked changes in a worktree the run made refuse the stop; the checkout t
    this one wrote files this one is answerable for until the records are cut at the prompt. */
 test("what an earlier turn wrote is not this turn's to answer for", () => {
   const file = join(REPO, "plugin", "test", `stop-probe-${randomUUID().slice(0, 8)}.mjs`);
-  writeFileSync(file, "// one\n// two\n// three\n// four\nexport const x = 1;\n");
+  writeFileSync(file, DENSE);
   try {
     const earlier = { ...prompt, timestamp: "2026-08-31T10:00:00.000Z" };
     const path = written([earlier, used("Write", { file_path: file }), prompt]);
@@ -229,7 +234,7 @@ const subagentStop = (event) => ({
 
 test("a subagent's stop is judged on the subagent's own transcript, not the parent's", () => {
   const file = join(REPO, "plugin", "test", `stop-agent-${randomUUID().slice(0, 8)}.mjs`);
-  writeFileSync(file, "// one\n// two\n// three\n// four\nexport const x = 1;\n");
+  writeFileSync(file, DENSE);
   try {
     const own = handed(used("Write", { file_path: file }));
     const said = stopped(room(), subagentStop({ agent_transcript_path: own, cwd: cleanRepo() }));
@@ -345,7 +350,7 @@ test("stop.agents in .forge.json decides which subagents' stops are judged", () 
   assert.equal(judgedStop({ ...runner, agent_type: "Explore" }, ["Explore"]), true, "a name set there is honoured");
   assert.equal(judgedStop({ hook_event_name: "Stop" }, []), true, "the main agent's stop is always judged");
   const file = join(REPO, "plugin", "test", `stop-config-${randomUUID().slice(0, 8)}.mjs`);
-  writeFileSync(file, "// one\n// two\n// three\n// four\nexport const x = 1;\n");
+  writeFileSync(file, DENSE);
   /* The judged cases above run from this repository, whose .forge.json lists its four roles. */
   const at = (config) => {
     const cwd = tempRoom("stop-check-config-");

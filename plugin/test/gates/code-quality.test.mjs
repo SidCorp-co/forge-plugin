@@ -13,10 +13,15 @@ const REPO = new URL("../../..", import.meta.url).pathname.replace(/\/$/u, "");
 const HOME = homeEnv("code-quality");
 const LOG = join(HOME.XDG_CONFIG_HOME, "forge", "hook-log.jsonl");
 
+/* A probe that means to be refused says 1300 characters of comment, because that is what a
+   comment costs now. On one line, which is how the same file passed the ceiling before it. */
+const DENSE = `// ${"the unit is what the comment says and never the column its author wrapped it at. ".repeat(20)}\nexport const x = 1;\n`;
+
+
 /* Inside this repository, so the delegate finds this project's ESLint and its density limit. */
 test("a finding is refused in the delegate's protocol and written to the log like every other", () => {
   const file = join(REPO, "plugin", "test", `cq-probe-${randomUUID().slice(0, 8)}.mjs`);
-  writeFileSync(file, "// one\n// two\n// three\n// four\nexport const x = 1;\n");
+  writeFileSync(file, DENSE);
   try {
     const run = callHook(
       HOOK,
@@ -62,7 +67,7 @@ test("a project that configured no linter hears nothing, and the same file speak
   const room = realpathSync(tempRoom("undecided-"));
   writeFileSync(join(room, "package.json"), JSON.stringify({ name: "undecided", private: true }));
   const file = join(room, "thing.mjs");
-  writeFileSync(file, "// one\n// two\n// three\n// four\nexport const x = 1;\n");
+  writeFileSync(file, DENSE);
   /* A fresh session each call: the delegate says the missing-install line once per session. */
   const call = () =>
     callHook(HOOK, { session_id: randomUUID(), tool_name: "Write", tool_input: { file_path: file }, cwd: room }, quiet);
@@ -100,7 +105,7 @@ test("a file in a worktree beside the session's directory is linted by the tree 
   writeFileSync(join(worktree, "eslint.config.mjs"),
     'import { configure } from "eslint-plugin-code-quality";\nexport default configure({ "comment-density": "error" });\n');
   const file = join(worktree, "thing.mjs");
-  writeFileSync(file, "// one\n// two\n// three\n// four\nexport const x = 1;\n");
+  writeFileSync(file, DENSE);
   const run = callHook(
     HOOK,
     { session_id: randomUUID(), tool_name: "Write", tool_input: { file_path: file }, cwd: session },

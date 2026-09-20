@@ -2,7 +2,7 @@ import type { ESLint, Linter } from "eslint";
 
 export declare const DEFAULT_MAX_FILE_CODE_LINES: number;
 export declare const DEFAULT_MAX_FUNCTION_CODE_LINES: number;
-export declare const DEFAULT_MAX_COMMENT_RATIO: number;
+export declare const DEFAULT_MAX_COMMENT_CHARS: number;
 export declare const DEFAULT_MAX_CONSECUTIVE_COMMENT_LINES: number;
 export declare const DEFAULT_TEST_GLOBS: string[];
 export declare const DEFAULT_OVERLAP_THRESHOLD: number;
@@ -97,7 +97,7 @@ export type RuleEntry<Options = Record<string, unknown>> = Severity | [Severity,
 
 export interface ConfigureOptions {
   "no-historical-narration"?: RuleEntry<NarrationOptions>;
-  "comment-density"?: RuleEntry<{ maxRatio?: number; minCommentLines?: number }>;
+  "comment-density"?: RuleEntry<{ maxChars?: number; minChars?: number }>;
   "no-duplicate-comment"?: RuleEntry<DuplicateCommentOptions>;
   "max-consecutive-comment-lines"?: RuleEntry<{ max?: number }>;
   "no-pass-through-wrapper"?: RuleEntry<{ elements?: boolean | string[] }>;

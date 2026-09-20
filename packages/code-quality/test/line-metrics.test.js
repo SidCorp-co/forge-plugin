@@ -61,6 +61,21 @@ test("excludes a waiver from the comment lines it used to be charged to", () => 
   assert.deepEqual([...unwaived.commentLines], [1], "and a marker with no reason is still a comment");
 });
 
+/* The count a wrap cannot move. Blanks are the whole of what wrapping adds and removes, so they
+   are the whole of what this leaves out; a waiver and a decorative line carry none of it either. */
+test("comment characters count what is said, and nothing a wrap would move", () => {
+  assert.equal(metricsFor("// rationale\nconst a = 1;").commentChars, 9);
+  const prose = "one two three four five six seven eight nine ten";
+  const oneLine = metricsFor(`// ${prose}\nconst a = 1;`).commentChars;
+  const wrapped = metricsFor(`// one two three four five\n// six seven eight nine ten\nconst a = 1;`).commentChars;
+  assert.equal(oneLine, wrapped, "the same words at two wrap columns");
+  assert.equal(oneLine, prose.replace(/ /gu, "").length);
+  const block = metricsFor("/*\n * Real constraint.\n *\n * --------\n * Another detail.\n */\nconst value = 1;");
+  assert.equal(block.commentChars, "Realconstraint.".length + "Anotherdetail.".length);
+  assert.equal(metricsFor("// pass-through: keep — the wrapper is the seam a test needs\nconst a = 1;").commentChars, 0);
+  assert.equal(metricsFor("#!/usr/bin/env node\nconst a = 1;").commentChars, 0);
+});
+
 test("longest consecutive run finds the largest physical run", () => {
   assert.deepEqual(longestConsecutiveRun(new Set([1, 2, 4, 5, 6, 9])), [4, 5, 6]);
   assert.deepEqual(longestConsecutiveRun(new Set()), []);

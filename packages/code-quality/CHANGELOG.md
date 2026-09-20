@@ -2,6 +2,27 @@
 
 All notable changes to this package are documented here.
 
+## 0.16.0 - 2026-09-20
+
+### Changed
+
+- `comment-density` measures a comment by what it says, not by how many lines it is written on.
+  `max-lines` runs `skipComments: true`, so a comment cost it nothing; this rule divided comment
+  **lines** by code lines, so a comment cost it whatever its author had wrapped it at. Between them
+  no reading charged a long comment what a wrapped one was charged, and the refusal — "delete six
+  comment lines" — sent a reader to the wrap key, which is the one edit that satisfied it. The
+  ceiling is now `maxChars`, the comment characters a code line buys, counting every character that
+  is not a blank; blanks are the whole of what wrapping moves, so the same words measure the same at
+  every column. The refusal says how many characters to cut and that a re-wrap will not pay them.
+- `minCommentLines` becomes `minChars`, and it is a floor under the budget rather than a threshold
+  in front of the report: a module too short to buy a sentence is now answered with what it may
+  carry instead of going unmeasured.
+- Both retired options are refused by name, each naming the one that replaces it; `0.15` of a
+  100-column line is `maxChars: 12`.
+- `configure` refuses a `max-lines` given `skipComments: false` while `comment-density` is on. A
+  comment costs the length ceiling no lines and the density ceiling its characters, once each, and
+  that pair would put a wrap back in charge of one of them.
+
 ## 0.15.0 - 2026-09-07
 
 ### Fixed

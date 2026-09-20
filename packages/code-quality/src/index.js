@@ -93,7 +93,7 @@ export const DEFAULT_TEST_GLOBS = [
 ];
 
 const plugin = {
-  meta: { name: "eslint-plugin-code-quality", version: "0.15.0" },
+  meta: { name: "eslint-plugin-code-quality", version: "0.16.0" },
   rules: {
     "no-historical-narration": noHistoricalNarration,
     "comment-density": commentDensity,
@@ -107,13 +107,15 @@ const plugin = {
   configs: {},
 };
 
-export const DEFAULT_MAX_COMMENT_RATIO = 0.15;
+/* 0.15 of a comment line per code line, priced at a 100-column line: about 80 of its characters
+   are not blanks. Blanks are what a re-wrap moves, so they are the ones this unit leaves out. */
+export const DEFAULT_MAX_COMMENT_CHARS = 12;
 export const DEFAULT_MAX_CONSECUTIVE_COMMENT_LINES = 8;
 
 /** Every rule this plugin can enable, and the options it enables one with. */
 const RULE_OPTIONS = {
   "no-historical-narration": {},
-  "comment-density": { maxRatio: DEFAULT_MAX_COMMENT_RATIO, minCommentLines: 0 },
+  "comment-density": { maxChars: DEFAULT_MAX_COMMENT_CHARS, minChars: 0 },
   "no-duplicate-comment": {},
   "max-consecutive-comment-lines": { max: DEFAULT_MAX_CONSECUTIVE_COMMENT_LINES },
   "no-pass-through-wrapper": {},
@@ -210,6 +212,16 @@ export function configure({
       merged.exemptFiles = [...new Set([...exempt, ...(options.exemptFiles ?? [])])];
     }
     rules[idFor(name)] = [severity, merged];
+  }
+
+  const lengths = rules["max-lines"]?.[1];
+  if (rules["code-quality/comment-density"] !== undefined && lengths?.skipComments === false) {
+    throw new TypeError(
+      "configure: max-lines with skipComments false charges a comment its newlines, which " +
+        "comment-density no longer does, so a re-wrap would move one ceiling and not the other. " +
+        "A comment costs the length ceiling no lines and the density ceiling its characters: " +
+        "leave skipComments true and set comment-density's maxChars.",
+    );
   }
 
   const configs = [{ name: "code-quality", plugins: { "code-quality": plugin }, rules }];

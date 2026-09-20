@@ -80,7 +80,7 @@ test("an unnamed rule is an error, and the design rules wait for a token layer",
   assert.equal(main.plugins["code-quality"], plugin);
   assert.deepEqual(main.rules, {
     "code-quality/no-historical-narration": ["error", {}],
-    "code-quality/comment-density": ["error", { maxRatio: 0.15, minCommentLines: 0 }],
+    "code-quality/comment-density": ["error", { maxChars: 12, minChars: 0 }],
     "code-quality/no-duplicate-comment": ["error", {}],
     "code-quality/max-consecutive-comment-lines": ["error", { max: 8 }],
     "code-quality/no-pass-through-wrapper": ["error", {}],
@@ -97,9 +97,22 @@ test("an unnamed rule is an error, and the design rules wait for a token layer",
   assert.deepEqual(configs.recommended, configure());
 });
 
+/* The two ceilings answer one question between them: a comment costs the length ceiling no lines
+   and the density ceiling its characters. A max-lines told to count comment lines puts a wrap back
+   in charge of one of them, so the pair is refused rather than shipped disagreeing (ISS-1937). */
+test("a max-lines that counts comment lines is refused beside comment-density", () => {
+  assert.throws(
+    () => configure({ "max-lines": ["error", { skipComments: false }] }),
+    /max-lines with skipComments false charges a comment its newlines.*leave skipComments true/su,
+  );
+  // With the density rule off there is no second ceiling to disagree with, and it configures.
+  const [main] = configure({ "comment-density": "off", "max-lines": ["error", { skipComments: false }] });
+  assert.equal(main.rules["max-lines"][1].skipComments, false);
+});
+
 test("one severity per rule, and options travel beside it", () => {
   const [main, ...rest] = configure({
-    "comment-density": ["warn", { maxRatio: 0.3, minCommentLines: 6 }],
+    "comment-density": ["warn", { maxChars: 30, minChars: 600 }],
     "no-historical-narration": ["warn", { handoffNarration: false }],
     "max-lines": ["error", { max: 250 }],
     "no-pass-through-wrapper": "off",
@@ -107,7 +120,7 @@ test("one severity per rule, and options travel beside it", () => {
   });
   assert.deepEqual(main.rules["code-quality/comment-density"], [
     "warn",
-    { maxRatio: 0.3, minCommentLines: 6 },
+    { maxChars: 30, minChars: 600 },
   ]);
   assert.deepEqual(main.rules["code-quality/no-historical-narration"], [
     "warn",

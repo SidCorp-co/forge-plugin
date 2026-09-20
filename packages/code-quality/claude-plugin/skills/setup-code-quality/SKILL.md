@@ -35,7 +35,7 @@ script rewrites the `configure()` call in place rather than skipping it.
 | Ask about | What it catches | Off means |
 | --- | --- | --- |
 | `no-historical-narration` | comments narrating what the code used to do | history stays in comments |
-| `comment-density` | more than 15% comment lines | prose is uncapped |
+| `comment-density` | comments saying more than a code line buys | prose is uncapped |
 | `max-consecutive-comment-lines` | a block over 8 comment lines | essays stay inline |
 | `no-pass-through-wrapper` | a layer that forwards and adds nothing | indirection is free |
 | `max-lines` | files over `500` code lines | god files are allowed |
