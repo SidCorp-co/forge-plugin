@@ -330,8 +330,9 @@ it. Reading is all this product does there.
   from a non-zero exit this plugin refused, the two being different failures the same pass already
   tells apart.
 - **AC-19-8-52** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "compactions and api errors print as unavailable rather than as a nought where the window holds no run"
-  WHERE the window holds no run the CLI SHALL print the compaction count and the API error count
-  as unavailable rather than as a nought found.
+  WHERE the window holds no run the CLI SHALL hold the compaction count and the API error count as
+  unavailable rather than as a nought found, in the profile and in `--json` alike — the prose screen
+  prints no row at all for such a window, the same as every other figure on it.
 
 ### EI-09 — The chat backend
 
