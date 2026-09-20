@@ -2,7 +2,7 @@
    nowhere, and a file no row names is a topic nobody is told exists (ISS-87). Capped by default and
    exempt by kind, so a document written later is in scope without anyone remembering it: the
    requirements tree answers to its own gate. */
-import { LINK_TARGET_PATTERN, TABLE_SEPARATOR_PATTERN, withoutSpans } from "../markdown.mjs";
+import { LINK_TARGET_PATTERN, TABLE_SEPARATOR_PATTERN, withoutSpans } from "../../markdown.mjs";
 
 export const TOPIC_MAX = 9000;
 /* An index has no length of its own, budgeted per part below; UC-12-6 of the tree says why not. */

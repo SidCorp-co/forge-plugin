@@ -6,7 +6,7 @@ import test from "node:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { routeProblems } from "../../src/checks/doc-shape.mjs";
+import { routeProblems } from "../../src/checks/docs/doc-shape.mjs";
 import { VERB_NAMES, usageOf } from "../../src/resolve/visibility.mjs";
 import { FORM_NAMES } from "../../src/resolve/handler.mjs";
 import { surfaceOf } from "../surfaces.mjs";

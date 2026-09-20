@@ -6,7 +6,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { claimProblems, docClaims, nameProblems, namesClaimed, namesHeld } from "../../../src/checks/doc-shape.mjs";
+import { claimProblems, docClaims, nameProblems, namesClaimed, namesHeld } from "../../../src/checks/docs/doc-shape.mjs";
 import { codeOf, quoted } from "../../../src/checks/tracker-names.mjs";
 import { VERB_NAMES } from "../../../src/resolve/visibility.mjs";
 import { FORM_NAMES } from "../../../src/resolve/handler.mjs";

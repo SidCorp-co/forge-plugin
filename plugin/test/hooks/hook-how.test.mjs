@@ -7,7 +7,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { NARRATES } from "../../src/checks/doc-shape.mjs";
+import { NARRATES } from "../../src/checks/docs/doc-shape.mjs";
 import { RETIRED } from "../../src/checks/retired-names.mjs";
 
 const PLUGIN = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");

@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 import {
   INDEX, LEAD_MAX, ROW_MAX, TOPIC_MAX, docsCited, indexProblems, overCap,
-} from "../../../src/checks/doc-index.mjs";
+} from "../../../src/checks/docs/doc-index.mjs";
 
 const ROOT = new URL("../../../..", import.meta.url).pathname;
 const chars = (rel) => readFileSync(join(ROOT, rel), "utf8").length;

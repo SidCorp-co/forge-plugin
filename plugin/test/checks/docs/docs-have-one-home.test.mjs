@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import { skillGuidesRoot } from "../../../src/guides/skill-guides.mjs";
 import { compare, sentences } from "../../../src/checks/duplication.mjs";
-import { NARRATES } from "../../../src/checks/doc-shape.mjs";
+import { NARRATES } from "../../../src/checks/docs/doc-shape.mjs";
 import { VERBS } from "../../../src/resolve/visibility.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
