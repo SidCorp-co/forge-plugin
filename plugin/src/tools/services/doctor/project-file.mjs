@@ -260,8 +260,10 @@ export const PROJECT_KEYS = {
     judge: (given) => (workPatternOf(given?.workingRe).unreadable
       ? said("lease.workingRe", "a regular expression this CLI can compile", given?.workingRe) : null),
   },
-  stats: { paths: { "commands.*": "commands" }, judge: statsRefusal },
-  method: { routed: ROUTED.method },
+  stats: { paths: { "commands.*": "commands" }, names: { "commands.*": DECLARABLE }, judge: statsRefusal },
+  /* Routed and retired both, which is not the same offer: the reading that says what a project
+     may still declare skips this row, a key its own writer refuses being no decision left to take. */
+  method: { routed: ROUTED.method, retired: true },
 };
 
 /** The set a checker holds to the keys this plugin reads: a writable key nothing reads hands out a
@@ -289,6 +291,23 @@ export const writableKey = (given) => {
   const pattern = Object.keys(row.paths).find((one) => matches(one, tail));
   return pattern === undefined ? null : { top: segments[0], segments, takes: row.paths[pattern] };
 };
+
+/** The names a wildcard path takes where this table holds a closed set for it, so a reading that
+ *  offers the path offers the names its own judge accepts rather than a word it would refuse. */
+const spelledNames = (row, tail) => {
+  const held = row.names?.[tail];
+  return held ? held.map((one) => tail.replace("*", one)) : [tail];
+};
+
+/** Every decision this file leaves a project: one row per path a value may be written to, and one
+ *  per key another verb writes, so a reading of what a project has NOT decided derives from this
+ *  table and from nothing beside it. A retired key is left out rather than offered. */
+export const declarablePaths = () => Object.entries(PROJECT_KEYS)
+  .filter(([, row]) => !row.retired)
+  .flatMap(([key, row]) => (row.routed
+    ? [{ key, path: key, routed: row.routed }]
+    : Object.keys(row.paths).flatMap((tail) => spelledNames(row, tail)
+      .map((one) => ({ key, path: [key, one].filter(Boolean).join("."), takes: row.paths[tail] })))));
 
 /** Every path a caller may name, so the refusal that lists this resource teaches the shapes too. */
 export const writablePaths = () =>
@@ -337,7 +356,10 @@ export const settingTo = (parsed, segments, value) => {
 
 export const readAt = (parsed, segments) => segments.reduce((at, key) => ownAt(at, key), parsed);
 
-export const SET_USAGE = "forge doctor --set <key>=<value>";
+/** The write spelled as it is typed, so a row offering one key and the usage naming any of them
+ *  cannot drift apart. */
+export const setCall = (key, value) => `forge doctor --set ${key}=${value}`;
+export const SET_USAGE = setCall("<key>", "<value>");
 export const READS_IT = "forge doctor";
 
 /** A project key's value printed as it was written rather than measured: "3 entries" is the one thing

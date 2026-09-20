@@ -313,6 +313,14 @@ const written = (key) => {
 
 export const flowScope = once(() => written("flow"));
 
+/** The project file this process resolved, whole, for the one reading that asks which of its keys
+ *  this project has NOT set. Every line above takes a single key out of the same document, and a
+ *  second read of the file could disagree with them about which file is this project's. */
+export const projectFileHere = () => {
+  const parsed = forgeJson().parsed;
+  return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+};
+
 /** Where the project file every line above was read from actually is, or null where the search found none. A write to a project key takes this rather than building a path of its own: the search runs once per process and reaches a linked worktree's shared checkout, so a path composed from `cwd` at the moment of the write is a different file on exactly the trees a delegated run works in. */
 export const projectFilePath = () => (forgeJson().root ? join(forgeJson().root, FROM_PROJECT) : null);
 

@@ -111,7 +111,7 @@ test("a bare reading keeps a withheld subject's findings, drops its ok rows and 
   assert.match(said, /^\[ note \] claude\.md comment/mu, "the finding of a subject a bare call withholds");
   assert.doesNotMatch(said, /restated: deliberate/u, "and not the block under it");
   assert.doesNotMatch(said, /^\[ {2}ok {2}\] dependencies/mu, "nor that subject's ok rows");
-  assert.match(said, /forge doctor repo {6}this checkout's own health/u,
+  assert.match(said, /forge doctor repo {7}this checkout's own health/u,
     "and the call that prints it whole is named");
 });
 
@@ -141,9 +141,10 @@ test("a word that is no subject is refused with the nearest, and nothing is read
     "and a sentence is --line's prose, which no nearest name could be about");
 });
 
-test("the subjects a bare call reads are the table's own, and three are not among them", () => {
+test("the subjects a bare call reads are the table's own, and four are not among them", () => {
   assert.deepEqual([...IN_BARE].sort(), ["brief", "copy", "machine", "offer", "project", "services"]);
-  assert.deepEqual(SUBJECTS.filter((one) => !one.bare).map((one) => one.slug), ["serves", "repo", "tracker"]);
+  assert.deepEqual(SUBJECTS.filter((one) => !one.bare).map((one) => one.slug),
+    ["undecided", "serves", "repo", "tracker"]);
 });
 
 /* The read point ISS-1460 measured, held as what it is: a position in the one order this report is

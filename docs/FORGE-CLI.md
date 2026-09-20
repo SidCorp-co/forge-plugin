@@ -82,7 +82,7 @@ how many topics there may be.
 | [stats — the outcome](cli/stats-the-outcome.md) | The four figures beside the costs, and the release mark. |
 | [doctor](cli/doctor.md) | Why every missing piece is reported together, and why one verb reports every level of configuration and reads a key back before calling it set. |
 | [the project's own file](cli/the-project-file.md) | Why the keys of a checkout's own file are declared rather than discovered, why a write is one key's span in its text, and whose sentence refuses a value. |
-| [the subjects](cli/the-subjects.md) | Why one report has nine subjects rather than one list, where each flag is described now that sixteen of them do not fit one help, and what a bare reading withholds. |
+| [the subjects](cli/the-subjects.md) | Why one report has subjects rather than one list, where each flag is described now that sixteen of them do not fit one help, what a bare reading withholds, and why what a project has not decided is a reading of its own. |
 | [the landing lines](cli/the-landing-lines.md) | Why where the merge sits is derived from the branches rather than asked for, and why whether an independent agent judges is the tracker record's alone. |
 | [which gates run](cli/which-gates-run.md) | Why the switch is derived from the hooks directory, and why one place alone answers whether a gate is off. |
 | [the test credentials](cli/test-credentials.md) | Why a host is told from a secret by the shape of the value, and where the trim stops. |

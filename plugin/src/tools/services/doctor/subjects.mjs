@@ -85,6 +85,24 @@ const BRIEF = [
   "flag: a brief a session has to ask for is the call this entry removes.",
 ].join("\n");
 
+const UNDECIDED = [
+  "Usage: forge doctor undecided",
+  "Every key of this project's own configuration file it has not set, and the brief it has not",
+  "stored, each with the one call that writes it. The keys come off the same table the writes are",
+  "read from, so one added there appears here and one removed leaves.",
+  "",
+  "This is the second question the report answers. The first is what value is in force, and a key",
+  "nobody decided stays out of that one: a default printed as a decision is a decision nobody made.",
+  "It is named in this one, because a project never told what it may declare cannot declare it.",
+  "",
+  "No flag writes any of it. Each row carries the call that writes its own key, spelled as it is",
+  "typed, so the reading is the route rather than a pointer to one.",
+  "",
+  "Not in a bare reading, and nothing here is a fault: a project that decided nothing has decided",
+  "nothing, which is no finding about the box. A bare call prints no row of this subject at all and",
+  "names this call for the whole of it.",
+].join("\n");
+
 const COPY = [
   "Usage: forge doctor copy",
   "Which copy of this plugin answers a call from here, which copy the gates run, what a session",
@@ -172,6 +190,7 @@ export const SUBJECTS = [
   { slug: "offer", bare: true, says: "which verbs and skills this machine offers, and the jobs declared here", text: OFFER },
   { slug: "project", bare: true, says: "the keys this project sets, and the tracker's own record of it", text: PROJECT },
   { slug: "brief", bare: true, says: "the brief read instead of the repository, and the sources of it that moved", text: BRIEF },
+  { slug: "undecided", bare: false, says: "the keys this project has not set, and the brief it has not stored", text: UNDECIDED },
   { slug: "copy", bare: true, says: "which copy answers a call, which the gates run, and the newest released", text: COPY },
   { slug: "serves", bare: false, says: "the roles, the contract, the flows and the stubs this copy serves", text: SERVES },
   { slug: "services", bare: true, full: true, says: "the hosts the harness calls, and which of their keys are held", text: SERVICES },
@@ -198,7 +217,7 @@ export const heldSaid = (slugs) => {
   const held = SUBJECTS.filter((one) => slugs.includes(one.slug));
   if (!held.length) return [];
   return ["", `${held.length} subject(s) printed only their findings above. Each whole, rows and detail:`,
-    ...held.map((one) => `  forge doctor ${one.slug.padEnd(9)} ${one.says}`)];
+    ...held.map((one) => `  forge doctor ${one.slug.padEnd(10)} ${one.says}`)];
 };
 
 /* The body alone: the usage line over it is the verb's own row, which `forge -h` reads too. */

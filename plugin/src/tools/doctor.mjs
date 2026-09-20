@@ -47,6 +47,7 @@ import {
   under,
 } from "./services/doctor/showing.mjs";
 import { held, projectKeyLines } from "./services/doctor/keys.mjs";
+import { briefUndecided, undecidedKeyRows } from "./services/doctor/undecided.mjs";
 import { ORDER } from "../flow/earned.mjs";
 import {
   addressed, contractParts, contractPath, contractProblems, flowProblems, identityOf, unansweredIn,
@@ -239,8 +240,10 @@ const projectSettings = () => import("./project-settings.mjs");
 
 const checkProject = async (credentials, graph = null) => {
   const { projectReport } = await projectSettings();
-  const { rows, brief } = await projectReport({ credentials, graph });
+  const { rows, brief, briefRead } = await projectReport({ credentials, graph });
   report(rows);
+  under("undecided");
+  report(briefUndecided(briefRead));
   if (!brief.length) return;
   under("brief");
   block(["", ...brief].join("\n"));
@@ -415,6 +418,8 @@ export const doctor = async (argv) => {
   report(withholdingLines());
   under("project");
   await checkFlowKeys();
+  under("undecided");
+  report(undecidedKeyRows());
   under("machine");
   for (const { name, event } of offNow()) {
     line(OK, "hooks off", `${name} (${event}) — \`forge hooks --on ${name}\``);
@@ -469,7 +474,7 @@ export const doctor = async (argv) => {
   if (release) report(await copyRows(release));
 
   /* One read answers for five subjects, so it is spent where any of them prints and not one alone. */
-  if (shown("tracker", "serves", "repo", "project", "brief")) {
+  if (shown("tracker", "serves", "repo", "project", "brief", "undecided")) {
     if (!url.value || !token.value) {
       for (const said of closing()) console.log(said);
       console.log("\nNot reaching the endpoint: the account half is incomplete.");

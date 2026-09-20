@@ -9,8 +9,8 @@ and cannot use — and no amount of care at the writing end buys a byte back.
 So a subject is a slot, as it is on `forge stats`, and each one's flags are described in a cap of
 its own. The subjects are what the rows already were; a taxonomy invented for the split would have
 been a second thing to learn. Which they are, and which flags each owns, is
-`plugin/src/tools/services/doctor/subjects.mjs` and the nine `forge doctor <subject> -h` texts it
-holds — read there rather than listed here, where a tenth subject would leave this paragraph wrong.
+`plugin/src/tools/services/doctor/subjects.mjs` and the `forge doctor <subject> -h` texts it holds —
+read there rather than listed here, where one added or dropped would leave this paragraph wrong.
 
 **Every flag is still typed on the verb.** Fifty places in this tree hand a caller a `forge doctor`
 flag out of a refusal, and this project's rule is that a refusal carries the one command that clears
@@ -31,6 +31,20 @@ local checks, and a filter cannot move a call site.
   with no credential is green, because the credential is another subject's row.
 - A block a reader reads rather than scans — the scored pairs under a CLAUDE.md row, the brief's
   numbered body — prints where its subject is in the reading and nowhere else.
+
+**What a project has not decided is a reading of its own, never a row.** A row reports a value in
+force — set here, defaulted here, or held on the tracker — and a key nobody decided has no such value
+to report, which is why the rows say nothing about one. That silence answers the first question and
+leaves a second standing: which decisions are open at all. Two adopting projects ran for weeks
+against a plugin neither had been told what it could declare, one of them reading `unrecognised` on
+every figure keyed to a command it never named (ISS-1974). So the second question has a reading of
+its own and the first is untouched. It prints `ok` rows only: a project that decided nothing has
+decided nothing, which is no finding about the box.
+
+**And a path it offers is a path the write would take.** Where the table spells a path with a
+wildcard, the reading prints the names that path's own judge accepts if that set is closed, and
+`<name>` where the word is the project's to choose. A row offering a key by a name the write refuses
+is a route to a refusal, which is the one thing a reading meant to end hand-editing may not be.
 
 **The brief is in a bare reading, whole.** It is the map Phase 0 reads instead of the repository, and
 a run that had to spend a second call for the gate command and the ship script would pay a round to

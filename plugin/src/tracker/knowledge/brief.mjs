@@ -82,9 +82,14 @@ export const staleIn = (digests) => {
   return { gone, moved };
 };
 
+/** The one call that writes a brief, so the reading that says none is stored and the reading of
+ *  what this project has not decided spell it alike. */
+export const BRIEF_ROUTE = "forge doctor --refresh <brief.md> --title <one line> "
+  + "--meta written-by=ISS-nn";
+
 const NONE_STORED = [
   "project brief: none stored, so Phase 0 has this project's files and nothing else",
-  "  write one: forge doctor --refresh <brief.md> --title <one line> --meta written-by=ISS-nn",
+  `  write one: ${BRIEF_ROUTE}`,
 ];
 
 const NO_SOURCES = "  no line of this brief names a source, so nothing was hashed and no later run "

@@ -432,7 +432,8 @@ const pmRows = (snapshot, load, graph) => {
 };
 
 /** Every level of the project's own record in one reading: the branches and the deploy, then each
- *  key of the two configuration resources, the work the tracker counts, then the brief as prose. The
+ *  key of the two configuration resources, the work the tracker counts, then the brief as prose and
+ *  the read behind it, which the reading of what nobody decided asks its own question of. The
  *  reads go together — one report is one round trip's worth of waiting, not six. */
 export const projectReport = async ({ credentials, graph = null } = {}) => {
   const [policy, deploy, settings, brief, snapshot, load] = await Promise.all([
@@ -449,6 +450,7 @@ export const projectReport = async ({ credentials, graph = null } = {}) => {
       ...clashes.map((detail) => ({ level: "miss", label: "flow", detail })),
       ...settingRows(settings), ...pmRows(snapshot, load, graph)],
     brief: briefLines(brief),
+    briefRead: brief,
   };
 };
 
