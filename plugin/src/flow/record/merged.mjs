@@ -99,7 +99,7 @@ const pathsSaid = (paths) => {
 };
 
 /* And what a typed one may not: whitespace, which is what tells a phrase in a clause from a filename. Barred on the flag route alone, the composer being handed `git diff` paths that may hold a space and owing the read-back below instead.
-   Why the shape and not the filesystem, and why the ship prints the flag rather than the clause: docs/cli/record-merged.md. */
+   Why the shape and not the filesystem, and why the ship prints the flag rather than the clause: docs/cli/record-merged-the-paths.md. */
 const SPACED = /\s/u;
 
 const opensWith = (given) => CLAUSES.find((one) =>

@@ -21,7 +21,8 @@ how many topics there may be.
 | [`the-kinds`](cli/the-kinds.md) | Why a filing names a category, what the four are, which sections each owes, and why both words are the tracker's. |
 | [`record`](cli/record.md) | Why the CLI owns a payload's shape, which two flags are read off the record, and what it cannot undo. |
 | [`record` — the four kinds prose was losing](cli/record-the-unwritten.md) | What a reopen, a fold and a run's own report were each losing to prose, and why two of the four earn no status and are asked for anyway. |
-| [`record merged`](cli/record-merged.md) | The mark's five clauses, one flag each, and what `--undo` removes. |
+| [`record merged`](cli/record-merged.md) | Why the mark is a verb rather than a template a refusal prints, why one module writes the note and parses it, what each of the five clauses decides for the status that reads it, and what `--undo` removes. |
+| [`record merged` — the two clauses that hold paths](cli/record-merged-the-paths.md) | What a path clause may hold, why the refusal is where the value is typed, how a note too long for the tracker's room is fitted and which two are refused instead, and why both are computed at the landing. |
 | [`record` — a rung in one call](cli/record-the-rung.md) | The pair counts behind `--also`, the order a call writes in, and why the move is a cited kind's alone. |
 | [the field rules](cli/the-field-rules.md) | The three fields judged on what they say, and the two overrides round a check. |
 | [`advance`](cli/advance.md) | What the entry criteria read, why git is never asked at a transition while the requirements tree is, and how a reopen routes. |
