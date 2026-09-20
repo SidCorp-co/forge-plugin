@@ -3,18 +3,20 @@
    run against is `fixture-eval.mjs`'s, small enough to count by hand. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
+import { cpSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import {
   ANGLES, DISPOSITIONS, NOT_MEASURED, POSITIONS,
   angleOf, anglesAsked, anglesOver, anglesSaid, floorsOver,
 } from "../../../src/stats/eval/angles.mjs";
 import { profileOf } from "../../../src/stats/runs.mjs";
-import { marksPath, writeMark } from "../../../src/stats/marks/marks.mjs";
+import { marksPath } from "../../../src/stats/marks/marks.mjs";
 import { FLOOR, releaseMark } from "../../../src/stats/eval/eval.mjs";
 import { refusing } from "../../../src/resolve/settings.mjs";
 import { tempRoom } from "../../fixtures.mjs";
-import { PROJECT, ask, askStats, corpusOf, rootOf, runsOf } from "../fixture-eval.mjs";
+import { PROJECT, ask, askStats, corpusOf, runsOf } from "../fixture-eval.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("stats-angles-home-");
 
@@ -265,20 +267,72 @@ test("--json carries an angle per name with its two figures, its population, its
   assert.equal(wall.over, "run(s) in the window");
 });
 
-test("a mark holds the keys it held before an angle existed, and its write spends no floor", () => {
+test("a mark holds the keys it held before an angle existed, and its write spends no floor", async () => {
+  /* The observation is of the write releaseMark actually makes and never of the source text beside
+     it: a second regex over a file proves the same nothing the first one did (ISS-2012). Angles are
+     computed for real, over this exact corpus, before releaseMark ever runs, so the verdicts below
+     are the corpus's own and not a stub — and the write that follows is checked for their trace. */
   const room = corpusOf(9);
-  const source = readFileSync(new URL("../../../src/stats/eval/eval.mjs", import.meta.url), "utf8");
-  assert.doesNotMatch(source, /anglesOver[\s\S]{0,400}writeMark/u, "no angle reaches a mark writer");
   const ship = askStats(room, ["eval", "--checkout", PROJECT, "--size", "3", "--json"]);
   assert.equal(ship.status, 0, ship.stderr);
-  assert.equal(Object.hasOwn(JSON.parse(ship.stdout), "angles"), true, "the reading carries them");
-  writeMark({ kind: "runs", mark: 9, at: new Date().toISOString(), root: rootOf(room), now: { runs: 9 } });
+  const read = JSON.parse(ship.stdout);
+  assert.equal(Object.hasOwn(read, "angles"), true, "the reading carries them");
+  assert.equal(read.angles.length, Object.keys(ANGLES).length,
+    "every shipped angle was computed, for real, over this corpus, before the write below runs");
+  const seen = [...new Set(read.angles.map((one) => one.disposition))];
+
+  /* Reachability, proven by making every angle- and floor-computing export radioactive rather than
+     by reading a regex over the source: a copy of this tree's own `angles.mjs` is patched so
+     `angleOf`, `anglesOver` and `floorsOver` — the verdict, the population that judges a shift, and
+     the floor itself — all throw the moment any of them runs, and `releaseMark` is called against
+     that copy. Each direct call below going up in flames is the proof the poison is live;
+     `releaseMark` finishing clean over the same corpus, through the same copy, is the proof it
+     never reaches any of the three, a discarded result included since the poison fires on entry. */
+  const POISONED = [
+    ["angleOf", "export const angleOf = (name, windows, floor, runFloor, recomputed = null) => {"],
+    ["anglesOver", "export const anglesOver = ({ ordered, held, names, runFloor }) => {"],
+    ["floorsOver", "export const floorsOver = (befores, nows, beforeSize, nowSize, total, names = NAMES) => {"],
+  ];
+  const pluginRoot = tempRoom("stats-angles-poison-");
+  cpSync(new URL("../../../src", import.meta.url), join(pluginRoot, "src"), { recursive: true });
+  cpSync(new URL("../../../hooks/vendor", import.meta.url), join(pluginRoot, "hooks", "vendor"), { recursive: true });
+  const poisonRoot = join(pluginRoot, "src");
+  const anglesFile = join(poisonRoot, "stats", "eval", "angles.mjs");
+  const original = readFileSync(anglesFile, "utf8");
+  const patched = POISONED.reduce((text, [, declared]) =>
+    text.replace(declared, declared.replace("export const", "export let")), original);
+  assert.notEqual(patched, original, "no declaration was left un-patched");
+  const poisoned = `${patched}\n${POISONED.map(([name]) =>
+    `${name} = () => { throw new Error("ISS-2012 poison: ${name} reached"); };`).join("\n")}\n`;
+  writeFileSync(anglesFile, poisoned);
+  const poisonedAngles = await import(pathToFileURL(anglesFile));
+  for (const [name] of POISONED) {
+    assert.throws(() => poisonedAngles[name](), new RegExp(`ISS-2012 poison: ${name} reached`, "u"),
+      `the poison on ${name} is live`);
+  }
+  const { releaseMark: poisonedReleaseMark } = await import(pathToFileURL(join(poisonRoot, "stats", "eval", "eval.mjs")));
+
+  const was = process.env.TMPDIR;
+  let said;
+  try {
+    process.env.TMPDIR = room;
+    said = poisonedReleaseMark(PROJECT, { version: "0.0.0-iss2012", head: "deadbeef" }, 3);
+  } finally {
+    process.env.TMPDIR = was;
+  }
+  assert.match(said, /held as 0\.0\.0-iss2012/u, "releaseMark never touched the poisoned angleOf or anglesOver");
   const stored = readFileSync(marksPath(), "utf8").trim().split("\n").map((line) => JSON.parse(line));
   for (const one of stored) {
     assert.equal(Object.hasOwn(one, "angles"), false, "and a stored reading carries none");
     assert.equal(Object.hasOwn(one, "floor"), false);
     assert.equal(Object.hasOwn(one, "notMeasured"), false,
       "nor the statement beside them: it is the screen's and `--json`'s, not a field of every mark a ship writes");
+  }
+  const written = stored.find((one) => one.version === "0.0.0-iss2012");
+  const blob = JSON.stringify(written);
+  for (const disposition of seen) {
+    assert.doesNotMatch(blob, new RegExp(disposition.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"),
+      "the write releaseMark actually made, right after this corpus's own angles were computed for real, carries none of their verdicts");
   }
 });
 
