@@ -26,6 +26,9 @@ const inFlightIn = (scope) => [...out.entries()]
   .filter(([key]) => (routes.get(key) ?? scope) === scope)
   .reduce((sum, [, held]) => sum + held, 0);
 
+/* A figure the server wrote before the calls still out of this process were counted. */
+const lends = (remaining, scope) => Math.max(0, remaining - Math.max(0, inFlightIn(scope) - 1));
+
 /* A call reserved before a reset may be charged after it, so what was outstanding at the adoption
    belongs to either window and is subtracted from both rather than credited to a sibling. */
 const opened = (limit, remaining, resetAt, held, carried, scope) => {
@@ -33,8 +36,7 @@ const opened = (limit, remaining, resetAt, held, carried, scope) => {
   const spanning = outstandingIn(from);
   return {
     limit,
-    /* Those still out are not in the reading, so a window lends only what is left once they are off it. */
-    remaining: Math.max(0, remaining - Math.max(0, inFlightIn(scope) - 1)),
+    remaining: lends(remaining, scope),
     resetAt,
     sent: from.sent,
     answers: from.answers,
@@ -74,7 +76,7 @@ export const sawBudget = (key, headers) => {
   now.answers += 1;
   now.limit = limit;
   /* Downward only: a header written before the calls in flight were counted overstates what is left. */
-  if (now === held) now.remaining = Math.min(now.remaining, remaining);
+  if (now === held) now.remaining = Math.min(now.remaining, lends(remaining, scope));
   now.spent = Math.max(now.spent, limit - remaining);
 };
 

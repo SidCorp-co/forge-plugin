@@ -133,6 +133,7 @@ test("the calls a route made before its bucket was named are still counted as th
   for (let one = 0; one < 12; one += 1) assert.equal(reserveIn(KEY, 100_000), null, "nothing stated, nothing paced");
   for (let one = 0; one < 12; one += 1) {
     sawBudget(KEY, stated({ limit: 60, remaining: 59 - one, resetAt: 200_000 }));
+    settled(KEY);
   }
   for (let one = 0; one < 48; one += 1) reserveIn(KEY, 100_000);
   sawBudget(KEY, stated({ limit: 60, remaining: 0, resetAt: 200_000 }));
@@ -165,20 +166,6 @@ test("an answer missing one of the four numbers states no budget, rather than a 
   }
 });
 
-/* The same bucket, a second route: its calls before anything named its scope are as much this
-   process's as the first route's were, and the window they landed in is the one already open. */
-test("a second route joining a bucket already read brings the calls it made with it", () => {
-  const OTHER = "forge_comments.create";
-  forgetBudget();
-  call(100_000, { limit: 60, remaining: 59, resetAt: 200_000 });
-  for (let one = 0; one < 5; one += 1) assert.equal(reserveIn(OTHER, 100_000), null);
-  sawBudget(OTHER, stated({ limit: 60, remaining: 54, resetAt: 200_000 }));
-  for (let one = 0; one < 54; one += 1) reserveIn(KEY, 100_000);
-  sawBudget(KEY, stated({ limit: 60, remaining: 0, resetAt: 200_000 }));
-  assert.equal(reserveIn(KEY, 100_000).said.includes("by something else"), false,
-    "one, then five, then fifty-four: the window is spent and every call in it was this process's");
-});
-
 /* The same bucket again, and the second route's answer has not come back yet: its calls are charged
    to the window somewhere and nothing has said which, so the window standing is charged with them. */
 test("a route whose bucket nothing has named yet is charged to the window that announces", () => {
@@ -196,11 +183,18 @@ test("a route whose first answer is from a window already past still brings its 
   const OTHER = "forge_comments.create";
   forgetBudget();
   call(100_000, { limit: 60, remaining: 59, resetAt: 200_000 });
-  for (let one = 0; one < 5; one += 1) assert.equal(reserveIn(OTHER, 100_000), null);
+  for (let one = 0; one < 5; one += 1) {
+    assert.equal(reserveIn(OTHER, 100_000), null);
+    settled(OTHER);
+  }
   sawBudget(OTHER, stated({ limit: 60, remaining: 40, resetAt: 140_000 }));
-  for (let one = 0; one < 54; one += 1) reserveIn(KEY, 100_000);
+  for (let one = 0; one < 54; one += 1) {
+    assert.equal(reserveIn(KEY, 100_000), null, `reservation ${one + 1} of the 54 left after those five`);
+  }
+  const waiting = reserveIn(KEY, 100_000);
+  assert.ok(waiting, "the five are off what this window has left, the reading being no correction");
   sawBudget(KEY, stated({ limit: 60, remaining: 0, resetAt: 200_000 }));
-  assert.equal(reserveIn(KEY, 100_000).said.includes("by something else"), false,
+  assert.equal(waiting.said.includes("by something else"), false,
     "the reading was dropped and the five calls under it were not");
 });
 
@@ -231,6 +225,8 @@ test("a call that never answered is not a debt the windows after it keep paying"
   assert.ok(reserveIn(KEY, 100_000), "and the sixtieth waits, the window being spent rather than owed");
 });
 
+/* The same bucket, a second route: its calls before anything named its scope are as much this
+   process's as the first route's were, and the window they landed in is the one already open. */
 test("a route joining a window already open takes its own calls off what that window has left", () => {
   const OTHER = "forge_comments.create";
   forgetBudget();
@@ -240,6 +236,24 @@ test("a route joining a window already open takes its own calls off what that wi
   for (let one = 0; one < 54; one += 1) {
     assert.equal(reserveIn(KEY, 100_000), null, `reservation ${one + 1} of the 54 this window has left`);
   }
-  assert.ok(reserveIn(KEY, 100_000),
-    "the four of the other route the header had not counted are off this window too");
+  const waiting = reserveIn(KEY, 100_000);
+  assert.ok(waiting, "the four of the other route the header had not counted are off this window too");
+  sawBudget(KEY, stated({ limit: 60, remaining: 0, resetAt: 200_000 }));
+  assert.equal(reserveIn(KEY, 100_000).said, null, "one window is announced once");
+  assert.equal(waiting.said.includes("by something else"), false,
+    "one, then five, then fifty-four: the window is spent and every call in it was this process's");
+});
+
+/* The same rule for a figure read inside an open window as for one that opens it: the answer was
+   written before the eleven still out were counted, so taking eighteen as eighteen lends them again. */
+test("a reading that lowers what a window has left is lowered again by the calls still out", () => {
+  forgetBudget();
+  call(100_000, { limit: 60, remaining: 59, resetAt: 200_000 });
+  for (let one = 0; one < 12; one += 1) assert.equal(reserveIn(KEY, 100_000), null);
+  sawBudget(KEY, stated({ limit: 60, remaining: 18, resetAt: 200_000 }));
+  settled(KEY);
+  for (let one = 0; one < 7; one += 1) {
+    assert.equal(reserveIn(KEY, 100_000), null, `reservation ${one + 1} of the 7 this window has left`);
+  }
+  assert.ok(reserveIn(KEY, 100_000), "the eleven the answer had not counted are off it too");
 });
