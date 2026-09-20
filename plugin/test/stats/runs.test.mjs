@@ -14,7 +14,7 @@ import { profileOf, runFrom, unionSeconds } from "../../src/stats/runs.mjs";
 import { writeMark } from "../../src/stats/marks/marks.mjs";
 import { tempRoom } from "../fixtures.mjs";
 import {
-  BASE, FORGE, MARKER_TURN, MODELLESS, NOUGHTS, NO_USAGE, OTHER, PROJECT, RESPONSE, SHORT_USAGE,
+  BASE, FORGE, MARKER_TURN, MODELLESS, NOUGHTS, NO_USAGE, OTHER, PROJECT, RESPONSE, SHORT_RESPONSE, SHORT_USAGE,
   ask, asked, at, corpus, result, transcript, use,
 } from "./fixture-runs.mjs";
 
@@ -509,8 +509,8 @@ test("the token lines print the three readings, each over the population it name
 
 test("what the API billed is read off the usage alone, whichever record of a response carries it", () => {
   const spentIn = (...lines) => callsIn(lines.join("\n")).spent;
-  const first = spentIn(SHORT_USAGE, RESPONSE[0]);
-  const second = spentIn(RESPONSE[0], SHORT_USAGE);
+  const first = spentIn(SHORT_RESPONSE, RESPONSE[0]);
+  const second = spentIn(RESPONSE[0], SHORT_RESPONSE);
   assert.deepEqual([first.requests, first.cacheRead, first.unmeasured], [1, 1200, 1],
     "a record missing a price does not reserve the id of the response it belongs to");
   assert.deepEqual(first, second, "so the two read the same in either order");

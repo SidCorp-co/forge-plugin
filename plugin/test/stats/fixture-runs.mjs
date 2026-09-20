@@ -39,6 +39,10 @@ export const RESPONSE = [100, 101, 102].map((second) => spoke("msg_one", second,
 export const NOUGHTS = spoke("msg_two", 200, priced(0, 0, 0, 0));
 export const MARKER_TURN = spoke("msg_three", 300, priced(7, 7, 7, 7), "<synthetic>");
 export const NO_USAGE = spoke("msg_four", 400, undefined);
+/* A fourth record of the response above, missing a price: it shares that response's id, which is
+   what an eligibility test taken after the id would let it reserve. */
+export const SHORT_RESPONSE = spoke("msg_one", 103,
+  { input_tokens: 1, cache_creation_input_tokens: 2, cache_read_input_tokens: 3 });
 export const SHORT_USAGE = spoke("msg_five", 500,
   { input_tokens: 1, cache_creation_input_tokens: 2, cache_read_input_tokens: 3 });
 
