@@ -294,8 +294,7 @@ it. Reading is all this product does there.
   profile however well its fields match, and SHALL say how many of the recorded runs it found.
 - **AC-19-8-34** · Rev: 1 · Proof: plugin/test/stats/eval/angles.test.mjs "a mark holds the keys it held before an angle existed, and its write spends no floor"
   WHERE a reading is held for a mark the CLI SHALL store no angle in it, keeping a verdict, a floor
-  and the statement that goes beside the verdicts out of what is written, and SHALL NOT reach a mark
-  writer from the computing of an angle.
+  and the statement that goes beside the verdicts out of every line it writes.
 - **AC-19-8-35** · Rev: 1 · Proof: plugin/test/stats/eval/angles.test.mjs "a reading where every angle improved says what it does not measure, on the screen and in --json"
   WHEN the angle verdicts are printed THEN the CLI SHALL state beside them what none of the angles it
   holds measures, on the screen and in the machine form alike, and SHALL state it however few angles
