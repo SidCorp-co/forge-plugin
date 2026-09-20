@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import {
   ANGLES, DISPOSITIONS, POSITIONS, angleOf, anglesAsked, anglesOver, anglesSaid, floorsOver,
 } from "../../../src/stats/eval/angles.mjs";
+import { profileOf } from "../../../src/stats/runs.mjs";
 import { marksPath, writeMark } from "../../../src/stats/marks/marks.mjs";
 import { FLOOR, releaseMark } from "../../../src/stats/eval/eval.mjs";
 import { refusing } from "../../../src/resolve/settings.mjs";
@@ -170,6 +171,23 @@ test("a held reading's side is recomputed from this corpus, and its stored profi
   assert.notEqual(one.before.figure, 999, "the stored figure answers for nothing");
   assert.equal(one.disposition, DISPOSITIONS.unevaluable);
   assert.match(one.why, /the before window holds 2 run\(s\)/u);
+});
+
+/* The window this recovers is bounded and not identified: a mark stores a span, never the runs that
+   were in it. So what the span recovers is reported rather than assumed, and the bound it is read
+   against has to be one every member of the window satisfies. */
+test("a held window whose runs overlap recovers all of them, the span being bounded by every run and not by the first", () => {
+  const spans = [[10, 20], [0, 30], [25, 40]];
+  const rows = spans.map(([startedAt, endedAt], at) => ({
+    ...runsOf(3)[at], startedAt, endedAt, seconds: (endedAt - startedAt) / 1000,
+  })).sort((left, right) => left.endedAt - right.endedAt);
+  const stored = profileOf(rows);
+  assert.deepEqual([stored.from, stored.to], [0, 40],
+    "the earliest start and the latest end, whichever order the window was handed over in");
+  const held = { against: 100, now: { runs: 3, profile: profile({ runs: 3 }) }, before: { runs: 3, profile: stored } };
+  const [one] = anglesOver({ ordered: rows, held, names: ["wall"], runFloor: FLOOR });
+  assert.deepEqual(one.recomputed, { held: 3, found: 3 }, "the run that began first and ended second is a member");
+  assert.equal(one.before.figure, stored.medianMinutes, "and the recomputed side is the window the mark held");
 });
 
 test("--angles names which angles to read, in the order asked, and refuses a name the set does not hold", async () => {

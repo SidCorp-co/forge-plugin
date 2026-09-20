@@ -384,7 +384,12 @@ export const profileOf = (runs, declared = null) => {
   const per = (pick) => medianOrZero(runs.map(pick));
   return {
     runs: runs.length,
-    from: runs.length ? runs[0].startedAt : null,
+    /* Both bounds over every run and neither off the list's order: this reader is handed a window
+       ordered by each run's end, so the first of them is the earliest to finish and not the earliest
+       to begin. Read as the start of the span, that bound excluded a run that began before it and
+       ended inside it — which is a window's own member, and the one place these bounds are read back
+       as a span rather than printed (ISS-1987). */
+    from: runs.length ? Math.min(...runs.map((run) => run.startedAt)) : null,
     to: runs.length ? Math.max(...runs.map((run) => run.endedAt)) : null,
     totalMinutes: minutes(whole),
     medianMinutes: minutes(medianOrZero(seconds)),
