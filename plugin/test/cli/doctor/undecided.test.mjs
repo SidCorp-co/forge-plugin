@@ -55,7 +55,7 @@ test("a key the project has already set prints no row", () => {
     feedback: { plugin: "all", project: "bugs" }, runs: 1, drainedBy: "qa-master",
   }, "undecided");
   for (const label of ["slug", "translate", "flow", "runs", "drainedBy",
-    "rank.<name>", "feedback.plugin", "feedback.project"]) {
+    "rank.kind.bug", "feedback.plugin", "feedback.project"]) {
     assert.equal(labelled(said, label), undefined, `${label} is set here and this reading names it`);
   }
   assert.ok(labelled(said, "landing"), "while a key it did not set is still named");
