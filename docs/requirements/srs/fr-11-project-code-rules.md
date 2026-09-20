@@ -72,7 +72,7 @@ is that the file a claim names is the authority over the claim.
 - **AC-11-2-2** · Rev: 1 · Proof: plugin/test/gates/claude-md-hook.test.mjs "a claim already broken in the committed file is not this write's doing"
   IF the claim is already broken in the committed file THEN this write SHALL not be refused for it,
   so the edit that fixes an inherited file lands.
-- **AC-11-2-3** · Rev: 1 · Proof: plugin/test/checks/claude-md.test.mjs "a rule a checker declares is reported where CLAUDE.md explains it"
+- **AC-11-2-3** · Rev: 1 · Proof: plugin/test/checks/claude-md/claims.test.mjs "a rule a checker declares is reported where CLAUDE.md explains it"
   WHERE a rule is already enforced by a checker the report SHALL raise it where a person is reading
   rather than refusing the write.
 - **AC-11-2-4** · Rev: 1 · Proof: plugin/test/gates/claude-md-hook.test.mjs "a project's own guides and every other file are its business"
