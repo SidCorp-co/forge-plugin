@@ -64,7 +64,8 @@ test("the witnessed section is owed at a rung by a declared screen change and by
     "and a declared screen change is");
 });
 
-const WAITS = { staging: "main", production: "main", autoProd: false, from: "the fixture" };
+const WAITS = { staging: "main", model: "publish", said: "publish", live: null, strategy: null,
+  autoProd: false, from: "the fixture" };
 const LANDED = "merged to master at 43b811e; reviewed head 43b811e; judged head 43b811e; "
   + "landing moved nothing; landing wrote nothing";
 const shipped = () => [

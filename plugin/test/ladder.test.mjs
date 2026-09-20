@@ -50,7 +50,7 @@ const weighed = (complexity, at, extra = {}) => ({
 
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [
     issue("trivial"), issue("fix"),
     /* The two holding no complexity: one whose body says nothing about a rung and one whose body

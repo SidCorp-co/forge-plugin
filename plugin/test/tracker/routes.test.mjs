@@ -45,6 +45,13 @@ const sorted = (held, orderless) => {
    turns out not to differ fails: a declaration nobody re-reads is how a difference gets forgotten. */
 const ARCHIVED = "the projection carries whether the row is archived and the tool's answer did not";
 
+/* The staging deploy's own pair, declared rather than closed: ISS-1965 holds the reading, and until
+   it lands the capture is what says the two sides have stopped meeting. */
+const RETIRED_DEPLOY = "the projection defaults a column the tracker has retired, so every project "
+  + "reads as one that configured no staging deploy (ISS-1965)";
+const UNREAD_DEPLOY = "the tool answers the deploy bindings under a name this projection does not "
+  + "read, so the hosts, the notes and the test credentials reach no caller (ISS-1965)";
+
 /* Five rows, one projection: each answers the project row the tracker serves, which is the body
    `projects-get` captured, so they are judged against it rather than each owing a capture of a
    project this suite would have to create to take one. */
@@ -102,15 +109,15 @@ const PAIRS = {
     key: "forge_config.get",
     differs: {
       "config.categories": "no route this credential reaches carries the project's categories",
-      "config.stateContext": "no route this credential reaches carries the state context",
-      "config.projectFactsConfig": "no route this credential reaches carries the project-facts config",
     },
   },
   "guides-list": { key: "forge_guide.list", differs: {} },
   "guides-get": { key: "forge_guide.get", differs: {} },
   /* The archive is reversible and the verb that reverses it needs to be told which rows are in it,
      so both projections carry the column the tool's answer never had. */
-  "projects-get": { key: "forge_projects.get", differs: { "project.archivedAt": ARCHIVED } },
+  "projects-get": { key: "forge_projects.get",
+    differs: { "project.archivedAt": ARCHIVED, "project.previewDeploy": RETIRED_DEPLOY,
+      "project.environments": UNREAD_DEPLOY } },
   "projects-list": { key: "forge_projects.list", differs: { projects: ARCHIVED },
     orderless: { path: "projects", by: "id" } },
   "pm-snapshot": { key: "forge_project_pm.snapshot", differs: {} },

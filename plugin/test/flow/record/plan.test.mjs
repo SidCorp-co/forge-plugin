@@ -16,7 +16,7 @@ const MINE = "this-run";
 const PLAN = "# The plan\n\nScreen change: no\nSchema coupling: no\nUser-facing outcome: no\n\nOne field, one verb.";
 
 const state = {
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [{ documentId: "uuid-348", issueId: "ISS-348", status: "confirmed", title: "one verb per write", description: "x" }],
   comments: { "uuid-348": [] },
   answer: {

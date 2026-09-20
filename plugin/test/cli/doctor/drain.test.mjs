@@ -14,7 +14,7 @@ const state = {
   answer: {
     forge_guide: () => ({ guides: [] }),
     forge_config: (args) => (args.action === "get"
-      ? { config: { baseBranch: "master", productionBranch: "master",
+      ? { config: { baseBranch: "master", releaseModel: "publish",
         pipelineConfig: state.settings?.pipelineConfig ?? {} } }
       : undefined),
   },

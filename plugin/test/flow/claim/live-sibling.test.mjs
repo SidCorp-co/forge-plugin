@@ -144,7 +144,7 @@ const heldBy = ({ holder = OURS, history = [] } = {}) => {
 const state = {
   calls: [],
   wrote: 0,
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [ISSUE],
   comments: { [UUID]: [] },
   answer: {

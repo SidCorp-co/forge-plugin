@@ -34,7 +34,9 @@ const HELD = {
 
 const POLICY = releaseFrom({
   baseBranch: "staging",
-  productionBranch: "master",
+  liveBranch: "master",
+  releaseModel: "promote",
+  releaseStrategy: "fast-forward",
   pipelineConfig: { autoProdDeploy: false },
 });
 
@@ -118,8 +120,10 @@ test("a deploy with nothing on it is not one", () => {
 
 test("the rows name the branches and the deploy decision, each with its source", () => {
   const out = said({});
+  assert.match(out, /^release model: promote — the release moves code from the staging branch to the live branch {2}← the tracker's project config$/mu);
   assert.match(out, /^staging branch: staging {2}← the tracker's project config$/mu);
-  assert.match(out, /^production branch: master {2}← the tracker's project config$/mu);
+  assert.match(out, /^live branch: master {2}← the tracker's project config$/mu);
+  assert.match(out, /^release strategy: fast-forward {2}← the tracker's project config$/mu);
   assert.match(out, /^production deploy: a person's — /mu);
   assert.doesNotMatch(out, /deploys on push/u, "a project that waits for a person is told nothing more");
   assert.doesNotMatch(out, /project id/u, "the id is the endpoint block's, one report having one row for it");
@@ -134,6 +138,32 @@ test("the flag is reported as what it decides, and where it is set the line says
     "on a row of its own with no label, which is how the one report prints a continuation");
   assert.match(out, /`awaiting_release` asks the verification to name the deployment that built the commit/u);
   assert.doesNotMatch(out, /deploys on its own/u, "the sentence the reading came from is gone");
+});
+
+/* The shape this repository is, and the reading the 43 issues resting at the deploying rung were
+   refused on: a project that declares no release step has its policy read, so nothing here is a
+   failure of the report and no branch it does not have is asked for. */
+test("a project with no release step prints the model and leaves no conflict to resolve", () => {
+  const policy = releaseFrom({ baseBranch: "master", releaseModel: "none",
+    pipelineConfig: { autoProdDeploy: true } });
+  const rows = projectRows({ policy, deploy: null, landing: NONE });
+  assert.match(lines(rows), /^release model: none — there is no release step, so a change that has landed and been verified is out {2}← the tracker's project config$/mu);
+  assert.doesNotMatch(lines(rows), /live branch/u,
+    "the branch the promoting model has is no row where there is no promotion");
+  assert.doesNotMatch(lines(rows), /release strategy/u);
+  assert.deepEqual(rows.filter((row) => row.level === "miss"), [],
+    "and a policy that reads is no failure of the report");
+});
+
+test("a project that declares no model is noted rather than read as one, and an unknown value is quoted", () => {
+  const rowsOf = (releaseModel) => projectRows({ policy: releaseFrom({ baseBranch: "master",
+    releaseModel, pipelineConfig: { autoProdDeploy: false } }), deploy: null, landing: NONE });
+  const undeclared = rowsOf(undefined).find((row) => row.label === "release model");
+  assert.equal(undeclared.level, "note", "a project that has decided nothing is not a report failure");
+  assert.match(undeclared.detail, /^unset on the project — the park before awaiting_release stands until one of none, promote, publish is declared/u);
+  const unknown = rowsOf("hand-carried").find((row) => row.label === "release model");
+  assert.match(unknown.detail, /^`hand-carried`, which is no model this CLI knows/u,
+    "and a word this CLI cannot read is printed rather than treated as silence");
 });
 
 test("the report withholds a credential and names the one command that prints it", () => {
@@ -252,17 +282,21 @@ test("a credential nested anywhere in a payload is found, and the field says whe
 });
 
 
-/* Where the merge sits is derived and not asked for again: the project already told the tracker
-   whether its default branch deploys production on its own, which is the fact that decides it. */
-test("the landing route comes off the branch pair and the auto-deploy flag, and a key overrides it", () => {
-  const both = (over) => releaseFrom({ baseBranch: "master", productionBranch: "master", ...over });
-  assert.equal(landingRoute(both({ pipelineConfig: { autoProdDeploy: true } }), NONE).value, "before-merge",
-    "one branch deploying production means the push is the deploy, so the candidate is judged before it");
-  assert.equal(landingRoute(both({ pipelineConfig: { autoProdDeploy: false } }), NONE).value, "after-merge",
-    "one branch that does not deploy production is landed and then judged");
-  assert.equal(landingRoute(POLICY, NONE).value, "after-merge", "distinct branches land on staging and judge there");
+/* Where the merge sits is derived and not asked for again: the project already told the tracker what
+   its release is and whether production deploys on its own, which is what decides it. */
+test("the landing route comes off the release model and the auto-deploy flag, and a key overrides it", () => {
+  const model = (releaseModel, autoProdDeploy) =>
+    landingRoute(releaseFrom({ baseBranch: "master", releaseModel, pipelineConfig: { autoProdDeploy } }), NONE).value;
+  assert.equal(model("none", true), "before-merge",
+    "no release step and an automatic production deploy means the push is the deploy, so the candidate is judged before it");
+  assert.equal(model("publish", true), "before-merge", "and a publication nobody has to ask for is the same push");
+  assert.equal(model("none", false), "after-merge", "a release nothing automates is landed and then judged");
+  assert.equal(model("publish", false), "after-merge");
+  assert.equal(landingRoute(POLICY, NONE).value, "after-merge", "a promotion lands on staging and judges there");
   assert.equal(landingRoute(releaseFrom({}), NONE).value, NOT_STATED,
-    "a record answering neither branch is discovered, never defaulted to a route it did not choose");
+    "a record declaring no model is discovered, never defaulted to a route it did not choose");
+  assert.equal(model("hand-carried", true), NOT_STATED,
+    "and a model this CLI does not know derives nothing either, a route read off a word nothing understands being a guess");
   const key = { value: "before-merge", from: ".forge.json" };
   assert.deepEqual(landingRoute(POLICY, key), key, "the project's own key outranks what is derived, and says so");
 });
@@ -287,18 +321,28 @@ test("the report prints both lines, the route with the source it was read from",
    policy has. Read as the reason and not as a flag, because both callers print it: the landing says
    why it stopped at the rung and the report says why the close is not the run's (ISS-1147). */
 test("what a person owes before the close is the policy's own answer, and silence is a person's", () => {
-  const owed = (over) => personOwedForRelease(releaseFrom(over));
-  const both = (branch, autoProdDeploy) =>
-    owed({ baseBranch: branch, productionBranch: branch, pipelineConfig: { autoProdDeploy } });
-  assert.equal(both("master", true), null,
-    "one branch that deploys production on its own means the push was the release, and nobody owes an act");
-  assert.equal(owed({ baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: true } }),
-    null, "and so does a promotion the project makes without being asked");
-  assert.match(both("master", false), /master does not deploy on its own, so the release is a person's/u,
-    "one branch nothing deploys leaves the release to a person");
-  assert.match(owed({ baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } }),
-    /the promotion from staging to master is a person's/u,
-    "and so does a promotion no flag makes automatic, which is the shape the branch pair alone reads as automatic");
+  const owed = (over) => personOwedForRelease(releaseFrom({ baseBranch: "staging", ...over }));
+  const model = (releaseModel, autoProdDeploy, over = {}) =>
+    owed({ releaseModel, pipelineConfig: { autoProdDeploy }, ...over });
+  assert.equal(model("none", false), null,
+    "a project declaring no release step owes nobody an act at the rung: the change that landed is out (G-11)");
+  assert.equal(model("none", true), null, "and the automatic-deploy flag decides nothing there either");
+  assert.equal(model("publish", true), null,
+    "a publication the project makes without being asked was the release, and nobody owes an act");
+  assert.equal(model("promote", true, { liveBranch: "master" }), null,
+    "and so does a promotion the project makes without being asked");
+  assert.match(model("publish", false),
+    /^the release is an act on this project's live deploy binding, and nothing here says it has been made$/u,
+    "a publication nothing automates is somebody's act, and the live branch decides none of it");
+  assert.match(model("promote", false, { liveBranch: "master" }),
+    /^the promotion from staging to master is a person's$/u,
+    "a promotion no flag makes automatic is a person's, named by the branches it moves between");
+  assert.match(model("promote", false, { liveBranch: "master", releaseStrategy: "fast-forward" }),
+    /^the promotion from staging to master, by fast-forward, is a person's$/u,
+    "and the strategy is named where the project declared one, that being how the move is made");
+  assert.match(model("promote", false, { baseBranch: null, liveBranch: "master" }),
+    /^the promotion to master is a person's$/u,
+    "with no base branch declared the sentence names the one branch there is, rather than defaulting the other");
   /* The one the twelve stranded issues would have been closed by, had the read been optimistic. */
   assert.match(personOwedForRelease(null),
     /this checkout names no project, so nothing here says a release happened/u,
@@ -306,11 +350,66 @@ test("what a person owes before the close is the policy's own answer, and silenc
   assert.match(personOwedForRelease(unreadFrom("Forge answered 503\nno available server")),
     /^the project config could not be read, so nothing here says a release happened: Forge answered 503$/u,
     "and a read that did not happen says so, with the tracker's own sentence on it");
-  assert.match(owed({ productionBranch: "master", pipelineConfig: { autoProdDeploy: true } }),
-    /^the staging branch is unset/u, "an unsettled pair names which side is missing");
-  assert.match(owed({ baseBranch: "staging", pipelineConfig: { autoProdDeploy: true } }),
-    /^the production branch is unset/u, "from either side");
   assert.match(owed({ pipelineConfig: { autoProdDeploy: true } }),
-    /^the staging and the production branch is unset/u,
-    "and names both where both are, which is the shape releaseConflict refuses outright");
+    /^this project declares no release model, so nothing here says what a release is or whose act it would be/u,
+    "a project that declared nothing keeps a person in the loop, a null model not being a waiver");
+  assert.match(model("hand-carried", true),
+    /^this project declares the release model `hand-carried`, which this CLI does not know/u,
+    "and a model this CLI cannot read names the value rather than reading it as none");
+  assert.match(model("promote", true),
+    /^the live branch is unset under a model that promotes to it, so nothing says where a release lands/u,
+    "the one model with a branch to name owes a person while it is unnamed");
+});
+
+/* The declaration the tracker states and this is the reader of: the live branch is served non-null
+   only under the promoting model and is read under no other, so a row carrying one anyway moves
+   nothing. A test asserting what a reader does not read is the only shape that holds that. */
+test("the live branch is read under the promoting model and under no other", () => {
+  for (const releaseModel of ["none", "publish"]) {
+    const carried = { baseBranch: "master", releaseModel, liveBranch: "live", releaseStrategy: "merge" };
+    const bare = { baseBranch: "master", releaseModel };
+    for (const autoProdDeploy of [true, false]) {
+      const policy = (over) => releaseFrom({ ...over, pipelineConfig: { autoProdDeploy } });
+      for (const [name, read] of [
+        ["personOwedForRelease", personOwedForRelease],
+        ["waitsForPerson", waitsForPerson],
+        ["releaseLine", releaseLine],
+        ["releaseConflict", releaseConflict],
+        ["landingRoute", (held) => landingRoute(held, NONE).value],
+      ]) {
+        assert.deepEqual(read(policy(carried)), read(policy(bare)),
+          `${name} answers ${releaseModel} differently for a row that carries a live branch`);
+      }
+    }
+  }
+});
+
+test("a readable promoting policy waits for no person's screen review, and an unreadable one does", () => {
+  assert.equal(waitsForPerson(POLICY), false,
+    "the promotion is itself the act a person takes, so nothing is owed a look before it");
+  assert.equal(waitsForPerson(releaseFrom({ baseBranch: "staging", releaseModel: "promote" })), true,
+    "while the branch it promotes to is unnamed, the fail-safe stands");
+  assert.equal(waitsForPerson(releaseFrom({ baseBranch: "master", releaseModel: "none",
+    pipelineConfig: { autoProdDeploy: false } })), false,
+    "a project with no release step leaves no moment before one at which a person could be shown anything");
+  assert.equal(waitsForPerson(releaseFrom({ baseBranch: "master", releaseModel: "publish",
+    pipelineConfig: { autoProdDeploy: false } })), true,
+    "and a publication somebody makes by hand is shown to them first");
+});
+
+test("the derived line on a verification is the model's own, and the rung's conflict names what was not declared", () => {
+  assert.deepEqual(releaseLine(POLICY), ["promotion", "to master, a person's, owed"]);
+  assert.deepEqual(releaseLine(releaseFrom({ baseBranch: "staging", liveBranch: "master",
+    releaseModel: "promote", pipelineConfig: { autoProdDeploy: true } })),
+  ["promotion", "to master, automatic"]);
+  assert.deepEqual(releaseLine(releaseFrom({ baseBranch: "master", releaseModel: "none" })),
+    ["review", "none, by project config"], "no release step is no review either");
+  assert.equal(releaseLine(releaseFrom({ baseBranch: "master", releaseModel: "publish" })), null,
+    "a publication nobody automated stamps nothing: what it owes is said where the rung says it");
+  assert.match(releaseConflict(releaseFrom({ baseBranch: "master",
+    pipelineConfig: { autoProdDeploy: true } })),
+  /^production deploys are automatic and this project declares no release model/u);
+  assert.equal(releaseConflict(releaseFrom({ baseBranch: "master", releaseModel: "none",
+    pipelineConfig: { autoProdDeploy: true } })), null,
+  "and a project whose model is read carries no conflict to report");
 });

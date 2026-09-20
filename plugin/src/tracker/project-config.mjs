@@ -10,15 +10,35 @@ import { scoped } from "./rest.mjs";
 const CONFIG_SOURCE = "the tracker's project config";
 const DEPLOY_SOURCE = "the tracker's project detail";
 
+/* The three release models the tracker declares, and the only place this CLI names them: `none` is
+   no release step at all, `promote` moves code from the staging branch to the live branch by the
+   strategy, and `publish` moves no ref and acts on a live deploy binding. A fourth word is read as
+   no declaration, not as a fourth behaviour — a waiver inferred from a word nothing here understands
+   is the one reading that lets a release out with nobody's hand on it. */
+const MODELS = ["none", "promote", "publish"];
+const [NO_RELEASE, PROMOTE] = MODELS;
+
+/* The live branch is the promoting model's field and no other's: the tracker serves it non-null only
+   there and forbids reading it elsewhere, so it is null here wherever the model has none rather than
+   whatever the row happened to carry. The strategy goes the same way, being how a promotion moves
+   code and nothing where there is no promotion. `said` is what the project declared, kept so a
+   refusal can name a value this CLI did not recognise instead of calling it absent. */
 export const releaseFrom = (config) => ({
   staging: config?.baseBranch ?? null,
-  production: config?.productionBranch ?? null,
+  model: MODELS.includes(config?.releaseModel) ? config.releaseModel : null,
+  said: config?.releaseModel ?? null,
+  live: config?.releaseModel === PROMOTE ? config?.liveBranch ?? null : null,
+  strategy: config?.releaseModel === PROMOTE ? config?.releaseStrategy ?? null : null,
   autoProd: config?.pipelineConfig?.autoProdDeploy === true,
   qa: config?.pipelineConfig?.qa ?? null,
   from: CONFIG_SOURCE,
 });
 
-const readable = (policy) => Boolean(policy?.staging && policy?.production);
+/* A policy is read when it declares a model this CLI knows and, where that model promotes, names the
+   branch it promotes to. Nothing else is asked for: two of the three models declare no such branch,
+   so a predicate that wanted one would refuse the projects whose policy is complete. */
+const readable = (policy) => Boolean(policy?.model)
+  && (policy.model !== PROMOTE || Boolean(policy.live));
 
 export const UNREAD_CONFIG = "the project config could not be read";
 
@@ -30,11 +50,12 @@ const firstLine = (said) => String(said).split("\n")[0];
 
 export const QA_MODES = ["independent", "builder"];
 
-/* Derived, never asked for again: one branch deploying production means a push IS the deploy, so the
-   candidate is judged before it. docs/cli/doctor.md. */
+/* Derived, never asked for again: a model that moves no ref at the release and deploys production on
+   its own means a push IS the deploy, so the candidate is judged before it. Promotion lands first
+   and moves the code afterwards, so the merge sits ahead of the judging there. docs/cli/doctor.md. */
 const routeFrom = (policy) => {
   if (!readable(policy)) return null;
-  return policy.staging === policy.production && policy.autoProd ? "before-merge" : "after-merge";
+  return policy.model !== PROMOTE && policy.autoProd ? "before-merge" : "after-merge";
 };
 
 export const landingRoute = (policy, override) => {
@@ -46,17 +67,48 @@ export const landingRoute = (policy, override) => {
 export const judgementOf = (policy) =>
   (QA_MODES.includes(policy?.qa) ? policy.qa : NOT_STATED);
 
+/* Whether a person is shown the change before it goes out. A promotion is itself that showing, and a
+   model declaring no release step leaves no moment before one at which anybody could be shown
+   anything — so both answer no, and only a publication nobody automated waits. */
 export const waitsForPerson = (policy) => {
   if (!readable(policy)) return true;
-  if (policy.staging !== policy.production) return false;
+  if (policy.model === NO_RELEASE || policy.model === PROMOTE) return false;
   return !policy.autoProd;
 };
 
-/* Which branch a policy leaves unset and what that costs, said once: two readers below answer the same question, and a reword of one would have the CLI stating one fact two ways. */
-const nothingSaysWhere = (policy) => {
-  const unset = [!policy.staging && "staging", !policy.production && "production"].filter(Boolean);
-  return `the ${unset.join(" and the ")} branch is unset, so nothing says where a release lands`;
+/* Which of the three unread shapes a policy is in and what would end each, said once: the closing
+   rung's refusal, the report's owed line and the report's own row all print this, and a second
+   wording of one of them is the whole of ISS-1918. */
+const unreadable = (policy) => {
+  if (policy.said && !policy.model) {
+    return {
+      owed: `this project declares the release model \`${policy.said}\`, which this CLI does not `
+        + "know, so nothing here says what a release is or whose act it would be",
+      clears: `a project declaring one of ${MODELS.join(", ")} is what settles this`,
+    };
+  }
+  if (!policy.model) {
+    return {
+      owed: "this project declares no release model, so nothing here says what a release is or "
+        + "whose act it would be",
+      clears: `a project declaring one of ${MODELS.join(", ")} is what settles this`,
+    };
+  }
+  /* The third shape, and the only one a model this CLI knows can be in. */
+  return {
+    owed: "the live branch is unset under a model that promotes to it, so nothing says where a "
+      + "release lands",
+    clears: "a project naming the branch it promotes to, where production deploys on its own, owes a "
+      + "person nothing at this rung",
+  };
 };
+
+const SETTINGS_SCREEN = "; this CLI writes neither the model nor the branch, which are declared on "
+  + "the tracker's own project settings screen";
+
+const promotion = (policy) => (policy.staging
+  ? `the promotion from ${policy.staging} to ${policy.live}`
+  : `the promotion to ${policy.live}`);
 
 /* What a person still owes before an issue at the closing rung may close and what would take them out of it, in one walk rather than two: a refusal wording the gap differently from the report it was sent to read is the whole of ISS-1918, and two walks are where that starts. Null where nothing is owed. Not `waitsForPerson` above, which asks whether one is shown the change before it goes out and answers no for any pair of distinct branches: reading it here would close an issue whose promotion nobody had made. Silence is a person's, never an automatic release (ISS-1147). */
 export const releaseOwedOf = (policy) => {
@@ -74,18 +126,17 @@ export const releaseOwedOf = (policy) => {
     };
   }
   if (!readable(policy)) {
-    return {
-      owed: nothingSaysWhere(policy),
-      clears: "a project naming both branches, where production deploys on its own, owes a person "
-        + "nothing at this rung; this CLI writes neither branch, which are declared on the tracker's "
-        + "own project settings screen",
-    };
+    const held = unreadable(policy);
+    return { owed: held.owed, clears: `${held.clears}${SETTINGS_SCREEN}` };
   }
-  if (policy.autoProd) return null;
+  /* The one model that owes nobody anything here: it declares there is no release step, so a change
+     that has landed and been verified is out, and the rung it would rest at is over (G-11). */
+  if (policy.model === NO_RELEASE || policy.autoProd) return null;
   return {
-    owed: policy.staging === policy.production
-      ? `${policy.production} does not deploy on its own, so the release is a person's`
-      : `the promotion from ${policy.staging} to ${policy.production} is a person's`,
+    owed: policy.model === PROMOTE
+      ? `${promotion(policy)}${policy.strategy ? `, by ${policy.strategy},` : ""} is a person's`
+      : "the release is an act on this project's live deploy binding, and nothing here says it has "
+        + "been made",
     clears: "a production that deploys on its own is what would take a person out of this rung",
   };
 };
@@ -95,16 +146,17 @@ export const personOwedForRelease = (policy) => releaseOwedOf(policy)?.owed ?? n
 
 export const releaseLine = (policy) => {
   if (!readable(policy)) return null;
-  if (policy.staging !== policy.production) {
-    return ["promotion", `to ${policy.production}, ${policy.autoProd ? "automatic" : "a person's, owed"}`];
+  if (policy.model === PROMOTE) {
+    return ["promotion", `to ${policy.live}, ${policy.autoProd ? "automatic" : "a person's, owed"}`];
   }
+  if (policy.model === NO_RELEASE) return ["review", "none, by project config"];
   return policy.autoProd ? ["review", "none, by project config"] : null;
 };
 
 export const releaseConflict = (policy) => {
   if (!policy?.autoProd || readable(policy)) return null;
-  return `production deploys are automatic and ${nothingSaysWhere(policy)}: a person's look is owed `
-    + "until the branch is set";
+  return `production deploys are automatic and ${unreadable(policy).owed}: a person's look is owed `
+    + "until that is declared";
 };
 
 /* Three states, one value each: a policy read, `null` where no project is named, and this where the
@@ -253,6 +305,29 @@ const drainRows = (policy) => {
     + "at that status for it to drain: set the judgement to independent, or take the key out" }];
 };
 
+/* What each model means, in this CLI's words rather than the tracker's, so a report says what the
+   value costs the reader instead of handing them a word to look up. */
+const MEANS = {
+  none: "there is no release step, so a change that has landed and been verified is out",
+  promote: "the release moves code from the staging branch to the live branch",
+  publish: "the release is an act on a live deploy binding, and no branch moves",
+};
+
+const modelRow = (policy) => (policy.model
+  ? { level: "ok", label: "release model",
+    detail: `${policy.model} — ${MEANS[policy.model]}  ← ${policy.from}` }
+  : { level: "note", label: "release model", detail: `${policy.said
+    ? `\`${policy.said}\`, which is no model this CLI knows`
+    : UNSET} — the park before awaiting_release stands until one of ${MODELS.join(", ")} is `
+    + `declared  ← ${policy.from}` });
+
+/* Under the promoting model alone: how the code moves is a field of the move, and there is no move
+   under the other two. */
+const strategyRow = (policy) => (policy.strategy
+  ? { level: "ok", label: "release strategy", detail: `${policy.strategy}  ← ${policy.from}` }
+  : { level: "note", label: "release strategy", detail: `${UNSET} — nothing says how the promotion `
+    + `moves the code, and the actor making it decides  ← ${policy.from}` });
+
 const policyRows = (policy, landing) => {
   const why = policyUnread(policy);
   if (why) {
@@ -266,8 +341,11 @@ const policyRows = (policy, landing) => {
   }
   const route = landingRoute(policy, landing);
   const out = [
+    modelRow(policy),
     branchRow("staging branch", policy.staging, policy.from),
-    branchRow("production branch", policy.production, policy.from),
+    ...(policy.model === PROMOTE
+      ? [branchRow("live branch", policy.live, policy.from), strategyRow(policy)]
+      : []),
     { level: "ok", label: "production deploy", detail: `${policy.autoProd ? "automatic" : "a person's"}`
       + ` — a user-facing change ${waitsForPerson(policy) ? "waits for" : "ships without"} a person's`
       + ` look  ← ${policy.from}` },

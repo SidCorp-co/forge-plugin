@@ -14,6 +14,7 @@ const {
   judgedOwed, nextOf, personLooks, shapeGaps, viewFrom,
 } = await import("../../src/flow/earned.mjs");
 const { lookAhead, targetOf } = await import("../../src/flow/route.mjs");
+const { releaseFrom } = await import("../../src/tracker/project-config.mjs");
 const { USAGE, checkTarget, nextHeld } = await import("../../src/flow/advance.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
@@ -257,16 +258,20 @@ test("the project's release policy decides whether a user-facing outcome parks",
   };
   const ready = [recorded("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["run.txt"] })];
   const asked = "the plan declares a user-facing outcome, and no person has answered since it was parked for review";
-  const policy = (staging, production, autoProd) => ({ staging, production, autoProd, from: "the tracker's project config" });
+  const policy = (releaseModel, autoProdDeploy, over = {}) => releaseFrom({
+    baseBranch: "master", releaseModel, ...over, pipelineConfig: { autoProdDeploy },
+  });
   const seen = (release) => deployedOwed(viewFrom("the-uuid", shipped, ready, null, release), "ISS-3").map((one) => one.what);
-  assert.deepEqual(seen(policy("master", "master", false)), [asked], "one branch and no automatic deploy is today's behaviour");
+  assert.deepEqual(seen(policy("publish", false)), [asked], "a publication a person makes is shown to them first");
   assert.deepEqual(seen(null), [asked], "and so is a config that did not answer");
-  assert.deepEqual(seen(policy(null, "master", true)), [asked], "an unset branch is unread, and the strict reading stands");
-  assert.deepEqual(seen(policy("master", "master", true)), [], "the same record earns the rung where the project deploys production itself");
-  assert.deepEqual(seen(policy("staging", "master", false)), [], "and where the rung is the staging branch, which is where a person looks");
+  assert.deepEqual(seen(policy(undefined, true)), [asked], "a project that declared no model is unread, and the strict reading stands");
+  assert.deepEqual(seen(policy("promote", true)), [asked], "so is a promoting model with no branch to promote to");
+  assert.deepEqual(seen(policy("publish", true)), [], "the same record earns the rung where the project publishes for itself");
+  assert.deepEqual(seen(policy("promote", false, { liveBranch: "live" })), [], "and where the promotion is itself the act a person takes");
+  assert.deepEqual(seen(policy("none", false)), [], "and where the project declares no release step at all");
   const ahead = (release) => lookAhead(viewFrom("the-uuid", { ...shipped, status: "developed" }, [], null, release), "ISS-3");
-  assert.match(ahead(policy("master", "master", false)), /^Ahead: awaiting_release owes a person's look/u);
-  assert.equal(ahead(policy("master", "master", true)), null, "and the warning three statuses earlier reads the same answer");
+  assert.match(ahead(policy("publish", false)), /^Ahead: awaiting_release owes a person's look/u);
+  assert.equal(ahead(policy("publish", true)), null, "and the warning three statuses earlier reads the same answer");
 });
 
 test("what the plan declared decides what the ship steps owe", () => {
@@ -508,7 +513,7 @@ const LANDED = {
 };
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [OPEN, { ...OPEN, documentId: "heavy-uuid", issueId: "ISS-91", description: "no mark here" },
     EARNS, LOOKING, QUIET, LANDED, STALE],
   comments: {

@@ -38,7 +38,7 @@ const heldBy = (holder, since, minutes, line = LEFT) => {
 
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [ISSUE],
   comments: { [UUID]: [] },
   answer: {

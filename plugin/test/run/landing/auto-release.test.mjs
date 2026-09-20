@@ -13,7 +13,8 @@ import { ranAsync } from "../../fixtures.mjs";
 /* Before the first landing, the policy being memoised: the promotion is the project's own. */
 state.config = {
   baseBranch: BASE,
-  productionBranch: "production",
+  releaseModel: "promote",
+  liveBranch: "production",
   pipelineConfig: { autoProdDeploy: true },
 };
 

@@ -52,7 +52,7 @@ const state = {
       if (args.action === "update") return Object.assign(held, args.data);
       return { documentId: args.documentId, ...(args.data ?? {}) };
     },
-    forge_config: () => ({ config: { baseBranch: "master", productionBranch: "master" } }),
+    forge_config: () => ({ config: { baseBranch: "master", releaseModel: "publish" } }),
     "forge_projects.get": () => ({ project: {} }),
     forge_knowledge: (args) => (state.storeDown
       ? { refused: "Error: the store is unreachable" }

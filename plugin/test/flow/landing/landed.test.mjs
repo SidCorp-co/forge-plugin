@@ -32,7 +32,7 @@ const ISSUE = {
   description: "no mark here",
 };
 const state = {
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [ISSUE],
   comments: { "landed-uuid": [] },
   /* Counted so a case can move the checkpoint under the write itself: `landingSaved` reads the field

@@ -33,7 +33,7 @@ const ISSUE = {
 const ANNOUNCE = { waiting: "⏸ **Waiting on a human decision**", needs_info: "❓ **Needs info**" };
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   comments: {},
   answer: {
     forge_config: () => ({ config: state.config }),

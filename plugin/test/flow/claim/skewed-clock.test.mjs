@@ -48,7 +48,7 @@ const heldBy = (holder, agoMillis, minutes, clock) => {
 
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [ISSUE],
   comments: { [UUID]: [] },
   answer: {

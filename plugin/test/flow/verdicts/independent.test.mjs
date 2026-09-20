@@ -42,10 +42,10 @@ const CHECKPOINT = {
   at: AT,
 };
 const INDEPENDENT = releaseFrom({
-  baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true, qa: "independent" },
+  baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true, qa: "independent" },
 });
 const BUILDER_JUDGES = releaseFrom({
-  baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true, qa: "builder" },
+  baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true, qa: "builder" },
 });
 
 let clock = 0;
@@ -255,7 +255,7 @@ const judging = {
 };
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true, qa: "independent" } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true, qa: "independent" } },
   issues: [judging],
   comments: { "judging-uuid": [] },
   answer: {},

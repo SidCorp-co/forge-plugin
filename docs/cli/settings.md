@@ -38,14 +38,17 @@ keys existed is not a box that stopped working. Provenance is the whole of what 
 the report answers *which file*, not *whether a file*, for each key separately, so a key answered
 from the fallback and a key answered from here sit on adjacent lines saying so.
 
-**A project's release policy is the tracker's and not a checkout's.** The staging branch, the
-production branch and the automatic production deploy are project columns already, and `forge
-project` prints them under the names their owner uses — the tracker's `baseBranch` is the staging
-branch everywhere but in the one reader that fetches it, and doctor's release lines are a second
-view of the same answer. An automatic production deploy onto a branch the tracker
-holds as null is the incoherence its own schema warns of, and it is reported: until the branch is
-set, the person's look stands. What the same report does with the deploy behind that branch is
-[doctor](doctor.md).
+**A project's release policy is the tracker's and not a checkout's.** The release model, the branch
+each model has, the strategy that moves the code and the automatic production deploy are project
+columns already, and `forge project` prints them under the names their owner uses — the tracker's
+`baseBranch` is the staging branch everywhere but in the one reader that fetches it, and doctor's
+release lines are a second view of the same answer. The model is what the policy is read off, and
+the branch is a field of the one model that has one: asking for a branch under a model that declares
+none is how every project's policy came to read unreadable at once (ISS-1888). An automatic
+production deploy beside a model the tracker holds as null, or beside a promoting model with no
+branch to promote to, is the incoherence its own schema warns of, and it is reported: until the
+declaration is made, the person's look stands. What the same report does with the deploy behind that
+branch is [doctor](doctor.md).
 
 **One flow reads five settings, and each names the level that owns it** — which level, and why:
 [two levels](../two-levels.md). Four are the project's, in its own `.forge.json`: `feedback`, two

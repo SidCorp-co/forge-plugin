@@ -49,7 +49,8 @@ test("each rung is entered on its own half, and neither check reaches the other'
 test("closed is entered from that rung and the project's release policy, and no record", () => {
   assert.equal(CLOSES_FROM, RUNG, "the close reads the rung's own name");
   assert.equal(nextOf(CLOSES_FROM, {}), "closed");
-  const releases = { staging: "master", production: "master", autoProd: true };
+  const releases = { staging: "master", model: "publish", said: "publish", live: null,
+    strategy: null, autoProd: true, from: "the fixture" };
   assert.deepEqual(CHECKS.closed(viewFrom("the-uuid", { status: RUNG }, [], null, releases), "ISS-3"),
     [], "the rung and a project owing nobody an act are the whole criterion");
 });
@@ -122,7 +123,7 @@ const SHIPPED = {
 };
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [SHIPPED],
   comments: {},
   answer: { forge_config: () => ({ config: state.config }) },

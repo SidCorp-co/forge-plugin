@@ -157,7 +157,7 @@ const posted = (held, body) => {
 };
 
 export const state = {
-  config: { baseBranch: BASE, productionBranch: BASE, pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: BASE, releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [],
   comments: {},
   calls: [],

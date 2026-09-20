@@ -31,7 +31,7 @@ const state = {
       /* The report reads the policy through `get`, so what the write left has to be visible there
          or the clash row would answer for a project this case never configured. */
       if (args.action === "get") {
-        return { config: { baseBranch: "master", productionBranch: "master",
+        return { config: { baseBranch: "master", releaseModel: "publish",
           pipelineConfig: state.settings?.pipelineConfig ?? {} } };
       }
       return undefined;

@@ -43,7 +43,7 @@ const state = {
       return { documentId: args.documentId, ...(args.data ?? {}) };
     },
     forge_config: () => ({
-      config: { baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+      config: { baseBranch: "staging", releaseModel: "promote", liveBranch: "master", pipelineConfig: { autoProdDeploy: false } },
     }),
     "forge_projects.get": () => ({ project: { previewDeploy: state.deploy } }),
     forge_knowledge: counted,

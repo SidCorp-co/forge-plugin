@@ -137,6 +137,29 @@ test("a file named for a retired thing goes only where the name is not also a li
     /is named for the verb plan/u, "and a module named for the bare word would still leave");
 });
 
+/* The kind that holds a tracker column rather than a name of this CLI's own. A field the tracker
+   retired reaches this repository as a property, as a fixture's key and as prose, and the fixture is
+   the one that matters: a suite serving a name the tracker no longer sends reads green while every
+   project's answer goes unread (ISS-1888). */
+test("a retired column is refused wherever the word appears, fixture keys included", () => {
+  const column = { name: "productionBranch", kind: "column", release: "3.36.180" };
+  const found = problems([
+    { rel: "plugin/test/flow/close.test.mjs",
+      text: 'const held = { baseBranch: "master", productionBranch: "master" };\n' },
+    { rel: "plugin/src/tracker/project-config.mjs", text: "  production: config?.productionBranch ?? null,\n" },
+    { rel: "docs/cli/settings.md", text: "The tracker serves productionBranch as the live branch.\n" },
+  ], [column], LIVE);
+  assert.equal(found.length, 3, "the key, the read and the sentence are each an occurrence");
+  assert.ok(found.every((one) => one.includes("names the column productionBranch, retired in 3.36.180")),
+    "and each says which kind it is and which release it left in");
+  assert.deepEqual(problems([{ rel: "plugin/src/tracker/routes.mjs",
+    text: "  const { baseBranch, liveBranch, releaseModel, releaseStrategy } = row;\n" }], [column], LIVE), [],
+  "the names the tracker does serve are no finding");
+  assert.deepEqual(registryProblems([column]), [], "and the kind is one the registry declares");
+  assert.ok(RETIRED.some((one) => one.kind === "column" && one.name === "productionBranch"),
+    "the live registry holds it, which is what makes the tree-wide case above cover this repository");
+});
+
 /* A retired gate's name is a bare word nothing live answers to, so every surface that could still
    route a reader to it is a finding — and the one page `forge hooks --how` answers it with is not. */
 test("a retired gate is refused wherever it is readable, and its retirement note is not", () => {

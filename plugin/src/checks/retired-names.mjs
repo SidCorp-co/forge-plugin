@@ -14,11 +14,12 @@ export const RETIRED = [
   { name: "tools", kind: "verb", release: "3.35.252" },
   { name: "schema", kind: "verb", release: "3.35.252" },
   { name: "call", kind: "verb", release: "3.35.252" },
+  { name: "productionBranch", kind: "column", release: "3.36.180" },
 ];
 
 const REGISTRIES = new Set(["plugin/src/resolve/visibility.mjs", "plugin/src/commands.mjs"]);
 
-const KINDS = ["verb", "flag", "tool", "directory"];
+const KINDS = ["verb", "flag", "tool", "directory", "column"];
 const FIELDS = ["name", "kind", "release"];
 
 /* The one reading of a name written as a command and not used as a word — behind `forge`, leading a help row, at the head of a spawn's argv, or declared where verbs are. Spent by this checker and by the help tripwire, which held a bare-word copy and refused prose. */
@@ -29,12 +30,17 @@ export const commandShapes = (name, rel = "") => [
   ...(REGISTRIES.has(rel) ? [new RegExp(`(?:(?<=[[{,]\\s*)(["'\`])${name}\\1|^\\s*${name}:)`, "gmu")] : []),
 ];
 
-/* A directory is the path form rooted, `./` included: the folder sat at a root, not `/api/feedback/`. */
+/* A directory is the path form rooted, `./` included: the folder sat at a root, not `/api/feedback/`.
+   A column is the tracker's own field name, read as a word wherever it appears: the name is spent as
+   a property, as a fixture's key and in prose alike, and a test fixture serving a field the tracker
+   retired is why a suite of this size can read green while every project's answer is unread
+   (ISS-1888). */
 const shapesOf = ({ name, kind }, rel) =>
   ({
     verb: commandShapes(name, rel),
     flag: [new RegExp(`--${name}\\b`, "gu")],
     tool: [new RegExp(`\\b${name}\\b`, "gu")],
+    column: [new RegExp(`\\b${name}\\b`, "gu")],
     directory: [new RegExp(`(?<![\\w./-])(?<!/[\\w-]+ )(?:\\.\\.?/)*${name}/`, "gu")],
   })[kind] ?? [];
 

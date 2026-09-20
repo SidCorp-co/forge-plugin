@@ -35,7 +35,7 @@ let swap = null;
 let reads = 0;
 
 const state = {
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [{ documentId: UUID, issueId: REF, status: "developed", title: "one flow: the landing",
     description: "no mark here", sessionContext: { landing: built(), lease } }],
   comments: { [UUID]: [] },

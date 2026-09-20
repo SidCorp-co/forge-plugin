@@ -35,7 +35,8 @@ const state = {
       return { documentId: args.documentId, ...(args.data ?? {}) };
     },
     forge_config: () => ({
-      config: { baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+      config: { baseBranch: "staging", releaseModel: "promote", liveBranch: "master",
+        releaseStrategy: "fast-forward", pipelineConfig: { autoProdDeploy: false } },
     }),
     "forge_projects.get": () => ({ project: { previewDeploy: state.deploy } }),
     forge_knowledge: knowledge,
@@ -60,8 +61,11 @@ const ROW = (label, detail) => new RegExp(`^\\[ {2}ok {2}\\] ${label}\\s+${detai
 
 test("the report answers where a change lands and what it can be walked against", async () => {
   const run = await ask("doctor");
+  assert.match(run.stdout, ROW("release model", "promote — the release moves code from the staging "
+    + "branch to the live branch {2}← the tracker's project config"), run.stdout);
   assert.match(run.stdout, ROW("staging branch", "staging {2}← the tracker's project config"), run.stdout);
-  assert.match(run.stdout, ROW("production branch", "master {2}← the tracker's project config"));
+  assert.match(run.stdout, ROW("live branch", "master {2}← the tracker's project config"));
+  assert.match(run.stdout, ROW("release strategy", "fast-forward {2}← the tracker's project config"));
   assert.match(run.stdout, ROW("production deploy", "a person's — "));
   assert.match(run.stdout, ROW("staging deploy", "2 host\\(s\\) {2}← the tracker's project detail"));
   assert.match(run.stdout, ROW("staging url", "https://beta\\.example\\.test"));

@@ -31,7 +31,7 @@ const ISSUE = {
   description: "no mark here",
 };
 const state = {
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [ISSUE],
   comments: { "landing-uuid": [] },
   answer: {

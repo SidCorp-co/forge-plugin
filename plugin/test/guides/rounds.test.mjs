@@ -167,7 +167,7 @@ const issue = (key, complexity) => ({
 });
 
 const state = {
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [issue("ISS-3001", "xs"), issue("ISS-3002", "m"), issue("ISS-3003", "xs"), issue("ISS-3004", "xs")],
   comments: { "uuid-ISS-3003": [{ documentId: "c-1", createdAt: "2026-09-11T00:00:00.000Z", authorId: "agent", body: CLIMBED }] },
   minted: 0,

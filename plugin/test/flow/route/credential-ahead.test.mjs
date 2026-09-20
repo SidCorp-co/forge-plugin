@@ -91,7 +91,7 @@ const state = {
   issues: [SCREENING, NOTHING, EARNS],
   comments: { "screen-uuid": [baseline("screen-note")], "earns-uuid": [baseline("earns-note")] },
   answer: {
-    forge_config: () => ({ config: { baseBranch: "master", productionBranch: "master", pipelineConfig: {} } }),
+    forge_config: () => ({ config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: {} } }),
     "forge_projects.get": () => ({ project: { previewDeploy: state.deploy } }),
     /* Writes are kept, unlike the shared fixture's: the lease this file's transition renews is read
        back and compared with what was sent, and a store that forgets fails that comparison. */

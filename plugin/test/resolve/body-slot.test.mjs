@@ -16,7 +16,7 @@ const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../..", import.meta.url).pathname;
 
 const state = {
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [{
     documentId: "uuid-842",
     issueId: "ISS-842",

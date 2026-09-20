@@ -32,7 +32,7 @@ const ISSUE = {
 
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   comments: {},
   answer: {
     forge_config: () => ({ config: state.config }),
@@ -388,7 +388,7 @@ test("the verb itself composes the fitted note, off what the issue's own plan na
 test("a project whose config names no base branch is refused, and told the flag that names one", async () => {
   state.comments[ISSUE.documentId] = [];
   const held = state.config;
-  state.config = { productionBranch: "master", pipelineConfig: { autoProdDeploy: false } };
+  state.config = { releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } };
   try {
     const run = await marked(...whole());
     assert.equal(run.status, 1, run.stdout);

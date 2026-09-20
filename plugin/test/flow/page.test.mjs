@@ -29,7 +29,7 @@ const BUDGET = { ...OPEN, documentId: "budget-uuid", issueId: "ISS-98" };
 let asked = 0;
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [OPEN, BARE, COUNTED, BUDGET],
   comments: {
     "earning-uuid": [comment("the-confirmation", render("confirmation", { where: ["a.mjs"], is: "it holds", finding: "holds" }))],

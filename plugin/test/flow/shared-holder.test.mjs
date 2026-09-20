@@ -14,7 +14,7 @@ const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const SHARED = "the-dispatching-session";
 
 const state = {
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [{
     documentId: "wave-uuid",
     issueId: "ISS-445",

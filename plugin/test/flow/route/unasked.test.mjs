@@ -72,7 +72,7 @@ const working = {
 };
 const project = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [working],
   comments: { "working-uuid": [] },
   answer: {

@@ -46,7 +46,7 @@ const heldBy = (holder, { since = 1, minutes = 60, status = "confirmed", landing
 
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [ISSUE],
   comments: { [UUID]: [] },
   answer: {

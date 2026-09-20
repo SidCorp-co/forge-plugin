@@ -28,7 +28,7 @@ const PARKED = {
 };
 const state = {
   calls: [],
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true } },
   issues: [PARKED],
   comments: { "parked-uuid": [] },
   answer: {},

@@ -54,7 +54,8 @@ const issue = (extra = {}) => ({
 });
 
 /* A project that releases itself, which is what the brief is read against unless a case says otherwise: the close is entered on that policy too, and a view holding none reads as a checkout naming no project. */
-const RELEASES_ITSELF = { staging: "master", production: "master", autoProd: true };
+const RELEASES_ITSELF = { staging: "master", model: "publish", said: "publish", live: null,
+  strategy: null, autoProd: true };
 const brief = (extra = {}, comments = [], release = RELEASES_ITSELF) =>
   briefOf(viewFrom("the-uuid", issue(extra), comments, null, release), "ISS-44");
 

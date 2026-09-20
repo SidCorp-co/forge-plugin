@@ -281,7 +281,8 @@ test("a fitted note earns what the whole list would have earned, and refuses wha
 test("a project that deploys on its own earns released by proving the deploy, not by asserting it", () => {
   const NOTE = "merged to master at 43b811e; reviewed head 43b811e; judged head 43b811e; "
     + "landing moved nothing; landing wrote nothing";
-  const policy = (autoProd) => ({ staging: "master", production: "master", autoProd, from: "the config" });
+  const policy = (autoProd) => ({ staging: "master", model: "publish", said: "publish", live: null,
+    strategy: null, autoProd, from: "the config" });
   const verified = (commit, evidence, contains) =>
     [mark(NOTE), recorded("verification", { where: "https://app.example", commit, contains, evidence })];
   const owed = (release, commit, evidence, contains) => deployedOwed(

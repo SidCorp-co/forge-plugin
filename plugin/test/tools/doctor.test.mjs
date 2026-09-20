@@ -1,5 +1,5 @@
 /* A setting doctor does not read is a green report in front of a command that cannot run. */
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
@@ -7,6 +7,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import { cleanRepo, fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
+import { whole } from "./doctor/fixture.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "cli.mjs");
 
@@ -154,40 +155,6 @@ test("the copy the gates come from is reported beside the copy on PATH", () => {
   assert.match(report(null), /\[ {2}ok {2}\] copy the gates run\s+this \S+ at \S+ — no checkout at or above the working directory/u);
 });
 
-/* The project's release policy is the tracker's to answer, and the report names it in the words its
-   owner uses: the staging branch, never the field's own name (ISS-90). It is also the only fixture
-   whose exit code means anything, `report` above exiting 1 on its missing credential alone; and
-   `forge_guide` refuses because a tracker serving no guide retires every row the plugin holds. */
-const whole = async (config, { previewDeploy = null, saved = {}, project = {} } = {}) => {
-  const tracker = await fakeTracker({
-    answer: {
-      "forge_projects.list": () => ({ projects: [{ slug: "release-fixture", id: "1e1c1a1e-0000-4000-8000-000000000001" }] }),
-      forge_config: () => ({ config }),
-      "forge_projects.get": () => ({ project: { previewDeploy } }),
-      forge_guide: () => ({ refused: "this credential may not read guides" }),
-    },
-  });
-  const held = join(tracker.env.XDG_CONFIG_HOME, "forge", "config.json");
-  writeFileSync(held, JSON.stringify({ ...JSON.parse(readFileSync(held, "utf8")), ...saved }));
-  const cwd = tempRoom("doctor-release-");
-  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "release-fixture" }));
-  for (const [name, body] of Object.entries(project)) writeFileSync(join(cwd, name), body);
-  /* Awaited, not waited on: this test is the tracker the report asks, and spawnSync holds the loop
-     that would answer it. */
-  const answered = await new Promise((done) => {
-    const child = spawn(process.execPath, [CLI, "doctor"], { cwd, env: tracker.env });
-    let out = "";
-    child.stdout.on("data", (chunk) => {
-      out += chunk;
-    });
-    child.on("close", (status) => done({ out, status }));
-    child.stdin.end();
-  });
-  tracker.close();
-  return answered;
-};
-
-const releaseReport = async (config, previewDeploy = null) => (await whole(config, { previewDeploy })).out;
 
 /* Two runs over one configuration, the host gone between them: the first resolves the project and
    leaves its id in the cache beside the credential, so the second proves the report asks anyway.
@@ -263,59 +230,13 @@ test("a read that fails for anything but a refusal is not reported as a tracker 
     { refused: "the tracker refused" });
 });
 
-test("the three release values are reported with where they came from", async () => {
-  const out = await releaseReport({
-    baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true },
-  });
-  assert.match(out, /\[ {2}ok {2}\] staging branch\s+master {2}← the tracker's project config/u);
-  assert.match(out, /\[ {2}ok {2}\] production branch\s+master {2}← the tracker's project config/u);
-  assert.match(out, /\[ {2}ok {2}\] production deploy\s+automatic — a user-facing change ships without a person's look/u);
-  assert.doesNotMatch(out, /baseBranch/u, "and the tracker's own field name is not what a reader is shown");
-});
-
-test("an automatic production deploy with no branch to land on is a finding", async () => {
-  const out = await releaseReport({
-    baseBranch: null, productionBranch: "master", pipelineConfig: { autoProdDeploy: true },
-  });
-  assert.match(out, /\[ note \] staging branch\s+unset on the project/u,
-    "the blank itself belongs to the tracker's project config and is a note");
-  assert.match(out, /\[ miss \] release policy\s+production deploys are automatic and the staging branch is unset/u);
-  assert.match(out, /a person's look is owed until the branch is set/u);
-  assert.match(out, /production deploy\s+automatic — a user-facing change waits for a person's look/u,
-    "the strict reading is what the report says too");
-});
-
-/* The deploy the flow walks a change against is the other half of the same answer: a branch with no
-   host behind it means the verification `released` owes cites the branch alone (ISS-92). */
-test("a staging branch with no deploy behind it is a note, not a failure", async () => {
-  const out = await releaseReport({
-    baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: false },
-  });
-  assert.match(out, /\[ note \] staging deploy\s+none on record while the staging branch is named/u);
-  /* Not a verb of this CLI: no declared route writes the deploy, so the note names the screen. */
-  assert.match(out, /A host is added on the tracker's own project settings screen/u,
-    "and names where the value is set");
-});
-
-test("a deploy on record is reported by count, and its credential is not printed", async () => {
-  const out = await releaseReport(
-    { baseBranch: "staging", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
-    { stagingUrl: "https://beta.example.test", testCredentials: [{ password: "correct-horse-battery" }] },
-  );
-  assert.match(out, /\[ {2}ok {2}\] staging deploy\s+1 host\(s\) {2}← the tracker's project detail/u);
-  assert.match(out, /\[ {2}ok {2}\] test credentials\s+present, forge doctor --credentials/u,
-    "the report says where the value is read, never the value");
-  assert.doesNotMatch(out, /correct-horse-battery/u);
-  assert.doesNotMatch(out, /previewDeploy/u, "and the tracker's own field name is not what a reader is shown");
-});
-
 /* The other half of every level above, and the half no stdout assertion sees (ISS-102). */
-test("a project whose branches are unset prints notes and exits 0", async () => {
+test("a project that has declared nothing prints notes and exits 0", async () => {
   const { out, status } = await whole({
-    baseBranch: null, productionBranch: null, pipelineConfig: { autoProdDeploy: false },
+    baseBranch: null, pipelineConfig: { autoProdDeploy: false },
   });
+  assert.match(out, /\[ note \] release model\s+unset on the project/u);
   assert.match(out, /\[ note \] staging branch\s+unset on the project/u);
-  assert.match(out, /\[ note \] production branch\s+unset on the project/u);
   assert.doesNotMatch(out, /\[ miss \]/u, "and nothing else in a report of notes says otherwise");
   assert.equal(status, 0, "a report with no miss in it exits 0");
 });
@@ -323,7 +244,7 @@ test("a project whose branches are unset prints notes and exits 0", async () => 
 /* AC-01-3-2: a gate somebody believes is off must not be silently on. */
 test("a switch naming no hook here is a miss, and the report exits 1 for it alone", async () => {
   const { out, status } = await whole(
-    { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true } },
+    { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true } },
     { saved: { hooksOff: ["no-such-gate"] } },
   );
   assert.match(out, /\[ miss \] hooks off\s+no-such-gate is switched off and is no hook here/u);
@@ -332,7 +253,7 @@ test("a switch naming no hook here is a miss, and the report exits 1 for it alon
 
 test("an automatic deploy with no branch to land on exits 1", async () => {
   const { out, status } = await whole({
-    baseBranch: null, productionBranch: null, pipelineConfig: { autoProdDeploy: true },
+    baseBranch: null, pipelineConfig: { autoProdDeploy: true },
   });
   assert.match(out, /\[ miss \] release policy\s+production deploys are automatic/u);
   assert.equal(status, 1);
@@ -340,7 +261,7 @@ test("an automatic deploy with no branch to land on exits 1", async () => {
 
 test("a declared tool that refuses this credential is a note", async () => {
   const { out, status } = await whole({
-    baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true },
+    baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true },
   });
   assert.match(out, /\[ note \] guides\s+forge_guide is declared but refuses/u);
   assert.equal(status, 0, "a refusal the tracker owns fails nothing here");
@@ -599,7 +520,7 @@ test("the report mints no session id to have one to report", () => {
 test("a flow asking for a judge the project's configuration does not name is a miss, and nothing is rewritten", async () => {
   const pinned = JSON.stringify({ slug: "release-fixture", flow: "screen" });
   const { out, status } = await whole(
-    { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true, qa: "builder" } },
+    { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true, qa: "builder" } },
     { project: { ".forge.json": pinned } },
   );
   assert.match(out, /\[ miss \] flow\s+flow screen asks for independent judgement/u,
@@ -613,7 +534,7 @@ test("a flow asking for a judge the project's configuration does not name is a m
 
 test("a project whose configuration names the judgement its flow asks for earns no conflict", async () => {
   const { out } = await whole(
-    { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true, qa: "independent" } },
+    { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true, qa: "independent" } },
     { project: { ".forge.json": JSON.stringify({ slug: "release-fixture", flow: "screen" }) } },
   );
   assert.doesNotMatch(out, /\[ miss \] flow/u, "the two sources agree, so there is nothing to report");

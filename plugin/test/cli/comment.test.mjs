@@ -15,7 +15,7 @@ const MINE = "this-run";
 const BODY = "The refusal names the flag and not the file.";
 
 const state = {
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [{ documentId: "uuid-348", issueId: "ISS-348", status: "in_progress", title: "one verb per write", description: "x" }],
   comments: { "uuid-348": [] },
   calls: [],

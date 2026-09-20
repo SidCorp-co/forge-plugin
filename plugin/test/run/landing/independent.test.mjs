@@ -16,7 +16,7 @@ import {
    and deploys are automatic, which is what derives route `before-merge`. */
 state.config = {
   baseBranch: BASE,
-  productionBranch: BASE,
+  releaseModel: "publish",
   pipelineConfig: { autoProdDeploy: true, qa: "independent" },
 };
 

@@ -55,9 +55,11 @@ const NO_DEPLOY = { notes: null, stagingApiUrl: null, stagingUrl: null, testCred
 
 const projectOf = (row) => {
   const { id, slug, name, description, orgId, createdBy, role, repoPath, workspaceSetup, baseBranch,
-    productionBranch, defaultDeviceId, previewDeploy, createdAt, archivedAt } = row ?? {};
+    liveBranch, releaseModel, releaseStrategy, defaultDeviceId, previewDeploy, createdAt,
+    archivedAt } = row ?? {};
   return { id, slug, name, description, orgId, createdBy, role, repoPath, workspaceSetup, baseBranch,
-    productionBranch, defaultDeviceId, previewDeploy: previewDeploy ?? NO_DEPLOY, createdAt, archivedAt };
+    liveBranch, releaseModel, releaseStrategy, defaultDeviceId,
+    previewDeploy: previewDeploy ?? NO_DEPLOY, createdAt, archivedAt };
 };
 
 /* Two of the three parts are separate requests, so a reader that named neither is not made to pay
@@ -99,10 +101,11 @@ export const attachmentOf = (row) => ({ documentId: row?.id ?? null, ...pick(row
 /* The config is the project row plus what it keeps under `agentConfig`; three fields the tool
    answered with are on no route this credential reaches, and are left out rather than invented. */
 export const configOf = (project) => {
-  const { id, slug, name, repoPath, baseBranch, productionBranch } = project ?? {};
+  const { id, slug, name, repoPath, baseBranch, liveBranch, releaseModel, releaseStrategy } = project ?? {};
   return {
     project: { id, slug, name },
-    config: { repoPath, baseBranch, productionBranch, ...(project?.agentConfig ?? {}) },
+    config: { repoPath, baseBranch, liveBranch, releaseModel, releaseStrategy,
+      ...(project?.agentConfig ?? {}) },
   };
 };
 

@@ -273,6 +273,11 @@ for.
   IF the project's configuration leaves a person an act to make before the release is out THEN the
   CLI SHALL refuse `closed` and SHALL name that act in the words it reports it in, because a rule a
   careful run obeys and a careless one cannot detect is no rule.
+- **AC-05-7-12** · Rev: 1 · Proof: plugin/test/flow/close.test.mjs "a project declaring no release step closes in the run that landed the change"
+  WHERE the project declares that its release model is that there is no release step, the CLI SHALL
+  earn `closed` from the records the deploying rung already holds and SHALL leave no act to a person,
+  because a rung that waits for a release the project has declared it does not make is a keystroke
+  asked of somebody for nothing (G-11).
 
 ### UC-05-8 — A record too large to read whole
 

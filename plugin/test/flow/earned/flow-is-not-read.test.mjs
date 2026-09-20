@@ -88,8 +88,9 @@ test("one persisted plan earns one entry-check verdict under two different flows
   }
 });
 
-const WAIVES = { staging: "develop", production: "main", autoProd: true, from: "the fixture" };
-const WAITS = { staging: "main", production: "main", autoProd: false, from: "the fixture" };
+const POLICY = { staging: "main", live: null, strategy: null, from: "the fixture" };
+const WAIVES = { ...POLICY, model: "none", said: "none", autoProd: true };
+const WAITS = { ...POLICY, model: "publish", said: "publish", autoProd: false };
 
 /* The other half of the same boundary: what a flow may require is reported against the project's
    release policy rather than reconciled with it, because there is no precedence rule to introduce

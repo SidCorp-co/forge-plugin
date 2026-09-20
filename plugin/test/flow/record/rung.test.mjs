@@ -30,7 +30,7 @@ const issue = (key, status, over = {}) => ({
 });
 
 const state = {
-  config: { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: false } },
+  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
   issues: [
     issue("ISS-2001", "confirmed"),
     issue("ISS-2002", "open"),

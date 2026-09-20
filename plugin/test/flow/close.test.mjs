@@ -19,9 +19,13 @@ const fenced = (text) =>
 const comment = (body, extra = {}) =>
   ({ createdAt: "2026-09-04T10:01:00.000Z", authorId: "agent", body: fenced(body), ...extra });
 
-const RELEASES_ITSELF = { baseBranch: "master", productionBranch: "master", pipelineConfig: { autoProdDeploy: true } };
+const RELEASES_ITSELF = { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true } };
 const OWES_A_PERSON = { ...RELEASES_ITSELF, pipelineConfig: { autoProdDeploy: false } };
-const NAMES_NO_PRODUCTION = { baseBranch: "master", pipelineConfig: { autoProdDeploy: true } };
+const DECLARES_NO_MODEL = { baseBranch: "master", pipelineConfig: { autoProdDeploy: true } };
+/* The model this plugin's own project declares, under which the rung owes nobody an act (ISS-1888). */
+const NO_RELEASE_STEP = { baseBranch: "master", releaseModel: "none", pipelineConfig: { autoProdDeploy: true } };
+const PROMOTES = { baseBranch: "master", releaseModel: "promote", liveBranch: "live",
+  pipelineConfig: { autoProdDeploy: false } };
 const owedOn = (config, view = { status: CLOSES_FROM }) =>
   CHECKS.closed(viewFrom("the-uuid", view, [], null, config && releaseFrom(config)), "ISS-3");
 
@@ -38,19 +42,30 @@ test("the status a close is earned from is the flow table's own tail, and it rea
 test("each state of the release policy names its own gap and its own way out of the rung", () => {
   const said = (config) => owedOn(config)[0]?.what ?? null;
   const person = said(OWES_A_PERSON);
-  const unset = said(NAMES_NO_PRODUCTION);
+  const unset = said(DECLARES_NO_MODEL);
   const none = CHECKS.closed(viewFrom("the-uuid", { status: CLOSES_FROM }, []), "ISS-3")[0]?.what;
   const unread = CHECKS.closed(
     viewFrom("the-uuid", { status: CLOSES_FROM }, [], null, unreadFrom("the tracker said no")),
     "ISS-3")[0]?.what;
-  assert.match(person, /master does not deploy on its own, so the release is a person's/u, person);
+  const promoting = said(PROMOTES);
+  const unnamed = said({ ...PROMOTES, liveBranch: null });
+  const unknown = said({ ...DECLARES_NO_MODEL, releaseModel: "hand-carried" });
+  assert.match(person, /the release is an act on this project's live deploy binding/u, person);
   assert.match(person, /a production that deploys on its own/u, person);
-  assert.match(unset, /the production branch is unset, so nothing says where a release lands/u, unset);
+  assert.match(promoting, /the promotion from master to live is a person's/u, promoting);
+  assert.match(unnamed, /the live branch is unset under a model that promotes to it/u, unnamed);
+  assert.match(unset, /this project declares no release model/u, unset);
+  assert.match(unknown, /declares the release model `hand-carried`, which this CLI does not know/u, unknown);
   assert.match(unset, /declared on the tracker's own project settings screen/u, unset);
   assert.match(none, /this checkout names no project/u, none);
   assert.match(unread, /the tracker said no/u, unread);
-  assert.equal(new Set([person, unset, none, unread]).size, 4, "two states answered alike");
-  for (const [config, what] of [[OWES_A_PERSON, person], [NAMES_NO_PRODUCTION, unset]]) {
+  assert.equal(new Set([person, promoting, unnamed, unset, unknown, none, unread]).size, 7,
+    "two states answered alike");
+  assert.deepEqual(owedOn(NO_RELEASE_STEP), [],
+    "and the model declaring there is no release step owes nothing, whatever the flag says");
+  assert.deepEqual(owedOn({ ...NO_RELEASE_STEP, pipelineConfig: { autoProdDeploy: false } }), []);
+  for (const [config, what] of [[OWES_A_PERSON, person], [DECLARES_NO_MODEL, unset],
+    [PROMOTES, promoting]]) {
     assert.ok(what.includes(personOwedForRelease(releaseFrom(config))),
       `the refusal words the gap differently from the report: ${what}`);
   }
@@ -75,15 +90,17 @@ const SETTING = shippedAs("set-uuid", "ISS-99");
 const RETRIED = shippedAs("retry-uuid", "ISS-100");
 const RECORDING = shippedAs("record-uuid", "ISS-101");
 const UNSET = shippedAs("unset-uuid", "ISS-102");
+const NO_STEP = shippedAs("none-uuid", "ISS-103");
+const PROMOTED = shippedAs("promote-uuid", "ISS-104");
 const verification = render("verification", { where: "the installed plugin", commit: "43b811e", evidence: ["43b811e"] });
 const state = {
   calls: [],
   config: RELEASES_ITSELF,
-  issues: [SHIPPED, PARKING, OWED, SETTING, RETRIED, RECORDING, UNSET],
+  issues: [SHIPPED, PARKING, OWED, SETTING, RETRIED, RECORDING, UNSET, NO_STEP, PROMOTED],
   comments: {
     "shipped-uuid": [comment(verification, { documentId: "shipped-comment" })],
     "parking-uuid": [comment("what the rollback answered", { attachments: [{ name: "rollback.txt" }] })],
-    ...Object.fromEntries([OWED, SETTING, RETRIED, RECORDING, UNSET].map((one) =>
+    ...Object.fromEntries([OWED, SETTING, RETRIED, RECORDING, UNSET, NO_STEP, PROMOTED].map((one) =>
       [one.documentId, [comment(verification, { documentId: `${one.documentId}-comment` })]])),
   },
   answer: {
@@ -216,20 +233,52 @@ test("a configuration that did not answer refuses the close, and the call that r
   assert.deepEqual(moved("retry-uuid").map((one) => one.args.data.status), ["closed"]);
 });
 
-/* The state this plugin's own project is in, and the half of the outcome that is configuration
-   rather than code: nothing here writes those branches, and declaring them ends the rung. */
-test("a project naming no production branch refuses the close, and naming one makes it", async () => {
-  state.config = NAMES_NO_PRODUCTION;
+/* The half of the outcome that is configuration rather than code: nothing here writes a model or a
+   branch, and declaring one ends the rung. */
+test("a project declaring no release model refuses the close, and declaring one makes it", async () => {
+  state.config = DECLARES_NO_MODEL;
   await claimed("ISS-102");
   const refused = await ranAsync(FORGE, ["advance", "ISS-102"], tracker.env);
   assert.equal(refused.status, 1, refused.stdout);
-  assert.match(refused.stdout, /the production branch is unset, so nothing says where a release lands/u,
+  assert.match(refused.stdout, /this project declares no release model, so nothing here says what a release is/u,
     refused.stdout);
   assert.deepEqual(moved("unset-uuid"), []);
   state.config = RELEASES_ITSELF;
   const run = await ranAsync(FORGE, ["advance", "ISS-102"], tracker.env);
   assert.equal(run.status, 0, run.stderr);
   assert.deepEqual(moved("unset-uuid").map((one) => one.args.data.status), ["closed"]);
+});
+
+/* AC-05-7-12, and the shape this plugin's own project is in: 43 issues rested at this rung on a
+   reading that asked a project with no release step for the release it had declared it does not
+   make. Nothing is written to close, and nothing is asked of anybody. */
+test("a project declaring no release step closes in the run that landed the change", async () => {
+  state.config = NO_RELEASE_STEP;
+  await claimed("ISS-103");
+  const rehearsal = await ranAsync(FORGE, ["advance", "ISS-103", "--owed"], tracker.env);
+  assert.equal(rehearsal.status, 0, rehearsal.stderr);
+  assert.match(rehearsal.stdout, /closed is next and the record earns it/u, rehearsal.stdout);
+  const report = await ranAsync(FORGE, ["resume", "ISS-103", "--report"], tracker.env);
+  assert.match(report.stdout, /Owed: the close\. A run ends at closed/u, report.stdout);
+  const run = await ranAsync(FORGE, ["advance", "ISS-103"], tracker.env);
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(moved("none-uuid").map((one) => one.args.data.status), ["closed"]);
+  assert.deepEqual(wrote("none-uuid"), [], "and nothing was written to earn it");
+});
+
+/* The promoting model each way on the flag: the promotion is the act, and a project that makes it
+   without being asked leaves nobody one. */
+test("a promotion nothing automates refuses the close, and one the project makes itself does not", async () => {
+  state.config = PROMOTES;
+  await claimed("ISS-104");
+  const refused = await ranAsync(FORGE, ["advance", "ISS-104"], tracker.env);
+  assert.equal(refused.status, 1, refused.stdout);
+  assert.match(refused.stdout, /the promotion from master to live is a person's/u, refused.stdout);
+  assert.deepEqual(moved("promote-uuid"), []);
+  state.config = { ...PROMOTES, pipelineConfig: { autoProdDeploy: true } };
+  const run = await ranAsync(FORGE, ["advance", "ISS-104"], tracker.env);
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(moved("promote-uuid").map((one) => one.args.data.status), ["closed"]);
 });
 
 /* The other caller of the same check: a record write ends by saying what the next status is owed, and

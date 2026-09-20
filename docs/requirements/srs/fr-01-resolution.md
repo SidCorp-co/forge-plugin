@@ -70,7 +70,7 @@ Rev: 1 · Actors: developer, agent · Enforces: BR-01, BR-08
 One verb prints every resolved setting, the source that answered for it, and whether the endpoint
 can be reached. It is what a refusal points at, so it answers before the question is asked twice.
 
-- **AC-01-3-1** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "the three release values are reported with where they came from"
+- **AC-01-3-1** · Rev: 1 · Proof: plugin/test/tools/doctor/release.test.mjs "the three release values are reported with where they came from"
   WHEN the report runs THEN it SHALL name each setting with the source that answered, and SHALL
   report a setting that resolved to nothing as absent rather than omitting it.
 - **AC-01-3-2** · Rev: 1 · Proof: plugin/test/hooks/hook-switch.test.mjs "doctor reports a switch wired to nothing"
@@ -284,10 +284,11 @@ about.
 - **AC-01-5-3** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "the landing mode is the machine's: it is written to the user config and the project's file is untouched"
   WHEN the developer sets the landing mode through the report verb THEN the CLI SHALL write it to
   the account's configuration and to nothing of the project's.
-- **AC-01-5-4** · Rev: 1 · Proof: plugin/test/tracker/project-config.test.mjs "the landing route comes off the branch pair and the auto-deploy flag, and a key overrides it"
+- **AC-01-5-4** · Rev: 2 · Proof: plugin/test/tracker/project-config.test.mjs "the landing route comes off the release model and the auto-deploy flag, and a key overrides it"
   WHEN the project's release policy is read THEN the CLI SHALL derive the landing route from the
-  staging branch, the production branch and whether production deploys on its own, SHALL say `not
-  stated` where they do not answer, and SHALL let the project file's own key override the derivation.
+  release model the project declares and whether production deploys on its own, SHALL say `not
+  stated` where the model is absent or is one the CLI does not recognise, and SHALL let the project
+  file's own key override the derivation.
 - **AC-01-5-5** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a qa key in the checkout moves nothing the report prints"
   WHEN the project's release policy is read THEN the CLI SHALL print whether an independent judgement
   is asked for, read from the tracker's project record and from nowhere else.
