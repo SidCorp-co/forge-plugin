@@ -1,6 +1,6 @@
 /* The release states on the remote the version it shipped, because a box's own install record says
    which copies are on it and never which is current (ISS-1324). These are `ship`'s half of that:
-   `run-script.test.mjs` holds the rest of the release path and `doctor-release.test.mjs` the reading. */
+   `run-script.test.mjs` holds the rest of the release path and `tools/services/doctor/release.test.mjs` the reading. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { chmodSync, writeFileSync } from "node:fs";

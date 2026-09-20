@@ -150,7 +150,7 @@ test("the subjects a bare call reads are the table's own, and four are not among
 /* The read point ISS-1460 measured, held as what it is: a position in the one order this report is
    built in. Regrouping the row above the local checks reads correctly and silently costs the whole
    3.4s round trip, and elapsed time is what this suite refuses to bound. That the ask is already
-   running when the row is read is doctor-release.test.mjs's half. */
+   running when the row is read is release.test.mjs's half. */
 test("the release ask is started above the report's local checks and read below them", () => {
   const source = readFileSync(new URL("../../../../src/tools/doctor.mjs", import.meta.url), "utf8");
   const at = (mark) => {
