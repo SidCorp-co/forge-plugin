@@ -167,9 +167,10 @@ const wired = async () => {
   };
 };
 
-test("an off verb and a form through one reach the tracker with nothing, while a hidden verb still does", async () => {
+test("an off verb and a form through one reach the tracker with nothing, while a hidden verb still does", async (t) => {
   const { state, ran, close } = await wired();
-  try {
+  t.after(close);
+  {
     await ran("doctor", "--job", "ba");
     await ran("doctor", "--hide", "issue");
     state.calls = [];
@@ -182,7 +183,5 @@ test("an off verb and a form through one reach the tracker with nothing, while a
     const hidden = await ran("issue", "--limit", "1");
     assert.equal(hidden.status, 0, hidden.stderr);
     assert.ok(state.calls.length, "while a hidden verb ran and reached the tracker as it always did");
-  } finally {
-    await close();
   }
 });

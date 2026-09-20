@@ -210,25 +210,25 @@ test("an action no row claims and no route serves is refused as unserved, not ha
 });
 
 /* A verb this machine withheld is a verb the raw surface is not the way round either. */
-test("a withheld verb's action is refused with the verb and the withholding, not let through", async () => {
+test("a withheld verb's action is refused with the verb and the withholding, not let through", async (t) => {
   const { ran, close, env, cwd } = await gatedKnowledge();
-  try {
+  t.after(close);
+  {
     const hidden = await ran("doctor", "--hide", "knowledge");
     assert.match(hidden.stdout, /knowledge is now hidden from the usage list/u, hidden.stderr);
     const said = await refusedBy(env, cwd, "mcp__forge__forge_knowledge", { action: "upsert", data: { slug: "s" } });
     assert.match(said, /forge_knowledge upsert is what `forge knowledge write` wraps/u, said);
     assert.match(said, /is hidden on this machine/u);
     assert.match(said, /not the way round/u);
-  } finally {
-    await close();
   }
 });
 
 /* And a job is the same withholding written once, so the refusal names the job the array matches —
    matches, not caused: a job's name is stored nowhere, which is what keeps the array the one switch. */
-test("a withheld verb a declared job matches is refused by the route it wraps, in a sentence naming that job", async () => {
+test("a withheld verb a declared job matches is refused by the route it wraps, in a sentence naming that job", async (t) => {
   const { ran, close, env, cwd } = await gatedKnowledge();
-  try {
+  t.after(close);
+  {
     const held = JSON.parse(readFileSync(join(cwd, ".forge.json"), "utf8"));
     writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ ...held, jobs: { reader: ["issue", "next"] } }));
     const on = await ran("doctor", "--job", "reader");
@@ -237,16 +237,15 @@ test("a withheld verb a declared job matches is refused by the route it wraps, i
     assert.match(said, /forge_knowledge upsert is what `forge knowledge write` wraps/u, said);
     assert.match(said, /is off on this machine, which is at the `reader` job/u, said);
     assert.match(said, /forge doctor --show knowledge/u, "and the way back is the one command it names");
-  } finally {
-    await close();
   }
 });
 
 /* Judged on the word typed, `forge list` has no row, is blocked by nothing, and performs the gated `forge issue` anyway — a way round the refusal withholding-a-verb.md exists for (F1). */
-test("a form is refused by the capability its verb needs, and answers with the same line", async () => {
+test("a form is refused by the capability its verb needs, and answers with the same line", async (t) => {
   const { ran, close } = await gatedTool("forge_issues",
     ["forge_guide", "forge_project_pm", "forge_projects.list"]);
-  try {
+  t.after(close);
+  {
     const verb = await ran("issue", "-h");
     assert.equal(verb.status, 1, verb.stdout);
     assert.match(verb.stderr, /needs forge_issues, which this credential may not call/u, verb.stderr);
@@ -256,62 +255,55 @@ test("a form is refused by the capability its verb needs, and answers with the s
       assert.match(run.stderr, /needs forge_issues, which this credential may not call/u, run.stderr);
       assert.doesNotMatch(run.stderr, /^forge: read /mu, "and nothing ran, so no line says one did");
     }
-  } finally {
-    await close();
   }
 });
 
-test("the graph read is refused with the verb that prints it, and that verb still reads it", async () => {
+test("the graph read is refused with the verb that prints it, and that verb still reads it", async (t) => {
   assert.match(wrappedRefusal("forge_project_pm", "graph"),
     /forge_project_pm graph is what `forge doctor` wraps/u);
   const { ran, close } = await gated();
-  try {
+  t.after(close);
+  {
     const doctor = await ran("doctor");
     assert.match(doctor.stdout, /dependency graph/u, "and the verb that owns it still reads it");
-  } finally {
-    await close();
   }
 });
 
 /* Why `doctor` spends an explicit nothing rather than the tool it owns: gated on `forge_config`, the one verb that records a capability refusal would be hidden by the record it wrote, and no run could clear it. Derived, `needs` is `row[3]`, so this is the arm that makes the column worth having. */
-test("a recorded refusal of the tool doctor owns hides neither the verb nor its probe", async () => {
+test("a recorded refusal of the tool doctor owns hides neither the verb nor its probe", async (t) => {
   const { ran, close } = await gatedTool("forge_config");
-  try {
+  t.after(close);
+  {
     const listed = await ran("-h");
     assert.match(listed.stdout, /^ {2}doctor /mu, listed.stdout);
     const doctor = await ran("doctor");
     assert.match(doctor.stdout, /dependency graph/u, "and it asks again rather than trusting the record");
-  } finally {
-    await close();
   }
 });
 
-test("a gated verb with no refusal text of its own still says why it cannot be typed", async () => {
+test("a gated verb with no refusal text of its own still says why it cannot be typed", async (t) => {
   const { close, env, cwd } = await gatedKnowledge();
-  try {
+  t.after(close);
+  {
     const said = await refusedBy(env, cwd, "mcp__forge__forge_knowledge", { action: "upsert", data: { slug: "s" } });
     assert.match(said, /forge_knowledge upsert is what `forge knowledge write` wraps/u, said);
     assert.match(said, /cannot spend forge_knowledge on this credential/u);
     assert.doesNotMatch(said, /type it instead/u, "the verb it names cannot be typed either");
-  } finally {
-    await close();
   }
 });
 
 /* The same regression from the other side, through the surface that shows it. */
-test("a credential whose knowledge tool refuses still has the verb hidden from the usage list", async () => {
+test("a credential whose knowledge tool refuses still has the verb hidden from the usage list", async (t) => {
   const { ran, close } = await gatedKnowledge();
-  try {
+  t.after(close);
+  {
     const listed = await ran("-h");
     assert.doesNotMatch(listed.stdout, /^ {2}knowledge /mu, "the verb left the usage list");
     assert.match(listed.stdout, /^ {2}issue /mu, "and the verbs beside it did not");
-  } finally {
-    await close();
   }
 });
 
-/* The refusal is made off the table, so it costs no round trip: with the tracker gone the answer is
-   the same one. A check that let the tool list be fetched first would hang or fail here instead. */
+/* The refusal is made off the table, so it costs no round trip: with the tracker gone the answer is the same one. A check that let the tool list be fetched first would hang or fail here instead. */
 test("a wrapped action is refused with no tracker to ask", async () => {
   const tracker = await fakeTracker({ declared: ["forge_issues"], answer: {} });
   const cwd = tempRoom("wrapped-offline-");

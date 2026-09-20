@@ -311,15 +311,19 @@ test("a 200 that is not a record reaches the caller whichever route answered it"
 /* A handler map is read by name, so a key no route looks up is answered by the fixture's own default
    in the same shape a registered handler would have answered in: the case that registered it covers
    nothing and passes all the same (ISS-1934). */
-const closing = async (state, probes) => {
-  const server = await fakeTracker(state);
-  for (const probe of probes) await asked(server, probe);
+const closed = (server) => {
   try {
     server.close();
     return null;
   } catch (refused) {
     return refused.message;
   }
+};
+
+const closing = async (state, probes) => {
+  const server = await fakeTracker(state);
+  for (const probe of probes) await asked(server, probe);
+  return closed(server);
 };
 
 const ONE_ISSUE = ["GET", "/api/issues/u1"];
@@ -352,4 +356,22 @@ test("a key a case says nothing will reach is registered, and a route reaching i
   const said = await closing({ unasked: ["forge_issues"], answer: { forge_issues: () => ({}) } }, [ONE_ISSUE]);
   assert.match(said ?? "", /state\.unasked names forge_issues/u,
     "and an allowance nothing needs is refused, or the next handler to go dead hides under it");
+});
+
+test("a handler deleted after a route was served is still the case's to answer for", async () => {
+  const state = { answer: { forge_issues: () => ({}), forge_guide: () => ({ guides: [] }) } };
+  const server = await fakeTracker(state);
+  await asked(server, ONE_ISSUE);
+  delete state.answer.forge_guide;
+  assert.throws(() => server.close(), /forge_guide/u,
+    "a map is answered for by every key it was seen holding, not by what is left in it at the close");
+});
+
+test("an allowance withdrawn with the handler it covered invents no stale name", async () => {
+  const state = { unasked: ["forge_guide"], answer: { forge_issues: () => ({}), forge_guide: () => ({}) } };
+  const server = await fakeTracker(state);
+  await asked(server, ONE_ISSUE);
+  delete state.answer.forge_guide;
+  state.unasked = [];
+  assert.equal(closed(server), null, "the allowance and the key it covered are read at the same moment");
 });

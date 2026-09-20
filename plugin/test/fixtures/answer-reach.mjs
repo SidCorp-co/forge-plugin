@@ -8,8 +8,9 @@ export const reachOf = (state) => {
   const standing = (at) => {
     const held = state.answer;
     if (!held) return null;
-    if (!reach.has(held)) reach.set(held, { names: new Set(), meant: new Set(), at: at ?? null });
+    if (!reach.has(held)) reach.set(held, { keys: new Set(), names: new Set(), meant: new Set(), at: at ?? null });
     const row = reach.get(held);
+    for (const key of Object.keys(held)) row.keys.add(key);
     for (const key of state.unasked ?? []) row.meant.add(key);
     return row;
   };
@@ -19,14 +20,13 @@ export const reachOf = (state) => {
     standing();
     const over = [];
     const stale = [];
-    for (const [map, held] of reach) {
-      const keys = Object.keys(map);
-      for (const key of keys) {
+    for (const held of reach.values()) {
+      for (const key of held.keys) {
         if (held.names.has(key) || held.meant.has(key)) continue;
         if (!over.some((one) => one.key === key)) over.push({ key, at: held.at });
       }
       for (const key of held.meant) {
-        if (!keys.includes(key) || held.names.has(key)) stale.push(key);
+        if (!held.keys.has(key) || held.names.has(key)) stale.push(key);
       }
     }
     return { over, stale: [...new Set(stale)] };
