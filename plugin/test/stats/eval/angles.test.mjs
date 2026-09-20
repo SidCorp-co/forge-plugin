@@ -89,8 +89,37 @@ test("a shift no further than the floor's p95 is not distinguishable from the ha
   assert.equal(inside.past, 1, "and every position of that floor moved at least as far");
   const at = judge({ minutes: 100 }, { minutes: 105 });
   assert.equal(at.disposition, DISPOSITIONS.same, "the p95 itself is inside the floor, not past it");
-  assert.equal(judge({ chars: 0 }, { chars: 0 }).disposition, DISPOSITIONS.same,
-    "two figures that never left zero did not move");
+  const zeroes = angleOf("edit-chars", { before: window({ chars: 0 }), now: window({ chars: 0 }) },
+    floorOf(0.05), FLOOR);
+  assert.equal(zeroes.disposition, DISPOSITIONS.same, "two figures that never left zero did not move");
+  assert.deepEqual([zeroes.shift, zeroes.why], [0, "neither window's figure left zero"]);
+});
+
+test("two figures that both read zero are still a verdict, and a floor too thin supports none", () => {
+  const thin = angleOf("edit-chars", { before: window({ runs: 3, chars: 0 }), now: window({ runs: 3, chars: 0 }) },
+    { before: 3, now: 3, over: 0, dropped: 40, median: null, p90: null, p95: null, shifts: [] }, FLOOR);
+  assert.equal(thin.disposition, DISPOSITIONS.unevaluable,
+    "the floor is asked before the both-zero reading, never after it");
+  assert.match(thin.why, new RegExp(`^0 adjacent position\\(s\\) of this corpus yielded a shift at 3 against 3, `
+    + `fewer than the ${POSITIONS} a p95 needs$`, "u"));
+});
+
+test("a percentile in the tail is the nearest rank, so twenty positions is where a p95 stops being the largest", () => {
+  /* Twenty-one blocks of one run, each a step of 1% more than the last than the one before it, so
+     the twenty positions yield the twenty shifts 1% through 20% and no two are equal. */
+  const values = [100];
+  for (let at = 0; at < POSITIONS; at += 1) values.push(values[at] * (1 + (at + 1) / 100));
+  const blocks = values.map((minutes) => profile({ runs: 1, minutes }));
+  const floor = floorsOver(blocks, blocks, 1, 1, values.length, ["wall"]).get("wall");
+  assert.equal(floor.over, POSITIONS);
+  assert.deepEqual(floor.shifts.map((one) => Math.round(one * 100)), Array.from({ length: POSITIONS }, (u, at) => at + 1));
+  assert.equal(Math.round(floor.p95 * 100), 19, "the nineteenth of twenty, never the twentieth");
+  assert.equal(Math.round(floor.p90 * 100), 18);
+  assert.equal(Math.round(floor.median * 1000) / 1000, Math.round(((0.1 + 0.11) / 2) * 1000) / 1000,
+    "and the middle is the one home's, which means the mean of the two middle values");
+  const between = angleOf("wall", { before: window({ minutes: 100 }), now: window({ minutes: 119.5 }) }, floor, FLOOR);
+  assert.equal(between.disposition, DISPOSITIONS.declined,
+    "a shift between the nineteenth and the twentieth observation is past the p95");
 });
 
 test("a thin window, a figure a window does not carry and a before figure of zero are each not evaluable", () => {

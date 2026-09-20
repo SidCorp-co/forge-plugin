@@ -1,6 +1,7 @@
 /* The angles one corpus read serves: a closed set, each over the population it names and judged
    against this corpus's own adjacent-block floor rather than against zero. What an angle is, what
    its population means and what the floor is not — docs/cli/stats-the-angles.md. */
+import { median } from "../median.mjs";
 import { profileOf } from "../runs.mjs";
 import { UNAVAILABLE } from "./outcomes.mjs";
 import { fail } from "../../resolve/settings.mjs";
@@ -90,7 +91,10 @@ export const blocksOf = (ordered, size) => {
   return held;
 };
 
-const quantile = (sorted, at) => sorted[Math.min(sorted.length - 1, Math.floor(at * sorted.length))];
+/* The middle is `median.mjs`'s, which is this repository's one answer to it. A percentile in the tail
+   has no such home and takes the nearest rank — the smallest observation at or above the share asked
+   for — which is what makes twenty the count a p95 stops being the largest shift seen at. */
+const atRank = (sorted, at) => sorted[Math.max(0, Math.ceil(at * sorted.length) - 1)];
 
 /** The floor for each named angle, off one pass of block profiles: two adjacent blocks of the sizes
  *  actually being compared, slid a run at a time, each angle's own figure taken over both sides.
@@ -119,9 +123,9 @@ export const floorsOver = (befores, nows, beforeSize, nowSize, total, names = NA
       now: nowSize,
       over: shifts.length,
       dropped,
-      median: shifts.length ? quantile(shifts, 0.5) : null,
-      p90: shifts.length ? quantile(shifts, 0.9) : null,
-      p95: shifts.length ? quantile(shifts, 0.95) : null,
+      median: median(shifts),
+      p90: shifts.length ? atRank(shifts, 0.9) : null,
+      p95: shifts.length ? atRank(shifts, 0.95) : null,
       shifts,
     }];
   }));
@@ -145,20 +149,24 @@ const verdictOf = ({ angle, before, now, floor, runFloor }) => {
   if (now.figure === null) {
     return withheld(`this window carries no value for this figure, over ${now.over} ${angle.over}`);
   }
-  if (before.figure === 0 && now.figure === 0) {
-    return { disposition: DISPOSITIONS.same, why: "neither window's figure left zero", shift: 0, past: null };
-  }
-  if (before.figure === 0) {
-    return withheld("the before figure is zero, so there is no relative shift to take");
-  }
+  /* Before any judgement and not after one: two figures that both read zero have not moved, but
+     saying so is still a verdict, and a floor too thin to support one supports none. */
   if (!floor || floor.over < POSITIONS) {
     return withheld(`${floor?.over ?? 0} adjacent position(s) of this corpus yielded a shift at `
       + `${floor?.before ?? before.runs} against ${floor?.now ?? now.runs}, fewer than the ${POSITIONS} a p95 needs`);
   }
-  const shift = (now.figure - before.figure) / before.figure;
+  if (before.figure === 0 && now.figure !== 0) {
+    return withheld("the before figure is zero, so there is no relative shift to take");
+  }
+  const shift = before.figure === 0 ? 0 : (now.figure - before.figure) / before.figure;
   const past = floor.shifts.filter((one) => one >= Math.abs(shift)).length / floor.over;
   if (Math.abs(shift) <= floor.p95) {
-    return { disposition: DISPOSITIONS.same, why: "no further than the floor's p95", shift, past };
+    return {
+      disposition: DISPOSITIONS.same,
+      why: before.figure === 0 ? "neither window's figure left zero" : "no further than the floor's p95",
+      shift,
+      past,
+    };
   }
   return {
     disposition: Math.sign(shift) === angle.better ? DISPOSITIONS.improved : DISPOSITIONS.declined,
