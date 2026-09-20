@@ -9,7 +9,7 @@ import { closeSync, fchmodSync, openSync, readFileSync, realpathSync, renameSync
 import { compiles } from "../../../codex/codex.mjs";
 import { reviewRefusalOf } from "../../../git/reviewed.mjs";
 import { DECLARABLE, declares } from "../../../stats/corpus/declared.mjs";
-import { foldWeights } from "../../../rank/weights.mjs";
+import { RANK_ROWS, RANK_WEIGHTS, foldWeights } from "../../../rank/weights.mjs";
 import {
   CHECK_MS_TAKES,
   Refusal,
@@ -245,7 +245,11 @@ export const PROJECT_KEYS = {
     paths: { "*": "list", "*.verbs": "list", "*.skills": "list" },
     judge: (given) => jobsOf(given).problems[0] ?? null,
   },
-  rank: { paths: { "*": "number", "*.*": "number" }, judge: (given) => foldWeights(given).refusal },
+  rank: {
+    paths: { "*": "number", "*.*": "number" },
+    names: { "*": RANK_WEIGHTS, "*.*": RANK_ROWS },
+    judge: (given) => foldWeights(given).refusal,
+  },
   review: { paths: { lines: "number", paths: "list" }, judge: reviewRefusalOf },
   feedback: {
     paths: { plugin: "text", project: "text" },
@@ -260,7 +264,11 @@ export const PROJECT_KEYS = {
     judge: (given) => (workPatternOf(given?.workingRe).unreadable
       ? said("lease.workingRe", "a regular expression this CLI can compile", given?.workingRe) : null),
   },
-  stats: { paths: { "commands.*": "commands" }, names: { "commands.*": DECLARABLE }, judge: statsRefusal },
+  stats: {
+    paths: { "commands.*": "commands" },
+    names: { "commands.*": DECLARABLE.map((one) => `commands.${one}`) },
+    judge: statsRefusal,
+  },
   /* Routed and retired both, which is not the same offer: the reading that says what a project
      may still declare skips this row, a key its own writer refuses being no decision left to take. */
   method: { routed: ROUTED.method, retired: true },
@@ -292,12 +300,11 @@ export const writableKey = (given) => {
   return pattern === undefined ? null : { top: segments[0], segments, takes: row.paths[pattern] };
 };
 
-/** The names a wildcard path takes where this table holds a closed set for it, so a reading that
- *  offers the path offers the names its own judge accepts rather than a word it would refuse. */
-const spelledNames = (row, tail) => {
-  const held = row.names?.[tail];
-  return held ? held.map((one) => tail.replace("*", one)) : [tail];
-};
+/** What a path spells out to where this table holds a closed set of names for it: the tails its own
+ *  judge accepts, in place of the pattern. A reading that offers a name off this list offers a key
+ *  the write takes, where the pattern itself would offer a word that reader refuses. A tail with no
+ *  list stands as it is, its name being the project's own to choose. */
+const spelledNames = (row, tail) => row.names?.[tail] ?? [tail];
 
 /** Every decision this file leaves a project: one row per path a value may be written to, and one
  *  per key another verb writes, so a reading of what a project has NOT decided derives from this

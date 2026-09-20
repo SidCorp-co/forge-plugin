@@ -67,7 +67,12 @@ export const canonicalKeys = (given) => {
   };
 };
 
-const NUMBERS = Object.keys(DEFAULTS).filter((key) => !TABLES.includes(key));
+/** Every weight a project may name, as the tail of its own `rank` key, in the two shapes this fold
+ *  accepts and no third: a scalar by its own name, and a table's row under its table. A reading that
+ *  offers one of these offers a key this fold takes rather than a word it would refuse. */
+export const RANK_WEIGHTS = Object.keys(DEFAULTS).filter((key) => !TABLES.includes(key));
+export const RANK_ROWS = TABLES
+  .flatMap((key) => Object.keys(DEFAULTS[key]).map((name) => `${key}.${name}`));
 
 const numeric = (value) => typeof value === "number" && Number.isFinite(value);
 
@@ -103,7 +108,7 @@ export const foldWeights = (asked) => {
   if (!given) return { value: DEFAULTS, from: "the built-in table", refusal: null, said };
   const refusal = wrongIn(given);
   if (refusal) return { value: DEFAULTS, from: null, refusal, said };
-  const value = { ...DEFAULTS, ...Object.fromEntries(NUMBERS.map((key) => [key, given[key] ?? DEFAULTS[key]])) };
+  const value = { ...DEFAULTS, ...Object.fromEntries(RANK_WEIGHTS.map((key) => [key, given[key] ?? DEFAULTS[key]])) };
   for (const key of TABLES) value[key] = { ...DEFAULTS[key], ...(given[key] ?? {}) };
   return { value, from: FROM_PROJECT, refusal: null, said };
 };

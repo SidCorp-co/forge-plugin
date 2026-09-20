@@ -9,6 +9,7 @@ import test from "node:test";
 import { tempRoom } from "../../fixtures.mjs";
 import { PROJECT_KEYS } from "../../../src/tools/services/doctor/project-file.mjs";
 import { DECLARABLE } from "../../../src/stats/corpus/declared.mjs";
+import { RANK_ROWS, RANK_WEIGHTS } from "../../../src/rank/weights.mjs";
 import { briefUndecided, undecidedKeyRows } from "../../../src/tools/services/doctor/undecided.mjs";
 
 const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
@@ -76,6 +77,21 @@ test("the labels a corpus reading declares print one row each, never a wildcard"
   }
   assert.equal(labelled(said, "stats.commands.<name>"), undefined,
     "a closed set of labels is printed, not the wildcard the table spells it with");
+});
+
+test("a table whose row names are closed prints those rows, never a name the fold refuses", () => {
+  const empty = doctor({ slug: "a-project" }, "undecided");
+  assert.equal(labelled(empty, "rank.<name>"), undefined,
+    "`rank.<name>` is a word foldWeights refuses, so offering it is a route to a refusal");
+  assert.equal(labelled(empty, "rank.<name>.<name>"), undefined);
+  for (const tail of [...RANK_WEIGHTS, ...RANK_ROWS]) {
+    assert.equal(labelled(empty, `rank.${tail}`)?.detail,
+      `not set — forge doctor --set rank.${tail}=<number>`);
+  }
+  const some = doctor({ slug: "a-project", rank: { blocks: 3 } }, "undecided");
+  assert.equal(labelled(some, "rank.blocks"), undefined, "the weight it set");
+  assert.ok(labelled(some, "rank.similarity"), "and every weight beside it that it did not");
+  assert.ok(labelled(some, "rank.priority.high"));
 });
 
 test("a project that has stored no brief reads that from this same call", () => {
