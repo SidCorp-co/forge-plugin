@@ -4,7 +4,7 @@ import { afterRun, outcomesOf, pairsOf } from "./eval/outcomes.mjs";
 import { MODEL_MIXED, MODEL_NONE, RUNG_UNKNOWN } from "./corpus/transcripts.mjs";
 import { medianOrZero, minutes } from "./figures.mjs";
 import { profileOf, runsUnder } from "./runs.mjs";
-import { COMPLEXITY_NAMES } from "../ladder.mjs";
+import { COMPLEXITY_NAMES, rungFrom } from "../ladder.mjs";
 
 /** Ten observations of a figure's own and ten runs behind them, on both arms, inside one cell. Both,
  *  because a figure counted over run-and-issue pairs reaches forty-one on one run that claimed
@@ -92,10 +92,28 @@ export const modelRows = (runs, read, declared, unrecognised = []) =>
       ({ model, runs: held.length, spend: spendOf(held, declared, unrecognised), got: gotOf(held, read) }))
     .sort((left, right) => right.runs - left.runs || left.model.localeCompare(right.model));
 
+/** Which cell one run falls in, and whether its rung came off the tracker: the run's own record
+ *  answers first, being the rung it was worked at rather than the one its issue reads at now, and
+ *  the complexity this reading already holds answers where the transcript kept no record to read —
+ *  a run that wrote none, or one whose record reached the transcript without the tag that says
+ *  which record it is, can be classed from nothing else (ISS-1979). Where neither answers, the run
+ *  is at no rung, which is what a run nothing knew the issue of reads as. */
+export const cellFor = (run, complexities) => {
+  const complexity = complexityOf(run, complexities);
+  const off = run.rung === RUNG_UNKNOWN ? rungFrom(complexity) : null;
+  return { cell: `${off ?? run.rung}/${complexity}`, offComplexity: Boolean(off) };
+};
+
+/** How many of this reading's rungs the tracker answered rather than the run — the disclosure that
+ *  keeps this verb's cut readable beside `stats runs`, which asks the tracker nothing and so classes
+ *  the same run at no rung. */
+export const rungsOffComplexity = (runs, complexities) =>
+  runs.filter((run) => cellFor(run, complexities).offComplexity).length;
+
 /** A run at no rung keeps its own row, or the cut comes out short of the corpus it cut; a run of
  *  several takes the largest complexity among them, and none where one it could not read may beat it. */
 export const cutRows = (runs, read, declared, unrecognised = []) =>
-  [...grouped(runs, (run) => `${run.rung}/${complexityOf(run, read?.complexities)}`)]
+  [...grouped(runs, (run) => cellFor(run, read?.complexities).cell)]
     .flatMap(([cell, held]) =>
       [...grouped(held, (run) => run.model)].map(([model, mine]) => ({
         cell,
@@ -160,6 +178,7 @@ export const readingOf = (runs, read, declared, corpus = runs.length) => {
     to: runs.length ? Math.max(...runs.map((run) => run.endedAt)) : null,
     floor: FLOOR,
     unrecognised,
+    rungsOffComplexity: rungsOffComplexity(runs, read?.complexities),
     models,
     cut,
     comparable: comparableIn(cellsOf(models, cut)),

@@ -5,9 +5,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 
-import { FLOOR, THIN, WHOLE, cellsOf, comparableIn, complexityOf } from "../../src/stats/model-rows.mjs";
+import { FLOOR, THIN, WHOLE, cellsOf, comparableIn, complexityOf, cutRows, readingOf } from "../../src/stats/model-rows.mjs";
+import { render } from "../../src/flow/record/page.mjs";
 import { comparableLines, modelLines } from "../../src/stats/models.mjs";
 import { callsIn, modelRun } from "../../src/stats/corpus/transcripts.mjs";
+import { runFrom } from "../../src/stats/runs.mjs";
 import { FORGE, OPUS, PROJECT, at, indexIn, result, use } from "./fixture-runs.mjs";
 import { UNAVAILABLE } from "../../src/stats/eval/outcomes.mjs";
 import { tempRoom } from "../fixtures.mjs";
@@ -255,4 +257,66 @@ test("a batch holding one complexity it could not read is at no complexity, unle
   assert.equal(complexityOf(owning("ISS-3", "ISS-2"), read), "xl",
     "except at the top, which nothing unread could beat");
   assert.equal(complexityOf(owning("ISS-2"), read), "unknown");
+});
+
+/* The record its own writer renders: a body composed here would carry neither the tag nor the fence
+   that say which record a stamped key belongs to, and the reading would be asserted against a shape
+   nothing prints. */
+const confirmed = (rung) =>
+  render("confirmation", { where: ["src/a.mjs"], is: "a reading", finding: "holds", rung });
+
+/* A run as the corpus reads one: its claim output is the whole of what joins it to an issue, and a
+   confirmation it never printed is a run whose transcript says no rung at all. */
+const ranOn = (issue, rung = null) => runFrom("a0001.output", "session-one", [
+  opened(),
+  ...(issue ? [use("c1", 0, "Bash", { command: `forge claim ${issue}` }),
+    result("c1", 1, `${issue}  claim: taken`)] : []),
+  ...(rung ? [use("c2", 2, "Bash", { command: `forge record confirmation ${issue}` }),
+    result("c2", 3, confirmed(rung))] : []),
+  use("c3", 4, "Bash", { command: "git status" }),
+  result("c3", 5, "clean"),
+].join("\n"));
+
+const READ = {
+  complexities: new Map([["ISS-1", "s"], ["ISS-2", "xs"], ["ISS-3", null]]),
+  threads: new Map(),
+  documents: new Map(),
+  ruled: [],
+  parks: [],
+  horizon: 86_400_000,
+  now: Date.now(),
+  spent: { requests: 0 },
+};
+
+const cellsFor = (...runs) => cutRows(runs, READ, null).map((row) => row.cell);
+
+test("a run whose transcript stamped no rung is classed at the rung its issue's complexity claims", () => {
+  assert.deepEqual(cellsFor(ranOn("ISS-1")), ["fix/s"],
+    "the reading holds the complexity in the same expression as the cell, so nothing here is unknown");
+  assert.deepEqual(cellsFor(ranOn("ISS-2")), ["trivial/xs"]);
+});
+
+test("a run that stamped a rung keeps it, whatever complexity its issue carries now", () => {
+  assert.deepEqual(cellsFor(ranOn("ISS-1", "trivial")), ["trivial/s"],
+    "the stamp is the rung the run was worked at; the complexity is what the issue reads at now");
+  assert.deepEqual(cellsFor(ranOn(null, "fix")), ["fix/unknown"],
+    "and a run nothing joined to an issue is still at the rung it recorded");
+});
+
+test("a run nothing in the reading could class is at no rung, and says so as that", () => {
+  assert.deepEqual(cellsFor(ranOn(null)), ["unknown/unknown"],
+    "no claim, so no issue, so no complexity to claim a rung");
+  assert.deepEqual(cellsFor(ranOn("ISS-9")), ["unknown/unknown"],
+    "an issue the tracker answered nothing for leaves the rung unknown rather than guessed");
+  assert.deepEqual(cellsFor(ranOn("ISS-3")), ["unknown/unknown"],
+    "and an issue holding no complexity answers no rung either");
+});
+
+test("the reading says how many rungs it read off the tracker rather than off the run's own record", () => {
+  const held = readingOf([ranOn("ISS-1"), ranOn("ISS-2", "fix"), ranOn(null)], READ, null);
+  assert.equal(held.rungsOffComplexity, 1,
+    "one of the three left no rung of its own and had a complexity to claim one");
+  assert.match(modelLines(held, true).join("\n"),
+    /1 of 3 run\(s\) .*complexity/u,
+    "and the cut table says it, so a reader meeting `stats runs` disagree knows which reading each made");
 });

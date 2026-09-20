@@ -50,6 +50,8 @@ const RUNG_WIDTH = 10;
 const GATES = UNRECOGNISED.length + 2;
 export const rungLines = (held) => [
   "",
+  "a rung here is the run's own record and nothing else: this reading asks the tracker nothing, so a "
+  + "run whose record never reached its transcript is at no rung however the backlog reads",
   `${"rung".padEnd(RUNG_WIDTH)}${"runs".padStart(5)}${"min med".padStart(9)}${"min sum".padStart(9)}`
   + `${"calls med".padStart(11)}${"consults".padStart(10)}${"gates".padStart(GATES)}`,
   ...held.rungs.map((row) =>

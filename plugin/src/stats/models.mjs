@@ -18,7 +18,8 @@ export const MODELS_USAGE = [
   "Which model ran each issue-flow run of a checkout, and what a run of that model spent against what",
   "it got — so a dispatcher can read which kinds of issue a cheaper model handles as well. Nothing is",
   "written. The spend figures are `stats runs`'s own; the outcome figures read the tracker, as",
-  "`stats eval`'s do.",
+  "`stats eval`'s do, and so does a rung the run's own record did not reach the transcript with —",
+  "which is why a run can sit at a rung here and at none under `stats runs`.",
   "",
   "Every figure prints the population it was counted over. A figure under ten observations of its own",
   "carries `thin`, and two arms are compared only where that figure reaches ten on both of them inside",
@@ -69,8 +70,17 @@ const gotLines = (rows, read) => [
     + `${said(one).padStart(COUNT_WIDE)}${thin(one.over, one.runs ?? row.runs)}`)),
 ];
 
-const cutLines = (cut, all) => [
+/* Which reading answered the rung, said on the table that prints it: `stats runs` reads the same
+   corpus and asks the tracker nothing, so the two verbs class a run of this count differently and
+   a reader meeting them apart has no other way to tell which reading each made (ISS-1979). */
+const rungsRead = (held) =>
+  `${held.rungsOffComplexity} of ${held.runs} run(s) are at the rung their issue's complexity `
+  + "claims, their own record having reached the transcript with no rung in it; the rest are at the "
+  + "rung they recorded";
+
+const cutLines = (cut, all, said) => [
   "",
+  said,
   `${"model".padEnd(MODEL_WIDE)}${"rung/complexity".padEnd(CELL_WIDE)}${"runs".padStart(6)}`
   + `${"wall med".padStart(10)}${"calls med".padStart(11)}${"gate".padStart(MEASURED)}`,
   ...capped(cut, all).map((row) =>
@@ -111,7 +121,7 @@ export const comparableLines = (comparable, models, all) => {
 export const modelLines = (held, all = false) => [
   ...spendLines(held.models),
   ...gotLines(held.models, held.read),
-  ...cutLines(held.cut, all),
+  ...cutLines(held.cut, all, rungsRead(held)),
   ...cutGotLines(held.cut, all),
   ...comparableLines(held.comparable, held.models.length, all),
 ];

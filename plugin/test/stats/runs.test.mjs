@@ -452,3 +452,11 @@ test("a push rejection that only the repeated read of the log carries is still c
   assert.equal(said.status, 0, said.stderr);
   assert.match(said.stdout, /a push rejected in 1 run\(s\)/u, said.stdout);
 });
+
+test("the rung table names the record it read each rung off, so a verb that reads the tracker cannot be mistaken for it", () => {
+  const run = ask(corpus());
+  assert.equal(run.status, 0, run.stderr);
+  const rungs = run.stdout.slice(run.stdout.indexOf("rung "));
+  assert.match(rungs, /the run's own record/u,
+    "this verb asks the tracker nothing, so the rung here is whatever the run recorded and nothing else");
+});

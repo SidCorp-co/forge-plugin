@@ -85,6 +85,13 @@ A run that confirmed nothing is `unknown` and keeps its own row: folded into a r
 that rung, and dropped it would leave a table that quietly counts fewer runs than the profile above
 it.
 
+**And it stays `unknown` here even where the backlog would answer**, because this verb reads nothing
+the tracker holds and a rung worked out from an issue's complexity would make that claim false. The
+route out is the other verb: `forge stats models` already reads the tracker for the complexity half
+of its own cell, so it classes that same run at the rung the complexity claims and says on its table
+how many it classed that way. Two verbs therefore file one run at two rungs, and each names the
+reading it made rather than leaving the reader to guess which one moved.
+
 **A batch counts at the largest rung among its members.** A run carrying three issues is as
 expensive as its heaviest, and filing it under the cheapest would make every rung look better the
 more work was batched onto it.

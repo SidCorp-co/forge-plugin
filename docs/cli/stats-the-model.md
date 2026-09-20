@@ -94,8 +94,26 @@ could not be read, because the unread one may be larger than the largest read. T
 batch already holding the top complexity, which nothing unread could beat.
 
 A run at no rung keeps a row of its own. An observation at no rung establishes nothing about a named
-one, and dropping it would leave the cut short of the corpus it was cut from. At the time of writing
-most of this project's runs sit there for a reason that is not this reading's: ISS-1689 carries it.
+one, and dropping it would leave the cut short of the corpus it was cut from.
+
+**The rung has two sources here, and the run's own record is the first of them.** A transcript that
+kept a confirmation the reading can still read gives the rung that run was *worked at*, which is what
+it was told at the time; the complexity this reading already holds for the same issue gives what the
+issue reads at *now*, and the two part company wherever a re-triage moved the field. Preferring the
+record therefore moves only the runs nothing else could class, and preferring the complexity would
+quietly re-file runs whose rung was never in doubt.
+
+The second source is what the cut is for. Three in five runs over two real corpora carried no
+readable rung at all — some wrote no confirmation, the rest lost the record's tag to the host's
+truncation, which ISS-1689 answered as far as a transcript can be answered. Those are unreachable
+from the transcript by construction, and the complexity beside them in the same expression is the
+only thing left that knows. Which runs were classed that way is printed with the cut, because
+`stats runs` reads the tracker nothing and files the very same runs at no rung: the two verbs
+disagree by design, and a reader who cannot see which reading each made would read that as a figure
+that moved.
+
+A run whose issue the reading could not establish is still at no rung, and it is the only thing left
+in that row. That is the attribution gap and a different question from this one.
 
 ## What this reading is not
 
