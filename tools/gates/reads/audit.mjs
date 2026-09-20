@@ -145,14 +145,10 @@ const start = (out, root) => {
 
   const inside = (one) => insideOf(root, one);
   const over = (one) => overOf(root, one);
-  // The root's own placed form, so a checkout standing behind a link is still its own tree.
+  /* Where a name landed once its links were followed, against the root's own placed form: judged
+     lexically, a link a step makes inside its own claim spells any path into it. Null where it
+     landed outside this tree, and a name that cannot be placed blinds, as that state already does. */
   const mine = placed(root) ?? root;
-
-  /* Where a name the caller spelled landed once its links were followed, which is the only reading
-     a claim may be judged on: lexically, a link a step makes inside its own claim spells any path
-     into it, and the declaration then stops meaning what the refusal says it means. Null where the
-     read landed outside this tree, since none of this content answers for it; a name that cannot be
-     placed at all blinds, which is the answer that state already has (ISS-1938). */
   const landed = (one) => {
     const abs = absolute(one);
     if (abs === null) return null;

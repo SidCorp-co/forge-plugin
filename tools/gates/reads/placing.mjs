@@ -32,11 +32,8 @@ export const inside = (root, one) => {
   return rel === "" ? "." : rel;
 };
 
-/* Where a path lands once its links are followed, the part that is not there hung back on; null is
-   out of hops, and null too where the probe itself is refused — a descendant of a ring of links
-   answers ELOOP to `lstat` as well, and `throwIfNoEntry` covers only an absent name. This runs
-   inside the process being audited now, so a throw here would be the instrument deciding what the
-   program does: a name nothing can place is blind, which is the answer that state has (ISS-1938). */
+/* Where a path lands once its links are followed, the part not there hung back on; null is out of
+   hops, and null where the probe is refused, a throw being the audit deciding what it measures. */
 export const placed = (one) => {
   const rest = [];
   let at = one;

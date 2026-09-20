@@ -17,11 +17,10 @@ import { tempRoom } from "../../../fixtures.mjs";
 const recordOf = (one) =>
   ({ argv: [], paths: [], dirs: [], trees: [], whole: [], spawned: [], blind: [], done: true, ...one });
 
-/* `how` names the links this step makes before it reads, so every reading below is one a step could
-   reach on its own: `away` out of the claim it declares, `into` back inside it from outside, `ring`
-   a pair that lands nowhere. A ring is probed rather than read, an ELOOP failing the step for its
-   own reason and never reaching the reads; and probed twice, the ring itself and a name below it,
-   which is where the placement's own fallback is answered ELOOP rather than absent. */
+/* `how` names the links this step makes before it reads: `away` out of the claim it declares,
+   `into` back inside it from outside, `ring` a pair that lands nowhere, probed twice — the ring and
+   a name below it, where the placement's own fallback is answered ELOOP rather than absent. A ring
+   is probed and not read, an ELOOP failing the step for its own reason short of the reads. */
 const READER = `import { existsSync, readdirSync, readFileSync, symlinkSync } from "node:fs";
 const [, , one, how] = process.argv;
 const LINKS = { away: [["../../docs", "plugin/src/away"]], into: [["../plugin/src", "docs/into"]],
