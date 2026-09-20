@@ -107,14 +107,13 @@ const waited = (seconds, signal) => new Promise((done) => {
 /* Predictable rather than discovered by the refusal after it (ISS-1849), against the tracker's own
    clock, the reset being an instant in its frame, and inside what is left of the attempt's own. */
 const paced = async (key, clock, left) => {
-  const taken = {};
   while (!clock.aborted) {
-    const held = reserveIn(key, sharedNow(), left(), taken);
-    if (!held) return taken;
+    const held = reserveIn(key, sharedNow(), left());
+    if (!held) return true;
     if (held.said) console.error(held.said);
     await waited(held.seconds, clock);
   }
-  return null;
+  return false;
 };
 
 const attempted = async (make, repeatable, { once = false, spend = null, waits = null, signal = null } = {}, key = null) => {
@@ -127,10 +126,9 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
     const stop = spend?.();
     if (stop) return { response: null, text: "", dropped: null, spent: stop };
     [text, response, dropped] = ["", null, null];
-    /* Only a reservation this attempt took is its to retire, and it is the reservation itself that
-       travels: one an abort ended before it took any would retire another call's, and a retirement
-       that could not say which kind it was would leave a window charging a call it had charged. */
-    let took = null;
+    /* Only a reservation this attempt took is its to retire: one an abort ended before it took any
+       would retire another call's, and the next window would lend that call's room twice. */
+    let took = false;
     const unpredicted = unpredictedIn(key);
     try {
       const clock = clockFor(deadline, signal);
@@ -139,12 +137,12 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
       const sentAt = performance.now();
       response = await make(clock);
       sawAnswer(response.headers, sentAt, performance.now());
-      sawBudget(key, response.headers, took);
+      sawBudget(key, response.headers);
       text = await response.text();
     } catch (error) {
       dropped = error;
     } finally {
-      if (took) settled(key, took);
+      if (took) settled(key);
     }
     /* An attempt whose body dropped is a dropped attempt, whatever its headers said: those describe a request the server answered and `dropped` the connection dying before the answer arrived, so a 200 whose body stalled is no success and a 429's is judged no differently. What the rule costs rather than exempts: a 429 whose body stalls waits the ladder's number instead of the one the server sent (ISS-828). */
     if (response?.ok && !dropped) break;
