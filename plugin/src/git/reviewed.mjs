@@ -115,9 +115,12 @@ export const reviewedAt = (tree) =>
 
 const SET_PATHS = "forge doctor --set project.review.paths=<paths>";
 
+export const checkoutOf = (tree) =>
+  (tree ? gitOut(["rev-parse", "--show-toplevel"], tree)?.trim() || null : null);
+
 const uncounted = (tree, paths) => {
-  const checkout = Boolean(tree) && existsSync(resolve(tree, ".git"));
-  return { checkout, missing: checkout ? paths.filter((one) => !existsSync(resolve(tree, one))) : [...paths] };
+  const root = checkoutOf(tree);
+  return { checkout: Boolean(root), missing: root ? paths.filter((one) => !existsSync(resolve(root, one))) : [...paths] };
 };
 
 const cannotCount = ({ checkout, missing, paths }) => {

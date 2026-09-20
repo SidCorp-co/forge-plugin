@@ -22,8 +22,8 @@ export const SCRIPT = join("tools", "run.mjs");
 export const BARE = { ...process.env, PATH: `${dirname(realpathSync(process.execPath))}:/usr/bin:/bin` };
 
 export const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "utf8" });
-export const runIn = (cwd, argv, env = process.env) =>
-  spawnSync(process.execPath, [SCRIPT, ...argv], { cwd, encoding: "utf8", env });
+export const runIn = (work, argv, env = process.env, at = ".") =>
+  spawnSync(process.execPath, [join(work, SCRIPT), ...argv], { cwd: join(work, at), encoding: "utf8", env });
 
 export const tiedSpawn = (argv, outputs = ["pipe", "inherit"]) =>
   spawn(process.execPath, argv, { stdio: ["pipe", ...outputs] });
@@ -34,8 +34,7 @@ export const alive = () => tiedSpawn([join(import.meta.dirname, "processes", "en
    this scratch checkout is not. */
 export const GATE = "node -e \"console.log('scratch gate ran')\"";
 
-/* Every file the script is, derived from it and never listed beside it: a module added to the runner
-   and missed here is a scratch checkout that loads nothing. `plugin/src` is copied whole below. */
+/* Every file the script is, derived from it: a module added to the runner and missed here is a scratch checkout that loads nothing. */
 const COPIED = derivationFiles(join(ROOT, SCRIPT), ROOT).filter((one) => one.startsWith("tools/"));
 
 export const scratch = (name, gate = GATE) => {
@@ -52,8 +51,7 @@ const filled = (at, work, gate) => {
   /* The CLI's source too, the filing being a module call, with the one directory it reaches out to. */
   cpSync(join(ROOT, "plugin", "src"), join(work, "plugin", "src"), { recursive: true });
   cpSync(join(ROOT, "plugin", "hooks", "vendor"), join(work, "plugin", "hooks", "vendor"), { recursive: true });
-  /* The rest of the layout a case may declare a count over, whether or not it commits anything into
-     one: a checkout that does not hold a declared path is refused rather than counted (ISS-1939). */
+  /* The rest of the layout a case may count over: a checkout lacking a declared path is refused, never counted (ISS-1939). */
   for (const one of ["bin", "test"]) mkdirSync(join(work, "plugin", one), { recursive: true });
   writeFileSync(join(work, ".forge.json"), JSON.stringify({ slug: OWN_SLUG }));
   writeFileSync(join(work, "package.json"),

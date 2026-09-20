@@ -2,8 +2,8 @@
    batch reading is OWED — the last of these here and in no prompt, so the run reads it off its own
    issue and a person types none of it. The counting and the filing are the runner's;
    `docs/cli/knowledge.md` says why this half moved. */
-import { readingFor, readingTitle, REVIEWED, reviewCounts, reviewedAt, reviewReported, reviewSourced,
-  reviewUncountable, whereFrom } from "../../plugin/src/git/reviewed.mjs";
+import { checkoutOf, readingFor, readingTitle, REVIEWED, reviewCounts, reviewedAt, reviewReported,
+  reviewSourced, reviewUncountable, whereFrom } from "../../plugin/src/git/reviewed.mjs";
 import { gitOut, REMOTE } from "../checkout.mjs";
 import { isRelease } from "./landing.mjs";
 
@@ -19,11 +19,13 @@ const releasesIn = (tree, from) =>
 /** The one sentence both readers print, so ship's last step and the review verb cannot disagree —
  *  the reckoning with it, since a count whose threshold and paths are unsaid is a number a run
  *  standing in another directory reads as its own (ISS-1912). A `refusal` in place of the count is
- *  the tree that cannot be counted at all, which both readers print instead of a zero (ISS-1939). */
-export const reviewSays = (tree, from) => {
+ *  the tree that cannot be counted at all, and the checkout is resolved before either: a declared
+ *  path is the root's, while a pathspec is the calling directory's (ISS-1939). */
+export const reviewSays = (given, from) => {
   const declared = reviewSourced();
-  const uncountable = reviewUncountable(tree, declared.paths);
+  const uncountable = reviewUncountable(given, declared.paths);
   if (uncountable) return { refusal: uncountable };
+  const tree = checkoutOf(given);
   const { files, lines } = reviewCounts({ tree, from, paths: declared.paths.value });
   return {
     owed: lines >= declared.lines.value,
