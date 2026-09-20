@@ -29,8 +29,7 @@ const rowFor = (one) => {
 };
 
 /** Every path of this project's own file it has written no value to, each with the call that writes
- *  it. The parse is the one every reader of a single key takes, so this reading and those cannot
- *  disagree about which file is the project's. */
+ *  it, in the order the table holds them. */
 export const undecidedKeyRows = (parsed = projectFileHere()) =>
   declarablePaths().filter((one) => !held(parsed, one.path.split("."))).map(rowFor);
 
