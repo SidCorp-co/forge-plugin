@@ -3,7 +3,7 @@
    object does not reach `import { readFileSync } from "node:fs"`, which is how this repository
    imports it everywhere, so the builtins resolve to a module this generates. */
 
-import { absolute, inside as insideOf, over as overOf, prefixOf, reading } from "./placing.mjs";
+import { absolute, inside as insideOf, over as overOf, placed, prefixOf, reading } from "./placing.mjs";
 
 export const READS_DIR = "GATE_READS";
 export const READS_ROOT = "GATE_READS_ROOT";
@@ -145,16 +145,33 @@ const start = (out, root) => {
 
   const inside = (one) => insideOf(root, one);
   const over = (one) => overOf(root, one);
+  // The root's own placed form, so a checkout standing behind a link is still its own tree.
+  const mine = placed(root) ?? root;
+
+  /* Where a name the caller spelled landed once its links were followed, which is the only reading
+     a claim may be judged on: lexically, a link a step makes inside its own claim spells any path
+     into it, and the declaration then stops meaning what the refusal says it means. Null where the
+     read landed outside this tree, since none of this content answers for it; a name that cannot be
+     placed at all blinds, which is the answer that state already has (ISS-1938). */
+  const landed = (one) => {
+    const abs = absolute(one);
+    if (abs === null) return null;
+    const at = placed(abs);
+    if (at !== null) return insideOf(mine, at);
+    blind.add("a read whose links ran out of hops, so where it landed is unknown");
+    return null;
+  };
+
   const entry = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
 
   const audit = {
     asked(one) {
-      const rel = inside(one);
+      const rel = landed(one);
       if (rel) paths.add(rel);
     },
     // A walk of everything below is a different claim from the names in one directory.
     listed(one, how) {
-      const rel = inside(one);
+      const rel = landed(one);
       if (rel) (how && how.recursive ? trees : dirs).add(rel);
     },
     blind(why) {

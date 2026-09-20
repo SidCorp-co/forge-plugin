@@ -32,8 +32,12 @@ export const inside = (root, one) => {
   return rel === "" ? "." : rel;
 };
 
-// Where a path lands once its links are followed, the part that is not there hung back on; null is out of hops.
-const placed = (one) => {
+/* Where a path lands once its links are followed, the part that is not there hung back on; null is
+   out of hops, and null too where the probe itself is refused — a descendant of a ring of links
+   answers ELOOP to `lstat` as well, and `throwIfNoEntry` covers only an absent name. This runs
+   inside the process being audited now, so a throw here would be the instrument deciding what the
+   program does: a name nothing can place is blind, which is the answer that state has (ISS-1938). */
+export const placed = (one) => {
   const rest = [];
   let at = one;
   for (let hop = 0; hop < 32; hop += 1) {
@@ -41,7 +45,11 @@ const placed = (one) => {
     try {
       return resolve(realpathSync(at), ...rest);
     } catch {
-      link = lstatSync(at, { throwIfNoEntry: false })?.isSymbolicLink() ? readlinkSync(at) : null;
+      try {
+        link = lstatSync(at, { throwIfNoEntry: false })?.isSymbolicLink() ? readlinkSync(at) : null;
+      } catch {
+        return null;
+      }
     }
     if (link !== null) {
       at = resolve(dirname(at), link);
