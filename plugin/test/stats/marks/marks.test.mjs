@@ -35,10 +35,12 @@ test("the ship's mark is one line at a multiple of the window, read off the corp
     assert.equal(record.root, root);
     assert.ok(Date.parse(record.at) > 0, "the moment it was written");
     const printed = JSON.parse(ask(room, "--json").stdout);
-    /* Every key of the printed object but the two the tracker read adds: a mark is written with the
-       cost figures alone, because the ship must not spend a hundred tracker requests per release
-       and one written where no credential resolves would take the release down with it (ISS-821). */
-    const costOnly = Object.keys(printed).filter((one) => one !== "requests");
+    /* Every key of the printed object but the one the tracker read adds and the one the screen judges
+       with: a mark is written with the cost figures alone, because the ship must not spend a hundred
+       tracker requests per release and one written where no credential resolves would take the
+       release down with it (ISS-821) — and an angle stored would have the ship spend a floor over the
+       whole corpus as well, for a verdict nobody is reading at that moment (ISS-1987). */
+    const costOnly = Object.keys(printed).filter((one) => one !== "requests" && one !== "angles");
     assert.deepEqual(Object.keys(record), ["kind", "mark", "at", ...costOnly],
       "the object --json prints less its tracker read, under the mark's own three fields");
     assert.equal(record.now.outcomes, undefined, "a stored reading carries no outcome figure rather than zeroes");

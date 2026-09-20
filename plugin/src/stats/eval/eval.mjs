@@ -17,6 +17,7 @@ import {
 } from "../marks/marks.mjs";
 import { reachOf, reachSaid } from "../marks/reach.mjs";
 import { BUDGET, HORIZON, UNAVAILABLE, budgetOf, outcomesOf, parkedOver, readThreads, ruledOver } from "./outcomes.mjs";
+import { anglesAsked, anglesOver, anglesSaid } from "./angles.mjs";
 import { logEntries } from "../../codex/codex-log.mjs";
 import { fail, projectAt, projectTarget, useProject } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
@@ -38,7 +39,8 @@ export const MARKS_USAGE = [
 ].join("\n");
 
 export const EVAL_USAGE = [
-  "Usage: forge stats eval [--checkout <dir>] [--size 50] [--against [<mark>]] [--since-release [<version>]] [--horizon 1d] [--requests 400] [--json]",
+  "Usage: forge stats eval [--checkout <dir>] [--size 50] [--against [<mark>]] [--since-release [<version>]]",
+  "                        [--angles a,a] [--horizon 1d] [--requests 400] [--json]",
   "The last fifty issue-flow runs against the fifty before them, on the figures `stats runs` computes,",
   "each window grouped by the copy installed when its runs began, and what separates the two named.",
   "",
@@ -61,6 +63,11 @@ export const EVAL_USAGE = [
   "  --against [<mark>] the reading held at that mark as the before window, or the newest held",
   "  --since-release [<version>]  the reading held at that release, or the newest, and what the",
   "                     comparison since it is confounded by",
+  "  --angles a,a       which of the four shipped angles to judge and print — wall, calls,",
+  "                     edit-chars, guide-reread — in the order asked; all four unless you say",
+  "                     otherwise. Each is judged against how far two adjacent blocks of this",
+  "                     corpus have themselves differed, and prints the population it was taken",
+  "                     over on both sides",
   "  --horizon 1d       how long after a run an outcome still counts as its own; one day unless you",
   "                     say otherwise, and the same interval on both sides",
   "  --requests n       the tracker requests this whole reading may spend; past it the outcome",
@@ -374,15 +381,17 @@ const head = (held, anchor) => [...windowLines(held, anchor), ...judgedLines(hel
 
 /** `anchor` is the stored reading this comparison's before window came from, or null where it slid:
  *  one argument and not one per line, so no line is handed a point another line did not read. */
-export const evalLines = (held, anchor = null, copies = []) => {
+export const evalLines = (held, anchor = null, copies = [], angles = []) => {
   const release = releaseIn(anchor);
   const lines = head(held, anchor);
-  if (!held.before) return lines;
+  const judged = angles.length ? anglesSaid(angles) : [];
+  if (!held.before) return [...lines, ...judged];
   return [
     ...lines,
     "",
     figureLine("now", held.now),
     figureLine("before", held.before),
+    ...judged,
     "",
     ...groupLines(held),
     ...outcomeLines(held),
@@ -506,8 +515,10 @@ export const printEval = async (argv) => {
   const { against, rest: left } = againstIn(argv, "stats eval");
   const { release, rest } = sinceReleaseIn(left);
   if (against !== undefined && release !== undefined) oneAnchorOnly(against, release);
-  const { checkout, size, horizon, requests, json } = flags(rest, "stats eval", ["--json"], { usage: EVAL_USAGE });
+  const { checkout, size, horizon, requests, angles, json } = flags(rest, "stats eval", ["--json"], { usage: EVAL_USAGE });
   const window = sized(size);
+  /* Refused before a transcript is opened: a name this CLI does not hold costs nobody a corpus read. */
+  const names = anglesAsked(angles);
   const asked = { horizon: horizonOf(horizon), most: spend(requests) };
   const directory = checkoutFrom(checkout, "stats eval");
   const corpus = corpusOf(directory);
@@ -524,8 +535,12 @@ export const printEval = async (argv) => {
   const read = await outcomeRead(corpus, directory, window, asked);
   const anchor = readBack(stored ?? since ?? null);
   const held = readingOf(directory, corpus, window, anchor, read);
-  if (json) return console.log(JSON.stringify(held, null, 2));
-  for (const line of evalLines(held, anchor, corpus.copies)) console.log(line);
+  /* Beside the reading and never inside it: `readingOf` is the one assembly both mark writers spread
+     into `writeMark`, so an angle folded there would be stored in every record and its floor spent
+     during a ship. */
+  const judged = anglesOver({ ordered: byEnd(corpus.runs), held, names, runFloor: FLOOR });
+  if (json) return console.log(JSON.stringify({ ...held, angles: judged }, null, 2));
+  for (const line of evalLines(held, anchor, corpus.copies, judged)) console.log(line);
   return null;
 };
 

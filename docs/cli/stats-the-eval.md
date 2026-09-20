@@ -92,6 +92,12 @@ runs to count prints, on its thin side, that count and no median; a whole window
 prints insufficient evidence in place of every median it would otherwise carry. A median of two runs
 is a number that reads like a finding and is one run's accident.
 
+## Where the figures stop describing and start judging
+
+Every line above says what two windows held. Whether a difference between them means anything is a
+separate question with its own floor, its own population and its own vocabulary, and the blocks that
+answer it are [stats — the angles](stats-the-angles.md).
+
 ## Why a role on the strongest model reads the result
 
 The eval's output is the half no gate reaches: whether a figure that moved means the harness moved,
