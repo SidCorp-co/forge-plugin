@@ -67,8 +67,10 @@ recovers against how many the reading recorded. Both sides then come off one rea
 recovers too few runs to judge, the answer is the fourth disposition and not a delta with a caveat
 beside it.
 
-**A mark stores a span and never the runs that were in it**, so what the span recovers is reported on
-the block rather than assumed — a corpus that has been swept since gives a smaller number, and the
+**A mark stores a span and never the runs that were in it**, so the two counts on the block are what
+that span recovered and what the reading recorded, and equal counts are not proof of the same
+membership: a run wholly inside the span that the held window did not hold is inside it still. What
+the span recovers is therefore reported rather than assumed — a corpus that has been swept since gives a smaller number, and the
 reader sees it. The bound has to be one every member of a window satisfies, which is why the profile's
 own `from` is the earliest start across its runs rather than the first run's: the eval hands it a
 window ordered by each run's *end*, and read as the start of the span the first run's own start
