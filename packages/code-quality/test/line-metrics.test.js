@@ -79,7 +79,6 @@ test("comment characters count what is said, and nothing a wrap would move", () 
     metricsFor("/* alpha\n * beta */\nconst a = 1;").commentChars,
     "an asterisk at a wrap boundary",
   );
-  // A rule holds the divider too: nothing charges by which line a run of dashes ended up on.
   assert.equal(
     metricsFor("// a --- b\nconst a = 1;").commentChars,
     metricsFor("// a\n// --- b\nconst a = 1;").commentChars,
@@ -106,7 +105,6 @@ test("a waiver costs nothing however its reason is wrapped", () => {
     "andtheseamisthepoint".length,
     "a second line of reason is prose",
   );
-  // The line the reason starts on is the line it ends with, wherever the marker left off.
   assert.equal(
     metricsFor("// pass-through: keep —\n// the wrapper is the seam a test needs\n// and the seam is the point\nconst a = 1;").commentChars,
     "andtheseamisthepoint".length,
