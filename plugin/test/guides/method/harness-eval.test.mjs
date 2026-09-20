@@ -91,6 +91,8 @@ test("the consult is given the reasoning, the proposal, and the reading's own st
       `criterion 7: ${flow} reviews the evidence and not the proposal built on it`);
     assert.match(four, /reading's own statement of what none of its angles measures/u,
       `criterion 8: ${flow} sends a board a column of prices and nothing saying they are prices`);
+    assert.match(four, /block of `forge stats eval`/u,
+      `criterion 8: ${flow} asks for that statement and names nowhere to take it from`);
     assert.match(four, /rather than paraphrased here/u,
       `criterion 8: ${flow} invites a copy of a sentence this repository states once`);
   }
