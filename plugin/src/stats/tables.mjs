@@ -1,10 +1,12 @@
-/* The two tables a run's time is divided by, the listing every other block is printed through, and what a class this reading could not recognise prints instead — docs/cli/stats-the-tables.md. */
+/* The two tables a run's time is divided by, the listing every other block is printed through, the
+   lines the token and the condition readings print, and what a class this reading could not
+   recognise prints instead — docs/cli/stats-the-tables.md. */
 import { DECLARABLE, DECLARES, declares } from "./corpus/declared.mjs";
 import { FROM_PROJECT } from "../resolve/settings.mjs";
 import { MARKERS, RUNG_UNKNOWN } from "./corpus/transcripts.mjs";
 import { PHASES } from "../guides/phases.mjs";
 import { RUNGS } from "../ladder.mjs";
-import { medianOrZero, minutes } from "./figures.mjs";
+import { medianOrZero, minutes, scaled } from "./figures.mjs";
 
 const ROWS = 10;
 export const UNRECOGNISED = "unrecognised";
@@ -119,3 +121,33 @@ export const declareLines = (held) => (held.unrecognised.length
   ? [`  declare ${held.unrecognised.map((one) => `\`${DECLARES}.${one}\``).join(", ")} `
     + `in the ${FROM_PROJECT} at the root of the checkout profiled, or this reading counts none of it`]
   : []);
+
+const priced = (held) => `${scaled(held.cacheRead)} cache read, ${scaled(held.cacheCreate)} cache written, `
+  + `${scaled(held.output)} out, ${scaled(held.input)} in`;
+
+/* Three readings and so three lines, each naming what it was taken over: the median a run cost, the
+   window's own sums, and what one request cost. The middle line is what makes the ratio per run
+   derivable without the median being offered as it — they are two statistics. */
+export const tokenLines = (held) => [
+  `tokens          median/run ${priced(held.perRun)}, over ${held.runs} run(s) holding a `
+    + `measured request and ${held.unmeasuredRuns} holding none`,
+  `in all          ${priced(held.total)}, over ${held.requests} measured request(s), `
+    + `and ${held.unmeasured} record(s) carried no measurement`,
+  `per request     ${priced(held.perRequest)}`,
+];
+
+/* What `runs.mjs`'s `conditionOver` folds, printed: a run's condition apart from its spend, and
+   apart from a call this plugin issued or refused — the reason is stated there and not repeated
+   here. The human-prompt count is named rather than percentaged away, at the count this figure
+   holds — docs/cli/stats-the-condition.md. */
+export const conditionLines = (held, population, all) => [
+  `compactions     ${scaled(held.compactions.met)} across ${scaled(held.compactions.runs)} of `
+    + `${population} run(s), a run that lost what it knew and carried on`,
+  `api errors      ${scaled(held.apiErrors)} request(s) came back as errors, apart from any refusal `
+    + "this plugin wrote",
+  `human prompts   ${scaled(held.humanPrompts.met)} typed inside ${scaled(held.humanPrompts.runs)} `
+    + `of ${population} run(s) — a person present inside a run this harness dispatched, never `
+    + "whether the run was itself a person's own session",
+  ...listing("run(s) a human prompt showed up inside, named rather than folded into a share",
+    held.humanPrompts.named, (one) => `  ${String(one.prompts).padStart(4)}  ${one.ref}`, all),
+];

@@ -68,6 +68,17 @@ export const compacted = (seconds) => JSON.stringify({
 });
 export const COMPACTIONS = [compacted(15), compacted(1500)];
 
+/* A real human turn, apart from a tool result and a harness-written record — the same shape
+   `isHumanPrompt` in `hooks/transcripts.mjs` admits, and the opening brief record above does not,
+   carrying no `promptSource` of its own. */
+export const humanPrompt = (seconds, promptSource = "typed") => JSON.stringify({
+  timestamp: at(seconds),
+  type: "user",
+  promptSource,
+  message: { role: "user", content: [{ type: "text", text: "go ahead" }] },
+});
+export const HUMAN_PROMPT = humanPrompt(50);
+
 /* A request that came back as an error rather than an answer, under the marker model the token
    tally already drops — so this cannot also read as a measured request. */
 export const apiErrored = (seconds) => JSON.stringify({
@@ -114,6 +125,7 @@ export const transcript = () => [
   ...SPOKEN,
   ...COMPACTIONS,
   API_ERROR,
+  HUMAN_PROMPT,
 ].join("\n");
 
 /* The rows have to add up to the corpus: a run filed under no rung and dropped would leave a table

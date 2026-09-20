@@ -2,6 +2,7 @@
 import { CLASSES, POLL, WHOLE_SET_CLASS, classOf } from "./classes.mjs";
 import { NOTHING, logRead } from "../../hooks/log-reads.mjs";
 import { quoting } from "../../hooks/shell-spans.mjs";
+import { isHumanPrompt } from "../../hooks/transcripts.mjs";
 import { RUNGS, highest } from "../../ladder.mjs";
 import { stampedIn } from "../../flow/machine.mjs";
 
@@ -26,7 +27,10 @@ export const MODEL_NONE = "unattributed";
    answer — the latter always under the marker model, so it is already outside the token tally and
    never dilutes it. Neither is a call this plugin issued or refused, so neither belongs in the
    refusals listing or the other-errors line; both are counted apart, off the same pass — a run's
-   *condition*, not what it spent, and never folded into an angle — docs/cli/stats-the-condition.md. */
+   *condition*, not what it spent — docs/cli/stats-the-condition.md. */
+
+/* `isHumanPrompt`, imported rather than reimplemented, is that condition's third fact: a person
+   present inside a run this harness dispatched, and never a call either. */
 const compactSummary = (record) => record.message?.role === "user" && record.isCompactSummary === true;
 const apiError = (record) => record.message?.role === "assistant" && record.isApiErrorMessage === true;
 
@@ -208,6 +212,7 @@ export const callsIn = (whole, classes = CLASSES) => {
   const counted = new Set();
   let compactions = 0;
   let apiErrors = 0;
+  let humanPrompts = 0;
   for (const line of whole.split("\n")) {
     if (!line.startsWith("{")) continue;
     let record;
@@ -228,6 +233,7 @@ export const callsIn = (whole, classes = CLASSES) => {
       if (apiError(record)) apiErrors += 1;
     }
     if (compactSummary(record)) compactions += 1;
+    if (isHumanPrompt(record)) humanPrompts += 1;
     if (!stamp) continue;
     if (firstAt === null) {
       firstAt = stamp;
@@ -269,7 +275,7 @@ export const callsIn = (whole, classes = CLASSES) => {
     };
   }));
   return {
-    calls, brief, models, spent, compactions, apiErrors, firstAt,
+    calls, brief, models, spent, compactions, apiErrors, humanPrompts, firstAt,
     lastAt: Math.max(lastAt, ...calls.map((one) => one.endedAt)),
   };
 };

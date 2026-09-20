@@ -14,9 +14,10 @@ import { declaredIn } from "./corpus/declared.mjs";
 import { FLOW_BRIEF, PRICES, callsIn, markerOf, modelRun, rungRun } from "./corpus/transcripts.mjs";
 import { corpusUnder, readTranscript, rootFor } from "./corpus/corpus.mjs";
 import {
-  countIn, declareLines, foldPhases, listing, perRung, phaseLines, rungLines, shipLine, unrecognisedIn,
+  conditionLines, countIn, declareLines, foldPhases, listing, perRung, phaseLines, rungLines,
+  shipLine, tokenLines, unrecognisedIn,
 } from "./tables.mjs";
-import { add, medianOrZero, minutes, scaled, share, stamp } from "./figures.mjs";
+import { add, medianOrZero, minutes, share, stamp } from "./figures.mjs";
 import { reachOf, reachSaid } from "./marks/reach.mjs";
 import { claimedIn, parkWritersIn, rulingsIn } from "./joined.mjs";
 import { PHASES } from "../guides/phases.mjs";
@@ -246,9 +247,10 @@ export const runFrom = (path, session, text, classes = undefined) => {
     /* What the API billed this run, counted by the API — the four prices apart, the requests they
        were billed over, and the records that carried no measurement. */
     tokens: read.spent,
-    /* `callsIn`'s own two counts, carried onto the run — docs/cli/stats-the-condition.md. */
+    /* `callsIn`'s own three counts, carried onto the run — docs/cli/stats-the-condition.md. */
     compactions: read.compactions,
     apiErrors: read.apiErrors,
+    humanPrompts: read.humanPrompts,
     /* What the eval joins a run to its work by; the profile prints neither, so this reads no tracker. */
     issues: claimedIn(calls),
     rulings: rulingsIn(calls),
@@ -388,39 +390,26 @@ const tokensOver = (runs) => {
   };
 };
 
-const priced = (held) => `${scaled(held.cacheRead)} cache read, ${scaled(held.cacheCreate)} cache written, `
-  + `${scaled(held.output)} out, ${scaled(held.input)} in`;
-
-/* Three readings and so three lines, each naming what it was taken over: the median a run cost, the
-   window's own sums, and what one request cost. The middle line is what makes the ratio per run
-   derivable without the median being offered as it — they are two statistics. */
-const tokenLines = (held) => [
-  `tokens          median/run ${priced(held.perRun)}, over ${held.runs} run(s) holding a `
-    + `measured request and ${held.unmeasuredRuns} holding none`,
-  `in all          ${priced(held.total)}, over ${held.requests} measured request(s), `
-    + `and ${held.unmeasured} record(s) carried no measurement`,
-  `per request     ${priced(held.perRequest)}`,
-];
-
-/* What `compactSummary`/`apiError` in transcripts.mjs count, folded over a window: a run's
-   condition apart from its spend, and apart from a call this plugin issued or refused — the reason
-   is stated there and not repeated here. `runs.length` is the population both are counted over;
-   where it is empty there is nothing to count and the figure is unavailable, never the zero a run
-   with nothing wrong with it would also print — docs/cli/stats-the-condition.md. */
+/* What `compactSummary`/`apiError`/`isHumanPrompt` in transcripts.mjs count, folded over a window:
+   a run's condition apart from its spend, and apart from a call this plugin issued or refused —
+   `tables.mjs`'s `conditionLines` prints it and states the reason. `runs.length` is the population
+   all three are counted over; where it is empty there is nothing to count and the figure is
+   unavailable, never the zero a run with nothing wrong with it would also print —
+   docs/cli/stats-the-condition.md. `humanPrompts.named` is every run a real human turn showed up
+   inside, by the issue it claimed or its session where it claimed none. */
 const conditionOver = (runs) => ({
   compactions: runs.length ? {
     met: runs.reduce((sum, run) => sum + run.compactions, 0),
     runs: runs.filter((run) => run.compactions > 0).length,
   } : { met: null, runs: null },
   apiErrors: runs.length ? runs.reduce((sum, run) => sum + run.apiErrors, 0) : null,
+  humanPrompts: runs.length ? {
+    met: runs.reduce((sum, run) => sum + run.humanPrompts, 0),
+    runs: runs.filter((run) => run.humanPrompts > 0).length,
+    named: runs.filter((run) => run.humanPrompts > 0)
+      .map((run) => ({ ref: run.issues[0] ?? run.session, prompts: run.humanPrompts })),
+  } : { met: null, runs: null, named: [] },
 });
-
-const conditionLines = (held, population) => [
-  `compactions     ${scaled(held.compactions.met)} across ${scaled(held.compactions.runs)} of `
-    + `${population} run(s), a run that lost what it knew and carried on`,
-  `api errors      ${scaled(held.apiErrors)} request(s) came back as errors, apart from any refusal `
-    + "this plugin wrote",
-];
 
 export const profileOf = (runs, declared = null) => {
   const seconds = runs.map((run) => run.seconds);
@@ -523,7 +512,7 @@ export const profileLines = (held, all = false) => [
   `timeouts        ${held.timeouts}`,
   `other errors    ${held.errors.reduce((sum, [, many]) => sum + many, 0)} non-zero exit(s) refused by no rule of this plugin`
     + `${held.errors.length ? `: ${held.errors.map(([label, many]) => `${label} ${many}`).join(", ")}` : ""}`,
-  ...conditionLines(held.condition, held.runs),
+  ...conditionLines(held.condition, held.runs, all),
   ...rungLines(held),
   ...phaseLines(held),
   ...listing(

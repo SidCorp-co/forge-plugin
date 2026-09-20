@@ -333,6 +333,18 @@ it. Reading is all this product does there.
   WHERE the window holds no run the CLI SHALL hold the compaction count and the API error count as
   unavailable rather than as a nought found, in the profile and in `--json` alike — the prose screen
   prints no row at all for such a window, the same as every other figure on it.
+- **AC-19-8-80** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "human prompts and the runs that carried one are two counts, off the reader the stop-check gate uses"
+  WHEN a profile is printed THEN the CLI SHALL count, off the same reader the stop-check gate uses
+  for a real human turn rather than a second test of what one is, every human-typed turn the
+  window's runs carried and, apart from that count, how many of those runs carried at least one.
+- **AC-19-8-81** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "a run a human prompt showed up inside is named by the issue it claimed, or its own session where it claimed none"
+  WHEN a profile is printed THEN the CLI SHALL name each run a human-typed turn showed up inside, by
+  the issue it claimed or, where it claimed none, its own session, rather than folding those runs
+  into a share.
+- **AC-19-8-82** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "human prompts print as unavailable rather than as a nought where the window holds no run"
+  WHERE the window holds no run the CLI SHALL hold the human-prompt count, the count of runs that
+  carried one and the named list of them as unavailable rather than as a nought found, in the
+  profile and in `--json` alike.
 
 ### EI-09 — The chat backend
 

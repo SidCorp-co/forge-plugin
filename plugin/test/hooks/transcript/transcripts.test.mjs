@@ -10,7 +10,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import * as harness from "../../../hooks/_hook.mjs";
-import { isSubagent, memoryDir, ownTranscript, transcriptOf } from "../../../src/hooks/transcripts.mjs";
+import { isHumanPrompt, isSubagent, memoryDir, ownTranscript, transcriptOf } from "../../../src/hooks/transcripts.mjs";
 
 const PROJECT = "/home/someone/.claude/projects/-a-checkout";
 const SESSION = `${PROJECT}/9a1.jsonl`;
@@ -51,4 +51,16 @@ test("memory is one project's, whichever of its transcripts the event names", ()
   assert.equal(memoryDir({ hook_event_name: "SubagentStop", transcript_path: SESSION, agent_transcript_path: AGENT }), memory);
   assert.equal(memoryDir({ agent_transcript_path: AGENT }), memory, "an agent's alone climbs back out to it");
   assert.equal(memoryDir({}), "", "and an event naming no transcript names no directory");
+});
+
+test("isHumanPrompt admits only a user record carrying promptSource as a string", () => {
+  assert.equal(isHumanPrompt({ type: "user", promptSource: "typed" }), true);
+  assert.equal(isHumanPrompt({ type: "user", promptSource: "paste" }), true, "any string source is a prompt somebody typed");
+  assert.equal(isHumanPrompt({ type: "user", message: { content: [{ type: "tool_result" }] } }), false,
+    "a tool result is a user record with no promptSource");
+  assert.equal(isHumanPrompt({ type: "user", isCompactSummary: true }), false,
+    "a harness-written record carries no promptSource either");
+  assert.equal(isHumanPrompt({ type: "assistant", promptSource: "typed" }), false, "the type has to be user too");
+  assert.equal(isHumanPrompt({ type: "user", promptSource: 1 }), false, "a non-string promptSource is not a prompt");
+  assert.equal(isHumanPrompt(null), false, "and a record that is not one at all admits nothing");
 });

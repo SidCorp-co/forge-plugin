@@ -16,7 +16,8 @@ import { USAGE } from "../../src/stats/stats.mjs";
 import { tempRoom } from "../fixtures.mjs";
 import {
   BASE, FORGE, MARKER_TURN, MODELLESS, NOUGHTS, NO_USAGE, OTHER, PROJECT, RESPONSE,
-  SHORT_RESPONSE, SHORT_USAGE, apiErrored, ask, asked, at, compacted, corpus, result, transcript, use,
+  SHORT_RESPONSE, SHORT_USAGE, apiErrored, ask, asked, at, compacted, corpus, humanPrompt, result,
+  transcript, use,
 } from "./fixture-runs.mjs";
 
 test("every row of a fixture run is what the transcript adds up to", () => {
@@ -40,6 +41,13 @@ test("every row of a fixture run is what the transcript adds up to", () => {
      read apart, which is the whole reason the two are printed as two figures. */
   has("compactions     2 across 1 of 1 run(s), a run that lost what it knew and carried on");
   has("api errors      1 request(s) came back as errors, apart from any refusal this plugin wrote");
+  /* One human-prompt record on the one run of this fixture: `claimedIn` reads no issue off a
+     `forge claim` call's body, so the reading names the run by its own session instead of folding
+     it into a share. */
+  has("human prompts   1 typed inside 1 of 1 run(s) — a person present inside a run this harness "
+    + "dispatched, never whether the run was itself a person's own session");
+  has("run(s) a human prompt showed up inside, named rather than folded into a share");
+  has("     1  session-one");
 
   /* The ship call opens its own phase and the run stays in it to the close, so the `pgrep` line that
      waits for the release, the reads after it and the refused advance are all the shipping phase's.
@@ -534,14 +542,19 @@ test("what the API billed is read off the usage alone, whichever record of a res
    on, and it is counted apart from the runs that met one, because a run that compacted three times
    is one run that ran out of room and not three. An api error is a message-level record with no
    tool call on it at all, so it can never be one of this plugin's own refusals — proved here by
-   keeping it apart from the one call that was refused for a reason of its own. */
-const minimalRun = (session, { compactions = 0, apiErrors = 0, refused = false } = {}) => runFrom("/p", session, [
+   keeping it apart from the one call that was refused for a reason of its own. `claim` names the
+   issue this run claimed, so `run.issues` holds it, or none, so a run that claimed nothing is named
+   by its own session instead. */
+const minimalRun = (session, { compactions = 0, apiErrors = 0, humanPrompts = 0, refused = false, claim = null } = {}) => runFrom("/p", session, [
   JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-1" } }),
   use(`${session}-c`, 1, "Bash", { command: "echo hi" }),
   result(`${session}-c`, 2, "hi"),
-  ...(refused ? [use(`${session}-r`, 3, "Bash", { command: "grep -rn nothing docs/" }), result(`${session}-r`, 4, "", true)] : []),
+  ...(claim ? [use(`${session}-k`, 3, "Bash", { command: `forge claim ${claim}` }),
+    result(`${session}-k`, 4, `${claim}  claim: session held`)] : []),
+  ...(refused ? [use(`${session}-r`, 5, "Bash", { command: "grep -rn nothing docs/" }), result(`${session}-r`, 6, "", true)] : []),
   ...Array.from({ length: compactions }, (_unused, one) => compacted(10 + one)),
   ...Array.from({ length: apiErrors }, (_unused, one) => apiErrored(20 + one)),
+  ...Array.from({ length: humanPrompts }, (_unused, one) => humanPrompt(30 + one)),
 ].join("\n"));
 
 test("compactions and the runs that met one are two counts, because a run that compacted three times is one run that ran out of room", () => {
@@ -571,4 +584,38 @@ test("compactions and api errors print as unavailable rather than as a nought wh
   const held = profileOf([]);
   assert.deepEqual(held.condition.compactions, { met: null, runs: null });
   assert.equal(held.condition.apiErrors, null);
+});
+
+/* Off the reader `hooks/transcripts.mjs` exports rather than a second test of what a human turn is:
+   a run that carried two typed turns and one that carried one are three met and two runs, never
+   three runs — the same distinction `compactions` proves above, over `isHumanPrompt` instead. */
+test("human prompts and the runs that carried one are two counts, off the reader the stop-check gate uses", () => {
+  const talked = minimalRun("talked", { humanPrompts: 2 });
+  const once = minimalRun("once", { humanPrompts: 1 });
+  const quiet = minimalRun("quiet", {});
+  assert.equal(talked.humanPrompts, 2);
+
+  const held = profileOf([talked, once, quiet]);
+  assert.equal(held.condition.humanPrompts.met, 3);
+  assert.equal(held.condition.humanPrompts.runs, 2,
+    "two typed turns on one run and one on another are three met and two runs, never three runs");
+});
+
+test("a run a human prompt showed up inside is named by the issue it claimed, or its own session where it claimed none", () => {
+  const claimed = minimalRun("claimed", { humanPrompts: 1, claim: "ISS-42" });
+  const unclaimed = minimalRun("unclaimed", { humanPrompts: 1 });
+  const quiet = minimalRun("quiet", {});
+
+  const held = profileOf([claimed, unclaimed, quiet]);
+  assert.deepEqual(
+    new Set(held.condition.humanPrompts.named.map((one) => one.ref)),
+    new Set(["ISS-42", "unclaimed"]),
+    "the run that claimed ISS-42 is named by it, the one that claimed nothing by its own session, "
+    + "and the run with no human prompt is named by neither",
+  );
+});
+
+test("human prompts print as unavailable rather than as a nought where the window holds no run", () => {
+  const held = profileOf([]);
+  assert.deepEqual(held.condition.humanPrompts, { met: null, runs: null, named: [] });
 });

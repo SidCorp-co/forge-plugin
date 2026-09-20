@@ -36,13 +36,20 @@ export const memo = (held, key, make) => {
 const begunAt = new WeakMap();
 const NONE = [];
 
-/** Where this turn begins: only a user record carrying `promptSource` is a prompt somebody typed. */
+/** A record a person typed, apart from a tool result and a harness-written record: only a user
+ *  record carrying `promptSource` is a prompt somebody typed. The one test of what a human turn is,
+ *  read by the stop-check gate through `promptIndex` and by `forge stats runs` through the corpus
+ *  reader — plugin/src/stats/corpus/transcripts.mjs — so that a second reader of the same files
+ *  never gets a second chance to define the word differently. */
+export const isHumanPrompt = (record) => record?.type === "user" && typeof record?.promptSource === "string";
+
+/** Where this turn begins: the last record `isHumanPrompt` admits. */
 export const promptIndex = (given) => {
   const records = given ?? NONE;
   return memo(begunAt, records, () => {
     let from = -1;
     for (let at = 0; at < records.length; at += 1) {
-      if (records[at]?.type === "user" && typeof records[at].promptSource === "string") from = at;
+      if (isHumanPrompt(records[at])) from = at;
     }
     return from;
   });
