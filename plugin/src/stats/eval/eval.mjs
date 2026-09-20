@@ -17,7 +17,7 @@ import {
 } from "../marks/marks.mjs";
 import { reachOf, reachSaid } from "../marks/reach.mjs";
 import { BUDGET, HORIZON, UNAVAILABLE, budgetOf, outcomesOf, parkedOver, readThreads, ruledOver } from "./outcomes.mjs";
-import { angleRows, anglesAsked, anglesOver, anglesSaid } from "./angles.mjs";
+import { angleList, anglesAsked, anglesOver, anglesSaid } from "./angles.mjs";
 import { logEntries } from "../../codex/codex-log.mjs";
 import { fail, projectAt, projectTarget, useProject } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
@@ -46,13 +46,12 @@ export const EVAL_USAGE = [
   "",
   "Beside every cost figure, what became of the work: the issues a window's runs owned, and how many",
   "of them were reopened, judged twice, parked or dropped, with the consult findings those runs",
-  "rejected. Those four read the tracker, which is this verb's alone — `forge stats runs` reads none",
-  "and prints none of them — and each prints over the population it was counted across, or",
-  `\`${UNAVAILABLE}\` where the reading could not be made. \`${UNAVAILABLE}\` is not zero.`,
+  "rejected. Those four read the tracker, which is this verb's alone, and each prints over the",
+  `population it was counted across, or \`${UNAVAILABLE}\` where the reading could not be made.`,
+  `\`${UNAVAILABLE}\` is not zero.`,
   "",
-  "The ship says when to run it: at every multiple of the window in the project's own corpus, the way",
-  "the consult that crosses a hundred-mark names `forge codex eval` — and writes the reading there,",
-  "once per mark, which `--against` puts in the before window's place.",
+  "The ship says when to run it: at every multiple of the window in the project's own corpus, writing",
+  "the reading there once per mark, which `--against` puts in the before window's place.",
   "",
   "One anchor per reading: each of the two flags below names the point the before window is taken",
   "from, which is also the point the header names and the point the confounding lines count from, so",
@@ -63,11 +62,10 @@ export const EVAL_USAGE = [
   "  --against [<mark>] the reading held at that mark as the before window, or the newest held",
   "  --since-release [<version>]  the reading held at that release, or the newest, and what the",
   "                     comparison since it is confounded by",
-  "  --angles a,a       which of the shipped angles to judge and print, in the order asked; every",
-  "                     one of them unless you say otherwise. Each is judged against how far two",
-  "                     adjacent blocks of this corpus have themselves differed, and prints the",
-  "                     population it was taken over on both sides",
-  ...angleRows("                       "),
+  "  --angles a,a       which angles to judge and in what order, each over the population it names",
+  "                     and against how far two adjacent blocks of this corpus have themselves",
+  "                     differed; every one of them unless you say otherwise. There is:",
+  ...angleList("                       ", 97),
   "  --horizon 1d       how long after a run an outcome still counts as its own; one day unless you",
   "                     say otherwise, and the same interval on both sides",
   "  --requests n       the tracker requests this whole reading may spend; past it the outcome",

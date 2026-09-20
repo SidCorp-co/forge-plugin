@@ -312,10 +312,17 @@ const recomputedLine = (one) => `  ${"held".padEnd(ROW)}`
   + `the held reading recorded ${one.held} run(s); this corpus still holds ${one.found} of that span, `
   + "and both sides are computed here, so no reading's own admission rule is compared with another's";
 
-/** The set as a screen lists it, one row an angle, read off the map rather than written beside it —
- *  a list of names in help text is the copy that goes stale the first time the set changes. */
-export const angleRows = (indent) =>
-  Object.entries(ANGLES).map(([name, one]) => `${indent}${name.padEnd(NAME)}${one.asks}`);
+/** The set as help lists it, folded to the width the help is written in — read off the map rather
+ *  than written beside it, a list of names in help text being the copy that goes stale the first
+ *  time the set changes, and folded rather than one line because the cap that help is held to is
+ *  what an angle added past the eighth would otherwise break. */
+export const angleList = (indent, width) => NAMES.reduce((lines, name, at) => {
+  const last = lines.at(-1);
+  const one = at === NAMES.length - 1 ? name : `${name},`;
+  if (last && `${last} ${one}`.length <= width) lines[lines.length - 1] = `${last} ${one}`;
+  else lines.push(`${indent}${one}`);
+  return lines;
+}, []);
 
 const angleLines = (one) => [
   "",
