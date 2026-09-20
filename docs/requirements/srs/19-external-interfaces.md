@@ -281,9 +281,9 @@ it. Reading is all this product does there.
   own entry names rather than over the window's runs, and SHALL carry no figure for it where that
   population is empty.
 - **AC-19-8-31** · Rev: 1 · Proof: plugin/test/stats/eval/angles.test.mjs "a shift no further than the floor's p95 is not distinguishable from this corpus's own adjacent windows"
-  WHEN a shift between two windows is judged THEN the CLI SHALL compare it with how far two adjacent
-  blocks of this corpus have themselves differed at the two sizes being compared, and SHALL report a
-  shift no further than that reference as not distinguishable from it rather than as a move.
+  WHEN a shift between two windows is judged THEN the CLI SHALL judge it against the floor of shifts
+  held for that angle rather than against no movement at all, and SHALL report a shift no further
+  than that floor's tail percentile as not distinguishable from it rather than as a move.
 - **AC-19-8-32** · Rev: 1 · Proof: plugin/test/stats/eval/angles.test.mjs "a floor under the positions a p95 needs withholds the verdict and says how many it had"
   IF fewer adjacent positions of this corpus yielded a shift than a percentile in the tail needs THEN
   the CLI SHALL withhold the verdict for that angle and SHALL say how many positions it had and at
@@ -293,8 +293,9 @@ it. Reading is all this product does there.
   from the runs this corpus still holds of the span it covers, SHALL take no figure from the stored
   profile however well its fields match, and SHALL say how many of the recorded runs it found.
 - **AC-19-8-34** · Rev: 1 · Proof: plugin/test/stats/eval/angles.test.mjs "a mark holds the keys it held before an angle existed, and its write spends no floor"
-  WHILE a release is writing the reading it holds for that release the CLI SHALL compute no angle and
-  no floor for it, and SHALL store neither a verdict nor the statement that goes beside the verdicts.
+  WHERE a reading is held for a mark the CLI SHALL store no angle in it, keeping a verdict, a floor
+  and the statement that goes beside the verdicts out of what is written, and SHALL NOT reach a mark
+  writer from the computing of an angle.
 - **AC-19-8-35** · Rev: 1 · Proof: plugin/test/stats/eval/angles.test.mjs "a reading where every angle improved says what it does not measure, on the screen and in --json"
   WHEN the angle verdicts are printed THEN the CLI SHALL state beside them what none of the angles it
   holds measures, on the screen and in the machine form alike, and SHALL state it however few angles
