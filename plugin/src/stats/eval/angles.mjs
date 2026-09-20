@@ -2,6 +2,7 @@
    against this corpus's own adjacent-block floor rather than against zero. What an angle is, what
    its population means and what the floor is not — docs/cli/stats-the-angles.md. */
 import { median } from "../median.mjs";
+import { scaled } from "../figures.mjs";
 import { profileOf } from "../runs.mjs";
 import { UNAVAILABLE } from "./outcomes.mjs";
 import { fail } from "../../resolve/settings.mjs";
@@ -27,12 +28,27 @@ const partPairs = (profile) => (profile.guideParts ?? []).reduce((sum, [, one]) 
 const partsAgain = (profile) => (profile.guideParts ?? []).reduce((sum, [, one]) => sum + one.again, 0);
 
 const RUNS = "run(s) in the window";
+const BILLED = "run(s) in the window holding a measured request";
+const REQUESTS = "measured request(s) those runs made";
+
+/* A price is read off the profile's own token block, which is taken over the runs that hold a
+   measurement rather than over every run of the window — so the population noun is not `RUNS` and the
+   count is not `profile.runs`. Lower is better on all four because all four are prices; that a cost
+   which fell because the harness did less is no improvement is what the other angles print beside
+   them for, and no angle judges that on its own. */
+const perRun = (name) => ({
+  over: BILLED,
+  better: -1,
+  of: (profile) => carried(profile.tokens?.perRun?.[name]),
+  countOf: (profile) => profile.tokens?.runs ?? 0,
+});
 
 /** The closed set. Each entry is one shipped surface with its own case: what it asks, the population
  *  it asks it over, the direction that counts as better, the reader that takes its figure off a
- *  profile and the one that counts that profile's population. Three are over the runs of a window and
- *  the fourth is over run-and-part pairs, which is why both readers exist — two angles over different
- *  populations are two readings, and the block says so on every line. */
+ *  profile and the one that counts that profile's population. Three populations are in it — the runs
+ *  of a window, the run-and-part pairs those runs read, and the runs and requests the API billed —
+ *  which is why every entry carries both readers: two angles over different populations are two
+ *  readings, and the block says so on every line. */
 export const ANGLES = {
   wall: {
     asks: "median minutes a run took end to end",
@@ -62,6 +78,20 @@ export const ANGLES = {
     of: (profile) => (partPairs(profile) ? partsAgain(profile) / partPairs(profile) : null),
     countOf: partPairs,
   },
+  "cache-read": { asks: "median tokens a run read back from the prompt cache", ...perRun("cacheRead") },
+  /* The one ratio of sums among the prices, and the reason the per-run figures are not one: the two
+     move independently, and a window whose cost per run fell by two fifths while its cost per request
+     fell by a sixteenth is a harness taking fewer turns rather than a smaller context. Reading either
+     as the other is what this angle exists to stop. */
+  "cache-read-per-request": {
+    asks: "tokens an API request read back from the prompt cache",
+    over: REQUESTS,
+    better: -1,
+    of: (profile) => carried(profile.tokens?.perRequest?.cacheRead),
+    countOf: (profile) => profile.tokens?.requests ?? 0,
+  },
+  "cache-create": { asks: "median tokens a run wrote into the prompt cache", ...perRun("cacheCreate") },
+  output: { asks: "median tokens a run generated", ...perRun("output") },
 };
 
 const NAMES = Object.keys(ANGLES);
@@ -248,11 +278,19 @@ export const anglesOver = ({ ordered, held, names, runFloor }) => {
 
 const percent = (value) => `${(value * 100).toFixed(1)}%`;
 const signed = (value) => `${value > 0 ? "+" : ""}${percent(value)}`;
-/* Kept readable across four orders of magnitude: a share of 0.041 and an edit-character median of
-   39119 print in one column and neither is rounded into the other's precision. */
-const figure = (value) => (Math.abs(value) >= 1 ? String(Math.round(value * 10) / 10) : String(Number(value.toFixed(4))));
+/* Kept readable across eight orders of magnitude, a share of 0.041 and a cache-read median of
+   29,611,755 printing in one column with neither rounded into the other's precision. Past a thousand
+   the unit travels with the number: that column was written when the largest figure in it was an
+   edit-character median of five digits, and a token price is eight. */
+const figure = (value) => {
+  if (Math.abs(value) >= 1000) return scaled(value);
+  return Math.abs(value) >= 1 ? String(Math.round(value * 10) / 10) : String(Number(value.toFixed(4)));
+};
 
-const NAME = 15;
+/* Off the set rather than a number beside it, so an angle whose name is longer than the column keeps
+   the space between the name and the question — `cache-read-per-requesttokens an API request…`, read
+   on this corpus before the width was derived. */
+const NAME = Math.max(...NAMES.map((one) => one.length)) + 1;
 const ROW = 9;
 
 const sideLine = (when, side, angle) => `  ${when.padEnd(ROW)}`
@@ -273,6 +311,11 @@ const movedLine = (one) => `  ${"moved".padEnd(ROW)}${signed(one.shift)}`
 const recomputedLine = (one) => `  ${"held".padEnd(ROW)}`
   + `the held reading recorded ${one.held} run(s); this corpus still holds ${one.found} of that span, `
   + "and both sides are computed here, so no reading's own admission rule is compared with another's";
+
+/** The set as a screen lists it, one row an angle, read off the map rather than written beside it —
+ *  a list of names in help text is the copy that goes stale the first time the set changes. */
+export const angleRows = (indent) =>
+  Object.entries(ANGLES).map(([name, one]) => `${indent}${name.padEnd(NAME)}${one.asks}`);
 
 const angleLines = (one) => [
   "",

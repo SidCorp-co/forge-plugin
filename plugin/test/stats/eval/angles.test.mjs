@@ -17,15 +17,27 @@ import { PROJECT, ask, askStats, corpusOf, rootOf, runsOf } from "../fixture-eva
 
 process.env.XDG_CONFIG_HOME = tempRoom("stats-angles-home-");
 
-const NAMES = ["wall", "calls", "edit-chars", "guide-reread"];
+const NAMES = ["wall", "calls", "edit-chars", "guide-reread",
+  "cache-read", "cache-read-per-request", "cache-create", "output"];
+const SET = NAMES.join(", ");
 
-/* A profile as `profileOf` returns one, cut to what the four angles read. */
-const profile = ({ runs = 50, minutes = 60, calls = 200, chars = 1000, pairs = 10, again = 2 }) => ({
+/* A profile as `profileOf` returns one, cut to what the angles read. `billed` is the runs of it that
+   hold a measured request, which is a population of its own and not `runs`. */
+const profile = ({
+  runs = 50, minutes = 60, calls = 200, chars = 1000, pairs = 10, again = 2,
+  billed = 40, requests = 400, read = 1e6, written = 1e5, out = 1e4,
+}) => ({
   runs,
   medianMinutes: minutes,
   medianCalls: calls,
   editCharsPerRun: chars,
   guideParts: pairs ? [["issue-flow verification (flow)", { calls: pairs + again, runs: pairs, again }]] : [],
+  tokens: {
+    runs: billed,
+    requests,
+    perRun: billed ? { cacheRead: read, cacheCreate: written, output: out } : {},
+    perRequest: requests ? { cacheRead: read / 10 } : {},
+  },
 });
 
 const window = (over) => ({ runs: over.runs ?? 50, profile: profile(over) });
@@ -38,10 +50,14 @@ const judge = (before, now, floor = floorOf(0.05)) =>
   angleOf("wall", { before: window(before), now: window(now) }, floor, FLOOR);
 
 test("each angle takes its figure and counts its own population off one profile", () => {
-  const held = profile({ minutes: 61.5, calls: 180, chars: 40_000, pairs: 100, again: 4 });
-  assert.deepEqual(NAMES.map((name) => ANGLES[name].of(held)), [61.5, 180, 40_000, 0.04]);
-  assert.deepEqual(NAMES.map((name) => ANGLES[name].countOf(held)), [50, 50, 50, 100],
-    "three angles are over the window's runs and the fourth over the pairs its runs read");
+  const held = profile({
+    minutes: 61.5, calls: 180, chars: 40_000, pairs: 100, again: 4,
+    billed: 48, requests: 9600, read: 29_600_000, written: 871_000, out: 25_900,
+  });
+  assert.deepEqual(NAMES.map((name) => ANGLES[name].of(held)),
+    [61.5, 180, 40_000, 0.04, 29_600_000, 2_960_000, 871_000, 25_900]);
+  assert.deepEqual(NAMES.map((name) => ANGLES[name].countOf(held)), [50, 50, 50, 100, 48, 9600, 48, 48],
+    "four populations: the window's runs, the pairs its runs read, the runs the API billed, and their requests");
   assert.equal(ANGLES["guide-reread"].of(profile({ pairs: 0 })), null,
     "a population of nothing carries no figure, which is not a figure of nought");
   assert.equal(ANGLES.wall.of({ runs: 3 }), null, "a profile that never held the figure carries none either");
@@ -81,7 +97,7 @@ test("a shift past the floor reads improved or declined by the angle's own direc
   const rose = judge({ minutes: 50 }, { minutes: 100 });
   assert.equal(rose.disposition, DISPOSITIONS.declined);
   assert.equal(rose.better, "lower");
-  assert.equal(NAMES.every((name) => ANGLES[name].better === -1), true, "all four ship lower-is-better");
+  assert.equal(NAMES.every((name) => ANGLES[name].better === -1), true, "every shipped angle is lower-is-better");
 });
 
 test("a shift no further than the floor's p95 is not distinguishable from the harness against itself", () => {
@@ -191,13 +207,13 @@ test("a held window whose runs overlap recovers all of them, the span being boun
 });
 
 test("--angles names which angles to read, in the order asked, and refuses a name the set does not hold", async () => {
-  assert.deepEqual(anglesAsked(undefined), NAMES, "naming none asks for all four");
+  assert.deepEqual(anglesAsked(undefined), NAMES, "naming none asks for every one of them");
   assert.deepEqual(anglesAsked("calls,wall"), ["calls", "wall"], "and the order asked is the order read");
   /* `fail` ends the process outside `refusing`, which is where the verb calls it from. */
   const refused = (raw) => assert.rejects(refusing(async () => anglesAsked(raw)));
   await refused("nope");
   await assert.rejects(refusing(async () => anglesAsked("nope")),
-    /no angle named nope\. There is: wall, calls, edit-chars, guide-reread\./u);
+    new RegExp(`no angle named nope\\. There is: ${SET}\\.`, "u"));
   await assert.rejects(refusing(async () => anglesAsked("wall,wall")),
     /--angles names wall twice, and an angle is read once\. Ask for each once: `--angles wall`\./u);
   await assert.rejects(refusing(async () => anglesAsked(",")), /--angles was given no angle name\. There is: wall/u);
@@ -223,7 +239,7 @@ test("the eval prints the angle blocks below its window figures, and --angles cu
   const two = ask(room, "--size", "3", "--angles", "calls,wall");
   assert.equal(two.status, 0, two.stderr);
   assert.match(two.stdout, /\ncalls\s+median tool calls[\s\S]*\nwall\s+median minutes/u, "in the order asked");
-  for (const name of ["edit-chars", "guide-reread"]) {
+  for (const name of NAMES.filter((one) => one !== "calls" && one !== "wall")) {
     assert.doesNotMatch(two.stdout, new RegExp(`^${name}\\s+\\S`, "mu"), `${name} was not asked for`);
   }
 });
@@ -231,7 +247,7 @@ test("the eval prints the angle blocks below its window figures, and --angles cu
 test("an angle name this CLI does not hold is refused with the set, before a transcript is opened", () => {
   const refused = askStats(tempRoom("stats-angles-none-"), ["eval", "--checkout", PROJECT, "--angles", "nope"]);
   assert.equal(refused.status, 1);
-  assert.match(refused.stderr, /no angle named nope\. There is: wall, calls, edit-chars, guide-reread\./u);
+  assert.match(refused.stderr, new RegExp(`no angle named nope\\. There is: ${SET}\\.`, "u"));
   assert.equal(refused.stdout, "", "and nothing was read to say so");
 });
 
@@ -289,4 +305,38 @@ test("the eval's own help names --angles and every angle it holds", () => {
   assert.equal(help.status, 0);
   assert.match(help.stdout, /--angles a,a/u);
   for (const name of NAMES) assert.match(help.stdout, new RegExp(`\\b${name}\\b`, "u"), `${name} is named`);
+});
+
+test("a price is read off the profile's own token block, over the runs and the requests the API billed", () => {
+  const held = profile({ runs: 50, billed: 44, requests: 8800, read: 27_200_000 });
+  const prices = ["cache-read", "cache-read-per-request", "cache-create", "output"];
+  assert.deepEqual(prices.map((name) => ANGLES[name].countOf(held)), [44, 8800, 44, 44],
+    "never the window's 50 runs: a run the API billed nothing for is in neither figure");
+  assert.deepEqual(prices.map((name) => ANGLES[name].over), [
+    "run(s) in the window holding a measured request",
+    "measured request(s) those runs made",
+    "run(s) in the window holding a measured request",
+    "run(s) in the window holding a measured request",
+  ], "and each says which of the two it was taken over");
+  assert.equal(ANGLES["cache-read"].of(held), 27_200_000);
+  assert.equal(ANGLES["cache-read-per-request"].of(held), 2_720_000, "the ratio of sums, not the median");
+});
+
+test("a window holding no measured request is not evaluable, and says over what", () => {
+  const empty = { runs: 50, profile: profile({ billed: 0, requests: 0 }) };
+  const one = angleOf("cache-read", { before: empty, now: empty }, floorOf(0.05), FLOOR);
+  assert.equal(one.disposition, DISPOSITIONS.unevaluable, "no population carries a figure, which is not a figure of nought");
+  assert.equal(one.why, "the before window carries no value for this figure, over 0 run(s) in the window holding a measured request");
+  assert.deepEqual([one.shift, one.before.figure], [null, null]);
+  const said = anglesSaid([one]).join("\n");
+  assert.match(said, /^ {2}before\s+unavailable over 0 run\(s\) in the window holding a measured request$/mu);
+});
+
+test("a price is asked for by name, and the block that prints is that one", () => {
+  const read = ask(corpusOf(30), "--size", "3", "--angles", "cache-read-per-request");
+  assert.equal(read.status, 0, read.stderr);
+  assert.match(read.stdout, /^cache-read-per-request tokens an API request read back from the prompt cache/mu);
+  for (const name of NAMES.filter((one) => one !== "cache-read-per-request")) {
+    assert.doesNotMatch(read.stdout, new RegExp(`^${name}\\s+\\S`, "mu"), `${name} was not asked for`);
+  }
 });

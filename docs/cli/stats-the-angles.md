@@ -18,14 +18,21 @@ a change to this repository, which is the cost, and it makes every angle checkab
 `stats.mjs`'s subject map has always been closed too. `--angles` selects from the shipped set in the
 spelling `forge codex consult --angles` already uses; it does not extend it.
 
-## Why an angle names its population, and why one of the four has its own
+## Why an angle names its population, and why they are not all the window's runs
 
-Three angles are over the runs of a window. `guide-reread` is over the run-and-part pairs those runs
-read, which is a different count, moves differently, and is the exact shape of the mistake this topic
-exists to prevent — a rate of the form "N re-reads over M reads" mislabels its numerator, because the
-aggregate counts run-part pairs read more than once rather than extra reads. Both numbers print on
-both sides of every block. Two angles over different populations are two readings, and a reader who
-cannot see which is which has been handed the same trap in a nicer format.
+Four populations are in the shipped set, and only the first is the window's runs. `guide-reread` is
+over the run-and-part pairs those runs read, which is a different count, moves differently, and is
+the exact shape of the mistake this topic exists to prevent — a rate of the form "N re-reads over M
+reads" mislabels its numerator, because the aggregate counts run-part pairs read more than once
+rather than extra reads. The prices are over the runs the API billed, which is the window's runs less
+any whose records carry no measurement, and `cache-read-per-request` is over the requests inside
+those runs. Both numbers print on both sides of every block. Two angles over different populations
+are two readings, and a reader who cannot see which is which has been handed the same trap in a
+nicer format.
+
+A price is judged as anything else here is, and the judgement says nothing about whether the harness
+got better: a run that did less spent less. What a price is, what it is counted over and what it
+does not say is its own topic.
 
 ## Why the verdict is against this corpus's own history and not against zero
 
@@ -85,5 +92,5 @@ held before they existed.
 
 ## What is deliberately not here
 
-The seconds a call spends by class, and a run's token cost. Each is one angle, each is separately
-filed, and this topic is the shape they are instances of rather than a third copy of either.
+The seconds a call spends by class. It is one angle, it is separately filed, and this topic is the
+shape it is an instance of rather than a second copy of it.

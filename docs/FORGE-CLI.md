@@ -79,6 +79,7 @@ how many topics there may be.
 | [stats — the eval](cli/stats-the-eval.md) | Why a cost figure is the profile's, why a reading too shallow for its window is judged rather than reported, and what the installed copy cannot fix. |
 | [stats — the model](cli/stats-the-model.md) | Why ranking arms by minutes recommends the wrong model, why the floor is asked of each figure inside each cell rather than of the arm, and what a synthetic turn is. |
 | [stats — the angles](cli/stats-the-angles.md) | Why the angle set is closed, why a verdict is against how far this corpus's own adjacent windows have differed rather than against zero, and why a held reading's side is recomputed rather than read. |
+| [stats — the cost](cli/stats-the-cost.md) | Why one API request is a message id rather than a record, why a record carrying no usage is not a nought, and why per run and per request are two readings and two statistics. |
 | [stats — the mark](cli/stats-the-mark.md) | Why the reading is written at the crossing and never again, and what `--against` puts back in the sliding window's place. |
 | [stats — the outcome](cli/stats-the-outcome.md) | The four figures beside the costs, and the release mark. |
 | [doctor](cli/doctor.md) | Why every missing piece is reported together, and why one verb reports every level of configuration and reads a key back before calling it set. |

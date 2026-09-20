@@ -11,12 +11,12 @@ import {
   guideFlowOf,
 } from "./corpus/classes.mjs";
 import { declaredIn } from "./corpus/declared.mjs";
-import { FLOW_BRIEF, callsIn, markerOf, modelRun, rungRun } from "./corpus/transcripts.mjs";
+import { FLOW_BRIEF, PRICES, callsIn, markerOf, modelRun, rungRun } from "./corpus/transcripts.mjs";
 import { corpusUnder, readTranscript, rootFor } from "./corpus/corpus.mjs";
 import {
   countIn, declareLines, foldPhases, listing, perRung, phaseLines, rungLines, shipLine, unrecognisedIn,
 } from "./tables.mjs";
-import { add, medianOrZero, minutes, share, stamp } from "./figures.mjs";
+import { add, medianOrZero, minutes, scaled, share, stamp } from "./figures.mjs";
 import { reachOf, reachSaid } from "./marks/reach.mjs";
 import { claimedIn, parkWritersIn, rulingsIn } from "./joined.mjs";
 import { PHASES } from "../guides/phases.mjs";
@@ -243,6 +243,9 @@ export const runFrom = (path, session, text, classes = undefined) => {
     endedAt,
     rung: rungRun(calls),
     model: modelRun(read.models),
+    /* What the API billed this run, counted by the API — the four prices apart, the requests they
+       were billed over, and the records that carried no measurement. */
+    tokens: read.spent,
     /* What the eval joins a run to its work by; the profile prints neither, so this reads no tracker. */
     issues: claimedIn(calls),
     rulings: rulingsIn(calls),
@@ -361,6 +364,41 @@ const mergedParts = (runs) => {
   return [...merged].sort((left, right) => right[1].calls - left[1].calls);
 };
 
+/* Over the runs holding a measured request and never over every run handed here: a transcript the
+   host wrote no usage into is an absent measurement, not a run that spent nothing, and a run in the
+   denominator that cannot be in the numerator understates every price. Numerator and denominator are
+   that one population on all three readings — a median over those runs, their own sums, and those
+   sums over the requests they were billed over. */
+const tokensOver = (runs) => {
+  const measured = runs.filter((run) => run.tokens.requests > 0);
+  const requests = measured.reduce((sum, run) => sum + run.tokens.requests, 0);
+  const summed = (name) => measured.reduce((sum, run) => sum + run.tokens[name], 0);
+  const each = (pick) => Object.fromEntries(Object.keys(PRICES).map((name) => [name, pick(name)]));
+  return {
+    runs: measured.length,
+    unmeasuredRuns: runs.length - measured.length,
+    requests,
+    unmeasured: runs.reduce((sum, run) => sum + run.tokens.unmeasured, 0),
+    total: each(summed),
+    perRun: each((name) => (measured.length ? medianOrZero(measured.map((run) => run.tokens[name])) : null)),
+    perRequest: each((name) => (requests ? summed(name) / requests : null)),
+  };
+};
+
+const priced = (held) => `${scaled(held.cacheRead)} cache read, ${scaled(held.cacheCreate)} cache written, `
+  + `${scaled(held.output)} out, ${scaled(held.input)} in`;
+
+/* Three readings and so three lines, each naming what it was taken over: the median a run cost, the
+   window's own sums, and what one request cost. The middle line is what makes the ratio per run
+   derivable without the median being offered as it — they are two statistics. */
+const tokenLines = (held) => [
+  `tokens          median/run ${priced(held.perRun)}, over ${held.runs} run(s) holding a `
+    + `measured request and ${held.unmeasuredRuns} holding none`,
+  `in all          ${priced(held.total)}, over ${held.requests} measured request(s), `
+    + `and ${held.unmeasured} record(s) carried no measurement`,
+  `per request     ${priced(held.perRequest)}`,
+];
+
 export const profileOf = (runs, declared = null) => {
   const seconds = runs.map((run) => run.seconds);
   const byClass = mergedClasses(runs, (run) => run.byClass);
@@ -401,6 +439,7 @@ export const profileOf = (runs, declared = null) => {
     modelShare: share(whole - waited, whole),
     calls: runs.reduce((sum, run) => sum + run.calls, 0),
     medianCalls: per((run) => run.calls),
+    tokens: tokensOver(runs),
     unanswered: runs.reduce((sum, run) => sum + run.unanswered, 0),
     timeouts: runs.reduce((sum, run) => sum + run.timeouts, 0),
     toFirstClaim: minutes(medianOrZero(runs.map((run) => run.toFirstClaim).filter((one) => one !== null))),
@@ -445,6 +484,7 @@ export const profileLines = (held, all = false) => [
   `where it went   ${held.waitMinutes} min waiting on a tool (${held.waitShare}), `
     + `${held.modelMinutes} min model (${held.modelShare})`,
   `calls           median ${held.medianCalls}/run, ${held.calls} in all, ${held.unanswered} never answered`,
+  ...tokenLines(held.tokens),
   `to first claim  median ${held.toFirstClaim} min`,
   `per run         ${countIn(held, "gate", held.perRun.gate)} gate, ${countIn(held, "test", held.perRun.test)} test, `
     + `${held.perRun.consult} consult, `

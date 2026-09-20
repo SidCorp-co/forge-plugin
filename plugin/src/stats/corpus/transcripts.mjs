@@ -20,6 +20,45 @@ const MARKER = /^<.*>$/u;
 export const MODEL_MIXED = "mixed";
 export const MODEL_NONE = "unattributed";
 
+/** The four prices the API bills a request under, in the field names it writes them. All four or
+ *  none: the measurement is the set, so a usage object short of one of them is not a smaller
+ *  measurement, and a host that renames a field costs this reading its figure rather than reporting
+ *  a harness that got cheaper — docs/cli/stats-the-cost.md. */
+export const PRICES = {
+  input: "input_tokens",
+  cacheCreate: "cache_creation_input_tokens",
+  cacheRead: "cache_read_input_tokens",
+  output: "output_tokens",
+};
+
+const NAMES = Object.keys(PRICES);
+
+export const noTokens = () => ({
+  ...Object.fromEntries(NAMES.map((name) => [name, 0])), requests: 0, unmeasured: 0,
+});
+
+const measured = (usage) => usage !== null && typeof usage === "object"
+  && NAMES.every((name) => Number.isFinite(usage[PRICES[name]]));
+
+/* One API response is several records, each repeating that response's usage: 24,598 assistant
+   records over 11,757 distinct `message.id` on one transcript of this corpus, 12,841 of them
+   repeating an id and no repeat disagreeing. Summed per record the figure reads 2.09 times what was
+   billed, which looks entirely plausible. A record carrying no id is its own request, there being
+   nothing to fold it into. */
+const tally = (spent, message, counted) => {
+  const id = typeof message.id === "string" ? message.id : null;
+  if (id !== null) {
+    if (counted.has(id)) return;
+    counted.add(id);
+  }
+  if (!measured(message.usage)) {
+    spent.unmeasured += 1;
+    return;
+  }
+  spent.requests += 1;
+  for (const name of NAMES) spent[name] += message.usage[PRICES[name]];
+};
+
 /** Which model ran a whole run, off the models its assistant records name. Two real models is
  *  `MODEL_MIXED` and never the busier of them: a run two models generated is one neither answers for. */
 export const modelRun = (models) => {
@@ -124,7 +163,8 @@ const textOf = (content) => {
   return content.map((part) => (typeof part === "object" && part ? part.text ?? "" : "")).join(" ");
 };
 
-/** A transcript folded into its calls, the moments it ran between and the brief it opened with. The
+/** A transcript folded into its calls, the moments it ran between, the brief it opened with and what
+ *  the API billed for it. The
  *  bounds are every record's: the opening prompt and the closing report are generation the run spent, and a window it belongs to. */
 export const callsIn = (whole, classes = CLASSES) => {
   const uses = new Map();
@@ -134,6 +174,8 @@ export const callsIn = (whole, classes = CLASSES) => {
   let lastAt = 0;
   let brief = "";
   const models = new Map();
+  const spent = noTokens();
+  const counted = new Set();
   for (const line of whole.split("\n")) {
     if (!line.startsWith("{")) continue;
     let record;
@@ -145,6 +187,9 @@ export const callsIn = (whole, classes = CLASSES) => {
     const stamp = Date.parse(record.timestamp);
     if (record.message?.role === "assistant" && typeof record.message.model === "string") {
       models.set(record.message.model, (models.get(record.message.model) ?? 0) + 1);
+      /* A marker model is a turn no model generated, so it is no request and cannot dilute a
+         per-request figure — the same test the attribution drops it by. */
+      if (!MARKER.test(record.message.model)) tally(spent, record.message, counted);
     }
     if (!stamp) continue;
     if (firstAt === null) {
@@ -184,5 +229,5 @@ export const callsIn = (whole, classes = CLASSES) => {
       error: result?.error ?? false,
     };
   }));
-  return { calls, brief, models, firstAt, lastAt: Math.max(lastAt, ...calls.map((one) => one.endedAt)) };
+  return { calls, brief, models, spent, firstAt, lastAt: Math.max(lastAt, ...calls.map((one) => one.endedAt)) };
 };

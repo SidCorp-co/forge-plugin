@@ -17,7 +17,7 @@ import {
 } from "../marks/marks.mjs";
 import { reachOf, reachSaid } from "../marks/reach.mjs";
 import { BUDGET, HORIZON, UNAVAILABLE, budgetOf, outcomesOf, parkedOver, readThreads, ruledOver } from "./outcomes.mjs";
-import { anglesAsked, anglesOver, anglesSaid } from "./angles.mjs";
+import { angleRows, anglesAsked, anglesOver, anglesSaid } from "./angles.mjs";
 import { logEntries } from "../../codex/codex-log.mjs";
 import { fail, projectAt, projectTarget, useProject } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
@@ -63,11 +63,11 @@ export const EVAL_USAGE = [
   "  --against [<mark>] the reading held at that mark as the before window, or the newest held",
   "  --since-release [<version>]  the reading held at that release, or the newest, and what the",
   "                     comparison since it is confounded by",
-  "  --angles a,a       which of the four shipped angles to judge and print — wall, calls,",
-  "                     edit-chars, guide-reread — in the order asked; all four unless you say",
-  "                     otherwise. Each is judged against how far two adjacent blocks of this",
-  "                     corpus have themselves differed, and prints the population it was taken",
-  "                     over on both sides",
+  "  --angles a,a       which of the shipped angles to judge and print, in the order asked; every",
+  "                     one of them unless you say otherwise. Each is judged against how far two",
+  "                     adjacent blocks of this corpus have themselves differed, and prints the",
+  "                     population it was taken over on both sides",
+  ...angleRows("                       "),
   "  --horizon 1d       how long after a run an outcome still counts as its own; one day unless you",
   "                     say otherwise, and the same interval on both sides",
   "  --requests n       the tracker requests this whole reading may spend; past it the outcome",

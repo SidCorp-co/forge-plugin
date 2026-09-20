@@ -19,6 +19,33 @@ export const use = (id, seconds, name, input, model = OPUS) => JSON.stringify({
   message: { role: "assistant", model, content: [{ type: "tool_use", id, name, input }] },
 });
 
+/* What the API billed, as the host records it: the usage travels on the assistant record, and one
+   response is written as several of those records under one `message.id`. */
+export const spoke = (id, seconds, usage, model = OPUS) => JSON.stringify({
+  timestamp: at(seconds),
+  message: { role: "assistant", id, model, usage, content: [{ type: "text", text: "said" }] },
+});
+
+export const priced = (input, cacheCreate, cacheRead, output) => ({
+  input_tokens: input,
+  cache_creation_input_tokens: cacheCreate,
+  cache_read_input_tokens: cacheRead,
+  output_tokens: output,
+});
+
+/* One response as the host writes it: three records under one id, each repeating that response's
+   usage, which is how a sum per record reads twice what was billed. */
+export const RESPONSE = [100, 101, 102].map((second) => spoke("msg_one", second, priced(10, 100, 1200, 50)));
+export const NOUGHTS = spoke("msg_two", 200, priced(0, 0, 0, 0));
+export const MARKER_TURN = spoke("msg_three", 300, priced(7, 7, 7, 7), "<synthetic>");
+export const NO_USAGE = spoke("msg_four", 400, undefined);
+export const SHORT_USAGE = spoke("msg_five", 500,
+  { input_tokens: 1, cache_creation_input_tokens: 2, cache_read_input_tokens: 3 });
+
+/* Two measured requests and 1200 cache read counted once. Every moment is inside the span the calls
+   already cover, a run's clock being every record's. */
+export const SPOKEN = [...RESPONSE, NOUGHTS, MARKER_TURN, NO_USAGE, SHORT_USAGE];
+
 export const result = (id, seconds, content, isError = false) => JSON.stringify({
   timestamp: at(seconds),
   message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content, is_error: isError }] },
@@ -53,6 +80,7 @@ export const transcript = () => [
   use(REFUSED[0], REFUSED[1], "Bash", { command: REFUSED[3] }),
   result(REFUSED[0], REFUSED[1] + REFUSED[2], REFUSED[4], true),
   use(UNANSWERED[0], UNANSWERED[1], "Bash", { command: UNANSWERED[2] }),
+  ...SPOKEN,
 ].join("\n");
 
 /* The rows have to add up to the corpus: a run filed under no rung and dropped would leave a table
