@@ -8,15 +8,24 @@ const KEPT = 220;
 /* A named credential flag, a header, and the shapes that are a secret on sight. A value goes whole, quotes and spaces included: masking to the next space leaves most of a passphrase in a log printed back into a session. */
 const VALUE = String.raw`("[^"]*"|'[^']*'|\S+)`;
 
+/* One list read by both the flag pattern and the assignment pattern below. They held separate lists
+   that disagreed — the assignment one trusted a bare `key`, the flag one did not — so this CLI's own
+   documented `forge doctor --codex-key <key>` travelled where `CODEX_KEY=<key>` did not, and nothing
+   compared the two (ISS-2015). Over-masking is the safe direction, which is what admits bare `key`. */
+const NAMES = String.raw`\w*(?:token|password|passwd?|secret|api[-_]?key|key)\w*`;
+
 const SECRETS = [
-  [new RegExp(String.raw`(--?(?:token|password|api[-_]?key|secret|passwd?)[=\s]+)${VALUE}`, "giu"), "$1***"],
+  [new RegExp(String.raw`(--?${NAMES}[=\s]+)${VALUE}`, "giu"), "$1***"],
   [/(Authorization:\s*)(?:Bearer\s+)?\S+/giu, "$1***"],
   [/(Bearer\s+)\S+/giu, "$1***"],
   [/\b\d+\|[A-Za-z0-9]{30,}\b/gu, "***"],
   [/\beyJ[\w-]{10,}\.[\w-]+\.[\w-]+/gu, "***"],
-  [/\b(?:sk|ghp|gho|github_pat)[-_][A-Za-z0-9_]{16,}\b/gu, "***"],
+  /* A hyphen after the prefix is part of the shape rather than the end of it: a live key is written
+     `sk-live-…` and `sk-proj-…` as often as `sk-…`, and the run that read this pattern for its own
+     purposes found the first two were secrets on sight to nobody (ISS-2015). */
+  [/\b(?:sk|ghp|gho|github_pat)[-_](?:[A-Za-z0-9_]+-)*[A-Za-z0-9_]{16,}\b/gu, "***"],
   /* Named rather than shaped: a value no pattern knows is still a secret when the name beside it says so, and over-masking is the safe direction. */
-  [new RegExp(String.raw`\b(\w*(?:token|password|passwd|secret|api[-_]?key|key)\w*\s*=\s*)${VALUE}`, "giu"), "$1***"],
+  [new RegExp(String.raw`\b(${NAMES}\s*=\s*)${VALUE}`, "giu"), "$1***"],
   [/([a-z][\w+.-]*:\/\/[^\s:@/]+:)[^\s@/]+@/giu, "$1***@"],
   [/("(?:password|token|secret|api[-_]?key)"\s*:\s*")[^"]*/giu, "$1***"],
 ];

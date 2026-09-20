@@ -13,6 +13,7 @@ import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { UNRECORDED, copyAt, installedCopies, spansInstall } from "../../src/stats/versions.mjs";
 import { shiftBetween, tallied, twoWindows } from "../../src/stats/windows.mjs";
 import { evalObject, evalWindows } from "../../src/codex/codex-stats.mjs";
+import { SAYS } from "../../src/stats/stats.mjs";
 import { writeMark } from "../../src/stats/marks/marks.mjs";
 import { escaped, tempRoom } from "../fixtures.mjs";
 import { BASE, FORGE, HOUR, PROJECT, ask, askStats, at, corpusOf, runsOf } from "./fixture-eval.mjs";
@@ -252,7 +253,7 @@ test("the eval subject stands beside runs in the verb's own help", () => {
   assert.match(help.stdout, /Usage: forge stats eval/u);
   const wrong = spawnSync(FORGE, ["stats", "consults"], { encoding: "utf8", env });
   assert.equal(wrong.status, 1);
-  assert.match(wrong.stderr, /no subject named consults\. There is: runs, models, eval, marks\./u);
+  assert.match(wrong.stderr, new RegExp(`no subject named consults\\. There is: ${Object.keys(SAYS).join(", ")}\\.`, "u"));
 });
 
 test("each outcome figure discloses both windows' coverage, and says which window every reason is about", () => {

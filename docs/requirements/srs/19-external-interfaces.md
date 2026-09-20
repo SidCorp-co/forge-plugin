@@ -300,6 +300,23 @@ it. Reading is all this product does there.
   holds measures, on the screen and in the machine form alike, and SHALL state it however few angles
   the call asked for.
 
+- **AC-19-8-40** · Rev: 1 · Proof: plugin/test/stats/eval/diagnose.test.mjs "a finding cites a run of the set and a call inside it, and one that cites neither is left out and counted"
+  WHEN a diagnostic reading over runs the caller named is printed THEN the CLI SHALL report only a
+  finding naming one of those runs and a call inside it, SHALL leave out one whose citation names
+  neither, and SHALL say how many it left out.
+- **AC-19-8-41** · Rev: 1 · Proof: plugin/test/stats/eval/diagnose.test.mjs "the reading says it is not comparable and votes on nothing, and carries no disposition, shift or floor"
+  WHEN a diagnostic reading is printed THEN the CLI SHALL state that it is not comparable with
+  another reading of its kind and votes on no verdict, and SHALL carry no disposition, no shift and
+  no floor of its own.
+- **AC-19-8-42** · Rev: 1 · Proof: plugin/test/stats/eval/diagnose.test.mjs "a reply closing on its count and naming nothing found nothing, and one closing on no count is unread"
+  IF the answer a diagnostic reading was given does not close on the line its contract asks for THEN
+  the CLI SHALL say that answer was unread, and SHALL report a reading that found nothing only where
+  that line is there and names none.
+- **AC-19-8-43** · Rev: 1 · Proof: plugin/test/stats/eval/diagnose.test.mjs "the runs are the caller's by one of three anchors, and two anchors are refused with both named"
+  WHEN the runs a diagnostic reading is taken over are named THEN the CLI SHALL take them by one of a
+  count, a window or a list of keys, SHALL refuse a call naming more than one of the three with every
+  one it named, and SHALL say which of those runs it read and which of the names it could not.
+
 ### EI-09 — The chat backend
 
 Rev: 1 · Enforces: BR-08, BR-14 · Reached from: `plugin/src/tools/services/chatgpt.mjs`

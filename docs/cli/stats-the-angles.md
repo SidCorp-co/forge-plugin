@@ -117,6 +117,14 @@ A run claims its own issue, writes its own records and closes it, so no terminal
 issue qualifies however the tracker holds it. That is what rules out reading a close as a quality
 signal, and it would rule it out even where the count of reopenings had the variance it has not.
 
+## What sits beside the set and is not in it
+
+A reading whose product is prose rather than a figure cannot be an angle, and the answer is not to
+loosen what an angle means. `forge stats diagnose` is a model's reading of a named set of runs, with
+no scalar, no floor and no disposition anywhere in it, and it is a subject of its own for that
+reason. Nothing of it reaches this reading, its `--json` or a mark, and a case holds that. Its own
+argument, and the four outcomes a reply can have: [stats — the diagnostic](stats-the-diagnostic.md).
+
 ## What is deliberately not here
 
 The seconds a call spends by class. It is one angle, it is separately filed, and this topic is the

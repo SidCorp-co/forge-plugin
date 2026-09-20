@@ -160,6 +160,23 @@ const sizeOf = (name, input) => {
   return 0;
 };
 
+/** What a call asked for, in the words the caller wrote, for a reader that has to say what a run did
+ *  rather than count it. `command` answers for `Bash` and is empty for every other tool, which
+ *  leaves an `Edit` reading as the bare word `Edit` — a run that edited the wrong file and a run
+ *  that edited the right one are then the same two characters. The size beside it is the measure and
+ *  this is the subject; neither stands in for the other. Bounding it is the reader's, not this. */
+export const askedOf = (name, input) => {
+  if (name === "Bash") return string(input?.command);
+  const where = string(input?.file_path || input?.notebook_path || input?.path || input?.url);
+  if (name === "Edit") return `${where}\n- ${string(input?.old_string)}\n+ ${string(input?.new_string)}`;
+  if (name === "Write") return `${where}\n${string(input?.content)}`;
+  /* Every part a call carried and never the first one found: a search names a pattern and a place,
+     and read as alternatives two searches of one directory for different things came out the same. */
+  const also = string(input?.prompt || input?.description || input?.query
+    || input?.skill || input?.subagent_type || input?.old_string);
+  return [string(input?.pattern), where, also].filter(Boolean).join("\n");
+};
+
 const textOf = (content) => {
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return "";
@@ -208,7 +225,8 @@ export const callsIn = (whole, classes = CLASSES) => {
     for (const block of content) {
       if (block?.type === "tool_use") {
         const name = string(block.name) || "Bash";
-        uses.set(block.id, { at: stamp, name, command: string(block.input?.command), size: sizeOf(name, block.input) });
+        uses.set(block.id, { at: stamp, name, command: string(block.input?.command),
+          asked: askedOf(name, block.input), size: sizeOf(name, block.input) });
         order.push(block.id);
       } else if (block?.type === "tool_result") {
         results.set(block.tool_use_id, { at: stamp, body: textOf(block.content), error: Boolean(block.is_error) });
@@ -223,6 +241,7 @@ export const callsIn = (whole, classes = CLASSES) => {
       at: use.at,
       name: use.name,
       command: use.command,
+      asked: use.asked,
       size: use.size,
       shell,
       class: classOf(use.name, shell, classes),

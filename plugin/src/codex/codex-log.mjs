@@ -39,6 +39,12 @@ export const logEntries = () => jsonlAt(logPath());
 
 export const logBytes = () => jsonlBytes(logPath());
 
+/** The kind a reading that is not a review writes under. It is named here, beside the readers that
+ *  decide what a consult is, because the claim is about them: every figure `forge codex stats`,
+ *  `eval` and `replay` print goes through `answered()`, so a row under this kind is counted by none
+ *  of them and the consult corpus is what it was before the reading was taken. */
+export const DIAGNOSTIC = "diagnostic";
+
 export const consults = (entries) => entries.filter((one) => one.kind === "consult");
 
 /* A failed consult carries no advice: "3 accepted" against a gateway timeout is not a verdict. */

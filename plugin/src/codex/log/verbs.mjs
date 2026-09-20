@@ -5,7 +5,7 @@ import { jsonLines } from "../../hooks/log/hook-log-file.mjs";
 import { NO_SESSION } from "../../resolve/config.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { flags, pullRepeated } from "../../resolve/flags.mjs";
-import { answered, budgetMs, logBytes, logConsult, logEntries, logPath, maskedDeep, pairedLog, verdictsBy } from "../codex-log.mjs";
+import { DIAGNOSTIC, answered, budgetMs, logBytes, logConsult, logEntries, logPath, maskedDeep, pairedLog, verdictsBy } from "../codex-log.mjs";
 import { countedIn, recheckSaid, scoreOf, unverdicted, verdictRecord } from "./replies.mjs";
 
 const LOG_TAIL = 10;
@@ -44,6 +44,23 @@ export const logLine = (stored, full) => {
   }
   const answer = stored.ok ? `${(stored.reply ?? "").length}ch` : `failed: ${entry.error ?? "?"}`;
   const id = entry.id ? `${entry.id}  ` : "";
+  /* A row of its own, because the rest of this line is a review's: a diagnostic reads runs rather
+     than files, so the files line under it was blank and the head said `no commit` of a reading that
+     is about no commit. What it answers for is the runs it was taken over and what came back. */
+  if (entry.kind === DIAGNOSTIC) {
+    const said = stored.ok
+      ? `${entry.replyRead ? `${entry.findings ?? 0} finding(s)` : "the reply unread"}`
+        + `${entry.leftOut ? `, ${entry.leftOut} citing no call of the set` : ""}`
+      : answer;
+    const head = `${id}${entry.at}  ${entry.model ?? "?"}  ${Math.round((entry.ms ?? 0) / 1000)}s  `
+      + `diagnostic over ${(entry.runs ?? []).length} run(s)  ${said}${wroteIt(entry)}`;
+    if (!full) return head;
+    /* `--full` promises the entry whole, and for this kind the whole of it is which runs it read and
+       what came back — the reply above all, since an unread one is the row somebody most wants to
+       open. The runs stand in for the files a review names: it read runs and no file. */
+    const over = `  runs   ${(entry.runs ?? []).map((one) => `${one.label}${one.issues?.length ? ` ${one.issues.join(",")}` : ""}`).join("  ")}`;
+    return [head, over, "", entry.reply ?? entry.error ?? "", ""].join("\n");
+  }
   const at = entry.head ? `${entry.head}${entry.dirty ? "+dirty" : ""}` : "no commit";
   const served = entry.served?.length ? `  +${entry.served.length} served` : "";
   const counted = countedIn(stored.reply);

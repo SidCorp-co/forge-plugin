@@ -84,3 +84,29 @@ test("the line says which state the declared check left the round in, and says n
   assert.doesNotMatch(logLine({ ...STORED_UNMASKED, check: "none" }, true), /\n {2}check {3}/u,
     "and there is no command to print where none was declared");
 });
+
+/* A reading that is not a review is in this log too, and the rest of the line is a review's: keyed
+   on the kind, it says what it was taken over and what came back; keyed on nothing, it said `no
+   commit` of a reading about no commit and carried a blank files line under it. */
+test("a diagnostic reads as what it was taken over, not as a review with no files", () => {
+  const row = {
+    kind: "diagnostic", at: "2026-09-20T20:26:28.190Z", model: "cx/gpt-6-astra-high", ms: 58_000,
+    ok: true, replyRead: true, findings: 7, leftOut: 2, run: "iss-1995-x", runFrom: "asked",
+    runs: [{ label: "R1" }, { label: "R2" }, { label: "R3" }],
+  };
+  assert.equal(logLine(row, false),
+    "2026-09-20T20:26:28.190Z  cx/gpt-6-astra-high  58s  diagnostic over 3 run(s)  "
+    + "7 finding(s), 2 citing no call of the set  by iss-1995-x (asked)");
+  const whole = logLine({ ...row, reply: "FINDING 1\nCITES R1/1\nDIAGNOSTIC: 1 findings" }, true);
+  assert.doesNotMatch(whole, /files/u, "and the full form carries no files line either");
+  assert.match(whole, /^ {2}runs {3}R1 {2}R2 {2}R3$/mu, "it names the runs where a review names its files");
+  assert.match(whole, /FINDING 1\nCITES R1\/1\nDIAGNOSTIC: 1 findings/u,
+    "and `--full` still opens the reply, which is the whole point of asking for one");
+  assert.match(logLine({ ...row, replyRead: false, findings: 0, leftOut: 0, reply: "no shape at all" }, true),
+    /no shape at all/u, "an unread reply above all: it is the row somebody most wants to open");
+  assert.match(logLine({ ...row, replyRead: false, findings: 0, leftOut: 0 }, false),
+    /diagnostic over 3 run\(s\) {2}the reply unread {2}by/u,
+    "a reply this reader could not read is said to be, never printed as one that found nothing");
+  assert.match(logLine({ ...row, ok: false, error: "the gateway streamed no text at all" }, false),
+    /failed: the gateway streamed no text at all/u);
+});

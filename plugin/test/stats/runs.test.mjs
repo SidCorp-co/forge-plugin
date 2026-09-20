@@ -12,6 +12,7 @@ import { classOf } from "../../src/stats/corpus/classes.mjs";
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { profileOf, runFrom, unionSeconds } from "../../src/stats/runs.mjs";
 import { writeMark } from "../../src/stats/marks/marks.mjs";
+import { USAGE } from "../../src/stats/stats.mjs";
 import { tempRoom } from "../fixtures.mjs";
 import {
   BASE, FORGE, MARKER_TURN, MODELLESS, NOUGHTS, NO_USAGE, OTHER, PROJECT, RESPONSE, SHORT_RESPONSE, SHORT_USAGE,
@@ -166,7 +167,9 @@ test("the subject is named, and a wrong one says which there is", () => {
     env: { ...process.env, XDG_CONFIG_HOME: tempRoom("stats-home-") },
   });
   assert.equal(asked.status, 0);
-  assert.match(asked.stdout, /Usage: forge stats <runs\|models\|eval\|marks>/u);
+  /* The first line off the verb's own text: a set written here again disagrees with it the first
+     time a subject is added, which is the drift this case exists to report. */
+  assert.ok(asked.stdout.startsWith(`${USAGE.split("\n")[0]}\n`), asked.stdout);
 
   const wrong = spawnSync(FORGE, ["stats", "consults"], {
     encoding: "utf8",

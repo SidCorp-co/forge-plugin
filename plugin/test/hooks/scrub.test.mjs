@@ -26,6 +26,25 @@ test("a credential named as one is masked whatever its value looks like", () => 
   assert.match(scrubbed('curl -d \'{"password":"notarealone"}\' https://db'), /"password":"\*\*\*"/u);
 });
 
+/* The two name lists disagreed for as long as they were two: the assignment form trusted a bare
+   `key` and the flag form did not, so this CLI's own documented credential flag was written down
+   whole while the same secret in an environment variable was not (ISS-2015). One list now, and this
+   is the pair that goes red the day they are two again. */
+test("a credential name is the same name on a flag as it is on an assignment", () => {
+  assert.equal(scrubbed("forge doctor --codex-key notarealone"), "forge doctor --codex-key ***");
+  assert.equal(scrubbed("CODEX_KEY=notarealone forge x"), "CODEX_KEY=*** forge x");
+  assert.equal(scrubbed("forge doctor --cloudflare-token notarealone"),
+    "forge doctor --cloudflare-token ***");
+});
+
+/* A prefix that is itself hyphenated is the shape a live key of several providers has, and the run
+   that read this pattern for a payload leaving the machine found neither was a secret on sight. */
+test("a hyphenated key prefix is a credential on sight, as a bare one already was", () => {
+  assert.match(scrubbed("forge x sk-live-abcdefghijklmnopqrstuvwxyz"), /forge x \*\*\*/u);
+  assert.match(scrubbed("forge x sk-proj-abcdefghijklmnopqrstuvwxyz"), /forge x \*\*\*/u);
+  assert.match(scrubbed("forge x sk-abcdefghijklmnopqrstuvwxyz"), /forge x \*\*\*/u);
+});
+
 /* A name-based rule masks these too, so each case here carries no name a rule would read: without
    one, only the value's own shape stands between it and the log. The token rule was covered by a
    fixture the name rule now catches first, which is how a rule goes quietly untested. */

@@ -121,8 +121,10 @@ test("a first argument the verb refuses is a finding, with the word and the set 
   assert.equal(said.length, 1, "one finding for one drift");
   assert.match(said[0], /^`forge record report` is no word it takes: /u, "the word it refused");
   for (const kind of KINDS) assert.ok(said[0].includes(kind), `${kind} is missing from the set printed`);
+  /* The set is read off the verb's own table and not written here: a subject added to `stats` moved
+     this case rather than being caught by it, which is the drift the rule exists to report. */
   assert.deepEqual(claimProblems("`forge stats summary --since 3d`", held),
-    ["`forge stats summary` is no word it takes: runs or models or eval or marks"],
+    [`\`forge stats summary\` is no word it takes: ${wordsOf("stats").join(" or ")}`],
     "and the flags of a word the verb refuses go unjudged: they belong to a surface that is not there");
 });
 
