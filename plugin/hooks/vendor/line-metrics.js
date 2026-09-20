@@ -1,4 +1,4 @@
-// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.16.0, commit 3ef0811,
+// VENDORED — do not edit. Upstream: eslint-plugin-code-quality v0.16.0, commit 0cda6fb,
 //   src/line-metrics.js
 //
 // A copy of packages/code-quality/src/line-metrics.js, for its waiver vocabulary: skill-dup.mjs
