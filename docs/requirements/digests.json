@@ -497,6 +497,18 @@
       "rev": 1,
       "digest": "d7ac684fd106c91296020194dbae0c5eb46994b8ef861462e8205d0127aaf351"
     },
+    "AC-19-8-50": {
+      "rev": 1,
+      "digest": "b7fa82e10bc5e3668d205e0146762feb48c3e8bb6f7108368d4c379005d6f3c0"
+    },
+    "AC-19-8-51": {
+      "rev": 1,
+      "digest": "71871c9a8e1dfdf24936ef264ebe61e401e9ebcc968631a8387a33f17e011d64"
+    },
+    "AC-19-8-52": {
+      "rev": 1,
+      "digest": "ea4d8f62a38dc1bdae78effe9c4737edd9bd6d3017f94923989feb642df4c963"
+    },
     "EI-09": {
       "rev": 1,
       "digest": "d73bef4ecb3232155874dfcc51db03dbca7ab5d94f456c0888ad94ca920be68a"

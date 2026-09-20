@@ -246,6 +246,11 @@ export const runFrom = (path, session, text, classes = undefined) => {
     /* What the API billed this run, counted by the API — the four prices apart, the requests they
        were billed over, and the records that carried no measurement. */
     tokens: read.spent,
+    /* A run's condition rather than its spend: whether it lost what it knew to a compaction and
+       whether a request inside it came back as an error, off the same pass the calls are read from
+       and never folded into a cost — docs/cli/stats-rows.md. */
+    compactions: read.compactions,
+    apiErrors: read.apiErrors,
     /* What the eval joins a run to its work by; the profile prints neither, so this reads no tracker. */
     issues: claimedIn(calls),
     rulings: rulingsIn(calls),
@@ -399,6 +404,28 @@ const tokenLines = (held) => [
   `per request     ${priced(held.perRequest)}`,
 ];
 
+/* A run's condition, not what it spent: a compaction is the harness losing what a run knew and
+   carrying on, and an API error is a request that came back as one rather than an answer. Neither
+   is a call this plugin issued or refused, so neither reaches the refusals listing or the
+   other-errors line, and neither is folded into an angle — a run that did less spent less, but a run
+   that compacted did not do less, it lost ground and kept going. `runs.length` is the population
+   both are counted over; where it is empty there is nothing to count and the figure is unavailable,
+   never the zero a run with nothing wrong with it would also print — docs/cli/stats-rows.md. */
+const conditionOver = (runs) => ({
+  compactions: runs.length ? {
+    met: runs.reduce((sum, run) => sum + run.compactions, 0),
+    runs: runs.filter((run) => run.compactions > 0).length,
+  } : { met: null, runs: null },
+  apiErrors: runs.length ? runs.reduce((sum, run) => sum + run.apiErrors, 0) : null,
+});
+
+const conditionLines = (held, population) => [
+  `compactions     ${scaled(held.compactions.met)} across ${scaled(held.compactions.runs)} of `
+    + `${population} run(s), a run that lost what it knew and carried on`,
+  `api errors      ${scaled(held.apiErrors)} request(s) came back as errors, apart from any refusal `
+    + "this plugin wrote",
+];
+
 export const profileOf = (runs, declared = null) => {
   const seconds = runs.map((run) => run.seconds);
   const byClass = mergedClasses(runs, (run) => run.byClass);
@@ -440,6 +467,7 @@ export const profileOf = (runs, declared = null) => {
     calls: runs.reduce((sum, run) => sum + run.calls, 0),
     medianCalls: per((run) => run.calls),
     tokens: tokensOver(runs),
+    condition: conditionOver(runs),
     unanswered: runs.reduce((sum, run) => sum + run.unanswered, 0),
     timeouts: runs.reduce((sum, run) => sum + run.timeouts, 0),
     toFirstClaim: minutes(medianOrZero(runs.map((run) => run.toFirstClaim).filter((one) => one !== null))),
@@ -499,6 +527,7 @@ export const profileLines = (held, all = false) => [
   `timeouts        ${held.timeouts}`,
   `other errors    ${held.errors.reduce((sum, [, many]) => sum + many, 0)} non-zero exit(s) refused by no rule of this plugin`
     + `${held.errors.length ? `: ${held.errors.map(([label, many]) => `${label} ${many}`).join(", ")}` : ""}`,
+  ...conditionLines(held.condition, held.runs),
   ...rungLines(held),
   ...phaseLines(held),
   ...listing(

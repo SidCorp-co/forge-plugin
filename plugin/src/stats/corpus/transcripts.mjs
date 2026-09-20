@@ -20,6 +20,16 @@ const MARKER = /^<.*>$/u;
 export const MODEL_MIXED = "mixed";
 export const MODEL_NONE = "unattributed";
 
+/* Two records the host writes beside the ones a call reads: `isCompactSummary` on a user record is
+   the host losing what a run knew and carrying on under a written summary in its place, and
+   `isApiErrorMessage` on an assistant record is a request that came back as an error rather than an
+   answer — the latter always under the marker model, so it is already outside the token tally and
+   never dilutes it. Neither is a call this plugin issued or refused, so neither belongs in the
+   refusals listing or the other-errors line; both are counted apart, off the same pass — a run's
+   *condition*, not what it spent, and never folded into an angle — docs/cli/stats-rows.md. */
+const compactSummary = (record) => record.message?.role === "user" && record.isCompactSummary === true;
+const apiError = (record) => record.message?.role === "assistant" && record.isApiErrorMessage === true;
+
 /** The four prices the API bills a request under, in the field names it writes them. All four or
  *  none: the measurement is the set, so a usage object short of one of them is not a smaller
  *  measurement, and a host that renames a field costs this reading its figure rather than reporting
@@ -196,6 +206,8 @@ export const callsIn = (whole, classes = CLASSES) => {
   const models = new Map();
   const spent = noTokens();
   const counted = new Set();
+  let compactions = 0;
+  let apiErrors = 0;
   for (const line of whole.split("\n")) {
     if (!line.startsWith("{")) continue;
     let record;
@@ -213,7 +225,9 @@ export const callsIn = (whole, classes = CLASSES) => {
          per-request figure — the same test the attribution drops it by. Only that: a record the host
          named no model on was still billed, and the attribution's own guard is not the usage's. */
       if (!MARKER.test(String(record.message.model ?? ""))) tally(spent, record.message, counted);
+      if (apiError(record)) apiErrors += 1;
     }
+    if (compactSummary(record)) compactions += 1;
     if (!stamp) continue;
     if (firstAt === null) {
       firstAt = stamp;
@@ -254,5 +268,8 @@ export const callsIn = (whole, classes = CLASSES) => {
       error: result?.error ?? false,
     };
   }));
-  return { calls, brief, models, spent, firstAt, lastAt: Math.max(lastAt, ...calls.map((one) => one.endedAt)) };
+  return {
+    calls, brief, models, spent, compactions, apiErrors, firstAt,
+    lastAt: Math.max(lastAt, ...calls.map((one) => one.endedAt)),
+  };
 };

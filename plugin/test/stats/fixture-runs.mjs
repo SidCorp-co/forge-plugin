@@ -57,6 +57,26 @@ export const MODELLESS = JSON.stringify({
    already cover, a run's clock being every record's. */
 export const SPOKEN = [...RESPONSE, NOUGHTS, MARKER_TURN, NO_USAGE, SHORT_USAGE];
 
+/* The host losing what a run knew and carrying on: a user record with no tool result on it at all,
+   the shape the host writes when it rewrites the run's own history into a summary. Two of them, so a
+   run's own count and the runs-that-met-one count read apart. */
+export const compacted = (seconds) => JSON.stringify({
+  timestamp: at(seconds),
+  type: "user",
+  isCompactSummary: true,
+  message: { role: "user", content: "This session is being continued from a previous conversation." },
+});
+export const COMPACTIONS = [compacted(15), compacted(1500)];
+
+/* A request that came back as an error rather than an answer, under the marker model the token
+   tally already drops — so this cannot also read as a measured request. */
+export const apiErrored = (seconds) => JSON.stringify({
+  timestamp: at(seconds),
+  message: { role: "assistant", model: "<synthetic>", usage: priced(0, 0, 0, 0), content: [{ type: "text", text: "blocked" }] },
+  isApiErrorMessage: true,
+});
+export const API_ERROR = apiErrored(1600);
+
 export const result = (id, seconds, content, isError = false) => JSON.stringify({
   timestamp: at(seconds),
   message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content, is_error: isError }] },
@@ -92,6 +112,8 @@ export const transcript = () => [
   result(REFUSED[0], REFUSED[1] + REFUSED[2], REFUSED[4], true),
   use(UNANSWERED[0], UNANSWERED[1], "Bash", { command: UNANSWERED[2] }),
   ...SPOKEN,
+  ...COMPACTIONS,
+  API_ERROR,
 ].join("\n");
 
 /* The rows have to add up to the corpus: a run filed under no rung and dropped would leave a table

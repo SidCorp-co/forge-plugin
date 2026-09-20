@@ -15,8 +15,8 @@ import { writeMark } from "../../src/stats/marks/marks.mjs";
 import { USAGE } from "../../src/stats/stats.mjs";
 import { tempRoom } from "../fixtures.mjs";
 import {
-  BASE, FORGE, MARKER_TURN, MODELLESS, NOUGHTS, NO_USAGE, OTHER, PROJECT, RESPONSE, SHORT_RESPONSE, SHORT_USAGE,
-  ask, asked, at, corpus, result, transcript, use,
+  BASE, FORGE, MARKER_TURN, MODELLESS, NOUGHTS, NO_USAGE, OTHER, PROJECT, RESPONSE,
+  SHORT_RESPONSE, SHORT_USAGE, apiErrored, ask, asked, at, compacted, corpus, result, transcript, use,
 } from "./fixture-runs.mjs";
 
 test("every row of a fixture run is what the transcript adds up to", () => {
@@ -36,6 +36,10 @@ test("every row of a fixture run is what the transcript adds up to", () => {
   has("timeouts        0");
   has("edits           per run edit 0, write 0, edit heredoc 0, edit file 0, edit sed 0 · median chars/call edit 0, write 0, edit heredoc 0, edit file 0, edit sed 0");
   has("ships           1 pass(es), median 1/run, 0 resumed with --from, a push rejected in 0 run(s)");
+  /* Two compaction records on one run: the count of compactions and the count of runs that met one
+     read apart, which is the whole reason the two are printed as two figures. */
+  has("compactions     2 across 1 of 1 run(s), a run that lost what it knew and carried on");
+  has("api errors      1 request(s) came back as errors, apart from any refusal this plugin wrote");
 
   /* The ship call opens its own phase and the run stays in it to the close, so the `pgrep` line that
      waits for the release, the reads after it and the refused advance are all the shipping phase's.
@@ -89,6 +93,9 @@ test("an empty window is JSON under the flag and prose without it", () => {
   assert.deepEqual([held.skipped, held.outsideWindow, held.unreadable], [1, 1, 0],
     "and what the reading passed over, which is the whole of why the window is empty");
   assert.equal(held.reach, undefined, "a windowed reading reaches back as far as the flag asked and no further");
+  assert.deepEqual(held.condition.compactions, { met: null, runs: null },
+    "no run in the window is nothing to count, not a run with nothing wrong with it");
+  assert.equal(held.condition.apiErrors, null);
 
   const prose = ask(room, "--since", "1d");
   assert.match(prose.stdout, /No issue-flow run for this project in the last 1d/u,
@@ -521,4 +528,47 @@ test("what the API billed is read off the usage alone, whichever record of a res
   assert.deepEqual([modelless.requests, modelless.cacheRead], [1, 3],
     "a record the host named no model on was billed, and the attribution's guard is not the usage's");
   assert.equal(spentIn(MARKER_TURN).requests, 0, "while a turn no model generated is still no request");
+});
+
+/* A run's condition, not its cost: a compaction is the harness losing what a run knew and carrying
+   on, and it is counted apart from the runs that met one, because a run that compacted three times
+   is one run that ran out of room and not three. An api error is a message-level record with no
+   tool call on it at all, so it can never be one of this plugin's own refusals — proved here by
+   keeping it apart from the one call that was refused for a reason of its own. */
+const minimalRun = (session, { compactions = 0, apiErrors = 0, refused = false } = {}) => runFrom("/p", session, [
+  JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-1" } }),
+  use(`${session}-c`, 1, "Bash", { command: "echo hi" }),
+  result(`${session}-c`, 2, "hi"),
+  ...(refused ? [use(`${session}-r`, 3, "Bash", { command: "grep -rn nothing docs/" }), result(`${session}-r`, 4, "", true)] : []),
+  ...Array.from({ length: compactions }, (_unused, one) => compacted(10 + one)),
+  ...Array.from({ length: apiErrors }, (_unused, one) => apiErrored(20 + one)),
+].join("\n"));
+
+test("compactions and the runs that met one are two counts, because a run that compacted three times is one run that ran out of room", () => {
+  const heavy = minimalRun("heavy", { compactions: 3 });
+  const light = minimalRun("light", { compactions: 1 });
+  const clean = minimalRun("clean", {});
+  assert.equal(heavy.compactions, 3);
+
+  const held = profileOf([heavy, light, clean]);
+  assert.deepEqual(held.condition.compactions, { met: 4, runs: 2 },
+    "three compactions on one run and one on another are four met and two runs, never four runs");
+});
+
+test("an api error is counted apart from a non-zero exit this plugin refused", () => {
+  const errored = minimalRun("errored", { apiErrors: 1, refused: true });
+  assert.equal(errored.apiErrors, 1);
+
+  const held = profileOf([errored]);
+  assert.equal(held.condition.apiErrors, 1);
+  /* The refused grep is this plugin's own other error; the api error record carries no tool_use
+     block at all, so it was never a call this reading could have filed under either listing. */
+  const otherErrors = [...held.errors].reduce((sum, [, many]) => sum + many, 0);
+  assert.equal(otherErrors, 1, "the refused grep is the one other error; the api error record is no call");
+});
+
+test("compactions and api errors print as unavailable rather than as a nought where the window holds no run", () => {
+  const held = profileOf([]);
+  assert.deepEqual(held.condition.compactions, { met: null, runs: null });
+  assert.equal(held.condition.apiErrors, null);
 });

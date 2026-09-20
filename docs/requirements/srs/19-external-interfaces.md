@@ -321,6 +321,18 @@ it. Reading is all this product does there.
   THEN the CLI SHALL refuse an unreadable one by naming the verb the caller typed rather than
   another subject sharing that parser.
 
+- **AC-19-8-50** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "compactions and the runs that met one are two counts, because a run that compacted three times is one run that ran out of room"
+  WHEN a profile is printed THEN the CLI SHALL count every compaction the window's runs met and,
+  apart from that count, how many of those runs met at least one, so that one run losing its history
+  more than once is one run and not several.
+- **AC-19-8-51** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "an api error is counted apart from a non-zero exit this plugin refused"
+  WHEN a profile is printed THEN the CLI SHALL count a request that came back as an API error apart
+  from a non-zero exit this plugin refused, the two being different failures the same pass already
+  tells apart.
+- **AC-19-8-52** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "compactions and api errors print as unavailable rather than as a nought where the window holds no run"
+  WHERE the window holds no run the CLI SHALL print the compaction count and the API error count
+  as unavailable rather than as a nought found.
+
 ### EI-09 — The chat backend
 
 Rev: 1 · Enforces: BR-08, BR-14 · Reached from: `plugin/src/tools/services/chatgpt.mjs`

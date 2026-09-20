@@ -125,6 +125,15 @@ no scalar, no floor and no disposition anywhere in it, and it is a subject of it
 reason. Nothing of it reaches this reading, its `--json` or a mark, and a case holds that. Its own
 argument, and the four outcomes a reply can have: [stats — the diagnostic](stats-the-diagnostic.md).
 
+A figure can also sit beside the set for the opposite reason: not because it is prose, but because it
+is not a price. `stats runs` prints how many compactions a window's runs met and how many requests
+inside them came back as errors — the first figure this reading holds about a run's own *condition*
+rather than what it *spent*. It is closer to a quality signal than anything here, and it is exactly
+for that reason that it earns no verdict against this corpus's own floor: doing so would read as
+though it had passed the six conditions below, which it does not meet. It carries no disposition and
+no shift, the same as the diagnostic reading, for an opposite reason. What it is and why it is
+counted apart from a refusal this plugin wrote: [stats — the rows](stats-rows.md).
+
 ## What is deliberately not here
 
 The seconds a call spends by class. It is one angle, it is separately filed, and this topic is the

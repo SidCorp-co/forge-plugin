@@ -101,3 +101,40 @@ endpoint, a missing project slug — is counted with the other errors rather tha
 Those other errors are one line, broken down by the class of the call that exited non-zero. Read as
 refusals they were six of the listing's top ten: a test's failure line, a `grep` that matched
 nothing, a `-h` read whose help text carries the word, an issue body that does.
+
+## Compactions and API errors: a run's condition, not its cost
+
+Two more records sit in the transcript the corpus reader already walks for its calls, and neither
+is a call at all. `isCompactSummary` on a user record is the host losing what a run knew — the
+context ceiling reached, its history rewritten into a summary — and the run carrying on from there.
+`isApiErrorMessage` on an assistant record is a request that came back as an error rather than an
+answer, always under the marker model the token tally already drops, so it was never a measured
+request either. Measured against this project's own corpus the week this was filed: compactions fell
+from 127 across 58 of 272 runs to 30 across 16 of 280 — one run in five hitting the ceiling, down to
+one in eighteen — while API errors rose, on three independent projects at once.
+
+**Neither is a call this plugin issued, refused, or answered for**, so neither belongs beside the
+refusals listing or the other-errors line above: a `grep` that matched nothing is a call this reading
+classified and found wanting, where an API error record carries no `tool_use` block for this reader
+to have opened in the first place. They are counted apart, off the one pass the rest of the profile
+is taken in, and the network is asked nothing either way.
+
+**Compactions print as two counts and not one**, because a run that lost its history three times is
+one run that ran out of room, not three runs that did. The runs figure and the compaction figure move
+independently — a corpus where every compacting run compacted twice would halve the first without
+moving the second at all — and folding them into one number would hide exactly that.
+
+**Neither figure is folded into `forge stats eval`'s angle set.** Every shipped angle is a price —
+`better: -1` over what a run *spent* — and a compaction is not spending: it is a run that carried on
+from a worse position than the one it had, which is a fact about the run's own *condition*. That
+makes it the first figure this reading holds that is not simply a smaller cost, but it is still not a
+quality measure — it does not meet the six conditions [stats — the angles](stats-the-angles.md)
+holds a quality figure to, foremost among them that a quality reading tests an artefact's outcome
+against criteria fixed independently of the run, and a compaction count tests neither. So it prints
+beside the cost figures, with no disposition, no floor and no verdict of its own, exactly as the
+angle topic's closed set stays closed around it.
+
+**A figure whose population is empty is unavailable, and is not the zero a clean window would also
+print.** Where the window holds no run there is nothing to have compacted and no request to have
+failed, which is a different sentence from "nothing went wrong" — so both figures print as
+unavailable there, the same rule the outcome figures and the token medians already keep.
