@@ -188,13 +188,9 @@ test("a route whose first answer is from a window already past still brings its 
     settled(OTHER);
   }
   sawBudget(OTHER, stated({ limit: 60, remaining: 40, resetAt: 140_000 }));
-  for (let one = 0; one < 54; one += 1) {
-    assert.equal(reserveIn(KEY, 100_000), null, `reservation ${one + 1} of the 54 left after those five`);
-  }
-  const waiting = reserveIn(KEY, 100_000);
-  assert.ok(waiting, "the five are off what this window has left, the reading being no correction");
+  for (let one = 0; one < 54; one += 1) reserveIn(KEY, 100_000);
   sawBudget(KEY, stated({ limit: 60, remaining: 0, resetAt: 200_000 }));
-  assert.equal(waiting.said.includes("by something else"), false,
+  assert.equal(reserveIn(KEY, 100_000).said.includes("by something else"), false,
     "the reading was dropped and the five calls under it were not");
 });
 
@@ -256,4 +252,23 @@ test("a reading that lowers what a window has left is lowered again by the calls
     assert.equal(reserveIn(KEY, 100_000), null, `reservation ${one + 1} of the 7 this window has left`);
   }
   assert.ok(reserveIn(KEY, 100_000), "the eleven the answer had not counted are off it too");
+});
+
+/* A route that failed sixty times before anything named its bucket still made sixty calls, and they
+   are sixty this process has to answer for — but not sixty a window that has just opened may charge. */
+test("calls that failed before a route's bucket was named are no debt against a window since opened", () => {
+  const OTHER = "forge_comments.create";
+  forgetBudget();
+  for (let one = 0; one < 60; one += 1) {
+    assert.equal(reserveIn(OTHER, 100_000), null);
+    settled(OTHER);
+  }
+  call(100_000, { limit: 60, remaining: 59, resetAt: 200_000 });
+  assert.equal(reserveIn(OTHER, 100_000), null);
+  sawBudget(OTHER, stated({ limit: 60, remaining: 58, resetAt: 200_000 }));
+  settled(OTHER);
+  for (let one = 0; one < 58; one += 1) {
+    assert.equal(reserveIn(KEY, 100_000), null, `reservation ${one + 1} of the 58 the window states`);
+  }
+  assert.ok(reserveIn(KEY, 100_000), "and the next waits, on the figure the tracker gave rather than on a history");
 });

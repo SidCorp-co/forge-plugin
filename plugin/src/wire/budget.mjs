@@ -18,8 +18,6 @@ const numbered = (headers, name) => {
   return Number.isFinite(held) ? held : null;
 };
 
-const outstandingIn = (held) => Math.max(0, held.sent - held.answers);
-
 /* What is out of this process right now, retired on every attempt however it ended, so an outage is
    not a debt later windows keep paying. A route no answer has placed counts against every scope. */
 const inFlightIn = (scope) => [...out.entries()]
@@ -31,27 +29,19 @@ const lends = (remaining, scope) => Math.max(0, remaining - Math.max(0, inFlight
 
 /* A call reserved before a reset may be charged after it, so what was outstanding at the adoption
    belongs to either window and is subtracted from both rather than credited to a sibling. */
-const opened = (limit, remaining, resetAt, held, carried, scope) => {
-  const from = { sent: (held?.sent ?? 0) + carried, answers: held?.answers ?? 0 };
-  const spanning = outstandingIn(from);
-  return {
-    limit,
-    remaining: lends(remaining, scope),
-    resetAt,
-    sent: from.sent,
-    answers: from.answers,
-    mine: 0,
-    spanning,
-    spent: 0,
-    announced: false,
-  };
-};
+const opened = (limit, remaining, resetAt, scope) => ({
+  limit,
+  remaining: lends(remaining, scope),
+  resetAt,
+  mine: 0,
+  spanning: inFlightIn(scope),
+  spent: 0,
+  announced: false,
+});
 
-/* They spent the window and no reservation took them off it: the route had no bucket when they went. */
+/* Attribution alone: what a window charged them is the server's figure to say and not this one's. */
 const charge = (held, carried) => {
-  held.sent += carried;
   held.spanning += carried;
-  held.remaining = Math.max(0, held.remaining - carried);
 };
 
 export const sawBudget = (key, headers) => {
@@ -68,20 +58,16 @@ export const sawBudget = (key, headers) => {
   /* The reading is a window already past and says nothing of this one; the calls behind it are this
      process's either way, and dropping them with the reading is how they become somebody else's. */
   if (held && resetAt < held.resetAt) return charge(held, carried);
-  const now = !held || resetAt > held.resetAt
-    ? opened(limit, remaining, resetAt, held, carried, scope)
-    : held;
+  const now = !held || resetAt > held.resetAt ? opened(limit, remaining, resetAt, scope) : held;
   if (now === held) charge(now, carried);
   scopes.set(scope, now);
-  now.answers += 1;
   now.limit = limit;
   /* Downward only: a header written before the calls in flight were counted overstates what is left. */
   if (now === held) now.remaining = Math.min(now.remaining, lends(remaining, scope));
   now.spent = Math.max(now.spent, limit - remaining);
 };
 
-/* Sent by this process against a route no answer has named a bucket for yet: they belong to one of
-   these windows and there is no telling which, so every window is charged with all of them. */
+/* Sent against a route no answer has placed: charged to every window, there being no telling which. */
 const unattributed = () => [...unknown.values()].reduce((sum, one) => sum + one, 0);
 
 const wentSaid = (held, scope) => {
@@ -95,8 +81,7 @@ export const reserveIn = (key, now, within = Infinity) => {
   const held = scopes.get(routes.get(key));
   const went = () => {
     out.set(key, (out.get(key) ?? 0) + 1);
-    if (held) held.sent += 1;
-    else unknown.set(key, (unknown.get(key) ?? 0) + 1);
+    if (!held) unknown.set(key, (unknown.get(key) ?? 0) + 1);
     return null;
   };
   if (!held) return went();
@@ -108,8 +93,7 @@ export const reserveIn = (key, now, within = Infinity) => {
     return went();
   }
   const seconds = Math.max(0, (held.resetAt + PAST_RESET_MS - now) / 1000);
-  /* The bound handed down is the whole of what this may spend: past it the call goes, and meets
-     whatever it would have met with none of this. */
+  /* The bound handed down is all this may spend: past it the call goes and meets what it would have. */
   if (seconds * 1000 > within) return went();
   const said = held.announced ? null : `${wentSaid(held, routes.get(key))}${Math.ceil(seconds)}s for `
     + "the reset the tracker named, rather than sending calls it would refuse.";
