@@ -3,7 +3,8 @@
    object does not reach `import { readFileSync } from "node:fs"`, which is how this repository
    imports it everywhere, so the builtins resolve to a module this generates. */
 
-import { absolute, inside as insideOf, over as overOf, placed, prefixOf, reading } from "./placing.mjs";
+import { absolute, inside as insideOf, over as overOf, placed, placedUnder, prefixOf, reading }
+  from "./placing.mjs";
 
 export const READS_DIR = "GATE_READS";
 export const READS_ROOT = "GATE_READS_ROOT";
@@ -144,19 +145,20 @@ const start = (out, root) => {
   let issued = 0;
 
   const inside = (one) => insideOf(root, one);
-  const over = (one) => overOf(root, one);
-  /* Where a name landed once its links were followed, against the root's own placed form: judged
-     lexically, a link a step makes inside its own claim spells any path into it. Null where it
-     landed outside this tree, and a name that cannot be placed blinds, as that state already does. */
+  /* Where a name came to rest, against the root's own placed form: judged lexically, a link a step
+     makes inside its own claim spells any path into it. `at` is null where it can be placed nowhere,
+     which blinds; `rel` where it rests outside this tree; the answer itself where it is no path. */
   const mine = placed(root) ?? root;
-  const landed = (one) => {
+  const placing = (one, how = placed) => {
     const abs = absolute(one);
     if (abs === null) return null;
-    const at = placed(abs);
-    if (at !== null) return insideOf(mine, at);
+    const at = how(abs);
+    if (at !== null) return { at, rel: insideOf(mine, at) };
     blind.add("a read whose links ran out of hops, so where it landed is unknown");
-    return null;
+    return { at: null, rel: null };
   };
+  const landed = (one) => placing(one)?.rel ?? null;
+  const standsOver = (held) => held.at !== null && overOf(mine, held.at);
 
   const entry = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
 
@@ -173,42 +175,45 @@ const start = (out, root) => {
     blind(why) {
       blind.add(why);
     },
-    // One told to follow its links reads a target no claim here models, and blinds instead.
+    /* One told to follow its links reads a target no claim here models, and blinds. Left to itself
+       `cp` keeps a link handed to it, so only one above the last component moved where it looked. */
     copied(one, how, name) {
       if (how !== null && typeof how === "object" && how.dereference) {
         blind.add(`${name}: a copy that follows its links`);
         return;
       }
-      const rel = inside(one);
-      if (rel) whole.add(rel);
-      else if (over(one)) blind.add(`${name}: a copy of a tree this one stands under`);
+      const held = placing(one, placedUnder);
+      if (held === null) return;
+      if (held.rel) whole.add(held.rel);
+      else if (standsOver(held)) blind.add(`${name}: a copy of a tree this one stands under`);
     },
-    // A watch on a link watches the target, which is not what the link's own claim would be keyed on.
+    /* Placement says where the watch went, a link at any component included; what it cannot say is
+       that the watch answers for that target afterwards, so a directory's claim is the walk below. */
     watched(one, name) {
-      const rel = inside(one);
-      if (!rel) {
-        if (over(one)) blind.add(`${name}: a watch on a tree this one stands under`);
+      const held = placing(one);
+      if (held === null) return;
+      if (!held.rel) {
+        if (standsOver(held)) blind.add(`${name}: a watch on a tree this one stands under`);
         return;
       }
       let found;
       try {
-        found = lstatSync(join(root, rel), { throwIfNoEntry: false });
+        found = lstatSync(held.at, { throwIfNoEntry: false });
       } catch {
         found = undefined;
       }
-      if (found?.isSymbolicLink()) blind.add(`${name}: a watch on a link, whose target this follows nowhere`);
-      else if (found?.isFile()) paths.add(rel);
-      else whole.add(rel);
+      if (found?.isFile()) paths.add(held.rel);
+      else whole.add(held.rel);
     },
-    /* Which names a pattern answers with turns on the kind of each entry below its prefix as well, so
-       the claim is the walk; a prefix outside this tree can still descend back into it, and blinds. */
+    // The claim is the walk below the prefix, each entry's kind telling; one resting outside blinds.
     globbed(one, how, name) {
-      const held = how !== null && typeof how === "object" && !Array.isArray(how) ? how : {};
-      const from = absolute(held.cwd) ?? process.cwd();
+      const options = how !== null && typeof how === "object" && !Array.isArray(how) ? how : {};
+      const from = absolute(options.cwd) ?? process.cwd();
       for (const pattern of Array.isArray(one) ? one : [one]) {
-        const rel = inside(absolute(prefixOf(pattern), from));
-        if (rel === null) blind.add(`${name}: a listing by a pattern rooted outside this tree`);
-        else whole.add(rel);
+        const held = placing(absolute(prefixOf(pattern), from));
+        if (held === null || held.at === null) continue;
+        if (held.rel) whole.add(held.rel);
+        else blind.add(`${name}: a listing by a pattern rooted outside this tree`);
       }
     },
     shelled(args) {

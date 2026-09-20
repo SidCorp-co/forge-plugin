@@ -144,13 +144,16 @@ test("a copy told to follow its links blinds the file that called it", () => {
   }
 });
 
-test("a watch on a link blinds the file that called it", () => {
+/* A link at the subject's own last component is placed like one at any other: the watch answers for
+   the target as that target changes, which is the claim, and the link's own text is not. */
+test("a watch on a link claims the path that link lands on, and blinds nothing", () => {
   const where = room({ "plugin/src/one.mjs": "one\n" });
   try {
     symlinkSync("src/one.mjs", join(where.root, "plugin", "aliased.mjs"));
     const one = audited(where, [`import { watch } from "node:fs";`, `watch("plugin/aliased.mjs").close();`].join("\n"));
-    assert.deepEqual(one.blind, ["watch: a watch on a link, whose target this follows nowhere"]);
-    assert.deepEqual(one.whole, []);
+    assert.ok(one.paths.includes("plugin/src/one.mjs"), one.paths.join(" "));
+    assert.deepEqual(one.blind, []);
+    assert.deepEqual(one.whole, [], "it landed on a file, so the claim is that file and not a walk");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
@@ -178,20 +181,72 @@ test("a copy of a tree this one stands under blinds, and one beside it records n
 });
 
 /* `inside` judges the name it was handed, so an alias standing outside this tree reads straight into
-   it while every lexical test says otherwise: the one shape that records nothing and blinds nothing. */
-test("a copy or a watch reaching into this tree through an outside link blinds the file that called it", () => {
+   it while every lexical test says otherwise. Placed, the read is claimed where it came to rest,
+   which is this repository's own path and no blindness at all (ISS-1944). */
+test("a copy or a watch reaching into this tree through an outside link is claimed where it landed", () => {
   const where = room({ "plugin/src/one.mjs": "one\n" });
   try {
     mkdirSync(join(where.at, "outside"), { recursive: true });
     symlinkSync(join(where.root, "plugin"), join(where.at, "outside", "source"));
     const alias = join(where.at, "outside", "source");
     const one = audited(where, COPY(join(alias, "src"), where.dst));
-    assert.deepEqual(one.blind, ["cpSync: a copy of a tree this one stands under"]);
-    assert.deepEqual(one.whole, [], "and it claims nothing under a name that is not this tree's");
+    assert.deepEqual(one.whole, ["plugin/src"]);
+    assert.deepEqual(one.blind, []);
     rmSync(where.out, { recursive: true, force: true });
     const two = audited(where, [`import { watch } from "node:fs";`,
       `watch(${JSON.stringify(join(alias, "src", "one.mjs"))}).close();`].join("\n"));
-    assert.deepEqual(two.blind, ["watch: a watch on a tree this one stands under"]);
+    assert.ok(two.paths.includes("plugin/src/one.mjs"), two.paths.join(" "));
+    assert.deepEqual(two.blind, []);
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+/* `cp` hands a link on as a link, `dereference` being the flag for the other reading and blinding,
+   so the name it was spelled is what it took and a retarget of that link moves what the copy holds.
+   Only a link above the last component moved where the copy looked (ISS-1944). */
+test("a copy of a link claims the link, and one through a link above it claims where that landed", () => {
+  const where = room({ "docs/two.md": "two\n", "other/two.md": "two\n" });
+  try {
+    symlinkSync("../docs", join(where.root, "plugin", "away"));
+    const one = audited(where, COPY("plugin/away", where.dst));
+    assert.deepEqual(one.whole, ["plugin/away"], "cp wrote a link, and its own text is what it took");
+    recorded(where, setOf({ whole: new Set(["plugin/away"]) }));
+    assert.deepEqual(again(where), []);
+    unlinkSync(join(where.root, "plugin", "away"));
+    symlinkSync("../other", join(where.root, "plugin", "away"));
+    assert.deepEqual(again(where), [FILE], "the same content behind it, and a link the copy writes differently");
+    rmSync(where.out, { recursive: true, force: true });
+    const two = audited(where, COPY("plugin/away/two.md", join(where.at, "second")));
+    assert.deepEqual(two.whole, ["other/two.md"], "the link is above the last component, so it is followed");
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+/* Each of the three names a tree in argument one, and each is judged on where that name came to
+   rest: below a ring of links it comes to rest nowhere, which blinds rather than claims. */
+const CAUGHT = (imported, call) => [`import { ${imported} } from "node:fs";`,
+  `try { ${call} } catch (error) { if (error.code !== "ELOOP") throw error; }`].join("\n");
+
+test("a copy, a watch and a glob of a name below a ring of links each blind and claim nothing", () => {
+  const where = room({ "plugin/src/one.mjs": "one\n" });
+  const ring = "a read whose links ran out of hops, so where it landed is unknown";
+  try {
+    symlinkSync("ring2", join(where.root, "plugin", "ring"));
+    symlinkSync("ring", join(where.root, "plugin", "ring2"));
+    const calls = [
+      ["cpSync", CAUGHT("cpSync",
+        `cpSync("plugin/ring/below", ${JSON.stringify(where.dst)}, { recursive: true });`)],
+      ["watch", CAUGHT("watch", `watch("plugin/ring/below").close();`)],
+      ["globSync", CAUGHT("globSync", `globSync("plugin/ring/below/*");`)],
+    ];
+    for (const [named, script] of calls) {
+      rmSync(where.out, { recursive: true, force: true });
+      const one = audited(where, script);
+      assert.deepEqual(one.blind, [ring], `${named} placed a subject that lands nowhere`);
+      assert.deepEqual(one.whole, [], `${named} claimed the name it was spelled`);
+    }
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
@@ -206,7 +261,7 @@ test("a link into this tree is claimed by what it points at, so a change there s
     symlinkSync("real", join(where.root, "plugin", "alias"));
     const one = audited(where, [`import { globSync } from "node:fs";`,
       `globSync("plugin/alias/*.mjs");`].join("\n"));
-    assert.deepEqual(one.whole, ["plugin/alias"]);
+    assert.deepEqual(one.whole, ["plugin/real"], "the prefix is placed, so the claim is what it lands on");
     assert.deepEqual(one.blind, [], "the claim is derivable, so nothing here blinds");
     recorded(where, setOf({ whole: new Set(["plugin/alias"]) }));
     assert.deepEqual(again(where), [], "nothing moved yet");

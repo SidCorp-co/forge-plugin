@@ -113,9 +113,12 @@ held back were held back by one.
 
 A blind file carries **every** cause of its blindness and not the first one the collector reached,
 and each says which of two kinds it is. An \`export\` cause is a call the audit could derive no claim
-from — a name classified in no set of its, which is every name node adds later, or one whose own
-arguments left the subject unestablished: a copy told to follow its links, a watch on a link, a
-pattern rooted outside this tree, and a copy or a watch of a tree this one stands under. A \`child\`
+from, and it is of two shapes. The subject was never established: a name classified in no set of the
+audit's, which is every name node adds later, a copy told to follow its links, a pattern that landed
+outside this tree, and a copy or a watch of a tree this one stands under. Or the subject was
+established and could not be placed: every collector is judged on where its call came to rest once
+the links were followed, so a name below a ring of them lands nowhere this repository can be named
+by, and the read is a route the step could not follow rather than a path inside its claim. A \`child\`
 cause is a process that left no record and could have read this repository: it is answered by closing
 that boundary in the one test file that opens it. Removing one cause of three frees nothing, which is
 why a figure summed by cause predicts nothing until every cause is known — four filings in a row

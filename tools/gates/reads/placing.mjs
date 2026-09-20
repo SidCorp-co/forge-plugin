@@ -60,21 +60,22 @@ export const placed = (one) => {
   return null;
 };
 
+// Where all but a name's last component landed: what a `cp` handed a link keeps rather than follows.
+export const placedUnder = (one) => {
+  const up = placed(dirname(one));
+  return up === null ? null : join(up, basename(one));
+};
+
 const holds = (root, one) => {
   const at = placed(one);
   return inside(root, one) !== null || at === null || inside(root, at) !== null;
 };
 
-/* Whether a subject `inside` discarded reaches this tree anyway: an ancestor reads it through itself,
-   a name landing inside once its links are followed reads what it landed on, and one that cannot be
-   placed might be either — `inside` judges the lexical name and never the alias (ISS-1760). */
-export const over = (root, one) => {
-  const abs = absolute(one);
-  if (abs === null) return true;
-  const at = placed(abs);
-  if (at === null) return true;
+/* Whether a subject resting outside this tree reads it anyway: the tree stands under where it
+   landed. Its caller placed it, this judging that and never the name it was spelled (ISS-1760). */
+export const over = (root, at) => {
   const rel = relative(at, root);
-  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel)) || inside(root, at) !== null;
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
 };
 
 const roots = new Map();
