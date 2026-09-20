@@ -65,9 +65,10 @@ const borrow = (held, key, carried) => {
   held.borrowed.set(key, Math.max(held.borrowed.get(key) ?? 0, Math.min(carried, out.get(key) ?? 0)));
 };
 
-/* Every call this window has to answer for. The calls out against a route no answer has placed are
-   this process's too, and they are deliberately not here: left out, they read as a sibling's and the
-   window takes the bound, which is the safe way to be wrong about them. */
+/* Every call this window has to answer for: its own reservations, and what it borrowed by route. A
+   route no answer has placed is in that borrowing where it was out at the adoption and not where it
+   went afterwards, there being nothing yet to attribute it to. Left out, such a call reads as a
+   sibling's and the window takes the bound, which is the safe way to be wrong about it. */
 const ourOwn = (held) => held.mine
   + [...held.borrowed.values()].reduce((sum, one) => sum + one, 0);
 
