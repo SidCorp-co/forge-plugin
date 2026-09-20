@@ -86,8 +86,16 @@ test("a project that has stored no brief reads that from this same call", () => 
     "and the row carries the call that writes one");
   assert.deepEqual(briefUndecided({ entry: { body: "a brief" } }), [],
     "a project that stored one is told nothing here");
-  assert.deepEqual(briefUndecided({ refused: "the store would not answer" }), [],
-    "and a read the store refused is never printed as an absence");
+});
+
+test("a brief the store would not answer for is no absence, and this reading says it is short", () => {
+  const refused = { refused: "this credential may not read the store" };
+  assert.deepEqual(briefUndecided(refused), [{ level: "miss",
+    label: "project brief",
+    detail: "unread, so whether one is stored was not read here — this credential may not read the store" }],
+  "a reading that gave up on half of what it was asked for may not print nothing and exit green");
+  assert.deepEqual(briefUndecided(refused, true), [],
+    "while the brief's own reading, where it is in this one, carries that refusal itself");
 });
 
 test("a bare reading prints no row of this subject and names the call that prints it whole", () => {

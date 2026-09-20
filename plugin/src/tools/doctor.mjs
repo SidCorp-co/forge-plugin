@@ -243,7 +243,7 @@ const checkProject = async (credentials, graph = null) => {
   const { rows, brief, briefRead } = await projectReport({ credentials, graph });
   report(rows);
   under("undecided");
-  report(briefUndecided(briefRead));
+  report(briefUndecided(briefRead, shown("brief")));
   if (!brief.length) return;
   under("brief");
   block(["", ...brief].join("\n"));

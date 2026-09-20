@@ -35,8 +35,13 @@ export const undecidedKeyRows = (parsed = projectFileHere()) =>
   declarablePaths().filter((one) => !held(parsed, one.path.split("."))).map(rowFor);
 
 /** The brief as a decision rather than as prose, so a project reads what it has not stored in the
- *  same call as the keys it has not set. A read the store refused is no absence and is the brief's
- *  own reading to report, this one being about what nobody has decided. */
-export const briefUndecided = (read) => (read && !read.refused && !read.entry
-  ? [{ label: "project brief", detail: `none stored — ${BRIEF_ROUTE}` }]
-  : []);
+ *  same call as the keys it has not set. A read the store refused is no absence: `carried` says
+ *  whether the brief's own reading is in this one and will report that refusal itself, and where it
+ *  is not, this row is the finding that this reading is short — a diagnosis that gave up on half of
+ *  what it was asked for and printed nothing is the one outcome it may not have. */
+export const briefUndecided = (read, carried = false) => {
+  if (!read || read.entry) return [];
+  if (!read.refused) return [{ label: "project brief", detail: `none stored — ${BRIEF_ROUTE}` }];
+  return carried ? [] : [{ level: "miss", label: "project brief",
+    detail: `unread, so whether one is stored was not read here — ${read.refused}` }];
+};
