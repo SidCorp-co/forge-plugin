@@ -42,6 +42,13 @@ export const NO_USAGE = spoke("msg_four", 400, undefined);
 export const SHORT_USAGE = spoke("msg_five", 500,
   { input_tokens: 1, cache_creation_input_tokens: 2, cache_read_input_tokens: 3 });
 
+/* A record the host wrote no model onto: the attribution has nothing to read and the API billed it
+   all the same. */
+export const MODELLESS = JSON.stringify({
+  timestamp: at(600),
+  message: { role: "assistant", id: "msg_six", usage: priced(1, 2, 3, 4), content: [{ type: "text", text: "said" }] },
+});
+
 /* Two measured requests and 1200 cache read counted once. Every moment is inside the span the calls
    already cover, a run's clock being every record's. */
 export const SPOKEN = [...RESPONSE, NOUGHTS, MARKER_TURN, NO_USAGE, SHORT_USAGE];

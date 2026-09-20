@@ -46,14 +46,17 @@ const measured = (usage) => usage !== null && typeof usage === "object"
    billed, which looks entirely plausible. A record carrying no id is its own request, there being
    nothing to fold it into. */
 const tally = (spent, message, counted) => {
+  /* Eligibility before the id, so an unmeasured record cannot reserve one and drop the measured
+     record that shares it: reserved first, the same two records read differently in either order.
+     The count of records carrying none is per record and not per id, which is what it says. */
+  if (!measured(message.usage)) {
+    spent.unmeasured += 1;
+    return;
+  }
   const id = typeof message.id === "string" ? message.id : null;
   if (id !== null) {
     if (counted.has(id)) return;
     counted.add(id);
-  }
-  if (!measured(message.usage)) {
-    spent.unmeasured += 1;
-    return;
   }
   spent.requests += 1;
   for (const name of NAMES) spent[name] += message.usage[PRICES[name]];
@@ -185,11 +188,14 @@ export const callsIn = (whole, classes = CLASSES) => {
       continue;
     }
     const stamp = Date.parse(record.timestamp);
-    if (record.message?.role === "assistant" && typeof record.message.model === "string") {
-      models.set(record.message.model, (models.get(record.message.model) ?? 0) + 1);
+    if (record.message?.role === "assistant") {
+      if (typeof record.message.model === "string") {
+        models.set(record.message.model, (models.get(record.message.model) ?? 0) + 1);
+      }
       /* A marker model is a turn no model generated, so it is no request and cannot dilute a
-         per-request figure — the same test the attribution drops it by. */
-      if (!MARKER.test(record.message.model)) tally(spent, record.message, counted);
+         per-request figure — the same test the attribution drops it by. Only that: a record the host
+         named no model on was still billed, and the attribution's own guard is not the usage's. */
+      if (!MARKER.test(String(record.message.model ?? ""))) tally(spent, record.message, counted);
     }
     if (!stamp) continue;
     if (firstAt === null) {

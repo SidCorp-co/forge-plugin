@@ -14,7 +14,7 @@ import { profileOf, runFrom, unionSeconds } from "../../src/stats/runs.mjs";
 import { writeMark } from "../../src/stats/marks/marks.mjs";
 import { tempRoom } from "../fixtures.mjs";
 import {
-  BASE, FORGE, MARKER_TURN, NOUGHTS, NO_USAGE, OTHER, PROJECT, RESPONSE, SHORT_USAGE,
+  BASE, FORGE, MARKER_TURN, MODELLESS, NOUGHTS, NO_USAGE, OTHER, PROJECT, RESPONSE, SHORT_USAGE,
   ask, asked, at, corpus, result, transcript, use,
 } from "./fixture-runs.mjs";
 
@@ -505,4 +505,17 @@ test("the token lines print the three readings, each over the population it name
   has("in all          1.2k cache read, 100 cache written, 50 out, 10 in, "
     + "over 2 measured request(s), and 18 record(s) carried no measurement");
   has("per request     600 cache read, 50 cache written, 25 out, 5 in");
+});
+
+test("what the API billed is read off the usage alone, whichever record of a response carries it", () => {
+  const spentIn = (...lines) => callsIn(lines.join("\n")).spent;
+  const first = spentIn(SHORT_USAGE, RESPONSE[0]);
+  const second = spentIn(RESPONSE[0], SHORT_USAGE);
+  assert.deepEqual([first.requests, first.cacheRead, first.unmeasured], [1, 1200, 1],
+    "a record missing a price does not reserve the id of the response it belongs to");
+  assert.deepEqual(first, second, "so the two read the same in either order");
+  const modelless = spentIn(MODELLESS);
+  assert.deepEqual([modelless.requests, modelless.cacheRead], [1, 3],
+    "a record the host named no model on was billed, and the attribution's guard is not the usage's");
+  assert.equal(spentIn(MARKER_TURN).requests, 0, "while a turn no model generated is still no request");
 });
