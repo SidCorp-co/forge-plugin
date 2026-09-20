@@ -272,6 +272,34 @@ it. Reading is all this product does there.
 - **AC-19-8-12** · Rev: 2 · Proof: plugin/test/stats/corpus/guide-parts.test.mjs "the flow is the one that call was served, so a reading does not move when this copy's does"
   WHEN the guide parts are listed THEN each SHALL carry the flow it was rendered for.
 
+- **AC-19-8-29** · Rev: 1 · Proof: plugin/test/stats/eval/angles.test.mjs "--angles names which angles to read, in the order asked, and refuses a name the set does not hold"
+  WHEN angles are asked for by name THEN the CLI SHALL read only names the shipped set holds, SHALL
+  refuse a name outside it with the whole set, and SHALL refuse a name given twice rather than
+  reading it once.
+- **AC-19-8-30** · Rev: 1 · Proof: plugin/test/stats/eval/angles.test.mjs "each angle takes its figure and counts its own population off one profile"
+  WHEN an angle is read over a window THEN the CLI SHALL count it over the population that angle's
+  own entry names rather than over the window's runs, and SHALL carry no figure for it where that
+  population is empty.
+- **AC-19-8-31** · Rev: 1 · Proof: plugin/test/stats/eval/angles.test.mjs "a shift no further than the floor's p95 is not distinguishable from this corpus's own adjacent windows"
+  WHEN a shift between two windows is judged THEN the CLI SHALL compare it with how far two adjacent
+  blocks of this corpus have themselves differed at the two sizes being compared, and SHALL report a
+  shift no further than that reference as not distinguishable from it rather than as a move.
+- **AC-19-8-32** · Rev: 1 · Proof: plugin/test/stats/eval/angles.test.mjs "a floor under the positions a p95 needs withholds the verdict and says how many it had"
+  IF fewer adjacent positions of this corpus yielded a shift than a percentile in the tail needs THEN
+  the CLI SHALL withhold the verdict for that angle and SHALL say how many positions it had and at
+  which two sizes.
+- **AC-19-8-33** · Rev: 1 · Proof: plugin/test/stats/eval/angles.test.mjs "a held reading's side is recomputed from this corpus, and its stored profile answers for nothing"
+  WHERE a stored reading is the window before this one the CLI SHALL recompute that window's figure
+  from the runs this corpus still holds of the span it covers, SHALL take no figure from the stored
+  profile however well its fields match, and SHALL say how many of the recorded runs it found.
+- **AC-19-8-34** · Rev: 1 · Proof: plugin/test/stats/eval/angles.test.mjs "a mark holds the keys it held before an angle existed, and its write spends no floor"
+  WHILE a release is writing the reading it holds for that release the CLI SHALL compute no angle and
+  no floor for it, and SHALL store neither a verdict nor the statement that goes beside the verdicts.
+- **AC-19-8-35** · Rev: 1 · Proof: plugin/test/stats/eval/angles.test.mjs "a reading where every angle improved says what it does not measure, on the screen and in --json"
+  WHEN the angle verdicts are printed THEN the CLI SHALL state beside them what none of the angles it
+  holds measures, on the screen and in the machine form alike, and SHALL state it however few angles
+  the call asked for.
+
 ### EI-09 — The chat backend
 
 Rev: 1 · Enforces: BR-08, BR-14 · Reached from: `plugin/src/tools/services/chatgpt.mjs`
