@@ -1,7 +1,7 @@
 /* `forge project` — the projects themselves, and this CLI's one verb outside any project's scope.
    Every other verb acts inside the project the checkout names; these act on the records that
    naming picks between. Why deletion is not among them: docs/cli/doctor.md. */
-import { deployFrom, deployRows, deployed } from "../tracker/project-config.mjs";
+import { deployFrom, deployRows, deployed, stagingOf } from "../tracker/project-config.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { exclusive, flags, pairOf, pairsFrom, partition, pullRepeated, shortOfAsk, wantsHelp } from "../resolve/flags.mjs";
 import { fieldReplaced, routeIn, routeRefusal } from "../resolve/payload.mjs";
@@ -62,7 +62,7 @@ const idFor = async (slug) => {
 /** The record, with the deploy read through the seat that tells a host from a secret: a project row
  *  carries the test credentials whole, and printing the row would print them. */
 const recordLines = (project) => {
-  const deploy = deployFrom(project?.previewDeploy);
+  const deploy = deployFrom(stagingOf(project?.environments));
   const out = [
     `slug: ${project?.slug}`,
     `name: ${project?.name ?? "unset"}`,

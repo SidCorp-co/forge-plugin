@@ -11,12 +11,12 @@ const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "src
    the release policy's: `report` in doctor.test.mjs exits 1 on its missing credential alone, so a
    case judging a level has to run against a tracker that answers. The report names the policy in
    the words its owner uses — the staging branch, never the field's own name (ISS-90). */
-export const whole = async (config, { previewDeploy = null, saved = {}, project = {} } = {}) => {
+export const whole = async (config, { environments = null, saved = {}, project = {} } = {}) => {
   const tracker = await fakeTracker({
     answer: {
       "forge_projects.list": () => ({ projects: [{ slug: "release-fixture", id: "1e1c1a1e-0000-4000-8000-000000000001" }] }),
       forge_config: () => ({ config }),
-      "forge_projects.get": () => ({ project: { previewDeploy } }),
+      "forge_projects.get": () => ({ project: { environments } }),
       forge_guide: () => ({ refused: "this credential may not read guides" }),
     },
   });
@@ -40,4 +40,4 @@ export const whole = async (config, { previewDeploy = null, saved = {}, project 
   return answered;
 };
 
-export const releaseReport = async (config, previewDeploy = null) => (await whole(config, { previewDeploy })).out;
+export const releaseReport = async (config, environments = null) => (await whole(config, { environments })).out;

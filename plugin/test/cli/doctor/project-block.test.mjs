@@ -14,11 +14,14 @@ const { knowledge } = fakeStore();
 const ISSUE = "22222222-2222-4222-8222-222222222222";
 const PASSWORD = "correct-horse-battery";
 
+/* The bindings whole, as the tracker's row carries them: the production half and the limits are here
+   so the report is judged on a project that has them and not only on one that has the staging half. */
 const deploy = {
-  stagingUrl: "https://beta.example.test",
-  testingUrls: [{ label: "shop", url: "https://shop.example.test" }],
+  live: { url: "https://shop.example.test", apiUrl: null, commitUrl: null, commitPath: null },
+  limits: "a budget the tracker holds for this project",
+  preview: { url: "https://beta.example.test",
+    urls: [{ label: "shop", url: "https://beta.example.test/shop" }] },
   testCredentials: [{ username: "qa@example.test", password: PASSWORD }],
-  notes: "A test account reaches the storefront only.",
 };
 
 const held = { documentId: ISSUE, issueId: "ISS-1", status: "in_progress", title: "one" };
@@ -38,7 +41,7 @@ const state = {
       config: { baseBranch: "staging", releaseModel: "promote", liveBranch: "master",
         releaseStrategy: "fast-forward", pipelineConfig: { autoProdDeploy: false } },
     }),
-    "forge_projects.get": () => ({ project: { previewDeploy: state.deploy } }),
+    "forge_projects.get": () => ({ project: { environments: state.deploy } }),
     forge_knowledge: knowledge,
     /* One handler for the three, because the fake routes every `pm/<what>` path to this tool. */
     forge_project_pm: ({ action }) => (action === "snapshot" ? state.snapshot
@@ -68,9 +71,12 @@ test("the report answers where a change lands and what it can be walked against"
   assert.match(run.stdout, ROW("release strategy", "fast-forward {2}← the tracker's project config"));
   assert.match(run.stdout, ROW("production deploy", "a person's — "));
   assert.match(run.stdout, ROW("staging deploy", "2 host\\(s\\) {2}← the tracker's project detail"));
-  assert.match(run.stdout, ROW("staging url", "https://beta\\.example\\.test"));
-  assert.match(run.stdout, ROW("testing urls", "https://shop\\.example\\.test"));
-  assert.match(run.stdout, ROW("notes", "A test account reaches the storefront only\\."));
+  assert.match(run.stdout, ROW("staging", "https://beta\\.example\\.test"));
+  assert.match(run.stdout, ROW("staging · urls", "https://beta\\.example\\.test/shop"));
+  assert.doesNotMatch(run.stdout, /shop\.example\.test/u,
+    "and the production binding's host is no host of the staging deploy");
+  assert.doesNotMatch(run.stdout, /a budget the tracker holds/u,
+    "and the limits are neither a host nor a credential the report has anything to say about");
 });
 
 /* Both lines Phase 0 reads before it decides how a change lands, off the one record that answers
@@ -184,7 +190,7 @@ test("a pm route that refuses prints no counts at all", async () => {
 
 test("the tracker's own field names reach no reader of this verb", async () => {
   const run = await ask("doctor", "--credentials");
-  assert.doesNotMatch(`${run.stdout}${run.stderr}`, /baseBranch|previewDeploy/u);
+  assert.doesNotMatch(`${run.stdout}${run.stderr}`, /baseBranch|environments/u);
 });
 
 test("a comment carrying the credential is refused, and the refusal names the field", async () => {
@@ -217,7 +223,7 @@ test("a payload holding no credential is sent, and a project holding none refuse
   writeFileSync(body, "The screen rendered and nothing secret is quoted.\n");
   const sent = await ask("comment", "ISS-1", body);
   assert.equal(sent.status, 0, sent.stderr);
-  state.deploy = { stagingUrl: "https://beta.example.test", testCredentials: [] };
+  state.deploy = { preview: { url: "https://beta.example.test" }, testCredentials: [] };
   const secret = join(room.path, "secret.md");
   writeFileSync(secret, `Signed in with ${PASSWORD}.\n`);
   const through = await ask("comment", "ISS-1", secret);
@@ -243,7 +249,7 @@ test("a write is refused where the deploy could not be read at all, and the refu
   const before = posted();
   const run = await ask("comment", "ISS-1", body);
   const rows = await ask("doctor");
-  state.answer["forge_projects.get"] = () => ({ project: { previewDeploy: state.deploy } });
+  state.answer["forge_projects.get"] = () => ({ project: { environments: state.deploy } });
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /could not be read, so nothing here can say whether the payload carries one/u,
     run.stderr);

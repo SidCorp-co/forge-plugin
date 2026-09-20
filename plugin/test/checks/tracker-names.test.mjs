@@ -34,16 +34,27 @@ test("no string this CLI holds prints the tracker's name for a column it reads",
 });
 
 test("the reader that fetches a column passes, and a string holding the same name does not", () => {
-  const reads = "const { previewDeploy } = answer.project;\nconst held = config?.baseBranch ?? null;\n";
+  const reads = "const { environments } = answer.project;\nconst held = config?.baseBranch ?? null;\n";
   assert.deepEqual(printedColumns(reads, "reader.mjs"), []);
-  const prints = 'line(OK, "baseBranch", held);\nfail(`no previewDeploy on ${slug}`);\n';
+  const prints = 'line(OK, "baseBranch", held);\nfail(`no environments on ${slug}`);\n';
   assert.deepEqual(printedColumns(prints, "printer.mjs"), [
     "printer.mjs:1 prints baseBranch",
-    "printer.mjs:2 prints previewDeploy",
+    "printer.mjs:2 prints environments",
   ]);
   /* The complexity is spoken as the tracker spells it — this CLI has no second word for it — so a
      string holding that name is not this rule's (ISS-701, docs/cli/the-kinds.md). */
   assert.deepEqual(printedColumns("fail(`no complexity on ${slug}`);", "printer.mjs"), []);
+});
+
+/* The one word of this rule another service also answers a field of its own under, which that
+   surface prints in its provider's vocabulary: the rule holds it everywhere the tracker's word is
+   the one meant, and reports nothing where it is not (ISS-1965). */
+test("a word the tracker shares with a service this CLI speaks is the tracker's everywhere but that service's own tree", () => {
+  const prints = 'if (returns === "environments") return listed(held);\n';
+  assert.deepEqual(printedColumns(prints, "plugin/src/tools/services/coolify/scope.mjs"), []);
+  assert.deepEqual(printedColumns(prints, "plugin/src/tracker/routes.mjs"), [
+    "plugin/src/tracker/routes.mjs:1 prints environments",
+  ]);
 });
 
 /* The other half of the same rule: `docs/cli/the-kinds.md` decided that the tracker's `complexity`
@@ -107,7 +118,7 @@ test("an alias stands as a retired declaration's own value, and nowhere else on 
 });
 
 test("a comment may name the column it fetches, which is the carve-out the rule keeps", () => {
-  const said = `/* the tracker's field alone calls it ${COLUMNS[0].source} */\n// and ${COLUMNS[1].source} too\n`;
+  const said = `/* the tracker's field alone calls it ${COLUMNS[0].pattern.source} */\n// and ${COLUMNS[1].pattern.source} too\n`;
   assert.deepEqual(printedColumns(said, "commented.mjs"), []);
   assert.deepEqual(quoted(said), [], "a comment holds no span at all");
 });

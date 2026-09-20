@@ -1,9 +1,14 @@
 /* The columns this rule holds, stated as patterns and read by property access, so neither the rule nor its reader is a quoted span and neither needs an exemption. Whose word each of these is, and why: `rest.mjs`, which names the document. A column this CLI has no second word for is not here — `complexity` is spoken as the tracker spells it, which is docs/cli/the-kinds.md's decision, and `ALIASES` below is what holds that true. */
 import { lineAt } from "../markdown.mjs";
 
-export const COLUMNS = [/baseBranch/u, /previewDeploy/u];
-
-const COLUMN_ROWS = COLUMNS.map((pattern) => ({ pattern }));
+/* A row may name where its word is not the tracker's. The deploy bindings are the case: another
+   service this CLI speaks answers a field of its own under the same word, and that surface prints
+   its provider's vocabulary by design, so the rule holds the column everywhere but there rather than
+   giving the column up for the collision. */
+export const COLUMNS = [
+  { pattern: /baseBranch/u },
+  { pattern: /environments/u, elsewhere: /^plugin\/src\/tools\/services\//u },
+];
 
 const COMPLEXITY = "the tracker's complexity";
 const RUNG = "the contract's rung";
@@ -166,11 +171,13 @@ const holdsRetired = (text, from) =>
   RETIRED_HOLDER.test(text.slice(text.lastIndexOf("\n", from) + 1, from - 1));
 
 /** Where a source holds one of those names in a string, named by line so the finding is actionable. */
-export const printedColumns = (text, where) =>
-  quoted(text).flatMap(({ from, held }) =>
-    rowsIn(held, COLUMN_ROWS).map(
+export const printedColumns = (text, where) => {
+  const rows = COLUMNS.filter((row) => !row.elsewhere?.test(where));
+  return quoted(text).flatMap(({ from, held }) =>
+    rowsIn(held, rows).map(
       (row) => `${where}:${lineAt(text, from)} prints ${row.pattern.source}`,
     ));
+};
 
 /** Where a source says a third word for one of the two nouns, with the word it refused and which
  *  noun was meant, so the line says what to write instead of it. */

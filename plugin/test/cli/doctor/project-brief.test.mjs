@@ -15,10 +15,11 @@ const ISSUE = "22222222-2222-4222-8222-222222222222";
 const PASSWORD = "correct-horse-battery";
 
 const deploy = {
-  stagingUrl: "https://beta.example.test",
-  testingUrls: [{ label: "shop", url: "https://shop.example.test" }],
+  live: { url: "https://shop.example.test" },
+  limits: "a budget the tracker holds for this project",
+  preview: { url: "https://beta.example.test",
+    urls: [{ label: "shop", url: "https://beta.example.test/shop" }] },
   testCredentials: [{ username: "qa@example.test", password: PASSWORD }],
-  notes: "A test account reaches the storefront only.",
 };
 
 const held = { documentId: ISSUE, issueId: "ISS-1", status: "in_progress", title: "one" };
@@ -45,7 +46,7 @@ const state = {
     forge_config: () => ({
       config: { baseBranch: "staging", releaseModel: "promote", liveBranch: "master", pipelineConfig: { autoProdDeploy: false } },
     }),
-    "forge_projects.get": () => ({ project: { previewDeploy: state.deploy } }),
+    "forge_projects.get": () => ({ project: { environments: state.deploy } }),
     forge_knowledge: counted,
     /* One handler for the three, because the fake routes every `pm/<what>` path to this tool. */
     forge_project_pm: ({ action }) => (action === "snapshot" ? state.snapshot

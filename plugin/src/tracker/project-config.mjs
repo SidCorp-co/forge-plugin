@@ -172,7 +172,6 @@ export const releasePolicy = once(async () => {
 });
 
 const HOST = /^https?:\/\//u;
-const NOTES = "notes";
 
 /* One walk serves three readers: what to print, what to withhold, what a payload must not carry. */
 const leaves = (value, at = []) => {
@@ -207,8 +206,8 @@ const shownHost = (value) => {
 /** A host is told by the shape of its value, never by a list of keys: the field set grows, and a
  *  rule printing everything not named as a secret prints tomorrow's by default. So a string beside
  *  a host is not its label however much it reads like one — `testCredentials` holding a login URL
- *  is the tracker's shape, and the password beside it would print unasked. `notes` at the top is
- *  prose the schema forbids a secret in; everything else is withheld. */
+ *  is the tracker's shape, and the password beside it would print unasked. Everything that is not a
+ *  host is withheld, prose included: the bindings carry no key a note could be read from. */
 export const deployFrom = (deploy) => {
   const urls = [];
   const rest = [];
@@ -217,17 +216,32 @@ export const deployFrom = (deploy) => {
     if (shown) urls.push({ label: labelOf(one.at), url: shown });
     if (shown !== one.value) rest.push(one);
   }
-  const isNote = (one) => one.at.length === 1 && one.at[0] === NOTES;
   return {
     urls,
-    notes: rest.filter(isNote).map((one) => one.value),
-    withheld: rest.filter((one) => !isNote(one)).map((one) => ({ label: labelOf(one.at), value: one.value })),
+    withheld: rest.map((one) => ({ label: labelOf(one.at), value: one.value })),
     from: DEPLOY_SOURCE,
   };
 };
 
-export const deployed = (deploy) =>
-  Boolean(deploy && (deploy.urls.length || deploy.notes.length || deploy.withheld.length));
+export const deployed = (deploy) => Boolean(deploy && (deploy.urls.length || deploy.withheld.length));
+
+/* Two keys of the bindings are not the staging deploy, and they go by name: the live binding is the
+   production one, whose hosts printed under a staging heading would be a false reading, and the
+   limits are a blob the tracker gives a write door of its own, holding neither a host nor a
+   credential. Dropped rather than the rest being picked, so a key the tracker grows next is withheld
+   by the rule above rather than dropped out of the guard that reads it. */
+const NOT_STAGING = new Set(["live", "limits"]);
+const PREVIEW = "preview";
+
+/** The staging half of a project's deploy bindings, under this CLI's own word for it — the label a
+ *  host or a withheld value is printed under is built from these keys, and the tracker's word for
+ *  the half is not one a reader of this CLI has ever been shown. The test credentials sit beside
+ *  both halves rather than inside either, so they arrive here as the bindings hold them. */
+export const stagingOf = (bindings) => (bindings
+  ? Object.fromEntries(Object.entries(bindings)
+    .filter(([key]) => !NOT_STAGING.has(key))
+    .map(([key, held]) => [key === PREVIEW ? "staging" : key, held]))
+  : bindings);
 
 const NO_RECORD = "the project detail answered with no project record";
 
@@ -235,7 +249,7 @@ const NO_RECORD = "the project detail answered with no project record";
 export const stagingDeploy = once(async () => {
   if (!slugIfAny()) return null;
   const answer = await scoped("forge_projects.get", {}, true);
-  if (answer?.project) return deployFrom(answer.project.previewDeploy);
+  if (answer?.project) return deployFrom(stagingOf(answer.project.environments));
   return { ...deployFrom(undefined), refused: answer?.refused ?? NO_RECORD };
 });
 
@@ -369,11 +383,9 @@ const policyRows = (policy, landing) => {
   return said ? [...out, { level: "miss", label: "release policy", detail: said }] : out;
 };
 
-/** The hosts and the notes, one row each, in the shape the report and the project's record both print. */
-export const deployRows = (deploy) => [
-  ...deploy.urls.map((one) => ({ level: "ok", label: one.label, detail: one.url })),
-  ...deploy.notes.map((one) => ({ level: "ok", label: "notes", detail: one })),
-];
+/** The hosts, one row each, in the shape the report and the project's record both print. */
+export const deployRows = (deploy) =>
+  deploy.urls.map((one) => ({ level: "ok", label: one.label, detail: one.url }));
 
 /** The project's answer in this CLI's words, one row each with where it was read, in the shape the
  *  one verb reporting every level of configuration prints its own keys in. */

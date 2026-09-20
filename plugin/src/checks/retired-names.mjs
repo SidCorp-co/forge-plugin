@@ -15,6 +15,7 @@ export const RETIRED = [
   { name: "schema", kind: "verb", release: "3.35.252" },
   { name: "call", kind: "verb", release: "3.35.252" },
   { name: "productionBranch", kind: "column", release: "3.36.180" },
+  { name: "previewDeploy", kind: "column", release: "3.36.182" },
 ];
 
 const REGISTRIES = new Set(["plugin/src/resolve/visibility.mjs", "plugin/src/commands.mjs"]);

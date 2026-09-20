@@ -30,7 +30,8 @@ const state = {
       description: "the tracker's own plugin",
       role: "admin",
       createdAt: "2026-09-02T07:29:19.097Z",
-      previewDeploy: { stagingUrl: "https://beta.example.test", testCredentials: [{ password: PASSWORD }] },
+      environments: { live: { url: "https://live.example.test" }, limits: "a budget this reader spends nothing of",
+        preview: { url: "https://beta.example.test" }, testCredentials: [{ password: PASSWORD }] },
     }),
     "forge_projects.create": (args) => ({ id: "44444444-4444-4444-8444-444444444444", ...args.data, archivedAt: null }),
     "forge_projects.update": (args) => ({ ...rows[0], ...args.data }),
@@ -60,7 +61,9 @@ test("a project's record is printed with its test credentials withheld", async (
   assert.match(run.stdout, /^role: admin$/mu);
   assert.match(run.stdout, /^created: 2026-09-02$/mu);
   assert.match(run.stdout, /^archived: no$/mu);
-  assert.match(run.stdout, /^ {2}staging url: https:\/\/beta\.example\.test$/mu);
+  assert.match(run.stdout, /^ {2}staging: https:\/\/beta\.example\.test$/mu);
+  assert.doesNotMatch(run.stdout, /live\.example\.test|a budget this reader/u,
+    "the production binding and the limits are no part of this record's staging deploy");
   assert.match(run.stdout, /^ {2}held, not printed: test credentials · password$/mu);
   assert.doesNotMatch(run.stdout, new RegExp(PASSWORD, "u"),
     "a project row carries the credentials whole, so printing the row would print them");

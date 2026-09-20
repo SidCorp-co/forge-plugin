@@ -323,7 +323,8 @@ test("a body carrying this project's test credential is refused, and the field n
 
 test("neither a body nor a slug carrying it reaches the tracker", async () => {
   state.answer["forge_projects.get"] = () => ({
-    project: { previewDeploy: { url: "https://staging.example.test", testCredentials: { password: "a-long-staging-secret" } } },
+    project: { environments: { preview: { url: "https://staging.example.test" },
+      testCredentials: { password: "a-long-staging-secret" } } },
   });
   try {
     const run = await ran(["knowledge", "write", "module-knowledge", "-", "--kind", "reference",

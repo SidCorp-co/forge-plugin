@@ -45,12 +45,12 @@ const sorted = (held, orderless) => {
    turns out not to differ fails: a declaration nobody re-reads is how a difference gets forgotten. */
 const ARCHIVED = "the projection carries whether the row is archived and the tool's answer did not";
 
-/* The staging deploy's own pair, declared rather than closed: ISS-1965 holds the reading, and until
-   it lands the capture is what says the two sides have stopped meeting. */
-const RETIRED_DEPLOY = "the projection defaults a column the tracker has retired, so every project "
-  + "reads as one that configured no staging deploy (ISS-1965)";
-const UNREAD_DEPLOY = "the tool answers the deploy bindings under a name this projection does not "
-  + "read, so the hosts, the notes and the test credentials reach no caller (ISS-1965)";
+/* The deploy bindings on a project that configured none: the tool answers the empty binding whole
+   and the route answers the column as it stands, which is null. The projection carries the row's own
+   answer rather than the tool's expansion, so a caller can tell a project that configured nothing
+   from one whose reading did not happen. */
+const EMPTY_BINDINGS = "the tool expands a null column into the empty binding and the route answers "
+  + "the column as the row holds it";
 
 /* Five rows, one projection: each answers the project row the tracker serves, which is the body
    `projects-get` captured, so they are judged against it rather than each owing a capture of a
@@ -116,8 +116,7 @@ const PAIRS = {
   /* The archive is reversible and the verb that reverses it needs to be told which rows are in it,
      so both projections carry the column the tool's answer never had. */
   "projects-get": { key: "forge_projects.get",
-    differs: { "project.archivedAt": ARCHIVED, "project.previewDeploy": RETIRED_DEPLOY,
-      "project.environments": UNREAD_DEPLOY } },
+    differs: { "project.archivedAt": ARCHIVED, "project.environments": EMPTY_BINDINGS } },
   "projects-list": { key: "forge_projects.list", differs: { projects: ARCHIVED },
     orderless: { path: "projects", by: "id" } },
   "pm-snapshot": { key: "forge_project_pm.snapshot", differs: {} },
@@ -301,6 +300,26 @@ describe("every row of the table is judged", () => {
       const { project } = ROUTES[key].answers({ page }, {});
       assert.equal(project.slug, "forge-plugin", key);
       assert.equal(project.archivedAt, null, `${key} drops the column the archive is read from`);
+    }
+  });
+
+  /* What the retired column read wrong: a default substituted here answered the same for a project
+     that configured nothing and one that configured a full staging deployment, and no verb of this
+     CLI could tell the two apart (ISS-1965). */
+  it("the deploy bindings travel as the row holds them, and the row's own secrets do not", () => {
+    const page = held("projects-get").rest.project;
+    const bindings = { live: null, limits: null,
+      preview: { url: "https://beta.example.test" }, testCredentials: [] };
+    for (const key of [...PROJECT_ROWS, "forge_projects.get"]) {
+      const answer = (row) => ROUTES[key].answers({ page: row }, {}).project;
+      assert.equal(answer(page).environments, null, `${key} invents no binding where the row holds none`);
+      assert.deepEqual(answer({ ...page, environments: bindings }).environments, bindings, key);
+      assert.equal(answer(without(page, ["environments"])).environments, undefined,
+        `${key} substitutes no shape for a key the row does not carry at all`);
+      for (const secret of ["webhookSecret", "apiKey"]) {
+        assert.equal(Object.hasOwn(answer({ ...page, [secret]: "held" }), secret), false,
+          `${key} carries the row's ${secret} to a caller`);
+      }
     }
   });
 

@@ -49,17 +49,15 @@ const PAGE = ({ page }) => page;
 /** Read through here, never off the row: a default only the transport sees is one no capture can. */
 export const answersOf = (row) => row?.answers ?? PAGE;
 
-/* The column is null where nothing was configured and the tool answered with the empty shape, which
-   is what `stagingDeploy` and `--credentials` read; a null here would be a shape they cannot walk. */
-const NO_DEPLOY = { notes: null, stagingApiUrl: null, stagingUrl: null, testCredentials: [], testingUrls: [] };
-
+/* The deploy bindings travel as the row holds them: null where the project configured none, and the
+   tracker's own shape where it did. A default substituted here would answer the same for both, and
+   every reader below would be walking this file's invention rather than the project's record. */
 const projectOf = (row) => {
   const { id, slug, name, description, orgId, createdBy, role, repoPath, workspaceSetup, baseBranch,
-    liveBranch, releaseModel, releaseStrategy, defaultDeviceId, previewDeploy, createdAt,
+    liveBranch, releaseModel, releaseStrategy, defaultDeviceId, environments, createdAt,
     archivedAt } = row ?? {};
   return { id, slug, name, description, orgId, createdBy, role, repoPath, workspaceSetup, baseBranch,
-    liveBranch, releaseModel, releaseStrategy, defaultDeviceId,
-    previewDeploy: previewDeploy ?? NO_DEPLOY, createdAt, archivedAt };
+    liveBranch, releaseModel, releaseStrategy, defaultDeviceId, environments, createdAt, archivedAt };
 };
 
 /* Two of the three parts are separate requests, so a reader that named neither is not made to pay

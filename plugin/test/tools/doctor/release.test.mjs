@@ -56,11 +56,11 @@ test("a staging branch with no deploy behind it is a note, not a failure", async
 test("a deploy on record is reported by count, and its credential is not printed", async () => {
   const out = await releaseReport(
     { baseBranch: "staging", releaseModel: "promote", liveBranch: "master", pipelineConfig: { autoProdDeploy: false } },
-    { stagingUrl: "https://beta.example.test", testCredentials: [{ password: "correct-horse-battery" }] },
+    { preview: { url: "https://beta.example.test" }, testCredentials: [{ password: "correct-horse-battery" }] },
   );
   assert.match(out, /\[ {2}ok {2}\] staging deploy\s+1 host\(s\) {2}← the tracker's project detail/u);
   assert.match(out, /\[ {2}ok {2}\] test credentials\s+present, forge doctor --credentials/u,
     "the report says where the value is read, never the value");
   assert.doesNotMatch(out, /correct-horse-battery/u);
-  assert.doesNotMatch(out, /previewDeploy/u, "and the tracker's own field name is not what a reader is shown");
+  assert.doesNotMatch(out, /environments/u, "and the tracker's own field name is not what a reader is shown");
 });

@@ -13,7 +13,7 @@ const { credentialAhead, deployFor } = await import("../../../src/flow/route.mjs
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const SCREEN = "Screen change: yes.\nSchema coupling: no.\nUser-facing outcome: no.";
 const QUIET = "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: yes.";
-const NO_LOGIN = { urls: [], notes: [], withheld: [], from: "the tracker's project detail" };
+const NO_LOGIN = { urls: [], withheld: [], from: "the tracker's project detail" };
 const A_LOGIN = { ...NO_LOGIN, withheld: [{ label: "test credentials · password", value: "hunter2" }] };
 const ahead = (issue, deploy) =>
   credentialAhead(viewFrom("the-uuid", issue, [], null, null, null, deploy), "ISS-3");
@@ -92,7 +92,7 @@ const state = {
   comments: { "screen-uuid": [baseline("screen-note")], "earns-uuid": [baseline("earns-note")] },
   answer: {
     forge_config: () => ({ config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: {} } }),
-    "forge_projects.get": () => ({ project: { previewDeploy: state.deploy } }),
+    "forge_projects.get": () => ({ project: { environments: state.deploy } }),
     /* Writes are kept, unlike the shared fixture's: the lease this file's transition renews is read
        back and compared with what was sent, and a store that forgets fails that comparison. */
     forge_issues: (args) => {

@@ -177,7 +177,7 @@ test("a file rewritten between the scan and its request is refused, and no bytes
 /* The scan is the write's other refusal, and its ordering is ISS-577's where the refusal is not. */
 test("a credential in the last file is refused before the first of them is sent", async () => {
   const secret = "staging-password-nobody-should-attach";
-  state.answer["forge_projects.get"] = () => ({ project: { previewDeploy: { url: "https://staging.test", password: secret } } });
+  state.answer["forge_projects.get"] = () => ({ project: { environments: { preview: { url: "https://staging.test" }, testCredentials: [{ password: secret }] } } });
   order.length = 0;
   const clean = wrote("scan-first.txt");
   const leaky = join(room.path, "scan-second.txt");

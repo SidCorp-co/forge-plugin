@@ -17,6 +17,7 @@ import {
   releaseConflict,
   releaseFrom,
   releaseLine,
+  stagingOf,
   unreadFrom,
   waitsForPerson,
 } from "../../src/tracker/project-config.mjs";
@@ -24,13 +25,22 @@ import {
 /* No key in the checkout, which is what every derivation case reads: the override is passed in. */
 const NONE = { value: null, from: null };
 
-const HELD = {
-  stagingUrl: "https://beta.example.test",
-  stagingApiUrl: "https://api-beta.example.test",
-  testingUrls: ["https://beta.example.test/admin", { label: "shop", url: "https://shop.example.test" }],
+/* The bindings in the shape the tracker serves them in, read off the wire on projects that have
+   both halves configured: the staging half, the production one, the limits the tracker writes
+   through a door of its own, and the credentials lifted out of both halves and held once. */
+const BINDINGS = {
+  live: { url: "https://shop.example.test", apiUrl: "https://api.example.test",
+    commitUrl: null, commitPath: null },
+  limits: "a budget the tracker holds for this project and no reader here spends",
+  preview: {
+    url: "https://beta.example.test",
+    apiUrl: "https://api-beta.example.test",
+    urls: [{ url: "https://beta.example.test/admin", label: "shop" }],
+  },
   testCredentials: [{ username: "qa@example.test", password: "correct-horse-battery" }],
-  notes: "A test account reaches the storefront only.",
 };
+
+const HELD = stagingOf(BINDINGS);
 
 const POLICY = releaseFrom({
   baseBranch: "staging",
@@ -52,14 +62,25 @@ test("a host is every http value the deploy holds, however deeply", () => {
     "https://beta.example.test",
     "https://api-beta.example.test",
     "https://beta.example.test/admin",
-    "https://shop.example.test",
   ]);
 });
 
 test("a host's label is the field that held it, in words rather than the tracker's key", () => {
   const found = deployFrom(HELD).urls.map((one) => one.label);
-  assert.deepEqual(found, ["staging url", "staging api url", "testing urls", "testing urls"],
+  assert.deepEqual(found, ["staging", "staging · api url", "staging · urls"],
     "two rows may share a label; the URLs are what distinguish them");
+});
+
+/* The two halves of the bindings the staging deploy is not: the production hosts printed under a
+   staging heading would be a false reading, and the limits would be withheld as a credential and
+   printed by the flag that prints one (ISS-1965). */
+test("the production binding and the limits are no part of the staging deploy", () => {
+  const found = deployFrom(HELD);
+  assert.deepEqual(found.urls.map((one) => one.url).filter((url) => url.includes("shop.example")), [],
+    "the live host reaches no row of the staging deploy");
+  assert.deepEqual(found.withheld.filter((one) => one.value === BINDINGS.limits), [],
+    "and the limits reach neither the withheld list nor the flag that prints it");
+  assert.equal(credentialLeak({ body: BINDINGS.limits }, found), null);
 });
 
 /* The label a string beside a host reads as is the shape this got wrong once: `testCredentials`
@@ -74,19 +95,21 @@ test("a string beside a host is withheld, never promoted to that host's label", 
     "test credentials · password", "and the write guard sees what the printer withheld");
 });
 
-test("everything that is neither a host nor the notes is withheld, named and not valued", () => {
-  const { withheld, notes } = deployFrom(HELD);
+test("everything that is not a host is withheld, named and not valued", () => {
+  const { withheld } = deployFrom(HELD);
   assert.deepEqual(withheld.map((one) => one.label),
-    ["testing urls · label", "test credentials · username", "test credentials · password"],
+    ["staging · urls · label", "test credentials · username", "test credentials · password"],
     "a benign label lands here too: a false `present` is an annoyance, a printed password is not");
-  assert.deepEqual(notes, [HELD.notes]);
   assert.deepEqual(withheld.map((one) => one.value), ["shop", "qa@example.test", "correct-horse-battery"]);
 });
 
-test("a label the deploy holds is not read from the deploy's own prose", () => {
-  const { withheld } = deployFrom({ testCredentials: [{ notes: "a secret in the wrong field" }] });
-  assert.deepEqual(withheld.map((one) => one.label), ["test credentials · notes"],
-    "only the top-level notes field is prose the schema forbids a secret in");
+/* The retired shape declared a prose field and the reading sorted a leaf into it. The bindings carry
+   no such key on any project, so prose anywhere in them is withheld like every other non-host: a
+   reading that kept the list would hand every caller an array that can never fill (ISS-1965). */
+test("prose the bindings hold is withheld, and the reading carries no list for it", () => {
+  const found = deployFrom({ notes: "a test account reaches the storefront only" });
+  assert.deepEqual(found.withheld.map((one) => one.label), ["notes"]);
+  assert.equal("notes" in found, false, "and no key of the reading invites a caller to look for one");
 });
 
 /* Being a URL is not being safe to print: the second version of this printed a password sitting in
@@ -107,13 +130,15 @@ test("a host carrying a secret is shown trimmed, and the whole value stays a cre
 });
 
 test("a host carrying nothing is printed whole and withheld from nothing", () => {
-  const found = deployFrom({ stagingUrl: "https://beta.example.test/shop" });
-  assert.deepEqual(found.urls, [{ label: "staging url", url: "https://beta.example.test/shop" }]);
+  const found = deployFrom(stagingOf({ preview: { url: "https://beta.example.test/shop" } }));
+  assert.deepEqual(found.urls, [{ label: "staging", url: "https://beta.example.test/shop" }]);
   assert.deepEqual(found.withheld, []);
 });
 
 test("a deploy with nothing on it is not one", () => {
-  assert.equal(deployed(deployFrom({ stagingUrl: null, testingUrls: [], testCredentials: [] })), false);
+  assert.equal(deployed(deployFrom(stagingOf({ preview: null, testCredentials: [] }))), false);
+  assert.equal(deployed(deployFrom(stagingOf({ ...BINDINGS, preview: null, testCredentials: [] }))), false,
+    "a project that has a production binding and limits and no staging half has no staging deploy");
   assert.equal(deployed(deployFrom(undefined)), false);
   assert.equal(deployed(deployFrom(HELD)), true);
 });
@@ -175,10 +200,9 @@ test("a project that declares no model is noted rather than read as one, and an 
 test("the report withholds a credential and names the one command that prints it", () => {
   const out = said({});
   assert.match(out, /^test credentials: present, forge doctor --credentials$/mu);
-  assert.match(out, /^held, not printed: testing urls · label, test credentials · username, test credentials · password$/mu);
+  assert.match(out, /^held, not printed: staging · urls · label, test credentials · username, test credentials · password$/mu);
   assert.doesNotMatch(out, /correct-horse-battery/u, "the value is the thing the flag is for");
   assert.doesNotMatch(out, /qa@example\.test/u);
-  assert.match(out, /^notes: A test account reaches the storefront only\.$/mu);
 });
 
 test("the flag prints the values, and nothing else moves", () => {
@@ -188,7 +212,7 @@ test("the flag prints the values, and nothing else moves", () => {
   assert.doesNotMatch(out, /held, not printed/u);
   assert.match(out, /^test credentials: below, printed once$/mu,
     "and the summary stops pointing at the flag the caller just used");
-  assert.match(out, /^staging url: https:\/\/beta\.example\.test$/mu);
+  assert.match(out, /^staging: https:\/\/beta\.example\.test$/mu);
 });
 
 /* Phase 0 is told to read *present* or *none*, so a project with no deploy owes the line too: with
@@ -258,7 +282,7 @@ test("a payload carrying a credential names the field it sits in and the credent
 /* The edge of the guarantee, asserted rather than described: below the length it is whole-field
    only, and a claim wider than that is one the guard cannot keep. */
 test("a short credential is refused where a field is it, quoting and spacing aside", () => {
-  const deploy = deployFrom({ testCredentials: [{ username: "admin" }] });
+  const deploy = deployFrom(stagingOf({ testCredentials: [{ username: "admin" }] }));
   const named = { field: "user", credential: "test credentials · username" };
   assert.deepEqual(credentialLeak({ user: " admin " }, deploy), named);
   assert.deepEqual(credentialLeak({ user: `"admin"` }, deploy), named);
@@ -277,7 +301,8 @@ test("a credential long enough to be one is refused inside prose, without an edg
 
 test("a payload holding no credential passes, and so does one on a project holding none", () => {
   assert.equal(credentialLeak({ body: "nothing secret here" }, deployFrom(HELD)), null);
-  assert.equal(credentialLeak({ body: "correct-horse-battery" }, deployFrom({ stagingUrl: "https://x.test" })), null);
+  assert.equal(credentialLeak({ body: "correct-horse-battery" },
+    deployFrom(stagingOf({ preview: { url: "https://x.test" }, testCredentials: [] }))), null);
   assert.equal(credentialLeak({ body: "correct-horse-battery" }, null), null,
     "a read this CLI could not make refuses nothing: that refusal would have no route out");
 });

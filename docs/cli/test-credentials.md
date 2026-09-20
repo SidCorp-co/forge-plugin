@@ -14,9 +14,10 @@ withhold something nobody recognised, which costs one more round trip; the other
 Two versions of this got it wrong before the rule was stated that way, each caught by a review and
 each verified before it was changed:
 
-- A string sitting beside a host became that host's label — which reads sensible until
-  `testCredentials` holds a login URL, the tracker's own documented shape, and the password beside it
-  prints unasked *and* is classified as a label rather than a secret, so nothing guards it either.
+- A string sitting beside a host became that host's label — which reads sensible until the
+  credentials the tracker holds beside the deploy bindings carry a login URL, which is that
+  record's own documented shape, and the password beside it prints unasked *and* is classified as a
+  label rather than a secret, so nothing guards it either.
 - A host went out verbatim, so a password in a URL's user-info and a signed token in its query did
   the same. A host is now trimmed to origin and path wherever any of those rides on it, and the whole
   value stays a credential candidate.
