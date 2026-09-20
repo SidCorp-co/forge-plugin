@@ -9,7 +9,30 @@ import { lineAt } from "../../markdown.mjs";
 const CLOCK = String.raw`(?:Date\.now\(\)|performance\.now\(\)|process\.hrtime(?:\.bigint)?\([^)]*\))`;
 const NUMBER = String.raw`\d[\d_]*(?:\.\d+)?`;
 
-const OPENS_A_REGEX = /(?:[([{,;:=!&|?+\-*%<>~^]|\b(?:return|typeof|case|in|of|do|else|yield|await))\s*$/u;
+/* The words a `/` may follow and still open a regular expression, held as a list because the window
+   below is sized off the longest of them and a word added here has to move that window with it. */
+const OPENS_A_REGEX_WORDS = ["return", "typeof", "case", "in", "of", "do", "else", "yield", "await"];
+
+const OPENS_A_REGEX = new RegExp(
+  String.raw`(?:[([{,;:=!&|?+\-*%<>~^]|\b(?:${OPENS_A_REGEX_WORDS.join("|")}))\s*$`, "u");
+
+/* The most text that decision can rest on. The pattern is anchored at its end, so it reads the
+   longest word and one character further back — what `\b` needs to know the word is not the tail of
+   an identifier, `footypeof /x/` being a division. */
+const LOOKBEHIND = Math.max(...OPENS_A_REGEX_WORDS.map((word) => word.length)) + 1;
+const WHITESPACE = /\s/u;
+
+/* Whether the `/` at `at` opens a regular expression, decided from that window rather than from
+   `text.slice(0, at)`, which copied the file's whole prefix once per candidate `/` and made the scan
+   quadratic in file length (ISS-1941). The whitespace run is walked by index and stands back in as
+   one space, which `\s*$` reads the same; two candidates cannot walk the same run, a `/` being
+   itself the non-whitespace a walk stops at, so the walking is linear over the file. */
+const opensARegex = (text, at) => {
+  let back = at;
+  while (back > 0 && WHITESPACE.test(text[back - 1])) back -= 1;
+  const head = text.slice(Math.max(0, back - LOOKBEHIND), back);
+  return OPENS_A_REGEX.test(back < at ? `${head} ` : head);
+};
 
 /** Comments and every kind of quoted text, blanked to spaces so line and column still hold. */
 export const blanked = (text) => {
@@ -34,7 +57,7 @@ export const blanked = (text) => {
       while (end < text.length && text[end] !== quote) end += text[end] === "\\" ? 2 : 1;
       hide(at + 1, end);
       at = end + 1;
-    } else if (text[at] === "/" && OPENS_A_REGEX.test(text.slice(0, at))) {
+    } else if (text[at] === "/" && opensARegex(text, at)) {
       let end = at + 1;
       let inClass = false;
       while (end < text.length && (inClass || text[end] !== "/")) {

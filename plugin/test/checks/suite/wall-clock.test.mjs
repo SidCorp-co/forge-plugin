@@ -108,3 +108,18 @@ test("blanking keeps every line where it was, so a finding's line number is the 
   assert.match(blanked(source), /const three = 3;/u, "code outside the comment is left alone");
   assert.doesNotMatch(blanked(source), /two/u, "and the comment's words are gone");
 });
+
+/* The two ends of the bounded lookbehind the slash decision reads (ISS-1941). A window sized to the
+   keyword and no further reads `footypeof` as `typeof`, because the keyword then sits flush against
+   the start of what the pattern is given and the word boundary matches there; a window taken as a
+   fixed slice, without walking the whitespace out first, sees only spaces and calls every spaced
+   regular expression a division. */
+test("a slash after an identifier merely ending in a keyword is a division, so what follows it stands", () => {
+  assert.match(blanked("const n = footypeof /size/u;\n"), /size/u, "`footypeof` is an identifier, not `typeof`");
+});
+
+test("a slash parted from its operator by more whitespace than the lookbehind still opens a regular expression", () => {
+  const source = `const m = ${" ".repeat(40)}/secret/u;\n`;
+  assert.doesNotMatch(blanked(source), /secret/u, "the operator is still what precedes the slash");
+  assert.match(blanked(source), /const m =/u, "and the code before it is left alone");
+});
