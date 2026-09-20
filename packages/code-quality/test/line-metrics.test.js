@@ -71,7 +71,20 @@ test("comment characters count what is said, and nothing a wrap would move", () 
   assert.equal(oneLine, wrapped, "the same words at two wrap columns");
   assert.equal(oneLine, prose.replace(/ /gu, "").length);
   const block = metricsFor("/*\n * Real constraint.\n *\n * --------\n * Another detail.\n */\nconst value = 1;");
-  assert.equal(block.commentChars, "Realconstraint.".length + "Anotherdetail.".length);
+  assert.equal(block.commentChars, "Realconstraint.--------Anotherdetail.".length);
+  // The gutter asterisk is what a block comment gains by being wrapped, so a substantive one is
+  // not counted either — the alternative is a count a wrap moves whenever it lands before a star.
+  assert.equal(
+    metricsFor("/* alpha * beta */\nconst a = 1;").commentChars,
+    metricsFor("/* alpha\n * beta */\nconst a = 1;").commentChars,
+    "an asterisk at a wrap boundary",
+  );
+  // A rule holds the divider too: nothing charges by which line a run of dashes ended up on.
+  assert.equal(
+    metricsFor("// a --- b\nconst a = 1;").commentChars,
+    metricsFor("// a\n// --- b\nconst a = 1;").commentChars,
+    "a decorative run at a wrap boundary",
+  );
   assert.equal(metricsFor("// pass-through: keep — the wrapper is the seam a test needs\nconst a = 1;").commentChars, 0);
   assert.equal(metricsFor("#!/usr/bin/env node\nconst a = 1;").commentChars, 0);
 });

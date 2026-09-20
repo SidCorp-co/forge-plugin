@@ -88,6 +88,21 @@ test("comment-density defaults and options", () => {
   });
 });
 
+/* The wrap a reviewer found: only whitespace moves, but the asterisk the second line gains is a
+   block comment's gutter. Both readings of that pair reach the same verdict at both budgets. */
+test("a block comment wrapped onto a gutter line reaches the same verdict", () => {
+  const ONE_LINE = "/* alpha * beta */\nconst a = 1;";
+  const WRAPPED = "/* alpha\n * beta */\nconst a = 1;";
+  tester.run("comment-density", commentDensity, {
+    valid: [ONE_LINE, WRAPPED].map((code) => ({ code, options: [{ maxChars: 9 }] })),
+    invalid: [ONE_LINE, WRAPPED].map((code) => ({
+      code,
+      options: [{ maxChars: 8 }],
+      errors: [{ messageId: "excessiveDensity", data: { excess: 1, budget: 8, chars: 9, codeLines: 1 } }],
+    })),
+  });
+});
+
 test("an option that counted lines is refused by name, with the one that counts characters", () => {
   for (const [retired, replacement] of [["maxRatio", "maxChars"], ["minCommentLines", "minChars"]]) {
     assert.throws(

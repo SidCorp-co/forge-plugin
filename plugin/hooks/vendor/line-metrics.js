@@ -78,34 +78,38 @@ export function getLineMetrics(sourceCode) {
   if (cached) return cached;
 
   const commentsByLine = new Map();
+  // Re-wrapping a comment adds and takes away two things and no others: blank space, and the
+  // asterisk a block comment's continuation lines are given. So those two are what a character
+  // does not count, and the count is taken over the whole comment rather than line by line —
+  // where a wrap lands decides which line a word sits on, which is the measure being left behind.
+  let commentChars = 0;
   for (const comment of sourceCode.getAllComments()) {
     for (let line = comment.loc.start.line; line <= comment.loc.end.line; line += 1) {
       const comments = commentsByLine.get(line) ?? [];
       comments.push(comment);
       commentsByLine.set(line, comments);
     }
+    // A waiver is the answer to a rule, not prose about the code: charging it to the density
+    // budget makes the escape cost a comment line and pushes a file at the budget over it.
+    if (comment.type === "Shebang" || isIgnoredComment(comment) || isWaiver(comment)) continue;
+    commentChars += comment.value.replace(/[\s*]+/gu, "").length;
   }
 
   const codeLines = new Set();
   const commentLines = new Set();
-  // What the comment says, with every blank taken out, because a re-wrap moves blanks and nothing
-  // else: the same paragraph at one column and at ninety has the same characters left.
-  let commentChars = 0;
   for (let lineNumber = 1; lineNumber <= sourceCode.lines.length; lineNumber += 1) {
     const line = sourceCode.lines[lineNumber - 1];
     const comments = commentsByLine.get(lineNumber) ?? [];
-    let said = 0;
-    for (const comment of comments) {
-      // A waiver is the answer to a rule, not prose about the code: charging it to the density
-      // budget makes the escape cost a comment line and pushes a file at the budget over it.
-      if (comment.type === "Shebang" || isIgnoredComment(comment) || isWaiver(comment)) continue;
-      const content = commentContentOnLine(comment, line, lineNumber);
-      if (isDecorative(content)) continue;
-      said += content.replace(/\s+/gu, "").length;
-    }
-    if (said > 0) {
+    if (
+      comments.some(
+        (comment) =>
+          comment.type !== "Shebang" &&
+          !isIgnoredComment(comment) &&
+          !isWaiver(comment) &&
+          !isDecorative(commentContentOnLine(comment, line, lineNumber)),
+      )
+    ) {
       commentLines.add(lineNumber);
-      commentChars += said;
     }
     if (lineHasCode(sourceCode, lineNumber, comments)) codeLines.add(lineNumber);
   }
