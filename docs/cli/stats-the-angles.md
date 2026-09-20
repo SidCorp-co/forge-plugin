@@ -46,9 +46,11 @@ an improvement or a decline.
 project in a single day and the corpus's history holds every one of them, so its positions cross real
 changes. It is the historical adjacent-shift reference: how far two adjacent blocks of this corpus
 have in fact differed, taken everywhere the comparison could have been taken. Real changes being
-inside it makes it wider than a true null and therefore a conservative gate — which is precisely what
-the third disposition says, and why that disposition is worded about this harness compared with
-itself rather than about an unchanged one.
+inside it makes it wider than a true null and therefore a conservative gate — and the third
+disposition is worded to name that reference rather than a control, because the string is the whole
+verdict for a reader who never opens this topic. One reading it as a controlled comparison takes
+`same` for evidence that a change did nothing, where all the figure supports is that it moved the
+statistic no further than this corpus's adjacent windows move anyway, for any reason.
 
 **The floor's own population is its own.** A geometric position is not a reading: a historical block
 can hold no run that read a guide part, or a figure of zero, and a position whose before figure is

@@ -100,7 +100,7 @@ test("a shift past the floor reads improved or declined by the angle's own direc
   assert.equal(NAMES.every((name) => ANGLES[name].better === -1), true, "every shipped angle is lower-is-better");
 });
 
-test("a shift no further than the floor's p95 is not distinguishable from the harness against itself", () => {
+test("a shift no further than the floor's p95 is not distinguishable from this corpus's own adjacent windows", () => {
   const inside = judge({ minutes: 100 }, { minutes: 96 });
   assert.equal(inside.disposition, DISPOSITIONS.same);
   assert.equal(inside.past, 1, "and every position of that floor moved at least as far");
@@ -276,6 +276,19 @@ test("a mark holds the keys it held before an angle existed, and its write spend
   for (const one of stored) {
     assert.equal(Object.hasOwn(one, "angles"), false, "and a stored reading carries none");
     assert.equal(Object.hasOwn(one, "floor"), false);
+  }
+});
+
+/* The words themselves and not the constant: a case comparing a reading with `DISPOSITIONS.same`
+   passes whatever that constant happens to say, which is how a disposition asserting a control the
+   floor is not survived the consult that withdrew the reading (ISS-1994). */
+test("the same verdict names the reference the floor is, and no disposition claims a control", () => {
+  assert.equal(DISPOSITIONS.same,
+    "not distinguishable from how far this corpus's own adjacent windows differ anyway");
+  const said = anglesSaid([judge({ minutes: 100 }, { minutes: 99 })]).join("\n");
+  assert.match(said, new RegExp(`^ {2}verdict\\s+${DISPOSITIONS.same}: no further than the floor's p95$`, "mu"));
+  for (const text of Object.values(DISPOSITIONS)) {
+    assert.doesNotMatch(text, /compared with itself|unchanged harness|against a null/u);
   }
 });
 

@@ -16,7 +16,7 @@ export const POSITIONS = 20;
 export const DISPOSITIONS = {
   improved: "improved",
   declined: "declined",
-  same: "not distinguishable from this harness compared with itself",
+  same: "not distinguishable from how far this corpus's own adjacent windows differ anyway",
   unevaluable: "not evaluable",
 };
 
