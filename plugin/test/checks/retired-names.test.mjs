@@ -21,18 +21,26 @@ after(() => rmSync(ROOM, { recursive: true, force: true }));
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
 const READ = /\.(?:mjs|md|html)$/u;
+/* A wire capture is JSON, and it is read for one kind alone. A column the tracker retired arrives in
+   a capture as a key this plugin reads, so the name is this repository's to stop carrying; every
+   other word in that file is the tracker's own answer, and an issue whose plan field is called
+   `plan` is data rather than a surface naming a retired verb (consult 43e3ad F2). */
+const CAPTURED = /\.json$/u;
 const SKIP = new Set(["vendor", "node_modules"]);
 
-const walk = (dir, at) =>
+const walk = (dir, at, test) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((one) => {
-    if (one.isDirectory()) return SKIP.has(one.name) ? [] : walk(join(dir, one.name), `${at}/${one.name}`);
-    if (!READ.test(one.name)) return [];
+    if (one.isDirectory()) return SKIP.has(one.name) ? [] : walk(join(dir, one.name), `${at}/${one.name}`, test);
+    if (!test.test(one.name)) return [];
     return [{ rel: `${at}/${one.name}`, text: readFileSync(join(dir, one.name), "utf8") }];
   });
 
 /* `tools/` types the CLI too, and a walk of plugin/ and docs/ read neither call this issue's own steps left pointing at a retired verb (ISS-704). */
-const files = [...walk(join(ROOT, "plugin"), "plugin"), ...walk(join(ROOT, "docs"), "docs"),
-  ...walk(join(ROOT, "tools"), "tools")];
+const reads = (test) => [...walk(join(ROOT, "plugin"), "plugin", test),
+  ...walk(join(ROOT, "docs"), "docs", test), ...walk(join(ROOT, "tools"), "tools", test)];
+const files = reads(READ);
+const captures = reads(CAPTURED);
+const COLUMNS = RETIRED.filter((one) => one.kind === "column");
 const AS_IF = { name: "advance", kind: "verb", release: "3.36.0" };
 /* What the CLI answers to now, so a retired name a live one happens to share is judged by kind. */
 const LIVE = [...new Set([...VERB_NAMES, ...Object.keys(commands)])];
@@ -44,6 +52,14 @@ test("no surface under plugin/, docs/ or tools/ names something that was retired
   assert.deepEqual(found, [], `a retired name is still readable:\n${found.join("\n")}`);
   assert.deepEqual(registryProblems(), []);
   assert.ok(RETIRED.length > 0, "and the registry holds something, so the walk above judged a name");
+});
+
+test("no wire capture carries a column the tracker retired", () => {
+  assert.ok(captures.some(({ rel }) => rel.startsWith("plugin/test/fixtures/rest/")),
+    "the walk reaches the captures this plugin's projections are judged against");
+  assert.ok(COLUMNS.length > 0, "and the registry holds a column, so the walk above judged one");
+  const found = problems(captures, COLUMNS, LIVE);
+  assert.deepEqual(found, [], `a capture serves a name the tracker does not:\n${found.join("\n")}`);
 });
 
 /* Watched firing on a real entry and not only on a synthetic one: the two edge verbs went with the
@@ -158,6 +174,11 @@ test("a retired column is refused wherever the word appears, fixture keys includ
   assert.deepEqual(registryProblems([column]), [], "and the kind is one the registry declares");
   assert.ok(RETIRED.some((one) => one.kind === "column" && one.name === "productionBranch"),
     "the live registry holds it, which is what makes the tree-wide case above cover this repository");
+  assert.ok(captures.some((one) => one.rel === "plugin/test/fixtures/rest/config-get.json"),
+    "and the capture walk reads the wire, which is where a retired column arrives as data");
+  assert.match(problems([{ rel: "plugin/test/fixtures/rest/config-get.json",
+    text: '{ "config": { "productionBranch": "master" } }\n' }], [column], LIVE)[0],
+  /^plugin\/test\/fixtures\/rest\/config-get\.json:1 names the column productionBranch/u);
 });
 
 /* A retired gate's name is a bare word nothing live answers to, so every surface that could still

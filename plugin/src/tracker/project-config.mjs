@@ -282,10 +282,20 @@ const credentialRows = (held, asked) => {
   return out;
 };
 
-const branchRow = (label, held, from) => (held
+/* What the blank costs, per branch, because the two cost different things: the promoting model's
+   branch is where the release lands and its absence is what parks the rung, while the branch a
+   change lands on is what a merged mark's note reads and nothing about a release turns on it. One
+   sentence for both said the park waited on the staging branch, which under a model-read policy it
+   never does (consult 43e3ad F1). */
+const branchRow = (label, held, from, costs) => (held
   ? { level: "ok", label, detail: `${held}  ← ${from}` }
-  : { level: "note", label, detail: `${UNSET} — a release has no named ${label}, and the park before`
-    + " awaiting_release stands until it is set" });
+  : { level: "note", label, detail: `${UNSET} — ${costs}` });
+
+const NO_STAGING = "nothing says which branch a change lands on, so a merged mark has none to read "
+  + "and asks for it on the write";
+
+const NO_LIVE = "a release has no branch to land on, and the park before awaiting_release stands "
+  + "until it is set";
 
 /* The other half of who judges, and the half no tracker schema declares: `qa` says whether the
    judgement is an independent run's and this says which master claims what that offers. */
@@ -342,9 +352,9 @@ const policyRows = (policy, landing) => {
   const route = landingRoute(policy, landing);
   const out = [
     modelRow(policy),
-    branchRow("staging branch", policy.staging, policy.from),
+    branchRow("staging branch", policy.staging, policy.from, NO_STAGING),
     ...(policy.model === PROMOTE
-      ? [branchRow("live branch", policy.live, policy.from), strategyRow(policy)]
+      ? [branchRow("live branch", policy.live, policy.from, NO_LIVE), strategyRow(policy)]
       : []),
     { level: "ok", label: "production deploy", detail: `${policy.autoProd ? "automatic" : "a person's"}`
       + ` — a user-facing change ${waitsForPerson(policy) ? "waits for" : "ships without"} a person's`

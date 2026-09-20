@@ -158,6 +158,12 @@ test("a project with no release step prints the model and leaves no conflict to 
 test("a project that declares no model is noted rather than read as one, and an unknown value is quoted", () => {
   const rowsOf = (releaseModel) => projectRows({ policy: releaseFrom({ baseBranch: "master",
     releaseModel, pipelineConfig: { autoProdDeploy: false } }), deploy: null, landing: NONE });
+  const staging = projectRows({ policy: releaseFrom({ releaseModel: "none",
+    pipelineConfig: { autoProdDeploy: true } }), deploy: null, landing: NONE })
+    .find((row) => row.label === "staging branch");
+  assert.match(staging.detail, /^unset on the project — nothing says which branch a change lands on/u,
+    "an unset staging branch costs a merged mark its note and no release anything: the park is the model's");
+  assert.doesNotMatch(staging.detail, /park/u);
   const undeclared = rowsOf(undefined).find((row) => row.label === "release model");
   assert.equal(undeclared.level, "note", "a project that has decided nothing is not a report failure");
   assert.match(undeclared.detail, /^unset on the project — the park before awaiting_release stands until one of none, promote, publish is declared/u);
@@ -359,6 +365,37 @@ test("what a person owes before the close is the policy's own answer, and silenc
   assert.match(model("promote", true),
     /^the live branch is unset under a model that promotes to it, so nothing says where a release lands/u,
     "the one model with a branch to name owes a person while it is unnamed");
+});
+
+/* Every reader of a policy that reads, over every model and both settings of the flag: the cases
+   above each pin one reader's interesting rows, and a reader wrong in one combination alone passed
+   them all (consult 60f1bb F1). */
+test("every reader of a read policy answers one way per model and flag", () => {
+  const REVIEWED = ["review", "none, by project config"];
+  const rows = [
+    ["none", true, { route: "before-merge", waits: false, line: REVIEWED, owed: null }],
+    ["none", false, { route: "after-merge", waits: false, line: REVIEWED, owed: null }],
+    ["publish", true, { route: "before-merge", waits: false, line: REVIEWED, owed: null }],
+    ["publish", false, { route: "after-merge", waits: true, line: null, owed: /live deploy binding/u }],
+    ["promote", true, { route: "after-merge", waits: false, line: ["promotion", "to live, automatic"], owed: null }],
+    ["promote", false, { route: "after-merge", waits: false,
+      line: ["promotion", "to live, a person's, owed"], owed: /^the promotion from master to live is a person's$/u }],
+  ];
+  for (const [releaseModel, autoProdDeploy, want] of rows) {
+    const policy = releaseFrom({
+      baseBranch: "master",
+      releaseModel,
+      ...(releaseModel === "promote" ? { liveBranch: "live" } : {}),
+      pipelineConfig: { autoProdDeploy },
+    });
+    const where = `${releaseModel}, deploying ${autoProdDeploy ? "on its own" : "by hand"}`;
+    assert.equal(landingRoute(policy, NONE).value, want.route, `landingRoute: ${where}`);
+    assert.equal(waitsForPerson(policy), want.waits, `waitsForPerson: ${where}`);
+    assert.deepEqual(releaseLine(policy), want.line, `releaseLine: ${where}`);
+    assert.equal(releaseConflict(policy), null, `releaseConflict: ${where}`);
+    if (want.owed) assert.match(personOwedForRelease(policy), want.owed, `personOwedForRelease: ${where}`);
+    else assert.equal(personOwedForRelease(policy), null, `personOwedForRelease: ${where}`);
+  }
 });
 
 /* The declaration the tracker states and this is the reader of: the live branch is served non-null
