@@ -47,6 +47,34 @@ test("a call goes until the tracker has stated a budget, and then waits for the 
   assert.equal(reserveIn(KEY, 100_000).said, null, "and one window is announced once, not once per call waiting on it");
 });
 
+/* A call the window would still admit is no safer than one it would not, once the reset the tracker
+   named is too close for the send to be sure of landing on this side of it: the tracker counts a
+   call by when it arrives, and this process cannot promise an admission now will (ISS-2006). */
+test("a call the window would admit but the reset is too close waits rather than risking the window next door", () => {
+  forgetBudget();
+  sawBudget(KEY, stated({ limit: 60, remaining: 5, resetAt: 200_000 }));
+  const held = reserveIn(KEY, 199_500);
+  assert.ok(held, "five are left, but the reset is half a second out");
+  assert.equal(held.seconds, 1.5, "the same bound the exhausted path would have woken at");
+  assert.match(held.said,
+    /an admission this close to the reset the write budget named could land in the window next door; waiting 2s for the reset the tracker named/u);
+});
+
+test("a call outside the boundary margin still admits at once, to the millisecond that starts it", () => {
+  forgetBudget();
+  sawBudget(KEY, stated({ limit: 60, remaining: 5, resetAt: 200_000 }));
+  assert.equal(reserveIn(KEY, 199_000), null, "a full second out, the margin has not started yet");
+});
+
+test("a call held back for the boundary is not charged to the window it never entered", () => {
+  forgetBudget();
+  sawBudget(KEY, stated({ limit: 60, remaining: 2, resetAt: 200_000 }));
+  assert.ok(reserveIn(KEY, 199_500), "half a second from the reset, the margin holds it back");
+  assert.equal(reserveIn(KEY, 150_000), null, "the two it did not spend are still there, safely inside the margin");
+  assert.equal(reserveIn(KEY, 150_000), null, "and then the second");
+  assert.ok(reserveIn(KEY, 150_000), "and the window is spent, exactly two having gone");
+});
+
 /* The header is written before the answers of calls still out are counted, so the lagging one says
    more is left than is: taking it would admit a call a reservation has already spent. */
 test("an answer saying more is left than this process has spent hands no token back", () => {

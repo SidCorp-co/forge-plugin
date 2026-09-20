@@ -110,6 +110,14 @@ export const sawBudget = (key, headers) => {
 /* Sent against a route no answer has placed: charged to every window, there being no telling which. */
 const unattributed = () => [...unknown.values()].reduce((sum, one) => sum + one, 0);
 
+/* An admission this close to the reset is no safer than a wait: the tracker counts a call by when
+   it arrives, not by the window this process reserved it in, so a call sent in the last stretch
+   before the boundary can be received on the far side of it and land in the window next door. The
+   wait path already keeps PAST_RESET_MS clear of that boundary before it wakes; admission owes the
+   same margin, there being nothing else here it is safe to still call "now" (ISS-2006). */
+const edgeSaid = (scope) => `Forge paced itself: an admission this close to the reset the `
+  + `${scope} budget named could land in the window next door; waiting `;
+
 const wentSaid = (held, scope) => {
   const elsewhere = Math.max(0, held.spent - held.mine - held.spanning - unattributed());
   return `Forge paced itself: the ${scope} budget of ${held.limit} is spent for this window`
@@ -127,7 +135,8 @@ export const reserveIn = (key, now, within = Infinity) => {
   if (!held) return went();
   /* The window read is over and the next unknown, so the call goes and its answer opens that one. */
   if (now > held.resetAt) return went();
-  if (held.remaining > 0) {
+  const edge = held.resetAt - now < PAST_RESET_MS;
+  if (held.remaining > 0 && !edge) {
     held.remaining -= 1;
     held.mine += 1;
     return went();
@@ -135,7 +144,8 @@ export const reserveIn = (key, now, within = Infinity) => {
   const seconds = Math.max(0, (held.resetAt + PAST_RESET_MS - now) / 1000);
   /* The bound handed down is all this may spend: past it the call goes and meets what it would have. */
   if (seconds * 1000 > within) return went();
-  const said = held.announced ? null : `${wentSaid(held, routes.get(key))}${Math.ceil(seconds)}s for `
+  const opens = edge && held.remaining > 0 ? edgeSaid(routes.get(key)) : wentSaid(held, routes.get(key));
+  const said = held.announced ? null : `${opens}${Math.ceil(seconds)}s for `
     + "the reset the tracker named, rather than sending calls it would refuse.";
   held.announced = true;
   return { seconds, said };
