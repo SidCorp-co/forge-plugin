@@ -159,8 +159,7 @@ const holding = async (mark) => {
   }
 };
 
-/* The trigger a project declares for reading what has landed: silent where it declared neither key,
-   and a miss where it declared one nothing here can ever count (ISS-1883). */
+/* The trigger a project declares for reading what has landed, silent where it declared neither key (ISS-1883). */
 const reviewRow = async () => {
   const standing = reviewStanding(checkoutRoot());
   if (!standing) return null;
