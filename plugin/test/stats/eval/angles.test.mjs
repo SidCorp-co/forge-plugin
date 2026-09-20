@@ -313,14 +313,22 @@ test("a mark holds the keys it held before an angle existed, and its write spend
   const { releaseMark: poisonedReleaseMark } = await import(pathToFileURL(join(poisonRoot, "stats", "eval", "eval.mjs")));
 
   const was = process.env.TMPDIR;
-  let said;
+  let poisonedSaid;
+  let realSaid;
   try {
     process.env.TMPDIR = room;
-    said = poisonedReleaseMark(PROJECT, { version: "0.0.0-iss2012", head: "deadbeef" }, 3);
+    poisonedSaid = poisonedReleaseMark(PROJECT, { version: "0.0.0-iss2012-poisoned", head: "deadbeef" }, 3);
+    /* The real, unpoisoned `releaseMark` this file already imports, called separately: reachability
+       above proves execution never reaches the poison; this proves the record the production
+       function actually writes — never the poisoned copy's own — carries no trace of the angles
+       computed for real above. Neither call stands in for the other. */
+    realSaid = releaseMark(PROJECT, { version: "0.0.0-iss2012-real", head: "deadbeef" }, 3);
   } finally {
     process.env.TMPDIR = was;
   }
-  assert.match(said, /held as 0\.0\.0-iss2012/u, "releaseMark never touched the poisoned angleOf or anglesOver");
+  assert.match(poisonedSaid, /held as 0\.0\.0-iss2012-poisoned/u,
+    "releaseMark never touched the poisoned angleOf, anglesOver or floorsOver");
+  assert.match(realSaid, /held as 0\.0\.0-iss2012-real/u);
   const stored = readFileSync(marksPath(), "utf8").trim().split("\n").map((line) => JSON.parse(line));
   for (const one of stored) {
     assert.equal(Object.hasOwn(one, "angles"), false, "and a stored reading carries none");
@@ -328,11 +336,11 @@ test("a mark holds the keys it held before an angle existed, and its write spend
     assert.equal(Object.hasOwn(one, "notMeasured"), false,
       "nor the statement beside them: it is the screen's and `--json`'s, not a field of every mark a ship writes");
   }
-  const written = stored.find((one) => one.version === "0.0.0-iss2012");
+  const written = stored.find((one) => one.version === "0.0.0-iss2012-real");
   const blob = JSON.stringify(written);
   for (const disposition of seen) {
     assert.doesNotMatch(blob, new RegExp(disposition.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"),
-      "the write releaseMark actually made, right after this corpus's own angles were computed for real, carries none of their verdicts");
+      "the write the real releaseMark actually made, right after this corpus's own angles were computed for real, carries none of their verdicts");
   }
 });
 
