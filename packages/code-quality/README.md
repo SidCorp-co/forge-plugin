@@ -157,11 +157,11 @@ Limits what a file's comments say relative to its physical code lines.
 }
 ```
 
-`maxChars` is the comment characters one code line buys. What a character is, is decided by what wrapping a comment can add or take away, which is two things and no others: blank space, and the asterisk a block comment's continuation lines carry. Neither is counted; everything else a comment says is, including a run of dashes someone drew a divider with. So the same words measure the same at every column, and a comment costs what it says rather than where its author pressed return. The default is `0.15` of a comment line per code line priced at a 100-column line, about 80 of whose characters are left after the blanks.
+`maxChars` is the comment characters one code line buys. What counts as a character is decided by what wrapping a comment can add or take away, which is two things and no others: blank space, and the asterisk a continuation line carries. Neither is counted — and since nothing can tell a gutter asterisk from one somebody meant, no asterisk is counted anywhere, in a line comment as in a block. Everything else a comment says is counted, including a run of dashes someone drew a divider with. So the same words measure the same at every column, and a comment costs what it says rather than where its author pressed return. The default is `0.15` of a comment line per code line priced at a 100-column line, about 80 of whose characters are left after the blanks.
 
 `minChars` is a floor under the budget, not a threshold in front of the report: a module too short to buy a sentence is answered with what it may carry rather than going unmeasured.
 
-A mixed line containing both code and a substantive comment belongs to both sets, which is what `code lines` counts. A waiver costs nothing, and neither does a line continuing one: `pass-through: keep — <reason>` and its siblings are answers to a rule rather than prose about the code, and a reason wraps like any other sentence.
+A mixed line containing both code and a substantive comment belongs to both sets, which is what `code lines` counts. A waiver costs nothing, and neither does the run of comment lines it heads: `pass-through: keep — <reason>` and its siblings are answers to a rule rather than prose about the code, and a reason wraps like any other sentence. A waiver sharing its line with code, or written as a block, heads no run; a blank line or a line of code ends one.
 
 `maxRatio` and `minCommentLines` counted comment lines, which a re-wrap moves; both are refused by name, each naming the option that replaces it.
 

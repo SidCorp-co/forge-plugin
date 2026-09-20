@@ -87,6 +87,10 @@ test("comment characters count what is said, and nothing a wrap would move", () 
   );
   assert.equal(metricsFor("// pass-through: keep — the wrapper is the seam a test needs\nconst a = 1;").commentChars, 0);
   assert.equal(metricsFor("#!/usr/bin/env node\nconst a = 1;").commentChars, 0);
+  // Every asterisk goes, in a line comment as in a block: the count cannot ask which one a wrap
+  // put there, so it asks of none of them.
+  assert.equal(metricsFor("// a * b\nconst a = 1;").commentChars, 2);
+  assert.equal(metricsFor("/* a * b */\nconst a = 1;").commentChars, 2);
 });
 
 /* A waiver's reason is prose and wraps like prose. Charged, the escape would cost whatever column
@@ -99,9 +103,24 @@ test("a waiver costs nothing however its reason is wrapped", () => {
     0,
     "a reason on a second line is the same waiver",
   );
+  // The marker and its reason on two lines are still one waiver, so neither half is charged.
+  assert.equal(
+    metricsFor("// pass-through: keep —\n// the wrapper is the seam a test needs\nconst a = 1;").commentChars,
+    0,
+  );
   // A comment trailing a line of code begins nothing, whatever stands above it.
   assert.equal(
     metricsFor("// pass-through: keep — the wrapper is the seam\nconst a = 1; // rationale\n").commentChars,
+    9,
+  );
+  // And a waiver that heads no run of its own waives nothing under it: one sharing a line with
+  // code, and one written as a block, each end where they end.
+  assert.equal(
+    metricsFor("const a = 1; // pass-through: keep — the seam\n// rationale\n").commentChars,
+    9,
+  );
+  assert.equal(
+    metricsFor("/* pass-through: keep — the seam */\n// rationale\nconst a = 1;").commentChars,
     9,
   );
   // And a blank line ends the waiver, so the prose under one is prose.

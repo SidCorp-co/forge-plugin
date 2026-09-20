@@ -12,11 +12,12 @@ All notable changes to this package are documented here.
   no reading charged a long comment what a wrapped one was charged, and the refusal — "delete six
   comment lines" — sent a reader to the wrap key, which is the one edit that satisfied it. The
   ceiling is now `maxChars`, the comment characters a code line buys. Wrapping a comment adds and
-  takes away two things and no others — blank space, and the asterisk a block comment's
-  continuation lines carry — so those two are what a character does not count, and the count is
-  taken over the whole comment rather than line by line. A divider drawn in dashes costs its
-  dashes; a waiver costs nothing, and neither does a line continuing its reason. The refusal says
-  how many characters to cut and that a re-wrap will not pay them.
+  takes away two things and no others — blank space, and the asterisk a continuation line carries
+  — so those two are what a character does not count, and since nothing can tell a gutter asterisk
+  from one somebody meant, no asterisk counts anywhere. A divider drawn in dashes costs its dashes.
+  The count is taken over the run of comment lines rather than line by line, so a waiver costs
+  nothing and neither does the run it heads, its reason wrapping like any other sentence. The
+  refusal says how many characters to cut and that a re-wrap will not pay them.
 - `minCommentLines` becomes `minChars`, and it is a floor under the budget rather than a threshold
   in front of the report: a module too short to buy a sentence is now answered with what it may
   carry instead of going unmeasured.

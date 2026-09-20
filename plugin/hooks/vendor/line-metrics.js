@@ -26,7 +26,9 @@ export const RAW_ELEMENT_WAIVER = waiverPattern("primitive", "none");
 export const RESTATEMENT_WAIVER = waiverPattern("restated", "deliberate");
 const WAIVERS = [PASS_THROUGH_WAIVER, RAW_ELEMENT_WAIVER, RESTATEMENT_WAIVER];
 
-export const isWaiver = (comment) => WAIVERS.some((waiver) => waiver.test(comment.value));
+const waives = (text) => WAIVERS.some((waiver) => waiver.test(text));
+
+export const isWaiver = (comment) => waives(comment.value);
 
 function blockLineContent(line, lineNumber, comment) {
   let content = line;
@@ -69,13 +71,23 @@ function lineHasCode(sourceCode, lineNumber, commentsOnLine) {
   return segments.some((segment) => segment.trim() !== "");
 }
 
-/* The next line of a waiver, and not a comment that merely follows one: a trailing comment on a
-   line of code begins nothing, whatever stands above it. */
-function continuesWaiver(sourceCode, comment, waivedThrough) {
-  if (waivedThrough === 0 || comment.type !== "Line") return false;
-  if (comment.loc.start.line !== waivedThrough + 1) return false;
-  const before = sourceCode.lines[comment.loc.start.line - 1].slice(0, comment.loc.start.column);
-  return before.trim() === "";
+/* A waiver's reason is prose and wraps like prose, so the run of line comments it heads is read
+   whole: a marker on one line and its reason on the next is one waiver, and charging the second
+   line would make the escape cost whatever column its author broke the sentence at. A comment
+   sharing its line with code heads no run, and a blank line or a line of code ends one. */
+function lineCommentRuns(sourceCode, comments) {
+  const runs = [];
+  for (const comment of comments) {
+    const alone =
+      comment.type === "Line" &&
+      sourceCode.lines[comment.loc.start.line - 1].slice(0, comment.loc.start.column).trim() === "";
+    const open = runs.at(-1);
+    const continues =
+      alone && open?.alone === true && comment.loc.start.line === open.comments.at(-1).loc.end.line + 1;
+    if (continues) open.comments.push(comment);
+    else runs.push({ alone, comments: [comment] });
+  }
+  return runs;
 }
 
 // Both comment rules ask for the same metrics on the same file, and the walk
@@ -87,29 +99,25 @@ export function getLineMetrics(sourceCode) {
   if (cached) return cached;
 
   const commentsByLine = new Map();
-  // Re-wrapping a comment adds and takes away two things and no others: blank space, and the
-  // asterisk a block comment's continuation lines are given. So those two are what a character
-  // does not count, and the count is taken over the whole comment rather than line by line —
-  // where a wrap lands decides which line a word sits on, which is the measure being left behind.
-  let commentChars = 0;
-  let waivedThrough = 0;
+  const counted = [];
   for (const comment of sourceCode.getAllComments()) {
     for (let line = comment.loc.start.line; line <= comment.loc.end.line; line += 1) {
       const comments = commentsByLine.get(line) ?? [];
       comments.push(comment);
       commentsByLine.set(line, comments);
     }
-    // A waiver is the answer to a rule, not prose about the code: charging it to the density
-    // budget makes the escape cost a comment line and pushes a file at the budget over it. Its
-    // reason wraps like any other prose, and a line continuing one is the same waiver — charged,
-    // the escape would cost whatever column its author broke the sentence at.
-    if (comment.type === "Shebang" || isIgnoredComment(comment)) continue;
-    if (isWaiver(comment) || continuesWaiver(sourceCode, comment, waivedThrough)) {
-      waivedThrough = comment.loc.end.line;
-      continue;
-    }
-    waivedThrough = 0;
-    commentChars += comment.value.replace(/[\s*]+/gu, "").length;
+    if (comment.type !== "Shebang" && !isIgnoredComment(comment)) counted.push(comment);
+  }
+
+  // Re-wrapping a comment adds and takes away two things and no others: blank space, and the
+  // asterisk a continuation line is given. So those two are what a character does not count.
+  // A waiver is the answer to a rule and not prose about the code: charged, the escape would
+  // cost a file at its budget the very line it needs to say why.
+  let commentChars = 0;
+  for (const { comments } of lineCommentRuns(sourceCode, counted)) {
+    const said = comments.map((comment) => comment.value).join(" ");
+    if (waives(said)) continue;
+    commentChars += said.replace(/[\s*]+/gu, "").length;
   }
 
   const codeLines = new Set();
