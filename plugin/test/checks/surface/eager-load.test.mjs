@@ -8,7 +8,11 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 
 import {
+  HEAVY,
   graphOf,
+  heavyLoads,
+  hookLoads,
+  hookRoots,
   importsIn,
   problems,
   reachedFrom,
@@ -113,4 +117,85 @@ test("a binding is read as a word, so a name inside another name is not it", () 
   assert.equal(takesFrom('import { codex as held } from "./codex/codex.mjs";\n', "/codex.mjs", "codex"), true,
     "renamed on the way in is still the handler on this side of it");
   assert.equal(takesFrom('import { codex } from "./other.mjs";\n', "/codex.mjs", "codex"), false);
+});
+
+/* The hook half. The real-tree case is the one that goes red when a hook's path gains a subsystem it
+   never touches, which is what it was watched doing before the three edges of ISS-1904 were cut; the
+   synthetic ones are the graphs this plugin could have, since a tree with nothing wrong in it cannot
+   tell a rule that refuses from a rule that is not looking. */
+const REGISTRATION = () => read("plugin/hooks/hooks.json");
+
+test("every hook the registration names is a root, and the walk reaches all of them", () => {
+  const { roots, unresolved } = hookRoots(REGISTRATION(), FILES);
+  assert.deepEqual(unresolved, [], "a registered name no file answers leaves that hook's path unread");
+  assert.ok(roots.length > 12, `${roots.length} root(s) off hooks.json; the registration's shape moved`);
+  assert.ok(roots.includes("plugin/hooks/gates/turn/stop-check.mjs"), "a gate in a folder of its own resolves");
+  assert.ok(roots.includes("plugin/hooks/link-cli.mjs"), "the session-start script is registered too");
+  for (const one of roots) assert.ok(EDGES.has(one), `${one} is registered and is not in the walk`);
+  assert.ok(roots.some((one) => (EDGES.get(one) ?? []).includes("plugin/hooks/_hook.mjs")),
+    "the harness is on a root's own edges, so what it imports is read by this rule");
+});
+
+test("every declared heavy target is a module in this tree, and every allowance names a root", () => {
+  const { roots } = hookRoots(REGISTRATION(), FILES);
+  for (const one of HEAVY) {
+    assert.ok(FILES.some((file) => file === one.target || file.startsWith(one.target)),
+      `${one.target} is declared heavy and names nothing in the tree, so it refuses nothing`);
+    for (const [root, why] of Object.entries(one.allowed)) {
+      assert.ok(roots.includes(root), `${one.target} is allowed for ${root}, which no registration names`);
+      assert.ok(why.length > 20, `${root} is allowed ${one.target} with no reason on the record`);
+    }
+  }
+});
+
+test("no registered hook loads a verb's handler or a module declared heavy", () => {
+  const found = hookLoads({ edges: EDGES, registration: REGISTRATION(), files: FILES, verbs: VERBS, read });
+  assert.deepEqual(found, [], found.join("\n"));
+});
+
+const GATE = "plugin/hooks/gates/one.mjs";
+const HARNESS = "plugin/hooks/_hook.mjs";
+const LOG = "plugin/src/hooks/log/hook-log.mjs";
+const HOOK_GRAPH = new Map([
+  [GATE, [HARNESS]],
+  [HARNESS, [LOG]],
+  [LOG, []],
+]);
+const DECLARED = [{ target: LOG, what: "the log's verb", instead: "the writer is its own module", allowed: {} }];
+
+test("a heavy target on a hook's path is one finding naming the root, the chain and the line to remove", () => {
+  const found = heavyLoads(HOOK_GRAPH, [GATE], DECLARED);
+  assert.equal(found.length, 1, `one finding, not ${found.length}`);
+  assert.match(found[0], /^plugin\/hooks\/gates\/one\.mjs loads the log's verb/u);
+  assert.match(found[0], new RegExp(`${GATE} -> ${HARNESS} -> ${LOG}`.replaceAll("/", String.raw`\/`), "u"),
+    "the chain, because a module reached is a line somebody wrote and the reader has to be told which");
+  assert.match(found[0], /the line to remove is the one in plugin\/hooks\/_hook\.mjs that imports/u,
+    "the edge somebody wrote, not the root that pays for it");
+});
+
+test("a target is allowed for the hook it is declared for, and for no other", () => {
+  const allowed = [{ ...DECLARED[0], allowed: { [GATE]: "this gate's whole subject is the log it prints" } }];
+  assert.deepEqual(heavyLoads(HOOK_GRAPH, [GATE], allowed), [], "the hook the target was declared for");
+  const other = "plugin/hooks/gates/two.mjs";
+  assert.equal(heavyLoads(new Map([...HOOK_GRAPH, [other, [HARNESS]]]), [other], allowed).length, 1,
+    "and the same target still refused for the hook nobody declared");
+});
+
+test("a target declared as a directory catches every module under it", () => {
+  const graph = new Map([[GATE, ["plugin/src/spec/tree.mjs"]], ["plugin/src/spec/tree.mjs", []]]);
+  const held = [{ target: "plugin/src/spec/", what: "the requirements tree", instead: "read it beside itself", allowed: {} }];
+  assert.equal(heavyLoads(graph, [GATE], held).length, 1, "the prefix is the subsystem, not one of its files");
+});
+
+test("a registered gate name no file answers is a finding, and the roots that did resolve are still read", () => {
+  const registration = JSON.stringify({ hooks: { PreToolUse: [{ hooks: [
+    { command: 'node "${CLAUDE_PLUGIN_ROOT}"/hooks/gate.mjs pre one absent' },
+  ] }] } });
+  const files = [GATE, HARNESS, LOG];
+  const { roots, unresolved } = hookRoots(registration, files);
+  assert.deepEqual(roots, [GATE], "the gate that resolved is a root all the same");
+  assert.deepEqual(unresolved, ["absent", "gate"], "and the clock word is no gate name, so `pre` is not among them");
+  const found = hookLoads({ edges: HOOK_GRAPH, registration, files, verbs: new Map(), read, heavy: DECLARED });
+  assert.equal(found.length, 3, `the two names and the edge, not ${found.length}`);
+  assert.match(found[0], /registers `absent` and no file/u);
 });

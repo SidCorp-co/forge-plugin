@@ -8,7 +8,7 @@ import { closeSync, fchmodSync, openSync, readFileSync, realpathSync, renameSync
 
 import { compiles } from "../../../codex/codex.mjs";
 import { reviewRefusalOf } from "../../../git/reviewed.mjs";
-import { DECLARABLE, declares } from "../../../stats/corpus/classes.mjs";
+import { DECLARABLE, declares } from "../../../stats/corpus/declared.mjs";
 import { foldWeights } from "../../../rank/weights.mjs";
 import {
   CHECK_MS_TAKES,

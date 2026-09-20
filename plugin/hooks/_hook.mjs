@@ -8,7 +8,7 @@ import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { logHook } from "../src/hooks/log/hook-log-file.mjs";
-import { scrubbed } from "../src/hooks/log/hook-log.mjs";
+import { scrubbed } from "../src/hooks/log/scrub.mjs";
 import { NOWHERE, STARTS, WRITES, namesOf, placeable, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
 import { glued } from "../src/hooks/assembled.mjs";
 import { DEADLINES, gateFile, hookOff } from "../src/hooks/hook-switch.mjs";

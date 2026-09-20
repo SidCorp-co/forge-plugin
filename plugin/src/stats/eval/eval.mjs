@@ -4,7 +4,8 @@
    shallow for its own window says instead — docs/cli/stats-the-eval.md; the line the ship prints at a
    multiple of the window and the reading it writes there — docs/cli/stats-the-mark.md. */
 import { RUNG_UNKNOWN } from "../corpus/transcripts.mjs";
-import { classesFor, declaredIn } from "../corpus/classes.mjs";
+import { classesFor } from "../corpus/classes.mjs";
+import { declaredIn } from "../corpus/declared.mjs";
 import { rootFor } from "../corpus/corpus.mjs";
 import { checkoutFrom, derivedFrom, profileOf, readingAside, runsUnder } from "../runs.mjs";
 import { stamp } from "../figures.mjs";

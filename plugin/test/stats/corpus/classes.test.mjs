@@ -4,8 +4,8 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { classOf, classesFor, declaredClasses, declaredIn, unarmedDoors }
-  from "../../../src/stats/corpus/classes.mjs";
+import { classOf, classesFor } from "../../../src/stats/corpus/classes.mjs";
+import { declaredClasses, declaredIn, unarmedDoors } from "../../../src/stats/corpus/declared.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 import { asked, at, result, transcript, use } from "../fixture-runs.mjs";

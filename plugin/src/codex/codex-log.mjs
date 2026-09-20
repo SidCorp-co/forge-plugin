@@ -3,7 +3,7 @@ import { isAbsolute, join } from "node:path";
 
 import { appendJsonl, jsonlAt, jsonlBytes } from "../hooks/log/hook-log-file.mjs";
 import { configDir, NO_SESSION, sessionSourced, userConfig } from "../resolve/config.mjs";
-import { masked } from "../hooks/log/hook-log.mjs";
+import { masked } from "../hooks/log/scrub.mjs";
 
 export const logPath = () => join(configDir("forge"), "codex-log.jsonl");
 export const budgetMs = () => Number(userConfig().codex?.budgetMs || 900_000);

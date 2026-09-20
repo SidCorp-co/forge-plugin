@@ -3,6 +3,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
 
+import { namesOn } from "../../hooks/hook-switch.mjs";
+
 const FROM = /(?:^|[\s;])(?:import|export)[\s\S]*?from\s+["'](\.[^"']+)["']/g;
 const BARE = /^\s*import\s+["'](\.[^"']+)["'];?\s*$/gm;
 const LOADS = /^ {2}([a-z]+): loads\("\.(\/[^"]+)"/gmu;
@@ -64,4 +66,115 @@ export const problems = (edges, entry, verbs, read) => {
     }
   }
   return found;
+};
+
+/* The same reading, rooted at a hook rather than at the CLI's entry: a gate exits for most calls it is
+   asked about, so a module on its path before that decision is one every event in every session pays
+   for, and three landed that way in one release range without a review that could see it. The roots
+   are the registration's own, so a gate added later is covered without anybody remembering; the
+   targets are declared, because what a gate needs before it exits is not in the graph. */
+
+const SCRIPT = /hooks\/([\w/-]+)\.mjs/gu;
+
+/** The file a registered name runs: flat beside the runner, or under `gates/` wherever the layout put it. */
+const fileFor = (name, files, at) =>
+  [`${at}/${name}.mjs`, ...files.filter((one) => one.startsWith(`${at}/gates/`) && one.endsWith(`/${name}.mjs`))]
+    .find((one) => files.includes(one)) ?? null;
+
+/** Every file `hooks.json` registers, and every name on it that no file answers — which is a finding
+ *  and not a root quietly dropped: a rule whose roots come from a derivation that stopped matching
+ *  looks exactly like a clean repository. */
+export const hookRoots = (registration, files, at = "plugin/hooks") => {
+  const roots = new Set();
+  const unresolved = new Set();
+  for (const blocks of Object.values(JSON.parse(registration)?.hooks ?? {})) {
+    for (const block of blocks ?? []) {
+      for (const one of block.hooks ?? []) {
+        const command = String(one.command ?? "");
+        for (const [, path] of command.matchAll(SCRIPT)) {
+          if (files.includes(`${at}/${path}.mjs`)) roots.add(`${at}/${path}.mjs`);
+          else unresolved.add(path);
+        }
+        for (const name of namesOn(command)) {
+          const file = fileFor(name, files, at);
+          if (file) roots.add(file);
+          else unresolved.add(name);
+        }
+      }
+    }
+  }
+  return { roots: [...roots].sort(), unresolved: [...unresolved].sort() };
+};
+
+/** What no hook may have on its path, what a hook takes instead, and the roots the target is right
+ *  for with the reason each is — one gate whose whole subject is a heavy module is a declaration
+ *  here, so the target stays refused for every other root rather than leaving the rule. */
+export const HEAVY = [
+  {
+    target: "plugin/src/hooks/log/hook-log.mjs",
+    what: "the refusal log's verb, which reads the log back, resolves a hook name and prints it",
+    instead: "plugin/src/hooks/log/hook-log-file.mjs writes the line and plugin/src/hooks/log/scrub.mjs masks it",
+    allowed: {},
+  },
+  {
+    target: "plugin/src/stats/corpus/classes.mjs",
+    what: "the transcript classifier, which compiles a table of patterns at import for a corpus no gate reads",
+    instead: "plugin/src/stats/corpus/declared.mjs carries what a project declared its commands to be",
+    allowed: {},
+  },
+  {
+    target: "plugin/src/spec/",
+    what: "the requirements tree, which is walked and parsed to answer for one clause",
+    instead: "plugin/src/checks/claude-md-goals.mjs holds the claim that is read against that tree",
+    allowed: {
+      "plugin/hooks/gates/plan-scope.mjs":
+        "the clause a plan cites is this gate's whole subject, so the tree is what it was registered to read",
+    },
+  },
+];
+
+/** The chain that reached `target`, root first: the reader is owed the line to remove and not only the arrival. */
+export const chainTo = (by, target) => {
+  if (!by.has(target)) return null;
+  const held = [];
+  for (let at = target; at; at = by.get(at)) held.unshift(at);
+  return held;
+};
+
+const named = (module, target) => module === target || (target.endsWith("/") && module.startsWith(target));
+
+export const heavyLoads = (edges, roots, heavy = HEAVY) => {
+  const found = [];
+  for (const root of roots) {
+    const by = reachedFrom(edges, root);
+    for (const one of heavy) {
+      if (one.allowed[root]) continue;
+      /* Where the target is a subsystem, the line to remove is the edge INTO it: a module the
+         subsystem reached itself is not a line anybody here wrote. */
+      const arrivals = [...by.keys()]
+        .filter((each) => named(each, one.target) && !named(by.get(each) ?? "", one.target));
+      for (const module of arrivals) {
+        const chain = chainTo(by, module);
+        found.push(`${root} loads ${one.what}: ${chain.join(" -> ")}. A registered hook pays for every `
+          + `module on its path before it decides it has nothing to do, so the line to remove is the one `
+          + `in ${chain.at(-2)} that imports ${module}. Move the binding the hook needs into a module of `
+          + `its own — ${one.instead} — or declare this hook beside that target with the reason it is `
+          + "right for it.");
+      }
+    }
+  }
+  return found;
+};
+
+/** Every finding the registration earns: a name no file answers, a verb's handler on a hook's path,
+ *  and a declared heavy target on one. */
+export const hookLoads = ({ edges, registration, files, verbs, read, heavy = HEAVY, at = "plugin/hooks" }) => {
+  const { roots, unresolved } = hookRoots(registration, files, at);
+  return [
+    ...unresolved.map((name) => `${at}/hooks.json registers \`${name}\` and no file under ${at}/ or `
+      + `${at}/gates/ answers that name, so this rule reads nothing of that hook's path. Name the file `
+      + "the registration means, or take the name off the line."),
+    ...roots.flatMap((root) => problems(edges, root, verbs, read)),
+    ...heavyLoads(edges, roots, heavy),
+  ];
 };

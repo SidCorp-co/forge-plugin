@@ -7,10 +7,10 @@ import {
   POLL,
   WHOLE_SET_CLASS,
   classesFor,
-  declaredIn,
   guidePartOf,
   guideFlowOf,
 } from "./corpus/classes.mjs";
+import { declaredIn } from "./corpus/declared.mjs";
 import { FLOW_BRIEF, callsIn, markerOf, modelRun, rungRun } from "./corpus/transcripts.mjs";
 import { corpusUnder, readTranscript, rootFor } from "./corpus/corpus.mjs";
 import {

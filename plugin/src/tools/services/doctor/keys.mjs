@@ -3,7 +3,7 @@
 import { CHECK_MS_TAKES, FEEDBACK_CHANNELS, FROM_PROJECT, LANDING_ROUTES, OWED_DOORS, RUNS_TAKES,
   SHIP_MODES, codexCheck, codexOwed, checkoutRoot, feedbackScope, landingScope, parallelRuns,
   projectWorkPattern, shipMode } from "../../../resolve/settings.mjs";
-import { DECLARES, declaredCommands, declaredIn, unarmedDoors } from "../../../stats/corpus/classes.mjs";
+import { DECLARES, declaredCommands, declaredIn, unarmedDoors } from "../../../stats/corpus/declared.mjs";
 import { budgetMs, logBytes } from "../../../codex/codex-log.mjs";
 import { checkStops } from "../../../codex/log/asked.mjs";
 import { flowPinned, flowRefusal } from "../../../guides/flow.mjs";

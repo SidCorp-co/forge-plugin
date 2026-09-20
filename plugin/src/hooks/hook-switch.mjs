@@ -62,7 +62,8 @@ export const gateFile = (name) =>
     ? join(GATES_DIR, `${name}.mjs`)
     : gatesByName().get(`${name}.mjs`) ?? null);
 
-const namesOn = (command) => {
+/** The gate names one registered command runs, or the script's own where it names no gate: the registration is parsed here alone, so the checker that roots a rule at every hook reads the same line the runner does. */
+export const namesOn = (command) => {
   const gate = /hooks\/gate\.mjs((?:\s+[\w-]+)*)/u.exec(command);
   if (gate) return gate[1].trim().split(/\s+/u).filter((one) => one && !EVENT_KINDS.includes(one));
   const own = /hooks\/([\w-]+)\.mjs/u.exec(command);

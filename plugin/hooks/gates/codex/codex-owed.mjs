@@ -6,7 +6,7 @@ import { ageOf, pendingNow, pendingState } from "../../../src/codex/codex.mjs";
 import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { logBytes } from "../../../src/codex/codex-log.mjs";
 import { unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
-import { declaredClasses } from "../../../src/stats/corpus/classes.mjs";
+import { declaredClasses } from "../../../src/stats/corpus/declared.mjs";
 import { OWED_DOORS, codexOwedOf, projectFileAt } from "../../../src/resolve/settings.mjs";
 import { configDir } from "../../../src/resolve/config.mjs";
 import { NOWHERE, deny, how, movedTo, shellText, spans, typed, done } from "../../_hook.mjs";

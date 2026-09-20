@@ -7,7 +7,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { homeEnv, ranAsync, tempHome } from "../../fixtures.mjs";
-import { declares } from "../../../src/stats/corpus/classes.mjs";
+import { declares } from "../../../src/stats/corpus/declared.mjs";
 import { writableKey } from "../../../src/tools/services/doctor/project-file.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;

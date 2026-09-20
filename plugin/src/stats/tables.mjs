@@ -1,5 +1,5 @@
 /* The two tables a run's time is divided by, the listing every other block is printed through, and what a class this reading could not recognise prints instead — docs/cli/stats-the-tables.md. */
-import { DECLARABLE, DECLARES, declares } from "./corpus/classes.mjs";
+import { DECLARABLE, DECLARES, declares } from "./corpus/declared.mjs";
 import { FROM_PROJECT } from "../resolve/settings.mjs";
 import { MARKERS, RUNG_UNKNOWN } from "./corpus/transcripts.mjs";
 import { PHASES } from "../guides/phases.mjs";

@@ -13,9 +13,6 @@ import {
   splitSentences,
 } from "../../hooks/vendor/text-overlap.js";
 import { load } from "./duplication.mjs";
-import { clauseOf } from "../spec/index.mjs";
-import { identifiersIn } from "../spec/parse.mjs";
-import { specTreeAt } from "../spec/tree.mjs";
 import {
   CODE_SPAN_NONEMPTY_PATTERN,
   CODE_SPAN_PATTERN,
@@ -200,9 +197,6 @@ const FORBIDDEN = new RegExp(`there (?:is|are) no ${CODE_SPAN_NONEMPTY_PATTERN}`
    identifier must exist. */
 const CITED = /\b((?:FR|UC|BR|NFR|AC|HC|ISS|SPEC|A|D)-\d[\w-]*)\b/g;
 
-/* A goal is a claim about the requirements tree and not about repository text, and the tree's own parser spells it: the sweep below reads every file, so a goal held as a fixture's constant answers for one nothing defines, and a second grammar here reads `G-11-1` as `G-11` and answers for a clause nobody wrote. Silent where the project keeps no tree, the rule being the project's. */
-const GOAL_PREFIX = "G";
-
 /* A placeholder, a glob, a package name and a url are not paths this repo owns. */
 const NOT_A_PATH = /[<>*$…{}\s]|^https?:|^@|^~/u;
 const PATHISH = /^[\w.@-]+(?:\/[\w.@-]+)+\/?$|^[\w.-]+\.(?:mjs|js|ts|tsx|json|md|sql|ya?ml)$/u;
@@ -255,7 +249,6 @@ export function claims(text) {
     refs: uniq(text, GIT_REF),
     shas: uniq(text, SHA),
     cited: uniq(text, CITED),
-    goals: [...new Set(identifiersIn(text).filter((one) => one.prefix === GOAL_PREFIX).map((one) => one.id))].sort(),
   };
 }
 
@@ -354,7 +347,7 @@ export function checkerRestated(text, root) {
 }
 
 export function checkClaims(text, root) {
-  const { paths, scripts, helps, tools, forbidden, refs, shas, cited, goals } = claims(text);
+  const { paths, scripts, helps, tools, forbidden, refs, shas, cited } = claims(text);
   const declared = packageScripts(root);
   const missingHelp = [];
   const unresolved = [];
@@ -364,7 +357,6 @@ export function checkClaims(text, root) {
     else if (!/["'`](?:-h|--help)["'`]/u.test(source)) missingHelp.push(rel);
   }
   const defined = cited.length ? definedIdentifiers(root) : new Set();
-  const tree = goals.length ? specTreeAt(root) : null;
   const absent = [...paths.filter((rel) => !existsSync(join(root, rel))), ...unresolved];
   const tracked = absent.filter((rel) => !ignored(root, rel));
   const known = basenames(root);
@@ -381,7 +373,6 @@ export function checkClaims(text, root) {
       (sha) => ran("git", ["merge-base", "--is-ancestor", sha, "HEAD"], root).status !== 0,
     ),
     uncitedIdentifiers: cited.filter((id) => !defined.has(id)),
-    uncitedGoals: tree ? goals.filter((id) => !clauseOf(tree, id)) : [],
   };
 }
 

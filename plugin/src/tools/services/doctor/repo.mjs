@@ -8,6 +8,7 @@ import {
   checkerRestated,
   readClaudeMd,
 } from "../../../checks/claude-md.mjs";
+import { checkGoals } from "../../../checks/claude-md-goals.mjs";
 import { BAD, NOTE, OK, block, line } from "./showing.mjs";
 
 /* The guide is the authority, so it is named first and the CLAUDE.md line second. Nothing here
@@ -86,7 +87,8 @@ const reportStructure = (root, text) => {
 };
 
 const reportClaims = (root, text) => {
-  const found = checkClaims(text, root);
+  /* Two readings, one row each: the goal claim is the tree's to answer and the rest the checkout's. */
+  const found = { ...checkClaims(text, root), ...checkGoals(text, root) };
   let named = 0;
   for (const [key, label, why] of CLAIMS) {
     for (const name of found[key]) {

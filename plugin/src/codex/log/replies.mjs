@@ -2,7 +2,7 @@
 import { ANGLES } from "../codex-api.mjs";
 import { HUMAN_REF } from "../../tracker/issues.mjs";
 import { jsonlBack, jsonlMark } from "../../hooks/log/hook-log-file.mjs";
-import { masked } from "../../hooks/log/hook-log.mjs";
+import { masked } from "../../hooks/log/scrub.mjs";
 import { fenceMarked } from "../../prose.mjs";
 import { pathed } from "../../hooks/shell-spans.mjs";
 import { median } from "../../stats/median.mjs";
