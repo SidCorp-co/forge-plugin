@@ -30,11 +30,13 @@ const room = (config) => {
 /* The fixture command trips a rule that only bites where there is uncommitted work. */
 const DIRTY = dirtyRepo();
 
-const refused = (home, extra = {}) => {
+const refused = (home, extra = {}, skipped = []) => {
   const run = callHook(
     HOOK,
     { session_id: randomUUID(), tool_name: "Bash", cwd: DIRTY, tool_input: { command: STAGES_EVERYTHING } },
     { ...process.env, XDG_CONFIG_HOME: home, ...extra },
+    process.cwd(),
+    { skipped },
   );
   assert.equal(run.status, 0, run.stderr);
   return Boolean(run.stdout.trim());
@@ -49,7 +51,7 @@ const forgeIn = (home, extra, ...argv) =>
 const forge = (home, ...argv) => forgeIn(home, {}, ...argv);
 
 test("a hook named in hooksOff does not fire, and one not named does", () => {
-  assert.equal(refused(room('{"hooksOff":["bash-guard"]}')), false);
+  assert.equal(refused(room('{"hooksOff":["bash-guard"]}'), {}, ["bash-guard"]), false);
   assert.equal(refused(room('{"hooksOff":["codex-second"]}')), true, "another hook's switch is not this one's");
   assert.equal(refused(room("{}")), true);
   assert.equal(refused(room()), true, "no config at all is every gate on");
@@ -64,7 +66,7 @@ test("the CLI writes the switch and answers with the new state", () => {
   const home = room("{}");
   const off = forge(home, "hooks", "--off", "bash-guard");
   assert.match(off.stdout, /bash-guard \(PreToolUse\) is now off/, "the answer names the hook type");
-  assert.equal(refused(home), false, "the hook process reads what the CLI wrote");
+  assert.equal(refused(home, {}, ["bash-guard"]), false, "the hook process reads what the CLI wrote");
   const on = forge(home, "hooks", "--on", "bash-guard");
   assert.match(on.stdout, /Every hook is on/);
   assert.equal(refused(home), true);

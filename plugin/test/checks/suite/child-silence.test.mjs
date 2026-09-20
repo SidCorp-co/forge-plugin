@@ -50,7 +50,7 @@ test("the reader finds the sentinel in each shape it was written in, and leaves 
   assert.equal(said(ternary).length, 1);
   assert.match(said(ternary)[0], /^plugin\/test\/one\.test\.mjs:1 turns a child's silence into the value a case reads/u);
   assert.match(said(ternary)[0], /Assert the child's exit status before reading what it wrote/u);
-  assert.match(said(ternary)[0], /plugin\/test\/fixtures\.mjs does it once, in answered\(\)/u);
+  assert.match(said(ternary)[0], /plugin\/test\/fixtures\/answered\.mjs does it once, in answered\(\)/u);
   assert.deepEqual(said(`  return answered(run);`), [], "the reader's own answer is the way out");
   assert.equal(said(`return { ...run, body: run.status === 0 ? JSON.parse(run.stdout) : null };`).length, 1,
     "a conditional on the status is the same sentinel spelt the other way");
@@ -60,7 +60,7 @@ test("the reader finds the sentinel in each shape it was written in, and leaves 
     "inside another call it is still the value the case reads");
 });
 
-test("a fallback that is not a value is a retry, and the file that owns the sentinel keeps it", () => {
+test("a fallback that is not a value is a retry, and no file is exempt from the rule", () => {
   assert.deepEqual(said(`const taken = first.status === 0 ? first : await qa("claim", "ISS-8", "--take");`), [],
     "a fallback that calls something tries again rather than standing in for an answer");
   assert.deepEqual(said(`return run.stdout.trim() ? run.stdout : nullRetry();`), [],
@@ -68,10 +68,10 @@ test("a fallback that is not a value is a retry, and the file that owns the sent
   assert.deepEqual(said(`return run.stdout.trim() ? run.stdout : undefinedYet(run);`), []);
   assert.equal(said(`return run.stdout.trim() ? run.stdout : null;`).length, 1,
     "and the keyword where it ends is the value it is");
-  assert.deepEqual(said(`  return run.stdout.trim() ? JSON.parse(run.stdout) : null;`, READER), [],
-    "the one file this is written in is where every other file is sent");
-  assert.deepEqual(said(`  return run.stdout.trim() ? JSON.parse(run.stdout) : null;`, `/abs/${READER}`), [],
-    "reached by a longer path it is the same file");
+  assert.equal(said(`  return run.stdout.trim() ? JSON.parse(run.stdout) : null;`, READER).length, 1,
+    "the file the rule sends every other file to answers to it too, its reader proving the child answered first");
+  assert.equal(said(`  return run.stdout.trim() ? JSON.parse(run.stdout) : null;`, `/abs/${READER}`).length, 1,
+    "reached by a longer path it is the same file and the same answer");
 });
 
 test("the sentinel is read out of code and never out of a comment or a fixture's own text", () => {

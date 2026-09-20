@@ -53,11 +53,12 @@ const CLI = "a node child that left no record: the CLI, reading plugin/ and 168 
 const SPAWNED = "a node child that left no record: a node standing here, importing plugin/test/run";
 const TAGS = "a git child that left no record: ls-remote against a scratch origin, standing here";
 const RUN = [".", ".forge.json", "plugin/hooks/vendor", "plugin/src", "plugin/test/fixtures.mjs",
-  "plugin/test/fixtures/answer-reach.mjs", "plugin/test/run", "tools"];
+  "plugin/test/fixtures/answer-reach.mjs", "plugin/test/fixtures/answered.mjs", "plugin/test/run", "tools"];
 
 const DOCTOR = [".", ".claude-plugin", ".forge.json", "plugin/.claude-plugin", "plugin/agents",
   "plugin/guides", "plugin/hooks", "plugin/skills", "plugin/src", "plugin/test/fixtures.mjs",
-  "plugin/test/fixtures/answer-reach.mjs", "plugin/vi-natural", "tools/room.mjs"];
+  "plugin/test/fixtures/answer-reach.mjs", "plugin/test/fixtures/answered.mjs", "plugin/vi-natural",
+  "tools/room.mjs"];
 
 export const DECLARED_READS = [
   { where: "plugin/test/cli/doctor/job.test.mjs", reads: DOCTOR, blind: CLI },

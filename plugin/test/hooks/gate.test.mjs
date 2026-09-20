@@ -82,7 +82,10 @@ test("a gate switched off on the line is skipped, and one that is not still answ
   writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({ hooksOff: ["bash-guard"] }));
   try {
     const ev = { tool_name: "Bash", tool_input: { command: "git stash" }, cwd, session_id: "g2" };
-    assert.equal(answered(run(["bash-guard", "codex-turn"], ev)), null, "the switched-off gate does not refuse");
+    const held = run(["bash-guard", "codex-turn"], ev);
+    assert.match(held.stderr, /^forge hooks: bash-guard was skipped: the switch is off$/mu,
+      `a gate the switch turned off says so where the caller reads it:\n${held.stderr}`);
+    assert.equal(answered(held, { skipped: ["bash-guard"] }), null, "and the switched-off gate refuses nothing");
     writeFileSync(join(HOME, "forge", "config.json"), "{}");
     assert.equal(answered(run(["bash-guard"], ev))?.hookSpecificOutput?.permissionDecision, "deny");
   } finally {

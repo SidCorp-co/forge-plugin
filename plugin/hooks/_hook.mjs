@@ -97,10 +97,13 @@ export const dispatch = async (given, ev = readEvent()) => {
   if (kind) deadline = DEADLINES[kind];
   const blocks = [];
   const contexts = [];
+  /* A gate that did not run writes exactly what one that allowed writes, so every branch that skips one says so on stderr, where whoever ran this reads it; out of time before a call refuses it instead, a re-send getting a fresh clock, and a kill leaves neither. */
   for (const name of names) {
-    if (hookOff(name)) continue;
+    if (hookOff(name)) {
+      process.stderr.write(`forge hooks: ${name} was skipped: the switch is off\n`);
+      continue;
+    }
     current = name;
-    /* Out of time refuses a call (a re-send gets a fresh clock); after one it logs, and says so on stderr where whoever ran this can read it, since a gate that did not run writes exactly what one that allowed writes. A kill leaves neither. */
     if (remaining() <= 0) {
       if (kind === "pre") {
         const reason = `The hooks ran out of time before ${name} could decide this call. Re-send it.`;
