@@ -26,7 +26,7 @@ export default {
     ],
     messages: {
       excessiveDensity:
-        "Cut {{excess}} non-blank characters of comment, which a re-wrap will not: {{codeLines}} code lines allow {{budget}}, this file has {{chars}}.",
+        "Cut {{excess}} characters of comment, which a re-wrap will not: {{codeLines}} code lines allow {{budget}}, this file has {{chars}}.",
     },
   },
   create(context) {

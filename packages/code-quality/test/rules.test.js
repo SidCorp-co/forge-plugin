@@ -42,7 +42,7 @@ test("the same comment text measures the same at every wrap column", () => {
       errors: [
         {
           message:
-            "Cut 735 non-blank characters of comment, which a re-wrap will not: 20 code lines allow 240, this file has 975.",
+            "Cut 735 characters of comment, which a re-wrap will not: 20 code lines allow 240, this file has 975.",
         },
       ],
     })),

@@ -89,6 +89,28 @@ test("comment characters count what is said, and nothing a wrap would move", () 
   assert.equal(metricsFor("#!/usr/bin/env node\nconst a = 1;").commentChars, 0);
 });
 
+/* A waiver's reason is prose and wraps like prose. Charged, the escape would cost whatever column
+   its author broke the sentence at, which is the measure this unit exists to be rid of. */
+test("a waiver costs nothing however its reason is wrapped", () => {
+  const WAIVER = "// pass-through: keep — the wrapper is the seam a test needs and the seam is the point";
+  assert.equal(metricsFor(`${WAIVER}\nconst a = 1;`).commentChars, 0);
+  assert.equal(
+    metricsFor("// pass-through: keep — the wrapper is the seam a test needs\n// and the seam is the point\nconst a = 1;").commentChars,
+    0,
+    "a reason on a second line is the same waiver",
+  );
+  // A comment trailing a line of code begins nothing, whatever stands above it.
+  assert.equal(
+    metricsFor("// pass-through: keep — the wrapper is the seam\nconst a = 1; // rationale\n").commentChars,
+    9,
+  );
+  // And a blank line ends the waiver, so the prose under one is prose.
+  assert.equal(
+    metricsFor("// pass-through: keep — the wrapper is the seam\n\n// rationale\nconst a = 1;").commentChars,
+    9,
+  );
+});
+
 test("longest consecutive run finds the largest physical run", () => {
   assert.deepEqual(longestConsecutiveRun(new Set([1, 2, 4, 5, 6, 9])), [4, 5, 6]);
   assert.deepEqual(longestConsecutiveRun(new Set()), []);

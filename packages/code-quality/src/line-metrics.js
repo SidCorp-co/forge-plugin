@@ -60,6 +60,15 @@ function lineHasCode(sourceCode, lineNumber, commentsOnLine) {
   return segments.some((segment) => segment.trim() !== "");
 }
 
+/* The next line of a waiver, and not a comment that merely follows one: a trailing comment on a
+   line of code begins nothing, whatever stands above it. */
+function continuesWaiver(sourceCode, comment, waivedThrough) {
+  if (waivedThrough === 0 || comment.type !== "Line") return false;
+  if (comment.loc.start.line !== waivedThrough + 1) return false;
+  const before = sourceCode.lines[comment.loc.start.line - 1].slice(0, comment.loc.start.column);
+  return before.trim() === "";
+}
+
 // Both comment rules ask for the same metrics on the same file, and the walk
 // below touches every line twice.
 const metricsCache = new WeakMap();
@@ -74,6 +83,7 @@ export function getLineMetrics(sourceCode) {
   // does not count, and the count is taken over the whole comment rather than line by line —
   // where a wrap lands decides which line a word sits on, which is the measure being left behind.
   let commentChars = 0;
+  let waivedThrough = 0;
   for (const comment of sourceCode.getAllComments()) {
     for (let line = comment.loc.start.line; line <= comment.loc.end.line; line += 1) {
       const comments = commentsByLine.get(line) ?? [];
@@ -81,8 +91,15 @@ export function getLineMetrics(sourceCode) {
       commentsByLine.set(line, comments);
     }
     // A waiver is the answer to a rule, not prose about the code: charging it to the density
-    // budget makes the escape cost a comment line and pushes a file at the budget over it.
-    if (comment.type === "Shebang" || isIgnoredComment(comment) || isWaiver(comment)) continue;
+    // budget makes the escape cost a comment line and pushes a file at the budget over it. Its
+    // reason wraps like any other prose, and a line continuing one is the same waiver — charged,
+    // the escape would cost whatever column its author broke the sentence at.
+    if (comment.type === "Shebang" || isIgnoredComment(comment)) continue;
+    if (isWaiver(comment) || continuesWaiver(sourceCode, comment, waivedThrough)) {
+      waivedThrough = comment.loc.end.line;
+      continue;
+    }
+    waivedThrough = 0;
     commentChars += comment.value.replace(/[\s*]+/gu, "").length;
   }
 
