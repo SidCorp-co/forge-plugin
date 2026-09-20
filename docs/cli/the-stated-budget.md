@@ -35,8 +35,10 @@ what was *sent* never comes down, and an outage would become a debt every later 
 conservative counters under the sharing sentence are the other kind on purpose: there, never coming
 down only ever claims less for somebody else.
 
-A route that learns its bucket while a window is already open brings its earlier calls into what is
-claimed of a sibling and into nothing else. How many of them that window ever charged is the
+A route learning its bucket brings its earlier calls into what is claimed of a sibling and into
+nothing else — all of them where the window was already open, and where its own answer is what opens
+one, the ones that have already come back, the rest being in the live count that window is sized
+against. How many of them that window ever charged is the
 server's own figure to say, and the same adjustment applies to that figure as to any other; taking
 them off the window here as well would charge it for a call that failed under a window long gone.
 

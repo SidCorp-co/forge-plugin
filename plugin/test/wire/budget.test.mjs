@@ -272,3 +272,20 @@ test("calls that failed before a route's bucket was named are no debt against a 
   }
   assert.ok(reserveIn(KEY, 100_000), "and the next waits, on the figure the tracker gave rather than on a history");
 });
+
+/* The window a route's first answer opens was spent by that route, and its calls that have already
+   come back are in no live count: dropped with the reading, they read as a sibling's fifty-nine. */
+test("the calls a route made and got back are in the window its first answer opens", () => {
+  forgetBudget();
+  for (let one = 0; one < 59; one += 1) {
+    assert.equal(reserveIn(KEY, 100_000), null);
+    settled(KEY);
+  }
+  assert.equal(reserveIn(KEY, 100_000), null);
+  sawBudget(KEY, stated({ limit: 60, remaining: 0, resetAt: 200_000 }));
+  settled(KEY);
+  const waiting = reserveIn(KEY, 100_000);
+  assert.ok(waiting, "the window is spent");
+  assert.equal(waiting.said.includes("by something else"), false,
+    "and this process spent all sixty of it");
+});

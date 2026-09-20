@@ -49,6 +49,7 @@ export const sawBudget = (key, headers) => {
   const [limit, remaining, reset] = [LIMIT, REMAINING, RESET].map((name) => numbered(headers, name));
   if (!scope || limit === null || remaining === null || reset === null) return;
   const carried = key && !routes.has(key) ? (unknown.get(key) ?? 0) : 0;
+  const returned = Math.max(0, carried - (out.get(key) ?? 0));
   if (key) {
     routes.set(key, scope);
     unknown.delete(key);
@@ -59,7 +60,7 @@ export const sawBudget = (key, headers) => {
      process's either way, and dropping them with the reading is how they become somebody else's. */
   if (held && resetAt < held.resetAt) return charge(held, carried);
   const now = !held || resetAt > held.resetAt ? opened(limit, remaining, resetAt, scope) : held;
-  if (now === held) charge(now, carried);
+  charge(now, now === held ? carried : returned);
   scopes.set(scope, now);
   now.limit = limit;
   /* Downward only: a header written before the calls in flight were counted overstates what is left. */
