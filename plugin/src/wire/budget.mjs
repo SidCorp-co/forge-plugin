@@ -42,7 +42,7 @@ const opened = (limit, remaining, resetAt, scope) => ({
     : lends(remaining, scope),
   resetAt,
   mine: 0,
-  borrowed: inFlightIn(scope),
+  borrowed: borrowedAt(scope),
   spanning: inFlightIn(scope),
   spent: 0,
   announced: false,
@@ -53,17 +53,23 @@ const charge = (held, carried) => {
   held.spanning += carried;
 };
 
-/* What a window may still be charged for beyond its own reservations: of what a joining route
-   carried, the part still out. What has already come back was charged where it was sent, and a
-   window since opened owes it nothing — which is why this is not the attribution counter above. */
+/* What a window may be charged for beyond its own reservations, by the route that sent it: what was
+   out when the window opened, and what a route joining it later brings. Per route and not a running
+   total, because a route outstanding at the adoption is in both and adding it twice closes a window
+   that owes nothing. What has already come back was charged where it was sent, and a window since
+   opened owes it nothing — which is why this is not the attribution counter above. */
+const borrowedAt = (scope) => new Map([...out.entries()]
+  .filter(([key]) => (routes.get(key) ?? scope) === scope && (out.get(key) ?? 0) > 0));
+
 const borrow = (held, key, carried) => {
-  held.borrowed += Math.min(carried, out.get(key) ?? 0);
+  held.borrowed.set(key, Math.max(held.borrowed.get(key) ?? 0, Math.min(carried, out.get(key) ?? 0)));
 };
 
 /* Every call this window has to answer for. The calls out against a route no answer has placed are
    this process's too, and they are deliberately not here: left out, they read as a sibling's and the
    window takes the bound, which is the safe way to be wrong about them. */
-const ourOwn = (held) => held.mine + held.borrowed;
+const ourOwn = (held) => held.mine
+  + [...held.borrowed.values()].reduce((sum, one) => sum + one, 0);
 
 /* At least this much of the window went to something else on this credential. Above zero is a
    sibling; a zero is not proof of none, which is the reading this is admitted on and the risk the
@@ -94,9 +100,9 @@ export const sawBudget = (key, headers) => {
   /* The window's own count where it answers for the whole figure, and downward only where it does
      not: a header written before the calls in flight were counted overstates what is left. */
   if (now === held) {
-    now.remaining = elsewhereIn(now) === 0
+    now.remaining = Math.min(now.remaining, elsewhereIn(now) === 0
       ? Math.max(0, limit - ourOwn(now))
-      : Math.min(now.remaining, lends(remaining, scope));
+      : lends(remaining, scope));
   }
 };
 

@@ -240,6 +240,37 @@ test("a route joining a window already open takes its own calls off what that wi
     "one, then five, then fifty-four: the window is spent and every call in it was this process's");
 });
 
+/* The five the other route has out are outstanding when this window opens, so the adoption has
+   already taken them. A window that took them again by the route's own answer would close five short
+   of what it owes, on calls nobody spent twice. */
+test("a route outstanding when a window opens is charged to it once, not again when its own answer lands", () => {
+  const OTHER = "forge_comments.create";
+  forgetBudget();
+  for (let one = 0; one < 5; one += 1) assert.equal(reserveIn(OTHER, 100_000), null);
+  assert.equal(reserveIn(KEY, 100_000), null);
+  sawBudget(KEY, stated({ limit: 60, remaining: 59, resetAt: 200_000 }));
+  settled(KEY);
+  sawBudget(OTHER, stated({ limit: 60, remaining: 58, resetAt: 200_000 }));
+  for (let one = 0; one < 54; one += 1) {
+    assert.equal(reserveIn(KEY, 100_000), null, `reservation ${one + 1} of the 54 this window has left`);
+  }
+  assert.ok(reserveIn(KEY, 100_000), "six went and fifty-four followed, the five being charged once");
+});
+
+/* A window that opened on a figure this process could not account for lends the bound, and what the
+   bound took off it is not handed back by a later reading that happens to add up. What a window has
+   left only ever falls. */
+test("a window that opened on the bound is not refunded by a reading inside it", () => {
+  forgetBudget();
+  call(100_000, { limit: 60, remaining: 40, resetAt: 200_000 });
+  for (let one = 0; one < 20; one += 1) assert.equal(reserveIn(KEY, 100_000), null);
+  sawBudget(KEY, stated({ limit: 60, remaining: 39, resetAt: 200_000 }));
+  for (let one = 0; one < 20; one += 1) {
+    assert.equal(reserveIn(KEY, 100_000), null, `reservation ${one + 1} of the 20 the bound left`);
+  }
+  assert.ok(reserveIn(KEY, 100_000), "the twenty-first waits: what the bound took is not handed back");
+});
+
 /* The tracker counts a call when it handles it, so the figure carrying the twelfth answer has
    counted all twelve — and the eleven whose answers are still in the air with it are already in it.
    Taking them off again lends the window's own calls twice and opens it eleven short, which is where
