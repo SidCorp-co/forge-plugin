@@ -1,6 +1,7 @@
-/* The mask, apart from the log it was written for: every hook event loads this to write one refusal
-   line, and none of them reads the log back, so the verb's own module is not on that path (ISS-1904).
-   Which shapes count as a credential, and why over-masking is the safe direction: docs/cli/the-refusal-log.md. */
+/* The credential mask on its own. It is what writing one refusal line needs, and the verb beside it
+   — the reader, the switch, the suggester — is what writing one does not, which is the whole reason
+   these two are not one module (ISS-1904). Which shapes count as a credential, and why over-masking
+   is the safe direction: docs/cli/the-refusal-log.md. */
 
 const KEPT = 220;
 

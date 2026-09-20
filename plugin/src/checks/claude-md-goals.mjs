@@ -1,8 +1,7 @@
-/* The one CLAUDE.md claim the repository cannot answer on its own: a goal is a clause of this
-   project's requirements tree or it is nothing, and reading that tree means walking and parsing
-   docs/requirements. Apart from the other claims because the gate that reads a CLAUDE.md write
-   asks for none of these, and the tree was on every hook event's path to answer it (ISS-1904).
-   docs/cli/doctor.md. */
+/* The one claim in a CLAUDE.md that the repository around it cannot settle: a goal is a clause of
+   this project's requirements tree or it is nothing, so answering it means walking and parsing
+   docs/requirements. Kept out of the claims the checkout itself answers because the two are read by
+   different callers at different costs. docs/cli/doctor.md. */
 import { clauseOf } from "../spec/index.mjs";
 import { identifiersIn } from "../spec/parse.mjs";
 import { specTreeAt } from "../spec/tree.mjs";
