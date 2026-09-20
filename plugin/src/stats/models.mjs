@@ -128,7 +128,7 @@ export const modelLines = (held, all = false) => [
 
 export const printModels = async (rest) => {
   const { since, checkout, horizon, requests, json } = flags(rest, VERB, ["--json"], { usage: MODELS_USAGE });
-  const from = windowFrom(since);
+  const from = windowFrom(since, VERB);
   const directory = checkoutFrom(checkout, VERB);
   const root = rootFor(directory);
   const declared = declaredIn(directory);

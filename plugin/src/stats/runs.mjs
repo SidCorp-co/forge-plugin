@@ -528,11 +528,11 @@ export const profileLines = (held, all = false) => [
     (one) => `  ${one.minutes.toFixed(1).padStart(6)} min  ${one.what}`, all),
 ];
 
-export const windowFrom = (since) => {
+export const windowFrom = (since, verb = "stats runs") => {
   if (since === undefined) return null;
   const asked = WINDOW.exec(since)?.groups;
   if (!asked || Number(asked.many) < 1) {
-    fail(`stats runs: --since takes a window like \`3d\`, \`12h\` or \`90m\`, not \`${since}\`.`);
+    fail(`${verb}: --since takes a window like \`3d\`, \`12h\` or \`90m\`, not \`${since}\`.`);
   }
   return Date.now() - Number(asked.many) * UNITS[asked.unit];
 };

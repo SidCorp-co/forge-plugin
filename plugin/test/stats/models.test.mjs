@@ -224,6 +224,13 @@ test("an empty window answers a reader asking for JSON in JSON", () => {
   assert.deepEqual([held.models, held.cut, held.comparable], [[], [], []]);
 });
 
+test("an unreadable --since names stats models in its own refusal, not another subject's", () => {
+  const refused = asked(corpus(), "--since", "last week");
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /^stats models: --since takes a window like `3d`, `12h` or `90m`, not `last week`\.$/mu,
+    refused.stderr);
+});
+
 test("a class this reading never recognised prints the word and is compared on nothing", () => {
   const printed = asked(corpus()).stdout;
   assert.match(printed, new RegExp(String.raw`^${OPUS}\s+1\s+[\d.]+\s+[\d.]+\s+[\d.]+\s+unrecognised`, "mu"));

@@ -316,6 +316,10 @@ it. Reading is all this product does there.
   WHEN the runs a diagnostic reading is taken over are named THEN the CLI SHALL take them by one of a
   count, a window or a list of keys, SHALL refuse a call naming more than one of the three with every
   one it named, and SHALL say which of those runs it read and which of the names it could not.
+- **AC-19-8-44** · Rev: 1 · Proof: plugin/test/stats/models.test.mjs "an unreadable --since names stats models in its own refusal, not another subject's"
+  WHEN a stats subject reads its own --since window through a parser more than one subject shares
+  THEN the CLI SHALL refuse an unreadable one by naming the verb the caller typed rather than
+  another subject sharing that parser.
 
 ### EI-09 — The chat backend
 
