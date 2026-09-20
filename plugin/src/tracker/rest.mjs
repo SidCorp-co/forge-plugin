@@ -129,6 +129,7 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
     /* Only a reservation this attempt took is its to retire: one an abort ended before it took any
        would retire another call's, and the next window would lend that call's room twice. */
     let took = false;
+    const unpredicted = unpredictedIn(key);
     try {
       const clock = clockFor(deadline, signal);
       const armed = performance.now();
@@ -150,7 +151,7 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
     const limited = again === "rate-limited";
     const wait = limited ? retryAfter(text, response.headers) : backoff(attempt);
     const answered = dropped ? ranOut(dropped, deadline) : `answered ${response.status}`;
-    const said = limited ? `rate-limited this call ${unpredictedIn(key)}` : answered;
+    const said = limited ? `rate-limited this call ${unpredicted}` : answered;
     console.error(`Forge ${said}; waiting ${wait}s (attempt ${attempt} of ${attempts}).`);
     await sleep(wait);
   }

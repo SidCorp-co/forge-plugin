@@ -247,3 +247,33 @@ test("a caller that gave up while waiting retires no other call's reservation", 
     forgetClock();
   }
 });
+
+/* Read before the send, not after it: a refusal is the first thing this tracker has said about a
+   budget, so a line built from what its own headers carried would call that reading a prediction. */
+test("a refusal that is the first word on a budget says there was none to pace against", async () => {
+  const { forgetBudget } = await import("../../../src/wire/budget.mjs");
+  const { forgetClock } = await import("../../../src/wire/shared-clock.mjs");
+  const live = globalThis.fetch;
+  let at = 0;
+  forgetBudget();
+  forgetClock();
+  globalThis.fetch = async () => {
+    at += 1;
+    const headers = budgeted({
+      "x-ratelimit-remaining": at === 1 ? "0" : "1",
+      "x-ratelimit-reset": Math.ceil(Date.now() / 1000) + 3600,
+      ...(at === 1 ? { "retry-after": "1" } : {}),
+    });
+    return { ok: at > 1, status: at === 1 ? 429 : 200, headers, text: async () => "{}" };
+  };
+  try {
+    const said = await stderrOf(oneRead);
+    assert.equal(at, 2, "the ladder sent it again");
+    assert.match(said, /rate-limited this call having read no budget from this tracker to pace against/u,
+      `the 429 is the first word on this budget and not a reading the call was paced against:\n${said}`);
+  } finally {
+    globalThis.fetch = live;
+    forgetBudget();
+    forgetClock();
+  }
+});
