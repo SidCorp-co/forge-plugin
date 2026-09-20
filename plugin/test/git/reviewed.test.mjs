@@ -9,7 +9,7 @@ import { join } from "node:path";
 
 import { git, ranAsync, tempRoom } from "../fixtures.mjs";
 
-import { reviewCounts, reviewedAt, REVIEWED, SHIPPED_LINES, SHIPPED_PATHS,
+import { reviewCounts, reviewedAt, REVIEWED, reviewUncountable, SHIPPED_LINES, SHIPPED_PATHS,
   whereFrom } from "../../src/git/reviewed.mjs";
 
 const MODULE = new URL("../../src/git/reviewed.mjs", import.meta.url).pathname;
@@ -120,6 +120,17 @@ test("a declared path the repository does not hold is named, and the ones it hol
   const { said } = await standing(built("partly", { review: { lines: 10, paths: ["src", "gone"] } }));
   assert.deepEqual(said.missing, ["gone"]);
   assert.equal(said.paths.from, ".forge.json");
+});
+
+/* The seam this closed: the report asked which declared paths were there and the reckoning did not,
+   so one of them counted zero for ever and said so with its source beside it (ISS-1939). */
+test("one sentence answers the report and the reckoning alike, and names the write that corrects it", () => {
+  const room = built("one-sentence", {});
+  const said = reviewUncountable(room, { value: ["src", "gone"], from: ".forge.json" });
+  assert.match(said, /^gone is a counted path this repository does not hold/u, said);
+  assert.match(said, /forge doctor --set project\.review\.paths=<paths>/u, said);
+  assert.equal(reviewUncountable(room, { value: ["src"], from: ".forge.json" }), null,
+    "a tree holding every declared path is one a count over them measures something in");
 });
 
 test("a directory that stands in no checkout can count nothing", async () => {

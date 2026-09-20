@@ -113,6 +113,33 @@ const gitOut = (argv, tree) => {
 export const reviewedAt = (tree) =>
   gitOut(["rev-parse", "--verify", "--quiet", REVIEWED], tree)?.trim() || null;
 
+const SET_PATHS = "forge doctor --set project.review.paths=<paths>";
+
+const uncounted = (tree, paths) => {
+  const checkout = Boolean(tree) && existsSync(resolve(tree, ".git"));
+  return { checkout, missing: checkout ? paths.filter((one) => !existsSync(resolve(tree, one))) : [...paths] };
+};
+
+const cannotCount = ({ checkout, missing, paths }) => {
+  if (!missing.length) return null;
+  const named = missing.join(", ");
+  const layout = paths.from === FROM_PROJECT ? ""
+    : `. ${SHIPPED_PATHS.join(", ")} is this plugin's own layout, and no claim about this repository`;
+  if (!checkout) {
+    return `a review volume is declared and this directory stands in no checkout, so ${named} can `
+      + `never be counted and no reading is ever owed. Count from inside the checkout, or declare `
+      + `the paths one holds: ${SET_PATHS}${layout}`;
+  }
+  return `${named} ${missing.length > 1 ? "are counted paths" : "is a counted path"} this repository `
+    + `does not hold, so nothing here can count towards the volume and no reading is ever owed. `
+    + `Declare this repository's own under \`review.paths\` in ${FROM_PROJECT}: ${SET_PATHS}${layout}`;
+};
+
+/** The one answer to whether a count over the declared paths can mean anything, read by the report
+ *  and by the reckoning alike: a zero under a path this tree lacks and a zero from a quiet week are
+ *  the same line, and the reading the first of them drops is never owed again (ISS-1939). */
+export const reviewUncountable = (tree, paths) => cannotCount({ ...uncounted(tree, paths.value), paths });
+
 export const reviewCounts = ({ tree, from, paths }) => {
   const rows = (gitOut(["diff", "--numstat", `${from}..HEAD`, "--", ...paths], tree) ?? "")
     .split("\n").filter(Boolean);
@@ -123,18 +150,18 @@ export const reviewCounts = ({ tree, from, paths }) => {
   };
 };
 
-/** Null where the project declared nothing, which spends no git call. `missing` answers whether this
- *  project can drive the trigger; a null `mark` is the state before the first reading, not a fault. */
+/** Null where the project declared nothing, which spends no git call. `uncountable` answers whether
+ *  this project can drive the trigger; a null `mark` is the state before the first reading, not a fault. */
 export const reviewStanding = (tree) => {
   if (!reviewDeclared()) return null;
   const refusal = reviewRefusal();
   if (refusal) return { refusal };
   const lines = sourced("lines", reviewLines());
   const paths = sourced("paths", reviewPaths());
-  const checkout = Boolean(tree) && existsSync(resolve(tree, ".git"));
-  const missing = checkout ? paths.value.filter((one) => !existsSync(resolve(tree, one))) : paths.value;
-  const standing = { lines, paths, missing, checkout, mark: null };
-  if (!checkout || missing.length) return standing;
+  const read = uncounted(tree, paths.value);
+  const { checkout, missing } = read;
+  const standing = { lines, paths, missing, checkout, mark: null, uncountable: cannotCount({ ...read, paths }) };
+  if (standing.uncountable) return standing;
   const mark = reviewedAt(tree);
   if (!mark) return standing;
   const { files, lines: changed } = reviewCounts({ tree, from: mark, paths: paths.value });

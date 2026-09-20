@@ -94,7 +94,9 @@ const review = ({ flags }) => {
   const from = reviewedAt(tree);
   if (!flags.has("--done")) {
     if (!from) stop(NO_MARK(SELF));
-    const { owed, range, count, threshold, paths, source } = reviewSays(tree, from);
+    const said = reviewSays(tree, from);
+    if (said.refusal) stop(said.refusal);
+    const { owed, range, count, threshold, paths, source } = said;
     console.log(`${range} is the next review's, and holds ${count} under ${paths.join(", ")}  ← ${source}`);
     console.log(`  git diff ${from}..HEAD -- ${paths.join(" ")}`);
     return console.log(owed

@@ -34,6 +34,39 @@ test("with no mark, the last step says it cannot count and plants nothing", () =
   assert.match(asked.stderr, /no refs\/forge\/reviewed/u, asked.stderr);
 });
 
+/* One transposed character in a declared path counted zero, printed that zero with the file it was
+   read from beside it, and owed a reading never again (ISS-1939). */
+test("a declared path this checkout does not hold is refused where the reckoning is spent, not counted as zero", () => {
+  const { work } = pushed("mistyped");
+  withReview(work, 40, ["plugin/scr"]);
+  runIn(work, ["review", "--done"], BARE);
+  landIn(work, join("plugin", "src", "wide.mjs"), 60, "a module a run grew");
+
+  const asked = runIn(work, ["review"], BARE);
+  assert.equal(asked.status, 1, asked.stdout);
+  assert.doesNotMatch(asked.stdout, /changed line\(s\)/u, "a path that is not there counts no lines");
+  assert.match(asked.stderr, /plugin\/scr is a counted path this repository does not hold/u, asked.stderr);
+  assert.match(asked.stderr, /`review\.paths` in \.forge\.json/u, asked.stderr);
+  assert.match(asked.stderr, /forge doctor --set project\.review\.paths=<paths>/u, asked.stderr);
+});
+
+test("the last step refuses that same reckoning, files no reading and leaves the release where it stood", () => {
+  const { work } = pushed("mistyped-ship");
+  stubbed(work);
+  withReview(work, 40, ["plugin/scr"]);
+  runIn(work, ["review", "--done"], BARE);
+  const planted = ref(work);
+  landIn(work, join("plugin", "src", "wide.mjs"), 60, "a module a run grew");
+  noBacklog();
+
+  const run = lastStep(work);
+  assert.equal(run.status, 0, "the reckoning is the last step's report, and reports do not fail a release");
+  assert.match(run.stderr, /plugin\/scr is a counted path this repository does not hold/u, run.stderr);
+  assert.doesNotMatch(run.stdout, /release\(s\)/u, "a tree that cannot be counted prints no count");
+  assert.equal(creating(), null, "nothing is filed off a count nobody could take");
+  assert.equal(ref(work), planted, "the mark is not moved by a reckoning that was refused");
+});
+
 /* The release count is printed and decides nothing: the trigger is the code there is to read. */
 test("releases alone owe no reading, however many, and the count still names them", () => {
   const { work } = pushed("releases");

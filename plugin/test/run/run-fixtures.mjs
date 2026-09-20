@@ -52,6 +52,9 @@ const filled = (at, work, gate) => {
   /* The CLI's source too, the filing being a module call, with the one directory it reaches out to. */
   cpSync(join(ROOT, "plugin", "src"), join(work, "plugin", "src"), { recursive: true });
   cpSync(join(ROOT, "plugin", "hooks", "vendor"), join(work, "plugin", "hooks", "vendor"), { recursive: true });
+  /* The rest of the layout a case may declare a count over, whether or not it commits anything into
+     one: a checkout that does not hold a declared path is refused rather than counted (ISS-1939). */
+  for (const one of ["bin", "test"]) mkdirSync(join(work, "plugin", one), { recursive: true });
   writeFileSync(join(work, ".forge.json"), JSON.stringify({ slug: OWN_SLUG }));
   writeFileSync(join(work, "package.json"),
     JSON.stringify({ name: "scratch", version: "1.0.0", type: "module", scripts: { check: gate } }, null, 2));

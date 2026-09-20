@@ -7,7 +7,7 @@ import { DECLARES, declaredCommands, declaredIn, unarmedDoors } from "../../../s
 import { budgetMs, logBytes } from "../../../codex/codex-log.mjs";
 import { checkStops } from "../../../codex/log/asked.mjs";
 import { flowPinned, flowRefusal } from "../../../guides/flow.mjs";
-import { readingFor, REVIEWED, reviewStanding, SHIPPED_PATHS, whereFrom } from "../../../git/reviewed.mjs";
+import { readingFor, REVIEWED, reviewStanding, whereFrom } from "../../../git/reviewed.mjs";
 import { firstLine } from "../../../resolve/flags.mjs";
 import { accountCredentials, refusing } from "../../../resolve/settings.mjs";
 
@@ -143,18 +143,6 @@ const workRow = () => {
 
 const PLANT = `git update-ref ${REVIEWED}`;
 
-const cannotCount = ({ missing, checkout, paths }) => {
-  const named = missing.join(", ");
-  if (!checkout) {
-    return `a review volume is declared and this directory stands in no checkout, so ${named} can `
-      + `never be counted and no reading is ever owed`;
-  }
-  return `${named} ${missing.length > 1 ? "are counted paths" : "is a counted path"} this repository `
-    + `does not hold, so nothing here can count towards the volume. Declare this repository's own `
-    + `under \`review.paths\` in ${FROM_PROJECT}${paths.from === FROM_PROJECT ? ""
-      : `, ${SHIPPED_PATHS.join(", ")} being this plugin's own layout and no claim about this repository`}`;
-};
-
 /* Asked only where a reading is owed and the account resolves: below the volume there is nothing to
    hold, and a box with no credential is told that by the rows that read one (ISS-1887). */
 const holding = async (mark) => {
@@ -177,9 +165,9 @@ const reviewRow = async () => {
   const standing = reviewStanding(checkoutRoot());
   if (!standing) return null;
   if (standing.refusal) return { level: MISS, label: "review", detail: standing.refusal };
-  const { lines, paths, missing, mark, files, changed, owed } = standing;
+  const { lines, paths, mark, files, changed, owed, uncountable } = standing;
   const counted = paths.value.join(", ");
-  if (missing.length) return { level: MISS, label: "review", detail: cannotCount(standing) };
+  if (uncountable) return { level: MISS, label: "review", detail: uncountable };
   if (!mark) {
     return { label: "review", detail: `${lines.value} changed line(s) under ${counted} earn a reading `
       + `of what has landed, and ${REVIEWED} is unplanted, so nothing is counted yet — plant it at the `

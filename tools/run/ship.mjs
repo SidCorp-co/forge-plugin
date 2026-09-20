@@ -386,7 +386,9 @@ const tierCeiling = (tree, was, at) => {
 const reviewOwed = async (tree) => {
   const from = reviewedAt(tree);
   if (!from) return console.error(`  ${NO_MARK(SELF)}`);
-  const { owed, range, count, volume, threshold, paths, source } = reviewSays(tree, from);
+  const said = reviewSays(tree, from);
+  if (said.refusal) return console.error(`  ${said.refusal}`);
+  const { owed, range, count, volume, threshold, paths, source } = said;
   if (!owed) {
     return console.log(`  ${count} under ${paths.join(", ")} since ${from.slice(0, 7)}, short `
       + `of the ${threshold} line(s) that call for a reading  ← ${source}`);
