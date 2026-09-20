@@ -141,7 +141,7 @@ it reaches the file.
 
 - **AC-07-5-1** · Rev: 1 · Proof: plugin/test/hooks/hook-log.test.mjs "a refusal from a live hook lands in the log, redacted"
   WHEN a gate refuses THEN the refusal SHALL be written to the log by the act of refusing.
-- **AC-07-5-2** · Rev: 1 · Proof: plugin/test/hooks/hook-log.test.mjs "a credential named as one is masked whatever its value looks like"
+- **AC-07-5-2** · Rev: 1 · Proof: plugin/test/hooks/scrub.test.mjs "a credential named as one is masked whatever its value looks like"
   WHEN a value in a logged line is a credential, or is named as one, THEN it SHALL be masked before
   it is written.
 - **AC-07-5-3** · Rev: 1 · Proof: plugin/test/hooks/hook-log.test.mjs "a missing log reads as no entries, not as a throw"

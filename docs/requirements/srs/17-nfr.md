@@ -97,7 +97,7 @@ The credential lives in the account's directory at owner-only permissions, and a
 a log is masked first — a value named as a credential is masked whatever it looks like, because the
 shape of a secret is not reliable and the name is.
 
-- **AC-17-8-1** · Rev: 1 · Proof: plugin/test/hooks/hook-log.test.mjs "a credential is masked before it is written down"
+- **AC-17-8-1** · Rev: 1 · Proof: plugin/test/hooks/scrub.test.mjs "a credential is masked before it is written down"
   WHEN a line is logged THEN any credential in it SHALL be masked before the line is written.
 
 ### NFR-09 — A project that decided nothing hears nothing
