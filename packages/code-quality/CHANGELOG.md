@@ -15,9 +15,11 @@ All notable changes to this package are documented here.
   takes away two things and no others — blank space, and the asterisk a continuation line carries
   — so those two are what a character does not count, and since nothing can tell a gutter asterisk
   from one somebody meant, no asterisk counts anywhere. A divider drawn in dashes costs its dashes.
-  The count is taken over the run of comment lines rather than line by line, so a waiver costs
-  nothing and neither does the run it heads, its reason wrapping like any other sentence. The
-  refusal says how many characters to cut and that a re-wrap will not pay them.
+  A waiver still costs nothing, and it is now read over the run of comment lines it sits in rather
+  than one parser token at a time, so a marker whose reason begins on the next line is one waiver.
+  It is its marker and one line of reason and no more: the prose above a waiver is charged, and so
+  is anything running past the line its reason ends on. The refusal says how many characters to cut
+  and that a re-wrap will not pay them.
 - `minCommentLines` becomes `minChars`, and it is a floor under the budget rather than a threshold
   in front of the report: a module too short to buy a sentence is now answered with what it may
   carry instead of going unmeasured.

@@ -98,15 +98,28 @@ test("comment characters count what is said, and nothing a wrap would move", () 
 test("a waiver costs nothing however its reason is wrapped", () => {
   const WAIVER = "// pass-through: keep — the wrapper is the seam a test needs and the seam is the point";
   assert.equal(metricsFor(`${WAIVER}\nconst a = 1;`).commentChars, 0);
+  // A waiver is its marker and one line of reason, and what runs past that line is prose and is
+  // charged. The alternative — a waiver waiving the run beneath it — makes any block of comment
+  // free for the price of one marker, which is a larger hole than the one this unit closed.
   assert.equal(
     metricsFor("// pass-through: keep — the wrapper is the seam a test needs\n// and the seam is the point\nconst a = 1;").commentChars,
-    0,
-    "a reason on a second line is the same waiver",
+    "andtheseamisthepoint".length,
+    "a second line of reason is prose",
+  );
+  // The line the reason starts on is the line it ends with, wherever the marker left off.
+  assert.equal(
+    metricsFor("// pass-through: keep —\n// the wrapper is the seam a test needs\n// and the seam is the point\nconst a = 1;").commentChars,
+    "andtheseamisthepoint".length,
   );
   // The marker and its reason on two lines are still one waiver, so neither half is charged.
   assert.equal(
     metricsFor("// pass-through: keep —\n// the wrapper is the seam a test needs\nconst a = 1;").commentChars,
     0,
+  );
+  // And the prose above a waiver is prose: a run is not waived by something further down it.
+  assert.equal(
+    metricsFor("// rationale\n// pass-through: keep — the wrapper is the seam\nconst a = 1;").commentChars,
+    9,
   );
   // A comment trailing a line of code begins nothing, whatever stands above it.
   assert.equal(

@@ -161,7 +161,7 @@ Limits what a file's comments say relative to its physical code lines.
 
 `minChars` is a floor under the budget, not a threshold in front of the report: a module too short to buy a sentence is answered with what it may carry rather than going unmeasured.
 
-A mixed line containing both code and a substantive comment belongs to both sets, which is what `code lines` counts. A waiver costs nothing, and neither does the run of comment lines it heads: `pass-through: keep — <reason>` and its siblings are answers to a rule rather than prose about the code, and a reason wraps like any other sentence. A waiver sharing its line with code, or written as a block, heads no run; a blank line or a line of code ends one.
+A mixed line containing both code and a substantive comment belongs to both sets, which is what `code lines` counts. A waiver costs nothing: `pass-through: keep — <reason>` and its siblings are answers to a rule rather than prose about the code. A waiver is its marker and one line of reason, wherever that line begins — a marker whose reason starts on the next comment line is one waiver — and what runs past that line is prose and is charged. The prose above a waiver is charged too.
 
 `maxRatio` and `minCommentLines` counted comment lines, which a re-wrap moves; both are refused by name, each naming the option that replaces it.
 

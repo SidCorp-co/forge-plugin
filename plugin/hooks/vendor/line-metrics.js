@@ -71,10 +71,28 @@ function lineHasCode(sourceCode, lineNumber, commentsOnLine) {
   return segments.some((segment) => segment.trim() !== "");
 }
 
-/* A waiver's reason is prose and wraps like prose, so the run of line comments it heads is read
-   whole: a marker on one line and its reason on the next is one waiver, and charging the second
-   line would make the escape cost whatever column its author broke the sentence at. A comment
-   sharing its line with code heads no run, and a blank line or a line of code ends one. */
+/* Where each waiver of a run begins and ends, measured over the run read as one text so that a
+   reason on the next line is the same waiver. A reason ends with its own line, which is what
+   keeps a waiver from making the block of prose beneath it free: the escape is the answer to a
+   rule and not prose about the code, and charged it would cost a file at its budget the very
+   line it needs to say why. */
+function waivedRanges(said) {
+  const joined = said.join("\n");
+  const ranges = [];
+  for (const waiver of WAIVERS) {
+    const scan = new RegExp(waiver.source, "g");
+    let found = scan.exec(joined);
+    while (found !== null) {
+      ranges.push([found.index, found.index + found[0].length]);
+      found = scan.exec(joined);
+    }
+  }
+  return ranges;
+}
+
+/* A run is what a waiver is read over, its reason being prose that wraps like prose: a marker on
+   one line and its reason on the next is one waiver. A comment sharing its line with code heads
+   no run, and a blank line or a line of code ends one. */
 function lineCommentRuns(sourceCode, comments) {
   const runs = [];
   for (const comment of comments) {
@@ -111,13 +129,16 @@ export function getLineMetrics(sourceCode) {
 
   // Re-wrapping a comment adds and takes away two things and no others: blank space, and the
   // asterisk a continuation line is given. So those two are what a character does not count.
-  // A waiver is the answer to a rule and not prose about the code: charged, the escape would
-  // cost a file at its budget the very line it needs to say why.
   let commentChars = 0;
   for (const { comments } of lineCommentRuns(sourceCode, counted)) {
-    const said = comments.map((comment) => comment.value).join(" ");
-    if (waives(said)) continue;
-    commentChars += said.replace(/[\s*]+/gu, "").length;
+    const said = comments.map((comment) => comment.value);
+    const waived = waivedRanges(said);
+    let at = 0;
+    for (const text of said) {
+      const escape = waived.some(([from, to]) => from < at + text.length && to > at);
+      if (!escape) commentChars += text.replace(/[\s*]+/gu, "").length;
+      at += text.length + 1;
+    }
   }
 
   const codeLines = new Set();
