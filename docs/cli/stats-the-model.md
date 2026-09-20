@@ -112,8 +112,10 @@ only thing left that knows. Which runs were classed that way is printed with the
 disagree by design, and a reader who cannot see which reading each made would read that as a figure
 that moved.
 
-A run whose issue the reading could not establish is still at no rung, and it is the only thing left
-in that row. That is the attribution gap and a different question from this one.
+What is left at no rung is every run neither source answered for: one no claim joined to an issue,
+one whose issue the tracker answered no complexity for, and one batch whose unread member could be
+larger than its largest read. The first of those is the attribution gap, a different question from
+this one and the larger half of the number.
 
 ## What this reading is not
 

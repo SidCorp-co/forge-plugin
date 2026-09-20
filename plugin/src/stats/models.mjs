@@ -75,8 +75,8 @@ const gotLines = (rows, read) => [
    a reader meeting them apart has no other way to tell which reading each made (ISS-1979). */
 const rungsRead = (held) =>
   `${held.rungsOffComplexity} of ${held.runs} run(s) are at the rung their issue's complexity `
-  + "claims, their own record having reached the transcript with no rung in it; the rest are at the "
-  + "rung they recorded";
+  + "claims, no rung of their own having survived into the transcript; every other run is at the "
+  + "rung it recorded there, or at none where neither source answered";
 
 const cutLines = (cut, all, said) => [
   "",

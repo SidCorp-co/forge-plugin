@@ -316,7 +316,11 @@ test("the reading says how many rungs it read off the tracker rather than off th
   const held = readingOf([ranOn("ISS-1"), ranOn("ISS-2", "fix"), ranOn(null)], READ, null);
   assert.equal(held.rungsOffComplexity, 1,
     "one of the three left no rung of its own and had a complexity to claim one");
-  assert.match(modelLines(held, true).join("\n"),
-    /1 of 3 run\(s\) .*complexity/u,
+  const said = modelLines(held, true).join("\n");
+  assert.match(said, /1 of 3 run\(s\) are at the rung their issue's complexity claims/u,
     "and the cut table says it, so a reader meeting `stats runs` disagree knows which reading each made");
+  assert.match(said, /no rung of their own having survived into the transcript/u,
+    "said of the transcript and not of a record, one of the three having printed no record at all");
+  assert.match(said, /at the rung it recorded there, or at none where neither source answered/u,
+    "and the remainder covers the run neither source could class, which is not a run that recorded one");
 });
