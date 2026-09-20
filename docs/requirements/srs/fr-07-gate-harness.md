@@ -218,42 +218,42 @@ readable from anywhere the repository is reachable, and the report compares agai
 here installs, updates or pins anything: a machine deliberately held on an older copy is a state
 this states and does not refuse.
 
-- **AC-07-9-1** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "a copy behind the newest released one is named with the newer version and the count"
+- **AC-07-9-1** · Rev: 1 · Proof: plugin/test/tools/services/doctor/release.test.mjs "a copy behind the newest released one is named with the newer version and the count"
   WHEN the report runs AND the running copy is older than the newest released version THEN the
   report SHALL name both versions, SHALL count only the releases it can see published, and SHALL
   name what has to happen for the newer copy to be the one loaded next.
-- **AC-07-9-2** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "a remote that answers with no version tag is said by name, never as agreement"
+- **AC-07-9-2** · Rev: 1 · Proof: plugin/test/tools/services/doctor/release.test.mjs "a remote that answers with no version tag is said by name, never as agreement"
   IF the newest released version cannot be read THEN the report SHALL say which step could not
   answer and SHALL NOT describe the running copy as current.
-- **AC-07-9-3** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "no marketplace registration for this plugin is said by name, never as agreement"
+- **AC-07-9-3** · Rev: 1 · Proof: plugin/test/tools/services/doctor/release.test.mjs "no marketplace registration for this plugin is said by name, never as agreement"
   IF no registration names a directory this plugin is installed from THEN the report SHALL say so
   and SHALL leave the comparison unmade rather than answer it from the running copy alone.
-- **AC-07-9-4** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "a copy that is the newest released one is one green row naming where that was read"
+- **AC-07-9-4** · Rev: 1 · Proof: plugin/test/tools/services/doctor/release.test.mjs "a copy that is the newest released one is one green row naming where that was read"
   WHERE the running copy is the newest released version, the report SHALL say so and SHALL name
   where that version was read.
 - **AC-07-9-5** · Rev: 1 · Proof: plugin/test/run/release/run-released-version.test.mjs "the release leaves the version it shipped readable on the remote without a fetch"
   WHEN a release is published THEN it SHALL leave the version it published on the remote in a form
   a second machine reads without fetching the repository.
-- **AC-07-9-6** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "the report asks the remote and writes nothing to the tree it asked through"
+- **AC-07-9-6** · Rev: 1 · Proof: plugin/test/tools/services/doctor/release.test.mjs "the report asks the remote and writes nothing to the tree it asked through"
   WHILE the report is asking for the newest released version, it SHALL leave the checkout it asks
   through exactly as it found it.
-- **AC-07-9-7** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "an ask that never answers is bounded, and comes back as an unknown rather than a wait"
+- **AC-07-9-7** · Rev: 1 · Proof: plugin/test/tools/services/doctor/release.test.mjs "an ask that never answers is bounded, and comes back as an unknown rather than a wait"
   WHILE the report is asking for the newest released version, the ask SHALL be bounded in time,
   SHALL never wait on a person for a credential, and SHALL cost the report no more than one note
   when it does not answer.
-- **AC-07-9-8** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "a source that is itself behind is named as the thing to move first"
+- **AC-07-9-8** · Rev: 1 · Proof: plugin/test/tools/services/doctor/release.test.mjs "a source that is itself behind is named as the thing to move first"
   IF the directory the plugin is installed from is itself older than the newest released version
   THEN the report SHALL name that directory as what has to move before installing anything would
   reach the newer copy.
 - **AC-07-9-9** · Rev: 1 · Proof: plugin/test/run/release/run-released-version.test.mjs "a release that cannot publish its version stops and names the resume that publishes it"
   IF a release cannot publish the version it shipped THEN it SHALL stop and SHALL name the step to
   resume from, rather than complete with that version unpublished.
-- **AC-07-9-10** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "a block longer than the bound does not spend the remote's budget"
+- **AC-07-9-10** · Rev: 1 · Proof: plugin/test/tools/services/doctor/release.test.mjs "a block longer than the bound does not spend the remote's budget"
   WHILE the report is waiting for the newest released version, the bound SHALL be measured from
   where the report begins waiting for the answer, because the ask is issued before the checks it
   overlaps and a report that holds its own loop through them would otherwise charge that time to
   the remote and call an answer that arrived a silence.
-- **AC-07-9-11** · Rev: 1 · Proof: plugin/test/tools/services/doctor-release.test.mjs "the ask is already running before the row is read, not begun by reading it"
+- **AC-07-9-11** · Rev: 1 · Proof: plugin/test/tools/services/doctor/release.test.mjs "the ask is already running before the row is read, not begun by reading it"
   WHEN the row for the newest released version is read THEN the ask SHALL already have been running
   while the checks before it ran, because an ask begun by the reading costs the report its whole
   round trip rather than only what it is slower than those checks by.

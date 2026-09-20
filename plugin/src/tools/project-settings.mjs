@@ -11,7 +11,7 @@ import { WITH_BODY, WRITES } from "./doctor-keys.mjs";
 import {
   READS_IT, SET_USAGE, asWritten, projectWrite, readsProjectKey, spelled, withKey, withoutKey,
   writableKey, writablePaths, wroteWhole,
-} from "./services/doctor/project-file.mjs";
+} from "./services/project-file.mjs";
 import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../guides/flow.mjs";
 import { flowJudgeConflict, flowPolicyConflict } from "../flow/earned.mjs";
 import { scoped, write } from "../tracker/rest.mjs";

@@ -312,7 +312,7 @@ reading and not two, so a run that meets it reaches the commit with nothing left
   WHERE a door the project named has no command of that project's declared for it, the CLI SHALL
   hold nothing at that door, rather than judge the call by the commands this plugin's own repository
   runs, because a tree that never named a command never chose to be refused at one.
-- **AC-06-7-8** · Rev: 1 · Proof: plugin/test/tools/services/doctor-keys.test.mjs "a door the project named and armed with no command is a miss naming the key that arms it"
+- **AC-06-7-8** · Rev: 1 · Proof: plugin/test/tools/services/doctor/keys.test.mjs "a door the project named and armed with no command is a miss naming the key that arms it"
   WHEN the resolution report reads a project naming a door no declared command arms THEN the report
   SHALL name that door, the key that arms it and the shape of the value it takes, and SHALL repeat
   what was written where that value is no command, a silent door having no other way to be known.

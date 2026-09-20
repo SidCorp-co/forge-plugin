@@ -6,9 +6,9 @@ import test from "node:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, git, homeEnv, ranAsync, shortPage, tempRoom } from "../../fixtures.mjs";
+import { fakeTracker, git, homeEnv, ranAsync, shortPage, tempRoom } from "../../../fixtures.mjs";
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 
 const ran = (room, ...args) => {
   const done = git(room, ...args);
@@ -134,7 +134,7 @@ test("every named door armed reads ok and names the command in force at each", a
 /* The debt is printed twice — here and by the release step that files its reading — so the row says
    which of the three states it is in rather than a number a reader cannot act on (ISS-1887). */
 const DECLARED = { review: { lines: 4, paths: ["app"] } };
-const OWN_SLUG = JSON.parse(readFileSync(join(import.meta.dirname, "..", "..", "..", "..", ".forge.json"), "utf8")).slug;
+const OWN_SLUG = JSON.parse(readFileSync(join(import.meta.dirname, "..", "..", "..", "..", "..", ".forge.json"), "utf8")).slug;
 
 const owedRoom = (name) => {
   const room = built(name, DECLARED);

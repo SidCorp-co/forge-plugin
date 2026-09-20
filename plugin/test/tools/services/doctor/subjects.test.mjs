@@ -6,14 +6,14 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
-import { tempRoom } from "../../fixtures.mjs";
+import { tempRoom } from "../../../fixtures.mjs";
 import {
   IN_BARE, SAYS, SUBJECTS, SUBJECT_SLUGS, USAGE, WIDENED,
-} from "../../../src/tools/services/doctor/subjects.mjs";
-import { flagsNamed } from "../../../src/resolve/flags.mjs";
-import { usageOf } from "../../../src/resolve/visibility.mjs";
+} from "../../../../src/tools/services/doctor/subjects.mjs";
+import { flagsNamed } from "../../../../src/resolve/flags.mjs";
+import { usageOf } from "../../../../src/resolve/visibility.mjs";
 
-const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
+const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;
 
 /* A home of its own and no credential, so no spawn below reaches a tracker. */
 const doctor = (...argv) => {
@@ -152,7 +152,7 @@ test("the subjects a bare call reads are the table's own, and four are not among
    3.4s round trip, and elapsed time is what this suite refuses to bound. That the ask is already
    running when the row is read is doctor-release.test.mjs's half. */
 test("the release ask is started above the report's local checks and read below them", () => {
-  const source = readFileSync(new URL("../../../src/tools/doctor.mjs", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../../../src/tools/doctor.mjs", import.meta.url), "utf8");
   const at = (mark) => {
     const found = source.indexOf(mark);
     assert.notEqual(found, -1, `${mark} is no longer in the report, so this case measures nothing`);

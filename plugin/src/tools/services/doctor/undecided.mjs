@@ -4,7 +4,7 @@
    decisions are open — and it is a reading of its own, off the same table the writes are read from.
    docs/cli/the-subjects.md. */
 import { BRIEF_ROUTE } from "../../../tracker/knowledge/brief.mjs";
-import { declarablePaths, setCall } from "./project-file.mjs";
+import { declarablePaths, setCall } from "../project-file.mjs";
 import { projectFileHere } from "../../../resolve/settings.mjs";
 
 /* How a value of each shape is typed on a command line, and the name a project chooses for itself

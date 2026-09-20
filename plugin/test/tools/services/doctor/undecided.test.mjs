@@ -6,13 +6,13 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
-import { tempRoom } from "../../fixtures.mjs";
-import { PROJECT_KEYS } from "../../../src/tools/services/doctor/project-file.mjs";
-import { DECLARABLE } from "../../../src/stats/corpus/declared.mjs";
-import { RANK_ROWS, RANK_WEIGHTS } from "../../../src/rank/weights.mjs";
-import { briefUndecided, undecidedKeyRows } from "../../../src/tools/services/doctor/undecided.mjs";
+import { tempRoom } from "../../../fixtures.mjs";
+import { PROJECT_KEYS } from "../../../../src/tools/services/project-file.mjs";
+import { DECLARABLE } from "../../../../src/stats/corpus/declared.mjs";
+import { RANK_ROWS, RANK_WEIGHTS } from "../../../../src/rank/weights.mjs";
+import { briefUndecided, undecidedKeyRows } from "../../../../src/tools/services/doctor/undecided.mjs";
 
-const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
+const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;
 
 /* A home of its own and no credential, so no spawn below reaches a tracker, and a checkout of its
    own, so the project file under test is the one this walk finds first. */

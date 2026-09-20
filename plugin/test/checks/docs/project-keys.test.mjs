@@ -8,7 +8,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { keysDocumented, keysRead, projectKeyProblems } from "../../../src/checks/docs/project-keys.mjs";
-import { PROJECT_KEY_NAMES } from "../../../src/tools/services/doctor/project-file.mjs";
+import { PROJECT_KEY_NAMES } from "../../../src/tools/services/project-file.mjs";
 
 const ROOT = new URL("../../../..", import.meta.url).pathname;
 

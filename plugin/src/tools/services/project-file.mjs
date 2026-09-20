@@ -6,10 +6,10 @@
 import { closeSync, fchmodSync, openSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync }
   from "node:fs";
 
-import { compiles } from "../../../codex/codex.mjs";
-import { reviewRefusalOf } from "../../../git/reviewed.mjs";
-import { DECLARABLE, declares } from "../../../stats/corpus/declared.mjs";
-import { RANK_ROWS, RANK_WEIGHTS, foldWeights } from "../../../rank/weights.mjs";
+import { compiles } from "../../codex/codex.mjs";
+import { reviewRefusalOf } from "../../git/reviewed.mjs";
+import { DECLARABLE, declares } from "../../stats/corpus/declared.mjs";
+import { RANK_ROWS, RANK_WEIGHTS, foldWeights } from "../../rank/weights.mjs";
 import {
   CHECK_MS_TAKES,
   Refusal,
@@ -27,7 +27,7 @@ import {
   jobsOf,
   runsOf,
   workPatternOf,
-} from "../../../resolve/settings.mjs";
+} from "../../resolve/settings.mjs";
 
 const SPACE = /\s/u;
 

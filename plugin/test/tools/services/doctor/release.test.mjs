@@ -8,11 +8,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import { releaseRows, startRelease } from "../../../src/tools/services/doctor/release.mjs";
-import { escaped, tempRoom } from "../../fixtures.mjs";
-import { patience, reached } from "../../patience.mjs";
+import { releaseRows, startRelease } from "../../../../src/tools/services/doctor/release.mjs";
+import { escaped, tempRoom } from "../../../fixtures.mjs";
+import { patience, reached } from "../../../patience.mjs";
 
-const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 const NAME = JSON.parse(readFileSync(join(SRC, ".claude-plugin", "plugin.json"), "utf8")).name;
 const CLI = join(SRC, "src", "cli.mjs");
 

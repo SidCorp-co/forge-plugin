@@ -99,7 +99,7 @@ const ADD = "Add it to the JSON example under **Project** there, with what it de
   + " absence means.";
 
 const WRITTEN = "the table `forge doctor --set` writes this file through,"
-  + " `PROJECT_KEYS` in plugin/src/tools/services/doctor/project-file.mjs";
+  + " `PROJECT_KEYS` in plugin/src/tools/services/project-file.mjs";
 
 /* The third side. A key read and not in that table is one the report names and no verb can set, which
    is the hand edit this whole route exists to end; a key in it and read nowhere writes a line into
