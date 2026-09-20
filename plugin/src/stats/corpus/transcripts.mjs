@@ -26,7 +26,7 @@ export const MODEL_NONE = "unattributed";
    answer — the latter always under the marker model, so it is already outside the token tally and
    never dilutes it. Neither is a call this plugin issued or refused, so neither belongs in the
    refusals listing or the other-errors line; both are counted apart, off the same pass — a run's
-   *condition*, not what it spent, and never folded into an angle — docs/cli/stats-rows.md. */
+   *condition*, not what it spent, and never folded into an angle — docs/cli/stats-the-condition.md. */
 const compactSummary = (record) => record.message?.role === "user" && record.isCompactSummary === true;
 const apiError = (record) => record.message?.role === "assistant" && record.isApiErrorMessage === true;
 
