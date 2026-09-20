@@ -127,7 +127,7 @@ test("a value the flag does not take fails, and the printed route is that case",
   assert.deepEqual(routeProblems(printed.replace("partial", "whole"), held), [],
     "and the value the usage does spell passes");
   assert.deepEqual(routeProblems("forge record verdict ISS-1 --verdict maybe", held),
-    ["`forge record verdict --verdict maybe` is no value it takes: pass or fail or skipped"],
+    ["`forge record verdict --verdict maybe` is no value it takes: pass or fail or skipped or short"],
     "and a set the usage spells as alternatives is read the same way");
 });
 

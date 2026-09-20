@@ -1,7 +1,7 @@
 /* The kinds, the table `forge record -h` prints of them, and the help rendered from that table —
    each capped field's cap on the row of the field it caps, so a note is drafted against the number
    rather than learning it from the refusal (ISS-46). */
-import { PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES,
+import { PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES, VERDICTS,
   sectionOwedBy } from "../machine.mjs";
 import { CLAUSES, NOTHING } from "./merged.mjs";
 import { citationBlocks } from "../../spec/checked.mjs";
@@ -37,7 +37,7 @@ export const kindRows = (caps) => [
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
   "  correction   --moved M --why W                                a plan or criteria change after approval",
   "  baseline     --gate G --result R --commit C --scope whole|part [--cited W]",
-  "  verdict      --criterion N --verdict pass|fail|skipped --commit C --evidence E... [--why W]",
+  "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C --evidence E... [--why W] [--filed R]",
   "  review       --reviewer R --commit C --outcome approved|changes-requested [--finding \"F1 accepted\"]...",
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
   "  gap          --where W --lacked L --did D | --none <why>       where the method did not answer",
@@ -113,6 +113,20 @@ const MERGED_BLOCKS = [
   "none rather than as silence. --to is the branch the change landed on, read from this project's",
   "base branch where it is not given. --undo removes the mark whole, prints the note it removed and",
   "takes no clause beside it: a clause is written by the mark and not by its removal.",
+];
+
+/* What each value records. The set is four because the outcomes are: only `skipped` says nobody
+   reached the criterion, which is why it alone owes no evidence, and a reader who cannot tell it
+   from a shortfall somebody released on purpose can count neither (ISS-1875). */
+const VERDICT_BLOCKS = [
+  "What each value records, which is what a later reader of this issue gets:",
+  "  pass     the criterion was met as it is written",
+  "  fail     it was exercised and not met, and the shortfall holds the rung until it is answered",
+  "  short    it was exercised, met short of its wording, and the shortfall judged not to block:",
+  "           the change releases, --why says how it fell short, --filed names the row it became",
+  "  skipped  no route reached it, so nobody looked and there is nothing to cite",
+  "--filed takes the reference to that row and no sentence, a reader of the record having to follow",
+  "it. It belongs to `short` alone and is refused on any other value.",
 ];
 
 const CRITERION_BLOCKS = [
@@ -225,6 +239,7 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     ...(CITES.includes(kind) && cites.length ? ["", ...cites] : []),
     ...(kind === "merged" ? ["", ...MERGED_BLOCKS] : []),
     ...(goals && SERVES_KINDS.includes(kind) ? ["", ...servesBlocks(goals)] : []),
+    ...(kind === "verdict" ? ["", ...VERDICT_BLOCKS] : []),
     ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS] : []),
     ...(filled(kind, "evidence") ? ["", ...EVIDENCE_BLOCKS] : []),
     ...(alsoCommit(kind).length ? ["", ...alsoCommit(kind)] : []),

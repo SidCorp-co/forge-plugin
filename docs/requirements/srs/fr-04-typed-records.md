@@ -64,6 +64,19 @@ a correction beside any of them.
   IF one write names several kinds and any of their payloads is refused THEN the CLI SHALL write none
   of them, so that no run holds part of what a status is earned by because a later payload was
   malformed.
+- **AC-04-1-9** · Rev: 1 · Proof: plugin/test/flow/verdicts/short.test.mjs "the verdict shape takes a fourth value, for a criterion exercised and found short of its wording"
+  WHEN a judge records that a criterion was exercised, met short of its wording and judged not to
+  block THEN the CLI SHALL take a verdict value of its own for that outcome, distinct from the value
+  that records a criterion no route reached, because a reader who cannot tell a released shortfall
+  from a gap in equipment can count and chase neither.
+- **AC-04-1-10** · Rev: 1 · Proof: plugin/test/flow/verdicts/short.test.mjs "a short verdict naming no row is refused by a message naming the flag that carries the row"
+  IF a verdict recording a released shortfall names no row that shortfall became THEN the CLI SHALL
+  refuse the write and SHALL name the flag that carries the reference, the value being a way to
+  record that the observation went elsewhere and not a way to close one.
+- **AC-04-1-11** · Rev: 1 · Proof: plugin/test/flow/verdicts/short.test.mjs "no verdict value is exempt from one evidence obligation without being exempt from the other"
+  WHERE a verdict value records that somebody exercised the criterion, the CLI SHALL owe evidence at
+  the write and an attachment under a declared screen change alike, so that no value carries one
+  obligation and is excused the other.
 
 ### UC-04-2 — Evidence is checked before it is cited
 

@@ -334,7 +334,15 @@ export const PARKS = [
 export const SHOWS_EVIDENCE = ["screen-review", "code-review", "destructive-migration"];
 export const ANSWERS_LOOK = ["screen-review", "code-review"];
 export const FAIL = "fail";
-export const VERDICTS = ["pass", FAIL, "skipped"];
+export const SHORT = "short";
+/* Four outcomes and not three: a criterion exercised, found short of its wording and judged not to
+   block is a decision, where a `skipped` one is a gap in equipment, and a set that spells both the
+   same way cannot be counted or chased either way (ISS-1875). */
+export const VERDICTS = ["pass", FAIL, "skipped", SHORT];
+/** Whether anybody exercised the criterion, which is the one question both evidence obligations
+ *  answer to — the write's and the screen check's. Here rather than spelled at each, so a value
+ *  added to the set cannot be exempt from one of them and not the other. */
+export const somebodyLooked = (verdict) => verdict !== "skipped";
 export const JUDGE_FROM = "judge-from";
 export const SCOPES = ["whole", "part"];
 
@@ -377,7 +385,25 @@ const escapeOr = (got, wanted, said) => {
    this. A kind absent here owes none whatever its check says. */
 const OWES = {
   park: (got) => SHOWS_EVIDENCE.includes(got.kind),
-  verdict: (got) => got.verdict !== "skipped",
+  verdict: (got) => somebodyLooked(got.verdict),
+};
+
+/* What the fourth value owes beyond the three: the reason it fell short, and the row the shortfall
+   became. A `short` releases the change, so the record is the only place the observation survives —
+   without the row it is a way to close one, which is what this value is not for. The row is a
+   reference because a reader has to follow it; whitespace is how a sentence gets typed there. */
+const shortProblem = (got) => {
+  /* Emptied rather than absent is the same shortfall to a reader following it, and a record written
+     by hand reaches this check as a written one does. */
+  const filed = String(got.filed ?? "").trim();
+  if (got.verdict !== SHORT) {
+    return got.filed === undefined ? null
+      : `--filed only on a \`${SHORT}\` verdict: it names the row a released shortfall became, and a \`${got.verdict}\` releases none`;
+  }
+  if (!got.why) return `--why, naming how the criterion fell short of its wording: a \`${SHORT}\` releases the change and the record says what it released`;
+  if (!filed) return `--filed <the row this shortfall became>: a \`${SHORT}\` records that the observation went somewhere else and closes nothing`;
+  if (/\s/u.test(filed)) return `--filed as the row's own reference, not a sentence: nobody reading \`${filed}\` can follow it`;
+  return null;
 };
 
 /* Said once, by the shape and by whatever turns a write back, so both name the same two grounds. */
@@ -454,6 +480,7 @@ export const SHAPES = {
       FIELD("commit", "Commit", { commit: true }),
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true, owed: OWES.verdict }),
       FIELD("why", "Why", { optional: true }),
+      FIELD("filed", "Filed as", { optional: true }),
       FIELD("judge", "Judge", { written: "id", newer: true }),
       FIELD(JUDGE_FROM, "Judge id from", { written: "source", newer: true }),
     ],
@@ -461,6 +488,8 @@ export const SHAPES = {
       if (got.verdict === "skipped" && !got.why) return "--why, for a skipped check";
       /* A failing verdict is the one another run acts on, and one saying only `fail` sends them back to run it again to find out what. */
       if (got.verdict === FAIL && !got.why) return `--why, naming what the criterion did instead: a \`${FAIL}\` is what another run acts on`;
+      const shortfall = shortProblem(got);
+      if (shortfall) return shortfall;
       if (OWES.verdict(got) && !got.evidence.length) return "--evidence (repeatable): a verdict with none is refused";
       return null;
     },

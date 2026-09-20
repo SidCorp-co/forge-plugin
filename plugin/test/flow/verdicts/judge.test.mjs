@@ -129,7 +129,7 @@ test("--judge is refused rather than dropped, so no writer names another run as 
      nothing invites a second try. The row is under the usage line rather than on it, which is why
      the refusal carries the rows that name a flag and not the first line alone. */
   const offered = /^ {2}verdict\s+(.*)$/mu.exec(run.stderr)[1].match(/--[a-z]+/gu);
-  assert.deepEqual(offered, ["--criterion", "--verdict", "--commit", "--evidence", "--why"]);
+  assert.deepEqual(offered, ["--criterion", "--verdict", "--commit", "--evidence", "--why", "--filed"]);
   assert.doesNotMatch(run.stderr, /--judge\b(?!\.)/u, "and the flag it refused is not offered back");
 });
 

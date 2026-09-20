@@ -3,8 +3,8 @@
    writes, fetches or reads the repository. What it checks against is the contract's table for that
    status, printed by `forge guide contract`. */
 import {
-  ANSWERS_LOOK, CLOSES_FROM, FINDINGS, SHAPES, TRIAGES, looksIn, looksTo, need, planFlags, unwrap,
-  witnessedOn,
+  ANSWERS_LOOK, CLOSES_FROM, FINDINGS, SHAPES, TRIAGES, looksIn, looksTo, need, planFlags,
+  somebodyLooked, unwrap, witnessedOn,
 } from "./machine.mjs";
 import { planShapeOwed } from "./earned/plan-owed.mjs";
 import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding } from "./earned/park-status.mjs";
@@ -326,14 +326,16 @@ const judgedSince = (view, ref) => {
 };
 
 /* A URL and a sha are citations; an attachment is the thing itself, and a screen is the one change
-   whose proof is that somebody looked. `skipped` is exempt: there was nothing to look at. */
+   whose proof is that somebody looked. Which verdicts that reaches is the write's own question,
+   asked here through the same predicate: a value exempt from citing evidence at the write and owing
+   an attachment here would be a record whose two readers disagree about whether anybody looked. */
 const shownOwed = (view, ref) => {
   if (view.flags.screen !== "yes") return [];
   /* Current criteria only, as `judgedSince` reads: asked for again on a dropped number, the write refuses. */
   const current = new Set(view.criteria.map((one) => one.number));
   const numbers = [...view.verdicts]
     .filter(([number]) => current.has(number))
-    .filter(([, one]) => one.record.fields.verdict !== "skipped")
+    .filter(([, one]) => somebodyLooked(one.record.fields.verdict))
     .filter(([, one]) => !(one.record.fields.evidence ?? []).some((cited) => view.names.includes(cited)))
     .map(([number]) => number)
     .sort((one, two) => one - two);

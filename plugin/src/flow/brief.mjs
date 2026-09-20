@@ -11,7 +11,7 @@ import { methodOf } from "../guides/phases.mjs";
 import { rungOf } from "../ladder.mjs";
 import { lookAhead, owedIn } from "./route.mjs";
 
-const MARK = { pass: "✓ pass", fail: "✗ fail", skipped: "· skipped" };
+const MARK = { pass: "✓ pass", fail: "✗ fail", skipped: "· skipped", short: "≈ short" };
 const NONE = "– none";
 const HEADLINE_CHARS = 200;
 
