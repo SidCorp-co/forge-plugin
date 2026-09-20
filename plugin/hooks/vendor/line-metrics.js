@@ -71,13 +71,24 @@ function lineHasCode(sourceCode, lineNumber, commentsOnLine) {
   return segments.some((segment) => segment.trim() !== "");
 }
 
+/* What the waivers of a run leave: the escape is what costs nothing, not the comment it is
+   written in, so prose beside one in the same block is charged as prose anywhere else is. */
+function outside(text, ranges) {
+  let kept = "";
+  let at = 0;
+  for (const [from, to] of [...ranges].sort((one, other) => one[0] - other[0])) {
+    if (from > at) kept += text.slice(at, from);
+    at = Math.max(at, to);
+  }
+  return kept + text.slice(at);
+}
+
 /* Where each waiver of a run begins and ends, measured over the run read as one text so that a
    reason on the next line is the same waiver. A reason ends with its own line, which is what
    keeps a waiver from making the block of prose beneath it free: the escape is the answer to a
    rule and not prose about the code, and charged it would cost a file at its budget the very
    line it needs to say why. */
-function waivedRanges(said) {
-  const joined = said.join("\n");
+function waivedRanges(joined) {
   const ranges = [];
   for (const waiver of WAIVERS) {
     const scan = new RegExp(waiver.source, "g");
@@ -131,14 +142,8 @@ export function getLineMetrics(sourceCode) {
   // asterisk a continuation line is given. So those two are what a character does not count.
   let commentChars = 0;
   for (const { comments } of lineCommentRuns(sourceCode, counted)) {
-    const said = comments.map((comment) => comment.value);
-    const waived = waivedRanges(said);
-    let at = 0;
-    for (const text of said) {
-      const escape = waived.some(([from, to]) => from < at + text.length && to > at);
-      if (!escape) commentChars += text.replace(/[\s*]+/gu, "").length;
-      at += text.length + 1;
-    }
+    const said = comments.map((comment) => comment.value).join("\n");
+    commentChars += outside(said, waivedRanges(said)).replace(/[\s*]+/gu, "").length;
   }
 
   const codeLines = new Set();

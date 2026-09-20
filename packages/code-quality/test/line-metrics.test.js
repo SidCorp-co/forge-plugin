@@ -119,6 +119,11 @@ test("a waiver costs nothing however its reason is wrapped", () => {
     metricsFor("// rationale\n// pass-through: keep — the wrapper is the seam\nconst a = 1;").commentChars,
     9,
   );
+  // What costs nothing is the escape, not the comment it was written in.
+  assert.equal(
+    metricsFor("/* rationale\npass-through: keep — seam\ndetails */\nconst a = 1;").commentChars,
+    "rationaledetails".length,
+  );
   // A comment trailing a line of code begins nothing, whatever stands above it.
   assert.equal(
     metricsFor("// pass-through: keep — the wrapper is the seam\nconst a = 1; // rationale\n").commentChars,
