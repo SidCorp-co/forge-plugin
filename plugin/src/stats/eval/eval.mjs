@@ -17,7 +17,7 @@ import {
 } from "../marks/marks.mjs";
 import { reachOf, reachSaid } from "../marks/reach.mjs";
 import { BUDGET, HORIZON, UNAVAILABLE, budgetOf, outcomesOf, parkedOver, readThreads, ruledOver } from "./outcomes.mjs";
-import { angleList, anglesAsked, anglesOver, anglesSaid } from "./angles.mjs";
+import { NOT_MEASURED, angleList, anglesAsked, anglesOver, anglesSaid } from "./angles.mjs";
 import { logEntries } from "../../codex/codex-log.mjs";
 import { fail, projectAt, projectTarget, useProject } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
@@ -537,7 +537,10 @@ export const printEval = async (argv) => {
      into `writeMark`, so an angle folded there would be stored in every record and its floor spent
      during a ship. */
   const judged = anglesOver({ ordered: byEnd(corpus.runs), held, names, runFloor: FLOOR });
-  if (json) return console.log(JSON.stringify({ ...held, angles: judged }, null, 2));
+  /* Beside `angles` and outside `held`: the statement is one claim about the whole set rather than a
+     field of each angle, and `held` is what both mark writers store — a key added there would be
+     carried in every reading a ship holds, which is the boundary the line above keeps. */
+  if (json) return console.log(JSON.stringify({ ...held, angles: judged, notMeasured: NOT_MEASURED }, null, 2));
   for (const line of evalLines(held, anchor, corpus.copies, judged)) console.log(line);
   return null;
 };

@@ -92,6 +92,31 @@ be stored in every record a ship writes and would spend its floor during a relea
 computed beside the reading, in the screen's own call, and a stored reading holds exactly the keys it
 held before they existed.
 
+## What no angle measures, and what one would have to be before it did
+
+Every shipped angle reads lower as better, so the set is prices end to end and nothing in it reads
+what a run produced. The reading states that beside its verdicts rather than here, because the reader
+who needs it is the one who did not come looking. What belongs here is the standard, so that a filing
+proposing a quality angle is held to it rather than arguing it again.
+
+The substitute this project had closest to hand is ruled out on the record: `reopenCount` is 0 across
+all 200 closed issues and all 200 most recent, so it has no variance and can distinguish nothing. No
+figure here is called a quality measure until it meets all six of these:
+
+1. an eligible task population fixed independently of eventual success
+2. task-specific acceptance criteria fixed before assessment
+3. assessment of the resulting artifact or behaviour, not the run's own account of it
+4. independently captured outcomes
+5. explicit failed, unassessed and pending cases, with coverage shown
+6. comparable task mix and observation periods across windows
+
+**And the rule that decides whether a candidate figure is independent at all**, which is not about
+where the figure is stored: a quality observation must test a task requirement against evidence whose
+acceptance criteria, execution and reporting the evaluated run cannot unilaterally alter or suppress.
+A run claims its own issue, writes its own records and closes it, so no terminal status of its own
+issue qualifies however the tracker holds it. That is what rules out reading a close as a quality
+signal, and it would rule it out even where the count of reopenings had the variance it has not.
+
 ## What is deliberately not here
 
 The seconds a call spends by class. It is one angle, it is separately filed, and this topic is the

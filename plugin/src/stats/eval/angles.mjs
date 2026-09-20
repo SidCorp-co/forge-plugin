@@ -96,6 +96,17 @@ export const ANGLES = {
 
 const NAMES = Object.keys(ANGLES);
 
+/** What the whole set leaves out, printed with the verdicts rather than left to a topic, because the
+ *  reader who needs it is the one who did not go looking. The count is the shipped set's and comes off
+ *  that set: a number written here would be wrong the first time an angle is added, and it is not the
+ *  asked-for selection's count because the claim is about what this verb measures at all rather than
+ *  about what one call chose to print. The claim that every one of them is a price is held by a case
+ *  and not by this sentence, which cannot check itself. */
+export const NOT_MEASURED = `what none of the ${NAMES.length} angles this verb holds measures: every `
+  + "one is a price — what a run spent, never what it came back with — so all of them improving is as "
+  + "consistent with runs having skipped what they owed as with the harness needing less of them. "
+  + "No figure in this reading is a quality measure.";
+
 /** Which angles this call asks for, refused before anything is read. A name the set does not hold is
  *  refused with the set, as the subject slot already refuses one; a name given twice is refused
  *  rather than quietly read once, since a duplicate silently collapsed reads to the caller exactly
@@ -341,5 +352,6 @@ export const anglesSaid = (readings) => [
   "",
   "angles on the same runs — each over the population it names, each judged against how far two "
     + "adjacent blocks of this corpus have themselves differed",
+  NOT_MEASURED,
   ...readings.flatMap(angleLines),
 ];

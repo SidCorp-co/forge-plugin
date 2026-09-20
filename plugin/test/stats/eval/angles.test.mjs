@@ -6,7 +6,8 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 
 import {
-  ANGLES, DISPOSITIONS, POSITIONS, angleOf, anglesAsked, anglesOver, anglesSaid, floorsOver,
+  ANGLES, DISPOSITIONS, NOT_MEASURED, POSITIONS,
+  angleOf, anglesAsked, anglesOver, anglesSaid, floorsOver,
 } from "../../../src/stats/eval/angles.mjs";
 import { profileOf } from "../../../src/stats/runs.mjs";
 import { marksPath, writeMark } from "../../../src/stats/marks/marks.mjs";
@@ -276,6 +277,8 @@ test("a mark holds the keys it held before an angle existed, and its write spend
   for (const one of stored) {
     assert.equal(Object.hasOwn(one, "angles"), false, "and a stored reading carries none");
     assert.equal(Object.hasOwn(one, "floor"), false);
+    assert.equal(Object.hasOwn(one, "notMeasured"), false,
+      "nor the statement beside them: it is the screen's and `--json`'s, not a field of every mark a ship writes");
   }
 });
 
@@ -290,6 +293,33 @@ test("the same verdict names the reference the floor is, and no disposition clai
   for (const text of Object.values(DISPOSITIONS)) {
     assert.doesNotMatch(text, /compared with itself|unchanged harness|against a null/u);
   }
+});
+
+/* The sentence claims every angle is a price and a sentence cannot check itself. This is what goes
+   red the day an angle is added that reads higher as better, so the claim is revisited rather than
+   left printing over a set it no longer covers (ISS-1996). */
+test("every shipped angle reads lower as better, which is what the reading claims beside the verdicts", () => {
+  assert.deepEqual(Object.entries(ANGLES).filter(([, one]) => one.better !== -1).map(([name]) => name), [],
+    "the statement beside the verdicts says every angle is a price; one that is not makes it wrong");
+  assert.match(NOT_MEASURED, new RegExp(`^what none of the ${NAMES.length} angles this verb holds measures: `, "u"));
+});
+
+/* The reading it exists for is the one where nothing looks wrong: eight green rows and no figure
+   among them that read what any run produced. */
+test("a reading where every angle improved says what it does not measure, on the screen and in --json", () => {
+  const improved = NAMES.map(() => judge({ minutes: 100 }, { minutes: 50 }));
+  assert.deepEqual([...new Set(improved.map((one) => one.disposition))], [DISPOSITIONS.improved]);
+  assert.equal(anglesSaid(improved).includes(NOT_MEASURED), true, "beside the verdicts, not in a topic");
+  assert.equal(anglesSaid([improved[0]]).includes(NOT_MEASURED), true,
+    "and a single asked-for angle carries it too, the claim being about what the verb measures at all");
+
+  const read = ask(corpusOf(30), "--size", "3", "--json");
+  assert.equal(read.status, 0, read.stderr);
+  assert.equal(JSON.parse(read.stdout).notMeasured, NOT_MEASURED,
+    "a consumer reading only the machine form is told what the screen says");
+  const screen = ask(corpusOf(30), "--size", "3", "--angles", "wall");
+  assert.equal(screen.status, 0, screen.stderr);
+  assert.equal(screen.stdout.includes(NOT_MEASURED), true);
 });
 
 test("a release anchor prints the same blocks, over the runs this corpus still holds of the held span", () => {
