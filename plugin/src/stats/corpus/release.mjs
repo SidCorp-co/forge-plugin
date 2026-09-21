@@ -1,7 +1,7 @@
 /* What Phase 7 asks the project a checkout names for, read off the release model that project
    already declared to the tracker — never off a fifth `stats.commands` label, which would make a
    project say the same thing twice in two places that could disagree (G-12, ISS-1975). The class
-   table takes the answer and asks the tracker nothing itself: docs/cli/stats-rows.md. */
+   table takes the answer and asks the tracker nothing itself: docs/cli/stats-the-landing.md. */
 import { accountCredentials, projectAt, projectTarget, useProject } from "../../resolve/settings.mjs";
 import { policyUnread, releasePolicy } from "../../tracker/project-config.mjs";
 

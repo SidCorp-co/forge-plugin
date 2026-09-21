@@ -84,8 +84,8 @@ export const SHELL = "shell";
 
 /** The act Phase 7 asks of a project whose release reaches production on its own: a wait on a
  *  deploy the run did not start and a read of what it reports serving. It types no command the
- *  project could declare, so what it is read off is named here as the `--ready` landing's is, and
- *  whether the row is in the table is the release model's answer (ISS-1975). */
+ *  project could declare, so what it is read off is named here as the `--ready` landing's is:
+ *  docs/cli/stats-the-landing.md. */
 export const DEPLOY = "deploy";
 
 /** The one-call wait this plugin prescribes for work already running, which is neither a poll — it

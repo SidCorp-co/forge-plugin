@@ -78,6 +78,7 @@ how many topics there may be.
 | [the refusal log](cli/the-refusal-log.md) | Why refusing is what writes the line, what a per-write round count means, and what is masked before a line lands on disk. |
 | [`stats`](cli/stats.md) | Why the transcript root is derived rather than passed, why the entries are deliberately not containment-checked, and what an unanswered call counts as. |
 | [stats — the rows](cli/stats-rows.md) | The three rows a hand profile got wrong, why a wait on a running process is a row of its own, and where that row sits in a first-match table. |
+| [stats — the landing](cli/stats-the-landing.md) | Why the last phases opened on a command a project declares and now open on any of three landings, which answer to what Phase 7 asks for is the release model's, and why the row for a deploy nobody commands is read off a verb and never off a host. |
 | [stats — the refusals](cli/stats-the-refusals.md) | Why a refusal is keyed on the line naming the rule rather than on the first line of the body, why a marked line beats a verb sentence, and why two of the four shapes are read off the exit code as well. |
 | [stats — the help reads](cli/stats-the-help-reads.md) | Why the largest surface this CLI serves on demand gets a table of its own, why a read is the slot that answers rather than the word wherever it sits, and what the table does not say. |
 | [stats — the tables](cli/stats-the-tables.md) | Why a phase boundary is read off the class a call carries, why the phases sum to the wall, and why a run that claimed no rung keeps a row. |
