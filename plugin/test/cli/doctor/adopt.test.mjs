@@ -5,7 +5,8 @@
    resolve this suite's own checkout. ISS-1403, docs/cli/the-project-file.md. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, statSync, symlinkSync,
+  writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -248,8 +249,6 @@ test("a first --set that could not land leaves nothing behind, and the committed
     const run = await ask(room, "--set", "slug=written-nowhere");
     assert.equal(run.status, 1, run.stdout);
     assert.match(run.stderr, /could not write it, so nothing was written/u, run.stderr);
-    assert.match(run.stderr, /did not exist before this call and does not now/u,
-      "and the sentence says so of the file itself, not of the write in the abstract");
   } finally {
     chmodSync(under, 0o700);
   }
@@ -257,4 +256,20 @@ test("a first --set that could not land leaves nothing behind, and the committed
   const adopted = await ask(room, "--adopt");
   assert.equal(adopted.status, 0, adopted.stderr);
   assert.deepEqual(JSON.parse(readFileSync(entry, "utf8")), { slug: "failed-first", runs: 8 });
+});
+
+/* The race the recheck found in the cleanup that answered the finding above: a call that reads no
+   entry and then meets one at the write must leave that one alone, the file being another call's.
+   A dangling symlink is that race made to hold still — `existsSync` follows it and answers no, and
+   an exclusive create on it is refused EEXIST, which is exactly the two readings the race gives. */
+test("an entry that appeared between the reading and the write is left standing, not swept", async () => {
+  const { room, entry } = checkout("raced", { slug: "raced" });
+  mkdirSync(dirname(entry), { recursive: true });
+  symlinkSync(join(dirname(entry), "written-by-another-call.json"), entry);
+  assert.equal(existsSync(entry), false, "the reading this call takes is that there is no entry");
+  const run = await ask(room, "--set", "slug=mine");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /was created between this call reading that there was none and writing/u, run.stderr);
+  assert.match(run.stderr, /Run it again/u, "and the refusal carries what to do about it");
+  assert.ok(lstatSync(entry).isSymbolicLink(), "what was standing there was another call's to keep");
 });

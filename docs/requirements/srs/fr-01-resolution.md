@@ -386,12 +386,13 @@ quietly ignored.
 - **AC-01-5-28** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "the checkout's own committed file is left byte-identical, adoption being a copy"
   WHEN a file is adopted THEN the CLI SHALL leave the checkout's own copy byte-identical, taking a
   tracked file out of a repository being a commit and the person's own act.
-- **AC-01-5-29** · Rev: 3 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a first --set the judge refuses leaves no entry behind, so the committed file can still be adopted"
+- **AC-01-5-29** · Rev: 4 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a first --set the judge refuses leaves no entry behind, so the committed file can still be adopted"
   WHEN a project key is written and this machine holds no record for that project THEN the CLI SHALL
   create one, a project that has decided nothing yet being the case the first write is for, SHALL
   create it only once that value has been judged and holding the text it is to hold, and IF that
-  write does not land THEN SHALL leave no record behind, an entry a refused or unfinished write left
-  standing being one the adoption then refuses to write over.
+  write does not land THEN SHALL leave no record of its own behind and SHALL leave any record
+  another call created standing, an entry a refused or unfinished write left behind being one the
+  adoption then refuses to write over.
 - **AC-01-5-30** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a key this machine owns is refused as a project key by name, with the route that writes it"
   IF a key this machine owns outright is written as a project key THEN the CLI SHALL refuse naming
   that key, SHALL say which level holds it and the route that writes it, and SHALL write nothing.

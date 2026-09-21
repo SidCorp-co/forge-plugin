@@ -395,25 +395,11 @@ export const wroteWhole = (path, text) => {
   }
 };
 
-/* The entry is this machine's own and a project that has set nothing has no file yet, so the first
-   write creates one rather than refusing: refusing would leave `slug` unsettable in a checkout that
-   names no project, which is the one key every other route needs before it can run. Created at 0600
-   like every other file this plugin keeps under that directory, exclusively, and holding the text it
-   is to hold — never an empty document a failing write would then leave standing. */
-const madeWith = (path, text) => {
-  mkdirSync(dirname(path), { recursive: true });
-  const handle = openSync(path, "wx", 0o600);
-  try {
-    writeFileSync(handle, text);
-  } finally {
-    closeSync(handle);
-  }
-};
-
 /* What a first write that did not land leaves behind, which is nothing: `forge doctor --adopt`
    refuses against a file that exists, so an entry half made here would strand the checkout's
    committed configuration exactly as a refused write once did. A removal that fails is said,
-   that one file being all that stands between its reader and the adoption. */
+   that one file being all that stands between its reader and the adoption. Reached only past the
+   exclusive handle below, because only past it is the file this call's own to remove. */
 const sweptAway = (path) => {
   try {
     rmSync(path, { force: true });
@@ -422,6 +408,36 @@ const sweptAway = (path) => {
     return ` ${path} did not exist before this call, was created by it and could not be removed `
       + `either: ${error.message}. Remove it by hand, or the adoption will refuse against it.`;
   }
+};
+
+/* The entry is this machine's own and a project that has set nothing has no file yet, so the first
+   write creates one rather than refusing: refusing would leave `slug` unsettable in a checkout that
+   names no project, which is the one key every other route needs before it can run. Created at 0600
+   like every other file this plugin keeps under that directory, exclusively, and holding the text it
+   is to hold — never an empty document a failing write would then leave standing. */
+const madeWith = (path, text) => {
+  mkdirSync(dirname(path), { recursive: true });
+  /* Exclusive, and the whole reason the sweep below is safe: a call that created this entry between
+     the absence read above and this line fails HERE, with nothing of that call's touched. A cleanup
+     outside this handle removes whatever is standing there, which over that race is somebody else's
+     configuration. */
+  let handle = null;
+  try {
+    handle = openSync(path, "wx", 0o600);
+  } catch (error) {
+    throw error.code === "EEXIST"
+      ? new Error(`${path} was created between this call reading that there was none and writing `
+        + "one, so this call wrote nothing rather than over it. Run it again")
+      : error;
+  }
+  let failed = null;
+  try {
+    writeFileSync(handle, text);
+  } catch (error) {
+    failed = error;
+  }
+  closeSync(handle);
+  if (failed) throw new Error(`${failed.message}.${sweptAway(path)}`);
 };
 
 /* Created only once the value has been judged, never on the way to judging it: a refused first
@@ -495,7 +511,7 @@ export const projectWrite = (route, value) => {
     else wroteWhole(path, text);
   } catch (error) {
     fail(`--set: ${path} is the file \`${route.key}\` is a key of and this could not write it, so `
-      + `nothing was written: ${error.message}.${absent ? sweptAway(path) : ""}`);
+      + `nothing was written: ${error.message}`);
   }
   /* Off the disk, never off the text this call composed, which is the only reading that can tell a
      write from the span the resolver goes on to read. */
