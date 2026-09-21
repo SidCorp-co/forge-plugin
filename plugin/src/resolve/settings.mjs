@@ -108,12 +108,36 @@ const forgeJson = once(() => {
   return { parsed: path === null ? null : readJson(path) };
 });
 
+/* Where a committed file may be for it to be THIS checkout's: from here up to the checkout's own
+   root and no further, plus the repository's root, which is the same place except in a linked
+   worktree. The general walk goes to the filesystem root, and a repository nested inside another
+   would find the outer project's file there — which the report would name as this checkout's and
+   `--adopt` would then copy in as this project's configuration. Outside a checkout there is no root
+   to stop at, so only the directory the call was made in can carry one. */
+const committedRoots = () => {
+  const here = standing();
+  if (here === null) return [resolve(process.cwd())];
+  const walked = [];
+  for (let at = resolve(process.cwd()); ; at = dirname(at)) {
+    walked.push(at);
+    if (at === here.tree || dirname(at) === at) break;
+  }
+  /* A path reached through a symlink resolves to a tree this walk never passes, so the walk is
+     discarded rather than trusted to the filesystem root: the two roots below certainly belong to
+     this checkout, and nothing above them ever does. */
+  const within = walked.includes(here.tree) ? walked : [here.tree];
+  return [...new Set([...within, here.repository])];
+};
+
 /** A `.forge.json` standing in this checkout, or null. Nothing here reads a key out of it: this is
- *  the one reading that reports it, and the command that adopts it takes its contents whole. */
+ *  the one reading that reports it, and the command that adopts it takes its contents whole. Found
+ *  by standing there and not by parsing, because a file that does not parse is still a file a
+ *  checkout carries, and one whose reader answered null read as no file at all — so the report said
+ *  there was none and the adoption said there was nothing to take over. */
 export const committedFileHere = once(() => {
-  for (const root of searchRoots()) {
+  for (const root of committedRoots()) {
     const path = join(root, COMMITTED_FILE);
-    if (readJson(path)) return path;
+    if (existsSync(path)) return path;
   }
   return null;
 });

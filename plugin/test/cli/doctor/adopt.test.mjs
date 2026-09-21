@@ -273,3 +273,48 @@ test("an entry that appeared between the reading and the write is left standing,
   assert.match(run.stderr, /Run it again/u, "and the refusal carries what to do about it");
   assert.ok(lstatSync(entry).isSymbolicLink(), "what was standing there was another call's to keep");
 });
+
+/* The three the whole-set read at the landing head found, all on the one surface this change adds:
+   which file the adoption reads, what it may hold, and what a copy that did not land leaves. */
+
+test("a repository nested in another reads no committed file but its own", async () => {
+  const outer = checkout("outer", { slug: "the-outer-project", runs: 9 });
+  const inner = join(outer.room, "inner");
+  mkdirSync(inner, { recursive: true });
+  spawnSync("git", ["init", "-q", inner], { cwd: inner, encoding: "utf8" });
+  const held = join(HOME, "forge", "projects", "inner", "config.json");
+  const run = await ask(inner, "--adopt");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /no \.forge\.json was found on the way up from here/u, run.stderr);
+  assert.equal(existsSync(held), false, "the outer project's file is not this one's to adopt");
+  const report = await ask(inner);
+  assert.doesNotMatch(report.stdout, /the-outer-project/u,
+    "and no row of the report names it either, a walk past this checkout's root leaving its own repository");
+});
+
+test("a committed file that is no table of keys is refused before anything is written", async () => {
+  for (const [name, body] of [["list", "[1, 2]"], ["string", '"a slug, in a file that is not one"'],
+    ["broken", "{ slug: nope }"]]) {
+    const { room, entry } = checkout(`shape-${name}`);
+    writeFileSync(join(room, ".forge.json"), body);
+    const run = await ask(room, "--adopt");
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /where a JSON object with this project's keys in it belongs/u, run.stderr);
+    assert.equal(existsSync(entry), false,
+      `${name}: an entry landed and was refused after, which every later adoption then refuses against`);
+  }
+});
+
+/* The adoption creates an entry through the same writer the first `--set` does, so it owns what it
+   creates on the same terms: an entry that appeared between the reading and the write is another
+   call's and is left exactly where it stands. Held still the same way, by a dangling symlink. */
+test("an adoption meeting an entry at the write leaves it standing and says what happened", async () => {
+  const { room, entry } = checkout("adopt-raced", { slug: "adopt-raced" });
+  mkdirSync(dirname(entry), { recursive: true });
+  symlinkSync(join(dirname(entry), "written-by-another-call.json"), entry);
+  assert.equal(existsSync(entry), false, "the reading this call takes is that there is no entry");
+  const run = await ask(room, "--adopt");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /was created between this call reading that there was none and writing/u, run.stderr);
+  assert.ok(lstatSync(entry).isSymbolicLink(), "what was standing there was another call's to keep");
+});

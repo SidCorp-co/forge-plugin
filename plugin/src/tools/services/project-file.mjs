@@ -410,12 +410,13 @@ const sweptAway = (path) => {
   }
 };
 
-/* The entry is this machine's own and a project that has set nothing has no file yet, so the first
-   write creates one rather than refusing: refusing would leave `slug` unsettable in a checkout that
-   names no project, which is the one key every other route needs before it can run. Created at 0600
-   like every other file this plugin keeps under that directory, exclusively, and holding the text it
-   is to hold — never an empty document a failing write would then leave standing. */
-const madeWith = (path, text) => {
+/** The one way an entry that does not exist yet comes into being, whichever call is making it: a
+ *  project that has set nothing has no file, so the first write creates one rather than refusing —
+ *  refusing would leave `slug` unsettable in a checkout that names no project, the one key every
+ *  other route needs before it can run. Created at 0600 like everything this plugin keeps under that
+ *  directory, exclusively, and holding the text it is to hold — never an empty or half-written
+ *  document a failure would then leave standing for the adoption to refuse against. */
+export const createdWith = (path, text) => {
   mkdirSync(dirname(path), { recursive: true });
   /* Exclusive, and the whole reason the sweep below is safe: a call that created this entry between
      the absence read above and this line fails HERE, with nothing of that call's touched. A cleanup
@@ -507,7 +508,7 @@ export const projectWrite = (route, value) => {
       + `beside it. Nothing was written — set this one by hand: ${READS_IT} prints what it holds.`);
   }
   try {
-    if (absent) madeWith(path, text);
+    if (absent) createdWith(path, text);
     else wroteWhole(path, text);
   } catch (error) {
     fail(`--set: ${path} is the file \`${route.key}\` is a key of and this could not write it, so `

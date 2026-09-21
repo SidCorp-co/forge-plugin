@@ -2,23 +2,19 @@
    machine's own record of a project spends one call rather than one per key. It copies and never
    moves: taking a tracked file out of a checkout is a commit, and this plugin does not commit in
    somebody's tree. docs/cli/the-project-file.md. */
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 
 import { COMMITTED_FILE, committedFileHere, fail, projectFilePath } from "../../resolve/settings.mjs";
 import { readJson } from "../../resolve/config.mjs";
-import { asWritten, READS_IT } from "./project-file.mjs";
+import { asWritten, createdWith, READS_IT } from "./project-file.mjs";
 
-/* The bytes as the checkout holds them, not a re-serialization of the parse: whoever wrote that file
-   by hand chose its shape, and the entry is the file they go on reading. */
-const copied = (path, text) => {
-  mkdirSync(dirname(path), { recursive: true });
-  const handle = openSync(path, "wx", 0o600);
-  try {
-    writeFileSync(handle, text);
-  } finally {
-    closeSync(handle);
-  }
+/* What the copy may be: the same table `--set` writes into, read off the SOURCE's text before a
+   byte is written. Judged after the copy instead, a file holding a list or a string landed as this
+   machine's record and then refused, and the entry it left made every later adoption refuse too. */
+const refusedShape = (parsed) => {
+  if (parsed === undefined) return "does not parse as JSON";
+  if (parsed === null || typeof parsed !== "object") return `holds ${JSON.stringify(parsed)}`;
+  return Array.isArray(parsed) ? "holds a list" : null;
 };
 
 /** Every line the call prints, or a refusal. The entry is read back off the disk before a word of
@@ -47,8 +43,20 @@ export const adopt = () => {
   } catch (error) {
     fail(`--adopt: ${held} could not be read, so nothing was written: ${error.message}`);
   }
+  let parsed;
   try {
-    copied(path, text);
+    parsed = JSON.parse(text);
+  } catch { /* left undefined, which `refusedShape` reads as the file not parsing at all. */ }
+  const wrong = refusedShape(parsed);
+  if (wrong) {
+    fail(`--adopt: ${held} ${wrong}, where a JSON object with this project's keys in it belongs, so `
+      + `nothing was written and ${path} was not created. Correct that file and run this again, or `
+      + "write this project's keys one at a time with `forge doctor --set <key>=<value>`.");
+  }
+  /* The bytes as the checkout holds them, not a re-serialization of the parse above: whoever wrote
+     that file by hand chose its shape, and the entry is the file they go on reading. */
+  try {
+    createdWith(path, text);
   } catch (error) {
     fail(`--adopt: ${held} was read and ${path} could not be written, so nothing was adopted: `
       + `${error.message}`);

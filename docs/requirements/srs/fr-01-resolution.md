@@ -368,15 +368,19 @@ quietly ignored.
 - **AC-01-5-22** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a key the committed file carries moves no value the report prints"
   IF a checkout carries the committed project file this replaces THEN the CLI SHALL read no key out
   of it, that file being a second source rather than a fallback.
-- **AC-01-5-23** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a committed file standing unread is said once, with the command that takes it over"
+- **AC-01-5-23** · Rev: 2 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a repository nested in another reads no committed file but its own"
   IF a checkout carries that file THEN the resolution report SHALL say so once per call, one fact
-  about one file rather than one line per key it declares.
+  about one file rather than one line per key it declares, and the file it names SHALL be one this
+  checkout carries — sought no higher than the checkout's own root — a repository nested inside
+  another sharing no configuration with the one it sits in.
 - **AC-01-5-24** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a committed file standing unread is said once, with the command that takes it over"
   WHEN that row is printed THEN it SHALL name the command that takes the file's contents over, a
   report naming a stranded file and no route out being a finding nobody can act on.
-- **AC-01-5-25** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "the committed file a checkout carries is adopted whole into this machine's record of it"
+- **AC-01-5-25** · Rev: 2 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a committed file that is no table of keys is refused before anything is written"
   WHEN the developer adopts that file THEN the CLI SHALL write its contents whole into this
-  machine's record of that project.
+  machine's record of that project, and IF that file is not a JSON object of keys THEN SHALL refuse
+  before creating the record rather than after, a record created and then refused being one every
+  later adoption refuses against.
 - **AC-01-5-26** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "each key the entry now holds is printed beside the file it was read back from"
   WHEN an adoption lands THEN the CLI SHALL read the record back off the disk and SHALL print each
   key it now holds beside the path that answered, never off the text the call composed.
@@ -386,13 +390,12 @@ quietly ignored.
 - **AC-01-5-28** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "the checkout's own committed file is left byte-identical, adoption being a copy"
   WHEN a file is adopted THEN the CLI SHALL leave the checkout's own copy byte-identical, taking a
   tracked file out of a repository being a commit and the person's own act.
-- **AC-01-5-29** · Rev: 4 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a first --set the judge refuses leaves no entry behind, so the committed file can still be adopted"
-  WHEN a project key is written and this machine holds no record for that project THEN the CLI SHALL
-  create one, a project that has decided nothing yet being the case the first write is for, SHALL
-  create it only once that value has been judged and holding the text it is to hold, and IF that
-  write does not land THEN SHALL leave no record of its own behind and SHALL leave any record
-  another call created standing, an entry a refused or unfinished write left behind being one the
-  adoption then refuses to write over.
+- **AC-01-5-29** · Rev: 5 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a first --set the judge refuses leaves no entry behind, so the committed file can still be adopted"
+  WHEN a call must create this machine's record of a project because none is held — a first project
+  key written, or an adoption — THEN the CLI SHALL create it only once what it is to hold has been
+  judged and holding that text, and SHALL leave nothing of its own behind and anything another call
+  created standing where that write does not land, a record a refused or unfinished write left
+  behind being one every later adoption refuses against.
 - **AC-01-5-30** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a key this machine owns is refused as a project key by name, with the route that writes it"
   IF a key this machine owns outright is written as a project key THEN the CLI SHALL refuse naming
   that key, SHALL say which level holds it and the route that writes it, and SHALL write nothing.
