@@ -23,10 +23,15 @@ const TOO_SHORT = 6;
  *  a value the row held under one. Built from the row where there is one; a read that refused has no
  *  row and strikes the names alone. */
 export const striking = (row) => {
+  /* Values before names, and the longest value first. A value that carries its own column's name in
+     it — a key written `apiKey-1234` — has that name struck out of it by a names-first pass, and then
+     no longer matches the value the pass was about, so the rest of it survives; and a value that is a
+     prefix of another leaves the other's tail behind for the same reason. */
   const values = WITHHELD
     .map((name) => row?.[name])
-    .filter((held) => typeof held === "string" && held.length > TOO_SHORT);
-  return (text) => [...WITHHELD, ...values]
+    .filter((held) => typeof held === "string" && held.length > TOO_SHORT)
+    .sort((one, other) => other.length - one.length);
+  return (text) => [...values, ...WITHHELD]
     .reduce((held, one) => held.split(one).join("[withheld]"), String(text));
 };
 

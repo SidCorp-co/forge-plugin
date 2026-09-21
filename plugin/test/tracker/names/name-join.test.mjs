@@ -115,6 +115,15 @@ test("a withheld value long enough to be one is struck, and a short one is left 
     "a value short enough to collide with a sentence is not struck out of one");
 });
 
+test("a withheld value carrying its own column's name is struck whole, and so is a longer one", () => {
+  const strike = striking({ [WITHHELD[0]]: `${WITHHELD[0]}-1234567`, [WITHHELD[1]]: "held-tail" });
+  assert.equal(strike(`sent ${WITHHELD[0]}-1234567 up`), "sent [withheld] up",
+    "a names-first pass leaves the rest of the value behind, the value it was about having moved");
+  const nested = striking({ [WITHHELD[0]]: "held-tail", [WITHHELD[1]]: "held-tail-and-more" });
+  assert.equal(nested("sent held-tail-and-more up"), "sent [withheld] up",
+    "a value that is a prefix of another is struck second, or the longer one's tail survives");
+});
+
 describe("what the reading says about itself", () => {
   it("the reading is dated and states the bound it does not reach", async () => {
     const rendered = await lines(ROW, "2026-09-20");
