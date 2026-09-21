@@ -2,6 +2,7 @@
    Two profiles of this corpus were written by hand as throwaway scripts, which is a measurement
    taken once. What each figure means, and what it deliberately does not: docs/cli/stats.md. */
 import {
+  DEPLOY,
   EDIT_ROUTES,
   FORGE_ROW,
   GUIDE_INDEX,
@@ -173,10 +174,11 @@ const advanceRuns = (calls) => {
    turn was wasted, never that the body was. One per run, however often the log was read. */
 const REJECTED_PUSH = /stopped at step \d+ \(push to [^)]+\): git push [^\n]*exited \d+\. Rejected means the remote moved/u;
 const LOG_READ = /\.log\b/u;
-/* Every class a call that read a log can carry: the wait row is carved out of two of these, and a
-   line that waits on the ship and tails its log in one call is in it — left out, one run's rejected
-   push goes uncounted, which is what this corpus answers 32 for and 31 without it (ISS-2086). */
-const READS_A_LOG = new Set(["read", POLL, WAIT]);
+/* Every class a call that read a log can carry: the wait and deploy rows are each carved out of
+   others of these, and a line that waits on the ship and tails its log in one call is in it — left
+   out, one run's rejected push goes uncounted, which is what this corpus answers 32 for and 31
+   without the wait row (ISS-2086, and the deploy row the same way for ISS-1975). */
+const READS_A_LOG = new Set(["read", POLL, WAIT, DEPLOY]);
 const reportsShip = (call) =>
   call.class === "ship" || (READS_A_LOG.has(call.class) && LOG_READ.test(call.shell));
 const RESUMED = /--from\s+\d/u;

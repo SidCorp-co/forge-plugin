@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { classesFor } from "../../../src/stats/corpus/classes.mjs";
 import { profileOf, runFrom } from "../../../src/stats/runs.mjs";
 import { apiErrored, at, compacted, humanPrompt, result, use } from "../fixture-runs.mjs";
 
@@ -105,4 +106,26 @@ test("the two readers of a claim are unmoved by the new class", () => {
   const pushed = readyRun("pushed", "");
   assert.equal(pushed.ships.ready, 0, "while a capture that left nothing ready is not");
   assert.equal(profileOf([ready, pushed]).runs, 2, "both are runs of the window");
+});
+
+/* The rejection reader names every class a call that read a log can carry, and the deploy row is
+   carved out of three of them, so a project whose production deploys on its own reads a compound
+   deploy-and-tail call as `deploy`. Left out, the one run whose rejection only that call carries
+   reports none, which is the ISS-2086 defect again under a row that did not exist then. */
+const ARMED = classesFor(null, { key: "deploy", deploy: true });
+const REJECTED = "stopped at step 6 (push to origin/master): git push origin HEAD:master exited 1. "
+  + "Rejected means the remote moved: rebase, then ship --from 2";
+const deployReadRun = (classes) => runFrom("/p", "deploy-log", [
+  JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-1" } }),
+  use("d-s", 1, "Bash", { command: "node tools/run.mjs ship > /tmp/ship.log 2>&1" }),
+  result("d-s", 2, "step 5 (gate): npm run check ..."),
+  use("d-r", 3, "Bash", { command: "coolify deployment get --uuid abc; tail -3 /tmp/ship.log" }),
+  result("d-r", 4, REJECTED),
+].join("\n"), classes);
+
+test("a rejection the deploy row took off the log read is still the run's", () => {
+  assert.equal(deployReadRun(ARMED).ships.rejected, 1,
+    "the compound call classes as deploy, and the rejection it carries is the same rejection");
+  assert.equal(deployReadRun(undefined).ships.rejected, 1,
+    "as it is where the row is unarmed and the same call classes as a read");
 });
