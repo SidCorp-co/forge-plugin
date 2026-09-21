@@ -5,7 +5,7 @@
    resolve this suite's own checkout. ISS-1403, docs/cli/the-project-file.md. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -194,4 +194,42 @@ test("the record a named directory resolves is that directory's own repository's
     if (held === undefined) delete process.env.XDG_CONFIG_HOME;
     else process.env.XDG_CONFIG_HOME = held;
   }
+});
+
+/* The three the whole-set review found, each one a way the first write and the adoption could reach
+   a state the other could not get out of. */
+
+test("a first --set the judge refuses leaves no entry behind, so the committed file can still be adopted", async () => {
+  const { room, entry } = checkout("refused-first", { slug: "refused-first", runs: 3 });
+  const refused = await ask(room, "--set", "runs=every");
+  assert.equal(refused.status, 1, refused.stdout);
+  assert.match(refused.stderr, /Nothing was written/u);
+  assert.equal(existsSync(entry), false,
+    "an entry made on the way to a refusal is an entry --adopt then refuses to write over");
+  const run = await ask(room, "--adopt");
+  assert.equal(run.status, 0, run.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(entry, "utf8")), { slug: "refused-first", runs: 3 });
+});
+
+test("a record holding keys but no slug is answered with the key to set, not with an adoption that would refuse", async () => {
+  const { room, entry } = checkout("slugless", { slug: "slugless", runs: 6 });
+  const set = await ask(room, "--set", "runs=2");
+  assert.equal(set.status, 0, set.stderr);
+  assert.equal(JSON.parse(readFileSync(entry, "utf8")).slug, undefined, "the entry exists and names no project");
+  const run = await ranAsync(FORGE, ["issue", "--search", "anything"], tracker.env, room);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /`forge doctor --set slug=<project>`/u, run.stderr);
+  assert.doesNotMatch(run.stderr, /forge doctor --adopt/u,
+    "adoption refuses against an entry that exists, so naming it here is naming the one command that cannot run");
+  assert.match(run.stderr, /is read by nothing/u, "while the file standing unread is still said");
+});
+
+test("a machine key with no flag of its own is refused as a project key too, by the same table", async () => {
+  const { room, entry } = checkout("recorded", { slug: "recorded" });
+  await ask(room, "--adopt");
+  const run = await ask(room, "--set", "retrySeconds=30");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /`retrySeconds` is this MACHINE's and not this project's/u, run.stderr);
+  assert.match(run.stderr, /forge doctor, which names the retry ladder and where it was read/u, run.stderr);
+  assert.equal(JSON.parse(readFileSync(entry, "utf8")).retrySeconds, undefined, "and nothing was written");
 });

@@ -1,12 +1,12 @@
 /* This machine's own half of `forge doctor`: the keys it writes here rather than on the project's record, and the level each harness row answers. One table carries the keys, so the check that refuses a project flag beside one of these and the dispatch that spends them are the same list — two lists is what let two releases in a row each add a key to one and to the other (ISS-1046). */
 import assert from "node:assert/strict";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import test from "node:test";
 
 import { tempRoom } from "../../../fixtures.mjs";
-import { MACHINE_FLAGS } from "../../../../src/tools/doctor-keys.mjs";
+import { MACHINE_FLAGS, MACHINE_KEY_NAMES } from "../../../../src/tools/doctor-keys.mjs";
 import { LEVELS } from "../../../../src/tools/services/doctor/showing.mjs";
 
 const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;
@@ -91,4 +91,37 @@ test("a login leaves a key stored beside the accounts standing", () => {
   const saved = JSON.parse(readFileSync(path, "utf8"));
   assert.equal(saved.cloudflare.preferred, "a sibling under the same key", "a login replaced the whole nested object");
   assert.equal(saved.cloudflare.accounts.length, 1);
+});
+
+/* The table is what refuses a machine key given to `--set`, so a key this plugin reads out of the
+   machine's own store and never declared there is not refused at all: it falls through to tracker
+   discovery and is written to the project's record, at the level that cannot answer it. `retrySeconds`
+   was exactly that, found by a reviewer rather than by anything here. The table is therefore held to
+   the reads themselves, in the direction that can go wrong — a declared key nothing reads is a row
+   for a setting since retired and costs a reader nothing. */
+const MACHINE_ROOT = new URL("../../../../..", import.meta.url).pathname;
+
+const machineReads = () => {
+  const found = new Set();
+  const walk = (dir) => {
+    for (const one of readdirSync(dir, { withFileTypes: true })) {
+      if (one.isDirectory()) {
+        if (one.name !== "vendor" && one.name !== "node_modules") walk(join(dir, one.name));
+      } else if (one.name.endsWith(".mjs")) {
+        const text = readFileSync(join(dir, one.name), "utf8");
+        for (const [, key] of text.matchAll(/userConfig\(\)\.([A-Za-z][A-Za-z0-9_]*)/gu)) found.add(key);
+      }
+    }
+  };
+  walk(join(MACHINE_ROOT, "plugin", "src"));
+  walk(join(MACHINE_ROOT, "plugin", "hooks"));
+  walk(join(MACHINE_ROOT, "tools"));
+  return [...found].sort();
+};
+
+test("every key this plugin reads out of the machine's store is declared in the table that refuses it", () => {
+  const read = machineReads();
+  assert.ok(read.length > 5, `${read.length} machine read(s) found; the selector matches too little`);
+  assert.deepEqual(read.filter((key) => !MACHINE_KEY_NAMES.includes(key)), [],
+    "a key read at this level and declared at neither is written to the project's record instead");
 });

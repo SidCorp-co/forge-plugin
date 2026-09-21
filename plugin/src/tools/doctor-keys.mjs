@@ -138,6 +138,7 @@ const RECORDED = [
   { owns: ["capabilities"], route: "forge doctor tracker, which records what each one answered" },
   { owns: ["hooksOff"], route: "forge hooks --off <hook>" },
   { owns: ["waitSeconds"], route: "forge doctor, which names the deadline and where it was read" },
+  { owns: ["retrySeconds"], route: "forge doctor, which names the retry ladder and where it was read" },
   { owns: ["cloudflare"], route: "forge cloudflare, which holds its own accounts" },
   { owns: ["coolify"], route: "forge coolify login" },
 ];

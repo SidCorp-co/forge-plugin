@@ -410,6 +410,12 @@ const madeEmpty = (path) => {
   }
 };
 
+/* Created only once the value has been judged, never on the way to judging it: a refused first
+   `--set` that left an entry behind would say nothing was written and still make `forge doctor
+   --adopt` refuse ever after, stranding the checkout's committed configuration behind it. So an
+   absent entry is this empty document in memory until the bytes are ready to land. */
+const EMPTY = "{}\n";
+
 const openedFile = (key) => {
   const named = projectFilePath();
   if (!named) {
@@ -417,9 +423,9 @@ const openedFile = (key) => {
       + "to, and this directory belongs to no checkout, so there is no project to configure and "
       + "nothing was written. Run this from inside a checkout.");
   }
+  if (!existsSync(named)) return { path: named, held: EMPTY, parsed: {}, absent: true };
   let path = named;
   try {
-    if (!existsSync(named)) madeEmpty(named);
     path = realpathSync(named);
     const held = readFileSync(path, "utf8");
     const parsed = JSON.parse(held);
@@ -428,7 +434,7 @@ const openedFile = (key) => {
         + `JSON object with this project's keys in it belongs, and \`${key}\` is a key of that object. `
         + "Nothing was written.");
     }
-    return { path, held, parsed };
+    return { path, held, parsed, absent: false };
   } catch (error) {
     if (error instanceof Refusal) throw error;
     return fail(`--set: ${path} is the file \`${key}\` is a key of and this could not read it as JSON, `
@@ -439,20 +445,24 @@ const openedFile = (key) => {
 /* Both ways out after the bytes have landed, and neither may say nothing was written: a read that
    throws and a value that is not the one sent leave the same new file behind, and a restore that fails
    over either leaves a third state nobody would otherwise be told about. */
-const putBack = (path, held, why) => {
+const putBack = (path, held, why, absent) => {
   try {
-    wroteWhole(path, held);
+    if (absent) rmSync(path, { force: true });
+    else wroteWhole(path, held);
   } catch (error) {
     fail(`--set: ${why} Putting the previous bytes back failed too: ${error.message}. That file holds `
       + `what this call wrote and nothing here changed it further — read it: ${READS_IT}`);
   }
-  fail(`--set: ${why} ${path} is back at what it held — read it and set that key by hand: ${READS_IT}`);
+  fail(absent
+    ? `--set: ${why} ${path} did not exist before this call and does not now — set that key again, `
+      + `or read what this project holds: ${READS_IT}`
+    : `--set: ${why} ${path} is back at what it held — read it and set that key by hand: ${READS_IT}`);
 };
 
 /** The one key written into the file's own text and read back off it, judged between the two by the
  *  reader that already reads it: what this took and that reader refuses would fail later instead. */
 export const projectWrite = (route, value) => {
-  const { path, held, parsed } = openedFile(route.key);
+  const { path, held, parsed, absent } = openedFile(route.key);
   const would = settingTo(parsed, route.segments, value);
   if (would.blocked) {
     fail(`--set: \`${route.key}\` goes inside \`${would.blocked}\`, which this file holds as `
@@ -467,6 +477,7 @@ export const projectWrite = (route, value) => {
       + `beside it. Nothing was written — set this one by hand: ${READS_IT} prints what it holds.`);
   }
   try {
+    if (absent) madeEmpty(path);
     wroteWhole(path, text);
   } catch (error) {
     fail(`--set: ${path} is the file \`${route.key}\` is a key of and this could not write it, so `
@@ -479,13 +490,13 @@ export const projectWrite = (route, value) => {
     back = JSON.parse(readFileSync(path, "utf8"));
   } catch (error) {
     putBack(path, held, `${path} was written and could not be read back, so nothing here can say what `
-      + `it now holds: ${error.message}.`);
+      + `it now holds: ${error.message}.`, absent);
   }
   const kept = readAt(back, route.segments);
   if (JSON.stringify(kept) !== JSON.stringify(value)) {
     putBack(path, held, `${route.key} was written as ${JSON.stringify(value)} and ${path} reads back `
       + `${JSON.stringify(kept ?? null)}, so that file declares the key somewhere this write did not `
-      + "reach.");
+      + "reach.", absent);
   }
   return [`${route.name}.${route.key}: ${asWritten(kept)}  ← ${path}`];
 };

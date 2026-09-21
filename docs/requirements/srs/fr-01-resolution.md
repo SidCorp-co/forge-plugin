@@ -386,15 +386,18 @@ quietly ignored.
 - **AC-01-5-28** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "the checkout's own committed file is left byte-identical, adoption being a copy"
   WHEN a file is adopted THEN the CLI SHALL leave the checkout's own copy byte-identical, taking a
   tracked file out of a repository being a commit and the person's own act.
-- **AC-01-5-29** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "the entry is created by the first --set, a project that has set nothing having no file yet"
+- **AC-01-5-29** · Rev: 2 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a first --set the judge refuses leaves no entry behind, so the committed file can still be adopted"
   WHEN a project key is written and this machine holds no record for that project THEN the CLI SHALL
-  create one, a project that has decided nothing yet being the case the first write is for.
+  create one, a project that has decided nothing yet being the case the first write is for, and
+  SHALL create it only once that value has been judged, an entry left behind by a refused write
+  being one the adoption then refuses to write over.
 - **AC-01-5-30** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a key this machine owns is refused as a project key by name, with the route that writes it"
   IF a key this machine owns outright is written as a project key THEN the CLI SHALL refuse naming
   that key, SHALL say which level holds it and the route that writes it, and SHALL write nothing.
-- **AC-01-5-31** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a call needing a project slug refuses naming the command that adopts, where one is standing there"
-  IF a call needs a resolved project slug where no record is held and the committed file is still
-  standing in the checkout THEN the CLI SHALL refuse naming the command that adopts it.
+- **AC-01-5-31** · Rev: 2 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a call needing a project slug refuses naming the command that adopts, where one is standing there"
+  IF a call needs a resolved project slug where this machine holds no record of the project and the
+  committed file is still standing in the checkout THEN the CLI SHALL refuse naming the command that
+  adopts it.
 - **AC-01-5-32** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a directory belonging to no checkout resolves no record, and --set says so rather than making one"
   IF the directory a call is made in belongs to no checkout THEN the CLI SHALL resolve no project
   record at all, a directory belonging to no repository having no project to be configured.
@@ -402,6 +405,11 @@ quietly ignored.
   WHEN a verb reads the project configuration of a directory it is not standing in THEN the CLI
   SHALL answer off that directory's own repository root rather than off the process's working
   directory.
+- **AC-01-5-34** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a record holding keys but no slug is answered with the key to set, not with an adoption that would refuse"
+  IF a call needs a resolved project slug where this machine already holds a record of the project
+  that names none THEN the CLI SHALL refuse naming the key to set rather than the adoption, which
+  refuses against a record that exists, and SHALL still say that the committed file is read by
+  nothing.
 
 ## The way back
 

@@ -1,6 +1,7 @@
 /* Where every setting comes from — never from an argument. Two scopes: the url and token are the
    ACCOUNT's, the slug and prose language the PROJECT's, so the slug is demanded lazily. Each
    resolves to `{ value, from }`, because provenance is what doctor reports. docs/cli/settings.md. */
+import { existsSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 
 import { checkoutAt } from "../git/checkout-at.mjs";
@@ -217,7 +218,10 @@ export const noProjectHere = () => {
       + `project for it to be scoped to.${held ? ` ${held} is read by nothing.` : ""}\n`
       + "Run it from inside a checkout.";
   }
-  if (held) {
+  /* The adopt command is named only where the entry is absent, because it refuses against one that
+     exists — a record holding keys but no slug, which is every checkout where something was set
+     before the slug was, would otherwise be answered with the one command that cannot run here. */
+  if (held && !existsSync(path)) {
     return `This call is project-scoped and no project slug is set. ${held} is this checkout's own\n`
       + `and is read by nothing: a project's configuration is this machine's record of it, at\n${path}.\n`
       + "Take that file's contents over: `forge doctor --adopt`";
@@ -225,7 +229,10 @@ export const noProjectHere = () => {
   return "This call is project-scoped and no project slug is set. Run\n"
     + "`forge doctor --set slug=<project>`, which writes it to this machine's record of this\n"
     + `project at\n${path}\n`
-    + "— not the environment, and not a `.mcp.json` header.";
+    + `— not the environment, and not a \`.mcp.json\` header.${held
+      ? `\n${held} is this checkout's own and is read by nothing; this machine holds a record of this\n`
+        + "project already, so it is not adopted over."
+      : ""}`;
 };
 
 export const projectSlug = () => {
