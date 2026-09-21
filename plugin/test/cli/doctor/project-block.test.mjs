@@ -6,7 +6,8 @@ import test from "node:test";
 import { cpSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeStore, fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { escaped, fakeStore, fakeTracker, projectEntry, projectRecord, projectRoom, ranAsync,
+  tempHome } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../../..", import.meta.url).pathname;
@@ -54,6 +55,10 @@ const state = {
 
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
+/* Every call below stands in this checkout, so this machine's record of THIS project is what it
+   resolves: written under the home these calls run against, keyed as the resolver keys it — by the
+   repository's root folder, so a worktree of it answers alike (ISS-1403). */
+projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME, { slug: "forge-plugin" });
 const ask = (...argv) => ranAsync(FORGE, argv, tracker.env, ROOT);
 await ask("claim", "ISS-1", "--unheld");
 
@@ -94,17 +99,19 @@ test("the report answers where the merge sits and whether a judge is independent
    route was named only on the line taken where nothing is rewritten. `forge issue -h` points here
    for it, so the pointer resolves on both (ISS-1790). */
 test("the prose language row names the setting on both readings of it", async () => {
+  const home = tracker.env.XDG_CONFIG_HOME;
   const room = tempHome("project-prose");
-  writeFileSync(join(room.path, ".forge.json"), JSON.stringify({ slug: "forge-plugin", translate: "vi" }));
+  projectRoom(room.path, home, { slug: "forge-plugin", translate: "vi" });
   const rewritten = await ranAsync(FORGE, ["doctor"], tracker.env, room.path);
   assert.match(rewritten.stdout,
-    ROW("prose language", "vi {2}← .forge.json — every title and body is rewritten; "
-      + "set translate to off there to store prose as it is typed"),
+    ROW("prose language", `vi {2}← ${escaped(projectEntry(room.path, home))} — every title and body `
+      + "is rewritten; set translate to off there to store prose as it is typed"),
     rewritten.stdout);
   const plain = tempHome("project-as-written");
-  writeFileSync(join(plain.path, ".forge.json"), JSON.stringify({ slug: "forge-plugin" }));
+  projectRoom(plain.path, home, { slug: "forge-plugin" });
   const written = await ranAsync(FORGE, ["doctor"], tracker.env, plain.path);
-  assert.match(written.stdout, ROW("prose language", "as written; set translate in \.forge\.json to rewrite"),
+  assert.match(written.stdout,
+    ROW("prose language", escaped("as written; `forge doctor --set translate=vi` to rewrite")),
     written.stdout);
 });
 
@@ -112,7 +119,7 @@ test("the prose language row names the setting on both readings of it", async ()
    a checkout is not a second place to answer it — read as one, two clones would judge differently. */
 test("a qa key in the checkout moves nothing the report prints", async () => {
   const room = tempHome("project-qa");
-  writeFileSync(join(room.path, ".forge.json"), JSON.stringify({ slug: "forge-plugin", qa: "independent" }));
+  projectRoom(room.path, tracker.env.XDG_CONFIG_HOME, { slug: "forge-plugin", qa: "independent" });
   const run = await ranAsync(FORGE, ["doctor"], tracker.env, room.path);
   assert.match(run.stdout,
     ROW("independent judgement", "not stated between developed and testing {2}← the tracker's project config"),
@@ -288,8 +295,9 @@ const roomWith = (name, codex, stops = []) => {
       `${stops.map((one) => JSON.stringify(one)).join("\n")}\n`);
   }
   const where = tempHome(`${name}-tree`);
-  writeFileSync(join(where.path, ".forge.json"), JSON.stringify({ slug: "forge-plugin", codex }));
-  return { where: where.path, env: { ...tracker.env, XDG_CONFIG_HOME: room.path } };
+  projectRoom(where.path, room.path, { slug: "forge-plugin", codex });
+  return { where: where.path, entry: projectEntry(where.path, room.path),
+    env: { ...tracker.env, XDG_CONFIG_HOME: room.path } };
 };
 
 const stopAt = (seconds, root, at) => ({
@@ -301,7 +309,8 @@ const stopAt = (seconds, root, at) => ({
 test("a declared check is printed with the clock it runs under and where that clock was read", async () => {
   const set = roomWith("check-clock", { check: "npm test", checkMs: 600000 });
   const run = await ranAsync(FORGE, ["doctor", "project"], set.env, set.where);
-  assert.match(run.stdout, ROW("codex.check", "npm test — stopped at 600s {2}← \\.forge\\.json"), run.stdout);
+  assert.match(run.stdout,
+    ROW("codex.check", `npm test — stopped at 600s {2}← ${escaped(set.entry)}`), run.stdout);
   const bare = roomWith("check-default", { check: "npm test" });
   const fell = await ranAsync(FORGE, ["doctor", "project"], bare.env, bare.where);
   assert.match(fell.stdout, ROW("codex.check", "npm test — stopped at 300s {2}← the plugin's default"), fell.stdout);
@@ -350,7 +359,8 @@ test("recorded stops of that same command name each one's own checkout, and a la
     run.stdout);
   const raised = roomWith("check-raised", { check: "npm test", checkMs: 600000 }, stops);
   const clear = await ranAsync(FORGE, ["doctor", "project"], raised.env, raised.where);
-  assert.match(clear.stdout, ROW("codex.check", "npm test — stopped at 600s {2}← \\.forge\\.json$"),
+  assert.match(clear.stdout,
+    ROW("codex.check", `npm test — stopped at 600s {2}← ${escaped(raised.entry)}$`),
     "every recorded stop was taken at a clock this project has moved past, so none of them counts");
 });
 
@@ -359,8 +369,8 @@ test("a check clock at or past the one a whole consult runs under is refused", a
   const set = roomWith("check-past", { check: "npm test", checkMs: 900000 });
   const run = await ranAsync(FORGE, ["doctor", "project"], set.env, set.where);
   assert.match(run.stdout,
-    MISS_ROW("codex.check", "npm test — stopped at 900s {2}← \\.forge\\.json, which is at or past "
-      + "the 900s one whole consult runs under"),
+    MISS_ROW("codex.check", `npm test — stopped at 900s {2}← ${escaped(set.entry)}, which is at or `
+      + "past the 900s one whole consult runs under"),
     run.stdout);
   assert.match(run.stdout, /Set `codex\.checkMs` below it/u, "and the row names what to change");
 });

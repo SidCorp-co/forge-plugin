@@ -4,9 +4,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { chmodSync, existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { escaped, fakeTracker, projectEntry, projectRoom, ranAsync, tempHome } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
@@ -24,16 +24,22 @@ const state = {
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
+/* The room is the checkout, and the file every case reads back is this machine's record of the
+   project that checkout belongs to — kept under the configuration home, not in the tree (ISS-1403).
+   `where` is the directory the replacement is written and renamed in, which is what the two
+   unwritable cases take away. */
 const room = tempHome("doctor-drain");
+projectRoom(room.path, tracker.env.XDG_CONFIG_HOME, { slug: "forge-plugin", runs: 2 });
+const file = projectEntry(room.path, tracker.env.XDG_CONFIG_HOME);
+const where = dirname(file);
 test.after(() => {
-  chmodSync(room.path, 0o755);
+  chmodSync(where, 0o755);
   room.remove();
 });
-const file = join(room.path, ".forge.json");
 
 /** One file and one project record per case: every case here is about what one call left behind. */
 const fresh = (drain, qa = "independent") => {
-  chmodSync(room.path, 0o755);
+  chmodSync(where, 0o755);
   if (existsSync(file)) chmodSync(file, 0o644);
   writeFileSync(file, `{\n  "slug": "forge-plugin",\n${drain === null ? ""
     : `  "drainedBy": ${JSON.stringify(drain)},\n`}  "runs": 2\n}\n`);
@@ -52,7 +58,7 @@ test("the declared master is a row of its own, read off the project's file", asy
   fresh("qa-master");
   const run = await ask();
   assert.match(run.stdout,
-    /\[ {2}ok {2}\] drained by\s+qa-master claims this project's issues at developed {2}← \.forge\.json/u,
+    new RegExp(`\\[ {2}ok {2}\\] drained by\\s+qa-master claims this project's issues at developed {2}← ${escaped(file)}`, "u"),
     run.stdout);
   assert.doesNotMatch(run.stdout, /^\[ miss \] drained by/mu,
     "a declared master under an independent judgement is the pair meaning what it says");
@@ -129,7 +135,7 @@ test("a project file that cannot be rewritten refuses the write before the track
 
 test("a directory the replacement cannot write in refuses the write too, the file itself being writable", { skip: asRoot }, async () => {
   fresh("qa-master");
-  chmodSync(room.path, 0o555);
+  chmodSync(where, 0o555);
   const run = await ask("--set", "pipeline.qa=builder");
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /could not be read and rewritten, so that half is out of reach and nothing was sent/u,
@@ -224,7 +230,7 @@ test("a file that fails after the tracker kept the judgement names what stands a
   const held0 = state.answer.forge_config;
   /* Broken during the tracker call and not before, which is the only window the preflight leaves. */
   state.answer.forge_config = (args) => {
-    if (args.action === "set_pipeline") chmodSync(room.path, 0o555);
+    if (args.action === "set_pipeline") chmodSync(where, 0o555);
     return held0(args);
   };
   const run = await ask("--set", "pipeline.qa=builder").finally(() => {

@@ -3,12 +3,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { bodyFrom, bodyItself, fieldReplaced, routeIn, routeRefusal } from "../../src/resolve/payload.mjs";
 import { Refusal, refusing } from "../../src/resolve/settings.mjs";
-import { fakeTracker, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, pathed, projectRoom, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("body-slot").path;
 const room = tempRoom("body-slot-");
@@ -42,12 +42,16 @@ const state = {
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
-/* `forge` on PATH is this checkout's own entry, so a command the refusal printed runs as printed;
-   the room is where a relative body path resolves, so it needs the project file the scope reads. */
+/* `forge` on PATH is this checkout's own entry, so a command the refusal printed runs as printed. It
+   spells that entry out rather than linking to it: a LINK is the machine's one ambient copy, which
+   the dispatcher resolves by working directory, and a room outside every checkout gets whatever this
+   machine last installed — so the printed command would be judged against a copy this file was not
+   run from. The room is where a relative body path resolves, so it is a checkout this machine has a
+   record of: the scope reads that record, and every claim here sits past the project's slug. */
 const bin = join(room, "bin");
 mkdirSync(bin, { recursive: true });
-symlinkSync(FORGE, join(bin, "forge"));
-writeFileSync(join(room, ".forge.json"), readFileSync(join(ROOT, ".forge.json"), "utf8"));
+writeFileSync(join(bin, "forge"), `#!/usr/bin/env sh\nexec ${pathed(FORGE)} "$@"\n`, { mode: 0o755 });
+projectRoom(room, tracker.env.XDG_CONFIG_HOME, JSON.parse(readFileSync(join(ROOT, ".forge.json"), "utf8")));
 
 const env = {
   ...tracker.env,

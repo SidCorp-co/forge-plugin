@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import test from "node:test";
 
-import { tempRoom } from "../../fixtures.mjs";
+import { escaped, projectEntry, projectRoom, tempRoom } from "../../fixtures.mjs";
 
 const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
 
@@ -24,12 +24,11 @@ const room = (project, held = {}) => {
   writeFileSync(at, JSON.stringify({
     url: "http://127.0.0.1:1/mcp", token: "saved-token", retrySeconds: 0, waitSeconds: 0.05, ...held,
   }));
-  const cwd = tempRoom("doctor-job-cwd-");
-  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "job-fixture", ...project }));
+  const cwd = projectRoom(tempRoom("doctor-job-cwd-"), home, { slug: "job-fixture", ...project });
   const run = (...argv) => spawnSync(process.execPath, [CLI, ...argv], {
     encoding: "utf8", cwd, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });
-  return { run, saved: () => JSON.parse(readFileSync(at, "utf8")) };
+  return { run, entry: projectEntry(cwd, home), saved: () => JSON.parse(readFileSync(at, "utf8")) };
 };
 
 const declared = { jobs: { ba: BA, pm: PM } };
@@ -81,9 +80,10 @@ test("turning off whatever job is on leaves nothing withheld, hand-hidden verbs 
   assert.deepEqual(saved().withheld, {}, "and every entry goes, not only what the job wrote");
 });
 
-test("the report names every declared job and the project's own file as where they were read", () => {
-  const { run } = room(declared);
-  assert.match(run("doctor").stdout, /\[ {2}ok {2}\] jobs\s+ba, pm {2}← \.forge\.json/u);
+test("the report names every declared job and the project's own record as where they were read", () => {
+  const { run, entry } = room(declared);
+  assert.match(run("doctor").stdout,
+    new RegExp(`\\[ {2}ok {2}\\] jobs\\s+ba, pm {2}← ${escaped(entry)}`, "u"), run("doctor").stdout);
 });
 
 test("the report names every declared job the withheld list matches, and says none matches where that is so", () => {
@@ -119,11 +119,11 @@ test("a checkout declaring no job is told nothing about jobs", () => {
 });
 
 test("a checkout declaring no job refuses the flag and names where a job is declared", () => {
-  const { run, saved } = room({});
+  const { run, saved, entry } = room({});
   const refused = run("doctor", "--job", "ba");
   assert.equal(refused.status, 1, refused.stdout);
   assert.match(refused.stderr, /no job is declared here/u);
-  assert.match(refused.stderr, /`jobs` in the \.forge\.json at the root of this checkout/u);
+  assert.match(refused.stderr, new RegExp(`\`jobs\` in the ${escaped(entry)}`, "u"), refused.stderr);
   assert.equal(saved().withheld, undefined);
 });
 
@@ -136,23 +136,24 @@ test("a name no declared job carries is refused with the nearest one", () => {
 });
 
 test("a job naming a word that is no verb is refused before anything is written", () => {
-  const { run, saved } = room({ jobs: { odd: ["issue", "triage"] } }, { withheld: ["stats"] });
+  const { run, saved, entry } = room({ jobs: { odd: ["issue", "triage"] } }, { withheld: ["stats"] });
   const refused = run("doctor", "--job", "odd");
   assert.equal(refused.status, 1, refused.stdout);
-  assert.match(refused.stderr, /the `odd` job in \.forge\.json names triage, which this CLI has no verb for/u);
+  assert.match(refused.stderr,
+    new RegExp(`the \`odd\` job in ${escaped(entry)} names triage, which this CLI has no verb for`, "u"),
+    refused.stderr);
   assert.deepEqual(saved().withheld, ["stats"], "and the refusal left the key exactly as it was");
 });
 
 test("a job flag beside a project flag is refused with neither store written", () => {
-  const { run, saved } = room(declared);
-  const ours = join(process.cwd(), ".forge.json");
-  const held = JSON.parse(readFileSync(ours, "utf8")).runs;
+  const { run, saved, entry } = room({ ...declared, runs: 2 });
+  const held = JSON.parse(readFileSync(entry, "utf8")).runs;
   const refused = run("doctor", "--job", "ba", "--set", `runs=${held + 1}`);
   assert.equal(refused.status, 1, refused.stdout);
   assert.match(refused.stderr, /`--set` writes the project's own record and `--job` writes this machine's/u);
   assert.equal(saved().withheld, undefined, "the machine's half was not written before the refusal");
-  assert.equal(JSON.parse(readFileSync(ours, "utf8")).runs, held,
-    "and the project's file is this checkout's own, untouched by a refused call in another");
+  assert.equal(JSON.parse(readFileSync(entry, "utf8")).runs, held,
+    "and this machine's record of the project is exactly as it was, neither store having been written");
 });
 
 test("the reserved name is reported rather than served, and still clears", () => {

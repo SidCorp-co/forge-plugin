@@ -12,7 +12,8 @@ import test from "node:test";
 import { VERBS, actionIn, gateKey, verbFor, wrappedRefusal, wrapsOf } from "../../src/resolve/visibility.mjs";
 import { noRouteRefusal } from "../../src/tracker/routes.mjs";
 import { toolOfCall } from "../../src/tracker/issue-read.mjs";
-import { answered, callHookAsync, fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
+import { answered, callHookAsync, fakeTracker, projectEntry, projectRoom, ranAsync, tempRoom }
+  from "../fixtures.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "cli.mjs");
 const SLUG = "wrapped-fixture";
@@ -139,8 +140,7 @@ const gated = async () => {
       "forge_projects.list": () => ({ projects: [{ slug: SLUG, id: "1e1c1a1e-0000-4000-8000-00000000027d" }] }),
     },
   });
-  const cwd = tempRoom("wrapped-gated-");
-  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: SLUG }));
+  const cwd = projectRoom(tempRoom("wrapped-gated-"), tracker.env.XDG_CONFIG_HOME, { slug: SLUG });
   await ranAsync(process.execPath, [CLI, "doctor"], tracker.env, cwd);
   return {
     close: tracker.close,
@@ -159,8 +159,7 @@ const gatedTool = async (tool, unasked = []) => {
       "forge_projects.list": () => ({ projects: [{ slug: SLUG, id: "1e1c1a1e-0000-4000-8000-00000000027d" }] }),
     },
   });
-  const cwd = tempRoom("wrapped-gated-");
-  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: SLUG }));
+  const cwd = projectRoom(tempRoom("wrapped-gated-"), tracker.env.XDG_CONFIG_HOME, { slug: SLUG });
   const at = join(tracker.env.XDG_CONFIG_HOME, "forge", "config.json");
   const held = JSON.parse(readFileSync(at, "utf8"));
   writeFileSync(at, JSON.stringify({
@@ -182,12 +181,12 @@ const gatedKnowledge = async () => {
       "forge_projects.list": () => ({ projects: [{ slug: SLUG, id: "1e1c1a1e-0000-4000-8000-00000000027d" }] }),
     },
   });
-  const cwd = tempRoom("wrapped-knowledge-");
-  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: SLUG }));
+  const cwd = projectRoom(tempRoom("wrapped-knowledge-"), tracker.env.XDG_CONFIG_HOME, { slug: SLUG });
   await ranAsync(process.execPath, [CLI, "doctor"], tracker.env, cwd);
   return {
     close: tracker.close,
     cwd,
+    entry: projectEntry(cwd, tracker.env.XDG_CONFIG_HOME),
     env: tracker.env,
     ran: (...argv) => ranAsync(process.execPath, [CLI, ...argv], tracker.env, cwd),
   };
@@ -226,11 +225,11 @@ test("a withheld verb's action is refused with the verb and the withholding, not
 /* And a job is the same withholding written once, so the refusal names the job the array matches —
    matches, not caused: a job's name is stored nowhere, which is what keeps the array the one switch. */
 test("a withheld verb a declared job matches is refused by the route it wraps, in a sentence naming that job", async (t) => {
-  const { ran, close, env, cwd } = await gatedKnowledge();
+  const { ran, close, env, cwd, entry } = await gatedKnowledge();
   t.after(close);
   {
-    const held = JSON.parse(readFileSync(join(cwd, ".forge.json"), "utf8"));
-    writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ ...held, jobs: { reader: ["issue", "next"] } }));
+    const held = JSON.parse(readFileSync(entry, "utf8"));
+    writeFileSync(entry, JSON.stringify({ ...held, jobs: { reader: ["issue", "next"] } }));
     const on = await ran("doctor", "--job", "reader");
     assert.match(on.stdout, /The usage list is at the reader job/u, on.stderr);
     const said = await refusedBy(env, cwd, "mcp__forge__forge_knowledge", { action: "upsert", data: { slug: "s" } });
@@ -306,8 +305,7 @@ test("a credential whose knowledge tool refuses still has the verb hidden from t
 /* The refusal is made off the table, so it costs no round trip: with the tracker gone the answer is the same one. A check that let the tool list be fetched first would hang or fail here instead. */
 test("a wrapped action is refused with no tracker to ask", async () => {
   const tracker = await fakeTracker({ declared: ["forge_issues"], answer: {} });
-  const cwd = tempRoom("wrapped-offline-");
-  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: SLUG }));
+  const cwd = projectRoom(tempRoom("wrapped-offline-"), tracker.env.XDG_CONFIG_HOME, { slug: SLUG });
   await tracker.close();
   const said = await refusedBy(tracker.env, cwd, "mcp__forge__forge_issues", { action: "list" });
   assert.match(said, /forge_issues list is what `forge issue` wraps/u, said);

@@ -3,10 +3,12 @@
    the tracker says the other half did not land: docs/cli/the-flow-axis.md. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { chmodSync, lstatSync, readFileSync, realpathSync, statSync, symlinkSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { chmodSync, lstatSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync }
+  from "node:fs";
+import { dirname, join } from "node:path";
 
-import { escaped, fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { escaped, fakeTracker, projectEntry, projectRoom, ranAsync, tempHome }
+  from "../../fixtures.mjs";
 import { withKey } from "../../../src/tools/services/project-file.mjs";
 import { restoreFailed } from "../../../src/tools/project-settings.mjs";
 
@@ -43,9 +45,13 @@ const state = {
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
+/* The room is the checkout and the file written is this machine's record of the project it belongs
+   to, which is where `flow` is a key (ISS-1403). */
 const room = tempHome("doctor-flow");
 test.after(() => room.remove());
-const file = join(room.path, ".forge.json");
+projectRoom(room.path, tracker.env.XDG_CONFIG_HOME, { slug: SLUG });
+const file = projectEntry(room.path, tracker.env.XDG_CONFIG_HOME);
+const where = dirname(file);
 
 /** Each case starts from the same file and the same project record, since every one of them is
  *  about what one call left behind and a case reading another's leftovers proves neither. */
@@ -154,14 +160,14 @@ test("a project file holding JSON that is no object is refused, and its bytes st
    case can cause: a directory the temporary cannot be made in. */
 test("a file this cannot write is refused with that file untouched", async () => {
   fresh();
-  chmodSync(room.path, 0o500);
+  chmodSync(where, 0o500);
   try {
     const run = await ask("--flow", "screen");
     assert.equal(run.status, 1, run.stdout);
     assert.match(run.stderr, /could not write it, so that half is out of reach and nothing was sent/u, run.stderr);
     assert.equal(readFileSync(file, "utf8"), HELD);
   } finally {
-    chmodSync(room.path, 0o700);
+    chmodSync(where, 0o700);
   }
 });
 
@@ -196,20 +202,23 @@ test("the report after an unread write says which of the two outcomes it was, an
   assert.equal(state.settings.pipelineConfig.qa, "independent");
 });
 
-/* A checkout whose project file is a link into shared configuration: the resolver read through it,
-   so a rename onto the name would leave a regular file where the link was and the file every other
-   checkout reads untouched. */
-test("a project file that is a link is followed, and the link survives the write", async () => {
+/* A machine whose entry for a project is a link into shared configuration: the resolver read through
+   it, so a rename onto the name would leave a regular file where the link was and the file every
+   other entry pointing there reads untouched. */
+test("a project record that is a link is followed, and the link survives the write", async () => {
   const shared = tempHome("doctor-flow-shared");
   const linked = tempHome("doctor-flow-linked");
   try {
     const target = join(shared.path, "shared.json");
     writeFileSync(target, HELD);
-    symlinkSync(target, join(linked.path, ".forge.json"));
+    projectRoom(linked.path, tracker.env.XDG_CONFIG_HOME, {});
+    const entry = projectEntry(linked.path, tracker.env.XDG_CONFIG_HOME);
+    rmSync(entry);
+    symlinkSync(target, entry);
     state.settings = { pipelineConfig: { autoProdDeploy: false, qa: "builder" }, projectFacts: {} };
     const run = await ranAsync(FORGE, ["doctor", "--flow", "screen"], tracker.env, linked.path);
     assert.equal(run.status, 0, run.stderr);
-    assert.ok(lstatSync(join(linked.path, ".forge.json")).isSymbolicLink(), "the link is still a link");
+    assert.ok(lstatSync(entry).isSymbolicLink(), "the link is still a link");
     assert.equal(JSON.parse(readFileSync(target, "utf8")).flow, "screen", "and what it points at was written");
   } finally {
     shared.remove();
@@ -247,13 +256,16 @@ test("a slug no flow declares is refused with the flows this copy serves, and no
   assert.equal(sent().length, 0);
 });
 
-test("a checkout with no project file is refused before anything reaches the tracker", async () => {
+/* A directory belonging to no checkout, which since ISS-1403 is the one state with no project at
+   all: the key is found by the repository's root folder, so there is nothing for this to write. */
+test("a directory belonging to no checkout is refused before anything reaches the tracker", async () => {
   const bare = tempHome("doctor-flow-bare");
   try {
     state.calls = [];
     const run = await ranAsync(FORGE, ["doctor", "--flow", "screen"], tracker.env, bare.path);
     assert.equal(run.status, 1);
-    assert.match(run.stderr, /`flow` is a key of \.forge\.json and no such file was found/u);
+    assert.match(run.stderr, /`flow` is a key of projects\/config\.json and no such file was found/u,
+      run.stderr);
     assert.equal(state.calls.length, 0);
   } finally {
     bare.remove();

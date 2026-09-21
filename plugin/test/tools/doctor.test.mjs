@@ -6,28 +6,54 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
-import { cleanRepo, fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
+import { cleanRepo, escaped, fakeTracker, projectEntry, projectRoom, ranAsync, tempRoom }
+  from "../fixtures.mjs";
 import { whole } from "./doctor/fixture.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "src", "cli.mjs");
 
 /* Built rather than filtered: naming the variables to drop is a list that goes stale the day one is
    added, and the developer's own would otherwise answer for half of every fixture. */
-const report = (viConfig, extra = {}, project = {}, subject = null) => {
+const reported = (viConfig, extra, files, subject, config) => {
   const home = tempRoom("doctor-home-");
   if (viConfig) {
     mkdirSync(join(home, "vi-natural"));
     writeFileSync(join(home, "vi-natural", "config.json"), JSON.stringify(viConfig));
   }
   const cwd = tempRoom("doctor-cwd-");
-  for (const [name, body] of Object.entries(project)) writeFileSync(join(cwd, name), body);
+  if (config) projectRoom(cwd, home, config);
+  for (const [name, body] of Object.entries(files)) writeFileSync(join(cwd, name), body);
   const run = spawnSync(process.execPath, [CLI, "doctor", ...(subject ? [subject] : [])], {
     encoding: "utf8",
     cwd,
     env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home, ...extra },
   });
-  return run.stdout;
+  /* Read before the report is: this home holds no credential, so the one miss the report is
+     entitled to is that, and `1` is what it exits on. A child that died or never started writes the
+     same empty stdout as a report with nothing to say, and every case below reads that stdout. */
+  assert.equal(run.status, 1,
+    `the report exited ${run.signal ? `on ${run.signal}` : run.status} rather than printing: ${run.stderr}`);
+  /* On its own line: a `? … : null` sharing a line with `.stdout` reads to the silence checker as a
+     case turning an empty answer into its own sentinel, which is the one thing it exists to catch. */
+  const entry = config ? projectEntry(cwd, home) : null;
+  return { out: run.stdout, entry };
 };
+
+const report = (viConfig, extra = {}, files = {}, subject = null) =>
+  reported(viConfig, extra, files, subject, null).out;
+
+/* A project's configuration is this machine's record of it and not a file in the room, so a case
+   that sets a key hands it to `projectRoom` and gets back the entry it landed in: that path is what
+   the report prints after its arrow, and an assertion on the source is an assertion on it. */
+const ofProject = (config, extra = {}) => reported(null, extra, {}, null, config);
+
+/* One row of the report: its level, its label, what it says and the file it was read from. The
+   source is a path this case composed rather than a name, so it goes in escaped and on that row's
+   own line — a path matched anywhere in the report is no claim about which row carries it. */
+const OK = " {2}ok {2}";
+const MISS = " miss ";
+const row = (level, label, said, entry) =>
+  new RegExp(`\\[${level}\\] ${escaped(label)}\\s+${said}[^\\n]*← ${escaped(entry)}`, "u");
 
 
 const MCP_FORGE = JSON.stringify({
@@ -82,7 +108,8 @@ test("a slug header alone is reported, with where to put it instead", () => {
   });
   const out = report(null, {}, { ".mcp.json": slugOnly });
   assert.match(out, /\[ note \] project slug/, "the header is not a source");
-  assert.match(out, /\[ miss \] mcp.json[^\n]+`\{ "slug": "<project>" \}` in a \.forge\.json/);
+  assert.match(out, /\[ miss \] mcp.json[^\n]+`forge doctor --set slug=<project>`/u,
+    "the one command that moves it, which writes this machine's record of the project (ISS-1403)");
   assert.doesNotMatch(out, /mcp.json[^\n]+--token/, "nothing about credentials it does not carry");
 });
 
@@ -117,7 +144,7 @@ test("a model is the third setting, and its absence is reported too", () => {
 
 /* Reads and writes differ: `new` translates before it posts, and a read never asks. */
 test("the same absent gateway is a miss where the project declares vi", () => {
-  const out = report(null, {}, { ".forge.json": JSON.stringify({ slug: "x", translate: "vi" }) });
+  const { out } = ofProject({ slug: "x", translate: "vi" });
   assert.match(out, /\[ miss \] vi-natural url/u);
   assert.match(out, /\[ miss \] vi-natural key/u);
   assert.match(out, /\[ miss \] vi-natural model/u);
@@ -166,8 +193,8 @@ const afterTheHostWent = async () => {
       "forge_projects.list": () => ({ projects: [{ slug: "gone-fixture", id: "1e1c1a1e-0000-4000-8000-00000000000e" }] }),
     },
   });
-  const cwd = tempRoom("doctor-gone-");
-  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "gone-fixture" }));
+  const cwd = projectRoom(tempRoom("doctor-gone-"), tracker.env.XDG_CONFIG_HOME,
+    { slug: "gone-fixture" });
   const ran = (subject) => ranAsync(process.execPath, [CLI, "doctor", ...(subject ? [subject] : [])], tracker.env, cwd);
   const live = await ran("tracker");
   tracker.close();
@@ -209,8 +236,8 @@ test("a slug the tracker holds no project for is named as that, not as an endpoi
   const tracker = await fakeTracker({
     answer: { "forge_projects.list": () => ({ projects: [{ slug: "some-other", id: "1e1c1a1e-0000-4000-8000-00000000000f" }] }) },
   });
-  const cwd = tempRoom("doctor-no-slug-");
-  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "absent-fixture" }));
+  const cwd = projectRoom(tempRoom("doctor-no-slug-"), tracker.env.XDG_CONFIG_HOME,
+    { slug: "absent-fixture" });
   const run = await ranAsync(process.execPath, [CLI, "doctor"], tracker.env, cwd);
   tracker.close();
   assert.match(run.stdout, /\[ miss \] tracker\s+.*No Forge project has slug absent-fixture/u);
@@ -331,16 +358,16 @@ test("the label doctor prints comes off the source row and not a table keyed on 
    somebody chose, and the run that acts on it cannot tell a default from a decision. */
 const KEYS = { feedback: { plugin: "off", project: "bugs" }, flow: "default", landing: "before-merge" };
 
-test("every key the project set is printed with .forge.json as its source", () => {
-  const out = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo", ...KEYS }) });
-  assert.match(out, /\[ {2}ok {2}\] feedback\.plugin\s+off {2}← \.forge\.json/u, out);
-  assert.match(out, /\[ {2}ok {2}\] feedback\.project\s+bugs {2}← \.forge\.json/u);
-  assert.match(out, /\[ {2}ok {2}\] flow\s+default {2}← \.forge\.json/u);
-  assert.match(out, /\[ {2}ok {2}\] landing\s+before-merge {2}← \.forge\.json/u);
+test("every key the project set is printed with this machine's record of it as its source", () => {
+  const { out, entry } = ofProject({ slug: "demo", ...KEYS });
+  assert.match(out, row(OK, "feedback.plugin", "off", entry), out);
+  assert.match(out, row(OK, "feedback.project", "bugs", entry));
+  assert.match(out, row(OK, "flow", "default", entry));
+  assert.match(out, row(OK, "landing", "before-merge", entry));
 });
 
 test("a key the project left out is printed at the plugin's default, with the default as its source", () => {
-  const out = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo" }) });
+  const { out } = ofProject({ slug: "demo" });
   assert.match(out, /\[ {2}ok {2}\] feedback\.plugin\s+bugs {2}← the plugin's default/u, out);
   assert.match(out, /\[ {2}ok {2}\] feedback\.project\s+all {2}← the plugin's default/u,
     "the two channels default apart, so a project naming one says nothing about the other");
@@ -352,31 +379,32 @@ test("a key the project left out is printed at the plugin's default, with the de
 
 /* A project left on `method` is served `default` and told to move, never read as unset. */
 test("a project still carrying the retired method key is told the flow it was read as", () => {
-  const out = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo", method: 1 }) });
-  assert.match(out, /\[ miss \] flow\s+default, read off the retired `method: 1` {2}← \.forge\.json\. Set `flow` instead/u, out);
-  const bad = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo", method: 4 }) });
-  assert.match(bad, /\[ miss \] flow\s+\.forge\.json sets `method: 4`, and `method` is retired/u, bad);
-  assert.match(bad, /\[ miss \] contract\s+\.forge\.json sets `method: 4`/u,
+  const read = ofProject({ slug: "demo", method: 1 });
+  assert.match(read.out, row(MISS, "flow", "default, read off the retired `method: 1`", read.entry), read.out);
+  assert.match(read.out, new RegExp(`${escaped(read.entry)}\\. Set \`flow\` instead`, "u"),
+    "and the route out is on the same line as the file that owes it");
+  const bad = ofProject({ slug: "demo", method: 4 });
+  assert.match(bad.out, new RegExp(`\\[ miss \\] flow\\s+${escaped(bad.entry)} sets \`method: 4\`, and \`method\` is retired`, "u"), bad.out);
+  assert.match(bad.out, new RegExp(`\\[ miss \\] contract\\s+${escaped(bad.entry)} sets \`method: 4\``, "u"),
     "and the contract line gives the same answer rather than reporting a missing file");
 });
 
 /* Read back off the file rather than off the report, because what a later `ship` reads is the file:
    a report that agreed with itself and wrote nothing would leave the mode a fiction of one process. */
 const shipped = (home, mode) => {
-  const cwd = tempRoom("doctor-ship-cwd-");
-  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "demo" }));
+  const cwd = projectRoom(tempRoom("doctor-ship-cwd-"), home, { slug: "demo" });
   const run = spawnSync(process.execPath, [CLI, "doctor", "--ship", mode], {
     encoding: "utf8", cwd, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });
-  return { out: run.stdout, cwd, saved: join(home, "forge", "config.json") };
+  return { out: run.stdout, entry: projectEntry(cwd, home), saved: join(home, "forge", "config.json") };
 };
 
 test("the landing mode is the machine's: it is written to the user config and the project's file is untouched", () => {
   const home = tempRoom("doctor-ship-home-");
-  const { cwd, saved } = shipped(home, "ready");
+  const { entry, saved } = shipped(home, "ready");
   assert.equal(JSON.parse(readFileSync(saved, "utf8")).ship, "ready", "the mode is in the user config");
-  assert.deepEqual(JSON.parse(readFileSync(join(cwd, ".forge.json"), "utf8")), { slug: "demo" },
-    "and the project's own file is exactly as it was: the machine decided, not the project");
+  assert.deepEqual(JSON.parse(readFileSync(entry, "utf8")), { slug: "demo" },
+    "and this machine's record of the project is exactly as it was: the machine decided, not the project");
 });
 
 test("the mode the report prints is the mode last written, either way", () => {
@@ -389,49 +417,51 @@ test("the mode the report prints is the mode last written, either way", () => {
 /* Three answers: an absent key and a pattern nothing can compile decide the same claim and mean
    opposite things, and only this surface says which of the two a project wrote (ISS-1872). */
 test("what a project calls a run's own work is printed with its source, and an unreadable pattern is said rather than dropped", () => {
-  const declared = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo", lease: { workingRe: "run\\.mjs ship" } }) });
-  assert.match(declared, /\[ {2}ok {2}\] lease\.workingRe\s+run\\\.mjs ship\b[^\n]*← \.forge\.json/u, declared);
+  const declared = ofProject({ slug: "demo", lease: { workingRe: "run\\.mjs ship" } });
+  assert.match(declared.out, row(OK, "lease.workingRe", escaped("run\\.mjs ship"), declared.entry), declared.out);
 
-  const silent = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo" }) });
+  const { out: silent } = ofProject({ slug: "demo" });
   assert.match(silent, /\[ {2}ok {2}\] lease\.workingRe\s+unset, so no process in a tree reads as a run working there/u,
     "the project that has not chosen is told it has not, rather than shown a default it never set");
 
-  const broken = report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo", lease: { workingRe: "ship(" } }) });
+  const { out: broken } = ofProject({ slug: "demo", lease: { workingRe: "ship(" } });
   assert.match(broken, /\[ miss \] lease\.workingRe\s+ship\( is no regular expression/u, broken);
   assert.match(broken, /a claim over a live sibling is taken/u,
     "and what the project loses by it, which is the whole reason the row is not silence");
 });
 
-/* The claim reads the declaration off the tree root, so the row reads it off the same place: one
-   answering for this directory advertises a protection no refusal applies (ISS-1872). */
-test("the declaration reported is the one the tree root holds, not the one the directory this call stands in holds", () => {
+/* The claim reads the declaration off this machine's record of the project the tree belongs to, so
+   the row reads it off the same place: one answering for this directory advertises a protection no
+   refusal applies (ISS-1872). The stranded file below is what that record replaced — read by
+   nothing since ISS-1403, and a directory deep in the checkout is where one is left behind. */
+test("the declaration reported is this project's record, not a `.forge.json` the call stands beside", () => {
   const home = tempRoom("doctor-work-home-");
-  const root = tempRoom("doctor-work-root-");
-  spawnSync("git", ["init", "-q"], { cwd: root });
-  writeFileSync(join(root, ".forge.json"), JSON.stringify({ slug: "demo", lease: { workingRe: "the-root-declaration" } }));
+  const root = projectRoom(tempRoom("doctor-work-root-"), home,
+    { slug: "demo", lease: { workingRe: "the-root-declaration" } });
   const inner = join(root, "inner");
   mkdirSync(inner);
   writeFileSync(join(inner, ".forge.json"), JSON.stringify({ slug: "demo", lease: { workingRe: "the-nested-declaration" } }));
   const run = spawnSync(process.execPath, [CLI, "doctor"], {
     encoding: "utf8", cwd: inner, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });
-  assert.match(run.stdout, /\[ {2}ok {2}\] lease\.workingRe\s+the-root-declaration\b/u, run.stdout);
+  assert.match(run.stdout, row(OK, "lease.workingRe", "the-root-declaration\\b", projectEntry(root, home)),
+    run.stdout);
   assert.doesNotMatch(run.stdout, /the-nested-declaration/u,
     "the file this directory happens to sit beside decides nothing the claim will read");
 });
 
-/* The project's, so the report reads it out of `.forge.json` and the account's own file has none of
-   it; and no flag writes it, so a value the key cannot use is met there, not at a write (ISS-1157). */
-const withRuns = (runs) => report(null, {}, { ".forge.json": JSON.stringify({ slug: "demo", ...runs }) });
+/* The project's, so the report reads it out of this project's record and the account's own file has
+   none of it; and no flag writes it, so a value the key cannot use is met there, not at a write
+   (ISS-1157). */
+const withRuns = (runs) => ofProject({ slug: "demo", ...runs });
 
-test("the number of parallel runs is the project's: it is read out of the project file, with that file named as its source", () => {
+test("the number of parallel runs is the project's: it is read out of the project's record, with that file named as its source", () => {
   const home = tempRoom("doctor-runs-home-");
-  const cwd = tempRoom("doctor-runs-cwd-");
-  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "demo", runs: 3 }));
+  const cwd = projectRoom(tempRoom("doctor-runs-cwd-"), home, { slug: "demo", runs: 3 });
   const run = spawnSync(process.execPath, [CLI, "doctor"], {
     encoding: "utf8", cwd, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });
-  assert.match(run.stdout, /\[ {2}ok {2}\] parallel runs\s+3\b[^\n]*← \.forge\.json/u, run.stdout);
+  assert.match(run.stdout, row(OK, "parallel runs", "3\\b", projectEntry(cwd, home)), run.stdout);
   assert.equal(existsSync(join(home, "forge", "config.json")), false,
     "and nothing of it reached the account's own file: the project decided, not the machine");
 });
@@ -441,12 +471,11 @@ test("a number left behind in the account's own configuration is not read, and i
   mkdirSync(join(home, "forge"));
   const stale = join(home, "forge", "config.json");
   writeFileSync(stale, JSON.stringify({ runs: 9 }));
-  const cwd = tempRoom("doctor-runs-stale-cwd-");
-  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "demo", runs: 3 }));
+  const cwd = projectRoom(tempRoom("doctor-runs-stale-cwd-"), home, { slug: "demo", runs: 3 });
   const run = spawnSync(process.execPath, [CLI, "doctor"], {
     encoding: "utf8", cwd, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });
-  assert.match(run.stdout, /\[ {2}ok {2}\] parallel runs\s+3\b[^\n]*← \.forge\.json/u, run.stdout);
+  assert.match(run.stdout, row(OK, "parallel runs", "3\\b", projectEntry(cwd, home)), run.stdout);
   assert.equal(JSON.parse(readFileSync(stale, "utf8")).runs, 9,
     "the stale value was rewritten, so the migration this project chose is not the one it got");
 });
@@ -455,38 +484,42 @@ test("a number left behind in the account's own configuration is not read, and i
    travels on the line the value travels on: a report printing the value alone left each master to
    supply a reading of its own, and two of them supplied opposite ones (ISS-1707). */
 test("a declared number is reported as the whole project's at once, not as one this session may take afresh", () => {
-  const out = withRuns({ runs: 3 });
+  const { out } = withRuns({ runs: 3 });
   assert.match(out, /\[ {2}ok {2}\] parallel runs\s+3 at once for the whole project, whoever dispatched them/u, out);
   assert.match(out, /a second master sizes itself by what is left rather than taking this number afresh/u,
     "the line says the number is shared, so a second master reading it cannot take the whole of it");
 });
 
 test("a project that declares no number of runs is told the key is unset and what follows from that", () => {
-  assert.match(withRuns({}), /\[ {2}ok {2}\] parallel runs\s+unset, so a wave is sized by whoever dispatches it and a gate declines for no sibling/u,
-    withRuns({}));
+  const { out } = withRuns({});
+  assert.match(out, /\[ {2}ok {2}\] parallel runs\s+unset, so a wave is sized by whoever dispatches it and a gate declines for no sibling/u,
+    out);
 });
 
 /* The doors a consult is demanded at are a setting like the rest: a switch nobody can read the
    current value of is one people guess at, and the empty list has to be told from the absent key. */
-const withDoors = (project) => report(null, {}, { ".forge.json": JSON.stringify({ slug: "p", ...project }) });
+const withDoors = (project) => ofProject({ slug: "p", ...project });
 const withOwed = (codex) => withDoors({ codex });
 
 test("the doors a consult is demanded at are reported with the file they were read from", () => {
   const armed = { codex: { owed: ["gate", "commit"] }, stats: { commands: { gate: "make verify" } } };
-  assert.match(withDoors(armed), /\[ {2}ok {2}\] codex\.owed\s+gate at `make verify`, commit — each held until a consult has read what it would judge, and each command door at what `stats\.commands` names {2}← \.forge\.json/u,
-    withDoors(armed));
+  const { out, entry } = withDoors(armed);
+  assert.match(out, row(OK, "codex.owed", escaped("gate at `make verify`, commit — each held until "
+    + "a consult has read what it would judge, and each command door at what `stats.commands` names"),
+  entry), out);
 });
 
 test("the key absent is the commit alone and the empty list is no door, and the report tells them apart", () => {
-  assert.match(withOwed({}), /\[ {2}ok {2}\] codex\.owed\s+commit — each held until a consult has read what it would judge {2}← the plugin's default/u,
+  assert.match(withOwed({}).out, /\[ {2}ok {2}\] codex\.owed\s+commit — each held until a consult has read what it would judge {2}← the plugin's default/u,
     "absent, the commit asks, which is what this did before the key");
-  assert.match(withOwed({ owed: [] }), /\[ {2}ok {2}\] codex\.owed\s+nothing — the key is an empty list, so no door asks {2}← \.forge\.json/u,
+  const empty = withOwed({ owed: [] });
+  assert.match(empty.out, row(OK, "codex.owed", "nothing — the key is an empty list, so no door asks", empty.entry),
     "and an empty list is the off switch, read off the project rather than off the default");
 });
 
 test("a door the key does not take is reported as one, naming what the key takes, and holds nothing", () => {
   for (const given of [["refuse"], "gate", [1], 3]) {
-    const out = withOwed({ owed: given });
+    const { out } = withOwed({ owed: given });
     assert.match(out, /\[ miss \] codex\.owed\s+\S+ is no value of this key/u, `\`${JSON.stringify(given)}\` was taken: ${out}`);
     assert.match(out, /it takes gate, commit, ship/u, "the report does not say what the key takes");
     assert.match(out, /reading commit {2}←/u, "nor that the default is what it fell back on");
@@ -495,7 +528,7 @@ test("a door the key does not take is reported as one, naming what the key takes
 
 test("a number of runs the key does not take is reported as one, naming what the key takes, and bounds nothing", () => {
   for (const given of [0, -1, "two", 1.5]) {
-    const out = withRuns({ runs: given });
+    const { out } = withRuns({ runs: given });
     assert.match(out, /\[ miss \] parallel runs\s+\S+ is no value of this key/u, `\`${given}\` was taken: ${out}`);
     assert.match(out, /a whole number above 0/u, "the report does not say what the key takes");
     assert.match(out, /no bound/u, "nor what follows from a value it cannot use");
@@ -518,24 +551,23 @@ test("the report mints no session id to have one to report", () => {
 /* Two sources answer "who judges": the flow asks, the project's key decides. The report says they
    disagree and changes neither — ISS-1088, and `flowJudgeConflict`'s own case carries the wording. */
 test("a flow asking for a judge the project's configuration does not name is a miss, and nothing is rewritten", async () => {
-  const pinned = JSON.stringify({ slug: "release-fixture", flow: "screen" });
-  const { out, status } = await whole(
+  const { out, status, entry } = await whole(
     { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true, qa: "builder" } },
-    { project: { ".forge.json": pinned } },
+    { project: { flow: "screen" } },
   );
   assert.match(out, /\[ miss \] flow\s+flow screen asks for independent judgement/u,
     "the conflict is a miss and names the flow that asked");
   assert.match(out, /this project's configuration says builder/u, "beside the key that answered otherwise");
   assert.match(out, /change the flow, or the project's qa configuration/u, "and both ways out");
   assert.equal(status, 1, "a report holding a miss exits on it");
-  assert.match(out, /\[ {2}ok {2}\] flow\s+screen {2}← \.forge\.json/u,
+  assert.match(out, row(OK, "flow", "screen", entry),
     "and the key itself is still read and reported as the project's own");
 });
 
 test("a project whose configuration names the judgement its flow asks for earns no conflict", async () => {
   const { out } = await whole(
     { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true, qa: "independent" } },
-    { project: { ".forge.json": JSON.stringify({ slug: "release-fixture", flow: "screen" }) } },
+    { project: { flow: "screen" } },
   );
   assert.doesNotMatch(out, /\[ miss \] flow/u, "the two sources agree, so there is nothing to report");
   assert.match(out, /independent judgement\s+independent between developed/u, "and the key is reported as it stands");

@@ -10,11 +10,15 @@ import { join } from "node:path";
 import { flags, pairOf, pairsFrom, pullRepeated, repeatedFlag, shortOfAsk } from "../../src/resolve/flags.mjs";
 import { Refusal, fail, refusing } from "../../src/resolve/settings.mjs";
 import { metaFrom } from "../../src/tracker/knowledge/store.mjs";
-import { homeEnv, ranAsync, tempRoom } from "../fixtures.mjs";
+import { homeEnv, projectRoom, ranAsync, tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const env = homeEnv("repeated-flag");
-const ran = (...argv) => ranAsync(FORGE, argv, env);
+/* A checkout of its own, with this machine's record of its project under the home these calls run
+   against: the claim below is about what a call reaches AFTER the parse, and a directory naming no
+   project refuses for the slug before it ever looks for an endpoint (ISS-1403). */
+const room = projectRoom(tempRoom("repeated-flag-"), env.XDG_CONFIG_HOME, { slug: "repeated-flag" });
+const ran = (...argv) => ranAsync(FORGE, argv, env, room);
 const USAGE = "Usage: forge thing <ref> [--one a] [--two b] [--full]";
 
 /* `fail` exits the process outside an embedded run, so the sentence is read the way the CLI's own embedding reads it. */

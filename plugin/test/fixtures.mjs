@@ -1,11 +1,11 @@
 /* Unwrapping the answer stays each suite's: `deny()` and `block()` do not answer alike, and the git rules need a tree with work to lose. */
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync }
-  from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 
+import { checkoutAt } from "../src/git/checkout-at.mjs";
 import { reachOf } from "./fixtures/answer-reach.mjs";
 import { madeIn } from "../../tools/room.mjs";
 import { PLAN_SECTIONS } from "../src/flow/machine.mjs";
@@ -104,21 +104,31 @@ export const standsInNoTree = (name) => {
 };
 
 /** Where this machine's record of the project a room belongs to is kept, which is the path every
- *  report names after its arrow. Composed the way the resolver composes it, so a case pinning a
- *  source pins a path its own home resolves to rather than a shape any wrong path would match. */
-export const projectEntry = (room, home) =>
-  join(home, "forge", "projects", basename(realpathSync(room)), "config.json");
+ *  report names after its arrow. Keyed on the room's REPOSITORY's root folder, exactly as the
+ *  resolver keys it, so a linked worktree and the checkout it was added from compose one path — and
+ *  so a case pinning a source pins a path its own home resolves to and not a shape. A room no
+ *  checkout holds has no project at all, which is a case's mistake rather than an empty answer. */
+export const projectEntry = (room, home) => {
+  const repository = checkoutAt(room)?.repository;
+  if (!repository) throw new Error(`${room} belongs to no checkout, so it has no project record`);
+  return join(home, "forge", "projects", basename(repository), "config.json");
+};
 
-/** A room that is a checkout, holding this machine's record of its project where the resolver reads
- *  it: `git init` gives the room a repository so the walk has a root folder to key on, and the entry
- *  goes under the configuration home the case runs against. The folder name is taken through
- *  `realpathSync`, because that is the form the checkout walk answers with and a temporary root is
- *  a symlink on more than one platform. Returns the room. */
-export const projectRoom = (room, home, config) => {
-  spawnSync("git", ["init", "-q", room], { cwd: room, encoding: "utf8" });
+/** This machine's record of the project a room ALREADY belongs to, written where the resolver reads
+ *  it, under the configuration home the case runs against. Returns the entry. */
+export const projectRecord = (room, home, config) => {
   const entry = projectEntry(room, home);
   mkdirSync(dirname(entry), { recursive: true });
   writeFileSync(entry, `${JSON.stringify(config, null, 2)}\n`);
+  return entry;
+};
+
+/** A room that is a checkout, holding this machine's record of its project: `git init` gives a bare
+ *  room a repository for the entry to be keyed on, and the record follows. Returns the room. A room
+ *  that is already a checkout — this repository, or a worktree of it — takes `projectRecord`. */
+export const projectRoom = (room, home, config) => {
+  spawnSync("git", ["init", "-q", room], { cwd: room, encoding: "utf8" });
+  projectRecord(room, home, config);
   return room;
 };
 

@@ -9,13 +9,16 @@ import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, realpathSync, w
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { git, homeEnv, tempRoom } from "../fixtures.mjs";
+import { git, homeEnv, projectEntry, projectRoom, tempRoom } from "../fixtures.mjs";
 
 const CLI = fileURLToPath(new URL("../../src/cli.mjs", import.meta.url));
 const SETTINGS = pathToFileURL(fileURLToPath(new URL("../../src/resolve/settings.mjs", import.meta.url))).href;
 const TREE = fileURLToPath(new URL("../../../docs/requirements", import.meta.url));
 
 const SLUG = "checkout-root-fixture";
+/* One home for the whole file, not one per call: this machine's record of the project lives under
+   it, so a case handed a fresh one would be asking a machine that has never heard of this project. */
+const HOME = homeEnv("checkout-root");
 const GOALS = join("docs", "requirements", "brd", "03-goals-non-goals.md");
 const ADDED = "G-14";
 const REMOVED = "G-09";
@@ -40,18 +43,19 @@ const branchTheTree = (tree) => {
   ran(tree, "commit", "-qm", "the branch moves two clauses");
 };
 
-/* One repository, two linked worktrees: one nested under the main checkout, which reaches the
-   project file by the ancestor walk, and one beside it, whose only route to that file is the
-   repository fallback. The project file is untracked, as it is in the checkout this was measured in,
-   so neither worktree carries a copy of its own. */
+/* One repository, two linked worktrees: one nested under the main checkout and one beside it. Both
+   once reached the project's settings by a route of their own — the ancestor walk and the repository
+   fallback — and since ISS-1403 there is one route: the repository's root folder names the entry, so
+   the two layouts have to answer alike and answer with the checkout's own answer. No checkout here
+   carries a copy of anything: the record is this machine's and sits outside all three. */
 const built = () => {
   const room = realpathSync(tempRoom("checkout-root-"));
   const main = join(room, "main");
   mkdirSync(join(main, "docs"), { recursive: true });
   cpSync(TREE, join(main, "docs", "requirements"), { recursive: true });
   ran(main, "init", "-q", "-b", "master", ".");
-  writeFileSync(join(main, ".git", "info", "exclude"), ".forge.json\ntrees/\n");
-  writeFileSync(join(main, ".forge.json"), `{ "slug": "${SLUG}" }\n`);
+  writeFileSync(join(main, ".git", "info", "exclude"), "trees/\n");
+  projectRoom(main, HOME.XDG_CONFIG_HOME, { slug: SLUG });
   ran(main, "add", "docs");
   ran(main, "commit", "-qm", "the tree as the main checkout holds it");
   const nested = join(main, "trees", "nested");
@@ -64,17 +68,18 @@ const built = () => {
 };
 
 const rooms = built();
+const ENTRY = projectEntry(rooms.main, HOME.XDG_CONFIG_HOME);
 const LAYOUTS = [["nested under the main checkout", rooms.nested], ["beside the main checkout", rooms.beside]];
 
 const spec = (cwd, id) =>
-  spawnSync(process.execPath, [CLI, "spec", id], { cwd, encoding: "utf8", env: homeEnv("checkout-root") });
+  spawnSync(process.execPath, [CLI, "spec", id], { cwd, encoding: "utf8", env: HOME });
 
 /* The resolver in a process of its own, because it memoises what it reads off this one's directory. */
 const probe = (cwd, env = {}) => {
   const run = spawnSync(process.execPath, ["--input-type=module", "-e",
     `const held = await import(${JSON.stringify(SETTINGS)});\n`
       + "process.stdout.write(JSON.stringify({ root: held.checkoutRoot(), slug: held.projectScope() }));"],
-  { cwd, encoding: "utf8", env: { ...homeEnv("checkout-root"), ...env } });
+  { cwd, encoding: "utf8", env: { ...HOME, ...env } });
   assert.equal(run.status, 0, run.stderr);
   return JSON.parse(run.stdout);
 };
@@ -107,8 +112,12 @@ for (const [layout, tree] of LAYOUTS) {
     assert.equal(probe(join(tree, "docs", "requirements")).root, tree);
   });
 
-  test(`a worktree ${layout} carrying no project file still resolves the project`, () => {
-    assert.deepEqual(probe(tree).slug, { value: SLUG, from: ".forge.json" });
+  /* Criterion 3 of ISS-1403: the two routes a worktree once had are one, so a worktree and the
+     checkout it was added from resolve the SAME entry rather than two files that agree today. */
+  test(`a worktree ${layout} resolves the very entry its main checkout resolves`, () => {
+    assert.deepEqual(probe(tree).slug, { value: SLUG, from: ENTRY });
+    assert.deepEqual(probe(rooms.main).slug, { value: SLUG, from: ENTRY },
+      "one repository, one record: neither the worktree nor the checkout holds a copy of its own");
   });
 }
 
@@ -116,16 +125,23 @@ test("a subdirectory of an ordinary checkout answers with that checkout", () => 
   assert.equal(probe(join(rooms.main, "docs", "requirements")).root, rooms.main);
 });
 
-test("a directory holding a project file and no checkout answers with itself", () => {
+/* A project's configuration is found by its REPOSITORY's root folder, so a directory belonging to
+   no repository has no project — and no checkout to be standing in either. What answered with the
+   directory the file sat in answers with nothing at all, the file itself being read by nobody
+   (ISS-1403). */
+test("a directory belonging to no checkout has no project, so it resolves neither root nor slug", () => {
   const alone = realpathSync(tempRoom("checkout-root-alone-"));
   writeFileSync(join(alone, ".forge.json"), `{ "slug": "${SLUG}" }\n`);
-  assert.equal(probe(alone).root, alone);
+  const found = probe(alone);
+  assert.equal(found.root, null, "no checkout holds it, so there is no checkout it stands in");
+  assert.deepEqual(found.slug, { value: null, from: null },
+    "and the file it sits on names no project, nothing reading one out of a checkout any more");
 });
 
 test("a worktree resolves the project with no git it can run, and runs none", () => {
   const { bin, log } = refusingGit();
   const found = probe(rooms.beside, { PATH: bin });
-  assert.deepEqual(found.slug, { value: SLUG, from: ".forge.json" });
+  assert.deepEqual(found.slug, { value: SLUG, from: ENTRY });
   assert.equal(found.root, rooms.beside);
   assert.equal(existsSync(log), false, `git was run: ${existsSync(log) ? readFileSync(log, "utf8") : ""}`);
 });

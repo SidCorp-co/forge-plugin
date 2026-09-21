@@ -3,14 +3,16 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-import { fakeTracker, tempRoom } from "../../fixtures.mjs";
+import { fakeTracker, projectEntry, projectRoom, tempRoom } from "../../fixtures.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "src", "cli.mjs");
 
 /* The one doctor fixture whose exit code means something, shared by the report's own file and by
    the release policy's: `report` in doctor.test.mjs exits 1 on its missing credential alone, so a
    case judging a level has to run against a tracker that answers. The report names the policy in
-   the words its owner uses — the staging branch, never the field's own name (ISS-90). */
+   the words its owner uses — the staging branch, never the field's own name (ISS-90). `project` is
+   the keys this project's record holds beyond its slug, and the entry it was written to comes back
+   because that path is what every row of the report names as its source. */
 export const whole = async (config, { environments = null, saved = {}, project = {} } = {}) => {
   const tracker = await fakeTracker({
     answer: {
@@ -22,9 +24,9 @@ export const whole = async (config, { environments = null, saved = {}, project =
   });
   const held = join(tracker.env.XDG_CONFIG_HOME, "forge", "config.json");
   writeFileSync(held, JSON.stringify({ ...JSON.parse(readFileSync(held, "utf8")), ...saved }));
-  const cwd = tempRoom("doctor-release-");
-  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "release-fixture" }));
-  for (const [name, body] of Object.entries(project)) writeFileSync(join(cwd, name), body);
+  const cwd = projectRoom(tempRoom("doctor-release-"), tracker.env.XDG_CONFIG_HOME,
+    { slug: "release-fixture", ...project });
+  const entry = projectEntry(cwd, tracker.env.XDG_CONFIG_HOME);
   /* Awaited, not waited on: this test is the tracker the report asks, and spawnSync holds the loop
      that would answer it. */
   const answered = await new Promise((done) => {
@@ -37,7 +39,7 @@ export const whole = async (config, { environments = null, saved = {}, project =
     child.stdin.end();
   });
   tracker.close();
-  return answered;
+  return { ...answered, entry };
 };
 
 export const releaseReport = async (config, environments = null) => (await whole(config, { environments })).out;

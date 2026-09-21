@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import test from "node:test";
 
-import { tempHome, tempRoom } from "../../fixtures.mjs";
+import { projectRoom, tempHome, tempRoom } from "../../fixtures.mjs";
 
 const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
 
@@ -35,8 +35,7 @@ const room = (jobs, held = {}) => {
   writeFileSync(at, JSON.stringify({
     url: "http://127.0.0.1:1/mcp", token: "saved-token", retrySeconds: 0, waitSeconds: 0.05, ...held,
   }));
-  const cwd = tempRoom("doctor-skills-cwd-");
-  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "skills-fixture", jobs }));
+  const cwd = projectRoom(tempRoom("doctor-skills-cwd-"), home, { slug: "skills-fixture", jobs });
   const run = (...argv) => spawnSync(process.execPath, [CLI, ...argv], {
     encoding: "utf8", cwd, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });

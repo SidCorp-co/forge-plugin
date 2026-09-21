@@ -3,10 +3,8 @@
    than called, because the row is what a developer reads (ISS-1397). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { escaped, fakeTracker, projectEntry, projectRoom, ranAsync, tempHome } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 
@@ -15,10 +13,14 @@ test.after(() => tracker.close());
 
 const ROW = (mark, detail) => new RegExp(`^\\[${mark}\\] age ceiling\\s+${detail}`, "mu");
 
-const ranked = (rank) => {
+/* The room is a checkout and the block goes in this machine's record of the project it belongs to,
+   which is the file the row names after its arrow (ISS-1403). */
+const ranked = async (rank) => {
   const room = tempHome("project-rank");
-  writeFileSync(join(room.path, ".forge.json"), JSON.stringify({ slug: "forge-plugin", ...(rank ? { rank } : {}) }));
-  return ranAsync(FORGE, ["doctor"], tracker.env, room.path);
+  const home = tracker.env.XDG_CONFIG_HOME;
+  projectRoom(room.path, home, { slug: "forge-plugin", ...(rank ? { rank } : {}) });
+  const run = await ranAsync(FORGE, ["doctor"], tracker.env, room.path);
+  return { ...run, entry: projectEntry(room.path, home) };
 };
 
 test("the report names the age ceiling in force and which of the two decided it", async () => {
@@ -27,7 +29,9 @@ test("the report names the age ceiling in force and which of the two decided it"
     ROW(" {2}ok {2}", "none, so age accrues for as long as an issue is open {2}← the plugin's default"),
     shipped.stdout);
   const capped = await ranked({ ageCap: 25 });
-  assert.match(capped.stdout, ROW(" {2}ok {2}", "25 points, past which two filing dates rank alike {2}← \\.forge\\.json"));
+  assert.match(capped.stdout,
+    ROW(" {2}ok {2}", `25 points, past which two filing dates rank alike {2}← ${escaped(capped.entry)}`),
+    capped.stdout);
   const elsewhere = await ranked({ blocks: 9 });
   assert.match(elsewhere.stdout, ROW(" {2}ok {2}", "none, .*← the plugin's default"),
     "a project that set another weight is not told its file decided this one");

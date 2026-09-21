@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempRoom } from "../../fixtures.mjs";
+import { fakeTracker, projectRoom, ranAsync, tempRoom } from "../../fixtures.mjs";
 import { VERB_NAMES } from "../../../src/resolve/visibility.mjs";
 
 const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
@@ -39,8 +39,7 @@ const room = (held = {}, jobs = { ba: BA }) => {
     url: "http://127.0.0.1:1/mcp", token: "saved-token", retrySeconds: 0, waitSeconds: 0.05,
     ...TOOLS, ...held,
   }));
-  const cwd = tempRoom("doctor-off-cwd-");
-  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: "off-fixture", jobs }));
+  const cwd = projectRoom(tempRoom("doctor-off-cwd-"), home, { slug: "off-fixture", jobs });
   const run = (...argv) => spawnSync(process.execPath, [CLI, ...argv], {
     encoding: "utf8", cwd,
     env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home, CLAUDE_PROXY_ENV: "" },
@@ -158,8 +157,8 @@ const wired = async () => {
     },
   };
   const tracker = await fakeTracker(state);
-  const cwd = tempRoom("doctor-off-wired-");
-  writeFileSync(join(cwd, ".forge.json"), JSON.stringify({ slug: SLUG, jobs: { ba: BA } }));
+  const cwd = projectRoom(tempRoom("doctor-off-wired-"), tracker.env.XDG_CONFIG_HOME,
+    { slug: SLUG, jobs: { ba: BA } });
   return {
     state,
     close: tracker.close,

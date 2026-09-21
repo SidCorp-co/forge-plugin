@@ -6,7 +6,7 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeStore, fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { fakeStore, fakeTracker, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../../..", import.meta.url).pathname;
@@ -59,6 +59,10 @@ const state = {
 
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
+/* Every call below stands in this checkout, so this machine's record of THIS project is what it
+   resolves: written under the home these calls run against, keyed by the repository's root folder
+   the way the resolver keys it (ISS-1403). */
+projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME, { slug: "forge-plugin" });
 const ask = (...argv) => ranAsync(FORGE, argv, tracker.env, ROOT);
 await ask("claim", "ISS-1", "--unheld");
 
