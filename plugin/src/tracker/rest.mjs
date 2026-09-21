@@ -241,6 +241,19 @@ const sayDeclined = (key, bodies) => {
   for (const line of said.flatMap(marked)) console.error(line);
 };
 
+/** The bodies a read row's own routes answered, before any projection reads them. The one caller is
+ *  the name join, which has to see what the wire carried and not what a shaper kept of it; a write
+ *  is refused, nothing being diagnosed by sending one. */
+export const wireBodies = async (name, args = {}, held = {}) => {
+  const key = keyOf(name, args);
+  const row = ROUTES[key];
+  if (!row) return { refused: noRouteRefusal(key) };
+  if (row.writes) return { refused: `${key} writes, and no shape is read off a write` };
+  const parts = await fetchedParts(key, row, args, true, held);
+  const bad = parts.find(([, one]) => one.refused);
+  return bad ? { refused: bad[1].refused } : { parts: Object.fromEntries(parts.map(([part, one]) => [part, one.body])) };
+};
+
 export const callTool = async (name, args, soft = false, held = {}) => {
   const key = keyOf(name, args);
   const row = ROUTES[key];

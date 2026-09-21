@@ -175,6 +175,15 @@ export const cleanRepo = () => {
 };
 
 const OWN = { id: "1e1c1a1e-0000-4000-8000-0000000000ff" };
+
+/* Every column `GET /projects/:id` answers, and the three documents it answers under `agentConfig`
+   rather than beside them. Both sets are the wire's own, not this fixture's idea of it. */
+const PROJECT_COLUMNS = ["id", "slug", "name", "description", "orgId", "createdBy", "role", "orgRole",
+  "repoPath", "repoUrl", "workspaceSetup", "baseBranch", "liveBranch", "releaseModel",
+  "releaseStrategy", "defaultDeviceId", "environments", "issuePrefix", "labels", "members",
+  "devicePool", "createdAt", "archivedAt"];
+
+const NESTED = ["agentConfig", "pipelineConfig", "projectFacts", "plugins"];
 /* The project travels as an id in a path now, so a case asking which project a call went to reads
    the slug back through the one listing the fixture serves. */
 const SLUGS = new Map();
@@ -439,18 +448,25 @@ export const fakeTracker = async (state) => {
     return {};
   };
 
-  const projectRow = (held) => ({
-    ...OWN,
-    slug: ownSlug(),
-    ...(held.project ?? {}),
-    ...(held.config ?? {}),
-    agentConfig: {
-      ...(held.config?.agentConfig ?? {}),
-      ...(held.config?.pipelineConfig ? { pipelineConfig: held.config.pipelineConfig } : {}),
-      ...(held.config?.projectFacts ? { projectFacts: held.config.projectFacts } : {}),
-      ...(held.config?.plugins ? { plugins: held.config.plugins } : {}),
-    },
-  });
+  /* The row the tracker serves, and every column of it: null where a case named no value, the three
+     nested documents under `agentConfig` and at no top level, and whatever else a case put on the row
+     beside them. A stub answering thirteen fewer columns than the wire does is a row no reader of it
+     can tell a retired column from, which is the thing `plugin/src/tracker/name-join.mjs` reports on
+     and the thing it found here first (ISS-1970). The set is the wire's, read off the capture at
+     `plugin/test/fixtures/rest/projects-get.json`; a column the tracker grows is one line here. */
+  const projectRow = (held) => {
+    const given = { ...OWN, slug: ownSlug(), ...(held.project ?? {}), ...(held.config ?? {}) };
+    return {
+      ...Object.fromEntries(PROJECT_COLUMNS.map((name) =>
+        [name, Object.hasOwn(given, name) ? given[name] : null])),
+      ...Object.fromEntries(Object.entries(given)
+        .filter(([name]) => !NESTED.includes(name) && !PROJECT_COLUMNS.includes(name))),
+      agentConfig: Object.fromEntries(NESTED
+        .filter((name) => held.config?.[name] !== undefined)
+        .map((name) => [name, held.config[name]])
+        .concat(Object.entries(held.config?.agentConfig ?? {}))),
+    };
+  };
 
   /* One page of a handler's whole answer, by the offset and limit the caller sent: `fits` binds
      below whatever was asked for, and `beyond` is a count the route reports and will not serve. */

@@ -581,3 +581,53 @@ test("the contract each flow serves is reported, one line per flow", () => {
   assert.match(out, /\[ {2}ok {2}\] flow set\s+screen: \d+ part\(s\)/u,
     "the second flow's set is not reported, so a project choosing it chooses blind");
 });
+
+/* The name join at the surface it prints on. The row this fake tracker serves carries a column no
+   shaper reads and nothing declares, so both directions have something to say; and it carries a
+   sentinel under each of the two credential columns, which is the case that says no path of this
+   report renders one. */
+const HELD = "a-sentinel-no-report-may-print";
+const withRow = async (project, subject) => {
+  const tracker = await fakeTracker({
+    answer: {
+      "forge_projects.list": () => ({ projects: [{ slug: "join-fixture", id: "1e1c1a1e-0000-4000-8000-000000000011" }] }),
+      "forge_projects.get": () => ({ project }),
+      forge_guide: () => ({ refused: "this credential may not read guides" }),
+    },
+  });
+  const cwd = projectRoom(tempRoom("doctor-join-"), tracker.env.XDG_CONFIG_HOME, { slug: "join-fixture" });
+  const run = await ranAsync(process.execPath, [CLI, "doctor", ...(subject ? [subject] : [])], tracker.env, cwd);
+  tracker.close();
+  return run;
+};
+const GROWN = { retryBudget: 3, webhookSecret: HELD, apiKey: HELD };
+
+test("a bare reading carries the name join's findings and nothing else of it", async () => {
+  const bare = await withRow(GROWN);
+  assert.match(bare.stdout, /\[ miss \] name join\s+forge_projects\.get never asks for retryBudget/u,
+    "a column the tracker grew and nothing here reads reaches the first command a session runs");
+  assert.match(bare.stdout, /\[ miss \] name join\s+forge_config\.get never asks for retryBudget/u,
+    "on every shaper that projects the row, not the first one to be asked");
+  assert.doesNotMatch(bare.stdout, /\[ {2}ok {2}\] name join/u,
+    "while the reading that passed waits to be asked for, as every row of this subject does");
+  assert.equal(bare.status, 1, "a report holding a finding is not a green one");
+});
+
+test("the tracker subject carries the whole reading, dated and bounded", async () => {
+  const asked = await withRow(GROWN, "tracker");
+  assert.match(asked.stdout, /\[ {2}ok {2}\] name join\s+read \d{4}-\d{2}-\d{2} off GET \/projects\/:id/u);
+  assert.match(asked.stdout, /nothing inside any of them/u,
+    "the bound is printed, so a green top-level reading is not read as covering a nested shape");
+  assert.match(asked.stdout, /\[ miss \] name join\s+forge_projects\.get never asks for retryBudget/u);
+});
+
+test("no line of the report names either credential column, or the value the row held under one", async () => {
+  for (const run of [await withRow(GROWN), await withRow(GROWN, "tracker")]) {
+    for (const name of ["webhookSecret", "apiKey", HELD]) {
+      assert.equal(run.stdout.includes(name), false, `${name} reached the report:\n${run.stdout}`);
+      assert.equal(run.stderr.includes(name), false, `${name} reached stderr:\n${run.stderr}`);
+    }
+  }
+  assert.match((await withRow(GROWN, "tracker")).stdout, /2 withheld unnamed/u,
+    "and a reader is told two were withheld rather than told nothing");
+});

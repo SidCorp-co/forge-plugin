@@ -43,6 +43,9 @@ CLI's guess at it: the same bodyless `DELETE` without the header reaches the han
 carrying it is served, and the knowledge store's own `DELETE` answers `deleted` either way. A route
 wanting a field in that body says so by declaring one, which is what carries `unmark`'s note.
 
+**What compares the names the table asks for with the names the wire answers**, in both directions,
+is one topic of its own: [the name join](the-name-join.md).
+
 **A capability with no route fails where it is asked for, naming the route it wanted.** A fallback to
 the other endpoint would keep the verb working and hide the gap for as long as both endpoints exist,
 which is exactly as long as nobody is going to notice. The refusal names the path the row would have

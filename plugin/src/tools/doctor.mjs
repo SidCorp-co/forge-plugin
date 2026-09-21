@@ -26,6 +26,7 @@ import {
 import { readClaudeMd, reviewClaudeMd } from "../checks/claude-md.mjs";
 import { checkClaudeMdLocally, reportClaudeMd } from "./services/doctor/repo.mjs";
 import { harnessLines } from "./services/doctor/harness.mjs";
+import { nameJoinRows } from "./services/doctor/names.mjs";
 import { installRows } from "./services/doctor/install.mjs";
 import { copyRows, startRelease } from "./services/doctor/release.mjs";
 import { withholdingLines } from "./services/doctor/jobs.mjs";
@@ -264,7 +265,7 @@ export const trackerId = async (projectId) => {
 };
 
 const checkEndpoint = async (full, credentials) => {
-  const { forgetProjects, projectId, restBase, scoped } = await import("../tracker/rest.mjs");
+  const { forgetProjects, projectId, restBase, scoped, wireBodies } = await import("../tracker/rest.mjs");
   const { served } = await import("../tracker/routes.mjs");
   under("tracker");
   forgetProjects();
@@ -294,9 +295,16 @@ const checkEndpoint = async (full, credentials) => {
   }
   line(OK, "project id", full ? held.id : `resolved from the slug (--full to print it)`);
   line(measured() ? OK : NOTE, "tracker clock", offsetSaid());
+  /* Started rather than awaited, so the one read it costs rides with the probes instead of after
+     them. Its findings print on a bare reading as every fault of an unasked-for subject does: a
+     retired column is currently found by losing a day to it, and one that waits for somebody to type
+     the subject's name is found the same way. */
+  const names = nameJoinRows(() => wireBodies("forge_projects.get"),
+    new Date().toISOString().slice(0, 10));
   const findings = await probe(scoped, slug);
   if (!findings.forge_guide) await checkAgainstGuides(scoped);
   under("tracker");
+  report(await names);
   if (findings.gated) {
     block(
       `\n${findings.gated} declared capability(ies) refuse this credential. Declared is not callable —\n` +

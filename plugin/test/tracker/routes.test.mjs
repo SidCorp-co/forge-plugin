@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 
 import { DECLARES, ISSUE_PARTS, ROUTES, UNTYPED, answersOf, asToolCall, droppedRefusal, keyOf,
   mimeForName, noRouteRefusal, partsAmong, rowFor, served, undeclaredIn } from "../../src/tracker/routes.mjs";
+import { CHOSEN, staleDeclarations } from "../../src/tracker/name-join.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const captures = join(here, "..", "fixtures", "rest");
@@ -347,6 +348,59 @@ describe("every row of the table is judged", () => {
       const capture = JSON.parse(readFileSync(join(captures, file), "utf8"));
       assert.ok(Object.keys(capture.routes ?? {}).length, `${file} names no route`);
       assert.match(String(capture.taken), /^\d{4}-\d{2}-\d{2}$/u, `${file} names no capture date`);
+    }
+  });
+});
+
+/* The name half of the `differs` table above, and held to the same rule: a declaration nobody
+   re-reads is how a difference gets forgotten. What differs there is a value; what is declared here
+   is a name a shaper chose not to read, and the reading that produces it is the shaper's own — see
+   `plugin/src/tracker/name-join.mjs`. The two directions themselves are a verb and not a step, this
+   capture being sixteen days old at the time of writing and no schedule reaching that: a check that
+   compares a shaper against a capture taken from the same wire moves with it or not at all. What is
+   spent here is only whether each declaration is still true of the row on disk. */
+describe("a name a project-row shaper chose not to read is declared, and the declaration is checked", () => {
+  const taken = () => JSON.parse(readFileSync(join(captures, "projects-get.json"), "utf8"));
+
+  it("every declaration is true of the capture, and the capture carries no undeclared drop", () => {
+    const capture = taken();
+    assert.deepEqual(staleDeclarations(capture.rest.project, capture.taken), []);
+  });
+
+  it("a declared drop the shaper asks for fails, as the value table's own rule does", () => {
+    const capture = taken();
+    const said = staleDeclarations(capture.rest.project, capture.taken,
+      { "forge_projects.get": { slug: "a reason for a name the shaper reads on every call" } });
+    assert.equal(said.length, 1);
+    assert.match(said[0], /declares slug as a chosen drop and the shaper asks the row for it/u);
+    assert.match(said[0], /drop the declaration/u, "which is the one thing to do about it");
+  });
+
+  it("a declaration the capture cannot prove names the day the capture was taken", () => {
+    const capture = taken();
+    const said = staleDeclarations(capture.rest.project, capture.taken,
+      { "forge_config.get": { nosuchColumn: "a reason for a name no row has ever carried" } });
+    assert.equal(said.length, 1);
+    assert.match(said[0], new RegExp(`carries no such column`, "u"));
+    assert.ok(said[0].includes(capture.taken),
+      `the finding names no capture date, so a rule read off a stale capture reads as a rule about today: ${said[0]}`);
+    assert.match(said[0], /re-take the capture/u, "and the call that does it");
+  });
+
+  /* The two the row carries and no reading of it may name. They are on neither list because they are
+     struck before either direction is read, so there is nothing left for a reason to explain — and
+     this capture was scrubbed of both before it reached disk, which is why nothing here can prove
+     their absence from a declaration by reading the row. */
+  it("neither credential column is declared, on either shaper", () => {
+    for (const held of Object.values(CHOSEN)) {
+      for (const name of ["webhookSecret", "apiKey"]) {
+        assert.equal(Object.hasOwn(held, name), false, name);
+      }
+    }
+    const capture = taken();
+    for (const name of ["webhookSecret", "apiKey"]) {
+      assert.equal(Object.hasOwn(capture.rest.project, name), false,
+        `${name} is on the capture: scrub it before it reaches disk`);
     }
   });
 });

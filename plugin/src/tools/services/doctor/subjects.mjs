@@ -189,6 +189,11 @@ const TRACKER = [
   "A declared capability that refuses is recorded with the date it refused on, and the usage list",
   "then withholds every verb that spends one: declared is not callable.",
   "",
+  "Then the name join: what the project row's shapers ask that row for and it does not carry, and",
+  "what it carries that they never ask for and nothing declares. It names the day it was read, it",
+  "reaches the row's own columns and nothing inside any of them, and it never names either of the",
+  "two columns holding a credential.",
+  "",
   "Not in a bare reading. A bare call prints what refused here and nothing that answered.",
 ].join("\n");
 
