@@ -352,13 +352,12 @@ describe("every row of the table is judged", () => {
   });
 });
 
-/* The name half of the `differs` table above, and held to the same rule: a declaration nobody
-   re-reads is how a difference gets forgotten. What differs there is a value; what is declared here
-   is a name a shaper chose not to read, and the reading that produces it is the shaper's own — see
-   `plugin/src/tracker/name-join.mjs`. The two directions themselves are a verb and not a step, this
-   capture being sixteen days old at the time of writing and no schedule reaching that: a check that
-   compares a shaper against a capture taken from the same wire moves with it or not at all. What is
-   spent here is only whether each declaration is still true of the row on disk. */
+/* The name half of what `differs` above declares of a value, under that table's own rule. The
+   reading that produces a name is the shaper's own — `plugin/src/tracker/name-join.mjs`. The two
+   directions themselves are a verb and not a step, this capture being sixteen days old at the time
+   of writing and no schedule reaching that: a check comparing a shaper against a capture taken from
+   the same wire moves with it or not at all. Spent here is whether each declaration is still true of
+   the row on disk, which is a reading of this repository and needs no credential. */
 describe("a name a project-row shaper chose not to read is declared, and the declaration is checked", () => {
   const taken = () => JSON.parse(readFileSync(join(captures, "projects-get.json"), "utf8"));
 
