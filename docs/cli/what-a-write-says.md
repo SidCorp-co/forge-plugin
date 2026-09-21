@@ -63,11 +63,12 @@ opens every such warning the same way and closes it by citing the page, and puts
 statement between the two for every kind of record. Naming the sentences instead would answer the
 kinds a run happened to meet and leave the rest warning, which is the defect again. So a statement
 arriving before the opener or after the citation leaves the line unrecognised and it is said whole,
-the answered part of it included; one spliced between those two clauses is not separated, and is not,
-knowingly — each subject the tracker declines arrives as its own entry in the answer, so a spliced
-one would mean the tracker composing warnings some other way, which is what a reworded frame is too.
-Either way nothing matches, the warning comes back, and a reader meets the old noise rather than a
-wrong answer. That is the direction this fails in.
+the answered part of it included. One spliced between those two clauses is not separated and goes
+down with them, which is the one case here that does not fail safe: a reworded frame matches nothing
+and the warning simply comes back, where a splice inside an intact frame is lost. It is given up for
+two reasons — each subject the tracker declines arrives as its own entry in the answer, so a splice
+would be the tracker abandoning its own composition; and naming the sentences instead leaves every
+kind of record nobody has met warning on every write, which is the defect this exists to answer.
 
 **So the sentence is carried under a line saying the write stood, and never under the route's own
 name.** Every refusal the transport writes opens with that name, and the one act a reader takes on a

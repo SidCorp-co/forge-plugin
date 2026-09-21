@@ -233,13 +233,6 @@ const marked = (line) => `  ${MARK} — ${line}`;
 /* Said under a line saying the write stood, and never as `${key}: …`, which is the shape every
    refusal this module writes opens in: the one action a reader takes on a refusal is to send the
    write again, and a comment sent twice is a duplicate the tracker has no delete for (ISS-2070).
-   A warning asserting a rule this copy has already read and replaced is not said at all, by the same
-   judgement `forge guide` makes about the page that warning quotes: a sentence that holds on every
-   correct use of a verb teaches a reader to skip the line the next one arrives on, and each call
-   here is its own process, so there is no once for it to be said. What withholds it, and where the
-   reader meets it instead, is `warningAnswered` in plugin/src/guides/guides.mjs. It is withheld a
-   line at a time and never a whole account at a time, because an account joining that rule to
-   something the caller has to act on would take the second down with the first.
    What that line may claim is the row and no more — the tracker attaches an account like this to a
    call it declined a part of as well, so a reader told the whole call went through stops before the
    part that says otherwise — and what the line tells them not to repeat is the row and never the
@@ -251,6 +244,12 @@ const sayDeclined = async (key, bodies) => {
      transport every verb imports pays for it on the calls that carry a warning rather than on all
      of them. */
   const { warningAnswered } = await import("../guides/guides.mjs");
+  /* A rule this copy has already read and replaced is not said at all, by the same judgement
+     `forge guide` makes about the page that warning quotes: a sentence holding on every correct use
+     of a verb teaches a reader to skip the line the next one arrives on, and each call here is its
+     own process, so there is no once for it to be said. Withheld a line at a time and never a whole
+     account: an account joining that rule to something the caller has to act on would otherwise take
+     the second down with the first. */
   const said = carried.map((one) => linesIn(one).filter((line) => !warningAnswered(line)))
     .filter((lines) => lines.length);
   if (!said.length) return;

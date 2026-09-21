@@ -274,18 +274,19 @@ export const REVIEWED = [
 
 const rowFor = (table, slug) => table.find((row) => row.slug === slug) ?? null;
 
+/* A splice inside an intact frame is the one case here that does not fail safe: the line still
+   matches and the spliced statement goes down with it. Saying otherwise would be false — a reworded
+   frame matches nothing and the warning simply comes back. It is given up for two reasons. Each
+   subject the tracker declines arrives as its own entry in the answer, so a splice would be the
+   tracker abandoning its own composition; and naming the sentences instead leaves every kind of
+   record nobody has met warning on every write, which is the defect this answers (G-13). */
 const shaped = (text, { opens, closes }) => text.startsWith(opens) && text.endsWith(closes);
 
 /** Which page of this table answers one line of a warning the tracker hung on a write, and `null`
  *  where none does. The line has to open and close at that page's frame, and what a caller might
  *  have had to act on is what arrives outside it: a statement before the opener or after the
  *  citation leaves the line unrecognised and it is said whole, the answered part of it included.
- *  What this cannot separate is a statement the tracker splices *between* those two clauses, and it
- *  is left unseparated knowingly — each subject the tracker declines arrives as its own entry in the
- *  answer, so a spliced one would mean the tracker composing warnings some other way, which is the
- *  same thing a reworded frame is: this matches nothing, the warning comes back, and a run meets the
- *  defect rather than a wrong answer. That is the direction it has to fail in, the sentence withheld
- *  being the one nobody can go and read. */
+ *  What it cannot separate is a statement the tracker splices *between* those two clauses. */
 export const warningAnswered = (said, table = GUIDE_TABLE) => {
   const text = String(said ?? "").trim();
   return table.find((one) => one.warns && shaped(text, one.warns))?.slug ?? null;

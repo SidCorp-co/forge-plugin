@@ -33,9 +33,8 @@ const JOIN = " — ";
 
 const flat = (one) => String(Array.isArray(one) ? one.join("; ") : one ?? "").replace(/\s+/gu, " ").trim();
 
-/* An equal share of the line each, and what a short field leaves goes to the fields after it: a
-   budget spent front to back lets one long field truncate away every field behind it, which is the
-   line this used to print. One field reads exactly as it always did — the share is the whole. */
+/* An equal share of the line each, and what a short field leaves goes to the fields after it, so a
+   long field cannot truncate away every field behind it. One field takes the whole share. */
 const oneLine = (parts) => {
   let left = HEADLINE_CHARS - JOIN.length * (parts.length - 1);
   return parts.map((one, index) => {
