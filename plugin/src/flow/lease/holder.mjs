@@ -185,32 +185,14 @@ const QUOTING = /['"`\\]/gu;
 /* One class, because the two readings below have to call the same characters separators: a word the
    signature ran together and the words this cut apart would otherwise disagree about where one ends. */
 const SEPARATOR = "[\\s;|&()<>]";
+/* What a dollar opens that a quote can hide inside. */
+const OPENS = /[({]/u;
 const BREAKS = new RegExp(`${SEPARATOR}+`, "gu");
 const BREAK = new RegExp(SEPARATOR, "u");
 
 const signed = (said) => {
   const words = String(said ?? "").replaceAll(QUOTING, "").replace(BREAKS, " ").trim();
   return words.length < IDENTIFYING ? "" : ` ${words} `;
-};
-
-/* Where a substitution inside a quoted argument ends: the next backtick, or the parenthesis that
-   closes this one. Counted and never read, which is the shell parser this refuses to be — a
-   parenthesis quoted inside the substitution ends it early here, and what that costs is a word cut
-   where the shell kept one, which loses a match rather than reading an argument as words. */
-const past = (said, at) => {
-  if (said[at] === "`") {
-    const end = said.indexOf("`", at + 1);
-    return end < 0 ? said.length : end + 1;
-  }
-  let depth = 1;
-  for (let by = at + 1; by < said.length; by += 1) {
-    if (said[by] === "(") depth += 1;
-    else if (said[by] === ")") {
-      depth -= 1;
-      if (depth === 0) return by + 1;
-    }
-  }
-  return said.length;
 };
 
 /* The words the shell would have cut out of what the turn typed, in one pass rather than a shell
@@ -243,10 +225,14 @@ const wordsTyped = (said) => {
       dollar = false;
     } else if (quote) {
       /* Inside a double quote the character that closes the argument is free to sit inside a
-         substitution, so the substitution goes into the word whole and the walk resumes past it
-         rather than reading that character as the close. */
-      if (quote === '"' && (one === "`" || (one === "$" && said[at + 1] === "("))) {
-        const end = past(said, one === "`" ? at : at + 1);
+         substitution or an expansion, and nothing short of a shell reads where those end. So the
+         walk stops looking for the next quote and takes the last one in the call, which is at or
+         past the real close: the word it makes covers the argument and whatever follows it, and no
+         double-quoted argument can begin after the last quote, which is the only place a word this
+         cut too short could hide. It is cut too long instead, and that loses a match. */
+      if (quote === '"' && (one === "`" || (one === "$" && OPENS.test(said[at + 1] ?? "")))) {
+        const last = said.lastIndexOf('"');
+        const end = last > at ? last : said.length;
         word += said.slice(at, end);
         at = end - 1;
       } else if (one === quote) {
