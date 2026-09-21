@@ -60,9 +60,14 @@ const DOCTOR = [".", ".claude-plugin", ".forge.json", "plugin/.claude-plugin", "
   "plugin/test/fixtures/answer-reach.mjs", "plugin/test/fixtures/answered.mjs", "plugin/vi-natural",
   "tools/room.mjs"];
 
+/* One case in the machine table's file walks every source of this repository for reads of that
+   store, `tools` among them, so its ceiling is the doctor set and that tree. The walk is what keeps
+   a key read at this level from being declared at neither and written to the project's (ISS-1403). */
+const MACHINE = [...DOCTOR, "tools"];
+
 export const DECLARED_READS = [
   { where: "plugin/test/cli/doctor/machine/job.test.mjs", reads: DOCTOR, blind: CLI },
-  { where: "plugin/test/cli/doctor/machine/machine-keys.test.mjs", reads: DOCTOR, blind: CLI },
+  { where: "plugin/test/cli/doctor/machine/machine-keys.test.mjs", reads: MACHINE, blind: CLI },
   { where: "plugin/test/cli/doctor/machine/off.test.mjs", reads: DOCTOR, blind: CLI },
   { where: "plugin/test/cli/doctor/machine/skills.test.mjs", reads: DOCTOR, blind: CLI },
   { where: "plugin/test/run/processes/orphans.test.mjs", reads: RUN, blind: SPAWNED },
