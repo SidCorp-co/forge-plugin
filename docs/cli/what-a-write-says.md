@@ -53,11 +53,13 @@ in step with a rule this CLI does not own.
 **A sentence stating a rule this product has already read and replaced is not carried at all.** The
 tracker cites the guide a warning comes from, by slug, inside the warning; this product holds a
 disposition of every guide that tracker serves, and where the row marks the very rule that warning
-asserts as replaced, the answer is already written and served at `forge guide <slug> --tracker`.
-Repeating it beside each write buys a reader nothing and costs the channel everything: a sentence
-that holds on every correct use of a verb teaches them to skip the line the next one arrives on. It
-cannot be said once instead, because each call here is its own process. So the reader meets it on
-the page that replaced it, which is the one page that can also say the transport stops repeating it.
+asserts as replaced, the answer is already written. What holds instead is the contract, which
+`forge guide contract` serves; the reading behind it is on the row, which is a maintainer's to read
+under [the rule about a withheld page](withholding-a-verb.md). Repeating the tracker's sentence
+beside each write buys neither of them anything and costs the channel everything: one that holds on
+every correct use of a verb teaches a reader to skip the line the next one arrives on. It cannot be
+said once instead, because each call here is its own process. And there is nothing under it to act
+on — a caller told the rule cannot obey it, this product having replaced it.
 What is recognised is the frame and never the sentence, because the sentence is not one: the tracker
 opens every such warning the same way and closes it by citing the page, and puts a different
 statement between the two for every kind of record. Naming the sentences instead would answer the
