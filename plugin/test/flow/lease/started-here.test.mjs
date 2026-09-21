@@ -193,6 +193,8 @@ test("a command line the turn only quoted as an argument does not make its proce
       "an apostrophe escaped inside an ANSI-C quote ended a word the shell keeps whole");
     assert.ok(!held(startedHere(turn(`echo "$(printf '%s' "note ${line} ")" >> /dev/null`)), pid),
       "a quote inside a substitution ended the argument the substitution stands in");
+    assert.ok(held(startedHere(turn(`cd "$(git rev-parse --show-toplevel)" && nohup ${line} > /dev/null 2>&1 &`)), pid),
+      "a substitution standing before the launch took the words of the launch with it");
   } finally {
     gone(pid, watched);
   }

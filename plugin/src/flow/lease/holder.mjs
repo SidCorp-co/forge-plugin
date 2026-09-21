@@ -193,6 +193,26 @@ const signed = (said) => {
   return words.length < IDENTIFYING ? "" : ` ${words} `;
 };
 
+/* Where a substitution inside a quoted argument ends: the next backtick, or the parenthesis that
+   closes this one. Counted and never read, which is the shell parser this refuses to be — a
+   parenthesis quoted inside the substitution ends it early here, and what that costs is a word cut
+   where the shell kept one, which loses a match rather than reading an argument as words. */
+const past = (said, at) => {
+  if (said[at] === "`") {
+    const end = said.indexOf("`", at + 1);
+    return end < 0 ? said.length : end + 1;
+  }
+  let depth = 1;
+  for (let by = at + 1; by < said.length; by += 1) {
+    if (said[by] === "(") depth += 1;
+    else if (said[by] === ")") {
+      depth -= 1;
+      if (depth === 0) return by + 1;
+    }
+  }
+  return said.length;
+};
+
 /* The words the shell would have cut out of what the turn typed, in one pass rather than a shell
    parser: a quote holds one word however many blanks are inside it, a backslash takes the character
    after it, and an unquoted separator ends one. An empty quoted word yields none, as an empty
@@ -222,14 +242,13 @@ const wordsTyped = (said) => {
       if (said[at] !== "\n") word += said[at];
       dollar = false;
     } else if (quote) {
-      /* A substitution inside a double quote opens a context this cannot follow to its end, the
-         quote that closes the argument being free to sit inside the substitution. So the rest of
-         the call is one word rather than a guess at where the quote stopped: over-stating the
-         quoting only loses a match, and under-stating it reads an argument as words, which is the
-         defect itself. */
+      /* Inside a double quote the character that closes the argument is free to sit inside a
+         substitution, so the substitution goes into the word whole and the walk resumes past it
+         rather than reading that character as the close. */
       if (quote === '"' && (one === "`" || (one === "$" && said[at + 1] === "("))) {
-        word += said.slice(at);
-        at = said.length;
+        const end = past(said, one === "`" ? at : at + 1);
+        word += said.slice(at, end);
+        at = end - 1;
       } else if (one === quote) {
         quote = "";
         escapes = true;
