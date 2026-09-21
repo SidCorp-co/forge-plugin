@@ -8,7 +8,7 @@ import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { flat, tempHome, tempRoom } from "../fixtures.mjs";
+import { escaped, flat, projectRoom, tempHome, tempRoom } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("flow").path;
 const {
@@ -27,16 +27,21 @@ const FORGE = join(PLUGIN, "bin", "forge");
 const FIXTURE = "erp-flow";
 const SIBLING = "qa-flow";
 
-/* A flow is read off a `.forge.json` by a resolver answering once per process, so a case varying one
+/* A flow is read off this machine's record of the project by a resolver answering once per process, so a case varying one
    runs the verb: two flows in one process would both read whichever was resolved first. */
+/* A configuration home of its own, never this developer's: the keys under test are the project's and
+   they now live beside the machine's own, so a fixture writing them into the real home would write
+   into the state of whoever is running the suite. */
 const room = (keys) => {
-  const dir = tempRoom("flow-");
-  writeFileSync(join(dir, ".forge.json"), JSON.stringify({ slug: "flow-fixture", ...keys }));
-  return dir;
+  const home = tempRoom("flow-home-");
+  const dir = projectRoom(tempRoom("flow-"), home, { slug: "flow-fixture", ...keys });
+  return { dir, home };
 };
 
-const asked = (keys, ...argv) =>
-  spawnSync(FORGE, argv, { encoding: "utf8", env: { ...process.env, HOME: process.env.HOME }, cwd: room(keys) });
+const at = ({ dir, home }, ...argv) => spawnSync(FORGE, argv,
+  { encoding: "utf8", env: { ...process.env, HOME: home, XDG_CONFIG_HOME: home }, cwd: dir });
+
+const asked = (keys, ...argv) => at(room(keys), ...argv);
 
 test("this copy ships two flows, and the declaration says nothing about what a flow holds", () => {
   assert.deepEqual(FLOW_SLUGS, [DEFAULT, SCREEN], "the slugs this copy serves, in the order it declares them");
@@ -137,7 +142,7 @@ test("two flows holding one part byte-identically are both served it, and nothin
 });
 
 /* The declaration and the directories against each other, and no pin in the question: the answer to
-   *what does this copy ship* must not move with a `.forge.json` no gate step declares. */
+   *what does this copy ship* must not move with a project's configuration no gate step declares. */
 const shipping = (parts, flows) => flowProblems(installed(parts), flows);
 
 test("a declared flow whose directory holds no part is named, with the way out", () => {
@@ -272,7 +277,8 @@ test("flow wins, method 1 reads as default and says so, and any other method is 
   const retired = asked({ method: 1 }, "guide", "contract", "open");
   assert.equal(retired.status, 0, retired.stderr);
   assert.equal(SERVED.exec(retired.stdout)?.[1], DEFAULT);
-  assert.match(retired.stdout, /`method` is retired: \.forge\.json sets `method: 1`, read as flow default\./u);
+  assert.match(retired.stdout,
+    /`method` is retired: \S+config\.json sets `method: 1`, read as flow default\./u, retired.stdout);
   const both = asked({ flow: DEFAULT, method: 4 }, "guide", "contract", "open");
   assert.equal(both.status, 0, both.stderr);
   assert.equal(SERVED.exec(both.stdout)?.[1], DEFAULT, "a present flow wins over any method");
@@ -297,15 +303,17 @@ test("a method no flow answers, and a flow this copy does not serve, are refused
 /* Every surface that would have served it, since a refusal one verb gives and another does not is
    how a project came to be refused the method and served the other skills without a word. */
 test("a flow this copy does not serve is the same line on the method, the contract and the listing", () => {
-  const keys = { flow: FIXTURE };
-  const refusal = asked(keys, "guide", "issue-flow").stderr.trimEnd();
+  /* One room for all four calls: the refusal names the file it read, so a room per call would
+     compare four different paths and pass on nothing. */
+  const held = room({ flow: FIXTURE });
+  const refusal = at(held, "guide", "issue-flow").stderr.trimEnd();
   assert.equal(refusal.split("\n").length, 1, `the refusal is one line, not:\n${refusal}`);
-  assert.equal(asked(keys, "guide", "contract").stderr.trimEnd(), refusal);
-  assert.equal(asked(keys, "guide", "dispatch").stderr.trimEnd(), refusal,
+  assert.equal(at(held, "guide", "contract").stderr.trimEnd(), refusal);
+  assert.equal(at(held, "guide", "dispatch").stderr.trimEnd(), refusal,
     "and a skill no flow has an opinion about is refused too: the coverage is every served slug");
-  const listing = asked(keys, "guide").stdout;
+  const listing = at(held, "guide").stdout;
   for (const slug of ["contract", "issue-flow", "dispatch"]) {
-    assert.match(listing, new RegExp(`${slug}\\n {2}${refusal.replace(/^guide: /u, "")}`, "u"),
+    assert.match(listing, new RegExp(`${slug}\\n {2}${escaped(refusal.replace(/^guide: /u, ""))}`, "u"),
       `${slug}'s row answers as the verb does, or one surface serves what another refuses`);
   }
   assert.ok(!listing.includes("table of contents"), "and never the contract's own row as if it were reachable");
@@ -314,10 +322,10 @@ test("a flow this copy does not serve is the same line on the method, the contra
 
 test("the flow the doctor serves is printed with where the value was read", () => {
   const held = asked({ flow: DEFAULT }, "doctor").stdout;
-  assert.match(held, /\[ {2}ok {2}\] flow\s+default {2}← \.forge\.json/u);
+  assert.match(held, /\[ {2}ok {2}\] flow\s+default {2}← \S+config\.json/u, held);
   assert.match(asked({}, "doctor").stdout, /\[ {2}ok {2}\] flow\s+default {2}← the plugin's default/u);
   assert.match(asked({ method: 1 }, "doctor").stdout,
-    /\[ miss \] flow\s+default, read off the retired `method: 1` {2}← \.forge\.json\. Set `flow` instead/u);
+    /\[ miss \] flow\s+default, read off the retired `method: 1` {2}← \S+config\.json\. Set `flow` instead/u);
 });
 
 /* The fence's value class carries the hyphen because every other slug here is kebab-case: without it
