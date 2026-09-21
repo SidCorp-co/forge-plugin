@@ -52,10 +52,10 @@ export const TEST_FILE = /^plugin\/test\/.*\.test\.mjs$/u;
 const CLI = "a node child that left no record: the CLI, reading plugin/ and 168 of plugin/src's 190";
 const SPAWNED = "a node child that left no record: a node standing here, importing plugin/test/run";
 const TAGS = "a git child that left no record: ls-remote against a scratch origin, standing here";
-const RUN = [".", ".forge.json", "plugin/hooks/vendor", "plugin/src", "plugin/test/fixtures.mjs",
+const RUN = [".", "plugin/hooks/vendor", "plugin/src", "plugin/test/fixtures.mjs",
   "plugin/test/fixtures/answer-reach.mjs", "plugin/test/fixtures/answered.mjs", "plugin/test/run", "tools"];
 
-const DOCTOR = [".", ".claude-plugin", ".forge.json", "plugin/.claude-plugin", "plugin/agents",
+const DOCTOR = [".", ".claude-plugin", "plugin/.claude-plugin", "plugin/agents",
   "plugin/guides", "plugin/hooks", "plugin/skills", "plugin/src", "plugin/test/fixtures.mjs",
   "plugin/test/fixtures/answer-reach.mjs", "plugin/test/fixtures/answered.mjs", "plugin/vi-natural",
   "tools/room.mjs"];
@@ -94,7 +94,6 @@ export const STEPS = [
        README.md and VI-NATURAL.md overwritten in place and restored, these were 860 pass, 0 fail. */
     reads: [
       ".claude-plugin",
-      ".forge.json",
       "docs/requirements",
       "package-lock.json",
       "package.json",

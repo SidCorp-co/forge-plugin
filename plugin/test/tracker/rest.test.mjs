@@ -15,6 +15,7 @@ import { patience } from "../patience.mjs";
 import { backoff, callTool, retryAfter, retryOf, retrySeconds, unfencedIn } from "../../src/tracker/rest.mjs";
 import { useProject } from "../../src/resolve/settings.mjs";
 import { REFERENCE_KEYS } from "../../src/tracker/routes.mjs";
+import { OWN } from "../fixtures/own-project.mjs";
 
 /* The shape judge's own three answers, the middle one being what keeps a caller who typed nothing
    out of a refusal: a date slot left empty is no value at all, as an undeclared one is. */
@@ -42,7 +43,6 @@ test("the identifying arguments are the ones that name a record, and no other", 
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../..", import.meta.url).pathname;
-const OWN = JSON.parse(readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8"));
 
 /* A home of a case's own, carrying this checkout's project: the calls below are project-scoped and
    the record is this machine's, so a bare home refuses them for the slug before the transport is

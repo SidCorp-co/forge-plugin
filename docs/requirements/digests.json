@@ -1046,8 +1046,8 @@
       "digest": "795db5db2f0ddfdb9efa0f40db632caf336f5e3bf97a85a404400ecc1725b072"
     },
     "UC-01-5": {
-      "rev": 4,
-      "digest": "58a01b0e8678ba38eb0ac2c82533ca267345e565f45a1573844feb323d82b9bc"
+      "rev": 5,
+      "digest": "4694be11ce4696fa97953a9f7cf2b3de2e964596c16381284c9870db34f2cebb"
     },
     "AC-01-5-1": {
       "rev": 2,
@@ -1192,6 +1192,22 @@
     "AC-01-5-36": {
       "rev": 1,
       "digest": "5cf11fd56cc8040b328d36d8ff99fbbe8a9b58819413fee9005099ad87fe7203"
+    },
+    "AC-01-5-37": {
+      "rev": 1,
+      "digest": "39963436a22c398e7edf56259c7c9062fbbcecf0c3e597e3527562affb30302f"
+    },
+    "AC-01-5-38": {
+      "rev": 1,
+      "digest": "be4458519db375cef3fe3f971744d7e8a4b48a2d86b18815467441fbb2ca6064"
+    },
+    "AC-01-5-39": {
+      "rev": 1,
+      "digest": "75a6477e5e0e2a2a46dbf8863c9c8f73894ca09cdcd27497e43936ab5fed4a90"
+    },
+    "AC-01-5-40": {
+      "rev": 1,
+      "digest": "b5813de5ef0031b8a1e96d4b7ac50b5711c52a84dc7ad681b4f47ac85e42aae6"
     },
     "FR-02": {
       "rev": 1,

@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { bodyFrom, bodyItself, fieldReplaced, routeIn, routeRefusal } from "../../src/resolve/payload.mjs";
 import { Refusal, refusing } from "../../src/resolve/settings.mjs";
 import { fakeTracker, pathed, projectRoom, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
+import { OWN } from "../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("body-slot").path;
 const room = tempRoom("body-slot-");
@@ -51,7 +52,7 @@ test.after(() => tracker.close());
 const bin = join(room, "bin");
 mkdirSync(bin, { recursive: true });
 writeFileSync(join(bin, "forge"), `#!/usr/bin/env sh\nexec ${pathed(FORGE)} "$@"\n`, { mode: 0o755 });
-projectRoom(room, tracker.env.XDG_CONFIG_HOME, JSON.parse(readFileSync(join(ROOT, ".forge.json"), "utf8")));
+projectRoom(room, tracker.env.XDG_CONFIG_HOME, OWN);
 
 const env = {
   ...tracker.env,

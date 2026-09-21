@@ -30,7 +30,7 @@ export const answered = (run, said) => {
   return answer;
 };
 
-/* `cwd` is the project the hook stands in, a different question from the event's `cwd`: the settings resolver walks up from the process, so a case varying a `.forge.json` key sets this. */
+/* `cwd` is the project the hook stands in, a different question from the event's `cwd`: the settings resolver walks up from the process, so a case varying a project key sets this. */
 export const callHook = (hook, event, env = process.env, cwd = process.cwd(), said) =>
   spoke(spawnSync(process.execPath, [hook], { input: JSON.stringify(event), encoding: "utf8", env, cwd }), said);
 

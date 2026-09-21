@@ -3,8 +3,9 @@
    file resolves once per process (ISS-1883). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { OWN } from "../../../fixtures/own-project.mjs";
 
 import { escaped, fakeTracker, git, homeEnv, projectEntry, projectRecord, ranAsync, shortPage,
   tempRoom } from "../../../fixtures.mjs";
@@ -143,7 +144,7 @@ test("every named door armed reads ok and names the command in force at each", a
 /* The debt is printed twice — here and by the release step that files its reading — so the row says
    which of the three states it is in rather than a number a reader cannot act on (ISS-1887). */
 const DECLARED = { review: { lines: 4, paths: ["app"] } };
-const OWN_SLUG = JSON.parse(readFileSync(join(import.meta.dirname, "..", "..", "..", "..", "..", ".forge.json"), "utf8")).slug;
+const OWN_SLUG = OWN.slug;
 
 const owedRoom = (name) => {
   const { room } = built(name, DECLARED);

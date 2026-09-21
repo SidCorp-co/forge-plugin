@@ -4,10 +4,11 @@
    refusal is, and the refusal is watched firing. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { escaped, fakeTracker, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
+import { OWN } from "../../fixtures/own-project.mjs";
 
 const state = { issues: [], comments: {}, calls: [], memory: {}, answer: {} };
 const tracker = await fakeTracker(state);
@@ -16,7 +17,7 @@ const tracker = await fakeTracker(state);
    the record goes under the one configuration home the children are handed. */
 const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
 projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME,
-  JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8")));
+  OWN);
 test.after(() => tracker.close());
 
 /* Set before the modules load: `settings()` resolves the endpoint out of this directory once. */

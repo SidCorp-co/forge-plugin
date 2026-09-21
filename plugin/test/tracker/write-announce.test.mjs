@@ -3,11 +3,11 @@
    which stays silent, and that a second write to a scope already named says nothing (ISS-1192). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
 
 import { fakeTracker, projectRecord, ranAsync, standsInNoTree } from "../fixtures.mjs";
 import { useProject } from "../../src/resolve/settings.mjs";
 import { write } from "../../src/tracker/rest.mjs";
+import { OWN } from "../fixtures/own-project.mjs";
 
 standsInNoTree("write-announce");
 
@@ -30,7 +30,7 @@ process.env.XDG_CONFIG_HOME = tracker.env.XDG_CONFIG_HOME;
 /* Every call below is made from this checkout, whose project is a record beside the machine's own
    keys now: written under the home the children read, or they are refused for the slug. */
 projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME,
-  JSON.parse(readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8")));
+  OWN);
 const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
 
 const ran = (argv, stdin = null) => ranAsync(FORGE, argv, ENV, ROOT, stdin);

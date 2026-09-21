@@ -7,6 +7,7 @@ import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { fakeTracker, projectRoom, ranAsync, shortPage, tempRoom } from "../fixtures.mjs";
+import { OWN } from "../fixtures/own-project.mjs";
 
 const { TREE } = await import("../../src/spec/tree.mjs");
 
@@ -34,9 +35,9 @@ The identifier is the whole surface.
   IF the identifier is unknown THEN the CLI SHALL refuse.
 `;
 
-/* This checkout's own keys, carried into whatever configuration home the case runs against: the
-   record is this machine's now, so a room and the home holding its record travel together. */
-const OWN = JSON.parse(readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8"));
+/* The keys a room stands in for this checkout with, carried into whatever configuration home the
+   case runs against: the record is this machine's now, so a room and the home holding its record
+   travel together. */
 
 const project = (prefix, home) => {
   const root = projectRoom(tempRoom(prefix), home, OWN);

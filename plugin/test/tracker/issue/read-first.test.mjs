@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { joined, targetsOfTool, writeTargets } from "../../../src/tracker/issue-read.mjs";
 import { isReference } from "../../../src/tracker/issues.mjs";
 import { shellText, starts } from "../../../hooks/_hook.mjs";
+import { OWN } from "../../fixtures/own-project.mjs";
 import { answered, callHookAsync, fakeTracker, pathed, projectRecord, projectRoom, tempHome, tempRoom }
   from "../../fixtures.mjs";
 
@@ -169,7 +170,6 @@ const HOME = tempHome("read-first");
 /* One configuration home for every child here, holding this machine's record of each project a
    case stands the gate in — starting with this checkout, which is where a case that names no
    directory of its own runs. */
-const OWN = JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
 projectRecord(process.cwd(), HOME.path, OWN);
 /* The state file is the run's own and is never touched here: a fixture that reset it would be
    testing a fresh session every time, which is the one thing this gate must not do. */

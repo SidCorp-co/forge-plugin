@@ -12,6 +12,7 @@ import { answered, callHook, cleanRepo, escaped, pathed, projectRecord, projectR
   from "../../fixtures.mjs";
 import { FIELD, KEY } from "../../../src/flow/lease.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
+import { OWN } from "../../fixtures/own-project.mjs";
 
 const HOOK = new URL("../../../hooks/entries/turn/stop-check.mjs", import.meta.url).pathname;
 const GATE = new URL("../../../hooks/gate.mjs", import.meta.url).pathname;
@@ -21,15 +22,13 @@ const REPO = new URL("../../../..", import.meta.url).pathname.replace(/\/$/u, ""
    comment costs now. On one line, which is how the same file passed the ceiling before it. */
 const DENSE = `// ${"the unit is what the comment says and never the column its author wrapped it at. ".repeat(20)}\nexport const x = 1;\n`;
 
-
 /* Set before the gate is loaded and not after: the consult log's path is read once, at the import,
    and this suite must not read the developer's own log. Where its stamps land is the fixture's,
    which pointed `TMPDIR` at this process's own root before this line ran. */
 process.env.XDG_CONFIG_HOME = tempRoom("stop-check-own-");
-/* This checkout's own project, which is what a case standing the gate here resolves: the roles
+/* The project a case standing the gate here resolves, under a home of the suite's own: the roles
    whose stops are judged are one of its keys, and the record is this machine's rather than the
-   tree's, so a home of the suite's own has to carry it. */
-const OWN = JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
+   tree's, so nothing is resolved until this home carries one. */
 projectRecord(REPO, process.env.XDG_CONFIG_HOME, OWN);
 const { run, silentSince, judgedStop, heldAndSilent } = await import("../../../hooks/gates/turn/stop-check.mjs");
 
@@ -544,8 +543,9 @@ test("stop.agents in a project's own configuration decides which subagents' stop
   assert.equal(judgedStop({ hook_event_name: "Stop" }, []), true, "the main agent's stop is always judged");
   const file = join(REPO, "plugin", "test", `stop-config-${randomUUID().slice(0, 8)}.mjs`);
   writeFileSync(file, DENSE);
-  /* The judged cases above run from this repository, whose own record lists its four roles. The
-     checkout and the home holding its record travel together, one pair per reading. */
+  /* The judged cases above run from this repository, against the record written for it above,
+     whose `stop.agents` lists four roles. The checkout and the home holding its record travel
+     together, one pair per reading. */
   const at = (config) => {
     const env = room();
     return { env, cwd: projectRoom(tempRoom("stop-check-config-"), env.XDG_CONFIG_HOME, config) };

@@ -1,14 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { projectRecord, projectRoom, tempRoom } from "../fixtures.mjs";
+import { OWN } from "../fixtures/own-project.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves, so nothing here can touch the caller's own state file. The
-   checkout's own keys are what the no-flag case reads, so this home carries that record too. */
+   record's keys are what the no-flag case reads, so this home carries that record too. */
 process.env.XDG_CONFIG_HOME = tempRoom("forge-codex-prompt-");
-projectRecord(process.cwd(), process.env.XDG_CONFIG_HOME,
-  JSON.parse(readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8")));
+projectRecord(process.cwd(), process.env.XDG_CONFIG_HOME, OWN);
 delete process.env.FORGE_CODEX_DISABLE;
 
 const { consultArgs } = await import("../../src/codex/codex.mjs");

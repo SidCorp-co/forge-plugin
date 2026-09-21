@@ -23,7 +23,10 @@ A `.forge.json` in a checkout is read by nothing. It is not a fallback layer, be
 layer is exactly the precedence rule this shape removes — two places to look, a rule nobody wrote
 down, and an undo that does not restore what was there. It is not ignored in silence either:
 `forge doctor` says once per call that the file is standing there unread, and names
-`forge doctor --adopt`, which copies its contents whole into this machine's record.
+`forge doctor --adopt`, which copies its contents whole into this machine's record. A checkout
+carrying none is told nothing at all, a row about a file that is not there being a reader sent to
+look for it — which is the reading this repository itself gets, having stopped carrying one under
+ISS-2055.
 
 That command refuses where a record already exists rather than writing over it, because a key set
 since the adoption is held there and nowhere else. It never touches the checkout's own file: taking

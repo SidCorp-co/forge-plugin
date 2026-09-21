@@ -3,10 +3,10 @@
    projects the rest off the same answer without holding a list of names (ISS-151). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
 
 import { fakeTracker, projectRecord, ranAsync } from "../../fixtures.mjs";
 import { rowLine } from "../../../src/tracker/issues.mjs";
+import { OWN } from "../../fixtures/own-project.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../../..", import.meta.url).pathname;
@@ -48,7 +48,7 @@ const tracker = await fakeTracker(state);
    the record goes under the one configuration home the children are handed. */
 const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
 projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME,
-  JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8")));
+  OWN);
 test.after(() => tracker.close());
 
 const asked = async (...argv) => {

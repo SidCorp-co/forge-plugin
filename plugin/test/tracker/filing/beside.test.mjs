@@ -6,11 +6,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { fakeTracker, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
 import { RETIRED } from "../../../src/checks/retired-names.mjs";
+import { OWN } from "../../fixtures/own-project.mjs";
 
 const home = tempHome("neighbours");
 process.env.XDG_CONFIG_HOME = home.path;
@@ -26,7 +27,7 @@ const tracker = await fakeTracker(state);
    the record goes under the one configuration home the children are handed. */
 const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
 projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME,
-  JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8")));
+  OWN);
 test.after(() => tracker.close());
 
 mkdirSync(join(home.path, "forge"), { recursive: true });

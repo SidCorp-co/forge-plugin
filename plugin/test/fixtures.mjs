@@ -1,11 +1,12 @@
 /* Unwrapping the answer stays each suite's: `deny()` and `block()` do not answer alike, and the git rules need a tree with work to lose. */
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 
 import { checkoutAt } from "../src/git/checkout-at.mjs";
+import { OWN as OWN_KEYS } from "./fixtures/own-keys.mjs";
 import { reachOf } from "./fixtures/answer-reach.mjs";
 import { madeIn } from "../../tools/room.mjs";
 import { PLAN_SECTIONS } from "../src/flow/machine.mjs";
@@ -99,10 +100,10 @@ export const tempRoom = (prefix) => madeIn(join(root, prefix), () => mkdtempSync
    suite run from a worktree naming its own run resolves that id, where a case written about the
    inherited one wants a tree naming none (ISS-467).
 
-   The room is a checkout of its own, and a fresh `git init` names no run. It carried a copy of this
-   repository's `.forge.json` until ISS-1403, on the reasoning that leaving the checkout then moved
-   nothing else; that stopped being true when the project's configuration stopped being a file a
-   directory could carry, and a room in no checkout resolves no project at all — so a case standing
+   The room is a checkout of its own, and a fresh `git init` names no run. It carried a committed
+   project file until ISS-1403, on the reasoning that leaving the checkout then moved nothing else;
+   that stopped being true when the project's configuration stopped being a file a directory could
+   carry, and a room in no checkout resolves no project at all — so a case standing
    in one had every project-scoped call refused for want of a slug rather than answering about the
    run. Where the case needs keys as well as a checkout, `projectRecord(at, home, keys)` writes
    them. */
@@ -177,8 +178,9 @@ const OWN = { id: "1e1c1a1e-0000-4000-8000-0000000000ff" };
 /* The project travels as an id in a path now, so a case asking which project a call went to reads
    the slug back through the one listing the fixture serves. */
 const SLUGS = new Map();
-const ownSlug = () =>
-  JSON.parse(readFileSync(join(import.meta.dirname, "..", "..", ".forge.json"), "utf8")).slug;
+/* The same declaration a case writes into a record, so the slug this fixture serves and the slug
+   that record carries cannot differ. */
+const ownSlug = () => OWN_KEYS.slug;
 /** The route pages by offset, so a fixture page is a size rather than a window: the rows come back
  *  whole and `fits` is how many of them one request serves, binding below whatever a caller asked. */
 export const pageOf = (rows, fits) => (args) => {

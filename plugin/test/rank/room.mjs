@@ -1,17 +1,15 @@
 /* What a case of the rank stands in, and the shapes it builds a backlog out of. */
-import { readFileSync } from "node:fs";
 
 import { fakeTracker, projectEntry, projectRoom, ranAsync, tempRoom } from "../fixtures.mjs";
+import { OWN } from "../fixtures/own-project.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../..", import.meta.url).pathname;
 
 /* A case about the weights stands outside this checkout: writing this checkout's own record would
    leave a run that died mid-case with a backlog ranked by a weight nobody set. The record goes under
    the configuration home the tracker fixture hands every child, which `rankRoom` sets below — so a
    room built before one exists is a case's mistake and is refused here rather than read as a project
    that declared nothing. */
-const OWN = JSON.parse(readFileSync(`${ROOT}.forge.json`, "utf8"));
 
 let HOME = null;
 

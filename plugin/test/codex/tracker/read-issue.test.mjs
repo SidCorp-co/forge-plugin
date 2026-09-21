@@ -15,8 +15,9 @@ import { SAYS, consultArgs } from "../../../src/codex/codex.mjs";
 import { reviewSet } from "../../../src/codex/codex-set.mjs";
 import { roleFor } from "../../../src/codex/codex-api.mjs";
 import { numbered } from "../../../src/codex/log/replies.mjs";
+import { OWN } from "../../fixtures/own-project.mjs";
 
-const SLUG = JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8")).slug;
+const SLUG = OWN.slug;
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const BODY = "## What happens today\n\nThe reviewer holds four tools.\n\n## Outcome\n\nIt gains one.";
 

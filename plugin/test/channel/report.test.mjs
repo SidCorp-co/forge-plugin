@@ -3,15 +3,15 @@
    which, off the project's key rather than off the run's memory of what it was allowed to do. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
 
 import { fakeTracker, projectRecord, projectRoom, ranAsync, tempRoom } from "../fixtures.mjs";
+import { OWN } from "../fixtures/own-project.mjs";
 
 /* The in-process claim below reads this checkout's own project, so the configuration home this
    process runs against carries that record rather than the machine's. */
 process.env.XDG_CONFIG_HOME = tempRoom("channel-report-");
 projectRecord(process.cwd(), process.env.XDG_CONFIG_HOME,
-  JSON.parse(readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8")));
+  OWN);
 const { onThisRepository, pluginFilingLine } = await import("../../src/tracker/filing/plugin-defect.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;

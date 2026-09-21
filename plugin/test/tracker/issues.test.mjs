@@ -6,6 +6,7 @@ import test from "node:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { projectRecord, tempRoom } from "../fixtures.mjs";
+import { OWN } from "../fixtures/own-project.mjs";
 
 /* Imported after the endpoint is written, because `resolve/config.mjs` resolves its path on load. */
 const HOME = tempRoom("issues-home-");
@@ -17,7 +18,7 @@ writeFileSync(
 process.env.XDG_CONFIG_HOME = HOME;
 /* And this checkout's own project beside the account's file, the record being this machine's. */
 projectRecord(new URL("../../../", import.meta.url).pathname, HOME,
-  JSON.parse(readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8")));
+  OWN);
 
 const row = (number) => ({
   id: `u-${number}`,

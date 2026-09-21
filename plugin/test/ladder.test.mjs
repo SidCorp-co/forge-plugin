@@ -9,6 +9,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { fakeTracker, projectRecord, ranAsync, tempHome } from "./fixtures.mjs";
+import { OWN } from "./fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("ladder").path;
 const {
@@ -78,7 +79,7 @@ const tracker = await fakeTracker(state);
    machine's record of it — written under the configuration home the tracker fixture hands them. */
 const ROOT = new URL("../..", import.meta.url).pathname;
 projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME,
-  JSON.parse(readFileSync(join(ROOT, ".forge.json"), "utf8")));
+  OWN);
 test.after(() => tracker.close());
 const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], tracker.env);
 
@@ -280,7 +281,6 @@ test("a confirmation a write posts carries the rung, and one handed in without i
     "and it earns the status all the same: every entry check reads the description, never this copy");
 });
 
-
 /* The stamp said to the run that wrote it, since a run reading its own record back learns its rung
    after the phase that would have checked it. Four forms, because the route up exists on two of
    them: `climbForm` at the top rung renders `feature -> feature`, which `climbsIn` drops, so
@@ -377,7 +377,6 @@ test("a body naming the top rung in full is reported off the field, which holds 
   assert.doesNotMatch(claimed.stdout, /Two routes up/u, "and has nowhere to climb either");
 });
 
-
 /* Every complexity claims a rung, and the report names the field and its value in the tracker's own
    word: a reader who has to translate the CLI's word back to the field they set spends a round. */
 test("each of the tracker's five complexities claims a rung, named as the field that set it", async () => {
@@ -431,7 +430,6 @@ test("a correction climbing upward outranks a complexity naming a lower rung", (
   assert.equal(rungOf({ plan: "", moved: [], complexity: "xs", whole: false }), "feature",
     "and a cut page is a feature whatever the field says: it cannot show the correction it hid");
 });
-
 
 /* A complexity counts where it is spelt as a literal in code — a quoted string or a bare object key, with
    comments stripped first and a backtick span never counting — `s`, `m` and `l` being single letters

@@ -3,7 +3,7 @@
    printed as a rate that fell, an outcome counted over one window's weeks and another's day. */
 import assert from "node:assert/strict";
 import test, { after } from "node:test";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { claimedIn, pairedOneToOne, parkWritersIn, rulingsIn } from "../../src/stats/joined.mjs";
@@ -13,6 +13,7 @@ import {
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { runsUnder } from "../../src/stats/runs.mjs";
 import { fakeTracker, projectRecord, ranAsync, tempRoom } from "../fixtures.mjs";
+import { OWN } from "../fixtures/own-project.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const PROJECT = "/fixture/outcomes";
@@ -390,7 +391,7 @@ after(() => tracker.close());
    off that record and out of no environment variable, so a case that left it would ask the fake
    tracker for a project nothing named. It is this checkout's own slug because that is the project
    the fixture serves. */
-const SLUG = JSON.parse(readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8")).slug;
+const SLUG = OWN.slug;
 projectRecord(new URL("../../..", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME, { slug: SLUG });
 
 const runText = (n, key) => {

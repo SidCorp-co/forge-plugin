@@ -263,7 +263,7 @@ text the session it is in is holding.
 
 ### UC-01-5 — The project's keys, and the machine's own
 
-Rev: 4 · Actors: developer, agent · Enforces: BR-07, BR-08
+Rev: 5 · Actors: developer, agent · Enforces: BR-07, BR-08
 
 A project decides how this product behaves inside its checkout — what a run may report about the
 product, which version of the method it runs, how its changes land — and it decides in its own
@@ -284,7 +284,10 @@ to be read to find what is to be read — the tracker slug is a value inside tha
 keyed on it could not start. A checkout still carrying the committed file this replaces has that
 file read by nothing: a second layer is the precedence rule this shape exists to remove, so it is
 reported once with the one command that takes its contents over rather than quietly preferred or
-quietly ignored.
+quietly ignored. A checkout carrying none is told nothing, a row about a file that is not there being
+a reader sent to look for it. This plugin's own repository is one of those: it keeps no committed
+file, because two stores drift from the first key set on a box and the tree that ships this shape is
+the worst place to keep an example of the one it replaces.
 
 - **AC-01-5-1** · Rev: 2 · Proof: plugin/test/tools/doctor.test.mjs "every key the project set is printed with this machine's record of it as its source"
   WHEN the resolution report is printed THEN the CLI SHALL list each project key with its value and
@@ -427,6 +430,21 @@ quietly ignored.
   WHERE more than one reading offers the way to set the project slug the CLI SHALL compose each of
   them from the single reading of what would work here, a command spelled a second time being two
   strings that drift apart and one reader sent to a call that refuses.
+- **AC-01-5-37** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a checkout carrying no committed file is told nothing about one"
+  WHERE a checkout carries no committed project file the CLI SHALL report nothing about one, a row
+  naming a file that is not there being a reader sent to look for it.
+- **AC-01-5-38** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "no project key is reported against a file inside the checkout"
+  WHEN the resolution report names where a project key was read THEN the CLI SHALL name this
+  machine's record of the project or the plugin's own default, and SHALL name no file inside the
+  checkout.
+- **AC-01-5-39** · Rev: 1 · Proof: plugin/test/checks/suite/own-project-keys.test.mjs "this repository carries no committed project file, its keys being this machine's record"
+  WHERE this plugin's own repository is the checkout the product SHALL keep that project's keys in
+  this machine's record alone and SHALL carry no committed project file, a tracked second store
+  stating a configuration it answers for none of.
+- **AC-01-5-40** · Rev: 1 · Proof: plugin/test/checks/suite/own-project-keys.test.mjs "no case reads project keys out of a file at this repository's root"
+  WHERE a case of this plugin's own suite needs the project keys of a room standing in for this
+  checkout it SHALL take them from one declaration the suite owns, a case reading them off a file at
+  the repository's root being the same two-store drift one level down.
 
 ## The way back
 

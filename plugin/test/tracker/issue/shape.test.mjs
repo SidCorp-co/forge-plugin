@@ -3,12 +3,11 @@
    as a fix, one is what it lets through, and one is a duplicate of an issue already open. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
 
 import { fakeTracker, projectRecord, ranAsync, shortPage, tempHome } from "../../fixtures.mjs";
 import { RETIRED } from "../../../src/checks/retired-names.mjs";
+import { OWN } from "../../fixtures/own-project.mjs";
 
-const OWN = JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
 const ROOT = new URL("../../../../", import.meta.url).pathname;
 
 const home = tempHome("issue-shape");
@@ -154,8 +153,6 @@ test("the complexity clears the fix route, and a line in the body clears nothing
   }
   assert.equal(read("huge"), true, "a value the ladder maps to no rung claims none");
 });
-
-
 
 /* The measure is the one this repository's own documents are held to, so a title restating an open
    issue is refused by the same index a restated paragraph is. ISS-56 against ISS-51, at 0.60. */

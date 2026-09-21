@@ -52,7 +52,7 @@ export const STAMPED = basename(stampRoom());
 
 /* One file per top-level entry the table claims, plus one under every path a step reads, so a
    scratch run scopes the way the real one does instead of widening on a path nothing owns. */
-export const PLACED = ["eslint.config.mjs", ".forge.json", "package-lock.json", "docs/one.md",
+export const PLACED = ["eslint.config.mjs", "package-lock.json", "docs/one.md",
   "docs/requirements/one.md", ".claude-plugin/one.json", "plugin/src/one.mjs",
   "plugin/scripts/one.mjs", "plugin/skills/one.md", "plugin/vi-natural/one.mjs",
   "plugin/hooks/vendor/one.mjs", "tools/check-vi-text.mjs", "tools/sync-skills.mjs",

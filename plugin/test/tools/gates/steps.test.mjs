@@ -177,7 +177,7 @@ test("a new top-level directory belongs to no step", () => {
 test("each path a script step reads puts that step in the run", () => {
   const steps = STEPS.map((step) => ({ ...step }));
   for (const [path, label] of [["plugin/src/suggest.mjs", "check:skill-boundaries"],
-    ["plugin/src/prose.mjs", "check:skill-figures"], [".forge.json", "check:spec"],
+    ["plugin/src/prose.mjs", "check:skill-figures"], [".gitignore", "check:spec"],
     ["plugin/src/markdown.mjs", "check:vi-goldens"]]) {
     const reached = planFor(steps, [path]).steps.filter((step) => step.run).map((step) => step.label);
     assert.ok(reached.includes(label), `${path} reaches ${reached.join(", ")} and not ${label}`);

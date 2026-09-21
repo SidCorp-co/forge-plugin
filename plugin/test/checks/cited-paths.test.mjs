@@ -25,7 +25,7 @@ const list = (...args) => lines("ls-files", "--cached", "--others", "--exclude-s
 const TREE = list();
 /* The one thing the population cannot say: it already means untracked and unignored. */
 const INDEXED = new Set(lines("ls-files", "--cached"));
-const DESCRIBES_THIS_TREE = [".claude-plugin", ".forge.json", ".gitignore", "CLAUDE.md", "LICENSE",
+const DESCRIBES_THIS_TREE = [".claude-plugin", ".gitignore", "CLAUDE.md", "LICENSE",
   "README.md", "docs", "eslint.config.mjs", "package.json", "packages", "plugin/.claude-plugin",
   "plugin/guides", "plugin/scripts", "plugin/src", "plugin/vi-natural", "tools"];
 const ANOTHER_TREE = {

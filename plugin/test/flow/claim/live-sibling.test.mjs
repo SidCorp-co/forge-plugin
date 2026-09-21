@@ -14,6 +14,7 @@ import { escaped, fakeTracker, projectRecord, projectRoom, ranAsync, tempHome, t
   from "../../fixtures.mjs";
 import { idsHere } from "../../../src/flow/lease.mjs";
 import { placeOf, workUnder } from "../../../src/flow/lease/holder.mjs";
+import { OWN } from "../../fixtures/own-project.mjs";
 
 const HOME = tempHome("live-sibling").path;
 process.env.XDG_CONFIG_HOME = HOME;
@@ -24,8 +25,6 @@ const OURS = "iss-1872-a4e81e39";
 const ELSEWHERE = "iss-1699-3727cd01";
 /* One token on a worker's argument vector, so a declaration reaches this suite's own work alone. */
 const MARK = "iss-1872-work-witness";
-
-const OWN = JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
 
 /* A tree is its checkout and the id beside it, which is the whole of what the reading resolves a
    tree from. Its keys are this machine's record of the project that checkout belongs to, so every
@@ -440,8 +439,7 @@ test("declared work this call descends from is its own, and the same command bes
    is for: a shell that only mentioned a ship refused a claim, and a node option before the script
    left a real release undeclared. A path holding a space is not covered and is not meant to be. */
 test("what this checkout declares reaches its releases, its options and its wrappers, and nothing that merely names one", () => {
-  const declared = JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
-  const work = new RegExp(declared.lease.workingRe, "u");
+  const work = new RegExp(OWN.lease.workingRe, "u");
   const snapshot = "/home/one/.claude/shell-snapshots/snap.sh";
   for (const [line, counts] of [
     ["node tools/run.mjs ship --from 3 --note x", true],

@@ -87,7 +87,14 @@ name share an entry; that is the accepted cost of every worktree of one sharing 
 `forge doctor --set <key>=<value>` writes it and creates it where there is none, `forge doctor`
 prints every key with the file it was read from, and a checkout still carrying a committed
 `.forge.json` is told so once with `forge doctor --adopt`, which takes its contents over. Nothing
-reads that file: a fallback layer is the precedence rule this shape exists to remove. The keys:
+reads that file: a fallback layer is the precedence rule this shape exists to remove.
+
+**This repository carries none**, so a box that has never configured it starts from nothing rather
+than from an adoption: `forge doctor --set slug=forge-plugin` creates the record, and `forge doctor
+undecided` then lists what is still unset. Which of the keys a project sets is its own decision and
+never one a clone inherits — which is the point, since a key that travelled in the tree could not
+differ between two boxes or two worktrees and could not be set without a commit somebody reviews.
+The keys, each shown at a value some other project might hold rather than at this one's:
 
 ```json
 {

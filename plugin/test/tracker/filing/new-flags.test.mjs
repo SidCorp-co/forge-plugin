@@ -3,10 +3,11 @@
    being `../issue-shape.test.mjs`'s. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { fakeTracker, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
+import { OWN } from "../../fixtures/own-project.mjs";
 
 const home = tempHome("new-flags");
 process.env.XDG_CONFIG_HOME = home.path;
@@ -40,7 +41,7 @@ const tracker = await fakeTracker(state);
    the record goes under the one configuration home the children are handed. */
 const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
 projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME,
-  JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8")));
+  OWN);
 test.after(() => tracker.close());
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;

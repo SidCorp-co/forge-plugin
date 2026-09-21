@@ -6,6 +6,7 @@ import { mkdirSync, readFileSync, readdirSync, statSync, utimesSync } from "node
 import { dirname, join } from "node:path";
 
 import { tempRoom } from "../../../fixtures.mjs";
+import { OWN } from "../../../fixtures/own-project.mjs";
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 
@@ -131,8 +132,6 @@ test("a write against one issue does not touch the file another issue's scope is
 const { execFileSync } = await import("node:child_process");
 const { realpathSync, rmSync, writeFileSync } = await import("node:fs");
 const { fakeTracker, projectRecord, ranAsync, typedPlan } = await import("../../../fixtures.mjs");
-
-const OWN = JSON.parse(readFileSync(new URL("../../../../../.forge.json", import.meta.url), "utf8"));
 
 /* This machine's record of the project the room belongs to, under the home the child is handed:
    every call below is project-scoped and the record is no longer a file in the tree. */

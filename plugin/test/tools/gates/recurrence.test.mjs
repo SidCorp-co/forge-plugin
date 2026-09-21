@@ -4,16 +4,13 @@
    a subprocess so the settings this CLI memoises are that run's own. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { bodyFor, markerFor, titleFor } from "../../../../tools/gates/recurrence.mjs";
 import { DEFAULT_OVERLAP_THRESHOLD } from "../../../hooks/vendor/text-overlap.js";
 import { duplicateOf } from "../../../src/tracker/issue-shape.mjs";
 import { fakeTracker, projectRecord, ranAsync, shortPage } from "../../fixtures.mjs";
+import { OWN } from "../../fixtures/own-project.mjs";
 
 const ROOT = new URL("../../../..", import.meta.url).pathname;
-const OWN = JSON.parse(readFileSync(join(ROOT, ".forge.json"), "utf8"));
 const MODULE = new URL("../../../../tools/gates/recurrence.mjs", import.meta.url).href;
 
 const DRIVER = `import { fileRecurrences } from ${JSON.stringify(MODULE)};

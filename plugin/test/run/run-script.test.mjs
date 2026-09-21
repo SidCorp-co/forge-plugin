@@ -11,7 +11,8 @@ import { atRung, BARE, brokenAnswer, called, committed, emptyAnswer, GATE, git, 
 
 /* The constants are typed here rather than imported: nothing imports an entry point, and a second
    party agreeing with them is what pins them to the help. The threshold and the counted paths are no
-   constants: `review` in this checkout's own `.forge.json` decides both, and `run-lock` pins those. */
+   constants: the `review` key of this machine's record of the project decides both, and `run-lock`
+   pins those. */
 test("-h names all four steps, the resume flag and the threshold it counts against", () => {
   const run = runIn(ROOT, ["-h"]);
   assert.equal(run.status, 0, run.stderr);

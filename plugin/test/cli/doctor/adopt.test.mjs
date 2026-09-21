@@ -31,6 +31,12 @@ const checkout = (name, committed = null) => {
 
 const ask = (cwd, ...argv) => ranAsync(FORGE, ["doctor", ...argv], tracker.env, cwd);
 
+/** Written straight to the entry above, so a case needing keys does not spend an adoption on them. */
+const recorded = (entry, keys) => {
+  mkdirSync(dirname(entry), { recursive: true });
+  writeFileSync(entry, `${JSON.stringify(keys, null, 2)}\n`);
+};
+
 test("the committed file a checkout carries is adopted whole into this machine's record of it", async () => {
   const { room, entry } = checkout("whole", { slug: "adopted", runs: 3 });
   const run = await ask(room, "--adopt");
@@ -94,6 +100,28 @@ test("a committed file standing unread is said once, with the command that takes
   assert.equal(rows.length, 1, `one fact about one file, said once per call:\n${run.stdout}`);
   assert.match(rows[0], /is this checkout's own and is read by nothing/u);
   assert.ok(rows[0].includes(`\`forge doctor --adopt\` takes its contents over into ${entry}`), rows[0]);
+});
+
+/* The other side of the row above, and this repository's own shape since ISS-2055: a checkout that
+   carries no committed file is a checkout with nothing to say about one, and a row saying so anyway
+   would send its reader looking for a file that is not there. */
+test("a checkout carrying no committed file is told nothing about one", async () => {
+  const { room, entry } = checkout("none");
+  recorded(entry, { slug: "recorded", runs: 5 });
+  const run = await ask(room);
+  assert.deepEqual(run.stdout.split("\n").filter((one) => one.includes("project file")), [],
+    `nothing stands in that checkout, so nothing is reported about it:\n${run.stdout}`);
+  assert.match(run.stdout, /parallel runs\s+5 /u, "and the record still answers for the keys");
+});
+
+test("no project key is reported against a file inside the checkout", async () => {
+  const { room, entry } = checkout("sources");
+  recorded(entry, { slug: "recorded", runs: 5 });
+  const run = await ask(room);
+  const within = run.stdout.split("\n").filter((one) => one.includes("\u2190"))
+    .filter((one) => one.slice(one.indexOf("\u2190")).includes(room));
+  assert.deepEqual(within, [], "a key read out of the checkout is the second store this shape "
+    + `removed, and every source named is the record or the plugin's default:\n${run.stdout}`);
 });
 
 test("a key the committed file carries moves no value the report prints", async () => {

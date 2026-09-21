@@ -4,10 +4,11 @@
    whose cases are grammar and cost no process. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { fakeStore, fakeTracker, projectRecord, projectRoom, ranAsync, tempHome } from "./fixtures.mjs";
+import { OWN } from "./fixtures/own-project.mjs";
 
 const home = tempHome("goals");
 process.env.XDG_CONFIG_HOME = home.path;
@@ -65,7 +66,7 @@ const tracker = await fakeTracker(state);
    every call below: the calls are project-scoped and stand in this checkout, and the slug is this
    one's own because that is the project the fixture serves. */
 projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME,
-  JSON.parse(readFileSync(join(ROOT, ".forge.json"), "utf8")));
+  OWN);
 test.after(() => tracker.close());
 mkdirSync(join(home.path, "forge"), { recursive: true });
 writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: tracker.url, token: "t" }));

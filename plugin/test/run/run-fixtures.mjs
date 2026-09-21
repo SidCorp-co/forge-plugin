@@ -5,6 +5,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSyn
 import { basename, dirname, join } from "node:path";
 
 import { projectEntry, projectRecord, tempRoom } from "../fixtures.mjs";
+import { OWN } from "../fixtures/own-project.mjs";
 import { madeIn } from "../../../tools/room.mjs";
 import { derivationFiles } from "../../../tools/gates/scope.mjs";
 
@@ -15,7 +16,7 @@ process.env.XDG_CONFIG_HOME = tempRoom("run-script-home-");
 const { complexityFor } = await import("../../src/ladder.mjs");
 
 export const ROOT = new URL("../../..", import.meta.url).pathname;
-export const OWN_SLUG = JSON.parse(readFileSync(join(ROOT, ".forge.json"), "utf8")).slug;
+export const OWN_SLUG = OWN.slug;
 /* And this machine's record of THIS checkout, under the home just moved: a reader called in this
    process resolves the project of the tree this process stands in, not of the scratch checkout it
    is acting on, and the worktree path it derives is named for that slug. */
