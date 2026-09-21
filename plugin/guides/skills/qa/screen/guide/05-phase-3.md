@@ -19,9 +19,9 @@ moves the status, which is what makes either reading safe to audit later.
 
 **Where criteria are named, a judging run is dispatched for those**, one call per run through the
 role this copy ships rather than a general agent with a model typed in beside it. The message carries
-the issue, the criterion numbers the plan named, the deployment identity, the route to a rendered
-state and what this project holds to reach one, and nothing else; the role decides its own model,
-effort and tools, and its method is `forge guide qa judging`.
+the issue, the criterion numbers the plan named, the deployment identity where the record holds one,
+the route to a rendered state and what this project holds to reach one, and nothing else; the role
+decides its own model, effort and tools, and its method is `forge guide qa judging`.
 
 **The issue is that run's while it works, and this session lets it go before dispatching.** Whatever
 reading this one took is already written; holding the lease past it would refuse the judge the very

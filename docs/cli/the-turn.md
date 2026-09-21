@@ -13,8 +13,10 @@ run holding it makes: without one, that state is where a landing goes to die.
 
 `--judged` is the judge's: it takes the turn, writes its verdicts as any run does, and says the turn
 is over. What those verdicts have to carry — a judge that is not the builder, and a citation of the
-deployment identity the checkpoint holds — is the contract's at `testing` and is not
-re-judged here, because a judge this claim refused could neither hand back nor be replaced.
+deployment identity where the checkpoint holds one — is the contract's at `testing` and is not
+re-judged here, because a judge this claim refused could neither hand back nor be replaced. Whether
+a deployment was reported at all is the verification's question one rung up, so a checkpoint holding
+no identity refuses no verdict here.
 
 It is also the one hand-back that gives the lease back, and the one an issue carrying no checkpoint at
 all still takes. Both follow from what a judge is: its run ends at the verdicts, so the lease it
@@ -59,8 +61,8 @@ after-merge landing would ask a judge that has already answered to answer again.
 
 One rung is not the builder's even so. Where the project asks for a second judge, every verdict the
 judging rung reads is that judge's and a verdict carrying the builder's own id is what refuses one —
-so a shortfall there re-offers the QA turn, over the deployment identity those verdicts have to cite,
-rather than handing the builder a turn it could not discharge.
+so a shortfall there re-offers the QA turn rather than handing the builder a turn it could not
+discharge, over whatever identity the checkpoint is holding when it does.
 
 What `--recorded` does not do is read those records back. It is the reading `--judged` makes, for the
 same reason: a hand-back its own holder could be refused is a state nobody can leave. A turn handed

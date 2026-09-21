@@ -416,10 +416,11 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
   argument.
 - **AC-05-11-6** · Rev: 1 · Proof: plugin/test/flow/verdicts/judge.test.mjs "the assembled view of an issue's verdicts keeps the judge on each"
   WHEN an issue's verdicts are assembled THEN the view SHALL keep the judge's identity on each.
-- **AC-05-11-2** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-05-11-2** · Rev: 2 · Proof: plugin/test/flow/verdicts/independent.test.mjs "an ordinary landing carries no deployment identity, and its judge's verdicts earn the rung"
   WHERE the project's record asks for an independent judgement, the CLI SHALL refuse `testing` while
   any standing verdict carries the builder's identity or none, and SHALL earn it once every standing
-  verdict carries another judge and cites the deployment the checkpoint recorded.
+  verdict carries another judge, because whether a deployment was reported is the rung above's
+  question and a judging rung asking it demanded of one actor what another answers for.
 - **AC-05-11-3** · Rev: 1 · Proof: none yet — ISS-673
   WHERE the project's record does not ask for it, the builder's verdicts SHALL earn `testing` as
   they did before.
@@ -469,6 +470,26 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
   only where the entry check to `testing` would let that verdict stand, because two readings of one
   judgement that disagree make the landing spend a promotion on a verdict the transition will then
   refuse.
+
+- **AC-05-11-16** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "an identity the checkpoint does hold is still cited, and a verdict citing some other head is refused"
+  WHERE the landing checkpoint names a deployment identity, the CLI SHALL refuse `testing` while any
+  standing verdict's evidence cites nothing at that identity, because a checkpoint naming one was
+  written off a reading of the deployment and a verdict answering to some other head judged
+  something else.
+- **AC-05-11-17** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "the builder's own verdict earns nothing on a checkpoint that names no deployment identity"
+  IF a standing verdict carries the builder's identity, was written under an inherited identity or
+  carries none WHILE the landing checkpoint names no deployment identity THEN the CLI SHALL refuse
+  `testing`, because what the judging rung reads is who judged and no part of that reads a
+  deployment.
+- **AC-05-11-18** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "a judge refused on a checkpoint holding no identity is handed the verdict write"
+  IF a standing verdict is refused WHILE a landing checkpoint stands on the issue THEN the CLI SHALL
+  name the verdict write as the route past that refusal, because a route that reports where the
+  landing is reprints the refusal the reader is already holding.
+- **AC-05-11-19** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "the rung above still owes the verification where the project declares no automatic deploy"
+  WHERE the project's record asks for an independent judgement, `awaiting_release` SHALL be refused
+  until a record names where the change runs, at which commit and with what evidence, whatever the
+  project declares about deploying on its own, because that is the rung the deployment reading
+  belongs to and no configuration drops it.
 
 ### UC-05-12 — A judging run's blocking finding reopens the issue
 

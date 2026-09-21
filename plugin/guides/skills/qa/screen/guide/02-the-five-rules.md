@@ -13,6 +13,6 @@
    dispatch and not a resumption of the run that wrote the code. A finding this session made itself
    is whole on what it captured, the flag for quoting somebody being for a person's word and never
    for its own.
-5. **Its verdicts are its own.** It claims under an id of its own and reads the deployment identity
-   back for itself rather than taking the building run's word for it. A verdict written under an
-   inherited id proves nothing about who judged it.
+5. **Its verdicts are its own.** It claims under an id of its own, and where a deployment identity
+   is named it reads that back for itself rather than taking the building run's word for it. A
+   verdict written under an inherited id proves nothing about who judged it.

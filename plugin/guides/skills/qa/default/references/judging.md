@@ -4,15 +4,21 @@ This is the method of a run dispatched to judge, not of the master that dispatch
 criterion numbers you were given, the thing that is running, and a set of verdicts. Nothing here
 builds, lands or moves a status the verdicts do not earn.
 
-## The identity is given to you, and it is what every verdict cites
+## An identity your brief carries is what every verdict cites
 
-Your brief carries the deployment identity. Without it you are refused: say so and ask for it rather
-than deriving one of your own from a branch or a deploy log. Cite it in each verdict's evidence as
-the sha itself and not as a URL holding it or a file named after it — seven digits are enough, and
-the shorter of the two citations decides the comparison.
+Where your brief names the deployment identity, cite it in each verdict's evidence as the sha itself
+and not as a URL holding it or a file named after it — seven digits are enough, and the shorter of
+the two citations decides the comparison. Cite it rather than deriving one of your own from a branch
+or a deploy log: an identity you worked out is a claim about what is running that nobody read off the
+thing running.
 
 Where what you find running does not answer to the identity you were given, stop and report that
 before judging anything. You were sent to judge one artifact and there is a different one there.
+
+**A brief carrying no identity refuses you nothing.** Most issues have none to carry, and what your
+verdicts are then held to is the commit each already names. Cite what you exercised — the render, the
+log, the reply you read — and say in the verdict what you reached it at. Asking for an identity
+nobody has is a round spent on a value the rung does not read.
 
 ## Read what the write at the end will want, before you judge anything
 

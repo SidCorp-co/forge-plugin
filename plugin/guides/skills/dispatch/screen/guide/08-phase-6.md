@@ -19,9 +19,10 @@ parked with its conflict list and lands nothing; the one after it is somebody el
 fold carries on rather than stopping at the first refusal.
 
 **Where the project asks for an independent judge**, the landing stops for one and the fold
-dispatches it: a role of its own, given the issue, its criteria and Outcome, and the deployment
-identity the checkpoint names — never the run that built the change, whose own verdicts earn nothing
-there. Its verdicts and its hand-back are what let the landing finish.
+dispatches it: a role of its own, given the issue, its criteria and Outcome, and whatever
+deployment identity the checkpoint names — never the run that built the change, whose own verdicts
+earn nothing there. A checkpoint naming none refuses that judge nothing; it is the route the landing
+took that decides whether there is one to hand over. Its verdicts and its hand-back are what let the landing finish.
 
 **A status the landing could not reach is this phase's.** The landing takes each issue as far as its
 record earns and the project's release allows, which is to `closed` where that release owes a person

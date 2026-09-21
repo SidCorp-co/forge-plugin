@@ -62,9 +62,11 @@ time (C-01). How a gate's answer becomes that protocol is `docs/HOOKS.md`'s.
   running.
 - **AC-19-3-3** · Rev: 1 · Proof: plugin/test/tools/roles.test.mjs "the qa role ships beside the other four, and doctor names it where the loaded copy predates it"
   WHEN the roles this copy ships are reported THEN the judging role SHALL resolve beside the others.
-- **AC-19-3-4** · Rev: 1 · Proof: plugin/test/tools/roles.test.mjs "the judging method names the deployment identity as an input it is refused without"
-  WHEN the judging role's text is read THEN it SHALL name the deployment identity as an input the
-  role is refused without.
+- **AC-19-3-4** · Rev: 2 · Proof: plugin/test/tools/roles.test.mjs "the judging method names the deployment identity as a citation and no refusal for its absence"
+  WHEN the judging role's text is read THEN it SHALL name the deployment identity as what a verdict
+  cites where the brief carries one, and SHALL say what a verdict is held to where the brief carries
+  none, because a method naming a refusal no checker makes sends the role to set down work the
+  product admits.
 - **AC-19-3-5** · Rev: 1 · Proof: plugin/test/tools/roles.test.mjs "the ask for an artifact carries the route that produces it"
   WHEN the judging role's text asks for an artifact THEN it SHALL name the route that takes one from
   the equipment the role is granted, and SHALL name what stands where no route reaches the state a

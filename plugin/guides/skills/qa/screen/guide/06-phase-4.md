@@ -31,10 +31,11 @@ captured while it was looking.
 That is a fresh dispatch on a change that needs work — not this session resuming somebody else's
 run, and not this session fixing what it found.
 
-**An issue this session cannot judge is set down once, with what it was missing.** A change with no
-deployment identity to judge against is the case that names the rule: it is parked with the reason,
-not carried into the next pass and not judged anyway. Set down means set down — an issue re-offered on
-every read is a queue that never drains and a master that never ends.
+**An issue this session cannot judge is set down once, with what it was missing.** A change with
+nothing running to exercise is the case that names the rule: it is parked with the reason, not
+carried into the next pass and not judged anyway. Set down means set down — an issue re-offered on
+every read is a queue that never drains and a master that never ends. An issue whose record merely
+names no deployment identity is not that case: it is judged at the commit its verdicts carry.
 
 **A criterion nobody could reach is a shortfall and never a pass.** What was owed was a credential, a
 capture route or a person, and saying which is what lets whoever reads it equip the next run rather
