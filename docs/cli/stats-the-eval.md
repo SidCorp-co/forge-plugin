@@ -57,7 +57,7 @@ is gone. Understating it is the safe direction: the reading claims only depth so
 read, and never invents a loss.
 
 `--json` prints the comparison as one object — `size`, `total`, `now`, `before`, `comparability`,
-`moved`, `shifts` —
+`moved`, `classes` ([a class's seconds a call](stats-the-latency.md)), `shifts` —
 each window its `runs`, `profile`, `groups` by copy and `outcomes`. Nothing in it can be derived from
 another field: the bounds are the profile's and the shortfall is the size less the runs, so a reader
 holds one spelling of each figure and the screen computes the rest (ISS-492). `comparability` is the

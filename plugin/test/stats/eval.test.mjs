@@ -210,7 +210,7 @@ test("--json is the comparison alone, --size sets both windows, and a bad size i
   assert.equal(held.copies, 0);
   assert.deepEqual(Object.keys(held),
     ["root", "sources", "project", "skipped", "unreadable", "copies", "requests", "size", "total", "now",
-      "before", "comparability", "moved", "shifts", "angles", "notMeasured"]);
+      "before", "comparability", "moved", "classes", "shifts", "angles", "notMeasured"]);
   assert.deepEqual(held.comparability,
     { comparable: true, short: [], reach: { from: BASE, earlier: null } },
     "two full windows: the judgement is on the record either way, and the reach is the corpus's own floor, not the window's");
