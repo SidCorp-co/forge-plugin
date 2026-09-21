@@ -169,3 +169,13 @@ test("the release ask is started above the report's local checks and read below 
   assert.ok(started < local, "the ask is started above the work it overlaps");
   assert.ok(local < read, "and read below it: above these checks puts the whole round trip back");
 });
+
+/* The help said a worktree may differ from its neighbour, which is the opposite of what the record
+   being the repository's buys: a reader who set a key in one worktree expecting the other to keep
+   its own would have changed both (ISS-1403, AC-01-5-20). */
+test("the project subject says machines differ and worktrees of one checkout do not", () => {
+  const said = SUBJECTS.find((one) => one.slug === "project").text;
+  assert.match(said, /every linked worktree of one checkout reads and writes the same\s+one/u, said);
+  assert.doesNotMatch(said, /a worktree from its neighbour/u,
+    "the record is the repository's, so there is no neighbour for one to differ from");
+});

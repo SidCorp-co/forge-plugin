@@ -63,7 +63,9 @@ const PROJECT = [
   "stores are two calls, and the refusal says so.",
   "",
   "The project's own keys are kept per project under this machine's configuration directory rather",
-  "than in the checkout, so a box may differ from the repository and a worktree from its neighbour.",
+  "than in the checkout, so one box may differ from another and setting a key is not a commit. The",
+  "record is the repository's, so every linked worktree of one checkout reads and writes the same",
+  "one.",
   "A key this machine owns outright is refused by `--set` with the route that writes it.",
 ].join("\n");
 
