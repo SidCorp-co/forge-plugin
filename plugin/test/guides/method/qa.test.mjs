@@ -112,8 +112,13 @@ test("the judging reference is the dispatched run's method and not the builder's
     const held = judging(flow);
     assert.match(held, /the method of a run dispatched to judge, not of the master that dispatched it/u,
       `criterion 15: ${flow} serves no method of its own to the role it dispatches`);
-    assert.match(held, /Your brief carries the deployment identity/u,
+    assert.match(held, /rather than deriving one of your own/u,
       `criterion 15: ${flow} lets a judge derive an identity of its own`);
+    /* The rule the sentence above states is the ban, and the input was named as one the role was
+       refused without: a method saying so sends a judge to park an issue the rung now admits, most
+       issues carrying no identity at all (ISS-1788). */
+    assert.match(held, /A brief carrying no identity refuses you nothing/u,
+      `${flow} still reads an absent identity as a reason not to judge`);
   }
   assert.match(judging(SCREEN), /Write the charter before any observation is mapped to a criterion/u,
     "the flow with a screen asks for the charter");

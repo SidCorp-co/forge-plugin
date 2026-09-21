@@ -122,8 +122,12 @@ const tracked = (glob) => execFileSync("git", ["-C", ROOT, "ls-files", glob], { 
   .trim().split("\n").filter(Boolean);
 /* One sentence naming the deploying rung with a verdict and not the judging rung attributes the
    verdict to the rung that does not ask for it; naming both rungs is the boundary itself, which the
-   flow part states in one breath on purpose, so the judging rung's presence tells them apart. */
-const bothInOneSentence = (text) => String(text).split(/(?<=[.:|])\s|\n\n/u)
+   flow part states in one breath on purpose, so the judging rung's presence tells them apart.
+   A requirement clause's field line goes first: it carries a path, no sentence break closes it, and
+   a proof case under `test/flow/verdicts/` therefore lends the word `verdicts` to whatever claim
+   follows it. That line is machinery by R-18's own division and makes no claim to read. */
+const FIELD_LINE = /(?<=^|\n)[^\n]*·[^\n]*(?:Rev:|Proof:)[^\n]*(?=\n|$)/gu;
+const bothInOneSentence = (text) => String(text).replace(FIELD_LINE, "").split(/(?<=[.:|])\s|\n\n/u)
   .filter((one) => one.includes("awaiting_release") && /\bverdicts?\b/u.test(one)
     && !one.includes(JUDGED_AT));
 const sweep = (glob) => tracked(glob)
