@@ -1,8 +1,9 @@
 # the turn — whose each landing state is, and how the run holding one hands it back
 
 One state of the landing checkpoint at a time names a turn, and this is how the run holding one gives
-it back. What the checkpoint holds, which routes the table walks and what a candidate
-is a fact about: [`the-checkpoint.md`](the-checkpoint.md). Why the lease it sits beside promises what
+it back. What the checkpoint holds and which routes the table walks:
+[`the-checkpoint.md`](the-checkpoint.md). What a candidate is a fact about:
+[`the-candidate.md`](the-candidate.md). Why the lease it sits beside promises what
 it does: [`claim.md`](claim.md).
 
 ## The turn is handed back, never abandoned
