@@ -431,13 +431,18 @@ export const createdWith = (path, text) => {
         + "one, so this call wrote nothing rather than over it. Run it again")
       : error;
   }
+  /* Both steps past the handle, and the close among them: a filesystem that reports a write's
+     failure only when the handle is closed would otherwise throw past the sweep, leaving the
+     record standing behind a call that said nothing was written. The first failure is the one
+     reported, the second being whatever the first left behind. */
   let failed = null;
-  try {
-    writeFileSync(handle, text);
-  } catch (error) {
-    failed = error;
+  for (const step of [() => writeFileSync(handle, text), () => closeSync(handle)]) {
+    try {
+      step();
+    } catch (error) {
+      failed = failed ?? error;
+    }
   }
-  closeSync(handle);
   if (failed) throw new Error(`${failed.message}.${sweptAway(path)}`);
 };
 

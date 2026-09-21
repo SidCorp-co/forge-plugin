@@ -373,10 +373,11 @@ quietly ignored.
   about one file rather than one line per key it declares, and the file it names SHALL be one this
   checkout carries — sought no higher than the checkout's own root — a repository nested inside
   another sharing no configuration with the one it sits in.
-- **AC-01-5-24** · Rev: 2 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a record naming no project is answered with the key to set, in the report and in the stop alike"
-  WHEN that row is printed THEN it SHALL name the one command that would work where the call stands
-  — the adoption where this machine holds no record, the key to set where it holds one that names no
-  project — a report naming a route that refuses when followed being a finding nobody can act on.
+- **AC-01-5-24** · Rev: 3 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a subject that needs the slug names no command at all outside a checkout"
+  WHEN a reading needs a project slug and none resolves THEN it SHALL name the one command that
+  would work where the call stands — the adoption where this machine holds no record, the key to set
+  where it holds one that names no project, and neither outside a checkout, where both refuse — a
+  report naming a route that refuses when followed being a finding nobody can act on.
 - **AC-01-5-25** · Rev: 2 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a committed file that is no table of keys is refused before anything is written"
   WHEN the developer adopts that file THEN the CLI SHALL write its contents whole into this
   machine's record of that project, and IF that file is not a JSON object of keys THEN SHALL refuse

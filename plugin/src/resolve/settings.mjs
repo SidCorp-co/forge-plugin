@@ -232,13 +232,18 @@ export const checkoutRoot = once(() => standing()?.tree ?? null);
 /* The slug is a header when there is one, and an error only for a call needing a project id. */
 export const slugIfAny = () => projectTarget().value;
 
-/** Whether `forge doctor --adopt` could run where this call stands: a committed file for it to take
- *  over, and no record of this project for it to refuse against. Read here once because three
- *  messages recommend that command, and each one deciding for itself is another route that refuses
- *  when a reader follows it. */
-export const adoptableHere = () => {
+const adoptableHere = () => {
   const path = projectFilePath();
   return Boolean(path && !existsSync(path) && committedFileHere());
+};
+
+/** The one command that would put a slug where this call stands, or null where none would: a
+ *  directory in no checkout has nowhere for a record to go, so both commands refuse there and
+ *  neither is worth naming. Read here once because every message that offers a way out offers one
+ *  of these two, and each one deciding for itself is another route that refuses when followed. */
+export const slugRouteHere = () => {
+  if (projectFilePath() === null) return null;
+  return adoptableHere() ? "`forge doctor --adopt`" : "`forge doctor --set slug=<project>`";
 };
 
 /** Which command puts a slug where this call would read one. A checkout standing on a `.forge.json`

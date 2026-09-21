@@ -372,3 +372,17 @@ test("a value read off a named directory is reported against that directory's ow
     else process.env.XDG_CONFIG_HOME = held;
   }
 });
+
+/* The third state the same sentence has to answer for: outside a checkout neither command can run,
+   because there is nowhere for a record to go. Naming the key to set there sends a reader to a
+   write that refuses, which is the finding the two states above were each fixed for in turn. */
+test("a subject that needs the slug names no command at all outside a checkout", async () => {
+  const room = tempRoom("adopt-no-route-");
+  const run = await ask(room, "tracker");
+  const stop = run.stdout.split("\n").filter((one) => one.includes("] project slug"));
+  assert.equal(stop.length, 1, run.stdout);
+  assert.match(stop[0], /this directory is in no checkout, so there is no project for it to be scoped to/u,
+    stop[0]);
+  assert.doesNotMatch(stop[0], /forge doctor --(adopt|set)/u,
+    "both would refuse here, and a stop naming one that refuses is recommending a second call");
+});

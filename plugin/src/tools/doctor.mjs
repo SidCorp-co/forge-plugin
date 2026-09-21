@@ -19,8 +19,8 @@ import { deadlineSeconds, waitSeconds } from "../wire/request.mjs";
 import { measured, offsetSaid } from "../wire/shared-clock.mjs";
 import { BUNDLED } from "./vi.mjs";
 import {
-  COMMITTED_FILE, Refusal, accountCredentials, adoptableHere, checkoutRoot, committedFileHere, fail,
-  mcpForgeIgnored, projectFilePath, projectScope, refusing, translateScope,
+  COMMITTED_FILE, Refusal, accountCredentials, checkoutRoot, committedFileHere, fail,
+  mcpForgeIgnored, projectFilePath, projectScope, refusing, slugRouteHere, translateScope,
 } from "../resolve/settings.mjs";
 import { readClaudeMd, reviewClaudeMd } from "../checks/claude-md.mjs";
 import { checkClaudeMdLocally, reportClaudeMd } from "./services/doctor/repo.mjs";
@@ -276,8 +276,10 @@ const checkEndpoint = async (full, credentials) => {
      whole of what was asked for, which would otherwise print nothing and exit green (codex F1). */
   if (!slug) {
     if (asking()) {
+      const route = slugRouteHere();
       return stopping("project slug", "no project slug resolves here, so nothing below this line "
-        + `was read — ${adoptableHere() ? "`forge doctor --adopt`" : "`forge doctor --set slug=<project>`"}`);
+        + `was read — ${route ?? "and this directory is in no checkout, so there is no project for "
+          + "it to be scoped to: run this from inside one"}`);
     }
     console.log("\nNo project slug: capability probes are project-scoped and were skipped.");
     return;
@@ -458,7 +460,7 @@ export const doctor = async (argv) => {
       if (held === null) {
         return "this directory belongs to no checkout, so there is no project of it to configure";
       }
-      return adoptableHere()
+      return slugRouteHere() === "`forge doctor --adopt`"
         ? `\`forge doctor --adopt\` takes its contents over into ${held}`
         : `${held} is this machine's record of this project and names no project slug yet, which `
           + "adoption cannot write over: `forge doctor --set slug=<project>`";
