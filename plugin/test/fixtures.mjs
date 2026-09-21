@@ -572,6 +572,15 @@ export const fakeTracker = async (state) => {
     }
     const url = new URL(request.url, "http://x");
     reach.serving(`${request.method} ${url.pathname}`);
+    /* A fixture answering inside one tick tells a caller that waits for each answer apart from one
+       that does not by nothing at all. `state.hold` holds every answer open for that many
+       milliseconds and writes down when each request opened and when it was let go, which is the
+       pair a case about calls in flight together compares. */
+    if (state.hold) {
+      const opened = Date.now();
+      await new Promise((go) => setTimeout(go, state.hold));
+      (state.holds ??= []).push({ path: url.pathname, opened, answered: Date.now() });
+    }
     if (MERGE_ROUTE.test(url.pathname) && emptyJson(request)) {
       response.writeHead(400, { "Content-Type": "application/json" });
       response.end(JSON.stringify({ code: "BAD_REQUEST", message: "Malformed JSON in request body" }));
