@@ -21,7 +21,8 @@ import { RETIRED, commandShapes } from "../../src/checks/retired-names.mjs";
 import { WHY, goalBlock } from "../../src/goals.mjs";
 import { SHAPES } from "../../src/flow/machine.mjs";
 import { BODY_FIELDS } from "../../src/flow/override.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { projectRecord, tempRoom } from "../fixtures.mjs";
+import { OWN } from "../fixtures/own-project.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../../", import.meta.url).pathname;
@@ -38,6 +39,10 @@ writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({
   chatgpt: { url: "https://chatgpt.example/mcp", key: "gpt" },
 }));
 writeFileSync(PROFILE, "ANTHROPIC_BASE_URL=https://gateway.example\nANTHROPIC_AUTH_TOKEN=tok\n");
+/* And this checkout's own project, for the same reason: the help a verb prints is narrower where a
+   project resolves than where none does, and a home holding no record of this one would measure
+   every walk below against a box with no project rather than against the table. */
+projectRecord(ROOT, HOME, OWN);
 const ASKED = new Map();
 const ask = (...argv) => {
   const key = argv.join("\0");
