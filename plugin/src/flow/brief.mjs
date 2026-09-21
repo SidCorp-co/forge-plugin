@@ -16,28 +16,41 @@ const MARK = { pass: "✓ pass", fail: "✗ fail", skipped: "· skipped", short:
 const NONE = "– none";
 const HEADLINE_CHARS = 200;
 
-/* The field of each kind a reader wants on one line. The whole record is `forge resume <ref> --report`. */
+/* The fields of each kind a reader wants on one line, in the order they are read. The whole record
+   is `forge resume <ref> --report`. A correction carries two of them because what moved and why are
+   one claim split over two fields, and a line carrying only the first sends a reader who wants the
+   reason to the thread to look for something the record already holds (ISS-2079). */
 const HEADLINE = {
-  confirmation: "is",
-  decision: "decision",
-  correction: "moved",
-  park: "why",
-  finding: "seen",
-  triage: "outcome",
+  confirmation: ["is"],
+  decision: ["decision"],
+  correction: ["moved", "why"],
+  park: ["why"],
+  finding: ["seen"],
+  triage: ["outcome"],
 };
 const LATEST = ["confirmation", "decision", "correction", "finding", "triage"];
+const JOIN = " — ";
 
-const oneLine = (value) => {
-  const line = String(value ?? "").replace(/\s+/gu, " ").trim();
-  return line.length > HEADLINE_CHARS ? `${line.slice(0, HEADLINE_CHARS)}…` : line;
+const flat = (one) => String(Array.isArray(one) ? one.join("; ") : one ?? "").replace(/\s+/gu, " ").trim();
+
+/* An equal share of the line each, and what a short field leaves goes to the fields after it: a
+   budget spent front to back lets one long field truncate away every field behind it, which is the
+   line this used to print. One field reads exactly as it always did — the share is the whole. */
+const oneLine = (parts) => {
+  let left = HEADLINE_CHARS - JOIN.length * (parts.length - 1);
+  return parts.map((one, index) => {
+    const share = Math.max(Math.floor(left / (parts.length - index)), 0);
+    left -= Math.min(one.length, share);
+    return one.length > share ? `${one.slice(0, share)}…` : one;
+  }).join(JOIN);
 };
 
 const headlineOf = (held, kind) => {
   if (!held) return null;
   const fields = held.record.fields;
-  const one = fields[HEADLINE[kind]] ?? fields.none ?? Object.values(fields)[0];
-  const said = Array.isArray(one) ? one.join("; ") : one;
-  return { at: atMinute(held.at), said: oneLine(said) };
+  const named = (HEADLINE[kind] ?? []).map((name) => flat(fields[name])).filter((one) => one !== "");
+  const parts = named.length ? named : [flat(fields.none ?? Object.values(fields)[0])];
+  return { at: atMinute(held.at), said: oneLine(parts) };
 };
 
 /* On the verdict's own row and not only on the checkpoint's line, which `rebuiltSaid` is for: a

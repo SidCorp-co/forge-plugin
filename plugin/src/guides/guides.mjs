@@ -204,6 +204,14 @@ export const GUIDE_TABLE = [
     why: "an attachment for a log, the knowledge store for the project's prose and a transition that"
       + " writes rather than narrates are the tracker's own and stand; what it rules about a run's own"
       + " records is written against a store this flow does not write to",
+    /* The tracker hangs one warning on every write that carries a record, and that one sentence
+       asserts both rules below, so it is held here and not on a rule: no rule of it owns the
+       sentence alone. Held whole, and the tracker's own words rather than a reading of them,
+       because what is asked of a line is that this table account for all of it. */
+    warns: "a `forge-record` fence is not comment content — no store here holds a `<kind>` record"
+      + " whole — put the assertions it makes about the issue at"
+      + " `POST /api/issues/:id/attributes` under a registered key, and keep the sentence in the"
+      + " comment. The store each kind belongs in: guide `records-and-comments`",
     replaced: [
       {
         says: "a `forge-record` fence in a comment body means a record was serialised instead of stored",
@@ -264,6 +272,31 @@ export const REVIEWED = [
 
 const rowFor = (table, slug) => table.find((row) => row.slug === slug) ?? null;
 
+/* The one part of that sentence the tracker varies: the record kind it could not store. It quotes
+   the kind, so what fills the slot carries no quote of its own, which is what keeps a second
+   statement from arriving inside the one place this shape leaves open. */
+const SLOT = "<kind>";
+
+const shaped = (text, warns) => {
+  const [head, tail, ...more] = warns.split(SLOT);
+  if (more.length || tail === undefined) return false;
+  if (!text.startsWith(head) || !text.endsWith(tail)) return false;
+  const filled = text.slice(head.length, text.length - tail.length);
+  return filled.length > 0 && !filled.includes("`");
+};
+
+/** Which page of this table answers one line of a warning the tracker hung on a write, and `null`
+ *  where none does. The line has to *be* that page's warning and not merely carry it: what this
+ *  table cannot account for is what a caller may have to act on, and the tracker can join such a
+ *  thing to a sentence anywhere — before it, after it, or between its clauses — with no line of its
+ *  own. So the shape is held whole, one slot excepted, and a line the tracker rewords or lengthens
+ *  matches nothing here and is said. That is the direction this has to fail in: the sentence
+ *  withheld is the one nobody can go and read. */
+export const warningAnswered = (said, table = GUIDE_TABLE) => {
+  const text = String(said ?? "").trim();
+  return table.find((one) => one.warns && shaped(text, one.warns))?.slug ?? null;
+};
+
 export const dispositionOf = (slug, table = GUIDE_TABLE) => rowFor(table, slug);
 
 /** `superseded` exactly, which is not what the verb withholds — see the note above the table. */
@@ -292,6 +325,12 @@ const routes = (row) => {
   return parts.length ? parts.join(", and ") : null;
 };
 
+/* Said under the rules it asserts and nowhere else: the transport withholds that warning on every
+   write, so the one page that says this plugin replaced those rules is the one page that owes the
+   reader what it therefore stops saying. */
+const WITHHELD_WARNING = "  The tracker attaches the rules above to a write that carries a record,"
+  + " as one warning. This copy withholds it there rather than answering it again on every record.";
+
 /** The first line `--tracker` prints, and the rules under it, so a reader comparing the two can. */
 export const trackerHeader = (row) => {
   if (!row) return ["This is the tracker's own guide, and this plugin holds no disposition about it."];
@@ -302,7 +341,11 @@ export const trackerHeader = (row) => {
       ? `This is the tracker's own guide. The contract replaces ${row.replaced.length} of its rules`
         + `${where ? `, and instead ${where}` : ""}:`
       : `This is the tracker's own guide, and no rule of it is the contract's to replace: ${row.why}.`;
-  return [opening, ...row.replaced.map(({ says, instead }) => `  - it says ${says}\n    instead ${instead}`)];
+  return [
+    opening,
+    ...row.replaced.map(({ says, instead }) => `  - it says ${says}\n    instead ${instead}`),
+    ...(row.warns ? [WITHHELD_WARNING] : []),
+  ];
 };
 
 /* Pure over its inputs, so a case can hand it a table that fails each assertion: a closed-over

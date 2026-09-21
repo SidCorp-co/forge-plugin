@@ -219,26 +219,45 @@ const warningsIn = (body) => {
 };
 
 /* Marked on every line of it, blank lines apart: an unmarked sentence stating a rule and a route
-   out is a refusal to whoever reads it, whichever line of the account it sits on. */
+   out is a refusal to whoever reads it, whichever line of the account it sits on. That makes the
+   line the unit a statement is judged by, which is why one is also what gets withheld below: an
+   account carrying an answered rule beside something to act on must lose the first and keep the
+   second. What it is not the unit of is the count, an account wrapped over two lines being one
+   thing the tracker said. */
 const MARK = "warning from the tracker";
 
-const marked = (said) =>
-  said.split(/\r?\n/u).filter((line) => line.trim() !== "").map((line) => `  ${MARK} — ${line}`);
+const linesIn = (said) => said.split(/\r?\n/u).filter((line) => line.trim() !== "");
+
+const marked = (line) => `  ${MARK} — ${line}`;
 
 /* Said under a line saying the write stood, and never as `${key}: …`, which is the shape every
    refusal this module writes opens in: the one action a reader takes on a refusal is to send the
    write again, and a comment sent twice is a duplicate the tracker has no delete for (ISS-2070).
+   A warning asserting a rule this copy has already read and replaced is not said at all, by the same
+   judgement `forge guide` makes about the page that warning quotes: a sentence that holds on every
+   correct use of a verb teaches a reader to skip the line the next one arrives on, and each call
+   here is its own process, so there is no once for it to be said. What withholds it, and where the
+   reader meets it instead, is `warningAnswered` in plugin/src/guides/guides.mjs. It is withheld a
+   line at a time and never a whole account at a time, because an account joining that rule to
+   something the caller has to act on would take the second down with the first.
    What that line may claim is the row and no more — the tracker attaches an account like this to a
    call it declined a part of as well, so a reader told the whole call went through stops before the
    part that says otherwise — and what the line tells them not to repeat is the row and never the
    call, a declined half being exactly the thing that may have to be asked for again. */
-const sayDeclined = (key, bodies) => {
-  const said = bodies.flatMap((body) => unfencedIn(warningsIn(body)));
+const sayDeclined = async (key, bodies) => {
+  const carried = bodies.flatMap((body) => unfencedIn(warningsIn(body)));
+  if (!carried.length) return;
+  /* Loaded here and not at the head of the file: the table is a leaf of the guides tree, and a
+     transport every verb imports pays for it on the calls that carry a warning rather than on all
+     of them. */
+  const { warningAnswered } = await import("../guides/guides.mjs");
+  const said = carried.map((one) => linesIn(one).filter((line) => !warningAnswered(line)))
+    .filter((lines) => lines.length);
   if (!said.length) return;
   console.error(`The write was not refused. ${key} stored its row, and the tracker attached `
     + `${said.length === 1 ? "one warning" : `${said.length} warnings`} to the call; do not send `
     + "that row again, and read below for whatever part of the call it did not do.");
-  for (const line of said.flatMap(marked)) console.error(line);
+  for (const line of said.flat().map(marked)) console.error(line);
 };
 
 /** The bodies a read row's own routes answered, before any projection reads them. The one caller is
@@ -265,7 +284,7 @@ export const callTool = async (name, args, soft = false, held = {}) => {
   /* The tracker's words with nothing in front: a caller reading the first line frames it itself. */
   const bad = parts.find(([, held]) => held.refused);
   if (bad) return stop(bad[1].refused);
-  if (row.writes) sayDeclined(key, parts.map(([, held]) => held.body));
+  if (row.writes) await sayDeclined(key, parts.map(([, held]) => held.body));
   return unfencedIn(answersOf(row)(Object.fromEntries(parts.map(([part, held]) => [part, held.body])), args));
 };
 

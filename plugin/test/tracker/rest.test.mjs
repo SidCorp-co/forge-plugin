@@ -560,6 +560,66 @@ test("the reassurance is confined to the row the write stored", async () => {
     `the tracker hangs this on a call it declined a part of too, so neither the whole call nor the whole of what to do next is claimed: ${said[0]}`);
 });
 
+/* The position was taken in the guide table and the transport was never told, so every override
+   this CLI performs repeated a rule this copy had already answered (ISS-2079). */
+const ANSWERED = "a `forge-record` fence is not comment content — no store here holds a `correction` "
+  + "record whole — put the assertions it makes about the issue at "
+  + "`POST /api/issues/:id/attributes` under a registered key, and keep the sentence in the comment. "
+  + "The store each kind belongs in: guide `records-and-comments`";
+
+test("a warning asserting a rule this copy has replaced is not said, and leaves no block behind it", async () => {
+  const { answer, said } = await declining([ANSWERED]);
+  assert.deepEqual(said, [], `nothing of it reaches the terminal, opener included: ${said.join(" | ")}`);
+  assert.equal(answer.documentId, "c-9", "and the row the write stored is projected as it always was");
+});
+
+test("a warning off a page this copy holds no disposition about is said whole", async () => {
+  const { said } = await declining([ANSWERED.replace("records-and-comments", "google-sheets")]);
+  assert.equal(said.length, 2, `the opener and the sentence: ${said.join(" | ")}`);
+  assert.ok(said[1].includes("google-sheets"), "in the tracker's own words");
+});
+
+test("a warning naming a dispositioned page but none of the rules it replaced is said whole", async () => {
+  const { said } = await declining(["an attachment for a log belongs at the attachments route. "
+    + "The store each kind belongs in: guide `records-and-comments`"]);
+  assert.equal(said.length, 2, `a page replaced in part leaves rules of it standing: ${said.join(" | ")}`);
+});
+
+test("a warning carrying the replaced rule and naming no guide is said whole", async () => {
+  const { said } = await declining([ANSWERED.replace(". The store each kind belongs in: guide `records-and-comments`", "")]);
+  assert.equal(said.length, 2, `a marker alone places no rule, so nothing answers it: ${said.join(" | ")}`);
+});
+
+test("an account joining an answered rule to something to act on loses only the answered line", async () => {
+  const { said } = await declining([`${ANSWERED}\n${DECLINED}`]);
+  assert.deepEqual(said.slice(1), [`  warning from the tracker — ${DECLINED}`],
+    `the line the caller can act on survives the one it was joined to: ${said.join(" | ")}`);
+  assert.match(said[0], /one warning/u, "and what the tracker said once is counted once");
+});
+
+test("a line carrying more than the answered rule is said whole, the rule in it included", async () => {
+  const after = await declining([`${ANSWERED} ${DECLINED}`]);
+  assert.deepEqual(after.said.slice(1), [`  warning from the tracker — ${ANSWERED} ${DECLINED}`],
+    `nothing of a line this table cannot account for is withheld: ${after.said.join(" | ")}`);
+  const before = await declining([`${DECLINED}. ${ANSWERED}`]);
+  assert.deepEqual(before.said.slice(1), [`  warning from the tracker — ${DECLINED}. ${ANSWERED}`],
+    `and the side the second statement arrives on decides nothing: ${before.said.join(" | ")}`);
+  const within = ANSWERED.replace("record whole —", `record whole. ${DECLINED} —`);
+  const inside = await declining([within]);
+  assert.deepEqual(inside.said.slice(1), [`  warning from the tracker — ${within}`],
+    `nor whether it arrived between the sentence's own clauses: ${inside.said.join(" | ")}`);
+  const both = await declining([`${ANSWERED}. ${ANSWERED}`]);
+  assert.deepEqual(both.said.slice(1), [`  warning from the tracker — ${ANSWERED}. ${ANSWERED}`],
+    `and two of them in one line are two sentences, not one with a long kind in it: ${both.said.join(" | ")}`);
+});
+
+test("a warning that is answered leaves the one beside it said, and counted alone", async () => {
+  const { said } = await declining([ANSWERED, OTHER]);
+  assert.deepEqual(said.slice(1), [`  warning from the tracker — ${OTHER}`],
+    `the unanswered sentence stands: ${said.join(" | ")}`);
+  assert.match(said[0], /one warning/u, "and the opener counts what it is about to print");
+});
+
 test("a read carrying the same key says nothing, and a write carrying none says nothing either", async () => {
   const quiet = await heard(() => answering([ok({ id: ISSUE_ID, displayId: "ISS-1", warnings: ["a read is not a write"] })],
     () => callTool("forge_issues", { action: "get", documentId: ISSUE_ID, fields: [] })));

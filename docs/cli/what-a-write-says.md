@@ -50,6 +50,18 @@ and never raised: the write it stands beside did happen, and a caller told other
 that stands. The words are the tracker's and stay them, a second wording being a second thing to keep
 in step with a rule this CLI does not own.
 
+**A sentence stating a rule this product has already read and replaced is not carried at all.** The
+tracker cites the guide a warning comes from, by slug, inside the warning; this product holds a
+disposition of every guide that tracker serves, and where the row marks the very rule that warning
+asserts as replaced, the answer is already written and served at `forge guide <slug> --tracker`.
+Repeating it beside each write buys a reader nothing and costs the channel everything: a sentence
+that holds on every correct use of a verb teaches them to skip the line the next one arrives on. It
+cannot be said once instead, because each call here is its own process. So the reader meets it on
+the page that replaced it, which is the one page that can also say the transport stops repeating it.
+Both halves have to match — the slug the warning names and a marker of the rule that row replaced —
+because a page replaced in part leaves rules of it standing, and a warning the tracker rewords
+matches neither half and is said, which is the direction this fails in.
+
 **So the sentence is carried under a line saying the write stood, and never under the route's own
 name.** Every refusal the transport writes opens with that name, and the one act a reader takes on a
 refusal is to send the write again — which on a comment that landed leaves a duplicate the tracker

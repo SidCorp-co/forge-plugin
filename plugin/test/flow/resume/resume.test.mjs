@@ -240,11 +240,27 @@ test("the latest confirmation, decision and correction come down to one line eac
     recorded("correction", { moved: "the plan gained a version bump", why: "the ship path needs one" }),
   ]);
   assert.equal(one.latest.confirmation.said, "the reading that supersedes it", "the latest of a kind that can only be current");
-  assert.equal(one.latest.correction.said, "the plan gained a version bump");
+  assert.equal(one.latest.correction.said, "the plan gained a version bump — the ship path needs one",
+    "and a correction carries the reason beside what moved, the two being one claim");
   assert.equal(one.latest.decision, undefined, "and a kind nobody wrote is left out rather than empty");
   const long = brief({}, [recorded("confirmation", { where: ["a"], is: "x".repeat(400), finding: "holds" })]);
   assert.ok(long.latest.confirmation.said.length < 260, "a paragraph is cut to a line, with the cut shown");
   assert.match(long.latest.confirmation.said, /…$/u);
+});
+
+/* A reader following the record to find why a status moved arrived at a line that named the move
+   and not the reason, and went looking in the thread for a field the record already held (ISS-2079). */
+test("a correction's reason is on the correction's own line, and what moved cannot crowd it out", () => {
+  const long = brief({}, [recorded("correction", { moved: "m".repeat(400), why: "the reason behind it" })]);
+  assert.match(long.latest.correction.said, /the reason behind it$/u,
+    `a long moved is cut to its share rather than spending the line: ${long.latest.correction.said}`);
+  assert.ok(long.latest.correction.said.length < 260, "and the line still comes down to a line");
+  const bare = brief({}, [recorded("correction", { moved: "criterion 4 withdrawn" })]);
+  assert.equal(bare.latest.correction.said, "criterion 4 withdrawn",
+    "a correction carrying no reason says what moved and nothing about a field it has not got");
+  const short = brief({}, [recorded("confirmation", { where: ["a"], is: "y".repeat(400), finding: "holds" })]);
+  assert.ok(short.latest.confirmation.said.length > 190,
+    "and a kind with one headline field still spends the whole line on it");
 });
 
 /* The headline above says the latest correction and nothing about the four under it, which is how
@@ -258,7 +274,8 @@ test("the brief counts each repeating kind holding more than one, and says nothi
     recorded("confirmation", { where: ["src/one.mjs"], is: "a reading", finding: "holds" }),
   ]);
   assert.deepEqual(one.repeated, { correction: 2, park: 2 }, "a count per kind holding more than one");
-  assert.equal(one.latest.correction.said, "criterion 20", "and the headline is still the latest of them");
+  assert.equal(one.latest.correction.said, "criterion 20 — it read as two outcomes",
+    "and the headline is still the latest of them");
   const once = brief({}, [recorded("correction", { moved: "criterion 9", why: "it named the wrong file" })]);
   assert.deepEqual(once.repeated, {}, "one record needs no count: the headline above is the whole of it");
   assert.deepEqual(brief().repeated, {}, "and an issue with no record at all carries no line");

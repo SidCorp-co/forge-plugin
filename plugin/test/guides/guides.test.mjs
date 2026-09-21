@@ -22,6 +22,7 @@ const {
   supersededSlugs,
   trackerHeader,
   visibleGuides,
+  warningAnswered,
   withholds,
 } = await import("../../src/guides/guides.mjs");
 const { VERB_NAMES } = await import("../../src/resolve/visibility.mjs");
@@ -121,6 +122,41 @@ test("a list still carrying a slug the table holds is a finding", () => {
   assert.deepEqual(review({ listed: REVIEWED }).leaked.length, 9, "and the raw list is what it must not");
   assert.equal(visibleGuides(REVIEWED).length, REVIEWED.length - 9);
   assert.equal(visibleGuides(REVIEWED).includes("memory-and-knowledge"), false, "the partly rows too");
+});
+
+/* The transport withholds that warning on every write, so the page that replaced its rules is the
+   one page that owes the reader what it therefore stops saying (ISS-2079). */
+test("--tracker says of a page the tracker warns off that this copy withholds the warning", () => {
+  const header = trackerHeader(dispositionOf("records-and-comments")).join("\n");
+  assert.match(header, /withholds it there/u, `the warning's fate is said where its rules are: ${header}`);
+  const quiet = trackerHeader(dispositionOf("pipeline-and-issue-lifecycle")).join("\n");
+  assert.equal(/withholds it there/u.test(quiet), false,
+    "and a row the tracker attaches to no write says nothing of the kind");
+});
+
+const WARNING = "a `forge-record` fence is not comment content — no store here holds a "
+  + "`correction` record whole — put the assertions it makes about the issue at "
+  + "`POST /api/issues/:id/attributes` under a registered key, and keep the sentence in the "
+  + "comment. The store each kind belongs in: guide `records-and-comments`";
+
+test("a warning is answered only where a page of this table accounts for the whole line", () => {
+  assert.equal(warningAnswered(WARNING), "records-and-comments", "the page's own sentence, whole");
+  assert.equal(warningAnswered(WARNING.replace("`correction`", "`baseline`")), "records-and-comments",
+    "and the kind the tracker names is the one part of it that varies");
+  assert.equal(warningAnswered(WARNING.replace("records-and-comments", "some-other-guide")), null,
+    "the same sentence citing a page this table has not placed is said");
+  assert.equal(warningAnswered("an attachment for a log belongs at the attachments route. "
+    + "The store each kind belongs in: guide `records-and-comments`"), null,
+    "and a warning off that page saying something else is a rule of it that stands");
+  assert.equal(warningAnswered(`${WARNING} Send the row again once the field is set.`), null,
+    "a line carrying a second statement after the sentence is said, the answered part included");
+  assert.equal(warningAnswered(`The question was not minted. ${WARNING}`), null,
+    "and so is one carrying it before");
+  assert.equal(warningAnswered(WARNING.replace("record whole —", "record whole. The credential is a "
+    + "person's own —")), null, "and so is one carrying it between the sentence's own clauses");
+  assert.equal(warningAnswered(`${WARNING}. ${WARNING}`), null,
+    "two of them joined into one line are two sentences, and the slot holds a kind and not a second one");
+  assert.equal(warningAnswered(null), null, "a warning that is not a sentence answers to nothing");
 });
 
 test("--tracker's header says whose text follows and every rule the contract replaces", () => {
