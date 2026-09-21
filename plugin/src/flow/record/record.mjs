@@ -329,7 +329,11 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
     console.error(line);
   };
   for (const got of blocks) {
-    if (asks) fromRecord(kind, got, { comments, names, cut }, say);
+    /* `held` and never `names`: a refusal reports what the issue already carries, and this call's
+       own pending upload is not that until the whole call clears — which the refusal is the proof
+       it did not (ISS-1935). `evidenceProblem` below is the one reader that legitimately wants the
+       fuller set, since it validates this call's own citations against what will exist once it lands. */
+    if (asks) fromRecord(kind, got, { comments, names: held, cut }, say);
     checked(kind, got);
     citationChecked(kind, reference, got);
     const bad = got.evidence?.length ? evidenceProblem(got.evidence, names) : null;

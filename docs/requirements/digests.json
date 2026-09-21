@@ -1513,6 +1513,10 @@
       "rev": 1,
       "digest": "49ca069f71f72ffc6a5ea054eae7d49ec3c30a7d160545e5ca149b47800a7680"
     },
+    "AC-04-2-4": {
+      "rev": 1,
+      "digest": "d7a787f100479de567ff7cff5d84bc056a588a65b49c3ade230cddf419d9c83d"
+    },
     "UC-04-3": {
       "rev": 1,
       "digest": "d80b3fe8ac02aae8df1c058f4174f23469f58640d249ac14f3c74426beaf4f02"

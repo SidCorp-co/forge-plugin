@@ -95,6 +95,9 @@ client no check sits in front of.
 - **AC-04-2-3** · Rev: 1 · Proof: plugin/test/flow/earned/batched-verdict.test.mjs "a file two criteria cite goes up once, under the one name both of them carry"
   WHERE more than one block of one write cites the same file, the CLI SHALL upload it once and every
   block citing it SHALL cite the name it was uploaded under.
+- **AC-04-2-4** · Rev: 1 · Proof: plugin/test/flow/earned/refused-verdict-carries.test.mjs "a block refused for missing evidence is told what the issue carries, never what this call only planned"
+  IF a block is refused for citing no evidence THEN the CLI SHALL name only the attachments the
+  issue already holds, and SHALL NOT name a file this same write merely planned to upload.
 
 ### UC-04-3 — A review is two voices in one record
 
