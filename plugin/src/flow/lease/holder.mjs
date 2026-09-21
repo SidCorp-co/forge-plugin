@@ -201,27 +201,42 @@ const wordsTyped = (said) => {
   const words = [];
   let word = "";
   let quote = "";
+  /* Whether a backslash escapes where we stand, and whether the character just read was the `$`
+     that turns the apostrophe after it into a quote a backslash reaches inside. */
+  let escapes = true;
+  let dollar = false;
   const end = () => {
     if (word) words.push(word);
     word = "";
   };
   for (let at = 0; at < said.length; at += 1) {
     const one = said[at];
-    /* Literal inside single quotes and an escape everywhere else, and before a newline it takes the
-       newline with it: a command continued on the next line is one word list and not two, so a wait
-       typed across a continuation has to come out as the words its own line carries. */
-    if (one === "\\" && quote !== "'" && at + 1 < said.length) {
+    /* Where it escapes, a backslash takes the character after it, and before a newline it takes the
+       newline too: a command continued on the next line is one word list and not two. Inside a
+       plain apostrophe it escapes nothing; inside `$'…'` it reaches even the apostrophe, which is
+       what keeps that whole argument one word. */
+    if (one === "\\" && escapes && at + 1 < said.length) {
       at += 1;
       if (said[at] !== "\n") word += said[at];
+      dollar = false;
     } else if (quote) {
-      if (one === quote) quote = "";
-      else word += one;
+      if (one === quote) {
+        quote = "";
+        escapes = true;
+      } else {
+        word += one;
+      }
+      dollar = false;
     } else if (one === "'" || one === '"') {
       quote = one;
+      escapes = one === '"' || dollar;
+      dollar = false;
     } else if (BREAK.test(one)) {
       end();
+      dollar = false;
     } else {
       word += one;
+      dollar = one === "$";
     }
   }
   end();
@@ -238,12 +253,14 @@ const argsOf = (pid) => {
   return comm ? [comm] : [];
 };
 
-/* Two shapes this leaves unsettled, stated rather than promised away. A command a wrapper execs out
-   of a quoted argument fills one word exactly as a reader's pattern does, so a wait launched that
-   way is read as text and is not found — every route `forge hooks --how polling` names types its
-   words unquoted and keeps its attribution. And a line of one word is the same shape quoted or not,
+/* Three shapes this leaves unsettled, stated rather than promised away. A command a wrapper execs
+   out of a quoted argument fills one word exactly as a reader's pattern does, so a wait launched
+   that way is read as text and is not found — every route `forge hooks --how polling` names types
+   its words unquoted and keeps its attribution. A line of one word is the same shape quoted or not,
    so a process whose whole line is a single word the turn merely named is still read as this
-   turn's. */
+   turn's. And a word joined across a continuation inside it is one word here and two to the
+   signature, which the arm below asks for as well, so a command typed that way is not found either
+   — as it was not before this narrowing. */
 const partOf = (argv, words) =>
   argv.length > 0 && words.some((one, at) => argv.every((two, by) => words[at + by] === two));
 

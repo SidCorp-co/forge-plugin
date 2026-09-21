@@ -189,6 +189,8 @@ test("a command line the turn only quoted as an argument does not make its proce
       "a line quoted as one argument of a reader was read as a process this turn started");
     assert.ok(!held(startedHere(turn(`echo "${line}" >> /dev/null`)), pid),
       "a line quoted into a note was read as a process this turn started");
+    assert.ok(!held(startedHere(turn(`echo $'note\\' ${line} ' >> /dev/null`)), pid),
+      "an apostrophe escaped inside an ANSI-C quote ended a word the shell keeps whole");
   } finally {
     gone(pid, watched);
   }
