@@ -4,12 +4,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { CALLS, MOVED, classesCompared, latencyLines } from "../../../src/stats/eval/latency.mjs";
+import { MOVED_AT, POLL, TABLE, WAIT } from "../../../src/stats/corpus/classes.mjs";
 import { runsMark } from "../../../src/stats/eval/eval.mjs";
 import { marksOf } from "../../../src/stats/marks/marks.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 import { PROJECT, ask, askStats, corpusOf } from "../fixture-eval.mjs";
 
-const profile = ({ classes = [], reads = [], help = 0 }) => ({
+const profile = ({ classes = [], reads = [], help = 0, table }) => ({
+  ...(table === undefined ? {} : { table }),
   byClass: classes.map(([label, calls, wait]) => [label, { calls, wait }]),
   helpReads: reads.map(([label, calls]) => [label, { calls, runs: calls, again: 0 }]),
   help: { calls: help },
@@ -170,4 +172,73 @@ test("an anchored comparison takes the held reading's window as the before side"
     if (was.TMPDIR === undefined) delete process.env.TMPDIR;
     else process.env.TMPDIR = was.TMPDIR;
   }
+});
+
+/* A row's population belongs to the class table and not to the corpus, so a stored reading taken
+   before a row moved and a live one taken after it hold two different denominators under one label.
+   The rows the table left alone go on comparing (ISS-2086). */
+const GENERATIONS = (table) => profile({
+  table,
+  classes: [["read", 3000, 4000], [POLL, 200, 12_000], [WAIT, 160, 48_000], ["gate", 300, 19_000]],
+});
+const crossedIn = (held) => held.rows.filter((one) => one.crossed).map((one) => one.label);
+
+test("two windows one table classed compare on every row, and name none as crossed", () => {
+  const held = classesCompared(GENERATIONS(TABLE), GENERATIONS(TABLE));
+  assert.deepEqual(held.generations, { before: TABLE, now: TABLE });
+  assert.deepEqual(crossedIn(held), [], "a sliding comparison classes both its windows by the running table");
+  const lines = latencyLines({ classes: held });
+  assert.ok(!lines.some((line) => line.includes("not comparable")), lines.join("\n"));
+});
+
+test("a stored reading taken at an earlier generation is crossed on the rows that moved and no others", () => {
+  const held = classesCompared(GENERATIONS(TABLE), GENERATIONS(TABLE - 1));
+  assert.deepEqual(new Set(crossedIn(held)), new Set([...MOVED_AT.keys()]),
+    "every row whose population moved at this generation, which is what `MOVED_AT` names");
+  const gate = held.rows.find((one) => one.label === "gate");
+  assert.equal(gate.crossed, false, "a row the generation left alone is comparable across it");
+  assert.equal(gate.shift, 0, "and goes on printing its move");
+  for (const one of held.rows.filter((row) => row.crossed)) {
+    assert.deepEqual({ shift: one.shift, minutes: one.toolMinutes, named: one.named },
+      { shift: null, minutes: null, named: false },
+      `${one.label} counts a different population on each side, so no move is read off it`);
+  }
+  const lines = latencyLines({ classes: held });
+  const said = lines.find((line) => line.includes("not comparable"));
+  assert.ok(said, lines.join("\n"));
+  for (const label of MOVED_AT.keys()) assert.ok(said.includes(label), `${label} is named: ${said}`);
+  assert.ok(said.includes(`classed by class table generation ${TABLE - 1} and this one by generation ${TABLE}`), said);
+  assert.ok(said.includes("The other 1 row(s) stand"), said);
+  assert.ok(lines.some((line) => line.includes("over the 1 with a mean on both sides")),
+    "and a crossed row is outside the denominator of what moved");
+});
+
+test("a stored reading naming no generation is comparable on no row at all", () => {
+  const held = classesCompared(GENERATIONS(TABLE), GENERATIONS(undefined));
+  assert.deepEqual(held.generations, { before: null, now: TABLE });
+  assert.equal(crossedIn(held).length, held.rows.length,
+    "the table that classed it is unreadable from here, so the rows it shares are shared by name only");
+  const said = latencyLines({ classes: held }).find((line) => line.includes("not comparable"));
+  assert.ok(said.includes("classed by a class table this reading cannot name"), said);
+  assert.ok(said.endsWith("which is every row of this pair"), said);
+});
+
+test("a crossed row reaches the screen past the fold a thin row takes and past the listing's cap", () => {
+  const thin = (side) => profile({
+    table: side === 2 ? TABLE : TABLE - 1,
+    classes: [["read", CALLS - 1, 19 * side], ...Array.from({ length: 15 }, (_, n) => [`c${n}`, 30, 30 * (n + side)])],
+  });
+  const lines = latencyLines({ classes: classesCompared(thin(2), thin(1)) });
+  assert.equal(lines.filter((line) => /call\(s\) @/u.test(line)).length, 10, "the listing caps at ten rows");
+  assert.ok(lines.some((line) => line.includes("class(es) folded")), "and folds the one thin on both sides");
+  const said = lines.find((line) => line.includes("not comparable"));
+  assert.ok(said.startsWith("read — not comparable"), `the folded crossed row is said anyway:\n${lines.join("\n")}`);
+});
+
+test("the reading carries the generations the screen's statement is built from", () => {
+  const room = corpusOf(40);
+  const json = JSON.parse(ask(room, "--size", "20", "--requests", "1", "--json").stdout);
+  assert.equal(json.now.profile.table, TABLE, "a profile carries the generation of the table that classed it");
+  assert.deepEqual(json.classes.generations, { before: TABLE, now: TABLE });
+  assert.deepEqual(json.classes.rows.map((one) => one.crossed), json.classes.rows.map(() => false));
 });

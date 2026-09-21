@@ -79,6 +79,7 @@ is prose and once stood in front of the flag, so the one shape a two-week diff i
 stopped being a shape on exactly the quiet week the diff is about — and the caller got a zero exit
 with it. The zero-run profile is a profile, and it prints as one (ISS-308).
 
-What each row of the profile is — the classifier and the wrong rows it was built to avoid, the
-the refusals listing: [`stats-rows.md`](stats-rows.md). The phase table and the rung table:
+What each row of the profile is — the classifier and the wrong rows it was built to avoid:
+[`stats-rows.md`](stats-rows.md); the refusals listing keyed by it:
+[`stats-the-refusals.md`](stats-the-refusals.md). The phase table and the rung table:
 [`stats-the-tables.md`](stats-the-tables.md).

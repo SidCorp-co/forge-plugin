@@ -2,12 +2,13 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import test from "node:test";
 
 import { waitsIn } from "../../src/hooks/shell-spans.mjs";
+import { WAIT_COMMAND } from "../../src/hooks/wait-idiom.mjs";
 import { callHook, cleanRepo, dirtyRepo, homeEnv, projectRoom, tempRoom } from "../fixtures.mjs";
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "bash-guard.mjs");
@@ -300,7 +301,7 @@ test("a wait that polls is refused, and a pause on its own is not", () => {
   assert.equal(first.allowed, false);
   assert.match(first.reason, /comes back to you/u, "the line every route it offers is picked by");
   assert.match(first.reason, /foreground under the tool's own timeout/u, "the route for work this call starts");
-  assert.match(first.reason, /tail --pid=<pid>/u, "the one for work already running, which a run cannot go back and relaunch");
+  assert.ok(first.reason.includes(WAIT_COMMAND), "the one for work already running, which a run cannot go back and relaunch");
   assert.match(first.reason, /Monitor/u, "and the one for a wait past the cap");
   assert.match(first.reason, /ten-minute cap/u, "and what the foreground one is bounded by");
   assert.doesNotMatch(first.reason, /completion notice/u, "while the route that comes back to nobody is offered as none of them");
@@ -443,4 +444,16 @@ test("a shape the profiler could not key the same way is outside this rule, not 
   assert.ok(decideIn(session, asked).allowed);
   assert.ok(decideIn(session, "grep 'error code' /tmp/ship.log").allowed, "quoted spacing is the question");
   assert.equal(decideIn(session, "grep 'error code' /tmp/ship.log").allowed, false, "and asking it twice is not");
+});
+
+/* One command, three readers: this refusal, the page it points at, and the corpus reading that
+   counts what a run typed. The page imports nothing, being markdown, so the case is what holds it to
+   the spelling the other two share (ISS-2086). */
+test("the wait this gate prescribes is the one the page it points at prescribes", () => {
+  const nap = `sl${"eep"}`;
+  const refused = decide(`until curl -sf localhost:3000; do ${nap} 5; done`);
+  assert.ok(refused.reason.includes(WAIT_COMMAND), "the refusal prints the command whole");
+  const page = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "how", "polling.md"), "utf8");
+  assert.ok(page.includes(WAIT_COMMAND),
+    `\`forge hooks --how polling\` prescribes the same command, character for character:\n${page}`);
 });

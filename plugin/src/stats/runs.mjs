@@ -6,6 +6,8 @@ import {
   FORGE_ROW,
   GUIDE_INDEX,
   POLL,
+  TABLE,
+  WAIT,
   WHOLE_SET_CLASS,
   classesFor,
   guidePartOf,
@@ -67,7 +69,8 @@ const ANY_MARKED = /^(?:Hold — |Refused\. |\S+ refused:)/mu;
 
 /* `settings.mjs` refuses with a verb this CLI has and no marker, and so does a line an ANSWERING
    call printed — `project id: …`. Hence both the failed-call guard and the precedence a marked line
-   holds over this shape wherever each sits, which docs/cli/stats-rows.md costs out both ways. */
+   holds over this shape wherever each sits, which docs/cli/stats-the-refusals.md costs out both
+     ways. */
 const VERB_SENTENCE = new RegExp(String.raw`^(?:forge )?(?:${VERB_NAMES.join("|")})\b.*?: .*$`, "u");
 
 const TOOL_RULE = /^\S+ refused:[ \t]*(?<rule>.*)$/u;
@@ -89,7 +92,7 @@ export const refusalIn = (call) => {
   /* A marked line counts however the call exited: a run that pipes a refusal through `tail`, or
      ends the line with `; echo EXIT=$?`, met it just the same and the shell answered 0 for it.
      411 of this project's 813 marked refusals arrived that way, against seven bodies that merely
-     quoted one — which is the trade, and docs/cli/stats-rows.md carries it. */
+     quoted one — which is the trade, and docs/cli/stats-the-refusals.md carries it. */
   let at = lastOf(lines, MARKED);
   if (at < 0 && call.error) at = lastOf(lines, VERB_SENTENCE);
   if (at < 0) return null;
@@ -167,7 +170,10 @@ const advanceRuns = (calls) => {
    turn was wasted, never that the body was. One per run, however often the log was read. */
 const REJECTED_PUSH = /stopped at step \d+ \(push to [^)]+\): git push [^\n]*exited \d+\. Rejected means the remote moved/u;
 const LOG_READ = /\.log\b/u;
-const READS_A_LOG = new Set(["read", POLL]);
+/* Every class a call that read a log can carry: the wait row is carved out of two of these, and a
+   line that waits on the ship and tails its log in one call is in it — left out, one run's rejected
+   push goes uncounted, which is what this corpus answers 32 for and 31 without it (ISS-2086). */
+const READS_A_LOG = new Set(["read", POLL, WAIT]);
 const reportsShip = (call) =>
   call.class === "ship" || (READS_A_LOG.has(call.class) && LOG_READ.test(call.shell));
 const RESUMED = /--from\s+\d/u;
@@ -444,6 +450,10 @@ export const profileOf = (runs, declared = null) => {
   const per = (pick) => medianOrZero(runs.map(pick));
   return {
     runs: runs.length,
+    /* The built-in table's own generation, carried so that a stored reading standing as a before
+       window is never compared row by row with one this table classed: `classes.mjs` says what
+       moves it. A project's own declarations are its own and are no part of this number. */
+    table: TABLE,
     /* Both bounds over every run and neither off the list's order: this reader is handed a window
        ordered by each run's end, so the first of them is the earliest to finish and not the earliest
        to begin. Read as the start of the span, that bound excluded a run that began before it and

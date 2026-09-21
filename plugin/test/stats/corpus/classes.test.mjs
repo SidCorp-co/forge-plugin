@@ -4,7 +4,8 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { classOf, classesFor } from "../../../src/stats/corpus/classes.mjs";
+import { MOVED_AT, POLL, TABLE, WAIT, classOf, classesFor } from "../../../src/stats/corpus/classes.mjs";
+import { WAITS_ON_PID, WAIT_COMMAND } from "../../../src/hooks/wait-idiom.mjs";
 import { declaredClasses, declaredIn, unarmedDoors } from "../../../src/stats/corpus/declared.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 import { projectRoom, tempRoom } from "../../fixtures.mjs";
@@ -163,4 +164,69 @@ test("this repository's own reading does not move: a checkout declaring nothing 
     "the fixture run's `npm run check` and `node --test` are still its gate and its test");
   assert.match(run.stdout, /^ships {11}1 pass\(es\)/mu, "and its ship is still a ship");
   assert.match(run.stdout, /^unknown\s+1\s.*\s1\.0$/mu, "and the rung table carries its gate as a figure");
+});
+
+/* The wait this plugin prescribes for work already running, against the read of a file's tail it is
+   spelled like. The two are one row apart and the wait is the largest class this project's corpus
+   holds, 4042 tool-minutes over 895 calls, so a row that takes either of them takes both (ISS-2086). */
+test("the prescribed wait on a running process is a wait, and a read of a file's tail is still a read", () => {
+  assert.equal(said(WAIT_COMMAND.replace("<seconds>", "880").replace("<pid>", "12345")), WAIT,
+    "the command the refusal and the polling text prescribe, as a run types it");
+  assert.equal(said("tail --pid=12345 -f /dev/null"), WAIT, "and without the timeout that bounds it");
+  assert.equal(said("tail -f --pid=12345 /dev/null"), WAIT,
+    "the argument is the discriminator wherever among the options it stands, not the word after `tail`");
+  assert.equal(said("tail -n 30 run.log"), "read", "while a bare tail of a file is the read it always was");
+  assert.equal(said("tail -f run.log"), "read", "following one included");
+  assert.equal(said('P=$(pgrep -f "tools/run.mjs ship" | head -1); timeout 880 tail --pid=$P -f /dev/null'), WAIT,
+    "a line that locates the pid and then waits on it is the wait, the pgrep being how it found the pid");
+  assert.equal(said("while sleep 10; do echo x; done"), POLL, "and a loop that sleeps is still a poll");
+  assert.equal(said("tailscale --pid=1 up"), "shell", "a word `tail` only opens is no wait at all");
+});
+
+test("every row above the wait row keeps a line that also waits, so a launch that waits is the launch", () => {
+  const order = classesFor(null).map(([label]) => label);
+  assert.deepEqual(order.slice(order.indexOf("git"), order.indexOf(POLL) + 1), ["git", WAIT, POLL],
+    "the wait row stands between the last row that names a command and the poll row");
+  assert.ok(order.indexOf(WAIT) > order.indexOf("cleanup"), "below every row a declaration arms");
+  assert.ok(order.indexOf(WAIT) < order.indexOf("read"), "and above the read row that would shadow it");
+  for (const [label, launch, declared] of [
+    ["gate", "npm run check", undefined],
+    ["gate", "make check", { gate: "make check" }],
+    ["ship", "node /w/tools/run.mjs ship", undefined],
+    ["test", "node --test plugin/test/x.test.mjs", undefined],
+    ["cleanup", "node /w/tools/run.mjs finish ISS-99", undefined],
+    ["forge issue", "forge issue ISS-99", undefined],
+    ["git", "git log --oneline -1", undefined],
+  ]) {
+    assert.equal(said(`${launch} > run.log 2>&1 & timeout 880 tail --pid=$! -f /dev/null`, declared), label,
+      `${launch} launched and waited on in one line is that launch, and a phase it opens still opens`);
+  }
+});
+
+test("the discriminator and the generation each have one home the table reads", () => {
+  assert.ok(classesFor(null).some(([label, match]) => label === WAIT && match.source.includes(WAITS_ON_PID)),
+    "the table matches on the shared fragment rather than spelling the argument again");
+  assert.equal(MOVED_AT.get(WAIT), TABLE, "the row this generation added names this generation");
+  for (const label of [WAIT, POLL, "read"]) {
+    assert.equal(MOVED_AT.get(label), TABLE, `${label} holds a different population than it did before`);
+  }
+  assert.equal(MOVED_AT.get("gate"), undefined, "while a row nothing moved names no generation");
+});
+
+/* A wait armed on the call that ends a workspace, which is the second phase marker a line can carry
+   away: read as a wait, the run reaches the phase the method ends in nowhere. */
+const CLEANED_UNDER_A_WAIT = [
+  JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-99" } }),
+  use("w1", 10, "Bash", { command: "node /w/tools/run.mjs ship" }),
+  result("w1", 20, "released"),
+  use("w2", 30, "Bash", { command: "workspace finish ISS-99 & timeout 60 tail --pid=$! -f /dev/null" }),
+  result("w2", 40, "ended"),
+].join("\n");
+
+test("a cleanup waited on in its own line still opens the last phase", () => {
+  const project = declaring({ stats: { commands: { cleanup: "workspace finish" } } });
+  const run = askedIn(corpusFor(project.at, CLEANED_UNDER_A_WAIT), project.home, "--checkout", project.at);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, /^8 Clean up\s+1\s+[\d.]+\s+\d+\s+1\.0\s+cleanup 1 0m$/mu,
+    "the phase the method ends a run in opens on the launch, the wait armed on it taking nothing away");
 });

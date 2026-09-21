@@ -7,6 +7,7 @@ import { isAbsolute, resolve } from "node:path";
 
 import { gitProbe, probeMs } from "../../src/hooks/git-probe.mjs";
 import { NOTHING, logRead, logsIn } from "../../src/hooks/log-reads.mjs";
+import { WAIT_COMMAND } from "../../src/hooks/wait-idiom.mjs";
 import { GIT_GLOBALS, NOWHERE, RUNS, SHELL, bodiless, clearNote, deny, gitTreeOf, note, noted, remaining, spawnsIn, standsIn, startsAt, unwrapped, waitsIn, how, done } from "../_hook.mjs";
 import { sayOnce, sessionKey } from "../../src/shown/ledger.mjs";
 
@@ -117,7 +118,7 @@ const RULES = [
       "Wait with a call that comes back to you. Where the work provides a verdict call, take that: "
       + "it returns the decision. Otherwise run the work in the foreground under the "
       + "tool's own timeout, up to that ten-minute cap. Work already running, which you cannot go "
-      + "back and relaunch, is waited on with `timeout <seconds> tail --pid=<pid> -f /dev/null`: "
+      + `back and relaunch, is waited on with \`${WAIT_COMMAND}\`: `
       + "`0` is that pid gone, `124` the deadline, anything else the wait itself failing. Past the "
       + "cap, put the same condition on `Monitor`, watching what produces the answer as well as the "
       + "file, where the line the command prints is the answer.",
@@ -264,7 +265,7 @@ export const run = (ev) => {
       `Refused. This is the read before it, typed again with nothing done between: ${again.join(", ")}. `
       + "A read repeated with nothing between it and the last one is a wait spent asking."
       + "\n\nInstead: if the work writing it is still running, wait on it with one call that comes back to "
-      + "you — its own verdict call, or `timeout <seconds> tail --pid=<pid> -f /dev/null` on the pid "
+      + `you — its own verdict call, or \`${WAIT_COMMAND}\` on the pid `
       + "writing it. If it has already ended, then "
       + "the read before this one came too early: ask the finished log what you now want to know, which "
       + `is a different question. This rule says a thing once, so sending this again passes.${how("polling")}`,

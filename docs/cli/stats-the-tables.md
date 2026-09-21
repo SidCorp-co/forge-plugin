@@ -4,7 +4,8 @@
 run's wall clock by the method's own phases and the rung table by the rung it was worked at, and
 both keep a row for whatever they found none of, because the alternative is a reader concluding
 from silence. What a single call is classed as, which is what both tables are counted off, and the
-refusals listing that shares that classifier: [`stats-rows.md`](stats-rows.md).
+refusals listing that shares that classifier: [`stats-rows.md`](stats-rows.md) and
+[`stats-the-refusals.md`](stats-the-refusals.md).
 
 ## The phase table
 

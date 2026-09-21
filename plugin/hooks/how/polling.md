@@ -7,8 +7,8 @@ refused too; a lone `sleep` is untouched. None resumes a stopped run:
 
 - a verdict call the work provides, returning a decision;
 - the work in the foreground under the call's own timeout, to the ten-minute cap;
-- `timeout <s> tail --pid=<pid> -f /dev/null` for work already running: `0` is that pid gone, `124`
-  the deadline, anything else the wait failing, `0` at once for a pid that never was;
+- `timeout <seconds> tail --pid=<pid> -f /dev/null` for work already running: `0` is that pid gone,
+  `124` the deadline, anything else the wait failing, `0` at once for a pid that never was;
 - past the cap, `Monitor`: its printed line is the answer, nothing read after. Watch the producer
   too: an ending that writes nothing is silence; the log is one this run made before starting it.
 

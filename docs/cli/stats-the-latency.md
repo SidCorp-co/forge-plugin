@@ -32,5 +32,20 @@ of two means multiplied by a call count. Being derived from the sums, it inherit
 do, so the one misreading this table can produce is a saving quoted from it against a wall-time
 figure, and the label is there to refuse that rather than to describe the arithmetic.
 
+**A row's population belongs to the class table, so two readings classed by different tables share a
+label and not a denominator.** The stored reading a `--against` or a `--since-release` puts in the
+before window's place was classed when it was written, and this table's rows move: a row added, or a
+pattern changed so that a call moves from one row to another, gives every figure on both rows a new
+population. A difference taken across that is arithmetic on a definition rather than a movement in
+what the harness spends, and the two windows disagree with nothing saying why. So the class table
+carries a generation of its own, every profile carries the generation that classed it, and a row
+whose population has moved since the stored reading's generation is named as not comparable and
+carries no move at all. The rows the change left alone go on comparing, which is why the generation
+is held per row rather than per table; a stored reading naming no generation is comparable on no row,
+the table behind it being unreadable from here. The naming is its own line rather than a mark on the
+row, because the listing caps and folds a row thin on both sides and a statement about what a figure
+means cannot be the one the fold takes. Nothing stored is re-read or rewritten: what is owed a reader
+comparing across such a change is the statement, and the statement is what this is.
+
 The angle blocks this table is not one of, and what a measured floor buys where a figure has one, is
 [stats — the angles](stats-the-angles.md).

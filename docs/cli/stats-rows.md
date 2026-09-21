@@ -31,6 +31,22 @@ got wrong:
   space: with a space, `'/tmp/forge;close'` turned into a `forge close` nobody typed, and a reading
   that may only ever take a call away had invented one.
 
+**A wait on work already running is a wait, and the word the command opens with says nothing about
+which.** This plugin prescribes one command for that wait — `forge hooks --how polling` has it — and
+it begins `tail`, which is also how a read of a file's tail begins, and for a good reason: reading
+the end of a file is a read. The discriminator is the `--pid` argument, wherever among the options it
+stands, and it has one home the gate refusing a poll and this reading share, neither spelling it
+twice. **The row's position is part of the answer, the table being first-match.** Above `read`,
+because the `tail` in that row's alternation shadows it, which on this project's 601-run corpus is
+1876 of that row's 3518 tool-minutes filed as reading. Above `poll`, because roughly half the idiom's
+calls carry the `pgrep` that found the pid on the same line, which is 2166 of `poll`'s 2814 minutes:
+filed under `poll` the row is two populations again, the prescribed one-call wait counted in the row
+that counts the refusable kind. And below every row that names a command — the four a project
+declares, `forge` and `git` — because a line that starts the ship or the gate and then waits on it is
+that launch, and `ship` and `cleanup` are what open a phase. The row is 4042 tool-minutes over 895
+calls, which makes it the largest class this corpus holds; what the arrival of a row does to a
+reading taken across it is [stats — the latency](stats-the-latency.md) (ISS-2086).
+
 **The gate, the test, the ship and the call that ends a run's workspace are the project's own words,
 where it has said them.** Those rows were literal alternations of the commands this repository runs,
 applied to every project profiled: on one whose gate is spelled `make check` they read zero, the time
@@ -66,42 +82,5 @@ by each, and the `edits` line puts that number beside the route. The `ships` lin
 passes, resumes and rejected pushes: a landing that raced a sibling's paid the gate twice. Every
 other verb is one row.
 
-## The refusals listing, and the other errors beside it
-
-A row is a line one of this plugin's own refusals was written in, and the row is the line that
-**names the rule** — so the listing reads as which rules fire and how often. Four shapes, each read
-off the source that writes it: a gate's `Hold —` or `Refused.` opener, the `How:` line every gate's
-refusal ends with, a tracker refusal's `<name> refused:` with its reason inline or on the next line,
-and a verb's own refusal sentence, which opens with a verb this CLI has. Where a body carries more
-than one, the last is the row: a `forge` command prints its provenance banner before it refuses, and
-keying on the body's first line filed 187 of those banners under a row that named nothing.
-
-**A marked line beats a verb sentence wherever each of them sits**, which is a precedence rather
-than an ordering, and it has a cost either way. A marked refusal quotes the lines it was refused
-over, and those quotations read as verb sentences: taking the last of both filed 73 of the 76 runs
-that met the issue-shape refusal under a line from inside that refusal's own body. The cost paid
-instead is the mirror case — a chained call that printed a marked line it was only reading, then met
-a verb-sentence refusal of its own, is filed under the line it was reading.
-
-Two of the four are read off the call's exit code as well. The verb sentence, because a line an
-*answering* call printed looks exactly like one — `project id: …` opens with a verb too. And the
-`How:` line, which counts only where it is the body's **last** line on a call that failed: a gate's
-denial is the whole result the harness returns and ends there, while a document or a test's output
-quoting one goes on printing past it, which is fourteen of the 516 bodies carrying that line.
-
-The two openers and `<name> refused:` count however the call exited. A run that pipes a refusal
-through `tail`, or ends the line with `; echo EXIT=$?`, met it just the same and the shell answered
-0 for it; on this corpus that is 411 refusals of 813.
-
-**The reading is of shape and never of provenance.** A body that merely quotes a refusal it did not
-meet is one this listing cannot tell from one that met it; seven of the 813 above are that. And a
-refusal written in none of the four shapes — the hook harness running out of time, a missing
-endpoint, a missing project slug — is counted with the other errors rather than dropped.
-
-Those other errors are one line, broken down by the class of the call that exited non-zero. Read as
-refusals they were six of the listing's top ten: a test's failure line, a `grep` that matched
-nothing, a `-h` read whose help text carries the word, an issue body that does.
-
-Two more rows sit beside these and are neither: a compaction and an API error are a run's own
-condition rather than a call this plugin made, refused, or judged — [stats — the
-condition](stats-the-condition.md).
+The refusals a window met and the other non-zero exits beside them, which share this classifier and
+are a listing rather than a row: [stats — the refusals](stats-the-refusals.md).

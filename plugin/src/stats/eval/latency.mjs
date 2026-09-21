@@ -1,6 +1,7 @@
 /* How long a call of each class took in each of the two windows `forge stats eval` compares, so a
    movement in what the harness spends is told apart from a movement in what it waits on. What the
    population is, and why the bound is a constant — docs/cli/stats-the-latency.md. */
+import { MOVED_AT } from "../corpus/classes.mjs";
 import { minutes } from "../figures.mjs";
 import { capped, elided } from "../tables.mjs";
 
@@ -22,6 +23,22 @@ const NO_CLASSES = "the reading standing as the before window carries no class f
 
 const NONE = { calls: 0, wait: 0 };
 
+/** Which generation of the class table classed a profile's calls; `null` for a profile written
+ *  before that number existed, whose table is therefore unknown here rather than assumed. */
+const generationOf = (profile) => (typeof profile?.table === "number" ? profile.table : null);
+
+/* Whether a row holds a different population on the two sides. One table classed both sides of a
+   sliding comparison, so nothing is crossed there; a stored reading taken at an earlier generation
+   is crossed on exactly the rows whose population has moved since, which is what `MOVED_AT` holds;
+   and a stored reading naming no generation at all was classed by a table this code cannot read, so
+   no row of it is comparable rather than the ones it happens to share (ISS-2086). */
+const crossedIn = (before, now) => {
+  const held = generationOf(before);
+  if (held === generationOf(now)) return () => false;
+  if (held === null) return () => true;
+  return (label) => (MOVED_AT.get(label) ?? 0) > held;
+};
+
 /* A mean of zero reads as a class that answered instantly, which is the one thing a window holding
    no call of it did not observe; so the calls are nought and the mean is absent. */
 const sideOf = (classes, lookups, label) => {
@@ -34,14 +51,18 @@ const sideOf = (classes, lookups, label) => {
   };
 };
 
-const rowOf = (label, before, now) => {
-  const both = before.seconds !== null && now.seconds !== null && before.seconds > 0;
+/* A crossed row takes no pair of means, which is what carries through to the shift, the minutes and
+   the naming alike: the two figures are counts over different populations, and their difference is
+   arithmetic on a definition that moved rather than a movement in what the harness spends. */
+const rowOf = (label, before, now, crossed) => {
+  const both = !crossed && before.seconds !== null && now.seconds !== null && before.seconds > 0;
   const thin = before.calls < CALLS && now.calls < CALLS;
   const shift = both ? (now.seconds - before.seconds) / before.seconds : null;
   return {
     label,
     before,
     now,
+    crossed,
     shift,
     /* A difference of two means times a call count, and what `unionSeconds` in runs.mjs states of
        the sums it is built from carries into the product: an attribution derived from them is no
@@ -61,21 +82,27 @@ const lookupsIn = (rows) => new Map((rows ?? []).map(([label, one]) => [label, o
  *  and the help lookups inside that denominator on each side — a lookup's own wait sits in the
  *  class's wait and cannot be taken back out of it, so the mixture is printed rather than removed. */
 export const classesCompared = (now, before) => {
-  if (!before) return { why: NO_BEFORE, rows: [], lookups: null };
-  if (!Array.isArray(before.byClass)) return { why: NO_CLASSES, rows: [], lookups: null };
+  if (!before) return { why: NO_BEFORE, rows: [], generations: null, lookups: null };
+  if (!Array.isArray(before.byClass)) return { why: NO_CLASSES, rows: [], generations: null, lookups: null };
   const nowClasses = classesIn(now.byClass);
   const beforeClasses = classesIn(before.byClass);
   const nowLookups = lookupsIn(now.helpReads);
   const beforeLookups = lookupsIn(before.helpReads);
+  const crossed = crossedIn(before, now);
   const rows = [...new Set([...nowClasses.keys(), ...beforeClasses.keys()])]
     .map((label) => rowOf(label, sideOf(beforeClasses, beforeLookups, label),
-      sideOf(nowClasses, nowLookups, label)))
+      sideOf(nowClasses, nowLookups, label), crossed(label)))
     /* By whichever side spent more on it: sorted by the recent side alone, a class whose time went
        to nothing sinks under classes that never cost the window anything, and a collapse is exactly
        what a reader of this table is looking for. */
     .sort((left, right) => Math.max(right.before.wait, right.now.wait)
       - Math.max(left.before.wait, left.now.wait));
-  return { why: null, rows, lookups: { before: before.help?.calls ?? 0, now: now.help?.calls ?? 0 } };
+  return {
+    why: null,
+    rows,
+    generations: { before: generationOf(before), now: generationOf(now) },
+    lookups: { before: before.help?.calls ?? 0, now: now.help?.calls ?? 0 },
+  };
 };
 
 const NAME = 26;
@@ -99,6 +126,25 @@ const spent = (one) => (one.toolMinutes
 
 const movedSaid = (one) => `  ${one.label.padEnd(NAME)}${percent(one.shift)} a call, `
   + `${spent(one)} over ${one.now.calls} call(s)`;
+
+/* Its own line rather than a mark on the row, because a crossed row has to reach the reader whatever
+   the table does with it: the listing caps at ten and folds a class thin on both sides, and a
+   statement about what a figure means cannot be the one the fold takes. Said where a generation was
+   crossed and nowhere else — a sliding comparison classed both its windows by the running table. */
+const classedBy = (held) =>
+  (held === null ? "a class table this reading cannot name" : `class table generation ${held}`);
+
+const crossedLines = (mine) => {
+  const crossed = mine.rows.filter((one) => one.crossed);
+  if (!crossed.length) return [];
+  const stood = mine.rows.length - crossed.length;
+  return ["",
+    `${crossed.map((one) => one.label).join(", ")} — not comparable: the window before this one was `
+      + `classed by ${classedBy(mine.generations.before)} and this one by generation `
+      + `${mine.generations.now}, so each of those rows counts a different population on the two `
+      + "sides, and neither a move nor a share of one is read off it"
+      + (stood ? `. The other ${stood} row(s) stand` : ", which is every row of this pair")];
+};
 
 const byMinutes = (left, right) => Math.abs(right.toolMinutes) - Math.abs(left.toolMinutes);
 
@@ -131,6 +177,7 @@ export const latencyLines = (held) => {
     ...capped(listed, false).map(classRow),
     ...elided(listed, false),
     ...(thin ? [`  ${thin} class(es) folded, listed under --json`] : []),
+    ...crossedLines(mine),
     ...movedLines(mine.rows),
   ];
 };

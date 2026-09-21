@@ -15,7 +15,7 @@ human prompt at all.
 
 ## Why none of the three reaches the refusals listing or the other-errors line
 
-[stats — the rows](stats-rows.md) keys a refusal on the line that names the rule and counts every
+[stats — the refusals](stats-the-refusals.md) keys a refusal on the line that names the rule and counts every
 other non-zero exit apart from it, by the class of the call that exited. All three readings are of a
 *call* — something this plugin's own harness issued and a result came back for, answered or not. A
 compaction record, an API-error record and a human-prompt record are none of them: the first carries

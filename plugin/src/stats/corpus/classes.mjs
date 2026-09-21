@@ -4,6 +4,7 @@ import { VERB_NAMES } from "../../resolve/visibility.mjs";
 import { handledBy } from "../../resolve/handler.mjs";
 import { DECLARABLE, at, declares } from "./declared.mjs";
 import { HELP_WORD_PATTERN } from "../../resolve/help-word.mjs";
+import { WAITS_ON_PID } from "../../hooks/wait-idiom.mjs";
 
 /* One spelling of the call for both readings below — the binary, the verb, the word after it and the word after that. The guide reading fixes the verb rather than filtering the first call, so a `forge guide` later in a compound command is still the part that run read. A sub is that second word as a verb name reads it, stopping at the first character no verb carries, where a slug and its part are read whole: one token, two word classes. `knowledge` is subbed because the store is read in phase 0 and written in the last phase, and one row over both filed a run's opening read under what it learned (ISS-1714). */
 const CALL = (verb) => String.raw`(?:\S*/)?forge[ \t]+${verb}`
@@ -71,6 +72,20 @@ export const guideFlowOf = (body) => {
 
 export const POLL = "poll";
 
+/** The one-call wait this plugin prescribes for work already running, which is neither a poll — it
+ *  asks once and comes back — nor a read of a file, and whose discriminator is `wait-idiom.mjs`'s. */
+export const WAIT = "wait";
+
+/** The generation of the table below. A row added or removed, or a pattern changed so that a call
+ *  moves from one row to another, is a new generation; a reading carries the one that classed it, so
+ *  a window read at one is never compared row by row with a window read at another. */
+export const TABLE = 2;
+
+/** The generation each row's population last changed at, for the rows that have changed since this
+ *  number existed; a row absent from here has stood throughout. Only the last change matters: a row
+ *  is comparable with a reading held at generation `g` exactly where this is at or below `g`. */
+export const MOVED_AT = new Map([["read", 2], [POLL, 2], [WAIT, 2]]);
+
 const VERB_ENDS = String.raw`(?![\w-])`;
 
 /* This repository's own commands, and the fallback for every project that declares none, so a reading taken here does not move. The ship one and the cleanup one are the invocation and never the mention, which is what the leading binary buys: `pgrep -f "tools/run.mjs ship"` is a run WAITING for one. Each stops where a verb name stops and not at a word boundary, which ends a word at a hyphen and would read the sibling verb this repository ships, `land-ready`, as `land` (ISS-1714). */
@@ -86,6 +101,14 @@ export const classesFor = (declared = null) => [
   ...DECLARABLE.map((label) => [label, at(declares(label, declared) ?? BUILT_IN[label])]),
   ["forge", forgeClass],
   ["git", at(String.raw`git\s`)],
+  /* Above `poll` because half this idiom's calls carry on the same line the `pgrep` that found the
+     pid, and read as polls they put the prescribed one-call wait in the row that counts the
+     refusable kind: 2166 of `poll`'s 2814 tool-minutes on this project's 601-run corpus. Below the
+     declared rows, `forge` and `git` because a line that starts the ship or the gate and then waits
+     on it is that launch, and `ship` and `cleanup` are what open a phase. Below `read` the `tail` in
+     that row's alternation shadows it, which is 1876 of `read`'s 3518 tool-minutes filed as reading
+     (ISS-2086). */
+  [WAIT, at(WAITS_ON_PID)],
   [POLL, at(String.raw`(?:sleep|until|while|pgrep)\s`)],
   ["edit heredoc", at(String.raw`(?:python3|node) - <<`)],
   ["edit sed", at(String.raw`sed -i\s`)],
