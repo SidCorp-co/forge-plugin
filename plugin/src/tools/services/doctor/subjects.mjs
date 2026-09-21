@@ -52,11 +52,19 @@ const PROJECT = [
   "                                    names the half that did not.",
   "  forge doctor --ship ready|self    how far a run on this machine goes: `self` lands its own",
   "                                    change, `ready` stops at a pushed branch and a checkpoint.",
+  "  forge doctor --adopt              take a `.forge.json` this checkout still carries over into",
+  "                                    this machine's record of the project, whole. It refuses",
+  "                                    where a record already exists rather than writing over it,",
+  "                                    and leaves the checkout's own file exactly as it is.",
   "  forge doctor --credentials        the test credentials the deploy rows withhold, printed once.",
   "",
   "Each is typed on the verb rather than on this subject. `--ship` writes this machine's record",
   "where the others write the project's, so it does not travel in the same call as `--set`: two",
   "stores are two calls, and the refusal says so.",
+  "",
+  "The project's own keys are kept per project under this machine's configuration directory rather",
+  "than in the checkout, so a box may differ from the repository and a worktree from its neighbour.",
+  "A key this machine owns outright is refused by `--set` with the route that writes it.",
 ].join("\n");
 
 const BRIEF = [
