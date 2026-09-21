@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { CALLS, MOVED, classesCompared, latencyLines } from "../../../src/stats/eval/latency.mjs";
-import { DEPLOY, POLL, READY_CLASS, SHELL, WAIT } from "../../../src/stats/corpus/classes.mjs";
+import { DEPLOY, POLL, READY_CLASS, SHELL, SHELL_EDITS, WAIT } from "../../../src/stats/corpus/classes.mjs";
 import { DECIDED_BY_RELEASE, MOVED_AT, TABLE } from "../../../src/stats/corpus/generations.mjs";
 import { runsMark } from "../../../src/stats/eval/eval.mjs";
 import { marksOf } from "../../../src/stats/marks/marks.mjs";
@@ -189,7 +189,8 @@ const GENERATIONS = (table, declares = DECLARED, release = ACT) => profile({
   declares,
   release,
   classes: [["read", 3000, 4000], [POLL, 200, 12_000], [WAIT, 160, 48_000], ["gate", 300, 19_000],
-    [SHELL, 400, 8000], [DEPLOY, 40, 2400], ["forge claim", 90, 900], [READY_CLASS, 20, 200]],
+    [SHELL, 400, 8000], [DEPLOY, 40, 2400], ["forge claim", 90, 900], [READY_CLASS, 20, 200],
+    ...SHELL_EDITS.map((label, at) => [label, 30 + at, 600 + at])],
 });
 const crossedIn = (held) => held.rows.filter((one) => one.crossed).map((one) => one.label);
 
@@ -342,7 +343,9 @@ test("a reading carries the act and not the word", () => {
 test("an act that moved crosses the deploy row and the rows it displaces", () => {
   const held = classesCompared(GENERATIONS(TABLE, DECLARED, ACT), GENERATIONS(TABLE, DECLARED, "none"));
   const crossed = new Set(crossedIn(held));
-  for (const label of DECIDED_BY_RELEASE.filter((one) => held.rows.some((row) => row.label === one))) {
+  /* Named here rather than read off the set the code uses, so a row dropped from that set fails a
+     case instead of narrowing what this one asserts (consult 5f1c8b F1). */
+  for (const label of [DEPLOY, "read", POLL, WAIT, SHELL, READY_CLASS, ...SHELL_EDITS]) {
     assert.ok(crossed.has(label), `${label} counts a different population under the two answers`);
   }
   assert.equal(crossed.has("gate"), false, "while a row the release model does not decide is comparable");

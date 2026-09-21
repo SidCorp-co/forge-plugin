@@ -4,8 +4,9 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { DEPLOY, POLL, READY_CLASS, SHELL, WAIT, classOf, classesFor } from "../../../src/stats/corpus/classes.mjs";
-import { MOVED_AT, TABLE } from "../../../src/stats/corpus/generations.mjs";
+import { DEPLOY, EDIT_ROUTES, POLL, READY_CLASS, SHELL, SHELL_EDITS, WAIT, classOf, classesFor }
+  from "../../../src/stats/corpus/classes.mjs";
+import { DECIDED_BY_RELEASE, MOVED_AT, TABLE } from "../../../src/stats/corpus/generations.mjs";
 import { WAITS_ON_PID, WAIT_COMMAND } from "../../../src/hooks/wait-idiom.mjs";
 import { declaredClasses, declaredIn, unarmedDoors } from "../../../src/stats/corpus/declared.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
@@ -231,6 +232,23 @@ test("a deploy another actor lands is neither a poll nor a read", () => {
     "a call to that platform which is not the deploy act is not this row");
 });
 
+test("a line that writes a file and then reads a deployment is the deploy, and the route it came out of is named", () => {
+  const under = (shell) => classOf("Bash", shell, classesFor(null, ARMED));
+  for (const [shell, was] of [
+    ["sed -i s/a/b/ plan.md; coolify deployment get --uuid abc", "edit sed"],
+    ["cat > /tmp/x <<EOF\nhi\nEOF\ncoolify deploy --uuid abc --yes", "edit file"],
+    ["python3 - <<PY\npass\nPY\ncoolify deployment get --uuid abc", "edit heredoc"],
+  ]) {
+    assert.equal(under(shell), DEPLOY, `the deploy act, where it used to be an ${was}`);
+    assert.equal(classOf("Bash", shell, classesFor(null)), was,
+      "so the route this row displaces is one the generation bookkeeping has to name");
+    assert.ok(MOVED_AT.has(was) && DECIDED_BY_RELEASE.includes(was),
+      `${was} is named in both halves, or a reading taken without this row compares two populations`);
+  }
+  assert.deepEqual(SHELL_EDITS, EDIT_ROUTES.slice(2),
+    "and the three are read off the routes rather than spelled a second time");
+});
+
 test("the verb's own row and git keep their calls", () => {
   const under = (shell) => classOf("Bash", shell, classesFor(null, ARMED));
   assert.equal(under("forge coolify deployment get abc"), "forge coolify",
@@ -250,7 +268,7 @@ test("a ready checkpoint is the landing's own class", () => {
 });
 
 test("the rows this generation moved are the ones it names", () => {
-  for (const label of [DEPLOY, "read", POLL, WAIT, SHELL, "forge claim"]) {
+  for (const label of [DEPLOY, "read", POLL, WAIT, SHELL, "forge claim", ...SHELL_EDITS]) {
     assert.equal(MOVED_AT.get(label), TABLE,
       `${label} holds a different population than it did at the generation before this one`);
   }

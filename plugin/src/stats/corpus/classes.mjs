@@ -79,8 +79,7 @@ export const guideFlowOf = (body) => {
 
 export const POLL = "poll";
 
-/** The row every call falls to that no other row matched, named because a reading has to be able to
- *  say which answer decided that. */
+/** The row every call falls to that no other row matched, named so a reading can say so. */
 export const SHELL = "shell";
 
 /** The act Phase 7 asks of a project whose release reaches production on its own: a wait on a
@@ -140,6 +139,10 @@ export const CLASSES = classesFor();
 const TOOL_CLASS = { Read: "read", Grep: "read", Glob: "read", Edit: "edit", Write: "write", NotebookEdit: "edit" };
 
 export const EDIT_ROUTES = ["edit", "write", "edit heredoc", "edit file", "edit sed"];
+
+/** Those a shell types, which the `deploy` row above takes a line that writes a file and then reads
+ *  a deployment out of. Off the routes, so a fourth is in both lists or neither. */
+export const SHELL_EDITS = EDIT_ROUTES.slice(2);
 
 export const classOf = (name, shell, classes = CLASSES) => {
   if (name !== "Bash") return TOOL_CLASS[name] ?? name.toLowerCase();
