@@ -84,16 +84,6 @@ project never changes, and a credential change is what drops it.
 
 **What a write says about itself, and what its answer carries back**, is one topic of its own: [what a write says](what-a-write-says.md).
 
-**A write that took half of what it was asked for says which half beside the row, and that sentence
-is read off the answer rather than out of a row's projection.** The transport reads it off every
-write's body, one call above the row that body becomes, because above that point there is nothing
-left to read: a projection keeping a fixed set of a row's fields drops every sibling
-of them with it, and the one dropped here reads to a caller exactly like the whole call having
-happened — the status line is true about the status and silent about everything else. It is *said*
-and never raised: the write it stands beside did happen, and a caller told otherwise would undo work
-that stands. The words are the tracker's and stay them, a second wording being a second thing to keep
-in step with a rule this CLI does not own.
-
 **The credential guard sits at this boundary**, one seat rather than a list of the payload kinds
 that may carry a secret. What it guarantees, where that guarantee stops, and what a reading that
 did not answer costs: [the credential guard](the-credential-guard.md).

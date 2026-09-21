@@ -498,17 +498,65 @@ const ISSUE_ID = "11111111-1111-4111-8111-111111111111";
 
 const DECLINED = "the question was not minted: this credential is a person's own";
 
+const KEY = "forge_comments.create";
+const OTHER = "and one carrying its own key";
+const TWO = [fenced("warnings", DECLINED), { message: OTHER }, "  ", null];
+
+/* One write, whatever the tracker hung on its answer: every case below reads the same call's lines. */
+const declining = (warnings) => heard(() => answering(
+  [ok({ id: "c-9", body: "posted", warnings })],
+  () => callTool("forge_comments", { action: "create", data: { issue: ISSUE_ID, body: "posted" } })));
+
 test("a write's answer says what it declined, in the tracker's own words, and the write still stands", async () => {
-  const { answer, said } = await heard(() => answering(
-    [ok({ id: "c-9", body: "posted", warnings: [fenced("warnings", DECLINED), { message: "and one carrying its own key" }, "  ", null] })],
-    () => callTool("forge_comments", { action: "create", data: { issue: ISSUE_ID, body: "posted" } })));
-  assert.deepEqual(said, [
-    `forge_comments.create: ${DECLINED}`,
-    "forge_comments.create: and one carrying its own key",
-  ], `the sentences the tracker sent, unfenced, under the route that carried them: ${said.join(" | ")}`);
+  const { answer, said } = await declining(TWO);
+  assert.deepEqual(said.slice(1), [
+    `  warning from the tracker — ${DECLINED}`,
+    `  warning from the tracker — ${OTHER}`,
+  ], `the sentences the tracker sent, unfenced and unreworded: ${said.join(" | ")}`);
   assert.equal(said.some((line) => line.includes(MARKER)), false, "and no fence reached the terminal");
   assert.equal(answer.documentId, "c-9", "the row this write answered with is still projected");
   assert.equal(answer.body, "posted", "and the warning stood beside the row rather than in place of it");
+});
+
+test("the account a write's answer carries is printed under a line saying the write went through", async () => {
+  const { said } = await declining(TWO);
+  assert.match(said[0], /^The write was not refused\./u,
+    `the reader meets the reassurance before the alarm: ${said[0]}`);
+  assert.equal(said.findIndex((line) => line.includes(DECLINED)), 1,
+    "and the tracker's first sentence comes after it, never above it");
+});
+
+test("no line of that account opens the way a refusal of the same write opens", async () => {
+  const { said } = await declining(TWO);
+  for (const line of said) {
+    assert.equal(line.startsWith(KEY), false,
+      `a line opening with the route that carried the write reads as a refusal of it: ${line}`);
+  }
+  const refused = await callTool("forge_comments", { action: "create", createdAfter: "2026-01-01", data: {} }, true);
+  assert.equal(refused.refused.startsWith(KEY), true,
+    `and a real refusal of this same route does open with it: ${refused.refused}`);
+});
+
+test("the line that says the write went through names the route that carried it", async () => {
+  const { said } = await declining([DECLINED]);
+  assert.ok(said[0].includes(KEY), `which write the account belongs to is readable off it: ${said[0]}`);
+  assert.equal(said[0].startsWith(KEY), false, "named inside the sentence rather than as its opener");
+});
+
+test("every line of that account is marked as a warning the tracker attached", async () => {
+  const { said } = await declining(["a sentence the tracker wrapped\n\nover two lines"]);
+  assert.deepEqual(said.slice(1), [
+    "  warning from the tracker — a sentence the tracker wrapped",
+    "  warning from the tracker — over two lines",
+  ], `an account arriving over more than one line is marked on each of them: ${said.join(" | ")}`);
+});
+
+test("the reassurance is confined to the row the write stored", async () => {
+  const { said } = await declining([DECLINED]);
+  assert.match(said[0], /stored its row/u, "what it claims is the row this write stored");
+  assert.match(said[0], /one warning/u, "and it says there is an account below to read");
+  assert.equal(/\b(succeeded|went through|did what it was asked)\b/u.test(said[0]), false,
+    `the tracker hangs this on a call it declined a part of too, so the whole call is not claimed: ${said[0]}`);
 });
 
 test("a read carrying the same key says nothing, and a write carrying none says nothing either", async () => {

@@ -207,7 +207,7 @@ const fetchedParts = async (key, row, args, soft, held) => {
 };
 
 /* What a write's answer says beside the row, and why it is read here rather than out of what a row
-   projects: docs/cli/one-transport.md. */
+   projects: docs/cli/what-a-write-says.md. */
 const sentence = (one) => {
   if (one === null || one === undefined) return "";
   return typeof one === "string" ? one : one.message ?? JSON.stringify(one);
@@ -218,10 +218,26 @@ const warningsIn = (body) => {
   return (Array.isArray(held) ? held : [held]).map(sentence).filter((one) => one.trim() !== "");
 };
 
+/* Marked on every line of it, blank lines apart: an unmarked sentence stating a rule and a route
+   out is a refusal to whoever reads it, whichever line of the account it sits on. */
+const MARK = "warning from the tracker";
+
+const marked = (said) =>
+  said.split(/\r?\n/u).filter((line) => line.trim() !== "").map((line) => `  ${MARK} — ${line}`);
+
+/* Said under a line saying the write stood, and never as `${key}: …`, which is the shape every
+   refusal this module writes opens in: the one action a reader takes on a refusal is to send the
+   write again, and a comment sent twice is a duplicate the tracker has no delete for (ISS-2070).
+   What that line may claim is the row and no more — the tracker attaches an account like this to a
+   call it declined a part of as well, so a reader told the whole call went through stops before the
+   part that says otherwise. */
 const sayDeclined = (key, bodies) => {
-  for (const body of bodies) {
-    for (const said of unfencedIn(warningsIn(body))) console.error(`${key}: ${said}`);
-  }
+  const said = bodies.flatMap((body) => unfencedIn(warningsIn(body)));
+  if (!said.length) return;
+  console.error(`The write was not refused. ${key} stored its row, and the tracker attached `
+    + `${said.length === 1 ? "one warning" : `${said.length} warnings`} to the call; a warning is `
+    + "not a refusal, so nothing here is to be sent again.");
+  for (const line of said.flatMap(marked)) console.error(line);
 };
 
 export const callTool = async (name, args, soft = false, held = {}) => {

@@ -101,10 +101,31 @@ than encoded into the call, because bytes through a context window are paid for 
 - **AC-02-3-4** · Rev: 1 · Proof: none yet — ISS-681
   WHEN an edge between two issues is written or removed THEN the CLI SHALL do it through the issue's
   own dependency route, and the ranking SHALL read the edge it wrote.
-- **AC-02-3-5** · Rev: 1 · Proof: plugin/test/tracker/rest.test.mjs "a write's answer says what it declined, in the tracker's own words, and the write still stands" · Source: docs/cli/one-transport.md
+- **AC-02-3-5** · Rev: 1 · Proof: plugin/test/tracker/rest.test.mjs "a write's answer says what it declined, in the tracker's own words, and the write still stands" · Source: docs/cli/what-a-write-says.md
   WHEN a write's answer carries the tracker's account of a part of that call it declined THEN the
   CLI SHALL say each sentence of the account to the caller in the tracker's own words, and SHALL
   leave the write it stands beside standing rather than refusing it.
+- **AC-02-3-6** · Rev: 1 · Proof: plugin/test/tracker/rest.test.mjs "the account a write's answer carries is printed under a line saying the write went through"
+  WHEN a write's answer carries such an account THEN the CLI SHALL print a line saying the write
+  went through before the first sentence of that account, because a reader who meets the alarm
+  before the reassurance sends the write again, and a comment sent twice cannot be taken back.
+- **AC-02-3-7** · Rev: 1 · Proof: plugin/test/tracker/rest.test.mjs "no line of that account opens the way a refusal of the same write opens"
+  WHILE such an account is printed, no line of it SHALL open with the name of the route that
+  carried the write, that opener being the one a refusal of the same call is written in and the
+  only thing a reader has to tell the two apart by.
+- **AC-02-3-8** · Rev: 1 · Proof: plugin/test/tracker/rest.test.mjs "the line that says the write went through names the route that carried it"
+  WHERE such an account is printed, the line saying the write went through SHALL name the route
+  that carried the write, because an account whose write the reader cannot place is one they
+  cannot act on either way.
+- **AC-02-3-9** · Rev: 1 · Proof: plugin/test/tracker/rest.test.mjs "every line of that account is marked as a warning the tracker attached"
+  WHERE such an account is printed, every line of it SHALL carry a mark saying it is a warning the
+  tracker attached, because an unlabelled sentence stating a rule and a route out reads as the
+  rule having stopped the write.
+- **AC-02-3-10** · Rev: 1 · Proof: plugin/test/tracker/rest.test.mjs "the reassurance is confined to the row the write stored"
+  WHEN a write's answer carries such an account THEN the line printed above it SHALL claim no more
+  than that the row was stored, because the tracker attaches such an account to a call it declined
+  a part of as well, and a reader told the whole call succeeded stops before the part that says
+  otherwise.
 
 ### UC-02-4 — Everything the tracker returns is untrusted input
 

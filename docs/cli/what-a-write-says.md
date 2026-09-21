@@ -39,3 +39,23 @@ in the same prose, says nothing of its own.
 **And the absence of a hold is silence.** The read-before-write gate speaks when it holds a write
 back; a line saying it did not hold is a second, weaker statement of the same fact, and the reader
 who learns to skip it is the reader who will skip the refusal beside it.
+
+**A write that took half of what it was asked for says which half beside the row, and that sentence
+is read off the answer rather than out of a row's projection.** The transport reads it off every
+write's body, one call above the row that body becomes, because above that point there is nothing
+left to read: a projection keeping a fixed set of a row's fields drops every sibling
+of them with it, and the one dropped here reads to a caller exactly like the whole call having
+happened — the status line is true about the status and silent about everything else. It is *said*
+and never raised: the write it stands beside did happen, and a caller told otherwise would undo work
+that stands. The words are the tracker's and stay them, a second wording being a second thing to keep
+in step with a rule this CLI does not own.
+
+**So the sentence is carried under a line saying the write stood, and never under the route's own
+name.** Every refusal the transport writes opens with that name, and the one act a reader takes on a
+refusal is to send the write again — which on a comment that landed leaves a duplicate the tracker
+has no delete for. Three runs sent one. The route is still named, inside the sentence rather than at
+its head, because a caller who cannot place the account cannot act on it either way; and each line
+below carries a mark of its own, an unmarked sentence stating a rule and a route out being a refusal
+to whoever reads it. What the line above may claim is the row and nothing further: the same field
+carries the account of a call whose other half was declined, so a reader told the whole call went
+through stops before the half that says it did not.
