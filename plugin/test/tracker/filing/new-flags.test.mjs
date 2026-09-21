@@ -291,3 +291,14 @@ test("`forge new -h` lists every kind with the sections it requires", async () =
   assert.match(said.stdout, /names where the defect comes from/u,
     "the defect route keeps it, because nothing else it can read says so");
 });
+
+/* AC-17-4-3: every filing reads the kinds table, and most name no `Serves:` line at all, so the
+   table a bounded read has to reach comes before the goals list a filing usually does not need. */
+test("`forge new -h` prints the kinds table before the goals list", async () => {
+  const run = await ranAsync(FORGE, ["new", "-h"], tracker.env);
+  assert.equal(run.status, 0, run.stderr);
+  const kinds = run.stdout.indexOf("The kinds, and the sections");
+  const goals = run.stdout.search(/may carry (?:a|one) `Serves:`/u);
+  assert.ok(kinds >= 0 && goals >= 0, run.stdout);
+  assert.ok(kinds < goals, "the kinds table is read before a filing has any goal to name");
+});

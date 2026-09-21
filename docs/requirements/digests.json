@@ -169,6 +169,14 @@
       "rev": 1,
       "digest": "6d7e81c919b687af852389311e05382767382f97bd599f8a6d725c2ae1139145"
     },
+    "AC-17-4-3": {
+      "rev": 1,
+      "digest": "14549f406c325dafb2744cdd28f1668788722d8f20ced544b69d96c8b46f7041"
+    },
+    "AC-17-4-4": {
+      "rev": 1,
+      "digest": "72c235d33491fcdbcdf760b4df782b213f42be4e261812aec9db3f932084eb9f"
+    },
     "NFR-05": {
       "rev": 1,
       "digest": "2e47f793761e53cb2856c5ab47e8eaad9c61c0287c29440b8a3b730512d87830"

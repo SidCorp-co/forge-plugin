@@ -57,6 +57,19 @@ parsing anything, so the one command that says what to type was the one a caller
   WHEN the write-time rules are not asked for THEN they SHALL not be printed, since they were paid
   for in every transcript that only asked what to type.
 
+A text a run reads twice inside one session answered nothing on the first pass: a router that lists
+many shapes moved what most callers need behind what most do not, so a bounded read never reached it,
+or moved what a caller reaches from its own dedicated help back in front of it, buying that caller a
+second look at both texts (ISS-2028).
+
+- **AC-17-4-3** · Rev: 1 · Proof: plugin/test/tracker/filing/new-flags.test.mjs "the kinds table a filing needs comes before the goals list most filings never read"
+  WHEN a caller reads `forge new -h` THEN the table of kinds and the sections each owes SHALL print
+  before the paragraph a filing's `Serves:` line is read against, since every filing reads the table
+  and most name no goal.
+- **AC-17-4-4** · Rev: 1 · Proof: plugin/test/flow/record/record-rows.test.mjs "criteria and plan are the last two kinds forge record -h lists"
+  WHEN a caller reads `forge record -h` THEN `criteria` and `plan` — the two kinds a caller reaches
+  from their own dedicated help rather than from this list — SHALL be its last two rows.
+
 ### NFR-05 — A projection carries no byte that says nothing
 
 Rev: 1 · Enforces: BR-14

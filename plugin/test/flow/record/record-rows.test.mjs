@@ -8,6 +8,7 @@ import { tempRoom } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("record-rows-");
 const { KINDS, USAGE, kindHelp, usage } = await import("../../../src/flow/record/record.mjs");
+const { DISPLAY_ORDER } = await import("../../../src/flow/record/record-rows.mjs");
 const { SHAPES } = await import("../../../src/flow/machine.mjs");
 const { CITED_IN, citationBlocks } = await import("../../../src/spec/checked.mjs");
 
@@ -23,6 +24,22 @@ test("every kind is on the usage line, and -h prints it without touching the tra
   const note = ask("record", "note", "-h");
   assert.equal(note.status, 0, note.stderr);
   assert.match(note.stdout, /--user T\(500\)/u, "the cap on the kind's own row, with no endpoint saved to ask");
+});
+
+/* The list `forge record -h` prints is ordered by demand and not by the shape table, so it is
+   checked against `KINDS` as a set: a kind added to one and not the other is either printed nowhere
+   or printed twice. */
+test("the list forge record -h prints is every kind, once each", () => {
+  assert.deepEqual([...DISPLAY_ORDER].sort(), [...KINDS].sort());
+});
+
+/* AC-17-4-4: `criteria` and `plan` are written from their own dedicated help — Phase 3 sends a run
+   straight to `forge record criteria -h` / `forge record plan -h` — so a caller composing one of
+   those never comes back to this list to find it, and the rows most worth a quick scan lead it. */
+test("criteria and plan are the last two kinds forge record -h lists", () => {
+  const last = DISPLAY_ORDER.length - 1;
+  assert.ok(DISPLAY_ORDER.indexOf("plan") >= last - 1, "plan is one of the last two rows");
+  assert.ok(DISPLAY_ORDER.indexOf("criteria") >= last - 1, "criteria is one of the last two rows");
 });
 
 /* A note was drafted against a cap nobody had, refused, and rewritten — six sends for one note on

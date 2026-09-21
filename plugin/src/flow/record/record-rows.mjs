@@ -76,8 +76,18 @@ const KIND_PHRASE = {
   criteria: "the numbered criteria, from a file a consult has read",
 };
 
+/* `forge record -h`'s own list, ordered by what a run reads it a second time to find rather than by
+   the shape table's order: `criteria` and `plan` are written from their own dedicated help and are
+   never what a mid-run lookup here is chasing, so they sit last; `routed`, `verdict`, `correction`
+   and `review` are what a long run comes back for most (ISS-2028's reading of the transcript corpus).
+   A kind absent from here would be a kind `forge record -h` no longer lists, so the row order is
+   checked against `KINDS` as a set rather than trusted by eye. */
+export const DISPLAY_ORDER = ["routed", "verdict", "correction", "review", "verification", "gap",
+  "note", "finding", "triage", "confirmation", "merged", "park", "baseline", "decision", "question",
+  "plan", "criteria"];
+
 const phraseRows = () =>
-  KINDS.map((kind) => `  ${kind.padEnd(13)}${KIND_PHRASE[kind] ?? ""}`);
+  DISPLAY_ORDER.map((kind) => `  ${kind.padEnd(13)}${KIND_PHRASE[kind] ?? ""}`);
 
 /* Read off the flag the assembly reads, so a kind flagged later says so here without being typed
    in a second list: the contract and `forge resume -h` both point at this line for the answer. */

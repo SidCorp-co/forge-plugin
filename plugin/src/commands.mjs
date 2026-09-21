@@ -171,9 +171,13 @@ const NEW_FLAGS = [
   "  --new          file it even where it would have folded onto a neighbour, and say which",
 ].join("\n");
 
-/* The goals are the project's own lines, read here rather than named: a caller who has to ask which goals there are has spent a round to write the `Serves:` line a filing carries. */
+/* The kinds table comes before the goals list: every filing reads the table to pick a category and
+   its required sections, and most name no `Serves:` line at all (`none stated` is legal), so a
+   `head` short of the whole text reaches the table it needs before the goals list it usually does
+   not (ISS-2028). The goals are the project's own lines, read here rather than named: a caller who
+   has to ask which goals there are has spent a round to write the `Serves:` line a filing carries. */
 const newUsage = (goals) =>
-  [helpOf("new"), NEW_FLAGS, routingBlock(), goalBlock(goals, "A body filed here").join("\n"), KINDS_HELP]
+  [helpOf("new"), NEW_FLAGS, KINDS_HELP, routingBlock(), goalBlock(goals, "A body filed here").join("\n")]
     .join("\n\n");
 
 /* What each kind means, and the column each answer below is read off: tracker/edges/kinds.mjs. */
