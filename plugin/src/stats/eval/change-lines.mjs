@@ -22,8 +22,15 @@ const clockLines = (held) => [
       + "and no other is open-ended and bounded by nothing",
 ];
 
-const setLine = (exposure) => `${exposure.changes} change(s) over ${exposure.releases.length} release(s)`
-  + (exposure.keys.length ? `: ${exposure.keys.join(", ")}` : ", none of whose readings names an issue");
+/** Each release named for what is known of it: its keys, or its version said to carry none. A set
+ *  printing only the keys it had would leave a release inside the span unnamed while still counting
+ *  it, which is the disclosure this reading exists to make. */
+export const namedSet = (exposure) => exposure.releases
+  .map((one) => (one.issues.length ? one.issues.join(", ") : `${one.version} (no issue on its reading)`))
+  .join(", ");
+
+const setLine = (exposure) => `${exposure.changes} change(s) over ${exposure.releases.length} `
+  + `release(s): ${namedSet(exposure)}`;
 
 const exposureLines = (held) => ["", "what each population ran",
   ...Object.entries(held.exposures).map(([name, exposure]) => `  ${name}\n    ${setLine(exposure)}`)];

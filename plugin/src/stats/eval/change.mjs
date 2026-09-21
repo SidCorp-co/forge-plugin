@@ -11,7 +11,7 @@ import { DISPOSITIONS, angleOf, anglesAsked, blocksOf, floorsOver } from "./angl
 import { mixFloorsOver, mixOver, mixWhy } from "./mix.mjs";
 import { FLOOR } from "./eval.mjs";
 import { claimAsked, claimFor, claimJudged, claimSaid, writeClaim } from "./claims.mjs";
-import { changeLines } from "./change-lines.mjs";
+import { changeLines, namedSet } from "./change-lines.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
 
@@ -80,8 +80,9 @@ const windowOf = (rows, declared) => ({ runs: rows.length, profile: profileOf(ro
 
 /* The before side is cut to the size of the side it answers, taken back from the change's own moment:
    a before window larger than the population it is compared with would put the two figures on
-   different counts and the floor on a third. */
-const matched = (before, many) => before.slice(-many);
+   different counts and the floor on a third. A side of nothing takes nothing — `slice(-0)` is
+   `slice(0)` and would hand back the whole history to answer a population of none. */
+const matched = (before, many) => (many ? before.slice(-many) : []);
 
 const anglesFor = (ordered, before, now, names, declared) => {
   const sides = { before: before.length ? windowOf(before, declared) : null, now: windowOf(now, declared) };
@@ -149,10 +150,6 @@ export const exposureOf = (copies, releases, copy, until = null) => {
   return { releases: set, changes: changesIn(set), keys: set.flatMap((one) => one.issues) };
 };
 
-const named = (exposure) => (exposure.keys.length
-  ? exposure.keys.join(", ")
-  : exposure.releases.map((one) => one.version).join(", "));
-
 /** The verdict, the four rules in order. The narrowest eligible comparison decides — a precedence
  *  fixed in advance so neither result is chosen for looking better, and establishing no reliability of
  *  its own. The other comparison prints whatever this returns. */
@@ -168,7 +165,7 @@ export const verdictOf = (comparisons, exposures) => {
     return { verdict: VERDICTS.nothing, deciding: eligible.name, associated: null, why };
   }
   return {
-    verdict: `${VERDICTS.associated} ${exposure.changes} change(s): ${named(exposure)}`,
+    verdict: `${VERDICTS.associated} ${exposure.changes} change(s): ${namedSet(exposure)}`,
     deciding: eligible.name,
     associated: { ...exposure, angles: eligible.moved, single: exposure.changes === 1 },
     why,

@@ -235,3 +235,28 @@ test("a comparison counts an angle that returned no verdict as neither moved nor
   assert.deepEqual(held.moved, []);
   assert.equal(held.eligible, false);
 });
+
+test("a change whose copy served no run answers rather than throwing, and matches an empty before side", () => {
+  const copies = [COPIES[0], COPIES[1], COPIES[2], copy("1.0.3", 900)];
+  const held = readingOf(corpus, copies, "1.0.3");
+  const alone = held.comparisons.find((one) => one.name === ALONE);
+  assert.equal(alone.now.runs, 0);
+  assert.equal(alone.before.runs, 0);
+  assert.equal(held.verdict, VERDICTS.undetermined);
+  assert.match(screen(held), /verdict {4}undetermined/u);
+});
+
+test("a change installed before every run has an empty before side and is still read", () => {
+  const held = readingOf(corpus, [copy("1.0.1", -1), copy("1.0.2", 63)], "1.0.1");
+  const alone = held.comparisons.find((one) => one.name === ALONE);
+  assert.equal(alone.before.runs, 0);
+  assert.equal(held.verdict, VERDICTS.undetermined);
+});
+
+test("a release inside the span whose reading names no issue is named by its version and still counted", () => {
+  const releases = [release("1.0.1", ["ISS-2"]), release("1.0.2", [])];
+  const held = changeOf({ ordered: over(flat(corpus), 60, 3, { seconds: 60 }), copies: COPIES,
+    releases, version: "1.0.1", names: NAMES, declared: null, claim: null });
+  assert.equal(held.exposures[WIDER].changes, 2);
+  assert.match(screen(held), /ISS-2, 1\.0\.2 \(no issue on its reading\)/u);
+});

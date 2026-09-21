@@ -104,14 +104,24 @@ export const mixOver = (beforeRows, nowRows, floors, names = NAMES) =>
 const percent = (value) => `${(value * 100).toFixed(1)}%`;
 
 /** Why one covariate held a comparison ineligible, in the words the verdict carries. Off the reason
- *  the reading already decided rather than a second test of the same numbers. */
-export const mixWhy = (one) => ({
-  [EMPTY]: `${one.name}: one of the two populations holds no run, so there is no mix distance to take`,
-  [THIN]: `${one.name}: ${one.floor?.over ?? 0} adjacent position(s) of this corpus yielded a mix `
-    + `distance at ${one.floor?.before ?? "?"} against ${one.floor?.now ?? "?"}, fewer than the ${POSITIONS} a p95 needs`,
-  [PAST]: `${one.name}: the mix moved ${percent(one.distance)}, past this corpus's own p95 of `
-    + `${percent(one.floor.p95)} over ${one.floor.over} adjacent position(s)`,
-}[one.why] ?? null);
+ *  the reading already decided rather than a second test of the same numbers.
+ *
+ *  **Branches rather than a map**, because a map's values are all evaluated before one is picked: the
+ *  `past` sentence reads a floor that a population with an empty side does not have, and the reading
+ *  that should have answered `undetermined` threw instead. */
+export const mixWhy = (one) => {
+  if (one.why === EMPTY) return `${one.name}: one of the two populations holds no run, so there is no mix distance to take`;
+  if (one.why === THIN) {
+    return `${one.name}: ${one.floor?.over ?? 0} adjacent position(s) of this corpus yielded a mix `
+      + `distance at ${one.floor?.before ?? "?"} against ${one.floor?.now ?? "?"}, fewer than the `
+      + `${POSITIONS} a p95 needs`;
+  }
+  if (one.why === PAST) {
+    return `${one.name}: the mix moved ${percent(one.distance)}, past this corpus's own p95 of `
+      + `${percent(one.floor.p95)} over ${one.floor.over} adjacent position(s)`;
+  }
+  return null;
+};
 
 const said = (tally) => Object.entries(tally).sort(([, a], [, b]) => b - a)
   .map(([value, count]) => `${value} ${count}`).join(", ") || "nothing";
