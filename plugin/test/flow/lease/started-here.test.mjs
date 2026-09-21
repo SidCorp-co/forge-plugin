@@ -6,6 +6,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
 
 import { startedHere } from "../../../src/flow/lease/holder.mjs";
 
@@ -39,6 +42,18 @@ const settled = (ms = 250) => new Promise((r) => setTimeout(r, ms));
 const held = (found, pid) => Boolean(found?.some((one) => one.pid === pid));
 
 const waiting = () => `sleep 30 # started-here ${randomUUID()}`;
+
+const standing = (pid) => {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const parentOf = (pid) =>
+  Number(/^PPid:\s*(\d+)$/mu.exec(readFileSync(`/proc/${pid}/status`, "utf8"))?.[1]) || 0;
 
 /* One call of a turn that began a moment ago and whose window is still open, which is every case
    below but the one about two turns. */
@@ -114,6 +129,48 @@ test("a wait a shell left behind is matched by the command that started it, and 
     assert.ok(held(found, pid), "a leaf carrying part of the command was not matched");
     assert.equal(found.find((one) => one.pid === pid).command, command,
       "the row names the leaf's own fragment rather than the command the turn typed");
+  } finally {
+    gone(pid, watched);
+  }
+});
+
+/* The same shape for real: the shell that typed the wait exits before the reading is taken, so the
+   wait is reparented and nothing but its own words connects it to the turn. */
+test("a wait a shell exited and left reparented is still matched by the command that put it there", async () => {
+  const watched = ran(waiting());
+  const said = resolve(tmpdir(), `started-here-${randomUUID()}`);
+  const command = `nohup tail --pid=${watched} -f /dev/null > /dev/null 2>&1 & echo $! > ${said}`;
+  const shell = ran(command);
+  let pid = 0;
+  try {
+    await settled();
+    assert.equal(standing(shell), false, "the shell that typed the wait is still standing, so nothing was reparented");
+    pid = Number(readFileSync(said, "utf8").trim());
+    assert.ok(pid > 1, `the shell wrote no pid to ${said}`);
+    assert.notEqual(parentOf(pid), shell,
+      "the wait still has the shell that typed it for a parent, so this case is not the one it claims to be");
+    assert.ok(held(startedHere(turn(command)), pid), "a reparented wait was not matched by the command that started it");
+  } finally {
+    gone(pid, shell, watched);
+    rmSync(said, { force: true });
+  }
+});
+
+/* The other side of that: the turn's text carries another run's whole line, quoted as one argument
+   of something that reads it rather than as the words a shell would have cut out and run. A
+   containment over the flattened text cannot tell the two apart, and the words can (ISS-2062). */
+test("a command line the turn only quoted as an argument does not make its process this turn's", async () => {
+  const watched = ran(waiting());
+  const pid = leaf(["tail", `--pid=${watched}`, "-f", "/dev/null"]);
+  const line = `tail --pid=${watched} -f /dev/null`;
+  try {
+    await settled();
+    assert.ok(held(startedHere(turn(`nohup ${line} > /dev/null 2>&1 &`)), pid),
+      "the case proves nothing unless the words the turn typed as a command still reach the leaf");
+    assert.ok(!held(startedHere(turn(`pgrep -f "${line}"`)), pid),
+      "a line quoted as one argument of a reader was read as a process this turn started");
+    assert.ok(!held(startedHere(turn(`echo "${line}" >> /dev/null`)), pid),
+      "a line quoted into a note was read as a process this turn started");
   } finally {
     gone(pid, watched);
   }

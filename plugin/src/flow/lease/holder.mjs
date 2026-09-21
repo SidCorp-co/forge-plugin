@@ -182,20 +182,75 @@ const IDENTIFYING = 16;
  *  this cannot tell apart is a separator quoted into an argument — a file named `job;other` reads
  *  as two words — the alternative being a shell parser inside a gate that runs at every stop. */
 const QUOTING = /['"`\\]/gu;
-const BREAKS = /[\s;|&()<>]+/gu;
+/* One class, because the two readings below have to call the same characters separators: a word the
+   signature ran together and the words this cut apart would otherwise disagree about where one ends. */
+const SEPARATOR = "[\\s;|&()<>]";
+const BREAKS = new RegExp(`${SEPARATOR}+`, "gu");
+const BREAK = new RegExp(SEPARATOR, "u");
 
 const signed = (said) => {
   const words = String(said ?? "").replaceAll(QUOTING, "").replace(BREAKS, " ").trim();
   return words.length < IDENTIFYING ? "" : ` ${words} `;
 };
 
+/* The words the shell would have cut out of what the turn typed, in one pass rather than a shell
+   parser: a quote holds one word however many blanks are inside it, a backslash takes the character
+   after it, and an unquoted separator ends one. An empty quoted word yields none, as an empty
+   argument does below. */
+const wordsTyped = (said) => {
+  const words = [];
+  let word = "";
+  let quote = "";
+  const end = () => {
+    if (word) words.push(word);
+    word = "";
+  };
+  for (let at = 0; at < said.length; at += 1) {
+    const one = said[at];
+    if (quote) {
+      if (one === quote) quote = "";
+      else if (one === "\\" && quote === '"' && at + 1 < said.length) word += said[at += 1];
+      else word += one;
+    } else if (one === "'" || one === '"') {
+      quote = one;
+    } else if (one === "\\" && at + 1 < said.length) {
+      word += said[at += 1];
+    } else if (BREAK.test(one)) {
+      end();
+    } else {
+      word += one;
+    }
+  }
+  end();
+  return words;
+};
+
+/* The argument boundaries the kernel keeps, which the joined line loses. `comm` where there is no
+   command line, as `lineOf` does, and it is one word — every kernel thread is, and the floor above
+   drops them all. */
+const argsOf = (pid) => {
+  const said = (answered(() => readFileSync(`${TABLE}/${pid}/cmdline`, "utf8")) ?? "").split("\0").filter(Boolean);
+  if (said.length) return said;
+  const comm = (answered(() => readFileSync(`${TABLE}/${pid}/comm`, "utf8")) ?? "").trim();
+  return comm ? [comm] : [];
+};
+
+/* Two shapes this leaves unsettled, stated rather than promised away. A command a wrapper execs out
+   of a quoted argument fills one word exactly as a reader's pattern does, so a wait launched that
+   way is read as text and is not found — every route `forge hooks --how polling` names types its
+   words unquoted and keeps its attribution. And a line of one word is the same shape quoted or not,
+   so a process whose whole line is a single word the turn merely named is still read as this
+   turn's. */
+const partOf = (argv, words) =>
+  argv.length > 0 && words.some((one, at) => argv.every((two, by) => words[at + by] === two));
+
 /* Either way round, because a wrapper's line holds the whole command and a leaf left by a shell
    that exited holds a part of it — `node tools/gates.mjs --wait 30` out of the line that put it in
-   the background. The second direction costs what the first does not: a command that carries
-   another's whole line as an argument, `pgrep -f` or an `echo` of it, matches whatever is running
-   that line. ISS-2062 holds the narrowing; until it lands the predicate is what this says and the
-   criteria and the how text say the same. */
-const sameJob = (one, two) => one.includes(two) || two.includes(one);
+   the background. What the second way round reads is the *words* the turn typed and not its text: a
+   line standing as several of them was cut out by a shell and run, and one standing inside a single
+   word was handed to something whole, which is what a reader of the process table or an echo into a
+   note does with another run's line (ISS-2062). */
+const sameJob = (own, one) => own.sign.includes(one.sign) || partOf(own.argv, one.words);
 
 /** Every process still standing that this turn started, matched by the calls the turn itself made
  *  rather than by where the process stands: a wait needs no `cd`, so it keeps the session's working
@@ -204,9 +259,9 @@ const sameJob = (one, two) => one.includes(two) || two.includes(one);
  *  environment, so only the turn's own record tells one's process from the other's (ISS-2051).
  *
  *  Each call is `{ said, from, to }` — the command, and the window the turn's own records put
- *  around the moment it made that call. A command and a process line are the same job where either
- *  signature holds the other, the shell a harness wraps a command in carrying the whole of it and a
- *  leaf that shell left carrying part; the window is what then tells two runs that ran the *same*
+ *  around the moment it made that call. What makes a command and a process one job is the predicate
+ *  above, on the signature the shell a harness wraps a command in carries whole and on the words a
+ *  leaf that shell left stands as; the window is what then tells two runs that ran the *same*
  *  command apart, each having begun its own inside its own call. Two runs that began the identical
  *  command inside the one window are the residue no process table can split, and this names both
  *  rather than guessing between them. */
@@ -218,6 +273,7 @@ export const startedHere = (calls, mine = new Set(chainOf(process.pid))) => {
     wanted.push({
       said: one.said,
       sign,
+      words: wordsTyped(String(one.said ?? "")),
       from: Number.isFinite(one?.from) ? one.from : 0,
       to: Number.isFinite(one?.to) ? one.to : Infinity,
     });
@@ -225,9 +281,10 @@ export const startedHere = (calls, mine = new Set(chainOf(process.pid))) => {
   if (!wanted.length) return [];
   return walking(mine, (pid, born) => {
     if (!Number.isFinite(born)) return null;
-    const own = signed(lineOf(pid));
-    if (!own) return null;
-    const hit = wanted.find((one) => born >= one.from && born <= one.to && sameJob(own, one.sign));
+    const argv = argsOf(pid);
+    const own = { argv, sign: signed(argv.join(" ")) };
+    if (!own.sign) return null;
+    const hit = wanted.find((one) => born >= one.from && born <= one.to && sameJob(own, one));
     /* The command the turn typed and never the process's own line: where the process is the shell
        a harness wrapped that command in, its line is the harness's preamble, and where it is the
        leaf that shell left, its line is a fragment. Both are answered by what was asked for. */

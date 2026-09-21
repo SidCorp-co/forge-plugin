@@ -226,8 +226,8 @@
       "digest": "babb68ef21e20371fa54b623fad01727fc0b5ae3213f5ded8622f668a7907e93"
     },
     "NFR-11": {
-      "rev": 2,
-      "digest": "5068de7ae1139385c2cfd31fe8274a5bb08a68750046bdc6036ab856378c83ef"
+      "rev": 3,
+      "digest": "0d2a243bd6343d2acde9a028f338e03d7b9b3f0ee4c71618e0fee8109001aa24"
     },
     "AC-17-11-1": {
       "rev": 1,
@@ -262,8 +262,8 @@
       "digest": "4bdc6d8205a009ab4ce2a650fb6324eb00ab6cfdd2c631a0cc63cd4bf1f3dfac"
     },
     "AC-17-11-9": {
-      "rev": 1,
-      "digest": "1f681236f911e7644771f0242a6ffcd7569c95e2c1b9780459a88a51172c2b82"
+      "rev": 2,
+      "digest": "f91c6906e4ed4be2faf457f8ca220567451321be59d4203f3146b817a39efe3f"
     },
     "AC-17-11-10": {
       "rev": 1,
@@ -292,6 +292,10 @@
     "AC-17-11-16": {
       "rev": 1,
       "digest": "6d68755e064e10ed0fcf81cbe756e5a95d6c50f8c641a47090277c9d143ae431"
+    },
+    "AC-17-11-17": {
+      "rev": 1,
+      "digest": "b1e677c737b5149fd3dc55a7b38d54b2c699e086c7bfff278a9c91e136f3c9f9"
     },
     "NFR-12": {
       "rev": 1,

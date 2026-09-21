@@ -19,4 +19,4 @@ in the environment it started in.
 Not judged: the handback's prose, whether tests pass, an issue another session holds, a file
 written through the shell, a lease taken in a turn that never names the issue again, a tree dirty
 before the turn began, a subagent this plugin did not dispatch, another run's process, unless
-in one of those windows it ran a command this turn's own contains, or is contained by.
+in one of those windows it ran a command of this turn's whole, or the words of one.
