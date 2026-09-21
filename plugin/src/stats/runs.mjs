@@ -459,10 +459,9 @@ export const profileOf = (runs, declared = null, act = null) => {
        halves of it agree with this one's. */
     table: TABLE,
     declares: declaredSaid(declared),
-    /* The answer the release model gave, never its own word: two projects both declaring no release
-       step part company on whether production deploys on its own, and one of them holds a row the
-       other has not got. `releaseSaid` carries only what the key cannot — which word this CLI did
-       not recognise — and is read beside it rather than compared (ISS-1975). */
+    /* The answer the release model gave and never its own word, for the reason `ACTS` in
+       corpus/release.mjs carries. `releaseSaid` holds only what the key cannot — which word this
+       CLI did not recognise — and is read beside it rather than compared (ISS-1975). */
     release: act?.key ?? null,
     releaseSaid: act?.said ?? null,
     /* Both bounds over every run and neither off the list's order: this reader is handed a window

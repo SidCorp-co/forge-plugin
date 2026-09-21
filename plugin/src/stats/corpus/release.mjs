@@ -59,9 +59,8 @@ export const NO_ENDPOINT = "no endpoint is saved on this machine, so nothing was
 
 /** What Phase 7 asks the project a named checkout belongs to for. Awaited once per reading and
  *  never per call, so the classifier stays a pure function of the words a run typed. */
-/* The credential is asked for here and not left to the transport: `settings()` exits the process
-   where no endpoint resolves, soft caller or not, so a profile of a corpus on a machine that has
-   never been given one would take its own figures down with it (ISS-1975, as ISS-487 for the eval). */
+/* The credential is asked for here and not left to the transport, for the reason and by the guard
+   `readThreads` in ../eval/outcomes.mjs carries (ISS-1975, as ISS-487 for the eval). */
 export const phase7For = async (directory) => {
   const account = accountCredentials();
   if (!account.url.value || !account.token.value) {
