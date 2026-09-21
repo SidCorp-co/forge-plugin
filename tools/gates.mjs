@@ -29,7 +29,7 @@ import { auditEnv, claimsJudged, contextOf, manifestsIn, readsDir, recordSets, s
   stepEscapes, stepSetFrom } from "./gates/reads/sets.mjs";
 import { READS_HELP } from "./gates/help/reads.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
-import { alonePath, casesPath, CEILING_SECONDS, REVIEW, fileTimesPath, recordDir, recordRun, roomPath,
+import { alonePath, casesPath, CEILING_PERCENTILE, REVIEW, fileTimesPath, recordDir, recordRun, roomPath,
   runKey, seriesFile } from "./gates/timing.mjs";
 
 const SELF = fileURLToPath(import.meta.url);
@@ -121,9 +121,11 @@ no others, however many scoped runs sit between them. A scoped figure is printed
 subtracted. This says what it recorded; the release is the one place that prints the change.
 
 Each line also carries the machine's one-minute load and its core count when the run started, as
-context and never as proof: the figure a run is judged against is the one the last gate review measured,
-said with the load it measured under — ${REVIEW.seconds}s on ${REVIEW.on} (${REVIEW.issue}) — and a whole run
-over the ceiling that review set, ${CEILING_SECONDS}s, is said to be. Beside the runs, a test step leaves
+context and never as proof. The last gate review's own figure stays beside every line as a dated
+anchor — ${REVIEW.seconds}s on ${REVIEW.on} (${REVIEW.issue}), said with the load it measured under —
+but what a whole run is judged against is this ledger's own population: the ${Math.round(CEILING_PERCENTILE * 100)}th
+percentile of the whole runs it already holds on the same table, recorded before this one, and a run
+over it is said to be, named with the population it was drawn over and the date. Beside the runs, a test step leaves
 <label>-files: one line per test file with the seconds node measured on it, longest first, which is
 what the next review reads the suite's growth off.
 

@@ -11,11 +11,37 @@ const RUN = /^(\S+) (\d+)s (\d+)\/(\d+)(?: load (\d+(?:\.\d+)?)\/(\d+))?$/u;
 
 export const PLANTS = "npm run check -- --full";
 
-/* The figure the last gate review measured and the one-minute load it measured under, and the ceiling
-   is the drift trigger applied to it; load on a run's own line is context, and never what it is judged by. */
+/* The figure the last gate review measured and the one-minute load it measured under: a dated
+   anchor kept as context on a run's own line, and never the drift trigger — a ceiling fixed to one
+   sample was crossed by 72% of this ledger's own whole runs within weeks of being set, which taught
+   a reader to ignore it rather than to trust it (ISS-1142). Load stays context beside it, and never
+   what either figure is judged by. */
 export const REVIEW = { seconds: 211, load: 10.3, cores: 6, on: "2026-09-08", issue: "ISS-736" };
-export const ceilingOf = (review) => Math.round(review.seconds * 1.25);
-export const CEILING_SECONDS = ceilingOf(REVIEW);
+
+// Below this many prior whole runs at the table size being judged, a percentile is a single reading wearing a formula.
+export const MIN_CEILING_POPULATION = 10;
+// Rare enough that crossing it is unusual against what this box has actually been doing, not a coin flip most ordinary runs win.
+export const CEILING_PERCENTILE = 0.9;
+
+const percentileOf = (sorted, fraction) => {
+  const at = (sorted.length - 1) * fraction;
+  const below = Math.floor(at);
+  const above = Math.ceil(at);
+  return below === above ? sorted[below] : sorted[below] + (sorted[above] - sorted[below]) * (at - below);
+};
+
+/** The ceiling the newest whole run is judged against: the CEILING_PERCENTILE of every whole run
+ *  this ledger holds at the same table size *before* this one, `null` below MIN_CEILING_POPULATION
+ *  of them. Drawn from what came before rather than from the population including this run, so a
+ *  population that has genuinely grown flags the runs that grew it instead of absorbing its own
+ *  outlier and staying silent — which is the property a ceiling fixed to one sample never had. */
+export const ceilingFromLedger = (wholes) => {
+  const now = wholes.at(-1);
+  const before = wholes.slice(0, -1).filter((one) => one.total === now.total);
+  if (before.length < MIN_CEILING_POPULATION) return null;
+  const seconds = before.map((one) => one.seconds).sort((one, other) => one - other);
+  return { seconds: Math.round(percentileOf(seconds, CEILING_PERCENTILE)), population: before.length, through: before.at(-1).at };
+};
 
 export const recordDir = (root) => join(gitCommonDir(root), "gate-ledger");
 
@@ -105,9 +131,12 @@ const changeFrom = (newest, before) => before.seconds > 0
   ? `${(newest.seconds / before.seconds).toFixed(2)}x the ${before.seconds}s before it`
   : `${newest.seconds}s more than the one before it, which took under a second, so there is no ratio`;
 
-const reviewed = (now, review) => `${(now.seconds / review.seconds).toFixed(2)}x the ${review.seconds}s the review of `
+const ceilingSaid = (ceiling) => `, over the ${Math.round(CEILING_PERCENTILE * 100)}th percentile of `
+  + `${ceiling.population} whole run(s) this ledger holds on this table through ${ceiling.through.slice(0, 10)}, ${ceiling.seconds}s`;
+
+const reviewed = (now, review, ceiling) => `${(now.seconds / review.seconds).toFixed(2)}x the ${review.seconds}s the review of `
   + `${review.on} measured under load ${review.load} on ${review.cores} core(s) (${review.issue})`
-  + (now.seconds > ceilingOf(review) ? `, over the ceiling of ${ceilingOf(review)}s that review set` : "");
+  + (ceiling && now.seconds > ceiling.seconds ? ceilingSaid(ceiling) : "");
 
 // Over the same table: a gate that gained a step is another gate, and the arithmetic would report the addition as drift.
 const rolling = (wholes) => {
@@ -123,7 +152,7 @@ const rolling = (wholes) => {
     : "the only whole-gate figure recorded";
 };
 
-const compared = (wholes, review) => `${said(wholes.at(-1))}, ${reviewed(wholes.at(-1), review)}; ${rolling(wholes)}`;
+const compared = (wholes, review) => `${said(wholes.at(-1))}, ${reviewed(wholes.at(-1), review, ceilingFromLedger(wholes))}; ${rolling(wholes)}`;
 
 /** Never two adjacent runs: scoped runs sit between the full ones, so the newest two *runs* subtract nothing. A
  *  scoped run leads with its own figure, said to be scoped: as a change it would read as a gate that got quicker. */

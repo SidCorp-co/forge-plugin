@@ -62,7 +62,7 @@ test("-h names every flag it reads and what the record cannot see", () => {
     "seconds that step took", "one line per green run", "a temporary directory of this run's own",
     "a path no step claims", "leaves the record", "records no pass",
     "decide the order the steps are spent in: cheapest first", "no seconds for",
-    "one-minute load", "ceiling that review set", "<label>-files", `${REVIEW.seconds}s on ${REVIEW.on}`,
+    "one-minute load", "this ledger's own population", "<label>-files", `${REVIEW.seconds}s on ${REVIEW.on}`,
     "re-runs each of them once, alone", "the gate refuses and names it",
     "has not been shown to be this tree's", "One re-run per case and never a loop",
     "suite-interaction finding", "a step that failed records no pass",

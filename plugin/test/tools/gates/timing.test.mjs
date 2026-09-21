@@ -6,8 +6,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { CEILING_SECONDS, REVIEW, ceilingOf, fileTimesPath, recordRun, runSays, runSeries, wholeGatesRecorded }
-  from "../../../../tools/gates/timing.mjs";
+import { CEILING_PERCENTILE, MIN_CEILING_POPULATION, ceilingFromLedger, fileTimesPath, recordRun, runSays,
+  runSeries, wholeGatesRecorded } from "../../../../tools/gates/timing.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
@@ -56,21 +56,75 @@ test("a figure is compared only with a whole-gate figure, and what is comparable
     /3s more than the one before it, which took under a second, so there is no ratio/u);
 });
 
-/* The load on a run's line is context; the review figure, said with the load it was measured under, is
-   what a regression shows against — a rolling baseline taken under load would read it as an improvement (ISS-736). */
-test("a regression against the review figure is said even when the run before it was slower under load", () => {
+/* The load on a run's line is context; the review figure, said with the load it was measured under, stays
+   in the sentence as a dated anchor whatever the run before it did under load (ISS-736) — and, with only
+   one prior whole run recorded, well short of MIN_CEILING_POPULATION, nothing is said about a ceiling at
+   all: a percentile of one point is a single reading wearing a formula. */
+test("the review figure's own ratio is said even when the run before it was slower under load, and a population this small speaks no ceiling", () => {
   const review = { seconds: 60, load: 1.1, cores: 6, on: "2026-09-01", issue: "ISS-1" };
   const said = runSays(planted(["2026-09-08T08:00:00.000Z 100s 14/14 load 9.00/6", "2026-09-08T09:00:00.000Z 90s 14/14 load 0.50/6"]), review);
-  assert.equal(said, "90s over 14 of 14 step(s) on 2026-09-08, load 0.5 on 6 core(s), 1.50x the 60s the review of 2026-09-01 measured under load 1.1 on 6 core(s) (ISS-1), "
-    + "over the ceiling of 75s that review set; 0.90x the 100s before it (its line said load 9.00/6)");
+  assert.equal(said, "90s over 14 of 14 step(s) on 2026-09-08, load 0.5 on 6 core(s), 1.50x the 60s the review of 2026-09-01 measured under load 1.1 on 6 core(s) (ISS-1); "
+    + "0.90x the 100s before it (its line said load 9.00/6)");
 });
 
-test("under the ceiling nothing is said about it, and a line from before the load clause compares without one", () => {
+test("a line from before the load clause compares without one", () => {
   const review = { seconds: 100, load: 1.1, cores: 6, on: "2026-09-01", issue: "ISS-1" };
   const said = runSays(planted(["2026-09-04T18:05:41.583Z 69s 14/14", "2026-09-08T09:00:00.000Z 80s 14/14 load 0.50/6"]), review);
   assert.equal(said, "80s over 14 of 14 step(s) on 2026-09-08, load 0.5 on 6 core(s), 0.80x the 100s the review of 2026-09-01 measured under load 1.1 on 6 core(s) (ISS-1); 1.16x the 69s before it");
-  assert.equal(ceilingOf({ seconds: 100 }), 125);
-  assert.equal(CEILING_SECONDS, Math.round(REVIEW.seconds * 1.25), "the ceiling is the drift trigger applied to the review figure");
+});
+
+// A ledger built with MIN_CEILING_POPULATION prior whole runs at one table size, so a ceiling can be spoken of at all.
+const populated = (priorSeconds, newest) => {
+  const lines = priorSeconds.map((seconds, nth) => `2026-02-${String(nth + 1).padStart(2, "0")}T00:00:00.000Z ${seconds}s ${WHOLE}/${WHOLE}`);
+  lines.push(`2026-03-01T00:00:00.000Z ${newest}s ${WHOLE}/${WHOLE}`);
+  return planted(lines);
+};
+
+// Ten values, so MIN_CEILING_POPULATION is met exactly and the 90th percentile interpolates rather than landing on a point.
+const TEN = [100, 110, 120, 130, 140, 150, 160, 170, 180, 190];
+// percentileOf([...TEN], 0.9): index (10-1)*0.9 = 8.1, between the 9th (180) and 10th (190) values, interpolated.
+const TEN_P90 = 181;
+
+test("the ceiling a whole run is judged against is a percentile of the ledger's own same-table population, not a fixed sample", () => {
+  assert.equal(TEN.length, MIN_CEILING_POPULATION, "the fixture is sized to the population floor this pins");
+  const dir = populated(TEN, 200);
+  const ceiling = ceilingFromLedger(runSeries(dir).filter((one) => one.total === one.ran));
+  assert.deepEqual(ceiling, { seconds: TEN_P90, population: MIN_CEILING_POPULATION, through: "2026-02-10T00:00:00.000Z" },
+    "the ceiling is the 90th percentile of the ten prior runs, not REVIEW.seconds * 1.25");
+  // The same population under a review figure an order of magnitude away still names the same ceiling: the two are independent.
+  const farReview = { seconds: 5, load: 1, cores: 1, on: "2020-01-01", issue: "ISS-0" };
+  assert.match(runSays(dir, farReview), new RegExp(`over the ${Math.round(CEILING_PERCENTILE * 100)}th percentile of ${MIN_CEILING_POPULATION} whole run\\(s\\) .* ${TEN_P90}s`, "u"));
+});
+
+test("fewer prior whole runs than the population floor leaves the ceiling unspoken", () => {
+  const short = TEN.slice(0, MIN_CEILING_POPULATION - 1);
+  const dir = populated(short, 100_000);
+  const ceiling = ceilingFromLedger(runSeries(dir).filter((one) => one.total === one.ran));
+  assert.equal(ceiling, null, `${short.length} prior run(s), one short of the floor, named a ceiling`);
+  assert.doesNotMatch(runSays(dir), /percentile/u, "an ordinary run's sentence spoke a ceiling with too small a population behind it");
+});
+
+test("a spoken ceiling names its percentile, its population and the date it was drawn through", () => {
+  const said = runSays(populated(TEN, 200));
+  assert.match(said,
+    new RegExp(`, over the 90th percentile of 10 whole run\\(s\\) this ledger holds on this table through 2026-02-10, ${TEN_P90}s`, "u"),
+    said);
+});
+
+test("a population whose ordinary run sits under the ceiling is silent, and the same population shifted up makes an ordinary run of it speak", () => {
+  // Twenty points so the population's own median is unambiguous and the 90th percentile sits well inside it.
+  const population = Array.from({ length: 20 }, (one, nth) => 90 + nth); // 90..109, median 99.5
+  const ceiling = ceilingFromLedger([...population.map((seconds) => ({ seconds, total: WHOLE })), { seconds: 0, total: WHOLE }]);
+  assert.ok(ceiling.seconds >= 90 && ceiling.seconds <= 109, `the ceiling ${ceiling.seconds}s should sit inside the population it was drawn from, near its top`);
+
+  const ordinary = runSays(populated(population, 100)); // 100 is squarely inside 90..109: an ordinary run of this population
+  assert.doesNotMatch(ordinary, /percentile/u, `an ordinary run of the population it was judged against spoke a ceiling:\n${ordinary}`);
+
+  // The same population, shifted up by 100s: an ordinary run of that shifted regime (200, squarely inside 190..209)
+  // judged against the ceiling drawn from the *unshifted* runs recorded before it.
+  const shifted = runSays(populated(population, 200));
+  assert.match(shifted, /percentile/u, `an ordinary run of a population that has genuinely shifted up stayed silent:\n${shifted}`);
+  assert.match(shifted, new RegExp(`over the 90th percentile of 20 whole run\\(s\\) .* ${ceiling.seconds}s`, "u"), shifted);
 });
 
 test("a line without a load clause and one with it both read as runs, and a recorded run writes what it was given", () => {
