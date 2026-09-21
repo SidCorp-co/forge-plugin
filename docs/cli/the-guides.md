@@ -1,7 +1,7 @@
-# The guides are the tracker's, and seven of them are not this flow's
+# The guides are the tracker's, and nine of them are not this flow's
 
-Read guide by guide, the reading recorded on 2026-09-04, five of the twelve the tracker serves
-state a rule this plugin's contract has replaced, and `pipeline-and-issue-lifecycle` disagrees with itself inside one page: use
+Read guide by guide — twelve on 2026-09-04 and the fifteen served on 2026-09-21 — five
+state a rule this plugin's contract has replaced whole, and `pipeline-and-issue-lifecycle` disagrees with itself inside one page: use
 `dropped` for anything discarded, and three paragraphs later, the recommended discard for non-work is
 `closed` plus `unmark`. None of it is the tracker's fault — those pages describe the pipeline runner
 it ships. The cost is what a passthrough did to agents in another project the same week: one wrote a
@@ -15,14 +15,17 @@ what holds instead, and where to go — a verb this CLI has, or a file the insta
 code and not a project setting because it is this plugin's reading of the tracker, and a
 contradiction is not a thing a project can rightly turn back on.
 
-**Having a row is what withholds the guide**, and the two other pages are the reason the rule is
-stated that way rather than by disposition. `memory-and-knowledge` and `issue-dependencies` are
-the tracker's in one half and the runner's in the other, and for two releases the verb served them
-whole under a first line withdrawing the half that does not apply — which asks an agent to read a page and then hold part of it aside. Neither is a page it can
-follow whole, so neither is listed. The disposition decides one thing now and it is not visibility:
-`superseded` is what the overlap measure in [doctor](doctor.md) scores, which is a different question — whether a
+**A row is the read, and the disposition is what withholds the guide.** `memory-and-knowledge` and
+`issue-dependencies` are the tracker's in one part and the runner's in the other, and for two
+releases the verb served them whole under a first line withdrawing the part that does not apply — which asks an agent to read a page and then hold part of it aside. Neither is a page it can
+follow whole, so neither is listed, and `answering-as-the-assistant` and `records-and-comments` are
+the same shape read later. `stands` is the third word, and it withholds nothing: a read that found no
+rule for the contract to replace has to land somewhere, or a page nobody has judged and a page judged
+sound sit in the table identically, and the clause behind that verdict has no other home. So absence
+of a row means unread, which is the state `forge doctor` notes. `superseded` still means itself
+exactly, because the overlap measure in [doctor](doctor.md) asks whether a
 project's own file restates a guide's authority, not whether this verb serves the page. What a
-maintainer's read prints is decided by the rules the row enumerates, and a row may enumerate none.
+maintainer's read prints is decided by the rules the row enumerates and by whether it withholds.
 
 Nothing the CLI volunteers names a withheld guide — not the listing, not a count of what it left
 out, not a near miss, not `-h`. Asking for one by slug echoes the slug the caller typed and answers
@@ -46,7 +49,7 @@ decompose half had moved to what the contract says, and its new closing paragrap
 so a row carried over would have replaced a rule the page no longer states and served one it now
 does.
 
-The list of twelve beside the table is not a copy of names the server publishes in the sense the rule
+The list of fifteen beside the table is not a copy of names the server publishes in the sense the rule
 in [what the projections leave out](the-projections.md) forbids: nothing answers a guide from it, its whole purpose is to differ from the live list
 when the tracker moves, and a row this record lacks fails the suite, so the change that notices a
 retirement is the change that answers it — by dropping the row, or by earning it again on the page
@@ -68,7 +71,7 @@ saying only that a copy arrived incomplete, which is the finding rather than the
 The overlap measure has the same premise the verb just abandoned — the guide is the authority, the
 project's own file the copy — so it no longer scores a superseded guide. It would otherwise ask a
 developer to delete their line and defer to the rule the CLI stopped serving. An `overrides:` marker
-still resolves against all twelve: a waiver names a guide, and which of them this plugin stands
+still resolves against all fifteen: a waiver names a guide, and which of them this plugin stands
 behind is not the waiver's business.
 
 ## The skills' own text is served the same way

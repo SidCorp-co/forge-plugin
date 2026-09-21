@@ -1,7 +1,7 @@
 /* This plugin's disposition of the tracker's own guides. The tracker serves the lifecycle rules of
-   its pipeline runner, and no session under this plugin is that runner: five of the twelve state a
-   rule the contract has replaced and two more are the runner's in half, so a passthrough hands every
-   agent two contracts on its first read. The disposition is code and not configuration because it is this plugin's reading of the
+   its pipeline runner, and no session under this plugin is that runner: five of the fifteen state a
+   rule the contract has replaced, four more are the runner's in part, and two it stands behind, so a
+   passthrough hands every agent two contracts on its first read. The disposition is code and not configuration because it is this plugin's reading of the
    tracker, and a project cannot rightly turn a contradiction back on. docs/cli/the-guides.md
    carries what the stale rules cost; `forge guide contract` prints what holds instead. */
 
@@ -22,16 +22,17 @@ export const localSlugs = () => offered().map((one) => one.slug);
 export const localRows = () => offered().map((one) => one.row);
 export const localGuide = (slug) => LOCAL().find((one) => one.slug === slug)?.answer ?? null;
 
-/* Having a row is what withholds the guide, whichever disposition the row carries: neither a page
-   the contract replaced nor a page half of which is the runner's is one an agent can follow whole,
-   and naming a stale guide is how an agent comes to weigh two sources. A slug in no row is the
-   tracker's and passes through untouched.
+/* A row is the read, and the disposition decides whether the page is served: neither a page the
+   contract replaced nor a page part of which is the runner's is one an agent can follow whole, and
+   naming a stale guide is how an agent comes to weigh two sources. A page the read cleared is served
+   under a row saying so — `stands`, which withholds nothing — because a read that found nothing to
+   replace and a read nobody made must not leave the table in the same state, and the clause behind
+   the verdict has nowhere else to live. A slug in no row is one nobody has read.
 
-   So the disposition no longer decides visibility, and what it still decides is one thing:
    `supersededSlugs`, which `forge doctor` alone calls, keeps meaning `superseded` exactly, because
    the overlap measure asks whether a project's own file restates a guide's authority — a different
    question from whether this verb serves the page. What `--tracker` prints is decided by the rules
-   the row enumerates, not by its disposition. */
+   the row enumerates and by whether the row withholds, never by the word alone. */
 export const GUIDE_TABLE = [
   {
     slug: "pipeline-and-issue-lifecycle",
@@ -165,23 +166,96 @@ export const GUIDE_TABLE = [
     ],
     by: ["forge new"],
   },
+  {
+    slug: "answering-as-the-assistant",
+    disposition: "partly",
+    why: "investigating before answering, and owning a request rather than handing it back, are this"
+      + " flow's too; the tracker section under them is the assistant's at a chat door, and four of its"
+      + " rules are ones an agent here would follow into an unearned status or a refused filing",
+    replaced: [
+      {
+        says: "a filing always enters at `draft`, and a person moves it on later",
+        instead: "`forge new` files at `open`, and `draft` is the reporter's status before that, so"
+          + " nothing here waits on a person to start work it has just filed",
+      },
+      {
+        says: "an issue waiting on more information is at `needs_info`",
+        instead: "a run waiting on a person parks, the park's kind saying who it waits on, and the"
+          + " status stays where its record left it",
+      },
+      {
+        says: "a title is the kind and the affected feature, as `[Bug] <what is wrong>`",
+        instead: "a title is what is true once the issue is fixed, one line, which is what `forge new`"
+          + " asks a filing for",
+      },
+      {
+        says: "`-h` is for a form the tool's own description does not carry, and costs a round-trip"
+          + " nothing else pays",
+        instead: "the verb is the document: `forge -h` and then the verb's own `-h` are where any write"
+          + " here is looked up, and a guessed flag pays the refusal instead",
+      },
+    ],
+    by: ["forge new", "forge record"],
+  },
+  {
+    slug: "records-and-comments",
+    disposition: "partly",
+    why: "an attachment for a log, the knowledge store for the project's prose and a transition that"
+      + " writes rather than narrates are the tracker's own and stand; what it rules about a run's own"
+      + " records is written against a store this flow does not write to",
+    replaced: [
+      {
+        says: "a `forge-record` fence in a comment body means a record was serialised instead of stored",
+        instead: "that fence is the one shape this CLI owns for a typed payload, and the only thing"
+          + " `forge advance` reads a status off",
+      },
+      {
+        says: "a baseline, a decision, a correction, a park and a merged mark belong at the issue's"
+          + " attributes route under a registered key, the sentence left behind in the comment",
+        instead: "each of those five is a kind `forge record` writes whole in one typed comment, and an"
+          + " assertion split off into a second row earns no status here",
+      },
+    ],
+    by: ["forge record", "forge advance"],
+  },
+  {
+    slug: "google-sheets",
+    disposition: "stands",
+    why: "it documents the sheets capability alone — which spreadsheet a call resolves to, what an"
+      + " overwrite leaves behind, what each refusal asks for — and states no rule about a status, a"
+      + " record or a filing, so no part of the contract reaches it",
+    replaced: [],
+    by: [],
+  },
+  {
+    slug: "module-taxonomy-migration",
+    disposition: "stands",
+    why: "it is a label migration over the tracker's own API and states no rule the contract owns; the"
+      + " module attribution it switches on is injected into a pipeline agent's prompt rather than read"
+      + " by anything here, which leaves the procedure sound and its stated payoff absent",
+    replaced: [],
+    by: [],
+  },
 ];
 
 /* The tracker's list as it stood when each row above was written against the body it serves. It is
    a record for comparing, never a list this CLI answers a guide from: `forge doctor` reads the live
    list and reports where the two have diverged, and the test refuses a table row this record lacks,
    so a guide the tracker retires takes its row out in the same change that notices. */
-export const REVIEWED_AT = "2026-09-04";
+export const REVIEWED_AT = "2026-09-21";
 export const REVIEWED = [
   "agent-setup",
+  "answering-as-the-assistant",
   "attachments-and-uploads",
   "conformance-and-verify",
   "deploy-safety",
-  "integration-epodsystem",
+  "google-sheets",
   "issue-dependencies",
   "memory-and-knowledge",
+  "module-taxonomy-migration",
   "pipeline-and-issue-lifecycle",
   "project-settings-and-test-credentials",
+  "records-and-comments",
   "update-pipeline-reconcile",
   "what-is-an-issue",
   "writing-an-issue",
@@ -195,8 +269,12 @@ export const dispositionOf = (slug, table = GUIDE_TABLE) => rowFor(table, slug);
 export const supersededSlugs = (table = GUIDE_TABLE) =>
   new Set(table.filter((row) => row.disposition === "superseded").map((row) => row.slug));
 
-/** Every slug this plugin holds a disposition about, and so the set the verb refuses to serve. */
-export const heldSlugs = (table = GUIDE_TABLE) => new Set(table.map((row) => row.slug));
+/** Whether a row takes the page out of the verb's hands, which every disposition but `stands` does. */
+export const withholds = (row) => Boolean(row) && row.disposition !== "stands";
+
+/** The slugs the verb refuses to serve, which is the rows that withhold and not every row. */
+export const heldSlugs = (table = GUIDE_TABLE) =>
+  new Set(table.filter((row) => withholds(row)).map((row) => row.slug));
 
 /** The slugs the verb stands behind, in the order the tracker gave them, a withheld skill's name among what they are not: the verb refuses that word whatever would have answered it, and a listing offering what the verb refuses is the contradiction one surface exists to prevent. */
 export const visibleGuides = (slugs, table = GUIDE_TABLE) => {
@@ -217,10 +295,12 @@ const routes = (row) => {
 export const trackerHeader = (row) => {
   if (!row) return ["This is the tracker's own guide, and this plugin holds no disposition about it."];
   const where = routes(row);
-  const opening = row.replaced.length
-    ? `This is the tracker's own guide. The contract replaces ${row.replaced.length} of its rules`
-      + `${where ? `, and instead ${where}` : ""}:`
-    : `This is the tracker's own guide, and the contract replaces no rule of it: ${row.why}.`;
+  const opening = !withholds(row)
+    ? `This is the tracker's own guide and this plugin stands behind it: ${row.why}.`
+    : row.replaced.length
+      ? `This is the tracker's own guide. The contract replaces ${row.replaced.length} of its rules`
+        + `${where ? `, and instead ${where}` : ""}:`
+      : `This is the tracker's own guide, and no rule of it is the contract's to replace: ${row.why}.`;
   return [opening, ...row.replaced.map(({ says, instead }) => `  - it says ${says}\n    instead ${instead}`)];
 };
 

@@ -22,6 +22,7 @@ const {
   supersededSlugs,
   trackerHeader,
   visibleGuides,
+  withholds,
 } = await import("../../src/guides/guides.mjs");
 const { VERB_NAMES } = await import("../../src/resolve/visibility.mjs");
 const { suggest } = await import("../../src/suggest.mjs");
@@ -58,12 +59,32 @@ test("a local guide is answered from this copy, and nothing else is", async () =
 
 test("every disposition is one the verb acts on", () => {
   for (const row of GUIDE_TABLE) {
-    assert.ok(["superseded", "partly"].includes(row.disposition), `${row.slug}: ${row.disposition}`);
+    assert.ok(["superseded", "partly", "stands"].includes(row.disposition), `${row.slug}: ${row.disposition}`);
     assert.ok(row.why.length > 20, `${row.slug} says nothing about why`);
     assert.ok(Array.isArray(row.by), `${row.slug} names no replacement list`);
   }
-  assert.equal(supersededSlugs().size, 5, "five of the twelve, which is what the issue read");
-  assert.equal(heldSlugs().size, GUIDE_TABLE.length, "and every row is one the verb withholds");
+  assert.equal(supersededSlugs().size, 5, "five of the fifteen, which is what the reading found");
+  assert.equal(heldSlugs().size, GUIDE_TABLE.filter((row) => withholds(row)).length, "the rows that withhold");
+  assert.ok(heldSlugs().size < GUIDE_TABLE.length, "and not every row, a read having cleared some page");
+});
+
+/* The read and the withholding are one row and two answers, which is the whole reason the third word
+   exists: a page the contract replaces no rule of must not be hidden by the act of recording that it
+   was read, and a page it does replace one of must not be served under a row that says it is fine.
+   Both directions are watched, because a predicate that answered one way always would pass the first. */
+test("a row this plugin stands behind withholds nothing, and says nothing was replaced", () => {
+  const stands = GUIDE_TABLE.filter((row) => row.disposition === "stands");
+  assert.ok(stands.length > 0, "the reading cleared at least one page, or this asserts nothing");
+  for (const row of stands) {
+    assert.equal(withholds(row), false, `${row.slug} is hidden by its own read`);
+    assert.deepEqual(row.replaced, [], `${row.slug} stands behind a page it also replaces a rule of`);
+    assert.match(trackerHeader(row)[0], /stands behind it/u, `${row.slug} reads as a withholding`);
+    assert.equal(visibleGuides(REVIEWED).includes(row.slug), true, `${row.slug} is listed`);
+  }
+  for (const row of GUIDE_TABLE.filter((one) => one.disposition !== "stands")) {
+    assert.equal(withholds(row), true, `${row.slug} is served under a stale rule`);
+  }
+  assert.equal(withholds(null), false, "and a slug with no row at all is nobody's to withhold");
 });
 
 test("a row the tracker no longer serves is a finding", () => {
@@ -97,8 +118,8 @@ test("nothing resolves by default", () => {
    follow whole either, and ISS-85 hides it on the same reasoning. */
 test("a list still carrying a slug the table holds is a finding", () => {
   assert.deepEqual(review().leaked, [], "the projection is what the verb prints");
-  assert.deepEqual(review({ listed: REVIEWED }).leaked.length, 7, "and the raw list is what it must not");
-  assert.equal(visibleGuides(REVIEWED).length, REVIEWED.length - 7);
+  assert.deepEqual(review({ listed: REVIEWED }).leaked.length, 9, "and the raw list is what it must not");
+  assert.equal(visibleGuides(REVIEWED).length, REVIEWED.length - 9);
   assert.equal(visibleGuides(REVIEWED).includes("memory-and-knowledge"), false, "the partly rows too");
 });
 
@@ -142,6 +163,7 @@ test("the listing carries the five the plugin stands behind, under the contract 
     assert.equal(run.stdout.includes(slug), false, `${slug} is still named`);
   }
   assert.match(run.stdout, /attachments-and-uploads/u);
+  assert.match(run.stdout, /google-sheets/u, "and a page the reading cleared is listed with it");
   /* The count line was the third trace ISS-85 took out: a guide that is not there costs nothing,
      and one an agent is told exists and is stale costs it a read and a weighing of two sources. */
   const last = GUIDES.find((one) => one.slug === visibleGuides(REVIEWED).at(-1));
@@ -175,6 +197,19 @@ test("a guide with no row prints what the tracker returned and nothing else", as
   const run = await asked("deploy-safety");
   assert.equal(run.status, 0, run.stderr);
   assert.equal(run.stdout.trim(), BODY, run.stdout);
+});
+
+/* A row and a refusal came to the same thing until the reading needed somewhere to put a verdict of
+   *nothing replaced*, so the slug that carries one is asked for by name here: it answers with the
+   body, and only the maintainer's flag adds the sentence saying who stands behind it. */
+test("a slug this plugin stands behind is served by name, the standing said only under --tracker", async () => {
+  const run = await asked("google-sheets");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(run.stdout.trim(), BODY, run.stdout);
+  const maintainer = await asked("google-sheets", "--tracker");
+  assert.equal(maintainer.status, 0, maintainer.stderr);
+  assert.match(maintainer.stdout, /stands behind it/u, maintainer.stdout);
+  assert.ok(maintainer.stdout.includes(BODY), maintainer.stdout);
 });
 
 /* A suggestion is output too, so a typo of a held slug must not name it — the `partly` rows are the

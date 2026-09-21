@@ -31,7 +31,7 @@ import { COMPLEXITY_NAMES } from "./ladder.mjs";
 import { helpOf, isGated, refuseIfGated, skillRefusal, usageOf } from "./resolve/visibility.mjs";
 import { didYouMean } from "./suggest.mjs";
 import { exclusive, flags, partition, pullRepeated, unknownFlag, wantsHelp } from "./resolve/flags.mjs";
-import { dispositionOf, localGuide, localRows, localSlugs, trackerHeader, visibleGuides } from "./guides/guides.mjs";
+import { dispositionOf, localGuide, localRows, localSlugs, trackerHeader, visibleGuides, withholds } from "./guides/guides.mjs";
 import { briefGoals, servesOwed } from "./tracker/knowledge/brief.mjs";
 import { goalBlock } from "./goals.mjs";
 import { finderSaid, notAnothers, renew } from "./flow/lease.mjs";
@@ -443,7 +443,7 @@ const own = {
     const noSuchGuide = async () =>
       fail(didYouMean("guide", slug, [...localSlugs(), ...(await listed()).map((one) => one.slug)],
         "`forge guide` lists the guides this plugin stands behind."));
-    if (row && !asked.tracker) await noSuchGuide();
+    if (withholds(row) && !asked.tracker) await noSuchGuide();
     const answer = await scoped("forge_guide", { action: "get", slug }, true);
     if (answer?.refused) await noSuchGuide();
     /* `trackerHeader` answers on every path, a row or none, so --tracker alone decides the header. */

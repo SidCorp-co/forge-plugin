@@ -364,6 +364,30 @@ whether a set is one issue at all, is read off the bodies by whoever acts on the
   WHERE an answer carries more hits than were asked for, the sweep SHALL join an issue to a set only
   through a hit inside what it asked for.
 
+### UC-02-12 — A guide the tracker serves, read against this product's own contract
+
+Rev: 1 · Actors: agent, developer · Enforces: BR-07, BR-09
+
+The tracker publishes the method of a runner this product does not run, and an agent reads those
+pages on its first call. Where one of them rules on a status, a payload or a filing, the agent is
+holding two answers at the moment it can least afford to weigh them, so the reading of each page is
+carried here rather than left to the turn. The reading is meaning and no checker settles it; what a
+checker settles is that one exists, which is why a page found sound is recorded as loudly as a page
+found stale, and why the sentence behind either verdict is kept beside it.
+
+- **AC-02-12-1** · Rev: 1 · Proof: plugin/test/guides/guides.test.mjs "a row this plugin stands behind withholds nothing, and says nothing was replaced"
+  WHERE a reading of a served guide found no rule of it for this product's own method to replace, the
+  product SHALL record that reading with the sentence behind it and SHALL go on offering the page.
+- **AC-02-12-2** · Rev: 1 · Proof: plugin/test/guides/guides.test.mjs "a list still carrying a slug the table holds is a finding"
+  WHERE a reading found a rule its own method replaces, the product SHALL leave that page out of what
+  it offers, whether the reading replaced every rule of the page or some of them.
+- **AC-02-12-3** · Rev: 1 · Proof: plugin/test/guides/guides.test.mjs "a slug this plugin stands behind is served by name, the standing said only under --tracker"
+  WHEN a maintainer asks for a served guide together with the reading of it THEN the first line SHALL
+  say whether the product stands behind that page or holds it back.
+- **AC-02-12-4** · Rev: 1 · Proof: plugin/test/guides/guides.test.mjs "a served guide the table never reviewed is named, and judged by nobody"
+  WHERE the tracker serves a guide no recorded reading names, the resolution report SHALL name that
+  guide as one nobody has judged.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*
