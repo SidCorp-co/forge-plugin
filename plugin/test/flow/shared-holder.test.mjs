@@ -5,10 +5,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, standsInNoTree, tempHome } from "../fixtures.mjs";
+import { projectRoom, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
+import { OWN, trackerFor } from "./own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("shared-holder").path;
-standsInNoTree("shared-holder");
+/* Away from this checkout, whose git directory names the run this suite is written under: a
+   checkout of its own names none, and its project is a record beside the machine's own keys
+   rather than a file in the tree. */
+const AWAY = projectRoom(tempRoom("shared-holder-away-"), process.env.XDG_CONFIG_HOME, OWN);
+process.chdir(AWAY);
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const SHARED = "the-dispatching-session";
@@ -36,12 +41,12 @@ const state = {
   },
 };
 
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state, [AWAY]);
 test.after(() => tracker.close());
 
 /* The suite's own environment carries whatever dispatched it, so both variables are set by name. The pid answers: a claim here writes the place it was made in, and one nothing holds would prove the holder gone and take the lease these cases are about being refused (ISS-919). */
 const asRun = (asked) => {
-  const env = { ...tracker.env, AI_AGENT: "a-test-agent", CLAUDE_PID: String(process.pid), CLAUDE_CODE_SESSION_ID: SHARED };
+  const env = { ...ENV, AI_AGENT: "a-test-agent", CLAUDE_PID: String(process.pid), CLAUDE_CODE_SESSION_ID: SHARED };
   if (asked) env.FORGE_SESSION_ID = asked;
   else delete env.FORGE_SESSION_ID;
   return env;

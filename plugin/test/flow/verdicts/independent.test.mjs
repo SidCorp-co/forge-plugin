@@ -7,7 +7,8 @@
 import assert from "node:assert/strict";
 import test, { after, before } from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("verdict-independent").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
@@ -277,10 +278,10 @@ state.answer.forge_comments = (args) => {
   held.push({ documentId: id, createdAt: at(), body: args.data?.body });
   return { documentId: id };
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 after(() => tracker.close());
 
-const asks = (holder) => (...argv) => ranAsync(FORGE, argv, { ...tracker.env, FORGE_SESSION_ID: holder });
+const asks = (holder) => (...argv) => ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: holder });
 const builder = asks(BUILDER);
 const qa = asks(QA);
 /* A write's first send is held to deliver the comments the session has not read, and the same

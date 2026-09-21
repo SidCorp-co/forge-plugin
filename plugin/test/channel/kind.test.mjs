@@ -6,16 +6,22 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, projectRoom, ranAsync, tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const TITLE = "a note about a kind this project allows";
 
-const roomOn = (plugin) => {
-  const room = tempRoom(`feedback-kind-${plugin}-`);
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "somewhere-else", feedback: { plugin } }));
-  return room;
-};
+const state = { issues: [], comments: {}, calls: [], status: 0 };
+const tracker = await fakeTracker(state);
+test.after(() => tracker.close());
+
+/* The rooms' project records live in the configuration home the child is handed, which is the
+   tracker fixture's own: one home per process, one record per room under it. */
+const HOME = tracker.env.XDG_CONFIG_HOME;
+const ENV = { ...tracker.env, HOME };
+
+const roomOn = (plugin) =>
+  projectRoom(tempRoom(`feedback-kind-${plugin}-`), HOME, { slug: "somewhere-else", feedback: { plugin } });
 
 const bugsOnly = roomOn("bugs");
 const everything = roomOn("all");
@@ -44,13 +50,9 @@ const note = (room, body) => {
   return path;
 };
 
-const state = { issues: [], comments: {}, calls: [], status: 0 };
-const tracker = await fakeTracker(state);
-test.after(() => tracker.close());
-
 const send = async (room, argv) => {
   state.calls = [];
-  const run = await ranAsync(FORGE, argv, tracker.env, room);
+  const run = await ranAsync(FORGE, argv, ENV, room);
   return { ...run, filed: state.calls.filter((one) => one.name === "forge_issues" && one.args.action === "create")[0] };
 };
 

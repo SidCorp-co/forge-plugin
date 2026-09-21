@@ -3,27 +3,19 @@
    which, off the project's key rather than off the run's memory of what it was allowed to do. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
 
-import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, projectRecord, projectRoom, ranAsync, tempRoom } from "../fixtures.mjs";
 
+/* The in-process claim below reads this checkout's own project, so the configuration home this
+   process runs against carries that record rather than the machine's. */
 process.env.XDG_CONFIG_HOME = tempRoom("channel-report-");
+projectRecord(process.cwd(), process.env.XDG_CONFIG_HOME,
+  JSON.parse(readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8")));
 const { onThisRepository, pluginFilingLine } = await import("../../src/tracker/filing/plugin-defect.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const HELD = "44444444-4444-4444-8444-444444444444";
-
-const roomOn = (slug, plugin) => {
-  const room = tempRoom(`report-${slug}-${plugin}-`);
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug, feedback: { plugin } }));
-  return room;
-};
-
-const closed = roomOn("somewhere-else", "off");
-const open = roomOn("somewhere-else", "bugs");
-/* The one room whose slug is this plugin's: where the on-repository answer can be watched. */
-const here = roomOn("forge-plugin", "off");
 
 /* Each room's slug is a project the fixture lists: the line is the key's answer, not the slug's. */
 const state = {
@@ -50,7 +42,20 @@ const routedTo = (...destinations) => destinations.map((to, at) => ({
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
-const report = (room) => ranAsync(FORGE, ["resume", "ISS-9", "--report"], tracker.env, room);
+/* One configuration home for every room the children are spawned in — the tracker fixture's, which
+   is the home each room's project record is written under. */
+const HOME = tracker.env.XDG_CONFIG_HOME;
+const ENV = { ...tracker.env, HOME };
+
+const roomOn = (slug, plugin) =>
+  projectRoom(tempRoom(`report-${slug}-${plugin}-`), HOME, { slug, feedback: { plugin } });
+
+const closed = roomOn("somewhere-else", "off");
+const open = roomOn("somewhere-else", "bugs");
+/* The one room whose slug is this plugin's: where the on-repository answer can be watched. */
+const here = roomOn("forge-plugin", "off");
+
+const report = (room) => ranAsync(FORGE, ["resume", "ISS-9", "--report"], ENV, room);
 
 test("a report on a project that closed the channel says the project withheld it", async () => {
   state.comments[HELD] = [];

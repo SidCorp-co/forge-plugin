@@ -8,10 +8,15 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { writeFileSync } from "node:fs";
 
-import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
+import { projectRecord, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { OWN, trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("landing-take").path;
-standsInNoTree("landing-take");
+/* Away from this checkout, whose git directory names the run this suite is written under: a
+   checkout of its own names none, and its project is a record beside the machine's own keys
+   rather than a file in the tree. */
+const AWAY = projectRoom(tempRoom("landing-take-away-"), process.env.XDG_CONFIG_HOME, OWN);
+process.chdir(AWAY);
 const { leaseOf } = await import("../../../src/flow/lease.mjs");
 const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
 
@@ -28,9 +33,7 @@ const pushedRepo = (files) => {
   const room = tempRoom("landing-repo-");
   spawnSync("git", ["init", "-q", "-b", "iss-673-6", room], { cwd: dirname(room), encoding: "utf8" });
   writeFileSync(join(room, "base.txt"), "the base\n");
-  /* The verb is project-scoped wherever it runs, and the capture's checkout is where it runs. */
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "forge-plugin" }));
-  git(room, "add", "base.txt", ".forge.json");
+  git(room, "add", "base.txt");
   git(room, "commit", "-qm", "base");
   git(room, "update-ref", "refs/remotes/origin/master", git(room, "rev-parse", "HEAD").stdout.trim());
   for (const one of files) writeFileSync(join(room, one), `${one}, changed\n`);
@@ -74,10 +77,12 @@ const state = {
     },
   },
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state, [AWAY]);
+const CHILD_HOME = ENV.HOME;
+for (const one of [CHANGED, NOTHING]) projectRecord(one, CHILD_HOME, { slug: "forge-plugin" });
 test.after(() => tracker.close());
 
-const asRun = (id) => ({ ...tracker.env, AI_AGENT: "a-test-agent", CLAUDE_PID: "4242", FORGE_SESSION_ID: id });
+const asRun = (id) => ({ ...ENV, AI_AGENT: "a-test-agent", CLAUDE_PID: "4242", FORGE_SESSION_ID: id });
 /* The id a whole wave carries: no `FORGE_SESSION_ID`, so every run of it reads the dispatcher's. */
 const asWave = (id) => {
   const env = { ...asRun(id), CLAUDE_CODE_SESSION_ID: id };

@@ -1,8 +1,9 @@
 /* Every matching row is in hand before anything prints, so the cut this verb makes is the printed one and the offset that moves it is printed too; 450 rows against a route serving them whole (ISS-1150). */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 
-import { fakeTracker, ranAsync } from "../../fixtures.mjs";
+import { fakeTracker, projectRecord, ranAsync } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../../..", import.meta.url).pathname;
@@ -22,9 +23,15 @@ const BACKLOG = Array.from({ length: COUNT }, (one, index) => at(index + 1));
 
 const state = { issues: BACKLOG, comments: {}, calls: [], answer: {} };
 const tracker = await fakeTracker(state);
+
+/* Every call here runs from this checkout, whose project is this machine's record of it now:
+   the record goes under the one configuration home the children are handed. */
+const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
+projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME,
+  JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8")));
 test.after(() => tracker.close());
 
-const ran = (argv) => ranAsync(FORGE, argv, tracker.env, ROOT, null);
+const ran = (argv) => ranAsync(FORGE, argv, ENV, ROOT, null);
 const keysIn = (text) => text.split("\n").map((line) => /^(ISS-\d+)\s/u.exec(line)?.[1]).filter(Boolean);
 const footerOf = (text) => text.split("\n").at(-2)?.trim() ?? "";
 

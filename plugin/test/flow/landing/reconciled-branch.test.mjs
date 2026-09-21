@@ -9,10 +9,15 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { rmSync, writeFileSync } from "node:fs";
 
-import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
+import { projectRecord, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { OWN, trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("reconciled-branch").path;
-standsInNoTree("reconciled-branch");
+/* Away from this checkout, whose git directory names the run this suite is written under: a
+   checkout of its own names none, and its project is a record beside the machine's own keys
+   rather than a file in the tree. */
+const AWAY = projectRoom(tempRoom("reconciled-branch-away-"), process.env.XDG_CONFIG_HOME, OWN);
+process.chdir(AWAY);
 const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -53,7 +58,8 @@ const state = {
     },
   },
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state, [AWAY]);
+const CHILD_HOME = ENV.HOME;
 test.after(() => tracker.close());
 
 const checkpoint = () => landingOf(state.issues[0].sessionContext);
@@ -77,7 +83,7 @@ const owed = (head) => {
 /* Twice, since the gate every write passes delivers a comment this session has not read and refuses
    once; and with `--unheld`, every case starting from a field whose lease is the builder's own. */
 const ran = async (argv, cwd) => {
-  const env = { ...tracker.env, AI_AGENT: "a-test-agent", CLAUDE_PID: "4242", FORGE_SESSION_ID: BUILDER };
+  const env = { ...ENV, AI_AGENT: "a-test-agent", CLAUDE_PID: "4242", FORGE_SESSION_ID: BUILDER };
   let run = null;
   for (const again of [1, 2]) {
     run = await ranAsync(FORGE, [...argv, "--unheld"], env, cwd);
@@ -89,9 +95,10 @@ const ran = async (argv, cwd) => {
 const handedRoom = (name) => {
   const room = tempRoom(`reconciled-${name}-`);
   spawnSync("git", ["init", "-q", "-b", BRANCH, room], { cwd: dirname(room), encoding: "utf8" });
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "forge-plugin" }));
+  /* The verb is project-scoped wherever it runs, and this room's checkout is where it runs. */
+  projectRecord(room, CHILD_HOME, { slug: "forge-plugin" });
   writeFileSync(join(room, "one.mjs"), "the judged head\n");
-  git(room, "add", "one.mjs", ".forge.json");
+  git(room, "add", "one.mjs");
   git(room, "commit", "-qm", "the judged head");
   const judged = git(room, "rev-parse", "HEAD").stdout.trim();
   git(room, "update-ref", `refs/remotes/origin/${BRANCH}`, judged);
@@ -144,6 +151,7 @@ test("a reading that proves neither answer lets the reconciliation through", asy
   const shallow = tempRoom("reconciled-shallow-");
   spawnSync("git", ["clone", "-q", "--depth", "1", "--branch", BRANCH, `file://${room}`, shallow],
     { cwd: dirname(shallow), encoding: "utf8" });
+  projectRecord(shallow, CHILD_HOME, { slug: "forge-plugin" });
   assert.notEqual(git(shallow, "cat-file", "-e", `${judged}^{commit}`).status, 0,
     "the judged head is behind the shallow boundary, which is a history that cannot settle it");
   owed(judged);

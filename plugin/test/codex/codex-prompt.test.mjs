@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { tempRoom } from "../fixtures.mjs";
+import { readFileSync } from "node:fs";
+import { projectRecord, projectRoom, tempRoom } from "../fixtures.mjs";
 
-/* Imported after XDG_CONFIG_HOME moves, so nothing here can touch the caller's own state file. */
+/* Imported after XDG_CONFIG_HOME moves, so nothing here can touch the caller's own state file. The
+   checkout's own keys are what the no-flag case reads, so this home carries that record too. */
 process.env.XDG_CONFIG_HOME = tempRoom("forge-codex-prompt-");
+projectRecord(process.cwd(), process.env.XDG_CONFIG_HOME,
+  JSON.parse(readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8")));
 delete process.env.FORGE_CODEX_DISABLE;
 
 const { consultArgs } = await import("../../src/codex/codex.mjs");
@@ -53,15 +55,15 @@ test("the out-of-scope text and the checks are the caller's, and absent they are
   assert.equal(consultArgs(["a.mjs"]).checks, "npm test", "and this checkout's own codex.check stands where no flag came");
 });
 
-/* `.forge.json` is read once per process, so the checkout naming no check has to be another one. */
+/* A project is resolved once per process, so the checkout naming no check has to be another one. */
 test("a checkout naming no codex.check sends no checks section", () => {
-  const room = tempRoom("forge-codex-nocheck-");
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "nothing" }));
+  const home = tempRoom("forge-codex-nocheck-home-");
+  const room = projectRoom(tempRoom("forge-codex-nocheck-"), home, { slug: "nothing" });
   const source = new URL("../../src/codex/codex.mjs", import.meta.url).pathname;
   const run = spawnSync(
     process.execPath,
     ["-e", `import(${JSON.stringify(source)}).then((m) => process.stdout.write(JSON.stringify(m.consultArgs(["a.mjs"]).checks)))`],
-    { cwd: room, encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: tempRoom("forge-codex-nocheck-home-") } },
+    { cwd: room, encoding: "utf8", env: { ...process.env, HOME: home, XDG_CONFIG_HOME: home } },
   );
   assert.equal(run.status, 0, run.stderr);
   assert.equal(run.stdout, '""', "nothing to name is nothing sent, not a guess at the gate");

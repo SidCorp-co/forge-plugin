@@ -5,10 +5,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, standsInNoTree, tempHome } from "../../fixtures.mjs";
+import { projectRoom, tempHome, tempRoom } from "../../fixtures.mjs";
+import { OWN, trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("landing-moved-under").path;
-standsInNoTree("landing-moved-under");
+/* Away from this checkout, whose git directory names the run this suite is written under: a
+   checkout of its own names none, and its project is a record beside the machine's own keys
+   rather than a file in the tree. */
+const AWAY = projectRoom(tempRoom("landing-moved-under-away-"), process.env.XDG_CONFIG_HOME, OWN);
+process.chdir(AWAY);
 const HOLDER = "iss-673-abcdef12";
 process.env.FORGE_SESSION_ID = HOLDER;
 
@@ -56,8 +61,8 @@ const state = {
   },
 };
 
-const tracker = await fakeTracker(state);
-Object.assign(process.env, tracker.env);
+const { tracker, env: ENV } = await trackerFor(state, [AWAY]);
+Object.assign(process.env, ENV);
 test.after(() => tracker.close());
 
 const { landingSaved, readContext } = await import("../../../src/flow/lease.mjs");

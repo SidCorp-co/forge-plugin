@@ -4,11 +4,10 @@
    sentence it names from the part under the flow it names. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { fakeTracker, flat, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { fakeTracker, flat, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("qa-flow").path;
 const { DEFAULT, SCREEN } = await import("../../../src/guides/flow.mjs");
@@ -16,11 +15,23 @@ const { DEFAULT, SCREEN } = await import("../../../src/guides/flow.mjs");
 const PLUGIN = new URL("../../../", import.meta.url).pathname;
 const FORGE = join(PLUGIN, "bin", "forge");
 
+/* One configuration home for every reading, holding one record per flow: the project's keys live
+   beside the machine's now, so a room and the home its record sits in travel together and neither
+   is this developer's. */
+const HOME = tempRoom("qa-flow-home-");
+const rooms = new Map();
+const roomFor = (flow) => {
+  if (!rooms.has(flow)) {
+    rooms.set(flow, projectRoom(tempRoom("qa-flow-"), HOME,
+      { slug: "qa-fixture", ...(flow ? { flow } : {}) }));
+  }
+  return rooms.get(flow);
+};
+
 /* One flow per process, the resolver answering once, so every reading spawns the verb. */
 const served = (flow, ...argv) => {
-  const dir = tempRoom("qa-flow-");
-  writeFileSync(join(dir, ".forge.json"), JSON.stringify({ slug: "qa-fixture", ...(flow ? { flow } : {}) }));
-  const run = spawnSync(FORGE, argv, { encoding: "utf8", env: { ...process.env }, cwd: dir });
+  const run = spawnSync(FORGE, argv,
+    { encoding: "utf8", env: { ...process.env, HOME, XDG_CONFIG_HOME: HOME }, cwd: roomFor(flow) });
   assert.equal(run.status, 0, `\`forge ${argv.join(" ")}\` under ${flow ?? "no key"} exited ${run.status}: ${run.stderr}`);
   return flat(run.stdout);
 };
@@ -34,9 +45,9 @@ const method = (flow) => served(flow, "guide", "qa");
 const judging = (flow) => served(flow, "guide", "qa", "judging");
 
 test("the skill is listed, and its method is phased under either flow", async () => {
-  const dir = tempRoom("qa-listing-");
-  writeFileSync(join(dir, ".forge.json"), JSON.stringify({ slug: "qa-fixture" }));
-  const listed = await ranAsync(FORGE, ["guide"], tracker.env, dir);
+  const home = tracker.env.XDG_CONFIG_HOME;
+  const dir = projectRoom(tempRoom("qa-listing-"), home, { slug: "qa-fixture" });
+  const listed = await ranAsync(FORGE, ["guide"], { ...tracker.env, HOME: home }, dir);
   assert.equal(listed.status, 0, listed.stderr);
   assert.match(listed.stdout, /^qa$/mu, "criterion 12: the copy ships the skill and offers it nowhere");
   for (const flow of [DEFAULT, SCREEN]) {

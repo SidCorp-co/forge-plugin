@@ -6,7 +6,8 @@ import test from "node:test";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("the-two-rungs").path;
 const { CHECKS, ORDER, JUDGED_AT, viewFrom } = await import("../../../src/flow/earned.mjs");
@@ -171,12 +172,12 @@ state.answer.forge_issues = (args) => {
   if (args.action === "update" || args.action === "transition") return Object.assign(SHIPPED, args.data);
   return { documentId: args.documentId, ...(args.data ?? {}) };
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
 const statusNow = () => SHIPPED.status;
 /* One id across the spawns, or each is a session the page has never been shown to and every write
    is held to deliver it again. */
-const walking = (...argv) => ranAsync(FORGE, argv, { ...tracker.env, FORGE_SESSION_ID: "the-walk" });
+const walking = (...argv) => ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: "the-walk" });
 
 test("the verb walks developed to the judging rung and on to the deploying one, and refuses the jump", async () => {
   const jump = await walking("advance", "ISS-96", "--to", CLOSES_FROM);

@@ -6,10 +6,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { fakeTracker, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
 import { RETIRED } from "../../../src/checks/retired-names.mjs";
 
 const home = tempHome("neighbours");
@@ -21,6 +21,12 @@ const ELSEWHERE = { issueId: "ISS-52", documentId: "uuid-52", status: "in_progre
 
 const state = { issues: [OPEN, SETTLED, ELSEWHERE], comments: {}, calls: [], memory: {} };
 const tracker = await fakeTracker(state);
+
+/* Every call here runs from this checkout, whose project is this machine's record of it now:
+   the record goes under the one configuration home the children are handed. */
+const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
+projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME,
+  JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8")));
 test.after(() => tracker.close());
 
 mkdirSync(join(home.path, "forge"), { recursive: true });
@@ -62,13 +68,13 @@ const TITLE = "one name on an issue resolves to one document";
 const wrote = (...argv) => {
   const path = join(room, "body.md");
   writeFileSync(path, `${BODY}\n`);
-  return ranAsync(FORGE, ["new", path, "--title", TITLE, ...argv], tracker.env);
+  return ranAsync(FORGE, ["new", path, "--title", TITLE, ...argv], ENV);
 };
 
 const posted = (...argv) => {
   const path = join(room, "body.md");
   writeFileSync(path, `${BODY}\n`);
-  return ranAsync(FORGE, ["comment", "ISS-45", path, ...argv], tracker.env);
+  return ranAsync(FORGE, ["comment", "ISS-45", path, ...argv], ENV);
 };
 
 /* The body carries a *Where*, which is the bug shape's, so the kind is named on every filing but
@@ -236,7 +242,7 @@ test("a kind whose body names no cause folds onto nothing, however near the neig
     const path = join(room, "body.md");
     writeFileSync(path, `## Outcome\n\nthe range is read once as a whole\n\n## Rules\n\n`
       + `- \`plugin/src/commands.mjs\` is inside the range.\n\n## Out of scope\n\nthe rest of the tree.\n`);
-    const run = await ranAsync(FORGE, ["new", path, "--title", TITLE, "--category", kind], tracker.env);
+    const run = await ranAsync(FORGE, ["new", path, "--title", TITLE, "--category", kind], ENV);
     assert.equal(run.status, 0, run.stderr);
     assert.ok(created(), `a ${kind} was folded away instead of filed`);
     assert.equal(commented(), undefined, `a ${kind} became a comment on ${OPEN.issueId}`);
@@ -279,7 +285,7 @@ const noteFile = () => {
 };
 
 const noted = (...argv) =>
-  ranAsync(FORGE, ["feedback", noteFile(), "--title", TITLE, ...argv], tracker.env);
+  ranAsync(FORGE, ["feedback", noteFile(), "--title", TITLE, ...argv], ENV);
 
 test("a note whose title is open nowhere folds onto the neighbour that shares its place", async () => {
   before();
@@ -296,7 +302,7 @@ test("a note whose title is open nowhere folds onto the neighbour that shares it
 test("a note whose title is already open on that project is filed rather than commented there", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.5);
-  const run = await ranAsync(FORGE, ["feedback", noteFile(), "--title", OPEN.title], tracker.env);
+  const run = await ranAsync(FORGE, ["feedback", noteFile(), "--title", OPEN.title], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created(), "the title matches ISS-45 exactly and no longer routes the note there");
   assert.equal(commented(), undefined);
@@ -307,7 +313,7 @@ test("a note whose title is already open on that project is filed rather than co
 test("a note naming an issue with --with relates it and declines the fold", async () => {
   before();
   state.memory = both(OPEN.issueId, 0.83);
-  const run = await ranAsync(FORGE, ["feedback", noteFile(), "--title", TITLE, "--with", "ISS-52"], tracker.env);
+  const run = await ranAsync(FORGE, ["feedback", noteFile(), "--title", TITLE, "--with", "ISS-52"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created(), "0.83 would have folded it, and --with is a route of its own");
   assert.equal(commented(), undefined);
@@ -379,7 +385,7 @@ test("a fold the accounting refuses has already printed the block, and writes no
   const path = join(room, "body.md");
   writeFileSync(path, `${BODY}\n`);
   const argv = ["new", path, "--title", TITLE, "--category", "bug", "--complexity", "s"];
-  const run = await ranAsync(FORGE, argv, { ...tracker.env, FORGE_SESSION_ID: "beside-over-keep" });
+  const run = await ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: "beside-over-keep" });
   state.comments = {};
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /past the 400 one issue's credits keep/u, "the accounting, not the delivery");
@@ -392,7 +398,7 @@ test("and a second filing in that session folds with no thread printed again", a
   before();
   state.memory = both(OPEN.issueId, 0.83);
   state.comments = { [OPEN.documentId]: [{ documentId: "c-1", body: "already reported here", createdAt: "2026-09-04T00:00:00Z" }] };
-  const env = { ...tracker.env, FORGE_SESSION_ID: "beside-fold" };
+  const env = { ...ENV, FORGE_SESSION_ID: "beside-fold" };
   const path = join(room, "body.md");
   writeFileSync(path, `${BODY}\n`);
   const argv = ["new", path, "--title", TITLE, "--category", "bug", "--complexity", "s"];
@@ -414,7 +420,7 @@ test("--new on a kind that owes no cause names the neighbour and says the kind i
   const path = join(room, "body.md");
   writeFileSync(path, "## Outcome\n\nthe verb takes the name it is handed\n\n## Rules\n\n"
     + "- `plugin/src/commands.mjs` is where the name is read.\n\n## Out of scope\n\nthe rest of it.\n");
-  const run = await ranAsync(FORGE, ["new", path, "--title", TITLE, "--category", "feature", "--new"], tracker.env);
+  const run = await ranAsync(FORGE, ["new", path, "--title", TITLE, "--category", "feature", "--new"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.ok(created());
   assert.match(run.stdout, /--new declined nothing to decline: ISS-45 would have qualified/u);
@@ -429,7 +435,7 @@ test("a body piped in is printed back by a refusal that comes after the read", a
   before();
   const body = "## Outcome\n\nthe piped body reaches the refusal and comes back out of it\n";
   const argv = ["new", "-", "--title", "the piped body survives what refuses it", "--category", "feature"];
-  const run = await ranAsync(FORGE, argv, tracker.env, process.cwd(), body);
+  const run = await ranAsync(FORGE, argv, ENV, process.cwd(), body);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /Your body, so that nothing here loses it:/u);
   assert.match(run.stderr, /the piped body reaches the refusal and comes back out of it/u);
@@ -442,7 +448,7 @@ test("a filing with no kind is refused without reading the stdin it was piped", 
   before();
   const body = "## Outcome\n\nthe body nothing read is the body still in the sender's hand\n";
   const argv = ["new", "-", "--title", "the kind is asked for before the body is taken"];
-  const run = await ranAsync(FORGE, argv, tracker.env, process.cwd(), body);
+  const run = await ranAsync(FORGE, argv, ENV, process.cwd(), body);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /A filing needs --category/u);
   assert.match(run.stderr, /bug, enhancement, feature, review/u);
@@ -456,7 +462,7 @@ test("a filing with no kind is refused without reading the stdin it was piped", 
 test("that refusal answers on a stdin nothing ever closes", async () => {
   before();
   const child = spawn(FORGE, ["new", "-", "--title", "the kind is asked for before the body is taken"],
-    { env: tracker.env, stdio: ["pipe", "pipe", "pipe"] });
+    { env: ENV, stdio: ["pipe", "pipe", "pipe"] });
   child.stdin.write("## Outcome\n\nheld open, and the sender still has it\n");
   const said = await new Promise((done) => {
     let err = "";

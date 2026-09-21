@@ -4,7 +4,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
 
-import { fakeTracker, ranAsync, tempHome, typedPlan } from "../fixtures.mjs";
+import { ranAsync, tempHome, typedPlan } from "../fixtures.mjs";
+import { trackerFor } from "./own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("advance").path;
 const { parse, render } = await import("../../src/flow/record/page.mjs");
@@ -525,9 +526,9 @@ const state = {
   },
   answer: { forge_config: () => ({ config: state.config }) },
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
-const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], tracker.env);
+const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], ENV);
 
 test("the project's config is asked once the plan declares a person, and never before", async () => {
   const asked = () => state.calls.filter((one) => one.name === "forge_config").length;
@@ -551,7 +552,7 @@ test("the project's config is asked once the plan declares a person, and never b
 /* The verb, not the check: what a run typing the advance actually gets back (ISS-393). The config
    is left deploying its own production by the test above, which is the population this is about. */
 test("a project that deploys on its own is refused the rung where the verification is not of what landed", async () => {
-  const run = await ranAsync(FORGE, ["advance", "ISS-96"], tracker.env);
+  const run = await ranAsync(FORGE, ["advance", "ISS-96"], ENV);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stdout, /eee109e is running and the merged mark says this change landed at 08ca795/u);
   assert.match(run.stdout, /build log and never from the branch head/u);
@@ -584,7 +585,7 @@ test("--owed on an issue holding no complexity reports it as the top rung, dropp
    and stays green with the mark's check gone, so this one sits where only the mark can refuse. */
 test("a drop is refused once the merged mark is set, and it is the mark that refuses", async () => {
   const drop = (reference) =>
-    ranAsync(FORGE, ["advance", reference, "--drop", "--why", "it should not have been built"], tracker.env);
+    ranAsync(FORGE, ["advance", reference, "--drop", "--why", "it should not have been built"], ENV);
   const swap = (extra) => {
     state.issues = state.issues.map((one) => (one.documentId === LANDED.documentId ? { ...LANDED, ...extra } : one));
   };

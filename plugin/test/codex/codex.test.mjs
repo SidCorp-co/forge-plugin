@@ -3,7 +3,7 @@ import test, { mock } from "node:test";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tempRoom } from "../fixtures.mjs";
+import { escaped, projectEntry, projectRoom, tempRoom } from "../fixtures.mjs";
 
 /* Imported after XDG_CONFIG_HOME moves, so nothing here can touch the caller's own state file. */
 const sandbox = tempRoom("forge-codex-");
@@ -93,27 +93,31 @@ test("a path escapes the repo by neither dots nor a symlink", () => {
    overrides it, which is the whole point of the layer. */
 test("the pattern comes from the checkout, else the account, else the default", () => {
   const forge = new URL("../../bin/forge", import.meta.url).pathname;
+  /* Both layers now live under one configuration home \u2014 the project's record beside the account's
+     own file \u2014 so each reading carries the two paths it could have named, and the line is compared
+     against one of them rather than against a shape either would match. */
   const shown = ({ repo, user }) => {
-    const room = tempRoom("codex-pattern-");
     const home = tempRoom("codex-pattern-home-");
-    if (repo) writeFileSync(join(room, ".forge.json"), JSON.stringify(repo));
+    const room = tempRoom("codex-pattern-");
+    if (repo) projectRoom(room, home, repo);
     if (user) {
       mkdirSync(join(home, "forge"), { recursive: true });
       writeFileSync(join(home, "forge", "config.json"), JSON.stringify(user));
     }
-    const run = spawnSync(forge, ["codex", "show"], {
-      cwd: room,
-      encoding: "utf8",
-      env: { ...process.env, XDG_CONFIG_HOME: home },
-    });
-    return (run.stdout.split("\n").find((one) => one.startsWith("records")) ?? "").replace(/\s+/gu, " ");
+    const run = spawnSync(forge, ["codex", "show"],
+      { cwd: room, encoding: "utf8", env: { ...process.env, HOME: home, XDG_CONFIG_HOME: home } });
+    return { line: (run.stdout.split("\n").find((one) => one.startsWith("records")) ?? "").replace(/\s+/gu, " "),
+      project: repo ? projectEntry(room, home) : null, account: join(home, "forge", "config.json") };
   };
   const account = { codex: { pathRe: "\\.md$" } };
-  assert.equal(shown({}), "records : ^docs/.*\\.md$ \u2190 the built-in default");
-  assert.match(shown({ user: account }), /^records : \\\.md\$ \u2190 .*config\.json$/u);
-  assert.match(shown({ repo: { codex: { pathRe: "^src/" } }, user: account }), /^records : \^src\/ \u2190 \.forge\.json$/u);
+  assert.equal(shown({}).line, "records : ^docs/.*\\.md$ \u2190 the built-in default");
+  const mine = shown({ user: account });
+  assert.equal(mine.line, `records : \\.md$ \u2190 ${mine.account}`);
+  const theirs = shown({ repo: { codex: { pathRe: "^src/" } }, user: account });
+  assert.equal(theirs.line, `records : ^src/ \u2190 ${theirs.project}`);
   /* A pattern that does not compile would throw on every write of whatever repository carries it. */
-  assert.match(shown({ repo: { codex: { pathRe: "^(" } }, user: account }), /^records : \\\.md\$ \u2190 .*config\.json$/u);
+  const broken = shown({ repo: { codex: { pathRe: "^(" } }, user: account });
+  assert.equal(broken.line, `records : \\.md$ \u2190 ${broken.account}`);
 });
 
 test("a missing intent is stated rather than left blank", () => {
@@ -582,18 +586,20 @@ test("asking an action what to type prints that action's own usage", () => {
 /* Resolved once and read by both the spawn that enforces it and the reports that print it, so no caller supplies a default of its own: the one this repository had sat beside its spawn, where the surfaces naming the key could not reach it and nothing could say what the pair resolved to. */
 test("the check's clock is the project's own where it names one, and the product's default otherwise", async () => {
   const forge = new URL("../../bin/forge", import.meta.url).pathname;
+  /* One room, its record rewritten per reading: the path the line names where the project set the
+     key is that record's, so it is composed here rather than spelt. */
+  const home = tempRoom("codex-clock-home-");
+  const room = projectRoom(tempRoom("codex-clock-"), home, {});
+  const entry = projectEntry(room, home);
   const shown = (codex) => {
-    const room = tempRoom("codex-clock-");
-    writeFileSync(join(room, ".forge.json"), JSON.stringify({ codex }));
-    const run = spawnSync(forge, ["codex", "show"], {
-      cwd: room,
-      encoding: "utf8",
-      env: { ...process.env, XDG_CONFIG_HOME: tempRoom("codex-clock-home-") },
-    });
+    writeFileSync(entry, JSON.stringify({ codex }));
+    const run = spawnSync(forge, ["codex", "show"],
+      { cwd: room, encoding: "utf8", env: { ...process.env, HOME: home, XDG_CONFIG_HOME: home } });
     return (run.stdout.split("\n").find((one) => one.startsWith("check")) ?? "").replace(/\s+/gu, " ");
   };
   assert.equal(shown({ check: "npm test" }), "check : npm test, stopped at 300s ← the plugin's default");
-  assert.equal(shown({ check: "npm test", checkMs: 600000 }), "check : npm test, stopped at 600s ← .forge.json");
+  assert.equal(shown({ check: "npm test", checkMs: 600000 }),
+    `check : npm test, stopped at 600s ← ${entry}`);
   /* `true` reads as 1ms and `[600000]` as 600000 under a bare coercion, and both are a clock nobody typed being reported as one the project chose. */
   for (const given of ["soon", 0, -1, 1.5, true, [600000], "600000"]) {
     assert.equal(shown({ check: "npm test", checkMs: given }),
@@ -602,12 +608,13 @@ test("the check's clock is the project's own where it names one, and the product
   }
   assert.match(shown({ pathRe: "^src/" }), /^check : none — a codex\.check in the project's own settings names one$/u);
   /* And the resolved clock through the scope the consult builds, not the line the report prints: `codex show` staying right while the spawn takes some other number is the wiring this pair is for, and the scope is where the two meet. */
-  const room = tempRoom("codex-clock-scope-");
+  const scoped = tempRoom("codex-clock-scope-");
   const stopped = await runTool(
-    scopeFor(room, [], codexCheckOf({ check: "sleep 30", checkMs: 200 })), "run_check", {});
+    scopeFor(scoped, [], codexCheckOf({ check: "sleep 30", checkMs: 200 })), "run_check", {});
   assert.equal(stopped.error, true);
-  assert.match(stopped.text, /ran past 0\.2s and was stopped\. That clock is `codex\.checkMs` in \.forge\.json/u,
-    stopped.text);
-  assert.equal(scopeFor(room, [], codexCheckOf({ check: "true" })).check.ms, 300_000,
+  assert.match(stopped.text, new RegExp(
+    "ran past 0\\.2s and was stopped\\. That clock is `codex\\.checkMs` in "
+    + escaped(projectEntry(process.cwd(), sandbox)), "u"), stopped.text);
+  assert.equal(scopeFor(scoped, [], codexCheckOf({ check: "true" })).check.ms, 300_000,
     "and a project naming no clock reaches that scope with the resolved default, never with none");
 });

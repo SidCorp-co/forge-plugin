@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tempRoom } from "../fixtures.mjs";
+import { projectRecord, tempRoom } from "../fixtures.mjs";
 
 /* Imported after the endpoint is written, because `resolve/config.mjs` resolves its path on load. */
 const HOME = tempRoom("issues-home-");
@@ -15,6 +15,9 @@ writeFileSync(
   JSON.stringify({ url: "https://stub.example/mcp", token: "t" }),
 );
 process.env.XDG_CONFIG_HOME = HOME;
+/* And this checkout's own project beside the account's file, the record being this machine's. */
+projectRecord(new URL("../../../", import.meta.url).pathname, HOME,
+  JSON.parse(readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8")));
 
 const row = (number) => ({
   id: `u-${number}`,

@@ -7,16 +7,22 @@ import test from "node:test";
 import { readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, projectRoom, ranAsync, tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const TITLE = "the learning gate takes a record that names its cause";
 
-const roomOn = (slug) => {
-  const room = tempRoom(`hold-${slug}-`);
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug, feedback: { plugin: "off" } }));
-  return room;
-};
+const state = { issues: [], comments: {}, calls: [], status: 0 };
+const tracker = await fakeTracker(state);
+test.after(() => tracker.close());
+
+/* The configuration home the child reads is the tracker fixture's, and each room's record of the
+   project it belongs to is written under it. */
+const HOME = tracker.env.XDG_CONFIG_HOME;
+const ENV = { ...tracker.env, HOME };
+
+const roomOn = (slug) =>
+  projectRoom(tempRoom(`hold-${slug}-`), HOME, { slug, feedback: { plugin: "off" } });
 
 const elsewhere = roomOn("somewhere-else");
 const here = roomOn("forge-plugin");
@@ -49,14 +55,10 @@ const body = (room) => {
   return path;
 };
 
-const state = { issues: [], comments: {}, calls: [], status: 0 };
-const tracker = await fakeTracker(state);
-test.after(() => tracker.close());
-
 const file = async (room) => {
   state.calls = [];
   const run = await ranAsync(FORGE, ["new", body(room), "--title", TITLE, "--category", "bug"],
-    tracker.env, room);
+    ENV, room);
   return { ...run, filed: state.calls.filter((one) => one.name === "forge_issues" && one.args.action === "create")[0] };
 };
 
@@ -85,7 +87,7 @@ test("every directory this copy ships is a path the hold reads as inside the plu
     writeFileSync(path, `${named}\n`);
     state.calls = [];
     const run = await ranAsync(FORGE, ["new", path, "--title", TITLE, "--category", "bug"],
-      tracker.env, elsewhere);
+      ENV, elsewhere);
     assert.equal(run.status, 1, `plugin/${dir}/ read as another project's issue:\n${run.stdout}`);
     assert.match(run.stderr, /cause is inside this plugin/u, `plugin/${dir}/: ${run.stderr}`);
   }

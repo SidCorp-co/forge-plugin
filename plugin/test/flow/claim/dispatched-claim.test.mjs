@@ -4,13 +4,18 @@
    the take they leave. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { copyFileSync, mkdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { escaped, fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
+import { escaped, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { OWN, trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("dispatched-claim").path;
-standsInNoTree("dispatched-claim");
+/* Away from this checkout, whose git directory names the run this suite is written under: a
+   checkout of its own names none, and its project is a record beside the machine's own keys
+   rather than a file in the tree. */
+const AWAY = projectRoom(tempRoom("dispatched-claim-away-"), process.env.XDG_CONFIG_HOME, OWN);
+process.chdir(AWAY);
 
 const { RUN_ID_VAR, runFor, runsFor } = await import("../../../src/resolve/session/run-id.mjs");
 const { mintRunId } = await import("../../../../tools/run/workspace/run-id.mjs");
@@ -63,11 +68,19 @@ const state = {
   },
 };
 
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state, [AWAY]);
+const CHILD_HOME = ENV.HOME;
+
+/* A tree a dispatch cut: a checkout of its own, the id minted into it, and this machine's record
+   of the project it belongs to under the home the child reads. */
+const cutFor = (prefix, keys) => {
+  const tree = projectRoom(tempRoom(prefix), CHILD_HOME, OWN);
+  return { tree, minted: mintRunId(tree, keys) };
+};
 test.after(() => tracker.close());
 
 const claim = (argv = [], who = RUNNER, ref = "ISS-1091") =>
-  ranAsync(FORGE, ["claim", ref, ...argv], { ...tracker.env, FORGE_SESSION_ID: who });
+  ranAsync(FORGE, ["claim", ref, ...argv], { ...ENV, FORGE_SESSION_ID: who });
 const wrote = () => state.calls
   .filter((one) => one.name === "forge_issues" && one.args.action === "update")
   .map((one) => one.args.data?.sessionContext?.lease);
@@ -184,20 +197,17 @@ test("an id minted for another issue takes nothing, and every dispatchable statu
 /* The variable outranks the tree, so a runner handed an id of somebody else's stands in the right
    tree and is refused by the one thing it cannot see: the route has to name the variable. */
 test("a tree that names this run, overridden by a variable that does not, is told which to drop", async () => {
-  const tree = tempRoom("dispatched-tree-");
-  mkdirSync(join(tree, ".git"));
-  copyFileSync(new URL("../../../../.forge.json", import.meta.url).pathname, join(tree, ".forge.json"));
-  mintRunId(tree, ["ISS-1091"]);
+  const { tree } = cutFor("dispatched-tree-", ["ISS-1091"]);
   heldBy(DISPATCHER);
   const refused = await ranAsync(FORGE, ["claim", "ISS-1091"],
-    { ...tracker.env, FORGE_SESSION_ID: "a-whole-wave-of-runs" }, tree);
+    { ...ENV, FORGE_SESSION_ID: "a-whole-wave-of-runs" }, tree);
   assert.equal(refused.status, 1, `the variable is what resolved:\n${refused.stdout}${refused.stderr}`);
   assert.match(refused.stderr, /The tree it stands in does name one/u);
   assert.match(refused.stderr, /Unset that variable and send this again/u,
     "and not the tree it is already standing in, which is the route that sends it back here");
 
   const took = await ranAsync(FORGE, ["claim", "ISS-1091"],
-    { ...tracker.env, FORGE_SESSION_ID: "" }, tree);
+    { ...ENV, FORGE_SESSION_ID: "" }, tree);
   assert.equal(took.status, 0, `unset, the tree answers:\n${took.stdout}${took.stderr}`);
   assert.match(took.stdout, /handed: session iss-1091-/u, "under the id the tree minted");
 
@@ -215,9 +225,7 @@ test("a tree that names this run, overridden by a variable that does not, is tol
    id, so its second and third members have no tree named for them and nothing but the id can say
    the run was dispatched to them (ISS-1295). */
 test("a run dispatched to a batch takes the lease on a member its tree is not named for", async () => {
-  const room = tempRoom("dispatched-batch-");
-  mkdirSync(join(room, ".git"));
-  const minted = mintRunId(room, ["ISS-1084", "ISS-1091", "ISS-1133"]);
+  const { minted } = cutFor("dispatched-batch-", ["ISS-1084", "ISS-1091", "ISS-1133"]);
   assert.deepEqual(runsFor(minted), ["iss-1084", "iss-1091", "iss-1133"], `the mint made ${minted}`);
   assert.equal(runFor(minted), "iss-1084", "and the tree and branch are the head's, as they were");
 
@@ -231,13 +239,10 @@ test("a run dispatched to a batch takes the lease on a member its tree is not na
 /* The whole path a batch member's claim takes: the id off the record a tree holds rather than off a
    variable, which is what a run standing in its own worktree resolves and what `start` left there. */
 test("a batch id read off the tree takes the lease on a member the tree is not named for", async () => {
-  const tree = tempRoom("dispatched-batch-tree-");
-  mkdirSync(join(tree, ".git"));
-  copyFileSync(new URL("../../../../.forge.json", import.meta.url).pathname, join(tree, ".forge.json"));
-  const minted = mintRunId(tree, ["ISS-1084", "ISS-1091"]);
+  const { tree, minted } = cutFor("dispatched-batch-tree-", ["ISS-1084", "ISS-1091"]);
   heldBy(DISPATCHER);
   const took = await ranAsync(FORGE, ["claim", "ISS-1091"],
-    { ...tracker.env, FORGE_SESSION_ID: "" }, tree);
+    { ...ENV, FORGE_SESSION_ID: "" }, tree);
   assert.equal(took.status, 0, `the tree's own record is what a run resolves:\n${took.stdout}${took.stderr}`);
   assert.match(took.stdout, new RegExp(`handed: session ${escaped(minted)}`, "u"),
     "under the id the tree holds, which names this issue second and the tree after the first");

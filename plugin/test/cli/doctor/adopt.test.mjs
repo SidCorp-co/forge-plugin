@@ -145,6 +145,23 @@ test("the row about a stranded file names no command where there is no project t
   assert.doesNotMatch(rows[0], /null/u, "a row naming a route that cannot work recommends a second one");
 });
 
+/* The refusal a project-scoped verb gives there, both ways round. Neither reading may name a route:
+   the record is keyed on a repository's root folder, so there is nowhere for one to go and both
+   `--adopt` and `--set` would refuse if a reader followed them. */
+test("a project-scoped call in no checkout is told that, and offered no command that cannot run", async () => {
+  for (const carries of [null, { slug: "rootless" }]) {
+    const room = tempRoom("adopt-scoped-");
+    if (carries) writeFileSync(join(room, ".forge.json"), JSON.stringify(carries));
+    const run = await ranAsync(FORGE, ["issue", "--search", "anything"], tracker.env, room);
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /this directory is in no checkout, so there is no\nproject for it to be scoped to/u);
+    assert.doesNotMatch(run.stderr, /null/u, "a path that never resolved is not a path to print");
+    assert.doesNotMatch(run.stderr, /forge doctor --(adopt|set)/u,
+      "neither command can run here, and a refusal naming one that cannot is recommending a second");
+    if (carries) assert.match(run.stderr, /\.forge\.json is read by nothing/u);
+  }
+});
+
 test("a directory belonging to no checkout resolves no record, and --set says so rather than making one", async () => {
   const room = tempRoom("adopt-no-tree-");
   mkdirSync(join(room, "inner"), { recursive: true });

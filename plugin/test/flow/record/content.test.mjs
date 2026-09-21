@@ -5,7 +5,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("content").path;
 const { DECISION_PARTS, decisionProblem, eachProblem, whereProblem } = await import("../../../src/flow/record/content.mjs");
@@ -53,11 +54,11 @@ const state = {
     },
   },
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
-await ranAsync(FORGE, ["claim", "ISS-95"], tracker.env);
+await ranAsync(FORGE, ["claim", "ISS-95"], ENV);
 
-const recorded = (...argv) => ranAsync(FORGE, ["record", ...argv], tracker.env);
+const recorded = (...argv) => ranAsync(FORGE, ["record", ...argv], ENV);
 const posted = () => state.calls.filter((one) => one.name === "forge_comments" && one.args.action === "create").length;
 
 /* Each casing this tree writes an identifier in, and each way a place is named in a record already

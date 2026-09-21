@@ -3,7 +3,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("credential-ahead").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
@@ -104,9 +105,9 @@ const state = {
     },
   },
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
-const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], tracker.env);
+const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], ENV);
 /* One route serves the project's config and its deploy alike, so what a count says is how many
    times a run read that row: once for the config every run needs, twice where the line is built. */
 const fetched = () => state.calls.filter((one) => one.name === "forge_projects.get").length;
@@ -136,7 +137,7 @@ test("--owed says a screen change has no login to prove it with, and refuses not
   /* The same issue asked to move rather than to rehearse: only the rehearsal prints the line, so
      only the rehearsal reads what it is built from, and a refusal reads nothing at all. */
   const asked = fetched();
-  const refused = await ranAsync(FORGE, ["advance", "ISS-97"], tracker.env);
+  const refused = await ranAsync(FORGE, ["advance", "ISS-97"], ENV);
   assert.equal(refused.status, 1, refused.stdout);
   assert.equal(fetched() - asked, 1, "a move that prints no line pays no round to build one");
 });
@@ -153,7 +154,7 @@ test("a plan declaring no screen change pays no round to hear what the project's
    exiting zero either way. Here the record earns its move, and the move goes through. */
 test("a record that earns its move still earns it, and the line is said over the top of it", async () => {
   state.deploy = {};
-  const env = { ...tracker.env, FORGE_SESSION_ID: HOLDER };
+  const env = { ...ENV, FORGE_SESSION_ID: HOLDER };
   const said = await ranAsync(FORGE, ["advance", "ISS-99", "--owed"], env);
   assert.equal(said.status, 0, `${said.stdout}${said.stderr}`);
   assert.match(said.stdout, /in_progress is next and the record earns it/u, said.stdout);

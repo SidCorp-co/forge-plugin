@@ -7,15 +7,18 @@
    lease here therefore names one (ISS-1903). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { escaped, fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
+import { escaped, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { OWN, trackerFor } from "../own-project.mjs";
 import { placeOf } from "../../../src/flow/lease/holder.mjs";
 import { stateOf } from "../../../src/flow/lease.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("gone-holder").path;
-standsInNoTree("gone-holder");
+/* Away from this checkout, whose git directory names the run this suite is written under. */
+const AWAY = projectRoom(tempRoom("gone-holder-away-"), process.env.XDG_CONFIG_HOME, OWN);
+process.chdir(AWAY);
 /* This process is the host every call below places its own work against; nothing is standing in the
    trees it reads, so what each case turns on is which tree the lease names and never what is in it. */
 process.env.CLAUDE_PID = String(process.pid);
@@ -43,12 +46,11 @@ const goneId = () => {
 const GONE = goneId();
 const ago = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString();
 
-/* A tree is its git directory, the id beside it, and this project's own declaration. */
+/* A tree is its git directory and the id beside it, and nothing else about it is read. */
 const treeMinting = (id) => {
   const at = tempRoom(`gone-holder-${id}-`);
   mkdirSync(join(at, ".git"));
   writeFileSync(join(at, ".git", "forge-run-id"), `${id}\n`);
-  writeFileSync(join(at, ".forge.json"), readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
   return at;
 };
 
@@ -103,11 +105,11 @@ const state = {
   },
 };
 
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state, [AWAY]);
 test.after(() => tracker.close());
 
 const ran = (argv, who = OURS) =>
-  ranAsync(FORGE, argv, { ...tracker.env, FORGE_SESSION_ID: who, CLAUDE_PID: String(process.pid) });
+  ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: who, CLAUDE_PID: String(process.pid) });
 /* Read off the tracker after the call and not out of its output: the field is what a later run has. */
 const onTheRecord = () => ISSUE.sessionContext.lease;
 

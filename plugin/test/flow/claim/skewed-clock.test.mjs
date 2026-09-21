@@ -5,11 +5,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, standsInNoTree, tempHome } from "../../fixtures.mjs";
+import { projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { OWN, trackerFor } from "../own-project.mjs";
 import { patience } from "../../patience.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("skewed-clock").path;
-standsInNoTree("skewed-clock");
+/* Away from this checkout, whose git directory names the run this suite is written under: a
+   checkout of its own names none, and its project is a record beside the machine's own keys
+   rather than a file in the tree. */
+const AWAY = projectRoom(tempRoom("skewed-clock-away-"), process.env.XDG_CONFIG_HOME, OWN);
+process.chdir(AWAY);
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const UUID = "skewed-uuid";
@@ -65,10 +70,10 @@ const state = {
   },
 };
 
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state, [AWAY]);
 test.after(() => tracker.close());
 
-const claim = (argv, who = OURS) => ranAsync(FORGE, ["claim", "ISS-1212", ...argv], { ...tracker.env, FORGE_SESSION_ID: who });
+const claim = (argv, who = OURS) => ranAsync(FORGE, ["claim", "ISS-1212", ...argv], { ...ENV, FORGE_SESSION_ID: who });
 const wrote = () => state.calls
   .filter((one) => one.name === "forge_issues" && one.args.action === "update")
   .map((one) => one.args.data?.sessionContext?.lease);

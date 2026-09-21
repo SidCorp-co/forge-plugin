@@ -3,7 +3,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("route-unasked").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
@@ -85,10 +86,10 @@ const project = {
     },
   },
 };
-const tracker = await fakeTracker(project);
+const { tracker, env: ENV } = await trackerFor(project);
 test.after(() => tracker.close());
 
-const inSession = (name) => ({ ...tracker.env, FORGE_SESSION_ID: name });
+const inSession = (name) => ({ ...ENV, FORGE_SESSION_ID: name });
 const listed = () => project.calls.filter((one) =>
   one.name === "forge_comments" && one.args.action === "list").length;
 const promptIn = (text) => text.split("\n").filter((one) => /routed|not this issue's/u.test(one)).join("\n");

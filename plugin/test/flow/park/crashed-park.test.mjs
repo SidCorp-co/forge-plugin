@@ -5,7 +5,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("crashed-park").path;
 
@@ -80,7 +81,7 @@ const state = {
     },
   },
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
 
 const updates = () => state.calls
@@ -88,7 +89,7 @@ const updates = () => state.calls
   .map((one) => one.args.data?.sessionContext?.lease?.holder);
 
 test("the acknowledgement a crashed park owes is refused where the field it read back is another run's", async () => {
-  const run = await ranAsync(FORGE, ["claim", "ISS-90"], { ...tracker.env, FORGE_SESSION_ID: OURS });
+  const run = await ranAsync(FORGE, ["claim", "ISS-90"], { ...ENV, FORGE_SESSION_ID: OURS });
   assert.equal(run.status, 1, `the run should have been refused:\n${run.stdout}${run.stderr}`);
   assert.match(run.stderr, new RegExp(`held by another run: session ${THEIRS}`, "u"),
     "the refusal names the run that took it, its renew time and the command that clears it");

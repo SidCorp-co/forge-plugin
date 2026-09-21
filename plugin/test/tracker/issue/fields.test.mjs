@@ -3,8 +3,9 @@
    projects the rest off the same answer without holding a list of names (ISS-151). */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 
-import { fakeTracker, ranAsync } from "../../fixtures.mjs";
+import { fakeTracker, projectRecord, ranAsync } from "../../fixtures.mjs";
 import { rowLine } from "../../../src/tracker/issues.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -42,12 +43,18 @@ const projects = (args) => {
 
 const state = { issues: [ISSUE], comments: {}, calls: [], answer: { forge_issues: projects } };
 const tracker = await fakeTracker(state);
+
+/* Every call here runs from this checkout, whose project is this machine's record of it now:
+   the record goes under the one configuration home the children are handed. */
+const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
+projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME,
+  JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8")));
 test.after(() => tracker.close());
 
 const asked = async (...argv) => {
   const { exit = 0 } = typeof argv[0] === "object" ? argv.shift() : {};
   state.calls.length = 0;
-  const run = await ranAsync(FORGE, ["issue", "ISS-1", ...argv], tracker.env, ROOT, null);
+  const run = await ranAsync(FORGE, ["issue", "ISS-1", ...argv], ENV, ROOT, null);
   assert.equal(run.status, exit, run.stderr);
   return { ...run, body: exit === 0 ? JSON.parse(run.stdout) : null };
 };
@@ -159,7 +166,7 @@ test("a name the answer does not carry is a typo, and no declaration excuses it"
    had none to spend. The rows are already in hand, so the projection is over what the walk holds. */
 const listed = async (...argv) => {
   state.calls.length = 0;
-  return ranAsync(FORGE, ["issue", ...argv], tracker.env, ROOT, null);
+  return ranAsync(FORGE, ["issue", ...argv], ENV, ROOT, null);
 };
 
 const sent = () => state.calls.map((one) => `${one.method} ${one.path}`);

@@ -4,11 +4,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createServer } from "node:http";
+import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { ranAsync, tempRoom } from "../fixtures.mjs";
+import { projectRecord, ranAsync, tempRoom } from "../fixtures.mjs";
 import { TRANSLATE_UNCHANGED } from "../../src/tools/vi-exit.mjs";
 
 const BUNDLED = fileURLToPath(new URL("../../bin/vi-natural", import.meta.url));
@@ -83,10 +84,14 @@ test("i18n and doc leave by the codes they always have, where every string came 
 
 test("a title handed back as it was sent is still posted by the layer forge writes titles through", async (t) => {
   const room = await gatewayOn(t, (text) => text);
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "any", translate: "vi" }));
+  /* The room is the configuration home here, the gateway's own file living beside the record of the
+     project the room belongs to, so a checkout is what the room has to be. */
+  spawnSync("git", ["init", "-q", room], { cwd: room });
+  projectRecord(room, room, { slug: "any", translate: "vi" });
   const call = `import("${LAYER.href}")`
     + `.then((m) => console.log(JSON.stringify(m.translated({ title: ${JSON.stringify(SOURCE)} }))))`;
-  const run = await ranAsync(process.execPath, ["-e", call], { ...process.env, XDG_CONFIG_HOME: room }, room);
+  const run = await ranAsync(process.execPath, ["-e", call],
+    { ...process.env, HOME: room, XDG_CONFIG_HOME: room }, room);
   assert.equal(run.status, 0, `the write is not refused on a title with nothing to translate:\n${run.stderr}`);
   assert.deepEqual(JSON.parse(run.stdout), { title: SOURCE }, "and the title stands as it was written");
 });

@@ -4,8 +4,9 @@
    thresholds and the act are fold.test.mjs's; the reasoning docs/cli/beside.md's. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 
-import { fakeTracker } from "../../fixtures.mjs";
+import { fakeTracker, projectRecord } from "../../fixtures.mjs";
 
 const rows = (count) => Array.from({ length: count }, (unused, at) => ({
   issueId: `ISS-${at + 1}`,
@@ -17,6 +18,10 @@ const rows = (count) => Array.from({ length: count }, (unused, at) => ({
 const LIVE = rows(80);
 const state = { issues: LIVE, comments: {}, calls: [], memory: {} };
 const tracker = await fakeTracker(state);
+
+/* Every call here runs from this checkout, whose project is this machine's record of it now. */
+projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME,
+  JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8")));
 test.after(() => tracker.close());
 process.env.XDG_CONFIG_HOME = tracker.env.XDG_CONFIG_HOME;
 const { PLACE_K, TOP_K, foldOnto, neighboursOf } =

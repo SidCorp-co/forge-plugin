@@ -4,11 +4,10 @@
    the part under the flow it names (ISS-1997). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { flat, tempHome, tempRoom } from "../../fixtures.mjs";
+import { flat, projectRoom, tempHome, tempRoom } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("harness-eval-flow").path;
 const { DEFAULT, SCREEN } = await import("../../../src/guides/flow.mjs");
@@ -18,11 +17,23 @@ const PLUGIN = new URL("../../../", import.meta.url).pathname;
 const FORGE = join(PLUGIN, "bin", "forge");
 const FLOWS = [DEFAULT, SCREEN];
 
+/* One configuration home for every reading, holding one record per flow: a project's keys live
+   beside the machine's now, so the room and the home its record sits in travel together and neither
+   is this developer's. */
+const HOME = tempRoom("harness-eval-home-");
+const rooms = new Map();
+const roomFor = (flow) => {
+  if (!rooms.has(flow)) {
+    rooms.set(flow, projectRoom(tempRoom("harness-eval-flow-"), HOME,
+      { slug: "harness-eval-fixture", flow }));
+  }
+  return rooms.get(flow);
+};
+
 /* One flow per process, the resolver answering once, so every reading spawns the verb. */
 const served = (flow) => {
-  const dir = tempRoom("harness-eval-flow-");
-  writeFileSync(join(dir, ".forge.json"), JSON.stringify({ slug: "harness-eval-fixture", flow }));
-  const run = spawnSync(FORGE, ["guide", "harness-eval"], { encoding: "utf8", env: { ...process.env }, cwd: dir });
+  const run = spawnSync(FORGE, ["guide", "harness-eval"],
+    { encoding: "utf8", env: { ...process.env, HOME, XDG_CONFIG_HOME: HOME }, cwd: roomFor(flow) });
   assert.equal(run.status, 0, `\`forge guide harness-eval\` under ${flow} exited ${run.status}: ${run.stderr}`);
   return run.stdout;
 };

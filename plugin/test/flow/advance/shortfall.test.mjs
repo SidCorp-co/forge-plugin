@@ -5,7 +5,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("advance-shortfall").path;
 
@@ -31,9 +32,9 @@ state.answer.forge_comments = (args) => {
   if (args.filters?.issue === "short-uuid") return { comments: rows, hasMore: true };
   return { comments: rows, total: 9, hasMore: false };
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
-const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], tracker.env);
+const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], ENV);
 
 test("a shortfall off a thread the tracker called whole says so in one sentence", async () => {
   const run = await owed("ISS-98");

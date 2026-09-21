@@ -7,7 +7,8 @@ import { createServer } from "node:http";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("batched-verdict").path;
 const { blocksIn } = await import("../../../src/flow/record/record.mjs");
@@ -169,7 +170,7 @@ state.answer.forge_comments = (args) => {
   held.push({ documentId: id, createdAt: at(), body: args.data?.body });
   return { documentId: id };
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 after(() => tracker.close());
 
 const sink = createServer((request, response) => {
@@ -187,7 +188,7 @@ state.answer.forge_uploads = (args) =>
 const room = tempRoom("batched-verdict-files-");
 /* Pinned rather than read off whatever session the run carries: the comment-delivery hold keys by
    it, and where it resolves empty the second claim is held too. */
-const env = { ...tracker.env, FORGE_SESSION_ID: "batched-verdict-session" };
+const env = { ...ENV, FORGE_SESSION_ID: "batched-verdict-session" };
 const ask = (...argv) => ranAsync(FORGE, argv, env);
 const posted = () => (state.comments["judging-uuid"] ?? []).length;
 const uploads = () => state.calls.filter((one) => one.name === "forge_uploads").length;

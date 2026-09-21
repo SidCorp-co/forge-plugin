@@ -6,7 +6,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
+import { ranAsync, tempHome } from "../fixtures.mjs";
+import { trackerFor } from "./own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("lane").path;
 
@@ -47,10 +48,10 @@ const state = {
     },
   },
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
 
-const asRun = (id) => ({ ...tracker.env, AI_AGENT: "a-test-agent", CLAUDE_PID: "4242", FORGE_SESSION_ID: id });
+const asRun = (id) => ({ ...ENV, AI_AGENT: "a-test-agent", CLAUDE_PID: "4242", FORGE_SESSION_ID: id });
 
 /* The read-before-write gate delivers a comment this session has not been shown and refuses once;
    the same command sent again lands. That hold is not this file's subject. */

@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { tempRoom } from "../../fixtures.mjs";
+import { projectRoom, tempRoom } from "../../fixtures.mjs";
 import { flowJudgeConflict, flowPolicyConflict } from "../../../src/flow/earned.mjs";
 import { judgeOf } from "../../../src/guides/flow.mjs";
 
@@ -41,9 +41,8 @@ const ISSUE = {
 /* A resolver answers once per process, so each flow is its own run: two in one would both read
    whichever was resolved first. The verdict is printed as JSON and compared, not eyeballed. */
 const owed = (keys) => {
-  const room = tempRoom("flow-entry-");
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "entry-fixture", ...keys }));
   const home = tempRoom("flow-entry-home-");
+  const room = projectRoom(tempRoom("flow-entry-"), home, { slug: "entry-fixture", ...keys });
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "forge", "config.json"),
     JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token" }));
@@ -66,7 +65,7 @@ const owed = (keys) => {
     }));
   `;
   const run = spawnSync(process.execPath, ["--input-type=module", "-e", code], {
-    encoding: "utf8", cwd: room, env: { ...process.env, XDG_CONFIG_HOME: home },
+    encoding: "utf8", cwd: room, env: { ...process.env, HOME: home, XDG_CONFIG_HOME: home },
   });
   assert.equal(run.status, 0, run.stderr);
   return JSON.parse(run.stdout);

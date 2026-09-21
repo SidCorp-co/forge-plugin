@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { escaped, projectEntry, tempRoom } from "../fixtures.mjs";
 import { NOT_STATED } from "../../src/goals.mjs";
 import {
   credentialLeak,
@@ -22,8 +23,13 @@ import {
   waitsForPerson,
 } from "../../src/tracker/project-config.mjs";
 
-/* No key in the checkout, which is what every derivation case reads: the override is passed in. */
+/* No key of the project's, which is what every derivation case reads: the override is passed in. */
 const NONE = { value: null, from: null };
+
+/* Where a project key is read from is this machine's record of the project, so the provenance an
+   override carries is that path rather than a name: a case pinning the old committed file's name
+   would pass on a reader that prints a name nobody can open. */
+const RECORD = projectEntry(process.cwd(), tempRoom("project-config-home-"));
 
 /* The bindings in the shape the tracker serves them in, read off the wire on projects that have
    both halves configured: the staging half, the production one, the limits the tracker writes
@@ -328,7 +334,7 @@ test("the landing route comes off the release model and the auto-deploy flag, an
     "a record declaring no model is discovered, never defaulted to a route it did not choose");
   assert.equal(model("hand-carried", true), NOT_STATED,
     "and a model this CLI does not know derives nothing either, a route read off a word nothing understands being a guess");
-  const key = { value: "before-merge", from: ".forge.json" };
+  const key = { value: "before-merge", from: RECORD };
   assert.deepEqual(landingRoute(POLICY, key), key, "the project's own key outranks what is derived, and says so");
 });
 
@@ -344,8 +350,8 @@ test("the report prints both lines, the route with the source it was read from",
   const out = said({ landing: NONE });
   assert.match(out, /^where the merge sits: after-merge {2}← the tracker's project config$/mu);
   assert.match(out, /^independent judgement: not stated between developed and testing {2}← the tracker's project config$/mu);
-  assert.match(said({ landing: { value: "before-merge", from: ".forge.json" } }),
-    /^where the merge sits: before-merge {2}← \.forge\.json$/mu);
+  assert.match(said({ landing: { value: "before-merge", from: RECORD } }),
+    new RegExp(`^where the merge sits: before-merge {2}\u2190 ${escaped(RECORD)}$`, "mu"));
 });
 
 /* What a person still owes before an issue at the deploying rung may close, over every shape a

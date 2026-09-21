@@ -8,7 +8,8 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("refused-verdict-carries").path;
 
@@ -46,9 +47,9 @@ const state = {
   },
 };
 
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
-const ask = (...argv) => ranAsync(FORGE, argv, tracker.env);
+const ask = (...argv) => ranAsync(FORGE, argv, ENV);
 
 test("a block refused for missing evidence is told what the issue carries, never what this call only planned", async () => {
   const claimed = await ask("claim", "ISS-1935", "--unheld");

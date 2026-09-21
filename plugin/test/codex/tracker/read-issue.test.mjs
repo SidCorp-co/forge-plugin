@@ -6,9 +6,9 @@ import assert from "node:assert/strict";
 import test, { after } from "node:test";
 import { spawn, spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
-import { fakeTracker, tempRoom } from "../../fixtures.mjs";
+import { fakeTracker, projectRecord, projectRoom, tempRoom } from "../../fixtures.mjs";
 import { PER_KEY, SPARE, issueParts, pagedParts, runTool, scopeFor, toolsFor, trackerFor }
   from "../../../src/codex/codex-tools.mjs";
 import { SAYS, consultArgs } from "../../../src/codex/codex.mjs";
@@ -41,16 +41,14 @@ const state = {
 const tracker = await fakeTracker(state);
 after(() => tracker.close());
 
-const room = () => {
-  const dir = tempRoom("codex-tracker-");
-  spawnSync("git", ["init", "-q", dir], { cwd: dirname(dir) });
-  writeFileSync(join(dir, ".forge.json"), JSON.stringify({ slug: SLUG }));
-  return dir;
-};
-
 /* Imported once with the tracker's own config in reach: the readers resolve the endpoint at call
    time, and a suite that skipped this would run on the developer's live credential. */
 process.env.XDG_CONFIG_HOME = tracker.env.XDG_CONFIG_HOME;
+
+/* Each checkout's project is this machine's record of it, written under that same home — including
+   the checkout this process stands in, which is what the in-process readers resolve against. */
+projectRecord(process.cwd(), tracker.env.XDG_CONFIG_HOME, { slug: SLUG });
+const room = () => projectRoom(tempRoom("codex-tracker-"), tracker.env.XDG_CONFIG_HOME, { slug: SLUG });
 
 const asked = () => state.calls?.map((one) => `${one.method} ${one.path}`) ?? [];
 const clear = () => { state.calls = []; };
@@ -189,6 +187,9 @@ test("an issue key is an argument the consult takes, and the usage says so", () 
 test("keys with no file name the subject, and the turn's record is not pulled in behind them", () => {
   const dir = room();
   const git = (...argv) => spawnSync("git", ["-C", dir, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { cwd: dir });
+  /* A base to diff against: the room's configuration is this machine's record of it now and no
+     longer a committed file, so the tree has nothing to commit unless a case puts it there. */
+  writeFileSync(join(dir, "base.md"), "the tree as it stood\n");
   git("add", ".");
   git("commit", "-qm", "one");
   writeFileSync(join(dir, "changed.md"), "this turn's own work\n");
@@ -326,7 +327,7 @@ test("a consult given an issue key sends the key, and the log records the call b
     'ANTHROPIC_DEFAULT_FABLE_MODEL="cx/gpt-5.6-sol"',
   ].join("\n"));
   const child = spawn(FORGE, ["codex", "consult", "ISS-1", "--rounds", "2"],
-    { cwd: dir, env: { ...tracker.env, CLAUDE_PROXY_ENV: join(home, "proxy.env") } });
+    { cwd: dir, env: { ...tracker.env, HOME: home, CLAUDE_PROXY_ENV: join(home, "proxy.env") } });
   child.stdin.end("does the plan hold?");
   let said = "";
   let out = "";

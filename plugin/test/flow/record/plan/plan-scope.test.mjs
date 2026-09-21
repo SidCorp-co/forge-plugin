@@ -129,8 +129,19 @@ test("a write against one issue does not touch the file another issue's scope is
 /* The one case driven through the CLI: what the gate refuses turns on a refresh that has to survive
    the call it was taken in, and only a real record write over a real tracker can show that. */
 const { execFileSync } = await import("node:child_process");
-const { copyFileSync, realpathSync, rmSync, writeFileSync } = await import("node:fs");
-const { fakeTracker, ranAsync, typedPlan } = await import("../../../fixtures.mjs");
+const { realpathSync, rmSync, writeFileSync } = await import("node:fs");
+const { fakeTracker, projectRecord, ranAsync, typedPlan } = await import("../../../fixtures.mjs");
+
+const OWN = JSON.parse(readFileSync(new URL("../../../../../.forge.json", import.meta.url), "utf8"));
+
+/* This machine's record of the project the room belongs to, under the home the child is handed:
+   every call below is project-scoped and the record is no longer a file in the tree. */
+const workedUnder = (at, tracker) => {
+  projectRecord(at, tracker.env.XDG_CONFIG_HOME, OWN);
+  return realpathSync(at);
+};
+
+const childEnv = (tracker) => ({ ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME });
 
 const PLANNED = "plugin/src/planned.mjs";
 const GREW = "plugin/src/grew.mjs";
@@ -172,19 +183,18 @@ test("a correction the tracker took is held by the cache though the write after 
   const at = tempRoom("plan-scope-run-");
   execFileSync("git", ["init", "-q", at], { cwd: dirname(at) });
   mkdirSync(join(at, "plugin", "src"), { recursive: true });
-  copyFileSync(new URL("../../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
-  const worked = realpathSync(at);
+  const worked = workedUnder(at, tracker);
   const held = () => scopeHeldUnder(tracker, worked);
   try {
     for (const again of [1, 2]) {
-      assert.ok(again && (await ranAsync(FORGE, ["claim", "ISS-77", "--unheld"], tracker.env, worked)).status === 0);
+      assert.ok(again && (await ranAsync(FORGE, ["claim", "ISS-77", "--unheld"], childEnv(tracker), worked)).status === 0);
     }
     assert.deepEqual(held().map((one) => one.ref), ["ISS-77"], "the claim is what first holds the scope");
     assert.equal(namesPath(held()[0].named, GREW), false, "and the plan does not name the file yet");
     const wrote = await ranAsync(FORGE, ["record", "correction", "ISS-77",
       "--moved", `the change also wrote ${GREW}`, "--why", "the helper had no home",
       "--also", "decision", "--decision", "a reading | its assumption | its undo"],
-    tracker.env, worked);
+    childEnv(tracker), worked);
     assert.notEqual(wrote.status, 0, "the call failed");
     assert.equal(namesPath(held()[0].named, GREW), true, "and the correction that landed is held all the same");
   } finally {
@@ -195,8 +205,6 @@ test("a correction the tracker took is held by the cache though the write after 
 test("a record whose scope can be neither written nor removed says so, and names the way through", async () => {
   const at = tempRoom("plan-scope-blocked-");
   execFileSync("git", ["init", "-q", at], { cwd: dirname(at) });
-  copyFileSync(new URL("../../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
-  const worked = realpathSync(at);
   const issue = { documentId: "blocked-uuid", issueId: "ISS-88", status: "in_progress",
     title: "a run whose config directory will not take a write", plan: typedPlan(),
     acceptanceCriteria: "1. The one outcome." };
@@ -213,16 +221,17 @@ test("a record whose scope can be neither written nor removed says so, and names
     },
   };
   const tracker = await fakeTracker(project);
+  const worked = workedUnder(at, tracker);
   try {
     for (const again of [1, 2]) {
-      assert.ok(again && (await ranAsync(FORGE, ["claim", "ISS-88", "--unheld"], tracker.env, worked)).status === 0);
+      assert.ok(again && (await ranAsync(FORGE, ["claim", "ISS-88", "--unheld"], childEnv(tracker), worked)).status === 0);
     }
     /* A file where the directory has to be: every write and every removal under it fails, which is
        the one shape that leaves a correction landed and the cache it should have cleared standing. */
     rmSync(join(tracker.env.XDG_CONFIG_HOME, "forge", "plan-scope"), { recursive: true, force: true });
     writeFileSync(join(tracker.env.XDG_CONFIG_HOME, "forge", "plan-scope"), "not a directory");
     const wrote = await ranAsync(FORGE, ["record", "correction", "ISS-88",
-      "--moved", "the change also wrote grew.mjs", "--why", "the helper had no home"], tracker.env, worked);
+      "--moved", "the change also wrote grew.mjs", "--why", "the helper had no home"], childEnv(tracker), worked);
     assert.equal(wrote.status, 0, wrote.stderr);
     assert.match(wrote.stderr, /could not be written or removed/u);
     assert.match(wrote.stderr, /forge hooks --off plan-scope/u);
@@ -237,8 +246,6 @@ test("a record whose scope can be neither written nor removed says so, and names
 test("a record written while the issue is off the ladder says nothing where the tree holds no entry", async () => {
   const at = tempRoom("plan-scope-silent-");
   execFileSync("git", ["init", "-q", at], { cwd: dirname(at) });
-  copyFileSync(new URL("../../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
-  const worked = realpathSync(at);
   const issue = { documentId: "silent-uuid", issueId: "ISS-99", status: "closed",
     title: "a run posting after the close", plan: typedPlan(), acceptanceCriteria: "1. The one outcome." };
   const project = {
@@ -259,12 +266,13 @@ test("a record written while the issue is off the ladder says nothing where the 
     },
   };
   const tracker = await fakeTracker(project);
+  const worked = workedUnder(at, tracker);
   try {
     for (const again of [1, 2]) {
-      assert.ok(again && (await ranAsync(FORGE, ["claim", "ISS-99", "--unheld"], tracker.env, worked)).status === 0);
+      assert.ok(again && (await ranAsync(FORGE, ["claim", "ISS-99", "--unheld"], childEnv(tracker), worked)).status === 0);
     }
     assert.equal(scopeHeldUnder(tracker, worked).length, 0, "an issue off the ladder leaves no entry to remove");
-    const wrote = await ranAsync(FORGE, ["record", "gap", "ISS-99", "--none", "the method answered"], tracker.env, worked);
+    const wrote = await ranAsync(FORGE, ["record", "gap", "ISS-99", "--none", "the method answered"], childEnv(tracker), worked);
     assert.equal(wrote.status, 0, wrote.stderr);
     assert.doesNotMatch(wrote.stderr, /could not be written or removed/u);
     assert.doesNotMatch(wrote.stderr, /hooks --off plan-scope/u);
@@ -278,8 +286,6 @@ test("a record written while the issue is off the ladder says nothing where the 
 test("a record whose entry cannot be removed still names the file and the way out", async () => {
   const at = tempRoom("plan-scope-stuck-");
   execFileSync("git", ["init", "-q", at], { cwd: dirname(at) });
-  copyFileSync(new URL("../../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
-  const worked = realpathSync(at);
   const issue = { documentId: "stuck-uuid", issueId: "ISS-98", status: "closed",
     title: "a run whose entry will not go", plan: typedPlan(), acceptanceCriteria: "1. The one outcome." };
   const project = {
@@ -300,9 +306,10 @@ test("a record whose entry cannot be removed still names the file and the way ou
     },
   };
   const tracker = await fakeTracker(project);
+  const worked = workedUnder(at, tracker);
   try {
     for (const again of [1, 2]) {
-      assert.ok(again && (await ranAsync(FORGE, ["claim", "ISS-98", "--unheld"], tracker.env, worked)).status === 0);
+      assert.ok(again && (await ranAsync(FORGE, ["claim", "ISS-98", "--unheld"], childEnv(tracker), worked)).status === 0);
     }
     /* A directory where the entry's file has to be: `rmSync` without `recursive` refuses it. */
     const was = process.env.XDG_CONFIG_HOME;
@@ -310,7 +317,7 @@ test("a record whose entry cannot be removed still names the file and the way ou
     const entry = scopePath(worked, "ISS-98");
     process.env.XDG_CONFIG_HOME = was;
     mkdirSync(join(entry, "in the way"), { recursive: true });
-    const wrote = await ranAsync(FORGE, ["record", "gap", "ISS-98", "--none", "the method answered"], tracker.env, worked);
+    const wrote = await ranAsync(FORGE, ["record", "gap", "ISS-98", "--none", "the method answered"], childEnv(tracker), worked);
     assert.equal(wrote.status, 0, wrote.stderr);
     assert.ok(wrote.stderr.includes(entry), wrote.stderr);
     assert.match(wrote.stderr, /could not be written or removed/u);

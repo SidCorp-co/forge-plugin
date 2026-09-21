@@ -9,7 +9,8 @@ import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { projectRecord, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("baseline-ahead").path;
 const { baselineAhead, headNow } = await import("../../../src/flow/route.mjs");
@@ -81,11 +82,11 @@ state.answer.forge_issues = (args) => {
   return { documentId: args.documentId, ...(args.data ?? {}) };
 };
 state.answer.forge_comments = () => ({ comments: [], returned: 0, hasMore: false });
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
 
 test("the rehearsal prints the line beside the owed items, and the items read no store", async () => {
-  const env = { ...tracker.env, FORGE_SESSION_ID: "the-rehearsing-run" };
+  const env = { ...ENV, FORGE_SESSION_ID: "the-rehearsing-run" };
   const asked = await ranAsync(new URL("../../../bin/forge", import.meta.url).pathname,
     ["advance", "ISS-9", "--owed"], env);
   assert.equal(asked.status, 0, asked.stdout + asked.stderr);
@@ -133,12 +134,13 @@ test("the rehearsal cites the published head from a clean checkout, reading the 
   const room = tempRoom("ahead-checkout-");
   const as = (...args) => spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: room, encoding: "utf8" });
   spawnSync("git", ["init", "-q", "-b", "master", room], { cwd: dirname(room), encoding: "utf8" });
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "forge-plugin" }));
+  projectRecord(room, tracker.env.XDG_CONFIG_HOME, { slug: "forge-plugin" });
+  writeFileSync(join(room, "base.txt"), "the tree as it stood\n");
   as("add", ".");
   as("commit", "-qm", "base");
   const at = as("rev-parse", "HEAD").stdout.trim();
   assert.equal(as("status", "--porcelain").stdout, "", "the checkout is clean, so a head is stampable");
-  const env = { ...tracker.env, FORGE_SESSION_ID: "the-clean-run" };
+  const env = { ...ENV, FORGE_SESSION_ID: "the-clean-run" };
   const mine = process.env.XDG_CONFIG_HOME;
   process.env.XDG_CONFIG_HOME = env.XDG_CONFIG_HOME;
   assert.equal(publishBaseline({ project: "forge-plugin", commit: at, gate: "npm run check",

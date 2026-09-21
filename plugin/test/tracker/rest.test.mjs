@@ -10,7 +10,7 @@ import { createServer } from "node:http";
 import { join } from "node:path";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
+import { fakeTracker, projectRecord, ranAsync, tempHome } from "../fixtures.mjs";
 import { patience } from "../patience.mjs";
 import { backoff, callTool, retryAfter, retryOf, retrySeconds, unfencedIn } from "../../src/tracker/rest.mjs";
 import { useProject } from "../../src/resolve/settings.mjs";
@@ -42,6 +42,18 @@ test("the identifying arguments are the ones that name a record, and no other", 
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../..", import.meta.url).pathname;
+const OWN = JSON.parse(readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8"));
+
+/* A home of a case's own, carrying this checkout's project: the calls below are project-scoped and
+   the record is this machine's, so a bare home refuses them for the slug before the transport is
+   reached. */
+const homeFor = (name, config) => {
+  const home = tempHome(name);
+  mkdirSync(join(home.path, "forge"), { recursive: true });
+  writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify(config));
+  projectRecord(ROOT, home.path, OWN);
+  return { ...home, env: { ...process.env, HOME: home.path, XDG_CONFIG_HOME: home.path } };
+};
 const MARKER = "UNTRUSTED_DATA";
 
 const fenced = (source, text) =>
@@ -73,8 +85,10 @@ const state = { issues: [ISSUE], comments: { "11111111-1111-4111-8111-1111111111
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
-const ran = (...argv) => ranAsync(FORGE, argv, tracker.env, ROOT, null);
 process.env.XDG_CONFIG_HOME = tracker.env.XDG_CONFIG_HOME;
+projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME, OWN);
+const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
+const ran = (...argv) => ranAsync(FORGE, argv, ENV, ROOT, null);
 
 /* Answered in this process so the decode is watchable: every part a row asks for gets the same
    body, which is all a strip is judged on. */
@@ -415,11 +429,9 @@ test("a fractional deadline the millisecond cannot hold still sends the request"
 /* What this catches is a ladder that sleeps between attempts, and the ladder says so itself at every
    rung it takes: timing the whole verb instead asserted how much of the machine this process got. */
 test("a refused connection with retrySeconds 0 sleeps at no rung of the ladder it goes round", async () => {
-  const home = tempHome("dead-port");
-  mkdirSync(join(home.path, "forge"), { recursive: true });
-  writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t", retrySeconds: 0 }));
+  const home = homeFor("dead-port", { url: "http://127.0.0.1:1/mcp", token: "t", retrySeconds: 0 });
   const began = Date.now();
-  const run = await ranAsync(FORGE, ["issue", "ISS-1"], { ...process.env, XDG_CONFIG_HOME: home.path }, ROOT, null);
+  const run = await ranAsync(FORGE, ["issue", "ISS-1"], home.env, ROOT, null);
   const took = Date.now() - began;
   for (const attempt of [1, 2, 3]) {
     assert.match(run.stderr, new RegExp(`waiting 0s \\(attempt ${attempt} of 4\\)`, "u"),
@@ -447,16 +459,16 @@ test("the wait the ladder announces is the value it sleeps, and the sleep puts n
    what left every verb and every hook waiting for as long as the session lasted (ISS-828). The
    verb is a whole process here because the number is read off config.json, which one process reads
    once. */
-test("a host that accepts and never answers refuses the verb at the deadline config.json names", async () => {
+test("a host that accepts and never answers refuses the verb at the deadline config.json names", async (t) => {
   const stalled = createServer(() => {});
+  /* Registered before anything can throw: a listening socket left behind holds the event loop open,
+     so a failed assertion here would hang the file rather than report. */
+  t.after(() => new Promise((closed) => stalled.close(closed)));
   await new Promise((listening) => stalled.listen(0, "127.0.0.1", listening));
-  const home = tempHome("stalled-host");
-  mkdirSync(join(home.path, "forge"), { recursive: true });
-  writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({
-    url: `http://127.0.0.1:${stalled.address().port}/mcp`, token: "t", retrySeconds: 0, waitSeconds: 0.05,
-  }));
+  const home = homeFor("stalled-host",
+    { url: `http://127.0.0.1:${stalled.address().port}/mcp`, token: "t", retrySeconds: 0, waitSeconds: 0.05 });
   const began = Date.now();
-  const run = await ranAsync(FORGE, ["issue", "ISS-1"], { ...process.env, XDG_CONFIG_HOME: home.path }, ROOT, null);
+  const run = await ranAsync(FORGE, ["issue", "ISS-1"], home.env, ROOT, null);
   const took = Date.now() - began;
   assert.match(run.stderr, /ran out after 0\.05s \(waitSeconds in config\.json\)/u, run.stderr);
   for (const attempt of [1, 2, 3]) {
@@ -467,7 +479,6 @@ test("a host that accepts and never answers refuses the verb at the deadline con
   assert.match(run.stderr, /Forge did not answer GET /u, run.stderr);
   assert.notEqual(run.status, 0);
   home.remove();
-  await new Promise((closed) => stalled.close(closed));
 });
 
 /* Watched on the write whose row keeps a fixed set of the answer's fields: a reading taken out of a

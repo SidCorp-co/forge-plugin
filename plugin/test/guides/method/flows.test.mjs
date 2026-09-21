@@ -4,11 +4,10 @@
    failing by removing the sentence it names from the flow's own part (ISS-1088). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { flat, tempHome, tempRoom } from "../../fixtures.mjs";
+import { flat, projectRoom, tempHome, tempRoom } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("screen-flow").path;
 const { DEFAULT, SCREEN } = await import("../../../src/guides/flow.mjs");
@@ -17,24 +16,34 @@ const { skillGuideSlugs } = await import("../../../src/guides/skill-guides.mjs")
 const PLUGIN = new URL("../../../", import.meta.url).pathname;
 const FORGE = join(PLUGIN, "bin", "forge");
 
-/* One flow per process, the resolver answering once, so every reading spawns the verb. */
-const served = (flow, ...argv) => {
-  const dir = tempRoom("screen-flow-");
-  writeFileSync(join(dir, ".forge.json"), JSON.stringify({ slug: "screen-fixture", ...(flow ? { flow } : {}) }));
-  const run = spawnSync(FORGE, argv, { encoding: "utf8", env: { ...process.env }, cwd: dir });
-  assert.equal(run.status, 0, `\`forge ${argv.join(" ")}\` under ${flow ?? "no key"} exited ${run.status}: ${run.stderr}`);
-  return flat(run.stdout);
+/* One configuration home for every reading, holding one record per flow: the project's keys live
+   beside the machine's now, so a room and the home its record sits in travel together and neither
+   is this developer's. One room per flow rather than one per call, two readings of a flow being
+   two readings of the same project. */
+const HOME = tempRoom("screen-flow-home-");
+const rooms = new Map();
+const roomFor = (flow) => {
+  if (!rooms.has(flow)) {
+    rooms.set(flow, projectRoom(tempRoom("screen-flow-"), HOME,
+      { slug: "screen-fixture", ...(flow ? { flow } : {}) }));
+  }
+  return rooms.get(flow);
 };
+
+/* One flow per process, the resolver answering once, so every reading spawns the verb. */
+const ran = (flow, argv) => {
+  const run = spawnSync(FORGE, argv,
+    { encoding: "utf8", env: { ...process.env, HOME, XDG_CONFIG_HOME: HOME }, cwd: roomFor(flow) });
+  assert.equal(run.status, 0, `\`forge ${argv.join(" ")}\` under ${flow ?? "no key"} exited ${run.status}: ${run.stderr}`);
+  return run.stdout;
+};
+
+const served = (flow, ...argv) => flat(ran(flow, argv));
 
 /* The same call with its line breaks kept, which is the only way a heading can be told from the
    paragraph under it once `flat` has run. */
-const headings = (flow, ...argv) => {
-  const dir = tempRoom("screen-flow-");
-  writeFileSync(join(dir, ".forge.json"), JSON.stringify({ slug: "screen-fixture", ...(flow ? { flow } : {}) }));
-  const run = spawnSync(FORGE, argv, { encoding: "utf8", env: { ...process.env }, cwd: dir });
-  assert.equal(run.status, 0, `\`forge ${argv.join(" ")}\` under ${flow ?? "no key"} exited ${run.status}: ${run.stderr}`);
-  return run.stdout.split("\n").filter((one) => one.startsWith("#"));
-};
+const headings = (flow, ...argv) =>
+  ran(flow, argv).split("\n").filter((one) => one.startsWith("#"));
 
 const method = (flow) => served(flow, "guide", "issue-flow");
 const verification = (flow) => served(flow, "guide", "issue-flow", "verification");
@@ -140,13 +149,11 @@ test("the screen flow's Phase 5 serves both arms of the judging declaration", ()
 /* And the endpoint each arm reaches is the ship mode's, not the declaration's: a rung named across
    both modes tells a run that lands nothing to reach one only its lander can write. */
 const shipping = (mode, ...argv) => {
-  const room = tempRoom("screen-ship-");
-  const home = tempHome(`screen-${mode}`);
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "screen-fixture", flow: SCREEN }));
-  spawnSync(FORGE, ["doctor", "--ship", mode],
-    { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home.path }, cwd: room });
-  const run = spawnSync(FORGE, argv,
-    { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home.path }, cwd: room });
+  const home = tempHome(`screen-${mode}`).path;
+  const room = projectRoom(tempRoom("screen-ship-"), home, { slug: "screen-fixture", flow: SCREEN });
+  const env = { ...process.env, HOME: home, XDG_CONFIG_HOME: home };
+  spawnSync(FORGE, ["doctor", "--ship", mode], { encoding: "utf8", env, cwd: room });
+  const run = spawnSync(FORGE, argv, { encoding: "utf8", env, cwd: room });
   assert.equal(run.status, 0, `\`forge ${argv.join(" ")}\` under ship ${mode} exited ${run.status}: ${run.stderr}`);
   return flat(run.stdout);
 };

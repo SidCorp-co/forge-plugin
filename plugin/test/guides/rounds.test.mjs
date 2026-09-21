@@ -7,7 +7,7 @@ import test from "node:test";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, homeEnv, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, projectRecord, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("rounds").path;
 
@@ -22,10 +22,19 @@ const { render } = await import("../../src/flow/record/page.mjs");
 const PLUGIN = new URL("../../", import.meta.url).pathname;
 const FORGE = join(PLUGIN, "bin", "forge");
 const [TRIVIAL] = RUNGS;
+
+/* One configuration home for every child this file spawns, holding this checkout's own project
+   record: the served answer and the verb that prints it have to resolve ONE project, and that
+   record now lives beside the machine's own rather than in the checkout. Written before the first
+   test is registered, because a test registered above the tracker runs while it is still coming up. */
+const HOME = tempRoom("rounds-home-");
+projectRecord(process.cwd(), HOME,
+  JSON.parse(readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8")));
+const homed = (extra = {}) => ({ ...process.env, HOME, XDG_CONFIG_HOME: HOME, ...extra });
+const guided = (...argv) => ranAsync(FORGE, ["guide", ...argv], homed());
 const SCOPED = "one scoped run when a unit of work is finished";
 const SLOWER = "never a reason to spend it less often";
 
-const guided = (...argv) => ranAsync(FORGE, ["guide", ...argv], homeEnv("rounds-cli"));
 const text = (answer) => answer.lines.join("\n");
 
 /* The body alone: every answer ends with the rounds and then the flow line, so a comparison of two
@@ -212,7 +221,12 @@ const state = {
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
-const env = (who) => ({ ...tracker.env, AI_AGENT: "a-test-agent", CLAUDE_PID: "4242",
+/* The account half of that one home: the fixture writes its url and token into a home of its own,
+   and the children read both halves out of this one. */
+writeFileSync(join(HOME, "forge", "config.json"),
+  readFileSync(join(tracker.env.XDG_CONFIG_HOME, "forge", "config.json"), "utf8"));
+
+const env = (who) => homed({ AI_AGENT: "a-test-agent", CLAUDE_PID: "4242",
   FORGE_SESSION_ID: who, FORGE_CODEX_DISABLE: "1" });
 
 const claimed = (ref) => ranAsync(FORGE, ["claim", ref], env(runFor(ref)));

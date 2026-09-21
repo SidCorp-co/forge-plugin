@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { answered, callHook, tempRoom } from "../../fixtures.mjs";
+import { answered, callHook, projectEntry, projectRecord, tempRoom } from "../../fixtures.mjs";
 import { digest } from "../../../src/codex/codex-api.mjs";
 import { typed } from "../../../src/hooks/shell-spans.mjs";
 
@@ -29,8 +29,10 @@ let count = 0;
 const gate = ({ command, pending = ["work.mjs"], log = "", project = GATED, env = {}, held, hook = HOOK, stage } = {}) => {
   count += 1;
   writeFileSync(join(REPO, "work.mjs"), held ?? `// ${count}\n`);
-  if (project === null) rmSync(join(REPO, ".forge.json"), { force: true });
-  else writeFileSync(join(REPO, ".forge.json"), JSON.stringify(project));
+  /* The project's keys are this machine's record of the checkout, kept under the configuration
+     home these cases hand the hook, which is this room. */
+  if (project === null) rmSync(projectEntry(REPO, room), { force: true });
+  else projectRecord(REPO, room, project);
   writeFileSync(join(room, "forge", "codex-log.jsonl"), log);
   writeFileSync(
     join(room, "forge", "codex.json"),
@@ -42,7 +44,7 @@ const gate = ({ command, pending = ["work.mjs"], log = "", project = GATED, env 
   const run = callHook(
     hook,
     { hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command }, session_id: `s${count}`, cwd: REPO },
-    { ...process.env, XDG_CONFIG_HOME: room, ...env },
+    { ...process.env, HOME: room, XDG_CONFIG_HOME: room, ...env },
   );
   return answered(run);
 };
@@ -52,13 +54,13 @@ const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
 /* The escape the refusal names, run as a caller would run it and never simulated: the record it
    reads is the one the gate just refused over, and the call after it is the same call. */
 const dropped = () => spawnSync(process.execPath, [CLI, "codex", "pending", "--drop"],
-  { cwd: REPO, encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: room } });
+  { cwd: REPO, encoding: "utf8", env: { ...process.env, HOME: room, XDG_CONFIG_HOME: room } });
 const again = (command) => {
   count += 1;
   const run = callHook(
     HOOK,
     { hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command }, session_id: `s${count}`, cwd: REPO },
-    { ...process.env, XDG_CONFIG_HOME: room },
+    { ...process.env, HOME: room, XDG_CONFIG_HOME: room },
   );
   return answered(run);
 };
@@ -168,7 +170,7 @@ test("a value the key does not take is refused with the key named, and nothing i
   for (const owed of [["refuse"], "gate", [1]]) {
     const out = because(gate({ command: "npm run check", project: { ...GATED, codex: { owed } } }));
     assert.match(out, /is no door this reads/u, `\`${JSON.stringify(owed)}\` was taken for something`);
-    assert.match(out, /`codex\.owed` in \.forge\.json is a list of the doors/u, "the key is named");
+    assert.match(out, /`codex\.owed` in this project's configuration is a list of the doors/u, "the key is named");
     assert.match(out, /gate, commit, ship/u, "with what it takes");
   }
 });
@@ -178,17 +180,17 @@ test("the tree is where the cd in the same command left the shell, and every tre
   mkdirSync(other, { recursive: true });
   spawnSync("git", ["init", "-q", other], { cwd: dirname(other) });
   writeFileSync(join(other, "make.mjs"), "// b\n");
-  writeFileSync(join(other, ".forge.json"),
-    JSON.stringify({ slug: "other", codex: { owed: ["gate"] }, stats: { commands: { gate: "make verify" } } }));
+  projectRecord(other, room,
+    { slug: "other", codex: { owed: ["gate"] }, stats: { commands: { gate: "make verify" } } });
   const away = (command) => {
-    writeFileSync(join(REPO, ".forge.json"), JSON.stringify(GATED));
+    projectRecord(REPO, room, GATED);
     writeFileSync(join(room, "forge", "codex-log.jsonl"), "");
     writeFileSync(join(room, "forge", "codex.json"),
       JSON.stringify({ turns: { [realpathSync(other)]: { files: ["make.mjs"], at: Date.now() - 90_000 } } }));
     const run = callHook(
       HOOK,
       { hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: { command }, session_id: "s-away", cwd: REPO },
-      { ...process.env, XDG_CONFIG_HOME: room },
+      { ...process.env, HOME: room, XDG_CONFIG_HOME: room },
     );
     return answered(run);
   };

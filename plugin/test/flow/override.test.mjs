@@ -8,7 +8,8 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, pathed, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
+import { pathed, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
+import { trackerFor } from "./own-project.mjs";
 import { fieldSets } from "../../src/checks/surface/judged-arguments.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("override").path;
@@ -100,9 +101,9 @@ const state = {
     },
   },
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
-await ranAsync(FORGE, ["claim", "ISS-96", "--unheld"], tracker.env);
+await ranAsync(FORGE, ["claim", "ISS-96", "--unheld"], ENV);
 /* The claim above is this suite's lease, restored per case: one of them hands the issue to another run. */
 const MINE = structuredClone(ISSUE.sessionContext);
 
@@ -121,8 +122,8 @@ const before = (status = "in_progress") => {
   state.noColumnFor = null;
   state.comments[ISSUE.documentId] = [];
 };
-const setField = (...argv) => ranAsync(FORGE, ["issue", "ISS-96", ...argv], tracker.env);
-const setStatus = (...argv) => ranAsync(FORGE, ["advance", "ISS-96", ...argv], tracker.env);
+const setField = (...argv) => ranAsync(FORGE, ["issue", "ISS-96", ...argv], ENV);
+const setStatus = (...argv) => ranAsync(FORGE, ["advance", "ISS-96", ...argv], ENV);
 const posted = () => state.calls
   .filter((one) => one.name === "forge_comments" && one.args.action === "create")
   .map((one) => one.args.data.body);
@@ -234,7 +235,7 @@ test("the sentence about the value is the one the filing route prints for it", a
   before();
   const set = await setField("--set", "complexity=xxl", "--why", WHY);
   const filed = await ranAsync(FORGE,
-    ["new", "a-body-never-opened.md", "--title", "t", "--category", "bug", "--complexity", "xxl"], tracker.env);
+    ["new", "a-body-never-opened.md", "--title", "t", "--category", "bug", "--complexity", "xxl"], ENV);
   assert.equal(filed.status, 1, filed.stdout);
   const said = /No complexity named xxl\.[^\n]*/u;
   assert.match(set.stderr, said, set.stderr);
@@ -614,7 +615,7 @@ test("a field the tracker has no column for is refused in one sentence of this C
 test("a caller that is not the override arm keeps the tracker's own refusal", async () => {
   before();
   state.noColumnFor = ["sessionContext"];
-  const run = await ranAsync(FORGE, ["claim", "ISS-96", "--next", "on to the next step"], tracker.env);
+  const run = await ranAsync(FORGE, ["claim", "ISS-96", "--next", "on to the next step"], ENV);
   assert.equal(run.status, 1);
   assert.match(run.stderr, /Unrecognized key: "sessionContext"/u,
     "the tracker's own answer, unchanged for every caller but the one this rule is about");

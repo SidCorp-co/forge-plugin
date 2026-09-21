@@ -1,4 +1,4 @@
-/* A project whose `.forge.json` names a prose language has every comment body and every prose field
+/* A project whose configuration names a prose language has every comment body and every prose field
    rewritten on the way out, and a rewrite renames prose: eight verdicts and a verification earned
    nothing on one such project, and its owed list named a criterion `NaN`. So every kind is written,
    put through the rewrite, and read back here. */

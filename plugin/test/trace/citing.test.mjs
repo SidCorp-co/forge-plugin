@@ -6,7 +6,7 @@ import test from "node:test";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, shortPage, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, projectRoom, ranAsync, shortPage, tempRoom } from "../fixtures.mjs";
 
 const { TREE } = await import("../../src/spec/tree.mjs");
 
@@ -34,9 +34,12 @@ The identifier is the whole surface.
   IF the identifier is unknown THEN the CLI SHALL refuse.
 `;
 
-const project = (prefix) => {
-  const root = tempRoom(prefix);
-  writeFileSync(join(root, ".forge.json"), readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8"));
+/* This checkout's own keys, carried into whatever configuration home the case runs against: the
+   record is this machine's now, so a room and the home holding its record travel together. */
+const OWN = JSON.parse(readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8"));
+
+const project = (prefix, home) => {
+  const root = projectRoom(tempRoom(prefix), home, OWN);
   const srs = join(root, TREE, "srs");
   mkdirSync(srs, { recursive: true });
   writeFileSync(join(srs, "fr-01-first.md"), REQUIREMENT);
@@ -91,15 +94,19 @@ const COMMENTS = {
 const trackerFor = async (state) => {
   const held = { issues: [PROVER, MENTIONS, PROSE], comments: COMMENTS, ...state };
   const tracker = await fakeTracker(held);
-  return { tracker, held };
+  const home = tracker.env.XDG_CONFIG_HOME;
+  /* One home per reading, holding both halves the child reads: the account's credentials the
+     fixture wrote, and the record of the project whichever room it stands in belongs to. */
+  return { tracker, held, home, env: { ...tracker.env, HOME: home },
+    project: (prefix) => project(prefix, home) };
 };
 
 const searches = (calls) => calls.filter((one) => (one.path ?? "").endsWith("/issues/search"));
 const threads = (calls) => calls.filter((one) => /\/comments$/u.test(one.path ?? ""));
 
 test("the citing set is what the tree resolves, not what the index matched", async () => {
-  const { tracker, held } = await trackerFor({});
-  const run = await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], tracker.env, project("citing-narrow-"));
+  const { tracker, held, env, project: roomOf } = await trackerFor({});
+  const run = await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], env, roomOf("citing-narrow-"));
   tracker.close();
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /AC-01-1-1 {2}verified {2}proved by ISS-1; also cited by ISS-2/u);
@@ -109,24 +116,24 @@ test("the citing set is what the tree resolves, not what the index matched", asy
 });
 
 test("a criterion opening at a revision is answered by the bare identifier the reader asks with", async () => {
-  const { tracker, held } = await trackerFor({});
-  await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], tracker.env, project("citing-revision-"));
+  const { tracker, held, env, project: roomOf } = await trackerFor({});
+  await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], env, roomOf("citing-revision-"));
   tracker.close();
   assert.deepEqual(searches(held.calls).map((one) => one.query.q), ["AC-01-1-1"],
     "the ask carries no revision, and the criterion it found writes one");
 });
 
 test("the comment read is spent on the issues that could prove the clause and on no others", async () => {
-  const { tracker, held } = await trackerFor({});
-  await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], tracker.env, project("citing-budget-"));
+  const { tracker, held, env, project: roomOf } = await trackerFor({});
+  await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], env, roomOf("citing-budget-"));
   tracker.close();
   assert.deepEqual(threads(held.calls).map((one) => one.path.split("/")[3]), ["iss-1-uuid"],
     "the open issue and the prose match are closed out before a thread of either is read");
 });
 
 test("a requirement costs one ask per clause under it and never a walk of the project", async () => {
-  const { tracker, held } = await trackerFor({});
-  const run = await ranAsync(FORGE, ["spec", "FR-01", "--status"], tracker.env, project("citing-per-clause-"));
+  const { tracker, held, env, project: roomOf } = await trackerFor({});
+  const run = await ranAsync(FORGE, ["spec", "FR-01", "--status"], env, roomOf("citing-per-clause-"));
   tracker.close();
   assert.deepEqual(searches(held.calls).map((one) => one.query.q).sort(), ["AC-01-1-1", "AC-01-1-2"]);
   assert.match(run.stdout, /AC-01-1-2 {2}partial {3}cited by ISS-3/u,
@@ -135,12 +142,12 @@ test("a requirement costs one ask per clause under it and never a walk of the pr
 });
 
 test("a citing set the route cut short earns no rung and says it was cut", async () => {
-  const { tracker, held } = await trackerFor({
+  const { tracker, held, env, project: roomOf } = await trackerFor({
     answer: { forge_issues: (args) => (args.action === "list"
       ? shortPage([PROVER], 5)()
       : { documentId: args.documentId }) },
   });
-  const run = await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], tracker.env, project("citing-cut-"));
+  const run = await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], env, roomOf("citing-cut-"));
   tracker.close();
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /AC-01-1-1 {2}no rung/u);
@@ -150,12 +157,12 @@ test("a citing set the route cut short earns no rung and says it was cut", async
 });
 
 test("a prover whose record came back a prefix earns the clause no rung either", async () => {
-  const { tracker } = await trackerFor({
+  const { tracker, env, project: roomOf } = await trackerFor({
     answer: { forge_comments: (args) => (args.action === "list"
       ? { comments: COMMENTS["iss-1-uuid"], returned: 2, total: 9, hasMore: true }
       : { documentId: "comment-uuid" }) },
   });
-  const run = await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], tracker.env, project("citing-prefix-"));
+  const run = await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], env, roomOf("citing-prefix-"));
   tracker.close();
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /AC-01-1-1 {2}no rung/u,
@@ -164,8 +171,8 @@ test("a prover whose record came back a prefix earns the clause no rung either",
 });
 
 test("the clause read without the flag asks the tracker nothing at all", async () => {
-  const { tracker, held } = await trackerFor({});
-  const run = await ranAsync(FORGE, ["spec", "AC-01-1-1"], tracker.env, project("citing-offline-"));
+  const { tracker, held, env, project: roomOf } = await trackerFor({});
+  const run = await ranAsync(FORGE, ["spec", "AC-01-1-1"], env, roomOf("citing-offline-"));
   tracker.close();
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /AC-01-1-1/u);
@@ -173,8 +180,8 @@ test("the clause read without the flag asks the tracker nothing at all", async (
 });
 
 test("a tracker that refuses the citing read costs the rung and never the clause", async () => {
-  const { tracker } = await trackerFor({ status: 500 });
-  const run = await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], tracker.env, project("citing-refused-"));
+  const { tracker, env, project: roomOf } = await trackerFor({ status: 500 });
+  const run = await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], env, roomOf("citing-refused-"));
   tracker.close();
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /AC-01-1-1 {2}rev 1/u, "the clause is read off the checkout and still printed");
@@ -183,10 +190,9 @@ test("a tracker that refuses the citing read costs the rung and never the clause
 });
 
 test("a project keeping no requirements tree is told what it is told today, and nothing is derived", async () => {
-  const { tracker, held } = await trackerFor({});
-  const root = tempRoom("citing-no-tree-");
-  writeFileSync(join(root, ".forge.json"), readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8"));
-  const run = await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], tracker.env, root);
+  const { tracker, held, env, home } = await trackerFor({});
+  const root = projectRoom(tempRoom("citing-no-tree-"), home, OWN);
+  const run = await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status"], env, root);
   tracker.close();
   assert.equal(run.status, 1);
   assert.match(run.stderr, /This project has no requirements tree/u);
@@ -195,8 +201,8 @@ test("a project keeping no requirements tree is told what it is told today, and 
 });
 
 test("the json half carries the rung the print carries, and no field stores it", async () => {
-  const { tracker } = await trackerFor({});
-  const run = await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status", "--json"], tracker.env, project("citing-json-"));
+  const { tracker, env, project: roomOf } = await trackerFor({});
+  const run = await ranAsync(FORGE, ["spec", "AC-01-1-1", "--status", "--json"], env, roomOf("citing-json-"));
   tracker.close();
   const held = JSON.parse(run.stdout);
   assert.equal(held.status.rung, "verified");

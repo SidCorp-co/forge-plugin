@@ -4,7 +4,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
+import { ranAsync, tempHome } from "../fixtures.mjs";
+import { trackerFor } from "./own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("close").path;
 const { render } = await import("../../src/flow/record/page.mjs");
@@ -125,7 +126,7 @@ const state = {
     },
   },
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
 
 const listed = (documentId) =>
@@ -142,7 +143,7 @@ const moved = (documentId) =>
 test("--owed on a shipped issue names the close, and reads no page to say it", async () => {
   const pages = listed("shipped-uuid");
   const rounds = asked();
-  const run = await ranAsync(FORGE, ["advance", "ISS-96", "--owed"], tracker.env);
+  const run = await ranAsync(FORGE, ["advance", "ISS-96", "--owed"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /ISS-96 is awaiting_release; closed is next and the record earns it/u, run.stdout);
   assert.equal(listed("shipped-uuid"), pages, "the page the refusal names was fetched");
@@ -157,11 +158,11 @@ test("a close transitions, and the page a shipped issue overflows cannot refuse 
   /* The read-before-write gate sits inside every lease write and credits what it delivered, so the
      claim meets it twice and the close not at all. That hold is not the refusal this case is about. */
   for (const again of [1, 2]) {
-    const claim = await ranAsync(FORGE, ["claim", "ISS-96", "--unheld"], tracker.env);
+    const claim = await ranAsync(FORGE, ["claim", "ISS-96", "--unheld"], ENV);
     assert.equal(claim.status, again === 1 ? 1 : 0, claim.stderr);
   }
   const pages = listed("shipped-uuid");
-  const run = await ranAsync(FORGE, ["close", "ISS-96"], tracker.env);
+  const run = await ranAsync(FORGE, ["close", "ISS-96"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stderr, /^forge: read close as forge advance ISS-96$/mu, run.stderr);
   assert.match(run.stdout, /ISS-96 {2}awaiting_release -> closed {2}\(read as forge advance ISS-96\)/u, run.stdout);
@@ -172,7 +173,7 @@ test("a close transitions, and the page a shipped issue overflows cannot refuse 
 
 /* One issue per case that writes: shared, a case would assert on the page and the lease the last one left. */
 const claimed = async (key) => {
-  const run = await ranAsync(FORGE, ["claim", key, "--unheld"], tracker.env);
+  const run = await ranAsync(FORGE, ["claim", key, "--unheld"], ENV);
   assert.equal(run.status, 0, run.stderr);
 };
 
@@ -181,7 +182,7 @@ const claimed = async (key) => {
 test("a policy that leaves a person the release refuses the close, in the report's own words", async () => {
   state.config = OWES_A_PERSON;
   await claimed("ISS-98");
-  const run = await ranAsync(FORGE, ["advance", "ISS-98"], tracker.env);
+  const run = await ranAsync(FORGE, ["advance", "ISS-98"], ENV);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stdout, /the release is a person's and nothing here says they have made it/u, run.stdout);
   assert.ok(run.stdout.includes(personOwedForRelease(releaseFrom(OWES_A_PERSON))),
@@ -193,7 +194,7 @@ test("a policy that leaves a person the release refuses the close, in the report
 
 test("the rehearsal under that policy says what the move is refused on, and moves nothing", async () => {
   state.config = OWES_A_PERSON;
-  const run = await ranAsync(FORGE, ["advance", "ISS-98", "--owed"], tracker.env);
+  const run = await ranAsync(FORGE, ["advance", "ISS-98", "--owed"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /closed is next and the record does not earn it: 1 item\(s\) owed/u, run.stdout);
   assert.ok(run.stdout.includes(personOwedForRelease(releaseFrom(OWES_A_PERSON))), run.stdout);
@@ -207,7 +208,7 @@ test("a set reaches closed under that policy, and spends no reading of the polic
   await claimed("ISS-99");
   const rounds = { reads: asked(), at: state.calls.length };
   const run = await ranAsync(FORGE, ["advance", "ISS-99", "--set", "closed",
-    "--why", "the release went out and I read the installed copy"], tracker.env);
+    "--why", "the release went out and I read the installed copy"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.deepEqual(moved("set-uuid").map((one) => one.args.data.status), ["closed"]);
   /* Not that a set reads the project nowhere — the correction it writes reads it, and did before this change — but that nothing reads it before that record's own page, which is where a view built for an entry check would have. */
@@ -223,12 +224,12 @@ test("a configuration that did not answer refuses the close, and the call that r
   state.config = RELEASES_ITSELF;
   await claimed("ISS-100");
   state.unread = true;
-  const refused = await ranAsync(FORGE, ["advance", "ISS-100"], tracker.env);
+  const refused = await ranAsync(FORGE, ["advance", "ISS-100"], ENV);
   assert.equal(refused.status, 1, refused.stdout);
   assert.match(refused.stdout, /the project config could not be read/u, refused.stdout);
   assert.deepEqual(moved("retry-uuid"), [], "a reading that did not happen closed it anyway");
   state.unread = false;
-  const run = await ranAsync(FORGE, ["advance", "ISS-100"], tracker.env);
+  const run = await ranAsync(FORGE, ["advance", "ISS-100"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.deepEqual(moved("retry-uuid").map((one) => one.args.data.status), ["closed"]);
 });
@@ -238,13 +239,13 @@ test("a configuration that did not answer refuses the close, and the call that r
 test("a project declaring no release model refuses the close, and declaring one makes it", async () => {
   state.config = DECLARES_NO_MODEL;
   await claimed("ISS-102");
-  const refused = await ranAsync(FORGE, ["advance", "ISS-102"], tracker.env);
+  const refused = await ranAsync(FORGE, ["advance", "ISS-102"], ENV);
   assert.equal(refused.status, 1, refused.stdout);
   assert.match(refused.stdout, /this project declares no release model, so nothing here says what a release is/u,
     refused.stdout);
   assert.deepEqual(moved("unset-uuid"), []);
   state.config = RELEASES_ITSELF;
-  const run = await ranAsync(FORGE, ["advance", "ISS-102"], tracker.env);
+  const run = await ranAsync(FORGE, ["advance", "ISS-102"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.deepEqual(moved("unset-uuid").map((one) => one.args.data.status), ["closed"]);
 });
@@ -255,12 +256,12 @@ test("a project declaring no release model refuses the close, and declaring one 
 test("a project declaring no release step closes in the run that landed the change", async () => {
   state.config = NO_RELEASE_STEP;
   await claimed("ISS-103");
-  const rehearsal = await ranAsync(FORGE, ["advance", "ISS-103", "--owed"], tracker.env);
+  const rehearsal = await ranAsync(FORGE, ["advance", "ISS-103", "--owed"], ENV);
   assert.equal(rehearsal.status, 0, rehearsal.stderr);
   assert.match(rehearsal.stdout, /closed is next and the record earns it/u, rehearsal.stdout);
-  const report = await ranAsync(FORGE, ["resume", "ISS-103", "--report"], tracker.env);
+  const report = await ranAsync(FORGE, ["resume", "ISS-103", "--report"], ENV);
   assert.match(report.stdout, /Owed: the close\. A run ends at closed/u, report.stdout);
-  const run = await ranAsync(FORGE, ["advance", "ISS-103"], tracker.env);
+  const run = await ranAsync(FORGE, ["advance", "ISS-103"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.deepEqual(moved("none-uuid").map((one) => one.args.data.status), ["closed"]);
   assert.deepEqual(wrote("none-uuid"), [], "and nothing was written to earn it");
@@ -271,12 +272,12 @@ test("a project declaring no release step closes in the run that landed the chan
 test("a promotion nothing automates refuses the close, and one the project makes itself does not", async () => {
   state.config = PROMOTES;
   await claimed("ISS-104");
-  const refused = await ranAsync(FORGE, ["advance", "ISS-104"], tracker.env);
+  const refused = await ranAsync(FORGE, ["advance", "ISS-104"], ENV);
   assert.equal(refused.status, 1, refused.stdout);
   assert.match(refused.stdout, /the promotion from master to live is a person's/u, refused.stdout);
   assert.deepEqual(moved("promote-uuid"), []);
   state.config = { ...PROMOTES, pipelineConfig: { autoProdDeploy: true } };
-  const run = await ranAsync(FORGE, ["advance", "ISS-104"], tracker.env);
+  const run = await ranAsync(FORGE, ["advance", "ISS-104"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.deepEqual(moved("promote-uuid").map((one) => one.args.data.status), ["closed"]);
 });
@@ -287,7 +288,7 @@ test("the line a record write leaves at that rung names the same shortfall", asy
   state.config = OWES_A_PERSON;
   await claimed("ISS-101");
   const run = await ranAsync(FORGE, ["record", "note", "ISS-101", "--section", "Fixed",
-    "--user", "what the reporter sees"], tracker.env);
+    "--user", "what the reporter sees"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.ok(run.stderr.includes(personOwedForRelease(releaseFrom(OWES_A_PERSON))),
     `the record write still reads the close as earned:\n${run.stderr}`);
@@ -297,7 +298,7 @@ test("the line a record write leaves at that rung names the same shortfall", asy
 /* The sentence that sends the person to close it has to name a route this guard leaves open, or the report describes a completion that refuses; the landing's own hand-back says the same thing off the same form. */
 test("the report names the route the guard leaves open to whoever released it", async () => {
   state.config = OWES_A_PERSON;
-  const run = await ranAsync(FORGE, ["resume", "ISS-98", "--report"], tracker.env);
+  const run = await ranAsync(FORGE, ["resume", "ISS-98", "--report"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /Owed: the release, which is a person's/u, run.stdout);
   assert.match(run.stdout, /forge advance ISS-98 --set closed --why/u, run.stdout);
@@ -308,7 +309,7 @@ test("the report names the route the guard leaves open to whoever released it", 
 test("a park from the rung reads the page, because an attachment is named on a comment", async () => {
   const pages = listed("parking-uuid");
   const run = await ranAsync(FORGE, ["advance", "ISS-97", "--park", "rolled-back", "--why",
-    "the deploy went back and the branch is named", "--evidence", "nope.txt"], tracker.env);
+    "the deploy went back and the branch is named", "--evidence", "nope.txt"], ENV);
   assert.equal(run.status, 1, run.stdout);
   assert.ok(listed("parking-uuid") > pages, "the page a park is judged on was not read");
   assert.match(run.stderr, /Attached: rollback\.txt/u, "and the name it resolves against is a comment's own");

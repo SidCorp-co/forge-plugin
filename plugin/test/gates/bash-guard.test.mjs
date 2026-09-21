@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import { waitsIn } from "../../src/hooks/shell-spans.mjs";
-import { callHook, cleanRepo, dirtyRepo, homeEnv, tempRoom } from "../fixtures.mjs";
+import { callHook, cleanRepo, dirtyRepo, homeEnv, projectRoom, tempRoom } from "../fixtures.mjs";
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "bash-guard.mjs");
 const HOME = homeEnv("bash-guard");
@@ -61,20 +61,19 @@ test("a rule this session already read in full is refused again in one line", ()
   assert.match(other.reason, /stages everything in the tree/u, "another session is owed the whole of it");
 });
 
-/* The project a hook stands in, for the key the filing line resolves off. The room holds no git, so
-   the settings walk finds this `.forge.json` and no checkout's. */
-const inProject = (channel) => {
-  const room = tempRoom(`bash-guard-${channel}-`);
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "a-project", feedback: { plugin: channel } }));
-  return room;
-};
-
-const BUGS = inProject("bugs");
-const OFF = inProject("off");
-
 /* One home across these cases, because the ledger lives in it: a fresh one per call would owe every
    paragraph again and the repeat this rule is about could not happen. Sessions keep them apart. */
 const FILING_HOME = homeEnv("bash-guard-filing");
+
+/* The project a hook stands in, for the key the filing line resolves off: a checkout, because a
+   directory belonging to none belongs to no project either, and its record under the one home
+   these cases hand the hook. */
+const inProject = (channel) =>
+  projectRoom(tempRoom(`bash-guard-${channel}-`), FILING_HOME.XDG_CONFIG_HOME,
+    { slug: "a-project", feedback: { plugin: channel } });
+
+const BUGS = inProject("bugs");
+const OFF = inProject("off");
 
 const refusedIn = (room, session, command) => {
   const env = { ...FILING_HOME, FORGE_SESSION_ID: session };

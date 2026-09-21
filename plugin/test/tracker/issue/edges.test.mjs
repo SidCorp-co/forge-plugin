@@ -3,8 +3,9 @@
    gets: the blocked end is the one whose order moves. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 
-import { fakeTracker, ranAsync } from "../../fixtures.mjs";
+import { fakeTracker, projectRecord, ranAsync } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../../..", import.meta.url).pathname;
@@ -37,9 +38,15 @@ const state = {
 };
 
 const tracker = await fakeTracker(state);
+
+/* Every call here runs from this checkout, whose project is this machine's record of it now:
+   the record goes under the one configuration home the children are handed. */
+const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
+projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME,
+  JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8")));
 test.after(() => tracker.close());
 const ran = (...argv) =>
-  ranAsync(FORGE, argv, { ...tracker.env, FORGE_SESSION_ID: SESSION }, ROOT);
+  ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: SESSION }, ROOT);
 
 const sentTo = (path, method) =>
   (state.calls ?? []).filter((one) => one.path === path && one.method === method);

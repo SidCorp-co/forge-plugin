@@ -8,7 +8,8 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { answered, callHook, cleanRepo, escaped, pathed, tempRoom, typed } from "../../fixtures.mjs";
+import { answered, callHook, cleanRepo, escaped, pathed, projectRecord, projectRoom, tempRoom, typed }
+  from "../../fixtures.mjs";
 import { FIELD, KEY } from "../../../src/flow/lease.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
 
@@ -25,14 +26,21 @@ const DENSE = `// ${"the unit is what the comment says and never the column its 
    and this suite must not read the developer's own log. Where its stamps land is the fixture's,
    which pointed `TMPDIR` at this process's own root before this line ran. */
 process.env.XDG_CONFIG_HOME = tempRoom("stop-check-own-");
+/* This checkout's own project, which is what a case standing the gate here resolves: the roles
+   whose stops are judged are one of its keys, and the record is this machine's rather than the
+   tree's, so a home of the suite's own has to carry it. */
+const OWN = JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
+projectRecord(REPO, process.env.XDG_CONFIG_HOME, OWN);
 const { run, silentSince, judgedStop, heldAndSilent } = await import("../../../hooks/gates/turn/stop-check.mjs");
 
-/* Both roots are the child's too, for the same two reasons. */
+/* Both roots are the child's too, for the same two reasons. A case that does not stand the child
+   somewhere else stands it in this checkout, so the home carries this checkout's record as well. */
 const room = (log) => {
   const home = tempRoom("stop-check-");
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "forge", "codex-log.jsonl"), log ?? "");
-  return { ...process.env, XDG_CONFIG_HOME: home, TMPDIR: tempRoom("stop-check-tmp-") };
+  projectRecord(REPO, home, OWN);
+  return { ...process.env, HOME: home, XDG_CONFIG_HOME: home, TMPDIR: tempRoom("stop-check-tmp-") };
 };
 
 const AT = "2026-09-01T10:00:00.000Z";
@@ -424,24 +432,24 @@ test("a key named only by a tool that is not Bash is still a key this turn named
     `a non-Bash tool's command reached no key search: ${JSON.stringify(asked[0])}`);
 });
 
-test("stop.agents in .forge.json decides which subagents' stops are judged", () => {
+test("stop.agents in a project's own configuration decides which subagents' stops are judged", () => {
   const runner = { hook_event_name: "SubagentStop", agent_type: "forge:runner" };
   assert.equal(judgedStop(runner, []), false, "an empty list silences every subagent stop");
   assert.equal(judgedStop({ ...runner, agent_type: "Explore" }, ["Explore"]), true, "a name set there is honoured");
   assert.equal(judgedStop({ hook_event_name: "Stop" }, []), true, "the main agent's stop is always judged");
   const file = join(REPO, "plugin", "test", `stop-config-${randomUUID().slice(0, 8)}.mjs`);
   writeFileSync(file, DENSE);
-  /* The judged cases above run from this repository, whose .forge.json lists its four roles. */
+  /* The judged cases above run from this repository, whose own record lists its four roles. The
+     checkout and the home holding its record travel together, one pair per reading. */
   const at = (config) => {
-    const cwd = tempRoom("stop-check-config-");
-    writeFileSync(join(cwd, ".forge.json"), JSON.stringify(config));
-    return cwd;
+    const env = room();
+    return { env, cwd: projectRoom(tempRoom("stop-check-config-"), env.XDG_CONFIG_HOME, config) };
   };
   try {
     const own = handed(used("Write", { file_path: file }));
-    const from = (cwd) => {
+    const from = ({ env, cwd }) => {
       const ev = { hook_event_name: "SubagentStop", agent_type: "forge:runner", session_id: randomUUID(), transcript_path: transcript(), agent_transcript_path: own, cwd };
-      const said = spawnSync(process.execPath, [HOOK], { input: JSON.stringify(ev), encoding: "utf8", env: room(), cwd });
+      const said = spawnSync(process.execPath, [HOOK], { input: JSON.stringify(ev), encoding: "utf8", env, cwd });
       assert.equal(said.status, 0, said.stderr);
       return said.stdout.trim();
     };

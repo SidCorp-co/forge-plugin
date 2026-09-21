@@ -3,10 +3,9 @@
    wrapper for real against a gateway that is not configured (ISS-288). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { readdirSync } from "node:fs";
 
-import { ranAsync, tempRoom } from "../fixtures.mjs";
+import { projectRoom, ranAsync, tempRoom } from "../fixtures.mjs";
 import { BUNDLED, commandLine } from "../../src/tools/vi.mjs";
 
 const SOURCE = new URL("../../src/tools/vi.mjs", import.meta.url);
@@ -15,11 +14,11 @@ const SETTINGS = new URL("../../src/resolve/settings.mjs", import.meta.url);
 /** The layer run for real on a machine that has never run `vi-natural login`: a field it reaches
  *  is refused there, and one it leaves alone comes back on stdout. */
 const layerOn = (payload) => {
-  const room = tempRoom("vi-refusal-");
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "any", translate: "vi" }));
+  const home = tempRoom("vi-refusal-home-");
+  const room = projectRoom(tempRoom("vi-refusal-"), home, { slug: "any", translate: "vi" });
   const call = `import("${SOURCE.href}")`
     + `.then((m) => console.log(JSON.stringify(m.translated(${JSON.stringify(payload)}))))`;
-  return ranAsync(process.execPath, ["-e", call], { ...process.env, XDG_CONFIG_HOME: room }, room);
+  return ranAsync(process.execPath, ["-e", call], { ...process.env, HOME: home, XDG_CONFIG_HOME: home }, room);
 };
 
 const refusalFor = (field, value) => layerOn({ [field]: value });
@@ -62,9 +61,10 @@ test("a release note's user-facing half goes through the layer, and its other tw
    `process.exit`, which runs no `finally` (ISS-1427). So the temporary root is this case's own and
    is read after the refusal, rather than the one the fixtures point every process at. */
 const underRoot = (root, call) => {
-  const room = tempRoom("vi-room-");
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "any", translate: "vi" }));
-  return ranAsync(process.execPath, ["-e", call], { ...process.env, XDG_CONFIG_HOME: room, TMPDIR: root }, room);
+  const home = tempRoom("vi-room-home-");
+  const room = projectRoom(tempRoom("vi-room-"), home, { slug: "any", translate: "vi" });
+  return ranAsync(process.execPath, ["-e", call],
+    { ...process.env, HOME: home, XDG_CONFIG_HOME: home, TMPDIR: root }, room);
 };
 
 test("a refusal that ends the process takes the room with it", async () => {

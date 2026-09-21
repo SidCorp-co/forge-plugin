@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { homeEnv, tempRoom } from "../fixtures.mjs";
+import { projectRoom, tempRoom } from "../fixtures.mjs";
 
 const {
   GUIDE, bodyProblems, guideParts, hasBody, referencesOf, servedBody, skillFlowDir,
@@ -23,16 +23,18 @@ const STUBS = join(PLUGIN, "skills");
 const FORGE = join(PLUGIN, "bin", "forge");
 const FIXTURE = "erp-flow";
 
-/* A flow is read off a `.forge.json` by a resolver that answers once per process, so a case varying
-   one runs the verb: two flows in one process would both read whichever was resolved first. */
-const declaring = (keys) => {
-  const dir = tempRoom("flow-");
-  writeFileSync(join(dir, ".forge.json"), JSON.stringify({ slug: "flow-fixture", ...keys }));
-  return dir;
-};
+/* A flow is read off this machine's record of the project by a resolver that answers once per
+   process, so a case varying one runs the verb: two flows in one process would both read whichever
+   was resolved first. The record lives under a configuration home of the case's own, never this
+   developer's, the project's keys sitting beside the machine's. */
+const PIN_HOME = tempRoom("pin-home-");
+
+const declaring = (keys) =>
+  projectRoom(tempRoom("flow-"), PIN_HOME, { slug: "flow-fixture", ...keys });
 
 const asked = (room, ...argv) =>
-  spawnSync(FORGE, argv, { encoding: "utf8", env: homeEnv("pin"), cwd: room });
+  spawnSync(FORGE, argv,
+    { encoding: "utf8", env: { ...process.env, HOME: PIN_HOME, XDG_CONFIG_HOME: PIN_HOME }, cwd: room });
 
 /* Whole sets under a flow segment, so a case can hand one flow three parts and another flow its own
    and nothing resolves between them. `part` names the file, because the file name is the order. */
@@ -95,7 +97,7 @@ test("a citation the served text makes resolves to a reference this copy serves,
 });
 
 /* The pin says what a project is served, never what this copy ships, so the checker reads every
-   flow's own text and no `.forge.json`: with the flow a segment, a reader taking the pin would check
+   flow's own text and no project of its own: with the flow a segment, a reader taking the pin would check
    whichever flow the checkout happens to name and call the rest clean (ISS-1098). */
 test("a citation dangling in a flow the checkout is not pinned to is named, and answered within that flow", () => {
   const root = planted();

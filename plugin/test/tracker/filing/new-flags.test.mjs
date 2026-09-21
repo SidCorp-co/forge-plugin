@@ -3,10 +3,10 @@
    being `../issue-shape.test.mjs`'s. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { fakeTracker, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
 
 const home = tempHome("new-flags");
 process.env.XDG_CONFIG_HOME = home.path;
@@ -35,6 +35,12 @@ const state = {
   comments: {},
 };
 const tracker = await fakeTracker(state);
+
+/* Every call here runs from this checkout, whose project is this machine's record of it now:
+   the record goes under the one configuration home the children are handed. */
+const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
+projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME,
+  JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8")));
 test.after(() => tracker.close());
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -51,7 +57,7 @@ const bodyAt = (body) => {
    about, so the helper names one where the argv did not. */
 const filed = (body, ...argv) => {
   const category = argv.includes("--category") ? [] : ["--category", "feature"];
-  return ranAsync(FORGE, ["new", bodyAt(body), ...argv, ...category], tracker.env);
+  return ranAsync(FORGE, ["new", bodyAt(body), ...argv, ...category], ENV);
 };
 
 /* The categories end to end: what the verb refuses before it reads anything, what it sends the tracker
@@ -90,7 +96,7 @@ test("a category outside the set is refused with the set, before a single tracke
    prose decides neither: the same headings carry a bug and a feature (ISS-334). */
 test("a filing naming no category is refused with the set, and files nothing", async () => {
   state.calls = [];
-  const run = await ranAsync(FORGE, ["new", bodyAt(WHOLE), "--title", TITLE], tracker.env);
+  const run = await ranAsync(FORGE, ["new", bodyAt(WHOLE), "--title", TITLE], ENV);
   assert.equal(run.status, 1);
   assert.match(run.stderr, /A filing needs --category/u);
   assert.match(run.stderr, /Name one of bug, enhancement, feature, review/u);
@@ -102,7 +108,7 @@ test("a filing naming no category is refused with the set, and files nothing", a
 test("the comment verb needs no kind, and no shape either", async () => {
   state.calls = [];
   const run = await ranAsync(FORGE,
-    ["comment", "ISS-45", bodyAt("`forge issue` writes the edge."), "--title", TITLE], tracker.env);
+    ["comment", "ISS-45", bodyAt("`forge issue` writes the edge."), "--title", TITLE], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.ok(state.calls.some((one) => one.name === "forge_comments" && one.args.action === "create"));
 });
@@ -255,7 +261,7 @@ test("a rank outside the tracker's set is refused before the body is even read",
 test("a rank is a filing flag, and the comment verb takes none of it", async () => {
   state.calls = [];
   const run = await ranAsync(FORGE,
-    ["comment", "ISS-45", bodyAt(WHOLE), "--priority", "high"], tracker.env);
+    ["comment", "ISS-45", bodyAt(WHOLE), "--priority", "high"], ENV);
   assert.equal(run.status, 1);
   assert.match(run.stderr, /No comment flag named --priority\. The set is --title\./u);
   assert.equal(state.calls.some((one) => one.name === "forge_comments"), false);
@@ -266,7 +272,7 @@ test("a rank is a filing flag, and the comment verb takes none of it", async () 
    and in the reply, which says which of the two ranks was written; the value itself is refused
    against the tracker's own set, and that refusal carries the rest. */
 test("`forge new -h` says what a filing with no rank gets, in the one line a flag row has", async () => {
-  const run = await ranAsync(FORGE, ["new", "-h"], tracker.env);
+  const run = await ranAsync(FORGE, ["new", "-h"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^ {2}--priority P {3}.*unranked and the reply says so$/mu);
   assert.doesNotMatch(run.stdout, /sorts to the\nbottom of the browse verb/u,
@@ -274,7 +280,7 @@ test("`forge new -h` says what a filing with no rank gets, in the one line a fla
 });
 
 test("`forge new -h` lists every kind with the sections it requires", async () => {
-  const run = await ranAsync(FORGE, ["new", "-h"], tracker.env);
+  const run = await ranAsync(FORGE, ["new", "-h"], ENV);
   assert.equal(run.status, 0, run.stderr);
   for (const kind of ["bug", "enhancement", "feature", "review"]) assert.match(run.stdout, new RegExp(`\\n  ${kind} `, "u"));
   /* Criterion 5: the cause is on the bug's required row and on no other kind's. */
@@ -287,7 +293,7 @@ test("`forge new -h` lists every kind with the sections it requires", async () =
      stays on `forge feedback -h`, whose caller is standing in a checkout that holds none of these
      documents; docs/cli/the-kinds.md is where the rule itself lives. */
   assert.doesNotMatch(run.stdout, /names where the defect comes from/u);
-  const said = await ranAsync(FORGE, ["feedback", "-h"], tracker.env);
+  const said = await ranAsync(FORGE, ["feedback", "-h"], ENV);
   assert.match(said.stdout, /names where the defect comes from/u,
     "the defect route keeps it, because nothing else it can read says so");
 });

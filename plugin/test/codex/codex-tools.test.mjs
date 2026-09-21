@@ -5,9 +5,14 @@ import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { TOOLS, checkCommand, checkState, runTool, scopeFor, toolsFor } from "../../src/codex/codex-tools.mjs";
 import { bundle, changedAgainst, divergedFrom, roleFor, withDiffs } from "../../src/codex/codex-api.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { escaped, projectEntry, tempRoom } from "../fixtures.mjs";
 import { tapOf } from "./check/tap-of.mjs";
 import { patience } from "../patience.mjs";
+
+/* The refusal below names where this machine keeps the project's record, and reading that path off
+   the developer's own configuration home would make the case the machine's rather than the suite's. */
+process.env.XDG_CONFIG_HOME = tempRoom("codex-tools-home-");
+const ENTRY = projectEntry(process.cwd(), process.env.XDG_CONFIG_HOME);
 
 const repo = () => {
   const dir = tempRoom("codex-check-");
@@ -315,13 +320,13 @@ test("git_diff with neither path nor base answers the diff this consult was give
 test("a check stopped at its clock names the clock, where it was read, and the key that moves it", async () => {
   const root = repo();
   const slow = { command: "sleep 30", ms: 200 };
-  const set = await runTool(scopeFor(root, [], { ...slow, msFrom: ".forge.json" }), "run_check", {});
+  const set = await runTool(scopeFor(root, [], { ...slow, msFrom: ENTRY }), "run_check", {});
   assert.equal(set.error, true);
-  assert.match(set.text,
-    /ran past 0\.2s and was stopped\. That clock is `codex\.checkMs` in \.forge\.json\. Raise it, or narrow `codex\.check` to what fits 0\.2s$/u,
-    set.text);
+  assert.match(set.text, new RegExp(
+    `ran past 0\\.2s and was stopped\\. That clock is \`codex\\.checkMs\` in ${escaped(ENTRY)}\\. `
+    + "Raise it, or narrow `codex\\.check` to what fits 0\\.2s$", "u"), set.text);
   const fell = await runTool(scopeFor(root, [], { ...slow, msFrom: "the plugin's default" }), "run_check", {});
-  assert.match(fell.text,
-    /That clock is this plugin's default\. Set `codex\.checkMs` in \.forge\.json to raise it, or narrow `codex\.check` to what fits 0\.2s$/u,
-    fell.text);
+  assert.match(fell.text, new RegExp(
+    `That clock is this plugin's default\\. Set \`codex\\.checkMs\` in ${escaped(ENTRY)} to raise it, `
+    + "or narrow `codex\\.check` to what fits 0\\.2s$", "u"), fell.text);
 });

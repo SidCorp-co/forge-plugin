@@ -6,7 +6,8 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { escaped, fakeTracker, ranAsync, tempHome, tempRoom, typedPlan } from "../../../fixtures.mjs";
+import { escaped, ranAsync, tempHome, tempRoom, typedPlan } from "../../../fixtures.mjs";
+import { trackerFor } from "../../own-project.mjs";
 import { PLAN_SECTIONS } from "../../../../src/flow/machine.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("record-plan").path;
@@ -32,13 +33,13 @@ const state = {
   },
 };
 
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
 
 /* The consult rule is `record criteria`'s and is proved beside it; a case about the field writer
    stands the reader down so it is measuring one thing. */
 const env = (session = MINE, extra = {}) => ({
-  ...tracker.env,
+  ...ENV,
   AI_AGENT: "a-test-agent",
   CLAUDE_PID: "4242",
   FORGE_SESSION_ID: session,

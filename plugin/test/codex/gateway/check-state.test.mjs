@@ -9,7 +9,7 @@ import test from "node:test";
 import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { tempRoom } from "../../fixtures.mjs";
+import { projectRecord, tempRoom } from "../../fixtures.mjs";
 
 /* `calls` is what the reviewer asks for on its first call, by name; the second answers in text. A
    `fail` arm answers the second call with a 500, which is a consult that dies after its round has
@@ -52,9 +52,11 @@ const consulted = async (label, { check = null, calls = [], fail = false } = {})
   const git = (...argv) => spawnSync("git", ["-C", room, "-c", "user.email=t@t", "-c", "user.name=t", ...argv], { cwd: room, encoding: "utf8" });
   spawnSync("git", ["init", "-q", room], { cwd: dirname(room) });
   writeFileSync(join(room, "judged.txt"), "the file under review\n");
-  writeFileSync(join(room, ".forge.json"), JSON.stringify(check ? { codex: check } : {}));
   git("add", ".");
   git("commit", "-qm", "one");
+  /* The project's keys are this machine's record of them now, under the configuration home the
+     child is handed rather than in the tree it reviews. */
+  projectRecord(room, home, check ? { codex: check } : {});
 
   mkdirSync(join(home, "forge"), { recursive: true });
   const gateway = await standIn("CODEX: 0 findings", { calls, fail });
@@ -65,7 +67,7 @@ const consulted = async (label, { check = null, calls = [], fail = false } = {})
   ].join("\n"));
   const child = spawn(new URL("../../../bin/forge", import.meta.url).pathname,
     ["codex", "consult", "--rounds", "2", "judged.txt"],
-    { cwd: room, env: { ...process.env, XDG_CONFIG_HOME: home, CLAUDE_PROXY_ENV: join(home, "proxy.env") } });
+    { cwd: room, env: { ...process.env, HOME: home, XDG_CONFIG_HOME: home, CLAUDE_PROXY_ENV: join(home, "proxy.env") } });
   child.stdin.end("what this turn did");
   let said = "";
   child.stderr.on("data", (one) => { said += one; });

@@ -4,7 +4,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("the-fold").path;
 const { CITED, PHASE } = await import("../../../src/guides/phases.mjs");
@@ -78,11 +79,11 @@ const state = {
     ],
   },
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
 
 test("the rung after confirmed is the one that took the fold over, and no lane names the folded one", async () => {
-  const run = await ranAsync(FORGE, ["advance", "ISS-97", "--owed"], tracker.env);
+  const run = await ranAsync(FORGE, ["advance", "ISS-97", "--owed"], ENV);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.match(run.stdout, /^ISS-97 is confirmed; approved is next/mu, "one rung fewer between the two");
   assert.equal(run.stdout.includes(GONE), false, `a line of the answer still names the folded rung: ${run.stdout}`);
@@ -93,7 +94,7 @@ test("the rung after confirmed is the one that took the fold over, and no lane n
    the write is refused by the name of the rung that replaced it and the read still answers. */
 test("the folded name is refused a set and still answers a filter", async () => {
   const set = await ranAsync(FORGE,
-    ["advance", "ISS-97", "--set", GONE, "--why", "the reading is decided"], tracker.env);
+    ["advance", "ISS-97", "--set", GONE, "--why", "the reading is decided"], ENV);
   const said = set.stdout + set.stderr;
   assert.equal(set.status, 1, set.stdout);
   assert.match(said, /`clarified` is no step of the flow/u);
@@ -103,18 +104,18 @@ test("the folded name is refused a set and still answers a filter", async () => 
   assert.deepEqual(state.calls.filter((one) => one.args?.action === "transition"), [], "nothing was sent");
   /* A named target never reaches the column: the jump is refused first, and what it owes is the
      rung that is next — which after the fold is the one the folded name was replaced by anyway. */
-  const jump = await ranAsync(FORGE, ["advance", "ISS-97", "--to", GONE], tracker.env);
+  const jump = await ranAsync(FORGE, ["advance", "ISS-97", "--to", GONE], ENV);
   assert.equal(jump.status, 1, jump.stdout);
   assert.match(jump.stdout + jump.stderr, /approved is next, not clarified/u,
     "and a named target is answered by the jump refusal, which names the rung that is next");
-  const read = await ranAsync(FORGE, ["issue", "--status", GONE], tracker.env);
+  const read = await ranAsync(FORGE, ["issue", "--status", GONE], ENV);
   assert.equal(read.status, 0, `${read.stdout}${read.stderr}`);
 });
 
 /* What a run resuming somebody else's issue is told: the two phases the fold left at one rung are
    one line behind it, named by the record that discharged them, and the phase owed is still its own. */
 test("a resume at the rung above the fold names both phases behind it on one line", async () => {
-  const run = await ranAsync(FORGE, ["resume", "ISS-96"], tracker.env);
+  const run = await ranAsync(FORGE, ["resume", "ISS-96"], ENV);
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
   assert.match(run.stdout, /^ {2}passed: 2 Clarify; 3 Plan {2}— {2}decision$/mu,
     "one line for the rung, and the reading is what says the work at it was done");
@@ -127,14 +128,14 @@ test("a resume at the rung above the fold names both phases behind it on one lin
    by these two calls, and a fold that left a part behind or moved a payload without moving the
    sentence about it would answer both of them wrongly and fail nothing else. */
 test("the contract serves one part fewer, none of them the folded rung, and states the record it moved", async () => {
-  const contents = await ranAsync(FORGE, ["guide", "contract"], tracker.env);
+  const contents = await ranAsync(FORGE, ["guide", "contract"], ENV);
   assert.equal(contents.status, 0, `${contents.stdout}${contents.stderr}`);
   assert.match(contents.stdout, /^The issue-flow contract — this plugin's own, contract 1, 19 part\(s\)\./mu);
   assert.equal(contents.stdout.includes(GONE), false, `a row still addresses the folded rung: ${contents.stdout}`);
-  const part = await ranAsync(FORGE, ["guide", "contract", TOOK_OVER], tracker.env);
+  const part = await ranAsync(FORGE, ["guide", "contract", TOOK_OVER], ENV);
   assert.equal(part.status, 0, `${part.stdout}${part.stderr}`);
   assert.match(part.stdout, /decision record/u, "the rung that reads it says so where a run is sent for it");
-  const gone = await ranAsync(FORGE, ["guide", "contract", GONE], tracker.env);
+  const gone = await ranAsync(FORGE, ["guide", "contract", GONE], ENV);
   assert.equal(gone.status, 1, gone.stdout);
   assert.match(gone.stdout + gone.stderr, /lists every part/u,
     "and asking for the part that left is a refusal naming the way to the list, not an empty answer");

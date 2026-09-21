@@ -207,8 +207,16 @@ export const slugIfAny = () => projectTarget().value;
  *  is given the command that takes the whole of it over rather than the one that writes this key:
  *  every other key of that file answers nothing here too, so one call settles all of them. */
 export const noProjectHere = () => {
-  const held = committedFileHere();
   const path = projectFilePath();
+  const held = committedFileHere();
+  /* A directory in no checkout is not a project with nothing set yet: the record is keyed on a
+     repository's root folder, so there is nowhere for one to go and neither command below can run
+     here. Neither is offered — a refusal naming a route that cannot work recommends a second one. */
+  if (path === null) {
+    return "This call is project-scoped and this directory is in no checkout, so there is no\n"
+      + `project for it to be scoped to.${held ? ` ${held} is read by nothing.` : ""}\n`
+      + "Run it from inside a checkout.";
+  }
   if (held) {
     return `This call is project-scoped and no project slug is set. ${held} is this checkout's own\n`
       + `and is read by nothing: a project's configuration is this machine's record of it, at\n${path}.\n`
@@ -216,7 +224,7 @@ export const noProjectHere = () => {
   }
   return "This call is project-scoped and no project slug is set. Run\n"
     + "`forge doctor --set slug=<project>`, which writes it to this machine's record of this\n"
-    + `project at\n${path ?? join(configDir("forge"), ...PROJECT_ENTRY)}\n`
+    + `project at\n${path}\n`
     + "— not the environment, and not a `.mcp.json` header.";
 };
 

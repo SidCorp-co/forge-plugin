@@ -9,11 +9,17 @@ import { spawnSync } from "node:child_process";
 import { chmodSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
+import { projectRecord, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { OWN, trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("landed").path;
-standsInNoTree("landed");
+/* Away from this checkout, whose git directory names the run this suite is written under: a
+   checkout of its own names none, and its project is a record beside the machine's own keys
+   rather than a file in the tree. */
+const AWAY = projectRoom(tempRoom("landed-away-"), process.env.XDG_CONFIG_HOME, OWN);
+process.chdir(AWAY);
 const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
+const { carriedByDefault } = await import("../../../src/flow/worklog.mjs");
 
 const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
 const RUN = "the-lander-run";
@@ -67,7 +73,8 @@ const state = {
     },
   },
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state, [AWAY]);
+const CHILD_HOME = ENV.HOME;
 test.after(() => tracker.close());
 
 const checkpoint = () => landingOf(state.issues[0].sessionContext);
@@ -93,7 +100,7 @@ const ready = (head, over = {}) => {
 /* Twice, since the gate every write passes delivers a comment this session has not read and refuses
    once. The counter is reset per attempt, a case about the second read meaning the second of one run. */
 const ran = async (argv, cwd, over = {}) => {
-  const env = { ...tracker.env, AI_AGENT: "a-test-agent", CLAUDE_PID: "4242", FORGE_SESSION_ID: RUN, ...over };
+  const env = { ...ENV, AI_AGENT: "a-test-agent", CLAUDE_PID: "4242", FORGE_SESSION_ID: RUN, ...over };
   const held = { issue: state.issues[0], moveOnRead: state.moveOnRead };
   let run = null;
   for (const again of [1, 2]) {
@@ -118,9 +125,9 @@ const onTop = (room, file, said) => {
 const landedRoom = (name) => {
   const room = tempRoom(`landed-${name}-`);
   spawnSync("git", ["init", "-q", "-b", "master", room], { cwd: dirname(room), encoding: "utf8" });
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "forge-plugin" }));
+  projectRecord(room, CHILD_HOME, { slug: "forge-plugin" });
   writeFileSync(join(room, "one.mjs"), "the base\n");
-  git(room, "add", "one.mjs", ".forge.json");
+  git(room, "add", "one.mjs");
   git(room, "commit", "-qm", "the base");
   const base = git(room, "rev-parse", "HEAD").stdout.trim();
   git(room, "checkout", "-q", "-b", BRANCH);
@@ -221,7 +228,7 @@ test("every ancestry reading this checkout cannot make refuses, saying which one
   spawnSync("git", ["clone", "-q", "--depth", "1", "--branch", "master", `file://${room}`, shallow],
     { cwd: dirname(shallow), encoding: "utf8" });
   git(shallow, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/master");
-  writeFileSync(join(shallow, ".forge.json"), JSON.stringify({ slug: "forge-plugin" }));
+  projectRecord(shallow, CHILD_HOME, { slug: "forge-plugin" });
   ready(judged);
   const boundary = await ran(["claim", "ISS-1655", "--landed"], shallow);
   assert.equal(boundary.status, 1, boundary.stdout);
@@ -229,14 +236,19 @@ test("every ancestry reading this checkout cannot make refuses, saying which one
   assert.ok(boundary.stderr.includes("git fetch --unshallow origin"),
     `and the fetch that removes the boundary rather than one that leaves it:\n${boundary.stderr}`);
 
+  /* The verb cannot be asked this one from outside a checkout any more: a directory no checkout
+     holds belongs to no project either, so the call is refused for the slug before a tree is read.
+     The reading is what the case is about, so the reading is what is asked, in the directory it
+     would have been asked from. */
   const bare = tempRoom("landed-no-tree-");
-  writeFileSync(join(bare, ".forge.json"), JSON.stringify({ slug: "forge-plugin" }));
-  ready(judged);
-  const notree = await ran(["claim", "ISS-1655", "--landed"], bare);
-  assert.equal(notree.status, 1, notree.stdout);
-  assert.ok(notree.stderr.includes("no git checkout"), notree.stderr);
-  assert.ok(notree.stderr.includes("Ask from a checkout that can read that history"),
-    `and a reading nothing here settles asks for another checkout rather than a command:\n${notree.stderr}`);
+  const stood = process.cwd();
+  process.chdir(bare);
+  const notree = carriedByDefault(judged);
+  process.chdir(stood);
+  assert.equal(notree.carries, false);
+  assert.ok(notree.why.includes("no git checkout"), notree.why);
+  assert.equal(notree.route, null,
+    "and a reading nothing here settles names no command, which is what sends the caller elsewhere");
   assert.equal(checkpoint().state, "ready", "and no reading that fell short ended a landing");
 });
 

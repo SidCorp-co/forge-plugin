@@ -2,10 +2,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, standsInNoTree, tempHome } from "../../fixtures.mjs";
+import { projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { OWN, trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("released").path;
-standsInNoTree("released");
+/* Away from this checkout, whose git directory names the run this suite is written under: a
+   checkout of its own names none, and its project is a record beside the machine's own keys
+   rather than a file in the tree. */
+const AWAY = projectRoom(tempRoom("released-away-"), process.env.XDG_CONFIG_HOME, OWN);
+process.chdir(AWAY);
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const UUID = "released-uuid";
@@ -55,10 +60,10 @@ const state = {
   },
 };
 
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state, [AWAY]);
 test.after(() => tracker.close());
 
-const ran = (argv, who) => ranAsync(FORGE, argv, { ...tracker.env, FORGE_SESSION_ID: who });
+const ran = (argv, who) => ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: who });
 const setTo = (status, who) =>
   ran(["advance", "ISS-1617", "--set", status, "--why", "the fixture moves it without earning it"], who);
 

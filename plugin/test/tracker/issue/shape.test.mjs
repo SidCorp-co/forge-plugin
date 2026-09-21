@@ -3,12 +3,19 @@
    as a fix, one is what it lets through, and one is a duplicate of an issue already open. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 
-import { fakeTracker, ranAsync, shortPage, tempHome } from "../../fixtures.mjs";
+import { fakeTracker, projectRecord, ranAsync, shortPage, tempHome } from "../../fixtures.mjs";
 import { RETIRED } from "../../../src/checks/retired-names.mjs";
+
+const OWN = JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
+const ROOT = new URL("../../../../", import.meta.url).pathname;
 
 const home = tempHome("issue-shape");
 process.env.XDG_CONFIG_HOME = home.path;
+/* The in-process readers below resolve this checkout's project, whose record is this machine's and
+   so has to be written into the home this process runs against. */
+projectRecord(ROOT, home.path, OWN);
 const { UNRANKED, duplicateOf, filedAs, partsIn, priorityFor, refusalFrom,
   shapeOf, tokensNamed, twoChangesIn } = await import("../../../src/tracker/issue-shape.mjs");
 const { COMPLEXITY_NAMES, belowTop, rungFrom } = await import("../../../src/ladder.mjs");
@@ -240,6 +247,10 @@ const state = {
   }],
 };
 const tracker = await fakeTracker(state);
+
+/* And again under the home the children read, which is the tracker fixture's and not this one. */
+const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
+projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME, OWN);
 test.after(() => tracker.close());
 
 const { mkdirSync, writeFileSync } = await import("node:fs");
@@ -258,10 +269,10 @@ const bodyAt = (body) => {
 };
 const filed = (body, ...argv) => {
   const category = argv.includes("--category") ? [] : ["--category", "feature"];
-  return ranAsync(FORGE, ["new", bodyAt(body), ...argv, ...category], tracker.env);
+  return ranAsync(FORGE, ["new", bodyAt(body), ...argv, ...category], ENV);
 };
 
-const posted = (body, ...argv) => ranAsync(FORGE, ["comment", "ISS-45", bodyAt(body), ...argv], tracker.env);
+const posted = (body, ...argv) => ranAsync(FORGE, ["comment", "ISS-45", bodyAt(body), ...argv], ENV);
 
 /* What a whole pass over one body costs, counted through a getter, because a body scanned for its
    shape a second time changes no output. The refusal is handed the read instead of taking one, so
@@ -344,7 +355,7 @@ test("the flag the comment verb took over is answered as any undeclared one, and
 });
 
 test("a key that is no key is refused, and never read as no target at all", async () => {
-  const run = await ranAsync(FORGE, ["comment", "", bodyAt(WHOLE)], tracker.env);
+  const run = await ranAsync(FORGE, ["comment", "", bodyAt(WHOLE)], ENV);
   assert.equal(run.status, 1);
   assert.match(run.stderr, /Usage: forge comment/u, "an empty target names no issue and no file either");
   /* The relating flag takes a list, so an empty one is no key rather than one that will not
@@ -365,7 +376,7 @@ test("a whole body files with no output but the issue", async () => {
 /* Reading to EOF on a stdin nobody fed waited two minutes and then filed. */
 test("`-` with nothing on stdin is refused, and never read as an empty body", async () => {
   state.calls = [];
-  const run = await ranAsync(FORGE, ["new", "-", "--title", TITLE, "--category", "feature"], tracker.env);
+  const run = await ranAsync(FORGE, ["new", "-", "--title", TITLE, "--category", "feature"], ENV);
   assert.equal(run.status, 1);
   assert.match(run.stderr, /read nothing from stdin/u);
   assert.equal(state.calls.some((one) => one.args.action === "create"), false);

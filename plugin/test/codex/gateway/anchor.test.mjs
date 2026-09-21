@@ -9,7 +9,7 @@ import { spawn } from "node:child_process";
 import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { tempRoom } from "../../fixtures.mjs";
+import { projectRecord, tempRoom } from "../../fixtures.mjs";
 import { canonical } from "../../../src/resolve/canonical.mjs";
 
 /* A stand-in gateway asks for `git_diff` with no arguments on its first call and answers on its
@@ -183,13 +183,22 @@ const disagreeing = (label) => {
   mkdirSync(join(room, "test"), { recursive: true });
   mkdirSync(join(room, "ignored"), { recursive: true });
   writeFileSync(join(room, ".gitignore"), "ignored/\n/--draft*\n");
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ codex: { pathRe: PATTERN } }));
   writeFileSync(join(room, "src/thing.mjs"), "export const one = 1;\n");
   writeFileSync(join(room, "test/thing.test.mjs"), "assert.equal(one, 1);\n");
   writeFileSync(join(room, "src/settled.mjs"), "export const settled = true;\n");
   writeFileSync(join(room, "doomed.txt"), "this file is about to go\n");
   git("add", ".");
   git("commit", "-qm", "the base");
+  return { room, home, git };
+};
+
+/* A tree and a configuration home that is not inside it, holding this machine's record of the
+   project that tree belongs to: the pattern under test is a project key, and the two halves have to
+   meet at one home or the room is a checkout nothing is configured for. */
+const pairing = (label) => {
+  const { room, git } = disagreeing(label);
+  const { home } = disagreeing(`${label}spare-`);
+  projectRecord(room, home, { codex: { pathRe: PATTERN } });
   return { room, home, git };
 };
 
@@ -233,8 +242,7 @@ const logRows = (home) => readFileSync(join(home, "forge", "codex-log.jsonl"), "
 const recordNow = (home, root) => JSON.parse(readFileSync(join(home, "forge", "codex.json"), "utf8")).turns[root].files;
 
 test("a diff consult reviews the tree's own change, tests and deletions included, and says what of the turn record it left out", async () => {
-  const { room, git } = disagreeing("codex-set-");
-  const { home } = disagreeing("codex-set-spare-");
+  const { room, git, home } = pairing("codex-set-");
   const root = canonical(room);
   writeFileSync(join(room, "src/thing.mjs"), "export const one = 2;\n");
   writeFileSync(join(room, "test/thing.test.mjs"), "assert.equal(one, 2);\n");
@@ -276,8 +284,7 @@ test("a diff consult reviews the tree's own change, tests and deletions included
 });
 
 test("a consult given a file reviews that file, whatever the tree and the record hold", async () => {
-  const { room, git } = disagreeing("codex-named-");
-  const { home } = disagreeing("codex-named-spare-");
+  const { room, git, home } = pairing("codex-named-");
   writeFileSync(join(room, "src/thing.mjs"), "export const one = 2;\n");
   writeFileSync(join(room, "test/thing.test.mjs"), "assert.equal(one, 2);\n");
   git("rm", "-q", "doomed.txt");
@@ -297,8 +304,7 @@ test("a consult given a file reviews that file, whatever the tree and the record
    first path the tree does not hold, so the one read whose set is defined as the files the change
    touched could not be asked for by naming that set whenever the change deleted one (ISS-1880). */
 test("a tracked deletion named beside a modified file travels with it, and the log records both", async () => {
-  const { room, git } = disagreeing("codex-named-gone-");
-  const { home } = disagreeing("codex-named-gone-spare-");
+  const { room, git, home } = pairing("codex-named-gone-");
   writeFileSync(join(room, "src/thing.mjs"), "export const one = 2;\n");
   git("rm", "-q", "doomed.txt");
 
@@ -315,8 +321,7 @@ test("a tracked deletion named beside a modified file travels with it, and the l
 });
 
 test("a named deletion sent against a base that holds the file carries its deletion diff", async () => {
-  const { room, git } = disagreeing("codex-named-diff-");
-  const { home } = disagreeing("codex-named-diff-spare-");
+  const { room, git, home } = pairing("codex-named-diff-");
   git("rm", "-q", "doomed.txt");
 
   const { status, said, shown } = await withGateway(home, async (gateway) => {
@@ -332,8 +337,7 @@ test("a named deletion sent against a base that holds the file carries its delet
 /* Admitted by `relsOf` is not kept by `shownOf`: a base older than the file has no side holding it,
    so AC-06-1-6 drops it, and the named ground owes that answer as every other ground does. */
 test("a named deletion whose base predates the file leaves the set, as it does on any other ground", async () => {
-  const { room, git } = disagreeing("codex-named-young-");
-  const { home } = disagreeing("codex-named-young-spare-");
+  const { room, git, home } = pairing("codex-named-young-");
   writeFileSync(join(room, "src/later.mjs"), "export const later = true;\n");
   git("add", "src/later.mjs");
   git("commit", "-qm", "the file the older base predates");
@@ -353,8 +357,7 @@ test("a named deletion whose base predates the file leaves the set, as it does o
 /* `git rm -r` takes the directory with its files, so the commonest deletion of all leaves no parent
    to resolve the name against; a set assembly that needed one refused the consult all over again. */
 test("a named deletion whose directory went with it travels too", async () => {
-  const { room, git } = disagreeing("codex-named-rmdir-");
-  const { home } = disagreeing("codex-named-rmdir-spare-");
+  const { room, git, home } = pairing("codex-named-rmdir-");
   mkdirSync(join(room, "retired"), { recursive: true });
   writeFileSync(join(room, "retired/only.txt"), "the last file of its directory\n");
   git("add", "retired/only.txt");
@@ -374,8 +377,7 @@ test("a named deletion whose directory went with it travels too", async () => {
 });
 
 test("a named path in neither the tree nor HEAD is refused apart from one the tree holds and cannot read", async () => {
-  const { room } = disagreeing("codex-named-typo-");
-  const { home } = disagreeing("codex-named-typo-spare-");
+  const { room, home } = pairing("codex-named-typo-");
 
   const typo = await withGateway(home, async (gateway) => {
     const ran = await consulted(room, home, ["--diff", "--rounds", "1", "src/thign.mjs"]);
@@ -393,8 +395,7 @@ test("a named path in neither the tree nor HEAD is refused apart from one the tr
 });
 
 test("a path that is not in the tree and has no diff reaches neither the reviewer nor the log, and leaves the turn record", async () => {
-  const { room } = disagreeing("codex-phantom-");
-  const { home } = disagreeing("codex-phantom-spare-");
+  const { room, home } = pairing("codex-phantom-");
   seedRecord(home, canonical(room), ["src/gone.mjs"]);
 
   const { status, said, shown } = await withGateway(home, async (gateway) => {
@@ -410,8 +411,7 @@ test("a path that is not in the tree and has no diff reaches neither the reviewe
 /* The consult that collects no diff at all cannot tell a phantom from a deletion by absence, and
    clearing on that reading would lose a real change from the record before the reviewer answered. */
 test("a consult with no base keeps a tracked deletion the record holds, and drops only the phantom beside it", async () => {
-  const { room, git } = disagreeing("codex-nobase-");
-  const { home } = disagreeing("codex-nobase-spare-");
+  const { room, git, home } = pairing("codex-nobase-");
   git("rm", "-q", "doomed.txt");
   seedRecord(home, canonical(room), ["doomed.txt", "src/gone.mjs", "src/settled.mjs"]);
 
@@ -463,8 +463,7 @@ test("a recheck reaches the file its findings are about, whatever else the tree 
    `--name-only` names nowhere, and a tree whose whole change is deletions, which every part reading
    `missing` made look like a tree that had not moved. */
 test("a rename travels as both its ends, and a deletion-only change travels as its diffs", async () => {
-  const { room, git } = disagreeing("codex-rename-");
-  const { home } = disagreeing("codex-rename-spare-");
+  const { room, git, home } = pairing("codex-rename-");
   git("mv", "src/thing.mjs", "src/renamed.mjs");
   seedRecord(home, canonical(room), ["src/thing.mjs"]);
 
@@ -478,8 +477,7 @@ test("a rename travels as both its ends, and a deletion-only change travels as i
   assert.ok(first.shown.includes("deleted file mode"), "and its deletion is what travels for it");
   assert.deepEqual(recordNow(home, canonical(room)), [], "it left the record as a file this consult reviewed");
 
-  const { room: bare } = disagreeing("codex-onlydel-");
-  const { home: barehome } = disagreeing("codex-onlydel-spare-");
+  const { room: bare, home: barehome } = pairing("codex-onlydel-");
   spawnSync("git", ["-C", bare, "-c", "user.email=t@t", "-c", "user.name=t", "rm", "-q", "doomed.txt"], { cwd: bare });
   const second = await withGateway(barehome, async (gateway) => {
     const ran = await consulted(bare, barehome, ["--diff", "--rounds", "1"]);
@@ -492,8 +490,7 @@ test("a rename travels as both its ends, and a deletion-only change travels as i
 });
 
 test("the turn record travels where nothing differs from the base, and says so both ways", async () => {
-  const { room } = disagreeing("codex-settled-");
-  const { home } = disagreeing("codex-settled-spare-");
+  const { room, home } = pairing("codex-settled-");
   seedRecord(home, canonical(room), ["src/settled.mjs"]);
 
   const { first, second } = await withGateway(home, async () => {

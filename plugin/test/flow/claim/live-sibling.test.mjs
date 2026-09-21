@@ -7,14 +7,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn } from "node:child_process";
-import { mkdirSync, readFileSync, readlinkSync, writeFileSync } from "node:fs";
+import { readFileSync, readlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { escaped, fakeTracker, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { escaped, fakeTracker, projectRecord, projectRoom, ranAsync, tempHome, tempRoom }
+  from "../../fixtures.mjs";
 import { idsHere } from "../../../src/flow/lease.mjs";
 import { placeOf, workUnder } from "../../../src/flow/lease/holder.mjs";
 
-process.env.XDG_CONFIG_HOME = tempHome("live-sibling").path;
+const HOME = tempHome("live-sibling").path;
+process.env.XDG_CONFIG_HOME = HOME;
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const UUID = "live-sibling-uuid";
@@ -23,25 +25,29 @@ const ELSEWHERE = "iss-1699-3727cd01";
 /* One token on a worker's argument vector, so a declaration reaches this suite's own work alone. */
 const MARK = "iss-1872-work-witness";
 
-/* A tree is its git directory and the id beside it, which is the whole of what the reading resolves
-   a tree from; the project file travels with it so that leaving the checkout moves nothing else. */
+const OWN = JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
+
+/* A tree is its checkout and the id beside it, which is the whole of what the reading resolves a
+   tree from. Its keys are this machine's record of the project that checkout belongs to, so every
+   tree here is one — and each record is kept, because the children run against a home of their own
+   and the same records have to be written there too. */
+const DECLARED = new Map();
 const treeMinting = (id, declares = MARK) => {
-  const at = tempRoom(`live-sibling-${id}-`);
-  mkdirSync(join(at, ".git"));
-  writeFileSync(join(at, ".git", "forge-run-id"), `${id}\n`);
-  const project = JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
+  const project = { ...OWN };
   if (declares) project.lease = { workingRe: declares };
   else delete project.lease;
-  writeFileSync(join(at, ".forge.json"), JSON.stringify(project));
+  const at = projectRoom(tempRoom(`live-sibling-${id}-`), HOME, project);
+  writeFileSync(join(at, ".git", "forge-run-id"), `${id}\n`);
+  DECLARED.set(at, project);
   return at;
 };
 
 const TREE = treeMinting(OURS);
 const OTHER = treeMinting(ELSEWHERE);
-/* Where a dispatcher stands: no tree of its own, so nothing but the lease's own record can reach the
-   tree the work is in, which is the whole of what ISS-1903 turned on. */
-const AWAY = tempRoom("live-sibling-away-");
-writeFileSync(join(AWAY, ".forge.json"), readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
+/* Where a dispatcher stands: a tree naming no run of its own, so nothing but the lease's own record
+   can reach the tree the work is in, which is the whole of what ISS-1903 turned on. */
+const AWAY = projectRoom(tempRoom("live-sibling-away-"), HOME, OWN);
+DECLARED.set(AWAY, OWN);
 const HERE = placeOf();
 
 /* An id nothing on this box answers to, found rather than guessed. */
@@ -166,13 +172,18 @@ const state = {
 };
 
 const tracker = await fakeTracker(state);
+
+/* The same records again, under the configuration home the children read: this process and
+   the CLI it spawns answer out of two homes, and a tree's keys have to be in both. */
+const ENV = { ...tracker.env, HOME: tracker.env.XDG_CONFIG_HOME };
+for (const [at, project] of DECLARED) projectRecord(at, tracker.env.XDG_CONFIG_HOME, project);
 test.after(() => tracker.close());
 
 const HOST = process.pid;
 const UNDER_ONE_CALL = process.ppid;
 
 const ran = (argv, at = TREE, host = HOST, who = OURS) =>
-  ranAsync(FORGE, argv, { ...tracker.env, FORGE_SESSION_ID: who, CLAUDE_PID: String(host) }, at);
+  ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: who, CLAUDE_PID: String(host) }, at);
 /* A caller the issue was never dispatched to, so what it meets is the lease's own state and not the
    handoff a dispatched run is granted whatever the record says of the holder. */
 const A_STRANGER = "a-dispatching-session";
@@ -403,7 +414,7 @@ test("declared work this call descends from is its own, and the same command bes
       + "process.stdout.write(JSON.stringify({ status: ran.status, stdout: ran.stdout, stderr: ran.stderr }));",
       FORGE, JSON.stringify(asked), MARK],
     { cwd: TREE, stdio: ["ignore", "pipe", "ignore"],
-      env: { ...tracker.env, FORGE_SESSION_ID: OURS, CLAUDE_PID: String(HOST) } });
+      env: { ...ENV, FORGE_SESSION_ID: OURS, CLAUDE_PID: String(HOST) } });
     let said = "";
     one.stdout.on("data", (chunk) => { said += chunk; });
     one.on("error", broke);

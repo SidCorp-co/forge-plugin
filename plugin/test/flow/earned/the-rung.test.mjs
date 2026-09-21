@@ -3,7 +3,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("the-rung").path;
 const { CHECKS, ORDER, deployedOwed, judgedOwed, nextOf, viewFrom } =
@@ -128,7 +129,7 @@ const state = {
   comments: {},
   answer: { forge_config: () => ({ config: state.config }) },
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
 const transitions = () => state.calls.filter((one) =>
   one.name === "forge_issues" && one.args?.action === "transition");
@@ -138,17 +139,17 @@ const transitions = () => state.calls.filter((one) =>
    (consult 8736c3, F1). The read is left working: a filter is not a write. */
 test("no run writes the release path's own status, and the refusal says whose it is", async () => {
   const set = await ranAsync(FORGE,
-    ["advance", "ISS-96", "--set", RELEASING, "--why", "the release is running"], tracker.env);
+    ["advance", "ISS-96", "--set", RELEASING, "--why", "the release is running"], ENV);
   assert.equal(set.status, 1, set.stdout);
   assert.match(set.stdout + set.stderr, /release path's own status/u);
   assert.match(set.stdout + set.stderr, /nothing was sent/u);
   assert.deepEqual(transitions(), [], "and no transition was requested for it");
-  const to = await ranAsync(FORGE, ["advance", "ISS-96", "--to", RELEASING], tracker.env);
+  const to = await ranAsync(FORGE, ["advance", "ISS-96", "--to", RELEASING], ENV);
   assert.equal(to.status, 1, to.stdout);
   assert.match(to.stdout + to.stderr, /closed is next, not releasing/u,
     "the jump refusal names the status that is next, which is the clause it answers to");
   assert.deepEqual(transitions(), [], "neither route moved anything");
-  const read = await ranAsync(FORGE, ["issue", "--status", RELEASING], tracker.env);
+  const read = await ranAsync(FORGE, ["issue", "--status", RELEASING], ENV);
   assert.equal(read.status, 0, `${read.stdout}${read.stderr}`);
 });
 
@@ -156,7 +157,7 @@ test("no run writes the release path's own status, and the refusal says whose it
    `declaredValue` — membership in that list — was the only check the set passed (ISS-1043). */
 test("a retired name is refused the set, and the refusal names the rung that took it over", async () => {
   const set = await ranAsync(FORGE,
-    ["advance", "ISS-96", "--set", "tested", "--why", "the verdicts are all in"], tracker.env);
+    ["advance", "ISS-96", "--set", "tested", "--why", "the verdicts are all in"], ENV);
   const said = set.stdout + set.stderr;
   assert.equal(set.status, 1, set.stdout);
   assert.match(said, /`tested` is no step of the flow/u);
@@ -165,6 +166,6 @@ test("a retired name is refused the set, and the refusal names the rung that too
     "the replacement is a command to run, not a name to look up");
   assert.doesNotMatch(said, /-h\b/u, "and no caller is sent to a help text to find out what to do");
   assert.deepEqual(transitions(), [], "nothing was sent");
-  const read = await ranAsync(FORGE, ["issue", "--status", "tested"], tracker.env);
+  const read = await ranAsync(FORGE, ["issue", "--status", "tested"], ENV);
   assert.equal(read.status, 0, `${read.stdout}${read.stderr}`);
 });

@@ -5,7 +5,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("advance-reopen").path;
 const { SHAPES } = await import("../../../src/flow/machine.mjs");
@@ -85,12 +86,12 @@ const state = {
     },
   },
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
-await ranAsync(FORGE, ["claim", "ISS-90", "--unheld"], tracker.env);
-await ranAsync(FORGE, ["claim", "ISS-91", "--unheld"], tracker.env);
+await ranAsync(FORGE, ["claim", "ISS-90", "--unheld"], ENV);
+await ranAsync(FORGE, ["claim", "ISS-91", "--unheld"], ENV);
 
-const ran = (argv) => ranAsync(FORGE, argv, tracker.env);
+const ran = (argv) => ranAsync(FORGE, argv, ENV);
 const bodies = (id) => (state.comments[id] ?? []).map((one) => one.body);
 const holds = (id, kind) => bodies(id).filter((one) => one.includes(`forge-record: ${kind}`)).length;
 

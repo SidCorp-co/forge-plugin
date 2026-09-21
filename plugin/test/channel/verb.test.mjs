@@ -6,26 +6,28 @@ import test from "node:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, projectRoom, ranAsync, tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-
-/* Never this checkout: where a note lands is the whole point, and a case run from here passes
-   either way. */
-const roomOn = (plugin, slug = "somewhere-else") => {
-  const room = tempRoom(`channel-${plugin}-`);
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug, feedback: { plugin } }));
-  return room;
-};
-
-const closed = roomOn("off");
-const open = roomOn("bugs");
 
 const state = { issues: [], comments: {}, calls: [] };
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
-const ask = (argv, room) => ranAsync(FORGE, argv, tracker.env, room);
+/* The configuration home the child reads: the tracker fixture's, which is where each room's record
+   of the project it belongs to is written. */
+const HOME = tracker.env.XDG_CONFIG_HOME;
+const ENV = { ...tracker.env, HOME };
+
+/* Never this checkout: where a note lands is the whole point, and a case run from here passes
+   either way. */
+const roomOn = (plugin, slug = "somewhere-else") =>
+  projectRoom(tempRoom(`channel-${plugin}-`), HOME, { slug, feedback: { plugin } });
+
+const closed = roomOn("off");
+const open = roomOn("bugs");
+
+const ask = (argv, room) => ranAsync(FORGE, argv, ENV, room);
 
 test("under feedback.plugin off the verb is nowhere in `forge -h`, and under bugs it is a row", async () => {
   const off = await ask(["-h"], closed);

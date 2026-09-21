@@ -7,7 +7,8 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 
-import { fakeTracker, ranAsync, tempRoom, typedPlan } from "../../fixtures.mjs";
+import { ranAsync, tempRoom, typedPlan } from "../../fixtures.mjs";
+import { trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("record-");
 const {
@@ -376,11 +377,11 @@ const project = {
     },
   },
 };
-const tracker = await fakeTracker(project);
+const { tracker, env: ENV } = await trackerFor(project);
 test.after(() => tracker.close());
 /* Twice: the verdict on the page is a comment this session has not been shown, so the first claim delivers it and the second takes the lease every payload write needs. */
-for (const again of [1, 2]) assert.ok(again && await ranAsync(FORGE, ["claim", "ISS-3", "--unheld"], tracker.env));
-const verify = (env = tracker.env) =>
+for (const again of [1, 2]) assert.ok(again && await ranAsync(FORGE, ["claim", "ISS-3", "--unheld"], ENV));
+const verify = (env = ENV) =>
   ranAsync(FORGE, ["record", "verification", "ISS-3", "--where", "the installed plugin",
     "--commit", "43b811e", "--evidence", "43b811e"], env);
 
@@ -478,14 +479,14 @@ test("no flag puts the project's answer on a record", () => {
    a run reads at the end of one says the close is owed rather than leaving it to be noticed. */
 test("the report says the close is owed on an issue a run has released", async () => {
   project.config = { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true } };
-  const run = await ranAsync(FORGE, ["resume", "ISS-4", "--report"], project.env ?? tracker.env);
+  const run = await ranAsync(FORGE, ["resume", "ISS-4", "--report"], project.env ?? ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^Every criterion has a verdict\.$/mu, "the criteria are judged");
   assert.match(run.stdout, /^Owed: the close\. A run ends at closed, not at awaiting_release:$/mu, run.stdout);
   assert.match(run.stdout, /^ {2}forge advance ISS-4$/mu, "with the one command that makes it");
   assert.match(run.stdout, /^Plan {2}\(typed\)$/mu, "the plan is on the report, as every other payload is");
   assert.match(run.stdout, /^## Files touched$/mu, "and whole: it is what every later phase was built against");
-  const quiet = await ranAsync(FORGE, ["resume", "ISS-3", "--report"], tracker.env);
+  const quiet = await ranAsync(FORGE, ["resume", "ISS-3", "--report"], ENV);
   assert.doesNotMatch(quiet.stdout, /the close/u, "and an issue not yet released is owed no close");
   assert.doesNotMatch(quiet.stdout, /^Plan {2}\(/mu, "an issue with an empty plan field prints no plan line");
 });
@@ -495,7 +496,7 @@ test("the report says the close is owed on an issue a run has released", async (
    every run to close is one that would have them close what nobody released (ISS-1147). */
 test("what the report says is owed at the deploying rung is the release policy's answer", async () => {
   project.config = { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } };
-  const run = await ranAsync(FORGE, ["resume", "ISS-4", "--report"], tracker.env);
+  const run = await ranAsync(FORGE, ["resume", "ISS-4", "--report"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^Owed: the release, which is a person's\./mu, run.stdout);
   assert.match(run.stdout, /the release is an act on this project's live deploy binding/u,
@@ -506,7 +507,7 @@ test("what the report says is owed at the deploying rung is the release policy's
   assert.doesNotMatch(run.stdout, /^Owed: the close\./mu, "the two lines are one line, never both");
   /* The model, not the branch pair: the promotion is named where the model is the one that has one. */
   project.config = { baseBranch: "staging", releaseModel: "promote", liveBranch: "master", pipelineConfig: { autoProdDeploy: false } };
-  const promoted = await ranAsync(FORGE, ["resume", "ISS-4", "--report"], tracker.env);
+  const promoted = await ranAsync(FORGE, ["resume", "ISS-4", "--report"], ENV);
   assert.match(promoted.stdout, /the promotion from staging to master is a person's/u, promoted.stdout);
 });
 
@@ -514,7 +515,7 @@ test("what the report says is owed at the deploying rung is the release policy's
    seconds of a round being told it by `advance --owed` instead (ISS-285). */
 test("a record write ends with the line advance --owed would print, and never fails on it", async () => {
   project.config = { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } };
-  const owing = await ranAsync(FORGE, ["record", "gap", "ISS-3", "--none", "the method answered"], tracker.env);
+  const owing = await ranAsync(FORGE, ["record", "gap", "ISS-3", "--none", "the method answered"], ENV);
   assert.equal(owing.status, 0, owing.stderr);
   assert.doesNotMatch(owing.stdout, /is next and the record/u, "on stderr, because stdout is the record itself");
   /* The write counts itself: the page this one read carries no verification, and the comment it posted is what earns the status — a trailer that re-read the page would report it as owed. That verification completes what `awaiting_release` cites, so the same call moves the status and the trailer reads where it left the issue rather than where it found it (ISS-1103). */
@@ -527,11 +528,11 @@ test("a record write ends with the line advance --owed would print, and never fa
     "byte for byte the line advance --owed would print for the status the call left it at");
   assert.match(earned.stderr, /the release is a person's/u, "and the item under it is the policy's");
   /* A record that posted must not fail on the line printed under it: the reading refuses here. */
-  await ranAsync(FORGE, ["claim", "ISS-5", "--unheld"], tracker.env);
-  const done = await ranAsync(FORGE, ["record", "gap", "ISS-5", "--none", "the method answered"], tracker.env);
+  await ranAsync(FORGE, ["claim", "ISS-5", "--unheld"], ENV);
+  const done = await ranAsync(FORGE, ["record", "gap", "ISS-5", "--none", "the method answered"], ENV);
   assert.equal(done.status, 0, done.stderr);
   assert.match(done.stderr, /^ISS-5 is closed; nothing advances from it\./mu, done.stderr);
-  const report = await ranAsync(FORGE, ["resume", "ISS-3", "--report"], tracker.env);
+  const report = await ranAsync(FORGE, ["resume", "ISS-3", "--report"], ENV);
   assert.doesNotMatch(report.stderr, /is next and the record/u, "and a report writes nothing, so it owes nothing");
 });
 
@@ -566,7 +567,7 @@ test("the record route's collision refusal carries the one sentence evidence.mjs
   const path = join(tempRoom("crowded-"), "shot.png");
   writeFileSync(path, "not really a screenshot");
   const run = await ranAsync(FORGE, ["record", "verdict", "ISS-3", "--criterion", "1",
-    "--verdict", "pass", "--commit", "43b811e", "--evidence", path], tracker.env);
+    "--verdict", "pass", "--commit", "43b811e", "--evidence", path], ENV);
   delete project.answer.forge_comments;
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /^record verdict would put a file up/mu, run.stderr);
@@ -584,7 +585,7 @@ test("the report prints the count of a repeating kind on the line above its reco
     { createdAt: at(2), body: render("baseline", { gate: "npm run check", result: "green", commit: "43b811e", scope: "whole" }) },
     { createdAt: at(3), body: render("correction", { moved: "criterion 20", why: "it read as two outcomes" }) },
   ];
-  const run = await ranAsync(FORGE, ["resume", "ISS-5", "--report"], tracker.env);
+  const run = await ranAsync(FORGE, ["resume", "ISS-5", "--report"], ENV);
   project.comments["held-uuid"] = [];
   assert.equal(run.status, 0, run.stderr);
   const lines = run.stdout.split("\n");

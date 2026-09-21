@@ -4,7 +4,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../fixtures.mjs";
+import { ranAsync, tempHome } from "../fixtures.mjs";
+import { trackerFor } from "./own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("page").path;
 const { render } = await import("../../src/flow/record/page.mjs");
@@ -61,9 +62,9 @@ const state = {
     },
   },
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
-const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], tracker.env);
+const owed = (reference) => ranAsync(FORGE, ["advance", reference, "--owed"], ENV);
 const moved = () => state.calls.filter((one) => one.args.action === "transition").map((one) => one.args.data.status);
 
 test("a thread the walk could not finish is judged, and the record on it earns the move", async () => {
@@ -105,10 +106,10 @@ test("the transition a cut page earns is made, and nothing about it is done by h
   /* The read-before-write gate sits inside the lease write and delivers the page it has not shown,
      so the claim meets it once and passes on the re-send. That hold is not this case's subject. */
   for (const again of [1, 2]) {
-    const claim = await ranAsync(FORGE, ["claim", "ISS-95"], tracker.env);
+    const claim = await ranAsync(FORGE, ["claim", "ISS-95"], ENV);
     assert.equal(claim.status, again === 1 ? 1 : 0, claim.stderr);
   }
-  const run = await ranAsync(FORGE, ["advance", "ISS-95"], tracker.env);
+  const run = await ranAsync(FORGE, ["advance", "ISS-95"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /ISS-95 {2}open -> confirmed/u, run.stdout);
   assert.deepEqual(moved(), ["confirmed"], "the verb made it, which is the only route that read the record first");
@@ -125,7 +126,7 @@ test("a shortfall on a short read names what is owed, and no route past it write
   assert.match(short.stdout, /may be a record past that prefix/u, "and what the short read costs the answer");
   /* Typed as the form for the status it names, which is the status that is next: the shortfall is
      the verb's, so what a form buys here is the word and never a different answer (ISS-704). */
-  const asked = await ranAsync(FORGE, ["confirm", "ISS-96"], tracker.env);
+  const asked = await ranAsync(FORGE, ["confirm", "ISS-96"], ENV);
   assert.equal(asked.status, 1, "asked to move on a record that does not earn it, the same list refuses");
   assert.match(asked.stderr, /^forge: read confirm as forge advance ISS-96$/mu, asked.stderr);
   assert.match(asked.stdout, /forge record confirmation ISS-96/u, "with the owed item's own command");

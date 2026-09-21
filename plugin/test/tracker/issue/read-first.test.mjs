@@ -10,7 +10,8 @@ import { join } from "node:path";
 import { joined, targetsOfTool, writeTargets } from "../../../src/tracker/issue-read.mjs";
 import { isReference } from "../../../src/tracker/issues.mjs";
 import { shellText, starts } from "../../../hooks/_hook.mjs";
-import { answered, callHookAsync, fakeTracker, pathed, tempHome, tempRoom } from "../../fixtures.mjs";
+import { answered, callHookAsync, fakeTracker, pathed, projectRecord, projectRoom, tempHome, tempRoom }
+  from "../../fixtures.mjs";
 
 const bash = (command) => ({ name: "Bash", input: { command } });
 /* The hook's own wiring: the target is read where a command starts, so it is given the starts. */
@@ -165,6 +166,11 @@ const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
 
 const HOME = tempHome("read-first");
+/* One configuration home for every child here, holding this machine's record of each project a
+   case stands the gate in — starting with this checkout, which is where a case that names no
+   directory of its own runs. */
+const OWN = JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
+projectRecord(process.cwd(), HOME.path, OWN);
 /* The state file is the run's own and is never touched here: a fixture that reset it would be
    testing a fresh session every time, which is the one thing this gate must not do. */
 const endpoint = (url, withheld = null) => {
@@ -182,7 +188,7 @@ let session = 0;
 const gate = async (command, { url = live(), fresh = true, harness = null, cwd = process.cwd(), exit = 0 } = {}) => {
   if (fresh) session += 1;
   endpoint(url);
-  const env = { ...process.env, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: `probe-${session}` };
+  const env = { ...process.env, HOME: HOME.path, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: `probe-${session}` };
   if (harness) {
     delete env.FORGE_SESSION_ID;
     env.CLAUDE_CODE_SESSION_ID = harness;
@@ -287,8 +293,7 @@ const leased = (holder, renewedAt = new Date().toISOString(), minutes = 60) => (
   lease: { holder, agent: "a", pid: "1", renewedAt, minutes, next: null, history: [] },
 });
 
-const noTree = tempRoom("read-first-alias-no-tree-");
-writeFileSync(join(noTree, ".forge.json"), readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
+const noTree = projectRoom(tempRoom("read-first-alias-no-tree-"), HOME.path, OWN);
 
 test("a live lease's own minted holder is trusted as an alias where the hook's own guess falls to the wave", async () => {
   const holder = "iss-950-aaaaaaaa";
@@ -439,7 +444,7 @@ const TITLED = "the filing is read where it is made on every route";
 const raw = async (input, { name = "mcp__forge__forge_issues", url = live(), withheld = null, session = "probe-filing" } = {}) => {
   endpoint(url, withheld);
   const run = await callHookAsync(HOOK, { tool_name: name, tool_input: input, cwd: process.cwd() }, {
-    ...process.env, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: session,
+    ...process.env, HOME: HOME.path, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: session,
   });
   return { ...run, out: answered(run) };
 };
@@ -556,10 +561,9 @@ const OWN_ID = "1e1c1a1e-0000-4000-8000-0000000000ff";
 const OTHER_ID = "1e1c1a1e-0000-4000-8000-00000000beef";
 const OTHER_SLUG = "second-checkout";
 const OTHER_DOC = "7c2f4b21-0ac4-4a1e-9f52-2d1c0a5f6e33";
-const OWN_SLUG = JSON.parse(readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8")).slug;
+const OWN_SLUG = OWN.slug;
 
-const SECOND = tempRoom("second-checkout-");
-writeFileSync(join(SECOND, ".forge.json"), JSON.stringify({ slug: OTHER_SLUG }));
+const SECOND = projectRoom(tempRoom("second-checkout-"), HOME.path, { slug: OTHER_SLUG });
 const NOWHERE_AT_ALL = tempRoom("names-no-project-");
 
 /* Both checkouts answer, and the second one's ISS-29 is a different document with a thread of its
@@ -628,5 +632,4 @@ test("a command that moves nowhere is resolved in the event's own directory", as
 
 /* A worktree of this same project: a `cd` in the cases above reaches a tree the gate can name a
    project for, which is what those cases were about before a directory naming none went silent. */
-const SAME_PROJECT = tempRoom("same-project-");
-writeFileSync(join(SAME_PROJECT, ".forge.json"), readFileSync(new URL("../../../../.forge.json", import.meta.url), "utf8"));
+const SAME_PROJECT = projectRoom(tempRoom("same-project-"), HOME.path, OWN);

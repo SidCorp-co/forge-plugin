@@ -8,10 +8,17 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { projectRecord, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { OWN, trackerFor } from "../own-project.mjs";
 import { render } from "../../../src/flow/record/page.mjs";
 
-process.env.XDG_CONFIG_HOME = tempHome("published-baseline").path;
+const ROOT = new URL("../../../../", import.meta.url).pathname;
+
+const HOME = tempHome("published-baseline").path;
+process.env.XDG_CONFIG_HOME = HOME;
+/* This checkout's project, in this process's home as well as in the children's: one case publishes
+   through this process and reads back through a child, and the two have to name one project. */
+projectRecord(ROOT, HOME, OWN);
 const { HELD, PART, WROTE, citationProblem, citeForm, publishBaseline, publishedFor, publishedPath, publishedSaid }
   = await import("../../../src/flow/earned/published.mjs");
 const { publishes } = await import("../../../../tools/run/publish.mjs");
@@ -179,9 +186,9 @@ state.answer.forge_comments = (args) => {
   if (args.action === "list") return { comments: state.comments["cited-uuid"], returned: 0, hasMore: false };
   return { documentId: `posted-${state.calls.length}`, createdAt: "2026-09-02T10:00:00.000Z", body: args.body };
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
-const env = { ...tracker.env, FORGE_SESSION_ID: "the-citing-run" };
+const env = { ...ENV, FORGE_SESSION_ID: "the-citing-run" };
 const writing = (commit) => ranAsync(FORGE, ["record", "baseline", "ISS-3", "--gate", "npm run check",
   "--result", "nothing fails", "--commit", commit, "--scope", "whole", "--cited", "the ship's gate"], env);
 
@@ -224,12 +231,13 @@ const WHOLE_TREE = ["plugin/test/checks/cited-paths.test.mjs", "plugin/test/chec
   "plugin/test/checks/sources-are-text.test.mjs", "plugin/test/checks/surface/level-boundary.test.mjs",
   "plugin/test/guides/contract.test.mjs"];
 
-/* A slug this checkout's own `.forge.json` does not carry, so a publication filed under the invoking project rather than the released tree's is visible as a wrong answer and not as a coincidence. */
+/* A slug this checkout's own record does not carry, so a publication filed under the invoking project rather than the released tree's is visible as a wrong answer and not as a coincidence. */
 const SHIPPED = "a-project-that-is-not-this-one";
 
 const gated = () => {
   const { room, as } = repo();
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: SHIPPED }));
+  /* Read in this process, off the configuration home it runs against. */
+  projectRecord(room, HOME, { slug: SHIPPED });
   for (const rel of [...WHOLE_TREE, "plugin/test/flow/one.test.mjs"]) {
     mkdirSync(dirname(join(room, rel)), { recursive: true });
     writeFileSync(join(room, rel), "// a file the step table has to find\n");

@@ -6,7 +6,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { trackerFor } from "../own-project.mjs";
 
 const { AMBIGUOUS } = await import("../../../src/tracker/rest.mjs");
 
@@ -44,10 +45,10 @@ state.answer.forge_issues = (args) => {
   }
   return Object.assign(PARKED, args.data ?? {});
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
 const advance = (...argv) =>
-  ranAsync(FORGE, ["advance", "ISS-99", ...argv], { ...tracker.env, FORGE_SESSION_ID: HOLDER });
+  ranAsync(FORGE, ["advance", "ISS-99", ...argv], { ...ENV, FORGE_SESSION_ID: HOLDER });
 
 test("a refused move names the status the issue holds and the status it was asked for, above what refused it", async () => {
   state.refuses = NO_OP;

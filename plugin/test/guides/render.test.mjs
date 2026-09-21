@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { flat, homeEnv, tempRoom } from "../fixtures.mjs";
+import { flat, homeEnv, projectRoom, tempRoom } from "../fixtures.mjs";
 
 const { blocksOf, openersOf, phasesOf, render } = await import("../../src/guides/render.mjs");
 const { servedBody } = await import("../../src/guides/skill-guides.mjs");
@@ -34,24 +34,33 @@ const PLANTED = [
   "",
 ].join("\n");
 
-const asked = (room, ...argv) =>
-  spawnSync(FORGE, argv, { encoding: "utf8", env: homeEnv("render"), cwd: room });
+/* A room's project record lives under the configuration home the child is handed, so the two
+   travel together; one home per reading of this file, and never this developer's own. */
+const HOME = tempRoom("render-home-");
 
-const room = (plugin) => {
-  const dir = tempRoom("render-");
-  writeFileSync(join(dir, ".forge.json"), JSON.stringify({ slug: "render-fixture", feedback: { plugin } }));
-  return dir;
+const asked = (room, ...argv) =>
+  spawnSync(FORGE, argv,
+    { encoding: "utf8", env: { ...process.env, HOME, XDG_CONFIG_HOME: HOME }, cwd: room });
+
+const rooms = new Map();
+const room = (plugin, home = HOME) => {
+  const key = `${home}\u0000${plugin}`;
+  if (!rooms.has(key)) {
+    rooms.set(key, projectRoom(tempRoom("render-"), home, { slug: "render-fixture", feedback: { plugin } }));
+  }
+  return rooms.get(key);
 };
 
 /* The machine's option, where the channel above is the project's: its own config home, never the live one.
    Flat, so a phrase pattern over the answer asserts the rule and not the wrap it was written under. */
 const shipping = (ship, slug = "issue-flow", part = "7") => {
   const env = homeEnv("render-ship");
-  mkdirSync(join(env.XDG_CONFIG_HOME, "forge"), { recursive: true });
-  writeFileSync(join(env.XDG_CONFIG_HOME, "forge", "config.json"),
+  const home = env.XDG_CONFIG_HOME;
+  mkdirSync(join(home, "forge"), { recursive: true });
+  writeFileSync(join(home, "forge", "config.json"),
     JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token", ship }));
   const argv = slug === "issue-flow" ? ["guide", slug, part] : ["guide", slug];
-  return flat(spawnSync(FORGE, argv, { encoding: "utf8", env, cwd: room("bugs") }).stdout);
+  return flat(spawnSync(FORGE, argv, { encoding: "utf8", env, cwd: room("bugs", home) }).stdout);
 };
 
 /* The paragraph is the unit a reader sees, so equal-elsewhere is asserted over paragraphs: a
@@ -111,7 +120,7 @@ test("the Phase 5 part this copy ships answers each of the channel's three value
 });
 
 /* AC-02-8-1, through the key rather than through an argument: the blocks travel to a project's own
-   answer, which is a resolver reading `.forge.json` and not a value a case can hand the renderer. */
+   answer, which is a resolver reading the project and not a value a case can hand the renderer. */
 test("the phase the verb serves a project carries the branch its own key names", () => {
   const marked = blocksOf(servedBody("issue-flow", PLUGIN)).filter((one) => one.condition === CONDITION);
   const [shared, bugsOnly, allOnly] = marked.map((one) => one.body.join("\n").trim());

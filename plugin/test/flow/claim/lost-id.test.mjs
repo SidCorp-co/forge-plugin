@@ -7,10 +7,15 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, standsInNoTree, tempHome, tempRoom } from "../../fixtures.mjs";
+import { projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { OWN, trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("lost-id").path;
-standsInNoTree("lost-id");
+/* Away from this checkout, whose git directory names the run this suite is written under: a
+   checkout of its own names none, and its project is a record beside the machine's own keys
+   rather than a file in the tree. */
+const AWAY = projectRoom(tempRoom("lost-id-away-"), process.env.XDG_CONFIG_HOME, OWN);
+process.chdir(AWAY);
 process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "3448870";
 const { asItsHolder, leaseOf } = await import("../../../src/flow/lease.mjs");
@@ -56,10 +61,10 @@ const state = {
   },
 };
 
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state, [AWAY]);
 test.after(() => tracker.close());
 
-const ran = (argv, who = WAVE) => ranAsync(FORGE, argv, { ...tracker.env, FORGE_SESSION_ID: who });
+const ran = (argv, who = WAVE) => ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: who });
 const updates = (from) => state.calls.slice(from)
   .filter((one) => one.name === "forge_issues" && one.args.action === "update");
 

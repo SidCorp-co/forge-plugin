@@ -5,7 +5,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, tempHome } from "../../fixtures.mjs";
+import { ranAsync, tempHome } from "../../fixtures.mjs";
+import { trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("record-merged").path;
 const {
@@ -67,11 +68,11 @@ const state = {
     },
   },
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state);
 test.after(() => tracker.close());
-await ranAsync(FORGE, ["claim", "ISS-99", "--unheld"], tracker.env);
+await ranAsync(FORGE, ["claim", "ISS-99", "--unheld"], ENV);
 
-const marked = (...argv) => ranAsync(FORGE, ["record", "merged", "ISS-99", ...argv], tracker.env);
+const marked = (...argv) => ranAsync(FORGE, ["record", "merged", "ISS-99", ...argv], ENV);
 const page = () => state.comments[ISSUE.documentId] ?? [];
 const whole = (over = []) => [
   "--at", AT, "--reviewed", REVIEWED, "--judged", JUDGED,

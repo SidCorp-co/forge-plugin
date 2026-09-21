@@ -5,10 +5,15 @@
 import assert from "node:assert/strict";
 import test, { after, before } from "node:test";
 
-import { fakeTracker, ranAsync, standsInNoTree, tempHome } from "../../fixtures.mjs";
+import { projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { OWN, trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("verdict-judge").path;
-standsInNoTree("verdict-judge");
+/* Away from this checkout, whose git directory names the run this suite is written under: a
+   checkout of its own names none, and its project is a record beside the machine's own keys
+   rather than a file in the tree. */
+const AWAY = projectRoom(tempRoom("verdict-judge-away-"), process.env.XDG_CONFIG_HOME, OWN);
+process.chdir(AWAY);
 const { assemble, parseAll, render } = await import("../../../src/flow/record/page.mjs");
 const { JUDGE_FROM, SHAPES } = await import("../../../src/flow/machine.mjs");
 
@@ -92,10 +97,10 @@ state.answer.forge_comments = (args) => {
   held.push({ documentId: id, createdAt: at(), body: args.data?.body });
   return { documentId: id };
 };
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state, [AWAY]);
 after(() => tracker.close());
 
-const env = { ...tracker.env, FORGE_SESSION_ID: JUDGE };
+const env = { ...ENV, FORGE_SESSION_ID: JUDGE };
 const ask = (...argv) => ranAsync(FORGE, argv, env);
 
 state.comments["judging-uuid"].push({

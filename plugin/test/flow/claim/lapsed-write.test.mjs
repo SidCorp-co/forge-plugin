@@ -6,10 +6,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, ranAsync, standsInNoTree, tempHome } from "../../fixtures.mjs";
+import { projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
+import { OWN, trackerFor } from "../own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("lapsed-write").path;
-standsInNoTree("lapsed-write");
+/* Away from this checkout, whose git directory names the run this suite is written under: a
+   checkout of its own names none, and its project is a record beside the machine's own keys
+   rather than a file in the tree. */
+const AWAY = projectRoom(tempRoom("lapsed-write-away-"), process.env.XDG_CONFIG_HOME, OWN);
+process.chdir(AWAY);
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const UUID = "lapsed-write-uuid";
@@ -66,10 +71,10 @@ const state = {
   },
 };
 
-const tracker = await fakeTracker(state);
+const { tracker, env: ENV } = await trackerFor(state, [AWAY]);
 test.after(() => tracker.close());
 
-const ran = (argv, who = OURS) => ranAsync(FORGE, argv, { ...tracker.env, FORGE_SESSION_ID: who });
+const ran = (argv, who = OURS) => ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: who });
 /* Read off the tracker after the call rather than out of its output: what a later reader has is the
    field, and the terminal the write printed to is gone by then. */
 const onTheRecord = () => ISSUE.sessionContext.lease;
