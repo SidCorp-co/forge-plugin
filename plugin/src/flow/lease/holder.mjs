@@ -249,11 +249,13 @@ const partOf = (argv, words) =>
 
 /* Either way round, because a wrapper's line holds the whole command and a leaf left by a shell
    that exited holds a part of it — `node tools/gates.mjs --wait 30` out of the line that put it in
-   the background. What the second way round reads is the *words* the turn typed and not its text: a
-   line standing as several of them was cut out by a shell and run, and one standing inside a single
-   word was handed to something whole, which is what a reader of the process table or an echo into a
-   note does with another run's line (ISS-2062). */
-const sameJob = (own, one) => own.sign.includes(one.sign) || partOf(own.argv, one.words);
+   the background. The second way round then asks a second thing, that the process's own arguments
+   stand as consecutive *words* the turn typed and not merely somewhere inside its text: a line cut
+   out by a shell was words, and one handed to something whole was an argument, which is what a
+   reader of the process table or an echo into a note does with another run's line (ISS-2062). Both
+   and not either, so what matches here is always a subset of what the signature alone matched. */
+const sameJob = (own, one) =>
+  own.sign.includes(one.sign) || (one.sign.includes(own.sign) && partOf(own.argv, one.words));
 
 /** Every process still standing that this turn started, matched by the calls the turn itself made
  *  rather than by where the process stands: a wait needs no `cd`, so it keeps the session's working

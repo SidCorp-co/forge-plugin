@@ -194,6 +194,23 @@ test("a command line the turn only quoted as an argument does not make its proce
   }
 });
 
+/* Both arms and not either. A word the turn joined across a continuation inside it is one word to
+   the shell and two to the signature, so the words on their own would reach a process the signature
+   never did. What matches is a subset of what the signature matched, which is what the criterion
+   written as containment either way goes on reading. */
+test("a process the signature does not reach is not reached by the words either", async () => {
+  const watched = ran(waiting());
+  const pid = leaf(["tail", `--pid=${watched}`, "-f", "/dev/null"]);
+  try {
+    await settled();
+    const command = `nohup ta\\\nil --pid=${watched} -f /dev/null > /dev/null 2>&1 &`;
+    assert.ok(!held(startedHere(turn(command)), pid),
+      "a word joined across a continuation inside it reached a process the signature does not");
+  } finally {
+    gone(pid, watched);
+  }
+});
+
 /* One path inside another is the collision a signature with no boundaries makes: run and
    run-other are two jobs, and a containment that ignores where a word ends reads them as one. */
 test("a command whose path only begins another run's is not read as the same job", async () => {
