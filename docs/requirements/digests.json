@@ -253,6 +253,26 @@
       "rev": 1,
       "digest": "4bdc6d8205a009ab4ce2a650fb6324eb00ab6cfdd2c631a0cc63cd4bf1f3dfac"
     },
+    "NFR-12": {
+      "rev": 1,
+      "digest": "b9e711633a0e6ffd6e46f2a80f5bf668d9638d00122dbeca04096bf1c854464e"
+    },
+    "AC-17-12-1": {
+      "rev": 1,
+      "digest": "9379f1579d1f9732af080ab6c1e26d07fbcea8557087957108144a6f14fbe657"
+    },
+    "AC-17-12-2": {
+      "rev": 1,
+      "digest": "aa085f79827a170975efa1a9ea727b30e53bdfee7b1e481b7f66a58638cc3c43"
+    },
+    "AC-17-12-3": {
+      "rev": 1,
+      "digest": "93c6ac9ed8e6329593cba07c022e1a7e8e11a71420f355e6262e0cb138c824c9"
+    },
+    "AC-17-12-4": {
+      "rev": 1,
+      "digest": "b13dc6a0df78d607e67d70f3b230673808be78aa69d7deefc303fde4bc289e7e"
+    },
     "EI-01": {
       "rev": 3,
       "digest": "551c490a1ea697dfb9e0b984eefe19fab32c1a717351ed898677556e5d830163"
