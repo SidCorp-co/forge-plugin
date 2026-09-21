@@ -120,14 +120,16 @@ export const latencyLines = (held) => {
   const thin = mine.rows.length - listed.length;
   return [
     "",
+    /* The floor is stated whether or not a class fell under it: said only where one did, the rule
+       goes unprinted on exactly the corpus where every class clears it, and a reader then has no
+       way to know a fold was possible at all. The count below it is the conditional half. */
     `${TITLE} — over every call classed to it, the ${mine.lookups.before} → ${mine.lookups.now} `
       + "help lookup(s) among them included, since a lookup's own wait is inside the class's wait "
-      + "and cannot be taken back out of it",
+      + `and cannot be taken back out of it. A class under ${CALLS} call(s) on both sides is folded `
+      + "rather than listed or named",
     ...capped(listed, false).map(classRow),
     ...elided(listed, false),
-    ...(thin
-      ? [`  ${thin} class(es) with fewer than ${CALLS} call(s) on either side, listed under --json`]
-      : []),
+    ...(thin ? [`  ${thin} class(es) folded, listed under --json`] : []),
     ...movedLines(mine.rows),
   ];
 };

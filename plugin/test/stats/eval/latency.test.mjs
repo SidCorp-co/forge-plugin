@@ -87,8 +87,7 @@ test("a class thin on both sides is folded into one tail line and never named", 
   assert.equal(rows[0].thin, true, `${CALLS - 1} and 2 calls are both under the floor of ${CALLS}`);
   assert.equal(rows[0].named, false, "so a tenfold move in its mean names nothing");
   const lines = latencyLines({ classes: classesCompared(thin, before) });
-  assert.ok(lines.some((line) => line === `  1 class(es) with fewer than ${CALLS} call(s) on either side, listed under --json`),
-    lines.join("\n"));
+  assert.ok(lines.some((line) => line === "  1 class(es) folded, listed under --json"), lines.join("\n"));
   assert.ok(lines.some((line) => line.includes("no class moved past ±50%, over the 0 with a mean on both sides")),
     lines.join("\n"));
   const fat = profile({ classes: [["forge attach", CALLS, 200]] });
@@ -107,6 +106,10 @@ test("the screen states the population and caps the rows, and --json is where th
   assert.ok(lines.includes("  (5 more; --json for all)"), lines.join("\n"));
   assert.ok(lines[1].includes("over every call classed to it, the 10 → 20 help lookup(s) among them included"),
     `the population is named where the table opens:\n${lines[1]}`);
+  assert.ok(lines[1].endsWith(`A class under ${CALLS} call(s) on both sides is folded rather than listed or named`),
+    `and so is the floor:\n${lines[1]}`);
+  assert.equal(lines.filter((line) => line.includes("folded")).length, 1,
+    "no class of this pair is under the floor, and the rule is stated once all the same");
 });
 
 test("a before window that carries no class figures is said, and so is having none at all", () => {
