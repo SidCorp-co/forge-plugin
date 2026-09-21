@@ -6,7 +6,7 @@ import {
   FORGE_ROW,
   GUIDE_INDEX,
   POLL,
-  TABLE,
+  READY_CLASS,
   WAIT,
   WHOLE_SET_CLASS,
   classesFor,
@@ -15,6 +15,8 @@ import {
   helpReadOf,
 } from "./corpus/classes.mjs";
 import { declaredIn, declaredSaid } from "./corpus/declared.mjs";
+import { TABLE } from "./corpus/generations.mjs";
+import { actLines, phase7For } from "./corpus/release.mjs";
 import { FLOW_BRIEF, PRICES, callsIn, markerOf, modelRun, rungRun } from "./corpus/transcripts.mjs";
 import { corpusUnder, readTranscript, rootFor } from "./corpus/corpus.mjs";
 import {
@@ -177,8 +179,6 @@ const READS_A_LOG = new Set(["read", POLL, WAIT]);
 const reportsShip = (call) =>
   call.class === "ship" || (READS_A_LOG.has(call.class) && LOG_READ.test(call.shell));
 const RESUMED = /--from\s+\d/u;
-/* The other way a run leaves a change for the branch: the mode that lands a batch calls no ship. */
-const READY = /--ready\b/u;
 
 /* The passes a landing took: every ship call, those resumed with --from, and whether a push came
    back rejected. */
@@ -188,7 +188,9 @@ const shipsIn = (calls) => {
     passes: passes.length,
     resumed: passes.filter((call) => RESUMED.test(call.shell)).length,
     rejected: calls.some((call) => reportsShip(call) && REJECTED_PUSH.test(call.body)) ? 1 : 0,
-    ready: calls.some((call) => call.class === "forge claim" && READY.test(call.shell)) ? 1 : 0,
+    /* The other way a run leaves a change for the branch: the mode that lands a batch calls no
+       ship, and that checkpoint is a class of its own rather than a flag read off a claim's line. */
+    ready: calls.some((call) => call.class === READY_CLASS) ? 1 : 0,
   };
 };
 
@@ -303,7 +305,9 @@ export const runFrom = (path, session, text, classes = undefined) => {
 const flowRun = (path, session, text, classes) => {
   const run = runFrom(path, session, text, classes);
   if (!run) return null;
-  return FLOW_BRIEF.test(run.brief) || run.byClass.has("forge claim") ? run : null;
+  /* Either class a claim carries: a run whose only one is the landing checkpoint is a run. */
+  return FLOW_BRIEF.test(run.brief) || run.byClass.has("forge claim") || run.byClass.has(READY_CLASS)
+    ? run : null;
 };
 
 /** Every transcript under the derived root, folded. A file that is not an issue-flow run is
@@ -427,7 +431,7 @@ const conditionOver = (runs) => ({
   } : { met: null, runs: null, named: [] },
 });
 
-export const profileOf = (runs, declared = null) => {
+export const profileOf = (runs, declared = null, act = null) => {
   const seconds = runs.map((run) => run.seconds);
   const byClass = mergedClasses(runs, (run) => run.byClass);
   const waited = runs.reduce((sum, run) => sum + run.waited, 0);
@@ -455,6 +459,12 @@ export const profileOf = (runs, declared = null) => {
        halves of it agree with this one's. */
     table: TABLE,
     declares: declaredSaid(declared),
+    /* The answer the release model gave, never its own word: two projects both declaring no release
+       step part company on whether production deploys on its own, and one of them holds a row the
+       other has not got. `releaseSaid` carries only what the key cannot — which word this CLI did
+       not recognise — and is read beside it rather than compared (ISS-1975). */
+    release: act?.key ?? null,
+    releaseSaid: act?.said ?? null,
     /* Both bounds over every run and neither off the list's order: this reader is handed a window
        ordered by each run's end, so the first of them is the earliest to finish and not the earliest
        to begin. Read as the start of the span, that bound excluded a run that began before it and
@@ -516,6 +526,7 @@ export const profileOf = (runs, declared = null) => {
 };
 
 export const profileLines = (held, all = false) => [
+  ...actLines(held.release, held.releaseSaid),
   `wall            ${held.totalMinutes} min in all, median ${held.medianMinutes}/run, longest ${held.longestMinutes}`,
   `where it went   ${held.waitMinutes} min waiting on a tool (${held.waitShare}), `
     + `${held.modelMinutes} min model (${held.modelShare})`,
@@ -594,7 +605,7 @@ export const checkoutFrom = (given, verb) => {
   return given.replace(/\/+$/u, "") || "/";
 };
 
-export const printRuns = (rest) => {
+export const printRuns = async (rest) => {
   /* `--sincee 1d` profiled the whole corpus and said nothing before the parser read this text: a
      filter silently dropped is a measurement that is materially false. */
   const { since, checkout, json } = flags(rest, "stats runs", ["--json"], { usage: RUNS_USAGE });
@@ -602,9 +613,10 @@ export const printRuns = (rest) => {
   const directory = checkoutFrom(checkout, "stats runs");
   const root = rootFor(directory);
   const declared = declaredIn(directory);
-  const { runs, skipped, outsideWindow, unreadable, sources } = runsUnder(root, from, classesFor(declared));
+  const act = await phase7For(directory);
+  const { runs, skipped, outsideWindow, unreadable, sources } = runsUnder(root, from, classesFor(declared, act));
   const aside = readingAside({ skipped, outsideWindow, unreadable });
-  const held = profileOf(runs, declared);
+  const held = profileOf(runs, declared, act);
   const reach = since === undefined ? reachOf(root, held.from) : null;
   if (json) {
     return console.log(JSON.stringify(

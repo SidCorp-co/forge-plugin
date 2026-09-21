@@ -1,7 +1,7 @@
 /* How long a call of each class took in each of the two windows `forge stats eval` compares, so a
    movement in what the harness spends is told apart from a movement in what it waits on. What the
    population is, and why the bound is a constant — docs/cli/stats-the-latency.md. */
-import { MOVED_AT } from "../corpus/classes.mjs";
+import { DECIDED_BY_RELEASE, MOVED_AT } from "../corpus/generations.mjs";
 import { DECLARABLE } from "../corpus/declared.mjs";
 import { minutes } from "../figures.mjs";
 import { capped, elided } from "../tables.mjs";
@@ -34,6 +34,13 @@ const wordsOf = (profile) => (typeof profile?.declares === "string" ? profile.de
 
 const GENERATIONS = "classed by";
 const WORDS = "counted by different words for the rows a project's own declaration arms";
+const ACT = "taken under different answers to what this project's release model asks of phase 7, "
+  + "which decides whether the deploy row is in the table at all and what the landing rows count";
+
+/** Which answer the release model gave when a profile was taken; `null` for one written before that
+ *  was carried. The answer and not the model's word, so two projects that both declare no release
+ *  step are told apart where one deploys production on its own and the other ships nothing. */
+const actOf = (profile) => (typeof profile?.release === "string" ? profile.release : null);
 
 /* Which rows hold a different population on the two sides, and why. What moves a row's population is
    `MOVED_AT` in classes.mjs; the readings here are: a stored reading taken at an earlier generation
@@ -57,6 +64,11 @@ const crossedIn = (before, now) => {
     why.push(WORDS);
     const declared = moved;
     moved = (label) => declared(label) || DECLARABLE.includes(label);
+  }
+  if (held !== null && actOf(before) !== actOf(now)) {
+    why.push(ACT);
+    const said = moved;
+    moved = (label) => said(label) || DECIDED_BY_RELEASE.includes(label);
   }
   return { crossed: moved, why };
 };

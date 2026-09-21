@@ -3,6 +3,7 @@
    answer — docs/cli/stats-the-change.md. */
 import { rootFor } from "../corpus/corpus.mjs";
 import { classesFor } from "../corpus/classes.mjs";
+import { phase7For } from "../corpus/release.mjs";
 import { declaredIn } from "../corpus/declared.mjs";
 import { checkoutFrom, profileOf, runsUnder } from "../runs.mjs";
 import { cacheRoot, installedCopies } from "../versions.mjs";
@@ -76,7 +77,7 @@ export const populationsOf = (ordered, copies, version) => {
   };
 };
 
-const windowOf = (rows, declared) => ({ runs: rows.length, profile: profileOf(rows, declared) });
+const windowOf = (rows, declared, act) => ({ runs: rows.length, profile: profileOf(rows, declared, act) });
 
 /* The before side is cut to the size of the side it answers, taken back from the change's own moment:
    a before window larger than the population it is compared with would put the two figures on
@@ -84,8 +85,9 @@ const windowOf = (rows, declared) => ({ runs: rows.length, profile: profileOf(ro
    `slice(0)` and would hand back the whole history to answer a population of none. */
 const matched = (before, many) => (many ? before.slice(-many) : []);
 
-const anglesFor = (ordered, before, now, names, declared) => {
-  const sides = { before: before.length ? windowOf(before, declared) : null, now: windowOf(now, declared) };
+const anglesFor = (ordered, before, now, names, declared, act) => {
+  const sides = { before: before.length ? windowOf(before, declared, act) : null,
+    now: windowOf(now, declared, act) };
   if (!before.length || !now.length) {
     return names.map((name) => angleOf(name, sides, null, FLOOR));
   }
@@ -104,9 +106,9 @@ const mixFor = (ordered, before, now) => {
  *  found. **Being judged is not being eligible**: a comparison whose covariate mix moved, or whose
  *  bounds rest on a modification time, still holds real angle verdicts worth printing, and each of the
  *  four conditions vetoes this comparison alone and never the whole reading. */
-export const comparisonOf = ({ ordered, name, before, now, moments, names, declared }) => {
+export const comparisonOf = ({ ordered, name, before, now, moments, names, declared, act }) => {
   const sized = matched(before, now.length);
-  const angles = anglesFor(ordered, sized, now, names, declared);
+  const angles = anglesFor(ordered, sized, now, names, declared, act);
   const mix = mixFor(ordered, sized, now);
   const judged = angles.filter((one) => one.disposition !== DISPOSITIONS.unevaluable);
   const clock = moments.filter((one) => !one.born);
@@ -172,21 +174,23 @@ export const verdictOf = (comparisons, exposures) => {
   };
 };
 
-const corpusOf = (directory) => {
+const corpusOf = async (directory) => {
   const root = rootFor(directory);
   const declared = declaredIn(directory);
-  return { root, declared, ...runsUnder(root, null, classesFor(declared)), copies: installedCopies(cacheRoot()) };
+  const act = await phase7For(directory);
+  return { root, declared, act, ...runsUnder(root, null, classesFor(declared, act)),
+    copies: installedCopies(cacheRoot()) };
 };
 
 const byStart = (runs) => [...runs].sort((left, right) => left.startedAt - right.startedAt);
 
 /** The whole reading for one change, as `--json` prints it and the screen is built from. */
-export const changeOf = ({ ordered, copies, releases, version, names, declared, claim }) => {
+export const changeOf = ({ ordered, copies, releases, version, names, declared, act, claim }) => {
   const held = populationsOf(ordered, copies, version);
   if (!held) return null;
   const comparisons = [
-    comparisonOf({ ordered, name: ALONE, before: held.before, now: held.alone, moments: held.moments.alone, names, declared }),
-    comparisonOf({ ordered, name: WIDER, before: held.before, now: held.wider, moments: held.moments.wider, names, declared }),
+    comparisonOf({ ordered, name: ALONE, before: held.before, now: held.alone, moments: held.moments.alone, names, declared, act }),
+    comparisonOf({ ordered, name: WIDER, before: held.before, now: held.wider, moments: held.moments.wider, names, declared, act }),
   ];
   const spanned = held.wider.length ? Math.max(...held.wider.map((run) => run.endedAt)) : held.copy.at;
   const exposures = {
@@ -255,7 +259,7 @@ const claimWritten = (ref, root, raw) => {
   return console.log(claimSaid(record));
 };
 
-export const printChange = (argv) => {
+export const printChange = async (argv) => {
   const [ref, ...rest] = argv;
   /* The parser reads first, whether or not the change was named: a call that misspelled a flag AND
      named nothing is answered about the flag, which is the one thing the caller can act on. */
@@ -269,7 +273,7 @@ export const printChange = (argv) => {
   }
   const names = anglesAsked(angles, "stats change");
   const directory = checkoutFrom(checkout, "stats change");
-  const corpus = corpusOf(directory);
+  const corpus = await corpusOf(directory);
   if (claim !== undefined) return claimWritten(ref, corpus.root, claim);
   const releases = marksOf(RELEASES, corpus.root);
   const version = resolved(ref, releases, corpus.copies);
@@ -284,6 +288,7 @@ export const printChange = (argv) => {
     version,
     names,
     declared: corpus.declared,
+    act: corpus.act,
     claim: KEY.test(ref) ? claimFor(corpus.root, ref.toUpperCase()) : null,
   });
   if (json) return console.log(JSON.stringify(held, null, 2));

@@ -6,16 +6,21 @@ import { join } from "node:path";
 
 import { PHASES, methodOf } from "../../src/guides/phases.mjs";
 import { MARKERS, RUNG_UNKNOWN, markerOf, shellOf } from "../../src/stats/corpus/transcripts.mjs";
-import { WHOLE_SET_CLASS, classOf } from "../../src/stats/corpus/classes.mjs";
+import { WHOLE_SET_CLASS, classOf, classesFor } from "../../src/stats/corpus/classes.mjs";
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { runFrom, segmented } from "../../src/stats/runs.mjs";
 import { RUNGS } from "../../src/ladder.mjs";
 import { tempRoom } from "../fixtures.mjs";
 import { PROJECT, ask, at, corpus, result, use } from "./fixture-runs.mjs";
 
-/* Through the classifier, so a case proves the whole chain: the words typed, the class, the row. */
-const phasesOf = (commands) =>
-  segmented(commands.map((command) => ({ class: classOf("Bash", shellOf(command)) }))).map((one) => one.phase);
+/* Through the classifier, so a case proves the whole chain: the words typed, the class, the row.
+   `classes` is given where a case is about a row the release model arms, which the default table has
+   not got. */
+const phasesOf = (commands, classes = undefined) =>
+  segmented(commands.map((command) => ({ class: classOf("Bash", shellOf(command), classes) })))
+    .map((one) => one.phase);
+
+const ARMED = classesFor(null, { key: "deploy", deploy: true });
 
 test("the table has a row per rung and one for the runs that named none, and they add up", () => {
   const run = ask(corpus());
@@ -96,6 +101,46 @@ test("the tail after the landing is the shipping phase's, and the cleanup or a l
 /* `after` on the last row rather than a rule inside the cutter: the method types a gap where the run
    met it and reads the knowledge store at phase 0, and without the guard either would take a run
    that landed nothing to the last phase. */
+test("phase 7 opens on the act the contract asks that project for, and the verification record is one of them", () => {
+  const upTo5 = [
+    "forge claim ISS-99",
+    "forge record baseline ISS-99 --gate 'npm run check' --result green",
+    "forge codex consult --send bodies plugin/src/stats/runs.mjs",
+  ];
+  /* Each of the three ways a change reaches production, and no declared command anywhere: the point
+     is a project that types none, where the phase read `unrecognised` before (ISS-1975). */
+  for (const [landing, what] of [
+    ["forge record verification ISS-99 --where prod --evidence x", "a deploy the project does not command"],
+    ["forge claim ISS-99 --pushed --ready", "a checkpoint another actor lands"],
+  ]) {
+    assert.deepEqual(phasesOf([...upTo5, landing, "curl -s https://host/version",
+      "forge record gap ISS-99 --none 'the method answered'"]), [1, 4, 5, 7, 7, 8],
+    `${what} opens the phase, and the phase behind it is reachable`);
+  }
+});
+
+test("the before-merge order keeps its earlier phases", () => {
+  /* The order every project whose production deploys on its own runs in: the landing mark and the
+     deploy act fall inside the implement and prove phases, and the verification is the one act of
+     the phase after them. Read as openers, the mark or the deploy row would take those calls
+     (ISS-1975). */
+  assert.deepEqual(phasesOf([
+    "forge claim ISS-99",
+    "forge record baseline ISS-99 --gate 'npm run check' --result green",
+    "cat plugin/src/stats/runs.mjs",
+    "forge record merged ISS-99 --head abc1234 --branch iss-99",
+    "coolify deploy --uuid abc --yes",
+    "forge codex consult --send bodies plugin/src/stats/runs.mjs",
+    "until s=$(coolify deployment get --uuid abc); do sleep 20; done",
+    "forge record verdict ISS-99 --criterion 1 --verdict pass --evidence x",
+    "forge record note ISS-99 --section Fixed --user x",
+    "forge record verification ISS-99 --where prod --evidence x",
+    "forge advance ISS-99",
+  ], ARMED), [1, 4, 4, 4, 4, 5, 5, 5, 6, 7, 7],
+  "the mark and both deploy calls stay in the phase the run was in, and phase 7 opens at the"
+  + " verification and nowhere before it");
+});
+
 test("a run that made no landing call reaches the last phase through none of its openers", () => {
   const opened = [
     "forge claim ISS-99",
@@ -279,9 +324,10 @@ test("the note is counted in phase 6 in either order, and opens no segment behin
 
   const never = noteRun("unshipped");
   assert.equal(never[6].calls, 1, "a run under a ship mode that lands nothing posts its note all the same");
-  assert.equal(never[5].calls, 3,
-    "and every call after it is the phase the run was in, where once the note swallowed the rest of the run");
-  assert.equal(never[7].calls, 0, "no ship of its own, which is the mode and not a phase the run skipped");
+  assert.equal(never[5].calls, 2,
+    "and the call after it is the phase the run was in, where once the note swallowed the rest of the run");
+  assert.equal(never[7].calls, 1,
+    "the checkpoint it leaves instead of a ship is the landing, and opens the phase the landing opens");
 });
 
 test("the profile says which order each run took over the note and the ship", () => {

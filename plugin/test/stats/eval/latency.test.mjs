@@ -4,15 +4,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { CALLS, MOVED, classesCompared, latencyLines } from "../../../src/stats/eval/latency.mjs";
-import { MOVED_AT, POLL, TABLE, WAIT } from "../../../src/stats/corpus/classes.mjs";
+import { DEPLOY, POLL, READY_CLASS, SHELL, WAIT } from "../../../src/stats/corpus/classes.mjs";
+import { DECIDED_BY_RELEASE, MOVED_AT, TABLE } from "../../../src/stats/corpus/generations.mjs";
 import { runsMark } from "../../../src/stats/eval/eval.mjs";
 import { marksOf } from "../../../src/stats/marks/marks.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 import { PROJECT, ask, askStats, corpusOf } from "../fixture-eval.mjs";
 
-const profile = ({ classes = [], reads = [], help = 0, table, declares }) => ({
+const profile = ({ classes = [], reads = [], help = 0, table, declares, release }) => ({
   ...(table === undefined ? {} : { table }),
   ...(declares === undefined ? {} : { declares }),
+  ...(release === undefined ? {} : { release }),
   byClass: classes.map(([label, calls, wait]) => [label, { calls, wait }]),
   helpReads: reads.map(([label, calls]) => [label, { calls, runs: calls, again: 0 }]),
   help: { calls: help },
@@ -154,14 +156,14 @@ test("a before window short of a full one still carries the comparison, the shor
 /* The held reading's own window on the before side, and not the live corpus over that span: the
    angles recompute their side on purpose, and this table is the other kind — it reports what the two
    readings hold. */
-test("an anchored comparison takes the held reading's window as the before side", () => {
+test("an anchored comparison takes the held reading's window as the before side", async () => {
   const was = { TMPDIR: process.env.TMPDIR, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME };
   const home = tempRoom("stats-latency-home-");
   process.env.XDG_CONFIG_HOME = home;
   try {
     const room = corpusOf(50);
     process.env.TMPDIR = room;
-    assert.match(runsMark(PROJECT), /held as mark 50/u);
+    assert.match(await runsMark(PROJECT), /held as mark 50/u);
     const [record] = marksOf("runs");
     corpusOf(75, room);
     const held = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--against", "50",
@@ -179,10 +181,15 @@ test("an anchored comparison takes the held reading's window as the before side"
    before a row moved and a live one taken after it hold two different denominators under one label.
    The rows the table left alone go on comparing (ISS-2086). */
 const DECLARED = "gate=npm run check\nship=\ntest=\ncleanup=";
-const GENERATIONS = (table, declares = DECLARED) => profile({
+const ACT = "deploy";
+/* Every row `MOVED_AT` stamps is in this list, or a case asserting that set is crossed would pass
+   over the rows the fixture happens not to hold. */
+const GENERATIONS = (table, declares = DECLARED, release = ACT) => profile({
   table,
   declares,
-  classes: [["read", 3000, 4000], [POLL, 200, 12_000], [WAIT, 160, 48_000], ["gate", 300, 19_000]],
+  release,
+  classes: [["read", 3000, 4000], [POLL, 200, 12_000], [WAIT, 160, 48_000], ["gate", 300, 19_000],
+    [SHELL, 400, 8000], [DEPLOY, 40, 2400], ["forge claim", 90, 900], [READY_CLASS, 20, 200]],
 });
 const crossedIn = (held) => held.rows.filter((one) => one.crossed).map((one) => one.label);
 
@@ -211,8 +218,8 @@ test("a stored reading taken at an earlier generation is crossed on the rows tha
   assert.ok(said, lines.join("\n"));
   for (const label of MOVED_AT.keys()) assert.ok(said.includes(label), `${label} is named: ${said}`);
   assert.ok(said.includes(`classed by class table generation ${TABLE - 1}, against generation ${TABLE}`), said);
-  assert.ok(said.includes("The other 1 row(s) stand"), said);
-  assert.ok(lines.some((line) => line.includes("over the 1 with a mean on both sides")),
+  assert.ok(said.includes("The other 2 row(s) stand"), said);
+  assert.ok(lines.some((line) => line.includes("over the 2 with a mean on both sides")),
     "and a crossed row is outside the denominator of what moved");
 });
 
@@ -284,7 +291,7 @@ test("two readings taken under different declarations are crossed on the rows a 
     `the prose the control printed is gone:\n${lines.join("\n")}`);
   assert.ok(lines.some((line) => line.includes("over the 3 with a mean on both sides")),
     "and the crossed row is outside the denominator of what moved");
-  for (const label of [...MOVED_AT.keys()]) {
+  for (const label of [...MOVED_AT.keys()].filter((one) => held.rows.some((row) => row.label === one))) {
     assert.equal(held.rows.find((one) => one.label === label).crossed, false,
       `${label} is this code's own row and no declaration reaches it`);
   }
@@ -308,8 +315,40 @@ test("a reading that crossed both halves says both", () => {
 test("a reading written before the declarations were carried is told from a project that declared nothing", () => {
   const bare = classesCompared(GENERATIONS(TABLE),
     profile({ table: TABLE, classes: [["read", 3000, 4000], ["gate", 300, 19_000]] }));
-  assert.deepEqual(crossedIn(bare), ["gate"], "no words at all is not the same as no words declared");
+  assert.deepEqual(new Set(crossedIn(bare)),
+    new Set(["gate", ...DECIDED_BY_RELEASE.filter((one) => one !== "ship")]),
+    "no words at all is not the same as no words declared, and a reading carrying no act either is "
+    + "comparable on none of the rows an act decides");
   const none = classesCompared(GENERATIONS(TABLE, "gate=\nship=\ntest=\ncleanup="),
     GENERATIONS(TABLE, "gate=\nship=\ntest=\ncleanup="));
   assert.deepEqual(crossedIn(none), [], "while two readings that both declared nothing agree");
+});
+
+/* The third half of what classed a row. The deploy row is in the table on one answer to what this
+   project's release model asks of phase 7, so two readings taken under different answers hold
+   different populations in it and in the rows it takes calls from — with one generation and one set
+   of declared words on both sides, which is what the two halves above would have missed (ISS-1975). */
+test("a reading carries the act and not the word", () => {
+  const ships = GENERATIONS(TABLE, DECLARED, "none");
+  const deploys = GENERATIONS(TABLE, DECLARED, ACT);
+  const held = classesCompared(deploys, ships);
+  assert.deepEqual(held.crossedWhy.length, 1,
+    "one reason, and neither the generation nor the words: both sides name the same of each");
+  assert.match(held.crossedWhy[0], /release model asks of phase 7/u);
+  const same = classesCompared(deploys, GENERATIONS(TABLE, DECLARED, ACT));
+  assert.deepEqual(crossedIn(same), [], "while two readings taken under one answer cross nothing");
+});
+
+test("an act that moved crosses the deploy row and the rows it displaces", () => {
+  const held = classesCompared(GENERATIONS(TABLE, DECLARED, ACT), GENERATIONS(TABLE, DECLARED, "none"));
+  const crossed = new Set(crossedIn(held));
+  for (const label of DECIDED_BY_RELEASE.filter((one) => held.rows.some((row) => row.label === one))) {
+    assert.ok(crossed.has(label), `${label} counts a different population under the two answers`);
+  }
+  assert.equal(crossed.has("gate"), false, "while a row the release model does not decide is comparable");
+  for (const one of held.rows.filter((row) => row.crossed)) {
+    assert.deepEqual({ shift: one.shift, minutes: one.toolMinutes, named: one.named },
+      { shift: null, minutes: null, named: false },
+      `${one.label} takes no pair of means across an answer that moved`);
+  }
 });

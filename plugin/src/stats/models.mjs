@@ -5,6 +5,7 @@ import { checkoutFrom, derivedFrom, readingAside, sourceLines, windowFrom } from
 import { horizonOf, outcomeReadFor, saidHorizon, spend } from "./eval/eval.mjs";
 import { UNRECOGNISED, capped, elided } from "./tables.mjs";
 import { classesFor } from "./corpus/classes.mjs";
+import { phase7For } from "./corpus/release.mjs";
 import { declaredIn } from "./corpus/declared.mjs";
 import { UNAVAILABLE } from "./eval/outcomes.mjs";
 import { rootFor } from "./corpus/corpus.mjs";
@@ -71,8 +72,8 @@ const gotLines = (rows, read) => [
 ];
 
 /* Which reading answered the rung, said on the table that prints it: `stats runs` reads the same
-   corpus and asks the tracker nothing, so the two verbs class a run of this count differently and
-   a reader meeting them apart has no other way to tell which reading each made (ISS-1979). */
+   corpus and asks the tracker for no issue, so the two verbs class a run of this count differently
+   and a reader meeting them apart has no other way to tell which reading each made (ISS-1979). */
 const rungsRead = (held) =>
   `${held.rungsOffComplexity} of ${held.runs} run(s) are at the rung their issue's complexity `
   + "claims, no rung of their own having survived into the transcript; every other run is at the "
@@ -133,7 +134,7 @@ export const printModels = async (rest) => {
   const root = rootFor(directory);
   const declared = declaredIn(directory);
   const { corpus, runs, skipped, outsideWindow, unreadable, sources } =
-    windowedIn(root, from, classesFor(declared));
+    windowedIn(root, from, classesFor(declared, await phase7For(directory)));
   const aside = readingAside({ skipped, outsideWindow, unreadable });
   const shape = { root, sources, project: directory };
   /* An empty window answers a reader asking for JSON in JSON: a consumer diffing two weeks meets the

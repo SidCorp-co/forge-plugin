@@ -4,7 +4,8 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { MOVED_AT, POLL, TABLE, WAIT, classOf, classesFor } from "../../../src/stats/corpus/classes.mjs";
+import { DEPLOY, POLL, READY_CLASS, SHELL, WAIT, classOf, classesFor } from "../../../src/stats/corpus/classes.mjs";
+import { MOVED_AT, TABLE } from "../../../src/stats/corpus/generations.mjs";
 import { WAITS_ON_PID, WAIT_COMMAND } from "../../../src/hooks/wait-idiom.mjs";
 import { declaredClasses, declaredIn, unarmedDoors } from "../../../src/stats/corpus/declared.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
@@ -124,9 +125,11 @@ test("a class nothing was classed as and no checkout declared is unrecognised, n
   assert.match(run.stdout,
     /^ {2}declare `stats\.commands\.gate`, `stats\.commands\.ship`, `stats\.commands\.test`, `stats\.commands\.cleanup` with `forge doctor --set` in the checkout profiled/mu,
     "and what would declare each of them is named rather than left to be known");
-  assert.match(run.stdout, /^7 Ship {6}unrecognised: nothing here was classed ship$/mu);
-  assert.match(run.stdout, /^8 Clean up {2}unrecognised: reached only past a call classed ship, and nothing here was$/mu,
-    "a phase reachable only past an unrecognised one would otherwise print the most confident zero in the table");
+  /* The two phases that read `unrecognised` here now open on records this CLI writes as well as on
+     a command the project declares, so this run's nought at each is a run that did not get there
+     rather than a class the reading could not see (ISS-1975). */
+  assert.match(run.stdout, /^7 Ship {10}0 {6}0\.0 {8}0 {8}0\.0 {2}$/mu);
+  assert.match(run.stdout, /^8 Clean up {6}0 {6}0\.0 {8}0 {8}0\.0 {2}$/mu);
   assert.match(run.stdout, /^unknown\s+1\s.*\sunrecognised$/mu,
     "and the rung table's gate cell says it too, a populated rung being where a nought reads most like measurement");
 });
@@ -206,6 +209,54 @@ test("every row above the wait row keeps a line that also waits, so a launch tha
     assert.equal(said(`${launch} > run.log 2>&1 & timeout 880 tail --pid=$! -f /dev/null`, declared), label,
       `${launch} launched and waited on in one line is that launch, and a phase it opens still opens`);
   }
+});
+
+/* Armed, because the row is in the table on one answer only and a case over an unarmed one would
+   prove the shell fallback rather than this row: `release.test.mjs` holds which answer arms it. */
+const ARMED = { key: "deploy", deploy: true };
+
+test("a deploy another actor lands is neither a poll nor a read", () => {
+  const under = (shell) => classOf("Bash", shell, classesFor(null, ARMED));
+  for (const [shell, was] of [
+    ["until s=$(coolify deployment get --uuid abc); do sleep 20; done", POLL],
+    ["coolify deployment get --uuid abc | grep status", "read"],
+    ["coolify deploy --uuid abc --yes", SHELL],
+    ["P=$(cat /tmp/p); tail --pid=$P -f /dev/null; coolify deployment get --uuid abc", WAIT],
+  ]) {
+    assert.equal(under(shell), DEPLOY, `the deploy act, where it used to be a ${was}`);
+    assert.equal(classOf("Bash", shell, classesFor(null)), was,
+      "and the row it came out of is the one it fell to before, so the population that moved is named");
+  }
+  assert.equal(under("coolify app list"), "shell",
+    "a call to that platform which is not the deploy act is not this row");
+});
+
+test("the verb's own row and git keep their calls", () => {
+  const under = (shell) => classOf("Bash", shell, classesFor(null, ARMED));
+  assert.equal(under("forge coolify deployment get abc"), "forge coolify",
+    "this CLI's own verb is its own row above this one, which is what keeps a lookup of its help "
+    + "filed where its work is");
+  assert.equal(under("export PATH=$HOME/.local/bin:$PATH; forge coolify deploy --uuid abc --yes"), "forge coolify");
+  assert.equal(under("git log --oneline --grep 'coolify deployment'"), "git",
+    "and a git call naming a deployment is the git it always was");
+});
+
+test("a ready checkpoint is the landing's own class", () => {
+  assert.equal(classOf("Bash", "forge claim ISS-99 --pushed --ready"), READY_CLASS,
+    "the landing a run leaves for another actor is not the claim that opened the run");
+  assert.equal(classOf("Bash", "forge claim ISS-99 --pushed"), "forge claim",
+    "while a capture that leaves nothing ready is that claim");
+  assert.equal(classOf("Bash", "forge claim ISS-99"), "forge claim");
+});
+
+test("the rows this generation moved are the ones it names", () => {
+  for (const label of [DEPLOY, "read", POLL, WAIT, SHELL, "forge claim"]) {
+    assert.equal(MOVED_AT.get(label), TABLE,
+      `${label} holds a different population than it did at the generation before this one`);
+  }
+  assert.equal(MOVED_AT.get("gate"), undefined, "while a row nothing moved names no generation");
+  assert.equal(MOVED_AT.get("git"), undefined,
+    "and a row this generation's own row sits below keeps every call it had");
 });
 
 test("the discriminator and the generation each have one home the table reads", () => {

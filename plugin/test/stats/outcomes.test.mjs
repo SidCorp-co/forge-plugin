@@ -437,7 +437,13 @@ test("the tracker reads of one eval share a request budget, and past it the outc
   assert.match(held.stdout, /run-and-issue pair\(s\) owned by this window/u);
   assert.match(held.stdout, new RegExp(`reopened .*${UNAVAILABLE}`, "u"), "and the outcome figures do not");
   assert.match(held.stdout, new RegExp(`criteria judged twice .*${UNAVAILABLE}`, "u"));
-  assert.equal(state.calls.length <= 1, true, `one request at most was sent, not ${state.calls.length}`);
+  /* The budget bounds the reads BEHIND the outcome counts, which is what it exists for. The read
+     that decides which rows the class table holds is not one of them and is not counted against it:
+     it is one project config and whatever resolves this project to it, spent once per reading
+     however small the budget, and a reading with none of it would hold a different table (ISS-1975). */
+  const paid = state.calls.filter((one) => one.name.startsWith("forge_issues")
+    || one.name.startsWith("forge_comments"));
+  assert.equal(paid.length <= 1, true, `one issue read at most was sent, not ${paid.length}`);
 
   const refused = await ask(room, "--size", "4", "--requests", "0");
   assert.equal(refused.status, 1);
@@ -518,7 +524,7 @@ test("an eval with pairs and no credential to read them with prints unavailable 
   assert.match(held.stdout, /unread now: no Forge endpoint is configured/u, "and says why it read nothing");
 });
 
-test("stats runs sends the tracker no request and carries no outcome figure", async () => {
+test("stats runs asks the tracker for this project's release model and for nothing else", async () => {
   const room = corpusOf(4);
   state.calls = [];
   const held = await ranAsync(FORGE, ["stats", "runs", "--checkout", PROJECT, "--json"],
@@ -528,7 +534,10 @@ test("stats runs sends the tracker no request and carries no outcome figure", as
   assert.equal(read.runs, 4);
   assert.equal(read.outcomes, undefined, "the profile computes no outcome");
   assert.equal(JSON.stringify(read).includes("reopened"), false);
-  assert.deepEqual(state.calls, [], "and it reaches the tracker not once");
+  /* One request, and the one that decides which rows the table holds: a rung here is still the run's
+     own record, so no issue and no comment is read on this path (ISS-1975). */
+  assert.deepEqual(state.calls.map((one) => one.name), ["forge_config"],
+    "the release model, and no issue read behind it");
 });
 
 test("the profile's own figures do not move because a run is joined to its issues", () => {

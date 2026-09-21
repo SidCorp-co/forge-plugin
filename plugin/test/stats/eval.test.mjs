@@ -7,7 +7,8 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { WINDOW, evalRuns, evalLines, scopeFor } from "../../src/stats/eval/eval.mjs";
+import { WINDOW, evalRuns, evalLines } from "../../src/stats/eval/eval.mjs";
+import { scopeFor } from "../../src/stats/corpus/release.mjs";
 import { profileOf } from "../../src/stats/runs.mjs";
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { UNRECORDED, copyAt, installedCopies, spansInstall } from "../../src/stats/versions.mjs";

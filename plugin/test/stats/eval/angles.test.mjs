@@ -317,12 +317,12 @@ test("a mark holds the keys it held before an angle existed, and its write spend
   let realSaid;
   try {
     process.env.TMPDIR = room;
-    poisonedSaid = poisonedReleaseMark(PROJECT, { version: "0.0.0-iss2012-poisoned", head: "deadbeef" }, 3);
+    poisonedSaid = await poisonedReleaseMark(PROJECT, { version: "0.0.0-iss2012-poisoned", head: "deadbeef" }, 3);
     /* The real, unpoisoned `releaseMark` this file already imports, called separately: reachability
        above proves execution never reaches the poison; this proves the record the production
        function actually writes — never the poisoned copy's own — carries no trace of the angles
        computed for real above. Neither call stands in for the other. */
-    realSaid = releaseMark(PROJECT, { version: "0.0.0-iss2012-real", head: "deadbeef" }, 3);
+    realSaid = await releaseMark(PROJECT, { version: "0.0.0-iss2012-real", head: "deadbeef" }, 3);
   } finally {
     process.env.TMPDIR = was;
   }
@@ -384,14 +384,14 @@ test("a reading where every angle improved says what it does not measure, on the
   assert.equal(screen.stdout.includes(NOT_MEASURED), true);
 });
 
-test("a release anchor prints the same blocks, over the runs this corpus still holds of the held span", () => {
+test("a release anchor prints the same blocks, over the runs this corpus still holds of the held span", async () => {
   const was = { TMPDIR: process.env.TMPDIR, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME };
   const home = tempRoom("stats-angles-release-");
   const room = corpusOf(12);
   try {
     process.env.XDG_CONFIG_HOME = home;
     process.env.TMPDIR = room;
-    assert.match(releaseMark(PROJECT, { version: "3.35.300", head: "abc1234" }, 3), /held as 3\.35\.300/u);
+    assert.match(await releaseMark(PROJECT, { version: "3.35.300", head: "abc1234" }, 3), /held as 3\.35\.300/u);
   } finally {
     Object.assign(process.env, was);
   }

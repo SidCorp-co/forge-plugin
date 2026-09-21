@@ -61,10 +61,41 @@ tooling. A project that declares nothing keeps the built-in patterns and reads e
 
 **A class nothing was classed as, on a checkout that declared none, prints as unrecognised rather
 than as nought** — the rule the outcome figures already keep, applied to the half that lacked it.
-That covers the per-run line, the ships line whole, and the phase rows: a phase whose marker class
-is unrecognised says so, and so does a phase reachable only past one, which would otherwise print
-the most confident zero in the table. Beside them is the one line naming what would declare each
-class (ISS-1586).
+That covers the per-run line and the ships line whole, and beside them is the one line naming what
+would declare each class (ISS-1586). It no longer covers a phase row, and the reason is the
+paragraph below: every phase now opens on an act that exists on every project, so a nought in that
+column is a run that did not get there.
+
+**Phase 7 opens on the landing, which is one of three acts and only one of them a command.** The row
+opened on the declared ship alone, so on a project that declares none the phase and the phase behind
+it read unrecognised and the whole post-`developed` half of the corpus was counted inside the
+proving — measured, 14224 tool-minutes of it on one adopting project and 3412 on another, while this
+repository's own reading measured that phase at 8391 over 425 runs. The three are the command a
+project declares, the checkpoint another actor lands — a capture on this CLI's own claim, which is
+why it has a row of its own rather than the claim's — and the record that verifies the change where
+it now runs, which is what the flow table already calls a phase-7 record. **Not the landing mark and
+not the deploy row.** Where the merge sits before the judging both of those fall inside the implement
+and prove phases: 348 and 622 of one project's 1036 deploy calls, and 753 of them before its first
+verification record. Read as openers, either would take those phases' calls into this one (ISS-1975).
+
+**The act Phase 7 asks a project for is the release model's answer, and the deploy row is in the
+table on one of them.** The tracker declares that model per project — nothing is declared twice, and
+a second place to say it would be a disagreement waiting to be written. A promotion and an act on a
+live deploy binding are commands somebody types; a publication or a landing whose production deploys
+on its own is an act nobody commands, and that is the one answer that arms the row. A project that
+ships nothing has no such act, and silence there is the answer rather than an empty row. So the
+reading names what it was taken under and carries that answer rather than the model's own word: two
+projects both declaring no release step part company on whether production deploys off the landing,
+and one of them holds a row the other has not got.
+
+**The row is the deploy tool's own verbs at a command position, and never a host.** A call this CLI's
+own `coolify` verb makes stays in that verb's row, which sits above this one and is what keeps a
+lookup of its help filed where its work is. A host was tried and refused on the figures: the tracker
+serves a production deploy binding for no project this plugin is installed in, and a pattern built
+from the staging hosts one of them does declare counts about a thousand calls that probe staging
+while a change is being proved. The row is 278 tool-minutes over 964 calls on that project, taken out
+of `poll` (226.8), `read`, `shell` and `wait` — the three ways a run meets a deploy another actor
+lands, which has no pid on this machine to tail.
 
 Three verbs earn a row per action, because their actions cost differently: a verdict against the other
 records, a consult in the three shapes it comes in, and a knowledge write against a knowledge read.

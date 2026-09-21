@@ -105,8 +105,8 @@ export const cellFor = (run, complexities) => {
 };
 
 /** How many of this reading's rungs the tracker answered rather than the run — the disclosure that
- *  keeps this verb's cut readable beside `stats runs`, which asks the tracker nothing and so classes
- *  the same run at no rung. */
+ *  keeps this verb's cut readable beside `stats runs`, which asks the tracker for no issue and so
+ *  classes the same run at no rung. */
 export const rungsOffComplexity = (runs, complexities) =>
   runs.filter((run) => cellFor(run, complexities).offComplexity).length;
 

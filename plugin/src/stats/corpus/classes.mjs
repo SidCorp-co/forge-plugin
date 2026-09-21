@@ -22,6 +22,12 @@ const row = (...words) => FORGE_ROW + words.filter(Boolean).join(" ");
 export const WHOLE_SET_CLASS = row("codex", "whole-set");
 const WHOLE_SET = /--send[= \t]+bodies\b/u;
 
+/** The landing a run leaves for another actor to make: a capture on this CLI's own claim, and its
+ *  own row rather than that claim's, the claim opening a run and this checkpoint ending one. The
+ *  flag is read here so no second reader spells it. */
+export const READY_CLASS = row("claim", "ready");
+export const READY = /--ready\b/u;
+
 /* Minting the name, apart from whichever pattern found it, so a lookup of a verb's help is filed in the row that verb's own work is filed in rather than in one spelled beside it. */
 const classFor = (verb, slug, shell) => {
   /* A form is a `forge` command, classed by the word typed: read as a verb it is none, so `forge close` fell to `shell` and the tool-seconds table filed it under nothing (ISS-704). */
@@ -32,6 +38,7 @@ const classFor = (verb, slug, shell) => {
     if (shell.includes("--recheck")) return row("codex", "recheck");
     return WHOLE_SET.test(shell) ? WHOLE_SET_CLASS : row("codex", "consult");
   }
+  if (verb === "claim" && READY.test(shell)) return READY_CLASS;
   return SUBBED.has(verb) && sub ? row(verb, sub) : row(verb);
 };
 
@@ -72,31 +79,30 @@ export const guideFlowOf = (body) => {
 
 export const POLL = "poll";
 
+/** The row every call falls to that no other row matched, named because a reading has to be able to
+ *  say which answer decided that. */
+export const SHELL = "shell";
+
+/** The act Phase 7 asks of a project whose release reaches production on its own: a wait on a
+ *  deploy the run did not start and a read of what it reports serving. It types no command the
+ *  project could declare, so what it is read off is named here as the `--ready` landing's is, and
+ *  whether the row is in the table is the release model's answer (ISS-1975). */
+export const DEPLOY = "deploy";
+
 /** The one-call wait this plugin prescribes for work already running, which is neither a poll — it
  *  asks once and comes back — nor a read of a file, and whose discriminator is `wait-idiom.mjs`'s. */
 export const WAIT = "wait";
 
-/** The generation of the table below. A row added or removed, or a pattern changed so that a call
- *  moves from one row to another, is a new generation; a reading carries the one that classed it, so
- *  a window read at one is never compared row by row with a window read at another. */
-export const TABLE = 2;
-
-/** The generation each row's population last changed at, for the rows that have changed since this
- *  number existed; a row absent from here has stood throughout. Only the last change matters: a row
- *  is comparable with a reading held at generation `g` exactly where this is at or below `g`. Two
- *  things keep that sound: a row taken out of the table keeps its entry, an older reading still
- *  holding figures under that label; and a row that takes another's calls is stamped at the
- *  generation it took them, its population having moved though its pattern did not.
- *
- *  This number answers for the table below and for nothing a project said. The four rows
- *  `DECLARABLE` names are classed by a project's own words, so their populations move when those
- *  words do with this number unmoved — `declaredSaid` is what a reading carries for that half, and
- *  the two are read together or a redeclared gate reads as a gate that got slower (ISS-2086). */
-export const MOVED_AT = new Map([["read", 2], [POLL, 2], [WAIT, 2]]);
-
 const VERB_ENDS = String.raw`(?![\w-])`;
 
 /* This repository's own commands, and the fallback for every project that declares none, so a reading taken here does not move. The ship one and the cleanup one are the invocation and never the mention, which is what the leading binary buys: `pgrep -f "tools/run.mjs ship"` is a run WAITING for one. Each stops where a verb name stops and not at a word boundary, which ends a word at a hyphen and would read the sibling verb this repository ships, `land-ready`, as `land` (ISS-1714). */
+/* The deploy tool's own verbs, matched where a command actually starts — so a run that reaches this
+   platform through this CLI is the `forge coolify` row above and only the tool typed directly is
+   this one. Not a host: the tracker serves a production deploy binding for no project in the room,
+   and a pattern built from the staging hosts one of them does declare counts about 1000 calls that
+   probe staging while the change is being proved (ISS-1975). */
+const DEPLOY_ACT = String.raw`coolify[ 	]+(?:deploy|deployment)` + VERB_ENDS;
+
 const BUILT_IN = {
   cleanup: String.raw`node[ \t]+\S*tools/run\.mjs[ \t]+finish` + VERB_ENDS,
   gate: String.raw`(?:npm run check|node\s+\S*tools/gates\.mjs)`,
@@ -105,10 +111,15 @@ const BUILT_IN = {
 };
 
 /** The class table a corpus is read by. A declaration REPLACES the built-in pattern for its class rather than joining it: a project that has said what its gate is has said what its gate is. */
-export const classesFor = (declared = null) => [
+export const classesFor = (declared = null, act = null) => [
   ...DECLARABLE.map((label) => [label, at(declares(label, declared) ?? BUILT_IN[label])]),
   ["forge", forgeClass],
   ["git", at(String.raw`git\s`)],
+  /* Above the wait row, and so above `poll` and `read` too: a deploy another actor lands has no pid
+     here to tail, so read as the one-call wait it is not, or as the poll or the piped read that
+     shadow it, the three ways a run meets that deploy are three rows — 226.8, 35.5 and 10.5 of its
+     296 tool-minutes on the adopting corpus (ISS-1975). */
+  ...(act?.deploy === true ? [[DEPLOY, at(DEPLOY_ACT)]] : []),
   /* Above `poll` because half this idiom's calls carry on the same line the `pgrep` that found the
      pid, and read as polls they put the prescribed one-call wait in the row that counts the
      refusable kind: 2166 of `poll`'s 2814 tool-minutes on this project's 601-run corpus. Below the

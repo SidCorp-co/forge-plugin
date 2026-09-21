@@ -285,13 +285,13 @@ const shipSteps = (tree, root, base, note) => {
       if (landed) tierCeiling(tree, was, landed);
       gateGrew(tree);
       await reviewOwed(tree);
-      const mark = runsMark(root);
+      const mark = await runsMark(root);
       if (mark) console.log(`  ${mark}`);
       publishes(tree, base, copy?.installed);
       /* Whatever the corpus count, so a comparison can be taken since THIS release: the version, the
          head and the keys this tree landed are what a reading taken later cannot work out for itself,
          and the keys are what resolves a change to the copy that carried it. */
-      const held = releaseMark(root, { version: copy?.installed, head: gitOut(["rev-parse", "HEAD"], tree),
+      const held = await releaseMark(root, { version: copy?.installed, head: gitOut(["rev-parse", "HEAD"], tree),
         issues: keysHere(tree) });
       if (held) console.log(`  ${held}`);
       await checkpointsFinished({ tree, base, copy, resume: again(), installs: installs(), ships: SELF + " ship" });

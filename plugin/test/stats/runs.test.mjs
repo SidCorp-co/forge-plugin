@@ -619,3 +619,22 @@ test("human prompts print as unavailable rather than as a nought where the windo
   const held = profileOf([]);
   assert.deepEqual(held.condition.humanPrompts, { met: null, runs: null, named: [] });
 });
+
+/* The landing a run leaves ready has a class of its own now, and two readers were reading it off the
+   claim's own row: whether a transcript is an issue-flow run at all, and whether a landing was left
+   ready. Both are read off the new class here, so neither figure moves (ISS-1913 holds the third,
+   `unshipped`, which this does not touch). */
+const readyRun = (session, flag) => runFrom("/p", session, [
+  JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "a brief naming no method" } }),
+  use(`${session}-k`, 1, "Bash", { command: `forge claim ISS-1 --pushed${flag}` }),
+  result(`${session}-k`, 2, "ISS-1  claim: session held"),
+].join("\n"));
+
+test("the two readers of a claim are unmoved by the new class", () => {
+  const ready = readyRun("ready", " --ready");
+  assert.ok(ready, "a transcript whose only claim is the ready checkpoint is still an issue-flow run");
+  assert.equal(ready.ships.ready, 1, "and the landing it left ready is counted");
+  const pushed = readyRun("pushed", "");
+  assert.equal(pushed.ships.ready, 0, "while a capture that left nothing ready is not");
+  assert.equal(profileOf([ready, pushed]).runs, 2, "both are runs of the window");
+});

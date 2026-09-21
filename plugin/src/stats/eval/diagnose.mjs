@@ -3,6 +3,7 @@
    with anything, and nothing in it votes on a verdict. Why a reading that measures nothing is worth
    having, and what it may not become — docs/cli/stats-the-diagnostic.md. */
 import { classesFor } from "../corpus/classes.mjs";
+import { phase7For } from "../corpus/release.mjs";
 import { readTranscript, rootFor } from "../corpus/corpus.mjs";
 import { declaredIn } from "../corpus/declared.mjs";
 import { callsIn } from "../corpus/transcripts.mjs";
@@ -430,7 +431,7 @@ export const printDiagnose = async (rest) => {
   const model = modelFor(values, path, effort);
   const directory = checkoutFrom(checkout, "stats diagnose");
   const root = rootFor(directory);
-  const classes = classesFor(declaredIn(directory));
+  const classes = classesFor(declaredIn(directory), await phase7For(directory));
   const { runs, unreadable } = runsUnder(root, null, classes);
   /* Over the empty corpus as over a full one: a branch of its own answered with the root's name in
      place of the caller's keys, so `--issues ISS-404,ISS-405` over a corpus with nothing in it named

@@ -16,7 +16,7 @@ process.env.XDG_CONFIG_HOME = tempRoom("stats-eval-marks-home-");
 
 /* The mark fires at a multiple of the window, from the corpus, and only there; and it writes the
    reading there once (ISS-478, criteria 1 to 3). */
-test("the ship's mark is one line at a multiple of the window, read off the corpus, and silent otherwise", () => {
+test("the ship's mark is one line at a multiple of the window, read off the corpus, and silent otherwise", async () => {
   const rootOf = (many, room) => {
     const held = corpusOf(many, room);
     process.env.TMPDIR = held;
@@ -27,7 +27,7 @@ test("the ship's mark is one line at a multiple of the window, read off the corp
   try {
     const room = rootOf(50);
     const root = join(room, `claude-${process.getuid()}`, slugFor(PROJECT));
-    assert.equal(runsMark(PROJECT),
+    assert.equal(await runsMark(PROJECT),
       "stats: 50 issue-flow runs in this project's corpus — `forge stats eval`. The reading is held as mark 50 (`forge stats eval --against 50`).");
     const [record] = marksOf("runs", root);
     assert.equal(record.kind, "runs");
@@ -52,17 +52,17 @@ test("the ship's mark is one line at a multiple of the window, read off the corp
     /* The profile and the count: the groups and `spanned` name copies, and this process sees the real cache where the spawned verb sees an empty HOME. */
     assert.deepEqual([record.now.runs, record.now.profile], [printed.now.runs, printed.now.profile], "and the same figures");
     const bytes = readFileSync(marksPath());
-    assert.equal(runsMark(PROJECT), "stats: 50 issue-flow runs in this project's corpus — `forge stats eval`. Mark 50 was already held, so nothing was written.");
+    assert.equal(await runsMark(PROJECT), "stats: 50 issue-flow runs in this project's corpus — `forge stats eval`. Mark 50 was already held, so nothing was written.");
     assert.deepEqual(readFileSync(marksPath()), bytes, "criterion 2: a second landing on the same count appends nothing");
 
     rootOf(100);
-    assert.match(runsMark(PROJECT), /^stats: 100 issue-flow runs .* — `forge stats eval`\. The reading is held as mark 100/u);
+    assert.match(await runsMark(PROJECT), /^stats: 100 issue-flow runs .* — `forge stats eval`\. The reading is held as mark 100/u);
     rootOf(51);
-    assert.equal(runsMark(PROJECT), null, "criterion 3: fifty-one is no crossing");
+    assert.equal(await runsMark(PROJECT), null, "criterion 3: fifty-one is no crossing");
     rootOf(49);
-    assert.equal(runsMark(PROJECT), null);
+    assert.equal(await runsMark(PROJECT), null);
     assert.equal(marksOf("runs").length, 2, "and neither wrote");
-    assert.equal(runsMark("/fixture/nowhere"), null, "an empty corpus is no crossing");
+    assert.equal(await runsMark("/fixture/nowhere"), null, "an empty corpus is no crossing");
     assert.equal(tmpdir(), process.env.TMPDIR, "the corpus root follows the temporary directory, so the case read what it wrote");
   } finally {
     Object.assign(process.env, was);
@@ -71,7 +71,7 @@ test("the ship's mark is one line at a multiple of the window, read off the corp
 
 /* Criteria 6 to 8, 10, 20 and 22: a reading held at a mark is the before window, through the lines
    the sliding before takes, and the list subject shows what is held. */
-test("a stored reading is the before window, and the screen says where the windows overlap", () => {
+test("a stored reading is the before window, and the screen says where the windows overlap", async () => {
   const was = { TMPDIR: process.env.TMPDIR, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME };
   const home = tempRoom("stats-eval-against-");
   process.env.XDG_CONFIG_HOME = home;
@@ -85,7 +85,7 @@ test("a stored reading is the before window, and the screen says where the windo
     assert.equal(none.status, 1);
     assert.match(none.stderr, /stats eval: --against names no reading — none is held for this project yet/u);
 
-    assert.match(runsMark(PROJECT), /held as mark 50/u);
+    assert.match(await runsMark(PROJECT), /held as mark 50/u);
     const [record] = marksOf("runs");
     corpusOf(75, room);
     const pinned = askStats(room, ["eval", "--checkout", PROJECT, "--against", "50"], home);
@@ -143,7 +143,7 @@ test("a stored reading is the before window, and the screen says where the windo
     process.env.TMPDIR = corpusOf(50);
     console.error = () => {};
     try {
-      assert.match(runsMark(PROJECT), /The reading could not be written, so mark 50 is not held\.$/u, "a runs crossing says the write failed, not that the mark was held");
+      assert.match(await runsMark(PROJECT), /The reading could not be written, so mark 50 is not held\.$/u, "a runs crossing says the write failed, not that the mark was held");
     } finally {
       console.error = said;
     }
@@ -155,14 +155,14 @@ test("a stored reading is the before window, and the screen says where the windo
 /* Every mark on a device predating this change holds its rung rows under the retired key, with the
    runs that named none under the retired word. Read as they stand, a comparison against one reports
    every rung as newly arrived and the whole shift block moves (ISS-822). */
-test("a reading held before the rung had one word is read as the canonical one", () => {
+test("a reading held before the rung had one word is read as the canonical one", async () => {
   const was = { TMPDIR: process.env.TMPDIR, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME };
   const home = tempRoom("stats-eval-retired-");
   process.env.XDG_CONFIG_HOME = home;
   try {
     const room = corpusOf(50);
     process.env.TMPDIR = room;
-    assert.match(runsMark(PROJECT), /held as mark 50/u);
+    assert.match(await runsMark(PROJECT), /held as mark 50/u);
     const [record] = marksOf("runs");
     const retire = (rows) => rows.map(({ rung, ...row }) =>
       ({ tier: rung === "unknown" ? "untiered" : rung, ...row }));
@@ -196,7 +196,7 @@ test("a reading held before the rung had one word is read as the canonical one",
 /* Attribution by copy answers which copy was installed, never which change did it: on 2026-09-09 the
    recent window held sixteen copies with one to eight runs each. So a release is marked in its own
    right, and what a comparison since one cannot hold apart is printed rather than removed (ISS-821). */
-test("a release mark carries its version and head, resolves apart from a count mark at one corpus count, and names what the comparison since it is confounded by", () => {
+test("a release mark carries its version and head, resolves apart from a count mark at one corpus count, and names what the comparison since it is confounded by", async () => {
   const was = { TMPDIR: process.env.TMPDIR, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME };
   const home = tempRoom("stats-eval-release-");
   process.env.XDG_CONFIG_HOME = home;
@@ -205,7 +205,7 @@ test("a release mark carries its version and head, resolves apart from a count m
     process.env.TMPDIR = room;
     const root = join(room, `claude-${process.getuid()}`, slugFor(PROJECT));
 
-    assert.match(releaseMark(PROJECT, { version: "3.35.300", head: "abc1234" }),
+    assert.match(await releaseMark(PROJECT, { version: "3.35.300", head: "abc1234" }),
       /^stats: this release is held as 3\.35\.300 over 50 run\(s\) \(`forge stats eval --since-release 3\.35\.300`\)\./u);
     const [held] = marksOf("releases", root);
     assert.equal(held.kind, "releases");
@@ -215,15 +215,15 @@ test("a release mark carries its version and head, resolves apart from a count m
     assert.equal(held.now.outcomes, undefined, "a mark is the cost figures alone");
 
     /* The count mark at the same corpus count: two records at one count, neither resolving the other. */
-    assert.match(runsMark(PROJECT), /held as mark 50/u);
+    assert.match(await runsMark(PROJECT), /held as mark 50/u);
     assert.equal(marksOf("runs", root).length, 1);
     assert.equal(marksOf("releases", root).length, 1, "one count, two kinds, no collision");
 
-    assert.equal(releaseMark(PROJECT, { version: "3.35.300", head: "abc1234" }),
+    assert.equal(await releaseMark(PROJECT, { version: "3.35.300", head: "abc1234" }),
       "stats: this release is held as 3.35.300 over 50 run(s) (`forge stats eval --since-release 3.35.300`). "
       + "Version 3.35.300 was already held, so nothing was written.");
-    assert.equal(releaseMark(PROJECT, { version: null, head: "abc1234" }), null, "no version is no mark");
-    assert.equal(releaseMark("/fixture/nowhere", { version: "3.35.301", head: "d" }), null, "and no corpus is none either");
+    assert.equal(await releaseMark(PROJECT, { version: null, head: "abc1234" }), null, "no version is no mark");
+    assert.equal(await releaseMark("/fixture/nowhere", { version: "3.35.301", head: "d" }), null, "and no corpus is none either");
 
     const listed = askStats(room, ["marks", "--checkout", PROJECT], home);
     assert.equal(listed.status, 0, listed.stderr);
@@ -253,10 +253,10 @@ test("a release mark carries its version and head, resolves apart from a count m
 
     /* Two releases at one corpus count, which a count-keyed store discards the second of: the
        version is a release's identity and `--since-release` has nothing else to resolve by. */
-    assert.match(releaseMark(PROJECT, { version: "3.35.400", head: "aaa1111" }), /held as 3\.35\.400 over 75 run\(s\)/u);
-    assert.match(releaseMark(PROJECT, { version: "3.35.401", head: "bbb2222" }), /held as 3\.35\.401 over 75 run\(s\)/u);
+    assert.match(await releaseMark(PROJECT, { version: "3.35.400", head: "aaa1111" }), /held as 3\.35\.400 over 75 run\(s\)/u);
+    assert.match(await releaseMark(PROJECT, { version: "3.35.401", head: "bbb2222" }), /held as 3\.35\.401 over 75 run\(s\)/u);
     assert.equal(marksOf("releases", root).filter((one) => one.mark === 75).length, 2, "both are held at one count");
-    assert.equal(releaseMark(PROJECT, { version: "3.35.400", head: "aaa1111" }),
+    assert.equal(await releaseMark(PROJECT, { version: "3.35.400", head: "aaa1111" }),
       "stats: this release is held as 3.35.400 over 75 run(s) (`forge stats eval --since-release 3.35.400`). "
       + "Version 3.35.400 was already held, so nothing was written.", "and rewriting either writes nothing twice");
     for (const version of ["3.35.400", "3.35.401"]) {
@@ -274,16 +274,16 @@ test("a release mark carries its version and head, resolves apart from a count m
    took the count mark's window and printed the release's name over it, and counted the releases
    inside it from the release the header named rather than from the window the figures came from — so
    the disclosure that says what a reading cannot attribute misstated instead of omitting (ISS-849). */
-test("two anchors are refused with both of them named, and either flag alone answers as it did", () => {
+test("two anchors are refused with both of them named, and either flag alone answers as it did", async () => {
   const was = { TMPDIR: process.env.TMPDIR, XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME };
   const home = tempRoom("stats-eval-anchor-");
   process.env.XDG_CONFIG_HOME = home;
   try {
     const room = corpusOf(50);
     process.env.TMPDIR = room;
-    assert.match(runsMark(PROJECT), /held as mark 50/u);
+    assert.match(await runsMark(PROJECT), /held as mark 50/u);
     corpusOf(75, room);
-    assert.match(releaseMark(PROJECT, { version: "3.35.500", head: "cafe123" }), /held as 3\.35\.500 over 75 run\(s\)/u);
+    assert.match(await releaseMark(PROJECT, { version: "3.35.500", head: "cafe123" }), /held as 3\.35\.500 over 75 run\(s\)/u);
     corpusOf(100, room);
 
     /* Two marks holding two windows, which is what makes a window labelled with the other's source
@@ -319,7 +319,7 @@ test("two anchors are refused with both of them named, and either flag alone ans
 
 /* The construction rather than the call: one anchor argument, so the header and the confounding lines
    cannot be handed two. Flipping the one object's kind moves both together (ISS-849). */
-test("the header and the confounding lines are read off one anchor", () => {
+test("the header and the confounding lines are read off one anchor", async () => {
   const runs = runsOf(110);
   const copies = [
     { copy: "3.35.500", at: Date.parse(at(70 * HOUR)), born: true },

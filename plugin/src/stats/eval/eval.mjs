@@ -5,6 +5,7 @@
    multiple of the window and the reading it writes there — docs/cli/stats-the-mark.md. */
 import { RUNG_UNKNOWN } from "../corpus/transcripts.mjs";
 import { classesFor } from "../corpus/classes.mjs";
+import { phase7For, scopeFor } from "../corpus/release.mjs";
 import { declaredIn } from "../corpus/declared.mjs";
 import { rootFor } from "../corpus/corpus.mjs";
 import { checkoutFrom, derivedFrom, profileOf, readingAside, runsUnder } from "../runs.mjs";
@@ -20,7 +21,7 @@ import { BUDGET, HORIZON, UNAVAILABLE, budgetOf, outcomesOf, parkedOver, readThr
 import { classesCompared, latencyLines } from "./latency.mjs";
 import { NOT_MEASURED, angleList, anglesAsked, anglesOver, anglesSaid } from "./angles.mjs";
 import { logEntries } from "../../codex/codex-log.mjs";
-import { fail, projectAt, projectTarget, useProject } from "../../resolve/settings.mjs";
+import { fail, useProject } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
 
 export const WINDOW = 50;
@@ -119,9 +120,9 @@ const versioned = (runs, copies) => runs.map((run) => ({
   spanned: spansInstall(copies, run) ? SPANNED : STEADY,
 }));
 
-const groupsOf = (rows, declared) =>
+const groupsOf = (rows, declared, act) =>
   [...groupBy(rows, (row) => row.copy)]
-    .map(([copy, runs]) => ({ copy, runs: runs.length, profile: profileOf(runs, declared) }));
+    .map(([copy, runs]) => ({ copy, runs: runs.length, profile: profileOf(runs, declared, act) }));
 
 /* Over rows present on both sides with runs on both: a row one window never reached has no median to
    move, and reading its zero as a fall is the mistake the phase table was built against. */
@@ -149,11 +150,11 @@ const movedIn = (nowRows, beforeRows, key) => {
 
 /* Nothing a reader can derive: the profile carries the bounds and the rung counts, the shortfall is the
    size less the runs, and `spanned` is the one count the shifts need that nothing else holds. */
-const windowOf = (rows, read, declared) => ({
+const windowOf = (rows, read, declared, act) => ({
   runs: rows.length,
   spanned: rows.filter((row) => row.spanned === SPANNED).length,
-  profile: profileOf(rows, declared),
-  groups: groupsOf(rows, declared),
+  profile: profileOf(rows, declared, act),
+  groups: groupsOf(rows, declared, act),
   /* Absent rather than empty where no tracker was read, so a window computed without one is not a
      window that read and found nothing. */
   ...(read ? { outcomes: outcomesOf(rows, read) } : {}),
@@ -208,10 +209,11 @@ const comparabilityOf = ({ size, now, before, reach }) => {
 /** The comparison, every cost figure of it one `profileOf` computes over a window or a group. With a
  *  stored reading, its recent window stands where the earlier one would, through the same lines; a
  *  reading held before the outcome figures existed carries none, which is not the same as zeroes. */
-export const evalRuns = (runs, copies, size = WINDOW, against = null, read = null, reach = null, declared = null) => {
+export const evalRuns = (runs, copies, size = WINDOW, against = null, read = null, reach = null,
+  declared = null, act = null) => {
   const { now, before } = twoWindows(versioned(byEnd(runs), copies), size);
-  const nowHeld = windowOf(now, read, declared);
-  const beforeHeld = against ? against.now : before.length ? windowOf(before, read, declared) : null;
+  const nowHeld = windowOf(now, read, declared, act);
+  const beforeHeld = against ? against.now : before.length ? windowOf(before, read, declared, act) : null;
   return comparedWindows({
     size,
     total: runs.length,
@@ -416,24 +418,16 @@ export const evalLines = (held, anchor = null, copies = [], angles = []) => {
   ];
 };
 
-const corpusOf = (directory) => {
+const corpusOf = async (directory) => {
   const root = rootFor(directory);
   const declared = declaredIn(directory);
-  return { root, declared, ...runsUnder(root, null, classesFor(declared)), copies: installedCopies(cacheRoot()) };
+  const act = await phase7For(directory);
+  return { root, declared, act, ...runsUnder(root, null, classesFor(declared, act)),
+    copies: installedCopies(cacheRoot()) };
 };
 
 /** The tracker read both windows share, taken once for the union of their pairs and keyed so each
  *  window folds it alone; the ruling pairing's own scope is `outcomes.mjs`'s. */
-/** Where the tracker read of a NAMED checkout goes, or null for wherever the shell already points:
- *  `ISS-1` means one issue per project, so a reading of one project's runs against another's records
- *  is a figure about work nobody did. A checkout declaring no project contradicts nothing. */
-export const scopeFor = (directory) => {
-  const held = projectAt(directory);
-  return held && held !== projectTarget().value
-    ? { slug: held, from: `the project file under ${directory}` }
-    : null;
-};
-
 export const outcomeReadFor = async (corpusRuns, owners, directory, { horizon, most }) => {
   const wanted = [...new Set(owners.flatMap((run) => run.issues))];
   const { spent, bound } = budgetOf(most);
@@ -468,7 +462,7 @@ const readingOf = (directory, corpus, size, against = null, read = null) => ({
   copies: corpus.copies.length,
   ...(read ? { requests: read.spent.requests } : {}),
   ...evalRuns(corpus.runs, corpus.copies, size, against, read,
-    reachOf(corpus.root, corpus.runs[0]?.startedAt), corpus.declared),
+    reachOf(corpus.root, corpus.runs[0]?.startedAt), corpus.declared, corpus.act),
 });
 
 const WRITES = "the release step writes one at every multiple of fifty runs in the corpus";
@@ -489,8 +483,8 @@ const oneAnchorOnly = (against, release) => fail(
 /** The count is the corpus's own, read each time and never off the store, so no stale memory of a
  *  crossing can misplace it; the reading is written once, and a second ship landing on the same
  *  count appends nothing. */
-export const runsMark = (directory, size = WINDOW) => {
-  const corpus = corpusOf(directory);
+export const runsMark = async (directory, size = WINDOW) => {
+  const corpus = await corpusOf(directory);
   const many = corpus.runs.length;
   if (!(many > 0 && many % size === 0)) return null;
   const said = `stats: ${many} issue-flow runs in this project's corpus — \`forge stats eval\`.`;
@@ -504,9 +498,9 @@ export const runsMark = (directory, size = WINDOW) => {
  *  them back. The keys are what makes a change resolvable to the copy that carried it, and what tells
  *  a reading that one release landed several changes. Silent unless the corpus holds a run, since a
  *  reading of nothing pins nothing. */
-export const releaseMark = (directory, { version, head, issues = [] }, size = WINDOW) => {
+export const releaseMark = async (directory, { version, head, issues = [] }, size = WINDOW) => {
   if (!version) return null;
-  const corpus = corpusOf(directory);
+  const corpus = await corpusOf(directory);
   if (!corpus.runs.length) return null;
   const wrote = writeMark({
     kind: RELEASES, mark: corpus.runs.length, version, head: head ?? null,
@@ -527,7 +521,7 @@ export const printEval = async (argv) => {
   const names = anglesAsked(angles);
   const asked = { horizon: horizonOf(horizon), most: spend(requests) };
   const directory = checkoutFrom(checkout, "stats eval");
-  const corpus = corpusOf(directory);
+  const corpus = await corpusOf(directory);
   /* The reading asked for is resolved before the corpus is judged: a mark nobody wrote is refused by
      name whatever the corpus holds, rather than answered with the empty corpus's sentence. */
   const stored = against === undefined ? null

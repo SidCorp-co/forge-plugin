@@ -372,6 +372,22 @@ it. Reading is all this product does there.
   WHEN a worktree is cut THEN the command printed for shipping from it SHALL resolve from that
   worktree rather than carrying the checkout's own prefix.
 
+- **AC-19-8-120** · Rev: 1 · Proof: plugin/test/stats/phases.test.mjs "phase 7 opens on the act the contract asks that project for, and the verification record is one of them"
+  WHEN a run's calls are cut into phases THEN the CLI SHALL open the shipping phase on any of the
+  three acts a landing may be — a command the project declares, the checkpoint that leaves a landing
+  for another actor, or the record that verifies the change where it now runs — and SHALL leave every
+  call before that landing in the phase the run was already in.
+- **AC-19-8-121** · Rev: 1 · Proof: plugin/test/stats/corpus/release.test.mjs "the phase-7 act is the release model's answer, one case per model"
+  WHERE the release this project declared reaches production without a command anybody types the CLI
+  SHALL count the wait on that deploy and the read of what it reports serving under a class of their
+  own, SHALL read which act that phase asks for off the release model the tracker already holds
+  rather than off anything a project declares a second time, and SHALL name no such class where that
+  model says nothing is released.
+- **AC-19-8-122** · Rev: 1 · Proof: plugin/test/stats/eval/latency.test.mjs "an act that moved crosses the deploy row and the rows it displaces"
+  WHEN two readings are compared row by row THEN the CLI SHALL carry on each the act that release
+  model asked of it, and SHALL take no pair of means over the class that act decides or over the
+  classes it takes calls from where the two readings name different acts.
+
 - **AC-19-8-83** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "1. the isolated population is the runs that began at or after this install and ended before the next"
   WHEN one change is judged THEN the CLI SHALL report the count of runs that began at or after that
   change's copy was installed and ended before the next copy was installed.
