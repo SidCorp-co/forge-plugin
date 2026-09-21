@@ -19,8 +19,9 @@ import { deadlineSeconds, waitSeconds } from "../wire/request.mjs";
 import { measured, offsetSaid } from "../wire/shared-clock.mjs";
 import { BUNDLED } from "./vi.mjs";
 import {
-  COMMITTED_FILE, Refusal, accountCredentials, checkoutRoot, committedFileHere, fail,
-  mcpForgeIgnored, projectFilePath, projectScope, refusing, slugRouteHere, translateScope,
+  ADOPT_ROUTE, COMMITTED_FILE, Refusal, SET_SLUG_ROUTE, accountCredentials, checkoutRoot,
+  committedFileHere, fail, mcpForgeIgnored, projectFilePath, projectScope, refusing, slugRouteHere,
+  translateScope,
 } from "../resolve/settings.mjs";
 import { readClaudeMd, reviewClaudeMd } from "../checks/claude-md.mjs";
 import { checkClaudeMdLocally, reportClaudeMd } from "./services/doctor/repo.mjs";
@@ -278,8 +279,8 @@ const checkEndpoint = async (full, credentials) => {
     if (asking()) {
       const route = slugRouteHere();
       return stopping("project slug", "no project slug resolves here, so nothing below this line "
-        + `was read — ${route ?? "and this directory is in no checkout, so there is no project for "
-          + "it to be scoped to: run this from inside one"}`);
+        + `was read — ${route ? `\`${route}\`` : "and this directory is in no checkout, so there is "
+          + "no project for it to be scoped to: run this from inside one"}`);
     }
     console.log("\nNo project slug: capability probes are project-scoped and were skipped.");
     return;
@@ -419,7 +420,10 @@ export const doctor = async (argv) => {
   if (stale?.credentials || stale?.slug) {
     const fix = [
       stale.credentials && "`forge doctor --token <pat> --url <endpoint>`",
-      stale.slug && "`forge doctor --set slug=<project>`",
+      /* The spelling and not the reading below it: a `.mcp.json` is met in directories that are in
+         no checkout, where that reading rightly answers with no command at all, and the fact that
+         this file's header is not read is worth saying wherever it is found. */
+      stale.slug && `\`${SET_SLUG_ROUTE}\``,
     ].filter(Boolean);
     line(BAD, "mcp.json", `${join(stale.root, ".mcp.json")} carries settings this CLI does not read`
       + ` — ${fix.join(", and ")}`);
@@ -460,18 +464,27 @@ export const doctor = async (argv) => {
       if (held === null) {
         return "this directory belongs to no checkout, so there is no project of it to configure";
       }
-      return slugRouteHere() === "`forge doctor --adopt`"
-        ? `\`forge doctor --adopt\` takes its contents over into ${held}`
+      const route = slugRouteHere();
+      return route === ADOPT_ROUTE
+        ? `\`${route}\` takes its contents over into ${held}`
         : `${held} is this machine's record of this project and names no project slug yet, which `
-          + "adoption cannot write over: `forge doctor --set slug=<project>`";
+          + `adoption cannot write over: \`${route}\``;
     })();
     line(NOTE, "project file", `${committed} is this checkout's own and is read by nothing — ${said}`);
   }
   const { value: slug, from } = projectScope();
   if (slug) line(OK, "project slug", `${slug}  ← ${from}`);
   /* Not the miss the endpoint and the token are: only the scoped verbs refuse, and counting it
-     would fail the run that just saved a working credential from outside any checkout. */
-  else line(NOTE, "project slug", "project-scoped calls will refuse; account-level ones still work");
+     would fail the run that just saved a working credential from outside any checkout. It still
+     carries the act, off the same reading the subjects that stop are answered from: this is the
+     first command a project adopting this plugin runs, and the key it gates the most is the one
+     row a reader would otherwise have to make a second call to learn how to clear. */
+  else {
+    const route = slugRouteHere();
+    line(NOTE, "project slug", "project-scoped calls will refuse; account-level ones still work"
+      + (route ? ` — \`${route}\`` : " — and this directory is in no checkout, so there is nowhere"
+        + " for a record of a project to go: run this from inside one"));
+  }
 
   const language = translateScope();
   if (language.value === "vi") {

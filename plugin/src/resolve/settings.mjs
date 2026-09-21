@@ -240,10 +240,15 @@ const adoptableHere = () => {
 /** The one command that would put a slug where this call stands, or null where none would: a
  *  directory in no checkout has nowhere for a record to go, so both commands refuse there and
  *  neither is worth naming. Read here once because every message that offers a way out offers one
- *  of these two, and each one deciding for itself is another route that refuses when followed. */
+ *  of these two, and each one deciding for itself is another route that refuses when followed.
+ *  Answered unquoted, each reading marking a command the way its own rows mark one: the report
+ *  spans it, the undecided rows do not, and a quote baked in here would be a third spelling. */
+export const ADOPT_ROUTE = "forge doctor --adopt";
+export const SET_SLUG_ROUTE = "forge doctor --set slug=<project>";
+
 export const slugRouteHere = () => {
   if (projectFilePath() === null) return null;
-  return adoptableHere() ? "`forge doctor --adopt`" : "`forge doctor --set slug=<project>`";
+  return adoptableHere() ? ADOPT_ROUTE : SET_SLUG_ROUTE;
 };
 
 /** Which command puts a slug where this call would read one. A checkout standing on a `.forge.json`
@@ -264,10 +269,10 @@ export const noProjectHere = () => {
   if (adoptableHere()) {
     return `This call is project-scoped and no project slug is set. ${held} is this checkout's own\n`
       + `and is read by nothing: a project's configuration is this machine's record of it, at\n${path}.\n`
-      + "Take that file's contents over: `forge doctor --adopt`";
+      + `Take that file's contents over: \`${ADOPT_ROUTE}\``;
   }
   return "This call is project-scoped and no project slug is set. Run\n"
-    + "`forge doctor --set slug=<project>`, which writes it to this machine's record of this\n"
+    + `\`${slugRouteHere()}\`, which writes it to this machine's record of this\n`
     + `project at\n${path}\n`
     + `— not the environment, and not a \`.mcp.json\` header.${held
       ? `\n${held} is this checkout's own and is read by nothing; this machine holds a record of this\n`

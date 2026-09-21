@@ -25,6 +25,7 @@ import {
   OWED_DOORS,
   RUNS_TAKES,
   checkMsOf,
+  slugRouteHere,
   chosen,
   codexOwedOf,
   jobsOf,
@@ -230,9 +231,13 @@ const ROUTED = {
 /** One row per top-level key of the project file. `paths` maps every path under it a value may be
  *  written to onto how a word is spelled into JSON, `*` being any one name the project chooses;
  *  `judge` is handed the sub-object the write would leave and answers with the reader's own refusal.
- *  A key routed rather than written carries no paths and names the verb that writes it. */
+ *  A key routed rather than written carries no paths and names the verb that writes it, and one
+ *  whose call depends on where the reader stands carries `route`, which answers it for this call. */
 export const PROJECT_KEYS = {
-  slug: { paths: { "": "text" }, judge: (given) => aString("slug", given) },
+  /* The slug is settable like any key and is still not offered like one: in a checkout standing on
+     a file this machine has not taken over, the call that works is the adoption. One reading
+     answers that for every message that offers the way out, this row included. */
+  slug: { paths: { "": "text" }, judge: (given) => aString("slug", given), route: slugRouteHere },
   translate: { paths: { "": "text" }, judge: (given) => aString("translate", given) },
   runs: {
     paths: { "": "number" },
@@ -317,7 +322,8 @@ export const declarablePaths = () => Object.entries(PROJECT_KEYS)
   .flatMap(([key, row]) => (row.routed
     ? [{ key, path: key, routed: row.routed }]
     : Object.keys(row.paths).flatMap((tail) => spelledNames(row, tail)
-      .map((one) => ({ key, path: [key, one].filter(Boolean).join("."), takes: row.paths[tail] })))));
+      .map((one) => ({ key, path: [key, one].filter(Boolean).join("."), takes: row.paths[tail],
+        routed: row.route?.() ?? undefined })))));
 
 /** Every path a caller may name, so the refusal that lists this resource teaches the shapes too. */
 export const writablePaths = () =>

@@ -418,6 +418,15 @@ quietly ignored.
   that names none THEN the CLI SHALL refuse naming the key to set rather than the adoption, which
   refuses against a record that exists, and SHALL still say that the committed file is read by
   nothing.
+- **AC-01-5-35** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "the bare reading's slug row carries a route, and the same one the subjects are answered from"
+  WHEN the resolution report is read whole and no project slug resolves THEN the row reporting that
+  SHALL name the command that would work where the call stands, or SHALL say that no command would,
+  the first reading a project runs being the one where a consequence stated with no act beside it
+  costs a second call.
+- **AC-01-5-36** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "every reading offering the way to set a slug offers one spelling of it"
+  WHERE more than one reading offers the way to set the project slug the CLI SHALL compose each of
+  them from the single reading of what would work here, a command spelled a second time being two
+  strings that drift apart and one reader sent to a call that refuses.
 
 ## The way back
 

@@ -386,3 +386,50 @@ test("a subject that needs the slug names no command at all outside a checkout",
   assert.doesNotMatch(stop[0], /forge doctor --(adopt|set)/u,
     "both would refuse here, and a stop naming one that refuses is recommending a second call");
 });
+
+/* The bare reading is the first command a project adopting this plugin runs, and the slug is the
+   key every project-scoped verb refuses without. It is a note rather than a miss and still owes the
+   act: a row stating only the consequence is the one row of that reading a reader cannot follow.
+   Both states of the same sentence, because the row answers off the reading the stops answer off.
+   ISS-2056. */
+test("the bare reading's slug row carries a route, and the same one the subjects are answered from", async () => {
+  const { room } = checkout("bare-route");
+  const run = await ask(room);
+  const [row, ...more] = run.stdout.split("\n").filter((one) => one.includes("] project slug"));
+  assert.deepEqual(more, [], run.stdout);
+  assert.match(row, /project-scoped calls will refuse; account-level ones still work — `forge doctor --set slug=<project>`/u, row);
+
+  const adoptable = checkout("bare-route-adopt", { slug: "bare-route-adopt", runs: 2 });
+  const standing = await ask(adoptable.room);
+  const [held] = standing.stdout.split("\n").filter((one) => one.includes("] project slug"));
+  assert.match(held, /still work — `forge doctor --adopt`$/u,
+    "the command that works where this call stands, not the one that would write the key over it");
+
+  const nowhere = await ask(tempRoom("adopt-bare-no-route-"));
+  const [outside] = nowhere.stdout.split("\n").filter((one) => one.includes("] project slug"));
+  assert.match(outside, /this directory is in no checkout/u, outside);
+  assert.doesNotMatch(outside, /forge doctor --(adopt|set)/u,
+    "a route that refuses when followed is worse on this row than no route at all");
+});
+
+/* One source for the string, so the report and the subject that lists what is unset cannot drift:
+   before ISS-2056 the report spelled it `slug=<project>` by hand in three places and the undecided
+   rows spelled it `slug=<text>` off the generic set call, which is four strings for one command. */
+test("every reading offering the way to set a slug offers one spelling of it", async () => {
+  const { room } = checkout("one-spelling");
+  const report = await ask(room);
+  const [row] = report.stdout.split("\n").filter((one) => one.includes("] project slug"));
+  const route = /still work — `(.+)`$/u.exec(row);
+  assert.ok(route, row);
+  const undecided = await ask(room, "undecided");
+  const [listed] = undecided.stdout.split("\n").filter((one) => /^\[[^\]]+\] slug\s/u.test(one));
+  assert.ok(listed, undecided.stdout);
+  assert.equal(listed.split("not set — ")[1], route[1],
+    "the subject and the report name one command, composed once");
+
+  const adoptable = checkout("one-spelling-adopt", { slug: "one-spelling-adopt" });
+  const [offered] = (await ask(adoptable.room, "undecided")).stdout.split("\n")
+    .filter((one) => /^\[[^\]]+\] slug\s/u.test(one));
+  assert.equal(offered.split("not set — ")[1], "forge doctor --adopt",
+    "and where the adoption is what works, both offer that instead");
+});
