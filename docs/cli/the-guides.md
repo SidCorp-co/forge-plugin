@@ -21,8 +21,10 @@ releases the verb served them whole under a first line withdrawing the part that
 follow whole, so neither is listed, and `answering-as-the-assistant` and `records-and-comments` are
 the same shape read later. `stands` is the third word, and it withholds nothing: a read that found no
 rule for the contract to replace has to land somewhere, or a page nobody has judged and a page judged
-sound sit in the table identically, and the clause behind that verdict has no other home. So absence
-of a row means unread, which is the state `forge doctor` notes. `superseded` still means itself
+sound sit in the table identically, and the clause behind that verdict has no other home. Absence of a
+row is not the unread state — what `forge doctor` notes is a slug the list beside the table does not
+name, and four pages read on 2026-09-04 are on that list carrying no row, which is the clause ISS-2069
+owes. `superseded` still means itself
 exactly, because the overlap measure in [doctor](doctor.md) asks whether a
 project's own file restates a guide's authority, not whether this verb serves the page. What a
 maintainer's read prints is decided by the rules the row enumerates and by whether it withholds.

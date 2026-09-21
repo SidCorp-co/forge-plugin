@@ -27,7 +27,8 @@ export const localGuide = (slug) => LOCAL().find((one) => one.slug === slug)?.an
    naming a stale guide is how an agent comes to weigh two sources. A page the read cleared is served
    under a row saying so — `stands`, which withholds nothing — because a read that found nothing to
    replace and a read nobody made must not leave the table in the same state, and the clause behind
-   the verdict has nowhere else to live. A slug in no row is one nobody has read.
+   the verdict has nowhere else to live. Which slug has been read is `REVIEWED` and never this table:
+   four pages on that list carry no row, and ISS-2069 owes each of them its clause.
 
    `supersededSlugs`, which `forge doctor` alone calls, keeps meaning `superseded` exactly, because
    the overlap measure asks whether a project's own file restates a guide's authority — a different
