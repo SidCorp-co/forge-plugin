@@ -10,6 +10,8 @@ export const RUNS = "runs";
 export const CONSULTS = "consults";
 /* A kind of its own, so a count mark and the release that landed at that count never compete. */
 export const RELEASES = "releases";
+/* What a change said it would move, written before that change lands and keyed to the issue that made it. */
+export const CLAIMS = "claims";
 
 export const marksPath = () => join(configDir("forge"), "eval-marks.jsonl");
 
@@ -19,7 +21,13 @@ export const marksOf = (kind, root = null) =>
   readAll().filter((one) => one.kind === kind && (root === null || one.root === root));
 
 /* A release is one version and not one count: two can land at the same count, and holding them by count discards the second and leaves the version nothing to resolve. */
-const identityOf = (record) => (record.kind === RELEASES ? record.version ?? null : record.mark);
+const identityOf = (record) => {
+  if (record.kind === RELEASES) return record.version ?? null;
+  /* A claim is one issue's latest word and two claims about one issue are two records, so its identity
+     carries the moment: holding them by issue alone would make a revised claim a no-op write. */
+  if (record.kind === CLAIMS) return `${record.issue}@${record.at}`;
+  return record.mark;
+};
 
 const sameMark = (held, record) =>
   held.kind === record.kind && identityOf(held) === identityOf(record) && (held.root ?? null) === (record.root ?? null);

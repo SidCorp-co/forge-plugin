@@ -1,11 +1,13 @@
 /* `forge stats <subject>` — one verb, a subject per thing profiled: docs/cli/stats.md. */
+import { CHANGE_USAGE, printChange } from "./eval/change.mjs";
 import { DIAGNOSE_USAGE, printDiagnose } from "./eval/diagnose.mjs";
 import { EVAL_USAGE, MARKS_USAGE, printEval, printMarks } from "./eval/eval.mjs";
 import { MODELS_USAGE, printModels } from "./models.mjs";
 import { RUNS_USAGE, printRuns } from "./runs.mjs";
 import { helpAskedOf } from "../resolve/flags.mjs";
 
-const SUBJECTS = { runs: printRuns, models: printModels, eval: printEval, marks: printMarks, diagnose: printDiagnose };
+const SUBJECTS = { runs: printRuns, models: printModels, eval: printEval, change: printChange,
+  marks: printMarks, diagnose: printDiagnose };
 
 export const USAGE = [
   /* The set off the map rather than beside it: the words this verb refuses against are its keys, and
@@ -17,13 +19,14 @@ export const USAGE = [
   "  runs      the profile of the runs in a window: time, rounds and calls by phase",
   "  models    what a run of each model spent against what it got, and which arms are comparable",
   "  eval      the last fifty runs against the fifty before them, with what separates them named",
+  "  change    one change as the unit: the runs that ran the copy carrying it, against those before",
   "  marks     the readings held for this project, newest first",
   "  diagnose  a second model's reading of the runs you name: what went wrong, cited call by call",
 ].join("\n");
 
 /* One text per subject, which is the set its own parse refuses against, so neither can move alone. */
-export const SAYS = { runs: RUNS_USAGE, models: MODELS_USAGE, eval: EVAL_USAGE, marks: MARKS_USAGE,
-  diagnose: DIAGNOSE_USAGE };
+export const SAYS = { runs: RUNS_USAGE, models: MODELS_USAGE, eval: EVAL_USAGE, change: CHANGE_USAGE,
+  marks: MARKS_USAGE, diagnose: DIAGNOSE_USAGE };
 
 export const stats = (argv) => {
   const [subject, ...rest] = argv;

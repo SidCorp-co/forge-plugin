@@ -352,6 +352,102 @@ it. Reading is all this product does there.
   carried one and the named list of them as unavailable rather than as a nought found, in the
   profile and in `--json` alike.
 
+- **AC-19-8-83** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "1. the isolated population is the runs that began at or after this install and ended before the next"
+  WHEN one change is judged THEN the CLI SHALL report the count of runs that began at or after that
+  change's copy was installed and ended before the next copy was installed.
+- **AC-19-8-84** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "2. a population with no later installation is said to be open-ended"
+  WHERE no copy was installed after the one carrying the change the CLI SHALL say that the population
+  is open-ended rather than bounding it at an endpoint no installation stands at.
+- **AC-19-8-85** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "3. every later change installed inside the wider population's span is named"
+  WHEN one change is judged THEN the CLI SHALL name every later change installed inside the span of
+  the wider population it read.
+- **AC-19-8-86** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "4. a movement is associated with the whole set the population was exposed to"
+  WHEN a movement is reported for one change THEN the CLI SHALL associate it with the whole set of
+  changes the population that moved was exposed to.
+- **AC-19-8-87** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "5. the size of the set a movement is associated with is stated"
+  WHEN a movement is associated with a set of changes THEN the CLI SHALL state how many changes that
+  set holds.
+- **AC-19-8-88** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "6. a change whose release carried more than one key names the other keys it carried"
+  WHERE the release that carried the change named more than one issue the CLI SHALL name the other
+  keys it carried.
+- **AC-19-8-89** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "7. no movement is associated with a single change where the population ran more than one"
+  WHERE the population that moved was exposed to more than one change the CLI SHALL associate the
+  movement with none of those changes singly.
+- **AC-19-8-90** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "8. each installation moment says whether it is a birth time or a substituted modification time"
+  WHEN one change is judged THEN the CLI SHALL say of each installation moment its populations' bounds
+  rest on whether that moment is the copy directory's birth time or its substituted modification time.
+- **AC-19-8-91** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "9. a comparison whose bound rests on a modification time is ineligible"
+  IF an installation moment a population's bounds rest on is a substituted modification time THEN the
+  CLI SHALL hold that comparison ineligible to carry the association.
+- **AC-19-8-92** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "10. undetermined is the answer where no comparison is eligible"
+  WHERE no comparison of a change is eligible to carry the association the CLI SHALL answer that the
+  association is undetermined.
+- **AC-19-8-93** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "11. each comparison held ineligible says why it was"
+  WHERE a comparison is held ineligible to carry the association the CLI SHALL say why it was.
+- **AC-19-8-94** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "12. undetermined is a verdict of its own and carries no shift standing in for it"
+  WHEN the association is undetermined THEN the CLI SHALL report it as a verdict of its own rather
+  than as a nought, a nil shift or an absent field.
+- **AC-19-8-95** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "13. nothing moved is answered only where an angle returned a verdict and none moved"
+  WHEN the CLI answers that nothing moved THEN it SHALL do so only where the deciding comparison
+  returned at least one angle verdict and none of the angles that returned one moved past its own
+  reference.
+- **AC-19-8-96** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "14. the no-movement answer is worded as no movement past the reference"
+  WHEN the CLI answers that nothing moved THEN it SHALL word that answer as no movement past this
+  corpus's own reference rather than as no effect.
+- **AC-19-8-97** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "15. the reading states that no comparison it makes supplies a counterfactual"
+  WHEN one change is judged THEN the CLI SHALL state that no comparison it makes supplies a
+  counterfactual, so that nothing in the reading establishes that a change caused a movement.
+- **AC-19-8-98** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "16. a covariate past its reference p95 holds the comparison ineligible"
+  IF a covariate's mix distance between a comparison's two populations is past that covariate's
+  reference p95 THEN the CLI SHALL hold that comparison ineligible to carry the association.
+- **AC-19-8-99** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "17. the covariate that held a comparison ineligible is named"
+  WHERE a covariate's mix distance held a comparison ineligible the CLI SHALL name that covariate.
+- **AC-19-8-100** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "18. the mix reference is over this corpus's adjacent positions at the two sizes, an absent value counting as nought"
+  WHEN a mix distance is judged THEN the CLI SHALL measure its reference over the adjacent positions of
+  this corpus at the two population sizes actually being compared, a value absent from one side
+  counting as nought on that side.
+- **AC-19-8-101** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "19. a mix reference over fewer positions than the minimum holds the comparison ineligible"
+  IF fewer adjacent positions than the minimum yielded a mix distance THEN the CLI SHALL hold that
+  comparison ineligible to carry the association.
+- **AC-19-8-102** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "20. a mix reference under the minimum says the count of positions that yielded a distance"
+  WHERE a mix reference was built over fewer positions than the minimum the CLI SHALL say how many
+  yielded a distance.
+- **AC-19-8-103** · Rev: 1 · Proof: plugin/test/stats/eval/claims.test.mjs "21. a claim naming an angle outside the shipped set, or naming no direction, is refused"
+  IF a claim names an angle outside the shipped set, or names no direction, THEN the CLI SHALL refuse
+  that claim.
+- **AC-19-8-104** · Rev: 1 · Proof: plugin/test/stats/eval/claims.test.mjs "22. a claim refused for what it named is refused with what it may name instead"
+  WHERE a claim is refused for what it named the CLI SHALL name what it may name instead.
+- **AC-19-8-105** · Rev: 1 · Proof: plugin/test/stats/eval/claims.test.mjs "23. a claim is refused where a release reading held for this project already names that issue"
+  IF a release reading held for this project already names the issue a claim is about THEN the CLI
+  SHALL refuse that claim.
+- **AC-19-8-106** · Rev: 1 · Proof: plugin/test/stats/eval/claims.test.mjs "24. a claim the store could not place records that landing could not be established"
+  WHERE no held release reading names a claim's issue the CLI SHALL record on that claim that the
+  write could not establish whether the change had landed.
+- **AC-19-8-107** · Rev: 1 · Proof: plugin/test/stats/eval/claims.test.mjs "25. the reading prints when the claim was written and when the change's copy was installed"
+  WHEN a claim is read back THEN the CLI SHALL print when it was written and when that change's copy
+  was installed.
+- **AC-19-8-108** · Rev: 1 · Proof: plugin/test/stats/eval/claims.test.mjs "26. a claim written at or after that install counts as no prediction"
+  WHERE a claim was written at or after the moment that change's copy was installed the CLI SHALL
+  count it no prediction.
+- **AC-19-8-109** · Rev: 1 · Proof: plugin/test/stats/eval/claims.test.mjs "27. a kept claim is stated to be a prediction that held and no evidence the harness improved"
+  WHERE a claim was kept the CLI SHALL state beside it that a kept claim is a prediction that held and
+  is no evidence that the harness improved.
+- **AC-19-8-110** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "28. the reading states what none of its figures measures, a phase duration among them"
+  WHEN one change is judged THEN the CLI SHALL state what none of its figures measures, including that
+  a phase duration is how the work was spent and not whether the result was good.
+- **AC-19-8-111** · Rev: 1 · Proof: plugin/test/stats/eval/claims.test.mjs "29. a comparison since a release says which runs its recent side is taken from"
+  WHEN a comparison is taken since a release THEN the CLI SHALL say which runs its recent side is taken
+  from.
+- **AC-19-8-112** · Rev: 1 · Proof: plugin/test/stats/eval/claims.test.mjs "30. an issue key is resolved to the copy that carried it through the release readings held"
+  WHEN a change is named by an issue key THEN the CLI SHALL resolve it to the copy that carried it
+  through the release readings held for this project.
+- **AC-19-8-113** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "31. an issue key no held release reading names is refused rather than judged over some other population"
+  IF no held release reading names the issue key a change was asked for by THEN the CLI SHALL refuse
+  the call rather than judge it over a population chosen by default.
+- **AC-19-8-114** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "32. the key that could not be resolved is named in the refusal that reports it"
+  WHERE an issue key could not be resolved to a copy the CLI SHALL name that key in the refusal that
+  reports it.
+
 ### EI-09 — The chat backend
 
 Rev: 1 · Enforces: BR-08, BR-14 · Reached from: `plugin/src/tools/services/chatgpt.mjs`

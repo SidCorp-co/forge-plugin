@@ -132,10 +132,11 @@ export const blocksOf = (ordered, size) => {
   return held;
 };
 
-/* The middle is `median.mjs`'s, which is this repository's one answer to it. A percentile in the tail
-   has no such home and takes the nearest rank — the smallest observation at or above the share asked
-   for — which is what makes twenty the count a p95 stops being the largest shift seen at. */
-const atRank = (sorted, at) => sorted[Math.max(0, Math.ceil(at * sorted.length) - 1)];
+/** The middle is `median.mjs`'s, which is this repository's one answer to it. A percentile in the tail
+ *  has no such home and takes the nearest rank — the smallest observation at or above the share asked
+ *  for — which is what makes twenty the count a p95 stops being the largest shift seen at. The mix
+ *  reference takes the same one, so two references built the same way answer the same way. */
+export const atRank = (sorted, at) => sorted[Math.max(0, Math.ceil(at * sorted.length) - 1)];
 
 /** The floor for each named angle, off one pass of block profiles: two adjacent blocks of the sizes
  *  actually being compared, slid a run at a time, each angle's own figure taken over both sides.
@@ -335,7 +336,10 @@ export const angleList = (indent, width) => NAMES.reduce((lines, name, at) => {
   return lines;
 }, []);
 
-const angleLines = (one) => [
+/** One angle's block. Exported because a reading holding several comparisons prints the blocks of
+ *  each and states what the set does not measure once, over the whole of it, rather than under every
+ *  comparison it made. */
+export const angleBlock = (one) => [
   "",
   `${one.name.padEnd(NAME)}${one.asks} — ${one.better} is better`,
   ...(one.recomputed ? [recomputedLine(one.recomputed)] : []),
@@ -353,5 +357,5 @@ export const anglesSaid = (readings) => [
   "angles on the same runs — each over the population it names, each judged against how far two "
     + "adjacent blocks of this corpus have themselves differed",
   NOT_MEASURED,
-  ...readings.flatMap(angleLines),
+  ...readings.flatMap(angleBlock),
 ];

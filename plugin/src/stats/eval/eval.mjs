@@ -336,6 +336,8 @@ const confoundedLines = (held, release, copies) => {
   const to = held.now.profile.to ?? 0;
   const after = copies.filter((one) => one.at > from && one.at <= to).length;
   return ["", `what a comparison since ${release.version} is confounded by`,
+    "  the recent side of this comparison is the corpus's last runs by end time, not the runs that "
+      + `began after ${release.version} landed — for that population, \`forge stats change ${release.version}\``,
     `  ${after} release(s) landed after it inside this window`,
     `  ${held.now.spanned} run(s) saw a release land while they ran, so their later calls used the newer copy`,
     "  a dispatching session may still have held a role, a skill stub or a hook registration from an "
@@ -494,15 +496,18 @@ export const runsMark = (directory, size = WINDOW) => {
   return `${said} ${wroteSaid(wrote, many, "forge stats eval")}`;
 };
 
-/** The mark a release writes, whatever the corpus count: the version and the head are the only
- *  things a run cannot work out later, and `--since-release` is what reads it back. Silent unless
- *  the corpus holds a run, since a reading of nothing pins nothing. */
-export const releaseMark = (directory, { version, head }, size = WINDOW) => {
+/** The mark a release writes, whatever the corpus count: the version, the head and the issue keys it
+ *  landed are what a run cannot work out later, and `--since-release` and `stats change` are what read
+ *  them back. The keys are what makes a change resolvable to the copy that carried it, and what tells
+ *  a reading that one release landed several changes. Silent unless the corpus holds a run, since a
+ *  reading of nothing pins nothing. */
+export const releaseMark = (directory, { version, head, issues = [] }, size = WINDOW) => {
   if (!version) return null;
   const corpus = corpusOf(directory);
   if (!corpus.runs.length) return null;
   const wrote = writeMark({
     kind: RELEASES, mark: corpus.runs.length, version, head: head ?? null,
+    issues: [...issues].map((one) => String(one).toUpperCase()),
     at: new Date().toISOString(), ...readingOf(directory, corpus, size),
   });
   return `stats: this release is held as ${version} over ${corpus.runs.length} run(s) `

@@ -525,6 +525,134 @@
       "rev": 1,
       "digest": "b4d40e6f07196afc387c02876e579f9305c38b489ecd1eed50e8ea21d3756fb5"
     },
+    "AC-19-8-83": {
+      "rev": 1,
+      "digest": "e3203a425afd7a292cc76b18bff32b4c5fb1451ea16488f07585466934851c5e"
+    },
+    "AC-19-8-84": {
+      "rev": 1,
+      "digest": "47a2d8a20a78b4392056021c1e1766418f05ca9f839b8f92f09fc307d1fc31ae"
+    },
+    "AC-19-8-85": {
+      "rev": 1,
+      "digest": "e1b2036b85c96e96b68568c8b0c2bde7100b9adeffcfeca78cd25ba4afb4b348"
+    },
+    "AC-19-8-86": {
+      "rev": 1,
+      "digest": "13afc5f0a1b040905363ea9935a871aa9b6ddbe10844d350080fae590f9639be"
+    },
+    "AC-19-8-87": {
+      "rev": 1,
+      "digest": "7a36e45bf324a5053380251366003d184f8d515d2d1df55c947e5806150f2205"
+    },
+    "AC-19-8-88": {
+      "rev": 1,
+      "digest": "773612d44afe3a4e4d887bd4667aafcf5d7bdd166a0a34af49683d8fa04fd310"
+    },
+    "AC-19-8-89": {
+      "rev": 1,
+      "digest": "e193b91044b32a755c6cc8e198b4459c97bef86b9bca5bc011f548965a1cee7c"
+    },
+    "AC-19-8-90": {
+      "rev": 1,
+      "digest": "981eec89cd2aa6cf60be17204c4413582b81238abd2893dcf4bfb83a5b7a1062"
+    },
+    "AC-19-8-91": {
+      "rev": 1,
+      "digest": "4ee9baf80692cb87a399371d6ad79cf114f904a698213e405f617695b92e9518"
+    },
+    "AC-19-8-92": {
+      "rev": 1,
+      "digest": "e1707af4282e891d30c0edf6982495de0d3d3e0a4769809625bc2d613f336f6b"
+    },
+    "AC-19-8-93": {
+      "rev": 1,
+      "digest": "fdab5ae9de556e6c26bf5385f7f4b766b86c16d2fbae94363b44a71dfc684fcc"
+    },
+    "AC-19-8-94": {
+      "rev": 1,
+      "digest": "9b0fa6f32038d367ad87ad19fdcd7662ece9a30ee7482fdb66308a32b513ef73"
+    },
+    "AC-19-8-95": {
+      "rev": 1,
+      "digest": "ed3771f4be0a56aa222fc668bbef62e3b12292c82f77bf51706925253a2a1af3"
+    },
+    "AC-19-8-96": {
+      "rev": 1,
+      "digest": "a94a318d42730d95ff129c972fbf70723b0ccb91ffc2471667a688a00aba3c13"
+    },
+    "AC-19-8-97": {
+      "rev": 1,
+      "digest": "62f9a36dae7fe17a02e0f6329ab30b4c49722c62bbee04647a1e714d6392f25d"
+    },
+    "AC-19-8-98": {
+      "rev": 1,
+      "digest": "631bdb2635928b1246cf27e480f2386f0b3202e7cbe7bf033acbd891a566b90b"
+    },
+    "AC-19-8-99": {
+      "rev": 1,
+      "digest": "79ac43ce5ed5af168b88f63ca7f686a26855c27a46b137276d0f9a8e5977e384"
+    },
+    "AC-19-8-100": {
+      "rev": 1,
+      "digest": "6a20f576eec337d0b3eebf1fdf599a18174ab3bbfeab042515755197ac52d9dd"
+    },
+    "AC-19-8-101": {
+      "rev": 1,
+      "digest": "858d7a36d504d5c0dd7fad9057c3868d48a3e52e57b818ca180600af0712fd6e"
+    },
+    "AC-19-8-102": {
+      "rev": 1,
+      "digest": "d91db8d18477eb25db4915c0648a4cb60ba5cf030c84a197d4696c4296468310"
+    },
+    "AC-19-8-103": {
+      "rev": 1,
+      "digest": "652d8e5c25f597f773dc7f005016546f5989e07bbe1f0432259e6d681b0091ff"
+    },
+    "AC-19-8-104": {
+      "rev": 1,
+      "digest": "ba1c97ba52bb8c732735e899fa4de11dac1a33b52e9ff4bedabd8e0ec3d23b27"
+    },
+    "AC-19-8-105": {
+      "rev": 1,
+      "digest": "c972f0dc7c09386e6f5fd96df70b7b5209551b3c6ffe843987b9880daf6b79c7"
+    },
+    "AC-19-8-106": {
+      "rev": 1,
+      "digest": "bdd65741ce23863d6fd090f0fbc0ea6baccc9a20fa6aa1aa0e8ae55664f56e50"
+    },
+    "AC-19-8-107": {
+      "rev": 1,
+      "digest": "65ad82cc60c453cceedbc7cc3e8f0759a77961a26ad1bf75e312746fbaae6149"
+    },
+    "AC-19-8-108": {
+      "rev": 1,
+      "digest": "3fa8dba30a673c79ae13ba5c1b1c9fb522b26735edf9fee675f612412be86e7c"
+    },
+    "AC-19-8-109": {
+      "rev": 1,
+      "digest": "5a32767541e31e8de248c8bb4ebb4d4854073beb8dde245a0836cd5a37d95979"
+    },
+    "AC-19-8-110": {
+      "rev": 1,
+      "digest": "3846f1f359bacb5fd4d6522e1f9fc8150f28049dde38cea3d815227cfd97a48b"
+    },
+    "AC-19-8-111": {
+      "rev": 1,
+      "digest": "c5206eafeca8406d4857086039dc8e9798813b3ff55ef85cb1209b821c10db9f"
+    },
+    "AC-19-8-112": {
+      "rev": 1,
+      "digest": "2c459ec65c3d28708abaf19467bbdbe058139b5dfcf2b24aa2057471828d7e3c"
+    },
+    "AC-19-8-113": {
+      "rev": 1,
+      "digest": "5e404065dbfd51527006dc6b98d7466c673b0a9de869e6b33664fc2d69a6c4b1"
+    },
+    "AC-19-8-114": {
+      "rev": 1,
+      "digest": "b7cce6faa8b84e5fba96cb5c89716ca7922854304bf2daf1808dcc8e7ee22958"
+    },
     "EI-09": {
       "rev": 1,
       "digest": "d73bef4ecb3232155874dfcc51db03dbca7ab5d94f456c0888ad94ca920be68a"

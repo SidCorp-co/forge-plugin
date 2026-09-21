@@ -17,7 +17,7 @@ import { firstLine } from "../../plugin/src/resolve/flags.mjs";
 import { CEILINGS, climbForm, overCeiling } from "../../plugin/src/ladder.mjs";
 import { REPLAYED, replaySays, replayedBy } from "./replayed.mjs";
 import { cleanTree, INSTALLS, LANDS, PUSHES, pushing, runLanding, SHARED, waitMs } from "./land.mjs";
-import { checkpointsFinished } from "./ship/checkpoint.mjs";
+import { checkpointsFinished, keysHere } from "./ship/checkpoint.mjs";
 import { movedBy } from "./land-ready/candidate.mjs";
 import { onlyRelease } from "./landing.mjs";
 import { CHECK, publishes } from "./publish.mjs";
@@ -279,9 +279,11 @@ const shipSteps = (tree, root, base, note) => {
       const mark = runsMark(root);
       if (mark) console.log(`  ${mark}`);
       publishes(tree, base, copy?.installed);
-      /* Whatever the corpus count, so a comparison can be taken since THIS release: the version and
-         the head are the two things a reading taken later cannot work out for itself. */
-      const held = releaseMark(root, { version: copy?.installed, head: gitOut(["rev-parse", "HEAD"], tree) });
+      /* Whatever the corpus count, so a comparison can be taken since THIS release: the version, the
+         head and the keys this tree landed are what a reading taken later cannot work out for itself,
+         and the keys are what resolves a change to the copy that carried it. */
+      const held = releaseMark(root, { version: copy?.installed, head: gitOut(["rev-parse", "HEAD"], tree),
+        issues: keysHere(tree) });
       if (held) console.log(`  ${held}`);
       await checkpointsFinished({ tree, base, copy, resume: again(), installs: installs(), ships: SELF + " ship" });
       /* Inside the step and not after the whole run, so a `--from 9` resume carries it too. */
