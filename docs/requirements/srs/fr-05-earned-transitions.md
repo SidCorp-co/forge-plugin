@@ -84,6 +84,14 @@ agent learns what a status wants.
 - **AC-05-1-13** · Rev: 1 · Proof: plugin/test/flow/landing/take.test.mjs "the resume names the work through the verb, and a status owing no phase says it below"
   WHERE the worklog holds a branch, the CLI SHALL print the branch and the head exactly once when it
   re-mints the issue's context, whichever block of that context carries them.
+- **AC-05-1-14** · Rev: 1 · Proof: plugin/test/guides/rounds.test.mjs "the rounds line says which consult its count is of, on both surfaces that print it"
+  WHERE a rung buys fewer rounds than the top one, the line stating its consult allowance SHALL say
+  which read that allowance is of and which read it is not of, a number whose subject is unstated
+  being one a run cannot tell an overspend from.
+- **AC-05-1-15** · Rev: 1 · Proof: plugin/test/codex/codex-read.test.mjs "the refusal says this read is owed at every rung, before it offers the stand-down"
+  WHEN a write of the plan or the criteria is refused for a file no reviewer has read THEN the
+  refusal SHALL say that the read is owed at every rung, before it names anything that would stand
+  the check down.
 
 ### UC-05-2 — Advance to the next status
 

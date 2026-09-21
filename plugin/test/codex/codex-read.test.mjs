@@ -57,6 +57,17 @@ test("a plan no consult has read is refused, and the refusal names the consult t
   assert.equal(rel, "plan.md");
 });
 
+/* The rung's rounds line and this refusal are the two counts a run reads, and a run at a lighter
+   rung reads the line first: told it buys one consult, it meets this and has to know whether this
+   is the one, or the stand-down below is the cheaper-looking answer (ISS-1322). */
+test("the refusal says this read is owed at every rung, before it offers the stand-down", () => {
+  const { root, path } = room();
+  const refusal = refusalOf(path, root);
+  assert.match(refusal, /at every rung, and no rung drops it/u);
+  assert.ok(refusal.indexOf("every rung") < refusal.indexOf("FORGE_CODEX_DISABLE"),
+    "a run reads that the read is owed before it reads what would stand the check down");
+});
+
 test("a consult that read the file whole clears the write, and an edit makes it unread again", () => {
   const { root, path, rel } = room();
   consulted(root, rel, PLAN);

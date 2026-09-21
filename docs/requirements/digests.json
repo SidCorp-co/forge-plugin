@@ -1949,6 +1949,14 @@
       "rev": 1,
       "digest": "0a8663e3800719c97ffa3023ef86e29f6f16c43463b759f615d19d8bbc84364f"
     },
+    "AC-05-1-14": {
+      "rev": 1,
+      "digest": "cff50a8348a0bc14e1281ff10464466a8de1bb213aafe1034b391cc228081dac"
+    },
+    "AC-05-1-15": {
+      "rev": 1,
+      "digest": "c45312922da5399acc1bc460dc48b764f8b95f112d19e1262e6c0894cc8a14eb"
+    },
     "UC-05-2": {
       "rev": 1,
       "digest": "8b36cd2023956a8383f427fbed094aa107e0cea7b4f8e58a7535fd1c2402d0c8"

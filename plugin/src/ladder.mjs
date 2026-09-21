@@ -79,7 +79,7 @@ export const LIGHTER = [
 /* One list held by both rungs under the top, so `CEILINGS` is the whole of what tells them apart and a second list cannot become a difference the contract denies having; each line is a judgement spent once, where a `LIGHTER` row drops a payload. */
 const LIGHTER_ROUNDS = [
   "Phase 0 is the brief alone, where no source of it is stale",
-  "one consult, which is the whole-set read at the replayed head, and no recheck after a clean pass",
+  "one review consult — the whole-set read at the replayed head, and no recheck after a clean pass — and not a plan or a criteria write's own read",
   "one gate run on the clean path, the ship's, so no commit spends one and none is left after it",
 ];
 

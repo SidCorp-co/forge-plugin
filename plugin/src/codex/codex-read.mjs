@@ -16,10 +16,16 @@ const FILE_ROUTE = (what) =>
   + "to a file and name the file.";
 
 /* The log's key, quoted, and the root where the caller is not standing in one. `here` is the caller's own root, already computed, and a second probe answers the same directory at another realpath. */
+/* A run reaching this has just been told what its rung buys, and the count it was told is of the
+   review reads. This is not one of them, and a run that reads it as one reaches for the stand-down
+   below rather than spending what the write costs (ISS-1322). */
+const EVERY_RUNG = "A plan or a criteria write asks for this read at every rung, and no rung drops "
+  + "it.";
+
 const readIt = (here, root, rel, why) =>
   `${why}\n\nDo this: \`${here === root ? "" : `cd ${typed(root)} && `}echo "<the issue, and `
   + `what this claims to have verified in code>" | forge codex consult --send bodies ${typed(rel)}\`, `
-  + `then re-send. ${OFF}`;
+  + `then re-send. ${EVERY_RUNG} ${OFF}`;
 
 /* One file's half of `shortOfWhole`, borrowing its test rather than restating it: what is wanted here is the part itself, for the bytes it carried, and a diffs consult sent none of them. */
 const carriedWhole = (entry, rel) => {

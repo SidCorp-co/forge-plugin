@@ -14,7 +14,8 @@ process.env.XDG_CONFIG_HOME = tempHome("rounds").path;
 const { contractAnswer, partsOf, readContract } = await import("../../src/guides/contract.mjs");
 const { skillGuideAnswer } = await import("../../src/guides/skill-guides.mjs");
 const { roundLines, rungRefusal, rungServed } = await import("../../src/guides/rounds.mjs");
-const { FEATURE, RUNGS, SPARES } = await import("../../src/ladder.mjs");
+const { FEATURE, FIX, RUNGS, SPARES, complexityFor } = await import("../../src/ladder.mjs");
+const { rungReport } = await import("../../src/ladder-report.mjs");
 const { DEFAULT } = await import("../../src/guides/flow.mjs");
 const { render } = await import("../../src/flow/record/page.mjs");
 
@@ -142,6 +143,21 @@ test("the rounds have one spelling, and no text this copy serves holds a second"
   }
   assert.deepEqual(restating, [], "a served text restates a round `SPARES` already spells, which is "
     + "the second copy this change exists to remove: cut it, and let the tail carry it");
+});
+
+/* Four runs at the lighter rungs read one consult off this line, then spent one on the gate
+   `forge record criteria` holds against a file no consult has read, which no rung drops. The
+   number was never wrong; what it counted was never said (ISS-1322). */
+test("the rounds line says which consult its count is of, on both surfaces that print it", () => {
+  const [, consult] = SPARES[TRIVIAL];
+  assert.match(consult, /review consult/u, "the count says which read it is of");
+  assert.match(consult, /plan or a criteria write's own read/u, "and which read it is not of");
+  for (const rung of [TRIVIAL, FIX]) {
+    assert.ok(text(contractAnswer({ part: "approved", rung })).includes(consult),
+      `the part served at \`${rung}\` carries some other spelling of the rounds line`);
+    assert.ok(rungReport({ complexity: complexityFor(rung) }).includes(consult),
+      `the rehearsal at \`${rung}\` carries some other spelling of the rounds line`);
+  }
 });
 
 test("the rung a caller names decides nothing else about the answer", () => {
