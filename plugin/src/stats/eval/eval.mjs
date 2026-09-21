@@ -17,6 +17,7 @@ import {
 } from "../marks/marks.mjs";
 import { reachOf, reachSaid } from "../marks/reach.mjs";
 import { BUDGET, HORIZON, UNAVAILABLE, budgetOf, outcomesOf, parkedOver, readThreads, ruledOver } from "./outcomes.mjs";
+import { classesCompared, latencyLines } from "./latency.mjs";
 import { NOT_MEASURED, angleList, anglesAsked, anglesOver, anglesSaid } from "./angles.mjs";
 import { logEntries } from "../../codex/codex-log.mjs";
 import { fail, projectAt, projectTarget, useProject } from "../../resolve/settings.mjs";
@@ -222,6 +223,7 @@ export const evalRuns = (runs, copies, size = WINDOW, against = null, read = nul
       ? { rungs: movedIn(nowHeld.profile.rungs, beforeHeld.profile.rungs, "rung"),
         phases: movedIn(nowHeld.profile.phases, beforeHeld.profile.phases, "name") }
       : null,
+    classes: classesCompared(nowHeld.profile, beforeHeld?.profile ?? null),
     separates: (a, b) => shiftBetween(mixOf(a), mixOf(b)),
   });
 };
@@ -385,7 +387,7 @@ export const evalLines = (held, anchor = null, copies = [], angles = []) => {
   const release = releaseIn(anchor);
   const lines = head(held, anchor);
   const judged = angles.length ? anglesSaid(angles) : [];
-  if (!held.before) return [...lines, ...judged];
+  if (!held.before) return [...lines, ...judged, ...latencyLines(held)];
   return [
     ...lines,
     "",
@@ -394,6 +396,7 @@ export const evalLines = (held, anchor = null, copies = [], angles = []) => {
     ...judged,
     "",
     ...groupLines(held),
+    ...latencyLines(held),
     ...outcomeLines(held),
     ...(release ? confoundedLines(held, release, copies) : []),
     "",
