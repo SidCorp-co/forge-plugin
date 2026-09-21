@@ -7,16 +7,16 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { callsIn, shellOf } from "../../src/stats/corpus/transcripts.mjs";
-import { classOf } from "../../src/stats/corpus/classes.mjs";
-import { slugFor } from "../../src/stats/corpus/corpus.mjs";
-import { unionSeconds } from "../../src/stats/runs.mjs";
-import { writeMark } from "../../src/stats/marks/marks.mjs";
-import { USAGE } from "../../src/stats/stats.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { callsIn, shellOf } from "../../../src/stats/corpus/transcripts.mjs";
+import { classOf } from "../../../src/stats/corpus/classes.mjs";
+import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
+import { unionSeconds } from "../../../src/stats/runs.mjs";
+import { writeMark } from "../../../src/stats/marks/marks.mjs";
+import { USAGE } from "../../../src/stats/stats.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 import {
   BASE, FORGE, PROJECT, ask, asked, at, corpus, result, use,
-} from "./fixture-runs.mjs";
+} from "../fixture-runs.mjs";
 
 test("every row of a fixture run is what the transcript adds up to", () => {
   const run = ask(corpus());
@@ -258,7 +258,7 @@ test("the edits line names each route with its calls and characters, and the shi
     ...bash("r7", 100, "node /w/tools/run.mjs ship", "stopped at step 6 (push to origin/master): git push origin HEAD:master exited 1. Rejected means the remote moved: rebase, then ship --from 2"),
     ...bash("r8", 200, "node /w/tools/run.mjs ship --from 2", "Released."),
     ...bash("r9", 300, "grep -n Rejected tools/run.mjs", "521: `Rejected means the remote moved: rebase, then ${SELF} ship --from 2`"),
-    ...bash("r10", 310, "cat plugin/test/stats/runs.test.mjs", "stopped at step 6 (push to origin/master): git push origin HEAD:master exited 1. Rejected means the remote moved"),
+    ...bash("r10", 310, "cat plugin/test/stats/runs/runs.test.mjs", "stopped at step 6 (push to origin/master): git push origin HEAD:master exited 1. Rejected means the remote moved"),
   ].join("\n"));
   const run = ask(room);
   assert.equal(run.status, 0, run.stderr);

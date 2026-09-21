@@ -48,7 +48,7 @@ const CRITERIA_CORPUS = [
   { issue: "ISS-474", number: 26, text: "`refs/forge/reviewed` names 690eda296eff58c9babb235b3a5c19d0c60f7449 when the run ends." },
   { issue: "ISS-474", number: 27, text: "Every finding raised by a consult on this issue's plan or criteria has a recorded verdict." },
   // ISS-500
-  { issue: "ISS-500", number: 1, text: "AC-19-8-7~1: `forge stats runs` prints an `edits` line naming each of the five routes — edit, write, edit heredoc, edit file, edit sed — with the median calls per run and the median characters a call carried, read off the fixture in `plugin/test/stats/runs.test.mjs`." },
+  { issue: "ISS-500", number: 1, text: "AC-19-8-7~1: `forge stats runs` prints an `edits` line naming each of the five routes — edit, write, edit heredoc, edit file, edit sed — with the median calls per run and the median characters a call carried, read off the fixture in `plugin/test/stats/runs/runs.test.mjs`." },
   { issue: "ISS-500", number: 2, text: "AC-19-8-7~1: The characters a call carried are read off the call's own input: the shell text for Bash, the old and new text for Edit, the content for Write; a fixture call of each route adds up by hand." },
   { issue: "ISS-500", number: 3, text: "AC-19-8-7~1: `forge stats runs` prints a `ships` line with the passes in all, the median passes per run, the passes resumed with `--from`, and the runs in which a push came back rejected, the last read off the ship's own sentence in any call's result." },
   { issue: "ISS-500", number: 4, text: "AC-19-8-7~1: A `review` call of the ship script is not counted as a pass." },

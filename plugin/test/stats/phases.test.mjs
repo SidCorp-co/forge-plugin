@@ -245,7 +245,7 @@ test("a consult before the plan write is the plan's, and the review opens on the
     ["e1", 0, 5, "./plugin/bin/forge claim ISS-99", "claimed"],
     ["e2", 60, 600, "forge codex consult --send bodies /tmp/plan.md", "0 findings"],
     ["e3", 700, 5, "forge record plan ISS-99 /tmp/plan.md", "planned"],
-    ["e4", 800, 30, "node --test plugin/test/stats/runs.test.mjs", "ok"],
+    ["e4", 800, 30, "node --test plugin/test/stats/runs/runs.test.mjs", "ok"],
     ["e5", 850, 5, "git commit -m 'the first half'", "1 file changed"],
     ["e6", 900, 300, "forge codex consult --diff --only blocker", "0 findings"],
     ["e7", 1250, 5, "git commit -m 'the second half'", "1 file changed"],

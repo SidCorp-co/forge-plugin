@@ -3,8 +3,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { profileOf, runFrom } from "../../src/stats/runs.mjs";
-import { apiErrored, at, compacted, humanPrompt, result, use } from "./fixture-runs.mjs";
+import { profileOf, runFrom } from "../../../src/stats/runs.mjs";
+import { apiErrored, at, compacted, humanPrompt, result, use } from "../fixture-runs.mjs";
 
 /* A run's condition, not its cost: a compaction is the harness losing what a run knew and carrying
    on, and it is counted apart from the runs that met one, because a run that compacted three times

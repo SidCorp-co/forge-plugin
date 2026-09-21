@@ -173,13 +173,13 @@ of its own naming. The shape is the host's and may move under this product; the 
 out from the project's own path rather than held anywhere, so there is nothing to keep in step with
 it. Reading is all this product does there.
 
-- **AC-19-8-1** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "nothing a caller writes is opened"
+- **AC-19-8-1** · Rev: 1 · Proof: plugin/test/stats/runs/runs.test.mjs "nothing a caller writes is opened"
   WHEN a profile is asked for THEN the CLI SHALL work the directory out from the project directory
   given, and SHALL refuse a location arriving any other way.
-- **AC-19-8-2** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "a window is read off the run's own clock, not the file's"
+- **AC-19-8-2** · Rev: 1 · Proof: plugin/test/stats/runs/runs.test.mjs "a window is read off the run's own clock, not the file's"
   WHEN a run is judged against a window THEN the CLI SHALL take the run's own last moment rather
   than the moment the file was last touched.
-- **AC-19-8-3** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "every row of a fixture run is what the transcript adds up to"
+- **AC-19-8-3** · Rev: 1 · Proof: plugin/test/stats/runs/runs.test.mjs "every row of a fixture run is what the transcript adds up to"
   WHERE a call in that record was never answered the CLI SHALL report it as unanswered and SHALL
   add nothing to any waiting time on its account.
 - **AC-19-8-4** · Rev: 2 · Proof: plugin/test/stats/eval.test.mjs "fewer than two full windows is said as a shortfall, and judged not a comparison"
@@ -202,11 +202,11 @@ it. Reading is all this product does there.
   reading of what now runs and the closing of the work in the phase the landing opened, SHALL open
   the phase after it only on the call that ends the run's workspace or on a write of what the run
   learned, and SHALL name each phase for the work the method defines at that number.
-- **AC-19-8-7** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "the edits line names each route with its calls and characters, and the ships line counts passes, resumes and rejected pushes"
+- **AC-19-8-7** · Rev: 1 · Proof: plugin/test/stats/runs/runs.test.mjs "the edits line names each route with its calls and characters, and the ships line counts passes, resumes and rejected pushes"
   WHEN a profile is printed THEN the CLI SHALL name each route a run wrote files through with its
   calls per run and the characters a call carried, and SHALL count the passes a landing took, the
   passes resumed and the runs whose push was rejected, each read off the call's own record.
-- **AC-19-8-8** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "the refusals listing is what this plugin refused, keyed on the line that names the rule"
+- **AC-19-8-8** · Rev: 1 · Proof: plugin/test/stats/runs/runs.test.mjs "the refusals listing is what this plugin refused, keyed on the line that names the rule"
   WHEN the refusals a window met are listed THEN the CLI SHALL count only a body carrying a line in
   one of this plugin's own refusal shapes, SHALL key the row on the line that names the rule rather
   than on the body's first line, and SHALL count every other non-zero exit on a line of its own
@@ -219,7 +219,7 @@ it. Reading is all this product does there.
   WHEN a profile is printed THEN the CLI SHALL list each guide part the window's runs read with its
   calls, the runs that read it and the runs that read it more than once, read off the call's own
   words by the reading the class uses, and SHALL keep the class table's one row for the verb.
-- **AC-19-8-27** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "one class per shape of work, whatever way it was typed"
+- **AC-19-8-27** · Rev: 1 · Proof: plugin/test/stats/runs/runs.test.mjs "one class per shape of work, whatever way it was typed"
   WHEN a call in that record is classed THEN the CLI SHALL NOT read as the place a command
   begins an operator the shell spent as a character of a word — one inside a single-quoted
   span, inside a comment or behind a backslash — and SHALL go on reading one inside the body
@@ -329,27 +329,27 @@ it. Reading is all this product does there.
   THEN the CLI SHALL refuse an unreadable one by naming the verb the caller typed rather than
   another subject sharing that parser.
 
-- **AC-19-8-50** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "compactions and the runs that met one are two counts, because a run that compacted three times is one run that ran out of room"
+- **AC-19-8-50** · Rev: 1 · Proof: plugin/test/stats/runs/condition.test.mjs "compactions and the runs that met one are two counts, because a run that compacted three times is one run that ran out of room"
   WHEN a profile is printed THEN the CLI SHALL count every compaction the window's runs met and,
   apart from that count, how many of those runs met at least one, so that one run losing its history
   more than once is one run and not several.
-- **AC-19-8-51** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "an api error is counted apart from a non-zero exit this plugin refused"
+- **AC-19-8-51** · Rev: 1 · Proof: plugin/test/stats/runs/condition.test.mjs "an api error is counted apart from a non-zero exit this plugin refused"
   WHEN a profile is printed THEN the CLI SHALL count a request that came back as an API error apart
   from a non-zero exit this plugin refused, the two being different failures the same pass already
   tells apart.
-- **AC-19-8-52** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "compactions and api errors print as unavailable rather than as a nought where the window holds no run"
+- **AC-19-8-52** · Rev: 1 · Proof: plugin/test/stats/runs/condition.test.mjs "compactions and api errors print as unavailable rather than as a nought where the window holds no run"
   WHERE the window holds no run the CLI SHALL hold the compaction count and the API error count as
   unavailable rather than as a nought found, in the profile and in `--json` alike — the prose screen
   prints no row at all for such a window, the same as every other figure on it.
-- **AC-19-8-80** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "human prompts and the runs that carried one are two counts, off the reader the stop-check gate uses"
+- **AC-19-8-80** · Rev: 1 · Proof: plugin/test/stats/runs/condition.test.mjs "human prompts and the runs that carried one are two counts, off the reader the stop-check gate uses"
   WHEN a profile is printed THEN the CLI SHALL count, off the same reader the stop-check gate uses
   for a real human turn rather than a second test of what one is, every human-typed turn the
   window's runs carried and, apart from that count, how many of those runs carried at least one.
-- **AC-19-8-81** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "a run a human prompt showed up inside is named by the issue it claimed, or its own session where it claimed none"
+- **AC-19-8-81** · Rev: 1 · Proof: plugin/test/stats/runs/condition.test.mjs "a run a human prompt showed up inside is named by the issue it claimed, or its own session where it claimed none"
   WHEN a profile is printed THEN the CLI SHALL name each run a human-typed turn showed up inside, by
   the issue it claimed or, where it claimed none, its own session, rather than folding those runs
   into a share.
-- **AC-19-8-82** · Rev: 1 · Proof: plugin/test/stats/runs.test.mjs "human prompts print as unavailable rather than as a nought where the window holds no run"
+- **AC-19-8-82** · Rev: 1 · Proof: plugin/test/stats/runs/condition.test.mjs "human prompts print as unavailable rather than as a nought where the window holds no run"
   WHERE the window holds no run the CLI SHALL hold the human-prompt count, the count of runs that
   carried one and the named list of them as unavailable rather than as a nought found, in the
   profile and in `--json` alike.

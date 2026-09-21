@@ -3,10 +3,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { callsIn } from "../../src/stats/corpus/transcripts.mjs";
-import { profileOf, runFrom } from "../../src/stats/runs.mjs";
+import { callsIn } from "../../../src/stats/corpus/transcripts.mjs";
+import { profileOf, runFrom } from "../../../src/stats/runs.mjs";
 import { MARKER_TURN, MODELLESS, NOUGHTS, NO_USAGE, OTHER, RESPONSE, SHORT_RESPONSE, SHORT_USAGE,
-  ask, corpus, transcript } from "./fixture-runs.mjs";
+  ask, corpus, transcript } from "../fixture-runs.mjs";
 
 test("usage is counted once per response, and a record carrying none is counted as one carrying none", () => {
   assert.deepEqual(callsIn(transcript()).spent,

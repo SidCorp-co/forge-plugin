@@ -100,7 +100,7 @@ export const CALLS = [
   ["c2", 30, 5, "./plugin/bin/forge claim ISS-99", "claimed"],
   ["c3", 60, 5, "forge record plan ISS-99 /tmp/plan.md", "planned"],
   ["c4", 120, 120, "cd /w && npm run check 2>&1 | tail -5", "All 12 gate step(s) passed"],
-  ["c5", 300, 30, "node --test plugin/test/stats/runs.test.mjs", "ok"],
+  ["c5", 300, 30, "node --test plugin/test/stats/runs/runs.test.mjs", "ok"],
   ["c6", 400, 900, "forge codex consult --send bodies plugin/src/stats/runs.mjs", "1 finding"],
   ["c7", 1400, 300, "forge codex consult --recheck", "confirmed"],
   ["c8", 1800, 5, "forge record verdict ISS-99 --criterion 1", "recorded"],
