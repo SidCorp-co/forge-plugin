@@ -226,8 +226,8 @@
       "digest": "babb68ef21e20371fa54b623fad01727fc0b5ae3213f5ded8622f668a7907e93"
     },
     "NFR-11": {
-      "rev": 1,
-      "digest": "060eb55d1de9036519b6b44b8d2522b39cc1cc148a837c45d201589e7836e696"
+      "rev": 2,
+      "digest": "5068de7ae1139385c2cfd31fe8274a5bb08a68750046bdc6036ab856378c83ef"
     },
     "AC-17-11-1": {
       "rev": 1,
@@ -242,12 +242,12 @@
       "digest": "fa1881e8989f5f14e86f676bdf4818bdb00c594e5b23252ccb4907fa6e304904"
     },
     "AC-17-11-4": {
-      "rev": 1,
-      "digest": "1cb59190f776602b845ce9d6ffa98332a78d751a8726e8bb37c8a974378c5205"
+      "rev": 2,
+      "digest": "4c15dc5effbac2395b518661f294d0393e7e837d5944a129445cfcf25ce9c949"
     },
     "AC-17-11-5": {
-      "rev": 1,
-      "digest": "dba18517a03b2bf1bc97e04af8ae38acc968b8f26f08d03ae746ab467b99af92"
+      "rev": 2,
+      "digest": "1d28d24f67f3730fe9bb95ab0b39e42429c4451346ccb578a9184f71dc172815"
     },
     "AC-17-11-6": {
       "rev": 1,
@@ -260,6 +260,38 @@
     "AC-17-11-8": {
       "rev": 1,
       "digest": "4bdc6d8205a009ab4ce2a650fb6324eb00ab6cfdd2c631a0cc63cd4bf1f3dfac"
+    },
+    "AC-17-11-9": {
+      "rev": 1,
+      "digest": "1f681236f911e7644771f0242a6ffcd7569c95e2c1b9780459a88a51172c2b82"
+    },
+    "AC-17-11-10": {
+      "rev": 1,
+      "digest": "e2996a0ba8928c7ec8b8452602840948fb09792b0a50438cf7bcf3a09f985236"
+    },
+    "AC-17-11-11": {
+      "rev": 1,
+      "digest": "7d1b232f2e3f00959d653adcea53d59364945416d69b830e726abb810a023d33"
+    },
+    "AC-17-11-12": {
+      "rev": 1,
+      "digest": "f8df1ad5efc5acb5ee1b6cf85b3f03d1c844b781e9d116decd6739fb589c9f34"
+    },
+    "AC-17-11-13": {
+      "rev": 1,
+      "digest": "a9d14106b1e39146e56d086efe80c4c05a82001eb2a881fd18f55999c7870cb9"
+    },
+    "AC-17-11-14": {
+      "rev": 1,
+      "digest": "ecc2d81a710a0bc6f8c67ba355d518bdedc794525bdf3c7dca7b900a2e08e574"
+    },
+    "AC-17-11-15": {
+      "rev": 1,
+      "digest": "c0a522828ad516f81db05c0e9e2092453e5b9793e95756700f0dbdd4ac4c6b02"
+    },
+    "AC-17-11-16": {
+      "rev": 1,
+      "digest": "6d68755e064e10ed0fcf81cbe756e5a95d6c50f8c641a47090277c9d143ae431"
     },
     "NFR-12": {
       "rev": 1,

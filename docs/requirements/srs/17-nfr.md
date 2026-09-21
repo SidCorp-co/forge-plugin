@@ -136,7 +136,7 @@ otherwise: an answer's quality is a person's finding, never a gate's.
 
 ### NFR-11 — A wait costs no turn
 
-Rev: 1 · Enforces: BR-18
+Rev: 2 · Enforces: BR-18
 
 Asking again is what a wait costs: each wake-up spends a turn on a question one call could have put
 once, and the routes that spend none are the ones whose own call carries the answer back.
@@ -144,8 +144,11 @@ once, and the routes that spend none are the ones whose own call carries the ans
 the rule leaves unjudged.
 
 A turn that stops instead of taking one of those routes spends the same cost a worse way: nothing
-resumes it but a person watching from outside. Where that turn stood in a worktree of its own, what
-it left running there is read back at the stop and answered the same way asking again is.
+resumes it but a person watching from outside. What it left running is read back at the stop and
+answered the same way asking again is. A wait needs no directory to name, so the process keeps the
+one the session already stood in and every run on that host shares it: inside a worktree of the
+turn's own, anything standing there is that turn's; outside one, what is running a command that
+turn itself ran is, and nothing else is.
 
 - **AC-17-11-1** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs "a wait that polls is refused, and a pause on its own is not"
   IF a pause stands inside a wait for other work THEN the product SHALL refuse the command and SHALL
@@ -157,12 +160,13 @@ it left running there is read back at the stop and answered the same way asking 
   WHEN a turn ends and a process that turn began still stands, by its working directory, inside the
   worktree that turn stood in THEN the product SHALL refuse the stop and SHALL name that process's
   id in the refusal.
-- **AC-17-11-4** · Rev: 1 · Proof: plugin/test/flow/lease/standing-in.test.mjs "a process standing in the tree by its cwd is found, whatever it is running"
-  WHEN a process standing in a tree is read for this rule THEN the product SHALL judge it by its
-  working directory alone and SHALL NOT judge it by what command it is running.
-- **AC-17-11-5** · Rev: 1 · Proof: plugin/test/gates/turn/stop-check.test.mjs "a process standing outside the worktree the turn left does not refuse the stop"
-  IF a process stands outside the worktree the turn stood in THEN the product SHALL NOT refuse the
-  stop on that process's account.
+- **AC-17-11-4** · Rev: 2 · Proof: plugin/test/flow/lease/standing-in.test.mjs "a process standing in the tree by its cwd is found, whatever it is running"
+  WHEN a process standing in a worktree of the turn's own is read for this rule THEN the product
+  SHALL judge it by its working directory alone and SHALL NOT judge it by what command it is
+  running.
+- **AC-17-11-5** · Rev: 2 · Proof: plugin/test/gates/turn/stop-check.test.mjs "a process standing outside the worktree the turn left does not refuse the stop"
+  IF a process stands outside the worktree the turn stood in and runs no command a call of that
+  turn made THEN the product SHALL NOT refuse the stop on that process's account.
 - **AC-17-11-6** · Rev: 1 · Proof: plugin/test/flow/lease/standing-in.test.mjs "since narrows to what began at or after that moment"
   IF a process began before the turn's own first moment THEN the product SHALL NOT read it as
   standing there on that turn's account.
@@ -172,6 +176,30 @@ it left running there is read back at the stop and answered the same way asking 
 - **AC-17-11-8** · Rev: 1 · Proof: plugin/test/gates/turn/stop-check.test.mjs "the same live process does not refuse the stop a second time this turn"
   WHERE a live process already refused this turn's stop once THEN the product SHALL let a second
   stop of that same turn end without refusing it again.
+- **AC-17-11-9** · Rev: 1 · Proof: plugin/test/gates/turn/stop-check.test.mjs "a wait this turn started with no cd refuses the stop, outside any worktree"
+  WHEN a turn ends and a process it started still stands in a directory that is no worktree of that
+  turn's THEN the product SHALL refuse the stop and SHALL name that process's id in the refusal.
+- **AC-17-11-10** · Rev: 1 · Proof: plugin/test/gates/turn/stop-check.test.mjs "a process another run left standing where this turn stood does not refuse the stop"
+  IF a process stands outside every worktree that turn stood in, and neither its command line nor
+  any call that turn made contains the other once quoting is dropped and the shell's own separators
+  are read as blanks, THEN the product SHALL NOT refuse the stop on that process's account.
+- **AC-17-11-11** · Rev: 1 · Proof: plugin/test/flow/lease/started-here.test.mjs "a process running a command this turn ran is found wherever it stands"
+  WHERE a process is matched to a turn by a command that turn ran, the product SHALL find it
+  wherever that process stands.
+- **AC-17-11-12** · Rev: 1 · Proof: plugin/test/flow/lease/started-here.test.mjs "a command too short to identify a process matches none"
+  IF a command a turn ran is too short to identify a process THEN the product SHALL match no
+  process against it.
+- **AC-17-11-13** · Rev: 1 · Proof: plugin/test/gates/turn/stop-check.test.mjs "the same command another run began before this turn's own call does not refuse the stop"
+  IF two turns ran the same command and the process still standing began outside the call the turn
+  that is ending made THEN the product SHALL NOT refuse that turn's stop on its account.
+- **AC-17-11-14** · Rev: 1 · Proof: plugin/test/gates/turn/stop-check.test.mjs "the same command another run began after this turn's call came back does not refuse the stop"
+  IF a turn's own call has come back and another run begins the same command after that call's
+  window has closed THEN the product SHALL NOT refuse that turn's stop on what it left standing.
+- **AC-17-11-15** · Rev: 1 · Proof: plugin/test/flow/lease/started-here.test.mjs "a command whose path only begins another run's is not read as the same job"
+  IF one command's path only begins another's THEN the product SHALL NOT read the two as one job.
+- **AC-17-11-16** · Rev: 1 · Proof: plugin/test/flow/lease/started-here.test.mjs "a process unobserved until long after its window closed is still placed inside it"
+  WHERE a process is first read long after the window it began in has closed, the product SHALL
+  place it at the moment it began rather than at the moment it was read.
 
 ### NFR-12 — A ceiling drawn from one sample is redrawn from the population
 

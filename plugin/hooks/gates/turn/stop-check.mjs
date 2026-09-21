@@ -10,7 +10,7 @@ import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { logBytes } from "../../../src/codex/codex-log.mjs";
 import { unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
 import { FIELD, KEY } from "../../../src/flow/lease.mjs";
-import { standingIn } from "../../../src/flow/lease/holder.mjs";
+import { standingIn, startedHere } from "../../../src/flow/lease/holder.mjs";
 import { gitProbe } from "../../../src/hooks/git-probe.mjs";
 import { linting } from "../../../src/hooks/lint-delegate.mjs";
 import { projectStop } from "../../../src/resolve/settings.mjs";
@@ -28,21 +28,43 @@ const CLI = fileURLToPath(new URL("../../../src/cli.mjs", import.meta.url));
 
 const left = () => remaining() - SPARE_MS;
 
-/** What this gate reads out of the turn, in one walk of a tail that reaches hundreds of thousands of records: `shell`, the Bash commands, for where the turn stood and whose id it exported; and `said`, every tool's command whatever the tool plus each typed prompt's content, for the keys it named. Not the same strings, and neither predicate is the other's (ISS-509). */
+/* A harness records a call before it makes it and records the result after, so a process that call
+   started was born between the two — at most one spawn past the second, the record being written
+   once the tool answers rather than once the kernel has the process. Wide enough that no real wait
+   falls outside its own call's window, narrow enough that a sibling run's identical command, made
+   in some other call, falls outside this one. */
+const SPAWN_MS = 5_000;
+
+/** What this gate reads out of the turn, in one walk of a tail that reaches hundreds of thousands of records: `shell`, the Bash commands, for where the turn stood and whose id it exported; `said`, every tool's command whatever the tool plus each typed prompt's content, for the keys it named; and `calls`, each Bash command with the window the turn's own records put around it, for the processes it left behind. Not the same strings, and no predicate here is another's (ISS-509). */
 const readTurn = (records) => {
   const shell = [];
   const said = [];
+  const calls = [];
+  let last = 0;
   for (const record of sinceTurn(records)) {
+    const at = Date.parse(String(record?.timestamp ?? ""));
+    if (Number.isFinite(at)) last = Math.max(last, at);
     if (typeof record?.promptSource === "string") said.push(JSON.stringify(record.message?.content ?? ""));
     if (!Array.isArray(record?.message?.content)) continue;
     for (const one of record.message.content) {
+      /* The result names the call it answers, so calls the turn made together are each closed by
+         their own rather than all of them by whichever came back first. */
+      if (one?.type === "tool_result") {
+        const call = calls.find((two) => two.id && two.id === one.tool_use_id);
+        if (call && call.to === null) call.to = at + SPAWN_MS;
+        continue;
+      }
       if (one?.type !== "tool_use" || !one.input?.command) continue;
       const command = String(one.input.command);
       said.push(command);
-      if (one.name === "Bash") shell.push(command);
+      if (one.name !== "Bash") continue;
+      shell.push(command);
+      calls.push({ said: command, id: one.id, from: at, to: null });
     }
   }
-  return { shell, said };
+  /* A call nothing came back for is still running, and the turn is ending now. */
+  for (const call of calls) if (call.to === null) call.to = last + SPAWN_MS;
+  return { shell, said, calls };
 };
 
 const CD = /(?:^|&&|\|\||[;\n])\s*cd\s+(?:"([^"]+)"|'([^']+)'|([^\s;&|]+))/gu;
@@ -166,6 +188,21 @@ const leftDirty = (tree, since) => {
   });
 };
 
+/* Two readings, because neither reaches the other's case. A worktree is one run's own, so whatever
+   stands in it is that run's however it was started; outside one no directory tells this turn's
+   process from a sibling run's, both sharing the session's own working directory, and the calls
+   the turn made are what does. Each answers `null` where the process table would not enumerate,
+   and a reading that could not be made refuses nothing. */
+const stillRunning = (tree, since, calls) => {
+  const found = new Map();
+  const both = [
+    ...(isWorktree(tree) ? standingIn(tree, since) ?? [] : []),
+    ...(startedHere(calls) ?? []),
+  ];
+  for (const one of both) found.set(one.pid, one);
+  return [...found.values()].sort((one, two) => String(one.since).localeCompare(String(two.since)));
+};
+
 const linted = (ev, records) => {
   const found = [];
   const at = (file) => repoRoot(file) ?? dirname(file);
@@ -181,7 +218,7 @@ export const run = (ev, held = heldAndSilent) => {
   const records = turnRecords(transcriptOf(ev)) ?? [];
   /* A subagent's transcript opens on the prompt it was handed, which nobody typed: its turn is the whole of it. */
   const at = turnAt(records) || (isSubagent(ev) ? String(records[0]?.timestamp ?? "") : "");
-  const { shell, said } = readTurn(records);
+  const { shell, said, calls } = readTurn(records);
   const tree = treeOf(ev, records, shell);
   const lines = [];
   const say = (item, line) => {
@@ -212,12 +249,12 @@ export const run = (ev, held = heldAndSilent) => {
       + `  Clear it: \`git -C ${typed(tree)} add -u && git commit\`.`);
   }
 
-  if (left() > 1000 && Number.isFinite(since) && isWorktree(tree)) {
-    const standing = standingIn(tree, since);
-    if (standing?.length) {
+  if (left() > 1000 && Number.isFinite(since)) {
+    const standing = stillRunning(tree, since, calls);
+    if (standing.length) {
       const [first, ...rest] = standing;
-      say("live", `${typed(tree)} still has ${standing.length === 1 ? "a process" : `${standing.length} processes`} `
-        + `standing in it that this turn started, pid ${first.pid} (${first.command})${rest.length ? " among them" : ""}.\n`
+      say("live", `This turn started ${standing.length === 1 ? "a process" : `${standing.length} processes`} `
+        + `still standing, pid ${first.pid} (${first.command})${rest.length ? " among them" : ""}.\n`
         + "  Clear it: block on it before this turn ends — `forge hooks --how polling` names the wait.");
     }
   }

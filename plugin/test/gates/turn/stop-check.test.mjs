@@ -167,7 +167,7 @@ const stopStanding = (pid) => {
   }
 };
 
-const settled = () => new Promise((r) => setTimeout(r, 150));
+const settled = (ms = 150) => new Promise((r) => setTimeout(r, ms));
 
 test("a process still standing in a worktree the turn left refuses the stop, named", async () => {
   const { wt } = freshWorktree();
@@ -175,7 +175,7 @@ test("a process still standing in a worktree the turn left refuses the stop, nam
   try {
     await settled();
     const said = stopped(room(), { transcript_path: transcript(), cwd: wt });
-    assert.match(said?.reason ?? "", /still has a process standing in it/u, said?.reason);
+    assert.match(said?.reason ?? "", /still standing, pid/u, said?.reason);
     assert.match(said.reason, new RegExp(`pid ${pid}`, "u"), "the pid standing there is not named");
     assert.match(said.reason, /forge hooks --how polling/u, "the wait it should take instead is missing");
   } finally {
@@ -206,6 +206,111 @@ test("a process that has already ended does not refuse the stop", async () => {
     "a pid no longer in the process table was still read as standing there");
 });
 
+/* A wait as the corpus writes it: no `cd`, so the process keeps the session's own working
+   directory — the checkout a worktree was cut from — and the worktree reading never sees it. */
+const ranIn = (command, tree) => {
+  const child = spawn("/bin/sh", ["-c", command], { cwd: tree, detached: true, stdio: "ignore" });
+  child.unref();
+  return child.pid;
+};
+
+const waiting = () => `sleep 30 # stop-check-live ${randomUUID()}`;
+
+const ago = (seconds) => new Date(Date.now() - seconds * 1_000).toISOString();
+
+/* A turn stamped against this machine's clock rather than the fixed one every other case uses: a
+   process's own moment is the kernel's, and only a turn standing beside it can be judged with it.
+   `at` is how long ago the call was made and `answered` how long ago the record that closed it
+   came back; the turn itself goes on until now either way. */
+const liveTurn = (command, { at = 60, back = null } = {}) => {
+  const id = `toolu_${randomUUID().slice(0, 8)}`;
+  return written([
+    { ...prompt, timestamp: ago(at + 1) },
+    {
+      type: "assistant",
+      timestamp: ago(at),
+      message: { content: [{ type: "tool_use", id, name: "Bash", input: { command } }] },
+    },
+    ...(back === null ? [] : [{
+      type: "user",
+      timestamp: ago(back),
+      message: { content: [{ type: "tool_result", tool_use_id: id, content: "ok" }] },
+    }]),
+    { type: "assistant", timestamp: ago(0), message: { content: [{ type: "text", text: "and on" }] } },
+  ]);
+};
+
+test("a wait this turn started with no cd refuses the stop, outside any worktree", async () => {
+  const checkout = cleanRepo();
+  const command = waiting();
+  const pid = ranIn(command, checkout);
+  try {
+    await settled();
+    const said = stopped(room(), { transcript_path: liveTurn(command), cwd: checkout });
+    assert.match(said?.reason ?? "", /still standing, pid/u, said?.reason);
+    assert.match(said.reason, new RegExp(`pid ${pid}`, "u"), "the pid this turn started is not named");
+    assert.match(said.reason, /forge hooks --how polling/u, "the wait it should take instead is missing");
+  } finally {
+    stopStanding(pid);
+  }
+});
+
+/* Two runs share one host, one working directory and one environment, so the only thing that tells
+   this turn's process from the other's is which transcript names it. The same process, the same
+   directory, two turns: a reading that widened the tree or walked ancestry would refuse both. */
+test("a process another run left standing where this turn stood does not refuse the stop", async () => {
+  const checkout = cleanRepo();
+  const theirs = waiting();
+  const pid = ranIn(theirs, checkout);
+  try {
+    await settled();
+    assert.equal(stopped(room(), { transcript_path: liveTurn(waiting()), cwd: checkout }), null,
+      "a process this turn never started was named in its refusal");
+    assert.match(stopped(room(), { transcript_path: liveTurn(theirs), cwd: checkout })?.reason ?? "",
+      new RegExp(`pid ${pid}`, "u"),
+      "the case proves nothing unless the turn that did start it is refused");
+  } finally {
+    stopStanding(pid);
+  }
+});
+
+/* Two runs of one project run the same commands, so the command alone cannot tell their processes
+   apart and when each began has to. Here the sibling's began before this turn made its own call. */
+test("the same command another run began before this turn's own call does not refuse the stop", async () => {
+  const checkout = cleanRepo();
+  const command = waiting();
+  const pid = ranIn(command, checkout);
+  try {
+    await settled(1_000);
+    assert.equal(stopped(room(), { transcript_path: liveTurn(command, { at: 0 }), cwd: checkout }), null,
+      "a process older than this turn's own call was read as started by it");
+    assert.match(stopped(room(), { transcript_path: liveTurn(command), cwd: checkout })?.reason ?? "",
+      new RegExp(`pid ${pid}`, "u"),
+      "the case proves nothing unless the turn whose call did precede it is refused");
+  } finally {
+    stopStanding(pid);
+  }
+});
+
+/* The other half of the same hazard: this turn's own call ran and came back, the turn carried on
+   working, and the sibling started the identical command after that. A window that ended at the
+   turn rather than at the call would still be open, and would refuse this turn on its account. */
+test("the same command another run began after this turn's call came back does not refuse the stop", async () => {
+  const checkout = cleanRepo();
+  const command = waiting();
+  const pid = ranIn(command, checkout);
+  try {
+    await settled();
+    assert.equal(stopped(room(), { transcript_path: liveTurn(command, { at: 600, back: 300 }), cwd: checkout }),
+      null, "a process begun long after this turn's own call came back was read as started by it");
+    assert.match(stopped(room(), { transcript_path: liveTurn(command, { at: 600 }), cwd: checkout })?.reason ?? "",
+      new RegExp(`pid ${pid}`, "u"),
+      "the case proves nothing unless the same turn with its call still open is refused");
+  } finally {
+    stopStanding(pid);
+  }
+});
+
 test("the same live process does not refuse the stop a second time this turn", async () => {
   const { wt } = freshWorktree();
   const pid = spawnIn(wt);
@@ -215,7 +320,7 @@ test("the same live process does not refuse the stop a second time this turn", a
     const path = transcript();
     const session = randomUUID();
     assert.match(stopped(env, { session_id: session, transcript_path: path, cwd: wt }).reason,
-      /still has a process standing in it/u);
+      /still standing, pid/u);
     assert.equal(stopped(env, { session_id: session, transcript_path: path, cwd: wt }), null,
       "asked once, this run said so and is let go, not looped on a job it cannot end itself");
   } finally {
