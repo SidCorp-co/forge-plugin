@@ -9,7 +9,7 @@ import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-import { fakeTracker, git, ranAsync, tempRoom } from "../../fixtures.mjs";
+import { escaped, fakeTracker, git, ranAsync, tempRoom } from "../../fixtures.mjs";
 import { projectFileAt } from "../../../src/resolve/settings.mjs";
 import { configDir } from "../../../src/resolve/config.mjs";
 
@@ -41,8 +41,8 @@ test("the committed file a checkout carries is adopted whole into this machine's
 test("each key the entry now holds is printed beside the file it was read back from", async () => {
   const { room, entry } = checkout("printed", { slug: "printed-here", runs: 4 });
   const run = await ask(room, "--adopt");
-  assert.match(run.stdout, new RegExp(`^ {2}slug: "printed-here" {2}← ${entry}$`, "mu"), run.stdout);
-  assert.match(run.stdout, new RegExp(`^ {2}runs: 4 {2}← ${entry}$`, "mu"),
+  assert.match(run.stdout, new RegExp(`^ {2}slug: "printed-here" {2}← ${escaped(entry)}$`, "mu"), run.stdout);
+  assert.match(run.stdout, new RegExp(`^ {2}runs: 4 {2}← ${escaped(entry)}$`, "mu"),
     "read back off the disk, so the line says what that file holds rather than what was sent");
 });
 
@@ -71,7 +71,7 @@ test("the entry is created by the first --set, a project that has set nothing ha
   const { room, entry } = checkout("created");
   const run = await ask(room, "--set", "slug=made-here");
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, new RegExp(`^project\\.slug: "made-here" {2}← ${entry}$`, "mu"));
+  assert.match(run.stdout, new RegExp(`^project\\.slug: "made-here" {2}← ${escaped(entry)}$`, "mu"));
   assert.equal(statSync(entry).mode & 0o777, 0o600, "at the mode everything under this directory keeps");
 });
 
@@ -92,7 +92,7 @@ test("a committed file standing unread is said once, with the command that takes
   const rows = run.stdout.split("\n").filter((one) => one.includes("project file"));
   assert.equal(rows.length, 1, `one fact about one file, said once per call:\n${run.stdout}`);
   assert.match(rows[0], /is this checkout's own and is read by nothing/u);
-  assert.match(rows[0], new RegExp(`\`forge doctor --adopt\` takes its contents over into ${entry}`, "u"));
+  assert.ok(rows[0].includes(`\`forge doctor --adopt\` takes its contents over into ${entry}`), rows[0]);
 });
 
 test("a key the committed file carries moves no value the report prints", async () => {
@@ -113,7 +113,7 @@ test("a worktree and the checkout it was cut from resolve one and the same recor
   git(room, "worktree", "add", "-q", "-b", "side", linked);
   await ask(room, "--adopt");
   const run = await ask(linked);
-  assert.match(run.stdout, new RegExp(`project slug\\s+shared {2}← ${entry}`, "u"),
+  assert.match(run.stdout, new RegExp(`project slug\\s+shared {2}← ${escaped(entry)}`, "u"),
     `the worktree reads the repository's own entry, not one of its own:\n${run.stdout}`);
 });
 

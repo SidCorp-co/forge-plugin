@@ -25,9 +25,10 @@ two dropped a valueless flag silently, which reads as an unfiltered answer.
 
 **A value whose right answer differs between two boxes working one checkout is the machine's, and
 is never in a file that is committed.** That line decides the whole of what this machine answers
-for itself and what it answers per project — the two sit side by side under `~/.config/forge/`, the
-machine's own in `config.json` and each project's in `projects/<root folder>/config.json`, and the
-line is about which of the two a key belongs in rather than about which file is committed: the instance url, the tracker credential, every key of a harness
+for itself and what it answers per project — the two sit side by side, the machine's own in
+`~/.config/forge/config.json` and each project's in
+`~/.config/forge/projects/<root folder>/config.json`, and the line is about which of the two a key
+belongs in rather than about which of them a checkout carries: the instance url, the tracker credential, every key of a harness
 service — the reviewer's gateway, the Vietnamese gateway, Cloudflare, Coolify, the ChatGPT endpoint —
 and `withheld`, `withheldSkills`, `capabilities` and `ship`. A project file carrying any of them
 would hand every checkout of it one box's credential and one box's record of what a credential may

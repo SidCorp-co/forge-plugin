@@ -10,9 +10,10 @@ The **endpoint and token are the account's** — one Forge instance, one PAT —
 `~/.config/forge/config.json` and nowhere else. Not the environment, and not a `.mcp.json`: doctor
 reports one of those naming a `forge` server, with the command that saves the same values.
 
-The **slug is the project's**, from the project file at the root of the checkout, holding
-`{ "slug": "<project>" }`, and only from there — `forge doctor` names that file beside every other
-source. A git worktree with no config of its own inherits its main checkout's.
+The **slug is the project's**, from this machine's own record of the project this checkout belongs
+to, holding `{ "slug": "<project>" }`, and only from there — `forge doctor` names that file beside
+every other source. Every worktree of one checkout resolves that same record. A checkout carrying a
+project file of its own is read for nothing, and `forge doctor` names what to do about it.
 
 The slug is demanded **only by a call that needs a project id**, so `tools` and `schema` answer in
 a directory that belongs to no project. The project id is looked up from the slug and is never

@@ -12,9 +12,8 @@ reports one of those naming a `forge` server, with the command that saves the sa
 
 The **slug is the project's**, from this machine's own record of the project this checkout belongs
 to, holding `{ "slug": "<project>" }`, and only from there — `forge doctor` names that file beside
-every other source, and `forge doctor --set slug=<project>` writes it. Every worktree of one checkout
-resolves that same record. A checkout carrying a project file of its own is read for nothing;
-`forge doctor` names the command that takes such a file over.
+every other source. Every worktree of one checkout resolves that same record. A checkout carrying a
+project file of its own is read for nothing, and `forge doctor` names what to do about it.
 
 The slug is demanded **only by a call that needs a project id**, so `tools` and `schema` answer in
 a directory that belongs to no project. The project id is looked up from the slug and is never
