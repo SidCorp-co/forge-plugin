@@ -159,3 +159,30 @@ it left running there is read back at the stop and answered the same way asking 
 - **AC-17-11-8** · Rev: 1 · Proof: plugin/test/gates/turn/stop-check.test.mjs "the same live process does not refuse the stop a second time this turn"
   WHERE a live process already refused this turn's stop once THEN the product SHALL let a second
   stop of that same turn end without refusing it again.
+
+### NFR-12 — A ceiling drawn from one sample is redrawn from the population
+
+Rev: 1 · Enforces: BR-12
+
+The gate's own drift trigger fixed a whole run's ceiling at 1.25x a single sample measured on one
+day. The population it stood for moved: read against this checkout's own ledger, the sample sat
+below its population's 25th percentile and the fixed ceiling was crossed by most ordinary runs, so
+crossing it stopped meaning anything (ISS-1142). A figure that is meant to say "unusual" has to be
+drawn from what usual currently is, which is the population the ledger already keeps, and not from
+whatever the population looked like the day someone last measured it.
+
+- **AC-17-12-1** · Rev: 1 · Proof: plugin/test/tools/gates/timing.test.mjs "the ceiling a whole run is judged against is a percentile of the ledger's own same-table population, not a fixed sample"
+  WHEN a whole run is judged against a ceiling THEN that ceiling SHALL be a percentile of the whole
+  runs the ledger already holds at the same table size, rather than a fixed constant.
+- **AC-17-12-2** · Rev: 1 · Proof: plugin/test/tools/gates/timing.test.mjs "fewer prior whole runs than the population floor leaves the ceiling unspoken"
+  IF fewer than the declared minimum of same-table whole runs stand in the ledger before the one
+  being judged THEN nothing SHALL be said about a ceiling for it.
+- **AC-17-12-3** · Rev: 1 · Proof: plugin/test/tools/gates/timing.test.mjs "a spoken ceiling names its percentile, its population and the date it was drawn through"
+  WHEN a run is said to be over the ceiling THEN the line SHALL name the percentile taken, the
+  count of runs it was taken over and the date of the newest of them, so the figure can be
+  recomputed rather than trusted.
+- **AC-17-12-4** · Rev: 1 · Proof: plugin/test/tools/gates/timing.test.mjs "a population whose ordinary run sits under the ceiling is silent, and the same population shifted up makes an ordinary run of it speak"
+  WHERE a synthetic ledger's population has an ordinary run under the ceiling drawn from it, that
+  run SHALL be silent; WHERE the same population is shifted up, an ordinary run of the shifted
+  population judged against the ceiling drawn from the population before it SHALL be said to be
+  over.
