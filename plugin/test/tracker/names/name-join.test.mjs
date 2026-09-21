@@ -4,12 +4,11 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, it, test } from "node:test";
 
-import { CHOSEN, SUBJECTS, WITHHELD, joined, recording, striking } from "../../src/tracker/name-join.mjs";
-import { nameJoinRows } from "../../src/tools/services/doctor/names.mjs";
+import { CHOSEN, SUBJECTS, WITHHELD, joined, nameJoinRows, recording, striking } from "../../../src/tracker/name-join.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const SOURCE = join(here, "..", "..", "src", "tracker", "name-join.mjs");
-const CAPTURE = join(here, "..", "fixtures", "rest", "projects-get.json");
+const SOURCE = join(here, "..", "..", "..", "src", "tracker", "name-join.mjs");
+const CAPTURE = join(here, "..", "..", "fixtures", "rest", "projects-get.json");
 
 const capture = JSON.parse(readFileSync(CAPTURE, "utf8"));
 const ROW = capture.rest.project;

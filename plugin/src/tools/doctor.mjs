@@ -26,7 +26,6 @@ import {
 import { readClaudeMd, reviewClaudeMd } from "../checks/claude-md.mjs";
 import { checkClaudeMdLocally, reportClaudeMd } from "./services/doctor/repo.mjs";
 import { harnessLines } from "./services/doctor/harness.mjs";
-import { nameJoinRows } from "./services/doctor/names.mjs";
 import { installRows } from "./services/doctor/install.mjs";
 import { copyRows, startRelease } from "./services/doctor/release.mjs";
 import { withholdingLines } from "./services/doctor/jobs.mjs";
@@ -266,6 +265,7 @@ export const trackerId = async (projectId) => {
 
 const checkEndpoint = async (full, credentials) => {
   const { forgetProjects, projectId, restBase, scoped, wireBodies } = await import("../tracker/rest.mjs");
+  const { nameJoinRows } = await import("../tracker/name-join.mjs");
   const { served } = await import("../tracker/routes.mjs");
   under("tracker");
   forgetProjects();
