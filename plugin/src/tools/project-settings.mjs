@@ -123,10 +123,10 @@ const unknownKey = (given, read) =>
   + TRACKED.map((name) => `--set ${name}.${given}=<value>`).join(" or ");
 
 /* Which level holds a key is decided here and nowhere else, and a key of the other level is refused
-   by its own name rather than written a second time: two layers for one switch is a precedence rule
-   with no report of which won, which is the undo BR-08 says is broken (ISS-1403). The machine's set
-   is `MACHINE_KEYS` in doctor-keys.mjs, derived from the rows that write it, and the project's is
-   `PROJECT_KEYS` — a key in neither is refused with both lists.
+   by its own name rather than written a second time, for the reason `machine/stores.mjs` states of
+   the layers it reads (ISS-1403). The machine's set is `MACHINE_KEYS` in doctor-keys.mjs, derived
+   from the rows that write it, and the project's is `PROJECT_KEYS` — a key in neither is refused
+   with both lists.
 
    `hasOwn`, never a lookup: the table is an object, so `constructor` and `toString` answer off
    Object.prototype and a caller naming one would be refused with a route reading

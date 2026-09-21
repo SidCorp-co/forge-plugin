@@ -195,9 +195,9 @@ export const projectWorkPattern = (at = null) => workPatternOf(declaredWork(at))
 export const projectCodex = () => forgeJson().parsed?.codex ?? {};
 
 /** Which CHECKOUT this process stands in — what a caller reading FILES off a root wants, and what
- *  `--git-common-dir` gets wrong in a worktree (ISS-1245). Null where no checkout holds this
- *  directory: a project's configuration is found by its repository's root folder, so a directory
- *  belonging to no repository has no project to be standing in (ISS-1403). */
+ *  `--git-common-dir` gets wrong in a worktree (ISS-1245). It answers whatever the walk answers,
+ *  which since ISS-1403 is the whole of it: there is no second source to fall back to, a project's
+ *  configuration being found by the repository rather than carried by the directory. */
 export const checkoutRoot = once(() => standing()?.tree ?? null);
 
 /* The slug is a header when there is one, and an error only for a call needing a project id. */
@@ -210,8 +210,8 @@ export const noProjectHere = () => {
   const path = projectFilePath();
   const held = committedFileHere();
   /* A directory in no checkout is not a project with nothing set yet: the record is keyed on a
-     repository's root folder, so there is nowhere for one to go and neither command below can run
-     here. Neither is offered — a refusal naming a route that cannot work recommends a second one. */
+     repository's root folder, so there is nowhere for one to go and neither command below could
+     run here if it were typed. So neither is named, for the reason `projectRoute` gives. */
   if (path === null) {
     return "This call is project-scoped and this directory is in no checkout, so there is no\n"
       + `project for it to be scoped to.${held ? ` ${held} is read by nothing.` : ""}\n`
