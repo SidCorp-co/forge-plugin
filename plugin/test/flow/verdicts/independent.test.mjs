@@ -5,22 +5,19 @@
    commit — under route after-merge the deployment identity is the merged head, so a commit read
    would let an ordinary builder verdict satisfy this by accident (ISS-673). */
 import assert from "node:assert/strict";
-import test, { after, before } from "node:test";
+import test from "node:test";
 
-import { ranAsync, tempHome } from "../../fixtures.mjs";
-import { trackerFor } from "../../fixtures/own-project.mjs";
+import { tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("verdict-independent").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
-const { judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { deployedOwed, judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { JUDGE_FROM } = await import("../../../src/flow/machine.mjs");
 const { judgeAsk, judgeProblem, judgedAt } = await import("../../../src/flow/qa/verdicts.mjs");
 const { releaseFrom } = await import("../../../src/tracker/project-config.mjs");
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const BUILDER = "the-builder-session";
 const QA = "the-qa-session";
-const LANDER = "the-lander-session";
 const WAVE = "the-dispatching-session";
 const MERGED = "c8c35500000000000000000000000000000000ab";
 const DEPLOYED = "9e24c2af00000000000000000000000000000cde";
@@ -160,19 +157,84 @@ test("a QA run inheriting the builder's id is refused, because nothing tells the
     { issue: { sessionContext: { landing: { ...CHECKPOINT, builder: BUILDER } } } }).length, 1);
 });
 
-test("no checkpoint means nothing names the builder or the deployment, and the check says so", () => {
+test("no checkpoint means nothing names the builder, and the check says so", () => {
   const said = owed([verdictOf(1), verdictOf(2)], { issue: { sessionContext: null } });
   assert.deepEqual(said, [
-    "the verdict on criteria 1, 2 has no landing checkpoint naming a deployment identity to judge it against",
-  ], "the two halves are two sentences, and with no checkpoint at all the deployment is the first of them");
-  const half = owed([verdictOf(1), verdictOf(2)],
-    { issue: { sessionContext: { landing: { ...CHECKPOINT, deployment: undefined } } } });
-  assert.equal(half.length, 1, "a checkpoint with no deployment identity is no checkpoint for this reading");
+    "the verdict on criteria 1, 2 has no landing checkpoint naming a builder, and nothing on it says "
+      + "a builder could not be recovered: a record nobody made reads here exactly like one nobody can make",
+  ], "the builder is what this rung reads for, a deployment identity being the verification's one rung up");
   const asked = items([verdictOf(1), verdictOf(2)], { issue: { sessionContext: null } });
   assert.deepEqual(asked.map((one) => one.command),
     [`forge claim ISS-8 --rebuilt ${MERGED.slice(0, 7)} --deployment <the sha the deployment reports serving>`],
     "and the ask is not another verdict, nor a command that reports where the landing is and writes "
       + "no checkpoint, but the write that puts one there");
+});
+
+/* The checkpoint every ordinary landing leaves: `readyCheckpoint`'s own keys and no deployment among
+   them. Demanding one here closed the ladder above `developed` for every project that asked for a
+   judge, the one route that writes the field refusing where a checkpoint already stands (ISS-1788). */
+const ORDINARY = { state: "ready", builder: BUILDER, branch: "iss-1788-4", head: MERGED,
+  base: CHECKPOINT.base, files: CHECKPOINT.files, at: AT };
+const landed = (verdicts, over = {}) =>
+  owed(verdicts, { issue: { sessionContext: { landing: { ...ORDINARY, ...over } } } });
+
+test("an ordinary landing carries no deployment identity, and its judge's verdicts earn the rung", () => {
+  assert.deepEqual(landed([verdictOf(1, { evidence: [MERGED] }), verdictOf(2, { evidence: [MERGED] })]), [],
+    "the commit each verdict already carries is what this rung reads, and the deployment identity "
+      + "is asked for at awaiting_release off the verification");
+});
+
+/* The fence the issue's own third Rule binds: the half removed was the deployment's, never the
+   builder's, so a builder coming back to judge its own change is refused with nothing to compare. */
+test("the builder's own verdict earns nothing on a checkpoint that names no deployment identity", () => {
+  assert.deepEqual(landed([verdictOf(1, { judge: BUILDER }), verdictOf(2, { judge: BUILDER })]),
+    ["the verdict on criteria 1, 2 carries the builder's own id `the-builder-session`"]);
+  const bare = verdictOf(1);
+  delete bare.judge;
+  assert.match(landed([bare, verdictOf(2)])[0], /carries no judge/u,
+    "and a verdict saying nothing about who wrote it is refused as it always was");
+  assert.match(landed([verdictOf(1, { judge: WAVE, [JUDGE_FROM]: "inherited" }), verdictOf(2)])[0],
+    /which the record says the run inherited/u, "as is one whose id names the wave that dispatched it");
+});
+
+/* The route out of the one refusal a judge on such a checkpoint can still meet is a write and never
+   a command that reports where the landing is and leaves the reader where it found them (ISS-1788). */
+test("a judge refused on a checkpoint holding no identity is handed the verdict write", () => {
+  const asked = items([verdictOf(1, { judge: BUILDER }), verdictOf(2, { judge: BUILDER })],
+    { issue: { sessionContext: { landing: ORDINARY } } });
+  assert.equal(asked.length, 1, `one item: ${asked.map((one) => one.what)}`);
+  assert.equal(asked[0].command,
+    "forge record verdict ISS-8 --criterion 1 --verdict pass --criterion 2 --verdict pass "
+      + `--commit ${MERGED.slice(0, 7)} --evidence <what you exercised>`,
+    "the verdict write, with what there is to cite named where no identity stands in for it");
+  assert.doesNotMatch(asked[0].command, /forge resume/u);
+});
+
+/* The reconstruction's identity is not stranded by the removal: where a checkpoint holds one, the
+   citation ISS-2045 paid for is still spent, which is the case `citesDeployment` was built for. */
+test("an identity the checkpoint does hold is still cited, and a verdict citing some other head is refused", () => {
+  assert.deepEqual(landed([verdictOf(1, { evidence: [DEPLOYED] }), verdictOf(2, { evidence: [DEPLOYED] })],
+    { deployment: DEPLOYED }), []);
+  assert.deepEqual(landed([verdictOf(1, { evidence: [MOVED] }), verdictOf(2, { evidence: [DEPLOYED] })],
+    { deployment: DEPLOYED }),
+  [`the verdict on criterion 1 cites nothing at ${DEPLOYED.slice(0, 7)}, which is what the deployment `
+    + "reported running"]);
+});
+
+/* The rung the demand moved to, read under the configuration that has no automatic deploy: the
+   stricter cross-check `deployOwed` makes is that declaration's, and what every project owes
+   whatever it declared is the verification record itself — which is the whole no-deployment route,
+   its `--where` naming the branch on a project with no running host (ISS-1788). */
+const MANUAL = releaseFrom({
+  baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false, qa: "independent" },
+});
+
+test("the rung above still owes the verification where the project declares no automatic deploy", () => {
+  const view = viewFrom("the-uuid", issueOf({ releaseNotes: { section: "Added" } }),
+    [mark(), comment(render("verdict", [verdictOf(1), verdictOf(2)]))], null, MANUAL);
+  const said = deployedOwed(view, "ISS-8").map((one) => one.what);
+  assert.deepEqual(said, ["no verification: where the change now runs, at which commit, and the evidence"],
+    "the deployment reading is the deploying actor's at this rung, and no configuration drops it");
 });
 
 /* What a void gives up, named to whoever judges again. Asked the other way round — which verdicts are
@@ -239,244 +301,6 @@ test("the problem a verdict has is one reading, so a caller outside the check re
     "a checkpoint the shape does not hold whole still prints a typeable command, not an empty flag");
 });
 
-/* Spawned from here: what a project's `qa` line changes is what `forge advance` does, and only the
-   verb reads the policy off the tracker. Two sessions write on one issue, each under its own lease,
-   and the judge on each verdict is the one the CLI resolved rather than one a fixture supplied. */
-const judging = {
-  documentId: "judging-uuid",
-  issueId: "ISS-8",
-  status: "developed",
-  title: "the change two sessions judged",
-  description: "no mark here",
-  plan: PLAN,
-  acceptanceCriteria: CRITERIA,
-  mergedAt: AT,
-  attachments: [],
-  sessionContext: { landing: CHECKPOINT },
-};
-const state = {
-  calls: [],
-  config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: true, qa: "independent" } },
-  issues: [judging],
-  comments: { "judging-uuid": [] },
-  answer: {},
-};
-state.answer.forge_config = () => ({ config: state.config });
-state.answer.forge_issues = (args) => {
-  if (args.action === "list") return { issues: state.issues, returned: state.issues.length, hasMore: false };
-  if (args.action === "get") return judging;
-  if (args.action === "update" || args.action === "transition") return Object.assign(judging, args.data);
-  return { documentId: args.documentId, ...(args.data ?? {}) };
-};
-state.answer.forge_comments = (args) => {
-  if (args.action === "list") {
-    const held = state.comments[args.filters?.issue] ?? [];
-    return { comments: held, returned: held.length, hasMore: false };
-  }
-  const held = (state.comments[args.data?.issue] ??= []);
-  const id = `comment-${held.length}`;
-  held.push({ documentId: id, createdAt: at(), body: args.data?.body });
-  return { documentId: id };
-};
-const { tracker, env: ENV } = await trackerFor(state);
-after(() => tracker.close());
-
-const asks = (holder) => (...argv) => ranAsync(FORGE, argv, { ...ENV, FORGE_SESSION_ID: holder });
-const builder = asks(BUILDER);
-const qa = asks(QA);
-/* A write's first send is held to deliver the comments the session has not read, and the same
-   command sent again lands: what a test asserts is the second, the hold being another rule's. */
-const twice = async (who, ...argv) => {
-  const first = await who(...argv);
-  return first.status === 0 ? first : who(...argv);
-};
-
-/* The lease is the only thing between two sessions here: a lapsed one is the next run's to reclaim,
-   which is what the handoff at `qa-owed` does once a session can prove it is the QA run. */
-const lapse = () => {
-  judging.sessionContext.lease.renewedAt = "2026-09-07T09:00:00.000Z";
-};
-
-state.comments["judging-uuid"].push({
-  documentId: "the-mark",
-  createdAt: at(),
-  body: `mark_merged target=base — merged to master at ${MERGED}`,
-});
-before(async () => {
-  await builder("claim", "ISS-8", "--unheld");
-  const claimed = await builder("claim", "ISS-8", "--unheld");
-  assert.equal(claimed.status, 0, `the lease every write needs: ${claimed.stderr}`);
-});
-
-test("advance to the rung is refused while the standing verdicts are the builder's own", async () => {
-  const wrote = await builder("record", "verdict", "ISS-8", "--commit", MERGED, "--evidence", DEPLOYED,
-    "--verdict", "pass", "--criterion", "1", "--criterion", "2");
-  assert.equal(wrote.status, 0, wrote.stderr);
-  const run = await builder("advance", "ISS-8");
-  assert.equal(run.status, 1, run.stdout);
-  assert.equal(judging.status, "developed", "and nothing moved");
-  const said = `${run.stdout}\n${run.stderr}`;
-  assert.match(said, /criteria 1, 2 carries the builder's own id/u, said);
-  assert.doesNotMatch(said, /criterion 2 carries the builder's own id/u,
-    "one line names both, rather than one line for each burying the fact to act on");
-  assert.match(said, /forge record verdict ISS-8 --criterion 1 --verdict pass --criterion 2 [^\n]*--evidence 9e24c2a/u,
-    "and the item carries the write that answers it, citing the identity to judge against");
-});
-
-test("once the QA session has judged every criterion against the deployment, advance earns the rung", async () => {
-  lapse();
-  /* The builder's own verdicts are comments this QA session has not been shown, so its first write
-     is held to deliver them and the second is the one that takes the lapsed lease. */
-  const held = await qa("claim", "ISS-8");
-  assert.match(held.stderr, /has not been shown/u, "the page the builder judged is what the QA run reads first");
-  const taken = await qa("claim", "ISS-8");
-  assert.equal(taken.status, 0, taken.stderr);
-  const wrote = await qa("record", "verdict", "ISS-8", "--commit", MERGED, "--evidence", DEPLOYED,
-    "--verdict", "pass", "--criterion", "1", "--criterion", "2");
-  assert.equal(wrote.status, 0, wrote.stderr);
-  assert.equal(wrote.stdout.match(new RegExp(`^judge: ${QA}$`, "gmu")).length, 2, wrote.stdout);
-  assert.match(wrote.stderr, /^ISS-8 {2}developed -> testing$/mu, "the verdicts earn the judging rung in their own call");
-  /* One rung, two records: the judging leaves the release rung owed, and this session writes both of the records that rung cites in one call, so that call is what moves it (ISS-1103). */
-  const proved = await qa("record", "verification", "ISS-8", "--where", "the deployed app",
-    "--commit", MERGED, "--evidence", "https://ci.example.test/9",
-    "--also", "note", "--section", "Fixed", "--user", "it works");
-  assert.equal(proved.status, 0, proved.stderr);
-  assert.match(proved.stderr, /^ISS-8 {2}testing -> awaiting_release$/mu, "both records, one call, one move");
-  const run = await qa("advance", "ISS-8");
-  assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
-  assert.equal(judging.status, "closed", "every rung moved on the call that earned it, and the close is what is left");
-});
-
-/* The third move of the handoff these criteria name — builder readies, lander takes, QA takes,
-   lander takes back — which no session could make while the QA turn was refused to everybody. The
-   two cases above reach the judge's lease by letting the lander's lapse; this one takes it. */
-test("at qa-owed the judging run takes a live lander lease, and the builder is refused its own work", async () => {
-  judging.sessionContext.landing = { ...CHECKPOINT, state: "qa-owed" };
-  judging.sessionContext.lease = { ...judging.sessionContext.lease, holder: LANDER, renewedAt: at() };
-  const first = await qa("claim", "ISS-8", "--take");
-  const taken = first.status === 0 ? first : await qa("claim", "ISS-8", "--take");
-  assert.equal(taken.status, 0, `${taken.stdout}\n${taken.stderr}`);
-  assert.equal(judging.sessionContext.lease.holder, QA,
-    "the turn the state hands the judge is taken while the lander's lease is still live");
-  const refused = await builder("claim", "ISS-8", "--take");
-  assert.equal(refused.status, 1, refused.stdout);
-  assert.match(`${refused.stdout}\n${refused.stderr}`, /no run may judge its own work/u,
-    "and the one session qa-owed cannot mean is the one that built the change");
-});
-
-/* The fourth move, and the one the state had no writer for: `qa-owed` was where a landing went to
-   die, its only successor unreachable and the taker at it holding no command to discharge the turn.
-   The state written, the judge named, and the lander's way back in are one reading. */
-test("the judging run hands the turn back, and the lander takes the lease it left live", async () => {
-  judging.sessionContext.landing = { ...CHECKPOINT, state: "qa-owed" };
-  judging.sessionContext.lease = { ...judging.sessionContext.lease, holder: QA, renewedAt: at() };
-  const back = await twice(qa, "claim", "ISS-8", "--judged");
-  assert.equal(back.status, 0, `${back.stdout}\n${back.stderr}`);
-  assert.equal(judging.sessionContext.landing.state, "judged", back.stdout);
-  assert.equal(judging.sessionContext.landing.judge, QA, "the checkpoint names who judged it");
-  assert.match(back.stdout, /landing `judged`/u, back.stdout);
-  const lander = asks(LANDER);
-  const took = await twice(lander, "claim", "ISS-8", "--take");
-  assert.equal(took.status, 0, `${took.stdout}\n${took.stderr}`);
-  assert.equal(judging.sessionContext.lease.holder, LANDER,
-    "the judge's own live lease is taken back from, as the builder's is at the handoff before it");
-  const again = await qa("claim", "ISS-8", "--judged");
-  assert.equal(again.status, 1, again.stdout);
-  assert.match(`${again.stdout}\n${again.stderr}`, /reads `judged`/u,
-    "and the hand-back is refused a second time, naming the state it read");
-});
-
-/* The other half of the round ISS-1260 removed: a payload write takes a field holding no lease where a bare claim would have been granted, and this write never can, every landing state being past the statuses a run is dispatched at. So what it owes is the claim that does clear the state, and not the one refused there in turn (ISS-1252). */
-test("the hand-back on a field holding no lease names the claim that clears that state", async () => {
-  const was = judging.status;
-  judging.status = "testing";
-  judging.sessionContext.landing = { ...CHECKPOINT, state: "qa-owed" };
-  delete judging.sessionContext.lease;
-  try {
-    const refused = await twice(qa, "claim", "ISS-8", "--judged");
-    assert.equal(refused.status, 1, refused.stdout);
-    assert.match(`${refused.stdout}\n${refused.stderr}`, /forge claim ISS-8 --unheld/u,
-      "and not the bare claim, which is itself refused at a status past the dispatch ones");
-    assert.equal(judging.sessionContext.landing.state, "qa-owed", "with the turn still owed to a judge");
-  } finally {
-    judging.status = was;
-  }
-});
-
-/* The independence `--take` refuses one move earlier, asked again of the move that writes the
-   judgement down: reaching `--judged` needs no take, so a builder holding its own lease signed
-   itself onto the checkpoint as judge, and before-merge reads that state alone to push (ISS-673). */
-test("the builder is refused the hand-back, on the reading the take before it is refused on", async () => {
-  judging.sessionContext.landing = { ...CHECKPOINT, state: "qa-owed" };
-  judging.sessionContext.lease = {
-    ...judging.sessionContext.lease, holder: BUILDER, renewedAt: new Date().toISOString(),
-  };
-  const refused = await twice(builder, "claim", "ISS-8", "--judged");
-  assert.equal(refused.status, 1, `${refused.stdout}\n${refused.stderr}`);
-  assert.match(`${refused.stdout}\n${refused.stderr}`, /no run may judge its own work/u,
-    "the same sentence the take is refused with, because it is the same rule read once");
-  assert.equal(judging.sessionContext.landing.state, "qa-owed", "and the turn is still owed to a judge");
-  assert.ok(!judging.sessionContext.landing.judge, "with nobody named as having taken it");
-});
-
-/* The hole the take-back cuts in the live-lease guard, closed by the take that used it: a lander
-   inheriting the judge's id, or the judge landing under its own lease, would otherwise be takeable
-   by any third run for the rest of the landing. */
-test("the take at judged spends the judge's name, so the lease the taker holds is nobody else's", async () => {
-  judging.sessionContext.landing = { ...CHECKPOINT, state: "qa-owed" };
-  judging.sessionContext.lease = { ...judging.sessionContext.lease, holder: QA, renewedAt: at() };
-  assert.equal((await twice(qa, "claim", "ISS-8", "--judged")).status, 0);
-  assert.equal(judging.sessionContext.landing.judge, QA);
-  const lander = asks(LANDER);
-  assert.equal((await twice(lander, "claim", "ISS-8", "--take")).status, 0);
-  assert.equal(judging.sessionContext.landing.judge, "",
-    "the name licensed one hand-back, and the take that used it blanked the field `landingOf` drops");
-  /* Real time and not the fixture's clock: the CLI reads liveness against `Date.now()`, and a stamp
-     from the counter above is already lapsed there — which is any run's, proving nothing. */
-  judging.sessionContext.lease = {
-    ...judging.sessionContext.lease, holder: QA, renewedAt: new Date().toISOString(),
-  };
-  const asking = asks("a-third-lander");
-  await asking("claim", "ISS-8", "--take");
-  const third = await asking("claim", "ISS-8", "--take");
-  assert.equal(third.status, 1, third.stdout);
-  assert.match(`${third.stdout}\n${third.stderr}`, /is already on it/u,
-    "so a judge that went on to land holds a lander's live lease, which no third run may take");
-});
-
-/* The same hole, entered by the judge itself: J hands back and then lands its own change, which the
-   state permits because J is not the builder. Its take is licensed by the lease it already holds, so
-   the marker has to go there too — left set, the lander lease J now holds would be any run's. */
-test("the judge that lands its own hand-back spends the marker too, before any state moves", async () => {
-  judging.sessionContext.landing = { ...CHECKPOINT, state: "qa-owed" };
-  judging.sessionContext.lease = { ...judging.sessionContext.lease, holder: QA, renewedAt: at() };
-  assert.equal((await twice(qa, "claim", "ISS-8", "--judged")).status, 0);
-  judging.sessionContext.lease = {
-    ...judging.sessionContext.lease, holder: QA, renewedAt: new Date().toISOString(),
-  };
-  assert.equal((await twice(qa, "claim", "ISS-8", "--take")).status, 0, "the judge takes the lander's turn");
-  assert.equal(judging.sessionContext.landing.judge, "",
-    "and its own take spent the marker, the lease it holds now being an ordinary lander's");
-  assert.equal(judging.sessionContext.landing.state, "judged", "with no state moved yet");
-  const third = asks("a-fourth-lander");
-  await third("claim", "ISS-8", "--take");
-  const refused = await third("claim", "ISS-8", "--take");
-  assert.equal(refused.status, 1, refused.stdout);
-  assert.match(`${refused.stdout}\n${refused.stderr}`, /is already on it/u,
-    "so the interval between the judge's take and the next transition is not a window either");
-});
-
-test("the hand-back is refused where no QA turn is owed, and refused beside a turn's own flag", async () => {
-  judging.sessionContext.landing = { ...CHECKPOINT, state: "reconciled" };
-  const early = await qa("claim", "ISS-8", "--judged");
-  assert.equal(early.status, 1, early.stdout);
-  assert.match(`${early.stdout}\n${early.stderr}`, /reads `reconciled`/u, early.stdout);
-  const both = await qa("claim", "ISS-8", "--judged", "--take");
-  assert.equal(both.status, 1, both.stdout);
-  assert.match(`${both.stdout}\n${both.stderr}`, /--take and --judged/u,
-    "each flag is a different turn's move, so two of them name no turn at all");
-});
-
 /* The window the capture is taken in closes at the merge, so an issue whose run died inside it
    holds a builder nobody can write down rather than one nobody did. The gate could not tell the two
    apart and refused both, which left six issues on forge-dev live and unjudgeable (ISS-2045). */
@@ -533,12 +357,12 @@ test("a judge the claim history names as a run that held the build is no judge a
 });
 
 /* One sentence naming two things told a reader whose deployment half stood that it did not: the
-   measured case on forge-dev satisfied the deployment and was refused for both (ISS-2045). */
-test("a verdict is told about the half that is missing and not about the half that stands", () => {
-  const noDeploy = owed([verdictOf(1), verdictOf(2)],
+   measured case on forge-dev satisfied the deployment and was refused for both (ISS-2045). The
+   builder is the half that remains, and a missing deployment is now no shortfall at all (ISS-1788). */
+test("a verdict is told about the builder, and a checkpoint short of a deployment is told nothing", () => {
+  const noDeploy = owed([verdictOf(1, { evidence: [MERGED] }), verdictOf(2, { evidence: [MERGED] })],
     { issue: { sessionContext: { landing: { ...CHECKPOINT, deployment: undefined } } } });
-  assert.deepEqual(noDeploy[0], "the verdict on criteria 1, 2 has no landing checkpoint naming a deployment "
-    + "identity to judge it against", "the builder stands on this one and is not named");
+  assert.deepEqual(noDeploy, [], "the builder stands on this one and the deployment is not this rung's");
   const noBuilder = owed([verdictOf(1), verdictOf(2)],
     { issue: { sessionContext: { landing: { ...CHECKPOINT, builder: undefined } } } });
   assert.match(noBuilder[0], /^the verdict on criteria 1, 2 has no landing checkpoint naming a builder,/u);

@@ -375,7 +375,7 @@ export const verificationForm = (ref, commit, evidence, tail = "") =>
   `forge record verification ${ref} --where "<where it runs>" --commit ${commit} `
   + `--evidence ${evidence}${tail}`;
 
-/* Nothing here can run a deploy — the machine that advances need not be the one that shipped — so where the config says production deploys on its own, the verification is asked to prove one happened, out of two values the record already holds. docs/cli/the-entry-checks.md.
+/* Nothing here can run a deploy — the machine that advances need not be the one that shipped — so where the config says production deploys on its own, the verification is asked to prove one happened, out of two values the record already holds. docs/cli/the-judge-and-the-deploy.md.
    The test is `autoProd` alone — `pipelineConfig.autoProdDeploy`, as `releaseFrom` reads it — and deliberately not `waitsForPerson`, which answers a different question off the branch pair. Neither branch is consulted here, so a project with either shape of branches owes the proof when that flag is true (ISS-428).
    `verificationForm` above is the one spelling of the sentence and not of its flags, which are literals in it and are spelled again on `SHAPES.verification` and in `record.mjs`'s usage row; each caller keeps its own placeholders, because what a missing record is asked for and what a deploy is asked to prove are not one sentence. */
 const deployOwed = (view, ref) => {

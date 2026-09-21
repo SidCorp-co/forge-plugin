@@ -111,14 +111,21 @@ const judging = (flow) => {
 };
 const FLOWS = ["default", "screen"];
 
-test("the judging method names the deployment identity as an input it is refused without", () => {
+/* Named as a citation and never as an entry ticket: most issues carry no identity, the rung asking
+   for none, and a method telling a judge it is refused without one sends it to park what the code
+   lets through — the defect surviving in the served text after the checker stopped holding it
+   (ISS-1788). What still has to be there is the ban on working one out. */
+test("the judging method names the deployment identity as a citation and no refusal for its absence", () => {
   for (const flow of FLOWS) {
-    const paragraph = judging(flow).split(/\n\s*\n/u).find((one) => /deployment identity/u.test(one));
+    const text = judging(flow);
+    const paragraph = text.split(/\n\s*\n/u).find((one) => /deployment identity/u.test(one));
     assert.ok(paragraph, `${flow} does not name the deployment identity at all`);
-    assert.match(paragraph, /\brefused\b/u,
-      "the input is named in one place and the refusal stated in another, so neither reads as the other's");
     assert.match(paragraph, /deriving one of your own/u,
       "nothing says a judge may not work one out from a branch or a deploy log");
+    const absent = text.split(/\n\s*\n/u).find((one) => /refuses you nothing/u.test(one));
+    assert.ok(absent, `${flow} says nothing about a brief that carries no identity`);
+    assert.match(absent, /the commit each already names/u,
+      "a judge told it is not refused still has to be told what its verdicts are held to instead");
   }
 });
 
