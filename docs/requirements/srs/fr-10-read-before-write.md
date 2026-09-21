@@ -37,16 +37,16 @@ check is that a comments call of this session named the key, which is narrower t
 gate's own document asks for: the condition is having looked, and looking is what a call naming the
 key evidences.
 
-- **AC-10-1-1** · Rev: 2 · Proof: plugin/test/tracker/issue/read-first.test.mjs "a shell write is not held for a delivery the verb itself will make"
+- **AC-10-1-1** · Rev: 2 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "a shell write is not held for a delivery the verb itself will make"
   IF a write names a key that no comments call of this session asked about THEN the product SHALL
   put that key's comments in front of the model before the write's own answer, and SHALL refuse the
   write only where nothing standing between the model and the tracker will carry them.
-- **AC-10-1-2** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "an issue with no comments is not denied, and no round is spent on a read"
+- **AC-10-1-2** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "an issue with no comments is not denied, and no round is spent on a read"
   WHEN a comments call of this session names that key in the same invocation THEN the gate SHALL
   allow the write, and an empty listing SHALL satisfy it.
-- **AC-10-1-3** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "two issues in one command are one deny naming both"
+- **AC-10-1-3** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "two issues in one command are one deny naming both"
   IF the listing named a different issue THEN it SHALL not satisfy this one.
-- **AC-10-1-4** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "the re-send passes, and no read of the transcript decided either answer"
+- **AC-10-1-4** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "the re-send passes, and no read of the transcript decided either answer"
   IF the gate's own refusal is the only place the key appears THEN the next attempt SHALL still be
   refused.
 
@@ -57,17 +57,17 @@ Rev: 1 · Actors: agent · Enforces: BR-06
 The CLI's writing verbs and the tracker's own tool are both writes; a read is not, however full.
 The tracker's tool is judged by the action it names rather than by its name.
 
-- **AC-10-2-1** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "a raw call is judged by its action, and the mark carries its issue inside data"
+- **AC-10-2-1** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "a raw call is judged by its action, and the mark carries its issue inside data"
   WHEN the tracker's own tool is called THEN the gate SHALL judge it by its action, so a listing and
   a read pass and a transition does not.
-- **AC-10-2-2** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "only the argument the verb writes to is a target"
+- **AC-10-2-2** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "only the argument the verb writes to is a target"
   IF a write verb appears in prose THEN the gate SHALL allow the command, and one in a payload the
   command carries SHALL still count.
 - **AC-10-2-3** · Rev: 1 · Proof: none yet — ISS-15
   WHERE a verb writes the record it SHALL be covered by this gate, the payload verbs included.
-- **AC-10-2-4** · Rev: 2 · Proof: plugin/test/tracker/issue/read-first.test.mjs "the id the command grants is whose reading counts, and a second harness id is not a second run"
+- **AC-10-2-4** · Rev: 2 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "the id the command grants is whose reading counts, and a second harness id is not a second run"
   WHEN the run that reads is the run that writes THEN the gate SHALL be satisfied.
-- **AC-10-2-5** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "a command granting an id nobody credited is denied, whatever the harness was shown"
+- **AC-10-2-5** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "a command granting an id nobody credited is denied, whatever the harness was shown"
   IF a read was made by another agent rather than the run that writes THEN that read SHALL not
   satisfy the gate for the writing run.
 
@@ -79,7 +79,7 @@ The gate reads a key by its shape so a tracker under another prefix needs no con
 same shape is worn by every identifier of this specification, which is a defect rather than a
 feature: a plan or a criterion citing a clause is refused for a document that has no comments.
 
-- **AC-10-3-1** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "the tracker's own key still is one, in either case"
+- **AC-10-3-1** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "the tracker's own key still is one, in either case"
   WHERE a tracker uses another prefix its keys SHALL still be recognised without configuration.
 - **AC-10-3-2** · Rev: 1 · Proof: none yet — ISS-36
   IF a write carries a clause citation THEN the gate SHALL not read it as a tracker key.
@@ -91,7 +91,7 @@ Rev: 1 · Actors: agent · Enforces: BR-13
 If the session's own history cannot be opened, the gate has no evidence either way, and refusing on
 no evidence would make the product unusable in a session it cannot read.
 
-- **AC-10-4-1** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "a tracker that will not answer leaves the write alone and says why"
+- **AC-10-4-1** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "a tracker that will not answer leaves the write alone and says why"
   IF the session's history cannot be read THEN the gate SHALL stand down.
 
 ### UC-10-5 — A session is told a thing once

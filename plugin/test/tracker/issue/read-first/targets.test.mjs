@@ -6,13 +6,13 @@ import test from "node:test";
 
 import { readFileSync } from "node:fs";
 
-import { joined, targetsOfTool, writeTargets } from "../../../src/tracker/issue-read.mjs";
-import { isReference } from "../../../src/tracker/issues.mjs";
-import { shellText, starts } from "../../../hooks/_hook.mjs";
-import { OWN } from "../../fixtures/own-project.mjs";
-import { pathed, projectRoom, tempRoom } from "../../fixtures.mjs";
+import { joined, targetsOfTool, writeTargets } from "../../../../src/tracker/issue-read.mjs";
+import { isReference } from "../../../../src/tracker/issues.mjs";
+import { shellText, starts } from "../../../../hooks/_hook.mjs";
+import { OWN } from "../../../fixtures/own-project.mjs";
+import { pathed, projectRoom, tempRoom } from "../../../fixtures.mjs";
 import { HOME, OTHER, UUID, because, comment, edgeWrite, gate, live, raw, state }
-  from "./read-first-gate.mjs";
+  from "./gate.mjs";
 
 const bash = (command) => ({ name: "Bash", input: { command } });
 /* The hook's own wiring: the target is read where a command starts, so it is given the starts. */
@@ -149,7 +149,7 @@ test("one command writing to two issues names both, so one refusal answers both"
 
 /* End to end: the pure functions above decide what is owed, but the deny, its text and the two
    stand-downs are the hook's, and only running it against a tracker measures those — the harness
-   for that is `./read-first-gate.mjs`, which the suite beside this one runs the gate through too. */
+   for that is `./gate.mjs`, which the suite beside this one runs the gate through too. */
 
 test("a write to an issue with comments nobody was shown is denied, and they are in the deny", async () => {
   state.comments = { [UUID]: [comment("c1", "read this before you write")] };
@@ -162,7 +162,7 @@ test("a write to an issue with comments nobody was shown is denied, and they are
 
 test("the re-send passes, and no read of the transcript decided either answer", async () => {
   assert.equal((await gate(edgeWrite(), { fresh: false })).out, null);
-  const source = readFileSync(new URL("../../../hooks/gates/issue-read-first.mjs", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../../../hooks/gates/issue-read-first.mjs", import.meta.url), "utf8");
   assert.ok(!/transcript/u.test(source), "the gate that read one credited another turn's read and missed its own");
 });
 
@@ -379,7 +379,7 @@ test("a tracker that will not answer leaves the write alone and says why", async
 /* That stand-down is the process exiting, so anything registered after this gate would be skipped
    by it. The line is the constraint, and it is checked rather than remembered. */
 test("this gate is last on the pre line, because its stand-down ends the process", () => {
-  const wired = JSON.parse(readFileSync(new URL("../../../hooks/hooks.json", import.meta.url), "utf8"));
+  const wired = JSON.parse(readFileSync(new URL("../../../../hooks/hooks.json", import.meta.url), "utf8"));
   const pre = wired.hooks.PreToolUse[0].hooks[0].command;
   assert.match(pre, /issue-read-first"?\s*$/u,
     "issue-read-first stands down by exiting, so a gate named after it on this line would not run");

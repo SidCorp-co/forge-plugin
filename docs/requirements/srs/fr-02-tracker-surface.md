@@ -89,10 +89,10 @@ A comment, a plan, an attachment and a filing are writes, and each is a write wh
 takes: the CLI's own verb, or the tracker's tool called directly. An attachment is uploaded rather
 than encoded into the call, because bytes through a context window are paid for twice.
 
-- **AC-02-3-1** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "every verb that writes the record names its issue, and the read verbs name none"
+- **AC-02-3-1** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "every verb that writes the record names its issue, and the read verbs name none"
   WHEN a comment, a plan or an attachment is written THEN the gates SHALL treat it as a write, and
   a transition asked for through the tracker's own tool SHALL be treated as one too.
-- **AC-02-3-2** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first.test.mjs "the tracker's own tool is judged by its action, with its arguments already parsed"
+- **AC-02-3-2** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "the tracker's own tool is judged by its action, with its arguments already parsed"
   WHEN the tracker's own tool is called THEN the CLI SHALL judge the call by the action it names
   rather than by the tool's name.
 - **AC-02-3-3** · Rev: 1 · Proof: none yet — ISS-681

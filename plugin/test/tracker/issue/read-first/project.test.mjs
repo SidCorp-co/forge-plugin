@@ -1,16 +1,16 @@
 /* Which project a key is resolved in, and what the resolving costs. The gate aims at the project the
    command will act on rather than at the session's, and that aim is a global setter — so which
    checkout each command start stands in decides both which issues are judged and what may be
-   remembered between them. The cases about what counts as a write are `./read-first.test.mjs`.
+   remembered between them. The cases about what counts as a write are `./targets.test.mjs`.
 
-   Both suites run the gate through `./read-first-gate.mjs`. */
+   Both suites run the gate through `./gate.mjs`. */
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { OWN } from "../../fixtures/own-project.mjs";
-import { pathed, projectRoom, tempRoom } from "../../fixtures.mjs";
+import { OWN } from "../../../fixtures/own-project.mjs";
+import { pathed, projectRoom, tempRoom } from "../../../fixtures.mjs";
 import { HOME, UUID, because, comment, edgeWrite, gate, issueCalls, raw, state }
-  from "./read-first-gate.mjs";
+  from "./gate.mjs";
 
 /* ISS-1190. Every key resolved under the session's own project, so a command run in a second
    checkout was held on a stranger's thread and the write it was about went unguarded. Two checkouts
