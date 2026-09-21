@@ -590,6 +590,15 @@ test("a warning carrying the replaced rule and naming no guide is said whole", a
   assert.equal(said.length, 2, `a marker alone places no rule, so nothing answers it: ${said.join(" | ")}`);
 });
 
+/* The tracker tells a `confirmation` no store holds it and a `verdict` which route its store is, so
+   naming the sentences would answer the kinds a run happened to meet and leave the rest warning. */
+test("a warning off that page for a kind whose store it names is withheld too", async () => {
+  const { said } = await declining(["a `forge-record` fence is not comment content — a `verdict` "
+    + "record goes to `POST /api/issue-step-contexts`, and the comment keeps your summary line. "
+    + "The store each kind belongs in: guide `records-and-comments`"]);
+  assert.deepEqual(said, [], `the frame is the same and so is the answer: ${said.join(" | ")}`);
+});
+
 test("an account joining an answered rule to something to act on loses only the answered line", async () => {
   const { said } = await declining([`${ANSWERED}\n${DECLINED}`]);
   assert.deepEqual(said.slice(1), [`  warning from the tracker — ${DECLINED}`],
@@ -604,13 +613,6 @@ test("a line carrying more than the answered rule is said whole, the rule in it 
   const before = await declining([`${DECLINED}. ${ANSWERED}`]);
   assert.deepEqual(before.said.slice(1), [`  warning from the tracker — ${DECLINED}. ${ANSWERED}`],
     `and the side the second statement arrives on decides nothing: ${before.said.join(" | ")}`);
-  const within = ANSWERED.replace("record whole —", `record whole. ${DECLINED} —`);
-  const inside = await declining([within]);
-  assert.deepEqual(inside.said.slice(1), [`  warning from the tracker — ${within}`],
-    `nor whether it arrived between the sentence's own clauses: ${inside.said.join(" | ")}`);
-  const both = await declining([`${ANSWERED}. ${ANSWERED}`]);
-  assert.deepEqual(both.said.slice(1), [`  warning from the tracker — ${ANSWERED}. ${ANSWERED}`],
-    `and two of them in one line are two sentences, not one with a long kind in it: ${both.said.join(" | ")}`);
 });
 
 test("a warning that is answered leaves the one beside it said, and counted alone", async () => {

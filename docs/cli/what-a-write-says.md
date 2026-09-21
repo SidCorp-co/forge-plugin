@@ -58,9 +58,16 @@ Repeating it beside each write buys a reader nothing and costs the channel every
 that holds on every correct use of a verb teaches them to skip the line the next one arrives on. It
 cannot be said once instead, because each call here is its own process. So the reader meets it on
 the page that replaced it, which is the one page that can also say the transport stops repeating it.
-Both halves have to match — the slug the warning names and a marker of the rule that row replaced —
-because a page replaced in part leaves rules of it standing, and a warning the tracker rewords
-matches neither half and is said, which is the direction this fails in.
+What is recognised is the frame and never the sentence, because the sentence is not one: the tracker
+opens every such warning the same way and closes it by citing the page, and puts a different
+statement between the two for every kind of record. Naming the sentences instead would answer the
+kinds a run happened to meet and leave the rest warning, which is the defect again. So a statement
+arriving before the opener or after the citation leaves the line unrecognised and it is said whole,
+the answered part of it included; one spliced between those two clauses is not separated, and is not,
+knowingly — each subject the tracker declines arrives as its own entry in the answer, so a spliced
+one would mean the tracker composing warnings some other way, which is what a reworded frame is too.
+Either way nothing matches, the warning comes back, and a reader meets the old noise rather than a
+wrong answer. That is the direction this fails in.
 
 **So the sentence is carried under a line saying the write stood, and never under the route's own
 name.** Every refusal the transport writes opens with that name, and the one act a reader takes on a

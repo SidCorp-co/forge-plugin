@@ -206,12 +206,14 @@ export const GUIDE_TABLE = [
       + " records is written against a store this flow does not write to",
     /* The tracker hangs one warning on every write that carries a record, and that one sentence
        asserts both rules below, so it is held here and not on a rule: no rule of it owns the
-       sentence alone. Held whole, and the tracker's own words rather than a reading of them,
-       because what is asked of a line is that this table account for all of it. */
-    warns: "a `forge-record` fence is not comment content — no store here holds a `<kind>` record"
-      + " whole — put the assertions it makes about the issue at"
-      + " `POST /api/issues/:id/attributes` under a registered key, and keep the sentence in the"
-      + " comment. The store each kind belongs in: guide `records-and-comments`",
+       sentence alone. The frame and not the sentence, because the sentence is not one — measured
+       2026-09-21, a `confirmation` is told no store holds it and a `verdict` is told which route
+       its store is, each between these same two clauses. Naming the sentences instead would answer
+       the kinds a run happened to meet and leave the rest warning, which is the defect again. */
+    warns: {
+      opens: "a `forge-record` fence is not comment content",
+      closes: "The store each kind belongs in: guide `records-and-comments`",
+    },
     replaced: [
       {
         says: "a `forge-record` fence in a comment body means a record was serialised instead of stored",
@@ -272,26 +274,18 @@ export const REVIEWED = [
 
 const rowFor = (table, slug) => table.find((row) => row.slug === slug) ?? null;
 
-/* The one part of that sentence the tracker varies: the record kind it could not store. It quotes
-   the kind, so what fills the slot carries no quote of its own, which is what keeps a second
-   statement from arriving inside the one place this shape leaves open. */
-const SLOT = "<kind>";
-
-const shaped = (text, warns) => {
-  const [head, tail, ...more] = warns.split(SLOT);
-  if (more.length || tail === undefined) return false;
-  if (!text.startsWith(head) || !text.endsWith(tail)) return false;
-  const filled = text.slice(head.length, text.length - tail.length);
-  return filled.length > 0 && !filled.includes("`");
-};
+const shaped = (text, { opens, closes }) => text.startsWith(opens) && text.endsWith(closes);
 
 /** Which page of this table answers one line of a warning the tracker hung on a write, and `null`
- *  where none does. The line has to *be* that page's warning and not merely carry it: what this
- *  table cannot account for is what a caller may have to act on, and the tracker can join such a
- *  thing to a sentence anywhere — before it, after it, or between its clauses — with no line of its
- *  own. So the shape is held whole, one slot excepted, and a line the tracker rewords or lengthens
- *  matches nothing here and is said. That is the direction this has to fail in: the sentence
- *  withheld is the one nobody can go and read. */
+ *  where none does. The line has to open and close at that page's frame, and what a caller might
+ *  have had to act on is what arrives outside it: a statement before the opener or after the
+ *  citation leaves the line unrecognised and it is said whole, the answered part of it included.
+ *  What this cannot separate is a statement the tracker splices *between* those two clauses, and it
+ *  is left unseparated knowingly — each subject the tracker declines arrives as its own entry in the
+ *  answer, so a spliced one would mean the tracker composing warnings some other way, which is the
+ *  same thing a reworded frame is: this matches nothing, the warning comes back, and a run meets the
+ *  defect rather than a wrong answer. That is the direction it has to fail in, the sentence withheld
+ *  being the one nobody can go and read. */
 export const warningAnswered = (said, table = GUIDE_TABLE) => {
   const text = String(said ?? "").trim();
   return table.find((one) => one.warns && shaped(text, one.warns))?.slug ?? null;

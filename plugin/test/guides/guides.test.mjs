@@ -139,23 +139,27 @@ const WARNING = "a `forge-record` fence is not comment content — no store here
   + "`POST /api/issues/:id/attributes` under a registered key, and keep the sentence in the "
   + "comment. The store each kind belongs in: guide `records-and-comments`";
 
-test("a warning is answered only where a page of this table accounts for the whole line", () => {
-  assert.equal(warningAnswered(WARNING), "records-and-comments", "the page's own sentence, whole");
-  assert.equal(warningAnswered(WARNING.replace("`correction`", "`baseline`")), "records-and-comments",
-    "and the kind the tracker names is the one part of it that varies");
+/* A `confirmation` is told no store holds it and a `verdict` is told which route its store is: what
+   this table can answer is the frame both arrive in, never the sentence between (ISS-2079). */
+const VERDICT = "a `forge-record` fence is not comment content — a `verdict` record goes to "
+  + "`POST /api/issue-step-contexts`, and the comment keeps your summary line. The store each kind "
+  + "belongs in: guide `records-and-comments`";
+
+test("a warning is answered where the page's frame opens and closes the line, and not otherwise", () => {
+  assert.equal(warningAnswered(WARNING), "records-and-comments", "the sentence this issue measured");
+  assert.equal(warningAnswered(VERDICT), "records-and-comments",
+    "and one for a kind whose store that page names, which is a different sentence in the same frame");
   assert.equal(warningAnswered(WARNING.replace("records-and-comments", "some-other-guide")), null,
     "the same sentence citing a page this table has not placed is said");
   assert.equal(warningAnswered("an attachment for a log belongs at the attachments route. "
     + "The store each kind belongs in: guide `records-and-comments`"), null,
-    "and a warning off that page saying something else is a rule of it that stands");
+    "and a warning off that page opening anywhere else is a rule of it that stands");
   assert.equal(warningAnswered(`${WARNING} Send the row again once the field is set.`), null,
-    "a line carrying a second statement after the sentence is said, the answered part included");
+    "a line carrying a second statement after the citation is said, the answered part included");
   assert.equal(warningAnswered(`The question was not minted. ${WARNING}`), null,
-    "and so is one carrying it before");
-  assert.equal(warningAnswered(WARNING.replace("record whole —", "record whole. The credential is a "
-    + "person's own —")), null, "and so is one carrying it between the sentence's own clauses");
-  assert.equal(warningAnswered(`${WARNING}. ${WARNING}`), null,
-    "two of them joined into one line are two sentences, and the slot holds a kind and not a second one");
+    "and so is one carrying it before the opener");
+  assert.equal(warningAnswered(`${WARNING}. ${VERDICT}`), "records-and-comments",
+    "two answered warnings in one line are two answered warnings, and neither is news");
   assert.equal(warningAnswered(null), null, "a warning that is not a sentence answers to nothing");
 });
 
