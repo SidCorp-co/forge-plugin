@@ -441,7 +441,7 @@ the worst place to keep an example of the one it replaces.
   WHERE this plugin's own repository is the checkout the product SHALL keep that project's keys in
   this machine's record alone and SHALL carry no committed project file, a tracked second store
   stating a configuration it answers for none of.
-- **AC-01-5-40** · Rev: 1 · Proof: plugin/test/checks/suite/own-project-keys.test.mjs "no case reads project keys out of a file at this repository's root"
+- **AC-01-5-40** · Rev: 1 · Proof: plugin/test/checks/suite/own-project-keys.test.mjs "no case names a path to a project file at this repository's root"
   WHERE a case of this plugin's own suite needs the project keys of a room standing in for this
   checkout it SHALL take them from one declaration the suite owns, a case reading them off a file at
   the repository's root being the same two-store drift one level down.
