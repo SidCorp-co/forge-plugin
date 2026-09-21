@@ -45,6 +45,15 @@ waits for something nothing will send. Where the gate writes no verdict at all, 
 the notice arrives and never before, and the verdict it does not write is the project's own defect to
 file.
 
+**The checks that answer in seconds are spent before a landing is armed, and the file set is put
+beside the review's before them.** A fault the landing is the first thing to meet is paid for at the
+landing's price and paid again at that price after the fix, where the changed file's own suite and
+the cheap checkers standing in the tree would have answered while the run was still editing. So
+those go first; then put the paths this change touched beside the file list the review read — `git
+diff --name-only <base>...HEAD` — and settle any difference before the arming rather than leaving it
+for the landing to find, because a review earned over one file set is not a review of another. None
+of this is the gate, and the rung a run claims bounds the gate alone.
+
 ## A measurement does not race what it reads
 
 A proof whose cost makes rerunning it a decision rather than a reflex — a background gate baseline, a

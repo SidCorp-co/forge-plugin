@@ -80,7 +80,7 @@ export const LIGHTER = [
 const LIGHTER_ROUNDS = [
   "Phase 0 is the brief alone, where no source of it is stale",
   "one review consult — the whole-set read at the replayed head, and no recheck after a clean pass — and not a plan or a criteria write's own read",
-  "one gate run on the clean path, the ship's, so no commit spends one and none is left after it",
+  "one whole run of the gate on the clean path, the ship's, so no commit spends one and none is left after it — the gate is what this line bounds, and a checker the gate contains is not the gate, so those are spent as often as they answer",
 ];
 
 export const SPARES = {

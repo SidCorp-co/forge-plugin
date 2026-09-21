@@ -17,7 +17,7 @@ const { skillGuideAnswer } = await import("../../src/guides/skill-guides.mjs");
 const { roundLines, rungRefusal, rungServed } = await import("../../src/guides/rounds.mjs");
 const { FEATURE, FIX, RUNGS, SPARES, complexityFor } = await import("../../src/ladder.mjs");
 const { rungReport } = await import("../../src/ladder-report.mjs");
-const { DEFAULT } = await import("../../src/guides/flow.mjs");
+const { DEFAULT, SCREEN } = await import("../../src/guides/flow.mjs");
 const { render } = await import("../../src/flow/record/page.mjs");
 
 const PLUGIN = new URL("../../", import.meta.url).pathname;
@@ -137,6 +137,29 @@ test("the gate demand a lighter rung does not buy is absent from the text it is 
     "what every rung owes standing at both, the fence taking the demand and not the paragraph");
   assert.ok(served(TRIVIAL).includes("gate-review skill"),
     "and the route to a gate too slow stands at every rung, which is not a round anything buys");
+});
+
+/* The rounds line the two lighter rungs share bounds the gate, and a run reading it as a bound on
+   every checker arms a landing having spent nothing that answers in seconds. The ordering that
+   answers it is owed at all four of the answers that line reaches — both those rungs, both flows —
+   because a text stating it at one of them leaves the rung line unopposed at the rest (ISS-2085). */
+test("the order the cheap checks are spent in is served at both lighter rungs, in both flows", () => {
+  const ORDER = "The checks that answer in seconds are spent before a landing is armed";
+  const COMPARE = "put the paths this change touched beside the file list the review read";
+  const TIMING = "settle any difference before the arming";
+  for (const flow of [DEFAULT, SCREEN]) {
+    for (const rung of [TRIVIAL, FIX]) {
+      const said = text(skillGuideAnswer("issue-flow", PLUGIN, flow)({ part: "verification", rung }));
+      assert.ok(said.includes(ORDER),
+        `the \`${flow}\` flow at \`${rung}\` states no order for the checks that cost seconds`);
+      assert.ok(said.includes(COMPARE),
+        `the \`${flow}\` flow at \`${rung}\` never puts the changed file set beside the one the review read`);
+      /* The comparison without its moment is a remark: it has to be owed before the arming, which is
+         the whole of what makes taking it worth a round. */
+      assert.ok(said.indexOf(COMPARE) < said.indexOf(TIMING),
+        `the \`${flow}\` flow at \`${rung}\` names that comparison without the timing that earns it`);
+    }
+  }
 });
 
 test("the rounds have one spelling, and no text this copy serves holds a second", () => {
