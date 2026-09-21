@@ -61,10 +61,10 @@ const DOCTOR = [".", ".claude-plugin", ".forge.json", "plugin/.claude-plugin", "
   "tools/room.mjs"];
 
 export const DECLARED_READS = [
-  { where: "plugin/test/cli/doctor/job.test.mjs", reads: DOCTOR, blind: CLI },
-  { where: "plugin/test/cli/doctor/machine-keys.test.mjs", reads: DOCTOR, blind: CLI },
-  { where: "plugin/test/cli/doctor/off.test.mjs", reads: DOCTOR, blind: CLI },
-  { where: "plugin/test/cli/doctor/skills.test.mjs", reads: DOCTOR, blind: CLI },
+  { where: "plugin/test/cli/doctor/machine/job.test.mjs", reads: DOCTOR, blind: CLI },
+  { where: "plugin/test/cli/doctor/machine/machine-keys.test.mjs", reads: DOCTOR, blind: CLI },
+  { where: "plugin/test/cli/doctor/machine/off.test.mjs", reads: DOCTOR, blind: CLI },
+  { where: "plugin/test/cli/doctor/machine/skills.test.mjs", reads: DOCTOR, blind: CLI },
   { where: "plugin/test/run/processes/orphans.test.mjs", reads: RUN, blind: SPAWNED },
   { where: "plugin/test/run/release/run-released-version.test.mjs", reads: RUN, blind: TAGS },
 ];

@@ -7,7 +7,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { escaped, ranAsync, tempHome, tempRoom, typedPlan } from "../../../fixtures.mjs";
-import { trackerFor } from "../../own-project.mjs";
+import { trackerFor } from "../../../fixtures/own-project.mjs";
 import { PLAN_SECTIONS } from "../../../../src/flow/machine.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("record-plan").path;

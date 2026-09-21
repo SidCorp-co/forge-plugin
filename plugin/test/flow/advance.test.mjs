@@ -5,7 +5,7 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 
 import { ranAsync, tempHome, typedPlan } from "../fixtures.mjs";
-import { trackerFor } from "./own-project.mjs";
+import { trackerFor } from "../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("advance").path;
 const { parse, render } = await import("../../src/flow/record/page.mjs");

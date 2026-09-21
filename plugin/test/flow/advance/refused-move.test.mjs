@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { ranAsync, tempHome } from "../../fixtures.mjs";
-import { trackerFor } from "../own-project.mjs";
+import { trackerFor } from "../../fixtures/own-project.mjs";
 
 const { AMBIGUOUS } = await import("../../../src/tracker/rest.mjs");
 

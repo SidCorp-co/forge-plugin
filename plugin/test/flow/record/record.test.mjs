@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 
 import { ranAsync, tempRoom, typedPlan } from "../../fixtures.mjs";
-import { trackerFor } from "../own-project.mjs";
+import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("record-");
 const {

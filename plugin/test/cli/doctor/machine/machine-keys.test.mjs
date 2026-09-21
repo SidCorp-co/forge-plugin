@@ -5,11 +5,11 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import test from "node:test";
 
-import { tempRoom } from "../../fixtures.mjs";
-import { MACHINE_FLAGS } from "../../../src/tools/doctor-keys.mjs";
-import { LEVELS } from "../../../src/tools/services/doctor/showing.mjs";
+import { tempRoom } from "../../../fixtures.mjs";
+import { MACHINE_FLAGS } from "../../../../src/tools/doctor-keys.mjs";
+import { LEVELS } from "../../../../src/tools/services/doctor/showing.mjs";
 
-const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
+const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;
 
 /* A port nothing listens on, refused at once, where a name that does not resolve costs every spawn a DNS wait no deadline here bounds. The report is spawned as few times as the claims allow: it reads the whole documents tree every run, so each of these costs seconds that have nothing to do with the keys. */
 const machineRun = (argv, body = {}) => {

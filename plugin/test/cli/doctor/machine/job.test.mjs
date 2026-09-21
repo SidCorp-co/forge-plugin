@@ -9,9 +9,9 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import test from "node:test";
 
-import { escaped, projectEntry, projectRoom, tempRoom } from "../../fixtures.mjs";
+import { escaped, projectEntry, projectRoom, tempRoom } from "../../../fixtures.mjs";
 
-const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
+const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;
 
 const BA = ["issue", "new", "comment", "next"];
 const PM = ["issue", "next"];
@@ -123,7 +123,7 @@ test("a checkout declaring no job refuses the flag and names where a job is decl
   const refused = run("doctor", "--job", "ba");
   assert.equal(refused.status, 1, refused.stdout);
   assert.match(refused.stderr, /no job is declared here/u);
-  assert.match(refused.stderr, new RegExp(`\`jobs\` in the ${escaped(entry)}`, "u"), refused.stderr);
+  assert.match(refused.stderr, new RegExp(`\`jobs\` in ${escaped(entry)} — the project's own record`, "u"), refused.stderr);
   assert.equal(saved().withheld, undefined);
 });
 

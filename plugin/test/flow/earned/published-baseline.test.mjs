@@ -9,7 +9,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { projectRecord, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { OWN, trackerFor } from "../own-project.mjs";
+import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
 import { render } from "../../../src/flow/record/page.mjs";
 
 const ROOT = new URL("../../../../", import.meta.url).pathname;

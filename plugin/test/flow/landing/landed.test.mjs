@@ -10,7 +10,7 @@ import { chmodSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { projectRecord, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { OWN, trackerFor } from "../own-project.mjs";
+import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("landed").path;
 /* Away from this checkout, whose git directory names the run this suite is written under: a

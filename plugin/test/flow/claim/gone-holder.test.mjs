@@ -11,7 +11,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { escaped, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { OWN, trackerFor } from "../own-project.mjs";
+import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
 import { placeOf } from "../../../src/flow/lease/holder.mjs";
 import { stateOf } from "../../../src/flow/lease.mjs";
 

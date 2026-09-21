@@ -8,7 +8,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { trackerFor } from "../own-project.mjs";
+import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("batched-verdict").path;
 const { blocksIn } = await import("../../../src/flow/record/record.mjs");

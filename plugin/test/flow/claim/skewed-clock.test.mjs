@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { OWN, trackerFor } from "../own-project.mjs";
+import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
 import { patience } from "../../patience.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("skewed-clock").path;

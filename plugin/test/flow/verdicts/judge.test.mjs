@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import test, { after, before } from "node:test";
 
 import { projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { OWN, trackerFor } from "../own-project.mjs";
+import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("verdict-judge").path;
 /* Away from this checkout, whose git directory names the run this suite is written under: a

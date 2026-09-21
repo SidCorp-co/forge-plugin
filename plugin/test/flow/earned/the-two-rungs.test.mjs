@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 import { ranAsync, tempHome } from "../../fixtures.mjs";
-import { trackerFor } from "../own-project.mjs";
+import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("the-two-rungs").path;
 const { CHECKS, ORDER, JUDGED_AT, viewFrom } = await import("../../../src/flow/earned.mjs");

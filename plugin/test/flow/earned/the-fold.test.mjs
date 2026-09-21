@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { ranAsync, tempHome } from "../../fixtures.mjs";
-import { trackerFor } from "../own-project.mjs";
+import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("the-fold").path;
 const { CITED, PHASE } = await import("../../../src/guides/phases.mjs");

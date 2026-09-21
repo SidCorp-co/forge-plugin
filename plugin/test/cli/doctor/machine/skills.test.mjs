@@ -9,9 +9,9 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import test from "node:test";
 
-import { projectRoom, tempHome, tempRoom } from "../../fixtures.mjs";
+import { projectRoom, tempHome, tempRoom } from "../../../fixtures.mjs";
 
-const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
+const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;
 
 const HOME = tempHome("withheld-skill");
 mkdirSync(join(HOME.path, "forge"), { recursive: true });
@@ -20,9 +20,9 @@ writeFileSync(join(HOME.path, "forge", "config.json"), JSON.stringify({
 }));
 process.env.XDG_CONFIG_HOME = HOME.path;
 
-const { localRows, localSlugs, visibleGuides } = await import("../../../src/guides/guides.mjs");
-const { partForStatus } = await import("../../../src/guides/served.mjs");
-const { skillRefusal } = await import("../../../src/resolve/visibility.mjs");
+const { localRows, localSlugs, visibleGuides } = await import("../../../../src/guides/guides.mjs");
+const { partForStatus } = await import("../../../../src/guides/served.mjs");
+const { skillRefusal } = await import("../../../../src/resolve/visibility.mjs");
 
 const VERBS = ["issue", "new", "comment", "next"];
 const SKILLS = ["forge", "vi-natural"];

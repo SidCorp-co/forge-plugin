@@ -9,7 +9,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { pathed, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
-import { trackerFor } from "./own-project.mjs";
+import { trackerFor } from "../fixtures/own-project.mjs";
 import { fieldSets } from "../../src/checks/surface/judged-arguments.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("override").path;

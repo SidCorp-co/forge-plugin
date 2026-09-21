@@ -9,10 +9,10 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import test from "node:test";
 
-import { fakeTracker, projectRoom, ranAsync, tempRoom } from "../../fixtures.mjs";
-import { VERB_NAMES } from "../../../src/resolve/visibility.mjs";
+import { fakeTracker, projectRoom, ranAsync, tempRoom } from "../../../fixtures.mjs";
+import { VERB_NAMES } from "../../../../src/resolve/visibility.mjs";
 
-const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
+const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;
 
 const BA = ["issue", "new", "comment", "next"];
 const SLUG = "off-fixture";

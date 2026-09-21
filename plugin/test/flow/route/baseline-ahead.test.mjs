@@ -10,7 +10,7 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { projectRecord, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { trackerFor } from "../own-project.mjs";
+import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("baseline-ahead").path;
 const { baselineAhead, headNow } = await import("../../../src/flow/route.mjs");

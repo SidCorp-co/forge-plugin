@@ -8,7 +8,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { escaped, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { OWN, trackerFor } from "../own-project.mjs";
+import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("dispatched-claim").path;
 /* Away from this checkout, whose git directory names the run this suite is written under: a
