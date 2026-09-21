@@ -148,7 +148,7 @@ test("a file named for a retired thing goes only where the name is not also a li
   /* A suffixed stem is not the name: `plan.test.mjs` stems to `plan.test`, so no relaxation is owed. */
   const kept = RETIRED.find((one) => one.kind === "verb" && one.name === "plan");
   assert.ok(kept, "the registry holds the verb whose word a live record kind still uses");
-  assert.deepEqual(problems([{ rel: "plugin/test/flow/record/plan.test.mjs", text: "nothing\n" }], [kept], LIVE), []);
+  assert.deepEqual(problems([{ rel: "plugin/test/flow/record/plan/plan.test.mjs", text: "nothing\n" }], [kept], LIVE), []);
   assert.match(problems([{ rel: "plugin/src/flow/record/plan.mjs", text: "nothing\n" }], [kept], LIVE)[0],
     /is named for the verb plan/u, "and a module named for the bare word would still leave");
 });

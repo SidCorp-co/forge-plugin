@@ -200,28 +200,28 @@ confusion that section exists to end. A plan carrying none of the sections is st
 this field held before them, so a plan already on a tracker stays writable and no status is earned on
 it.
 
-- **AC-04-7-1** · Rev: 1 · Proof: plugin/test/flow/record/plan.test.mjs "`record plan -h` prints every section a typed plan owes, as the question it answers"
+- **AC-04-7-1** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan.test.mjs "`record plan -h` prints every section a typed plan owes, as the question it answers"
   WHEN the plan write's help is asked for THEN it SHALL print every section a typed plan carries, each
   as the question that section answers.
-- **AC-04-7-2** · Rev: 1 · Proof: plugin/test/flow/record/plan.test.mjs "a typed plan missing a section is refused, with each one named"
+- **AC-04-7-2** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan.test.mjs "a typed plan missing a section is refused, with each one named"
   IF a plan carries a section and lacks another THEN the CLI SHALL refuse the write, SHALL name each
   section that is missing, and SHALL leave the field as it was.
-- **AC-04-7-3** · Rev: 1 · Proof: plugin/test/flow/record/plan.test.mjs "the way back is refused only where a coupling declaration asks for it"
+- **AC-04-7-3** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan.test.mjs "the way back is refused only where a coupling declaration asks for it"
   WHERE a plan declares schema coupling or deploy coupling, the CLI SHALL refuse a plan carrying no
   way back, and SHALL name the declaration that owes it.
-- **AC-04-7-4** · Rev: 1 · Proof: plugin/test/flow/record/plan.test.mjs "a step naming no criterion is refused, and the step is quoted"
+- **AC-04-7-4** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan.test.mjs "a step naming no criterion is refused, and the step is quoted"
   IF a numbered step of a plan names no criterion THEN the CLI SHALL refuse the write and SHALL quote
   that step.
-- **AC-04-7-5** · Rev: 1 · Proof: plugin/test/flow/record/plan.test.mjs "the file's text is what the plan field holds"
+- **AC-04-7-5** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan.test.mjs "the file's text is what the plan field holds"
   WHERE a plan carries none of the sections, the CLI SHALL write it as the free text it is and SHALL
   say that nothing judged its shape.
 - **AC-04-7-6** · Rev: 1 · Proof: plugin/test/vi/rewrite.test.mjs "a plan's sections and its steps' criteria cross the boundary byte for byte"
   WHILE a project's prose language rewrites what is sent, the plan's section headings and each step's
   criterion SHALL cross byte for byte, so the stored plan reads back with its sections.
-- **AC-04-7-7** · Rev: 1 · Proof: plugin/test/flow/record/plan.test.mjs "a section a plan quotes inside a fence is text it shows and not one it carries"
+- **AC-04-7-7** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan.test.mjs "a section a plan quotes inside a fence is text it shows and not one it carries"
   WHERE a plan quotes a heading or a numbered step inside a fenced block, the CLI SHALL read it as
   text the plan shows and SHALL open no section and count no step from it.
-- **AC-04-7-8** · Rev: 1 · Proof: plugin/test/flow/record/plan.test.mjs "the witnessed section is refused where it answers neither way, and where it answers both"
+- **AC-04-7-8** · Rev: 1 · Proof: plugin/test/flow/record/plan/plan.test.mjs "the witnessed section is refused where it answers neither way, and where it answers both"
   IF the section naming what only a person at the running product can witness answers with neither a
   criterion number nor `none`, or answers with both, THEN the CLI SHALL refuse the write and SHALL name
   both ways of answering it.

@@ -5,15 +5,15 @@ import test from "node:test";
 import { mkdirSync, readFileSync, readdirSync, statSync, utimesSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { tempRoom } from "../../fixtures.mjs";
+import { tempRoom } from "../../../fixtures.mjs";
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 
 process.env.XDG_CONFIG_HOME = join(tempRoom("plan-scope-cache-"), "config");
 
 const { SCOPE_KEPT_MS, dropScope, noteScope, scopeDir, scopeFrom, scopeHeld, scopePath } =
-  await import("../../../src/flow/record/plan-scope.mjs");
-const { namesPath } = await import("../../../src/flow/record/merged.mjs");
+  await import("../../../../src/flow/record/plan-scope.mjs");
+const { namesPath } = await import("../../../../src/flow/record/merged.mjs");
 
 const TREE = "/a/tree";
 const OTHER = "/another/tree";
@@ -130,7 +130,7 @@ test("a write against one issue does not touch the file another issue's scope is
    the call it was taken in, and only a real record write over a real tracker can show that. */
 const { execFileSync } = await import("node:child_process");
 const { copyFileSync, realpathSync, rmSync, writeFileSync } = await import("node:fs");
-const { fakeTracker, ranAsync, typedPlan } = await import("../../fixtures.mjs");
+const { fakeTracker, ranAsync, typedPlan } = await import("../../../fixtures.mjs");
 
 const PLANNED = "plugin/src/planned.mjs";
 const GREW = "plugin/src/grew.mjs";
@@ -172,7 +172,7 @@ test("a correction the tracker took is held by the cache though the write after 
   const at = tempRoom("plan-scope-run-");
   execFileSync("git", ["init", "-q", at], { cwd: dirname(at) });
   mkdirSync(join(at, "plugin", "src"), { recursive: true });
-  copyFileSync(new URL("../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
+  copyFileSync(new URL("../../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
   const worked = realpathSync(at);
   const held = () => scopeHeldUnder(tracker, worked);
   try {
@@ -195,7 +195,7 @@ test("a correction the tracker took is held by the cache though the write after 
 test("a record whose scope can be neither written nor removed says so, and names the way through", async () => {
   const at = tempRoom("plan-scope-blocked-");
   execFileSync("git", ["init", "-q", at], { cwd: dirname(at) });
-  copyFileSync(new URL("../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
+  copyFileSync(new URL("../../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
   const worked = realpathSync(at);
   const issue = { documentId: "blocked-uuid", issueId: "ISS-88", status: "in_progress",
     title: "a run whose config directory will not take a write", plan: typedPlan(),
@@ -237,7 +237,7 @@ test("a record whose scope can be neither written nor removed says so, and names
 test("a record written while the issue is off the ladder says nothing where the tree holds no entry", async () => {
   const at = tempRoom("plan-scope-silent-");
   execFileSync("git", ["init", "-q", at], { cwd: dirname(at) });
-  copyFileSync(new URL("../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
+  copyFileSync(new URL("../../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
   const worked = realpathSync(at);
   const issue = { documentId: "silent-uuid", issueId: "ISS-99", status: "closed",
     title: "a run posting after the close", plan: typedPlan(), acceptanceCriteria: "1. The one outcome." };
@@ -278,7 +278,7 @@ test("a record written while the issue is off the ladder says nothing where the 
 test("a record whose entry cannot be removed still names the file and the way out", async () => {
   const at = tempRoom("plan-scope-stuck-");
   execFileSync("git", ["init", "-q", at], { cwd: dirname(at) });
-  copyFileSync(new URL("../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
+  copyFileSync(new URL("../../../../../.forge.json", import.meta.url), join(at, ".forge.json"));
   const worked = realpathSync(at);
   const issue = { documentId: "stuck-uuid", issueId: "ISS-98", status: "closed",
     title: "a run whose entry will not go", plan: typedPlan(), acceptanceCriteria: "1. The one outcome." };

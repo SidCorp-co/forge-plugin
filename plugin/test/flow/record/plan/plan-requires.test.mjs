@@ -5,12 +5,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { tempHome } from "../../fixtures.mjs";
+import { tempHome } from "../../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("plan-requires").path;
-const { requiresRefusal } = await import("../../../src/flow/record/fields.mjs");
-const { FLOWS, FLOW_SLUGS, requiresOf } = await import("../../../src/guides/flow.mjs");
-const { planFlags } = await import("../../../src/flow/machine.mjs");
+const { requiresRefusal } = await import("../../../../src/flow/record/fields.mjs");
+const { FLOWS, FLOW_SLUGS, requiresOf } = await import("../../../../src/guides/flow.mjs");
+const { planFlags } = await import("../../../../src/flow/machine.mjs");
 
 const PLAN = (screen) => [
   "## Declarations",
