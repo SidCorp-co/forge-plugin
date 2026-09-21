@@ -10,7 +10,7 @@ import { failuresSaid } from "./check/output.mjs";
 import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { HUMAN_REF, documentIdIfAny } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
-import { FROM_PROJECT, refusing } from "../resolve/settings.mjs";
+import { fromProject, refusing } from "../resolve/settings.mjs";
 
 const NEAREST_UP = 12;
 const RESULT_CHARS = 20_000;
@@ -213,9 +213,9 @@ export const scopeFor = (root, extras = [], check = null, consult = null) => {
 const TAIL_CHARS = 6_000;
 
 /* The clock and the key that moves it, spelled two ways because a project that set the key is told which file holds it and one that never named it is told the key exists at all. Both are here because this string is the whole of what the run that paid for the stopped call is handed, and the seconds stay first in it, being what the log's own readers parse back out. */
-const clockSaid = ({ ms, msFrom }) => (msFrom === FROM_PROJECT
+const clockSaid = ({ ms, msFrom }) => (msFrom === fromProject()
   ? `\`codex.checkMs\` in ${msFrom}. Raise it, or narrow \`codex.check\` to what fits ${ms / 1000}s`
-  : `this plugin's default. Set \`codex.checkMs\` in ${FROM_PROJECT} to raise it, or narrow `
+  : `this plugin's default. Set \`codex.checkMs\` in ${fromProject()} to raise it, or narrow `
     + `\`codex.check\` to what fits ${ms / 1000}s`);
 
 // Composed, not inherited: a check is the project's command and not the run that consulted it.

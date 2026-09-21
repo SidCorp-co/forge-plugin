@@ -24,8 +24,10 @@ the value for truthiness and re-ran on a valid `null`. Unmemoised, one `forge is
 two dropped a valueless flag silently, which reads as an unfiltered answer.
 
 **A value whose right answer differs between two boxes working one checkout is the machine's, and
-is never in a file that is committed.** That line decides the whole of what `~/.config/forge/` holds
-and what a `.forge.json` may: the instance url, the tracker credential, every key of a harness
+is never in a file that is committed.** That line decides the whole of what this machine answers
+for itself and what it answers per project — the two sit side by side under `~/.config/forge/`, the
+machine's own in `config.json` and each project's in `projects/<root folder>/config.json`, and the
+line is about which of the two a key belongs in rather than about which file is committed: the instance url, the tracker credential, every key of a harness
 service — the reviewer's gateway, the Vietnamese gateway, Cloudflare, Coolify, the ChatGPT endpoint —
 and `withheld`, `withheldSkills`, `capabilities` and `ship`. A project file carrying any of them
 would hand every checkout of it one box's credential and one box's record of what a credential may
@@ -51,7 +53,8 @@ declaration is made, the person's look stands. What the same report does with th
 branch is [doctor](doctor.md).
 
 **One flow reads five settings, and each names the level that owns it** — which level, and why:
-[two levels](../two-levels.md). Four are the project's, in its own `.forge.json`: `feedback`, two
+[two levels](../two-levels.md). Four are the project's, in this machine's record of that project:
+`feedback`, two
 channels (`off | bugs | all`) saying whether a run may report on this plugin and on the project
 itself; `flow`, which of the served method sets this project runs, pinning the guide, the method and
 the contract together because they are one designed set and a project mixing them runs text nobody

@@ -68,7 +68,7 @@ read back as **gone** until it appears.
 
 `docs/cli/knowledge.md` declined to resolve a cited path against the working directory, and this is
 not a reversal of that: an *entry* may be written from a repository this checkout cannot see, but
-the brief is this project's, read inside the checkout `.forge.json` already pins. A source that
+the brief is this project's, read inside the checkout the project's configuration already pins. A source that
 does not resolve is reported as **gone** rather than refused, because a checkout that dropped a
 file the brief was read from is exactly the thing worth saying.
 

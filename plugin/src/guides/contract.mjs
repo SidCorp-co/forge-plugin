@@ -180,7 +180,7 @@ export const contractProblems = ({ root = HERE, flow = flowPinned().value, reads
 /** Which of the statuses handed in no part of this set answers. What is done with the answer, and why it is not a refusal, is `doctor.mjs`'s. */
 export const unansweredIn = (parts, statuses) => statuses.filter((one) => !partFor(parts, one));
 
-/** What this copy ships held against the slugs it declares, no pin in the question so a gate verdict does not move with a `.forge.json` it never declared. Both findings are about a slug: what a flow holds is its own, so no part and no sibling's set is left to hold it to. */
+/** What this copy ships held against the slugs it declares, no pin in the question so a gate verdict does not move with a project configuration it never declared. Both findings are about a slug: what a flow holds is its own, so no part and no sibling's set is left to hold it to. */
 export const flowProblems = (root = HERE, flows = FLOWS) => {
   const out = [];
   for (const flow of Object.keys(flows)) {

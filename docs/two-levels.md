@@ -38,7 +38,12 @@ in.
 ## The keys one flow reads, and whose each is
 
 The flow's own settings obey the division above rather than sitting outside it. Four are the
-project's, in its own `.forge.json`, because none of them can be stated without naming the project:
+project's, because none of them can be stated without naming the project. Whose a key is and where
+the key is kept are two questions: the project's half lives in this machine's record of that
+project, at `~/.config/forge/projects/<the checkout's root folder>/config.json`, out of the checkout
+and out of git. That is what lets one box differ from the repository and one worktree from another
+while the decision itself stays the project's, and it is why a value being the project's does not
+put it in a file every clone carries:
 
 - **`feedback`** — whether a run working in this project may file about this plugin, and about the
   project itself. A project that does not want a contractor's plugin reporting on itself from inside

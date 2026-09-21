@@ -1,8 +1,35 @@
 # the project's own file, written one key at a time
 
-The third resource `forge doctor --set` writes: the `.forge.json` a checkout resolves, whose keys this
-plugin declares rather than discovers. [doctor](doctor.md) carries the rest of that report, and
-README's Configuration section carries what each key decides.
+The third resource `forge doctor --set` writes, at
+`~/.config/forge/projects/<the checkout's root folder>/config.json`, whose keys this plugin declares
+rather than discovers. [doctor](doctor.md) carries the rest of that report, and README's
+Configuration section carries what each key decides.
+
+## What the folder name costs, and why it is still the key
+
+The lookup walks to the **repository's** root — git's common directory, not the checkout's own — so
+the answer is shared by construction wherever git already considers two trees one repository. Two
+alternatives were weighed and both fail. Keying on the tracker slug cannot start: the slug is a value
+*inside* this file, so finding the file would need the file. Keying on the full path gives every
+worktree a separate answer, which is the sharing above thrown away.
+
+So the folder name is the key, and its two costs are accepted rather than designed around: two
+checkouts whose root folders happen to share a name share one answer, and renaming a checkout leaves
+its old answer behind under the old name, reachable by hand.
+
+## The committed file it replaces, and the one command out
+
+A `.forge.json` in a checkout is read by nothing. It is not a fallback layer, because a fallback
+layer is exactly the precedence rule this shape removes — two places to look, a rule nobody wrote
+down, and an undo that does not restore what was there. It is not ignored in silence either:
+`forge doctor` says once per call that the file is standing there unread, and names
+`forge doctor --adopt`, which copies its contents whole into this machine's record.
+
+That command refuses where a record already exists rather than writing over it, because a key set
+since the adoption is held there and nowhere else. It never touches the checkout's own file: taking
+a tracked file out of a repository is a commit, and this plugin does not commit in somebody's tree.
+So the two stores diverge from the first `--set` after an adoption, and that is what the refusal
+protects.
 
 ## Declared, so the route holds where the tracker does not
 
@@ -13,7 +40,7 @@ write — and it is why the route holds while the tracker is down or has retired
 tracker fact carrying the same bare name is reached by `fact.<k>`.
 
 A key nothing here reads is refused with the list of what the file holds, and is offered no
-`project.<k>` route at all: a value written under it would be a line in somebody's committed file that
+`project.<k>` route at all: a value written under it would be a line in somebody's configuration that
 nothing ever looks at, and a refusal naming a route that cannot work is a refusal recommending a
 second one. The suite holds that list to the keys the code reads, in both directions, so a key added
 to one side and not the other fails rather than drifting. `flow` is refused with `forge doctor --flow
@@ -21,9 +48,10 @@ to one side and not the other fails rather than drifting. `flow` is refused with
 
 ## One key's span, and the diff that proves it
 
-The file is committed and read by every session, so a document re-serialized from its parse turns a
-one-key change into a diff nobody can review: an inline array reflowed across eight lines, a key order
-rewritten, seventy insertions standing in for one value. What is written is therefore the one key's
+The file is read by every session standing in any checkout of the project, and a file adopted out of
+a checkout arrives in whatever shape its author left it, so a document re-serialized from its parse
+throws that shape away: an inline array reflowed across eight lines, a key order rewritten, seventy
+insertions standing in for one value. What is written is therefore the one key's
 span in the file's own text. A table on the way to that key is created holding the key alone, nothing
 beside it gains a default, and a document whose span this cannot find is refused rather than rewritten
 whole — that once, the key is set by hand.

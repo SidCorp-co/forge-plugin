@@ -1,7 +1,7 @@
 /* The one table `forge next` scores against, and the one place a project overrides a weight. Every
    number here was set by the issue that asked for the verb; what each is FOR is
    docs/cli/next-weights.md's, and why the reading stops where it does is docs/cli/next.md's. */
-import { FROM_PROJECT, rankConvention } from "../resolve/settings.mjs";
+import { fromProject, rankConvention } from "../resolve/settings.mjs";
 import { KIND_NAMES } from "../tracker/issue-shape.mjs";
 
 export const TAKEABLE = ["open", "confirmed", "approved", "reopen"];
@@ -110,7 +110,7 @@ export const foldWeights = (asked) => {
   if (refusal) return { value: DEFAULTS, from: null, refusal, said };
   const value = { ...DEFAULTS, ...Object.fromEntries(RANK_WEIGHTS.map((key) => [key, given[key] ?? DEFAULTS[key]])) };
   for (const key of TABLES) value[key] = { ...DEFAULTS[key], ...(given[key] ?? {}) };
-  return { value, from: FROM_PROJECT, refusal: null, said };
+  return { value, from: fromProject(), refusal: null, said };
 };
 
 export const weightsFrom = () => foldWeights(rankConvention().value);

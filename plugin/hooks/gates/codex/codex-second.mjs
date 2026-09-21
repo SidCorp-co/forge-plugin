@@ -93,7 +93,7 @@ const ESCAPE = "For the session: `forge hooks --off codex-second` — an inline 
   + "prefix never reaches a hook.";
 
 const DOOR = "commit";
-const MALFORMED = "`codex.owed` in .forge.json is a list of the doors a consult is demanded at, out of "
+const MALFORMED = "`codex.owed` in this project's configuration is a list of the doors a consult is demanded at, out of "
   + `${OWED_DOORS.join(", ")}. Drop the key and the commit alone asks.`;
 
 /* The record and the log resolve under XDG_CONFIG_HOME and a hook reads the session's, so a consult made under another one is recorded where this never looks: unsaid, that refused files a consult had already read while `pending` answered nothing pending about them, and the only way out it offered was turning the review off (ISS-189). */

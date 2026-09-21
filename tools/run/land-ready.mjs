@@ -510,8 +510,8 @@ export const landReady = async ({ flags, words }, ctx) => {
   if (judgement === INDEPENDENT && route !== BEFORE_MERGE && route !== AFTER_MERGE) {
     stop(`this project asks for an independent judge between ${DEVELOPED} and ${JUDGED} and says nothing `
       + `about where the merge sits, so nothing here knows whether the judgement comes before the `
-      + `push or after it. Set the branches on the project's record, or the \`landing\` key in `
-      + `.forge.json, and land again: forge doctor`);
+      + `push or after it. Set the branches on the project's record, or run `
+      + `\`forge doctor --set landing=before-merge\`, and land again`);
   }
   console.log(`\nlanding ${route}, judgement ${judgement}`);
   /* Named or found, one list from here down: nothing below it knows which of the two it was given. */

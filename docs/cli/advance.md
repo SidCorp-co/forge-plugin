@@ -34,7 +34,7 @@ two lines.
 
 Whether that look is owed at all is the project's, and the answer was already on the tracker: a
 project declares a release model, and a setting saying whether production deploys go without being
-asked. So nothing new was declared in `.forge.json` — a second place to say it would
+asked. So nothing new was declared in the project's configuration — a second place to say it would
 have been a precedence rule, a report that has to name which one answered, and an undo that misses
 one of them. The verb reads that config where it reads the plan's declarations, and only where the
 plan declares one of them, because an issue that owes no person owes no round to find out. A release

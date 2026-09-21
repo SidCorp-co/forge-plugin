@@ -71,7 +71,23 @@ decide which model a subagent's `model:` frontmatter spawns on — so the slot a
 through is still read from that file and nothing here touches it. Which values are this box's and
 can never be a project's: [settings](docs/cli/settings.md).
 
-**Project** — everything a tracker decides for itself, in a `.forge.json` at its root:
+**Project** — everything a tracker decides for itself, in this machine's record of that project:
+
+```
+~/.config/forge/projects/<the checkout's root folder>/config.json
+```
+
+Out of the checkout and out of git, so a box can differ from the repository, a worktree can hold its
+own, and setting a key is not a commit somebody has to review. The directory is named for the
+**repository's** root folder — `git`'s common directory, so every linked worktree of one checkout
+reads one file — and `projects/` keeps that namespace disjoint from forge's own, which grows a file
+or a directory with every feature that stores something. Two checkouts whose root folders share a
+name share an entry; that is the accepted cost of every worktree of one sharing one.
+
+`forge doctor --set <key>=<value>` writes it and creates it where there is none, `forge doctor`
+prints every key with the file it was read from, and a checkout still carrying a committed
+`.forge.json` is told so once with `forge doctor --adopt`, which takes its contents over. Nothing
+reads that file: a fallback layer is the precedence rule this shape exists to remove. The keys:
 
 ```json
 {
@@ -93,7 +109,9 @@ can never be a project's: [settings](docs/cli/settings.md).
 }
 ```
 
-`slug` is read from that file alone and is demanded only by a call that needs a project id.
+`slug` is read from that file alone and is demanded only by a call that needs a project id; it is
+a value **inside** the file and never what finds it, so a checkout in a folder named for a branch or
+a client still reports its tracker slug correctly.
 `translate` is off unless set — a wrong-language issue cannot be withdrawn. `deps` is optional
 and defaults to the English sentence shown. `codex.pathRe` decides which of a turn's writes are
 worth a second opinion, and belongs here rather than in the account's config: a docs tree and a

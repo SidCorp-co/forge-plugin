@@ -1,10 +1,10 @@
 /* Where every setting comes from — never from an argument. Two scopes: the url and token are the
    ACCOUNT's, the slug and prose language the PROJECT's, so the slug is demanded lazily. Each
    resolves to `{ value, from }`, because provenance is what doctor reports. docs/cli/settings.md. */
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 import { checkoutAt } from "../git/checkout-at.mjs";
-import { configPath, once, readJson, userConfig } from "./config.mjs";
+import { configDir, configPath, once, readJson, userConfig } from "./config.mjs";
 
 /* Registered by a caller holding something no exit may lose — a body that arrived on stdin. */
 let kept = null;
@@ -66,10 +66,57 @@ const nearest = (name) =>
     return { parsed: null, from: null, root: null };
   });
 
-/** The project file, spelled here alone: `forge doctor` reports it, other lines name the project. */
-export const FROM_PROJECT = ".forge.json";
+/** The name a checkout's own tracked project file carries. No key is read out of one: it is named
+ *  here for the row that reports one standing in a checkout, and for the command that adopts it. */
+export const COMMITTED_FILE = ".forge.json";
 
-const forgeJson = nearest(FROM_PROJECT);
+/* This machine's record of one project. `projects/` keeps the project namespace disjoint from
+   forge's own: this configuration directory holds files and directories of forge's that grow with
+   every feature storing something, and a checkout whose root folder matched one of their names
+   would merge into it rather than be refused. The prefix is `forge` and not the project, because
+   `~/.config/` is every application's and a checkout named `git`, `gh` or `codex` would land on
+   theirs. */
+const PROJECT_ENTRY = ["projects", "config.json"];
+
+/** Which project a directory belongs to: the name of its REPOSITORY's root folder, so every linked
+ *  worktree of one checkout answers alike and nothing has to be read to find what is to be read.
+ *  The user's decision, 2026-09-17. The tracker slug stays a value inside the file and is not what
+ *  finds it — a slug is readable only out of the very file this locates, so keying on it cannot
+ *  start. Two checkouts whose root folders share a name share an entry, which is the accepted cost
+ *  of every worktree of one checkout sharing one. */
+const entryFor = (repository) => {
+  const [under, file] = PROJECT_ENTRY;
+  return repository === null
+    ? null : join(configDir("forge"), under, basename(repository), file);
+};
+
+export const projectEntryAt = (directory) => entryFor(checkoutAt(directory)?.repository ?? null);
+
+/* Off the memoised walk rather than through the line above, which would walk the disk again on
+   every read of every key; the configuration directory is read per call either way, so a home the
+   caller sets reaches this without a previous call's home answering for it. */
+export const projectFilePath = () => entryFor(standing()?.repository ?? null);
+
+/** Where a project value was read from, which is what `forge doctor` prints after its arrow (BR-08).
+ *  A directory belonging to no checkout has no such file, and the bare name is what a message about
+ *  one of its keys names instead. */
+export const fromProject = () => projectFilePath() ?? PROJECT_ENTRY.join("/");
+
+const forgeJson = once(() => {
+  const path = projectFilePath();
+  return { parsed: path === null ? null : readJson(path) };
+});
+
+/** A `.forge.json` standing in this checkout, or null. Nothing here reads a key out of it: this is
+ *  the one reading that reports it, and the command that adopts it takes its contents whole. */
+export const committedFileHere = once(() => {
+  for (const root of searchRoots()) {
+    const path = join(root, COMMITTED_FILE);
+    if (readJson(path)) return path;
+  }
+  return null;
+});
+
 const mcpJson = nearest(".mcp.json");
 
 /* Reported, never resolved: doctor names a `forge` server in a `.mcp.json` rather than leaving its
@@ -109,17 +156,12 @@ export const settings = once(() => {
   return { url: url.value, token: bearer };
 });
 
-export const projectScope = once(() => sourced(FROM_PROJECT, forgeJson().parsed?.slug));
+export const projectScope = once(() => sourced(fromProject(), forgeJson().parsed?.slug));
 
-/** The project file a NAMED directory resolves to, whole, for a verb reading one checkout while standing in another: the same walk, off that path rather than this process's, and null where it names none. Whole rather than one key, since a reader of a second key would otherwise walk again and could disagree with this one about which file is the project's. */
+/** The project's configuration a NAMED directory resolves to, whole, for a verb reading one checkout while standing in another: the same derivation, off that path rather than this process's, and null where that path is in no checkout. Whole rather than one key, since a reader of a second key would otherwise derive it again and could disagree with this one about which file is the project's. */
 export const projectFileAt = (directory) => {
-  const shared = checkoutAt(directory)?.repository ?? null;
-  const roots = [...ancestors(directory), ...(shared === null ? [] : [shared])];
-  for (const root of roots) {
-    const parsed = readJson(join(root, FROM_PROJECT));
-    if (parsed) return parsed;
-  }
-  return null;
+  const path = projectEntryAt(directory);
+  return path === null ? null : readJson(path);
 };
 
 export const projectAt = (directory) => projectFileAt(directory)?.slug ?? null;
@@ -134,7 +176,7 @@ export const useProject = ({ slug, from }) => {
 export const projectTarget = () => aimed ?? projectScope();
 
 /* Which paths, and which angles, are the checkout's answer: the account's covers every one. */
-export const projectRecordPattern = () => sourced(FROM_PROJECT, forgeJson().parsed?.codex?.pathRe);
+export const projectRecordPattern = () => sourced(fromProject(), forgeJson().parsed?.codex?.pathRe);
 
 /* No plugin default, and an unreadable pattern is no declaration: docs/two-levels.md, README. */
 const declaredWork = (at) => (at ? projectFileAt(at)?.lease?.workingRe : forgeJson().parsed?.lease?.workingRe);
@@ -144,37 +186,50 @@ export const workPatternOf = (said) => {
   try {
     new RegExp(said, "u");
   } catch {
-    return { value: null, from: FROM_PROJECT, unreadable: said };
+    return { value: null, from: fromProject(), unreadable: said };
   }
-  return { value: said, from: FROM_PROJECT, unreadable: false };
+  return { value: said, from: fromProject(), unreadable: false };
 };
 
 export const projectWorkPattern = (at = null) => workPatternOf(declaredWork(at));
 export const projectCodex = () => forgeJson().parsed?.codex ?? {};
 
 /** Which CHECKOUT this process stands in — what a caller reading FILES off a root wants, and what
- *  `--git-common-dir` gets wrong in a worktree (ISS-1245); else the project file's own directory. */
-export const checkoutRoot = once(() => standing()?.tree ?? forgeJson().root);
+ *  `--git-common-dir` gets wrong in a worktree (ISS-1245). Null where no checkout holds this
+ *  directory: a project's configuration is found by its repository's root folder, so a directory
+ *  belonging to no repository has no project to be standing in (ISS-1403). */
+export const checkoutRoot = once(() => standing()?.tree ?? null);
 
 /* The slug is a header when there is one, and an error only for a call needing a project id. */
 export const slugIfAny = () => projectTarget().value;
 
+/** Which command puts a slug where this call would read one. A checkout standing on a `.forge.json`
+ *  is given the command that takes the whole of it over rather than the one that writes this key:
+ *  every other key of that file answers nothing here too, so one call settles all of them. */
+export const noProjectHere = () => {
+  const held = committedFileHere();
+  const path = projectFilePath();
+  if (held) {
+    return `This call is project-scoped and no project slug is set. ${held} is this checkout's own\n`
+      + `and is read by nothing: a project's configuration is this machine's record of it, at\n${path}.\n`
+      + "Take that file's contents over: `forge doctor --adopt`";
+  }
+  return "This call is project-scoped and no project slug is set. Run\n"
+    + "`forge doctor --set slug=<project>`, which writes it to this machine's record of this\n"
+    + `project at\n${path ?? join(configDir("forge"), ...PROJECT_ENTRY)}\n`
+    + "— not the environment, and not a `.mcp.json` header.";
+};
+
 export const projectSlug = () => {
   const { value } = projectTarget();
-  if (!value) {
-    fail(
-      'This call is project-scoped and no project slug is set. Put `{ "slug": "<project>" }`\n' +
-        "in the project file at the root of this checkout, the one place it is read from, which\n" +
-        "`forge doctor` names — not the environment, and not a `.mcp.json` header.",
-    );
-  }
+  if (!value) fail(noProjectHere());
   return value;
 };
 
 /* A property of the tracker, not the CLI. Off by default: a wrong-language issue cannot be
    deleted, and a missing translation is an edit. */
 export const translateScope = once(() => {
-  const chosen = sourced(FROM_PROJECT, forgeJson().parsed?.translate);
+  const chosen = sourced(fromProject(), forgeJson().parsed?.translate);
   const off = !chosen.value || chosen.value === "off" || chosen.value === "false";
   return { value: off ? null : String(chosen.value), from: chosen.from };
 });
@@ -195,11 +250,11 @@ export const depsConvention = once(() => {
   const given = forgeJson().parsed?.deps;
   return {
     value: { ...DEFAULT_PROSE, ...(given ?? {}) },
-    from: given ? FROM_PROJECT : "the built-in English default",
+    from: given ? fromProject() : "the built-in English default",
   };
 });
 
-export const rankConvention = once(() => sourced(FROM_PROJECT, forgeJson().parsed?.rank));
+export const rankConvention = once(() => sourced(fromProject(), forgeJson().parsed?.rank));
 
 export const JOB_ALL = "all";
 
@@ -228,15 +283,15 @@ export const jobsOf = (given) => {
     const shape = name === JOB_ALL ? null : jobShape(declared);
     if (name === JOB_ALL) {
       problems.push(`\`${JOB_ALL}\` is reserved, being what clears a job rather than a name one may take,`
-        + ` so the job declared under it is offered nowhere — rename it in ${FROM_PROJECT}`);
+        + ` so the job declared under it is offered nowhere — rename it in ${fromProject()}`);
     } else if (!shape) {
       problems.push(`the \`${name}\` job is neither a list of verb names nor a table of \`verbs\` and`
-        + ` \`skills\` that are each one, so it is offered nowhere — write it as one in ${FROM_PROJECT}`);
+        + ` \`skills\` that are each one, so it is offered nowhere — write it as one in ${fromProject()}`);
     } else {
       jobs[name] = shape;
     }
   }
-  return { jobs, from: FROM_PROJECT, problems };
+  return { jobs, from: fromProject(), problems };
 };
 
 export const declaredJobs = () => jobsOf(forgeJson().parsed?.jobs);
@@ -247,7 +302,7 @@ export const projectStop = () => forgeJson().parsed?.stop ?? {};
 const PLUGIN_DEFAULT = "the plugin's default";
 
 /** One shape for every keyed choice, so doctor and the guides' conditions read them all the same way, and the judgement with it: `unknown` is what this key will not take, which is what a write of that key refuses on rather than deciding for itself what the set is. */
-export const chosen = (given, allowed, fallback, { source = FROM_PROJECT, absent = PLUGIN_DEFAULT } = {}) => {
+export const chosen = (given, allowed, fallback, { source = fromProject(), absent = PLUGIN_DEFAULT } = {}) => {
   if (given === undefined || given === null) return { value: fallback, from: absent };
   const held = String(given);
   return allowed.includes(held)
@@ -268,7 +323,7 @@ export const codexOwedOf = (codex) => {
   if (!listed || wrong.length) {
     return { value: OWED_ABSENT, from: PLUGIN_DEFAULT, unknown: wrong?.join(", ") || JSON.stringify(given) };
   }
-  return { value: [...new Set(listed)], from: FROM_PROJECT };
+  return { value: [...new Set(listed)], from: fromProject() };
 };
 
 export const codexOwed = () => codexOwedOf(projectCodex());
@@ -282,14 +337,14 @@ export const CHECK_MS_ABSENT = 300_000;
 export const checkMsOf = (given) => {
   if (given === undefined || given === null) return { ms: CHECK_MS_ABSENT, msFrom: PLUGIN_DEFAULT };
   return typeof given === "number" && Number.isInteger(given) && given > 0
-    ? { ms: given, msFrom: FROM_PROJECT }
+    ? { ms: given, msFrom: fromProject() }
     : { ms: CHECK_MS_ABSENT, msFrom: PLUGIN_DEFAULT, unknown: JSON.stringify(given) };
 };
 
 export const codexCheckOf = (codex) => {
   const command = codex?.check;
   if (!command || typeof command !== "string") return null;
-  return { command, from: FROM_PROJECT, ...checkMsOf(codex?.checkMs) };
+  return { command, from: fromProject(), ...checkMsOf(codex?.checkMs) };
 };
 
 export const codexCheck = () => codexCheckOf(projectCodex());
@@ -307,7 +362,7 @@ export const feedbackScope = once(() => Object.fromEntries(
 const written = (key) => {
   const parsed = forgeJson().parsed;
   return parsed && Object.hasOwn(parsed, key)
-    ? { value: parsed[key], from: FROM_PROJECT }
+    ? { value: parsed[key], from: fromProject() }
     : { value: undefined, from: PLUGIN_DEFAULT };
 };
 
@@ -320,9 +375,6 @@ export const projectFileHere = () => {
   const parsed = forgeJson().parsed;
   return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
 };
-
-/** Where the project file every line above was read from actually is, or null where the search found none. A write to a project key takes this rather than building a path of its own: the search runs once per process and reaches a linked worktree's shared checkout, so a path composed from `cwd` at the moment of the write is a different file on exactly the trees a delegated run works in. */
-export const projectFilePath = () => (forgeJson().root ? join(forgeJson().root, FROM_PROJECT) : null);
 
 export const methodScope = once(() => written("method"));
 
@@ -348,12 +400,12 @@ export const shipMode = () => chosen(userConfig().ship, SHIP_MODES, SHIP_MODES[0
 
 export const RUNS_TAKES = "a whole number above 0";
 
-// How many runs this project carries at once, whoever dispatched them: the width of a wave the dispatcher fills and the ceiling a gate of this project admits itself against, which are one number because they bound one thing. One ceiling over the project is not one allowance per master, so a session that cannot see another master's runs is bounded by what the project is already carrying rather than by this number afresh. The project's and not the machine's — ISS-1157 reverses ISS-917 on that, the user's decision on 2026-09-11 — so two checkouts on one box each answer for their own work, and neither inherits the other's. Absent it is null, and every reader then behaves as it did before the key existed.
+// How many runs this project carries at once, whoever dispatched them: the width of a wave the dispatcher fills and the ceiling a gate of this project admits itself against, which are one number because they bound one thing. One ceiling over the project is not one allowance per master, so a session that cannot see another master's runs is bounded by what the project is already carrying rather than by this number afresh. The key is the PROJECT's — ISS-1157 reverses ISS-917 on that, the user's decision on 2026-09-11 — so two projects on one box each answer for their own work and neither inherits the other's; the file holding it is this MACHINE's, per ISS-1403, so two boxes carrying one project may differ. The two are one shape and neither reverses the other: the store is keyed on the project and kept on the device. Absent it is null, and every reader then behaves as it did before the key existed.
 export const runsOf = (given) => {
   if (given === undefined || given === null) return { value: null, from: PLUGIN_DEFAULT };
   const held = Number(given);
   return Number.isInteger(held) && held > 0
-    ? { value: held, from: FROM_PROJECT }
+    ? { value: held, from: fromProject() }
     : { value: null, from: PLUGIN_DEFAULT, unknown: String(given) };
 };
 

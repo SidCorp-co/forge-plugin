@@ -11,7 +11,7 @@ findings with no verdict; an issue taken and never written against since; tracke
 left in a worktree it stood in; a process that turn began, still standing there.
 
 Whose stop: the main agent's always. A subagent's on the subagent's own transcript, and only where
-`.forge.json` names its agent type in `stop.agents` — absent, no subagent's.
+This project's configuration names its agent type in `stop.agents` — absent, no subagent's.
 
 How to work through it: `forge hooks --off stop-check` stands both stop events down for the session;
 so does `FORGE_STOP_DISABLE=1` in the environment the session started in.

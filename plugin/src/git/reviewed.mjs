@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { isAbsolute, resolve, sep } from "node:path";
 
-import { fail, FROM_PROJECT, projectReview } from "../resolve/settings.mjs";
+import { fail, fromProject, projectReview } from "../resolve/settings.mjs";
 import { everyIssue, shortOf } from "../tracker/issues.mjs";
 
 export const REVIEWED = "refs/forge/reviewed";
@@ -40,7 +40,7 @@ export const SHIPPED_LINES = 1500;
 const FROM_PLUGIN = "the plugin's default";
 
 const sourced = (key, value) =>
-  ({ value, from: projectReview()[key] === undefined ? FROM_PLUGIN : FROM_PROJECT });
+  ({ value, from: projectReview()[key] === undefined ? FROM_PLUGIN : fromProject() });
 
 /** An absent `review`, a null one and an empty one read alike, so the question is which key is set. */
 export const reviewDeclared = () => {
@@ -50,7 +50,7 @@ export const reviewDeclared = () => {
 
 const linesRefusal = (given) => {
   if (given === undefined || (Number.isInteger(given) && given >= 1)) return null;
-  return `\`review.lines\` in ${FROM_PROJECT} is a whole number of changed lines above zero, not `
+  return `\`review.lines\` in ${fromProject()} is a whole number of changed lines above zero, not `
     + `\`${JSON.stringify(given)}\`. Drop the key to take the ${SHIPPED_LINES} this plugin ships with.`;
 };
 
@@ -65,7 +65,7 @@ const wrongShape = (given) => {
 
 const pathsRefusal = (given) => {
   const wrong = given === undefined ? null : wrongShape(given);
-  return wrong && `\`review.paths\` in ${FROM_PROJECT} is ${wrong}, not \`${JSON.stringify(given)}\`. `
+  return wrong && `\`review.paths\` in ${fromProject()} is ${wrong}, not \`${JSON.stringify(given)}\`. `
     + `Drop the key to count ${SHIPPED_PATHS.join(", ")}, which is this plugin's own layout and no `
     + `other repository's.`;
 };
@@ -126,7 +126,7 @@ const uncounted = (tree, paths) => {
 const cannotCount = ({ checkout, missing, paths }) => {
   if (!missing.length) return null;
   const named = missing.join(", ");
-  const layout = paths.from === FROM_PROJECT ? ""
+  const layout = paths.from === fromProject() ? ""
     : `. ${SHIPPED_PATHS.join(", ")} is this plugin's own layout, and no claim about this repository`;
   if (!checkout) {
     return `a review volume is declared and this directory stands in no checkout, so ${named} can `
@@ -135,7 +135,7 @@ const cannotCount = ({ checkout, missing, paths }) => {
   }
   return `${named} ${missing.length > 1 ? "are counted paths" : "is a counted path"} this repository `
     + `does not hold, so nothing here can count towards the volume and no reading is ever owed. `
-    + `Declare this repository's own under \`review.paths\` in ${FROM_PROJECT}: ${SET_PATHS}${layout}`;
+    + `Declare this repository's own under \`review.paths\` in ${fromProject()}: ${SET_PATHS}${layout}`;
 };
 
 /** The one answer to whether a count over the declared paths can mean anything, read by the report

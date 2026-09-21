@@ -110,7 +110,7 @@ refused because a per-part fallback let a flow carry a copy it did not need, and
 that copy *is* what the flow serves.
 
 The check keeps its own question. *Which text am I served* is a project's, and the flow answers it.
-*What does this copy ship* is a check's, and no `.forge.json` is part of that answer: a gate step
+*What does this copy ship* is a check's, and no project's configuration is part of that answer: a gate step
 whose verdict moved with a setting it does not declare would be reused stale, and declaring the
 settings resolver as its input would re-run the check every time an unrelated key changed.
 

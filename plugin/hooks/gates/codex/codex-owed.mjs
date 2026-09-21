@@ -17,7 +17,7 @@ const ESCAPE = "For the session: `forge hooks --off codex-owed` — an inline `F
 const readIn = () => `Read from ${typed(configDir("forge"))}, so a consult recorded under another `
   + "XDG_CONFIG_HOME clears nothing here.";
 
-const MALFORMED = "`codex.owed` in .forge.json is a list of the doors a consult is demanded at, out of "
+const MALFORMED = "`codex.owed` in this project's configuration is a list of the doors a consult is demanded at, out of "
   + `${OWED_DOORS.join(", ")}. Drop the key and the commit alone asks.`;
 
 /* One read of a tree's project file answers both halves: which commands that project calls its gate

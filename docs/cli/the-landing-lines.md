@@ -17,6 +17,6 @@ its record implies says so once, where a reader can see both.
 **Whether an independent agent judges between `developed` and `testing` is the record's alone.** A
 project has one tracker record and many checkouts, and QA belongs with the deploy facts rather than
 beside them; read from a checkout instead, two clones of one project would judge the same change
-differently. So a `qa` key in a `.forge.json` has no effect on this line, which prints
+differently. So a `qa` key in a project's configuration has no effect on this line, which prints
 *not stated* until the record itself answers. This report says so at the point where there is still
 time to change the record, and not at the transition that would later turn it down.

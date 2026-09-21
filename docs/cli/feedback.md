@@ -9,7 +9,7 @@ session spent part of every fold reading the folder and routing each note onto t
 it by hand. So a note is an issue rather than a file, and nothing is written to disk.
 
 **The destination is held in the CLI, not read from the caller.** A note met in another repository
-has to reach this plugin's backlog, so the caller's `.forge.json` says where the note came *from*
+has to reach this plugin's backlog, so the caller's own project configuration says where the note came *from*
 and never where it goes, and *from* is a fact in the body. The prose language rides with the
 destination for the same reason: a note written from a project whose config asks for Vietnamese
 belongs to this plugin's English backlog as written, and the caller's config must not decide the

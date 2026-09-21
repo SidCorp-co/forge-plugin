@@ -13,7 +13,7 @@ to hundreds of code points and pushed that sentence under it (ISS-1699). Order i
 alone — every reader finds a field by a property or by its key — so the records already written
 stand, and what moves is which line is read first and which flag a bare write is refused by. Both of those the prose pipeline copies byte for byte,
 which is why the keys inside are the flags rather than the labels a reader sees: on a project whose
-`.forge.json` names a prose language every body is rewritten on the way out, and a rewrite renames
+A project's configuration names a prose language every body is rewritten on the way out, and a rewrite renames
 prose. Eight verdicts and a verification earned nothing on such a project because the labels the
 reader keyed on had become Vietnamese, and a criterion number read from an absent label keyed the
 verdict map as `NaN`. A record written in the older form is read by its labels, and one whose labels

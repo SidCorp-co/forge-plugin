@@ -105,4 +105,4 @@ worked.
 
 **Angles are the checkout's.** On this CLI three of the four wrote "nothing material" in every one of
 92 consults — output paid for, and the reader skimming past the one angle that mattered. The board
-stays for a product with screens; `.forge.json` names the angles that fit.
+stays for a product with screens; the project's configuration names the angles that fit.

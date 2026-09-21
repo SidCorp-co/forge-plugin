@@ -1,4 +1,4 @@
-/* A project whose `.forge.json` names a prose language has every body and prose field rewritten on
+/* A project whose configuration names a prose language has every body and prose field rewritten on
    the way out (tools/vi.mjs), and a rewrite renames prose, so a key travels in a form the rewrite copies byte for byte: a fenced block, or a code span. `content.mjs` is the one thing imported here and imports nothing itself, so both sides can still import this. */
 import { decisionProblem, whereProblem } from "./record/content.mjs";
 import { CODE_SPAN, SPAN, blanked, fenceMarked } from "../prose.mjs";

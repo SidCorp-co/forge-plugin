@@ -27,7 +27,7 @@ flagged above 80% of at least 8 bullets. A word quoted as an anti-pattern is not
 lists those exact words as signals of unfinished thinking, and meant it.
 
 Structure and claims read the tree and nothing else, so they run before the endpoint: a project with no
-Forge slug still gets its CLAUDE.md checked, anchored at the `.forge.json` directory rather than by
+Forge slug still gets its CLAUDE.md checked, anchored at the checkout's own root rather than by
 walking up — an unbounded walk-up eventually reaches `~/.claude/CLAUDE.md` and reviews the user's global
 file against a project's guides.
 

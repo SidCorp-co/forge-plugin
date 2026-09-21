@@ -6,7 +6,7 @@ The one thing in this design the reviewer runs for itself. What a finding coming
 **No local agent.** The first engine spawned a `claude` session with `--allowedTools Read Grep Glob`;
 that flag auto-approves and does not confine, so the child inherited this machine's skills, answered a
 review prompt by running a multi-agent review skill, and had to be killed by pid after eleven minutes.
-The one exception since is `codex.check`: a command the *checkout* names in `.forge.json`, run at most
+The one exception since is `codex.check`: a command the *checkout* names in its own configuration, run at most
 once per consult under a clock, exit code and tail returned. "The tests pass" was the claim every review
 said it could not verify; a fixed command it did not choose is not a shell.
 

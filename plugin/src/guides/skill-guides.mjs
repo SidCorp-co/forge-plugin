@@ -171,7 +171,7 @@ const answers = (skill, reference, root, flow) => {
 const stubsOf = (root) =>
   shippedSkills(root).map((one) => join(root, SKILLS_WITHIN, one, "SKILL.md"));
 
-/** Every `forge guide <slug> <part>` a skill text names that this copy cannot answer: a citation is a path with no directory to resolve against, so it is checked here instead. Every flow the copy ships is read and the pin is not, so the finding is about the copy and does not move with the `.forge.json` beside it. A stub names no flow, so it is held to the flow a project falls back to; holding one to every shipped flow is a reading left to whoever ships the second flow. */
+/** Every `forge guide <slug> <part>` a skill text names that this copy cannot answer: a citation is a path with no directory to resolve against, so it is checked here instead. Every flow the copy ships is read and the pin is not, so the finding is about the copy and does not move with the configuration the checkout beside it resolves. A stub names no flow, so it is held to the flow a project falls back to; holding one to every shipped flow is a reading left to whoever ships the second flow. */
 export const unresolvedCitations = (root = HERE) => {
   const out = [];
   const files = stubsOf(root).map((file) => ({ file, flow: DEFAULT }));

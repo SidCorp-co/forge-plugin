@@ -1,10 +1,13 @@
 /* The project's own configuration file as a thing that can be written: where one key's pair sits in
    its text, which paths take a value and how a word is spelled into one, and whose reader says what
-   that value may not be. The file is committed and read by every session, so a write edits the span it
-   changes and nothing else — a document re-serialized from its parse lands a diff nobody asked for in
-   somebody else's review. What a key means: README.md's Configuration. */
-import { closeSync, fchmodSync, openSync, readFileSync, realpathSync, renameSync, rmSync, statSync, writeFileSync }
-  from "node:fs";
+   that value may not be. The file is this machine's record of one project and is read by every
+   session standing in any checkout of it, so a write edits the span it changes and nothing else — a
+   document re-serialized from its parse loses the shape whoever wrote it by hand was reading, and a
+   file adopted out of a checkout carries that shape in. What a key means: README.md's
+   Configuration. */
+import { closeSync, existsSync, fchmodSync, mkdirSync, openSync, readFileSync, realpathSync,
+  renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 
 import { compiles } from "../../codex/codex.mjs";
 import { reviewRefusalOf } from "../../git/reviewed.mjs";
@@ -17,7 +20,7 @@ import {
   fail,
   DRAINS,
   FEEDBACK_CHANNELS,
-  FROM_PROJECT,
+  fromProject,
   LANDING_ROUTES,
   OWED_DOORS,
   RUNS_TAKES,
@@ -165,7 +168,7 @@ export const withoutKey = (text, key) => {
 };
 
 const said = (key, takes, given) =>
-  `\`${key}\` in ${FROM_PROJECT} is ${takes}, not \`${JSON.stringify(given ?? null)}\`.`;
+  `\`${key}\` in ${fromProject()} is ${takes}, not \`${JSON.stringify(given ?? null)}\`.`;
 
 /* Stated here and not borrowed: these keys are read as they come, so there is no reader's sentence to
    reach for and the shape each reader needs to function is the whole of what a write can check. */
@@ -392,14 +395,31 @@ export const wroteWhole = (path, text) => {
   }
 };
 
+/* The entry is this machine's own and a project that has set nothing has no file yet, so the first
+   write creates one rather than refusing: refusing would leave `slug` unsettable in a checkout that
+   names no project, which is the one key every other route needs before it can run. Created at 0600
+   like every other file this plugin keeps under that directory, and holding an empty object, so the
+   span walk below has a document to place the key in. */
+const madeEmpty = (path) => {
+  mkdirSync(dirname(path), { recursive: true });
+  const handle = openSync(path, "wx", 0o600);
+  try {
+    writeFileSync(handle, "{}\n");
+  } finally {
+    closeSync(handle);
+  }
+};
+
 const openedFile = (key) => {
   const named = projectFilePath();
   if (!named) {
-    fail(`--set: \`${key}\` is a key of ${FROM_PROJECT} and no such file was found on the way up from `
-      + "here, so nothing was written. Run this from a checkout that has one.");
+    fail(`--set: \`${key}\` is a key of this machine's record of the project this directory belongs `
+      + "to, and this directory belongs to no checkout, so there is no project to configure and "
+      + "nothing was written. Run this from inside a checkout.");
   }
   let path = named;
   try {
+    if (!existsSync(named)) madeEmpty(named);
     path = realpathSync(named);
     const held = readFileSync(path, "utf8");
     const parsed = JSON.parse(held);

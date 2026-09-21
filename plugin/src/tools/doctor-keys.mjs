@@ -2,7 +2,7 @@
 import { readJson, saveNested, saveConfig } from "../resolve/config.mjs";
 import { STORES } from "../resolve/machine/stores.mjs";
 import { keyLabel, keySaid } from "./services/doctor/harness.mjs";
-import { FROM_PROJECT, JOB_ALL, SHIP_MODES, declaredJobs, fail } from "../resolve/settings.mjs";
+import { fromProject, JOB_ALL, SHIP_MODES, declaredJobs, fail } from "../resolve/settings.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { HIDDEN, OFF, VERB_NAMES, shippedSkills, skillsWithheldForJob, verbStates,
   withheldForJob } from "../resolve/visibility.mjs";
@@ -63,7 +63,7 @@ const setVisibility = (verb, hide) => {
 const refuseUnknown = (name, named, known, said) => {
   const unknown = named.filter((one) => !known.includes(one));
   if (unknown.length) {
-    fail(`doctor: the \`${name}\` job in ${FROM_PROJECT} names ${unknown.join(", ")}, ${said}`);
+    fail(`doctor: the \`${name}\` job in ${fromProject()} names ${unknown.join(", ")}, ${said}`);
   }
 };
 
@@ -82,7 +82,7 @@ const setJob = (name) => {
   const names = Object.keys(jobs);
   if (!names.length) {
     fail(`doctor: no job is declared here. A job is a name and the verbs its usage list offers, under`
-      + ` \`jobs\` in the ${FROM_PROJECT} at the root of this checkout — the project's own file,`
+      + ` \`jobs\` in the ${fromProject()} at the root of this checkout — the project's own file,`
       + " because which jobs exist cannot be stated without naming the project.");
   }
   if (!Object.hasOwn(jobs, name)) fail(didYouMean("job", name, names));
@@ -108,17 +108,48 @@ const setShip = (mode) => {
     : "A run on this machine now lands its own change, as it did before the option existed.\n");
 };
 
-/* Every flag that writes this machine's half, in the order the report spends them, and what each spends. The two-stores check that refuses a project flag beside one of these and the dispatch that makes the writes both read this table: they were two lists, and two releases in a row each added a key to one and to the other. A row owns the flags it writes together, because a pair saved in one call prints one line for it, and it guards its own value where its predecessor guarded on truthiness — an empty `--hide` wrote nothing before this table and writes nothing under it. */
+/* Every flag that writes this machine's half, in the order the report spends them, and what each spends. The two-stores check that refuses a project flag beside one of these and the dispatch that makes the writes both read this table: they were two lists, and two releases in a row each added a key to one and to the other. A row owns the flags it writes together, because a pair saved in one call prints one line for it, and it guards its own value where its predecessor guarded on truthiness — an empty `--hide` wrote nothing before this table and writes nothing under it.
+
+   `owns` is the CONFIGURATION keys the row writes, which is not the flags it is typed as: `--hide` and `--show` both write `withheld`, `--job` writes `withheld` and `withheldSkills` together, and `capabilities` is written by no flag at all. A key of this file is refused as a project key by name, so the set has to be the stored names or the refusal misses exactly the keys nobody typed (ISS-1403). `route` is what a caller is told to run instead. */
 export const MACHINE_WRITES = [
-  { flags: ["job"], write: (asked) => asked.job && setJob(asked.job) },
-  { flags: ["hide"], write: (asked) => asked.hide && setVisibility(asked.hide, true) },
-  { flags: ["show"], write: (asked) => asked.show && setVisibility(asked.show, false) },
-  { flags: ["ship"], write: (asked) => asked.ship && setShip(asked.ship) },
-  { flags: SAVED, write: (asked) => install(given(asked, SAVED)) },
-  ...STORES.map((store) => ({ flags: store.keys.map((row) => row.flag), write: setStore(store) })),
+  { flags: ["job"], owns: ["withheld", "withheldSkills"], route: "forge doctor --job <name|all>",
+    write: (asked) => asked.job && setJob(asked.job) },
+  { flags: ["hide"], owns: ["withheld"], route: "forge doctor --hide <verb>",
+    write: (asked) => asked.hide && setVisibility(asked.hide, true) },
+  { flags: ["show"], owns: [], route: "forge doctor --show <verb>",
+    write: (asked) => asked.show && setVisibility(asked.show, false) },
+  { flags: ["ship"], owns: ["ship"], route: "forge doctor --ship ready|self",
+    write: (asked) => asked.ship && setShip(asked.ship) },
+  { flags: SAVED, owns: SAVED, route: "forge doctor --token <pat> --url <endpoint>",
+    write: (asked) => install(given(asked, SAVED)) },
+  ...STORES.map((store) => ({
+    flags: store.keys.map((row) => row.flag),
+    owns: [store.store],
+    route: `forge doctor ${store.keys.map((row) => `--${row.flag} <${row.asks}>`).join(" ")}`,
+    write: setStore(store),
+  })),
 ];
 
 export const MACHINE_FLAGS = MACHINE_WRITES.flatMap((row) => row.flags);
+
+/* Written by no flag: `forge doctor tracker` records what a declared capability answered when it
+   was called, so the key is this machine's and the route to it is making the call again. */
+const RECORDED = [
+  { owns: ["capabilities"], route: "forge doctor tracker, which records what each one answered" },
+  { owns: ["hooksOff"], route: "forge hooks --off <hook>" },
+  { owns: ["waitSeconds"], route: "forge doctor, which names the deadline and where it was read" },
+  { owns: ["cloudflare"], route: "forge cloudflare, which holds its own accounts" },
+  { owns: ["coolify"], route: "forge coolify login" },
+];
+
+/** Every configuration key this machine owns outright, with the route that writes each. Derived
+ *  from the rows above rather than listed a second time: a key added to a row is in this set the
+ *  same release, which two hand-kept lists were not. */
+export const MACHINE_KEYS = Object.fromEntries(
+  [...MACHINE_WRITES, ...RECORDED].flatMap((row) => row.owns.map((key) => [key, row.route])),
+);
+
+export const MACHINE_KEY_NAMES = Object.keys(MACHINE_KEYS).sort();
 
 /* The project's half, beside the machine's: the refusal keeping a call to one store reads both, and reading them here is what keeps the module that writes them a dynamic import. What each writes is `forge doctor brief -h`'s. */
 export const WRITES = ["refresh", "confirm", "line"];

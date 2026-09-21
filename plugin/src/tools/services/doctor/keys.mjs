@@ -1,6 +1,6 @@
 /* The keys a project sets for itself, each with the value in force and where it was read; why rows
    and not lines is doctor/harness.mjs's. docs/cli/doctor.md. */
-import { CHECK_MS_TAKES, FEEDBACK_CHANNELS, FROM_PROJECT, LANDING_ROUTES, OWED_DOORS, RUNS_TAKES,
+import { CHECK_MS_TAKES, FEEDBACK_CHANNELS, fromProject, LANDING_ROUTES, OWED_DOORS, RUNS_TAKES,
   SHIP_MODES, codexCheck, codexOwed, checkoutRoot, feedbackScope, landingScope, parallelRuns,
   projectWorkPattern, shipMode } from "../../../resolve/settings.mjs";
 import { DECLARES, declaredCommands, declaredIn, unarmedDoors } from "../../../stats/corpus/declared.mjs";
@@ -75,7 +75,7 @@ const owedRow = () => {
   return { level: MISS, label: "codex.owed", detail: `${unarmed.map((one) => one.label).join(", ")} `
     + `${unarmed.length > 1 ? "are doors" : "is a door"} this project asks at that no command arms — `
     + `${unarmed.map(unarmedSaid).join(", ")} — so nothing is held there, this plugin guessing no `
-    + `command for a repository it has never seen. Arm it in ${FROM_PROJECT}: `
+    + `command for a repository it has never seen. Arm it in ${fromProject()}: `
     + `"stats": { "commands": { "${unarmed[0].label}": "<the command this project runs>" } }, one `
     + `command or a list of them; or drop the door from \`codex.owed\``
     + `${armed.length ? `. ${armed.join(", ")} ${armed.length > 1 ? "are armed" : "is armed"}` : ""}`

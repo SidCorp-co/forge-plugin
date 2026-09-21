@@ -21,8 +21,9 @@ export const WAIT = "--wait";
 
 export const SLOT = "slot";
 
-// Named as a key and not a command: no verb writes `.forge.json`, and an untypable route is offered as none.
-export const RAISE = "the `runs` key in this project's .forge.json";
+// A command and not a bare key name: `runs` is written by a verb now that the project's configuration is
+// this machine's own record of it, and the route a caller is given is the one they can type (ISS-1403).
+export const RAISE = "`forge doctor --set runs=<n>`";
 
 // Field 22 of the status line, counted from after its last `)`, because the command name holds parentheses and spaces and nothing before it can be split on.
 export const startedAt = (text) => {

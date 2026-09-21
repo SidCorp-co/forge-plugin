@@ -4,10 +4,11 @@
 import { accessSync, constants, readFileSync, realpathSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { FROM_PROJECT, Refusal, drainScope, fail, projectFilePath, projectSlug }
+import { fromProject, Refusal, drainScope, fail, projectFilePath, projectSlug }
   from "../resolve/settings.mjs";
 import { pairOf } from "../resolve/flags.mjs";
-import { WITH_BODY, WRITES } from "./doctor-keys.mjs";
+import { configPath } from "../resolve/config.mjs";
+import { MACHINE_KEYS, MACHINE_KEY_NAMES, WITH_BODY, WRITES } from "./doctor-keys.mjs";
 import {
   READS_IT, SET_USAGE, asWritten, projectWrite, readsProjectKey, spelled, withKey, withoutKey,
   writableKey, writablePaths, wroteWhole,
@@ -56,7 +57,7 @@ const RESOURCES = {
     shown: factShown,
   },
   project: {
-    said: FROM_PROJECT,
+    said: fromProject(),
     local: true,
     shown: asWritten,
   },
@@ -121,13 +122,28 @@ const unknownKey = (given, read) =>
   + "Name the resource to write a key the tracker does not hold yet: "
   + TRACKED.map((name) => `--set ${name}.${given}=<value>`).join(" or ");
 
+/* Which level holds a key is decided here and nowhere else, and a key of the other level is refused
+   by its own name rather than written a second time: two layers for one switch is a precedence rule
+   with no report of which won, which is the undo BR-08 says is broken (ISS-1403). The machine's set
+   is `MACHINE_KEYS` in doctor-keys.mjs, derived from the rows that write it, and the project's is
+   `PROJECT_KEYS` — a key in neither is refused with both lists. */
+const refuseMachineKey = (key) => {
+  const route = MACHINE_KEYS[String(key).split(".")[0]];
+  if (!route) return;
+  fail(`--set: \`${key}\` is this MACHINE's and not this project's — it answers the same whatever `
+    + `project is in front of it, so it is kept in ${configPath()} rather than in any project's `
+    + `record. --set writes the project's half alone. Nothing was written: run \`${route}\`.`);
+};
+
 /* What this plugin declares it reads out of the project file is known before any call goes out, so a bare key of that set is that file's and the tracker is not read for it, which is also the only way `slug` is settable in a checkout that names no project yet. docs/cli/the-project-file.md. */
 const projectRoute = (key) => {
   const declared = writableKey(key);
   if (!declared) {
-    fail(`--set: \`${key}\` is no key this plugin reads out of ${FROM_PROJECT}, so a value written `
+    refuseMachineKey(key);
+    fail(`--set: \`${key}\` is no key this plugin reads out of ${fromProject()}, so a value written `
       + `under it would be a line in that file nothing reads. Nothing was written. That file holds:`
-      + `\n  ${writablePaths().join(", ")}`);
+      + `\n  ${writablePaths().join(", ")}`
+      + `\nand the keys this machine holds outright are ${MACHINE_KEY_NAMES.join(", ")}.`);
   }
   if (declared.routed) {
     fail(`--set: \`${key}\` is written by ${declared.routed}. Nothing was written.`);
@@ -139,6 +155,9 @@ const projectRoute = (key) => {
    project does not hold yet, and the only way to write one both hold, a bare key both answer with
    routing nowhere: one is a deploy switch, so picking for the caller is wrong half the time. */
 const routeFor = async (given) => {
+  /* Before any resource is read: a key this machine owns is refused by name rather than costing a
+     tracker round trip that would answer about a project it is not a key of. */
+  refuseMachineKey(given);
   const at = given.indexOf(".");
   const head = at > 0 ? given.slice(0, at) : null;
   if (head === LOCAL) return projectRoute(given.slice(at + 1));
@@ -173,7 +192,7 @@ const clearsDrain = (route, value) =>
   route.name === "pipeline" && route.key === "qa" && String(value) !== INDEPENDENT
   && drainScope().declared;
 
-const DRAIN_SAID = `\`${DRAIN_KEY}\` in ${FROM_PROJECT}, which names the master that claims this `
+const DRAIN_SAID = `\`${DRAIN_KEY}\` in ${fromProject()}, which names the master that claims this `
   + "project's issues at developed";
 
 /* Proved rewritable before the tracker is sent anything: a judgement that lands over a file this
@@ -299,7 +318,7 @@ const flowFile = (slug) => {
   }
   const named = projectFilePath();
   if (!named) {
-    fail(`--flow: \`flow\` is a key of ${FROM_PROJECT} and no such file was found on the way up from `
+    fail(`--flow: \`flow\` is a key of ${fromProject()} and no such file was found on the way up from `
       + `here, so nothing was written and nothing was sent. Run this from a checkout that has one.`);
   }
   /* The file the link points at and not the link: the resolver read through it, and a rename onto

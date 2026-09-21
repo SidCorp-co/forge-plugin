@@ -83,7 +83,7 @@ export const judgedStop = (ev, listed = projectStop().agents) => {
   if (!isSubagent(ev)) return true;
   const names = listed ?? [];
   if (!Array.isArray(names) || names.some((one) => typeof one !== "string")) {
-    block("`stop.agents` in .forge.json is a list of agent names, the ones whose stop this gate judges. "
+    block("`stop.agents` in this project's configuration is a list of agent names, the ones whose stop this gate judges. "
       + "Drop the key and no subagent's stop is judged.");
   }
   const type = String(ev.agent_type ?? "");

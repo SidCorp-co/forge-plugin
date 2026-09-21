@@ -104,7 +104,7 @@ export const VERBS = [
     null, { group: HARNESS }],
   ["doctor", `[<subject>] [--token t] [--url u] ${STORE_FLAGS}`
     + " [--hide v|--show v] [--job name|all]"
-    + " [--ship ready|self] [--set k=v] [--flow slug] [--credentials]"
+    + " [--ship ready|self] [--set k=v] [--flow slug] [--adopt] [--credentials]"
     + " [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text> --was <prose>] [--title T]"
     + " [--confidence C] [--meta k=v]... [--full]",
     "what resolves and from where, subject by subject, and the keys of it that are written here",

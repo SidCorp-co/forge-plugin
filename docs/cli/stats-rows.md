@@ -35,7 +35,7 @@ got wrong:
 where it has said them.** Those rows were literal alternations of the commands this repository runs,
 applied to every project profiled: on one whose gate is spelled `make check` they read zero, the time
 went into whatever class ran next, and the ship phase and the phase past it read zero runs apiece. A
-project says what its own are under `stats.commands` in the `.forge.json` the profiled checkout resolves to — the
+project says what its own are under `stats.commands` in the configuration the profiled checkout resolves to — the
 checkout the reading is about, never the one the caller is standing in — and a declaration
 **replaces** the built-in pattern for its class rather than joining it, because a project that has
 said what its gate is has said what its gate is. The command is matched as the text the project

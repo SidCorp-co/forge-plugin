@@ -263,7 +263,7 @@ text the session it is in is holding.
 
 ### UC-01-5 — The project's keys, and the machine's own
 
-Rev: 3 · Actors: developer, agent · Enforces: BR-07, BR-08
+Rev: 4 · Actors: developer, agent · Enforces: BR-07, BR-08
 
 A project decides how this product behaves inside its checkout — what a run may report about the
 product, which version of the method it runs, how its changes land — and it decides in its own
@@ -275,9 +275,20 @@ checkout takes on rather than what the box can hold. Each key is read from one p
 with its source (BR-08), and a project that declares no number of runs is one this says nothing
 about.
 
-- **AC-01-5-1** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "every key the project set is printed with .forge.json as its source"
+Whose a key is and where that key is kept are two questions. The project's half is kept in this
+machine's own record of that project rather than in the checkout, because a file every clone carries
+cannot hold what is true of one box, cannot let one worktree differ from another, and makes setting
+a key a commit somebody has to review. Which record a checkout resolves is worked out from its
+repository's own root folder, so every linked worktree of one checkout reads one file and nothing has
+to be read to find what is to be read — the tracker slug is a value inside that record, and a lookup
+keyed on it could not start. A checkout still carrying the committed file this replaces has that
+file read by nothing: a second layer is the precedence rule this shape exists to remove, so it is
+reported once with the one command that takes its contents over rather than quietly preferred or
+quietly ignored.
+
+- **AC-01-5-1** · Rev: 2 · Proof: plugin/test/tools/doctor.test.mjs "every key the project set is printed with the record it was read from as its source"
   WHEN the resolution report is printed THEN the CLI SHALL list each project key with its value and
-  where it was read from.
+  the file it was read from.
 - **AC-01-5-2** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "a key the project left out is printed at the plugin's default, with the default as its source"
   IF the project file does not set a key that has a product default THEN the CLI SHALL take that
   default and SHALL name the default as the source.
@@ -342,6 +353,55 @@ about.
   IF that clock is at or past the one a whole consult runs under THEN the resolution report SHALL
   report it a fault, a check reaching such a clock costing the consult rather than coming back as a
   call that was stopped.
+
+- **AC-01-5-19** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "each key the entry now holds is printed beside the file it was read back from"
+  WHEN a project key is read THEN the CLI SHALL read it from this machine's own record of that
+  project, kept outside every checkout, and SHALL name that file's own path as the source it
+  reports.
+- **AC-01-5-20** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a worktree and the checkout it was cut from resolve one and the same record"
+  WHERE a call is made inside a linked worktree the CLI SHALL resolve the same record the checkout
+  that worktree was cut from resolves, a worktree being another checkout of one project rather than
+  another project.
+- **AC-01-5-21** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "two checkouts whose root folders differ resolve records of their own"
+  WHERE two checkouts on one machine have differently named repository roots the CLI SHALL resolve a
+  record of its own for each.
+- **AC-01-5-22** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a key the committed file carries moves no value the report prints"
+  IF a checkout carries the committed project file this replaces THEN the CLI SHALL read no key out
+  of it, that file being a second source rather than a fallback.
+- **AC-01-5-23** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a committed file standing unread is said once, with the command that takes it over"
+  IF a checkout carries that file THEN the resolution report SHALL say so once per call, one fact
+  about one file rather than one line per key it declares.
+- **AC-01-5-24** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a committed file standing unread is said once, with the command that takes it over"
+  WHEN that row is printed THEN it SHALL name the command that takes the file's contents over, a
+  report naming a stranded file and no route out being a finding nobody can act on.
+- **AC-01-5-25** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "the committed file a checkout carries is adopted whole into this machine's record of it"
+  WHEN the developer adopts that file THEN the CLI SHALL write its contents whole into this
+  machine's record of that project.
+- **AC-01-5-26** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "each key the entry now holds is printed beside the file it was read back from"
+  WHEN an adoption lands THEN the CLI SHALL read the record back off the disk and SHALL print each
+  key it now holds beside the path that answered, never off the text the call composed.
+- **AC-01-5-27** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "adopting over a record this machine already holds is refused, and writes nothing"
+  IF this machine already holds a record for that project THEN the CLI SHALL refuse the adoption and
+  SHALL write nothing, a key set since holding there and nowhere else.
+- **AC-01-5-28** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "the checkout's own committed file is left byte-identical, adoption being a copy"
+  WHEN a file is adopted THEN the CLI SHALL leave the checkout's own copy byte-identical, taking a
+  tracked file out of a repository being a commit and the person's own act.
+- **AC-01-5-29** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "the entry is created by the first --set, a project that has set nothing having no file yet"
+  WHEN a project key is written and this machine holds no record for that project THEN the CLI SHALL
+  create one, a project that has decided nothing yet being the case the first write is for.
+- **AC-01-5-30** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a key this machine owns is refused as a project key by name, with the route that writes it"
+  IF a key this machine owns outright is written as a project key THEN the CLI SHALL refuse naming
+  that key, SHALL say which level holds it and the route that writes it, and SHALL write nothing.
+- **AC-01-5-31** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a call needing a project slug refuses naming the command that adopts, where one is standing there"
+  IF a call needs a resolved project slug where no record is held and the committed file is still
+  standing in the checkout THEN the CLI SHALL refuse naming the command that adopts it.
+- **AC-01-5-32** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a directory belonging to no checkout resolves no record, and --set says so rather than making one"
+  IF the directory a call is made in belongs to no checkout THEN the CLI SHALL resolve no project
+  record at all, a directory belonging to no repository having no project to be configured.
+- **AC-01-5-33** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "the record a named directory resolves is that directory's own repository's, not this process's"
+  WHEN a verb reads the project configuration of a directory it is not standing in THEN the CLI
+  SHALL answer off that directory's own repository root rather than off the process's working
+  directory.
 
 ## The way back
 

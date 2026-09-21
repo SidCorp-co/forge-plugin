@@ -9,7 +9,7 @@ import { clockFor, deadlineOf, parsedOr, ranOut, secondsGiven } from "../wire/re
 import { sawAnswer, sharedNow } from "../wire/shared-clock.mjs";
 import { reserveIn, sawBudget, settled, unpredictedIn } from "../wire/budget.mjs";
 import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
-import { FROM_PROJECT, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
+import { fromProject, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { DECLARES, ROUTES, answersOf, droppedRefusal, keyOf, noRouteRefusal, rowFor, undeclaredIn } from "./routes.mjs";
@@ -354,8 +354,8 @@ export const write = async (name, args, onSent, soft = false) => {
   const { target, own } = wroteFor(name, args);
   const language = own ? translateTarget() : {};
   /* The source in a reader's words: the project file is `forge doctor`'s to name, and dropping the source took with it the line saying the CLI itself re-aimed this write (ISS-700) — which is now the only sort of case that says it at all, and says it once for the command rather than once for each send the transport happened to make: docs/cli/what-a-write-says.md (ISS-1192). */
-  const from = target.from === FROM_PROJECT ? "the project file" : target.from ?? "nowhere";
-  const usual = own && target.from === FROM_PROJECT && !language.value;
+  const from = target.from === fromProject() ? "the project file" : target.from ?? "nowhere";
+  const usual = own && target.from === fromProject() && !language.value;
   const said = `project ${target.value ?? "(none)"} (from ${from}), prose ${language.value ?? "as written"}`;
   if (!usual && !announced.has(said)) {
     console.error(`${name} -> ${said}`);

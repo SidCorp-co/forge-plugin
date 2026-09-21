@@ -19,8 +19,8 @@ import { deadlineSeconds, waitSeconds } from "../wire/request.mjs";
 import { measured, offsetSaid } from "../wire/shared-clock.mjs";
 import { BUNDLED } from "./vi.mjs";
 import {
-  Refusal, accountCredentials, checkoutRoot, fail, mcpForgeIgnored, projectScope, refusing,
-  translateScope,
+  COMMITTED_FILE, Refusal, accountCredentials, checkoutRoot, committedFileHere, fail,
+  mcpForgeIgnored, projectFilePath, projectScope, refusing, translateScope,
 } from "../resolve/settings.mjs";
 import { readClaudeMd, reviewClaudeMd } from "../checks/claude-md.mjs";
 import { checkClaudeMdLocally, reportClaudeMd } from "./services/doctor/repo.mjs";
@@ -277,7 +277,7 @@ const checkEndpoint = async (full, credentials) => {
   if (!slug) {
     if (asking()) {
       return stopping("project slug", "no project slug resolves here, so nothing below this line "
-        + `was read — put \`{ "slug": "<project>" }\` in a .forge.json at the root of this checkout`);
+        + `was read — ${committedFileHere() ? "`forge doctor --adopt`" : "`forge doctor --set slug=<project>`"}`);
     }
     console.log("\nNo project slug: capability probes are project-scoped and were skipped.");
     return;
@@ -325,10 +325,10 @@ const checkFlowKeys = async () => {
   line(deadline.unknown ? BAD : OK, "deadline", held(deadline, ["a non-negative number of seconds"]));
 };
 
-const BOOLEAN = ["--full", "--credentials"];
+const BOOLEAN = ["--full", "--credentials", "--adopt"];
 /* The machine's, the checkout's and the project's, in one surface: `--set` and the brief's three
    are the project's half, and the keys doctor-keys.mjs writes this machine's. */
-const PROJECT_FLAGS = ["set", "flow", "was", ...WRITES, ...WITH_BODY];
+const PROJECT_FLAGS = ["set", "flow", "adopt", "was", ...WRITES, ...WITH_BODY];
 
 /** One write per call, then the report, because a run that asked to write is not asking to be
  *  diagnosed: the project's own writes print their lines and stop there. */
@@ -339,6 +339,14 @@ const wroteProject = async (asked, pairs, positionals) => {
   if (asked.set !== undefined && asked.flow !== undefined) {
     fail("doctor: --set writes one key you name and --flow writes the flow with every key that flow "
       + "asks for, which are two answers to what this call writes. Send one of them.");
+  }
+  if (asked.adopt) {
+    const others = ["set", "flow", ...WRITES].filter((one) => asked[one] !== undefined);
+    if (others.length || brief) {
+      fail(`doctor: --adopt takes this checkout's ${COMMITTED_FILE} over whole and \`--${others[0] ?? WRITES[0]}\` `
+        + "writes one thing of its own, which are two answers to what this call writes. Send one of them.");
+    }
+    return (await import("./services/project-adopt.mjs")).adopt();
   }
   const key = asked.set ?? asked.flow;
   if (key !== undefined && brief) {
@@ -409,7 +417,7 @@ export const doctor = async (argv) => {
   if (stale?.credentials || stale?.slug) {
     const fix = [
       stale.credentials && "`forge doctor --token <pat> --url <endpoint>`",
-      stale.slug && '`{ "slug": "<project>" }` in a .forge.json',
+      stale.slug && "`forge doctor --set slug=<project>`",
     ].filter(Boolean);
     line(BAD, "mcp.json", `${join(stale.root, ".mcp.json")} carries settings this CLI does not read`
       + ` — ${fix.join(", and ")}`);
@@ -431,6 +439,27 @@ export const doctor = async (argv) => {
     line(BAD, "hooks off", `${name} is switched off and is no hook here — \`forge hooks --on ${name}\``);
   }
   under("project");
+  /* One fact about one file, said once per call rather than once per key: the whole of that file
+     answers nothing now, so a line per key would be ten lines saying the same thing. The command is
+     on the row because a report that names a stranded file and no route out is a finding nobody can
+     act on. */
+  const committed = committedFileHere();
+  if (committed) {
+    /* Three readings and each names a different act: a project already configured is told the file
+       is inert, one not configured is given the command, and a directory belonging to no checkout
+       has nowhere to adopt INTO, so it is told that rather than told to run a command that would
+       refuse. */
+    const held = projectFilePath();
+    const said = (() => {
+      if (projectScope().value !== null) {
+        return "this project is configured already, so that file is only a file the checkout carries";
+      }
+      return held === null
+        ? "this directory belongs to no checkout, so there is no project of it to configure"
+        : `\`forge doctor --adopt\` takes its contents over into ${held}`;
+    })();
+    line(NOTE, "project file", `${committed} is this checkout's own and is read by nothing — ${said}`);
+  }
   const { value: slug, from } = projectScope();
   if (slug) line(OK, "project slug", `${slug}  ← ${from}`);
   /* Not the miss the endpoint and the token are: only the scoped verbs refuse, and counting it
@@ -443,7 +472,7 @@ export const doctor = async (argv) => {
   } else if (language.value) {
     line(BAD, "prose language", `${language.value}  ← ${language.from} — vi is the only language this CLI writes; writes refuse`);
   } else {
-    line(OK, "prose language", "as written; set translate in .forge.json to rewrite");
+    line(OK, "prose language", "as written; `forge doctor --set translate=vi` to rewrite");
   }
   /* Which copy `forge` on PATH is, from here — the answer changes with the directory, and the link
      itself names one copy for the whole machine. */

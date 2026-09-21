@@ -1,9 +1,10 @@
 /* Unwrapping the answer stays each suite's: `deny()` and `block()` do not answer alike, and the git rules need a tree with work to lose. */
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync }
+  from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 import { reachOf } from "./fixtures/answer-reach.mjs";
 import { madeIn } from "../../tools/room.mjs";
@@ -100,6 +101,25 @@ export const standsInNoTree = (name) => {
   writeFileSync(join(at, ".forge.json"), readFileSync(new URL("../../.forge.json", import.meta.url), "utf8"));
   process.chdir(at);
   return at;
+};
+
+/** Where this machine's record of the project a room belongs to is kept, which is the path every
+ *  report names after its arrow. Composed the way the resolver composes it, so a case pinning a
+ *  source pins a path its own home resolves to rather than a shape any wrong path would match. */
+export const projectEntry = (room, home) =>
+  join(home, "forge", "projects", basename(realpathSync(room)), "config.json");
+
+/** A room that is a checkout, holding this machine's record of its project where the resolver reads
+ *  it: `git init` gives the room a repository so the walk has a root folder to key on, and the entry
+ *  goes under the configuration home the case runs against. The folder name is taken through
+ *  `realpathSync`, because that is the form the checkout walk answers with and a temporary root is
+ *  a symlink on more than one platform. Returns the room. */
+export const projectRoom = (room, home, config) => {
+  spawnSync("git", ["init", "-q", room], { cwd: room, encoding: "utf8" });
+  const entry = projectEntry(room, home);
+  mkdirSync(dirname(entry), { recursive: true });
+  writeFileSync(entry, `${JSON.stringify(config, null, 2)}\n`);
+  return room;
 };
 
 export const tempHome = (name) => {

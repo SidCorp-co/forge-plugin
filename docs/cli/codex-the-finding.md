@@ -25,7 +25,7 @@ findings on the live log, 56 were real and outside the issue — each costing a 
 filing — and 16 were something a checker or a test already holds. Neither is a model error: the
 reviewer was never told the issue's scope or which checks run. `--out-of-scope` and `--checks` are
 where those two go, and they are *copied* rather than composed — the first from the issue's own Out
-of scope text, the second from `codex.check` in `.forge.json`, which is also the fallback when the
+of scope text, the second from `codex.check` in the project's configuration, which is also the fallback when the
 flag is absent. A scope this end invented would move the boundary the reviewer is judged against,
 and a check list written from memory is one the gate contradicts. Neither section appears when
 nothing was given, so a caller who filled neither asks the reviewer for nothing it cannot see. A real
