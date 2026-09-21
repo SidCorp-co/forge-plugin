@@ -238,7 +238,7 @@ test("the command the refusal prints is quoted, and names the tree it has to run
 });
 
 /* This module hands the two halves back and composes neither: `flow/record/record.mjs` is what pairs the refusal
-   with the unchecked reader, and `test/flow/record-plan.test.mjs` watches that pairing's kill switch. So a
+   with the unchecked reader, and `plugin/test/flow/record/plan/plan.test.mjs` watches that pairing's kill switch. So a
    composing export belongs there and not here, where only its own case would reach it. */
 test("the judged bytes come back with no refusal, which is what a caller composes", () => {
   const { root, path, rel } = room();

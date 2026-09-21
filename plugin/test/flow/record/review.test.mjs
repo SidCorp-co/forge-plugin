@@ -42,4 +42,6 @@ test("two reads' F1s are two rows of a review, and an accepted one says what cha
     "and a rejection owes its own whatever the reviewer numbered it");
   assert.match(check({ finding: ["8c1a15 F1 maybe"] }), /8c1a15 F1 accepted: what changed/u,
     "the refusal names the qualified form rather than only the bare one");
+  assert.match(check({ finding: ["1 accepted"] }), /each --finding as/u,
+    "and a number carrying no series is no identifier, whoever is numbering");
 });
