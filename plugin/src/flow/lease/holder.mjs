@@ -196,7 +196,9 @@ const signed = (said) => {
 /* The words the shell would have cut out of what the turn typed, in one pass rather than a shell
    parser: a quote holds one word however many blanks are inside it, a backslash takes the character
    after it, and an unquoted separator ends one. An empty quoted word yields none, as an empty
-   argument does below. */
+   argument does below. A here-document's body is cut like any other text, so a command line written
+   into one is still read as a command the turn ran — the shell feeds such a body to an interpreter
+   as often as it writes it to a file, and telling those apart is the parser this refuses to be. */
 const wordsTyped = (said) => {
   const words = [];
   let word = "";
