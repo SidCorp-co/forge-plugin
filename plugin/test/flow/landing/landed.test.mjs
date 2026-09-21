@@ -19,7 +19,7 @@ process.env.XDG_CONFIG_HOME = tempHome("landed").path;
 const AWAY = projectRoom(tempRoom("landed-away-"), process.env.XDG_CONFIG_HOME, OWN);
 process.chdir(AWAY);
 const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
-const { carriedByDefault } = await import("../../../src/flow/worklog.mjs");
+const { carriedByLanding } = await import("../../../src/flow/worklog.mjs");
 
 const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
 const RUN = "the-lander-run";
@@ -138,6 +138,30 @@ const landedRoom = (name) => {
   return { room, base, judged };
 };
 
+/* Which branch the project declares a change lands on, for one call: `null` declares none, and the
+   read is restored afterwards so a case cannot leave the project's declaration on another. */
+const declaring = async (branch, take) => {
+  const was = state.config;
+  state.config = { ...was, baseBranch: branch };
+  try {
+    return await take();
+  } finally {
+    state.config = was;
+  }
+};
+
+/* A project whose configuration does not read at all, which is the reading that refuses rather than
+   falling back: an unread declaration is not a declared absence. */
+const unread = async (take) => {
+  const was = state.answer.forge_config;
+  state.answer.forge_config = () => ({ refused: "the fixture withheld this project's config" });
+  try {
+    return await take();
+  } finally {
+    state.answer.forge_config = was;
+  }
+};
+
 const releasedOnto = (room, branch) => {
   git(room, "checkout", "-q", branch);
   git(room, "merge", "-q", "--no-ff", "-m", "the release that landed it", BRANCH);
@@ -207,8 +231,10 @@ test("every ancestry reading this checkout cannot make refuses, saying which one
   const { room, judged } = landedRoom("cannot-say");
   releasedOnto(room, "master");
   git(room, "symbolic-ref", "-d", "refs/remotes/origin/HEAD");
+  /* The recorded ref is read only where the project declared no branch a change lands on, so the
+     refusal for a checkout that recorded none is reached from there and from nowhere else. */
   ready(judged);
-  const unrecorded = await ran(["claim", "ISS-1655", "--landed"], room);
+  const unrecorded = await declaring(null, () => ran(["claim", "ISS-1655", "--landed"], room));
   assert.equal(unrecorded.status, 1, unrecorded.stdout);
   assert.ok(unrecorded.stderr.includes("recorded no default branch"), unrecorded.stderr);
   assert.ok(unrecorded.stderr.includes("git remote set-head origin -a"),
@@ -243,7 +269,7 @@ test("every ancestry reading this checkout cannot make refuses, saying which one
   const bare = tempRoom("landed-no-tree-");
   const stood = process.cwd();
   process.chdir(bare);
-  const notree = carriedByDefault(judged);
+  const notree = carriedByLanding(judged, { branch: null, from: "no project was read", unsettled: null, route: null });
   process.chdir(stood);
   assert.equal(notree.carries, false);
   assert.ok(notree.why.includes("no git checkout"), notree.why);
@@ -335,4 +361,73 @@ test("a checkpoint that moved between the reading and the write is refused, nami
   assert.ok(/state reads `candidate`/u.test(run.stderr), `the state it moved to:\n${run.stderr}`);
   assert.ok(/head reads `9e24c2a/u.test(run.stderr), `and the head:\n${run.stderr}`);
   assert.notEqual(checkpoint().state, "done", "and the landing is not ended over somebody else's reading");
+});
+
+/* The defect this branch reading was built for: on a project whose release promotes, the branch a
+   change lands on and the branch a release promotes to are two branches, and the recorded default is
+   the second of them. A reading that went to the recorded default left the checkpoint at `ready`
+   until a release had happened, which is after the verdicts on the change are owed (ISS-1802). */
+test("the branch the project declares a change lands on ends the landing, where the recorded default does not carry the head", async () => {
+  const { room, judged } = landedRoom("promote");
+  git(room, "update-ref", "refs/remotes/origin/staging", judged);
+  assert.notEqual(git(room, "merge-base", "--is-ancestor", judged, "refs/remotes/origin/master").status, 0,
+    "the recorded default does not carry the judged head, which is what a release would change");
+  ready(judged);
+  const run = await declaring("staging", () => ran(["claim", "ISS-1655", "--landed"], room));
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.equal(checkpoint().state, "done", `${run.stdout}${run.stderr}`);
+  assert.ok(run.stdout.includes("origin/staging"), `the branch it read:\n${run.stdout}`);
+  assert.ok(run.stdout.includes("declares a change lands on"),
+    `and which of the two sources named that branch, so the precedence is not silent:\n${run.stdout}`);
+});
+
+test("a declared branch that does not carry the head refuses, whatever the recorded default carries", async () => {
+  const { room, judged } = landedRoom("declared-behind");
+  const tip = releasedOnto(room, "master");
+  assert.equal(git(room, "merge-base", "--is-ancestor", judged, tip).status, 0,
+    "the recorded default carries the judged head, and would have ended this landing");
+  git(room, "update-ref", "refs/remotes/origin/staging", git(room, "rev-parse", `${tip}^1`).stdout.trim());
+  ready(judged);
+  const run = await declaring("staging", () => ran(["claim", "ISS-1655", "--landed"], room));
+  assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
+  assert.ok(run.stderr.includes("origin/staging stands at"), `the declared branch:\n${run.stderr}`);
+  assert.ok(run.stderr.includes("does not reach it"), run.stderr);
+  assert.ok(run.stderr.includes("declares a change lands on"),
+    `and that the declaration is what named it:\n${run.stderr}`);
+  assert.equal(checkpoint().state, "ready", "and the checkpoint is as it was");
+});
+
+test("a declared branch this checkout holds no ref for refuses, naming that branch", async () => {
+  const { room, judged } = landedRoom("declared-unfetched");
+  releasedOnto(room, "master");
+  assert.notEqual(git(room, "rev-parse", "--verify", "refs/remotes/origin/staging").status, 0,
+    "no ref of that name is here, the branch being declared and never fetched");
+  ready(judged);
+  const run = await declaring("staging", () => ran(["claim", "ISS-1655", "--landed"], room));
+  assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
+  assert.ok(run.stderr.includes("origin/staging resolves to no commit here"), run.stderr);
+  assert.ok(run.stderr.includes("git fetch origin"), `and the fetch that would bring it:\n${run.stderr}`);
+  assert.equal(checkpoint().state, "ready", "and no landing is ended off a branch nobody read");
+});
+
+/* Both sides of the one distinction the helpers above stand for, in the order that shows why it is a
+   distinction: the withheld read refuses where the declared absence goes on to end the landing. */
+test("a project declaring no branch falls back to the recorded default, and one that did not read refuses", async () => {
+  const { room, judged } = landedRoom("undeclared");
+  const tip = releasedOnto(room, "master");
+  ready(judged);
+  const withheld = await unread(() => ran(["claim", "ISS-1655", "--landed"], room));
+  assert.equal(withheld.status, 1, `${withheld.stdout}${withheld.stderr}`);
+  assert.ok(withheld.stderr.includes("nothing here says which branch a change lands on"), withheld.stderr);
+  assert.ok(withheld.stderr.includes("forge doctor"),
+    `and the command that says whether the project reads:\n${withheld.stderr}`);
+  assert.equal(checkpoint().state, "ready", "and no landing is ended on a declaration nobody read");
+
+  ready(judged);
+  const declared = await declaring(null, () => ran(["claim", "ISS-1655", "--landed"], room));
+  assert.equal(declared.status, 0, `${declared.stdout}${declared.stderr}`);
+  assert.equal(checkpoint().state, "done", `${declared.stdout}${declared.stderr}`);
+  assert.ok(declared.stdout.includes(`stands at ${tip.slice(0, 7)}`), declared.stdout);
+  assert.ok(declared.stdout.includes("this project having declared none"),
+    `and that the absence of a declaration is what sent it to the recorded ref:\n${declared.stdout}`);
 });

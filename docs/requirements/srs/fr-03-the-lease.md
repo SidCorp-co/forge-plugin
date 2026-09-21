@@ -370,20 +370,21 @@ a wait no party can end.
   to what it landed THEN that release SHALL leave the checkpoint where it stands, because a branch
   name outlives the work captured under it and a release that reads only the name would finish a
   capture that never went anywhere.
-- **AC-03-6-14** · Rev: 1 · Proof: plugin/test/flow/landing/landed.test.mjs "a default branch already carrying the judged head ends the landing, on the evidence it prints"
-  WHERE a checkpoint still declares a branch ready and the default branch is proved, off refs the
-  checkout already holds, to carry the head that checkpoint was written at, the CLI SHALL offer a
+- **AC-03-6-14** · Rev: 2 · Proof: plugin/test/flow/landing/landed.test.mjs "a default branch already carrying the judged head ends the landing, on the evidence it prints"
+  WHERE a checkpoint still declares a branch ready and the branch this project lands changes on is
+  proved, off refs the checkout already holds, to carry the head that checkpoint was written at, the CLI SHALL offer a
   write that moves it to the state naming no turn and that builds no candidate, runs no gate and
   pushes nothing, because the workspace whose release landed that branch is often gone by then and
   every other route to that state is itself a release.
 
-- **AC-03-6-15** · Rev: 1 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a landed head with no checkpoint behind it takes one written after the fact"
-  WHERE no landing checkpoint stands on an issue and the default branch is proved, off refs the
-  checkout already holds, to carry a head the caller names, the CLI SHALL offer a write that puts a
-  checkpoint at the state naming no turn holding that head, the deployment identity the caller
-  names, no builder, and a hand-written block saying off the record itself why no builder could be
-  recovered, because the window the capture is taken in closes at the merge and a run that died
-  inside it leaves the issue with no other way back.
+- **AC-03-6-15** · Rev: 2 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a landed head with no checkpoint behind it takes one written after the fact"
+  WHERE no landing checkpoint stands on an issue and the branch this project lands changes on is
+  proved, off refs the checkout already holds, to carry a head the caller names, the CLI SHALL offer
+  a write that puts a checkpoint at the state naming no turn holding that head, the deployment
+  identity the caller names, no builder, and a hand-written block saying off the record itself why no
+  builder could be recovered and which branch licensed the write, because the window the capture is
+  taken in closes at the merge and a run that died inside it leaves the issue with no other way
+  back.
 - **AC-03-6-16** · Rev: 1 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "the run writing a checkpoint after the landing is recorded as its writer and never as the builder"
   WHEN a checkpoint is written on a change that has already landed THEN the CLI SHALL record the run
   making that write as the writer of the reconstruction and SHALL leave the builder unnamed, because
@@ -395,6 +396,30 @@ a wait no party can end.
   SHALL refuse to write a checkpoint over it, naming the keys it would have replaced, because the
   read every other write goes by answers alike for a block that is absent and one it cannot read,
   and only the first is a record nobody has made.
+
+- **AC-03-6-18** · Rev: 1 · Proof: plugin/test/flow/landing/landed.test.mjs "the branch the project declares a change lands on ends the landing, where the recorded default does not carry the head"
+  WHERE a project declares which branch a change lands on, the CLI SHALL read a landing's ancestry
+  against that branch and against no branch the repository recorded as the remote's own, because a
+  release that promotes moves the code to a second branch and a landing read against that one cannot
+  end until the release has happened, which is after the verdicts on the change are owed.
+- **AC-03-6-19** · Rev: 1 · Proof: plugin/test/flow/landing/landed.test.mjs "a project declaring no branch falls back to the recorded default, and one that did not read refuses"
+  WHERE a project has been read and declares no branch a change lands on, the CLI SHALL read that
+  ancestry against the branch the repository recorded as the remote's own, because that is the
+  reading such a project already landed against and withdrawing it would refuse a landing that stood.
+- **AC-03-6-20** · Rev: 1 · Proof: plugin/test/flow/landing/landed.test.mjs "a project declaring no branch falls back to the recorded default, and one that did not read refuses"
+  IF the reading of a project's own configuration did not happen, THEN the CLI SHALL refuse to end a
+  landing and SHALL name the command that says whether that configuration reads, because an unread
+  declaration is not a declared absence and the write it would license cannot be taken back.
+- **AC-03-6-21** · Rev: 1 · Proof: plugin/test/flow/landing/landed.test.mjs "a declared branch that does not carry the head refuses, whatever the recorded default carries"
+  WHEN the CLI says what a landing's ancestry reading answered, THEN it SHALL name which source the
+  branch it read came from, because two sources for one reading are a precedence and a precedence a
+  reader cannot see is one nobody can undo.
+- **AC-03-6-22** · Rev: 1 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "the reconstruction reads the branch the project declares a change lands on"
+  WHERE the route that ends a landing and the route that writes a checkpoint after one are asked
+  about the same head, under the same reading of a project and the same refs, the CLI SHALL answer
+  alike whether the branch a change lands on carries that head, because one cause reaching both
+  routes leaves a fix confined to either of them refusing what the other accepts.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*

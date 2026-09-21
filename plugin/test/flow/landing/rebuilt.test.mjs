@@ -117,6 +117,23 @@ const landedRoom = (name, { merge = true } = {}) => {
   return { room, base, judged, tip };
 };
 
+/* The two clauses the reading carries out, asserted as strings rather than as fragments: which of
+   the two sources named the branch is the whole of what this issue added, so a case reading half of
+   one of them would pass on a reconstruction that had said nothing (ISS-1802). */
+const DECLARED = "the branch this project declares a change lands on, read off the tracker's project config";
+const RECORDED = "the branch this checkout recorded as the remote's own default, this project having declared none";
+
+/* Which branch the project declares a change lands on, for one call, restored afterwards. */
+const declaring = async (branch, take) => {
+  const was = state.config;
+  state.config = { ...was, baseBranch: branch };
+  try {
+    return await take();
+  } finally {
+    state.config = was;
+  }
+};
+
 test("a landed head with no checkpoint behind it takes one written after the fact", async () => {
   const { room, judged, tip } = landedRoom("carried");
   held(["one", "two", "three"]);
@@ -125,8 +142,8 @@ test("a landed head with no checkpoint behind it takes one written after the fac
   const read = checkpoint();
   assert.equal(read.state, "done", "the state naming no turn, there being nothing left of this landing");
   assert.equal(read.head, judged);
-  assert.ok(read.handWritten.why.includes(`off origin/master at ${tip.slice(0, 7)}`),
-    "the block records the reading that licensed it and not the caller's word for it");
+  assert.ok(read.handWritten.why.includes(`off origin/master — ${DECLARED} — at ${tip.slice(0, 7)}`),
+    "the block records the branch that licensed it, where that branch's name came from, and not the caller's word for either");
   assert.equal(read.deployment, DEPLOYED, "and the identity a verdict is judged against, which the judge holds");
   assert.match(read.handWritten.why, /the deployment identity is the caller's/u,
     "said to be the caller's, this checkout having read no deployment");
@@ -153,7 +170,7 @@ test("the run writing a checkpoint after the landing is recorded as its writer a
   assert.ok(read.handWritten.lost.includes("builder"), `and the keys it recovered nothing for: ${read.handWritten.lost}`);
 });
 
-test("a head the default branch is not proved to carry refuses the write, saying what fell short", async () => {
+test("a head the branch it lands on is not proved to carry refuses the write, saying what fell short", async () => {
   const { room, judged } = landedRoom("unlanded", { merge: false });
   held(["one", "two"]);
   const run = await ran(["claim", "ISS-1784", "--rebuilt", judged, "--deployment", DEPLOYED], room);
@@ -196,4 +213,52 @@ test("a landing block whose state this version cannot place is not an absent one
   assert.match(run.stderr, /builder, deployment, head, state/u, "and every key it would have replaced");
   assert.equal(state.issues[0].sessionContext.landing.builder, "the-builder-run",
     "and the block stands exactly as it was");
+});
+
+/* The reconstruction landed with the same reading the landing route had, so it inherited the same
+   defect: on a project whose release promotes, the recorded default is the branch a release promotes
+   to, and a reconstruction read against it refuses a head the branch a change lands on carries.
+   Both routes are one cause, so both are read against the declaration (ISS-1802). */
+test("the reconstruction reads the branch the project declares a change lands on", async () => {
+  const { room, judged } = landedRoom("promote", { merge: false });
+  git(room, "checkout", "-q", "-b", "staging");
+  git(room, "merge", "-q", "--no-ff", "-m", "the release that landed it", BRANCH);
+  const tip = git(room, "rev-parse", "HEAD").stdout.trim();
+  git(room, "update-ref", "refs/remotes/origin/staging", tip);
+  assert.notEqual(git(room, "merge-base", "--is-ancestor", judged, "refs/remotes/origin/master").status, 0,
+    "the recorded default does not carry the head, which is what refused this write before");
+  held(["one", "two"]);
+  const run = await declaring("staging", () =>
+    ran(["claim", "ISS-1784", "--rebuilt", judged, "--deployment", DEPLOYED], room));
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  const read = checkpoint();
+  assert.equal(read.state, "done", `${run.stdout}${run.stderr}`);
+  assert.ok(read.handWritten.why.includes(`off origin/staging — ${DECLARED} — at ${tip.slice(0, 7)}`),
+    `the block names the declared branch and the declaration that named it: ${read.handWritten.why}`);
+  assert.ok(run.stdout.includes(`What licensed it: ${read.handWritten.why}`),
+    `and the run that made the write reads the same account it stored:\n${run.stdout}`);
+});
+
+test("a declared branch that does not carry the head refuses the reconstruction, whatever the recorded default carries", async () => {
+  const { room, judged, tip } = landedRoom("declared-behind");
+  git(room, "update-ref", "refs/remotes/origin/staging", git(room, "rev-parse", `${tip}^1`).stdout.trim());
+  assert.equal(git(room, "merge-base", "--is-ancestor", judged, "refs/remotes/origin/master").status, 0,
+    "the recorded default carries the head, and would have licensed this write");
+  held(["one", "two"]);
+  const run = await declaring("staging", () =>
+    ran(["claim", "ISS-1784", "--rebuilt", judged, "--deployment", DEPLOYED], room));
+  assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
+  assert.match(run.stderr, /origin\/staging stands at/u, `the declared branch:\n${run.stderr}`);
+  assert.ok(run.stderr.includes(DECLARED), `and that the declaration named it:\n${run.stderr}`);
+  assert.equal(checkpoint(), null, "and nothing was written");
+});
+
+test("a project declaring no branch sends the reconstruction to the recorded default, and says so on the block", async () => {
+  const { room, judged, tip } = landedRoom("undeclared");
+  held(["one", "two"]);
+  const run = await declaring(null, () =>
+    ran(["claim", "ISS-1784", "--rebuilt", judged, "--deployment", DEPLOYED], room));
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.ok(checkpoint().handWritten.why.includes(`off origin/master — ${RECORDED} — at ${tip.slice(0, 7)}`),
+    `the block names the recorded ref and the absence that sent it there: ${checkpoint().handWritten.why}`);
 });

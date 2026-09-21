@@ -48,6 +48,39 @@ export const policyUnread = (policy) => policy?.unread ?? null;
 
 const firstLine = (said) => String(said).split("\n")[0];
 
+/* Each says what the branch is and where the name came from, in one clause, because a caller prints
+   it inside a sentence about that branch and a reader of a refusal has to know from it whether to
+   declare a branch or to fetch a ref. */
+const DECLARED_BASE = "the branch this project declares a change lands on, read off the tracker's "
+  + "project config";
+const RECORDED_DEFAULT = "the branch this checkout recorded as the remote's own default, this "
+  + "project having declared none";
+
+/** Which branch a landing is read against, and where that name came from. Three shapes, because two
+ *  of them are not one: a project read to declare no branch a change lands on is an absence and
+ *  falls back to git's record of the remote's default as this reading always did, while a project
+ *  whose configuration did not read is a question nobody answered and refuses — the write that
+ *  reading licenses is terminal, so a fallback there could end a landing against the branch a
+ *  release promotes to rather than the one a change lands on, which is ISS-1802's defect the other
+ *  way round. `from` is carried rather than derived at the caller because two sources for one
+ *  reading are a precedence, and one a reader cannot see is one nobody can undo. */
+export const landsOn = (policy) => {
+  const why = policyUnread(policy);
+  if (why) {
+    return { branch: null, from: null, route: "forge doctor",
+      unsettled: `${UNREAD_CONFIG}, so nothing here says which branch a change lands on, and the `
+        + "branch this checkout recorded as the remote's own default is the branch a release "
+        + `promotes to on a project that promotes: ${firstLine(why)}` };
+  }
+  if (!policy) {
+    return { branch: null, from: null, route: null,
+      unsettled: "this checkout names no project, so nothing here says which branch a change lands on" };
+  }
+  return policy.staging
+    ? { branch: policy.staging, from: DECLARED_BASE, unsettled: null, route: null }
+    : { branch: null, from: RECORDED_DEFAULT, unsettled: null, route: null };
+};
+
 export const QA_MODES = ["independent", "builder"];
 
 /* Derived, never asked for again: a model that moves no ref at the release and deploys production on

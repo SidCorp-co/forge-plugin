@@ -5,14 +5,16 @@
    docs/cli/the-checkpoint.md, and docs/cli/the-reconstruction.md for the second. */
 import { HAND_WRITTEN, REBUILT_FORM, RECOVER_THE_BUILDER, UNRECOVERABLE } from "./reconstruction.mjs";
 import { LANDING_DONE, LANDING_READY } from "./checkpoint.mjs";
-import { carriedByDefault } from "../worklog.mjs";
+import { carriedByLanding } from "../worklog.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { shortSha } from "../../tracker/evidence.mjs";
 
-/* Git licenses this write and the caller's word does not: the one fact it records, that the default
-   branch carries the head, is read off refs already in this checkout. The builder is left unnamed
-   because the run reaching for this is the one judging the change (ISS-1784). */
-export const rebuiltCheckpoint = (ref, holder, head, { deployment, held, landing, holders }) => {
+/* Git licenses this write and the caller's word does not: the one fact it records, that the branch
+   this project lands changes on carries the head, is read off refs already in this checkout. Which
+   branch that is comes in resolved, the reading being the landing route's own and this file holding
+   no policy of its own (ISS-1802). The builder is left unnamed because the run reaching for this is
+   the one judging the change (ISS-1784). */
+export const rebuiltCheckpoint = (ref, holder, head, { deployment, held, landing, holders, lands }) => {
   if (landing) {
     fail(`claim --rebuilt writes a landing checkpoint where there is none, and ${ref} already reads `
       + `\`${landing.state}\`: a reconstruction over a record somebody captured would replace what it `
@@ -42,10 +44,11 @@ export const rebuiltCheckpoint = (ref, holder, head, { deployment, held, landing
       + `the record answers for is derived and not declared, and a guessed builder is what this key `
       + `exists to stop. ${RECOVER_THE_BUILDER(holders[0])}`);
   }
-  const read = carriedByDefault(head);
+  const read = carriedByLanding(head, lands);
   if (!read.carries) {
-    fail(`claim --rebuilt writes a checkpoint on a change the default branch already carries, and `
-      + `this checkout cannot prove it carries ${shortSha(head)}: ${read.why}. The reading is made `
+    fail(`claim --rebuilt writes a checkpoint on a change the branch it lands on already carries, `
+      + `and this checkout cannot prove it carries ${shortSha(head)}: ${read.why}.`
+      + `${read.from ? ` That branch is ${read.from}.` : ""} The reading is made `
       + `off refs already here, a claim being one of the writes that may not wait on a remote — and `
       + `where the change is genuinely unlanded what is owed is the capture and not this write. `
       + `${read.route ? "Settle the reading, then ask again" : "Ask from a checkout that can read that history"}:\n`
@@ -60,8 +63,9 @@ export const rebuiltCheckpoint = (ref, holder, head, { deployment, held, landing
     [HAND_WRITTEN]: {
       by: holder,
       at: new Date().toISOString(),
-      why: `written after the landing, off ${read.ref} at ${shortSha(read.tip)} carrying `
-        + `${shortSha(head)}; the deployment identity is the caller's and not this checkout's reading`,
+      why: `written after the landing, off ${read.ref} — ${read.from} — at ${shortSha(read.tip)} `
+        + `carrying ${shortSha(head)}; the deployment identity is the caller's and not this `
+        + "checkout's reading",
       builder: UNRECOVERABLE(holders),
       lost: ["builder", "branch", "base", "files", "at"],
     },

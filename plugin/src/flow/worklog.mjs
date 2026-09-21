@@ -235,23 +235,38 @@ export const droppedHead = (branch, head) => {
   return { tip, dropped: asked.status === 1 };
 };
 
-/* Whether the default branch carries a head, off the ref this checkout recorded as the remote's own and never a name `baseOf` guesses at. A reading it cannot make answers no with what settles it: what rests on this ends a landing, where the refusal above only costs a builder its write, and under no overlay: one proved over a replacement or a graft proves only it (8faf61 F1). */
+/* Whether the branch a change lands on carries a head, and never a name `baseOf` guesses at. A reading it cannot make answers no with what settles it: what rests on this ends a landing, where the refusal above only costs a builder its write, and under no overlay: one proved over a replacement or a graft proves only it (8faf61 F1). */
 const PROVEN = { ...OFFLINE, GIT_NO_REPLACE_OBJECTS: "1", GIT_GRAFT_FILE: "/dev/null" };
 
-export const carriedByDefault = (head) => {
-  const short = (why, route, ref = null, tip = null) => ({ ref, tip, carries: false, why, route });
-  if (git(["rev-parse", "--git-dir"], PROVEN) === null) return short("this directory is no git checkout", null);
+/* The branch to read and the ref that names it, off the project's declaration where `landsOn` made
+   one and off the ref this checkout recorded as the remote's own where it did not. A declared branch
+   is read as a remote-tracking ref and nothing else: a name resolving locally as well is the
+   ambiguity the whole form below exists to settle, and a project declaring a branch says nothing
+   about what this checkout's own heads are called. */
+const refFor = (lands) => {
+  if (lands?.branch) return { held: `refs/remotes/origin/${lands.branch}`, from: lands.from };
   /* Whole: a local `origin/master` makes git disambiguate the short form (consult ee55fe F1). */
-  const held = git(["symbolic-ref", "refs/remotes/origin/HEAD"], PROVEN);
+  return { held: git(["symbolic-ref", "refs/remotes/origin/HEAD"], PROVEN), from: lands?.from ?? null };
+};
+
+/** Whether the branch this project lands changes on reaches a head, given `landsOn`'s answer for
+ *  which branch that is. The source clause travels out in `from` so a caller's refusal and its
+ *  success line each say which of the two sources named the branch, the reader of a refusal having
+ *  to know whether to declare a branch or fetch a ref (ISS-1802). An unsettled reading refuses
+ *  before any branch is read: see `landsOn` for why that is not the absence beside it. */
+export const carriedByLanding = (head, lands = null) => {
+  const from = lands?.from ?? null;
+  const short = (why, route, ref = null, tip = null) => ({ ref, tip, from, carries: false, why, route });
+  if (lands?.unsettled) return short(lands.unsettled, lands.route);
+  if (git(["rev-parse", "--git-dir"], PROVEN) === null) return short("this directory is no git checkout", null);
+  const { held } = refFor(lands);
   if (!held) {
     return short("this checkout has recorded no default branch for `origin`, so there is no branch "
       + "to read the ancestry against", "git remote set-head origin -a");
   }
   const ref = held.replace(/^refs\/remotes\//u, "");
   const tip = git(["rev-parse", "--verify", `${held}^{commit}`], PROVEN);
-  if (!tip) {
-    return short(`${ref} is the recorded default branch and resolves to no commit here`, "git fetch origin", ref);
-  }
+  if (!tip) return short(`${ref} resolves to no commit here`, "git fetch origin", ref);
   if (git(["rev-parse", "--is-shallow-repository"], PROVEN) !== "false") {
     return short("this checkout is shallow, so no ancestry read over it settles anything",
       "git fetch --unshallow origin", ref, tip);
@@ -262,7 +277,7 @@ export const carriedByDefault = (head) => {
   }
   const asked = spawnSync("git", ["merge-base", "--is-ancestor", head, tip],
     { cwd: process.cwd(), encoding: "utf8", env: { ...process.env, ...PROVEN } });
-  if (asked.status === 0) return { ref, tip, carries: true, why: null, route: null };
+  if (asked.status === 0) return { ref, tip, from, carries: true, why: null, route: null };
   if (asked.status === 1) {
     return short(`${ref} stands at ${shortSha(tip)} and does not reach it`, "git fetch origin", ref, tip);
   }

@@ -6,6 +6,7 @@ import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
+import { landsOn, releasePolicy } from "../tracker/project-config.mjs";
 import { commentPage, cutIn, mustBeShown } from "../tracker/comments.mjs";
 import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
 import { rungOf } from "../ladder.mjs";
@@ -16,7 +17,7 @@ import { partForStatus } from "../guides/served.mjs";
 import { kindsHeld, parse } from "./record/page.mjs";
 import { parkAs, transitionTo } from "./advance.mjs";
 import { buildsAt } from "./earned.mjs";
-import { OPEN_KEPT, carriedByDefault, droppedHead, merged, patchFrom, worklogFor, worklogOf, workNow } from "./worklog.mjs";
+import { OPEN_KEPT, carriedByLanding, droppedHead, merged, patchFrom, worklogFor, worklogOf, workNow } from "./worklog.mjs";
 import {
   LANDING_BUILDER_OWED,
   LANDING_DONE,
@@ -31,7 +32,7 @@ import {
   takeRoute,
   landingOf,
 } from "./landing/checkpoint.mjs";
-import { holdersOf } from "./landing/reconstruction.mjs";
+import { handWrittenOf, holdersOf } from "./landing/reconstruction.mjs";
 import { readyCheckpoint, rebuiltCheckpoint } from "./landing/written.mjs";
 import {
   MECHANISM,
@@ -315,22 +316,24 @@ const finishLanded = async (documentId, ref, context) => {
       + `\`${LANDING_READY}\` and from no other state, every later one being a landing under way whose `
       + `remaining steps are its own. Read where the landing is:\n  forge resume ${ref}`);
   }
-  const read = carriedByDefault(landing.head);
+  const read = carriedByLanding(landing.head, landsOn(await releasePolicy()));
   if (!read.carries) {
-    fail(`claim --landed writes \`${LANDING_DONE}\` on the default branch already carrying `
+    fail(`claim --landed writes \`${LANDING_DONE}\` on the branch a change lands on already carrying `
       + `${shortSha(landing.head)}, the head ${landing.branch || "this checkpoint"} was written at, `
-      + `and this checkout cannot prove it does: ${read.why}. The reading is made off refs already `
-      + `here, a claim being one of the writes that may not wait on a remote — and where that branch `
-      + `is genuinely unlanded what is owed is the landing and not this write. ${read.route
+      + `and this checkout cannot prove it does: ${read.why}.`
+      + `${read.from ? ` That branch is ${read.from}.` : ""} The `
+      + `reading is made off refs already here, a claim being one of the writes that may not wait on `
+      + `a remote — and where that branch is genuinely unlanded what is owed is the landing and not `
+      + `this write. ${read.route
         ? "Settle the reading, then ask again"
         : "Ask from a checkout that can read that history"}:\n`
       + (read.route ? `  ${read.route}\n` : "") + `  forge claim ${ref} --landed`);
   }
   const saved = await landingSaved(documentId, ref, { state: LANDING_DONE }, { was: landing });
   console.log(`${ref}  landed: ${landingLine(saved)}`);
-  return console.log(`${read.ref} stands at ${shortSha(read.tip)} and carries ${shortSha(landing.head)}, `
-    + `so this change is on the default branch already and no release is owed to put it there. No turn `
-    + `of this landing is left for anybody to take.`);
+  return console.log(`${read.ref}, which is ${read.from}, stands at ${shortSha(read.tip)} and carries `
+    + `${shortSha(landing.head)}, so this change is on the branch it lands on already and no release `
+    + `is owed to put it there. No turn of this landing is left for anybody to take.`);
 };
 
 /* The turn is read before anything is written, because this is the one claim that may take a live
@@ -486,6 +489,7 @@ export const claim = async (argv) => {
         held: context?.[LANDING] ?? null,
         landing: landingOf(context),
         holders: holdersOf(context, buildsAt),
+        lands: landsOn(await releasePolicy()),
       })
       : null);
   const next = claimed(context, {
@@ -498,6 +502,10 @@ export const claim = async (argv) => {
   if (state === "live") console.log(handedSaid(ref, lease));
   if (state === "gone") console.log(holderGoneSaid(lease, undefined, { asserted: given.stopped }));
   if (checkpoint) console.log(`${landingLine(checkpoint)} — taken from here by \`${takeRoute(ref)}\`.`);
+  /* Off the block the write itself composed rather than a second reading of the same refs, so the
+     line this run reads and the account a later one reads back are one sentence (ISS-1802). */
+  const account = handWrittenOf(checkpoint)?.why;
+  if (account) console.log(`What licensed it: ${account}.`);
   for (const one of nextLines(how, left, taken.next)) console.log(one);
   /* Beside the lease it is about, and above every route out of here: a claim that answers a park
      returns below, and the run would take the lease without being told what it matched on. */
