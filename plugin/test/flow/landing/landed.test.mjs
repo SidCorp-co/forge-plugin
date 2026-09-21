@@ -431,3 +431,20 @@ test("a project declaring no branch falls back to the recorded default, and one 
   assert.ok(declared.stdout.includes("this project having declared none"),
     `and that the absence of a declaration is what sent it to the recorded ref:\n${declared.stdout}`);
 });
+
+/* Writing the ref whole is not enough on its own: git resolves a revision name through
+   `refs/heads/<name>` among others, so a local branch called after a remote-tracking ref answers
+   for one this checkout never fetched, and a landing would end off a branch the remote has never
+   seen (consult F1). */
+test("a local branch named after the declared remote-tracking ref does not end a landing", async () => {
+  const { room, judged } = landedRoom("lookalike");
+  releasedOnto(room, "master");
+  git(room, "update-ref", "refs/heads/refs/remotes/origin/staging", judged);
+  assert.equal(git(room, "rev-parse", "--verify", "refs/remotes/origin/staging^{commit}").stdout.trim(), judged,
+    "git resolves the composed name to the local branch, which is the reading being refused");
+  ready(judged);
+  const run = await declaring("staging", () => ran(["claim", "ISS-1655", "--landed"], room));
+  assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
+  assert.ok(run.stderr.includes("origin/staging resolves to no commit here"), run.stderr);
+  assert.equal(checkpoint().state, "ready", "and no landing is ended off a ref the remote has never had");
+});

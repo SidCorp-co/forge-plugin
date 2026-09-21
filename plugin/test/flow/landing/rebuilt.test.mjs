@@ -262,3 +262,16 @@ test("a project declaring no branch sends the reconstruction to the recorded def
   assert.ok(checkpoint().handWritten.why.includes(`off origin/master — ${RECORDED} — at ${tip.slice(0, 7)}`),
     `the block names the recorded ref and the absence that sent it there: ${checkpoint().handWritten.why}`);
 });
+
+/* The reconstruction reads through the same lookup, so the local lookalike is refused there too:
+   one cause, both routes (consult F1). */
+test("a local branch named after the declared remote-tracking ref does not license a reconstruction", async () => {
+  const { room, judged } = landedRoom("lookalike");
+  git(room, "update-ref", "refs/heads/refs/remotes/origin/staging", judged);
+  held(["one", "two"]);
+  const run = await declaring("staging", () =>
+    ran(["claim", "ISS-1784", "--rebuilt", judged, "--deployment", DEPLOYED], room));
+  assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
+  assert.match(run.stderr, /origin\/staging resolves to no commit here/u, run.stderr);
+  assert.equal(checkpoint(), null, "and nothing was written");
+});
