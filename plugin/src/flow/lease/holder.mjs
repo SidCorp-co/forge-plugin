@@ -222,7 +222,15 @@ const wordsTyped = (said) => {
       if (said[at] !== "\n") word += said[at];
       dollar = false;
     } else if (quote) {
-      if (one === quote) {
+      /* A substitution inside a double quote opens a context this cannot follow to its end, the
+         quote that closes the argument being free to sit inside the substitution. So the rest of
+         the call is one word rather than a guess at where the quote stopped: over-stating the
+         quoting only loses a match, and under-stating it reads an argument as words, which is the
+         defect itself. */
+      if (quote === '"' && (one === "`" || (one === "$" && said[at + 1] === "("))) {
+        word += said.slice(at);
+        at = said.length;
+      } else if (one === quote) {
         quote = "";
         escapes = true;
       } else {
