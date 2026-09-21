@@ -251,15 +251,58 @@ test("the reading carries what classed each window, in both halves", () => {
    redeclared gate is a different population under the same label with the table's generation
    standing still — read as a comparison it is a gate that got faster (ISS-2086). */
 test("two readings taken under different declarations are crossed on the rows a declaration arms", () => {
-  const held = classesCompared(GENERATIONS(TABLE), GENERATIONS(TABLE, "gate=make check\nship=\ntest=\ncleanup="));
+  /* The gate's mean falls by two thirds across the pair, which is past the bound and not at it: a
+     move exactly at the bound is named by nothing anyway, so a case built on one would pass however
+     the reader behaved. The control below is the same two windows under one declaration, and it is
+     there to prove the figure is nameable before the declaration is asked to suppress it. */
+  const gateOf = (declares, wait) => profile({
+    table: TABLE,
+    declares,
+    classes: [["read", 3000, 4000], [POLL, 200, 12_000], [WAIT, 160, 48_000], ["gate", 300, wait]],
+  });
+  const control = classesCompared(gateOf(DECLARED, 19_000), gateOf(DECLARED, 57_000));
+  const named = control.rows.find((one) => one.label === "gate");
+  assert.deepEqual({ before: named.before.seconds, now: named.now.seconds, named: named.named },
+    { before: 190, now: 63.333333333333336, named: true },
+    "190s a call falling to 63s is a move this reader names when one declaration counted both sides");
+  assert.ok(latencyLines({ classes: control }).some((line) => /^ {2}gate {2}.*-67% a call, /u.test(line)),
+    "and says so in the prose under the table");
+
+  const held = classesCompared(gateOf(DECLARED, 19_000), gateOf("gate=make check\nship=\ntest=\ncleanup=", 57_000));
   assert.deepEqual(crossedIn(held), ["gate"], "the table's generation moved for nothing, and the gate row still did");
   assert.deepEqual(held.crossedWhy,
     ["counted by different words for the rows a project's own declaration arms"],
     "and the reason is the declaration rather than the generation");
+  const gate = held.rows.find((one) => one.label === "gate");
+  assert.deepEqual({ before: gate.before.seconds, now: gate.now.seconds }, { before: 190, now: 63.333333333333336 },
+    "the same two means as the control, so what changed is only which words counted them");
+  assert.deepEqual({ shift: gate.shift, minutes: gate.toolMinutes, named: gate.named },
+    { shift: null, minutes: null, named: false }, "and none of it is read off a row counting two populations");
+  const lines = latencyLines({ classes: held });
+  assert.ok(lines.some((line) => /^gate — not comparable/u.test(line)), lines.join("\n"));
+  assert.ok(!lines.some((line) => /^ {2}gate {2}.*a call, /u.test(line)),
+    `the prose the control printed is gone:\n${lines.join("\n")}`);
+  assert.ok(lines.some((line) => line.includes("over the 3 with a mean on both sides")),
+    "and the crossed row is outside the denominator of what moved");
   for (const label of [...MOVED_AT.keys()]) {
     assert.equal(held.rows.find((one) => one.label === label).crossed, false,
       `${label} is this code's own row and no declaration reaches it`);
   }
+});
+
+/* Both halves at once: a stored reading from an earlier generation whose project also renamed its
+   gate crosses that row for both reasons, and a reader told only one of them would put the other
+   down to the change under test. */
+test("a reading that crossed both halves says both", () => {
+  const held = classesCompared(GENERATIONS(TABLE),
+    GENERATIONS(TABLE - 1, "gate=make check\nship=\ntest=\ncleanup="));
+  assert.deepEqual(new Set(crossedIn(held)), new Set([...MOVED_AT.keys(), "gate"]));
+  assert.deepEqual(held.crossedWhy, [
+    `classed by class table generation ${TABLE - 1}, against generation ${TABLE}`,
+    "counted by different words for the rows a project's own declaration arms",
+  ]);
+  const said = latencyLines({ classes: held }).find((line) => line.includes("not comparable"));
+  assert.ok(said.includes("and the two were counted by different words"), said);
 });
 
 test("a reading written before the declarations were carried is told from a project that declared nothing", () => {
