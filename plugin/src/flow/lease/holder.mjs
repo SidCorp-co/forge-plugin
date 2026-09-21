@@ -138,6 +138,30 @@ export const workUnder = (lease, at = process.cwd(), said = pidOf()) => {
   return found.sort((one, two) => String(one.since).localeCompare(String(two.since)));
 };
 
+/** Every process standing in `tree` that this call is not itself part of, `null` where the process
+ *  table could not be enumerated. `since` (epoch ms) narrows to what began at or after that moment,
+ *  so a process the turn did not start is not read as this turn's; left at its default every age
+ *  answers. Unlike `workUnder`, nothing here is filtered by what a project declares its own work to
+ *  be: a turn that stopped with something still running is read off `cwd` alone, never by guessing
+ *  at a command line (ISS-1358). */
+export const standingIn = (tree, since = 0, mine = new Set(chainOf(process.pid))) => {
+  const table = answered(() => readdirSync(TABLE));
+  if (!table) return null;
+  const filtering = Number.isFinite(since) && since > 0;
+  const found = [];
+  for (const name of table) {
+    const pid = Number(name);
+    if (!Number.isInteger(pid) || pid < 2 || mine.has(pid)) continue;
+    const cwd = answered(() => readlinkSync(`${TABLE}/${pid}/cwd`));
+    if (!cwd || !within(cwd, tree)) continue;
+    const row = rowOf(pid, lineOf(pid));
+    const born = Date.parse(row.since ?? "");
+    if (filtering && (!Number.isFinite(born) || born < since)) continue;
+    found.push(row);
+  }
+  return found.sort((one, two) => String(one.since).localeCompare(String(two.since)));
+};
+
 /* Both halves or neither: the recorded id is the host a wave shares and a host exits while the
    release it started keeps running, so its absence proves the run gone only where that run's tree
    holds none of its declared work. A reading that could not be made is not one that found nothing,

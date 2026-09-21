@@ -3,7 +3,7 @@
    so its reader is handed in: a planted transcript cannot plant a lease. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { mkdirSync, readFileSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -133,6 +133,86 @@ test("tracked changes in a worktree the run made refuse the stop; the checkout t
   utimesSync(join(wt, "one.txt"), old, old);
   assert.equal(stopped(room(), { transcript_path: transcript(), cwd: wt }), null,
     "dirt older than the turn is somebody else's, and this run is not told to put it away");
+});
+
+/* A worktree cut fresh for each case, so one case's leftover process is never read by another's. */
+const freshWorktree = () => {
+  const checkout = cleanRepo();
+  const wt = join(tempRoom("stop-check-live-wt-"), "wt");
+  assert.equal(git(checkout, "worktree", "add", "-q", "-b", `side-${randomUUID().slice(0, 8)}`, wt).status, 0);
+  return { checkout, wt };
+};
+
+/* Detached the way a backgrounded ship or gate is: a shell that exits leaves this reparented, cwd
+   the only thing left naming the tree it belongs to. */
+const spawnIn = (tree) => {
+  const child = spawn("sleep", ["5"], { cwd: tree, detached: true, stdio: "ignore" });
+  child.unref();
+  return child.pid;
+};
+
+const stopStanding = (pid) => {
+  try {
+    process.kill(pid, "SIGKILL");
+  } catch {
+    // already gone, which is what the case wanted anyway
+  }
+};
+
+const settled = () => new Promise((r) => setTimeout(r, 150));
+
+test("a process still standing in a worktree the turn left refuses the stop, named", async () => {
+  const { wt } = freshWorktree();
+  const pid = spawnIn(wt);
+  try {
+    await settled();
+    const said = stopped(room(), { transcript_path: transcript(), cwd: wt });
+    assert.match(said?.reason ?? "", /still has a process standing in it/u, said?.reason);
+    assert.match(said.reason, new RegExp(`pid ${pid}`, "u"), "the pid standing there is not named");
+    assert.match(said.reason, /forge hooks --how polling/u, "the wait it should take instead is missing");
+  } finally {
+    stopStanding(pid);
+  }
+});
+
+test("a process standing outside the worktree the turn left does not refuse the stop", async () => {
+  const { wt } = freshWorktree();
+  const elsewhere = tempRoom("stop-check-live-elsewhere-");
+  const pid = spawnIn(elsewhere);
+  try {
+    await settled();
+    assert.equal(stopped(room(), { transcript_path: transcript(), cwd: wt }), null,
+      "a process standing in an unrelated tree was read as standing in this one");
+  } finally {
+    stopStanding(pid);
+  }
+});
+
+test("a process that has already ended does not refuse the stop", async () => {
+  const { wt } = freshWorktree();
+  const pid = spawnIn(wt);
+  await settled();
+  stopStanding(pid);
+  await settled();
+  assert.equal(stopped(room(), { transcript_path: transcript(), cwd: wt }), null,
+    "a pid no longer in the process table was still read as standing there");
+});
+
+test("the same live process does not refuse the stop a second time this turn", async () => {
+  const { wt } = freshWorktree();
+  const pid = spawnIn(wt);
+  try {
+    await settled();
+    const env = room();
+    const path = transcript();
+    const session = randomUUID();
+    assert.match(stopped(env, { session_id: session, transcript_path: path, cwd: wt }).reason,
+      /still has a process standing in it/u);
+    assert.equal(stopped(env, { session_id: session, transcript_path: path, cwd: wt }), null,
+      "asked once, this run said so and is let go, not looped on a job it cannot end itself");
+  } finally {
+    stopStanding(pid);
+  }
 });
 
 /* The reader is handed the whole tail the transcript reader read, prompt and all, so a turn before

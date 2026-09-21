@@ -219,7 +219,7 @@
     },
     "NFR-11": {
       "rev": 1,
-      "digest": "3723146f10c918e89e0e4ce2cf7490b36b1195f31c749517bacfa98f950302df"
+      "digest": "060eb55d1de9036519b6b44b8d2522b39cc1cc148a837c45d201589e7836e696"
     },
     "AC-17-11-1": {
       "rev": 1,
@@ -228,6 +228,30 @@
     "AC-17-11-2": {
       "rev": 1,
       "digest": "e7f55778b62b6a05407439371ecf7c8ca0132efdd383b12cccee3b37ee006600"
+    },
+    "AC-17-11-3": {
+      "rev": 1,
+      "digest": "fa1881e8989f5f14e86f676bdf4818bdb00c594e5b23252ccb4907fa6e304904"
+    },
+    "AC-17-11-4": {
+      "rev": 1,
+      "digest": "1cb59190f776602b845ce9d6ffa98332a78d751a8726e8bb37c8a974378c5205"
+    },
+    "AC-17-11-5": {
+      "rev": 1,
+      "digest": "dba18517a03b2bf1bc97e04af8ae38acc968b8f26f08d03ae746ab467b99af92"
+    },
+    "AC-17-11-6": {
+      "rev": 1,
+      "digest": "b3739d798450a55d863177f1c21510a2f15699d70f77f0f6782c50fcebb58737"
+    },
+    "AC-17-11-7": {
+      "rev": 1,
+      "digest": "c9aeda8b5f2ff7661654ce7652f274d6a1992e6e3ba46ffa051289dda66524f4"
+    },
+    "AC-17-11-8": {
+      "rev": 1,
+      "digest": "4bdc6d8205a009ab4ce2a650fb6324eb00ab6cfdd2c631a0cc63cd4bf1f3dfac"
     },
     "EI-01": {
       "rev": 3,

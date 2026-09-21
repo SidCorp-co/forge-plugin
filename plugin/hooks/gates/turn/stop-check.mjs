@@ -10,6 +10,7 @@ import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { logBytes } from "../../../src/codex/codex-log.mjs";
 import { unverdicted, verdictForm } from "../../../src/codex/log/replies.mjs";
 import { FIELD, KEY } from "../../../src/flow/lease.mjs";
+import { standingIn } from "../../../src/flow/lease/holder.mjs";
 import { gitProbe } from "../../../src/hooks/git-probe.mjs";
 import { linting } from "../../../src/hooks/lint-delegate.mjs";
 import { projectStop } from "../../../src/resolve/settings.mjs";
@@ -209,6 +210,16 @@ export const run = (ev, held = heldAndSilent) => {
   if (left() > 1000 && Number.isFinite(since) && isWorktree(tree) && leftDirty(tree, since)) {
     say("tree", `${typed(tree)} is a worktree this turn left with tracked changes uncommitted.\n`
       + `  Clear it: \`git -C ${typed(tree)} add -u && git commit\`.`);
+  }
+
+  if (left() > 1000 && Number.isFinite(since) && isWorktree(tree)) {
+    const standing = standingIn(tree, since);
+    if (standing?.length) {
+      const [first, ...rest] = standing;
+      say("live", `${typed(tree)} still has ${standing.length === 1 ? "a process" : `${standing.length} processes`} `
+        + `standing in it that this turn started, pid ${first.pid} (${first.command})${rest.length ? " among them" : ""}.\n`
+        + "  Clear it: block on it before this turn ends — `forge hooks --how polling` names the wait.");
+    }
   }
 
   if (lines.length) {

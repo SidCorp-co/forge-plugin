@@ -130,9 +130,32 @@ once, and the routes that spend none are the ones whose own call carries the ans
 `plugin/hooks/how/polling.md` holds the figures that settled this, the routes themselves, and what
 the rule leaves unjudged.
 
+A turn that stops instead of taking one of those routes spends the same cost a worse way: nothing
+resumes it but a person watching from outside. Where that turn stood in a worktree of its own, what
+it left running there is read back at the stop and answered the same way asking again is.
+
 - **AC-17-11-1** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs "a wait that polls is refused, and a pause on its own is not"
   IF a pause stands inside a wait for other work THEN the product SHALL refuse the command and SHALL
   name the routes that wait without asking.
 - **AC-17-11-2** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs "the same read of a log typed again is refused, and another question of it is not"
   WHEN a read of a log is repeated with nothing done between it and the read before THEN the product
   SHALL refuse it once, and a different question of the same log SHALL pass.
+- **AC-17-11-3** · Rev: 1 · Proof: plugin/test/gates/turn/stop-check.test.mjs "a process still standing in a worktree the turn left refuses the stop, named"
+  WHEN a turn ends and a process that turn began still stands, by its working directory, inside the
+  worktree that turn stood in THEN the product SHALL refuse the stop and SHALL name that process's
+  id in the refusal.
+- **AC-17-11-4** · Rev: 1 · Proof: plugin/test/flow/lease/standing-in.test.mjs "a process standing in the tree by its cwd is found, whatever it is running"
+  WHEN a process standing in a tree is read for this rule THEN the product SHALL judge it by its
+  working directory alone and SHALL NOT judge it by what command it is running.
+- **AC-17-11-5** · Rev: 1 · Proof: plugin/test/gates/turn/stop-check.test.mjs "a process standing outside the worktree the turn left does not refuse the stop"
+  IF a process stands outside the worktree the turn stood in THEN the product SHALL NOT refuse the
+  stop on that process's account.
+- **AC-17-11-6** · Rev: 1 · Proof: plugin/test/flow/lease/standing-in.test.mjs "since narrows to what began at or after that moment"
+  IF a process began before the turn's own first moment THEN the product SHALL NOT read it as
+  standing there on that turn's account.
+- **AC-17-11-7** · Rev: 1 · Proof: plugin/test/gates/turn/stop-check.test.mjs "a process that has already ended does not refuse the stop"
+  IF a process named by an earlier reading is no longer in the process table THEN the product SHALL
+  NOT refuse the stop on that process's account.
+- **AC-17-11-8** · Rev: 1 · Proof: plugin/test/gates/turn/stop-check.test.mjs "the same live process does not refuse the stop a second time this turn"
+  WHERE a live process already refused this turn's stop once THEN the product SHALL let a second
+  stop of that same turn end without refusing it again.
