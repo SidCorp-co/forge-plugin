@@ -191,6 +191,12 @@ const signed = (said) => {
   return words.length < IDENTIFYING ? "" : ` ${words} `;
 };
 
+/* Either way round, because a wrapper's line holds the whole command and a leaf left by a shell
+   that exited holds a part of it — `node tools/gates.mjs --wait 30` out of the line that put it in
+   the background. The second direction costs what the first does not: a command that carries
+   another's whole line as an argument, `pgrep -f` or an `echo` of it, matches whatever is running
+   that line. ISS-2062 holds the narrowing; until it lands the predicate is what this says and the
+   criteria and the how text say the same. */
 const sameJob = (one, two) => one.includes(two) || two.includes(one);
 
 /** Every process still standing that this turn started, matched by the calls the turn itself made
