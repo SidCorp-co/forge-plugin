@@ -47,8 +47,12 @@ const withCredential = (...argv) => {
 test("a subject that needs the project and finds no slug says so and exits on it", () => {
   const asked = withCredential("brief");
   assert.match(asked.said, /\[ miss \] project slug\s+no project slug resolves here/u);
-  assert.ok(asked.said.includes("forge doctor --set slug=<project>"),
-    `the one command that clears it is not named:\n${asked.said}`);
+  /* This room is in no checkout, where both commands that set a slug refuse — there is nowhere for
+     a record to go — so what the stop owes is the reason and not a route (ISS-1403). */
+  assert.match(asked.said, /this directory is in no checkout, so there is no project for it to be scoped to/u,
+    `what cannot be cleared here is not said:\n${asked.said}`);
+  assert.doesNotMatch(asked.said, /forge doctor --(adopt|set)/u,
+    "and neither command is offered, each of them refusing where this stands");
   assert.equal(asked.status, 1, "a reading nobody could take is not a green one");
   const bare = withCredential();
   assert.match(bare.said, /\[ note \] project slug\s+project-scoped calls will refuse/u,
