@@ -11,7 +11,7 @@ import {
   AFTER_RUN, DURING_RUN, UNAVAILABLE, budgetOf, outcomesOf, pairsOf, parkedFor, parkedOver, threadOf, unreadIn,
 } from "../../src/stats/eval/outcomes.mjs";
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
-import { runsUnder } from "../../src/stats/runs.mjs";
+import { RUNS_USAGE, runsUnder } from "../../src/stats/runs.mjs";
 import { fakeTracker, projectRecord, ranAsync, tempRoom } from "../fixtures.mjs";
 import { OWN } from "../fixtures/own-project.mjs";
 
@@ -538,6 +538,10 @@ test("stats runs asks the tracker for this project's release model and for nothi
      own record, so no issue and no comment is read on this path (ISS-1975). */
   assert.deepEqual(state.calls.map((one) => one.name), ["forge_config"],
     "the release model, and no issue read behind it");
+  /* The help makes the same promise this asserts, so the two move together: a verb that says it
+     reads nothing the tracker holds and then reads one thing is wrong where a caller looks first. */
+  assert.match(RUNS_USAGE, /the tracker is asked only for this project's release model/u);
+  assert.equal(RUNS_USAGE.includes("nothing the tracker holds is read"), false);
 });
 
 test("the profile's own figures do not move because a run is joined to its issues", () => {

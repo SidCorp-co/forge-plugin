@@ -40,7 +40,8 @@ const UNITS = { d: 86_400_000, h: 3_600_000, m: 60_000 };
 export const RUNS_USAGE = [
   "Usage: forge stats runs [--since 3d] [--checkout <dir>] [--json]",
   "Where an issue-flow run's time and rounds go, read off the transcripts the harness keeps for a",
-  "checkout. Nothing is written and nothing the tracker holds is read: this measures the flow, not",
+  "checkout. Nothing is written, and the tracker is asked only for this project's release model,",
+  "which decides what its Phase 7 act is; no issue is read, because this measures the flow and not",
   "the backlog. A transcript with no issue-flow marker in it is skipped and counted as skipped.",
   "",
   "  --since 3d     the window, in d, h or m; the whole corpus unless you say otherwise",
