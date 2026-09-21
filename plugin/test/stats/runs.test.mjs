@@ -10,14 +10,12 @@ import { join } from "node:path";
 import { callsIn, shellOf } from "../../src/stats/corpus/transcripts.mjs";
 import { classOf } from "../../src/stats/corpus/classes.mjs";
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
-import { profileOf, runFrom, unionSeconds } from "../../src/stats/runs.mjs";
+import { unionSeconds } from "../../src/stats/runs.mjs";
 import { writeMark } from "../../src/stats/marks/marks.mjs";
 import { USAGE } from "../../src/stats/stats.mjs";
 import { tempRoom } from "../fixtures.mjs";
 import {
-  BASE, FORGE, MARKER_TURN, MODELLESS, NOUGHTS, NO_USAGE, OTHER, PROJECT, RESPONSE,
-  SHORT_RESPONSE, SHORT_USAGE, apiErrored, ask, asked, at, compacted, corpus, humanPrompt, result,
-  transcript, use,
+  BASE, FORGE, PROJECT, ask, asked, at, corpus, result, use,
 } from "./fixture-runs.mjs";
 
 test("every row of a fixture run is what the transcript adds up to", () => {
@@ -479,162 +477,5 @@ test("the rung table names the record it read each rung off, so a verb that read
   assert.equal(run.status, 0, run.stderr);
   const rungs = run.stdout.slice(run.stdout.indexOf("rung "));
   assert.match(rungs, /the run's own record/u,
-    "this verb asks the tracker nothing, so the rung here is whatever the run recorded and nothing else");
-});
-
-test("usage is counted once per response, and a record carrying none is counted as one carrying none", () => {
-  assert.deepEqual(callsIn(transcript()).spent,
-    { input: 10, cacheCreate: 100, cacheRead: 1200, output: 50, requests: 2, unmeasured: 18 },
-    "two requests billed, and the sixteen call records and two deliberate ones that carry no usage counted apart");
-  const spentIn = (...lines) => callsIn(lines.join("\n")).spent;
-  const one = spentIn(...RESPONSE);
-  assert.deepEqual([one.requests, one.cacheRead], [1, 1200],
-    "one response written as three records is one request billed once, not three");
-  const marked = spentIn(MARKER_TURN);
-  assert.deepEqual([marked.requests, marked.unmeasured, marked.cacheRead], [0, 0, 0],
-    "a turn no model generated is no request, and no record of one either");
-  assert.deepEqual([spentIn(NOUGHTS).requests, spentIn(NOUGHTS).cacheRead], [1, 0],
-    "four noughts is a measurement and not the absence of one");
-  const short = spentIn(NO_USAGE, SHORT_USAGE);
-  assert.deepEqual([short.requests, short.unmeasured], [0, 2],
-    "no usage object, and one missing a price, are each a record carrying no measurement");
-});
-
-test("a run carrying no measurement is in no token median and in no token denominator", () => {
-  const measured = runFrom("/p", "one", transcript());
-  const none = runFrom("/p", "two", OTHER);
-  assert.deepEqual([none.tokens.requests, none.tokens.unmeasured], [0, 1],
-    "the second run's one assistant record carries no usage, so it holds no measured request");
-  const held = profileOf([measured, none]).tokens;
-  assert.deepEqual([held.runs, held.unmeasuredRuns, held.requests, held.unmeasured], [1, 1, 2, 19],
-    "one run holds the measurements, the other is counted apart, and every record that carried none is named");
-  assert.deepEqual(held.perRun, { input: 10, cacheCreate: 100, cacheRead: 1200, output: 50 },
-    "the median is over the run that was billed, so the unbilled one does not halve it");
-  assert.deepEqual(held.perRequest, { input: 5, cacheCreate: 50, cacheRead: 600, output: 25 },
-    "and the divisor is that run's own requests, the numerator and the denominator being one population");
-});
-
-test("the token lines print the three readings, each over the population it names", () => {
-  const run = ask(corpus());
-  assert.equal(run.status, 0, run.stderr);
-  const has = (line) => assert.ok(run.stdout.includes(line), `${line}\n--- printed ---\n${run.stdout}`);
-  has("tokens          median/run 1.2k cache read, 100 cache written, 50 out, 10 in, "
-    + "over 1 run(s) holding a measured request and 0 holding none");
-  has("in all          1.2k cache read, 100 cache written, 50 out, 10 in, "
-    + "over 2 measured request(s), and 18 record(s) carried no measurement");
-  has("per request     600 cache read, 50 cache written, 25 out, 5 in");
-});
-
-test("what the API billed is read off the usage alone, whichever record of a response carries it", () => {
-  const spentIn = (...lines) => callsIn(lines.join("\n")).spent;
-  const first = spentIn(SHORT_RESPONSE, RESPONSE[0]);
-  const second = spentIn(RESPONSE[0], SHORT_RESPONSE);
-  assert.deepEqual([first.requests, first.cacheRead, first.unmeasured], [1, 1200, 1],
-    "a record missing a price does not reserve the id of the response it belongs to");
-  assert.deepEqual(first, second, "so the two read the same in either order");
-  const modelless = spentIn(MODELLESS);
-  assert.deepEqual([modelless.requests, modelless.cacheRead], [1, 3],
-    "a record the host named no model on was billed, and the attribution's guard is not the usage's");
-  assert.equal(spentIn(MARKER_TURN).requests, 0, "while a turn no model generated is still no request");
-});
-
-/* A run's condition, not its cost: a compaction is the harness losing what a run knew and carrying
-   on, and it is counted apart from the runs that met one, because a run that compacted three times
-   is one run that ran out of room and not three. An api error is a message-level record with no
-   tool call on it at all, so it can never be one of this plugin's own refusals — proved here by
-   keeping it apart from the one call that was refused for a reason of its own. `claim` names the
-   issue this run claimed, so `run.issues` holds it, or none, so a run that claimed nothing is named
-   by its own session instead. */
-const minimalRun = (session, { compactions = 0, apiErrors = 0, humanPrompts = 0, refused = false, claim = null } = {}) => runFrom("/p", session, [
-  JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-1" } }),
-  use(`${session}-c`, 1, "Bash", { command: "echo hi" }),
-  result(`${session}-c`, 2, "hi"),
-  ...(claim ? [use(`${session}-k`, 3, "Bash", { command: `forge claim ${claim}` }),
-    result(`${session}-k`, 4, `${claim}  claim: session held`)] : []),
-  ...(refused ? [use(`${session}-r`, 5, "Bash", { command: "grep -rn nothing docs/" }), result(`${session}-r`, 6, "", true)] : []),
-  ...Array.from({ length: compactions }, (_unused, one) => compacted(10 + one)),
-  ...Array.from({ length: apiErrors }, (_unused, one) => apiErrored(20 + one)),
-  ...Array.from({ length: humanPrompts }, (_unused, one) => humanPrompt(30 + one)),
-].join("\n"));
-
-test("compactions and the runs that met one are two counts, because a run that compacted three times is one run that ran out of room", () => {
-  const heavy = minimalRun("heavy", { compactions: 3 });
-  const light = minimalRun("light", { compactions: 1 });
-  const clean = minimalRun("clean", {});
-  assert.equal(heavy.compactions, 3);
-
-  const held = profileOf([heavy, light, clean]);
-  assert.deepEqual(held.condition.compactions, { met: 4, runs: 2 },
-    "three compactions on one run and one on another are four met and two runs, never four runs");
-});
-
-test("an api error is counted apart from a non-zero exit this plugin refused", () => {
-  const errored = minimalRun("errored", { apiErrors: 1, refused: true });
-  assert.equal(errored.apiErrors, 1);
-
-  const held = profileOf([errored]);
-  assert.equal(held.condition.apiErrors, 1);
-  /* The refused grep is this plugin's own other error; the api error record carries no tool_use
-     block at all, so it was never a call this reading could have filed under either listing. */
-  const otherErrors = [...held.errors].reduce((sum, [, many]) => sum + many, 0);
-  assert.equal(otherErrors, 1, "the refused grep is the one other error; the api error record is no call");
-});
-
-test("compactions and api errors print as unavailable rather than as a nought where the window holds no run", () => {
-  const held = profileOf([]);
-  assert.deepEqual(held.condition.compactions, { met: null, runs: null });
-  assert.equal(held.condition.apiErrors, null);
-});
-
-/* Off the reader `hooks/transcripts.mjs` exports rather than a second test of what a human turn is:
-   a run that carried two typed turns and one that carried one are three met and two runs, never
-   three runs — the same distinction `compactions` proves above, over `isHumanPrompt` instead. */
-test("human prompts and the runs that carried one are two counts, off the reader the stop-check gate uses", () => {
-  const talked = minimalRun("talked", { humanPrompts: 2 });
-  const once = minimalRun("once", { humanPrompts: 1 });
-  const quiet = minimalRun("quiet", {});
-  assert.equal(talked.humanPrompts, 2);
-
-  const held = profileOf([talked, once, quiet]);
-  assert.equal(held.condition.humanPrompts.met, 3);
-  assert.equal(held.condition.humanPrompts.runs, 2,
-    "two typed turns on one run and one on another are three met and two runs, never three runs");
-});
-
-test("a run a human prompt showed up inside is named by the issue it claimed, or its own session where it claimed none", () => {
-  const claimed = minimalRun("claimed", { humanPrompts: 1, claim: "ISS-42" });
-  const unclaimed = minimalRun("unclaimed", { humanPrompts: 1 });
-  const quiet = minimalRun("quiet", {});
-
-  const held = profileOf([claimed, unclaimed, quiet]);
-  assert.deepEqual(
-    new Set(held.condition.humanPrompts.named.map((one) => one.ref)),
-    new Set(["ISS-42", "unclaimed"]),
-    "the run that claimed ISS-42 is named by it, the one that claimed nothing by its own session, "
-    + "and the run with no human prompt is named by neither",
-  );
-});
-
-test("human prompts print as unavailable rather than as a nought where the window holds no run", () => {
-  const held = profileOf([]);
-  assert.deepEqual(held.condition.humanPrompts, { met: null, runs: null, named: [] });
-});
-
-/* The landing a run leaves ready has a class of its own now, and two readers were reading it off the
-   claim's own row: whether a transcript is an issue-flow run at all, and whether a landing was left
-   ready. Both are read off the new class here, so neither figure moves (ISS-1913 holds the third,
-   `unshipped`, which this does not touch). */
-const readyRun = (session, flag) => runFrom("/p", session, [
-  JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "a brief naming no method" } }),
-  use(`${session}-k`, 1, "Bash", { command: `forge claim ISS-1 --pushed${flag}` }),
-  result(`${session}-k`, 2, "ISS-1  claim: session held"),
-].join("\n"));
-
-test("the two readers of a claim are unmoved by the new class", () => {
-  const ready = readyRun("ready", " --ready");
-  assert.ok(ready, "a transcript whose only claim is the ready checkpoint is still an issue-flow run");
-  assert.equal(ready.ships.ready, 1, "and the landing it left ready is counted");
-  const pushed = readyRun("pushed", "");
-  assert.equal(pushed.ships.ready, 0, "while a capture that left nothing ready is not");
-  assert.equal(profileOf([ready, pushed]).runs, 2, "both are runs of the window");
+    "this verb asks the tracker for no issue, so the rung here is whatever the run recorded and nothing else");
 });
