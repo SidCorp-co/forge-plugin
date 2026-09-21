@@ -159,13 +159,22 @@ test("a directory belonging to no checkout resolves no record, and --set says so
    and each is served by this one walk off the path it was handed. */
 test("the record a named directory resolves is that directory's own repository's, not this process's", async () => {
   const { room } = checkout("named", { slug: "named-elsewhere" });
-  /* This call is in-process, so the configuration home it reads is this process's own rather than
-     the one the spawned cases hand their children. */
-  const mine = join(configDir("forge"), "projects", basename(room), "config.json");
-  mkdirSync(join(mine, ".."), { recursive: true });
-  writeFileSync(mine, JSON.stringify({ slug: "named-elsewhere", runs: 5 }));
-  assert.notEqual(room, process.cwd(), "the case is only a case while this process stands elsewhere");
-  assert.deepEqual(projectFileAt(room), { slug: "named-elsewhere", runs: 5 });
-  assert.deepEqual(projectFileAt(join(room, ".git")), { slug: "named-elsewhere", runs: 5 },
-    "and off any path inside that checkout, the repository being what answers");
+  /* This call is in-process, so it reads THIS process's configuration home. Pointed at a temporary
+     one for the length of the case and put back after: a suite that writes the real one writes the
+     state of whoever is running it, and this case is the only one here not spawning a child that
+     could be handed a home instead. */
+  const held = process.env.XDG_CONFIG_HOME;
+  process.env.XDG_CONFIG_HOME = tempRoom("adopt-named-home-");
+  try {
+    const mine = join(configDir("forge"), "projects", basename(room), "config.json");
+    mkdirSync(join(mine, ".."), { recursive: true });
+    writeFileSync(mine, JSON.stringify({ slug: "named-elsewhere", runs: 5 }));
+    assert.notEqual(room, process.cwd(), "the case is only a case while this process stands elsewhere");
+    assert.deepEqual(projectFileAt(room), { slug: "named-elsewhere", runs: 5 });
+    assert.deepEqual(projectFileAt(join(room, ".git")), { slug: "named-elsewhere", runs: 5 },
+      "and off any path inside that checkout, the repository being what answers");
+  } finally {
+    if (held === undefined) delete process.env.XDG_CONFIG_HOME;
+    else process.env.XDG_CONFIG_HOME = held;
+  }
 });
