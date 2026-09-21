@@ -53,7 +53,7 @@ in step with a rule this CLI does not own.
 **So the sentence is carried under a line saying the write stood, and never under the route's own
 name.** Every refusal the transport writes opens with that name, and the one act a reader takes on a
 refusal is to send the write again — which on a comment that landed leaves a duplicate the tracker
-has no delete for. Three runs sent one. The route is still named, inside the sentence rather than at
+has no delete for. Four runs met it in one day and one of them sent the write again. The route is still named, inside the sentence rather than at
 its head, because a caller who cannot place the account cannot act on it either way; and each line
 below carries a mark of its own, an unmarked sentence stating a rule and a route out being a refusal
 to whoever reads it. What the line above may claim is the row and nothing further: the same field

@@ -555,8 +555,9 @@ test("the reassurance is confined to the row the write stored", async () => {
   const { said } = await declining([DECLINED]);
   assert.match(said[0], /stored its row/u, "what it claims is the row this write stored");
   assert.match(said[0], /one warning/u, "and it says there is an account below to read");
-  assert.equal(/\b(succeeded|went through|did what it was asked)\b/u.test(said[0]), false,
-    `the tracker hangs this on a call it declined a part of too, so the whole call is not claimed: ${said[0]}`);
+  assert.match(said[0], /do not send that row again/u, "what it tells the reader not to repeat is the row");
+  assert.equal(/\b(succeeded|went through|did what it was asked)\b|nothing here is to be sent again/u.test(said[0]), false,
+    `the tracker hangs this on a call it declined a part of too, so neither the whole call nor the whole of what to do next is claimed: ${said[0]}`);
 });
 
 test("a read carrying the same key says nothing, and a write carrying none says nothing either", async () => {

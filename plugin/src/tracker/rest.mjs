@@ -230,13 +230,14 @@ const marked = (said) =>
    write again, and a comment sent twice is a duplicate the tracker has no delete for (ISS-2070).
    What that line may claim is the row and no more — the tracker attaches an account like this to a
    call it declined a part of as well, so a reader told the whole call went through stops before the
-   part that says otherwise. */
+   part that says otherwise — and what the line tells them not to repeat is the row and never the
+   call, a declined half being exactly the thing that may have to be asked for again. */
 const sayDeclined = (key, bodies) => {
   const said = bodies.flatMap((body) => unfencedIn(warningsIn(body)));
   if (!said.length) return;
   console.error(`The write was not refused. ${key} stored its row, and the tracker attached `
-    + `${said.length === 1 ? "one warning" : `${said.length} warnings`} to the call; a warning is `
-    + "not a refusal, so nothing here is to be sent again.");
+    + `${said.length === 1 ? "one warning" : `${said.length} warnings`} to the call; do not send `
+    + "that row again, and read below for whatever part of the call it did not do.");
   for (const line of said.flatMap(marked)) console.error(line);
 };
 
