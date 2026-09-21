@@ -2,6 +2,7 @@
    movement in what the harness spends is told apart from a movement in what it waits on. What the
    population is, and why the bound is a constant — docs/cli/stats-the-latency.md. */
 import { MOVED_AT } from "../corpus/classes.mjs";
+import { DECLARABLE } from "../corpus/declared.mjs";
 import { minutes } from "../figures.mjs";
 import { capped, elided } from "../tables.mjs";
 
@@ -27,16 +28,37 @@ const NONE = { calls: 0, wait: 0 };
  *  before that number existed, whose table is therefore unknown here rather than assumed. */
 const generationOf = (profile) => (typeof profile?.table === "number" ? profile.table : null);
 
-/* Whether a row holds a different population on the two sides. One table classed both sides of a
-   sliding comparison, so nothing is crossed there; a stored reading taken at an earlier generation
-   is crossed on exactly the rows whose population has moved since, which is what `MOVED_AT` holds;
-   and a stored reading naming no generation at all was classed by a table this code cannot read, so
-   no row of it is comparable rather than the ones it happens to share (ISS-2086). */
+/** Which words a profile's declared rows were counted by; `null` for a profile written before that
+ *  was carried, which cannot be told from a project that declared nothing and so is told apart. */
+const wordsOf = (profile) => (typeof profile?.declares === "string" ? profile.declares : null);
+
+const GENERATIONS = "classed by";
+const WORDS = "counted by different words for the rows a project's own declaration arms";
+
+/* Which rows hold a different population on the two sides, and why. What moves a row's population is
+   `MOVED_AT` in classes.mjs; the readings here are: a stored reading taken at an earlier generation
+   is crossed on the rows that have moved since, and one naming no generation is crossed on every row
+   rather than on the ones it happens to share, the table behind it being unreadable (ISS-2086). */
 const crossedIn = (before, now) => {
   const held = generationOf(before);
-  if (held === generationOf(now)) return () => false;
-  if (held === null) return () => true;
-  return (label) => (MOVED_AT.get(label) ?? 0) > held;
+  const why = [];
+  let moved = () => false;
+  /* Equal first, so two readings this table classed cross nothing whether or not either says which
+     table that was: a sliding comparison and a pair of profiles built by hand are both that. */
+  if (held === generationOf(now)) moved = () => false;
+  else if (held === null) {
+    why.push(`${GENERATIONS} a class table this reading cannot name, against generation ${generationOf(now)}`);
+    moved = () => true;
+  } else {
+    why.push(`${GENERATIONS} class table generation ${held}, against generation ${generationOf(now)}`);
+    moved = (label) => (MOVED_AT.get(label) ?? 0) > held;
+  }
+  if (held !== null && wordsOf(before) !== wordsOf(now)) {
+    why.push(WORDS);
+    const declared = moved;
+    moved = (label) => declared(label) || DECLARABLE.includes(label);
+  }
+  return { crossed: moved, why };
 };
 
 /* A mean of zero reads as a class that answered instantly, which is the one thing a window holding
@@ -82,16 +104,16 @@ const lookupsIn = (rows) => new Map((rows ?? []).map(([label, one]) => [label, o
  *  and the help lookups inside that denominator on each side — a lookup's own wait sits in the
  *  class's wait and cannot be taken back out of it, so the mixture is printed rather than removed. */
 export const classesCompared = (now, before) => {
-  if (!before) return { why: NO_BEFORE, rows: [], generations: null, lookups: null };
-  if (!Array.isArray(before.byClass)) return { why: NO_CLASSES, rows: [], generations: null, lookups: null };
+  if (!before) return { why: NO_BEFORE, rows: [], crossedWhy: [], lookups: null };
+  if (!Array.isArray(before.byClass)) return { why: NO_CLASSES, rows: [], crossedWhy: [], lookups: null };
   const nowClasses = classesIn(now.byClass);
   const beforeClasses = classesIn(before.byClass);
   const nowLookups = lookupsIn(now.helpReads);
   const beforeLookups = lookupsIn(before.helpReads);
-  const crossed = crossedIn(before, now);
+  const held = crossedIn(before, now);
   const rows = [...new Set([...nowClasses.keys(), ...beforeClasses.keys()])]
     .map((label) => rowOf(label, sideOf(beforeClasses, beforeLookups, label),
-      sideOf(nowClasses, nowLookups, label), crossed(label)))
+      sideOf(nowClasses, nowLookups, label), held.crossed(label)))
     /* By whichever side spent more on it: sorted by the recent side alone, a class whose time went
        to nothing sinks under classes that never cost the window anything, and a collapse is exactly
        what a reader of this table is looking for. */
@@ -100,7 +122,7 @@ export const classesCompared = (now, before) => {
   return {
     why: null,
     rows,
-    generations: { before: generationOf(before), now: generationOf(now) },
+    crossedWhy: held.why,
     lookups: { before: before.help?.calls ?? 0, now: now.help?.calls ?? 0 },
   };
 };
@@ -131,18 +153,14 @@ const movedSaid = (one) => `  ${one.label.padEnd(NAME)}${percent(one.shift)} a c
    the table does with it: the listing caps at ten and folds a class thin on both sides, and a
    statement about what a figure means cannot be the one the fold takes. Said where a generation was
    crossed and nowhere else — a sliding comparison classed both its windows by the running table. */
-const classedBy = (held) =>
-  (held === null ? "a class table this reading cannot name" : `class table generation ${held}`);
-
 const crossedLines = (mine) => {
   const crossed = mine.rows.filter((one) => one.crossed);
   if (!crossed.length) return [];
   const stood = mine.rows.length - crossed.length;
   return ["",
     `${crossed.map((one) => one.label).join(", ")} — not comparable: the window before this one was `
-      + `classed by ${classedBy(mine.generations.before)} and this one by generation `
-      + `${mine.generations.now}, so each of those rows counts a different population on the two `
-      + "sides, and neither a move nor a share of one is read off it"
+      + `${mine.crossedWhy.join(", and the two were ")}, so each of those rows counts a different `
+      + "population on the two sides, and neither a move nor a share of one is read off it"
       + (stood ? `. The other ${stood} row(s) stand` : ", which is every row of this pair")];
 };
 

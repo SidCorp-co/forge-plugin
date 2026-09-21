@@ -175,8 +175,13 @@ test("the prescribed wait on a running process is a wait, and a read of a file's
   assert.equal(said("tail --pid=12345 -f /dev/null"), WAIT, "and without the timeout that bounds it");
   assert.equal(said("tail -f --pid=12345 /dev/null"), WAIT,
     "the argument is the discriminator wherever among the options it stands, not the word after `tail`");
+  assert.equal(said("tail -n 0 --pid=12345 -f /dev/null"), WAIT, "past an option carrying a separate value");
+  assert.equal(said("tail /dev/null -f --pid=12345"), WAIT, "and past an operand standing before its options");
   assert.equal(said("tail -n 30 run.log"), "read", "while a bare tail of a file is the read it always was");
   assert.equal(said("tail -f run.log"), "read", "following one included");
+  assert.equal(said("tail --pidfile=run.pid"), "read", "the option ends where its own name does");
+  assert.equal(said("tail -- --pid=12345"), "read", "and past a bare `--` a word is a filename, however it is spelled");
+  assert.equal(said("tail run.log; grep --pid other"), "read", "the argument belongs to this tail and not to a later command");
   assert.equal(said('P=$(pgrep -f "tools/run.mjs ship" | head -1); timeout 880 tail --pid=$P -f /dev/null'), WAIT,
     "a line that locates the pid and then waits on it is the wait, the pgrep being how it found the pid");
   assert.equal(said("while sleep 10; do echo x; done"), POLL, "and a loop that sleeps is still a poll");

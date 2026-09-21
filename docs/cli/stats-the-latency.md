@@ -42,7 +42,17 @@ carries a generation of its own, every profile carries the generation that class
 whose population has moved since the stored reading's generation is named as not comparable and
 carries no move at all. The rows the change left alone go on comparing, which is why the generation
 is held per row rather than per table; a stored reading naming no generation is comparable on no row,
-the table behind it being unreadable from here. The naming is its own line rather than a mark on the
+the table behind it being unreadable from here.
+
+**The other half of what classed a row is the project's own words, and it moves on its own.** Four
+rows — the gate, the ship, the test and the call that ends a workspace — are classed by the commands
+a project declared under `stats.commands`, and a project that rewrites one of those has moved those
+rows' populations with the class table's generation standing still. Read as a comparison, a
+redeclared gate is a gate that got faster. So a reading carries the declared words beside the
+generation and the two are read together: a row is compared only where both halves of the stored
+reading agree with this one's, and the screen says which of the two crossed. A reading that declared
+nothing is not the same as one that says nothing about what it declared, and neither is read as the
+other. The naming is its own line rather than a mark on the
 row, because the listing caps and folds a row thin on both sides and a statement about what a figure
 means cannot be the one the fold takes. Nothing stored is re-read or rewritten: what is owed a reader
 comparing across such a change is the statement, and the statement is what this is.

@@ -83,7 +83,12 @@ export const TABLE = 2;
 
 /** The generation each row's population last changed at, for the rows that have changed since this
  *  number existed; a row absent from here has stood throughout. Only the last change matters: a row
- *  is comparable with a reading held at generation `g` exactly where this is at or below `g`. */
+ *  is comparable with a reading held at generation `g` exactly where this is at or below `g`.
+ *
+ *  This number answers for the table below and for nothing a project said. The four rows
+ *  `DECLARABLE` names are classed by a project's own words, so their populations move when those
+ *  words do with this number unmoved — `declaredSaid` is what a reading carries for that half, and
+ *  the two are read together or a redeclared gate reads as a gate that got slower (ISS-2086). */
 export const MOVED_AT = new Map([["read", 2], [POLL, 2], [WAIT, 2]]);
 
 const VERB_ENDS = String.raw`(?![\w-])`;

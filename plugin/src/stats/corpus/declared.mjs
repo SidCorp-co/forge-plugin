@@ -16,6 +16,11 @@ export const DECLARES = "stats.commands";
 export const DECLARABLE = ["gate", "ship", "test", "cleanup"];
 export const declaredIn = (directory) => projectFileAt(directory)?.stats?.commands ?? null;
 
+/** The words a project declared, in one spelling a reading is held under; what that keeps apart is
+ *  `classes.mjs`'s account (ISS-2086). */
+export const declaredSaid = (declared = null) => DECLARABLE
+  .map((label) => label + "=" + declaredCommands(label, declared).join(" ")).join("\n");
+
 const ESCAPED = /[.*+?^${}()|[\]\\]/gu;
 
 /** The commands a project typed under one label, as it typed them: a blank string, a number and an empty list each declare nothing, exactly as an absent key does. */

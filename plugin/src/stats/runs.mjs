@@ -14,7 +14,7 @@ import {
   guideFlowOf,
   helpReadOf,
 } from "./corpus/classes.mjs";
-import { declaredIn } from "./corpus/declared.mjs";
+import { declaredIn, declaredSaid } from "./corpus/declared.mjs";
 import { FLOW_BRIEF, PRICES, callsIn, markerOf, modelRun, rungRun } from "./corpus/transcripts.mjs";
 import { corpusUnder, readTranscript, rootFor } from "./corpus/corpus.mjs";
 import {
@@ -450,10 +450,11 @@ export const profileOf = (runs, declared = null) => {
   const per = (pick) => medianOrZero(runs.map(pick));
   return {
     runs: runs.length,
-    /* The built-in table's own generation, carried so that a stored reading standing as a before
-       window is never compared row by row with one this table classed: `classes.mjs` says what
-       moves it. A project's own declarations are its own and are no part of this number. */
+    /* What classed these calls, in the two halves `MOVED_AT` in classes.mjs accounts for, carried so
+       that a stored reading standing as a before window is compared row by row only where both
+       halves of it agree with this one's. */
     table: TABLE,
+    declares: declaredSaid(declared),
     /* Both bounds over every run and neither off the list's order: this reader is handed a window
        ordered by each run's end, so the first of them is the earliest to finish and not the earliest
        to begin. Read as the start of the span, that bound excluded a run that began before it and

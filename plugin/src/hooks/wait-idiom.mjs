@@ -7,8 +7,12 @@
 /** The command as a refusal prescribes it; `<seconds>` and `<pid>` are the two a run fills in. */
 export const WAIT_COMMAND = "timeout <seconds> tail --pid=<pid> -f /dev/null";
 
-/** What makes a `tail` a wait rather than a read: the `--pid` argument, wherever among the options it
- *  stands — `tail -f --pid=N` is the same wait as `tail --pid=N -f`, and a bare `tail -n 30 x.log`
- *  is a read of a file and no wait at all. A fragment, anchored by the caller at whatever a command
- *  position is for it. */
-export const WAITS_ON_PID = String.raw`tail(?:[ \t]+-\S+)*[ \t]+--pid`;
+/** What makes a `tail` a wait rather than a read: the `--pid` argument, wherever in the command it
+ *  stands. Anything may stand in front of it — an option, an option's separate value, an operand —
+ *  `tail -n 0 --pid=N -f /dev/null` and `tail /dev/null -f --pid=N` being the same wait as
+ *  `tail --pid=N -f /dev/null`, while a bare `tail -n 30 x.log` is a read of a file and no wait at
+ *  all. Three bounds: nothing crosses a separator, so the argument belongs to this `tail` and not to
+ *  a later command; nothing past a bare `--`, after which a word is a filename and `tail -- --pid=N`
+ *  reads a file with an odd name; and the option ends where its own name does, so `--pidfile=x` is
+ *  some other option. A fragment, anchored by the caller at a command position. */
+export const WAITS_ON_PID = String.raw`tail(?:[ \t]+(?!--(?:[ \t]|$))[^\s;|&()<>]+)*?[ \t]+--pid(?![\w-])`;
