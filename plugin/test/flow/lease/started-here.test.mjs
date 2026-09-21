@@ -33,8 +33,7 @@ const gone = (...pids) => {
   }
 };
 
-/* Long enough that a spawn's own latency never straddles the boundary a case draws between two
-   turns: the entry in the process table is stamped when the kernel makes it, not when it is asked for. */
+/* Long enough that a spawn's own latency never straddles the boundary a case draws between two turns. */
 const settled = (ms = 250) => new Promise((r) => setTimeout(r, ms));
 
 const held = (found, pid) => Boolean(found?.some((one) => one.pid === pid));

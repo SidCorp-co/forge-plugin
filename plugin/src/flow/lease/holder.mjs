@@ -176,13 +176,11 @@ const IDENTIFYING = 16;
 
 /** A command line as the process table can be matched on, or nothing where it is too short to
  *  identify one. Two things change on the way and no others: a harness re-quotes what it was
- *  handed before running it, and the shell's own punctuation stands where a blank could have.
- *  So quoting goes, and what separates one command from the next becomes a blank. Punctuation
- *  inside an argument is part of that argument and stays, or `/tmp/job:other` would be read as
- *  `/tmp/job`; and a blank at each end for the same reason, so a containment lands on a whole
- *  word and not on the start of a longer one. What this does not tell apart is a separator quoted
- *  into an argument — a file actually named `job;other` reads as two words — and the alternative
- *  is a shell parser inside a gate that runs at every stop, which costs more than the case. */
+ *  handed, and the shell's own punctuation stands where a blank could have. So quoting goes and
+ *  those separators become blanks; punctuation inside an argument is part of it and stays, or
+ *  `/tmp/job:other` would read as `/tmp/job`, and a blank at each end for the same reason. What
+ *  this cannot tell apart is a separator quoted into an argument — a file named `job;other` reads
+ *  as two words — the alternative being a shell parser inside a gate that runs at every stop. */
 const QUOTING = /['"`\\]/gu;
 const BREAKS = /[\s;|&()<>]+/gu;
 
@@ -211,10 +209,7 @@ const sameJob = (one, two) => one.includes(two) || two.includes(one);
  *  leaf that shell left carrying part; the window is what then tells two runs that ran the *same*
  *  command apart, each having begun its own inside its own call. Two runs that began the identical
  *  command inside the one window are the residue no process table can split, and this names both
- *  rather than guessing between them.
- *
- *  `null` where the process table could not be enumerated, which is not a turn that left nothing
- *  running. */
+ *  rather than guessing between them. */
 export const startedHere = (calls, mine = new Set(chainOf(process.pid))) => {
   const wanted = [];
   for (const one of calls ?? []) {
