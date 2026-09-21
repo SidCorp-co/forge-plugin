@@ -136,10 +136,8 @@ export const tokenLines = (held) => [
   `per request     ${priced(held.perRequest)}`,
 ];
 
-/* What `runs.mjs`'s `conditionOver` folds, printed: a run's condition apart from its spend, and
-   apart from a call this plugin issued or refused — the reason is stated there and not repeated
-   here. The human-prompt count is named rather than percentaged away, at the count this figure
-   holds — docs/cli/stats-the-condition.md. */
+/* Prints what `runs.mjs`'s `conditionOver` folds; the reason each of the three belongs here is
+   stated on that function and not repeated — docs/cli/stats-the-condition.md. */
 export const conditionLines = (held, population, all) => [
   `compactions     ${scaled(held.compactions.met)} across ${scaled(held.compactions.runs)} of `
     + `${population} run(s), a run that lost what it knew and carried on`,
