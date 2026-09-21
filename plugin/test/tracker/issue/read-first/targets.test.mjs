@@ -443,12 +443,12 @@ test("the refusal a raw create earns with no endpoint saved is the one it earns 
 
 /* A verb held back is paid for by the route it wraps, and a box with no endpoint never paid it. */
 test("with no endpoint saved a verb held back still answers for the route it wraps", async () => {
-  for (const state of ["hidden", "off"]) {
+  for (const kept of ["hidden", "off"]) {
     const run = await filing({ title: TITLED, description: WHOLE },
-      { url: "", withheld: { new: state }, session: `probe-withheld-${state}` });
-    assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny", state);
-    assert.match(because(run), new RegExp(`\`forge new\` is ${state} on this machine`, "u"));
-    assert.match(because(run), /The raw call is not the way round that/u, state);
+      { url: "", withheld: { new: kept }, session: `probe-withheld-${kept}` });
+    assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny", kept);
+    assert.match(because(run), new RegExp(`\`forge new\` is ${kept} on this machine`, "u"));
+    assert.match(because(run), /The raw call is not the way round that/u, kept);
   }
 });
 
