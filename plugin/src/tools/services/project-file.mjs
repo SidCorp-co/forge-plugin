@@ -398,15 +398,29 @@ export const wroteWhole = (path, text) => {
 /* The entry is this machine's own and a project that has set nothing has no file yet, so the first
    write creates one rather than refusing: refusing would leave `slug` unsettable in a checkout that
    names no project, which is the one key every other route needs before it can run. Created at 0600
-   like every other file this plugin keeps under that directory, and holding an empty object, so the
-   span walk below has a document to place the key in. */
-const madeEmpty = (path) => {
+   like every other file this plugin keeps under that directory, exclusively, and holding the text it
+   is to hold — never an empty document a failing write would then leave standing. */
+const madeWith = (path, text) => {
   mkdirSync(dirname(path), { recursive: true });
   const handle = openSync(path, "wx", 0o600);
   try {
-    writeFileSync(handle, "{}\n");
+    writeFileSync(handle, text);
   } finally {
     closeSync(handle);
+  }
+};
+
+/* What a first write that did not land leaves behind, which is nothing: `forge doctor --adopt`
+   refuses against a file that exists, so an entry half made here would strand the checkout's
+   committed configuration exactly as a refused write once did. A removal that fails is said,
+   that one file being all that stands between its reader and the adoption. */
+const sweptAway = (path) => {
+  try {
+    rmSync(path, { force: true });
+    return ` ${path} did not exist before this call and does not now.`;
+  } catch (error) {
+    return ` ${path} did not exist before this call, was created by it and could not be removed `
+      + `either: ${error.message}. Remove it by hand, or the adoption will refuse against it.`;
   }
 };
 
@@ -477,11 +491,11 @@ export const projectWrite = (route, value) => {
       + `beside it. Nothing was written — set this one by hand: ${READS_IT} prints what it holds.`);
   }
   try {
-    if (absent) madeEmpty(path);
-    wroteWhole(path, text);
+    if (absent) madeWith(path, text);
+    else wroteWhole(path, text);
   } catch (error) {
     fail(`--set: ${path} is the file \`${route.key}\` is a key of and this could not write it, so `
-      + `nothing was written: ${error.message}`);
+      + `nothing was written: ${error.message}.${absent ? sweptAway(path) : ""}`);
   }
   /* Off the disk, never off the text this call composed, which is the only reading that can tell a
      write from the span the resolver goes on to read. */

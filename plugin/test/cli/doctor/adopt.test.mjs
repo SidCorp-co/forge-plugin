@@ -5,8 +5,8 @@
    resolve this suite's own checkout. ISS-1403, docs/cli/the-project-file.md. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { escaped, fakeTracker, git, ranAsync, tempRoom } from "../../fixtures.mjs";
@@ -232,4 +232,29 @@ test("a machine key with no flag of its own is refused as a project key too, by 
   assert.match(run.stderr, /`retrySeconds` is this MACHINE's and not this project's/u, run.stderr);
   assert.match(run.stderr, /forge doctor, which names the retry ladder and where it was read/u, run.stderr);
   assert.equal(JSON.parse(readFileSync(entry, "utf8")).retrySeconds, undefined, "and nothing was written");
+});
+
+/* The window the review's second read named: with the entry created before the bytes, a write that
+   failed between the two left `{}` standing and the adoption refused against it ever after. The
+   only failure this filesystem can be made to give is the directory refusing the create, which is
+   the same window from the outside — the first write did not land, so what it would have made is
+   not there. */
+test("a first --set that could not land leaves nothing behind, and the committed file still adopts", async () => {
+  const { room, entry } = checkout("failed-first", { slug: "failed-first", runs: 8 });
+  const under = dirname(dirname(entry));
+  mkdirSync(under, { recursive: true });
+  chmodSync(under, 0o500);
+  try {
+    const run = await ask(room, "--set", "slug=written-nowhere");
+    assert.equal(run.status, 1, run.stdout);
+    assert.match(run.stderr, /could not write it, so nothing was written/u, run.stderr);
+    assert.match(run.stderr, /did not exist before this call and does not now/u,
+      "and the sentence says so of the file itself, not of the write in the abstract");
+  } finally {
+    chmodSync(under, 0o700);
+  }
+  assert.equal(existsSync(entry), false, "nothing was created on the way to the refusal");
+  const adopted = await ask(room, "--adopt");
+  assert.equal(adopted.status, 0, adopted.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(entry, "utf8")), { slug: "failed-first", runs: 8 });
 });
