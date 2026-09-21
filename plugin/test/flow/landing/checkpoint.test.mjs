@@ -247,7 +247,11 @@ test("a void gives up every field the candidate it built was the evidence for", 
    (ISS-923). Both read the source for `state:` and the state, a convention over the object handed to
    `landingSaved` rather than proof the line runs. */
 const WRITERS = {
-  claim: ["plugin/src/flow/claim.mjs"],
+  /* The verb and every part of it, as the lander's is below: a checkpoint the verb composes rather
+     than moves sits beside the table it is composed against, not in the file that walks it. */
+  claim: ["plugin/src/flow/claim.mjs",
+    ...readdirSync(new URL("../../../../plugin/src/flow/landing/", import.meta.url))
+      .map((one) => `plugin/src/flow/landing/${one}`)],
   /* The verb and every part of it, read off the directory rather than listed: a state written in a
      part this table forgot to name would read exactly like a state nobody writes. */
   lander: ["tools/run/land-ready.mjs",

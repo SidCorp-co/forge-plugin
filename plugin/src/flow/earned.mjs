@@ -357,8 +357,19 @@ const shownOwed = (view, ref) => {
   )];
 };
 
-const judgeOwed = (view, ref) => judgeProblems(view)
-  .map(({ number, why, held }) => need(`the verdict on criterion ${number} ${why}`, judgeAsk(ref, number, view.landing, held)));
+/* Grouped by the item and not by the verdict: one missing checkpoint printed once per criterion was
+   37 identical lines on the issue that reported this, and the one fact to act on was in all of them
+   and visible in none (ISS-1784). `shownOwed` above names its criteria the same way. */
+const judgeOwed = (view, ref) => {
+  const each = new Map();
+  for (const one of judgeProblems(view)) each.set(one.why, [...each.get(one.why) ?? [], one]);
+  return [...each].map(([why, held]) => {
+    const numbers = held.map((one) => one.number);
+    const at = numbers.length > 1 ? `criteria ${numbers.join(", ")}` : `criterion ${numbers[0]}`;
+    return need(`the verdict on ${at} ${why}`,
+      judgeAsk(ref, numbers, view.landing, held[0].held, markedCommit(view.comments)));
+  });
+};
 
 export const verificationForm = (ref, commit, evidence, tail = "") =>
   `forge record verification ${ref} --where "<where it runs>" --commit ${commit} `

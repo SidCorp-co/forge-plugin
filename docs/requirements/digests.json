@@ -1725,6 +1725,18 @@
       "rev": 1,
       "digest": "58e0e31e946465af729f1ff9c1f1d4e86e5980543cdd27279e03b08b6df3d39f"
     },
+    "AC-03-6-15": {
+      "rev": 1,
+      "digest": "4cc4f76fbf577a8c1a0cc0ef7d15c791beb3c09858d9f42508b52fce2dd3ecfc"
+    },
+    "AC-03-6-16": {
+      "rev": 1,
+      "digest": "72de90f4ff93aad4457957d9b5465c322c0a815b6564623caf4b3120b3fade7b"
+    },
+    "AC-03-6-17": {
+      "rev": 1,
+      "digest": "61cb6a1b8ac60eda4a9443d1ff760b87cd61e1e4ece6608bbcbcb6fc6738d741"
+    },
     "FR-04": {
       "rev": 1,
       "digest": "afe8a4581297056c791d0a844717c43b89aa16003b5c3edcd42f7b18920fee27"
@@ -2348,6 +2360,14 @@
     "AC-05-11-12": {
       "rev": 1,
       "digest": "a4f0d0117d3a340682ddfb4d5c047aff12538dfb9295b905c544ac66ad881291"
+    },
+    "AC-05-11-13": {
+      "rev": 1,
+      "digest": "5a36ecc6a73f378b9c7e8eca97f81adfc22c0442f821a5837baec477b2b17c27"
+    },
+    "AC-05-11-14": {
+      "rev": 1,
+      "digest": "493c64ea0982255f2e5f2020cc30b5624f3fddbae8743d81157aee05345b6d23"
     },
     "AC-05-11-15": {
       "rev": 1,

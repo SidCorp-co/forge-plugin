@@ -74,9 +74,8 @@ const owed = (...args) => items(...args).map((one) => one.what);
 test("a verdict carrying the builder's own id earns nothing where the project asks for a second judge", () => {
   const said = owed([verdictOf(1, { judge: BUILDER }), verdictOf(2, { judge: BUILDER })]);
   assert.deepEqual(said, [
-    "the verdict on criterion 1 carries the builder's own id `the-builder-session`",
-    "the verdict on criterion 2 carries the builder's own id `the-builder-session`",
-  ], "one item per verdict, each naming the id that disqualified it");
+    "the verdict on criteria 1, 2 carries the builder's own id `the-builder-session`",
+  ], "one item per missing thing, naming every criterion it disqualified");
 });
 
 /* The bug a green suite hides: `judge` is `newer`, so a verdict without one is a whole payload by
@@ -158,21 +157,22 @@ test("where the project asks for no second judge, the builder's own verdicts ear
    equal and the check refuses — which is the answer, not a miss. */
 test("a QA run inheriting the builder's id is refused, because nothing tells the two apart", () => {
   assert.deepEqual(owed([verdictOf(1, { judge: BUILDER }), verdictOf(2, { judge: BUILDER })],
-    { issue: { sessionContext: { landing: { ...CHECKPOINT, builder: BUILDER } } } }).length, 2);
+    { issue: { sessionContext: { landing: { ...CHECKPOINT, builder: BUILDER } } } }).length, 1);
 });
 
 test("no checkpoint means nothing names the builder or the deployment, and the check says so", () => {
   const said = owed([verdictOf(1), verdictOf(2)], { issue: { sessionContext: null } });
   assert.deepEqual(said, [
-    "the verdict on criterion 1 has no landing checkpoint naming a deployment identity to judge it against",
-    "the verdict on criterion 2 has no landing checkpoint naming a deployment identity to judge it against",
+    "the verdict on criteria 1, 2 has no landing checkpoint naming a deployment identity to judge it against",
   ], "the two halves are two sentences, and with no checkpoint at all the deployment is the first of them");
   const half = owed([verdictOf(1), verdictOf(2)],
     { issue: { sessionContext: { landing: { ...CHECKPOINT, deployment: undefined } } } });
-  assert.equal(half.length, 2, "a checkpoint with no deployment identity is no checkpoint for this reading");
+  assert.equal(half.length, 1, "a checkpoint with no deployment identity is no checkpoint for this reading");
   const asked = items([verdictOf(1), verdictOf(2)], { issue: { sessionContext: null } });
-  assert.deepEqual([...new Set(asked.map((one) => one.command))], ["forge resume ISS-8"],
-    "and the ask is not another verdict, which cannot produce the checkpoint that is missing");
+  assert.deepEqual(asked.map((one) => one.command),
+    [`forge claim ISS-8 --rebuilt ${MERGED.slice(0, 7)} --deployment <the sha the deployment reports serving>`],
+    "and the ask is not another verdict, nor a command that reports where the landing is and writes "
+      + "no checkpoint, but the write that puts one there");
 });
 
 /* What a void gives up, named to whoever judges again. Asked the other way round — which verdicts are
@@ -316,9 +316,10 @@ test("advance to the rung is refused while the standing verdicts are the builder
   assert.equal(run.status, 1, run.stdout);
   assert.equal(judging.status, "developed", "and nothing moved");
   const said = `${run.stdout}\n${run.stderr}`;
-  assert.match(said, /criterion 1 carries the builder's own id/u, said);
-  assert.match(said, /criterion 2 carries the builder's own id/u, said);
-  assert.match(said, /forge record verdict ISS-8 --criterion 1 [^\n]*--evidence 9e24c2a/u,
+  assert.match(said, /criteria 1, 2 carries the builder's own id/u, said);
+  assert.doesNotMatch(said, /criterion 2 carries the builder's own id/u,
+    "one line names both, rather than one line for each burying the fact to act on");
+  assert.match(said, /forge record verdict ISS-8 --criterion 1 --verdict pass --criterion 2 [^\n]*--evidence 9e24c2a/u,
     "and the item carries the write that answers it, citing the identity to judge against");
 });
 
@@ -505,13 +506,13 @@ test("a checkpoint declaring its builder unrecoverable earns the verdict the dep
     "the deployment half stands and the builder half is answered by the declaration");
   const bare = { ...REBUILT };
   delete bare.handWritten;
-  assert.equal(owed([verdictOf(1), verdictOf(2)], { issue: { sessionContext: { landing: bare } } }).length, 2,
+  assert.equal(owed([verdictOf(1), verdictOf(2)], { issue: { sessionContext: { landing: bare } } }).length, 1,
     "while the same checkpoint with nothing said about the builder is refused exactly as before");
 });
 
 test("a builder the claim history answers for on its own is refused rather than declared unknown", () => {
   const said = owed([verdictOf(1), verdictOf(2)], { issue: { sessionContext: heldBy("the-only-run") } });
-  assert.equal(said.length, 2, "one per verdict, the item being the checkpoint's and not the verdict's");
+  assert.equal(said.length, 1, "one line, the item being the checkpoint's and not the verdict's");
   assert.match(said[0], /exactly one run that held it while the change was being built, `the-only-run`/u);
 });
 
@@ -524,10 +525,9 @@ test("a builder the claim history answers for on its own is refused rather than 
 test("a judge the claim history names as a run that held the build is no judge apart from it", () => {
   const said = owed([verdictOf(1, { judge: "one" }), verdictOf(2, { judge: "one" })],
     { issue: { sessionContext: heldBy("one", "two", "three") } });
-  assert.equal(said.length, 2, "one item per verdict, as every other item on this check is");
-  assert.deepEqual(said[0], "the verdict on criterion 1 carries the judge id `one`, which the claim history "
+  assert.deepEqual(said, ["the verdict on criteria 1, 2 carries the judge id `one`, which the claim history "
     + "on this issue names as a run that held it while the change was being built: the checkpoint's builder "
-    + "is unrecoverable, so nothing here shows this judge apart from whoever built the change");
+    + "is unrecoverable, so nothing here shows this judge apart from whoever built the change"]);
   assert.deepEqual(owed([verdictOf(1), verdictOf(2)], { issue: { sessionContext: heldBy("one", "two") } }), [],
     "while a judge whose every claim came after the build is apart from every one of them");
 });
@@ -537,11 +537,11 @@ test("a judge the claim history names as a run that held the build is no judge a
 test("a verdict is told about the half that is missing and not about the half that stands", () => {
   const noDeploy = owed([verdictOf(1), verdictOf(2)],
     { issue: { sessionContext: { landing: { ...CHECKPOINT, deployment: undefined } } } });
-  assert.deepEqual(noDeploy[0], "the verdict on criterion 1 has no landing checkpoint naming a deployment "
+  assert.deepEqual(noDeploy[0], "the verdict on criteria 1, 2 has no landing checkpoint naming a deployment "
     + "identity to judge it against", "the builder stands on this one and is not named");
   const noBuilder = owed([verdictOf(1), verdictOf(2)],
     { issue: { sessionContext: { landing: { ...CHECKPOINT, builder: undefined } } } });
-  assert.match(noBuilder[0], /^the verdict on criterion 1 has no landing checkpoint naming a builder,/u);
+  assert.match(noBuilder[0], /^the verdict on criteria 1, 2 has no landing checkpoint naming a builder,/u);
   assert.doesNotMatch(noBuilder[0], /deployment identity/u, "and the deployment stands on this one");
 });
 
@@ -553,3 +553,24 @@ test("the landing's reading of which criteria were judged refuses what the entry
       + "verdict no more than the transition would");
 });
 
+/* 37 verdicts, 37 copies of one sentence, and the one fact to act on visible in none of them: the
+   item is the checkpoint's and not each verdict's, so it is reported once (ISS-1784). */
+test("one refusal names every criterion it refused rather than one refusal for each", () => {
+  const four = [1, 2, 3, 4].map((number) => verdictOf(number, { judge: BUILDER }));
+  const said = owed(four, { issue: { acceptanceCriteria: "1. One.\n2. Two.\n3. Three.\n4. Four." } });
+  assert.equal(said.length, 1, `one line and not four:\n${said.join("\n")}`);
+  assert.match(said[0], /^the verdict on criteria 1, 2, 3, 4 /u);
+  const mixed = owed([verdictOf(1, { judge: BUILDER }), verdictOf(2, { evidence: [MERGED] })]);
+  assert.equal(mixed.length, 2, "while two different items stay two lines, being two things to act on");
+});
+
+/* The route printed where no checkpoint stands is the write that puts one there and never a command
+   that only reports where the landing is, which a reader could follow and arrive nowhere. */
+test("a verdict refused for a checkpoint that is absent names the write that puts one there", () => {
+  const asked = items([verdictOf(1), verdictOf(2)], { issue: { sessionContext: null } });
+  assert.deepEqual(asked.map((one) => one.command),
+    [`forge claim ISS-8 --rebuilt ${MERGED.slice(0, 7)} --deployment <the sha the deployment reports serving>`]);
+  const standing = items([verdictOf(1, { judge: BUILDER })]);
+  assert.match(standing[0].command, /^forge record verdict ISS-8 /u,
+    "while a checkpoint that stands is answered by the verdict it is short of, as before");
+});

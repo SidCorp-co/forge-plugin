@@ -456,6 +456,14 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
   and on every verdict it reads back against it, because a verdict read back against a
   reconstruction is weaker evidence than one read back against a capture, a reader reaching a
   verdict need not have read the checkpoint, and nothing else on the record separates them.
+- **AC-05-11-13** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "one refusal names every criterion it refused rather than one refusal for each"
+  WHERE more than one standing verdict is refused for the same missing item, the CLI SHALL report
+  that item once naming every criterion it refused, because a sentence repeated per criterion buries
+  the one fact the reader has to act on.
+- **AC-05-11-14** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "a verdict refused for a checkpoint that is absent names the write that puts one there"
+  IF a standing verdict is refused because no landing checkpoint stands on the issue THEN the CLI
+  SHALL name the write that puts one there, because the route it names otherwise reports where the
+  landing is and writes no checkpoint at all.
 - **AC-05-11-15** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "the landing's reading of which criteria were judged refuses what the entry check refuses"
   WHERE a landing reads which criteria an independent judge answered for, it SHALL count a verdict
   only where the entry check to `testing` would let that verdict stand, because two readings of one

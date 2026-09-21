@@ -377,6 +377,24 @@ a wait no party can end.
   pushes nothing, because the workspace whose release landed that branch is often gone by then and
   every other route to that state is itself a release.
 
+- **AC-03-6-15** · Rev: 1 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a landed head with no checkpoint behind it takes one written after the fact"
+  WHERE no landing checkpoint stands on an issue and the default branch is proved, off refs the
+  checkout already holds, to carry a head the caller names, the CLI SHALL offer a write that puts a
+  checkpoint at the state naming no turn holding that head, the deployment identity the caller
+  names, no builder, and a hand-written block saying off the record itself why no builder could be
+  recovered, because the window the capture is taken in closes at the merge and a run that died
+  inside it leaves the issue with no other way back.
+- **AC-03-6-16** · Rev: 1 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "the run writing a checkpoint after the landing is recorded as its writer and never as the builder"
+  WHEN a checkpoint is written on a change that has already landed THEN the CLI SHALL record the run
+  making that write as the writer of the reconstruction and SHALL leave the builder unnamed, because
+  the run that reaches for this write is the one judging the change and naming it the builder is the
+  fabrication this checkpoint exists to prevent.
+
+- **AC-03-6-17** · Rev: 1 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a landing block whose state this version cannot place is not an absent one, and is not written over"
+  IF a stored landing block is present and its state is one this version cannot place THEN the CLI
+  SHALL refuse to write a checkpoint over it, naming the keys it would have replaced, because the
+  read every other write goes by answers alike for a block that is absent and one it cannot read,
+  and only the first is a record nobody has made.
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*

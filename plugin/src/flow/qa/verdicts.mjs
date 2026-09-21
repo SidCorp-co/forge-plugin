@@ -3,7 +3,7 @@ import { INHERITED, INHERITED_MEANS, OWN_ID } from "../../resolve/config.mjs";
 import { JUDGE_FROM } from "../machine.mjs";
 import { QA_MODES, judgementOf } from "../../tracker/project-config.mjs";
 import { isCommit, sameCommit, shortSha as short } from "../../tracker/evidence.mjs";
-import { builderProblem } from "../landing/reconstruction.mjs";
+import { REBUILT_FORM, builderProblem } from "../landing/reconstruction.mjs";
 
 export const [INDEPENDENT] = QA_MODES;
 
@@ -57,12 +57,20 @@ export const judgeProblems = (view) => (asksIndependent(view.release)
   })
   : []);
 
-/* The grant goes in front of the write where the id is what the problem was: a role handed the bare command sends it again under the same inherited id, and reads the refusal as one it cannot act on. */
-export const judgeAsk = (ref, number, landing, held = null) => (landing?.deployment
-  ? `${inheritedJudge(held ?? {}) ? "FORGE_SESSION_ID=<an-id-of-its-own> " : ""}forge record verdict ${ref} `
-    + `--criterion ${number} --verdict pass --commit ${short(landing.head) || "<sha>"} `
-    + `--evidence ${short(landing.deployment)}`
-  : `forge resume ${ref}`);
+/* The grant goes in front of the write where the id is what the problem was: a role handed the bare command sends it again under the same inherited id, and reads the refusal as one it cannot act on.
+   Where there is no checkpoint the ask is not another verdict but the write that puts one there: a
+   route that only reports where the landing is leaves the reader following it nowhere (ISS-1784). */
+export const judgeAsk = (ref, at, landing, held = null, merged = null) => {
+  const numbers = Array.isArray(at) ? at : [at];
+  if (landing?.deployment) {
+    return `${inheritedJudge(held ?? {}) ? "FORGE_SESSION_ID=<an-id-of-its-own> " : ""}`
+      + `forge record verdict ${ref}`
+      + numbers.map((number) => ` --criterion ${number} --verdict pass`).join("")
+      + ` --commit ${short(landing.head) || "<sha>"} --evidence ${short(landing.deployment)}`;
+  }
+  if (!landing) return REBUILT_FORM(ref, short(merged) || "<the sha the default branch carries>");
+  return `forge resume ${ref}`;
+};
 
 /* What a void gives up, for a landing that has to name it: judged by somebody other than the checkpoint's builder, and citing the identity the landing is about to stop holding. Whether a verdict still standing cites what is running now is the same citation read per verdict, which is `judgeProblem`'s and is spent at `testing`, and a successor builder's verdicts are neither's on a project that asked for no judge. It asks that predicate rather than keeping two of its filters: a landing counting a verdict the transition then refuses spends a promotion on a judgement that earns nothing (ISS-2045). */
 export const judgedAt = (landing, verdicts, release, holders = []) => (asksIndependent(release)

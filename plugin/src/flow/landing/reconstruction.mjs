@@ -37,6 +37,19 @@ export const holdersOf = (context, builds = () => true) => [...new Set(
     .filter(Boolean),
 )];
 
+/** Why the builder cannot be recovered, composed from the record rather than taken from the caller:
+ *  what is unrecoverable here is a fact about the claim history, and a sentence typed by the run
+ *  writing the block is the one thing this key exists not to take its word for. */
+export const UNRECOVERABLE = (holders) => (holders.length
+  ? `the claim history on this issue names ${holders.length} runs that held it while the change was `
+    + `being built — ${holders.join(", ")} — and nothing on the record says which of them built it`
+  : "the claim history on this issue names no run that held it while the change was being built");
+
+/** The one spelling of the write, so the refusals that ask for it and the refusal that sends a
+ *  reader to it cannot drift into asking for different commands. */
+export const REBUILT_FORM = (ref, head) =>
+  `forge claim ${ref} --rebuilt ${head} --deployment <the sha the deployment reports serving>`;
+
 export const RECOVER_THE_BUILDER = (holder) =>
   `Write the checkpoint naming \`${holder}\` as the builder rather than declaring it unrecoverable.`;
 

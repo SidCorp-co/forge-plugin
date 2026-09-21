@@ -8,6 +8,10 @@ recovered nothing for. Every reader appends that statement to the checkpoint and
 read back against it, because a reconstruction is weaker evidence than a capture and a reader who
 asks for a verdict need never have asked for the checkpoint behind it.
 
+The reason the builder is unrecoverable is composed off the record and never taken from whoever
+writes the block: what cannot be recovered here is a fact about the claim history, and a sentence
+typed by the writing run is the one thing this key exists not to take on trust.
+
 What the block buys is one key and not the record's honesty. A builder left out reads as one nobody
 wrote down; a builder declared unrecoverable beside the reason reads as one nobody can. Only the
 second stands, and it stands only where the record cannot answer the question itself: a claim

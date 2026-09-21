@@ -15,6 +15,7 @@ import { laneLines, openingLines, workLines } from "../guides/phases.mjs";
 import { partForStatus } from "../guides/served.mjs";
 import { kindsHeld, parse } from "./record/page.mjs";
 import { parkAs, transitionTo } from "./advance.mjs";
+import { buildsAt } from "./earned.mjs";
 import { OPEN_KEPT, carriedByDefault, droppedHead, merged, patchFrom, worklogFor, worklogOf, workNow } from "./worklog.mjs";
 import {
   LANDING_BUILDER_OWED,
@@ -25,10 +26,13 @@ import {
   LANDING_READY,
   LANDING_RECONCILED,
   LANDING_RECORDS_OWED,
+  LANDING,
   landingLine,
   takeRoute,
   landingOf,
 } from "./landing/checkpoint.mjs";
+import { holdersOf } from "./landing/reconstruction.mjs";
+import { readyCheckpoint, rebuiltCheckpoint } from "./landing/written.mjs";
 import {
   MECHANISM,
   MINUTES,
@@ -105,22 +109,22 @@ export const USAGE = [
   "duration and the claims before this one. Nothing else of a run is remembered.",
   "",
   `  --minutes <n>   how long the lease runs from now, instead of ${MINUTES}`,
-  `  ${STOPPED}       a lapse, or work in this tree: the run under the lease established stopped`,
+  `  ${STOPPED}       a lapse, or work in this tree: the run the lease established stopped`,
   `  ${UNHELD}        no run is on it: take it anyway`,
   "  --next <line>   one line, the step whoever comes next starts on; a transition clears it",
   "  --pushed        the branch, head, base and files touched, off git now",
   "  --review        the last codex consult, its findings and what it owes, off the log",
   `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest goes`,
-  "  --ready         with --pushed: the landing checkpoint at `ready`, off that capture",
-  "  --take          the lease wherever the checkpoint names your turn",
+  "  --ready         with --pushed: the checkpoint at `ready`, off that capture",
+  "  --take          the lease where the checkpoint names your turn",
   "  --judged        the QA turn handed back, from `qa-owed` or from none, and the lease with it",
   "  --reconciled <sha>  the builder's turn handed back, from `builder-owed` at that sha",
   "  --recorded      the records turn handed back, from `records-owed`",
   "  --landed        the landing over, from `ready`: the default branch has the head",
+  "  --rebuilt sha --deployment id  the checkpoint no landing left",
   "",
   "--pushed, --review and --open write the worklog beside the lease, which `forge resume` reads",
-  "first; no capture is automatic. What the checkpoint holds: docs/cli/the-checkpoint.md.",
-  "Whose turn each state names and how one is handed back: docs/cli/the-turn.md.",
+  "first; no capture is automatic. What a checkpoint holds: docs/cli/the-checkpoint.md.",
   "",
   nothingWorked(),
   "",
@@ -168,27 +172,6 @@ export const nextLines = (how, left, taken) => [
 /* Off the same capture the worklog took, so the head the checkpoint calls judged is the head the review was
    taken at. The paths and not the count: what the lander compares with what the landing moved is a list, and
    a capture that read no diff is a checkpoint nobody can land, which is why the guard reads the diff. */
-export const readyCheckpoint = (ref, holder, patch, landing) => {
-  if (!patch?.head || !patch.base || !patch.touched) {
-    fail(`claim --ready writes the checkpoint off the capture --pushed makes, and this one captured `
-      + `no change — the line above says why. Capture at the push, before the merge:\n`
-      + `  forge claim ${ref} --pushed --ready`);
-  }
-  if (landing && landing.state !== LANDING_READY) {
-    fail(`the landing checkpoint on ${ref} reads \`${landing.state}\`, which is past the build, so `
-      + `--ready would write the landing's own reading away. Read where it is:\n  forge resume ${ref}`);
-  }
-  return {
-    state: LANDING_READY,
-    builder: holder,
-    branch: patch.branch,
-    head: patch.head,
-    base: patch.base,
-    files: String(patch.touched ?? "").split(", ").filter(Boolean),
-    at: patch.at,
-  };
-};
-
 /* The hand-back of a judge whose verdicts came before any landing, the ordinary case wherever a deployment is judged rather than a merge: there is no checkpoint, so there is no turn to move and none is written, and the lease is the whole of what such a judge is holding. The lease is read here because no landing write follows to read it, and a caller holding nothing is owed the claim that takes the issue rather than a release that would free another run's (ISS-1429). */
 const handBackUnlanded = async (documentId, ref, status, context, holder) => {
   const lease = leaseOf(context);
@@ -406,9 +389,10 @@ export const claim = async (argv) => {
   const given = flags(pulled.rest, "claim",
     ["--pushed", "--review", "--ready", "--take", "--judged", "--recorded", "--landed", STOPPED, UNHELD],
     { usage: USAGE });
-  const turns = ["ready", "take", "judged", "reconciled", "recorded", "landed"].filter((one) => given[one]);
+  const turns = ["ready", "take", "judged", "reconciled", "recorded", "landed", "rebuilt"]
+    .filter((one) => given[one]);
   if (turns.length > 1) {
-    fail(`claim takes one of --ready, --take, --judged, --reconciled, --recorded and --landed and this one takes `
+    fail(`claim takes one of --ready, --take, --judged, --reconciled, --recorded, --landed and --rebuilt and this one takes `
       + `${turns.map((one) => `--${one}`).join(" and ")}: each is a different turn's own move. To end `
       + `this build:\n  forge claim ${ref} --pushed --ready`);
   }
@@ -494,7 +478,16 @@ export const claim = async (argv) => {
   /* A gone holder is a reclaim like any other, so the park counting reclaims of one status keeps counting the runs that died there — except where the record already calls the take a handoff, the dispatcher that exited being the one holder whose going is not a crash of this issue's (ISS-919). */
   const how = { free: unheld ? "unheld" : "claim", live: HANDED, expired: RECLAIM,
     gone: handed ? HANDED : RECLAIM, mine: null, lapsed: null }[state];
-  const checkpoint = given.ready ? readyCheckpoint(ref, holder, patch, landingOf(context)) : null;
+  const checkpoint = given.ready
+    ? readyCheckpoint(ref, holder, patch, landingOf(context))
+    : (given.rebuilt
+      ? rebuiltCheckpoint(ref, holder, given.rebuilt, {
+        deployment: given.deployment,
+        held: context?.[LANDING] ?? null,
+        landing: landingOf(context),
+        holders: holdersOf(context, buildsAt),
+      })
+      : null);
   const next = claimed(context, {
     holder, minutes, next: line, worklog: worklogFor(context, patch), how, status: issue.status,
     landing: checkpoint ?? undefined,

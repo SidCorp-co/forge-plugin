@@ -37,7 +37,7 @@ const SURFACE = {
     "updatedAfter"],
   new: ["title", "category", "status", "priority", "complexity", "with"],
   comment: ["title"],
-  claim: ["minutes", "next", "open", "reconciled"],
+  claim: ["deployment", "minutes", "next", "open", "rebuilt", "reconciled"],
   spec: [],
   attach: [],
   next: ["count", "graph", "holding", "checkout"],
