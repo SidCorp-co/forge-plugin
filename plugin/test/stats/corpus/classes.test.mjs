@@ -120,7 +120,8 @@ test("a class nothing was classed as and no checkout declared is unrecognised, n
   assert.match(run.stdout, /^per run {9}unrecognised gate, unrecognised test,/mu);
   assert.match(run.stdout, /^ships {11}unrecognised$/mu,
     "a pass count and a median over a class nothing was classed as are two more zeroes read as measurement");
-  assert.match(run.stdout, /^ {2}declare `stats\.commands\.gate`, `stats\.commands\.ship`, `stats\.commands\.test`, `stats\.commands\.cleanup` in the \S+config\.json/mu,
+  assert.match(run.stdout,
+    /^ {2}declare `stats\.commands\.gate`, `stats\.commands\.ship`, `stats\.commands\.test`, `stats\.commands\.cleanup` with `forge doctor --set` in the checkout profiled/mu,
     "and what would declare each of them is named rather than left to be known");
   assert.match(run.stdout, /^7 Ship {6}unrecognised: nothing here was classed ship$/mu);
   assert.match(run.stdout, /^8 Clean up {2}unrecognised: reached only past a call classed ship, and nothing here was$/mu,

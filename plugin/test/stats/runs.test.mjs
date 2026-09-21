@@ -60,7 +60,7 @@ test("every row of a fixture run is what the transcript adds up to", () => {
     + " · forge record verdict 1 0m · forge advance 1 0m");
   has("7 Ship          1     10.8       11        7.0  ship 1 4m · poll 1 0m · forge issue 3 0m · forge advance 1 0m");
   has("8 Clean up      0      0.0        0        0.0  ");
-  assert.match(out, /^ {2}declare `stats\.commands\.cleanup` in the \S+config\.json/mu, out);
+  assert.match(out, /^ {2}declare `stats\.commands\.cleanup` with `forge doctor --set` in the/mu, out);
 
   has("forge codex whole-set           15.0    54%      1");
   has("gate                             2.0     7%      1");

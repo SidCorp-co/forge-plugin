@@ -5,16 +5,18 @@ import test from "node:test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, pageOf, ranAsync, shortPage, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, pageOf, projectEntry, projectRoom, ranAsync, shortPage, tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const OPEN = "33333333-3333-4333-8333-333333333333";
 const TITLE = "a refused record prints its usage instead of the flag values it takes";
 
 /* The caller: another project, and one asking for Vietnamese prose, since the target's language is
-   the target's and a note translated on the way out is not the note the run wrote. */
+   the target's and a note translated on the way out is not the note the run wrote. The record of it
+   is written under the tracker fixture's configuration home, which is the home every case here
+   spawns against, so the caller resolves from this machine's record of it and not from the
+   developer's. */
 const elsewhere = tempRoom("feedback-caller-");
-writeFileSync(join(elsewhere, ".forge.json"), JSON.stringify({ slug: "somewhere-else", translate: "vi" }));
 
 const BODY = [
   "## What happened",
@@ -47,6 +49,9 @@ const note = (body = BODY) => {
 const state = { issues: [], comments: {}, calls: [], status: 0 };
 const tracker = await fakeTracker(state);
 test.after(() => tracker.close());
+const CALLER = projectEntry(
+  projectRoom(elsewhere, tracker.env.XDG_CONFIG_HOME, { slug: "somewhere-else", translate: "vi" }),
+  tracker.env.XDG_CONFIG_HOME);
 
 const send = async (argv, { issues = [], answer = undefined } = {}) => {
   state.issues = issues;
@@ -73,7 +78,8 @@ test("the Where section is written by the verb and names the copy, the version a
   const filed = run.filed.args.data.description;
   assert.match(filed, /^## Where$/mu);
   assert.match(filed, /^- forge \d+\.\d+\.\d+ at \/.*\/plugin(?:,|$)/mu);
-  assert.match(filed, /^- met from project somewhere-else \(\.forge\.json\), prose vi$/mu);
+  assert.equal(filed.match(/^- met from project .*$/mu)?.[0],
+    `- met from project somewhere-else (${CALLER}), prose vi`);
   assert.match(filed, /^- agent .+, in /mu);
 });
 
