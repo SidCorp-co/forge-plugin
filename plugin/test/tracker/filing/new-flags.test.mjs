@@ -294,7 +294,7 @@ test("`forge new -h` lists every kind with the sections it requires", async () =
 
 /* AC-17-4-3: every filing reads the kinds table, and most name no `Serves:` line at all, so the
    table a bounded read has to reach comes before the goals list a filing usually does not need. */
-test("`forge new -h` prints the kinds table before the goals list", async () => {
+test("the kinds table a filing needs comes before the goals list most filings never read", async () => {
   const run = await ranAsync(FORGE, ["new", "-h"], tracker.env);
   assert.equal(run.status, 0, run.stderr);
   const kinds = run.stdout.indexOf("The kinds, and the sections");
