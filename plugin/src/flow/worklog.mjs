@@ -256,10 +256,9 @@ const tipOf = (held) => {
 };
 
 /** Whether the branch this project lands changes on reaches a head, given `landsOn`'s answer for
- *  which branch that is. The source clause travels out in `from` so a caller's refusal and its
- *  success line each say which of the two sources named the branch, the reader of a refusal having
- *  to know whether to declare a branch or fetch a ref (ISS-1802). An unsettled reading refuses
- *  before any branch is read: see `landsOn` for why that is not the absence beside it. */
+ *  which branch that is. That answer's `from` travels out in this result and both callers print it;
+ *  `landsOn` holds why it is carried at all, and why an unsettled reading refuses here before any
+ *  branch is read rather than falling to the absence beside it (ISS-1802). */
 export const carriedByLanding = (head, lands = null) => {
   const from = lands?.from ?? null;
   const short = (why, route, ref = null, tip = null) => ({ ref, tip, from, carries: false, why, route });
