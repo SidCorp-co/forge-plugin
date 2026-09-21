@@ -25,10 +25,12 @@ once per class, inside the one assembly both mark writers store. The constant is
 for the same reason the floors are: a reader who cannot see what named a class cannot judge the
 naming.
 
-**The minutes beside a named class are tool-minutes and say so.** A class's wait is the sum of its
-calls' own durations, and the host issues several calls in one turn that run at once — so those
-minutes are not minutes off the clock, and a saving quoted from them against a wall-time figure is
-the one misreading this table can produce.
+**The minutes beside a named class are tool-minutes and say so.** Why a class's row is a sum and the
+wall clock is split by a union instead is [stats](stats.md); what is this table's own is that the
+figure beside a named class is neither of those two but a third thing built from them — a difference
+of two means multiplied by a call count. Being derived from the sums, it inherits what they cannot
+do, so the one misreading this table can produce is a saving quoted from it against a wall-time
+figure, and the label is there to refuse that rather than to describe the arithmetic.
 
 The angle blocks this table is not one of, and what a measured floor buys where a figure has one, is
 [stats — the angles](stats-the-angles.md).

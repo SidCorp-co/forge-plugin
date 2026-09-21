@@ -43,9 +43,10 @@ const rowOf = (label, before, now) => {
     before,
     now,
     shift,
-    /* A sum of call durations and never the union the wall clock is split by, which is why the word
-       travels with the figure: the host issues several calls in one turn and they run at once, so a
-       class's own seconds added up exceed the minutes the window took. */
+    /* A difference of two means times a call count, and what `unionSeconds` in runs.mjs states of
+       the sums it is built from carries into the product: an attribution derived from them is no
+       more subtractable from the clock than they are. So the figure is labelled where it prints
+       rather than left to be added to a wall-time saving, which is the one thing it cannot be. */
     toolMinutes: both ? minutes((now.seconds - before.seconds) * now.calls) : null,
     thin,
     named: both && Math.abs(shift) > MOVED && !thin,
