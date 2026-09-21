@@ -24,8 +24,9 @@ read before the code, and against the source it cites.
 this branch was cut at. Run the project's gate whole, in the background, and carry on reading —
 reading is not idling on it, but the first edit is: it waits on the baseline's own verdict, not
 merely on the baseline having started. **Where there is nothing left to read is `forge hooks --how
-polling`'s own deciding moment**, not a reason to end the turn on the completion notice — take the
-wait it names instead of stopping. Which of the two this issue is owed is a question rather than
+polling`'s own deciding moment**, and blocking on the baseline until it answers is what keeps this
+turn working — ending it for a notice still to arrive is the one route that does not, so it waits
+for the others to run out first. Which of the two this issue is owed is a question rather than
 a guess — `forge advance <ref> --owed` names the published result or the fresh run. What a baseline
 must record, and what a citation rests on, and what binds an edit to a running measurement's verdict
 rather than its start: `forge guide issue-flow verification`.
