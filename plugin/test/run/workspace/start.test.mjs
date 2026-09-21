@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 import { BARE, committed, git, OWN_SLUG, runIn, scratch } from "../run-fixtures.mjs";
 import { tempRoom } from "../../fixtures.mjs";
@@ -141,6 +141,21 @@ test("a worktree of a bare repository is named as that repository, not as the di
   assert.equal(run.status, 1, run.stdout);
   assert.ok(run.stderr.includes(`a worktree of ${bare}`),
     `the bare repository backing the tree is not what the refusal names:\n${run.stderr}`);
+});
+
+/* `self` is built from the checkout this call runs in, and every other line `start` prints is about
+   that checkout, correctly. This one line names a later moment — the worktree just cut, where the
+   reader is told to stand — and `self`'s checkout prefix does not resolve there (ISS-978). */
+test("start prints a ship command that resolves from the worktree it just made, not the checkout", () => {
+  const { work } = checkout("ship-line");
+  const run = runIn(work, ["start", "ISS-99", "ship-line"]);
+  assert.equal(run.status, 0, run.stderr + run.stdout);
+  const line = run.stdout.split("\n").find((one) => one.startsWith("Ship it from that tree:"));
+  assert.ok(line, `no ship line was printed:\n${run.stdout}`);
+  assert.equal(line, "Ship it from that tree: node tools/run.mjs ship",
+    `the ship line does not resolve from the worktree it tells the reader to stand in:\n${line}`);
+  assert.ok(!line.includes(basename(work)),
+    `the ship line still carries the checkout's own name, ${basename(work)}:\n${line}`);
 });
 
 test("start on a path that is no worktree at all says git answers no root for it, and offers no remove", () => {

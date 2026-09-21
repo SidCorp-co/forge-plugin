@@ -16,9 +16,13 @@ export const above = (one, two) => {
   return false;
 };
 
-/** Null above the remote head: a rebase drops a bump identical to one upstream silently. */
-export const nextVersion = (local, upstream) => {
-  if (!parts(local).every(Number.isInteger)) stop(`this tree's package.json names no version: \`${local}\`.`);
+/** Null above the remote head: a rebase drops a bump identical to one upstream silently. `path` is
+    what was joined to read `local`, named in the refusal so a read that missed the manifest — a tree
+    bound to the wrong directory — is told apart from one that found it malformed (ISS-2025). */
+export const nextVersion = (local, upstream, path) => {
+  if (!parts(local).every(Number.isInteger)) {
+    stop(`this tree's package.json names no version: \`${local}\`, read from ${path}.`);
+  }
   if (above(local, upstream)) return null;
   const [major, minor, patch] = parts(upstream).every(Number.isInteger) ? parts(upstream) : parts(local);
   return [major, minor, patch + 1].join(".");
@@ -56,8 +60,9 @@ export const versionAbove = (tree, base, note, at = null) => {
     ...(gitOut(["diff", "--name-only", "HEAD"], tree) ?? "").split("\n"),
     ...(gitOut(["ls-files", "--others", "--exclude-standard", "--", ...RELEASE_FILES], tree) ?? "").split("\n"),
   ].filter(Boolean);
-  const local = read(join(tree, "package.json"))?.version;
-  const want = nextVersion(local, upstream);
+  const manifest = join(tree, "package.json");
+  const local = read(manifest)?.version;
+  const want = nextVersion(local, upstream, manifest);
   /* Judged before `npm version` writes, so a refused note leaves the tree at the content the gate's record is keyed on and the resume that fixes it finds every pass standing rather than spending the gate again. The condition is the early return below, one line ahead of it: where HEAD already carries the version, no commit is made and there is no subject to be wrong. */
   if (versionAt(tree, "HEAD") !== (want ?? local)) noteAgrees(note, want ?? local);
   if (want) {

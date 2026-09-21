@@ -18,7 +18,16 @@ const statedAt = (tree, tag) => {
 };
 
 export const publishesVersion = (tree, commit, version, resume) => {
-  if (!version || !commit) return console.log("  this tree names no version to publish");
+  if (!commit) return console.log("  this tree names no commit to publish");
+  /* `version` comes from a manifest join, and by this step the version step ahead of it already
+     refuses a tree whose package.json carries none — so a null here is that same read missing the
+     manifest at this tree, never a legitimate absence (ISS-2025). The branch is already pushed, so
+     this refuses rather than logging past it silently. */
+  if (!version) {
+    return stop(`this tree's package.json names no version to publish, read from `
+      + `${join(tree, "package.json")}. The branch is pushed already, so nothing here is rolled back `
+      + `— fix the path this step read and retry the publication. ${resume}`);
+  }
   const tag = tagOf(version);
   const { sha, problem } = statedAt(tree, tag);
   if (!problem && sha === commit) return console.log(`  ${REMOTE} already states ${version}, at ${shortly(commit)}`);
@@ -36,7 +45,14 @@ export const publishesVersion = (tree, commit, version, resume) => {
 
 /** Asked again at the end, because a resume aimed past the push step skips the publication. */
 export const statesVersion = (tree, commit, version, resume) => {
-  if (!version || !commit) return console.log("  this tree names no version, so none was published");
+  if (!commit) return console.log("  this tree names no commit, so none was published");
+  /* Same read, same reasoning as `publishesVersion` above: null here is a failed manifest read, not
+     a legitimate absence, so it refuses and names the path rather than logging past it (ISS-2025). */
+  if (!version) {
+    return stop(`this tree's package.json names no version, read from ${join(tree, "package.json")}, `
+      + `so whether a version was published cannot be said from here — the remote may already carry `
+      + `a real tag a correct directory would have read. ${resume}`);
+  }
   const tag = tagOf(version);
   const { sha, problem } = statedAt(tree, tag);
   if (problem) return console.log(`  ${REMOTE} could not be asked whether it states ${version}: ${problem}`);

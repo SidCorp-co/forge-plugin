@@ -258,10 +258,19 @@ const shipSteps = (tree, root, base, note) => {
     [`a version above ${REMOTE}/${base}`,
       () => versionAbove(tree, base, note), LANDS],
     [push, () => {
+      /* Read and judged before the push, not after: a version that cannot be read here is the same
+         failed manifest join every other site meets, and a tree that cannot say what it is about to
+         publish does not push a branch and then decline to tag it (ISS-2025). Past this point
+         `publishesVersion`'s own refusal is the accurate one — the branch already on the remote. */
+      const version = versionIn(tree);
+      if (!version) {
+        stop(`this tree's package.json names no version to publish, read from `
+          + `${join(tree, "package.json")}. Nothing is pushed.`);
+      }
       pushing(tree, base, () => `Rejected means the remote `
         + `moved${unwound(tree)}: rebase, re-run the review of the rebased head, then ${SELF} ship --from 2`);
       forgetBump(tree);
-      publishesVersion(tree, gitOut(["rev-parse", "HEAD"], tree), versionIn(tree), resume());
+      publishesVersion(tree, gitOut(["rev-parse", "HEAD"], tree), version, resume());
     }, PUSHES],
     ["the checkout follows", () => follows(root, base, tree)],
     [install, () => installed({ tree, root, base, market, plugin, self: SELF }), INSTALLS],

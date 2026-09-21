@@ -77,3 +77,61 @@ test("a release whose published version went missing stops at its last step", ()
   assert.match(run.stderr, /origin states no 1\.0\.1/u, run.stderr);
   assert.match(run.stderr, /ship --from 7/u, run.stderr);
 });
+
+/* The last step's own read goes through the same join as the push step's, so a resume aimed at it
+   alone — skipping the push, which already published a real tag from the right directory — still
+   meets a manifest that is not where this tree looks for it, and must not read that the same way it
+   would read a release that published nothing (ISS-2025). */
+test("a release's last step refuses a version it cannot read from a subdirectory, even where the remote already carries the real tag", () => {
+  const { work, origin } = released("tag-subdir-last");
+  runIn(work, ["ship"], BARE);
+  const before = tagsOn(origin);
+  assert.match(before, /refs\/tags\/v1\.0\.1/u, `the release ahead of this case did not tag:\n${before}`);
+
+  const run = runIn(work, ["ship", "--from", String(LAST_STEP)], BARE, "plugin");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /stopped at step 10 \(the copy the next session loads\)/u, run.stderr);
+  assert.ok(run.stderr.includes(`this tree's package.json names no version, read from `
+    + `${join(work, "plugin", "package.json")}`),
+    `the refusal does not name the path it joined:\n${run.stderr}`);
+  /* The remote genuinely carries the tag here — the release ahead of this case published it from
+     the right directory — so a refusal that claimed "none was published" would be false, not merely
+     unhelpful: this tree's own failed read cannot tell published from unpublished at all. */
+  assert.ok(!run.stderr.includes("none was published"),
+    `the refusal claims certainty about publication a failed local read cannot have:\n${run.stderr}`);
+  assert.equal(tagsOn(origin), before, "a read that failed for the wrong directory moved a tag it never read");
+});
+
+/* `--from 7` skips step 6, the only one of the four sites that refuses, and lands straight on the
+   two silent ones: `tree` is `process.cwd()`, so a resume typed from a subdirectory joins a manifest
+   that is not there, reads no version and — before this fix — logged past it as though the release
+   had nothing to publish, while the branch it just pushed sat on the remote with no tag naming it
+   (ISS-2025). This is that resume, from the wrong directory, proving the run now refuses instead of
+   reporting the release the tag never named. */
+test("a ship resumed with --from 7 from a subdirectory refuses a version it cannot read, rather than pushing an untagged release to the remote and saying nothing", () => {
+  const { work, origin } = released("tag-subdir");
+  /* The first attempt never reaches the version step at all — exactly the state a stalled ship
+     leaves behind, and the one `--from 7` is for. */
+  const unreachable = join(work, "no-such-origin.git");
+  git(work, "remote", "set-url", "origin", unreachable);
+  const first = runIn(work, ["ship"], BARE);
+  assert.equal(first.status, 1, first.stdout);
+  assert.match(first.stderr, /stopped at step 2 \(fetch origin\/master\)/u, first.stderr);
+
+  git(work, "remote", "set-url", "origin", origin);
+  const before = git(origin, "rev-parse", "master").stdout.trim();
+  const run = runIn(work, ["ship", "--from", "7"], BARE, "plugin");
+
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /stopped at step 7 \(push to origin\/master\)/u, run.stderr);
+  assert.ok(run.stderr.includes(`this tree's package.json names no version to publish, read from `
+    + `${join(work, "plugin", "package.json")}`),
+    `the refusal does not name the path it joined:\n${run.stderr}`);
+  assert.ok(!run.stdout.includes("Released."), `a release nobody could tag reported success:\n${run.stdout}`);
+  assert.doesNotMatch(tagsOn(origin), /refs\/tags\/v1\.0\.1/u,
+    `an untagged release is stated as tagged on the remote:\n${tagsOn(origin)}`);
+  /* The version is read and judged before the push, not after, so a tree that cannot say what it is
+     about to publish never reaches the remote at all — nothing here needs rolling back. */
+  assert.equal(git(origin, "rev-parse", "master").stdout.trim(), before,
+    "a version this tree could not read pushed the branch anyway");
+});

@@ -130,3 +130,17 @@ test("a release given no note carries the composed subject, which is right by co
   const run = runIn(work, ["ship"], BARE);
   assert.equal(subject(work), "chore(release): 1.0.1, so the installed copy is this head", run.stderr);
 });
+
+/* `tree` is `process.cwd()`, so a ship run from a subdirectory joins the manifest at a path that is
+   not there: `local` reads `undefined` and the step refused with that value alone, telling a
+   malformed manifest apart from nothing (ISS-2025). The path it joined is what tells them apart. */
+test("a version step run from a subdirectory names the path it joined, not just the value it read", () => {
+  const { work } = owing("note-subdir");
+
+  const run = runIn(work, ["ship"], BARE, "plugin");
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /stopped at step 6 \(a version above origin\/master\)/u, run.stderr);
+  assert.ok(run.stderr.includes(`names no version: \`undefined\`, read from `
+    + `${join(work, "plugin", "package.json")}`),
+    `the refusal does not name the path it joined:\n${run.stderr}`);
+});

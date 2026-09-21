@@ -85,6 +85,10 @@ export const start = ({ words }, { here, self, write }) => {
   console.log(`  node ${join(path, "plugin", "hooks", "entries")}/<gate>.mjs   one gate, alone`);
   console.log(`Put those links back if they stop resolving, by that tree's own copy of this script:`);
   console.log(`  node ${join(path, "tools", "run.mjs")} relink`);
-  console.log(`Ship it from that tree: ${self} ship`);
+  /* Every other line here names `self`, the checkout's own command, because it is read from where
+     this call stands. This one names a later moment: the reader is standing in `path`, the worktree
+     just cut, where `self`'s `forge-plugin/` prefix resolves nothing. `tools/run.mjs` is the same
+     script found from there instead (ISS-978). */
+  console.log(`Ship it from that tree: node tools/run.mjs ship`);
   console.log(`End the workspace from the checkout once the issue is closed: ${self} finish ${key}`);
 };

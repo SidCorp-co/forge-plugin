@@ -351,6 +351,24 @@ it. Reading is all this product does there.
   WHERE the window holds no run the CLI SHALL hold the human-prompt count, the count of runs that
   carried one and the named list of them as unavailable rather than as a nought found, in the
   profile and in `--json` alike.
+- **AC-19-8-115** · Rev: 1 · Proof: plugin/test/run/release/run-note.test.mjs "a version step run from a subdirectory names the path it joined, not just the value it read"
+  WHEN a release's version step reads a manifest that carries no version THEN it SHALL refuse and
+  name the path it joined to read that manifest, not the value alone.
+- **AC-19-8-116** · Rev: 1 · Proof: plugin/test/run/release/run-released-version.test.mjs "a ship resumed with --from 7 from a subdirectory refuses a version it cannot read, rather than pushing an untagged release to the remote and saying nothing"
+  WHEN a release's push step cannot read the version it is about to publish THEN it SHALL refuse and
+  name the path it read, before the branch is pushed, rather than pushing first and reporting a
+  release with nothing to publish afterward.
+- **AC-19-8-117** · Rev: 1 · Proof: plugin/test/run/release/run-released-version.test.mjs "a release's last step refuses a version it cannot read from a subdirectory, even where the remote already carries the real tag"
+  WHEN a release's last step cannot read the version it is to state as published THEN it SHALL
+  refuse and name the path it read, and SHALL NOT claim that none was published, since a failed
+  local read cannot tell a published release from an unpublished one.
+- **AC-19-8-118** · Rev: 1 · Proof: plugin/test/run/release/run-released-version.test.mjs "a ship resumed with --from 7 from a subdirectory refuses a version it cannot read, rather than pushing an untagged release to the remote and saying nothing"
+  WHERE a release is resumed past its version step from a tree binding that cannot read the
+  manifest, it SHALL NOT report that release as complete, and SHALL leave the remote without that
+  release's branch or a tag for it.
+- **AC-19-8-119** · Rev: 1 · Proof: plugin/test/run/workspace/start.test.mjs "start prints a ship command that resolves from the worktree it just made, not the checkout"
+  WHEN a worktree is cut THEN the command printed for shipping from it SHALL resolve from that
+  worktree rather than carrying the checkout's own prefix.
 
 - **AC-19-8-83** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "1. the isolated population is the runs that began at or after this install and ended before the next"
   WHEN one change is judged THEN the CLI SHALL report the count of runs that began at or after that
