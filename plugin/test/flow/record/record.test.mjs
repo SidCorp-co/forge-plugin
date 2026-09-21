@@ -14,7 +14,7 @@ const {
   checked, compoundRefused, criteriaLines, fromRecord, noteFrom,
 } = await import("../../../src/flow/record/record.mjs");
 const { parse, render } = await import("../../../src/flow/record/page.mjs");
-const { OUTCOMES, SHAPES, SHOWS_EVIDENCE, TRIAGES } = await import("../../../src/flow/machine.mjs");
+const { SHAPES, SHOWS_EVIDENCE, TRIAGES } = await import("../../../src/flow/machine.mjs");
 const { CONTRACT } = await import("../../../src/guides/contract.mjs");
 const { TWICE } = await import("../../../src/tracker/evidence.mjs");
 const { cutLine } = await import("../../../src/tracker/comments.mjs");
@@ -68,20 +68,6 @@ test("a correction says what moved and why, both required", () => {
   const body = render("correction", { moved: "package.json joins the files touched", why: "the ship path needs a version" });
   assert.match(body, /^moved: package\.json/mu);
   assert.equal(parse(body).kind, "correction");
-});
-
-test("a review names its reviewer, head and outcome, and each finding is an id with a verdict", () => {
-  const body = render("review", { reviewer: "codex", commit: "ea7967f", outcome: "approved", finding: ["F1 accepted", "F2 rejected: a re-record reviews nothing new"] });
-  assert.match(body, /^commit: ea7967f$/mu);
-  assert.match(body, /^finding: F1 accepted\nfinding: F2 rejected: a re-record reviews nothing new$/mu);
-  assert.equal(parse(body).kind, "review");
-  assert.deepEqual(OUTCOMES, ["approved", "changes-requested"]);
-  const { check } = SHAPES.review;
-  assert.equal(check({ finding: ["F1 accepted"] }), null);
-  assert.match(check({ finding: ["looks fine"] }), /each --finding as/u);
-  assert.match(check({ finding: ["F2 rejected"] }), /a reason after a rejected finding/u);
-  assert.match(check({ finding: ["1 accepted"] }), /each --finding as/u, "the F is not optional");
-  assert.match(check({ finding: ["F1 accepted: extra"] }), /each --finding as/u, "an accepted finding carries no reason");
 });
 
 /* The person's voice and the agent's answer to it, the two writes a reopen is made of: before

@@ -1746,8 +1746,16 @@
       "digest": "1e63802d8bd4154cd30e3e26ace211bde3bc7df5251866c956ccc07548e87b9e"
     },
     "AC-04-3-3": {
+      "rev": 2,
+      "digest": "c57d7d93e33df996b8dc8d6b901267426b7401af4e5de381499a4a42a4d2a7a9"
+    },
+    "AC-04-3-4": {
       "rev": 1,
-      "digest": "69162c7f0b53d0bc0d0e058873709180f74f4cafe8e914525c6b0a59eb84f8f1"
+      "digest": "0483f9dbe5c6f46a3fb482ef5cdf38c20c74feaa022e10c57e34aabadeb01b68"
+    },
+    "AC-04-3-5": {
+      "rev": 1,
+      "digest": "710430fd0527602f82210341c87e9214f89d72ffba63ad2206d908ec5c234ae4"
     },
     "UC-04-4": {
       "rev": 1,

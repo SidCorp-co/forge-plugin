@@ -38,7 +38,7 @@ export const kindRows = (caps) => [
   "  correction   --moved M --why W                                a plan or criteria change after approval",
   "  baseline     --gate G --result R --commit C --scope whole|part [--cited W]",
   "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C --evidence E... [--why W] [--filed R]",
-  "  review       --reviewer R --commit C --outcome approved|changes-requested [--finding \"F1 accepted\"]...",
+  "  review       --reviewer R --commit C --outcome approved|changes-requested [--finding \"8c1a15 F1 accepted: what changed\"]...",
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
   "  gap          --where W --lacked L --did D | --none <why>       where the method did not answer",
   "  verification --where W --commit C --evidence E... [--contains C]",

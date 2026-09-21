@@ -107,14 +107,22 @@ Two voices share one record: the outcome belongs to the reviewer and covers one 
 finding lines belong to the author. What each may say, and why one can never be derived from the
 other, is the contract's "A review is two voices in one record".
 
-- **AC-04-3-1** · Rev: 1 · Proof: plugin/test/flow/record/record.test.mjs "a review names its reviewer, head and outcome, and each finding is an id with a verdict"
+- **AC-04-3-1** · Rev: 1 · Proof: plugin/test/flow/record/review.test.mjs "a review names its reviewer, head and outcome, and each finding is an id with a verdict"
   WHEN a review is recorded THEN it SHALL name the reviewer, the head judged and the outcome, and
   each finding SHALL be an identifier with a disposition.
 - **AC-04-3-2** · Rev: 1 · Proof: none yet — ISS-16
   WHEN the outcome is written THEN the reviewer's verdict and the author's dispositions SHALL be
   separate values, so the honest value and the passable value cannot differ.
-- **AC-04-3-3** · Rev: 1 · Proof: none yet — ISS-34
-  WHERE a review spans several rounds each finding identifier SHALL name the round that issued it.
+- **AC-04-3-3** · Rev: 2 · Proof: plugin/test/flow/record/review.test.mjs "two reads' F1s are two rows of a review, and an accepted one says what changed"
+  WHERE a review spans several reads, the record SHALL take each finding identifier qualified by the
+  read that raised it, and two findings numbered alike SHALL stand as rows a reader can tell apart.
+- **AC-04-3-4** · Rev: 1 · Proof: plugin/test/flow/record/review.test.mjs "two reads' F1s are two rows of a review, and an accepted one says what changed"
+  WHEN a finding is accepted THEN the record SHALL take what changed because of it, written where a
+  rejection writes its reason.
+- **AC-04-3-5** · Rev: 1 · Proof: plugin/test/flow/record/review.test.mjs "two reads' F1s are two rows of a review, and an accepted one says what changed"
+  WHERE a reviewer numbers its findings outside the series this CLI's own examples use, the record
+  SHALL take those identifiers as the reviewer wrote them and SHALL refuse a number carrying no
+  series at all.
 
 ### UC-04-4 — A wrong record is corrected, never removed
 

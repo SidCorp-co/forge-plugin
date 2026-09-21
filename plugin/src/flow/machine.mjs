@@ -353,7 +353,19 @@ export const missingLines = (missing) => missing.map((one) => `\n  ${one.what}\n
    criterion was not met, or nothing in the specification ever promised what the person expected. */
 export const TRIAGES = ["wrong-test", "not-met", "not-in-spec"];
 export const OUTCOMES = ["approved", "changes-requested"];
-const FINDING = /^F\d+ (?:accepted|rejected: .+)$/u;
+/* A finding's identifier is unique only inside the consult that raised it, and the method mandates
+   several reads of one change, so one review holds several F1s sharing nothing but a number
+   (ISS-1128). The leading token is that consult, which makes them rows that stand apart rather than
+   a reader being told which of them by nothing at all; it is unconstrained, being the reviewer's own
+   handle and not a shape this file gets to assume. The identifier is a letter series and a number
+   for the reason the other way round: a reviewer numbers from F1 or from G1 as it chooses (ISS-933),
+   and a bare number is a count. Words after either disposition say what changed or why, an
+   acceptance being where the sentence a later reader has to have actually lives. */
+const FINDING = /^(?:\S+ )?[A-Za-z]+\d+ (?:accepted(?:: .+)?|rejected: .+)$/u;
+/* Asked before the grammar, so a rejection with nothing after it is told what it lacks rather than
+   what shape to take. Its identifier is as loose as the other's, or a `G1 rejected` would fall to a
+   message about a grammar it already satisfies. */
+const BARE_REJECTED = /^(?:\S+ )?[A-Za-z]+\d+ rejected$/u;
 export const SECTIONS = ["Added", "Changed", "Fixed", "Removed", "Security"];
 
 /* `many` flags repeat; `oneOf` names the values; `least` is the smallest count that is a payload; `newer` is asked for at the write and excused at the read-back, a shape's records outliving it.
@@ -503,10 +515,11 @@ export const SHAPES = {
       FIELD("finding", "Findings", { many: true, least: 0 }),
     ],
     check: (got) => {
-      const bare = got.finding.find((one) => /^F\d+ rejected$/u.test(one));
+      const bare = got.finding.find((one) => BARE_REJECTED.test(one));
       if (bare) return `a reason after a rejected finding: \`${bare}: why\``;
       const odd = got.finding.find((one) => !FINDING.test(one));
-      if (odd) return `each --finding as \`F1 accepted\` or \`F1 rejected: why\`, not \`${odd}\``;
+      if (odd) return "each --finding as `F1 accepted`, `F1 rejected: why`, or either opening with "
+        + `the consult that raised it — \`8c1a15 F1 accepted: what changed\` — not \`${odd}\``;
       return null;
     },
   },
