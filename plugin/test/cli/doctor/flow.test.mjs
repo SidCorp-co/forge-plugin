@@ -264,7 +264,8 @@ test("a directory belonging to no checkout is refused before anything reaches th
     state.calls = [];
     const run = await ranAsync(FORGE, ["doctor", "--flow", "screen"], tracker.env, bare.path);
     assert.equal(run.status, 1);
-    assert.match(run.stderr, /`flow` is a key of projects\/config\.json and no such file was found/u,
+    assert.match(run.stderr,
+      /`flow` is a key of this machine's record of a project and this directory belongs\s+to no checkout/u,
       run.stderr);
     assert.equal(state.calls.length, 0);
   } finally {

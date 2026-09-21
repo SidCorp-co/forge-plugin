@@ -33,9 +33,10 @@ export const adopt = () => {
   }
   const held = committedFileHere();
   if (!held) {
-    fail(`--adopt: no ${COMMITTED_FILE} was found on the way up from here, so there is nothing to `
-      + `take over. This project's configuration is written with \`forge doctor --set <key>=<value>\`, `
-      + `which puts it in ${path}.`);
+    fail(`--adopt: no ${COMMITTED_FILE} is standing in this checkout, so there is nothing to take `
+      + `over — a file above its root belongs to whatever repository holds it and not to this one. `
+      + `This project's configuration is written with \`forge doctor --set <key>=<value>\`, which `
+      + `puts it in ${path}.`);
   }
   let text = null;
   try {

@@ -285,7 +285,9 @@ test("a repository nested in another reads no committed file but its own", async
   const held = join(HOME, "forge", "projects", "inner", "config.json");
   const run = await ask(inner, "--adopt");
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /no \.forge\.json was found on the way up from here/u, run.stderr);
+  assert.match(run.stderr, /no \.forge\.json is standing in this checkout/u, run.stderr);
+  assert.match(run.stderr, /a file above its root belongs to whatever repository holds it/u,
+    "and the refusal says why the outer project's file is not an answer here");
   assert.equal(existsSync(held), false, "the outer project's file is not this one's to adopt");
   const report = await ask(inner);
   assert.doesNotMatch(report.stdout, /the-outer-project/u,

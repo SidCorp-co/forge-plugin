@@ -215,8 +215,9 @@ const DRAIN_SAID = `\`${DRAIN_KEY}\` in ${fromProject()}, which names the master
 const drainFile = () => {
   const named = projectFilePath();
   if (!named) {
-    fail(`--set: this would clear ${DRAIN_SAID}, and no such file was found on the way up from here. `
-      + "Nothing was sent. Run this from the checkout that declares it.");
+    fail(`--set: this would clear ${DRAIN_SAID}, and this directory belongs to no checkout, so `
+      + "there is no project whose record could hold it. Nothing was sent. Run this from inside the "
+      + "checkout that declares it.");
   }
   try {
     const path = realpathSync(named);
@@ -333,8 +334,9 @@ const flowFile = (slug) => {
   }
   const named = projectFilePath();
   if (!named) {
-    fail(`--flow: \`flow\` is a key of ${fromProject()} and no such file was found on the way up from `
-      + `here, so nothing was written and nothing was sent. Run this from a checkout that has one.`);
+    fail("--flow: `flow` is a key of this machine's record of a project and this directory belongs "
+      + "to no checkout, so there is no project to write it to: nothing was written and nothing was "
+      + "sent. Run this from inside a checkout.");
   }
   /* The file the link points at and not the link: the resolver read through it, and a rename onto
      the name would put a regular file where the link was and leave what it pointed at untouched. */
