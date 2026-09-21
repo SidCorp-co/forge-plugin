@@ -207,14 +207,17 @@ const wordsTyped = (said) => {
   };
   for (let at = 0; at < said.length; at += 1) {
     const one = said[at];
-    if (quote) {
+    /* Literal inside single quotes and an escape everywhere else, and before a newline it takes the
+       newline with it: a command continued on the next line is one word list and not two, so a wait
+       typed across a continuation has to come out as the words its own line carries. */
+    if (one === "\\" && quote !== "'" && at + 1 < said.length) {
+      at += 1;
+      if (said[at] !== "\n") word += said[at];
+    } else if (quote) {
       if (one === quote) quote = "";
-      else if (one === "\\" && quote === '"' && at + 1 < said.length) word += said[at += 1];
       else word += one;
     } else if (one === "'" || one === '"') {
       quote = one;
-    } else if (one === "\\" && at + 1 < said.length) {
-      word += said[at += 1];
     } else if (BREAK.test(one)) {
       end();
     } else {

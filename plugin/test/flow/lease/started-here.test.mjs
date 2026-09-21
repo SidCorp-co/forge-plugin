@@ -28,6 +28,9 @@ const leaf = (argv) => {
 
 const gone = (...pids) => {
   for (const pid of pids) {
+    /* Never 0 and never 1: `kill(0)` reaches this process's whole group, which is the runner and
+       every case running beside this one, and a case that failed before it read a pid has a 0. */
+    if (!(pid > 1)) continue;
     try {
       process.kill(pid, "SIGKILL");
     } catch {
@@ -153,6 +156,21 @@ test("a wait a shell exited and left reparented is still matched by the command 
   } finally {
     gone(pid, shell, watched);
     rmSync(said, { force: true });
+  }
+});
+
+/* A command continued on the next line is one word list and not two — the backslash takes the
+   newline with it — so a wait typed that way stands as the words its own line carries. */
+test("a wait typed across a line continuation is still matched by the command that started it", async () => {
+  const watched = ran(waiting());
+  const pid = leaf(["tail", `--pid=${watched}`, "-f", "/dev/null"]);
+  try {
+    await settled();
+    const command = `nohup tail --pid=${watched} \\\n  -f /dev/null > /dev/null 2>&1 &`;
+    assert.ok(held(startedHere(turn(command)), pid),
+      "a command continued on the next line was cut into words no shell would have made");
+  } finally {
+    gone(pid, watched);
   }
 });
 
