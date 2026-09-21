@@ -19,7 +19,7 @@ import { deadlineSeconds, waitSeconds } from "../wire/request.mjs";
 import { measured, offsetSaid } from "../wire/shared-clock.mjs";
 import { BUNDLED } from "./vi.mjs";
 import {
-  COMMITTED_FILE, Refusal, accountCredentials, checkoutRoot, committedFileHere, fail,
+  COMMITTED_FILE, Refusal, accountCredentials, adoptableHere, checkoutRoot, committedFileHere, fail,
   mcpForgeIgnored, projectFilePath, projectScope, refusing, translateScope,
 } from "../resolve/settings.mjs";
 import { readClaudeMd, reviewClaudeMd } from "../checks/claude-md.mjs";
@@ -277,7 +277,7 @@ const checkEndpoint = async (full, credentials) => {
   if (!slug) {
     if (asking()) {
       return stopping("project slug", "no project slug resolves here, so nothing below this line "
-        + `was read — ${committedFileHere() ? "`forge doctor --adopt`" : "`forge doctor --set slug=<project>`"}`);
+        + `was read — ${adoptableHere() ? "`forge doctor --adopt`" : "`forge doctor --set slug=<project>`"}`);
     }
     console.log("\nNo project slug: capability probes are project-scoped and were skipped.");
     return;
@@ -445,18 +445,23 @@ export const doctor = async (argv) => {
      act on. */
   const committed = committedFileHere();
   if (committed) {
-    /* Three readings and each names a different act: a project already configured is told the file
-       is inert, one not configured is given the command, and a directory belonging to no checkout
-       has nowhere to adopt INTO, so it is told that rather than told to run a command that would
-       refuse. */
+    /* Four readings and each names a different act: a project already configured is told the file
+       is inert, one with nothing recorded is given the command that takes it over, one whose record
+       exists and names no project yet is given the key to set — adoption refuses against a record
+       that exists — and a directory belonging to no checkout has nowhere to adopt INTO, so it is
+       told that rather than told to run a command that would refuse. */
     const held = projectFilePath();
     const said = (() => {
       if (projectScope().value !== null) {
         return "this project is configured already, so that file is only a file the checkout carries";
       }
-      return held === null
-        ? "this directory belongs to no checkout, so there is no project of it to configure"
-        : `\`forge doctor --adopt\` takes its contents over into ${held}`;
+      if (held === null) {
+        return "this directory belongs to no checkout, so there is no project of it to configure";
+      }
+      return adoptableHere()
+        ? `\`forge doctor --adopt\` takes its contents over into ${held}`
+        : `${held} is this machine's record of this project and names no project slug yet, which `
+          + "adoption cannot write over: `forge doctor --set slug=<project>`";
     })();
     line(NOTE, "project file", `${committed} is this checkout's own and is read by nothing — ${said}`);
   }

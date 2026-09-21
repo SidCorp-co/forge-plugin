@@ -373,9 +373,10 @@ quietly ignored.
   about one file rather than one line per key it declares, and the file it names SHALL be one this
   checkout carries — sought no higher than the checkout's own root — a repository nested inside
   another sharing no configuration with the one it sits in.
-- **AC-01-5-24** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a committed file standing unread is said once, with the command that takes it over"
-  WHEN that row is printed THEN it SHALL name the command that takes the file's contents over, a
-  report naming a stranded file and no route out being a finding nobody can act on.
+- **AC-01-5-24** · Rev: 2 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a record naming no project is answered with the key to set, in the report and in the stop alike"
+  WHEN that row is printed THEN it SHALL name the one command that would work where the call stands
+  — the adoption where this machine holds no record, the key to set where it holds one that names no
+  project — a report naming a route that refuses when followed being a finding nobody can act on.
 - **AC-01-5-25** · Rev: 2 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a committed file that is no table of keys is refused before anything is written"
   WHEN the developer adopts that file THEN the CLI SHALL write its contents whole into this
   machine's record of that project, and IF that file is not a JSON object of keys THEN SHALL refuse
@@ -406,10 +407,11 @@ quietly ignored.
 - **AC-01-5-32** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a directory belonging to no checkout resolves no record, and --set says so rather than making one"
   IF the directory a call is made in belongs to no checkout THEN the CLI SHALL resolve no project
   record at all, a directory belonging to no repository having no project to be configured.
-- **AC-01-5-33** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "the record a named directory resolves is that directory's own repository's, not this process's"
+- **AC-01-5-33** · Rev: 2 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a value read off a named directory is reported against that directory's own record"
   WHEN a verb reads the project configuration of a directory it is not standing in THEN the CLI
   SHALL answer off that directory's own repository root rather than off the process's working
-  directory.
+  directory, and SHALL report that directory's record as where the value came from, a reader sent
+  to correct a value in a file it was never in being sent to the wrong machine's answer.
 - **AC-01-5-34** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "a record holding keys but no slug is answered with the key to set, not with an adoption that would refuse"
   IF a call needs a resolved project slug where this machine already holds a record of the project
   that names none THEN the CLI SHALL refuse naming the key to set rather than the adoption, which

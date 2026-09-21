@@ -206,17 +206,21 @@ export const projectRecordPattern = () => sourced(fromProject(), forgeJson().par
 /* No plugin default, and an unreadable pattern is no declaration: docs/two-levels.md, README. */
 const declaredWork = (at) => (at ? projectFileAt(at)?.lease?.workingRe : forgeJson().parsed?.lease?.workingRe);
 
-export const workPatternOf = (said) => {
+/* The source is given rather than assumed: a value read off a NAMED directory came out of that
+   directory's record, and reporting this process's would name a file the value was never in — the
+   provenance every reading of this configuration carries is the file that answered (BR-08). */
+export const workPatternOf = (said, source = fromProject()) => {
   if (!said) return { value: null, from: null, unreadable: false };
   try {
     new RegExp(said, "u");
   } catch {
-    return { value: null, from: fromProject(), unreadable: said };
+    return { value: null, from: source, unreadable: said };
   }
-  return { value: said, from: fromProject(), unreadable: false };
+  return { value: said, from: source, unreadable: false };
 };
 
-export const projectWorkPattern = (at = null) => workPatternOf(declaredWork(at));
+export const projectWorkPattern = (at = null) =>
+  workPatternOf(declaredWork(at), at ? projectEntryAt(at) : fromProject());
 export const projectCodex = () => forgeJson().parsed?.codex ?? {};
 
 /** Which CHECKOUT this process stands in — what a caller reading FILES off a root wants, and what
@@ -227,6 +231,15 @@ export const checkoutRoot = once(() => standing()?.tree ?? null);
 
 /* The slug is a header when there is one, and an error only for a call needing a project id. */
 export const slugIfAny = () => projectTarget().value;
+
+/** Whether `forge doctor --adopt` could run where this call stands: a committed file for it to take
+ *  over, and no record of this project for it to refuse against. Read here once because three
+ *  messages recommend that command, and each one deciding for itself is another route that refuses
+ *  when a reader follows it. */
+export const adoptableHere = () => {
+  const path = projectFilePath();
+  return Boolean(path && !existsSync(path) && committedFileHere());
+};
 
 /** Which command puts a slug where this call would read one. A checkout standing on a `.forge.json`
  *  is given the command that takes the whole of it over rather than the one that writes this key:
@@ -242,10 +255,8 @@ export const noProjectHere = () => {
       + `project for it to be scoped to.${held ? ` ${held} is read by nothing.` : ""}\n`
       + "Run it from inside a checkout.";
   }
-  /* The adopt command is named only where the entry is absent, because it refuses against one that
-     exists — a record holding keys but no slug, which is every checkout where something was set
-     before the slug was, would otherwise be answered with the one command that cannot run here. */
-  if (held && !existsSync(path)) {
+  /* Named only where it could run, off the one reading of that below. */
+  if (adoptableHere()) {
     return `This call is project-scoped and no project slug is set. ${held} is this checkout's own\n`
       + `and is read by nothing: a project's configuration is this machine's record of it, at\n${path}.\n`
       + "Take that file's contents over: `forge doctor --adopt`";

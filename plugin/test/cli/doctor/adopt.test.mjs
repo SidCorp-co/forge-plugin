@@ -11,7 +11,7 @@ import { basename, dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { escaped, fakeTracker, git, ranAsync, tempRoom } from "../../fixtures.mjs";
-import { projectFileAt } from "../../../src/resolve/settings.mjs";
+import { projectFileAt, projectWorkPattern } from "../../../src/resolve/settings.mjs";
 import { configDir } from "../../../src/resolve/config.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -319,4 +319,56 @@ test("an adoption meeting an entry at the write leaves it standing and says what
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /was created between this call reading that there was none and writing/u, run.stderr);
   assert.ok(lstatSync(entry).isSymbolicLink(), "what was standing there was another call's to keep");
+});
+
+/* Every message that recommends the adoption reads one predicate, so a record that exists and names
+   no project is answered with the key to set wherever the question comes up rather than in the one
+   place the last case happened to ask it. */
+test("a record naming no project is answered with the key to set, in the report and in the stop alike", async () => {
+  const { room, entry } = checkout("slugless-rows", { slug: "slugless-rows", runs: 5 });
+  const set = await ask(room, "--set", "runs=3");
+  assert.equal(set.status, 0, set.stderr);
+  assert.equal(JSON.parse(readFileSync(entry, "utf8")).slug, undefined);
+  const report = await ask(room);
+  const row = report.stdout.split("\n").filter((one) => one.includes("project file"));
+  assert.equal(row.length, 1, report.stdout);
+  assert.match(row[0], /names no project slug yet, which adoption cannot write over/u, row[0]);
+  assert.match(row[0], /`forge doctor --set slug=<project>`/u, row[0]);
+  assert.doesNotMatch(row[0], /--adopt/u, "the command that would refuse is not the way out of this");
+  const asked = await ask(room, "tracker");
+  const stop = asked.stdout.split("\n").filter((one) => one.includes("] project slug"));
+  assert.equal(stop.length, 1, asked.stdout);
+  assert.match(stop[0], /`forge doctor --set slug=<project>`/u, stop[0]);
+  assert.doesNotMatch(stop[0], /--adopt/u, "and the subject that stops names the same one");
+});
+
+/* Provenance is the file that answered (BR-08), so a value read off a named directory has to report
+   that directory's record and not this one's: a reader sent to correct it would open a file the
+   value was never in. In-process for the reason the case above gives. */
+test("a value read off a named directory is reported against that directory's own record", () => {
+  const one = checkout("pattern-here", { slug: "pattern-here", lease: { workingRe: "^src/" } });
+  const two = checkout("pattern-there", { slug: "pattern-there", lease: { workingRe: "^lib/" } });
+  const held = process.env.XDG_CONFIG_HOME;
+  process.env.XDG_CONFIG_HOME = tempRoom("pattern-home-");
+  try {
+    const mine = (room, config) => {
+      const at = join(configDir("forge"), "projects", basename(room), "config.json");
+      mkdirSync(join(at, ".."), { recursive: true });
+      writeFileSync(at, JSON.stringify(config));
+      return at;
+    };
+    mine(one.room, { slug: "pattern-here", lease: { workingRe: "^src/" } });
+    const there = mine(two.room, { slug: "pattern-there", lease: { workingRe: "^lib/" } });
+    const read = projectWorkPattern(two.room);
+    assert.equal(read.value, "^lib/", "the value is the named directory's");
+    assert.equal(read.from, there, "and so is the file it says it came from");
+    mine(two.room, { slug: "pattern-there", lease: { workingRe: "^(" } });
+    const unreadable = projectWorkPattern(two.room);
+    assert.equal(unreadable.unreadable, "^(", "a pattern that does not compile is no declaration");
+    assert.equal(unreadable.from, there,
+      "and the file to go and correct it in is the named directory's, not this process's");
+  } finally {
+    if (held === undefined) delete process.env.XDG_CONFIG_HOME;
+    else process.env.XDG_CONFIG_HOME = held;
+  }
 });
