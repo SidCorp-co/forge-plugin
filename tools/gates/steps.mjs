@@ -53,12 +53,14 @@ const CLI = "a node child that left no record: the CLI, reading plugin/ and 168 
 const SPAWNED = "a node child that left no record: a node standing here, importing plugin/test/run";
 const TAGS = "a git child that left no record: ls-remote against a scratch origin, standing here";
 const RUN = [".", "plugin/hooks/vendor", "plugin/src", "plugin/test/fixtures.mjs",
-  "plugin/test/fixtures/answer-reach.mjs", "plugin/test/fixtures/answered.mjs", "plugin/test/run", "tools"];
+  "plugin/test/fixtures/answer-reach.mjs", "plugin/test/fixtures/answered.mjs",
+  "plugin/test/fixtures/own-keys.mjs", "plugin/test/fixtures/own-project.mjs",
+  "plugin/test/run", "tools"];
 
 const DOCTOR = [".", ".claude-plugin", "plugin/.claude-plugin", "plugin/agents",
   "plugin/guides", "plugin/hooks", "plugin/skills", "plugin/src", "plugin/test/fixtures.mjs",
-  "plugin/test/fixtures/answer-reach.mjs", "plugin/test/fixtures/answered.mjs", "plugin/vi-natural",
-  "tools/room.mjs"];
+  "plugin/test/fixtures/answer-reach.mjs", "plugin/test/fixtures/answered.mjs",
+  "plugin/test/fixtures/own-keys.mjs", "plugin/vi-natural", "tools/room.mjs"];
 
 /* One case in the machine table's file walks every source of this repository for reads of that
    store, `tools` among them, so its ceiling is the doctor set and that tree. The walk is what keeps
