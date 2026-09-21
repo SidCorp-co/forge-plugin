@@ -147,9 +147,9 @@ A turn that stops instead of taking one of those routes spends the same cost a w
 resumes it but a person watching from outside. What it left running is read back at the stop and
 answered the same way asking again is. A wait needs no directory to name, so the process keeps the
 one the session already stood in and every run on that host shares it: inside a worktree of the
-turn's own, anything standing there is that turn's; outside one, what is running the words one of
-that turn's own calls typed as a command is, and nothing else is. Words and not text: a turn that
-quotes another run's whole command line as one argument has named it, not run it.
+turn's own, anything standing there is that turn's; outside one, what is running a command one of
+that turn's own calls carries, as the words it typed, is, and nothing else is. Words as well as
+text: a turn that quotes another run's whole command line as one argument has named it, not run it.
 
 - **AC-17-11-1** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs "a wait that polls is refused, and a pause on its own is not"
   IF a pause stands inside a wait for other work THEN the product SHALL refuse the command and SHALL
@@ -178,9 +178,9 @@ quotes another run's whole command line as one argument has named it, not run it
   WHERE a live process already refused this turn's stop once THEN the product SHALL let a second
   stop of that same turn end without refusing it again.
 - **AC-17-11-9** · Rev: 2 · Proof: plugin/test/gates/turn/stop-check.test.mjs "a wait this turn started with no cd refuses the stop, outside any worktree"
-  WHEN a turn ends and a process running the words one of that turn's calls typed as a command still
-  stands in a directory that is no worktree of that turn's THEN the product SHALL refuse the stop and
-  SHALL name that process's id in the refusal.
+  WHEN a turn ends and a process still stands, in a directory that is no worktree of that turn's,
+  whose command line one of that turn's calls carries whole and carries as the words it typed, THEN
+  the product SHALL refuse the stop and SHALL name that process's id in the refusal.
 - **AC-17-11-10** · Rev: 1 · Proof: plugin/test/gates/turn/stop-check.test.mjs "a process another run left standing where this turn stood does not refuse the stop"
   IF a process stands outside every worktree that turn stood in, and neither its command line nor
   any call that turn made contains the other once quoting is dropped and the shell's own separators
