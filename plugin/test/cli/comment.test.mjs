@@ -7,6 +7,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { fakeTracker, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
+import { trackerFor } from "../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("comment-verb").path;
 const room = tempRoom("comment-verb-");
@@ -38,10 +39,12 @@ const state = {
   },
 };
 
-const tracker = await fakeTracker(state);
+/* This checkout's own record, written into the home the child reads: the project a call
+   resolves is no longer a file the checkout carries. */
+const { tracker, env: base } = await trackerFor(state);
 test.after(() => tracker.close());
 
-const env = (session = MINE) => ({ ...tracker.env, AI_AGENT: "a-test-agent", CLAUDE_PID: "4242", FORGE_SESSION_ID: session });
+const env = (session = MINE) => ({ ...base, AI_AGENT: "a-test-agent", CLAUDE_PID: "4242", FORGE_SESSION_ID: session });
 
 const heldBy = (who) => {
   if (!who) delete state.issues[0].sessionContext;

@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { fakeTracker, pageOf, ranAsync } from "../fixtures.mjs";
+import { trackerFor } from "../fixtures/own-project.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../..", import.meta.url).pathname;
@@ -27,10 +28,12 @@ const BACKLOG = [at(1, 1), at(2, 2), at(3, 3), at(4, 6), at(5, 4), at(6, 5)];
 const GAPPED = [at(2, 1), at(5, 2), at(6, 3), at(9, 4)];
 
 const state = { issues: BACKLOG, comments: {}, calls: [], answer: {} };
-const tracker = await fakeTracker(state);
+/* This checkout's own record, written into the home the child reads: the project a call
+   resolves is no longer a file the checkout carries. */
+const { tracker, env } = await trackerFor(state);
 test.after(() => tracker.close());
 
-const ran = (argv, stdin = null) => ranAsync(FORGE, argv, tracker.env, ROOT, stdin);
+const ran = (argv, stdin = null) => ranAsync(FORGE, argv, env, ROOT, stdin);
 const cutTo = (rows, fits) => {
   const listed = pageOf(rows, fits);
   state.issues = rows;
@@ -65,7 +68,7 @@ test("a finder reaches the same key through forge comment, and is asked for no l
 test("the holder's verbs reach it too, the lookup being one, and the lease they wanted is taken", async () => {
   cutTo(BACKLOG, 2);
   const run = await ranAsync(FORGE, ["record", "note", "ISS-1", "--section", "Fixed", "--user", "a line"],
-    { ...tracker.env, FORGE_SESSION_ID: WRITER }, ROOT);
+    { ...env, FORGE_SESSION_ID: WRITER }, ROOT);
   assert.match(run.stderr, /ISS-1 carried no lease and this write took one/u,
     "the lease it wanted was taken on a key it had already resolved");
   assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);

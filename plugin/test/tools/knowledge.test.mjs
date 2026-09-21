@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { fakeStore, fakeTracker, ranAsync } from "../fixtures.mjs";
+import { trackerFor } from "../fixtures/own-project.mjs";
 import { credentialLeak, deployFrom } from "../../src/tracker/project-config.mjs";
 import { DECLARES } from "../../src/tracker/routes.mjs";
 
@@ -16,10 +17,12 @@ const ROOT = new URL("../../..", import.meta.url).pathname;
 const { store, knowledge } = fakeStore();
 
 const state = { issues: [], comments: {}, calls: [], answer: { forge_knowledge: knowledge } };
-const tracker = await fakeTracker(state);
+/* This checkout's own record, written into the home the child reads: the project a call
+   resolves is no longer a file the checkout carries. */
+const { tracker, env } = await trackerFor(state);
 test.after(() => tracker.close());
 
-const ran = (argv, stdin = null) => ranAsync(FORGE, argv, tracker.env, ROOT, stdin);
+const ran = (argv, stdin = null) => ranAsync(FORGE, argv, env, ROOT, stdin);
 const upserts = () => state.calls.filter((one) => one.name === "forge_knowledge" && one.args.action === "upsert");
 
 const BODY = "What this module owns, read at plugin/src/tools/knowledge.mjs.\n";

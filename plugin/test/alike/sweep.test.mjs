@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { fakeTracker, ranAsync, shortPage } from "../fixtures.mjs";
+import { trackerFor } from "../fixtures/own-project.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 /* The sweep says where it is every fiftieth measurement, which is where it says the rest too. */
@@ -16,7 +17,9 @@ const row = (at, status = "open") =>
   ({ issueId: `ISS-${at}`, documentId: `uuid-${at}`, status, title: titleOf(at) });
 
 const state = { issues: [], comments: {}, calls: [], answer: {} };
-const tracker = await fakeTracker(state);
+/* This checkout's own record, written into the home the child reads: the project a call
+   resolves is no longer a file the checkout carries. */
+const { tracker, env } = await trackerFor(state);
 test.after(() => tracker.close());
 
 const uuidOf = (key) => state.issues.find((one) => one.issueId === key)?.documentId ?? key;
@@ -34,7 +37,7 @@ const backlog = (issues, hits, answer = {}) => {
   state.answer = { "forge_memory.search": searching(hits), ...answer };
 };
 
-const swept = () => ranAsync(FORGE, ["alike"], tracker.env);
+const swept = () => ranAsync(FORGE, ["alike"], env);
 
 const wrote = () => state.calls.filter((one) => one.args?.action && one.args.action !== "list");
 

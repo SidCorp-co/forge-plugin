@@ -10,6 +10,7 @@ import { terse } from "../../src/commands.mjs";
 import { MAX_LIMIT } from "../../src/tracker/issues.mjs";
 import { uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
 import { fakeTracker, pageOf, ranAsync, shortPage, tempRoom } from "../fixtures.mjs";
+import { trackerFor } from "../fixtures/own-project.mjs";
 
 /* The shape forge_uploads returns, as observed on ISS-22's one attachment. */
 const ATTACHMENT = {
@@ -81,10 +82,12 @@ const ROWS = [
 ];
 
 const state = { issues: ROWS, comments: {}, calls: [] };
-const tracker = await fakeTracker(state);
+/* This checkout's own record, written into the home the child reads: the project a call
+   resolves is no longer a file the checkout carries. */
+const { tracker, env } = await trackerFor(state);
 test.after(() => tracker.close());
 
-const ran = (argv) => ranAsync(FORGE, argv, tracker.env, ROOT);
+const ran = (argv) => ranAsync(FORGE, argv, env, ROOT);
 
 test("the browse page comes back in the order it is to be worked, not the order it was touched", async () => {
   state.issues = ROWS;
