@@ -195,6 +195,15 @@ const signed = (said) => {
   return words.length < IDENTIFYING ? "" : ` ${words} `;
 };
 
+/* The double quote that ends the argument standing at `at`: the first one a separator or the end of
+   the text follows, since that is where a word ends. None, and the argument runs to the end. */
+const closes = (said, at) => {
+  for (let by = said.indexOf('"', at); by >= 0; by = said.indexOf('"', by + 1)) {
+    if (by + 1 === said.length || BREAK.test(said[by + 1])) return by;
+  }
+  return said.length;
+};
+
 /* The words the shell would have cut out of what the turn typed, in one pass rather than a shell
    parser: a quote holds one word however many blanks are inside it, a backslash takes the character
    after it, and an unquoted separator ends one. An empty quoted word yields none, as an empty
@@ -226,13 +235,13 @@ const wordsTyped = (said) => {
     } else if (quote) {
       /* Inside a double quote the character that closes the argument is free to sit inside a
          substitution or an expansion, and nothing short of a shell reads where those end. So the
-         walk stops looking for the next quote and takes the last one in the call, which is at or
-         past the real close: the word it makes covers the argument and whatever follows it, and no
-         double-quoted argument can begin after the last quote, which is the only place a word this
-         cut too short could hide. It is cut too long instead, and that loses a match. */
+         walk stops taking the next quote for the close and takes the next one a separator follows,
+         a closing quote being the end of a word where one inside a substitution is not. It can
+         still land either side of the real close, and the bound that holds is not this rule but
+         the arm below, which asks the signature as well: a word cut wrong leaves a match the
+         signature already made, and never makes one. */
       if (quote === '"' && (one === "`" || (one === "$" && OPENS.test(said[at + 1] ?? "")))) {
-        const last = said.lastIndexOf('"');
-        const end = last > at ? last : said.length;
+        const end = closes(said, at);
         word += said.slice(at, end);
         at = end - 1;
       } else if (one === quote) {

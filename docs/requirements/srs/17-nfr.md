@@ -203,8 +203,8 @@ text: a turn that quotes another run's whole command line as one argument has na
   WHERE a process is first read long after the window it began in has closed, the product SHALL
   place it at the moment it began rather than at the moment it was read.
 - **AC-17-11-17** · Rev: 1 · Proof: plugin/test/flow/lease/started-here.test.mjs "a command line the turn only quoted as an argument does not make its process this turn's"
-  IF a process's own arguments stand nowhere in a turn's calls but inside a single shell word of one
-  THEN the product SHALL NOT read that process as one the turn started.
+  IF a process carries more than one argument and they stand nowhere in a turn's calls but inside a
+  single shell word of one THEN the product SHALL NOT read that process as one the turn started.
 
 ### NFR-12 — A ceiling drawn from one sample is redrawn from the population
 

@@ -199,8 +199,14 @@ test("a command line the turn only quoted as an argument does not make its proce
       "a quote inside an expansion ended the argument the expansion stands in");
     assert.ok(held(startedHere(turn(`cd "$(git rev-parse --show-toplevel)" && nohup ${line} > /dev/null 2>&1 &`)), pid),
       "a substitution standing before the launch took the words of the launch with it");
+    assert.ok(!held(startedHere(turn(`echo "$(printf x)"; echo 'note " ${line} '`)), pid),
+      "a quote standing inside a later apostrophe was read as the close of an earlier argument");
     assert.ok(held(startedHere(turn(`cd "\${PWD}" && nohup ${line} > /dev/null 2>&1 &`)), pid),
       "an expansion standing before the launch took the words of the launch with it");
+    assert.ok(held(startedHere(turn(`cd "\`git rev-parse --show-toplevel\`" && nohup ${line} > /dev/null 2>&1 &`)), pid),
+      "a backtick standing before the launch took the words of the launch with it");
+    assert.ok(held(startedHere(turn(`cd "\${PWD}" && nohup ${line} > "/tmp/started-here-${watched}.log" 2>&1 &`)), pid),
+      "a quoted path after the launch took the words of the launch with it");
   } finally {
     gone(pid, watched);
   }
