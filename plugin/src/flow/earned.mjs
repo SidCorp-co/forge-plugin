@@ -20,6 +20,7 @@ import { ordersEdge } from "../tracker/edges/kinds.mjs";
 import { Refused } from "../refusal.mjs";
 import { FIELD as SESSION } from "./lease.mjs";
 import { landingOf } from "./landing/checkpoint.mjs";
+import { holdersOf } from "./landing/reconstruction.mjs";
 import { worklogOf } from "./worklog.mjs";
 import { judgeAsk, judgeProblems, numbered } from "./qa/verdicts.mjs";
 import { criteriaLines } from "./record/record.mjs";
@@ -43,6 +44,12 @@ export { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding }
 
 export const atLeast = (status, floor) =>
   ORDER.indexOf(status) >= 0 && ORDER.indexOf(status) >= ORDER.indexOf(floor);
+
+/** Whether a claim taken at that status was taken while the change was still being built. Off the
+ *  sequence rather than off a second list of names: a holder whose every claim came at or past the
+ *  status a build hands over at judged the change or landed it, and nothing on the record proposes
+ *  it as the builder (ISS-2045). A status the sequence does not hold reads as a build. */
+export const buildsAt = (status) => !atLeast(status, ORDER[ORDER.indexOf(BASELINE_AT) + 1]);
 
 /* `parse` resolves the keys and applies none of the shape's rules, so a comment carrying the tag and
    little else — by hand, or through a client no gate sits before — is measured against the write's
@@ -543,7 +550,7 @@ export const viewFrom = (documentId, issue, comments, cut = null, release = null
   const names = attachmentNames(issue, comments);
   /* Parsed once: six readers here and in route.mjs each ran it over the same plan for the same answer. */
   const flags = planFlags(unwrap(issue.plan));
-  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, deploy, flags, witnessed: witnessedOn(unwrap(issue.plan)), landing: landingOf(issue?.[SESSION]), work: worklogOf(issue?.[SESSION]), ...assemble(comments, criteria) };
+  return { documentId, issue, comments, criteria, names, cut, whole: !cut, release, cited, deploy, flags, witnessed: witnessedOn(unwrap(issue.plan)), landing: landingOf(issue?.[SESSION]), holders: holdersOf(issue?.[SESSION], buildsAt), work: worklogOf(issue?.[SESSION]), ...assemble(comments, criteria) };
 };
 export const parkRecord = (view, wanted = () => true, since = null, until = null) => {
   const found = view.comments

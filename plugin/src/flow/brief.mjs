@@ -6,6 +6,7 @@ import { FIELD, leaseOf, stateOf } from "./lease.mjs";
 import { sharedHolder } from "./lease/dispatched.mjs";
 import { workUnder } from "./lease/holder.mjs";
 import { atMinute, unwrap } from "./machine.mjs";
+import { rebuiltSaid } from "./landing/reconstruction.mjs";
 import { PARK_STATUS, SIDE, atLeast, holdsBack, parkRecord, rungFieldsOf, sameLanding } from "./earned.mjs";
 import { methodOf } from "../guides/phases.mjs";
 import { rungOf } from "../ladder.mjs";
@@ -39,16 +40,22 @@ const headlineOf = (held, kind) => {
   return { at: atMinute(held.at), said: oneLine(said) };
 };
 
-const markedCriteria = (view) =>
-  view.criteria.map((one) => {
+/* On the verdict's own row and not only on the checkpoint's line, which `rebuiltSaid` is for: a
+   reader who asks for the criteria asks for verdicts and need never have read the checkpoint one
+   was judged against (ISS-2045). */
+const markedCriteria = (view) => {
+  const rebuilt = rebuiltSaid(view.landing).replace(/^ — /u, "");
+  return view.criteria.map((one) => {
     const held = view.verdicts.get(one.number);
     return {
       number: one.number,
       text: one.text,
       mark: held ? MARK[held.record.fields.verdict] ?? `? ${held.record.fields.verdict ?? "unreadable"}` : NONE,
       ...(held ? { commit: held.record.fields.commit } : {}),
+      ...(held && rebuilt ? { judgedAgainst: `a checkpoint ${rebuilt}` } : {}),
     };
   });
+};
 
 /* Every edge, with the kind the tracker gave it and whether it holds this status back read by the
    entry check's own predicate, so the brief cannot say of an edge other than what that check did. */

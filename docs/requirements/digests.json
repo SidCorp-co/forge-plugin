@@ -2333,6 +2333,26 @@
       "rev": 1,
       "digest": "5695d5d90542c228734b63b05dee7eafbf86878a3318a52c95f3e306b35093d5"
     },
+    "AC-05-11-9": {
+      "rev": 1,
+      "digest": "2545b73f3b39429fb0ee2608ff2dc7ed0495c767ac4613cf9e29f3fff0caa2af"
+    },
+    "AC-05-11-10": {
+      "rev": 1,
+      "digest": "2414aef965030586f489f59f075813d240339c8f149ccadc800200e92e59662a"
+    },
+    "AC-05-11-11": {
+      "rev": 1,
+      "digest": "505eef47a1ab14db050b017495acfb364c46400222fa67cfacfba61fab759bab"
+    },
+    "AC-05-11-12": {
+      "rev": 1,
+      "digest": "a4f0d0117d3a340682ddfb4d5c047aff12538dfb9295b905c544ac66ad881291"
+    },
+    "AC-05-11-15": {
+      "rev": 1,
+      "digest": "94015422380aa652d914ba8832758c36308f3177ac80934e6abaa49f06638e46"
+    },
     "UC-05-12": {
       "rev": 1,
       "digest": "bcb6ba0ed91052e5018f341c111245e638396ba86f534d2f6234168fc9cf3200"

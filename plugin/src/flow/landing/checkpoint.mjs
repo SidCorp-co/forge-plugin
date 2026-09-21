@@ -1,6 +1,7 @@
 /* The landing checkpoint, read as a table. Nothing here reads a lease or reaches the tracker, which
    is what lets the lease import it and not the other way about. docs/cli/the-turn.md. */
 import { shortSha } from "../../tracker/evidence.mjs";
+import { HAND_WRITTEN, handWrittenOf, rebuiltSaid } from "./reconstruction.mjs";
 
 export const LANDING = "landing";
 export const LANDING_READY = "ready";
@@ -31,7 +32,8 @@ export const LANDING_STATES = {
   done: { turn: null, next: [] },
 };
 
-/* Declared: a key nothing here names is dropped rather than read back as a fact. */
+/* Declared: a key nothing here names is dropped rather than read back as a fact. Every one of them
+   is a string; `handWritten` is the one record the checkpoint holds and is read below on its own. */
 const CHECKPOINT = ["state", "builder", "branch", "head", "base", "at", "pinned", "intended",
   "candidate", "release", "install", "deployment", "moved", "reconciled", "judge", "owed"];
 
@@ -41,6 +43,8 @@ export const landingOf = (context) => {
   const files = (Array.isArray(held.files) ? held.files : []).map((one) => String(one).trim());
   const out = { files: files.filter(Boolean) };
   for (const name of CHECKPOINT) if (held[name]) out[name] = String(held[name]);
+  const hand = handWrittenOf(held);
+  if (hand) out[HAND_WRITTEN] = hand;
   return out;
 };
 
@@ -81,7 +85,8 @@ export const takeRoute = (ref) => `forge claim ${ref} --take`;
 
 export const landingLine = (landing) =>
   `landing \`${landing.state}\`: ${landing.branch ?? "no branch"} at ${shortSha(landing.head)}, `
-  + `base ${shortSha(landing.base)}, ${landing.files.length} file(s), built by ${landing.builder}`;
+  + `base ${shortSha(landing.base)}, ${landing.files.length} file(s), built by `
+  + `${landing.builder || "nobody the record can name"}${rebuiltSaid(landing)}`;
 
 export const READ_THE_STATE = (ref) =>
   `Read where the landing is, and take it when the state names your turn:\n  forge resume ${ref}`;

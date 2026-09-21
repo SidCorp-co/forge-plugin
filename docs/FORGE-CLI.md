@@ -34,6 +34,7 @@ how many topics there may be.
 | [the proven lapse](cli/the-proven-lapse.md) | Why a lease the record puts past its own duration is as free as none, which seam decides that and why it is the reclaim's own, and what the row a write writes over it holds. |
 | [the granted id](cli/the-granted-id.md) | Why an export reaches a substitution and a prefix does not, which openers lose a call its name unread, and which quoting leaves one as the prose it looks like. |
 | [`the checkpoint`](cli/the-checkpoint.md) | What a build ready to land leaves whoever lands it, why both merge routes are one table, and what a candidate is a fact about. |
+| [`the reconstruction`](cli/the-reconstruction.md) | What a checkpoint nobody captured may say instead, why a declared reconstruction buys one key and not the record's honesty, and which builder is derived rather than declared. |
 | [`the turn`](cli/the-turn.md) | Whose turn each landing state names, the three routes one is handed back by, and why only the judge's gives the lease back and takes an issue carrying no checkpoint. |
 | [`the takeover`](cli/the-takeover.md) | What says a run holding a turn has gone, why the take and the write it licenses are separate questions, and why a state whose successor nothing writes is a landing parked for good. |
 | [`resume`](cli/resume.md) | What the worklog holds beside the lease, why no capture of it is automatic, and what the brief prints. |

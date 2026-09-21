@@ -119,7 +119,7 @@ export const viewOf = async (documentId) => {
 export const voidSaid = async (documentId, landing) => {
   if (!landing.deployment) return "";
   const view = await asked(() => viewOf(documentId));
-  const numbers = judgedAt(landing, view.verdicts, view.release);
+  const numbers = judgedAt(landing, view.verdicts, view.release, view.holders ?? []);
   return numbers.length
     ? ` The QA verdict(s) on criterion ${numbers.join(", ")} judged ${shortly(landing.deployment)} and `
       + `are void with it.`

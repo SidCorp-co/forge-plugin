@@ -434,6 +434,33 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
   WHERE the project's record asks for an independent judgement, IF a standing verdict's identity was
   inherited from the session that dispatched the run THEN the CLI SHALL refuse `testing` naming the
   environment variable that gives a run an identity of its own.
+- **AC-05-11-9** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "a checkpoint declaring its builder unrecoverable earns the verdict the deployment half alone"
+  WHERE the project's record asks for an independent judgement and the landing checkpoint carries a
+  hand-written block naming who rebuilt it and why the builder could not be recovered, the CLI SHALL
+  read that builder as unknown rather than as missing and SHALL let the verdict stand on the
+  deployment half alone, because a record nobody made and a record nobody can make are different
+  states and only the second can be stated honestly.
+- **AC-05-11-10** · Rev: 1 · Proof: plugin/test/flow/landing/reconstruction.test.mjs "a builder the claim history answers for on its own is derived rather than declared unrecoverable"
+  IF a hand-written block declares the builder unrecoverable WHILE the issue's own claim history
+  names exactly one run that held it at a status the change was still being built at THEN the CLI
+  SHALL refuse the verdict naming that run, because a builder the record answers for is derived and
+  a declared one would be a guess the key exists to stop.
+- **AC-05-11-11** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "a judge the claim history names as a run that held the build is no judge apart from it"
+  IF the landing checkpoint declares its builder unrecoverable and the issue's own claim history
+  names a standing verdict's judge as a run that held it at a status the change was still being
+  built at THEN the CLI SHALL refuse `testing` naming that judge, because the builder is one of
+  those runs and nothing shows the judge apart from a set it is inside.
+- **AC-05-11-12** · Rev: 1 · Proof: plugin/test/flow/landing/reconstruction.test.mjs "a reconstruction is disclosed on the checkpoint line and on every verdict read back against it"
+  WHERE a landing checkpoint carries a hand-written block, the CLI SHALL say that it was rebuilt by
+  hand, by whom, and which keys it recovered nothing for, both wherever it prints that checkpoint
+  and on every verdict it reads back against it, because a verdict read back against a
+  reconstruction is weaker evidence than one read back against a capture, a reader reaching a
+  verdict need not have read the checkpoint, and nothing else on the record separates them.
+- **AC-05-11-15** · Rev: 1 · Proof: plugin/test/flow/verdicts/independent.test.mjs "the landing's reading of which criteria were judged refuses what the entry check refuses"
+  WHERE a landing reads which criteria an independent judge answered for, it SHALL count a verdict
+  only where the entry check to `testing` would let that verdict stand, because two readings of one
+  judgement that disagree make the landing spend a promotion on a verdict the transition will then
+  refuse.
 
 ### UC-05-12 — A judging run's blocking finding reopens the issue
 

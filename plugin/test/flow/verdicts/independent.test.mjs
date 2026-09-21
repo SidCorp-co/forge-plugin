@@ -164,9 +164,9 @@ test("a QA run inheriting the builder's id is refused, because nothing tells the
 test("no checkpoint means nothing names the builder or the deployment, and the check says so", () => {
   const said = owed([verdictOf(1), verdictOf(2)], { issue: { sessionContext: null } });
   assert.deepEqual(said, [
-    "the verdict on criterion 1 has no landing checkpoint naming a builder and a deployment identity to judge it against",
-    "the verdict on criterion 2 has no landing checkpoint naming a builder and a deployment identity to judge it against",
-  ]);
+    "the verdict on criterion 1 has no landing checkpoint naming a deployment identity to judge it against",
+    "the verdict on criterion 2 has no landing checkpoint naming a deployment identity to judge it against",
+  ], "the two halves are two sentences, and with no checkpoint at all the deployment is the first of them");
   const half = owed([verdictOf(1), verdictOf(2)],
     { issue: { sessionContext: { landing: { ...CHECKPOINT, deployment: undefined } } } });
   assert.equal(half.length, 2, "a checkpoint with no deployment identity is no checkpoint for this reading");
@@ -475,3 +475,81 @@ test("the hand-back is refused where no QA turn is owed, and refused beside a tu
   assert.match(`${both.stdout}\n${both.stderr}`, /--take and --judged/u,
     "each flag is a different turn's move, so two of them name no turn at all");
 });
+
+/* The window the capture is taken in closes at the merge, so an issue whose run died inside it
+   holds a builder nobody can write down rather than one nobody did. The gate could not tell the two
+   apart and refused both, which left six issues on forge-dev live and unjudgeable (ISS-2045). */
+const REBUILT = {
+  state: "done",
+  head: MERGED,
+  deployment: DEPLOYED,
+  files: [],
+  handWritten: {
+    by: "the-rebuilding-session",
+    at: AT,
+    why: "written after the landing",
+    builder: "four holders appear across this issue's history and none of them is the builder",
+    lost: ["base", "files"],
+  },
+};
+/* The judging claim is in the history too, and it is not a candidate for having built the change:
+   every run that asks this question claimed the issue to ask it. */
+const heldBy = (...holders) => ({
+  landing: REBUILT,
+  lease: { holder: QA, history: [...holders.map((holder) => ({ holder, status: "in_progress" })),
+    { holder: QA, status: "developed" }] },
+});
+
+test("a checkpoint declaring its builder unrecoverable earns the verdict the deployment half alone", () => {
+  assert.deepEqual(owed([verdictOf(1), verdictOf(2)], { issue: { sessionContext: heldBy("one", "two") } }), [],
+    "the deployment half stands and the builder half is answered by the declaration");
+  const bare = { ...REBUILT };
+  delete bare.handWritten;
+  assert.equal(owed([verdictOf(1), verdictOf(2)], { issue: { sessionContext: { landing: bare } } }).length, 2,
+    "while the same checkpoint with nothing said about the builder is refused exactly as before");
+});
+
+test("a builder the claim history answers for on its own is refused rather than declared unknown", () => {
+  const said = owed([verdictOf(1), verdictOf(2)], { issue: { sessionContext: heldBy("the-only-run") } });
+  assert.equal(said.length, 2, "one per verdict, the item being the checkpoint's and not the verdict's");
+  assert.match(said[0], /exactly one run that held it while the change was being built, `the-only-run`/u);
+});
+
+/* The only reading of an unrecoverable builder the record settles certainly. A judge that merely
+   appears in the history settles nothing — every judging run claims the issue before it writes, so
+   a rule refusing that would refuse every verdict this change exists to let stand. */
+/* A judge that only ever claimed to judge is apart from the builder by the record's own reading, and
+   that is every judging run — so what this refuses is the run that built the change and came back to
+   judge it, which an unrecoverable builder would otherwise hide. */
+test("a judge the claim history names as a run that held the build is no judge apart from it", () => {
+  const said = owed([verdictOf(1, { judge: "one" }), verdictOf(2, { judge: "one" })],
+    { issue: { sessionContext: heldBy("one", "two", "three") } });
+  assert.equal(said.length, 2, "one item per verdict, as every other item on this check is");
+  assert.deepEqual(said[0], "the verdict on criterion 1 carries the judge id `one`, which the claim history "
+    + "on this issue names as a run that held it while the change was being built: the checkpoint's builder "
+    + "is unrecoverable, so nothing here shows this judge apart from whoever built the change");
+  assert.deepEqual(owed([verdictOf(1), verdictOf(2)], { issue: { sessionContext: heldBy("one", "two") } }), [],
+    "while a judge whose every claim came after the build is apart from every one of them");
+});
+
+/* One sentence naming two things told a reader whose deployment half stood that it did not: the
+   measured case on forge-dev satisfied the deployment and was refused for both (ISS-2045). */
+test("a verdict is told about the half that is missing and not about the half that stands", () => {
+  const noDeploy = owed([verdictOf(1), verdictOf(2)],
+    { issue: { sessionContext: { landing: { ...CHECKPOINT, deployment: undefined } } } });
+  assert.deepEqual(noDeploy[0], "the verdict on criterion 1 has no landing checkpoint naming a deployment "
+    + "identity to judge it against", "the builder stands on this one and is not named");
+  const noBuilder = owed([verdictOf(1), verdictOf(2)],
+    { issue: { sessionContext: { landing: { ...CHECKPOINT, builder: undefined } } } });
+  assert.match(noBuilder[0], /^the verdict on criterion 1 has no landing checkpoint naming a builder,/u);
+  assert.doesNotMatch(noBuilder[0], /deployment identity/u, "and the deployment stands on this one");
+});
+
+test("the landing's reading of which criteria were judged refuses what the entry check refuses", () => {
+  const view = viewFrom("the-uuid", issueOf({ sessionContext: heldBy("one", "two") }),
+    [mark(), comment(render("verdict", [verdictOf(1, { judge: "one" }), verdictOf(2)]))], null, INDEPENDENT);
+  assert.deepEqual(judgedAt(REBUILT, view.verdicts, INDEPENDENT, view.holders), [2],
+    "criterion 1's judge held the issue while the change was being built, so the landing counts that "
+      + "verdict no more than the transition would");
+});
+
