@@ -139,3 +139,28 @@ test("one key text in two checkouts is two issues, and both are judged", async (
   assert.deepEqual([...new Set(issueCalls(0).map((one) => one.slug))], [OWN_SLUG, OTHER_SLUG]);
   oneProject();
 });
+
+/* Codex's own finding on this change: the walks going out together put the tracker's own order in
+   front of the command's. A key that is simply not there answers, and one whose request fails does
+   not — so the second key's transport failure would have exited from inside the first key's wait,
+   and the command would have been refused for the wrong one. The walk is soft for this reason, and
+   the refusal is taken in the order the refs came. */
+test("two keys that both fail are refused for the first of them, not the first to answer", async () => {
+  let asked = 0;
+  state.answer = {
+    forge_issues: (args) => {
+      if (args.action !== "list") return {};
+      asked += 1;
+      return asked === 2
+        ? { refused: "the tracker will not answer this one" }
+        : { issues: [], returned: 0, hasMore: false };
+    },
+  };
+  const run = await raw({ action: "archive", documentId: "ISS-29", data: { issueId: "ISS-30" } },
+    { session: "probe-both-fail", exit: 1 });
+  delete state.answer;
+  assert.match(run.stderr, /ISS-29 is not on this project's tracker/u,
+    "the first ref named is the one the command is refused for");
+  assert.doesNotMatch(run.stderr, /the tracker will not answer this one/u,
+    "and the second ref's failure, which the tracker answered first, does not take its place");
+});

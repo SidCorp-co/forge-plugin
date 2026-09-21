@@ -41,13 +41,14 @@ const directoryOf = (text, at, here) => {
 /* One walk per key per project however many command starts name it, and one group's keys walked
    together: `useProject` is global, so the project is half the key and two groups stay serial
    (ISS-1458). A refusal is taken in the order the refs came rather than the order the tracker
-   answered in, so which of two unresolvable keys a command is refused for does not move. */
+   answered in, so which of two unresolvable keys a command is refused for does not move — which is
+   why the walk is soft: a hard one exits from inside whichever answered first. */
 const resolved = async (refs, slug, walked) => {
   if (!walked.has(slug)) walked.set(slug, new Map());
   const held = walked.get(slug);
   const keys = [...new Set(refs)];
   const fresh = keys.filter((ref) => !held.has(ref));
-  const answers = await Promise.all(fresh.map((ref) => documentIdIfAny(ref)));
+  const answers = await Promise.all(fresh.map((ref) => documentIdIfAny(ref, { soft: true })));
   fresh.forEach((ref, at) => held.set(ref, answers[at]));
   return keys.map((ref) => {
     const one = held.get(ref);

@@ -63,12 +63,13 @@ export const gate = async (command,
 export const because = (run) => run.out?.hookSpecificOutput?.permissionDecisionReason ?? "";
 
 export const raw = async (input,
-  { name = "mcp__forge__forge_issues", url = live(), withheld = null, session: held = "probe-filing" } = {}) => {
+  { name = "mcp__forge__forge_issues", url = live(), withheld = null, exit = 0,
+    session: held = "probe-filing" } = {}) => {
   endpoint(url, withheld);
   const run = await callHookAsync(HOOK, { tool_name: name, tool_input: input, cwd: process.cwd() }, {
     ...process.env, HOME: HOME.path, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: held,
-  });
-  return { ...run, out: answered(run) };
+  }, process.cwd(), { exit });
+  return { ...run, out: answered(run, { exit }) };
 };
 
 /* The write shape this gate still answers for, so a case about the key it reads has something to
