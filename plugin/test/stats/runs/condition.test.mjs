@@ -2,9 +2,13 @@
    Every row the verb prints off those is `runs.test.mjs`. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { classesFor } from "../../../src/stats/corpus/classes.mjs";
-import { profileOf, runFrom } from "../../../src/stats/runs.mjs";
+import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
+import { profileOf, runFrom, runsUnder } from "../../../src/stats/runs.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 import { apiErrored, at, compacted, humanPrompt, result, use } from "../fixture-runs.mjs";
 
 /* A run's condition, not its cost: a compaction is the harness losing what a run knew and carrying
@@ -99,13 +103,39 @@ const readyRun = (session, flag) => runFrom("/p", session, [
   result(`${session}-k`, 2, "ISS-1  claim: session held"),
 ].join("\n"));
 
-test("the two readers of a claim are unmoved by the new class", () => {
+test("the landing a run left ready is counted off the new class", () => {
   const ready = readyRun("ready", " --ready");
-  assert.ok(ready, "a transcript whose only claim is the ready checkpoint is still an issue-flow run");
-  assert.equal(ready.ships.ready, 1, "and the landing it left ready is counted");
+  assert.equal(ready.ships.ready, 1, "the landing this run left ready is counted");
   const pushed = readyRun("pushed", "");
   assert.equal(pushed.ships.ready, 0, "while a capture that left nothing ready is not");
   assert.equal(profileOf([ready, pushed]).runs, 2, "both are runs of the window");
+});
+
+/* Whether a transcript is an issue-flow run at all is decided above `runFrom` and not in it, so the
+   reader is the corpus walk or it is nothing: a case built from `runFrom` passes with the admission
+   branch deleted (consult 65a520 F1). A brief naming no method leaves the ready claim as the only
+   thing that can admit it, and the sibling holding no claim is what says the walk still skips. */
+const corpusOfClaims = (rows) => {
+  const room = tempRoom("stats-ready-corpus-");
+  const root = join(room, `claude-${process.getuid()}`, slugFor("/p"));
+  for (const [session, text] of rows) {
+    const tasks = join(root, session, "tasks");
+    mkdirSync(tasks, { recursive: true });
+    writeFileSync(join(tasks, "a0.output"), `${text}\n`);
+  }
+  return root;
+};
+
+test("the corpus walk admits a transcript whose only claim is the ready checkpoint", () => {
+  const brief = JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "a brief naming no method" } });
+  const held = runsUnder(corpusOfClaims([
+    ["ready", [brief, use("r-k", 1, "Bash", { command: "forge claim ISS-1 --pushed --ready" }),
+      result("r-k", 2, "ISS-1  claim: session held")].join("\n")],
+    ["none", [brief, use("n-k", 1, "Bash", { command: "echo hi" }), result("n-k", 2, "hi")].join("\n")],
+  ]), null);
+  assert.deepEqual(held.runs.map((one) => one.session), ["ready"],
+    "the ready checkpoint admits its transcript and the one claiming nothing is skipped");
+  assert.equal(held.skipped, 1);
 });
 
 /* The rejection reader names every class a call that read a log can carry, and the deploy row is
