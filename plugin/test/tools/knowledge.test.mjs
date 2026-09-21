@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeStore, fakeTracker, ranAsync } from "../fixtures.mjs";
+import { fakeStore, ranAsync } from "../fixtures.mjs";
 import { trackerFor } from "../fixtures/own-project.mjs";
 import { credentialLeak, deployFrom } from "../../src/tracker/project-config.mjs";
 import { DECLARES } from "../../src/tracker/routes.mjs";

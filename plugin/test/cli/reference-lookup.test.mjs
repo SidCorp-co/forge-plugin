@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, pageOf, ranAsync } from "../fixtures.mjs";
+import { pageOf, ranAsync } from "../fixtures.mjs";
 import { trackerFor } from "../fixtures/own-project.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;

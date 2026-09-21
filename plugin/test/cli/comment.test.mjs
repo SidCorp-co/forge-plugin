@@ -6,7 +6,7 @@ import test from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
+import { ranAsync, tempHome, tempRoom } from "../fixtures.mjs";
 import { trackerFor } from "../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("comment-verb").path;

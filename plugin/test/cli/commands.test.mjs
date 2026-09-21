@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { terse } from "../../src/commands.mjs";
 import { MAX_LIMIT } from "../../src/tracker/issues.mjs";
 import { uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
-import { fakeTracker, pageOf, ranAsync, shortPage, tempRoom } from "../fixtures.mjs";
+import { pageOf, ranAsync, shortPage, tempRoom } from "../fixtures.mjs";
 import { trackerFor } from "../fixtures/own-project.mjs";
 
 /* The shape forge_uploads returns, as observed on ISS-22's one attachment. */
