@@ -4,15 +4,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, projectRecord, ranAsync, standsInNoTree } from "../fixtures.mjs";
-import { useProject } from "../../src/resolve/settings.mjs";
-import { write } from "../../src/tracker/rest.mjs";
-import { OWN } from "../fixtures/own-project.mjs";
+import { fakeTracker, projectRecord, ranAsync, standsInNoTree } from "../../fixtures.mjs";
+import { useProject } from "../../../src/resolve/settings.mjs";
+import { write } from "../../../src/tracker/rest.mjs";
+import { OWN } from "../../fixtures/own-project.mjs";
 
 standsInNoTree("write-announce");
 
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../..", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const ROOT = new URL("../../../..", import.meta.url).pathname;
 const UUID = "announce-uuid";
 
 const ISSUE = {

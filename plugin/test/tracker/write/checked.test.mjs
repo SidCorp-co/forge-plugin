@@ -112,7 +112,7 @@ const sources = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
     (entry.isDirectory() ? sources(join(dir, entry.name)) : [join(dir, entry.name)].filter((one) => one.endsWith(".mjs"))));
 
-const SRC = new URL("../../src", import.meta.url).pathname;
+const SRC = new URL("../../../src", import.meta.url).pathname;
 
 test("every tracker write in the source is behind the check, or named as exempt", () => {
   const found = [];
