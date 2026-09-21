@@ -18,6 +18,17 @@ Where the project named a master of its own, leave them standing: they are that 
 a wave that dispatches a judge into it puts two sessions on one issue. A key holding a value that is
 neither leaves this wave nothing to act on: those rows stay where they are until somebody fixes it.
 
+**Unsized open issues are a candidate class of their own, and every wave draws from them wherever
+any stand.** They are taken by the absence of a band rather than by a place in the order, they do
+not compete for the wave's count, and each one is a reading to be done rather than a run to be
+dispatched. An issue carrying no band is an issue nobody has read rather than one that is small, and
+from outside the two cannot be told apart — so an order computed from what the tracker already holds
+cannot separate them either. One that does climb on age alone arrives at the moment a slot is
+waiting on its band, which is the one moment the reading behind a band should not be made. Where the
+class is large the wave says how large and spends more of itself on reading that class than on the
+ranked order until it is not, because a backlog most of which carries no band is a fact about the
+project rather than a detail of one wave.
+
 The rank is advice. Take a lower-ranked issue whenever a reason the metadata cannot carry says so:
 the user's stated order, a file a running agent holds, a restart the wave is already paying for, a
 chain being cleared, or what the run-cost record says an issue of that shape has cost before. Every

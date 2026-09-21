@@ -23,6 +23,18 @@ carries no rung and there is nothing for a run to find disagreeing with the fiel
 issue nobody weighed spends a run's payloads settling a question one write here answers, and the
 ranking verb names that gap on every lead, so this is a step the order has already pointed at.
 
+**A band set while a slot is waiting on the answer is provisional, and goes in recorded as one.**
+The reading behind a band is the same reading whether a slot waits on it or not, but a reader who
+wants the slot filled is not the one to judge that it was done — so where a candidate arrives
+carrying none and the wave wants it now, the band is written as provisional together with the reason
+it could not be read, rather than as a value typed with the confidence of one that was. Drawing
+unsized issues in earlier is what makes that the rare case rather than the ordinary one, and it
+lowers nothing the reading behind a band has to carry.
+
+**The rung a band claims is what obliges a run to find the cause rather than route around it.** So a
+band set to clear a gate is a standard lowered on purpose, and it is never set that way without
+saying so. That is why the paragraph above is a rule and not a preference.
+
 **This phase's three writes — the confirmation, the candidate line and the complexity — belong to
 whoever did the reading, and that reader makes them.** The confirmation is the one that carries a
 disposition where there is one, so a verdict of *holds* drops none of the three. One handed back as a
