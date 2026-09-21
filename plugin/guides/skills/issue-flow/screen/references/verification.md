@@ -46,7 +46,7 @@ the notice arrives and never before, and the verdict it does not write is the pr
 file.
 
 **The checks that answer in seconds are spent before a landing is armed, and the file set is put
-beside the review's before them.** A fault the landing is the first thing to meet is paid for at the
+beside the review's after them.** A fault the landing is the first thing to meet is paid for at the
 landing's price and paid again at that price after the fix, where the changed file's own suite and
 the cheap checkers standing in the tree would have answered while the run was still editing. So
 those go first; then put the paths this change touched beside the file list the review read — `git

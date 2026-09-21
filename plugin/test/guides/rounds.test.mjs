@@ -144,7 +144,9 @@ test("the gate demand a lighter rung does not buy is absent from the text it is 
    answers it is owed at all four of the answers that line reaches — both those rungs, both flows —
    because a text stating it at one of them leaves the rung line unopposed at the rest (ISS-2085). */
 test("the order the cheap checks are spent in is served at both lighter rungs, in both flows", () => {
-  const ORDER = "The checks that answer in seconds are spent before a landing is armed";
+  /* The lead whole, not its opening: a lead putting the comparison before the checks contradicts the
+     body two lines under it, and a run repairing a cheap check adds the file the comparison is for. */
+  const ORDER = "The checks that answer in seconds are spent before a landing is armed, and the file set is put\nbeside the review's after them.";
   const COMPARE = "put the paths this change touched beside the file list the review read";
   const TIMING = "settle any difference before the arming";
   for (const flow of [DEFAULT, SCREEN]) {
