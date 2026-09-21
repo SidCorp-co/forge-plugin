@@ -383,7 +383,10 @@ describe("a name a project-row shaper chose not to read is declared, and the dec
     assert.match(said[0], new RegExp(`carries no such column`, "u"));
     assert.ok(said[0].includes(capture.taken),
       `the finding names no capture date, so a rule read off a stale capture reads as a rule about today: ${said[0]}`);
-    assert.match(said[0], /re-take the capture/u, "and the call that does it");
+    assert.match(said[0], /re-take plugin\/test\/fixtures\/rest\/projects-get\.json/u,
+      "and which capture, by path");
+    assert.match(said[0], /credential columns deleted before the body reaches disk/u,
+      "and the one rule a run re-taking it may not forget");
   });
 
   /* The two the row carries and no reading of it may name. They are on neither list because they are

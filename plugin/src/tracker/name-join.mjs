@@ -14,10 +14,23 @@ import { ROUTES, answersOf } from "./routes.mjs";
  *  a diagnostic row somebody pastes. Neither is a name this CLI has any reading for (ISS-1962). */
 export const WITHHELD = ["webhookSecret", "apiKey"];
 
-/* Short enough to collide with ordinary report text, so not struck: a value of that length is no
-   credential and blanking it would blank a sentence. Nothing here interpolates a row's value in the
-   first place — this is the second guard, not the first. */
+/* Short enough to collide with ordinary report text, so not struck out of it: blanking every
+   occurrence of a three-character value would blank words a reader needs. That bound is safe only
+   because no line here interpolates a row's value — the lines are built from the row's own key set
+   and from fixed text — so the strike is the second guard and `heldAsName` below is the first: the
+   one way a value can reach a line is by also being the name of a column, and a name reading as a
+   value this row holds is withheld whatever its length. */
 const TOO_SHORT = 6;
+
+/** The values the row holds under those two names, whole, at any length. */
+const secretsIn = (row) => WITHHELD
+  .map((name) => row?.[name])
+  .filter((held) => typeof held === "string" && held !== "");
+
+/** Whether a name of this row may not be printed: one of the two, or one that reads as a value the
+ *  row holds under one of them. Both are counted where they are not named. */
+export const heldAsName = (row, name) =>
+  WITHHELD.includes(name) || secretsIn(row).includes(name);
 
 /** Every line the reporter renders passes this, so no reporting path can carry one of those names or
  *  a value the row held under one. Built from the row where there is one; a read that refused has no
@@ -27,9 +40,8 @@ export const striking = (row) => {
      it — a key written `apiKey-1234` — has that name struck out of it by a names-first pass, and then
      no longer matches the value the pass was about, so the rest of it survives; and a value that is a
      prefix of another leaves the other's tail behind for the same reason. */
-  const values = WITHHELD
-    .map((name) => row?.[name])
-    .filter((held) => typeof held === "string" && held.length > TOO_SHORT)
+  const values = secretsIn(row)
+    .filter((held) => held.length > TOO_SHORT)
     .sort((one, other) => other.length - one.length);
   return (text) => [...values, ...WITHHELD]
     .reduce((held, one) => held.split(one).join("[withheld]"), String(text));
@@ -128,8 +140,8 @@ export const joined = (key, row, declared = CHOSEN[key] ?? {}) => {
   const held = recording(row);
   answersOf(ROUTES[key])({ page: held.stand }, {});
   const { names, whole } = held.asked();
-  const carried = Object.keys(row ?? {}).filter((name) => !WITHHELD.includes(name));
-  const asked = names.filter((name) => !WITHHELD.includes(name));
+  const carried = Object.keys(row ?? {}).filter((name) => !heldAsName(row, name));
+  const asked = names.filter((name) => !heldAsName(row, name));
   const dropped = whole ? [] : carried.filter((name) => !asked.includes(name));
   return {
     key,
@@ -137,9 +149,14 @@ export const joined = (key, row, declared = CHOSEN[key] ?? {}) => {
     undeclared: dropped.filter((name) => !Object.hasOwn(declared, name)),
     declared: dropped.filter((name) => Object.hasOwn(declared, name)),
     read: asked.filter((name) => Object.hasOwn(row ?? {}, name)),
-    withheld: WITHHELD.filter((name) => Object.hasOwn(row ?? {}, name)).length,
+    withheld: Object.keys(row ?? {}).filter((name) => heldAsName(row, name)).length,
   };
 };
+
+/* Taken by hand: no verb of this CLI and no script of this repository writes a wire capture, which
+   is ISS-2100's subject. Until one does, the refusal below names the file and the route rather than a
+   command, because a command that does not do it is worse than prose that does. */
+const CAPTURE = "plugin/test/fixtures/rest/projects-get.json";
 
 /** A declaration that stopped being true, for the suite to fail on. Two shapes: a name the shaper
  *  does ask for, and a name the capture cannot prove either way because its row never carried one. */
@@ -154,8 +171,9 @@ export const staleDeclarations = (row, taken, chosen = CHOSEN) =>
       if (!declared.includes(name)) {
         return [`${key} declares ${name} as a chosen drop and the capture taken ${taken} carries no`
           + " such column, so nothing here can tell a chosen drop from a column the tracker retired"
-          + " — re-take the capture with `node tools/run.mjs` and the credential columns scrubbed"
-          + " before it reaches disk, or drop the declaration"];
+          + ` — re-take ${CAPTURE} from GET /projects/:id through this CLI's own transport, with both`
+          + " credential columns deleted before the body reaches disk and `taken` set to the day, or"
+          + " drop the declaration"];
       }
       return [];
     });

@@ -34,7 +34,12 @@ secret and an API key. Both shapers exclude them today for free, by listing the 
 saying nothing about the rest — and the moment a reader reports on the names a shaper drops, that
 protection is gone and the report is a secret's name in a diagnostic somebody pastes. So they are
 struck by name from both directions and from every line the report renders, the reading says how many
-of them the row carried, and it says nothing else about either. The row that reports a refusal carries
+of them the row carried, and it says nothing else about either. The one way a *value* can reach a line
+is by also being the name of a column, since names are all this reads — so a name that reads as a
+value the row holds under one of the two is withheld whatever its length, and counted with them. The
+strike over the values themselves is the second guard and not the first: it leaves a value of six
+characters or fewer alone, because blanking every occurrence of a short string would blank words a
+reader needs, and nothing here puts a row's value in a line in the first place. The row that reports a refusal carries
 none of the tracker's own words for the same reason.
 
 **The reading says what it does not reach.** It reaches the row's own columns and nothing inside any
@@ -56,6 +61,11 @@ memory of one.
 A declaration for a column the capture does not carry fails, and the way forward is a fresh capture
 rather than a relaxed rule. `plugin/test/fixtures/rest/projects-get.json` is one project's row as the
 wire answered it, with the day it was taken. **Nothing of either withheld column may reach disk**:
-the capture is scrubbed of both before it is written, and the route test asserts their absence, so a
-capture taken with them in it fails rather than landing. The row is this project's own and no other's,
-because another project's would bring its test credentials into the repository with it.
+the body is read through this CLI's own transport, both columns are deleted from it, `taken` is set to
+the day, and only then is the file written. The route test asserts their absence, so a capture taken
+with them in it fails rather than landing. The row is this project's own and no other's, because
+another project's would bring its test credentials into the repository with it.
+
+No call does any of that. Every capture here was written by hand, which is why the failure names a
+file, a route and a rule where it would rather name a command, and why the scrub is a person's memory
+until `ISS-2100` gives it one.

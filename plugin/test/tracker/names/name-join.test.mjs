@@ -115,6 +115,24 @@ test("a withheld value long enough to be one is struck, and a short one is left 
     "a value short enough to collide with a sentence is not struck out of one");
 });
 
+/* The one way a value can reach a line at all: a row that grows a column whose NAME is the value it
+   holds under a credential column. The second direction would report that name, and reporting it
+   would be reporting the value. Short enough to be under the strike's own bound, which is what makes
+   the strike no answer to it (consult 0a73ae, F1). */
+test("a name that reads as a value this row holds under a credential column is not printed either", async () => {
+  const held = "abc123";
+  assert.ok(held.length < 7, "a value the strike would catch proves nothing about the name path");
+  const row = { ...ROW, [WITHHELD[1]]: held, [held]: null };
+  const rendered = (await lines(row)).join("\n");
+  assert.equal(rendered.includes(held), false, rendered);
+  assert.match(rendered, /2 withheld unnamed/u, "and both are counted where neither is named");
+  for (const key of SUBJECTS) {
+    const one = joined(key, row);
+    assert.equal([...one.read, ...one.undeclared, ...one.declared, ...one.unserved].includes(held),
+      false, key);
+  }
+});
+
 test("a withheld value carrying its own column's name is struck whole, and so is a longer one", () => {
   const strike = striking({ [WITHHELD[0]]: `${WITHHELD[0]}-1234567`, [WITHHELD[1]]: "held-tail" });
   assert.equal(strike(`sent ${WITHHELD[0]}-1234567 up`), "sent [withheld] up",
