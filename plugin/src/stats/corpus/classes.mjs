@@ -83,7 +83,10 @@ export const TABLE = 2;
 
 /** The generation each row's population last changed at, for the rows that have changed since this
  *  number existed; a row absent from here has stood throughout. Only the last change matters: a row
- *  is comparable with a reading held at generation `g` exactly where this is at or below `g`.
+ *  is comparable with a reading held at generation `g` exactly where this is at or below `g`. Two
+ *  things keep that sound: a row taken out of the table keeps its entry, an older reading still
+ *  holding figures under that label; and a row that takes another's calls is stamped at the
+ *  generation it took them, its population having moved though its pattern did not.
  *
  *  This number answers for the table below and for nothing a project said. The four rows
  *  `DECLARABLE` names are classed by a project's own words, so their populations move when those
