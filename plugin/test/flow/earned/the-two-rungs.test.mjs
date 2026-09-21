@@ -120,17 +120,14 @@ test("the judging rung is a declared step, so it is neither retired nor written 
    verdict earns sends a run to write its verdicts against a rung that does not ask for them. */
 const tracked = (glob) => execFileSync("git", ["-C", ROOT, "ls-files", glob], { cwd: ROOT, encoding: "utf8" })
   .trim().split("\n").filter(Boolean);
+/* Dropped before the split: a clause's field line carries a path and no sentence break closes it, so
+   a proof case under `test/flow/verdicts/` lends `verdicts` to whatever claim follows. Matched on the
+   shape and never on the tokens — a line merely holding `Proof:` beside a `·` is prose, and dropping
+   it would hide the one instruction this sweep is for (ISS-1788). */
+const FIELD_LINE = /^(?:- \*\*[A-Z]{2,3}-[\d-]+\*\* · Rev: \d|Rev: \d)[^\n]*$/gmu;
 /* One sentence naming the deploying rung with a verdict and not the judging rung attributes the
    verdict to the rung that does not ask for it; naming both rungs is the boundary itself, which the
-   flow part states in one breath on purpose, so the judging rung's presence tells them apart.
-   A requirement clause's field line goes first: it carries a path, no sentence break closes it, and
-   a proof case under `test/flow/verdicts/` therefore lends the word `verdicts` to whatever claim
-   follows it. That line is machinery by R-18's own division and makes no claim to read.
-   Matched on the shape and never on the tokens: a line merely holding `Proof:` beside a `·` is prose
-   and dropping it would hide the one instruction this sweep exists to catch, which is what a looser
-   reading of the same rule did (ISS-1788, consult 3b4b5a F1). What opens a field line is the
-   identifier in a list item, or `Rev:` at the very start of the line, and nothing else. */
-const FIELD_LINE = /^(?:- \*\*[A-Z]{2,3}-[\d-]+\*\* · Rev: \d|Rev: \d)[^\n]*$/gmu;
+   flow part states in one breath on purpose, so the judging rung's presence tells them apart. */
 const bothInOneSentence = (text) => String(text).replace(FIELD_LINE, "").split(/(?<=[.:|])\s|\n\n/u)
   .filter((one) => one.includes("awaiting_release") && /\bverdicts?\b/u.test(one)
     && !one.includes(JUDGED_AT));
