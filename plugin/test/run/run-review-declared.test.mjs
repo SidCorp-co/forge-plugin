@@ -5,7 +5,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { join } from "node:path";
 
-import { BARE, lastStep, landIn, noBacklog, pushed, ref, runIn, seen, stubbed,
+import { escaped } from "../fixtures.mjs";
+import { BARE, lastStep, landIn, noBacklog, pushed, recordOf, ref, runIn, seen, stubbed,
   withReview } from "./run-fixtures.mjs";
 
 /* The filing is a module call, so what it sent is a payload on the endpoint, not an argv. */
@@ -23,7 +24,7 @@ test("a declared path this checkout does not hold is refused where the reckoning
   assert.equal(asked.status, 1, asked.stdout);
   assert.doesNotMatch(asked.stdout, /changed line\(s\)/u, "a path that is not there counts no lines");
   assert.match(asked.stderr, /plugin\/scr is a counted path this repository does not hold/u, asked.stderr);
-  assert.match(asked.stderr, /`review\.paths` in \.forge\.json/u, asked.stderr);
+  assert.ok(asked.stderr.includes(`\`review.paths\` in ${recordOf(work)}`), asked.stderr);
   assert.match(asked.stderr, /forge doctor --set project\.review\.paths=<paths>/u, asked.stderr);
 });
 
@@ -72,13 +73,15 @@ test("the verb names the reckoning it counted under, and names both sources wher
 
   withReview(work, 40);
   const half = runIn(work, ["review"], BARE).stdout;
-  assert.match(half, /under plugin\/src, plugin\/hooks, plugin\/bin {2}← the volume \.forge\.json, the paths the plugin's default$/mu, half);
+  assert.match(half, new RegExp(`under plugin/src, plugin/hooks, plugin/bin {2}← the volume ${
+    escaped(recordOf(work))}, the paths the plugin's default$`, "mu"), half);
   assert.match(half, /^Short of the 40 changed line\(s\)/mu, half);
 
   landIn(work, join("plugin", "test", "wide.test.mjs"), 40, "the cases that module wanted");
   withReview(work, 40, ["plugin/src", "plugin/hooks", "plugin/bin", "plugin/test"]);
   const both = runIn(work, ["review"], BARE).stdout;
-  assert.match(both, /under plugin\/src, plugin\/hooks, plugin\/bin, plugin\/test {2}← \.forge\.json$/mu, both);
+  assert.match(both, new RegExp(`under plugin/src, plugin/hooks, plugin/bin, plugin/test {2}← ${
+    escaped(recordOf(work))}$`, "mu"), both);
   assert.match(both, /^A review is owed: 40 changed line\(s\)/mu, both);
 });
 
@@ -90,12 +93,14 @@ test("the release step names the reckoning on both sides of the threshold", () =
   landIn(work, join("plugin", "src", "wide.mjs"), 4, "a module a run grew");
 
   const short = lastStep(work).stdout;
-  assert.match(short, /under plugin\/src, plugin\/test since [0-9a-f]{7}, short of the 40 line\(s\) that call for a reading {2}← \.forge\.json/u, short);
+  assert.match(short, new RegExp(`under plugin/src, plugin/test since [0-9a-f]{7}, short of the 40 `
+    + `line\\(s\\) that call for a reading {2}← ${escaped(recordOf(work))}`, "u"), short);
 
   noBacklog({ key: "ISS-779" });
   landIn(work, join("plugin", "src", "wider.mjs"), 41, "the lines that cross it");
   const past = lastStep(work).stdout;
-  assert.match(past, /under plugin\/src, plugin\/test, at or past 40 line\(s\) {2}← \.forge\.json/u, past);
+  assert.match(past, new RegExp(`under plugin/src, plugin/test, at or past 40 line\\(s\\) {2}← ${
+    escaped(recordOf(work))}`, "u"), past);
 });
 
 /* The body is read in another run's tree days later, where the declaration this was counted under
@@ -112,7 +117,8 @@ test("the filed body states the reckoning it was filed under, and counts the pat
     const owed = lastStep(work);
     const filing = creating();
     assert.ok(filing, `nothing was filed at ${paths.length} paths:\n${owed.stdout}${owed.stderr}`);
-    assert.ok(filing.description.includes(`Reckoned at 40 changed line(s) over ${paths.length} path(s)  ← .forge.json`),
+    assert.ok(filing.description.includes(
+      `Reckoned at 40 changed line(s) over ${paths.length} path(s)  ← ${recordOf(work)}`),
       `the body names no reckoning:\n${filing.description}`);
     assert.ok(filing.description.includes(`its diff under those ${paths.length} paths`),
       `the body counts a number of paths it did not count:\n${filing.description}`);
@@ -130,8 +136,9 @@ test("a declaration the readers refuse withholds no usage, and is refused where 
   const help = runIn(work, ["-h"], BARE);
   assert.equal(help.status, 0, `the help exited on a configuration fault:\n${help.stderr}`);
   assert.match(help.stdout, /^Usage: node \S*run\.mjs <start\|relink\|finish\|ship\|land\|land-ready\|review>/mu, help.stdout);
-  assert.match(help.stdout, /whose declaration every reader of it refuses: `review\.lines` in \.forge\.json is a whole number/u,
-    `the usage says nothing of the declaration it could not read:\n${help.stdout}`);
+  assert.ok(help.stdout.includes("whose declaration every reader of it refuses: "
+    + `\`review.lines\` in ${recordOf(work)} is a whole number`),
+  `the usage says nothing of the declaration it could not read:\n${help.stdout}`);
   assert.ok(!help.stdout.includes("range holds 1500 changed line(s)"),
     `the help took this plugin's own number for a declaration that was refused:\n${help.stdout}`);
 
@@ -143,7 +150,7 @@ test("a declaration the readers refuse withholds no usage, and is refused where 
 
   const counted = runIn(work, ["review"], BARE);
   assert.equal(counted.status, 1, counted.stdout);
-  assert.match(counted.stderr, /`review\.lines` in \.forge\.json is a whole number of changed lines above zero, not `"lots"`/u,
-    counted.stderr);
+  assert.ok(counted.stderr.includes(`\`review.lines\` in ${recordOf(work)} is a whole number of `
+    + 'changed lines above zero, not `"lots"`'), counted.stderr);
   assert.match(counted.stderr, /Drop the key to take the 1500 this plugin ships with/u, counted.stderr);
 });

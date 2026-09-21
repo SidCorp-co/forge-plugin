@@ -8,7 +8,8 @@ import { join } from "node:path";
 
 import { DECLINED, gatesOn, placeFor, runnersOf } from "../../../../tools/gates/machine.mjs";
 import { escaped, tempRoom } from "../../fixtures.mjs";
-import { entryNames, HANGS_IN, heldGate, reachedTheStep, run, runsFile, scratch, stopGate } from "./scratch.mjs";
+import { entryNames, HANGS_IN, heldGate, reachedTheStep, projectRecordAt, run, runsFile, scratch,
+  stopGate } from "./scratch.mjs";
 
 const TICK = 100;
 
@@ -146,9 +147,11 @@ test("a second gate of one checkout declines the machine, says every clause it o
     const said = second.stderr;
     assert.match(said, /This gate declined the machine and judged nothing/u, said);
     assert.match(said, /1 gate\(s\) of this checkout are already running/u, "the count it read");
-    assert.match(said, /carries 1 run\(s\) at once {2}← \.forge\.json/u, "the number and where it came from");
+    assert.ok(said.includes(`carries 1 run(s) at once  ← ${projectRecordAt(work)}`),
+      `the number and where it came from:\n${said}`);
     assert.match(said, new RegExp(`pid ${first.pid} {2}gating ${escaped(work)}`, "u"), "the gate it counted, and that gate's tree");
-    assert.match(said, /raise the `runs` key in this project's \.forge\.json above 1/u, "the route that raises it");
+    assert.ok(said.includes("Or raise `forge doctor --set runs=<n>` above 1."),
+      `the route that raises it:\n${said}`);
     assert.ok(said.includes(`nothing here judges ${work}`), `it claimed something about the tree:\n${said}`);
     assert.deepEqual(entryNames(work), [], "a declined gate recorded a pass");
     assert.ok(!existsSync(runsFile(work)), "a declined gate recorded a run figure");
@@ -180,11 +183,12 @@ test("a machine that declares no number lets a second gate of the same checkout 
    undeclared box's do, so a line keyed on that equality calls a declared box undeclared (ISS-1613). */
 test("the worker line names the number this box declared, and says so where it declared none", () => {
   for (const [runs, expected] of [
-    [1, /=== \d+ test worker\(s\) of \d+ core\(s\), 1 run\(s\) declared in \.forge\.json ===/u],
-    [null, /=== \d+ test worker\(s\) of \d+ core\(s\), this box having declared no runs ===/u]]) {
+    [1, (work) => new RegExp(`=== \\d+ test worker\\(s\\) of \\d+ core\\(s\\), 1 run\\(s\\) declared in ${
+      escaped(projectRecordAt(work))} ===`, "u")],
+    [null, () => /=== \d+ test worker\(s\) of \d+ core\(s\), this box having declared no runs ===/u]]) {
     const { at, work } = scratch(`machine-worker-line-${runs ?? "none"}`, null, null, { runs });
     try {
-      assert.match(run(work, ["--full"]).stdout, expected, `declared runs: ${runs}`);
+      assert.match(run(work, ["--full"]).stdout, expected(work), `declared runs: ${runs}`);
     } finally {
       rmSync(at, { recursive: true, force: true });
     }

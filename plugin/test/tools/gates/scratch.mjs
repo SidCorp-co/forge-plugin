@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { stampRoom } from "../../../src/hooks/stamps.mjs";
 import { DECLARED_READS, STEPS, WHOLE_TREE_TESTS } from "../../../../tools/gates/steps.mjs";
-import { ranAsync, tempRoom } from "../../fixtures.mjs";
+import { projectEntry, projectRecord, ranAsync, tempRoom } from "../../fixtures.mjs";
 
 export const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
 export const RUNNER = join("tools", "gates.mjs");
@@ -81,8 +81,15 @@ export const git = (cwd, ...args) => spawnSync("git", args, { cwd, encoding: "ut
    runs as a child of this suite and spends no file, so the scratch's test steps would pass empty. */
 export const SHELL_ENV = Object.fromEntries(Object.entries(process.env).filter(([key]) => key !== "NODE_TEST_CONTEXT"));
 
+/** The configuration home every run of a scratch checkout reads, one per scratch and never the
+ *  developer's: this machine's record of that scratch's project is kept under it. */
+export const configHome = (work) => join(work, "..", "config");
+
+/** And where that record sits, which is what a run of this scratch names as a key's source. */
+export const projectRecordAt = (work) => projectEntry(work, configHome(work));
+
 const scratchEnv = (work, env) =>
-  ({ ...SHELL_ENV, XDG_CONFIG_HOME: join(work, "..", "config"), ...env });
+  ({ ...SHELL_ENV, XDG_CONFIG_HOME: configHome(work), ...env });
 
 export const run = (work, argv = [], cwd = work, env = {}) =>
   spawnSync(process.execPath, [join(work, RUNNER), ...argv],
@@ -166,11 +173,12 @@ export const scratch = (name, failing, leaking,
   /* Written before the tree is committed: the number is the project's now, and a file placed
      after the commit would leave the scratch dirty and refuse its gate for another reason. */
   if (declaring) write(work, declaring, blindTest(reading));
-  if (slug || runs) write(work, ".forge.json", JSON.stringify({ ...(slug && { slug }), ...(runs && { runs }) }));
   write(work, "package.json",
     JSON.stringify({ name: "scratch", version: "1.0.0", ...(declares && { devDependencies: declares }),
       scripts: scripts({ failing, leaking, hanging, needing }) }, null, 2));
   git(work, "init", "-b", "master");
+  /* Once the tree is a checkout and outside it, the record being keyed on the repository. */
+  if (slug || runs) projectRecord(work, configHome(work), { ...(slug && { slug }), ...(runs && { runs }) });
   for (const [key, value] of [["user.email", "t@example.test"], ["user.name", "Test"]]) git(work, "config", key, value);
   git(work, "add", "-A");
   git(work, "commit", "-m", "the tree");

@@ -11,7 +11,7 @@ import { join, relative } from "node:path";
 import { clauseIndex } from "../../src/spec/index.mjs";
 import { RECORD, entriesOf, malformedIn, movedIn, recordProblems } from "../../src/spec/recorded.mjs";
 import { TREE } from "../../src/spec/tree.mjs";
-import { escaped, tempRoom } from "../fixtures.mjs";
+import { escaped, projectRoom, tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const scratch = [];
@@ -21,6 +21,10 @@ const temporary = (prefix) => {
   return dir;
 };
 after(() => scratch.forEach((dir) => rmSync(dir, { force: true, recursive: true })));
+
+/* This machine's records of the fixture projects below, nowhere near the developer's own: the entry
+   a project resolves to is keyed on its room and kept under the configuration home a run is given. */
+const HOME = temporary("recorded-home-");
 
 const REQUIREMENT = `# SRS §3 — FR-01 — The first capability
 
@@ -215,7 +219,7 @@ test("the writer names the entries that moved, one line each, and says nothing a
 
 const project = (prefix, withTree) => {
   const root = temporary(prefix);
-  writeFileSync(join(root, ".forge.json"), '{"slug":"recorded-fixture"}');
+  projectRoom(root, HOME, { slug: "recorded-fixture" });
   if (withTree) {
     for (const { file, text } of DOCUMENTS) {
       mkdirSync(join(root, file, ".."), { recursive: true });
@@ -225,7 +229,8 @@ const project = (prefix, withTree) => {
   return root;
 };
 
-const ran = (root, argv) => spawnSync(FORGE, ["spec", "check", ...argv], { encoding: "utf8", cwd: root });
+const ran = (root, argv) => spawnSync(FORGE, ["spec", "check", ...argv],
+  { encoding: "utf8", cwd: root, env: { ...process.env, HOME, XDG_CONFIG_HOME: HOME } });
 
 test("--record writes the file, names what it wrote, and the check then reports no R-10 finding", () => {
   const root = project("recorded-write-", true);

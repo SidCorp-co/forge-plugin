@@ -7,7 +7,7 @@ import test, { after } from "node:test";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { escaped, tempRoom } from "../fixtures.mjs";
+import { escaped, projectRoom, tempRoom } from "../fixtures.mjs";
 
 const scratch = [];
 const temporary = (prefix) => {
@@ -52,7 +52,7 @@ The identifier is the whole surface.
 
 const project = (prefix, withTree) => {
   const root = temporary(prefix);
-  writeFileSync(join(root, ".forge.json"), '{"slug":"checked-fixture"}');
+  projectRoom(root, process.env.XDG_CONFIG_HOME, { slug: "checked-fixture" });
   if (withTree) {
     const srs = join(root, TREE, "srs");
     mkdirSync(srs, { recursive: true });

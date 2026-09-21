@@ -10,8 +10,8 @@ import { pairOf } from "../resolve/flags.mjs";
 import { configPath } from "../resolve/config.mjs";
 import { MACHINE_KEYS, MACHINE_KEY_NAMES, WITH_BODY, WRITES } from "./doctor-keys.mjs";
 import {
-  READS_IT, SET_USAGE, asWritten, projectWrite, readsProjectKey, spelled, withKey, withoutKey,
-  writableKey, writablePaths, wroteWhole,
+  READS_IT, SET_USAGE, asWritten, projectWrite, readsProjectKey, setCall, spelled, withKey,
+  withoutKey, writableKey, writablePaths, wroteWhole,
 } from "./services/project-file.mjs";
 import { FLOW_SLUGS, flowPinned, judgeOf, projectAsksOf, requiresOf } from "../guides/flow.mjs";
 import { flowJudgeConflict, flowPolicyConflict } from "../flow/earned.mjs";
@@ -126,13 +126,26 @@ const unknownKey = (given, read) =>
    by its own name rather than written a second time: two layers for one switch is a precedence rule
    with no report of which won, which is the undo BR-08 says is broken (ISS-1403). The machine's set
    is `MACHINE_KEYS` in doctor-keys.mjs, derived from the rows that write it, and the project's is
-   `PROJECT_KEYS` — a key in neither is refused with both lists. */
+   `PROJECT_KEYS` — a key in neither is refused with both lists.
+
+   `hasOwn`, never a lookup: the table is an object, so `constructor` and `toString` answer off
+   Object.prototype and a caller naming one would be refused with a route reading
+   `function Object() { [native code] }`. The same care `settingTo` takes in project-file.mjs. */
 const refuseMachineKey = (key) => {
-  const route = MACHINE_KEYS[String(key).split(".")[0]];
-  if (!route) return;
+  const head = String(key).split(".")[0];
+  if (!Object.hasOwn(MACHINE_KEYS, head)) return;
+  /* `codex` is a key of both levels and means two things: this machine's is the gateway a consult
+     is sent to, the project's is what the reviewer may read and run here. A name in both is routed
+     to the project, which is the level `--set` writes, and is only refused where no project path
+     under it matches — and then with both routes, since either could be what was meant. */
+  const shared = readsProjectKey(head)
+    ? ` \`${head}\` names a key at both levels, and the project's is written by naming the level:`
+      + ` \`${setCall(`${LOCAL}.${key}`, "<value>")}\`, whose paths are`
+      + ` ${writablePaths().filter((one) => one.startsWith(`${head}.`)).join(", ")}.`
+    : "";
   fail(`--set: \`${key}\` is this MACHINE's and not this project's — it answers the same whatever `
     + `project is in front of it, so it is kept in ${configPath()} rather than in any project's `
-    + `record. --set writes the project's half alone. Nothing was written: run \`${route}\`.`);
+    + `record. Nothing was written: run \`${MACHINE_KEYS[head]}\`.${shared}`);
 };
 
 /* What this plugin declares it reads out of the project file is known before any call goes out, so a bare key of that set is that file's and the tracker is not read for it, which is also the only way `slug` is settable in a checkout that names no project yet. docs/cli/the-project-file.md. */
@@ -156,8 +169,10 @@ const projectRoute = (key) => {
    routing nowhere: one is a deploy switch, so picking for the caller is wrong half the time. */
 const routeFor = async (given) => {
   /* Before any resource is read: a key this machine owns is refused by name rather than costing a
-     tracker round trip that would answer about a project it is not a key of. */
-  refuseMachineKey(given);
+     tracker round trip that would answer about a project it is not a key of. A name this plugin
+     also reads as the project's goes to the project route below, which refuses it there if no path
+     matches — refusing here would put `codex.check` out of reach of the verb that writes it. */
+  if (!readsProjectKey(given)) refuseMachineKey(given);
   const at = given.indexOf(".");
   const head = at > 0 ? given.slice(0, at) : null;
   if (head === LOCAL) return projectRoute(given.slice(at + 1));

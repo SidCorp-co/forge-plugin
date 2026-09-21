@@ -153,7 +153,7 @@ text the session it is in is holding.
 - **AC-01-4-11** · Rev: 1 · Proof: plugin/test/cli/doctor/job.test.mjs "turning off whatever job is on leaves nothing withheld, hand-hidden verbs included"
   WHEN the developer turns off whatever job is on THEN the CLI SHALL withhold no verb at all,
   including any the developer had hidden one at a time.
-- **AC-01-4-12** · Rev: 1 · Proof: plugin/test/cli/doctor/job.test.mjs "the report names every declared job and the project's own file as where they were read"
+- **AC-01-4-12** · Rev: 1 · Proof: plugin/test/cli/doctor/job.test.mjs "the report names every declared job and the project's own record as where they were read"
   WHEN the resolution report is printed in a checkout whose project declares jobs THEN it SHALL name
   each job declared and SHALL name the project's own file as where they were read.
 - **AC-01-4-13** · Rev: 2 · Proof: plugin/test/cli/doctor/job.test.mjs "the report names every declared job the withheld list matches, and says none matches where that is so"
@@ -286,7 +286,7 @@ file read by nothing: a second layer is the precedence rule this shape exists to
 reported once with the one command that takes its contents over rather than quietly preferred or
 quietly ignored.
 
-- **AC-01-5-1** · Rev: 2 · Proof: plugin/test/tools/doctor.test.mjs "every key the project set is printed with the record it was read from as its source"
+- **AC-01-5-1** · Rev: 2 · Proof: plugin/test/tools/doctor.test.mjs "every key the project set is printed with this machine's record of it as its source"
   WHEN the resolution report is printed THEN the CLI SHALL list each project key with its value and
   the file it was read from.
 - **AC-01-5-2** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "a key the project left out is printed at the plugin's default, with the default as its source"
@@ -306,7 +306,7 @@ quietly ignored.
 - **AC-01-5-6** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "the mode the report prints is the mode last written, either way"
   WHEN the resolution report is printed THEN it SHALL print the landing mode the account's
   configuration holds.
-- **AC-01-5-7** · Rev: 2 · Proof: plugin/test/tools/doctor.test.mjs "the number of parallel runs is the project's: it is read out of the project file, with that file named as its source"
+- **AC-01-5-7** · Rev: 2 · Proof: plugin/test/tools/doctor.test.mjs "the number of parallel runs is the project's: it is read out of the project's record, with that file named as its source"
   WHEN the project declares how many runs it carries at once THEN the resolution report SHALL print
   that number, SHALL name the project's own file as where it was read, and SHALL neither read nor
   write that number in the account's configuration.

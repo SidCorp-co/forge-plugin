@@ -6,7 +6,8 @@ import test from "node:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeTracker, git, homeEnv, ranAsync, shortPage, tempRoom } from "../../../fixtures.mjs";
+import { escaped, fakeTracker, git, homeEnv, projectEntry, projectRecord, ranAsync, shortPage,
+  tempRoom } from "../../../fixtures.mjs";
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 
@@ -21,40 +22,44 @@ const wrote = (room, path, lines) => {
   writeFileSync(at, `${Array.from({ length: lines }, (one, index) => index).join("\n")}\n`);
 };
 
+/* The room, the configuration home holding this machine's record of its project, and where that
+   record sits — one triple, because the call below has to be given the home the record was written
+   under and the row names that record's path. */
 const built = (name, review, { mark = true } = {}) => {
   const room = tempRoom(`review-row-${name}-`);
+  const env = homeEnv(`review-row-${name}`);
   wrote(room, join("app", "kept.txt"), 1);
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: name, ...review }));
   ran(room, "init", "-q", "-b", "master", ".");
+  projectRecord(room, env.XDG_CONFIG_HOME, { slug: name, ...review });
   ran(room, "add", "-A");
   ran(room, "commit", "-q", "-m", "the first commit");
   if (mark) ran(room, "update-ref", "refs/forge/reviewed", "HEAD");
-  return room;
+  return { room, env, record: projectEntry(room, env.XDG_CONFIG_HOME) };
 };
 
-const rowIn = async (room, name) => {
-  const { stdout } = await ranAsync(FORGE, ["doctor", "project"], homeEnv(`review-row-${name}`), room);
+const rowIn = async ({ room, env }) => {
+  const { stdout } = await ranAsync(FORGE, ["doctor", "project"], env, room);
   return stdout.split("\n").filter((one) => one.includes("] review ")).join("\n");
 };
 
 test("a project that declared neither key gets no review row at all", async () => {
   for (const [at, review] of [{}, { review: {} }, { review: null }].entries()) {
-    assert.equal(await rowIn(built(`silent-${at}`, review), `silent-${at}`), "",
+    assert.equal(await rowIn(built(`silent-${at}`, review)), "",
       `${JSON.stringify(review)} printed a row`);
   }
 });
 
 test("a declaration this repository cannot count is a miss naming the paths and the key to set", async () => {
-  const said = await rowIn(built("elsewhere", { review: { lines: 40 } }), "elsewhere");
+  const at = built("elsewhere", { review: { lines: 40 } });
+  const said = await rowIn(at);
   assert.match(said, /^\[ miss \] review/u);
   assert.match(said, /plugin\/src, plugin\/hooks, plugin\/bin are counted paths this repository does not hold/u);
-  assert.match(said, /Declare this repository's own under `review\.paths` in \.forge\.json/u);
+  assert.ok(said.includes(`Declare this repository's own under \`review.paths\` in ${at.record}`), said);
   assert.match(said, /forge doctor --set project\.review\.paths=<paths>/u);
 });
 
 test("a repository with no mark is told it is unplanted and given the command that plants it", async () => {
-  const said = await rowIn(built("unplanted", { review: { lines: 9, paths: ["app"] } }, { mark: false }),
-    "unplanted");
+  const said = await rowIn(built("unplanted", { review: { lines: 9, paths: ["app"] } }, { mark: false }));
   assert.match(said, /^\[ {2}ok {2}\] review/u);
   assert.match(said, /refs\/forge\/reviewed is unplanted, so nothing is counted yet/u);
   assert.match(said, /git update-ref refs\/forge\/reviewed <that commit>/u);
@@ -62,19 +67,20 @@ test("a repository with no mark is told it is unplanted and given the command th
 });
 
 test("a declaration that counts prints the count since the mark, with the project's own file as its source", async () => {
-  const room = built("short", { review: { lines: 9, paths: ["app"] } });
-  wrote(room, join("app", "grew.txt"), 4);
-  ran(room, "add", "-A");
-  ran(room, "commit", "-q", "-m", "four lines");
-  const said = await rowIn(room, "short");
+  const at = built("short", { review: { lines: 9, paths: ["app"] } });
+  wrote(at.room, join("app", "grew.txt"), 4);
+  ran(at.room, "add", "-A");
+  ran(at.room, "commit", "-q", "-m", "four lines");
+  const said = await rowIn(at);
   assert.match(said, /4 changed line\(s\) in 1 file\(s\) under app since/u);
-  assert.match(said, /short of the 9 that earn a reading of what has landed {2}← \.forge\.json$/u);
+  assert.match(said, new RegExp(`short of the 9 that earn a reading of what has landed {2}← ${
+    escaped(at.record)}$`, "u"), said);
 });
 
 test("a mistyped key is a miss on the row, and every other project row still prints", async () => {
   for (const [at, review] of [{ lines: null }, { lines: 9, paths: [] }].entries()) {
-    const said = await ranAsync(FORGE, ["doctor", "project"], homeEnv(`review-row-wrong-${at}`),
-      built(`wrong-${at}`, { review }));
+    const wrong = built(`wrong-${at}`, { review });
+    const said = await ranAsync(FORGE, ["doctor", "project"], wrong.env, wrong.room);
     const rows = said.stdout.split("\n").filter((one) => one.startsWith("["));
     assert.ok(rows.some((one) => /^\[ miss \] review/u.test(one)), `no miss row: ${said.stdout}`);
     assert.ok(rows.some((one) => one.includes("flow ")), `the report stopped at the review row: ${said.stdout}`);
@@ -82,11 +88,11 @@ test("a mistyped key is a miss on the row, and every other project row still pri
 });
 
 test("the row says a reading is owed once the count reaches the volume in force", async () => {
-  const room = built("owed", { review: { lines: 4, paths: ["app"] } });
-  wrote(room, join("app", "grew.txt"), 4);
-  ran(room, "add", "-A");
-  ran(room, "commit", "-q", "-m", "four lines");
-  const said = await rowIn(room, "owed");
+  const at = built("owed", { review: { lines: 4, paths: ["app"] } });
+  wrote(at.room, join("app", "grew.txt"), 4);
+  ran(at.room, "add", "-A");
+  ran(at.room, "commit", "-q", "-m", "four lines");
+  const said = await rowIn(at);
   assert.match(said, /at or past the 4 that earn a reading of what has landed/u);
 });
 
@@ -95,13 +101,16 @@ test("the row says a reading is owed once the count reaches the volume in force"
    project its door is guarding nothing (ISS-1905). */
 const doorRoom = (name, project) => {
   const room = tempRoom(`owed-row-${name}-`);
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: name, ...project }));
-  return room;
+  const env = homeEnv(`owed-row-${name}`);
+  ran(room, "init", "-q", "-b", "master", ".");
+  projectRecord(room, env.XDG_CONFIG_HOME, { slug: name, ...project });
+  return { room, env, record: projectEntry(room, env.XDG_CONFIG_HOME) };
 };
 
+let lastDoor = null;
 const doorRow = async (name, project) => {
-  const { stdout } = await ranAsync(FORGE, ["doctor", "project"], homeEnv(`owed-row-${name}`),
-    doorRoom(name, project));
+  lastDoor = doorRoom(name, project);
+  const { stdout } = await ranAsync(FORGE, ["doctor", "project"], lastDoor.env, lastDoor.room);
   return stdout.split("\n").filter((one) => one.includes("] codex.owed ")).join("\n");
 };
 
@@ -127,8 +136,8 @@ test("every named door armed reads ok and names the command in force at each", a
     stats: { commands: { gate: ["make verify", "make verify-fast"], ship: "./deploy.sh" } } });
   assert.match(said, /^\[ {2}ok {2}\] codex\.owed/u, said);
   assert.match(said, /gate at `make verify` or `make verify-fast`, ship at `\.\/deploy\.sh`/u, said);
-  assert.match(said, /each command door at what `stats\.commands` names {2}← \.forge\.json$/u,
-    "and the file every one of them was read from");
+  assert.match(said, new RegExp(`each command door at what \`stats\\.commands\` names {2}← ${
+    escaped(lastDoor.record)}$`, "u"), "and the file every one of them was read from");
 });
 
 /* The debt is printed twice — here and by the release step that files its reading — so the row says
@@ -137,10 +146,7 @@ const DECLARED = { review: { lines: 4, paths: ["app"] } };
 const OWN_SLUG = JSON.parse(readFileSync(join(import.meta.dirname, "..", "..", "..", "..", "..", ".forge.json"), "utf8")).slug;
 
 const owedRoom = (name) => {
-  const room = built(name, DECLARED);
-  /* The fixture serves this repository's own slug and no other, so a scoped read resolves only
-     where the room asks for that project. */
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: OWN_SLUG, ...DECLARED }));
+  const { room } = built(name, DECLARED);
   wrote(room, join("app", "grew.txt"), 4);
   ran(room, "add", "-A");
   ran(room, "commit", "-q", "-m", "four lines");
@@ -150,6 +156,10 @@ const owedRoom = (name) => {
 const readingRow = async (name, state) => {
   const { room, mark } = owedRoom(name);
   const tracker = await fakeTracker(state(mark));
+  /* The fixture serves this repository's own slug and no other, so a scoped read resolves only
+     where the room asks for that project — under the home this call is given, which is the
+     tracker's own and not the one the room was built with. */
+  projectRecord(room, tracker.env.XDG_CONFIG_HOME, { slug: OWN_SLUG, ...DECLARED });
   const { stdout } = await ranAsync(FORGE, ["doctor", "project"], { ...tracker.env }, room);
   tracker.close();
   return stdout.split("\n").filter((one) => one.includes("] review ")).join("\n");

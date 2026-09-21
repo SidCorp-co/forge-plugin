@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { GUIDE_INDEX, guidePartOf } from "../../../src/stats/corpus/classes.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 import { DEFAULT } from "../../../src/guides/flow.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { projectRoom, tempRoom } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const PROJECT = "/fixture/project";
@@ -123,7 +123,7 @@ test("the flow is the one that call was served, so a reading does not move when 
     mkdirSync(join(home, "forge"), { recursive: true });
     writeFileSync(join(home, "forge", "config.json"),
       JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token" }));
-    writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "served-fixture", ...keys }));
+    projectRoom(room, home, { slug: "served-fixture", ...keys });
     const said = spawnSync(FORGE, ["stats", "runs", "--checkout", PROJECT, "--json"],
       { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home, TMPDIR: room }, cwd: room });
     assert.equal(said.status, 0, said.stderr);

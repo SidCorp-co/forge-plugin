@@ -162,12 +162,18 @@ export const corpus = () => {
   return room;
 };
 
-export const asked = (room, ...argv) =>
+/** The verb over one room, under a configuration home the caller names: a case that configured the
+ *  checkout it profiles wrote this machine's record of that project under that home, so the child
+ *  has to be handed the same one. */
+export const askedIn = (room, home, ...argv) =>
   spawnSync(FORGE, ["stats", "runs", ...argv], {
     encoding: "utf8",
     /* The home is the room's own: every home-rooted path this verb reads is read where it is used, so a case that left it would profile the developer's own store. */
-    env: { ...process.env, HOME: room, XDG_CONFIG_HOME: tempRoom("stats-home-"), TMPDIR: room },
+    env: { ...process.env, HOME: room, XDG_CONFIG_HOME: home, TMPDIR: room },
   });
+
+/* A home of its own per call, so a mark one reading wrote is not the next reading's history. */
+export const asked = (room, ...argv) => askedIn(room, tempRoom("stats-home-"), ...argv);
 
 /* A case about --checkout itself calls `asked`: a helper naming a flag makes the caller's own
    occurrence a second one, which the parser refuses rather than overrides (ISS-930). */

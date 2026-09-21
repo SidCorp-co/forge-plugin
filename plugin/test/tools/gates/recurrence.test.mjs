@@ -4,13 +4,16 @@
    a subprocess so the settings this CLI memoises are that run's own. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { bodyFor, markerFor, titleFor } from "../../../../tools/gates/recurrence.mjs";
 import { DEFAULT_OVERLAP_THRESHOLD } from "../../../hooks/vendor/text-overlap.js";
 import { duplicateOf } from "../../../src/tracker/issue-shape.mjs";
-import { fakeTracker, ranAsync, shortPage } from "../../fixtures.mjs";
+import { fakeTracker, projectRecord, ranAsync, shortPage } from "../../fixtures.mjs";
 
 const ROOT = new URL("../../../..", import.meta.url).pathname;
+const OWN = JSON.parse(readFileSync(join(ROOT, ".forge.json"), "utf8"));
 const MODULE = new URL("../../../../tools/gates/recurrence.mjs", import.meta.url).href;
 
 const DRIVER = `import { fileRecurrences } from ${JSON.stringify(MODULE)};
@@ -43,6 +46,9 @@ const openIssue = (one, over = {}) => ({
 
 const drove = async (state, found) => {
   const tracker = await fakeTracker(state);
+  /* The filing is project-scoped and the driver stands in this checkout, so this machine's record of
+     this project goes under the configuration home that fixture hands the child. */
+  projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME, OWN);
   try {
     const said = await ranAsync(process.execPath, ["--input-type=module", "-e", DRIVER],
       { ...tracker.env, RECURRENCE: JSON.stringify(found) }, ROOT);

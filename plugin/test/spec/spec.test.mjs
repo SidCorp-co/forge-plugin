@@ -5,7 +5,7 @@ import test, { after } from "node:test";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tempRoom } from "../fixtures.mjs";
+import { projectRoom, tempRoom } from "../fixtures.mjs";
 
 /* A fixture directory left behind is a directory left behind on every run: the quota on `/tmp` is
    what a run reaching it loses, and it takes the whole shell with it. */
@@ -309,7 +309,7 @@ test("a clause under an identifier two documents define is not named by the copy
   const brd = join(root, TREE, "brd");
   mkdirSync(srs, { recursive: true });
   mkdirSync(brd, { recursive: true });
-  writeFileSync(join(root, ".forge.json"), '{"slug":"spec-fixture"}');
+  projectRoom(root, process.env.XDG_CONFIG_HOME, { slug: "spec-fixture" });
   writeFileSync(join(srs, "fr-01-first.md"), REQUIREMENT);
   writeFileSync(join(srs, "fr-01-copy.md"), REQUIREMENT.replace(/UC-01-1/gu, "UC-01-2").replace(/AC-01-1-/gu, "AC-01-2-"));
   writeFileSync(join(brd, "04-business-rules.md"), RULES);

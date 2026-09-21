@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import { releaseRows, startRelease } from "../../../../src/tools/services/doctor/release.mjs";
-import { escaped, tempRoom } from "../../../fixtures.mjs";
+import { escaped, projectRoom, tempRoom } from "../../../fixtures.mjs";
 import { patience, reached } from "../../../patience.mjs";
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
@@ -257,8 +257,7 @@ test("a call that writes a setting and returns asks the remote nothing", async (
   chmodSync(transport, 0o755);
   git(at.tree, "config", "protocol.ext.allow", "always");
   git(at.tree, "remote", "set-url", "origin", `ext::${transport}`);
-  const work = tempRoom("release-write-cwd-");
-  writeFileSync(join(work, ".forge.json"), JSON.stringify({ slug: "scratch" }));
+  const work = projectRoom(tempRoom("release-write-cwd-"), join(at.home, ".config"), { slug: "scratch" });
   const ran = (...args) => spawnSync(process.execPath, [CLI, "doctor", ...args], {
     encoding: "utf8",
     cwd: work,
@@ -278,8 +277,7 @@ test("the report asks the remote and writes nothing to the tree it asked through
   const at = box("reported", { tags: ["v998.0.0", "v999.0.0"], source: "999.0.0" });
   const before = [git(at.tree, "rev-parse", "HEAD").stdout, git(at.tree, "show-ref").stdout,
     git(at.tree, "status", "--porcelain").stdout];
-  const work = tempRoom("release-cwd-");
-  writeFileSync(join(work, ".forge.json"), JSON.stringify({ slug: "scratch" }));
+  const work = projectRoom(tempRoom("release-cwd-"), join(at.home, ".config"), { slug: "scratch" });
   const run = spawnSync(process.execPath, [CLI, "doctor"], {
     encoding: "utf8",
     cwd: work,

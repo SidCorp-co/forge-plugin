@@ -1,26 +1,32 @@
 /* What a case of the rank stands in, and the shapes it builds a backlog out of. */
-import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
 
-import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, projectEntry, projectRoom, ranAsync, tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../..", import.meta.url).pathname;
 
-/* A case about the weights stands outside this checkout: writing its own file would leave a run
-   that died mid-case with a backlog ranked by a weight nobody set. */
+/* A case about the weights stands outside this checkout: writing this checkout's own record would
+   leave a run that died mid-case with a backlog ranked by a weight nobody set. The record goes under
+   the configuration home the tracker fixture hands every child, which `rankRoom` sets below — so a
+   room built before one exists is a case's mistake and is refused here rather than read as a project
+   that declared nothing. */
 const OWN = JSON.parse(readFileSync(`${ROOT}.forge.json`, "utf8"));
-export const standing = (rank) => {
-  const room = tempRoom("rank-project-");
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: OWN.slug, ...(rank ? { rank } : {}) }));
-  return room;
+
+let HOME = null;
+
+const configured = (prefix, keys) => {
+  if (!HOME) throw new Error("no configuration home yet: await rankRoom() before building a room");
+  return projectRoom(tempRoom(prefix), HOME, { slug: OWN.slug, ...keys });
 };
 
-export const declaring = (drain) => {
-  const room = tempRoom("rank-drain-");
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: OWN.slug, drainedBy: drain }));
-  return room;
-};
+export const standing = (rank) => configured("rank-project-", rank ? { rank } : {});
+
+export const declaring = (drain) => configured("rank-drain-", { drainedBy: drain });
+
+/** Where this machine's record of a room built above sits, which is what a report of that room names
+ *  as the source of a key it read. */
+export const recordOf = (room) => projectEntry(room, HOME);
 
 export const issue = (issueId, held = {}) => ({
   issueId,
@@ -46,6 +52,7 @@ export const claims = (phrase) => `It is blocked by the ${phrase} issue, and tho
 export const rankRoom = async () => {
   const state = { issues: [], comments: {}, calls: [], answer: {}, memory: {} };
   const tracker = await fakeTracker(state);
+  HOME = tracker.env.XDG_CONFIG_HOME;
   const plain = standing(null);
   return {
     state,

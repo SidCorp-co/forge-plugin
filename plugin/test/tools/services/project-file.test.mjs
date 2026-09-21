@@ -4,9 +4,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 
-import { homeEnv, ranAsync, tempHome } from "../../fixtures.mjs";
+import { escaped, homeEnv, projectEntry, projectRoom, ranAsync, tempHome } from "../../fixtures.mjs";
 import { declares } from "../../../src/stats/corpus/declared.mjs";
 import { writableKey } from "../../../src/tools/services/project-file.mjs";
 
@@ -28,7 +27,12 @@ const HELD = `{
 const room = tempHome("doctor-set-project");
 test.after(() => room.remove());
 const env = homeEnv("doctor-set-project");
-const file = join(room.path, ".forge.json");
+/* The room is a checkout, because this machine's record of a project is keyed on the repository a
+   directory belongs to; the file every case below reads back is that record, under the
+   configuration home each call is given, and no file in the tree. */
+const file = projectEntry(projectRoom(room.path, env.XDG_CONFIG_HOME, {}), env.XDG_CONFIG_HOME);
+/* Named once and used by every case that quotes it back: the refusals below carry it. */
+const AT = escaped(file);
 
 const fresh = (text = HELD) => writeFileSync(file, text);
 const now = () => readFileSync(file, "utf8");
@@ -82,7 +86,7 @@ test("a key inside a table the file already holds is written without its sibling
 /* A key added in the other shape is a second line in somebody's review for a change to one value. */
 test("a key added to a table takes the shape that table is already written in", async () => {
   fresh();
-  const inline = await ask("--set", "codex.checkMs=600000");
+  const inline = await ask("--set", "project.codex.checkMs=600000");
   assert.equal(inline.status, 0, inline.stderr);
   assert.equal(moved(HELD, now()), 1, now());
   assert.ok(now().includes(`"codex": { "checkMs": 600000, "check": "npm test" },`), now());
@@ -122,16 +126,20 @@ test("a value the key's own reader refuses is refused at the write, and the file
   }
 });
 
+/* Named by its resource: `codex` is a head this machine owns too — the credential — and a bare key
+   of that name is refused before the project's half is reached, so a case about the project's own
+   `codex` keys says which store it means. */
 /* The reader that reads this key answers null before it looks at the budget when no command is
    declared, so a `checkMs` written on its own would be judged by nobody until one was (consult b97115). */
 test("a budget written where no command is declared is still judged", async () => {
   fresh(`{\n  "slug": "a-tree",\n  "codex": {}\n}\n`);
   const held = now();
-  const bad = await ask("--set", "codex.checkMs=0");
+  const bad = await ask("--set", "project.codex.checkMs=0");
   assert.equal(bad.status, 1, bad.stdout);
-  assert.match(bad.stderr, /`codex\.checkMs` in \.forge\.json is a whole number of milliseconds above 0/u);
+  assert.match(bad.stderr,
+    new RegExp(`\`codex\\.checkMs\` in ${AT} is a whole number of milliseconds above 0`, "u"), bad.stderr);
   assert.equal(now(), held);
-  const good = await ask("--set", "codex.checkMs=600000");
+  const good = await ask("--set", "project.codex.checkMs=600000");
   assert.equal(good.status, 0, good.stderr);
   assert.deepEqual(JSON.parse(now()).codex, { checkMs: 600000 },
     "and a good one lands without inventing the command beside it");
@@ -183,7 +191,7 @@ test("a segment naming an inherited property writes nothing and moves no prototy
    boolean, so a word that looks like one is the word (consult ee9b3a). */
 test("a command that reads as a boolean is written as the word it is", async () => {
   fresh();
-  for (const key of ["codex.check", "stats.commands.test"]) {
+  for (const key of ["project.codex.check", "stats.commands.test"]) {
     const run = await ask("--set", `${key}=true`);
     assert.equal(run.status, 0, run.stderr);
   }
@@ -212,7 +220,8 @@ test("a key this plugin reads nowhere is refused with what the file can hold", a
   fresh();
   const run = await ask("--set", "review.pathz=plugin/src");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /`review\.pathz` is no key this plugin reads out of \.forge\.json/u);
+  assert.match(run.stderr, new RegExp(`\`review\\.pathz\` is no key this plugin reads out of ${AT}`, "u"),
+    run.stderr);
   assert.match(run.stderr, /review\.lines, review\.paths/u, "and the list says what it can");
   assert.equal(now(), HELD);
 });
@@ -223,7 +232,7 @@ test("a key naming an inherited property of that table is refused like any other
   for (const key of ["project.constructor", "project.__proto__", "project.toString.paths"]) {
     const run = await ask("--set", `${key}=x`);
     assert.equal(run.status, 1, run.stdout);
-    assert.match(run.stderr, /is no key this plugin reads out of \.forge\.json/u, run.stderr);
+    assert.match(run.stderr, new RegExp(`is no key this plugin reads out of ${AT}`, "u"), run.stderr);
     assert.match(run.stderr, /review\.lines, review\.paths/u);
     assert.equal(now(), HELD);
   }
@@ -236,7 +245,7 @@ test("a path with an empty segment names no key and is refused", async () => {
   assert.equal(writableKey("jobs..verbs"), null);
   const run = await ask("--set", "stats.commands.=npm test");
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /is no key this plugin reads out of \.forge\.json/u, run.stderr);
+  assert.match(run.stderr, new RegExp(`is no key this plugin reads out of ${AT}`, "u"), run.stderr);
   assert.equal(now(), HELD);
 });
 

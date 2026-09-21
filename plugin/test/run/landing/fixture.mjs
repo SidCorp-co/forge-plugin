@@ -4,9 +4,9 @@
    landing and what a second run resumes from is the checkpoint — which has to be written first. */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
-import { fakeTracker, pathed, ranAsync, tempRoom } from "../../fixtures.mjs";
+import { fakeTracker, pathed, projectRecord, ranAsync, tempRoom } from "../../fixtures.mjs";
 import { render } from "../../../src/flow/record/page.mjs";
 import { noteShown } from "../../../src/tracker/comments.mjs";
 
@@ -267,7 +267,9 @@ export const world = ({
   base = "still", gate = PACKAGE.scripts.check, second = false, third = false, shared = false,
 } = {}) => {
   const at = tempRoom("land-ready-");
-  const work = join(at, "checkout");
+  /* Named after the room, not a constant: this machine's record of a project is keyed on the
+     repository's root folder, so every world called `checkout` would share one record. */
+  const work = join(at, basename(at));
   git(at, "init", "--bare", "origin.git");
   mkdirSync(work, { recursive: true });
   git(work, "init", "-b", BASE);
@@ -276,7 +278,9 @@ export const world = ({
   git(work, "config", "user.email", "t@t");
   git(work, "config", "user.name", "t");
   written(work, "package.json", JSON.stringify({ ...PACKAGE, scripts: { ...PACKAGE.scripts, check: gate } }, null, 2));
-  written(work, ".forge.json", JSON.stringify({ slug: "forge-plugin" }));
+  /* This machine's record of the project this checkout belongs to, under the configuration home the
+     tracker fixture put on this process and hands every child. */
+  projectRecord(work, process.env.XDG_CONFIG_HOME, { slug: "forge-plugin" });
   written(work, join("tools", "sync.mjs"), SYNC);
   written(work, join("tools", "probe.mjs"), PROBE);
   written(work, join("tools", "paired.mjs"), PAIRED);

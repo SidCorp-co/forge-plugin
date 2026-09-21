@@ -6,7 +6,7 @@ import test from "node:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
-import { BARE, committed, git, OWN_SLUG, runIn, scratch } from "../run-fixtures.mjs";
+import { BARE, committed, declaredIn, git, OWN_SLUG, runIn, scratch } from "../run-fixtures.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 import { runIdAt, runsFor } from "../../../src/resolve/session/run-id.mjs";
 
@@ -51,6 +51,7 @@ test("start adds the worktree, links what the checkout installed, and names the 
 test("start mints a holder id for the worktree, keeps it beside it, and hands it back on the refusal", () => {
   const { work } = checkout("run-id");
   const home = tempRoom("run-id-home-");
+  declaredIn(work, home);
   const env = { ...BARE, XDG_CONFIG_HOME: home };
   const run = runIn(work, ["start", "ISS-89"], env);
   assert.equal(run.status, 0, run.stderr + run.stdout);
@@ -79,6 +80,7 @@ test("start mints a holder id for the worktree, keeps it beside it, and hands it
 test("start on several keys mints one id naming every one of them, and names the tree for the first", () => {
   const { work } = checkout("batch-id");
   const home = tempRoom("batch-id-home-");
+  declaredIn(work, home);
   const run = runIn(work, ["start", "ISS-93", "ISS-94", "ISS-95", "three-of-them"],
     { ...BARE, XDG_CONFIG_HOME: home });
   assert.equal(run.status, 0, run.stderr + run.stdout);

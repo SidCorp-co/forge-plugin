@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import { installRows } from "../../../../src/tools/services/doctor/install.mjs";
-import { tempRoom } from "../../../fixtures.mjs";
+import { projectRoom, tempRoom } from "../../../fixtures.mjs";
 
 const CLI = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "src", "cli.mjs");
 
@@ -93,9 +93,11 @@ test("no manifest, no project root and a Plug'n'Play loader are each silence rat
 test("the report prints the row and leaves the install exactly as it found it", () => {
   const at = project("reported", DEV, ["widget"]);
   rmSync(join(at, "node_modules", "widget", "package.json"));
-  writeFileSync(join(at, ".forge.json"), JSON.stringify({ slug: "scratch" }));
-  const before = readdirSync(at, { recursive: true }).sort();
+  /* The project this directory belongs to is this machine's record of it, kept under the home the
+     call is given and nowhere in the tree — which is what leaves this listing to compare. */
   const home = tempRoom("install-home-");
+  projectRoom(at, home, { slug: "scratch" });
+  const before = readdirSync(at, { recursive: true }).sort();
   const run = spawnSync(process.execPath, [CLI, "doctor"], {
     encoding: "utf8", cwd: at, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });

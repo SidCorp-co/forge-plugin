@@ -6,7 +6,7 @@ import test, { after } from "node:test";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tempRoom } from "../fixtures.mjs";
+import { projectRoom, tempRoom } from "../fixtures.mjs";
 
 const scratch = [];
 const temporary = (prefix) => {
@@ -164,7 +164,7 @@ test("the resolver reads no file, so what it answers is the index it was handed"
 
 const project = (prefix, withTree) => {
   const root = temporary(prefix);
-  writeFileSync(join(root, ".forge.json"), '{"slug":"citation-fixture"}');
+  projectRoom(root, process.env.XDG_CONFIG_HOME, { slug: "citation-fixture" });
   if (withTree) {
     const srs = join(root, TREE, "srs");
     mkdirSync(srs, { recursive: true });

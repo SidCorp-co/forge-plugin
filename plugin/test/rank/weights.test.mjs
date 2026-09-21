@@ -3,13 +3,23 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { basename, join } from "node:path";
+
 import { DEFAULTS, canonicalKeys, complexitySpread, foldWeights, kindWeights, weightLines } from "../../src/rank/weights.mjs";
 import { KIND_NAMES } from "../../src/tracker/issue-shape.mjs";
+import { checkoutAt } from "../../src/git/checkout-at.mjs";
+import { configDir } from "../../src/resolve/config.mjs";
+
+/* This machine's record of the project this process stands in, composed the way the resolver keys it
+   rather than named: an in-process fold reports the entry THIS run would read, which is a path the
+   configuration home the suite runs under decides. */
+const ENTRY = join(configDir("forge"), "projects",
+  basename(checkoutAt(process.cwd()).repository), "config.json");
 
 test("a project overrides one weight and keeps every other", () => {
   const { value, from, refusal } = foldWeights({ priority: { critical: 100 }, blocks: 7 });
   assert.equal(refusal, null);
-  assert.equal(from, ".forge.json");
+  assert.equal(from, ENTRY);
   assert.equal(value.priority.critical, 100, "the one it named");
   assert.equal(value.priority.high, DEFAULTS.priority.high, "and the rest of that table stands");
   assert.equal(value.blocks, 7);

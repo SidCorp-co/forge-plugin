@@ -7,8 +7,12 @@ import { join } from "node:path";
 import { classOf, classesFor } from "../../../src/stats/corpus/classes.mjs";
 import { declaredClasses, declaredIn, unarmedDoors } from "../../../src/stats/corpus/declared.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
-import { tempRoom } from "../../fixtures.mjs";
-import { asked, at, result, transcript, use } from "../fixture-runs.mjs";
+import { projectRoom, tempRoom } from "../../fixtures.mjs";
+import { askedIn, at, result, transcript, use } from "../fixture-runs.mjs";
+
+/* This process's own record of a project is read out of its configuration home, and a case here
+   writes one — so the home moves off the developer's before the first reader runs. */
+process.env.XDG_CONFIG_HOME = tempRoom("stats-classes-config-");
 
 const said = (shell, declared) => classOf("Bash", shell, classesFor(declared));
 
@@ -70,9 +74,9 @@ test("the doors nothing arms are read off the same declaration the table is buil
 
 test("the declarations are the profiled checkout's own, and absent where it declares none", () => {
   const project = tempRoom("stats-declared-");
-  assert.equal(declaredIn(project), null, "a checkout with no project file declares nothing");
-  writeFileSync(join(project, ".forge.json"),
-    JSON.stringify({ slug: "fixture", stats: { commands: { gate: "node scripts/gates.mjs" } } }));
+  assert.equal(declaredIn(project), null, "a directory no record of a project answers for declares nothing");
+  projectRoom(project, process.env.XDG_CONFIG_HOME,
+    { slug: "fixture", stats: { commands: { gate: "node scripts/gates.mjs" } } });
   assert.deepEqual(declaredIn(project), { gate: "node scripts/gates.mjs" });
 });
 
@@ -92,16 +96,18 @@ const OTHER_GATE = [
   result("g2", 90, "all steps passed"),
 ].join("\n");
 
+/* The checkout profiled and the configuration home this machine keeps its record under, which the
+   child has to be given for the declaration to be the profiled checkout's own. One home per
+   checkout, so no reading here inherits a mark another wrote. */
 const declaring = (commands) => {
-  const project = tempRoom("stats-other-project-");
-  writeFileSync(join(project, ".forge.json"), JSON.stringify({ slug: "fixture", ...commands }));
-  return project;
+  const home = tempRoom("stats-classes-home-");
+  return { at: projectRoom(tempRoom("stats-other-project-"), home, { slug: "fixture", ...commands }), home };
 };
 
 test("a corpus whose gate is spelled otherwise is counted where the checkout declares it", () => {
   const project = declaring({ stats: { commands: { gate: "node scripts/gates.mjs" } } });
-  const room = corpusFor(project, OTHER_GATE);
-  const run = asked(room, "--checkout", project);
+  const room = corpusFor(project.at, OTHER_GATE);
+  const run = askedIn(room, project.home, "--checkout", project.at);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^per run {9}1 gate,/mu, "the call the project named is its gate");
   assert.match(run.stdout, /^gate\s+1\.0\s/mu, "and it carries its minute in the class table");
@@ -109,12 +115,12 @@ test("a corpus whose gate is spelled otherwise is counted where the checkout dec
 
 test("a class nothing was classed as and no checkout declared is unrecognised, not nought", () => {
   const project = declaring({});
-  const run = asked(corpusFor(project, OTHER_GATE), "--checkout", project);
+  const run = askedIn(corpusFor(project.at, OTHER_GATE), project.home, "--checkout", project.at);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^per run {9}unrecognised gate, unrecognised test,/mu);
   assert.match(run.stdout, /^ships {11}unrecognised$/mu,
     "a pass count and a median over a class nothing was classed as are two more zeroes read as measurement");
-  assert.match(run.stdout, /^ {2}declare `stats\.commands\.gate`, `stats\.commands\.ship`, `stats\.commands\.test`, `stats\.commands\.cleanup` in the \.forge\.json/mu,
+  assert.match(run.stdout, /^ {2}declare `stats\.commands\.gate`, `stats\.commands\.ship`, `stats\.commands\.test`, `stats\.commands\.cleanup` in the \S+config\.json/mu,
     "and what would declare each of them is named rather than left to be known");
   assert.match(run.stdout, /^7 Ship {6}unrecognised: nothing here was classed ship$/mu);
   assert.match(run.stdout, /^8 Clean up {2}unrecognised: reached only past a call classed ship, and nothing here was$/mu,
@@ -136,22 +142,22 @@ const SHIPPED_THEN_CLEANED = [
 
 test("a cleanup command the checkout declares opens the last phase, and nothing is read from its shape", () => {
   const project = declaring({ stats: { commands: { cleanup: "workspace finish" } } });
-  const run = asked(corpusFor(project, SHIPPED_THEN_CLEANED), "--checkout", project);
+  const run = askedIn(corpusFor(project.at, SHIPPED_THEN_CLEANED), project.home, "--checkout", project.at);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^7 Ship\s+1\s/mu, "the landing opens the phase it always did");
   assert.match(run.stdout, /^8 Clean up\s+1\s+[\d.]+\s+\d+\s+1\.0\s+cleanup 1 0m$/mu,
     "and the word this project typed for ending a workspace opens the phase the method ends a run in");
 
   const bare = declaring({});
-  const held = asked(corpusFor(bare, SHIPPED_THEN_CLEANED), "--checkout", bare);
+  const held = askedIn(corpusFor(bare.at, SHIPPED_THEN_CLEANED), bare.home, "--checkout", bare.at);
   assert.match(held.stdout, /^8 Clean up\s+0\s+0\.0/mu,
     "while the same transcript reaches it nowhere under the built-in, which is this repository's own command and not a shape");
 });
 
 test("this repository's own reading does not move: a checkout declaring nothing keeps every built-in", () => {
   const project = declaring({});
-  const room = corpusFor(project, transcript());
-  const run = asked(room, "--checkout", project);
+  const room = corpusFor(project.at, transcript());
+  const run = askedIn(room, project.home, "--checkout", project.at);
   assert.match(run.stdout, /^per run {9}1 gate, 1 test,/mu,
     "the fixture run's `npm run check` and `node --test` are still its gate and its test");
   assert.match(run.stdout, /^ships {11}1 pass\(es\)/mu, "and its ship is still a ship");

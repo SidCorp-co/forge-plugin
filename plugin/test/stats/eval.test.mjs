@@ -15,7 +15,7 @@ import { shiftBetween, tallied, twoWindows } from "../../src/stats/windows.mjs";
 import { evalObject, evalWindows } from "../../src/codex/codex-stats.mjs";
 import { SAYS } from "../../src/stats/stats.mjs";
 import { writeMark } from "../../src/stats/marks/marks.mjs";
-import { escaped, tempRoom } from "../fixtures.mjs";
+import { escaped, projectRoom, tempRoom } from "../fixtures.mjs";
 import { BASE, FORGE, HOUR, PROJECT, ask, askStats, at, corpusOf, runsOf } from "./fixture-eval.mjs";
 
 /* The mark writes a reading under the config directory, so the process's own is moved first. */
@@ -277,17 +277,18 @@ test("each outcome figure discloses both windows' coverage, and says which windo
 });
 
 test("the tracker read of a named checkout is scoped to the project that checkout declares, not the shell's", () => {
-  const elsewhere = tempRoom("stats-eval-other-");
-  writeFileSync(join(elsewhere, ".forge.json"), JSON.stringify({ slug: "another-project" }));
+  const elsewhere = projectRoom(tempRoom("stats-eval-other-"), process.env.XDG_CONFIG_HOME,
+    { slug: "another-project" });
   const nested = join(elsewhere, "src", "deep");
   mkdirSync(nested, { recursive: true });
 
   const aimed = scopeFor(nested);
-  assert.equal(aimed.slug, "another-project", "the checkout's own project file decides, from anywhere under it");
+  assert.equal(aimed.slug, "another-project",
+    "this machine's record of that checkout's project decides, from anywhere under it");
   assert.match(aimed.from, /the project file under /u, "and the reading says where that came from");
 
   const quiet = tempRoom("stats-eval-none-");
-  assert.equal(scopeFor(quiet), null, "a checkout declaring no project contradicts nothing, so nothing is aimed");
+  assert.equal(scopeFor(quiet), null, "a directory declaring no project contradicts nothing, so nothing is aimed");
   assert.equal(scopeFor(process.cwd()), null, "and a checkout that is this project's own aims nowhere either");
 });
 

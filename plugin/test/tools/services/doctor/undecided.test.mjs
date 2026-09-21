@@ -1,12 +1,10 @@
 /* The reading that says what this project has not decided. The rows that report a value in force
    stay silent where a project decided nothing, which is right and is the other question (ISS-1974). */
 import assert from "node:assert/strict";
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
-import { tempRoom } from "../../../fixtures.mjs";
+import { projectRoom, tempRoom } from "../../../fixtures.mjs";
 import { PROJECT_KEYS } from "../../../../src/tools/services/project-file.mjs";
 import { DECLARABLE } from "../../../../src/stats/corpus/declared.mjs";
 import { RANK_ROWS, RANK_WEIGHTS } from "../../../../src/rank/weights.mjs";
@@ -18,8 +16,7 @@ const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;
    own, so the project file under test is the one this walk finds first. */
 const doctor = (project, ...argv) => {
   const home = tempRoom("doctor-undecided-home-");
-  const at = tempRoom("doctor-undecided-cwd-");
-  writeFileSync(join(at, ".forge.json"), JSON.stringify(project));
+  const at = projectRoom(tempRoom("doctor-undecided-cwd-"), home, project);
   const run = spawnSync(process.execPath, [CLI, "doctor", ...argv], {
     encoding: "utf8",
     cwd: at,

@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { tempRoom } from "../fixtures.mjs";
@@ -17,7 +17,6 @@ process.env.CLAUDE_PID = String(process.pid);
 const TREE = tempRoom("eligible-tree-");
 mkdirSync(join(TREE, ".git"));
 writeFileSync(join(TREE, ".git", "forge-run-id"), "a-run-that-is-not-there\n");
-writeFileSync(join(TREE, ".forge.json"), readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8"));
 
 const row = (held = {}) => ({ issueId: "ISS-1", status: "open", ...held });
 

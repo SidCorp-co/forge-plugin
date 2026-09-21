@@ -47,7 +47,8 @@ const withCredential = (...argv) => {
 test("a subject that needs the project and finds no slug says so and exits on it", () => {
   const asked = withCredential("brief");
   assert.match(asked.said, /\[ miss \] project slug\s+no project slug resolves here/u);
-  assert.match(asked.said, /\.forge\.json at the root of this checkout/u, "and the one command that clears it");
+  assert.ok(asked.said.includes("forge doctor --set slug=<project>"),
+    `the one command that clears it is not named:\n${asked.said}`);
   assert.equal(asked.status, 1, "a reading nobody could take is not a green one");
   const bare = withCredential();
   assert.match(bare.said, /\[ note \] project slug\s+project-scoped calls will refuse/u,

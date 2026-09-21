@@ -10,8 +10,8 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { alive, BARE, committed, GATE, git, landIn, LAST_STEP, pushed, ROOT, runIn, scratch, withReview }
-  from "./run-fixtures.mjs";
+import { alive, BARE, committed, GATE, git, landIn, LAST_STEP, pushed, recordOf, ROOT, runIn, scratch,
+  withReview } from "./run-fixtures.mjs";
 
 const MODULE = join(ROOT, "tools", "run", "lock.mjs");
 const { dropShipLock, lockFile, takeShipLock } = await import(MODULE);
@@ -428,7 +428,8 @@ test("a review.lines that is no count of lines is refused by name rather than re
     withReview(work, given);
     const run = runIn(work, ["review"], BARE);
     assert.equal(run.status, 1, run.stdout);
-    assert.match(run.stderr, /`review\.lines` in \.forge\.json is a whole number of changed lines above zero/u, run.stderr);
+    assert.ok(run.stderr.includes(`\`review.lines\` in ${recordOf(work)} is a whole number of `
+      + "changed lines above zero"), run.stderr);
     assert.ok(run.stderr.includes(String(given)), `the value refused is not named:\n${run.stderr}`);
   }
 });

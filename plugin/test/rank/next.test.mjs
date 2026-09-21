@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 
 import { DEFAULTS } from "../../src/rank/weights.mjs";
-import { claims, declaring, issue, rankRoom, standing } from "./room.mjs";
+import { claims, declaring, issue, rankRoom, recordOf, standing } from "./room.mjs";
 import { bounded, waveUnder, wanted } from "../../src/rank/next.mjs";
 
 const { load, ran, state, close } = await rankRoom();
@@ -312,9 +312,10 @@ test("an order the read budget cut says so on stderr and in the json alike", asy
 
 test("a weight this project sets is folded over the table, and one it does not hold is refused", async () => {
   load([issue("ISS-1", { priority: "low" }), issue("ISS-2", { priority: "none" })]);
-  const run = await ran(["next", "--json"], standing({ priority: { none: 99 } }));
+  const room = standing({ priority: { none: 99 } });
+  const run = await ran(["next", "--json"], room);
   const answer = JSON.parse(run.stdout);
-  assert.equal(answer.weightsFrom, ".forge.json");
+  assert.equal(answer.weightsFrom, recordOf(room));
   assert.equal(answer.candidates[0].issueId, "ISS-2", "the weight this project set decided the order");
   const refused = await ran(["next"], standing({ urgency: 3 }));
   assert.equal(refused.status, 1);

@@ -82,8 +82,8 @@ const setJob = (name) => {
   const names = Object.keys(jobs);
   if (!names.length) {
     fail(`doctor: no job is declared here. A job is a name and the verbs its usage list offers, under`
-      + ` \`jobs\` in the ${fromProject()} at the root of this checkout — the project's own file,`
-      + " because which jobs exist cannot be stated without naming the project.");
+      + ` \`jobs\` in ${fromProject()} — the project's own record, because which jobs exist cannot`
+      + " be stated without naming the project.");
   }
   if (!Object.hasOwn(jobs, name)) fail(didYouMean("job", name, names));
   const shipped = shippedSkills();

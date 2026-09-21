@@ -4,10 +4,10 @@
    whose cases are grammar and cost no process. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fakeStore, fakeTracker, ranAsync, tempHome } from "./fixtures.mjs";
+import { fakeStore, fakeTracker, projectRecord, projectRoom, ranAsync, tempHome } from "./fixtures.mjs";
 
 const home = tempHome("goals");
 process.env.XDG_CONFIG_HOME = home.path;
@@ -61,6 +61,11 @@ const state = {
 };
 
 const tracker = await fakeTracker(state);
+/* This machine's record of this checkout's project, under the configuration home that fixture hands
+   every call below: the calls are project-scoped and stand in this checkout, and the slug is this
+   one's own because that is the project the fixture serves. */
+projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME,
+  JSON.parse(readFileSync(join(ROOT, ".forge.json"), "utf8")));
 test.after(() => tracker.close());
 mkdirSync(join(home.path, "forge"), { recursive: true });
 writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: tracker.url, token: "t" }));
@@ -241,8 +246,8 @@ test("a goal the brief holds, the legal none-stated line, and no line at all eac
    it was typed in: `forge feedback` re-aims the brief, and `docs/requirements/` here is whatever
    backlog the caller is standing in. A clause was being read off that tree and called this one's. */
 test("a note filed from another checkout is read against this plugin's brief and no local tree", async () => {
-  const foreign = tempHome("goals-foreign").path;
-  writeFileSync(join(foreign, ".forge.json"), JSON.stringify({ slug: "somebody-elses-project" }));
+  const foreign = projectRoom(tempHome("goals-foreign").path, tracker.env.XDG_CONFIG_HOME,
+    { slug: "somebody-elses-project" });
   const note = join(foreign, "note.md");
   writeFileSync(note, bug("FR-04"));
   const away = await ranAsync(FORGE, ["feedback", note, "--title", "a note names a clause", "--new"],

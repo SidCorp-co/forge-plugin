@@ -2,7 +2,6 @@
    lines the token and the condition readings print, and what a class this reading could not
    recognise prints instead — docs/cli/stats-the-tables.md. */
 import { DECLARABLE, DECLARES, declares } from "./corpus/declared.mjs";
-import { fromProject } from "../resolve/settings.mjs";
 import { MARKERS, RUNG_UNKNOWN } from "./corpus/transcripts.mjs";
 import { PHASES } from "../guides/phases.mjs";
 import { RUNGS } from "../ladder.mjs";
@@ -147,8 +146,11 @@ export const shipLine = (held) => {
 
 /** What an unrecognised class says to do about it, and nothing where every class was recognised. */
 export const declareLines = (held) => (held.unrecognised.length
+  /* Named as a command and not as a file: the record belongs to the checkout that was PROFILED and
+     `fromProject()` would answer for the one this process stands in, which is a different project
+     whenever a reading is taken of somewhere else. Typed in that checkout, the verb resolves it. */
   ? [`  declare ${held.unrecognised.map((one) => `\`${DECLARES}.${one}\``).join(", ")} `
-    + `in the ${fromProject()} at the root of the checkout profiled, or this reading counts none of it`]
+    + "with `forge doctor --set` in the checkout profiled, or this reading counts none of it"]
   : []);
 
 const priced = (held) => `${scaled(held.cacheRead)} cache read, ${scaled(held.cacheCreate)} cache written, `

@@ -8,7 +8,7 @@ import { existsSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 
 import { CASES_ENV } from "../../../../tools/gates/reporters/isolation.mjs";
-import { escaped, fakeTracker } from "../../fixtures.mjs";
+import { escaped, fakeTracker, projectRecord } from "../../fixtures.mjs";
 import { COPIED, entryDir, landed, passesFor, ranGate, reachedFrom, ROOT as SCRATCH_ROOT,
   ROUTE_ROOTS, run, runsFile, scratch, STAMPED } from "./scratch.mjs";
 
@@ -198,6 +198,9 @@ test("the runner asks the tracker nothing until a recurrence, and then files it"
   const clean = routed("attributed-route-clean-");
   const held = routed("attributed-route-filed-", ONLY_IN_THE_STEP);
   const env = { XDG_CONFIG_HOME: tracker.env.XDG_CONFIG_HOME };
+  /* The filing is project-scoped and the gate runs under the tracker's configuration home rather
+     than the scratch's own, so this machine's record of each scratch's project goes under that one. */
+  for (const one of [clean, held]) projectRecord(one.work, env.XDG_CONFIG_HOME, { slug: SLUG });
   try {
     const green = await ranGate(clean.work, [], clean.work, env);
     assert.equal(green.status, 0, green.stdout + green.stderr);

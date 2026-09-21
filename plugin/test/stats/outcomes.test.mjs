@@ -3,7 +3,7 @@
    printed as a rate that fell, an outcome counted over one window's weeks and another's day. */
 import assert from "node:assert/strict";
 import test, { after } from "node:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { claimedIn, pairedOneToOne, parkWritersIn, rulingsIn } from "../../src/stats/joined.mjs";
@@ -12,7 +12,7 @@ import {
 } from "../../src/stats/eval/outcomes.mjs";
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { runsUnder } from "../../src/stats/runs.mjs";
-import { fakeTracker, ranAsync, tempRoom } from "../fixtures.mjs";
+import { fakeTracker, projectRecord, ranAsync, tempRoom } from "../fixtures.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const PROJECT = "/fixture/outcomes";
@@ -385,7 +385,13 @@ const state = { issues: [], comments: {} };
 const tracker = await fakeTracker(state);
 after(() => tracker.close());
 
-const SLUG = "outcomes-fixture";
+/* The slug every child below is scoped by, written into this machine's record of the checkout those
+   children stand in, under the configuration home the tracker fixture hands them: the scope is read
+   off that record and out of no environment variable, so a case that left it would ask the fake
+   tracker for a project nothing named. It is this checkout's own slug because that is the project
+   the fixture serves. */
+const SLUG = JSON.parse(readFileSync(new URL("../../../.forge.json", import.meta.url), "utf8")).slug;
+projectRecord(new URL("../../..", import.meta.url).pathname, tracker.env.XDG_CONFIG_HOME, { slug: SLUG });
 
 const runText = (n, key) => {
   const start = NOW - (200 - n) * HOUR;
@@ -410,7 +416,7 @@ const corpusOf = (many) => {
 /* Awaited and never `spawnSync`: the fake tracker runs on this process's own event loop, and a
    synchronous wait for a child that is asking it a question is a deadlock its timeout ends. */
 const ask = (room, ...argv) => ranAsync(FORGE, ["stats", "eval", "--checkout", PROJECT, ...argv],
-  { ...tracker.env, TMPDIR: room, HOME: tempRoom("outcomes-user-"), FORGE_PROJECT: SLUG });
+  { ...tracker.env, TMPDIR: room, HOME: tempRoom("outcomes-user-") });
 
 test("the tracker reads of one eval share a request budget, and past it the outcome figures are unavailable while the cost figures print", async () => {
   const budget = budgetOf(2);
@@ -515,7 +521,7 @@ test("stats runs sends the tracker no request and carries no outcome figure", as
   const room = corpusOf(4);
   state.calls = [];
   const held = await ranAsync(FORGE, ["stats", "runs", "--checkout", PROJECT, "--json"],
-    { ...tracker.env, TMPDIR: room, HOME: tempRoom("outcomes-user-"), FORGE_PROJECT: SLUG });
+    { ...tracker.env, TMPDIR: room, HOME: tempRoom("outcomes-user-") });
   assert.equal(held.status, 0, held.stderr);
   const read = JSON.parse(held.stdout);
   assert.equal(read.runs, 4);

@@ -7,12 +7,23 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { git, ranAsync, tempRoom } from "../fixtures.mjs";
+import { escaped, git, projectEntry, projectRecord, ranAsync, tempRoom } from "../fixtures.mjs";
 
 import { reviewCounts, reviewedAt, REVIEWED, reviewUncountable, SHIPPED_LINES, SHIPPED_PATHS,
   whereFrom } from "../../src/git/reviewed.mjs";
 
 const MODULE = new URL("../../src/git/reviewed.mjs", import.meta.url).pathname;
+
+/* One configuration home for the file, holding this machine's record of every fixture project
+   below — each room is a checkout of its own, so each keys on a folder name of its own — and handed
+   to every child, which is where those records are read. Never the developer's: a case writing one
+   of these into `~/.config/forge/` would edit the projects this box really carries. */
+const HOME = tempRoom("reviewed-home-");
+const ENV = { ...process.env, HOME, XDG_CONFIG_HOME: HOME };
+
+/** Where the record of a room's project sits, which is what a reckoning read out of it names as its
+ *  source. */
+const recordOf = (room) => projectEntry(room, HOME);
 
 const ran = (room, ...args) => {
   const done = git(room, ...args);
@@ -30,8 +41,11 @@ const wrote = (room, path, lines) => {
 const built = (name, review, { mark = true } = {}) => {
   const room = tempRoom(`reviewed-${name}-`);
   for (const path of [...SHIPPED_PATHS, "src", "beside"]) wrote(room, join(path, "kept.txt"), 1);
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: name, ...review }));
+  /* Outside every counted path, and the one byte that differs between two of these repositories:
+     two trees built alike commit the same hash, and a case about two marks needs two. */
+  writeFileSync(join(room, "PROJECT"), `${name}\n`);
   ran(room, "init", "-q", "-b", "master", ".");
+  projectRecord(room, HOME, { slug: name, ...review });
   ran(room, "add", "-A");
   ran(room, "commit", "-q", "-m", "the first commit");
   if (mark) ran(room, "update-ref", REVIEWED, "HEAD");
@@ -40,12 +54,12 @@ const built = (name, review, { mark = true } = {}) => {
 
 /* The child prints its answer whatever that answer is, so nothing here stands in for output that
    never arrived: `null` is this reader deciding nothing, and an empty answer is a parse that throws. */
-const standing = async (room) => {
+const standing = async (room, tree = null) => {
   const run = await ranAsync(process.execPath,
     ["--input-type=module", "-e",
       `import { reviewStanding } from ${JSON.stringify(MODULE)};`
-      + ` console.log(JSON.stringify(reviewStanding(process.cwd())));`],
-    process.env, room);
+      + ` console.log(JSON.stringify(reviewStanding(${tree === null ? "process.cwd()" : JSON.stringify(tree)})));`],
+    ENV, room);
   assert.equal(run.status, 0, run.stderr);
   return { said: JSON.parse(run.stdout), stderr: run.stderr, status: run.status };
 };
@@ -57,7 +71,7 @@ const reported = async (room) => {
     ["--input-type=module", "-e",
       `import { reviewReported } from ${JSON.stringify(MODULE)};`
       + ` console.log(JSON.stringify(reviewReported()));`],
-    process.env, room);
+    ENV, room);
   assert.equal(run.status, 0, `the reader a help screen calls exited: ${run.stderr}`);
   return JSON.parse(run.stdout);
 };
@@ -66,7 +80,7 @@ const reported = async (room) => {
 const strict = (room, name) => ranAsync(process.execPath,
   ["--input-type=module", "-e",
     `import { ${name} } from ${JSON.stringify(MODULE)}; ${name}();`],
-  process.env, room);
+  ENV, room);
 
 test("the count is the changed lines under the paths named, and a sibling directory is not in it", () => {
   const room = built("counts", { review: { lines: 10, paths: ["src"] } });
@@ -106,8 +120,8 @@ test("a project that declared neither key is read as having decided nothing", as
 test("a project that declared only a volume takes this plugin's own paths, and is told it holds none of them", async () => {
   const room = tempRoom("reviewed-elsewhere-");
   wrote(room, join("src", "kept.txt"), 1);
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "elsewhere", review: { lines: 40 } }));
   ran(room, "init", "-q", "-b", "master", ".");
+  projectRecord(room, HOME, { slug: "elsewhere", review: { lines: 40 } });
   ran(room, "add", "-A");
   ran(room, "commit", "-q", "-m", "the first commit");
   const { said } = await standing(room);
@@ -117,33 +131,38 @@ test("a project that declared only a volume takes this plugin's own paths, and i
 });
 
 test("a declared path the repository does not hold is named, and the ones it holds are not", async () => {
-  const { said } = await standing(built("partly", { review: { lines: 10, paths: ["src", "gone"] } }));
+  const room = built("partly", { review: { lines: 10, paths: ["src", "gone"] } });
+  const { said } = await standing(room);
   assert.deepEqual(said.missing, ["gone"]);
-  assert.equal(said.paths.from, ".forge.json");
+  assert.equal(said.paths.from, recordOf(room));
 });
 
 /* The seam this closed: the report asked which declared paths were there and the reckoning did not,
    so one of them counted zero for ever and said so with its source beside it (ISS-1939). */
 test("one sentence answers the report and the reckoning alike, and names the write that corrects it", () => {
   const room = built("one-sentence", {});
-  const said = reviewUncountable(room, { value: ["src", "gone"], from: ".forge.json" });
+  const said = reviewUncountable(room, { value: ["src", "gone"], from: recordOf(room) });
   assert.match(said, /^gone is a counted path this repository does not hold/u, said);
   assert.match(said, /forge doctor --set project\.review\.paths=<paths>/u, said);
-  assert.equal(reviewUncountable(room, { value: ["src"], from: ".forge.json" }), null,
+  assert.equal(reviewUncountable(room, { value: ["src"], from: recordOf(room) }), null,
     "a tree holding every declared path is one a count over them measures something in");
 });
 
-test("a directory that stands in no checkout can count nothing", async () => {
-  const room = tempRoom("reviewed-loose-");
-  writeFileSync(join(room, ".forge.json"), JSON.stringify({ slug: "loose", review: { lines: 10 } }));
-  const { said } = await standing(room);
+/* The declaration is this machine's record of a project and is keyed on a repository, so the run
+   that carries one stands in a checkout; the TREE it is pointed at is what may not be one, and that
+   is the reading this case is about. A directory in no checkout resolves no project at all, which
+   the case above already reads as a project that decided nothing. */
+test("a tree that stands in no checkout can count nothing", async () => {
+  const { said } = await standing(built("loose", { review: { lines: 10 } }),
+    tempRoom("reviewed-loose-"));
   assert.equal(said.checkout, false);
   assert.deepEqual(said.missing, SHIPPED_PATHS);
 });
 
 test("the volume in force is the project's, and its absence takes the shipped number", async () => {
-  const mine = await standing(built("volume", { review: { lines: 42, paths: ["src"] } }));
-  assert.deepEqual(mine.said.lines, { value: 42, from: ".forge.json" });
+  const room = built("volume", { review: { lines: 42, paths: ["src"] } });
+  const mine = await standing(room);
+  assert.deepEqual(mine.said.lines, { value: 42, from: recordOf(room) });
   const theirs = await standing(built("no-volume", { review: { paths: ["src"] } }));
   assert.deepEqual(theirs.said.lines, { value: SHIPPED_LINES, from: "the plugin's default" });
 });
@@ -168,9 +187,8 @@ test("the count answers owed at the volume and short below it", async () => {
 test("a declared directory whose name reads as a pathspec pattern counts it and not its sibling", () => {
   const room = tempRoom("reviewed-bracketed-");
   for (const path of ["app/[slug]", "app/s"]) wrote(room, join(path, "kept.txt"), 1);
-  writeFileSync(join(room, ".forge.json"),
-    JSON.stringify({ slug: "bracketed", review: { lines: 10, paths: ["app/[slug]"] } }));
   ran(room, "init", "-q", "-b", "master", ".");
+  projectRecord(room, HOME, { slug: "bracketed", review: { lines: 10, paths: ["app/[slug]"] } });
   ran(room, "add", "-A");
   ran(room, "commit", "-q", "-m", "the first commit");
   ran(room, "update-ref", REVIEWED, "HEAD");
@@ -185,31 +203,34 @@ test("a declared directory whose name reads as a pathspec pattern counts it and 
 test("a mistyped volume is refused rather than taking the shipped number", async () => {
   for (const [at, lines] of [null, "1500", 0, -1, 1.5].entries()) {
     const room = built(`volume-${at}`, { review: { lines, paths: ["src"] } });
+    const said = new RegExp(`\`review\\.lines\` in ${escaped(recordOf(room))} is a whole number`, "u");
     const { status, stderr } = await strict(room, "reviewLines");
     assert.equal(status, 1, `${JSON.stringify(lines)} was accepted`);
-    assert.match(stderr, /`review\.lines` in \.forge\.json is a whole number/u);
+    assert.match(stderr, said);
     const read = await standing(room);
     assert.equal(read.status, 0, `the report's own reader exited: ${read.stderr}`);
-    assert.match(read.said.refusal, /`review\.lines` in \.forge\.json is a whole number/u);
+    assert.match(read.said.refusal, said);
   }
 });
 
 test("a malformed paths declaration is refused rather than falling back to the shipped three", async () => {
   for (const [at, paths] of ["src", [], [""], [3], ["/etc"], ["../escaped"]].entries()) {
     const room = built(`paths-${at}`, { review: { lines: 10, paths } });
+    const said = new RegExp(`\`review\\.paths\` in ${escaped(recordOf(room))} is`, "u");
     const { status, stderr } = await strict(room, "reviewPaths");
     assert.equal(status, 1, `${JSON.stringify(paths)} was accepted`);
-    assert.match(stderr, /`review\.paths` in \.forge\.json is/u);
+    assert.match(stderr, said);
     assert.match(stderr, /Drop the key to count plugin\/src, plugin\/hooks, plugin\/bin/u);
     const read = await standing(room);
     assert.equal(read.status, 0, `the report's own reader exited: ${read.stderr}`);
-    assert.match(read.said.refusal, /`review\.paths` in \.forge\.json is/u);
+    assert.match(read.said.refusal, said);
   }
 });
 
 test("the reported reckoning carries each half's source, and a malformed one comes back as its refusal", async () => {
-  assert.deepEqual(await reported(built("reported-both", { review: { lines: 42, paths: ["src"] } })),
-    { lines: { value: 42, from: ".forge.json" }, paths: { value: ["src"], from: ".forge.json" } });
+  const both = built("reported-both", { review: { lines: 42, paths: ["src"] } });
+  assert.deepEqual(await reported(both),
+    { lines: { value: 42, from: recordOf(both) }, paths: { value: ["src"], from: recordOf(both) } });
 
   const half = await reported(built("reported-half", { review: { lines: 42 } }));
   assert.deepEqual(half.paths, { value: SHIPPED_PATHS, from: "the plugin's default" });
@@ -218,19 +239,24 @@ test("the reported reckoning carries each half's source, and a malformed one com
     { lines: { value: SHIPPED_LINES, from: "the plugin's default" },
       paths: { value: SHIPPED_PATHS, from: "the plugin's default" } });
 
-  const wrong = await reported(built("reported-wrong", { review: { lines: "lots" } }));
-  assert.match(wrong.refusal, /`review\.lines` in \.forge\.json is a whole number/u);
+  const wrongly = built("reported-wrong", { review: { lines: "lots" } });
+  const wrong = await reported(wrongly);
+  assert.match(wrong.refusal,
+    new RegExp(`\`review\\.lines\` in ${escaped(recordOf(wrongly))} is a whole number`, "u"));
   assert.equal(wrong.lines, undefined, "a malformed declaration hands back no value to print");
 });
 
 test("a reckoning read from two declarations names both, and one read from a single source names it once", () => {
-  const volume = { value: 42, from: ".forge.json" };
+  /* Composed the way the resolver keys one, rather than a name: what this folds is two source
+     strings, and a record's path is what one of them now is. */
+  const record = join(HOME, "forge", "projects", "a-project", "config.json");
+  const volume = { value: 42, from: record };
   const shipped = { value: SHIPPED_PATHS, from: "the plugin's default" };
-  assert.equal(whereFrom({ lines: volume, paths: { value: ["src"], from: ".forge.json" } }), ".forge.json");
+  assert.equal(whereFrom({ lines: volume, paths: { value: ["src"], from: record } }), record);
   assert.equal(whereFrom({ lines: volume, paths: shipped }),
-    "the volume .forge.json, the paths the plugin's default");
+    `the volume ${record}, the paths the plugin's default`);
   assert.equal(whereFrom({ lines: { value: SHIPPED_LINES, from: "the plugin's default" },
-    paths: { value: ["src"], from: ".forge.json" } }),
-  "the volume the plugin's default, the paths .forge.json");
+    paths: { value: ["src"], from: record } }),
+  `the volume the plugin's default, the paths ${record}`);
   assert.equal(whereFrom({ lines: shipped, paths: shipped }), "the plugin's default");
 });

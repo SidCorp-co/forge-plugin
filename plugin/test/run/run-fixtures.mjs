@@ -2,9 +2,9 @@
    Not a `.test.mjs`, so the suite collects no test of its own here. */
 import { spawn, spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
-import { tempRoom } from "../fixtures.mjs";
+import { projectEntry, projectRecord, tempRoom } from "../fixtures.mjs";
 import { madeIn } from "../../../tools/room.mjs";
 import { derivationFiles } from "../../../tools/gates/scope.mjs";
 
@@ -16,6 +16,10 @@ const { complexityFor } = await import("../../src/ladder.mjs");
 
 export const ROOT = new URL("../../..", import.meta.url).pathname;
 export const OWN_SLUG = JSON.parse(readFileSync(join(ROOT, ".forge.json"), "utf8")).slug;
+/* And this machine's record of THIS checkout, under the home just moved: a reader called in this
+   process resolves the project of the tree this process stands in, not of the scratch checkout it
+   is acting on, and the worktree path it derives is named for that slug. */
+projectRecord(ROOT, process.env.XDG_CONFIG_HOME, { slug: OWN_SLUG });
 export const SCRIPT = join("tools", "run.mjs");
 /* npm and node without whatever else the developer has on PATH: the ship path's last two steps are
    `claude`, and a machine that has it would prove nothing about what a missing step does. */
@@ -37,9 +41,12 @@ export const GATE = "node -e \"console.log('scratch gate ran')\"";
 /* Every file the script is, derived from it: a module added to the runner and missed here is a scratch checkout that loads nothing. */
 const COPIED = derivationFiles(join(ROOT, SCRIPT), ROOT).filter((one) => one.startsWith("tools/"));
 
+/* The checkout's folder name is the room's own, never a constant: this machine's record of a
+   project is keyed on the repository's root folder, so two scratch checkouts called the same thing
+   would share one record and each case would be configured by whichever ran last. */
 export const scratch = (name, gate = GATE) => {
   const at = tempRoom(`${name}-`);
-  const work = join(at, "checkout");
+  const work = join(at, basename(at));
   return madeIn(at, () => filled(at, work, gate));
 };
 
@@ -64,8 +71,26 @@ const filled = (at, work, gate) => {
   return { at, work };
 };
 
+/** This machine's record of the scratch checkout's project, written where the resolver reads it,
+ *  under the configuration home a case names. Keyed on the checkout, so it is written once that
+ *  checkout is one. */
+export const declaredIn = (work, home, keys = {}) =>
+  projectRecord(work, home, { slug: OWN_SLUG, ...keys });
+
+/* The two configuration homes this file stands up — the one every in-process reader and every child
+   given no environment of its own reads, and the one the tracker fixture serves its endpoint from —
+   each get the record, because a case picks between them by which env it hands `runIn`. */
+export const declared = (work, keys = {}) => {
+  declaredIn(work, process.env.XDG_CONFIG_HOME, keys);
+  return declaredIn(work, BARE.XDG_CONFIG_HOME, keys);
+};
+
+/** Where that record sits, which is what a report of a key read out of it names as its source. */
+export const recordOf = (work) => projectEntry(work, BARE.XDG_CONFIG_HOME);
+
 export const committed = (work, message) => {
   for (const [key, value] of [["user.email", "t@example.test"], ["user.name", "Test"]]) git(work, "config", key, value);
+  declared(work);
   git(work, "add", "package.json", ".claude-plugin", "plugin", "tools", ".forge.json");
   git(work, "commit", "-m", message);
 };
@@ -319,14 +344,12 @@ export const called = (at) => (existsSync(join(at, "forge-calls.json"))
   : []);
 
 /* The range, the size and the rules are the step's to measure, never a person's to copy out (ISS-112). */
-/** The project's own reading threshold and counted paths, committed: `.forge.json` is read out of
- *  the tree's head. Paths left out leave the key out, which is a project declaring a volume alone. */
+/** The project's own reading threshold and counted paths, into this machine's record of it — which
+ *  is where both readers read it, and is no part of the tree being counted. Paths left out leave the
+ *  key out, which is a project declaring a volume alone. */
 export const withReview = (work, lines, paths) => {
-  const kept = JSON.parse(readFileSync(join(work, ".forge.json"), "utf8"));
-  const review = paths === undefined ? { lines } : { lines, paths };
-  writeFileSync(join(work, ".forge.json"), JSON.stringify({ ...kept, review }, null, 2));
-  git(work, "add", ".forge.json");
-  git(work, "commit", "-m", "this project's own reading threshold");
+  const kept = JSON.parse(readFileSync(recordOf(work), "utf8"));
+  declared(work, { ...kept, review: paths === undefined ? { lines } : { lines, paths } });
 };
 
 export const owedAt = (name, lines = null) => {
