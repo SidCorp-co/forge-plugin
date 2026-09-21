@@ -6,7 +6,8 @@ import { FROM_PROJECT } from "../resolve/settings.mjs";
 import { MARKERS, RUNG_UNKNOWN } from "./corpus/transcripts.mjs";
 import { PHASES } from "../guides/phases.mjs";
 import { RUNGS } from "../ladder.mjs";
-import { medianOrZero, minutes, scaled } from "./figures.mjs";
+import { FORGE_ROW } from "./corpus/classes.mjs";
+import { medianOrZero, minutes, scaled, share } from "./figures.mjs";
 
 const ROWS = 10;
 export const UNRECOGNISED = "unrecognised";
@@ -62,6 +63,34 @@ export const rungLines = (held) => [
     + `${row.medianConsults.toFixed(1).padStart(10)}`
     + `${String(countIn(held, "gate", row.medianGates.toFixed(1))).padStart(GATES)}`),
 ];
+
+/* The two tables of a text a run reads on its own need — a guide part, and a verb's help — carry the
+   same three columns at the same widths, so a reader can hold one against the other. */
+const READ_WIDTH = 36;
+export const readHeader = (title) =>
+  `${title.padEnd(READ_WIDTH)}${"calls".padStart(7)}${"runs".padStart(6)}${"read again".padStart(12)}`;
+export const readRow = ([key, one]) => `${key.padEnd(READ_WIDTH)}${String(one.calls).padStart(7)}`
+  + `${String(one.runs).padStart(6)}${String(one.again).padStart(12)}`;
+
+/* Help is the largest served surface this CLI has and the class table cannot report a read of it:
+   `forge record verdict -h` and a verdict written are one class, so a per-class figure is a mixture
+   of what a run did and what it looked up. The share is what says how much — over the calls made to
+   this CLI, since a lookup is a lookup of one of those, and never over every call a run made. The
+   median is over the runs that read any, which is the population it is a median of: a run that read
+   none is not a run that found help cheap. */
+export const helpOver = (runs, byClass) => {
+  const reads = runs.map((run) => [...run.helpReads.values()].reduce((sum, many) => sum + many, 0));
+  const read = reads.filter((many) => many > 0);
+  const calls = reads.reduce((sum, many) => sum + many, 0);
+  const forgeCalls = byClass
+    .filter(([label]) => label.startsWith(FORGE_ROW))
+    .reduce((sum, [, one]) => sum + one.calls, 0);
+  return { calls, forgeCalls, share: share(calls, forgeCalls), runs: read.length, perRun: medianOrZero(read) };
+};
+
+export const helpLine = (held) =>
+  `help reads      ${held.help.calls} of ${held.help.forgeCalls} call(s) to this CLI (${held.help.share}), `
+  + `read in ${held.help.runs} of ${held.runs} run(s), median ${held.help.perRun}/run over those`;
 
 export const capped = (rows, all) => (all ? rows : rows.slice(0, ROWS));
 export const elided = (rows, all) =>

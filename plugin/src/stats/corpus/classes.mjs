@@ -3,6 +3,7 @@ import { DEFAULT } from "../../guides/flow.mjs";
 import { VERB_NAMES } from "../../resolve/visibility.mjs";
 import { handledBy } from "../../resolve/handler.mjs";
 import { DECLARABLE, at, declares } from "./declared.mjs";
+import { HELP_WORD_PATTERN } from "../../resolve/help-word.mjs";
 
 /* One spelling of the call for both readings below — the binary, the verb, the word after it and the word after that. The guide reading fixes the verb rather than filtering the first call, so a `forge guide` later in a compound command is still the part that run read. A sub is that second word as a verb name reads it, stopping at the first character no verb carries, where a slug and its part are read whole: one token, two word classes. `knowledge` is subbed because the store is read in phase 0 and written in the last phase, and one row over both filed a run's opening read under what it learned (ISS-1714). */
 const CALL = (verb) => String.raw`(?:\S*/)?forge[ \t]+${verb}`
@@ -12,22 +13,40 @@ const SUB_WORD = /^[a-z][a-z-]*/u;
 
 const SUBBED = new Set(["codex", "knowledge", "record"]);
 
+/** The prefix every row naming a verb of this CLI carries, so a reader counting those rows and the classifier minting them agree on which they are. */
+export const FORGE_ROW = "forge ";
+const row = (...words) => FORGE_ROW + words.filter(Boolean).join(" ");
+
 /** The consult reading every file the change touched, which is the pass a review is earned by. Told by the flag and never by a `codex.send` setting, which no transcript records: docs/cli/stats-rows.md. */
-export const WHOLE_SET_CLASS = "forge codex whole-set";
+export const WHOLE_SET_CLASS = row("codex", "whole-set");
 const WHOLE_SET = /--send[= \t]+bodies\b/u;
+
+/* Minting the name, apart from whichever pattern found it, so a lookup of a verb's help is filed in the row that verb's own work is filed in rather than in one spelled beside it. */
+const classFor = (verb, slug, shell) => {
+  /* A form is a `forge` command, classed by the word typed: read as a verb it is none, so `forge close` fell to `shell` and the tool-seconds table filed it under nothing (ISS-704). */
+  if (handledBy(verb)) return row(verb);
+  if (!VERB_NAMES.includes(verb)) return null;
+  const sub = slug ? SUB_WORD.exec(slug)?.[0] : undefined;
+  if (verb === "codex" && sub === "consult") {
+    if (shell.includes("--recheck")) return row("codex", "recheck");
+    return WHOLE_SET.test(shell) ? WHOLE_SET_CLASS : row("codex", "consult");
+  }
+  return SUBBED.has(verb) && sub ? row(verb, sub) : row(verb);
+};
 
 const forgeClass = (shell) => {
   const found = FORGE.exec(shell)?.groups;
-  if (!found) return null;
-  /* A form is a `forge` command, classed by the word typed: read as a verb it is none, so `forge close` fell to `shell` and the tool-seconds table filed it under nothing (ISS-704). */
-  if (handledBy(found.verb)) return `forge ${found.verb}`;
-  if (!VERB_NAMES.includes(found.verb)) return null;
-  const sub = found.slug ? SUB_WORD.exec(found.slug)?.[0] : undefined;
-  if (found.verb === "codex" && sub === "consult") {
-    if (shell.includes("--recheck")) return "forge codex recheck";
-    return WHOLE_SET.test(shell) ? WHOLE_SET_CLASS : "forge codex consult";
-  }
-  return SUBBED.has(found.verb) && sub ? `forge ${found.verb} ${sub}` : `forge ${found.verb}`;
+  return found ? classFor(found.verb, found.slug, shell) : null;
+};
+
+/* A help read is the help word standing whole in the verb's own slot or in the slot after its subject, so a call inside a pipeline or after a `cd` counts and a `-h` a run typed into a `--why` or a `--note` does not. Whether the subject is one that verb has is not asked and cannot be: each verb declares its own list and none is reachable from here — docs/cli/stats-the-help-reads.md carries what that costs. The word is inside the pattern rather than captured and tested after it, so a prose flag on an earlier command does not hide a real read on a later one. */
+const HELP = at(String.raw`(?:\S*/)?forge[ \t]+(?<verb>[a-z][a-z-]*)`
+  + String.raw`(?:[ \t]+(?<slug>[a-z][\w-]*))?[ \t]+` + HELP_WORD_PATTERN);
+
+/** Whose help a call read, as the row the class table already names that verb, or null where it read none. Which slots answer is `resolve/help-word.mjs`'s and not this reading's: the two go on agreeing only while this asks the same question. */
+export const helpReadOf = (shell) => {
+  const found = HELP.exec(shell)?.groups;
+  return found ? classFor(found.verb, found.slug, shell) : null;
 };
 
 export const GUIDE_INDEX = "(index)";

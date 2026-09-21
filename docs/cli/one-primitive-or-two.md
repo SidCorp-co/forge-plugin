@@ -39,7 +39,7 @@ site broke the tie. `protectInline` runs before translation and `restoreInline` 
 verifier only ever sees text whose code spans are already sentinels, and the input the two forms
 judge differently is a titled link — common — rather than malformed prose — rare. The verifier keeps
 the opener's target, and it is named for what it reads instead of being the closed form minus a
-byte, which is the same move `wantsHelp` and `isHelpWord` made above.
+byte, which is the same move `wantsHelp` and `helpAskedOf` made above.
 
 The needle is the opener's string, which is a literal prefix of the closed one, so one row watches
 both spellings. That is what the old row could not do: it held the closed form whole, and the one

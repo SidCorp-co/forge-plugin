@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 
 /* The spelling of a help flag is the plugin's, not this CLI's, and the name each site spends says
    which reading it wants. Borrowed from a module that imports nothing — README, Layout. */
-import { isHelpWord, wantsHelp } from "../src/resolve/help-word.mjs";
+import { HELP_WORDS, wantsHelp } from "../src/resolve/help-word.mjs";
 import { TRANSLATE_UNCHANGED } from "../src/tools/vi-exit.mjs";
 
 import { CliError, err } from "./util.mjs";
@@ -85,7 +85,7 @@ function parse(argv) {
 
   for (let index = 1; index < argv.length; index += 1) {
     const token = argv[index];
-    if (isHelpWord(token)) return { command: "help" };
+    if (HELP_WORDS.includes(token)) return { command: "help" };
     if (!(token in flags)) {
       if (token.startsWith("-") && token !== "-") throw new CliError(`unknown option: ${token}\n\n${USAGE}`);
       positional.push(token);

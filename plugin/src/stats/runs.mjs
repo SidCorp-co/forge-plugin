@@ -3,19 +3,21 @@
    taken once. What each figure means, and what it deliberately does not: docs/cli/stats.md. */
 import {
   EDIT_ROUTES,
+  FORGE_ROW,
   GUIDE_INDEX,
   POLL,
   WHOLE_SET_CLASS,
   classesFor,
   guidePartOf,
   guideFlowOf,
+  helpReadOf,
 } from "./corpus/classes.mjs";
 import { declaredIn } from "./corpus/declared.mjs";
 import { FLOW_BRIEF, PRICES, callsIn, markerOf, modelRun, rungRun } from "./corpus/transcripts.mjs";
 import { corpusUnder, readTranscript, rootFor } from "./corpus/corpus.mjs";
 import {
-  conditionLines, countIn, declareLines, foldPhases, listing, perRung, phaseLines, rungLines,
-  shipLine, tokenLines, unrecognisedIn,
+  conditionLines, countIn, declareLines, foldPhases, helpLine, helpOver, listing, perRung,
+  phaseLines, readHeader, readRow, rungLines, shipLine, tokenLines, unrecognisedIn,
 } from "./tables.mjs";
 import { add, medianOrZero, minutes, share, stamp } from "./figures.mjs";
 import { reachOf, reachSaid } from "./marks/reach.mjs";
@@ -153,9 +155,9 @@ const advanceRuns = (calls) => {
   for (const call of calls) {
     if (call.class === "forge advance") {
       total += 1;
-      if (lastForge?.startsWith("forge record")) after += 1;
+      if (lastForge?.startsWith(`${FORGE_ROW}record`)) after += 1;
     }
-    if (call.class.startsWith("forge ")) lastForge = call.class;
+    if (call.class.startsWith(FORGE_ROW)) lastForge = call.class;
   }
   return { total, after };
 };
@@ -214,6 +216,7 @@ export const runFrom = (path, session, text, classes = undefined) => {
   const errors = new Map();
   const repeats = new Map();
   const guideParts = new Map();
+  const helpReads = new Map();
   const longest = [];
   let toolSeconds = 0;
   let timeouts = 0;
@@ -225,6 +228,11 @@ export const runFrom = (path, session, text, classes = undefined) => {
     if (!call.answered) unanswered += 1;
     if (call.name === "Bash") add(repeats, said(call.command));
     if (call.class === "forge guide") add(guideParts, partRead(call));
+    /* Off a call this reading classed as one to this CLI, and no other: a declared gate command
+       sharing the line takes the class, and a read counted off that call would be a numerator
+       standing outside the denominator it is quoted against. */
+    const help = call.class.startsWith(FORGE_ROW) ? helpReadOf(call.shell) : null;
+    if (help) add(helpReads, help);
     const form = formIn(call);
     if (form) add(forms, form);
     const refusal = refusalIn(call);
@@ -280,6 +288,7 @@ export const runFrom = (path, session, text, classes = undefined) => {
     errors,
     repeats: new Map([...repeats].filter(([, many]) => many >= REPEATED)),
     guideParts,
+    helpReads,
     longest,
     phases: foldPhases(calls, startedAt, endedAt),
   };
@@ -356,14 +365,15 @@ const partRead = (call) => {
   return `${part} (${flow ?? "flow unread"})`;
 };
 
-/* `again` is runs that read the part more than once, not the extra reads: a run that read a part
-   three times is one run that had to go back, whatever it did the third time. */
-const mergedParts = (runs) => {
+/* `again` is runs that read it more than once, not the extra reads: a run that read one text three
+   times is one run that had to go back, whatever it did the third time. One fold for both tables of
+   a read, so the two columns cannot come to mean different things. */
+const mergedReads = (runs, pick) => {
   const merged = new Map();
   for (const run of runs) {
-    for (const [part, many] of run.guideParts) {
-      const was = merged.get(part) ?? { calls: 0, runs: 0, again: 0 };
-      merged.set(part, { calls: was.calls + many, runs: was.runs + 1, again: was.again + (many > 1 ? 1 : 0) });
+    for (const [key, many] of pick(run)) {
+      const was = merged.get(key) ?? { calls: 0, runs: 0, again: 0 };
+      merged.set(key, { calls: was.calls + many, runs: was.runs + 1, again: was.again + (many > 1 ? 1 : 0) });
     }
   }
   return [...merged].sort((left, right) => right[1].calls - left[1].calls);
@@ -487,7 +497,9 @@ export const profileOf = (runs, declared = null) => {
     forms: mergedCounts(runs, (run) => run.forms),
     errors: mergedCounts(runs, (run) => run.errors),
     repeats: mergedCounts(runs, (run) => run.repeats),
-    guideParts: mergedParts(runs),
+    guideParts: mergedReads(runs, (run) => run.guideParts),
+    helpReads: mergedReads(runs, (run) => run.helpReads),
+    help: helpOver(runs, byClass),
     longest: runs.flatMap((run) => run.longest).sort((left, right) => right.minutes - left.minutes),
   };
 };
@@ -497,6 +509,7 @@ export const profileLines = (held, all = false) => [
   `where it went   ${held.waitMinutes} min waiting on a tool (${held.waitShare}), `
     + `${held.modelMinutes} min model (${held.modelShare})`,
   `calls           median ${held.medianCalls}/run, ${held.calls} in all, ${held.unanswered} never answered`,
+  helpLine(held),
   ...tokenLines(held.tokens),
   `to first claim  median ${held.toFirstClaim} min`,
   `per run         ${countIn(held, "gate", held.perRun.gate)} gate, ${countIn(held, "test", held.perRun.test)} test, `
@@ -530,14 +543,8 @@ export const profileLines = (held, all = false) => [
     ([form, many]) => `  ${String(many).padStart(4)}  ${form}`, all),
   ...listing(`commands repeated ${REPEATED}+ times inside one run`, held.repeats,
     ([line, many]) => `  ${String(many).padStart(4)}  ${line.slice(0, 108)}`, all),
-  ...listing(
-    `${"guide parts read".padEnd(36)}${"calls".padStart(7)}${"runs".padStart(6)}${"read again".padStart(12)}`,
-    held.guideParts,
-    ([part, one]) =>
-      `${part.padEnd(36)}${String(one.calls).padStart(7)}`
-      + `${String(one.runs).padStart(6)}${String(one.again).padStart(12)}`,
-    all,
-  ),
+  ...listing(readHeader("guide parts read"), held.guideParts, readRow, all),
+  ...listing(readHeader("help read, by the verb"), held.helpReads, readRow, all),
   ...listing(`single waits of ${LONG_WAIT_MINUTES} minutes or more`, held.longest,
     (one) => `  ${one.minutes.toFixed(1).padStart(6)} min  ${one.what}`, all),
 ];

@@ -139,7 +139,7 @@ export const flags = (argv, verb, boolean = [], row = {}) => {
 };
 
 /* First or not at all, unless the verb takes a subject, in which case the slot after one too — further along it is an argument, and help there is a write that never ran. Their home imports nothing, which is what lets the second CLI spend them: README, Layout. */
-export { helpAskedOf, isHelpWord, wantsHelp } from "./help-word.mjs";
+export { HELP_WORDS, helpAskedOf, wantsHelp } from "./help-word.mjs";
 
 /* What the caller asked for, counted where argv is read, so the layer that reports on the work answers to the call rather than to its own input: a layer given a narrowed instruction cannot tell it was narrowed (ISS-945). `wordFor` is the ask's own vocabulary — how one thing a reporting layer holds is put into the words the ask was written in — so neither reporting layer chooses between the two. */
 const askedFor = (verb, flag, items) => Object.freeze({

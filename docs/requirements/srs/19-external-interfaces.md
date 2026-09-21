@@ -300,6 +300,12 @@ it. Reading is all this product does there.
   holds measures, on the screen and in the machine form alike, and SHALL state it however few angles
   the call asked for.
 
+- **AC-19-8-36** · Rev: 1 · Proof: plugin/test/stats/corpus/help-reads.test.mjs "a verb's help reads are a table of their own, counted only where that verb serves help, with the class table unchanged"
+  WHEN a profile is printed THEN the CLI SHALL list each verb whose help the window's runs read with
+  those reads, the runs that read it and the runs that read it more than once, SHALL count a read
+  only where the help word stands whole in the verb's own slot or in the slot after its subject, on a
+  call this reading classed as one made to it, and SHALL say what share of the calls made to it those
+  reads were.
 - **AC-19-8-40** · Rev: 1 · Proof: plugin/test/stats/eval/diagnose.test.mjs "a finding cites a run of the set and a call inside it, and one that cites neither is left out and counted"
   WHEN a diagnostic reading over runs the caller named is printed THEN the CLI SHALL report only a
   finding naming one of those runs and a call inside it, SHALL leave out one whose citation names

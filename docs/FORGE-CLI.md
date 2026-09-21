@@ -75,6 +75,7 @@ how many topics there may be.
 | [the refusal log](cli/the-refusal-log.md) | Why refusing is what writes the line, what a per-write round count means, and what is masked before a line lands on disk. |
 | [`stats`](cli/stats.md) | Why the transcript root is derived rather than passed, why the entries are deliberately not containment-checked, and what an unanswered call counts as. |
 | [stats — the rows](cli/stats-rows.md) | The three rows a hand profile got wrong, and why a refusal is keyed on the line naming the rule rather than on the first line of the body. |
+| [stats — the help reads](cli/stats-the-help-reads.md) | Why the largest surface this CLI serves on demand gets a table of its own, why a read is the slot that answers rather than the word wherever it sits, and what the table does not say. |
 | [stats — the tables](cli/stats-the-tables.md) | Why a phase boundary is read off the class a call carries, why the phases sum to the wall, and why a run that claimed no rung keeps a row. |
 | [stats — the eval](cli/stats-the-eval.md) | Why a cost figure is the profile's, why a reading too shallow for its window is judged rather than reported, and what the installed copy cannot fix. |
 | [stats — the model](cli/stats-the-model.md) | Why ranking arms by minutes recommends the wrong model, why the floor is asked of each figure inside each cell rather than of the arm, and what a synthetic turn is. |
