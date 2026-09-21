@@ -45,6 +45,31 @@ waits for something nothing will send. Where the gate writes no verdict at all, 
 the notice arrives and never before, and the verdict it does not write is the project's own defect to
 file.
 
+## A measurement does not race what it reads
+
+A proof whose cost makes rerunning it a decision rather than a reflex — a background gate baseline, a
+sweep over live data that runs the better part of an hour — carries one more duty once it is under
+way: say the condition holds before you measure, and take the figure against a head that is already
+settled, or, where that head cannot be had first, state which round the figure was taken at and what
+moved after it. A proof cheap enough to rerun freely owes none of this; the cost is the whole of the
+condition, not a count of minutes.
+
+**The word that fails is "started."** Told to start a proof and carry on, a run reads permission to
+keep working the moment the process is launched — but the launch is not the guarantee. To the proof,
+a run moving on to its own next edit is no different from a review round landing a fix mid-run: both
+move the subject before the verdict is in. The rule binds on the **verdict**, not the start: what a
+running measurement reads stands until the run has read that measurement's own verdict, whichever
+of the two would otherwise move it.
+Holding the edit is not idling — read, plan, answer whatever else is owed, and let only the write to
+the tree it is reading wait.
+
+Where the tree moved anyway, that is not a clean reading and it is never reported as one: say, in the
+verdict's own words, that the subject changed and when. Where a criterion still needs a reading
+against an unmoved head, take a second one there for that criterion alone rather than stretch the
+first to cover it. None of this asks for a rerun after every review round, which would cost more than
+the defect it guards against — only that a run already inside a measurement does not also move what
+it is measuring.
+
 ## The order
 
 1. **The repo's own gates.** Whatever the project defines. Passing them is the floor.
