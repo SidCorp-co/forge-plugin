@@ -17,10 +17,14 @@ const MISS = "miss";
 const NOTE = "note";
 
 /** Which value is in force and where it was read; a value the key does not take is named here and
- *  nowhere else, since this is the surface allowed to say what a project turned off. */
+ *  nowhere else, since this is the surface allowed to say what a project turned off. The arrow is
+ *  dropped where nothing answered — a key whose fallback is no value at all has no source to name,
+ *  and `← null` reads as a file. */
+const arrow = (from) => (from === null || from === undefined ? "" : `  ← ${from}`);
+
 export const held = (one, allowed) =>
-  (one.unknown ? `${one.unknown} is no value of this key — it takes ${allowed.join(", ")}; reading ${one.value}  ← ${one.from}`
-    : `${one.value}  ← ${one.from}`);
+  (one.unknown ? `${one.unknown} is no value of this key — it takes ${allowed.join(", ")}; reading ${one.value}${arrow(one.from)}`
+    : `${one.value}${arrow(one.from)}`);
 
 const flowRow = () => {
   const refused = flowRefusal();

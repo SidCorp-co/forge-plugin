@@ -60,6 +60,8 @@ test("a word the shape key does not take is named in the report rather than read
   const { out } = ofProject({ slug: "demo", shape: "warehouse" });
   assert.match(out, /\[ miss \] shape\s+warehouse is no value of this key — it takes storefront, staged, direct/u);
   assert.match(out, /reading no shape at all/u, "and what it fell back to, so the reader knows what is in force");
+  assert.doesNotMatch(out, /shape\s+warehouse.*←/u,
+    "and no arrow, a key whose fallback is no value at all having no source to name");
 });
 
 test("the key is written by --set into this machine's record of the project, beside its slug", () => {

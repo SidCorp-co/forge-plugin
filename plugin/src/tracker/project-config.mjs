@@ -215,11 +215,10 @@ export const releaseConflict = (policy) => {
 };
 
 /* Three states, one value each: a policy read, `null` where no project is named, and this where the
-   read did not happen, said here too since a boolean reader has nowhere to put it (ISS-1663).
-   `at` is the checkout a reading AIMED at another one names, whose tracker half `useProject` has
-   already redirected by slug; the local half is read off that same directory or the two halves pair
-   one project's release model with another's switch. Memoised over the first caller's answer as the
-   redirect itself is, one process reading one project. */
+   read did not happen, said here too since a boolean reader has nowhere to put it (ISS-1663). `at`
+   is handed to `releaseScope`, whose own line says what a reading aimed elsewhere needs it for.
+   Memoised over the first caller's answer as the redirect above it is, one process reading one
+   project. */
 export const releasePolicy = once(async (at = null) => {
   if (!slugIfAny()) return null;
   const answer = await scoped("forge_config", { action: "get" }, true);
