@@ -16,7 +16,7 @@ import { flags } from "../resolve/flags.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
 import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, tallied, twoWindows } from "../stats/windows.mjs";
 import { CONSULTS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "../stats/marks/marks.mjs";
-import { deviceOf } from "../resolve/device.mjs";
+import { deviceOf } from "../resolve/machine/device.mjs";
 
 const DEFAULT_WINDOW = 100;
 const REPLAY_WINDOW = 30;

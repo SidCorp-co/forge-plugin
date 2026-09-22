@@ -6,8 +6,8 @@ import { linkSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeF
 import { randomBytes } from "node:crypto";
 import { basename } from "node:path";
 
-import { configDir } from "./config.mjs";
-import { logHook } from "../hooks/log/hook-log-file.mjs";
+import { configDir } from "../config.mjs";
+import { logHook } from "../../hooks/log/hook-log-file.mjs";
 
 const STALE_MS = 5_000;
 const WAIT_MS = 20;

@@ -6,7 +6,7 @@
    makes this a field rather than something to reconcile (ISS-1984). */
 import { randomBytes } from "node:crypto";
 
-import { configDir, readJson, writeJsonPrivate } from "./config.mjs";
+import { configDir, readJson, writeJsonPrivate } from "../config.mjs";
 import { join } from "node:path";
 
 /* The answer for a reading that was taken before this field existed. Named rather than left absent,

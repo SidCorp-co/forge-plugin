@@ -7,8 +7,8 @@ import { copyFileSync, existsSync, renameSync, writeFileSync } from "node:fs";
 
 import { appendJsonl, jsonlAt, jsonlBack, jsonlBytes, jsonlMark } from "../../hooks/log/hook-log-file.mjs";
 import { configDir } from "../../resolve/config.mjs";
-import { UNKNOWN_DEVICE } from "../../resolve/device.mjs";
-import { underLock } from "../../resolve/file-lock.mjs";
+import { UNKNOWN_DEVICE } from "../../resolve/machine/device.mjs";
+import { underLock } from "../../resolve/machine/file-lock.mjs";
 import { checkoutAt } from "../../git/checkout-at.mjs";
 import { fail, projectAt } from "../../resolve/settings.mjs";
 

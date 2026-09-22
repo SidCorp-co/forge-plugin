@@ -9,8 +9,8 @@ import { join } from "node:path";
 
 import { WINDOW, runsMark } from "../../../src/stats/eval/eval.mjs";
 import { RUNS, marksOf, marksPath, scopeOf, writeMark } from "../../../src/stats/marks/marks.mjs";
-import { underLock } from "../../../src/resolve/file-lock.mjs";
-import { UNKNOWN_DEVICE } from "../../../src/resolve/device.mjs";
+import { underLock } from "../../../src/resolve/machine/file-lock.mjs";
+import { UNKNOWN_DEVICE } from "../../../src/resolve/machine/device.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 import { PROJECT, askStats, at, corpusOf, rootOf } from "../fixture-eval.mjs";
 

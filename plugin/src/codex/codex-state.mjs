@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { isAbsolute, join } from "node:path";
 
 import { configDir, readJson, writeJsonPrivate } from "../resolve/config.mjs";
-import { underLock as holdingFile } from "../resolve/file-lock.mjs";
+import { underLock as holdingFile } from "../resolve/machine/file-lock.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { changedAgainst, digest } from "./codex-api.mjs";
 import { logBytes } from "./codex-log.mjs";
@@ -27,7 +27,7 @@ export const ageOf = (at, now = Date.now()) => {
 
 const lockPath = () => `${statePath()}.lock`;
 
-/* The lock itself is `../resolve/file-lock.mjs`: the readings a mark holds are written under the
+/* The lock itself is `../resolve/machine/file-lock.mjs`: the readings a mark holds are written under the
    same one, and a second copy of a bounded stale-breaking lock is how the two answers drift. */
 const underLock = (fn) => holdingFile(lockPath(), fn);
 

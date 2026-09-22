@@ -6,7 +6,7 @@
 import { RUNG_UNKNOWN } from "../corpus/transcripts.mjs";
 import { scopeFor } from "../corpus/release.mjs";
 import { corpusOf } from "../corpus/read.mjs";
-import { deviceOf } from "../../resolve/device.mjs";
+import { deviceOf } from "../../resolve/machine/device.mjs";
 import { checkoutFrom, derivedFrom, profileOf, readingAside } from "../runs.mjs";
 import { stamp } from "../figures.mjs";
 import { UNRECORDED, copyAt, spansInstall } from "../versions.mjs";
