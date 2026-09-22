@@ -41,9 +41,9 @@ keys existed is not a box that stopped working. Provenance is the whole of what 
 the report answers *which file*, not *whether a file*, for each key separately, so a key answered
 from the fallback and a key answered from here sit on adjacent lines saying so.
 
-**A project's release policy is the tracker's and not a checkout's.** The release model, the branch
-each model has, the strategy that moves the code and the automatic production deploy are project
-columns already, and `forge project` prints them under the names their owner uses — the tracker's
+**A project's release policy is the tracker's and not a checkout's, with one field excepted.** The
+release model, the branch each model has and the strategy that moves the code are project columns
+already, and `forge project` prints them under the names their owner uses — the tracker's
 `baseBranch` is the staging branch everywhere but in the one reader that fetches it, and doctor's
 release lines are a second view of the same answer. The model is what the policy is read off, and
 the branch is a field of the one model that has one: asking for a branch under a model that declares
@@ -53,15 +53,26 @@ branch to promote to, is the incoherence its own schema warns of, and it is repo
 declaration is made, the person's look stands. What the same report does with the deploy behind that
 branch is [doctor](doctor.md).
 
-**One flow reads five settings, and every one of them is the project's**, in this machine's record
+**The excepted field is whether production deploys without a person, which moved to `release` on
+2026-09-22** (ISS-2190). It is the one field of that policy a checkout can answer for itself, because
+it is what the flow reads to decide whether an issue stops at `awaiting_release` and a project wants
+that settled where the work is rather than on a screen somebody else administers. It moved rather
+than gaining a second layer, and the tracker's field is what it falls back to rather than a twin
+beside it: `pipelineConfig.autoProdDeploy` is live on projects this plugin is already installed in,
+so a project that has not set the key reads as it did before the move and one that has overrides it.
+The report's production-deploy row names which of the two answered, which is the whole of what makes
+a fallback bearable here as it is for the two gateway files above.
+
+**One flow reads six settings, and every one of them is the project's**, in this machine's record
 of that project — which level, and why: [two levels](../two-levels.md). `feedback`, two
 channels (`off | bugs | all`) saying whether a run may report on this plugin and on the project
 itself; `flow`, which of the served method sets this project runs, pinning the guide, the method and
 the contract together because they are one designed set and a project mixing them runs text nobody
 tested; `landing`, where the merge sits; `lease.workingRe`, what a run working in one of this
 project's trees is running, which is the only thing that separates two agents standing in one tree;
-and `ship`, whether a run lands its own change or ends ready for another actor to land it.
-`forge doctor` prints all five with their sources, and it is the only surface allowed to.
+`ship`, whether a run lands its own change or ends ready for another actor to land it; and
+`release`, whether a change goes out without a person's look. `forge doctor` prints all six with
+their sources, and it is the only surface allowed to.
 
 **`ship` was the machine's until 2026-09-22 and is the project's now** (ISS-2174). What decided it is
 the line at the top of this page rather than a preference: the right answer differs between two

@@ -263,7 +263,7 @@ text the session it is in is holding.
 
 ### UC-01-5 — The project's keys, and the machine's own
 
-Rev: 6 · Actors: developer, agent · Enforces: BR-07, BR-08
+Rev: 7 · Actors: developer, agent · Enforces: BR-07, BR-08
 
 A project decides how this product behaves inside its checkout — what a run may report about the
 product, which version of the method it runs, whether its changes land and where the merge sits —
@@ -277,6 +277,17 @@ checkout takes on rather than what the box can hold. Each key is read from one p
 with its source (BR-08), and a project that declares no number of runs is one this says nothing
 about. A key this store held before it moved is read by nothing that decides and is reported
 ignored, a value dropped in silence being worse than one refused.
+
+What kind of project a checkout belongs to is the project's too, and declared rather than inferred:
+where work is exercised decides what a criterion needing a running product is answered by, and a
+reading of it taken off whichever deployment a tracker happens to hold lets two runs in one checkout
+reach opposite answers. Whether a change goes out without a person's look is the project's as well,
+and that one arrived from the tracker rather than from the machine, which makes what an absence
+resolves to a different question: a value at the level it moved off is live on projects this product
+cannot see, so it answers where the project's own key is unset rather than being reported ignored,
+and the report says which of the two answered. Reversing a setting somebody is already relying on,
+in silence, at an upgrade nobody asked for that from, is the outcome that rules the other reading
+out.
 
 Whose a key is and where that key is kept are two questions. The project's half is kept in this
 machine's own record of that project rather than in the checkout, because a file every clone carries
@@ -315,6 +326,17 @@ the worst place to keep an example of the one it replaces.
 - **AC-01-5-41** · Rev: 1 · Proof: plugin/test/cli/doctor/ship.test.mjs "a landing mode left in the account's configuration is reported ignored and decides nothing"
   IF the account's configuration still holds a landing mode THEN the resolution report SHALL say that
   value is ignored and SHALL name the key that decides it now.
+- **AC-01-5-42** · Rev: 1 · Proof: plugin/test/cli/doctor/shape.test.mjs "the shape the report prints is the shape that file holds, with the consequence each of the three carries"
+  WHEN the project file declares what kind of project it is THEN the resolution report SHALL print
+  that kind with what it means for where work is exercised, and SHALL name that file as its source.
+- **AC-01-5-43** · Rev: 1 · Proof: plugin/test/cli/doctor/release-mode.test.mjs "the project's own key decides the production deploy, and the report names it as the level that answered"
+  WHEN the project file declares whether a change goes out without a person's look THEN the CLI SHALL
+  read the production deploy from that key rather than from the tracker's own record, and the
+  resolution report SHALL name that file as where it was read.
+- **AC-01-5-44** · Rev: 1 · Proof: plugin/test/cli/doctor/release-mode.test.mjs "a project that declares nothing locally still reads the tracker's flag, and the report says which level answered"
+  IF the project file declares nothing about whether a change goes out without a person's look THEN
+  the CLI SHALL read the tracker's own record for it, and the resolution report SHALL name that
+  record together with the local key that is unset.
 - **AC-01-5-7** · Rev: 2 · Proof: plugin/test/tools/doctor.test.mjs "the number of parallel runs is the project's: it is read out of the project's record, with that file named as its source"
   WHEN the project declares how many runs it carries at once THEN the resolution report SHALL print
   that number, SHALL name the project's own file as where it was read, and SHALL neither read nor

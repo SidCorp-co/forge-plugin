@@ -500,6 +500,36 @@ export const shipLeftOnMachine = () => (Object.hasOwn(userConfig(), "ship")
   ? { present: true, value: userConfig().ship, from: configPath() }
   : { present: false, value: null, from: null });
 
+export const PROJECT_SHAPES = ["storefront", "staged", "direct"];
+
+/** What kind of project a checkout belongs to, which decides where work is exercised: a `storefront`
+ *  keeps no repository and the store is its own source of truth, a `staged` project has a preview
+ *  deployment somebody opens before live, and a `direct` project is live only, so preview IS this
+ *  box. Declared and never inferred — every reader before this one guessed it from whether the
+ *  tracker happened to hold a preview environment, and two runs in one checkout reached opposite
+ *  answers (ISS-2190). Absent is no shape rather than a fourth behaviour: a run that cannot read
+ *  which of the three it is standing in is owed silence, not a default somebody never chose. */
+export const shapeScope = once(() =>
+  chosen(forgeJson().parsed?.shape, PROJECT_SHAPES, null, { absent: null }));
+
+export const RELEASE_MODES = ["auto", "manual"];
+
+/** Whether a change of this project goes out without a person's look. The PROJECT's, beside `ship`,
+ *  `landing` and `drainedBy`, and the one source the flow reads for it as of ISS-2190 — the tracker's
+ *  `pipelineConfig.autoProdDeploy` answered it before, at a level a checkout cannot set and a level
+ *  no local declaration could ever override. Absent here is not `manual`: `releaseFrom` in
+ *  tracker/project-config.mjs decides what an absence resolves to, one level down, so that a project
+ *  which has not spoken is moved by no upgrade of this plugin.
+ *
+ *  A NAMED directory is read the way `declaredWork` above reads one, and for the same reason: a
+ *  reading aimed at another checkout takes the tracker half by slug and would otherwise take this
+ *  half out of the file the shell happens to stand in, pairing one project's release model with
+ *  another's switch. The source is that checkout's own file, never this process's (BR-08). */
+export const releaseScope = (at = null) => chosen(
+  at === null ? forgeJson().parsed?.release : projectFileAt(at)?.release,
+  RELEASE_MODES, null, { absent: null, source: at === null ? fromProject() : `the project file under ${at}` },
+);
+
 export const RUNS_TAKES = "a whole number above 0";
 
 // How many runs this project carries at once, whoever dispatched them: the width of a wave the dispatcher fills and the ceiling a gate of this project admits itself against, which are one number because they bound one thing. One ceiling over the project is not one allowance per master, so a session that cannot see another master's runs is bounded by what the project is already carrying rather than by this number afresh. The key is the PROJECT's — ISS-1157 reverses ISS-917 on that, the user's decision on 2026-09-11 — so two projects on one box each answer for their own work and neither inherits the other's; the file holding it is this MACHINE's, per ISS-1403, so two boxes carrying one project may differ. The two are one shape and neither reverses the other: the store is keyed on the project and kept on the device. Absent it is null, and every reader then behaves as it did before the key existed.
