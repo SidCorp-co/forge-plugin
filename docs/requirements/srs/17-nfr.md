@@ -70,6 +70,15 @@ second look at both texts (ISS-2028).
   WHEN a caller reads `forge record -h` THEN `criteria` and `plan` — the two kinds a caller reaches
   from their own dedicated help rather than from this list — SHALL be its last two rows.
 
+A value is refused for its form as often as for its absence, and the two are not told alike: a set
+of values a field declares is printed beside the flag, while a form a predicate holds the value to
+reached the caller only in the refusal, after the write it refused had been composed (ISS-457).
+
+- **AC-17-4-5** · Rev: 1 · Proof: plugin/test/flow/record/record-rows.test.mjs "a field its own rule refuses is told in its kind's help what it takes, and one with none is told nothing"
+  WHERE a payload kind refuses a field's value for the form that value takes, that kind's own help
+  SHALL print the form in the words the refusal states it, so the grammar is read before the write
+  is composed rather than out of the write being turned back.
+
 ### NFR-05 — A projection carries no byte that says nothing
 
 Rev: 1 · Enforces: BR-14

@@ -5,7 +5,7 @@ import { PARKS, FINDINGS, PLAN_SECTIONS, SECTIONS, SHAPES, TRIAGES, VERDICTS,
   sectionOwedBy } from "../machine.mjs";
 import { CLAUSES, NOTHING } from "./merged.mjs";
 import { citationBlocks } from "../../spec/checked.mjs";
-import { commitTakes } from "./content.mjs";
+import { DECISION_PARTS, commitTakes } from "./content.mjs";
 import { declaredFor } from "../../tracker/rest.mjs";
 import { goalBlock } from "../../goals.mjs";
 import { OPEN_KEPT } from "../worklog.mjs";
@@ -32,13 +32,13 @@ const servesOn = (kind) => (SERVES_KINDS.includes(kind) ? "  [--serves G]" : "")
 
 export const kindRows = (caps) => [
   "  confirmation --is I --where W... --finding F [--detail D]   F: " + FINDINGS.join("|"),
-  "  decision     --decision \"reading | assumption | undo\"... | --none <why>" + servesOn("decision"),
+  `  decision     --decision "${DECISION_PARTS.join(" | ")}"... | --none <why>` + servesOn("decision"),
   "  question     --reading \"reading -> outcome\" (two or more) [--to who]",
   "  park         --kind K --why W [--evidence E]...             K: " + PARKS.join("|"),
   "  correction   --moved M --why W                                a plan or criteria change after approval",
   "  baseline     --gate G --result R --commit C --scope whole|part [--cited W]",
   "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C --evidence E... [--why W] [--filed R]",
-  "  review       --reviewer R --commit C --outcome approved|changes-requested [--finding \"8c1a15 F1 accepted: what changed\"]...",
+  "  review       --reviewer R --commit C --outcome approved|changes-requested [--finding F]...",
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
   "  gap          --where W --lacked L --did D | --none <why>       where the method did not answer",
   "  verification --where W --commit C --evidence E... [--contains C]",
@@ -178,6 +178,13 @@ const alsoCommit = (kind) => (SHAPES[kind]?.fields ?? [])
   .slice(1)
   .map((one) => `--${one.flag} takes ${commitTakes(one)}.`);
 
+/* What a field its own rule refuses a value for, off the field and in that rule's own words: a form
+   a caller can only meet by having a composed write turned back is paid for at the write's price
+   (ISS-457). A row spells the flags; this spells what one of them will take. */
+const formsTaken = (kind) => (SHAPES[kind]?.fields ?? [])
+  .filter((one) => one.form)
+  .map((one) => `--${one.flag} takes ${one.form}.`);
+
 /* One sentence per fill, under that fill's own condition: an evidence field nothing owes, `routed`'s, is never filled and is promised no read. */
 const readsOff = (kind) => {
   const commit = filled(kind, "commit");
@@ -253,6 +260,7 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS] : []),
     ...(filled(kind, "evidence") ? ["", ...EVIDENCE_BLOCKS] : []),
     ...(alsoCommit(kind).length ? ["", ...alsoCommit(kind)] : []),
+    ...(formsTaken(kind).length ? ["", ...formsTaken(kind)] : []),
     ...readsOff(kind),
     "",
     `The flags every writing kind also takes, and the other ${KINDS.length - 1} kinds: \`forge record -h\`.`,

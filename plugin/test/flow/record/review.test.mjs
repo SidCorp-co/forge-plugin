@@ -9,6 +9,10 @@ import { tempRoom } from "../../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempRoom("review-");
 const { parse, render } = await import("../../../src/flow/record/page.mjs");
 const { OUTCOMES, SHAPES } = await import("../../../src/flow/machine.mjs");
+const { eachProblem } = await import("../../../src/flow/record/content.mjs");
+
+/* The field's own rule, reached the way both the write and the read-back reach it. */
+const judged = (values) => eachProblem(SHAPES.review.fields.find((one) => one.flag === "finding"), values);
 
 test("a review names its reviewer, head and outcome, and each finding is an id with a verdict", () => {
   const body = render("review", { reviewer: "codex", commit: "ea7967f", outcome: "approved", finding: ["F1 accepted", "F2 rejected: a re-record reviews nothing new"] });
@@ -16,11 +20,10 @@ test("a review names its reviewer, head and outcome, and each finding is an id w
   assert.match(body, /^finding: F1 accepted\nfinding: F2 rejected: a re-record reviews nothing new$/mu);
   assert.equal(parse(body).kind, "review");
   assert.deepEqual(OUTCOMES, ["approved", "changes-requested"]);
-  const { check } = SHAPES.review;
-  assert.equal(check({ finding: ["F1 accepted"] }), null);
-  assert.match(check({ finding: ["looks fine"] }), /each --finding as/u);
-  assert.match(check({ finding: ["F2 rejected"] }), /a reason after a rejected finding/u);
-  assert.match(check({ finding: ["1 accepted"] }), /each --finding as/u, "a bare number is a count, not an identifier");
+  assert.equal(judged(["F1 accepted"]), null);
+  assert.match(judged(["looks fine"]) ?? "", /takes `F1 accepted`/u);
+  assert.match(judged(["F2 rejected"]) ?? "", /a reason after a rejected finding/u);
+  assert.match(judged(["1 accepted"]) ?? "", /takes `F1 accepted`/u, "a bare number is a count, not an identifier");
 });
 
 /* Writing the review for ISS-1106 dropped nine findings of ten: five reads had each numbered from
@@ -32,16 +35,15 @@ test("two reads' F1s are two rows of a review, and an accepted one says what cha
     "b07591 F1 rejected: the clause it doubts is the one the case establishes",
     "G3 accepted",
   ];
-  const { check } = SHAPES.review;
-  assert.equal(check({ finding }), null);
+  assert.equal(judged(finding), null);
   const body = render("review", { reviewer: "codex", commit: "ea7967f", outcome: "approved", finding });
   assert.deepEqual(parse(body).fields.finding, finding, "each row reads back as it was written");
 
-  assert.equal(check({ finding: ["F1 accepted: what changed"] }), null, "an acceptance carries its words");
-  assert.match(check({ finding: ["G3 rejected"] }), /a reason after a rejected finding: `G3 rejected: why`/u,
+  assert.equal(judged(["F1 accepted: what changed"]), null, "an acceptance carries its words");
+  assert.match(judged(["G3 rejected"]) ?? "", /a reason after a rejected finding: `G3 rejected: why`/u,
     "and a rejection owes its own whatever the reviewer numbered it");
-  assert.match(check({ finding: ["8c1a15 F1 maybe"] }), /8c1a15 F1 accepted: what changed/u,
+  assert.match(judged(["8c1a15 F1 maybe"]) ?? "", /8c1a15 F1 accepted: what changed/u,
     "the refusal names the qualified form rather than only the bare one");
-  assert.match(check({ finding: ["1 accepted"] }), /each --finding as/u,
+  assert.match(judged(["1 accepted"]) ?? "", /takes `F1 accepted`/u,
     "and a number carrying no series is no identifier, whoever is numbering");
 });

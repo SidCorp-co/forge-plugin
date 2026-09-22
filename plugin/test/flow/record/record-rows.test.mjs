@@ -10,6 +10,7 @@ process.env.XDG_CONFIG_HOME = tempRoom("record-rows-");
 const { KINDS, USAGE, kindHelp, usage } = await import("../../../src/flow/record/record.mjs");
 const { DISPLAY_ORDER } = await import("../../../src/flow/record/record-rows.mjs");
 const { SHAPES } = await import("../../../src/flow/machine.mjs");
+const { eachProblem } = await import("../../../src/flow/record/content.mjs");
 const { CITED_IN, citationBlocks } = await import("../../../src/spec/checked.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -137,6 +138,51 @@ test("a commit-typed field the fill does not read is told what it takes", () => 
   assert.match(kindHelp("verification"),
     /^--contains takes the landed commit the head on --commit carries as 7 to 40 hex digits\.$/mu,
     "and the words are the field's own label, so a new one of them needs no edit here");
+});
+
+/* A closed set of values reaches the caller off the field — `--verdict pass|fail|skipped|short` is
+   the shape's own `oneOf` printed — and a form a predicate refuses reached nobody: `record review`
+   turned back `f5b24b F3 accepted in part` naming the three forms it takes, and `record review -h`
+   named none of them, so the grammar cost a composed write to learn (ISS-457). */
+test("a field its own rule refuses is told in its kind's help what it takes, and one with none is told nothing", () => {
+  let told = 0;
+  for (const kind of KINDS) {
+    const shown = kindHelp(kind);
+    const forms = (SHAPES[kind]?.fields ?? []).filter((one) => one.form);
+    for (const field of forms) {
+      assert.match(shown, new RegExp(`^--${field.flag} takes .`, "mu"),
+        `${kind}: --${field.flag} is refused for its form and its help says nothing of it`);
+      assert.ok(shown.includes(`--${field.flag} takes ${field.form}.`),
+        `${kind}: --${field.flag} is described in words its refusal does not use`);
+      told += 1;
+    }
+    /* Commit-typed fields are told what they take by the sentence above, and are not this line. */
+    for (const field of (SHAPES[kind]?.fields ?? []).filter((one) => !one.form && !one.commit)) {
+      assert.doesNotMatch(shown, new RegExp(`^--${field.flag} takes [^\\n]+\\.$`, "mu"),
+        `${kind}: --${field.flag} is refused for no form and its help states one anyway`);
+    }
+  }
+  assert.equal(told, 3, "and the fields carrying a form are the ones the shapes declare");
+});
+
+/* The form and the refusal are one string or they are two copies, and the second is the one nobody
+   corrects: `--decision` was spelt in the usage row and refused against a list beside it. */
+test("every field carrying a rule over its values declares the form that rule refuses against", () => {
+  const undeclared = [];
+  const unquoted = [];
+  for (const kind of KINDS) {
+    for (const field of (SHAPES[kind]?.fields ?? []).filter((one) => one.each)) {
+      if (!field.form) undeclared.push(`${kind} --${field.flag}`);
+    }
+  }
+  for (const [kind, flag, bad] of [["confirmation", "where", "in the code"],
+    ["decision", "decision", "one part only"], ["review", "finding", "looks fine"]]) {
+    const field = SHAPES[kind].fields.find((one) => one.flag === flag);
+    const said = eachProblem(field, [bad]) ?? "";
+    if (!said.includes(field.form)) unquoted.push(`${kind} --${flag} refused \`${bad}\` with: ${said}`);
+  }
+  assert.deepEqual(undeclared, [], "a field refused value by value says what a value has to be");
+  assert.deepEqual(unquoted, [], "and the refusal quotes the form its kind's help prints");
 });
 
 test("a kind -h answers for the kind alone, and a name that is no kind still refuses", () => {

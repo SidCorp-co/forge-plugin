@@ -25,23 +25,50 @@ const OPENABLE = [
   /\b[A-Za-z_]\w*\(\)/u,
 ];
 
+/** What the field takes, in the words its own refusal opens with and its kind's help prints: a form
+ *  stated only where a value is turned back is one a caller pays a composed write to learn (ISS-457).
+ *  Every field carrying an `each` declares one of these, and `record-rows.mjs` prints it. */
+export const WHERE_TAKES = "a path or an identifier — a file, a symbol, a clause, an issue key — so a "
+  + "reader can go and open it";
+
 export const whereProblem = (value) => {
   const said = String(value ?? "");
   if (OPENABLE.some((one) => one.test(said))) return null;
-  return "takes a path or an identifier — a file, a symbol, a clause, an issue key — so a reader can "
-    + `go and open it; \`${said}\` names nothing to look at, and a confirmation whose where names `
-    + "nothing is one nobody can check.";
+  return `takes ${WHERE_TAKES}; \`${said}\` names nothing to look at, and a confirmation whose where `
+    + "names nothing is one nobody can check.";
 };
 
 /* The reading, the assumption it was taken under, and the line that reverses it; the third is what a decision record exists for. */
 export const DECISION_PARTS = ["reading", "assumption", "undo"];
 const PARTS = DECISION_PARTS.length;
 
+export const DECISION_TAKES = `\`${DECISION_PARTS.join(" | ")}\` — three parts on one line`;
+
 export const decisionProblem = (value) => {
   const parts = String(value ?? "").split("|").map((one) => one.trim());
   const undo = parts.slice(PARTS - 1).join("|").trim();
   if (parts.length >= PARTS && undo) return null;
-  return `takes \`${DECISION_PARTS.join(" | ")}\` — three parts on one line — and this one carries `
+  return `takes ${DECISION_TAKES} — and this one carries `
     + `${parts.filter(Boolean).length} of them. The ${DECISION_PARTS.at(-1)} is the part that says `
     + `what reverses the decision, and one with none is a decision nobody can take back.`;
+};
+
+/* A finding is a disposition against an identifier the reviewer chose: the series is a reviewer's to
+   number from F1 or from G1 (ISS-933), and a bare number is a count. The consult that raised it may
+   open the line, so two reads' F1s stand as rows a reader can tell apart. Words after either
+   disposition say what changed or why, an acceptance being where the sentence a later reader has to
+   have actually lives. */
+const FINDING = /^(?:\S+ )?[A-Za-z]+\d+ (?:accepted(?:: .+)?|rejected: .+)$/u;
+/* Asked before the grammar, so a rejection with nothing after it is told what it lacks rather than
+   what shape to take. Its identifier is as loose as the other's, or a `G1 rejected` would fall to a
+   message about a grammar it already satisfies. */
+const BARE_REJECTED = /^(?:\S+ )?[A-Za-z]+\d+ rejected$/u;
+
+export const FINDING_TAKES = "`F1 accepted`, `F1 rejected: why`, or either opening with the consult "
+  + "that raised it — `8c1a15 F1 accepted: what changed`";
+
+export const findingProblem = (value) => {
+  const said = String(value ?? "");
+  if (BARE_REJECTED.test(said)) return `needs a reason after a rejected finding: \`${said}: why\``;
+  return FINDING.test(said) ? null : `takes ${FINDING_TAKES}, not \`${said}\``;
 };

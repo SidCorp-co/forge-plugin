@@ -1,6 +1,7 @@
 /* A project whose configuration names a prose language has every body and prose field rewritten on
    the way out (tools/vi.mjs), and a rewrite renames prose, so a key travels in a form the rewrite copies byte for byte: a fenced block, or a code span. `content.mjs` is the one thing imported here and imports nothing itself, so both sides can still import this. */
-import { decisionProblem, whereProblem } from "./record/content.mjs";
+import { DECISION_TAKES, FINDING_TAKES, WHERE_TAKES, decisionProblem, findingProblem,
+  whereProblem } from "./record/content.mjs";
 import { CODE_SPAN, SPAN, blanked, fenceMarked } from "../prose.mjs";
 
 /** An ISO stamp to the minute, as every screen in this tree shows one; apart from `lease.mjs`'s and `stats/runs.mjs`'s, which take milliseconds. */
@@ -357,18 +358,11 @@ export const OUTCOMES = ["approved", "changes-requested"];
    several reads of one change, so one review holds several F1s sharing nothing but a number
    (ISS-1128). The leading token is that consult, which makes them rows that stand apart rather than
    a reader being told which of them by nothing at all; it is unconstrained, being the reviewer's own
-   handle and not a shape this file gets to assume. The identifier is a letter series and a number
-   for the reason the other way round: a reviewer numbers from F1 or from G1 as it chooses (ISS-933),
-   and a bare number is a count. Words after either disposition say what changed or why, an
-   acceptance being where the sentence a later reader has to have actually lives. */
-const FINDING = /^(?:\S+ )?[A-Za-z]+\d+ (?:accepted(?:: .+)?|rejected: .+)$/u;
-/* Asked before the grammar, so a rejection with nothing after it is told what it lacks rather than
-   what shape to take. Its identifier is as loose as the other's, or a `G1 rejected` would fall to a
-   message about a grammar it already satisfies. */
-const BARE_REJECTED = /^(?:\S+ )?[A-Za-z]+\d+ rejected$/u;
+   handle and not a shape this file gets to assume. What a finding line may say is the field's own
+   rule and lives with the others of its sort in `record/content.mjs`. */
 export const SECTIONS = ["Added", "Changed", "Fixed", "Removed", "Security"];
 
-/* `many` flags repeat; `oneOf` names the values; `least` is the smallest count that is a payload; `newer` is asked for at the write and excused at the read-back, a shape's records outliving it.
+/* `many` flags repeat; `oneOf` names the values; `each` is the rule over every one of them and `form` the words it and the kind's own help both state, so a caller reads the grammar before composing rather than out of the refusal (ISS-457); `least` is the smallest count that is a payload; `newer` is asked for at the write and excused at the read-back, a shape's records outliving it.
    `takes` is what a sentence about the field says it holds where the label cannot say it: the label is `labelledIn`'s read key above, so renaming one drops that field off every record already written in that form, and what a refusal has to say is longer than what a printed line wants (ISS-833). */
 const FIELD = (flag, label, extra = {}) => ({ flag, label, ...extra });
 
@@ -428,7 +422,7 @@ export const SHAPES = {
     heading: "Confirmation",
     fields: [
       FIELD("is", "What it is"),
-      FIELD("where", "Where looked", { many: true, each: whereProblem }),
+      FIELD("where", "Where looked", { many: true, each: whereProblem, form: WHERE_TAKES }),
       FIELD("finding", "Finding", { oneOf: FINDINGS }),
       FIELD("detail", "Detail", { optional: true }),
       FIELD("rung", "Rung", { optional: true, derived: true }),
@@ -436,7 +430,7 @@ export const SHAPES = {
   },
   decision: {
     heading: "Decision record",
-    fields: [FIELD("decision", "Decision", { many: true, least: 0, each: decisionProblem }),
+    fields: [FIELD("decision", "Decision", { many: true, least: 0, each: decisionProblem, form: DECISION_TAKES }),
       FIELD("none", "None found", { optional: true }), FIELD("serves", "Serves", { optional: true })],
     check: (got) => {
       if (!got.decision.length && !got.none) return "--decision (repeatable) or --none <why>";
@@ -512,16 +506,8 @@ export const SHAPES = {
       FIELD("reviewer", "Reviewer"),
       FIELD("commit", "Head judged", { commit: true }),
       FIELD("outcome", "Outcome", { oneOf: OUTCOMES }),
-      FIELD("finding", "Findings", { many: true, least: 0 }),
+      FIELD("finding", "Findings", { many: true, least: 0, each: findingProblem, form: FINDING_TAKES }),
     ],
-    check: (got) => {
-      const bare = got.finding.find((one) => BARE_REJECTED.test(one));
-      if (bare) return `a reason after a rejected finding: \`${bare}: why\``;
-      const odd = got.finding.find((one) => !FINDING.test(one));
-      if (odd) return "each --finding as `F1 accepted`, `F1 rejected: why`, or either opening with "
-        + `the consult that raised it — \`8c1a15 F1 accepted: what changed\` — not \`${odd}\``;
-      return null;
-    },
   },
   /* What one look found: a person's voice carried for them, or the agent's own where the flow sent
      it to look. A reopen with no finding is a status that moved and nothing saying why. */
