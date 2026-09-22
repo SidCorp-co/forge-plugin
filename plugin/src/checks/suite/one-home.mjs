@@ -28,8 +28,8 @@ const WHOLE = new RegExp(String.raw`import\s*\*\s*as\s+(${LOCAL})\s*from\s*${MOD
 const WHOLE_LATER = new RegExp(
   String.raw`(?:const|let|var)\s+(${LOCAL})\s*=\s*await\s+import\(\s*${MODULE}\s*\)`, "gu");
 
-/* The specifier is a string, which the mask blanks, so every pattern above is read off the text and
-   placed by the mask: a binding a fixture spells inside its own text opens nothing here. */
+/* Whether a match stands where code does. Each pattern above has to run against the source, its
+   anchor being a specifier and a specifier being a string the mask has already taken. */
 const inCode = (text, code, at) => code[at] === text[at];
 
 /* `a`, `b as c` and `b: c` all read the export first and name the local second — the middle one is
