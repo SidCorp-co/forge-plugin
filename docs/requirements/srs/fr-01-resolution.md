@@ -333,7 +333,7 @@ the worst place to keep an example of the one it replaces.
   WHEN the project file declares whether a change goes out without a person's look THEN the CLI SHALL
   read the production deploy from that key rather than from the tracker's own record, and the
   resolution report SHALL name that file as where it was read.
-- **AC-01-5-44** · Rev: 1 · Proof: plugin/test/cli/doctor/project-keys/release-mode.test.mjs "a project that declares nothing locally still reads the tracker's flag, and the report says which level answered"
+- **AC-01-5-44** · Rev: 1 · Proof: plugin/test/tools/doctor/release.test.mjs "the three release values are reported with where they came from"
   IF the project file declares nothing about whether a change goes out without a person's look THEN
   the CLI SHALL read the tracker's own record for it, and the resolution report SHALL name that
   record together with the local key that is unset.
