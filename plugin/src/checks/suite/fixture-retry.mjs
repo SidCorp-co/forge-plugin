@@ -4,8 +4,8 @@
    and one fixture still omitted it two months later, at 28.4s in a single case (ISS-2040). The suite
    went from 219 files to 366 in ten days, so the rule is held here rather than remembered. */
 
-/* Reached: an object literal in a test tree, inside a statement that names this plugin's own
-   `config.json`, which names a tracker endpoint and a token of its own and does not name the ladder.
+/* Reached: an object literal in a test tree, inside a statement that names the file this plugin keeps
+   its own configuration in, and which names a tracker endpoint and a token of its own and no ladder.
    The statement is what tells a tracker's configuration from another service's — a Coolify session
    carries a url and a token too and answers to no ladder of this transport's. A configuration naming
    no token is no tracker's either, and a nested object is read as its own literal. */
