@@ -175,8 +175,11 @@ const start = (out, root) => {
      evaluating one URL once, so what this holds is the one record and never the variable's shape. */
   const instrumented = (env) => {
     const named = env.NODE_OPTIONS ?? "";
+    /* Whole words and not a substring: `--import=<the audit>.backup` holds this one's text and
+       loads another module, and reading it as already there would leave the child uninstrumented. */
+    const already = named.split(/\s+/u).includes(PRELOAD);
     return { ...env, [READS_DIR]: out, [READS_ROOT]: root,
-      NODE_OPTIONS: named.includes(PRELOAD) ? named : `${named} ${PRELOAD}`.trim() };
+      NODE_OPTIONS: already ? named : `${named} ${PRELOAD}`.trim() };
   };
 
   const audit = {
@@ -294,7 +297,11 @@ const start = (out, root) => {
     const mine = process.env[READS_TICKET] || null;
     try {
       mkdirSync(out, { recursive: true });
-      writeFileSync(join(out, `${mine ?? `own-${process.pid}`}.json`), `${JSON.stringify({
+      /* The pid as well as the ticket: a child that spawns its own node outside the shimmed import
+         hands that grandchild the ticket it holds, and two processes writing one name would leave
+         the record of whichever wrote last and lose the other's reads. `recordsIn` puts the two
+         back together under the ticket they share, which is the subtree that ticket answers for. */
+      writeFileSync(join(out, `${mine ?? "own"}-${process.pid}.json`), `${JSON.stringify({
         ticket: mine, argv: process.argv.slice(1), paths: [...paths].sort(),
         dirs: [...dirs].sort(), trees: [...trees].sort(), whole: [...whole].sort(),
         spawned, blind: [...blind], done: true,

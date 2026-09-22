@@ -290,6 +290,20 @@ const wellFormed = (one) => one !== null && typeof one === "object" && one.done 
   && Array.isArray(one.paths) && Array.isArray(one.dirs) && Array.isArray(one.trees)
   && Array.isArray(one.whole) && Array.isArray(one.spawned) && Array.isArray(one.blind);
 
+/** Two processes under one ticket, put back together: a child that spawns node outside the shimmed
+ *  import hands on the ticket it holds, and both write a record of the same subtree. Sets of paths
+ *  and lists of children both belong to that subtree, so they add; `argv` is the first reader's and
+ *  is read of a root alone; and a subtree is finished when every process in it finished (ISS-2119). */
+const together = (one, other) => ({
+  ...one,
+  paths: [...one.paths, ...other.paths],
+  dirs: [...one.dirs, ...other.dirs],
+  trees: [...one.trees, ...other.trees],
+  whole: [...one.whole, ...other.whole],
+  spawned: [...one.spawned, ...other.spawned],
+  blind: [...one.blind, ...other.blind],
+});
+
 /** The records a step left, apart from the sets, so a candidate change applied to them re-derives through this same code (ISS-1756). */
 export const recordsIn = (out) => {
   let names;
@@ -308,8 +322,12 @@ export const recordsIn = (out) => {
       continue;
     }
     if (!wellFormed(one)) continue;
-    if (one.ticket) byTicket.set(one.ticket, one);
-    else roots.push(one);
+    if (one.ticket) {
+      const held = byTicket.get(one.ticket);
+      byTicket.set(one.ticket, held ? together(held, one) : one);
+    } else {
+      roots.push(one);
+    }
   }
   return { byTicket, roots };
 };

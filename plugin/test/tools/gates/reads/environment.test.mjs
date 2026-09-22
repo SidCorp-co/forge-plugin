@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
 import { chmodSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 
-import { auditEnv } from "../../../../../tools/gates/reads/sets.mjs";
+import { auditEnv, recordsIn as recordsFrom, stepSetOf } from "../../../../../tools/gates/reads/sets.mjs";
 import { write } from "../scratch.mjs";
 import { tempRoom } from "../../../fixtures.mjs";
 
@@ -223,6 +223,10 @@ test("a child handed an environment of its own records what it read, and blinds 
     const parent = kept.find((one) => one.ticket === null);
     assert.deepEqual(parent.spawned.map((one) => one.ticket), [child.ticket],
       "the ticket the parent holds is the one that record answers under");
+    // What the step is judged by, rather than the record alone: nothing in the tree blinds on it.
+    const derived = stepSetOf(recordsFrom(out), where.root);
+    assert.deepEqual(derived.blind, [], "and no cause is left for the file that spawned it");
+    assert.deepEqual(derived.paths.has(FILE), true, "the file it opened is in what the step read");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
