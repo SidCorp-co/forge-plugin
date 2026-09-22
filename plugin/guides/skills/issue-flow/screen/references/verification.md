@@ -2,7 +2,7 @@
 
 ## Before you edit
 
-Read the **baseline** Phase 0 started in the background, then record it with what already fails and
+Read the **baseline** Phase 0 owes, then record it with what already fails and
 whether the run measured the whole tree. Whether it was whole is the baseline record's own field, and
 `in_progress` refuses one saying it was not, so that demand is the entry check's rather than this
 page's.
@@ -35,8 +35,7 @@ the gate's defect and the gate-review skill is the route to it, never a reason t
 <!-- forge:end -->
 Whatever else is spent, the changed file's own suite answers one question faster than any gate
 reaches it, and a gate too slow to spend at all is the gate-review skill's to profile.
-Whichever of those runs, it is started in the background and what is read afterwards is the gate's
-own verdict rather than its log. Where the project's gate has a call that waits for that verdict,
+Whichever of those runs, what is read is the gate's own verdict rather than its log. Where the project's gate has a call that waits for that verdict,
 that one call is the whole of the wait and the answer both, and the gate's own `-h` names it. A
 completion notice is not that answer: it says a process ended, and a run holding a log with no
 verdict in it cannot tell a gate still running from one that died at a step or one that never
@@ -56,8 +55,8 @@ of this is the gate, and the rung a run claims bounds the gate alone.
 
 ## A measurement does not race what it reads
 
-A proof whose cost makes rerunning it a decision rather than a reflex — a background gate baseline, a
-sweep over live data that runs the better part of an hour — carries one more duty once it is under
+A proof whose cost makes rerunning it a decision rather than a reflex — a whole gate, a sweep over
+live data that runs the better part of an hour — carries one more duty once it is under
 way: say the condition holds before you measure, and take the figure against a head that is already
 settled, or, where that head cannot be had first, state which round the figure was taken at and what
 moved after it. A proof cheap enough to rerun freely owes none of this; the cost is the whole of the
@@ -194,8 +193,6 @@ range the user's stack owns.
 - **A stack script may override outer environment variables.** Exporting a variable before
   calling it does nothing if the script sets its own inside the process it spawns; the
   override belongs inside the invocation the script actually executes.
-- **Start background processes from the directory their dependencies resolve against.** A
-  module-not-found from a background process is usually the working directory.
 - **Wait for long work, never poll it.** The routes that ask nothing, and what asking again costs:
   `forge hooks --how polling`.
 - **After stopping anything, confirm the user's own stack still answers** — no guard can tell you

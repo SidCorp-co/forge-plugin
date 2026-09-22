@@ -17,10 +17,9 @@ than assuming.
 Then `forge knowledge search` on the issue's title: an entry about the module this issue touches is
 read before the code, and against the source it cites.
 
-**Start the baseline the moment the gate is named**, where nothing published answers for the commit
-this branch was cut at: the project's gate, whole, and it is this run's first long call. Which of the
-two this issue is owed is a question rather than a guess — `forge advance <ref> --owed` names the
-published result or the fresh run. What a baseline must record, and what a citation rests on, and
+**The baseline is owed** where nothing published answers for the commit this branch was cut at: the
+project's gate, whole. Which of the two this issue is owed is a question rather than a guess —
+`forge advance <ref> --owed` names the published result or the fresh run. What a baseline must record, and what a citation rests on, and
 what binds an edit to a running measurement's verdict rather than its start: `forge guide issue-flow
 verification`.
 
