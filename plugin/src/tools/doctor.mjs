@@ -341,34 +341,49 @@ const checkFlowKeys = async () => {
 const BOOLEAN = ["--full", "--credentials", "--adopt"];
 /* The machine's, the checkout's and the project's, in one surface: `--set` and the brief's three
    are the project's half, and the keys doctor-keys.mjs writes this machine's. */
-const PROJECT_FLAGS = ["set", "flow", "adopt", "was", ...WRITES, ...WITH_BODY];
+const PROJECT_FLAGS = ["set", "flow", "ship", "adopt", "was", ...WRITES, ...WITH_BODY];
+
+/* The three flags that each write one thing of the project's record, and what each of them writes in
+   the two shapes a refusal needs it: against another of these, and against everything else. One call
+   writes one of them, the first returning before the report, so a second would be dropped in
+   silence. */
+const ONE_WRITE = {
+  set: { against: "--set writes one key you name", one: "one key of the project's configuration" },
+  flow: { against: "--flow writes the flow with every key that flow asks for",
+    one: "the flow, with every key that flow asks the project for" },
+  ship: { against: "--ship writes how far a run in this checkout goes",
+    one: "how far a run in this checkout goes" },
+};
 
 /** One write per call, then the report, because a run that asked to write is not asking to be
  *  diagnosed: the project's own writes print their lines and stop there. */
 const wroteProject = async (asked, pairs, positionals) => {
-  const { briefAsked, briefRoute, refuseCarried, refuseUnchecked, writeFlow, writeSetting } = await projectSettings();
+  const { briefAsked, briefRoute, refuseCarried, refuseUnchecked, writeFlow, writeSetting, writeShip }
+    = await projectSettings();
   refuseUnchecked(asked);
   const brief = briefAsked(asked);
-  if (asked.set !== undefined && asked.flow !== undefined) {
-    fail("doctor: --set writes one key you name and --flow writes the flow with every key that flow "
-      + "asks for, which are two answers to what this call writes. Send one of them.");
+  const writes = Object.keys(ONE_WRITE).filter((one) => asked[one] !== undefined);
+  if (writes.length > 1) {
+    fail(`doctor: ${ONE_WRITE[writes[0]].against} and ${ONE_WRITE[writes[1]].against}, which are two `
+      + "answers to what this call writes. Send one of them.");
   }
   if (asked.adopt) {
-    const others = ["set", "flow", ...WRITES].filter((one) => asked[one] !== undefined);
+    const others = [...Object.keys(ONE_WRITE), ...WRITES].filter((one) => asked[one] !== undefined);
     if (others.length || brief) {
       fail(`doctor: --adopt takes this checkout's ${COMMITTED_FILE} over whole and \`--${others[0] ?? WRITES[0]}\` `
         + "writes one thing of its own, which are two answers to what this call writes. Send one of them.");
     }
     return (await import("./services/project-adopt.mjs")).adopt();
   }
-  const key = asked.set ?? asked.flow;
-  if (key !== undefined && brief) {
-    fail("doctor: --set writes a key of the project's configuration and the brief's flags write the "
-      + "brief, which are two resources and two calls. Send one of them.");
+  const [wrote] = writes;
+  if (wrote !== undefined && brief) {
+    fail(`doctor: --${wrote} writes ${ONE_WRITE[wrote].one} and the brief's flags write the brief, `
+      + "which are two resources and two calls. Send one of them.");
   }
-  if (key !== undefined) {
-    refuseCarried(asked, pairs, "--set writes one key of the project's configuration and takes neither.");
-    return asked.set === undefined ? writeFlow(asked.flow) : writeSetting(asked.set);
+  if (wrote !== undefined) {
+    refuseCarried(asked, pairs, `--${wrote} writes ${ONE_WRITE[wrote].one} and takes neither.`);
+    if (wrote === "ship") return writeShip(asked.ship);
+    return wrote === "flow" ? writeFlow(asked.flow) : writeSetting(asked.set);
   }
   return brief ? briefRoute(asked, pairs, positionals) : null;
 };

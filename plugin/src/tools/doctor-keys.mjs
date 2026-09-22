@@ -2,7 +2,7 @@
 import { readJson, saveNested, saveConfig } from "../resolve/config.mjs";
 import { STORES } from "../resolve/machine/stores.mjs";
 import { keyLabel, keySaid } from "./services/doctor/harness.mjs";
-import { fromProject, JOB_ALL, SHIP_MODES, declaredJobs, fail } from "../resolve/settings.mjs";
+import { fromProject, JOB_ALL, declaredJobs, fail } from "../resolve/settings.mjs";
 import { INSTANCE, ROUTE_KEY, ROUTE_MODES, TRACKER } from "./services/coolify/chosen-route.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { HIDDEN, OFF, VERB_NAMES, shippedSkills, skillsWithheldForJob, verbStates,
@@ -100,15 +100,6 @@ const setJob = (name) => {
     + ` \`forge doctor --job ${JOB_ALL}\` offers them all again.\n`);
 };
 
-/* Whose the option is, and why: `shipMode` in resolve/settings.mjs. */
-const setShip = (mode) => {
-  if (!SHIP_MODES.includes(mode)) fail(didYouMean("--ship mode", mode, SHIP_MODES));
-  saveConfig({ ship: mode });
-  console.log(mode === "ready"
-    ? "A run on this machine now ends at a pushed branch and a landing checkpoint; the landing is another actor's.\n"
-    : "A run on this machine now lands its own change, as it did before the option existed.\n");
-};
-
 /* Whose the option is: the two ways to the deployment platform in `services/coolify/chosen-route.mjs`. */
 const setCoolifyRoute = (mode) => {
   if (!ROUTE_MODES.includes(mode)) fail(didYouMean("--coolify-route mode", mode, ROUTE_MODES));
@@ -130,8 +121,6 @@ export const MACHINE_WRITES = [
     write: (asked) => asked.hide && setVisibility(asked.hide, true) },
   { flags: ["show"], owns: [], route: "forge doctor --show <verb>",
     write: (asked) => asked.show && setVisibility(asked.show, false) },
-  { flags: ["ship"], owns: ["ship"], route: "forge doctor --ship ready|self",
-    write: (asked) => asked.ship && setShip(asked.ship) },
   { flags: ["coolify-route"], owns: [ROUTE_KEY],
     route: `forge doctor --coolify-route ${TRACKER}|${INSTANCE}`,
     write: (asked) => asked["coolify-route"] && setCoolifyRoute(asked["coolify-route"]) },
@@ -157,6 +146,17 @@ const RECORDED = [
   { owns: ["cloudflare"], route: "forge cloudflare, which holds its own accounts" },
   { owns: ["coolify"], route: "forge coolify login" },
 ];
+
+/* A key this store held and no longer decides anything by. It is deliberately outside MACHINE_KEYS:
+   `ship` is the PROJECT's now (ISS-2174), so `--set ship=` has to reach the project's own table
+   rather than be refused here, and the only thing left to say about a value an older release wrote
+   is that it is ignored. `forge doctor` says it; nothing reads it. */
+export const MACHINE_RETIRED = [
+  { key: "ship", route: "forge doctor --ship ready|self, from inside a checkout of the project it is about",
+    now: "`ship` in this machine's record of that project" },
+];
+
+export const MACHINE_RETIRED_NAMES = MACHINE_RETIRED.map((one) => one.key);
 
 /** Every configuration key this machine owns outright, with the route that writes each. Derived
  *  from the rows above rather than listed a second time: a key added to a row is in this set the

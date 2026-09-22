@@ -111,6 +111,7 @@ The keys, each shown at a value some other project might hold rather than at thi
   "flow": "default",
   "drainedBy": "dispatcher",
   "landing": "after-merge",
+  "ship": "ready",
   "lease": { "workingRe": "^(\\S*(sh|bash) -c )?\\S*node( -\\S+)* \\S*tools/run\\.mjs (ship|land|land-ready)( |$)" },
   "stats": { "commands": { "gate": "npm run check" } }
 }
@@ -158,7 +159,11 @@ inside the repository is refused for the same reason, never quietly taking the s
 kinds takes, and each of them defaults on its own. `flow` names which of the served method sets
 this project runs, and `method` is retired: with no `flow` beside it, the one value that key ever
 took resolves to the default set and any other is refused with the route off the key. `drainedBy` says which master claims this project's issues once they are developed. `landing`
-says where the merge sits relative to the judging. `stats.commands` is what this checkout calls its
+says where the merge sits relative to the judging. `ship` says how far a run of this project goes —
+`self` lands its own change, `ready` stops at a pushed branch and a landing checkpoint for another
+actor — and absent it is `self`, which is what every run did before the key existed. It sits beside
+the other two because it decides whether the landing they describe happens at all, and it is the
+project's rather than the box's so two projects on one machine may answer differently. `stats.commands` is what this checkout calls its
 own gate, test, ship and cleanup, which is what lets a run profile a project that is not this one.
 It is also what arms a door: a hook that **refuses** at one of the doors `codex.owed` names is
 handed the commands this project declared and no built-in table, because a table of one
