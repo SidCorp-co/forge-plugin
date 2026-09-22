@@ -203,8 +203,8 @@ test("a builder the claim history answers for on its own refuses the declaration
   held(["the-only-run"]);
   const run = await ran(["claim", "ISS-1784", "--rebuilt", judged, "--deployment", DEPLOYED], room);
   assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
-  assert.match(run.stderr, /exactly one run that held it while the change was being built, `the-only-run`/u);
-  assert.match(run.stderr, /derived and not declared/u);
+  assert.match(run.stderr, /a guessed builder is what this key exists to stop/u, run.stderr);
+  assert.match(run.stderr, /`the-only-run`/u, "naming the holder it derived");
   assert.equal(checkpoint(), null, "and nothing was written");
 });
 

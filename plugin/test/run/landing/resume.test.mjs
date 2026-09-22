@@ -230,7 +230,7 @@ test("a checkpoint whose turn is not the lander's is refused before any write", 
   assert.equal(state.calls.filter((one) => one.args.action === "update").length, 0, said);
 });
 
-test("an issue with no checkpoint at all is refused naming the command that writes one", async () => {
+test("an issue with no checkpoint at all is refused, and the key after it still lands", async () => {
   const { at, work, next, base } = world({ base: "other", second: true });
   const pinned = sha(work, BASE);
   seeded({ next: ready(next, base, { branch: NEXT_BRANCH, files: [NEXT_OWNED] }) });
@@ -238,7 +238,6 @@ test("an issue with no checkpoint at all is refused naming the command that writ
   forgetInstall();
   const said = await ran([KEY, NEXT_KEY], work);
   assert.match(said, /carries no landing checkpoint/u, said);
-  assert.match(said, /forge claim ISS-673 --pushed --ready/u, said);
   assert.equal(git(work, "status", "--porcelain").stdout, "", "and nothing was edited");
   /* And the key after it still lands: a checkpoint this task cannot carry ends one branch's landing. */
   assert.equal(landing(NEXT_UUID).state, "records-owed", said);

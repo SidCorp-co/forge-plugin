@@ -83,10 +83,10 @@ test("the checkpoint is read by its declared fields, and a state nothing wrote i
 
 test("a take with no checkpoint and a take at done are each refused naming what was read", () => {
   const none = takeRefusal("ISS-673", null, "the-lander", null, { now: NOW });
-  assert.match(none, /carries no landing checkpoint/u, none);
+  assert.match(none, /carries no landing checkpoint, so no turn is handed off and --take is refused/u, none);
   assert.match(none, /forge claim ISS-673 --pushed --ready/u, "and the one command that writes one");
   const over = refused("done", "the-lander");
-  assert.match(over, /reads `done`/u, over);
+  assert.match(over, /reads `done`, so the landing is over and no turn is left to take/u, over);
   assert.match(over, /forge claim ISS-673$/mu, "the lease is still takeable the ordinary way");
   const unknown = takeRefusal("ISS-673", { state: "half-landed", files: [] }, "the-lander", LIVE, { now: NOW });
   assert.match(unknown, /reads `half-landed`/u, "a state written by a version this one does not know");
@@ -101,7 +101,8 @@ test("at builder-owed a successor is held out by the builder's own lease and by 
   const alive = refused("builder-owed", "a-third-run", BUILDS, take);
   assert.match(alive, /reads `builder-owed`/u, alive);
   assert.match(alive, /the builder the-builder's/u, "the refusal says whose turn it is");
-  assert.match(alive, /that builder is on the issue under a lease of its own/u, "and that it is the builder's own run holding it out");
+  assert.match(alive, /that builder is on the issue under a lease of its own, .+, and a successor is eligible only once the builder's own lease is dead by the reclaim rules/u,
+    "and that it is the builder's own run holding it out");
   assert.match(alive, /forge claim ISS-673 --take$/mu, "with the one command that clears it");
   assert.equal(refused("builder-owed", "a-third-run", { ...BUILDS, renewedAt: DEAD.renewedAt }, take), null,
     "a builder's lease dead by the reclaim rules is any run's, so a successor may take the turn");
@@ -191,8 +192,9 @@ test("the QA turn is any session's but the builder's, whose own work it would be
   assert.equal(refused("qa-owed", "another-judge", DEAD), null, "as is a turn nobody is holding");
   const said = refused("qa-owed", "the-builder");
   assert.match(said, /reads `qa-owed`/u, said);
-  assert.match(said, /judge its own work/u, "the one session the state cannot mean");
-  assert.match(refused("qa-owed", "the-builder", DEAD), /judge its own work/u,
+  assert.match(said, /no run may judge its own work, and an id a run inherited is the builder's however it arrived/u,
+    "the one session the state cannot mean");
+  assert.equal(refused("qa-owed", "the-builder", DEAD), said,
     "and a lease going dead does not make the builder independent of itself");
 });
 
