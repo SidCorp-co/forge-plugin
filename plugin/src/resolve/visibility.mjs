@@ -38,7 +38,7 @@ export const VERBS = [
     "the thread whole with no body, or post one; the lease on the record decides whether it renews",
     "forge_comments", { group: BACKLOG,
       wraps: { create: "`forge comment`", list: "`forge comment ISS-45`" } }],
-  ["claim", "<uuid|ISS-45> [--minutes n] [--stopped] [--unheld] [--next <line>] [--pushed] [--review] [--open <line>] [--ready] [--take] [--judged] [--reconciled <sha>] [--recorded] [--landed] [--rebuilt sha --deployment id]",
+  ["claim", "<uuid|ISS-45> [--minutes n] [--stopped] [--unheld] [--next <line>] [--pushed] [--review] [--open <line>] [--ready] [--take] [--judged] [--reconciled <sha>] [--recorded] [--landed] [--rebuilt sha --deployment id|--undeployed]",
     "take the issue's lease, or reclaim one a dead run left", "forge_issues", { group: FLOW }],
   ["resume", "<uuid|ISS-45> [...]", "one issue's whole context, re-minted from the record and the worklog",
     "forge_issues", { group: FLOW }],

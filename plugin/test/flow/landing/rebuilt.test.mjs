@@ -20,9 +20,13 @@ const AWAY = projectRoom(tempRoom("rebuilt-away-"), process.env.XDG_CONFIG_HOME,
 process.chdir(AWAY);
 const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
 const { judgeProblem } = await import("../../../src/flow/qa/verdicts.mjs");
+const { render } = await import("../../../src/flow/record/page.mjs");
 
 const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
 const RUN = "the-judging-run";
+/* Apart from every holder the claim history names, which is what the rung reads where the
+   checkpoint's builder is one nobody can recover. */
+const JUDGING = "a-judge-of-its-own";
 const BRANCH = "iss-1784-1";
 const AT = "2026-09-07T12:00:00.000Z";
 const DEPLOYED = "9e24c2af00000000000000000000000000000cde";
@@ -68,9 +72,10 @@ const checkpoint = () => landingOf(state.issues[0].sessionContext);
 
 /* The lease is this run's own and the history is what the rule is read against: one holder across
    the whole of it names the builder, and several is a question no record here can answer. */
-const held = (holders, landing = undefined) => {
+const held = (holders, landing = undefined, over = {}) => {
   state.issues[0] = {
     ...ISSUE,
+    ...over,
     sessionContext: {
       lease: { holder: RUN, agent: "a-test-agent", pid: "4242", renewedAt: new Date().toISOString(),
         minutes: 30, next: null,
@@ -134,6 +139,19 @@ const declaring = async (branch, take) => {
   }
 };
 
+/* And which judgement the project asks for between `developed` and `testing`, the same way. */
+const declaringQa = async (qa, take) => {
+  const was = state.config;
+  state.config = { ...was, pipelineConfig: { ...was.pipelineConfig, qa } };
+  try {
+    return await take();
+  } finally {
+    state.config = was;
+  }
+};
+
+const PLAN = "Screen change: no.\nSchema coupling: no.\nUser-facing outcome: no.";
+
 test("a landed head with no checkpoint behind it takes one written after the fact", async () => {
   const { room, judged, tip } = landedRoom("carried");
   held(["one", "two", "three"]);
@@ -190,16 +208,71 @@ test("a builder the claim history answers for on its own refuses the declaration
   assert.equal(checkpoint(), null, "and nothing was written");
 });
 
-/* The route the refusal prints has to end somewhere the verdict stands: a checkpoint carrying
-   neither builder nor deployment is refused on the other half, which is the route ending where it
-   began (consult F1). */
-test("a deployment identity left out refuses the write, the checkpoint being what a verdict is judged against", async () => {
+/* One statement about the deployment is owed, and a silence is neither of them. Read as `there is
+   none` it would withdraw the citation the judging rung spends on a checkpoint that names an
+   identity, with nothing on the record saying it had been (ISS-1993). */
+test("a reconstruction saying nothing about the deployment is refused, and the refusal prints both routes", async () => {
   const { room, judged } = landedRoom("no-deployment");
   held(["one", "two"]);
   const run = await ran(["claim", "ISS-1784", "--rebuilt", judged], room);
   assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
   assert.match(run.stderr, /--deployment <the sha the deployment reports serving>/u);
+  assert.match(run.stderr, new RegExp(`forge claim ISS-1784 --rebuilt ${judged.slice(0, 7)} --undeployed`, "u"),
+    `the route a change that reached no deployment can run unchanged:\n${run.stderr}`);
   assert.equal(checkpoint(), null, "and nothing was written");
+});
+
+test("a reconstruction naming a deployment and saying there is none is refused as two statements about one fact", async () => {
+  const { room, judged } = landedRoom("both-said");
+  held(["one", "two"]);
+  const run = await ran(["claim", "ISS-1784", "--rebuilt", judged, "--deployment", DEPLOYED, "--undeployed"], room);
+  assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
+  assert.match(run.stderr, /names an identity and says the change reached none/u);
+  assert.equal(checkpoint(), null, "and nothing was written");
+});
+
+/* Either flag says what the checkpoint `--rebuilt` writes holds, so a call writing no checkpoint has
+   nowhere to put one: read where it is written, refused where it is not, and never dropped. */
+test("a statement about the deployment with no reconstruction to carry it is refused rather than dropped", async () => {
+  const { room, judged } = landedRoom("no-rebuilt");
+  held(["one", "two"]);
+  const alone = await ran(["claim", "ISS-1784", "--undeployed"], room);
+  assert.equal(alone.status, 1, `${alone.stdout}${alone.stderr}`);
+  assert.match(alone.stderr, /this call writes no checkpoint/u);
+  const named = await ran(["claim", "ISS-1784", "--deployment", DEPLOYED], room);
+  assert.equal(named.status, 1, `${named.stdout}${named.stderr}`);
+  assert.match(named.stderr, /this call writes no checkpoint/u);
+  assert.equal(checkpoint(), null, `and neither wrote a checkpoint, for ${judged.slice(0, 7)}`);
+});
+
+/* The whole of what this issue is: a test-only fix reaches no deployment it ever will, so a write
+   demanding an identity left its judge no route at all. What the route has to end at is the rung,
+   not the write — `judgeProblem` answering `null` says nothing about the transition that spends it
+   (consult F1, ISS-1993). */
+test("a change that reached no deployment takes a checkpoint declaring that, and an independent judge's verdict earns testing against it", async () => {
+  const { room, judged } = landedRoom("undeployed");
+  held(["one", "two"], undefined, { acceptanceCriteria: "1. The one outcome.", plan: PLAN, mergedAt: AT });
+  const wrote = await declaringQa("independent", () =>
+    ran(["claim", "ISS-1784", "--rebuilt", judged, "--undeployed"], room));
+  assert.equal(wrote.status, 0, `${wrote.stdout}${wrote.stderr}`);
+  const read = checkpoint();
+  assert.equal(read.state, "done", "the state naming no turn, as the route that names an identity leaves");
+  assert.equal(read.deployment, undefined, "and no deployment identity on it, there being none to name");
+  assert.match(read.handWritten.why, /reached no deployment, so the head is the identity its verdicts answer to/u,
+    `the block says the caller stated it rather than leaving the key silently empty: ${read.handWritten.why}`);
+  state.comments["rebuilt-uuid"].push(
+    { documentId: "c-mark", createdAt: AT, authorId: "agent",
+      body: `mark_merged target=base — merged to master at ${judged}` },
+    { documentId: "c-verdict", createdAt: AT, authorId: "agent",
+      body: render("verdict", [{ criterion: "1 — The one outcome.", verdict: "pass", commit: judged,
+        evidence: [judged], judge: JUDGING }]) },
+  );
+  const owed = await declaringQa("independent", () => ran(["advance", "ISS-1784", "--owed"], room));
+  assert.equal(owed.status, 0, `${owed.stdout}${owed.stderr}`);
+  assert.doesNotMatch(owed.stdout, /landing checkpoint/u,
+    `nothing about the checkpoint stands between this judge and the rung:\n${owed.stdout}`);
+  assert.match(owed.stdout, /testing is next and the record earns it/u,
+    `and the rung the judging run is dispatched to earn:\n${owed.stdout}${owed.stderr}`);
 });
 
 /* `landingOf` answers null for a block whose state it cannot place as well as for no block, and a

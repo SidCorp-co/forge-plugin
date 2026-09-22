@@ -46,9 +46,13 @@ export const UNRECOVERABLE = (holders) => (holders.length
   : "the claim history on this issue names no run that held it while the change was being built");
 
 /** The one spelling of the write, so the refusals that ask for it and the refusal that sends a
- *  reader to it cannot drift into asking for different commands. */
-export const REBUILT_FORM = (ref, head) =>
-  `forge claim ${ref} --rebuilt ${head} --deployment <the sha the deployment reports serving>`;
+ *  reader to it cannot drift into asking for different commands. Two routes rather than one:
+ *  whether a deployment exists is a fact about the world no checkout can read, and a reader holding
+ *  none was being sent to a slot it could not fill (ISS-1993). `gap` is the caller's, every printer
+ *  of an owed item laying a command out at a depth of its own. */
+export const REBUILT_FORM = (ref, head, gap = "\n") =>
+  `forge claim ${ref} --rebuilt ${head} --deployment <the sha the deployment reports serving>${gap}`
+  + `forge claim ${ref} --rebuilt ${head} --undeployed`;
 
 export const RECOVER_THE_BUILDER = (holder) =>
   `Write the checkpoint naming \`${holder}\` as the builder rather than declaring it unrecoverable.`;

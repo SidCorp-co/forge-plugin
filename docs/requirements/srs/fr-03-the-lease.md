@@ -420,6 +420,21 @@ a wait no party can end.
   alike whether the branch a change lands on carries that head, because one cause reaching both
   routes leaves a fix confined to either of them refusing what the other accepts.
 
+- **AC-03-6-23** · Rev: 1 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a change that reached no deployment takes a checkpoint declaring that, and an independent judge's verdict earns testing against it"
+  WHERE the caller states that the change a landed head carries reached no deployment, the CLI SHALL
+  write the checkpoint naming no deployment identity and SHALL record that statement in the block
+  the reconstruction is accounted for by, because a change that was never deployed has none to name
+  and a judge standing in front of one had otherwise no route to a checkpoint at all.
+- **AC-03-6-24** · Rev: 1 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a reconstruction saying nothing about the deployment is refused, and the refusal prints both routes"
+  IF a checkpoint written after the landing says neither which deployment identity the change
+  reached nor that it reached none THEN the CLI SHALL refuse the write and SHALL print both routes,
+  because a silence read as the second withdraws the citation the judging rung spends on a
+  checkpoint that names an identity and leaves nothing on the record saying it was withdrawn.
+- **AC-03-6-25** · Rev: 1 · Proof: plugin/test/flow/landing/rebuilt.test.mjs "a reconstruction naming a deployment and saying there is none is refused as two statements about one fact"
+  IF such a write both names a deployment identity and states that the change reached none THEN the
+  CLI SHALL refuse it, because the two are contradictory statements about one fact and taking either
+  would put on the record a reading nobody made.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*

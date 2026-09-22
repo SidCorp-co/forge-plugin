@@ -10,7 +10,7 @@ import { lengthOf } from "../tracker/field-write.mjs";
 import { UNREAD, afterRefused, correctionFor, whyChecked } from "./override.mjs";
 import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../guides/contract.mjs";
-import { CLOSES_FROM, PARKS, SHOWS_EVIDENCE } from "./machine.mjs";
+import { CLOSES_FROM, PARKS, SHOWS_EVIDENCE, commandAt } from "./machine.mjs";
 import { citedClauses } from "../spec/checked.mjs";
 import { escapesOrphaned } from "../checks/docs/owing-escapes.mjs";
 import { Refused, refuse } from "../refusal.mjs";
@@ -261,7 +261,7 @@ const park = async (view, ref, kind, why, evidence, asked = null) => {
       "a needs_info park is a question: two or more readings, each with the outcome it produces",
       `forge record question ${ref} --reading "<reading -> outcome>" --reading "<reading -> outcome>"`,
     );
-    if (owed.length) refuse(`${owed[0].what}. Write it first:\n  ${owed[0].command}`);
+    if (owed.length) refuse(`${owed[0].what}. Write it first:\n  ${commandAt(owed[0].command, "  ")}`);
   }
   if (SHOWS_EVIDENCE.includes(kind) && !evidence.length) {
     refuse(`a ${kind} park names what the reviewer is to look at:\n`

@@ -18,6 +18,15 @@ second stands, and it stands only where the record cannot answer the question it
 history naming exactly one holder names the builder, and declaring it unknown there is a guess in
 the other direction. Where several holders appear the builder is any of them, which is also why a
 verdict whose judge is one of those holders earns nothing — independence cannot be read off a set
-the judge is inside. The deployment half is untouched by any of this.
+the judge is inside.
+
+The deployment half is a statement too, and for a different reason. Whether a change ever reached a
+deployment is a fact about the world no checkout can read, and a test-only fix reaches none it ever
+will — so a write demanding an identity asked such a change for one that does not exist, and the
+judge in front of it had no route at all. What the write asks for instead is which of the two is
+true: an identity, or that there is none. The silence is refused rather than read as the second,
+because an omission taken that way switches off the citation `testing` spends on a checkpoint that
+names an identity, and nothing on the record would say it had been. A checkpoint naming none is
+judged at the head its verdicts carry, which the block says in its own account of itself.
 
 What a checkpoint holds and whose turn each state names: [`the-checkpoint.md`](the-checkpoint.md).

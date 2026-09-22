@@ -1937,6 +1937,18 @@
       "rev": 1,
       "digest": "d2fa842fbb58173fcdbf1b9d9f9363d018c72eb70c9e572b163b65374a8b2fec"
     },
+    "AC-03-6-23": {
+      "rev": 1,
+      "digest": "fe9f6867aee6fc5d54c593d21b8ff7494ffd4b89425f74482b51d3743e7e2ed6"
+    },
+    "AC-03-6-24": {
+      "rev": 1,
+      "digest": "b3cceaf1b78d7210a66063aa91da3e40ed0f85022ac60007c191a8e694473371"
+    },
+    "AC-03-6-25": {
+      "rev": 1,
+      "digest": "de6532b05380e958f4f765f8996976888807a8bbf79cbfb85bae79124422465d"
+    },
     "FR-04": {
       "rev": 1,
       "digest": "afe8a4581297056c791d0a844717c43b89aa16003b5c3edcd42f7b18920fee27"

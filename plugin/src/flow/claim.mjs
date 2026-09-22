@@ -32,7 +32,7 @@ import {
   takeRoute,
   landingOf,
 } from "./landing/checkpoint.mjs";
-import { handWrittenOf, holdersOf } from "./landing/reconstruction.mjs";
+import { REBUILT_FORM, handWrittenOf, holdersOf } from "./landing/reconstruction.mjs";
 import { readyCheckpoint, rebuiltCheckpoint } from "./landing/written.mjs";
 import {
   MECHANISM,
@@ -123,6 +123,7 @@ export const USAGE = [
   "  --recorded      the records turn handed back, from `records-owed`",
   "  --landed        the landing over, from `ready`: the default branch has the head",
   "  --rebuilt sha --deployment id  the checkpoint no landing left",
+  "  --undeployed    with --rebuilt: the change reached no deployment, so the checkpoint names none",
   "",
   "--pushed, --review and --open write the worklog beside the lease, which `forge resume` reads",
   "first; no capture is automatic. What a checkpoint holds: docs/cli/the-checkpoint.md.",
@@ -390,8 +391,18 @@ export const claim = async (argv) => {
   if (ref.startsWith("--")) fail(`claim takes the issue first. ${usageOf("claim")}`);
   const pulled = pullRepeated(rest, "--open", "claim", { usage: USAGE });
   const given = flags(pulled.rest, "claim",
-    ["--pushed", "--review", "--ready", "--take", "--judged", "--recorded", "--landed", STOPPED, UNHELD],
+    ["--pushed", "--review", "--ready", "--take", "--judged", "--recorded", "--landed", "--undeployed",
+      STOPPED, UNHELD],
     { usage: USAGE });
+  /* Read where it is written or refused where it is not: both say what the checkpoint `--rebuilt`
+     writes holds about the deployment, and a call writing no checkpoint has nowhere to put either
+     (ISS-1993). */
+  const aboutDeployment = ["deployment", "undeployed"].filter((one) => given[one]);
+  if (aboutDeployment.length && !given.rebuilt) {
+    fail(`claim ${aboutDeployment.map((one) => `--${one}`).join(" and ")} says what the checkpoint `
+      + `--rebuilt writes holds about the deployment, and this call writes no checkpoint: the two `
+      + `are typed together:\n  ${REBUILT_FORM(ref, "<the sha the branch carries>", "\n  ")}`);
+  }
   const turns = ["ready", "take", "judged", "reconciled", "recorded", "landed", "rebuilt"]
     .filter((one) => given[one]);
   if (turns.length > 1) {
@@ -486,6 +497,7 @@ export const claim = async (argv) => {
     : (given.rebuilt
       ? rebuiltCheckpoint(ref, holder, given.rebuilt, {
         deployment: given.deployment,
+        undeployed: given.undeployed,
         held: context?.[LANDING] ?? null,
         landing: landingOf(context),
         holders: holdersOf(context, buildsAt),

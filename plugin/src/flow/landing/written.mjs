@@ -14,7 +14,8 @@ import { shortSha } from "../../tracker/evidence.mjs";
    branch that is comes in resolved, the reading being the landing route's own and this file holding
    no policy of its own (ISS-1802). The builder is left unnamed because the run reaching for this is
    the one judging the change (ISS-1784). */
-export const rebuiltCheckpoint = (ref, holder, head, { deployment, held, landing, holders, lands }) => {
+export const rebuiltCheckpoint = (ref, holder, head,
+  { deployment, undeployed, held, landing, holders, lands }) => {
   if (landing) {
     fail(`claim --rebuilt writes a landing checkpoint where there is none, and ${ref} already reads `
       + `\`${landing.state}\`: a reconstruction over a record somebody captured would replace what it `
@@ -31,12 +32,21 @@ export const rebuiltCheckpoint = (ref, holder, head, { deployment, held, landing
       + `write could not recover. Read what is on it, and settle the state before asking again:\n`
       + `  forge resume ${ref}`);
   }
-  /* Without it the write leaves a checkpoint the verdict gate refuses on its other half, which is
-     the route ending where it began. The judge holds this value: it is what it judged against. */
-  if (!deployment) {
-    fail(`claim --rebuilt writes the checkpoint a verdict is judged against, and that asks a `
-      + `deployment identity as well as a head — a checkpoint carrying neither builder nor `
-      + `deployment earns a verdict nothing:\n  ${REBUILT_FORM(ref, shortSha(head))}`);
+  /* One statement about the deployment is owed and the write refuses a silence rather than choosing
+     for the caller. Whether a change reached a deployment is a fact about the world no checkout can
+     read, and an omitted `--deployment` taken as `there is none` would switch off the citation the
+     verdict gate spends at `testing` with nothing on the record saying so. The judge holds either
+     value: an identity is what it judged against, and its absence is what it judged without
+     (ISS-1993). */
+  if (deployment && undeployed) {
+    fail(`claim --rebuilt takes one statement about the deployment, and this call names an identity `
+      + `and says the change reached none. Type whichever is true:\n`
+      + `  ${REBUILT_FORM(ref, shortSha(head), "\n  ")}`);
+  }
+  if (!deployment && !undeployed) {
+    fail(`claim --rebuilt writes the checkpoint a verdict is judged against, and a verdict cites the `
+      + `identity it judged: name the deployment, or say the change reached none and the head is `
+      + `what its verdicts answer to:\n  ${REBUILT_FORM(ref, shortSha(head), "\n  ")}`);
   }
   if (holders.length === 1) {
     fail(`claim --rebuilt declares the builder unrecoverable, and the claim history on ${ref} names `
@@ -53,19 +63,23 @@ export const rebuiltCheckpoint = (ref, holder, head, { deployment, held, landing
       + `where the change is genuinely unlanded what is owed is the capture and not this write. `
       + `${read.route ? "Settle the reading, then ask again" : "Ask from a checkout that can read that history"}:\n`
       + (read.route ? `  ${read.route}\n` : "")
-      + `  ${REBUILT_FORM(ref, shortSha(head))}`);
+      + `  ${REBUILT_FORM(ref, shortSha(head), "\n  ")}`);
   }
+  /* Absent and not present-and-empty: the write is compared with what the field reads back, and a
+     key carrying `undefined` is one this side holds and the record does not (ISS-1993). */
   return {
     state: LANDING_DONE,
     head,
-    deployment,
+    ...(deployment ? { deployment } : {}),
     files: [],
     [HAND_WRITTEN]: {
       by: holder,
       at: new Date().toISOString(),
       why: `written after the landing, off ${read.ref} — ${read.from} — at ${shortSha(read.tip)} `
-        + `carrying ${shortSha(head)}; the deployment identity is the caller's and not this `
-        + "checkout's reading",
+        + `carrying ${shortSha(head)}; ${deployment
+          ? "the deployment identity is the caller's and not this checkout's reading"
+          : "the caller says the change reached no deployment, so the head is the identity its "
+            + "verdicts answer to"}`,
       builder: UNRECOVERABLE(holders),
       lost: ["builder", "branch", "base", "files", "at"],
     },
