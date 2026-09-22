@@ -125,6 +125,38 @@ test("the filed body states the reckoning it was filed under, and counts the pat
   }
 });
 
+/* The help is the declaration's other reader, and it is read before any count has been taken, so a
+   caller who typed `-h` is told the number and the paths the next one will run under (ISS-1912). */
+test("the help names the reckoning a count will be taken under, this script's until the project declares one", () => {
+  const { work } = pushed("help-source");
+  runIn(work, ["review", "--done"], BARE);
+
+  const shipped = runIn(work, ["-h"], BARE).stdout;
+  assert.match(shipped, /range holds 1500 changed line\(s\)/u, "the number this script ships with");
+  assert.match(shipped, /counts what landed under plugin\/src, plugin\/hooks, plugin\/bin since/u,
+    "and the three paths it ships with");
+
+  withReview(work, 40, ["plugin/src", "tools"]);
+  const declared = runIn(work, ["-h"], BARE).stdout;
+  assert.match(declared, /range holds 40 changed line\(s\)/u, "the number the project has replaced");
+  assert.match(declared, /counts what landed under plugin\/src, tools since/u,
+    "and the paths the project has replaced");
+});
+
+/* The refusal is the CLI's and each value reaches it on its own, so the loop spawns per value. */
+test("a review.lines that is no count of lines is refused by name rather than replaced", () => {
+  for (const given of [0, -5, 1.5, null]) {
+    const { work } = pushed(`review-lines-${String(given).replace(/[.-]/gu, "_")}`);
+    runIn(work, ["review", "--done"], BARE);
+    withReview(work, given);
+    const run = runIn(work, ["review"], BARE);
+    assert.equal(run.status, 1, run.stdout);
+    assert.ok(run.stderr.includes(`\`review.lines\` in ${recordOf(work)} is a whole number of `
+      + "changed lines above zero"), run.stderr);
+    assert.ok(run.stderr.includes(String(given)), `the value refused is not named:\n${run.stderr}`);
+  }
+});
+
 /* A caller who typed `-h` asked what the tool does; answering with a configuration fault instead is
    withholding the one thing they asked for, and every verb paid for it while the help was built at
    import. The value is still refused where something needs it. */
