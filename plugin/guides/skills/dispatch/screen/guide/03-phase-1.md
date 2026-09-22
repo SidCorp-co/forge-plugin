@@ -31,6 +31,12 @@ project rather than a detail of one wave.
 
 The rank is advice. Take a lower-ranked issue whenever a reason the metadata cannot carry says so:
 the user's stated order, a file a running agent holds, a restart the wave is already paying for, a
-chain being cleared, or what the run-cost record says an issue of that shape has cost before. Every
+chain being cleared, or what the run-cost record says an issue of that shape has cost before. **What
+the wave's own landing will cost is one of those reasons**, and it is read off the same file map:
+changes that touch no path in common can be landed as one candidate where the project's route allows
+a candidate at all, and changes sharing a file cannot, whichever actor does the landing. It forbids
+nothing — an overlapping pair is sometimes the right wave and the fold pays for it knowingly — and it
+is a reason rather than a rule because which of the two is cheaper depends on what else the wave is
+already carrying. Every
 such choice is written into the fold with the rank it overrode and the reason, because a reason that
 recurs is a weight the ranking lacks.

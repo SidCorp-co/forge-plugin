@@ -10,6 +10,22 @@ branch a run left with a ready checkpoint is landed from this checkout, in the o
 them. Landed here they are gated against the base as it actually is at that moment, which is what a
 run's own gate cannot be while its siblings are still landing.
 
+**The switch that put it here is the project's ship mode, read at `ship ready`.** A project set to
+`ship self` lands nothing here: each run ships its own change as its last phase, and this phase folds
+reports of releases that already happened. So this block appears because of a configuration and not
+because of a wave, and what it costs is the reason that configuration exists.
+
+**One gate is spent on the set and on no subset of it.** That is the whole of the saving, and it is
+what makes landing four branches together cheaper than four runs shipping in turn, each waiting on
+the release before it. It is also a bet. Changes that pass by themselves can still fail in
+combination, and when they do the whole set's reading is spent for nothing and each of them goes on
+to land by itself. So a set that fails costs one gate more than landing them one at a time would
+have, and the size of a set is a judgement this phase makes rather than a number to maximise.
+
+**Where the project asks for an independent judge before the merge, no set is built at all** and each
+branch is landed on its own however disjoint their paths are. A wave composed for a cheap landing
+buys nothing under that route, and the route is the project's rather than this phase's to choose.
+
 A branch handed back is not a failure of the fold, and one thing hands one back: a merge that touched
 a path the change owns, which leaves the checkpoint at `builder-owed`. The run that built it is
 resumed as a parked run is, by the same agent and from the checkpoint. A base that moved under the
