@@ -32,11 +32,15 @@ const WHOLE_LATER = new RegExp(
    placed by the mask: a binding a fixture spells inside its own text opens nothing here. */
 const inCode = (text, code, at) => code[at] === text[at];
 
-/* `a` and `b as c` read the export `b` under the local name `c`: what decides whether a binding is
-   reached is the name the module exports, and what finds its uses below is the local one. */
+/* `a`, `b as c` and `b: c` all read the export first and name the local second — the middle one is
+   an import clause and the last the destructuring an `await import` takes, and a reader knowing only
+   the first spelling recorded `usageOf: row` as a local nothing below could spell. What decides
+   whether a binding is reached is the name the module exports; what finds its uses is the local. */
+const RENAMED = /\s+as\s+|\s*:\s*/u;
+
 const clauseOf = (clause) => clause.split(",")
   .map((one) => {
-    const [name, alias] = one.split(/\s+as\s+/u).map((each) => each.trim());
+    const [name, alias] = one.split(RENAMED).map((each) => each.trim());
     return { name, local: alias || name };
   })
   .filter((one) => one.name);
@@ -90,6 +94,11 @@ const placed = (text, code, pattern) => {
 
 const spelt = (name) => name.replace(/\$/gu, "\\$");
 
+/* The same word standing as a key of something else is not a read of the binding, and a rule that
+   counted it would refuse a file for a shape that is right. What it costs is the one place a read is
+   followed by a colon — the middle of a ternary — read here as a key and so not as a read. */
+const AS_A_KEY = /^\s*:/u;
+
 /** Where a binding's own name is first read, past the binding that made it. */
 const firstUse = (code, bindings) => {
   let first = Infinity;
@@ -97,7 +106,9 @@ const firstUse = (code, bindings) => {
     for (const local of one.locals) {
       const call = new RegExp(String.raw`(?<![.\w$])${spelt(local)}(?![\w$])`, "gu");
       for (const hit of code.matchAll(call)) {
+        const after = hit.index + hit[0].length;
         if (bindings.some((each) => hit.index >= each.at && hit.index < each.end)) continue;
+        if (AS_A_KEY.test(code.slice(after, after + 8))) continue;
         first = Math.min(first, hit.index);
       }
     }
@@ -130,10 +141,15 @@ const says = (rel, line, names, late) => `${rel}:${line} reads ${names.join(", "
  *  a file whose children each get a room of their own has no single home to share, and demanding one
  *  would refuse it for a shape that is right. Where the two do have to agree, the file says so in a
  *  case of its own — reading a value it planted back out of the home it pinned — because that is a
- *  claim about what was memoised and no reading of this text could settle it. Two the text cannot
- *  settle either, and they are the bound rather than a gap: a use written above the pin but reached
- *  only from a call below it is read here as a use above it, which asks for one line to move; and a
- *  child handed its home by a fixture that spells the key elsewhere is out of reach entirely. */
+ *  claim about what was memoised and no reading of this text could settle it.
+ *
+ *  Four this reading cannot settle, none of which refuses a file for something it did not do — each
+ *  asks for a line to move or leaves a file unheld. Position is not execution, so a use above the pin
+ *  reached only from a call below it reads as a use above it, and an assignment inside a helper
+ *  nobody calls clears the rule while it stands above the first use. A name shadowed in a nested
+ *  scope is that name. A child handed its home by a fixture spelling the key elsewhere is out of
+ *  reach. And the mask shared with the two rules beside this blanks a template whole, so a read
+ *  spelt inside an interpolation is one this does not see: ISS-2212. */
 export const splitIn = (text, rel) => {
   const code = blanked(text);
   if (placed(text, code, AS_A_CHILD) === null) return [];

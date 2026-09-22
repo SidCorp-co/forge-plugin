@@ -123,6 +123,14 @@ test("what finds a binding's reads is the local name, and the binding itself is 
   const aliased = `import { usageOf as row } from "../../src/resolve/visibility.mjs";\n`
     + `const said = row("coolify");\nprocess.env.XDG_CONFIG_HOME = HOME;\n${HANDS}`;
   assert.equal(said(aliased).length, 1, "the local name is what a later line spells");
+  const destructured = `const { usageOf: row } = await import("../../src/resolve/visibility.mjs");\n`
+    + `const said = row("coolify");\nprocess.env.XDG_CONFIG_HOME = HOME;\n${HANDS}`;
+  assert.equal(said(destructured).length, 1,
+    "an await import renames with a colon, and a reader knowing only `as` recorded a local nothing spells");
+  assert.match(said(destructured)[0], /reads usageOf of/u, "and the export is still the export");
+  assert.deepEqual(said(`${BINDS}\nconst metadata = { usageOf: 1 };\nprocess.env.XDG_CONFIG_HOME = HOME;\n`
+    + `const said = usageOf("coolify");\n${HANDS}`), [],
+  "the same word standing as a key of something else is not a read of the binding");
   assert.deepEqual(said(`${BINDS}\nconst held = "usageOf is the one";\nprocess.env.XDG_CONFIG_HOME = HOME;\n${HANDS}`),
     [], "and the same word inside a string is not a read");
   assert.deepEqual(said(`${BINDS}\nconst held = one.usageOf;\nprocess.env.XDG_CONFIG_HOME = HOME;\n${HANDS}`),
