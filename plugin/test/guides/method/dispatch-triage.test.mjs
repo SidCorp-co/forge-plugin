@@ -12,6 +12,7 @@ process.env.XDG_CONFIG_HOME = tempHome("dispatch-triage").path;
 const { DEFAULT, SCREEN } = await import("../../../src/guides/flow.mjs");
 const { skillGuideAnswer } = await import("../../../src/guides/skill-guides.mjs");
 const { FINDINGS } = await import("../../../src/flow/machine.mjs");
+const { roleText } = await import("../../../src/tools/roles.mjs");
 
 const PLUGIN = new URL("../../../", import.meta.url).pathname;
 const FLOWS = [DEFAULT, SCREEN];
@@ -92,11 +93,51 @@ test("where two tiers fit, the higher is the reading", () => {
   ]);
 });
 
-test("the reading is not the priority field", () => {
+test("the priority is read from the reach rather than held apart from it", () => {
   carries("2", [
-    ["the separation", "That reading is not the priority field"],
-    ["what each is", "Priority is what somebody wants done; this is where the issue sits"],
+    ["the ground", "That reading is what the priority is read from"],
+    ["what a priority is", "a reading of what the issue costs this plugin"],
+    ["the bands still apart", "The two stay different bands"],
+    ["the band that sits against the reach", "carries the reason it does or it carries nothing"],
   ]);
+});
+
+test("a defect with no way round it outranks one a run can detour", () => {
+  carries("2", [
+    ["the ordering", "A defect with no way round it outranks one with a workaround, at equal reach and equal size"],
+    ["the detour written beside the band", "The detour is what earned the lower band, so it is written on the issue"],
+  ]);
+});
+
+test("the top band names what reaches it, being the whole of the table's spread", () => {
+  carries("2", [
+    ["the threshold", "what reaches it is an issue that leaves a run no route to its outcome at all"],
+    ["read by somebody who did not file it", "has to be able to see that in the body"],
+  ]);
+});
+
+test("the priority is this phase's fourth write, and a reading leaving neither band is unfinished", () => {
+  carries("2", [
+    ["the write", "The priority goes with it, by the same reader and into the tracker's"],
+    ["the count", "This phase's four writes — the confirmation, the candidate line, the complexity and the priority"],
+    ["neither band", "A reading that leaves its issue holding neither band has not finished"],
+    ["the issue nobody can read", "that inability is itself the finding"],
+  ]);
+});
+
+/* The served method reaches a dispatcher; a role dispatched to one issue reads its own file and may
+   read nothing else, so the ownership and the ground are pinned there as well (ISS-2131). */
+test("the triage role is told the priority is its own, and where the bands' rules are", () => {
+  const text = flat(roleText("triage"));
+  for (const [what, phrase] of [
+    ["the write's owner", "The priority is yours on the same terms"],
+    ["the ground", "a reading of what the issue costs this plugin rather than of what anyone wants done"],
+    ["the route to the rules", "is in that same served part"],
+    ["neither band", "an issue you leave holding neither band is one you have not finished reading"],
+  ]) {
+    assert.ok(text.includes(flat(phrase)),
+      `the triage role says nothing of ${what}: "${flat(phrase)}"`);
+  }
 });
 
 test("a family of symptoms over one cause is a cluster whose members survive whole", () => {
