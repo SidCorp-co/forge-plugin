@@ -8,7 +8,9 @@ it, which is a tracker status and not a shape.
 at all and have to answer the same way twice, which is why the shape of an escape is judged there
 and its subject is judged here. The other half of the same division is the move itself: closing or
 dropping an issue names the criteria whose escape cited it, off the checkout and with no call, so the
-act that ends an owing is the act that reports what was owed to it.
+act that ends an owing is the act that reports what was owed to it. The move has already landed by
+then, so a tree that will not read cannot take the command down with it — but it does not read as a
+project with no tree either: the move says which reading it lost and how to take it by hand.
 
 **It costs one reading of every issue this project has, and almost none of the report's wall time.**
 The walk is started with the credentials and awaited at its row. Three interleaved readings before

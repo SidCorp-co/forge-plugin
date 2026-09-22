@@ -55,6 +55,17 @@ test("only the statuses that owe nothing say anything, and a key nothing cited s
   assert.equal(owedTo("none yet — ISS-7"), "ISS-7");
 });
 
+test("a tree that will not read says which reading was lost, and never that there was nothing to read", () => {
+  const broken = { get documents() { throw new Error("EACCES: permission denied"); } };
+  const said = escapesOrphaned("closed", "ISS-7", broken);
+  assert.equal(said[1], "ISS-7 owes nothing from here and the criteria under docs/requirements/ "
+    + "that cited it could not be read: EACCES: permission denied");
+  assert.ok(said[2].startsWith("The move landed."), said[2]);
+  assert.ok(said[2].includes('`grep -rn "none yet — ISS-7" docs/requirements`'), said[2]);
+  assert.deepEqual(escapesOrphaned("approved", "ISS-7", broken), [],
+    "and a move that owes nothing to report reads no tree, so it cannot lose one either");
+});
+
 test("a project that keeps no requirements tree is told nothing at all", () => {
   assert.deepEqual(escapesOrphaned("closed", "ISS-7", null), []);
   assert.deepEqual(escapesOrphaned("dropped", "ISS-7", { documents: [] }), []);

@@ -88,33 +88,33 @@ export const owingEscapesFrom = (read, held = specTreeRead()) => {
   return { read: owingRead(held.documents, statusOf), why: whyShort(read) };
 };
 
-/* The move has already landed by the time this runs, so nothing here may take the command down with
-   it: a tree this cannot read is a report that is not made, which is what the caller would have got
-   from a checkout with no tree at all. */
-const treeHere = () => {
-  try {
-    return specTreeRead();
-  } catch {
-    return null;
-  }
-};
-
 /** What a move into a status that owes nothing leaves behind: every criterion of this checkout's
  *  tree whose escape cites the key that moved, with its file and line. The tree is a local read, so
  *  this spends no call, and a project keeping no tree is told nothing. */
 export const escapesOrphaned = (status, key, held) => {
   /* The status first and the tree second, and never a default argument: a default is evaluated
      before the guard reads it, so every ordinary advance would walk and index the whole tree, and a
-     tree with one unreadable file in it would throw after the move had already landed (codex F1). */
+     tree with one unreadable file in it would be read on a move that orphaned nothing (codex F1). */
   if (!NO_LONGER_OWES.includes(status)) return [];
-  const tree = held === undefined ? treeHere() : held;
-  if (!tree) return [];
   const wanted = String(key ?? "").toUpperCase();
-  const mine = escapesIn(tree.documents).filter((one) => one.key?.toUpperCase() === wanted);
-  if (!mine.length) return [];
-  const many = mine.length === 1 ? "1 criterion" : `${mine.length} criteria`;
-  return ["",
-    `${many} under ${TREE}/ stand unproved and owed to ${wanted}, which owes nothing now:`,
-    ...mine.map((one) => `  ${one.file}:${one.line} ${one.id}`),
-    `${ROUTE}. Until one of those, the tree reads as though somebody were still going to prove them.`];
+  try {
+    const tree = held === undefined ? specTreeRead() : held;
+    if (!tree) return [];
+    const mine = escapesIn(tree.documents).filter((one) => one.key?.toUpperCase() === wanted);
+    if (!mine.length) return [];
+    const many = mine.length === 1 ? "1 criterion" : `${mine.length} criteria`;
+    return ["",
+      `${many} under ${TREE}/ stand unproved and owed to ${wanted}, which owes nothing now:`,
+      ...mine.map((one) => `  ${one.file}:${one.line} ${one.id}`),
+      `${ROUTE}. Until one of those, the tree reads as though somebody were still going to prove them.`];
+  } catch (error) {
+    /* The move has landed by the time this runs, so nothing here may take the command down with it.
+       A tree that will not read is not the silence a project with no tree gets, though: this one was
+       promised a report and did not make it, so it says which reading it lost (codex F1). */
+    return ["",
+      `${wanted} owes nothing from here and the criteria under ${TREE}/ that cited it could not be`
+        + ` read: ${error.message}`,
+      "The move landed. What it may have orphaned is what went unsaid, so read the tree by hand:"
+        + ` \`grep -rn "none yet — ${wanted}" ${TREE}\``];
+  }
 };
