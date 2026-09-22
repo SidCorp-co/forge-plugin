@@ -65,9 +65,11 @@ the code have been read:
    one, and will say a shipped surface does not exist.
 4. **Post, per issue, on its own command line.** `forge claim`, then `forge record confirmation
    --finding duplicate|already-fixed|superseded --where … --is … --detail …`, the detail naming the survivor or
-   the release; then `forge advance --drop --why` for a duplicate or a supersession and `forge
-   advance --set closed --why` for a fix that landed. The read-first gate may hold the first write with the thread's
-   unseen comments: read them, re-send the same command.
+   the release; then `forge advance --drop --why` for a duplicate or a supersession and plain `forge
+   advance` for a fix that landed under another key, whose confirmation already earns the drop and
+   carries its own reason — a status typed past the one the record earns is refused. The read-first
+   gate may hold the first write with the thread's unseen comments: read them, re-send the same
+   command.
 5. **The survivor keeps what the dropped body added.** One comment on it, carrying the evidence and
    any rule the duplicate stated better; a drop with nothing carried loses the second report's
    reading, which is the one thing it was worth.

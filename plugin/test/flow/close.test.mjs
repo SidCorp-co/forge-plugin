@@ -201,9 +201,12 @@ test("the rehearsal under that policy says what the move is refused on, and move
   assert.deepEqual(moved("owed-uuid"), [], "a rehearsal moves nothing");
 });
 
-/* The route the person who made the release takes, which is the route past every entry check and not
-   one this guard may close: it reads no check, so it reads no policy either. */
-test("a set reaches closed under that policy, and spends no reading of the policy", async () => {
+/* The route the person who made the release takes, and the one this guard may not close: the record
+   here earns nothing — the policy leaves them an act nothing on the page records — so the set is the
+   only way on and is written whole. What it costs is the reading that establishes that, which is the
+   record, and the policy with it; a set refused on a record earning nothing would be a set refused for
+   being a set (ISS-2125). */
+test("a set reaches closed where the record earns nothing, and reads the record to establish it", async () => {
   state.config = OWES_A_PERSON;
   await claimed("ISS-99");
   const rounds = { reads: asked(), at: state.calls.length };
@@ -211,11 +214,11 @@ test("a set reaches closed under that policy, and spends no reading of the polic
     "--why", "the release went out and I read the installed copy"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.deepEqual(moved("set-uuid").map((one) => one.args.data.status), ["closed"]);
-  /* Not that a set reads the project nowhere — the correction it writes reads it, and did before this change — but that nothing reads it before that record's own page, which is where a view built for an entry check would have. */
+  assert.doesNotMatch(run.stderr, /its record earns/u, "the one record earning nothing was read as earning something");
+  /* Two and not one: the view built to judge the set reads the project, and so does the correction it
+     leaves behind, which read it before this check existed. */
   const since = state.calls.slice(rounds.at).map((one) => `${one.name} ${one.args?.action ?? ""}`);
-  assert.ok(since.indexOf("forge_config get") > since.indexOf("forge_comments list"),
-    `the view built for a set fetched the policy no check of it reads: ${since.join(", ")}`);
-  assert.equal(asked(), rounds.reads + 1, `one project read, the correction's: ${since.join(", ")}`);
+  assert.equal(asked(), rounds.reads + 2, `the view's read and the correction's: ${since.join(", ")}`);
 });
 
 /* Fail closed and say which reading failed: a configuration that did not answer is no evidence a

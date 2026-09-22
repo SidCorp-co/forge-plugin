@@ -272,14 +272,30 @@ test("--undo takes the mark down and reads back the note it removed", async () =
   assert.equal(markedCommit(page()), null, "and the mark is gone from the page");
 });
 
-test("--undo on an issue carrying no mark refuses with the form a mark is written in", async () => {
+test("--undo on an issue carrying neither mark nor stamp refuses with the form a mark is written in", async () => {
   state.comments[ISSUE.documentId] = [];
+  delete ISSUE.mergedAt;
   state.calls = [];
   const run = await marked("--undo");
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /carries no merged mark, so there is nothing to remove/u);
+  assert.match(run.stderr, /carries no merged mark and its row carries no merged stamp/u);
   assert.match(run.stderr, /forge record merged ISS-99 --at /u, "and the route on is the verb's own line");
   assert.equal(state.calls.some((one) => one.args.action === "unmark"), false);
+});
+
+/* The shape a close leaves: the tracker writes the row's field of its own accord and no mark of the
+   issue's is on the page, so a route asking for the mark shuts the only way back against exactly the
+   rows carrying a landing nothing made (ISS-2125). */
+test("--undo takes down a stamp the row carries where no mark sits on the page", async () => {
+  state.comments[ISSUE.documentId] = [];
+  ISSUE.mergedAt = "2026-09-22T04:29:26.918Z";
+  state.calls = [];
+  const run = await marked("--undo");
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /the row carried a merged stamp from 2026-09-22T04:29:26\.918Z/u, run.stdout);
+  assert.match(run.stdout, /which no mark of this issue's wrote/u, "and what it removed is not quoted as a note");
+  assert.ok(state.calls.some((one) => one.args.action === "unmark"), "the route back is its own action");
+  delete ISSUE.mergedAt;
 });
 
 test("--undo beside a clause is refused, a removal writing none of them", async () => {

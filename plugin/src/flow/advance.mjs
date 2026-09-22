@@ -20,7 +20,7 @@ import { ANSWERED_BY_COMMENT, ORDER, PARK_STATUS, SIDE, answersByComment, atLeas
 import { scopeFrom } from "./record/plan-scope.mjs";
 import { rungOf } from "../ladder.mjs";
 import { CITED, laneLines } from "../guides/phases.mjs";
-import { undoForm } from "./record/merged.mjs";
+import { lastMark, undoForm, unmarkMerged } from "./record/merged.mjs";
 import { REOPEN, baselineAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, targetOf } from "./route.mjs";
 import { FIELD, anothersHold, leaseOf, nextLine, renew } from "./lease.mjs";
 
@@ -46,7 +46,9 @@ export const USAGE = [
   "                          word or this run's own. The finding and the triage under it are what",
   "                          route where the work goes back to, and no correction is written for it",
   "  --set <status> --why W [--needs N]  the status outright, no entry check read; the reply says",
-  "                          so and a correction goes on the record naming the status and the reason",
+  "                          so and a correction goes on the record naming the status and the reason.",
+  "                          Refused where the record already earns a rung of its own, that being the",
+  "                          plain advance rather than a set",
   "",
   `Only a move to ${ANSWERED_BY_COMMENT} takes --needs, which is what would settle the question and what`,
   "the tracker mints the answer box from; --why is why the work stopped. Neither is ever written from",
@@ -57,10 +59,19 @@ export const USAGE = [
   "`forge guide contract <status>` for the rule.",
 ].join("\n");
 
-/* A plain advance from the rung `closed` is entered from, whose entry criteria hold nothing a payload could supply, so the page is not worth the call — and the route that skips it is therefore the one route that has to fetch the release policy alone, that rung being entered on a policy no page carries (ISS-1918); a `--set` reads no entry check and so has nothing to spend it on. A park or a drop from it is another transition: its kind, its evidence and the question a needs_info park owes are all judged against the record, so those read the page. */
-const readsTheRecord = (body, given) =>
-  !given.set && (body.status !== CLOSES_FROM || Boolean(given.park) || Boolean(given.drop)
-    || Boolean(given.reopen));
+/* Which set could have been a record instead: a rung of the lane the issue has not already passed. A
+   side status is a park the caller is choosing and several refusals here send one there; a rung behind
+   where it stands is how a landing is walked back, and the drop's own refusal prints that walk. Neither
+   is a status anything on the page earns, so neither is worth a page. An issue standing outside the lane
+   sits at no rung, so every rung of it is ahead, which is what `atLeast` answers there (ISS-2125). */
+const couldBeEarned = (body, status) => ORDER.includes(status) && atLeast(status, body.status);
+
+/* A plain advance from the rung `closed` is entered from, whose entry criteria hold nothing a payload could supply, so the page is not worth the call — and the route that skips it is therefore the one route that has to fetch the release policy alone, that rung being entered on a policy no page carries (ISS-1918). A park or a drop from it is another transition: its kind, its evidence and the question a needs_info park owes are all judged against the record, so those read the page. */
+const readsTheRecord = (body, given) => {
+  if (given.set) return couldBeEarned(body, given.set);
+  return body.status !== CLOSES_FROM || Boolean(given.park) || Boolean(given.drop)
+    || Boolean(given.reopen);
+};
 
 const viewOf = async (reference, given) => {
   const { documentId, body } = await issueOf(reference);
@@ -358,6 +369,85 @@ const reopenTo = async (view, ref, why) => {
   return shortfall(ref, held, owedIn(held, ref));
 };
 
+/* A set is the route for a record that earns nothing, so a record that already earns a move has no use
+   for one: taking it there puts a rung on the issue that nothing on its page earned, and the reply says
+   only that no check read it, which is the one thing a reader of the row afterwards cannot tell from a
+   status somebody paid for. Refused rather than warned, and it names the plain advance and not a second
+   set, that being the command the caller wanted (G-01, ISS-2125). Judged only where the view read the
+   page: a shortfall read off comments nobody fetched is every item owed, which would refuse nothing and
+   read as a record that earns nothing. */
+const earnsInstead = (view, ref, status) => {
+  const held = owedIn(view, ref);
+  if (!held.next || held.missing.length || sameLanding(held.next, status)) return;
+  refuse(`${ref} is ${view.issue.status} and its record earns ${held.next}, not ${status}. A set is `
+    + `the route for a record that earns nothing, and this one earns its next move, so nothing was `
+    + `sent. Take what the record earns:\n  forge advance ${ref}`);
+};
+
+/* The tracker stamps the merge on a close of its own accord, and a close no landing under this key
+   earned has no commit to put beside it: the row then reads as shipped work to whatever joins a run to
+   its outcome through that field. This CLI sends the status and the reason alone, so it cannot decline
+   the stamp — what it can do is read the answer back and take the stamp down in the same call rather
+   than leave a landing on the record that never happened (ISS-2125). What says a landing happened here
+   is the page's own merged mark and never the sha beside the stamp, which comes back null on every
+   closed row this CLI reads, landed or not. A cut thread is not that reading: the mark may be behind it,
+   so the stamp is reported and left alone.
+   It reports the repair's own outcome rather than raising on it, the caller below owing one refusal
+   that carries everything left outstanding: this repair and the correction are each the only record of
+   their own half, so a raise here would swallow whichever of the two had not run yet (consult 5d6d78
+   F1, consult f4b3c1 F1). The lease check and the credit inside `unmarkMerged` still raise as they do
+   for its other caller, those being refusals about the issue rather than about the stamp. */
+const stampTaken = async (view, ref, status, answer) => {
+  const stamped = (answer?.issue ?? answer)?.mergedAt;
+  /* An unread page holds no mark to find, so a set that fetched none would read every stamp as false —
+     including the one a walk back to `approved` leaves standing on a change that really did land. */
+  if (!stamped || !couldBeEarned(view.issue, status) || lastMark(view.comments)) return null;
+  if (!view.whole) {
+    return `${ref} came back stamped merged at ${stamped}, and whether a mark of this issue's names a `
+      + `landing could not be read past the cut above. Read the thread, and where no mark names one, `
+      + `take the stamp down:\n  ${undoForm(ref)}`;
+  }
+  console.log(`${ref} came back stamped merged at ${stamped}, and no merged mark on its page names a `
+    + `landing under this key, so the stamp claims a change nothing here shipped. Taking it down.`);
+  /* Asked softly: the status has moved, so a refusal printed bare by the transport would end the call
+     with nothing saying what still stands on the row. */
+  const answered = await unmarkMerged(view.documentId, ref, { soft: true });
+  if (!answered?.refused) {
+    console.log(`${ref}  the merged stamp is removed.`);
+    return null;
+  }
+  /* A dropped write is not a rejected one, and only the transport knows which: told the stamp is still
+     there, a run undoes a removal that may have landed, and told nothing it leaves a false landing up. */
+  if (afterRefused(answered.refused).unknown) {
+    return `the merged stamp the tracker wrote on that close neither came down nor failed cleanly: `
+      + `${answered.refused}\nWhether the row still carries it is what decides whether anything is `
+      + `owed. Read it before writing to this issue again:\n  forge issue ${ref} --fields mergedAt`;
+  }
+  return `the merged stamp the tracker wrote on that close was not taken down. What refused it:\n`
+    + `${answered.refused}\nThe row reads as a landing that never happened, which is what the outcome `
+    + `figures join a run to its work by. Remove it:\n  ${undoForm(ref)}`;
+};
+
+/* The two writes a landed set owes, neither skipped for the other's failure. The correction is the only
+   record that a run went round the ladder and the repair is the only thing that takes a false landing
+   off the row, so a refusal of either that returned before the other would leave a run told about one
+   problem and holding two. Both are attempted, then one refusal carries what is outstanding — and the
+   correction's own text is kept whole, it being the one that names the body to re-post. */
+const settledAfter = async (view, ref, status, correction) => {
+  let held = null;
+  try {
+    await correction();
+  }
+  catch (error) {
+    if (!(error instanceof Refused)) throw error;
+    held = error.message;
+  }
+  const stamp = await stampTaken(view, ref, status, view.answered);
+  if (!held && !stamp) return;
+  refuse([held, stamp && `${ref} is ${status}${held ? "" : " and its correction is on the record"}, `
+    + `and ${stamp}`].filter(Boolean).join("\n\n"));
+};
+
 /* The status set with nothing earning it, judged against what `declaredValue` declares and against nothing else, with the reply and the correction saying no check read it. A side status is reached with the payload the tracker demands of one, so `--set` writes what a park writes and skips only the entry checks. */
 const setStatus = async (view, ref, status, why, asked) => {
   /* Declaring a name is what would otherwise let it through, `declaredValue` being the only check a set passes, so the kind beside the name in that same table is what refuses — and each refusal names where the caller goes instead of what it may not write (ISS-1022, consult 8736c3 F1; ISS-1043). */
@@ -374,21 +464,26 @@ const setStatus = async (view, ref, status, why, asked) => {
   const said = whyChecked("advance --set", why);
   const near = declaredValue("forge_issues", "status", status);
   if (near) refuse(`${near} That set is what the route table declares this tracker takes. Nothing was sent.`);
+  if (couldBeEarned(view.issue, status)) earnsInstead(view, ref, status);
   const moved = `the status set to \`${status}\` by \`forge advance --set\`, from `
     + `\`${view.issue.status}\`, with no entry check read`;
+  const held = { ...view, answered: null };
   const move = async (soft = false) => {
     const refused = await moveTo(view, ref, status,
-      { note: "  (set, unearned)", said: { reason: said, ...waitsFor(status), ...(asked ? { needs: asked } : {}) }, credit: "the set transition" }, soft);
+      { note: "  (set, unearned)", said: { reason: said, ...waitsFor(status), ...(asked ? { needs: asked } : {}) }, credit: "the set transition", heard: (answer) => { held.answered = answer; } }, soft);
     if (refused) return refused;
     console.log(UNREAD);
     return null;
   };
+  /* The route that writes its record first is the one route no repair can follow: its status is
+     `needs_info`, which the lane does not hold, so `couldBeEarned` is false there and no stamp of it is
+     ever this verb's to read. */
   if (answersByComment(status)) {
     await correctionFor(view.documentId, ref, moved, said, { done: false });
     return movedAfterRecord(view, ref, status, move);
   }
   await move();
-  return correctionFor(view.documentId, ref, moved, said);
+  return settledAfter(held, ref, status, () => correctionFor(view.documentId, ref, moved, said));
 };
 
 export const nextHeld = (view) => leaseOf(view.issue?.[FIELD])?.next ?? null;

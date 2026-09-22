@@ -233,9 +233,16 @@ export const markMerged = async (documentId, ref, note, { leased = false } = {})
   return answer;
 };
 
-export const unmarkMerged = async (documentId, ref) => {
+/* `soft` is the caller that has something to say about a refusal the transport would otherwise print
+   bare and exit on: the repair after a close has a status already moved and a correction already up, so
+   a reader told only what the tracker said is left holding a stamp with no word of what still stands or
+   what removes it (ISS-2125). It answers with the refusal rather than raising it, and credits nothing,
+   there being no audit comment behind a write that did not land. */
+export const unmarkMerged = async (documentId, ref, { soft = false } = {}) => {
   await notAnothers(documentId, ref);
-  const answer = await write("forge_issues", { action: "unmark", data: { issueId: documentId } });
+  const answer = await write("forge_issues", { action: "unmark", data: { issueId: documentId } },
+    undefined, soft);
+  if (answer?.refused) return answer;
   await creditAfter("the unmark", [{ ref, documentId }]);
   return answer;
 };
@@ -284,6 +291,14 @@ const branchFor = async (given) => {
     + "config names no base branch to read it from. Name it with --to <branch>.");
 };
 
+/* A stamp with no mark is what a close leaves: the tracker writes the row's field of its own accord and
+   no mark of this issue's is on the page, so the removal has no note to quote and says where the stamp
+   came from instead. Without this the one route to the tracker's unmerge is shut against exactly the
+   rows that carry a landing nothing made, the mark being what `--undo` asked for (ISS-2125). */
+const stampSaid = (at) => (at
+  ? `no mark on the page — the row carried a merged stamp from ${at}, which no mark of this issue's wrote`
+  : null);
+
 const undone = async (documentId, ref, held, { next, patch }) => {
   await renew(documentId, ref, next, patch);
   await unmarkMerged(documentId, ref);
@@ -303,7 +318,7 @@ const marked = async (documentId, ref, note, at, { next, patch }) => {
 export const mergedPrepared = async (argv, { reference, issue, page, next, patch, usage } = {}) => {
   const given = flags(argv, "record merged", ["--undo"], { usage });
   const clauses = given.undo ? null : clausesFrom(given);
-  const { documentId } = await issue();
+  const { documentId, body } = await issue();
   const { comments } = await page();
   if (given.undo) {
     const also = Object.keys(given).filter((one) => one !== "undo");
@@ -311,10 +326,10 @@ export const mergedPrepared = async (argv, { reference, issue, page, next, patch
       refuse(`--undo removes the mark whole, so ${also.map((one) => `--${one}`).join(" and ")} `
         + "has no place beside it: a clause is written by the mark and not by its removal.");
     }
-    const held = lastMark(comments);
+    const held = lastMark(comments) ?? stampSaid(body?.mergedAt);
     if (!held) {
-      refuse(`${reference} carries no merged mark, so there is nothing to remove. What a mark is `
-        + `written with:\n  ${mergedForm(reference)}`);
+      refuse(`${reference} carries no merged mark and its row carries no merged stamp, so there is `
+        + `nothing to remove. What a mark is written with:\n  ${mergedForm(reference)}`);
     }
     return { write: () => undone(documentId, reference, held, { next, patch }) };
   }

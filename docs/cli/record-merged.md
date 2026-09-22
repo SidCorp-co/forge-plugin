@@ -60,3 +60,8 @@ remove the mark, then drop from `approved`.
 
 Nothing here rolls the *commit* back. The mark is a claim about a commit, so removing it says the
 claim was wrong and never that the code is gone.
+
+It asks the row and not only the page, because a tracker may stamp the merge itself on a close and
+that stamp writes no mark to find: asking for the mark alone shut this route against exactly the rows
+carrying a landing nothing made, which is how three of them stood a day with no way back (ISS-2125).
+Where there is no mark to quote, what comes back names where the stamp came from instead.
