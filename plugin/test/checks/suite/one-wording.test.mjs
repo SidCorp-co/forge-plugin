@@ -47,6 +47,11 @@ const files = () => {
    the table gave every sentence in it a second composer and the walk went silent over all fifteen.
    Nothing reads a table in a case as either a composition or an assertion. */
 const STANDING = [
+  { sentence: "one call writes each field once.",
+    module: "plugin/src/resolve/flags.mjs",
+    home: "plugin/test/resolve/repeated-flag.test.mjs",
+    elsewhere: "plugin/test/cli/project-verb.test.mjs",
+    issue: "ISS-2264" },
   { sentence: "nothing was worked under this lease",
     module: "plugin/src/flow/lease.mjs",
     home: "plugin/test/flow/renew.test.mjs",
@@ -57,10 +62,10 @@ const STANDING = [
     home: "plugin/test/gates/codex/codex-second.test.mjs",
     elsewhere: "plugin/test/codex/codex-record.test.mjs",
     issue: "ISS-2264" },
-  { sentence: "past the statuses a run is dispatched at",
-    module: "plugin/src/flow/lease.mjs",
-    home: "plugin/test/flow/claim/lost-id.test.mjs",
-    elsewhere: "plugin/test/flow/claim/dispatched-claim.test.mjs",
+  { sentence: "answer for a judgement the run that built the change made",
+    module: "plugin/src/flow/lease/takeover.mjs",
+    home: "plugin/test/flow/landing/checkpoint.test.mjs",
+    elsewhere: "plugin/test/flow/landing/take.test.mjs",
     issue: "ISS-2264" },
   { sentence: "its own base at that reading, so nothing of its own on it",
     module: "plugin/src/guides/phases.mjs",
@@ -287,10 +292,13 @@ test("a clause obliging both the derivation and the report row produces no pair"
   assert.deepEqual(found, []);
 });
 
+/* Watched failing: a sentence a `+` split for the line width was held as two runs, so a pattern
+   pinning it whole matched neither half and the pair went unreported. The join is the output, and
+   only what the output does not carry — an interpolation, a newline — breaks a run. */
 test("a sentence is every quoted run a plus chain joins, split at what it interpolates", () => {
   const composed = composedIn('const said = `${ref} carries no turn, so `\n  + "the take is refused";\n');
   assert.equal(composed.length, 1);
-  assert.deepEqual(composed[0].runs, ["", " carries no turn, so ", "the take is refused"]);
+  assert.deepEqual(composed[0].runs, ["", " carries no turn, so the take is refused"]);
   assert.equal(composed[0].line, 1);
   assert.deepEqual(composedIn('const a = "one";\nconst b = "two";\n').map((one) => one.runs),
     [["one"], ["two"]], "two statements are two sentences, whatever sits between them");
@@ -307,4 +315,49 @@ test("a group's introducer is syntax, so a grouped pattern reads as the sentence
     const one = `assert.match(out, /(${opener}a refusal this module composes and nothing else does)/u);\n`;
     assert.equal(pairsOver(tree(one, one)).length, 1, opener);
   }
+});
+
+/* Watched failing: the four below each unpinned or mis-sliced a real pair, and three of them were
+   found by the review of 7983d6d8 rather than by the walk, which reports a missed pair as silence. */
+test("a sentence the source split for the line width is one sentence, and pairs as one", () => {
+  const split = 'export const said = () => "a refusal this module " + "composes and nothing else does";\n';
+  const found = pairsOver([{ rel: "plugin/src/only/here.mjs", text: split },
+    { rel: "plugin/test/only/home.test.mjs", text: `${IMPORTS}${PINS}` },
+    { rel: "plugin/test/other/away.test.mjs", text: PINS }]);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].sentence, "a refusal this module composes and nothing else does");
+});
+
+test("an escape naming one character is that character, not the digits spelling it", () => {
+  const hex = `assert.match(out, /\\x61 refusal this module composes and nothing else does/u);\n`;
+  const found = pairsOver(tree(hex, hex));
+  assert.equal(found.length, 1);
+  assert.equal(found[0].sentence, "a refusal this module composes and nothing else does");
+});
+
+/* A message is what a developer is shown when a case fails, not a wording the case holds the code
+   to, and the two sit in the same call. Which argument it is turns on how many the verb spends on
+   what it judges: `throws` spends two, and reading its second as a message unpinned every refusal
+   this suite proves with `assert.throws`. */
+test("the message an assertion prints is not a wording it pins", () => {
+  const printed = `assert.ok(done, "a refusal this module composes and nothing else does");\n`;
+  assert.deepEqual(pairsOver(tree(PINS, printed)), []);
+  const said = `assert.equal(out, "a refusal this module composes and nothing else does");\n`;
+  assert.equal(pairsOver(tree(said, said)).length, 1, "the same words as the expected value are pinned");
+  const thrown = `assert.throws(run, /a refusal this module composes and nothing else does/u);\n`;
+  assert.equal(pairsOver(tree(thrown, thrown)).length, 1, "and the error `throws` expects is not its message");
+  const withMessage = `assert.match(out, /a refusal this module composes and nothing else does/u, "why");\n`;
+  assert.equal(pairsOver(tree(withMessage, withMessage)).length, 1);
+});
+
+test("a module that re-exports another is that other's door, and an ordinary import is not", () => {
+  const door = { rel: "plugin/src/only/door.mjs", text: `export { said } from "./here.mjs";\n` };
+  const through = [{ rel: "plugin/src/only/here.mjs", text: HOME }, door,
+    { rel: "plugin/test/only/home.test.mjs", text: `${IMPORTS}${PINS}` },
+    { rel: "plugin/test/other/away.test.mjs", text: `import { said } from "../../src/only/door.mjs";\n${PINS}` }];
+  assert.deepEqual(pairsOver(through), [], "the door's importer reaches what stands behind it");
+  const uses = [...through];
+  uses[1] = { rel: "plugin/src/only/door.mjs", text: `import { said } from "./here.mjs";\nexport const other = said;\n` };
+  assert.equal(pairsOver(uses).length, 1,
+    "a module using another does not make its wording the importer's subject");
 });

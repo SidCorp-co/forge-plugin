@@ -48,11 +48,15 @@ export const composedIn = (text) => {
   }
   return joined.map((one) => ({
     line: lineAt(text, one.at),
-    runs: one.parts.flatMap((part) => text.slice(part.from, part.to).split(RUNS)).map(unescaped),
+    runs: one.parts.map((part) => text.slice(part.from, part.to)).join("").split(RUNS).map(unescaped),
   }));
 };
 
 const META = new Set(["^", "$", ".", "|", "?", "*", "+", "(", ")", "[", "]", "{", "}"]);
+
+/* The escapes that name one character rather than a class of them, read whole: a reader consuming
+   only the `\\x` of `\\x61` left `61` standing as text, and the run it headed matched no source. */
+const NAMES_A_CHARACTER = /^(?:x([0-9a-fA-F]{2})|u\{([0-9a-fA-F]+)\}|u([0-9a-fA-F]{4}))/u;
 
 /* What a group writes between its own paren and the text inside it. Read as one token, because the
    `:` of `(?:` is syntax and a reader taking it for a character prefixed every run of every grouped
@@ -67,11 +71,18 @@ const regexCore = (raw) => {
   for (let at = 0; at < raw.length; at += 1) {
     const one = raw[at];
     if (one === "\\") {
-      if (/[A-Za-z0-9]/u.test(raw[at + 1] ?? "")) {
+      const named = NAMES_A_CHARACTER.exec(raw.slice(at + 1));
+      if (named) {
+        run += String.fromCodePoint(Number.parseInt(named[1] ?? named[2] ?? named[3], 16));
+        at += named[0].length;
+      } else if (/[A-Za-z0-9]/u.test(raw[at + 1] ?? "")) {
         runs.push(run);
         run = "";
-      } else run += raw[at + 1] ?? "";
-      at += 1;
+        at += 1;
+      } else {
+        run += raw[at + 1] ?? "";
+        at += 1;
+      }
     } else if (!META.has(one)) run += one;
     else {
       if (one === "?" || one === "*" || one === "+" || one === "{") run = run.slice(0, -1);
@@ -102,16 +113,38 @@ const stringCore = (raw) => raw.split(RUNS).map(unescaped).sort((a, b) => b.leng
 const NEGATED = /doesNotMatch|doesNotInclude|notMatch/u;
 const ASSERTION = /\bassert(?:\s*\.\s*[A-Za-z_$][\w$]*)*\s*\(/gu;
 
+/* How many arguments an assertion spends on what it is comparing, after which anything left is the
+   message it prints. Two everywhere but the three that judge one value — `throws` spends two as much
+   as `equal` does, its second being the error it expects, and a reader taking that for a message
+   unpinned every refusal `assert.throws` is how this suite proves. A verb named nowhere here is read
+   as spending two, which pins a sentence rather than passing over one. */
+const JUDGES_ONE_VALUE = /^assert\s*\($|\.\s*(?:ok|fail)\s*\($/u;
+
+/* Where each top-level argument of a call begins, the call's own text masked so a comma inside a
+   nested call, an array or a string is not an argument boundary here. */
+const argumentsIn = (code, from, to) => {
+  const out = [from + 1];
+  let depth = 0;
+  for (let at = from + 1; at < to; at += 1) {
+    if ("([{".includes(code[at])) depth += 1;
+    else if (")]}".includes(code[at])) depth -= 1;
+    else if (code[at] === "," && depth === 0) out.push(at + 1);
+  }
+  return out;
+};
+
 const callsIn = (code) => {
   const out = [];
   for (const hit of code.matchAll(ASSERTION)) {
     let depth = 0;
     let at = hit.index + hit[0].length - 1;
+    const opens = at;
     for (; at < code.length; at += 1) {
       if (code[at] === "(") depth += 1;
       else if (code[at] === ")" && (depth -= 1) === 0) break;
     }
-    out.push({ from: hit.index, to: at, head: hit[0] });
+    const args = argumentsIn(code, opens, at);
+    out.push({ from: hit.index, to: at, head: hit[0], message: args[JUDGES_ONE_VALUE.test(hit[0]) ? 1 : 2] ?? at });
   }
   return out;
 };
@@ -129,7 +162,7 @@ export const pinnedIn = (text) => {
   for (const one of spans) {
     if (one.kind === "comment") continue;
     const call = calls.find((each) => one.from > each.from && one.from < each.to);
-    if (!call || NEGATED.test(call.head)) continue;
+    if (!call || NEGATED.test(call.head) || one.from >= call.message) continue;
     const raw = text.slice(one.from, one.to);
     const core = one.kind === "regex" ? regexCore(raw) : stringCore(raw);
     if (core.length >= FLOOR) out.push({ pattern: `${one.kind} ${raw}`, core, line: lineAt(text, one.from) });
@@ -138,6 +171,7 @@ export const pinnedIn = (text) => {
 };
 
 const RELATIVE = /(?:from|import)\s*\(?\s*(["'])(\.[^"']*)\1/gu;
+const REEXPORT = /export\s+(?:\*|\{[^{}]*\})\s*(?:as\s+[A-Za-z_$][\w$]*\s*)?from\s*(["'])(\.[^"']*)\1/gu;
 const resolved = (rel, spec) => {
   const at = `${rel.slice(0, rel.lastIndexOf("/"))}/${spec}`.split("/");
   const out = [];
@@ -146,6 +180,19 @@ const resolved = (rel, spec) => {
     else if (step !== ".") out.push(step);
   }
   return out.join("/");
+};
+
+/* Every module a module hands on whole: a binding re-exported is that module's own, so a file
+   importing the door reaches what stands behind it and is that sentence's reader too. An ordinary
+   import is not a door — a module using another does not make its wording the importer's subject. */
+const doorsOf = (rel, textOf, seen = new Set()) => {
+  if (seen.has(rel)) return seen;
+  seen.add(rel);
+  for (const hit of (textOf(rel) ?? "").matchAll(REEXPORT)) {
+    const to = resolved(rel, hit[2]);
+    if (SOURCE_FILE.test(to)) doorsOf(to, textOf, seen);
+  }
+  return seen;
 };
 
 /** The modules of this repository a test file reaches in its own process, followed through the
@@ -159,8 +206,10 @@ export const reachedBy = (rel, textOf) => {
     const one = queue.shift();
     for (const hit of (textOf(one) ?? "").matchAll(RELATIVE)) {
       const to = resolved(one, hit[2]);
-      if (SOURCE_FILE.test(to)) out.add(to);
-      else if (!seen.has(to) && textOf(to) !== undefined) {
+      if (SOURCE_FILE.test(to)) {
+        out.add(to);
+        for (const door of doorsOf(to, textOf)) out.add(door);
+      } else if (!seen.has(to) && textOf(to) !== undefined) {
         seen.add(to);
         queue.push(to);
       }
