@@ -18,7 +18,6 @@
    Work that reads the answer waits for it; that the answer may come back red is not a second reason
    to wait, since work a red answer would only make you take again is still work. Where no allowed
    work is left that does not read the answer, block on the call in the foreground until it answers,
-   because a turn ended for the
-   completion notice waits for something and works on nothing. Which shapes a wait has, and which
-   one the guard refuses: `forge hooks --how polling`, read before the first read of a job's log
-   rather than after the second is refused.
+   because a turn ended for the completion notice waits for something and works on nothing. Which
+   shapes a wait has, and which one the guard refuses: `forge hooks --how polling`, read before the
+   first read of a job's log rather than after the second is refused.
