@@ -178,9 +178,9 @@ const alsoCommit = (kind) => (SHAPES[kind]?.fields ?? [])
   .slice(1)
   .map((one) => `--${one.flag} takes ${commitTakes(one)}.`);
 
-/* What a field its own rule refuses a value for, off the field and in that rule's own words: a form
-   a caller can only meet by having a composed write turned back is paid for at the write's price
-   (ISS-457). A row spells the flags; this spells what one of them will take. */
+/* Off the field itself and in the words its own rule refuses against, which is where the reason for
+   printing it at all is written. A row spells which flags a kind takes; this spells what one of
+   them will take. */
 const formsTaken = (kind) => (SHAPES[kind]?.fields ?? [])
   .filter((one) => one.form)
   .map((one) => `--${one.flag} takes ${one.form}.`);
