@@ -425,10 +425,14 @@ it. Reading is all this product does there.
   WHEN such a guard is taken THEN the CLI SHALL publish it whole rather than in a state a second
   process could read as unowned, and IF the owner of one cannot be read THEN it SHALL treat that as
   unknown rather than as a guard nobody holds.
-- **AC-19-8-129** · Rev: 1 · Proof: plugin/test/stats/marks/marks.test.mjs "the ship's mark is one line at a multiple of the window, read off the corpus, and silent otherwise"
+- **AC-19-8-129** · Rev: 1 · Proof: plugin/test/stats/marks/prune.test.mjs "every writer of a reading leaves the two fields nothing reads back out of the store"
   WHERE a reading is written down the CLI SHALL store no field that no reader of a stored reading
   reads, keeping its own earlier window and its class table out of the record while the comparison it
   prints and the JSON it emits carry both.
+- **AC-19-8-132** · Rev: 1 · Proof: plugin/test/stats/marks/prune.test.mjs "the two fields nothing reads back are dropped from the readings already held, once, with the store kept beside them"
+  WHERE the store holds readings written before an unread field was kept out of a record the CLI
+  SHALL drop that field from each of those readings exactly once, SHALL alter nothing else any of
+  them holds, and SHALL put the store as it stood beside it before the first of them is rewritten.
 
 - **AC-19-8-83** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "1. the isolated population is the runs that began at or after this install and ended before the next"
   WHEN one change is judged THEN the CLI SHALL report the count of runs that began at or after that

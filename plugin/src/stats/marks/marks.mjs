@@ -24,11 +24,14 @@ export const marksPath = () => join(configDir("forge"), "eval-marks.jsonl");
 /* Beside the store and never of this run's own: two processes crossing the same window is the case
    this guards, so a lock either process could miss guards nothing. */
 const lockPath = () => `${marksPath()}.lock`;
-/* What says the migration has run. The store itself cannot answer it: a record left unassigned is
-   indistinguishable from one not yet reached, so asking the records would migrate for ever. */
-const migratedPath = () => `${marksPath()}.migrated`;
-/* The store as it stood, written before a byte of it is rewritten, and the whole of the way back. */
-const beforePath = () => `${marksPath()}.before-ISS-1984`;
+/* What says a pass has run. The store itself cannot answer it: a record a pass left alone is
+   indistinguishable from one it never reached, so asking the records would run for ever. */
+const donePath = (marker) => `${marksPath()}.${marker}`;
+/* The store as it stood, written before a byte of it is rewritten, and the whole of the way back.
+   One copy per pass and never one shared between them: a pass runs over a store that has gained
+   records since the pass before it, so an earlier pass's copy answers for a store this one never
+   saw and would restore neither what this pass took nor what arrived after it (ISS-2106). */
+const asidePath = (issue) => `${marksPath()}.before-${issue}`;
 
 /* A checkout the tracker names no project for. Under a prefix no tracker slug can wear, because the
    answer has to be a value and never `null`: `null` is what the consult side passes to mean every
@@ -67,53 +70,103 @@ const scanOf = (kind, scope) => {
 };
 
 export const marksOf = (kind, scope = null) => {
-  migrated();
+  passed();
   return scanOf(kind, scope);
 };
 
-/* One rewrite and never a second. Every record is written back keeping every field it holds and
-   gaining only the scope `scopeHeld` works out for it. */
+/** What of a reading is written down: every field but the two no reader of a stored reading reads —
+ *  the reading's own earlier window, which is a copy of what the record before it already holds, and
+ *  the class table it was taken under. A stored reading stands where the sliding before window would,
+ *  so its recent window is what a reader takes and neither of these is.
+ *
+ *  **Here, in the store's own write, and not at each writer.** The projection began at the two
+ *  writers that were in front of the run that added it, and the third — the consult crossing's — went
+ *  on spreading its reading raw, so the store kept gaining a dead window every hundredth answered
+ *  consult while the rule read as kept. A rule every writer has to remember is a rule the next writer
+ *  will not (ISS-2106). */
+export const withoutDead = (record) => {
+  const kept = { ...record };
+  delete kept.before;
+  delete kept.classes;
+  return kept;
+};
+
 /* What a record already held is owed. Its OWN recorded checkout and never the one this process is
    standing in: `root` is a scratch path, and decoding a project out of one would be a guess wearing a
    reading's clothes. A record naming no checkout at all keeps its figures under no scope and is
    reported, there being nothing about it to resolve. */
 const scopeHeld = (one) => (one.project ? scopeOf(one.project) : null);
 
-const migrateHeld = () => {
-  if (existsSync(migratedPath())) return;
-  const held = readAll();
+/* One rewrite and never a second. Every record is written back keeping every field it holds and
+   gaining only the scope `scopeHeld` works out for it. */
+const scopedHeld = (held) => {
   const left = [];
+  const lines = held.map((one) => {
+    if (one.kind === CONSULTS) return JSON.stringify(one);
+    const scope = scopeHeld(one);
+    if (!scope) left.push(one.project ?? one.root ?? "a record naming no checkout");
+    /* Said rather than left absent, and never worked out from what this machine is configured as
+       now: a reading taken before either field existed was taken on a device nothing recorded and
+       under a contract nothing wrote down, and stamping today's answer onto it would make a
+       reading from a month ago claim to have been measured under this week's rules. */
+    return JSON.stringify({ ...one, ...(scope ? { scope } : {}),
+      device: one.device ?? UNKNOWN_DEVICE, contract: one.contract ?? null });
+  });
+  return { lines, report: { unresolved: left.length, checkouts: [...new Set(left)] } };
+};
+
+/* The same projection the store's own write makes, over the records written before it made it. Every
+   other field each record holds is untouched, the scope a record never gained included: a record this
+   pass cannot key is none of its business, the field and not the kind being its whole criterion. */
+const prunedHeld = (held) => {
+  let dropped = 0;
+  const lines = held.map((one) => {
+    const kept = withoutDead(one);
+    if (Object.keys(kept).length !== Object.keys(one).length) dropped += 1;
+    return JSON.stringify(kept);
+  });
+  return { lines, report: { pruned: dropped } };
+};
+
+/* Every one-time pass over every record the store holds, in the order they are owed: the marker that
+   says one has run, the issue whose name its way back carries, and what it makes of the records. Each
+   stands behind its own marker, so a home that has taken an earlier pass takes only what came after
+   it, and a pass added later is a row here rather than a second copy of the dance below. */
+const PASSES = [
+  { marker: "migrated", issue: "ISS-1984", over: scopedHeld },
+  { marker: "pruned", issue: "ISS-2106", over: prunedHeld },
+];
+
+const onePass = ({ marker, issue, over }) => {
+  if (existsSync(donePath(marker))) return;
+  const held = readAll();
+  let report = {};
   if (held.length) {
     /* Once, and never over a backup already published: a rewrite interrupted after the store was
-       renamed leaves the next attempt reading records already migrated, and copying THOSE over the
+       renamed leaves the next attempt reading records already rewritten, and copying THOSE over the
        way back would destroy the very bytes it exists to hold. Copied aside and renamed into place,
        so a copy interrupted half way is not mistaken for a finished one. */
-    if (!existsSync(beforePath())) {
-      const aside = `${beforePath()}.part`;
-      copyFileSync(marksPath(), aside);
-      renameSync(aside, beforePath());
+    if (!existsSync(asidePath(issue))) {
+      const part = `${asidePath(issue)}.part`;
+      copyFileSync(marksPath(), part);
+      renameSync(part, asidePath(issue));
     }
-    const lines = held.map((one) => {
-      if (one.kind === CONSULTS) return JSON.stringify(one);
-      const scope = scopeHeld(one);
-      if (!scope) left.push(one.project ?? one.root ?? "a record naming no checkout");
-      /* Said rather than left absent, and never worked out from what this machine is configured as
-         now: a reading taken before either field existed was taken on a device nothing recorded and
-         under a contract nothing wrote down, and stamping today's answer onto it would make a
-         reading from a month ago claim to have been measured under this week's rules. */
-      return JSON.stringify({ ...one, ...(scope ? { scope } : {}),
-        device: one.device ?? UNKNOWN_DEVICE, contract: one.contract ?? null });
-    });
+    const made = over(held);
+    report = made.report;
     const next = `${marksPath()}.next`;
-    writeFileSync(next, `${lines.join("\n")}\n`, { mode: 0o600 });
+    writeFileSync(next, `${made.lines.join("\n")}\n`, { mode: 0o600 });
     /* Renamed rather than written over: a rewrite interrupted half way would leave the store torn,
        and the copy beside it is the way back only if the store it answers for is whole. */
     renameSync(next, marksPath());
   }
-  writeFileSync(migratedPath(), `${JSON.stringify({
-    at: new Date().toISOString(), records: held.length, unresolved: left.length,
-    checkouts: [...new Set(left)], kept: held.length ? beforePath() : null,
+  writeFileSync(donePath(marker), `${JSON.stringify({
+    at: new Date().toISOString(), records: held.length, ...report,
+    kept: held.length ? asidePath(issue) : null,
   })}\n`, { mode: 0o600 });
+};
+
+const passHeld = () => {
+  for (const pass of PASSES) onePass(pass);
 };
 
 /* Outside the lock where the marker already answers, since that is every call but the first one this
@@ -124,12 +177,12 @@ const migrateHeld = () => {
    holds. The budget is what a waiter spends before it gives that answer. */
 const GUARDED = { strict: true, waits: 30_000 };
 
-const migrated = () => {
-  if (existsSync(migratedPath())) return;
+const passed = () => {
+  if (PASSES.every((pass) => existsSync(donePath(pass.marker)))) return;
   try {
-    underLock(lockPath(), migrateHeld, GUARDED);
+    underLock(lockPath(), passHeld, GUARDED);
   } catch {
-    /* A store this machine cannot write is one it cannot migrate either. The read goes on over
+    /* A store this machine cannot write is one no pass can rewrite either. The read goes on over
        whatever is there rather than throwing, as `jsonlAt` answers an unreadable store with none,
        and the write beside it is what says the reading could not be held. */
   }
@@ -155,9 +208,9 @@ export const FAILED = "failed";
 export const writeMark = (record) => {
   try {
     return underLock(lockPath(), () => {
-      migrateHeld();
+      passHeld();
       if (scanOf(record.kind, record.scope ?? null).some((one) => sameMark(one, record))) return HELD;
-      appendJsonl(marksPath(), record, configDir("forge"));
+      appendJsonl(marksPath(), withoutDead(record), configDir("forge"));
       return WRITTEN;
     }, GUARDED);
   } catch (error) {

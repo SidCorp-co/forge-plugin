@@ -63,7 +63,18 @@ what pinning is for.
 
 What is written down is not the whole of what the screen shows. The record keeps what a reader of a
 *stored* reading reads and no more: a stored reading stands where the sliding before window would,
-so its recent window is read and its own earlier window and class table are not. Readings taken
-before a field existed say that field is unknown rather than carrying what this machine would answer
-today, and readings taken before the project was the key are rewritten under it once, every figure
-kept and the store as it stood copied beside them first.
+so its recent window is read and its own earlier window and class table are not. That is dropped by
+the store's own write rather than by each writer, so a writer added later carries the rule without
+knowing it — the consult crossing's writer did not, and the store went on gaining a dead window at
+every hundredth answered consult while two of the three writers kept the rule.
+
+**A rule that arrives after the records do is owed a pass over them.** Readings taken before a field
+existed say that field is unknown rather than carrying what this machine would answer today; readings
+taken before the project was the key are rewritten under it; readings taken before the write dropped
+the two dead fields lose them. Each is one pass over every record the store holds, run once behind a
+marker of its own, under the store's own lock, and each copies the store as it stood beside itself
+before it replaces a byte — a copy of its own and not a share of an earlier pass's, that copy
+answering for a store which has since gained records. Restoring one of those copies over the store is
+the whole of the way back from the pass that wrote it. The copies are the owner's to remove once the
+pass that wrote one is trusted; nothing here removes them, a store's history being no run's to
+discard.

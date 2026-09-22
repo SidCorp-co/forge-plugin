@@ -478,17 +478,9 @@ const readingOf = (directory, corpus, size, against = null, read = null) => {
   };
 };
 
-/** What of a reading is written down. The live object keeps every field, the screen and the angles
- *  and `--json` all reading its `before` window and its `classes` table off it; the record keeps only
- *  what a reader of a STORED reading reads. `readBack` feeds `now` alone into the comparison, and no
- *  reader anywhere takes a stored `before` or a stored `classes` — 47 MB of this store's 124 MB at
- *  the time this was measured, which is ISS-2106's to reclaim from the readings already held. */
-export const storedFrom = (reading) => {
-  const stored = { ...reading };
-  delete stored.before;
-  delete stored.classes;
-  return stored;
-};
+/* What of a reading is written down is `withoutDead` in the store's own write, which is where a
+   writer cannot forget it: the live object here keeps every field, the screen and the angles and
+   `--json` all reading its `before` window and its `classes` table off it (ISS-2106). */
 
 const WRITES = "one is written when this project's corpus reaches a multiple of fifty runs, by this verb or by a release";
 const RELEASE_WRITES = "the release step writes one at every release";
@@ -525,7 +517,7 @@ export const runsMark = async (directory, size = WINDOW, held = null) => {
   if (crossed === null) return null;
   const said = `stats: ${crossed} issue-flow runs in this project's corpus — \`forge stats eval\`.`;
   const wrote = writeMark({ kind: RUNS, mark: crossed, at: new Date().toISOString(),
-    ...storedFrom(readingOf(directory, corpus, size)) });
+    ...readingOf(directory, corpus, size) });
   return `${said} ${wroteSaid(wrote, crossed, "forge stats eval")}`;
 };
 
@@ -541,7 +533,7 @@ export const releaseMark = async (directory, { version, head, issues = [] }, siz
   const wrote = writeMark({
     kind: RELEASES, mark: corpus.runs.length, version, head: head ?? null,
     issues: [...issues].map((one) => String(one).toUpperCase()),
-    at: new Date().toISOString(), ...storedFrom(readingOf(directory, corpus, size)),
+    at: new Date().toISOString(), ...readingOf(directory, corpus, size),
   });
   return `stats: this release is held as ${version} over ${corpus.runs.length} run(s) `
     + `(\`forge stats eval --since-release ${version}\`). ${releaseSaid(wrote, version)}`;
