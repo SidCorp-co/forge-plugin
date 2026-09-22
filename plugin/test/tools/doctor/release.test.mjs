@@ -13,6 +13,8 @@ test("the three release values are reported with where they came from", async ()
   assert.match(out, /\[ {2}ok {2}\] release model\s+publish — the release is an act on a live deploy binding, and no branch moves {2}← the tracker's project config/u);
   assert.match(out, /\[ {2}ok {2}\] staging branch\s+master {2}← the tracker's project config/u);
   assert.match(out, /\[ {2}ok {2}\] production deploy\s+automatic — a user-facing change ships without a person's look/u);
+  assert.match(out, /production deploy.*← the tracker's project config, this project's own `release` key/u,
+    "the level that answered is named beside the answer, together with the local key that did not");
   assert.doesNotMatch(out, /baseBranch/u, "and the tracker's own field name is not what a reader is shown");
   assert.doesNotMatch(out, /releaseModel/u);
   assert.doesNotMatch(out, /live branch/u, "nor is a branch the declared model does not have");
