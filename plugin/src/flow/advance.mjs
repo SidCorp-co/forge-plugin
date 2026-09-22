@@ -394,8 +394,8 @@ const earnsInstead = (view, ref, status) => {
    so the stamp is reported and left alone.
    It reports the repair's own outcome rather than raising on it, the caller below owing one refusal
    that carries everything left outstanding: this repair and the correction are each the only record of
-   their own half, so a raise here would swallow whichever of the two had not run yet (consult 5d6d78
-   F1, consult f4b3c1 F1). The lease check and the credit inside `unmarkMerged` still raise as they do
+   their own half, so a raise here would swallow whichever of the two had not run yet (consult 6e172b
+   F1, consult 17b76c F1). The lease check and the credit inside `unmarkMerged` still raise as they do
    for its other caller, those being refusals about the issue rather than about the stamp. */
 const stampTaken = async (view, ref, status, answer) => {
   const stamped = (answer?.issue ?? answer)?.mergedAt;

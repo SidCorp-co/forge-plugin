@@ -158,7 +158,7 @@ test("a close whose page carries a merged mark keeps its stamp", async () => {
 /* The order of the two writes, which is the whole of what the repair may not cost: the repair can be
    refused, and a refusal thrown before the correction would leave a status this verb set with nothing
    on the page saying who set it — which is the record the set exists to leave, and the one an unearned
-   status is read against ever afterwards (consult 5d6d78 F1). */
+   status is read against ever afterwards (consult 6e172b F1). */
 test("a repair the tracker refuses still leaves the correction the set owes, and names the way back", async () => {
   before("confirmed", []);
   state.unmarkRefuses = "FORBIDDEN: this issue's merge cannot be unmade";
@@ -176,7 +176,7 @@ test("a repair the tracker refuses still leaves the correction the set owes, and
 
 /* The mirror of the case above, and the reason neither write may be skipped for the other: told only
    that its correction did not go up, a run would walk away from a row still claiming a landing nothing
-   made, and a refusal naming one of two problems is a refusal that hid the other (consult f4b3c1 F1). */
+   made, and a refusal naming one of two problems is a refusal that hid the other (consult 17b76c F1). */
 test("a correction the tracker refuses does not swallow the repair the same set owes", async () => {
   before("confirmed", []);
   state.commentRefuses = "BAD_REQUEST: this issue takes no more comments";
@@ -191,7 +191,7 @@ test("a correction the tracker refuses does not swallow the repair the same set 
 
 /* A dropped write is not a rejected one, and only the transport can tell them apart: told the stamp is
    still there a run undoes a removal that may have landed, and the row's own field is the only thing
-   that settles which happened (consult f4b3c1 F2). */
+   that settles which happened (consult 17b76c F2). */
 test("a repair that neither landed nor failed cleanly claims nothing, and sends the run to read the row", async () => {
   before("confirmed", []);
   state.unmarkRefuses = `Forge did not answer DELETE /api/issues/fixed-uuid/merge: socket hang up\n${AMBIGUOUS}`;
