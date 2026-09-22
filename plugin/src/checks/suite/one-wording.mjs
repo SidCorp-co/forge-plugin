@@ -54,6 +54,11 @@ export const composedIn = (text) => {
 
 const META = new Set(["^", "$", ".", "|", "?", "*", "+", "(", ")", "[", "]", "{", "}"]);
 
+/* What a group writes between its own paren and the text inside it. Read as one token, because the
+   `:` of `(?:` is syntax and a reader taking it for a character prefixed every run of every grouped
+   pattern with it and matched no source (found in review at 0e97d40). */
+const OPENS_A_GROUP = /^\?(?::|=|!|<=|<!|<[A-Za-z_$][\w$]*>)/u;
+
 /* The longest run of a pattern that is literal text. A class or a quantifier ends a run and takes
    the character it quantifies with it, so `line\(s\)` reads as `line(s)` and `\d+ file` as ` file`. */
 const regexCore = (raw) => {
@@ -73,10 +78,21 @@ const regexCore = (raw) => {
       runs.push(run);
       run = "";
       if (one === "[") at = raw.indexOf("]", at + 1) < 0 ? raw.length : raw.indexOf("]", at + 1);
+      if (one === "(") at += (OPENS_A_GROUP.exec(raw.slice(at + 1))?.[0].length ?? 0);
     }
   }
   return [...runs, run].sort((a, b) => b.length - a.length)[0] ?? "";
 };
+
+/** The pairs a walk found that a table does not carry, as the refusals a developer reads, and the
+ *  entries of that table the walk no longer finds. The two are one property and are split here only
+ *  because they ask for different acts: one file to shorten, one record to delete. */
+export const against = (found, declared) => ({
+  fresh: found.filter((one) => !declared.some((each) => each.sentence === one.sentence
+    && each.elsewhere === one.elsewhere)).map((one) => says(one)),
+  stale: declared.filter((one) => !found.some((each) => each.sentence === one.sentence
+    && each.elsewhere === one.elsewhere)).map((one) => `${one.sentence} · ${one.elsewhere}`),
+});
 
 const stringCore = (raw) => raw.split(RUNS).map(unescaped).sort((a, b) => b.length - a.length)[0] ?? "";
 

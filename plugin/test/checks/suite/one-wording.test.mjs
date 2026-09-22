@@ -13,7 +13,7 @@ import test from "node:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { FLOOR, composedIn, pairsOver, pinnedIn, reachedBy, refusalFor } from "../../../src/checks/suite/one-wording.mjs";
+import { FLOOR, against, composedIn, pairsOver, pinnedIn, reachedBy, refusalFor } from "../../../src/checks/suite/one-wording.mjs";
 
 const ROOT = new URL("../../../../", import.meta.url).pathname;
 
@@ -142,6 +142,16 @@ const STANDING = [
 const keyed = (one) => `${one.sentence} · ${one.elsewhere}`;
 const walked = () => files();
 
+const HOME = `export const said = () => "a refusal this module composes and nothing else does";\n`;
+const IMPORTS = `import { said } from "../../src/only/here.mjs";\n`;
+const PINS = `assert.match(out, /a refusal this module composes and nothing else does/u);\n`;
+
+const tree = (homeBody, elsewhereBody) => [
+  { rel: "plugin/src/only/here.mjs", text: HOME },
+  { rel: "plugin/test/only/home.test.mjs", text: `${IMPORTS}${homeBody}` },
+  { rel: "plugin/test/other/away.test.mjs", text: elsewhereBody },
+];
+
 test("the walk reaches the suite's test files, so no pairs is a clean suite and not an empty selector", () => {
   const all = walked();
   const tests = all.filter((one) => /^plugin\/test\/.*\.test\.mjs$/u.test(one.rel));
@@ -158,11 +168,26 @@ test("the walk reaches the suite's test files, so no pairs is a clean suite and 
    the table says what stands, so a pair it does not carry is a new debt and an entry the walk no
    longer finds is a cut somebody made without closing its record. */
 test("what the walk reports over this repository is what the declared table carries, entry for entry", () => {
-  const found = [...new Set(pairsOver(walked()).map(keyed))].sort();
-  assert.deepEqual(found, STANDING.map(keyed).sort(),
-    "correct STANDING in plugin/src/checks/suite/one-wording.mjs: a pair the table does not carry is a "
-    + "sentence that has just gained a second home, and an entry the walk no longer finds is a cut "
-    + "whose record was left behind");
+  const { fresh, stale } = against(pairsOver(walked()), STANDING);
+  assert.deepEqual(fresh, [], "each line above is the refusal itself, naming the file to shorten and "
+    + "the fragment to shorten it to; a sentence has just gained a second home");
+  assert.deepEqual(stale, [], "delete these from STANDING in this file: the cut landed and its record "
+    + "was left behind, and a table claiming a debt already paid is the same stale record from the "
+    + "other side");
+});
+
+/* The refusal a developer reads is this case's own message and never a table diff: a mismatch
+   naming only the sentence sends them to the checker to learn which of two files to shorten. */
+test("a pair the table does not carry is reported as the refusal, and one it carries too long as a line to delete", () => {
+  const found = pairsOver(tree(PINS, PINS));
+  const { fresh, stale } = against(found, []);
+  assert.equal(fresh.length, 1);
+  assert.equal(stale.length, 0);
+  assert.equal(fresh[0], refusalFor(found[0]), "the message is the refusal, whole");
+  assert.match(fresh[0], /plugin\/test\/other\/away\.test\.mjs pins, at line 1/u);
+  assert.match(fresh[0], /plugin\/test\/only\/home\.test\.mjs pins the same pattern at line 2/u);
+  assert.deepEqual(against([], [{ sentence: "gone", elsewhere: "plugin/test/other/away.test.mjs" }]),
+    { fresh: [], stale: ["gone · plugin/test/other/away.test.mjs"] });
 });
 
 test("every entry of the table names the open issue that will cut it", () => {
@@ -172,16 +197,6 @@ test("every entry of the table names the open issue that will cut it", () => {
     assert.ok(one.home && one.elsewhere && one.module && one.sentence, `${keyed(one)} is a whole entry`);
   }
 });
-
-const HOME = `export const said = () => "a refusal this module composes and nothing else does";\n`;
-const IMPORTS = `import { said } from "../../src/only/here.mjs";\n`;
-const PINS = `assert.match(out, /a refusal this module composes and nothing else does/u);\n`;
-
-const tree = (homeBody, elsewhereBody) => [
-  { rel: "plugin/src/only/here.mjs", text: HOME },
-  { rel: "plugin/test/only/home.test.mjs", text: `${IMPORTS}${homeBody}` },
-  { rel: "plugin/test/other/away.test.mjs", text: elsewhereBody },
-];
 
 test("a sentence pinned on both sides of the import line is named with both lines and the home", () => {
   const found = pairsOver(tree(PINS, PINS));
@@ -279,4 +294,17 @@ test("a sentence is every quoted run a plus chain joins, split at what it interp
   assert.equal(composed[0].line, 1);
   assert.deepEqual(composedIn('const a = "one";\nconst b = "two";\n').map((one) => one.runs),
     [["one"], ["two"]], "two statements are two sentences, whatever sits between them");
+});
+
+/* Watched failing: a group's own syntax read as text. `(?:` put a `:` at the head of every run of a
+   grouped pattern, so its longest literal run matched no source and the pair went unreported. */
+test("a group's introducer is syntax, so a grouped pattern reads as the sentence inside it", () => {
+  const grouped = `assert.match(out, /(?:a refusal this module composes and nothing else does)/u);\n`;
+  const found = pairsOver(tree(grouped, grouped));
+  assert.equal(found.length, 1);
+  assert.equal(found[0].sentence, "a refusal this module composes and nothing else does");
+  for (const opener of ["?:", "?=", "?!", "?<=", "?<!", "?<said>"]) {
+    const one = `assert.match(out, /(${opener}a refusal this module composes and nothing else does)/u);\n`;
+    assert.equal(pairsOver(tree(one, one)).length, 1, opener);
+  }
 });
