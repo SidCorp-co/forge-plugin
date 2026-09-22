@@ -61,12 +61,36 @@ export const redact = (data) => {
 /* Which strings a request carries that the rule above would hide, read off the rule by comparing
    what it left with what it struck rather than by asking a second time what counts as secret. A
    caller's own value can come back inside an error the platform wrote, and this is what strikes it
-   there the way the token is struck. */
+   there the way the token is struck.
+
+   The whole value is not enough. A connection string keeps its scheme, user and host, so what the
+   rule actually hid is the password inside it — and a platform naming what it rejected names that
+   alone. What it hid is recovered from its own output: the masked copy is the plain one with pieces
+   cut out, so the pieces are what lies between the segments that survived. Nothing here is told
+   what a secret looks like, so a span the rule learns to hide later is struck without this changing. */
+const cutFrom = (plain, masked) => {
+  const kept = masked.split(MASK);
+  if (kept.length < 2) return [];
+  const spans = [];
+  let at = 0;
+  for (const [which, piece] of kept.entries()) {
+    const found = piece === "" ? at : plain.indexOf(piece, at);
+    if (found < 0) return [];
+    if (which > 0 && found > at) spans.push(plain.slice(at, found));
+    at = found + piece.length;
+  }
+  if (at < plain.length) spans.push(plain.slice(at));
+  return spans.filter(Boolean);
+};
+
 export const secretsIn = (data) => {
   const found = new Set();
   const walk = (plain, masked) => {
     if (typeof plain === "string") {
-      if (plain && masked !== plain) found.add(plain);
+      if (plain && masked !== plain) {
+        found.add(plain);
+        for (const cut of cutFrom(plain, String(masked))) found.add(cut);
+      }
       return;
     }
     if (!plain || typeof plain !== "object") return;

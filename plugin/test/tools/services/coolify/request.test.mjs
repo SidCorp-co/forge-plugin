@@ -51,6 +51,7 @@ const QUOTED = {
   _REFUSED: [422, (one) => ({ message: `Rejected value: ${one.value}` })],
   _ESCAPED: [422, (one) => ({ message: "invalid", errors: { value: [one.value] } })],
   _ECHOED: [200, (one) => ({ uuid: "v9", message: `set ${one.key} to ${one.value}` })],
+  _PARTED: [422, (one) => ({ message: `Rejected password: ${new URL(one.value).password}` })],
 };
 
 let server = null;
@@ -484,4 +485,18 @@ test("a write the platform accepts does not print the value back, and does under
   assert.equal(shown.status, 0, shown.stderr);
   assert.match(shown.stdout, /set DB_PASSWORD_ECHOED to hunter2/u);
   assert.ok(!shown.stdout.includes(TOKEN), "the token is on stdout");
+});
+
+/* A connection string is the case this whole surface was asked for, and it is the one where the
+   value sent and the secret inside it are different strings: the preview keeps the host readable,
+   so what the rule hid is the password alone, and that is what a platform names when it refuses. */
+test("a refusal naming only the password inside a connection string is struck of that password", async () => {
+  const answer = await ran("app", "env", "create", "a-in", "--key", "DATABASE_URL_PARTED", "--value", SECRET, "--yes");
+  assert.equal(answer.status, 1);
+  assert.match(answer.stderr, /Rejected password: <redacted>/u);
+  assert.ok(!answer.stderr.includes("hunter2"), "the password reached stderr");
+  assert.deepEqual(JSON.parse(wroteTo(answer, "POST").body), { key: "DATABASE_URL_PARTED", value: SECRET });
+
+  const shown = await ran("app", "env", "create", "a-in", "--key", "DATABASE_URL_PARTED", "--value", SECRET, "--yes", "--reveal");
+  assert.match(shown.stderr, /Rejected password: hunter2/u);
 });
