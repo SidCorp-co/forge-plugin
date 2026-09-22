@@ -3,7 +3,8 @@
    from `claim.mjs` because each is the checkpoint's own shape and none of the lease's, and because
    a verb that both composes a record and walks a state table is two files' worth of one name.
    docs/cli/the-checkpoint.md, and docs/cli/the-reconstruction.md for the second. */
-import { HAND_WRITTEN, REBUILT_FORM, RECOVER_THE_BUILDER, UNRECOVERABLE } from "./reconstruction.mjs";
+import { DERIVED_BUILDER, HAND_WRITTEN, REBUILT_FORM, RECOVER_THE_BUILDER, UNRECOVERABLE }
+  from "./reconstruction.mjs";
 import { LANDING_DONE, LANDING_READY } from "./checkpoint.mjs";
 import { carriedByLanding } from "../worklog.mjs";
 import { fail } from "../../resolve/settings.mjs";
@@ -49,10 +50,9 @@ export const rebuiltCheckpoint = (ref, holder, head,
       + `what its verdicts answer to:\n  ${REBUILT_FORM(ref, shortSha(head), "\n  ")}`);
   }
   if (holders.length === 1) {
-    fail(`claim --rebuilt declares the builder unrecoverable, and the claim history on ${ref} names `
-      + `exactly one run that held it while the change was being built, \`${holders[0]}\`: a builder `
-      + `the record answers for is derived and not declared, and a guessed builder is what this key `
-      + `exists to stop. ${RECOVER_THE_BUILDER(holders[0])}`);
+    fail(`claim --rebuilt declares the builder unrecoverable, and `
+      + `${DERIVED_BUILDER(ref, holders[0])}, and a guessed builder is what this key exists to stop. `
+      + `${RECOVER_THE_BUILDER(holders[0])}`);
   }
   const read = carriedByLanding(head, lands);
   if (!read.carries) {
