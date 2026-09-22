@@ -500,3 +500,15 @@ test("a refusal naming only the password inside a connection string is struck of
   const shown = await ran("app", "env", "create", "a-in", "--key", "DATABASE_URL_PARTED", "--value", SECRET, "--yes", "--reveal");
   assert.match(shown.stderr, /Rejected password: hunter2/u);
 });
+
+/* The same value with its scheme in capitals. A parser hands back a normalized copy — the scheme
+   lowercased, a default port dropped — so anything that worked out what was hidden by reading the
+   masked copy against the plain one would find nothing here and say nothing about it. */
+test("a connection string whose scheme is capitalised is struck of its password all the same", async () => {
+  const shouted = SECRET.replace("postgres://", "POSTGRES://");
+  const answer = await ran("app", "env", "create", "a-in", "--key", "DATABASE_URL_PARTED", "--value", shouted, "--yes");
+  assert.equal(answer.status, 1);
+  assert.match(answer.stderr, /Rejected password: <redacted>/u);
+  assert.ok(!answer.stderr.includes("hunter2"), "the password reached stderr");
+  assert.deepEqual(JSON.parse(wroteTo(answer, "POST").body), { key: "DATABASE_URL_PARTED", value: shouted });
+});

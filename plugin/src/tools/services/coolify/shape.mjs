@@ -12,11 +12,23 @@ const VALUE_FIELDS = ["value", "real_value"];
 
 const USERINFO = /([a-zA-Z][\w+.-]*:\/\/)([^:/?#@\s]+):([^@/\s]+)@/gu;
 
-const QUERY_SECRET = /([?&](?:token|key|secret|password|sig|signature|auth)=)[^&\s]+/giu;
+const QUERY_SECRET = /([?&](?:token|key|secret|password|sig|signature|auth)=)([^&\s]+)/giu;
 
-const maskUrl = (value) =>
+/* Every masking here takes a collector, and what it strikes it also reports. Nothing downstream is
+   left to work out what was hidden by reading the masked copy against the plain one: a URL comes
+   back normalized — a scheme lowercased, a default port dropped — so the two no longer line up and
+   the reading fails silently, which for a secret is the wrong direction to fail in. */
+const maskUrl = (value, cut) =>
   typeof value === "string"
-    ? value.replace(USERINFO, (_, scheme, user) => `${scheme}${user}:${MASK}@`).replace(QUERY_SECRET, `$1${MASK}`)
+    ? value
+      .replace(USERINFO, (_, scheme, user, secret) => {
+        cut?.add(secret);
+        return `${scheme}${user}:${MASK}@`;
+      })
+      .replace(QUERY_SECRET, (_, lead, secret) => {
+        cut?.add(secret);
+        return `${lead}${MASK}`;
+      })
     : value;
 
 /* The schemes whose path is a name and not a route. Over http the path is where a webhook keeps
@@ -26,78 +38,53 @@ const CONNECTION = new Set(["postgres:", "postgresql:", "mysql:", "mariadb:", "r
 
 /* Parsed, not matched: userinfo with no colon is a bare credential a `user:pass@` pattern reads as
    host. The host survives everywhere — which host it points at is the reading somebody came for. */
-const maskedSecretUrl = (value) => {
+const maskedSecretUrl = (value, cut) => {
   let url;
   try {
     url = new URL(value);
   } catch {
+    cut?.add(value);
     return MASK;
   }
+  if (url.username) cut?.add(url.password || url.username);
   const named = url.username ? `${url.password ? `${url.username}:${MASK}` : MASK}@` : "";
   const origin = `${url.protocol}//${named}${url.host}`;
-  if (!CONNECTION.has(url.protocol)) return `${origin}/${MASK}`;
-  return `${origin}${url.pathname}${maskUrl(url.search)}`;
+  if (!CONNECTION.has(url.protocol)) {
+    cut?.add(`${url.pathname}${url.search}${url.hash}`.replace(/^\//u, ""));
+    return `${origin}/${MASK}`;
+  }
+  return `${origin}${url.pathname}${maskUrl(url.search, cut)}`;
 };
 
 /* Three rules, because each alone leaks: the key beside a value catches `JWT_SECRET`, the URL
    userinfo catches `DATABASE_URL`, the field's own name catches a bare `postgres_password`. */
-export const redact = (data) => {
-  if (Array.isArray(data)) return data.map(redact);
-  if (!data || typeof data !== "object") return maskUrl(data);
+export const redact = (data, cut) => {
+  if (Array.isArray(data)) return data.map((one) => redact(one, cut));
+  if (!data || typeof data !== "object") return maskUrl(data, cut);
   const named = typeof data.key === "string" && SECRET_KEY.test(data.key);
   const out = {};
   for (const [key, value] of Object.entries(data)) {
     const paired = named && VALUE_FIELDS.includes(key);
     const selfNamed = SECRET_KEY.test(key) && !IDENTIFIER.test(key);
     if ((paired || selfNamed) && typeof value === "string" && value) {
-      out[key] = value.includes("://") ? maskedSecretUrl(value) : MASK;
+      cut?.add(value);
+      out[key] = value.includes("://") ? maskedSecretUrl(value, cut) : MASK;
     } else {
-      out[key] = redact(value);
+      out[key] = redact(value, cut);
     }
   }
   return out;
 };
 
-/* Which strings a request carries that the rule above would hide, read off the rule by comparing
-   what it left with what it struck rather than by asking a second time what counts as secret. A
-   caller's own value can come back inside an error the platform wrote, and this is what strikes it
-   there the way the token is struck.
-
-   The whole value is not enough. A connection string keeps its scheme, user and host, so what the
-   rule actually hid is the password inside it — and a platform naming what it rejected names that
-   alone. What it hid is recovered from its own output: the masked copy is the plain one with pieces
-   cut out, so the pieces are what lies between the segments that survived. Nothing here is told
-   what a secret looks like, so a span the rule learns to hide later is struck without this changing. */
-const cutFrom = (plain, masked) => {
-  const kept = masked.split(MASK);
-  if (kept.length < 2) return [];
-  const spans = [];
-  let at = 0;
-  for (const [which, piece] of kept.entries()) {
-    const found = piece === "" ? at : plain.indexOf(piece, at);
-    if (found < 0) return [];
-    if (which > 0 && found > at) spans.push(plain.slice(at, found));
-    at = found + piece.length;
-  }
-  if (at < plain.length) spans.push(plain.slice(at));
-  return spans.filter(Boolean);
-};
-
+/* Which strings a request carries that the rule above would hide. The rule reports them as it
+   works, so this holds no second idea of what a secret looks like and nothing has to be recovered
+   from a masked copy afterwards. The whole value is not enough on its own: a connection string
+   keeps its scheme, user and host, so what was hidden is the password inside it — and a platform
+   refusing one names that alone. */
 export const secretsIn = (data) => {
-  const found = new Set();
-  const walk = (plain, masked) => {
-    if (typeof plain === "string") {
-      if (plain && masked !== plain) {
-        found.add(plain);
-        for (const cut of cutFrom(plain, String(masked))) found.add(cut);
-      }
-      return;
-    }
-    if (!plain || typeof plain !== "object") return;
-    for (const [key, value] of Object.entries(plain)) walk(value, masked?.[key]);
-  };
-  walk(data, redact(data));
-  return [...found];
+  const cut = new Set();
+  redact(data, cut);
+  return [...cut].filter(Boolean);
 };
 
 /* Named strings struck out of everything printed, leaf by leaf and before anything is serialized:

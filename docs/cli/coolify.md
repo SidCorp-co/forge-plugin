@@ -116,9 +116,13 @@ value it refused, an acceptance can repeat it — and the structural rule cannot
 hides a field by its name and the field here is `message`. So the caller's own value is struck out
 of everything printed, the way our credential always was, and which strings those are is read off
 the masking rule rather than asked of a second one — the value as it was sent, and whatever the rule
-hid inside it, recovered by reading the masked copy against the plain one. A connection string keeps
-its host readable, so what was hidden is the password alone, and that is what a platform refusing
-one names.
+hid inside it. A connection string keeps its host readable, so what was hidden is the password
+alone, and that is what a platform refusing one names.
+
+The rule reports what it struck as it strikes it, rather than being asked afterwards what it must
+have hidden. Working that out from the masked copy is possible and wrong: a parser hands back a
+normalized string — a scheme lowercased, a default port dropped — so the two no longer line up, and
+the answer to a question about a secret would come back empty rather than wrong.
 
 That striking happens to the parts and never to the finished line. A value holding a quote or a
 newline is re-escaped on its way into a rendered line, and a replacement made afterwards is looking
