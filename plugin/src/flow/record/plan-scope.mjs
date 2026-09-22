@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { configDir, readJson, writeJsonPrivate } from "../../resolve/config.mjs";
 import { repoRoot } from "../../git/repo-root.mjs";
-import { noLongerOwes } from "../earned/park-status.mjs";
+import { NO_LONGER_OWES } from "../earned/park-status.mjs";
 
 /** How long an entry answers for. A lease outlives no window and no window outlives a day: past it a plan neither refuses a path nor admits one, which is the same answer as a tree nobody has claimed in. */
 export const SCOPE_KEPT_MS = 86_400_000;
@@ -75,4 +75,4 @@ export const scopeHeld = (tree, now = Date.now()) => {
 
 /** One issue's scope as its record now stands: the text where the issue is still being worked, and no entry at all where it has left the ladder. */
 export const scopeFrom = (status, ref, text, options) =>
-  (noLongerOwes(status) ? dropScope(ref, options) : noteScope(ref, text, options));
+  (NO_LONGER_OWES.includes(status) ? dropScope(ref, options) : noteScope(ref, text, options));

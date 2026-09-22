@@ -186,10 +186,10 @@ the act that ends the owing, which needs none.
 - **AC-14-8-5** · Rev: 1 · Proof: plugin/test/cli/doctor/proof-escapes.test.mjs "a tracker that refused the issue list leaves the escapes unjudged and the reading green"
   IF the tracker does not answer THEN the report SHALL say how many escapes went unjudged and SHALL
   report neither a pass nor a fault on them.
-- **AC-14-8-6** · Rev: 1 · Proof: plugin/test/flow/gone-escapes.test.mjs "forge advance closing an issue names the criteria whose escape cited it"
+- **AC-14-8-6** · Rev: 1 · Proof: plugin/test/flow/advance/gone-escapes.test.mjs "forge advance closing an issue names the criteria whose escape cited it"
   WHEN an issue reaches a status from which it no longer owes THEN the CLI SHALL name every
   criterion of the project's tree whose escape cites that key, with the file and line of each.
-- **AC-14-8-7** · Rev: 1 · Proof: plugin/test/flow/gone-escapes.test.mjs "a move from a checkout that keeps no requirements tree says nothing about escapes"
+- **AC-14-8-7** · Rev: 1 · Proof: plugin/test/flow/advance/gone-escapes.test.mjs "a move from a checkout that keeps no requirements tree says nothing about escapes"
   WHERE the project keeps no requirements tree that move SHALL say nothing about escapes.
 
 ## The way back

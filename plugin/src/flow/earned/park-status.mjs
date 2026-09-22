@@ -25,8 +25,6 @@ export const SIDE = [ANSWERED_BY_COMMENT, "waiting", "on_hold"];
    longer holds, and the escapes whose promise ended when the owing did (ISS-2111). */
 export const NO_LONGER_OWES = ["closed", "dropped"];
 
-export const noLongerOwes = (status) => NO_LONGER_OWES.includes(status);
-
 const ONE_LANDING = [["waiting", ANSWERED_BY_COMMENT]];
 
 export const sameLanding = (one, other) =>

@@ -92,9 +92,10 @@ export const proofProblems = (documents, read) =>
       return said ? [`${clause.file}:${clause.line} ${clause.id} ${said}`] : [];
     }));
 
-/** Every criterion of `documents` standing unproved on R-11's escape: where it is written, which
- *  clause it is, and the key it is owed to. `key` is null where the escape names none, which is
- *  `proofProblems`'s finding and not a caller's to report twice. */
+/** The tree's escapes inventoried for a caller that has to judge them: one row per criterion
+ *  standing unproved, carrying where it is written and which clause it is beside what `owedTo` read
+ *  off its field. A row whose `key` is null is `proofProblems`'s finding, not a caller's to report
+ *  a second time. */
 export const escapesIn = (documents) =>
   documents.flatMap((document) =>
     criteriaOf(document)

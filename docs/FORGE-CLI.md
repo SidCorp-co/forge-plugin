@@ -95,6 +95,8 @@ how many topics there may be.
 | [doctor](cli/doctor.md) | Why every missing piece is reported together, and why one verb reports every level of configuration and reads a key back before calling it set. |
 | [the project's own file](cli/the-project-file.md) | Why the keys of a checkout's own file are declared rather than discovered, why a write is one key's span in its text, and whose sentence refuses a value. |
 | [the subjects](cli/the-subjects.md) | Why one report has subjects rather than one list, where each flag is described now that sixteen of them do not fit one help, what a bare reading withholds, and why what a project has not decided is a reading of its own. |
+| [the package row](cli/the-package-row.md) | Why a package declared and unresolvable is a miss while three other states earn no row, what resolution is taken to mean, and why the row names the install rather than running it. |
+| [the proof escapes](cli/the-proof-escapes.md) | Why the count of criteria owed to an issue that can no longer keep the promise is a report rather than a gate, what one reading of the backlog costs it, and why a tracker that did not answer judges none of them. |
 | [the landing lines](cli/the-landing-lines.md) | Why where the merge sits is derived from the branches rather than asked for, and why whether an independent agent judges is the tracker record's alone. |
 | [which gates run](cli/which-gates-run.md) | Why the switch is derived from the hooks directory, and why one place alone answers whether a gate is off. |
 | [the test credentials](cli/test-credentials.md) | Why a host is told from a secret by the shape of the value, and where the trim stops. |

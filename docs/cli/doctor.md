@@ -90,26 +90,7 @@ with every key set rather than guessed at: a typo landing in the facts as a new 
 nobody asked for and there is no delete for it. `pipeline.<k>` and `fact.<k>` name one outright, which
 is how a key the project has not got yet is created.
 
-**A package the project declares and cannot resolve is a `miss`, and three states are silence.** A
-manifest that has not moved satisfies every check keyed on the manifest, so an install broken after
-it was written is the break a green report is blind to — this tree carried a dangling workspace link
-for ten days with nothing saying so. Declared means `dependencies` and `devDependencies`; the other
-two fields exist for a package that may legitimately be absent. Resolution is the package's own
-manifest being readable under a `node_modules` at the root or any ancestor, weaker than loading it on
-purpose: a bin-only package, one whose exports expose no root entry point and one hoisted above the
-project all resolve, where a resolver probe would call two of them broken. No manifest, nothing
-declared, and a Plug'n'Play loader each earn no row, the last because an absence below `node_modules`
-proves nothing where nothing resolves through it. And the row names the command rather than running
-it: an install is a write, and this verb makes none.
-
-**The proof escapes row is here and not in the gate, and it costs one reading of the project's
-issues.** Whether a `Proof: none yet` line under `docs/requirements/` is still owed to anybody is a
-status, and the documentation gates run with no tracker at all, so the count belongs to a report
-rather than to them. It is started with the credentials and awaited at its row: three interleaved
-readings before and after it went in measured 7.16s and 7.02s, the walk's own 4.1s hiding behind the
-round trips this report was already making. A subject that leaves the row out spends nothing, and a
-reading the tracker refused or could not finish leaves every escape unjudged and the row a note,
-since a set that may be short judges none of them.
+Why three states of a declared package are silence: [the package row](the-package-row.md).
 
 The third resource `--set` writes is this checkout's own file, whose keys are declared rather than
 discovered, whose write is one key's span in that file's text, and whose value is judged by the reader

@@ -5,13 +5,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { fakeTracker, projectRecord, projectRoom, ranAsync, tempHome } from "../fixtures.mjs";
+import { fakeTracker, projectRecord, projectRoom, ranAsync, tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("gone-escapes").path;
-const { escapesOrphaned } = await import("../../src/checks/docs/owing-escapes.mjs");
-const { NO_LONGER_OWES } = await import("../../src/flow/earned/park-status.mjs");
-const { escapesIn, owedTo } = await import("../../src/spec/claims/proof.mjs");
-const { specTreeRead } = await import("../../src/spec/tree.mjs");
+const { escapesOrphaned } = await import("../../../src/checks/docs/owing-escapes.mjs");
+const { NO_LONGER_OWES } = await import("../../../src/flow/earned/park-status.mjs");
+const { escapesIn, owedTo } = await import("../../../src/spec/claims/proof.mjs");
+const { specTreeRead } = await import("../../../src/spec/tree.mjs");
 
 const clause = (id, proof) =>
   `- **${id}** · Rev: 1 · Proof: ${proof}\n  WHEN a case is named THEN the checker SHALL read it.\n`;
@@ -66,8 +66,8 @@ test("a project that keeps no requirements tree is told nothing at all", () => {
 /* Spawned, because what is under test is the one line `transitionTo` gained: a direct call to the
    helper passes with that line gone (codex F2). The key is read off this checkout's own tree, so the
    case follows the tree rather than pinning a criterion that may be reproved tomorrow. */
-const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
-const ROOT = new URL("../../..", import.meta.url).pathname;
+const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const ROOT = new URL("../../../..", import.meta.url).pathname;
 
 const CITED = escapesIn(specTreeRead().documents);
 const KEY = [...CITED.reduce((held, one) =>

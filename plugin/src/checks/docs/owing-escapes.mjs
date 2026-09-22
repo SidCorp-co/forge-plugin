@@ -5,14 +5,14 @@
    here, read in the two places that already have what they need: the report that spends the tracker,
    and the act that ends the owing, which spends nothing. UC-14-8 states the division. */
 import { escapesIn } from "../../spec/claims/proof.mjs";
-import { noLongerOwes } from "../../flow/earned/park-status.mjs";
+import { NO_LONGER_OWES } from "../../flow/earned/park-status.mjs";
 import { TREE, specTreeRead } from "../../spec/tree.mjs";
 
 /** What a whole reading says of a key it holds no issue for. No such issue keeps a promise either,
  *  so it stands with the closed and the dropped rather than with the ones still owing. */
 export const MISSING = "no such issue";
 
-const ended = (status) => status === MISSING || noLongerOwes(status);
+const ended = (status) => status === MISSING || NO_LONGER_OWES.includes(status);
 
 const LABEL = "proof escapes";
 
@@ -88,6 +88,17 @@ export const owingEscapesFrom = (read, held = specTreeRead()) => {
   return { read: owingRead(held.documents, statusOf), why: whyShort(read) };
 };
 
+/* The move has already landed by the time this runs, so nothing here may take the command down with
+   it: a tree this cannot read is a report that is not made, which is what the caller would have got
+   from a checkout with no tree at all. */
+const treeHere = () => {
+  try {
+    return specTreeRead();
+  } catch {
+    return null;
+  }
+};
+
 /** What a move into a status that owes nothing leaves behind: every criterion of this checkout's
  *  tree whose escape cites the key that moved, with its file and line. The tree is a local read, so
  *  this spends no call, and a project keeping no tree is told nothing. */
@@ -95,8 +106,8 @@ export const escapesOrphaned = (status, key, held) => {
   /* The status first and the tree second, and never a default argument: a default is evaluated
      before the guard reads it, so every ordinary advance would walk and index the whole tree, and a
      tree with one unreadable file in it would throw after the move had already landed (codex F1). */
-  if (!noLongerOwes(status)) return [];
-  const tree = held === undefined ? specTreeRead() : held;
+  if (!NO_LONGER_OWES.includes(status)) return [];
+  const tree = held === undefined ? treeHere() : held;
   if (!tree) return [];
   const wanted = String(key ?? "").toUpperCase();
   const mine = escapesIn(tree.documents).filter((one) => one.key?.toUpperCase() === wanted);
