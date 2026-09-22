@@ -285,6 +285,10 @@ test("a key the tracker lacks is one refused proposal and the rest of the measur
   const out = await printed(["--measure"], depsOf({ runs, rowOf }));
   assert.match(out, /1 run\(s\) left out, their question refused/u);
   assert.match(out, /proposed +m +2 +55m/u, "the two answered runs are measured");
+  /* Consult 8, F1: a row the tracker would not give was no question sent, so it is no question paid for —
+     counted in the per-question line, three missing issues beside two ten-second answers would read as
+     five questions at a median of nought. */
+  assert.match(out, /over 2 question\(s\)/u, "the lookup that failed was never a question");
 });
 
 test("--json prints the proposals, or the measurement, as one object", async () => {

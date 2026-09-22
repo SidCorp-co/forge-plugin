@@ -142,7 +142,7 @@ const git = (tree, argv) => {
 };
 
 /* Where a command or this turn's own prompt named one: a key quoted in a diff or in a tool's answer is a key this run read, not one it took. */
-const keysNamed = (said) => [...new Set(keysIn(said.join("\n")).map((one) => one.toUpperCase()))];
+const keysNamed = (said) => [...new Set(keysIn(said.join("\n")))];
 
 /** A lease this session took and has written nothing against since. Every payload write renews the
  *  lease and only a claim appends to its history, so a `renewedAt` still standing on the newest
