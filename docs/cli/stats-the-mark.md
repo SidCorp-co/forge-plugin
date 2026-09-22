@@ -20,12 +20,12 @@ Both the eval and the release take it. Tying it to a release step alone made it 
 project whose release is not a command it types, which is most of them: the self-improving half of
 this reading never closed on a project that adopts this plugin rather than ships it.
 
-**A reading is held under the project the tracker names for the checkout whose corpus was read**, and
-that is derived from the repository rather than from the directory, so the checkout and every linked
-worktree of it answer alike and no temporary directory reaches it. A checkout the tracker names no
-project for is held under a value of its own, which is not the value that stands for every reading on
-this device and is not shared with a second such checkout. Where the corpus was read is recorded
-beside it, being a fact about the reading rather than the name of it.
+**A reading belongs to the project and not to the folder it was measured in.** What it is held under
+is derived from the repository rather than from any one directory, so every linked worktree answers
+alike and no temporary directory reaches it. Where the tracker names nothing, the value is that
+repository's own: not the one standing for every reading on this device, which would hand over
+readings that are not its, and not one it shares with a second such tree. The path the transcripts
+were read from stays on the record as a fact about the reading rather than as the name of it.
 
 Each reading also says which device took it and under which rules its figures were computed — the act
 that release model asked for, the class table and the declared set, under a revision of their own.
