@@ -15,9 +15,8 @@ export const UNKNOWN_DEVICE = "unknown";
 
 const devicePath = () => join(configDir("forge"), "device.json");
 
-/** This machine's id, minted once and then read. Beside the token and the consult log rather than
- *  anywhere of this run's own, because a value that changed per run would answer nothing; a home the
- *  caller sets reaches it, this path being derived at the call and never at load. */
+/** This machine's id, minted once and then read. It sits beside the token and the consult log rather
+ *  than anywhere of this run's own, a value that changed per run answering nothing. */
 export const deviceOf = () => {
   const held = readJson(devicePath())?.device;
   if (typeof held === "string" && held) return held;

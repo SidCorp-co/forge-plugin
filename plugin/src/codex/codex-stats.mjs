@@ -312,8 +312,7 @@ export const evalObject = (entries, against = null) => {
 /** What the consult that crossed a mark says, having written the reading once: the log as it stood
  *  when that consult landed, so one finishing just behind it is not in the window the mark names. */
 export const crossingSaid = ({ mark, at, said, entries }) => {
-  /* The device and no scope: a consult reading is this machine's account of what it asked, as the
-     consult log is, so it is held under no project and every checkout on this device sees it. */
+  /* Which machine asked, and no scope: what a consult reading is held under is `marks.mjs`. */
   const wrote = writeMark({ kind: CONSULTS, mark, at: new Date().toISOString(), device: deviceOf(),
     ...evalObject(entries.slice(0, at + 1)) });
   return `${said} ${wroteSaid(wrote, mark, "forge codex eval")}`;

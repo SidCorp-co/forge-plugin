@@ -1,13 +1,9 @@
 /* `forge stats change` — one change as the unit, over the runs that ran the copy carrying it. Why the
    copy is the clock, why the verdict associates and never credits, and what no population here can
    answer — docs/cli/stats-the-change.md. */
-import { rootFor } from "../corpus/corpus.mjs";
-import { classesFor } from "../corpus/classes.mjs";
-import { phase7For } from "../corpus/release.mjs";
-import { declaredIn } from "../corpus/declared.mjs";
-import { checkoutFrom, profileOf, runsUnder } from "../runs.mjs";
-import { cacheRoot, installedCopies } from "../versions.mjs";
-import { RELEASES, marksOf, scopeOf } from "../marks/marks.mjs";
+import { corpusOf } from "../corpus/read.mjs";
+import { checkoutFrom, profileOf } from "../runs.mjs";
+import { RELEASES, marksOf } from "../marks/marks.mjs";
 import { DISPOSITIONS, angleOf, anglesAsked, blocksOf, floorsOver } from "./angles.mjs";
 import { mixFloorsOver, mixOver, mixWhy } from "./mix.mjs";
 import { FLOOR } from "./eval.mjs";
@@ -172,18 +168,6 @@ export const verdictOf = (comparisons, exposures) => {
     associated: { ...exposure, angles: eligible.moved, single: exposure.changes === 1 },
     why,
   };
-};
-
-const corpusOf = async (directory) => {
-  const root = rootFor(directory);
-  const declared = declaredIn(directory);
-  const act = await phase7For(directory);
-  /* Two answers about one checkout and neither standing in for the other: `root` is WHERE this
-     corpus was read, a path under the temporary directory this run was handed, and `scope` is WHOSE
-     reading it is, the project the tracker names. Holding a reading under the first is what made it
-     unreachable from any other run (ISS-1984). */
-  return { root, scope: scopeOf(directory), declared, act, ...runsUnder(root, null, classesFor(declared, act)),
-    copies: installedCopies(cacheRoot()) };
 };
 
 const byStart = (runs) => [...runs].sort((left, right) => left.startedAt - right.startedAt);

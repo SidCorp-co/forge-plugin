@@ -4,14 +4,12 @@
    shallow for its own window says instead — docs/cli/stats-the-eval.md; the line the ship prints at a
    multiple of the window and the reading it writes there — docs/cli/stats-the-mark.md. */
 import { RUNG_UNKNOWN } from "../corpus/transcripts.mjs";
-import { classesFor } from "../corpus/classes.mjs";
-import { phase7For, scopeFor } from "../corpus/release.mjs";
-import { declaredIn } from "../corpus/declared.mjs";
-import { rootFor } from "../corpus/corpus.mjs";
+import { scopeFor } from "../corpus/release.mjs";
+import { corpusOf } from "../corpus/read.mjs";
 import { deviceOf } from "../../resolve/device.mjs";
-import { checkoutFrom, derivedFrom, profileOf, readingAside, runsUnder } from "../runs.mjs";
+import { checkoutFrom, derivedFrom, profileOf, readingAside } from "../runs.mjs";
 import { stamp } from "../figures.mjs";
-import { UNRECORDED, cacheRoot, copyAt, installedCopies, spansInstall } from "../versions.mjs";
+import { UNRECORDED, copyAt, spansInstall } from "../versions.mjs";
 import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows } from "../windows.mjs";
 import {
   RELEASES, RUNS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, resolveRelease,
@@ -419,18 +417,6 @@ export const evalLines = (held, anchor = null, copies = [], angles = []) => {
   ];
 };
 
-const corpusOf = async (directory) => {
-  const root = rootFor(directory);
-  const declared = declaredIn(directory);
-  const act = await phase7For(directory);
-  /* Two answers about one checkout and neither standing in for the other: `root` is WHERE this
-     corpus was read, a path under the temporary directory this run was handed, and `scope` is WHOSE
-     reading it is, the project the tracker names. Holding a reading under the first is what made it
-     unreachable from any other run (ISS-1984). */
-  return { root, scope: scopeOf(directory), declared, act, ...runsUnder(root, null, classesFor(declared, act)),
-    copies: installedCopies(cacheRoot()) };
-};
-
 /** The tracker read both windows share, taken once for the union of their pairs and keyed so each
  *  window folds it alone; the ruling pairing's own scope is `outcomes.mjs`'s. */
 export const outcomeReadFor = async (corpusRuns, owners, directory, { horizon, most }) => {
@@ -464,9 +450,8 @@ const outcomeRead = async (corpus, directory, size, spending) => {
    than leaving a reader to assume the answer is today's (ISS-1984). */
 const CONTRACT = 1;
 
-/* The three the answer turns on, and the act rather than the model's own word: two projects both
-   declaring `none` part company on whether production deploys on its own, so keyed on the word a
-   comparison would take the mean of two populations (ISS-1975). */
+/* Read off the profile rather than worked out again here, so a reading says what its own figures
+   were computed with and cannot disagree with them. */
 const contractOf = (profile) => ({
   rev: CONTRACT,
   act: profile?.release ?? null,
@@ -593,13 +578,10 @@ export const printEval = async (argv) => {
   /* Beside `angles` and outside `held`: the statement is one claim about the whole set rather than a
      field of each angle, and `held` is what both mark writers store — a key added there would be
      carried in every reading a ship holds, which is the boundary the line above keeps. */
-  /* Before either way out, and not only at a release step: `runsMark` was reachable from this
-     repository's own ship script alone, so a project that adopts this plugin never reached the writer
-     whatever its release model (ISS-1984). Above the JSON return because a machine reading this verb
-     crosses the same windows a person does, and its line is kept off that stdout rather than the
-     write being kept off that path (consult 6f21 F4). The corpus is handed over rather than read
-     again, and the window is the canonical one so that what `--size` asks to see cannot decide what
-     gets written down. */
+  /* Here and not at a release step alone, which a project adopting this plugin never reaches
+     (ISS-1984); above the JSON return, a machine reading this verb crossing the same windows a
+     person does; and at the canonical window, so what `--size` asks to see cannot decide what is
+     written down. The line it returns is printed on the screen path alone. */
   const mark = await runsMark(directory, WINDOW, corpus);
   if (json) return console.log(JSON.stringify({ ...held, angles: judged, notMeasured: NOT_MEASURED }, null, 2));
   for (const line of evalLines(held, anchor, corpus.copies, judged)) console.log(line);
