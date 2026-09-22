@@ -10,6 +10,9 @@ export const READS_DIR = "GATE_READS";
 export const READS_ROOT = "GATE_READS_ROOT";
 export const READS_TICKET = "GATE_READS_TICKET";
 
+// The preload `auditEnv` puts on a step's command line, in the spelling this file is imported under.
+const PRELOAD = `--import=${import.meta.url}`;
+
 export const SHIMMED = new Set([
   "fs", "node:fs", "fs/promises", "node:fs/promises", "child_process", "node:child_process",
 ]);
@@ -162,6 +165,20 @@ const start = (out, root) => {
 
   const entry = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
 
+  /* The audit's own three, carried into every child this tickets beside the ticket that already
+     goes. A caller that curated a child's environment chose what that child reads its configuration
+     from, and this is the gate's instrument rather than that subject: without it a test running the
+     CLI under a `PATH`, a `HOME` and an `XDG_CONFIG_HOME` starts a child that records nothing, which
+     blinds the file that spawned it and spends that file on every gate at every content (ISS-2119).
+     The preload is appended rather than put in the caller's place, and left alone where the string
+     is already there. A second spelling of the same module URL would be inert anyway, the loader
+     evaluating one URL once, so what this holds is the one record and never the variable's shape. */
+  const instrumented = (env) => {
+    const named = env.NODE_OPTIONS ?? "";
+    return { ...env, [READS_DIR]: out, [READS_ROOT]: root,
+      NODE_OPTIONS: named.includes(PRELOAD) ? named : `${named} ${PRELOAD}`.trim() };
+  };
+
   const audit = {
     asked(one) {
       const rel = landed(one);
@@ -233,7 +250,8 @@ const start = (out, root) => {
         ticket: mine, file: String(before[0]), cwd: options.cwd ?? process.cwd(), args: handed,
         ...reading(root, options, before[0], handed), plain: !options.shell && !options.argv0,
       });
-      return [...before, { ...options, env: { ...(options.env ?? process.env), [READS_TICKET]: mine } }, ...after];
+      const env = instrumented({ ...(options.env ?? process.env), [READS_TICKET]: mine });
+      return [...before, { ...options, env }, ...after];
     },
   };
   globalThis[HERE] = audit;

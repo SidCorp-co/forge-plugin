@@ -33,9 +33,14 @@ a glob or a double quote refusing it outright. And the program is one of the she
 opens no file: the writers, whose operands are text they print rather than paths they open, and the
 lookups, which say where a name would be found and are refused an operand holding a slash, that being
 a path they answer about. Failing any of the four blinds exactly as before, so a shape added to the
-reading narrows what is blind and widens nothing that is trusted. It reaches a shell and nothing else:
-a node child handed a path into the checkout can read it, and closing that boundary is a test file's
-own work.
+reading narrows what is blind and widens nothing that is trusted.
+
+**A node child needs none of that reading, because the audit goes into it.** Its record directory,
+its root and its preload travel with the ticket into every child the audit sees spawned, so a test
+that hands the CLI an environment of its own — a home, a path and nothing else — still starts a child
+that records what it read. The preload is added beside whatever options the caller named and never in
+their place. What this does not reach is a child that is not node, and one that leaves before its own
+exit can write: a process orphaned on purpose, and one killed. Each of those blinds as it always did.
 
 Each step says what it spent in the unit it has. A step whose unit is the file names the files it
 spent of the files it knows, the seconds, and how many it held back — \`test: 6 of 290 file(s), 41s

@@ -49,7 +49,6 @@ export const TEST_FILE = /^plugin\/test\/.*\.test\.mjs$/u;
    it may read, `blind` the route that justified it. One key per file and never a directory of them; a
    ceiling answers for every route that blinds its file, the audit's own reads unioned in and failing
    the gate where they escape; and a file blind on a route nobody read is left out (ISS-1761, ISS-1774). */
-const CLI = "a node child that left no record: the CLI, reading plugin/ and 168 of plugin/src's 190";
 const SPAWNED = "a node child that left no record: a node standing here, importing plugin/test/run";
 const TAGS = "a git child that left no record: ls-remote against a scratch origin, standing here";
 const RUN = [".", "plugin/hooks/vendor", "plugin/src", "plugin/test/fixtures.mjs",
@@ -57,21 +56,10 @@ const RUN = [".", "plugin/hooks/vendor", "plugin/src", "plugin/test/fixtures.mjs
   "plugin/test/fixtures/own-keys.mjs", "plugin/test/fixtures/own-project.mjs",
   "plugin/test/run", "tools"];
 
-const DOCTOR = [".", ".claude-plugin", "plugin/.claude-plugin", "plugin/agents",
-  "plugin/guides", "plugin/hooks", "plugin/skills", "plugin/src", "plugin/test/fixtures.mjs",
-  "plugin/test/fixtures/answer-reach.mjs", "plugin/test/fixtures/answered.mjs",
-  "plugin/test/fixtures/own-keys.mjs", "plugin/vi-natural", "tools/room.mjs"];
-
-/* One case in the machine table's file walks every source of this repository for reads of that
-   store, `tools` among them, so its ceiling is the doctor set and that tree. The walk is what keeps
-   a key read at this level from being declared at neither and written to the project's (ISS-1403). */
-const MACHINE = [...DOCTOR, "tools"];
-
+/* The four the machine table's own files once earned are gone: a node child carries the audit
+   whatever environment its caller handed it, so those files derive their own sets now (ISS-2119).
+   What is left is what no preload reaches — a process orphaned on purpose, and a git. */
 export const DECLARED_READS = [
-  { where: "plugin/test/cli/doctor/machine/job.test.mjs", reads: DOCTOR, blind: CLI },
-  { where: "plugin/test/cli/doctor/machine/machine-keys.test.mjs", reads: MACHINE, blind: CLI },
-  { where: "plugin/test/cli/doctor/machine/off.test.mjs", reads: DOCTOR, blind: CLI },
-  { where: "plugin/test/cli/doctor/machine/skills.test.mjs", reads: DOCTOR, blind: CLI },
   { where: "plugin/test/run/processes/orphans.test.mjs", reads: RUN, blind: SPAWNED },
   { where: "plugin/test/run/release/run-released-version.test.mjs", reads: RUN, blind: TAGS },
 ];

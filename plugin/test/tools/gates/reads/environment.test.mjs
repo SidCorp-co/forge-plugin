@@ -14,6 +14,9 @@ import { tempRoom } from "../../../fixtures.mjs";
 
 const FILE = "plugin/test/one.test.mjs";
 
+// The module `auditEnv` preloads, named here as the caller of a spawn would already be naming it.
+const PRELOAD = new URL("../../../../../tools/gates/reads/audit.mjs", import.meta.url).href;
+
 const room = (files = {}) => {
   const at = tempRoom("gate-environment-");
   const root = join(at, "checkout");
@@ -188,6 +191,64 @@ test("a loader variable naming this repository is what the environment could put
     assert.equal(ran(`{ DYLD_INSERT_LIBRARIES: ${JSON.stringify(join(where.root, "probe.dylib"))} }`).funcIn,
       true, "and the same on the other platform that has a loader");
     assert.equal(ran("{}").funcIn, false, "an environment carrying none of it says so");
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+/* A caller that curates a child's environment is choosing what that child reads its configuration
+   from, and the audit's own three are the gate's instrument rather than that subject. Without them a
+   test running the CLI under a home and a path starts a child that records nothing, which blinds the
+   file that spawned it and spends it on every gate at every content (ISS-2119). */
+const spawnedUnder = (where, out, env, child = `import { readFileSync } from "node:fs";\n`
+  + `readFileSync(${JSON.stringify(FILE)}, "utf8");\n`) => {
+  rmSync(out, { recursive: true, force: true });
+  mkdirSync(out, { recursive: true });
+  write(where.root, "child.mjs", child);
+  audited(where.root, out, `import { spawnSync } from "node:child_process";\n`
+    + `const ran = spawnSync(process.execPath, ["child.mjs"], `
+    + `{ cwd: process.cwd(), encoding: "utf8", env: ${env} });\n`
+    + `process.stdout.write(ran.stdout ?? "");\n`);
+  return recordsIn(out);
+};
+
+test("a child handed an environment of its own records what it read, and blinds nobody", () => {
+  const where = room();
+  const out = join(where.at, "out");
+  try {
+    const kept = spawnedUnder(where, out, `{ PATH: process.env.PATH, HOME: process.env.HOME }`);
+    const child = kept.find((one) => one.ticket !== null);
+    assert.ok(child, "a curated environment stripped the preload, so the child recorded nothing");
+    assert.deepEqual(child.paths.includes(FILE), true, "and its record holds the file it opened");
+    const parent = kept.find((one) => one.ticket === null);
+    assert.deepEqual(parent.spawned.map((one) => one.ticket), [child.ticket],
+      "the ticket the parent holds is the one that record answers under");
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+test("the options a caller named survive beside the preload, and one already there is not added twice", () => {
+  const where = room();
+  const out = join(where.at, "out");
+  const said = `import { writeFileSync } from "node:fs";\n`
+    + `writeFileSync("said.txt", process.env.NODE_OPTIONS ?? "");\n`;
+  const optionsAfter = (env) => {
+    spawnedUnder(where, out, env, said);
+    return readFileSync(join(where.root, "said.txt"), "utf8");
+  };
+  const imports = (text) => (text.match(/--import=\S*tools\/gates\/reads\/audit\.mjs/gu) ?? []).length;
+  try {
+    const own = optionsAfter(`{ PATH: process.env.PATH, NODE_OPTIONS: "--no-warnings" }`);
+    assert.match(own, /--no-warnings/u, "an option the call named is the call's to keep");
+    assert.deepEqual(imports(own), 1, "and the preload stands beside it, once");
+    /* One record is the property and not the spelling: two names for one module URL are one module
+       to the loader, which evaluates it once, so a duplicate would be inert rather than wrong. */
+    const already = `{ PATH: process.env.PATH, NODE_OPTIONS: ${JSON.stringify(`--import=${PRELOAD}`)} }`;
+    assert.deepEqual(imports(optionsAfter(already)), 1,
+      "an environment already carrying the preload is handed one copy of it");
+    assert.deepEqual(spawnedUnder(where, out, already).filter((one) => one.ticket !== null).length, 1,
+      "and the child writes one record");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
