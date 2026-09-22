@@ -238,12 +238,12 @@ const resolved = (ref, releases, copies) => {
     + "`forge stats marks` lists the releases a reading is held for.");
 };
 
-const claimWritten = (ref, root, raw) => {
+const claimWritten = (ref, scope, raw) => {
   if (!KEY.test(ref)) {
     fail(`stats change: --claim is about an issue and ${ref} is a version. `
       + "Claim it by its issue key: `forge stats change ISS-nn --claim <angle>:<falls|rises>`.");
   }
-  const { record } = writeClaim(root, ref.toUpperCase(), claimAsked(raw));
+  const { record } = writeClaim(scope, ref.toUpperCase(), claimAsked(raw));
   return console.log(claimSaid(record));
 };
 

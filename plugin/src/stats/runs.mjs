@@ -26,6 +26,7 @@ import {
 } from "./tables.mjs";
 import { add, medianOrZero, minutes, share, stamp } from "./figures.mjs";
 import { reachOf, reachSaid } from "./marks/reach.mjs";
+import { scopeOf } from "./marks/marks.mjs";
 import { claimedIn, parkWritersIn, rulingsIn } from "./joined.mjs";
 import { PHASES } from "../guides/phases.mjs";
 import { VERB_NAMES } from "../resolve/visibility.mjs";
@@ -619,7 +620,7 @@ export const printRuns = async (rest) => {
   const { runs, skipped, outsideWindow, unreadable, sources } = runsUnder(root, from, classesFor(declared, act));
   const aside = readingAside({ skipped, outsideWindow, unreadable });
   const held = profileOf(runs, declared, act);
-  const reach = since === undefined ? reachOf(root, held.from) : null;
+  const reach = since === undefined ? reachOf(scopeOf(directory), held.from) : null;
   if (json) {
     return console.log(JSON.stringify(
       { root, sources, project: directory, skipped, outsideWindow, unreadable, ...(reach ? { reach } : {}), ...held },

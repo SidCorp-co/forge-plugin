@@ -11,7 +11,7 @@ import { callsIn, shellOf } from "../../../src/stats/corpus/transcripts.mjs";
 import { classOf } from "../../../src/stats/corpus/classes.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 import { unionSeconds } from "../../../src/stats/runs.mjs";
-import { writeMark } from "../../../src/stats/marks/marks.mjs";
+import { scopeOf, writeMark } from "../../../src/stats/marks/marks.mjs";
 import { USAGE } from "../../../src/stats/stats.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 import {
@@ -130,7 +130,7 @@ test("the whole corpus reports its reach, and a windowed reading reports none", 
   const was = process.env.XDG_CONFIG_HOME;
   try {
     process.env.XDG_CONFIG_HOME = home;
-    writeMark({ kind: "runs", mark: 50, at: at(0), root,
+    writeMark({ kind: "runs", mark: 50, at: at(0), root, scope: scopeOf(PROJECT),
       now: { runs: 50, profile: { from: BASE - 24 * 3600 * 1000, to: BASE } } });
   } finally {
     process.env.XDG_CONFIG_HOME = was;

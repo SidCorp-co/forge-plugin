@@ -1,5 +1,5 @@
-/* One writer at a time over a file under the forge config directory, for the stores a second process
-   can reach at the same moment: the turn's bookkeeping, and the readings a mark holds. Bounded and
+/* One writer at a time over a file in the configuration directory this plugin keeps, for the stores a
+   second process can reach at the same moment: the turn's bookkeeping, and the readings a mark holds. Bounded and
    stale-breaking, because a gate that waits forever costs more than the write it is guarding, and
    the one moment a lost write is possible leaves a trace rather than passing silently. */
 import { linkSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";

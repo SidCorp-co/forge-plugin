@@ -21,7 +21,7 @@ process.env.XDG_CONFIG_HOME = tempRoom("stats-scope-home-");
 const declaring = (slug) => {
   const home = tempRoom("stats-scope-declared-");
   const room = tempRoom("stats-scope-checkout-");
-  execFileSync("git", ["init", "-q", room]);
+  execFileSync("git", ["init", "-q", room], { cwd: room });
   mkdirSync(join(home, "forge", "projects", room.split("/").at(-1)), { recursive: true });
   writeFileSync(join(home, "forge", "projects", room.split("/").at(-1), "config.json"),
     JSON.stringify({ slug }));
@@ -47,7 +47,7 @@ test("a reading is held under the project the tracker names, so neither a worktr
     assert.equal(scopeOf(room), "a-project", "criterion 4: the project, not a path");
 
     const worktree = tempRoom("stats-scope-worktree-");
-    execFileSync("git", ["-C", room, "worktree", "add", "-q", worktree, "-b", "a-branch"]);
+    execFileSync("git", ["-C", room, "worktree", "add", "-q", worktree, "-b", "a-branch"], { cwd: room });
     assert.equal(scopeOf(worktree), "a-project",
       "criterion 5: a linked worktree of that repository answers alike, the key being the repository's");
 
@@ -296,7 +296,7 @@ test("two undeclared repositories whose folders share a name are two scopes", ()
       const parent = tempRoom(`stats-scope-parent-${n}-`);
       const room = join(parent, "app");
       mkdirSync(room, { recursive: true });
-      execFileSync("git", ["init", "-q", room]);
+      execFileSync("git", ["init", "-q", room], { cwd: room });
       return room;
     });
     const [one, two] = made.map((room) => scopeOf(room));
@@ -307,7 +307,7 @@ test("two undeclared repositories whose folders share a name are two scopes", ()
     assert.deepEqual(marksOf(RUNS, two), [], "and neither answers with the other's readings");
 
     const worktree = tempRoom("stats-scope-namesake-worktree-");
-    execFileSync("git", ["-C", made[0], "worktree", "add", "-q", worktree, "-b", "namesake"]);
+    execFileSync("git", ["-C", made[0], "worktree", "add", "-q", worktree, "-b", "namesake"], { cwd: made[0] });
     assert.equal(scopeOf(worktree), one, "while a linked worktree keeps its own repository's");
   });
 });
@@ -426,9 +426,11 @@ test("a caller that is not strict takes a lock whose holder has ended", async ()
   inHome(home, () => {
     const lock = `${marksPath()}.loose`;
     writeFileSync(lock, `${pid}-deadbeef`);
-    const began = Date.now();
-    assert.equal(underLock(lock, () => "ran", { waits: 30_000 }), "ran");
-    assert.ok(Date.now() - began < 2_000, "at once, rather than after the wait the age rule would have spent");
+    /* A stale window no run of this case can reach, so the age rule cannot be what hands the lock
+       over and the only thing that can is the holder being gone. */
+    assert.equal(underLock(lock, () => "ran", { waits: 30_000, stale: 86_400_000 }), "ran");
+    assert.equal(existsSync(lock), false,
+      "and the lock was taken and released rather than left standing while the callback ran beside it");
   });
 });
 
