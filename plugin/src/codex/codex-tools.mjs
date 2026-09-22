@@ -10,7 +10,7 @@ import { failuresSaid } from "./check/output.mjs";
 import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { HUMAN_REF, documentIdIfAny } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
-import { fromProject, refusing } from "../resolve/settings.mjs";
+import { AROUND_CHECK_MS, budgetMs, fromProject, refusing } from "../resolve/settings.mjs";
 
 const NEAREST_UP = 12;
 const RESULT_CHARS = 20_000;
@@ -204,7 +204,14 @@ export const scopeFor = (root, extras = [], check = null, consult = null) => {
   return {
     roots: [...roots],
     files: [...files],
-    check: check ? { ...check, root: canonical(root), used: false } : null,
+    /* The consult's own deadline travels with the check, because the clock the spawn is handed is
+       what the budget has left at the call and not what the configuration allowed at the first one:
+       five calls can spend the room a static cap assumed was there, and `AbortSignal` cannot reach
+       into a synchronous spawn to take it back. A scope built without one is given a deadline from
+       here, so there is no path on which a check runs against no budget at all (ISS-2108). */
+    check: check
+      ? { ...check, root: canonical(root), used: false, by: consult?.by ?? Date.now() + budgetMs() }
+      : null,
     diff: consult?.anchor && rels.length ? { anchor: consult.anchor, rels } : null,
     tracker: trackerFor(consult?.issues ?? []),
   };
@@ -212,11 +219,24 @@ export const scopeFor = (root, extras = [], check = null, consult = null) => {
 
 const TAIL_CHARS = 6_000;
 
-/* The clock and the key that moves it, spelled two ways because a project that set the key is told which file holds it and one that never named it is told the key exists at all. Both are here because this string is the whole of what the run that paid for the stopped call is handed, and the seconds stay first in it, being what the log's own readers parse back out. */
-const clockSaid = ({ ms, msFrom }) => (msFrom === fromProject()
-  ? `\`codex.checkMs\` in ${msFrom}. Raise it, or narrow \`codex.check\` to what fits ${ms / 1000}s`
-  : `this plugin's default. Set \`codex.checkMs\` in ${fromProject()} to raise it, or narrow `
-    + `\`codex.check\` to what fits ${ms / 1000}s`);
+/* What bounded the clock decides which key can move it, and naming a key that cannot is the advice
+   that costs a run its next consult too. Three answers: the project's own declaration, which its own
+   key raises; the ceiling a budget spares a check, which only a larger budget raises; and the room
+   this consult had left by the time the check was called, which no configuration reaches at all.
+   This string is the whole of what the run that paid for the stopped call is handed, and the seconds
+   stay first in it, being what the log's own readers parse back out. */
+const clockSaid = (check, ms) => {
+  if (ms < check.ms) {
+    return `the ${ms / 1000}s this consult had left of its ${budgetMs() / 1000}s budget once the `
+      + `${AROUND_CHECK_MS / 1000}s after a check was held back, so no clock in ${fromProject()} `
+      + `raises it. Narrow \`codex.check\` to what fits, or raise \`codex.budgetMs\` where the caller `
+      + `can wait longer than one call`;
+  }
+  return check.msFrom === fromProject()
+    ? `\`codex.checkMs\` in ${check.msFrom}. Raise it, or narrow \`codex.check\` to what fits ${ms / 1000}s`
+    : `${check.msFrom}, which \`codex.checkMs\` cannot raise past. Narrow \`codex.check\` to what fits `
+      + `${ms / 1000}s, or raise \`codex.budgetMs\` where the caller can wait longer than one call`;
+};
 
 // Composed, not inherited: a check is the project's command and not the run that consulted it.
 const checkEnv = () => {
@@ -228,6 +248,19 @@ const checkEnv = () => {
 const checkOnce = (scope) => {
   if (!scope.check) return { text: "this checkout configures no `codex.check`, so there is nothing to run", error: true };
   if (scope.check.used) return { text: "run_check runs once per consult, and it has run", error: true };
+  /* Floored by a refusal and not by a number: `spawnSync` reads a timeout of 0 as no timeout at all,
+     so a consult with nothing left to spend would start the one check that can never be stopped. */
+  const room = scope.check.by - Date.now() - AROUND_CHECK_MS;
+  if (room <= 0) {
+    scope.check.used = true;
+    scope.check.outcome = "failed";
+    return { text: `\`${scope.check.command}\` was not started: this consult's ${budgetMs() / 1000}s `
+      + `budget has nothing left to spare it once the ${AROUND_CHECK_MS / 1000}s after a check is `
+      + `held back. Raise \`codex.budgetMs\` where the caller can wait longer than one call`, error: true };
+  }
+  /* The room bounds the clock whatever the check carried, a resolved figure or nothing at all: a
+     check object reaching here without one used to be handed to the spawn as no timeout. */
+  const ms = Math.min(scope.check.ms ?? room, room);
   scope.check.used = true;
   /* Its own process group: the clock kills the shell, and a runner the shell started would outlive
      it — the orphan the rule exists to prevent — unless the group goes with it. */
@@ -235,7 +268,7 @@ const checkOnce = (scope) => {
     cwd: scope.check.root,
     encoding: "utf8",
     env: checkEnv(),
-    timeout: scope.check.ms,
+    timeout: ms,
     maxBuffer: 16 << 20,
     detached: true,
   });
@@ -244,7 +277,7 @@ const checkOnce = (scope) => {
     const stopped = run.error.code === "ETIMEDOUT";
     scope.check.outcome = stopped ? "cut" : "failed";
     const why = stopped
-      ? `ran past ${scope.check.ms / 1000}s and was stopped. That clock is ${clockSaid(scope.check)}`
+      ? `ran past ${ms / 1000}s and was stopped. That clock is ${clockSaid(scope.check, ms)}`
       : `could not finish: ${run.error.message}`;
     return { text: `\`${scope.check.command}\` ${why}`, error: true };
   }

@@ -5,7 +5,8 @@ import { jsonLines } from "../../hooks/log/hook-log-file.mjs";
 import { NO_SESSION } from "../../resolve/config.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { flags, pullRepeated } from "../../resolve/flags.mjs";
-import { DIAGNOSTIC, answered, budgetMs, logBytes, logConsult, logEntries, logPath, maskedDeep, pairedLog, verdictsBy } from "../codex-log.mjs";
+import { DIAGNOSTIC, answered, logBytes, logConsult, logEntries, logPath, maskedDeep, pairedLog, verdictsBy } from "../codex-log.mjs";
+import { budgetMs } from "../../resolve/settings.mjs";
 import { countedIn, recheckSaid, scoreOf, unverdicted, verdictRecord } from "./replies.mjs";
 
 const LOG_TAIL = 10;

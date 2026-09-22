@@ -14,6 +14,7 @@ import { reviewRefusalOf } from "../../git/reviewed.mjs";
 import { DECLARABLE, declares } from "../../stats/corpus/declared.mjs";
 import { RANK_ROWS, RANK_WEIGHTS, foldWeights } from "../../rank/weights.mjs";
 import {
+  CHECK_MS_AT_MOST,
   CHECK_MS_TAKES,
   Refusal,
   projectFilePath,
@@ -200,8 +201,15 @@ const codexRefusal = (given) => {
   if (given.check !== undefined && aString("codex.check", given.check)) {
     return aString("codex.check", given.check);
   }
-  if (checkMsOf(given.checkMs).unknown !== undefined) {
+  const clock = checkMsOf(given.checkMs);
+  if (clock.unknown !== undefined) {
     return said("codex.checkMs", CHECK_MS_TAKES, given.checkMs);
+  }
+  /* The second of this key's two refusals, and the one the shape alone cannot reach: a number of
+     exactly the form asked for that no consult can honour is written, read past, and never used, so
+     it is refused where it is typed rather than reported by whichever caller happens to notice. */
+  if (clock.over !== undefined) {
+    return said("codex.checkMs", CHECK_MS_AT_MOST(), given.checkMs);
   }
   return codexOwedOf(given).unknown === undefined
     ? null : said("codex.owed", `a list of ${OWED_DOORS.join(", ")}`, given.owed);

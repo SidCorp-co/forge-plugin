@@ -1,10 +1,10 @@
 /* The keys a project sets for itself, each with the value in force and where it was read; why rows
    and not lines is doctor/harness.mjs's. docs/cli/doctor.md. */
-import { CHECK_MS_TAKES, FEEDBACK_CHANNELS, fromProject, LANDING_ROUTES, OWED_DOORS, RUNS_TAKES,
-  SHIP_MODES, codexCheck, codexOwed, checkoutRoot, feedbackScope, landingScope, parallelRuns,
-  projectWorkPattern, shipMode } from "../../../resolve/settings.mjs";
+import { CHECK_MS_SPARED, CHECK_MS_TAKES, FEEDBACK_CHANNELS, fromProject, LANDING_ROUTES,
+  OWED_DOORS, RUNS_TAKES, SHIP_MODES, checkCeilingMs, codexCheck, codexOwed, checkoutRoot,
+  feedbackScope, landingScope, parallelRuns, projectWorkPattern, shipMode } from "../../../resolve/settings.mjs";
 import { DECLARES, declaredCommands, declaredIn, unarmedDoors } from "../../../stats/corpus/declared.mjs";
-import { budgetMs, logBytes } from "../../../codex/codex-log.mjs";
+import { logBytes } from "../../../codex/codex-log.mjs";
 import { checkStops } from "../../../codex/log/asked.mjs";
 import { flowPinned, flowRefusal } from "../../../guides/flow.mjs";
 import { readingFor, REVIEWED, reviewStanding, whereFrom } from "../../../git/reviewed.mjs";
@@ -102,16 +102,23 @@ const stoppedSaid = (check) => {
 const checkRow = () => {
   const check = codexCheck();
   if (!check) return null;
-  const clock = `${check.command} \u2014 stopped at ${check.ms / 1000}s  \u2190 ${check.msFrom}`;
+  /* The most a check may be given, which is what a reading taken before any consult can answer for:
+     the clock one round hands the spawn is that less whatever the consult has spent by then, and a
+     row printing a figure without saying which of the two it is has a run reading its own
+     configuration as the allowance a stopped check had (ISS-2108). */
+  const clock = `${check.command} \u2014 at most ${check.ms / 1000}s  \u2190 ${check.msFrom}`;
   if (check.unknown !== undefined) {
     return { level: MISS, label: "codex.check", detail: `${check.unknown} is no value of \`codex.checkMs\` `
       + `\u2014 it takes ${CHECK_MS_TAKES}; reading ${clock}` };
   }
-  const whole = budgetMs();
-  if (check.ms >= whole) {
-    return { level: MISS, label: "codex.check", detail: `${clock}, which is at or past the ${whole / 1000}s `
-      + `one whole consult runs under, so a check reaching that clock costs the consult instead of `
-      + `coming back as a call that was stopped. Set \`codex.checkMs\` below it` };
+  /* The one reading configuration settles on its own: both numbers are on disk before a consult is
+     spent, so a declaration no consult can honour is said here rather than met by a caller whose own
+     call has already died. */
+  if (check.over !== undefined) {
+    return { level: MISS, label: "codex.check", detail: `${check.over} is past the `
+      + `${checkCeilingMs()} \`codex.checkMs\` may name \u2014 ${CHECK_MS_SPARED()} \u2014 so `
+      + `${check.command} runs at most ${check.ms / 1000}s instead. Lower it in ${fromProject()}, or `
+      + `raise \`codex.budgetMs\` where the caller can wait longer than one call` };
   }
   const stopped = stoppedSaid(check);
   return { level: stopped ? "note" : undefined, label: "codex.check", detail: `${clock}${stopped}` };

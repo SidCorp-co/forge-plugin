@@ -2,12 +2,10 @@
 import { isAbsolute, join } from "node:path";
 
 import { appendJsonl, jsonlAt, jsonlBytes } from "../hooks/log/hook-log-file.mjs";
-import { configDir, NO_SESSION, sessionSourced, userConfig } from "../resolve/config.mjs";
+import { configDir, NO_SESSION, sessionSourced } from "../resolve/config.mjs";
 import { masked } from "../hooks/log/scrub.mjs";
 
 export const logPath = () => join(configDir("forge"), "codex-log.jsonl");
-export const budgetMs = () => Number(userConfig().codex?.budgetMs || 900_000);
-
 /* One seat, not a list of the fields that may carry a credential (the transport's); at every depth, since the last leak got through a redaction that missed one; per value, since a line-wide mask eats a quote. */
 export const maskedDeep = (value) => {
   if (typeof value === "string") return masked(value);

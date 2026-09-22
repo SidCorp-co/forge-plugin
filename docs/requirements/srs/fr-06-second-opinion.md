@@ -80,14 +80,16 @@ checkout's decision rather than the account's, and `README.md` says why that lev
   SHALL send every file of that consult whole where neither the command nor the configuration named
   a send mode, SHALL leave a named mode standing and say that it stands, and SHALL name on every
   consult the mode it is sending under.
-- **AC-06-1-12** · Rev: 1 · Proof: plugin/test/codex/codex.test.mjs "the check's clock is the project's own where it names one, and the product's default otherwise"
+- **AC-06-1-12** · Rev: 2 · Proof: plugin/test/codex/codex.test.mjs "the check's clock is what the consult's budget spares it, and a smaller declaration stands"
   WHEN the checkout names a command the reviewer may run THEN the clock that command runs under SHALL
-  be the project's own where it declares one as a whole number of milliseconds above zero, and the
-  product's default otherwise, resolved once so that no reader of it supplies a second default.
-- **AC-06-1-13** · Rev: 1 · Proof: plugin/test/codex/codex-tools.test.mjs "a check stopped at its clock names the clock, where it was read, and the key that moves it"
+  be the room that consult's own budget still holds at the call the check is made on — the budget,
+  less what the consult has spent by then, less a stated share held back for what follows the check —
+  bounded below that room by the project's own declaration where it declares one as a whole number of
+  milliseconds above zero, resolved once so that no reader of it supplies a second default.
+- **AC-06-1-13** · Rev: 2 · Proof: plugin/test/codex/codex-tools.test.mjs "a check stopped at its clock names the clock, where it was read, and a key that can move it"
   IF that command is stopped at its clock THEN what comes back SHALL name the clock it was stopped
-  at, where that clock was read from, and the key that moves it, so that the run which paid for the
-  stopped call learns from it what to change.
+  at, where that clock was read from, and a key that can move it rather than one that cannot, so
+  that the run which paid for the stopped call learns from it what to change.
 - **AC-06-1-14** · Rev: 1 · Proof: plugin/test/codex/gateway/check-state.test.mjs "a review that declined the offered check says so where the run reads what the round cost"
   WHEN a consult ends THEN the CLI SHALL record on that consult's own log row which of five states
   the check the checkout declared left the round in — run, stopped at its clock, unable to start,
@@ -95,6 +97,18 @@ checkout's decision rather than the account's, and `README.md` says why that lev
   wherever the checkout declared one, and SHALL say that state to the caller in the same place it
   says what the round cost, so that a review given by inspection alone is told apart from one that
   executed the suite without either being read for an absence.
+- **AC-06-1-15** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a declared check clock past what a consult can spare is a fault the report names"
+  IF the checkout declares a clock above the most the consult budget can ever spare a check THEN the
+  CLI SHALL report that declaration as a fault where the configuration is read, naming the value
+  declared, the most that may be named, the budget it came from and the call that clears it, and
+  SHALL run the check under that most rather than under the value declared.
+- **AC-06-1-16** · Rev: 1 · Proof: plugin/test/tools/services/project-file.test.mjs "a check clock past what a consult can spare is refused where it is written"
+  WHEN a write of that clock names a value above the most the consult budget can ever spare a check
+  THEN the CLI SHALL refuse the write, so that no value the key takes is stored for a reader that
+  will pass over it.
+- **AC-06-1-17** · Rev: 1 · Proof: plugin/test/codex/codex-tools.test.mjs "a consult with nothing left to spare refuses the check rather than starting one no clock can stop"
+  WHERE a consult has no room left to spare its check, the CLI SHALL refuse that call and say what
+  would clear it, rather than start the command under a clock that cannot stop it.
 
 ### UC-06-2 — List the documents a turn changed, once, at the end
 

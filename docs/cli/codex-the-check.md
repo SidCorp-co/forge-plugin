@@ -13,15 +13,30 @@ said it could not verify; a fixed command it did not choose is not a shell.
 **And the clock is `codex.checkMs`, which is the half that had no surface.** A check stopped at it
 costs the consult one of its few tool calls and hands back nothing, so the review that follows rules
 by reading and says so — 33 of 1,119 consults over one week here, 13 of which closed saying they
-could not check (ISS-1882). That clock defaults to 300000 milliseconds and the key that moves it is
-the project's own, so the pair has to be legible together rather than one in a config and the other
-in this module: `forge codex show` prints the command with the budget in force, `forge doctor` prints
-it beside how often this machine's log recorded that same command stopped at or above it, and the
+could not check (ISS-1882). The key that moves that clock is the project's own, so the pair has to
+be legible together rather than one in a config and the other in this module: `forge codex show`
+prints the command with the budget in force, `forge doctor` prints it beside how often this
+machine's log recorded that same command stopped at or above it, and the
 refusal the reviewer is handed names the clock and the key. None of those says the command will fail
 — a check that returns early returns under any clock — and the budget a project wants is the one its
 own recorded stops fall under, which is why the count is compared against the budget in force rather
-than kept flat. Set it below the clock a whole consult runs under: past that, the consult's own
-deadline expires first and the check takes the consult with it rather than coming back stopped.
+than kept flat.
+
+**And the clock is a share of the consult's now, because advice to set it below one was advice
+nobody took.** The two numbers were independent, so this project handed its check the whole of what
+a caller waits in one call, and 26 of the 78 consults here that ran or cut a check returned after
+that call had already ended, against 3 of the 5,935 that ran none. The twelve stopped at that clock
+are the arithmetic rather than the anecdote: every one of them ran a further 55.9s to 117.9s past
+the stop, so a clock equal to what the caller waits loses the call even when it fires, whatever the
+command underneath it does (ISS-2108). A check is therefore given no number of its own. The most it
+may ever have is the budget less a share held back for the calls after it and the reply it streams,
+and what it is handed at the call it is made on is that less whatever the consult has spent by then
+— because five calls can spend the room a static cap assumed was there, and an abort signal cannot
+reach into a synchronous spawn to take that room back. A project declaring less than the room keeps
+what it declared; one declaring more is refused where it writes and told where it stands where it
+wrote before any of this; and a consult with nothing left to spare refuses the call rather than
+starting the one check no clock can stop. None of it promises that a command fits: the suite this
+repository declares does not, and narrowing what is declared is ISS-1957's.
 
 **And the round now says which of five things became of the offer.** Whether a reviewer took it was
 in no field at all: a row logged the tools called and the calls refused, and neither tells a consult

@@ -3,7 +3,7 @@
    because the verb is bookkeeping and this is the part that spends money. docs/cli/codex-the-consult.md. */
 import { askApi } from "./codex-api.mjs";
 import { toolsFor, runTool } from "./codex-tools.mjs";
-import { budgetMs } from "./codex-log.mjs";
+import { budgetMs } from "../resolve/settings.mjs";
 import { incompleteIn, keepsTools, plannedLimits } from "./codex-plan.mjs";
 import { configPath } from "../resolve/config.mjs";
 

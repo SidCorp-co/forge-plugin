@@ -3,7 +3,7 @@
    what a developer reads and the refusal has to arrive before the call goes out (ISS-92). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { cpSync, writeFileSync } from "node:fs";
+import { cpSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { escaped, fakeStore, fakeTracker, projectEntry, projectRecord, projectRoom, ranAsync,
@@ -305,15 +305,16 @@ const stopAt = (seconds, root, at) => ({
   refused: [`run_check : \`npm test\` ran past ${seconds}s and was stopped. That clock is \`codex.checkMs\` in .forge.json`],
 });
 
-/* The command and the clock are one reading: a project that can see the first and not the second has declared a call the reviewer spends and cannot finish, which is ISS-1882's whole subject. */
-test("a declared check is printed with the clock it runs under and where that clock was read", async () => {
-  const set = roomWith("check-clock", { check: "npm test", checkMs: 600000 });
+/* The command and the clock are one reading: a project that can see the first and not the second has declared a call the reviewer spends and cannot finish, which is ISS-1882's whole subject. `at most` and not the clock itself, because what a check is handed is this less whatever the consult had spent by the call, and a row printing one figure as the other is a run reading its own configuration as the allowance its stopped check had (ISS-2108). */
+test("a declared check is printed with the most its clock may be and where that figure was read", async () => {
+  const set = roomWith("check-clock", { check: "npm test", checkMs: 400000 });
   const run = await ranAsync(FORGE, ["doctor", "project"], set.env, set.where);
   assert.match(run.stdout,
-    ROW("codex.check", `npm test — stopped at 600s {2}← ${escaped(set.entry)}`), run.stdout);
+    ROW("codex.check", `npm test — at most 400s {2}← ${escaped(set.entry)}`), run.stdout);
   const bare = roomWith("check-default", { check: "npm test" });
   const fell = await ranAsync(FORGE, ["doctor", "project"], bare.env, bare.where);
-  assert.match(fell.stdout, ROW("codex.check", "npm test — stopped at 300s {2}← the plugin's default"), fell.stdout);
+  assert.match(fell.stdout, ROW("codex.check", "npm test — at most 480s {2}← what a consult can "
+    + "spare a check: its 600s budget less the 120s after one"), fell.stdout);
 });
 
 test("a check clock that is not a whole number above zero is named rather than taken", async () => {
@@ -321,7 +322,8 @@ test("a check clock that is not a whole number above zero is named rather than t
   const run = await ranAsync(FORGE, ["doctor", "project"], set.env, set.where);
   assert.match(run.stdout,
     MISS_ROW("codex.check", '"soon" is no value of `codex.checkMs` — it takes a whole number of '
-      + "milliseconds above 0; reading npm test — stopped at 300s {2}← the plugin's default"),
+      + "milliseconds above 0; reading npm test — at most 480s {2}← what a consult can spare a "
+      + "check: its 600s budget less the 120s after one"),
     run.stdout);
   /* The values that carry nothing to print are the ones a row naming the value can lose: a project that set the key legally would read exactly the row a project that set it to `""` did. */
   for (const given of ["", [], 0]) {
@@ -346,31 +348,50 @@ test("a project declaring no check is one the report says nothing about", async 
     "the same project with a check declared does print the row, so the silence above is a decision");
 });
 
-/* A record answers for the clock it was taken at, so raising the clock past every recorded stop clears the row on the next reading rather than after the window rolls. The checkout each stop names is the whole of the attribution the log can carry: a consult row holds no project. */
+/* A record answers for the clock it was taken at, so raising the clock past every recorded stop clears the row on the next reading rather than after the window rolls. The checkout each stop names is the whole of the attribution the log can carry: a consult row holds no project. The route to a larger clock is the budget the whole consult runs under, the project's own key reaching no further than the room that budget spares (ISS-2108). */
 test("recorded stops of that same command name each one's own checkout, and a larger clock clears them", async () => {
   const ago = (days) => new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
-  const stops = [stopAt(300, "/tmp/wt-older", ago(3)), stopAt(300, "/tmp/wt-newest", ago(1))];
+  const stops = [stopAt(480, "/tmp/wt-older", ago(3)), stopAt(480, "/tmp/wt-newest", ago(1))];
   const set = roomWith("check-stops", { check: "npm test" }, stops);
   const run = await ranAsync(FORGE, ["doctor", "project"], set.env, set.where);
   assert.match(run.stdout,
-    NOTE_ROW("codex.check", "npm test — stopped at 300s {2}← the plugin's default\\. This machine's "
-      + "consult log holds 2 consult\\(s\\) in the last 7 days whose check of that command was "
-      + "stopped at or above 300s, the newest on [\\d-]+ in /tmp/wt-newest"),
+    NOTE_ROW("codex.check", "npm test — at most 480s {2}← what a consult can spare a check: its 600s "
+      + "budget less the 120s after one\\. This machine's consult log holds 2 consult\\(s\\) in the "
+      + "last 7 days whose check of that command was stopped at or above 480s, the newest on "
+      + "[\\d-]+ in /tmp/wt-newest"),
     run.stdout);
-  const raised = roomWith("check-raised", { check: "npm test", checkMs: 600000 }, stops);
+  const raised = roomWith("check-raised", { check: "npm test" }, stops);
+  const account = join(raised.env.XDG_CONFIG_HOME, "forge", "config.json");
+  writeFileSync(account,
+    JSON.stringify({ ...JSON.parse(readFileSync(account, "utf8")), codex: { budgetMs: 900000 } }));
   const clear = await ranAsync(FORGE, ["doctor", "project"], raised.env, raised.where);
   assert.match(clear.stdout,
-    ROW("codex.check", `npm test — stopped at 600s {2}← ${escaped(raised.entry)}$`),
+    ROW("codex.check", "npm test — at most 780s {2}← what a consult can spare a check: its 900s "
+      + "budget less the 120s after one$"),
     "every recorded stop was taken at a clock this project has moved past, so none of them counts");
 });
 
-/* The one reading configuration settles on its own, and the only one here that is a fault: past the consult's own deadline the check takes the consult with it instead of coming back stopped. */
-test("a check clock at or past the one a whole consult runs under is refused", async () => {
-  const set = roomWith("check-past", { check: "npm test", checkMs: 900000 });
+/* The one reading configuration settles on its own, and the only one here that is a fault: both
+   numbers are on disk before a consult is spent, so a declaration no consult can honour is said here
+   rather than met by a caller whose own call has already ended. The value stays on the row because
+   what a reader has to be told is that the number they typed is not the number anything runs
+   (ISS-2108). */
+test("a declared check clock past what a consult can spare is a fault the report names", async () => {
+  const set = roomWith("check-past", { check: "npm test", checkMs: 600000 });
   const run = await ranAsync(FORGE, ["doctor", "project"], set.env, set.where);
   assert.match(run.stdout,
-    MISS_ROW("codex.check", `npm test — stopped at 900s {2}← ${escaped(set.entry)}, which is at or `
-      + "past the 900s one whole consult runs under"),
+    MISS_ROW("codex.check", "600000 is past the 480000 `codex.checkMs` may name — what a consult can "
+      + "spare a check: its 600s budget less the 120s after one — so npm test runs at most 480s "
+      + `instead\\. Lower it in ${escaped(set.entry)}, or raise \`codex\\.budgetMs\` where the caller `
+      + "can wait longer than one call"),
     run.stdout);
-  assert.match(run.stdout, /Set `codex\.checkMs` below it/u, "and the row names what to change");
+  /* And a project whose own budget makes the same number fit reads no fault at all: the room is
+     derived from that budget and nothing here is a flat ceiling. */
+  const wider = roomWith("check-wider", { check: "npm test", checkMs: 600000 });
+  writeFileSync(join(wider.env.XDG_CONFIG_HOME, "forge", "config.json"),
+    JSON.stringify({ ...JSON.parse(readFileSync(join(wider.env.XDG_CONFIG_HOME, "forge", "config.json"), "utf8")),
+      codex: { budgetMs: 900000 } }));
+  const fits = await ranAsync(FORGE, ["doctor", "project"], wider.env, wider.where);
+  assert.match(fits.stdout, ROW("codex.check", `npm test — at most 600s {2}← ${escaped(wider.entry)}$`),
+    fits.stdout);
 });

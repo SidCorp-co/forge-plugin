@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { TOOLS, checkCommand, checkState, runTool, scopeFor, toolsFor } from "../../src/codex/codex-tools.mjs";
 import { bundle, changedAgainst, divergedFrom, roleFor, withDiffs } from "../../src/codex/codex-api.mjs";
+import { AROUND_CHECK_MS, CHECK_MS_SPARED } from "../../src/resolve/settings.mjs";
 import { escaped, projectEntry, tempRoom } from "../fixtures.mjs";
 import { tapOf } from "./check/tap-of.mjs";
 import { patience } from "../patience.mjs";
@@ -315,9 +316,11 @@ test("git_diff with neither path nor base answers the diff this consult was give
 });
 
 /* The refusal is the whole of what the run that paid for the stopped call is handed, so it carries
-   the clock, where the clock came from and the key that moves it: the two sources read differently
-   because a project that never named the key has first to learn it exists (ISS-1882). */
-test("a check stopped at its clock names the clock, where it was read, and the key that moves it", async () => {
+   the clock, where the clock came from and a key that can move it: the two sources read differently
+   because a project's own declaration is raised by its own key and a room a budget spared is not
+   (ISS-1882, ISS-2108). Naming the key that cannot move it is the advice that costs a run its next
+   consult as well, which is why a key that cannot is what this asserts against. */
+test("a check stopped at its clock names the clock, where it was read, and a key that can move it", async () => {
   const root = repo();
   const slow = { command: "sleep 30", ms: 200 };
   const set = await runTool(scopeFor(root, [], { ...slow, msFrom: ENTRY }), "run_check", {});
@@ -325,8 +328,27 @@ test("a check stopped at its clock names the clock, where it was read, and the k
   assert.match(set.text, new RegExp(
     `ran past 0\\.2s and was stopped\\. That clock is \`codex\\.checkMs\` in ${escaped(ENTRY)}\\. `
     + "Raise it, or narrow `codex\\.check` to what fits 0\\.2s$", "u"), set.text);
-  const fell = await runTool(scopeFor(root, [], { ...slow, msFrom: "the plugin's default" }), "run_check", {});
+  const fell = await runTool(scopeFor(root, [], { ...slow, msFrom: CHECK_MS_SPARED() }), "run_check", {});
   assert.match(fell.text, new RegExp(
-    `That clock is this plugin's default\\. Set \`codex\\.checkMs\` in ${escaped(ENTRY)} to raise it, `
-    + "or narrow `codex\\.check` to what fits 0\\.2s$", "u"), fell.text);
+    `That clock is ${escaped(CHECK_MS_SPARED())}, which \`codex\\.checkMs\` cannot raise past\\. `
+    + "Narrow `codex\\.check` to what fits 0\\.2s, or raise `codex\\.budgetMs` where the caller can "
+    + "wait longer than one call$", "u"), fell.text);
+  assert.equal(/Raise it/u.test(fell.text), false,
+    "and it does not offer the project's own clock, which cannot reach past the room a budget spared");
+});
+
+/* `spawnSync` reads a timeout of 0 as no timeout at all, so the one arithmetic that must not floor
+   to a number is this one: a consult with nothing left to spend would otherwise start the single
+   check no clock can stop, on a budget that has already run out (ISS-2108). */
+test("a consult with nothing left to spare refuses the check rather than starting one no clock can stop", async () => {
+  const root = repo();
+  const spent = scopeFor(root, [], { command: "sleep 30", ms: 200_000, msFrom: ENTRY },
+    { by: Date.now() + AROUND_CHECK_MS - 1 });
+  const none = await runTool(spent, "run_check", {});
+  assert.equal(none.error, true);
+  assert.match(none.text, /^`sleep 30` was not started: this consult's 600s budget has nothing left/u, none.text);
+  assert.match(none.text, /Raise `codex\.budgetMs` where the caller can wait longer than one call$/u,
+    "and the refusal names what clears it, a clock in the project reaching none of this");
+  assert.equal(checkState(spent), "failed", "the state a check that could not start leaves the round in");
+  assert.equal(/ran past/u.test(none.text), false, "and it is not reported as a command that was stopped");
 });

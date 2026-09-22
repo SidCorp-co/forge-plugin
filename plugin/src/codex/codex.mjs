@@ -16,7 +16,7 @@ import { HUMAN_REF } from "../tracker/issues.mjs";
 import { repoRoot } from "../git/repo-root.mjs";
 import { configPath, userConfig } from "../resolve/config.mjs";
 import { INTENT_MS, stdinText } from "../resolve/payload.mjs";
-import { codexCheck, fail, projectCodex, projectRecordPattern } from "../resolve/settings.mjs";
+import { budgetMs, codexCheck, fail, projectCodex, projectRecordPattern } from "../resolve/settings.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid, pending, pendingIn,
@@ -44,7 +44,6 @@ import { masked } from "../tools/services/masked.mjs";
 import { EVAL_USAGE, MARKS_USAGE, REPLAY_USAGE, STATS_USAGE, crossingSaid, printEval, printMarks,
   printReplay, printStats } from "./codex-stats.mjs";
 import {
-  budgetMs,
   logPath,
   consults,
   logBytes,
@@ -424,7 +423,8 @@ const consult = async (given) => {
     process.stdout.write(text);
   };
   /* Hoisted because the round writes the check's outcome onto it and both rows are owed that outcome. `reached` and not `anchoredTo`: a recheck whose tree has not moved sent no diff and so anchors no log row, but the reviewer asking for "the diff" still means the change since that head, and the tree at HEAD would hand it every file this consult is not about. */
-  const reach = scopeFor(root, rels.filter(isAbsolute), codexCheck(), { anchor: reached, files: rels, issues });
+  const reach = scopeFor(root, rels.filter(isAbsolute), codexCheck(),
+    { anchor: reached, files: rels, issues, by: started + budgetMs() });
   try {
     const opening = openingFor(intent, parts, history, { risks, only, bodies, scope, checks, issues });
     const held = await reviewed(
@@ -508,8 +508,12 @@ const show = (rest = []) => {
     + `a step up on a bodies pass, on a named risk or over ${limits.large}`);
   console.log(`angles    : ${chosenAngles(undefined).join(", ")}`);
   const check = codexCheck();
+  /* The most it may be given and not the clock one round handed it: what a check actually runs under
+     is that less whatever the consult has spent by the time it is called, which no reading taken
+     before a consult can know. Saying which of the two this is costs a word and saves a run reading
+     a configured ceiling as the allowance its stopped check had (ISS-2108). */
   console.log(`check     : ${check
-    ? `${check.command}, stopped at ${check.ms / 1000}s  \u2190 ${check.msFrom}`
+    ? `${check.command}, at most ${check.ms / 1000}s  \u2190 ${check.msFrom}`
     : "none — a codex.check in the project's own settings names one"}`);
   console.log(`per call  : ${Math.round(budgetMs() / 1000)}s of budget, and the tool list is `
     + `${keepsTools() ? "kept on the last call with none asked for" : "dropped for the last call"}`);
