@@ -11,6 +11,7 @@ import { tempHome } from "../../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("dispatch-triage").path;
 const { DEFAULT, SCREEN } = await import("../../../src/guides/flow.mjs");
 const { skillGuideAnswer } = await import("../../../src/guides/skill-guides.mjs");
+const { FINDINGS } = await import("../../../src/flow/machine.mjs");
 
 const PLUGIN = new URL("../../../", import.meta.url).pathname;
 const FLOWS = [DEFAULT, SCREEN];
@@ -145,4 +146,24 @@ test("the complexity reading is untouched, and stays what a rung is claimed from
       + " no rung and there is nothing for a run to find disagreeing with the field."],
     ["no run on an unsized issue", "no run is dispatched on an issue holding none"],
   ]);
+});
+
+/* The page's rows against the enum the write validates against, rather than by naming the values
+   twice: a row added to the served table and not to `FINDINGS` reads as a disposition a triage may
+   take and is refused at `forge record confirmation`, which is the one failure the text cannot
+   show (ISS-2081). */
+test("every disposition the page serves is a finding the confirmation accepts", () => {
+  const rows = (flow) => served(flow, "dispositions")
+    .split("|")
+    .map((cell) => cell.trim())
+    .filter((cell) => /^[a-z]+(?: [a-z]+)?$/u.test(cell) && cell !== "Disposition" && cell !== "Earned by");
+  for (const flow of FLOWS) {
+    const found = rows(flow);
+    assert.ok(found.length >= 6, `the \`${flow}\` flow's table parsed ${found.length} rows, not the six it serves`);
+    for (const row of found) {
+      assert.ok(FINDINGS.includes(row.replace(/ /gu, "-")),
+        `the \`${flow}\` flow serves the disposition "${row}", which \`forge record confirmation --finding\``
+        + ` refuses: FINDINGS holds ${FINDINGS.join(", ")}`);
+    }
+  }
 });

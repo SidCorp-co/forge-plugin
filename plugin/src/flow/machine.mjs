@@ -322,7 +322,7 @@ export const restoreMachine = (text, held = {}) => {
 /* What a payload of each kind holds, in the one table the write, the read-back and the usage
    list all read: a field named in two places is a shape that disagrees with itself. Kept beside
    the block it is written into, and importing nothing, so either side may reach it. */
-export const FINDINGS = ["holds", "already-fixed", "duplicate", "intended", "obsolete", "premise-false"];
+export const FINDINGS = ["holds", "already-fixed", "duplicate", "intended", "obsolete", "premise-false", "superseded"];
 /* The status `closed` is entered from. Here, not beside ORDER: record.mjs cannot import earned.mjs. */
 export const CLOSES_FROM = "awaiting_release";
 export const PARKS = [
