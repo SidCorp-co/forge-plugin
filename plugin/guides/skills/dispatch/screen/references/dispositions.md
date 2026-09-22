@@ -20,14 +20,12 @@ on the strength of the body alone — the body is the claim, and the evidence is
 
 Anything else *holds*, and holding is the ordinary answer. Most issues are real.
 
-**Superseded and obsolete are not one reading.** Obsolete is the subject gone — the file, the verb,
-the surface. Superseded is the subject still standing, inside a flow a later release replaced, or an
-ask a later release answered differently and better. The second is the commoner case and the one a
-closed table sends to *holds*.
+**Superseded is not obsolete.** Obsolete is the subject gone — the file, the verb, the surface.
+Superseded is the subject still standing, inside a flow a later release replaced or an ask a later
+release answered differently.
 
-**Age earns neither, and no other row either.** An old issue describing something still true is
-still real, and a filing's date is evidence about the filing rather than about the code. The bar a
-disposition is earned by does not fall because nobody has looked in a year.
+**Age earns neither, nor any other row.** An old issue describing something still true is still
+real, and the bar does not fall because nobody has looked in a year.
 
 ## The two ways a wave gets this wrong
 
@@ -56,11 +54,9 @@ the code have been read:
    names. Two bodies naming one module and one mechanism are one issue; two naming the same shape in
    different modules are two, and each gets a comment naming the other. The older filing is the
    survivor unless the newer states the cause and the older only the symptom. What decides a fold is
-   whether the two are reports of one thing or symptoms of one cause, and the module they sit in
-   decides nothing either way: two reports of one thing fold onto a survivor wherever they were
+   reports-or-symptoms, never the module: two reports of one thing fold onto a survivor wherever they were
    filed, and two distinct symptoms of one cause fold nowhere, however far inside one module and one
-   mechanism they both sit. Folding those loses the symptom somebody would have checked the fix
-   against, so they leave triage related to one another instead, by the phase's cluster.
+   mechanism they sit. Those leave triage as the phase's cluster instead.
 3. **Verify "already fixed" live, once for the set.** Run the verb on the installed copy by its own
    path, not the checkout, and name the landing that fixed it with its release. One live read covers
    every filing on that cause. Where the evidence is another repository's source rather than this
@@ -104,8 +100,6 @@ the command in full.
 
 A disposition taken here is counted in the fold against the run it did not cost.
 
-**A reading this page cannot make is filed, and never supplied by hand.** Where a wave meets an issue
-none of these rows fits and *holds* is not the honest answer either, what is missing is a reading the
-method does not have, and it belongs on the backlog as a filing against the method. Supplied by hand
-instead, it costs whoever happened to be watching, arrives only when somebody looks, and the next
-wave pays for it again.
+**A reading this page cannot make is filed, never supplied by hand.** Where an issue fits no row and
+*holds* is not honest either, what is missing is a reading the method does not have, and it goes on
+the backlog as a filing against the method.

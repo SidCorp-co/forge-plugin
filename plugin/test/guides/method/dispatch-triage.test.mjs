@@ -15,10 +15,14 @@ const { skillGuideAnswer } = await import("../../../src/guides/skill-guides.mjs"
 const PLUGIN = new URL("../../../", import.meta.url).pathname;
 const FLOWS = [DEFAULT, SCREEN];
 
+/* Whitespace collapsed on both sides, so a rule that survives a reflow survives these cases too: a
+   phrase pinned to its line breaks fails on a rewrap that changed nothing a reader acts on. */
+const flat = (text) => String(text).replace(/\s+/gu, " ").trim();
+
 const served = (flow, part) => {
   const answer = skillGuideAnswer("dispatch", PLUGIN, flow)({ part });
   assert.equal(answer.refusal, undefined, `\`${flow}\` refused the \`${part}\` part: ${answer.refusal}`);
-  return answer.lines.join("\n");
+  return flat(answer.lines.join("\n"));
 };
 
 /* One helper for every case below, so a phrase that moves fails once per flow with the flow named
@@ -27,27 +31,26 @@ const carries = (part, phrases) => {
   for (const flow of FLOWS) {
     const said = served(flow, part);
     for (const [what, phrase] of phrases) {
-      assert.ok(said.includes(phrase),
-        `the \`${flow}\` flow's \`${part}\` part says nothing of ${what}: "${phrase}"`);
+      assert.ok(said.includes(flat(phrase)),
+        `the \`${flow}\` flow's \`${part}\` part says nothing of ${what}: "${flat(phrase)}"`);
     }
   }
 };
 
 test("supersession is a disposition of its own, earned by what replaced the flow", () => {
   carries("dispositions", [
-    ["the row itself", "| superseded |"],
-    ["what earns it", "the release or the issue that replaced the flow, named"],
+    ["the row itself", "| superseded | the release or the issue that replaced the flow, named"],
     ["the ask answered elsewhere", "this issue's own ask is answered there, differently"],
   ]);
 });
 
 test("supersession is separated from obsolete, and age earns neither", () => {
   carries("dispositions", [
-    ["the two being one reading", "Superseded and obsolete are not one reading"],
+    ["the two being one reading", "Superseded is not obsolete"],
     ["what obsolete is", "Obsolete is the subject gone"],
     ["what supersession is", "Superseded is the subject still standing"],
-    ["age as an earner", "Age earns neither, and no other row either"],
-    ["an old issue still true", "An old issue describing something still true is\nstill real"],
+    ["age as an earner", "Age earns neither, nor any other row"],
+    ["an old issue still true", "An old issue describing something still true is still real"],
   ]);
 });
 
@@ -56,26 +59,26 @@ test("supersession is separated from obsolete, and age earns neither", () => {
    instructions for one pair unless the walk says which question decides. */
 test("the walk's fold turns on reports-or-symptoms, and the module decides nothing", () => {
   carries("dispositions", [
-    ["what decides a fold", "whether the two are reports of one thing or symptoms of one cause"],
-    ["the module deciding nothing", "the module they sit in\n   decides nothing either way"],
-    ["reports folding wherever filed", "fold onto a survivor wherever they were\n   filed"],
+    ["what decides a fold", "What decides a fold is reports-or-symptoms, never the module"],
+    ["reports folding wherever filed", "two reports of one thing fold onto a survivor wherever they were filed"],
     ["symptoms folding nowhere", "two distinct symptoms of one cause fold nowhere"],
-    ["the same-module case", "however far inside one module and one\n   mechanism they both sit"],
+    ["the same-module case", "however far inside one module and one mechanism they sit"],
+    ["where they go instead", "Those leave triage as the phase's cluster instead"],
   ]);
 });
 
 test("a reading the method does not have is filed rather than supplied by hand", () => {
   carries("dispositions", [
-    ["the rule", "A reading this page cannot make is filed, and never supplied by hand"],
-    ["what it costs otherwise", "costs whoever happened to be watching"],
+    ["the rule", "A reading this page cannot make is filed, never supplied by hand"],
+    ["where it goes", "it goes on the backlog as a filing against the method"],
   ]);
 });
 
 test("a surviving candidate carries where it sits, in three values earned by an act", () => {
   carries("2", [
     ["the reading", "A candidate that survives also carries a reading of where it sits"],
-    ["the ordinary run", "Core, where the surface it"],
-    ["the declared route", "edge, where it is met on a route the project itself\ndeclares or chooses"],
+    ["the ordinary run", "Core, where the surface it names is met by a run doing nothing unusual"],
+    ["the declared route", "edge, where it is met on a route the project itself declares or chooses"],
     ["the investigation", "peripheral, where no run reaches it unless somebody is investigating"],
     ["what earns it", "earned by naming the act that meets the issue, never by asserting a tier"],
   ]);
@@ -83,55 +86,57 @@ test("a surviving candidate carries where it sits, in three values earned by an 
 
 test("where two tiers fit, the higher is the reading", () => {
   carries("2", [
-    ["the rule", "where two of\nthe three would both fit the higher one is the reading"],
-    ["the configured surface", "is edge and not peripheral"],
-    ["the unpopular option", "however rarely that configuration\nis chosen"],
+    ["the rule", "where two would both fit the higher one is the reading"],
+    ["the configured surface", "is edge, however rarely that configuration is chosen"],
   ]);
 });
 
 test("the reading is not the priority field", () => {
   carries("2", [
     ["the separation", "That reading is not the priority field"],
-    ["what priority is", "Priority is what somebody wants done"],
-    ["what conflating costs", "Conflating\nthem loses both readings"],
+    ["what each is", "Priority is what somebody wants done; this is where the issue sits"],
   ]);
 });
 
 test("a family of symptoms over one cause is a cluster whose members survive whole", () => {
   carries("2", [
     ["the cluster", "distinct symptoms of one cause, the reading is a cluster"],
-    ["the relation", "related to one another on the tracker rather than only described together in one place"],
+    ["the relation", "members are related to one another on the tracker"],
     ["what each keeps", "each keeps its own key, its own evidence and its own disposition"],
-    ["why a fold loses", "a fold destroys the thing that would have proved it"],
-    ["the cause naming no key", "one\nsentence that names no issue key"],
-    ["a cause that is not one", "a cause that can only be described by listing its issues is not a\ncause"],
+    ["the cause naming no key", "The cause goes in one sentence naming no issue key"],
   ]);
 });
 
 test("a shared file is not a cause, and the proposal is triage's while the filing is not", () => {
   carries("2", [
     ["the neighbour rule", "Two issues sharing a file are neighbours, not a cluster"],
-    ["what makes a cluster", "What makes a cluster is a shared cause"],
-    ["the forced cluster", "it sends one change at two problems"],
+    ["what makes a cluster", "What makes one is a shared cause"],
     ["whose the proposal is", "this phase's to propose and the owner's to decide"],
-    ["the filing withheld", "does not file\nthe grouping issue"],
+    ["the filing withheld", "does not file the grouping issue"],
   ]);
 });
 
-/* The readings this change leaves alone. A row whose bar moved, or a complexity redefined as
-   anything but effort, would answer this issue's criteria and break the phase it sits in. */
-test("the five standing dispositions and the complexity reading are untouched", () => {
+/* The readings this change leaves alone, each asserted whole rather than by its opening: a row that
+   quietly lost its evidence bar would pass a prefix and is exactly the regression this guards. */
+test("the five standing dispositions keep their evidence bars whole", () => {
   carries("dispositions", [
-    ["already fixed", "| already fixed | the change that fixed it, named,"],
-    ["duplicate", "| duplicate | the issue it duplicates, named,"],
-    ["intended", "| intended | where the behaviour is decided on purpose"],
-    ["obsolete", "| obsolete | what the issue was about, gone:"],
-    ["premise false", "| premise false | the line of the body that is wrong,"],
+    ["already fixed", "| already fixed | the change that fixed it, named, and the behaviour the issue"
+      + " describes read at the current head |"],
+    ["duplicate", "| duplicate | the issue it duplicates, named, and the reading that says they are one"
+      + " thing rather than two that rhyme |"],
+    ["intended", "| intended | where the behaviour is decided on purpose — a rule, a refusal, a"
+      + " declared default — cited |"],
+    ["obsolete", "| obsolete | what the issue was about, gone: the file, the verb, the surface it names |"],
+    ["premise false", "| premise false | the line of the body that is wrong, and what the code says instead |"],
     ["holding as the ordinary answer", "Anything else *holds*, and holding is the ordinary answer"],
   ]);
+});
+
+test("the complexity reading is untouched, and stays what a rung is claimed from", () => {
   carries("2", [
-    ["the complexity field", "the tracker's `complexity` field is\nwhere"],
-    ["what it is read from", "files the change would touch, whether a person sees the result, whether a rule changes"],
+    ["the field", "A candidate that survives also carries a complexity, and the tracker's `complexity` field is where"],
+    ["what it is read from", "the files the change would touch, whether a person sees the result,"
+      + " whether a rule changes"],
     ["no run on an unsized issue", "no run is dispatched on an issue holding none"],
   ]);
 });
