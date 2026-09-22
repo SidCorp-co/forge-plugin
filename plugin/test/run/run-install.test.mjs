@@ -173,6 +173,10 @@ test("an install-only resume of a superseded release is refused before the regis
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /this tree is not what origin\/master holds/u, run.stderr);
   assert.match(run.stderr, /ship --from 2/u, `no route out of a superseded resume:\n${run.stderr}`);
+  /* The branch was read, so the remedy is settled and what the reading adds is which of the two
+     happened — this push landed and was passed, rather than never having landed (ISS-671). */
+  assert.match(run.stderr, /carries this release, so a release landed after this one pushed/u,
+    `the refusal presumed what became of this release rather than reading it:\n${run.stderr}`);
   assert.equal(registeredAt(room.at), room.work, "a refused resume moved the registration anyway");
 });
 
@@ -201,8 +205,8 @@ test("an install-only resume is refused where another clone pushed, which no ref
   assert.equal(registeredAt(room.at), room.work, "a refused resume moved the registration anyway");
 });
 
-/* A remote that answers and names no branch answers empty, which is no failure and no comparison
-   either: a deleted branch, an unreachable remote and an unreadable HEAD are the one refusal. */
+/* A remote that answers and names no branch answers empty, which is no failure: the read ran, so
+   this is the branch being gone and not the remote being unreachable, and the two say so apart. */
 test("an install-only resume is refused where the remote names no such branch at all", () => {
   const room = worktreeRoom("resume-branch-gone");
   landIn(room.tree, join("plugin", "src", "one.mjs"), 4, "the change");
@@ -214,8 +218,72 @@ test("an install-only resume is refused where the remote names no such branch at
 
   const run = runIn(room.tree, ["ship", "--from", "9"], room.env);
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /could not be compared: origin named nothing for master/u, run.stderr);
+  assert.match(run.stderr, /names no master at all: the branch is gone from the remote/u, run.stderr);
+  assert.doesNotMatch(run.stderr, /could not be read/u,
+    `a read that ran and answered empty was told as a read that failed:\n${run.stderr}`);
+  /* This release pushed before the branch was deleted, so re-releasing it raises a version for a
+     change the branch it names already carried: the route out is the branch, not another release. */
+  assert.doesNotMatch(run.stderr, /ship --from 2/u,
+    `the refusal re-releases a change this tree already pushed:\n${run.stderr}`);
   assert.equal(claudeCalls(room.at).length, asked, "the resume installed against a comparison it never made");
+});
+
+/* The failure this step could tell from no other: an `ls-remote` that fails for a minute after the
+   push has landed. Nothing of the release is missing but the read, and a re-release would raise a
+   second version above a branch already carrying this change (ISS-671). */
+test("an install-only resume whose remote cannot be read keeps the pushed release and names this step", () => {
+  const room = worktreeRoom("resume-remote-unread");
+  landIn(room.tree, join("plugin", "src", "one.mjs"), 4, "the change");
+  switched(room.at, "claude-update-refuses");
+  assert.notEqual(runIn(room.tree, ["ship"], room.env).status, 0, "the install was meant to fail");
+  rmSync(join(room.at, "claude-update-refuses"));
+  git(room.tree, "config", "remote.origin.url", join(room.at, "no-remote-here.git"));
+  const asked = claudeCalls(room.at).length;
+
+  const run = runIn(room.tree, ["ship", "--from", "9"], room.env);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /origin\/master could not be read/u, run.stderr);
+  assert.match(run.stderr, /carries this release, so the push landed/u,
+    `the step named a remedy without reading where this release stands:\n${run.stderr}`);
+  assert.doesNotMatch(run.stderr, /ship --from 2/u,
+    `a network blip is answered by a whole release of a change already on the branch:\n${run.stderr}`);
+  assert.match(run.stderr, /Take this step again once origin\/master answers/u,
+    `the resume that fits a pushed release is not named:\n${run.stderr}`);
+  assert.equal(claudeCalls(room.at).length, asked, "the resume installed against a comparison it never made");
+});
+
+/* The same unreadable remote over a tree whose push never landed, which is the state the single
+   remedy was right for: nothing of this release is on the branch, so the release is taken again. */
+test("an install-only resume whose remote cannot be read and whose push never landed names the release from the fetch", () => {
+  const room = worktreeRoom("resume-remote-unread-unpushed");
+  landIn(room.tree, join("plugin", "src", "one.mjs"), 4, "a change this tree never pushed");
+  git(room.tree, "config", "remote.origin.url", join(room.at, "no-remote-here.git"));
+
+  const run = runIn(room.tree, ["ship", "--from", "9"], room.env);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /origin\/master could not be read/u, run.stderr);
+  assert.match(run.stderr, /does not carry this release/u,
+    `the step claimed this release reached the branch:\n${run.stderr}`);
+  assert.match(run.stderr, /ship --from 2/u,
+    `the release from the fetch is not named where nothing of it landed:\n${run.stderr}`);
+});
+
+/* The one reading that answers neither remedy: a tree that cannot say what its HEAD is cannot be
+   asked where its release stands either, and a resume named past that is a guess. */
+test("an install-only resume that cannot read this tree's own HEAD says that alone and names neither resume", () => {
+  const room = worktreeRoom("resume-head-unreadable");
+  landIn(room.tree, join("plugin", "src", "one.mjs"), 4, "the change");
+  git(room.tree, "symbolic-ref", "HEAD", "refs/heads/no-such-branch");
+
+  const run = runIn(room.tree, ["ship", "--from", "9"], room.env);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /could not be asked what its HEAD is/u, run.stderr);
+  assert.doesNotMatch(run.stderr, /could not be read|gone from the remote/u,
+    `a tree that cannot be read was told about the remote as well:\n${run.stderr}`);
+  assert.doesNotMatch(run.stderr, /ship --from 2/u,
+    `a resume was named from a comparison nothing here could make:\n${run.stderr}`);
+  assert.match(run.stderr, /git -C .* rev-parse HEAD/u,
+    `the read that has to answer first is not named:\n${run.stderr}`);
 });
 
 test("a registration that cannot be moved stops before anything is installed", () => {

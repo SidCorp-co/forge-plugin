@@ -233,6 +233,7 @@ const shipSteps = (tree, root, base, note) => {
   if (!market || !plugin) stop("this checkout names no marketplace or no plugin, so there is nothing to install.");
   const push = `push to ${REMOTE}/${base}`;
   const install = `install ${plugin}@${market} from the tree that shipped`;
+  const fetching = `fetch ${REMOTE}/${base}`;
   const resume = () => `Resume the release at its push step, where the branch push is a no-op and `
     + `this is retried: ${SELF} ship --from ${rows.findIndex(([one]) => one === push) + 1}`;
   /* The last step and not the push: what this one clears is a tracker write, and a resume onto the
@@ -240,9 +241,13 @@ const shipSteps = (tree, root, base, note) => {
      that being the step a checkpoint left standing for want of an install is waiting on. */
   const again = () => `${SELF} ship --from ${rows.length}`;
   const installs = () => `${SELF} ship --from ${rows.findIndex(([one]) => one === install) + 1}`;
+  /* The release from the fetch, which every refusal naming a re-release points at. Off the table
+     rather than typed where it is printed: a step that carries its own number is the drift this
+     file's own step count already paid for once (ISS-671). */
+  const releases = () => `${SELF} ship --from ${rows.findIndex(([one]) => one === fetching) + 1}`;
   const rows = [
     ["the tree is clean", () => cleanTree(tree)],
-    [`fetch ${REMOTE}/${base}`, () => {
+    [fetching, () => {
       loud("git", ["fetch", REMOTE, base], tree, "Check the remote is reachable.");
       writeFileSync(markFile(tree), `${revAt(tree, remoteRef(base))}\n`);
     }, LANDS],
@@ -273,7 +278,7 @@ const shipSteps = (tree, root, base, note) => {
       publishesVersion(tree, gitOut(["rev-parse", "HEAD"], tree), version, resume());
     }, PUSHES],
     ["the checkout follows", () => follows(root, base, tree)],
-    [install, () => installed({ tree, root, base, market, plugin, self: SELF }), INSTALLS],
+    [install, () => installed({ tree, root, base, market, plugin, again: installs(), release: releases() }), INSTALLS],
     ["the copy the next session loads", async () => {
       const copy = pluginCopy(join(tree, "plugin"));
       console.log(copy
