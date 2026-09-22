@@ -45,7 +45,7 @@ test("the landing mode is the project's: it is written to this machine's record 
   assert.equal(machineShip(saved), undefined,
     "and the account's configuration holds no such key: the project decided, not the box");
   assert.match(said, new RegExp(`${escaped(entry)}`, "u"), "the line it prints names the file it wrote");
-  assert.match(said, /A run in a checkout of demo now ends at a pushed branch/u,
+  assert.match(said, /Runs of `demo` now end at a pushed branch/u,
     "and the sentence names the project it wrote for rather than this machine");
   assert.doesNotMatch(said, /on this machine now/u, "it claims nothing about the box");
 });

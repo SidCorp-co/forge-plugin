@@ -321,12 +321,14 @@ const FLOW_USAGE = "forge doctor --flow <slug>";
 export const writeShip = (mode) => {
   if (!SHIP_MODES.includes(mode)) fail(didYouMean("--ship mode", mode, SHIP_MODES));
   const said = projectWrite({ ...projectRoute("ship"), said: "--ship" }, mode);
-  const which = slugIfAny() ?? projectFilePath();
+  /* Named by its slug where it has one and as the checkout's project where it has not: the line
+     above already carries the file, and a checkout with no slug yet is one this sentence has no
+     name for. */
+  const which = slugIfAny() ? `\`${slugIfAny()}\`` : "the project this checkout belongs to";
   return [...said, mode === "ready"
-    ? `A run in a checkout of ${which} now ends at a pushed branch and a landing checkpoint; the `
-      + "landing is another actor's. No other project on this machine is moved by it."
-    : `A run in a checkout of ${which} now lands its own change. No other project on this machine is `
-      + "moved by it."];
+    ? `Runs of ${which} now end at a pushed branch and a landing checkpoint; the landing is another `
+      + "actor's. No other project on this machine is moved by it."
+    : `Runs of ${which} now land their own change. No other project on this machine is moved by it.`];
 };
 
 export const restoreFailed = (path, slug, why) =>
