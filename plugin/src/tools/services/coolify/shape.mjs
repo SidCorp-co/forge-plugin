@@ -46,7 +46,11 @@ const maskedSecretUrl = (value, cut) => {
     cut?.add(value);
     return MASK;
   }
-  if (url.username) cut?.add(url.password || url.username);
+  /* A password with no user beside it is still a credential, and the line below drops that pair
+     without a name to hang a mask on — so what was removed is reported off either half being
+     there, never off the user alone. */
+  const credential = url.password || url.username;
+  if (credential) cut?.add(credential);
   const named = url.username ? `${url.password ? `${url.username}:${MASK}` : MASK}@` : "";
   const origin = `${url.protocol}//${named}${url.host}`;
   if (!CONNECTION.has(url.protocol)) {

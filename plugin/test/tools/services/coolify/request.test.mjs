@@ -512,3 +512,15 @@ test("a connection string whose scheme is capitalised is struck of its password 
   assert.ok(!answer.stderr.includes("hunter2"), "the password reached stderr");
   assert.deepEqual(JSON.parse(wroteTo(answer, "POST").body), { key: "DATABASE_URL_PARTED", value: shouted });
 });
+
+/* A connection string can carry a password with no user beside it. The masking drops that pair from
+   the line with no name to hang a mask on, so nothing about the line says a credential was there —
+   which is exactly the reading a rule that reports off the user alone would make. */
+test("a connection string carrying a password and no user is struck of that password", async () => {
+  const only = "redis://:hunter2@redis.internal:6379/0";
+  const answer = await ran("app", "env", "create", "a-in", "--key", "REDIS_URL_PARTED", "--value", only, "--yes");
+  assert.equal(answer.status, 1);
+  assert.match(answer.stderr, /Rejected password: <redacted>/u);
+  assert.ok(!answer.stderr.includes("hunter2"), "the password reached stderr");
+  assert.deepEqual(JSON.parse(wroteTo(answer, "POST").body), { key: "REDIS_URL_PARTED", value: only });
+});
