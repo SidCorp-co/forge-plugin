@@ -273,6 +273,14 @@ test("a change that reached no deployment takes a checkpoint declaring that, and
     `nothing about the checkpoint stands between this judge and the rung:\n${owed.stdout}`);
   assert.match(owed.stdout, /testing is next and the record earns it/u,
     `and the rung the judging run is dispatched to earn:\n${owed.stdout}${owed.stderr}`);
+  /* What the rung would be owed and what the move does are two readings, and only the second is the
+     one this issue exists for: a promotion path that refused after the checkpoint stood would leave
+     the first green and the judge exactly where it was (review F1). */
+  const moved = await declaringQa("independent", () => ran(["advance", "ISS-1784"], room));
+  assert.equal(moved.status, 0, `${moved.stdout}${moved.stderr}`);
+  assert.match(moved.stdout, /developed -> testing/u, `${moved.stdout}${moved.stderr}`);
+  assert.equal(state.issues[0].status, "testing",
+    "and the status the tracker holds is the one the judging run was dispatched to earn");
 });
 
 /* `landingOf` answers null for a block whose state it cannot place as well as for no block, and a
