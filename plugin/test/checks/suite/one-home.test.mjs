@@ -64,15 +64,37 @@ test("the reader reports a file that reads the table here and gives its child a 
   assert.match(said(SPLIT)[0], /^one\.mjs:1 reads usageOf of plugin\/src\/resolve\/visibility\.mjs/u);
   assert.match(said(SPLIT)[0], /handing a child an XDG_CONFIG_HOME of its own/u);
   assert.match(said(SPLIT)[0],
-    /Assign process\.env\.XDG_CONFIG_HOME = the home this file's children are given/u);
+    /Assign process\.env\.XDG_CONFIG_HOME = the home this process is to read/u);
 });
 
 test("the reader reports nothing for a file that pins the home its own process reads", () => {
   assert.deepEqual(said(`${SPLIT}\nprocess.env.XDG_CONFIG_HOME = HOME;`), []);
   assert.deepEqual(said(`${SPLIT}\nprocess.env . XDG_CONFIG_HOME = room;`), [],
     "the property is the property however it is spaced");
+  assert.deepEqual(said(`${SPLIT}\nprocess.env["XDG_CONFIG_HOME"] = room;`), [],
+    "and however it is spelt");
   assert.equal(said(`${SPLIT}\nif (process.env.XDG_CONFIG_HOME === HOME) return;`).length, 1,
     "a comparison assigns nothing");
+});
+
+/* What the rule holds is that the process says which home it reads, never that it says the child's:
+   a file whose children each get a room of their own has no one home to share with them, and
+   subjects.test.mjs is that file. Where the two do have to be the same the file holds it itself, by
+   reading a value it planted back out of the home it pinned, which is a claim about what was
+   memoised and not one this text could settle. */
+test("the reader reports nothing for a file that pins a home other than the one its child is given", () => {
+  assert.deepEqual(said(`${SPLIT}\nprocess.env.XDG_CONFIG_HOME = OTHER;`), []);
+});
+
+/* Watched failing: a key the mask blanks whole, which is the spelling this reader saw nothing of
+   while it read the masked text and not the source. */
+test("a child's home is the key it spells, quoted or computed or bare", () => {
+  for (const key of ['"XDG_CONFIG_HOME"', "'XDG_CONFIG_HOME'", '["XDG_CONFIG_HOME"]', "XDG_CONFIG_HOME"]) {
+    assert.equal(said(`${BINDS}\nspawnSync(FORGE, argv, { env: { ...process.env, ${key}: HOME } });`).length, 1, key);
+  }
+  assert.deepEqual(said(`${BINDS}\nconst said = "XDG_CONFIG_HOME: the home";`), [],
+    "the same letters inside a fixture's own text are prose, their colon blanked with them");
+  assert.deepEqual(said(`${BINDS}\n/* XDG_CONFIG_HOME: the home a child gets */`), []);
 });
 
 test("the reader reports nothing for a file that hands no child a home of its own", () => {

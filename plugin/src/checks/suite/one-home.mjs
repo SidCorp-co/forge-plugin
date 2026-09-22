@@ -50,22 +50,41 @@ export const readsIn = (text) => {
   return found.sort((one, next) => one[0] - next[0]);
 };
 
-const HANDS_A_CHILD = /(?<![.\w$])XDG_CONFIG_HOME\s*:/u;
-const PINS_ITS_OWN = /process\s*\.\s*env\s*\.\s*XDG_CONFIG_HOME\s*=(?!=)/u;
+/* The key is read off the text and the punctuation that decides what it is off the mask, so
+   `"XDG_CONFIG_HOME"` and `["XDG_CONFIG_HOME"]` are the key they spell — a quoted key is blanked
+   whole — while the same letters inside a comment or a fixture's own text are prose, their colon
+   blanked with them. */
+const AS_A_CHILD = /(?:\[\s*)?(["'])?XDG_CONFIG_HOME\1?(?:\s*\])?\s*:/gu;
+const AS_A_PIN = /process\s*\.\s*env\s*(?:\.\s*|\[\s*(["']))XDG_CONFIG_HOME\1?(?:\s*\])?\s*=(?!=)/gu;
+
+/* What placed a hit is its last character, which is the `:` or the `=` and never inside the quotes. */
+const real = (text, code, pattern) => [...text.matchAll(pattern)]
+  .some((hit) => code[hit.index + hit[0].length - 1] === text[hit.index + hit[0].length - 1]);
 
 const says = (rel, line, names) =>
   `${rel}:${line} reads ${names.join(", ")} of plugin/src/resolve/visibility.mjs in this process `
-  + `while handing a child an XDG_CONFIG_HOME of its own, so one side of an assertion here answers `
-  + `out of whoever's machine this is and the other out of a fixture. A row of that table is a `
-  + `function where this machine has chosen something, so the two sides agree only while the box `
-  + `happens to agree with the fixture, and the suite goes red on a box whose owner ran the command `
-  + `a refusal named. Assign process.env.XDG_CONFIG_HOME = the home this file's children are given, `
-  + `above the first read, the way plugin/test/tools/services/tool-config.test.mjs does and for the `
-  + `reason written there.`;
+  + `while handing a child an XDG_CONFIG_HOME of its own, so this process is the only thing here `
+  + `still answering out of whoever's machine it is. A row of that table is a function where this `
+  + `machine has chosen something, so an expectation computed here matches what the child printed `
+  + `only while the box happens to agree with the fixture, and the suite goes red on a box whose `
+  + `owner ran the command a refusal named. Assign process.env.XDG_CONFIG_HOME = the home this `
+  + `process is to read, above the first read, the way `
+  + `plugin/test/tools/services/tool-config.test.mjs does and for the reason written there. Which `
+  + `home that is belongs to this file: the same one its children are given where an expectation is `
+  + `compared against them, a room of its own where they each get one.`;
 
-/** One refusal per binding in this file that reads the machine while a child reads a fixture. */
+/** One refusal per binding in this file that reads the machine while its children read fixtures.
+ *
+ *  What this holds is that the process names a home, not that it names the child's: a file whose
+ *  children each get a room of their own has no single home to share, and demanding one would refuse
+ *  it for a shape that is right. Where the two do have to agree, the file says so in a case of its
+ *  own — reading a value it planted back out of the home it pinned — because that is a claim about
+ *  what was memoised and no reading of this text could settle it. Two more the text cannot settle,
+ *  and they are the bound rather than a gap: an assignment written inside a helper nobody calls
+ *  counts here as a pin, and a child handed its home by a fixture that spells the key elsewhere is
+ *  out of reach entirely. */
 export const splitIn = (text, rel) => {
   const code = blanked(text);
-  if (!HANDS_A_CHILD.test(code) || PINS_ITS_OWN.test(code)) return [];
+  if (!real(text, code, AS_A_CHILD) || real(text, code, AS_A_PIN)) return [];
   return readsIn(text).map(([line, names]) => says(rel, line, names));
 };
