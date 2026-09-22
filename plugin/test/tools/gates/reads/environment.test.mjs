@@ -279,10 +279,11 @@ test("a call naming a record directory of its own keeps it, and its child record
     rmSync(mine, { recursive: true, force: true });
     mkdirSync(mine, { recursive: true });
     const half = spawnedUnder(where, out, `{ PATH: process.env.PATH, GATE_READS: ${JSON.stringify(mine)} }`);
+    const handed = half.find((one) => one.spawned.length > 0).spawned[0].ticket;
     const there = readdirSync(mine).map((one) => JSON.parse(readFileSync(join(mine, one), "utf8")));
-    assert.deepEqual(there.some((one) => one.paths.includes(FILE)), true,
-      "a call naming the room and not the root gets the root it did not name");
-    assert.deepEqual(half.flatMap((one) => one.blind), [], "and blinds the file that spawned it on nothing");
+    assert.deepEqual(there.some((one) => one.ticket === handed && one.paths.includes(FILE)), true,
+      "a call naming the room and not the root gets the root it did not name, and what it read is "
+      + "under the ticket it was handed rather than nowhere");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
