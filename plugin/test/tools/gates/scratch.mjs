@@ -37,12 +37,15 @@ export const reachedFrom = (roots) => {
 // The runner, and the reporter `steps.mjs` names by path: a walk sees no runtime specifier.
 export const RUNNER_ROOTS = [RUNNER, join("tools", "gates", "reporters", "file-times.mjs")];
 
-// `recurrence.mjs`'s own, and `project-config.mjs`, which every `write()` reaches the same way.
+// `recurrence.mjs`'s own, and `project-config.mjs` and `guides.mjs`, which every `write()` reaches
+// the same way — the first to resolve the project, the second to read what the tracker warned about
+// against this copy's disposition of the page it came off.
 export const ROUTE_ROOTS = [
   join("plugin", "src", "tracker", "filing", "route.mjs"),
   join("plugin", "src", "tracker", "comments.mjs"),
   join("plugin", "src", "tracker", "issues.mjs"),
   join("plugin", "src", "tracker", "project-config.mjs"),
+  join("plugin", "src", "guides", "guides.mjs"),
   join("plugin", "src", "resolve", "settings.mjs"),
   join("plugin", "src", "resolve", "flags.mjs"),
 ];
