@@ -256,6 +256,11 @@ const routed = async (argv) => {
 
 const BUILTIN = { login: saveTarget, accounts: showTarget, whoami };
 
+/* Whether the other route has this name at all, asked of that route's own index and its own
+   built-ins rather than of a list kept here. A word neither route serves is not the other route's,
+   and telling a caller to switch credentials for one costs a command and answers nothing. */
+const onInstance = (name) => Object.hasOwn(BUILTIN, name) || resolveCommand([name]).kind !== "group";
+
 /* Both refusals end here, so the one thing a caller can do about either is on both of them. */
 const said = (lines) => fail(`${lines.join("\n")}\n  the saved instance and its own commands: ${TO_INSTANCE}`);
 
@@ -268,6 +273,9 @@ const refuseOffTracker = (found) => {
     return said([`coolify: the tracker serves \`${found.name}\` and this CLI does not offer it, `
       + `because ${found.why}.`,
     `  ${found.instead}`]);
+  }
+  if (!onInstance(found.name)) {
+    fail(`coolify: ${didYouMean("command", found.name, TAKEN_HERE)}`);
   }
   return said([`coolify: \`${found.name}\` is a command of the saved instance, which is not the `
     + "route answering here.",

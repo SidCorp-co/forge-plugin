@@ -119,6 +119,24 @@ test("a name the tracker route does not serve is refused by name and reaches no 
   }
 });
 
+/* The word is the whole of what a caller mistyped, and a refusal that hands it to the other route
+   spends a command on a switch that answers nothing: the other route does not have it either. */
+test("a name neither route has is refused as unknown rather than as the other route's", async () => {
+  chose(null);
+  for (const name of ["nonsense", "lst", "deployx"]) {
+    const run = await ran(name);
+    assert.equal(run.status, 1, `${name}: ${run.stdout}`);
+    assert.doesNotMatch(run.stderr, /command of the saved instance/u,
+      `${name} is in no route of either way and was called the saved instance's: ${run.stderr}`);
+    assert.doesNotMatch(run.stderr, /forge doctor --coolify-route/u,
+      `${name} sends the caller to switch credentials for a word nothing serves: ${run.stderr}`);
+    assert.match(run.stderr, /coolify: No command named/u, run.stderr);
+    assert.deepEqual(run.calls, [], `${name} sent a request before refusing`);
+  }
+  assert.match((await ran("lst")).stderr, /Did you mean: list\?/u,
+    "and a near miss on a name this route takes is offered it");
+});
+
 test("the two commands about the saved credential answer on the tracker route too", async () => {
   chose(null);
   const run = await ran("accounts");
