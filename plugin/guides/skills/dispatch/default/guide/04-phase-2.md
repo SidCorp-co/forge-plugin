@@ -56,15 +56,13 @@ the CLI withholds is not worked around.
 
 **Where several candidates are distinct symptoms of one cause, the reading is a cluster.** Its
 members are related to one another on the tracker, and each keeps its own key, its own evidence and
-its own disposition: a fold destroys the symptom that would have proved the fix. The cause goes in
-one sentence naming no issue key — one that can only be described by listing its issues is not a
-cause.
+its own disposition. The cause goes in one sentence naming no issue key — one that can only be
+described by listing its issues is not a cause.
 
-**Two issues sharing a file are neighbours, not a cluster.** What makes one is a shared cause, and a
-forced cluster costs more than none.
+**Two issues sharing a file are neighbours, not a cluster.** What makes one is a shared cause.
 
 **A cluster is this phase's to propose and the owner's to decide.** Triage names it and does not file
-the grouping issue, a grouped change being a commitment about what gets built next.
+the grouping issue.
 
 Where the candidates are divided among readers, each candidate belongs to exactly one of them. A
 slice cut by a search term is not a partition: a body answering two terms is read twice, and the
