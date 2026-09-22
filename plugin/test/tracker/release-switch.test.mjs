@@ -30,6 +30,8 @@ test("the project's own key answers the switch, over a tracker flag that says th
   assert.equal(policy(true, declared("manual")).autoProd, false);
   assert.equal(policy(false, declared("auto")).autoProdFrom, "the project's own record",
     "and the level that answered travels with the answer, for the row that prints it");
+  assert.equal(policy(true, declared("manual")).autoProdFrom, "the project's own record",
+    "whichever of the two answers the key gave");
 });
 
 test("a project that declared nothing locally is the project the tracker's flag already described", () => {
@@ -37,13 +39,19 @@ test("a project that declared nothing locally is the project the tracker's flag 
   assert.equal(policy(false, unset).autoProd, false);
   assert.equal(releaseFrom(PUBLISHES, unset).autoProd, false,
     "and neither level having spoken is the reading that stops rather than the one that ships");
+  assert.equal(policy(true, unset).autoProdFrom,
+    "the tracker's project config, this project's own `release` key being unset",
+    "named in full, a fallback nobody can see being a precedence nobody can undo");
 });
 
 /* A word the key does not take falls back with the rest, as every key of that file does: the report
    is where it is named, and the behaviour is the one the project had before the typo. */
 test("a word the key does not take leaves the tracker's flag answering, and is carried for the report", () => {
   assert.equal(policy(true, mistyped).autoProd, true);
-  assert.match(policy(true, mistyped).autoProdFrom, /holding `manul`, which is no value of it/u);
+  assert.equal(policy(true, mistyped).autoProdFrom,
+    "the tracker's project config, this project's own `release` key holding `manul`, which is no value"
+    + " of it — it takes auto, manual",
+    "the values it does take included, so the row hands back a correction rather than a complaint");
 });
 
 /* The three readers that make this one derivation rather than one key each. Each of them read the
