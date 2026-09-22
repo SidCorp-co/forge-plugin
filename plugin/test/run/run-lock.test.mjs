@@ -1,17 +1,16 @@
 /* One landing at a time on a checkout, and what a rejected push leaves behind. The lock is
    exercised twice over: through the module, where a handoff can be made deterministic, and through
    the two verbs that take it — the ship, where the span and the release are, and `land`, the
-   checkout's own, which is the same span with no gate and no version (ISS-512). The other two
-   readers of `tools/run.mjs` are `run-script.test.mjs` for the steps and `run-review.test.mjs` for
-   the count. */
+   checkout's own, which is the same span with no gate and no version (ISS-512). The steps around a
+   change are `run-script.test.mjs`'s, the count `run-review.test.mjs`'s, and what a count is
+   reckoned under `run-review-declared.test.mjs`'s. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { alive, BARE, committed, GATE, git, landIn, LAST_STEP, pushed, recordOf, ROOT, runIn, scratch,
-  withReview } from "./run-fixtures.mjs";
+import { alive, BARE, committed, GATE, git, landIn, LAST_STEP, pushed, ROOT, runIn, scratch } from "./run-fixtures.mjs";
 
 const MODULE = join(ROOT, "tools", "run", "lock.mjs");
 const { dropShipLock, lockFile, takeShipLock } = await import(MODULE);
@@ -392,57 +391,6 @@ test("uncommitted work at a rejected push stops the undo, and stays on disk", ()
     "the undo ran over a tree it was told to leave");
   assert.equal(readFileSync(join(room.work, "plugin", "src", "one.mjs"), "utf8"),
     "work somebody has not committed\n", "a rejected push threw away work nobody had committed");
-});
-
-test("the reading threshold and the counted paths are the project's, and reach every sentence that prints them", () => {
-  const { work } = pushed("review-lines-project");
-  withReview(work, 40, ["plugin/src", "tools"]);
-  runIn(work, ["review", "--done"], BARE);
-
-  const help = runIn(work, ["-h"], BARE).stdout;
-  assert.match(help, /range holds 40 changed line\(s\)/u, "the help names a number the project has replaced");
-  assert.match(help, /counts what landed under plugin\/src, tools since/u,
-    "the help names the paths the project has replaced");
-
-  landIn(work, join("plugin", "src", "wide.mjs"), 39, "a module a run grew");
-  assert.match(runIn(work, ["review"], BARE).stdout, /^Short of the 40 changed line\(s\)/mu, "39 is one short");
-
-  landIn(work, join("plugin", "src", "wide.mjs"), 40, "the line that crosses it");
-  assert.match(runIn(work, ["review"], BARE).stdout, /^A review is owed: 40 changed line\(s\)/mu, "40 is the boundary");
-});
-
-test("the threshold and the counted paths this script ships with stand where the project declares neither", () => {
-  const { work } = pushed("review-lines-default");
-  runIn(work, ["review", "--done"], BARE);
-  assert.match(runIn(work, ["review"], BARE).stdout, /^Short of the 1500 changed line\(s\)/mu, "the default is 1500");
-  const help = runIn(work, ["-h"], BARE).stdout;
-  assert.match(help, /range holds 1500 changed line\(s\)/u, "the help says the same");
-  assert.match(help, /counts what landed under plugin\/src, plugin\/hooks, plugin\/bin since/u,
-    "and the three this script ships with");
-});
-
-test("a review.lines that is no count of lines is refused by name rather than replaced", () => {
-  for (const given of [0, -5, 1.5, null]) {
-    const { work } = pushed(`review-lines-${String(given).replace(/[.-]/gu, "_")}`);
-    runIn(work, ["review", "--done"], BARE);
-    withReview(work, given);
-    const run = runIn(work, ["review"], BARE);
-    assert.equal(run.status, 1, run.stdout);
-    assert.ok(run.stderr.includes(`\`review.lines\` in ${recordOf(work)} is a whole number of `
-      + "changed lines above zero"), run.stderr);
-    assert.ok(run.stderr.includes(String(given)), `the value refused is not named:\n${run.stderr}`);
-  }
-});
-
-test("the ship's own count is the project's too", () => {
-  const room = remoted("review-lines-ship");
-  withReview(room.work, 40);
-  runIn(room.work, ["review", "--done"], BARE);
-  landIn(room.work, join("plugin", "src", "wide.mjs"), 20, "a module a run grew");
-  const env = claudeSaying(room, "claude-saw");
-
-  const run = runIn(room.work, ["ship"], env);
-  assert.match(run.stdout, /short of the 40 line\(s\) that call for a reading/u, `${run.stdout}${run.stderr}`);
 });
 
 /* The verb the wave's own record lands through. What separates it from a release is what it does
