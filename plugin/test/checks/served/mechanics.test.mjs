@@ -215,8 +215,8 @@ test("the walk reaches the served text, so a clean answer is a clean corpus and 
 const OWED = [
   ["contract/default/01-the-issue-flow-contract.md:3", "`forge doctor` reads the contract for it"],
   ["contract/screen/01-the-issue-flow-contract.md:3", "`forge doctor` reads the contract for it"],
-  ["skills/dispatch/default/guide/08-phase-6.md:27", "The landing takes each issue as far as its record earns and the project's release allows"],
-  ["skills/dispatch/screen/guide/08-phase-6.md:27", "The landing takes each issue as far as its record earns and the project's release allows"],
+  ["skills/dispatch/default/guide/08-phase-6.md:43", "The landing takes each issue as far as its record earns and the project's release allows"],
+  ["skills/dispatch/screen/guide/08-phase-6.md:43", "The landing takes each issue as far as its record earns and the project's release allows"],
   ["skills/forge/default/references/configuration.md:26", "the verb then leaves the usage list"],
   ["skills/forge/default/references/dependencies.md:5", "`forge issue ISS-nn --blocks ISS-mm` writes an edge there, `--relates ISS-mm` writes one that orders nothing"],
   ["skills/forge/default/references/dependencies.md:8", "`forge issue ISS-mm --fields relations` reads them back, under `blockedBy` for the edges holding that issue up, `blocks` for the ones it holds up"],
