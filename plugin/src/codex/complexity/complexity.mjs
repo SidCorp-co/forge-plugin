@@ -5,7 +5,7 @@
    loads the verb table this sits in. docs/cli/codex-the-complexity.md. */
 import { COMPLEXITY_NAMES, rungFrom } from "../../ladder.mjs";
 import { median } from "../../stats/median.mjs";
-import { fail } from "../../resolve/settings.mjs";
+import { budgetMs, fail } from "../../resolve/settings.mjs";
 import { flags, partition } from "../../resolve/flags.mjs";
 import { userConfig } from "../../resolve/config.mjs";
 import { gateway, modelBehind } from "../../resolve/machine/stores.mjs";
@@ -102,6 +102,9 @@ const trackerOf = (row) => (row?.complexity ? String(row.complexity) : UNSET);
 /** One question, one log row under its own kind, whatever came back. `ask` and `log` are handed in so
  *  the suite asks a fake and logs to a list; the live pair is the consult's own. */
 export const askComplexity = async (values, model, row, { effort, signal, ask = askApi, log = logConsult } = {}) => {
+  /* One question is a consult of one call and runs under the consult's clock: a socket the gateway
+     let die held the first luna measurement forever, its question having no deadline of its own. */
+  const deadline = signal ?? AbortSignal.timeout(budgetMs());
   const state = stateOf(row);
   const tracker = trackerOf(row);
   const started = Date.now();
@@ -109,7 +112,7 @@ export const askComplexity = async (values, model, row, { effort, signal, ask = 
   let answer;
   try {
     answer = await ask(values, model, [{ role: "user", content: JSON.stringify(state) }],
-      { tools: [COMPLEXITY_TOOL], choose: COMPLEXITY_TOOL.name, system: COMPLEXITY_ROLE, effort, signal });
+      { tools: [COMPLEXITY_TOOL], choose: COMPLEXITY_TOOL.name, system: COMPLEXITY_ROLE, effort, signal: deadline });
   } catch (error) {
     const ms = Date.now() - started;
     log({ ...record, ms, ok: false, error: error.message });
