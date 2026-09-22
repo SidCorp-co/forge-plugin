@@ -493,8 +493,12 @@ export const shipMode = once(() => chosen(forgeJson().parsed?.ship, SHIP_MODES, 
 
 /** A `ship` a release before that move left in the machine's own file, read to be reported ignored
  *  and by nothing that decides: honouring it as a fallback is the second layer the move removed, and
- *  dropping it in silence is a value somebody set and nothing tells them about. */
-export const shipLeftOnMachine = () => sourced(configPath(), userConfig().ship);
+ *  dropping it in silence is a value somebody set and nothing tells them about. Presence and never
+ *  truthiness, for that same reason: a key edited to `null` or to a blank is a line somebody wrote
+ *  at a level that has stopped answering for it. */
+export const shipLeftOnMachine = () => (Object.hasOwn(userConfig(), "ship")
+  ? { present: true, value: userConfig().ship, from: configPath() }
+  : { present: false, value: null, from: null });
 
 export const RUNS_TAKES = "a whole number above 0";
 

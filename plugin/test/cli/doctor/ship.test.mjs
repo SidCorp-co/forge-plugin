@@ -105,6 +105,22 @@ test("a landing mode left in the account's configuration is reported ignored and
     "the value left behind is named, and so is the key that replaced it");
 });
 
+/* Presence and not truthiness: a key edited to `null` or to a blank still decides nothing and is
+   still a line somebody wrote, which is the whole of what this row is for. */
+test("a leftover at the machine's level is named whatever value it holds", () => {
+  for (const value of [null, "", "ready"]) {
+    const home = tempRoom("doctor-ship-falsey-");
+    const cwd = projectRoom(tempRoom("doctor-ship-falsey-cwd-"), home, { slug: "demo" });
+    mkdirSync(join(home, "forge"), { recursive: true });
+    writeFileSync(join(home, "forge", "config.json"), JSON.stringify({ ship: value }));
+    const run = spawnSync(process.execPath, [CLI, "doctor", "project"], {
+      encoding: "utf8", cwd, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
+    });
+    assert.match(run.stdout, new RegExp(`\\[ note \\] ship\\s+self {2}← the plugin's default; `
+      + `\`ship: ${escaped(JSON.stringify(value))}\` in \\S+config\\.json is ignored`, "u"), run.stdout);
+  }
+});
+
 /* Two independent facts on one box, and a row that judged the second under the first would drop it
    exactly where a reader has both to act on. */
 test("a project value the key does not take and a leftover at the machine's level are both said", () => {
