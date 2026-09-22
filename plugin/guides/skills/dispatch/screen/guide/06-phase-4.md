@@ -20,10 +20,6 @@ Three things, all read at dispatch time and none of them from memory:
 - **What moved under it.** What has landed since the copy of the plugin that run will load, and
   whether a restart is owed before it starts.
 
-**A brief is the issue's key and these readings.** A part of one mapping to neither is not written:
-the list is what a brief is composed from, rather than a claim about what anything outside it would
-otherwise be.
-
 **What a brief supplies for each is the value, never the reason.** The readings themselves are the
 dispatcher's to give — what a tree holds, which head one was taken at, what has landed since — and a
 brief states, explains or revises no part of the method. Wording does not decide it: a sentence
