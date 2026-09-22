@@ -4,9 +4,10 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 
-import { DECLARES, ISSUE_PARTS, ROUTES, UNTYPED, answersOf, asToolCall, droppedRefusal, keyOf,
-  mimeForName, noRouteRefusal, partsAmong, rowFor, served, undeclaredIn } from "../../src/tracker/routes.mjs";
-import { CHOSEN, staleDeclarations } from "../../src/tracker/name-join.mjs";
+import { DECLARES, ISSUE_PARTS, ROUTES, UNTYPED, answersOf, asToolCall, keyOf,
+  mimeForName, partsAmong, rowFor, served } from "../../src/tracker/routes.mjs";
+import { droppedRefusal, noRouteRefusal, undeclaredIn } from "../../src/tracker/declared/no-route.mjs";
+import { CHOSEN, staleDeclarations } from "../../src/tracker/declared/name-join.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const captures = join(here, "..", "fixtures", "rest");
@@ -62,7 +63,11 @@ const PROJECT_ROWS = ["forge_projects.create", "forge_projects.read", "forge_pro
 /* The rows that answer the page as it came. A write whose answer nothing reads declares no
    projection at all, so there is no shape here to judge and the absence is what is asserted. */
 const RAW_ROWS = ["forge_issues.link", "forge_issues.unlink_edge", "forge_config.pipeline",
-  "forge_config.set_pipeline", "forge_config.facts", "forge_config.set_facts"];
+  "forge_config.set_pipeline", "forge_config.facts", "forge_config.set_facts",
+  /* The deployment platform's own words, which this CLI does not own and does not rename: a
+     projection over them would be this file's guess at a shape the tracker is free to grow. */
+  "forge_coolify.list", "forge_coolify.targets", "forge_coolify.status",
+  "forge_coolify.rollback_images", "forge_coolify.deploy", "forge_coolify.cancel"];
 
 const PAIRS = {
   "issues-get": {
@@ -353,7 +358,7 @@ describe("every row of the table is judged", () => {
 });
 
 /* The name half of what `differs` above declares of a value, under that table's own rule. The
-   reading that produces a name is the shaper's own — `plugin/src/tracker/name-join.mjs`. The two
+   reading that produces a name is the shaper's own — `plugin/src/tracker/declared/name-join.mjs`. The two
    directions themselves are a verb and not a step, this capture being sixteen days old at the time
    of writing and no schedule reaching that: a check comparing a shaper against a capture taken from
    the same wire moves with it or not at all. Spent here is whether each declaration is still true of

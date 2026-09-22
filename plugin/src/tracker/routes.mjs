@@ -369,6 +369,50 @@ export const ROUTES = {
     requests: (args, project) => one(`/projects/${project}/knowledge/${args.slug}`, "DELETE"),
     sends: ["slug"],
   },
+  /* The tracker's own binding of the deployment platform to this project, which is the scope: the
+     path names the project and nothing here names a Coolify instance or reads a file this checkout
+     carries. Six rows and no seventh — three actions that tool has are on no project-scoped route,
+     and the rollback whose own listing read does not answer is refused before it reaches here. The
+     two that act declare `writes`, so a transient answer is not sent again under them. */
+  "forge_coolify.list": {
+    project: true,
+    requests: (args, project) => one(`/projects/${project}/integrations/coolify`),
+    sends: [],
+  },
+  "forge_coolify.targets": {
+    project: true,
+    requests: (args, project) =>
+      one(`/projects/${project}/integrations/coolify/targets${query({ integrationId: args.integrationId })}`),
+    sends: ["integrationId"],
+  },
+  "forge_coolify.status": {
+    project: true,
+    requests: (args, project) =>
+      one(`/projects/${project}/integrations/coolify/status${query({ integrationId: args.integrationId })}`),
+    sends: ["integrationId"],
+  },
+  "forge_coolify.rollback_images": {
+    project: true,
+    requests: (args, project) => one(`/projects/${project}/integrations/coolify/rollback-images`
+      + query({ integrationId: args.integrationId, resourceUuid: args.resourceUuid })),
+    sends: ["integrationId", "resourceUuid"],
+  },
+  /* The body is the route's own strict object: a key it does not declare refuses the whole call at
+     its end, so `filled` is what keeps an argument nobody gave out of it. */
+  "forge_coolify.deploy": {
+    project: true,
+    writes: true,
+    requests: (args, project) => one(`/projects/${project}/integrations/coolify/deploy`, "POST",
+      filled({ issueId: args.issueId, pipelineRunId: args.pipelineRunId, integrationId: args.integrationId })),
+    sends: ["issueId", "pipelineRunId", "integrationId"],
+  },
+  "forge_coolify.cancel": {
+    project: true,
+    writes: true,
+    requests: (args, project) => one(`/projects/${project}/integrations/coolify/cancel`, "POST",
+      filled({ integrationId: args.integrationId, deploymentUuid: args.deploymentUuid })),
+    sends: ["integrationId", "deploymentUuid"],
+  },
   "forge_memory.search": {
     project: true,
     requests: (args, project) => one(`/memory/search`, "POST", { ...args, projectId: project }),
@@ -550,45 +594,3 @@ export const asToolCall = (name, args) => {
 };
 
 export const rowFor = (name, args) => ROUTES[keyOf(name, args)] ?? null;
-
-/* Every row's rather than a route's: `action` makes the key, `projectId` aims off the resolved slug. */
-const STRUCTURAL = new Set(["action", "projectId"]);
-
-/** The arguments a caller gave that the row's route does not send, and the values of one whose legal
- *  set the row declares that are outside it: one refusal, the hazard below being the same for both. */
-export const undeclaredIn = (row, args) => [
-  ...Object.keys(args ?? {}).filter((name) => !STRUCTURAL.has(name) && !(row?.sends ?? []).includes(name)),
-  ...Object.entries(row?.honours ?? {})
-    .map(([name, legal]) => [name, [].concat(args?.[name] ?? []).filter((one) => !legal.includes(one))])
-    .filter(([, outside]) => outside.length).map(([name, outside]) => `${name}: ${outside.join(", ")}`),
-];
-
-/* A narrowing dropped on the way out is worse than a refusal: the caller reads a whole answer as
-   though it were the narrow one it asked for, and pays for the difference without being told. */
-export const droppedRefusal = (key, names, row) =>
-  `${key} was given ${names.join(", ")}, which its route does not send, so nothing was sent at all: `
-  + "an argument dropped in transit reads back as an answer to a question the tracker never heard. "
-  + `This route takes ${(row?.sends ?? []).join(", ") || "no arguments"}${Object.entries(row?.honours ?? {})
-    .map(([name, legal]) => `, and ${name} only ${legal.join(" or ")}`).join("")}, which the -h of the `
-  + "verb that owns it names too.";
-
-/** The capabilities this CLI declares and REST does not serve. Each names the route it wanted, so
- *  the gap is reportable as a route rather than as a verb that stopped working, and each names what
- *  still reaches the same thing. A name outside this table wanted no route and is told so. */
-export const NO_ROUTE = {
-  "forge_knowledge.search": {
-    wanted: "POST /api/projects/:id/knowledge/search",
-    instead: "`forge knowledge list` and `forge knowledge get <slug>` are what still reach the store.",
-  },
-};
-
-export const noRouteRefusal = (key) => {
-  const held = NO_ROUTE[key];
-  if (held) {
-    return `${key} has no route on this tracker's REST API. It wanted \`${held.wanted}\`, which this `
-      + "credential does not reach, so nothing was sent and there is no second endpoint anything "
-      + `could have fallen back to.${held.instead ? `\n${held.instead}` : ""}`;
-  }
-  return `${key} is not a capability this CLI declares a route for, so nothing was sent.\n`
-    + "`forge -h` lists every verb, and each route this CLI serves is some verb's own.";
-};

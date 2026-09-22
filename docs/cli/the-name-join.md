@@ -50,7 +50,7 @@ top-level reading read as covering the nested case is the same mistake as a read
 check that passed from one that never ran, which is why the row that could not run says so.
 
 **A difference somebody chose is declared, and the declaration is checked.** `CHOSEN` in
-`plugin/src/tracker/name-join.mjs` holds one entry per shaper per name, with the reason. The rule over
+`plugin/src/tracker/declared/name-join.mjs` holds one entry per shaper per name, with the reason. The rule over
 it is the route test's, beside the `differs` table that declares a chosen difference of *value*: a
 declaration the shaper turns out to ask for fails, and so does one the capture on disk cannot prove
 either way. That second half is what ties the declaration to a dated capture rather than to a

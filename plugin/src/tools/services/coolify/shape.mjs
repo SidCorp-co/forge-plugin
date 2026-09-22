@@ -1,5 +1,5 @@
 /* What an answer looks like by the time somebody reads it: the phantom health half dropped, the
-   secrets masked, and one object cut to the fields the call was made for. docs/cli/coolify.md. */
+   secrets masked, and one object cut to the fields the call was made for. docs/cli/coolify-the-instance.md. */
 export const MASK = "<redacted>";
 
 const SECRET_KEY =

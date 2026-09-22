@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { COMPLEXITY_NAMES } from "../../ladder.mjs";
 import { DECLARES } from "../../tracker/routes.mjs";
 import { KIND_NAMES } from "../../tracker/issue-shape.mjs";
-import { VERBS } from "../../resolve/visibility.mjs";
+import { VERBS, spanOf } from "../../resolve/visibility.mjs";
 
 export const JUDGE = "refuseUndeclared";
 const JUDGE_ARITY = 4;
@@ -99,7 +99,7 @@ const filterSlots = () =>
 
 /** Every argument the surface invites: each verb's row, plus the filters one verb turns into flags. */
 export const surfaceSlots = () => {
-  const rows = VERBS.flatMap(([verb, usage]) => slotsIn(usage).map((name) => ({ verb, name })));
+  const rows = VERBS.flatMap((row) => slotsIn(spanOf(row)).map((name) => ({ verb: row[0], name })));
   const held = new Map([...rows, ...filterSlots()].map((one) => [`${one.verb}.${one.name}`, one]));
   return [...held.values()];
 };

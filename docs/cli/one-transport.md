@@ -1,8 +1,11 @@
 # One transport
 
-**Two files.** `plugin/src/tracker/routes.mjs` is the table below and makes no request;
-`plugin/src/tracker/rest.mjs` makes them all. A guard saying a module reached no write can then name
-the one file that writes.
+**One file makes the requests.** `plugin/src/tracker/rest.mjs` makes them all, and nothing beside it
+makes any: `plugin/src/tracker/routes.mjs` is the table below, and `plugin/src/tracker/declared/`
+holds what the declaration says where the wire does not agree with it — the names each side has that
+the other has not, and the capabilities with no route at all. Neither is a route, and neither is read
+while one is being built. A guard saying a module reached no write can then name the one file that
+writes.
 
 **One declared table, not a schema read at the call.** Every capability this CLI has is a row naming
 the requests it makes and how the answer becomes the shape its callers read. The tool surface it

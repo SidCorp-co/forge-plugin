@@ -5,6 +5,7 @@
 import { configPath, userConfig } from "../../resolve/config.mjs";
 import { gateway, storeHeld, storeMissing } from "../../resolve/machine/stores.mjs";
 import { coolifyTarget } from "./coolify/config.mjs";
+import { onTracker } from "./coolify/chosen-route.mjs";
 
 
 export const CONFIGURED = "configured";
@@ -26,10 +27,13 @@ const TOOLS = [
     held: () => cloudflareAccounts().accounts.length > 0,
     absent: () => "no account",
     configure: `\`${CLOUDFLARE_LOGIN}\`` },
+  /* Held where the tracker is the route that answers, that one asking this machine for nothing it
+     has not already got: the credential is the instance route's alone, so it is what gates it. */
   { verb: "coolify",
-    held: () => Boolean(coolifyTarget().url),
-    absent: () => "no instance",
-    configure: "`forge coolify login --url <url> --token <token>`" },
+    held: () => onTracker() || Boolean(coolifyTarget().url),
+    absent: () => "no instance, and this machine has chosen the instance route",
+    configure: "`forge coolify login --url <url> --token <token>`, or `forge doctor"
+      + " --coolify-route tracker` for the route that needs neither" },
   { verb: "codex",
     held: () => !gateway().problem,
     absent: () => gateway().problem,

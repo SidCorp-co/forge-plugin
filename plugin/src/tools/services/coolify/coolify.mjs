@@ -1,6 +1,7 @@
-/* The verb itself: its usage texts, the two built-ins that need no instance behind them, and the
-   one order the pieces run in — resolve the operation, read its arguments against that operation's
-   own declaration, put both past the guard, and only then send. docs/cli/coolify.md. */
+/* The verb itself: which of the two ways to the platform answers, the two built-ins that are the
+   saved instance's credential rather than a call, and — on the instance route — the one order the
+   pieces run in: resolve the operation, read its arguments against that operation's own
+   declaration, put both past the guard, and only then send. docs/cli/coolify.md. */
 import { configPath, saveNested } from "../../../resolve/config.mjs";
 import { fail } from "../../../resolve/settings.mjs";
 import { flags, helpAskedOf } from "../../../resolve/flags.mjs";
@@ -12,6 +13,11 @@ import { ask, session, struck } from "./client.mjs";
 import { active, applicationIds, check, environmentIds, filterList, label, makeScope } from "./scope.mjs";
 import { hiddenNames, normalize, pickColumns, redact, renderObject, renderTable, secretsIn, striking, summarize } from "./shape.mjs";
 import { readArgs } from "./args.mjs";
+import {
+  BOTH_KIND, HELD_BACK_KIND, ROUTELESS_KIND, SERVED_KIND, TAKEN_HERE, TO_INSTANCE, TRACKER,
+  coolifyRoute, trackerName,
+} from "./chosen-route.mjs";
+import { noRouteRefusal } from "../../../tracker/declared/no-route.mjs";
 
 export const USAGE = [
   "Usage: forge coolify <login|accounts|whoami|app|deploy|deployment|project|resource> [args]",
@@ -251,8 +257,45 @@ const routed = async (argv) => {
 
 const BUILTIN = { login: saveTarget, accounts: showTarget, whoami };
 
-export const coolify = async ([sub, ...rest]) => {
-  const help = helpAskedOf([sub, ...rest], Object.keys(SAYS));
+/* Both refusals end here, so the one thing a caller can do about either is on both of them. */
+const said = (lines) => fail(`${lines.join("\n")}\n  the saved instance and its own commands: ${TO_INSTANCE}`);
+
+/* Refused before anything is sent, with the sentence the kind `chosen-route.mjs` put the name in
+   earns. Each returns, though `fail` does not come back: a reader should not have to know that to
+   see that one sentence is printed and not three. */
+const refuseOffTracker = (found) => {
+  if (found.kind === ROUTELESS_KIND) return said([noRouteRefusal(found.key)]);
+  if (found.kind === HELD_BACK_KIND) {
+    return said([`coolify: the tracker serves \`${found.name}\` and this CLI does not offer it, `
+      + `because ${found.why}.`,
+    `  ${found.instead}`]);
+  }
+  return said([`coolify: \`${found.name}\` is a command of the saved instance, which is not the `
+    + "route answering here.",
+  `  what this route takes: ${TAKEN_HERE.join(", ")}`]);
+};
+
+const overTracker = async ([sub, ...rest]) => {
+  const { TRACKER_SAYS, TRACKER_USAGE, runTracker } = await import("./tracker.mjs");
+  const help = helpAskedOf([sub, ...rest], TAKEN_HERE);
+  if (help?.subject) {
+    console.log(TRACKER_SAYS[help.subject] ?? SAYS[help.subject] ?? TRACKER_USAGE);
+    process.exit(0);
+  }
+  if (sub === undefined) {
+    console.error(TRACKER_USAGE);
+    process.exit(1);
+  }
+  const found = trackerName(sub);
+  if (found.kind === BOTH_KIND) return BUILTIN[sub](rest);
+  if (found.kind !== SERVED_KIND) refuseOffTracker(found);
+  await runTracker(found.name, found.key, rest);
+};
+
+export const coolify = async (argv) => {
+  if (coolifyRoute().mode === TRACKER) return overTracker(argv);
+  const [sub, ...rest] = argv;
+  const help = helpAskedOf(argv, Object.keys(SAYS));
   if (help?.subject) {
     console.log(SAYS[help.subject] ?? USAGE);
     process.exit(0);
@@ -262,5 +305,5 @@ export const coolify = async ([sub, ...rest]) => {
     process.exit(1);
   }
   if (Object.hasOwn(BUILTIN, sub)) return BUILTIN[sub](rest);
-  await routed([sub, ...rest]);
+  await routed(argv);
 };

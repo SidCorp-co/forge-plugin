@@ -10,6 +10,7 @@ import { userConfig } from "./config.mjs";
 import { declaredJobs, fail, feedbackScope, projectScope } from "./settings.mjs";
 import { STORES } from "./machine/stores.mjs";
 import { unconfiguredTool } from "../tools/services/tool-config.mjs";
+import { TAKEN_HERE, TRACKER_SERVED, onTracker } from "../tools/services/coolify/chosen-route.mjs";
 
 /* A row names its group; `forge -h`'s headings are folded off that, so a verb reaching the table
    without one appears under no heading and `cli-help.test.mjs` refuses it rather than a reader. */
@@ -89,8 +90,16 @@ export const VERBS = [
         delete: "`forge knowledge delete`" } }],
   ["cloudflare", "<zones|zone|dns|purge|search>", "zones and DNS at Cloudflare, on local credentials",
     null, { group: HARNESS }],
-  ["coolify", "<login|accounts|whoami|app|deploy|deployment|project|resource>",
-    "a pinned project's deployments, and nothing outside it", null, { group: HARNESS }],
+  /* Two ways to one platform, and the row names the one that answers: a usage list offering the
+     other way's commands offers every one of them to a refusal. */
+  ["coolify", () => `<${(onTracker() ? TAKEN_HERE
+    : ["login", "accounts", "whoami", "app", "deploy", "deployment", "project", "resource"]).join("|")}>`,
+  () => (onTracker()
+    ? "this project's own deployment bindings, on the credential already held"
+    : "a pinned project's deployments, and nothing outside it"), null,
+  { group: HARNESS,
+    wraps: Object.fromEntries(Object.entries(TRACKER_SERVED)
+      .map(([name, key]) => [key, `\`forge coolify ${name}\``])) }],
   ["codex", "<consult|verdict|pending|show|log|stats|eval|marks|replay|complexity>",
     "a second model reviews what this turn changed", null, { group: HARNESS }],
   ["chatgpt", "<ask|image|collect|pending>",
@@ -104,7 +113,7 @@ export const VERBS = [
     null, { group: HARNESS }],
   ["doctor", `[<subject>] [--token t] [--url u] ${STORE_FLAGS}`
     + " [--hide v|--show v] [--job name|all]"
-    + " [--ship ready|self] [--set k=v] [--flow slug] [--adopt] [--credentials]"
+    + " [--ship ready|self] [--coolify-route m] [--set k=v] [--flow slug] [--adopt] [--credentials]"
     + " [--refresh <file.md|@file|->] [--confirm <source>] [--line <n> <text> --was <prose>] [--title T]"
     + " [--confidence C] [--meta k=v]... [--full]",
     "what resolves and from where, subject by subject, and the keys of it that are written here",
@@ -127,6 +136,14 @@ export const VERB_NAMES = VERBS.map(([verb]) => verb);
 
 const groupOf = (row) => row?.[4]?.group ?? null;
 
+/* A row whose words depend on what this machine chose writes them as a function, read here at the
+   call. Written as a string they would be fixed to the configuration directory that was set when
+   this module loaded, which is not the one a caller setting its own home is answered from. */
+const said = (held) => (typeof held === "function" ? held() : held);
+
+export const spanOf = (row) => said(row?.[1]);
+export const blurbOf = (row) => said(row?.[2]);
+
 /** The offered rows under their heading, in `GROUPS`'s order; an empty group prints no heading. */
 export const grouped = (rows) =>
   GROUPS.map((group) => [group, rows.filter((row) => groupOf(row) === group)])
@@ -136,7 +153,8 @@ const rowFor = (verb) => VERBS.find(([name]) => name === verb);
 
 export const usageOf = (verb) => {
   const row = rowFor(verb);
-  return `Usage: forge ${verb}${row?.[1] ? ` ${row[1]}` : ""}`;
+  const args = spanOf(row);
+  return `Usage: forge ${verb}${args ? ` ${args}` : ""}`;
 };
 
 const NAMES_NO_FIELD = new Set(["data", "expect"]);
@@ -156,13 +174,13 @@ export const helpOf = (verb) => {
   const row = rowFor(verb);
   const fields = fieldsOwned(row);
   const detail = fields.length && `The fields the tracker takes: ${fields.join(", ")}.`;
-  return [usageOf(verb), row?.[2], detail]
+  return [usageOf(verb), blurbOf(row), detail]
     .filter(Boolean)
     .join("\n");
 };
 
-export const helpLine = ([verb, args, blurb]) =>
-  `  ${`${verb} ${args}`.trim().padEnd(46)} ${blurb}`;
+export const helpLine = (row) =>
+  `  ${`${row[0]} ${spanOf(row)}`.trim().padEnd(46)} ${blurbOf(row)}`;
 
 /* A replay of what doctor measured, never a fresh probe, each record carrying its date. */
 const recorded = () => {

@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { GROUPS, VERBS, VERB_NAMES, helpOf, usageOf } from "../../src/resolve/visibility.mjs";
+import { GROUPS, VERBS, VERB_NAMES, helpOf, spanOf, usageOf } from "../../src/resolve/visibility.mjs";
 import { flagsNamed, helpAskedOf, unknownFlag, wantsHelp } from "../../src/resolve/flags.mjs";
 import { USAGE as KNOWLEDGE, SAYS as KNOWLEDGE_SAYS } from "../../src/tools/knowledge.mjs";
 import { USAGE as CLOUDFLARE, SAYS as CLOUDFLARE_SAYS } from "../../src/tools/services/cloudflare.mjs";
@@ -197,7 +197,7 @@ const FIELDS_OF = {
   knowledge: "authoredBy, body, confidence, injection, injectionFilter, kind, kindFilter, metadata,"
     + " query, scope, slug, sourceFilter, strategy, title, topK",
   cloudflare: null,
-  coolify: null,
+  coolify: "deploymentUuid, integrationId, issueId, pipelineRunId, resourceUuid",
   codex: null,
   chatgpt: null,
   hooks: null,
@@ -239,7 +239,7 @@ test("each verb's -h names the fields the tracker takes for the routes that verb
 const NAMES_A_PROJECT = /--project\b|--slug\b|<slug>|projectRef|project[- ]id/iu;
 
 test("no row of the table but project names a project, its slug or its identifier", () => {
-  const found = VERBS.filter((row) => NAMES_A_PROJECT.test(row[1] ?? "")).map((row) => row[0]);
+  const found = VERBS.filter((row) => NAMES_A_PROJECT.test(spanOf(row) ?? "")).map((row) => row[0]);
   assert.deepEqual(found, ["project"],
     "a verb naming a project takes one from the caller, which the checkout already answered");
   assert.ok(NAMES_A_PROJECT.test(usageOf("project")), "and the one that does still says so");

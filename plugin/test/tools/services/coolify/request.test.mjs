@@ -98,7 +98,10 @@ before(async () => {
   await new Promise((done) => server.listen(0, "127.0.0.1", done));
   home = tempRoom("coolify-home-");
   mkdirSync(join(home, "forge"));
+  /* Every case here is the saved instance's route, which is not the one a machine that chose
+     nothing takes, so this home chooses it as a checkout reaching these commands would have. */
   writeFileSync(join(home, "forge", "config.json"), JSON.stringify({
+    coolifyRoute: "instance",
     coolify: { url: `http://127.0.0.1:${server.address().port}`, apiToken: TOKEN },
   }));
   work = tempRoom("coolify-work-");

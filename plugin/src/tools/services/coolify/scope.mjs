@@ -1,6 +1,6 @@
 /* What the pinned project lets this checkout see or touch. A uuid typo restarts somebody else's
    service, so a target outside the pin is refused here, before its request is built, and a listing
-   is cut to the pin's own environments. There is no unscoped mode. docs/cli/coolify.md. */
+   is cut to the pin's own environments. There is no unscoped mode. docs/cli/coolify-the-instance.md. */
 import { look } from "./client.mjs";
 import { wrapper } from "./shape.mjs";
 import { fail } from "../../../resolve/settings.mjs";

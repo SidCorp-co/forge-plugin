@@ -12,7 +12,8 @@ import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
 import { fromProject, fail, projectSlug, projectTarget, settings, translateTarget } from "../resolve/settings.mjs";
 import { translated } from "../tools/vi.mjs";
 import { didYouMean } from "../suggest.mjs";
-import { DECLARES, ROUTES, answersOf, droppedRefusal, keyOf, noRouteRefusal, rowFor, undeclaredIn } from "./routes.mjs";
+import { DECLARES, ROUTES, answersOf, keyOf, rowFor } from "./routes.mjs";
+import { droppedRefusal, noRouteRefusal, undeclaredIn } from "./declared/no-route.mjs";
 
 const RETRY_ATTEMPTS = 4;
 const FALLBACK_RETRY_SECONDS = 2;

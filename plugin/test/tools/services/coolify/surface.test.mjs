@@ -3,7 +3,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { tempRoom } from "../../../fixtures.mjs";
+import { TAKEN_HERE } from "../../../../src/tools/services/coolify/chosen-route.mjs";
 
 import {
   ALIASES,
@@ -149,14 +153,43 @@ test("the environment operations this release keeps back are named as unserved, 
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 
-const ranHelp = (...argv) =>
-  execFileSync(FORGE, argv, { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: "/nonexistent" } });
+/* Every case below is about the operations the route index declares, which is the saved instance's
+   route, so the home each spawn reads chooses it: under the default this verb answers over the
+   tracker and none of these names is one of its own. */
+const homeFor = (mode) => {
+  const room = tempRoom(`coolify-surface-${mode}-`);
+  mkdirSync(join(room, "forge"));
+  writeFileSync(join(room, "forge", "config.json"), JSON.stringify({ coolifyRoute: mode }));
+  return room;
+};
+
+const INSTANCE_HOME = homeFor("instance");
+const TRACKER_HOME = homeFor("tracker");
+
+const ranIn = (home, ...argv) =>
+  execFileSync(FORGE, argv, { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home } });
+
+const ranHelp = (...argv) => ranIn(INSTANCE_HOME, ...argv);
 
 test("the verb's own listing names every sub-verb, and each of them answers a help ask", () => {
   const listed = ranHelp("coolify", "-h");
   for (const subject of ["login", "accounts", "whoami", "app", "deploy", "deployment", "project", "resource"]) {
     assert.match(listed, new RegExp(subject, "u"), `${subject} is not on the verb's own listing`);
     assert.match(ranHelp("coolify", subject, "-h"), /^Usage: forge coolify /u, `${subject} has no text of its own`);
+  }
+});
+
+/* The other route's listing is its own, and the two do not overlap beyond the credential's two. */
+test("on the tracker route the listing names that route's own names, each with a text of its own", () => {
+  const listed = ranIn(TRACKER_HOME, "coolify", "-h");
+  for (const subject of TAKEN_HERE) {
+    assert.match(listed, new RegExp(subject, "u"), `${subject} is not on the tracker route's listing`);
+    assert.match(ranIn(TRACKER_HOME, "coolify", subject, "-h"), /^Usage: forge coolify /u,
+      `${subject} has no text of its own`);
+  }
+  for (const subject of ["whoami", "app", "deployment", "resource"]) {
+    assert.doesNotMatch(listed.split("\n")[0], new RegExp(subject, "u"),
+      `${subject} is offered by a route that refuses it`);
   }
 });
 

@@ -451,7 +451,7 @@ export const fakeTracker = async (state) => {
   /* The row the tracker serves, and every column of it: null where a case named no value, the three
      nested documents under `agentConfig` and at no top level, and whatever else a case put on the row
      beside them. A stub answering thirteen fewer columns than the wire does is a row no reader of it
-     can tell a retired column from, which is the thing `plugin/src/tracker/name-join.mjs` reports on
+     can tell a retired column from, which is the thing `plugin/src/tracker/declared/name-join.mjs` reports on
      and the thing it found here first (ISS-1970). The set is the wire's, read off the capture at
      `plugin/test/fixtures/rest/projects-get.json`; a column the tracker grows is one line here. */
   const projectRow = (held) => {
@@ -539,6 +539,12 @@ export const fakeTracker = async (state) => {
     [/^\/api\/guides$/u, () => answered("forge_guide", { action: "list" })],
     [/^\/api\/projects\/[^/]+\/pm\/([a-z-]+)$/u, (q, sent, method, [what]) =>
       answered("forge_project_pm", { action: what === "runner-load" ? "runner_load" : what })],
+    /* The tracker's binding of the deployment platform to this project. One row per shape the CLI
+       may send: the listing at the root, and one action segment under it either way round. */
+    [/^\/api\/projects\/[^/]+\/integrations\/coolify\/([a-z-]+)$/u, (q, sent, method, [what]) =>
+      answered("forge_coolify", { action: what, ...Object.fromEntries(q), ...sent })],
+    [/^\/api\/projects\/[^/]+\/integrations\/coolify$/u, () =>
+      answered("forge_coolify", { action: "list" })],
     [/^\/api\/projects\/[^/]+\/pipeline-config$/u, (q, sent, method) => answered("forge_config",
       method === "PATCH" ? { action: "set_pipeline", data: sent } : { action: "pipeline" })],
     [/^\/api\/projects\/[^/]+\/project-facts$/u, (q, sent, method) => answered("forge_config",
