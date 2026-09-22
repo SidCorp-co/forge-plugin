@@ -21,6 +21,7 @@ import { RETIRED, commandShapes } from "../../src/checks/retired-names.mjs";
 import { WHY, goalBlock } from "../../src/goals.mjs";
 import { SHAPES } from "../../src/flow/machine.mjs";
 import { BODY_FIELDS } from "../../src/flow/override.mjs";
+import { configPath, userConfig } from "../../src/resolve/config.mjs";
 import { projectRecord, tempRoom } from "../fixtures.mjs";
 import { OWN } from "../fixtures/own-project.mjs";
 
@@ -39,6 +40,14 @@ writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({
   chatgpt: { url: "https://chatgpt.example/mcp", key: "gpt" },
 }));
 writeFileSync(PROFILE, "ANTHROPIC_BASE_URL=https://gateway.example\nANTHROPIC_AUTH_TOKEN=tok\n");
+/* This process reads that home too, and never the developer's. Every walk below compares what a
+   child printed against what was computed here, and a row of the table is a function where this
+   machine has chosen something (ISS-2129): computed out of two configurations, the two sides agree
+   only while the box happens to agree with the fixture, so a box whose owner ran the command a
+   coolify refusal names went red on `forge coolify -h` and a release went out off a red master
+   (ISS-2195). Both variables, because the children below are given both. */
+process.env.XDG_CONFIG_HOME = HOME;
+process.env.CLAUDE_PROXY_ENV = PROFILE;
 /* And this checkout's own project, for the same reason: the help a verb prints is narrower where a
    project resolves than where none does, and a home holding no record of this one would measure
    every walk below against a box with no project rather than against the table. */
@@ -52,6 +61,18 @@ const ask = (...argv) => {
   }
   return ASKED.get(key);
 };
+
+/* The pin above holds only while nothing this file imports has already memoised `userConfig` out of
+   the machine's home, which no assertion below would notice: every row they read is a constant but
+   one, and that one agrees with the fixture on a box that has chosen nothing. So the pin is held
+   against the fixture's own saved value, which is red on every box rather than on the one whose
+   owner chose something. */
+test("the table this process computes is read from the home the children are given", () => {
+  assert.equal(configPath(), join(HOME, "forge", "config.json"));
+  assert.equal(userConfig().coolify?.url, "https://coolify.example",
+    "a read in this process answered out of somebody's own ~/.config/forge, so the walks below "
+    + "compare a fixture against that machine");
+});
 
 test("every verb says what to type", () => {
   for (const verb of VERB_NAMES) {
