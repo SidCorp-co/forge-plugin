@@ -1,23 +1,42 @@
 <!-- forge:when tool.coolify configured -->
-# `forge coolify` runs inside a pinned project
+# `forge coolify` answers over one of two routes
 
-Read this before the first `forge coolify` call of a task. Run `forge coolify -h` for the sub-verbs;
-these are the four things `-h` does not say.
+Read this before the first `forge coolify` call of a task. Run `forge coolify -h` for the sub-verbs
+the route answering here serves; these are the things `-h` does not say.
 
-**Every resource command runs inside one project, and the project is a file.** `.coolify.json`,
-found by walking up from the working directory, is what pins it. In a checkout that has none, every
-such command refuses — that is the arrangement, not a fault to work around.
+**Which route answers is a setting on this machine, and the listing says which.** By default it is
+the tracker's own binding of the platform to this project, on the credential already held: nothing
+has to be saved and no file has to be in the checkout. `forge doctor --coolify-route instance`
+points the verb at an instance saved by `forge coolify login` instead. The two serve different
+sub-verbs, so what `-h` lists is the answer to which one you are on.
 
-**A refusal naming a uuid outside the pin is the guard working.** It means that resource belongs to
+**A name the answering route does not serve is refused by that name, and is never sent to the other
+one.** Read that refusal for where the thing you wanted lives now. Switch routes only where it is
+genuinely on the other side, never to get past a refusal.
+
+**On the tracker's route the scope is this project's own bindings.** Nothing there reads a file in
+the checkout and no refusal there is about a missing pin. What is in reach is what the project is
+bound to, and an empty listing means this project deploys nothing rather than that something is
+unconfigured.
+
+**On the instance's route every resource command runs inside one project, and the project is a
+file.** `.coolify.json`, found by walking up from the working directory, is what pins it. In a
+checkout that has none, every such command refuses — that is the arrangement, not a fault to work
+around. A refusal naming a uuid outside the pin is the same guard working: that resource belongs to
 a project this checkout does not own, so list what is in scope and act on that instead. There is no
 flag, variable or key that widens it, and looking for one is looking for the defect the guard exists
 to prevent.
 
-**A call that changes something is refused until it is asked for in as many words.** `--dry-run`
-prints the request and sends nothing, which is how to see what a deploy or a restart would do before
-committing to it; the scope guard still runs while nothing is being sent.
+**A call that changes something is refused until it is asked for in as many words**, on either
+route. `--dry-run` prints the request and sends nothing, which is how to see what a deploy would do
+before committing to it; the instance route's scope guard still runs while nothing is being sent.
 
-**A status has already been read for you.** Coolify calls a container unhealthy whenever it has no
-healthcheck configured, so that word is dropped before you see it and `running` here means running.
-Never report a service as broken on the strength of a word this verb did not print.
+**A deploy the tracker declined to dispatch is reported as a refusal, not as a deploy.** The refusal
+names what did not go and what would release it. Act on that; sending the same call again does not
+change what held it.
+
+**A status has already been read for you.** On the instance's route the platform calls a container
+unhealthy whenever it has no healthcheck configured, so that word is dropped before you see it and
+`running` here means running. Never report a service as broken on the strength of a word this verb
+did not print.
 <!-- forge:end -->

@@ -98,7 +98,10 @@ before(async () => {
   await new Promise((done) => server.listen(0, "127.0.0.1", done));
   home = tempRoom("coolify-home-");
   mkdirSync(join(home, "forge"));
+  /* Every case here is the saved instance's route, which is not the one a machine that chose
+     nothing takes, so this home chooses it as a checkout reaching these commands would have. */
   writeFileSync(join(home, "forge", "config.json"), JSON.stringify({
+    coolifyRoute: "instance",
     coolify: { url: `http://127.0.0.1:${server.address().port}`, apiToken: TOKEN },
   }));
   work = tempRoom("coolify-work-");
@@ -200,6 +203,9 @@ test("a write is refused without --yes, and nothing is sent", async () => {
   const answer = await ran("app", "restart", "a-in");
   assert.equal(answer.status, 1);
   assert.match(answer.stderr, /a write is refused without --yes/u);
+  /* Which of the two deployment scopes the write would have reached: a refusal that says only that
+     one was held leaves a caller on the wrong route sure they were about to deploy the other. */
+  assert.match(answer.stderr, /it would go to the saved instance, inside the project this checkout pins/u);
   assert.deepEqual(paths(answer).filter((one) => one.includes("/restart")), []);
 });
 

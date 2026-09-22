@@ -156,11 +156,15 @@ const SERVICES = [
   "  forge doctor --chatgpt-prefix <text>  the framing every picture ask carries, which is a",
   "                                        direction to build toward and never a screenshot of",
   "                                        something already built",
+  "  forge doctor --coolify-route <mode>   which of the two ways to the deployment platform the",
+  "                                        `coolify` verb takes: `tracker` for this project's own",
+  "                                        bindings on the credential already held, `instance` for",
+  "                                        the instance `coolify login` saved",
   "",
   "Each is typed on the verb rather than on this subject. This machine's own configuration is the",
-  "source for all eight; the reviewer's gateway profile and the file `vi-natural login` writes answer",
-  "where a key here is unset, and the row says which of the two did. Cloudflare and Coolify have",
-  "their own login verbs, and none of these gates anything but its own verb.",
+  "source for every one of them; the reviewer's gateway profile and the file `vi-natural login`",
+  "writes answer where a key here is unset, and the row says which of the two did. Cloudflare and",
+  "Coolify have their own login verbs, and none of these gates anything but its own verb.",
 ].join("\n");
 
 const REPO = [

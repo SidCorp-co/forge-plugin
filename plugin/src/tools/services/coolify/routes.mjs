@@ -1,7 +1,7 @@
 /* Which Coolify operations this verb serves, resolved against the index beside this file — the
    Python plugin's generated one, copied byte for byte. Each operation carries the `scope` list
    tying its own arguments to the pinned project, so an operation added to `SERVED` arrives
-   guarded rather than arriving and then being guarded. docs/cli/coolify.md. */
+   guarded rather than arriving and then being guarded. docs/cli/coolify-the-instance.md. */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

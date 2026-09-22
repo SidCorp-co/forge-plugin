@@ -4,10 +4,10 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { describe, it, test } from "node:test";
 
-import { CHOSEN, SUBJECTS, WITHHELD, joined, nameJoinRows, recording, striking } from "../../../src/tracker/name-join.mjs";
+import { CHOSEN, SUBJECTS, WITHHELD, joined, nameJoinRows, recording, striking } from "../../../src/tracker/declared/name-join.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const SOURCE = join(here, "..", "..", "..", "src", "tracker", "name-join.mjs");
+const SOURCE = join(here, "..", "..", "..", "src", "tracker", "declared", "name-join.mjs");
 const CAPTURE = join(here, "..", "..", "fixtures", "rest", "projects-get.json");
 
 const capture = JSON.parse(readFileSync(CAPTURE, "utf8"));
@@ -163,7 +163,7 @@ describe("what the reading says about itself", () => {
 
   it("the join is given its row and fetches nothing", () => {
     const imports = readFileSync(SOURCE, "utf8").match(/^import .*$/gmu) ?? [];
-    assert.deepEqual(imports.map((one) => /"([^"]+)"/u.exec(one)[1]), ["./routes.mjs"],
+    assert.deepEqual(imports.map((one) => /"([^"]+)"/u.exec(one)[1]), ["../routes.mjs"],
       "the join reaching a transport is a gate step that sends a request");
   });
 

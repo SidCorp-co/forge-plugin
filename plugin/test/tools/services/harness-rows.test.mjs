@@ -17,7 +17,7 @@ const { userConfig } = await import("../../../src/resolve/config.mjs");
 
 /* The same write `saveConfig` makes, without the file: it assigns into the memoised object, so a reader called after this sees what a `forge doctor --chatgpt-key` in the same process would have left. */
 const configured = (values) => {
-  for (const key of ["cloudflare", "coolify", "chatgpt", "codex", "vi"]) delete userConfig()[key];
+  for (const key of ["cloudflare", "coolify", "coolifyRoute", "chatgpt", "codex", "vi"]) delete userConfig()[key];
   Object.assign(userConfig(), values);
 };
 
@@ -34,15 +34,15 @@ const profiled = (text) => {
   process.env.CLAUDE_PROXY_ENV = path;
 };
 
-const levelOf = (label, values = {}) => {
+const levelOf = async (label, values = {}) => {
   configured(values);
-  return harnessLines(false).find((row) => row.label === label).level;
+  return (await harnessLines(false)).find((row) => row.label === label).level;
 };
 
-test("every harness row is a row of the report's own vocabulary, with no second one beside it", () => {
+test("every harness row is a row of the report's own vocabulary, with no second one beside it", async () => {
   profiled(WHOLE_PROFILE);
   configured({});
-  const rows = harnessLines(false);
+  const rows = await harnessLines(false);
   assert.deepEqual(rows.map((row) => row.label), ["cloudflare", "coolify", "codex", "chatgpt",
     "codex url", "codex key", "vi-natural url", "vi-natural key", "vi-natural model",
     "chatgpt url", "chatgpt key", "chatgpt framing"]);
@@ -53,81 +53,96 @@ test("every harness row is a row of the report's own vocabulary, with no second 
   }
 });
 
-const detailOf = (label, values = {}) => {
+const detailOf = async (label, values = {}) => {
   configured(values);
-  return harnessLines(false).find((row) => row.label === label).detail;
+  return (await harnessLines(false)).find((row) => row.label === label).detail;
 };
 
-const INSTANCE = { coolify: { url: "https://coolify.example", apiToken: "tok-abcdefghij" } };
+/* The instance route is the one a saved credential is about, so every case below that is about the
+   credential chooses it: on the other route the absence of one is not an absence of anything. */
+const INSTANCE = { coolifyRoute: "instance",
+  coolify: { url: "https://coolify.example", apiToken: "tok-abcdefghij" } };
 
-test("the coolify row is a note with no instance and an ok with one, and never shows the token", () => {
+test("the coolify row is a note with no instance and an ok with one, and never shows the token", async () => {
   profiled(WHOLE_PROFILE);
-  assert.equal(levelOf("coolify"), "note");
-  assert.match(detailOf("coolify"), /forge coolify login/u);
-  assert.equal(levelOf("coolify", INSTANCE), "ok");
-  const said = detailOf("coolify", INSTANCE);
+  assert.equal(await levelOf("coolify", { coolifyRoute: "instance" }), "note");
+  assert.match(await detailOf("coolify", { coolifyRoute: "instance" }), /forge coolify login/u);
+  assert.equal(await levelOf("coolify", INSTANCE), "ok");
+  const said = await detailOf("coolify", INSTANCE);
   assert.match(said, /https:\/\/coolify\.example/u);
   assert.ok(!said.includes("tok-abcdefghij"), "the row printed the token");
   assert.match(said, /set \(14 chars\)/u);
 });
 
-/* The row is read off files and never off the instance: a request here would report a network
-   fault as a missing credential, and this directory is not a pinned checkout. */
-test("the coolify row says which project this directory is pinned to, or that none is", () => {
+/* That half of the row is read off files and never off the instance: a request there would report a
+   network fault as a missing credential, and this directory is not a pinned checkout. */
+test("the coolify row says which project this directory is pinned to, or that none is", async () => {
   profiled(WHOLE_PROFILE);
-  assert.match(detailOf("coolify", INSTANCE), /no project pinned/u);
-  assert.match(detailOf("coolify", INSTANCE), /\.coolify\.json/u);
+  assert.match(await detailOf("coolify", INSTANCE), /no project pinned/u);
+  assert.match(await detailOf("coolify", INSTANCE), /\.coolify\.json/u);
 });
 
-test("the cloudflare row is a note with no account and an ok with one", () => {
+test("the coolify row names the way that answers and where it was read", async () => {
   profiled(WHOLE_PROFILE);
-  assert.equal(levelOf("cloudflare"), "note");
-  assert.equal(levelOf("cloudflare", {
+  const chosen = await detailOf("coolify", INSTANCE);
+  assert.match(chosen, /^the saved instance {2}← .*forge[/\\]config\.json/u,
+    "the way, and the file that said so rather than the command that writes it");
+  const fallen = await detailOf("coolify", {});
+  assert.match(fallen, /^the tracker's own bindings {2}← the plugin's default/u,
+    "and with nothing chosen the default is named as a default rather than as a file");
+  assert.match(fallen, /the tracker did not answer for them/u,
+    "a tracker that could not be reached is said to be, never read back as a project bound to nothing");
+});
+
+test("the cloudflare row is a note with no account and an ok with one", async () => {
+  profiled(WHOLE_PROFILE);
+  assert.equal(await levelOf("cloudflare"), "note");
+  assert.equal(await levelOf("cloudflare", {
     cloudflare: { accounts: [{ name: "one", accountId: "a", apiToken: "t" }] },
   }), "ok");
 });
 
-test("the codex row is a note at each of its three bad readings, and never a miss", () => {
+test("the codex row is a note at each of its three bad readings, and never a miss", async () => {
   profiled(null);
-  assert.equal(levelOf("codex"), "note", "no gateway profile at all");
+  assert.equal(await levelOf("codex"), "note", "no gateway profile at all");
   profiled("ANTHROPIC_BASE_URL=https://gateway.example");
-  assert.equal(levelOf("codex"), "note", "a profile that is there and omits a key it declares");
+  assert.equal(await levelOf("codex"), "note", "a profile that is there and omits a key it declares");
   profiled(WHOLE_PROFILE.split("\n").slice(0, 2).join("\n"));
-  assert.equal(levelOf("codex"), "note", "a profile that maps the model slot to nothing");
+  assert.equal(await levelOf("codex"), "note", "a profile that maps the model slot to nothing");
   profiled(WHOLE_PROFILE);
-  assert.equal(levelOf("codex"), "ok");
+  assert.equal(await levelOf("codex"), "ok");
 });
 
 /* The verb-level row exists only to say the verb went, so once both halves are saved it is gone and
    the two key rows below carry the values: two rows saying `held` would be the second answer. */
-test("the chatgpt row is a note while either half is absent and is gone once both are saved", () => {
+test("the chatgpt row is a note while either half is absent and is gone once both are saved", async () => {
   profiled(WHOLE_PROFILE);
-  assert.equal(levelOf("chatgpt"), "note", "neither half");
-  assert.equal(levelOf("chatgpt", { chatgpt: { url: "https://gpt.example/mcp" } }), "note", "an endpoint with no key");
-  assert.equal(levelOf("chatgpt", { chatgpt: { key: "k" } }), "note", "a key with no endpoint");
+  assert.equal(await levelOf("chatgpt"), "note", "neither half");
+  assert.equal(await levelOf("chatgpt", { chatgpt: { url: "https://gpt.example/mcp" } }), "note", "an endpoint with no key");
+  assert.equal(await levelOf("chatgpt", { chatgpt: { key: "k" } }), "note", "a key with no endpoint");
   configured({ chatgpt: { url: "https://gpt.example/mcp", key: "k" } });
-  assert.equal(harnessLines(false).find((row) => row.label === "chatgpt"), undefined);
+  assert.equal((await harnessLines(false)).find((row) => row.label === "chatgpt"), undefined);
 });
 
-test("each half a store is missing is a row of its own naming the flag that writes it", () => {
+test("each half a store is missing is a row of its own naming the flag that writes it", async () => {
   profiled(WHOLE_PROFILE);
   configured({});
-  assert.equal(detailOf("chatgpt url"), "no endpoint — `forge doctor --chatgpt-url <endpoint>`");
-  assert.equal(detailOf("chatgpt key"), "no key — `forge doctor --chatgpt-key <key>`");
-  assert.equal(detailOf("chatgpt"),
+  assert.equal(await detailOf("chatgpt url"), "no endpoint — `forge doctor --chatgpt-url <endpoint>`");
+  assert.equal(await detailOf("chatgpt key"), "no key — `forge doctor --chatgpt-key <key>`");
+  assert.equal(await detailOf("chatgpt"),
     "no endpoint and no key — `forge doctor --chatgpt-url <endpoint> --chatgpt-key <key>`"
     + ", so `forge chatgpt` is in no help");
 });
 
 /* The framing is the value a caller set and not a credential, so it is reported whole where the key beside it is masked; the row is its own because a framing runs to whatever length somebody wrote. */
-test("the framing row is a note naming the flag while none is saved, and reports the value once one is", () => {
+test("the framing row is a note naming the flag while none is saved, and reports the value once one is", async () => {
   profiled(WHOLE_PROFILE);
   configured({});
-  const absent = harnessLines(false).find((row) => row.label === "chatgpt framing");
+  const absent = (await harnessLines(false)).find((row) => row.label === "chatgpt framing");
   assert.equal(absent.level, "note");
   assert.match(absent.detail, /forge doctor --chatgpt-prefix <framing>/u);
   configured({ chatgpt: { prefix: "Flat vector, no text." } });
-  const held = harnessLines(false).find((row) => row.label === "chatgpt framing");
+  const held = (await harnessLines(false)).find((row) => row.label === "chatgpt framing");
   assert.equal(held.level, "ok");
   assert.equal(held.detail, `Flat vector, no text.  ← ${join(HOME, "forge", "config.json")}`);
 });
@@ -153,14 +168,14 @@ test("the chatgpt endpoint and key come off one reader that names the file they 
 
 /* The one level a harness row reaches that the report's exit code counts, and the only store that
    ever reaches it: a project declaring Vietnamese prose cannot post without that gateway. */
-test("a store named as required answers miss where it is unset, and note where it is not named", () => {
+test("a store named as required answers miss where it is unset, and note where it is not named", async () => {
   profiled(WHOLE_PROFILE);
   configured({});
-  const required = harnessLines(false, ["vi"]);
+  const required = await harnessLines(false, ["vi"]);
   for (const label of ["vi-natural url", "vi-natural key", "vi-natural model"]) {
     assert.equal(required.find((row) => row.label === label).level, "miss", label);
   }
   assert.equal(required.find((row) => row.label === "chatgpt url").level, "note",
     "a store the caller did not name is a note in the same reading");
-  assert.equal(harnessLines(false).find((row) => row.label === "vi-natural url").level, "note");
+  assert.equal((await harnessLines(false)).find((row) => row.label === "vi-natural url").level, "note");
 });

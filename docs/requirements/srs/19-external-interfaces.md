@@ -119,14 +119,18 @@ precedence rule.
 
 ### EI-10 — The deployment platform
 
-Rev: 1 · Enforces: BR-08, BR-14 · Reached from: `plugin/src/tools/services/coolify/client.mjs`, `plugin/src/tools/services/coolify/config.mjs`
+Rev: 2 · Enforces: BR-08, BR-14 · Reached from: `plugin/src/tools/services/coolify/client.mjs`, `plugin/src/tools/services/coolify/config.mjs`
 
-An instance of somebody else's deployment platform, on the developer's own credential, reached
-through the operation index that platform's own specification generates. Which operations this
-product will call is a set it declares, and which resources a call may name is a project this
-checkout pins and not an argument: there is no unscoped call, and an operation the index ties to no
-resource of that project is not offered. What the platform answers with is its own, so a status it
-reports is read as that platform means it rather than as it spells it.
+Somebody else's deployment platform, crossed two ways, and which of them answers is a value this
+machine records rather than an argument a call carries. By default it is the tracker's own binding
+of that platform to the project this product already names, on the credential it already holds: the
+scope is that binding, nothing this checkout carries is read for it, and the operations in reach are
+the ones this product declares a request for. The second way is an instance of the platform on a
+credential saved here, reached through the operation index that platform's own specification
+generates, where which resources a call may name is a project this checkout pins and not an
+argument: there is no unscoped call, and an operation the index ties to no resource of that project
+is not offered. Neither way stands behind the other. What the platform answers with is its own, so a
+status it reports is read as that platform means it rather than as it spells it.
 
 - **AC-19-10-1** · Rev: 1 · Proof: plugin/test/tools/services/coolify/request.test.mjs "a uuid outside the pin is refused, and its own action path is never asked for"
   IF a call names a resource outside the pinned project THEN the CLI SHALL refuse it while the
@@ -154,6 +158,25 @@ reports is read as that platform means it rather than as it spells it.
   WHERE a call this product would send carries a secret the caller wrote, a preview of that call
   SHALL mask the value by the same rule an answer's is masked, and SHALL leave the call itself
   carrying the value as the caller gave it.
+- **AC-19-10-9** · Rev: 1 · Proof: plugin/test/tools/services/coolify/tracker-route.test.mjs "with nothing saved and nothing pinned the verb answers over the tracker"
+  WHERE this machine has saved neither an instance of the platform nor a choice between the two
+  ways of reaching it, a call SHALL go by the tracker's binding for the project this product already
+  names, and SHALL ask this checkout for nothing to do it.
+- **AC-19-10-10** · Rev: 1 · Proof: plugin/test/tools/services/coolify/tracker-route.test.mjs "the switch sends the verb to the instance and back, and a third value is refused"
+  WHEN this machine's recorded choice names the saved instance THEN every call SHALL go to that
+  instance, and a choice outside the two this product declares SHALL be refused by name with nothing
+  written.
+- **AC-19-10-11** · Rev: 1 · Proof: plugin/test/tools/services/coolify/tracker-route.test.mjs "a name the tracker route does not serve is refused by name and reaches no instance"
+  IF a name is asked for on the way this product reaches the platform and it declares no request for
+  that name THEN the CLI SHALL refuse it by that name, SHALL say what still reaches the same thing
+  and what changes the way, and SHALL send nothing by the other way.
+- **AC-19-10-12** · Rev: 1 · Proof: plugin/test/tools/services/coolify/tracker-route.test.mjs "a deploy the tracker held back is reported as a refusal, not as a deploy"
+  WHEN a deployment call is answered by saying nothing was dispatched THEN the CLI SHALL report a
+  refusal naming what did not go and what would release it, and SHALL NOT report a deployment as
+  sent.
+- **AC-19-10-13** · Rev: 1 · Proof: plugin/test/tools/services/harness-rows.test.mjs "the coolify row names the way that answers and where it was read"
+  WHEN this product reports on the configuration this machine holds THEN that report SHALL name
+  which of the two ways answers for this platform and the file that answer was read from.
 
 ### EI-07 — The version-control host
 

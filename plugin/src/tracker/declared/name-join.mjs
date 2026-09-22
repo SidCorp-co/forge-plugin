@@ -6,7 +6,7 @@
    Pure: every function here is handed the row it reads, so nothing in this module reaches the
    transport and no step of the gate sends a request for it. */
 
-import { ROUTES, answersOf } from "./routes.mjs";
+import { ROUTES, answersOf } from "../routes.mjs";
 
 /** The two columns of the project row that hold a credential. Dropped from both directions by name
  *  and struck from every line the reporter renders, rather than left out by a shaper's silence: the
@@ -193,7 +193,7 @@ const WHY_UNSERVED = "each reads undefined on every project and travels on as a 
   + "a retired column does — delete it from the shaper, or ask the tracker which name took over";
 
 const WHY_UNDECLARED = "each is either a difference somebody chose, and then it is declared with its "
-  + "reason in `CHOSEN` of plugin/src/tracker/name-join.mjs, or a blind spot nobody chose";
+  + "reason in `CHOSEN` of plugin/src/tracker/declared/name-join.mjs, or a blind spot nobody chose";
 
 /* The count and never the names: a reader is owed the knowledge that two columns of this row are
    never reported on, and nothing beyond it. The row it sits on is the one that always prints, the

@@ -200,7 +200,8 @@ test("a retired gate is refused wherever it is readable, and its retirement note
    proves the row is gone is here too: naming it in the transport's own suite would be a mention the
    walk above is right to refuse, and the row's absence is the whole of the retirement (ISS-614). */
 test("a tool retired from the route table has no row, no listing and no route", async () => {
-  const { ROUTES, noRouteRefusal, rowFor, served } = await import("../../src/tracker/routes.mjs");
+  const { ROUTES, rowFor, served } = await import("../../src/tracker/routes.mjs");
+  const { noRouteRefusal } = await import("../../src/tracker/declared/no-route.mjs");
   const gone = RETIRED.find(({ kind, name }) => kind === "tool" && name.startsWith("forge_"));
   assert.ok(gone, "the registry holds the tool the route table dropped");
   assert.equal(Object.hasOwn(ROUTES, gone.name), false, "a row would serve a name nothing calls");

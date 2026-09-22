@@ -3,6 +3,7 @@ import { readJson, saveNested, saveConfig } from "../resolve/config.mjs";
 import { STORES } from "../resolve/machine/stores.mjs";
 import { keyLabel, keySaid } from "./services/doctor/harness.mjs";
 import { fromProject, JOB_ALL, SHIP_MODES, declaredJobs, fail } from "../resolve/settings.mjs";
+import { INSTANCE, ROUTE_KEY, ROUTE_MODES, TRACKER } from "./services/coolify/chosen-route.mjs";
 import { didYouMean } from "../suggest.mjs";
 import { HIDDEN, OFF, VERB_NAMES, shippedSkills, skillsWithheldForJob, verbStates,
   withheldForJob } from "../resolve/visibility.mjs";
@@ -108,6 +109,17 @@ const setShip = (mode) => {
     : "A run on this machine now lands its own change, as it did before the option existed.\n");
 };
 
+/* Whose the option is: the two ways to the deployment platform in `services/coolify/chosen-route.mjs`. */
+const setCoolifyRoute = (mode) => {
+  if (!ROUTE_MODES.includes(mode)) fail(didYouMean("--coolify-route mode", mode, ROUTE_MODES));
+  saveConfig({ [ROUTE_KEY]: mode });
+  console.log(mode === INSTANCE
+    ? "`forge coolify` now reaches the instance this machine saved, scoped by the project this"
+      + " checkout pins.\n"
+    : "`forge coolify` now reaches the tracker's own binding for the project this CLI already"
+      + " names, and asks this machine for nothing else.\n");
+};
+
 /* Every flag that writes this machine's half, in the order the report spends them, and what each spends. The two-stores check that refuses a project flag beside one of these and the dispatch that makes the writes both read this table: they were two lists, and two releases in a row each added a key to one and to the other. A row owns the flags it writes together, because a pair saved in one call prints one line for it, and it guards its own value where its predecessor guarded on truthiness — an empty `--hide` wrote nothing before this table and writes nothing under it.
 
    `owns` is the CONFIGURATION keys the row writes, which is not the flags it is typed as: `--hide` and `--show` both write `withheld`, `--job` writes `withheld` and `withheldSkills` together, and `capabilities` is written by no flag at all. A key of this file is refused as a project key by name, so the set has to be the stored names or the refusal misses exactly the keys nobody typed (ISS-1403). `route` is what a caller is told to run instead. */
@@ -120,6 +132,9 @@ export const MACHINE_WRITES = [
     write: (asked) => asked.show && setVisibility(asked.show, false) },
   { flags: ["ship"], owns: ["ship"], route: "forge doctor --ship ready|self",
     write: (asked) => asked.ship && setShip(asked.ship) },
+  { flags: ["coolify-route"], owns: [ROUTE_KEY],
+    route: `forge doctor --coolify-route ${TRACKER}|${INSTANCE}`,
+    write: (asked) => asked["coolify-route"] && setCoolifyRoute(asked["coolify-route"]) },
   { flags: SAVED, owns: SAVED, route: "forge doctor --token <pat> --url <endpoint>",
     write: (asked) => install(given(asked, SAVED)) },
   ...STORES.map((store) => ({

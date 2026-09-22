@@ -102,7 +102,7 @@ const checkVi = () => {
   line(OK, "vi-natural", BUNDLED);
 };
 
-const checkHarness = (full, required) => report(harnessLines(full, required));
+const checkHarness = async (full, required) => report(await harnessLines(full, required));
 
 /* Something saying no, against a fault of the moment: a dropped socket or a 5xx is one bad minute,
    and recorded as a gate it hides the verb from every run after it (codex F4). */
@@ -267,7 +267,7 @@ export const trackerId = async (projectId) => {
 
 const checkEndpoint = async (full, credentials) => {
   const { forgetProjects, projectId, restBase, scoped, wireBodies } = await import("../tracker/rest.mjs");
-  const { nameJoinRows } = await import("../tracker/name-join.mjs");
+  const { nameJoinRows } = await import("../tracker/declared/name-join.mjs");
   const { served } = await import("../tracker/routes.mjs");
   under("tracker");
   forgetProjects();
@@ -531,7 +531,9 @@ export const doctor = async (argv) => {
   under("services");
   /* Reads and writes differ: `new` translates before it posts, and a read never asks. */
   checkVi();
-  checkHarness(full, language.value === "vi" ? ["vi"] : []);
+  /* Asked for only where its rows would print: one of them reaches the tracker, and a subject that
+     shows none of them may not pay for a request nobody reads. */
+  if (shown("services")) await checkHarness(full, language.value === "vi" ? ["vi"] : []);
   under("repo");
   report(installRows(checkoutRoot()));
   checkClaudeMdLocally();

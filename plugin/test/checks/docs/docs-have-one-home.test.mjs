@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { skillGuidesRoot } from "../../../src/guides/skill-guides.mjs";
 import { compare, sentences } from "../../../src/checks/duplication.mjs";
 import { NARRATES } from "../../../src/checks/docs/doc-shape.mjs";
-import { VERBS } from "../../../src/resolve/visibility.mjs";
+import { VERBS, blurbOf } from "../../../src/resolve/visibility.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "..");
 const DOCS = join(ROOT, "docs");
@@ -64,7 +64,7 @@ const refused = () => {
   const pages = readdirSync(how).filter((one) => one.endsWith(".md")).flatMap((one) =>
     sentences(readFileSync(join(how, one), "utf8")).map((said) => [`plugin/hooks/how/${one}`, said]));
   /* The verb's prose line, not its argument grammar: shared words in a grammar score nothing. */
-  const help = VERBS.map(([verb, , said]) => [`forge ${verb} -h`, said]);
+  const help = VERBS.map((row) => [`forge ${row[0]} -h`, blurbOf(row)]);
   return [...pages, ...help];
 };
 

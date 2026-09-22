@@ -125,12 +125,16 @@ const install = (name, { marketplace = false, record = true } = {}) => {
   return { room, copy, record: held, stub: join(copy, "skills", "forge", STUB) };
 };
 
-const nothingSaved = ["cloudflare", "coolify", "codex", "chatgpt"];
+/* What a machine that saved nothing loses. The deployment tool is not in it: the route its verb
+   takes where nothing was chosen needs nothing saved, so its words are every machine's. */
+const nothingSaved = ["cloudflare", "codex", "chatgpt"];
 
 test("the copy the install record names is written, and the pristine text kept beside it", () => {
   const at = install("write");
   const written = writeStubs(at.copy, at.record);
-  assert.deepEqual(written, [{ slug: "forge", dropped: ["cloudflare", "coolify", "codex"] }]);
+  assert.deepEqual(written, [{ slug: "forge", dropped: ["cloudflare", "codex"] }]);
+  assert.ok(description(readFileSync(at.stub, "utf8")).includes("redeploy"),
+    "the deployment tool's words went from a machine that has to save nothing for it");
   const held = readFileSync(at.stub, "utf8");
   assert.equal(held, stubFor(FORGE_STUB, nothingSaved).text);
   assert.equal(readFileSync(join(at.copy, "skills", "forge", SHIPPED), "utf8"), FORGE_STUB);
@@ -153,7 +157,7 @@ test("a tool configured after its words went has them back at the next start", (
     cloudflare: { accounts: [{ name: "one", accountId: "a", apiToken: "t" }] },
   }));
   assert.deepEqual(JSON.parse(writeIn(at.copy, at.record, saved).stdout),
-    [{ slug: "forge", dropped: ["coolify", "codex"] }]);
+    [{ slug: "forge", dropped: ["codex"] }]);
   assert.ok(description(readFileSync(at.stub, "utf8")).includes("purge cache"));
 });
 
@@ -211,7 +215,7 @@ test("the report names a stub this machine took words out of, and says nothing w
   assert.deepEqual(stubRows({ dir: at.copy }), []);
   writeStubs(at.copy, at.record);
   const [row] = stubRows({ dir: at.copy });
-  assert.match(row.detail, /^forge — cloudflare, coolify, codex out of its description/u);
+  assert.match(row.detail, /^forge — cloudflare, codex out of its description/u);
   assert.equal(row.label, "skill stub");
 });
 
@@ -224,7 +228,7 @@ test("the session whose start wrote a stub is told the text it holds predates th
     `const { linkCli } = await import(${JSON.stringify(new URL("../../../src/hooks/link-cli.mjs", import.meta.url).href)});`
     + ` linkCli(${JSON.stringify(at.copy)});`],
   { encoding: "utf8", env: { ...process.env, HOME: at.room, XDG_CONFIG_HOME: BARE } });
-  assert.match(ran.stdout, /forge's description no longer names cloudflare, coolify, codex/u);
+  assert.match(ran.stdout, /forge's description no longer names cloudflare, codex/u);
   assert.match(ran.stdout, /this one holds the text from before that write/u);
   assert.notEqual(readFileSync(at.stub, "utf8"), FORGE_STUB);
 });

@@ -5,7 +5,9 @@ import { logBytes, logPath } from "../../../codex/codex-log.mjs";
 import { consultCount } from "../../../codex/log/asked.mjs";
 import { gateway, machineRows, modelBehind } from "../../../resolve/machine/stores.mjs";
 import { CONFIGURABLE, absentSaid, cloudflareAccounts, configureSaid, unconfiguredTool } from "../tool-config.mjs";
+import { accountCredentials } from "../../../resolve/settings.mjs";
 import { SCOPE_FILE, coolifyTarget, pinned } from "../coolify/config.mjs";
+import { INSTANCE, coolifyRoute } from "../coolify/chosen-route.mjs";
 import { masked } from "../masked.mjs";
 
 const cloudflareRow = (full) => {
@@ -36,14 +38,48 @@ const codexRow = () => {
       + `  ${consultCount(logBytes())} consult(s) logged at ${logPath()}` };
 };
 
-/* Off the files and never off the instance: a request would report a network fault as a missing credential. */
-const coolifyRow = (full) => {
+/* Off the files and never off the instance: a request would report a network fault as a missing
+   credential. Which is why the tracker route's half below is asked for softly and printed as what
+   the tracker said — no credential of this machine's is in play on that route, so nothing a call
+   answers there can be read back as a key this file failed to find. */
+const instanceRow = (full) => {
   const { url, token, from } = coolifyTarget();
+  const chosen = coolifyRoute().from;
   const { at, spec } = pinned();
   const projects = (spec.project_uuid ?? []).join(", ");
   const pin = projects ? `project ${projects}  ← ${at}` : `no project pinned — no ${SCOPE_FILE} on the way up from here`;
-  return { level: "ok", detail: `${url} ${masked(token, full)}  ← ${from}  ${pin}` };
+  return { level: "ok",
+    detail: `the saved instance  ← ${chosen}  ${url} ${masked(token, full)}  ← ${from}  ${pin}` };
 };
+
+const boundSaid = (answer) => {
+  if (answer?.refused) return `the tracker did not answer for them: ${answer.refused.split("\n")[0]}`;
+  const held = answer?.integrations ?? [];
+  if (!held.length) {
+    return "this project is bound to nothing — an empty answer is the tracker's own word for a"
+      + " project nothing deploys";
+  }
+  return held.map((one) => `${(one.stages ?? []).join("+") || "no stage"} → `
+    + `${(one.targets ?? []).map((two) => two.label).join(", ") || "no target"}`).join("; ");
+};
+
+/* Asked for only where this machine holds what the transport needs. `settings()` exits the process
+   on an absent endpoint or credential, and a report whose whole point is every finding at once may
+   not stop on its second row because of a key another row of it is already about. */
+const bindingsSaid = async () => {
+  const { url, token } = accountCredentials();
+  if (!url.value || !token.value) {
+    return "their listing was not asked for: this machine holds no tracker endpoint or credential"
+      + " — `forge doctor --token <pat> --url <endpoint>`";
+  }
+  const { callTool } = await import("../../../tracker/rest.mjs");
+  return boundSaid(await callTool("forge_coolify.list", {}, true));
+};
+
+const trackerRow = async () => ({ level: "ok",
+  detail: `the tracker's own bindings  ← ${coolifyRoute().from}  ${await bindingsSaid()}` });
+
+const coolifyRow = (full) => (coolifyRoute().mode === INSTANCE ? instanceRow(full) : trackerRow());
 
 const SAVED = {
   cloudflare: cloudflareRow,
@@ -52,12 +88,12 @@ const SAVED = {
 };
 
 /* Worth a line only when it is what withheld the verb: configured, it says nothing the rows below do. */
-const toolRow = (verb, full) => {
+const toolRow = async (verb, full) => {
   if (unconfiguredTool(verb)) {
     return { label: verb, level: "note",
       detail: `${absentSaid(verb)} — ${configureSaid(verb)}, so \`forge ${verb}\` is in no help` };
   }
-  return SAVED[verb] ? { label: verb, ...SAVED[verb](full) } : null;
+  return SAVED[verb] ? { label: verb, ...(await SAVED[verb](full)) } : null;
 };
 
 /** One key said in one line, carrying the `from` the reader answered with rather than a file the
@@ -76,7 +112,7 @@ const keyRow = (row, full, required) => ({
 });
 
 /** `required` names the stores this checkout cannot work without: an absence there is a fault. */
-export const harnessLines = (full, required = []) => [
-  ...CONFIGURABLE.map((verb) => toolRow(verb, full)).filter(Boolean),
+export const harnessLines = async (full, required = []) => [
+  ...(await Promise.all(CONFIGURABLE.map((verb) => toolRow(verb, full)))).filter(Boolean),
   ...machineRows().map((row) => keyRow(row, full, required)),
 ];

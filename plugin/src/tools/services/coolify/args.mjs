@@ -1,6 +1,6 @@
 /* What is left of argv once the verb's own switches are out, mapped onto the arguments the
    resolved operation declares in the carried index. The declared set differs per operation, so
-   this is the only place that knows what a flag on a Coolify call means. docs/cli/coolify.md. */
+   this is the only place that knows what a flag on a Coolify call means. docs/cli/coolify-the-instance.md. */
 import { fail } from "../../../resolve/settings.mjs";
 import { didYouMean } from "../../../suggest.mjs";
 

@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import { VERBS, actionIn, gateKey, verbFor, wrappedRefusal, wrapsOf } from "../../src/resolve/visibility.mjs";
-import { noRouteRefusal } from "../../src/tracker/routes.mjs";
+import { noRouteRefusal } from "../../src/tracker/declared/no-route.mjs";
 import { toolOfCall } from "../../src/tracker/issue-read.mjs";
 import { answered, callHookAsync, fakeTracker, projectEntry, projectRoom, ranAsync, tempRoom }
   from "../fixtures.mjs";

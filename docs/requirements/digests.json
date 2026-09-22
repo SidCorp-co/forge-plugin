@@ -402,8 +402,8 @@
       "digest": "1d29a062525c790ac7d49901af3f930fdba5ae2507397f156be3dc23627442a6"
     },
     "EI-10": {
-      "rev": 1,
-      "digest": "0eb052b257c7a6dbd642dca3117a8deb3dce0e46a402e80157233e23c964a6e1"
+      "rev": 2,
+      "digest": "3802d3c30c4b1e8c8a320f49a25a5d894134f4e29cc27fafe8b360d75b531dde"
     },
     "AC-19-10-1": {
       "rev": 1,
@@ -436,6 +436,26 @@
     "AC-19-10-8": {
       "rev": 1,
       "digest": "7a489d20c4082482e4b3e55ebcf57913d4e1650dd8163a1553b7179d5c4750f4"
+    },
+    "AC-19-10-9": {
+      "rev": 1,
+      "digest": "93b6b79e6eac7b79c38c72695444de40af17dcdd15ae4a4088fe4148848401cc"
+    },
+    "AC-19-10-10": {
+      "rev": 1,
+      "digest": "e1f3ac3761c12db4565bd569762c391aa954c10070c10cea23976aec73fa4ce5"
+    },
+    "AC-19-10-11": {
+      "rev": 1,
+      "digest": "b9f8bb5459669845565c1279292e8ec04e3d040c3df3584bb81a45a6ad0ae4e8"
+    },
+    "AC-19-10-12": {
+      "rev": 1,
+      "digest": "97b8e781764f557f481253b68673e7cc36a68490d1ee78040ae1e06c359261e6"
+    },
+    "AC-19-10-13": {
+      "rev": 1,
+      "digest": "81ef700c1d4d350dcdb09c44659c37167834c5114791718991069d38cb186fad"
     },
     "EI-07": {
       "rev": 1,

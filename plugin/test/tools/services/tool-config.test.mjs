@@ -11,7 +11,10 @@ import { join } from "node:path";
 import { tempRoom } from "../../fixtures.mjs";
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
-const TOOLS = ["cloudflare", "coolify", "codex", "chatgpt"];
+/* The tools whose verb this machine has to save something for. `coolify` is not one of them: the
+   route it takes where nothing was chosen asks for nothing this machine has not already got, so it
+   is an ordinary verb here and has a case of its own below. */
+const TOOLS = ["cloudflare", "codex", "chatgpt"];
 
 const BARE = tempRoom("tool-config-bare-");
 const SAVED = tempRoom("tool-config-saved-");
@@ -55,6 +58,20 @@ test("a tool this machine saved nothing for is in no usage line and no row", () 
   }
 });
 
+/* The one tool verb no credential of this machine's gates: it is withheld by nothing, listed like
+   any other verb, and its row is about which route answers rather than about a key that is missing. */
+test("the deployment verb is offered on a machine that saved nothing for it", () => {
+  const said = bare("-h").stdout;
+  assert.ok(said.split("\n")[0].includes("|coolify|"), `coolify left the usage line: ${said.split("\n")[0]}`);
+  assert.match(said, /^ {2}coolify[ <]/mu, "and it has a row");
+  const row = bare("doctor").stdout.split("\n").find((line) => line.includes("] coolify "));
+  assert.ok(row, "no coolify row in the report");
+  assert.doesNotMatch(row, /is in no help/u, `the row still withholds the verb: ${row}`);
+  assert.match(row, /the tracker's own bindings/u, "and it names the route that answers");
+  assert.match(bare("guide", "forge").stdout, /^ {2}coolify /mu,
+    "and the reference about it is served rather than held back for a key nothing needs");
+});
+
 test("a machine that saved every one of them sees the verbs it saw before", () => {
   const said = saved("-h").stdout;
   const usage = said.split("\n")[0];
@@ -76,7 +93,6 @@ test("doctor names each unconfigured tool with the one thing that configures it"
   const said = bare("doctor").stdout;
   const configures = {
     cloudflare: "forge cloudflare login",
-    coolify: "forge coolify login",
     codex: "ANTHROPIC_AUTH_TOKEN",
     chatgpt: "forge doctor --chatgpt-url",
   };
@@ -108,7 +124,7 @@ test("every verb the report calls on is a verb the help offers, and every other 
 
 test("a reference wholly about an unconfigured tool is unlisted, and named directly names what configures it", () => {
   const listed = bare("guide", "forge").stdout;
-  for (const verb of ["cloudflare", "coolify", "codex"]) {
+  for (const verb of ["cloudflare", "codex"]) {
     assert.doesNotMatch(listed, new RegExp(`^ {2}${verb} `, "mu"), `${verb} is still listed: ${listed}`);
   }
   assert.match(listed, /^ {2}dependencies /mu, "a reference about no tool is still listed");
