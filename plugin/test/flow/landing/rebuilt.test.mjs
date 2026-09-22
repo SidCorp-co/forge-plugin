@@ -252,6 +252,23 @@ test("a statement about the deployment with no reconstruction to carry it is ref
 test("a change that reached no deployment takes a checkpoint declaring that, and an independent judge's verdict earns testing against it", async () => {
   const { room, judged } = landedRoom("undeployed");
   held(["one", "two"], undefined, { acceptanceCriteria: "1. The one outcome.", plan: PLAN, mergedAt: AT });
+  state.comments["rebuilt-uuid"].push(
+    { documentId: "c-mark", createdAt: AT, authorId: "agent",
+      body: `mark_merged target=base — merged to master at ${judged}` },
+    { documentId: "c-verdict", createdAt: AT, authorId: "agent",
+      body: render("verdict", [{ criterion: "1 — The one outcome.", verdict: "pass", commit: judged,
+        evidence: [judged], judge: JUDGING }]) },
+  );
+  /* Where the judge stands before it can write anything: verdicts on the record, no checkpoint for
+     them to be read against, and an ask that has to reach a reader holding no deployment identity.
+     Both routes, each at the depth this printer puts a command at, or the second reads as prose
+     rather than as the other thing to type (ISS-1993). */
+  const ask = await declaringQa("independent", () => ran(["advance", "ISS-1784", "--owed"], room));
+  assert.equal(ask.status, 0, `${ask.stdout}${ask.stderr}`);
+  assert.ok(ask.stdout.includes(
+    `    forge claim ISS-1784 --rebuilt ${judged.slice(0, 7)} --deployment <the sha the deployment reports serving>\n`
+    + `    forge claim ISS-1784 --rebuilt ${judged.slice(0, 7)} --undeployed`,
+  ), `both routes under the item they answer:\n${ask.stdout}`);
   const wrote = await declaringQa("independent", () =>
     ran(["claim", "ISS-1784", "--rebuilt", judged, "--undeployed"], room));
   assert.equal(wrote.status, 0, `${wrote.stdout}${wrote.stderr}`);
@@ -260,13 +277,6 @@ test("a change that reached no deployment takes a checkpoint declaring that, and
   assert.equal(read.deployment, undefined, "and no deployment identity on it, there being none to name");
   assert.match(read.handWritten.why, /reached no deployment, so the head is the identity its verdicts answer to/u,
     `the block says the caller stated it rather than leaving the key silently empty: ${read.handWritten.why}`);
-  state.comments["rebuilt-uuid"].push(
-    { documentId: "c-mark", createdAt: AT, authorId: "agent",
-      body: `mark_merged target=base — merged to master at ${judged}` },
-    { documentId: "c-verdict", createdAt: AT, authorId: "agent",
-      body: render("verdict", [{ criterion: "1 — The one outcome.", verdict: "pass", commit: judged,
-        evidence: [judged], judge: JUDGING }]) },
-  );
   const owed = await declaringQa("independent", () => ran(["advance", "ISS-1784", "--owed"], room));
   assert.equal(owed.status, 0, `${owed.stdout}${owed.stderr}`);
   assert.doesNotMatch(owed.stdout, /landing checkpoint/u,
