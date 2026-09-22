@@ -412,9 +412,14 @@ it. Reading is all this product does there.
   copy the store as it stood beside it before rewriting a record, SHALL say of a reading it could not
   resolve that it did not rather than assigning it a project, and SHALL say of a reading taken before
   the device and the contract were carried that each is unknown rather than stamping this machine's.
-- **AC-19-8-128** · Rev: 1 · Proof: plugin/test/stats/marks/scope.test.mjs "two writers crossing one window at the same moment leave one held reading"
+- **AC-19-8-128** · Rev: 2 · Proof: plugin/test/stats/marks/scope.test.mjs "two writers crossing one window at the same moment leave one held reading"
   WHEN two processes cross one window at the same moment THEN the CLI SHALL leave one reading held
-  for that crossing, the check for a reading already held and the write of a new one being one act.
+  for that crossing, the check for a reading already held and the write of a new one being one act,
+  SHALL NOT take that guard from a process still holding it however long it has held it, and SHALL
+  report the reading as not held rather than writing beside a holder it could not wait out.
+- **AC-19-8-130** · Rev: 1 · Proof: plugin/test/stats/marks/scope.test.mjs "a lock left behind by a process that ended is taken at once"
+  WHERE the process that took such a guard has ended the CLI SHALL take it at once rather than
+  waiting out any interval measured from when it was taken.
 - **AC-19-8-129** · Rev: 1 · Proof: plugin/test/stats/marks/marks.test.mjs "the ship's mark is one line at a multiple of the window, read off the corpus, and silent otherwise"
   WHERE a reading is written down the CLI SHALL store no field that no reader of a stored reading
   reads, keeping its own earlier window and its class table out of the record while the comparison it

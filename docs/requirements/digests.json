@@ -666,8 +666,12 @@
       "digest": "a090ae8e7442fbdd061c898b11464e4a1117fc07402a2b8c60ec885e852428b8"
     },
     "AC-19-8-128": {
+      "rev": 2,
+      "digest": "30c21a8c834d60dbf5f288b50ed462420069efd024c75b22f028555d501a9ced"
+    },
+    "AC-19-8-130": {
       "rev": 1,
-      "digest": "9034882400693339b7f007ef40326f3be73d6a5c9cf6e509b2f77721cee5d6f2"
+      "digest": "85ae34390ebab2c4d053bd448d5c01fef6a75bc90816ce030b15bc65b6bf40cb"
     },
     "AC-19-8-129": {
       "rev": 1,

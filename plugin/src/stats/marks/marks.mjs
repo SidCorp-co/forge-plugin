@@ -119,10 +119,10 @@ const migrateHeld = () => {
 /* Outside the lock where the marker already answers, since that is every call but the first one this
    machine ever makes, and the lock is what two crossing writers are queued by and not what a read is. */
 /* Strict, so a writer that could not take the lock says the reading is not held rather than writing
-   beside another one; and a stale window that covers a whole-file rewrite, because the guarded work
-   here is the migration of every record the store holds and a holder taken for gone at five seconds
-   would be evicted in the middle of it. */
-const GUARDED = { strict: true, stale: 120_000, waits: 30_000 };
+   beside another one, and so that a holder still running is waited on however long its work takes
+   rather than evicted by the clock — the guarded work here is the rewrite of every record the store
+   holds. The budget is what a waiter spends before it gives that answer. */
+const GUARDED = { strict: true, waits: 30_000 };
 
 const migrated = () => {
   if (existsSync(migratedPath())) return;

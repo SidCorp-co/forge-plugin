@@ -18,8 +18,29 @@ export class Unlocked extends Error {}
 
 const pause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 
-/* Whose lock this is: a stale break hands the file on, and a release by path would delete another's. */
+/* Whose lock this is: a break hands the file on, and a release by path would delete another's. The
+   pid leads it so a waiter can ask the system whether that holder is still there. */
 const MINE = `${process.pid}-${randomBytes(4).toString("hex")}`;
+
+/** Whether the process that took this lock is still running. Asked before any break, because elapsed
+ *  time is not evidence that a holder is gone — it is evidence that its work is long, which is
+ *  exactly what a whole-file rewrite is. A pid this process may not signal is alive and someone
+ *  else's; an unreadable or malformed lock answers for nobody and may be taken. */
+const holderAlive = (lock) => {
+  let pid = 0;
+  try {
+    pid = Number.parseInt(readFileSync(lock, "utf8").split("-")[0], 10);
+  } catch {
+    return false;
+  }
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error.code === "EPERM";
+  }
+};
 
 /** Runs `fn` with `lock` held, and returns whatever it returns. The lock path is the caller's, so two
  *  stores under one config directory do not queue behind each other.
@@ -50,7 +71,13 @@ export const underLock = (lock, fn, { strict = false, stale = STALE_MS, waits = 
       } catch {
         since = 0;
       }
-      if (since && Date.now() - since > stale) rmSync(lock, { force: true });
+      /* A holder that is gone is broken at once, whichever mode this is: waiting out a budget for a
+         process that ended helps nobody. A holder that is still there is never broken for a strict
+         caller — it waits out the budget and is refused — because the alternative is two processes
+         inside one critical section, which is the thing the lock is for. A caller that is not strict
+         keeps the age rule, a queue costing it more than the write it is guarding. */
+      if (!holderAlive(lock)) rmSync(lock, { force: true });
+      else if (!strict && since && Date.now() - since > stale) rmSync(lock, { force: true });
       else pause(WAIT_MS);
     }
   }

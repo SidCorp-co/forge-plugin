@@ -350,3 +350,47 @@ test("a migration run again does not copy the migrated store over the way back",
       "and the way back is still the store as it first stood, not the migrated one");
   });
 });
+
+/* Elapsed time is not evidence that a holder is gone: it is evidence that its work is long, which a
+   rewrite of every record the store holds is. A holder evicted by the clock puts two processes inside
+   one critical section, which is what the lock exists to prevent (consult 8cce17 F1). */
+test("a lock whose holder is still running is waited on and then refused, never taken from it", () => {
+  const home = tempRoom("stats-scope-holder-home-");
+  mkdirSync(join(home, "forge"), { recursive: true });
+  inHome(home, () => {
+    writeFileSync(`${marksPath()}.migrated`, "{}\n");
+    const holder = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"]);
+    try {
+      writeFileSync(`${marksPath()}.lock`, `${holder.pid}-deadbeef`);
+      const reading = { kind: RUNS, mark: 50, at: at(0), scope: "guarded", now: { runs: 50, profile: {} } };
+      assert.equal(writeMark(reading), "failed",
+        "a writer that cannot take the lock says the reading is not held rather than writing beside one");
+      assert.ok(!existsSync(marksPath()) || !readFileSync(marksPath(), "utf8").includes('"scope":"guarded"'),
+        "and nothing of it reached the store");
+      assert.equal(readFileSync(`${marksPath()}.lock`, "utf8"), `${holder.pid}-deadbeef`,
+        "while the lock is still the holder's, however long it has held it");
+    } finally {
+      holder.kill();
+    }
+  });
+});
+
+/* The other half of the same rule: a lock nobody holds is not a lock, and waiting out a budget for a
+   process that ended helps nobody. */
+test("a lock left behind by a process that ended is taken at once", async () => {
+  const home = tempRoom("stats-scope-dead-home-");
+  mkdirSync(join(home, "forge"), { recursive: true });
+  const gone = spawn(process.execPath, ["-e", ""]);
+  const pid = gone.pid;
+  await new Promise((done) => gone.on("exit", done));
+  inHome(home, () => {
+    writeFileSync(`${marksPath()}.migrated`, "{}\n");
+    writeFileSync(`${marksPath()}.lock`, `${pid}-deadbeef`);
+    const began = Date.now();
+    assert.equal(writeMark({ kind: RUNS, mark: 50, at: at(0), scope: "freed", now: { runs: 50, profile: {} } }),
+      "written", "the reading is held");
+    assert.ok(Date.now() - began < 2_000,
+      "at once, rather than after the wait an age rule would have spent on a process that is not there");
+    assert.equal(marksOf(RUNS, "freed").length, 1);
+  });
+});
