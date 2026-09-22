@@ -525,7 +525,7 @@ const dropping = async (id) => {
   if (state !== "running") {
     return console.log(`chatgpt: turn ${id} is given up; it was ${state} and no process was left to tell.\n  ${SPENT}`);
   }
-  const heard = await acknowledged(id);
+  const heard = await acknowledged(id, deadlineSeconds() * 1000);
   return console.log(heard
     ? `chatgpt: turn ${id} is given up and its own process has stopped.\n  ${SPENT}`
     : `chatgpt: turn ${id} is given up, and its process has not said so within the time this waits.`

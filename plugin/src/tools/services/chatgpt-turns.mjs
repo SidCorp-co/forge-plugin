@@ -138,9 +138,14 @@ export const promptShown = (prompt) =>
   (prompt.length > PROMPT_CHARS ? `${prompt.slice(0, PROMPT_CHARS - 1)}…` : prompt);
 
 /** The child's own word that it stopped, which is the only acknowledgement there is: nothing here
- *  signals a process, so nothing here may report that a signal landed. */
-export const acknowledged = async (id) => {
-  const until = Date.now() + ACKNOWLEDGED_MS;
+ *  signals a process, so nothing here may report that a signal landed.
+ *
+ *  `allowed` is the most the caller can spend, and what is waited is the lesser of it and this
+ *  store's own figure: a drop that waited longer for a word than this machine allows the call it is
+ *  dropping would outlast the very turn it is asking about. Caps rather than replaces, so a caller
+ *  that allows more still waits what the store says. */
+export const acknowledged = async (id, allowed = ACKNOWLEDGED_MS) => {
+  const until = Date.now() + Math.min(ACKNOWLEDGED_MS, allowed);
   for (;;) {
     if (readTurn(id)?.state === "dropped") return true;
     if (Date.now() >= until) return false;
