@@ -21,6 +21,11 @@ const QA = "the-qa-session";
 const WAVE = "the-dispatching-session";
 const MERGED = "c8c35500000000000000000000000000000000ab";
 const DEPLOYED = "9e24c2af00000000000000000000000000000cde";
+/* Both routes, because whether the change reached a deployment is a fact the reader holds and the
+   refusal does not: one of these is runnable whichever way that went (ISS-1993). */
+const REBUILT_ROUTES = "forge claim ISS-8 --rebuilt c8c3550 "
+  + "--deployment <the sha the deployment reports serving>\n"
+  + "forge claim ISS-8 --rebuilt c8c3550 --undeployed";
 const MOVED = "3cd76450000000000000000000000000000000ef";
 const AT = "2026-09-07T12:00:00.000Z";
 const CRITERIA = "1. The first outcome.\n2. The second outcome.";
@@ -164,8 +169,7 @@ test("no checkpoint means nothing names the builder, and the check says so", () 
       + "a builder could not be recovered: a record nobody made reads here exactly like one nobody can make",
   ], "the builder is what this rung reads for, a deployment identity being the verification's one rung up");
   const asked = items([verdictOf(1), verdictOf(2)], { issue: { sessionContext: null } });
-  assert.deepEqual(asked.map((one) => one.command),
-    [`forge claim ISS-8 --rebuilt ${MERGED.slice(0, 7)} --deployment <the sha the deployment reports serving>`],
+  assert.deepEqual(asked.map((one) => one.command), [REBUILT_ROUTES],
     "and the ask is not another verdict, nor a command that reports where the landing is and writes "
       + "no checkpoint, but the write that puts one there");
 });
@@ -392,8 +396,7 @@ test("one refusal names every criterion it refused rather than one refusal for e
    that only reports where the landing is, which a reader could follow and arrive nowhere. */
 test("a verdict refused for a checkpoint that is absent names the write that puts one there", () => {
   const asked = items([verdictOf(1), verdictOf(2)], { issue: { sessionContext: null } });
-  assert.deepEqual(asked.map((one) => one.command),
-    [`forge claim ISS-8 --rebuilt ${MERGED.slice(0, 7)} --deployment <the sha the deployment reports serving>`]);
+  assert.deepEqual(asked.map((one) => one.command), [REBUILT_ROUTES]);
   const standing = items([verdictOf(1, { judge: BUILDER })]);
   assert.match(standing[0].command, /^forge record verdict ISS-8 /u,
     "while a checkpoint that stands is answered by the verdict it is short of, as before");

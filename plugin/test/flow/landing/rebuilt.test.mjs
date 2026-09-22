@@ -217,7 +217,7 @@ test("a reconstruction saying nothing about the deployment is refused, and the r
   const run = await ran(["claim", "ISS-1784", "--rebuilt", judged], room);
   assert.equal(run.status, 1, `${run.stdout}${run.stderr}`);
   assert.match(run.stderr, /--deployment <the sha the deployment reports serving>/u);
-  assert.match(run.stderr, new RegExp(`forge claim ISS-1784 --rebuilt ${judged.slice(0, 7)} --undeployed`, "u"),
+  assert.ok(run.stderr.includes(`forge claim ISS-1784 --rebuilt ${judged.slice(0, 7)} --undeployed`),
     `the route a change that reached no deployment can run unchanged:\n${run.stderr}`);
   assert.equal(checkpoint(), null, "and nothing was written");
 });
