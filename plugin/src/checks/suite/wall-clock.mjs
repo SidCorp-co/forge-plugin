@@ -34,33 +34,29 @@ const opensARegex = (text, at) => {
   return OPENS_A_REGEX.test(back < at ? `${head} ` : head);
 };
 
-/** Comments and every kind of quoted text, blanked to spaces so line and column still hold.
+/** Comments and every kind of quoted text, as the spans one walk over this source finds. A comment's
+ *  own delimiters fall inside its span and a string's or a regular expression's fall outside, which
+ *  is what lets a reader tell the three apart from the source alone.
  *
- *  Code units and not code points: every index below comes from `indexOf` and `slice`, which count
+ *  Code units and not code points: every index here comes from `indexOf` and `slice`, which count
  *  units, so a pair split as one element would address the wrong place from the first astral
- *  character on and hand back a string of another length than it was given. A reader that carries an
- *  offset of its own from here into the source depends on that (ISS-2040). */
-export const blanked = (text) => {
-  const out = text.split("");
-  const hide = (from, to) => {
-    for (let at = from; at < to && at < out.length; at += 1) if (out[at] !== "\n") out[at] = " ";
-  };
+ *  character on. A reader that carries an offset of its own from here into the source depends on
+ *  that (ISS-2040). */
+export const spansIn = (text) => {
+  const out = [];
   let at = 0;
   while (at < text.length) {
     const two = text.slice(at, at + 2);
-    if (two === "//") {
-      const end = text.indexOf("\n", at);
-      hide(at, end === -1 ? text.length : end);
-      at = end === -1 ? text.length : end;
-    } else if (two === "/*") {
-      const end = text.indexOf("*/", at + 2);
-      hide(at, end === -1 ? text.length : end + 2);
-      at = end === -1 ? text.length : end + 2;
+    if (two === "//" || two === "/*") {
+      const close = two === "//" ? text.indexOf("\n", at) : text.indexOf("*/", at + 2);
+      const to = close === -1 ? text.length : close + (two === "//" ? 0 : 2);
+      out.push({ kind: "comment", from: at, to });
+      at = to;
     } else if (text[at] === "'" || text[at] === '"' || text[at] === "`") {
       const quote = text[at];
       let end = at + 1;
       while (end < text.length && text[end] !== quote) end += text[end] === "\\" ? 2 : 1;
-      hide(at + 1, end);
+      out.push({ kind: quote === "`" ? "template" : "string", from: at + 1, to: end });
       at = end + 1;
     } else if (text[at] === "/" && opensARegex(text, at)) {
       let end = at + 1;
@@ -72,10 +68,20 @@ export const blanked = (text) => {
         else if (text[end] === "\n") break;
         end += 1;
       }
-      hide(at + 1, end);
+      out.push({ kind: "regex", from: at + 1, to: end });
       at = end + 1;
-    } else {
-      at += 1;
+    } else at += 1;
+  }
+  return out;
+};
+
+/** The same spans blanked to spaces so line and column still hold. A reader needing a run's own
+ *  extent takes `spansIn` instead: a blanked run breaks at every space the source already had. */
+export const blanked = (text) => {
+  const out = text.split("");
+  for (const span of spansIn(text)) {
+    for (let at = span.from; at < span.to && at < out.length; at += 1) {
+      if (out[at] !== "\n") out[at] = " ";
     }
   }
   return out.join("");

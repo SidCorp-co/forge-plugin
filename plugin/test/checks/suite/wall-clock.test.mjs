@@ -6,7 +6,7 @@ import test from "node:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { boundsIn, blanked } from "../../../src/checks/suite/wall-clock.mjs";
+import { boundsIn, blanked, spansIn } from "../../../src/checks/suite/wall-clock.mjs";
 import { patience } from "../../patience.mjs";
 
 const SUITE = new URL("../../", import.meta.url).pathname;
@@ -133,4 +133,27 @@ test("a slash parted from its operator by more whitespace than the lookbehind st
   const source = `const m = ${" ".repeat(40)}/secret/u;\n`;
   assert.doesNotMatch(blanked(source), /secret/u, "the operator is still what precedes the slash");
   assert.match(blanked(source), /const m =/u, "and the code before it is left alone");
+});
+
+/* The mask and the readers that need a run's own extent come off one walk, because a blanked run
+   breaks at every space the source already had and a second scanner would be a second answer. A
+   comment's delimiters fall inside its span and a string's or a regular expression's fall outside,
+   which is the whole of how a reader tells the three apart from the source alone. */
+test("the spans the mask is built from carry their kind and their extent", () => {
+  const source = 'const a = "x y"; // note\nconst r = /a b/u;\nconst t = `q ${w} z`;\n/* block */\n';
+  assert.deepEqual(spansIn(source).map((one) => [one.kind, source.slice(one.from, one.to)]), [
+    ["string", "x y"],
+    ["comment", "// note"],
+    ["regex", "a b"],
+    ["template", "q ${w} z"],
+    ["comment", "/* block */"],
+  ], "a run holds the spaces the source had, which is what the mask cannot give back");
+});
+
+test("the mask is those spans and nothing else, so an offset off either names the same place", () => {
+  const source = 'const a = "x y"; // note\nconst r = /a b/u;\n';
+  const built = spansIn(source).reduce((each, one) =>
+    `${each.slice(0, one.from)}${" ".repeat(one.to - one.from)}${each.slice(one.to)}`, source);
+  assert.equal(blanked(source), built);
+  assert.equal(blanked(source).length, source.length);
 });
