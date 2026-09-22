@@ -6,8 +6,8 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { tempRoom } from "../../../fixtures.mjs";
-import { MACHINE_FLAGS, MACHINE_KEY_NAMES } from "../../../../src/tools/doctor-keys.mjs";
-import { PROJECT_KEY_NAMES } from "../../../../src/tools/services/project-file.mjs";
+import { MACHINE_FLAGS, MACHINE_KEY_NAMES, MACHINE_RETIRED_NAMES }
+  from "../../../../src/tools/doctor-keys.mjs";
 import { LEVELS } from "../../../../src/tools/services/doctor/showing.mjs";
 
 const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;
@@ -119,17 +119,18 @@ const machineReads = () => {
   return [...found].sort();
 };
 
-/* A key the PROJECT's table declares is out of that hazard's reach whichever level also reads it:
-   `--set` routes by name, so the write lands in the project's record because that is where the key
-   belongs and not because nothing refused it. `ship` is read at this level only to be reported
-   ignored, and declaring it here again would list it among the keys this machine holds outright
-   (ISS-2174). */
+/* A key this store held and no longer decides by is named in its own list rather than among the keys
+   this machine holds outright, and that list is what the walk allows beside them. Every other key of
+   the project's table stays a finding here: a read of one at this level answers from a store the
+   value is not in, which is the hazard above however well `--set` routes the name (ISS-2174). */
 test("every key this plugin reads out of the machine's store is declared in the table that refuses it", () => {
   const read = machineReads();
   assert.ok(read.length > 5, `${read.length} machine read(s) found; the selector matches too little`);
-  const declared = [...MACHINE_KEY_NAMES, ...PROJECT_KEY_NAMES];
+  const declared = [...MACHINE_KEY_NAMES, ...MACHINE_RETIRED_NAMES];
   assert.deepEqual(read.filter((key) => !declared.includes(key)), [],
     "a key read at this level and declared at neither is written to the project's record instead");
-  assert.ok(read.includes("ship") && !MACHINE_KEY_NAMES.includes("ship"),
-    "and the one key both sides name is read here only to be reported ignored");
+  assert.deepEqual(MACHINE_RETIRED_NAMES, ["ship"],
+    "and the one key allowed beside them is read here only to be reported ignored");
+  assert.equal(declared.includes("landing"), false,
+    "while a project key this store has never held is a finding here whatever declares it elsewhere");
 });

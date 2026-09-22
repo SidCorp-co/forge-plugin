@@ -105,6 +105,22 @@ test("a landing mode left in the account's configuration is reported ignored and
     "the value left behind is named, and so is the key that replaced it");
 });
 
+/* Two independent facts on one box, and a row that judged the second under the first would drop it
+   exactly where a reader has both to act on. */
+test("a project value the key does not take and a leftover at the machine's level are both said", () => {
+  const home = tempRoom("doctor-ship-both-");
+  const cwd = projectRoom(tempRoom("doctor-ship-both-cwd-"), home, { slug: "demo", ship: "solo" });
+  mkdirSync(join(home, "forge"), { recursive: true });
+  writeFileSync(join(home, "forge", "config.json"), JSON.stringify({ ship: "ready" }));
+  const run = spawnSync(process.execPath, [CLI, "doctor", "project"], {
+    encoding: "utf8", cwd, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
+  });
+  assert.match(run.stdout, /\[ miss \] ship\s+solo is no value of this key — it takes self, ready; reading self/u,
+    run.stdout);
+  assert.match(run.stdout, /`ship: "ready"` in \S+config\.json is ignored/u,
+    "and the leftover is still named, the value's own judgement not having swallowed it");
+});
+
 test("the ship mode cannot be written where there is no project to write it for", () => {
   const home = tempRoom("doctor-ship-nowhere-");
   const run = spawnSync(process.execPath, [CLI, "doctor", "--ship", "ready"], {

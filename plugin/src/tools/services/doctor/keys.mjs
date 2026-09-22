@@ -51,12 +51,16 @@ const [SHIP_RETIRED] = MACHINE_RETIRED;
 const shipRow = () => {
   const ship = shipMode();
   const left = shipLeftOnMachine();
-  const detail = held(ship, SHIP_MODES);
+  /* Composed apart from the value's own judgement rather than under it: a project holding a word the
+     key does not take and a machine holding a leftover are two independent facts, and a row that
+     returned at the first would drop the second on the one box that has both. */
+  const ignored = left.value
+    ? `; \`${SHIP_RETIRED.key}: ${JSON.stringify(left.value)}\` in ${left.from} is ignored — the key `
+      + `that decides this is now ${SHIP_RETIRED.now}. Remove that line by hand`
+    : "";
+  const detail = `${held(ship, SHIP_MODES)}${ignored}`;
   if (ship.unknown) return { level: MISS, label: "ship", detail };
-  if (!left.value) return { label: "ship", detail };
-  return { level: NOTE, label: "ship", detail: `${detail}; \`${SHIP_RETIRED.key}: `
-    + `${JSON.stringify(left.value)}\` in ${left.from} is ignored — the key that decides this is now `
-    + `${SHIP_RETIRED.now}. Remove that line by hand` };
+  return left.value ? { level: NOTE, label: "ship", detail } : { label: "ship", detail };
 };
 
 const armedSaid = (label, commands) =>
