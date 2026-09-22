@@ -38,8 +38,10 @@ reading narrows what is blind and widens nothing that is trusted.
 **A node child needs none of that reading, because the audit goes into it.** Its record directory,
 its root and its preload travel with the ticket into every child the audit sees spawned, so a test
 that hands the CLI an environment of its own — a home, a path and nothing else — still starts a child
-that records what it read. The preload is added beside whatever options the caller named and never in
-their place. What this does not reach is a child that is not node, and one that leaves before its own
+that records what it read. What a call said stands and what it left unsaid is filled, key by
+key: the preload goes beside whatever options the call named rather than in their place, and a room
+the call named is the room that child writes to, this suite's own cases about the audit aiming their
+fixtures that way. What this does not reach is a child that is not node, and one that leaves before its own
 exit can write: a process orphaned on purpose, and one killed. Each of those blinds as it always did.
 
 Each step says what it spent in the unit it has. A step whose unit is the file names the files it

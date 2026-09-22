@@ -178,7 +178,13 @@ const start = (out, root) => {
     /* Whole words and not a substring: `--import=<the audit>.backup` holds this one's text and
        loads another module, and reading it as already there would leave the child uninstrumented. */
     const already = named.split(/\s+/u).includes(PRELOAD);
-    return { ...env, [READS_DIR]: out, [READS_ROOT]: root,
+    /* What a call said stands and what it left unsaid is filled, key by key. A call naming a room of
+       its own has aimed that child somewhere on purpose — this suite's own cases about the audit
+       spawn fixtures that way — and writing over it sends their records here, where nothing of
+       theirs reads them. Skipping such a call whole is the other half of the same mistake: one that
+       named the room and not the root would leave the child loading nothing, reading this repository
+       under a ticket no record answers for. */
+    return { ...env, [READS_DIR]: env[READS_DIR] ?? out, [READS_ROOT]: env[READS_ROOT] ?? root,
       NODE_OPTIONS: already ? named : `${named} ${PRELOAD}`.trim() };
   };
 

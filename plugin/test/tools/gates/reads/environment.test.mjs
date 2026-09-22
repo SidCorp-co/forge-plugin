@@ -217,12 +217,12 @@ test("a child handed an environment of its own records what it read, and blinds 
   const out = join(where.at, "out");
   try {
     const kept = spawnedUnder(where, out, `{ PATH: process.env.PATH, HOME: process.env.HOME }`);
-    const child = kept.find((one) => one.ticket !== null);
+    /* The record that spawned something, not the one carrying no ticket: this file's own runner is
+       ticketed too wherever the suite is spent under a gate of its own. */
+    const parent = kept.find((one) => one.spawned.length > 0);
+    const child = kept.find((one) => one.ticket === parent.spawned[0].ticket);
     assert.ok(child, "a curated environment stripped the preload, so the child recorded nothing");
     assert.deepEqual(child.paths.includes(FILE), true, "and its record holds the file it opened");
-    const parent = kept.find((one) => one.ticket === null);
-    assert.deepEqual(parent.spawned.map((one) => one.ticket), [child.ticket],
-      "the ticket the parent holds is the one that record answers under");
     // What the step is judged by, rather than the record alone: nothing in the tree blinds on it.
     const derived = stepSetOf(recordsFrom(out), where.root);
     assert.deepEqual(derived.blind, [], "and no cause is left for the file that spawned it");
@@ -251,8 +251,38 @@ test("the options a caller named survive beside the preload, and one already the
     const already = `{ PATH: process.env.PATH, NODE_OPTIONS: ${JSON.stringify(`--import=${PRELOAD}`)} }`;
     assert.deepEqual(imports(optionsAfter(already)), 1,
       "an environment already carrying the preload is handed one copy of it");
-    assert.deepEqual(spawnedUnder(where, out, already).filter((one) => one.ticket !== null).length, 1,
-      "and the child writes one record");
+    assert.deepEqual(spawnedUnder(where, out, already).filter((one) => one.paths.includes(FILE)).length,
+      1, "and the child writes one record");
+  } finally {
+    rmSync(where.at, { recursive: true, force: true });
+  }
+});
+
+/* The interaction that cost release 3.36.248 a clean gate: every case in this tree that spawns a
+   fixture under a room of its own failed under the gate and passed alone, the audit's own record
+   directory having been written over theirs. What a caller said stands; what it left unsaid is
+   added (ISS-2119). */
+test("a call naming a record directory of its own keeps it, and its child records there", () => {
+  const where = room();
+  const out = join(where.at, "out");
+  const mine = join(where.at, "mine");
+  try {
+    mkdirSync(mine, { recursive: true });
+    spawnedUnder(where, out, `{ ...process.env, ...${JSON.stringify(auditEnv(mine, where.root))} }`);
+    const aimed = readdirSync(mine).map((one) => JSON.parse(readFileSync(join(mine, one), "utf8")));
+    assert.deepEqual(aimed.some((one) => one.paths.includes(FILE)), true,
+      "the child wrote where the call aimed it");
+    assert.deepEqual(recordsIn(out).some((one) => one.paths.includes(FILE)), false,
+      "and nothing of what it read was taken to the audit's own room instead");
+    /* The other half: naming the room and not the root would leave the child loading nothing at all,
+       reading this repository under a ticket no record answers for. */
+    rmSync(mine, { recursive: true, force: true });
+    mkdirSync(mine, { recursive: true });
+    const half = spawnedUnder(where, out, `{ PATH: process.env.PATH, GATE_READS: ${JSON.stringify(mine)} }`);
+    const there = readdirSync(mine).map((one) => JSON.parse(readFileSync(join(mine, one), "utf8")));
+    assert.deepEqual(there.some((one) => one.paths.includes(FILE)), true,
+      "a call naming the room and not the root gets the root it did not name");
+    assert.deepEqual(half.flatMap((one) => one.blind), [], "and blinds the file that spawned it on nothing");
   } finally {
     rmSync(where.at, { recursive: true, force: true });
   }
