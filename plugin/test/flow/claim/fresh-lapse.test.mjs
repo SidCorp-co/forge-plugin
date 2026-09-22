@@ -77,10 +77,7 @@ test("a reclaim of a lease that has only just lapsed is refused, and the flag is
   assert.equal(refused.status, 1, `the reclaim should have been refused:\n${refused.stdout}${refused.stderr}`);
   assert.match(refused.stderr, new RegExp(`session ${THEIRS}`, "u"), "the refusal names the holder");
   assert.match(refused.stderr, /ran out 30 minute\(s\) ago/u, "and how long ago the lease ran out");
-  assert.match(refused.stderr, /forge claim ISS-1224 --stopped/u, "and the one command that clears it");
   assert.match(refused.stderr, new RegExp(`The step it left named: ${LEFT}`, "u"), "and the line the holder left");
-  assert.match(refused.stderr, /renewed only by a write the CLI makes to the issue/u,
-    "and what a lapse of that age does not prove, which is the whole of why it is refused");
   assert.deepEqual(state.calls.slice(before).filter((one) => one.args?.action === "update"), [],
     "and the field is left holding exactly what the refusal read");
 

@@ -49,8 +49,10 @@ test("a builder the claim history answers for on its own is derived rather than 
   assert.deepEqual(alone, ["the-only-run"],
     "the run that claimed to judge is no candidate for having built it, and every run asking has claimed");
   const why = builderProblem(landingOf({ landing: REBUILT }), alone);
-  assert.match(why, /exactly one run that held it while the change was being built, `the-only-run`/u, "the refusal names the holder it derived");
-  assert.match(why, /derived and not declared/u);
+  const WHOLE = "calling the builder unrecoverable, and the claim history on this issue names "
+    + "exactly one run that held it while the change was being built, `the-only-run`: a builder "
+    + "the record answers for is derived and not declared.";
+  assert.ok(why.includes(WHOLE), `the refusal whole, this file importing what composes it:\n${why}`);
   assert.match(why, /naming `the-only-run` as the builder/u, "and names the write that clears it");
 });
 

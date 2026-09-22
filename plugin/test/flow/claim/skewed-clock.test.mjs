@@ -93,7 +93,7 @@ test("a stamp carrying no error is said to be one this CLI cannot place, and the
   heldBy(THEIRS, 30 * 60_000, 60, undefined);
   const refused = await claim([]);
   assert.equal(refused.status, 1, "a live lease is still another run's");
-  assert.match(refused.stderr, /stamped by a device that had not read the tracker's clock/u,
+  assert.match(refused.stderr, /had not read the tracker's clock/u,
     "and the stamp it was refused on is named as that machine's time rather than this one's");
   heldBy(THEIRS, 30 * 60_000, 60, 500);
   const placed = await claim([]);
@@ -165,7 +165,7 @@ test("a tracker whose answers carry no readable time leaves the comparison this 
   const run = await claim([]);
   state.noDate = false;
   assert.equal(run.status, 0, `nothing is refused for a header nobody sent:\n${run.stdout}${run.stderr}`);
-  assert.match(run.stderr, /compared against this device's own clock/u,
+  assert.match(run.stderr, /this device's own clock/u,
     "and the claim says which clock decided it rather than presenting the answer as settled");
 });
 

@@ -81,6 +81,10 @@ test("a lapse is fresh while it is younger than the duration the holder named, a
   assert.match(said, /forge claim ISS-4 --stopped/u, "and the one command that clears it");
   assert.match(said, /The step it left named: Phase 5: the gate/u);
   assert.ok(said.includes(RENEWED_BY_WRITING), "out of the one string the usage prints, never a paraphrase of it");
+  assert.match(said, /A run inside one of those leaves the record a stopped run leaves, so a lapse this fresh proves neither/u,
+    "and why a lapse this fresh proves nothing, which is the whole of why it is refused");
+  assert.match(said, /Ask that run: where it answers, its own next write takes the lease back/u,
+    "with the route that asks for no claim about a run this caller never watched");
   assert.doesNotMatch(reclaimRefusal("ISS-4", lease, NOW + 33 * 60_000), /The step it left/u,
     "and a lease carrying no line says nothing about one");
 });

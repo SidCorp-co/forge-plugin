@@ -113,11 +113,12 @@ test("what the frame could not settle is handed back as a sentence naming which 
   forgetClock();
   assert.equal(unplaceable(300), null, "before anything is asked of the tracker, nothing is claimed either way");
   sawAnswer(headers(null), performance.now(), performance.now() + 10);
-  assert.match(unplaceable(300), /compared against this device's own clock/u,
+  assert.match(unplaceable(300), /compared against this device's own clock and against no clock its writer shares/u,
     "this end read no clock, whatever the stamp carries");
   seenAt("2026-09-12T01:00:00.000Z", 200);
   assert.equal(unplaceable(300), null, "both ends placed, so there is nothing to say");
-  assert.match(unplaceable(null), /stamped by a device that had not read the tracker's clock/u,
+  assert.match(unplaceable(null),
+    /stamped by a device that had not read the tracker's clock, so it carries that machine's time and this CLI cannot place it against the tracker's/u,
     "and a stamp with no error recorded is that machine's time, not this one's");
   assert.match(offsetSaid(), /known to ±0\.60s {2}← the `date` header on the tracker's own answers/u);
 });

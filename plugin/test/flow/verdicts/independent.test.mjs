@@ -341,7 +341,7 @@ test("a checkpoint declaring its builder unrecoverable earns the verdict the dep
 test("a builder the claim history answers for on its own is refused rather than declared unknown", () => {
   const said = owed([verdictOf(1), verdictOf(2)], { issue: { sessionContext: heldBy("the-only-run") } });
   assert.equal(said.length, 1, "one line, the item being the checkpoint's and not the verdict's");
-  assert.match(said[0], /exactly one run that held it while the change was being built, `the-only-run`/u);
+  assert.match(said[0], /derived and not declared/u, said[0]);
 });
 
 /* The only reading of an unrecoverable builder the record settles certainly. A judge that merely

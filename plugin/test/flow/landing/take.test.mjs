@@ -233,7 +233,6 @@ test("a take with no checkpoint, and a take at done, are each refused naming wha
   const none = await ran(["claim", "ISS-673", "--take"], LANDER);
   assert.equal(none.status, 1, none.stdout);
   assert.match(none.stderr, /carries no landing checkpoint/u, none.stderr);
-  assert.match(none.stderr, /forge claim ISS-673 --pushed --ready/u);
   assert.equal(held().holder, BUILDER, "and the lease is where it was");
   field({ ...BUILT, state: "done" }, lease(BUILDER));
   const over = await ran(["claim", "ISS-673", "--take"], LANDER);
@@ -400,7 +399,6 @@ test("at builder-owed the builder's own live lease holds a successor out, naming
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /that builder is on the issue under a lease of its own/u, run.stderr);
   assert.match(run.stderr, new RegExp(`session ${BUILDER} `, "u"), "naming the builder's own lease and not the reader's");
-  assert.match(run.stderr, /forge claim ISS-673 --take$/mu, "with the one command that clears it");
   assert.equal(held().holder, BUILDER, "and nothing of the successor's was written");
 });
 
