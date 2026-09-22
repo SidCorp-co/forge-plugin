@@ -211,7 +211,6 @@ test("a release mark carries its version and head, resolves apart from a count m
   try {
     const room = corpusOf(50);
     process.env.TMPDIR = room;
-    const root = join(room, `claude-${process.getuid()}`, slugFor(PROJECT));
 
     assert.match(await releaseMark(PROJECT, { version: "3.35.300", head: "abc1234" }),
       /^stats: this release is held as 3\.35\.300 over 50 run\(s\) \(`forge stats eval --since-release 3\.35\.300`\)\./u);
