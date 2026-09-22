@@ -23,7 +23,7 @@ import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid
   readByCodex, readState, stagedApart, stagedReader, turnsOf, updateState } from "./codex-state.mjs";
 import { PER_KEY, READ_ISSUE, SPARE, TOOLS, checkCommand, checkRow, checkState, scopeFor } from "./codex-tools.mjs";
 import { noDiffIn, reviewSet, shownOf } from "./codex-set.mjs";
-import { BAND_USAGE, band } from "./band/band.mjs";
+import { COMPLEXITY_USAGE, complexity } from "./complexity/complexity.mjs";
 import { reviewed } from "./codex-rounds.mjs";
 import { EFFORTS, chosenSend, defaultEffort, disagreement, effortVia, incompleteIn, keepsTools,
   modeFor, newFindingsIn, plannedFor, plannedLimits, rungFor, rungLadder } from "./codex-plan.mjs";
@@ -69,7 +69,7 @@ import { LOG_USAGE, VERDICT_USAGE, printLog, verdict } from "./log/verbs.mjs";
 const DEFAULT_PATH_RE = "^docs/.*\\.md$";
 
 export const USAGE = [
-  "Usage: forge codex <consult|verdict|pending|show|log|stats|eval|marks|replay|band> [args]",
+  "Usage: forge codex <consult|verdict|pending|show|log|stats|eval|marks|replay|complexity> [args]",
   "A second model reviews what this turn changed, streamed over the gateway's own API. The files you",
   "name travel with the prompt; beyond them it reads for itself, over this checkout and any other",
   "you name a file in. Each action's own flags: `forge codex <action> -h`.",
@@ -83,7 +83,7 @@ export const USAGE = [
   "  eval      the last 100 answered consults on this device against the 100 before them",
   "  marks     the readings held on this device, one line each, newest first",
   "  replay    which of a window a candidate prompt could be scored against",
-  "  band      one typed question per issue — which complexity band its body claims — proposed, never written; --measure scores it against run minutes",
+  "  complexity  one typed question per issue — which of the five its body claims — proposed, never written; --measure scores it against run minutes",
   "",
   "Every key of the `codex` object is optional and `forge codex show` prints what each resolved to",
   "and from where; `forge doctor` names the files. FORGE_CODEX_DISABLE=1 is the one variable: a",
@@ -572,7 +572,7 @@ const SUBS = {
   eval: printEval,
   marks: printMarks,
   replay: printReplay,
-  band,
+  complexity,
 };
 
 /* One text per action, which is the set its own parse refuses against: the two cannot drift, and
@@ -587,7 +587,7 @@ export const SAYS = {
   eval: EVAL_USAGE,
   marks: MARKS_USAGE,
   replay: REPLAY_USAGE,
-  band: BAND_USAGE,
+  complexity: COMPLEXITY_USAGE,
 };
 
 export const codex = async ([sub, ...rest]) => {

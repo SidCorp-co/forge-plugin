@@ -91,7 +91,7 @@ export const VERBS = [
     null, { group: HARNESS }],
   ["coolify", "<login|accounts|whoami|app|deploy|deployment|project|resource>",
     "a pinned project's deployments, and nothing outside it", null, { group: HARNESS }],
-  ["codex", "<consult|verdict|pending|show|log|stats|eval|marks|replay|band>",
+  ["codex", "<consult|verdict|pending|show|log|stats|eval|marks|replay|complexity>",
     "a second model reviews what this turn changed", null, { group: HARNESS }],
   ["chatgpt", "<ask|image|collect|pending>",
     "one ChatGPT turn, or a picture, over the endpoint this machine has saved, and a long one collected later",

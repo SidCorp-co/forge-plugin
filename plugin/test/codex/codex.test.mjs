@@ -597,7 +597,7 @@ test("asking an action what to type prints that action's own usage", () => {
   };
   /* The verb's own text names every action, which is the list a caller reads before choosing one. */
   const verb = asked("codex", "-h");
-  assert.match(verb, /Usage: forge codex <consult\|verdict\|pending\|show\|log\|stats\|eval\|marks\|replay\|band>/u);
+  assert.match(verb, /Usage: forge codex <consult\|verdict\|pending\|show\|log\|stats\|eval\|marks\|replay\|complexity>/u);
   assert.doesNotMatch(verb, /--verify <risk>/u, "and no action's flags, which is what the cap buys");
   for (const [action, argv, spelled] of [
     ["consult", ["codex", "consult", "-h"], /--verify <risk>/u],

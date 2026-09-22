@@ -5,7 +5,7 @@ import { jsonLines } from "../../hooks/log/hook-log-file.mjs";
 import { NO_SESSION } from "../../resolve/config.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { flags, pullRepeated } from "../../resolve/flags.mjs";
-import { BAND, DIAGNOSTIC, answered, logBytes, logConsult, logEntries, logPath, maskedDeep, pairedLog, verdictsBy } from "../codex-log.mjs";
+import { DIAGNOSTIC, PROPOSAL, answered, logBytes, logConsult, logEntries, logPath, maskedDeep, pairedLog, verdictsBy } from "../codex-log.mjs";
 import { budgetMs } from "../../resolve/settings.mjs";
 import { countedIn, recheckSaid, scoreOf, unverdicted, verdictRecord } from "./replies.mjs";
 
@@ -62,15 +62,15 @@ export const logLine = (stored, full) => {
     const over = `  runs   ${(entry.runs ?? []).map((one) => `${one.label}${one.issues?.length ? ` ${one.issues.join(",")}` : ""}`).join("  ")}`;
     return [head, over, "", entry.reply ?? entry.error ?? "", ""].join("\n");
   }
-  /* A band row is about one issue and no file, so its line is the key and the band that came back;
-     a refusal is the row's own — the answer was outside the ladder — and never a review's `failed`,
-     which is the gateway's. `--full` opens the why, the one thing a person reading the log back wants. */
-  if (entry.kind === BAND) {
+  /* A proposal row is about one issue and no file, so its line is the key and the complexity that came
+     back; a refusal is the row's own — the answer was outside the ladder — and never a review's
+     `failed`, which is the gateway's. `--full` opens the why, the one thing a person reading the log back wants. */
+  if (entry.kind === PROPOSAL) {
     const came = stored.ok
-      ? (entry.refused ? `refused: ${entry.refused}` : `-> ${entry.band}${typeof entry.confidence === "number" ? `  confidence ${entry.confidence}` : ""}`)
+      ? (entry.refused ? `refused: ${entry.refused}` : `-> ${entry.proposed}${typeof entry.confidence === "number" ? `  confidence ${entry.confidence}` : ""}`)
       : answer;
     const head = `${id}${entry.at}  ${entry.model ?? "?"}  ${Math.round((entry.ms ?? 0) / 1000)}s  `
-      + `band ${entry.key ?? "?"}  ${came}${wroteIt(entry)}`.replace("  -> ", " -> ");
+      + `complexity ${entry.key ?? "?"}  ${came}${wroteIt(entry)}`.replace("  -> ", " -> ");
     return full ? [head, "", entry.why ?? entry.error ?? "", ""].join("\n") : head;
   }
   const at = entry.head ? `${entry.head}${entry.dirty ? "+dirty" : ""}` : "no commit";
