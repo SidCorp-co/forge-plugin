@@ -294,14 +294,15 @@ const proposalLine = (one, width) => {
 };
 
 /* Keyed by the key asked, which is the one the caller joins on; a row the tracker will not give is that
-   key's refusal, so one issue gone from the tracker costs the measure one run and not the rest. */
+   key's refusal, so one issue gone from the tracker costs the measure one run and not the rest. It was
+   never a question, so it carries no ms and the cost line leaves it out (consult 8, F1). */
 const askAll = async (keys, deps, values, model, effort) => {
   const held = await eachBatched(keys, async (key) => {
     let row;
     try {
       row = await deps.rowOf(key);
     } catch (error) {
-      return [key, { key, tracker: UNSET, refused: error.message, ms: 0 }];
+      return [key, { key, tracker: UNSET, refused: error.message, unasked: true }];
     }
     return [key, await askComplexity(values, model, row, { effort, ask: deps.ask, log: deps.log })];
   });
@@ -316,9 +317,11 @@ const agreementWith = (runs) => {
   return { agreed: shared.filter((one) => one.proposed === one.tracker).length, of: shared.length };
 };
 
-/* What one question cost, over every question asked, refused ones included in the seconds — a refusal
-   was paid for — and left out of the tokens, which only an answer carries. */
-const costOf = (answers) => {
+/* What one question cost, over every question sent, refused ones included in the seconds — a refusal
+   was paid for — and left out of the tokens, which only an answer carries. A key whose row the tracker
+   would not give was never sent, and is no question here. */
+const costOf = (held) => {
+  const answers = held.filter((one) => !one.unasked);
   const tokens = answers.map((one) => one.usage?.input_tokens).filter((one) => typeof one === "number");
   const middleTokens = median(tokens);
   return {
