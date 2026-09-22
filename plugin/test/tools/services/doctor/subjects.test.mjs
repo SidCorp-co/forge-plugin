@@ -15,6 +15,12 @@ import { usageOf } from "../../../../src/resolve/visibility.mjs";
 
 const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;
 
+/* A home for this process as well, since every child below is given one. The row read here is a
+   constant today, so nothing moves either way — but a row of that table is a function where this
+   machine has chosen something, and the file that learnt this was green for exactly as long as the
+   row it read stayed a constant (ISS-2195). */
+process.env.XDG_CONFIG_HOME = tempRoom("doctor-subjects-parent-");
+
 /* A home of its own and no credential, so no spawn below reaches a tracker. */
 const doctor = (...argv) => {
   const home = tempRoom("doctor-subjects-home-");
