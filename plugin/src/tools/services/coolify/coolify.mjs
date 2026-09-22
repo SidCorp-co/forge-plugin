@@ -14,8 +14,8 @@ import { active, applicationIds, check, environmentIds, filterList, label, makeS
 import { hiddenNames, normalize, pickColumns, redact, renderObject, renderTable, secretsIn, striking, summarize } from "./shape.mjs";
 import { readArgs } from "./args.mjs";
 import {
-  BOTH_KIND, HELD_BACK_KIND, ROUTELESS_KIND, SERVED_KIND, TAKEN_HERE, TO_INSTANCE, TRACKER,
-  coolifyRoute, trackerName,
+  BOTH_KIND, HELD_BACK_KIND, INSTANCE_SCOPE, ROUTELESS_KIND, SERVED_KIND, TAKEN_HERE, TO_INSTANCE,
+  TRACKER, consentRefusal, coolifyRoute, trackerName,
 } from "./chosen-route.mjs";
 import { noRouteRefusal } from "../../../tracker/declared/no-route.mjs";
 
@@ -247,8 +247,7 @@ const routed = async (argv) => {
   refuseLooseSelectors(found.entry, values);
   await check(scope, found.entry.scope, values);
   if (found.entry.method !== "GET" && !switches.yes && !switches["dry-run"]) {
-    fail(`coolify ${found.name}: a write is refused without --yes.\n`
-      + `  see it first: forge coolify ${found.name} --dry-run`);
+    fail(consentRefusal(found.name, INSTANCE_SCOPE));
   }
   const answer = await ask(held, found.entry.method, path, { query, body, secrets, cache: found.entry.method === "GET" });
   const cut = await filterList(scope, found.entry.returns, answer, { mustFilter: pinOnly(found.entry) });

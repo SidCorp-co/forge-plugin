@@ -7,6 +7,7 @@ import { documentIdOf } from "../../../tracker/issues.mjs";
 import { callTool } from "../../../tracker/rest.mjs";
 import { rowFor } from "../../../tracker/routes.mjs";
 import { renderObject, renderTable } from "./shape.mjs";
+import { TRACKER_SCOPE, consentRefusal } from "./chosen-route.mjs";
 
 export const TRACKER_USAGE = [
   "Usage: forge coolify <login|accounts|list|targets|status|rollback-images|deploy|cancel> [args]",
@@ -176,8 +177,7 @@ export const runTracker = async (name, key, argv) => {
   const given = flags(argv, `coolify ${name}`, SWITCHES, { usage });
   const args = await argued(name, given);
   if (ACTS.includes(name) && !given.yes && !given["dry-run"]) {
-    fail(`coolify ${name}: a write is refused without --yes.\n`
-      + `  see it first: forge coolify ${name} --dry-run`);
+    fail(consentRefusal(name, TRACKER_SCOPE));
   }
   if (given["dry-run"]) {
     preview(key, args);

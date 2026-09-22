@@ -64,6 +64,16 @@ export const BOTH_WAYS = ["login", "accounts"];
  *  how a verb comes to offer a name it turns away. */
 export const TAKEN_HERE = [...BOTH_WAYS, ...Object.keys(TRACKER_SERVED)];
 
+/* A write nobody asked for is refused in one sentence, built here, naming the route that would have
+   taken it: the same words composed in each route's own file leave a caller who reads the refusal
+   unable to tell which of the two deployment scopes `--yes` reaches. */
+export const TRACKER_SCOPE = "this project's own binding on the tracker";
+export const INSTANCE_SCOPE = "the saved instance, inside the project this checkout pins";
+
+export const consentRefusal = (name, scope) =>
+  `coolify ${name}: a write is refused without --yes, and it would go to ${scope}.\n`
+  + `  see it first: forge coolify ${name} --dry-run`;
+
 export const SERVED_KIND = "served";
 export const ROUTELESS_KIND = "routeless";
 export const HELD_BACK_KIND = "held-back";

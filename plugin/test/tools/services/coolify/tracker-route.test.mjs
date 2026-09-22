@@ -145,6 +145,9 @@ test("a write is refused without --yes, and --dry-run prints the request without
   assert.equal(held.status, 1);
   assert.match(held.stderr, /a write is refused without --yes/u);
   assert.deepEqual(held.calls, []);
+  /* Which of the two scopes the write would have reached, in the refusal itself: the same sentence
+     under both settings tells a caller a write was held and not what `--yes` would have deployed. */
+  assert.match(held.stderr, /it would go to this project's own binding on the tracker/u);
   const shown = await ran("cancel", "--deployment", "d-1", "--dry-run");
   assert.equal(shown.status, 0, shown.stderr);
   assert.match(shown.stdout, /POST \/api\/projects\/<projectId>\/integrations\/coolify\/cancel/u);
