@@ -420,6 +420,10 @@ it. Reading is all this product does there.
 - **AC-19-8-130** · Rev: 1 · Proof: plugin/test/stats/marks/scope.test.mjs "a lock left behind by a process that ended is taken at once"
   WHERE the process that took such a guard has ended the CLI SHALL take it at once rather than
   waiting out any interval measured from when it was taken.
+- **AC-19-8-131** · Rev: 1 · Proof: plugin/test/stats/marks/scope.test.mjs "a lock whose owner cannot be read is not taken for one nobody holds"
+  WHEN such a guard is taken THEN the CLI SHALL publish it whole rather than in a state a second
+  process could read as unowned, and IF the owner of one cannot be read THEN it SHALL treat that as
+  unknown rather than as a guard nobody holds.
 - **AC-19-8-129** · Rev: 1 · Proof: plugin/test/stats/marks/marks.test.mjs "the ship's mark is one line at a multiple of the window, read off the corpus, and silent otherwise"
   WHERE a reading is written down the CLI SHALL store no field that no reader of a stored reading
   reads, keeping its own earlier window and its class table out of the record while the comparison it

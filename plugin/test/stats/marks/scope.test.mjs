@@ -394,3 +394,19 @@ test("a lock left behind by a process that ended is taken at once", async () => 
     assert.equal(marksOf(RUNS, "freed").length, 1);
   });
 });
+
+/* A lock is published by linking a name that already holds its owner, so the path never carries half
+   of one. A reader that met an empty lock and took it for free would be taking it from whoever was
+   publishing it at that moment, which is two callers inside one guard (consult 3f5d F1). */
+test("a lock whose owner cannot be read is not taken for one nobody holds", () => {
+  const home = tempRoom("stats-scope-partial-home-");
+  mkdirSync(join(home, "forge"), { recursive: true });
+  inHome(home, () => {
+    writeFileSync(`${marksPath()}.migrated`, "{}\n");
+    writeFileSync(`${marksPath()}.lock`, "");
+    assert.equal(writeMark({ kind: RUNS, mark: 50, at: at(0), scope: "partial", now: { runs: 50, profile: {} } }),
+      "failed", "an owner that cannot be read is unknown, never gone");
+    assert.deepEqual(marksOf(RUNS, "partial"), [], "and nothing was written beside it");
+    assert.equal(readFileSync(`${marksPath()}.lock`, "utf8"), "", "the lock is left where it stood");
+  });
+});
