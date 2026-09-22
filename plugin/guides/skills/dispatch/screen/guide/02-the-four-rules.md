@@ -9,4 +9,7 @@
    has paid for this skill's convenience.
 4. **A brief carries only what the dispatcher knows and the role cannot.** Every rule that lives in a
    skill, in the contract or in a refusal is left there. A sentence restating one is retired from the
-   brief.
+   brief, and a sentence overruling one is why this rule is not a preference: a dispatcher's summary
+   placed above the served text is read as authoritative, and the run has no way to tell which of the
+   two its project meant. So where the dispatcher believes a method's own step cannot be followed,
+   that is a filing against the method and never a paragraph.
