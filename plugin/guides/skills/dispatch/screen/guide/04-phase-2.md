@@ -19,8 +19,23 @@ reading is earned by naming the act that meets the issue, never by asserting a t
 would both fit the higher one is the reading — a surface a project's own configuration can put on an
 ordinary run's path is edge, however rarely that configuration is chosen.
 
-**That reading is not the priority field.** Priority is what somebody wants done; this is where the
-issue sits, and one band says nothing about the other.
+**That reading is what the priority is read from.** A priority here is a reading of what the issue
+costs this plugin, and the reach is its ground: a surface an ordinary run meets costs every run that
+meets it, and one nobody reaches unless they are investigating costs the investigation. The two stay
+different bands, because where an issue sits is not an instruction to work it — but they are no
+longer read apart, so a band that sits against the reach carries the reason it does or it carries
+nothing.
+
+**A defect with no way round it outranks one with a workaround, at equal reach and equal size.** A
+blocker spends a whole run; a defect a run can detour spends part of one, and those are different
+costs. The detour is what earned the lower band, so it is written on the issue in the same breath: a
+band lowered for a route nobody stated is the same unshown judgement as one raised for no reason, and
+the next run to meet the defect is the one that pays for it.
+
+**`critical` is the whole of the table's spread, and what reaches it is an issue that leaves a run no
+route to its outcome at all** — not one slowed and not one detoured. Somebody who did not file the
+issue has to be able to see that in the body, and a band nobody can see it from is one this phase
+reads down.
 
 **A candidate that survives also carries a complexity, and the tracker's `complexity` field is
 where.** Setting it is this phase's, because it is the same reading triage has just done: `forge
@@ -28,6 +43,17 @@ issue ISS-nn --set complexity=<value> --why <w>`, the why naming what was read t
 files the change would touch, whether a person sees the result, whether a rule changes. Which value claims which rung, and
 what a rung then buys, is the contract's. The write goes on the issue and nowhere else, so the brief
 carries no rung and there is nothing for a run to find disagreeing with the field.
+
+**The priority goes with it, by the same reader and into the tracker's `priority` field.** `forge
+issue ISS-nn --set priority=<value> --why <w>`, the why naming what the issue costs and the act that
+meets it. It is the reading the reach and the complexity already came from, so the reader who made
+those is the one who can show this one.
+
+**A reading that leaves its issue holding neither band has not finished.** An issue with no priority
+and no complexity is not one somebody judged small — it is one nobody read, and nothing downstream
+can tell those two apart. Where the body gives the reader nothing to judge a cost from and no slot is
+waiting on it, that inability is itself the finding: it is recorded, and the band written with it is
+the one that reading supports, rather than the write being left off.
 
 **The complexity is set before the brief, and no run is dispatched on an issue holding none.** An
 issue nobody weighed spends a run's payloads settling a question one write here answers, and the
@@ -45,11 +71,11 @@ lowers nothing the reading behind a band has to carry.
 band set to clear a gate is a standard lowered on purpose, and it is never set that way without
 saying so. That is why the paragraph above is a rule and not a preference.
 
-**This phase's three writes — the confirmation, the candidate line and the complexity — belong to
-whoever did the reading, and that reader makes them.** The confirmation is the one that carries a
-disposition where there is one, so a verdict of *holds* drops none of the three. One handed back as a
+**This phase's four writes — the confirmation, the candidate line, the complexity and the priority —
+belong to whoever did the reading, and that reader makes them.** The confirmation is the one that
+carries a disposition where there is one, so a verdict of *holds* drops none of the four. One handed back as a
 recommendation is this phase left unfinished, and a fold that can say what it passed on rather than
-what it did. The candidate line takes no lease, being a finder's post; what lease the other two take
+what it did. The candidate line takes no lease, being a finder's post; what lease the other three take
 is `forge claim -h`'s, which the refusal each of them meets without one prints as well. Where the
 CLI grows a route needing no lease for either, that route is the one this phase takes, and a lease
 the CLI withholds is not worked around.

@@ -27,3 +27,8 @@ A verdict of *holds* ends the issue nowhere and still owes a write: a holding is
 goes to a run, and the reading you have just done is what answers for its complexity. Setting it is
 yours, not a recommendation for whoever dispatched you. `forge guide dispatch` is where that write
 sits, with the lease it and the confirmation take.
+
+The priority is yours on the same terms, and it is a reading of what the issue costs this plugin
+rather than of what anyone wants done. What bands that cost — how far a defect with a way round it
+sits below one with none, and what reaches the top of the table — is in that same served part, and an
+issue you leave holding neither band is one you have not finished reading.
