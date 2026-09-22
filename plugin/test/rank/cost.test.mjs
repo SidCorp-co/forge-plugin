@@ -37,6 +37,19 @@ test("a run's minutes are folded under the issue it claimed", () => {
   assert.deepEqual(runs.map((one) => Math.round(one.minutes)).sort((a, b) => a - b), [40, 60, 80]);
 });
 
+/* A session id spells its key in lowercase and a claim typed from one does too; the tracker answers
+   in uppercase. A key read off a transcript is the tracker's spelling, or the join with the row it
+   names silently drops the run — 58 of 585 in this project's own corpus before this case. */
+test("a run that claimed its issue in lowercase is keyed as the tracker spells it", () => {
+  const root = tempRoom("rank-cost-");
+  transcript(root, "one", "iss-14", 40);
+  transcript(root, "two", "ISS-14", 60);
+  const runs = measuredRuns(root);
+  assert.deepEqual(runs.map((one) => one.key), ["ISS-14", "ISS-14"]);
+  const held = costFor("m", runs, new Map([["ISS-14", "m"]]));
+  assert.deepEqual(held, { minutes: 50, over: 2, complexity: "m" }, "both runs fold under the row they claimed");
+});
+
 test("a transcript with no run in it costs the column nothing and leaves a dash", () => {
   const held = costFor("xs", [], new Map());
   assert.deepEqual(held, { minutes: null, over: 0, complexity: null });

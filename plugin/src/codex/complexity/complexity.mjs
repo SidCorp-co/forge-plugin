@@ -167,7 +167,9 @@ const perName = (runs, field) => Object.fromEntries(COMPLEXITY_NAMES.map((one) =
   return [one, { n: minutes.length, median: middle === null ? null : Math.round(middle) }];
 }));
 
-/* Lowercase `neither` throughout, so one sentence answers whichever way it went. */
+/* Lowercase `neither` throughout, so one sentence answers whichever way it went. The arms are compared
+   on the figure printed, not the raw coefficient: a sentence claiming one ordered minutes more closely
+   "(0.35 against 0.35)" is refuted by its own parenthesis. */
 const closing = (tracker, proposed) => {
   if (tracker === null || proposed === null) {
     return "Too few shared runs, or no spread in one arm's complexities, for either to have ordered minutes.";
@@ -175,10 +177,11 @@ const closing = (tracker, proposed) => {
   if (tracker <= 0 && proposed <= 0) {
     return `Both at or under nought (tracker ${figureOf(tracker)}, proposed ${figureOf(proposed)}), so neither ordered minutes.`;
   }
-  if (tracker === proposed) return `Equal at ${figureOf(tracker)}, so neither ordered minutes more closely than the other.`;
+  const [said, saidProposed] = [figureOf(tracker), figureOf(proposed)];
+  if (said === saidProposed) return `Equal at ${said}, so neither ordered minutes more closely than the other.`;
   return tracker > proposed
-    ? `On the shared runs the tracker's complexity ordered minutes more closely (${figureOf(tracker)} against ${figureOf(proposed)}).`
-    : `On the shared runs the proposed complexity ordered minutes more closely (${figureOf(proposed)} against ${figureOf(tracker)}).`;
+    ? `On the shared runs the tracker's complexity ordered minutes more closely (${said} against ${saidProposed}).`
+    : `On the shared runs the proposed complexity ordered minutes more closely (${saidProposed} against ${said}).`;
 };
 
 /** Two orderings of the same runs' minutes, by the complexity the tracker holds and by the one proposed.
@@ -290,12 +293,19 @@ const proposalLine = (one, width) => {
   return `${key}  proposed ${one.proposed}  tracker ${one.tracker}  confidence ${figureOf(one.confidence)}  ${one.why}`;
 };
 
+/* Keyed by the key asked, which is the one the caller joins on; a row the tracker will not give is that
+   key's refusal, so one issue gone from the tracker costs the measure one run and not the rest. */
 const askAll = async (keys, deps, values, model, effort) => {
   const held = await eachBatched(keys, async (key) => {
-    const row = await deps.rowOf(key);
-    return askComplexity(values, model, row, { effort, ask: deps.ask, log: deps.log });
+    let row;
+    try {
+      row = await deps.rowOf(key);
+    } catch (error) {
+      return [key, { key, tracker: UNSET, refused: error.message, ms: 0 }];
+    }
+    return [key, await askComplexity(values, model, row, { effort, ask: deps.ask, log: deps.log })];
   });
-  return new Map(held.map((one) => [one.key, one]));
+  return new Map(held);
 };
 
 /* Agreement is agreement and nothing more: the tracker's value was set by a reader nobody has measured,
