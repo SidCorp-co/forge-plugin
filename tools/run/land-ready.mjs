@@ -328,7 +328,12 @@ const installStep = async (one) => {
     } else {
       /* One cache is what every release on this machine installs into, and this span moves the marketplace registration through the candidate's own worktree, so where it is entered and not left the branch after this one is not landed: the refusal says what to put back, and a landing that shipped over it would bury the reading of it. */
       at.installing = true;
-      installs({ tree: at.room, root, base, market, plugin, self });
+      /* Both resumes the install step may name are this landing's own call: it resumes off its
+         checkpoint and re-reads whether this release is on the branch, so either state that step
+         can refuse in is answered by taking the landing again and by no step of a release — which
+         is what it named while the step composed one remedy for every reading (ISS-671). */
+      installs({ tree: at.room, root, base, market, plugin,
+        again: `${self} land-ready ${named}`, release: `${self} land-ready ${named}` });
       at.installing = false;
     }
     publishes(at.room, base, release);

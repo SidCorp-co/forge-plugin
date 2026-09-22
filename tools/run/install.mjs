@@ -20,9 +20,16 @@ export const shortly = (sha) => String(sha ?? "").slice(0, 7);
 
 const headOf = (root) => shortly(gitOut(["rev-parse", "HEAD"], root)) || "an unreadable HEAD";
 
-/** What the remote holds for a branch, or null; an unreachable remote and a gone branch read alike. */
-export const remoteHeadOf = (tree, base) =>
-  (gitOut(["ls-remote", REMOTE, `refs/heads/${base}`], tree) ?? "").split(/\s+/u)[0] || null;
+/** Both halves of the remote's answer: whether the read ran at all, and what it named. Through
+ *  `gitOut` the two are one `null`, and telling them apart is what lets a read that failed and a
+ *  branch that is gone take different sentences. */
+const remoteSays = (tree, base) => {
+  const out = gitOut(["ls-remote", REMOTE, `refs/heads/${base}`], tree);
+  return { read: out !== null, at: (out ?? "").split(/\s+/u)[0] || null };
+};
+
+/** What the remote holds for a branch, or null; a read that failed and a gone branch read alike. */
+export const remoteHeadOf = (tree, base) => remoteSays(tree, base).at;
 
 // Name-only: `status --porcelain`'s column is one `gitOut` has trimmed the first character off.
 const uncommitted = (root, paths) => [...new Set([
@@ -133,29 +140,84 @@ const updating = (from, market, plugin) => {
 };
 
 /* Asked of the remote, never of a tracking ref a resume aimed at this step never fetched: that ref
-   can name a release another clone pushed past, and installing then caches a copy below the branch. */
-const notTheBranch = (tree, base) => {
-  const held = remoteHeadOf(tree, base);
-  const mine = gitOut(["rev-parse", "HEAD"], tree);
-  if (!held || !mine) {
-    return `${REMOTE}/${base} and this tree could not be compared: ${REMOTE} named `
-      + `${held ? shortly(held) : "nothing"} for ${base} and this tree named `
-      + `${mine ? shortly(mine) : "nothing"} for its own HEAD. An unreachable remote, a branch that is `
-      + `gone and an unreadable HEAD all read this way, and an install past any of them would put `
-      + `whatever is here in the cache against nothing.`;
+   can name a release another clone pushed past, and installing then caches a copy below the branch.
+   One reading per state, each naming what it read and nothing else, because the remedies differ:
+   `compared` is whether the branch was read at all, which is what decides where the remedy comes
+   from. This tree's own HEAD is read first — the remote's answer settles nothing where there is no
+   HEAD here to hold it against. */
+const notTheBranch = (tree, base, mine) => {
+  const said = remoteSays(tree, base);
+  if (!mine) {
+    return { compared: false, why: `this tree could not be asked what its HEAD is, so there is `
+      + `nothing here to hold against ${REMOTE}/${base}, and an install would put whatever is in `
+      + `this tree into the cache against nothing.` };
   }
-  if (held === mine) return null;
-  return `this tree is not what ${REMOTE}/${base} holds — HEAD is ${shortly(mine)} and the branch is `
-    + `${shortly(held)} — so installing it would put a copy in the cache older than the one the branch `
-    + `carries. A release landed after this one pushed.`;
+  if (!said.read) {
+    return { compared: false, why: `${REMOTE}/${base} could not be read: `
+      + `git ls-remote ${REMOTE} refs/heads/${base} failed in this tree, so the branch cannot be `
+      + `compared with this tree's HEAD, ${shortly(mine)}, and an install past that would put this `
+      + `copy in the cache against nothing.` };
+  }
+  if (!said.at) {
+    return { compared: false, why: `${REMOTE} answers and names no ${base} at all: the branch is `
+      + `gone from the remote, and this tree's HEAD is ${shortly(mine)}. An install past that would `
+      + `put this copy in the cache against a branch that is not there.` };
+  }
+  if (said.at === mine) return null;
+  return { compared: true, why: `this tree is not what ${REMOTE}/${base} holds — HEAD is `
+    + `${shortly(mine)} and the branch is ${shortly(said.at)} — so installing it would put a copy in `
+    + `the cache older than the one the branch carries.` };
+};
+
+/* Where this release stands, read from the state the push left rather than from the remote that has
+   just failed: `git push` moves the remote-tracking ref on success, so a ref carrying this tree's
+   HEAD is this release's own push having landed as far as this tree's record of the branch goes. It
+   claims nothing about what the remote holds now, which is the thing the reading above could not
+   get. Null where there is no HEAD to ask it of, that being the one state neither remedy fits. */
+const inTheBranch = (tree, base, mine) => {
+  if (!mine) return null;
+  const tracked = gitOut(["rev-parse", "--verify", "--quiet", `${remoteRef(base)}^{commit}`], tree);
+  if (!tracked) return { is: false, tracked: null };
+  return { is: git(["merge-base", "--is-ancestor", mine, remoteRef(base)], tree).status === 0, tracked };
+};
+
+const RE_RELEASE = "take this release again from the fetch, which raises a version above the branch "
+  + "and installs its head";
+
+const reads = (base, where) => `This tree's own record of the branch, ${remoteRef(base)}, names `
+  + `${where.tracked ? shortly(where.tracked) : "nothing"} and `
+  + `${where.is ? "carries" : "does not carry"} this release`;
+
+/* The question the one old remedy presumed the answer to, asked once. Where the branch could not be
+   read it decides which resume fits, a re-release being right only where nothing of this release is
+   on the branch. Where the branch was read, what it holds is the state and the re-release is right
+   either way, so the answer only says what happened. */
+const remedy = ({ base, tree, where, compared, again, release }) => {
+  if (!where) {
+    return `Whether this release reached the branch cannot be read here either, so neither resume is `
+      + `named on a guess and nothing has been installed. Read what this tree says it is:`
+      + `\n    git -C ${tree} rev-parse HEAD`;
+  }
+  if (compared) {
+    return `${reads(base, where)}, so ${where.is ? "a release landed after this one pushed"
+      : "nothing here says this push ever landed"}. Nothing has moved: ${RE_RELEASE}:\n    ${release}`;
+  }
+  if (where.is) {
+    return `${reads(base, where)}, so the push landed and it is the read above that is missing. `
+      + `Re-releasing would raise a second version for a change the branch already carries. Nothing `
+      + `has been installed and nothing has moved. Take this step again once ${REMOTE}/${base} `
+      + `answers for this release:\n    ${again}`;
+  }
+  return `${reads(base, where)}. Nothing has moved: ${RE_RELEASE}:\n    ${release}`;
 };
 
 // One step, its span being stateful: a resume redoes all of it or none of it.
-export const installs = ({ tree, root, base, market, plugin, self }) => {
-  const wrong = notTheBranch(tree, base);
+export const installs = ({ tree, root, base, market, plugin, again, release }) => {
+  const mine = gitOut(["rev-parse", "HEAD"], tree);
+  const wrong = notTheBranch(tree, base, mine);
   if (wrong) {
-    stop(`${wrong} Nothing has moved here: take this release again from the fetch, which raises a `
-      + `version above the branch and installs its head:\n    ${self} ship --from 2`);
+    stop(`${wrong.why} ${remedy({ base, tree, where: inTheBranch(tree, base, mine),
+      compared: wrong.compared, again, release })}`);
   }
   const here = shipped(root, tree);
   const from = here.is ? root : tree;
