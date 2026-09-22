@@ -140,7 +140,10 @@ const PASSES = [
 const onePass = ({ marker, issue, over }) => {
   if (existsSync(donePath(marker))) return;
   const held = readAll();
-  let report = {};
+  /* Asked whatever the store holds, so the report a marker carries has one shape on an empty store
+     and on a full one. It only builds strings, the store standing untouched until the rename below,
+     so asking it first costs the way back nothing. */
+  const made = over(held);
   if (held.length) {
     /* Once, and never over a backup already published: a rewrite interrupted after the store was
        renamed leaves the next attempt reading records already rewritten, and copying THOSE over the
@@ -151,8 +154,6 @@ const onePass = ({ marker, issue, over }) => {
       copyFileSync(marksPath(), part);
       renameSync(part, asidePath(issue));
     }
-    const made = over(held);
-    report = made.report;
     const next = `${marksPath()}.next`;
     writeFileSync(next, `${made.lines.join("\n")}\n`, { mode: 0o600 });
     /* Renamed rather than written over: a rewrite interrupted half way would leave the store torn,
@@ -160,7 +161,7 @@ const onePass = ({ marker, issue, over }) => {
     renameSync(next, marksPath());
   }
   writeFileSync(donePath(marker), `${JSON.stringify({
-    at: new Date().toISOString(), records: held.length, ...report,
+    at: new Date().toISOString(), records: held.length, ...made.report,
     kept: held.length ? asidePath(issue) : null,
   })}\n`, { mode: 0o600 });
 };

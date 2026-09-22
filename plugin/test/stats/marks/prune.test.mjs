@@ -8,7 +8,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { join } from "node:path";
 
 import { releaseMark, runsMark } from "../../../src/stats/eval/eval.mjs";
-import { CONSULTS, RELEASES, RUNS, WRITTEN, marksOf, marksPath, scopeOf, writeMark }
+import { CLAIMS, CONSULTS, RELEASES, RUNS, WRITTEN, marksOf, marksPath, scopeOf, writeMark }
   from "../../../src/stats/marks/marks.mjs";
 import { evalObject } from "../../../src/codex/codex-stats.mjs";
 import { tempRoom } from "../../fixtures.mjs";
@@ -288,8 +288,14 @@ test("every consumer of a stored reading reads the same with the two fields and 
     delete one.classes;
     return JSON.stringify(one);
   };
-  const lean = captured.map(withoutBoth);
-  const fat = lean.map((line) => JSON.stringify({ ...JSON.parse(line), ...dead }));
+  /* A claim beside the readings, so the claims reader in the change reading has something to find:
+     a claim record never carried either field, and a consumer checked over an empty table is a
+     consumer nobody checked (review 8b3f (a)). */
+  const claim = JSON.stringify({ kind: CLAIMS, scope: scopeOf(PROJECT), issue: "ISS-2106",
+    angle: "gate", direction: "down", at: at(53), landingKnown: false });
+  const lean = [...captured.map(withoutBoth), claim];
+  const fat = captured.map((line) => JSON.stringify({ ...JSON.parse(withoutBoth(line)), ...dead }))
+    .concat(claim);
 
   /* A plugin cache holding the release, since the change reading refuses a version no installed copy
      stands at and would then read nothing off the store at all. One cache for the pair, shared as the
@@ -323,9 +329,10 @@ test("every consumer of a stored reading reads the same with the two fields and 
      names a field inside a profile, so the whole text is the wrong thing to ask. */
   const deadKeys = (text) => text.trim().split("\n")
     .map((line) => Object.keys(JSON.parse(line)).filter((key) => key === "before" || key === "classes"));
-  assert.deepEqual(deadKeys(stored(fatHome)), [["before", "classes"], ["before", "classes"], ["before", "classes"]],
-    "one store of the pair carries both fields on every record");
-  assert.deepEqual(deadKeys(stored(leanHome)), [[], [], []], "and the other carries neither on any");
+  assert.deepEqual(deadKeys(stored(fatHome)),
+    [["before", "classes"], ["before", "classes"], ["before", "classes"], []],
+    "one store of the pair carries both fields on every reading, the claim having never held either");
+  assert.deepEqual(deadKeys(stored(leanHome)), [[], [], [], []], "and the other carries neither on any");
   assert.deepEqual(stored(leanHome).trim().split("\n").map(withoutBoth),
     stored(fatHome).trim().split("\n").map(withoutBoth),
     "while the two agree in every other field, which is what makes the readings below worth comparing");
@@ -363,7 +370,30 @@ test("every consumer of a stored reading reads the same with the two fields and 
   /* And the store each consumer read is still the store it was handed: a reading that wrote a mark
      would have made every comparison above one between two different populations. */
   for (const home of [fatHome, leanHome]) {
-    assert.equal(readFileSync(join(home, "forge", "eval-marks.jsonl"), "utf8").trim().split("\n").length, 3,
+    assert.equal(readFileSync(join(home, "forge", "eval-marks.jsonl"), "utf8").trim().split("\n").length, 4,
       "no consumer above wrote a reading of its own");
   }
+});
+
+/* A field the marker leaves out reads as a question nobody asked; one reading zero answers it none.
+   So a pass reports the same fields whatever the store holds, and the store holding nothing is where
+   a pass reporting only what it touched is the one that differs. */
+test("each pass reports the same fields on a store holding nothing as on one holding records", () => {
+  const home = tempRoom("stats-prune-empty-home-");
+  inHome(home, () => {
+    mkdirSync(join(home, "forge"), { recursive: true });
+    assert.deepEqual(marksOf(RUNS, "nobody"), [], "a home with no store yet holds no reading");
+
+    const report = (marker) => JSON.parse(readFileSync(`${marksPath()}.${marker}`, "utf8"));
+    assert.deepEqual(report("migrated"), { ...report("migrated"), records: 0, unresolved: 0, checkouts: [], kept: null },
+      "the re-keying pass says none was unresolved rather than leaving the field out");
+    assert.deepEqual(report("pruned"), { ...report("pruned"), records: 0, pruned: 0, kept: null },
+      "and the pruning pass says none was pruned");
+    for (const marker of ["migrated", "pruned"]) {
+      assert.ok(Date.parse(report(marker).at) > 0, `${marker} says when it ran`);
+    }
+    assert.equal(existsSync(`${marksPath()}.before-ISS-1984`), false,
+      "and neither kept a way back for a store with nothing in it to go back to");
+    assert.equal(existsSync(`${marksPath()}.before-ISS-2106`), false);
+  });
 });
