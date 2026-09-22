@@ -5,7 +5,7 @@
    command a refusal names went red on `forge coolify -h` in every worktree, and the failure read as
    the branch's — a release shipped off a red master and two gates were spent on it (ISS-2195).
    Reached: a file that binds anything of `plugin/src/resolve/visibility.mjs` but the two lists of
-   constant names, hands a child an `XDG_CONFIG_HOME` of its own, and pins none for itself. */
+   constant names, hands a child an `XDG_CONFIG_HOME`, and names none for itself before it reads. */
 
 import { lineAt } from "../../markdown.mjs";
 import { blanked } from "./wall-clock.mjs";
@@ -17,74 +17,129 @@ import { blanked } from "./wall-clock.mjs";
  *  readers would have gone stale in exactly the release that made this rule necessary. */
 export const CONSTANT_EXPORTS = ["GROUPS", "VERB_NAMES"];
 
+const WHOLE_MODULE = "the module whole";
+
 const MODULE = String.raw`["'][^"']*resolve/visibility\.mjs["']`;
+const LOCAL = String.raw`[A-Za-z_$][\w$]*`;
 
 const NAMED = new RegExp(String.raw`import\s*\{([^{}]*)\}\s*from\s*${MODULE}`, "gu");
 const NAMED_LATER = new RegExp(String.raw`\{([^{}]*)\}\s*=\s*await\s+import\(\s*${MODULE}\s*\)`, "gu");
-const WHOLE = new RegExp(String.raw`import\s*\*\s*as\s+[A-Za-z_$][\w$]*\s*from\s*${MODULE}`, "gu");
+const WHOLE = new RegExp(String.raw`import\s*\*\s*as\s+(${LOCAL})\s*from\s*${MODULE}`, "gu");
 const WHOLE_LATER = new RegExp(
-  String.raw`(?:const|let|var)\s+[A-Za-z_$][\w$]*\s*=\s*await\s+import\(\s*${MODULE}\s*\)`, "gu");
+  String.raw`(?:const|let|var)\s+(${LOCAL})\s*=\s*await\s+import\(\s*${MODULE}\s*\)`, "gu");
 
 /* The specifier is a string, which the mask blanks, so every pattern above is read off the text and
    placed by the mask: a binding a fixture spells inside its own text opens nothing here. */
 const inCode = (text, code, at) => code[at] === text[at];
 
-/* `a` and `b as c` both read `b`: what decides is the name the module exports, never the local one. */
-const asked = (clause) => clause.split(",")
-  .map((one) => one.split(/\s+as\s+/u)[0].trim())
-  .filter(Boolean);
+/* `a` and `b as c` read the export `b` under the local name `c`: what decides whether a binding is
+   reached is the name the module exports, and what finds its uses below is the local one. */
+const clauseOf = (clause) => clause.split(",")
+  .map((one) => {
+    const [name, alias] = one.split(/\s+as\s+/u).map((each) => each.trim());
+    return { name, local: alias || name };
+  })
+  .filter((one) => one.name);
 
-/** What this file reads of that module in its own process, as `[line, names]`, a namespace binding
- *  reading every export there is. */
+/** Every binding this file takes of that module in its own process, earliest first, each as its
+ *  line, the exports it asked for, the locals they arrived under and the span of the binding itself.
+ *  A namespace binding reads every export there is and so is never exempt. */
 export const readsIn = (text) => {
   const code = blanked(text);
   const found = [];
-  for (const [pattern, whole] of [[NAMED, false], [NAMED_LATER, false], [WHOLE, true], [WHOLE_LATER, true]]) {
+  const add = (hit, pairs) => found.push({
+    line: lineAt(code, hit.index),
+    at: hit.index,
+    end: hit.index + hit[0].length,
+    names: pairs.map((one) => one.name),
+    locals: pairs.map((one) => one.local),
+  });
+  for (const pattern of [NAMED, NAMED_LATER]) {
     for (const hit of text.matchAll(pattern)) {
       if (!inCode(text, code, hit.index)) continue;
-      const names = whole ? ["the module whole"] : asked(hit[1]);
-      const reading = names.filter((one) => whole || !CONSTANT_EXPORTS.includes(one));
-      if (reading.length) found.push([lineAt(code, hit.index), reading]);
+      const reading = clauseOf(hit[1]).filter((one) => !CONSTANT_EXPORTS.includes(one.name));
+      if (reading.length) add(hit, reading);
     }
   }
-  return found.sort((one, next) => one[0] - next[0]);
+  for (const pattern of [WHOLE, WHOLE_LATER]) {
+    for (const hit of text.matchAll(pattern)) {
+      if (inCode(text, code, hit.index)) add(hit, [{ name: WHOLE_MODULE, local: hit[1] }]);
+    }
+  }
+  return found.sort((one, next) => one.at - next.at);
 };
 
-/* The key is read off the text and the punctuation that decides what it is off the mask, so
-   `"XDG_CONFIG_HOME"` and `["XDG_CONFIG_HOME"]` are the key they spell — a quoted key is blanked
-   whole — while the same letters inside a comment or a fixture's own text are prose, their colon
-   blanked with them. */
-const AS_A_CHILD = /(?:\[\s*)?(["'])?XDG_CONFIG_HOME\1?(?:\s*\])?\s*:/gu;
-const AS_A_PIN = /process\s*\.\s*env\s*(?:\.\s*|\[\s*(["']))XDG_CONFIG_HOME\1?(?:\s*\])?\s*=(?!=)/gu;
+/* The key is read off the text and the punctuation that decides what it is off the mask, so a key
+   the mask blanks whole — quoted, or computed from a string or a template — is the key it spells,
+   while the same letters inside a comment or a fixture's own text are prose, their colon blanked
+   with them. */
+const QUOTE = String.raw`["'\x60]`;
+const AS_A_CHILD = new RegExp(String.raw`(?:\[\s*)?(${QUOTE})?XDG_CONFIG_HOME\1?(?:\s*\])?\s*:`, "gu");
+const AS_A_PIN = new RegExp(
+  String.raw`process\s*\.\s*env\s*(?:\.\s*|\[\s*(${QUOTE}))XDG_CONFIG_HOME\1?(?:\s*\])?\s*=(?!=)`, "gu");
 
-/* What placed a hit is its last character, which is the `:` or the `=` and never inside the quotes. */
-const real = (text, code, pattern) => [...text.matchAll(pattern)]
-  .some((hit) => code[hit.index + hit[0].length - 1] === text[hit.index + hit[0].length - 1]);
+/** Where this shape first stands in real code, the mask placing it by the hit's last character —
+ *  the `:` or the `=`, which is never inside the quotes — or `null` where it stands nowhere. */
+const placed = (text, code, pattern) => {
+  for (const hit of text.matchAll(pattern)) {
+    const at = hit.index + hit[0].length - 1;
+    if (code[at] === text[at]) return hit.index;
+  }
+  return null;
+};
 
-const says = (rel, line, names) =>
-  `${rel}:${line} reads ${names.join(", ")} of plugin/src/resolve/visibility.mjs in this process `
-  + `while handing a child an XDG_CONFIG_HOME of its own, so this process is the only thing here `
-  + `still answering out of whoever's machine it is. A row of that table is a function where this `
-  + `machine has chosen something, so an expectation computed here matches what the child printed `
-  + `only while the box happens to agree with the fixture, and the suite goes red on a box whose `
-  + `owner ran the command a refusal named. Assign process.env.XDG_CONFIG_HOME = the home this `
-  + `process is to read, above the first read, the way `
-  + `plugin/test/tools/services/tool-config.test.mjs does and for the reason written there. Which `
-  + `home that is belongs to this file: the same one its children are given where an expectation is `
-  + `compared against them, a room of its own where they each get one.`;
+const spelt = (name) => name.replace(/\$/gu, "\\$");
+
+/** Where a binding's own name is first read, past the binding that made it. */
+const firstUse = (code, bindings) => {
+  let first = Infinity;
+  for (const one of bindings) {
+    for (const local of one.locals) {
+      const call = new RegExp(String.raw`(?<![.\w$])${spelt(local)}(?![\w$])`, "gu");
+      for (const hit of code.matchAll(call)) {
+        if (bindings.some((each) => hit.index >= each.at && hit.index < each.end)) continue;
+        first = Math.min(first, hit.index);
+      }
+    }
+  }
+  return first;
+};
+
+const WHY = "A row of that table is a function where this machine has chosen something, so an "
+  + "expectation computed here matches what the child printed only while the box happens to agree "
+  + "with the fixture, and the suite goes red on a box whose owner ran the command a refusal named.";
+
+const WHICH = "Which home that is belongs to this file: the same one its children are given where an "
+  + "expectation is compared against them, a room of its own where they each get one.";
+
+const says = (rel, line, names, late) => `${rel}:${line} reads ${names.join(", ")} of `
+  + `plugin/src/resolve/visibility.mjs in this process while handing a child an XDG_CONFIG_HOME of `
+  + `its own, so this process is the only thing here still answering out of whoever's machine it is. `
+  + `${WHY} `
+  + (late
+    ? "This file does assign process.env.XDG_CONFIG_HOME, below the first read of that binding, "
+      + "which is too late to be the home that was read: userConfig memoises on its first call. "
+      + "Move the assignment above it."
+    : "Assign process.env.XDG_CONFIG_HOME = the home this process is to read, above the first read, "
+      + "the way plugin/test/tools/services/tool-config.test.mjs does and for the reason written "
+      + `there. ${WHICH}`);
 
 /** One refusal per binding in this file that reads the machine while its children read fixtures.
  *
- *  What this holds is that the process names a home, not that it names the child's: a file whose
- *  children each get a room of their own has no single home to share, and demanding one would refuse
- *  it for a shape that is right. Where the two do have to agree, the file says so in a case of its
- *  own — reading a value it planted back out of the home it pinned — because that is a claim about
- *  what was memoised and no reading of this text could settle it. Two more the text cannot settle,
- *  and they are the bound rather than a gap: an assignment written inside a helper nobody calls
- *  counts here as a pin, and a child handed its home by a fixture that spells the key elsewhere is
- *  out of reach entirely. */
+ *  What this holds is that the process names a home before it reads, not that it names the child's:
+ *  a file whose children each get a room of their own has no single home to share, and demanding one
+ *  would refuse it for a shape that is right. Where the two do have to agree, the file says so in a
+ *  case of its own — reading a value it planted back out of the home it pinned — because that is a
+ *  claim about what was memoised and no reading of this text could settle it. Two the text cannot
+ *  settle either, and they are the bound rather than a gap: a use written above the pin but reached
+ *  only from a call below it is read here as a use above it, which asks for one line to move; and a
+ *  child handed its home by a fixture that spells the key elsewhere is out of reach entirely. */
 export const splitIn = (text, rel) => {
   const code = blanked(text);
-  if (!real(text, code, AS_A_CHILD) || real(text, code, AS_A_PIN)) return [];
-  return readsIn(text).map(([line, names]) => says(rel, line, names));
+  if (placed(text, code, AS_A_CHILD) === null) return [];
+  const bindings = readsIn(text);
+  if (bindings.length === 0) return [];
+  const pin = placed(text, code, AS_A_PIN);
+  if (pin !== null && pin < firstUse(code, bindings)) return [];
+  return bindings.map((one) => says(rel, one.line, one.names, pin !== null));
 };

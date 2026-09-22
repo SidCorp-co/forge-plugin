@@ -89,12 +89,44 @@ test("the reader reports nothing for a file that pins a home other than the one 
 /* Watched failing: a key the mask blanks whole, which is the spelling this reader saw nothing of
    while it read the masked text and not the source. */
 test("a child's home is the key it spells, quoted or computed or bare", () => {
-  for (const key of ['"XDG_CONFIG_HOME"', "'XDG_CONFIG_HOME'", '["XDG_CONFIG_HOME"]', "XDG_CONFIG_HOME"]) {
+  for (const key of ['"XDG_CONFIG_HOME"', "'XDG_CONFIG_HOME'", '["XDG_CONFIG_HOME"]',
+    "[`XDG_CONFIG_HOME`]", "XDG_CONFIG_HOME"]) {
     assert.equal(said(`${BINDS}\nspawnSync(FORGE, argv, { env: { ...process.env, ${key}: HOME } });`).length, 1, key);
   }
   assert.deepEqual(said(`${BINDS}\nconst said = "XDG_CONFIG_HOME: the home";`), [],
     "the same letters inside a fixture's own text are prose, their colon blanked with them");
   assert.deepEqual(said(`${BINDS}\n/* XDG_CONFIG_HOME: the home a child gets */`), []);
+});
+
+test("and a pin is the key it spells too", () => {
+  for (const held of ["process.env.XDG_CONFIG_HOME", 'process.env["XDG_CONFIG_HOME"]',
+    "process.env[`XDG_CONFIG_HOME`]"]) {
+    assert.deepEqual(said(`${BINDS}\n${held} = HOME;\n${HANDS}`), [], held);
+  }
+});
+
+/* Watched failing: `userConfig` memoises on its first call, so a pin below that call names a home
+   nothing went on to read. A reader taking any assignment anywhere as proof of a pin passed exactly
+   the file this rule exists for, one line further down. */
+test("a pin below the first read of the binding is no pin, and the refusal says which way to move it", () => {
+  const late = `${BINDS}\nconst expected = usageOf("coolify");\nprocess.env.XDG_CONFIG_HOME = HOME;\n${HANDS}`;
+  assert.equal(said(late).length, 1);
+  assert.match(said(late)[0], /below the first read of that binding, which is too late/u);
+  assert.match(said(late)[0], /Move the assignment above it/u);
+  assert.deepEqual(said(`${BINDS}\nprocess.env.XDG_CONFIG_HOME = HOME;\nconst expected = usageOf("coolify");\n${HANDS}`),
+    [], "and above it is a pin");
+  assert.deepEqual(said(`${BINDS}\nprocess.env.XDG_CONFIG_HOME = HOME;\n${HANDS}`), [],
+    "a binding nothing goes on to read is read nowhere, so any pin is above it");
+});
+
+test("what finds a binding's reads is the local name, and the binding itself is not one of them", () => {
+  const aliased = `import { usageOf as row } from "../../src/resolve/visibility.mjs";\n`
+    + `const said = row("coolify");\nprocess.env.XDG_CONFIG_HOME = HOME;\n${HANDS}`;
+  assert.equal(said(aliased).length, 1, "the local name is what a later line spells");
+  assert.deepEqual(said(`${BINDS}\nconst held = "usageOf is the one";\nprocess.env.XDG_CONFIG_HOME = HOME;\n${HANDS}`),
+    [], "and the same word inside a string is not a read");
+  assert.deepEqual(said(`${BINDS}\nconst held = one.usageOf;\nprocess.env.XDG_CONFIG_HOME = HOME;\n${HANDS}`),
+    [], "nor is another object's property of the same name");
 });
 
 test("the reader reports nothing for a file that hands no child a home of its own", () => {
