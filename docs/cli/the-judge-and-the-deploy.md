@@ -7,8 +7,10 @@ contract`.
 
 ## A verification names the deployment, where the project deploys on its own
 
-A project can set `pipelineConfig.autoProdDeploy`, and that setting decides who is *asked* — with it,
-the rung waits for no person's look. It does not decide what *ships*, and nothing in this plugin
+A project can set `release`, and that setting decides who is *asked* — at `auto`, the rung waits for
+no person's look. It is the project's own key as of ISS-2190 and was the tracker's
+`pipelineConfig.autoProdDeploy` before, which still answers for a project that has set neither.
+Whichever level answered, the setting does not decide what *ships*, and nothing in this plugin
 deploys anything: the machine that advances an issue need not be the one that shipped it, so what git
 and a host know is written onto the record at the step that knew it, here as everywhere else.
 

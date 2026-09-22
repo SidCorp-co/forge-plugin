@@ -7,9 +7,9 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { escaped, projectEntry, projectRoom, tempRoom } from "../../fixtures.mjs";
+import { escaped, projectEntry, projectRoom, tempRoom } from "../../../fixtures.mjs";
 
-const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
+const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;
 
 /* The report is what a developer reads, so it is spawned rather than called. */
 const ofProject = (config) => {

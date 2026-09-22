@@ -24,6 +24,8 @@ import {
   fromProject,
   LANDING_ROUTES,
   OWED_DOORS,
+  PROJECT_SHAPES,
+  RELEASE_MODES,
   RUNS_TAKES,
   SHIP_MODES,
   checkMsOf,
@@ -277,6 +279,8 @@ export const PROJECT_KEYS = {
   drainedBy: { paths: { "": "text" }, judge: (given) => outside("drainedBy", given, DRAINS) },
   landing: { paths: { "": "text" }, judge: (given) => outside("landing", given, LANDING_ROUTES) },
   ship: { paths: { "": "text" }, judge: (given) => outside("ship", given, SHIP_MODES) },
+  shape: { paths: { "": "text" }, judge: (given) => outside("shape", given, PROJECT_SHAPES) },
+  release: { paths: { "": "text" }, judge: (given) => outside("release", given, RELEASE_MODES) },
   lease: {
     paths: { workingRe: "text" },
     judge: (given) => (workPatternOf(given?.workingRe).unreadable

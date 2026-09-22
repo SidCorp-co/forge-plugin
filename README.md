@@ -112,6 +112,8 @@ The keys, each shown at a value some other project might hold rather than at thi
   "drainedBy": "dispatcher",
   "landing": "after-merge",
   "ship": "ready",
+  "shape": "staged",
+  "release": "manual",
   "lease": { "workingRe": "^(\\S*(sh|bash) -c )?\\S*node( -\\S+)* \\S*tools/run\\.mjs (ship|land|land-ready)( |$)" },
   "stats": { "commands": { "gate": "npm run check" } }
 }
@@ -163,7 +165,16 @@ says where the merge sits relative to the judging. `ship` says how far a run of 
 `self` lands its own change, `ready` stops at a pushed branch and a landing checkpoint for another
 actor — and absent it is `self`, which is what every run did before the key existed. It sits beside
 the other two because it decides whether the landing they describe happens at all, and it is the
-project's rather than the box's so two projects on one machine may answer differently. `stats.commands` is what this checkout calls its
+project's rather than the box's so two projects on one machine may answer differently. `shape` says
+what kind of project this is — `storefront` keeps no repository and the store is its own source of
+truth, `staged` has a preview deployment somebody opens before live, `direct` is live only, so
+preview is this box and a criterion needing a running product is answered by standing it up here.
+Absent it is no shape at all rather than a fourth behaviour, every reader before the key having
+guessed it from whether the tracker happened to hold a preview environment. `release` says whether a
+change of this project goes out without a person's look, and is what the flow reads for that: the
+tracker's `pipelineConfig.autoProdDeploy` answered it until 2026-09-22 and is now the level the key
+falls back to, so a project that has set neither reads exactly as it did before the key existed and
+`manual` is what neither level having spoken resolves to. `stats.commands` is what this checkout calls its
 own gate, test, ship and cleanup, which is what lets a run profile a project that is not this one.
 It is also what arms a door: a hook that **refuses** at one of the doors `codex.owed` names is
 handed the commands this project declared and no built-in table, because a table of one

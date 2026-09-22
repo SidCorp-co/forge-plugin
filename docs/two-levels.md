@@ -71,6 +71,17 @@ put it in a file every clone carries:
   whose runs land their own could not hold both (ISS-2174). It sits with `landing` and `drainedBy`
   because those two describe the landing this decides the existence of, and a project that declares
   nothing gets `self`, which is what every run did before the key existed.
+- **`shape`** — what kind of project this is, which decides where work is exercised: a storefront
+  keeps no repository, a staged project has a preview somebody opens before live, and a direct
+  project is live only, so preview is the box the run stands on. Declared and never inferred. Every
+  reader before the key guessed it from whether the tracker happened to hold a preview environment,
+  and two runs in one checkout reached opposite answers about the same project (ISS-2190).
+- **`release`** — whether a change goes out without a person's look. It came from the tracker rather
+  than from the machine, which makes its fallback the opposite question from `ship`'s: a value at the
+  level it moved off is live on projects this plugin cannot see, so it is honoured where the key is
+  unset rather than reported ignored, and the report names which level answered. Where `ship` could
+  drop its leftover because a machine's value was one box's, this one could not, because reversing it
+  would put a person back in a loop nobody asked to re-enter.
 
 The machine's own half of the same surface is the verbs it withholds:
 [withholding a verb](cli/withholding-a-verb.md) owns that level, and says what happens where a

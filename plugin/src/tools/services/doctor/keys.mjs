@@ -2,8 +2,8 @@
    and not lines is doctor/harness.mjs's. docs/cli/doctor.md. */
 import { CHECK_MS_SPARED, CHECK_MS_TAKES, FEEDBACK_CHANNELS, fromProject, LANDING_ROUTES,
   OWED_DOORS, RUNS_TAKES, SHIP_MODES, checkCeilingMs, codexCheck, codexOwed, checkoutRoot,
-  feedbackScope, landingScope, parallelRuns, projectWorkPattern, shipLeftOnMachine,
-  shipMode } from "../../../resolve/settings.mjs";
+  PROJECT_SHAPES, feedbackScope, landingScope, parallelRuns, projectWorkPattern, shapeScope,
+  shipLeftOnMachine, shipMode } from "../../../resolve/settings.mjs";
 import { MACHINE_RETIRED } from "../../doctor-keys.mjs";
 import { DECLARES, declaredCommands, declaredIn, unarmedDoors } from "../../../stats/corpus/declared.mjs";
 import { logBytes } from "../../../codex/codex-log.mjs";
@@ -17,10 +17,14 @@ const MISS = "miss";
 const NOTE = "note";
 
 /** Which value is in force and where it was read; a value the key does not take is named here and
- *  nowhere else, since this is the surface allowed to say what a project turned off. */
+ *  nowhere else, since this is the surface allowed to say what a project turned off. The arrow is
+ *  dropped where nothing answered — a key whose fallback is no value at all has no source to name,
+ *  and `← null` reads as a file. */
+const arrow = (from) => (from === null || from === undefined ? "" : `  ← ${from}`);
+
 export const held = (one, allowed) =>
-  (one.unknown ? `${one.unknown} is no value of this key — it takes ${allowed.join(", ")}; reading ${one.value}  ← ${one.from}`
-    : `${one.value}  ← ${one.from}`);
+  (one.unknown ? `${one.unknown} is no value of this key — it takes ${allowed.join(", ")}; reading ${one.value}${arrow(one.from)}`
+    : `${one.value}${arrow(one.from)}`);
 
 const flowRow = () => {
   const refused = flowRefusal();
@@ -61,6 +65,26 @@ const shipRow = () => {
   const detail = `${held(ship, SHIP_MODES)}${ignored}`;
   if (ship.unknown) return { level: MISS, label: "ship", detail };
   return left.present ? { level: NOTE, label: "ship", detail } : { label: "ship", detail };
+};
+
+/* What each shape means for the run reading it, in the one place this CLI spells them out: a row
+   printing the bare word would leave every reader to infer the consequence, which is what the key
+   exists to stop. */
+const SHAPE_SAID = {
+  storefront: "no repository here; the store is its own source of truth",
+  staged: "a preview deployment somebody opens, then live",
+  direct: "live only, so work is exercised on this box and preview is localhost",
+};
+
+const shapeRow = () => {
+  const shape = shapeScope();
+  if (shape.unknown) {
+    return { level: MISS, label: "shape",
+      detail: held({ ...shape, value: "no shape at all" }, PROJECT_SHAPES) };
+  }
+  return { label: "shape", detail: shape.value
+    ? `${shape.value} — ${SHAPE_SAID[shape.value]}  ← ${shape.from}`
+    : "unset, so nothing here says whether work is exercised on a deployment or on this box" };
 };
 
 const armedSaid = (label, commands) =>
@@ -211,6 +235,7 @@ const reviewRow = async () => {
 export const projectKeyLines = async () => [
   ...Object.entries(feedbackScope()).map(([which, one]) =>
     ({ level: one.unknown ? MISS : undefined, label: `feedback.${which}`, detail: held(one, FEEDBACK_CHANNELS) })),
+  shapeRow(),
   flowRow(),
   landingRow(),
   shipRow(),

@@ -3,7 +3,8 @@
    is not a decision to ship without a person. The tracker's own column names are reached by
    property access and printed nowhere — src/checks/tracker-names.mjs. docs/cli/doctor.md. */
 import { once } from "../resolve/config.mjs";
-import { DRAINS, drainScope, landingScope, slugIfAny } from "../resolve/settings.mjs";
+import { DRAINS, RELEASE_MODES, drainScope, landingScope, releaseScope, slugIfAny }
+  from "../resolve/settings.mjs";
 import { NOT_STATED } from "../goals.mjs";
 import { scoped } from "./rest.mjs";
 
@@ -18,18 +19,39 @@ const DEPLOY_SOURCE = "the tracker's project detail";
 const MODELS = ["none", "promote", "publish"];
 const [NO_RELEASE, PROMOTE] = MODELS;
 
+const [AUTO] = RELEASE_MODES;
+const RELEASE_KEY = "release";
+
+/* A word the key does not take falls back with the rest, as every key of that file does
+   (docs/two-levels.md), and is named here because this row is the only place that would otherwise
+   report a value somebody wrote as an absence. */
+const unsetSaid = (release) => (release.unknown === undefined
+  ? `this project's own \`${RELEASE_KEY}\` key being unset`
+  : `this project's own \`${RELEASE_KEY}\` key holding \`${release.unknown}\`, which is no value of `
+    + `it — it takes ${RELEASE_MODES.join(", ")}`);
+
+/* Which level answered the one switch about production, and in the words the report prints after its
+   arrow. The project's own `release` key is read first and `pipelineConfig.autoProdDeploy` behind it
+   — not as a second source but as the level the switch moved off (ISS-2190). A project that never set
+   the key reads as it did before that move, which is why the flag is a fallback and not a twin, and
+   `manual` is what neither level having spoken resolves to. */
+const switchOf = (config, release) => (release.value
+  ? { autoProd: release.value === AUTO, autoProdFrom: release.from }
+  : { autoProd: config?.pipelineConfig?.autoProdDeploy === true,
+    autoProdFrom: `${CONFIG_SOURCE}, ${unsetSaid(release)}` });
+
 /* The live branch is the promoting model's field and no other's: the tracker serves it non-null only
    there and forbids reading it elsewhere, so it is null here wherever the model has none rather than
    whatever the row happened to carry. The strategy goes the same way, being how a promotion moves
    code and nothing where there is no promotion. `said` is what the project declared, kept so a
    refusal can name a value this CLI did not recognise instead of calling it absent. */
-export const releaseFrom = (config) => ({
+export const releaseFrom = (config, release = releaseScope()) => ({
   staging: config?.baseBranch ?? null,
   model: MODELS.includes(config?.releaseModel) ? config.releaseModel : null,
   said: config?.releaseModel ?? null,
   live: config?.releaseModel === PROMOTE ? config?.liveBranch ?? null : null,
   strategy: config?.releaseModel === PROMOTE ? config?.releaseStrategy ?? null : null,
-  autoProd: config?.pipelineConfig?.autoProdDeploy === true,
+  ...switchOf(config, release),
   qa: config?.pipelineConfig?.qa ?? null,
   from: CONFIG_SOURCE,
 });
@@ -193,11 +215,14 @@ export const releaseConflict = (policy) => {
 };
 
 /* Three states, one value each: a policy read, `null` where no project is named, and this where the
-   read did not happen, said here too since a boolean reader has nowhere to put it (ISS-1663). */
-export const releasePolicy = once(async () => {
+   read did not happen, said here too since a boolean reader has nowhere to put it (ISS-1663). `at`
+   is handed to `releaseScope`, whose own line says what a reading aimed elsewhere needs it for.
+   Memoised over the first caller's answer as the redirect above it is, one process reading one
+   project. */
+export const releasePolicy = once(async (at = null) => {
   if (!slugIfAny()) return null;
   const answer = await scoped("forge_config", { action: "get" }, true);
-  if (answer?.config) return releaseFrom(answer.config);
+  if (answer?.config) return releaseFrom(answer.config, releaseScope(at));
   const why = answer?.refused ?? "the tracker answered for this project with no config on it";
   console.error(`release policy: ${UNREAD_CONFIG}, so every reading of it this command makes is of a `
     + `project that has declared nothing — which this one may not be: ${firstLine(why)}`);
@@ -403,9 +428,11 @@ const policyRows = (policy, landing) => {
     ...(policy.model === PROMOTE
       ? [branchRow("live branch", policy.live, policy.from, NO_LIVE), strategyRow(policy)]
       : []),
+    /* The switch's own level and not the policy's: the model beside it is the tracker's whatever
+       happens, and this one row moves between the two (ISS-2190). */
     { level: "ok", label: "production deploy", detail: `${policy.autoProd ? "automatic" : "a person's"}`
       + ` — a user-facing change ${waitsForPerson(policy) ? "waits for" : "ships without"} a person's`
-      + ` look  ← ${policy.from}` },
+      + ` look  ← ${policy.autoProdFrom}` },
     { level: "ok", label: "where the merge sits", detail: `${route.value}  ← ${route.from}` },
     { level: "ok", label: "independent judgement", detail: `${judgementOf(policy)} between developed`
       + ` and testing  ← ${policy.from}` },

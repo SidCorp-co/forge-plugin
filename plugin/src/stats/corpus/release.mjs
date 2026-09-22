@@ -68,7 +68,9 @@ export const phase7For = async (directory) => {
   }
   const aimed = scopeFor(directory);
   if (aimed) useProject(aimed);
-  return phase7From(await releasePolicy());
+  /* The directory travels with the aim: the release switch is that checkout's own key now, and the
+     redirect above moves the tracker half alone (ISS-2190). */
+  return phase7From(await releasePolicy(aimed ? directory : null));
 };
 
 /** The line a reading prints for it, off the key a stored reading carries rather than off a policy

@@ -263,7 +263,7 @@ text the session it is in is holding.
 
 ### UC-01-5 — The project's keys, and the machine's own
 
-Rev: 6 · Actors: developer, agent · Enforces: BR-07, BR-08
+Rev: 7 · Actors: developer, agent · Enforces: BR-07, BR-08
 
 A project decides how this product behaves inside its checkout — what a run may report about the
 product, which version of the method it runs, whether its changes land and where the merge sits —
@@ -277,6 +277,17 @@ checkout takes on rather than what the box can hold. Each key is read from one p
 with its source (BR-08), and a project that declares no number of runs is one this says nothing
 about. A key this store held before it moved is read by nothing that decides and is reported
 ignored, a value dropped in silence being worse than one refused.
+
+What kind of project a checkout belongs to is the project's too, and declared rather than inferred:
+where work is exercised decides what a criterion needing a running product is answered by, and a
+reading of it taken off whichever deployment a tracker happens to hold lets two runs in one checkout
+reach opposite answers. Whether a change goes out without a person's look is the project's as well,
+and that one arrived from the tracker rather than from the machine, which makes what an absence
+resolves to a different question: a value at the level it moved off is live on projects this product
+cannot see, so it answers where the project's own key is unset rather than being reported ignored,
+and the report says which of the two answered. Reversing a setting somebody is already relying on,
+in silence, at an upgrade nobody asked for that from, is the outcome that rules the other reading
+out.
 
 Whose a key is and where that key is kept are two questions. The project's half is kept in this
 machine's own record of that project rather than in the checkout, because a file every clone carries
@@ -298,7 +309,7 @@ the worst place to keep an example of the one it replaces.
 - **AC-01-5-2** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "a key the project left out is printed at the plugin's default, with the default as its source"
   IF the project file does not set a key that has a product default THEN the CLI SHALL take that
   default and SHALL name the default as the source.
-- **AC-01-5-3** · Rev: 2 · Proof: plugin/test/cli/doctor/ship.test.mjs "the landing mode is the project's: it is written to this machine's record of the project and the account's configuration is untouched"
+- **AC-01-5-3** · Rev: 2 · Proof: plugin/test/cli/doctor/project-keys/ship.test.mjs "the landing mode is the project's: it is written to this machine's record of the project and the account's configuration is untouched"
   WHEN the developer sets the landing mode through the report verb THEN the CLI SHALL write it to
   this machine's record of the project the call stands in and to nothing of the account's.
 - **AC-01-5-4** · Rev: 2 · Proof: plugin/test/tracker/project-config.test.mjs "the landing route comes off the release model and the auto-deploy flag, and a key overrides it"
@@ -309,12 +320,23 @@ the worst place to keep an example of the one it replaces.
 - **AC-01-5-5** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a qa key in the checkout moves nothing the report prints"
   WHEN the project's release policy is read THEN the CLI SHALL print whether an independent judgement
   is asked for, read from the tracker's project record and from nowhere else.
-- **AC-01-5-6** · Rev: 2 · Proof: plugin/test/cli/doctor/ship.test.mjs "the mode the report prints is the mode last written, either way"
+- **AC-01-5-6** · Rev: 2 · Proof: plugin/test/cli/doctor/project-keys/ship.test.mjs "the mode the report prints is the mode last written, either way"
   WHEN the resolution report is printed THEN it SHALL print the landing mode this machine's record of
   the project holds, with that file as its source.
-- **AC-01-5-41** · Rev: 1 · Proof: plugin/test/cli/doctor/ship.test.mjs "a landing mode left in the account's configuration is reported ignored and decides nothing"
+- **AC-01-5-41** · Rev: 1 · Proof: plugin/test/cli/doctor/project-keys/ship.test.mjs "a landing mode left in the account's configuration is reported ignored and decides nothing"
   IF the account's configuration still holds a landing mode THEN the resolution report SHALL say that
   value is ignored and SHALL name the key that decides it now.
+- **AC-01-5-42** · Rev: 1 · Proof: plugin/test/cli/doctor/project-keys/shape.test.mjs "the shape the report prints is the shape that file holds, with the consequence each of the three carries"
+  WHEN the project file declares what kind of project it is THEN the resolution report SHALL print
+  that kind with what it means for where work is exercised, and SHALL name that file as its source.
+- **AC-01-5-43** · Rev: 1 · Proof: plugin/test/cli/doctor/project-keys/release-mode.test.mjs "the project's own key decides the production deploy, and the report names it as the level that answered"
+  WHEN the project file declares whether a change goes out without a person's look THEN the CLI SHALL
+  read the production deploy from that key rather than from the tracker's own record, and the
+  resolution report SHALL name that file as where it was read.
+- **AC-01-5-44** · Rev: 1 · Proof: plugin/test/cli/doctor/project-keys/release-mode.test.mjs "a project that declares nothing locally still reads the tracker's flag, and the report says which level answered"
+  IF the project file declares nothing about whether a change goes out without a person's look THEN
+  the CLI SHALL read the tracker's own record for it, and the resolution report SHALL name that
+  record together with the local key that is unset.
 - **AC-01-5-7** · Rev: 2 · Proof: plugin/test/tools/doctor.test.mjs "the number of parallel runs is the project's: it is read out of the project's record, with that file named as its source"
   WHEN the project declares how many runs it carries at once THEN the resolution report SHALL print
   that number, SHALL name the project's own file as where it was read, and SHALL neither read nor
@@ -326,19 +348,19 @@ the worst place to keep an example of the one it replaces.
   WHEN the project declares how many runs it carries at once THEN the resolution report SHALL say on
   that same line that the number is the whole project's at once whoever dispatched the runs, so that
   a session reading the value reads what bounds it and cannot supply a reading of its own.
-- **AC-01-5-9** · Rev: 1 · Proof: plugin/test/cli/doctor/flow.test.mjs "one call sets the flow in the project's file and the judgement that flow asks for"
+- **AC-01-5-9** · Rev: 1 · Proof: plugin/test/cli/doctor/project-keys/flow.test.mjs "one call sets the flow in the project's file and the judgement that flow asks for"
   WHEN the developer sets the project's flow through the report verb THEN the CLI SHALL write the
   flow into the project's own file and every project setting that flow asks for into the resource
   that holds it, and SHALL read each back off the resource it was written to before reporting it
   set.
-- **AC-01-5-10** · Rev: 1 · Proof: plugin/test/cli/doctor/flow.test.mjs "a tracker that takes the key and keeps it not is refused, and the file goes back"
+- **AC-01-5-10** · Rev: 1 · Proof: plugin/test/cli/doctor/project-keys/flow.test.mjs "a tracker that takes the key and keeps it not is refused, and the file goes back"
   IF either half of the configuration a flow asks for cannot be written THEN the CLI SHALL refuse
   naming the half that is out of reach, and SHALL leave the project on the flow it already had
   wherever it can be known that the other half did not land.
-- **AC-01-5-11** · Rev: 1 · Proof: plugin/test/cli/doctor/flow.test.mjs "the default flow writes the file alone and says it asks for nothing further"
+- **AC-01-5-11** · Rev: 1 · Proof: plugin/test/cli/doctor/project-keys/flow.test.mjs "the default flow writes the file alone and says it asks for nothing further"
   WHERE a flow asks the project for nothing beyond the flow itself, the CLI SHALL write the project
   file's key alone and SHALL say that the flow asks for nothing further.
-- **AC-01-5-12** · Rev: 1 · Proof: plugin/test/cli/doctor/flow.test.mjs "a read back that will not answer leaves the flow standing and names the setting unconfirmed"
+- **AC-01-5-12** · Rev: 1 · Proof: plugin/test/cli/doctor/project-keys/flow.test.mjs "a read back that will not answer leaves the flow standing and names the setting unconfirmed"
   IF a setting a flow asks for is sent and the resource will not say what it now holds THEN the CLI
   SHALL refuse naming that setting unconfirmed beside the call that reads it, and SHALL leave the
   flow it wrote standing rather than putting back a state the unread half may contradict.

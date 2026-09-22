@@ -8,11 +8,11 @@ import { chmodSync, lstatSync, readFileSync, realpathSync, rmSync, statSync, sym
 import { dirname, join } from "node:path";
 
 import { escaped, fakeTracker, projectEntry, projectRoom, ranAsync, tempHome }
-  from "../../fixtures.mjs";
-import { withKey } from "../../../src/tools/services/project-file.mjs";
-import { restoreFailed } from "../../../src/tools/project-settings.mjs";
+  from "../../../fixtures.mjs";
+import { withKey } from "../../../../src/tools/services/project-file.mjs";
+import { restoreFailed } from "../../../../src/tools/project-settings.mjs";
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const SLUG = "forge-plugin";
 
 /* Its own line breaks and its own spacing, because what this write must not do is reformat them. */
