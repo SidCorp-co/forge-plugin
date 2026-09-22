@@ -127,6 +127,20 @@ test("a refused answer is logged as the row's own refusal and a thrown call as f
   assert.match(rows[1].error, /503/u);
 });
 
+/* The first luna measurement hung for good: one socket to the gateway dead on its ninth retransmit, and
+   the question on it had no deadline, so the batch and the run behind it waited forever. The consult
+   gives its calls one clock; a question gets one of its own, and a caller's own signal is kept. */
+test("every question travels with a deadline of its own, and a caller's signal is kept", async () => {
+  const seen = [];
+  const ask = async (values, model, messages, held) => { seen.push(held.signal); return answering({ complexity: "m", why: "x" })(); };
+  await askComplexity(VALUES, "cx/x", ROW, { ask, log: () => true });
+  assert.ok(seen[0] instanceof AbortSignal, "a question with no signal given still travels with one");
+  assert.equal(seen[0].aborted, false);
+  const own = AbortSignal.abort(new Error("the caller's own"));
+  await askComplexity(VALUES, "cx/x", ROW, { ask, log: () => true, signal: own });
+  assert.equal(seen[1], own, "a signal the caller gave is the one that travels");
+});
+
 /* Six runs, one with no complexity on the tracker. Worked by hand for the sentence case: over the five
    that hold one, the tracker's order ranks minutes at 0.21 and the proposed order at 0.87, so the proposed
    arm wins here and the swapped fixture below makes the tracker arm win. */
