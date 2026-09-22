@@ -159,6 +159,44 @@ test("each reopen owes the finding and the triage written at it, and not the one
   assert.equal(routed.next, "developed", "and it is this reopen's triage that routes, not the latest of the kind");
 });
 
+/* A second triage at one reopen said nothing the first had not, and the demand it re-armed named
+   the one command a builder on a project judged by another run may not issue (ISS-2030). So the
+   ruling is read off the newest triage and the moment it unearned off the oldest of the run of like
+   rulings ending at it, and a record already written to answer the first still answers it. */
+test("a second triage repeating the first asks for nothing it already answered", () => {
+  const again = (outcome) => recorded("triage", { outcome, "would-have-caught": CAUGHT }, "0");
+  const repeated = targetOf(reopened(NOT_MET, {}, () => [judged("fail"), again("not-met")]), "ISS-3");
+  assert.deepEqual(repeated.missing, [], "the verdict that answered the first ruling answers the repeat");
+  assert.equal(repeated.next, "in_progress", "and the fall is the one that outcome names");
+  const written = () => [recorded("finding", ABOUT_TWO, "0"), corrected(), again("wrong-test")];
+  const twice = targetOf(reopened(WRONG, { acceptanceCriteria: MOVED }, written), "ISS-3");
+  assert.deepEqual(twice.missing, [], "and the correction answers a repeated wrong-test the same way");
+  const turned = targetOf(reopened(WRONG, { acceptanceCriteria: MOVED },
+    () => [recorded("finding", ABOUT_TWO, "0"), corrected(), again("not-met")]), "ISS-3");
+  assert.match(turned.missing[0].what, /no failing verdict since it/u,
+    "while a ruling that moved is measured from itself, so the correction before it earns nothing");
+  assert.deepEqual(targetOf(reopened(NOT_MET), "ISS-3").missing.map((one) => one.what), [
+    "the triage rules the criterion not met, and no failing verdict since it supersedes the passing one",
+  ], "and one triage on its own asks for the verdict in the words it always asked");
+});
+
+/* Two comments the tracker stamped alike are neither before nor after each other, and the record
+   that answers a ruling is owed no earlier than the ruling: read strictly, the answer written in
+   the ruling's own moment reads as the one written before it. */
+test("a record the tracker stamped with the triage that unearned is not older than it", () => {
+  const SAME = "2026-09-03T12:00:00.000Z";
+  const stamped = (kind, fields, when) => ({ createdAt: when, authorId: "agent", body: render(kind, fields, "0") });
+  const together = (triage, answer) => targetOf(view(
+    { status: "reopen", mergedAt: MARKED, plan: PLAN, acceptanceCriteria: MOVED, attachments: ATTACHED },
+    [stamped("finding", ABOUT_TWO, "2026-09-03T11:59:00.000Z"), stamped("triage", triage, SAME), answer],
+  ), "ISS-3");
+  const failed = together(NOT_MET, stamped("verdict", { criterion: "2 — The second outcome.", verdict: "fail",
+    commit: "43b811e", evidence: ["run.txt"], why: "the order is the one it was filed in" }, SAME));
+  assert.deepEqual(failed.missing, [], "the failing verdict in the triage's own moment supersedes the passing one");
+  const fixed = together(WRONG, stamped("correction", { moved: "criterion 2 now names the order", why: "the finding showed it" }, SAME));
+  assert.deepEqual(fixed.missing, [], "and so does the correction a wrong-test ruling asks for");
+});
+
 /* A judging run is the actor the flow dispatches to find the defect, and it has nobody to quote.
    What it has instead is what it captured, and the pair is grounds rather than fields (ISS-1815). */
 const looked = (found, comments = () => []) => targetOf(view(

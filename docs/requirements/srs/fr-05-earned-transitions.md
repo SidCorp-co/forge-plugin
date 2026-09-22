@@ -54,7 +54,7 @@ agent learns what a status wants.
   WHEN a record is written THEN the CLI SHALL close that write with the same sentence this rehearsal
   opens with, counting the record just written, and SHALL exit zero where that sentence cannot be
   worked out at all.
-- **AC-05-1-6** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "a reopen judges again, so a verdict from before its triage earns nothing"
+- **AC-05-1-6** · Rev: 1 · Proof: plugin/test/flow/advance/judged-again.test.mjs "a reopen judges again, so a verdict from before its triage earns nothing"
   WHERE a reopen's triage leaves two or more verdicts stale, the CLI SHALL report that set as a
   single owed item whose command re-judges every member of it in one write.
 - **AC-05-1-7** · Rev: 2 · Proof: none yet — ISS-2123
@@ -517,6 +517,13 @@ defect, or the evidence the run captured when it saw the defect itself.
   naming both of the two grounds.
 - **AC-05-12-5** · Rev: 1 · Proof: plugin/test/flow/advance/reopen.test.mjs "a failing verdict moves no status, the reopen being an act of its own"
   WHEN a verdict fails THEN the CLI SHALL leave the issue's status where it stands.
+- **AC-05-12-6** · Rev: 1 · Proof: plugin/test/flow/route/reopen.test.mjs "a second triage repeating the first asks for nothing it already answered"
+  WHERE a reopen holds more than one triage, the CLI SHALL read what that reopen owes from the
+  oldest triage of the unbroken run of like outcomes ending at the newest, so that a record already
+  written to answer the first of that run is not asked for a second time.
+- **AC-05-12-7** · Rev: 1 · Proof: plugin/test/flow/route/reopen.test.mjs "a record the tracker stamped with the triage that unearned is not older than it"
+  WHERE the record answering a reopen's triage carries the same moment as the triage that unearned,
+  the CLI SHALL count it as answering that triage rather than as written before it.
 
 ## Business rules enforced
 

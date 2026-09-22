@@ -30,6 +30,7 @@ import {
   parkRecord,
   parkThatSet,
   personLooks,
+  rulingAtThisReopen,
   sameLanding,
   setForm,
   shapeGaps,
@@ -168,7 +169,7 @@ const OUTCOME_OWED = {
       )];
     }
     const fixed = view.latest.correction;
-    if (!(fixed?.at > since) || shapeGaps("correction", fixed.record, view.names).length) {
+    if (!(fixed?.at >= since) || shapeGaps("correction", fixed.record, view.names).length) {
       return [need(
         "the triage rules the criterion the wrong test, and no whole correction since it says what moved in the criteria",
         `forge record correction ${ref} --moved "<the criterion as corrected>" --why "<the finding that showed it>"`,
@@ -186,7 +187,7 @@ const OUTCOME_OWED = {
     /* Whole, because a comment carrying the tag and little else reaches this the same way the
        finding and the triage do, and a verdict with no commit or no evidence supersedes nothing. */
     const failed = [...view.verdicts].some(([number, one]) =>
-      one.at > since && one.record.fields.verdict === "fail" && (!named || number === named)
+      one.at >= since && one.record.fields.verdict === "fail" && (!named || number === named)
       && !shapeGaps("verdict", one.record, view.names).length);
     if (failed) return [];
     return [need(
@@ -201,7 +202,7 @@ const reopenTarget = (view, ref) => {
   const landed = landedOn(view, ref);
   const missing = reopenOwed(view, ref);
   if (missing.length) return { next: landed, missing, resumed: false };
-  const ruling = atThisReopen(view, "triage");
+  const ruling = rulingAtThisReopen(view);
   const held = ruling.record.fields;
   if (held.outcome !== TRIAGES[2]) {
     return {

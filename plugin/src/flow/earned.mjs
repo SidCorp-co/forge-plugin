@@ -305,22 +305,38 @@ const verdictsOwed = (view, ref) => {
 
 /* One reopen, one finding, one triage, matched by the reopen each was written at: routed on the latest instead, a second look would be ruled on by the ruling on the first.
    The count is the tracker's, so a tracker that never raises it leaves every record at reopen zero and the pair is whichever was written — which is what a first reopen owes anyway. */
-export const atThisReopen = (view, kind) => {
+export const atThisReopen = (view, kind) => heldAtThisReopen(view, kind).at(-1) ?? null;
+
+const heldAtThisReopen = (view, kind) => {
   const count = String(view.issue.reopenCount ?? 0);
-  const held = (view.repeated?.[kind] ?? []).filter((one) => one.record.fields.reopen === count);
-  return held.length ? held.at(-1) : null;
+  return (view.repeated?.[kind] ?? []).filter((one) => one.record.fields.reopen === count);
+};
+
+/* The ruling is the newest triage and the moment it unearned is the oldest of the unbroken run of
+   like rulings ending at it: a second triage repeating the one before it rules on nothing the first
+   did not, so a demand measured from it asks again for a record already written to answer the
+   first — and where a project puts the judgement above `developed` in another run's hands, the one
+   command that demand names is the one command the run standing there may not issue (ISS-2030). An
+   outcome the triage before it did not rule is a reading that moved, and opens a run of its own. */
+export const rulingAtThisReopen = (view) => {
+  const held = heldAtThisReopen(view, "triage");
+  if (!held.length) return null;
+  const ruled = held.at(-1);
+  let from = held.length - 1;
+  while (from > 0 && held[from - 1].record.fields.outcome === ruled.record.fields.outcome) from -= 1;
+  return { at: held[from].at, record: ruled.record };
 };
 
 /* A reopen sends the judging back to its start: a wrong-test triage moves the criteria and no commit
    with them, so every verdict on the record still names the merged commit and would pass again. */
 const judgedSince = (view, ref) => {
-  const held = atThisReopen(view, "triage");
+  const held = rulingAtThisReopen(view);
   const outcome = held?.record.fields.outcome;
   if (!outcome || outcome === TRIAGES[2]) return [];
   /* Only the criteria the issue still has: a wrong-test correction may drop or renumber the one that was wrong, and a verdict asked for on a number the field no longer holds is refused at the write, which would leave the issue unable to reach the rung at all. */
   const current = new Set(view.criteria.map((one) => one.number));
   const stale = numbered(view.verdicts)
-    .filter(([number, one]) => current.has(number) && one.at <= held.at)
+    .filter(([number, one]) => current.has(number) && one.at < held.at)
     .map(([number]) => number);
   /* No commit to read: whatever answers the finding has no sha on the record yet. */
   return foldVerdicts(
