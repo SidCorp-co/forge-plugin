@@ -62,9 +62,11 @@ const claim = (lock) => {
   }
 };
 
-/** Hands on a lock whose holder has ended. The name is renamed away before it is removed, so of two
- *  waiters reading one dead holder exactly one moves it: the other's rename finds nothing there and
- *  it goes back to waiting, rather than removing the replacement the first has since taken. */
+/** Hands on a lock whose holder has ended, for a caller that is not strict. The name is renamed away
+ *  before it is removed, which narrows the window but does not close it: a waiter that decided to
+ *  hand the lock on can still be the one to move a replacement somebody took in between, there being
+ *  no way to remove a name only if it is still the one that was read. That window is why a strict
+ *  caller does not come here at all. */
 const reclaim = (lock) => {
   const aside = `${lock}.gone.${MINE}`;
   try {
@@ -102,17 +104,20 @@ export const underLock = (lock, fn, { strict = false, stale = STALE_MS, waits = 
     } catch {
       since = 0;
     }
-    /* A holder that has ended is handed on at once, whichever mode this is: waiting out a budget for
-       a process that is not there helps nobody. A holder still running is never taken from a strict
-       caller — it waits out the budget and is refused — because the alternative is two callers inside
-       one guard. A caller that is not strict keeps the age rule, a queue costing it more than the
-       write it is guarding. */
-    if (holder === GONE) reclaim(lock);
-    else if (holder !== UNKNOWN && !strict && since && Date.now() - since > stale) reclaim(lock);
+    /* A strict caller removes no lock it does not own, for any reason: not one whose holder has
+       ended, not one that has gone quiet. Every rule for taking one from somebody rests on a reading
+       taken before the removal, and between the two the lock can have been handed on and taken
+       afresh — so what gets removed is a live holder's, and two callers run inside one guard. It
+       waits out its budget and is refused instead, which costs a reading nobody holds rather than a
+       store two writers share. A caller that is not strict keeps both rules, a queue costing it more
+       than the write it is guarding. */
+    if (!strict && holder === GONE) reclaim(lock);
+    else if (!strict && holder !== UNKNOWN && since && Date.now() - since > stale) reclaim(lock);
     else pause(WAIT_MS);
   }
   if (held === null && strict) {
-    throw new Unlocked(`${lock} was held for ${waits / 1000}s, so nothing was written under it.`);
+    throw new Unlocked(`${lock} was held for ${waits / 1000}s, so nothing was written under it. `
+      + `Where no process holds it — the pid is the text of that file — remove it: \`rm ${lock}\`.`);
   }
   if (held === null) {
     logHook({

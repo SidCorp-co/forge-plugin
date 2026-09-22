@@ -9,6 +9,7 @@ import { join } from "node:path";
 
 import { WINDOW, runsMark } from "../../../src/stats/eval/eval.mjs";
 import { RUNS, marksOf, marksPath, scopeOf, writeMark } from "../../../src/stats/marks/marks.mjs";
+import { underLock } from "../../../src/resolve/file-lock.mjs";
 import { UNKNOWN_DEVICE } from "../../../src/resolve/device.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 import { PROJECT, askStats, at, corpusOf, rootOf } from "../fixture-eval.mjs";
@@ -377,7 +378,7 @@ test("a lock whose holder is still running is waited on and then refused, never 
 
 /* The other half of the same rule: a lock nobody holds is not a lock, and waiting out a budget for a
    process that ended helps nobody. */
-test("a lock left behind by a process that ended is taken at once", async () => {
+test("a writer removes no lock it does not own, whatever it can work out about the holder", async () => {
   const home = tempRoom("stats-scope-dead-home-");
   mkdirSync(join(home, "forge"), { recursive: true });
   const gone = spawn(process.execPath, ["-e", ""]);
@@ -386,12 +387,48 @@ test("a lock left behind by a process that ended is taken at once", async () => 
   inHome(home, () => {
     writeFileSync(`${marksPath()}.migrated`, "{}\n");
     writeFileSync(`${marksPath()}.lock`, `${pid}-deadbeef`);
-    const began = Date.now();
     assert.equal(writeMark({ kind: RUNS, mark: 50, at: at(0), scope: "freed", now: { runs: 50, profile: {} } }),
-      "written", "the reading is held");
-    assert.ok(Date.now() - began < 2_000,
-      "at once, rather than after the wait an age rule would have spent on a process that is not there");
-    assert.equal(marksOf(RUNS, "freed").length, 1);
+      "failed", "even a holder that has ended keeps its lock: every rule for taking one rests on a reading taken before the removal");
+    assert.equal(readFileSync(`${marksPath()}.lock`, "utf8"), `${pid}-deadbeef`, "the lock is left where it stood");
+    assert.deepEqual(marksOf(RUNS, "freed"), [], "and nothing was written beside it");
+  });
+});
+
+/* The refusal has to be one a person can act on, this being the one state the store does not clear
+   for itself: a lock nobody holds is left standing, so the refusal names it and what removes it. */
+test("the refusal names the lock and what clears it", () => {
+  const home = tempRoom("stats-scope-said-home-");
+  mkdirSync(join(home, "forge"), { recursive: true });
+  inHome(home, () => {
+    writeFileSync(`${marksPath()}.migrated`, "{}\n");
+    const holder = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"]);
+    try {
+      writeFileSync(`${marksPath()}.lock`, `${holder.pid}-deadbeef`);
+      assert.throws(() => underLock(`${marksPath()}.lock`, () => "ran", { strict: true, waits: 100 }), (error) => {
+        assert.match(error.message, new RegExp(`rm ${marksPath().replaceAll(".", "\\.")}\\.lock`, "u"),
+          `the one command that clears it — ${error.message}`);
+        return true;
+      });
+    } finally {
+      holder.kill();
+    }
+  });
+});
+
+/* The other half: a caller that is not strict is bookkeeping, where a queue costs more than the line
+   it is guarding, so it takes a lock whose holder has ended rather than refusing. */
+test("a caller that is not strict takes a lock whose holder has ended", async () => {
+  const home = tempRoom("stats-scope-loose-home-");
+  mkdirSync(join(home, "forge"), { recursive: true });
+  const gone = spawn(process.execPath, ["-e", ""]);
+  const pid = gone.pid;
+  await new Promise((done) => gone.on("exit", done));
+  inHome(home, () => {
+    const lock = `${marksPath()}.loose`;
+    writeFileSync(lock, `${pid}-deadbeef`);
+    const began = Date.now();
+    assert.equal(underLock(lock, () => "ran", { waits: 30_000 }), "ran");
+    assert.ok(Date.now() - began < 2_000, "at once, rather than after the wait the age rule would have spent");
   });
 });
 

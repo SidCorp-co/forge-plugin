@@ -417,9 +417,10 @@ it. Reading is all this product does there.
   for that crossing, the check for a reading already held and the write of a new one being one act,
   SHALL NOT take that guard from a process still holding it however long it has held it, and SHALL
   report the reading as not held rather than writing beside a holder it could not wait out.
-- **AC-19-8-130** · Rev: 1 · Proof: plugin/test/stats/marks/scope.test.mjs "a lock left behind by a process that ended is taken at once"
-  WHERE the process that took such a guard has ended the CLI SHALL take it at once rather than
-  waiting out any interval measured from when it was taken.
+- **AC-19-8-130** · Rev: 2 · Proof: plugin/test/stats/marks/scope.test.mjs "a writer removes no lock it does not own, whatever it can work out about the holder"
+  WHEN a guard over a store of readings cannot be taken THEN the CLI SHALL leave the guard standing
+  whatever it can work out about who holds it, SHALL report the reading as not held, and SHALL name
+  in that refusal the file and the one command that removes it.
 - **AC-19-8-131** · Rev: 1 · Proof: plugin/test/stats/marks/scope.test.mjs "a lock whose owner cannot be read is not taken for one nobody holds"
   WHEN such a guard is taken THEN the CLI SHALL publish it whole rather than in a state a second
   process could read as unowned, and IF the owner of one cannot be read THEN it SHALL treat that as
