@@ -66,6 +66,7 @@ how many topics there may be.
 | [codex — the payload](cli/codex-the-payload.md) | What of a file travels, which passes earn a review, why a set too large is refused rather than clipped, and what never travels at all. |
 | [codex — the finding](cli/codex-the-finding.md) | What one finding must carry to be worth its round, which clause a recheck still owes, where the issue's boundary and the project's checks come from, and what the replay settles. |
 | [codex — the round](cli/codex-the-round.md) | Why calls are the only lever on wall time, what moves a round's effort, what a review that could not check is owed, and what a recheck is anchored to. |
+| [codex — the band](cli/codex-the-band.md) | Why a proposed complexity is never the field, why the model's confidence sorts and gates nothing, why no date travels, why the same-family refusal stays on the consult, and what the measurement has to show before a proposal is worth a reader's glance. |
 | [codex — the request](cli/codex-the-request.md) | Which cache the request is written for, what a consult replays, what a path may reach, and what the reviewer's tools mean by no argument. |
 | [codex — the log](cli/codex-the-log.md) | What the log makes a session out of, what the stats window answers, and what makes anyone run it. |
 | [codex — the commit gate](cli/codex-the-commit.md) | What a commit is asked for, what that demand is scoped to where a checkout is shared, and why the switch that turns the gate off is named rather than an environment variable. |

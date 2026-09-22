@@ -43,6 +43,11 @@ export const logBytes = () => jsonlBytes(logPath());
  *  of them and the consult corpus is what it was before the reading was taken. */
 export const DIAGNOSTIC = "diagnostic";
 
+/** The kind one typed question writes under — one issue, one band proposed, no review — and the same
+ *  claim as the kind above: `consults()` and `isAnswered()` hold it to be no consult, so the corpus
+ *  every eval figure reads is what it was before the question was asked (ISS-2161). */
+export const BAND = "band";
+
 export const consults = (entries) => entries.filter((one) => one.kind === "consult");
 
 /* A failed consult carries no advice: "3 accepted" against a gateway timeout is not a verdict. */

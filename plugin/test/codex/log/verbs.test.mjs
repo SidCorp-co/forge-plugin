@@ -110,3 +110,26 @@ test("a diagnostic reads as what it was taken over, not as a review with no file
   assert.match(logLine({ ...row, ok: false, error: "the gateway streamed no text at all" }, false),
     /failed: the gateway streamed no text at all/u);
 });
+
+/* The second non-review kind in this log, and the printer's one distinction that a review has not
+   got: a refusal — the band came back outside the ladder — is the row's own word, where `failed` is
+   the gateway's. */
+test("a band row reads as the issue it read and the band proposed, not as a review with no files", () => {
+  const row = {
+    kind: "band", at: "2026-09-22T10:00:00.000Z", model: "cx/gpt-5.6-sol", ms: 4_000,
+    ok: true, key: "ISS-457", band: "s", confidence: 0.8, why: "one file, one enum",
+    run: "iss-2161-x", runFrom: "asked",
+  };
+  assert.equal(logLine(row, false),
+    "2026-09-22T10:00:00.000Z  cx/gpt-5.6-sol  4s  band ISS-457 -> s  confidence 0.8  by iss-2161-x (asked)");
+  const whole = logLine(row, true);
+  assert.doesNotMatch(whole, /files/u, "and the full form carries no files line");
+  assert.match(whole, /one file, one enum/u, "the why opens under --full");
+  assert.equal(logLine({ ...row, confidence: null }, false),
+    "2026-09-22T10:00:00.000Z  cx/gpt-5.6-sol  4s  band ISS-457 -> s  by iss-2161-x (asked)",
+    "a confidence the model did not give is not printed as one");
+  assert.match(logLine({ ...row, band: undefined, refused: "`huge` is no band" }, false),
+    /band ISS-457 {2}refused: `huge` is no band/u, "an answer outside the ladder is the row's own refusal");
+  assert.match(logLine({ ...row, ok: false, error: "the gateway streamed no text at all" }, false),
+    /band ISS-457 {2}failed: the gateway streamed no text at all/u);
+});

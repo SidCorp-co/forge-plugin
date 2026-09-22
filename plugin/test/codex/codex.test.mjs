@@ -555,6 +555,33 @@ test("a model whose id states a rung is sent no reasoning_effort, and one that s
   assert.equal(sent[1].reasoning_effort, "low", "an id stating no rung leaves the parameter the only channel");
 });
 
+/* The other value of the one `tool_choice` expression: a caller asking one typed question names the
+   tool the answer must come through, so the model answers in that schema or not at all. A call with
+   tools and neither `choose` nor `serve: false` leaves the model free, and the body carries no
+   `tool_choice` to say so; a consult's last call still says none (ISS-2161). */
+test("a chosen tool travels as tool_choice naming it, and a free call carries no tool_choice", async () => {
+  const live = globalThis.fetch;
+  const sent = [];
+  globalThis.fetch = async (url, options) => {
+    sent.push(JSON.parse(options.body));
+    return { ok: false, status: 503, text: async () => "not this test's business" };
+  };
+  const values = { ANTHROPIC_BASE_URL: "https://gateway.example.com", ANTHROPIC_AUTH_TOKEN: "sk-secret" };
+  const tools = [{ name: "band", description: "one band", input_schema: { type: "object", properties: {} } }];
+  const messages = [{ role: "user", content: "x" }];
+  try {
+    await assert.rejects(askApi(values, "cx/gpt-5.6-sol", messages, { tools, choose: "band" }));
+    await assert.rejects(askApi(values, "cx/gpt-5.6-sol", messages, { tools }));
+    await assert.rejects(askApi(values, "cx/gpt-5.6-sol", messages, { tools, serve: false }));
+  } finally {
+    globalThis.fetch = live;
+  }
+  assert.deepEqual(sent[0].tool_choice, { type: "tool", name: "band" },
+    "the chosen tool is the one the answer must come through");
+  assert.ok(!("tool_choice" in sent[1]), "tools and no choice leave the model free, and the body says nothing");
+  assert.deepEqual(sent[2].tool_choice, { type: "none" }, "a consult's last call still says none");
+});
+
 test.after(() => rmSync(sandbox, { recursive: true, force: true }));
 
 /* Refused in sid-erp twice over: the CLI read `-h` as a filename, and the order gate refused the line
@@ -570,7 +597,7 @@ test("asking an action what to type prints that action's own usage", () => {
   };
   /* The verb's own text names every action, which is the list a caller reads before choosing one. */
   const verb = asked("codex", "-h");
-  assert.match(verb, /Usage: forge codex <consult\|verdict\|pending\|show\|log\|stats\|eval\|marks\|replay>/u);
+  assert.match(verb, /Usage: forge codex <consult\|verdict\|pending\|show\|log\|stats\|eval\|marks\|replay\|band>/u);
   assert.doesNotMatch(verb, /--verify <risk>/u, "and no action's flags, which is what the cap buys");
   for (const [action, argv, spelled] of [
     ["consult", ["codex", "consult", "-h"], /--verify <risk>/u],
