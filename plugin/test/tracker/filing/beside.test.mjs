@@ -31,7 +31,7 @@ projectRecord(new URL("../../../../", import.meta.url).pathname, tracker.env.XDG
 test.after(() => tracker.close());
 
 mkdirSync(join(home.path, "forge"), { recursive: true });
-writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: tracker.url, token: "t" }));
+writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: tracker.url, token: "t", retrySeconds: 0 }));
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const room = tempHome("filing").path;

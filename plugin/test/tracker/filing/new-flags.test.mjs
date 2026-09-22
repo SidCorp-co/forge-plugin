@@ -47,7 +47,7 @@ test.after(() => tracker.close());
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
 const room = tempHome("new-flags-room").path;
 mkdirSync(join(home.path, "forge"), { recursive: true });
-writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: tracker.url, token: "t" }));
+writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: tracker.url, token: "t", retrySeconds: 0 }));
 
 const bodyAt = (body) => {
   const path = join(room, "body.md");

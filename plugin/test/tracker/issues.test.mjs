@@ -13,7 +13,7 @@ const HOME = tempRoom("issues-home-");
 mkdirSync(join(HOME, "forge"));
 writeFileSync(
   join(HOME, "forge", "config.json"),
-  JSON.stringify({ url: "https://stub.example/mcp", token: "t" }),
+  JSON.stringify({ url: "https://stub.example/mcp", token: "t", retrySeconds: 0 }),
 );
 process.env.XDG_CONFIG_HOME = HOME;
 /* And this checkout's own project beside the account's file, the record being this machine's. */

@@ -31,7 +31,7 @@ const { DEFAULT } = await import("../../../src/guides/flow.mjs");
 mkdirSync(join(SAVED, "forge"), { recursive: true });
 writeFileSync(join(SAVED, "forge", "config.json"), JSON.stringify({
   url: "http://127.0.0.1:1/mcp",
-  token: "t",
+  token: "t", retrySeconds: 0,
   cloudflare: { accounts: [{ name: "one", accountId: "acct", apiToken: "cf" }] },
   coolify: { url: "https://coolify.example", apiToken: "co" },
   chatgpt: { url: "https://chatgpt.example/mcp", key: "gpt" },

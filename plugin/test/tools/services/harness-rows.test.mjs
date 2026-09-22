@@ -9,7 +9,7 @@ import { tempRoom } from "../../fixtures.mjs";
 /* A config of this suite's own, and the imports after it: the config path is resolved once when `resolve/config.mjs` loads, so on the developer's machine this would otherwise read four live tokens and a live gateway profile. */
 const HOME = tempRoom("harness-rows-home-");
 mkdirSync(join(HOME, "forge"));
-writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t" }));
+writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t", retrySeconds: 0 }));
 process.env.XDG_CONFIG_HOME = HOME;
 
 const { harnessLines } = await import("../../../src/tools/services/doctor/harness.mjs");

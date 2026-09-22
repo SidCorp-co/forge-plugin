@@ -197,7 +197,7 @@ const seeded = (chatgpt, extra = {}) => {
   mkdirSync(join(home.path, "forge"), { recursive: true });
   writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({
     url: `${other.address ? `http://127.0.0.1:${other.address().port}` : ""}/mcp`,
-    token: "not-a-real-tracker-token",
+    token: "not-a-real-tracker-token", retrySeconds: 0,
     waitSeconds: 2,
     ...extra,
     ...(chatgpt ? { chatgpt } : {}),

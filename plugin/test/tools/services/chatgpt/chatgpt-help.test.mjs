@@ -30,7 +30,7 @@ const ran = (...argv) => {
   mkdirSync(join(home.path, "forge"), { recursive: true });
   writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({
     url: `${origin}/mcp`,
-    token: "not-a-real-tracker-token",
+    token: "not-a-real-tracker-token", retrySeconds: 0,
     waitSeconds: 2,
     chatgpt: { url: `${origin}/mcp`, key: "sm_stub_key_never_a_real_credential" },
   }));

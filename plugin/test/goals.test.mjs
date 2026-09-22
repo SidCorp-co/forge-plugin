@@ -69,7 +69,7 @@ projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME,
   OWN);
 test.after(() => tracker.close());
 mkdirSync(join(home.path, "forge"), { recursive: true });
-writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: tracker.url, token: "t" }));
+writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: tracker.url, token: "t", retrySeconds: 0 }));
 const ask = (...argv) => ranAsync(FORGE, argv, tracker.env, ROOT);
 
 /* The brief is the last subject this report prints and reading it is a tracker read, so a run whose

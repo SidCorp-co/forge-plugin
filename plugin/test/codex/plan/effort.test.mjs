@@ -13,7 +13,7 @@ import { tempRoom } from "../../fixtures.mjs";
    table is read off that same file. */
 const HOME = tempRoom("forge-codex-effort-");
 mkdirSync(join(HOME, "forge"));
-writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t" }));
+writeFileSync(join(HOME, "forge", "config.json"), JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t", retrySeconds: 0 }));
 process.env.XDG_CONFIG_HOME = HOME;
 
 const {

@@ -33,7 +33,7 @@ const withCredential = (...argv) => {
   const home = tempRoom("doctor-subjects-cred-");
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "forge", "config.json"),
-    JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: TOKEN }));
+    JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: TOKEN, retrySeconds: 0 }));
   const run = spawnSync(process.execPath, [CLI, "doctor", ...argv], {
     encoding: "utf8",
     cwd: tempRoom("doctor-subjects-cwd-"),

@@ -45,7 +45,7 @@ const owed = (keys) => {
   const room = projectRoom(tempRoom("flow-entry-"), home, { slug: "entry-fixture", ...keys });
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "forge", "config.json"),
-    JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token" }));
+    JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token", retrySeconds: 0 }));
   const code = `
     const { CHECKS, viewFrom } = await import(${JSON.stringify(join(SRC, "flow", "earned.mjs"))});
     const { planFlags, unwrap } = await import(${JSON.stringify(join(SRC, "flow", "machine.mjs"))});

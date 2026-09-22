@@ -257,7 +257,7 @@ const room = tempHome("filing").path;
 /* The verb spawns with the tracker's own home and one case below reads in this process, whose
    credential path was fixed at import, so the same endpoint is written where that path looks. */
 mkdirSync(join(home.path, "forge"), { recursive: true });
-writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: tracker.url, token: "t" }));
+writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({ url: tracker.url, token: "t", retrySeconds: 0 }));
 /* The helper names a kind where the argv did not, that not being what these cases are about. */
 const bodyAt = (body) => {
   const path = join(room, "body.md");

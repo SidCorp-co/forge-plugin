@@ -10,7 +10,7 @@ import { tempHome } from "../fixtures.mjs";
 
 const HOME = tempHome("field-write");
 mkdirSync(join(HOME.path, "forge"), { recursive: true });
-writeFileSync(join(HOME.path, "forge", "config.json"), JSON.stringify({ url: "https://stub.example/mcp", token: "t" }));
+writeFileSync(join(HOME.path, "forge", "config.json"), JSON.stringify({ url: "https://stub.example/mcp", token: "t", retrySeconds: 0 }));
 process.env.XDG_CONFIG_HOME = HOME.path;
 process.env.FORGE_SESSION_ID = "field-write-session";
 

@@ -122,7 +122,7 @@ test("the flow is the one that call was served, so a reading does not move when 
     const home = tempRoom("stats-guide-flow-");
     mkdirSync(join(home, "forge"), { recursive: true });
     writeFileSync(join(home, "forge", "config.json"),
-      JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token" }));
+      JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token", retrySeconds: 0 }));
     projectRoom(room, home, { slug: "served-fixture", ...keys });
     const said = spawnSync(FORGE, ["stats", "runs", "--checkout", PROJECT, "--json"],
       { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home, TMPDIR: room }, cwd: room });

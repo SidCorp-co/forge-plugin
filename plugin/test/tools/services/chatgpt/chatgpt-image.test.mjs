@@ -50,7 +50,7 @@ const env = (prefix) => {
   mkdirSync(join(home.path, "forge"), { recursive: true });
   writeFileSync(join(home.path, "forge", "config.json"), JSON.stringify({
     url: `${state.origin}/mcp`,
-    token: "not-a-real-tracker-token",
+    token: "not-a-real-tracker-token", retrySeconds: 0,
     waitSeconds: 5,
     chatgpt: { url: `${state.origin}/mcp`, key: KEY, ...(prefix ? { prefix } : {}) },
   }));

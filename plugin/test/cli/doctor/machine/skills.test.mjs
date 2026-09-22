@@ -16,7 +16,7 @@ const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;
 const HOME = tempHome("withheld-skill");
 mkdirSync(join(HOME.path, "forge"), { recursive: true });
 writeFileSync(join(HOME.path, "forge", "config.json"), JSON.stringify({
-  url: "https://stub.example/mcp", token: "t", withheldSkills: ["issue-flow"],
+  url: "https://stub.example/mcp", token: "t", retrySeconds: 0, withheldSkills: ["issue-flow"],
 }));
 process.env.XDG_CONFIG_HOME = HOME.path;
 

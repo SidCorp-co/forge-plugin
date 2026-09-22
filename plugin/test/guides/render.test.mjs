@@ -58,7 +58,7 @@ const shipping = (ship, slug = "issue-flow", part = "7") => {
   const home = env.XDG_CONFIG_HOME;
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "forge", "config.json"),
-    JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token", ship }));
+    JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token", retrySeconds: 0, ship }));
   const argv = slug === "issue-flow" ? ["guide", slug, part] : ["guide", slug];
   return flat(spawnSync(FORGE, argv, { encoding: "utf8", env, cwd: room("bugs", home) }).stdout);
 };

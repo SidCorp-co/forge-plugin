@@ -23,7 +23,7 @@ const homeWith = (config) => {
   const home = tempRoom("machine-keys-");
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "forge", "config.json"),
-    JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t", ...config }));
+    JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t", retrySeconds: 0, ...config }));
   mkdirSync(join(home, "vi-natural"), { recursive: true });
   writeFileSync(join(home, "vi-natural", "config.json"),
     JSON.stringify({ base_url: VI_URL, api_key: VI_KEY, model: "vi/file-model" }));
