@@ -80,7 +80,7 @@ checkout's decision rather than the account's, and `README.md` says why that lev
   SHALL send every file of that consult whole where neither the command nor the configuration named
   a send mode, SHALL leave a named mode standing and say that it stands, and SHALL name on every
   consult the mode it is sending under.
-- **AC-06-1-12** · Rev: 2 · Proof: plugin/test/codex/codex.test.mjs "the check's clock is what the consult's budget spares it, and a smaller declaration stands"
+- **AC-06-1-12** · Rev: 2 · Proof: plugin/test/codex/check/clock.test.mjs "the check's clock is what the consult's budget spares it, and a smaller declaration stands"
   WHEN the checkout names a command the reviewer may run THEN the clock that command runs under SHALL
   be the room that consult's own budget still holds at the call the check is made on — the budget,
   less what the consult has spent by then, less a stated share held back for what follows the check —

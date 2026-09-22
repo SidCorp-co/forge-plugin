@@ -336,10 +336,11 @@ the worst place to keep an example of the one it replaces.
   IF a setting a flow asks for is sent and the resource will not say what it now holds THEN the CLI
   SHALL refuse naming that setting unconfirmed beside the call that reads it, and SHALL leave the
   flow it wrote standing rather than putting back a state the unread half may contradict.
-- **AC-01-5-14** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a declared check is printed with the clock it runs under and where that clock was read"
+- **AC-01-5-14** · Rev: 2 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a declared check is printed with the most its clock may be and where that figure was read"
   WHERE the project declares a command the reviewer may run, the resolution report SHALL print that
-  command with the clock it runs under and the source that clock was read from, the two being one
-  reading: a command a project declares and a clock it cannot see are a call spent for nothing.
+  command with the most its clock may ever be and the source that figure was read from, said as the
+  most rather than as the clock one call hands it, the two being one reading: a command a project
+  declares and a clock it cannot see are a call spent for nothing.
 - **AC-01-5-15** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a check clock that is not a whole number above zero is named rather than taken"
   IF the project sets that clock to anything but a whole number of milliseconds above zero THEN the
   resolution report SHALL name the value it will not take beside the clock actually in force.
@@ -352,10 +353,10 @@ the worst place to keep an example of the one it replaces.
   newest one's own checkout by the time each record carries rather than by the order they were
   written, and SHALL count no record stopped under that clock, a record answering for the clock it
   was taken at.
-- **AC-01-5-18** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a check clock at or past the one a whole consult runs under is refused"
-  IF that clock is at or past the one a whole consult runs under THEN the resolution report SHALL
-  report it a fault, a check reaching such a clock costing the consult rather than coming back as a
-  call that was stopped.
+- **AC-01-5-18** · Rev: 2 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a declared check clock past what a consult can spare is a fault the report names"
+  IF the project declares that clock above the most a consult's own budget can spare a check THEN
+  the resolution report SHALL report it a fault, a clock reaching what the caller waits in one call
+  costing that call even when the clock fires.
 
 - **AC-01-5-19** · Rev: 1 · Proof: plugin/test/cli/doctor/adopt.test.mjs "each key the entry now holds is printed beside the file it was read back from"
   WHEN a project key is read THEN the CLI SHALL read it from this machine's own record of that

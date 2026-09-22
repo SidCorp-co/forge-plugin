@@ -258,8 +258,9 @@ const checkOnce = (scope) => {
       + `budget has nothing left to spare it once the ${AROUND_CHECK_MS / 1000}s after a check is `
       + `held back. Raise \`codex.budgetMs\` where the caller can wait longer than one call`, error: true };
   }
-  /* The room bounds the clock whatever the check carried, a resolved figure or nothing at all: a
-     check object reaching here without one used to be handed to the spawn as no timeout. */
+  /* The room bounds the clock whatever the check carried, a resolved figure or nothing at all, so a
+     check reaching here without one is bounded by the room rather than by the spawn's own absence of
+     a timeout. */
   const ms = Math.min(scope.check.ms ?? room, room);
   scope.check.used = true;
   /* Its own process group: the clock kills the shell, and a runner the shell started would outlive
