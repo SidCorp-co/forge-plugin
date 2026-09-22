@@ -385,18 +385,12 @@ const earnsInstead = (view, ref, status) => {
 };
 
 /* The tracker stamps the merge on a close of its own accord, and a close no landing under this key
-   earned has no commit to put beside it: the row then reads as shipped work to whatever joins a run to
-   its outcome through that field. This CLI sends the status and the reason alone, so it cannot decline
-   the stamp — what it can do is read the answer back and take the stamp down in the same call rather
-   than leave a landing on the record that never happened (ISS-2125). What says a landing happened here
-   is the page's own merged mark and never the sha beside the stamp, which comes back null on every
-   closed row this CLI reads, landed or not. A cut thread is not that reading: the mark may be behind it,
-   so the stamp is reported and left alone.
-   It reports the repair's own outcome rather than raising on it, the caller below owing one refusal
-   that carries everything left outstanding: this repair and the correction are each the only record of
-   their own half, so a raise here would swallow whichever of the two had not run yet (consult 6e172b
-   F1, consult 17b76c F1). The lease check and the credit inside `unmarkMerged` still raise as they do
-   for its other caller, those being refusals about the issue rather than about the stamp. */
+   earned has no commit to put beside it: the row then reads as shipped work to whatever joins a run
+   to its outcome through that field. This CLI sends the status and the reason alone, so it cannot
+   decline the stamp — it reads the answer back and takes the stamp down instead (ISS-2125). What says
+   a landing happened here is the page's own merged mark and never the sha beside the stamp, which
+   comes back null on every closed row this CLI reads, landed or not. A cut thread is not that
+   reading, the mark being possibly behind it, so the stamp is reported and left alone. */
 const stampTaken = async (view, ref, status, answer) => {
   const stamped = (answer?.issue ?? answer)?.mergedAt;
   /* An unread page holds no mark to find, so a set that fetched none would read every stamp as false —
@@ -416,8 +410,8 @@ const stampTaken = async (view, ref, status, answer) => {
     console.log(`${ref}  the merged stamp is removed.`);
     return null;
   }
-  /* A dropped write is not a rejected one, and only the transport knows which: told the stamp is still
-     there, a run undoes a removal that may have landed, and told nothing it leaves a false landing up. */
+  /* An answer that never arrived leaves the row's own field the only thing that says whether the
+     stamp came down, so neither outcome is claimed here and the read is named instead. */
   if (afterRefused(answered.refused).unknown) {
     return `the merged stamp the tracker wrote on that close neither came down nor failed cleanly: `
       + `${answered.refused}\nWhether the row still carries it is what decides whether anything is `
@@ -428,11 +422,14 @@ const stampTaken = async (view, ref, status, answer) => {
     + `figures join a run to its work by. Remove it:\n  ${undoForm(ref)}`;
 };
 
-/* The two writes a landed set owes, neither skipped for the other's failure. The correction is the only
-   record that a run went round the ladder and the repair is the only thing that takes a false landing
-   off the row, so a refusal of either that returned before the other would leave a run told about one
-   problem and holding two. Both are attempted, then one refusal carries what is outstanding — and the
-   correction's own text is kept whole, it being the one that names the body to re-post. */
+/* The two writes a landed set owes, neither skipped for the other's failure. The correction is the
+   only record that a run went round the ladder and the repair is the only thing that takes a false
+   landing off the row, so a refusal of either that returned before the other would leave a run told
+   about one problem and holding two (consults 6e172b, 17b76c). Both are attempted, then one refusal
+   carries what is outstanding, the correction's own text kept whole as the one naming a body to
+   re-post. `stampTaken` reports rather than raises for that reason; the lease check and the credit
+   inside `unmarkMerged` raise as they do for its other caller, being about the issue and not the
+   stamp. */
 const settledAfter = async (view, ref, status, correction) => {
   let held = null;
   try {
