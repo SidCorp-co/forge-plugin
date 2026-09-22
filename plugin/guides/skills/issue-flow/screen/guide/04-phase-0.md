@@ -21,15 +21,11 @@ Then `forge knowledge search` on the issue's title: an entry about the module th
 read before the code, and against the source it cites.
 
 **Start the baseline the moment the gate is named**, where nothing published answers for the commit
-this branch was cut at. Run the project's gate whole, in the background, and carry on reading —
-reading is not idling on it, but the first edit is: it waits on the baseline's own verdict, not
-merely on the baseline having started. **Where there is nothing left to read is `forge hooks --how
-polling`'s own deciding moment**, and blocking on the baseline until it answers is what keeps this
-turn working — ending it for a notice still to arrive is the one route that does not, so it waits
-for the others to run out first. Which of the two this issue is owed is a question rather than
-a guess — `forge advance <ref> --owed` names the published result or the fresh run. What a baseline
-must record, and what a citation rests on, and what binds an edit to a running measurement's verdict
-rather than its start: `forge guide issue-flow verification`.
+this branch was cut at: the project's gate, whole, and it is this run's first long call. Which of the
+two this issue is owed is a question rather than a guess — `forge advance <ref> --owed` names the
+published result or the fresh run. What a baseline must record, and what a citation rests on, and
+what binds an edit to a running measurement's verdict rather than its start: `forge guide issue-flow
+verification`.
 
 Phase 0 writes nothing. Carry it into Phase 1, where the claim comes before the first write, and a
 brief this run found wrong is corrected on the way out.

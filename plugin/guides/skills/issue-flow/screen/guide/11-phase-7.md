@@ -12,12 +12,6 @@ carried off in a report, because the run that built the change is the one that c
 will now see, and the rung it earns is moved by whoever holds the issue next. Everything below is
 then taken by the judging run, standing at `developed` where this one stopped.
 
-**The ship is the longest wait a run has**, and it obeys the rule every other wait here does, which
-the poll guard enforces on its own log too: `forge hooks --how polling`, read before the first read
-of that log rather than after the guard refuses the second. A turn that ends here to wait for the
-completion notice has taken none of the waits that rule names — block on the ship in the foreground
-until it answers, rather than stopping for a notice that is not among them.
-
 Then verify the change where it now runs, post the release note, and move the status, in that
 order: a note published before the change ships announces what has not happened, and the status is
 what other people's queries filter on, so it moves last. What the move is owed:

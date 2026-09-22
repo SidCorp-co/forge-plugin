@@ -1,4 +1,4 @@
-## The five rules
+## The six rules
 
 1. **Verify before you plan.** Every claim in an issue is a hypothesis about code you have not read.
 2. **Evidence is a phase output.** "Tests pass" proves no screen; a success code proves no write.
@@ -12,3 +12,12 @@
    `forge new -h` says such a filing goes or nowhere if it says there is none. What that filing
    carries and what a learning must pass: `forge guide issue-flow learning`. What became of it goes
    in the report.
+6. **A long call runs while you work.** A call expected to outlast your next piece of work — the
+   gate, the tests, a consult, the ship — is started in the background, and the next piece of work
+   that does not read that call's answer is taken while it runs. Work that reads the answer waits
+   for it; that the answer may come back red is not a second reason to wait, since work a red answer
+   would only make you take again is still work. Where nothing is left that does not read the
+   answer, block on the call in the foreground until it answers, because a turn ended for the
+   completion notice waits for something and works on nothing. Which shapes a wait has, and which
+   one the guard refuses: `forge hooks --how polling`, read before the first read of a job's log
+   rather than after the second is refused.
