@@ -34,14 +34,15 @@ const ownKeys = (block) => {
 
 export const STORE = "config.json";
 
-/* The statement the literal stands in, bounded by the semicolons either side of it: a literal is a
-   tracker's configuration where the statement writing it says which file it is written to. Read off
-   the source and not the blanked copy, the file's name being a string and blanking taking the
-   contents of every string — the two are the same length, so one set of offsets answers for both. */
-const statementAround = (code, from, at) => {
+/* The statement the literal stands in: a literal is a tracker's configuration where the statement
+   writing it says which file it is written to. The semicolons that bound it are read off the blanked
+   copy, so one inside a comment does not cut the statement short, and the text returned is the
+   source's, the file's name being a string and blanking taking the contents of every string. The two
+   are the same length, code unit for code unit, which is what `blanked` says of itself. */
+const statementAround = (code, text, from, at) => {
   const opens = code.lastIndexOf(";", from);
   const closes = code.indexOf(";", at);
-  return code.slice(opens + 1, closes === -1 ? code.length : closes);
+  return text.slice(opens + 1, closes === -1 ? text.length : closes);
 };
 
 export const laddersIn = (text, rel) => {
@@ -57,7 +58,7 @@ export const laddersIn = (text, rel) => {
          there. */
       const own = `{${ownKeys(code.slice(from + 1, at))}}`;
       if (!names(own, "url") || !names(own, "token") || names(own, SETTING)) continue;
-      if (!statementAround(text, from, at).includes(STORE)) continue;
+      if (!statementAround(code, text, from, at).includes(STORE)) continue;
       out.push(`${rel}:${lineAt(code, from)} writes a fixture tracker configuration that does not name `
         + `${SETTING}, so a call this fixture makes waits the transport's real ladder — 2s, 4s then 8s `
         + `between four attempts — for a tracker no fixture can reach. Name it: ${SETTING}: 0.`);

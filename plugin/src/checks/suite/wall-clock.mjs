@@ -34,9 +34,14 @@ const opensARegex = (text, at) => {
   return OPENS_A_REGEX.test(back < at ? `${head} ` : head);
 };
 
-/** Comments and every kind of quoted text, blanked to spaces so line and column still hold. */
+/** Comments and every kind of quoted text, blanked to spaces so line and column still hold.
+ *
+ *  Code units and not code points: every index below comes from `indexOf` and `slice`, which count
+ *  units, so a pair split as one element would address the wrong place from the first astral
+ *  character on and hand back a string of another length than it was given. A reader that carries an
+ *  offset of its own from here into the source depends on that (ISS-2040). */
 export const blanked = (text) => {
-  const out = Array.from(text);
+  const out = text.split("");
   const hide = (from, to) => {
     for (let at = from; at < to && at < out.length; at += 1) if (out[at] !== "\n") out[at] = " ";
   };

@@ -102,6 +102,17 @@ test("the escape never returns under the bound it was given, nor over the cap ab
   }
 });
 
+/* Every index blanking works with counts code units, so a pair read as one element would address the
+   wrong place from the first astral character on — and a reader carrying an offset from here into the
+   source would be one place out for each of them (ISS-2040). */
+test("blanking hands back a text of the same length, code unit for code unit", () => {
+  const source = 'const drawn = "\u{1F600}";\n/* a comment */\nconst three = 3;\n';
+  assert.equal(blanked(source).length, source.length);
+  assert.equal(blanked(source).indexOf("const three"), source.indexOf("const three"),
+    "so an offset taken off the blanked copy names the same place in the source");
+  assert.doesNotMatch(blanked(source), /a comment/u, "and the comment is still gone");
+});
+
 test("blanking keeps every line where it was, so a finding's line number is the file's own", () => {
   const source = "/* one\n   two */\nconst three = 3;\n";
   assert.equal(blanked(source).split("\n").length, source.split("\n").length);

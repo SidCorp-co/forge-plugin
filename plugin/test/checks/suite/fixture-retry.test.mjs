@@ -84,3 +84,12 @@ test("a literal in one statement does not carry the store another statement name
     + 'const said = shaped({ url: "u", token: "t" });\n';
   assert.deepEqual(laddersIn(two, MADE_UP), []);
 });
+
+/* Both halves of the window come off the blanked copy, so neither a semicolon nor a brace a comment
+   holds moves it: a rule that read the source for its bounds would find the comment's semicolon and
+   answer about a statement that stops before the literal. */
+test("a semicolon inside a comment does not cut the statement short of the literal", () => {
+  const said = laddersIn(`${WROTE}/* a fixture; unreachable */ { url: "u", token: "t" }));\n`, MADE_UP);
+  assert.equal(said.length, 1, said.join(" "));
+});
+
