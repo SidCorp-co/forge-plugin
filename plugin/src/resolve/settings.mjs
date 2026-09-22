@@ -485,8 +485,20 @@ export const landingScope = once(() =>
 
 export const SHIP_MODES = ["self", "ready"];
 
-/** Unmemoised: `forge doctor --ship` writes the option and reports it in the same process. */
-export const shipMode = () => chosen(userConfig().ship, SHIP_MODES, SHIP_MODES[0], { source: configPath() });
+/** Whether a run lands its own change or stops at a pushed branch and a landing checkpoint. The
+ *  PROJECT's, beside `landing` and `drainedBy`, which describe the same landing this decides the
+ *  existence of: two projects on one box may answer differently, and one value in the machine's own
+ *  file answered for every checkout on it at once (ISS-2174). */
+export const shipMode = once(() => chosen(forgeJson().parsed?.ship, SHIP_MODES, SHIP_MODES[0]));
+
+/** A `ship` a release before that move left in the machine's own file, read to be reported ignored
+ *  and by nothing that decides: honouring it as a fallback is the second layer the move removed, and
+ *  dropping it in silence is a value somebody set and nothing tells them about. Presence and never
+ *  truthiness, for that same reason: a key edited to `null` or to a blank is a line somebody wrote
+ *  at a level that has stopped answering for it. */
+export const shipLeftOnMachine = () => (Object.hasOwn(userConfig(), "ship")
+  ? { present: true, value: userConfig().ship, from: configPath() }
+  : { present: false, value: null, from: null });
 
 export const RUNS_TAKES = "a whole number above 0";
 

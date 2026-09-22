@@ -263,17 +263,20 @@ text the session it is in is holding.
 
 ### UC-01-5 — The project's keys, and the machine's own
 
-Rev: 5 · Actors: developer, agent · Enforces: BR-07, BR-08
+Rev: 6 · Actors: developer, agent · Enforces: BR-07, BR-08
 
 A project decides how this product behaves inside its checkout — what a run may report about the
-product, which version of the method it runs, how its changes land — and it decides in its own
+product, which version of the method it runs, whether its changes land and where the merge sits —
+and it decides in its own
 project file, because a decision held anywhere else is a plugin default wearing the project's name
-(BR-07). The key listed below as the machine's is the machine's instead, because what it answers is
-a fact about the box rather than about the checkout: whether a release here lands itself or stops
-ready to land. How many runs are carried at once is the project's, because it bounds the work a
+(BR-07). Whether a run lands its own change or stops ready for another actor to land it is the
+project's for that reason: it is a fact about one tracker's landings, so a box carrying two projects
+answers it twice, and one value in the machine's own file answered for every project on it at once.
+How many runs are carried at once is the project's, because it bounds the work a
 checkout takes on rather than what the box can hold. Each key is read from one place and reported
 with its source (BR-08), and a project that declares no number of runs is one this says nothing
-about.
+about. A key this store held before it moved is read by nothing that decides and is reported
+ignored, a value dropped in silence being worse than one refused.
 
 Whose a key is and where that key is kept are two questions. The project's half is kept in this
 machine's own record of that project rather than in the checkout, because a file every clone carries
@@ -295,9 +298,9 @@ the worst place to keep an example of the one it replaces.
 - **AC-01-5-2** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "a key the project left out is printed at the plugin's default, with the default as its source"
   IF the project file does not set a key that has a product default THEN the CLI SHALL take that
   default and SHALL name the default as the source.
-- **AC-01-5-3** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "the landing mode is the machine's: it is written to the user config and the project's file is untouched"
+- **AC-01-5-3** · Rev: 2 · Proof: plugin/test/cli/doctor/ship.test.mjs "the landing mode is the project's: it is written to this machine's record of the project and the account's configuration is untouched"
   WHEN the developer sets the landing mode through the report verb THEN the CLI SHALL write it to
-  the account's configuration and to nothing of the project's.
+  this machine's record of the project the call stands in and to nothing of the account's.
 - **AC-01-5-4** · Rev: 2 · Proof: plugin/test/tracker/project-config.test.mjs "the landing route comes off the release model and the auto-deploy flag, and a key overrides it"
   WHEN the project's release policy is read THEN the CLI SHALL derive the landing route from the
   release model the project declares and whether production deploys on its own, SHALL say `not
@@ -306,9 +309,12 @@ the worst place to keep an example of the one it replaces.
 - **AC-01-5-5** · Rev: 1 · Proof: plugin/test/cli/doctor/project-block.test.mjs "a qa key in the checkout moves nothing the report prints"
   WHEN the project's release policy is read THEN the CLI SHALL print whether an independent judgement
   is asked for, read from the tracker's project record and from nowhere else.
-- **AC-01-5-6** · Rev: 1 · Proof: plugin/test/tools/doctor.test.mjs "the mode the report prints is the mode last written, either way"
-  WHEN the resolution report is printed THEN it SHALL print the landing mode the account's
-  configuration holds.
+- **AC-01-5-6** · Rev: 2 · Proof: plugin/test/cli/doctor/ship.test.mjs "the mode the report prints is the mode last written, either way"
+  WHEN the resolution report is printed THEN it SHALL print the landing mode this machine's record of
+  the project holds, with that file as its source.
+- **AC-01-5-41** · Rev: 1 · Proof: plugin/test/cli/doctor/ship.test.mjs "a landing mode left in the account's configuration is reported ignored and decides nothing"
+  IF the account's configuration still holds a landing mode THEN the resolution report SHALL say that
+  value is ignored and SHALL name the key that decides it now.
 - **AC-01-5-7** · Rev: 2 · Proof: plugin/test/tools/doctor.test.mjs "the number of parallel runs is the project's: it is read out of the project's record, with that file named as its source"
   WHEN the project declares how many runs it carries at once THEN the resolution report SHALL print
   that number, SHALL name the project's own file as where it was read, and SHALL neither read nor

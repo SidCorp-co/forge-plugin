@@ -51,16 +51,19 @@ const room = (plugin, home = HOME) => {
   return rooms.get(key);
 };
 
-/* The machine's option, where the channel above is the project's: its own config home, never the live one.
-   Flat, so a phrase pattern over the answer asserts the rule and not the wrap it was written under. */
+/* The project's option, beside the channel above and in the same record: its own config home, never
+   the live one. Flat, so a phrase pattern over the answer asserts the rule and not the wrap it was
+   written under. */
 const shipping = (ship, slug = "issue-flow", part = "7") => {
   const env = homeEnv("render-ship");
   const home = env.XDG_CONFIG_HOME;
   mkdirSync(join(home, "forge"), { recursive: true });
   writeFileSync(join(home, "forge", "config.json"),
-    JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token", retrySeconds: 0, ship }));
+    JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token", retrySeconds: 0 }));
+  const cwd = projectRoom(tempRoom("render-ship-"), home,
+    { slug: "render-fixture", feedback: { plugin: "bugs" }, ship });
   const argv = slug === "issue-flow" ? ["guide", slug, part] : ["guide", slug];
-  return flat(spawnSync(FORGE, argv, { encoding: "utf8", env, cwd: room("bugs", home) }).stdout);
+  return flat(spawnSync(FORGE, argv, { encoding: "utf8", env, cwd }).stdout);
 };
 
 /* The paragraph is the unit a reader sees, so equal-elsewhere is asserted over paragraphs: a
@@ -245,6 +248,22 @@ test("Phase 7 and the fold are served in the mode's own text, one branch of each
   assert.doesNotMatch(folds[0], /ready-to-land/u, "self mode's fold lands nothing extra");
   assert.match(folds[1], /the landing is this phase's and it is one actor's/u, "ready mode's fold lands them");
   assert.match(folds[1], /never the run that built the change/u, "and dispatches the judge where one is asked for");
+});
+
+/* One box, two projects, two answers: the whole of what moving the key to the project's record buys,
+   asserted where a reader meets it rather than only at the report that prints the value. */
+test("two projects under one configuration home are served the two branches of the same phase", () => {
+  const env = homeEnv("render-ship-two");
+  const home = env.XDG_CONFIG_HOME;
+  mkdirSync(join(home, "forge"), { recursive: true });
+  writeFileSync(join(home, "forge", "config.json"),
+    JSON.stringify({ url: "https://nowhere.invalid/mcp", token: "a-throwaway-token", retrySeconds: 0 }));
+  const argv = ["guide", "issue-flow", "7"];
+  const at = (slug, ship) => flat(spawnSync(FORGE, argv, { encoding: "utf8", env,
+    cwd: projectRoom(tempRoom(`render-two-${ship}-`), home, { slug, ship }) }).stdout);
+  assert.match(at("lands-its-own", "self"), /The landing is this phase's first step/u);
+  assert.match(at("leaves-it-ready", "ready"), /ends at ready-to-land and lands nothing/u,
+    "the second checkout answers out of its own record and not out of the file they share");
 });
 
 /* What a fence takes with it: the `self` branch carried the note, the release rung and the close, so fencing it left a `ready` reader two statuses short of the end state. Over the union served, either half may own it and neither may drop it (ISS-673). */

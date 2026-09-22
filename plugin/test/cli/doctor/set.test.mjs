@@ -186,7 +186,7 @@ test("a body's field beside --set is refused rather than dropped, and nothing is
    the machine's ever runs: a call naming both is refused rather than half-done. */
 test("a project write beside a machine key is refused, and neither half is written", async () => {
   state.calls = [];
-  for (const machine of [["--token", "a-throwaway-token"], ["--hide", "knowledge"], ["--ship", "solo"]]) {
+  for (const machine of [["--token", "a-throwaway-token"], ["--hide", "knowledge"], ["--job", "ba"]]) {
     const run = await ask("--set", "autoProdDeploy=true", ...machine);
     assert.equal(run.status, 1, run.stdout);
     assert.match(run.stderr, /--set` writes the project's own record and `--/u, run.stderr);

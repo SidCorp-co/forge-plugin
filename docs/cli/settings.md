@@ -30,7 +30,7 @@ for itself and what it answers per project — the two sit side by side, the mac
 `~/.config/forge/projects/<root folder>/config.json`, and the line is about which of the two a key
 belongs in rather than about which of them a checkout carries: the instance url, the tracker credential, every key of a harness
 service — the reviewer's gateway, the Vietnamese gateway, Cloudflare, Coolify, the ChatGPT endpoint —
-and `withheld`, `withheldSkills`, `capabilities` and `ship`. A project file carrying any of them
+and `withheld`, `withheldSkills` and `capabilities`. A project file carrying any of them
 would hand every checkout of it one box's credential and one box's record of what a credential may
 spend, which is wrong for the second box and undiscoverable from it. Everything on the other side of
 the line is a decision one tracker made once and every checkout of it should read alike.
@@ -53,17 +53,23 @@ branch to promote to, is the incoherence its own schema warns of, and it is repo
 declaration is made, the person's look stands. What the same report does with the deploy behind that
 branch is [doctor](doctor.md).
 
-**One flow reads five settings, and each names the level that owns it** — which level, and why:
-[two levels](../two-levels.md). Four are the project's, in this machine's record of that project:
-`feedback`, two
+**One flow reads five settings, and every one of them is the project's**, in this machine's record
+of that project — which level, and why: [two levels](../two-levels.md). `feedback`, two
 channels (`off | bugs | all`) saying whether a run may report on this plugin and on the project
 itself; `flow`, which of the served method sets this project runs, pinning the guide, the method and
 the contract together because they are one designed set and a project mixing them runs text nobody
-tested; `landing`, where the merge sits; and `lease.workingRe`, what a run working in one of this
-project's trees is running, which is the only thing that separates two agents standing in one tree.
-The fifth is the machine's, in the user config beside the withheld verbs: `ship`, whether a run
-lands its own change or ends ready for another actor to land it. `forge doctor` prints all five with
-their sources, and it is the only surface allowed to.
+tested; `landing`, where the merge sits; `lease.workingRe`, what a run working in one of this
+project's trees is running, which is the only thing that separates two agents standing in one tree;
+and `ship`, whether a run lands its own change or ends ready for another actor to land it.
+`forge doctor` prints all five with their sources, and it is the only surface allowed to.
+
+**`ship` was the machine's until 2026-09-22 and is the project's now** (ISS-2174). What decided it is
+the line at the top of this page rather than a preference: the right answer differs between two
+projects on one box, which is what makes it not the machine's, and it does not differ between two
+boxes working one checkout. It is also the key `landing` and `drainedBy` describe the consequences
+of, and a switch kept in a different store from the two keys about the same landing is the split this
+page exists to stop. It moved rather than gaining a second layer, so a `ship` an older release wrote
+into the machine's own file decides nothing and `forge doctor` says it is ignored.
 
 Two of those behave unlike the rest, each for a reason worth stating. **`landing` overrides and never
 defaults**: the project already told the tracker whether its default branch deploys production on its

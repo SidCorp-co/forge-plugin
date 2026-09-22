@@ -273,13 +273,18 @@ test("a directory belonging to no checkout is refused before anything reaches th
   }
 });
 
-test("--set and --flow in one call are refused rather than one of them preferred", async () => {
-  fresh();
-  const run = await ask("--set", "pipeline.qa=builder", "--flow", "screen");
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /two answers to what this call writes/u);
-  assert.equal(sent().length, 0);
-  assert.equal(readFileSync(file, "utf8"), HELD);
+/* All three write one thing of the project's record and the first returns before the report, so a
+   second in the same call would be dropped in silence (ISS-2174). */
+test("two of --set, --flow and --ship in one call are refused rather than one of them preferred", async () => {
+  for (const pair of [["--set", "pipeline.qa=builder", "--flow", "screen"],
+    ["--set", "ship=ready", "--ship", "self"], ["--flow", "screen", "--ship", "ready"]]) {
+    fresh();
+    const run = await ask(...pair);
+    assert.equal(run.status, 1, `\`${pair.join(" ")}\` was not refused`);
+    assert.match(run.stderr, /two answers to what this call writes/u);
+    assert.equal(sent().length, 0);
+    assert.equal(readFileSync(file, "utf8"), HELD);
+  }
 });
 
 /* A write of a file that succeeds and a write of the same bytes back that does not is a pair no

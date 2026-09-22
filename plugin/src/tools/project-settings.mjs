@@ -4,9 +4,10 @@
 import { accessSync, constants, readFileSync, realpathSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { fromProject, Refusal, drainScope, fail, projectFilePath, projectSlug }
+import { fromProject, Refusal, SHIP_MODES, drainScope, fail, projectFilePath, projectSlug, slugIfAny }
   from "../resolve/settings.mjs";
 import { pairOf } from "../resolve/flags.mjs";
+import { didYouMean } from "../suggest.mjs";
 import { configPath } from "../resolve/config.mjs";
 import { MACHINE_KEYS, MACHINE_KEY_NAMES, WITH_BODY, WRITES } from "./doctor-keys.mjs";
 import {
@@ -313,6 +314,23 @@ export const writeSetting = async (given) => {
 const FLOW_USAGE = "forge doctor --flow <slug>";
 
 /** What the one failure this route cannot undo says. Exported so a case can read it: a write of a file that succeeds and a write of the same bytes back that does not is a pair no call through the CLI can be made to produce, and a state nobody is told about is the thing being avoided. */
+/** How far a run standing in a checkout of this project goes, into that project's own record. Whose
+ *  the option is and why the machine's file no longer answers it: `shipMode` in resolve/settings.mjs.
+ *  One key, one store and one writer — this is `--set ship=` under its own spelling, so the two
+ *  cannot disagree about where the value lands or about which values it takes. */
+export const writeShip = (mode) => {
+  if (!SHIP_MODES.includes(mode)) fail(didYouMean("--ship mode", mode, SHIP_MODES));
+  const said = projectWrite({ ...projectRoute("ship"), said: "--ship" }, mode);
+  /* Named by its slug where it has one and as the checkout's project where it has not: the line
+     above already carries the file, and a checkout with no slug yet is one this sentence has no
+     name for. */
+  const which = slugIfAny() ? `\`${slugIfAny()}\`` : "the project this checkout belongs to";
+  return [...said, mode === "ready"
+    ? `Runs of ${which} now end at a pushed branch and a landing checkpoint; the landing is another `
+      + "actor's. No other project on this machine is moved by it."
+    : `Runs of ${which} now land their own change. No other project on this machine is moved by it.`];
+};
+
 export const restoreFailed = (path, slug, why) =>
   `--flow: ${path} was set to \`flow: ${slug}\` and putting its previous bytes back failed: ${why}. `
   + `That file holds the new flow now and nothing here changed it further — read it, then set the `

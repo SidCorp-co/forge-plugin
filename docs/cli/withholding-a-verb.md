@@ -76,9 +76,11 @@ reader `routingBlock` uses, so the two cannot disagree about whether there is a 
 [ledger](the-shown-ledger.md) delivers it to one refusal in a run and to no later one, so the cost
 falls once rather than per call, and a refusal already abbreviated to a single line keeps that shape.
 
-The machine's other option sits in the same file for the same reason, and `forge doctor --ship` is
-where it is read and written. What the two modes each ask of a run is the method's to say, and the
-served method says it; what belongs here is why the switch is the machine's rather than the
-project's or the run's: the actor that lands runs on this checkout, and two checkouts of one project
-can answer differently without either being wrong. Absent, it is the mode every run had before the
-option existed — a silence here is the old behaviour and never a refusal to land.
+The ship mode used to sit in this same file and no longer does. `forge doctor --ship` still reads and
+writes it, into the project's own record instead (ISS-2174, and [two levels](../two-levels.md) holds
+the division). What the two modes each ask of a run is the method's to say, and the served method
+says it; what belongs here is the difference between the two switches, because they look alike and
+are not. Withholding a verb is about this box — what it may spend, what its operator does not want
+typed on it — so it reaches every checkout on it. The ship mode is about one tracker's landings, so a
+box carrying two projects answers it twice. Absent, it is the mode every run had before the option
+existed — a silence there is the old behaviour and never a refusal to land.

@@ -37,8 +37,8 @@ in.
 
 ## The keys one flow reads, and whose each is
 
-The flow's own settings obey the division above rather than sitting outside it. Four are the
-project's, because none of them can be stated without naming the project. Whose a key is and where
+The flow's own settings obey the division above rather than sitting outside it. Every one of them is
+the project's, because none of them can be stated without naming the project. Whose a key is and where
 the key is kept are two questions: the project's half lives in this machine's record of that
 project, at `~/.config/forge/projects/<the checkout's root folder>/config.json`, out of the checkout
 and out of git. That is what lets one box differ from the repository and one worktree from another
@@ -64,12 +64,16 @@ put it in a file every clone carries:
   tree's own processes, and the command that means one of them is a run holding that tree is this
   repository's script here and somebody else's somewhere else. A project that declares nothing gets
   the behaviour it had before the key existed, which is the silence the section above calls correct.
+- **`ship`** — whether a run lands its own change or ends at a pushed branch and a landing checkpoint
+  for another actor. It was the machine's until 2026-09-22, on the reading that the actor which lands
+  runs on this box; what that reading missed is that one value in the machine's own file answered for
+  every project on it at once, so a box carrying a tracker whose landings are batched and a tracker
+  whose runs land their own could not hold both (ISS-2174). It sits with `landing` and `drainedBy`
+  because those two describe the landing this decides the existence of, and a project that declares
+  nothing gets `self`, which is what every run did before the key existed.
 
-One is the **machine's**, in the user config beside the withheld verbs: **`ship`**, whether a run
-lands its own change or ends ready for another actor to land it. It is neither level's above, and the
-reason is that the actor which lands runs on this checkout — the level that owns the landing owns the
-switch, and a project cannot know how many runs a machine gives it.
-[Withholding a verb](cli/withholding-a-verb.md) owns that level, and says what happens where a
+The machine's own half of the same surface is the verbs it withholds:
+[withholding a verb](cli/withholding-a-verb.md) owns that level, and says what happens where a
 machine's withholding and a project's key disagree.
 
 ## The conflict rule

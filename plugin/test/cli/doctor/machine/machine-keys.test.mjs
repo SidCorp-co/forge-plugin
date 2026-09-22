@@ -6,7 +6,8 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { tempRoom } from "../../../fixtures.mjs";
-import { MACHINE_FLAGS, MACHINE_KEY_NAMES } from "../../../../src/tools/doctor-keys.mjs";
+import { MACHINE_FLAGS, MACHINE_KEY_NAMES, MACHINE_RETIRED_NAMES }
+  from "../../../../src/tools/doctor-keys.mjs";
 import { LEVELS } from "../../../../src/tools/services/doctor/showing.mjs";
 
 const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;
@@ -30,7 +31,7 @@ const machineRun = (argv, body = {}) => {
 test("one call carrying every flag of the table reaches every writer, and each writes the key its flag names", () => {
   const run = machineRun([
     "--token", "fresh-token", "--url", "https://fresh.example/mcp",
-    "--ship", "ready", "--coolify-route", "instance", "--hide", "issue", "--show", "comment",
+    "--coolify-route", "instance", "--hide", "issue", "--show", "comment",
     "--codex-url", "https://gateway.example", "--codex-key", "gateway-key",
     "--vi-url", "https://vi.example", "--vi-key", "vi-key", "--vi-model", "vi/model",
     "--chatgpt-url", "https://gpt.example/mcp", "--chatgpt-key", "gpt-key",
@@ -39,7 +40,6 @@ test("one call carrying every flag of the table reaches every writer, and each w
   const saved = run.saved();
   assert.equal(saved.token, "fresh-token");
   assert.equal(saved.url, "https://fresh.example/mcp");
-  assert.equal(saved.ship, "ready");
   assert.equal(saved.coolifyRoute, "instance");
   assert.deepEqual(saved.withheld, { issue: "hidden" },
     "--hide added one and --show took the other away, so both writers ran");
@@ -48,23 +48,22 @@ test("one call carrying every flag of the table reaches every writer, and each w
   assert.deepEqual(saved.chatgpt,
     { url: "https://gpt.example/mcp", key: "gpt-key", prefix: "Flat vector, no text." });
   assert.deepEqual(MACHINE_FLAGS,
-    ["job", "hide", "show", "ship", "coolify-route", "token", "url", "codex-url", "codex-key",
+    ["job", "hide", "show", "coolify-route", "token", "url", "codex-url", "codex-key",
       "vi-url", "vi-key", "vi-model", "chatgpt-url", "chatgpt-key", "chatgpt-prefix"],
     "and the flags that reached them are the flags the two-stores check filters, off the same table");
 });
 
 test("a flag of that table beside a flag of the project's is refused with neither store written", () => {
-  const run = machineRun(["--ship", "ready", "--set", "runs=2"]);
-  assert.match(run.stderr, /`--set` writes the project's own record and `--ship` writes this machine's/u);
+  const run = machineRun(["--hide", "issue", "--set", "runs=2"]);
+  assert.match(run.stderr, /`--set` writes the project's own record and `--hide` writes this machine's/u);
   assert.match(run.stderr, /two stores and two calls\. Nothing was sent/u);
-  assert.equal(run.saved().ship, undefined, "the machine's half was not written before the refusal");
+  assert.equal(run.saved().withheld, undefined, "the machine's half was not written before the refusal");
 });
 
 test("a flag carrying an empty value prints the report and writes nothing", () => {
-  const run = machineRun(["--hide", "", "--show", "", "--ship", ""]);
+  const run = machineRun(["--hide", "", "--show", ""]);
   assert.match(run.stdout, /\[  ok  \] endpoint url/u, "the report did not run");
-  assert.doesNotMatch(run.stdout, /is now hidden from|now ends at a pushed branch|now lands its own change/u);
-  assert.equal(run.saved().ship, undefined);
+  assert.doesNotMatch(run.stdout, /is now hidden from/u);
   assert.equal(run.saved().withheld, undefined);
 });
 
@@ -120,9 +119,18 @@ const machineReads = () => {
   return [...found].sort();
 };
 
+/* A key this store held and no longer decides by is named in its own list rather than among the keys
+   this machine holds outright, and that list is what the walk allows beside them. Every other key of
+   the project's table stays a finding here: a read of one at this level answers from a store the
+   value is not in, which is the hazard above however well `--set` routes the name (ISS-2174). */
 test("every key this plugin reads out of the machine's store is declared in the table that refuses it", () => {
   const read = machineReads();
   assert.ok(read.length > 5, `${read.length} machine read(s) found; the selector matches too little`);
-  assert.deepEqual(read.filter((key) => !MACHINE_KEY_NAMES.includes(key)), [],
+  const declared = [...MACHINE_KEY_NAMES, ...MACHINE_RETIRED_NAMES];
+  assert.deepEqual(read.filter((key) => !declared.includes(key)), [],
     "a key read at this level and declared at neither is written to the project's record instead");
+  assert.deepEqual(MACHINE_RETIRED_NAMES, ["ship"],
+    "and the one key allowed beside them is read here only to be reported ignored");
+  assert.equal(declared.includes("landing"), false,
+    "while a project key this store has never held is a finding here whatever declares it elsewhere");
 });

@@ -389,31 +389,6 @@ test("a project still carrying the retired method key is told the flow it was re
     "and the contract line gives the same answer rather than reporting a missing file");
 });
 
-/* Read back off the file rather than off the report, because what a later `ship` reads is the file:
-   a report that agreed with itself and wrote nothing would leave the mode a fiction of one process. */
-const shipped = (home, mode) => {
-  const cwd = projectRoom(tempRoom("doctor-ship-cwd-"), home, { slug: "demo" });
-  const run = spawnSync(process.execPath, [CLI, "doctor", "--ship", mode], {
-    encoding: "utf8", cwd, env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
-  });
-  return { out: run.stdout, entry: projectEntry(cwd, home), saved: join(home, "forge", "config.json") };
-};
-
-test("the landing mode is the machine's: it is written to the user config and the project's file is untouched", () => {
-  const home = tempRoom("doctor-ship-home-");
-  const { entry, saved } = shipped(home, "ready");
-  assert.equal(JSON.parse(readFileSync(saved, "utf8")).ship, "ready", "the mode is in the user config");
-  assert.deepEqual(JSON.parse(readFileSync(entry, "utf8")), { slug: "demo" },
-    "and this machine's record of the project is exactly as it was: the machine decided, not the project");
-});
-
-test("the mode the report prints is the mode last written, either way", () => {
-  const home = tempRoom("doctor-mode-home-");
-  assert.match(shipped(home, "ready").out, /\[ {2}ok {2}\] ship\s+ready {2}← \S+config\.json/u);
-  assert.match(shipped(home, "self").out, /\[ {2}ok {2}\] ship\s+self {2}← \S+config\.json/u,
-    "and self is written rather than cleared, so the report never has to guess which way a silence means");
-});
-
 /* Three answers: an absent key and a pattern nothing can compile decide the same claim and mean
    opposite things, and only this surface says which of the two a project wrote (ISS-1872). */
 test("what a project calls a run's own work is printed with its source, and an unreadable pattern is said rather than dropped", () => {

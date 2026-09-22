@@ -22,11 +22,11 @@ const { CITED, ENDS_PHASE, phaseAtLanding, phaseForRecord, phasesOwed } =
   await import("../../src/guides/phases.mjs");
 const { localGuide } = await import("../../src/guides/guides.mjs");
 const { ORDER } = await import("../../src/flow/earned.mjs");
-const { userConfig } = await import("../../src/resolve/config.mjs");
 const { owedOf } = await import("../../src/shown/ledger.mjs");
 
 /** What `forge guide issue-flow <n>` prints, through the verb's own call and not a second reader. */
-const guideSays = (phase) => localGuide(SLUG)({ part: String(phase) }).lines.join("\n");
+const guideSays = (phase, rung = null) =>
+  localGuide(SLUG)({ part: String(phase), rung }).lines.join("\n");
 
 const rungBelow = (status) => ORDER[ORDER.indexOf(status) - 1];
 
@@ -147,15 +147,18 @@ test("the credit follows the delivery, so a part nobody received is still owed",
 });
 
 /* The delta the ledger offers is the trap: two renderings of one phase share most of their lines,
-   and the difference between them is not the method. */
+   and the difference between them is not the method. What moves them here is the rung the caller
+   asked for and not a stored value: the one condition that fences this phase is the PROJECT's
+   (ISS-2174), and a project's file is read once for the life of a process, so a second serve in one
+   session cannot see a key a case wrote between them. The rung reaches the renderer as an argument,
+   which is the only lever a case in this process has. */
 test("a phase served twice under two renderings answers with the whole of the second", () => {
-  const session = "a-run-whose-key-changed";
+  const session = "a-run-whose-rendering-changed";
   const [first] = printed((say) => phasePart(7, say, { session }));
-  userConfig().ship = "ready";
-  const second = guideSays(7);
-  assert.notEqual(first, second, "the key change moved the rendering, or the case proves nothing");
-  assert.deepEqual(printed((say) => phasePart(7, say, { session })), [second], "the whole of the new one");
-  delete userConfig().ship;
+  const second = guideSays(7, "fix");
+  assert.notEqual(first, second, "the rung moved the rendering, or the case proves nothing");
+  assert.deepEqual(printed((say) => phasePart(7, say, { session, rung: "fix" })), [second],
+    "the whole of the new one");
 });
 
 test("each phase holds a surface of its own, so no two can answer each other's lines", () => {

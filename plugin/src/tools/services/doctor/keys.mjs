@@ -2,7 +2,9 @@
    and not lines is doctor/harness.mjs's. docs/cli/doctor.md. */
 import { CHECK_MS_SPARED, CHECK_MS_TAKES, FEEDBACK_CHANNELS, fromProject, LANDING_ROUTES,
   OWED_DOORS, RUNS_TAKES, SHIP_MODES, checkCeilingMs, codexCheck, codexOwed, checkoutRoot,
-  feedbackScope, landingScope, parallelRuns, projectWorkPattern, shipMode } from "../../../resolve/settings.mjs";
+  feedbackScope, landingScope, parallelRuns, projectWorkPattern, shipLeftOnMachine,
+  shipMode } from "../../../resolve/settings.mjs";
+import { MACHINE_RETIRED } from "../../doctor-keys.mjs";
 import { DECLARES, declaredCommands, declaredIn, unarmedDoors } from "../../../stats/corpus/declared.mjs";
 import { logBytes } from "../../../codex/codex-log.mjs";
 import { checkStops } from "../../../codex/log/asked.mjs";
@@ -12,6 +14,7 @@ import { firstLine } from "../../../resolve/flags.mjs";
 import { accountCredentials, refusing } from "../../../resolve/settings.mjs";
 
 const MISS = "miss";
+const NOTE = "note";
 
 /** Which value is in force and where it was read; a value the key does not take is named here and
  *  nowhere else, since this is the surface allowed to say what a project turned off. */
@@ -38,6 +41,26 @@ const landingRow = () => {
   return { label: "landing", detail: landing.value
     ? `${landing.value}  ← ${landing.from}`
     : "unset, so the branches on the tracker's record derive where the merge sits" };
+};
+
+/* What a value left at the other level means: `MACHINE_RETIRED` in doctor-keys.mjs. A note and not a
+   miss — no verb removes such a leftover, so a report that went red over one would stay red until
+   somebody edited that file by hand. */
+const [SHIP_RETIRED] = MACHINE_RETIRED;
+
+const shipRow = () => {
+  const ship = shipMode();
+  const left = shipLeftOnMachine();
+  /* Composed apart from the value's own judgement rather than under it: a project holding a word the
+     key does not take and a machine holding a leftover are two independent facts, and a row that
+     returned at the first would drop the second on the one box that has both. */
+  const ignored = left.present
+    ? `; \`${SHIP_RETIRED.key}: ${JSON.stringify(left.value)}\` in ${left.from} is ignored — the key `
+      + `that decides this is now ${SHIP_RETIRED.now}. Remove that line by hand`
+    : "";
+  const detail = `${held(ship, SHIP_MODES)}${ignored}`;
+  if (ship.unknown) return { level: MISS, label: "ship", detail };
+  return left.present ? { level: NOTE, label: "ship", detail } : { label: "ship", detail };
 };
 
 const armedSaid = (label, commands) =>
@@ -185,18 +208,15 @@ const reviewRow = async () => {
 };
 
 /** Every keyed choice this project makes, in the order the report prints them. */
-export const projectKeyLines = async () => {
-  const ship = shipMode();
-  return [
-    ...Object.entries(feedbackScope()).map(([which, one]) =>
-      ({ level: one.unknown ? MISS : undefined, label: `feedback.${which}`, detail: held(one, FEEDBACK_CHANNELS) })),
-    flowRow(),
-    landingRow(),
-    { level: ship.unknown ? MISS : undefined, label: "ship", detail: held(ship, SHIP_MODES) },
-    owedRow(),
-    checkRow(),
-    runsRow(),
-    workRow(),
-    await reviewRow(),
-  ].filter(Boolean);
-};
+export const projectKeyLines = async () => [
+  ...Object.entries(feedbackScope()).map(([which, one]) =>
+    ({ level: one.unknown ? MISS : undefined, label: `feedback.${which}`, detail: held(one, FEEDBACK_CHANNELS) })),
+  flowRow(),
+  landingRow(),
+  shipRow(),
+  owedRow(),
+  checkRow(),
+  runsRow(),
+  workRow(),
+  await reviewRow(),
+].filter(Boolean);
