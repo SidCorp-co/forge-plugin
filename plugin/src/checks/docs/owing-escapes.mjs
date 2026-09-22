@@ -91,10 +91,15 @@ export const owingEscapesFrom = (read, held = specTreeRead()) => {
 /** What a move into a status that owes nothing leaves behind: every criterion of this checkout's
  *  tree whose escape cites the key that moved, with its file and line. The tree is a local read, so
  *  this spends no call, and a project keeping no tree is told nothing. */
-export const escapesOrphaned = (status, key, held = specTreeRead()) => {
-  if (!noLongerOwes(status) || !held) return [];
+export const escapesOrphaned = (status, key, held) => {
+  /* The status first and the tree second, and never a default argument: a default is evaluated
+     before the guard reads it, so every ordinary advance would walk and index the whole tree, and a
+     tree with one unreadable file in it would throw after the move had already landed (codex F1). */
+  if (!noLongerOwes(status)) return [];
+  const tree = held === undefined ? specTreeRead() : held;
+  if (!tree) return [];
   const wanted = String(key ?? "").toUpperCase();
-  const mine = escapesIn(held.documents).filter((one) => one.key?.toUpperCase() === wanted);
+  const mine = escapesIn(tree.documents).filter((one) => one.key?.toUpperCase() === wanted);
   if (!mine.length) return [];
   const many = mine.length === 1 ? "1 criterion" : `${mine.length} criteria`;
   return ["",

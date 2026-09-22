@@ -5,9 +5,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { escapesOrphaned } from "../../src/checks/docs/owing-escapes.mjs";
-import { NO_LONGER_OWES } from "../../src/flow/earned/park-status.mjs";
-import { owedTo } from "../../src/spec/claims/proof.mjs";
+import { fakeTracker, projectRecord, projectRoom, ranAsync, tempHome } from "../fixtures.mjs";
+
+process.env.XDG_CONFIG_HOME = tempHome("gone-escapes").path;
+const { escapesOrphaned } = await import("../../src/checks/docs/owing-escapes.mjs");
+const { NO_LONGER_OWES } = await import("../../src/flow/earned/park-status.mjs");
+const { escapesIn, owedTo } = await import("../../src/spec/claims/proof.mjs");
+const { specTreeRead } = await import("../../src/spec/tree.mjs");
 
 const clause = (id, proof) =>
   `- **${id}** · Rev: 1 · Proof: ${proof}\n  WHEN a case is named THEN the checker SHALL read it.\n`;
@@ -57,4 +61,77 @@ test("a project that keeps no requirements tree is told nothing at all", () => {
   /* Synchronous, which is the whole of the claim that it spends no call: there is no point in it at
      which a request could have been awaited. */
   assert.ok(Array.isArray(escapesOrphaned("closed", "ISS-7", HELD)));
+});
+
+/* Spawned, because what is under test is the one line `transitionTo` gained: a direct call to the
+   helper passes with that line gone (codex F2). The key is read off this checkout's own tree, so the
+   case follows the tree rather than pinning a criterion that may be reproved tomorrow. */
+const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const ROOT = new URL("../../..", import.meta.url).pathname;
+
+const CITED = escapesIn(specTreeRead().documents);
+const KEY = [...CITED.reduce((held, one) =>
+  held.set(one.key, (held.get(one.key) ?? 0) + 1), new Map())]
+  .sort((one, two) => two[1] - one[1])[0][0];
+const OWED = CITED.filter((one) => one.key === KEY);
+
+const HOLDER = "gone-escapes-run";
+const LEASE = { holder: HOLDER, agent: "claude-code_2-1-258_agent", pid: String(process.pid),
+  renewedAt: new Date().toISOString(), minutes: 30 };
+const READY = {
+  documentId: "11111111-2222-4222-8222-222222222222",
+  issueId: KEY,
+  status: "awaiting_release",
+  title: "the issue the tree's escapes are owed to",
+  description: "no mark here",
+  releaseNotes: { section: "Skip", userFacing: "-" },
+  sessionContext: { lease: LEASE },
+};
+const state = {
+  issues: [READY],
+  comments: { [READY.documentId]: [] },
+  answer: {
+    forge_config: () => ({ config: { baseBranch: "master", releaseModel: "publish",
+      pipelineConfig: { autoProdDeploy: true } } }),
+    forge_issues: (args) => {
+      if (args.action === "list") return { issues: [READY], returned: 1, hasMore: false };
+      if (args.action === "get") return READY;
+      if (args.action === "transition") {
+        READY.status = args.data.status;
+        return { ...READY };
+      }
+      return Object.assign(READY, args.data ?? {});
+    },
+  },
+};
+const tracker = await fakeTracker(state);
+test.after(() => tracker.close());
+const ENV = { ...tracker.env, FORGE_SESSION_ID: HOLDER };
+projectRecord(ROOT, tracker.env.XDG_CONFIG_HOME, { slug: "forge-plugin" });
+const closing = (at) => {
+  READY.status = "awaiting_release";
+  return ranAsync(FORGE, ["advance", KEY], ENV, at);
+};
+
+test("forge advance closing an issue names the criteria whose escape cited it", async () => {
+  const run = await closing(ROOT);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, new RegExp(`^${KEY} {2}awaiting_release -> closed`, "mu"), run.stdout);
+  assert.ok(run.stdout.includes(`${OWED.length} criteria under docs/requirements/ stand unproved `
+    + `and owed to ${KEY}, which owes nothing now:`), run.stdout);
+  for (const one of OWED.slice(0, 3)) {
+    assert.ok(run.stdout.includes(`  ${one.file}:${one.line} ${one.id}`),
+      `${one.id} is owed to ${KEY} and the move did not name it: ${run.stdout}`);
+  }
+});
+
+test("a move from a checkout that keeps no requirements tree says nothing about escapes", async () => {
+  const room = tempHome("gone-escapes-treeless");
+  projectRoom(room.path, tracker.env.XDG_CONFIG_HOME, { slug: "forge-plugin" });
+  const run = await closing(room.path);
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, new RegExp(`^${KEY} {2}awaiting_release -> closed`, "mu"), run.stdout);
+  assert.doesNotMatch(run.stdout, /stand unproved and owed to/u,
+    "a directory with no tree under it is told nothing, rather than told none");
+  room.remove();
 });

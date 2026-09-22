@@ -177,19 +177,19 @@ the act that ends the owing, which needs none.
 - **AC-14-8-2** · Rev: 1 · Proof: plugin/test/spec/proof-cases.test.mjs "the key standing for a well-formed escape is one no status attaches to, and the answer is the same for every status"
   WHERE a case stands for a well-formed escape, the key it names SHALL be one no status attaches to,
   so nothing that case asserts can turn on what became of it.
-- **AC-14-8-3** · Rev: 1 · Proof: plugin/test/checks/docs/owing-escapes.test.mjs "the row counts the escapes read, the ones no longer owed, and the document carrying most of those"
+- **AC-14-8-3** · Rev: 1 · Proof: plugin/test/cli/doctor/proof-escapes.test.mjs "forge doctor names the escapes it read, the ones no longer owed and the document carrying most of those"
   WHEN the escapes are judged against the tracker THEN the report SHALL say how many it read, how
   many name an issue that no longer owes the case, and which document carries most of those.
-- **AC-14-8-4** · Rev: 1 · Proof: plugin/test/checks/docs/owing-escapes.test.mjs "one escape no longer owed makes the row a fault and not a note"
+- **AC-14-8-4** · Rev: 1 · Proof: plugin/test/cli/doctor/proof-escapes.test.mjs "one escape no longer owed makes the reading exit non-zero"
   IF an escape names an issue that no longer owes the case THEN the report SHALL carry it as a fault
   rather than as a note.
-- **AC-14-8-5** · Rev: 1 · Proof: plugin/test/checks/docs/owing-escapes.test.mjs "a tracker that did not answer leaves every escape unjudged, and the row is neither a pass nor a fault"
+- **AC-14-8-5** · Rev: 1 · Proof: plugin/test/cli/doctor/proof-escapes.test.mjs "a tracker that refused the issue list leaves the escapes unjudged and the reading green"
   IF the tracker does not answer THEN the report SHALL say how many escapes went unjudged and SHALL
   report neither a pass nor a fault on them.
-- **AC-14-8-6** · Rev: 1 · Proof: plugin/test/flow/gone-escapes.test.mjs "a move to closed names every criterion whose escape cites the key, with its file and line"
+- **AC-14-8-6** · Rev: 1 · Proof: plugin/test/flow/gone-escapes.test.mjs "forge advance closing an issue names the criteria whose escape cited it"
   WHEN an issue reaches a status from which it no longer owes THEN the CLI SHALL name every
   criterion of the project's tree whose escape cites that key, with the file and line of each.
-- **AC-14-8-7** · Rev: 1 · Proof: plugin/test/flow/gone-escapes.test.mjs "a project that keeps no requirements tree is told nothing at all"
+- **AC-14-8-7** · Rev: 1 · Proof: plugin/test/flow/gone-escapes.test.mjs "a move from a checkout that keeps no requirements tree says nothing about escapes"
   WHERE the project keeps no requirements tree that move SHALL say nothing about escapes.
 
 ## The way back
