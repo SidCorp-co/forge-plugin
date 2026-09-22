@@ -131,6 +131,8 @@ test("what finds a binding's reads is the local name, and the binding itself is 
   assert.deepEqual(said(`${BINDS}\nconst metadata = { usageOf: 1 };\nprocess.env.XDG_CONFIG_HOME = HOME;\n`
     + `const said = usageOf("coolify");\n${HANDS}`), [],
   "the same word standing as a key of something else is not a read of the binding");
+  assert.equal(said(`${BINDS}\nconst held = { usageOf };\nprocess.env.XDG_CONFIG_HOME = HOME;\n${HANDS}`).length, 1,
+    "but the shorthand is the name itself, so what excludes a key may not take it with them");
   assert.deepEqual(said(`${BINDS}\nconst held = "usageOf is the one";\nprocess.env.XDG_CONFIG_HOME = HOME;\n${HANDS}`),
     [], "and the same word inside a string is not a read");
   assert.deepEqual(said(`${BINDS}\nconst held = one.usageOf;\nprocess.env.XDG_CONFIG_HOME = HOME;\n${HANDS}`),
