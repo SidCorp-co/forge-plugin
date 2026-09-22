@@ -57,11 +57,10 @@ export const REBUILT_FORM = (ref, head, gap = "\n") =>
 export const RECOVER_THE_BUILDER = (holder) =>
   `Write the checkpoint naming \`${holder}\` as the builder rather than declaring it unrecoverable.`;
 
-/** The one statement of the clause both refusals carry, and nothing either of them puts around it.
- *  The write that refuses a reconstruction cannot call `builderProblem`: it holds no checkpoint to
- *  hand it, being the call that decides whether to write one, so what the two share is the sentence
- *  and not the reader. `subject` is what the history is read off — the issue a checkpoint already
- *  sits on, or the ref a write is being asked for. */
+/** The one statement of the clause both refusals carry, and nothing either puts around it. The
+ *  write cannot call `builderProblem`: it holds no checkpoint to hand it, being the call that
+ *  decides whether to write one, so what they share is the sentence and not the reader. `subject`
+ *  is what the history is read off — the issue, or the ref a write is being asked for. */
 export const DERIVED_BUILDER = (subject, holder) =>
   `the claim history on ${subject} names exactly one run that held it while the change was being `
   + `built, \`${holder}\`: a builder the record answers for is derived and not declared`;
