@@ -57,8 +57,18 @@ export const REBUILT_FORM = (ref, head, gap = "\n") =>
 export const RECOVER_THE_BUILDER = (holder) =>
   `Write the checkpoint naming \`${holder}\` as the builder rather than declaring it unrecoverable.`;
 
+/** The one statement of the clause both refusals carry, and nothing either of them puts around it.
+ *  The write that refuses a reconstruction cannot call `builderProblem`: it holds no checkpoint to
+ *  hand it, being the call that decides whether to write one, so what the two share is the sentence
+ *  and not the reader. `subject` is what the history is read off — the issue a checkpoint already
+ *  sits on, or the ref a write is being asked for. */
+export const DERIVED_BUILDER = (subject, holder) =>
+  `the claim history on ${subject} names exactly one run that held it while the change was being `
+  + `built, \`${holder}\`: a builder the record answers for is derived and not declared`;
+
 /** Why a checkpoint's builder does not stand, or null where it does — whether it was captured or
- *  declared unrecoverable. The one statement of the rule, read by the gate and by the write.
+ *  declared unrecoverable. The one reading of the rule over a checkpoint that exists, made by the
+ *  gate and by every reader of one; the clause above is what it shares with the write.
  *  The holders are the ones a build could have been done under, which `holdersOf` is what decides. */
 export const builderProblem = (landing, holders = []) => {
   if (landing?.builder) return null;
@@ -76,9 +86,7 @@ export const builderProblem = (landing, holders = []) => {
      builder is the fabrication this key exists to stop (ISS-2045). */
   if (holders.length === 1) {
     return `carries a checkpoint ${hand.by} rebuilt by hand calling the builder unrecoverable, and `
-      + `the claim history on this issue names exactly one run that held it while the change was `
-      + `being built, \`${holders[0]}\`: a builder the record answers for is derived and not `
-      + `declared. ${RECOVER_THE_BUILDER(holders[0])}`;
+      + `${DERIVED_BUILDER("this issue", holders[0])}. ${RECOVER_THE_BUILDER(holders[0])}`;
   }
   return null;
 };
