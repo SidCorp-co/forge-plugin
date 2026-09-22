@@ -27,6 +27,8 @@ import { readClaudeMd, reviewClaudeMd } from "../checks/claude-md.mjs";
 import { checkClaudeMdLocally, reportClaudeMd } from "./services/doctor/repo.mjs";
 import { harnessLines } from "./services/doctor/harness.mjs";
 import { installRows } from "./services/doctor/install.mjs";
+import { owingEscapeRows, owingEscapesFrom } from "../checks/docs/owing-escapes.mjs";
+import { everyIssue } from "../tracker/issues.mjs";
 import { copyRows, startRelease } from "./services/doctor/release.mjs";
 import { withholdingLines } from "./services/doctor/jobs.mjs";
 import { masked } from "./services/masked.mjs";
@@ -416,6 +418,14 @@ export const doctor = async (argv) => {
   const release = shown("copy") ? startRelease() : null;
   under("machine");
   const { url, token } = accountCredentials();
+  /* Started here and awaited at its row, for the reason `startRelease` above is: the escapes are
+     judged against this project's whole issue list, which is eleven pages of the tracker, and a call
+     spent while the rest of the reading runs costs the report almost none of its wall time. Not
+     started at all where a subject leaves the row out or where no credential could answer it, which
+     is the box least able to spare a refused round trip. */
+  const owing = (!asking() || shown("repo")) && url.value && token.value
+    ? everyIssue({}, { soft: true }).catch(() => null)
+    : null;
   if (url.value) line(OK, "endpoint url", `${url.value}  ← ${url.from}`);
   else line(BAD, "endpoint url", "nothing saved — `forge doctor --url <endpoint>`");
   if (token.value) line(OK, "token", `${masked(token.value, full)}  ← ${token.from}`);
@@ -538,6 +548,10 @@ export const doctor = async (argv) => {
       process.exit(1);
     }
     await checkEndpoint(full, credentials);
+    if (owing) {
+      under("repo");
+      report(owingEscapeRows(owingEscapesFrom(await owing)));
+    }
   }
   under("machine");
   if (full) block(`\nConfig file: ${configPath()}`);

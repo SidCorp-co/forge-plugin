@@ -269,7 +269,7 @@ it. Reading is all this product does there.
   of them, SHALL count one run that owned it under two names as one observation, and SHALL treat two
   runs that owned it under different names as two owners of the one issue.
 
-- **AC-19-8-11** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-19-8-11** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN a profile is printed THEN the CLI SHALL list per wave the time from ready to landed, from
   landed to judged and in total, the batch size, the gate time and lock wait, the reviews and
   verdicts written twice, and the minutes and calls of every actor in the wave.

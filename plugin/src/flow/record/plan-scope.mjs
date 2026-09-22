@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 import { configDir, readJson, writeJsonPrivate } from "../../resolve/config.mjs";
 import { repoRoot } from "../../git/repo-root.mjs";
+import { noLongerOwes } from "../earned/park-status.mjs";
 
 /** How long an entry answers for. A lease outlives no window and no window outlives a day: past it a plan neither refuses a path nor admits one, which is the same answer as a tree nobody has claimed in. */
 export const SCOPE_KEPT_MS = 86_400_000;
@@ -15,8 +16,6 @@ const named = (tree) => createHash("sha1").update(String(tree)).digest("hex").sl
 
 /** One file per issue per tree, so no writer ever reads a set it then writes back: a whole-file rewrite is how a later save puts back a scope an earlier one had already corrected, and a writer that touches only its own issue's file has no such window to lose. */
 export const scopePath = (tree, ref) => join(scopeDir(), `${named(tree)}-${String(ref).toUpperCase()}.json`);
-
-const GONE = new Set(["closed", "dropped"]);
 
 const stale = (at, now) => now - (statSync(at, { throwIfNoEntry: false })?.mtimeMs ?? now) >= SCOPE_KEPT_MS;
 
@@ -76,4 +75,4 @@ export const scopeHeld = (tree, now = Date.now()) => {
 
 /** One issue's scope as its record now stands: the text where the issue is still being worked, and no entry at all where it has left the ladder. */
 export const scopeFrom = (status, ref, text, options) =>
-  (GONE.has(status) ? dropScope(ref, options) : noteScope(ref, text, options));
+  (noLongerOwes(status) ? dropScope(ref, options) : noteScope(ref, text, options));

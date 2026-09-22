@@ -20,6 +20,13 @@ export const PARK_STATUS = {
 
 export const SIDE = [ANSWERED_BY_COMMENT, "waiting", "on_hold"];
 
+/* The two statuses an issue owes nothing further from. Named beside the park kind that reaches one
+   of them, because both readers of the pair ask the same question of it: the plan scope a tree no
+   longer holds, and the escapes whose promise ended when the owing did (ISS-2111). */
+export const NO_LONGER_OWES = ["closed", "dropped"];
+
+export const noLongerOwes = (status) => NO_LONGER_OWES.includes(status);
+
 const ONE_LANDING = [["waiting", ANSWERED_BY_COMMENT]];
 
 export const sameLanding = (one, other) =>

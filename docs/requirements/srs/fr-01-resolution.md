@@ -122,28 +122,28 @@ text the session it is in is holding.
 
 - **AC-01-4-1** · Rev: 1 · Proof: plugin/test/cli/cli-help.test.mjs "no run of anything else is advertised"
   WHEN the usage list is printed THEN it SHALL advertise only what this credential may run.
-- **AC-01-4-2** · Rev: 1 · Proof: none yet — ISS-8
+- **AC-01-4-2** · Rev: 1 · Proof: none yet — ISS-2124
   WHEN a tool refuses this credential THEN the CLI SHALL record which tool, for which project, and
   when, and SHALL offer a way to list past that record.
-- **AC-01-4-3** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-01-4-3** · Rev: 1 · Proof: none yet — ISS-2123
   WHERE the project withholds the channel to this product's own backlog, the usage list SHALL not
   advertise the filing verb for it.
-- **AC-01-4-4** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-01-4-4** · Rev: 1 · Proof: none yet — ISS-2123
   WHERE the project withholds that channel, the filing verb typed SHALL refuse in one line naming the
   project's key.
-- **AC-01-4-5** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-01-4-5** · Rev: 1 · Proof: none yet — ISS-2123
   WHERE the project withholds that channel, a body aimed at this product filed on the project's own
   backlog SHALL be held with the report route in the reply, except in this product's own repository,
   where a defect in the product is the project's issue and nothing is held.
-- **AC-01-4-6** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-01-4-6** · Rev: 1 · Proof: none yet — ISS-2123
   WHERE the project allows only defects on that channel, an enhancement filing SHALL be refused by
   its kind, and WHERE it allows all, the filing SHALL be read against the enhancement shape.
-- **AC-01-4-7** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-01-4-7** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN a run's report is assembled THEN it SHALL tell nothing filed from filing withheld by the
   project, as two distinct lines.
-- **AC-01-4-8** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-01-4-8** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN the product's own method text is read THEN it SHALL name no destination verb for a finding.
-- **AC-01-4-9** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-01-4-9** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN the filing verb's help is printed THEN it SHALL render the destination of a finding off the
   project's key, naming the channel's verb where the key allows it and no verb where it does not.
 - **AC-01-4-10** · Rev: 1 · Proof: plugin/test/cli/doctor/machine/job.test.mjs "one call replaces what this machine withholds with every verb the job does not offer"

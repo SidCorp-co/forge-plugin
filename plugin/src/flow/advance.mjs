@@ -12,6 +12,7 @@ import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../guides/contract.mjs";
 import { CLOSES_FROM, PARKS, SHOWS_EVIDENCE } from "./machine.mjs";
 import { citedClauses } from "../spec/checked.mjs";
+import { escapesOrphaned } from "../checks/docs/owing-escapes.mjs";
 import { Refused, refuse } from "../refusal.mjs";
 import { issueOf, post } from "./record/record.mjs";
 import { render } from "./record/page.mjs";
@@ -116,6 +117,11 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
   const spelt = landed === status ? "" : `  (asked for ${status}, which this tracker spells ${landed})`;
   scopeFrom(landed, ref, namedIn(view));
   say(`${ref}  ${view.issue.status} -> ${landed}${note}${spelt}`);
+  /* The act that ends the owing is the act that reports what was owed to it: a criterion left
+     standing on R-11's escape is owed to this issue, and nothing else ever reads the tree to find
+     it. Said here rather than by a later audit because the person who moved it is the one who can
+     still say what the clause should point at instead (ISS-2111). */
+  for (const said of escapesOrphaned(landed, view.issue.issueId ?? ref)) say(said);
   return null;
 };
 

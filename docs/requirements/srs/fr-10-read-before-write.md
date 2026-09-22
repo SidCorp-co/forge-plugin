@@ -63,7 +63,7 @@ The tracker's tool is judged by the action it names rather than by its name.
 - **AC-10-2-2** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "only the argument the verb writes to is a target"
   IF a write verb appears in prose THEN the gate SHALL allow the command, and one in a payload the
   command carries SHALL still count.
-- **AC-10-2-3** · Rev: 1 · Proof: none yet — ISS-15
+- **AC-10-2-3** · Rev: 1 · Proof: none yet — ISS-2124
   WHERE a verb writes the record it SHALL be covered by this gate, the payload verbs included.
 - **AC-10-2-4** · Rev: 2 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "the id the command grants is whose reading counts, and a second harness id is not a second run"
   WHEN the run that reads is the run that writes THEN the gate SHALL be satisfied.
@@ -81,7 +81,7 @@ feature: a plan or a criterion citing a clause is refused for a document that ha
 
 - **AC-10-3-1** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "the tracker's own key still is one, in either case"
   WHERE a tracker uses another prefix its keys SHALL still be recognised without configuration.
-- **AC-10-3-2** · Rev: 1 · Proof: none yet — ISS-36
+- **AC-10-3-2** · Rev: 1 · Proof: none yet — ISS-2123
   IF a write carries a clause citation THEN the gate SHALL not read it as a tracker key.
 
 ### UC-10-4 — A gate that cannot see stands down

@@ -6,7 +6,7 @@ import test from "node:test";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { casesIn, proofOf, proofProblems } from "../../src/spec/claims/proof.mjs";
+import { casesIn, escapesIn, owedTo, proofOf, proofProblems } from "../../src/spec/claims/proof.mjs";
 
 const ROOT = new URL("../../..", import.meta.url).pathname;
 const TREE = "docs/requirements";
@@ -94,7 +94,7 @@ test("a cited path is asked for with the document that cited it", () => {
 });
 
 test("the escape, a checker script and a file this checkout lacks are each no finding", () => {
-  assert.deepEqual(said("none yet — ISS-231"), []);
+  assert.deepEqual(said("none yet — ISS-0"), []);
   assert.deepEqual(said("plugin/scripts/skill-dup.mjs"), [], "a checker proving by running is cited by path");
   assert.deepEqual(said("plugin/test/flow/advance.test.mjs \"a case\"", () => null), [],
     "and a path that resolves nowhere is R-19's finding, reported by cited-paths and not twice");
@@ -126,6 +126,33 @@ test("the reader takes every case shape the suite writes, and no pattern's own t
 test("the field reader tells a path, a path with a case and the escape apart", () => {
   assert.deepEqual(proofOf("a/b.test.mjs"), { path: "a/b.test.mjs", name: null, held: "a/b.test.mjs" });
   assert.equal(proofOf('a/b.test.mjs "a case: with a colon"').name, "a case: with a colon");
-  assert.equal(proofOf("none yet — ISS-231").escaped, true);
+  assert.equal(proofOf("none yet — ISS-0").escaped, true);
   assert.equal(proofOf(""), null);
+});
+
+/* Why ISS-0 and not a key of this tracker: the case that stands for a well-formed escape was drawn
+   from the population this rule cannot judge, ISS-231 having closed, so the file taught every later
+   author that the rule read the key's subject. ISS-0 is the key this tracker's numbering never
+   mints, and the case below is what keeps a live one from coming back (ISS-2111). */
+test("the key standing for a well-formed escape is one no status attaches to, and the answer is the same for every status", () => {
+  assert.deepEqual(said("none yet — ISS-0"), []);
+  for (const key of ["ISS-681", "ISS-13", "ISS-29"]) {
+    assert.deepEqual(said(`none yet — ${key}`), [],
+      `${key} is closed, dropped and open respectively, and answers exactly as ISS-0 does`);
+  }
+  const mine = readFileSync(new URL(import.meta.url), "utf8");
+  /* Every key above reaches the reader through the template, so no line of this file spells out an
+     escape a reader could take for a live promise. That is what this asserts, and it is the whole
+     guard against the fixture drifting back into the population. */
+  assert.deepEqual([...mine.matchAll(/none yet — ISS-(\d+)\b/gu)].map((one) => one[1])
+    .filter((one) => one !== "0"), [],
+  "and no case in this file writes out an escape naming a key of this tracker");
+});
+
+test("the escape is judged on its shape alone, by a reader that is handed no status at all", () => {
+  assert.equal(proofProblems.length, 2, "the documents and the path reader, and nothing a status could arrive by");
+  assert.equal(escapesIn.length, 1, "and the tree alone, for the reader that inventories the escapes");
+  assert.deepEqual(Object.keys(escapesIn([{ file: "docs/requirements/srs/fr-01-x.md", text: clause("none yet — ISS-0") }])[0]).sort(),
+    ["file", "id", "key", "line"], "what an escape carries out of here: where it is and what it names");
+  assert.equal(owedTo("none yet — ISS-0"), "ISS-0", "the key, and never a word about it");
 });

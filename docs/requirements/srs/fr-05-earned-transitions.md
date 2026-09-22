@@ -57,7 +57,7 @@ agent learns what a status wants.
 - **AC-05-1-6** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "a reopen judges again, so a verdict from before its triage earns nothing"
   WHERE a reopen's triage leaves two or more verdicts stale, the CLI SHALL report that set as a
   single owed item whose command re-judges every member of it in one write.
-- **AC-05-1-7** · Rev: 2 · Proof: none yet — ISS-681
+- **AC-05-1-7** · Rev: 2 · Proof: none yet — ISS-2123
   WHEN a rung is read THEN the CLI SHALL read it from the complexity the tracker holds and from
   nothing in the body, and SHALL name the complexity that claimed it.
 - **AC-05-1-8** · Rev: 1 · Proof: plugin/test/flow/route/credential-ahead.test.mjs "--owed says a screen change has no login to prove it with, and refuses nothing for it"
@@ -176,7 +176,7 @@ kind speaks to exactly one reader, which is what decides the status.
   status the park record says it left.
 - **AC-05-4-4** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "a parked issue resumes where its park record says it left, once somebody answers"
   IF a park is unanswered THEN the CLI SHALL refuse to resume and name who the park is waiting on.
-- **AC-05-4-5** · Rev: 1 · Proof: none yet — ISS-13
+- **AC-05-4-5** · Rev: 1 · Proof: none yet — ISS-2124
   WHEN a park was a mistake THEN the CLI SHALL require a correction naming the park and the status
   resumed before it transitions back.
 - **AC-05-4-6** · Rev: 1 · Proof: plugin/test/flow/park/park.test.mjs "a question park carries what would settle it, built from the readings where the call names none"
@@ -219,7 +219,7 @@ superseded history and the check simply stops being met.
   CLI SHALL refuse `testing` and name the criterion, the commit judged and the merged commit.
 - **AC-05-6-3** · Rev: 1 · Proof: plugin/test/flow/earned/merged-mark.test.mjs "tested needs one verdict per criterion, passing, at the merged commit"
   WHEN a criterion has no verdict THEN the CLI SHALL refuse `testing` and name that criterion.
-- **AC-05-6-4** · Rev: 1 · Proof: none yet — ISS-7
+- **AC-05-6-4** · Rev: 1 · Proof: none yet — ISS-2124
   WHEN a new head is merged THEN the merged mark SHALL name that head, and the CLI SHALL judge
   `developed` against the mark alone.
 - **AC-05-6-5** · Rev: 1 · Proof: plugin/test/flow/earned/merged-mark.test.mjs "a verdict at the judged head stands where the landing moved none of the change's paths"
@@ -300,7 +300,7 @@ read whichever way the page falls, being no part of what a page could hold. The 
 judgement's and not the whole command's, because the write that follows carries an obligation of its
 own to deliver a thread nobody has been shown (`FR-10`).
 
-- **AC-05-8-1** · Rev: 2 · Proof: none yet — ISS-17
+- **AC-05-8-1** · Rev: 2 · Proof: none yet — ISS-2124
   IF the issue's comments exceed one page THEN the CLI SHALL refuse rather than judge a status on a
   partial record, for every status whose entry criteria that record holds.
 - **AC-05-8-2** · Rev: 2 · Proof: plugin/test/flow/close.test.mjs "the status a close is earned from is the flow table's own tail, and it reads no record"
@@ -374,7 +374,7 @@ so a death between the two is recovered by reading back rather than by doing aga
 - **AC-05-10-5** · Rev: 1 · Proof: plugin/test/run/landing/resume.test.mjs "nothing else takes the landing's lock between the pin and the end of the install"
   WHILE a landing holds the lock, a journal landing or a self-landing release SHALL wait until the
   landing's install has completed.
-- **AC-05-10-10** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-05-10-10** · Rev: 1 · Proof: none yet — ISS-2123
   IF an install of an older release is still in flight when a newer one completes THEN the older
   SHALL never overwrite the newer installed copy.
 - **AC-05-10-6** · Rev: 1 · Proof: plugin/test/run/landing/land-ready.test.mjs "the landing writes the checkpoint, the mark and the statuses, and no judgement of its own"
@@ -421,10 +421,10 @@ of one deployment, so a candidate that changed after it is judged again (BR-04).
   any standing verdict carries the builder's identity or none, and SHALL earn it once every standing
   verdict carries another judge, because whether a deployment was reported is the rung above's
   question and a judging rung asking it demanded of one actor what another answers for.
-- **AC-05-11-3** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-05-11-3** · Rev: 1 · Proof: none yet — ISS-2123
   WHERE the project's record does not ask for it, the builder's verdicts SHALL earn `testing` as
   they did before.
-- **AC-05-11-4** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-05-11-4** · Rev: 1 · Proof: none yet — ISS-2123
   WHERE the route verifies before the merge, a candidate whose base or batch changed after its
   judgement SHALL be refused promotion naming the judgement as void.
 - **AC-05-11-7** · Rev: 1 · Proof: plugin/test/flow/verdicts/judge.test.mjs "a run holding only the dispatching session's id records the judge as inherited"

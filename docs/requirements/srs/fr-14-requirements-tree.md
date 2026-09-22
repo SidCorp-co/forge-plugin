@@ -57,14 +57,14 @@ use case with its criteria; a business rule with the clauses that cite it. No pa
 input or the output, so the same request can be answered from an API later without changing a
 caller.
 
-- **AC-14-2-1** · Rev: 1 · Proof: none yet — ISS-26
+- **AC-14-2-1** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN a clause is asked for by identifier THEN the CLI SHALL print that clause and its children,
   and SHALL take no path as input.
-- **AC-14-2-2** · Rev: 1 · Proof: none yet — ISS-26
+- **AC-14-2-2** · Rev: 1 · Proof: none yet — ISS-2123
   IF the identifier is unknown THEN the CLI SHALL refuse and SHALL name the nearest identifiers.
-- **AC-14-2-3** · Rev: 1 · Proof: none yet — ISS-26
+- **AC-14-2-3** · Rev: 1 · Proof: none yet — ISS-2123
   IF two sequences carry the same prefix THEN the CLI SHALL refuse the reference as ambiguous.
-- **AC-14-2-4** · Rev: 1 · Proof: none yet — ISS-26
+- **AC-14-2-4** · Rev: 1 · Proof: none yet — ISS-2123
   WHERE the tree is stored the CLI SHALL know it in one module, so the store can change without a
   caller changing.
 
@@ -110,7 +110,7 @@ cite it, and no field stores it.
 - **AC-14-4-3** · Rev: 1 · Proof: plugin/test/trace/citing.test.mjs "the json half carries the rung the print carries, and no field stores it"
   WHEN a requirement's status is reported THEN it SHALL be derived from the verdicts at the merged
   commits of the issues citing it, and no field SHALL store it.
-- **AC-14-4-4** · Rev: 1 · Proof: none yet — ISS-36
+- **AC-14-4-4** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN a write carries a citation THEN no gate SHALL read that citation as a tracker key.
 
 ### UC-14-5 — The page a person reads

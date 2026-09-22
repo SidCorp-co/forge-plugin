@@ -55,7 +55,7 @@ says only that the field exists.
 - **AC-02-1-7** · Rev: 2 · Proof: plugin/test/tracker/issue/fields.test.mjs "a read naming fields skips the routes those fields are not on"
   WHEN a read names fields THEN the CLI SHALL read the issue exactly once and SHALL ask only for the
   parts of it those fields are served by.
-- **AC-02-1-8** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-1-8** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN issues are read THEN one verb SHALL answer for many and for one, by whether a key is given.
 
 ### UC-02-2 — A read is never mistaken for complete
@@ -95,10 +95,10 @@ than encoded into the call, because bytes through a context window are paid for 
 - **AC-02-3-2** · Rev: 1 · Proof: plugin/test/tracker/issue/read-first/targets.test.mjs "the tracker's own tool is judged by its action, with its arguments already parsed"
   WHEN the tracker's own tool is called THEN the CLI SHALL judge the call by the action it names
   rather than by the tool's name.
-- **AC-02-3-3** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-3-3** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN a field or a status is written with no entry check read THEN the CLI SHALL say so in its
   reply and SHALL leave a correction on the record naming what was set and why.
-- **AC-02-3-4** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-3-4** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN an edge between two issues is written or removed THEN the CLI SHALL do it through the issue's
   own dependency route, and the ranking SHALL read the edge it wrote.
 - **AC-02-3-5** · Rev: 1 · Proof: plugin/test/tracker/write/warnings.test.mjs "a write's answer says what it declined, in the tracker's own words, and the write still stands" · Source: docs/cli/what-a-write-says.md
@@ -168,7 +168,7 @@ a release of this product before a run can use it.
 - **AC-02-6-2** · Rev: 1 · Status: retired (ISS-681)
   IF a call carries an argument the CLI's declaration for that capability does not put on the
   request THEN the CLI SHALL send nothing at all and SHALL name that argument.
-- **AC-02-6-3** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-6-3** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN the surface is listed THEN no verb SHALL offer a capability by its raw name and payload.
 
 ### UC-02-7 — Which issue to work next, ranked off the record
@@ -196,7 +196,7 @@ issue scored, what left it out, and what one landing would free.
 - **AC-02-7-6** · Rev: 1 · Proof: plugin/test/rank/weights.test.mjs "a weight the table does not hold is refused, not dropped"
   IF a project sets a weight the table does not carry THEN the CLI SHALL refuse the ranking and
   SHALL name the weights it does carry.
-- **AC-02-7-7** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-7-7** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN the dependency graph is printed THEN the CLI SHALL read the edges the ranking reads, and a
   claim found only in an issue's prose SHALL be listed apart as one the tracker does not hold.
 
@@ -214,46 +214,46 @@ says which verb ran; where it does not, the reply is that verb's own refusal. No
 in help, and every one that fires is counted, because a form that fires often is a defect in the
 method text and not a feature to keep.
 
-- **AC-02-9-1** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-9-1** · Rev: 1 · Proof: none yet — ISS-2123
   IF a verb is given a flag its usage row does not name THEN the CLI SHALL refuse before any call is
   made, naming the flag and the set the verb takes.
-- **AC-02-9-2** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-9-2** · Rev: 1 · Proof: none yet — ISS-2123
   IF a flag the verb takes is given no value THEN the CLI SHALL name that flag, and SHALL not read
   the word after it as an unknown flag.
-- **AC-02-9-3** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-9-3** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN a verb's help is printed THEN it SHALL hold the usage row, one line per flag and one sentence
   to choose the verb by, and SHALL fit under the size the suite states.
-- **AC-02-9-4** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-9-4** · Rev: 1 · Proof: none yet — ISS-2123
   IF a status of the flow is typed as a verb and the record earns that status as the next one THEN
   the CLI SHALL move the issue to it and SHALL print the line the advance verb prints, naming the
   verb it ran as.
-- **AC-02-9-5** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-9-5** · Rev: 1 · Proof: none yet — ISS-2123
   IF a status of the flow is typed as a verb and the record does not earn it THEN the CLI SHALL
   print what is owed with the advance line, and SHALL move nothing.
-- **AC-02-9-6** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-9-6** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN the usage list or a verb's help is printed THEN no form the handler reads SHALL appear in it.
-- **AC-02-9-7** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-9-7** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN a run's statistics are printed THEN each form the handler read SHALL be listed with how often
   it fired.
-- **AC-02-9-8** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-9-8** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN the merged mark or its undo is asked for THEN one verb SHALL be the only route to each, and no
   other form of the surface SHALL reach either.
-- **AC-02-9-9** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-9-9** · Rev: 1 · Proof: none yet — ISS-2123
   IF the consult verb is given a dash where it takes a path THEN it SHALL refuse in one line saying
   that its intent is read from standard input.
-- **AC-02-9-10** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-9-10** · Rev: 1 · Proof: none yet — ISS-2123
   IF a word is neither a verb nor a form the handler reads THEN the CLI SHALL answer as it answers an
   unknown verb.
-- **AC-02-9-11** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-9-11** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN the usage list is printed THEN it SHALL group the verbs by what they act on, each group under
   a heading of its own.
-- **AC-02-9-12** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-9-12** · Rev: 1 · Proof: none yet — ISS-2123
   WHERE a flag names a field of the tracker, it SHALL carry the tracker's own name for that field and
   SHALL take the tracker's own values, and the CLI SHALL keep no second vocabulary for them.
-- **AC-02-9-13** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-9-13** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN the project's configuration is asked for THEN the one verb that reports every level of
   configuration with its source SHALL answer, and no verb named for the project SHALL.
-- **AC-02-9-14** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-9-14** · Rev: 1 · Proof: none yet — ISS-2123
   IF a form the handler reads names a read THEN the CLI SHALL perform that read, since a read has no
   entry check to fail.
 - **AC-02-9-15** · Rev: 1 · Proof: plugin/test/resolve/body-slot.test.mjs "the body itself where a path goes is refused by the verb, and no fs error reaches the caller"
@@ -298,17 +298,17 @@ nothing behind it, so it is not offered and the refusal names archiving (BR-15).
 decides about itself — its pipeline, its facts — is written by the configuration verb, inside the
 project's scope, and each key is reported with its source (BR-08).
 
-- **AC-02-10-1** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-10-1** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN projects are asked for THEN one verb SHALL list them, create one, read one, update one and
   archive one, each through the tracker's own route for that act.
-- **AC-02-10-2** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-10-2** · Rev: 1 · Proof: none yet — ISS-2123
   IF a project's deletion is asked for THEN the CLI SHALL refuse it and SHALL name archiving as the
   route.
-- **AC-02-10-3** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-10-3** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN a key of the project's own configuration is written THEN the configuration verb SHALL write
   it through the route of the resource that key belongs to, the pipeline configuration or the
   project facts, and SHALL name the key it set.
-- **AC-02-10-4** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-02-10-4** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN a verb other than the projects verb reaches a resource the tracker keeps per project THEN it
   SHALL act in the project the checkout's settings name, resolved behind the verb, and SHALL take no
   project as an argument; a verb reaching no such resource SHALL need no project.
@@ -332,17 +332,17 @@ carries the part for its act.
   the flows it serves.
 - **AC-02-8-3** · Rev: 2 · Proof: plugin/test/guides/skill-guides.test.mjs "a phase of the method is served whole and ends by naming the flow it was rendered for"
   WHEN a part is served THEN its last line SHALL name the flow it was rendered for.
-- **AC-02-8-4** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-02-8-4** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN the method's index is cut for one issue THEN it SHALL list only the phases that issue's
   complexity, status and project keys leave it owing.
-- **AC-02-8-5** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-02-8-5** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN a verb first acts on an issue in a session THEN its reply SHALL carry the phase part for that
   act, identical to what the guide verb prints for it, and a later act of the same kind in that
   session SHALL carry none.
-- **AC-02-8-6** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-02-8-6** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN a refusal is written THEN it SHALL end with the filing line only where the project's key
   allows that channel.
-- **AC-02-8-7** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-02-8-7** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN one issue's whole context is re-minted THEN it SHALL carry the index cut for that issue
   beside the record and the brief.
 

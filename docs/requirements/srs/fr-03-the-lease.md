@@ -318,18 +318,18 @@ that state and refused naming it (BR-01). A turn the landing cannot discharge is
 than held: a refusal naming a record whose reason one actor knows and whose write another holds is
 a wait no party can end.
 
-- **AC-03-6-1** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-03-6-1** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN a run declares its change ready to land THEN the CLI SHALL write a landing checkpoint on the
   issue holding the run's identity, the branch, the judged head, the base and the files touched.
-- **AC-03-6-2** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-03-6-2** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN a transition moves the issue THEN it SHALL leave the landing checkpoint intact.
 - **AC-03-6-3** · Rev: 1 · Proof: plugin/test/flow/landing/checkpoint.test.mjs "at builder-owed a successor is held out by the builder's own lease and by nothing else"
   WHEN a lease is taken over THEN the CLI SHALL allow it only while the checkpoint's state names the
   taker's turn.
-- **AC-03-6-4** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-03-6-4** · Rev: 1 · Proof: none yet — ISS-2123
   IF the checkpoint is absent or its state names another turn THEN the takeover SHALL be refused
   naming the state.
-- **AC-03-6-5** · Rev: 1 · Proof: none yet — ISS-673
+- **AC-03-6-5** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN a takeover is allowed THEN the CLI SHALL append the transfer and the state it was taken at to
   the claim history.
 - **AC-03-6-6** · Rev: 1 · Proof: plugin/test/flow/landing/take.test.mjs "the builder's reconciliation moves the checkpoint to reconciled at the candidate it names"

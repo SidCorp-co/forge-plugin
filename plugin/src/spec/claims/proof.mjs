@@ -6,7 +6,10 @@ import { suggest } from "../../suggest.mjs";
 
 const TEST_FILE = /\.test\.mjs$/u;
 const ESCAPED = /^none yet\b/u;
-const OWES = /^none yet\b.*\bISS-\d+\b/u;
+/* Non-greedy, so the key an escape is owed to is the first one written and never the last: a
+   field carrying two keys is owed to nobody a reader can name, and the writer of the line read it
+   left to right. */
+const OWED_TO = /^none yet\b.*?\b(ISS-\d+)\b/u;
 const NAMED = /^(\S+)(?:[^\S\n]+"(.*)")?$/u;
 /* Anchored at the statement, or `PATTERN.test("a string")` would declare a case nobody wrote. */
 const QUOTED = /"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)'|`([^`$\\]*)`/u;
@@ -31,6 +34,12 @@ export const proofOf = (value) => {
   return { path: found[1], name: found[2] ?? null, held };
 };
 
+/** The issue key an escape is owed to, or null where it names none. What became of that key is no
+ *  part of this module: the shape is judged with no status in hand, so the gate and the suite answer
+ *  the same way on a machine with no credential (AC-14-8-1). Who reads the status, and where:
+ *  plugin/src/checks/docs/owing-escapes.mjs. */
+export const owedTo = (value) => OWED_TO.exec(String(value ?? "").trim())?.[1] ?? null;
+
 const lineOf = (text, id) => lineAt(text, text.indexOf(`**${id}**`));
 
 const criteriaOf = ({ file, text }) =>
@@ -50,7 +59,7 @@ const gone = (proof, cases) =>
 const problem = (proof, read, from) => {
   if (!proof) return null;
   if (proof.escaped) {
-    return OWES.test(proof.held) ? null
+    return owedTo(proof.held) ? null
       : `takes R-11's escape and names no issue that owes the case: ${proof.held}. Name the issue`
         + " key beside it, so a clause left unproved is owed to something";
   }
@@ -82,3 +91,18 @@ export const proofProblems = (documents, read) =>
       const said = problem(proofOf(clause.proof), read, clause.file);
       return said ? [`${clause.file}:${clause.line} ${clause.id} ${said}`] : [];
     }));
+
+/** Every criterion of `documents` standing unproved on R-11's escape: where it is written, which
+ *  clause it is, and the key it is owed to. `key` is null where the escape names none, which is
+ *  `proofProblems`'s finding and not a caller's to report twice. */
+export const escapesIn = (documents) =>
+  documents.flatMap((document) =>
+    criteriaOf(document)
+      .map((clause) => ({ clause, proof: proofOf(clause.proof) }))
+      .filter(({ proof }) => proof?.escaped)
+      .map(({ clause, proof }) => ({
+        file: clause.file,
+        line: clause.line,
+        id: clause.id,
+        key: owedTo(proof.held),
+      })));

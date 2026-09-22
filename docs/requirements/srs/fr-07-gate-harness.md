@@ -80,7 +80,7 @@ the moment they were asked for.
   data body SHALL not.
 - **AC-07-2-3** · Rev: 1 · Proof: plugin/test/gates/bash-guard.test.mjs "git's globals before the verb are read as git reads them"
   WHEN a wrapper or a prefix stands before a verb THEN the gates SHALL read the verb it runs.
-- **AC-07-2-4** · Rev: 1 · Proof: none yet — ISS-37
+- **AC-07-2-4** · Rev: 1 · Proof: none yet — ISS-2123
   IF a call wrote a file under a name the command never spells THEN the gates SHALL either see that
   file or SHALL say that they could not.
 - **AC-07-2-5** · Rev: 1 · Proof: plugin/test/hooks/writes.test.mjs "a file the checkout stamped before the call began is nobody's write"

@@ -52,7 +52,7 @@ it declares.
 - **AC-12-1-4** · Rev: 1 · Proof: plugin/test/checks/docs/doc-claims.test.mjs "every command a document tells a reader to run is one the CLI has"
   WHILE the check runs it SHALL count the claims it found and SHALL fail when the count says its
   own pattern matched nothing.
-- **AC-12-1-5** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-12-1-5** · Rev: 1 · Proof: none yet — ISS-2123
   WHERE a command form the source prints continues onto a further line of the same text, the check
   SHALL read the flags on the continuation as that command's.
 

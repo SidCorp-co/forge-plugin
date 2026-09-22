@@ -110,7 +110,7 @@ other, is the contract's "A review is two voices in one record".
 - **AC-04-3-1** · Rev: 1 · Proof: plugin/test/flow/record/review.test.mjs "a review names its reviewer, head and outcome, and each finding is an id with a verdict"
   WHEN a review is recorded THEN it SHALL name the reviewer, the head judged and the outcome, and
   each finding SHALL be an identifier with a disposition.
-- **AC-04-3-2** · Rev: 1 · Proof: none yet — ISS-16
+- **AC-04-3-2** · Rev: 1 · Proof: none yet — ISS-2124
   WHEN the outcome is written THEN the reviewer's verdict and the author's dispositions SHALL be
   separate values, so the honest value and the passable value cannot differ.
 - **AC-04-3-3** · Rev: 2 · Proof: plugin/test/flow/record/review.test.mjs "two reads' F1s are two rows of a review, and an accepted one says what changed"
@@ -239,21 +239,21 @@ none for content, so a confirmation that looked nowhere, a decision with no undo
 verdict with no reason all pass the write and cost a review round instead; the write is where the
 field is named and the write is where it is refused.
 
-- **AC-04-8-1** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-04-8-1** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN the merged mark is written THEN the CLI SHALL take each clause the entry checks read as its own
   flag and SHALL write the note in the one form those checks parse.
-- **AC-04-8-2** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-04-8-2** · Rev: 1 · Proof: none yet — ISS-2123
   IF the mark is asked for without one of its clauses THEN the CLI SHALL refuse once, naming every
   flag it lacks.
-- **AC-04-8-3** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-04-8-3** · Rev: 1 · Proof: none yet — ISS-2123
   IF a confirmation's where names neither a path nor an identifier THEN the CLI SHALL refuse the write
   naming that field.
-- **AC-04-8-4** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-04-8-4** · Rev: 1 · Proof: none yet — ISS-2123
   IF a decision carries no undo THEN the CLI SHALL refuse the write naming the part it lacks.
-- **AC-04-8-5** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-04-8-5** · Rev: 1 · Proof: none yet — ISS-2123
   IF a verdict that does not pass carries no reason THEN the CLI SHALL refuse the write naming that
   field.
-- **AC-04-8-6** · Rev: 1 · Proof: none yet — ISS-681
+- **AC-04-8-6** · Rev: 1 · Proof: none yet — ISS-2123
   IF a filing names a complexity or a category the tracker does not take THEN the CLI SHALL refuse it
   naming the values the tracker takes.
 - **AC-04-8-7** · Rev: 1 · Proof: plugin/test/flow/record/merged.test.mjs "a phrase typed into a path clause is refused under the flag it came in on, and nothing is written"
