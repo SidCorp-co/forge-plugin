@@ -3,7 +3,7 @@
    and from there into a consult or a record. docs/cli/coolify.md. */
 import { clockFor, deadlineOf, parsedOr, ranOut } from "../../../wire/request.mjs";
 import { fail } from "../../../resolve/settings.mjs";
-import { MASK, redact } from "./shape.mjs";
+import { MASK, redact, secretsIn } from "./shape.mjs";
 
 const BODY_CUT = 1500;
 
@@ -23,6 +23,13 @@ const detailOf = (text) => {
   const said = parsed.message ?? parsed.error ?? JSON.stringify(parsed);
   return parsed.errors ? `${said} | ${JSON.stringify(parsed.errors)}` : said;
 };
+
+/* What the platform said, struck of our own credential and of the caller's: a validation error
+   quotes the value it rejected, and an environment write is the one request here whose value is a
+   password. `--reveal` reaches this the way it reaches the preview, being the one switch that says
+   print a secret as it stands. */
+const shownError = (text, token, secrets) =>
+  secrets.reduce((said, secret) => struck(said, secret), struck(detailOf(text), token));
 
 const addressOf = (url, query) => {
   const params = new URLSearchParams();
@@ -77,7 +84,7 @@ export const ask = async (held, method, path, { query, body, internal = false, c
     return fail(`coolify: cannot reach ${struck(url, target.token)} — ${struck(dropped.message, target.token)}`);
   }
   if (!response.ok) {
-    const said = struck(detailOf(text), target.token).slice(0, BODY_CUT);
+    const said = shownError(text, target.token, opts.reveal ? [] : secretsIn(body)).slice(0, BODY_CUT);
     return fail(`coolify: HTTP ${response.status} on ${method} ${struck(url, target.token)}\n  ${said}${hint(response.status)}`);
   }
   const answer = text.trim() ? (parsedOr(text) ?? text) : {};

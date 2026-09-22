@@ -58,6 +58,24 @@ export const redact = (data) => {
   return out;
 };
 
+/* Which strings a request carries that the rule above would hide, read off the rule by comparing
+   what it left with what it struck rather than by asking a second time what counts as secret. A
+   caller's own value can come back inside an error the platform wrote, and this is what strikes it
+   there the way the token is struck. */
+export const secretsIn = (data) => {
+  const found = new Set();
+  const walk = (plain, masked) => {
+    if (typeof plain === "string") {
+      if (plain && masked !== plain) found.add(plain);
+      return;
+    }
+    if (!plain || typeof plain !== "object") return;
+    for (const [key, value] of Object.entries(plain)) walk(value, masked?.[key]);
+  };
+  walk(data, redact(data));
+  return [...found];
+};
+
 /* Coolify writes `<state>:<health>`, and the health half reads `unhealthy` whenever a container has
    no healthcheck at all — a fault that is not there. Only that exact word goes; every other stays. */
 const strippedHealth = (key, value) => {

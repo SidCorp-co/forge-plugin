@@ -105,8 +105,13 @@ the whole surface is what makes the guard automatic.
 
 **A preview of a write is masked by the rule that masks an answer.** This is the only request this
 verb sends with a password in it, so the command that shows a call before making it would otherwise
-be the one command that prints a credential. The same rule decides both directions, which is why
-there is one rule and not two: it pairs a variable's name with the value beside it, keeps the scheme,
+be the one command that prints a credential. The same rule decides each direction, which is why
+there is one rule and not several: it pairs a variable's name with the value beside it, keeps the scheme,
 user and host of a connection string readable, and drops what is secret. What goes on the wire is
 never masked — a masked preview and a masked payload would look identical at the terminal and
 differ entirely at the instance.
+
+The same rule answers a third direction: a platform that refuses a write quotes back the value it
+refused, so the words this prints on a failure are struck of the caller's own secret the way they
+were always struck of ours. Which strings those are is read off the masking rule rather than asked
+of a second one, so a value that would be hidden in a listing is hidden in a rejection.

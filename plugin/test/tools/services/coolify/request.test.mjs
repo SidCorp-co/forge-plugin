@@ -64,6 +64,15 @@ before(async () => {
       /* Keyed by method first: one path answers a read and a write, and a write's own answer is
          what the caller sees, so the two cannot share one reply. */
       const named = `${request.method} ${path}`;
+      /* The one refusal this fixture invents. A platform that rejects a value quotes it back, which
+         is the only way a caller's own secret reaches an error stream, and nothing else here does
+         that. The key carries the trigger so the value stays free to be a secret. */
+      const sent = body ? JSON.parse(body) : null;
+      if (typeof sent?.key === "string" && sent.key.endsWith("_REFUSED")) {
+        response.writeHead(422, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ message: `Rejected value: ${sent.value}` }));
+        return;
+      }
       const which = Object.hasOwn(ANSWERS, named) ? named : path;
       if (!Object.hasOwn(ANSWERS, which)) {
         response.writeHead(404, { "Content-Type": "application/json" });
@@ -424,4 +433,21 @@ test("a uuid outside the pin is refused before an environment write reaches its 
   assert.equal(answer.status, 1);
   assert.match(answer.stderr, /a-out is outside the pinned project/u);
   assert.deepEqual(paths(answer).filter((one) => one === "/applications/a-out/envs"), []);
+});
+
+/* The other direction of the same rule. Everything above asks what leaves this machine; this asks
+   what comes back, because the platform's own words are printed and a rejection quotes what it
+   rejected. */
+test("a write the platform refuses does not print the value back, and does under --reveal", async () => {
+  const refused = await ran("app", "env", "create", "a-in", "--key", "DB_PASSWORD_REFUSED", "--value", "hunter2", "--yes");
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /HTTP 422/u);
+  assert.match(refused.stderr, /Rejected value: <redacted>/u);
+  assert.ok(!refused.stderr.includes("hunter2"), "the value reached stderr");
+  assert.ok(!refused.stdout.includes("hunter2"), "the value reached stdout");
+
+  const shown = await ran("app", "env", "create", "a-in", "--key", "DB_PASSWORD_REFUSED", "--value", "hunter2", "--yes", "--reveal");
+  assert.equal(shown.status, 1);
+  assert.match(shown.stderr, /Rejected value: hunter2/u);
+  assert.ok(!shown.stderr.includes(TOKEN), "the token is on stderr");
 });
