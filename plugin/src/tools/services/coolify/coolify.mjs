@@ -21,7 +21,7 @@ export const USAGE = [
   "  login       save the instance and its token, or forget them",
   "  accounts    what resolved, and from where",
   "  whoami      the instance, the team, and what this directory is pinned to",
-  "  app         list, get, logs, env list, restart, start, stop",
+  "  app         list, get, logs, env list, env create, env update, restart, start, stop",
   "  deploy      deploy one application, service or database by uuid",
   "  deployment  list, get, list-by-app, cancel",
   "  project     list, get, env list",
@@ -51,9 +51,11 @@ const ACCOUNTS_USAGE = [
 const WHOAMI_USAGE = "Usage: forge coolify whoami\nThe instance, its version, the team, and what this directory is pinned to.";
 
 const APP_USAGE = [
-  "Usage: forge coolify app <list|get|logs|env list|restart|start|stop> [uuid] [args]",
+  "Usage: forge coolify app <list|get|logs|env list|env create|env update|restart|start|stop> [uuid] [args]",
   "Applications of the pinned project. A uuid outside it is refused before anything is sent.",
   "",
+  "  --key K        which environment variable, on `env create` and `env update`",
+  "  --value V      what to set it to; masked in what --dry-run prints unless --reveal",
   "  --lines n      how many log lines `logs` asks for",
   "  --full         every field of one application rather than the summary",
   "  --reveal       print a masked value as it stands",
@@ -228,7 +230,7 @@ const routed = async (argv) => {
   if (found.unknown !== undefined) refuseUnserved(found);
   const target = configured();
   const pin = pinned();
-  const held = session(target, { dryRun: Boolean(switches["dry-run"]) });
+  const held = session(target, { dryRun: Boolean(switches["dry-run"]), reveal: Boolean(switches.reveal) });
   const scope = makeScope(held, pin);
   if (!active(scope)) fail(noPin(process.cwd()));
   const { path, query, body, values } = readArgs(found.entry, found.rest);

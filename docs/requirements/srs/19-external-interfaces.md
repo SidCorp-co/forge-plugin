@@ -150,6 +150,10 @@ reports is read as that platform means it rather than as it spells it.
   WHEN a call reaches this platform THEN it SHALL be bounded by the deadline the account
   configuration states, and SHALL be refused past it naming the operation, the seconds it had and
   the key a caller raises.
+- **AC-19-10-8** · Rev: 1 · Proof: plugin/test/tools/services/coolify/request.test.mjs "an environment write under --dry-run prints its call with the secret masked, and sends nothing"
+  WHERE a call this product would send carries a secret the caller wrote, a preview of that call
+  SHALL mask the value by the same rule an answer's is masked, and SHALL leave the call itself
+  carrying the value as the caller gave it.
 
 ### EI-07 — The version-control host
 

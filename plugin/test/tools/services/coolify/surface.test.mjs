@@ -88,6 +88,8 @@ test("each operation of the deploy path resolves to its own method and path", ()
     "app get": ["GET", "/applications/{uuid}"],
     "app logs": ["GET", "/applications/{uuid}/logs"],
     "app env list": ["GET", "/applications/{uuid}/envs"],
+    "app env create": ["POST", "/applications/{uuid}/envs"],
+    "app env update": ["PATCH", "/applications/{uuid}/envs"],
     "app restart": ["POST", "/applications/{uuid}/restart"],
     deploy: ["POST", "/deploy"],
     "deployment list": ["GET", "/deployments"],
@@ -132,6 +134,19 @@ test("an operation the index holds but this release does not serve is named as u
   assert.equal(found.unknown, "app delete");
 });
 
+/* The two the env group keeps back, beside the two it now serves: deleting is not offered at all,
+   and the bulk form takes a list a command line has no way to spell. */
+test("the environment operations this release keeps back are named as unserved, not as unknown", () => {
+  for (const name of ["app env delete", "app env update-bulk"]) {
+    const found = resolveCommand(name.split(" "));
+    assert.equal(found.kind, "unserved", `${name} resolved to something else`);
+    assert.equal(found.unknown, name);
+  }
+  for (const name of ["app env create", "app env update"]) {
+    assert.ok(servedNames().includes(name), `${name} is not served`);
+  }
+});
+
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 
 const ranHelp = (...argv) =>
@@ -143,4 +158,32 @@ test("the verb's own listing names every sub-verb, and each of them answers a he
     assert.match(listed, new RegExp(subject, "u"), `${subject} is not on the verb's own listing`);
     assert.match(ranHelp("coolify", subject, "-h"), /^Usage: forge coolify /u, `${subject} has no text of its own`);
   }
+});
+
+const refusedOf = (...argv) => {
+  try {
+    ranHelp(...argv);
+  } catch (stopped) {
+    return `${stopped.stdout ?? ""}${stopped.stderr ?? ""}`;
+  }
+  return assert.fail(`${argv.join(" ")} was not refused`);
+};
+
+/* The refusal lists what the verb does serve, so it is also where a caller reaching for the bulk
+   form learns the two that are there. */
+test("an unserved environment operation is refused with the two served writes among what it names", () => {
+  const said = refusedOf("coolify", "app", "env", "update-bulk", "a1");
+  assert.match(said, /is in the route index but is not one of the operations this verb serves/u);
+  assert.match(said, /app env create/u);
+  assert.match(said, /app env update/u);
+});
+
+/* Two listings carry them, and `coolify -h` is neither: that one is the top-level CLI's own row for
+   the verb, two lines long, and the verb's own rows come from the bare call instead. */
+test("both environment writes are named by the app usage and by the verb's own row", () => {
+  const app = ranHelp("coolify", "app", "-h");
+  assert.match(app, /env create\|env update/u);
+  assert.match(app, /--key K/u);
+  assert.match(app, /--value V/u);
+  assert.match(refusedOf("coolify"), /app +list, get, logs, env list, env create, env update, restart, start, stop/u);
 });

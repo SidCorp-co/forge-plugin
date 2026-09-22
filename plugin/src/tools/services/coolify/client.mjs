@@ -3,7 +3,7 @@
    and from there into a consult or a record. docs/cli/coolify.md. */
 import { clockFor, deadlineOf, parsedOr, ranOut } from "../../../wire/request.mjs";
 import { fail } from "../../../resolve/settings.mjs";
-import { MASK } from "./shape.mjs";
+import { MASK, redact } from "./shape.mjs";
 
 const BODY_CUT = 1500;
 
@@ -44,9 +44,11 @@ export const ask = async (held, method, path, { query, body, internal = false, c
   const key = cache ? `${method} ${url}` : null;
   if (key !== null && held.seen.has(key)) return held.seen.get(key);
 
+  /* The body is masked by the rule that masks an answer: an environment write is the one request
+     here carrying a password, so printing it raw would make the preview the leak. */
   if (opts.dryRun && !internal) {
     console.log(struck(`${method} ${url}`, target.token));
-    if (body) console.log(struck(JSON.stringify(body, null, 2), target.token));
+    if (body) console.log(struck(JSON.stringify(opts.reveal ? body : redact(body), null, 2), target.token));
     return null;
   }
 

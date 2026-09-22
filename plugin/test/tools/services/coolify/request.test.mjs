@@ -1,5 +1,6 @@
 /* The verb end to end, against a fake instance this suite runs. What is being asserted is mostly
-   what did NOT get sent, so every case reads the server's own record of the requests it received. */
+   what did NOT get sent, so every case reads the server's own record of the requests it received —
+   the body among it, because a write's whole point is which bytes arrived. */
 import assert from "node:assert/strict";
 import test, { after, before } from "node:test";
 import { createServer } from "node:http";
@@ -40,6 +41,8 @@ const ANSWERS = {
     { uuid: "v3", key: "NODE_ENV", value: "production" },
   ],
   "/applications/a-in/restart": { message: "restarted" },
+  "POST /applications/a-in/envs": { uuid: "v9" },
+  "PATCH /applications/a-in/envs": { message: "ok" },
   "/applications/a-in/logs": { logs: `GET /health 200\nupstream called with Bearer ${TOKEN}\nGET / 200` },
   "/deploy": { deployments: [{ deployment_uuid: "d-1" }] },
 };
@@ -53,14 +56,23 @@ before(async () => {
   server = createServer((request, response) => {
     const url = new URL(request.url, "http://x");
     const path = url.pathname.replace(/^\/api\/v1/u, "");
-    asked.push({ path, method: request.method, auth: request.headers.authorization, query: url.search });
-    if (!Object.hasOwn(ANSWERS, path)) {
-      response.writeHead(404, { "Content-Type": "application/json" });
-      response.end(JSON.stringify({ message: `no route ${path}, sent ${request.headers.authorization}` }));
-      return;
-    }
-    response.writeHead(200, { "Content-Type": "application/json" });
-    response.end(JSON.stringify(ANSWERS[path]));
+    const chunks = [];
+    request.on("data", (chunk) => chunks.push(chunk));
+    request.on("end", () => {
+      const body = chunks.length ? Buffer.concat(chunks).toString("utf8") : null;
+      asked.push({ path, method: request.method, auth: request.headers.authorization, query: url.search, body });
+      /* Keyed by method first: one path answers a read and a write, and a write's own answer is
+         what the caller sees, so the two cannot share one reply. */
+      const named = `${request.method} ${path}`;
+      const which = Object.hasOwn(ANSWERS, named) ? named : path;
+      if (!Object.hasOwn(ANSWERS, which)) {
+        response.writeHead(404, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ message: `no route ${path}, sent ${request.headers.authorization}` }));
+        return;
+      }
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify(ANSWERS[which]));
+    });
   });
   await new Promise((done) => server.listen(0, "127.0.0.1", done));
   home = tempRoom("coolify-home-");
@@ -361,4 +373,55 @@ test("a listing row nothing can place is withheld, and said to be, apart from th
   assert.equal(answer.status, 0, answer.stderr);
   assert.deepEqual(JSON.parse(answer.stdout).map((one) => one.uuid), ["a-in"]);
   assert.match(answer.stderr, /1 item\(s\) outside the pinned scope filtered out/u);
+});
+
+/* An environment write is the one request this verb sends with a password in it, so these cases ask
+   the two questions that pair: the instance receives the caller's own bytes, and no stream shows
+   them. A masking that reached the payload would pass the second and fail the first. */
+const SECRET = "postgres://app:hunter2@db.internal:5432/main";
+
+const wroteTo = (answer, method) =>
+  answer.asked.find((one) => one.path === "/applications/a-in/envs" && one.method === method);
+
+test("a confirmed environment write arrives as its own method carrying the caller's exact bytes", async () => {
+  for (const [command, method] of [["create", "POST"], ["update", "PATCH"]]) {
+    const answer = await ran("app", "env", command, "a-in", "--key", "DATABASE_URL", "--value", SECRET, "--yes");
+    assert.equal(answer.status, 0, answer.stderr);
+    const sent = wroteTo(answer, method);
+    assert.ok(sent, `${command} sent no ${method} to the env path`);
+    assert.deepEqual(JSON.parse(sent.body), { key: "DATABASE_URL", value: SECRET });
+  }
+});
+
+test("an environment write is refused without --yes, and names its own preview rather than the other's", async () => {
+  for (const command of ["create", "update"]) {
+    const answer = await ran("app", "env", command, "a-in", "--key", "NODE_ENV", "--value", "staging");
+    assert.equal(answer.status, 1);
+    assert.match(answer.stderr, new RegExp(`forge coolify app env ${command} --dry-run`, "u"));
+    assert.deepEqual(paths(answer).filter((one) => one === "/applications/a-in/envs"), []);
+  }
+});
+
+test("an environment write under --dry-run prints its call with the secret masked, and sends nothing", async () => {
+  const answer = await ran("app", "env", "create", "a-in", "--key", "DATABASE_URL", "--value", SECRET, "--dry-run");
+  assert.equal(answer.status, 0, answer.stderr);
+  assert.match(answer.stdout, /^POST http:\/\/127\.0\.0\.1:\d+\/api\/v1\/applications\/a-in\/envs$/mu);
+  assert.ok(!answer.stdout.includes("hunter2"), "the password reached stdout");
+  assert.match(answer.stdout, /postgres:\/\/app:<redacted>@db\.internal:5432\/main/u);
+  assert.deepEqual(paths(answer).filter((one) => one === "/applications/a-in/envs"), []);
+});
+
+test("--reveal prints the value a write would carry as it stands, and still not our own token", async () => {
+  const answer = await ran("app", "env", "create", "a-in", "--key", "DATABASE_URL", "--value", SECRET, "--dry-run", "--reveal");
+  assert.equal(answer.status, 0, answer.stderr);
+  assert.ok(answer.stdout.includes(SECRET), "--reveal did not print the value as it stands");
+  assert.ok(!answer.stdout.includes(TOKEN), "the token is on stdout");
+  assert.ok(!answer.stderr.includes(TOKEN), "the token is on stderr");
+});
+
+test("a uuid outside the pin is refused before an environment write reaches its own path", async () => {
+  const answer = await ran("app", "env", "create", "a-out", "--key", "NODE_ENV", "--value", "staging", "--yes");
+  assert.equal(answer.status, 1);
+  assert.match(answer.stderr, /a-out is outside the pinned project/u);
+  assert.deepEqual(paths(answer).filter((one) => one === "/applications/a-out/envs"), []);
 });

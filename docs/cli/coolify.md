@@ -45,9 +45,9 @@ The groups that index leaves out — servers, private keys, teams, destinations,
 provisioning, the toggles — are out by a judgement somebody made, not by an oversight. Nothing here
 reaches for them, and putting them back would be reversing that judgement without making one.
 
-Only the deploy path is served: what is running, what it says, what it was built from, and the
-routes that redeploy or restart it. The rest of the index is carried but unreachable, which is what
-makes a later group a line rather than a design.
+Only the deploy path is served: what is running, what it says, what it was built from, the routes
+that redeploy or restart it, and the two that set one of its environment variables. The rest of the
+index is carried but unreachable, which is what makes a later group a line rather than a design.
 
 ## Three readings a port loses by default
 
@@ -87,3 +87,26 @@ in precisely the situation the confirmation exists for.
 Seeing the request without sending it is the other half of the same arrangement — and the guard's
 own lookups still run while nothing is being sent, because suppressing them would switch the guard
 off exactly when somebody is checking that it is on.
+
+## Why a configuration value belongs to the deploy verb
+
+A variable is read at boot, so setting one is part of getting a release to run rather than a thing
+apart from it. The alternative was leaving it out, and the cost of that is measurable: a run whose
+whole deliverable was one variable on one application could establish which variable, which value
+and which application, and then had to hand a person a click — and could not even report whether
+the value was already there, so it had to say unknown where it meant absent. A surface that can
+read a configuration but not write one turns every configuration issue into two sessions.
+
+**Create and update stay two operations.** The platform refuses a duplicate key and its refusal
+names the other one, so a caller who reaches for the wrong half is told which to reach for by the
+authority on the question. Folding them into one that picks would put a guess between the caller
+and that answer, and would be a third operation the index does not declare — and the index being
+the whole surface is what makes the guard automatic.
+
+**A preview of a write is masked by the rule that masks an answer.** This is the only request this
+verb sends with a password in it, so the command that shows a call before making it would otherwise
+be the one command that prints a credential. The same rule decides both directions, which is why
+there is one rule and not two: it pairs a variable's name with the value beside it, keeps the scheme,
+user and host of a connection string readable, and drops what is secret. What goes on the wire is
+never masked — a masked preview and a masked payload would look identical at the terminal and
+differ entirely at the instance.

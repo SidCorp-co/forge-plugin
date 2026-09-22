@@ -18,6 +18,8 @@ export const SERVED = [
   "app get",
   "app logs",
   "app env list",
+  "app env create",
+  "app env update",
   "app restart",
   "app start",
   "app stop",
