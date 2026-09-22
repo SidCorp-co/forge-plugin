@@ -76,6 +76,22 @@ export const secretsIn = (data) => {
   return [...found];
 };
 
+/* Named strings struck out of everything printed, leaf by leaf and before anything is serialized:
+   a value quoted inside a platform's own message is re-escaped on the way into the line, and a
+   replacement over the finished line misses the escaped copy. An empty name would strike every
+   position, so the caller's list is filtered before it is used and never inside the walk. */
+export const striking = (data, names) => {
+  const wanted = names.filter(Boolean);
+  if (!wanted.length) return data;
+  const walk = (one) => {
+    if (typeof one === "string") return wanted.reduce((said, name) => said.split(name).join(MASK), one);
+    if (Array.isArray(one)) return one.map(walk);
+    if (!one || typeof one !== "object") return one;
+    return Object.fromEntries(Object.entries(one).map(([key, value]) => [key, walk(value)]));
+  };
+  return walk(data);
+};
+
 /* Coolify writes `<state>:<health>`, and the health half reads `unhealthy` whenever a container has
    no healthcheck at all — a fault that is not there. Only that exact word goes; every other stays. */
 const strippedHealth = (key, value) => {

@@ -3,7 +3,7 @@
    and from there into a consult or a record. docs/cli/coolify.md. */
 import { clockFor, deadlineOf, parsedOr, ranOut } from "../../../wire/request.mjs";
 import { fail } from "../../../resolve/settings.mjs";
-import { MASK, redact, secretsIn } from "./shape.mjs";
+import { MASK, redact, striking } from "./shape.mjs";
 
 const BODY_CUT = 1500;
 
@@ -17,19 +17,17 @@ const hint = (status) => {
   return "";
 };
 
-const detailOf = (text) => {
+/* Struck before the parts are joined, because `errors` is serialized into the line and a secret
+   holding a quote or a newline comes out escaped — which a replacement over the finished line no
+   longer matches. Our own credential is struck here beside the caller's, being the same kind of
+   thing arriving by the same route: a platform quoting back what it was sent. */
+const detailOf = (text, secrets) => {
   const parsed = parsedOr(text);
-  if (!parsed || typeof parsed !== "object") return text.trim();
-  const said = parsed.message ?? parsed.error ?? JSON.stringify(parsed);
-  return parsed.errors ? `${said} | ${JSON.stringify(parsed.errors)}` : said;
+  if (!parsed || typeof parsed !== "object") return striking(text.trim(), secrets);
+  const said = striking(parsed, secrets);
+  const one = said.message ?? said.error ?? JSON.stringify(said);
+  return said.errors ? `${one} | ${JSON.stringify(said.errors)}` : one;
 };
-
-/* What the platform said, struck of our own credential and of the caller's: a validation error
-   quotes the value it rejected, and an environment write is the one request here whose value is a
-   password. `--reveal` reaches this the way it reaches the preview, being the one switch that says
-   print a secret as it stands. */
-const shownError = (text, token, secrets) =>
-  secrets.reduce((said, secret) => struck(said, secret), struck(detailOf(text), token));
 
 const addressOf = (url, query) => {
   const params = new URLSearchParams();
@@ -45,7 +43,7 @@ export const session = (target, opts) => ({ target, opts, seen: new Map() });
 
 /* `internal` is the scope guard's own lookups. They run under `--dry-run` too, because suppressing
    them would switch the guard off exactly where somebody is checking that it is on. */
-export const ask = async (held, method, path, { query, body, internal = false, cache = false } = {}) => {
+export const ask = async (held, method, path, { query, body, secrets = [], internal = false, cache = false } = {}) => {
   const { target, opts } = held;
   const url = addressOf(`${target.url}${path}`, query);
   const key = cache ? `${method} ${url}` : null;
@@ -84,7 +82,7 @@ export const ask = async (held, method, path, { query, body, internal = false, c
     return fail(`coolify: cannot reach ${struck(url, target.token)} — ${struck(dropped.message, target.token)}`);
   }
   if (!response.ok) {
-    const said = shownError(text, target.token, opts.reveal ? [] : secretsIn(body)).slice(0, BODY_CUT);
+    const said = detailOf(text, [target.token, ...secrets]).slice(0, BODY_CUT);
     return fail(`coolify: HTTP ${response.status} on ${method} ${struck(url, target.token)}\n  ${said}${hint(response.status)}`);
   }
   const answer = text.trim() ? (parsedOr(text) ?? text) : {};

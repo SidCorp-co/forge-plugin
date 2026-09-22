@@ -47,6 +47,12 @@ const ANSWERS = {
   "/deploy": { deployments: [{ deployment_uuid: "d-1" }] },
 };
 
+const QUOTED = {
+  _REFUSED: [422, (one) => ({ message: `Rejected value: ${one.value}` })],
+  _ESCAPED: [422, (one) => ({ message: "invalid", errors: { value: [one.value] } })],
+  _ECHOED: [200, (one) => ({ uuid: "v9", message: `set ${one.key} to ${one.value}` })],
+};
+
 let server = null;
 let home = null;
 let work = null;
@@ -64,13 +70,18 @@ before(async () => {
       /* Keyed by method first: one path answers a read and a write, and a write's own answer is
          what the caller sees, so the two cannot share one reply. */
       const named = `${request.method} ${path}`;
-      /* The one refusal this fixture invents. A platform that rejects a value quotes it back, which
-         is the only way a caller's own secret reaches an error stream, and nothing else here does
-         that. The key carries the trigger so the value stays free to be a secret. */
+      /* The three answers this fixture invents, because a caller's own value reaches an output
+         stream by one route only: the platform quoting it back. A refusal that names it, a refusal
+         that nests it where the line gets serialized, and an acceptance that repeats it. The key
+         carries which, so the value stays free to be a secret. */
       const sent = body ? JSON.parse(body) : null;
-      if (typeof sent?.key === "string" && sent.key.endsWith("_REFUSED")) {
-        response.writeHead(422, { "Content-Type": "application/json" });
-        response.end(JSON.stringify({ message: `Rejected value: ${sent.value}` }));
+      const tail = typeof sent?.key === "string"
+        ? Object.keys(QUOTED).find((one) => sent.key.endsWith(one))
+        : undefined;
+      if (tail) {
+        const [code, said] = QUOTED[tail];
+        response.writeHead(code, { "Content-Type": "application/json" });
+        response.end(JSON.stringify(said(sent)));
         return;
       }
       const which = Object.hasOwn(ANSWERS, named) ? named : path;
@@ -450,4 +461,27 @@ test("a write the platform refuses does not print the value back, and does under
   assert.equal(shown.status, 1);
   assert.match(shown.stderr, /Rejected value: hunter2/u);
   assert.ok(!shown.stderr.includes(TOKEN), "the token is on stderr");
+});
+
+/* A quote in a secret is what separates striking the parts from striking the finished line: the
+   line re-escapes it, and a replacement made afterwards no longer matches what it is looking for. */
+test("a value quoted inside a refusal's own details is struck however the line escapes it", async () => {
+  const answer = await ran("app", "env", "create", "a-in", "--key", "DB_PASSWORD_ESCAPED", "--value", 'alpha"beta', "--yes");
+  assert.equal(answer.status, 1);
+  assert.match(answer.stderr, /HTTP 422/u);
+  assert.ok(!answer.stderr.includes("alpha"), "the value reached stderr, escaped or not");
+});
+
+/* The answer is the third direction. A write the platform accepts can repeat what it was given, and
+   the structural rule cannot see that: it hides a field by its name, and this one is `message`. */
+test("a write the platform accepts does not print the value back, and does under --reveal", async () => {
+  const quiet = await ran("app", "env", "create", "a-in", "--key", "DB_PASSWORD_ECHOED", "--value", "hunter2", "--yes", "--full");
+  assert.equal(quiet.status, 0, quiet.stderr);
+  assert.match(quiet.stdout, /set DB_PASSWORD_ECHOED to <redacted>/u);
+  assert.ok(!quiet.stdout.includes("hunter2"), "the value reached stdout");
+
+  const shown = await ran("app", "env", "create", "a-in", "--key", "DB_PASSWORD_ECHOED", "--value", "hunter2", "--yes", "--full", "--reveal");
+  assert.equal(shown.status, 0, shown.stderr);
+  assert.match(shown.stdout, /set DB_PASSWORD_ECHOED to hunter2/u);
+  assert.ok(!shown.stdout.includes(TOKEN), "the token is on stdout");
 });

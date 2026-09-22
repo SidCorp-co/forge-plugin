@@ -10,7 +10,7 @@ import { NO_TARGET, SCOPE_FILE, coolifyTarget, pinned } from "./config.mjs";
 import { holes, pinOnly, resolveCommand, servedNames } from "./routes.mjs";
 import { ask, session, struck } from "./client.mjs";
 import { active, applicationIds, check, environmentIds, filterList, label, makeScope } from "./scope.mjs";
-import { hiddenNames, normalize, pickColumns, redact, renderObject, renderTable, summarize } from "./shape.mjs";
+import { hiddenNames, normalize, pickColumns, redact, renderObject, renderTable, secretsIn, striking, summarize } from "./shape.mjs";
 import { readArgs } from "./args.mjs";
 
 export const USAGE = [
@@ -207,9 +207,12 @@ const rendered = (shown, asTable) => {
   return String(shown);
 };
 
-const emit = (answer, { group, dropped, unplaced, held, token }) => {
+const emit = (answer, { group, dropped, unplaced, held, token, secrets }) => {
   if (answer === null) return;
-  const data = held.reveal ? normalize(answer) : redact(normalize(answer));
+  /* An answer can quote the request back, so what the caller wrote is struck out of it beside our
+     own credential, and by the same walk: a value re-escaped into a rendered line is past striking
+     once the line exists. The structural rule still runs first, being what hides what we never sent. */
+  const data = striking(held.reveal ? normalize(answer) : redact(normalize(answer)), [token, ...secrets]);
   const asTable = held.table || (process.stdout.isTTY && !held.json);
   const shown = held.full ? data : summarize(data, group);
   const hidden = held.full ? [] : hiddenNames(data, shown);
@@ -234,15 +237,16 @@ const routed = async (argv) => {
   const scope = makeScope(held, pin);
   if (!active(scope)) fail(noPin(process.cwd()));
   const { path, query, body, values } = readArgs(found.entry, found.rest);
+  const secrets = switches.reveal ? [] : secretsIn(body);
   refuseLooseSelectors(found.entry, values);
   await check(scope, found.entry.scope, values);
   if (found.entry.method !== "GET" && !switches.yes && !switches["dry-run"]) {
     fail(`coolify ${found.name}: a write is refused without --yes.\n`
       + `  see it first: forge coolify ${found.name} --dry-run`);
   }
-  const answer = await ask(held, found.entry.method, path, { query, body, cache: found.entry.method === "GET" });
+  const answer = await ask(held, found.entry.method, path, { query, body, secrets, cache: found.entry.method === "GET" });
   const cut = await filterList(scope, found.entry.returns, answer, { mustFilter: pinOnly(found.entry) });
-  emit(cut.kept, { group: found.group, dropped: cut.dropped, unplaced: cut.unplaced, held: switches, token: target.token });
+  emit(cut.kept, { group: found.group, dropped: cut.dropped, unplaced: cut.unplaced, held: switches, token: target.token, secrets });
 };
 
 const BUILTIN = { login: saveTarget, accounts: showTarget, whoami };

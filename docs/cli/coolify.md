@@ -111,7 +111,12 @@ user and host of a connection string readable, and drops what is secret. What go
 never masked — a masked preview and a masked payload would look identical at the terminal and
 differ entirely at the instance.
 
-The same rule answers a third direction: a platform that refuses a write quotes back the value it
-refused, so the words this prints on a failure are struck of the caller's own secret the way they
-were always struck of ours. Which strings those are is read off the masking rule rather than asked
-of a second one, so a value that would be hidden in a listing is hidden in a rejection.
+The rule reaches what comes back as well. A platform quotes what it was sent — a refusal names the
+value it refused, an acceptance can repeat it — and the structural rule cannot see that, because it
+hides a field by its name and the field here is `message`. So the caller's own value is struck out
+of everything printed, the way our credential always was, and which strings those are is read off
+the masking rule rather than asked of a second one.
+
+That striking happens to the parts and never to the finished line. A value holding a quote or a
+newline is re-escaped on its way into a rendered line, and a replacement made afterwards is looking
+for something that is no longer there — which would leave exactly the secrets that most need it.
