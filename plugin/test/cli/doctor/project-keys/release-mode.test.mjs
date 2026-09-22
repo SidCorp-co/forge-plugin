@@ -7,10 +7,10 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-import { escaped, projectEntry, projectRoom, tempRoom } from "../../fixtures.mjs";
-import { whole } from "../../tools/doctor/fixture.mjs";
+import { escaped, projectEntry, projectRoom, tempRoom } from "../../../fixtures.mjs";
+import { whole } from "../../../tools/doctor/fixture.mjs";
 
-const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
+const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;
 
 const PUBLISHES = { baseBranch: "master", releaseModel: "publish" };
 

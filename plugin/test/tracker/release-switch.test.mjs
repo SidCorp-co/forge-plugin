@@ -1,11 +1,17 @@
 /* The one switch about production, after it moved off the tracker (ISS-2190). Every reader of it
-   spends `autoProd`, which is derived once, so what is judged here is the derivation and the three
-   readers that would each have needed their own key had it been derived at the caller instead. */
+   spends `autoProd`, which is derived once, so what is judged here is the derivation and the readers
+   that would each have needed their own key had it been derived at the caller instead — the closing
+   rung's among them, since that one is two trees away and is what the move was asked for. */
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { landingRoute, personOwedForRelease, releaseFrom, waitsForPerson }
-  from "../../src/tracker/project-config.mjs";
+import { tempHome } from "../fixtures.mjs";
+
+process.env.XDG_CONFIG_HOME = tempHome("release-switch").path;
+const { landingRoute, personOwedForRelease, releaseFrom, waitsForPerson } =
+  await import("../../src/tracker/project-config.mjs");
+const { render } = await import("../../src/flow/record/page.mjs");
+const { deployedOwed, viewFrom } = await import("../../src/flow/earned.mjs");
 
 const NONE = { value: null, from: null };
 const PUBLISHES = { baseBranch: "master", releaseModel: "publish" };
@@ -53,4 +59,38 @@ test("the landing route, the person's look and the closing rung all follow the o
     "and a production that deploys on its own is what takes a person out of the closing rung");
   assert.match(personOwedForRelease(policy(true, declared("manual"))),
     /act on this project's live deploy binding/u);
+});
+
+/* The reader two trees away, and the one the issue was filed for: `deployOwed` tests
+   `view.release?.autoProd` alone, so a key resolved anywhere but inside the policy would leave this
+   rung reading the level the switch moved off. The refusals themselves are entry-checks.test.mjs's. */
+const NOTE = "merged to master at 43b811e; reviewed head 43b811e; judged head 43b811e; "
+  + "landing moved nothing; landing wrote nothing";
+
+let clock = 0;
+const at = () => `2026-09-02T10:${String((clock += 1)).padStart(2, "0")}:00.000Z`;
+const comment = (body) => ({ createdAt: at(), authorId: "agent", body });
+
+/* A verification asserting a deploy and naming none: the shape the rung refuses where production is
+   automatic and takes where it is a person's. */
+const ASSERTED = [
+  comment(`mark_merged target=base — ${NOTE}`),
+  comment(render("verification", { where: "https://app.example", commit: "43b811e", evidence: ["43b811e"] })),
+];
+
+const owed = (autoProdDeploy, release) => deployedOwed(
+  viewFrom("the-uuid", { attachments: [{ name: "run.txt" }], releaseNotes: { section: "Fixed" } },
+    ASSERTED, null, policy(autoProdDeploy, declared(release))),
+  "ISS-3",
+);
+
+test("a project declaring it releases on its own owes the deploy proof, whatever the tracker's flag says", () => {
+  const refused = owed(false, "auto");
+  assert.equal(refused.length, 1, "the local key is what the rung reads, and it says nobody is asked");
+  assert.match(refused[0].what, /a sha names no deployment/u);
+});
+
+test("a project declaring a person's look owes no deploy proof, whatever the tracker's flag says", () => {
+  assert.deepEqual(owed(true, "manual"), [],
+    "the rung asks for the proof because nobody is asked, and here somebody is");
 });

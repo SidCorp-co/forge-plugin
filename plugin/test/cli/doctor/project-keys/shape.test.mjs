@@ -7,9 +7,9 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-import { escaped, projectEntry, projectRoom, tempRoom } from "../../fixtures.mjs";
+import { escaped, projectEntry, projectRoom, tempRoom } from "../../../fixtures.mjs";
 
-const CLI = new URL("../../../src/cli.mjs", import.meta.url).pathname;
+const CLI = new URL("../../../../src/cli.mjs", import.meta.url).pathname;
 
 const envOf = (home) => ({ PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home });
 

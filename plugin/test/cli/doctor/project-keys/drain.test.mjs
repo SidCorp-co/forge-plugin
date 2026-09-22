@@ -6,9 +6,9 @@ import test from "node:test";
 import { chmodSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { escaped, fakeTracker, projectEntry, projectRoom, ranAsync, tempHome } from "../../fixtures.mjs";
+import { escaped, fakeTracker, projectEntry, projectRoom, ranAsync, tempHome } from "../../../fixtures.mjs";
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 
 const state = {
   answer: {
