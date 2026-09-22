@@ -94,6 +94,33 @@ a broken tree, not as an absent checkout.
 - **AC-11-3-2** · Rev: 1 · Proof: plugin/scripts/check-vendor.mjs
   IF the source is absent THEN the check SHALL fail as a broken tree.
 
+### UC-11-4 — A sentence a module composes is pinned in one test file
+
+Rev: 1 · Actors: agent · Enforces: BR-09
+
+A module composes a refusal, the test file that imports it pins the wording, and a test file
+reaching the same refusal through a verb re-states the whole sentence instead of proving its route.
+A hand reading of the suite found the class over three hundred and seventy-nine files and cost seven
+readers; fixing the instances it named fixes those instances, and the next one is written by a run
+that cannot know they existed. The measure is lexical, on the assertion pattern itself, so it sees a
+sentence pinned twice and nothing of a claim restated in other words.
+
+- **AC-11-4-1** · Rev: 1 · Proof: plugin/test/checks/suite/one-wording.test.mjs "a sentence pinned on both sides of the import line is named with both lines and the home"
+  IF a sentence a module composes is asserted under the same pattern by a test file that reaches
+  that module through its own imports and by a test file that does not THEN the check SHALL fail,
+  SHALL name both files with the line each pins it on, SHALL say which of the two is the home, and
+  SHALL name the fragment the other is to keep, since a refusal naming no survivor leaves a
+  developer to guess which of two files to shorten.
+- **AC-11-4-2** · Rev: 1 · Proof: plugin/test/checks/suite/one-wording.test.mjs "a negated assertion is a marker for a refusal that must not fire, not a second home"
+  WHERE an assertion is negated the check SHALL report no pair for it, a refusal proved absent being
+  a different claim from the refusal rather than a copy of it.
+- **AC-11-4-3** · Rev: 1 · Proof: plugin/test/checks/suite/one-wording.test.mjs "a wording more than one module composes names no one sentence"
+  WHERE more than one module composes the same wording the check SHALL report no pair for it, since
+  there is then no one sentence to have a home and no one module to name as it.
+- **AC-11-4-4** · Rev: 1 · Proof: plugin/test/checks/suite/one-wording.test.mjs "the walk reaches the suite's test files, so no pairs is a clean suite and not an empty selector"
+  WHILE the check runs it SHALL assert that its walk reached the suite's own test files, because a
+  selector matching nothing reports a clean suite and reads exactly like one.
+
 ## Business rules enforced
 
 *Which rules of the BRD does this requirement carry out?*
