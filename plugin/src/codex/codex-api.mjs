@@ -510,7 +510,16 @@ const parsedInput = (json) => {
 
 /* The tool list stays in the request on the call that may not use one, and `tool_choice` says so:
    the provider caches by prefix, and system-and-tools is that prefix. docs/cli/codex-the-request.md. */
-export const askApi = async (values, model, messages, { onDelta = () => {}, signal, tools, serve = true, effort, system } = {}) => {
+
+/* The one spelling of `tool_choice`, three values: a consult's last call says none, so the list stays
+   in the prefix and the model answers in text; a typed question names the tool its answer must come
+   through, so the model answers in that schema or not at all (ISS-2161); every other call says nothing
+   and leaves the model free. `choose` wins over `serve`, a forced call being a served one by definition. */
+const toolChoice = (serve, choose) => {
+  if (choose) return { tool_choice: { type: "tool", name: choose } };
+  return serve ? {} : { tool_choice: { type: "none" } };
+};
+export const askApi = async (values, model, messages, { onDelta = () => {}, signal, tools, serve = true, choose = null, effort, system } = {}) => {
   const answer = await fetch(`${values.ANTHROPIC_BASE_URL}/v1/messages`, {
     method: "POST",
     headers: {
@@ -527,7 +536,7 @@ export const askApi = async (values, model, messages, { onDelta = () => {}, sign
       messages,
       /* One channel or the other and never both: the gateway reads the rung out of the id. */
       ...(rungIn(model) ? {} : { reasoning_effort: effort ?? defaultEffort() }),
-      ...(tools?.length ? { tools, ...(serve ? {} : { tool_choice: { type: "none" } }) } : {}),
+      ...(tools?.length ? { tools, ...toolChoice(serve, choose) } : {}),
     }),
     signal,
   });
