@@ -134,9 +134,15 @@ test("the five standing dispositions keep their evidence bars whole", () => {
 
 test("the complexity reading is untouched, and stays what a rung is claimed from", () => {
   carries("2", [
-    ["the field", "A candidate that survives also carries a complexity, and the tracker's `complexity` field is where"],
-    ["what it is read from", "the files the change would touch, whether a person sees the result,"
-      + " whether a rule changes"],
+    /* Whole, not by phrase: the sentence most easily lost is the one saying the field is the only
+       place it goes, and a selective assertion passes without it. */
+    ["the paragraph whole", "**A candidate that survives also carries a complexity, and the tracker's"
+      + " `complexity` field is where.** Setting it is this phase's, because it is the same reading"
+      + " triage has just done: `forge issue ISS-nn --set complexity=<value> --why <w>`, the why"
+      + " naming what was read to judge it — the files the change would touch, whether a person sees"
+      + " the result, whether a rule changes. Which value claims which rung, and what a rung then"
+      + " buys, is the contract's. The write goes on the issue and nowhere else, so the brief carries"
+      + " no rung and there is nothing for a run to find disagreeing with the field."],
     ["no run on an unsized issue", "no run is dispatched on an issue holding none"],
   ]);
 });
