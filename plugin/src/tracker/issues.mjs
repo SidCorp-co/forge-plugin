@@ -12,7 +12,9 @@ export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 const KEY = String.raw`ISS-\d+`;
 const CITED = /^[A-Za-z]+(?:-\d+)+$/u;
 export const HUMAN_REF = new RegExp(`^${KEY}$`, "iu");
-export const keysIn = (text) => String(text ?? "").match(new RegExp(`\\b${KEY}\\b`, "giu")) ?? [];
+/* In the tracker's spelling whatever the text's: a session id and the claim typed from it are lowercase,
+   and a key returned as found joins no row (ISS-2161: 58 of a corpus's 585 runs). */
+export const keysIn = (text) => (String(text ?? "").match(new RegExp(`\\b${KEY}\\b`, "giu")) ?? []).map((one) => one.toUpperCase());
 
 export const rowsOf = (payload, key = "issues") =>
   payload?.[key] ?? payload?.data ?? (Array.isArray(payload) ? payload : []);

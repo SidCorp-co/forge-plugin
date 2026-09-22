@@ -570,7 +570,8 @@ test("a parts line counts the tracker's keys and not the clauses cited beside th
 
 test("a real split is still one, and a lowercase key still counts", () => {
   assert.deepEqual(partsIn("Parts: ISS-48 and ISS-58 are the halves of it.")?.keys, ["ISS-48", "ISS-58"]);
-  assert.deepEqual(partsIn("Parts: iss-48 and ISS-58 are the halves.")?.keys, ["iss-48", "ISS-58"]);
+  assert.deepEqual(partsIn("Parts: iss-48 and ISS-58 are the halves.")?.keys, ["ISS-48", "ISS-58"],
+    "counted, and in the tracker's spelling: the edge it clears by is `--with ISS-48,ISS-58`");
 });
 
 test("the two-key threshold is untouched, so one part named alone is still no split", () => {

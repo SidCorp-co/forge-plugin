@@ -450,7 +450,7 @@ export const asksOf = ({ title, body, kind = null }) => {
 };
 
 /** The keys a body names. Apart from `asksOf`: ranking a head reads the place and the seed, never these. */
-export const keysOf = (body) => [...new Set(keysIn(String(body ?? "")).map((one) => one.toUpperCase()))];
+export const keysOf = (body) => [...new Set(keysIn(body))];
 
 /** Every gap the body decides with no tracker read, and the one line a shortfall no gap refuses
  *  earns. `fix` is returned rather than refused: what clears it is the route the caller named.
@@ -475,7 +475,7 @@ export const shapeOf = ({ title, body, kind = null, complexity = null }, { every
     ));
   }
   if (parts) {
-    const related = parts.keys.map((one) => one.toUpperCase()).join(",");
+    const related = parts.keys.join(",");
     gaps.push(need(`a line naming ${parts.keys.join(" and ")} as this issue's parts`,
       "the parts themselves as issues, held on an edge rather than claimed in this body's prose",
       `take the claim off the line and re-send with \`--with ${related}\`, which relates them in the same create`));

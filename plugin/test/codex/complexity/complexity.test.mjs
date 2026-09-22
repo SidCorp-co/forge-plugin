@@ -191,6 +191,19 @@ test("the closing sentence names the arm whose coefficient is higher, or neither
     unavailable, "constant minutes");
   assert.match(last([{ key: "a", minutes: 10, tracker: "s", proposed: "m" }, { key: "b", minutes: 20, tracker: "l", proposed: "m" }]),
     unavailable, "a constant proposed complexity against varied tracker complexities");
+  /* Two coefficients apart in the third decimal print the same figure, and a sentence saying one arm
+     ordered minutes more closely "(0.35 against 0.35)" is refuted by its own parenthesis. The comparison
+     is made on the figure printed, so what the sentence claims is what the reader can check. */
+  const close = [
+    { key: "a", minutes: 35, tracker: "l", proposed: "s" }, { key: "b", minutes: 45, tracker: "m", proposed: "m" },
+    { key: "c", minutes: 10, tracker: "s", proposed: "m" }, { key: "d", minutes: 25, tracker: "l", proposed: "xl" },
+    { key: "e", minutes: 20, tracker: "xs", proposed: "s" }, { key: "f", minutes: 10, tracker: "s", proposed: "xs" },
+    { key: "g", minutes: 15, tracker: "l", proposed: "xs" },
+  ];
+  const { tracker, proposed } = agreementOf(close).arms;
+  assert.notEqual(tracker.rho, proposed.rho, "the fixture must differ in the raw coefficient");
+  assert.equal(tracker.rho.toFixed(2), proposed.rho.toFixed(2), "and print the same figure");
+  assert.match(last(close), /^Equal at \d\.\d\d, so neither/u);
   const both = agreementOf([{ key: "a", minutes: 10, tracker: "s", proposed: "m" }, { key: "b", minutes: 20, tracker: "l", proposed: "m" }]);
   assert.equal(both.arms.proposed.rho, null, "the constant arm's coefficient is null, not nought");
   assert.ok(both.arms.tracker.rho > 0, "and the varied arm's still stands on its own line");
@@ -258,6 +271,20 @@ test("--measure asks once per distinct key over the measured runs and prints the
   assert.deepEqual(asked.sort(), ["ISS-1", "ISS-2"], "one question per issue, however many runs it had");
   assert.match(out, /proposed +m +3 +30m/u, "three runs land in the proposed m");
   assert.match(out, /ordered minutes/u, "and the sentence closes it");
+});
+
+/* A corpus outlives its issues: a run whose issue the tracker no longer holds is one refused row in
+   a measurement that stands, not a thrown read that ends a half-hour of questions with nothing said.
+   The map is keyed by the key asked, which is the one the runs join on. */
+test("a key the tracker lacks is one refused proposal and the rest of the measure stands", async () => {
+  const runs = () => [{ key: "ISS-1", minutes: 20 }, { key: "ISS-9", minutes: 30 }, { key: "ISS-2", minutes: 90 }];
+  const rowOf = async (key) => {
+    if (key === "ISS-9") throw new Error("ISS-9 names no issue of this tracker");
+    return { ...ROW, issueId: key, complexity: "s" };
+  };
+  const out = await printed(["--measure"], depsOf({ runs, rowOf }));
+  assert.match(out, /1 run\(s\) left out, their question refused/u);
+  assert.match(out, /proposed +m +2 +55m/u, "the two answered runs are measured");
 });
 
 test("--json prints the proposals, or the measurement, as one object", async () => {
