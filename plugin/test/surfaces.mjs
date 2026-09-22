@@ -39,10 +39,10 @@ const UNDER = { ...CLOSED, spec: { check: CHECK_USAGE } };
 export const wordsOf = (verb) =>
   (CLOSED[verb] ? [...Object.keys(CLOSED[verb]), ...(ALSO[verb] ?? [])] : null);
 
-/* A word no table knows is a positional, not a sub-verb: `forge attach issue ISS-1 body.md` is judged by the verb's surface, where an empty one would turn every flag on it into a finding. */
+/* A word no table knows is a positional, not a sub-verb: `forge attach issue ISS-1 body.md` is judged by the verb's surface, where an empty one would turn every flag on it into a finding. A verb's surface is both tables and not the first one that names a flag: `forge -h` prints one row per verb under a one-screen cap, so a verb long enough keeps flags on its own `-h` alone, and reading the row as the whole surface made `--undeployed` read as a flag the CLI does not have while `forge claim -h` named it (ISS-1993). The row is still held to its own flags where a case pins them. */
 export const surfaceOf = (verb, sub = null) => {
   const row = usageOf(verb);
   const under = sub ? UNDER[verb]?.[sub] : null;
   if (under) return `${row}\n${under}`;
-  return row.includes("--") ? row : `${row}\n${OWN[verb] ?? ""}`;
+  return OWN[verb] ? `${row}\n${OWN[verb]}` : row;
 };
