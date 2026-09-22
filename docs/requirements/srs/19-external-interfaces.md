@@ -187,11 +187,13 @@ it. Reading is all this product does there.
   last fifty runs and the fifty before them by each run's own last record, adjacent and
   non-overlapping, and SHALL say how many the earlier window is short of rather than compare against
   a window it does not hold.
-- **AC-19-8-5** · Rev: 2 · Proof: plugin/test/stats/marks/marks.test.mjs "the ship's mark is one line at a multiple of the window, read off the corpus, and silent otherwise"
-  WHEN a release lands and the project's run count is a positive multiple of the window THEN the
-  release step SHALL end on one line naming the comparison to run, SHALL read the crossing off the
-  corpus alone, and SHALL write that comparison's figures as one record for the mark once and never
-  again.
+- **AC-19-8-5** · Rev: 3 · Proof: plugin/test/stats/marks/scope.test.mjs "the crossing is at or past the next multiple since the last reading held, not an equality against the count"
+  WHEN a project's corpus has reached or passed the next multiple of the window since the last count
+  reading held for that project THEN the CLI SHALL end on one line naming the comparison to run,
+  SHALL read that crossing off the corpus alone and against the readings already held rather than
+  against the count at one moment, SHALL write the comparison's figures as one record for that
+  multiple once and never again, and SHALL take the crossing wherever that count is computed rather
+  than at a release step alone.
 
 - **AC-19-8-6** · Rev: 2 · Proof: plugin/test/stats/phases.test.mjs "a consult before the plan write is the plan's, and the review opens on the one after the build"
   WHEN a run's calls are cut into phases THEN the CLI SHALL open the review phase only on a
@@ -387,6 +389,36 @@ it. Reading is all this product does there.
   WHEN two readings are compared row by row THEN the CLI SHALL carry on each the act that release
   model asked of it, and SHALL take no pair of means over the class that act decides or over the
   classes it takes calls from where the two readings name different acts.
+
+- **AC-19-8-123** · Rev: 1 · Proof: plugin/test/stats/marks/scope.test.mjs "a reading is held under the project the tracker names, so neither a worktree nor a temporary directory parts one corpus's readings"
+  WHERE a reading is held for a project the CLI SHALL hold it under the project the tracker names for
+  the checkout whose corpus was read, and SHALL answer with that same reading from every linked
+  worktree of that checkout and whatever temporary directory the run was given.
+- **AC-19-8-124** · Rev: 1 · Proof: plugin/test/stats/marks/scope.test.mjs "a checkout the tracker names no project for resolves no other project's readings"
+  IF the checkout a reading is asked for names no project THEN the CLI SHALL hold and resolve that
+  reading under a value of its own, SHALL NOT read it as the value that stands for every reading on
+  the device, and SHALL give two such checkouts two values.
+- **AC-19-8-125** · Rev: 1 · Proof: plugin/test/stats/marks/scope.test.mjs "a held reading carries the device it was taken on and the contract it was taken under"
+  WHEN a reading is held THEN the CLI SHALL carry on it the device it was taken on and the rules its
+  figures were computed under — the act that release model asked for, the class table and the
+  declared set — under a revision of its own, so that two readings whose field names agree can still
+  be told apart.
+- **AC-19-8-126** · Rev: 1 · Proof: plugin/test/stats/marks/scope.test.mjs "only the records carrying the project are parsed, for the list and for a write's own duplicate check"
+  WHEN the readings held for one project and kind are read THEN the CLI SHALL parse only the records
+  carrying that project, both for the list and for the duplicate check a write makes.
+- **AC-19-8-127** · Rev: 1 · Proof: plugin/test/stats/marks/scope.test.mjs "the readings already held are re-keyed once, keeping every figure, with the store kept beside them"
+  WHERE readings are held under a key earlier than the project's the CLI SHALL rewrite each of them
+  once under the project its own recorded checkout resolves to, keeping every field it holds, SHALL
+  copy the store as it stood beside it before rewriting a record, SHALL say of a reading it could not
+  resolve that it did not rather than assigning it a project, and SHALL say of a reading taken before
+  the device and the contract were carried that each is unknown rather than stamping this machine's.
+- **AC-19-8-128** · Rev: 1 · Proof: plugin/test/stats/marks/scope.test.mjs "two writers crossing one window at the same moment leave one held reading"
+  WHEN two processes cross one window at the same moment THEN the CLI SHALL leave one reading held
+  for that crossing, the check for a reading already held and the write of a new one being one act.
+- **AC-19-8-129** · Rev: 1 · Proof: plugin/test/stats/marks/marks.test.mjs "the ship's mark is one line at a multiple of the window, read off the corpus, and silent otherwise"
+  WHERE a reading is written down the CLI SHALL store no field that no reader of a stored reading
+  reads, keeping its own earlier window and its class table out of the record while the comparison it
+  prints and the JSON it emits carry both.
 
 - **AC-19-8-83** · Rev: 1 · Proof: plugin/test/stats/eval/change.test.mjs "1. the isolated population is the runs that began at or after this install and ended before the next"
   WHEN one change is judged THEN the CLI SHALL report the count of runs that began at or after that

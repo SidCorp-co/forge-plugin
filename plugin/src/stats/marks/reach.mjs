@@ -7,8 +7,8 @@ const at = (ms) => stamped(new Date(ms).toISOString());
    corpus begins long after the corpus does (consult c5d393 F1). */
 const reachedBy = (one) => one.comparability?.reach?.from ?? one.now?.profile?.from;
 
-const earlierReach = (root, from) => {
-  const held = [...marksOf(RUNS, root), ...marksOf(RELEASES, root)]
+const earlierReach = (scope, from) => {
+  const held = [...marksOf(RUNS, scope), ...marksOf(RELEASES, scope)]
     .map((one) => ({ one, at: reachedBy(one) }))
     .filter((row) => Number.isFinite(row.at) && row.at < from);
   if (!held.length) return null;
@@ -19,8 +19,8 @@ const earlierReach = (root, from) => {
   };
 };
 
-export const reachOf = (root, from) =>
-  (Number.isFinite(from) ? { from, earlier: earlierReach(root, from) } : null);
+export const reachOf = (scope, from) =>
+  (Number.isFinite(from) ? { from, earlier: earlierReach(scope, from) } : null);
 
 /* What a reader told only that depth is gone cannot work out: which of the places the corpus was read from the system sweeps, and so whether the loss is the host's or this reading's (ISS-1578). */
 const sweptSaid = (sources) => {

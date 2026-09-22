@@ -42,15 +42,15 @@ export const claimAsked = (raw, verb = "stats change") => {
   return { angle, direction };
 };
 
-const releasesNaming = (root, issue) =>
-  marksOf(RELEASES, root).filter((one) => (one.issues ?? []).includes(issue));
+const releasesNaming = (scope, issue) =>
+  marksOf(RELEASES, scope).filter((one) => (one.issues ?? []).includes(issue));
 
-export const claimsOf = (root, issue) =>
-  marksOf(CLAIMS, root).filter((one) => one.issue === issue);
+export const claimsOf = (scope, issue) =>
+  marksOf(CLAIMS, scope).filter((one) => one.issue === issue);
 
 /** The newest claim held for an issue, or null. Latest wins: a change that revised what it expected
  *  says so by claiming again, and the reading judges what it last said. */
-export const claimFor = (root, issue) => claimsOf(root, issue).at(-1) ?? null;
+export const claimFor = (scope, issue) => claimsOf(scope, issue).at(-1) ?? null;
 
 /** Refused where a release reading held here already names that issue, a claim about a change that
  *  has landed being an explanation wearing a prediction's shape.
@@ -61,15 +61,15 @@ export const claimFor = (root, issue) => claimsOf(root, issue).at(-1) ?? null;
  *  could not place carries `landingKnown: false` rather than an implied boundary, and the reading
  *  that judges it checks again against the install moment of the copy that carried the change. That
  *  second check is the one that decides. */
-export const writeClaim = (root, issue, asked, verb = "stats change") => {
-  const landed = releasesNaming(root, issue);
+export const writeClaim = (scope, issue, asked, verb = "stats change") => {
+  const landed = releasesNaming(scope, issue);
   if (landed.length) {
     fail(`${verb}: ${issue} landed in release ${landed.at(-1).version}, so a claim about it now would `
       + "explain the figure rather than predict it. A claim is written before the change lands.");
   }
   const record = {
     kind: CLAIMS,
-    root,
+    scope,
     issue,
     angle: asked.angle,
     direction: asked.direction,

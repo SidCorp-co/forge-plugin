@@ -7,7 +7,7 @@ import { phase7For } from "../corpus/release.mjs";
 import { declaredIn } from "../corpus/declared.mjs";
 import { checkoutFrom, profileOf, runsUnder } from "../runs.mjs";
 import { cacheRoot, installedCopies } from "../versions.mjs";
-import { RELEASES, marksOf } from "../marks/marks.mjs";
+import { RELEASES, marksOf, scopeOf } from "../marks/marks.mjs";
 import { DISPOSITIONS, angleOf, anglesAsked, blocksOf, floorsOver } from "./angles.mjs";
 import { mixFloorsOver, mixOver, mixWhy } from "./mix.mjs";
 import { FLOOR } from "./eval.mjs";
@@ -178,7 +178,11 @@ const corpusOf = async (directory) => {
   const root = rootFor(directory);
   const declared = declaredIn(directory);
   const act = await phase7For(directory);
-  return { root, declared, act, ...runsUnder(root, null, classesFor(declared, act)),
+  /* Two answers about one checkout and neither standing in for the other: `root` is WHERE this
+     corpus was read, a path under the temporary directory this run was handed, and `scope` is WHOSE
+     reading it is, the project the tracker names. Holding a reading under the first is what made it
+     unreachable from any other run (ISS-1984). */
+  return { root, scope: scopeOf(directory), declared, act, ...runsUnder(root, null, classesFor(declared, act)),
     copies: installedCopies(cacheRoot()) };
 };
 
@@ -274,8 +278,8 @@ export const printChange = async (argv) => {
   const names = anglesAsked(angles, "stats change");
   const directory = checkoutFrom(checkout, "stats change");
   const corpus = await corpusOf(directory);
-  if (claim !== undefined) return claimWritten(ref, corpus.root, claim);
-  const releases = marksOf(RELEASES, corpus.root);
+  if (claim !== undefined) return claimWritten(ref, corpus.scope, claim);
+  const releases = marksOf(RELEASES, corpus.scope);
   const version = resolved(ref, releases, corpus.copies);
   if (!corpus.runs.length) {
     return console.log(`No issue-flow run under ${corpus.root}, so ${version} has no population to be `
@@ -289,7 +293,7 @@ export const printChange = async (argv) => {
     names,
     declared: corpus.declared,
     act: corpus.act,
-    claim: KEY.test(ref) ? claimFor(corpus.root, ref.toUpperCase()) : null,
+    claim: KEY.test(ref) ? claimFor(corpus.scope, ref.toUpperCase()) : null,
   });
   if (json) return console.log(JSON.stringify(held, null, 2));
   for (const line of changeLines(held)) console.log(line);

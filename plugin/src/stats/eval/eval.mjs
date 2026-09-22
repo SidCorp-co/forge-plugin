@@ -8,13 +8,14 @@ import { classesFor } from "../corpus/classes.mjs";
 import { phase7For, scopeFor } from "../corpus/release.mjs";
 import { declaredIn } from "../corpus/declared.mjs";
 import { rootFor } from "../corpus/corpus.mjs";
+import { deviceOf } from "../../resolve/device.mjs";
 import { checkoutFrom, derivedFrom, profileOf, readingAside, runsUnder } from "../runs.mjs";
 import { stamp } from "../figures.mjs";
 import { UNRECORDED, cacheRoot, copyAt, installedCopies, spansInstall } from "../versions.mjs";
 import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows } from "../windows.mjs";
 import {
   RELEASES, RUNS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, resolveRelease,
-  releaseSaid, sinceReleaseIn, writeMark, wroteSaid,
+  releaseSaid, scopeOf, sinceReleaseIn, writeMark, wroteSaid,
 } from "../marks/marks.mjs";
 import { reachOf, reachSaid } from "../marks/reach.mjs";
 import { BUDGET, HORIZON, UNAVAILABLE, budgetOf, outcomesOf, parkedOver, readThreads, ruledOver } from "./outcomes.mjs";
@@ -422,7 +423,11 @@ const corpusOf = async (directory) => {
   const root = rootFor(directory);
   const declared = declaredIn(directory);
   const act = await phase7For(directory);
-  return { root, declared, act, ...runsUnder(root, null, classesFor(declared, act)),
+  /* Two answers about one checkout and neither standing in for the other: `root` is WHERE this
+     corpus was read, a path under the temporary directory this run was handed, and `scope` is WHOSE
+     reading it is, the project the tracker names. Holding a reading under the first is what made it
+     unreachable from any other run (ISS-1984). */
+  return { root, scope: scopeOf(directory), declared, act, ...runsUnder(root, null, classesFor(declared, act)),
     copies: installedCopies(cacheRoot()) };
 };
 
@@ -453,19 +458,54 @@ const outcomeRead = async (corpus, directory, size, spending) => {
 
 /** The object `--json` prints, and the record the ship writes: one assembly, so a stored reading is
  *  what the verb would have computed at that moment. */
-const readingOf = (directory, corpus, size, against = null, read = null) => ({
-  root: corpus.root,
-  sources: corpus.sources,
-  project: directory,
-  skipped: corpus.skipped,
-  unreadable: corpus.unreadable,
-  copies: corpus.copies.length,
-  ...(read ? { requests: read.spent.requests } : {}),
-  ...evalRuns(corpus.runs, corpus.copies, size, against, read,
-    reachOf(corpus.root, corpus.runs[0]?.startedAt), corpus.declared, corpus.act),
+/* The rule set that produced a reading's figures, bumped when one of them moves. Two readings whose
+   field names match can measure different populations — on this repository two admission tests over
+   one transcript set disagreed by a third — so a held reading says what it was taken under rather
+   than leaving a reader to assume the answer is today's (ISS-1984). */
+const CONTRACT = 1;
+
+/* The three the answer turns on, and the act rather than the model's own word: two projects both
+   declaring `none` part company on whether production deploys on its own, so keyed on the word a
+   comparison would take the mean of two populations (ISS-1975). */
+const contractOf = (profile) => ({
+  rev: CONTRACT,
+  act: profile?.release ?? null,
+  said: profile?.releaseSaid ?? null,
+  table: profile?.table ?? null,
+  declares: profile?.declares ?? null,
 });
 
-const WRITES = "the release step writes one at every multiple of fifty runs in the corpus";
+const readingOf = (directory, corpus, size, against = null, read = null) => {
+  const compared = evalRuns(corpus.runs, corpus.copies, size, against, read,
+    reachOf(corpus.scope, corpus.runs[0]?.startedAt), corpus.declared, corpus.act);
+  return {
+    root: corpus.root,
+    scope: corpus.scope,
+    sources: corpus.sources,
+    project: directory,
+    device: deviceOf(),
+    contract: contractOf(compared.now?.profile),
+    skipped: corpus.skipped,
+    unreadable: corpus.unreadable,
+    copies: corpus.copies.length,
+    ...(read ? { requests: read.spent.requests } : {}),
+    ...compared,
+  };
+};
+
+/** What of a reading is written down. The live object keeps every field, the screen and the angles
+ *  and `--json` all reading its `before` window and its `classes` table off it; the record keeps only
+ *  what a reader of a STORED reading reads. `readBack` feeds `now` alone into the comparison, and no
+ *  reader anywhere takes a stored `before` or a stored `classes` — 47 MB of this store's 124 MB at
+ *  the time this was measured, which is ISS-2106's to reclaim from the readings already held. */
+export const storedFrom = (reading) => {
+  const stored = { ...reading };
+  delete stored.before;
+  delete stored.classes;
+  return stored;
+};
+
+const WRITES = "one is written when this project's corpus reaches a multiple of fifty runs, by this verb or by a release";
 const RELEASE_WRITES = "the release step writes one at every release";
 
 const anchorAsked = (flag, value) => (value === null ? flag : `${flag} ${value}`);
@@ -483,14 +523,25 @@ const oneAnchorOnly = (against, release) => fail(
 /** The count is the corpus's own, read each time and never off the store, so no stale memory of a
  *  crossing can misplace it; the reading is written once, and a second ship landing on the same
  *  count appends nothing. */
-export const runsMark = async (directory, size = WINDOW) => {
-  const corpus = await corpusOf(directory);
-  const many = corpus.runs.length;
-  if (!(many > 0 && many % size === 0)) return null;
-  const said = `stats: ${many} issue-flow runs in this project's corpus — \`forge stats eval\`.`;
-  const wrote = writeMark({ kind: RUNS, mark: many, at: new Date().toISOString(),
-    ...readingOf(directory, corpus, size) });
-  return `${said} ${wroteSaid(wrote, many, "forge stats eval")}`;
+/* The crossing this corpus stands at, or null where a reading already covers it. It is the highest
+   multiple at or below the count, judged against the last reading held for the project rather than
+   against the count at one moment: an equality test took five of this corpus's twelve crossings,
+   because a count only lands exactly on a multiple when a run happens to end there (ISS-1984). */
+const crossingAt = (scope, many, size) => {
+  const at = Math.floor(many / size) * size;
+  if (at < size) return null;
+  const last = marksOf(RUNS, scope).at(-1)?.mark ?? 0;
+  return at > last ? at : null;
+};
+
+export const runsMark = async (directory, size = WINDOW, held = null) => {
+  const corpus = held ?? await corpusOf(directory);
+  const crossed = crossingAt(corpus.scope, corpus.runs.length, size);
+  if (crossed === null) return null;
+  const said = `stats: ${crossed} issue-flow runs in this project's corpus — \`forge stats eval\`.`;
+  const wrote = writeMark({ kind: RUNS, mark: crossed, at: new Date().toISOString(),
+    ...storedFrom(readingOf(directory, corpus, size)) });
+  return `${said} ${wroteSaid(wrote, crossed, "forge stats eval")}`;
 };
 
 /** The mark a release writes, whatever the corpus count: the version, the head and the issue keys it
@@ -505,7 +556,7 @@ export const releaseMark = async (directory, { version, head, issues = [] }, siz
   const wrote = writeMark({
     kind: RELEASES, mark: corpus.runs.length, version, head: head ?? null,
     issues: [...issues].map((one) => String(one).toUpperCase()),
-    at: new Date().toISOString(), ...readingOf(directory, corpus, size),
+    at: new Date().toISOString(), ...storedFrom(readingOf(directory, corpus, size)),
   });
   return `stats: this release is held as ${version} over ${corpus.runs.length} run(s) `
     + `(\`forge stats eval --since-release ${version}\`). ${releaseSaid(wrote, version)}`;
@@ -525,9 +576,9 @@ export const printEval = async (argv) => {
   /* The reading asked for is resolved before the corpus is judged: a mark nobody wrote is refused by
      name whatever the corpus holds, rather than answered with the empty corpus's sentence. */
   const stored = against === undefined ? null
-    : resolveAgainst(RUNS, against, { root: corpus.root, verb: "stats eval", list: "forge stats marks", writes: WRITES });
+    : resolveAgainst(RUNS, against, { scope: corpus.scope, verb: "stats eval", list: "forge stats marks", writes: WRITES });
   const since = release === undefined ? null
-    : resolveRelease(corpus.root, release, { verb: "stats eval", list: "forge stats marks", writes: RELEASE_WRITES });
+    : resolveRelease(corpus.scope, release, { verb: "stats eval", list: "forge stats marks", writes: RELEASE_WRITES });
   if (!corpus.runs.length) {
     return console.log(`No issue-flow run under ${corpus.root}, so there is nothing to compare. `
       + `${readingAside(corpus)}.${derivedFrom(directory)}`);
@@ -542,8 +593,17 @@ export const printEval = async (argv) => {
   /* Beside `angles` and outside `held`: the statement is one claim about the whole set rather than a
      field of each angle, and `held` is what both mark writers store — a key added there would be
      carried in every reading a ship holds, which is the boundary the line above keeps. */
+  /* Before either way out, and not only at a release step: `runsMark` was reachable from this
+     repository's own ship script alone, so a project that adopts this plugin never reached the writer
+     whatever its release model (ISS-1984). Above the JSON return because a machine reading this verb
+     crosses the same windows a person does, and its line is kept off that stdout rather than the
+     write being kept off that path (consult 6f21 F4). The corpus is handed over rather than read
+     again, and the window is the canonical one so that what `--size` asks to see cannot decide what
+     gets written down. */
+  const mark = await runsMark(directory, WINDOW, corpus);
   if (json) return console.log(JSON.stringify({ ...held, angles: judged, notMeasured: NOT_MEASURED }, null, 2));
   for (const line of evalLines(held, anchor, corpus.copies, judged)) console.log(line);
+  if (mark) console.log(`\n${mark}`);
   return null;
 };
 
@@ -551,8 +611,8 @@ export const printEval = async (argv) => {
 export const printMarks = (rest) => {
   const { checkout } = flags(rest, "stats marks", [], { usage: MARKS_USAGE });
   const directory = checkoutFrom(checkout, "stats marks");
-  const counts = marksOf(RUNS, rootFor(directory));
-  const releases = marksOf(RELEASES, rootFor(directory));
+  const counts = marksOf(RUNS, scopeOf(directory));
+  const releases = marksOf(RELEASES, scopeOf(directory));
   if (!counts.length && !releases.length) {
     return console.log(`No reading is held for this project yet; ${WRITES}, and ${RELEASE_WRITES}.`);
   }

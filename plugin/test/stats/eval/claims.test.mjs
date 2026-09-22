@@ -10,10 +10,10 @@ import {
   claimAsked, claimFor, claimJudged, claimLines, claimSaid, writeClaim,
 } from "../../../src/stats/eval/claims.mjs";
 import { DISPOSITIONS } from "../../../src/stats/eval/angles.mjs";
-import { CLAIMS, RELEASES, marksOf, marksPath } from "../../../src/stats/marks/marks.mjs";
+import { CLAIMS, RELEASES, marksOf, marksPath, scopeOf } from "../../../src/stats/marks/marks.mjs";
 import { refusing } from "../../../src/resolve/settings.mjs";
 import { tempRoom } from "../../fixtures.mjs";
-import { PROJECT, askStats, corpusOf, rootOf } from "../fixture-eval.mjs";
+import { PROJECT, askStats, corpusOf } from "../fixture-eval.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("stats-claims-home-");
 
@@ -50,7 +50,7 @@ test("22. a claim refused for what it named is refused with what it may name ins
 });
 
 test("23. a claim is refused where a release reading held for this project already names that issue", async () => {
-  holding({ kind: RELEASES, root: ROOT, version: "2.0.0", issues: ["ISS-11"], mark: 1, at: "2026-09-10T00:00:00.000Z" });
+  holding({ kind: RELEASES, scope: ROOT, version: "2.0.0", issues: ["ISS-11"], mark: 1, at: "2026-09-10T00:00:00.000Z" });
   const said = await refused(() => writeClaim(ROOT, "ISS-11", { angle: "wall", direction: "falls" }));
   assert.match(said, /ISS-11 landed in release 2\.0\.0/u);
   assert.match(said, /A claim is written before the change lands\./u);
@@ -110,7 +110,7 @@ const releaseHeld = (version, issues) => {
   const home = tempRoom("stats-claims-read-");
   const path = join(home, "forge", "eval-marks.jsonl");
   mkdirSync(dirname(path), { recursive: true });
-  appendFileSync(path, `${JSON.stringify({ kind: RELEASES, root: rootOf(room), version, issues,
+  appendFileSync(path, `${JSON.stringify({ kind: RELEASES, scope: scopeOf(PROJECT), version, issues,
     mark: 6, at: "2026-09-10T00:00:00.000Z",
     now: { runs: 6, profile: { runs: 6, from: 0, to: 1, medianMinutes: 10, medianCalls: 3,
       rungs: [], phases: [], perRun: {}, ships: {}, tokens: {} }, groups: [] } })}\n`);

@@ -15,7 +15,7 @@ import { UNRECORDED, copyAt, installedCopies, spansInstall } from "../../src/sta
 import { shiftBetween, tallied, twoWindows } from "../../src/stats/windows.mjs";
 import { evalObject, evalWindows } from "../../src/codex/codex-stats.mjs";
 import { SAYS } from "../../src/stats/stats.mjs";
-import { writeMark } from "../../src/stats/marks/marks.mjs";
+import { scopeOf, writeMark } from "../../src/stats/marks/marks.mjs";
 import { escaped, projectRoom, tempRoom } from "../fixtures.mjs";
 import { BASE, FORGE, HOUR, PROJECT, ask, askStats, at, corpusOf, runsOf } from "./fixture-eval.mjs";
 
@@ -164,7 +164,7 @@ test("a reading held deeper than the corpus reaches is what tells a swept corpus
   const was = process.env.XDG_CONFIG_HOME;
   try {
     process.env.XDG_CONFIG_HOME = home;
-    writeMark({ kind: "releases", mark: 70, version: "3.35.339", head: null, at: at(0), root,
+    writeMark({ kind: "releases", mark: 70, version: "3.35.339", head: null, at: at(0), root, scope: scopeOf(PROJECT),
       now: { runs: 50, profile: { from: BASE - 48 * HOUR * 1000, to: BASE } } });
   } finally {
     process.env.XDG_CONFIG_HOME = was;
@@ -181,7 +181,7 @@ test("a reading held deeper than the corpus reaches is what tells a swept corpus
      reader going by the window floor alone sees none of it (consult c5d393 F1). */
   try {
     process.env.XDG_CONFIG_HOME = home;
-    writeMark({ kind: "runs", mark: 100, at: at(0), root,
+    writeMark({ kind: "runs", mark: 100, at: at(0), root, scope: scopeOf(PROJECT),
       now: { runs: 50, profile: { from: BASE + 50 * HOUR * 1000, to: BASE + 99 * HOUR * 1000 } },
       comparability: { comparable: true, short: [], reach: { from: BASE - 200 * HOUR * 1000, earlier: null } } });
   } finally {
@@ -210,7 +210,8 @@ test("--json is the comparison alone, --size sets both windows, and a bad size i
   assert.equal(held.project, PROJECT);
   assert.equal(held.copies, 0);
   assert.deepEqual(Object.keys(held),
-    ["root", "sources", "project", "skipped", "unreadable", "copies", "requests", "size", "total", "now",
+    ["root", "scope", "sources", "project", "device", "contract", "skipped", "unreadable", "copies",
+      "requests", "size", "total", "now",
       "before", "comparability", "moved", "classes", "shifts", "angles", "notMeasured"]);
   assert.deepEqual(held.comparability,
     { comparable: true, short: [], reach: { from: BASE, earlier: null } },

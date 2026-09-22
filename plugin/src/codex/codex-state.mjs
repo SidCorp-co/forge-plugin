@@ -1,13 +1,12 @@
 /* The turn's bookkeeping: which files each checkout touched and has not consulted on, in one file
    for every repository on the machine, written under a lock. docs/cli/codex-the-log.md. */
-import { closeSync, lstatSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { lstatSync, mkdirSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
-import { basename, isAbsolute, join } from "node:path";
+import { isAbsolute, join } from "node:path";
 
 import { configDir, readJson, writeJsonPrivate } from "../resolve/config.mjs";
+import { underLock as holdingFile } from "../resolve/file-lock.mjs";
 import { flags } from "../resolve/flags.mjs";
-import { logHook } from "../hooks/log/hook-log-file.mjs";
 import { changedAgainst, digest } from "./codex-api.mjs";
 import { logBytes } from "./codex-log.mjs";
 import { sentShaOf } from "./log/asked.mjs";
@@ -27,66 +26,10 @@ export const ageOf = (at, now = Date.now()) => {
 };
 
 const lockPath = () => `${statePath()}.lock`;
-const STALE_MS = 5_000;
-const WAIT_MS = 20;
-const TRIES = 50;
 
-const pause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-
-/* Whose lock this is: a stale break hands the file on, and a release by path would delete another's. */
-const MINE = `${process.pid}-${randomBytes(4).toString("hex")}`;
-
-/* One file serves every checkout on the machine, so read-add-write would lose another project's line.
-   Bounded and stale-breaking: a gate that waits forever costs more than a list. */
-const underLock = (fn) => {
-  const lock = lockPath();
-  let held = null;
-  try {
-    mkdirSync(configDir("forge"), { recursive: true });
-  } catch {
-    /* no directory means no lock and no state; the caller's write fails the same way */
-  }
-  for (let tries = 0; tries < TRIES && held === null; tries += 1) {
-    try {
-      held = openSync(lock, "wx");
-      writeFileSync(held, MINE);
-    } catch (error) {
-      if (error.code !== "EEXIST") break;
-      let since = 0;
-      try {
-        since = statSync(lock).mtimeMs;
-      } catch {
-        since = 0;
-      }
-      if (since && Date.now() - since > STALE_MS) rmSync(lock, { force: true });
-      else pause(WAIT_MS);
-    }
-  }
-  /* Unlocked is the one moment a lost write is possible, so it leaves a trace. */
-  if (held === null) {
-    logHook({
-      at: new Date().toISOString(),
-      hook: basename(process.argv[1] ?? "", ".mjs"),
-      decision: "note",
-      tool: "",
-      session: "",
-      target: lock,
-      reason: `the lock held for ${(TRIES * WAIT_MS) / 1000}s, so the state was written without it`,
-    });
-  }
-  try {
-    return fn();
-  } finally {
-    if (held !== null) {
-      closeSync(held);
-      try {
-        if (readFileSync(lock, "utf8") === MINE) rmSync(lock, { force: true });
-      } catch {
-        held = null;
-      }
-    }
-  }
-};
+/* The lock itself is `../resolve/file-lock.mjs`: the readings a mark holds are written under the
+   same one, and a second copy of a bounded stale-breaking lock is how the two answers drift. */
+const underLock = (fn) => holdingFile(lockPath(), fn);
 
 export { underLock as holding };
 

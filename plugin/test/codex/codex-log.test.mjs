@@ -130,9 +130,12 @@ test("the consult that takes the log onto a hundred-mark names the eval; the one
     logConsult(PLANTED(200));
     assert.match(crossingSaid(crossing), /^codex: 200 answered consults in the log — `forge codex eval`\. The reading is held as mark 200 \(`forge codex eval --against 200`\)\.$/u);
     const [record] = marksOf("consults");
-    assert.deepEqual(Object.keys(record), ["kind", "mark", "at", "size", "total", "now", "before", "shifts"], "the object `codex eval --json` prints");
-    assert.deepEqual([record.mark, record.root, record.total, record.now.consults, record.now.to], [200, undefined, 200, 100, PLANTED(199).at],
-      "the device's, with no root; the log as it stood at the crossing, not the 201 it holds now");
+    assert.deepEqual(Object.keys(record), ["kind", "mark", "at", "device", "size", "total", "now", "before", "shifts"],
+      "the object `codex eval --json` prints, under the mark's own three fields and the device it was taken on");
+    assert.deepEqual([record.mark, record.root, record.scope, record.total, record.now.consults, record.now.to],
+      [200, undefined, undefined, 200, 100, PLANTED(199).at],
+      "the device's, held under no project and no root; the log as it stood at the crossing, not the 201 it holds now");
+    assert.match(record.device, /^[0-9a-f]{16}$/u, "criterion 8: and it names which device that was");
     assert.ok(Date.parse(record.at) > 0);
     const written = readFileSync(marksPath(), "utf8");
     assert.match(crossingSaid(crossing), /Mark 200 was already held, so nothing was written\.$/u);

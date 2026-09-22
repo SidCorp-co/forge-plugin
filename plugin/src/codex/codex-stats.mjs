@@ -16,6 +16,7 @@ import { flags } from "../resolve/flags.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
 import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, tallied, twoWindows } from "../stats/windows.mjs";
 import { CONSULTS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "../stats/marks/marks.mjs";
+import { deviceOf } from "../resolve/device.mjs";
 
 const DEFAULT_WINDOW = 100;
 const REPLAY_WINDOW = 30;
@@ -311,7 +312,10 @@ export const evalObject = (entries, against = null) => {
 /** What the consult that crossed a mark says, having written the reading once: the log as it stood
  *  when that consult landed, so one finishing just behind it is not in the window the mark names. */
 export const crossingSaid = ({ mark, at, said, entries }) => {
-  const wrote = writeMark({ kind: CONSULTS, mark, at: new Date().toISOString(), ...evalObject(entries.slice(0, at + 1)) });
+  /* The device and no scope: a consult reading is this machine's account of what it asked, as the
+     consult log is, so it is held under no project and every checkout on this device sees it. */
+  const wrote = writeMark({ kind: CONSULTS, mark, at: new Date().toISOString(), device: deviceOf(),
+    ...evalObject(entries.slice(0, at + 1)) });
   return `${said} ${wroteSaid(wrote, mark, "forge codex eval")}`;
 };
 

@@ -1,10 +1,16 @@
 /* The readings both harness evals write at a mark and read back as a pinned before window: one store, kept as the
-   consult log keeps its entries. A runs reading carries the root whose corpus was counted; a consult reading is the device's and carries none. docs/cli/stats-the-mark.md. */
+   consult log keeps its entries. What a project reading is held under is `scopeOf` below; a consult
+   reading is the device's and is held under nothing. docs/cli/stats-the-mark.md. */
 import { join } from "node:path";
 
-import { appendJsonl, jsonlAt } from "../../hooks/log/hook-log-file.mjs";
+import { copyFileSync, existsSync, renameSync, writeFileSync } from "node:fs";
+
+import { appendJsonl, jsonlAt, jsonlBack, jsonlBytes, jsonlMark } from "../../hooks/log/hook-log-file.mjs";
 import { configDir } from "../../resolve/config.mjs";
-import { fail } from "../../resolve/settings.mjs";
+import { UNKNOWN_DEVICE } from "../../resolve/device.mjs";
+import { underLock } from "../../resolve/file-lock.mjs";
+import { checkoutAt } from "../../git/checkout-at.mjs";
+import { fail, projectAt } from "../../resolve/settings.mjs";
 
 export const RUNS = "runs";
 export const CONSULTS = "consults";
@@ -15,10 +21,119 @@ export const CLAIMS = "claims";
 
 export const marksPath = () => join(configDir("forge"), "eval-marks.jsonl");
 
+/* Beside the store and never of this run's own: two processes crossing the same window is the case
+   this guards, so a lock either process could miss guards nothing. */
+const lockPath = () => `${marksPath()}.lock`;
+/* What says the migration has run. The store itself cannot answer it: a record left unassigned is
+   indistinguishable from one not yet reached, so asking the records would migrate for ever. */
+const migratedPath = () => `${marksPath()}.migrated`;
+/* The store as it stood, written before a byte of it is rewritten, and the whole of the way back. */
+const beforePath = () => `${marksPath()}.before-ISS-1984`;
+
+/* A checkout the tracker names no project for. Under a prefix no tracker slug can wear, because the
+   answer has to be a value and never `null`: `null` is what the consult side passes to mean every
+   reading on this device, and an unidentified project read that way would be handed the readings of
+   projects that are not it. One bucket for every such checkout would do the same thing a size
+   smaller, so the repository is what separates them. */
+const NO_PROJECT = "checkout:";
+
+/** The scope a reading is held under: the project the tracker names for the checkout whose corpus was
+ *  read, or the repository that checkout belongs to where it names none. Either way it keys on the
+ *  repository rather than on the directory, so a checkout and every linked worktree of it answer
+ *  alike and no temporary directory reaches it — which the key it replaces, `rootFor(directory)`,
+ *  could not say, being `join(tmpdir(), slug(checkout))` and so a different value in every run that
+ *  was handed a TMPDIR of its own (ISS-1984). */
+export const scopeOf = (directory) => {
+  const named = projectAt(directory);
+  if (named) return named;
+  const repository = checkoutAt(directory)?.repository ?? null;
+  /* The repository where there is one and the directory itself where there is not: both are stable
+     across the temporary directories a run is handed, which is the whole of what the old key was
+     not. The WHOLE path and never its last segment — `/work/a/app` and `/work/b/app` are two
+     repositories, and a key that could not tell them apart would resolve one's readings for the
+     other, which is the defect this scope exists to end (consult 6f21 F3). */
+  return `${NO_PROJECT}${repository ?? directory}`;
+};
+
 const readAll = () => jsonlAt(marksPath());
 
-export const marksOf = (kind, root = null) =>
-  readAll().filter((one) => one.kind === kind && (root === null || one.root === root));
+/** The readings of one kind, oldest first, for one scope — or for every scope where none is named,
+ *  which is what a consult reading is held under. Only the records carrying that scope are parsed:
+ *  the store is a file every reading ever taken is appended to, and parsing all of it to answer for
+ *  one project is what made every reading pay for every reading (ISS-1984). */
+const scanOf = (kind, scope) => {
+  const every = scope === null ? [] : [jsonlMark("scope", scope)];
+  return [...jsonlBack(jsonlBytes(marksPath()), [jsonlMark("kind", kind)], every)].reverse();
+};
+
+export const marksOf = (kind, scope = null) => {
+  migrated();
+  return scanOf(kind, scope);
+};
+
+/* One rewrite and never a second. Every record is written back keeping every field it holds and
+   gaining only the scope `scopeHeld` works out for it. */
+/* What a record already held is owed. Its OWN recorded checkout and never the one this process is
+   standing in: `root` is a scratch path, and decoding a project out of one would be a guess wearing a
+   reading's clothes. A record naming no checkout at all keeps its figures under no scope and is
+   reported, there being nothing about it to resolve. */
+const scopeHeld = (one) => (one.project ? scopeOf(one.project) : null);
+
+const migrateHeld = () => {
+  if (existsSync(migratedPath())) return;
+  const held = readAll();
+  const left = [];
+  if (held.length) {
+    /* Once, and never over a backup already published: a rewrite interrupted after the store was
+       renamed leaves the next attempt reading records already migrated, and copying THOSE over the
+       way back would destroy the very bytes it exists to hold. Copied aside and renamed into place,
+       so a copy interrupted half way is not mistaken for a finished one. */
+    if (!existsSync(beforePath())) {
+      const aside = `${beforePath()}.part`;
+      copyFileSync(marksPath(), aside);
+      renameSync(aside, beforePath());
+    }
+    const lines = held.map((one) => {
+      if (one.kind === CONSULTS) return JSON.stringify(one);
+      const scope = scopeHeld(one);
+      if (!scope) left.push(one.project ?? one.root ?? "a record naming no checkout");
+      /* Said rather than left absent, and never worked out from what this machine is configured as
+         now: a reading taken before either field existed was taken on a device nothing recorded and
+         under a contract nothing wrote down, and stamping today's answer onto it would make a
+         reading from a month ago claim to have been measured under this week's rules. */
+      return JSON.stringify({ ...one, ...(scope ? { scope } : {}),
+        device: one.device ?? UNKNOWN_DEVICE, contract: one.contract ?? null });
+    });
+    const next = `${marksPath()}.next`;
+    writeFileSync(next, `${lines.join("\n")}\n`, { mode: 0o600 });
+    /* Renamed rather than written over: a rewrite interrupted half way would leave the store torn,
+       and the copy beside it is the way back only if the store it answers for is whole. */
+    renameSync(next, marksPath());
+  }
+  writeFileSync(migratedPath(), `${JSON.stringify({
+    at: new Date().toISOString(), records: held.length, unresolved: left.length,
+    checkouts: [...new Set(left)], kept: held.length ? beforePath() : null,
+  })}\n`, { mode: 0o600 });
+};
+
+/* Outside the lock where the marker already answers, since that is every call but the first one this
+   machine ever makes, and the lock is what two crossing writers are queued by and not what a read is. */
+/* Strict, so a writer that could not take the lock says the reading is not held rather than writing
+   beside another one; and a stale window that covers a whole-file rewrite, because the guarded work
+   here is the migration of every record the store holds and a holder taken for gone at five seconds
+   would be evicted in the middle of it. */
+const GUARDED = { strict: true, stale: 120_000, waits: 30_000 };
+
+const migrated = () => {
+  if (existsSync(migratedPath())) return;
+  try {
+    underLock(lockPath(), migrateHeld, GUARDED);
+  } catch {
+    /* A store this machine cannot write is one it cannot migrate either. The read goes on over
+       whatever is there rather than throwing, as `jsonlAt` answers an unreadable store with none,
+       and the write beside it is what says the reading could not be held. */
+  }
+};
 
 /* A release is one version and not one count: two can land at the same count, and holding them by count discards the second and leaves the version nothing to resolve. */
 const identityOf = (record) => {
@@ -30,18 +145,21 @@ const identityOf = (record) => {
 };
 
 const sameMark = (held, record) =>
-  held.kind === record.kind && identityOf(held) === identityOf(record) && (held.root ?? null) === (record.root ?? null);
+  held.kind === record.kind && identityOf(held) === identityOf(record) && (held.scope ?? null) === (record.scope ?? null);
 
 export const WRITTEN = "written";
 export const HELD = "held";
 export const FAILED = "failed";
 
-/** Appends unless the same reading is held, and says which — written, held or failed. A failed write is said and carried past, as the consult log's is: the mark line it accompanies is worth more than a stats file. No two writers race here — a runs mark is written under the ship's lock, and a consult crossing belongs to exactly the record that landed on it. */
+/** Appends unless the same reading is held, and says which — written, held or failed. A failed write is said and carried past, as the consult log's is: the mark line it accompanies is worth more than a stats file. The check and the append are one act under the store's own lock: the eval writes a reading as well as the ship now, so two processes crossing one window would otherwise both read no reading and both append one, and a record of this size is far past the bytes a single append is atomic in. */
 export const writeMark = (record) => {
   try {
-    if (readAll().some((one) => sameMark(one, record))) return HELD;
-    appendJsonl(marksPath(), record, configDir("forge"));
-    return WRITTEN;
+    return underLock(lockPath(), () => {
+      migrateHeld();
+      if (scanOf(record.kind, record.scope ?? null).some((one) => sameMark(one, record))) return HELD;
+      appendJsonl(marksPath(), record, configDir("forge"));
+      return WRITTEN;
+    }, GUARDED);
   } catch (error) {
     console.error(`stats: could not write ${marksPath()} (${error.message}); this reading is not held.`);
     return FAILED;
@@ -82,8 +200,8 @@ export const sinceReleaseIn = (argv) => {
 };
 
 /** The release reading a version names, or the newest held for this project. */
-export const resolveRelease = (root, asked, { verb, list, writes }) => {
-  const held = marksOf(RELEASES, root);
+export const resolveRelease = (scope, asked, { verb, list, writes }) => {
+  const held = marksOf(RELEASES, scope);
   if (!held.length) {
     fail(`${verb}: --since-release names no reading — none is held for this project yet; ${writes}. \`${list}\` lists what is held.`);
   }
@@ -95,16 +213,16 @@ export const resolveRelease = (root, asked, { verb, list, writes }) => {
 };
 
 /** The reading `--against` names, or the newest of the scope; refused by name, with the list subject. */
-export const resolveAgainst = (kind, asked, { root = null, verb, list, writes }) => {
-  const held = marksOf(kind, root);
-  const scope = kind === RUNS ? "for this project" : "on this device";
+export const resolveAgainst = (kind, asked, { scope = null, verb, list, writes }) => {
+  const held = marksOf(kind, scope);
+  const whose = kind === RUNS ? "for this project" : "on this device";
   if (asked === null) {
     if (held.length) return held.at(-1);
-    fail(`${verb}: --against names no reading — none is held ${scope} yet; ${writes}. \`${list}\` lists what is held.`);
+    fail(`${verb}: --against names no reading — none is held ${whose} yet; ${writes}. \`${list}\` lists what is held.`);
   }
   const found = held.findLast((one) => one.mark === asked);
   if (found) return found;
-  fail(`${verb}: no ${kind} reading at mark ${asked} ${scope}. \`${list}\` lists what is held.`);
+  fail(`${verb}: no ${kind} reading at mark ${asked} ${whose}. \`${list}\` lists what is held.`);
   return null;
 };
 

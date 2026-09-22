@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { WINDOW, evalLines, evalRuns, releaseMark, runsMark } from "../../../src/stats/eval/eval.mjs";
-import { marksOf, marksPath, writeMark } from "../../../src/stats/marks/marks.mjs";
+import { marksOf, marksPath, scopeOf, writeMark } from "../../../src/stats/marks/marks.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 import { escaped, tempRoom } from "../../fixtures.mjs";
 import { HOUR, PROJECT, ask, askStats, at, corpusOf, runsOf } from "../fixture-eval.mjs";
@@ -29,10 +29,11 @@ test("the ship's mark is one line at a multiple of the window, read off the corp
     const root = join(room, `claude-${process.getuid()}`, slugFor(PROJECT));
     assert.equal(await runsMark(PROJECT),
       "stats: 50 issue-flow runs in this project's corpus — `forge stats eval`. The reading is held as mark 50 (`forge stats eval --against 50`).");
-    const [record] = marksOf("runs", root);
+    const [record] = marksOf("runs", scopeOf(PROJECT));
     assert.equal(record.kind, "runs");
     assert.equal(record.mark, 50);
-    assert.equal(record.root, root);
+    assert.equal(record.root, root, "where the corpus was read is still recorded");
+    assert.equal(record.scope, scopeOf(PROJECT), "and the scope is what it is held under");
     assert.ok(Date.parse(record.at) > 0, "the moment it was written");
     const printed = JSON.parse(ask(room, "--json").stdout);
     /* Every key of the printed object but the one the tracker read adds and the two the screen judges
@@ -42,9 +43,15 @@ test("the ship's mark is one line at a multiple of the window, read off the corp
        whole corpus as well, for a verdict nobody is reading at that moment (ISS-1987). What those
        angles do not measure travels with them and is stored no more than they are (ISS-1996). */
     const JUDGED = ["requests", "angles", "notMeasured"];
-    const costOnly = Object.keys(printed).filter((one) => !JUDGED.includes(one));
+    /* And the two the store does not keep: nothing reads a stored `before` or a stored `classes`,
+       so a record that carried them would be half a file nobody opens (ISS-1984, ISS-2106). */
+    const UNREAD = ["before", "classes"];
+    const costOnly = Object.keys(printed).filter((one) => ![...JUDGED, ...UNREAD].includes(one));
     assert.deepEqual(Object.keys(record), ["kind", "mark", "at", ...costOnly],
-      "the object --json prints less its tracker read, under the mark's own three fields");
+      "the object --json prints less its tracker read and less what no reader of a stored reading reads");
+    assert.equal(record.before, undefined, "criterion 16: the store keeps no before window of its own");
+    assert.equal(record.classes, undefined, "nor its class table");
+    assert.ok("before" in printed && "classes" in printed, "criterion 16: while the eval's own JSON keeps both");
     assert.equal(record.now.outcomes, undefined, "a stored reading carries no outcome figure rather than zeroes");
     assert.deepEqual(record.comparability, { comparable: false, short: ["there is no window before it"],
       reach: { from: Date.parse("2026-09-01T00:00:00.000Z"), earlier: null } },
@@ -52,13 +59,14 @@ test("the ship's mark is one line at a multiple of the window, read off the corp
     /* The profile and the count: the groups and `spanned` name copies, and this process sees the real cache where the spawned verb sees an empty HOME. */
     assert.deepEqual([record.now.runs, record.now.profile], [printed.now.runs, printed.now.profile], "and the same figures");
     const bytes = readFileSync(marksPath());
-    assert.equal(await runsMark(PROJECT), "stats: 50 issue-flow runs in this project's corpus — `forge stats eval`. Mark 50 was already held, so nothing was written.");
-    assert.deepEqual(readFileSync(marksPath()), bytes, "criterion 2: a second landing on the same count appends nothing");
+    assert.equal(await runsMark(PROJECT), null,
+      "criterion 1: a crossing the last reading held already covers is no crossing, so the second landing says nothing");
+    assert.deepEqual(readFileSync(marksPath()), bytes, "and appends nothing");
 
     rootOf(100);
     assert.match(await runsMark(PROJECT), /^stats: 100 issue-flow runs .* — `forge stats eval`\. The reading is held as mark 100/u);
     rootOf(51);
-    assert.equal(await runsMark(PROJECT), null, "criterion 3: fifty-one is no crossing");
+    assert.equal(await runsMark(PROJECT), null, "criterion 3: one past a crossing already held is no crossing");
     rootOf(49);
     assert.equal(await runsMark(PROJECT), null);
     assert.equal(marksOf("runs").length, 2, "and neither wrote");
@@ -80,7 +88,7 @@ test("a stored reading is the before window, and the screen says where the windo
     process.env.TMPDIR = room;
     const empty = askStats(room, ["marks", "--checkout", PROJECT], home);
     assert.equal(empty.status, 0, empty.stderr);
-    assert.match(empty.stdout, /^No reading is held for this project yet; the release step writes one at every multiple of fifty runs in the corpus, and the release step writes one at every release\./u);
+    assert.match(empty.stdout, /^No reading is held for this project yet; one is written when this project's corpus reaches a multiple of fifty runs, by this verb or by a release, and the release step writes one at every release\./u);
     const none = ask(room, "--against");
     assert.equal(none.status, 1);
     assert.match(none.stderr, /stats eval: --against names no reading — none is held for this project yet/u);
@@ -99,7 +107,7 @@ test("a stored reading is the before window, and the screen says where the windo
     assert.deepEqual(json.before, record.now, "the stored recent window, byte for byte, as the before");
     assert.equal(json.before.outcomes, undefined, "which is why the before side of a pinned comparison has no outcome figure");
     assert.equal(json.now.runs, 50);
-    assert.deepEqual(Object.keys(json).slice(6, 10), ["requests", "size", "total", "against"]);
+    assert.deepEqual(Object.keys(json).slice(9, 13), ["requests", "size", "total", "against"]);
 
     const newest = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--against", "--json"], home).stdout);
     assert.equal(newest.against, 50, "criterion 8: bare --against is the newest held");
@@ -207,7 +215,7 @@ test("a release mark carries its version and head, resolves apart from a count m
 
     assert.match(await releaseMark(PROJECT, { version: "3.35.300", head: "abc1234" }),
       /^stats: this release is held as 3\.35\.300 over 50 run\(s\) \(`forge stats eval --since-release 3\.35\.300`\)\./u);
-    const [held] = marksOf("releases", root);
+    const [held] = marksOf("releases", scopeOf(PROJECT));
     assert.equal(held.kind, "releases");
     assert.equal(held.version, "3.35.300");
     assert.equal(held.head, "abc1234");
@@ -216,8 +224,8 @@ test("a release mark carries its version and head, resolves apart from a count m
 
     /* The count mark at the same corpus count: two records at one count, neither resolving the other. */
     assert.match(await runsMark(PROJECT), /held as mark 50/u);
-    assert.equal(marksOf("runs", root).length, 1);
-    assert.equal(marksOf("releases", root).length, 1, "one count, two kinds, no collision");
+    assert.equal(marksOf("runs", scopeOf(PROJECT)).length, 1);
+    assert.equal(marksOf("releases", scopeOf(PROJECT)).length, 1, "one count, two kinds, no collision");
 
     assert.equal(await releaseMark(PROJECT, { version: "3.35.300", head: "abc1234" }),
       "stats: this release is held as 3.35.300 over 50 run(s) (`forge stats eval --since-release 3.35.300`). "
@@ -255,7 +263,7 @@ test("a release mark carries its version and head, resolves apart from a count m
        version is a release's identity and `--since-release` has nothing else to resolve by. */
     assert.match(await releaseMark(PROJECT, { version: "3.35.400", head: "aaa1111" }), /held as 3\.35\.400 over 75 run\(s\)/u);
     assert.match(await releaseMark(PROJECT, { version: "3.35.401", head: "bbb2222" }), /held as 3\.35\.401 over 75 run\(s\)/u);
-    assert.equal(marksOf("releases", root).filter((one) => one.mark === 75).length, 2, "both are held at one count");
+    assert.equal(marksOf("releases", scopeOf(PROJECT)).filter((one) => one.mark === 75).length, 2, "both are held at one count");
     assert.equal(await releaseMark(PROJECT, { version: "3.35.400", head: "aaa1111" }),
       "stats: this release is held as 3.35.400 over 75 run(s) (`forge stats eval --since-release 3.35.400`). "
       + "Version 3.35.400 was already held, so nothing was written.", "and rewriting either writes nothing twice");
