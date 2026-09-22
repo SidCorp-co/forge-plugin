@@ -162,6 +162,36 @@ filled in by the agent, and the person who answers it is the analyst the project
   WHEN a question can be answered by the specification THEN the decision record SHALL cite the
   clause rather than park the issue.
 
+### UC-14-8 — An escape names somebody who can still keep it
+
+Rev: 1 · Actors: developer, agent · Enforces: BR-02
+
+R-11 lets a criterion stand unproved by naming the issue that owes the case, so the promise is worth
+exactly what that issue is worth: once it closes or is dropped, the line reads as a live promise and
+nobody is owed anything by it. The shape of the escape stays the gate's, which runs with no tracker
+and has to answer the same way twice; its subject belongs to a report, which has the network, and to
+the act that ends the owing, which needs none.
+
+- **AC-14-8-1** · Rev: 1 · Proof: plugin/test/spec/proof-cases.test.mjs "the escape is judged on its shape alone, by a reader that is handed no status at all"
+  WHEN the gate judges an escape THEN it SHALL judge the shape alone and SHALL read no tracker.
+- **AC-14-8-2** · Rev: 1 · Proof: plugin/test/spec/proof-cases.test.mjs "the key standing for a well-formed escape is one no status attaches to, and the answer is the same for every status"
+  WHERE a case stands for a well-formed escape, the key it names SHALL be one no status attaches to,
+  so nothing that case asserts can turn on what became of it.
+- **AC-14-8-3** · Rev: 1 · Proof: plugin/test/checks/docs/owing-escapes.test.mjs "the row counts the escapes read, the ones no longer owed, and the document carrying most of those"
+  WHEN the escapes are judged against the tracker THEN the report SHALL say how many it read, how
+  many name an issue that no longer owes the case, and which document carries most of those.
+- **AC-14-8-4** · Rev: 1 · Proof: plugin/test/checks/docs/owing-escapes.test.mjs "one escape no longer owed makes the row a fault and not a note"
+  IF an escape names an issue that no longer owes the case THEN the report SHALL carry it as a fault
+  rather than as a note.
+- **AC-14-8-5** · Rev: 1 · Proof: plugin/test/checks/docs/owing-escapes.test.mjs "a tracker that did not answer leaves every escape unjudged, and the row is neither a pass nor a fault"
+  IF the tracker does not answer THEN the report SHALL say how many escapes went unjudged and SHALL
+  report neither a pass nor a fault on them.
+- **AC-14-8-6** · Rev: 1 · Proof: plugin/test/flow/gone-escapes.test.mjs "a move to closed names every criterion whose escape cites the key, with its file and line"
+  WHEN an issue reaches a status from which it no longer owes THEN the CLI SHALL name every
+  criterion of the project's tree whose escape cites that key, with the file and line of each.
+- **AC-14-8-7** · Rev: 1 · Proof: plugin/test/flow/gone-escapes.test.mjs "a project that keeps no requirements tree is told nothing at all"
+  WHERE the project keeps no requirements tree that move SHALL say nothing about escapes.
+
 ## The way back
 
 *What undoes a change here?*
