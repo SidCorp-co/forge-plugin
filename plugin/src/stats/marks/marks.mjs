@@ -69,8 +69,8 @@ const scanOf = (kind, scope) => {
   return [...jsonlBack(jsonlBytes(marksPath()), [jsonlMark("kind", kind)], every)].reverse();
 };
 
-export const marksOf = (kind, scope = null) => {
-  passed();
+export const marksOf = (kind, scope = null, waits) => {
+  passed(waits);
   return scanOf(kind, scope);
 };
 
@@ -175,13 +175,16 @@ const passHeld = () => {
 /* Strict, so a writer that could not take the lock says the reading is not held rather than writing
    beside another one, and so that a holder still running is waited on however long its work takes
    rather than evicted by the clock — the guarded work here is the rewrite of every record the store
-   holds. The budget is what a waiter spends before it gives that answer. */
-const GUARDED = { strict: true, waits: 30_000 };
+   holds. The budget is the one of the three a caller may name: whether a lost reading is worth
+   refusing over is the store's to price and stays here, while what a call may spend waiting belongs
+   to whoever holds the clock, as `tracker/rest.mjs` already takes `waits` from a caller. */
+const WAITS_MS = 30_000;
+const guarded = (waits = WAITS_MS) => ({ strict: true, waits });
 
-const passed = () => {
+const passed = (waits) => {
   if (PASSES.every((pass) => existsSync(donePath(pass.marker)))) return;
   try {
-    underLock(lockPath(), passHeld, GUARDED);
+    underLock(lockPath(), passHeld, guarded(waits));
   } catch {
     /* A store this machine cannot write is one no pass can rewrite either. The read goes on over
        whatever is there rather than throwing, as `jsonlAt` answers an unreadable store with none,
@@ -206,14 +209,14 @@ export const HELD = "held";
 export const FAILED = "failed";
 
 /** Appends unless the same reading is held, and says which — written, held or failed. A failed write is said and carried past, as the consult log's is: the mark line it accompanies is worth more than a stats file. The check and the append are one act under the store's own lock: the eval writes a reading as well as the ship now, so two processes crossing one window would otherwise both read no reading and both append one, and a record of this size is far past the bytes a single append is atomic in. */
-export const writeMark = (record) => {
+export const writeMark = (record, waits) => {
   try {
     return underLock(lockPath(), () => {
       passHeld();
       if (scanOf(record.kind, record.scope ?? null).some((one) => sameMark(one, record))) return HELD;
       appendJsonl(marksPath(), withoutDead(record), configDir("forge"));
       return WRITTEN;
-    }, GUARDED);
+    }, guarded(waits));
   } catch (error) {
     console.error(`stats: could not write ${marksPath()} (${error.message}); this reading is not held.`);
     return FAILED;

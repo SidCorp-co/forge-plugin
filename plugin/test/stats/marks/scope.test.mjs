@@ -16,6 +16,14 @@ import { PROJECT, askStats, at, corpusOf, rootOf } from "../fixture-eval.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("stats-scope-home-");
 
+/* What the cases below that hold the lock against somebody else spend before the store answers. The
+   store's own budget is sized to the one-time rewrite of every record it holds, and these cases hold
+   a lock nobody will ever release: the budget is spent whole, every time, and what they prove — that
+   the guard is left standing and the reading reported as not held — is the same at any figure. The
+   crossing case further down names none of this and keeps the store's own, a pass being owed there
+   and the waiting writer having a real rewrite to outlast. */
+const BRIEFLY = 100;
+
 /* A checkout declaring a project, so `scopeOf` answers the tracker's slug rather than either
    fallback: the value the tracker names is the one rung this issue is about. */
 const declaring = (slug) => {
@@ -364,7 +372,7 @@ test("a lock whose holder is still running is waited on and then refused, never 
     try {
       writeFileSync(`${marksPath()}.lock`, `${holder.pid}-deadbeef`);
       const reading = { kind: RUNS, mark: 50, at: at(0), scope: "guarded", now: { runs: 50, profile: {} } };
-      assert.equal(writeMark(reading), "failed",
+      assert.equal(writeMark(reading, BRIEFLY), "failed",
         "a writer that cannot take the lock says the reading is not held rather than writing beside one");
       assert.ok(!existsSync(marksPath()) || !readFileSync(marksPath(), "utf8").includes('"scope":"guarded"'),
         "and nothing of it reached the store");
@@ -387,10 +395,10 @@ test("a writer removes no lock it does not own, whatever it can work out about t
   inHome(home, () => {
     writeFileSync(`${marksPath()}.migrated`, "{}\n");
     writeFileSync(`${marksPath()}.lock`, `${pid}-deadbeef`);
-    assert.equal(writeMark({ kind: RUNS, mark: 50, at: at(0), scope: "freed", now: { runs: 50, profile: {} } }),
+    assert.equal(writeMark({ kind: RUNS, mark: 50, at: at(0), scope: "freed", now: { runs: 50, profile: {} } }, BRIEFLY),
       "failed", "even a holder that has ended keeps its lock: every rule for taking one rests on a reading taken before the removal");
     assert.equal(readFileSync(`${marksPath()}.lock`, "utf8"), `${pid}-deadbeef`, "the lock is left where it stood");
-    assert.deepEqual(marksOf(RUNS, "freed"), [], "and nothing was written beside it");
+    assert.deepEqual(marksOf(RUNS, "freed", BRIEFLY), [], "and nothing was written beside it");
   });
 });
 
@@ -443,9 +451,9 @@ test("a lock whose owner cannot be read is not taken for one nobody holds", () =
   inHome(home, () => {
     writeFileSync(`${marksPath()}.migrated`, "{}\n");
     writeFileSync(`${marksPath()}.lock`, "");
-    assert.equal(writeMark({ kind: RUNS, mark: 50, at: at(0), scope: "partial", now: { runs: 50, profile: {} } }),
+    assert.equal(writeMark({ kind: RUNS, mark: 50, at: at(0), scope: "partial", now: { runs: 50, profile: {} } }, BRIEFLY),
       "failed", "an owner that cannot be read is unknown, never gone");
-    assert.deepEqual(marksOf(RUNS, "partial"), [], "and nothing was written beside it");
+    assert.deepEqual(marksOf(RUNS, "partial", BRIEFLY), [], "and nothing was written beside it");
     assert.equal(readFileSync(`${marksPath()}.lock`, "utf8"), "", "the lock is left where it stood");
   });
 });
