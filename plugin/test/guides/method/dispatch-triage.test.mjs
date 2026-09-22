@@ -96,43 +96,51 @@ test("where two tiers fit, the higher is the reading", () => {
 test("the priority is read from the reach rather than held apart from it", () => {
   carries("2", [
     ["the ground", "That reading is what the priority is read from"],
-    ["what a priority is", "a reading of what the issue costs this plugin"],
-    ["the bands still apart", "The two stay different bands"],
-    ["the band that sits against the reach", "carries the reason it does or it carries nothing"],
+    ["what a priority is", "A priority here is a reading of what the issue costs this plugin"],
+    ["the reach as that ground", "the reach is its ground"],
+    ["the bands still apart", "The two stay different bands, because where an issue sits is not an instruction to work it"],
+    ["the band that sits against the reach", "a band that sits against the reach carries the reason it does or it carries nothing"],
   ]);
 });
 
 test("a defect with no way round it outranks one a run can detour", () => {
   carries("2", [
     ["the ordering", "A defect with no way round it outranks one with a workaround, at equal reach and equal size"],
-    ["the detour written beside the band", "The detour is what earned the lower band, so it is written on the issue"],
+    ["the detour written beside the band", "The detour is what earned the lower band, so it is written on the issue in the same breath"],
   ]);
 });
 
-test("the top band names what reaches it, being the whole of the table's spread", () => {
+test("the top band names itself and what reaches it, being the whole of the table's spread", () => {
   carries("2", [
-    ["the threshold", "what reaches it is an issue that leaves a run no route to its outcome at all"],
-    ["read by somebody who did not file it", "has to be able to see that in the body"],
+    ["which band", "`critical` is the whole of the table's spread, and what reaches it is an issue that leaves a run no route to its outcome at all"],
+    ["what it is not", "not one slowed and not one detoured"],
+    ["read by somebody who did not file it", "Somebody who did not file the issue has to be able to see that in the body"],
+    ["the band nobody can see", "a band nobody can see it from is one this phase reads down"],
   ]);
 });
 
 test("the priority is this phase's fourth write, and a reading leaving neither band is unfinished", () => {
   carries("2", [
-    ["the write", "The priority goes with it, by the same reader and into the tracker's"],
+    ["the write and its field", "The priority goes with it, by the same reader and into the tracker's `priority` field"],
+    ["what the why names", "the why naming what the issue costs and the act that meets it"],
     ["the count", "This phase's four writes — the confirmation, the candidate line, the complexity and the priority"],
     ["neither band", "A reading that leaves its issue holding neither band has not finished"],
-    ["the issue nobody can read", "that inability is itself the finding"],
+    ["what neither band means", "it is one nobody read, and nothing downstream can tell those two apart"],
+    ["the unreadable body with no slot waiting", "Where the body gives the reader nothing to judge a cost from and no slot is waiting on it, that inability is itself the finding"],
+    ["what is written with it", "it is recorded, and the band written with it is the one that reading supports, rather than the write being left off"],
   ]);
 });
 
 /* The served method reaches a dispatcher; a role dispatched to one issue reads its own file and may
-   read nothing else, so the ownership and the ground are pinned there as well (ISS-2131). */
+   read nothing else, so the ownership, the ground and the route to the rest are pinned there as well
+   (ISS-2131). The role file has no flow, so it is read directly rather than through a served answer. */
 test("the triage role is told the priority is its own, and where the bands' rules are", () => {
   const text = flat(roleText("triage"));
   for (const [what, phrase] of [
     ["the write's owner", "The priority is yours on the same terms"],
-    ["the ground", "a reading of what the issue costs this plugin rather than of what anyone wants done"],
-    ["the route to the rules", "is in that same served part"],
+    ["the ground", "it is a reading of what the issue costs this plugin rather than of what anyone wants done"],
+    ["what the served part carries", "how far a defect with a way round it sits below one with none, and what reaches the top of the table"],
+    ["the route to it", "is in that same served part"],
     ["neither band", "an issue you leave holding neither band is one you have not finished reading"],
   ]) {
     assert.ok(text.includes(flat(phrase)),
