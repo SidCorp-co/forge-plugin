@@ -130,7 +130,7 @@ const wavesProfiled = async (sessions, headlines, { read = readMember, copies = 
     }
     const waves = wavesOf(page.comments ?? []);
     for (const [at, wave] of waves.entries()) {
-      /* A fold closing no dispatch is refused at the write; one on a page from before that refusal is no wave. */
+      /* Only a page older than `foldProblem` holds one: see its comment in record/wave.mjs. */
       if (!wave.dispatches.length) continue;
       const span = spanOf(wave, waves[at - 1], ref, sessions);
       const keys = [...new Set(wave.dispatches.flatMap((one) => one.members))];
