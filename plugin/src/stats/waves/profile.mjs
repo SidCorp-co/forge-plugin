@@ -28,12 +28,17 @@ const tally = (values) => {
 };
 
 /** The wave's span and the dispatcher sessions it ran in: from its first `forge next` after the fold
- *  before it (or its first dispatch where it ran none) to its fold, or to its last call while open. */
+ *  before it (or its first dispatch where it ran none) to its fold, or to its last call while open.
+ *  The fold before it is the later of the headline's own and the last one the same session wrote
+ *  before this wave's first dispatch: a session that folded a wave on one headline and then headed
+ *  the next on another had spent the first one's calls before this one began. */
 const spanOf = (wave, before, ref, sessions) => {
-  const after = stampOf(before?.fold?.stamp) ?? -Infinity;
+  const headline = stampOf(before?.fold?.stamp) ?? -Infinity;
   const folded = wave.state === "folded" ? stampOf(wave.fold.stamp) : Infinity;
-  const own = sessions.filter((one) => one.writes.some((write) => write.ref === ref && write.at > after && write.at <= folded));
+  const own = sessions.filter((one) => one.writes.some((write) => write.ref === ref && write.at > headline && write.at <= folded));
   const first = stampOf(wave.dispatches[0]?.stamp) ?? folded;
+  const after = Math.max(headline, ...own.flatMap((one) => one.writes)
+    .filter((write) => write.kind === "fold" && write.at < first).map((write) => write.at));
   const ranked = own.flatMap((one) => one.calls)
     .filter((call) => RANKED.test(call.shell) && call.at > after && call.at <= first);
   const from = ranked.length ? Math.min(...ranked.map((call) => call.at)) : first;
@@ -125,6 +130,8 @@ const wavesProfiled = async (sessions, headlines, { read = readMember, copies = 
     }
     const waves = wavesOf(page.comments ?? []);
     for (const [at, wave] of waves.entries()) {
+      /* A fold closing no dispatch is refused at the write; one on a page from before that refusal is no wave. */
+      if (!wave.dispatches.length) continue;
       const span = spanOf(wave, waves[at - 1], ref, sessions);
       const keys = [...new Set(wave.dispatches.flatMap((one) => one.members))];
       rows.push(rowOf({ ref, wave, span, members: await memberRows(keys, read, seen), copies }));

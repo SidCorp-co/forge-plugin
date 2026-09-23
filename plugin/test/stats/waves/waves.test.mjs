@@ -121,3 +121,34 @@ test("the verb is listed and its help names every flag it reads", async () => {
     tracker.close();
   }
 });
+
+/* One dispatcher session heading two waves in turn, each on a headline of its own, and a page from
+   before the empty-fold refusal: the second wave starts after the first one's fold, and a fold that
+   closed nothing is no wave. */
+test("a session's second wave on another headline starts after its first one's fold, and an empty fold is no wave", async () => {
+  const pages = {
+    "uuid-1": [dispatch(10, ["ISS-2"], "run-a"), fold(20, "the first")],
+    "uuid-8": [dispatch(35, ["ISS-3"], "run-b"), fold(50, "the second")],
+    "uuid-9": [fold(55, "closed nothing")],
+  };
+  const issues = [row(1, "open"), row(2, "closed"), row(3, "closed"), ...[4, 5, 6, 7].map((n) => row(n, "open")),
+    row(8, "open"), row(9, "open")];
+  const calls = [
+    [5, "forge next"],
+    [10, "forge record wave ISS-1 --member ISS-2 --role forge:runner --session run-a"],
+    [20, "forge record fold ISS-1 --summary the-first"],
+    [30, "forge next"],
+    [35, "forge record wave ISS-8 --member ISS-3 --role forge:runner --session run-b"],
+    [50, "forge record fold ISS-8 --summary the-second"],
+    [55, "forge record fold ISS-9 --summary closed-nothing"],
+  ];
+  const { tracker, forge } = await standing(issues, pages, { dispatcher: calls });
+  try {
+    const json = await forge("stats", "waves", "--checkout", PROJECT, "--json");
+    assert.equal(json.status, 0, json.stderr);
+    const { waves } = JSON.parse(json.stdout);
+    assert.deepEqual(waves.map((one) => [one.headline, one.minutes]), [["ISS-1", 15], ["ISS-8", 20]]);
+  } finally {
+    tracker.close();
+  }
+});
