@@ -15,6 +15,7 @@ const { USAGE } = await import("../../../src/stats/stats.mjs");
 
 const DISPATCHER = [
   [5, "forge next"],
+  [8, "forge record wave ISS-1 --member ISS-3 --role forge:triage --session read-a"],
   [10, "forge record wave ISS-1 --member ISS-2 --member ISS-3 --role forge:runner --session run-a"],
   [15, "forge record confirmation ISS-7 --finding already-fixed --evidence x"],
   [16, "forge record confirmation ISS-8 --finding duplicate --evidence x"],
@@ -41,7 +42,7 @@ const PROFILED = [
 ];
 const PAGES = {
   "uuid-1": [
-    dispatch(10, ["ISS-2", "ISS-3"], "run-a"), dispatch(20, ["ISS-2"], "run-b"), dispatch(25, ["ISS-3"], "run-a"),
+    dispatch(8, ["ISS-3"], "read-a", "forge:triage"), dispatch(10, ["ISS-2", "ISS-3"], "run-a"), dispatch(20, ["ISS-2"], "run-b"), dispatch(25, ["ISS-3"], "run-a"),
     fold(60, "first"), dispatch(100, ["ISS-4", "ISS-2"], "run-c"),
   ],
   "uuid-5": [fold(30, "never read")],
@@ -62,7 +63,7 @@ test("one row per wave off the dispatcher's own session, oldest first, with what
     assert.equal(open.minutes, 15);
     assert.equal(first.handBacks, 2);
     assert.equal(open.handBacks, 1);
-    assert.deepEqual(first.replaced, ["ISS-2"], "ISS-3 named twice under one session is no replacement");
+    assert.deepEqual(first.replaced, ["ISS-2"], "ISS-3 read under one session and run under another is no replacement, nor is being named twice under one");
     assert.deepEqual(first.dispositions, { "already-fixed": 1, duplicate: 1 });
     const refused = refusalIn({ body: REFUSED_BODY, error: true });
     assert.deepEqual(first.refusals, { [refused]: 2 });
@@ -83,7 +84,7 @@ test("one row per wave off the dispatcher's own session, oldest first, with what
     const folded = lines.findIndex((one) => /^ISS-1 {2}folded /u.test(one));
     const opened = lines.findIndex((one) => /^ISS-1 {2}open /u.test(one));
     assert.ok(folded > 0 && opened > folded, shown.stdout);
-    assert.match(shown.stdout, /55 min, 10 call\(s\)/u);
+    assert.match(shown.stdout, /55 min, 11 call\(s\)/u);
     assert.match(shown.stdout, /hand-backs 2; replaced ISS-2; disposed without a run already-fixed 1, duplicate 1/u);
     assert.match(shown.stdout, /ISS-4 unreadable: .*not this project's/u);
   } finally {
