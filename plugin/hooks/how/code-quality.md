@@ -11,6 +11,9 @@ It writes. The delegate runs the project's `prettier` before linting, so a file 
 back formatted. A file is reported once per content in a session: a command that only names it again
 is not answered twice, and the log line carries the rules that fired.
 
+Not read is said: one call lints its first five code files by path, and a file past that, past the
+clock or past the linter's time limit is named after the call, refusing nothing.
+
 Which project: the one that holds the file. A worktree cut beside the checkout is outside the
 directory the session started in, and its files answer to the worktree's own configuration, not to
 nobody's.
