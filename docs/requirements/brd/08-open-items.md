@@ -19,7 +19,6 @@ a row outliving its issue sends the next reader to a key with no answer behind i
 | Whether a review's outcome and the author's disposition of each finding are two values rather than one. | ISS-16 |
 | Whether a finding's identifier names the round that issued it, so a review over several rounds has no two findings alike. | ISS-34 |
 | Whether a park is lifted on the record, so a retraction sits beside the park. | ISS-13 |
-| Whether every move can be rehearsed, a park and a drop included. | ISS-12 |
 | Whether a decision record may defer one question to a later status that then refuses until it is answered. | ISS-23 |
 | Whether the requirements gate reads a tree the one-home gate cannot see, or whether that gate learns to recurse. | ISS-526 |
 | Whether a per-criterion verdict is carried by a task record rather than by a shaped comment. | ISS-806 |

@@ -6,27 +6,21 @@ import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { commentPage, countedShort, creditAfter, cutIn } from "../tracker/comments.mjs";
 import { declaredValue, statusKind, write } from "../tracker/rest.mjs";
-import { lengthOf } from "../tracker/field-write.mjs";
 import { UNREAD, afterRefused, correctionFor, whyChecked } from "./override.mjs";
-import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
 import { partsOf, readContract, stageLine } from "../guides/contract.mjs";
-import { CLOSES_FROM, PARKS, SHOWS_EVIDENCE, commandAt } from "./machine.mjs";
+import { CLOSES_FROM, PARKS } from "./machine.mjs";
 import { citedClauses } from "../spec/checked.mjs";
 import { escapesOrphaned } from "../checks/docs/owing-escapes.mjs";
 import { Refused, refuse } from "../refusal.mjs";
 import { issueOf, post } from "./record/record.mjs";
-import { render } from "./record/page.mjs";
-import { ANSWERED_BY_COMMENT, ORDER, PARK_STATUS, SIDE, answersByComment, atLeast, fixReport, namedIn, payloadOwed, rungFieldsOf, sameLanding, setForm, viewFrom } from "./earned.mjs";
+import { ASKS_A_QUESTION, needsProblem, parkChecked, parkPayload, rehearsePark, waitsFor } from "./park/compose.mjs";
+import { ANSWERED_BY_COMMENT, ORDER, SIDE, answersByComment, atLeast, fixReport, namedIn, rungFieldsOf, sameLanding, setForm, viewFrom } from "./earned.mjs";
 import { scopeFrom } from "./record/plan-scope.mjs";
 import { rungOf } from "../ladder.mjs";
 import { CITED, laneLines } from "../guides/phases.mjs";
 import { lastMark, undoForm, unmarkMerged } from "./record/merged.mjs";
 import { REOPEN, baselineAhead, credentialAhead, deployFor, lookAhead, owedBlock, owedIn, owedSaid, policyFor, reopenProblem, targetOf } from "./route.mjs";
 import { FIELD, anothersHold, leaseOf, nextLine, renew } from "./lease.mjs";
-
-/* A needs_info park owes the readings only the question shape carries. */
-const ASKS_A_QUESTION = "question";
-const ASKED_AT = ["open", "confirmed"];
 
 export const USAGE = [
   usageOf("advance"),
@@ -36,7 +30,9 @@ export const USAGE = [
   "where it is needed — the release policy, and whether it keeps a requirements tree the issue owes",
   "a clause of.",
   "",
-  "  --owed                  what the next status is owed, moving nothing, and the line last left",
+  "  --owed                  what the next status is owed, moving nothing, and the line last left;",
+  "                          beside --park or --drop, what that park sends and posts, or what",
+  "                          refuses it, writing nothing",
   "  --next <line>           the step the status it enters starts on, for whoever comes next",
   "  --to <status>           refused unless that status is the next one; a jump is not advancing",
   "  --park <kind> --why W [--needs N] [--evidence E]...  a park record, then the side status the",
@@ -83,7 +79,7 @@ const viewOf = async (reference, given) => {
   const page = await commentPage(documentId);
   /* Only the rehearsal prints the line, so only the rehearsal reads it; and neither read feeds the other. */
   const [deploy, release] = await Promise.all([
-    given.owed ? deployFor(body.plan, body.status) : null,
+    given.owed && !given.park && !given.drop ? deployFor(body.plan, body.status) : null,
     policyFor(body.plan, body.status),
   ]);
   /* Off `cut`, which sizes the issue: a count nobody here can account for is said and sizes nothing. */
@@ -136,39 +132,6 @@ export const transitionTo = async (view, status, ref, { note = "", next = null, 
   return null;
 };
 
-/* Every park kind landing in `waiting` asks a person to decide, so the kind the tracker demands is
-   derived; one that waited on a thing would need a row of its own. */
-const WAITING = "waiting";
-const waitsFor = (status) => (status === WAITING ? { waitingKind: "needs_decision" } : {});
-
-/* The one field of this payload the tracker mints an answer box from, where `reason` is why the work stopped: neither is ever written from the other, and a text over the endpoint's cap is refused here rather than sent to take the status write down with it — docs/cli/advance-what-it-sends.md. */
-const NEEDS_CAP = 2000;
-const ASKS = "Which of these readings is the one to take?";
-
-const needsProblem = (text) => {
-  if (!text) return "is blank after trim, and a question with no text is an answer box asking nothing";
-  const held = lengthOf(text);
-  return held > NEEDS_CAP
-    ? `is ${held} code points and the transition body takes ${NEEDS_CAP}, which refuses the whole call `
-      + "and the status write with it"
-    : null;
-};
-
-/* The readings are what `--park question` is already refused without, so the question that travels is built from them rather than asked for twice; the stem is a constant and never the park's own reason. */
-const asksFor = (view, asked, ref) => {
-  if (asked) return { needs: asked };
-  const held = view.latest?.question?.record.fields.reading ?? [];
-  if (!held.length) return {};
-  const text = [ASKS, ...held.map((one) => `- ${one}`)].join("\n");
-  const bad = needsProblem(text);
-  if (bad) {
-    refuse(`the readings on this issue's question record come to a text that ${bad}. Nothing was sent. `
-      + `Say what would settle it in fewer words than the readings take:\n`
-      + `  forge advance ${ref} --park ${ASKS_A_QUESTION} --why "<why>" --needs "<what would settle it>"`);
-  }
-  return { needs: text };
-};
-
 /* The two writes of one park: the typed `why` travels with the move, which the tracker refuses
    without one (ISS-157), and the status goes first so a refused move leaves no record to disagree
    with it — except where it lands where a comment is read as an answer, which is
@@ -214,10 +177,7 @@ const moveTo = async (view, ref, status, { note = "", said, credit, heard = null
 };
 
 export const parkAs = async (view, ref, kind, why, evidence = [], { left = null, asked = null } = {}) => {
-  const status = PARK_STATUS[kind];
-  /* Built before the record goes up: at this status the record is the first write, and a refusal after it leaves a comment claiming a move nothing attempted. */
-  const said = { reason: why, ...waitsFor(status), ...(status === ANSWERED_BY_COMMENT ? asksFor(view, asked, ref) : {}) };
-  const body = render("park", { kind, why, evidence }, left ?? view.issue.status);
+  const { status, said, body } = parkPayload(view, ref, kind, why, evidence, { left, asked });
   const move = (soft = false) =>
     moveTo(view, ref, status, { said, credit: "the park's transition" }, soft);
   if (answersByComment(status)) {
@@ -240,35 +200,7 @@ export const parkAs = async (view, ref, kind, why, evidence = [], { left = null,
 };
 
 const park = async (view, ref, kind, why, evidence, asked = null) => {
-  const to = PARK_STATUS[kind];
-  if (!to) refuse(`--park takes one of ${Object.keys(PARK_STATUS).join(", ")}, not \`${kind}\`.`);
-  if (to === ANSWERED_BY_COMMENT && !ASKED_AT.includes(view.issue.status)) {
-    refuse(`a question goes to the reporter, and ${ref} is ${view.issue.status}: the readings it would `
-      + `offer are the triage ones. Ask from ${ASKED_AT.join(" or ")}, or park for a reviewer instead.`);
-  }
-  if (to === "dropped" && atLeast(view.issue.status, "developed")) {
-    refuse(`${ref} is ${view.issue.status}, and dropped means no code landed. Revert first, then drop `
-      + `from approved:\n  ${setForm(ref, "approved")}`);
-  }
-  if (to === "dropped" && view.issue.mergedAt) {
-    refuse(`${ref} was marked merged at ${view.issue.mergedAt}, and dropped means no code landed. `
-      + `Revert the commit, clear the mark, then drop from approved:\n  ${undoForm(ref)}`);
-  }
-  if (kind === ASKS_A_QUESTION) {
-    const owed = payloadOwed(
-      view,
-      "question",
-      "a needs_info park is a question: two or more readings, each with the outcome it produces",
-      `forge record question ${ref} --reading "<reading -> outcome>" --reading "<reading -> outcome>"`,
-    );
-    if (owed.length) refuse(`${owed[0].what}. Write it first:\n  ${commandAt(owed[0].command, "  ")}`);
-  }
-  if (SHOWS_EVIDENCE.includes(kind) && !evidence.length) {
-    refuse(`a ${kind} park names what the reviewer is to look at:\n`
-      + `  forge advance ${ref} --park ${kind} --why "<why>" --evidence <attachment|url|sha>`);
-  }
-  const bad = evidence.length ? evidenceProblem(evidence, attachmentNames(view.issue, view.comments)) : null;
-  if (bad) refuse(bad);
+  parkChecked(view, ref, kind, evidence);
   await parkAs(view, ref, kind, why, evidence, { asked });
 };
 
@@ -513,7 +445,9 @@ const readFlags = (rest, ref) => {
   const [wrote] = exclusive(given, ["park", "drop", "set", "reopen"], "advance",
     "forms: a drop is the park kind `dropped`, --reopen is the one status a finding earns, and --set names the status outright; a park goes where its kind says");
   const writes = wrote !== undefined;
-  if (writes && given.owed) refuse("--owed moves nothing, and --park, --drop and --set write. Ask for one.");
+  if (given.owed && (given.set || given.reopen)) {
+    refuse("--owed moves nothing: it rehearses a park or a drop, and --set and --reopen write with no rehearsal. Ask for one.");
+  }
   if (writes && given.to) refuse("--to names the status to advance to; --set and a park each say where they go.");
   if (writes && !given.why) refuse(`--${wrote} needs --why: `
     + "the reason is what the record carries about it.");
@@ -537,6 +471,9 @@ const run = async (argv, readAs) => {
   if (view.counted) console.log(countSays(view.counted));
   if (given.set) return setStatus(view, ref, given.set, given.why, given.needs);
   if (given.reopen) return reopenTo(view, ref, given.why);
+  if ((given.park || given.drop) && given.owed) {
+    return rehearsePark(view, ref, given.park ?? "dropped", given.why, given.evidence, given.needs);
+  }
   if (given.park || given.drop) {
     return park(view, ref, given.park ?? "dropped", given.why, given.evidence, given.needs);
   }
