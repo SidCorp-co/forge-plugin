@@ -447,6 +447,15 @@ export const SHAPES = {
     fields: [FIELD("reading", "Reading", { many: true, least: 2, prose: true }), FIELD("to", "To", { optional: true })],
     repeats: true,
   },
+  /* A person's answer to a park, carried onto the record by a run. The CLI writes on one credential
+     whoever composes the prose, so no identity on the comment row tells the parker from whoever
+     answered; the source the write names is the whole of what separates a relayed answer from a
+     run answering itself, which is why both fields are owed (ISS-198). */
+  answer: {
+    heading: "Answer",
+    repeats: true,
+    fields: [FIELD("from", "From", { prose: true }), FIELD("quoted", "In their words", { prose: true })],
+  },
   park: {
     heading: "Park",
     repeats: true,

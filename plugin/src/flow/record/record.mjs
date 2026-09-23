@@ -3,6 +3,7 @@
 import { fail, slugIfAny, translateTo } from "../../resolve/settings.mjs";
 import { Refused, refuse } from "../../refusal.mjs";
 import { citationProblem } from "../earned/published.mjs";
+import { answersByComment } from "../earned/park-status.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
 export { compoundRefused, criteriaLines, noteFrom } from "./fields.mjs";
@@ -97,6 +98,15 @@ const citationChecked = (kind, reference, got) => {
   if (kind !== "baseline") return;
   const said = citationProblem(reference, slugIfAny(), got);
   if (said) refuse(`record ${kind} needs ${said}`);
+};
+
+/* An answer is read only by the resume from a status a comment answers, so one written anywhere else
+   is an input nothing reads; `on_hold` is lifted by a person's set or by its blockers, never by one. */
+const answerChecked = (kind, reference, body) => {
+  if (kind !== "answer" || answersByComment(body.status)) return;
+  refuse(`record answer: ${reference} is ${body.status}, and an answer is read only where a park waits `
+    + "on a person — waiting or needs_info — so nothing would read this one. Nothing was sent. What "
+    + `it does wait on:\n  forge advance ${reference} --owed`);
 };
 
 /* What the stored copy will be, said where the write is made: the payload block is the record and
@@ -320,6 +330,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   const blocks = blocksOf(kind, argv);
   const asks = shape.fields.some((one) => one.evidence || one.commit);
   const { body } = await issue();
+  answerChecked(kind, reference, body);
   const { comments, cut } = asks ? await page() : { comments: [], cut: null };
   const held = [...attachmentNames(body, comments), ...planned];
   const plan = citeOnce(kind, blocks, { held, cut });

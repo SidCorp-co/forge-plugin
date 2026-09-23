@@ -327,11 +327,18 @@ test("a parked issue resumes where its park record says it left, once somebody a
   /* The write that supplies the item, and not the transition that skips the criterion the item is:
      an answer is what earns the resume, and a raw transition writes the status over an unanswered
      park and leaves the lease's next line as the park set it (ISS-131). */
-  assert.match(unanswered.missing[0].command, /^forge comment ISS-3 /u);
+  assert.match(unanswered.missing[0].command, /^forge record answer ISS-3 --from "<who answered>" --quoted /u);
+  assert.doesNotMatch(unanswered.missing[0].command, /forge comment/u,
+    "a comment on the parker's own credential is the remedy that cannot clear it (ISS-198)");
   assert.doesNotMatch(unanswered.missing[0].command, /"action":"transition"/u);
   assert.deepEqual(at("needs_info", [...asking, comment("the answer", { authorId: "the-reporter" })]).missing, []);
   assert.equal(at("needs_info", [...asking, comment("still mine", { authorId: "agent" })]).missing.length, 1,
     "the author of the question cannot answer it");
+  const relayed = recorded("answer", { from: "the reporter, in the room", quoted: "the first reading" });
+  assert.deepEqual(at("needs_info", [...asking, relayed]).missing, [],
+    "their answer carried onto the record on the parker's own credential resumes it");
+  const older = { ...relayed, createdAt: "2026-09-01T00:00:00.000Z" };
+  assert.equal(at("needs_info", [older, ...asking]).missing.length, 1, "an answer older than the park answers another one");
 
   const paused = at("on_hold", [asked("paused", "in_progress")]);
   assert.equal(paused.next, "in_progress");

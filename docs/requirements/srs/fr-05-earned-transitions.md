@@ -183,6 +183,10 @@ kind speaks to exactly one reader, which is what decides the status.
   WHEN the agent parks an issue as a question THEN the CLI SHALL carry into that transition the text
   that would settle it, built from the readings the question record already holds where the call
   supplies none, and never from the reason the work stopped.
+- **AC-05-4-7** · Rev: 1 · Proof: plugin/test/flow/park/park.test.mjs "a person's answer relayed on the record resumes a park no comment on the parker's credential can"
+  WHEN the agent carries a person's answer to a park onto the record, naming who gave it and in their
+  words, THEN the CLI SHALL resume the park as it would on that person's own comment, whatever
+  credential the record was written on.
 
 ### UC-05-5 — Drop an issue
 

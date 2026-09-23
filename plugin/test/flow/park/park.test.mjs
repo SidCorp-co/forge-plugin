@@ -215,6 +215,65 @@ test("a park written by the verb is resumed by the verb, back to the status it l
   assert.match(back.stdout, /^ISS-97 {2}waiting -> awaiting_release {2}\(resumed where its park left it\)$/mu, back.stdout);
 });
 
+/* One credential throughout, as a CLI has: the park, the refusal, the answer and the resume all come
+   back carrying the parker's authorId, which is why a comment could never answer and why the answer
+   is a record naming who gave it (ISS-198, ISS-1037). */
+test("a person's answer relayed on the record resumes a park no comment on the parker's credential can", async () => {
+  state.comments["parking-uuid"] = [];
+  Object.assign(PARKING, { status: "awaiting_release" });
+  const park = await parked("ISS-97");
+  assert.equal(park.status, 0, `${park.stdout}${park.stderr}`);
+  state.comments["parking-uuid"].push(comment("the owner said ship it"));
+  const refused = await ranAsync(FORGE, ["advance", "ISS-97"], ENV);
+  assert.notEqual(refused.status, 0, "a comment on the parker's own credential answers nothing");
+  const said = `${refused.stdout}${refused.stderr}`;
+  assert.match(said, /forge record answer ISS-97 --from "<who answered>" --quoted "<their words>"/u, said);
+  assert.doesNotMatch(said, /forge comment ISS-97/u, "and the refusal names no remedy that cannot clear it");
+  const answer = await ranAsync(FORGE, ["record", "answer", "ISS-97", "--from", "the owner, in this session",
+    "--quoted", "ship it"], ENV);
+  assert.equal(answer.status, 0, `${answer.stdout}${answer.stderr}`);
+  assert.equal(state.comments["parking-uuid"].at(-1).authorId, "agent", "the answer is on the parker's own credential too");
+  const back = await ranAsync(FORGE, ["advance", "ISS-97"], ENV);
+  assert.equal(back.status, 0, `${back.stdout}${back.stderr}`);
+  assert.match(back.stdout, /^ISS-97 {2}waiting -> awaiting_release {2}\(resumed where its park left it\)$/mu, back.stdout);
+});
+
+test("an answer write missing who gave it or their words is refused with nothing posted", async () => {
+  Object.assign(PARKING, { status: "waiting" });
+  const before = filed();
+  const nobody = await ranAsync(FORGE, ["record", "answer", "ISS-97", "--quoted", "ship it"], ENV);
+  assert.notEqual(nobody.status, 0);
+  assert.match(nobody.stderr, /record answer needs --from/u, nobody.stderr);
+  const unsaid = await ranAsync(FORGE, ["record", "answer", "ISS-97", "--from", "the owner"], ENV);
+  assert.notEqual(unsaid.status, 0);
+  assert.match(unsaid.stderr, /record answer needs --quoted/u, unsaid.stderr);
+  assert.equal(filed(), before, "nothing was posted");
+});
+
+test("an answer to an issue no park holds for a person is refused, naming the status it holds", async () => {
+  Object.assign(MOVING, { status: "confirmed" });
+  const before = filed();
+  const run = await ranAsync(FORGE, ["record", "answer", "ISS-98", "--from", "the owner", "--quoted", "ship it"], ENV);
+  assert.notEqual(run.status, 0);
+  assert.match(run.stderr, /ISS-98 is confirmed, and an answer is read only where a park waits on a person/u, run.stderr);
+  assert.match(run.stderr, /forge advance ISS-98 --owed/u, "and it names what the issue does wait on");
+  assert.equal(filed(), before, "nothing was posted");
+});
+
+/* Where every row carries a device, no comment is a person's, so the look a screen park asks for is
+   answered by the record carrying their words and never by a comment beside it. */
+test("the person's look counts their answer relayed on the record after the park, and not one before it", () => {
+  const device = { authorDeviceId: "a-device" };
+  const asked = { ...recorded("park", { kind: "screen-review", why: "look at it", evidence: ["c8c3550"] }, "awaiting_release"), ...device };
+  const relayed = () => ({ ...recorded("answer", { from: "the owner", quoted: "it looks right" }), ...device });
+  const view = (comments) => viewFrom("the-uuid", { status: "waiting" }, comments);
+  assert.equal(answered(view([asked, { ...comment("looked"), ...device }]), "screen-review"), false,
+    "a device's comment is no person's look");
+  const older = { ...relayed(), createdAt: "2026-09-01T00:00:00.000Z" };
+  assert.equal(answered(view([older, asked]), "screen-review"), false, "an answer older than the park answers another one");
+  assert.equal(answered(view([asked, relayed()]), "screen-review"), true);
+});
+
 /* A `needs_info` park is the one that cannot be written the other way round: the record is a comment,
    and a comment there is the answer, so a record under the move would take the issue straight out of
    the status the move just set. The order is reversed for that kind alone (ISS-157, ISS-420). */

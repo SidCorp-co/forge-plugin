@@ -30,6 +30,7 @@ import {
   parkRecord,
   parkThatSet,
   personLooks,
+  relayedSince,
   rulingAtThisReopen,
   sameLanding,
   setForm,
@@ -40,12 +41,14 @@ import {
 import { releasePolicy, stagingDeploy } from "../tracker/project-config.mjs";
 
 /* A park is a checkpoint with a person at it: the reply that resumes it is a comment by somebody
-   other than whoever parked the issue. A hold nobody was asked to answer resumes by hand. */
+   other than whoever parked the issue, or that person's answer relayed on the record, which is the
+   only one a run on the parker's own credential can present. A hold nobody was asked to answer
+   resumes by hand. */
 const resumeOwed = (view, held, ref) => {
   const kind = held.record.fields.kind;
   const left = held.record.fields.left;
   const since = held.comment.createdAt ?? "";
-  const replied = view.comments.some(
+  const replied = relayedSince(view, since) || view.comments.some(
     (one) => (one.createdAt ?? "") > since && one.authorId && one.authorId !== held.comment.authorId,
   );
   if (view.issue.status === "on_hold") {
@@ -58,10 +61,11 @@ const resumeOwed = (view, held, ref) => {
   return replied
     ? []
     : [need(
-      `the park is kind ${kind} and nobody has answered it since ${atMinute(since)}, and an answer `
-        + "is a comment by somebody other than whoever parked it: the advance that reads one resumes "
-        + `the issue to ${left}`,
-      `forge comment ${ref} <file|->    (from whoever the park asks, and this run is not that reader)`,
+      `the park is kind ${kind} and nobody has answered it since ${atMinute(since)}. An answer is `
+        + "a comment by an author other than whoever parked it, or the answer of whoever the park "
+        + "asks, carried onto the record naming who gave it; a comment on the parker's own credential "
+        + `answers nothing, whoever composed it. The advance that reads one resumes the issue to ${left}`,
+      `forge record answer ${ref} --from "<who answered>" --quoted "<their words>"`,
     )];
 };
 
