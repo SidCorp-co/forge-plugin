@@ -13,12 +13,13 @@ candidate's own sha as the deployment identity, and the promotion waits on the j
 project is judged after the merge, on the release the branch now carries, so the same state sits
 below the mark instead.
 
-That is why three rows offer two successors and why `judged` is reachable from either side of a
-promotion. What tells the two apart on a resume is the sha the checkpoint names as the one it meant
-to push — only the push step writes one and a void gives it up, so a checkpoint carrying one is past
-its own push and what is owed there is the status, never a second candidate. Not the route read
-again: a project that changed its policy mid-landing would otherwise resume into the other route's
-step, and what this landing did is a fact about it where the route is not.
+That is why the rows around the judgement offer one successor per route and why `judged` is
+reachable from either side of a promotion. What tells the two apart on a resume is the sha the
+checkpoint names as the one it meant to push — only the push step writes one and a void gives it up,
+so a checkpoint carrying one is past its own push and what is owed there is the status, never a
+second candidate. Not the route read again: a project that changed its policy mid-landing would
+otherwise resume into the other route's step, and what this landing did is a fact about it where the
+route is not.
 
 Where nothing asks for a second judge the state is not written at all and the landing runs through.
 
@@ -67,5 +68,5 @@ same.
 
 What the commit a landing builds is, and what a reading taken over it is a fact about: [`the-candidate.md`](the-candidate.md).
 What a checkpoint nobody captured may say instead, and the one key a declaration buys: [`the-reconstruction.md`](the-reconstruction.md).
-Whose turn each state names and the three routes a turn is handed back by: [`the-turn.md`](the-turn.md).
+Whose turn each state names and the four routes a turn is handed back by: [`the-turn.md`](the-turn.md).
 Who takes a turn its holder left, and what a state may not do: [`the-takeover.md`](the-takeover.md).

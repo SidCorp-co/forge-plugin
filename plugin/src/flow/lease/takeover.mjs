@@ -1,7 +1,7 @@
 /* Who may take a turn its holder left, and the sentences that name the state refusing one. The lease itself is `../lease.mjs`; what a state may not do is `landing/checkpoint.mjs`. docs/cli/the-takeover.md. */
 import { INHERITED, INHERITED_MEANS, OWN_ID } from "../../resolve/config.mjs";
 import {
-  LANDING_BUILDER_OWED, LANDING_JUDGED, LANDING_STATES, READ_THE_STATE, SPENT_AT, landingOf, takeRoute,
+  LANDING_BUILDER_OWED, LANDING_HEAD_OWED, LANDING_JUDGED, LANDING_STATES, READ_THE_STATE, SPENT_AT, landingOf, takeRoute,
 } from "../landing/checkpoint.mjs";
 import { MINUTES, claimed, describe, expiryOf, leaseOf, setLease } from "../lease.mjs";
 import { sessionSourced } from "../../resolve/config.mjs";
@@ -33,7 +33,9 @@ const successionRefusal = (ref, landing, holder, lease, said, taking) => {
       + `over from here. ${takeableAfter(ref)}`;
   }
   if (tookAt(lease, holder, landing.state)) return null;
-  if (landing.state !== LANDING_BUILDER_OWED) {
+  /* A new head answers for itself, reviewed and judged where it is captured, so a successor may build
+     it as it may read a candidate; a record signs the judgement of work already done. */
+  if (landing.state !== LANDING_BUILDER_OWED && landing.state !== LANDING_HEAD_OWED) {
     return `${whose}: the records that turn is owed answer for a judgement the run that built the `
       + `change made, so a successor takes it only once nothing live is on the issue — and what is `
       + `on it is this session's own lease, ${describe(lease)}. ${takeableAfter(ref)}`;
@@ -73,7 +75,7 @@ export const takeRefusal = (ref, landing, holder, lease, { now = sharedNow(), so
   if (row.turn === "lander") {
     if (holder === landing.builder) {
       return `${said}, whose turn is the lander's, and this session built it: the builder's turn `
-        + `comes back at \`${LANDING_BUILDER_OWED}\` and nowhere else. ${READ_THE_STATE(ref)}`;
+        + `comes back at \`${LANDING_BUILDER_OWED}\` or \`${LANDING_HEAD_OWED}\` and nowhere else. ${READ_THE_STATE(ref)}`;
     }
     /* At `judged` alone and spent by the take: a judge that went on to land under that same lease holds an ordinary lander's, which a third run may not take. docs/cli/the-checkpoint.md. */
     if (!live || lease.holder === holder || lease.holder === landing.builder) return null;

@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
-  BASE, BUILDER, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, NEXT_UUID, OWNED, RECORD,
+  BASE, BRANCH, BUILDER, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, NEXT_UUID, OWNED, RECORD,
   claudeCalls, comments, context, ctx, earning, forgetInstall, git, issue, marks, ready, seeded,
   serverPushes, sha, state, strayWrites, tracker, world,
 } from "./fixture.mjs";
@@ -338,7 +338,13 @@ test("a branch that conflicts with the pinned base is parked with the list, and 
   assert.equal(issue().status, "on_hold", `parked as blocked:\n${said}`);
   const park = comments().find((one) => one.body.includes("Park"));
   assert.ok(park && park.body.includes(OWNED), `the conflict list is attached:\n${park?.body}`);
-  assert.equal(landing().state, "candidate", `the checkpoint is not handed to the builder:\n${said}`);
+  /* Handed to the builder with the park, since the answer is a head that merges and only that run
+     makes one; the reason names the capture that state accepts (ISS-2299, after ISS-1652). */
+  assert.equal(landing().state, "head-owed", `the checkpoint is the builder's again:\n${said}`);
+  assert.ok(park.body.includes(`forge claim ${KEY} --take`), `the park names the take:\n${park.body}`);
+  assert.ok(park.body.includes(`forge claim ${KEY} --pushed --ready`), `and the capture:\n${park.body}`);
+  assert.doesNotMatch(park.body, /rebases it/u, `and no rebase that orphans the judged head:\n${park.body}`);
+  assert.equal(sha(join(at, "origin.git"), `refs/heads/${BRANCH}`), head, `no ref of the branch was written:\n${said}`);
   assert.equal(git(work, "status", "--porcelain").stdout, clean, "no file was edited");
   const held = readFileSync(join(work, OWNED), "utf8");
   assert.ok(!held.includes("<<<<"), `the conflict was not resolved into the tree:\n${held}`);

@@ -7,6 +7,9 @@ export const LANDING = "landing";
 export const LANDING_READY = "ready";
 export const LANDING_BUILDER_OWED = "builder-owed";
 export const LANDING_RECONCILED = "reconciled";
+/* Named for what is owed: the fault the landing met is the branch's own, so the builder answers it
+   with a new head and a capture of it, which is a build and no reading of this candidate. */
+export const LANDING_HEAD_OWED = "head-owed";
 export const LANDING_QA_OWED = "qa-owed";
 export const LANDING_JUDGED = "judged";
 export const LANDING_MARKED = "marked";
@@ -16,10 +19,12 @@ export const LANDING_DONE = "done";
 
 export const LANDING_STATES = {
   /* `done` because a release is a landing that built no candidate for a second one to read. */
-  ready: { turn: "lander", next: ["candidate", "done"] },
-  candidate: { turn: "lander", next: ["reconciled", "builder-owed"] },
+  ready: { turn: "lander", next: ["candidate", "done", "head-owed"] },
+  candidate: { turn: "lander", next: ["reconciled", "builder-owed", "head-owed"] },
   "builder-owed": { turn: "builder", next: ["reconciled"] },
-  reconciled: { turn: "lander", next: ["qa-owed", "promoting"] },
+  /* Left by `--pushed --ready` alone, which writes the checkpoint whole rather than moving it. */
+  "head-owed": { turn: "builder", next: ["ready"] },
+  reconciled: { turn: "lander", next: ["qa-owed", "promoting", "head-owed"] },
   "qa-owed": { turn: "qa", next: ["judged"] },
   judged: { turn: "lander", next: ["promoting", "done", "qa-owed", "records-owed"] },
   promoting: { turn: "lander", next: ["promoted"] },
@@ -87,6 +92,12 @@ export const landingLine = (landing) =>
   `landing \`${landing.state}\`: ${landing.branch ?? "no branch"} at ${shortSha(landing.head)}, `
   + `base ${shortSha(landing.base)}, ${landing.files.length} file(s), built by `
   + `${landing.builder || "nobody the record can name"}${rebuiltSaid(landing)}`;
+
+/** The builder's two writes out of `head-owed`, one per line under whatever sentence leads to them. */
+export const RECAPTURE = (ref, indent = "  ") =>
+  `${indent}forge claim ${ref} --take\n`
+  + `${indent}... commit the answer, review that head (and judge it, where this run is the judge), push it, then:\n`
+  + `${indent}forge claim ${ref} --pushed --ready`;
 
 export const READ_THE_STATE = (ref) =>
   `Read where the landing is, and take it when the state names your turn:\n  forge resume ${ref}`;

@@ -6,7 +6,8 @@ import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
-import { landsOn, releasePolicy } from "../tracker/project-config.mjs";
+import { judgementOf, landsOn, releasePolicy } from "../tracker/project-config.mjs";
+import { INDEPENDENT } from "./qa/verdicts.mjs";
 import { commentPage, cutIn, mustBeShown } from "../tracker/comments.mjs";
 import { isCommit, sameCommit, shortSha } from "../tracker/evidence.mjs";
 import { rungOf } from "../ladder.mjs";
@@ -21,6 +22,7 @@ import { OPEN_KEPT, carriedByLanding, droppedHead, merged, patchFrom, worklogFor
 import {
   LANDING_BUILDER_OWED,
   LANDING_DONE,
+  LANDING_HEAD_OWED,
   LANDING_JUDGED,
   LANDING_MARKED,
   LANDING_QA_OWED,
@@ -33,7 +35,7 @@ import {
   landingOf,
 } from "./landing/checkpoint.mjs";
 import { REBUILT_FORM, handWrittenOf, holdersOf } from "./landing/reconstruction.mjs";
-import { readyCheckpoint, rebuiltCheckpoint } from "./landing/written.mjs";
+import { readyCheckpoint, rebuiltCheckpoint, recaptureRefusal } from "./landing/written.mjs";
 import {
   MECHANISM,
   MINUTES,
@@ -116,7 +118,8 @@ export const USAGE = [
   "  --pushed        the branch, head, base and files touched, off git now",
   "  --review        the last codex consult, its findings and what it owes, off the log",
   `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest goes`,
-  "  --ready         with --pushed: the checkpoint at `ready`, off that capture",
+  "  --ready         with --pushed: the checkpoint at `ready`, off that capture, from none, `ready`",
+  "                  or `head-owed`, where the head it takes is the one the records judged",
   "  --take          the lease where the checkpoint names your turn",
   "  --judged        the QA turn handed back, from `qa-owed` or from none, and the lease with it",
   "  --reconciled <sha>  the builder's turn handed back, from `builder-owed` at that sha",
@@ -485,6 +488,12 @@ export const claim = async (argv) => {
     fail(`${straddleSaid(`the moment the lease on ${ref} becomes anybody's`, anybodys, band)} `
       + `Until then this reclaim would take the issue off ${describe(lease)}. Where you have `
       + `established that run stopped, say so:\n  forge claim ${ref} ${STOPPED}`);
+  }
+  /* Before the write and after every refusal of the lease, so a caller the lease turns away is told that first; a capture that read no head is `readyCheckpoint`'s to refuse. */
+  if (given.ready && patch?.head && landingHere?.state === LANDING_HEAD_OWED) {
+    const view = viewFrom(documentId, issue, (await commentPage(documentId)).comments ?? []);
+    const refused = recaptureRefusal(ref, patch.head, view, judgementOf(await releasePolicy()) === INDEPENDENT);
+    if (refused) fail(refused);
   }
   /* Off the remnant where there is no lease to read it from, so the flag that clears the refusal is not the way to lose the one line the refusal just printed. */
   const left = lease?.next ?? nextLeft(context);

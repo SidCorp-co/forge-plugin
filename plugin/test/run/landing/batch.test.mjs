@@ -131,6 +131,8 @@ test("a combination the gate refuses lands one branch and refuses the other agai
   assert.ok(!landing(NEXT_UUID).reconciled.startsWith(chain),
     `its reading at the combination is void:\n${said}`);
   assert.equal(landing(NEXT_UUID).reconciled, landing(NEXT_UUID).candidate, said);
+  /* Red alone is that branch's own fault, so the turn is its builder's to answer with a new head. */
+  assert.equal(landing(NEXT_UUID).state, "head-owed", said);
   assert.match(said, /stopped at step 4 \(the gate over the candidate\)/u,
     `with the failing step named:\n${said}`);
 });

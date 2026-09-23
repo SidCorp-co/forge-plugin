@@ -8,7 +8,7 @@ it does: [`claim.md`](claim.md).
 
 ## The turn is handed back, never abandoned
 
-Three states name a turn that is not the lander's, and each has one route out, a flag of the claim the
+Four states name a turn that is not the lander's, and each has one route out, a flag of the claim the
 run holding it makes: without one, that state is where a landing goes to die.
 
 `--judged` is the judge's: it takes the turn, writes its verdicts as any run does, and says the turn
@@ -48,6 +48,16 @@ may not wait on a remote. So the guard refuses only what a local ref proves and 
 outcome through — a history too shallow to settle it, an object it cannot read, a call that failed —
 since the cost of the two mistakes is not the same: one landing stops at a state somebody can still
 answer from, and the other leaves a builder with a branch that was right and no write left to make.
+
+`--pushed --ready` is the way out of `head-owed`, the state a landing leaves where the fault is the
+branch's own: its gate red over a candidate of that branch alone, a conflict with the pin, or a branch
+that no longer stands at its judged head. What is owed there is a head and not a reading, so the
+state's exit is the capture every build ends with, and the landing writes no ref of the branch on the
+way — a lander rewriting a branch it did not build would be judging work it never saw. The capture
+takes the head the records judged and no other: an approved review of it, and where the builder is
+the judge, a passing verdict at it on every criterion, since one left at the refused head would travel
+to the new one as a judgement nobody made. A successor may build that head as it may read a
+candidate, the records the capture asks for being the ones that sign it.
 
 `--recorded` is the builder's too, and the one turn that is handed back for something no state of the
 landing writes. Every rung left once the mark is up is earned by a record — a correction naming what

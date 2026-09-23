@@ -5,10 +5,10 @@
    docs/cli/the-checkpoint.md, and docs/cli/the-reconstruction.md for the second. */
 import { DERIVED_BUILDER, HAND_WRITTEN, REBUILT_FORM, RECOVER_THE_BUILDER, UNRECOVERABLE }
   from "./reconstruction.mjs";
-import { LANDING_DONE, LANDING_READY } from "./checkpoint.mjs";
+import { LANDING_DONE, LANDING_HEAD_OWED, LANDING_READY } from "./checkpoint.mjs";
 import { carriedByLanding } from "../worklog.mjs";
 import { fail } from "../../resolve/settings.mjs";
-import { shortSha } from "../../tracker/evidence.mjs";
+import { sameCommit, shortSha } from "../../tracker/evidence.mjs";
 
 /* Git licenses this write and the caller's word does not: the one fact it records, that the branch
    this project lands changes on carries the head, is read off refs already in this checkout. Which
@@ -92,7 +92,7 @@ export const readyCheckpoint = (ref, holder, patch, landing) => {
       + `no change — the line above says why. Capture at the push, before the merge:\n`
       + `  forge claim ${ref} --pushed --ready`);
   }
-  if (landing && landing.state !== LANDING_READY) {
+  if (landing && landing.state !== LANDING_READY && landing.state !== LANDING_HEAD_OWED) {
     fail(`the landing checkpoint on ${ref} reads \`${landing.state}\`, which is past the build, so `
       + `--ready would write the landing's own reading away. Read where it is:\n  forge resume ${ref}`);
   }
@@ -105,4 +105,39 @@ export const readyCheckpoint = (ref, holder, patch, landing) => {
     files: String(patch.touched ?? "").split(", ").filter(Boolean),
     at: patch.at,
   };
+};
+
+/** What refuses the capture out of `head-owed`, or null: the head it takes is one the records judged.
+ *  The latest review has to be an approved one of that head, and where the builder is this project's
+ *  judge every criterion's latest verdict has to judge that head and not fail — a verdict at the head
+ *  the landing handed back describes the commit whose gate went red, and carried to the new one it
+ *  would read as a judgement nobody made. Under an independent judge the verdicts are that judge's,
+ *  written against a candidate after this capture, so none is asked for here. `view` is `viewFrom`'s. */
+export const recaptureRefusal = (ref, head, { latest, verdicts, criteria }, independent) => {
+  const review = latest.review?.record.fields ?? null;
+  const ask = `forge record review ${ref} --reviewer codex --commit ${shortSha(head)} --outcome approved`;
+  const out = `claim --ready out of \`${LANDING_HEAD_OWED}\` captures ${shortSha(head)}`;
+  if (!review?.commit || !sameCommit(review.commit, head) || review.outcome !== "approved") {
+    const said = review?.commit
+      ? `the latest review on ${ref} judged ${shortSha(review.commit)} and says ${review.outcome ?? "nothing"}`
+      : `${ref} carries no review`;
+    return `${out}, and ${said}: the landing merges the head this write names, so it takes a head a `
+      + `review approved and no other. Review ${shortSha(head)}, then capture it again:\n  ${ask}\n`
+      + `  forge claim ${ref} --pushed --ready`;
+  }
+  if (independent) return null;
+  const unjudged = criteria.map((one) => one.number).filter((number) => {
+    const held = verdicts.get(number)?.record.fields;
+    return !held?.commit || !sameCommit(held.commit, head) || held.verdict === "fail";
+  });
+  if (!unjudged.length) return null;
+  const at = unjudged.map((number) => {
+    const held = verdicts.get(number)?.record.fields;
+    return held?.commit ? `${number} at ${shortSha(held.commit)} (${held.verdict})` : `${number} unjudged`;
+  });
+  return `${out}, and this project's judge is the run that built it, whose verdicts on criterion `
+    + `${at.join(", ")} do not pass that head. Judge ${shortSha(head)}, then capture it again:\n`
+    + `  forge record verdict ${ref} --commit ${shortSha(head)} --evidence <attachment|url|sha>`
+    + unjudged.map((number) => ` --criterion ${number} --verdict pass`).join("")
+    + `\n  forge claim ${ref} --pushed --ready`;
 };

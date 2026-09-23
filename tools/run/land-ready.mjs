@@ -1,6 +1,7 @@
 /* The landing, from the tree the fold works in: the checkpoints and pushed branches it is given as
    one candidate onto one pinned base that moved nothing of any change out, gated, versioned and
    pushed once. It repairs no conflict and re-judges nothing. docs/cli/the-checkpoint.md. */
+import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
 
 import { gitOut, loud, REMOTE, stop, Stop } from "../checkout.mjs";
@@ -26,8 +27,9 @@ import { readyKeys } from "./land-ready/ready.mjs";
 import { parkAs } from "../../plugin/src/flow/advance.mjs";
 import { takeLease } from "../../plugin/src/flow/lease/takeover.mjs";
 import {
-  LANDING_BUILDER_OWED, LANDING_CANDIDATE, LANDING_DONE, LANDING_JUDGED, LANDING_QA_OWED,
-  LANDING_READY, LANDING_RECONCILED, LANDING_RECORDS_OWED, landingOf, landingVoided,
+  LANDING_BUILDER_OWED, LANDING_CANDIDATE, LANDING_DONE, LANDING_HEAD_OWED, LANDING_JUDGED,
+  LANDING_QA_OWED, LANDING_READY, LANDING_RECONCILED, LANDING_RECORDS_OWED, RECAPTURE, landingOf,
+  landingVoided,
 } from "../../plugin/src/flow/landing/checkpoint.mjs";
 import { INDEPENDENT } from "../../plugin/src/flow/qa/verdicts.mjs";
 import { judgementOf, landingRoute, releasePolicy } from "../../plugin/src/tracker/project-config.mjs";
@@ -87,7 +89,8 @@ const pinStep = async (one) => {
   await perMember(at, async (member) => {
     const { key, documentId, landing } = member;
     const moved = tipSaid(root, key, landing, self);
-    if (moved) stop(moved);
+    if (moved?.back) await saveOn(member, { state: LANDING_HEAD_OWED });
+    if (moved) stop(moved.said);
     console.log(`  ${landing.branch} was judged at ${shortly(landing.head)}`);
     if (landing.state === LANDING_READY) {
       await saveOn(member, { state: LANDING_CANDIDATE, pinned: at.pin });
@@ -127,9 +130,12 @@ const mergeStep = async (one) => {
       console.log(`  ${landing.branch} merges clean onto ${shortly(at.pin)}`);
       return;
     }
+    /* Handed back before the park, so the reason the park carries names a write the state accepts. */
+    await saveOn(member, { state: LANDING_HEAD_OWED });
     const why = `${landing.branch} does not merge onto ${base} at ${shortly(at.pin)}: `
-      + `${conflicts.join(", ")} conflict. The landing repairs no conflict — the run that built `
-      + `the branch rebases it, re-reviews the rebased head and writes the checkpoint again.`;
+      + `${conflicts.join(", ")} conflict. The landing repairs no conflict, so the checkpoint is at `
+      + `\`${LANDING_HEAD_OWED}\` and the run that built the branch answers it with a head that merges:\n`
+      + RECAPTURE(key);
     const view = await asked(() => viewOf(documentId));
     await asked(() => parkAs(view, key, "blocked", why, conflicts));
     stop(`${key} is parked as blocked and nothing of it was edited, pushed or installed.`);
@@ -343,24 +349,30 @@ const installStep = async (one) => {
 
 /* Spent on the combination and on no subset of it: what the branches are landed as instead, and the
    runs that bounds, is the-checkpoint.md's. */
-const gateStep = (one) => {
+const gateStep = async (one) => {
   const { at, ctx: { root } } = one;
   at.room = roomFor(root, at.candidate);
-  const many = at.members.length > 1;
-  try {
-    loud("npm", ["run", "check"], at.room, many
-      ? `The candidate is the merge of ${at.members.length} branches, so a failure here is the `
-        + `combination and no one branch of it.`
-      : "The candidate is the merge, so a failure here is the branch against what landed since. "
-        + "It goes back to the run that built it, rebased.");
-  } catch (error) {
-    if (!(error instanceof Stop) || !many) throw error;
+  const run = spawnSync("npm", ["run", "check"], { cwd: at.room, encoding: "utf8", stdio: "inherit" });
+  /* A gate that never ran says nothing about any branch, so nothing is handed to anybody over it. */
+  if (run.error) stop(`npm could not be run: ${run.error.message}. Nothing of any branch was judged.`);
+  if (run.status === 0) return;
+  const said = `npm run check exited ${run.status} over the candidate ${shortly(at.candidate)}.`;
+  if (at.members.length > 1) {
     at.split = true;
-    stop(`${keysOf(at)} are green apart and red together, and the gate says nothing about which of `
-      + `them the combination is. No subset is searched for: every reading taken at this candidate is `
-      + `void and each branch is landed alone, against the base as it moves, so the one that fails `
-      + `there fails on its own account and the failing step goes back to whoever built it.`);
+    stop(`${said} ${keysOf(at)} are green apart and red together, and the gate says nothing about `
+      + `which of them the combination is. No subset is searched for: every reading taken at this `
+      + `candidate is void and each branch is landed alone, against the base as it moves, so the one `
+      + `that fails there fails on its own account and the failing step goes back to whoever built it.`);
   }
+  /* The branch's own fault against what landed since, answered by a new head: the one the gate
+     refused stays where it is, the landing writing no ref of a branch it did not build. */
+  const [member] = at.members;
+  await saveOn(member, { state: LANDING_HEAD_OWED });
+  stop(`${said} The candidate is ${member.landing.branch} merged onto what landed since, so the `
+    + `failure is that branch's own and it goes back to the run that built it: the checkpoint is at `
+    + `\`${LANDING_HEAD_OWED}\`, and nothing of ${member.key} is pushed or installed. That run commits `
+    + `the answer on top of ${shortly(member.landing.head)} and captures the head it makes:\n`
+    + RECAPTURE(member.key, "    "));
 };
 
 /* The table the resume points into, one row per name in ORDER. */
@@ -404,6 +416,11 @@ const taken = async (key, { documentId, context, status }) => {
      has no business holding the lease for — least of all `builder-owed`, whose turn is a run this
      task is not and whose live lease the take may replace. */
   const from = ORDER.indexOf(owedAt(landing));
+  if (landing.state === LANDING_HEAD_OWED) {
+    stop(`the landing checkpoint on ${key} reads \`${LANDING_HEAD_OWED}\`: a landing handed the branch `
+      + `back for a fault of its own, and what is owed is a new head its builder captures, which no `
+      + `landing can make. Once that run has written it, land again:\n${RECAPTURE(key, "    ")}`);
+  }
   if (from < 0) {
     stop(`the landing checkpoint on ${key} reads \`${landing.state}\`, which is not a step this task `
       + `owes: read where it is, and land it when the state names the lander's turn.\n`
