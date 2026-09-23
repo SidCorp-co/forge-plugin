@@ -10,6 +10,7 @@ import { declaredFor } from "../../tracker/rest.mjs";
 import { goalBlock } from "../../goals.mjs";
 import { OPEN_KEPT } from "../worklog.mjs";
 import { usageOf } from "../../resolve/visibility.mjs";
+import { proseHelp } from "./prose-route.mjs";
 
 /* The shapes, then the four the verb prepares by another route: three of them write a field of the
    issue and the fourth hangs the tracker's own mark. */
@@ -261,6 +262,7 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     ...(filled(kind, "evidence") ? ["", ...EVIDENCE_BLOCKS] : []),
     ...(alsoCommit(kind).length ? ["", ...alsoCommit(kind)] : []),
     ...(formsTaken(kind).length ? ["", ...formsTaken(kind)] : []),
+    ...(proseHelp(kind).length ? ["", ...proseHelp(kind)] : []),
     ...readsOff(kind),
     "",
     `The flags every writing kind also takes, and the other ${KINDS.length - 1} kinds: \`forge record -h\`.`,
