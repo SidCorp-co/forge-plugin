@@ -618,9 +618,8 @@ export const parkThatSet = (view, status) => {
   return spent ? null : over;
 };
 
-/** A person's answer a run carried onto the record after `at`, read by the write's own shape rules:
- *  the one answer to a park that a single credential can present, since every comment such a CLI
- *  writes carries the parker's own identity (ISS-198). Both readers of a park ask it. */
+/** Whether an `answer` record newer than `at` stands on the page, judged by the write's own shape
+ *  rules. Both readers of a park ask it, so the resume and the look cannot disagree about one. */
 export const relayedSince = (view, at) => view.comments.some((one) => {
   if ((one.createdAt ?? "") <= at) return false;
   const record = parse(one.body ?? "");
