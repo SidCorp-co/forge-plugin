@@ -218,10 +218,22 @@ test("a file carrying the credential is refused before the upload slot is minted
   writeFileSync(shot, `the walk, signed in with ${PASSWORD}\n`);
   const run = await ask("attach", "issue", "ISS-1", shot);
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /^walk\.txt carries this project's test credentials · password\. A test/mu,
-    "a file is one value, so the refusal names no field of a payload it does not have");
+  assert.match(run.stderr, /^walk\.txt carries this project's test credentials · password, where it reads "the walk, signed in with \[withheld\]"\. A test/mu,
+    "a file is one value, so the refusal names no field of a payload it does not have, only where the hit sits");
   assert.equal(state.calls.filter((one) => one.name === "forge_uploads").length, 0,
     "there is no delete for an upload, so a refused file leaves no document behind");
+});
+
+/* The shape ISS-172 was met in: a project labelling its logins with the roles they sign in as. */
+test("a comment naming a credential's display name is posted, the role being no secret", async () => {
+  const room = tempHome("project-label");
+  state.deploy = { ...deploy, testCredentials: [{ label: "Administrator role", ...deploy.testCredentials[0] }] };
+  const body = join(room.path, "role.md");
+  writeFileSync(body, "Criterion 2: the Administrator role can edit a user.\n");
+  const run = await ask("comment", "ISS-1", body);
+  state.deploy = deploy;
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(state.calls.filter((one) => one.args?.action === "create").length, 1, "and the comment was sent");
 });
 
 test("a payload holding no credential is sent, and a project holding none refuses nothing", async () => {

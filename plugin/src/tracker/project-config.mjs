@@ -277,6 +277,11 @@ const shownHost = (value) => {
   }
 };
 
+/* The one key the guard lets through, and by name because it names a non-secret: a key nobody
+   recognised stays guarded, and a host under this one is still judged by its shape. A display name
+   is the project's word for the role a login signs in as — docs/cli/the-credential-guard.md. */
+const DISPLAY_NAME = new Set(["label"]);
+
 /** A host is told by the shape of its value, never by a list of keys: the field set grows, and a
  *  rule printing everything not named as a secret prints tomorrow's by default. So a string beside
  *  a host is not its label however much it reads like one — `testCredentials` holding a login URL
@@ -286,13 +291,14 @@ export const deployFrom = (deploy) => {
   const urls = [];
   const rest = [];
   for (const one of leaves(deploy)) {
-    const shown = HOST.test(one.value) ? shownHost(one.value) : null;
+    const host = HOST.test(one.value);
+    const shown = host ? shownHost(one.value) : null;
     if (shown) urls.push({ label: labelOf(one.at), url: shown });
-    if (shown !== one.value) rest.push(one);
+    if (shown !== one.value) rest.push({ ...one, guarded: host || !DISPLAY_NAME.has(one.at.at(-1)) });
   }
   return {
     urls,
-    withheld: rest.map((one) => ({ label: labelOf(one.at), value: one.value })),
+    withheld: rest.map((one) => ({ label: labelOf(one.at), value: one.value, guarded: one.guarded })),
     from: DEPLOY_SOURCE,
   };
 };
@@ -328,24 +334,43 @@ export const stagingDeploy = once(async () => {
 });
 
 /* Above the length, refused wherever a payload holds it; below it, only where a field is it,
-   quoting aside — a field can hold `admin`. docs/cli/doctor.md states that edge rather than more. */
+   quoting aside — a field can hold `admin`. docs/cli/the-credential-guard.md states that edge
+   rather than more. */
 const SECRET = 12;
 const bare = (text) => text.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
 
-const matched = (text, withheld) =>
-  withheld.find((one) => {
+const matched = (text, guarded) =>
+  guarded.find((one) => {
     if (one.value.length >= SECRET) return text.includes(one.value);
     const held = bare(one.value);
     return Boolean(held) && bare(text) === held;
   });
 
-/** Which field of a payload carries a value this project holds as a test credential, and which
- *  credential. An empty `field` is a payload that is one string: a file's bytes have no field. */
+const MASK = "[withheld]";
+const AROUND = 40;
+
+/* Where in the author's own words the hit sits, so a false one is recognisable from the refusal.
+   Every guarded value is masked across the whole field before anything is cut, longest first, so
+   no cut can leave part of one showing. */
+const nearOf = (text, guarded) => {
+  const masked = [...guarded].sort((one, two) => two.value.length - one.value.length)
+    .reduce((held, one) => held.split(one.value).join(MASK), text)
+    .replace(/\s+/gu, " ").trim();
+  const at = Math.max(masked.indexOf(MASK), 0);
+  const from = Math.max(at - AROUND, 0);
+  const to = Math.min(at + MASK.length + AROUND, masked.length);
+  return `${from ? "…" : ""}${masked.slice(from, to)}${to < masked.length ? "…" : ""}`;
+};
+
+/** Which field of a payload carries a value this project holds as a test credential, which
+ *  credential, and the masked text around it. An empty `field` is a payload that is one string: a
+ *  file's bytes have no field. A display name is withheld from the report and guarded here never. */
 export const credentialLeak = (data, deploy) => {
-  if (!deploy?.withheld.length) return null;
+  const guarded = deploy?.withheld.filter((one) => one.guarded) ?? [];
+  if (!guarded.length) return null;
   for (const one of leaves(data)) {
-    const found = matched(one.value, deploy.withheld);
-    if (found) return { field: one.at.join("."), credential: found.label };
+    const found = matched(one.value, guarded);
+    if (found) return { field: one.at.join("."), credential: found.label, near: nearOf(one.value, guarded) };
   }
   return null;
 };
@@ -496,7 +521,8 @@ export const unreadRefusal = (refused, what) =>
 
 export const leakRefusal = (found, what) =>
   `${what} carries this project's ${found.credential}`
-  + `${found.field ? `, at ${found.field}` : ""}. A test credential is read `
+  + `${found.field ? `, at ${found.field}` : ""}${found.near ? `, where it reads "${found.near}"` : ""}. `
+  + "A test credential is read "
   + "at the authentication step and echoed nowhere after it — the tracker's own project-settings "
   + "guide, rule 2, and there is no delete for what the tracker has taken. Take the value out and "
   + "say where it is read instead:\n  forge doctor --credentials";
