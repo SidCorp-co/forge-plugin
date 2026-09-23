@@ -60,8 +60,8 @@ after it are read the same way rather than one of them looking clean for want of
 
 **A pass and a recheck are two shapes of round, so `stats` prices them apart.** Each gets its own
 count, cache share and calls histogram, read off the row's own `recheck`, which a pass leaves absent:
-summed together, rechecks shifting from three calls to one looked like the harness caching less,
-when a one-call round reads no cache by construction (ISS-83). A retried consult is counted in its
+one cache figure over both kinds read rechecks shifting from three calls to one as the harness
+caching less, when a one-call round reads no cache by construction (ISS-83). A retried consult is counted in its
 kind's retried figure and in no bucket of its histogram, because its `calls` counted the retry
 attempt alone until ISS-540 and the whole conversation after, and nothing on the row but its date
 says which.
