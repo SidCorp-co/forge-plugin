@@ -101,16 +101,18 @@ test("a wave record with no tree posts and reads back with none", async () => {
 });
 
 test("a wave with no member, or a member that is no issue key, is refused by --member before any call", async () => {
-  const before = tracker.calls?.length ?? 0;
+  const before = project.calls.length;
   const none = await forge("record", "wave", "ISS-6", "--role", "r", "--session", "s");
   assert.equal(none.status, 1);
   assert.match(none.stderr, /record wave needs --member\./u);
   const prose = await forge("record", "wave", "ISS-6", "--member", "the parser issue", "--role", "r", "--session", "s");
   assert.equal(prose.status, 1);
   assert.match(prose.stderr, /--member takes an issue key/u);
+  const asked = () => project.calls.slice(before).map((one) => `${one.name} ${one.args?.action ?? ""}`);
+  assert.deepEqual(asked(), [], "nothing was asked of the tracker for either");
   const twice = await forge("record", "wave", "ISS-6", "--member", "ISS-2", "--member", "ISS-2", "--role", "r", "--session", "s");
   assert.match(twice.stderr, /each --member once/u, "and one dispatch carries an issue once");
-  assert.equal(tracker.calls?.length ?? 0, before, "nothing was asked of the tracker");
+  assert.ok(!asked().some((one) => one.startsWith("forge_comments create")), "and nothing is posted for it");
 });
 
 test("UC-03-2: a wave or a fold on a headline another session holds is posted and writes no lease", async () => {
@@ -140,7 +142,10 @@ test("a wave on a headline the writer holds renews that lease", async () => {
   assert.equal(leaseWrites()[0].data.sessionContext.lease.holder, MINE);
 });
 
+const askedSince = (before) => project.calls.slice(before).map((one) => `${one.name} ${one.args?.action ?? ""}`);
+
 test("--also and every run flag beside a wave or a fold are refused before any call", async () => {
+  const before = project.calls.length;
   for (const argv of [
     ["record", "wave", "ISS-6", "--member", "ISS-2", "--role", "r", "--session", "s", "--next", "the fold"],
     ["record", "wave", "ISS-6", "--member", "ISS-2", "--role", "r", "--session", "s", "--open", "a line"],
@@ -153,9 +158,11 @@ test("--also and every run flag beside a wave or a fold are refused before any c
     assert.equal(run.status, 1, argv.join(" "));
     assert.match(run.stderr, /is written alone and takes no lease/u, argv.join(" "));
   }
+  assert.deepEqual(askedSince(before), [], "not one of them asked the tracker anything");
 });
 
 test("a wave or a fold on a headline a comment would answer is refused before anything is posted", async () => {
+  const before = project.calls.length;
   for (const [ref, kind, rest] of [
     ["ISS-3", "wave", ["--member", "ISS-2", "--role", "r", "--session", "s"]],
     ["ISS-7", "fold", ["--summary", "s"]],
@@ -165,9 +172,11 @@ test("a wave or a fold on a headline a comment would answer is refused before an
     assert.match(run.stderr, /reads a comment as the reply to its park and reopens the issue/u);
     assert.match(run.stderr, /Nothing was sent\./u);
   }
+  assert.ok(!askedSince(before).some((one) => one.startsWith("forge_comments create")), "and nothing was posted");
 });
 
 test("a fold closing no dispatch is refused, and a cut page says it is cut", async () => {
+  const before = project.calls.length;
   const empty = await forge("record", "fold", "ISS-11", "--summary", "a second fold");
   assert.equal(empty.status, 1, empty.stdout);
   assert.match(empty.stderr, /holds no wave record after its latest fold, so this fold would close nothing\. Nothing was sent\./u);
@@ -176,6 +185,7 @@ test("a fold closing no dispatch is refused, and a cut page says it is cut", asy
   project.cut = false;
   assert.equal(cut.status, 1, cut.stdout);
   assert.match(cut.stderr, /page is cut, and no dispatch after a fold is on the part that was read/u);
+  assert.ok(!askedSince(before).some((one) => one.startsWith("forge_comments create")), "and nothing was posted");
 });
 
 test("resume prints every member of an open wave live, which dispatch is complete, the runs and the fold owed", async () => {
