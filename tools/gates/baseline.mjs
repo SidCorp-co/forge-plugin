@@ -5,7 +5,7 @@
    run without it pays nothing for the flow modules this reaches. */
 import { freshForm } from "../../plugin/src/flow/earned/baseline.mjs";
 import { citeForm } from "../../plugin/src/flow/earned/published.mjs";
-import { headNow } from "../../plugin/src/flow/route.mjs";
+import { headNow } from "../../plugin/src/flow/worklog.mjs";
 import { slugIfAny } from "../../plugin/src/resolve/settings.mjs";
 
 const GATE = "npm run check";

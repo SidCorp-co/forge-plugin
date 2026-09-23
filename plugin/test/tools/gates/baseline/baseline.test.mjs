@@ -7,12 +7,12 @@ import test from "node:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { configHome, git, ROOT, run, runsFile, scratch } from "./scratch.mjs";
+import { configHome, git, ROOT, run, runsFile, scratch } from "../scratch.mjs";
 
 const SLUG = "scratch-baseline";
 const RESULT = "nothing fails: all 14 gate step(s) green at this commit";
 
-const baselineScratch = (name) => scratch(name, null, null, { also: ["tools/gates/baseline.mjs"], slug: SLUG });
+const baselineScratch = (name) => scratch(name, null, null, { slug: SLUG });
 
 const headOf = (work) => git(work, "rev-parse", "HEAD").stdout.trim();
 

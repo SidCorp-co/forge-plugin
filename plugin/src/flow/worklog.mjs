@@ -12,7 +12,7 @@ import { pluginCopy } from "../tools/plugin-copy.mjs";
 const consultLog = () => import("../codex/codex-log.mjs");
 const replies = () => import("../codex/log/replies.mjs");
 import { jsonLines } from "../hooks/log/hook-log-file.mjs";
-import { atMinute } from "./machine.mjs";
+import { SHAPES, atMinute } from "./machine.mjs";
 
 export const KEY = "worklog";
 export const OPEN_KEPT = 8;
@@ -96,6 +96,9 @@ const STAMPS = { head: cleanHead };
 export const stampedNow = (shape) => Object.fromEntries(shape.fields
   .filter((one) => one.stamped)
   .map((one) => [one.flag, STAMPS[one.stamped]?.()]));
+
+/** The head the baseline write would stamp, asked for through that write's own stamp so the two cannot disagree about which commit is in hand — a dirty checkout and no checkout both answer with none, which is the head that write would fail to stamp too. */
+export const headNow = () => stampedNow(SHAPES.baseline).head ?? null;
 
 export const owedOn = async (bytes, entries, last) => {
   const { numbered, recheckOwed, recheckPlan, undecidedIn, unverdicted, verdictForm } = await replies();
