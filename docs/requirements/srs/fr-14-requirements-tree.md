@@ -112,6 +112,9 @@ cite it, and no field stores it.
   commits of the issues citing it, and no field SHALL store it.
 - **AC-14-4-4** · Rev: 1 · Proof: none yet — ISS-2123
   WHEN a write carries a citation THEN no gate SHALL read that citation as a tracker key.
+- **AC-14-4-5** · Rev: 1 · Proof: plugin/test/spec/citation.test.mjs "the plan verb refuses a citation that does not resolve, before anything is sent"
+  IF a plan being written carries a citation that names no clause of the project's tree THEN the
+  CLI SHALL refuse the write before anything is sent.
 
 ### UC-14-5 — The page a person reads
 
