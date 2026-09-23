@@ -18,15 +18,13 @@ import { partForStatus } from "../guides/served.mjs";
 import { kindsHeld, parse } from "./record/page.mjs";
 import { parkAs, transitionTo } from "./advance.mjs";
 import { buildsAt } from "./earned.mjs";
-import { OPEN_KEPT, carriedByLanding, droppedHead, merged, patchFrom, worklogFor, worklogOf, workNow } from "./worklog.mjs";
+import { OPEN_KEPT, droppedHead, merged, patchFrom, worklogFor, worklogOf, workNow } from "./worklog.mjs";
 import {
   LANDING_BUILDER_OWED,
-  LANDING_DONE,
   LANDING_HEAD_OWED,
   LANDING_JUDGED,
   LANDING_MARKED,
   LANDING_QA_OWED,
-  LANDING_READY,
   LANDING_RECONCILED,
   LANDING_RECORDS_OWED,
   LANDING,
@@ -36,6 +34,7 @@ import {
 } from "./landing/checkpoint.mjs";
 import { REBUILT_FORM, handWrittenOf, holdersOf } from "./landing/reconstruction.mjs";
 import { readyCheckpoint, rebuiltCheckpoint, recaptureRefusal } from "./landing/written.mjs";
+import { finishLanded } from "./landing/landed.mjs";
 import {
   MECHANISM,
   MINUTES,
@@ -123,7 +122,7 @@ export const USAGE = [
   "  --judged        the QA turn handed back, from `qa-owed` or from none, and the lease with it",
   "  --reconciled <sha>  the builder's turn handed back, from `builder-owed` at that sha",
   "  --recorded      the records turn handed back, from `records-owed`",
-  "  --landed        the landing over, from `ready`: the default branch has the head",
+  "  --landed        the landing over, from `ready` or `head-owed`: base has the head",
   "  --rebuilt sha --deployment id|--undeployed  a late checkpoint",
   "",
   "--pushed, --review and --open write the worklog beside the lease, which `forge resume` reads",
@@ -305,39 +304,6 @@ const handRecords = async (documentId, ref, context, holder) => {
     + `of ${ref} is this run's. The landing takes it from here:\n  ${takeRoute(ref)}`);
 };
 
-/* The fourth route out, and the one that ends a landing rather than handing a turn back: the state a
-   release leaves where the workspace that made it is gone before anybody reads the checkpoint. Git's
-   reading licenses the write and not the caller's word, so none of the independence the three
-   hand-backs ask is asked here — nothing is judged, and the lease `landingSaved` checks holds a
-   second run off. docs/cli/the-checkpoint.md. */
-const finishLanded = async (documentId, ref, context) => {
-  const landing = landingOf(context);
-  if (landing?.state !== LANDING_READY) {
-    fail(`claim --landed ends a landing the default branch already carries, and the landing `
-      + `checkpoint on ${ref} reads \`${landing?.state ?? "nothing at all"}\`: it is ended from `
-      + `\`${LANDING_READY}\` and from no other state, every later one being a landing under way whose `
-      + `remaining steps are its own. Read where the landing is:\n  forge resume ${ref}`);
-  }
-  const read = carriedByLanding(landing.head, landsOn(await releasePolicy()));
-  if (!read.carries) {
-    fail(`claim --landed writes \`${LANDING_DONE}\` on the branch a change lands on already carrying `
-      + `${shortSha(landing.head)}, the head ${landing.branch || "this checkpoint"} was written at, `
-      + `and this checkout cannot prove it does: ${read.why}.`
-      + `${read.from ? ` That branch is ${read.from}.` : ""} The `
-      + `reading is made off refs already here, a claim being one of the writes that may not wait on `
-      + `a remote — and where that branch is genuinely unlanded what is owed is the landing and not `
-      + `this write. ${read.route
-        ? "Settle the reading, then ask again"
-        : "Ask from a checkout that can read that history"}:\n`
-      + (read.route ? `  ${read.route}\n` : "") + `  forge claim ${ref} --landed`);
-  }
-  const saved = await landingSaved(documentId, ref, { state: LANDING_DONE }, { was: landing });
-  console.log(`${ref}  landed: ${landingLine(saved)}`);
-  return console.log(`${read.ref}, which is ${read.from}, stands at ${shortSha(read.tip)} and carries `
-    + `${shortSha(landing.head)}, so this change is on the branch it lands on already and no release `
-    + `is owed to put it there. No turn of this landing is left for anybody to take.`);
-};
-
 /* The turn is read before anything is written, because this is the one claim that may take a live
    lease: a take the state does not name is refused and no field is touched. */
 const takeTurn = async (documentId, ref, issue, context, { holder, minutes, line, patch }) => {
@@ -456,7 +422,7 @@ export const claim = async (argv) => {
     return advise(documentId, issue, worklog);
   }
   if (given.landed) {
-    await finishLanded(documentId, ref, context);
+    await finishLanded(documentId, ref, issue, context);
     return advise(documentId, issue, worklog);
   }
   /* The issue's own key and never the caller's spelling of it: `documentIdOf` takes a uuid too, and

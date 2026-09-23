@@ -22,8 +22,9 @@ export const LANDING_STATES = {
   ready: { turn: "lander", next: ["candidate", "done", "head-owed"] },
   candidate: { turn: "lander", next: ["reconciled", "builder-owed", "head-owed"] },
   "builder-owed": { turn: "builder", next: ["reconciled"] },
-  /* Left by `--pushed --ready` alone, which writes the checkpoint whole rather than moving it. */
-  "head-owed": { turn: "builder", next: ["ready"] },
+  /* Left by `--pushed --ready`, which writes the checkpoint whole rather than moving it, or ended by
+     `--landed` where the answering head reached the branch by another route. */
+  "head-owed": { turn: "builder", next: ["ready", "done"] },
   reconciled: { turn: "lander", next: ["qa-owed", "promoting", "head-owed"] },
   "qa-owed": { turn: "qa", next: ["judged"] },
   judged: { turn: "lander", next: ["promoting", "done", "qa-owed", "records-owed"] },

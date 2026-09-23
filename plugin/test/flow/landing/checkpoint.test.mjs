@@ -58,7 +58,7 @@ test("every state is reachable from ready, names exactly one turn, and ends at d
     "the turn a moved path hands back, and the one state it leads to");
   /* Left by the capture alone, which writes the checkpoint whole, so its one successor is the first
      state; and entered from the three a landing holds before anything was judged (ISS-2299). */
-  assert.deepEqual(LANDING_STATES["head-owed"], { turn: "builder", next: ["ready"] },
+  assert.deepEqual(LANDING_STATES["head-owed"], { turn: "builder", next: ["ready", "done"] },
     "the turn a fault of the branch's own hands back, answered by a new head");
   for (const one of ["ready", "candidate", "reconciled"]) {
     assert.ok(LANDING_STATES[one].next.includes("head-owed"), `${one} hands a branch back for a new head`);

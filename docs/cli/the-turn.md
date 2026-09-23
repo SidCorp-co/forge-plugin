@@ -59,6 +59,12 @@ the judge, a passing verdict at it on every criterion, since one left at the ref
 to the new one as a judgement nobody made. A successor may build that head as it may read a
 candidate, the records the capture asks for being the ones that sign it.
 
+Where that answer reached the default branch by another route, the capture has no diff left to read
+and `--landed` is the exit instead. It asks the same records of the same head — the branch's tip as
+this checkout last fetched it, the checkpoint's own head being the one refused — and no fewer, since
+the only thing it skips is a landing that would merge nothing: a head the records have not judged
+does not end a landing just because it is already on the branch.
+
 `--recorded` is the builder's too, and the one turn that is handed back for something no state of the
 landing writes. Every rung left once the mark is up is earned by a record — a correction naming what
 the landing wrote outside the plan, a verdict, a verification — and each of them answers for a
