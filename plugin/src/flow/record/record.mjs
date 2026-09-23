@@ -19,7 +19,7 @@ import { commentPage, cutIn, cutLine, postComment } from "../../tracker/comments
 import {
   TWICE, attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadAll,
 } from "../../tracker/evidence.mjs";
-import { personOwedForRelease, releaseLine, releasePolicy } from "../../tracker/project-config.mjs";
+import { personOwedForRelease, releaseLine, releasePolicy, releaseAnswer } from "../../tracker/project-config.mjs";
 import { briefGoals } from "../../tracker/knowledge/brief.mjs";
 import { NONE_STATED, servesRefusal } from "../../goals.mjs";
 import { belowTop, climbForm, rungClaimed } from "../../ladder.mjs";
@@ -508,13 +508,16 @@ export const recordReport = async (reference) => {
   if (lines.length) console.log(["", "The run, from its own captures:", ...lines.map((one) => `  ${one}`)].join("\n"));
   console.log(pluginFilingLine((repeated.routed ?? []).map((one) => one.record.fields.to)));
   console.log(owed.length ? `\nOwed: a verdict on criterion ${owed.join(", ")}.` : `\nEvery criterion has a verdict.`);
-  /* Where a run stops, and the route it leaves for whoever picks the issue up from here: a set, which is the only move out of this rung the entry check `earned.mjs` holds for `closed` admits (ISS-105, ISS-1147, ISS-1918). The import is late for the reason the one above it is. */
+  /* Wherever the issue stands, because this report is where the method sends a run for the policy's answer, and one that first reads it at the rung it is already standing on has read it a phase late. Printed in the answer that owes nobody too: a run told only that the close is owed cannot tell a policy this CLI read from one it never consulted, and a run holding this line beside `forge doctor`'s own rows can settle which of them moved (ISS-1656). */
+  const policy = await releasePolicy();
+  console.log(`\nRelease policy  ${releaseAnswer(policy)}`);
+  /* Where a run stops, and the route it leaves for whoever picks the issue up from here: a set, which is the only move out of this rung the entry check `earned.mjs` holds for `closed` admits (ISS-105, ISS-1147, ISS-1918). The act itself is named once, on the line above, and this one says only whose the next move is. The import is late for the reason the one above it is. */
   if (body.status === CLOSES_FROM) {
-    const person = personOwedForRelease(await releasePolicy());
     const { CLOSES_AT, setForm } = await import("../earned.mjs");
-    console.log(person
-      ? `Owed: the release, which is a person's. ${person}, so this run ends at ${CLOSES_FROM} and the `
-        + `close is theirs, made once it is out and with the release named:\n  ${setForm(reference, CLOSES_AT)}`
+    console.log(personOwedForRelease(policy)
+      ? `Owed: the release, which is a person's. The line above says whose act it is and what would `
+        + `end the rung, so this run ends at ${CLOSES_FROM} and the close is theirs, made once it is `
+        + `out and with the release named:\n  ${setForm(reference, CLOSES_AT)}`
       : `Owed: the close. A run ends at closed, not at ${CLOSES_FROM}:\n  forge advance ${reference}`);
   }
 };
