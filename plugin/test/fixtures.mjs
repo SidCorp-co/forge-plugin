@@ -8,6 +8,7 @@ import { basename, dirname, join } from "node:path";
 import { checkoutAt } from "../src/git/checkout-at.mjs";
 import { OWN as OWN_KEYS } from "./fixtures/own-keys.mjs";
 import { reachOf } from "./fixtures/answer-reach.mjs";
+import { answeringThrows, body } from "./fixtures/served.mjs";
 import { madeIn } from "../../tools/room.mjs";
 import { PLAN_SECTIONS } from "../src/flow/machine.mjs";
 
@@ -336,33 +337,6 @@ const emptyJson = ({ method, headers }) => (method === "POST" || method === "DEL
  *  changes the state changes the answer; a handler in `state.answer` keyed by tool wins over the
  *  defaults, and `state.calls` collects every call for a case to assert on. */
 export const fakeTracker = async (state) => {
-  const raw = (request) =>
-    new Promise((done) => {
-      const chunks = [];
-      request.on("data", (chunk) => chunks.push(chunk));
-      request.on("end", () => done(Buffer.concat(chunks)));
-    });
-  /* The one part an upload sends, read off the wire rather than off the caller's intent: the name
-     and the type the tracker judges are the part's own, so a case can assert on what arrived. */
-  const parted = (held, boundary) => {
-    const text = held.toString("latin1");
-    const open = text.indexOf(`--${boundary}\r\n`) + boundary.length + 4;
-    const head = text.slice(open, text.indexOf("\r\n\r\n", open));
-    const bytes = held.subarray(text.indexOf("\r\n\r\n", open) + 4, text.lastIndexOf(`\r\n--${boundary}--`));
-    return {
-      field: /name="([^"]*)"/u.exec(head)?.[1] ?? null,
-      name: /filename="([^"]*)"/u.exec(head)?.[1] ?? null,
-      mime: /content-type:\s*(\S+)/iu.exec(head)?.[1] ?? null,
-      bytes,
-    };
-  };
-  const body = async (request) => {
-    const held = await raw(request);
-    const boundary = /boundary=([^;]+)/u.exec(request.headers["content-type"] ?? "")?.[1];
-    if (boundary) return { multipart: parted(held, boundary) };
-    const text = held.toString("utf8");
-    return text ? JSON.parse(text) : {};
-  };
   /* `state.hidden` is what the list route does not carry and the search route, a different index,
      reaches: the seam a duplicate check answers for. A reading the walk cannot finish is `shortPage`
      and nothing else, since a route that counts what it will not serve is the only shape with one. */
@@ -401,9 +375,13 @@ export const fakeTracker = async (state) => {
      test asserting on either reads the same list; a route two tools answer on writes two. The route
      is held rather than written and revised, because `run-fixtures.mjs` records to a file. */
   let pending = null;
+  const askedOn = new WeakMap();
   const noted = (name, args) => {
     (state.calls ??= []).push({ ...pending, name, args });
-    if (pending) pending.stood = true;
+    if (pending) {
+      pending.stood = true;
+      askedOn.set(pending, name);
+    }
   };
 
   const reach = reachOf(state);
@@ -567,7 +545,7 @@ export const fakeTracker = async (state) => {
         .map((one) => ({ ...one })))],
   ];
 
-  const served = createServer(async (request, response) => {
+  const serve = async (request, response, mine) => {
     response.sendDate = state.noDate !== true && !state.dateOffset;
     if (state.dateOffset) response.setHeader("Date", new Date(Date.now() + state.dateOffset).toUTCString());
     for (const [name, held] of Object.entries(state.budget ?? {})) response.setHeader(name, String(held));
@@ -600,6 +578,7 @@ export const fakeTracker = async (state) => {
       sent,
       slug: SLUGS.get(url.pathname.split("/")[3]) ?? null,
     };
+    mine.call = pending;
     const row = ROUTES.find(([pattern]) => pattern.test(url.pathname));
     if (!row) {
       (state.calls ??= []).push(pending);
@@ -631,7 +610,8 @@ export const fakeTracker = async (state) => {
     }
     response.writeHead(200, { "Content-Type": "application/json" });
     response.end(JSON.stringify(answer ?? {}));
-  });
+  };
+  const served = createServer(answeringThrows(serve, (call) => askedOn.get(call)));
   await new Promise((ready) => served.listen(0, "127.0.0.1", ready));
   const home = tempHome("tracker");
   mkdirSync(join(home.path, "forge"), { recursive: true });
