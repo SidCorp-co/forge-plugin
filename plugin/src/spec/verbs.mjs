@@ -162,16 +162,16 @@ const statusLines = (held) => {
   ];
 };
 
-const printed = (index, clause, ref, given) => {
+/** What `forge spec <id>` prints for a clause, as one text: the reviewer's `read_spec` answers with
+ *  this, so a citation it judges is judged on the words the verb would have shown (ISS-1061). */
+export const clauseText = (index, clause, ref, given = {}) => {
   const stale = staleLine(ref, clause);
-  if (stale) console.log(`${stale}\n`);
-  console.log(linesFor(index, clause, "", given).join("\n"));
-  if (clause.parents.length) {
-    console.log(`\nOf:\n${named(index, clause.parents, "  ").join("\n")}`);
-  }
-  if (clause.enforcedBy.length) {
-    console.log(`\nEnforced by:\n${named(index, clause.enforcedBy, "  ").join("\n")}`);
-  }
+  return [
+    ...(stale ? [`${stale}\n`] : []),
+    linesFor(index, clause, "", given).join("\n"),
+    ...(clause.parents.length ? [`\nOf:\n${named(index, clause.parents, "  ").join("\n")}`] : []),
+    ...(clause.enforcedBy.length ? [`\nEnforced by:\n${named(index, clause.enforcedBy, "  ").join("\n")}`] : []),
+  ].join("\n");
 };
 
 const read = (argv) => {
@@ -182,8 +182,21 @@ const read = (argv) => {
   return { given, token: positionals[0] };
 };
 
+/** The identifier a token names, or the sentence refusing it, for both callers that take one. */
+export const refOf = (token) => {
+  const ref = parseRef(token);
+  if (!ref) {
+    return { refused: `\`${token}\` is no identifier of this tree. One of ${FORMS}, optionally with the revision it was cited at, as in BR-09~1.` };
+  }
+  if (!KIND[ref.prefix] && ref.prefix !== "R") return { refused: `\`${token}\` carries no known prefix. One of ${FORMS}.` };
+  return { ref };
+};
+
+/** The clause a ref names, or the refusal `forge spec` ends on, nearest identifiers included. */
+export const clauseAsked = (index, ref) => lookupProblem(index, ref.id, "Ask for");
+
 const clauseFor = (index, ref) => {
-  const { problem, clause } = lookupProblem(index, ref.id, "Ask for");
+  const { problem, clause } = clauseAsked(index, ref);
   if (problem) refuse(problem);
   return clause;
 };
@@ -232,11 +245,9 @@ const run = async (argv, readStatus) => {
     return said === null ? undefined : fail(said);
   }
   const { given, token } = read(argv);
-  const ref = parseRef(token);
-  if (!ref) {
-    refuse(`\`${token}\` is no identifier of this tree. One of ${FORMS}, optionally with the revision it was cited at, as in BR-09~1.`);
-  }
-  if (!KIND[ref.prefix] && ref.prefix !== "R") refuse(`\`${token}\` carries no known prefix. One of ${FORMS}.`);
+  const asked = refOf(token);
+  if (asked.refused) refuse(asked.refused);
+  const { ref } = asked;
   const index = specTree();
   const clause = clauseFor(index, ref);
   if (given.status && !readStatus) {
@@ -245,7 +256,7 @@ const run = async (argv, readStatus) => {
   }
   const status = given.status ? await readStatus(clause.id, index) : null;
   if (!given.json) {
-    printed(index, clause, ref, given);
+    console.log(clauseText(index, clause, ref, given));
     return status ? console.log(statusLines(status).join("\n")) : null;
   }
   return console.log(JSON.stringify({

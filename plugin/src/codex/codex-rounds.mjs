@@ -121,4 +121,4 @@ export const reviewed = async (values, model, opening, scope, onDelta, ask = ask
   return climb(first.carried);
 };
 
-const detail = (input = {}) => input.path ?? input.key ?? (input.pattern ? `/${input.pattern}/` : "");
+const detail = (input = {}) => input.path ?? input.key ?? input.id ?? (input.pattern ? `/${input.pattern}/` : "");

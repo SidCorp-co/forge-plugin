@@ -20,7 +20,7 @@ import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mj
 import { didYouMean } from "../suggest.mjs";
 import { PENDING_USAGE, afterTouch, ageOf, clearConsulted, clearableOf, heldSaid, pending, pendingIn,
   readByCodex, readState, stagedApart, stagedReader, turnsOf, updateState } from "./codex-state.mjs";
-import { PER_KEY, READ_ISSUE, SPARE, TOOLS, checkCommand, checkRow, checkState, scopeFor } from "./codex-tools.mjs";
+import { PER_KEY, READ_ISSUE, READ_SPEC, SPARE, TOOLS, checkCommand, checkRow, checkState, scopeFor, specFor } from "./codex-tools.mjs";
 import { noDiffIn, reviewSet, shownOf } from "./codex-set.mjs";
 import { COMPLEXITY_USAGE, complexity } from "./complexity/complexity.mjs";
 import { reviewed } from "./codex-rounds.mjs";
@@ -387,7 +387,8 @@ const consult = async (given) => {
   const intent = (said ?? "").trim();
   const id = randomBytes(3).toString("hex");
   const history = historyFor(entries, root, undefined, rels);
-  const system = roleFor(angles, { check: Boolean(codexCheck()), recheck, tracker: issues.length > 0 });
+  const spec = await specFor(root);
+  const system = roleFor(angles, { check: Boolean(codexCheck()), recheck, tracker: issues.length > 0, spec: Boolean(spec) });
   const started = Date.now();
   const record = {
     id,
@@ -425,7 +426,7 @@ const consult = async (given) => {
   };
   /* Hoisted because the round writes the check's outcome onto it and both rows are owed that outcome. `reached` and not `anchoredTo`: a recheck whose tree has not moved sent no diff and so anchors no log row, but the reviewer asking for "the diff" still means the change since that head, and the tree at HEAD would hand it every file this consult is not about. */
   const reach = scopeFor(root, rels.filter(isAbsolute), codexCheck(),
-    { anchor: reached, files: rels, issues, by: started + budgetMs() });
+    { anchor: reached, files: rels, issues, spec, by: started + budgetMs() });
   try {
     const opening = openingFor(intent, parts, history, { risks, only, bodies, scope, checks, issues });
     const held = await reviewed(
@@ -505,6 +506,7 @@ const show = (rest = []) => {
     + `${limits.ceiling} when a review comes back incomplete`);
   console.log(`tracker   : ${READ_ISSUE.name} where a consult names an issue key, `
     + `${PER_KEY} tracker request(s) per key and ${SPARE} over, per consult`);
+  console.log(`spec      : ${READ_SPEC.name} where the checkout keeps a requirements tree inside itself`);
   console.log(`effort    : ${base}, a step down on a recheck or under ${limits.small} changed line(s), `
     + `a step up on a bodies pass, on a named risk or over ${limits.large}`);
   console.log(`angles    : ${chosenAngles(undefined).join(", ")}`);

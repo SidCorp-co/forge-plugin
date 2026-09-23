@@ -1,7 +1,7 @@
 /* Where the tree is stored, known here and nowhere else: a caller asks for an identifier, so the
    day this reads an API instead of a checkout no caller changes. */
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { existsSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
+import { join, relative, sep } from "node:path";
 
 import { checkoutRoot } from "../resolve/settings.mjs";
 import { refuse } from "../refusal.mjs";
@@ -10,10 +10,17 @@ import { RECORD, malformedIn, written } from "./recorded.mjs";
 
 export const TREE = "docs/requirements";
 
-const walk = (dir, out = []) => {
+/* `keep` is asked before a directory is entered, not after its files are read, and a directory
+   reached twice by its real path is entered once: a link out of the tree or back into it is
+   otherwise a walk of whatever it points at, or one that never ends. */
+const walk = (dir, keep = () => true, out = [], seen = new Set()) => {
+  const real = realpathSync(dir);
+  if (seen.has(real)) return out;
+  seen.add(real);
   for (const name of readdirSync(dir).sort()) {
     const path = join(dir, name);
-    if (statSync(path).isDirectory()) walk(path, out);
+    if (!keep(path)) continue;
+    if (statSync(path).isDirectory()) walk(path, keep, out, seen);
     else if (name.endsWith(".md")) out.push(path);
   }
   return out;
@@ -26,7 +33,7 @@ const dirUnder = (root) => {
 
 const treeDir = () => dirUnder(checkoutRoot());
 
-const readFrom = (dir, root = checkoutRoot()) => walk(dir).map((path) => ({
+const readFrom = (dir, root = checkoutRoot(), keep = undefined) => walk(dir, keep).map((path) => ({
   file: relative(root, path),
   text: readFileSync(path, "utf8"),
 }));
@@ -81,6 +88,26 @@ export const specTreeIfAny = () => specTreeAt(checkoutRoot());
 export const specTreeAt = (root) => {
   const dir = dirUnder(root);
   return dir ? clauseIndex(readFrom(dir, root)) : null;
+};
+
+/** The tree under `root` read only where it really lies inside `root`, or `null` where the directory
+ *  itself resolves elsewhere: a reader serving another model is bounded by the checkout it was
+ *  given, and a symlinked tree or document is a path to anywhere its author liked. */
+export const specTreeInside = (root) => {
+  const dir = dirUnder(root);
+  const home = realpathSync(root);
+  // A link that resolves nowhere is skipped with the ones that resolve outside: neither is a document of this checkout.
+  const inside = (path) => {
+    let real = null;
+    try {
+      real = realpathSync(path);
+    } catch {
+      return false;
+    }
+    return real === home || real.startsWith(home + sep);
+  };
+  if (!dir || !inside(dir)) return null;
+  return clauseIndex(readFrom(dir, root, inside));
 };
 
 export const keepsSpecTree = () => Boolean(treeDir());
