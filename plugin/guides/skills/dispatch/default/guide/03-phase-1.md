@@ -1,5 +1,14 @@
 ## Phase 1 — Read the order
 
+**A wave already under way is resumed before any order is read.** `forge resume <headline>` on the
+issue the wave is headed on prints it. Where dispatches stand after the last fold, that is the wave
+this session is in: its members are read there at their status now, the fold it owes is still owed,
+and a slot it left open is filled as a further dispatch of the same wave rather than as the first of
+another. Where the latest record is a fold, the last wave is over and this one begins with its first
+dispatch. The headline is the dispatcher's to choose — the issue the person named, or the first one
+the wave dispatches — and it is one issue for the whole wave, because a restart has to know where to
+look. It is an issue no park holds: a record is refused where the tracker would read it as the reply.
+
 Take the ranking verb's own output, with its reasons. Three things in it decide the wave: which
 issues are eligible, what each scored, and whether the read was bounded — an order taken over a
 sample can be hiding a blocker nobody counted, and that is a fact the fold records rather than a

@@ -310,3 +310,26 @@ test("a phase answers its number with every heading subordinate to it, and none 
   assert.deepEqual(phasesOf(text).map((one) => one.number), ["4", "5", "6"],
     "and a subordinate heading is no phase of its own");
 });
+
+/* A wave is a record on its headline, so the method a dispatcher reads says where each half of it is
+   written and where a restart reads it back, in both flows, since either may be the one a project runs (ISS-818). */
+test("the dispatch method writes the wave onto its headline and reads it back there, in both flows", async () => {
+  const { skillGuideAnswer } = await import("../../src/guides/skill-guides.mjs");
+  for (const flow of ["default", "screen"]) {
+    const part = (name) => flat(skillGuideAnswer("dispatch", PLUGIN, flow)({ part: name }).lines.join("\n"));
+    assert.match(part("1"), /A wave already under way is resumed before any order is read\.\*\* `forge resume <headline>`/u,
+      `${flow}: Phase 1 resumes a wave the headline shows open`);
+    assert.match(part("1"), /filled as a further dispatch of the same wave rather than as the first of another/u,
+      `${flow}: rather than starting another`);
+    assert.match(part("5"), /\*\*Each dispatch is written onto the wave's headline before the call that dispatches it\*\*/u,
+      `${flow}: Phase 5 writes the record before the dispatch`);
+    assert.match(part("5"), /`forge record wave <headline> --member <key>\.\.\. --role <role> --session/u,
+      `${flow}: with the command that writes it`);
+    assert.match(part("6"), /The fold's last step is its record\.\*\*[^]*`forge record fold <headline> --summary/u,
+      `${flow}: Phase 6 ends on the fold record`);
+    assert.match(part("the-fold"), /The set is read off the headline rather than recalled: `forge resume <headline>`/u,
+      `${flow}: the fold reads its set off the resume`);
+    assert.match(part("the-fold"), /The runs are the dispatch count that same reading prints, one per dispatch and not one per member/u,
+      `${flow}: and its run count`);
+  }
+});

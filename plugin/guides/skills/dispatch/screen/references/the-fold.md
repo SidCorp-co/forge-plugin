@@ -25,7 +25,10 @@ the section as one.
 
 ## One section per run
 
-Whatever the run reported, and in its own terms rather than the tracker's columns:
+The set is read off the headline rather than recalled: `forge resume <headline>` prints every dispatch
+since the last fold, each member at its status now. A section is owed per dispatch, and a dispatch
+that carried a batch is one section naming each of its members. Whatever the run reported, and in
+its own terms rather than the tracker's columns:
 
 - What landed, and what it was released as.
 - What the run filed, and where. "Filed on ISS-nn" is not a fact, it is a report about a write; open
@@ -39,7 +42,8 @@ Whatever the run reported, and in its own terms rather than the tracker's column
 
 ## What the wave itself cost
 
-Counted, never asserted. On one side, the dispatcher's own minutes and calls. On the other, the
+Counted, never asserted. The runs are the dispatch count that same reading prints, one per dispatch
+and not one per member. On one side, the dispatcher's own minutes and calls. On the other, the
 readings the executors did not have to repeat and the runs that were never spent because triage
 disposed of the issue first. Both halves go in the fold, including when the wave lost.
 
