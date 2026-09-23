@@ -132,6 +132,8 @@ const FINDERS = {
   "commands.mjs renew(written.id, \u2026)": "the edge write, which makes no check of its own \u2014 so its "
     + "row in the verb table carries no `own`, and the gate refuses it rather than standing down (ISS-1724)",
   "commands.mjs renew(issue, \u2026)": "the comment verb, which calls mustBeShown itself one line before this",
+  "flow/record/record.mjs renew(documentId, \u2026)": "a wave or fold record's post, which calls mustBeShown "
+    + "itself one line before this (ISS-818)",
 };
 
 /* Read fail-closed and by identity, not by spelling and not by count. The renewal's fifth argument

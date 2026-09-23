@@ -44,6 +44,8 @@ export const kindRows = (caps) => [
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
   "  gap          --where W --lacked L --did D | --none <why>       where the method did not answer",
   "  verification --where W --commit C --evidence E... [--contains C]",
+  "  wave         --member K... --role R --session S [--tree T]     one dispatch, on the wave's headline",
+  "  fold         --summary S                                      the wave's end, once its fold is posted",
   "  finding      --expected E --seen S [--evidence E]... [--quoted Q] [--criterion N | --uc UC-nn-m]",
   "  triage       --outcome O --would-have-caught W [--detail D]  O: " + TRIAGES.join("|"),
   "  merged       " + CLAUSES.map((one) => `--${one.flag} V`).join(" ") + " [--to B] | --undo",
@@ -75,6 +77,8 @@ const KIND_PHRASE = {
   triage: "a reopen judged: which of the three it was, and what would have caught it",
   merged: "the tracker's own mark, its note built from the five clauses the next statuses read",
   note: "the release note, in the words of whoever filed the issue",
+  wave: "one dispatch of a wave, on its headline issue",
+  fold: "the end of that wave, once its fold is posted",
   plan: "the plan itself, from a file a consult has read",
   criteria: "the numbered criteria, from a file a consult has read",
 };
@@ -87,7 +91,7 @@ const KIND_PHRASE = {
    checked against `KINDS` as a set rather than trusted by eye. */
 export const DISPLAY_ORDER = ["routed", "verdict", "correction", "review", "verification", "gap",
   "note", "finding", "triage", "confirmation", "merged", "park", "answer", "baseline", "decision",
-  "question", "plan", "criteria"];
+  "question", "wave", "fold", "plan", "criteria"];
 
 const phraseRows = () =>
   DISPLAY_ORDER.map((kind) => `  ${kind.padEnd(13)}${KIND_PHRASE[kind] ?? ""}`);
@@ -214,6 +218,18 @@ const ANSWER_BLOCKS = [
   "nothing, whoever composed it. The write resumes the issue where the park left it, in the same call.",
 ];
 
+/* Why the two are a finder's writes is what their rows cannot say, and a dispatcher reading only the
+   row would expect the lease every other kind takes (ISS-818). */
+const WAVE_BLOCKS = [
+  "A wave is the dispatch records after the latest fold on its headline issue; `forge resume` on",
+  "that issue prints it, each member's status and lease read live. Both kinds are a finder's",
+  "writes: they renew the writer's own lease and take none, so the headline may be free or held",
+  "by a run the wave dispatched. Each is written alone, so --also and the flags below that write",
+  "the lease are refused beside it, and each is refused on an issue at waiting or needs_info, where",
+  "the tracker reads a comment as the reply to its park. A fold with no dispatch after the last",
+  "fold closes nothing and is refused.",
+];
+
 const SHARED_FLAGS = [
   "  --also <kind>   another kind of this rung, its payload after it; the set moves the status",
   "  --next <line>   on any kind that writes: the step whoever comes next starts on, onto the lease",
@@ -229,15 +245,13 @@ export const usage = () => [
   "",
   ...phraseRows(),
   "",
-  "These kinds add to the issue rather than superseding the last, and the report lists every",
-  "one, oldest first, under a count:",
+  "These kinds add to the issue, and the report lists each, oldest first, under a count:",
   `  ${REPEATS.join(", ")}`,
-  "Every other kind is latest-wins, because a later record of it supersedes the one before.",
+  "Every other kind is latest-wins: a later record supersedes the one before.",
   "",
   ...SHARED_FLAGS,
   "",
-  "Every write ends on stderr with what `forge advance --owed` would print for the issue at that",
-  "moment: the next status and what it owes, or the status the record earns.",
+  "Every write ends on stderr with what `forge advance --owed` would then print for the issue.",
 ].join("\n");
 
 /* The rows with no cap on them, for the readers asking which flags exist rather than what a field
@@ -270,6 +284,7 @@ export const kindHelp = (kind, caps = {}, goals = null, cites = citationBlocks()
     ...(goals && SERVES_KINDS.includes(kind) ? ["", ...servesBlocks(goals)] : []),
     ...(kind === "verdict" ? ["", ...VERDICT_BLOCKS] : []),
     ...(kind === "answer" ? ["", ...ANSWER_BLOCKS] : []),
+    ...(SHAPES[kind]?.finder ? ["", ...WAVE_BLOCKS] : []),
     ...(SHAPES[kind]?.per ? ["", ...CRITERION_BLOCKS] : []),
     ...(filled(kind, "evidence") ? ["", ...EVIDENCE_BLOCKS] : []),
     ...(alsoCommit(kind).length ? ["", ...alsoCommit(kind)] : []),

@@ -58,3 +58,8 @@ the readings the executors did not repeat and the dispositions taken before a ru
 net cost asserted rather than counted is the thing this skill was built to stop doing.
 
 What a section owes, where it is written, and what closes the wave: `forge guide dispatch the-fold`.
+
+**The fold's last step is its record.** Once the sections and the cost count are posted on the
+headline, `forge record fold <headline> --summary "<the wave's one line>"` ends the wave there. Until
+that write the wave is open whatever its members' statuses say, and a restarted dispatcher resumes it
+as unfolded; after it, the next dispatch headed on that issue begins a new wave.

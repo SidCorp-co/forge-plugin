@@ -85,3 +85,5 @@ the two `--set` verbs already refuse the same shape, and a record is never edite
 path taken as the text stands on the issue for good, while expansion, once shipped, is the reading
 nobody could take back from the callers leaning on it. A field naming a place carries no such check
 (ISS-820).
+
+The two kinds that take no lease, and why a dispatcher's records cannot: [the wave](the-wave.md).
