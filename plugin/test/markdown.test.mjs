@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import {
   CODE_SPAN_NONEMPTY_PATTERN,
   CODE_SPAN_PATTERN,
+  escaped,
   LINK_TARGET_OPEN_PATTERN,
   LINK_TARGET_PATTERN,
   LINK_TEXT_PATTERN,
@@ -102,6 +103,12 @@ const MEDIAN_FORMS = [
 /* The three logs this tool keeps are all append-only JSONL: mkdir, create at 0600 while empty, append one line. The create
    mode is what makes the needle the store's rather than any append's — `openSync(_, "w", 0o600)` in `resolve/config.mjs` is an atomic replace, a different act with the same permission. */
 const JSONL_APPEND = [new RegExp(String.raw`openSync\([^,]*, "a", 0o600\)[\s\S]{0,140}appendFileSync`, "u")];
+
+/* The class and not its bytes: seven copies stood in three orderings, and a needle cut to one would have seen one of them (ISS-646). A class drawn only from the metacharacters and holding all eleven of the quantifiers, groups and anchors is an escape whatever order it is written in, in a literal or a quoted string. */
+const ESCAPE_ALPHABET = String.raw`[\\/^$*+?.()|[\]{}]`;
+const ESCAPE_CLASS = new RegExp(String.raw`[/"'\x60]\[`
+  + [..."*+?(){}|^$."].map((one) => `(?=${ESCAPE_ALPHABET}*?\\${one})`).join("")
+  + String.raw`${ESCAPE_ALPHABET}{11,}\][/"'\x60]`, "u");
 const NEEDLES = [
   ["an inline code span", MARKDOWN, [CODE_SPAN_PATTERN]],
   ["a non-empty inline code span", MARKDOWN, [CODE_SPAN_NONEMPTY_PATTERN]],
@@ -121,6 +128,7 @@ const NEEDLES = [
   ["a path's canonical form", CANONICAL, [CANONICAL_FORM], OWN_FALLBACK],
   ["a median over numbers", MEDIAN, MEDIAN_FORMS],
   ["an append-only JSONL store", JSONL, JSONL_APPEND],
+  ["a regex escape", MARKDOWN, [ESCAPE_CLASS]],
 ];
 
 /* A needle is a primitive's bytes, or a shape where the primitive is one — a fallback body is the same reading whatever its parameter is called, and no substring tells those copies apart. */
@@ -179,6 +187,12 @@ test("the guard fires on a module that re-declares one", () => {
     { rel: "u.mjs", text: "const mid = (ranked, at) => (ranked[at - 1] + ranked[at]) / 2;" },
     { rel: "v.mjs", text: "const mid = (values) => { const middle = Math.floor(values.length / 2); const sorted = [...values].sort((left, right) => left - right); return sorted[middle]; };" },
     { rel: "w.mjs", text: 'if (!existsSync(p)) closeSync(openSync(p, "a", 0o600));\nappendFileSync(p, `${JSON.stringify(one)}\\n`);' },
+    /* The three orderings the tree held, a fourth it never did, and the class quoted for a constructor. */
+    { rel: "x1.mjs", text: "const ESCAPED = /[.*+?^${}()|[\\]\\\\]/gu;" },
+    { rel: "x2.mjs", text: 'const lit = (path) => path.replace(/[$()*+.?[\\\\\\]^{|}]/gu, "\\\\$&");' },
+    { rel: "x3.mjs", text: 'const lit = (one) => one.replace(/[/\\\\^$*+?.()|[\\]{}]/gu, "\\\\$&");' },
+    { rel: "x4.mjs", text: "const lit = (one) => one.replace(/[\\\\^$.*+?()[\\]{}|]/g, '\\\\$&');" },
+    { rel: "x5.mjs", text: 'const ESCAPED = new RegExp("[.*+?^${}()|[\\\\]\\\\\\\\]", "g");' },
   ];
   assert.deepEqual(redeclared(copies), [
     `a.mjs declares an inline code span of its own; ${MARKDOWN} holds it`,
@@ -204,7 +218,41 @@ test("the guard fires on a module that re-declares one", () => {
     `u.mjs declares a median over numbers of its own; ${MEDIAN} holds it`,
     `v.mjs declares a median over numbers of its own; ${MEDIAN} holds it`,
     `w.mjs declares an append-only JSONL store of its own; ${JSONL} holds it`,
+    ...["x1", "x2", "x3", "x4", "x5"].map((one) => `${one}.mjs declares a regex escape of its own; ${MARKDOWN} holds it`),
   ]);
+});
+
+/* A class escaping a few metacharacters for a pattern of its own is not the escape, and a needle that fired on one would send it to a home that answers a different question. */
+test("a class escaping only some metacharacters is not re-declaring the regex escape", () => {
+  const cases = [
+    { rel: "y1.mjs", text: 'const listed = JSON.stringify(given).replace(/[[\\]]/gu, "\\\\$&");' },
+    { rel: "y2.mjs", text: "const BRACKETS = /[()[\\]{}]/gu;" },
+    { rel: "y3.mjs", text: "const SOME = /[.*+?]/gu;" },
+  ];
+  assert.deepEqual(redeclared(cases), []);
+});
+
+/* Each spelling as it stood before the home existed, kept as a record of the set the home must still escape. */
+const REMOVED_ESCAPES = [/[.*+?^${}()|[\]\\]/u, /[$()*+.?[\\\]^{|}]/u, /[/\\^$*+?.()|[\]{}]/u];
+const PLANE = Array.from({ length: 0x10000 }, (_, at) => at)
+  .filter((at) => at < 0xd800 || at > 0xdfff)
+  .map((at) => String.fromCodePoint(at));
+
+test("a pattern built from the escape of any character matches that character", () => {
+  for (const one of PLANE) {
+    const source = escaped(one);
+    assert.ok(source === one || source === `\\${one}`, `U+${one.codePointAt(0).toString(16)}: ${source}`);
+    for (const flags of ["u", ""]) {
+      assert.ok(new RegExp(`^${source}$`, flags).test(one), `U+${one.codePointAt(0).toString(16)} under "${flags}"`);
+    }
+  }
+});
+
+test("the escape puts a backslash before exactly the characters every removed copy did, the slash aside", () => {
+  const own = PLANE.filter((one) => escaped(one) !== one).join("");
+  for (const removed of REMOVED_ESCAPES) {
+    assert.equal(PLANE.filter((one) => one !== "/" && removed.test(one)).join(""), own, String(removed));
+  }
 });
 
 /* Why the median row needs no exclusion list, held to the four real modules rather than to invented ones: the argument is beside the needle, and this is what turns red if the row loses it. */

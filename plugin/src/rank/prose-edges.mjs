@@ -2,13 +2,13 @@
    an edge the store never got, and an edge no sentence mentions, are both real and neither proves
    the other. So the ranking reads the store and this reads the prose, and what only prose says is
    listed apart. What the marker sentence had to be, and why: docs/cli/next-the-edges.md. */
+import { escaped as escape } from "../markdown.mjs";
 import { depsConvention } from "../resolve/settings.mjs";
 import { everyIssue } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
 
 /* The marker sentence, and only it; the trailing period separates a claim from prose about one.
    The phrases come from the project file, which `forge doctor` names. */
-const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 const PROSE = depsConvention().value;
 const MARKER = new RegExp(`[^.|]*${escape(PROSE.marker)}\\.`, "giu");
 const BLOCKED_BY = new RegExp(`${escape(PROSE.blockedBy)} (?:the )?(.+?) ${PROSE.noun}\\b`, "iu");

@@ -3,6 +3,7 @@
    (ISS-1904). The command-position reading is here because that is where a declared command is
    matched; the classifier imports it back. docs/cli/stats-rows.md. */
 
+import { escaped } from "../../markdown.mjs";
 import { projectFileAt } from "../../resolve/settings.mjs";
 
 /* Where a command actually starts. A bare space is not one: read as a command position, an echoed line was a record and a grep argument a claim (ISS-1714). */
@@ -21,8 +22,6 @@ export const declaredIn = (directory) => projectFileAt(directory)?.stats?.comman
 export const declaredSaid = (declared = null) => DECLARABLE
   .map((label) => label + "=" + declaredCommands(label, declared).join(" ")).join("\n");
 
-const ESCAPED = /[.*+?^${}()|[\]\\]/gu;
-
 /** The commands a project typed under one label, as it typed them: a blank string, a number and an empty list each declare nothing, exactly as an absent key does. */
 export const declaredCommands = (label, declared) => {
   const said = declared?.[label];
@@ -33,7 +32,7 @@ export const declaredCommands = (label, declared) => {
 /* Matched as the text the project typed, nothing read out of its shape: guessing that any script named `gates.mjs` is a gate is how a profiler counts a project's unrelated tooling (ISS-1586). */
 export const declares = (label, declared) => {
   const many = declaredCommands(label, declared);
-  return many.length ? `(?:${many.map((one) => one.replaceAll(ESCAPED, String.raw`\$&`)).join("|")})` : null;
+  return many.length ? `(?:${many.map(escaped).join("|")})` : null;
 };
 
 /** The half of the table a route that REFUSES is handed — the labels this project declared a command for — and beside it the doors given that no declared command arms, with what the project wrote there. A fallback at a door costs an adopting project a refusal at a command it never named, which is why the built-in table stayed in the classifier, out of reach of this module (G-12, ISS-1905). The two are one reading, so the gate silent at a door and the row saying why cannot disagree. */

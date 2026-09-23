@@ -30,7 +30,7 @@ export const typedPlan = (over = {}) => {
 
 export const flat = (text) => text.replace(/\s+/gu, " ");
 
-export const escaped = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+export { escaped } from "../src/markdown.mjs";
 
 /* The same problem where the path reaches a shell rather than a `RegExp`: a bare `(` is syntax, so a case spells the word the product's own quoter spells (ISS-1543). */
 export { pathed, typed } from "../src/hooks/shell-spans.mjs";

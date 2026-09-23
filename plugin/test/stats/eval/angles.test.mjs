@@ -15,7 +15,7 @@ import { profileOf } from "../../../src/stats/runs.mjs";
 import { marksPath } from "../../../src/stats/marks/marks.mjs";
 import { FLOOR, releaseMark } from "../../../src/stats/eval/eval.mjs";
 import { refusing } from "../../../src/resolve/settings.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+import { escaped, tempRoom } from "../../fixtures.mjs";
 import { PROJECT, ask, askStats, corpusOf, runsOf } from "../fixture-eval.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("stats-angles-home-");
@@ -339,7 +339,7 @@ test("a mark holds the keys it held before an angle existed, and its write spend
   const written = stored.find((one) => one.version === "0.0.0-iss2012-real");
   const blob = JSON.stringify(written);
   for (const disposition of seen) {
-    assert.doesNotMatch(blob, new RegExp(disposition.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"),
+    assert.doesNotMatch(blob, new RegExp(escaped(disposition), "u"),
       "the write the real releaseMark actually made, right after this corpus's own angles were computed for real, carries none of their verdicts");
   }
 });

@@ -3,7 +3,7 @@
    and the EARS sentence under a criterion. Each reads the document's own text, because the index
    keeps clauses and drops everything between them. The rules themselves are
    `docs/requirements/README.md`, and the section table there is read rather than copied. */
-import { CODE_SPAN_NONEMPTY_PATTERN, withoutMarkup } from "../markdown.mjs";
+import { CODE_SPAN_NONEMPTY_PATTERN, escaped, withoutMarkup } from "../markdown.mjs";
 /* The document grammar is `parse.mjs`'s: the five lines below are the same lines the parser reads,
    and a second declaration of one here is a selector that can drift on one side only (ISS-509). */
 import { AC_ITEM as CRITERION, FIELD_LINE, HEADING, NAV, PROPOSAL } from "./parse.mjs";
@@ -19,7 +19,6 @@ const SENTENCE_BREAK = /(?<=\.)\s+(?=\S)/u;
 const OPENERS = ["WHEN", "IF", "WHILE", "WHERE"];
 const NEEDS_THEN = ["WHEN", "IF"];
 const PLACEHOLDER = /<[^>]*>|N{2,}/gu;
-const ESCAPED = /[.*+?^${}()|[\]\\]/gu;
 
 /** The section list a row of the tree's own table declares, or `null` where the cell is prose. Every
  *  `·`-separated part has to open with a code span, so a cell naming a clause rather than a heading
@@ -53,7 +52,7 @@ export const declaredSections = (rules) => {
 export const matches = (pattern, file) => {
   const source = pattern
     .split(PLACEHOLDER)
-    .map((part) => part.replace(ESCAPED, "\\$&"))
+    .map(escaped)
     .join("[^/]+");
   return new RegExp(`(?:^|/)${source}$`, "u").test(file);
 };

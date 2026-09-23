@@ -22,3 +22,6 @@ export const withoutSpans = (text) => String(text ?? "").replace(SPANNED, " ");
 export const withoutMarkup = (text) => String(text ?? "").replace(MARKUP, "");
 export const withoutExamples = (text) => String(text ?? "").replaceAll(EXAMPLE, "");
 export const lineAt = (text, index) => String(text).slice(0, index).split("\n").length;
+/* A string made into a pattern source that matches it literally, for every pattern a caller builds out of text it did not write. */
+const METACHARACTERS = /[.*+?^${}()|[\]\\]/gu;
+export const escaped = (text) => String(text).replace(METACHARACTERS, "\\$&");

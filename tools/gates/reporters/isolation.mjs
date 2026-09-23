@@ -4,6 +4,8 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 
+import { escaped } from "../../../plugin/src/markdown.mjs";
+
 // Unset, the reporter writes nothing, so a suite spent by hand leaves no record for a gate to read.
 export const CASES_ENV = "GATE_FAILED_CASES";
 
@@ -61,10 +63,8 @@ export const casesFrom = (at) => {
   return cases.length > 0 && cases.every(wellFormed) ? { counted, cases } : null;
 };
 
-const METACHARACTER = /[.*+?^${}()|[\]\\]/gu;
-
 // Anchored and escaped, so it selects that case and no case whose name merely contains it.
-export const patternFor = (name) => `^${name.replace(METACHARACTER, "\\$&")}$`;
+export const patternFor = (name) => `^${escaped(name)}$`;
 
 export const argvFor = (one) => [process.execPath, "--test", "--test-concurrency=1",
   `--test-reporter=${HUMAN_REPORTER}`, "--test-reporter-destination=stdout",
