@@ -44,7 +44,7 @@ here rather than an implementation detail.
 - **AC-11-1-1** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a finding is refused in the delegate's protocol and written to the log like every other"
   WHEN a call writes code files THEN the gate SHALL hand them to the project's own linter, up to the
   cap the event's deadline imposes.
-- **AC-11-1-5** · Rev: 1 · Proof: none yet — ISS-38
+- **AC-11-1-5** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a call writing more code files than the cap is told which went unlinted, and a call inside it hears nothing"
   IF a call wrote more files than that cap THEN the gate SHALL name the files it did not lint.
 - **AC-11-1-2** · Rev: 1 · Proof: plugin/test/gates/code-quality.test.mjs "a project that configured no linter hears nothing, and the same file speaks once it configures one"
   IF the project configures no linter THEN the gate SHALL say nothing.

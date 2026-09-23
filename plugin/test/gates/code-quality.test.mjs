@@ -6,12 +6,15 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { callHook, homeEnv, pathed, tempRoom } from "../fixtures.mjs";
+import { linting } from "../../src/hooks/lint-delegate.mjs";
+import { answered, callHook, homeEnv, pathed, tempRoom } from "../fixtures.mjs";
 
 const HOOK = new URL("../../hooks/entries/code-quality.mjs", import.meta.url).pathname;
 const REPO = new URL("../../..", import.meta.url).pathname.replace(/\/$/u, "");
 const HOME = homeEnv("code-quality");
 const LOG = join(HOME.XDG_CONFIG_HOME, "forge", "hook-log.jsonl");
+/* Seven, two past the cap. */
+const NAMES = ["a", "b", "c", "d", "e", "f", "g"].map((one) => `${one}.mjs`);
 
 /* A probe that means to be refused says 1300 characters of comment, because that is what a
    comment costs now. On one line, which is how the same file passed the ceiling before it. */
@@ -114,4 +117,86 @@ test("a file in a worktree beside the session's directory is linted by the tree 
   assert.equal(run.status, 0, run.stderr);
   assert.match(JSON.parse(run.stdout).reason, /code-quality\/comment-density/u,
     "the worktree's own configuration answers for a file the session's directory does not hold");
+});
+
+/* The cap stays; what goes is the silence past it. Seven clean files, named in reverse, so the five
+   linted are chosen by path and not by the order the call spelled them in (ISS-38). */
+test("a call writing more code files than the cap is told which went unlinted, and a call inside it hears nothing", () => {
+  const configured = (room) => {
+    symlinkSync(join(REPO, "node_modules"), join(room, "node_modules"));
+    writeFileSync(join(room, "eslint.config.mjs"),
+      'import { configure } from "eslint-plugin-code-quality";\nexport default configure({ "comment-density": "error" });\n');
+  };
+  const wrote = (room, count) => {
+    const names = NAMES.slice(0, count);
+    for (const name of names) writeFileSync(join(room, name), "export const x = 1;\n");
+    const command = names.reverse().map((name) => `echo 'export const x = 1;' > ${pathed(join(room, name))}`).join(" && ");
+    return callHook(HOOK, { session_id: randomUUID(), tool_name: "Bash", tool_input: { command }, cwd: room }, homeEnv("code-quality-cap"));
+  };
+  const room = () => {
+    const at = realpathSync(tempRoom("cap-"));
+    writeFileSync(join(at, "package.json"), JSON.stringify({ name: "cap", private: true }));
+    return at;
+  };
+
+  const linted = room();
+  configured(linted);
+  const past = wrote(linted, 7);
+  assert.equal(past.status, 0, past.stderr);
+  const out = answered(past) ?? {};
+  const said = out.hookSpecificOutput?.additionalContext ?? "";
+  assert.match(said, /f\.mjs, g\.mjs/u, "the two past the cap are named");
+  assert.doesNotMatch(said, /[a-e]\.mjs/u, "and none of the five that were linted");
+  assert.match(said, /first 5 .*path order/u, "with the rule that chose the five");
+  assert.equal(out.decision, undefined, "an unlinted file refuses nothing");
+
+  const within = room();
+  configured(within);
+  assert.equal(wrote(within, 5).stdout.trim(), "", "five clean files, all linted, say nothing");
+
+  assert.equal(wrote(room(), 7).stdout.trim(), "", "a project that configured no linter hears nothing past the cap either");
+});
+
+/* What one call's files come back as from the walk the gate spends: linted, or named with the one
+   reason they were not. */
+/* A tree whose delegate answers at once, clean, so the only thing a case measures is the walk. */
+const walkRoom = (delegate = "process.exit(0);\n") => {
+  const at = realpathSync(tempRoom("lint-walk-"));
+  const scripts = join(at, "node_modules", "eslint-plugin-code-quality", "claude-plugin", "scripts");
+  mkdirSync(scripts, { recursive: true });
+  writeFileSync(join(scripts, "lint-edited-file.mjs"), delegate);
+  for (const name of NAMES) writeFileSync(join(at, name), "export const x = 1;\n");
+  return { at, files: NAMES.map((name) => join(at, name)) };
+};
+
+const walked = (files, left = () => 60_000, options = {}) =>
+  [...linting({ session_id: "walk", cwd: "/" }, files, left, options)];
+
+test("the files past the cap come back named, with the cap as their reason, in path order", () => {
+  const { files } = walkRoom();
+  const out = walked([...files].reverse());
+  assert.deepEqual(out.map((one) => one.file), files, "every file comes back, in path order");
+  assert.deepEqual(out.filter((one) => !one.unread).map((one) => one.file), files.slice(0, 5),
+    "the five linted are the first five by path, not the first five the call named");
+  assert.deepEqual(out.filter((one) => one.unread).map((one) => [one.file, one.unread]),
+    files.slice(5).map((one) => [one, "cap"]));
+});
+
+test("a file the clock ran out before comes back named, with the clock as its reason", () => {
+  const { files } = walkRoom();
+  const out = walked(files.slice(0, 2), () => 500);
+  assert.deepEqual(out.map((one) => [one.file, one.unread]), files.slice(0, 2).map((one) => [one, "clock"]));
+});
+
+test("a file the linter did not answer for in time comes back named, with the time limit as its reason", () => {
+  const { files } = walkRoom("setTimeout(() => {}, 20_000);\n");
+  const out = walked(files.slice(0, 1), () => 1_500);
+  assert.deepEqual(out.map((one) => [one.file, one.unread, one.said]), [[files[0], "timeout", ""]]);
+});
+
+test("a file already reported at its content takes no place under the cap", () => {
+  const { files } = walkRoom();
+  const out = walked(files.slice(0, 6), undefined, { skip: (file) => file === files[0] });
+  assert.deepEqual(out.map((one) => [one.file, one.unread ?? null]), files.slice(1, 6).map((one) => [one, null]),
+    "the sixth file reaches the linter because the first was answered already");
 });
