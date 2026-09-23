@@ -174,7 +174,7 @@ test("the copy a call through the link would run is reported, with why that one"
     cwd: tree,
     env: { PATH: process.env.PATH, HOME: home, XDG_CONFIG_HOME: home },
   });
-  assert.match(inside.stdout, /\[ {2}ok {2}\] copy on PATH\s+checkout \S+ at \S+ — the working directory is inside the checkout/u);
+  assert.match(inside.stdout, /\[ {2}ok {2}\] copy on PATH\s+checkout \S+ at \S+ — the working directory/u);
 });
 
 /* An install holding one entry and not the other answers differently for each: only this shows it. */

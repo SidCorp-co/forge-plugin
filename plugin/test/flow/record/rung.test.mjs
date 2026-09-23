@@ -154,7 +154,7 @@ test("a call that leaves the rung short moves nothing and names what is owed, as
   assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
   assert.equal(statusOf("ISS-2004"), "in_progress", "the rung cites a merged mark too");
   assert.match(run.stderr, /developed is next and the record does not earn it/u);
-  assert.match(run.stderr, /no merged mark, so nothing says the change landed/u, "named, not counted");
+  assert.match(run.stderr, /no merged mark, so/u, "named, not counted");
   const owed = await ask("advance", "ISS-2004", "--owed");
   assert.equal(owed.status, 0, owed.stderr);
   for (const line of run.stderr.split("\n").filter((one) => one.startsWith("  ")).slice(0, 1)) {

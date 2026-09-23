@@ -298,7 +298,7 @@ test("a commit is refused for a path the record took only because the index held
   const run = callHook(HOOK, { tool_name: "Bash", cwd: root, tool_input: { command: `git -C ${pathed(root)} commit -m work` } },
     { ...process.env, XDG_CONFIG_HOME: sandbox });
   const out = answered(run);
-  assert.match(out?.hookSpecificOutput?.permissionDecisionReason ?? "", /has not read what this commit/u);
+  assert.match(out?.hookSpecificOutput?.permissionDecisionReason ?? "", /Codex has not read/u);
   assert.match(out?.hookSpecificOutput?.permissionDecisionReason ?? "", /docs\/READ\.md/u, "and it names the file");
   assert.equal(git("show", ":docs/READ.md").stdout, "no reviewer has seen this\n", "which is what the index still holds");
   clearState();

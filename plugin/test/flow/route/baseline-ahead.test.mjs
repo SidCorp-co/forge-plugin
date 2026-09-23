@@ -14,7 +14,7 @@ import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("baseline-ahead").path;
 const { baselineAhead, headNow } = await import("../../../src/flow/route.mjs");
-const { ANSWERED_BY_COMMENT, BASELINE_AT, ORDER } = await import("../../../src/flow/earned.mjs");
+const { ANSWERED_BY_COMMENT, BASELINE_AT, NO_BASELINE, ORDER } = await import("../../../src/flow/earned.mjs");
 const { SHAPES } = await import("../../../src/flow/machine.mjs");
 const { stampedNow } = await import("../../../src/flow/worklog.mjs");
 const { publishBaseline } = await import("../../../src/flow/earned/published.mjs");
@@ -96,7 +96,7 @@ test("the rehearsal prints the line beside the owed items, and the items read no
   assert.match(asked.stdout, /in_progress is next and the record does not earn it: 1 item\(s\) owed\./u,
     "beside the judgement, which is the record's own");
   assert.match(asked.stdout,
-    /no baseline: the gate, what it already reports and the commit it ran at\n {4}forge record baseline ISS-9 --gate "<command>"/u,
+    new RegExp(`${NO_BASELINE}\\n {4}forge record baseline ISS-9 --gate "<command>"`, "u"),
     "and the owed item is the same words whatever the store holds, or two checkouts of one issue would part");
   assert.equal(state.calls.some((one) => one.args.action === "transition"), false, "and --owed moves nothing");
 });

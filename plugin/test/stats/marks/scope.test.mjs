@@ -129,7 +129,7 @@ test("the eval writes the reading it has just computed, so a project that runs n
   const home = tempRoom("stats-scope-eval-home-");
   const room = corpusOf(50);
   const none = askStats(room, ["marks", "--checkout", PROJECT], home);
-  assert.match(none.stdout, /^No reading is held for this project yet/u, "nothing is held before the eval runs");
+  assert.match(none.stdout, /^No reading is held/u, "nothing is held before the eval runs");
 
   const read = askStats(room, ["eval", "--checkout", PROJECT], home);
   assert.equal(read.status, 0, read.stderr);

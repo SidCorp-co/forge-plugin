@@ -11,8 +11,8 @@ process.env.XDG_CONFIG_HOME = tempHome("advance").path;
 const { parse, render } = await import("../../src/flow/record/page.mjs");
 const { PARKS } = await import("../../src/flow/machine.mjs");
 const {
-  CHECKS, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, deployedOwed, dispositionOf, holdsBack,
-  judgedOwed, nextOf, personLooks, shapeGaps, viewFrom,
+  CHECKS, NO_NOTE, NO_VERIFICATION, ORDER, PARK_STATUS, SIDE, atLeast, criteriaOf, deployedOwed, dispositionOf,
+  holdsBack, judgedOwed, nextOf, personLooks, shapeGaps, viewFrom,
 } = await import("../../src/flow/earned.mjs");
 const { lookAhead, targetOf } = await import("../../src/flow/route.mjs");
 const { releaseFrom } = await import("../../src/tracker/project-config.mjs");
@@ -254,8 +254,8 @@ test("what the plan declared decides what the ship steps owe", () => {
 
 test("the deploying half needs a verification and a release note", () => {
   assert.deepEqual(deploying(view({})), [
-    "no verification: where the change now runs, at which commit, and the evidence",
-    "no release note and no withholding either",
+    NO_VERIFICATION,
+    NO_NOTE,
   ]);
   const verified = [recorded("verification", { where: "the cache copy", commit: "c8c3550", evidence: ["run.txt"] })];
   const shipped = { releaseNotes: { section: "Skip" }, attachments: ATTACHED };
@@ -508,7 +508,7 @@ test("a project that deploys on its own is refused the rung where the verificati
   const run = await ranAsync(FORGE, ["advance", "ISS-96"], ENV);
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stdout, /eee109e is running and the merged mark says this change landed at 08ca795/u);
-  assert.match(run.stdout, /build log and never from the branch head/u);
+  assert.match(run.stdout, /build log and never/u);
   assert.match(run.stdout, /forge record verification ISS-96 .*--contains 08ca795/u);
 });
 

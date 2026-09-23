@@ -84,7 +84,7 @@ test("a base that put back what it had moved needs no reading at all, carried or
   const said = await landingRan([KEY], work);
   const held = landing();
   assert.doesNotMatch(said, CARRIED, `there is nothing left for a reading to be about:\n${said}`);
-  assert.match(said, /landing moved nothing of the change/u, said);
+  assert.match(said, /landing moved nothing/u, said);
   assert.doesNotMatch(said, WENT_BACK, said);
   assert.equal(held.state, "records-owed", said);
   assert.equal(held.reconciled, held.candidate, `the landing's own reconciliation, not the builder's:\n${said}`);

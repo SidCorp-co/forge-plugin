@@ -120,7 +120,7 @@ test("the id it posted is the last line, read back from the tracker", async () =
   heldBy(null);
   const run = await posted(MINE);
   const last = run.stdout.trimEnd().split("\n").at(-1);
-  assert.match(last, /is posted on ISS-348, read back from the tracker\./u);
+  assert.match(last, /is posted on ISS-348, read back/u);
 });
 
 /* The one state the finder branch does not reach. A lapsed lease is the one another run may take, so

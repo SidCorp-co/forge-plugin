@@ -11,7 +11,7 @@ import { tempHome } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("verdict-independent").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
-const { deployedOwed, judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { NO_VERIFICATION, deployedOwed, judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { JUDGE_FROM } = await import("../../../src/flow/machine.mjs");
 const { judgeAsk, judgeProblem, judgedAt } = await import("../../../src/flow/qa/verdicts.mjs");
 const { releaseFrom } = await import("../../../src/tracker/project-config.mjs");
@@ -237,7 +237,7 @@ test("the rung above still owes the verification where the project declares no a
   const view = viewFrom("the-uuid", issueOf({ releaseNotes: { section: "Added" } }),
     [mark(), comment(render("verdict", [verdictOf(1), verdictOf(2)]))], null, MANUAL);
   const said = deployedOwed(view, "ISS-8").map((one) => one.what);
-  assert.deepEqual(said, ["no verification: where the change now runs, at which commit, and the evidence"],
+  assert.deepEqual(said, [NO_VERIFICATION],
     "the deployment reading is the deploying actor's at this rung, and no configuration drops it");
 });
 

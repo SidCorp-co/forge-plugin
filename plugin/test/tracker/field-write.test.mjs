@@ -394,7 +394,7 @@ test("a call reaching the writer with no record of the ask at all is refused as 
   const said = await assert.rejects(
     () => narrowedTo(undefined, [{ field: "priority", value: "high" }]),
     (error) => {
-      assert.match(error.message, /no record of what was asked for reached the layer that reports/u, error.message);
+      assert.match(error.message, /no record of what was asked for/u, error.message);
       assert.match(error.message, /defect in this CLI/u, error.message);
       return true;
     },

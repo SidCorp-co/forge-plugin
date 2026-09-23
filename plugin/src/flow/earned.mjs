@@ -42,6 +42,14 @@ export const CLOSES_AT = ORDER.at(-1);
 
 export { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding };
 
+/** Five shortfalls a caller compares whole, named so a case holding an exact list names them rather
+ *  than restating the wording the file that proves each one pins. */
+export const NO_VERIFICATION = "no verification: where the change now runs, at which commit, and the evidence";
+export const NO_NOTE = "no release note and no withholding either";
+export const NO_DECISION = "no decision record: each reading decided with its assumption and undo, or an explicit none";
+export const NO_CRITERIA = "the criteria field holds no numbered line `N. outcome`";
+export const NO_BASELINE = "no baseline: the gate, what it already reports and the commit it ran at";
+
 export const atLeast = (status, floor) =>
   ORDER.indexOf(status) >= 0 && ORDER.indexOf(status) >= ORDER.indexOf(floor);
 
@@ -466,14 +474,14 @@ export const deployedOwed = (view, ref) => {
   const verification = payloadOwed(
     view,
     "verification",
-    "no verification: where the change now runs, at which commit, and the evidence",
+    NO_VERIFICATION,
     verificationForm(ref, "<sha>", "<attachment|url|sha>"),
   );
   /* One or the other: a payload with gaps has no fields to compare against anything. */
   const out = verification.length ? verification : deployOwed(view, ref);
   /* Both forms, the sentence above offering two: a line naming one sends a change with no user-facing half hunting for the other, and the tracker refuses the close without the field at every rung (ISS-1485). */
   if (!view.issue.releaseNotes?.section && !lightPath(view, CLOSES_FROM, "note")) {
-    out.push(need("no release note and no withholding either",
+    out.push(need(NO_NOTE,
       `forge record note ${ref} --section Added --user "<what the reporter sees>", `
       + `or --skip --why "<why the change has no user-facing half>"`));
   }
@@ -518,7 +526,7 @@ export const CHECKS = {
     const out = lightPath(view, "approved", "decision") ? [] : payloadOwed(
       view,
       "decision",
-      "no decision record: each reading decided with its assumption and undo, or an explicit none",
+      NO_DECISION,
       `forge record decision ${ref} --decision "reading | assumption | undo"`,
     );
     const plan = unwrap(view.issue.plan);
@@ -535,7 +543,7 @@ export const CHECKS = {
     }
     out.push(...planShapeOwed(asks, plan, flags, view.criteria, ref));
     if (!view.criteria.length) {
-      out.push(need("the criteria field holds no numbered line `N. outcome`", `forge record criteria ${ref} <criteria.md>`));
+      out.push(need(NO_CRITERIA, `forge record criteria ${ref} <criteria.md>`));
     }
     /* Called here and nowhere else, so a transition with no citation to weigh reads no tree. A list and empty, never falsy — an empty array is truthy. Which absence is which: `citedClauses`. */
     const cited = view.cited?.();
@@ -552,7 +560,7 @@ export const CHECKS = {
     const baseline = payloadOwed(
       view,
       "baseline",
-      "no baseline: the gate, what it already reports and the commit it ran at",
+      NO_BASELINE,
       `forge record baseline ${ref} --gate "<command>" --result "<what already fails>" --commit <sha> --scope whole`,
     );
     return [...blockersOwed(view), ...baseline, ...branchOwed(view, ref), ...wholeOwed(view, ref),

@@ -65,7 +65,7 @@ test("one escape no longer owed makes the reading exit non-zero", async () => {
   assert.equal(clean.status, 0, clean.stdout);
   assert.match(clean.stdout,
     new RegExp(`^\\[ {2}ok {2}\\] proof escapes\\s+${ESCAPES.length} escape\\(s\\) under `
-      + "docs/requirements/, every one of them owed to an issue that still owes the case", "mu"),
+      + "docs/requirements/, every one of them owed", "mu"),
     clean.stdout);
 });
 

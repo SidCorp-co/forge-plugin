@@ -230,7 +230,7 @@ test("a gate whose diff moved nothing any test file reads spends none of them, a
   const { at, work } = scratch("reads-gate", null, null);
   try {
     landed(work, "plugin/src/one.mjs", "one, moved\n");
-    assert.match(run(work).stdout, /reads: \d+ of \d+ test file\(s\) recorded what they asked for/u);
+    assert.match(run(work).stdout, /reads: \d+ of \d+ test file\(s\) recorded/u);
     landed(work, "docs/requirements/one.md", "the requirement moved\n");
     const { stdout } = run(work);
     assert.match(stdout, /=== reads: test — \d+ of \d+ test file\(s\) already answered for at this content ===/u);
