@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
-import { TOOLS, checkCommand, checkState, runTool, scopeFor, toolsFor } from "../../src/codex/codex-tools.mjs";
+import { TOOLS, checkCommand, checkState, runTool, scopeFor, specFor, toolsFor } from "../../src/codex/codex-tools.mjs";
 import { bundle, changedAgainst, divergedFrom, roleFor, withDiffs } from "../../src/codex/codex-api.mjs";
 import { AROUND_CHECK_MS, CHECK_MS_SPARED } from "../../src/resolve/settings.mjs";
 import { escaped, projectEntry, tempRoom } from "../fixtures.mjs";
@@ -413,17 +413,19 @@ const treed = () => {
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const verb = (root, id) => spawnSync(FORGE, ["spec", id], { cwd: root, encoding: "utf8", env: process.env });
+// The consult builds its scope this way: whether a tree is kept is asked before the scope is made.
+const specScope = async (root) => scopeFor(root, [], null, { spec: await specFor(root) });
 
-test("read_spec is offered only where the checkout under review keeps a requirements tree", () => {
-  assert.equal(toolsFor(scopeFor(repo())).some((one) => one.name === "read_spec"), false);
-  assert.equal(toolsFor(scopeFor(treed())).at(-1).name, "read_spec");
+test("read_spec is offered only where the checkout under review keeps a requirements tree", async () => {
+  assert.equal(toolsFor(await specScope(repo())).some((one) => one.name === "read_spec"), false);
+  assert.equal(toolsFor(await specScope(treed())).at(-1).name, "read_spec");
   assert.match(roleFor(["tech"], { spec: true }), /`read_spec` reads a clause of this checkout's requirements tree/u);
   assert.doesNotMatch(roleFor(["tech"]), /read_spec/u);
 });
 
 test("read_spec answers with what forge spec prints, a stale citation and an unknown identifier alike", async () => {
   const root = treed();
-  const scope = scopeFor(root);
+  const scope = await specScope(root);
   for (const id of ["FR-01", "UC-01-1~1", "AC-01-1-1"]) {
     const held = await runTool(scope, "read_spec", { id });
     assert.equal(held.error, undefined, held.text);
@@ -443,10 +445,10 @@ test("read_spec reads the tree of the checkout under review and sends nothing of
   const fetched = globalThis.fetch;
   globalThis.fetch = () => { throw new Error("read_spec reached the network"); };
   try {
-    const held = await runTool(scopeFor(treed()), "read_spec", { id: "FR-06" });
+    const held = await runTool(await specScope(treed()), "read_spec", { id: "FR-06" });
     assert.equal(held.error, true, "this repository's own FR-06 is not the reviewed checkout's");
     assert.match(held.text, /^read_spec: No clause named FR-06/u, held.text);
-    assert.match((await runTool(scopeFor(repo()), "read_spec", { id: "FR-01" })).text, /keeps no requirements tree/u);
+    assert.match((await runTool(await specScope(repo()), "read_spec", { id: "FR-01" })).text, /keeps no requirements tree/u);
   } finally {
     globalThis.fetch = fetched;
   }
@@ -456,7 +458,7 @@ test("a requirement past the cap is cut with the narrower identifiers that read 
   const root = treed();
   const long = CLAUSES.replace("The identifier is the whole surface.", "A long line of the use case. ".repeat(900));
   writeFileSync(join(root, "docs", "requirements", "srs", "fr-01.md"), long);
-  const held = await runTool(scopeFor(root), "read_spec", { id: "FR-01" });
+  const held = await runTool(await specScope(root), "read_spec", { id: "FR-01" });
   assert.match(held.text, /clipped at \d+ characters; ask for a clause under FR-01 by its own identifier, as UC-01-1, for the rest\.$/u);
   assert.ok(held.text.length < 20_000, "under the cap every tool answer holds to");
 });
@@ -468,12 +470,12 @@ test("read_spec reads no clause whose file lies outside the checkout, however it
   const linked = repo();
   mkdirSync(join(linked, "docs"), { recursive: true });
   symlinkSync(join(away, "docs", "requirements"), join(linked, "docs", "requirements"));
-  assert.equal(toolsFor(scopeFor(linked)).some((one) => one.name === "read_spec"), false);
+  assert.equal(toolsFor(await specScope(linked)).some((one) => one.name === "read_spec"), false);
   const mixed = treed();
   const other = tempRoom("codex-spec-away-");
   writeFileSync(join(other, "fr-02.md"), CLAUSES.replaceAll("01", "02"));
   symlinkSync(join(other, "fr-02.md"), join(mixed, "docs", "requirements", "srs", "fr-02.md"));
-  const scope = scopeFor(mixed);
+  const scope = await specScope(mixed);
   assert.equal((await runTool(scope, "read_spec", { id: "FR-01" })).error, undefined);
   assert.match((await runTool(scope, "read_spec", { id: "FR-02" })).text, /^read_spec: No clause named FR-02/u);
   const walked = treed();
@@ -481,7 +483,7 @@ test("read_spec reads no clause whose file lies outside the checkout, however it
   writeFileSync(join(outside, "fr-03.md"), CLAUSES.replaceAll("01", "03"));
   symlinkSync(outside, join(walked, "docs", "requirements", "vendor"));
   symlinkSync(join(walked, "docs", "requirements"), join(walked, "docs", "requirements", "srs", "again"));
-  const deep = scopeFor(walked);
+  const deep = await specScope(walked);
   assert.match((await runTool(deep, "read_spec", { id: "FR-03" })).text, /^read_spec: No clause named FR-03/u,
     "a linked-in directory outside is not entered");
   assert.equal((await runTool(deep, "read_spec", { id: "FR-01" })).error, undefined, "and a link back in ends");

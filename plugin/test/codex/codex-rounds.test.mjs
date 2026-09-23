@@ -9,7 +9,7 @@ const sandbox = tempRoom("forge-codex-rounds-");
 process.env.XDG_CONFIG_HOME = sandbox;
 
 const { reviewed } = await import("../../src/codex/codex-rounds.mjs");
-const { scopeFor } = await import("../../src/codex/codex-tools.mjs");
+const { scopeFor, specFor } = await import("../../src/codex/codex-tools.mjs");
 
 const REPO = join(sandbox, "repo");
 mkdirSync(REPO, { recursive: true });
@@ -306,7 +306,7 @@ test("a read_spec call inside a round hands the reviewer the clause it named", a
     const served = messages.at(-1).content.find((one) => one.type === "tool_result");
     return { text: served.content, calls: [], usage: {}, stop: "end_turn" };
   };
-  const held = await reviewed({}, "m", "go", scopeFor(tree), () => {}, stub, { budget: 3, ceiling: 3 });
+  const held = await reviewed({}, "m", "go", scopeFor(tree, [], null, { spec: await specFor(tree) }), () => {}, stub, { budget: 3, ceiling: 3 });
   assert.ok(offered[0].includes("read_spec"), "offered where the checkout keeps a tree");
   assert.match(held.text, /^The citation FR-01~1 is stale: FR-01 is at revision 2, not 1\.\n\nFR-01 — The first capability {2}rev 2\n/u, held.text);
   assert.match(held.text, /The words a citation is judged against\./u);
