@@ -196,8 +196,7 @@ export const readBack = (record) => {
   };
 };
 
-/** The shortfall a first reading carries, named so a caller comparing a stored reading whole does not
- *  restate the wording. */
+/** Why a first reading is no comparison: nothing was measured ahead of its window. */
 export const NO_WINDOW_BEFORE = "there is no window before it";
 
 /** Whether the reading is a comparison, and each way it falls short — docs/cli/stats-the-eval.md. */

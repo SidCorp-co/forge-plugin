@@ -153,8 +153,7 @@ export const reserveIn = (key, now, within = Infinity) => {
 
 export const settled = (key) => out.set(key, Math.max(0, (out.get(key) ?? 0) - 1));
 
-/** What a limited call says where no budget was read before it, named so a caller comparing it whole
- *  does not restate the wording. */
+/** The reason a rate-limited call gives where this tracker had stated no budget before it. */
 export const UNPACED = "having read no budget from this tracker to pace against";
 
 export const unpredictedIn = (key) => {

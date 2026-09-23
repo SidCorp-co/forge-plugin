@@ -472,8 +472,7 @@ const diffOf = (held, base) => {
   return clipped((run.stdout ?? "").trim() || "no change against that ref");
 };
 
-/** What the diff tool answers where the files under review have not moved since the anchor, named so
- *  a caller measuring that answer does not restate the wording. */
+/** The diff tool's answer where the files under review have not moved since the anchor. */
 export const unchangedSince = (anchor) => `no change against ${anchor} in the file(s) this consult named`;
 
 /* Asked for the diff with nothing to narrow it, a reviewer means the change under review. Where the
