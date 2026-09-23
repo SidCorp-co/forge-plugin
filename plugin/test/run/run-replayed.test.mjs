@@ -455,6 +455,10 @@ test("a landing that moved nothing this change writes leaves the ship alone, and
     `the step names neither head it compared:\n${run.stdout}`);
   assert.match(run.stdout, /none of this change's \d+ file\(s\) moved with it/u,
     `the step does not say the base moved none of this change's files:\n${run.stdout}`);
+  /* Both sets, so the run reads the intersection off the step rather than off two diffs of its own (ISS-225). */
+  assert.ok(run.stdout.includes(`this change writes ${UNDER_REVIEW}\n`), run.stdout);
+  assert.ok(run.stdout.includes(`what landed from ${base.slice(0, 7)} to ${pin.slice(0, 7)} wrote `
+    + `${ELSEWHERE}\n`), run.stdout);
   /* The flag is the last step's, which knows what the version commit wrote; answered here it would be
      answered before that commit exists (ISS-1896). */
   assert.doesNotMatch(run.stdout, /^ {4}--moved /mu,
@@ -462,7 +466,11 @@ test("a landing that moved nothing this change writes leaves the ship alone, and
 
   /* Replaying is the whole of what clears the refusal, which is why no flag has to. */
   const { work: second } = baseMoved("base-moved-replayed", UNDER_REVIEW);
-  assert.match(runIn(second, ["ship"], BARE).stderr, /stopped at step 3/u, "the fixture proves nothing");
+  const refused = runIn(second, ["ship"], BARE);
+  assert.match(refused.stderr, /stopped at step 3/u, "the fixture proves nothing");
+  assert.ok(refused.stdout.includes(`this change writes ${UNDER_REVIEW}\n`), refused.stdout);
+  const landedLine = refused.stdout.split("\n").find((one) => one.startsWith("  what landed from "));
+  assert.ok(landedLine?.includes(UNDER_REVIEW), `a refused step does not print the landing's set:\n${refused.stdout}`);
   const replay = git(second, "rebase", "origin/master");
   assert.equal(replay.status, 0, `the replay this refusal names does not apply:\n${replay.stderr}`);
   const again = runIn(second, ["ship"], BARE);
