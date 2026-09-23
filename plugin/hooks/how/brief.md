@@ -1,10 +1,8 @@
 # brief — a dispatch message nobody generated
 
-Why: a message a dispatcher types to a run carries whatever the dispatcher believed about the method,
-and a run reads its message before it reads the method. On 2026-09-23 five briefs carried a rebase
-order, a restated park and the codex routing, under guide text that already said to send values and
-never reasons (ISS-2148). A sixth rewording of that text was dropped: text did not hold, so the
-message is generated instead.
+Why: a typed message carries what the dispatcher believed about the method, and a run reads it
+first. On 2026-09-23 five briefs carried a rebase order and a restated park under text forbidding
+both (ISS-2148), so the message is generated.
 
 How to clear it: run `forge brief ISS-nn --tree <the run's worktree>`, or with no `--tree` for a run
 that is given none, and send what it prints as the prompt, whole and unchanged.
