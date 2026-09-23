@@ -4,7 +4,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { repoRoot } from "../../../src/git/repo-root.mjs";
 import { logBytes } from "../../../src/codex/codex-log.mjs";
@@ -16,6 +15,7 @@ import { linting } from "../../../src/hooks/lint-delegate.mjs";
 import { projectStop } from "../../../src/resolve/settings.mjs";
 import { lastIdGranted, valueIn } from "../../../src/resolve/session/granted-id.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
+import { PLUGIN_ROOT } from "../../../src/tools/plugin-copy.mjs";
 import { keysIn } from "../../../src/tracker/issues.mjs";
 import { askedAlready, block, done, how, isSubagent, remaining, sinceTurn, transcriptOf, turnAt,
   turnRecords, turnWrites, typed } from "../../_hook.mjs";
@@ -24,7 +24,7 @@ const MAX_ISSUES = 2;
 const SPARE_MS = 3_000;
 const CALL_MS = 8_000;
 const GIT_MS = 5_000;
-const CLI = fileURLToPath(new URL("../../../src/cli.mjs", import.meta.url));
+const CLI = join(PLUGIN_ROOT, "src", "cli.mjs");
 
 const left = () => remaining() - SPARE_MS;
 

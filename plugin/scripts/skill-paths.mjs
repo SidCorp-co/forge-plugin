@@ -30,13 +30,13 @@ if (args.includes("-h") || args.includes("--help")) {
 }
 
 import { readFileSync, readdirSync, realpathSync } from "node:fs";
-import { dirname, join, relative, resolve, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, relative, resolve, sep } from "node:path";
 
 import { claims } from "../src/checks/claude-md.mjs";
 import { skillDirsIn, skillRootsIn } from "../src/tools/roles.mjs";
+import { PLUGIN_ROOT } from "../src/tools/plugin-copy.mjs";
 
-const plugin = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const plugin = PLUGIN_ROOT;
 /* A role definition is under the same rule as a skill and for the same reason: it is read from
    wherever it is installed, and what only the dispatcher knows arrives in the message instead. */
 const skillRoots = skillRootsIn(plugin);

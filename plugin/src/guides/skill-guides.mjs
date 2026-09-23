@@ -3,8 +3,7 @@
    beside an inline SKILL.md. The directory and the decision: docs/cli/the-guides.md, and why the
    flow is a segment of the path rather than a fence inside a file: docs/cli/the-flow-axis.md. */
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import { didYouMean } from "../suggest.mjs";
 import { SKILLS_WITHIN, shippedSkills } from "../resolve/visibility.mjs";
@@ -16,8 +15,8 @@ import {
 } from "./contract.mjs";
 import { DEFAULT, flowPinned, flowRefusal, servedFor } from "./flow.mjs";
 import { openersOf, phasesOf, render } from "./render.mjs";
+import { PLUGIN_ROOT } from "../tools/plugin-copy.mjs";
 
-const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const WITHIN = join("guides", "skills");
 export const GUIDE = "guide";
 const REFERENCES = "references";
@@ -30,29 +29,29 @@ const namesIn = (dir) => (existsSync(dir)
   ? readdirSync(dir).filter((one) => one.endsWith(".md")).map((one) => one.slice(0, -3)).sort()
   : []);
 
-export const skillGuidesRoot = (root = HERE) => join(root, WITHIN);
+export const skillGuidesRoot = (root = PLUGIN_ROOT) => join(root, WITHIN);
 
 /** Where one flow's whole text for one skill sits: the flow is a segment, so `ls` is what that flow serves and nothing resolves through another. */
-export const skillFlowDir = (slug, root = HERE, flow = flowPinned().value) =>
+export const skillFlowDir = (slug, root = PLUGIN_ROOT, flow = flowPinned().value) =>
   join(skillGuidesRoot(root), slug, flow);
 
-export const referencesOf = (slug, root = HERE, flow = flowPinned().value) =>
+export const referencesOf = (slug, root = PLUGIN_ROOT, flow = flowPinned().value) =>
   namesIn(join(skillFlowDir(slug, root, flow), REFERENCES));
 
-export const guideParts = (slug, root = HERE, flow = flowPinned().value) =>
+export const guideParts = (slug, root = PLUGIN_ROOT, flow = flowPinned().value) =>
   partEntriesIn(join(skillFlowDir(slug, root, flow), GUIDE));
 
 /** The method as one text, joined from the flow's own parts in their own order, or null where this flow serves none for that skill. */
-export const servedBody = (slug, root = HERE, flow = flowPinned().value) => {
+export const servedBody = (slug, root = PLUGIN_ROOT, flow = flowPinned().value) => {
   const parts = guideParts(slug, root, flow);
   return parts === null ? null : joinedParts(parts);
 };
 
-export const hasBody = (slug, root = HERE, flow = flowPinned().value) =>
+export const hasBody = (slug, root = PLUGIN_ROOT, flow = flowPinned().value) =>
   guideParts(slug, root, flow) !== null;
 
 /** A method part answers to the contract's own one-heading rule, so a phase this copy lost its heading for is named rather than served under the phase above it. */
-export const bodyProblems = (slug, root = HERE, flow = flowPinned().value) =>
+export const bodyProblems = (slug, root = PLUGIN_ROOT, flow = flowPinned().value) =>
   (guideParts(slug, root, flow) ?? [])
     .map(({ name, text }) => {
       const said = partFileProblem(name, text);
@@ -61,7 +60,7 @@ export const bodyProblems = (slug, root = HERE, flow = flowPinned().value) =>
     .filter(Boolean);
 
 /** Read off the directories, for the flow served. Where the keys name a flow this copy cannot serve every slug is offered anyway, because a slug this listing drops is one `forge guide` looks for among the tracker's guides instead and answers *no guide named that*. */
-export const skillGuideSlugs = (root = HERE, flow = flowPinned().value) => {
+export const skillGuideSlugs = (root = PLUGIN_ROOT, flow = flowPinned().value) => {
   const refused = flowRefusal() !== null;
   return folders(skillGuidesRoot(root))
     .filter((slug) => refused
@@ -74,7 +73,7 @@ const sizeOf = (path) => (existsSync(path) ? statSync(path).size : 0);
 const INLINE = (slug) => `The ${slug} skill's method is its SKILL.md, loaded with the skill; this copy serves its references.`;
 
 /** The line `forge guide` prints for a skill: what it is, and the command that reads it. */
-export const skillListingRow = (slug, root = HERE) => {
+export const skillListingRow = (slug, root = PLUGIN_ROOT) => {
   const held = flowRefusal();
   if (held) return `${slug}\n  ${held}`;
   const count = `${referencesOf(slug, root).length} reference(s)`;
@@ -122,7 +121,7 @@ const served = (slug, text, tail, rung) => {
 
 /** The answer shape `contractAnswer` gives, for one skill: the body, one reference, one numbered
  *  phase of the method, or a refusal. Every answer ends by naming the flow it was rendered for. */
-export const skillGuideAnswer = (slug, root = HERE, flow = flowPinned().value) => ({ part = null, tracker = false, extra = [], rung = null } = {}) => {
+export const skillGuideAnswer = (slug, root = PLUGIN_ROOT, flow = flowPinned().value) => ({ part = null, tracker = false, extra = [], rung = null } = {}) => {
   if (tracker) {
     return { refusal: `--tracker does not apply to ${slug}, which is this plugin's own, not the tracker's.`
       + ` \`forge guide ${slug}\` prints it.` };
@@ -172,7 +171,7 @@ const stubsOf = (root) =>
   shippedSkills(root).map((one) => join(root, SKILLS_WITHIN, one, "SKILL.md"));
 
 /** Every `forge guide <slug> <part>` a skill text names that this copy cannot answer: a citation is a path with no directory to resolve against, so it is checked here instead. Every flow the copy ships is read and the pin is not, so the finding is about the copy and does not move with the configuration the checkout beside it resolves. A stub names no flow, so it is held to the flow a project falls back to; holding one to every shipped flow is a reading left to whoever ships the second flow. */
-export const unresolvedCitations = (root = HERE) => {
+export const unresolvedCitations = (root = PLUGIN_ROOT) => {
   const out = [];
   const files = stubsOf(root).map((file) => ({ file, flow: DEFAULT }));
   for (const slug of folders(skillGuidesRoot(root))) {
@@ -202,7 +201,7 @@ const mdUnder = (dir, out = []) => {
 /** Every served text fencing a block on the flow, in either tree and under every flow this copy
  *  ships. Two routes for one axis is a precedence rule with nothing to decide it, so the fence goes
  *  and the flow's own directory is where a difference between flows is written. */
-export const flowFences = (root = HERE) =>
+export const flowFences = (root = PLUGIN_ROOT) =>
   [...mdUnder(contractRoot(root)), ...mdUnder(skillGuidesRoot(root))]
     .filter((file) => openersOf(readFileSync(file, "utf8")).includes(FENCED_ON))
     .map((file) => `${file} fences a block on \`forge:when ${FENCED_ON}\`, and a flow's directory is`

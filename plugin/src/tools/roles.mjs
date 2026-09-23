@@ -1,19 +1,17 @@
 /* The roles a dispatcher names and the roots a skill check reads: one module, because a role
    directory is one of those roots. docs/dispatch-and-roles.md. */
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import { SKILLS_WITHIN } from "../resolve/visibility.mjs";
 import { skillGuidesRoot } from "../guides/skill-guides.mjs";
-
-const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+import { PLUGIN_ROOT } from "./plugin-copy.mjs";
 
 export const WITHIN = "agents";
 
-const rolesDir = (root = HERE) => join(root, WITHIN);
+const rolesDir = (root = PLUGIN_ROOT) => join(root, WITHIN);
 
-export const rolesIn = (root = HERE) => {
+export const rolesIn = (root = PLUGIN_ROOT) => {
   const dir = rolesDir(root);
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true })
@@ -38,7 +36,7 @@ export const skillDirsIn = (roots) =>
       .filter((one) => one.isDirectory())
       .map((one) => join(dir, one.name))));
 
-export const roleNames = (plugin, root = HERE) => rolesIn(root).map((one) => `${plugin}:${one}`);
+export const roleNames = (plugin, root = PLUGIN_ROOT) => rolesIn(root).map((one) => `${plugin}:${one}`);
 
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---/u;
 
@@ -48,7 +46,7 @@ export const keysDeclared = (text) => {
   return found.split("\n").flatMap((line) => /^([A-Za-z_-]+):/u.exec(line)?.[1] ?? []);
 };
 
-export const roleText = (name, root = HERE) => {
+export const roleText = (name, root = PLUGIN_ROOT) => {
   const path = join(rolesDir(root), `${name}.md`);
   return existsSync(path) ? readFileSync(path, "utf8") : null;
 };

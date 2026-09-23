@@ -15,10 +15,10 @@ the decision, with the skill keeping the rule.
 Exit 0 when clean, 1 on a finding, 2 on a usage error.`;
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, relative, resolve } from "node:path";
 
 import { skillGuidesRoot } from "../src/guides/skill-guides.mjs";
+import { PLUGIN_ROOT } from "../src/tools/plugin-copy.mjs";
 
 const args = process.argv.slice(2);
 if (args.includes("-h") || args.includes("--help")) {
@@ -31,7 +31,7 @@ if (unknown.length) {
   process.exit(2);
 }
 
-const plugin = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const plugin = PLUGIN_ROOT;
 const named = args.filter((arg) => !arg.startsWith("-")).map((one) => resolve(one));
 const roots = named.length ? named : [join(plugin, "skills"), skillGuidesRoot(plugin)];
 

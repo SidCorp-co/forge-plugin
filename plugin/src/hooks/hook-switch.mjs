@@ -2,12 +2,12 @@
    config, read by the hook process because hooks.json is read once at session start. A second
    switch for one decision is a precedence rule and a two-part undo. Names derive. docs/HOOKS.md. */
 import { readdirSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { basename, join } from "node:path";
 
 import { once, readJson, saveConfig, userConfig } from "../resolve/config.mjs";
+import { PLUGIN_ROOT } from "../tools/plugin-copy.mjs";
 
-export const HOOKS_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks");
+export const HOOKS_DIR = join(PLUGIN_ROOT, "hooks");
 export const ENTRIES_DIR = join(HOOKS_DIR, "entries");
 export const GATES_DIR = join(HOOKS_DIR, "gates");
 

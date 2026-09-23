@@ -4,14 +4,14 @@
    number its name carries, so nothing here lists them (ISS-78, ISS-802). Why one flow's directory is
    the whole of what it serves, and what that leaves undeclared: docs/cli/the-flow-axis.md. */
 import { readFileSync, readdirSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import { bare, didYouMean } from "../suggest.mjs";
 import { conditionsAt } from "./conditions.mjs";
 import { FLOWS, flowPinned, flowRefusal, servedFor } from "./flow.mjs";
 import { render } from "./render.mjs";
 import { roundLines, rungRefusal, rungServed } from "./rounds.mjs";
+import { PLUGIN_ROOT } from "../tools/plugin-copy.mjs";
 
 /** The contract this build reads and stamps on every record; another number is two versions in one. */
 export const CONTRACT = 1;
@@ -25,12 +25,11 @@ export const listingRow = () => {
   const held = flowRefusal();
   return held ? `${SLUG}\n  ${held}` : ROW;
 };
-const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const DIR = "contract";
 
-export const contractRoot = (root = HERE) => join(root, "guides", DIR);
+export const contractRoot = (root = PLUGIN_ROOT) => join(root, "guides", DIR);
 
-export const contractPath = (root = HERE, flow = flowPinned().value) =>
+export const contractPath = (root = PLUGIN_ROOT, flow = flowPinned().value) =>
   join(contractRoot(root), flow);
 
 /** One heading per file, at the top: a file that lost its own is prose the join serves under the part before it, and a second is a part whose file name addresses neither. */
@@ -62,7 +61,7 @@ export const partEntriesIn = (dir) =>
   partFilesIn(dir)?.map(([name, text]) => ({ name, text })) ?? null;
 
 /** One flow's whole contract: one `readdir` and no merge, since a flow's set is complete and no sibling is ever read for a part it has not got. */
-export const contractParts = ({ root = HERE, flow = flowPinned().value } = {}) =>
+export const contractParts = ({ root = PLUGIN_ROOT, flow = flowPinned().value } = {}) =>
   partEntriesIn(contractPath(root, flow));
 
 export const joinedParts = (entries) => entries
@@ -72,7 +71,7 @@ export const joinedParts = (entries) => entries
 export const identityOf = (entries) => statesContract(joinedParts(entries));
 
 /** The parts joined. A malformed part withholds the whole join rather than serving its prose under the part before it: a reader that took the join would answer with the wrong part's text and nothing would say so, and this way every reader takes its own absent-contract route to `forge doctor`, which names the file. */
-export const readContract = (root = HERE, flow = flowPinned().value) => {
+export const readContract = (root = PLUGIN_ROOT, flow = flowPinned().value) => {
   const entries = contractParts({ root, flow });
   if (!entries) return null;
   if (entries.some(({ name, text }) => partFileProblem(name, text))) return null;
@@ -129,7 +128,7 @@ export const partFor = (parts, key) =>
 export const keysOfAll = (parts) => parts.flatMap((part) => part.keys);
 
 /** What a citation of the contract resolves against: every key the verb would answer. */
-export const contractKeys = (root = HERE, flow = flowPinned().value) => keysOfAll(partsOf(readContract(root, flow) ?? ""));
+export const contractKeys = (root = PLUGIN_ROOT, flow = flowPinned().value) => keysOfAll(partsOf(readContract(root, flow) ?? ""));
 
 /** One line per part and per status, with its size and command, and none of the contract's prose. */
 export const contentsOf = (parts, number) => {
@@ -154,7 +153,7 @@ export const stageLine = (status, parts, path = contractPath()) => {
 };
 
 /** The malformed part before presence: a directory holding one is what `readContract` withholds the join for, and a reader told only that the contract is absent would go looking for a directory that is right there. The parts are resolved here rather than handed in, because a caller with no list to offer would otherwise switch the rule off and be told the contract is well formed (ISS-848). */
-export const contractProblems = ({ root = HERE, flow = flowPinned().value, reads = CONTRACT } = {}) => {
+export const contractProblems = ({ root = PLUGIN_ROOT, flow = flowPinned().value, reads = CONTRACT } = {}) => {
   const dir = contractPath(root, flow);
   const entries = contractParts({ root, flow });
   if (entries === null) {
@@ -181,7 +180,7 @@ export const contractProblems = ({ root = HERE, flow = flowPinned().value, reads
 export const unansweredIn = (parts, statuses) => statuses.filter((one) => !partFor(parts, one));
 
 /** What this copy ships held against the slugs it declares, no pin in the question so a gate verdict does not move with a project configuration it never declared. Both findings are about a slug: what a flow holds is its own, so no part and no sibling's set is left to hold it to. */
-export const flowProblems = (root = HERE, flows = FLOWS) => {
+export const flowProblems = (root = PLUGIN_ROOT, flows = FLOWS) => {
   const out = [];
   for (const flow of Object.keys(flows)) {
     if (partFilesIn(contractPath(root, flow))) continue;
@@ -203,7 +202,7 @@ const shownAt = (parts, rung) => parts.map((one) => {
   return { ...one, text, chars: text.length, problems };
 });
 
-export const contractAnswer = ({ part = null, tracker = false, extra = [], rung = null, root = HERE, flow = flowPinned().value } = {}) => {
+export const contractAnswer = ({ part = null, tracker = false, extra = [], rung = null, root = PLUGIN_ROOT, flow = flowPinned().value } = {}) => {
   if (tracker) {
     return { refusal: `--tracker does not apply to ${SLUG}, which is this plugin's own, not the`
       + ` tracker's. \`forge guide ${SLUG}\` prints it.` };
