@@ -226,11 +226,8 @@ if (unknown.length > 0) {
 }
 
 if (baselining && (full || waiting || allowDirty)) {
-  const other = full ? "--full" : waiting ? WAIT : ANYWAY;
-  console.error(`${BASELINE} is the baseline and ${other} is not part of one: ${full
-    ? "--full trusts no record, so a head a ship already measured is spent whole again"
-    : waiting ? `${WAIT} reads a verdict and measures nothing` : `a baseline stamps a clean head, and ${ANYWAY} gates a dirty one`}.`);
-  console.error(`Take the baseline: node tools/gates.mjs ${BASELINE}${baselineKey ? ` ${baselineKey}` : " <ISS-nn>"}`);
+  const { besideSaid } = await import("./gates/baseline.mjs");
+  console.error(besideSaid(full ? "--full" : waiting ? WAIT : ANYWAY, baselineKey));
   process.exit(1);
 }
 
@@ -274,17 +271,9 @@ if (elsewhere) {
 /* After the wrong-tree guard, because the head it reads is the caller's: a citation printed for the tree
    the caller stands in, by the gate of another, is the certificate that guard exists to refuse. */
 if (baselining) {
-  const { baselineRoute, citedSaid, freshSaid, REFUSED } = await import("./gates/baseline.mjs");
-  const route = baselineRoute(baselineKey ?? "<ISS-nn>");
-  if (route.refused) {
-    console.error(REFUSED);
-    process.exit(1);
-  }
-  if (route.cite) {
-    console.log(citedSaid(route.head, route.cite));
-    process.exit(0);
-  }
-  console.log(freshSaid(route.head, route.fresh));
+  const { takeBaseline } = await import("./gates/baseline.mjs");
+  const code = takeBaseline(baselineKey);
+  if (code !== null) process.exit(code);
 }
 
 /* Before the checkout is judged for its uncommitted paths, which is a rule about running a gate:
