@@ -128,7 +128,8 @@ test("a run whose record holds nothing says so, of its steps and of its test fil
     assert.match(stdout, /=== reads: test — 0 of 2 test file\(s\) already answered for at this content ===/u, stdout);
     assert.match(stdout, /spend 2 test file\(s\): the record holds no set for any of them/u, stdout);
     assert.match(stdout, /--- test: 2 of 2 file\(s\), \d+s \(none held back; spent 2 = 0 reached \+ 2 blind\)/u, stdout);
-    assert.match(stdout, new RegExp(String.raw`gate verdict: pass — \d+ of 14 step\(s\) in \d+s, test:tree ${NAMED.length} of ${NAMED.length} file\(s\), `, "u"), stdout);
+    assert.match(stdout, /gate verdict: pass — \d+ of 14 step\(s\) in \d+s, test:tree /u, stdout);
+    assert.ok(stdout.includes(`, test:tree ${NAMED.length} of ${NAMED.length} file(s), `), stdout);
     assert.match(stdout, /test 2 of 2 file\(s\), \d+ step\(s\) with no file unit ran whole/u, stdout);
   } finally {
     rmSync(at, { recursive: true, force: true });
@@ -187,7 +188,7 @@ test("a step every one of whose files the record answers for prints its block an
     assert.equal(status, 0, stdout);
     assert.match(stdout, /=== reads: test — 1 of 1 test file\(s\) already answered for at this content ===/u, stdout);
     assert.doesNotMatch(stdout, /--- test: \d+ of 1 file\(s\)/u, stdout);
-    assert.match(stdout, new RegExp(String.raw`=== reads: test:tree — ${NAMED.length} of ${NAMED.length} test file\(s\)`, "u"), stdout);
+    assert.ok(stdout.includes(`=== reads: test:tree — ${NAMED.length} of ${NAMED.length} test file(s)`), stdout);
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
