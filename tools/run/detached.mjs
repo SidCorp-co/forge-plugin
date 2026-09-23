@@ -70,21 +70,38 @@ const busySaid = (was, files) => `a ${was.verb ?? "landing"} of this tree is sti
 
 const recorded = (path, body) => writeFileSync(path, `${JSON.stringify(body, null, 2)}\n`);
 
-/** In the landing itself: take the mark off, keep the start and every ordinary end where a later
- *  call reads them, and ignore the hangup a closed terminal sends — nohup's half of the old route. A
- *  signal ends it as it always did, since a gate step is a `spawnSync` no handler here could interrupt. */
+/* How long the landing waits for its caller's record naming it before writing its own: the caller
+   writes it the moment the spawn returns, so this only runs out where the caller died in between. */
+const CALLER_RECORD_MS = 5000;
+
+const pause = new Int32Array(new SharedArrayBuffer(4));
+
+/* The caller's record before the landing's first step, so the landing's end is always written after
+   it: a landing that ended first would otherwise have its end written over by a start. */
+const callersRecord = (path) => {
+  const by = Date.now() + CALLER_RECORD_MS;
+  for (let held = read(path); Date.now() < by; held = read(path)) {
+    if (held?.pid === process.pid) return held;
+    Atomics.wait(pause, 0, 0, 10);
+  }
+  return null;
+};
+
+/** In the landing itself: take the mark off, keep every ordinary end beside the start its caller
+ *  recorded, and ignore the hangup a closed terminal sends — nohup's half of the old route. A signal
+ *  ends it as it always did, since a gate step is a `spawnSync` no handler here could interrupt. */
 export const asDetached = (verb, argv) => {
   const caller = process.env[MARK];
   if (!caller) return false;
   delete process.env[MARK];
   const dir = gitDir(process.cwd());
   if (!dir) return true;
-  const files = { ...outputsIn(dir, caller), record: recordIn(dir) };
-  const started = { verb, argv, tree: process.cwd(), pid: process.pid, start: startOf(process.pid),
-    since: new Date().toISOString(), ...files };
-  recorded(files.record, started);
+  const record = recordIn(dir);
+  const started = callersRecord(record) ?? { verb, argv, tree: process.cwd(), pid: process.pid,
+    start: startOf(process.pid), since: new Date().toISOString(), ...outputsIn(dir, caller), record };
+  recorded(record, started);
   process.on("SIGHUP", () => {});
-  process.on("exit", (code) => recorded(files.record, { ...started, ended: { code, at: new Date().toISOString() } }));
+  process.on("exit", (code) => recorded(record, { ...started, ended: { code, at: new Date().toISOString() } }));
   return true;
 };
 
@@ -154,7 +171,7 @@ const startingSaid = (path) => {
 
 /* Past the check, under the reservation: the previous landing's output goes, and only the two files
    its record names, the record being what a later call reads and about to name this one. The
-   record is written here before the reservation is dropped, and again by the landing as it starts. */
+   record is written here before the reservation is dropped, and the landing waits for it. */
 const launched = ({ verb, argv, script, tree, dir, record }) => {
   const was = read(record);
   if (stillLanding(was)) stop(busySaid(was, was));

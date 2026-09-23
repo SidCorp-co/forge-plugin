@@ -141,6 +141,17 @@ test("an attached caller relays the landing's stdout and stderr each to its own 
   assert.match(run.stderr, /stopped at step 5 \(the gate\)/u, run.stderr);
 });
 
+/* Refused at its first step, the landing ends within its own start-up, which is the order in which a
+   caller's record written after the spawn could land on top of the landing's end. */
+test("a landing that ends at once keeps its end in the record", () => {
+  const { work } = pushed("detached-at-once");
+  writeFileSync(join(work, "untracked"), "dirty\n");
+  const run = runIn(work, ["ship"], BARE);
+  assert.equal(run.status, 1, run.stdout);
+  assert.match(run.stderr, /the tree is dirty/u, run.stderr);
+  assert.equal(recordOf(work).ended?.code, 1, JSON.stringify(recordOf(work)));
+});
+
 test("a landing ended by a signal is said with the step, recorded, and leaves its lock naming it", async () => {
   const { at, work } = remoted("detached-signal", sleepingGate(30_000));
   const { said, exited } = caller(work, ["ship"]);
