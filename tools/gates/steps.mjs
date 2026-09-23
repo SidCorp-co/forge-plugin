@@ -33,12 +33,13 @@ export const testFlags = (workers = testWorkers()) => [
 export const EVERYTHING = [".", ".claude-plugin", "docs", "packages", "plugin", "tools"];
 
 /* The suite's whole-repository readers: every tracked file, every `.md`, all of `docs/` against
-   CLAUDE.md and the skills, and every path this repository's own prose cites. Left in one `test` step
+   CLAUDE.md and the skills, every path this repository's own prose cites, and every importer of an export. Left in one `test` step
    they make its honest reads the whole tree; `checks/docs` is claimed whole (ISS-117). */
 export const WHOLE_TREE_TESTS = [
   "plugin/test/checks/cited-paths.test.mjs",
   "plugin/test/checks/docs",
   "plugin/test/checks/sources-are-text.test.mjs",
+  "plugin/test/checks/surface/dead-exports.test.mjs",
   "plugin/test/checks/surface/level-boundary.test.mjs",
   "plugin/test/guides/contract.test.mjs",
 ];
