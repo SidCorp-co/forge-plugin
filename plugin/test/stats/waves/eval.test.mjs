@@ -6,7 +6,7 @@ import test from "node:test";
 import { tempRoom } from "../../fixtures.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("waves-eval-");
-const { at, dispatch, fold, row, standing, took } = await import("../fixture-waves.mjs");
+const { dispatch, fold, row, standing, took } = await import("../fixture-waves.mjs");
 const { evalWaves } = await import("../../../src/stats/waves/eval.mjs");
 
 /* Five waves on one headline, each an hour apart: the last two cost more and went wrong more. */

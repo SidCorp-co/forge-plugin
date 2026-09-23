@@ -159,7 +159,7 @@ const handBacksSaid = (row) => (row.handBacksCut.length
   ? `at least ${row.handBacks}, history cut on ${row.handBacksCut.join(", ")}`
   : String(row.handBacks));
 
-/** A wave's row as printed: its cost, what it moved, and the mistakes and savings it carries. */
+/** What one wave prints, a line per kind of figure. */
 export const waveLines = (row) => [
   `${row.headline}  ${row.state}  ${stamp(row.from)} to ${stamp(row.to)}  ${row.minutes} min, `
     + `${row.calls} call(s), copy ${row.copy}`,

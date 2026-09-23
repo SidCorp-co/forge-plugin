@@ -48,10 +48,9 @@ export const wavesOf = (comments) => {
   return waves;
 };
 
-const unstamped = ({ stamp: _stamp, ...rest }) => rest;
+const unstamped = (one) => Object.fromEntries(Object.entries(one).filter(([key]) => key !== "stamp"));
 
-/** The page's wave, or null where it holds neither kind: the open wave where one stands, and
- *  otherwise the last fold with how many dispatches it closed. */
+/** The latest of those, as `forge resume` prints it, or null where the page holds neither kind. */
 export const waveOf = (comments) => {
   const last = wavesOf(comments).at(-1);
   if (!last) return null;
