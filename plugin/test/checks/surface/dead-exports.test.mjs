@@ -87,6 +87,14 @@ test("a star re-export is the barrel exporting every name of its source, found a
   assert.deepEqual(names(files), ["plugin/src/barrel.mjs:2 b", "plugin/src/m.mjs:3 default"]);
 });
 
+test("a namespace re-export is one name of the barrel's, found there when nothing imports it", () => {
+  const files = planted({
+    "plugin/src/m.mjs": "export const a = 1;\n",
+    "plugin/src/barrel.mjs": 'export * as all from "./m.mjs";\n',
+  });
+  assert.deepEqual(names(files), ["plugin/src/barrel.mjs:1 all"]);
+});
+
 test("a default export is taken by a default import, and a namespace takes every name", () => {
   const files = planted({
     "plugin/src/d.mjs": "export default function held() {}\nexport const beside = 1;\n",
