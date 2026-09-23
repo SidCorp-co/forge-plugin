@@ -78,12 +78,34 @@ const bindingsAt = (code, at) => {
   });
 };
 
+/* Where a line break at depth 0 does not end the declaration: the line before it is left open by an
+   operator or a comma, or the next one opens by continuing an expression. */
+const CARRIES = /[=,([{+\-*/%&|^!?:<>~.]$/u;
+const CONTINUES = /^[,.?:+\-*/%&|^=<>)\]}]/u;
+
+/** Every declarator of one `export const a = …, b = …;` — the code having its strings blanked, a
+ *  bracket counted here is a bracket — each start read by `bindingsAt`. */
+const declaratorsAt = (code, at) => {
+  const starts = [at];
+  let depth = 0;
+  for (let one = at; one < code.length; one += 1) {
+    const held = code[one];
+    if ("([{".includes(held)) depth += 1;
+    else if (")]}".includes(held)) depth -= 1;
+    else if (depth === 0 && held === ";") break;
+    else if (depth === 0 && held === ",") starts.push(one + 1 + /^\s*/u.exec(code.slice(one + 1))[0].length);
+    else if (depth === 0 && held === "\n" && !CARRIES.test(code.slice(at, one).trimEnd())
+      && !CONTINUES.test(code.slice(one).trimStart())) break;
+  }
+  return starts.flatMap((start) => bindingsAt(code, start));
+};
+
 const exportedIn = (text, code) => {
   const out = [];
   const add = (name, index) => out.push({ name, line: lineAt(text, index) });
   for (const one of code.matchAll(DECLARED)) add(one[1], one.index);
   for (const one of code.matchAll(BOUND)) {
-    for (const name of bindingsAt(code, one.index + one[0].length)) add(name, one.index);
+    for (const name of declaratorsAt(code, one.index + one[0].length)) add(name, one.index);
   }
   for (const one of code.matchAll(DEFAULTED)) add("default", one.index);
   for (const one of code.matchAll(STARRED)) if (one[1]) add(one[1], one.index);

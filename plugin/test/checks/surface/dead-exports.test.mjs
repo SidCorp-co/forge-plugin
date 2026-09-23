@@ -45,6 +45,14 @@ test("an export nothing imports is named by file, line and name, with what to do
   assert.match(said[0], /import it in the module that was meant to read it/u, "and the second");
 });
 
+test("every declarator of one exported declaration is an export of its own", () => {
+  const files = planted({
+    "plugin/src/m.mjs": "export const used = f(1, 2), unused = [3, 4],\n  { deep: also } = {};\nexport const after = 5;\n",
+    "plugin/src/reader.mjs": 'import { used, after } from "./m.mjs";\n',
+  });
+  assert.deepEqual(names(files), ["plugin/src/m.mjs:1 also", "plugin/src/m.mjs:1 unused"]);
+});
+
 test("a test is an importer, and so is a file outside plugin and tools", () => {
   const files = planted({
     "plugin/src/m.mjs": "export const pinned = 1;\nexport const packaged = 2;\n",
