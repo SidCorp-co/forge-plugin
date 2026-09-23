@@ -5,14 +5,14 @@ import { join, resolve } from "node:path";
 
 import { readJson } from "../../../resolve/config.mjs";
 import { firstLine } from "../../../resolve/flags.mjs";
-import { hereCopy, pluginCopy } from "../../plugin-copy.mjs";
+import { hereCopy, PLUGIN_ROOT, pluginCopy } from "../../plugin-copy.mjs";
 
 const LABEL = "newest release";
 const REMOTE = "origin";
 /* Long enough for a round trip to a git host on a slow link, short enough that a report nobody is waiting on cannot hold up the phase that runs it. */
 const MS = 5000;
 
-const OWN = new URL("../../../../.claude-plugin/plugin.json", import.meta.url);
+const OWN = join(PLUGIN_ROOT, ".claude-plugin", "plugin.json");
 
 const note = (detail) => [{ level: "note", label: LABEL, detail }];
 const said = (detail) => [{ level: "ok", label: LABEL, detail }];

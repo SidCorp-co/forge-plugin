@@ -2,8 +2,7 @@
    tool, a human WITHHELD a verb. They differ in authority and consequence.
    docs/cli/withholding-a-verb.md. */
 import { existsSync, readdirSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import { ROUTES } from "../tracker/routes.mjs";
 import { userConfig } from "./config.mjs";
@@ -11,6 +10,7 @@ import { declaredJobs, fail, feedbackScope, projectScope } from "./settings.mjs"
 import { STORES } from "./machine/stores.mjs";
 import { unconfiguredTool } from "../tools/services/tool-config.mjs";
 import { TAKEN_HERE, TRACKER_SERVED, onTracker } from "../tools/services/coolify/chosen-route.mjs";
+import { PLUGIN_ROOT } from "../tools/plugin-copy.mjs";
 
 /* A row names its group; `forge -h`'s headings are folded off that, so a verb reaching the table
    without one appears under no heading and `cli-help.test.mjs` refuses it rather than a reader. */
@@ -220,11 +220,10 @@ export const withheldForJob = (verbs) => {
   return VERB_NAMES.filter((verb) => !offers.has(verb));
 };
 
-const PLUGIN = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 export const SKILLS_WITHIN = "skills";
 
 /** Every skill this copy ships, read off the one directory the session host loads them from. */
-export const shippedSkills = (root = PLUGIN) => {
+export const shippedSkills = (root = PLUGIN_ROOT) => {
   const dir = join(root, SKILLS_WITHIN);
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { withFileTypes: true })
@@ -388,7 +387,6 @@ export const wrappedRefusal = (tool, action) => {
   return `${said} is what ${found.line} wraps: type it instead — it makes this call `
     + "and takes the reading this route skips.";
 };
-
 
 export const offeredVerbs = () => {
   const withheld = withheldVerbs();

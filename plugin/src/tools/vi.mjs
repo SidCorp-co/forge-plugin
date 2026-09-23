@@ -3,14 +3,14 @@
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
 import { fail, translateTo } from "../resolve/settings.mjs";
 import { TRANSLATE_UNCHANGED } from "./vi-exit.mjs";
 import { protectMachine, restoreMachine } from "../flow/machine.mjs";
+import { PLUGIN_ROOT } from "./plugin-copy.mjs";
 
-export const BUNDLED = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "bin", "vi-natural");
+export const BUNDLED = join(PLUGIN_ROOT, "bin", "vi-natural");
 /* Every prose field an agent can write, and a release note is an object whose other two halves are
    an enum and the payload, so what is named is the half rather than the field. docs/cli/vietnamese.md. */
 const PROSE_FIELDS = ["title", "description", "body", "plan", "acceptanceCriteria", "releaseNotes.userFacing"];

@@ -6,7 +6,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const installRecord = () => join(homedir(), ".claude", "plugins", "installed_plugins.json");
-const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+/** The directory of the copy this code runs from, the one holding `.claude-plugin/plugin.json`. */
+export const PLUGIN_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 const read = (path) => {
   try {
@@ -31,7 +32,7 @@ const newestOf = (records) =>
 
 /** What this copy is and what a session starting now would load, or nothing at all: an install record
  *  this cannot read is another machine's business. Stale is no record holding this version. */
-export const pluginCopy = (root = HERE) => {
+export const pluginCopy = (root = PLUGIN_ROOT) => {
   const mine = read(join(root, ".claude-plugin", "plugin.json"));
   if (!mine?.name || !mine?.version) return null;
   const records = recordsOf(mine.name, installRecord());
@@ -46,7 +47,7 @@ export const pluginCopy = (root = HERE) => {
 
 const nameAt = (root) => read(join(root, ".claude-plugin", "plugin.json"))?.name ?? null;
 
-export const installedPaths = (record = installRecord(), root = HERE) =>
+export const installedPaths = (record = installRecord(), root = PLUGIN_ROOT) =>
   recordsOf(nameAt(root) ?? "", record).map((one) => one.installPath).filter((one) => typeof one === "string");
 
 const shippedBy = (path, name) => {
@@ -65,7 +66,7 @@ const checkoutAbove = (from, name) => {
 };
 
 /** Whether a path sits inside a checkout that ships this plugin, which is somebody's source tree. */
-export const insideCheckout = (from, root = HERE) => checkoutAbove(from, nameAt(root)) !== null;
+export const insideCheckout = (from, root = PLUGIN_ROOT) => checkoutAbove(from, nameAt(root)) !== null;
 
 const installedAbleToRun = (name, entry, record) => {
   const able = recordsOf(name, record)
@@ -77,12 +78,12 @@ const installedAbleToRun = (name, entry, record) => {
 const versionAt = (dir) => read(join(dir, ".claude-plugin", "plugin.json"))?.version ?? null;
 
 /** The copy running this, whatever any record holds: `copyToRun` answers which one the link would. */
-export const hereCopy = (root = HERE) => ({ dir: resolve(root), version: versionAt(root) });
+export const hereCopy = (root = PLUGIN_ROOT) => ({ dir: resolve(root), version: versionAt(root) });
 
 /** Which copy a call through the link on PATH runs, and why that one: the checkout the working
  *  directory sits in, else the newest installed copy that resolves, else this one. `entry` defaults
  *  to this CLI's, which is the copy doctor asks about. */
-export const copyToRun = ({ cwd = process.cwd(), entry = join("src", "cli.mjs"), root = HERE, record = installRecord() } = {}) => {
+export const copyToRun = ({ cwd = process.cwd(), entry = join("src", "cli.mjs"), root = PLUGIN_ROOT, record = installRecord() } = {}) => {
   const name = nameAt(root);
   const installed = name ? installedAbleToRun(name, entry, record) : null;
   const checkout = name ? checkoutAbove(cwd, name) : null;

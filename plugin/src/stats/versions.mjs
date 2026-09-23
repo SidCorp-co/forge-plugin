@@ -5,11 +5,12 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
 import { readJson } from "../resolve/config.mjs";
+import { PLUGIN_ROOT } from "../tools/plugin-copy.mjs";
 
 export const UNRECORDED = "unrecorded";
 
 const installRecord = () => join(homedir(), ".claude", "plugins", "installed_plugins.json");
-const OWN = new URL("../../.claude-plugin/plugin.json", import.meta.url);
+const OWN = join(PLUGIN_ROOT, ".claude-plugin", "plugin.json");
 
 /* The record plugin-copy.mjs reads, read again and at the call: that module is frozen, an export there costs a restart. */
 const installPathOf = (name, record) => {

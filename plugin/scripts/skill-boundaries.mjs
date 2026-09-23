@@ -26,10 +26,10 @@ a fence beside it would be a second route to one axis with nothing to decide bet
 Exit 0 when clean, 1 on a finding, 2 on a usage error.`;
 
 import { readFileSync, readdirSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, resolve } from "node:path";
 
 import { flowFences, servedBody } from "../src/guides/skill-guides.mjs";
+import { PLUGIN_ROOT } from "../src/tools/plugin-copy.mjs";
 
 const args = process.argv.slice(2);
 if (args.includes("-h") || args.includes("--help")) {
@@ -45,7 +45,7 @@ if (unknown.length) {
 const named = args.filter((arg) => !arg.startsWith("-"));
 const skillsRoot = named.length
   ? resolve(named[0])
-  : join(resolve(dirname(fileURLToPath(import.meta.url)), ".."), "skills");
+  : join(PLUGIN_ROOT, "skills");
 
 /* Overlap is measured on what a description is *about*, so the words every description shares are
    removed first — they inflate every pair equally and rank nothing. */

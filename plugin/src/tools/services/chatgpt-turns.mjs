@@ -4,10 +4,10 @@
 import { existsSync, mkdirSync, openSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 
 import { configDir, readJson, writeJsonPrivate } from "../../resolve/config.mjs";
+import { PLUGIN_ROOT } from "../plugin-copy.mjs";
 
 /** Plumbing between two copies of this CLI: an action for it would be a second spelling of one switch. */
 const TURN_VAR = "FORGE_CHATGPT_TURN";
@@ -109,9 +109,9 @@ export const waitedFor = async (id, seconds, every = WATCH_MS) => {
   }
 };
 
-/* Off this module, never `process.argv`: the child has to be this source tree and not the copy on
-   PATH. Converted rather than read off `pathname`, which keeps a checkout with a space in it escaped. */
-const cliPath = () => fileURLToPath(new URL("../../cli.mjs", import.meta.url));
+/* Off this copy's root, never `process.argv`: the child has to be this source tree and not the copy
+   on PATH. */
+const cliPath = () => join(PLUGIN_ROOT, "src", "cli.mjs");
 
 /** Its own process group and no pipe back, or the shell that submitted the turn goes on waiting for
  *  the process it detached; the action is carried, or the child settles a record nobody asked for. */

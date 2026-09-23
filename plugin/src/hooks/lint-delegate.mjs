@@ -3,10 +3,10 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const VENDORED = join(HERE, "..", "..", "hooks", "vendor", "lint-edited-file.mjs");
+import { PLUGIN_ROOT } from "../tools/plugin-copy.mjs";
+
+const VENDORED = join(PLUGIN_ROOT, "hooks", "vendor", "lint-edited-file.mjs");
 const PACKAGE = "eslint-plugin-code-quality";
 const INSIDE = "claude-plugin/scripts/lint-edited-file.mjs";
 
