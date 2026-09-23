@@ -37,8 +37,10 @@ const SELF = fileURLToPath(import.meta.url);
 const ROOT = resolve(dirname(SELF), "..");
 
 const ANYWAY = "--anyway";
+const BASELINE = "--baseline";
+const KEY = /^ISS-\d+$/u;
 
-const USAGE = `Usage: node tools/gates.mjs [--full] [${ANYWAY}] [${WAIT} [${SLOT}] [M]]
+const USAGE = `Usage: node tools/gates.mjs [${BASELINE} [ISS-nn]] [--full] [${ANYWAY}] [${WAIT} [${SLOT}] [M]]
 
 Every check this repository gates a change with, stopping at the first failure. It is what
 \`npm run check\` runs; each step is still the npm script of its own name, spent by hand.
@@ -140,7 +142,12 @@ A run in the shared checkout is refused while that checkout holds uncommitted pa
 session stands there, so the result would be about a tree none of them owns. A worktree is never
 refused — its uncommitted work is the point of it.
 
-  --full     every step, whatever the diff or the ledger says
+  ${BASELINE} [ISS-nn]  a run's Phase 0 baseline, and the only route to one here. Where a ship
+             published a whole-tree result for this clean head it spends no step and prints the
+             write that cites it; where none is published it runs the gate as a bare call does,
+             record and all, and prints the write to record. A dirty tree is refused.
+  --full     every step, whatever the diff or the ledger says. It proves a tree independently
+             and is never the baseline route: it trusts no record, so a clean head spends all of it
   ${ANYWAY}   gate the shared checkout as it stands, uncommitted paths and all. The run names
              them when it starts and says again at the end that it used this, so a result reached
              this way cannot be mistaken for a clean one.
@@ -192,6 +199,9 @@ if (argv.includes("-h") || argv.includes("--help")) {
 }
 
 const full = argv.includes("--full");
+const baselining = argv.includes(BASELINE);
+const keyAt = argv.indexOf(BASELINE) + 1;
+const baselineKey = baselining && KEY.test(argv[keyAt] ?? "") ? argv[keyAt] : null;
 const allowDirty = argv.includes(ANYWAY);
 const waiting = argv.includes(WAIT);
 const mark = argv.indexOf(WAIT);
@@ -203,13 +213,24 @@ const subject = waiting && argv[mark + 1] === SLOT ? SLOT : null;
 const minutesAt = mark + (subject === null ? 1 : 2);
 const after = waiting ? argv[minutesAt] : undefined;
 const patience = after !== undefined && !after.startsWith("-") ? after : null;
-const taken = new Set([mark, subject === null ? -1 : mark + 1, patience === null ? -1 : minutesAt]);
-const unknown = argv.filter((one, at) => !taken.has(at) && one !== "--full" && one !== ANYWAY);
+const taken = new Set([mark, subject === null ? -1 : mark + 1, patience === null ? -1 : minutesAt,
+  baselineKey === null ? -1 : keyAt]);
+const unknown = argv.filter((one, at) => !taken.has(at) && one !== "--full" && one !== ANYWAY
+  && one !== BASELINE);
 const waitCall = `${WAIT}${subject === null ? "" : ` ${subject}`}`;
 const waitedOn = subject === SLOT ? "place" : "verdict";
 
 if (unknown.length > 0) {
   console.error(`No such option: ${unknown.join(" ")}\n\n${USAGE}`);
+  process.exit(1);
+}
+
+if (baselining && (full || waiting || allowDirty)) {
+  const other = full ? "--full" : waiting ? WAIT : ANYWAY;
+  console.error(`${BASELINE} is the baseline and ${other} is not part of one: ${full
+    ? "--full trusts no record, so a head a ship already measured is spent whole again"
+    : waiting ? `${WAIT} reads a verdict and measures nothing` : `a baseline stamps a clean head, and ${ANYWAY} gates a dirty one`}.`);
+  console.error(`Take the baseline: node tools/gates.mjs ${BASELINE}${baselineKey ? ` ${baselineKey}` : " <ISS-nn>"}`);
   process.exit(1);
 }
 
@@ -248,6 +269,22 @@ if (elsewhere) {
   console.error(`one that judges it. A gate aimed at the wrong tree does not fail, it certifies:`);
   console.error(`  node ${resolve(elsewhere, "tools", "gates.mjs")}`);
   process.exit(1);
+}
+
+/* After the wrong-tree guard, because the head it reads is the caller's: a citation printed for the tree
+   the caller stands in, by the gate of another, is the certificate that guard exists to refuse. */
+if (baselining) {
+  const { baselineRoute, citedSaid, freshSaid, REFUSED } = await import("./gates/baseline.mjs");
+  const route = baselineRoute(baselineKey ?? "<ISS-nn>");
+  if (route.refused) {
+    console.error(REFUSED);
+    process.exit(1);
+  }
+  if (route.cite) {
+    console.log(citedSaid(route.head, route.cite));
+    process.exit(0);
+  }
+  console.log(freshSaid(route.head, route.fresh));
 }
 
 /* Before the checkout is judged for its uncommitted paths, which is a rule about running a gate:
