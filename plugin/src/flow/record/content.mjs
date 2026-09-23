@@ -38,6 +38,13 @@ export const whereProblem = (value) => {
     + "names nothing is one nobody can check.";
 };
 
+/* A wave's member is read live by this value alone, so anything around the key is a member the resume cannot find (ISS-818). */
+export const MEMBER_TAKES = "an issue key, `ISS-45`, one per --member";
+
+export const memberProblem = (value) => (/^[A-Z][A-Z0-9]*-\d+$/u.test(String(value ?? ""))
+  ? null
+  : `takes ${MEMBER_TAKES}; \`${value}\` is not one, and a member the resume cannot read by its key is one it cannot report.`);
+
 /* The reading, the assumption it was taken under, and the line that reverses it; the third is what a decision record exists for. */
 export const DECISION_PARTS = ["reading", "assumption", "undo"];
 const PARTS = DECISION_PARTS.length;

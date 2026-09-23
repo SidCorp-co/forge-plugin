@@ -20,13 +20,16 @@ import { SHARED_HOLDER } from "./lease/dispatched.mjs";
 import { workingSaid } from "./lease/working.mjs";
 import { landingLine, landingTurn } from "./landing/checkpoint.mjs";
 import { atMinute, heldSaid } from "./machine.mjs";
+import { waveLines, waveLive, waveOf } from "./record/wave.mjs";
 
 export const USAGE = [
   usageOf("resume"),
   "The whole context of one issue on one screen, re-minted from the record and the worklog beside",
   "its lease: the status and the phase it owes, the plan, every criterion with its verdict mark, the",
   "last confirmation, decision and correction, the worklog, the parks and blockers, the command the",
-  "next status is owed, and where the method for that phase is written.",
+  "next status is owed, and where the method for that phase is written. On a wave's headline it",
+  "opens with the wave: each dispatch since the last fold with its members' status and lease read",
+  "live from each member, whether it is complete and that the fold is owed, or the fold that ended it.",
   "",
   "  --json    the same assembled object, for a tool rather than a reader",
   "  --report  every record whole instead of this brief: the latest of each kind that can only be",
@@ -117,6 +120,8 @@ export const opening = (status, fields, held, work = null) => {
 const print = (brief, view, ref) => {
   console.log(`${ref}  ${brief.status}${brief.phase ? `  —  phase owed: ${brief.phase}` : ""}`
     + `${brief.reopens ? `  —  reopened ${brief.reopens} time(s)` : ""}`);
+  /* Ahead of the issue's own opening: on a headline, the wave is what a restarted dispatcher came for (ISS-818). */
+  block("Wave", waveLines(brief.wave, ref));
   const work = workNow(brief.worklog);
   const kinds = kindsHeld(view);
   opening(brief.status, rungFieldsOf(view), kinds, work);
@@ -158,6 +163,8 @@ const run = async (argv) => {
   const page = await commentPage(documentId);
   const view = viewFrom(documentId, body, page.comments, cutIn(page), await policyFor(body.plan, body.status), () => citedClauses(body));
   const brief = briefOf(view, ref);
+  const wave = await waveLive(waveOf(page.comments));
+  if (wave) brief.wave = wave;
   return given.json ? console.log(JSON.stringify(brief, null, 2)) : print(brief, view, ref);
 };
 

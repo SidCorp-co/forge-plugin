@@ -1,7 +1,7 @@
 /* A project whose configuration names a prose language has every body and prose field rewritten on
    the way out (tools/vi.mjs), and a rewrite renames prose, so a key travels in a form the rewrite copies byte for byte: a fenced block, or a code span. `content.mjs` is the one thing imported here and imports nothing itself, so both sides can still import this. */
-import { DECISION_TAKES, FINDING_TAKES, WHERE_TAKES, decisionProblem, findingProblem,
-  whereProblem } from "./record/content.mjs";
+import { DECISION_TAKES, FINDING_TAKES, MEMBER_TAKES, WHERE_TAKES, decisionProblem, findingProblem,
+  memberProblem, whereProblem } from "./record/content.mjs";
 import { CODE_SPAN, SPAN, blanked, fenceMarked } from "../prose.mjs";
 
 /** An ISO stamp to the minute, as every screen in this tree shows one; apart from `lease.mjs`'s and `stats/runs.mjs`'s, which take milliseconds. */
@@ -582,6 +582,32 @@ export const SHAPES = {
       FIELD("none", "None found", { optional: true, prose: true }),
     ],
     check: (got) => escapeOr(got, ["where", "lacked", "did"], "met no gap"),
+  },
+  /* One dispatch of a wave, on the issue the dispatcher heads it with: what the dispatcher knows at
+     that moment and nothing a run will write, statuses and leases being read live. `finder` is a
+     write that neither takes nor needs the lease, the headline being free or a member a runner
+     holds; `closes` is the fold's, which ends the wave the dispatches after the last fold make (ISS-818). */
+  wave: {
+    heading: "Wave dispatch",
+    repeats: true,
+    finder: true,
+    fields: [
+      FIELD("member", "Member", { many: true, each: memberProblem, form: MEMBER_TAKES }),
+      FIELD("role", "Role"),
+      FIELD("tree", "Worktree", { optional: true }),
+      FIELD("session", "Session granted"),
+    ],
+    check: (got) => {
+      const twice = got.member.find((one, at) => got.member.indexOf(one) !== at);
+      return twice ? `each --member once: \`${twice}\` is named twice, and one dispatch carries an issue once` : null;
+    },
+  },
+  fold: {
+    heading: "Wave fold",
+    repeats: true,
+    finder: true,
+    closes: "wave",
+    fields: [FIELD("summary", "Summary", { prose: true })],
   },
   verification: {
     heading: "Release verification",

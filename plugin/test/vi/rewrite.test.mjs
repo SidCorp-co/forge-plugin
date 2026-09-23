@@ -71,6 +71,8 @@ const FIELDS = {
   routed: { what: "the gate reads a stale mtime", to: "ISS-80, filed", evidence: [], none: undefined },
   gap: { where: "references/plan.md", lacked: "the three declaration lines it owes", did: "read them off the contract", none: undefined },
   verification: { where: "the installed copy", commit: "117978d", evidence: ["run.txt"] },
+  wave: { member: ["ISS-2", "ISS-3"], role: "forge:runner", tree: "/trees/two", session: "iss-2-abc" },
+  fold: { summary: "two runs landed and one parked" },
 };
 
 test("every kind's payload survives the rewrite byte for byte, and reads back under its flags", () => {

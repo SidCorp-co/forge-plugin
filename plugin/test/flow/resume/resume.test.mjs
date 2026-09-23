@@ -398,6 +398,13 @@ test("nothing in the brief or its printer can write, because none of the writes 
        route is and writes nothing, so a reader importing it has reached no write. */
     assert.ok(!/\btracker\/rest\.mjs\b/u.test(imports), `${name} reaches the transport itself`);
   }
+  /* The wave's reader is the one module here that asks the tracker, for each member's status, and
+     it reads softly: what it imports writes nothing all the same (ISS-818). */
+  const wave = readFileSync(fileURLToPath(new URL("../../../src/flow/record/wave.mjs", import.meta.url)), "utf8");
+  const imports = wave.split("\n").filter((one) => /^import /u.test(one)).join(" ");
+  for (const call of ["renew", "setLease", "claimed", "post", "write", "transitionTo", "worklogFor"]) {
+    assert.ok(!new RegExp(`\\b${call}\\b`, "u").test(imports), `wave.mjs imports ${call}, which writes`);
+  }
 });
 
 /* Minting a session id writes a file, so asking whose lease this is would have made the one verb

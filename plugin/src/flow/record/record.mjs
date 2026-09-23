@@ -13,10 +13,10 @@ import { markedCommit, mergedPrepared } from "./merged.mjs";
 import { commitProblem, eachProblem } from "./content.mjs";
 import { KINDS, SERVES_KINDS, USAGE, kindHelp, kindUsage, usage } from "./record-rows.mjs";
 import { criteriaLines, criteriaPrepared, notePrepared, planPrepared } from "./fields.mjs";
-import { kindBlocks, pullRun } from "./rung.mjs";
+import { RUN_FLAGS, kindBlocks, pullRun } from "./rung.mjs";
 import { proseChecked } from "./prose-route.mjs";
 import { FLAG_WORD, firstLine, noValue, pullRepeated, flags, wantsHelp } from "../../resolve/flags.mjs";
-import { commentPage, cutIn, cutLine, postComment } from "../../tracker/comments.mjs";
+import { commentPage, cutIn, cutLine, mustBeShown, postComment } from "../../tracker/comments.mjs";
 import {
   TWICE, attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadAll,
 } from "../../tracker/evidence.mjs";
@@ -34,7 +34,8 @@ import { scopeFrom, scopePath } from "./plan-scope.mjs";
 import { repoRoot } from "../../git/repo-root.mjs";
 import { workLines } from "../../guides/phases.mjs";
 import { askedInSource } from "../../resolve/flags.mjs";
-import { FIELD as SESSION, renew, writtenBy } from "../lease.mjs";
+import { FIELD as SESSION, finderSaid, renew, writtenBy } from "../lease.mjs";
+import { foldProblem } from "./wave.mjs";
 import { stampedNow, worklogLines, worklogOf, workNow } from "../worklog.mjs";
 
 export const issueOf = async (reference) => {
@@ -109,6 +110,29 @@ const answerChecked = (kind, reference, body) => {
     + `it does wait on:\n  forge advance ${reference} --owed`);
 };
 
+/* A finder's kind is its own call: `--also` rides a rung that moves a status and every run flag
+   writes the lease, and a write that takes no lease can carry neither (ISS-818). */
+const aloneChecked = (kind, reference, argv) => {
+  const beside = argv.find((one) => one === "--also" || RUN_FLAGS.includes(one));
+  if (!beside) return;
+  refuse(`record ${kind} is written alone and takes no lease, so ${beside} has nothing here to act on: `
+    + `${beside === "--also" ? "it adds a kind to a rung that moves the status" : "it writes onto the lease"}. `
+    + `Send the ${kind} by itself:\n  forge record ${kind} ${reference} ${kindUsage(kind).split("\n")[1].trim().replace(/^\S+\s+/u, "")}`);
+};
+
+/* At waiting or needs_info the tracker reads any comment as the reply to the park and reopens the
+   issue, so a finder's record there would move a status nothing earned. */
+const finderChecked = (kind, reference, body, read) => {
+  if (!SHAPES[kind].finder) return;
+  if (answersByComment(body.status)) {
+    refuse(`record ${kind}: ${reference} is ${body.status}, where the tracker reads a comment as the `
+      + "reply to its park and reopens the issue, so this record would move a status no record earned. "
+      + `Nothing was sent. Head the wave on an issue no park holds, or write this once the park is answered:\n  forge advance ${reference} --owed`);
+  }
+  const said = foldProblem(kind, reference, read);
+  if (said) refuse(said);
+};
+
 /* What the stored copy will be, said where the write is made: the payload block is the record and
    travels as written, and everything a rewrite reaches is prose around it. */
 const REWRITTEN = {
@@ -133,10 +157,15 @@ const stampedLast = (comments, written) => String(written?.createdAt
 const sayPart = (kind, rung) => partForRecord(kind, (part) => console.error(`\n${part}`), rung);
 
 /* `renewed` is the caller whose write a moment ago renewed the lease, which a second lease write would only repeat; `soft` hands the tracker's refusal back rather than exiting, for the caller with something to say about it. */
-export const post = async (documentId, body, { ref = documentId, next = undefined, patch = null, soft = false, renewed = false } = {}) => {
+export const post = async (documentId, body, { ref = documentId, next = undefined, patch = null, soft = false, renewed = false, finder = false } = {}) => {
   refuseIfGated("forge_comments");
   sayStored("record");
-  if (!renewed) await renew(documentId, ref, next, patch);
+  /* A finder's write renews the caller's own lease and touches no other, as `forge comment` does, and
+     so makes the thread's read check itself: a renewal that takes no lease makes none. */
+  if (finder) {
+    await mustBeShown([{ ref, documentId }]);
+    console.error(finderSaid(ref, await renew(documentId, ref, undefined, null, { finder: true })));
+  } else if (!renewed) await renew(documentId, ref, next, patch);
   const answer = await postComment(documentId, body, null, soft);
   /* Asked softly by a caller that has something to say about the failure: the tracker's own refusal
      exits the process, and the body would be lost with it. */
@@ -331,7 +360,8 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   const asks = shape.fields.some((one) => one.evidence || one.commit);
   const { body } = await issue();
   answerChecked(kind, reference, body);
-  const { comments, cut } = asks ? await page() : { comments: [], cut: null };
+  const { comments, cut } = asks || shape.closes ? await page() : { comments: [], cut: null };
+  finderChecked(kind, reference, body, { comments, cut });
   const held = [...attachmentNames(body, comments), ...planned];
   const plan = citeOnce(kind, blocks, { held, cut });
   const names = [...held, ...(plan?.upload ?? []).map((one) => one.name)];
@@ -448,14 +478,17 @@ const postRung = async (prepared, { reference, documentId, body, comments, next,
   });
   const issue = { ...body, ...await fieldsWritten(prepared, { reference, documentId, next, patch }) };
   const posted = [];
-  await scopeNoted(documentId, reference, issue, comments);
+  /* A finder's kind is written alone and touches nothing of the run holding the issue, its plan scope included. */
+  const finder = prepared.every((one) => SHAPES[one.kind]?.finder);
+  const noted = finder ? async () => {} : scopeNoted;
+  await noted(documentId, reference, issue, comments);
   for (const one of prepared) {
     if (one.rendered === undefined) continue;
-    const answer = await post(documentId, one.rendered, { ref: reference, next, patch });
+    const answer = await post(documentId, one.rendered, { ref: reference, next, patch, finder });
     /* The row as the tracker answered it: a comment carrying no device reads as a person's answer to a park, and an agent's write is no person's. */
     posted.push({ ...(answer ?? {}), documentId: answer?.documentId ?? null, body: one.rendered,
       createdAt: stampedLast([...comments, ...posted], answer) });
-    await scopeNoted(documentId, reference, issue, [...comments, ...posted]);
+    await noted(documentId, reference, issue, [...comments, ...posted]);
   }
   for (const one of prepared) await one.write?.();
   /* Dropped on the way out and never in a `finally`: a thrown failure unwinds through one before the
@@ -541,7 +574,10 @@ const run = async ([kind, reference, ...argv]) => {
      position was spent as an issue key — the one flag its own refusal could not answer for. */
   if (wantsHelp([reference])) return console.log(kindHelp(kind, await capsOf(), await briefGoals()));
   if (!reference) refuse(firstLine(USAGE));
-  const { next, patch, rest } = await pullRun(kindBlocks(kind, argv));
+  const blocks = kindBlocks(kind, argv);
+  const finder = blocks.find((one) => SHAPES[one.kind]?.finder);
+  if (finder) aloneChecked(finder.kind, reference, argv);
+  const { next, patch, rest } = await pullRun(blocks);
   return writeRung(reference, rest, { next, patch });
 };
 
