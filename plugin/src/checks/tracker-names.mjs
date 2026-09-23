@@ -35,7 +35,18 @@ const RETIRED_HOLDER = /^\s*(?:export\s+)?const\s+RETIRED[A-Z_]*\s*=\s*$/u;
 const DIVIDES = /[\w$)\]"'`]/u;
 /* A word character divides unless the word is one of these, after which only an expression can
    start, so `return /x/` opens a literal as `= /x/` does. */
-const OPENS_AFTER = /(?:^|[^\w$.])(?:return|typeof|instanceof|in|of|new|delete|void|throw|case|do|else|yield|await)\s*$/u;
+const OPENS_AFTER = new Set(["return", "typeof", "instanceof", "in", "of", "new", "delete", "void", "throw",
+  "case", "do", "else", "yield", "await"]);
+const WORD_CHAR = /[\w$]/u;
+
+/** The word the code half holds before `at`, space and blanked comments skipped; none after a `.`. */
+const wordBefore = (bare, at) => {
+  let one = at - 1;
+  while (one >= 0 && SPACE.test(bare[one])) one -= 1;
+  const end = one + 1;
+  while (one >= 0 && WORD_CHAR.test(bare[one])) one -= 1;
+  return bare[one] === "." ? "" : bare.slice(one + 1, end).join("");
+};
 const SPACE = /\s/u;
 
 /** Every quoted span, comments dropped: a pattern over the file cannot tell a read from a print. A
@@ -140,7 +151,7 @@ const scan = (text) => {
         prev = one;
         continue;
       }
-      if (one === "/" && (DIVIDES.test(prev) === false || OPENS_AFTER.test(text.slice(Math.max(0, at - 12), at)))) {
+      if (one === "/" && (DIVIDES.test(prev) === false || (WORD_CHAR.test(prev) && OPENS_AFTER.has(wordBefore(bare, at))))) {
         skipped(() => regex());
         prev = "/";
         continue;

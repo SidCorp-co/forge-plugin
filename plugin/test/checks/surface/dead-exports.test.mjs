@@ -56,7 +56,8 @@ test("every declarator of one exported declaration is an export of its own", () 
 test("a nested pattern holding a default is read whole, and a regex after return exports nothing", () => {
   const files = planted({
     "plugin/src/m.mjs": "export const { nested: { used = 1, unused } } = { nested: {} };\n"
-      + "const f = () => { return /export const ghost = 1/u; };\nf();\n",
+      + "const f = () => { return /export const ghost = 1/u; };\nf();\n"
+      + "const g = () => { throw /* a comment long enough to pass any fixed window */ /export const spectre/u; };\ng();\n",
     "plugin/src/reader.mjs": 'import { used } from "./m.mjs";\n',
   });
   assert.deepEqual(names(files), ["plugin/src/m.mjs:1 unused"]);
