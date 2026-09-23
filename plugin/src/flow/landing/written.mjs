@@ -107,23 +107,29 @@ export const readyCheckpoint = (ref, holder, patch, landing) => {
   };
 };
 
+/* What the capture says of itself in the refusal below; `--landed` out of the same state says its own. */
+const CAPTURE_SAID = (ref, head) => ({
+  out: `claim --ready out of \`${LANDING_HEAD_OWED}\` captures ${shortSha(head)}`,
+  why: "the landing merges the head this write names, so it takes a head a review approved and no other",
+  again: `forge claim ${ref} --pushed --ready`,
+});
+
 /** What refuses the capture out of `head-owed`, or null: the head it takes is one the records judged.
  *  The latest review has to be an approved one of that head, and where the builder is this project's
  *  judge every criterion's latest verdict has to judge that head and not fail — a verdict at the head
  *  the landing handed back describes the commit whose gate went red, and carried to the new one it
  *  would read as a judgement nobody made. Under an independent judge the verdicts are that judge's,
  *  written against a candidate after this capture, so none is asked for here. `view` is `viewFrom`'s. */
-export const recaptureRefusal = (ref, head, { latest, verdicts, criteria }, independent) => {
+export const recaptureRefusal = (ref, head, { latest, verdicts, criteria }, independent, said = CAPTURE_SAID(ref, head)) => {
   const review = latest.review?.record.fields ?? null;
   const ask = `forge record review ${ref} --reviewer codex --commit ${shortSha(head)} --outcome approved`;
-  const out = `claim --ready out of \`${LANDING_HEAD_OWED}\` captures ${shortSha(head)}`;
+  const { out, why, again } = said;
   if (!review?.commit || !sameCommit(review.commit, head) || review.outcome !== "approved") {
-    const said = review?.commit
+    const held = review?.commit
       ? `the latest review on ${ref} judged ${shortSha(review.commit)} and says ${review.outcome ?? "nothing"}`
       : `${ref} carries no review`;
-    return `${out}, and ${said}: the landing merges the head this write names, so it takes a head a `
-      + `review approved and no other. Review ${shortSha(head)}, then capture it again:\n  ${ask}\n`
-      + `  forge claim ${ref} --pushed --ready`;
+    return `${out}, and ${held}: ${why}. Review ${shortSha(head)}, then ask again:\n  ${ask}\n`
+      + `  ${again}`;
   }
   if (independent) return null;
   const unjudged = criteria.map((one) => one.number).filter((number) => {
@@ -136,8 +142,8 @@ export const recaptureRefusal = (ref, head, { latest, verdicts, criteria }, inde
     return held?.commit ? `${number} at ${shortSha(held.commit)} (${held.verdict})` : `${number} unjudged`;
   });
   return `${out}, and this project's judge is the run that built it, whose verdicts on criterion `
-    + `${at.join(", ")} do not pass that head. Judge ${shortSha(head)}, then capture it again:\n`
+    + `${at.join(", ")} do not pass that head. Judge ${shortSha(head)}, then ask again:\n`
     + `  forge record verdict ${ref} --commit ${shortSha(head)} --evidence <attachment|url|sha>`
     + unjudged.map((number) => ` --criterion ${number} --verdict pass`).join("")
-    + `\n  forge claim ${ref} --pushed --ready`;
+    + `\n  ${again}`;
 };
