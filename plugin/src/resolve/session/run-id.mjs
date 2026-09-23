@@ -2,7 +2,7 @@
    because every agent of a wave inherits one session id and the tree is the one thing each has to
    itself (ISS-467). The file's name is spelt here; the rest of the why: docs/cli/claim.md. */
 import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { basename, isAbsolute, join, resolve } from "node:path";
 
 import { gitEntryAt } from "../../git/checkout-at.mjs";
 import { CALLS_THE_WRITER, runsACommand } from "./granted-id.mjs";
@@ -33,6 +33,10 @@ export const heldBesideGit = (from, name) => {
 
 export const runIdAt = (from) => heldBesideGit(from, RUN_ID);
 
+export const SCRATCH_AT = "forge-run-scratch";
+
+export const SCRATCH = "forge-run-";
+
 /* One tree and one id per batch, so the id carries the batch after its head rather than a second file beside it, which would be two places for one fact (ISS-1295). */
 export const MINTED_FOR = /^(iss-\d+(?:\+\d+)*)-[0-9a-f]{8}$/u;
 
@@ -44,6 +48,15 @@ export const runsFor = (id) => {
 };
 
 export const runFor = (id) => runsFor(id)[0] ?? null;
+
+/** The directory `start` made, off the record it wrote and never derived again: `start` prints that path as the run's
+ *  own `TMPDIR`, so a run doing what it is told moves the root a second derivation reads. Null unless the record is absolute and named as this mints them; past that it is trusted — a forged record is a write to the git directory. */
+export const scratchAt = (path) => {
+  const id = runIdAt(path);
+  const at = heldBesideGit(path, SCRATCH_AT);
+  const named = Boolean(id) && MINTED_FOR.test(id) && basename(at ?? "") === `${SCRATCH}${id}`;
+  return named && isAbsolute(at) ? at : null;
+};
 
 export const runNames = (id, key) => runsFor(id).includes(String(key ?? "").trim().toLowerCase());
 
