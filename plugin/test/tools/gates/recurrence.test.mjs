@@ -4,7 +4,7 @@
    a subprocess so the settings this CLI memoises are that run's own. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { bodyFor, markerFor, titleFor } from "../../../../tools/gates/recurrence.mjs";
+import { bodyFor, markerFor, passMarkerFor, passTitleFor, titleFor } from "../../../../tools/gates/recurrence.mjs";
 import { DEFAULT_OVERLAP_THRESHOLD } from "../../../hooks/vendor/text-overlap.js";
 import { duplicateOf } from "../../../src/tracker/issue-shape.mjs";
 import { fakeTracker, projectRecord, ranAsync, shortPage } from "../../fixtures.mjs";
@@ -13,9 +13,11 @@ import { OWN } from "../../fixtures/own-project.mjs";
 const ROOT = new URL("../../../..", import.meta.url).pathname;
 const MODULE = new URL("../../../../tools/gates/recurrence.mjs", import.meta.url).href;
 
-const DRIVER = `import { fileRecurrences } from ${JSON.stringify(MODULE)};
-const said = await fileRecurrences(JSON.parse(process.env.RECURRENCE));
+const DRIVER = `import { fileRecurrences, reachedBy } from ${JSON.stringify(MODULE)};
+const found = JSON.parse(process.env.RECURRENCE);
+const said = await fileRecurrences(found);
 console.log(JSON.stringify(said.named.map(({ key, how, why }) => ({ key, how, why }))));
+console.log(JSON.stringify(found.map((one) => reachedBy(said.named, one))));
 console.error(said.lines.join("\\n"));`;
 
 const FILE = "plugin/test/flow/lease.test.mjs";
@@ -49,7 +51,8 @@ const drove = async (state, found) => {
   try {
     const said = await ranAsync(process.execPath, ["--input-type=module", "-e", DRIVER],
       { ...tracker.env, RECURRENCE: JSON.stringify(found) }, ROOT);
-    return { ...said, named: JSON.parse(said.stdout.trim().split("\n")[0]) };
+    const [named, reached] = said.stdout.trim().split("\n");
+    return { ...said, named: JSON.parse(named), reached: JSON.parse(reached) };
   } finally {
     tracker.close();
   }
@@ -200,18 +203,114 @@ test("a lookup that does not come back whole files nothing, says so, and refuses
   assert.match(said.stderr, /file it by hand, the body being the block below: forge new - --title /u, said.stderr);
 });
 
-/* One at a time, asserted through the order the calls arrived in rather than through their count:
-   run together, the second finding's lookup could not see what the first one filed. */
-test("two findings are filed one at a time, the second's lookup coming after the first's filing", async () => {
+/* Asserted through the order the calls arrived in rather than through their count: a filing sent
+   before its lookup would file beside a row it had not read. */
+test("two findings cost one lookup and one filing, the filing coming after the lookup", async () => {
   const state = { issues: [], calls: [], key: KEY };
-  const said = await drove(state, [finding(), finding({ one: { ...OTHER, whole: false, inside: [] } })]);
+  const said = await drove(state, [finding(), OTHER_FINDING()]);
   assert.equal(said.named.length, 2, said.stderr);
   const sent = creates(state);
-  assert.equal(sent.length, 2, JSON.stringify(sent.map((one) => one.title)));
-  assert.notEqual(sent[0].title, sent[1].title);
-  const order = (state.calls ?? []).flatMap((each, at) =>
-    (/\/issues\/search$/u.test(each.path) ? [["looked", at]]
-      : each.method === "POST" && /\/issues$/u.test(each.path) ? [["filed", at]] : []));
-  assert.deepEqual(order.map(([what]) => what), ["looked", "filed", "looked", "filed"],
+  assert.equal(sent.length, 1, JSON.stringify(sent.map((one) => one.title)));
+  const order = (state.calls ?? []).flatMap((each) =>
+    (/\/issues\/search$/u.test(each.path) ? ["looked"]
+      : each.method === "POST" && /\/issues$/u.test(each.path) ? ["filed"] : []));
+  assert.deepEqual(order, ["looked", "filed"],
     JSON.stringify(state.calls.map((each) => `${each.method} ${each.path}`)));
+});
+
+/* One cause reddening twenty-seven cases filed twenty-seven rows, all of one pass, and the run that
+   filed them could see they arrived together (ISS-2251). The grouping key is the step and the
+   content, never the text of the cases, and the per-case marker the row lists is not replaced. */
+
+const OTHER_FINDING = () => finding({ one: { ...OTHER, whole: false, inside: [] } });
+
+const groupIssue = (over = {}) => ({
+  documentId: "doc-group",
+  issueId: "ISS-8000",
+  title: passTitleFor([finding()]),
+  status: "open",
+  ...over,
+});
+
+test("a pass of two findings files one issue carrying both cases and both per-case markers", async () => {
+  const state = { issues: [], calls: [], key: KEY };
+  const said = await drove(state, [finding(), OTHER_FINDING()]);
+  assert.deepEqual(said.named,
+    [{ key: KEY, how: "filed", why: null }, { key: KEY, how: "filed", why: null }], said.stderr);
+  const sent = creates(state);
+  assert.equal(sent.length, 1, JSON.stringify(sent.map((one) => one.title)));
+  assert.ok(sent[0].title.includes(passMarkerFor(finding())), sent[0].title);
+  for (const want of [NAME, OTHER.name, FILE, "a1b2c3d4e5f6",
+    markerFor(finding().one), markerFor(OTHER)]) {
+    assert.ok(sent[0].description.includes(want), `${want} is not in the body:\n${sent[0].description}`);
+  }
+});
+
+test("the verdict block names the one issue a grouped pass reached beside every case of it", async () => {
+  const state = { issues: [groupIssue()], calls: [], key: KEY };
+  const said = await drove(state, [finding(), OTHER_FINDING()]);
+  assert.deepEqual(said.reached, ["  → ISS-8000, commented", "  → ISS-8000, commented"], said.stderr);
+});
+
+/* The membership drifts as a cause is partly fixed, and the row it drifted from is still the row:
+   keying on the cases would file a second one on the run after the first case was mended. */
+test("a later pass at the same step and content comments on the row an earlier one filed", async () => {
+  const state = { issues: [groupIssue()], calls: [], key: KEY };
+  const said = await drove(state, [finding(), OTHER_FINDING()]);
+  assert.deepEqual(said.named,
+    [{ key: "ISS-8000", how: "commented", why: null }, { key: "ISS-8000", how: "commented", why: null }],
+    said.stderr);
+  assert.equal(creates(state).length, 0, JSON.stringify(creates(state)));
+  assert.equal(comments(state).length, 1, JSON.stringify(comments(state)));
+  assert.ok(comments(state)[0].body.includes(markerFor(OTHER)), comments(state)[0].body);
+});
+
+test("a case with no issue of its own comments on the grouped row for its step and content", async () => {
+  const state = { issues: [groupIssue()], calls: [], key: KEY };
+  const said = await drove(state, [finding()]);
+  assert.deepEqual(said.named, [{ key: "ISS-8000", how: "commented", why: null }], said.stderr);
+  assert.equal(creates(state).length, 0, JSON.stringify(creates(state)));
+});
+
+test("a case whose own issue is settled reaches the grouped row rather than filing a second time", async () => {
+  const one = finding().one;
+  const state = { calls: [], key: KEY, issues: [
+    openIssue(one, { documentId: "doc-closed", issueId: "ISS-8001", status: "closed" }),
+    groupIssue({ issueId: "ISS-8002" }),
+  ] };
+  const said = await drove(state, [finding()]);
+  assert.deepEqual(said.named, [{ key: "ISS-8002", how: "commented", why: null }], said.stderr);
+  assert.equal(creates(state).length, 0, JSON.stringify(creates(state)));
+});
+
+/* The case's own row first and the pass's behind it: a case with a home belongs there, and only a
+   case with none belongs with the pass it was attributed in. */
+test("a case with a live issue of its own comments there and not on the grouped row", async () => {
+  const one = finding().one;
+  const state = { calls: [], key: KEY, issues: [openIssue(one), groupIssue({ issueId: "ISS-8002" })] };
+  const said = await drove(state, [finding()]);
+  assert.deepEqual(said.named, [{ key: "ISS-8000", how: "commented", why: null }], said.stderr);
+  assert.equal(creates(state).length, 0, JSON.stringify(creates(state)));
+});
+
+test("a pass of two whose lookup does not come back whole files nothing", async () => {
+  const state = { calls: [], key: KEY, issues: [], answer: { forge_issues: shortPage([], 5) } };
+  const said = await drove(state, [finding(), OTHER_FINDING()]);
+  assert.deepEqual(said.named.map((each) => each.key), [null, null], said.stderr);
+  assert.equal(creates(state).length, 0, JSON.stringify(creates(state)));
+});
+
+test("a pass of two that could not be filed says why, once", async () => {
+  const state = { calls: [], key: KEY, issues: [], answer: { forge_issues: shortPage([], 5) } };
+  const said = await drove(state, [finding(), OTHER_FINDING()]);
+  assert.match(said.named[0].why, /did not come back whole/u);
+  assert.equal(said.stderr.match(/the filing could not be made:/gu)?.length, 1, said.stderr);
+});
+
+test("a pass of two that could not be filed prints the command that files it by hand", async () => {
+  const state = { calls: [], key: KEY, issues: [], answer: { forge_issues: shortPage([], 5) } };
+  const said = await drove(state, [finding(), OTHER_FINDING()]);
+  assert.ok(said.stderr.includes(`forge new - --title ${JSON.stringify(passTitleFor([finding()]))}`),
+    said.stderr);
+  assert.ok(said.stderr.includes("--category bug"), said.stderr);
 });
