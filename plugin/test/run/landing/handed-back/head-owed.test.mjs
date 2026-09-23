@@ -9,15 +9,15 @@ import { join } from "node:path";
 
 import {
   BASE, BRANCH, BUILDER, KEY, LANDER, OWNED, context, ctx, git, ready, seeded, sha, tracker, world,
-} from "./fixture.mjs";
-import { ranAsync } from "../../fixtures.mjs";
+} from "../fixture.mjs";
+import { ranAsync } from "../../../fixtures.mjs";
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 
-const { landReady } = await import("../../../../tools/run/land-ready.mjs");
-const { Stop } = await import("../../../../tools/checkout.mjs");
-const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
-const { leaseOf } = await import("../../../src/flow/lease.mjs");
+const { landReady } = await import("../../../../../tools/run/land-ready.mjs");
+const { Stop } = await import("../../../../../tools/checkout.mjs");
+const { landingOf } = await import("../../../../src/flow/landing/checkpoint.mjs");
+const { leaseOf } = await import("../../../../src/flow/lease.mjs");
 
 test.after(() => tracker.close());
 
