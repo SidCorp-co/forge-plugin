@@ -16,7 +16,7 @@ export const at = (minutes, seconds = 0) => new Date(BASE + minutes * 60_000 + s
 export const posted = (minute, kind, fields) => ({
   documentId: `c-${minute}`, createdAt: at(minute, 2), authorDeviceId: "d", body: render(kind, fields),
 });
-export const dispatch = (minute, member, session) => posted(minute, "wave", { member, role: "forge:runner", session });
+export const dispatch = (minute, member, session, role = "forge:runner") => posted(minute, "wave", { member, role, session });
 export const fold = (minute, summary) => posted(minute, "fold", { summary });
 
 export const took = (minute, landing) => ({ holder: "run", at: at(minute), how: "claim", status: "in_progress", landing });

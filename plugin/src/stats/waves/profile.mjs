@@ -56,11 +56,19 @@ export const handBacksOf = (member, from, to) => {
   return { count: within.length, cut };
 };
 
-/** The members named by two dispatches under two sessions: a run replaced where it could have resumed. */
+/** The members named by two dispatches of one role under two sessions: a run replaced where it could
+ *  have resumed. A reading handed to a build, or a build handed to a review, is the method's own
+ *  sequence and replaces nothing, so sessions are grouped per member and role. */
 const replacedIn = (dispatches) => {
   const by = new Map();
-  for (const one of dispatches) for (const key of one.members) by.set(key, (by.get(key) ?? new Set()).add(one.session));
-  return [...by].filter(([, held]) => held.size > 1).map(([key]) => key);
+  for (const one of dispatches) {
+    for (const key of one.members) {
+      const roles = by.get(key) ?? new Map();
+      roles.set(one.role, (roles.get(one.role) ?? new Set()).add(one.session));
+      by.set(key, roles);
+    }
+  }
+  return [...by].filter(([, roles]) => [...roles.values()].some((held) => held.size > 1)).map(([key]) => key);
 };
 
 /** The dispatcher's own dispositions in the span that ended an issue without a run, by finding. */
