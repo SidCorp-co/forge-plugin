@@ -29,7 +29,7 @@ const tally = (values) => {
 
 /** The wave's span and the dispatcher sessions it ran in: from its first `forge next` after the fold
  *  before it (or its first dispatch where it ran none) to its fold, or to its last call while open. */
-export const spanOf = (wave, before, ref, sessions) => {
+const spanOf = (wave, before, ref, sessions) => {
   const after = stampOf(before?.fold?.stamp) ?? -Infinity;
   const folded = wave.state === "folded" ? stampOf(wave.fold.stamp) : Infinity;
   const own = sessions.filter((one) => one.writes.some((write) => write.ref === ref && write.at > after && write.at <= folded));
@@ -52,14 +52,14 @@ export const handBacksOf = (member, from, to) => {
 };
 
 /** The members named by two dispatches under two sessions: a run replaced where it could have resumed. */
-export const replacedIn = (dispatches) => {
+const replacedIn = (dispatches) => {
   const by = new Map();
   for (const one of dispatches) for (const key of one.members) by.set(key, (by.get(key) ?? new Set()).add(one.session));
   return [...by].filter(([, held]) => held.size > 1).map(([key]) => key);
 };
 
 /** The dispatcher's own dispositions in the span that ended an issue without a run, by finding. */
-export const dispositionsIn = (calls) => tally(calls.filter(landed)
+const dispositionsIn = (calls) => tally(calls.filter(landed)
   .map((call) => DISPOSED.exec(call.shell)?.groups?.finding)
   .filter((finding) => finding && finding !== HOLDS));
 
@@ -113,7 +113,7 @@ const pageOf = async (ref) => {
 
 /** Every wave on every headline the sessions wrote against, oldest first by where each began. Each
  *  headline page and each member issue is read once however many waves name it. */
-export const wavesProfiled = async (sessions, headlines, { read = readMember, copies = installedCopies(cacheRoot()) } = {}) => {
+const wavesProfiled = async (sessions, headlines, { read = readMember, copies = installedCopies(cacheRoot()) } = {}) => {
   const seen = new Map();
   const rows = [];
   const headlinesUnread = [];

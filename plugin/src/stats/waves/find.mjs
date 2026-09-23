@@ -17,7 +17,7 @@ export const landed = (call) => call.answered && !call.error && !refusalIn(call)
 
 /** The headline refs a call's own shell wrote a wave or a fold record against. Off the shell and
  *  not the command, so a ref quoted in text the call only printed writes nothing. */
-export const writesIn = (call) => (call.name === "Bash"
+const writesIn = (call) => (call.name === "Bash"
   ? [...call.shell.matchAll(WROTE)].map((one) => ({ kind: one.groups.kind, ref: one.groups.ref }))
   : []);
 

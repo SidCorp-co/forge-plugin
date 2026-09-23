@@ -5,8 +5,8 @@ fifty runs got cheaper, and nothing said whether the wave that chose, briefed an
 or how often it got those steps wrong. The mistakes a dispatcher makes are the costly kind: a branch
 handed back at landing is a builder turn and a second gate, and a run replaced where it could have
 resumed is every call the first one made. `forge stats waves` and `forge stats eval --waves` count
-those off what a wave leaves behind, so G-11's "nobody in the loop" can be judged at the level that
-decides how many loops there are.
+those off what a wave leaves behind, so G-11 can be judged at the level that decides how many runs
+there are at all.
 
 ## Records only
 

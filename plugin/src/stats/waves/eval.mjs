@@ -11,7 +11,7 @@ import { flags, wantsHelp } from "../../resolve/flags.mjs";
 export const WAVE_WINDOW = 10;
 const RUN_ONLY = ["--against", "--since-release"];
 
-export const WAVES_EVAL_USAGE = [
+const WAVES_EVAL_USAGE = [
   "Usage: forge stats eval --waves [--checkout <dir>] [--size 10] [--json]",
   "The last ten folded dispatch waves against the ten before them, oldest first by fold: median",
   "minutes and calls per wave, and each window's hand-backs, replaced runs and dispositions taken",
@@ -33,7 +33,7 @@ const sized = (raw) => {
 const sum = (values) => values.reduce((many, one) => many + one, 0);
 
 /** One window's figures off its rows, kept whole so a reader never has to recount the rows. */
-export const windowOfWaves = (rows) => ({
+const windowOfWaves = (rows) => ({
   waves: rows.length,
   headlines: rows.map((one) => one.headline),
   summaries: rows.map((one) => one.summary),
@@ -73,7 +73,7 @@ const FIGURES = [
   ["disposed without a run", (one) => String(one.dispositions)],
 ];
 
-export const evalWavesLines = (held) => [
+const evalWavesLines = (held) => [
   `The last ${held.size} folded wave(s) against the ${held.size} before them, of ${held.total} folded.`,
   "",
   ...FIGURES.map(([name, of]) => `  ${name.padEnd(24)} ${of(held.before).padStart(8)} → ${of(held.now)}`),
@@ -83,7 +83,7 @@ export const evalWavesLines = (held) => [
 ];
 
 /** Refused before any reading: both run anchors name a reading held for runs, and none is held for waves. */
-export const runAnchorRefused = (argv) => {
+const runAnchorRefused = (argv) => {
   const asked = RUN_ONLY.filter((flag) => argv.includes(flag));
   if (!asked.length) return;
   fail(`stats eval: --waves compares waves read now, and ${asked.join(" and ")} anchor${asked.length > 1 ? "" : "s"} `
