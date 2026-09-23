@@ -47,15 +47,16 @@ const balanced = (code, at) => {
   return code.slice(at + 1);
 };
 
-/** The parts of a pattern's inside split at its own commas, never at a nested one. */
-const topLevel = (inner) => {
+/** The parts of a pattern's inside split at its own `by`, never at a nested one: at its commas, or
+ *  at the `=` a default opens, so a nested pattern holding a default of its own is kept whole. */
+const topLevel = (inner, by = ",") => {
   const parts = [];
   let depth = 0;
   let from = 0;
   for (let at = 0; at < inner.length; at += 1) {
     if ("{[(".includes(inner[at])) depth += 1;
     else if ("}])".includes(inner[at])) depth -= 1;
-    else if (inner[at] === "," && depth === 0) {
+    else if (inner[at] === by && depth === 0) {
       parts.push(inner.slice(from, at));
       from = at + 1;
     }
@@ -70,7 +71,7 @@ const bindingsAt = (code, at) => {
     return found ? [found[0]] : [];
   }
   return topLevel(balanced(code, at)).flatMap((part) => {
-    const held = part.split("=")[0].trim().replace(/^\.\.\./u, "");
+    const held = topLevel(part, "=")[0].trim().replace(/^\.\.\./u, "");
     const colon = held.indexOf(":");
     const side = colon >= 0 && code[at] === "{" ? held.slice(colon + 1).trim() : held;
     if (/^[{[]/u.test(side)) return bindingsAt(side, 0);

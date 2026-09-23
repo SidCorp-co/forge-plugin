@@ -33,6 +33,9 @@ const RETIRED_HOLDER = /^\s*(?:export\s+)?const\s+RETIRED[A-Z_]*\s*=\s*$/u;
 
 /* What a `/` follows where it divides rather than opens a regex: a value, which is a word character, a closing bracket, or the end of a string. Everything else — an operator, a comma, an opening bracket, the start of the input — is a position only a literal can hold. */
 const DIVIDES = /[\w$)\]"'`]/u;
+/* A word character divides unless the word is one of these, after which only an expression can
+   start, so `return /x/` opens a literal as `= /x/` does. */
+const OPENS_AFTER = /(?:^|[^\w$.])(?:return|typeof|instanceof|in|of|new|delete|void|throw|case|do|else|yield|await)\s*$/u;
 const SPACE = /\s/u;
 
 /** Every quoted span, comments dropped: a pattern over the file cannot tell a read from a print. A
@@ -137,7 +140,7 @@ const scan = (text) => {
         prev = one;
         continue;
       }
-      if (one === "/" && DIVIDES.test(prev) === false) {
+      if (one === "/" && (DIVIDES.test(prev) === false || OPENS_AFTER.test(text.slice(Math.max(0, at - 12), at)))) {
         skipped(() => regex());
         prev = "/";
         continue;
