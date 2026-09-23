@@ -446,7 +446,7 @@ const readFlags = (rest, ref) => {
     "forms: a drop is the park kind `dropped`, --reopen is the one status a finding earns, and --set names the status outright; a park goes where its kind says");
   const writes = wrote !== undefined;
   if (given.owed && (given.set || given.reopen)) {
-    refuse("--owed rehearses a park or a drop, and --set and --reopen write with no rehearsal. Ask for one.");
+    refuse("--owed moves nothing: it rehearses a park or a drop, and --set and --reopen write with no rehearsal. Ask for one.");
   }
   if (writes && given.to) refuse("--to names the status to advance to; --set and a park each say where they go.");
   if (writes && !given.why) refuse(`--${wrote} needs --why: `

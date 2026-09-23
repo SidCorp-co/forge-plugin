@@ -130,6 +130,6 @@ test("--owed beside --set or --reopen is still refused, naming the park and the 
   for (const form of [["--set", "open", "--why", "w"], ["--reopen", "--why", "w"]]) {
     const run = await advance("ISS-71", "--owed", ...form);
     assert.equal(run.status, 1, form.join(" "));
-    assert.match(run.stderr, /--owed rehearses a park or a drop/u, run.stderr);
+    assert.match(run.stderr, /--owed moves nothing: it rehearses a park or a drop/u, run.stderr);
   }
 });
