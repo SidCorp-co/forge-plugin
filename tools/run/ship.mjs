@@ -244,7 +244,8 @@ const shipSteps = (tree, root, base, note) => {
   /* The release from the fetch, which every refusal naming a re-release points at. Off the table
      rather than typed where it is printed: a step that carries its own number is the drift this
      file's own step count already paid for once (ISS-671). */
-  const releases = () => `${SELF} ship --from ${rows.findIndex(([one]) => one === fetching) + 1}`;
+  const step = (name) => rows.findIndex(([one]) => one === name) + 1;
+  const releases = () => `${SELF} ship --from ${step(fetching)}`;
   const rows = [
     ["the tree is clean", () => cleanTree(tree)],
     [fetching, () => {
@@ -272,8 +273,13 @@ const shipSteps = (tree, root, base, note) => {
         stop(`this tree's package.json names no version to publish, read from `
           + `${join(tree, "package.json")}. Nothing is pushed.`);
       }
-      pushing(tree, base, () => `Rejected means the remote `
-        + `moved${unwound(tree)}: rebase, re-run the review of the rebased head, then ${SELF} ship --from 2`);
+      pushing(tree, base, () => `Rejected means the remote moved${unwound(tree)}. A lost race is `
+        + `not a stale review: whether the review still stands turns on whether that landing wrote any `
+        + `of this change's own paths, and step ${step(REPLAYED)} of the resume prints both sets and `
+        + `judges it. Where the landing wrote none, the review stands at the head the resume's own `
+        + `rebase makes and the resume is the whole remedy; where it wrote one, that step refuses naming `
+        + `it, and a read at the new head is owed before the push. Rebase nothing by hand first: a replay `
+        + `the ship did not make takes the reviewed head off the lineage that step accepts. The resume: ${releases()}`);
       forgetBump(tree);
       publishesVersion(tree, gitOut(["rev-parse", "HEAD"], tree), version, resume());
     }, PUSHES],

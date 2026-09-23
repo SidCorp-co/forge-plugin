@@ -28,8 +28,9 @@ export const REPLAY_HELP = [
   "and the move left a difference in any of those paths: the read that earned the review judged them",
   "at the old base, so a rebase past it would push a head nobody read and leave the review record,",
   "the verdicts and the mark's reviewed clause naming it. A pin this checkout has not fetched is",
-  "refused the same way and names the fetch. It names which of the change's files moved, not just",
-  "that the branch did — a landing that touched none of them invalidates no read and is not refused,",
+  "refused the same way and names the fetch. Where the base moved it prints both sets, the paths this",
+  "change writes and the paths that landing wrote, and names which of the change's files moved, not",
+  "just that the branch did — a landing that touched none of them invalidates no read and is not refused,",
   "and it replays nothing and re-reads nothing for you:",
   "replaying onto the head that is there now is the whole of what clears it, and it goes back in",
   "ahead of the gate on any resume that can still reach the push, so --from is no way past it",
@@ -307,6 +308,13 @@ export const replaySays = (tree, base, self) => {
   if (!was) stop(unreadable(base, pin));
   // --no-renames: with detection on, a rename's source is absent and an upstream edit to it passes.
   const files = lines(gitOut(["diff", "--name-only", "--no-renames", `${was}..HEAD`], tree));
+  /* Both sets and not only their intersection: a run told the landing moved none of its paths, or
+     some, otherwise composes the two `--name-only` diffs by hand to believe it (ISS-225). */
+  if (was !== pin) {
+    const landed = lines(gitOut(["diff", "--name-only", "--no-renames", was, pin], tree));
+    console.log(`  this change writes ${files.join(", ") || "nothing"}`);
+    console.log(`  what landed from ${shortly(was)} to ${shortly(pin)} wrote ${landed.join(", ") || "nothing"}`);
+  }
   const moved = movedBy(tree, was, pin, files);
   if (moved.length) stop(readNobodyTook(base, pin, was, moved));
   console.log(`  ${REMOTE}/${base} is ${shortly(pin)}`

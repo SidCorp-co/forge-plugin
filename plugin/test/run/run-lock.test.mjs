@@ -294,6 +294,15 @@ test("a rejected push undoes the version commit it made, and the resume lands th
   assert.equal(first.status, 1, first.stdout);
   assert.match(first.stderr, /Rejected means the remote moved/u, first.stderr);
   assert.match(first.stderr, /the version commit this run made at 1\.0\.1 is undone/u, first.stderr);
+  /* A lost race is not a stale review (ISS-225): the intersection is the question, and the resume's
+     replay step is what answers it, so the refusal prescribes no read of its own. */
+  assert.doesNotMatch(first.stderr, /re-run the review/u, first.stderr);
+  assert.match(first.stderr, /Where the landing wrote none, the review stands [^;]*the resume is the whole remedy/u,
+    first.stderr);
+  assert.match(first.stderr, /where it wrote one, that step refuses naming it, and a read at the new head is owed before the push/u,
+    first.stderr);
+  assert.match(first.stderr, /Rebase nothing by hand first/u, first.stderr);
+  assert.match(first.stderr, /step 3 of the resume prints both sets[^\n]*The resume: [^\n]*ship --from 2\n/u, first.stderr);
   assert.equal(git(room.work, "rev-parse", "HEAD").stdout.trim(), change,
     "the tree a caller rebases still holds the version commit the rebase conflicts on");
   assert.ok(!existsSync(at(room.work, BUMP)), "the undone bump is still recorded as this run's to undo");
@@ -303,6 +312,8 @@ test("a rejected push undoes the version commit it made, and the resume lands th
   const env = claudeSaying(room, "claude-saw");
   const again = runIn(room.work, ["ship", "--from", "2"], env);
   assert.match(again.stdout, /step 10\/10/u, `${again.stdout}${again.stderr}`);
+  assert.ok(again.stdout.includes(`this change writes ${join("plugin", "src", "one.mjs")}\n`), again.stdout);
+  assert.match(again.stdout, /what landed from \w{7} to \w{7} wrote nothing\n/u, again.stdout);
 
   const subjects = git(room.work, "log", "--format=%s", "origin/master").stdout;
   assert.match(subjects, /the change this release ships \(ISS-333\)/u, subjects);
