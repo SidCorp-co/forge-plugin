@@ -491,6 +491,11 @@ const postRung = async (prepared, { reference, documentId, body, comments, next,
     await noted(documentId, reference, issue, [...comments, ...posted]);
   }
   for (const one of prepared) await one.write?.();
+  /* Loaded here alone: a transcript read belongs to the one write that owes it, not to every record. */
+  if (prepared.some((one) => one.kind === "fold")) {
+    const due = (await import("../../stats/waves/trigger.mjs")).foldDue(process.cwd());
+    if (due) console.error(`\n${due}`);
+  }
   /* Dropped on the way out and never in a `finally`: a thrown failure unwinds through one before the
      exit, and the notice would be gone for every route but `fail()`'s. */
   process.off("exit", stranded);

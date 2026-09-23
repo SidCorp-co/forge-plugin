@@ -68,6 +68,9 @@ lease. Matching the words anywhere in the file — which is what the hand profil
 code-review angle agent that happened to read a file naming the skill: 27 of them on this corpus,
 each counted as a run and each dragging the medians toward a thirty-call read that judged nothing.
 
+The one transcript that is never a run is the session that dispatched them, which is why `stats
+waves` reads the top-level files this reading skips: [stats — the waves](stats-the-waves.md).
+
 ## The parser this verb reaches for keeps any flag it is handed
 
 So a mistyped `--since` profiled the whole corpus and said nothing about it. For a number meant to be

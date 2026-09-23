@@ -22,6 +22,7 @@ import { NOT_MEASURED, angleList, anglesAsked, anglesOver, anglesSaid } from "./
 import { logEntries } from "../../codex/codex-log.mjs";
 import { fail, useProject } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
+import { printWavesEval } from "../waves/eval.mjs";
 
 export const WINDOW = 50;
 
@@ -72,6 +73,7 @@ export const EVAL_USAGE = [
   "  --requests n       the tracker requests this whole reading may spend; past it the outcome",
   "                     figures print unavailable and every cost figure still prints",
   "  --json             the comparison alone, one object",
+  "  --waves            dispatch waves instead of runs: forge stats eval --waves -h",
 ].join("\n");
 
 const sized = (raw) => {
@@ -543,6 +545,7 @@ export const releaseMark = async (directory, { version, head, issues = [] }, siz
 };
 
 export const printEval = async (argv) => {
+  if (argv.includes("--waves")) return printWavesEval(argv.filter((one) => one !== "--waves"));
   const { against, rest: left } = againstIn(argv, "stats eval");
   const { release, rest } = sinceReleaseIn(left);
   if (against !== undefined && release !== undefined) oneAnchorOnly(against, release);

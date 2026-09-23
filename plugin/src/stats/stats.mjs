@@ -4,17 +4,18 @@ import { DIAGNOSE_USAGE, printDiagnose } from "./eval/diagnose.mjs";
 import { EVAL_USAGE, MARKS_USAGE, printEval, printMarks } from "./eval/eval.mjs";
 import { MODELS_USAGE, printModels } from "./models.mjs";
 import { RUNS_USAGE, printRuns } from "./runs.mjs";
+import { WAVES_USAGE, printWaves } from "./waves/profile.mjs";
 import { helpAskedOf } from "../resolve/flags.mjs";
 
 const SUBJECTS = { runs: printRuns, models: printModels, eval: printEval, change: printChange,
-  marks: printMarks, diagnose: printDiagnose };
+  marks: printMarks, diagnose: printDiagnose, waves: printWaves };
 
 export const USAGE = [
   /* The set off the map rather than beside it: the words this verb refuses against are its keys, and
      a line restating them is the copy that disagrees with the refusal the first time one is added. */
   `Usage: forge stats <${Object.keys(SUBJECTS).join("|")}>`,
-  "Where an issue-flow run's time and rounds go, and how the last window compares with the one",
-  "before it. Each subject's own flags: `forge stats <subject> -h`.",
+  "Where an issue-flow run's and a dispatch wave's time and rounds go, and how the last window",
+  "compares with the one before it. Each subject's own flags: `forge stats <subject> -h`.",
   "",
   "  runs      the profile of the runs in a window: time, rounds and calls by phase",
   "  models    what a run of each model spent against what it got, and which arms are comparable",
@@ -22,11 +23,12 @@ export const USAGE = [
   "  change    one change as the unit: the runs that ran the copy carrying it, against those before",
   "  marks     the readings held for this project, newest first",
   "  diagnose  a second model's reading of the runs you name: what went wrong, cited call by call",
+  "  waves     what each dispatch wave cost its dispatcher, and the hand-backs and replaced runs in it",
 ].join("\n");
 
 /* One text per subject, which is the set its own parse refuses against, so neither can move alone. */
 export const SAYS = { runs: RUNS_USAGE, models: MODELS_USAGE, eval: EVAL_USAGE, change: CHANGE_USAGE,
-  marks: MARKS_USAGE, diagnose: DIAGNOSE_USAGE };
+  marks: MARKS_USAGE, diagnose: DIAGNOSE_USAGE, waves: WAVES_USAGE };
 
 export const stats = (argv) => {
   const [subject, ...rest] = argv;

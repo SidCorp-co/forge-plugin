@@ -88,7 +88,7 @@ const lastOf = (lines, shape) => {
 /** The line naming the rule a call was refused by, or null where it met none of this plugin's own.
  *  Never the body's first line by default: a `forge` command prints its provenance banner before it
  *  refuses, and reading line one filed 187 of those banners under a row that names no rule. */
-const refusalIn = (call) => {
+export const refusalIn = (call) => {
   const whole = call.body.trim();
   if (!call.error && !ANY_MARKED.test(whole)) return null;
   const lines = whole.split("\n").filter((one) => one.trim());

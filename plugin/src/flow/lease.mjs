@@ -22,7 +22,7 @@ export const KEY = "lease";
 /* 60 and not the 30 it was, off the corpus rather than named: a quarter of runs went longer than that between two payload writes, twelve of those gaps with the run working right through and the longest of them 58 minutes, and past 60 there is no such gap left. It buys a smaller window and never liveness, which no duration can be — the record says when a run last wrote and nothing about whether it is alive (ISS-1224). */
 export const MINUTES = 60;
 export const READING_MINUTES = 10;
-const HISTORY_KEPT = 12;
+export const HISTORY_KEPT = 12;
 
 /** What the mechanism is, claiming nothing of any far end, because `forge claim -h` has made no write and a run reading it is owed the shape rather than a guess. */
 export const MECHANISM =
