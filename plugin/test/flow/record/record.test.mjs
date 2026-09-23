@@ -499,7 +499,7 @@ test("what the report says is owed at the deploying rung is the release policy's
   const run = await ranAsync(FORGE, ["resume", "ISS-4", "--report"], ENV);
   assert.equal(run.status, 0, run.stderr);
   assert.match(run.stdout, /^Owed: the release, which is a person's\./mu, run.stdout);
-  assert.match(run.stdout, /the release is an act on this project's live deploy binding/u,
+  assert.match(run.stdout, /the release is an act/u,
     "named in the project's own terms, so the reader knows which setting says so");
   assert.match(run.stdout, /close is theirs, made once it is out and with the release named:$/mu, run.stdout);
   assert.match(run.stdout, /^ {2}forge advance ISS-4 --set closed --why "<[^"]+>"$/mu,

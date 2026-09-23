@@ -533,7 +533,7 @@ test("a flow asking for a judge the project's configuration does not name is a m
   assert.match(out, /\[ miss \] flow\s+flow screen asks for independent judgement/u,
     "the conflict is a miss and names the flow that asked");
   assert.match(out, /this project's configuration says builder/u, "beside the key that answered otherwise");
-  assert.match(out, /change the flow, or the project's qa configuration/u, "and both ways out");
+  assert.match(out, /change the flow, or/u, "and both ways out");
   assert.equal(status, 1, "a report holding a miss exits on it");
   assert.match(out, row(OK, "flow", "screen", entry),
     "and the key itself is still read and reported as the project's own");

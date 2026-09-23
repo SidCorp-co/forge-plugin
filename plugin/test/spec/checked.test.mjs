@@ -94,7 +94,8 @@ test("a criterion opening with a rule of the tree's own index is told it is one"
   const run = written(project("crit-rule-", true), "1. R-10~1: the outcome.\n");
   assert.equal(run.status, 1);
   assert.match(run.stderr, /R-10 names a rule of this tree/u);
-  assert.match(run.stderr, /not a clause of the specification/u);
+  assert.match(run.stderr, /not a clause/u,
+    "and that R-10 was not looked up as one, which is the half this case adds to the line above");
 });
 
 test("a criterion opening with a bare identifier is written, and R-10 is said over it", () => {

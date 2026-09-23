@@ -5,6 +5,7 @@ import test from "node:test";
 
 import { pageOf, ranAsync } from "../fixtures.mjs";
 import { trackerFor } from "../fixtures/own-project.mjs";
+import { NOTHING_WORKED } from "../../src/flow/lease.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../..", import.meta.url).pathname;
@@ -79,7 +80,7 @@ test("the holder's verbs reach it too, the lookup being one, and the lease they 
   assert.equal(took.history[0].holder, WRITER, "by the run that made the write and by nobody else");
   assert.equal(took.holder, "", "and given back once the write had landed, the lease covering the write");
   assert.match(run.stderr, /ISS-1 is free again/u, "which the caller is told on the same screen");
-  assert.equal(took.next, "nothing was worked under this lease");
+  assert.equal(took.next, NOTHING_WORKED, "the line the record owes where no work followed");
 });
 
 test("a key the tracker does not hold is refused as a fact about the tracker", async () => {

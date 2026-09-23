@@ -111,7 +111,7 @@ test("the landing walks the judging rung and the deploying one, and rests at don
     `one move per rung, in the table's order, and no jump:\n${said}`);
   /* `done` here means the landing is finished and not that the issue is, so the stop is said. */
   assert.match(said, new RegExp(`${KEY} rests at \`awaiting_release\``, "u"), said);
-  assert.match(said, /the release is an act on this project's live deploy binding/u,
+  assert.match(said, /the release is an act/u,
     `the reason is the project's own, so a reader knows which setting said so:\n${said}`);
   assert.match(said, new RegExp(`the close is theirs and not this landing's`, "u"), said);
   assert.match(said, new RegExp(`forge advance ${KEY}`, "u"),

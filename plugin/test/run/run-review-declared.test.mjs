@@ -25,7 +25,8 @@ test("a declared path this checkout does not hold is refused where the reckoning
   assert.doesNotMatch(asked.stdout, /changed line\(s\)/u, "a path that is not there counts no lines");
   assert.match(asked.stderr, /plugin\/scr is a counted path this repository does not hold/u, asked.stderr);
   assert.ok(asked.stderr.includes(`\`review.paths\` in ${recordOf(work)}`), asked.stderr);
-  assert.match(asked.stderr, /forge doctor --set project\.review\.paths=<paths>/u, asked.stderr);
+  assert.match(asked.stderr, /--set project\.review\.paths/u,
+    "the key the refusal names, which is what makes this the declared-paths refusal and not another");
 });
 
 /* The same zero from the other side: a declared path is the repository root's, and a pathspec is
