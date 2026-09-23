@@ -89,6 +89,16 @@ export const filed = async (reason, ev, left = remaining()) => {
   }
 };
 
+/* A refusal before a call refuses all of it, so the `git add` ahead of a refused `git commit` never ran, and a caller re-sending only the refused part finds nothing staged (ISS-329). One command, or one pipeline, needs no telling. It is a fact about this call and not the rule's text, so a repeat the shown ledger cut to one line still carries it, on that same line. */
+const WHOLE = "Nothing in this command ran, the parts before the refused one included, so it is re-sent whole.";
+const refusal = (reason, ev) => {
+  const command = String(ev?.tool_input?.command ?? "");
+  /* A separator at the end opens a span with nothing in it, and `git stash;` is still one command. */
+  const whole = ev?.tool_name === "Bash" && spans(command).filter(({ start, end }) => command.slice(start, end).trim()).length > 1;
+  if (!whole) return filed(reason, ev);
+  return filed(`${reason}${String(reason).includes("\n") ? "\n\n" : " "}${WHOLE}`, ev);
+};
+
 /* Ten processes per call was the whole cost of the hooks, 38 ms of each 50 being Node starting. One
    process per event: the first refusal answers before a call; after one every block and context is kept. */
 export const dispatch = async (given, ev = readEvent()) => {
@@ -108,7 +118,7 @@ export const dispatch = async (given, ev = readEvent()) => {
       if (kind === "pre") {
         const reason = `The hooks ran out of time before ${name} could decide this call. Re-send it.`;
         logged("deny", reason);
-        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: await filed(reason, ev) } });
+        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: await refusal(reason, ev) } });
         return;
       }
       logged("error", `${name} skipped: the post clock ran out before it`);
@@ -127,7 +137,7 @@ export const dispatch = async (given, ev = readEvent()) => {
         continue;
       }
       if (error.kind === "deny") {
-        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: await filed(error.message, ev) } });
+        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: await refusal(error.message, ev) } });
         return;
       }
       if (error.kind === "block") blocks.push(error.message);
