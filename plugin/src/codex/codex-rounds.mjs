@@ -12,7 +12,7 @@ const SPENT = ["input_tokens", "output_tokens", "cache_read_input_tokens", "cach
 const CLOSING = "No further tool calls will be served. Answer now, and say what you could not check.";
 
 /* The attempt being carried on was told the line above and is now served more calls, so the last word on
-   tools stops being false. No count in it: how many remain is ISS-326's, and a number here is a second home. */
+   tools stops being false. No count in it: how many remain ends every tool result, and a number here is a second home. */
 const REOPENED = "More tool calls are available after all. Carry on from what you have already read, "
   + "and check what you said you could not.";
 
@@ -38,13 +38,17 @@ export const rounds = async (values, model, opening, scope, onDelta, ask = askAp
     value: { messages, tools: used, refused, usage: spent, thought, calls: call, reply },
   });
 
-  const serve = async (reply, closing) => {
+  /* `left` counts the calls after the one that reads these results, so the result the last call
+     reads is the one that says so. The log and the operator get the tool's own answer, the count being
+     the model's to plan on. */
+  const serve = async (reply, closing, call) => {
     const results = [];
     for (const one of reply.calls) {
-      const ran = await runTool({ ...scope, signal }, one.name, one.input);
-      used.push({ name: one.name, input: one.input, chars: ran.text.length, error: Boolean(ran.error) });
-      console.error(`codex:   ${one.name} ${detail(one.input)}${ran.error ? ` — ${ran.text}` : ""}`);
-      if (ran.error) refused.push(`${one.name} ${detail(one.input)}: ${ran.text}`);
+      const ran = await runTool({ ...scope, signal, left: calls - call - 1 }, one.name, one.input);
+      const said = ran.said ?? ran.text;
+      used.push({ name: one.name, input: one.input, chars: said.length, error: Boolean(ran.error) });
+      console.error(`codex:   ${one.name} ${detail(one.input)}${ran.error ? ` — ${said}` : ""}`);
+      if (ran.error) refused.push(`${one.name} ${detail(one.input)}: ${said}`);
       results.push({
         type: "tool_result",
         tool_use_id: one.id,
@@ -62,7 +66,7 @@ export const rounds = async (values, model, opening, scope, onDelta, ask = askAp
     messages.push({ role: "user", content: [...results, ...closing] });
   };
 
-  if (from) await serve(from.reply, [{ type: "text", text: REOPENED }]);
+  if (from) await serve(from.reply, [{ type: "text", text: REOPENED }], from.calls);
   for (let call = (from?.calls ?? 0) + 1; ; call += 1) {
     const last = call === calls;
     console.error(`codex: call ${call} of ${calls}${used.length ? ` after ${used.length} tool call(s)` : ""}...`);
@@ -85,7 +89,7 @@ export const rounds = async (values, model, opening, scope, onDelta, ask = askAp
       const unserved = reply.calls.map((one) => `${one.name} ${detail(one.input)} (past the call cap)`);
       return carrying({ ...reply, ...spend, refused: [...refused, ...unserved] }, call, reply);
     }
-    await serve(reply, call + 1 === calls ? [{ type: "text", text: CLOSING }] : []);
+    await serve(reply, call + 1 === calls ? [{ type: "text", text: CLOSING }] : [], call);
   }
 };
 

@@ -55,6 +55,37 @@ test("the tools whose path is the checkout take it when none was given", async (
   assert.match(owed.text, /read_file needs a `path`; at its top: a\.txt/u, "the one tool with no default");
 });
 
+/* A grep past its caps lost the matches it hid with nothing to say how many or how to get them, and
+   unlike a read it has no range to page on (ISS-326). */
+test("a grep past its line cap says how many it matched, how many it shows, and how to narrow", async () => {
+  const root = repo();
+  writeFileSync(join(root, "many.txt"), Array.from({ length: 300 }, (_, at) => `needle ${at}`).join("\n"));
+  const said = (await runTool(scopeFor(root), "grep", { pattern: "needle" })).text;
+  assert.match(said, /^300 matches, the first 200 shown:\n/u);
+  assert.equal(said.split("\n").filter((line) => line.startsWith("many.txt:")).length, 200);
+  assert.match(said, /\n… 100 more not shown\. Narrow it with a tighter pattern, or with a `path` to one directory or file\.$/u);
+});
+
+test("a grep past the character cap is cut at a whole match and counts what it hid", async () => {
+  const root = repo();
+  const wide = "w".repeat(400);
+  writeFileSync(join(root, "wide.txt"), Array.from({ length: 150 }, (_, at) => `needle ${at} ${wide}`).join("\n"));
+  const said = (await runTool(scopeFor(root), "grep", { pattern: "needle" })).text;
+  const [, total, shown] = said.match(/^(\d+) matches, the first (\d+) shown:\n/u) ?? [];
+  assert.equal(Number(total), 150);
+  assert.ok(Number(shown) > 0 && Number(shown) < 150, `a part shown, not ${shown}`);
+  assert.equal(said.split("\n").filter((line) => line.startsWith("wide.txt:")).length, Number(shown));
+  assert.equal(said.includes("clipped at"), false, "cut at a match, not mid-line");
+  assert.ok(said.length <= 20_000, `under the result cap, at ${said.length}`);
+  assert.match(said, new RegExp(`\\n… ${150 - Number(shown)} more not shown\\. Narrow it with a tighter pattern, or with a \`path\``, "u"));
+});
+
+test("a grep that fits is its matches and nothing else", async () => {
+  const root = repo();
+  writeFileSync(join(root, "few.txt"), "needle one\nneedle two\n");
+  assert.equal((await runTool(scopeFor(root), "grep", { pattern: "needle" })).text, "few.txt:1:needle one\nfew.txt:2:needle two");
+});
+
 /* Asked for a diff and given no file, the consult read "nothing to consult on" and the author read
    `git diff --name-only` and typed the list back (ISS-65). */
 test("what changed against a ref is what the tree says, a deletion included", () => {
