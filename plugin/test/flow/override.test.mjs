@@ -13,7 +13,7 @@ import { trackerFor } from "../fixtures/own-project.mjs";
 import { fieldSets } from "../../src/checks/surface/judged-arguments.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("override").path;
-const { UNREAD } = await import("../../src/flow/override.mjs");
+const [{ UNREAD }, { NOTHING_WORKED }] = await Promise.all([import("../../src/flow/override.mjs"), import("../../src/flow/lease.mjs")]);
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const WHY = "the tracker lost the record and the work is done";
@@ -311,7 +311,7 @@ test("a holding verdict's complexity write with no lease takes the short lease a
   assert.equal(took.history[0].holder, MINE.lease.holder, "taken by the run that made the write and by nobody else");
   assert.equal(took.holder, "", "and given back with the write, a triage pass's reading being the whole of what it does");
   assert.match(run.stderr, /ISS-96 is free again/u, "which is said rather than left for the next run to find");
-  assert.equal(took.next, "nothing was worked under this lease", "with the line the record owes on it");
+  assert.equal(took.next, NOTHING_WORKED, "with the line the record owes on it");
 });
 
 /* The override writes fields the writer keeps no row for, and the read-back's own sentence is built
@@ -363,7 +363,7 @@ test("a status set on an issue nobody holds moves in the one call, the write tak
   assert.equal(took.history[0].holder, MINE.lease.holder,
     "by the run that made the write, which is the whole of what a take is for");
   assert.equal(took.holder, "", "and the field holds nobody after it, the lease having covered the write");
-  assert.equal(took.next, "nothing was worked under this lease");
+  assert.equal(took.next, NOTHING_WORKED, "carrying the line the record owes");
 });
 
 test("a status that waits on a person carries the kind the tracker demands of one", async () => {

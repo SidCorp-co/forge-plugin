@@ -120,7 +120,7 @@ test("--owed says a screen change has no login to prove it with, and refuses not
   const nothing = fetched();
   const said = await owed("ISS-97");
   assert.equal(said.status, 0, `${said.stdout}${said.stderr}`);
-  assert.match(said.stdout, /no merged mark, so nothing says the change landed/u, "the shortfall is still the shortfall");
+  assert.match(said.stdout, /no merged mark/u, "the shortfall is still the shortfall");
   assert.match(said.stdout, /holds no test credential/u, said.stdout);
   assert.match(said.stdout, /--verdict skipped --why/u, "and it names the skip");
   assert.match(said.stdout, /forge guide issue-flow verification/u, "and where the rest of it is");

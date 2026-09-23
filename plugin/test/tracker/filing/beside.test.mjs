@@ -260,7 +260,7 @@ test("a search the tracker refuses files the issue and says the check could not 
   assert.match(run.stdout, /the semantic query could not run: .*forge_memory.search is not available/u,
     "the tracker's own code and message, and no words of ours in front of them");
   assert.match(run.stdout, /the keyword query could not run/u);
-  assert.match(run.stdout, /this filing was made as it would have been without it/u);
+  assert.match(run.stdout, /this filing was made/u);
   assert.doesNotMatch(run.stdout, /the check ran and found none/u, "which it did not");
 });
 

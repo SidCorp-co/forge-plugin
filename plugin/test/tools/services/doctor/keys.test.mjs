@@ -56,7 +56,8 @@ test("a declaration this repository cannot count is a miss naming the paths and 
   assert.match(said, /^\[ miss \] review/u);
   assert.match(said, /plugin\/src, plugin\/hooks, plugin\/bin are counted paths this repository does not hold/u);
   assert.ok(said.includes(`Declare this repository's own under \`review.paths\` in ${at.record}`), said);
-  assert.match(said, /forge doctor --set project\.review\.paths=<paths>/u);
+  assert.match(said, /--set project\.review\.paths/u,
+    "the key the row names, which is what says this miss is about the declared paths");
 });
 
 test("a repository with no mark is told it is unplanted and given the command that plants it", async () => {

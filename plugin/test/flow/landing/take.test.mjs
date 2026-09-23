@@ -162,7 +162,7 @@ test("a bare branch is captured, and the claim's own opening names it above the 
   const said = run.stdout.split("\n");
   const work = said.findIndex((one) => /^ {2}work: iss-673-6, at /u.test(one));
   assert.notEqual(work, -1, run.stdout);
-  assert.match(said[work], /its own base at that reading, so nothing of its own on it/u,
+  assert.match(said[work], /its own base/u,
     "which is what a branch with no commit of its own is, said as the reading it comes from");
   assert.ok(work < said.findIndex((one) => one.startsWith("Lane at ")), "above the lane, not under it");
 });
@@ -531,7 +531,7 @@ test("the lander that handed the records turn over cannot take it back", async (
   assert.match(run.stderr, /reads `records-owed`/u, run.stderr);
   assert.match(run.stderr, new RegExp(`whose turn is the builder ${BUILDER}'s`, "u"),
     "naming the run whose turn it is, and not the state alone");
-  assert.match(run.stderr, /answer for a judgement the run that built the change made/u,
+  assert.match(run.stderr, /answer for a judgement/u,
     "and what the turn is owed, which is why the lease it holds does not open it");
   assert.match(run.stderr, /forge claim ISS-673 --take$/mu, "with the one command that clears it");
   assert.equal(checkpoint().state, "records-owed", "and nothing was written");

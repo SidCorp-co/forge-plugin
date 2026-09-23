@@ -4,10 +4,10 @@
    that reading verified; nothing refused the fourteenth, which a run that cannot know the first
    thirteen existed writes next week.
 
-   The fixture is that census. Run over a tree at `976545b2` this check names eighteen sentences, and
-   over the tree those three cuts landed on it names fifteen — the three that fall away being exactly
-   the ones ISS-2217 cut. Those figures are on ISS-2216 as the evidence its criteria were judged
-   against; what is held here is the second of them, against the table this repository declares. */
+   The fixture is this repository. Run over a tree at `976545b2` this check named eighteen sentences;
+   ISS-2217, ISS-2218 and ISS-2219 cut three of them and ISS-2264 the rest, so what it names over the
+   tree today is nothing, and the table below is empty. Those earlier figures are on ISS-2216 as the
+   evidence its criteria were judged against. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, readdirSync } from "node:fs";
@@ -35,114 +35,18 @@ const files = () => {
 };
 
 /* What stands in this repository today, one entry per sentence and file that re-proves it, each
-   naming the issue that will cut it.
+   naming the issue that will cut it. Empty, and the case below holds it empty: every sentence this
+   check can see is asserted whole in one file and by a fragment everywhere else.
 
    An entry is a debt and not a licence. Writing one costs a filing — the case below refuses an entry
-   naming no issue — so the table only shrinks as those filings land, and it was full on the day the
-   rule was written because ISS-2122's reading filed the rows it verified by hand and recorded the
-   rest as too small for a run of their own. ISS-2264 carries them.
+   naming no issue — so a row re-appears here only where a run would rather file than shorten, which
+   is the trade this table exists to make visible.
 
-   It sits in this case and not beside the rule because a module under `plugin/src` spelling these
-   sentences is a module composing them, which is what the rule reads a source for: declared there,
-   the table gave every sentence in it a second composer and the walk went silent over all fifteen.
-   Nothing reads a table in a case as either a composition or an assertion. */
-const STANDING = [
-  { sentence: "one call writes each field once.",
-    module: "plugin/src/resolve/flags.mjs",
-    home: "plugin/test/resolve/repeated-flag.test.mjs",
-    elsewhere: "plugin/test/cli/project-verb.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "nothing was worked under this lease",
-    module: "plugin/src/flow/lease.mjs",
-    home: "plugin/test/flow/renew.test.mjs",
-    elsewhere: "plugin/test/cli/reference-lookup.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "has not read what this commit stages",
-    module: "plugin/hooks/gates/codex/codex-second.mjs",
-    home: "plugin/test/gates/codex/codex-second.test.mjs",
-    elsewhere: "plugin/test/codex/codex-record.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "answer for a judgement the run that built the change made",
-    module: "plugin/src/flow/lease/takeover.mjs",
-    home: "plugin/test/flow/landing/checkpoint.test.mjs",
-    elsewhere: "plugin/test/flow/landing/take.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "its own base at that reading, so nothing of its own on it",
-    module: "plugin/src/guides/phases.mjs",
-    home: "plugin/test/flow/resume/worklog.test.mjs",
-    elsewhere: "plugin/test/flow/landing/take.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "nothing was worked under this lease",
-    module: "plugin/src/flow/lease.mjs",
-    home: "plugin/test/flow/renew.test.mjs",
-    elsewhere: "plugin/test/flow/override.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "no park record on the page is paired with the entry into it",
-    module: "plugin/src/flow/route.mjs",
-    home: "plugin/test/flow/route/reopen.test.mjs",
-    elsewhere: "plugin/test/flow/park/park.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "the release is an act on this project's live deploy binding",
-    module: "plugin/src/tracker/project-config.mjs",
-    home: "plugin/test/flow/close.test.mjs",
-    elsewhere: "plugin/test/flow/record/record.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "no merged mark, so nothing says the change landed",
-    module: "plugin/src/flow/earned.mjs",
-    home: "plugin/test/flow/route/credential-ahead.test.mjs",
-    elsewhere: "plugin/test/flow/record/rung.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "every agent it dispatched carries the same value",
-    module: "plugin/src/resolve/config.mjs",
-    home: "plugin/test/tools/doctor.test.mjs",
-    elsewhere: "plugin/test/flow/shared-holder.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "the release is an act on this project's live deploy binding",
-    module: "plugin/src/tracker/project-config.mjs",
-    home: "plugin/test/flow/close.test.mjs",
-    elsewhere: "plugin/test/run/landing/land-ready.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "forge doctor --set project.review.paths=<paths>",
-    module: "plugin/src/git/reviewed.mjs",
-    home: "plugin/test/git/reviewed.test.mjs",
-    elsewhere: "plugin/test/run/run-review-declared.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "not a clause of the specification",
-    module: "plugin/src/spec/citation.mjs",
-    home: "plugin/test/spec/citation.test.mjs",
-    elsewhere: "plugin/test/spec/checked.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "change the flow, or the project's qa configuration",
-    module: "plugin/src/flow/earned.mjs",
-    home: "plugin/test/flow/earned/flow-is-not-read.test.mjs",
-    elsewhere: "plugin/test/tools/doctor.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "a write is refused without --yes",
-    module: "plugin/src/tools/services/coolify/chosen-route.mjs",
-    home: "plugin/test/tools/services/coolify/tracker-route.test.mjs",
-    elsewhere: "plugin/test/tools/services/coolify/request.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "answered without the field that would place it in a project",
-    module: "plugin/src/tools/services/coolify/scope.mjs",
-    home: "plugin/test/tools/services/coolify/scope.test.mjs",
-    elsewhere: "plugin/test/tools/services/coolify/request.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "forge doctor --set project.review.paths=<paths>",
-    module: "plugin/src/git/reviewed.mjs",
-    home: "plugin/test/git/reviewed.test.mjs",
-    elsewhere: "plugin/test/tools/services/doctor/keys.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "this filing was made as it would have been without it",
-    module: "plugin/src/tracker/filing/neighbours.mjs",
-    home: "plugin/test/tracker/filing/fold.test.mjs",
-    elsewhere: "plugin/test/tracker/filing/beside.test.mjs",
-    issue: "ISS-2264" },
-  { sentence: "a heading naming the outcome",
-    module: "plugin/src/tracker/issue-shape.mjs",
-    home: "plugin/test/tracker/issue/shape.test.mjs",
-    elsewhere: "plugin/test/tracker/issue/read-first/targets.test.mjs",
-    issue: "ISS-2264" },
-];
+   It sits in this case and not beside the rule because a module under `plugin/src` spelling one of
+   those sentences is a module composing it, which is what the rule reads a source for: declared
+   there, the table gave every sentence in it a second composer and the walk went silent over all of
+   them. Nothing reads a table in a case as either a composition or an assertion. */
+const STANDING = [];
 
 const keyed = (one) => `${one.sentence} · ${one.elsewhere}`;
 const walked = () => files();

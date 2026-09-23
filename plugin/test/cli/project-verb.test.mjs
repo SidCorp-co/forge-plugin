@@ -171,7 +171,7 @@ test("a field named twice among three pairs is refused by name, and nothing blam
   const run = await ask("forge-plugin", "--set", "name=one", "--set", "description=two", "--set", "name=three");
   assert.equal(run.status, 1, run.stdout);
   assert.match(run.stderr, /^project: --set names name 2 times, as `one` and `three`, /mu, run.stderr);
-  assert.match(run.stderr, /one call writes each field once\./u, "the rule, in this verb's own reply");
+  assert.match(run.stderr, /one call writes/u, "the rule, in this verb's own reply");
   assert.match(run.stderr, /Ask for the one you meant: --set name=<value>\./u, "and the form that works");
   assert.doesNotMatch(run.stderr, /this CLI lost it between your call and the write/u,
     "the repeat is the caller's, and the shortfall check never reads it as a loss now");

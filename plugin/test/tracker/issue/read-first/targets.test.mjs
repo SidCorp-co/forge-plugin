@@ -396,7 +396,8 @@ const filing = async (data, options = {}) => raw({ action: "create", data }, opt
 test("a create whose body cannot carry the flow is denied, and the pointer is the shape's own page", async () => {
   const run = await filing({ title: "fix", description: "It is broken." });
   assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny");
-  assert.match(because(run), /a heading naming the outcome/u);
+  assert.match(because(run), /naming the outcome/u,
+    "the section the shape refusal found missing, which says the body and not the route was judged");
   assert.match(because(run), /forge hooks --how issue-shape/u,
     "one gate refuses two things, and each argument has its own page");
 });
