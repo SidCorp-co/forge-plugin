@@ -319,7 +319,7 @@ test("a body carrying this project's test credential is refused, and the field n
   });
   assert.deepEqual(
     credentialLeak({ slug: "module-knowledge", title: "T", body: `the password is a-long-staging-secret\n` }, deploy),
-    { field: "body", credential: "test credentials · password" },
+    { field: "body", credential: "test credentials · password", near: "the password is [withheld]" },
   );
   assert.equal(credentialLeak({ slug: "module-knowledge", body: "nothing of the sort" }, deploy), null);
 });

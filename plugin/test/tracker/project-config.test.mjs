@@ -48,6 +48,9 @@ const BINDINGS = {
 
 const HELD = stagingOf(BINDINGS);
 
+/* What a refusal names, without the excerpt a case about the excerpt pins on its own. */
+const pick = (found) => found && { field: found.field, credential: found.credential };
+
 const POLICY = releaseFrom({
   baseBranch: "staging",
   liveBranch: "master",
@@ -281,7 +284,7 @@ test("the readers that do not decide on the difference answer the same across al
 test("a payload carrying a credential names the field it sits in and the credential it is", () => {
   const deploy = deployFrom(HELD);
   const found = credentialLeak({ body: `logged in with correct-horse-battery` }, deploy);
-  assert.deepEqual(found, { field: "body", credential: "test credentials · password" });
+  assert.deepEqual(pick(found), { field: "body", credential: "test credentials · password" });
   assert.match(leakRefusal(found, "The payload"), /forge doctor --credentials/u);
 });
 
@@ -290,9 +293,9 @@ test("a payload carrying a credential names the field it sits in and the credent
 test("a short credential is refused where a field is it, quoting and spacing aside", () => {
   const deploy = deployFrom(stagingOf({ testCredentials: [{ username: "admin" }] }));
   const named = { field: "user", credential: "test credentials · username" };
-  assert.deepEqual(credentialLeak({ user: " admin " }, deploy), named);
-  assert.deepEqual(credentialLeak({ user: `"admin"` }, deploy), named);
-  assert.deepEqual(credentialLeak({ user: "`admin`," }, deploy), named);
+  assert.deepEqual(pick(credentialLeak({ user: " admin " }, deploy)), named);
+  assert.deepEqual(pick(credentialLeak({ user: `"admin"` }, deploy)), named);
+  assert.deepEqual(pick(credentialLeak({ user: "`admin`," }, deploy)), named);
   assert.equal(credentialLeak({ body: "the admin screen renders" }, deploy), null,
     "a gate refusing every payload with the word admin in it is one nobody gets past");
   assert.equal(credentialLeak({ body: "use `admin` for testing" }, deploy), null,
@@ -316,6 +319,78 @@ test("a payload holding no credential passes, and so does one on a project holdi
 test("a credential nested anywhere in a payload is found, and the field says where", () => {
   const found = credentialLeak({ data: { fields: ["ok", "correct-horse-battery"] } }, deployFrom(HELD));
   assert.equal(found.field, "data.fields.1");
+});
+
+/* A display name is what a project calls the role a login signs in as, so it is the product's own
+   vocabulary: guarding it made every verdict naming that role unpostable (ISS-172). */
+const ROLES = stagingOf({
+  preview: { url: "https://beta.example.test", urls: [{ url: "https://beta.example.test/admin", label: "Quản trị viên" }] },
+  testCredentials: [
+    { label: "Quản trị viên hệ thống", username: "qa-admin@example.test", password: "correct-horse-battery" },
+    { label: "Giáo viên", username: "teacher", password: "staple-battery-horse" },
+  ],
+});
+
+test("a credential's display name is no secret: prose naming it, or a field that is it, is sent", () => {
+  const deploy = deployFrom(ROLES);
+  assert.equal(credentialLeak({ body: "Tiêu chí: Quản trị viên hệ thống có thể sửa người dùng" }, deploy), null,
+    "a long display name inside a sentence of criteria posts");
+  assert.equal(credentialLeak({ title: "Giáo viên" }, deploy), null, "and so does a short one a whole field is");
+  assert.equal(credentialLeak({ body: "the row reads Quản trị viên" }, deploy), null,
+    "a host's label is a display name too");
+  assert.ok(deploy.withheld.some((one) => one.value === "Giáo viên"),
+    "while the report still withholds it: what is printed is not this rule's to move");
+});
+
+test("the secret beside a display name is refused as before, the display name in the payload or not", () => {
+  const deploy = deployFrom(ROLES);
+  assert.deepEqual(pick(credentialLeak({ body: "Quản trị viên hệ thống signed in with correct-horse-battery" }, deploy)),
+    { field: "body", credential: "test credentials · password" });
+  assert.deepEqual(pick(credentialLeak({ user: "teacher" }, deploy)),
+    { field: "user", credential: "test credentials · username" });
+  assert.equal(credentialLeak({ body: "Giáo viên signed in as teacher" }, deploy), null,
+    "a short username inside prose stays the stated edge it was");
+});
+
+test("a key the tracker has not served before is guarded, whatever it holds", () => {
+  const deploy = deployFrom(stagingOf({ testCredentials: [{ label: "Kế toán", apiToken: "tok-3f9a1c77e2b4" }] }));
+  assert.equal(credentialLeak({ body: "called with tok-3f9a1c77e2b4" }, deploy).credential, "test credentials · api token");
+});
+
+test("a URL carrying a secret under a label key is judged by its shape, not by the key", () => {
+  const deploy = deployFrom({ testCredentials: [{ label: "https://qa:hunter2hunter2@beta.example.test/in" }] });
+  assert.equal(credentialLeak({ body: "open https://qa:hunter2hunter2@beta.example.test/in" }, deploy).credential,
+    "test credentials · label");
+  for (const address of ["HTTPS://qa:hunter2hunter2@beta.example.test/in", "ftp://qa:hunter2hunter2@files.example.test",
+    " https://qa:hunter2hunter2@beta.example.test/in", "Login: https://qa:hunter2hunter2@beta.example.test/in"]) {
+    const found = credentialLeak({ body: `open ${address} now` }, deployFrom({ testCredentials: [{ label: address }] }));
+    assert.equal(found?.near, "open [withheld] now", `any scheme, in any case, anywhere in the value: ${address}`);
+  }
+});
+
+test("a refusal quotes where the match sits, and every guarded value in that text is masked", () => {
+  const deploy = deployFrom(ROLES);
+  const found = credentialLeak({ body: `Giáo viên\n  signed in as qa-admin@example.test with correct-horse-battery, then saw the list` }, deploy);
+  assert.equal(found.near, "Giáo viên signed in as [withheld] with [withheld], then saw the list",
+    "whitespace collapsed, and no ellipsis where nothing was cut");
+  assert.doesNotMatch(leakRefusal(found, "The payload"), /correct-horse|qa-admin/u);
+  assert.match(leakRefusal(found, "The payload"), /at body, where it reads "Giáo viên signed in as \[withheld\]/u);
+  const long = credentialLeak({ body: `${"x".repeat(80)} correct-horse-battery ${"y".repeat(80)}` }, deploy);
+  assert.equal(long.near, `…${"x".repeat(39)} [withheld] ${"y".repeat(39)}…`, "a long field is cut around the match");
+  const edge = credentialLeak({ body: `${"x".repeat(30)}staple-battery-horse${"y".repeat(9)}correct-horse-battery` }, deploy);
+  assert.doesNotMatch(edge.near, /horse|battery|staple/u, "masking comes before the cut, so no cut shows part of a value");
+});
+
+/* Two ways masking one value at a time printed what the refusal was about, both found by the review of ISS-172. */
+test("an excerpt shows no part of a value, whether it overlaps another or matched with its punctuation off", () => {
+  const short = deployFrom({ testCredentials: [{ password: "!admin!" }] });
+  assert.equal(credentialLeak({ body: "admin" }, short).near, "[withheld]",
+    "a field that is a short value, quoting aside, is nothing but the mask");
+  const overlapping = deployFrom({ testCredentials: [{ username: "abcdefghijkl", password: "ijklmnopqrst" }] });
+  assert.equal(credentialLeak({ body: "see abcdefghijklmnopqrst here" }, overlapping).near, "see [withheld] here");
+  const repeated = deployFrom({ testCredentials: [{ password: "abababababab" }] });
+  assert.equal(credentialLeak({ body: "x ababababababab y" }, repeated).near, "x [withheld] y",
+    "and one value overlapping itself is one span");
 });
 
 
