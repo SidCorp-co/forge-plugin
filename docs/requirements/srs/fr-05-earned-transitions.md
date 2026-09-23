@@ -286,6 +286,11 @@ for.
   earn `closed` from the records the deploying rung already holds and SHALL leave no act to a person,
   because a rung that waits for a release the project has declared it does not make is a keystroke
   asked of somebody for nothing (G-11).
+- **AC-05-7-13** · Rev: 1 · Proof: plugin/test/flow/record/report-policy.test.mjs "the report names the policy it read wherever the issue stands"
+  WHERE an issue's whole record is reported, the CLI SHALL name what the project's release policy
+  declares, whatever status the issue stands at and whether or not that policy leaves anybody an
+  act, because a run told only that the close is owed cannot tell a policy this CLI read from one
+  it never consulted (G-13).
 
 ### UC-05-8 — A record too large to read whole
 

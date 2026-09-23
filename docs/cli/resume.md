@@ -46,10 +46,12 @@ the reference holding that phase's method. `--json` is the assembled object the 
 from, so a tool and a reader cannot be told different things.
 
 `--report` is the other end of the same reading: every record whole rather than one line of each,
-the latest verdict per criterion with its evidence, the plan, the release note and what is owed. It
-lives here rather than under `record` because it writes nothing, and a verb whose every other name
-posts a payload was the wrong home for the one that only reads — a reader reached for the writing
-verb to make a read, and the refusal that told it so had to exist. The brief and the report are one
+the latest verdict per criterion with its evidence, the plan, the release note and what is owed,
+and the release policy's answer at every status rather than at the closing rung alone, since the
+method sends a run here for that answer before it has reached the rung. It lives here rather than
+under `record` because it writes nothing, and a verb whose every other name posts a payload was the
+wrong home for the one that only reads — a reader reached for the writing verb to make a read, and
+the refusal that told it so had to exist. The brief and the report are one
 verb's two depths, and `--json` and `--report` are separate readings: asking for both is refused.
 
 Two smaller measurements. A section with nothing in it is left out, not printed empty, which is what

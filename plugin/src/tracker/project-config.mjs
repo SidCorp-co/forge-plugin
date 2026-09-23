@@ -199,6 +199,22 @@ export const releaseOwedOf = (policy) => {
 /** The half of that answer a reader prints on its own: what is owed, in the words every reading of this project uses for it. */
 export const personOwedForRelease = (policy) => releaseOwedOf(policy)?.owed ?? null;
 
+/* The declaration behind a policy that owes nobody, which the walk above has no branch for: it stops
+   at null, and a reader handed only that cannot tell a policy this CLI read from one it never
+   consulted. Built from the very details the doctor's rows print, so a reader holding the two
+   readings of one project sets them side by side; the switch's row joins the model's only where the
+   switch is what decided (ISS-1656). */
+const nobodyOwed = (policy) => ["nobody owes this release an act. release model  "
+  + modelDetail(policy), ...(policy.model === NO_RELEASE ? [] : [`production deploy  ${deployDetail(policy)}`])]
+  .join("; ");
+
+/** What the policy answers whether or not it leaves anybody an act, in one sentence: the gap and its
+ *  way out where somebody is owed, the declaration that ends the rung where nobody is. */
+export const releaseAnswer = (policy) => {
+  const held = releaseOwedOf(policy);
+  return held ? `${held.owed} — ${held.clears}` : nobodyOwed(policy);
+};
+
 export const releaseLine = (policy) => {
   if (!readable(policy)) return null;
   if (policy.model === PROMOTE) {
@@ -395,9 +411,14 @@ const MEANS = {
   publish: "the release is an act on a live deploy binding, and no branch moves",
 };
 
+const modelDetail = (policy) => `${policy.model} — ${MEANS[policy.model]}  ← ${policy.from}`;
+
+const deployDetail = (policy) => `${policy.autoProd ? "automatic" : "a person's"} — a user-facing `
+  + `change ${waitsForPerson(policy) ? "waits for" : "ships without"} a person's look  ← `
+  + policy.autoProdFrom;
+
 const modelRow = (policy) => (policy.model
-  ? { level: "ok", label: "release model",
-    detail: `${policy.model} — ${MEANS[policy.model]}  ← ${policy.from}` }
+  ? { level: "ok", label: "release model", detail: modelDetail(policy) }
   : { level: "note", label: "release model", detail: `${policy.said
     ? `\`${policy.said}\`, which is no model this CLI knows`
     : UNSET} — the park before awaiting_release stands until one of ${MODELS.join(", ")} is `
@@ -430,9 +451,7 @@ const policyRows = (policy, landing) => {
       : []),
     /* The switch's own level and not the policy's: the model beside it is the tracker's whatever
        happens, and this one row moves between the two (ISS-2190). */
-    { level: "ok", label: "production deploy", detail: `${policy.autoProd ? "automatic" : "a person's"}`
-      + ` — a user-facing change ${waitsForPerson(policy) ? "waits for" : "ships without"} a person's`
-      + ` look  ← ${policy.autoProdFrom}` },
+    { level: "ok", label: "production deploy", detail: deployDetail(policy) },
     { level: "ok", label: "where the merge sits", detail: `${route.value}  ← ${route.from}` },
     { level: "ok", label: "independent judgement", detail: `${judgementOf(policy)} between developed`
       + ` and testing  ← ${policy.from}` },
