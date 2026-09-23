@@ -43,6 +43,7 @@ const ISSUES = [
   row(10, "in_progress", { sessionContext: lease(MINE) }),
   row(11, "open"),
   row(12, "open"),
+  row(13, "open"),
 ];
 
 const two = [dispatch(["ISS-2", "ISS-3"], "run-a", { tree: "/trees/a" }), dispatch(["ISS-4"], "run-b")];
@@ -56,6 +57,7 @@ const project = {
     "uuid-9": [dispatch(["ISS-2"], "old"), posted("fold", { summary: "the first wave" }), dispatch(["ISS-4", "ISS-5"], "new")],
     "uuid-11": [dispatch(["ISS-2"], "only"), posted("fold", { summary: "done" })],
     "uuid-12": [dispatch(["ISS-2", "ISS-99"], "reads-one")],
+    "uuid-13": [dispatch(["ISS-2"], "done-a"), dispatch(["ISS-4"], "done-b")],
   },
   answer: {
     /* The update is kept on the row, since a renewal reads its own write back. */
@@ -198,10 +200,21 @@ test("resume prints every member of an open wave live, which dispatch is complet
   assert.match(run.stdout, /dispatch 1, \S+: forge:runner, session run-a, tree \/trees\/a/u);
   assert.match(run.stdout, /^ {4}ISS-2 {2}closed {2}no lease$/mu);
   assert.match(run.stdout, /^ {4}ISS-3 {2}waiting {2}leased by run-three, \w+$/mu);
+  assert.match(run.stdout, /dispatch 2, \S+: forge:runner, session run-b, no tree\n {4}ISS-4 {2}closed {2}no lease$/mu,
+    "and the second dispatch's member under its own line");
   assert.match(run.stdout, /^ {4}not complete: ISS-3 still owed$/mu, "a parked member keeps its dispatch open");
   assert.match(run.stdout, /^ {4}complete: every member is at closed or dropped$/mu, "the dispatch of ISS-4 alone is done");
   assert.match(run.stdout, /the fold is owed/u, "every member closed or not, the fold is still owed");
   assert.match(run.stdout, /forge record fold ISS-1 --summary "<the fold's line>"/u);
+});
+
+test("a restart after every member closed and before the fold still prints the fold as owed", async () => {
+  const run = await forge("resume", "ISS-13");
+  assert.equal(run.status, 0, run.stderr);
+  assert.equal(run.stdout.match(/^ {4}complete: every member is at closed or dropped$/gmu)?.length, 2, "both dispatches are done");
+  assert.doesNotMatch(run.stdout, /not complete/u);
+  assert.match(run.stdout, /the fold is owed, written once its reporting and its cost count are posted:\n {4}forge record fold ISS-13 --summary/u,
+    "and the wave is still open, since its end is a record and not a reading of statuses");
 });
 
 test("the resume's json carries the open wave with each member's live status", async () => {
