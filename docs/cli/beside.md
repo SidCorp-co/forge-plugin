@@ -71,8 +71,31 @@ it. Nothing here refuses a filing: a duplicate filed anyway is a duplicate its f
 issue's uuid, its score and the text as it was embedded — and not its key, not its status, and not a
 title that has moved since. A closed issue comes back ranked like any other, and one retitled after
 indexing comes back under its old title marked fresh. So every hit is resolved by uuid against the
-open-issues page the duplicate check already fetched, which is the same call rather than a second
-one, and a hit that resolves to nothing open is not a suggestion.
+page the duplicate check already fetched, which is the same call rather than a second one, and a hit
+that resolves to nothing open is not a suggestion.
+
+**A hit on a settled issue is a decision already taken, so it is shown with the decision rather than
+dropped.** Until 2026-09-23 a dropped or closed hit resolved to nothing and vanished, and one defect
+was filed six times in fifteen days: when the fifth was filed, four of its five neighbours existed
+and all were dropped, so it was compared against nothing and its filer read that nothing open was
+like it — true, and the opposite of what had happened. So a settled hit at the same floor is printed
+in a block of its own, and the empty line tells *nothing was filed* from *filed before, and settled*.
+Only the semantic query reaches these blocks: nearness is what makes a settled row the same subject,
+and one that merely names the place is machinery nobody has to decide about. Only the create path
+passes them: the sweep and the ranking ask about work still owed, and a settled row is none.
+
+**A dropped row travels with its reason, because its title alone repeats the failure one step
+later**: the filer reads it, cannot see why it was declined, and files anyway. The reason is the
+latest of the three records a drop goes through — a `dropped` park, a correction that moved the
+status there, a confirmation carrying a disposition — read off the row's own thread, and it usually
+names the key the subject went to. Each thread costs one read, and none of them may stop the filing.
+A thread that did not come back whole leaves the reason unread rather than absent, since part of a
+thread proves neither the latest record nor that there is none. The reason is cut, because a family
+of drops printed whole costs every filing thousands of characters, and the thread command gives the
+rest. A closed row reads no thread: closed means fixed and landed, so its title is what the filer
+compares against, and the block says what is left to decide — a regression of that fix or a
+different defect. Neither block is a fold: a live finding folded onto a settled row is buried, and
+six attempts at one subject are evidence the decline may be wrong, which is the filer's to answer.
 
 **A gateway status here may not kill the filing.** The soft call every other verb uses converts the
 tracker's own refusal and not the transport's, because the transport's exits the process — right for

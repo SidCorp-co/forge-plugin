@@ -1,8 +1,9 @@
-/* What is already open beside a filing, asked of the tracker's own memory search from inside the create path. Every decision below is docs/cli/beside.md's for the reading — the two queries, both floors, the term each is asked on — and docs/cli/the-fold.md's for the act. */
+/* What is already filed beside a filing, open or settled, asked of the tracker's own memory search from inside the create path. Every decision below is docs/cli/beside.md's for the reading — the two queries, both floors, the term each is asked on — and docs/cli/the-fold.md's for the act. */
 import { mustBeShown, postComment } from "../comments.mjs";
 import { owesCause } from "../issue-shape.mjs";
 import { tried } from "../rest.mjs";
 import { firstLine } from "../../resolve/flags.mjs";
+import { settledLines, withReasons } from "./settled.mjs";
 
 export const SEARCH_ROUTE = "forge_memory.search";
 const SOURCE = ["issue"];
@@ -40,8 +41,21 @@ const namingPlace = (hits) => hits.filter((one) => Number(one.score) > 0);
 
 const cutInBand = (hits, inBand) => hits.length >= TOP_K && inBand >= hits.length;
 
-/** Every open issue either query reached. The key, the title and the open-ness are the projection's, which `live` already is, so the resolve costs no call of its own. */
-export const neighboursOf = async ({ seed, place }, live) => {
+/* A settled row the semantic query ranked at the floor, as the open rows are: nearness is what makes it the same subject, and a settled row that only names the place is machinery nobody has to decide about. */
+const settledNear = (hits, settled, samePlace) => {
+  const held = new Map(settled.map((one) => [one.documentId, one]));
+  const near = new Map();
+  for (const hit of hits) {
+    const row = held.get(hit.sourceRef);
+    if (!row || Number(hit.score) < FLOOR || near.has(hit.sourceRef)) continue;
+    near.set(hit.sourceRef, { ...row, score: Number(hit.score), samePlace: samePlace.has(hit.sourceRef) });
+  }
+  const found = [...near.values()].sort((one, two) => two.score - one.score);
+  return { dropped: found.filter((one) => one.status === "dropped"), closed: found.filter((one) => one.status === "closed") };
+};
+
+/** Every open issue either query reached, and beside them the settled ones the semantic query reached. The key, the title and the status are the projection's — `live` for the open rows, `settled` for the rest, both off the walk already made — so the resolve costs no call of its own. A caller passing no `settled` measures open against open, as the sweep and the ranking do. */
+export const neighboursOf = async ({ seed, place }, live, settled = []) => {
   const open = new Map(live.filter((one) => one.documentId).map((one) => [one.documentId, one]));
   const [near, named] = await Promise.all([ask(seed, "semantic", TOP_K), ask(place, "keyword", PLACE_K)]);
   const inPlace = namingPlace(named.hits);
@@ -61,7 +75,10 @@ export const neighboursOf = async ({ seed, place }, live) => {
   const inBand = near.hits.filter((one) => Number(one.score) >= FLOOR).length;
   for (const hit of near.hits) if (Number(hit.score) >= FLOOR) add(hit.sourceRef, Number(hit.score));
   for (const hit of inPlace.slice(0, TOP_K)) add(hit.sourceRef, null);
+  const { dropped, closed } = settledNear(near.hits, settled, samePlace);
   return {
+    dropped: await withReasons(dropped),
+    closed,
     place,
     notes: [near.note, named.note].filter(Boolean),
     inBand,
@@ -85,12 +102,16 @@ const SHOWN = "Nothing above is a refusal: a duplicate filed anyway is one the f
 
 const named = (place) => (place ? ` or names \`${place}\`` : "");
 
-/* An empty answer and an unmeasured one are what this tells apart, so one line is not both. */
-const emptyLine = (place, measured) =>
-  (measured
-    ? `Nothing open reads like this filing${named(place)} — the check ran and found none.`
-    : `Nothing open that was measured reads like this filing${named(place)}, and the check did not`
-      + " run whole:");
+/* An empty answer, a settled one and an unmeasured one are what this tells apart, so one line is not two of them: nothing filed before is not the same news as filed before and settled. */
+const emptyLine = (place, measured, settled) => {
+  if (!measured) {
+    return `Nothing open that was measured reads like this filing${named(place)}, and the check did not`
+      + " run whole:";
+  }
+  if (settled) return `Nothing open reads like this filing${named(place)} — but it was filed before, and settled:`;
+  const naming = place ? `, and nothing open names \`${place}\`` : "";
+  return `Nothing filed before reads like this filing, open or settled${naming} — the check ran and found none.`;
+};
 
 /* Qualifying and being foldable are two questions; one answer has `--new` reporting a fiction. And
    the two ways of not being foldable are two answers: a filer told the wrong one looks for a mark. */
@@ -113,11 +134,13 @@ const declinedLine = (nearest, foldable, routed) => {
 
 /** Under every filing: the empty answer, the failed search and the folded one. `fresh` is `--new`,
  *  which closes the block on every outcome rather than only where it acted. */
-export const suggestionLines = ({ suggestions, notes, place },
+export const suggestionLines = ({ suggestions, notes, place, dropped = [], closed = [] },
   { nearest = null, foldable = false, routed = false, fresh = false } = {}) => {
-  const out = suggestions.length
-    ? [HEAD, ...suggestions.map(row), SHOWN]
-    : [emptyLine(place, !notes.length)];
+  const settled = settledLines({ dropped, closed }, NO_SCORE);
+  const out = [
+    ...(suggestions.length ? [HEAD, ...suggestions.map(row), SHOWN] : [emptyLine(place, !notes.length, settled.length > 0)]),
+    ...settled,
+  ];
   for (const note of notes) out.push(`${note} — this filing was made as it would have been without it.`);
   if (fresh) out.push(declinedLine(nearest, foldable, routed));
   return out;

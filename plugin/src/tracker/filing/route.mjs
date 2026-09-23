@@ -1,6 +1,7 @@
 /* The one route from a body to an issue: every verb that files calls it, and what stays a route's
    is its flags and the lines it prints. Nothing here prints and nothing here exits: docs/cli/filing.md. */
 import { foldFiling, neighboursOf } from "./neighbours.mjs";
+import { settledOf } from "./settled.mjs";
 import { filingRefusal, liveTitles, rankOf, shapeOf, shapeRefusal, trackerFields }
   from "../issue-shape.mjs";
 import { write } from "../rest.mjs";
@@ -83,7 +84,7 @@ const readFiling = async (filing, read,
     ? await filingRefusal(filing, shape, { routed, page: read })
     : shapeRefusal(shape);
   if (refused) return { refusal: refusalOf(refused), shape, beside: null };
-  return { refusal: null, shape, beside: await neighboursOf(shape, read.live) };
+  return { refusal: null, shape, beside: await neighboursOf(shape, read.live, settledOf(read.read?.rows)) };
 };
 
 /** One filing, from what a route knows to an issue or a reason there is none. `routed` rides another
