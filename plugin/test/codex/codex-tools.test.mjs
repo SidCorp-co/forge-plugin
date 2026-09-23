@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { TOOLS, checkCommand, checkState, runTool, scopeFor, toolsFor } from "../../src/codex/codex-tools.mjs";
@@ -459,4 +459,21 @@ test("a requirement past the cap is cut with the narrower identifiers that read 
   const held = await runTool(scopeFor(root), "read_spec", { id: "FR-01" });
   assert.match(held.text, /clipped at \d+ characters; ask for a clause under FR-01 by its own identifier, as UC-01-1, for the rest\.$/u);
   assert.ok(held.text.length < 20_000, "under the cap every tool answer holds to");
+});
+
+/* The scope is physical for every tool: a symlinked tree, or a document linked in from outside,
+   would otherwise hand the reviewer words from a directory it was never given. */
+test("read_spec reads no clause whose file lies outside the checkout, however it is linked in", async () => {
+  const away = treed();
+  const linked = repo();
+  mkdirSync(join(linked, "docs"), { recursive: true });
+  symlinkSync(join(away, "docs", "requirements"), join(linked, "docs", "requirements"));
+  assert.equal(toolsFor(scopeFor(linked)).some((one) => one.name === "read_spec"), false);
+  const mixed = treed();
+  const other = tempRoom("codex-spec-away-");
+  writeFileSync(join(other, "fr-02.md"), CLAUSES.replaceAll("01", "02"));
+  symlinkSync(join(other, "fr-02.md"), join(mixed, "docs", "requirements", "srs", "fr-02.md"));
+  const scope = scopeFor(mixed);
+  assert.equal((await runTool(scope, "read_spec", { id: "FR-01" })).error, undefined);
+  assert.match((await runTool(scope, "read_spec", { id: "FR-02" })).text, /^read_spec: No clause named FR-02/u);
 });

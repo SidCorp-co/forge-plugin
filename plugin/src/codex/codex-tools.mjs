@@ -11,7 +11,7 @@ import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { HUMAN_REF, documentIdIfAny } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
 import { AROUND_CHECK_MS, budgetMs, fromProject, refusing } from "../resolve/settings.mjs";
-import { TREE, specTreeAt } from "../spec/tree.mjs";
+import { TREE, specTreeInside } from "../spec/tree.mjs";
 import { clauseAsked, clauseText, refOf } from "../spec/verbs.mjs";
 
 const NEAREST_UP = 12;
@@ -237,14 +237,18 @@ export const scopeFor = (root, extras = [], check = null, consult = null) => {
   };
 };
 
-// Null where the checkout keeps no tree, so the tool is not offered; the index is read at the first call.
-export const specFor = (root) => (existsSync(join(root, TREE)) ? { root, index: null } : null);
+// Null where the checkout keeps no tree, or keeps one that resolves outside it, so the tool is not offered; the index is read at the first call.
+export const specFor = (root) => {
+  const dir = join(root, TREE);
+  return existsSync(dir) && withinRoot(canonical(root), canonical(dir)) ? { root, index: null } : null;
+};
 
 const specRead = (scope, input) => {
   if (!scope?.spec) return { text: "read_spec: this checkout keeps no requirements tree, so there is no clause to read.", error: true };
   const asked = refOf(String(input.id ?? "").trim());
   if (asked.refused) return { text: `read_spec: ${asked.refused}`, error: true };
-  scope.spec.index ??= specTreeAt(scope.spec.root);
+  scope.spec.index ??= specTreeInside(scope.spec.root);
+  if (!scope.spec.index) return { text: "read_spec: this checkout's requirements tree resolves outside it, so nothing was read.", error: true };
   const { problem, clause } = clauseAsked(scope.spec.index, asked.ref);
   if (problem) return { text: `read_spec: ${problem}`, error: true };
   const text = clauseText(scope.spec.index, clause, asked.ref);

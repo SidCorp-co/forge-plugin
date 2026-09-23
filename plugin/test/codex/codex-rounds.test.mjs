@@ -288,3 +288,27 @@ test("an attempt carried on counts what is left against the ceiling it was raise
   assert.match(results[0].content, /last call — answer now$/u, "true when the first attempt, of two calls, served it");
   assert.match(results[1].content, /calls left: 2 after this one$/u, "served by the attempt carried on to five");
 });
+
+/* Plumbing only, and said so: whether a model rules a citation right is read off a real consult's
+   reply (ISS-1061), and what this holds is that the clause it asked for reaches the conversation. */
+test("a read_spec call inside a round hands the reviewer the clause it named", async () => {
+  const tree = join(sandbox, "treed");
+  mkdirSync(join(tree, "docs", "requirements"), { recursive: true });
+  writeFileSync(join(tree, ".git"), "gitdir: elsewhere\n");
+  writeFileSync(join(tree, "docs", "requirements", "fr-01.md"),
+    "# SRS §3 — FR-01 — The first capability\n\nRev: 2 · Actors: agent\n\nThe words a citation is judged against.\n");
+  const offered = [];
+  const stub = async (values, model, messages, held) => {
+    offered.push(held.tools.map((one) => one.name));
+    if (offered.length === 1) {
+      return { text: "", calls: [{ id: "t1", name: "read_spec", input: { id: "FR-01~1" } }], usage: {}, stop: "tool_use" };
+    }
+    const served = messages.at(-1).content.find((one) => one.type === "tool_result");
+    return { text: served.content, calls: [], usage: {}, stop: "end_turn" };
+  };
+  const held = await reviewed({}, "m", "go", scopeFor(tree), () => {}, stub, { budget: 3, ceiling: 3 });
+  assert.ok(offered[0].includes("read_spec"), "offered where the checkout keeps a tree");
+  assert.match(held.text, /^The citation FR-01~1 is stale: FR-01 is at revision 2, not 1\.\n\nFR-01 — The first capability {2}rev 2\n/u, held.text);
+  assert.match(held.text, /The words a citation is judged against\./u);
+  assert.deepEqual(held.tools.map((one) => one.name), ["read_spec"]);
+});
