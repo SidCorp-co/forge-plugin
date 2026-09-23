@@ -28,8 +28,8 @@ import { parkAs } from "../../plugin/src/flow/advance.mjs";
 import { takeLease } from "../../plugin/src/flow/lease/takeover.mjs";
 import {
   LANDING_BUILDER_OWED, LANDING_CANDIDATE, LANDING_DONE, LANDING_HEAD_OWED, LANDING_JUDGED,
-  LANDING_QA_OWED, LANDING_READY, LANDING_RECONCILED, LANDING_RECORDS_OWED, RECAPTURE, landingOf,
-  landingVoided,
+  LANDING_QA_OWED, LANDING_READY, LANDING_RECONCILED, LANDING_RECORDS_OWED, RECAPTURE, landingNext,
+  landingOf, landingVoided,
 } from "../../plugin/src/flow/landing/checkpoint.mjs";
 import { INDEPENDENT } from "../../plugin/src/flow/qa/verdicts.mjs";
 import { judgementOf, landingRoute, releasePolicy } from "../../plugin/src/tracker/project-config.mjs";
@@ -117,6 +117,10 @@ const pinStep = async (one) => {
   });
 };
 
+/* Whether the table leads this member's state to the builder's new head: past a judgement it does
+   not, and a stop there says what it met without writing a move the save would refuse. */
+const handsBack = (member) => landingNext(member.landing, LANDING_HEAD_OWED) === null;
+
 /* Against the pin and not against the branches beside it: a conflict here is the base's own, which
    is what a park as blocked claims. The chain's own conflicts are the candidate step's. */
 const mergeStep = async (one) => {
@@ -131,11 +135,14 @@ const mergeStep = async (one) => {
       return;
     }
     /* Handed back before the park, so the reason the park carries names a write the state accepts. */
-    await saveOn(member, { state: LANDING_HEAD_OWED });
+    const back = handsBack(member);
+    if (back) await saveOn(member, { state: LANDING_HEAD_OWED });
     const why = `${landing.branch} does not merge onto ${base} at ${shortly(at.pin)}: `
-      + `${conflicts.join(", ")} conflict. The landing repairs no conflict, so the checkpoint is at `
-      + `\`${LANDING_HEAD_OWED}\` and the run that built the branch answers it with a head that merges:\n`
-      + RECAPTURE(key);
+      + `${conflicts.join(", ")} conflict. The landing repairs no conflict${back
+        ? `, so the checkpoint is at \`${LANDING_HEAD_OWED}\` and the run that built the branch `
+          + `answers it with a head that merges:\n${RECAPTURE(key)}`
+        : `, and the checkpoint reads \`${landing.state}\`, past the states a branch is handed back `
+          + `from. Read where it is:\n  forge resume ${key}`}`;
     const view = await asked(() => viewOf(documentId));
     await asked(() => parkAs(view, key, "blocked", why, conflicts));
     stop(`${key} is parked as blocked and nothing of it was edited, pushed or installed.`);
@@ -367,6 +374,10 @@ const gateStep = async (one) => {
   /* The branch's own fault against what landed since, answered by a new head: the one the gate
      refused stays where it is, the landing writing no ref of a branch it did not build. */
   const [member] = at.members;
+  if (!handsBack(member)) {
+    stop(`${said} The checkpoint on ${member.key} reads \`${member.landing.state}\`, past the states a `
+      + `branch is handed back from, so nothing of it moved. Read where it is:\n    forge resume ${member.key}`);
+  }
   await saveOn(member, { state: LANDING_HEAD_OWED });
   stop(`${said} The candidate is ${member.landing.branch} merged onto what landed since, so the `
     + `failure is that branch's own and it goes back to the run that built it: the checkpoint is at `
