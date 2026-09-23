@@ -24,8 +24,8 @@ const readingCovers = (title, from) => String(title ?? "").includes(`${at(from)}
 const NOT_A_READING = "dropped";
 const UNREAD = "the search for the issue holding this mark's reading";
 
-const filedAs = (row) => Number.parseInt(String(row.issueId ?? "").replace(/^\D+/u, ""), 10);
-const FIRST_FILED = (one, two) => (filedAs(one) || Infinity) - (filedAs(two) || Infinity);
+const issueNumber = (row) => Number.parseInt(String(row.issueId ?? "").replace(/^\D+/u, ""), 10);
+const FIRST_FILED = (one, two) => (issueNumber(one) || Infinity) - (issueNumber(two) || Infinity);
 
 /** Held, none, or unread — an absence a page was cut off from is none, a dropped reading leaves the
  *  range an issue nobody reads, and soft keeps the rows a later page's refusal would throw away. Of
