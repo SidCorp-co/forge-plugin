@@ -20,6 +20,7 @@ here: a measurement quoted in a second place is a number that will disagree with
 | **M-07** Requirements with no issue citing them, and issues citing no clause. | the trace report (ISS-29) | both falling |
 | **M-08** Clauses whose citations went suspect and were never resolved. | the spec gate's R-10 findings | none |
 | **M-09** Minutes and calls per issue-flow run at each rung, the last fifty runs against the fifty before. | `forge stats eval` | falling, or flat while the rounds fall |
+| **M-10** Minutes and calls per dispatch wave, with its hand-backs at landing, runs replaced and issues disposed of without a run, the last ten waves against the ten before. | `forge stats eval --waves` | minutes, calls, hand-backs and replacements falling; dispositions without a run rising |
 
 ## What is deliberately not measured
 

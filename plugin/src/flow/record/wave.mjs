@@ -21,27 +21,47 @@ const dispatchOf = ({ at, record }) => ({
   members: record.fields.member ?? [],
 });
 
-/** The page's wave, or null where it holds neither kind. Ordered by the stamp the assembly sorts by, so a fold reads as after the dispatches it followed; what a fold closed is counted here rather than stamped, being the dispatches between it and the fold before it. */
-export const waveOf = (comments) => {
+/** Every wave the page holds, oldest first: a fold closes the dispatches written since the fold
+ *  before it, and dispatches after the last fold are the one open wave. Ordered by the stamp the
+ *  assembly sorts by, so a fold reads as after the dispatches it followed. Each dispatch and fold
+ *  also carries its raw `stamp`, which a reading across waves measures spans by. */
+export const wavesOf = (comments) => {
   const held = comments
     .flatMap((one) => parseAll(one.body ?? "").map((record) => ({ at: String(one.createdAt ?? ""), record })))
     .filter((one) => one.record.kind === DISPATCH || one.record.kind === FOLD)
     .sort((a, b) => a.at.localeCompare(b.at));
-  if (!held.length) return null;
-  const folds = held.flatMap((one, at) => (one.record.kind === FOLD ? [at] : []));
-  const last = folds.at(-1) ?? -1;
-  const after = held.slice(last + 1);
-  if (after.length) return { state: "open", dispatches: after.map(dispatchOf) };
-  const closed = held.slice((folds.at(-2) ?? -1) + 1, last).filter((one) => one.record.kind === DISPATCH);
-  return {
-    state: "folded",
-    fold: { at: atMinute(held[last].at), summary: held[last].record.fields.summary ?? "", runs: closed.length },
-  };
+  const waves = [];
+  let since = [];
+  for (const one of held) {
+    if (one.record.kind === DISPATCH) {
+      since.push({ ...dispatchOf(one), stamp: one.at });
+      continue;
+    }
+    waves.push({
+      state: "folded",
+      dispatches: since,
+      fold: { at: atMinute(one.at), summary: one.record.fields.summary ?? "", runs: since.length, stamp: one.at },
+    });
+    since = [];
+  }
+  if (since.length) waves.push({ state: "open", dispatches: since });
+  return waves;
+};
+
+const unstamped = ({ stamp: _stamp, ...rest }) => rest;
+
+/** The page's wave, or null where it holds neither kind: the open wave where one stands, and
+ *  otherwise the last fold with how many dispatches it closed. */
+export const waveOf = (comments) => {
+  const last = wavesOf(comments).at(-1);
+  if (!last) return null;
+  if (last.state === "open") return { state: "open", dispatches: last.dispatches.map(unstamped) };
+  return { state: "folded", fold: unstamped(last.fold) };
 };
 
 /* Softly, so a member the tracker will not answer for is a line carrying its words rather than a
    resume that exits on the first of them. */
-const readMember = async (key) => {
+export const readMember = async (key) => {
   const found = await documentIdIfAny(key, { soft: true });
   if (found.refused) return { refused: String(found.refused) };
   const body = await scoped("forge_issues", { action: "get", documentId: found.id }, true);

@@ -2,6 +2,8 @@
    rather than out of a conversation it no longer has. Each case below fails without its part of the
    change: the kinds, the finder's write, the refusals, and the resume's reading (ISS-818). */
 import assert from "node:assert/strict";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import test from "node:test";
 
 import { ranAsync, tempRoom } from "../../../fixtures.mjs";
@@ -9,7 +11,9 @@ import { trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("wave-");
 const { render } = await import("../../../../src/flow/record/page.mjs");
-const { waveLines, waveLive, waveOf } = await import("../../../../src/flow/record/wave.mjs");
+const { waveLines, waveLive, waveOf, wavesOf } = await import("../../../../src/flow/record/wave.mjs");
+const { session } = await import("../../../stats/fixture-waves.mjs");
+const { slugFor } = await import("../../../../src/stats/corpus/corpus.mjs");
 
 const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const MINE = "wave-test-session";
@@ -278,4 +282,34 @@ test("the reading is the page's, in time order, whatever order the page came in"
   const live = await waveLive(wave, async (key) => ({ body: { status: key === "ISS-4" ? "closed" : "developed" } }));
   assert.equal(live.dispatches[0].complete, false, "developed is not an end");
   assert.ok(waveLines(live, "ISS-9").some((one) => /ISS-5 {2}developed {2}no lease/u.test(one)));
+});
+
+test("every wave on a page is read, each folded one with the dispatches its fold closed", () => {
+  const page = [dispatch(["ISS-2"], "one"), posted("fold", { summary: "first" }),
+    dispatch(["ISS-4"], "two"), dispatch(["ISS-5"], "three"), posted("fold", { summary: "second" }),
+    dispatch(["ISS-6"], "four")];
+  const waves = wavesOf(page);
+  assert.deepEqual(waves.map((one) => one.state), ["folded", "folded", "open"]);
+  assert.deepEqual(waves.map((one) => one.dispatches.map((each) => each.session)), [["one"], ["two", "three"], ["four"]]);
+  assert.deepEqual(waves.slice(0, 2).map((one) => one.fold.summary), ["first", "second"]);
+  assert.equal(waveOf(page).dispatches[0].session, "four", "the latest is still the one resume reads");
+});
+
+/* The dispatcher's own folds as the host keeps them, under the checkout the write is made from. */
+const foldedBefore = (many) => {
+  const where = join(ENV.HOME, ".claude", "projects", slugFor(process.cwd()));
+  mkdirSync(where, { recursive: true });
+  const calls = Array.from({ length: many }, (_, n) => [n, `forge record fold ISS-${100 + n} --summary s`]);
+  writeFileSync(join(where, "dispatcher.jsonl"), `${session(calls)}\n`);
+};
+
+test("the fold that makes the tenth prints the line naming the wave eval, and the ninth prints none", async () => {
+  foldedBefore(8);
+  const ninth = await write("record", "fold", "ISS-1", "--summary", "the ninth");
+  assert.equal(ninth.status, 0, ninth.stderr);
+  assert.doesNotMatch(ninth.stderr, /forge stats eval --waves/u);
+  foldedBefore(9);
+  const tenth = await write("record", "fold", "ISS-1", "--summary", "the tenth");
+  assert.equal(tenth.status, 0, tenth.stderr);
+  assert.match(tenth.stderr, /10 waves folded for this project\. Compare the last 10 with the 10 before them:\n {2}forge stats eval --waves$/mu);
 });
