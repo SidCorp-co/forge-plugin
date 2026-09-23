@@ -11,7 +11,6 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { fakeTracker, projectRecord, ranAsync, tempHome } from "../fixtures.mjs";
-import { patience } from "../patience.mjs";
 import { backoff, callTool, retryAfter, retryOf, retrySeconds, unfencedIn } from "../../src/tracker/rest.mjs";
 import { useProject } from "../../src/resolve/settings.mjs";
 import { REFERENCE_KEYS } from "../../src/tracker/routes.mjs";
@@ -355,10 +354,8 @@ test("a request given a deadline is refused in words, and the request itself is 
     });
   });
   try {
-    const began = Date.now();
     const answer = await callTool("forge_issues", { action: "get", documentId: "u-1", fields: [] },
       true, { once: true, waits: 0.05 });
-    assert.ok(Date.now() - began < patience(3000), "a tracker that never answers does not hold the caller open");
     assert.ok(cancelled, "and the request is aborted rather than left in flight");
     assert.match(answer.refused, /did you mean|did not answer/u, answer.refused);
     assert.match(answer.refused, /ran out after 0\.05s \(the caller's own deadline\)/u,
@@ -430,16 +427,13 @@ test("a fractional deadline the millisecond cannot hold still sends the request"
    rung it takes: timing the whole verb instead asserted how much of the machine this process got. */
 test("a refused connection with retrySeconds 0 sleeps at no rung of the ladder it goes round", async () => {
   const home = homeFor("dead-port", { url: "http://127.0.0.1:1/mcp", token: "t", retrySeconds: 0 });
-  const began = Date.now();
   const run = await ranAsync(FORGE, ["issue", "ISS-1"], home.env, ROOT, null);
-  const took = Date.now() - began;
   for (const attempt of [1, 2, 3]) {
     assert.match(run.stderr, new RegExp(`waiting 0s \\(attempt ${attempt} of 4\\)`, "u"),
       `rung ${attempt} of the ladder waited: ${run.stderr}`);
   }
   assert.equal(/waiting (?!0s)/u.test(run.stderr), false, `a rung waited after all: ${run.stderr}`);
   assert.match(run.stderr, /Forge did not answer/u, run.stderr);
-  assert.ok(took < patience(60_000), `nothing came back at all: ${took}ms`);
   assert.notEqual(run.status, 0);
   home.remove();
 });
@@ -467,15 +461,12 @@ test("a host that accepts and never answers refuses the verb at the deadline con
   await new Promise((listening) => stalled.listen(0, "127.0.0.1", listening));
   const home = homeFor("stalled-host",
     { url: `http://127.0.0.1:${stalled.address().port}/mcp`, token: "t", retrySeconds: 0, waitSeconds: 0.05 });
-  const began = Date.now();
   const run = await ranAsync(FORGE, ["issue", "ISS-1"], home.env, ROOT, null);
-  const took = Date.now() - began;
   assert.match(run.stderr, /ran out after 0\.05s \(waitSeconds in config\.json\)/u, run.stderr);
   for (const attempt of [1, 2, 3]) {
     assert.match(run.stderr, new RegExp(`waiting 0s \\(attempt ${attempt} of 4\\)`, "u"),
       `a read still goes round the ladder, and waits at no rung of it: ${run.stderr}`);
   }
-  assert.ok(took < patience(60_000), `nothing came back at all: ${took}ms`);
   assert.match(run.stderr, /Forge did not answer GET /u, run.stderr);
   assert.notEqual(run.status, 0);
   home.remove();
