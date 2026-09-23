@@ -84,6 +84,8 @@ since a correction's `--moved` names the file a landing wrote. It is refused rat
 the two `--set` verbs already refuse the same shape, and a record is never edited or removed: a
 path taken as the text stands on the issue for good, while expansion, once shipped, is the reading
 nobody could take back from the callers leaning on it. A field naming a place carries no such check
-(ISS-820).
+(ISS-820). The blank alone reaches further: every field a caller may not leave out, and each value
+of a repeating one, refuses it before anything is sent, because the empty substitution a shell
+produces lands in a citation as readily as in a sentence, and arrives in batches (ISS-196).
 
 The two kinds that take no lease, and why a dispatcher's records cannot: [the wave](the-wave.md).

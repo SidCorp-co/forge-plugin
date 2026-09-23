@@ -15,7 +15,7 @@ import { flags } from "../../resolve/flags.mjs";
 import { didYouMean } from "../../suggest.mjs";
 import { kindUsage } from "./record-rows.mjs";
 import { RUN_FLAGS } from "./rung.mjs";
-import { NOTE_PROSE, proseChecked } from "./prose-route.mjs";
+import { NOTE_PROSE, fieldChecked } from "./prose-route.mjs";
 
 const NUMBERED = /^(\d+)\.\s+(.*)$/u;
 
@@ -60,7 +60,7 @@ export const noteFrom = (argv) => {
     if (!allowed.includes(given)) {
       refuse(`record note${skip ? " --skip" : ""} takes ${allowed.map((one) => `--${one}`).join(" ")}, not --${given}.`);
     }
-    if (NOTE_PROSE[given]) proseChecked("note", NOTE_PROSE[given], rest[given]);
+    if (NOTE_PROSE[given]) fieldChecked("note", NOTE_PROSE[given], rest[given]);
   }
   if (skip) {
     if (!rest.why) refuse("record note --skip needs --why: a withheld note says why it is withheld.");

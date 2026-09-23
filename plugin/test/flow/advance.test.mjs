@@ -305,6 +305,16 @@ test("a comment carrying the tag and little else is no payload", () => {
     "a finding off the list is no payload, and disposes of nothing");
 });
 
+/* The write refuses a blank citation now, and a verdict written before it did is still read back
+   by the gate, which stays the check on every record a hand or an older copy left (ISS-196). */
+test("a verdict already on the record citing an empty value is still owed at the gate", () => {
+  const issue = { acceptanceCriteria: "1. The first outcome.", attachments: ATTACHED, mergedAt: "2026-09-02T13:49:51.777Z" };
+  const blankCited = recorded("verdict", { criterion: "1 — text", verdict: "pass", commit: "c8c3550", evidence: ["run.txt", ""] });
+  assert.deepEqual(judging(view(issue, [mark("merged to master at c8c3550"), blankCited])), [
+    "the verdict on criterion 1 lacks --evidence ``, which is no attachment here, no URL and no commit",
+  ]);
+});
+
 /* The park record is written before the reply that answers it, and the fixture clock says so:
    a reply that predates the park answered something else. */
 test("a parked issue resumes where its park record says it left, once somebody answers", () => {

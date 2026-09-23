@@ -111,7 +111,7 @@ export const evidenceHeld = (ref, names) => URL_REF.test(ref) || COMMIT.test(ref
 /** The first value that is none of the three, or null; the caller is the one that refuses. */
 export const evidenceProblem = (refs, names) => {
   const bad = refs.find((ref) => !evidenceHeld(ref, names));
-  if (!bad) return null;
+  if (bad === undefined) return null;
   return `Evidence \`${bad}\` is no attachment on this issue, no URL and no commit. `
     + "Attach it first (forge attach issue <ref> <file>), or cite a URL or a commit."
     + (names.length ? `\n  Attached: ${names.join(", ")}` : "");
