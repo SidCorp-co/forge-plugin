@@ -96,8 +96,14 @@ export const specTreeAt = (root) => {
 export const specTreeInside = (root) => {
   const dir = dirUnder(root);
   const home = realpathSync(root);
+  // A link that resolves nowhere is skipped with the ones that resolve outside: neither is a document of this checkout.
   const inside = (path) => {
-    const real = realpathSync(path);
+    let real = null;
+    try {
+      real = realpathSync(path);
+    } catch {
+      return false;
+    }
     return real === home || real.startsWith(home + sep);
   };
   if (!dir || !inside(dir)) return null;

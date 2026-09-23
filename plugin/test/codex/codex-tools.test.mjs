@@ -487,4 +487,9 @@ test("read_spec reads no clause whose file lies outside the checkout, however it
   assert.match((await runTool(deep, "read_spec", { id: "FR-03" })).text, /^read_spec: No clause named FR-03/u,
     "a linked-in directory outside is not entered");
   assert.equal((await runTool(deep, "read_spec", { id: "FR-01" })).error, undefined, "and a link back in ends");
+  const broken = treed();
+  symlinkSync(join(broken, "gone"), join(broken, "docs", "requirements", "srs", "gone.md"));
+  symlinkSync(join(broken, "gone-dir"), join(broken, "docs", "requirements", "gone"));
+  assert.equal((await runTool(await specScope(broken), "read_spec", { id: "FR-01" })).error, undefined,
+    "a link that resolves nowhere is skipped rather than ending the read");
 });
