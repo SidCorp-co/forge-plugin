@@ -3,7 +3,7 @@ import { FEEDBACK_CHANNELS, SHIP_MODES, feedbackScope, shipMode } from "../resol
 import { RUNGS } from "../ladder.mjs";
 import { toolConditions } from "../tools/services/tool-config.mjs";
 
-export const RUNG = "rung";
+const RUNG = "rung";
 
 export const conditionsAt = (rung) => ({
   "feedback.plugin": { value: feedbackScope().plugin.value, allowed: FEEDBACK_CHANNELS },

@@ -14,7 +14,7 @@ export const enough = (over, runs) => over >= FLOOR && runs >= FLOOR;
 export const THIN = "thin";
 export const WHOLE = "all";
 
-export const REACHED = "reached the landing";
+const REACHED = "reached the landing";
 const ACCEPTED = "consult findings accepted";
 const REJECTED = "consult findings rejected";
 const CORRECTED = "corrected after the run";
@@ -34,7 +34,7 @@ const acceptedFrom = (rejected) =>
   countFigure(ACCEPTED, rejected.count === null ? 0 : rejected.over - rejected.count,
     rejected.over, rejected.runs);
 
-export const gotOf = (runs, read) => {
+const gotOf = (runs, read) => {
   const reached = countFigure(REACHED, runs.filter(reachedOn).length, runs.length);
   if (!read) return [reached];
   const held = outcomesOf(runs, read);
@@ -50,7 +50,7 @@ export const gotOf = (runs, read) => {
 /** Medians over one population, the runs of that model, so the row carries the count once, and the
  *  reading's own `unrecognised`: an arm that ran none of a recognised class has a measured nought.
  *  The figure shape is `outcomes.mjs`'s, whose `figure` carries why a null count is not a zero. */
-export const spendOf = (runs, declared, unrecognised = []) => {
+const spendOf = (runs, declared, unrecognised = []) => {
   const held = profileOf(runs, declared);
   return {
     over: runs.length,
@@ -86,7 +86,7 @@ const grouped = (runs, key) => {
 };
 
 /** Largest arm first; `mixed` and `unattributed` keep rows, so the rows add up to the corpus. */
-export const modelRows = (runs, read, declared, unrecognised = []) =>
+const modelRows = (runs, read, declared, unrecognised = []) =>
   [...grouped(runs, (run) => run.model)]
     .map(([model, held]) =>
       ({ model, runs: held.length, spend: spendOf(held, declared, unrecognised), got: gotOf(held, read) }))
@@ -98,7 +98,7 @@ export const modelRows = (runs, read, declared, unrecognised = []) =>
  *  a run that wrote none, or one whose record reached the transcript without the tag that says
  *  which record it is, can be classed from nothing else (ISS-1979). Where neither answers, the run
  *  is at no rung, which is what a run nothing knew the issue of reads as. */
-export const cellFor = (run, complexities) => {
+const cellFor = (run, complexities) => {
   const complexity = complexityOf(run, complexities);
   const off = run.rung === RUNG_UNKNOWN ? rungFrom(complexity) : null;
   return { cell: `${off ?? run.rung}/${complexity}`, offComplexity: Boolean(off) };
@@ -107,7 +107,7 @@ export const cellFor = (run, complexities) => {
 /** How many of this reading's rungs the tracker answered rather than the run — the disclosure that
  *  keeps this verb's cut readable beside `stats runs`, which asks the tracker for no issue and so
  *  classes the same run at no rung. */
-export const rungsOffComplexity = (runs, complexities) =>
+const rungsOffComplexity = (runs, complexities) =>
   runs.filter((run) => cellFor(run, complexities).offComplexity).length;
 
 /** A run at no rung keeps its own row, or the cut comes out short of the corpus it cut; a run of
@@ -142,7 +142,7 @@ export const comparableIn = (cells) => cells.flatMap(({ cell, figures }) =>
       .map((arm) => arm.model).sort())
       .map((pair) => ({ cell, figure, pair }))));
 
-export const SPEND_FIGURES = ["wall", "tool", "calls", "gate", "consult", "recheck"];
+const SPEND_FIGURES = ["wall", "tool", "calls", "gate", "consult", "recheck"];
 
 /* What the floor is asked of: a spend figure's population is the row's run count, an outcome
    figure's its own, and a class never recognised measured nothing, so it stands as no population. */

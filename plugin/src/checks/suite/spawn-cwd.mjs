@@ -30,7 +30,7 @@ const keys = (text, code, edge, end) => {
 };
 
 /** Every top-level piece of a bracketed list, as `[start, end)` into the text it was read from. */
-export const piecesAt = (code, from) => {
+const piecesAt = (code, from) => {
   const out = [];
   let depth = 0;
   let edge = from + 1;

@@ -11,7 +11,7 @@ export const TABLE_ROW_PATTERN = `^${MARGIN}\\|(.*)\\|${MARGIN}$`;
 export const TABLE_SEPARATOR_PATTERN = `^${MARGIN}\\|[\\s:|-]+\\|${MARGIN}$`;
 export const MARKUP_PATTERN = "[*`_>[\\]()]";
 /* A shown line is not a claimed line, and an unclosed fence runs on: docs/cli/the-rung-in-text.md. */
-export const EXAMPLE_PATTERN = [
+const EXAMPLE_PATTERN = [
   String.raw`^[ \t]*(?<wall>(?<bar>\x60|~)\k<bar>{2,})[^\n]*\n[\s\S]*?(?:^[ \t]*\k<wall>\k<bar>*[ \t]*$|$(?![\s\S]))`,
   String.raw`^(?: {4}|\t)[^\n]*$`,
 ].join("|");

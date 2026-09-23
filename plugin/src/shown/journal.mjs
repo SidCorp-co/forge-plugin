@@ -96,7 +96,7 @@ const creditsOf = (session, surface) => folded()[session]?.surfaces?.[surface] ?
 
 export const creditedTo = (session, surface) => new Set(creditsOf(session, surface));
 
-export const creditsFor = (session) => {
+const creditsFor = (session) => {
   const surfaces = folded()[session]?.surfaces ?? {};
   return (surface) => new Set(surfaces[surface] ?? []);
 };

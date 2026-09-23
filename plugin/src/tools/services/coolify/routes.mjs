@@ -55,7 +55,7 @@ const declaredNames = (entry) => [
   ...(entry.body?.props ?? []).map((one) => one.name),
 ];
 
-export const unguarded = (entry) => {
+const unguarded = (entry) => {
   const guarded = new Set((entry.scope ?? []).map((one) => one.param));
   return declaredNames(entry).filter((name) => selects(name) && !guarded.has(name));
 };
@@ -63,7 +63,7 @@ export const unguarded = (entry) => {
 /* Two ways to be tied to the pin: it only reads and answers with a list the pin cuts down, or its
    selectors are guarded first. The method is half the test — one that acts has already acted by
    the time there is anything to filter, which `deploy --tag` would be given a `returns`. */
-export const filtered = (entry) => entry.method === "GET" && Boolean(entry.returns);
+const filtered = (entry) => entry.method === "GET" && Boolean(entry.returns);
 
 export const holes = (entry) => (filtered(entry) ? [] : unguarded(entry));
 

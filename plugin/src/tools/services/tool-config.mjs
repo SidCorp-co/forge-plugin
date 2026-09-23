@@ -8,7 +8,7 @@ import { coolifyTarget } from "./coolify/config.mjs";
 import { onTracker } from "./coolify/chosen-route.mjs";
 
 
-export const CONFIGURED = "configured";
+const CONFIGURED = "configured";
 export const UNCONFIGURED = "unconfigured";
 export const TOOL_STATES = [CONFIGURED, UNCONFIGURED];
 
@@ -61,7 +61,7 @@ const tried = (read, fallback) => {
   }
 };
 
-export const toolState = (verb) => {
+const toolState = (verb) => {
   const row = rowFor(verb);
   if (!row) return null;
   return tried(row.held, false) ? CONFIGURED : UNCONFIGURED;

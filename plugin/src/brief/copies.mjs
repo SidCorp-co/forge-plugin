@@ -13,7 +13,7 @@ import { freezesSession, pluginCopy } from "../tools/plugin-copy.mjs";
 const IN_REPOSITORY = "plugin/";
 
 /** When the process `pid` started, or null where `ps` gives no reading of it. */
-export const startedAt = (pid) => {
+const startedAt = (pid) => {
   if (!/^\d+$/u.test(String(pid ?? ""))) return null;
   const run = spawnSync("ps", ["-o", "lstart=", "-p", String(pid)],
     { encoding: "utf8", env: { ...process.env, LC_ALL: "C" } });
@@ -43,7 +43,7 @@ const bytes = (path) => {
 };
 
 /** Every file that differs between two copy directories, either side's alone included. */
-export const movedBetween = (was, now) => {
+const movedBetween = (was, now) => {
   const names = [...new Set([...filesIn(was), ...filesIn(now)])].sort();
   return names.filter((name) => {
     const [left, right] = [bytes(join(was, name)), bytes(join(now, name))];

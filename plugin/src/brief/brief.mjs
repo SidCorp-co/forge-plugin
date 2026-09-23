@@ -53,7 +53,7 @@ const copyLines = (copies) => {
 };
 
 /** The brief itself, off readings already taken, so a case can hand it any it likes. */
-export const briefText = ({ key, target, others, base, copies }) => [
+const briefText = ({ key, target, others, base, copies }) => [
   ...(key ? [key] : []),
   ...(target ? treeLines(target) : []),
   ...(others

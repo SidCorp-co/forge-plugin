@@ -26,7 +26,7 @@ export const besideGit = (from, name) => {
   return dir ? join(dir, name) : null;
 };
 
-export const heldBesideGit = (from, name) => {
+const heldBesideGit = (from, name) => {
   const at = besideGit(from, name);
   return at ? (answered(() => readFileSync(at, "utf8"))?.trim() || null) : null;
 };

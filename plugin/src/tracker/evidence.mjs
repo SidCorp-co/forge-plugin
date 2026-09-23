@@ -16,7 +16,7 @@ export const uploaded = (answer) => (urlBearing(answer) ? answer.url : answer);
 const shellArg = (value) => `'${String(value).replaceAll("'", `'\\''`)}'`;
 
 /** A target with no route this credential reaches, named rather than left to the tracker's 401. */
-export const targetRefusal = (target) =>
+const targetRefusal = (target) =>
   `${target} is not a target this CLI uploads to, and nothing was sent. It uploads to `
   + `${declaredFor("forge_uploads", "targets").join(" and ")}. A session's attachment route takes a `
   + `browser session or a device token, neither of which is the credential here.`;

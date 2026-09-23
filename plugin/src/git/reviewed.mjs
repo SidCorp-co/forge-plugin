@@ -19,7 +19,7 @@ export const readingTitle = (from, to) =>
 
 /** A title holds this debt where the range it names opens at the mark: one that ends there is the
  *  previous batch, read already, and answering with it leaves this range no row and no route to one. */
-export const readingCovers = (title, from) => String(title ?? "").includes(`${at(from)}..`);
+const readingCovers = (title, from) => String(title ?? "").includes(`${at(from)}..`);
 
 const NOT_A_READING = "dropped";
 const UNREAD = "the search for the issue holding this mark's reading";
@@ -43,7 +43,7 @@ const sourced = (key, value) =>
   ({ value, from: projectReview()[key] === undefined ? FROM_PLUGIN : fromProject() });
 
 /** An absent `review`, a null one and an empty one read alike, so the question is which key is set. */
-export const reviewDeclared = () => {
+const reviewDeclared = () => {
   const given = projectReview();
   return given.lines !== undefined || given.paths !== undefined;
 };
@@ -76,7 +76,7 @@ const pathsRefusal = (given) => {
 export const reviewRefusalOf = (given) =>
   linesRefusal(given?.lines) || pathsRefusal(given?.paths) || null;
 
-export const reviewRefusal = () => reviewRefusalOf(projectReview());
+const reviewRefusal = () => reviewRefusalOf(projectReview());
 
 export const reviewLines = () => {
   const given = projectReview().lines;

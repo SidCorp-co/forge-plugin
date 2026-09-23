@@ -14,7 +14,7 @@ import { specTreeAt } from "../spec/tree.mjs";
 const GOAL_PREFIX = "G";
 
 /** Every goal the file names, spelled as the tree spells it, sub-number and all. */
-export const goalsIn = (text) =>
+const goalsIn = (text) =>
   [...new Set(identifiersIn(text).filter((one) => one.prefix === GOAL_PREFIX).map((one) => one.id))].sort();
 
 /** The goals it names that this project's tree holds no clause for, keyed as `checkClaims` keys its

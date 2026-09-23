@@ -48,7 +48,7 @@ export const ROUTELESS = {
    The tracker serves it, and its answer is chosen from a listing whose own read does not answer for
    a healthy binding — so serving it would ask a caller for an image tag nothing here can list, and
    the route refuses a tag the platform does not list by name. */
-export const HELD_BACK = {
+const HELD_BACK = {
   rollback: {
     why: "it names an image tag, and the listing that tag has to be chosen from does not answer",
     instead: "forge coolify rollback-images, to read whether that listing has started answering",
@@ -57,7 +57,7 @@ export const HELD_BACK = {
 
 /** Shared by both ways, being about the instance credential itself rather than about a platform
  *  call: one saves it, one says what resolved. */
-export const BOTH_WAYS = ["login", "accounts"];
+const BOTH_WAYS = ["login", "accounts"];
 
 /** What the tracker's way answers to, which is what its usage row offers, what a help ask resolves
  *  against and what a refusal lists. One list, because a usage row built apart from the refusal's is

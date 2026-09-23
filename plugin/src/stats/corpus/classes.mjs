@@ -26,7 +26,7 @@ const WHOLE_SET = /--send[= \t]+bodies\b/u;
  *  own row rather than that claim's, the claim opening a run and this checkpoint ending one. The
  *  flag is read here so no second reader spells it. */
 export const READY_CLASS = row("claim", "ready");
-export const READY = /--ready\b/u;
+const READY = /--ready\b/u;
 
 /* Minting the name, apart from whichever pattern found it, so a lookup of a verb's help is filed in the row that verb's own work is filed in rather than in one spelled beside it. */
 const classFor = (verb, slug, shell) => {

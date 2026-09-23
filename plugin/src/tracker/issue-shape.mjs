@@ -450,7 +450,7 @@ export const asksOf = ({ title, body, kind = null }) => {
 };
 
 /** The keys a body names. Apart from `asksOf`: ranking a head reads the place and the seed, never these. */
-export const keysOf = (body) => [...new Set(keysIn(body))];
+const keysOf = (body) => [...new Set(keysIn(body))];
 
 /** Every gap the body decides with no tracker read, and the one line a shortfall no gap refuses
  *  earns. `fix` is returned rather than refused: what clears it is the route the caller named.

@@ -33,7 +33,7 @@ export const ANGLES = {
 
 /* Bumped by hand; the digest catches the edits nobody bumped for. Both ride every row, so a prompt
    change is a line in the stats rather than a thing somebody remembers doing. */
-export const PROMPT_VERSION = 4;
+const PROMPT_VERSION = 4;
 
 export const promptMark = (system) => ({ v: PROMPT_VERSION, sha: digest(String(system ?? "")) });
 

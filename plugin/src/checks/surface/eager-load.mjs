@@ -134,7 +134,7 @@ export const HEAVY = [
 ];
 
 /** The chain that reached `target`, root first: the reader is owed the line to remove and not only the arrival. */
-export const chainTo = (by, target) => {
+const chainTo = (by, target) => {
   if (!by.has(target)) return null;
   const held = [];
   for (let at = target; at; at = by.get(at)) held.unshift(at);

@@ -139,7 +139,7 @@ const inserted = (text, open, key, value) => {
 
 /** The file's text with the key this path names set, every other byte as it was, or null where the
  *  document cannot be walked there. An absent path is created as far down as it is missing. */
-export const withPath = (text, segments, value) => {
+const withPath = (text, segments, value) => {
   const held = pathSpan(text, segments);
   if (!held) return null;
   if (held.left) {
@@ -369,7 +369,7 @@ const define = (at, key, value) =>
   Object.defineProperty(at, key, { value, writable: true, enumerable: true, configurable: true });
 
 /** The parsed document this write would leave, or the key on the way to it that holds something other than a table — the case the text walk refuses too, read first so the judgement comes before it. */
-export const settingTo = (parsed, segments, value) => {
+const settingTo = (parsed, segments, value) => {
   const held = structuredClone(parsed);
   let at = held;
   for (const [index, key] of segments.slice(0, -1).entries()) {
@@ -384,7 +384,7 @@ export const settingTo = (parsed, segments, value) => {
   return { parsed: held };
 };
 
-export const readAt = (parsed, segments) => segments.reduce((at, key) => ownAt(at, key), parsed);
+const readAt = (parsed, segments) => segments.reduce((at, key) => ownAt(at, key), parsed);
 
 /** The write spelled as it is typed, so a row offering one key and the usage naming any of them
  *  cannot drift apart. */

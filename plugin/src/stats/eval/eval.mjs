@@ -183,7 +183,7 @@ const rungsBack = (profile) => {
  *  then compares against a window read now rather than reporting every rung as newly arrived. Every
  *  profile the record holds is turned over, its own and each group's, because `--json` prints the
  *  whole of a stored window and a spelling nothing reads is still a spelling something emitted. */
-export const readBack = (record) => {
+const readBack = (record) => {
   if (!record?.now?.profile) return record ?? null;
   const groups = record.now.groups?.map((one) => ({ ...one, profile: rungsBack(one.profile) }));
   return {

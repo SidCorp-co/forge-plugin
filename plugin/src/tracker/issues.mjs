@@ -7,7 +7,7 @@ import { readsAsDate, scoped } from "./rest.mjs";
 export const DEFAULT_LIMIT = 200;
 export const MAX_LIMIT = 200;
 
-export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
 
 const KEY = String.raw`ISS-\d+`;
 const CITED = /^[A-Za-z]+(?:-\d+)+$/u;

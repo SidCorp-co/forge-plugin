@@ -73,9 +73,9 @@ export const eligibilityOf = (row,
  *  holds being its own to carry on with. Listed apart and what a row costs: docs/cli/next.md. */
 export const JUDGING = ["developed"];
 
-export const offersJudging = (policy) => judgementOf(policy) === INDEPENDENT;
+const offersJudging = (policy) => judgementOf(policy) === INDEPENDENT;
 
-export const judgingVerdict = (lease) => {
+const judgingVerdict = (lease) => {
   const taken = leaseOf(lease);
   return ["live", "mine"].includes(stateOf(taken, sessionOf()))
     ? { offerable: false, reason: `lease held by ${describe(taken)}` }

@@ -62,7 +62,7 @@ export const releaseFrom = (config, release = releaseScope()) => ({
 const readable = (policy) => Boolean(policy?.model)
   && (policy.model !== PROMOTE || Boolean(policy.live));
 
-export const UNREAD_CONFIG = "the project config could not be read";
+const UNREAD_CONFIG = "the project config could not be read";
 
 export const unreadFrom = (why) => ({ unread: why, from: CONFIG_SOURCE });
 

@@ -88,7 +88,7 @@ const lastOf = (lines, shape) => {
 /** The line naming the rule a call was refused by, or null where it met none of this plugin's own.
  *  Never the body's first line by default: a `forge` command prints its provenance banner before it
  *  refuses, and reading line one filed 187 of those banners under a row that names no rule. */
-export const refusalIn = (call) => {
+const refusalIn = (call) => {
   const whole = call.body.trim();
   if (!call.error && !ANY_MARKED.test(whole)) return null;
   const lines = whole.split("\n").filter((one) => one.trim());
@@ -109,7 +109,7 @@ export const refusalIn = (call) => {
 /* Three claims, output being no provenance: the line printed, it names a pair the handler routes, and the call's class is that form — `transcripts.mjs` deciding what ran, so a heredoc is stripped and a mention is no command position, judged where every class is. */
 const FORM_SAID = new RegExp(`^${READ_AS} (?<form>\\S+) as forge (?<verb>\\S+)`, "mu");
 
-export const formIn = (call) => {
+const formIn = (call) => {
   const said = FORM_SAID.exec(call.body ?? "")?.groups;
   if (!said || FORMS[said.form]?.verb !== said.verb) return null;
   return call.class === `forge ${said.form}` ? said.form : null;
@@ -199,7 +199,7 @@ const shipsIn = (calls) => {
 };
 
 const NOTE = "forge record note";
-export const NOTE_ORDERS = ["before", "after", "unshipped"];
+const NOTE_ORDERS = ["before", "after", "unshipped"];
 
 /* The split the phase table stopped showing once the note row opened no segment: three answers, so a run that wrote one and reached no landing is a reading rather than a gap. */
 const noteOrder = (calls) => {
@@ -528,7 +528,7 @@ export const profileOf = (runs, declared = null, act = null) => {
   };
 };
 
-export const profileLines = (held, all = false) => [
+const profileLines = (held, all = false) => [
   ...actLines(held.release, held.releaseSaid),
   `wall            ${held.totalMinutes} min in all, median ${held.medianMinutes}/run, longest ${held.longestMinutes}`,
   `where it went   ${held.waitMinutes} min waiting on a tool (${held.waitShare}), `

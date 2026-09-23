@@ -11,7 +11,7 @@ import { askedInSource, shortOfAsk } from "../resolve/flags.mjs";
 import { leaseLandedAs, leaseMismatch, renew } from "../flow/lease.mjs";
 
 const NOTE_HALVES = ["section", "userFacing", "technical"];
-export const MOVED = "SESSION_CONTEXT_MISMATCH";
+const MOVED = "SESSION_CONTEXT_MISMATCH";
 const REFUSED_BODY = "BAD_REQUEST";
 const PROBE = "forge.cas-probe";
 
@@ -53,7 +53,7 @@ export const landedAs = (held, sent) => String(held ?? "").trim() === String(sen
 export const noteLandedAs = (held, sent) =>
   NOTE_HALVES.every((key) => (held?.[key] ?? null) === (sent?.[key] ?? null));
 
-export const storedNotEmpty = (held) => Boolean(String(held ?? "").trim());
+const storedNotEmpty = (held) => Boolean(String(held ?? "").trim());
 
 /* Comparator, cap, gate and renewal are the field's, never a caller's argument, and renewal is what a write here means, so only a row that does not renew says so. Built on first use: `lease.mjs` imports back. A recorded override writes under a row of its own, the tracker judging a field this CLI declares no cap and no comparator of, so what came back is compared with what was sent and nothing else. */
 let rows = null;
@@ -112,7 +112,7 @@ export const capChecked = (field, caps, sent, given, refuse, row) => {
    no column for is judged on the way back, where its answer is two reasons and neither is ours (ISS-931). */
 const UNRECOGNISED = /Unrecognized key: "([^"]+)"/u;
 
-export const unrecognisedRefusal = (refused, ref) => {
+const unrecognisedRefusal = (refused, ref) => {
   const name = UNRECOGNISED.exec(String(refused ?? ""))?.[1];
   if (!name) return null;
   return `${name} is not a field the tracker's update route takes, so it refused the call and `

@@ -7,7 +7,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 
-export const profilePath = () =>
+const profilePath = () =>
   process.env.CLAUDE_PROXY_ENV || join(homedir(), ".claude", "claude-proxy.env");
 
 const ENV_LINE = /^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$/;

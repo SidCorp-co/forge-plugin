@@ -189,12 +189,12 @@ export const nextLeft = (context) => {
 };
 
 /* What the field keeps once the holder comes off, and the mark saying the holder came off on purpose. Without the mark a field a release emptied is the field a run that died leaves — three readings a person has to pick between rather than one write's own doing — so a take reaches a released field wherever the issue stands, while an unmarked empty one is refused past the dispatch statuses exactly as it was. A holder back on the row means a later take wrote over the mark, which is why the two are read together and never apart (ISS-1617). */
-export const remnantOf = (context) => {
+const remnantOf = (context) => {
   const held = context?.[KEY];
   return held && typeof held === "object" ? held : null;
 };
 
-export const RELEASED = "released";
+const RELEASED = "released";
 
 export const releasedIn = (context) => {
   const held = remnantOf(context);
@@ -311,7 +311,7 @@ const WRITE_REFUSAL = {
 export const writeRefusal = (state, ref, lease) => WRITE_REFUSAL[state](ref, lease);
 
 /** The word a take made by a payload write keeps in the claim history, which no other claim writes: a first claim typed by hand is `claim` and an anomaly taken past the dispatch statuses is `unheld`, so a reader counting how an issue was picked up can tell a run that took it from a write that did. */
-export const TAKEN_BY_WRITING = "write";
+const TAKEN_BY_WRITING = "write";
 
 /** And the word both a typed reclaim and a write that reclaims for itself keep, which is what the crash park counts. */
 export const RECLAIM = "reclaim";
@@ -330,7 +330,7 @@ export const freeRefusal = (ref, status, context = null) => {
 };
 
 /* Said rather than refused, on ISS-65's shape and for the emptier state (ISS-1260): there a lease existed and lapsed, here no run ever held the issue, and what separates two callers is the tracker's compare either way rather than the order two commands were sent in. What it names is the duration, because a lease nobody asked for is one nobody would otherwise know the length of. */
-export const tookByWriting = (ref, lease, left = null) =>
+const tookByWriting = (ref, lease, left = null) =>
   `${ref} carried no lease and this write took one: ${describe(lease)}. Nobody held the issue, so the `
   + `claim the refusal here used to name is one this write could make, and it made it. The lease `
   + `covers the write and not this run: it goes back when the write lands, because a call that had to `
@@ -340,7 +340,7 @@ export const tookByWriting = (ref, lease, left = null) =>
   + ` Work that follows this says so by claiming, which is the lease that is kept:\n  forge claim ${ref}`;
 
 /* The same sentence one rung down, where the field holds a lease rather than nothing (ISS-1660): a bare `forge claim` grants the reclaim outright at this age, the lapse outlasting the duration the holder itself named, so the write makes that claim. It names the run it came off and how long ago that lease ran out, because this caller reads no refusal before the write and is the one caller a takeover is invisible to. */
-export const reclaimedByWriting = (ref, lease, over, { gone = false, handed = false, now = sharedNow() } = {}) =>
+const reclaimedByWriting = (ref, lease, over, { gone = false, handed = false, now = sharedNow() } = {}) =>
   `${ref} was held by a lease ${gone
     ? "whose holder the record proves gone"
     : `that ran out ${agoIn(now - expiryOf(over))}`} and this write `
@@ -449,13 +449,13 @@ const OWED = new Map();
 export const oweRelease = (documentId, ref) => OWED.set(documentId, { ref, turn: true });
 
 /* What a release says and what it writes. The sentence is for whoever reads the terminal the run ran in, and it is two sentences because the two releases are two different facts: one lease was taken by the write that is now landing, the other was claimed by hand and covered a turn the caller has just ended, and a run told the first about the second would read that its own claim had been a write's doing. The value takes the holder off so `leaseOf` reads no lease and records the moment so the field is not the one a run that died leaves, touching nothing else — the line the write left and every row of the claim history are the record of what happened here, and a release is not a reclaim and adds no row of its own. */
-export const releasedSaid = (ref, turn = false) =>
+const releasedSaid = (ref, turn = false) =>
   `${ref} is free again: ${turn
     ? `the turn this run held is over, and the lease it was held under went back with it`
     : `the lease this write took covered the write, and the write has landed`}. `
   + `Nothing holds the issue, so the run after it claims with no wait.`;
 
-export const releasedWrite = (context, at = sharedStamp()) => ({
+const releasedWrite = (context, at = sharedStamp()) => ({
   ...(context && typeof context === "object" ? context : {}),
   [KEY]: { ...(remnantOf(context) ?? {}), holder: "", [RELEASED]: at },
 });

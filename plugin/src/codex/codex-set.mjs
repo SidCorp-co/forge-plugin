@@ -30,7 +30,7 @@ export const relsOf = (root, named) => {
  *  neither is one nobody asked for. `missing` covers a deletion and an unreadable file too, so `nothingToShow` — a heading handed over with none of the file under it — asks the disk about absence (ISS-703). */
 export const noDiffIn = (diff) => !diff?.text && !diff?.error;
 
-export const nothingToShow = (root, part) => absentFrom(root, part.rel) && noDiffIn(part.diff);
+const nothingToShow = (root, part) => absentFrom(root, part.rel) && noDiffIn(part.diff);
 
 /** The parts anything can be shown of, what leaves with nothing, and the lines saying so. With no
  *  anchor no diff was collected, so absence alone cannot tell a phantom from a tracked deletion:

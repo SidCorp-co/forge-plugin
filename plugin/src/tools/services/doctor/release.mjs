@@ -10,7 +10,7 @@ import { hereCopy, pluginCopy } from "../../plugin-copy.mjs";
 const LABEL = "newest release";
 const REMOTE = "origin";
 /* Long enough for a round trip to a git host on a slow link, short enough that a report nobody is waiting on cannot hold up the phase that runs it. */
-export const MS = 5000;
+const MS = 5000;
 
 const OWN = new URL("../../../../.claude-plugin/plugin.json", import.meta.url);
 
@@ -29,7 +29,7 @@ const above = (one, two) => {
 
 /** The directory this plugin's marketplace is registered from, and the version that directory holds:
  *  a registration is what `claude plugin install` reads, so it is the tree an update would copy. */
-export const registeredSource = (home) => {
+const registeredSource = (home) => {
   const name = readJson(OWN)?.name;
   const known = readJson(join(home, ".claude", "plugins", "known_marketplaces.json"));
   if (!name || !known || typeof known !== "object") return null;

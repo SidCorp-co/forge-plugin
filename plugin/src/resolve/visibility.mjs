@@ -195,9 +195,7 @@ const recorded = () => {
   return { gates, checkedAt };
 };
 
-export const knownGates = recorded;
 export const isGated = (tool) => Boolean(recorded().gates[tool]);
-export const gatedTools = () => new Set(Object.keys(recorded().gates).filter(isGated));
 /* One key over three states, why a bare list of names still reads and why it reads `hidden`: docs/cli/withholding-a-verb.md. */
 export const HIDDEN = "hidden";
 export const OFF = "off";
@@ -211,7 +209,7 @@ export const verbStates = () => {
 };
 
 export const stateOf = (verb) => verbStates()[verb] ?? null;
-export const withheldVerbs = () => new Set(Object.keys(verbStates()));
+const withheldVerbs = () => new Set(Object.keys(verbStates()));
 
 /* A job offers this whether it names it or not: a machine whose report verb has gone missing has no
    surface left allowed to say what else has. The bulk write alone is bound; `--hide` is not. */
@@ -333,7 +331,7 @@ export const gateKey = (row) => {
 };
 
 /* One spelling everywhere, `<tool>.<action>`: a claim writes the bare action under the tool its row owns, or the whole key where the route is another tool's, and two spellings of one route is how a claim stops matching. */
-export const routeKey = (owns, action) => (String(action).includes(".") ? String(action) : `${owns}.${action}`);
+const routeKey = (owns, action) => (String(action).includes(".") ? String(action) : `${owns}.${action}`);
 
 /* The routes this verb is the ROUTE for, not every route it spends; wrapped.test.mjs keeps the two apart. */
 export const wrapsOf = (row) => {

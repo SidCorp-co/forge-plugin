@@ -114,7 +114,7 @@ export const repeatedFlag = (verb, flag, kept, given) =>
   + `value. Ask for the one you meant: \`${flag} <value>\`, once. Nothing was sent.`;
 
 /* Which of a verb's flags carries a credential is the verb's own declaration, beside `boolean` and `hidden` and for the same reason: a second list here would drift from the row the caller was shown. A refusal naming the flag is the whole of what a caller needs, and both values printed is a token in a transcript. */
-export const HIDDEN_VALUE = "***";
+const HIDDEN_VALUE = "***";
 
 export const flags = (argv, verb, boolean = [], row = {}) => {
   strangerIn(argv, verb, { ...row, boolean });
@@ -139,7 +139,7 @@ export const flags = (argv, verb, boolean = [], row = {}) => {
 };
 
 /* First or not at all, unless the verb takes a subject, in which case the slot after one too — further along it is an argument, and help there is a write that never ran. Their home imports nothing, which is what lets the second CLI spend them: README, Layout. */
-export { HELP_WORDS, helpAskedOf, wantsHelp } from "./help-word.mjs";
+export { helpAskedOf, wantsHelp } from "./help-word.mjs";
 
 /* What the caller asked for, counted where argv is read, so the layer that reports on the work answers to the call rather than to its own input: a layer given a narrowed instruction cannot tell it was narrowed (ISS-945). `wordFor` is the ask's own vocabulary — how one thing a reporting layer holds is put into the words the ask was written in — so neither reporting layer chooses between the two. */
 const askedFor = (verb, flag, items) => Object.freeze({

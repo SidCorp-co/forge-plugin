@@ -8,10 +8,10 @@ import { fail } from "../resolve/settings.mjs";
 export const EFFORTS = ["minimal", "low", "medium", "high"];
 export const defaultEffort = () => userConfig().codex?.effort || "medium";
 
-export const DEFAULT_ROUNDS = 3;
-export const DEFAULT_ROUNDS_MAX = 5;
-export const DEFAULT_SMALL_LINES = 40;
-export const DEFAULT_LARGE_LINES = 400;
+const DEFAULT_ROUNDS = 3;
+const DEFAULT_ROUNDS_MAX = 5;
+const DEFAULT_SMALL_LINES = 40;
+const DEFAULT_LARGE_LINES = 400;
 const FLOOR = 2;
 
 const stepped = (level, by) => {
@@ -103,7 +103,7 @@ export const disagreement = (effort, model) => {
 
 /* First person, because "a guard cannot read a stale value" is a finding and not a short review. Never
    a CANNOT TELL either: that ruling is what the grammar asks for. docs/cli/codex-the-consult.md. */
-export const INCOMPLETE =
+const INCOMPLETE =
   /\b(?:I|we)\s+(?:could not|couldn't|cannot|can't|was unable to|were unable to|am unable to|did not get to)\s+(?:\w+\s+){0,6}?(?:check|verify|verified|confirm|read|inspect|examine|run|open|trace)\b|\b(?:no|without)\s+(?:further|more|additional|remaining)\s+tool|(?:tool|repository)\s+(?:calls?|access|budget)\s+(?:\w+\s+){0,3}?(?:exhausted|ended|spent|gone|capped|withdrawn)|ran out of tool|could not be (?:checked|verified|confirmed|read) (?:here|within|because)/i;
 
 export const incompleteIn = (reply) => INCOMPLETE.test(String(reply ?? ""));

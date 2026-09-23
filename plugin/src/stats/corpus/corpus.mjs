@@ -6,7 +6,7 @@ import { homedir, tmpdir } from "node:os";
 import { AGENTS_DIR, AGENT_FILE, TASKS_DIR, TASK_FILE } from "../../host/layout.mjs";
 import { canonical } from "../../resolve/canonical.mjs";
 
-export const transcriptBase = () => join(tmpdir(), `claude-${process.getuid?.() ?? 0}`);
+const transcriptBase = () => join(tmpdir(), `claude-${process.getuid?.() ?? 0}`);
 
 export const slugFor = (directory) => directory.replaceAll(/[^a-zA-Z0-9]/gu, "-");
 

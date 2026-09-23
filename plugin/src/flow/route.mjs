@@ -86,7 +86,7 @@ const NOTHING_LANDED = "has no merged mark, so nothing landed, and no park recor
   + "on the page names the status a drop left, so nothing says where a reopen goes back to.";
 const behindTheCut = (view) => (view.cut ? `${view.cut} The record that would say may be behind the cut. ` : "");
 
-export const reopenForm = (ref) => `forge advance ${ref} --reopen --why "<what the finding is>"`;
+const reopenForm = (ref) => `forge advance ${ref} --reopen --why "<what the finding is>"`;
 
 /** Why one may not be written, before the status moves: what cannot be routed out of is never entered. */
 export const reopenProblem = (view, ref) => {
@@ -335,7 +335,7 @@ export const owedIn = (view, ref) => {
 
 /* Where the issue stands, in one line and one place — `advance` heads its answer with it, `resume`
    prints it, a record write ends with it (ISS-285); a refusal gives its first line, not the command. */
-export const owedLine = (view, ref, held) => {
+const owedLine = (view, ref, held) => {
   if (held.refused) return held.refused.split("\n")[0].replace(/:$/u, ".");
   const at = `${ref} is ${view.issue.status}`;
   if (!held.next) return `${at}; nothing advances from it.`;

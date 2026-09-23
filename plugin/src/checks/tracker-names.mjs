@@ -14,7 +14,7 @@ const COMPLEXITY = "the tracker's complexity";
 const RUNG = "the contract's rung";
 
 /* A third word for one of the two nouns, one row per shape it takes: `band` and `tier` mean nothing else in this CLI and are refused whole, while `size` measures bytes, windows and diffs here, so it is refused by the grammar of the retired mark and the retired flag, and by the word only where the same string already names what it would be a second word for. docs/cli/the-kinds.md. This walk reads sources and not `docs/`, and stays that way: the two documents naming a retired spelling name it as the history a reader needs, and the one rename that did reach a document — `bandFor` — is refused by the identifier rule in `doc-shape.mjs` instead, which asks whether the name exists rather than whether the word is retired (ISS-897). */
-export const ALIASES = [
+const ALIASES = [
   { pattern: /\bbands?\b/iu, meant: COMPLEXITY },
   { pattern: /\btiers?\b|\buntiered\b/iu, meant: RUNG },
   { pattern: /\bsize:\s*(?:trivial|fix|feature)\b/iu, meant: RUNG },

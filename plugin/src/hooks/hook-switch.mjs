@@ -87,7 +87,7 @@ export const hookEvent = (name) => (hookEvents()[name] ?? []).join(", ") || "reg
 
 /* A config that will not parse runs every gate: a failing switch must cost a gate firing, never a
    gate silently gone. */
-export const hooksOff = () => {
+const hooksOff = () => {
   const held = userConfig().hooksOff;
   return new Set(Array.isArray(held) ? held : []);
 };

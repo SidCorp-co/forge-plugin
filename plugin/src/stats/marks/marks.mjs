@@ -84,7 +84,7 @@ export const marksOf = (kind, scope = null, waits) => {
  *  on spreading its reading raw, so the store kept gaining a dead window every hundredth answered
  *  consult while the rule read as kept. A rule every writer has to remember is a rule the next writer
  *  will not (ISS-2106). */
-export const withoutDead = (record) => {
+const withoutDead = (record) => {
   const kept = { ...record };
   delete kept.before;
   delete kept.classes;
@@ -205,8 +205,8 @@ const sameMark = (held, record) =>
   held.kind === record.kind && identityOf(held) === identityOf(record) && (held.scope ?? null) === (record.scope ?? null);
 
 export const WRITTEN = "written";
-export const HELD = "held";
-export const FAILED = "failed";
+const HELD = "held";
+const FAILED = "failed";
 
 /** Appends unless the same reading is held, and says which — written, held or failed. A failed write is said and carried past, as the consult log's is: the mark line it accompanies is worth more than a stats file. The check and the append are one act under the store's own lock: the eval writes a reading as well as the ship now, so two processes crossing one window would otherwise both read no reading and both append one, and a record of this size is far past the bytes a single append is atomic in. */
 export const writeMark = (record, waits) => {

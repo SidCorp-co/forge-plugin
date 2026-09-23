@@ -3,7 +3,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { hookLogPath, hookEntries, jsonLines, logHook } from "./hook-log-file.mjs";
+import { hookLogPath, hookEntries, jsonLines } from "./hook-log-file.mjs";
 import { readAction } from "../../tracker/issue-read.mjs";
 import { didYouMean } from "../../suggest.mjs";
 import { HOOKS_DIR, hookEvent, hookNames, offNow, setHook } from "../hook-switch.mjs";
@@ -11,7 +11,7 @@ import { fail } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
 import { helpOf } from "../../resolve/visibility.mjs";
 
-export { hookLogPath, hookEntries, jsonLines, logHook };
+export { hookLogPath, hookEntries, jsonLines };
 
 const TAIL = 20;
 

@@ -8,7 +8,7 @@ import { POSITIONS, atRank } from "./angles.mjs";
  *  the rung is the kind of work the method ran at, the model is who ran it. Nothing else on a run is
  *  fixed before the run begins, and a covariate chosen after the outcome is a covariate that can be
  *  chosen for its answer. */
-export const COVARIATES = {
+const COVARIATES = {
   rung: { asks: "the rung each run ran at", of: (run) => run.rung },
   model: { asks: "the model each run ran on", of: (run) => run.model },
 };
@@ -140,7 +140,3 @@ export const mixLines = (readings) => readings.flatMap((one) => [
     : "no adjacent position of this corpus yielded a distance at these two sizes"}`,
   `  ${"holds".padEnd(ROW)}${one.holds ? mixWhy(one) : "this covariate holds nothing back, which establishes no comparability of its own"}`,
 ]);
-
-/** The shipped set, for the reading that judges a change. A caller naming its own covariates would be
- *  an open set wearing a closed one's name, so nothing takes one. */
-export const COVARIATE_NAMES = NAMES;
