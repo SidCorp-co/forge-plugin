@@ -6,7 +6,8 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { fakeTracker, tempRoom } from "./fixtures.mjs";
+import { fakeTracker, projectRoom, ranAsync, tempRoom } from "./fixtures.mjs";
+import { OWN } from "./fixtures/own-project.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
@@ -249,12 +250,18 @@ const PROBES = [
   ["POST", "/api/projects"],
 ];
 
-const asked = async (server, [method, path]) => {
+const asked = async (server, [method, path, body = JSON.stringify({ probe: true })]) => {
   const sent = method === "GET" || method === "DELETE"
     ? { method }
-    : { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ probe: true }) };
-  const got = await fetch(server.url.replace(/\/mcp$/u, "") + path, sent);
-  return { status: got.status, text: await got.text() };
+    : { method, headers: { "Content-Type": "application/json" }, body };
+  /* Bounded, so a request the fixture leaves open is one probe that failed rather than a case that
+     never returns; a fixture answers in milliseconds, and the bound is for a request it never will. */
+  try {
+    const got = await fetch(server.url.replace(/\/mcp$/u, "") + path, { ...sent, signal: AbortSignal.timeout(5_000) });
+    return { status: got.status, text: await got.text() };
+  } catch (lost) {
+    return { status: 0, text: `no answer: ${lost.message}` };
+  }
 };
 
 /* One route has two readers and only one of them answers per tracker, so the sweep runs once
@@ -264,12 +271,13 @@ const EXCLUSIVE = ["forge_projects.get", "forge_projects.read"];
 
 /* Every probe against a tracker whose every handler failed, and what came back that `reads` will
    not take as that failure reaching the caller. */
-const swallowedBy = async (answer, reads) => {
+const swallowedBy = async (answer, reads, { handlersOf = failing, unasked } = {}) => {
   const out = [];
   for (const shut of EXCLUSIVE) {
-    const handlers = failing(answer);
+    const handlers = handlersOf(answer);
     delete handlers[shut];
-    const server = await fakeTracker({ answer: handlers });
+    const server = await fakeTracker({ answer: handlers, ...(unasked?.(shut) ? { unasked: unasked(shut) } : {}) });
+    server.unref();
     for (const probe of PROBES) {
       const got = await asked(server, probe);
       if (!reads(got)) {
@@ -309,6 +317,46 @@ test("a 200 that is not a record reaches the caller whichever route answered it"
     (got) => got.status === 200 && got.text === "<html>502</html>");
   assert.deepEqual(swallowed, [], `${swallowed.length} route(s) built a JSON envelope out of a body that is not a `
     + `record, which reads as the tracker answering: ${swallowed.join("; ")}`);
+});
+
+/* A handler that throws, where the tracker would have answered: the request is left open unless the
+   fixture answers the throw, and the verb waiting on it hangs rather than fails (ISS-122). */
+const throwing = () => Object.fromEntries(TOOLS.map((name) => [name, () => {
+  throw new Error(`the ${name} stub broke`);
+}]));
+const THREW = /^\{"code":"FIXTURE_THREW","message":"fakeTracker threw answering (forge_[\w.]+) at [A-Z]+ \/\S+: the \1 stub broke"\}$/u;
+
+test("a handler that throws is answered with a 500 naming the fixture, the tool and the throw, whichever route reached it", { timeout: 30_000 }, async () => {
+  /* The project row asks the configuration first, so where that throws the detail's handler is never
+     reached: it is registered on purpose, the way a throwing map registers every tool. */
+  const swallowed = await swallowedBy(null, (got) => got.status === 500 && THREW.test(got.text),
+    { handlersOf: throwing, unasked: (shut) => (shut === "forge_projects.get" ? null : ["forge_projects.get"]) });
+  assert.deepEqual(swallowed, [], `${swallowed.length} route(s) did not answer a handler's throw as a 500 naming `
+    + `the fixture, the tool and the message, so a case reaching one waits instead of failing: ${swallowed.join("; ")}`);
+});
+
+test("a body the fixture cannot read is answered with a 500 that says no tool was reached yet", { timeout: 30_000 }, async () => {
+  const server = await fakeTracker({});
+  const got = await asked(server, ["POST", "/api/issues/u1/comments", "{"]);
+  server.close();
+  assert.equal(got.status, 500, got.text);
+  assert.match(got.text, /fakeTracker threw answering no tool yet at POST \/api\/issues\/u1\/comments: .*JSON/u);
+});
+
+test("a verb spawned against a handler that throws fails within seconds and prints why", { timeout: 30_000 }, async () => {
+  const server = await fakeTracker({ answer: { forge_issues: throwing().forge_issues } });
+  /* A short wait per attempt, so a request the fixture leaves open fails this case on the message
+     rather than holding it for the transport's whole deadline. */
+  const config = join(server.env.XDG_CONFIG_HOME, "forge", "config.json");
+  writeFileSync(config, JSON.stringify({ ...JSON.parse(readFileSync(config, "utf8")), waitSeconds: 2 }));
+  const room = projectRoom(tempRoom("fixture-threw-"), server.env.XDG_CONFIG_HOME, { slug: OWN.slug });
+  const run = await ranAsync(join(ROOT, "plugin", "bin", "forge"), ["issue", "ISS-1"], server.env, room);
+  server.close();
+  assert.notEqual(run.status, 0, run.stdout);
+  assert.match(run.stderr, /fakeTracker threw answering forge_issues at GET \/\S+: the forge_issues stub broke/u);
+  /* Fast is read off what the transport says rather than off a clock: a request left open is an
+     attempt that ran out of its wait, and no attempt here may have. */
+  assert.doesNotMatch(run.stderr, /ran out after|did not answer/u, "every attempt was answered rather than waited out");
 });
 
 /* A handler map is read by name, so a key no route looks up is answered by the fixture's own default
