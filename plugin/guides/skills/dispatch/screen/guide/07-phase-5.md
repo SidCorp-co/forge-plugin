@@ -1,10 +1,10 @@
 ## Phase 5 — Dispatch through a role
 
-One call per run, naming the role rather than a general agent with a model typed in beside it. The
-role decides the model, the effort and the tools; the message carries Phase 4's three answers, the
-issue key, and nothing else. Which roles this copy ships, and whether the copy a dispatch would load
-ships the same ones, is what `forge doctor` answers — a role name that has not reached the loaded
-copy will not resolve.
+Make one call per run, naming a role rather than a general agent with a model typed in beside it.
+The role decides the model, the effort and the tools. The message is what `forge brief` printed for
+that run, whole and unchanged. The hook refuses any other message. `forge doctor` answers which roles
+this copy ships, and whether the copy a dispatch would load ships the same ones: a role that has not
+reached the loaded copy will not resolve.
 
-A standing rule a checker already enforces does not go in the message. The checker is its one home,
-and a rule stated twice is one that will be true in one place and stale in the other.
+If a run seems to need something the brief does not carry, file that against the method or the verb.
+It never goes into the message.

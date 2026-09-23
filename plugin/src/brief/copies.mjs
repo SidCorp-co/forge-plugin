@@ -51,12 +51,12 @@ export const movedBetween = (was, now) => {
   });
 };
 
-/** The two copies and what separates them; `loaded` is null with the reason it could not be read. */
-export const copiesFor = (pid = process.env.CLAUDE_PID) => {
+/** The two copies and what separates them, or `unread` saying why they could not be read. `began` is
+ *  when the dispatching session's process started, which a case hands in rather than a process. */
+export const copiesFor = (began = startedAt(process.env.CLAUDE_PID)) => {
   const root = cacheRoot();
   const installed = pluginCopy()?.installed ?? null;
   if (!root || !installed) return { unread: "no install record on this machine names this plugin" };
-  const began = startedAt(pid);
   if (began === null) return { installed, unread: "the dispatching session's process start could not be read" };
   const copies = installedCopies(root);
   const loaded = copyAt(copies, began);
