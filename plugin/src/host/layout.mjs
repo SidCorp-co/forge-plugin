@@ -2,8 +2,7 @@
    So `form` compiles each matcher out of the very parts its composer joins, and a rename of either moves both directions or neither (ISS-1678). */
 import { basename, join } from "node:path";
 
-const ESCAPED = /[.*+?^${}()|[\]\\]/gu;
-const pattern = (part) => part.replace(ESCAPED, "\\$&");
+import { escaped as pattern } from "../markdown.mjs";
 
 export const form = (head, tail) => ({
   of: (id) => `${head}${id}${tail}`,

@@ -3,6 +3,7 @@ import { ANGLES } from "../codex-api.mjs";
 import { HUMAN_REF } from "../../tracker/issues.mjs";
 import { jsonlBack, jsonlMark } from "../../hooks/log/hook-log-file.mjs";
 import { masked } from "../../hooks/log/scrub.mjs";
+import { escaped } from "../../markdown.mjs";
 import { fenceMarked } from "../../prose.mjs";
 import { pathed } from "../../hooks/shell-spans.mjs";
 import { median } from "../../stats/median.mjs";
@@ -84,7 +85,7 @@ export const historyFor = (entries, root, pairs = HISTORY_PAIRS, rels = []) => {
 
 /* Whose review it is, spelled as the prompt spells it, is all that may stand in front of a ruling or ahead
    of the block. `Previous answer: REFUTED; my ruling is CANNOT TELL` is why prose may not. */
-const ANGLE_NAMES = Object.values(ANGLES).map((one) => one.split(" — ")[0].replace(/[/\\^$*+?.()|[\]{}]/gu, "\\$&")).join("|");
+const ANGLE_NAMES = Object.values(ANGLES).map((one) => escaped(one.split(" — ")[0])).join("|");
 const ANGLE_RUN = `(?:${ANGLE_NAMES})(?:[ \t]*[/&+,][ \t]*(?:${ANGLE_NAMES}))*`;
 const ANGLE_LABEL = new RegExp(`^${ANGLE_RUN}$`, "iu");
 const LABEL = /^ {0,3}(?:#{1,6}[ \t]+|\*\*)([^*\n]+?)(?:\*\*)?[ \t]*$/u;

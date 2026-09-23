@@ -8,6 +8,7 @@ import { commentPage, creditAfter } from "../../tracker/comments.mjs";
 import { isCommit } from "../../tracker/evidence.mjs";
 import { capsOf, lengthOf } from "../../tracker/field-write.mjs";
 import { releasePolicy } from "../../tracker/project-config.mjs";
+import { escaped } from "../../markdown.mjs";
 import { scoped, write } from "../../tracker/rest.mjs";
 import { notAnothers, renew } from "../lease.mjs";
 import { unwrap } from "../machine.mjs";
@@ -122,7 +123,7 @@ const typedProblem = (one, paths, given) => {
 
 /* A whole path or nothing, prefixes included; a trailing dot ends a sentence unless a name follows. Beside the note rather than beside the check that spends it, because the composer asks the same question of the same text before it leaves a path out. */
 export const namesPath = (named, path) =>
-  new RegExp(`(?<![\\w./-])${path.replace(/[$()*+.?[\\\]^{|}]/gu, "\\$&")}(?![\\w/-])(?!\\.\\w)`, "u").test(named);
+  new RegExp(`(?<![\\w./-])${escaped(path)}(?![\\w/-])(?!\\.\\w)`, "u").test(named);
 
 /** The write that names a path the plan does not, spelt once: the mark's own refusal and `developed`'s shortfall both spend it, and two spellings would send a run to two commands. */
 export const correctionForm = (ref, paths) =>
