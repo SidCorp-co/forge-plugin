@@ -92,7 +92,9 @@ export const filed = async (reason, ev, left = remaining()) => {
 /* A refusal before a call refuses all of it, so the `git add` ahead of a refused `git commit` never ran, and a caller re-sending only the refused part finds nothing staged (ISS-329). One command, or one pipeline, needs no telling. It is a fact about this call and not the rule's text, so a repeat the shown ledger cut to one line still carries it, on that same line. */
 const WHOLE = "Nothing in this command ran, the parts before the refused one included, so it is re-sent whole.";
 const refusal = (reason, ev) => {
-  const whole = ev?.tool_name === "Bash" && spans(String(ev.tool_input?.command ?? "")).length > 1;
+  const command = String(ev?.tool_input?.command ?? "");
+  /* A separator at the end opens a span with nothing in it, and `git stash;` is still one command. */
+  const whole = ev?.tool_name === "Bash" && spans(command).filter(({ start, end }) => command.slice(start, end).trim()).length > 1;
   if (!whole) return filed(reason, ev);
   return filed(`${reason}${String(reason).includes("\n") ? "\n\n" : " "}${WHOLE}`, ev);
 };

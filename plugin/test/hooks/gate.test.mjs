@@ -214,6 +214,11 @@ test("a refused compound command says none of it ran, and one command or one pip
   assert.match(whole, /\n\nNothing in this command ran, the parts before the refused one included, so it is re-sent whole\./u);
   assert.match(said("git stash", `one-${Date.now()}`), /git stash silently reverts/u);
   assert.doesNotMatch(said("git stash", `one-${Date.now()}`), /Nothing in this command ran/u, "one command needs no telling");
+  for (const trailing of ["git stash;", "git stash\n", "git stash ; "]) {
+    const one = said(trailing, `trailing-${Date.now()}`);
+    assert.match(one, /git stash silently reverts/u, `${JSON.stringify(trailing)} is still refused`);
+    assert.doesNotMatch(one, /Nothing in this command ran/u, `and ${JSON.stringify(trailing)} is one command, its separator opening nothing`);
+  }
   const piped = said("git stash | cat", `pipe-${Date.now()}`);
   assert.match(piped, /git stash/u, "a pipeline is still refused");
   assert.doesNotMatch(piped, /Nothing in this command ran/u, "and a pipeline is one command");
