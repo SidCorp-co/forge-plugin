@@ -10,7 +10,7 @@ import { ranAsync, tempHome } from "../../fixtures.mjs";
 import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("the-two-rungs").path;
-const { CHECKS, ORDER, JUDGED_AT, viewFrom } = await import("../../../src/flow/earned.mjs");
+const { CHECKS, NO_NOTE, ORDER, JUDGED_AT, viewFrom } = await import("../../../src/flow/earned.mjs");
 const { CLOSES_FROM } = await import("../../../src/flow/machine.mjs");
 const { render } = await import("../../../src/flow/record/page.mjs");
 const { statusKind } = await import("../../../src/tracker/rest.mjs");
@@ -84,7 +84,7 @@ test("the deploying rung keeps every refusal about the deploy, and asks nothing 
   const nothing = viewFrom("the-uuid", { acceptanceCriteria: CRITERIA, plan: NO_SCREEN, complexity: "m" }, [mark(), verdict()]);
   assert.deepEqual(owed(CLOSES_FROM, nothing), [
     "no verification: where the change now runs, at which commit, and the evidence",
-    "no release note and no withholding either",
+    NO_NOTE,
   ], "and both of its own payloads are named, not the first");
   const elsewhere = whole({}, () => [recorded("verification",
     { where: "the installed plugin", commit: "eee109e", evidence: ["https://ci.example.test/9"] })]);
@@ -100,7 +100,7 @@ test("the deploying rung keeps every refusal about the deploy, and asks nothing 
    (ISS-1485), and the verdict was waived by nobody to begin with. */
 test("a fix is asked for the note at the deploying rung and for a verdict at the judging one", () => {
   const fix = whole({ complexity: "s", releaseNotes: undefined });
-  assert.deepEqual(owed(CLOSES_FROM, fix), ["no release note and no withholding either"],
+  assert.deepEqual(owed(CLOSES_FROM, fix), [NO_NOTE],
     "the note is owed at a fix as at every other rung, and it is the only thing this record still lacks");
   const unjudged = viewFrom(
     "the-uuid",

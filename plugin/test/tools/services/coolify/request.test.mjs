@@ -390,7 +390,7 @@ test("a resource answering without the field that places it never reaches its ac
 test("the same resource is refused under --dry-run too", async () => {
   const answer = await ran("deploy", "--uuid", "a-odd", "--dry-run");
   assert.equal(answer.status, 1);
-  assert.match(answer.stderr, /answered without the field that would place it/u);
+  assert.match(answer.stderr, /answered without the field/u);
 });
 
 /* Withheld and said, not withheld and silent: "could not be placed" and "belongs to another

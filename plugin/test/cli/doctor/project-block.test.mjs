@@ -157,7 +157,7 @@ test("a config read the tracker refused is a miss naming it, not a page of not-s
 
 test("the credential is named and not printed until the flag asks for it", async () => {
   const held = await ask("doctor");
-  assert.match(held.stdout, ROW("test credentials", "present, forge doctor --credentials"));
+  assert.match(held.stdout, ROW("test credentials", "present, forge"));
   assert.doesNotMatch(held.stdout, new RegExp(PASSWORD, "u"));
   const asked = await ask("doctor", "--credentials");
   assert.match(asked.stdout, ROW("test credentials · password", PASSWORD), asked.stderr);
@@ -275,12 +275,12 @@ test("the report says how far this device's clock stands from the tracker's, or 
   assert.match(run.stdout,
     ROW("tracker clock", "this device is \\d+\\.\\d\\ds (ahead of|behind) the tracker, known to ±\\d+\\.\\d\\ds"),
     run.stdout);
-  assert.match(run.stdout, /tracker clock.*← the `date` header on the tracker's own answers/u);
+  assert.match(run.stdout, /tracker clock.*← the `date` header/u);
   state.noDate = true;
   const blind = await ask("doctor");
   state.noDate = false;
   assert.match(blind.stdout,
-    NOTE_ROW("tracker clock", "unmeasured — the tracker's answers carry no readable time"),
+    NOTE_ROW("tracker clock", "unmeasured — "),
     "a figure nobody measured is not printed as one");
 });
 

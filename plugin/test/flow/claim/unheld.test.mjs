@@ -102,7 +102,7 @@ test("a claim on an issue past the dispatch statuses with no lease at all is ref
   assert.match(taken.stdout, new RegExp(`ISS-1184  unheld: session ${OURS}`, "u"), "as a claim of its own kind");
   assert.equal(wrote().at(-1)?.history.at(-1)?.how, "unheld",
     "which is the word the claim history keeps, so a fold can count how often the anomaly was real");
-  assert.match(taken.stdout, new RegExp(`Next, left by the run before: ${LEFT}`, "u"),
+  assert.match(taken.stdout, new RegExp(`left by the run before: ${LEFT}`, "u"),
     "and the line the refusal printed is not lost by the flag that clears it");
 });
 

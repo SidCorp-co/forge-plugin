@@ -81,9 +81,9 @@ test("a tracker stating no budget is sent what it is sent today, and a refusal i
   assert.equal(asks, 2, "two calls, neither paced");
   assert.ok(bare <= patience(2_000), `and nothing waited on a budget nobody stated: ${bare}ms`);
 
-  const { forgetBudget, sawBudget, unpredictedIn } = await import("../../../src/wire/budget.mjs");
+  const { UNPACED, forgetBudget, sawBudget, unpredictedIn } = await import("../../../src/wire/budget.mjs");
   forgetBudget();
-  assert.equal(unpredictedIn("forge_issues.get"), "having read no budget from this tracker to pace against");
+  assert.equal(unpredictedIn("forge_issues.get"), UNPACED);
   sawBudget("forge_issues.get", budgeted({ "x-ratelimit-reset": Math.ceil(Date.now() / 1000) + 3600 }));
   assert.equal(unpredictedIn("forge_issues.get"),
     "on the write budget, which the reading it was paced against did not predict");
@@ -269,7 +269,7 @@ test("a refusal that is the first word on a budget says there was none to pace a
   try {
     const said = await stderrOf(oneRead);
     assert.equal(at, 2, "the ladder sent it again");
-    assert.match(said, /rate-limited this call having read no budget from this tracker to pace against/u,
+    assert.match(said, /rate-limited this call having read no budget/u,
       `the 429 is the first word on this budget and not a reading the call was paced against:\n${said}`);
   } finally {
     globalThis.fetch = live;

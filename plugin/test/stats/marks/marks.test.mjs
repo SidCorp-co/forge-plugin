@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { WINDOW, evalLines, evalRuns, releaseMark, runsMark } from "../../../src/stats/eval/eval.mjs";
+import { NO_WINDOW_BEFORE, WINDOW, evalLines, evalRuns, releaseMark, runsMark } from "../../../src/stats/eval/eval.mjs";
 import { marksOf, marksPath, scopeOf, writeMark } from "../../../src/stats/marks/marks.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 import { escaped, tempRoom } from "../../fixtures.mjs";
@@ -53,7 +53,7 @@ test("the ship's mark is one line at a multiple of the window, read off the corp
     assert.equal(record.classes, undefined, "nor its class table");
     assert.ok("before" in printed && "classes" in printed, "criterion 16: while the eval's own JSON keeps both");
     assert.equal(record.now.outcomes, undefined, "a stored reading carries no outcome figure rather than zeroes");
-    assert.deepEqual(record.comparability, { comparable: false, short: ["there is no window before it"],
+    assert.deepEqual(record.comparability, { comparable: false, short: [NO_WINDOW_BEFORE],
       reach: { from: Date.parse("2026-09-01T00:00:00.000Z"), earlier: null } },
       "criterion 6: the mark carries whether its reading was comparable, so what /tmp held that day need not be recomputed");
     /* The profile and the count: the groups and `spanned` name copies, and this process sees the real cache where the spawned verb sees an empty HOME. */

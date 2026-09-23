@@ -196,11 +196,15 @@ export const readBack = (record) => {
   };
 };
 
+/** The shortfall a first reading carries, named so a caller comparing a stored reading whole does not
+ *  restate the wording. */
+export const NO_WINDOW_BEFORE = "there is no window before it";
+
 /** Whether the reading is a comparison, and each way it falls short — docs/cli/stats-the-eval.md. */
 const comparabilityOf = ({ size, now, before, reach }) => {
   const short = [];
   if (now.runs < size) short.push(`the recent window holds ${now.runs} of ${size}`);
-  if (!before) short.push("there is no window before it");
+  if (!before) short.push(NO_WINDOW_BEFORE);
   else if (before.runs < size) short.push(`the window before it holds ${before.runs} of ${size}`);
   return { comparable: !short.length, short, reach };
 };

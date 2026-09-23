@@ -222,7 +222,7 @@ test("three criteria are judged in one write, and the report prints each one", a
   const report = await ask("resume", "ISS-7", "--report");
   assert.equal(report.stdout.match(/^Verdict {2}\(/gmu).length, 3, report.stdout);
   assert.match(report.stdout, /^ {2}Criterion: 3 — The third outcome\.$/mu);
-  assert.match(report.stdout, /^Every criterion has a verdict\.$/mu);
+  assert.match(report.stdout, /^Every criterion has/mu);
 });
 
 test("one write mixes a pass and a fail, and each criterion keeps its own verdict", async () => {

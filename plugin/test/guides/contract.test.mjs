@@ -25,8 +25,9 @@ const {
   statesContract,
 } = await import("../../src/guides/contract.mjs");
 const { servedBody } = await import("../../src/guides/skill-guides.mjs");
-const { CHECKS, ORDER, deployedOwed, judgedOwed, viewFrom } = await import("../../src/flow/earned.mjs");
-const { DEFAULT, FLOW_SLUGS, SCREEN } = await import("../../src/guides/flow.mjs");
+const { CHECKS, NO_CRITERIA, NO_DECISION, NO_NOTE, ORDER, deployedOwed, judgedOwed, viewFrom }
+  = await import("../../src/flow/earned.mjs");
+const { DEFAULT, FLOW_SLUGS, SCREEN, servedFor } = await import("../../src/guides/flow.mjs");
 const { LIGHTER, RUNGS, SPARES, complexityFor } = await import("../../src/ladder.mjs");
 const { rungReport } = await import("../../src/ladder-report.mjs");
 const { render } = await import("../../src/flow/record/page.mjs");
@@ -209,7 +210,7 @@ test("the verb's answer is one part, the contents, or one refusal that names the
     [partFor(PARTS, "awaiting_release").text, "",
       "No rung was named, so this is the `feature` text — the top rung, which is what an unstated"
         + " rung resolves to. `--rung <name>` serves a lighter one.", "",
-      "Flow default, which this project runs; `forge doctor` names its source."],
+      ...servedFor(DEFAULT)],
     "the part, the rung it was rendered for, and then the flow it was served for");
   assert.equal(contractAnswer({}).lines[0].startsWith("The issue-flow contract"), true);
   const flag = contractAnswer({ tracker: true }).refusal;
@@ -316,12 +317,12 @@ test("no rung buys a judgement: the baseline and the migration classification co
 test("the rung drops nothing the contract keeps, and a declared person takes a fix off the path", () => {
   assert.equal(missing("confirmed", weighed("fix")).length, 1, "the confirmation with its where");
   assert.deepEqual(missing("approved", weighed("fix", { acceptanceCriteria: "" })),
-    ["the criteria field holds no numbered line `N. outcome`"], "the criteria, being the whole of a fix's plan");
+    [NO_CRITERIA], "the criteria, being the whole of a fix's plan");
   assert.deepEqual(deploying(weighed("fix")).map((one) => one.slice(0, 16)),
     ["no verification:", "no release note "],
     "and the note beside it: no rung drops that one, the tracker refusing the close without the field (ISS-1485)");
   const seen = missing("awaiting_release", weighed("fix", { plan: "User-facing outcome: yes" }), VERIFIED);
-  assert.ok(seen.includes("no release note and no withholding either"), "the note, at this rung as at every other");
+  assert.ok(seen.includes(NO_NOTE), "the note, at this rung as at every other");
   assert.ok(seen.some((one) => /no person has answered/u.test(one)), "and the park a declared person adds to it");
 });
 
@@ -347,10 +348,10 @@ moved: Size: fix -> feature
 test("a correction climbs a fix back onto the full path, and reads one direction only", () => {
   const back = (status) => missing(status, weighed("fix"), [...climbed("Size: fix -> feature"), ...VERIFIED]);
   assert.deepEqual(back("approved"), [
-    "no decision record: each reading decided with its assumption and undo, or an explicit none",
+    NO_DECISION,
     "the plan field is empty",
   ], "both rows the climb takes back are owed again, and neither answers for the other");
-  assert.ok(back("awaiting_release").includes("no release note and no withholding either"));
+  assert.ok(back("awaiting_release").includes(NO_NOTE));
   for (const moved of ["Size: feature -> fix", "Size: fix later"]) {
     assert.deepEqual(missing("approved", weighed("fix"), climbed(moved)), [],
       `\`${moved}\` is not the climb, and reading it as one unearns a status the issue holds`);

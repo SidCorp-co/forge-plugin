@@ -92,7 +92,7 @@ test("a run dispatched to the issue takes a live lease its dispatcher is only ho
   assert.match(took.stdout, new RegExp(`ISS-1091 {2}handed: session ${escaped(RUNNER)}`, "u"),
     "under a word of its own, because a dispatch is not a dead run's lease reclaimed");
   assert.match(took.stdout, /was live and session bc3ef73b/u, "saying what it took and from whom");
-  assert.match(took.stdout, new RegExp(`Next, left by the run before: ${LEFT}`, "u"));
+  assert.match(took.stdout, new RegExp(`left by the run before: ${LEFT}`, "u"));
   assert.equal(wrote().at(-1)?.history.at(-1)?.how, "handed");
 });
 

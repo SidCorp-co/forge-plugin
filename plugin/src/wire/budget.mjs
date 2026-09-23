@@ -153,11 +153,13 @@ export const reserveIn = (key, now, within = Infinity) => {
 
 export const settled = (key) => out.set(key, Math.max(0, (out.get(key) ?? 0) - 1));
 
+/** What a limited call says where no budget was read before it, named so a caller comparing it whole
+ *  does not restate the wording. */
+export const UNPACED = "having read no budget from this tracker to pace against";
+
 export const unpredictedIn = (key) => {
   const scope = routes.get(key);
-  return scope
-    ? `on the ${scope} budget, which the reading it was paced against did not predict`
-    : "having read no budget from this tracker to pace against";
+  return scope ? `on the ${scope} budget, which the reading it was paced against did not predict` : UNPACED;
 };
 
 export const pacedBy = (key) => {

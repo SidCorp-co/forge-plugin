@@ -72,7 +72,7 @@ test("an advance to developed leaves nothing holding the issue, and another run 
   stands({});
   const started = await setTo("in_progress", BUILDER);
   assert.equal(started.status, 0, `the first move should have gone through:\n${started.stdout}${started.stderr}`);
-  assert.match(started.stderr, /carried no lease and this write took one/u, "taking the lease as it writes");
+  assert.match(started.stderr, /carried no lease/u, "taking the lease as it writes");
   assert.match(started.stderr, /ISS-1617 is free again/u, "and giving it back once the write has landed");
   assert.equal(ISSUE.sessionContext.lease.holder, "", "so the field names no holder");
 
@@ -147,7 +147,7 @@ test("a verb reached through a form gives the lease back on the form's own route
   stands({});
   const parked = await ran(["park", "ISS-1617", "--kind", "paused", "--why", "the fixture parks it"], BUILDER);
   assert.equal(parked.status, 0, `the park should have gone through:\n${parked.stdout}${parked.stderr}`);
-  assert.match(parked.stderr, /carried no lease and this write took one/u, "the form's verb took the lease");
+  assert.match(parked.stderr, /carried no lease/u, "the form's verb took the lease");
   assert.match(parked.stderr, /ISS-1617 is free again/u, "and the form's own route out gave it back");
   assert.equal(ISSUE.sessionContext.lease.holder, "", "so nothing holds the issue");
 });

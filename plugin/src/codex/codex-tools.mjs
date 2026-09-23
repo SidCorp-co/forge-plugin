@@ -472,6 +472,10 @@ const diffOf = (held, base) => {
   return clipped((run.stdout ?? "").trim() || "no change against that ref");
 };
 
+/** What the diff tool answers where the files under review have not moved since the anchor, named so
+ *  a caller measuring that answer does not restate the wording. */
+export const unchangedSince = (anchor) => `no change against ${anchor} in the file(s) this consult named`;
+
 /* Asked for the diff with nothing to narrow it, a reviewer means the change under review. Where the
    consult named a base, or a recheck anchored to a logged head, the whole checkout against HEAD is a
    different question, and answering it had a review judge the branch for code it never touched
@@ -493,7 +497,7 @@ const ownDiff = (scope, held) => {
       + `${New.length === 1 ? "it" : "them"} — the whole text is the change, and it travelled with the prompt.`
     : "";
   const text = (run.stdout ?? "").trim();
-  if (!text) return `no change against ${own.anchor} in the file(s) this consult named${also}`;
+  if (!text) return `${unchangedSince(own.anchor)}${also}`;
   return clipped(`This review's own diff, from ${own.anchor.slice(0, 7)} over ${own.rels.length} file(s):\n${text}${also}`);
 };
 

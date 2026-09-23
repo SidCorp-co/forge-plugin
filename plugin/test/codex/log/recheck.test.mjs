@@ -47,7 +47,7 @@ test("a set that excluded the judged consult's findings says so and names what r
   assert.match(unreachable, /forge codex verdict --of c55/u);
 
   const empty = recheckOwed(recheckPlan([{ ...JUDGED, reply: "CODEX: 0 findings" }], "/a", ["a.mjs"]), ["a.mjs"]);
-  assert.match(empty, /read this set whole and found nothing/u, "a consult that made no findings still gets the coverage sentence");
+  assert.match(empty, /read this set whole/u, "a consult that made no findings still gets the coverage sentence");
   assert.equal(recheckMissed(recheckPlan([JUDGED], "/a", ["a.mjs", "docs/FORGE-CLI.md"])), null, "every finding inside the set: nothing left out");
 });
 

@@ -51,7 +51,7 @@ globalThis.fetch = async (address, init = {}) => {
   return answer({ id: ISSUE, status, sessionContext: field });
 };
 
-const { landingSaved, leaseOf, releaseOwed, releasedIn, renew, renewedLapsed, writeRefusal }
+const { NOTHING_WORKED, landingSaved, leaseOf, releaseOwed, releasedIn, renew, renewedLapsed, writeRefusal }
   = await import("../../src/flow/lease.mjs");
 
 const ago = (minutes) => new Date(Date.now() - minutes * 60_000).toISOString();
@@ -250,7 +250,7 @@ test("an issue nobody holds is taken by the payload write itself, for the durati
   assert.ok(took, "the write left a lease where there was none, which is the whole of the change");
   assert.equal(took.holder, "this-run");
   assert.equal(took.minutes, 10, "the short lease, and not the hour a default claim takes");
-  assert.equal(took.next, "nothing was worked under this lease", "carrying the line that says no work followed");
+  assert.equal(took.next, NOTHING_WORKED, "carrying the line that says no work followed");
   assert.deepEqual(took.history.map((one) => one.how), ["write"],
     "under a word no other claim writes, so a reader can count the takes a write made");
   assert.equal(took.history[0].status, "open", "and the status it was taken at");
@@ -437,7 +437,7 @@ test("the lease a write took for itself is given back once the write has landed,
   assert.match(releasedIn(field), /^20\d\d-\d\d-\d\dT/u, "which names the moment it happened");
   assert.deepEqual(field.lease.history.map((one) => one.how), ["write"],
     "and the row the take wrote stands alone: releasing is not a reclaim and adds none");
-  assert.equal(field.lease.next, "nothing was worked under this lease", "the line the write left is kept");
+  assert.equal(field.lease.next, NOTHING_WORKED, "the line the write left is kept");
   const notice = lines.find((one) => one.includes("is free again"));
   assert.ok(notice, `nothing said the lease went back: ${lines.join(" | ")}`);
   assert.match(notice, /claims with no wait/u, "which is what the give-back buys the run after it");
@@ -514,7 +514,7 @@ test("a write taking a released field keeps the line the release left, and a bar
   field = null;
   status = "open";
   await said(() => renew(ISSUE, "ISS-1617"));
-  assert.equal(leaseOf(field).next, "nothing was worked under this lease",
+  assert.equal(leaseOf(field).next, NOTHING_WORKED,
     "while a field nobody released gets the derived line, no line being owed to anybody there");
 });
 
@@ -535,7 +535,7 @@ test("a transition's explicit null clears the line a release left, where silence
   field = null;
   status = "open";
   await said(() => renew(ISSUE, "ISS-1617", null));
-  assert.equal(leaseOf(field).next, "nothing was worked under this lease",
+  assert.equal(leaseOf(field).next, NOTHING_WORKED,
     "and on a bare field, which has no line to clear, the null still resolves to the derived one");
 });
 

@@ -528,7 +528,7 @@ test("issue -h restates no part of the rule its own --set refusal owns", () => {
     assert.ok(!said.includes(form), `issue -h states the route rule again, at \`${form}\`: ${said}`);
   }
   const refused = ask("issue", "ISS-1", "--set", "description=@body.md", "--why", "w");
-  assert.match(`${refused.stdout}${refused.stderr}`, /takes the text to store rather than a route to it/u,
+  assert.match(`${refused.stdout}${refused.stderr}`, /takes the text/u,
     "and the refusal is still where the rule is learnt");
 });
 

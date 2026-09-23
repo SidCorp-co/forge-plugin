@@ -11,6 +11,7 @@ import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { projectRecord, tempRoom } from "../../fixtures.mjs";
 import { canonical } from "../../../src/resolve/canonical.mjs";
+import { unchangedSince } from "../../../src/codex/codex-tools.mjs";
 
 /* A stand-in gateway asks for `git_diff` with no arguments on its first call and answers on its
    second; what the tool returned is on the log row, and its size says which of the two possible
@@ -87,7 +88,7 @@ test("a recheck's reviewer is handed the head its findings were made against, no
   assert.deepEqual(ran.tools[0], { name: "git_diff", input: {}, chars: ran.tools[0].chars, error: false });
   assert.equal(
     ran.tools[0].chars,
-    `no change against ${head} in the file(s) this consult named`.length,
+    unchangedSince(head).length,
     "the rechecked file is unmoved since that head, and the answer says so rather than handing over the tree",
   );
 });

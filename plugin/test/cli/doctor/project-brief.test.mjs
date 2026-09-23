@@ -144,7 +144,7 @@ test("a brief citing no source stores an empty digest map rather than the one it
   const room = tempHome("project-brief-bare");
   const run = await ask("doctor", "--refresh", briefAt(room, "# A map with nothing to check\n"));
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^ {2}digests: none — no line of this brief names a source/mu, run.stdout);
+  assert.match(run.stdout, /^ {2}digests: none — /mu, run.stdout);
   assert.deepEqual(store.get("project-brief").metadata.digests, {},
     "carrying the old digests here would freshen a hash over prose nobody corrected");
 });

@@ -109,7 +109,7 @@ test("a reopen moves the status and writes no correction for it", async () => {
 test("a reopen is refused where nothing on the record says what the work got to", async () => {
   const run = await ran(["advance", "ISS-91", "--reopen", "--why", "somebody thinks it is wrong"]);
   assert.equal(run.status, 1, run.stdout);
-  assert.match(run.stderr, /nothing landed, and no park record of kind dropped/u, run.stderr);
+  assert.match(run.stderr, /nothing landed, and no park/u, run.stderr);
   assert.match(run.stderr, /Nothing was sent\./u);
   assert.equal(UNLANDED.status, "in_progress", "and the status the refusal describes is the one it still holds");
 });

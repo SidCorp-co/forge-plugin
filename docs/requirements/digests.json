@@ -3386,8 +3386,8 @@
       "digest": "4f5021ab48a4a55836c04c59d2e43c5969d4e40479387edf7a25e5097f941880"
     },
     "AC-11-4-1": {
-      "rev": 1,
-      "digest": "e7aecdf177b86dfc34d90c2a55fbecdebd0005ca7feab1e129b26a896389d8c1"
+      "rev": 2,
+      "digest": "0e1d9314dd297879aeaac1022d08d57bb8c9557f7dae8c7683f292a6e3dffcd2"
     },
     "AC-11-4-2": {
       "rev": 1,
@@ -3400,6 +3400,10 @@
     "AC-11-4-4": {
       "rev": 1,
       "digest": "a2f26494f84f5ca77d3d12f844c984a87cf27b06c30a041d134c491775589c39"
+    },
+    "AC-11-4-5": {
+      "rev": 1,
+      "digest": "613371050abcbcf8b072172a994c28a7c7dfc6c0c4a4ae2f5ad22a7147df74d3"
     },
     "FR-12": {
       "rev": 1,

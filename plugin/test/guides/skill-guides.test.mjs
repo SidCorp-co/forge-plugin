@@ -15,7 +15,7 @@ const {
   GUIDE, bodyProblems, guideParts, hasBody, referencesOf, servedBody, skillFlowDir,
   skillGuideAnswer, skillGuideSlugs, skillGuidesRoot, skillListingRow, unresolvedCitations,
 } = await import("../../src/guides/skill-guides.mjs");
-const { DEFAULT } = await import("../../src/guides/flow.mjs");
+const { DEFAULT, servedFor } = await import("../../src/guides/flow.mjs");
 const { phasesOf } = await import("../../src/guides/render.mjs");
 
 const PLUGIN = new URL("../../", import.meta.url).pathname;
@@ -150,7 +150,7 @@ test("a flow holding three method parts is served those three, and the answer na
   assert.doesNotMatch(whole, /Read `forge guide alpha one` first/u,
     "and default's opening is not merged into it");
   assert.equal(skillGuideAnswer("alpha", root, FIXTURE)({ part: "9" }).lines.at(-1),
-    `Flow ${FIXTURE}, which this project runs; \`forge doctor\` names its source.`,
+    servedFor(FIXTURE)[0],
     "the answer names the flow it was served for, not the one the settings pin");
   assert.equal(skillGuideAnswer("alpha", root, DEFAULT)({ part: "9" }).refusal?.includes("named 9"), true,
     "and default is served its own set, in which no phase 9 exists");
@@ -180,7 +180,7 @@ test("a phase of the method is served whole and ends by naming the flow it was r
   const run = asked(room, "guide", "issue-flow", "5");
   assert.equal(run.status, 0, run.stderr);
   const lines = run.stdout.trimEnd().split("\n");
-  assert.equal(lines.at(-1), `Flow ${DEFAULT}, which this project runs; \`forge doctor\` names its source.`,
+  assert.equal(lines.at(-1), servedFor(DEFAULT)[0],
     "the last line names the flow this project runs");
   const phase = phasesOf(servedBody("issue-flow", PLUGIN)).find((one) => one.number === "5");
   assert.equal(lines[0], phase.text.split("\n")[0], "and the part opens on that phase's own heading");

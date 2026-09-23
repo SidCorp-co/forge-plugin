@@ -88,7 +88,7 @@ test("the brief carries the status, the phase it owes and the reference that hol
   const one = brief();
   assert.equal(one.status, "in_progress");
   assert.equal(one.phase, "4 Implement, to the review; 5 Prove; then 7's landing");
-  assert.equal(one.reference, "forge guide issue-flow verification");
+  assert.equal(one.reference, `forge guide issue-flow ${PHASE.in_progress[1]}`);
   for (const status of [...ORDER, "dropped", "reopen"]) {
     assert.ok(PHASE[status], `${status} owes no phase, so a resuming run is told nothing`);
     const held = methodOf(status);

@@ -105,12 +105,13 @@ readers; fixing the instances it named fixes those instances, and the next one i
 that cannot know they existed. The measure is lexical, on the assertion pattern itself, so it sees a
 sentence pinned twice and nothing of a claim restated in other words.
 
-- **AC-11-4-1** · Rev: 1 · Proof: plugin/test/checks/suite/one-wording.test.mjs "a sentence pinned on both sides of the import line is named with both lines and the home"
-  IF a sentence a module composes is asserted under the same pattern by a test file that reaches
-  that module through its own imports and by a test file that does not THEN the check SHALL fail,
-  SHALL name both files with the line each pins it on, SHALL say which of the two is the home, and
-  SHALL name the fragment the other is to keep, since a refusal naming no survivor leaves a
-  developer to guess which of two files to shorten.
+- **AC-11-4-1** · Rev: 2 · Proof: plugin/test/checks/suite/one-wording.test.mjs "a sentence two reading files pin whole is named, the reader named for its module being the home"
+  IF a sentence a module composes is pinned whole by more than one test file, at least one of which
+  reaches that module through its own imports, THEN the check SHALL fail whichever side of the
+  import line the other files stand on, SHALL name each other file with the line it pins it on,
+  SHALL name the home with its line — of the reaching files, the one named for the module, then the
+  one pinning most of what it composes — and SHALL name the fragment the other is to keep, since a
+  refusal naming no survivor leaves a developer to guess which of two files to shorten.
 - **AC-11-4-2** · Rev: 1 · Proof: plugin/test/checks/suite/one-wording.test.mjs "a negated assertion is a marker for a refusal that must not fire, not a second home"
   WHERE an assertion is negated the check SHALL report no pair for it, a refusal proved absent being
   a different claim from the refusal rather than a copy of it.
@@ -120,6 +121,10 @@ sentence pinned twice and nothing of a claim restated in other words.
 - **AC-11-4-4** · Rev: 1 · Proof: plugin/test/checks/suite/one-wording.test.mjs "the walk reaches the suite's test files, so no pairs is a clean suite and not an empty selector"
   WHILE the check runs it SHALL assert that its walk reached the suite's own test files, because a
   selector matching nothing reports a clean suite and reads exactly like one.
+- **AC-11-4-5** · Rev: 1 · Proof: plugin/test/checks/suite/one-wording.test.mjs "a pin carrying more than half of another's literal run is the same wording, whatever its kind"
+  WHERE one test file's pin carries more than half of another's literal run the check SHALL read
+  the two as one wording whatever pattern kind spells each, a fragment being what is left once most
+  of a sentence is cut away.
 
 ## Business rules enforced
 

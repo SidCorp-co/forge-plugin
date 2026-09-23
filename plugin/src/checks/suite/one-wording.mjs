@@ -1,15 +1,15 @@
-/* A module composes a refusal, the test file that imports it pins the wording, and a file reaching
-   the same refusal through a verb re-states the whole sentence instead of proving its route. Reading
-   the suite by hand found that shape over 379 files and cost seven readers; the rows it verified
-   were cut by ISS-2217, ISS-2218 and ISS-2219, and nothing refused the next one (ISS-2122).
-   Reached: one assertion pattern, 28 literal characters or more, standing in a test file that
-   reaches the composing module through its own imports and in one that does not.
+/* A module composes a refusal, one test file pins its wording, and every other file reaching the
+   same refusal proves its own case with one fragment of it. Reading the suite by hand found the
+   opposite shape over 379 files and cost seven readers; ISS-2217, ISS-2218, ISS-2219 and ISS-2264
+   cut the rows that reading and this check verified, and nothing refused the next one (ISS-2122).
+   Reached: two test files pinning one wording of 28 literal characters or more, where at least one
+   of the files holding it reaches the composing module through its own imports.
 
-   The import line stands in for the route and is not the route. A file that reaches the module
-   neither way and repeats the sentence anyway is a second home for that wording by another route,
-   and is reported as one: what this holds is that a sentence has one home, not that every other
-   reader spawned. What it does not see is a pair both of whose files spawn — 72 test files import no
-   module of this repository at all — and no rule here will find those. */
+   The import line picks the home and does not decide the debt: a sentence two importing files both
+   pin whole is a second home as much as one a spawning file repeats (ISS-2269). What this names
+   nothing for is a sentence none of whose files reaches the module — every reader spawns, or
+   imports a neighbour of it — since the rule below has no reader there to name as the home. The
+   lexical reading sees those as plainly as the rest, and ISS-2282 owns the rule that names them. */
 
 import { lineAt } from "../../markdown.mjs";
 import { spansIn } from "./wall-clock.mjs";
@@ -221,26 +221,76 @@ export const reachedBy = (rel, textOf) => {
 const WORD = /\s+/u;
 
 /* The shortest leading words of a sentence that no other sentence this repository composes carries,
-   which is what a file proving its route has to match and no more. */
-const fragmentOf = (core, sentences) => {
+   which is what a file proving its route has to match and no more — and no longer than half of the
+   home's pin, since a fragment above that is the same wording again and the refusal would name the
+   file a second time. */
+const fragmentOf = (core, sentences, most) => {
   const words = core.split(WORD);
   for (let count = 1; count < words.length; count += 1) {
     const head = words.slice(0, count).join(" ");
+    if (head.length > most) return null;
     if (head.length >= 12 && sentences.filter((one) => one.includes(head)).length === 1) return head;
   }
   return null;
 };
 
-const says = (one) => `${one.elsewhere} pins, at line ${one.at}, the whole of a sentence `
-  + `${one.module} composes, and ${one.home} pins the same pattern at line ${one.homeAt}. That file `
-  + `imports the module composing it and is the sentence's home. A file reaching the sentence any `
-  + `other way proves its route with one fragment of it: ${one.fragment === null
+const says = (one) => `${one.elsewhere} pins, at line ${one.at}, a sentence ${one.module} composes, `
+  + `and ${one.home} pins the same wording at line ${one.homeAt}, a pin carrying more than `
+  + `half of another being that wording whichever pattern spells it. That file reaches the module `
+  + `composing it and is the sentence's home — of the files that do, the one named for the module, then `
+  + `the one pinning most of what it composes. Any other file proves its route with one fragment of it: `
+  + `${one.fragment === null
     ? `no fragment of this sentence is its own, so shorten to what this case is about and say why`
-    : `shorten the pattern in ${one.elsewhere} to \`${one.fragment}\``}, and keep every assertion `
-  + `this case makes about what the call did. The measure is lexical — it reads one sentence pinned `
-  + `twice and nothing of a claim restated in other words.`;
+    : `shorten the pattern in ${one.elsewhere} to \`${one.fragment}\``}, or, where the assertion `
+  + `compares an exact value, compare it against a constant the module exports; and keep every `
+  + `assertion this case makes about what the call did. The measure is lexical — it reads one `
+  + `sentence pinned twice and nothing of a claim restated in other words.`;
 
-/** Every sentence pinned on both sides of the import line, over the whole walked set.
+/** How much of one pin another has to carry to be the same wording. A fragment is what is left once
+ *  most of a sentence is cut away, and every fragment the cuts of ISS-2217 and ISS-2264 kept sits
+ *  under half of the pin it was cut from; a pin carrying more than half of another is that sentence
+ *  restated, and equality is the case where the two lengths are one. */
+export const MOST = 0.5;
+
+const oneWording = (a, b) => {
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  return short.length > long.length * MOST && long.includes(short);
+};
+
+/* Pins joined into one sentence through that relation, so a string, a regex and a longer line
+   carrying either meet, which a key on the pattern would hold apart. */
+const groupsOf = (pins) => {
+  const cores = [...new Set(pins.map((one) => one.core))].sort((a, b) => a.length - b.length);
+  const root = new Map(cores.map((one) => [one, one]));
+  const find = (one) => (root.get(one) === one ? one : find(root.get(one)));
+  for (let at = 0; at < cores.length; at += 1) {
+    for (let next = at + 1; next < cores.length && cores[next].length * MOST < cores[at].length; next += 1) {
+      if (cores[next].includes(cores[at])) root.set(find(cores[next]), find(cores[at]));
+    }
+  }
+  const out = new Map();
+  for (const one of pins) out.set(find(one.core), [...(out.get(find(one.core)) ?? []), one]);
+  return [...out.values()];
+};
+
+const BARE = /^plugin\/(?:src|test)\/|^plugin\/|^tools\//u;
+const bare = (rel) => rel.replace(BARE, "").replace(/(?:\.test)?\.mjs$/u, "").split("/");
+
+/* How far a test file is named for a module: its own name the module's, then a directory on its path
+   carrying that name, which is how this suite mirrors the source it proves. */
+const namedFor = (test, module) => {
+  const steps = bare(test);
+  const name = bare(module).at(-1);
+  return steps.at(-1) === name ? 2 : Number(steps.slice(0, -1).includes(name));
+};
+
+/** Every sentence pinned whole in more than one test file, over the whole walked set, and each site
+ *  that restates what the sentence's home pins.
+ *
+ *  A site is named where its pin and one of the home's are one wording, and never through a third
+ *  pin between them: a fragment under half of the home's pin stays a fragment whatever else another
+ *  file pins. What is left once the home and the sites naming it are set aside is read again as
+ *  sentences of its own.
  *
  *  Three readings this cannot settle, each of which reports nothing rather than reporting a file for
  *  something it did not do. A wording more than one module composes has no one home to name, so it
@@ -253,38 +303,42 @@ export const pairsOver = (files) => {
   const sources = files.filter((one) => SOURCE_FILE.test(one.rel) && !one.rel.includes(VENDORED));
   const composed = sources.map((one) => ({ rel: one.rel, runs: composedIn(one.text).flatMap((each) => each.runs) }));
   const sentences = composed.flatMap((one) => one.runs);
+  const joined = composed.map((one) => ({ rel: one.rel, text: one.runs.join("\u0000") }));
+  const composers = new Map();
+  const composerOf = (core) => {
+    if (!composers.has(core)) composers.set(core, joined.filter((one) => one.text.includes(core)).map((one) => one.rel));
+    return composers.get(core);
+  };
   const reaches = new Map(tests.map((one) => [one.rel, reachedBy(one.rel, textOf)]));
-
-  const patterns = new Map();
-  for (const one of tests) {
-    for (const pin of pinnedIn(one.text)) {
-      if (!patterns.has(pin.pattern)) patterns.set(pin.pattern, { core: pin.core, where: [] });
-      patterns.get(pin.pattern).where.push({ rel: one.rel, line: pin.line });
-    }
-  }
+  const pins = tests.flatMap((one) => pinnedIn(one.text).map((pin) => ({ ...pin, rel: one.rel })))
+    .filter((one) => composerOf(one.core).length < 2);
+  const homeOf = (rels, module) => rels.filter((rel) => reaches.get(rel).has(module))
+    .map((rel) => ({ rel, named: namedFor(rel, module), weight: new Set(pins.filter((one) => one.rel === rel
+      && composerOf(one.core).includes(module)).map((one) => one.core)).size }))
+    .sort((a, b) => b.named - a.named || b.weight - a.weight || a.rel.localeCompare(b.rel))[0]?.rel;
 
   const out = [];
-  for (const { core, where } of patterns.values()) {
-    if (new Set(where.map((one) => one.rel)).size < 2) continue;
-    const modules = composed.filter((one) => one.runs.some((run) => run.includes(core)));
-    if (modules.length !== 1) continue;
-    const module = modules[0].rel;
-    const homes = where.filter((one) => reaches.get(one.rel).has(module));
-    const elsewhere = where.filter((one) => !reaches.get(one.rel).has(module));
-    if (!homes.length || !elsewhere.length) continue;
-    const fragment = fragmentOf(core, sentences);
-    for (const one of elsewhere) {
-      out.push({
-        sentence: core,
-        module,
-        home: homes[0].rel,
-        homeAt: homes[0].line,
-        elsewhere: one.rel,
-        at: one.line,
-        fragment,
-      });
+  const settle = (among) => {
+    for (const group of groupsOf(among)) {
+      const modules = new Set(group.flatMap((one) => composerOf(one.core)));
+      const rels = [...new Set(group.map((one) => one.rel))];
+      const home = modules.size === 1 && rels.length > 1 ? homeOf(rels, [...modules][0]) : undefined;
+      if (!home) continue;
+      const held = group.filter((one) => one.rel === home);
+      const sentence = group.filter((one) => composerOf(one.core).length)
+        .sort((a, b) => b.core.length - a.core.length)[0].core;
+      const named = [];
+      for (const one of group.filter((each) => each.rel !== home)) {
+        const against = held.find((each) => oneWording(one.core, each.core));
+        if (!against) continue;
+        named.push(one);
+        out.push({ sentence, module: [...modules][0], home, homeAt: against.line, elsewhere: one.rel,
+          at: one.line, fragment: fragmentOf(sentence, sentences, against.core.length * MOST) });
+      }
+      settle(group.filter((one) => one.rel !== home && !named.includes(one)));
     }
-  }
+  };
+  settle(pins);
   return out.sort((one, next) => `${one.elsewhere}${one.at}`.localeCompare(`${next.elsewhere}${next.at}`));
 };
 
