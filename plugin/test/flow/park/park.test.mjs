@@ -233,9 +233,23 @@ test("a person's answer relayed on the record resumes a park no comment on the p
     "--quoted", "ship it"], ENV);
   assert.equal(answer.status, 0, `${answer.stdout}${answer.stderr}`);
   assert.equal(state.comments["parking-uuid"].at(-1).authorId, "agent", "the answer is on the parker's own credential too");
-  const back = await ranAsync(FORGE, ["advance", "ISS-97"], ENV);
-  assert.equal(back.status, 0, `${back.stdout}${back.stderr}`);
-  assert.match(back.stdout, /^ISS-97 {2}waiting -> awaiting_release {2}\(resumed where its park left it\)$/mu, back.stdout);
+  assert.match(answer.stderr, /^ISS-97 {2}waiting -> awaiting_release {2}\(resumed where its park left it\)$/mu, answer.stderr);
+  assert.equal(PARKING.status, "awaiting_release", "the write that carries the answer is the resume");
+});
+
+/* The tracker reads any comment at needs_info as the reply and puts the issue back to `open`, so the
+   answer's own comment moves the status before anything reads it; the resume is judged at the
+   status the write found, or it would start from `open` and never find the park. */
+test("a question park answered on the record resumes where it left, though the answer's comment reopened it", async () => {
+  await readied();
+  const park = await asked("ISS-98");
+  assert.equal(park.status, 0, `${park.stdout}${park.stderr}`);
+  assert.equal(MOVING.status, "needs_info");
+  const answer = await ranAsync(FORGE, ["record", "answer", "ISS-98", "--from", "the reporter, through the dispatcher",
+    "--quoted", "the first reading"], ENV);
+  assert.equal(answer.status, 0, `${answer.stdout}${answer.stderr}`);
+  assert.match(answer.stderr, /ISS-98 {2}open -> confirmed {2}\(resumed where its park left it\)/u, answer.stderr);
+  assert.equal(MOVING.status, "confirmed", "back at the status the park left, not at the one the comment dropped it to");
 });
 
 test("an answer write missing who gave it or their words is refused with nothing posted", async () => {

@@ -418,7 +418,8 @@ const writeRung = async (reference, blocks, { next, patch }) => {
     posted: written.posted,
   });
   const { movedByRecord } = await import("../advance.mjs");
-  const { rung } = await movedByRecord(documentId, after.issue, reference, blocks.map((one) => one.kind), after.page);
+  const { rung } = await movedByRecord(documentId, after.issue, reference, blocks.map((one) => one.kind), after.page,
+    body.status);
   for (const one of blocks) sayPart(one.kind, rung);
 };
 

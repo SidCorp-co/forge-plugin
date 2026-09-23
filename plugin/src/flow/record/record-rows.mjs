@@ -62,7 +62,7 @@ const KIND_PHRASE = {
   confirmation: "what the issue is, where you looked, and the finding",
   decision: "the reading taken, its assumption and the line that undoes it",
   question: "the readings a person is to choose between, as outcomes",
-  answer: "a person's answer to a park, relayed: who gave it, and their words",
+  answer: "a person's answer to a park, and who gave it",
   park: "the issue set down, with the kind saying who it waits on",
   correction: "what moved in the plan or the criteria after approval, and why",
   baseline: "the gate, what it reports, the commit it ran at, and where a cited result came from",
@@ -211,7 +211,7 @@ const ANSWER_BLOCKS = [
   "Written after the park it answers, on an issue that park holds at waiting or needs_info, and refused",
   "anywhere else. --from names who gave the answer and --quoted is what they said. It is how a",
   "person's answer reaches the record through a run: a comment on the parker's own credential answers",
-  "nothing, whoever composed it. `forge advance` then resumes the issue where the park left it.",
+  "nothing, whoever composed it. The write resumes the issue where the park left it, in the same call.",
 ];
 
 const SHARED_FLAGS = [
@@ -229,15 +229,15 @@ export const usage = () => [
   "",
   ...phraseRows(),
   "",
-  "A record of one of these kinds adds to what the issue holds rather than superseding the last, so",
-  "the report lists every one of them, oldest first, under a count of how many it holds:",
+  "These kinds add to the issue rather than superseding the last, and the report lists every",
+  "one, oldest first, under a count:",
   `  ${REPEATS.join(", ")}`,
   "Every other kind is latest-wins, because a later record of it supersedes the one before.",
   "",
   ...SHARED_FLAGS,
   "",
-  "Every write ends on stderr with the line `forge advance --owed` would print for the issue at that",
-  "moment: the next status and how much it is owed, or the status the record earns.",
+  "Every write ends on stderr with what `forge advance --owed` would print for the issue at that",
+  "moment: the next status and what it owes, or the status the record earns.",
 ].join("\n");
 
 /* The rows with no cap on them, for the readers asking which flags exist rather than what a field
