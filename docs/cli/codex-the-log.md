@@ -60,10 +60,11 @@ after it are read the same way rather than one of them looking clean for want of
 
 **A pass and a recheck are two shapes of round, so `stats` prices them apart.** Each gets its own
 count, cache share and calls histogram, read off the row's own `recheck`, which a pass leaves absent:
-a sum over both read a shift of rechecks from three calls to one, which reads no cache by
-construction, as the harness caching less (ISS-83). A retried consult is counted in its kind's
-retried figure and in no bucket of its histogram, because its `calls` counted the retry attempt
-alone until ISS-540 and the whole conversation after, and nothing on the row but its date says which.
+summed together, rechecks shifting from three calls to one looked like the harness caching less,
+when a one-call round reads no cache by construction (ISS-83). A retried consult is counted in its
+kind's retried figure and in no bucket of its histogram, because its `calls` counted the retry
+attempt alone until ISS-540 and the whole conversation after, and nothing on the row but its date
+says which.
 
 **A number nobody looks at is not a measurement.** The reviewer slot moved to another model after one
 eval done by hand, and the runs since judge the harness by the feel of the next few consults: reading
