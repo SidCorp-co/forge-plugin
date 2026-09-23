@@ -219,6 +219,18 @@ test("a refused compound command says none of it ran, and one command or one pip
   assert.doesNotMatch(piped, /Nothing in this command ran/u, "and a pipeline is one command");
 });
 
+/* The shown ledger cuts a rule already read to one line; which parts of this call ran is not the rule's text, so it rides on that line. */
+test("a refused compound command read again in one line still says none of it ran, on that line", () => {
+  const cwd = dirtyRepo();
+  const id = `again-${Date.now()}`;
+  const said = (command) => answered(run(["bash-guard"], { tool_name: "Bash", tool_input: { command }, cwd, session_id: id },
+    { FORGE_SESSION_ID: id }))?.hookSpecificOutput?.permissionDecisionReason ?? "";
+  said(`git ${"add"} -A && git commit -m one`);
+  const again = said(`git ${"add"} -A && git commit -m two`);
+  assert.equal(again.split("\n").length, 1, `a repeat stays one line: ${again}`);
+  assert.match(again, /^Refused again.* Nothing in this command ran, the parts before the refused one included, so it is re-sent whole\.$/u);
+});
+
 test("a compound command the clock refused says none of it ran", () => {
   const harness = new URL("../../hooks/_hook.mjs", import.meta.url).href;
   const probe = `const { DEADLINES, dispatch } = await import(${JSON.stringify(harness)});\n`
