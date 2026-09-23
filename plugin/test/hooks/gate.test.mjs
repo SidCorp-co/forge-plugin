@@ -203,6 +203,35 @@ test("a post gate the clock skipped says so where the caller reads it, and leave
     `the skip is only in the log, which the caller does not hold:\n${held.stderr}`);
 });
 
+/* A refusal before a call refuses the whole command, so a `git add` ahead of the refused part never
+   ran: re-sending that part alone finds nothing staged (ISS-329). */
+test("a refused compound command says none of it ran, and one command or one pipeline does not", () => {
+  const cwd = dirtyRepo();
+  const said = (command, id) => answered(run(["bash-guard"], { tool_name: "Bash", tool_input: { command }, cwd, session_id: id },
+    { FORGE_SESSION_ID: id }))?.hookSpecificOutput?.permissionDecisionReason ?? "";
+  const whole = said("git add a.txt && git stash", `whole-${Date.now()}`);
+  assert.match(whole, /^Refused\. git stash silently reverts/u, "the gate's own reason still opens the refusal");
+  assert.match(whole, /\n\nNothing in this command ran, the parts before the refused one included, so it is re-sent whole\./u);
+  assert.match(said("git stash", `one-${Date.now()}`), /git stash silently reverts/u);
+  assert.doesNotMatch(said("git stash", `one-${Date.now()}`), /Nothing in this command ran/u, "one command needs no telling");
+  const piped = said("git stash | cat", `pipe-${Date.now()}`);
+  assert.match(piped, /git stash/u, "a pipeline is still refused");
+  assert.doesNotMatch(piped, /Nothing in this command ran/u, "and a pipeline is one command");
+});
+
+test("a compound command the clock refused says none of it ran", () => {
+  const harness = new URL("../../hooks/_hook.mjs", import.meta.url).href;
+  const probe = `const { DEADLINES, dispatch } = await import(${JSON.stringify(harness)});\n`
+    + `DEADLINES.pre = -1;\n`
+    + `await dispatch(["pre", "bash-guard"], { tool_name: "Bash", tool_input: { command: "git add a && git commit -m x" },`
+    + ` cwd: process.cwd(), session_id: "clock-whole" });\n`;
+  const held = spawnSync(process.execPath, ["--input-type=module", "-e", probe],
+    { encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: HOME } });
+  const reason = JSON.parse(held.stdout).hookSpecificOutput.permissionDecisionReason;
+  assert.match(reason, /^The hooks ran out of time before bash-guard could decide this call\./u);
+  assert.match(reason, /Nothing in this command ran, the parts before the refused one included, so it is re-sent whole\./u);
+});
+
 /* The advisor is server-side: nothing fires when it speaks, so a transcript is all a gate could read
    and the carry could only be judged by a word. The line is read off hooks.json rather than listed,
    so a gate added to it is asked this too instead of bringing that reading back unnoticed. */

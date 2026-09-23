@@ -89,6 +89,13 @@ export const filed = async (reason, ev, left = remaining()) => {
   }
 };
 
+/* A refusal before a call refuses all of it, so the `git add` ahead of a refused `git commit` never ran, and a caller re-sending only the refused part finds nothing staged (ISS-329). One command, or one pipeline, needs no telling. */
+const WHOLE = "Nothing in this command ran, the parts before the refused one included, so it is re-sent whole.";
+const refusal = (reason, ev) => {
+  const whole = ev?.tool_name === "Bash" && spans(String(ev.tool_input?.command ?? "")).length > 1;
+  return filed(whole ? `${reason}\n\n${WHOLE}` : reason, ev);
+};
+
 /* Ten processes per call was the whole cost of the hooks, 38 ms of each 50 being Node starting. One
    process per event: the first refusal answers before a call; after one every block and context is kept. */
 export const dispatch = async (given, ev = readEvent()) => {
@@ -108,7 +115,7 @@ export const dispatch = async (given, ev = readEvent()) => {
       if (kind === "pre") {
         const reason = `The hooks ran out of time before ${name} could decide this call. Re-send it.`;
         logged("deny", reason);
-        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: await filed(reason, ev) } });
+        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: await refusal(reason, ev) } });
         return;
       }
       logged("error", `${name} skipped: the post clock ran out before it`);
@@ -127,7 +134,7 @@ export const dispatch = async (given, ev = readEvent()) => {
         continue;
       }
       if (error.kind === "deny") {
-        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: await filed(error.message, ev) } });
+        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: await refusal(error.message, ev) } });
         return;
       }
       if (error.kind === "block") blocks.push(error.message);
