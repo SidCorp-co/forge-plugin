@@ -293,6 +293,16 @@ test("a case with a live issue of its own comments there and not on the grouped 
   assert.equal(creates(state).length, 0, JSON.stringify(creates(state)));
 });
 
+test("a pass whose grouped row somebody closed is filed again, and the body names the settled one", async () => {
+  const state = { issues: [groupIssue({ issueId: "ISS-8003", status: "closed" })], calls: [], key: KEY };
+  const said = await drove(state, [finding(), OTHER_FINDING()]);
+  assert.deepEqual(said.named.map((each) => each.key), [KEY, KEY], said.stderr);
+  const [sent] = creates(state);
+  assert.ok(sent.description.includes("An earlier issue this finding reaches, ISS-8003, is `closed`"),
+    sent.description);
+  assert.ok(!sent.description.includes("this same case"), sent.description);
+});
+
 test("a pass of two whose lookup does not come back whole files nothing", async () => {
   const state = { calls: [], key: KEY, issues: [], answer: { forge_issues: shortPage([], 5) } };
   const said = await drove(state, [finding(), OTHER_FINDING()]);

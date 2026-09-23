@@ -59,8 +59,11 @@ const facts = ({ step, one, before, digest, at }) => [
   `- what a later run finds this by: ${markerFor(one)}`,
 ].join("\n");
 
+/* Which of the two keys turned the settled row up is not carried here, and a pass of one can reach a
+   settled grouped row as a pass of several can: one wording true of every combination rather than a
+   sentence that names a case over a row holding twenty-seven. */
 const past = (settled) => (settled
-  ? `\n\nAn earlier issue for this same case, ${settled.issueId}, is \`${settled.status}\`, so this `
+  ? `\n\nAn earlier issue this finding reaches, ${settled.issueId}, is \`${settled.status}\`, so this `
     + `finding is filed rather than left on it.`
   : "");
 
