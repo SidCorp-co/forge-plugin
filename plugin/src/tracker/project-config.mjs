@@ -281,9 +281,9 @@ const shownHost = (value) => {
    recognised stays guarded, and an address under this one is guarded whatever its scheme. A display name
    is the project's word for the role a login signs in as — docs/cli/the-credential-guard.md. */
 const DISPLAY_NAME = new Set(["label"]);
-/* Wider than `HOST`, which picks what may print: any scheme in any case is an address, and user-info
-   rides on all of them. */
-const ADDRESS = /^[a-z][a-z0-9+.-]*:\/\//iu;
+/* Wider than `HOST`, which picks what may print: an address of any scheme, in any case, anywhere in
+   the value, since user-info rides on all of them and a label can hold one after some prose. */
+const ADDRESS = /[a-z][a-z0-9+.-]*:\/\//iu;
 
 /** A host is told by the shape of its value, never by a list of keys: the field set grows, and a
  *  rule printing everything not named as a secret prints tomorrow's by default. So a string beside
