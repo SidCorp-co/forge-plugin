@@ -1,7 +1,5 @@
-/* The landing ended on the one thing that settles it: the branch a change lands on already carries
-   the head. Apart from `claim.mjs` because it is two readings of that one fact, one per state it is
-   taken from, and the second of them is a record check the capture out of `head-owed` owns too.
-   docs/cli/the-checkpoint.md. */
+/* `claim --landed`, apart from `claim.mjs` because out of `head-owed` it reads a head of its own
+   and asks the records the capture out of that state asks. docs/cli/the-checkpoint.md. */
 import { spawnSync } from "node:child_process";
 
 import { fail } from "../../resolve/settings.mjs";
@@ -24,8 +22,7 @@ const git = (args) => {
   return run.status === 0 ? (run.stdout ?? "").trim() : null;
 };
 
-/* That exact ref or nothing: `rev-parse` would resolve the name through a local branch of the same
-   spelling, and what rests on this answer ends a landing. */
+/* Read as `tipOf` in worklog.mjs reads the landing branch, and for its reason. */
 const branchTip = (branch) => {
   const hash = git(["show-ref", "--verify", "--hash", `refs/remotes/origin/${branch}`]);
   return hash ? git(["rev-parse", "--verify", `${hash}^{commit}`]) : null;
