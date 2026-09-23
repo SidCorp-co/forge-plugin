@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { TOOLS, checkCommand, checkState, runTool, scopeFor, toolsFor } from "../../src/codex/codex-tools.mjs";
 import { bundle, changedAgainst, divergedFrom, roleFor, withDiffs } from "../../src/codex/codex-api.mjs";
 import { AROUND_CHECK_MS, CHECK_MS_SPARED } from "../../src/resolve/settings.mjs";
@@ -382,4 +382,81 @@ test("a consult with nothing left to spare refuses the check rather than startin
     "and the refusal names what clears it, a clock in the project reaching none of this");
   assert.equal(checkState(spent), "failed", "the state a check that could not start leaves the round in");
   assert.equal(/ran past/u.test(none.text), false, "and it is not reported as a command that was stopped");
+});
+
+/* A citation names a clause by identifier and never by path, so a reviewer holding only a file
+   reader answered Unverified on every citation it was asked about (ISS-1061). */
+const CLAUSES = `# SRS §3 — FR-01 — The first capability
+
+Rev: 2 · Actors: agent
+
+## Use cases
+
+*What has to exist?*
+
+### UC-01-1 — A clause read by its identifier
+
+Rev: 1 · Actors: agent
+
+The identifier is the whole surface.
+
+- **AC-01-1-1** · Rev: 1 · Proof: none yet — ISS-1
+  WHEN a clause is asked for THEN the CLI SHALL print it.
+`;
+
+const treed = () => {
+  const root = repo();
+  mkdirSync(join(root, "docs", "requirements", "srs"), { recursive: true });
+  writeFileSync(join(root, "docs", "requirements", "srs", "fr-01.md"), CLAUSES);
+  return root;
+};
+
+const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
+const verb = (root, id) => spawnSync(FORGE, ["spec", id], { cwd: root, encoding: "utf8", env: process.env });
+
+test("read_spec is offered only where the checkout under review keeps a requirements tree", () => {
+  assert.equal(toolsFor(scopeFor(repo())).some((one) => one.name === "read_spec"), false);
+  assert.equal(toolsFor(scopeFor(treed())).at(-1).name, "read_spec");
+  assert.match(roleFor(["tech"], { spec: true }), /`read_spec` reads a clause of this checkout's requirements tree/u);
+  assert.doesNotMatch(roleFor(["tech"]), /read_spec/u);
+});
+
+test("read_spec answers with what forge spec prints, a stale citation and an unknown identifier alike", async () => {
+  const root = treed();
+  const scope = scopeFor(root);
+  for (const id of ["FR-01", "UC-01-1~1", "AC-01-1-1"]) {
+    const held = await runTool(scope, "read_spec", { id });
+    assert.equal(held.error, undefined, held.text);
+    assert.equal(held.text, verb(root, id).stdout.trimEnd(), `${id} reads as the verb prints it`);
+  }
+  const stale = await runTool(scope, "read_spec", { id: "FR-01~1" });
+  assert.match(stale.text, /^The citation FR-01~1 is stale: FR-01 is at revision 2, not 1\.\n\nFR-01 — /u, stale.text);
+  assert.equal(stale.text, verb(root, "FR-01~1").stdout.trimEnd());
+  const unknown = await runTool(scope, "read_spec", { id: "UC-01-2" });
+  assert.equal(unknown.error, true);
+  assert.match(unknown.text, /Did you mean: UC-01-1/u, unknown.text);
+  assert.ok(verb(root, "UC-01-2").stderr.includes(unknown.text.replace(/^read_spec: /u, "")),
+    "the refusal is the one the verb ends on");
+});
+
+test("read_spec reads the tree of the checkout under review and sends nothing off the machine", async () => {
+  const fetched = globalThis.fetch;
+  globalThis.fetch = () => { throw new Error("read_spec reached the network"); };
+  try {
+    const held = await runTool(scopeFor(treed()), "read_spec", { id: "FR-06" });
+    assert.equal(held.error, true, "this repository's own FR-06 is not the reviewed checkout's");
+    assert.match(held.text, /^read_spec: No clause named FR-06/u, held.text);
+    assert.match((await runTool(scopeFor(repo()), "read_spec", { id: "FR-01" })).text, /keeps no requirements tree/u);
+  } finally {
+    globalThis.fetch = fetched;
+  }
+});
+
+test("a requirement past the cap is cut with the narrower identifiers that read the rest", async () => {
+  const root = treed();
+  const long = CLAUSES.replace("The identifier is the whole surface.", "A long line of the use case. ".repeat(900));
+  writeFileSync(join(root, "docs", "requirements", "srs", "fr-01.md"), long);
+  const held = await runTool(scopeFor(root), "read_spec", { id: "FR-01" });
+  assert.match(held.text, /clipped at \d+ characters; ask for a clause under FR-01 by its own identifier, as UC-01-1, for the rest\.$/u);
+  assert.ok(held.text.length < 20_000, "under the cap every tool answer holds to");
 });

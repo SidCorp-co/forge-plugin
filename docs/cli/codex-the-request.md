@@ -68,6 +68,14 @@ the finding grammar needs no second form and a defect in a comment is reported w
 The one thing that had to give was the file filter: a part name is in no checkout, so a finding
 anchored to one is kept where a filter over paths would have dropped it whole.
 
+**A citation is read by the identifier it is written in.** A plan or a criterion cites a clause as
+`FR-06~1`, which names no file, so a reviewer holding only a file reader was asked whether a clause
+served its line and answered *Unverified* on every citation, having spent its calls hunting for where
+the clause lives. `read_spec` answers with what `forge spec` prints, through that verb's own reader, a
+stale revision and an unknown identifier included, so the words a citation is judged against are the
+ones the rung that demanded it would show. It is not the boundary `read_issue` is: it reads the tree of
+the checkout under review and nothing past it, and it is offered only where that checkout keeps one.
+
 **Three of the reviewer's four tools take the checkout when no path came.** `list_dir`, `git_diff`
 and `grep` default to the root: 34 refusals in the log were that argument left out, and a reviewer
 that meant the repository has nowhere else to mean. `read_file` keeps its path, having no such

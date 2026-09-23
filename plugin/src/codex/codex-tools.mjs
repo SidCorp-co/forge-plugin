@@ -3,7 +3,7 @@
    this is the reviewer guessing at a file it was not handed. hooks/how/codex-second.md, and
    docs/cli/codex-the-request.md for the scope. */
 import { spawnSync } from "node:child_process";
-import { readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import { failuresSaid } from "./check/output.mjs";
@@ -11,6 +11,8 @@ import { commentPage, cutIn } from "../tracker/comments.mjs";
 import { HUMAN_REF, documentIdIfAny } from "../tracker/issues.mjs";
 import { scoped } from "../tracker/rest.mjs";
 import { AROUND_CHECK_MS, budgetMs, fromProject, refusing } from "../resolve/settings.mjs";
+import { TREE, specTreeAt } from "../spec/tree.mjs";
+import { clauseAsked, clauseText, refOf } from "../spec/verbs.mjs";
 
 const NEAREST_UP = 12;
 const RESULT_CHARS = 20_000;
@@ -33,7 +35,24 @@ export const toolsFor = (scope) => [
   ...TOOLS,
   ...(scope?.check ? [CHECK] : []),
   ...(scope?.tracker ? [READ_ISSUE] : []),
+  ...(scope?.spec ? [READ_SPEC] : []),
 ];
+
+/* A clause by identifier, which is how a plan or a criterion cites one and never by path: without it
+   a reviewer asked whether a citation serves its criterion hunted the tree with `grep` and answered
+   Unverified (ISS-1061). Files of the checkout under review, read by `forge spec`'s own reader, so
+   it is not the boundary `read_issue` is: nothing leaves this machine. */
+export const READ_SPEC = {
+  name: "read_spec",
+  description: "Read one clause of this checkout's requirements tree by its identifier, as FR-06 or "
+    + "UC-06-1, or by a citation, as FR-06~1: what `forge spec` prints for it. A citation whose "
+    + "revision has moved is called stale above the clause. Read-only.",
+  input_schema: {
+    type: "object",
+    properties: { id: { type: "string", description: "The identifier or citation, as FR-06~1." } },
+    required: ["id"],
+  },
+};
 
 // The one tool that reads outside the checkouts: an issue off this checkout's own tracker, in this process and through the readers `forge issue` and `forge comment` use, so the token stays here.
 export const READ_ISSUE = {
@@ -214,7 +233,25 @@ export const scopeFor = (root, extras = [], check = null, consult = null) => {
       : null,
     diff: consult?.anchor && rels.length ? { anchor: consult.anchor, rels } : null,
     tracker: trackerFor(consult?.issues ?? []),
+    spec: specFor(canonical(root)),
   };
+};
+
+// Null where the checkout keeps no tree, so the tool is not offered; the index is read at the first call.
+export const specFor = (root) => (existsSync(join(root, TREE)) ? { root, index: null } : null);
+
+const specRead = (scope, input) => {
+  if (!scope?.spec) return { text: "read_spec: this checkout keeps no requirements tree, so there is no clause to read.", error: true };
+  const asked = refOf(String(input.id ?? "").trim());
+  if (asked.refused) return { text: `read_spec: ${asked.refused}`, error: true };
+  scope.spec.index ??= specTreeAt(scope.spec.root);
+  const { problem, clause } = clauseAsked(scope.spec.index, asked.ref);
+  if (problem) return { text: `read_spec: ${problem}`, error: true };
+  const text = clauseText(scope.spec.index, clause, asked.ref);
+  if (text.length <= RESULT_CHARS || !clause.children.length) return { text: clipped(text) };
+  // A requirement prints every clause under it and five of this repository's run past the cap: the way on is a narrower identifier, which the text above the cut already names.
+  return { text: `${clip(text, RESULT_CHARS - PAGE_ROOM)}; ask for a clause under ${clause.id} by its own `
+    + `identifier, as ${clause.children.slice(0, 3).join(", ")}, for the rest.` };
 };
 
 const TAIL_CHARS = 6_000;
@@ -538,6 +575,7 @@ const answered = async (scope, name, given = {}) => {
   /* Before the path reading below, as `run_check` is: this tool's subject is a key, and the reader
      that answers "not a readable path in" would refuse the one argument it takes. */
   if (name === "read_issue") return issueRead(scope, input);
+  if (name === "read_spec") return specRead(scope, input);
   /* Optional for three of the four: the checkout is what a reviewer means by no path, and 34
      refusals in the log were that argument left out (ISS-65). read_file has no such default. */
   const rooted = name !== "read_file";
