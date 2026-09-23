@@ -21,8 +21,8 @@ naming that role unpostable, and the refusal read as a leaked password (ISS-172)
 does not reverse the shape rule [the test credentials](test-credentials.md) states, because it sits
 on the other side of it: that rule refuses a list of *secrets*, which prints tomorrow's key by
 default, while this names one *non-secret*, so a key nobody recognised stays guarded. And the key
-alone does not decide: a host under it is still judged by its shape, so a URL carrying user-info, a
-query or a fragment is guarded whatever it is filed under. The report still withholds the label —
+alone does not decide: an address under it — any scheme, in any case — is guarded, so a URL carrying
+user-info, a query or a fragment is guarded whatever it is filed under. The report still withholds the label —
 what is printed is that document's rule, not this one's.
 
 **A refusal says where in the author's own words the hit sits**, every guarded value in that text

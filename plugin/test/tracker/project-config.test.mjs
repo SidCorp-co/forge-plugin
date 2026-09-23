@@ -361,6 +361,10 @@ test("a URL carrying a secret under a label key is judged by its shape, not by t
   const deploy = deployFrom({ testCredentials: [{ label: "https://qa:hunter2hunter2@beta.example.test/in" }] });
   assert.equal(credentialLeak({ body: "open https://qa:hunter2hunter2@beta.example.test/in" }, deploy).credential,
     "test credentials · label");
+  for (const address of ["HTTPS://qa:hunter2hunter2@beta.example.test/in", "ftp://qa:hunter2hunter2@files.example.test"]) {
+    const found = credentialLeak({ body: `open ${address} now` }, deployFrom({ testCredentials: [{ label: address }] }));
+    assert.equal(found?.near, "open [withheld] now", `a scheme in any case, or any scheme, is an address: ${address}`);
+  }
 });
 
 test("a refusal quotes where the match sits, and every guarded value in that text is masked", () => {

@@ -278,9 +278,12 @@ const shownHost = (value) => {
 };
 
 /* The one key the guard lets through, and by name because it names a non-secret: a key nobody
-   recognised stays guarded, and a host under this one is still judged by its shape. A display name
+   recognised stays guarded, and an address under this one is guarded whatever its scheme. A display name
    is the project's word for the role a login signs in as — docs/cli/the-credential-guard.md. */
 const DISPLAY_NAME = new Set(["label"]);
+/* Wider than `HOST`, which picks what may print: any scheme in any case is an address, and user-info
+   rides on all of them. */
+const ADDRESS = /^[a-z][a-z0-9+.-]*:\/\//iu;
 
 /** A host is told by the shape of its value, never by a list of keys: the field set grows, and a
  *  rule printing everything not named as a secret prints tomorrow's by default. So a string beside
@@ -291,10 +294,10 @@ export const deployFrom = (deploy) => {
   const urls = [];
   const rest = [];
   for (const one of leaves(deploy)) {
-    const host = HOST.test(one.value);
-    const shown = host ? shownHost(one.value) : null;
+    const shown = HOST.test(one.value) ? shownHost(one.value) : null;
     if (shown) urls.push({ label: labelOf(one.at), url: shown });
-    if (shown !== one.value) rest.push({ ...one, guarded: host || !DISPLAY_NAME.has(one.at.at(-1)) });
+    const guarded = ADDRESS.test(one.value) || !DISPLAY_NAME.has(one.at.at(-1));
+    if (shown !== one.value) rest.push({ ...one, guarded });
   }
   return {
     urls,
