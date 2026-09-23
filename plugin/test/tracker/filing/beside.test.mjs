@@ -206,6 +206,21 @@ test("forge comment takes the write over, and asks the tracker nothing about nei
   assert.doesNotMatch(run.stdout, /Open beside this filing/u);
 });
 
+test("a dropped neighbour whose thread the tracker refuses still leaves the filing made", async () => {
+  before();
+  state.issues.push(DROPPED);
+  state.answer = { forge_comments: (args) => (args.action === "list" ? { refused: "comments are down" } : undefined) };
+  try {
+    state.memory = both(DROPPED.issueId, 0.9);
+    const run = await filed("--complexity", "s");
+    assert.equal(run.status, 0, run.stderr);
+    assert.ok(created(), "the unread reason cost the filing nothing");
+    assert.match(run.stdout, /^ {4}why: unread — .*comments are down$/mu);
+  } finally {
+    state.issues.pop();
+  }
+});
+
 /* A place match nothing ranked is the case the fold is bought against: the keyword query answers
    every hit at one score, so a fold on it alone would post onto whichever came back first. */
 test("a same-place hit the semantic query never ranked is printed and not folded onto", async () => {
