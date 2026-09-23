@@ -91,3 +91,17 @@ reviewer, where a rebuilt addition would be a second copy of it.
 **A malformed tool call is answered, not thrown.** Arguments that never parsed become an empty input
 and come back as a refusal: the model's mistake to correct, not a reason to end a consult already paid
 for.
+
+**Every tool result ends on how many calls the reviewer has left.** A reviewer never told spent its
+last call on another read and answered nothing, which fails the consult it was paid for. The count
+rides the result rather than a tool of its own, because a call is the unit of cost here and asking
+would spend one; it counts the calls after the one reading it, so the result the last call reads
+says that call is the last. It is the model's to plan on: the log and the terminal carry the tool's
+own answer, and the prompt carries no second copy of the number.
+
+**A grep that cannot be shown whole says what it hid and how to get the rest.** A read clipped at the
+cap can be read again by range; a grep cannot, so the matches past the clip were gone with nothing to
+say how many. The list is cut at a whole match under both caps, opens on how many matched and how many
+are shown, and closes on the two ways to narrow it — a tighter pattern, or a path. Writing the whole
+result to a file was declined: the reviewer reads only the checkouts under review, and a file outside
+them would need a read path of its own.

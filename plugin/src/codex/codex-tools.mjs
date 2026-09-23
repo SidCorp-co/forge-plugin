@@ -403,9 +403,27 @@ const grepIn = (scope, held, pattern) => {
   if (run.error) return `grep failed: ${run.error.message}`;
   const lines = (run.stdout ?? "").split("\n").filter(Boolean);
   if (!lines.length) return "no matches";
-  const shown = lines.slice(0, GREP_LINES).map((line) => line.replace(`${scope.roots[0]}/`, ""));
-  const more = lines.length > GREP_LINES ? `\n… ${lines.length - GREP_LINES} more matches` : "";
-  return clipped(shown.join("\n") + more);
+  const all = lines.map((line) => line.replace(`${scope.roots[0]}/`, ""));
+  const shown = fitting(all);
+  if (shown.length === all.length) return shown.join("\n");
+  return `${all.length} matches, the first ${shown.length} shown:\n${shown.join("\n")}\n`
+    + `… ${all.length - shown.length} more not shown. Narrow it with a tighter pattern, or with a \`path\` to one directory or file.`;
+};
+
+/* The matches that fit under both caps, whole. A grep clipped mid-list by characters loses the
+   count of what it hid, and unlike a read there is no range to page on, so the list is cut at a
+   line and the count is said instead (ISS-326). A first match alone past the room is cut where it
+   sits, as a read's would be. */
+const fitting = (lines) => {
+  const room = RESULT_CHARS - PAGE_ROOM;
+  const shown = [];
+  let size = 0;
+  for (const line of lines.slice(0, GREP_LINES)) {
+    if (size + line.length + 1 > room) break;
+    shown.push(line);
+    size += line.length + 1;
+  }
+  return shown.length ? shown : [clip(lines[0], room - PAGE_ROOM)];
 };
 
 const headed = (part, again) => `${part.name}${part.head ? ` — ${part.head}` : ""}, ${part.lines.length}`
@@ -500,9 +518,19 @@ const ownDiff = (scope, held) => {
   return clipped(`This review's own diff, from ${own.anchor.slice(0, 7)} over ${own.rels.length} file(s):\n${text}${also}`);
 };
 
-/** One tool call, run here. Every failure comes back as text the reviewer can act on: a refusal it
- *  cannot read is indistinguishable from a file that does not exist. */
+/** One tool call, run here, its answer ending on how many calls the round has left where the round
+ *  said (`scope.left`, the calls after the one that reads this). `said` is the tool's own answer, for
+ *  the operator: the count is the model's to plan on, not a line of a refusal. */
 export const runTool = async (scope, name, given = {}) => {
+  const ran = await answered(scope, name, given);
+  if (!Number.isInteger(scope?.left)) return ran;
+  const left = scope.left > 0 ? `calls left: ${scope.left} after this one` : "last call — answer now";
+  return { ...ran, text: `${ran.text}\n\n${left}`, said: ran.text };
+};
+
+/* Every failure comes back as text the reviewer can act on: a refusal it cannot read is
+   indistinguishable from a file that does not exist. */
+const answered = async (scope, name, given = {}) => {
   /* A default catches undefined and not `null`, which is what `"input": null` parses to — and a
      throw here ends the consult, where a refusal is something the reviewer can answer. */
   const input = given && typeof given === "object" ? given : {};

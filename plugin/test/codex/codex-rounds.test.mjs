@@ -227,3 +227,64 @@ test("an attempt that reads through the ceiling too still fails", async () => {
     /spent all 3 call\(s\) reading and never answered/u,
   );
 });
+
+/* A reviewer never told how many calls it had left spent its last one on a read and answered nothing
+   (ISS-326). The count rides each tool result, where the model reads it, and counts the calls after
+   the one reading it, so the result the last call reads is the one that says so. */
+test("each tool result ends on the calls left, and the one the last call reads says it is the last", async () => {
+  const sent = [];
+  const stub = async (values, model, messages) => {
+    sent.push(structuredClone(messages));
+    const answered = sent.length === 3;
+    return {
+      text: answered ? "CODEX: 0 findings" : "",
+      calls: answered ? [] : [{ id: `c${sent.length}`, name: "list_dir", input: {} }],
+      usage: {}, stop: answered ? "end_turn" : "tool_use", thought: 0,
+    };
+  };
+  const held = await reviewed({}, "m", "go", scopeFor(REPO), () => {}, stub, { budget: 3, ceiling: 3 });
+  assert.equal(held.calls, 3);
+  const results = sent.at(-1).flatMap((one) => (Array.isArray(one.content) ? one.content : []))
+    .filter((one) => one.type === "tool_result");
+  assert.equal(results.length, 2);
+  assert.match(results[0].content, /\n\ncalls left: 1 after this one$/u, "read by the second of three calls");
+  assert.match(results[1].content, /\n\nlast call — answer now$/u, "read by the third");
+  assert.equal(held.refused.length, 0);
+});
+
+test("a refused tool call ends on the count for the model and reaches the operator without it", async () => {
+  let calls = 0;
+  const sent = [];
+  const stub = async (values, model, messages) => {
+    calls += 1;
+    sent.push(structuredClone(messages));
+    return calls === 1
+      ? { text: "", calls: [{ id: "c1", name: "read_file", input: {} }], usage: {}, stop: "tool_use", thought: 0 }
+      : { text: "CODEX: 0 findings", calls: [], usage: {}, stop: "end_turn", thought: 0 };
+  };
+  const held = await reviewed({}, "m", "go", scopeFor(REPO), () => {}, stub, { budget: 4, ceiling: 4 });
+  const result = sent.at(-1).flatMap((one) => (Array.isArray(one.content) ? one.content : []))
+    .find((one) => one.type === "tool_result");
+  assert.equal(result.is_error, true);
+  assert.match(result.content, /\n\ncalls left: 2 after this one$/u);
+  assert.equal(held.refused.length, 1);
+  assert.equal(held.refused[0].includes("calls left"), false, "the operator's list is the tool's own answer");
+});
+
+test("an attempt carried on counts what is left against the ceiling it was raised to", async () => {
+  const sent = [];
+  const stub = async (values, model, messages) => {
+    sent.push(structuredClone(messages));
+    const answered = sent.length > 2;
+    return {
+      text: answered ? "CODEX: 0 findings" : "",
+      calls: answered ? [] : [{ id: `c${sent.length}`, name: "list_dir", input: {} }],
+      usage: {}, stop: answered ? "end_turn" : "tool_use", thought: 0,
+    };
+  };
+  await reviewed({}, "m", "go", scopeFor(REPO), () => {}, stub, { budget: 2, ceiling: 5 });
+  const results = sent.at(-1).flatMap((one) => (Array.isArray(one.content) ? one.content : []))
+    .filter((one) => one.type === "tool_result");
+  assert.match(results[0].content, /last call — answer now$/u, "true when the first attempt, of two calls, served it");
+  assert.match(results[1].content, /calls left: 2 after this one$/u, "served by the attempt carried on to five");
+});
