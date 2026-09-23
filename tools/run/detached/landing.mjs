@@ -218,7 +218,8 @@ export const detach = async (verb, argv, script) => {
     stop(`${process.execPath} could not be started to run the ${verb}: ${error?.message ?? "no pid was given"}.`);
   }
   console.log(`  this ${verb} runs as pid ${child.pid} in a session of its own, so stopping this call stops `
-    + `nothing of it; \`kill -- -${child.pid}\` stops it, gate and all. What it prints is relayed here, and ${where(files)}.`);
+    + `nothing of it; \`kill -- -${child.pid}\` stops it, gate and all. What it prints is relayed here, and ${where(files)}. `
+    + `A later call waits on it with ${waitOn(child.pid)}`);
   const relays = [following(files.out, process.stdout), following(files.err, process.stderr)];
   const pump = () => relays.forEach((one) => one.pump());
   const tick = setInterval(pump, TICK_MS);

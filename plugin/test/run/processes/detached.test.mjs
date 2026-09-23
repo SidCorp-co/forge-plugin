@@ -124,6 +124,7 @@ test("each landing verb names its pid, its output files and its record before it
       assert.ok(first.includes(inGit(work, name)), `${name} is not named:\n${first}`);
     }
     assert.ok(first.includes("kill -- -"), first);
+    assert.match(first, /tail --pid=\d+ -f \/dev\/null/u, first);
     assert.notEqual(Number(/runs as pid (\d+)/u.exec(first)[1]), run.pid, "the landing ran in the caller");
   }
 });
