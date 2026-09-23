@@ -46,7 +46,7 @@ export const issueOf = async (reference) => {
 
 /* Filled from the record where the flag is absent (ISS-65): a verdict loop typed both twenty times.
    Deferred and not defaulted, the values arriving with the issue and a flag error costing no call. */
-export const DEFERRED = ["commit", "evidence"];
+const DEFERRED = ["commit", "evidence"];
 
 /* One pass over the shape: every flag read, every rule applied, before anything is written. */
 const gather = (kind, argv, defer = []) => {

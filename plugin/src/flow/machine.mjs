@@ -20,7 +20,7 @@ const LABELLED = /^- \*\*([^*]+):\*\* (.*)$/u;
 export const tagFor = (kind, contract) => `\`${INFO}: ${kind} · contract ${contract}\``;
 
 /* The fence outruns any run inside it; an indented line continues the value above, not a key. */
-export const fenceFor = (text) => "`".repeat(Math.max(3, ...[...String(text).matchAll(/`+/gu)].map((one) => one[0].length + 1)));
+const fenceFor = (text) => "`".repeat(Math.max(3, ...[...String(text).matchAll(/`+/gu)].map((one) => one[0].length + 1)));
 
 const linesFor = (key, value) => String(value).split("\n").map((line, at) => (at ? `  ${line}` : `${key}: ${line}`));
 
@@ -43,7 +43,7 @@ const keyedIn = (lines, closes) => {
   return out;
 };
 
-export const payloadIn = (body) => {
+const payloadIn = (body) => {
   const lines = String(body ?? "").split("\n");
   const at = lines.findIndex((line) => OPEN.test(line));
   if (at < 0) return null;
@@ -334,7 +334,7 @@ export const PARKS = [
    The two of them that are a person's look answer it whichever kind was asked for, the kind saying where a person looked rather than whether they did. */
 export const SHOWS_EVIDENCE = ["screen-review", "code-review", "destructive-migration"];
 export const ANSWERS_LOOK = ["screen-review", "code-review"];
-export const FAIL = "fail";
+const FAIL = "fail";
 export const SHORT = "short";
 /* Four outcomes and not three: a criterion exercised, found short of its wording and judged not to
    block is a decision, where a `skipped` one is a gap in equipment, and a set that spells both the
@@ -345,7 +345,7 @@ export const VERDICTS = ["pass", FAIL, "skipped", SHORT];
  *  added to the set cannot be exempt from one of them and not the other. */
 export const somebodyLooked = (verdict) => verdict !== "skipped";
 export const JUDGE_FROM = "judge-from";
-export const SCOPES = ["whole", "part"];
+const SCOPES = ["whole", "part"];
 
 /** One owed item — what the record lacks and the one command that supplies it — and the way every reader prints a set of them. Here rather than in the checks, so a check split out of them takes the shape with it and imports nothing back, and so a refusal's shortfall and a write's own tail cannot spell one differently. */
 export const need = (what, command) => ({ what, command });
@@ -418,7 +418,7 @@ const shortProblem = (got) => {
 };
 
 /* Said once, by the shape and by whatever turns a write back, so both name the same two grounds. */
-export const ON_EITHER_GROUND = "--quoted \"<their words>\" where a person reported it, or --evidence "
+const ON_EITHER_GROUND = "--quoted \"<their words>\" where a person reported it, or --evidence "
   + "<attachment|url|sha> where this run saw it: a finding that quotes nobody and captured nothing "
   + "is an assertion nothing on the record stands behind";
 
