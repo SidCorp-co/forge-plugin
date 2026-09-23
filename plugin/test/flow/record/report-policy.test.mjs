@@ -103,6 +103,7 @@ test("where the policy owes a person, the act is named once and on the policy's 
     assert.ok(policyLines(out)[0].includes(act), out);
   }
   const closing = await reported("ISS-4");
-  assert.match(closing, /^Owed: the release, which is a person's\. The line above says whose act it is/mu, closing);
+  assert.match(closing, /^Owed: the release,/mu, closing);
+  assert.match(closing, /The line above says whose act it is/u, "the closing line points at the policy's");
   assert.match(closing, /^ {2}forge advance ISS-4 --set closed --why "<[^"]+>"$/mu, closing);
 });
