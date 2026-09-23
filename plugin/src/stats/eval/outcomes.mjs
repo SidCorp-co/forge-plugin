@@ -9,7 +9,7 @@ import { accountCredentials } from "../../resolve/settings.mjs";
 
 export const HORIZON = 86_400_000;
 export const BUDGET = 400;
-export const AT_ONCE = 4;
+const AT_ONCE = 4;
 const WAIT_SECONDS = 20;
 /* The gap between a write and the result the harness stamps, and nothing wider: widen it and two calls a second apart both reach one entry, so neither pairs. */
 const SLACK = 5000;
@@ -265,7 +265,7 @@ export const ruledOver = (runs, entries) => {
 /** The one figure counted over findings rather than pairs, on sources the tracker is not among: a
  *  refused tracker read leaves this row standing. Its population is the findings RULED, so a window
  *  whose rulings never paired and one whose paired rulings ruled on nothing both have none. */
-export const rejectedFor = (runs, ruled) => {
+const rejectedFor = (runs, ruled) => {
   const behind = new Set();
   let rejected = 0;
   let over = 0;

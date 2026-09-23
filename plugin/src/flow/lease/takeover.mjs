@@ -10,7 +10,7 @@ import { fail } from "../../resolve/settings.mjs";
 import { worklogFor } from "../worklog.mjs";
 
 /** Whether this session's own last claim was a take at this state, which a lease held from before that handoff is not. The holder's latest row and no earlier one, because the history outlives both the holder and the state: a run that took this turn and lost the lease is any other run again, and one that has since taken another turn is at that one. */
-export const tookAt = (lease, holder, state) => {
+const tookAt = (lease, holder, state) => {
   const last = (lease?.history ?? []).findLast((one) => one?.holder === holder);
   return last?.how === "take" && last?.landing === state;
 };

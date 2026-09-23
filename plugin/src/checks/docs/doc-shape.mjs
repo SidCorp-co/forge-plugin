@@ -39,7 +39,7 @@ const claimsFrom = (calls, envs) => ({
 });
 
 /* The join goes first, or its own quote is read as one of theirs; a quoted value is data. */
-export const routeClaims = (text) => claimsFrom(
+const routeClaims = (text) => claimsFrom(
   [...String(text).matchAll(SOURCE_FORM)]
     .map(([, verb, rest]) => rested(verb, (rest ?? "").replace(JOINED, " ").replace(QUOTED, " "))),
   [],

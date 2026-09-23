@@ -26,7 +26,7 @@ export const droppedRefusal = (key, names, row) =>
 /** The capabilities this CLI declares and REST does not serve. Each names the route it wanted, so
  *  the gap is reportable as a route rather than as a verb that stopped working, and each names what
  *  still reaches the same thing. A name outside this table wanted no route and is told so. */
-export const NO_ROUTE = {
+const NO_ROUTE = {
   "forge_knowledge.search": {
     wanted: "POST /api/projects/:id/knowledge/search",
     instead: "`forge knowledge list` and `forge knowledge get <slug>` are what still reach the store.",

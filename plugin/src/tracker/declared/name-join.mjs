@@ -29,7 +29,7 @@ const secretsIn = (row) => WITHHELD
 
 /** Whether a name of this row may not be printed: one of the two, or one that reads as a value the
  *  row holds under one of them. Both are counted where they are not named. */
-export const heldAsName = (row, name) =>
+const heldAsName = (row, name) =>
   WITHHELD.includes(name) || secretsIn(row).includes(name);
 
 /** Every line the reporter renders passes this, so no reporting path can carry one of those names or

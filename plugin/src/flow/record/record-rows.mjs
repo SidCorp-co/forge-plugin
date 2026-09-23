@@ -18,9 +18,9 @@ export const KINDS = [...Object.keys(SHAPES), "merged", "note", "criteria", "pla
 
 const withCap = (value, cap) => (typeof cap === "number" ? `${value}(${cap})` : value);
 
-export const HAS_CAP = /\(\d+\)/u;
+const HAS_CAP = /\(\d+\)/u;
 
-export const CAP_LEGEND = [
+const CAP_LEGEND = [
   "A number in parentheses after a value is that field's cap in code points. A write over one is",
   "refused before the field's payload is sent.",
 ];
@@ -31,7 +31,7 @@ const VALUES = 19;
 /* The row carries the flag where the table gives the kind the field, so a second kind growing it gets the row as well as the help block below. */
 const servesOn = (kind) => (SERVES_KINDS.includes(kind) ? "  [--serves G]" : "");
 
-export const kindRows = (caps) => [
+const kindRows = (caps) => [
   "  confirmation --is I --where W... --finding F [--detail D]   F: " + FINDINGS.join("|"),
   `  decision     --decision "${DECISION_PARTS.join(" | ")}"... | --none <why>` + servesOn("decision"),
   "  question     --reading \"reading -> outcome\" (two or more) [--to who]",

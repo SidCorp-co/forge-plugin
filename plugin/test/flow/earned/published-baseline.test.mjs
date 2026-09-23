@@ -11,6 +11,7 @@ import { dirname, join } from "node:path";
 import { projectRecord, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
 import { OWN, trackerFor } from "../../fixtures/own-project.mjs";
 import { render } from "../../../src/flow/record/page.mjs";
+import { NAMED } from "../../tools/gates/scratch.mjs";
 
 const ROOT = new URL("../../../../", import.meta.url).pathname;
 
@@ -223,14 +224,6 @@ test("the near-miss store the cases above are read against really is a near miss
     "and a commit differing in one character is a different tree, so no prefix match creeps in");
 });
 
-/* The publisher's own reading, with nothing injected: a repository of its own has its own common git
-   directory, so its `gate-ledger` is its own too and recording a pass in it reaches nothing this
-   checkout shares. That is what makes the real `greenHeld` drivable here, and it is the only case
-   that would notice that default rewired to answer zero while `greenHeld` itself stayed right. */
-const WHOLE_TREE = ["plugin/test/checks/cited-paths.test.mjs", "plugin/test/checks/docs/one.test.mjs",
-  "plugin/test/checks/sources-are-text.test.mjs", "plugin/test/checks/surface/level-boundary.test.mjs",
-  "plugin/test/guides/contract.test.mjs"];
-
 /* A slug this checkout's own record does not carry, so a publication filed under the invoking project rather than the released tree's is visible as a wrong answer and not as a coincidence. */
 const SHIPPED = "a-project-that-is-not-this-one";
 
@@ -238,7 +231,7 @@ const gated = () => {
   const { room, as } = repo();
   /* Read in this process, off the configuration home it runs against. */
   projectRecord(room, HOME, { slug: SHIPPED });
-  for (const rel of [...WHOLE_TREE, "plugin/test/flow/one.test.mjs"]) {
+  for (const rel of [...NAMED, "plugin/test/flow/one.test.mjs"]) {
     mkdirSync(dirname(join(room, rel)), { recursive: true });
     writeFileSync(join(room, rel), "// a file the step table has to find\n");
   }
@@ -248,6 +241,10 @@ const gated = () => {
   return { room, as, at: as("rev-parse", "HEAD").stdout.trim() };
 };
 
+/* The publisher's own reading, with nothing injected: a repository of its own has its own common git
+   directory, so its `gate-ledger` is its own too and recording a pass in it reaches nothing this
+   checkout shares. That is what makes the real `greenHeld` drivable here, and it is the only case
+   that would notice that default rewired to answer zero while `greenHeld` itself stayed right. */
 test("the publisher's own reading publishes a wholly green ledger, and nothing while the tree is dirty", () => {
   const { room, at } = gated();
   assert.notEqual(recordDir(room), recordDir(new URL("../../../../", import.meta.url).pathname),
@@ -257,7 +254,7 @@ test("the publisher's own reading publishes a wholly green ledger, and nothing w
   const say = [];
   publishes(room, "master", "9.9.9", { say: say.push.bind(say) });
   assert.match(say.join("\n"), /nothing is published for/u, "an empty record publishes nothing");
-  const { dir, entries } = ledgerFor(gateSteps(WHOLE_TREE.concat("plugin/test/flow/one.test.mjs")),
+  const { dir, entries } = ledgerFor(gateSteps(NAMED.concat("plugin/test/flow/one.test.mjs")),
     { root: room, files: gitFiles(room), runner: join(room, "tools", "gates.mjs") });
   for (const step of entries) recordPass(dir, step, 1);
   assert.deepEqual(greenHeld(room), { green: entries.length, of: entries.length }, "and now it is wholly green");

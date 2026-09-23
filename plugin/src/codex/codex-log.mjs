@@ -17,7 +17,7 @@ export const maskedDeep = (value) => {
 };
 
 /** Which run is writing, and the source row that answered for its id — an inherited id is a wave's and a saved one a machine's, so either alone attributes a wave's rulings to one run. Minting none: docs/cli/codex-the-log.md. */
-export const writingRun = () => {
+const writingRun = () => {
   const held = sessionSourced();
   return held.id ? { run: held.id, runFrom: held.source } : { runFrom: NO_SESSION };
 };

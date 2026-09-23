@@ -7,7 +7,7 @@ import { fail } from "../../resolve/settings.mjs";
 
 /** The two directions a claim may take, in the sign the angle set already speaks: a claim and an
  *  angle disagreeing about what better means would be two vocabularies for one comparison. */
-export const DIRECTIONS = { falls: -1, rises: 1 };
+const DIRECTIONS = { falls: -1, rises: 1 };
 
 const ANGLE_NAMES = Object.keys(ANGLES);
 const DIRECTION_NAMES = Object.keys(DIRECTIONS);
@@ -45,7 +45,7 @@ export const claimAsked = (raw, verb = "stats change") => {
 const releasesNaming = (scope, issue) =>
   marksOf(RELEASES, scope).filter((one) => (one.issues ?? []).includes(issue));
 
-export const claimsOf = (scope, issue) =>
+const claimsOf = (scope, issue) =>
   marksOf(CLAIMS, scope).filter((one) => one.issue === issue);
 
 /** The newest claim held for an issue, or null. Latest wins: a change that revised what it expected

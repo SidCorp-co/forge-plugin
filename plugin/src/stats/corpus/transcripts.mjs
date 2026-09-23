@@ -47,7 +47,7 @@ export const PRICES = {
 
 const NAMES = Object.keys(PRICES);
 
-export const noTokens = () => ({
+const noTokens = () => ({
   ...Object.fromEntries(NAMES.map((name) => [name, 0])), requests: 0, unmeasured: 0,
 });
 
@@ -185,7 +185,7 @@ const sizeOf = (name, input) => {
  *  leaves an `Edit` reading as the bare word `Edit` — a run that edited the wrong file and a run
  *  that edited the right one are then the same two characters. The size beside it is the measure and
  *  this is the subject; neither stands in for the other. Bounding it is the reader's, not this. */
-export const askedOf = (name, input) => {
+const askedOf = (name, input) => {
   if (name === "Bash") return string(input?.command);
   const where = string(input?.file_path || input?.notebook_path || input?.path || input?.url);
   if (name === "Edit") return `${where}\n- ${string(input?.old_string)}\n+ ${string(input?.new_string)}`;

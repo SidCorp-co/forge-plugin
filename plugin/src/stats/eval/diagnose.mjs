@@ -183,7 +183,7 @@ export const digestOf = (run, label, room, classes = undefined) => {
 
 /** A digest without the text that travelled: what the reading reports of a run it read. The payload
  *  is what went to the model and never what comes back to a reader, who has the run's own path. */
-export const sideOf = ({ label, session, path, issues, from, to, calls, shown, unreadable }) =>
+const sideOf = ({ label, session, path, issues, from, to, calls, shown, unreadable }) =>
   ({ label, session, path, issues, from, to, calls, shown, unreadable });
 
 /* A heading is emitted whether or not a call fits under it, so a run whose share cannot carry even
@@ -214,7 +214,7 @@ export const payloadOf = (runs, total = TOTAL_CHARS, verb = "stats diagnose", cl
   return held;
 };
 
-export const ROLE = [
+const ROLE = [
   "You are reading digests of software agent runs, to say what went wrong in them.",
   "",
   "THIS IS A DIAGNOSTIC AND NOT A MEASUREMENT. Produce no score, no rating, no grade, no comparison",
@@ -254,13 +254,13 @@ const OPENS = /^FINDING\s+(\S+)\s*$/u;
 /* Anchored at both ends: a footer carrying a caveat after the count — `0 findings — this answer is
    incomplete` — is a reply saying something this reader has no way to carry, and taken as a closing
    line it becomes a reading that found nothing. */
-export const CLOSING = /^DIAGNOSTIC:\s*(\d+)\s+findings?$/u;
+const CLOSING = /^DIAGNOSTIC:\s*(\d+)\s+findings?$/u;
 const REF = /R(\d+)\s*\/\s*(\d+)/gu;
 
 /** The closing line, where it is the last thing in the reply, with the count it names. It is looked
  *  for at the end and nowhere else: a footer with prose after it is a reply that went on past its
  *  own contract, and a reader taking the first one it finds would report on half an answer. */
-export const closingIn = (reply) => {
+const closingIn = (reply) => {
   const lines = String(reply ?? "").split("\n");
   let at = lines.length - 1;
   while (at >= 0 && lines[at].trim() === "") at -= 1;
@@ -274,7 +274,7 @@ export const closingIn = (reply) => {
    A label opens its field once per block; the same word starting a later line of that block's own
    prose is prose, because a paragraph wrapped onto a line beginning `INFERRED` would otherwise take
    the paragraph's place and the finding would print short with nothing saying so. */
-export const blocksIn = (lines) => {
+const blocksIn = (lines) => {
   const held = [];
   let at = null;
   let label = null;
@@ -363,7 +363,7 @@ const findingLines = (one) => [
 
 /** The screen: the statement first, then the set, then what came back. A set nothing was sent for
  *  ends after the set — there is no reply to report and none is implied. */
-export const diagnosisSaid = (held) => [
+const diagnosisSaid = (held) => [
   `a diagnostic reading of ${held.read.length} issue-flow run(s), by ${held.model} at ${held.effort} effort`,
   NOT_COMPARABLE,
   EXCERPTED,
@@ -385,7 +385,7 @@ export const diagnosisSaid = (held) => [
 
 /** The one object `--json` prints and the one shape the screen is built from, so a reading that sent
  *  nothing answers a machine consumer in the same keys as one that did. */
-export const readingOf = ({ root, directory, model, effort, digests, notRead, sent,
+const readingOf = ({ root, directory, model, effort, digests, notRead, sent,
   replyRead = false, why = null, findings = [], leftOut = 0 }) => ({
   root,
   project: directory,

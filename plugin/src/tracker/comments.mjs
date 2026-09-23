@@ -191,7 +191,7 @@ const keysOf = async (sessions, target) => (typeof sessions === "function"
   ? sessions(target)
   : { check: [sessions], credit: sessions });
 
-export const unshownFor = async (targets, sessions) => {
+const unshownFor = async (targets, sessions) => {
   const read = await Promise.all(targets.map(async (one) => {
     const { check } = await keysOf(sessions, one);
     return readOf(creditsForAny(check), one);

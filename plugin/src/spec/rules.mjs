@@ -43,7 +43,7 @@ const lineOf = (index, byFile, id) => {
 
 /** Every data row of every table a document holds: a separator opens one and the first line that is
  *  not a row closes it, so a row before any separator is prose that happens to hold pipes. */
-export const dataRows = (text) => {
+const dataRows = (text) => {
   const out = [];
   let seen = false;
   for (const [at, line] of String(text ?? "").split("\n").entries()) {
@@ -60,7 +60,7 @@ export const dataRows = (text) => {
 
 /** The rules the tree's own index defines, so an `R-` nobody wrote is a finding rather than a
  *  reference the clause reader waves through as foreign. */
-export const ruleIds = (documents) => {
+const ruleIds = (documents) => {
   const rules = oneOf(documents, RULES_FILE);
   if (!rules) return new Set();
   return new Set(rules.text.split("\n").map((line) => RULE_ROW.exec(line)?.[1]).filter(Boolean));

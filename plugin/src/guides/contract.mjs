@@ -41,7 +41,7 @@ export const partFileProblem = (name, text) => {
   return heads.length > 1 ? `${name} carries ${heads.length} headings, and its name addresses one part` : null;
 };
 
-export const partFilesIn = (dir) => {
+const partFilesIn = (dir) => {
   try {
     const names = readdirSync(dir).filter((one) => one.endsWith(".md")).sort();
     return names.length ? names.map((name) => [name, readFileSync(join(dir, name), "utf8")]) : null;

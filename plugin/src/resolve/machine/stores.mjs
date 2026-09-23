@@ -54,7 +54,7 @@ export const STORES = [
   },
 ];
 
-export const storeOf = (name) => STORES.find((one) => one.store === name) ?? null;
+const storeOf = (name) => STORES.find((one) => one.store === name) ?? null;
 
 const saved = (value) => (typeof value === "string" && value.trim() ? value : null);
 
@@ -90,7 +90,6 @@ const CHATGPT = storeOf("chatgpt");
 
 export const CHATGPT_KEYS = gating(CHATGPT);
 export const CHATGPT_PREFIX = CHATGPT.keys.find((one) => one.key === "prefix");
-export const CHATGPT_SAVED = CHATGPT.keys;
 
 export const chatgptSettings = () => {
   const held = Object.fromEntries(CHATGPT.keys.map((one) => [one.key, machineValue("chatgpt", one.key)]));

@@ -166,7 +166,7 @@ export const rungFieldsOf = (view) => (view.rungFields ??= {
   complexity: view.issue.complexity ?? null,
 });
 
-export const lightPath = (view, status, kind) => lightens(status, kind, rungFieldsOf(view));
+const lightPath = (view, status, kind) => lightens(status, kind, rungFieldsOf(view));
 export const fixReport = (view, ref) => rungReport(rungFieldsOf(view), ref);
 
 export const setForm = (ref, status) =>
@@ -395,7 +395,7 @@ const judgeOwed = (view, ref) => {
   });
 };
 
-export const verificationForm = (ref, commit, evidence, tail = "") =>
+const verificationForm = (ref, commit, evidence, tail = "") =>
   `forge record verification ${ref} --where "<where it runs>" --commit ${commit} `
   + `--evidence ${evidence}${tail}`;
 

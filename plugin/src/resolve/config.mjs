@@ -89,7 +89,7 @@ export const saveNested = (key, values) => saveConfig({ [key]: { ...(userConfig(
 
 /* Which run this is: the lease's holder and what a session has been shown are both keyed by it. */
 export const sessionPath = () => join(configDir("forge"), "session.json");
-export const sessionSaved = () => readJson(sessionPath())?.session || null;
+const sessionSaved = () => readJson(sessionPath())?.session || null;
 
 /* Where an id came from is half the answer, and this is the one place that says so: a second copy
    of this table is how two readers disagree about whose an id is (ISS-445). */

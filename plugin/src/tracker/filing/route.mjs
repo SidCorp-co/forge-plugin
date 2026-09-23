@@ -36,7 +36,7 @@ export const bodyOf = ({ title, body, kind = null, sections = [], complexity = u
   return { description, shape, refusal: refusalOf(shapeRefusal(shape)) };
 };
 
-export const RELATIONS_MAX = 20;
+const RELATIONS_MAX = 20;
 
 /** An edge asked for and not carried, absent in silence, reads as one nobody wanted; so say it. */
 export const edgesLeft = ({ unknown = [], dropped = 0 } = {}) => [
@@ -65,7 +65,7 @@ export const keysFrom = (given) => {
 
 /** Edges from keys, against every row of the reading already made — a batch reading's issues are
  *  closed by the time it files. A key it does not hold comes back unresolved rather than guessed. */
-export const relatedTo = (keys, rows) => {
+const relatedTo = (keys, rows) => {
   const held = new Map(rows
     .filter((one) => one?.documentId && one?.issueId)
     .map((one) => [String(one.issueId).toUpperCase(), one.documentId]));

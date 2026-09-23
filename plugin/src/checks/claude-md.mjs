@@ -24,8 +24,8 @@ import {
 
 /* Not the shared 0.34/5: that was calibrated on comments inside one file, where two copies share
    twice the vocabulary two documents do. Measured over 28 CLAUDE.md files — docs/cli/doctor.md. */
-export const GUIDE_OVERLAP_THRESHOLD = 0.25;
-export const GUIDE_OVERLAP_FLOOR = 3;
+const GUIDE_OVERLAP_THRESHOLD = 0.25;
+const GUIDE_OVERLAP_FLOOR = 3;
 
 const FENCE = /^\s*(?:```|~~~)/u;
 const HEADING = /^#{1,6}\s/u;

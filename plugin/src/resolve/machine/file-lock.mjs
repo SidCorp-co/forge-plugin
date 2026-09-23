@@ -14,7 +14,7 @@ const WAIT_MS = 20;
 const TRIES = 50;
 
 /** What a strict caller is refused with, rather than being run unguarded. */
-export class Unlocked extends Error {}
+class Unlocked extends Error {}
 
 const pause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 

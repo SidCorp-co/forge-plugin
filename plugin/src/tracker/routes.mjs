@@ -63,7 +63,7 @@ const projectOf = (row) => {
 /* Two of the three parts are separate requests, so a reader that named neither is not made to pay
    for them — and the key is left off rather than answered empty, an empty relation set being a
    thing the tracker can say and this not being it. */
-export const issueOf = ({ issue, dependencies, attachments }) => ({
+const issueOf = ({ issue, dependencies, attachments }) => ({
   ...named(issue),
   ...columns(issue),
   labels: issue?.labels ?? [],
@@ -73,7 +73,7 @@ export const issueOf = ({ issue, dependencies, attachments }) => ({
 
 /* A column the tracker owns is read as a property and never written as a span, so nothing in this
    file can print one — docs/cli/doctor.md says what a name an agent has to translate costs. */
-export const browseOf = (row) => {
+const browseOf = (row) => {
   const { title, status, priority, category, complexity, assigneeId, reopenCount, mergedAt,
     createdAt, updatedAt } = row ?? {};
   return { ...named(row), title, status, priority, category, complexity, assigneeId, reopenCount,
@@ -81,24 +81,24 @@ export const browseOf = (row) => {
 };
 
 /* What reading a citation backwards needs and `browseOf` may not grow: docs/cli/spec-the-status.md. */
-export const citingOf = (row) => ({
+const citingOf = (row) => ({
   ...named(row),
   ...pick(row, ["title", "status", "mergedAt", "mergedCommitSha", "matchedFields",
     "description", "plan", "acceptanceCriteria"]),
 });
 
-export const commentOf = (row) => ({ documentId: row?.id ?? null, ...pick(row, COMMENT) });
+const commentOf = (row) => ({ documentId: row?.id ?? null, ...pick(row, COMMENT) });
 
 const threadOf = (page) => ({
   ...paged(page, "comments", rowsIn(page, "items").map(commentOf)),
   ...filled({ total: page?.total, nextCursor: page?.nextCursor }),
 });
 
-export const attachmentOf = (row) => ({ documentId: row?.id ?? null, ...pick(row, ATTACHMENT) });
+const attachmentOf = (row) => ({ documentId: row?.id ?? null, ...pick(row, ATTACHMENT) });
 
 /* The config is the project row plus what it keeps under `agentConfig`; three fields the tool
    answered with are on no route this credential reaches, and are left out rather than invented. */
-export const configOf = (project) => {
+const configOf = (project) => {
   const { id, slug, name, repoPath, baseBranch, liveBranch, releaseModel, releaseStrategy } = project ?? {};
   return {
     project: { id, slug, name },
@@ -212,7 +212,7 @@ export const DECLARES = {
   },
 };
 
-export const WIRE_FILTERS = Object.keys(FILTERS).filter((name) => FILTERS[name] === "wire");
+const WIRE_FILTERS = Object.keys(FILTERS).filter((name) => FILTERS[name] === "wire");
 
 const query = (pairs) => {
   const held = new URLSearchParams();
@@ -552,7 +552,7 @@ export const REFERENCE_KEYS = new Set([
 const ACTION_ARG = new Set(["forge_issues", "forge_comments", "forge_knowledge", "forge_config",
   "forge_guide", "forge_project_pm", "forge_uploads"]);
 
-export const toolOf = (key) => {
+const toolOf = (key) => {
   const head = key.slice(0, key.lastIndexOf("."));
   return ACTION_ARG.has(head) ? head : key;
 };

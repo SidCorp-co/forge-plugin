@@ -32,7 +32,7 @@ const ownKeys = (block) => {
   return out;
 };
 
-export const STORE = "config.json";
+const STORE = "config.json";
 
 /* The statement the literal stands in: a literal is a tracker's configuration where the statement
    writing it says which file it is written to. The semicolons that bound it are read off the blanked

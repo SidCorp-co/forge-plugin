@@ -4,10 +4,9 @@
    Four pieces: the call and what it may read (codex-api.mjs), the log that is both its memory and its
    eval set (codex-log.mjs), the turn's bookkeeping (codex-state.mjs), and this — the verb and the
    hook halves. */
-export { afterTouch, ageOf, apartFrom, demandIn, holding, pendingIn, pendingNow, pendingState, settledIn, stagedIn, statePath }
+export { afterTouch, ageOf, apartFrom, demandIn, holding, pendingIn, pendingNow, pendingState, stagedIn, statePath }
   from "./codex-state.mjs";
 export { reviewed, rounds } from "./codex-rounds.mjs";
-export { plannedFor } from "./codex-plan.mjs";
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { dirname, isAbsolute, resolve } from "node:path";
@@ -136,7 +135,7 @@ export const compiles = (source) => {
   }
 };
 
-export const recordPattern = () => {
+const recordPattern = () => {
   const asked = [projectRecordPattern(), { value: userConfig().codex?.pathRe, from: configPath() }];
   const held = asked.find((one) => one.value && compiles(one.value));
   return held ?? { value: DEFAULT_PATH_RE, from: "the built-in default" };
@@ -223,7 +222,7 @@ const CHECK_SAID = {
   declined: (command) => `check declined — \`${command}\` was offered and not run: this review is inspection, not execution.`,
 };
 
-export const checkSaid = (reach) => {
+const checkSaid = (reach) => {
   const state = checkState(reach);
   return state === "none" ? null : `codex: ${CHECK_SAID[state](checkCommand(reach))}`;
 };

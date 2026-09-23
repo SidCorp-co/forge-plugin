@@ -250,7 +250,7 @@ const says = (one) => `${one.elsewhere} pins, at line ${one.at}, a sentence ${on
  *  most of a sentence is cut away, and every fragment the cuts of ISS-2217 and ISS-2264 kept sits
  *  under half of the pin it was cut from; a pin carrying more than half of another is that sentence
  *  restated, and equality is the case where the two lengths are one. */
-export const MOST = 0.5;
+const MOST = 0.5;
 
 const oneWording = (a, b) => {
   const [short, long] = a.length <= b.length ? [a, b] : [b, a];

@@ -30,7 +30,7 @@ const plain = (answer) =>
 const verified = (line) => ({ line });
 const unverified = (read = null) => (line) => ({ line: [line, AGAIN, read].filter(Boolean).join(" ") });
 
-export const idOf = (answer) => (plain(answer) ? (answer.documentId ?? null) : null);
+const idOf = (answer) => (plain(answer) ? (answer.documentId ?? null) : null);
 
 const noId = (what, answer) => {
   const key = plain(answer) ? (answer.issueId ?? null) : null;

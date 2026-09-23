@@ -11,7 +11,7 @@ import { medianOrZero, minutes, scaled, share } from "./figures.mjs";
 const ROWS = 10;
 export const UNRECOGNISED = "unrecognised";
 
-export const emptyPhase = () => PHASES.map(() => ({ seconds: 0, calls: 0, byClass: new Map() }));
+const emptyPhase = () => PHASES.map(() => ({ seconds: 0, calls: 0, byClass: new Map() }));
 
 export const foldPhases = (calls, startedAt, endedAt) => {
   const phases = emptyPhase();

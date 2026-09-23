@@ -59,7 +59,7 @@ export const servesIn = (body) => {
   return [...new Set([...withoutExamples(text).matchAll(SERVES)].map((one) => one[1].trim()))];
 };
 
-export const isNoneStated = (value) => String(value ?? "").toLowerCase() === NONE_STATED;
+const isNoneStated = (value) => String(value ?? "").toLowerCase() === NONE_STATED;
 
 /** Which source answers for a value, or null where neither does. The brief is asked first: the tree
  *  costs a directory walk, so a value the brief lists is never looked for twice. */

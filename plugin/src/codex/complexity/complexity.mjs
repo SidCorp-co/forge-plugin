@@ -55,7 +55,7 @@ const DATED = new RegExp([
 const NAMED_AS_ONE = /\b(?:complexity|band|size|sized)\s*[:=]?\s*[`"']?/u;
 const named = () => new RegExp(`${NAMED_AS_ONE.source}(?:${COMPLEXITY_NAMES.join("|")})\\b[\`"']?`, "giu");
 
-export const redact = (text) => String(text ?? "").replace(DATED, DATE_MARK).replace(named(), COMPLEXITY_MARK);
+const redact = (text) => String(text ?? "").replace(DATED, DATE_MARK).replace(named(), COMPLEXITY_MARK);
 
 /** The state the question is asked over: an allowlist, so a field the tracker grows never travels by
  *  default, with the two texts a person wrote redacted of dates, spans and complexities before they go. */

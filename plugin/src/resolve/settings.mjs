@@ -91,7 +91,7 @@ const entryFor = (repository) => {
     ? null : join(configDir("forge"), under, basename(repository), file);
 };
 
-export const projectEntryAt = (directory) => entryFor(checkoutAt(directory)?.repository ?? null);
+const projectEntryAt = (directory) => entryFor(checkoutAt(directory)?.repository ?? null);
 
 /* Off the memoised walk rather than through the line above, which would walk the disk again on
    every read of every key; the configuration directory is read per call either way, so a home the
@@ -254,7 +254,7 @@ export const slugRouteHere = () => {
 /** Which command puts a slug where this call would read one. A checkout standing on a `.forge.json`
  *  is given the command that takes the whole of it over rather than the one that writes this key:
  *  every other key of that file answers nothing here too, so one call settles all of them. */
-export const noProjectHere = () => {
+const noProjectHere = () => {
   const path = projectFilePath();
   const held = committedFileHere();
   /* A directory in no checkout is not a project with nothing set yet: the record is keyed on a

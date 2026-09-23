@@ -74,7 +74,7 @@ export const waveLive = async (wave, read = readMember) => {
   return { ...wave, dispatches, runs: dispatches.length, issues: keys.length };
 };
 
-export const foldForm = (ref) => `forge record fold ${ref} --summary "<the fold's line>"`;
+const foldForm = (ref) => `forge record fold ${ref} --summary "<the fold's line>"`;
 
 const memberLine = (one) => {
   if (one.unreadable) return `${one.key}  unreadable: ${one.unreadable}`;

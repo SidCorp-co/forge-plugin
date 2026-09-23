@@ -113,7 +113,7 @@ export const owedOn = async (bytes, entries, last) => {
 
 /* The consult id is the round: the log numbers no rounds, and a streak rule only this code knew
    would be a number nobody could check. `forge codex log --id <id>` expands it. */
-export const reviewNow = async (root = process.cwd()) => {
+const reviewNow = async (root = process.cwd()) => {
   const { answered, logBytes } = await consultLog();
   const { countedIn, numbered } = await replies();
   const bytes = logBytes();

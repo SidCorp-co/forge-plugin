@@ -17,7 +17,7 @@ const FILE_MS = 60_000;
 export const MAX_FILES = 5;
 const CONFIGS = ["js", "mjs", "cjs", "ts", "mts", "cts"].map((one) => `eslint.config.${one}`);
 
-export function delegateFor(file) {
+function delegateFor(file) {
   let dir = dirname(file);
   while (dir && dir !== "/") {
     const cand = join(dir, "node_modules", PACKAGE, INSIDE);
@@ -48,7 +48,7 @@ export function configuresLint(file) {
 }
 
 const RULE_AT_END = /^\d+:\d+\s.*\s([\w@/-]+)$/gmu;
-export const headed = (text) => {
+const headed = (text) => {
   const rules = [...new Set([...text.matchAll(RULE_AT_END)].map((one) => one[1]))];
   const [first, ...rest] = text.split("\n");
   return rules.length ? [`${first} — ${rules.join(", ")}`, ...rest].join("\n") : text;

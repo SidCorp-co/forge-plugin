@@ -36,7 +36,7 @@ export const sectionsIn = (cell) => {
 
 /** The table of `docs/requirements/README.md`, one entry per row that declares headings: the file
  *  pattern as written and the sections it wants, in order. Takes that document, not the set. */
-export const declaredSections = (rules) => {
+const declaredSections = (rules) => {
   const out = [];
   for (const line of rules?.lines ?? []) {
     const row = SECTION_TABLE.exec(line);
@@ -126,7 +126,7 @@ const fieldLines = (documents) =>
  *  next heading or the next unindented line. Blank lines are inside it, because the clause reader
  *  closes a criterion at the first of them and a second sentence a paragraph below would otherwise
  *  reach this rule as one. */
-export const criterionBody = (lines, from) => {
+const criterionBody = (lines, from) => {
   const held = [];
   for (let at = from; at < lines.length; at += 1) {
     const line = lines[at];
