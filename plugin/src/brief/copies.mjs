@@ -51,6 +51,16 @@ export const movedBetween = (was, now) => {
   });
 };
 
+/** Which copy a session starting at `began` loaded. A modification time moves whenever a copy's
+ *  directory is written, so a cache with no creation times answers nothing rather than a guess. */
+export const loadedAt = (copies, began) => {
+  if (copies.some((one) => !one.born)) {
+    return { unread: "this filesystem records no creation time for the cached copies" };
+  }
+  const loaded = copyAt(copies, began);
+  return loaded === UNRECORDED ? { unread: "no copy in the cache is older than this session" } : { loaded };
+};
+
 /** The two copies and what separates them, or `unread` saying why they could not be read. `began` is
  *  when the dispatching session's process started, which a case hands in rather than a process. */
 export const copiesFor = (began = startedAt(process.env.CLAUDE_PID)) => {
@@ -59,8 +69,8 @@ export const copiesFor = (began = startedAt(process.env.CLAUDE_PID)) => {
   if (!root || !installed) return { unread: "no install record on this machine names this plugin" };
   if (began === null) return { installed, unread: "the dispatching session's process start could not be read" };
   const copies = installedCopies(root);
-  const loaded = copyAt(copies, began);
-  if (loaded === UNRECORDED) return { installed, unread: "no copy in the cache is older than this session" };
+  const { loaded, unread } = loadedAt(copies, began);
+  if (unread) return { installed, unread };
   if (loaded === installed) return { installed, loaded, between: [], moved: [], frozen: [] };
   const order = copies.map((one) => one.copy);
   const between = order.slice(order.indexOf(loaded) + 1, order.indexOf(installed) + 1);

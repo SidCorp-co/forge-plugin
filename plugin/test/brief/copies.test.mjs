@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
 import { tempRoom } from "../fixtures.mjs";
-import { copiesFor } from "../../src/brief/copies.mjs";
+import { copiesFor, loadedAt } from "../../src/brief/copies.mjs";
 
 const put = (root, files) => {
   for (const [name, text] of Object.entries(files)) {
@@ -52,4 +52,10 @@ test("a session started after the install loaded the installed copy, and nothing
   const copies = copiesFor(Date.now() + 1_000);
   assert.equal(copies.loaded, "1.0.1");
   assert.deepEqual(copies.between, []);
+});
+
+test("a cache with no creation times names no loaded copy, since a modification time moves", () => {
+  const copies = [{ copy: "1.0.0", at: 20, born: false }, { copy: "1.0.1", at: 10, born: false }];
+  assert.match(loadedAt(copies, 15).unread, /no creation time/u);
+  assert.deepEqual(loadedAt(copies.map((one) => ({ ...one, born: true })), 15), { loaded: "1.0.1" });
 });
