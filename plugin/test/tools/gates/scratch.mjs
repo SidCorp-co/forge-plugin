@@ -35,7 +35,11 @@ export const reachedFrom = (roots) => {
 };
 
 // The runner, and the reporter `steps.mjs` names by path: a walk sees no runtime specifier.
-export const RUNNER_ROOTS = [RUNNER, join("tools", "gates", "reporters", "file-times.mjs")];
+// The modules the runner reaches only by a literal dynamic import, which a static reach cannot see:
+// `--baseline`'s, and the two `worklog.mjs` loads in its turn.
+export const RUNNER_ROOTS = [RUNNER, join("tools", "gates", "reporters", "file-times.mjs"),
+  join("tools", "gates", "baseline.mjs"), join("plugin", "src", "codex", "codex-log.mjs"),
+  join("plugin", "src", "codex", "log", "replies.mjs")];
 
 // `recurrence.mjs`'s own, and `project-config.mjs` and `guides.mjs`, which every `write()` reaches
 // the same way — the first to resolve the project, the second to read what the tracker warned about

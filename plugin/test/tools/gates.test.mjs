@@ -55,7 +55,7 @@ const orderedIn = (said) => orderBlock(said).map((line) => line.trim().split(/\s
 
 test("-h names every flag it reads and what the record cannot see", () => {
   const said = run(ROOT.replace(/\/$/u, ""), ["-h"]).stdout;
-  for (const one of ["Usage: node tools/gates.mjs [--full] [--anyway] [--wait [slot] [M]]",
+  for (const one of ["Usage: node tools/gates.mjs [--baseline [ISS-nn]] [--full] [--anyway] [--wait [slot] [M]]",
     "--wait slot [M]", "wait for a place at the ceiling this project declares",
     "reads the process table instead", "It reserves nothing", "still declines at 75",
     "--full", "--anyway", "node_modules", "merge-base", "tree judged",
