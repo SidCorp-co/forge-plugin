@@ -185,6 +185,10 @@ than whatever the rows already there left over.
 - **AC-12-6-6** · Rev: 1 · Proof: plugin/test/checks/docs/doc-index.test.mjs "an index is budgeted per row and per opening paragraph, and a topic added to a full index is green"
   WHERE a topic is added to a tree whose index already names every other topic, the index that gains
   its row SHALL pass however long that index has grown.
+- **AC-12-6-7** · Rev: 1 · Proof: plugin/test/checks/docs/doc-index.test.mjs "a document inside the margin of the cap is named with the room it has left, and one below it is not"
+  IF a capped document stands within the check's stated margin of the cap and not over it THEN the
+  check SHALL still pass and SHALL name the file, its size, the room left and the split it will owe;
+  below that margin it SHALL name nothing.
 
 ### UC-12-7 — A path this repository's own files name is one that resolves
 

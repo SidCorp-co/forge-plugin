@@ -5,6 +5,12 @@
 import { LINK_TARGET_PATTERN, TABLE_SEPARATOR_PATTERN, withoutSpans } from "../../markdown.mjs";
 
 export const TOPIC_MAX = 9000;
+/* The refusal lands on whichever run writes past the cap, after its work is done and on a document
+   it did not come to restructure, while 8999 passed exactly as 100 did (ISS-294). So the room left
+   is said before then, inside a margin measured rather than chosen: 1024 characters is the median
+   growth of the 641 commits that grew a capped document up to 3.36.270, so a document named here has
+   less room than the next ordinary edit takes. */
+export const TOPIC_MARGIN = 1000;
 /* An index has no length of its own, budgeted per part below; UC-12-6 of the tree says why not. */
 export const INDEX = "docs/FORGE-CLI.md";
 export const ROW_MAX = 300;
@@ -18,6 +24,15 @@ export const overCap = (docs, max = TOPIC_MAX) =>
     .map(({ rel, chars }) => `${rel} is ${chars} characters, over the ${max} a topic is read in one`
       + " pass — split it and give each half its own index row. The cap is the round number above"
       + " docs/HOOKS.md, the one document this repository keeps whole");
+
+/* Nothing about the seam or about cutting: where the halves divide is the document's owner's
+   judgement, and a checker cannot tell a trimmed restatement from a trimmed reason. */
+export const nearCap = (docs, { max = TOPIC_MAX, margin = TOPIC_MARGIN } = {}) =>
+  docs
+    .filter(({ rel, chars }) => !uncapped(rel) && chars > max - margin && chars <= max)
+    .map(({ rel, chars }) => `${rel} is ${chars} characters, ${max - chars} short of the ${max}`
+      + ` cap and inside its ${margin}-character margin — the next decision written here is owed the`
+      + " split, each half with its own index row");
 
 const ROW = /^\|/u;
 const LINK = new RegExp(LINK_TARGET_PATTERN, "u");
