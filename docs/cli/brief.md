@@ -1,19 +1,14 @@
 # `forge brief` — why the dispatch message is generated
 
-A dispatcher knows a few things a run cannot learn for itself when it starts: which tree is its own,
-the lease id and scratch directory that tree records, what the other trees hold, and whether the
-session it inherits is running an older copy than the one installed. Everything else a run needs,
-the method and the rules, it reads for itself from the served text.
+What the verb prints is its `-h` and its output. This page holds what neither carries: why the
+message is generated at all, what settled each reading's source, and why the hook trusts a digest.
 
 ## Why a verb and not a rule about what to type
 
-The dispatch guide said "the value, never the reason" for months. On 2026-09-23 five briefs sent
-under that text carried method anyway: a rebase order the ship already performs, a park's request
-restated, the codex routing `forge codex show` prints. Each cost its run a round spent following
-them. The owner chose to have a verb generate the message. With a generated message there is no
-typed paragraph to police, and a hook refuses a message the verb did not print. The rejected shape
-was a runner-side line telling the run to ignore its message. The waste is in what the dispatcher
-sends, so the fix removes it there.
+A rule about what a brief may carry was already served, and briefs carried method under it; the
+record is ISS-2148. With a generated message there is no typed paragraph left to police. A runner-side
+line telling the run to ignore its message was considered and rejected: the waste is in what the
+dispatcher sends, so the fix removes it there.
 
 ## The readings, and where each comes from
 
