@@ -1,12 +1,12 @@
-/* A park before it writes anything. Apart from `advance.mjs`, which spends it, so the rehearsal that
+/* A park before it writes anything. Apart from `../advance.mjs`, which spends it, so the rehearsal that
    prints it and the move that writes it read the one composition (ISS-12). */
-import { lengthOf } from "../tracker/field-write.mjs";
-import { attachmentNames, evidenceProblem } from "../tracker/evidence.mjs";
-import { SHOWS_EVIDENCE, commandAt } from "./machine.mjs";
-import { Refused, refuse } from "../refusal.mjs";
-import { render } from "./record/page.mjs";
-import { ANSWERED_BY_COMMENT, PARK_STATUS, answersByComment, atLeast, payloadOwed, setForm } from "./earned.mjs";
-import { undoForm } from "./record/merged.mjs";
+import { lengthOf } from "../../tracker/field-write.mjs";
+import { attachmentNames, evidenceProblem } from "../../tracker/evidence.mjs";
+import { SHOWS_EVIDENCE, commandAt } from "../machine.mjs";
+import { Refused, refuse } from "../../refusal.mjs";
+import { render } from "../record/page.mjs";
+import { ANSWERED_BY_COMMENT, PARK_STATUS, answersByComment, atLeast, payloadOwed, setForm } from "../earned.mjs";
+import { undoForm } from "../record/merged.mjs";
 
 /* A needs_info park owes the readings only the question shape carries. */
 export const ASKS_A_QUESTION = "question";
