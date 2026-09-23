@@ -19,6 +19,8 @@ process.env.XDG_CONFIG_HOME = home.path;
 const OPEN = { issueId: "ISS-45", documentId: "uuid-45", status: "open", title: "the attach verb refuses a name already on the issue" };
 const SETTLED = { issueId: "ISS-70", documentId: "uuid-70", status: "closed", title: "the browse projection answers with a cursor" };
 const ELSEWHERE = { issueId: "ISS-52", documentId: "uuid-52", status: "in_progress", title: "the consult log records the effort it asked for" };
+const DROPPED = { issueId: "ISS-71", documentId: "uuid-71", status: "dropped", title: "attach refuses a doubled name" };
+const DROP_PARK = "## Park\n\n```forge-record\nkind: dropped\nwhy: Duplicate of ISS-45.\nleft: open\n```\n\n`forge-record: park · contract 1`";
 
 const state = { issues: [OPEN, SETTLED, ELSEWHERE], comments: {}, calls: [], memory: {} };
 const tracker = await fakeTracker(state);
@@ -105,14 +107,35 @@ test("a filing is told what is open beside it, on a filing that was refused noth
   assert.doesNotMatch(run.stdout, /as it was embedded/u);
 });
 
-test("a hit under the floor and a hit the projection calls closed are not suggested", async () => {
+test("a hit under the floor is not shown, and one the projection calls closed is shown as closed", async () => {
   before();
-  state.memory = { semantic: [[SETTLED.issueId, 0.95], [ELSEWHERE.issueId, 0.69]], keyword: [] };
-  const run = await filed();
+  state.memory = { semantic: [[SETTLED.issueId, 0.95], [ELSEWHERE.issueId, 0.69]], keyword: [[SETTLED.issueId, 0.06]] };
+  const run = await filed("--complexity", "s");
   assert.equal(run.status, 0, run.stderr);
-  assert.doesNotMatch(run.stdout, /ISS-70/u, "a closed issue is never suggested, whatever it scored");
+  assert.ok(created(), "a closed neighbour takes no finding, so the filing is made");
+  assert.equal(commented(), undefined);
+  assert.doesNotMatch(run.stdout, /Open beside this filing/u, "a closed issue is never an open suggestion");
+  assert.match(run.stdout, /Filed before and closed[^\n]*\n {2}ISS-70 {3}0\.95 {2}same place {2}the browse projection/u);
   assert.doesNotMatch(run.stdout, /ISS-52/u, "and 0.69 is under the floor");
-  assert.match(run.stdout, /the check ran and found none/u);
+});
+
+test("a dropped neighbour is shown with the reason off its own thread, and the filing is made", async () => {
+  before();
+  state.issues.push(DROPPED);
+  state.comments[DROPPED.documentId] = [{ documentId: "c-1", createdAt: "2026-09-01T00:00:00Z", body: DROP_PARK }];
+  try {
+    state.memory = both(DROPPED.issueId, 0.9);
+    const run = await filed("--complexity", "s");
+    assert.equal(run.status, 0, run.stderr);
+    assert.ok(created(), "a dropped neighbour takes no finding, whatever it scores");
+    assert.equal(commented(), undefined);
+    assert.match(run.stdout, /^ {2}ISS-71 {3}0\.90 {2}same place {2}attach refuses a doubled name\n {4}why: Duplicate of ISS-45\.$/mu);
+    const listed = state.calls.filter((one) => one.name === "forge_issues" && one.args.action === "list");
+    assert.equal(listed.length, 1, "the settled rows are the duplicate check's own page, read once");
+  } finally {
+    state.issues.pop();
+    delete state.comments[DROPPED.documentId];
+  }
 });
 
 test("the two queries and the resolve cost the filing one issue-list call", async () => {

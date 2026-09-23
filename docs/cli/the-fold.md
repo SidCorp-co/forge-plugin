@@ -21,6 +21,10 @@ cause. The second bar is what keeps the ship's own batch reading an issue: conse
 differ only in the two commits they name, so they read alike, and without it the reading of a new
 range would have become a comment on the previous range's issue with nothing left to move the mark.
 
+**A settled issue is no destination, however near it reads.** A dropped or closed neighbour is
+shown with the decision behind it and never folded onto, because a finding landed on a row nobody
+works is lost; [`beside`](beside.md) says what the filer is shown instead.
+
 **The fold asks for both signals on one issue, and that is a price paid deliberately.** The issue a
 filing lands on has to be the one it is about *and* the one it is in — the nearest of the neighbours
 naming its place, which is not the nearest of all, and no reply here says otherwise. The place query

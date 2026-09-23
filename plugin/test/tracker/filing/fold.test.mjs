@@ -42,7 +42,7 @@ test("the block prints the key, how near it reads and whether the place matched"
 
 test("a filing that found nothing is told so, and one whose search failed is told which", () => {
   const empty = suggestionLines({ suggestions: [], notes: [], place: "forge issue" }).join("\n");
-  assert.match(empty, /Nothing open reads like this filing or names `forge issue` — the check ran and found none/u);
+  assert.match(empty, /`forge issue` — the check ran and found none\.$/u);
   const broken = suggestionLines({
     suggestions: [],
     notes: ["the semantic query could not run: Forge answered 400: no"],
