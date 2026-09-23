@@ -60,6 +60,7 @@ const FIELDS = {
   confirmation: { where: ["plugin/src/flow/record/record.mjs:246", "plugin/src/flow/earned.mjs:96"], is: "the reader keys on a label", finding: "holds", detail: "one detail" },
   decision: { decision: ["a reading | an assumption | the undo"], none: undefined },
   question: { reading: ["one reading -> one outcome", "another -> another"], to: "the reporter" },
+  answer: { from: "the owner, in the session", quoted: "ship it as it stands" },
   park: { kind: "blocked", why: "ISS-9 first", evidence: [] },
   correction: { moved: "the plan names a second file", why: "the ship path needs it" },
   baseline: { gate: "npm run check", result: "one known failure", commit: "117978d" },

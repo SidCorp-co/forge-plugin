@@ -331,17 +331,23 @@ const owedAfter = async (documentId, issue, ref, page) => {
  *  over the record just made, and only where a kind written is one the rung cites — else the status
  *  is moved by whatever write followed the one that earned it. Linear path only, a park and a triage
  *  being routes `owedIn` drops; stderr throughout, stdout being the record. */
-export const movedByRecord = async (documentId, issue, ref, kinds, held = null) => {
+export const movedByRecord = async (documentId, issue, ref, kinds, held = null, parkedAt = null) => {
   const page = await pageFor(documentId, held);
-  const view = viewFrom(documentId, issue, page.comments, page.cut,
-    await policyFor(issue.plan, issue.status), () => citedClauses(issue));
-  const linear = ORDER.includes(issue.status);
-  const { next, missing } = linear ? owedIn(view, ref) : { next: null, missing: [] };
-  const cited = Boolean(next) && (CITED[next] ?? []).some((kind) => kinds.includes(kind));
+  /* An answer is judged at the side status the write found, whatever the issue holds now: at
+     needs_info the tracker reads the answer's own comment as the reply and puts the issue back to
+     open, and a resume asked for afterwards would start from there and never find the park (ISS-198). */
+  const resumes = kinds.includes("answer") && SIDE.includes(parkedAt);
+  const standing = resumes ? { ...issue, status: parkedAt } : issue;
+  const view = viewFrom(documentId, standing, page.comments, page.cut,
+    await policyFor(issue.plan, standing.status), () => citedClauses(issue));
+  const { next, missing } = resumes || ORDER.includes(issue.status) ? owedIn(view, ref) : { next: null, missing: [] };
+  const cited = Boolean(next) && (resumes || (CITED[next] ?? []).some((kind) => kinds.includes(kind)));
   const moves = cited && !missing.length;
   if (moves) {
-    await movedAfterRecord(view, ref, next, (soft) =>
-      transitionTo(view, next, ref, { soft, say: console.error }));
+    const now = { ...view, issue: { ...view.issue, status: issue.status } };
+    const note = resumes ? "  (resumed where its park left it)" : "";
+    await movedAfterRecord(now, ref, next, (soft) =>
+      transitionTo(now, next, ref, { soft, note, say: console.error }));
   }
   await owedAfter(documentId, moves ? { ...issue, status: next } : issue, ref, page);
   /* The effective rung of the view this already built, for the phase part the caller prints. */

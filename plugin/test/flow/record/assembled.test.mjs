@@ -50,7 +50,7 @@ test("every finding and every triage is on the report, not the latest of each", 
   assert.equal(latest.finding.record.fields.seen, "still by id", "and the latest of each is still there, for the brief");
   assert.equal(repeated.confirmation, undefined, "a kind that can only be current keeps no list");
   for (const kind of Object.keys(SHAPES)) {
-    const repeats = ["correction", "finding", "gap", "park", "question", "routed", "triage"];
+    const repeats = ["answer", "correction", "finding", "gap", "park", "question", "routed", "triage"];
     assert.equal(Boolean(SHAPES[kind].repeats), repeats.includes(kind), `${kind} repeats or it does not`);
   }
 });

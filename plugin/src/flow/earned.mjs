@@ -618,12 +618,21 @@ export const parkThatSet = (view, status) => {
   return spent ? null : over;
 };
 
+/** Whether an `answer` record newer than `at` stands on the page, judged by the write's own shape
+ *  rules. Both readers of a park ask it, so the resume and the look cannot disagree about one. */
+export const relayedSince = (view, at) => view.comments.some((one) => {
+  if ((one.createdAt ?? "") <= at) return false;
+  const record = parse(one.body ?? "");
+  return record?.kind === "answer" && !shapeGaps("answer", record, view.names).length;
+});
+
 /* A screen is the change a deploy does not undo for whoever already read it, so a person answers: a
-   comment later than the park, from a token that is neither a device's nor the tracker's own. */
+   comment later than the park, from a token that is neither a device's nor the tracker's own, or
+   their answer relayed on the record. */
 export const answered = (view, kind) => {
   const asked = parkRecord(view, (one) => one === kind);
   const at = asked?.comment?.createdAt ?? "";
-  return Boolean(asked) && view.comments.some(
+  return Boolean(asked) && (relayedSince(view, at) || view.comments.some(
     (one) => !one.authorDeviceId && !announces(one) && (one.createdAt ?? "") > at,
-  );
+  ));
 };
