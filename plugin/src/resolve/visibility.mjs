@@ -131,8 +131,8 @@ export const VERBS = [
         "forge_project_pm.graph": "`forge doctor`",
         "forge_project_pm.snapshot": "`forge doctor`",
         "forge_project_pm.runner_load": "`forge doctor`" } }],
-  ["stats", "<runs|models|eval|change|marks|diagnose>",
-    "where an issue-flow run's time and rounds go, read off the transcripts the harness keeps", null,
+  ["stats", "<runs|models|eval|change|marks|diagnose|waves>",
+    "where an issue-flow run's and a dispatch wave's time and rounds go, read off the transcripts the harness keeps", null,
     { group: HARNESS }],
 ];
 

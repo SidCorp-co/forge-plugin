@@ -73,8 +73,7 @@ export const EVAL_USAGE = [
   "  --requests n       the tracker requests this whole reading may spend; past it the outcome",
   "                     figures print unavailable and every cost figure still prints",
   "  --json             the comparison alone, one object",
-  "  --waves            the last ten folded dispatch waves against the ten before instead, which",
-  "                     reads --checkout, --size and --json alone: forge stats eval --waves -h",
+  "  --waves            dispatch waves instead of runs: forge stats eval --waves -h",
 ].join("\n");
 
 const sized = (raw) => {
