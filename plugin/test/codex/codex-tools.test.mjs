@@ -476,4 +476,13 @@ test("read_spec reads no clause whose file lies outside the checkout, however it
   const scope = scopeFor(mixed);
   assert.equal((await runTool(scope, "read_spec", { id: "FR-01" })).error, undefined);
   assert.match((await runTool(scope, "read_spec", { id: "FR-02" })).text, /^read_spec: No clause named FR-02/u);
+  const walked = treed();
+  const outside = tempRoom("codex-spec-dir-");
+  writeFileSync(join(outside, "fr-03.md"), CLAUSES.replaceAll("01", "03"));
+  symlinkSync(outside, join(walked, "docs", "requirements", "vendor"));
+  symlinkSync(join(walked, "docs", "requirements"), join(walked, "docs", "requirements", "srs", "again"));
+  const deep = scopeFor(walked);
+  assert.match((await runTool(deep, "read_spec", { id: "FR-03" })).text, /^read_spec: No clause named FR-03/u,
+    "a linked-in directory outside is not entered");
+  assert.equal((await runTool(deep, "read_spec", { id: "FR-01" })).error, undefined, "and a link back in ends");
 });

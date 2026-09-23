@@ -10,10 +10,17 @@ import { RECORD, malformedIn, written } from "./recorded.mjs";
 
 export const TREE = "docs/requirements";
 
-const walk = (dir, out = []) => {
+/* `keep` is asked before a directory is entered, not after its files are read, and a directory
+   reached twice by its real path is entered once: a link out of the tree or back into it is
+   otherwise a walk of whatever it points at, or one that never ends. */
+const walk = (dir, keep = () => true, out = [], seen = new Set()) => {
+  const real = realpathSync(dir);
+  if (seen.has(real)) return out;
+  seen.add(real);
   for (const name of readdirSync(dir).sort()) {
     const path = join(dir, name);
-    if (statSync(path).isDirectory()) walk(path, out);
+    if (!keep(path)) continue;
+    if (statSync(path).isDirectory()) walk(path, keep, out, seen);
     else if (name.endsWith(".md")) out.push(path);
   }
   return out;
@@ -26,7 +33,7 @@ const dirUnder = (root) => {
 
 const treeDir = () => dirUnder(checkoutRoot());
 
-const readFrom = (dir, root = checkoutRoot(), keep = () => true) => walk(dir).filter(keep).map((path) => ({
+const readFrom = (dir, root = checkoutRoot(), keep = undefined) => walk(dir, keep).map((path) => ({
   file: relative(root, path),
   text: readFileSync(path, "utf8"),
 }));
