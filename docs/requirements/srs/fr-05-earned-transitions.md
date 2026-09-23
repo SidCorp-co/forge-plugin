@@ -44,7 +44,7 @@ agent learns what a status wants.
   without writing to the tracker.
 - **AC-05-1-2** · Rev: 1 · Proof: plugin/test/flow/advance.test.mjs "confirmed needs a confirmation, and approved the decision record beside the plan"
   WHEN an item is missing THEN the CLI SHALL print the command that supplies that item beside it.
-- **AC-05-1-3** · Rev: 1 · Proof: none yet — ISS-12
+- **AC-05-1-3** · Rev: 1 · Proof: plugin/test/flow/park/rehearsal.test.mjs "a park rehearsed prints the record the park then posts, byte for byte"
   WHEN the move being rehearsed is a park or a drop THEN the CLI SHALL rehearse it like any other
   move rather than refusing to rehearse it.
 - **AC-05-1-4** · Rev: 1 · Proof: plugin/test/flow/earned/batched-verdict.test.mjs "several criteria with no verdict are one owed item carrying one write"
