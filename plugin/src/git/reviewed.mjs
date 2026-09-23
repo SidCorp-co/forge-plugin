@@ -24,13 +24,21 @@ const readingCovers = (title, from) => String(title ?? "").includes(`${at(from)}
 const NOT_A_READING = "dropped";
 const UNREAD = "the search for the issue holding this mark's reading";
 
+const filedAs = (row) => Number.parseInt(String(row.issueId ?? "").replace(/^\D+/u, ""), 10);
+const FIRST_FILED = (one, two) => (filedAs(one) || Infinity) - (filedAs(two) || Infinity);
+
 /** Held, none, or unread — an absence a page was cut off from is none, a dropped reading leaves the
- *  range an issue nobody reads, and soft keeps the rows a later page's refusal would throw away. */
-export const readingFor = async (from) => {
-  const read = await everyIssue({ search: at(from) }, { soft: true });
-  const row = read.rows.find((one) => readingCovers(one.title, from) && one.status !== NOT_A_READING);
-  if (row) return { key: row.issueId, status: row.status ?? null };
+ *  range an issue nobody reads, and soft keeps the rows a later page's refusal would throw away. Of
+ *  two rows for one mark the first filed holds it, whatever order the page came in, so every ship
+ *  that reads both names the same one, and the second is the one its own filer drops; `cut` says a
+ *  row was found over a read that could not rule an earlier one out, and `again` reads past this
+ *  process's own earlier walk (ISS-133). */
+export const readingFor = async (from, { again = false } = {}) => {
+  const read = await everyIssue({ search: at(from) }, { soft: true }, { again });
+  const [row] = read.rows.filter((one) => readingCovers(one.title, from) && one.status !== NOT_A_READING)
+    .sort(FIRST_FILED);
   const cut = read.refused ? String(read.refused) : shortOf(read, UNREAD);
+  if (row) return { key: row.issueId, status: row.status ?? null, ...(cut ? { cut } : {}) };
   return cut ? { short: cut } : { key: null };
 };
 

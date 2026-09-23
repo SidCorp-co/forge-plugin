@@ -197,6 +197,84 @@ test("a second ship at the same mark names the issue already there and files not
   assert.equal(ref(work), from, "a row already there is no reason to move the mark either");
 });
 
+/* Two ships that cross one mark inside the window between the lookup and the create both find nothing
+   and both file; the tracker keys nothing on the mark, and a lock a crashed ship left would cost more
+   than the duplicate. The read after the create is what reconciles them (ISS-133). */
+const otherShip = (from, key) => ({ issueId: key, documentId: `u-${key}`, status: "open",
+  title: `The batch ${from.slice(0, 7)}..cafe123 is read once as a whole by a run that wrote none of it, and the mark moves` });
+
+test("a ship whose create landed after another ship's row for the mark drops its own and names the other", () => {
+  const { at, work, from } = owedAt("raced");
+  noBacklog({ key: "ISS-778", mint: "u-ISS-778", racing: [otherShip(from, "ISS-777")] });
+
+  const run = lastStep(work);
+  assert.equal(seen("create").length, 1, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /ISS-777 is open for this mark already, filed by another ship in the window this one filed ISS-778 in/u,
+    `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /ISS-778 is dropped, so one row holds this mark/u, `${run.stdout}${run.stderr}`);
+  /* The drop is this checkout's own verb, which the fixture stubs: what it was asked is the argv. */
+  const drops = called(at).filter((one) => one.argv[0] === "advance");
+  assert.deepEqual(drops.map((one) => one.argv.slice(0, 3)), [["advance", "ISS-778", "--drop"]],
+    `the second row was not dropped by its own filer, or something else was:\n${JSON.stringify(drops)}`);
+  assert.match(drops[0].argv[4], /^ISS-777 was filed first for the mark [0-9a-f]{7}/u, drops[0].argv[4]);
+  assert.ok(run.stdout.includes("Work ISS-777."), `the launch names the row that holds the mark:\n${run.stdout}`);
+  assert.doesNotMatch(run.stdout, /Work ISS-778\./u, "a dropped row is nothing to launch a run on");
+  assert.doesNotMatch(run.stdout, /^\s+filed ISS-778$/mu, "the row this ship dropped is not reported as the filing");
+});
+
+test("a lookup over two live rows for one mark names the one filed first, whatever order the page came in", () => {
+  const { work, from } = owedAt("two-rows");
+  noBacklog({ key: "ISS-900", issues: [otherShip(from, "ISS-200"), otherShip(from, "ISS-199")] });
+
+  const run = lastStep(work);
+  assert.equal(seen("create").length, 0, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /ISS-199 is open for this mark already, so nothing was filed/u, run.stdout);
+  assert.ok(run.stdout.includes("Work ISS-199."), run.stdout);
+  assert.doesNotMatch(run.stdout, /ISS-200/u, run.stdout);
+});
+
+test("a read after the create that comes back short keeps the row filed and says that read was short", () => {
+  const { at, work } = owedAt("raced-short");
+  noBacklog({ key: "ISS-778", mint: "u-ISS-778", racing: [], cutAfterCreate: 3 });
+
+  const run = lastStep(work);
+  assert.equal(seen("create").length, 1, `${run.stdout}${run.stderr}`);
+  assert.ok(run.stdout.includes("filed ISS-778"), `${run.stdout}${run.stderr}`);
+  assert.match(run.stderr, /whether another ship filed this mark's reading in the same window is unread, so ISS-778 stands/u,
+    run.stderr);
+  assert.match(run.stderr, /reached/u, `the short read is named:\n${run.stderr}`);
+  assert.match(run.stdout, /read it yourself: forge issue --search [0-9a-f]{7}/u, run.stdout);
+  assert.ok(run.stdout.includes("Work ISS-778."), run.stdout);
+  assert.equal(called(at).filter((one) => one.argv[0] === "advance").length, 0,
+    "a row nothing proved second is not dropped");
+});
+
+test("a drop of this ship's second row that fails prints the command that drops it", () => {
+  const { work, from } = owedAt("raced-undropped");
+  noBacklog({ key: "ISS-778", mint: "u-ISS-778", racing: [otherShip(from, "ISS-777")] });
+  lastStep(work);
+  noBacklog({ key: "ISS-778", mint: "u-ISS-778", racing: [otherShip(from, "ISS-777")] });
+  chmodSync(join(work, "plugin", "bin", "forge"), 0o000);
+
+  const run = runIn(work, ["ship", "--from", String(LAST_STEP)], BARE);
+  assert.match(run.stderr, /ISS-778 is a second row for this mark and dropping it failed/u, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /drop it: forge advance ISS-778 --drop --why 'ISS-777 was filed first for the mark [0-9a-f]{7}/u,
+    run.stdout);
+  assert.ok(run.stdout.includes("Work ISS-777."), run.stdout);
+  assert.doesNotMatch(run.stdout, /Work ISS-778\./u, run.stdout);
+});
+
+test("a create the tracker refuses, where the mark has a row on reading again, names that row and no manual route", () => {
+  const { work, from } = owedAt("refused-held");
+  noBacklog({ key: "ISS-778", racing: [otherShip(from, "ISS-777")], refusing: "a review for this range exists" });
+
+  const run = lastStep(work);
+  assert.match(run.stdout, /ISS-777 is open for this mark already, so nothing was filed/u, `${run.stdout}${run.stderr}`);
+  assert.ok(run.stdout.includes("Work ISS-777."), run.stdout);
+  assert.doesNotMatch(run.stdout, /forge new - --title/u, run.stdout);
+  assert.doesNotMatch(run.stderr, /nothing is filed and the next ship asks again/u, run.stderr);
+});
+
 /* Two ships fifteen minutes apart read one mark and answered differently: its issue had left `open`
    between them. The window `open` was right for is the one before anybody starts work (ISS-140). */
 test("the mark's issue is found at whatever status it has reached, and the lookup asks for none", () => {
