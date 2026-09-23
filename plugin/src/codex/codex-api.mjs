@@ -75,7 +75,8 @@ const TRACKER = "\n- `read_issue` reads an issue off this project's tracker by i
    nothing it held could reach the words, and a mapping it could not read is the finding it withheld. */
 const SPEC = "\n- `read_spec` reads a clause of this checkout's requirements tree by its identifier or by a "
   + "citation, as `FR-06~1`. Where the work cites a clause, read it and rule on whether the clause says "
-  + "what the citing line needs it to; a citation of a clause that does not serve its line is a finding.";
+  + "what the citing line needs it to, quoting the clause's own words you ruled on; a citation of a clause "
+  + "that does not serve its line is a finding.";
 
 export const roleFor = (angles = Object.keys(ANGLES), { check = false, recheck = false, tracker = false, spec = false } = {}) => {
   const named = angles.map((one) => ANGLES[one]);
