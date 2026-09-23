@@ -22,8 +22,8 @@ export const repository = () => {
   const room = tempRoom("brief-repo-");
   const origin = join(room, "origin.git");
   const main = join(room, "main");
-  spawnSync("git", ["init", "-q", "--bare", "-b", "main", origin], { encoding: "utf8" });
-  spawnSync("git", ["init", "-q", "-b", "main", main], { encoding: "utf8" });
+  spawnSync("git", ["init", "-q", "--bare", "-b", "main", origin], { cwd: room, encoding: "utf8" });
+  spawnSync("git", ["init", "-q", "-b", "main", main], { cwd: room, encoding: "utf8" });
   writeFileSync(join(main, "base.txt"), "base\n");
   git(main, "add", "base.txt");
   git(main, "commit", "-qm", "base");

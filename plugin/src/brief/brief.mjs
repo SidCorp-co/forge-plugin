@@ -84,7 +84,7 @@ export const brief = async (argv) => {
     keepBrief(process.env.CLAUDE_CODE_SESSION_ID, text);
   } catch (error) {
     fail(`brief: the record the hook checks a dispatch against could not be written (${error.message}), `
-      + "so no brief is printed: one sent now would be refused. Make the forge config directory writable and run this again.");
+      + "so no brief is printed: one sent now would be refused. Make that directory writable and run this again.");
   }
   console.log(text);
 };

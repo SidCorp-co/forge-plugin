@@ -1,4 +1,4 @@
-/* What the brief verb printed, kept as a digest per session in the forge config directory so the
+/* What the brief verb printed, kept as a digest per session in the config directory `configDir` names, so the
    hook can tell a message the verb generated from one somebody typed. A match on the whole text is the
    one reading no added sentence survives; a reading of its words was refused (ISS-2147). Nothing here
    needs a checkout, so the hook holds wherever a dispatch is made. */
