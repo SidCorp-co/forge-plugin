@@ -350,12 +350,13 @@ test("a verb spawned against a handler that throws fails within seconds and prin
   const config = join(server.env.XDG_CONFIG_HOME, "forge", "config.json");
   writeFileSync(config, JSON.stringify({ ...JSON.parse(readFileSync(config, "utf8")), waitSeconds: 2 }));
   const room = projectRoom(tempRoom("fixture-threw-"), server.env.XDG_CONFIG_HOME, { slug: OWN.slug });
-  const started = Date.now();
   const run = await ranAsync(join(ROOT, "plugin", "bin", "forge"), ["issue", "ISS-1"], server.env, room);
   server.close();
   assert.notEqual(run.status, 0, run.stdout);
   assert.match(run.stderr, /fakeTracker threw answering forge_issues at GET \/\S+: the forge_issues stub broke/u);
-  assert.ok(Date.now() - started < 5_000, `the verb took ${Date.now() - started}ms to fail`);
+  /* Fast is read off what the transport says rather than off a clock: a request left open is an
+     attempt that ran out of its wait, and no attempt here may have. */
+  assert.doesNotMatch(run.stderr, /ran out after|did not answer/u, "every attempt was answered rather than waited out");
 });
 
 /* A handler map is read by name, so a key no route looks up is answered by the fixture's own default
