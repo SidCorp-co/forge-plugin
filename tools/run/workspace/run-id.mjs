@@ -3,25 +3,13 @@
 import { randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, isAbsolute, join } from "node:path";
+import { join } from "node:path";
 
-import { MINTED_FOR, RUN_ID, besideGit as beside, heldBesideGit as heldAt, runIdAt } from "../../../plugin/src/resolve/session/run-id.mjs";
-
-const SCRATCH_AT = "forge-run-scratch";
-
-export const SCRATCH = "forge-run-";
+import { RUN_ID, SCRATCH, SCRATCH_AT, besideGit as beside, runIdAt, scratchAt } from "../../../plugin/src/resolve/session/run-id.mjs";
 
 export { RUN_ID_VAR } from "../../../plugin/src/resolve/session/run-id.mjs";
-export { runIdAt };
+export { SCRATCH, runIdAt, scratchAt };
 
-/** The directory `start` made, off the record it wrote and never derived again: `start` prints that path as the run's
- *  own `TMPDIR`, so a run doing what it is told moves the root a second derivation reads. Null unless the record is absolute and named as this mints them; past that it is trusted — a forged record is a write to the git directory. */
-export const scratchAt = (path) => {
-  const id = runIdAt(path);
-  const at = heldAt(path, SCRATCH_AT);
-  const named = Boolean(id) && MINTED_FOR.test(id) && basename(at ?? "") === `${SCRATCH}${id}`;
-  return named && isAbsolute(at) ? at : null;
-};
 
 export const scratchMinted = (path, id) => {
   const at = join(tmpdir(), `${SCRATCH}${id}`);

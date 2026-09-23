@@ -474,6 +474,7 @@ export const commands = {
   },
   project: loads("./tools/project.mjs", "project"),
   next: loads("./rank/next.mjs", "next"),
+  brief: loads("./brief/brief.mjs", "brief"),
   alike: loads("./alike/alike.mjs", "alike"),
   knowledge: loads("./tools/knowledge.mjs", "knowledge"),
   cloudflare: loads("./tools/services/cloudflare.mjs", "cloudflare"),

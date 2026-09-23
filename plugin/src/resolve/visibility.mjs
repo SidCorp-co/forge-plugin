@@ -60,6 +60,10 @@ export const VERBS = [
   ["next", "[--count n] [--why] [--json] [--graph [ISS-45]] [--holding ISS-45] [--checkout <dir>]",
     "the open issues to work next, ranked off their metadata; writes nothing", "forge_issues",
     { group: BACKLOG }],
+  /* Reads git and the plugin cache and no tracker route, so no credential withholds it. */
+  ["brief", "[ISS-45] [--tree <dir>]",
+    "the message a dispatch sends: the readings a run cannot take itself, generated, never typed",
+    null, { group: FLOW }],
   /* `--tracker` unnamed, a maintainer's alone (docs/cli/withholding-a-verb.md); `--for` every run's. */
   ["guide", "[contract [part]|<skill> [reference]|slug] [--for ISS-nn] [--rung <name>]",
     "this plugin's contract and each skill's method, one part per call, and the tracker's guides this flow stands behind",
