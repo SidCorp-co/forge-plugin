@@ -349,13 +349,37 @@ const matched = (text, guarded) =>
 const MASK = "[withheld]";
 const AROUND = 40;
 
+/* Every span of the field any guarded value covers, in its written and its bare form, overlaps
+   included: masking one value at a time can split another that overlaps it and leave its tail. */
+const spansOf = (text, guarded) => guarded
+  .flatMap((one) => [one.value, bare(one.value)])
+  .filter(Boolean)
+  .flatMap((value) => {
+    const found = [];
+    for (let at = text.indexOf(value); at >= 0; at = text.indexOf(value, at + 1)) {
+      found.push([at, at + value.length]);
+    }
+    return found;
+  })
+  .sort((one, two) => one[0] - two[0]);
+
+const maskSpans = (text, spans) => {
+  let out = "";
+  let from = 0;
+  for (const [start, end] of spans) {
+    if (end <= from) continue;
+    out += start > from ? `${text.slice(from, start)}${MASK}` : (out.endsWith(MASK) ? "" : MASK);
+    from = end;
+  }
+  return out + text.slice(from);
+};
+
 /* Where in the author's own words the hit sits, so a false one is recognisable from the refusal.
-   Every guarded value is masked across the whole field before anything is cut, longest first, so
-   no cut can leave part of one showing. */
+   The field is masked whole before anything is cut, so no cut can leave part of a value showing,
+   and a field that is a short value with punctuation round it is nothing but the mask. */
 const nearOf = (text, guarded) => {
-  const masked = [...guarded].sort((one, two) => two.value.length - one.value.length)
-    .reduce((held, one) => held.split(one.value).join(MASK), text)
-    .replace(/\s+/gu, " ").trim();
+  if (guarded.some((one) => bare(one.value) && bare(one.value) === bare(text))) return MASK;
+  const masked = maskSpans(text, spansOf(text, guarded)).replace(/\s+/gu, " ").trim();
   const at = Math.max(masked.indexOf(MASK), 0);
   const from = Math.max(at - AROUND, 0);
   const to = Math.min(at + MASK.length + AROUND, masked.length);

@@ -376,6 +376,18 @@ test("a refusal quotes where the match sits, and every guarded value in that tex
   assert.doesNotMatch(edge.near, /horse|battery|staple/u, "masking comes before the cut, so no cut shows part of a value");
 });
 
+/* Two ways masking one value at a time printed what the refusal was about, both found by the review of ISS-172. */
+test("an excerpt shows no part of a value, whether it overlaps another or matched with its punctuation off", () => {
+  const short = deployFrom({ testCredentials: [{ password: "!admin!" }] });
+  assert.equal(credentialLeak({ body: "admin" }, short).near, "[withheld]",
+    "a field that is a short value, quoting aside, is nothing but the mask");
+  const overlapping = deployFrom({ testCredentials: [{ username: "abcdefghijkl", password: "ijklmnopqrst" }] });
+  assert.equal(credentialLeak({ body: "see abcdefghijklmnopqrst here" }, overlapping).near, "see [withheld] here");
+  const repeated = deployFrom({ testCredentials: [{ password: "abababababab" }] });
+  assert.equal(credentialLeak({ body: "x ababababababab y" }, repeated).near, "x [withheld] y",
+    "and one value overlapping itself is one span");
+});
+
 
 /* Where the merge sits is derived and not asked for again: the project already told the tracker what
    its release is and whether production deploys on its own, which is what decides it. */
