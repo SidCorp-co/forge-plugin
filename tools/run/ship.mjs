@@ -353,13 +353,39 @@ const fileReview = async (tree, from, volume) => {
     duplicates: false,
     soft: true,
   })).catch((error) => ({ threw: error }));
-  if (filed.threw) return { why: filed.threw.message, whose: "the filing could not be made" };
+  if (filed.threw) return heldBy(from, { why: filed.threw.message, whose: "the filing could not be made" });
   if (filed.refusal) return { why: filed.refusal.text, mine: filed.refusal.mine, whose: "this plugin refused the filing" };
-  if (filed.answer?.refused) return { why: filed.answer.refused, whose: whose({}, "the filing") };
+  if (filed.answer?.refused) return heldBy(from, { why: filed.answer.refused, whose: whose({}, "the filing") });
   const key = filed.joined?.issueId ?? filed.answer?.issueId ?? null;
   return key
-    ? { key, filed: true, related: filed.related }
+    ? reconciled(tree, from, key, filed.related)
     : { why: JSON.stringify(filed.answer ?? null), whose: "the filing answered with no issue key" };
+};
+
+const reread = (from) => refusing(() => readingFor(from, { again: true })).catch((error) => ({ short: error.message }));
+
+/* A create the tracker turned back may be the tracker refusing a second row for this mark, in words
+   this step cannot parse: a row found now is the issue already being there, whoever filed it. */
+const heldBy = async (from, failed) => {
+  const now = await reread(from);
+  return now.key ? now : failed;
+};
+
+const dropWhy = (first, mark) => `${first} was filed first for the mark ${mark.slice(0, 7)} and `
+  + "holds its reading; this is a second row a ship crossing the same mark filed in the same window";
+
+/* An empty lookup and the create after it are a window two ships can cross together, and no lock
+   closes it that a crashed ship could not leave standing. So the mark is read again once this row
+   exists: the first filed holds it, and the ship that filed later drops its own, the later create
+   being the one whose read comes after both (ISS-133). */
+const reconciled = async (tree, from, key, related) => {
+  const after = await reread(from);
+  if (after.short) return { key, filed: true, related, unchecked: after.short };
+  if (!after.key || after.key === key) return { key, filed: true, related, ...(after.cut ? { unchecked: after.cut } : {}) };
+  const why = dropWhy(after.key, from);
+  const dropped = forgeSays(tree, ["advance", key, "--drop", "--why", why]);
+  return { key: after.key, status: after.status, second: key,
+    undropped: dropped.why ? { said: dropped.why, command: `forge advance ${key} --drop --why '${why}'` } : null };
 };
 
 /* Beside the volume count: the gate this release just spent wrote the newest figure there is. */
@@ -405,6 +431,14 @@ const tierCeiling = (tree, was, at) => {
   }
 };
 
+const secondRow = ({ key, status, second, undropped }) => {
+  console.log(`    ${key} is ${status} for this mark already, filed by another ship in the window this `
+    + `one filed ${second} in`);
+  if (!undropped) return console.log(`    ${second} is dropped, so one row holds this mark`);
+  console.error(`    ${second} is a second row for this mark and dropping it failed: ${firstLine(undropped.said)}`);
+  return console.log(`    drop it: ${undropped.command}`);
+};
+
 const reviewOwed = async (tree) => {
   const from = reviewedAt(tree);
   if (!from) return console.error(`  ${NO_MARK(SELF)}`);
@@ -448,9 +482,17 @@ const reviewOwed = async (tree) => {
       + `count keeps growing. Read it, then move the mark to the head that reading reached: `
       + `${SELF} review --done <that head>`);
   }
-  console.log(asked.filed
-    ? `    filed ${asked.key}`
-    : `    ${asked.key} is ${asked.status} for this mark already, so nothing was filed`);
+  if (asked.second) secondRow(asked);
+  else {
+    console.log(asked.filed
+      ? `    filed ${asked.key}`
+      : `    ${asked.key} is ${asked.status} for this mark already, so nothing was filed`);
+  }
+  if (asked.unchecked) {
+    console.error(`    whether another ship filed this mark's reading in the same window is unread, so `
+      + `${asked.key} stands: ${firstLine(asked.unchecked)}`);
+    console.log(`    read it yourself: forge issue --search ${from.slice(0, 7)}`);
+  }
   const left = edgesLeft(asked.related);
   if (left) console.log(`    the range named more than the filing relates: ${left}`);
   console.log(`  ${launch(asked.key)}`);

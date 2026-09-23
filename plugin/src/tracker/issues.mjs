@@ -120,9 +120,11 @@ const readOf = (held) => ({
   ...(held.refused ? { refused: held.refused } : {}),
 });
 
-/** Every row matching `filters`, paged to the end; `whole` false is a ceiling, not absence. */
-export const everyIssue = async (filters = {}, bound = {}) => {
+/** Every row matching `filters`, paged to the end; `whole` false is a ceiling, not absence. `again`
+ *  walks afresh, for a caller whose own write since the last walk is the question it asks. */
+export const everyIssue = async (filters = {}, bound = {}, { again = false } = {}) => {
   refuseUnjudgedDate(filters);
+  if (again) walks.delete(keyFor(filters));
   return readOf(await walkFor(filters, bound));
 };
 

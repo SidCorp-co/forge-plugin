@@ -50,7 +50,13 @@ answers that exactly before it files: the measure drops hex, which is the only p
 titles differ in, so it scores 1.00 against whichever previous range is still open and refuses the
 filing the count is asking for (ISS-1887). What stands in its place there is the lookup, which is
 why a lookup that did not come back whole files nothing rather than treating a short page as an
-absence. Neither route touches what the measure does for a body somebody typed.
+absence. A lookup and the create after it are still two calls, and two ships crossing one mark
+inside that window both find nothing, so the step reads the mark again once its own row exists: the
+first filed of the rows it finds holds the reading, and the ship that filed later drops its own. The
+later create is always the one whose read comes after both, which is what makes that converge
+without a lock, and a lock is what this does not buy because a crashed ship would leave it standing
+over every ship after it (ISS-133). Neither route touches what the measure does for a body somebody
+typed.
 
 **Keys become edges on one route and an offer on the others.** A key in a body is as often the
 reason for a sentence as it is work the filing relates to, so `forge new` and `forge feedback` print
