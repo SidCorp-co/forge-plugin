@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { defaultBranch, git, gitOut, loud, Stop, stop } from "./checkout.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { REPLAY_HELP } from "./run/replayed.mjs";
+import { asDetached, detach, DETACH_HELP, DETACHES } from "./run/detached.mjs";
 import { land } from "./run/land.mjs";
 import { landReady } from "./run/land-ready.mjs";
 import { named, NO_MARK, ship, shipHelp } from "./run/ship.mjs";
@@ -83,6 +84,8 @@ const usage = () => [
   "",
   ...FINISH_HELP,
   "",
+  ...DETACH_HELP,
+  "",
   ...REPLAY_HELP,
   ...shipHelp(),
 ].join("\n");
@@ -134,14 +137,17 @@ const VERB_RUNS = new Map([
   ["land-ready", (read) => landReady(read, { ...named(), root: HERE, base: defaultBranch(HERE), self: SELF })],
   ["review", review]]);
 
-const main = (argv) => {
+const main = async (argv) => {
   const [verb, ...rest] = argv;
   if (!verb || verb === "-h" || verb === "--help") return console.log(usage());
   if (!VERB_RUNS.has(verb)) {
     stop(`no step \`${verb}\`. It is ${[...VERB_RUNS.keys()].join(", ")}; \`${SELF} -h\` says what each does.`);
   }
   const read = wanted(verb, rest, SELF);
-  return read ? VERB_RUNS.get(verb)(read) : console.log(verbUsage(verb, SELF));
+  if (!read) return console.log(verbUsage(verb, SELF));
+  /* After the line is read whole, so help and a refused argument answer here and start nothing. */
+  if (DETACHES.has(verb) && !asDetached(verb, rest) && await detach(verb, rest, fileURLToPath(import.meta.url))) return undefined;
+  return VERB_RUNS.get(verb)(read);
 };
 
 /* Awaited: one step files in-process, so a `Stop` raised past the first await would land on nobody. */
