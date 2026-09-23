@@ -77,3 +77,11 @@ A write also ends by saying what the issue now owes, and takes the other kinds i
 same call — `--also <kind>` opens each one after the first with its own payload — and makes the move
 that set earns, in that same call. The pair counts behind both, the order a call writes in, and what
 a refusal costs: [record-the-rung.md](record-the-rung.md).
+
+A field whose value is sentences takes the text itself, and a route to it — `@file` or `-` — is
+refused before anything is sent, as a blank is. A value that is only a file's name stays a sentence,
+since a correction's `--moved` names the file a landing wrote. It is refused rather than read because
+the two `--set` verbs already refuse the same shape, and a record is never edited or removed: a
+path taken as the text stands on the issue for good, while expansion, once shipped, is the reading
+nobody could take back from the callers leaning on it. A field naming a place carries no such check
+(ISS-820).

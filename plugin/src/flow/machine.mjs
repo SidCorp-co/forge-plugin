@@ -367,7 +367,7 @@ export const OUTCOMES = ["approved", "changes-requested"];
    rule and lives with the others of its sort in `record/content.mjs`. */
 export const SECTIONS = ["Added", "Changed", "Fixed", "Removed", "Security"];
 
-/* `many` flags repeat; `oneOf` names the values; `each` is the rule over every one of them and `form` the words it and the kind's own help both state, so a caller reads the grammar before composing rather than out of the refusal (ISS-457); `least` is the smallest count that is a payload; `newer` is asked for at the write and excused at the read-back, a shape's records outliving it.
+/* `many` flags repeat; `oneOf` names the values; `each` is the rule over every one of them and `form` the words it and the kind's own help both state, so a caller reads the grammar before composing rather than out of the refusal (ISS-457); `least` is the smallest count that is a payload; `newer` is asked for at the write and excused at the read-back, a shape's records outliving it; `prose` is a value made of sentences, which a blank and a route to its text are both refused at, and a field naming a place does not carry it (record/prose-route.mjs).
    `takes` is what a sentence about the field says it holds where the label cannot say it: the label is `labelledIn`'s read key above, so renaming one drops that field off every record already written in that form, and what a refusal has to say is longer than what a printed line wants (ISS-833). */
 const FIELD = (flag, label, extra = {}) => ({ flag, label, ...extra });
 
@@ -426,17 +426,17 @@ export const SHAPES = {
   confirmation: {
     heading: "Confirmation",
     fields: [
-      FIELD("is", "What it is"),
+      FIELD("is", "What it is", { prose: true }),
       FIELD("where", "Where looked", { many: true, each: whereProblem, form: WHERE_TAKES }),
       FIELD("finding", "Finding", { oneOf: FINDINGS }),
-      FIELD("detail", "Detail", { optional: true }),
+      FIELD("detail", "Detail", { optional: true, prose: true }),
       FIELD("rung", "Rung", { optional: true, derived: true }),
     ],
   },
   decision: {
     heading: "Decision record",
-    fields: [FIELD("decision", "Decision", { many: true, least: 0, each: decisionProblem, form: DECISION_TAKES }),
-      FIELD("none", "None found", { optional: true }), FIELD("serves", "Serves", { optional: true })],
+    fields: [FIELD("decision", "Decision", { many: true, least: 0, each: decisionProblem, form: DECISION_TAKES, prose: true }),
+      FIELD("none", "None found", { optional: true, prose: true }), FIELD("serves", "Serves", { optional: true })],
     check: (got) => {
       if (!got.decision.length && !got.none) return "--decision (repeatable) or --none <why>";
       return null;
@@ -444,7 +444,7 @@ export const SHAPES = {
   },
   question: {
     heading: "Question",
-    fields: [FIELD("reading", "Reading", { many: true, least: 2 }), FIELD("to", "To", { optional: true })],
+    fields: [FIELD("reading", "Reading", { many: true, least: 2, prose: true }), FIELD("to", "To", { optional: true })],
     repeats: true,
   },
   park: {
@@ -452,7 +452,7 @@ export const SHAPES = {
     repeats: true,
     fields: [
       FIELD("kind", "Kind", { oneOf: PARKS }),
-      FIELD("why", "Why"),
+      FIELD("why", "Why", { prose: true }),
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true, owed: OWES.park }),
     ],
     stamp: FIELD("left", "Status left"),
@@ -463,14 +463,14 @@ export const SHAPES = {
   },
   correction: {
     heading: "Correction",
-    fields: [FIELD("moved", "What moved"), FIELD("why", "Why")],
+    fields: [FIELD("moved", "What moved", { prose: true }), FIELD("why", "Why", { prose: true })],
     repeats: true,
   },
   baseline: {
     heading: "Baseline",
     fields: [
       FIELD("gate", "Gate"),
-      FIELD("result", "Result"),
+      FIELD("result", "Result", { prose: true }),
       FIELD("commit", "Commit", { commit: true }),
       FIELD("scope", "Scope", { oneOf: SCOPES, newer: true }),
       FIELD("cited", "Cited from", { optional: true }),
@@ -490,7 +490,7 @@ export const SHAPES = {
       FIELD("verdict", "Verdict", { oneOf: VERDICTS }),
       FIELD("commit", "Commit", { commit: true }),
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true, owed: OWES.verdict }),
-      FIELD("why", "Why", { optional: true }),
+      FIELD("why", "Why", { optional: true, prose: true }),
       FIELD("filed", "Filed as", { optional: true }),
       FIELD("judge", "Judge", { written: "id", newer: true }),
       FIELD(JUDGE_FROM, "Judge id from", { written: "source", newer: true }),
@@ -511,7 +511,7 @@ export const SHAPES = {
       FIELD("reviewer", "Reviewer"),
       FIELD("commit", "Head judged", { commit: true }),
       FIELD("outcome", "Outcome", { oneOf: OUTCOMES }),
-      FIELD("finding", "Findings", { many: true, least: 0, each: findingProblem, form: FINDING_TAKES }),
+      FIELD("finding", "Findings", { many: true, least: 0, each: findingProblem, form: FINDING_TAKES, prose: true }),
     ],
   },
   /* What one look found: a person's voice carried for them, or the agent's own where the flow sent
@@ -520,12 +520,12 @@ export const SHAPES = {
     heading: "Finding",
     repeats: true,
     fields: [
-      FIELD("expected", "Expected"),
-      FIELD("seen", "Seen"),
+      FIELD("expected", "Expected", { prose: true }),
+      FIELD("seen", "Seen", { prose: true }),
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true }),
       FIELD("criterion", "Criterion", { criterion: true, optional: true }),
       FIELD("uc", "Use case", { optional: true }),
-      FIELD("quoted", "In their words", { optional: true }),
+      FIELD("quoted", "In their words", { optional: true, prose: true }),
     ],
     stamp: FIELD("reopen", "Reopen", { from: "reopenCount" }),
     check: (got) => {
@@ -543,8 +543,8 @@ export const SHAPES = {
     repeats: true,
     fields: [
       FIELD("outcome", "Outcome", { oneOf: TRIAGES }),
-      FIELD("would-have-caught", "Would have caught it"),
-      FIELD("detail", "Detail", { optional: true }),
+      FIELD("would-have-caught", "Would have caught it", { prose: true }),
+      FIELD("detail", "Detail", { optional: true, prose: true }),
     ],
     stamp: FIELD("reopen", "Reopen", { from: "reopenCount" }),
   },
@@ -554,10 +554,10 @@ export const SHAPES = {
     heading: "Routed finding",
     repeats: true,
     fields: [
-      FIELD("what", "What was found", { optional: true }),
+      FIELD("what", "What was found", { optional: true, prose: true }),
       FIELD("to", "Where it went", { optional: true }),
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true }),
-      FIELD("none", "None found", { optional: true }),
+      FIELD("none", "None found", { optional: true, prose: true }),
     ],
     check: (got) => escapeOr(got, ["what", "to"], "routed nothing"),
   },
@@ -568,9 +568,9 @@ export const SHAPES = {
     repeats: true,
     fields: [
       FIELD("where", "Where", { optional: true }),
-      FIELD("lacked", "What it did not say", { optional: true }),
-      FIELD("did", "What was done instead", { optional: true }),
-      FIELD("none", "None found", { optional: true }),
+      FIELD("lacked", "What it did not say", { optional: true, prose: true }),
+      FIELD("did", "What was done instead", { optional: true, prose: true }),
+      FIELD("none", "None found", { optional: true, prose: true }),
     ],
     check: (got) => escapeOr(got, ["where", "lacked", "did"], "met no gap"),
   },
