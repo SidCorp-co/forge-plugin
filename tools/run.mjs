@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { defaultBranch, git, gitOut, loud, Stop, stop } from "./checkout.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { REPLAY_HELP } from "./run/replayed.mjs";
-import { asDetached, detach, DETACH_HELP, DETACHES } from "./run/detached.mjs";
+import { asDetached, detach, DETACH_HELP, DETACHES } from "./run/detached/landing.mjs";
 import { land } from "./run/land.mjs";
 import { landReady } from "./run/land-ready.mjs";
 import { named, NO_MARK, ship, shipHelp } from "./run/ship.mjs";

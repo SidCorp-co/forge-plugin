@@ -10,10 +10,10 @@ import { constants } from "node:os";
 import { join } from "node:path";
 import { clearInterval, setInterval } from "node:timers";
 
-import { gitOut, read, stop } from "../checkout.mjs";
-import { PROC, startedAt } from "../gates/machine.mjs";
-import { WAIT_COMMAND } from "../../plugin/src/hooks/wait-idiom.mjs";
-import { heldMinutes } from "../../plugin/src/host/call-ceiling.mjs";
+import { gitOut, read, stop } from "../../checkout.mjs";
+import { PROC, startedAt } from "../../gates/machine.mjs";
+import { WAIT_COMMAND } from "../../../plugin/src/hooks/wait-idiom.mjs";
+import { heldMinutes } from "../../../plugin/src/host/call-ceiling.mjs";
 
 /** The verbs that hold the landing lock, and so the ones whose death strands it. */
 export const DETACHES = new Set(["ship", "land", "land-ready"]);

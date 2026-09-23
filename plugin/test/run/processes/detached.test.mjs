@@ -8,7 +8,7 @@ import { existsSync, readFileSync, readlinkSync, realpathSync, rmSync, writeFile
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
-import { alive, BARE, committed, git, pushed, ROOT, runIn, SCRIPT, scratch } from "./run-fixtures.mjs";
+import { alive, BARE, committed, git, pushed, ROOT, runIn, SCRIPT, scratch } from "../run-fixtures.mjs";
 
 const LOCK = "forge-ship-lock";
 const RECORD = "forge-landing.json";
