@@ -343,10 +343,16 @@ test("what an earlier turn wrote is not this turn's to answer for", () => {
 
 /* Every answer is thrown — silence included — so what a decision was is read off what it carried. */
 const decided = (ev, held) => {
+  /* In this process the event's clock runs from the file's own start, so the case pins it there: a
+     case late in a loaded run otherwise finds its readings spent by the neighbours (ISS-1205). */
+  const live = Date.now;
+  Date.now = () => performance.timeOrigin;
   try {
     run(ev, held);
   } catch (answer) {
     return { kind: answer.kind, said: answer.message };
+  } finally {
+    Date.now = live;
   }
   return { kind: "returned", said: "" };
 };
