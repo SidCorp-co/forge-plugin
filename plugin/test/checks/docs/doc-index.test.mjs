@@ -8,7 +8,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import {
-  INDEX, LEAD_MAX, ROW_MAX, TOPIC_MAX, docsCited, indexProblems, overCap,
+  INDEX, LEAD_MAX, ROW_MAX, TOPIC_MARGIN, TOPIC_MAX, docsCited, indexProblems, nearCap, overCap,
 } from "../../../src/checks/docs/doc-index.mjs";
 
 const ROOT = new URL("../../../..", import.meta.url).pathname;
@@ -33,11 +33,31 @@ test("the CLI document is an index: one paragraph, and one row per topic that re
   assert.deepEqual(said, [], said.join("\n"));
 });
 
-test("no document under docs/ is longer than one pass", () => {
-  const docs = tracked("docs/**/*.md").concat(tracked("docs/*.md"));
+/* Green output and not a failure: the documents inside the margin are what the gate step prints
+   while it still passes, so a run learns a topic is filling before it writes past it (ISS-294). */
+test("no document under docs/ is longer than one pass", (t) => {
+  const docs = [...new Set(tracked("docs/**/*.md").concat(tracked("docs/*.md")))];
   assert.ok(docs.length >= 20, `${docs.length} document(s) tracked under docs/`);
-  const said = overCap(docs.map((rel) => ({ rel, chars: chars(rel) })));
+  const sized = docs.map((rel) => ({ rel, chars: chars(rel) }));
+  const said = overCap(sized);
   assert.deepEqual(said, [], said.join("\n"));
+  for (const line of nearCap(sized)) t.diagnostic(line);
+});
+
+/* Both edges written as numbers, and the uncapped kinds beside them: a margin proved only by the
+   constant it reads passes whatever that constant becomes. */
+test("a document inside the margin of the cap is named with the room it has left, and one below it is not", () => {
+  assert.deepEqual([TOPIC_MAX, TOPIC_MARGIN], [9000, 1000], "the two numbers the cases below are written to");
+  const at = (rel, size) => ({ rel, chars: size });
+  assert.deepEqual(nearCap([at("docs/cli/full.md", 8001)]), [
+    "docs/cli/full.md is 8001 characters, 999 short of the 9000 cap and inside its 1000-character"
+      + " margin — the next decision written here is owed the split, each half with its own index row",
+  ]);
+  assert.deepEqual(nearCap([at("docs/cli/roomy.md", 8000), at("docs/cli/small.md", 100)]), []);
+  assert.equal(nearCap([at("docs/cli/brim.md", 9000)]).length, 1, "a document at the cap has 0 left");
+  assert.deepEqual(nearCap([at("docs/cli/over.md", 9001)]), [], "over the cap is overCap's refusal");
+  assert.deepEqual(nearCap([at(INDEX, 8999), at("docs/requirements/README.md", 8999)]), []);
+  assert.equal(nearCap([at("docs/requirements-old/topic.md", 8999)]).length, 1);
 });
 
 /* The measurement the cap was chosen against: the one document this repository keeps whole. */
