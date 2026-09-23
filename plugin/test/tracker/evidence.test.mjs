@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { attachPlan, localFile, uploadRefusal, uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
+import { attachPlan, evidenceProblem, localFile, uploadRefusal, uploaded, urlBearing } from "../../src/tracker/evidence.mjs";
 import { escaped, tempRoom } from "../fixtures.mjs";
 
 const DIR = tempRoom("evidence-");
@@ -21,6 +21,14 @@ test("a path is evidence when it is a readable file, and a directory is not", ()
   assert.equal(localFile(join(DIR, "nothing-here.md")), null);
   assert.equal(localFile(""), null);
   assert.equal(localFile(undefined), null);
+});
+
+/* `find` hands back the value it found, and an empty one read as nothing found let a blank through,
+   and every bad value behind it (ISS-196). */
+test("an empty value is a problem like any value that is none of the three, wherever it stands", () => {
+  assert.match(evidenceProblem([""], []) ?? "", /^Evidence `` is no attachment on this issue/u);
+  assert.match(evidenceProblem(["c8c3550", ""], ["a.md"]) ?? "", /^Evidence `` is no attachment/u);
+  assert.equal(evidenceProblem(["c8c3550", "a.md"], ["a.md"]), null);
 });
 
 test("a file on disk is put up under its base name and cited by it", () => {

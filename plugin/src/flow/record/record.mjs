@@ -14,7 +14,7 @@ import { commitProblem, eachProblem } from "./content.mjs";
 import { KINDS, SERVES_KINDS, USAGE, kindHelp, kindUsage, usage } from "./record-rows.mjs";
 import { criteriaLines, criteriaPrepared, notePrepared, planPrepared } from "./fields.mjs";
 import { RUN_FLAGS, kindBlocks, pullRun } from "./rung.mjs";
-import { proseChecked } from "./prose-route.mjs";
+import { fieldChecked } from "./prose-route.mjs";
 import { FLAG_WORD, firstLine, noValue, pullRepeated, flags, wantsHelp } from "../../resolve/flags.mjs";
 import { commentPage, cutIn, cutLine, mustBeShown, postComment } from "../../tracker/comments.mjs";
 import {
@@ -62,7 +62,7 @@ const gather = (kind, argv, defer = []) => {
   const single = flags(rest, `record ${kind}`, [], { usage });
   Object.assign(got, single, writtenBy(shape), stampedNow(shape));
   /* Its own pass and first, so a route typed at one field is named before whichever field is missing. */
-  for (const field of shape.fields) proseChecked(kind, field, got[field.flag]);
+  for (const field of shape.fields) fieldChecked(kind, field, got[field.flag]);
   for (const field of shape.fields) {
     const value = got[field.flag];
     if (field.many) {

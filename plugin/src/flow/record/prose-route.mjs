@@ -1,7 +1,8 @@
-/* What a record's prose field is refused for before anything is sent: a blank, and a route to the
-   text standing where the text goes. Refused rather than expanded, as the two `--set` verbs refuse
-   it, because a record is never edited or removed and expansion is the reading that could not be
-   taken back once callers leaned on it: docs/cli/record.md. */
+/* What a record's field is refused for before anything is sent: a blank on any field a caller may
+   not leave out, and on a prose field a route to the text standing where the text goes. Refused
+   rather than expanded, as the two `--set` verbs refuse it, because a record is never edited or
+   removed and expansion is the reading that could not be taken back once callers leaned on it:
+   docs/cli/record.md. */
 import { refuse } from "../../refusal.mjs";
 import { routeIn, routeRefusal } from "../../resolve/payload.mjs";
 import { typedArgv } from "../../resolve/flags.mjs";
@@ -33,10 +34,19 @@ const published = (field) =>
   `the path itself would be published as --${field.flag}, and a record is never edited or removed, `
   + "so it would stand on the issue in place of the text";
 
+/* A shell hands every field the same blank, a substitution or a quoted variable that came out
+   empty, so every field a caller may not leave out is asked and only the source the refusal names
+   differs. Each value of a repeating field is asked, since one blank among several cites nothing
+   and reads as a write that took it (ISS-196). */
+const asksValue = (field) => field.prose || field.many || !field.optional;
+
 const blank = (kind, field, value) =>
   `record ${kind}: --${field.flag} arrived ${value === "" ? "empty" : "as whitespace alone"}, and a record `
-  + `holding nothing there tells its reader nothing. A value in the form ${catForm("<file>")} arrives `
-  + "like that when the file is missing: write the file, or send the text itself. Nothing was sent.";
+  + "holding nothing there tells its reader nothing. "
+  + (field.prose
+    ? `A value in the form ${catForm("<file>")} arrives like that when the file is missing: write the file, or send the text itself.`
+    : "A quoted variable or a substitution that came out empty arrives like that: send the value itself.")
+  + " Nothing was sent.";
 
 /* The two routes and not the third: a value that is only a file's name is a sentence here, since a
    correction's --moved names the file a landing wrote and `developed` reads that name back. */
@@ -45,12 +55,12 @@ const routed = (value) => {
   return said === "-" || said.startsWith("@") ? routeIn(value) : null;
 };
 
-/** Every value a prose field was given, judged before the first call to the tracker. */
-export const proseChecked = (kind, field, values) => {
-  if (!field.prose) return;
+/** Every value a field was given, judged before the first call to the tracker. */
+export const fieldChecked = (kind, field, values) => {
   for (const value of [values].flat()) {
     if (value === undefined) continue;
-    if (!String(value).trim()) refuse(blank(kind, field, value));
+    if (asksValue(field) && !String(value).trim()) refuse(blank(kind, field, value));
+    if (!field.prose) continue;
     const route = routed(String(value));
     if (!route) continue;
     refuse(routeRefusal({

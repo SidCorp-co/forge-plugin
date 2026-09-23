@@ -10,7 +10,7 @@ import { trackerFor } from "../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempRoom("prose-route-");
 const { SHAPES } = await import("../../../src/flow/machine.mjs");
-const { NOTE_PROSE, proseChecked, proseHelp } = await import("../../../src/flow/record/prose-route.mjs");
+const { NOTE_PROSE, fieldChecked, proseHelp } = await import("../../../src/flow/record/prose-route.mjs");
 const { Refused } = await import("../../../src/refusal.mjs");
 
 const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
@@ -84,6 +84,39 @@ test("a blank value is refused by the flag's name, the empty string as well as w
   }
 });
 
+/* The blank a shell sends reaches a citation or a gate's name as readily as a sentence (ISS-196). */
+test("a blank on a field that is not prose is refused by the flag's name before anything is sent", async () => {
+  const verdict = ["verdict", "ISS-7", "--criterion", "1", "--verdict", "pass", "--commit", "c8c3550"];
+  for (const [value, said] of [["", "empty"], ["   ", "as whitespace alone"]]) {
+    for (const [argv, flag] of [
+      [[...verdict, "--evidence", value], "verdict: --evidence"],
+      [[...verdict, "--evidence", "c8c3550", "--evidence", value], "verdict: --evidence"],
+      [["baseline", "ISS-7", "--gate", value, "--result", "354 pass", "--commit", "43b811e", "--scope", "whole"], "baseline: --gate"],
+    ]) {
+      const run = await write(argv);
+      assert.equal(run.status, 1, run.stdout);
+      assert.equal(run.posted, 0, argv.join(" "));
+      assert.match(run.stderr, new RegExp(`^record ${flag} arrived ${said}, [^\n]*A quoted variable or a substitution`, "mu"), run.stderr);
+    }
+  }
+});
+
+test("every field a caller may not leave out and every repeating one refuses a blank, and an optional one is not asked", () => {
+  let asked = 0;
+  for (const [kind, shape] of Object.entries(SHAPES)) {
+    for (const field of shape.fields.filter((one) => !one.prose)) {
+      const said = refusal(kind, field, field.many ? ["c8c3550", ""] : "");
+      if (field.many || !field.optional) {
+        asked += 1;
+        assert.match(said ?? "", new RegExp(`^record ${kind}: --${field.flag} arrived empty`, "u"), `${kind} --${field.flag}`);
+      } else {
+        assert.equal(said, null, `${kind} --${field.flag} is optional, and a caller may leave it out`);
+      }
+    }
+  }
+  assert.ok(asked >= 20, `the walk reaches ${asked} fields, not the table`);
+});
+
 const proseRows = () => [
   ...Object.entries(SHAPES).flatMap(([kind, shape]) =>
     shape.fields.filter((one) => one.prose).map((field) => ({ kind, field }))),
@@ -92,7 +125,7 @@ const proseRows = () => [
 
 const refusal = (kind, field, value) => {
   try {
-    proseChecked(kind, field, value);
+    fieldChecked(kind, field, value);
     return null;
   } catch (error) {
     if (error instanceof Refused) return error.message;
