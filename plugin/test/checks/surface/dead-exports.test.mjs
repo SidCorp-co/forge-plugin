@@ -62,6 +62,14 @@ test("a nested pattern holding a default is read whole, and a regex after return
   assert.deepEqual(names(files), ["plugin/src/m.mjs:1 unused"]);
 });
 
+test("a bare import takes no name, whatever its file spells beside it", () => {
+  const files = planted({
+    "plugin/src/m.mjs": "export const unused = 1;\n",
+    "plugin/src/reader.mjs": 'import "./m.mjs"; // unused\n',
+  });
+  assert.deepEqual(names(files), ["plugin/src/m.mjs:1 unused"]);
+});
+
 test("a test is an importer, and so is a file outside plugin and tools", () => {
   const files = planted({
     "plugin/src/m.mjs": "export const pinned = 1;\nexport const packaged = 2;\n",

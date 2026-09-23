@@ -15,7 +15,9 @@ const LISTED = /\bexport\s*\{([^}]*)\}(\s*from\b)?/gu;
 const STARRED = new RegExp(String.raw`\bexport\s*\*\s*(?:as\s+(${NAME})\s*)?from\b`, "gu");
 const DEFAULTED = /\bexport\s+default\b/gu;
 const STATIC = /\bimport\s+([^;()]*?)\s*from\b/gu;
-const BARE = /\bimport\s*(?=\s["'])/gu;
+/* The quotes are blanked in the code half, so a bare import is the keyword with nothing but space
+   before the next string, which `specAfter` is what asks. */
+const BARE = /\bimport\b/gu;
 const WORD = new RegExp(NAME, "gu");
 
 /** Every name, which is what a namespace takes. */
