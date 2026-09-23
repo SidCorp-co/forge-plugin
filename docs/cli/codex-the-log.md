@@ -58,6 +58,14 @@ kind, and which prompt versions ran. A row written before a field existed is cou
 reply, using the same predicate the field is written with, so the window before a change and the window
 after it are read the same way rather than one of them looking clean for want of a column.
 
+**A pass and a recheck are two shapes of round, so `stats` prices them apart.** Each gets its own
+count, cache share and calls histogram, read off the row's own `recheck`, which a pass leaves absent:
+one cache figure over both kinds read rechecks shifting from three calls to one as the harness
+caching less, when a one-call round reads no cache by construction (ISS-83). A retried consult is counted in its
+kind's retried figure and in no bucket of its histogram, because its `calls` counted the retry
+attempt alone until ISS-540 and the whole conversation after, and nothing on the row but its date
+says which.
+
 **A number nobody looks at is not a measurement.** The reviewer slot moved to another model after one
 eval done by hand, and the runs since judge the harness by the feel of the next few consults: reading
 `stats` is a thing someone has to remember. So the log says when to look at itself — the consult whose

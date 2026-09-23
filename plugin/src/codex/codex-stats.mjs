@@ -106,6 +106,25 @@ const statLines = (held) => {
   ];
 };
 
+/* A retried row is kept out of its kind's histogram and its tokens are kept in: its `calls` has
+   counted two different things over the log's life, while its usage was both attempts' throughout. */
+const ROUND_KINDS = [["pass", (row) => !row.recheck], ["recheck", (row) => Boolean(row.recheck)]];
+
+export const roundKindsOf = (rows) => ROUND_KINDS.map(([name, is]) => {
+  const own = rows.filter(is);
+  const held = statsOf(own);
+  const once = own.filter((row) => (row.attempt ?? 1) === 1);
+  return { name, consults: own.length, sent: held.sent, cached: held.cached, retried: held.retried, calls: statsOf(once).calls };
+});
+
+export const roundKindLines = (kinds) => kinds.map(({ name, consults, sent, cached, retried, calls }) => {
+  const label = `${name.padEnd(8)} ${String(consults).padStart(4)} consult(s)`;
+  if (!consults) return `${label}  none in this window`;
+  const read = sent ? `${Math.round(cached * 100)}% of ${sent} input token(s)` : "— no input token recorded";
+  const reached = calls.length ? calls.map(([many, count]) => `${many}:${count}`).join("  ") : "—";
+  return `${label}  read from cache ${read}  calls reached ${reached}  retried ${retried}`;
+});
+
 export const printStats = (rest) => {
   const { last, days, root, here } = flags(rest, "codex stats", ["--here"], { usage: STATS_USAGE });
   const asked = {
@@ -118,6 +137,8 @@ export const printStats = (rest) => {
   const named = asked.days ? `the last ${asked.days} day(s)` : `the last ${asked.last ?? DEFAULT_WINDOW} consult(s)`;
   console.log(`${named}${asked.root ? ` in ${asked.root}` : ""}, ${rows[0].at} to ${rows.at(-1).at}\n`);
   for (const line of statLines(statsOf(rows))) console.log(line);
+  console.log("\nby round kind, a retried consult counted apart from the calls it reached");
+  for (const line of roundKindLines(roundKindsOf(rows))) console.log(line);
   console.log("\nWhether a reply could not check, and whether a recheck raised something New, are read "
     + "from the reply itself where the row predates the field, so both windows are counted the same way. "
     + "A budget cannot be recovered that way and is left unknown, which is what the calls line is for.");
@@ -236,7 +257,8 @@ export const MARKS_USAGE = [
 export const STATS_USAGE = [
   "Usage: forge codex stats [--last n] [--days n] [--root p] [--here]",
   "What the harness did over a window: calls against their budget, replies that could not check,",
-  "rechecks that raised something New, tokens by kind, and the prompt versions that ran.",
+  "rechecks that raised something New, tokens by kind, and the prompt versions that ran; then a pass",
+  "beside a recheck, each with its own count, cache share and calls histogram.",
   "",
   "  --last n       consults back from the newest",
   "  --days n       consults inside that many days instead",
