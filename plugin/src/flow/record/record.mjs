@@ -7,7 +7,7 @@ import { answersByComment } from "../earned/park-status.mjs";
 
 export { KINDS, USAGE, kindHelp, usage } from "./record-rows.mjs";
 export { compoundRefused, criteriaLines, noteFrom } from "./fields.mjs";
-import { CLOSES_FROM, SHAPES, criterionNumber, heldSaid, planTyped, unwrap } from "../machine.mjs";
+import { CLOSES_FROM, SHAPES, criterionNumber, handleOf, heldSaid, planTyped, unwrap } from "../machine.mjs";
 import { assemble, parseAll, printRecord, render } from "./page.mjs";
 import { markedCommit, mergedPrepared } from "./merged.mjs";
 import { commitProblem, eachProblem } from "./content.mjs";
@@ -36,6 +36,7 @@ import { workLines } from "../../guides/phases.mjs";
 import { askedInSource } from "../../resolve/flags.mjs";
 import { FIELD as SESSION, finderSaid, renew, writtenBy } from "../lease.mjs";
 import { foldProblem } from "./wave.mjs";
+import { DECLINED, declinedProblem } from "../earned/findings.mjs";
 import { stampedNow, worklogLines, worklogOf, workNow } from "../worklog.mjs";
 
 export const issueOf = async (reference) => {
@@ -131,6 +132,18 @@ const finderChecked = (kind, reference, body, read) => {
   }
   const said = foldProblem(kind, reference, read);
   if (said) refuse(said);
+};
+
+/* A declining names a finding this issue carries, read off the page before anything is posted; the
+   handle is what every reader keys by, so a whole comment id given for it is cut to one. */
+const declinedChecked = (kind, reference, blocks, read) => {
+  if (kind !== DECLINED) return;
+  for (const got of blocks) {
+    checked(kind, got);
+    const said = declinedProblem(reference, got.finding, read);
+    if (said) refuse(said);
+    got.finding = handleOf(got.finding);
+  }
 };
 
 /* What the stored copy will be, said where the write is made: the payload block is the record and
@@ -360,7 +373,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
   const asks = shape.fields.some((one) => one.evidence || one.commit);
   const { body } = await issue();
   answerChecked(kind, reference, body);
-  const { comments, cut } = asks || shape.closes ? await page() : { comments: [], cut: null };
+  const { comments, cut } = asks || shape.closes || kind === DECLINED ? await page() : { comments: [], cut: null };
   finderChecked(kind, reference, body, { comments, cut });
   const held = [...attachmentNames(body, comments), ...planned];
   const plan = citeOnce(kind, blocks, { held, cut });
@@ -372,6 +385,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
     spoken.add(line);
     console.error(line);
   };
+  declinedChecked(kind, reference, blocks, { comments, cut });
   for (const got of blocks) {
     /* `held` and never `names`: a refusal reports what the issue already carries, and this call's
        own pending upload is not that until the whole call clears — which the refusal is the proof

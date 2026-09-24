@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { fakeTracker, projectRecord, ranAsync, tempHome } from "../../fixtures.mjs";
 import { RETIRED } from "../../../src/checks/retired-names.mjs";
 import { OWN } from "../../fixtures/own-project.mjs";
+import { parseAll } from "../../../src/flow/record/page.mjs";
 
 const home = tempHome("neighbours");
 process.env.XDG_CONFIG_HOME = home.path;
@@ -163,6 +164,8 @@ test("a sized filing whose nearest open neighbour names its place lands there as
   assert.match(said.args.data.body, new RegExp(`^## ${TITLE.slice(0, 8)}`, "u"),
     "the filing's own title is the comment's first line, so the run sees each defect as one item");
   assert.doesNotMatch(said.args.data.body, /Size:/u, "and nothing writes the size the filer named into it");
+  assert.deepEqual(parseAll(said.args.data.body).map((one) => [one.kind, one.fields.title]), [["folded", TITLE]],
+    "and it ends in the record that makes it a finding the issue owes an answer (ISS-167)");
   assert.equal(state.calls.some((one) => one.args.action === "update"), false,
     "nor onto the issue it joined: a filing that folded sized nothing, the issue it joined being sized already");
   assert.match(run.stdout, /^ISS-45 is open, names the same place and is the nearest of the neighbours that do, at 0\.83/mu);

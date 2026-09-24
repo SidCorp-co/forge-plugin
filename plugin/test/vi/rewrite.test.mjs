@@ -73,6 +73,8 @@ const FIELDS = {
   verification: { where: "the installed copy", commit: "117978d", evidence: ["run.txt"] },
   wave: { member: ["ISS-2", "ISS-3"], role: "forge:runner", tree: "/trees/two", session: "iss-2-abc" },
   fold: { summary: "two runs landed and one parked" },
+  folded: { title: "the attach verb refuses a name already on the issue" },
+  declined: { finding: "6bd04311", why: "the defect is the cache's, and ISS-80 owns it" },
 };
 
 test("every kind's payload survives the rewrite byte for byte, and reads back under its flags", () => {

@@ -56,3 +56,13 @@ refusal it ends in exits the process, so a block printed after the fold is a blo
 prints at all — the filer is asked to read a thread and told nothing about the other issues their
 filing was measured against, which on the one filing whose destination surprised them is exactly
 what they most want. So the block goes out between the decision and the act, from inside the fold.
+
+**A finding that landed is typed, because the issue it landed on has to answer it.** The criteria
+field names only what that issue was opened for, so a fold that left its comment as free prose
+made the issue the normal home of defects its own judging never read. The comment therefore ends in
+a record of its own kind, written by the fold and by no verb: a finding with no filing above it is
+one nobody made. What it is owed is the contract's `testing` part, and it is owed by handle, the
+head of the comment's id, since a title is prose a rewrite may change and an order moves when a
+comment goes. Comments folded before the record existed are not read as findings. The only reading
+that could find them is a guess at a body's shape, and that guess would read a person's pasted
+report as a finding the run is then held to.
