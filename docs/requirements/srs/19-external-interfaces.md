@@ -290,8 +290,9 @@ it. Reading is all this product does there.
   WHERE a ruling call's own command grants its run an id the CLI SHALL pair that call with the one
   entry of the consult log that run wrote among those the call reaches, SHALL NOT pair it with an
   entry another run wrote, SHALL take as a run's only an id the log says the run was given or found
-  in its own tree, and SHALL pair a call or an entry that carries no such id as it would with no
-  identity read at all.
+  in its own tree, SHALL give an entry that run wrote to that call over any call carrying no id,
+  and SHALL otherwise pair a call or an entry that carries no such id as it would with no identity
+  read at all.
 - **AC-19-8-23** · Rev: 1 · Proof: plugin/test/stats/outcomes.test.mjs "a thread is read whole or not at all: every way a page falls short leaves its records unreachable"
   IF a reading the counts stand on came back without the tracker calling it complete THEN the CLI
   SHALL treat it as a reading it could not take, and SHALL NOT count what it did receive as a
