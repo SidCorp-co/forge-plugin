@@ -1,7 +1,7 @@
 /* The pick: the lease a run takes before it writes anything, the reclaim of one a dead run left
    behind, and the park a status that keeps crashing earns. docs/cli/claim.md. */
 import { flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
-import { sessionOf, sessionSourced } from "../resolve/config.mjs";
+import { MINTED, sessionOf, sessionSourced } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
 import { documentIdOf } from "../tracker/issues.mjs";
@@ -313,11 +313,11 @@ const handRecords = async (documentId, ref, context, holder) => {
 
 /* The turn is read before anything is written, because this is the one claim that may take a live
    lease: a take the state does not name is refused and no field is touched. */
-const takeTurn = async (documentId, ref, issue, context, { holder, minutes, line, patch }) => {
+const takeTurn = async (documentId, ref, issue, context, { holder, source, minutes, line, patch }) => {
   const landing = landingOf(context);
   const left = leaseOf(context)?.next ?? null;
   const taken = await takeLease(documentId, ref, context, { holder, minutes, line, patch, status: issue.status });
-  console.log(`${ref}  take: ${describe(taken)}`);
+  console.log(`${ref}  take: ${describe(taken, source)}`);
   console.log(landingLine(landing));
   for (const one of nextLines("take", left, taken.next)) console.log(one);
   return taken;
@@ -397,6 +397,7 @@ export const claim = async (argv) => {
   const lease = leaseOf(context);
   const mine = sessionSourced();
   const holder = sessionOf();
+  const source = mine.id === holder ? mine.source : MINTED;
   const state = stateOf(lease, holder, undefined, { asserted: given.stopped });
   const minutes = asked ?? (lease && lease.holder === holder ? lease.minutes : MINUTES);
   const worklog = worklogOf(context);
@@ -412,7 +413,7 @@ export const claim = async (argv) => {
   }
   if (working.length && !given.stopped) fail(workingRefusal(ref, lease, working));
   if (given.take) {
-    const took = await takeTurn(documentId, ref, issue, context, { holder, minutes, line, patch });
+    const took = await takeTurn(documentId, ref, issue, context, { holder, source, minutes, line, patch });
     if (sharedHolder(took, mine)) console.log(SHARED_HOLDER);
     return advise(documentId, issue, merged(worklog, patch).worklog);
   }
@@ -489,7 +490,7 @@ export const claim = async (argv) => {
   });
   await setLease(documentId, next, ref, () => context);
   const taken = leaseOf(next);
-  console.log(`${ref}  ${how ?? RENEWED}: ${describe(taken)}`);
+  console.log(`${ref}  ${how ?? RENEWED}: ${describe(taken, source)}`);
   if (state === "live") console.log(handedSaid(ref, lease));
   if (state === "gone") console.log(holderGoneSaid(lease, undefined, { asserted: given.stopped }));
   if (checkpoint) console.log(`${landingLine(checkpoint)} — taken from here by \`${takeRoute(ref)}\`.`);

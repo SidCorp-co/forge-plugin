@@ -123,8 +123,9 @@ export const stateOf = (lease, holder, now = sharedNow(), { asserted = false } =
   return live ? "live" : "expired";
 };
 
-export const describe = (lease) =>
-  `session ${lease.holder} (${lease.agent}, pid ${lease.pid}), renewed `
+/* A claim's own line names where its holder id was read, because a transcript reader crediting a run's later calls to that id has to tell a run's own from a wave's or a machine's (ISS-2396). */
+export const describe = (lease, source = null) =>
+  `session ${lease.holder} (${source ? `id from ${source}; ` : ""}${lease.agent}, pid ${lease.pid}), renewed `
   + `${stamp(Date.parse(lease.renewedAt))} for ${lease.minutes} minute(s), expiring `
   + `${stamp(expiryOf(lease))}`;
 

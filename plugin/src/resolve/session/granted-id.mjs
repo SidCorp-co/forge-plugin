@@ -47,7 +47,7 @@ export const CALLS_THE_WRITER = new RegExp(String.raw`(?:^|[\s;&|()])[^\s;&|()]*
 const OPENS_A_BODY = new RegExp(String.raw`[(${BACKTICK}]|<<`, "u");
 const SEPARATOR = /^[ \t]*(&&|\|\||;|\n|\||&)/u;
 
-const TAKEN_BACK = /(?:^|[;&|\n({])\s*(?:unset\b|source\b|\.\s|sudo\b|su\b|env\s+-[ui]\b)/u;
+const TAKEN_BACK = /(?:^|[;&|\n({])\s*(?:unset\b|source\b|\.\s|sudo\b|su\b|env\s+(?:-[ui]\b|--unset\b|--ignore-environment\b))/u;
 const EVERY_TAKE_BACK = new RegExp(TAKEN_BACK.source, "gu");
 
 const VAR = "FORGE_SESSION_ID";
@@ -56,6 +56,7 @@ const ANY_VALUE = String.raw`(?:"([^"]*)"|'([^']*)'|([^\s;&|)]*))`;
 
 /** Every id the text names, read wider than one it may grant, and why that asymmetry is the safe direction: docs/cli/the-granted-id.md. */
 const EVERY_VALUE = new RegExp(String.raw`\bFORGE_SESSION_ID=${ANY_VALUE}`, "gu");
+const ASSIGNS_THE_ID = new RegExp(EVERY_VALUE.source, "u");
 
 const EVERY_WORD = new RegExp(String.raw`${ANY_WORD}+`, "gu");
 const WRAPPER = /^(?:export|env)$/u;
@@ -124,6 +125,12 @@ export const lastIdGranted = (commands) => {
   let found = null;
   for (const command of [commands ?? []].flat()) found = grantEnding(String(command ?? "")) ?? found;
   return found;
+};
+
+/** Whether the text assigns the name or takes the environment back at all, granting or not: a command that does either is not run under the id its run holds elsewhere. */
+export const movesTheId = (command) => {
+  const text = Array.isArray(command) ? command.join("\n") : String(command ?? "");
+  return ASSIGNS_THE_ID.test(text) || TAKEN_BACK.test(masked(text));
 };
 
 export const idGrantedBy = (command) => {

@@ -54,15 +54,15 @@ keying on the issue rather than the call is what lets one call that parked two a
 and it reads the transcripts and the consult log rather than the tracker — so a refused or
 budget-stopped tracker read leaves it printed while the other three go unavailable. A ruling pairs to
 the log by the `--of` the call names and otherwise by the log's own entry inside that call's span, and
-the pairing is one-to-one. A call whose own command grants its run an id takes that run's one entry
-among those it reaches, over any call carrying no id, and never an entry another run wrote; an id
-counts as a run's only where `runFrom` says it was asked for or found in the run's own tree, since an
-inherited one names a wave and a saved one a machine. Both this and the park attribution above are resolved **over the whole
+the pairing is one-to-one. A call's run is the id its own command grants or, where the command
+moves none, the one id its run's claims printed, a worktree's run granting its calls none in their
+text. It takes that run's one entry in reach, over a call naming none, and never
+another run's; an id counts as a run's only where `runFrom` or the claim line says it was asked for
+or found in the run's own tree, an inherited one naming a wave and a saved one a machine. Both this and the park attribution above are resolved **over the whole
 corpus, before either window is cut**: a competitor outside the displayed windows still spoils a
 match, and two owners either side of a boundary would each be the only candidate its own window could
-see. So `--size` cannot decide what paired, or what a park was counted against.
-A call naming no run still goes unpaired wherever a neighbour's entry lands inside its span, so the
-screen prints the unpaired count split by cause: calls naming no run, and calls whose run no single
+see. So `--size` cannot decide what paired or what a park counted against.
+The screen splits the unpaired count by cause: calls naming no run, and calls whose run no single
 entry answered.
 
 **`unavailable` is not zero.** A figure whose population is empty — no pair it could read, or no

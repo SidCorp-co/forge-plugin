@@ -100,3 +100,52 @@ test("the eval pairs each run's ruling to the verdict its own run logged, and sa
   assert.deepEqual(figure.unpairedBy, { unnamed: 1, unmatched: 1 },
     "and says how many named no run and how many named one no single entry answered");
 });
+
+/* A run standing in a worktree grants its calls no id in their text; its claims print the id the tree
+   gave it and where it was read, and that is what its ruling calls are credited to (ISS-2396). */
+test("a ruling call whose text names no id takes the one its run's claims printed under a source naming a run", () => {
+  const claim = (id, source, over = {}) => call("forge claim", {
+    command: "forge claim ISS-1",
+    body: `ISS-1  claim: session ${id} (${source ? `id from ${source}; ` : ""}agent, pid 1), renewed for 30 minute(s)`,
+    ...over,
+  });
+  const verdict = (command = "forge codex verdict --accepted F1") => call("forge codex verdict", { at: 9, endedAt: 10, command });
+  const runOf = (calls) => rulingsIn(calls).map((one) => one.run);
+
+  assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", "worktree"), verdict()]), ["iss-1-aaaaaaaa"], "the tree's id, read off the claim");
+  assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", "asked"), verdict()]), ["iss-1-aaaaaaaa"], "and the one the run was handed");
+  assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", "worktree"), verdict("FORGE_SESSION_ID=iss-9-cccccccc forge codex verdict --accepted F1")]),
+    ["iss-9-cccccccc"], "the call's own text outranks its run's claims");
+  assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", "worktree"), verdict("FORGE_SESSION_ID=a forge claim ISS-1; FORGE_SESSION_ID=b forge codex verdict --accepted F1")]),
+    [null], "and a text that names ids without granting one is not the run's either");
+  assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", "worktree"), verdict("unset FORGE_SESSION_ID; forge codex verdict --accepted F1")]),
+    [null], "nor one that takes the environment back");
+  for (const back of ["env --unset=FORGE_SESSION_ID", "env --unset FORGE_SESSION_ID", "env --ignore-environment", "env -u FORGE_SESSION_ID"]) {
+    assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", "asked"), verdict(`${back} forge codex verdict --accepted F1`)]), [null],
+      `in either spelling of env's: \`${back}\``);
+  }
+  assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", "worktree"), claim("iss-2-bbbbbbbb", "worktree"), verdict()]),
+    [null], "claims that printed two ids name none of them");
+  assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", "worktree"), claim("wave", "inherited"), verdict()]),
+    [null], "whatever source the second was read under");
+  for (const source of ["inherited", "saved", "minted", null]) {
+    assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", source), verdict()]), [null],
+      `an id a claim read from \`${source ?? "no source it printed"}\` is no run's`);
+  }
+  assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", "asked", { command: "FORGE_SESSION_ID=iss-1-aaaaaaaa forge claim ISS-1" }), verdict()]),
+    [null], "nor one a claim's own text granted, which says nothing of the calls that granted none");
+
+  const entries = [
+    { kind: "verdict", at: new Date(1050).toISOString(), accepted: 1, rejected: 2, run: "iss-1-aaaaaaaa", runFrom: "worktree" },
+    { kind: "verdict", at: new Date(1060).toISOString(), accepted: 1, rejected: 0, run: "iss-2-bbbbbbbb", runFrom: "worktree" },
+  ];
+  const mine = rulingsIn([claim("iss-1-aaaaaaaa", "worktree"), call("forge codex verdict", { at: 1000, endedAt: 1100, command: "forge codex verdict --accepted F1" })]);
+  const theirs = rulingsIn([claim("iss-2-bbbbbbbb", "worktree"), call("forge codex verdict", { at: 1010, endedAt: 1110, command: "forge codex verdict --accepted F1" })]);
+  const lost = rulingsIn([call("forge codex verdict", { at: 1020, endedAt: 1120, command: "forge codex verdict --accepted F1" })]);
+  const runs = [{ ...run(), rulings: mine }, { ...run(), rulings: theirs }, { ...run(), rulings: lost }];
+  const ruled = ruledOver(runs, entries);
+  assert.equal(ruled.get(mine[0])?.rejected, 2, "each call pairs with the verdict its run logged, the neighbour's inside its span");
+  assert.equal(ruled.get(theirs[0])?.rejected, 0);
+  const figure = figureOf(heldOf(runs, read({ ruled })), "consult findings rejected");
+  assert.deepEqual(figure.unpairedBy, { unnamed: 1, unmatched: 0 }, "and only the run that printed no id is left naming no run");
+});

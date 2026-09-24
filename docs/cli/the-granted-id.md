@@ -23,7 +23,7 @@ export inside a subshell whose write is outside it, or one on the far side of a 
 What loses it besides is a name the reader cannot resolve or cannot trust. Spell the id out — this
 reader has the text and not the shell that will run it, so `"$RUN_ID"` names nothing. One text names
 one run: two different ids, or a second id mentioned anywhere in the text, and the reader declines
-rather than guess. An `unset`, a `source`, a `sudo`, a `su` or an `env -i` takes the name back.
+rather than guess. An `unset`, a `source`, a `sudo`, a `su` or an `env -i`/`-u`, either spelling, takes the name back.
 
 **A second id is a second assignment to this name**, read wider than a grant is. A longer variable
 whose name ends in this one is a different variable and costs nothing. Everything else assigning
