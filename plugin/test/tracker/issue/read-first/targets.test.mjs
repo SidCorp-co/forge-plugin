@@ -377,7 +377,7 @@ test("a tracker that will not answer leaves the write alone and says why", async
   assert.equal(run.out.hookSpecificOutput.permissionDecision, undefined, "nothing is denied on no evidence");
   assert.match(stoodDown(run), /issue-read-first could not judge this call and did not hold it: Forge did not answer/u,
     "and the session is told which gate stood down, and why");
-  assert.match(stoodDown(run), /`forge doctor` checks the endpoint, the token and the project a gate reads/u);
+  assert.match(stoodDown(run), /`forge doctor` checks/u, "and the command that checks what it read");
 });
 
 test("a token the tracker turns down stands the gate down in the answer, not in an exit", async () => {

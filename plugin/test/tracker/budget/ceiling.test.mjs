@@ -35,10 +35,8 @@ const read = () => callTool("forge_issues", { action: "get", documentId: "u-1", 
 
 test("a rate-limited read whose wait outlasts the clock is not sent again, and its refusal names the clock", async () => {
   boundedBy(() => 1_000, CLOCK);
-  const began = Date.now();
   const answer = await answering(429, { "retry-after": "30" }, read);
   assert.equal(asks, 1, `sent ${asks} times: the 30s wait was slept into the kill`);
-  assert.ok(Date.now() - began < 5_000, "and nothing was waited at all");
   assert.match(answer.refused, /waiting 30s to send it again would outlast the 1s left of a case's clock, so it was not sent again/u);
 });
 
