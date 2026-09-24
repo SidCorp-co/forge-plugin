@@ -5,7 +5,7 @@ import { HANDLE_LENGTH, blockOf, handleOf, need, tagFor } from "../machine.mjs";
 import { parseAll } from "../record/page.mjs";
 import { CONTRACT } from "../../guides/contract.mjs";
 
-export const FOLDED = "folded";
+const FOLDED = "folded";
 export const DECLINED = "declined";
 
 const idOf = (comment) => comment?.documentId ?? comment?.id ?? null;
@@ -37,7 +37,7 @@ export const foldedIn = (comments) => comments
 const naming = (handle) => new RegExp(`(?<![0-9a-f])${handle.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}(?![0-9a-f])`, "iu");
 
 /** The criterion carrying a finding: the first whose line names its handle. */
-export const carrierOf = (criteria, handle) => criteria.find((one) => naming(handle).test(one.text)) ?? null;
+const carrierOf = (criteria, handle) => criteria.find((one) => naming(handle).test(one.text)) ?? null;
 
 const answerForm = (ref, handle) => `forge record criteria ${ref} <criteria.md>, with a line naming \`finding ${handle}\` — `
   + `or forge record declined ${ref} --finding ${handle} --why "<why it is not fixed here>"`;
