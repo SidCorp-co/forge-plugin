@@ -611,7 +611,7 @@ a priced read means is `docs/cli/stats-the-surface.md`'s.
 - **AC-19-11-1** · Rev: 1 · Proof: plugin/test/stats/surface.test.mjs "a counted row is the endpoint's input_tokens for that text under the named model, and the total is their sum"
   WHEN a text is counted THEN the CLI SHALL report the tokens the endpoint answered for that text
   under the named model, and SHALL name that model and the origin it asked.
-- **AC-19-11-2** · Rev: 1 · Proof: plugin/test/stats/surface.test.mjs "without the key every token figure is not measured, the variable is named, and nothing is sent"
+- **AC-19-11-2** · Rev: 1 · Proof: plugin/test/stats/surface.test.mjs "without the key every token figure is not measured, the key's flag is named, and nothing is sent"
   IF the model or the key is missing THEN the CLI SHALL send nothing to the endpoint, and SHALL
   report every token figure as not measured naming what is missing.
 - **AC-19-11-3** · Rev: 1 · Proof: plugin/test/stats/surface.test.mjs "a text whose count failed prints no number, and the total is not measured with how many failed and why"

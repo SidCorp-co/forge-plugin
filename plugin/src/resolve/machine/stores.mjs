@@ -61,7 +61,7 @@ export const STORES = [
     keys: [
       { key: "key", flag: "anthropic-key", asks: "key", secret: true },
       { key: "url", flag: "anthropic-url", asks: "endpoint", gates: false, said: "endpoint",
-        without: "which reads https://api.anthropic.com where it is unset" },
+        without: "which reads Anthropic's own origin where it is unset" },
     ],
   },
 ];
