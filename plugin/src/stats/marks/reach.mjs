@@ -24,8 +24,7 @@ const earlierReach = (scope, from, kinds) => {
   };
 };
 
-/** `scope` is what `marksOf` takes: a project's for the runs side, and `null` for the consult side,
- *  whose readings are the device's as its log is. */
+/** `scope` and each of `kinds` are what `marksOf` takes. */
 export const reachOf = (scope, from, kinds = PROJECT_KINDS) =>
   (Number.isFinite(from) ? { from, earlier: earlierReach(scope, from, kinds) } : null);
 
