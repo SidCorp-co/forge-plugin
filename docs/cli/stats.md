@@ -19,6 +19,16 @@ could name any directory, and this verb reads files a session wrote about work i
 `--checkout` takes a directory and nothing else, and the only files opened are the ones a
 fixed pattern one level under each derived root returns.
 
+**Without the flag, the project is the checkout the working directory belongs to, not the directory
+itself.** A delegated run stands in a worktree beside the checkout, and the host files its
+transcripts under the checkout the session was launched in, so a worktree's own path derives roots
+nothing is under and reads as a profile of no runs. Resolving that is not a caller naming a
+directory, so the argument's refusal is untouched; it is the same resolution the release step
+writes its marks against, one function for both, so a reading and a mark cannot disagree about
+whose corpus they read. Where it moved the root the verb says so on standard error, because a
+figure that moved with the root is not a figure that moved; a directory no checkout holds is read
+as itself.
+
 The obvious second guard — resolve each entry and refuse one that leaves the root — is the one thing
 that must **not** be done here, and it is worth saying why, because it passes every test that uses a
 fixture. The harness writes the scratch directory's entries as symlinks pointing back out into the
