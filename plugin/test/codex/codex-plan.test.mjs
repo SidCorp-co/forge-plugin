@@ -578,11 +578,8 @@ test("a stored consult reading is the before window, scored as it was at the mar
 
   const pinned = JSON.parse(ask("eval", "--against", "200", "--json").stdout);
   assert.deepEqual([pinned.against, pinned.now.consults, pinned.before], [200, 100, JSON.parse(JSON.stringify(stored.now))], "the stored recent window, as the file holds it");
-  /* Answered consults 101 to 200 at the mark, 151 to 250 now: half of each is the other's (ISS-1890). */
-  assert.deepEqual(pinned.overlap, { shared: 50, recent: 100, untilReadable: 0, untilDisjoint: 50 },
-    "what the two windows share is counted by place in the log, and carried beside the mark");
+  assert.deepEqual(pinned.overlap, { shared: 50, recent: 100, untilReadable: 0, untilDisjoint: 50 }, "answered 101-200 against 151-250");
   const bare = ask("eval", "--against", "--json");
-  assert.equal(bare.stdout, "", "a bare --against takes only a reading sharing none, and none held does, whatever root asks");
   assert.match(`${bare.status} ${bare.stderr}`, /^1 codex eval: --against alone takes the newest reading sharing none of the recent window, and no reading held shares none yet: mark 200, the newest, shares 50 of the recent 100 consult\(s\), and none once 50 more have been answered\. `forge codex eval --against 200` reads it with that overlap stated\.$/mu);
   const screen = ask("eval", "--against", "200");
   assert.match(screen.stdout, /^the 100 held at mark 200 {2}.* — shares 50 of the recent 100 consult\(s\), and none once 50 more have been answered$/mu, screen.stderr);

@@ -272,8 +272,8 @@ export const resolveRelease = (scope, asked, { verb, list, writes, recent }) => 
   return anchoredAt(held, found, { ...recent, flag: "--since-release" }, verb);
 };
 
-/** The reading `--against` names, or the newest of the scope sharing none of the recent window;
- *  refused by name, with the list subject, or by how much of that window it shares. */
+/** The count mark `--against` names, refused by name with the list subject where nobody wrote it;
+ *  a bare flag and a mostly-shared reading are judged as `resolveRelease` judges them. */
 export const resolveAgainst = (kind, asked, { scope = null, verb, list, writes, recent }) => {
   const held = marksOf(kind, scope);
   const whose = kind === RUNS ? "for this project" : "on this device";
