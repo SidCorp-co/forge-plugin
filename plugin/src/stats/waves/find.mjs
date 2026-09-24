@@ -7,7 +7,7 @@ import { basename, join } from "node:path";
 
 import { durableBase, readTranscript, rootFor } from "../corpus/corpus.mjs";
 import { callsIn } from "../corpus/transcripts.mjs";
-import { refusalIn } from "../runs.mjs";
+import { refusalIn } from "../refusals.mjs";
 
 const SESSION_FILE = /\.jsonl$/u;
 const WROTE = /\bforge record (?<kind>wave|fold) (?<ref>ISS-\d+)\b/gu;
