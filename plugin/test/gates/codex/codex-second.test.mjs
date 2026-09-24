@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { answered, callHook, pathed, tempRoom, typed } from "../../fixtures.mjs";
+import { answered, callHook, pathed, projectEntry, projectRecord, tempRoom, typed } from "../../fixtures.mjs";
 import { assertRouteFirst } from "../../fixtures/route-first.mjs";
 import { commitAim } from "../../../hooks/gates/codex/codex-second.mjs";
 import { clearableOf, stagedIn } from "../../../src/codex/codex-state.mjs";
@@ -394,6 +394,13 @@ test("every refusal this gate writes leads with its route", () => {
     "unread and a staged copy": both,
     "a staged copy alone": fourSaid(repo, home, "git commit -m x"),
   };
+  projectRecord(REPO, room, { slug: "fixture", codex: { owed: ["refuse"] } });
+  try {
+    reasons["no door"] = because(gate({ command: "git commit -m x" }));
+  } finally {
+    rmSync(projectEntry(REPO, room), { force: true });
+  }
   for (const [label, reason] of Object.entries(reasons)) assertRouteFirst(reason, label);
   assert.match(reasons["a staged copy alone"], /^Stage what was read — `git add [^`]*restaged\.mjs`/u);
+  assert.match(reasons["no door"], /^Name only doors out of /u, "the key's own route, and not a guess at a door");
 });
