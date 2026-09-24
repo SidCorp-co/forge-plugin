@@ -46,11 +46,11 @@ export const run = (ev) => {
     if (found.length < 3 || askedAlready(ev, path, "derive-dont-list")) continue;
     const sample = found.slice(0, 4).join(", ") + (found.length > 4 ? "…" : "");
     block(
-      `${basename(path)} — asked once, then this file is yours.\n\n` +
-        `This checker is about to hard-code ${found.length} constants (${sample}). A list is silent ` +
-        "on the case it never met, and cries wolf when someone extends the thing correctly.\n\n" +
-        "Do this: derive them from the source — read the enum, parse the switch, key on the declared " +
-        "type. If enumerating IS the point, say so in a comment above the list." +
+      "Derive these constants from the source — read the enum, parse the switch, key on the declared " +
+        "type. If enumerating IS the point, say so in a comment above the list.\n\n" +
+        `${basename(path)} is a checker about to hard-code ${found.length} constants (${sample}). A list ` +
+        "is silent on the case it never met, and cries wolf when someone extends the thing correctly. " +
+        "Asked once, then this file is yours." +
         how()
     );
   }

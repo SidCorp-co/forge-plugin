@@ -105,8 +105,9 @@ export const judgedStop = (ev, listed = projectStop().agents) => {
   if (!isSubagent(ev)) return true;
   const names = listed ?? [];
   if (!Array.isArray(names) || names.some((one) => typeof one !== "string")) {
-    block("`stop.agents` in this project's configuration is a list of agent names, the ones whose stop this gate judges. "
-      + "Drop the key and no subagent's stop is judged.");
+    block("Set `stop.agents` in this project's configuration to a list of agent names, the ones whose stop "
+      + "this gate judges, or drop the key and no subagent's stop is judged.\n\n"
+      + "That key holds something other than a list of names, so whose stop is judged cannot be read.");
   }
   const type = String(ev.agent_type ?? "");
   const bare = type.slice(type.lastIndexOf(":") + 1);
@@ -260,7 +261,8 @@ export const run = (ev, held = heldAndSilent) => {
   }
 
   if (lines.length) {
-    block(`This turn is ending with work it left red:\n\n${lines.join("\n")}${how()}`);
+    block(`Clear each item below before this turn ends, by the line under it.\n\nThis turn is ending with `
+      + `work it left red:\n\n${lines.join("\n")}${how()}`);
   }
   done();
 };

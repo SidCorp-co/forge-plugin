@@ -110,6 +110,12 @@ document that argues where it should instruct fails a test rather than a reader'
   since only the plugin's own directory travels into an installed copy.
 - **AC-07-3-3** · Rev: 1 · Proof: plugin/test/checks/docs/doc-claims.test.mjs "every command a document tells a reader to run is one the CLI has"
   IF a document tells a reader to run a command THEN that command SHALL be one the CLI has.
+- **AC-07-3-4** · Rev: 1 · Proof: plugin/test/gates/learning-gate-routes.test.mjs "every refusal this gate writes leads with its route"
+  WHEN a gate refuses a call THEN the first sentence of the refusal SHALL name the action that
+  clears it, and the shape refused and the reason SHALL follow that sentence.
+- **AC-07-3-5** · Rev: 1 · Proof: plugin/test/hooks/hook-how.test.mjs "a gate's page is printed with the line saying its refusal is the route"
+  WHEN a gate's document is printed THEN the gate's refusal SHALL be said to be the route to take
+  rather than a verdict on the call.
 
 ### UC-07-4 — Every gate can be switched off, one at a time
 

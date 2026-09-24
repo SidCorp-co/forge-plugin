@@ -7,6 +7,7 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { answered, callHook, homeEnv, tempRoom } from "../fixtures.mjs";
+import { assertRouteFirst } from "../fixtures/route-first.mjs";
 
 const HOOK = new URL("../../hooks/entries/derive-dont-list.mjs", import.meta.url).pathname;
 const HOME = homeEnv("derive-dont-list");
@@ -34,7 +35,7 @@ test("a checker hard-coding what it could derive is asked once, and told where t
   const first = nudge("check-status.mjs", LIST, session);
   assert.match(first, /check-status\.mjs/u);
   assert.match(first, /OPEN, CLOSED, MERGED, DRAFT/u);
-  assert.match(first, /derive them from the source/u);
+  assert.match(first, /^Derive these constants from the source/u);
   assert.match(first, /forge hooks --how derive-dont-list/u);
   assert.equal(nudge("check-status.mjs", LIST, session), null, "asked once, then the file is yours");
 });
@@ -56,4 +57,9 @@ test("a file that checks nothing keeps its own lists", () => {
 
 test("a test file's case table is the point, so it is not a checker", () => {
   assert.equal(nudge("status.test.mjs", LIST), null);
+});
+
+/* AC-07-3-4. One refusal, and the checker it names comes after the route. */
+test("every refusal this gate writes leads with its route", () => {
+  assertRouteFirst(nudge("check-kinds.mjs", LIST), "a hard-coded list");
 });

@@ -9,6 +9,8 @@ import { askedAlready, block, context, remaining, touched } from "../_hook.mjs";
 
 const SPARE_MS = 5_000;
 
+const FIX = "Fix each finding the project's linter reported below, in the file it names.";
+
 /* Once per content: two of seventeen blocks landed on a grep naming a file written a moment before. */
 const shaOf = (file) => {
   try {
@@ -55,6 +57,7 @@ export const run = (ev) => {
     if (after) askedAlready(ev, `${file}@${after}`, "code-quality");
   }
   const note = unread.length ? unlinted(ev, unread) : "";
-  if (reasons.length) block([...reasons, note].filter(Boolean).join("\n\n"));
+  /* The findings are the linter's words; the route ahead of them is this gate's. */
+  if (reasons.length) block([FIX, ...reasons, note].filter(Boolean).join("\n\n"));
   if (note) context(note);
 };

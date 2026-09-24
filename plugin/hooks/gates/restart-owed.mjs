@@ -56,11 +56,10 @@ const note = (ev, rel) => {
 
 const hold = (rel) =>
   deny(
-    `Hold — \`${rel}\` is in the restart set: it reaches a session only at its next start, and every `
-      + "open session runs the old copy until then.\n\n"
-      + "Do this: say in one line why no live home fits — a rule with a checker belongs under "
-      + "`plugin/src/`, where the CLI serves it live; method text in a guide; a reason in a `--how` "
-      + "page — then re-send."
+    "Hold — say in one line why no live home fits, then re-send. A rule with a checker belongs under "
+      + "`plugin/src/`, where the CLI serves it live; method text in a guide; a reason in a `--how` page.\n\n"
+      + `\`${rel}\` is in the restart set: it reaches a session only at its next start, and every `
+      + "open session runs the old copy until then."
       + how(),
   );
 

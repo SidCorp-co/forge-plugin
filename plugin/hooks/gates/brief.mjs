@@ -30,11 +30,11 @@ export const run = (ev) => {
   if (generatedFor(ev.session_id, prompt)) return;
   const key = KEY.exec(prompt)?.[0] ?? "ISS-nn";
   deny(
-    `Hold — this message to \`${role}\` is not one \`forge brief\` printed in the last `
+    `Hold — run \`forge brief ${key} --tree <its worktree>\` (no --tree for a run given none) and `
+      + "send what it prints as the prompt, unchanged.\n\n"
+      + `This message to \`${role}\` is not one \`forge brief\` printed in the last `
       + `${FRESH_MS / 60_000} minutes, so whatever was typed around the readings reaches the run as `
-      + "if it were the method.\n\n"
-      + `Do this: run \`forge brief ${key} --tree <its worktree>\` (no --tree for a run given none) and `
-      + "send what it prints as the prompt, unchanged."
+      + "if it were the method."
       + how(),
   );
 };

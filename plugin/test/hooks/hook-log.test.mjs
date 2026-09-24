@@ -47,7 +47,8 @@ test("a refusal from a live hook lands in the log, redacted", () => {
   assert.equal(entry.session, "logged");
   assert.match(entry.target, /--token \*\*\* && git add -A/u);
   assert.ok(!entry.target.includes("secretsecret"), "the log is a file on disk, so it never holds one");
-  assert.match(entry.reason, /stages everything in the tree/u);
+  assert.match(entry.reason, /^Refused — stage the paths you changed/u, "the first line, which is the route");
+  assert.match(entry.refused, /stages everything in the tree/u, "and the shape beside it, which is how a false positive is found");
   assert.equal(readFileSync(hookLogPath(), "utf8").trim().split("\n").length, hookEntries().length);
 });
 

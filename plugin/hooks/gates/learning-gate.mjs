@@ -66,18 +66,24 @@ function restated(dir, path, text) {
   return { file: top[2][0], score: top[0], sentence: top[2][1].replace(/^["\u201c]|["\u201d]$/gu, "") };
 }
 
+/* The route first and what was found after it, so the sentence a reader stops at is the one that says what to do. */
 const action = (twin, exists) => {
   if (twin) {
     /* One line: a sentence can run from a frontmatter description into the next key. */
     const quoted = twin.sentence.split("\n")[0].replace(/^\w+:\s*"?/u, "").trim();
-    return `Already in \`${twin.file}\` (${twin.score.toFixed(2)}): "${quoted.slice(0, 100)}"\n\n`
-      + "Do this: fix that file if its rule is wrong. Re-send only if this fact is a different one.";
+    return {
+      route: `fix \`${twin.file}\` if its rule is wrong. Re-send only if this fact is a different one.`,
+      found: `Already in \`${twin.file}\` (${twin.score.toFixed(2)}): "${quoted.slice(0, 100)}"`,
+    };
   }
   if (exists) {
-    return "Do this: replace the wrong rule in place, or delete the file if it no longer holds — never "
-      + "append a second version. Otherwise re-send.";
+    return {
+      route: "replace the wrong rule in place, or delete the file if it no longer holds — never append a "
+        + "second version. Otherwise re-send.",
+      found: null,
+    };
   }
-  return "Do this: if a memory already states this, fix that file. Otherwise re-send.";
+  return { route: "fix the memory that already states this, if one does. Otherwise re-send.", found: null };
 };
 
 export const run = (ev) => {
@@ -89,9 +95,9 @@ export const run = (ev) => {
 
   const tracker = (src) =>
     deny(
-      `Hold — project memory${src ? `, written as \`${src}\`` : ""}.\n\n${BRIEF}\n\n` +
-        `Re-send with metadata.checked set to the category it belongs in (${FORGE_SOURCES.join(" | ")}), ` +
-        `and say in one line which of the five conditions made it worth keeping.${how()}`,
+      `Hold — re-send with metadata.checked set to the category it belongs in (${FORGE_SOURCES.join(" | ")}), ` +
+        "and say in one line which of the five conditions below made it worth keeping.\n\n" +
+        `This is project memory${src ? `, written as \`${src}\`` : ""}.\n\n${BRIEF}${how()}`,
     );
 
   const decide = (payload) => {
@@ -112,15 +118,26 @@ export const run = (ev) => {
       if (basename(token) === "MEMORY.md") continue;
       const resolved = paths.find((path) => GUARDED.test(path));
       if (resolved) {
-        // Being sent to another tool teaches nothing about whether the fact belongs in a file at all.
         const memory = resolved.includes("/memory/");
+        const kind = memory ? "a memory file" : "a skill's own text";
+        const doubt = resolved === token || trees.length < 2 ? "" : UNSURE;
+        /* A file that exists is a correction, and Edit is where that file's own question is asked: the new-file bar here would read as "write nothing" to a run fixing a wrong line. */
+        if (existsSync(resolved)) {
+          deny(
+            `Hold — re-send this change with Edit, which asks what a change to this file owes.${doubt}\n\n`
+              + `\`${basename(resolved)}\` is ${kind} that already exists, written through the shell, which `
+              + "carries no content for that question to be asked of."
+              + how(),
+          );
+        }
+        // Being sent to another tool teaches nothing about whether a new fact belongs in a file at all.
         deny(
-          `Hold — \`${basename(resolved)}\` is ${memory ? "a memory file" : "a skill's own text"}, written `
-            + `through the shell.\n\n${BRIEF}\n\n`
-            + (memory
-              ? `Do this: if all five hold, write it with Write and declare \`type:\` — ${FILE_TYPES.join(" | ")}. Otherwise write nothing.`
-              : `Do this: if all five hold, use Edit and name the kind — ${SKILL_CATEGORIES.join(" | ")}. Otherwise change nothing.`)
-            + (resolved === token || trees.length < 2 ? "" : UNSURE)
+          (memory
+            ? `Hold — write it with Write and declare \`type:\` — ${FILE_TYPES.join(" | ")} — if all five `
+              + "conditions below hold. Otherwise write nothing."
+            : `Hold — write it with Write and name the kind — ${SKILL_CATEGORIES.join(" | ")} — if all five `
+              + "conditions below hold. Otherwise change nothing.")
+            + `${doubt}\n\n\`${basename(resolved)}\` would be ${kind}, new, written through the shell.\n\n${BRIEF}`
             + how(),
         );
       }
@@ -140,10 +157,12 @@ export const run = (ev) => {
     const twin = restated(dirname(resolve(path)), path, ti.content ?? ti.new_string ?? "");
     const held = existsSync(path);
     const fresh = !twin && !held;
+    const { route, found } = action(twin, held);
     deny(
-      `Hold — \`${basename(path)}\`${fresh ? ", a new memory. Why should it exist, and will it still matter later?" : "."}`
-        + `\n\n${BRIEF}\n\n${fresh ? `${SHAPE}\n\n` : ""}`
-        + action(twin, held) + how(),
+      `Hold — ${route}\n\n`
+        + `\`${basename(path)}\`${fresh ? " is a new memory. Why should it exist, and will it still matter later?" : " is a memory."}`
+        + `${found ? `\n\n${found}` : ""}\n\n${BRIEF}${fresh ? `\n\n${SHAPE}` : ""}`
+        + how(),
     );
   }
 
@@ -162,22 +181,22 @@ export const run = (ev) => {
               `        ${lb} already says: ${b.slice(0, 140)}`,
           )
           .join("\n");
-        const full = "This repeats what the skill already says — that is a defect, not a style "
+        const full = "Keep it in one place and cite it from the other. If the existing wording is "
+          + "the worse one, replace it rather than adding beside it.\n\n"
+          + "This repeats what the skill already says — that is a defect, not a style "
           + "preference: two authorities for one rule diverge the first time someone corrects only "
-          + `the copy they found.\n\n${joined}\n\n`
-          + "Do this: keep it in one place and cite it from the other. If the existing wording is "
-          + "the worse one, replace it rather than adding beside it." + how();
+          + `the copy they found.\n\n${joined}` + how();
         deny(sayOnce(sessionKey(ev), "learning-gate", full, { route: "learning-gate" }));
       }
     }
     if (askedAlready(ev, settled(path), "learning-gate")) done();
     askedByAnyone(ev, settled(path), "learning-gate");
     deny(
-      `Hold — \`${basename(path)}\` is a skill's own text: it develops the method, so it must not be ` +
-        `a note about this one repository.\n\n${BRIEF}\n\n` +
-        "Do this: change nothing unless the test holds. If it does, re-send and answer three things " +
+      "Hold — change nothing unless the test below holds. If it does, re-send and answer three things " +
         `in your reply — which category (${SKILL_CATEGORIES.join(" | ")}), whether a ` +
-        "check in the plugin could enforce it instead, and what it displaces." +
+        "check in the plugin could enforce it instead, and what it displaces.\n\n" +
+        `\`${basename(path)}\` is a skill's own text: it develops the method, so it must not be ` +
+        `a note about this one repository.\n\n${BRIEF}` +
         how(),
     );
   }

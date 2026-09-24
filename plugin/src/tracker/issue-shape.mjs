@@ -571,8 +571,8 @@ const fixRoutes = (tokens, { open, whole }) => [
 const rendered = (gaps) =>
   gaps.map((one) => `- read: ${one.read}\n  wants: ${one.wants}\n  clear: ${one.clear}`).join("\n");
 
-const SHAPE_HEAD = "Hold — this files an issue the flow cannot carry. Each line below is what was read, "
-  + "what the shape wants and the one command that clears it.";
+const SHAPE_HEAD = "Hold — run the command each line below names under `clear:`, then re-send.\n\n"
+  + "This files an issue the flow cannot carry. Each line is what was read and what the shape wants.";
 
 export const shapeRefusal = ({ gaps }) =>
   (gaps.length ? [SHAPE_HEAD, rendered(gaps)].join("\n\n") : null);
@@ -612,10 +612,11 @@ export const filingRefusal = async (filing, { gaps, fix, tokens }, { routed = fa
       : await searched(tokens[0]))
     : null;
   const head = owesRoute && !out.length
-    ? `Hold — this body names ${tokens[0]}, carries no rule or invariant and no out-of-scope, and reads as a `
+    ? "Hold — name one of the routes below, then re-send.\n\n"
+      + `This body names ${tokens[0]}, carries no rule or invariant and no out-of-scope, and reads as a `
       + "fix: filed as a feature the flow costs a confirmation, a decision, a plan, criteria, a baseline, a "
       + "review, a verdict per criterion, a verification, a release note and eight transitions, and the mark "
-      + "is what drops the decision, the plan and the note. Name a route:"
+      + "is what drops the decision, the plan and the note."
     : SHAPE_HEAD;
   return {
     text: [head, out.length ? rendered(out) : null, routes].filter(Boolean).join("\n\n"),

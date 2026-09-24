@@ -34,9 +34,9 @@ const scopeOf = (root) => {
 
 const hold = (rel, ref) =>
   deny(
-    `Hold — \`${rel}\` is outside ${ref}'s plan: neither the plan nor a correction on it names that `
-      + "path, and a change that grew says where before it grows.\n\n"
-      + `Do this: post the correction, then re-send.\n  ${correctionForm(ref, [rel])}`
+    `Hold — post the correction, then re-send.\n  ${correctionForm(ref, [rel])}\n\n`
+      + `\`${rel}\` is outside ${ref}'s plan: neither the plan nor a correction on it names that `
+      + "path, and a change that grew says where before it grows."
       + how(),
   );
 

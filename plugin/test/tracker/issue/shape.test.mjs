@@ -302,7 +302,7 @@ test("the verb refuses a fix with the two flags, the comment route and the open 
   assert.match(run.stderr, /takes it as a finding rather than a second issue; `--new` declines that/u);
   assert.match(run.stderr, /ISS-45/u, "the candidate is searched on the token the body names");
   assert.doesNotMatch(run.stderr, /ISS-70/u, "and a closed issue is no candidate");
-  assert.match(run.stderr, /Name a route:/u, "and what it says is the whole of what to do");
+  assert.match(run.stderr, /^Hold — name one of the routes below, then re-send\./mu, "and what it says, first, is the whole of what to do");
   assert.doesNotMatch(run.stderr, /whatever the size/u,
     "the light path left this module, and what this nudge justified itself by changed (ISS-141)");
   assert.match(run.stderr, /the mark is what drops the decision, the plan and the note/u);
@@ -510,7 +510,7 @@ test("a page with rows behind it and no open row among them says the reading did
   assert.doesNotMatch(run.stderr, /No open issue names/u,
     "four rows the route counted and would not serve is silence, not absence");
   assert.match(run.stderr, /forge issue --search forge issue/u,
-    "and the one command that finishes the reading, the sentence sitting under `Name a route:`");
+    "and the one command that finishes the reading, the sentence sitting among the routes");
 });
 
 test("a page the route served whole with no open row on it still says no open issue names it", async () => {

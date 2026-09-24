@@ -15,8 +15,9 @@ const ESCAPE = "For the session: `forge hooks --off codex-owed` — an inline `F
 const readIn = () => `Read from ${typed(configDir("forge"))}, so a consult recorded under another `
   + "XDG_CONFIG_HOME clears nothing here.";
 
-const MALFORMED = "`codex.owed` in this project's configuration is a list of the doors a consult is demanded at, out of "
-  + `${OWED_DOORS.join(", ")}. Drop the key and the commit alone asks.`;
+const malformed = (unknown) => `Name only doors out of ${OWED_DOORS.join(", ")} in \`codex.owed\`, or drop `
+  + `the key and the commit alone asks.\n\n${unknown} is no door this reads: that key in this project's `
+  + "configuration is a list of the doors a consult is demanded at.";
 
 /* One read of a tree's project file answers both halves: which commands that project calls its gate
    and its ship, and which doors it named. `commit` is codex-second's and matches no class here.
@@ -67,17 +68,17 @@ export const run = (ev) => {
   const { found, unreadable } = heldBy(shellText((ev.tool_input ?? {}).command), cwd);
   if (unreadable) {
     deny(
-      "Which tree this call would judge cannot be read from the command — a `cd -`, a bare `cd` or a "
+      `Spell the tree out — \`cd <path> && <the command>\` — then re-send. ${ESCAPE}\n\n`
+        + "Which tree this call would judge cannot be read from the command — a `cd -`, a bare `cd` or a "
         + "destination built from a value names no directory this reading can check, so whose record it "
-        + "owes cannot be asked for.\n\nDo this: spell the tree out — `cd <path> && <the command>` — "
-        + `then re-send. ${ESCAPE}`
+        + "owes cannot be asked for."
         + how(),
     );
   }
   let entries = null;
   const log = () => (entries ??= logBytes());
   for (const { root, unknown } of found) {
-    if (unknown) deny(`${unknown} is no door this reads. ${MALFORMED}${how()}`);
+    if (unknown) deny(`${malformed(unknown)}${how()}`);
     const cd = root === cwd ? "" : `cd ${typed(root)} && `;
     const waiting = pendingState(root);
     /* The working copy, which is what a consult reads and what this call would judge, where the
@@ -85,23 +86,23 @@ export const run = (ev) => {
     const owed = waiting.files.length ? pendingNow(root, waiting.files, log).owed : [];
     if (owed.length) {
       deny(
-        `Codex has not read what this call would judge in ${root} (${six(owed)}`
-          + `${owed.length > 6 ? ` and ${owed.length - 6} more` : ""}, recorded ${ageOf(waiting.at)}). `
-          + `Every door this project names asks for that same reading, so clearing it here clears them all.\n\n`
-          + `Do this: \`${cd}echo "<what you were doing>" | forge codex consult --diff --only `
+        `Run \`${cd}echo "<what you were doing>" | forge codex consult --diff --only `
           + `blocker,major ${six(owed)}\`, then re-send. ${readIn()} `
-          + `\`forge codex pending --drop\` discards them unread. ${ESCAPE}`
+          + `\`forge codex pending --drop\` discards them unread. ${ESCAPE}\n\n`
+          + `Codex has not read what this call would judge in ${root} (${six(owed)}`
+          + `${owed.length > 6 ? ` and ${owed.length - 6} more` : ""}, recorded ${ageOf(waiting.at)}). `
+          + "Every door this project names asks for that same reading, so clearing it here clears them all."
           + how(),
       );
     }
     const open = unverdicted(log(), root);
     if (open) {
       deny(
-        `Consult ${open.id} made ${open.ids.join(", ")} on ${open.files.join(", ")}; nothing says what `
+        `Run \`${verdictForm(open.id)}\`, then re-send. ${readIn()} `
+          + `A --recheck records the verdict for what it refutes. ${ESCAPE}\n\n`
+          + `Consult ${open.id} made ${open.ids.join(", ")} on ${open.files.join(", ")}; nothing says what `
           + `became of ${open.open.join(", ")}, and this call would judge it in ${root}. Ruling on them `
-          + `clears every door this project names.\n\n`
-          + `Do this: \`${verdictForm(open.id)}\`, then re-send. ${readIn()} `
-          + `A --recheck records the verdict for what it refutes. ${ESCAPE}`
+          + "clears every door this project names."
           + how(),
       );
     }

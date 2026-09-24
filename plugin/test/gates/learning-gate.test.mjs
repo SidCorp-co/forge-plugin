@@ -191,7 +191,7 @@ test("a heredoc through a variable-held memory path is refused", () => {
   assert.equal(allowed, false);
   assert.match(reason, /coolify-deploy-log-location\.md/);
   assert.match(reason, /Record only what cost a cycle/, "the rule, not only the tool");
-  assert.match(reason, /Do this: if all five hold, write it with Write/);
+  assert.match(reason, /^Hold — write it with Write .* if all five conditions below hold/u, "a new file is the one the bar is for");
 });
 
 test("the braced form resolves too", () => {
@@ -544,14 +544,14 @@ test("every memory write is stopped once, well-formed or not", () => {
   assert.match(first, /Record only what cost a cycle/);
   assert.match(first, /One file, one fact/, "the shape, so re-sending is not guesswork");
   assert.match(first, /one pointer line in MEMORY\.md/);
-  assert.match(first, /Do this: if a memory already states this, fix that file/);
+  assert.match(first, /^Hold — fix the memory that already states this, if one does/u);
   assert.equal(again, null, "the re-send passes, or the file could never be written");
 });
 
 test("a fact already written names the file that has it", () => {
   const { first } = write("killed-jobs-keep-running.md", KNOWN);
   assert.match(first, /Already in `background-work-survives-tool-timeout\.md`/);
-  assert.match(first, /fix that file if its rule is wrong/);
+  assert.match(first, /^Hold — fix `background-work-survives-tool-timeout\.md` if its rule is wrong/u);
   assert.doesNotMatch(first, /One file, one fact/, "the shape belongs where a file is being shaped");
 });
 
@@ -643,3 +643,4 @@ test("every refusal ends by naming where the argument is, and no path of this re
     assert.doesNotMatch(reason, ours, `names a path of this repository: ${reason}`);
   }
 });
+

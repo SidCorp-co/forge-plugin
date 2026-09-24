@@ -6,6 +6,7 @@ import { mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { answered, callHook, projectEntry, projectRecord, tempRoom } from "../../fixtures.mjs";
+import { assertRouteFirst } from "../../fixtures/route-first.mjs";
 import { digest } from "../../../src/codex/codex-api.mjs";
 import { typed } from "../../../src/hooks/shell-spans.mjs";
 
@@ -170,7 +171,8 @@ test("a value the key does not take is refused with the key named, and nothing i
   for (const owed of [["refuse"], "gate", [1]]) {
     const out = because(gate({ command: "npm run check", project: { ...GATED, codex: { owed } } }));
     assert.match(out, /is no door this reads/u, `\`${JSON.stringify(owed)}\` was taken for something`);
-    assert.match(out, /`codex\.owed` in this project's configuration is a list of the doors/u, "the key is named");
+    assert.match(out, /^Name only doors out of .* in `codex\.owed`, or drop the key/u, "the key is named, in the route");
+    assert.match(out, /is a list of the doors a consult is demanded at/u, "and what it holds, after the route");
     assert.match(out, /gate, commit, ship/u, "with what it takes");
   }
 });
@@ -231,4 +233,17 @@ test("a finding nobody ruled on survives the drop that clears the unread record"
   const after = because(again("npm run check"));
   assert.doesNotMatch(after, /has not read what this call would judge/u, "the hold the escape named is gone");
   assert.match(after, /Consult c7 made F1/u, "and the one it never named is still the gate's");
+});
+
+/* AC-07-3-4. Each of the four refusals, read for the order and not the words. */
+test("every refusal this gate writes leads with its route", () => {
+  const found = { kind: "consult", id: "c9", at: at(300_000), root: realpathSync(REPO), ok: true, files: ["a.mjs"],
+    reply: "- **F1 — New — major:** `a.mjs:1` — x." };
+  const reasons = {
+    unread: because(gate({ command: "npm run check" })),
+    unruled: because(gate({ command: "npm run check", pending: null, log: lines(found) })),
+    "no tree": because(gate({ command: "cd - && npm run check" })),
+    "no door": because(gate({ command: "npm run check", project: { ...GATED, codex: { owed: ["refuse"] } } })),
+  };
+  for (const [label, reason] of Object.entries(reasons)) assertRouteFirst(reason, label);
 });

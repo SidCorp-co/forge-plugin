@@ -46,10 +46,10 @@ export const run = (ev) => {
   if (!fresh.length) done();
 
   block(
-    `CLAUDE.md now claims ${fresh.length === 1 ? "something" : `${fresh.length} things`} this repository `
-      + `does not bear out:\n\n${fresh.map((one) => `- ${one}`).join("\n")}\n\n`
-      + "Do this: correct each claim, or delete it — the file it names is the authority, and a claim it "
-      + "has outlived is worse than silence."
+    "Correct each claim below, or delete it — the file it names is the authority, and a claim it "
+      + "has outlived is worse than silence.\n\n"
+      + `CLAUDE.md now claims ${fresh.length === 1 ? "something" : `${fresh.length} things`} this repository `
+      + `does not bear out:\n\n${fresh.map((one) => `- ${one}`).join("\n")}`
       + how(),
   );
 };
