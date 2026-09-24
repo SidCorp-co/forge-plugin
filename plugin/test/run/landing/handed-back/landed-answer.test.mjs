@@ -57,7 +57,7 @@ test("a landed answer ends the landing once the records judge its tip, and the c
   const unreviewed = await landed();
   assert.equal(unreviewed.status, 1, said(unreviewed));
   assert.ok(unreviewed.stderr.includes(`judged ${short(head)}`), `the head the review names:\n${said(unreviewed)}`);
-  assert.ok(unreviewed.stderr.includes(`--commit ${short(tip)} --outcome approved`), `and the review to record:\n${said(unreviewed)}`);
+  assert.ok(unreviewed.stderr.includes(`--commit ${short(tip)} --outcome <approved|changes-requested>`), `and the review to record:\n${said(unreviewed)}`);
   assert.ok(unreviewed.stderr.includes(`forge claim ${KEY} --landed`), `then this write again:\n${said(unreviewed)}`);
   assert.equal(landing().state, "head-owed", "and nothing was written");
 
