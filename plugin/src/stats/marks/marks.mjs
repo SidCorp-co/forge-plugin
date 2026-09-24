@@ -224,9 +224,8 @@ export const writeMark = (record, waits) => {
   }
 };
 
-/** `ahead` is how far the reading's own window reaches — `{ count, size, terms }` — since at the moment
- *  it is written the recent window is that window, and the line says what a comparison can answer yet
- *  rather than inviting one that is its own reading on both sides. */
+/** `ahead` is the written reading's own window as `{ count, size, terms }`, which `aheadSaid` turns into
+ *  what a comparison against it can answer yet. */
 export const wroteSaid = (outcome, mark, verb, { count, size, terms }) => ({
   [WRITTEN]: `The reading is held as mark ${mark}, and ${aheadSaid(`${verb} --against ${mark}`, count, size, terms)}.`,
   [HELD]: `Mark ${mark} was already held, so nothing was written.`,

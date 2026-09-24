@@ -24,6 +24,7 @@ import { logEntries } from "../../codex/codex-log.mjs";
 import { fail, useProject } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
 import { printWavesEval } from "../waves/eval.mjs";
+import { typedBack } from "../../refusal.mjs";
 
 export const WINDOW = 50;
 
@@ -583,10 +584,8 @@ const recentOf = (corpus, size, asked, nameOf, flagOf) => {
   };
 };
 
-/* A command a reader pastes, so a checkout a shell would split or expand travels single-quoted. */
-const typed = (value) => (/^[\w.:@/-]+$/u.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`);
 export const flagsAsked = (checkout, size) =>
-  (checkout === undefined ? "" : ` --checkout ${typed(checkout)}`) + (size === undefined ? "" : ` --size ${size}`);
+  (checkout === undefined ? "" : ` --checkout ${typedBack(checkout)}`) + (size === undefined ? "" : ` --size ${size}`);
 
 export const printEval = async (argv) => {
   if (argv.includes("--waves")) return printWavesEval(argv.filter((one) => one !== "--waves"));
