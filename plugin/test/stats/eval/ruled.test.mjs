@@ -71,7 +71,7 @@ test("a ruling call pairs with the entry its own run wrote, whatever other runs 
   assert.equal(twice.pairs.length, 0, "two calls of one run reaching its one entry leave it to neither");
 });
 
-/* The run corpus's figure and `forge codex log --score` read one helper, so the two cannot disagree
+/* The run corpus's figure and `forge codex stats --by model` read one helper, `ruledOn`, so the two cannot disagree
    about a verdict on a finding the consult never made (ISS-1680). */
 
 test("the eval pairs each run's ruling to the verdict its own run logged, and says why a call went unpaired", () => {
@@ -120,6 +120,8 @@ test("a ruling call whose text names no id takes the one its run's claims printe
     [null], "and a text that names ids without granting one is not the run's either");
   assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", "worktree"), verdict("unset FORGE_SESSION_ID; forge codex verdict --accepted F1")]),
     [null], "nor one that takes the environment back");
+  assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", "asked"), verdict("FORGE_SESSION_\\\nID=other forge codex verdict --accepted F1")]), [null],
+    "nor one whose assignment a continuation splits, which the shell joins before it runs");
   for (const back of ["env --unset=FORGE_SESSION_ID", "env --unset FORGE_SESSION_ID", "env --ignore-environment", "env -u FORGE_SESSION_ID"]) {
     assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", "asked"), verdict(`${back} forge codex verdict --accepted F1`)]), [null],
       `in either spelling of env's: \`${back}\``);

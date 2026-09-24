@@ -129,7 +129,7 @@ export const lastIdGranted = (commands) => {
 
 /** Whether the text assigns the name or takes the environment back at all, granting or not: a command that does either is not run under the id its run holds elsewhere. */
 export const movesTheId = (command) => {
-  const text = Array.isArray(command) ? command.join("\n") : String(command ?? "");
+  const text = (Array.isArray(command) ? command.join("\n") : String(command ?? "")).replace(CONTINUED, "");
   return ASSIGNS_THE_ID.test(text) || TAKEN_BACK.test(masked(text));
 };
 
