@@ -182,8 +182,8 @@ test("an anchored comparison takes the held reading's window as the before side"
    The rows the table left alone go on comparing (ISS-2086). */
 const DECLARED = "gate=npm run check\nship=\ntest=\ncleanup=";
 const ACT = "deploy";
-/* Every row `MOVED_AT` stamps is in this list, or a case asserting that set is crossed would pass
-   over the rows the fixture happens not to hold. */
+/* Every row `MOVED_AT` stamps at this generation is in this list, or a case asserting that set is
+   crossed would pass over the rows the fixture happens not to hold. */
 const GENERATIONS = (table, declares = DECLARED, release = ACT) => profile({
   table,
   declares,
@@ -193,6 +193,9 @@ const GENERATIONS = (table, declares = DECLARED, release = ACT) => profile({
     ...SHELL_EDITS.map((label, at) => [label, 30 + at, 600 + at])],
 });
 const crossedIn = (held) => held.rows.filter((one) => one.crossed).map((one) => one.label);
+/* The rows whose population moved after generation `held`: `MOVED_AT` stamps every row the table
+   names, the ones that stood throughout included. */
+const movedSince = (held) => [...MOVED_AT].filter(([, at]) => at > held).map(([label]) => label);
 
 test("two windows one table classed compare on every row, and name none as crossed", () => {
   const held = classesCompared(GENERATIONS(TABLE), GENERATIONS(TABLE));
@@ -204,8 +207,10 @@ test("two windows one table classed compare on every row, and name none as cross
 
 test("a stored reading taken at an earlier generation is crossed on the rows that moved and no others", () => {
   const held = classesCompared(GENERATIONS(TABLE), GENERATIONS(TABLE - 1));
-  assert.deepEqual(new Set(crossedIn(held)), new Set([...MOVED_AT.keys()]),
+  assert.deepEqual(new Set(crossedIn(held)), new Set(movedSince(TABLE - 1)),
     "every row whose population moved at this generation, which is what `MOVED_AT` names");
+  assert.ok(crossedIn(held).includes(READY_CLASS),
+    "the landing checkpoint's row was born at this generation, so its two sides count different populations");
   const gate = held.rows.find((one) => one.label === "gate");
   assert.equal(gate.crossed, false, "a row the generation left alone is comparable across it");
   assert.equal(gate.shift, 0, "and goes on printing its move");
@@ -217,10 +222,10 @@ test("a stored reading taken at an earlier generation is crossed on the rows tha
   const lines = latencyLines({ classes: held });
   const said = lines.find((line) => line.includes("not comparable"));
   assert.ok(said, lines.join("\n"));
-  for (const label of MOVED_AT.keys()) assert.ok(said.includes(label), `${label} is named: ${said}`);
+  for (const label of movedSince(TABLE - 1)) assert.ok(said.includes(label), `${label} is named: ${said}`);
   assert.ok(said.includes(`classed by class table generation ${TABLE - 1}, against generation ${TABLE}`), said);
-  assert.ok(said.includes("The other 2 row(s) stand"), said);
-  assert.ok(lines.some((line) => line.includes("over the 2 with a mean on both sides")),
+  assert.ok(said.includes("The other 1 row(s) stand"), said);
+  assert.ok(lines.some((line) => line.includes("over the 1 with a mean on both sides")),
     "and a crossed row is outside the denominator of what moved");
 });
 
@@ -292,7 +297,7 @@ test("two readings taken under different declarations are crossed on the rows a 
     `the prose the control printed is gone:\n${lines.join("\n")}`);
   assert.ok(lines.some((line) => line.includes("over the 3 with a mean on both sides")),
     "and the crossed row is outside the denominator of what moved");
-  for (const label of [...MOVED_AT.keys()].filter((one) => held.rows.some((row) => row.label === one))) {
+  for (const label of movedSince(TABLE - 1).filter((one) => held.rows.some((row) => row.label === one))) {
     assert.equal(held.rows.find((one) => one.label === label).crossed, false,
       `${label} is this code's own row and no declaration reaches it`);
   }
@@ -304,7 +309,7 @@ test("two readings taken under different declarations are crossed on the rows a 
 test("a reading that crossed both halves says both", () => {
   const held = classesCompared(GENERATIONS(TABLE),
     GENERATIONS(TABLE - 1, "gate=make check\nship=\ntest=\ncleanup="));
-  assert.deepEqual(new Set(crossedIn(held)), new Set([...MOVED_AT.keys(), "gate"]));
+  assert.deepEqual(new Set(crossedIn(held)), new Set([...movedSince(TABLE - 1), "gate"]));
   assert.deepEqual(held.crossedWhy, [
     `classed by class table generation ${TABLE - 1}, against generation ${TABLE}`,
     "counted by different words for the rows a project's own declaration arms",

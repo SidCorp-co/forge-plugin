@@ -28,6 +28,11 @@ const WHOLE_SET = /--send[= \t]+bodies\b/u;
 export const READY_CLASS = row("claim", "ready");
 const READY = /--ready\b/u;
 
+export const RECHECK_CLASS = row("codex", "recheck");
+
+/** The `forge` rows a flag mints rather than a verb's name, which `namedRows` has to reach. */
+export const FLAG_ROWS = [WHOLE_SET_CLASS, RECHECK_CLASS, READY_CLASS];
+
 /* Minting the name, apart from whichever pattern found it, so a lookup of a verb's help is filed in the row that verb's own work is filed in rather than in one spelled beside it. */
 const classFor = (verb, slug, shell) => {
   /* A form is a `forge` command, classed by the word typed: read as a verb it is none, so `forge close` fell to `shell` and the tool-seconds table filed it under nothing (ISS-704). */
@@ -35,7 +40,7 @@ const classFor = (verb, slug, shell) => {
   if (!VERB_NAMES.includes(verb)) return null;
   const sub = slug ? SUB_WORD.exec(slug)?.[0] : undefined;
   if (verb === "codex" && sub === "consult") {
-    if (shell.includes("--recheck")) return row("codex", "recheck");
+    if (shell.includes("--recheck")) return RECHECK_CLASS;
     return WHOLE_SET.test(shell) ? WHOLE_SET_CLASS : row("codex", "consult");
   }
   if (verb === "claim" && READY.test(shell)) return READY_CLASS;
@@ -137,6 +142,12 @@ export const classesFor = (declared = null, act = null) => [
 export const CLASSES = classesFor();
 
 const TOOL_CLASS = { Read: "read", Grep: "read", Glob: "read", Edit: "edit", Write: "write", NotebookEdit: "edit" };
+
+/** Every row the table names itself, each owed a generation in `MOVED_AT`; a verb's own row is the
+ *  verb list's and not among them. */
+export const namedRows = () => [...new Set([
+  ...classesFor(null, { deploy: true }).map(([label]) => label).filter((label) => label !== "forge"),
+  ...FLAG_ROWS, SHELL, ...Object.values(TOOL_CLASS)])];
 
 export const EDIT_ROUTES = ["edit", "write", "edit heredoc", "edit file", "edit sed"];
 

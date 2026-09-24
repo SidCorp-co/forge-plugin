@@ -4,8 +4,8 @@ import test from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { DEPLOY, EDIT_ROUTES, POLL, READY_CLASS, SHELL, SHELL_EDITS, WAIT, classOf, classesFor }
-  from "../../../src/stats/corpus/classes.mjs";
+import { DEPLOY, EDIT_ROUTES, FLAG_ROWS, POLL, READY_CLASS, RECHECK_CLASS, SHELL, SHELL_EDITS, WAIT,
+  WHOLE_SET_CLASS, classOf, classesFor, namedRows } from "../../../src/stats/corpus/classes.mjs";
 import { DECIDED_BY_RELEASE, MOVED_AT, TABLE } from "../../../src/stats/corpus/generations.mjs";
 import { WAITS_ON_PID, WAIT_COMMAND } from "../../../src/hooks/wait-idiom.mjs";
 import { declaredClasses, declaredIn, unarmedDoors } from "../../../src/stats/corpus/declared.mjs";
@@ -268,13 +268,36 @@ test("a ready checkpoint is the landing's own class", () => {
 });
 
 test("the rows this generation moved are the ones it names", () => {
-  for (const label of [DEPLOY, "read", POLL, WAIT, SHELL, "forge claim", ...SHELL_EDITS]) {
+  for (const label of [DEPLOY, "read", POLL, WAIT, SHELL, "forge claim", READY_CLASS, ...SHELL_EDITS]) {
     assert.equal(MOVED_AT.get(label), TABLE,
       `${label} holds a different population than it did at the generation before this one`);
   }
-  assert.equal(MOVED_AT.get("gate"), undefined, "while a row nothing moved names no generation");
-  assert.equal(MOVED_AT.get("git"), undefined,
+  assert.equal(MOVED_AT.get("gate"), 1, "while a row nothing moved names the first table");
+  assert.equal(MOVED_AT.get("git"), 1,
     "and a row this generation's own row sits below keeps every call it had");
+});
+
+/* The membership half, off the set the rows come from and never off `MOVED_AT` itself: a case that
+   walked the map's own keys, or a copy of its initialiser, agreed with a row left out of it, which
+   is how the landing checkpoint's row was compared across the generation it was born at (ISS-2137). */
+test("every row the table names carries the generation it was born or last moved at", () => {
+  const named = namedRows();
+  for (const label of ["gate", "ship", "test", "cleanup", "git", DEPLOY, WAIT, POLL, "read", SHELL,
+    "edit", "write", ...SHELL_EDITS, ...FLAG_ROWS]) {
+    assert.ok(named.includes(label), `${label} is a row the table names, so the set reaches it: ${named}`);
+  }
+  assert.ok(!named.includes("forge") && !named.includes("forge claim"),
+    "a verb's own row is the verb list's, and the matcher that mints it is no row");
+  for (const [shell, row] of [["forge claim ISS-9 --pushed --ready", READY_CLASS],
+    ["forge codex consult --recheck a.md", RECHECK_CLASS], ["forge codex consult --send bodies a.md", WHOLE_SET_CLASS]]) {
+    assert.equal(classOf("Bash", shell), row, `${shell} is classed into a row the flag list holds`);
+  }
+  for (const label of named) {
+    const at = MOVED_AT.get(label);
+    assert.ok(Number.isInteger(at) && at >= 1 && at <= TABLE,
+      `${label} is a row the table names and carries no generation, so a reading held before it was `
+      + "born would be compared on it: stamp it in MOVED_AT at the generation it was born at");
+  }
 });
 
 test("the discriminator and the generation each have one home the table reads", () => {
@@ -284,7 +307,7 @@ test("the discriminator and the generation each have one home the table reads", 
   for (const label of [WAIT, POLL, "read"]) {
     assert.equal(MOVED_AT.get(label), TABLE, `${label} holds a different population than it did before`);
   }
-  assert.equal(MOVED_AT.get("gate"), undefined, "while a row nothing moved names no generation");
+  assert.equal(MOVED_AT.get("gate"), 1, "while a row nothing moved names the first table");
 });
 
 /* A wait armed on the call that ends a workspace, which is the second phase marker a line can carry
