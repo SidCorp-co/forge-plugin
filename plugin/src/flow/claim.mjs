@@ -301,7 +301,7 @@ const takeTurn = async (documentId, ref, issue, context, { holder, source, minut
   return taken;
 };
 
-/* Said and never done: past the threshold the caller is shown the history and the park, and judges whether this status is where runs die, since it is the one process that knows it is alive and a count cannot tell a retried dispatch from a death (ISS-693). */
+/* Said and never done, for the reason the threshold carries in crash-park.mjs: past it the caller reads the history and the park command, and decides. */
 const reclaimLines = (ref, lease, status) => {
   const count = reclaimsOf(lease, status);
   const said = `Reclaim ${count} of ${status}: the lease before this one lapsed without being handed on.`;
