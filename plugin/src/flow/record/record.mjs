@@ -18,7 +18,7 @@ import { fieldChecked } from "./prose-route.mjs";
 import { FLAG_WORD, firstLine, noValue, pullRepeated, flags, wantsHelp } from "../../resolve/flags.mjs";
 import { commentPage, cutIn, cutLine, mustBeShown, postComment } from "../../tracker/comments.mjs";
 import {
-  TWICE, attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, strandedLine, uploadAll,
+  TWICE, attachPlan, attachmentNames, evidenceHeld, evidenceProblem, isCommit, shortSha, strandedLine, uploadAll,
 } from "../../tracker/evidence.mjs";
 import { personOwedForRelease, releaseLine, releasePolicy, releaseAnswer } from "../../tracker/project-config.mjs";
 import { briefGoals } from "../../tracker/knowledge/brief.mjs";
@@ -37,7 +37,7 @@ import { askedInSource } from "../../resolve/flags.mjs";
 import { FIELD as SESSION, finderSaid, renew, writtenBy } from "../lease.mjs";
 import { foldProblem } from "./wave.mjs";
 import { DECLINED, declinedProblem } from "../earned/findings.mjs";
-import { stampedNow, worklogLines, worklogOf, workNow } from "../worklog.mjs";
+import { stampedNow, uncommittedOver, worklogLines, worklogOf, workNow } from "../worklog.mjs";
 
 export const issueOf = async (reference) => {
   const documentId = await documentIdOf(reference);
@@ -109,6 +109,19 @@ const answerChecked = (kind, reference, body) => {
   refuse(`record answer: ${reference} is ${body.status}, and an answer is read only where a park waits `
     + "on a person — waiting or needs_info — so nothing would read this one. Nothing was sent. What "
     + `it does wait on:\n  forge advance ${reference} --owed`);
+};
+
+/* A verdict or a review names the head it judged, and a run judges the tree it has open: where that tree holds work its head lacks, the record says the head was judged when the tree was (ISS-381). Only the head is asked about, so an older commit cited on purpose and a checkout other than the one holding the commit are never refused here. */
+const judgedTreeChecked = (kind, got) => {
+  const field = SHAPES[kind].fields.find((one) => one.judged);
+  const commit = field ? got[field.flag] : undefined;
+  const loose = commit === undefined ? null : uncommittedOver(commit);
+  if (!loose) return;
+  const shown = loose.slice(0, 5).join(", ") + (loose.length > 5 ? `, and ${loose.length - 5} more` : "");
+  refuse(`record ${kind}: --${field.flag} ${shortSha(commit)} is the head of this checkout, and the `
+    + `checkout holds work that head does not carry: ${shown}. What was judged is then not what the `
+    + "record says was. Nothing was sent. Commit that work, and cite the head that carries it:\n"
+    + `  git add -A && git commit, then --${field.flag} $(git rev-parse HEAD)`);
 };
 
 /* A finder's kind is its own call: `--also` rides a rung that moves a status and every run flag
@@ -393,6 +406,7 @@ const shapedPrepared = async (argv, { kind, reference, issue, page, planned }) =
        fuller set, since it validates this call's own citations against what will exist once it lands. */
     if (asks) fromRecord(kind, got, { comments, names: held, cut }, say);
     checked(kind, got);
+    judgedTreeChecked(kind, got);
     citationChecked(kind, reference, got);
     const bad = got.evidence?.length ? evidenceProblem(got.evidence, names) : null;
     if (bad) refuse(bad);
