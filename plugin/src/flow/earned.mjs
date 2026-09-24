@@ -540,13 +540,6 @@ export const CHECKS = {
     /* Absent, the declarations read `no` in every reader downstream, so a fix defaults nothing here. */
     const asks = !lightPath(view, "approved", "plan");
     if (asks && !plan) out.push(need("the plan field is empty", `forge record plan ${ref} <plan.md>`));
-    else if (asks && (!flags.screen || !flags.schema)) {
-      out.push(need(
-        "the plan declares neither `Screen change: yes|no` nor `Schema coupling: yes|no`, and the "
-          + "two decide what the ship steps owe",
-        `forge record plan ${ref} <plan.md>, with both lines in it`,
-      ));
-    }
     out.push(...planShapeOwed(asks, plan, flags, view.criteria, ref));
     if (!view.criteria.length) {
       out.push(need(NO_CRITERIA, `forge record criteria ${ref} <criteria.md>`));

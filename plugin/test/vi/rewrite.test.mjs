@@ -234,6 +234,19 @@ test("the protector holds every declaration the reader accepts, once, wherever i
     "a plan quoting the mark keeps its quotation: the protector names its own away from the text");
 });
 
+/* A bold bullet label is exactly what the rewrite renames, so a reader that accepts one the protector
+   does not hold reads a plan the boundary has already emptied (ISS-312). */
+test("a bold declaration the reader accepts crosses the boundary byte for byte", () => {
+  const bold = "- **Screen change:** yes\n- **Schema coupling**: no\n- **User-facing outcome:** **no**";
+  const marks = {};
+  assert.equal(restoreMachine(protectMachine("plan", bold, marks), marks), bold);
+  assert.equal(marks.texts.length, 3, "each of the three is held");
+  assert.equal(throughVi(bold), bold, "and the rewrite hands every line back as it was written");
+  assert.deepEqual(planFlags(throughVi(bold)), { screen: "yes", schema: "no", deploy: null, look: "no" });
+  assert.deepEqual(planFlags(rewritten(bold)), { screen: null, schema: null, deploy: null, look: null },
+    "unprotected, the rewrite renames every label");
+});
+
 /* A section name is prose, and prose is what the boundary renames. Unheld, `approved` would refuse
    every plan on a project with a prose language — so the heading and the step's criterion cross by
    the mechanism the declarations cross by, and are read off the stored field on the other side. */
