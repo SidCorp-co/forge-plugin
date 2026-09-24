@@ -121,6 +121,12 @@ test("the fold's reply names the issue and why it won, and claims no nearness it
   assert.match(said, /No issue was filed and no lease was taken/u);
   assert.match(said, /the block above is everything it was measured against/u);
   assert.doesNotMatch(said, /marked|Size:/u, "the size it is marked at decides nothing here any more");
+  assert.doesNotMatch(said, /There it is finding/u, "and with no comment answered, it names no handle");
+  const named = foldedInto(suggestion("ISS-2", 0.83, true), { documentId: "6bd04311-be5c-4f45-81fb-32e3c05c1886" });
+  assert.match(named, /There it is finding 6bd04311, which that issue's run carries in a criterion or declines\.$/u,
+    "the filer is told the handle the run on that issue answers the finding by (ISS-167)");
+  assert.doesNotMatch(foldedInto(suggestion("ISS-2", 0.83, true), { documentId: "comment-uuid" }), /There it is/u,
+    "and an id no handle heads names none rather than a wrong one");
 });
 
 /* The two seeds, read off the body the shape reader already scanned. */

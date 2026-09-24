@@ -13,6 +13,7 @@ import { eachProblem } from "./record/content.mjs";
 import { FORMS } from "../spec/parse.mjs";
 import { lightens } from "../ladder.mjs";
 import { citedOwed, wholeOwed } from "./earned/baseline.mjs";
+import { findingsOwed } from "./earned/findings.mjs";
 import { rungReport } from "../ladder-report.mjs";
 import { attachmentNames, evidenceHeld, isCommit, sameCommit } from "../tracker/evidence.mjs";
 import { ordersEdge } from "../tracker/edges/kinds.mjs";
@@ -511,6 +512,10 @@ const releaseOwed = (view, ref) => {
   )] : [];
 };
 
+/* Every folded finding answered, at the rung the criteria are written and at each from the one they
+   are judged at to the close: a finding can land on an issue at any of them (ISS-167). */
+const foldedOwed = (view, ref, judged = false) => findingsOwed(view, ref, { whole: (kind, record) => !shapeGaps(kind, record, view.names).length, judged });
+
 /* One entry check per status, each answering with what the record lacks and the write that supplies
    it. Nothing here reads the repository: what git knows was written on at the step that knew it. */
 export const CHECKS = {
@@ -555,7 +560,7 @@ export const CHECKS = {
         `forge record criteria ${ref} <criteria.md>, with a criterion opening \`<id>~<rev>:\``,
       ));
     }
-    return out;
+    return [...out, ...foldedOwed(view, ref)];
   },
   in_progress: (view, ref) => {
     const baseline = payloadOwed(
@@ -575,9 +580,9 @@ export const CHECKS = {
     }
     return [...out, ...scopeOwed(view, ref), ...reviewOwed(view, ref)];
   },
-  testing: judgedOwed,
-  awaiting_release: deployedOwed,
-  closed: releaseOwed,
+  testing: (view, ref) => [...judgedOwed(view, ref), ...foldedOwed(view, ref)],
+  awaiting_release: (view, ref) => [...deployedOwed(view, ref), ...foldedOwed(view, ref, true)],
+  closed: (view, ref) => [...releaseOwed(view, ref), ...foldedOwed(view, ref, true)],
   dropped: () => [],
 };
 /* The whole record in one object, so every check reads fields rather than fetching. `cited` is the one argument passed unevaluated: resolving an issue's clauses walks the checkout, which only the `approved` check has a reason to do, and a caller handing over the answer would make every other transition pay for it and fail where the checkout is unreadable. */

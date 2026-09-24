@@ -24,7 +24,7 @@ export const fileAndSay = async (asked, { withKeys = [], intro = null, lost = re
     if (filed.answer?.refused) lost(`a comment on ${filed.joined.issueId}`, filed.answer.refused);
     keepOnFailure(null);
     echo(filed.answer);
-    console.log(foldedInto(filed.joined));
+    console.log(foldedInto(filed.joined, filed.answer));
     const { documentId, issueId } = filed.joined;
     return sayLanded(await commentLanded(documentId, filed.answer, issueId));
   }

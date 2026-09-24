@@ -1,6 +1,7 @@
 /* What is already filed beside a filing, open or settled, asked of the tracker's own memory search from inside the create path. Every decision below is docs/cli/beside.md's for the reading — the two queries, both floors, the term each is asked on — and docs/cli/the-fold.md's for the act. */
 import { mustBeShown, postComment } from "../comments.mjs";
 import { owesCause } from "../issue-shape.mjs";
+import { foldedBody, handleIn } from "../../flow/earned/findings.mjs";
 import { tried } from "../rest.mjs";
 import { firstLine } from "../../resolve/flags.mjs";
 import { settledLines, withReasons } from "./settled.mjs";
@@ -146,12 +147,19 @@ export const suggestionLines = ({ suggestions, notes, place, dropped = [], close
   return out;
 };
 
+/* The handle is what a run working that issue answers the finding by, so the filer is told it too. */
+const namedAs = (answer) => {
+  const handle = handleIn(answer);
+  return handle ? ` There it is finding ${handle}, which that issue's run carries in a criterion or declines.` : "";
+};
+
 /** The fold's reply: no filing happened, so a reader after its key is told where the body went. */
-export const foldedInto = (joined) =>
+export const foldedInto = (joined, answer = null) =>
   `${joined.issueId} is open, names the same place and is the nearest of the neighbours that do, at`
   + ` ${joined.score.toFixed(2)}; this filing says where its subject comes from, so it lands there as a finding`
   + " under its own title rather than as a second issue. No issue was filed and no lease was taken;"
-  + " `--new` files it separately, and the block above is everything it was measured against.";
+  + " `--new` files it separately, and the block above is everything it was measured against."
+  + namedAs(answer);
 
 /** The fold, decided and done here so a rule whose act nothing takes back is not enforced twice. `onBeside` is called between the decision and the act, and on every outcome: the read this owes its destination ends in a refusal that exits, so a block printed after it is one a held fold never prints. */
 export const foldFiling = async (beside,
@@ -162,6 +170,6 @@ export const foldFiling = async (beside,
   onBeside?.(beside, { nearest, foldable, routed, fresh: Boolean(fresh) });
   if (!foldable || fresh || !nearest) return { joined: null, answer: null };
   await mustBeShown([{ ref: nearest.issueId, documentId: nearest.documentId }]);
-  const answer = await postComment(nearest.documentId, `## ${title}\n\n${body}`, null, soft);
+  const answer = await postComment(nearest.documentId, foldedBody(title, body), null, soft);
   return { joined: nearest, answer };
 };

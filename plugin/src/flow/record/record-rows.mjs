@@ -12,9 +12,10 @@ import { OPEN_KEPT } from "../worklog.mjs";
 import { usageOf } from "../../resolve/visibility.mjs";
 import { proseHelp } from "./prose-route.mjs";
 
-/* The shapes, then the four the verb prepares by another route: three of them write a field of the
-   issue and the fourth hangs the tracker's own mark. */
-export const KINDS = [...Object.keys(SHAPES), "merged", "note", "criteria", "plan"];
+/* The shapes a verb writes, then the four the verb prepares by another route: three of them write a
+   field of the issue and the fourth hangs the tracker's own mark. A `verbless` shape is read back
+   and written by no verb, so it is no kind this verb takes. */
+export const KINDS = [...Object.keys(SHAPES).filter((kind) => !SHAPES[kind].verbless), "merged", "note", "criteria", "plan"];
 
 const withCap = (value, cap) => (typeof cap === "number" ? `${value}(${cap})` : value);
 
@@ -42,6 +43,7 @@ const kindRows = (caps) => [
   "  verdict      --criterion N --verdict " + VERDICTS.join("|") + " --commit C --evidence E... [--why W] [--filed R]",
   "  review       --reviewer R --commit C --outcome approved|changes-requested [--finding F]...",
   "  routed       --what W --to T [--evidence E]... | --none <why>   a finding this run sent elsewhere",
+  "  declined     --finding H --why W                              a folded finding this run will not fix here",
   "  gap          --where W --lacked L --did D | --none <why>       where the method did not answer",
   "  verification --where W --commit C --evidence E... [--contains C]",
   "  wave         --member K... --role R --session S [--tree T]     one dispatch, on the wave's headline",
@@ -67,15 +69,16 @@ const KIND_PHRASE = {
   answer: "a person's answer to a park, and who gave it",
   park: "the issue set down, with the kind saying who it waits on",
   correction: "what moved in the plan or the criteria after approval, and why",
-  baseline: "the gate, what it reports, the commit it ran at, and where a cited result came from",
+  baseline: "the gate, what it reports, the commit it ran at, and a citation's source",
   verdict: "one criterion judged, at a commit, citing its own evidence",
   review: "who read which head, each finding answered, and the outcome",
   routed: "a finding this run sent to the issue that owns it",
+  declined: "a folded finding not fixed here, and why",
   gap: "where the method did not answer, and what the run did instead",
   verification: "the change read where it now runs, with the evidence",
   finding: "what was expected, what was seen, and the evidence or the quote",
-  triage: "a reopen judged: which of the three it was, and what would have caught it",
-  merged: "the tracker's own mark, its note built from the five clauses the next statuses read",
+  triage: "a reopen judged: which of three, and what would have caught it",
+  merged: "the tracker's own mark, its note built from five clauses",
   note: "the release note, in the words of whoever filed the issue",
   wave: "one dispatch of a wave, on its headline issue",
   fold: "the end of that wave, once its fold is posted",
@@ -90,7 +93,7 @@ const KIND_PHRASE = {
    A kind absent from here would be a kind `forge record -h` no longer lists, so the row order is
    checked against `KINDS` as a set rather than trusted by eye. */
 export const DISPLAY_ORDER = ["routed", "verdict", "correction", "review", "verification", "gap",
-  "note", "finding", "triage", "confirmation", "merged", "park", "answer", "baseline", "decision",
+  "note", "declined", "finding", "triage", "confirmation", "merged", "park", "answer", "baseline", "decision",
   "question", "wave", "fold", "plan", "criteria"];
 
 const phraseRows = () =>
@@ -98,7 +101,7 @@ const phraseRows = () =>
 
 /* Read off the flag the assembly reads, so a kind flagged later says so here without being typed
    in a second list: the contract and `forge resume -h` both point at this line for the answer. */
-const REPEATS = Object.keys(SHAPES).filter((kind) => SHAPES[kind].repeats);
+const REPEATS = KINDS.filter((kind) => SHAPES[kind]?.repeats);
 
 /* The sections a typed plan owes, each as the question it answers, so a plan is written against the list rather than against the refusal. The heading is the section's whole name and nothing else on its line; a plan carrying none of them writes as the free text it is and `approved` says so. Every section a declaration stands behind says so on a line of its own, read off the table, so one added there is not a sentence here to hand-edit. */
 const declaringIt = (one) => sectionOwedBy(one.name, Object.fromEntries(one.owed.map((key) => [key, "yes"]))).join(" or ");
@@ -251,7 +254,7 @@ export const usage = () => [
   "",
   ...SHARED_FLAGS,
   "",
-  "Every write ends on stderr with what `forge advance --owed` would then print for the issue.",
+  "Every write ends on stderr with what `forge advance --owed` would then print.",
 ].join("\n");
 
 /* The rows with no cap on them, for the readers asking which flags exist rather than what a field
