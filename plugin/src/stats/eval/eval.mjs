@@ -16,6 +16,7 @@ import {
   releaseSaid, scopeOf, sinceReleaseIn, writeMark, wroteSaid,
 } from "../marks/marks.mjs";
 import { reachOf, reachSaid } from "../marks/reach.mjs";
+import { overlapOf, overlapSaid } from "../marks/overlap.mjs";
 import { BUDGET, HORIZON, UNAVAILABLE, budgetOf, outcomesOf, parkedOver, readThreads, ruledOver } from "./outcomes.mjs";
 import { classesCompared, latencyLines } from "./latency.mjs";
 import { NOT_MEASURED, angleList, anglesAsked, anglesOver, anglesSaid } from "./angles.mjs";
@@ -57,13 +58,16 @@ export const EVAL_USAGE = [
   "",
   "One anchor per reading: each of the two flags below names the point the before window is taken",
   "from, which is also the point the header names and the point the confounding lines count from, so",
-  "the two together are refused with both anchors named.",
+  "the two together are refused with both anchors named. A reading sharing more than half of the",
+  "recent window is refused with what it shares and what is still to end; one sharing less says how",
+  "much it shares on the line that names it.",
   "",
   "  --checkout <dir>   as for runs",
   "  --size n           runs per window; fifty unless you say otherwise",
-  "  --against [<mark>] the reading held at that mark as the before window, or the newest held",
-  "  --since-release [<version>]  the reading held at that release, or the newest, and what the",
-  "                     comparison since it is confounded by",
+  "  --against [<mark>] the reading held at that mark as the before window, or alone the newest",
+  "                     held that shares none of the recent window",
+  "  --since-release [<version>]  the reading held at that release, or alone the newest sharing",
+  "                     none of the recent window, and what the comparison since it is confounded by",
   "  --angles a,a       which angles to judge and in what order, each over the population it names",
   "                     and against how far two adjacent blocks of this corpus have themselves",
   "                     differed; every one of them unless you say otherwise. There is:",
@@ -198,6 +202,15 @@ const readBack = (record) => {
   };
 };
 
+/* A run is the row here, and it arrives by ending. */
+const RUN_TERMS = { unit: "run(s)", noun: "run", arrived: "ended" };
+
+/* The recent runs a stored reading's window held: both windows are the latest runs by end, so over one
+   corpus they are the recent runs that had ended by the time that window closed — and never more than
+   it held, since a `--size` wider than the stored window reaches runs from before it. */
+const sharedRuns = (recent, reading) =>
+  Math.min(recent.filter((run) => run.endedAt <= reading.now.profile.to).length, reading.now.runs);
+
 /** Why a first reading is no comparison: nothing was measured ahead of its window. */
 export const NO_WINDOW_BEFORE = "there is no window before it";
 
@@ -222,6 +235,7 @@ export const evalRuns = (runs, copies, size = WINDOW, against = null, read = nul
     size,
     total: runs.length,
     against,
+    overlap: against ? overlapOf(sharedRuns(now, against), now.length, size) : undefined,
     now: nowHeld,
     before: beforeHeld,
     comparability: comparabilityOf({ size, now: nowHeld, before: beforeHeld, reach }),
@@ -371,13 +385,12 @@ const windowLines = (held, anchor) => {
   const full = held.now.runs < held.size ? `  — ${held.size} is a full window and the corpus holds no more` : "";
   const first = `the last ${held.now.runs} issue-flow run(s)  ${span(held.now)}${full}`;
   if (!held.before) return [first, `no window before them: the corpus holds ${held.total} run(s) in all.`];
-  const overlapping = held.now.profile.from <= held.before.profile.to;
   const release = releaseIn(anchor);
   if (release) {
     return [first, `the ${held.before.runs} held at release ${release.version}  ${span(held.before)}`
-      + (overlapping ? "  — overlapping the recent window, which begins before this one ends" : "")];
+      + overlapSaid(held.overlap, RUN_TERMS)];
   }
-  if (anchor) return [first, heldAtMark(held.before.runs, held.against, span(held.before), overlapping)];
+  if (anchor) return [first, heldAtMark(held.before.runs, held.against, span(held.before), held.overlap, RUN_TERMS)];
   const short = held.size - held.before.runs;
   return [
     first,
@@ -523,7 +536,8 @@ export const runsMark = async (directory, size = WINDOW, held = null) => {
   const said = `stats: ${crossed} issue-flow runs in this project's corpus — \`forge stats eval\`.`;
   const wrote = writeMark({ kind: RUNS, mark: crossed, at: new Date().toISOString(),
     ...readingOf(directory, corpus, size) });
-  return `${said} ${wroteSaid(wrote, crossed, "forge stats eval")}`;
+  const ahead = { count: Math.min(size, corpus.runs.length), size, terms: RUN_TERMS };
+  return `${said} ${wroteSaid(wrote, crossed, "forge stats eval", ahead)}`;
 };
 
 /** The mark a release writes, whatever the corpus count: the version, the head and the issue keys it
@@ -540,8 +554,22 @@ export const releaseMark = async (directory, { version, head, issues = [] }, siz
     issues: [...issues].map((one) => String(one).toUpperCase()),
     at: new Date().toISOString(), ...readingOf(directory, corpus, size),
   });
-  return `stats: this release is held as ${version} over ${corpus.runs.length} run(s) `
-    + `(\`forge stats eval --since-release ${version}\`). ${releaseSaid(wrote, version)}`;
+  const ahead = { count: Math.min(size, corpus.runs.length), size, terms: RUN_TERMS };
+  return `stats: this release is held as ${version} over ${corpus.runs.length} run(s). ${releaseSaid(wrote, version, ahead)}`;
+};
+
+/* What the anchor resolvers need of the recent window, and how this verb names a reading and asks for it. */
+const recentOf = (corpus, size, nameOf, flagOf) => {
+  const { now } = twoWindows(byEnd(corpus.runs), size);
+  return {
+    sharedWith: (reading) => sharedRuns(now, reading),
+    rows: now.length,
+    size,
+    terms: RUN_TERMS,
+    nameOf,
+    askOf: (one) => `forge stats eval ${flagOf(one)}`,
+    slide: "forge stats eval",
+  };
 };
 
 export const printEval = async (argv) => {
@@ -559,9 +587,11 @@ export const printEval = async (argv) => {
   /* The reading asked for is resolved before the corpus is judged: a mark nobody wrote is refused by
      name whatever the corpus holds, rather than answered with the empty corpus's sentence. */
   const stored = against === undefined ? null
-    : resolveAgainst(RUNS, against, { scope: corpus.scope, verb: "stats eval", list: "forge stats marks", writes: WRITES });
+    : resolveAgainst(RUNS, against, { scope: corpus.scope, verb: "stats eval", list: "forge stats marks", writes: WRITES,
+      recent: recentOf(corpus, window, (one) => `mark ${one.mark}`, (one) => `--against ${one.mark}`) });
   const since = release === undefined ? null
-    : resolveRelease(corpus.scope, release, { verb: "stats eval", list: "forge stats marks", writes: RELEASE_WRITES });
+    : resolveRelease(corpus.scope, release, { verb: "stats eval", list: "forge stats marks", writes: RELEASE_WRITES,
+      recent: recentOf(corpus, window, (one) => `release ${one.version}`, (one) => `--since-release ${one.version}`) });
   if (!corpus.runs.length) {
     return console.log(`No issue-flow run under ${corpus.root}, so there is nothing to compare. `
       + `${readingAside(corpus)}.${derivedFrom(directory)}`);

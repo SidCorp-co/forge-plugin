@@ -128,7 +128,7 @@ test("the consult that takes the log onto a hundred-mark names the eval; the one
     /* Criteria 4 and 5: the consult end writes the reading once, of the log as it stood at the
        crossing, so a consult that landed just behind it is not in mark 200's window (codex F2). */
     logConsult(PLANTED(200));
-    assert.match(crossingSaid(crossing), /^codex: 200 answered consults in the log — `forge codex eval`\. The reading is held as mark 200 \(`forge codex eval --against 200`\)\.$/u);
+    assert.match(crossingSaid(crossing), /^codex: 200 answered consults in the log — `forge codex eval`\. The reading is held as mark 200, and no consult has been answered after it yet: `forge codex eval --against 200` can be read once 50 more have been answered, and shares none of the recent window once 100 have\.$/u);
     const [record] = marksOf("consults");
     assert.deepEqual(Object.keys(record), ["kind", "mark", "at", "device", "size", "total", "now", "shifts"],
       "the object `codex eval --json` prints, under the mark's own three fields and the device it was taken on, "

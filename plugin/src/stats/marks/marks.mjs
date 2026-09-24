@@ -11,6 +11,7 @@ import { UNKNOWN_DEVICE } from "../../resolve/machine/device.mjs";
 import { underLock } from "../../resolve/machine/file-lock.mjs";
 import { checkoutAt } from "../../git/checkout-at.mjs";
 import { fail, projectAt } from "../../resolve/settings.mjs";
+import { aheadSaid, anchoredAt, overlapSaid } from "./overlap.mjs";
 
 export const RUNS = "runs";
 export const CONSULTS = "consults";
@@ -223,15 +224,18 @@ export const writeMark = (record, waits) => {
   }
 };
 
-export const wroteSaid = (outcome, mark, verb) => ({
-  [WRITTEN]: `The reading is held as mark ${mark} (\`${verb} --against ${mark}\`).`,
+/** `ahead` is how far the reading's own window reaches — `{ count, size, terms }` — since at the moment
+ *  it is written the recent window is that window, and the line says what a comparison can answer yet
+ *  rather than inviting one that is its own reading on both sides. */
+export const wroteSaid = (outcome, mark, verb, { count, size, terms }) => ({
+  [WRITTEN]: `The reading is held as mark ${mark}, and ${aheadSaid(`${verb} --against ${mark}`, count, size, terms)}.`,
   [HELD]: `Mark ${mark} was already held, so nothing was written.`,
   [FAILED]: `The reading could not be written, so mark ${mark} is not held.`,
 }[outcome]);
 
-/** The same three outcomes said in a release's own identity, a count being none of it. */
-export const releaseSaid = (outcome, version) => ({
-  [WRITTEN]: "The reading is held at that version.",
+/** The same three outcomes said in a release's own identity, a count being none of it; `ahead` as above. */
+export const releaseSaid = (outcome, version, { count, size, terms }) => ({
+  [WRITTEN]: `The reading is held at that version, and ${aheadSaid(`forge stats eval --since-release ${version}`, count, size, terms)}.`,
   [HELD]: `Version ${version} was already held, so nothing was written.`,
   [FAILED]: `The reading could not be written, so ${version} holds none.`,
 }[outcome]);
@@ -256,39 +260,36 @@ export const sinceReleaseIn = (argv) => {
   return { release: next, rest: argv.filter((one, n) => n !== at && n !== at + 1) };
 };
 
-/** The release reading a version names, or the newest held for this project. */
-export const resolveRelease = (scope, asked, { verb, list, writes }) => {
+/** The release reading a version names, or the newest held for this project that shares none of the
+ *  recent window; one sharing most of it is refused (`overlap.mjs`, which `recent` is handed to). */
+export const resolveRelease = (scope, asked, { verb, list, writes, recent }) => {
   const held = marksOf(RELEASES, scope);
   if (!held.length) {
     fail(`${verb}: --since-release names no reading — none is held for this project yet; ${writes}. \`${list}\` lists what is held.`);
   }
-  if (asked === null) return held.at(-1);
-  const found = held.findLast((one) => one.version === asked);
-  if (found) return found;
-  fail(`${verb}: no release reading for version ${asked} on this project. \`${list}\` lists what is held.`);
-  return null;
+  const found = asked === null ? null : held.findLast((one) => one.version === asked);
+  if (asked !== null && !found) fail(`${verb}: no release reading for version ${asked} on this project. \`${list}\` lists what is held.`);
+  return anchoredAt(held, found, { ...recent, flag: "--since-release" }, verb);
 };
 
-/** The reading `--against` names, or the newest of the scope; refused by name, with the list subject. */
-export const resolveAgainst = (kind, asked, { scope = null, verb, list, writes }) => {
+/** The reading `--against` names, or the newest of the scope sharing none of the recent window;
+ *  refused by name, with the list subject, or by how much of that window it shares. */
+export const resolveAgainst = (kind, asked, { scope = null, verb, list, writes, recent }) => {
   const held = marksOf(kind, scope);
   const whose = kind === RUNS ? "for this project" : "on this device";
-  if (asked === null) {
-    if (held.length) return held.at(-1);
+  if (!held.length && asked === null) {
     fail(`${verb}: --against names no reading — none is held ${whose} yet; ${writes}. \`${list}\` lists what is held.`);
   }
-  const found = held.findLast((one) => one.mark === asked);
-  if (found) return found;
-  fail(`${verb}: no ${kind} reading at mark ${asked} ${whose}. \`${list}\` lists what is held.`);
-  return null;
+  const found = asked === null ? null : held.findLast((one) => one.mark === asked);
+  if (asked !== null && !found) fail(`${verb}: no ${kind} reading at mark ${asked} ${whose}. \`${list}\` lists what is held.`);
+  return anchoredAt(held, found, { ...recent, flag: "--against" }, verb);
 };
 
 const WHEN = 16;
 export const stamped = (iso) => iso.slice(0, 16).replace("T", " ");
-/** The `--against` line both evals print, and the one sentence saying the two windows meet. The count is each eval's own unit and the span its own reading; the wording and the two spaces are neither, and a case pinning them could otherwise drift in one harness alone. */
-export const heldAtMark = (count, mark, span, overlapping) =>
-  `the ${count} held at mark ${mark}  ${span}`
-  + (overlapping ? "  — overlapping the recent window, which begins before this one ends" : "");
+/** The `--against` line both evals print, ending on what it shares of the recent window. The count is each eval's own unit, the span its own reading and the overlap its own rows; the wording and the two spaces are neither, and a case pinning them could otherwise drift in one harness alone. */
+export const heldAtMark = (count, mark, span, overlap, terms) =>
+  `the ${count} held at mark ${mark}  ${span}${overlapSaid(overlap, terms)}`;
 
 /** One line per reading, newest first; `describe` says the recent window's size and bounds in its kind's units. */
 export const markLines = (records, describe) =>

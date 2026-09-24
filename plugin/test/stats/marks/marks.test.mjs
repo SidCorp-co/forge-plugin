@@ -28,7 +28,9 @@ test("the ship's mark is one line at a multiple of the window, read off the corp
     const room = rootOf(50);
     const root = join(room, `claude-${process.getuid()}`, slugFor(PROJECT));
     assert.equal(await runsMark(PROJECT),
-      "stats: 50 issue-flow runs in this project's corpus — `forge stats eval`. The reading is held as mark 50 (`forge stats eval --against 50`).");
+      "stats: 50 issue-flow runs in this project's corpus — `forge stats eval`. The reading is held as mark 50, and no run "
+      + "has ended after it yet: `forge stats eval --against 50` can be read once 25 more have ended, and shares none of "
+      + "the recent window once 50 have.");
     const [record] = marksOf("runs", scopeOf(PROJECT));
     assert.equal(record.kind, "runs");
     assert.equal(record.mark, 50);
@@ -99,7 +101,8 @@ test("a stored reading is the before window, and the screen says where the windo
     const pinned = askStats(room, ["eval", "--checkout", PROJECT, "--against", "50"], home);
     assert.equal(pinned.status, 0, pinned.stderr);
     assert.match(pinned.stdout, /^the last 50 issue-flow run\(s\)/u);
-    assert.match(pinned.stdout, /^the 50 held at mark 50 {2}.* — overlapping the recent window, which begins before this one ends$/mu);
+    assert.match(pinned.stdout, /^the 50 held at mark 50 {2}.* — shares 25 of the recent 50 run\(s\), and none once 25 more have ended$/mu,
+      "exactly half shared is a reading, and says how much it shares");
     assert.match(pinned.stdout, /moved most, in median minutes before → now/u, "the rest of the screen is the sliding one's");
 
     const json = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--against", "50", "--json"], home).stdout);
@@ -107,10 +110,12 @@ test("a stored reading is the before window, and the screen says where the windo
     assert.deepEqual(json.before, record.now, "the stored recent window, byte for byte, as the before");
     assert.equal(json.before.outcomes, undefined, "which is why the before side of a pinned comparison has no outcome figure");
     assert.equal(json.now.runs, 50);
-    assert.deepEqual(Object.keys(json).slice(9, 13), ["requests", "size", "total", "against"]);
+    assert.deepEqual(Object.keys(json).slice(9, 14), ["requests", "size", "total", "against", "overlap"]);
+    assert.deepEqual(json.overlap, { shared: 25, recent: 50, untilReadable: 0, untilDisjoint: 25 });
 
-    const newest = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--against", "--json"], home).stdout);
-    assert.equal(newest.against, 50, "criterion 8: bare --against is the newest held");
+    const newest = askStats(room, ["eval", "--checkout", PROJECT, "--against", "--json"], home);
+    assert.equal(newest.status, 1, "bare --against takes only a reading sharing none of the recent window (ISS-1890)");
+    assert.match(newest.stderr, /mark 50, the newest, shares 25 of the recent 50 run\(s\), and none once 25 more have ended\. `forge stats eval --against 50` reads it with that overlap stated\./u);
     const sliding = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--json"], home).stdout);
     assert.equal(sliding.against, undefined, "and without it nothing is pinned");
     assert.equal(sliding.before.runs, 25);
@@ -213,7 +218,7 @@ test("a release mark carries its version and head, resolves apart from a count m
     process.env.TMPDIR = room;
 
     assert.match(await releaseMark(PROJECT, { version: "3.35.300", head: "abc1234" }),
-      /^stats: this release is held as 3\.35\.300 over 50 run\(s\) \(`forge stats eval --since-release 3\.35\.300`\)\./u);
+      /^stats: this release is held as 3\.35\.300 over 50 run\(s\)\. The reading is held at that version, and no run has ended after it yet: `forge stats eval --since-release 3\.35\.300` can be read once 25 more have ended, and shares none of the recent window once 50 have\.$/u);
     const [held] = marksOf("releases", scopeOf(PROJECT));
     assert.equal(held.kind, "releases");
     assert.equal(held.version, "3.35.300");
@@ -227,8 +232,7 @@ test("a release mark carries its version and head, resolves apart from a count m
     assert.equal(marksOf("releases", scopeOf(PROJECT)).length, 1, "one count, two kinds, no collision");
 
     assert.equal(await releaseMark(PROJECT, { version: "3.35.300", head: "abc1234" }),
-      "stats: this release is held as 3.35.300 over 50 run(s) (`forge stats eval --since-release 3.35.300`). "
-      + "Version 3.35.300 was already held, so nothing was written.");
+      "stats: this release is held as 3.35.300 over 50 run(s). Version 3.35.300 was already held, so nothing was written.");
     assert.equal(await releaseMark(PROJECT, { version: null, head: "abc1234" }), null, "no version is no mark");
     assert.equal(await releaseMark("/fixture/nowhere", { version: "3.35.301", head: "d" }), null, "and no corpus is none either");
 
@@ -248,8 +252,8 @@ test("a release mark carries its version and head, resolves apart from a count m
     assert.match(since.stdout, /a dispatching session may still have held a role, a skill stub or a hook registration/u);
 
     const newest = askStats(room, ["eval", "--checkout", PROJECT, "--since-release"], home);
-    assert.equal(newest.status, 0, newest.stderr);
-    assert.match(newest.stdout, /held at release 3\.35\.300/u, "bare --since-release is the newest held");
+    assert.equal(newest.status, 1, "bare --since-release takes only a release sharing none of the recent window");
+    assert.match(newest.stderr, /release 3\.35\.300, the newest, shares 25 of the recent 50 run\(s\)/u);
 
     const missing = askStats(room, ["eval", "--checkout", PROJECT, "--since-release", "9.9.9"], home);
     assert.equal(missing.status, 1);
@@ -264,8 +268,10 @@ test("a release mark carries its version and head, resolves apart from a count m
     assert.match(await releaseMark(PROJECT, { version: "3.35.401", head: "bbb2222" }), /held as 3\.35\.401 over 75 run\(s\)/u);
     assert.equal(marksOf("releases", scopeOf(PROJECT)).filter((one) => one.mark === 75).length, 2, "both are held at one count");
     assert.equal(await releaseMark(PROJECT, { version: "3.35.400", head: "aaa1111" }),
-      "stats: this release is held as 3.35.400 over 75 run(s) (`forge stats eval --since-release 3.35.400`). "
-      + "Version 3.35.400 was already held, so nothing was written.", "and rewriting either writes nothing twice");
+      "stats: this release is held as 3.35.400 over 75 run(s). Version 3.35.400 was already held, so nothing was written.",
+      "and rewriting either writes nothing twice");
+    /* Half a window on, so both are readings rather than the refusal a reading of its own window is. */
+    corpusOf(100, room);
     for (const version of ["3.35.400", "3.35.401"]) {
       const read = askStats(room, ["eval", "--checkout", PROJECT, "--since-release", version], home);
       assert.equal(read.status, 0, read.stderr);

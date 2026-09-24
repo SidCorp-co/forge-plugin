@@ -7,11 +7,13 @@ export const twoWindows = (sorted, size) => {
 };
 
 /** The envelope both harness evals answer in, so a key added to one reaches the other. Any key
- *  beyond these rides between `before` and `shifts`, where `stats eval`'s `moved` has always sat. */
-export const comparedWindows = ({ size, total, against, now, before, separates, ...rest }) => ({
+ *  beyond these rides between `before` and `shifts`, where `stats eval`'s `moved` has always sat.
+ *  `overlap` is what of the recent window a stored reading shares, and rides beside the mark it
+ *  belongs to (`marks/overlap.mjs`). */
+export const comparedWindows = ({ size, total, against, overlap, now, before, separates, ...rest }) => ({
   size,
   total,
-  ...(against ? { against: against.mark } : {}),
+  ...(against ? { against: against.mark, overlap } : {}),
   now,
   before,
   ...rest,
