@@ -316,8 +316,59 @@ test("a ruling entry two calls could claim is attributed to neither, and the pai
     call("forge codex verdict", { at: 1, endedAt: 2, shell: "forge codex verdict --of ab12 --accepted F1" }),
     call("forge codex verdict", { at: 3, endedAt: 4, shell: "forge codex verdict --accepted F1" }),
     call("gate", { at: 5, endedAt: 6, shell: "forge codex verdict --of zz" }),
-  ]), [{ at: 1, endedAt: 2, of: "ab12" }, { at: 3, endedAt: 4, of: null }],
+  ]), [{ at: 1, endedAt: 2, of: "ab12", run: null }, { at: 3, endedAt: 4, of: null, run: null }],
   "the consult a ruling names, where it names one, and only off a ruling call");
+});
+
+test("a ruling call pairs with the entry its own run wrote, whatever other runs wrote inside its span", () => {
+  const entry = (when, over = {}) => ({ at: when, of: null, accepted: 1, rejected: 0, ...over });
+  const span = (when, over = {}) => ({ at: when, endedAt: when + 100, of: null, run: null, ...over });
+  const mine = entry(1050, { run: "iss-1-aaaaaaaa", runFrom: "asked" });
+  const theirs = entry(1060, { run: "iss-2-bbbbbbbb", runFrom: "worktree" });
+
+  const read = rulingsIn([
+    call("forge codex verdict", { at: 1, endedAt: 2, command: "FORGE_SESSION_ID=iss-1-aaaaaaaa forge codex verdict --accepted F1" }),
+    call("forge codex verdict", { at: 3, endedAt: 4, command: "export FORGE_SESSION_ID=iss-1-aaaaaaaa && forge codex verdict --accepted F1" }),
+    call("forge codex verdict", { at: 5, endedAt: 6, command: "FORGE_SESSION_ID=a forge claim ISS-1; FORGE_SESSION_ID=b forge codex verdict --accepted F1" }),
+    call("forge codex verdict", { at: 7, endedAt: 8, command: "forge codex verdict --accepted F1" }),
+  ]);
+  assert.deepEqual(read.map((one) => one.run), ["iss-1-aaaaaaaa", "iss-1-aaaaaaaa", null, null],
+    "the id a prefix or an export grants the call, and none where the text names two or none");
+
+  const wave = pairedOneToOne([span(1000, { run: "iss-1-aaaaaaaa" }), span(1010, { run: "iss-2-bbbbbbbb" })], [mine, theirs], 5000);
+  assert.equal(wave.pairs.length, 2, "two runs' overlapping calls each take their own run's entry");
+  assert.equal(wave.pairs.find((one) => one.entry === mine).span.run, "iss-1-aaaaaaaa");
+  assert.equal(wave.pairs.find((one) => one.entry === theirs).span.run, "iss-2-bbbbbbbb");
+
+  const others = pairedOneToOne([span(1000, { run: "iss-1-aaaaaaaa" })], [theirs], 5000);
+  assert.equal(others.pairs.length, 0, "a sole entry another run wrote is not this call's, however the clock reads");
+  assert.equal(others.unpaired.length, 1);
+
+  for (const runFrom of ["inherited", "saved", "none", undefined]) {
+    const wave2 = [entry(1050, { run: "iss-1-aaaaaaaa", runFrom }), entry(1060, { run: "iss-2-bbbbbbbb", runFrom })];
+    const held = pairedOneToOne([span(1000, { run: "iss-1-aaaaaaaa" })], wave2, 5000);
+    assert.equal(held.pairs.length, 0, `an id read from \`${runFrom}\` is no run's, so the two entries still contest the call`);
+  }
+  const inherited = entry(1050, { run: "wave", runFrom: "inherited" });
+  const lone = pairedOneToOne([span(1000, { run: "iss-1-aaaaaaaa" })], [inherited], 5000);
+  assert.equal(lone.pairs.length, 1, "and a sole entry carrying one pairs by the clock as an unnamed entry does");
+
+  const old = entry(1050);
+  const bare = pairedOneToOne([span(1000)], [old], 5000);
+  assert.equal(bare.pairs.length, 1, "a call and an entry without identity pair by the clock as before");
+  const bareContest = pairedOneToOne([span(1000), span(1100)], [old], 5000);
+  assert.equal(bareContest.pairs.length, 0, "and contest as before");
+  const named = pairedOneToOne([span(1000, { of: "abc", run: "iss-1-aaaaaaaa" })], [entry(9_000_000, { of: "abc" })], 5000);
+  assert.equal(named.pairs.length, 1, "an --of still pairs an entry that carries no identity");
+  const unnamedEntry = pairedOneToOne([span(1000, { run: "iss-1-aaaaaaaa" })], [old], 5000);
+  assert.equal(unnamedEntry.pairs.length, 1, "and a call with a run pairs an entry without one by the clock");
+
+  const both = pairedOneToOne([span(1000, { run: "iss-1-aaaaaaaa" }), span(1020)], [mine], 5000);
+  assert.equal(both.pairs.length, 1, "the call granting the run's id takes that run's entry over a call with none");
+  assert.equal(both.pairs[0].span.run, "iss-1-aaaaaaaa");
+  assert.equal(both.unpaired[0].run, null, "and the call with none is the one left, still saying it carried no id");
+  const twice = pairedOneToOne([span(1000, { run: "iss-1-aaaaaaaa" }), span(1020, { run: "iss-1-aaaaaaaa" })], [mine], 5000);
+  assert.equal(twice.pairs.length, 0, "two calls of one run reaching its one entry leave it to neither");
 });
 
 /* The run corpus's figure and `forge codex log --score` read one helper, so the two cannot disagree
