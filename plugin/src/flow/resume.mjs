@@ -13,12 +13,13 @@ import { rungFieldsOf, viewFrom } from "./earned.mjs";
 import { kindsHeld } from "./record/page.mjs";
 import { indexLines, laneLines, opensWork, openingLines, phaseIndex, workLines } from "../guides/phases.mjs";
 import { shortfall } from "./advance.mjs";
-import { owedBlock, policyFor } from "./route.mjs";
+import { landsAgain, owedBlock, policyFor } from "./route.mjs";
 import { worklogLines, workNow } from "./worklog.mjs";
 import { briefOf } from "./brief.mjs";
 import { SHARED_HOLDER } from "./lease/dispatched.mjs";
 import { workingSaid } from "./lease/working.mjs";
-import { landingLine, landingTurn } from "./landing/checkpoint.mjs";
+import { LANDING_DONE, landingLine, landingTurn } from "./landing/checkpoint.mjs";
+import { sameCommit, shortSha } from "../tracker/evidence.mjs";
 import { atMinute, heldSaid } from "./machine.mjs";
 import { waveLines, waveLive, waveOf } from "./record/wave.mjs";
 
@@ -57,6 +58,22 @@ const block = (heading, lines) => {
   for (const line of lines) console.log(`  ${line}`);
 };
 
+/* Two heads on one issue are a landing and a capture it has not taken, which the brief says rather
+   than leaving a reader to pick the one that is running (ISS-2073). */
+const headsSaid = (brief) => {
+  const ref = brief.ref;
+  const landed = brief.landing?.head;
+  const work = brief.worklog?.head;
+  if (!landed || !work || sameCommit(landed, work)) return [];
+  const which = `  heads: the checkpoint answers for the landing it names at \`${brief.landing.state}\`, `
+    + `at ${shortSha(landed)}, and the worklog for a later capture, at ${shortSha(work)}, which `;
+  if (brief.landing.state !== LANDING_DONE) return [`${which}that landing has not taken`];
+  if (!landsAgain(brief.status)) {
+    return [`${which}no landing takes while ${ref} stands at \`${brief.status}\` and the first one has ended`];
+  }
+  return [`${which}the second landing begins with:`, `    forge claim ${ref} --pushed --ready`];
+};
+
 const leased = (brief) => {
   const one = brief.lease;
   if (!one) return [];
@@ -67,7 +84,8 @@ const leased = (brief) => {
     ...(one.holderWorking ? workingSaid(one.holderWorking, one).split("\n") : []),
     /* Through the readers the refusals use, so this and `--take` cannot say different things. */
     ...(brief.landing
-      ? [landingLine(brief.landing), `  whose turn: ${landingTurn(brief.landing) ?? "nobody's — the state names none"}`]
+      ? [landingLine(brief.landing), `  whose turn: ${landingTurn(brief.landing) ?? "nobody's — the state names none"}`,
+        ...headsSaid(brief)]
       : []),
   ];
 };

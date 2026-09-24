@@ -23,6 +23,7 @@ import {
   announcedAt,
   atLeast,
   atThisReopen,
+  buildsAt,
   blockersOwed,
   holdsBack,
   nextOf,
@@ -74,6 +75,11 @@ const resumeOwed = (view, held, ref) => {
 export const REOPEN = "reopen";
 const FALLS_TO = { "wrong-test": "developed", "not-met": "in_progress" };
 
+/** Whether the issue is being built again: at the reopen itself, or at a status of the flow below the
+ *  one a build hands over at. A side status says nothing of a rebuild, so it answers no. This is what
+ *  lets a second landing begin over the `done` a first one left (ISS-2073). */
+export const landsAgain = (status) => status === REOPEN || (ORDER.includes(status) && buildsAt(status));
+
 /* Where a reopen goes back to, read from the record: a merged mark means code landed, so this is the reopen of a close and the contract sends it to the rung merged work waits on. No mark means nothing landed, so it is the reopen of a drop and it goes back to the status the dropped park recorded. Null where the record says neither, which is the one answer both readers of this part. No status of the issue's own is read, so which rung a judging run holds when it blocks is not a fact this has to be told. */
 const landedFrom = (view) => {
   if (view.issue.mergedAt) return CLOSES_FROM;
@@ -86,7 +92,7 @@ const NOTHING_LANDED = "has no merged mark, so nothing landed, and no park recor
   + "on the page names the status a drop left, so nothing says where a reopen goes back to.";
 const behindTheCut = (view) => (view.cut ? `${view.cut} The record that would say may be behind the cut. ` : "");
 
-const reopenForm = (ref) => `forge advance ${ref} --reopen --why "<what the finding is>"`;
+export const reopenForm = (ref) => `forge advance ${ref} --reopen --why "<what the finding is>"`;
 
 /** Why one may not be written, before the status moves: what cannot be routed out of is never entered. */
 export const reopenProblem = (view, ref) => {

@@ -12,6 +12,7 @@ import { carriedByLanding } from "../worklog.mjs";
 import { landingSaved } from "../lease.mjs";
 import { LANDING_DONE, LANDING_HEAD_OWED, LANDING_READY, RECAPTURE, landingLine, landingOf } from "./checkpoint.mjs";
 import { recaptureRefusal } from "./written.mjs";
+import { landsAgain } from "../route.mjs";
 
 /* The same overlay switches the ancestry reading is made under, so the tip it asks about and the
    ancestry it proves are read off one history (8faf61 F1). */
@@ -73,6 +74,15 @@ const LANDED_SAID = (ref, head) => ({
    `head-owed` the records are read too, being what the capture out of it would have asked. */
 export const finishLanded = async (documentId, ref, issue, context) => {
   const landing = landingOf(context);
+  /* The landing that ended is not the one a rebuilt issue lands, and the second one has no
+     checkpoint to end until its own capture writes it (ISS-2073). */
+  if (landing?.state === LANDING_DONE && landsAgain(issue.status)) {
+    fail(`claim --landed ends a landing the default branch already carries, and the landing `
+      + `checkpoint on ${ref} reads \`${LANDING_DONE}\`: that landing has ended, and ${ref} stands at `
+      + `\`${issue.status}\`, being built again. The second landing begins with its own capture, `
+      + `which this write then ends once the branch it lands on carries that head:\n`
+      + `  forge claim ${ref} --pushed --ready\n  forge claim ${ref} --landed`);
+  }
   if (landing?.state !== LANDING_READY && landing?.state !== LANDING_HEAD_OWED) {
     fail(`claim --landed ends a landing the default branch already carries, and the landing `
       + `checkpoint on ${ref} reads \`${landing?.state ?? "nothing at all"}\`: it is ended from `

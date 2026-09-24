@@ -351,8 +351,8 @@ test("where the builder judges, every criterion's latest verdict has to pass the
 /* A refusal naming only the resume sent the builder to read what the refusal already knew, so each
    state a capture cannot write over names its own way out (ISS-2406). */
 const CAPTURE = { head: NEW, base: HANDED, touched: "plugin/src/flow/claim.mjs", branch: "iss-673-6", at: AT };
-const readyAt = (state, over = {}) =>
-  refusing(() => readyCheckpoint("ISS-673", "the-builder", CAPTURE, landingOf(at(state, over))))
+const readyAt = (state, over = {}, status = "in_progress") =>
+  refusing(() => readyCheckpoint("ISS-673", "the-builder", CAPTURE, landingOf(at(state, over)), status))
     .then(() => null, (error) => error.message);
 
 test("a capture refused at a turn state names the command that ends that turn", async () => {
@@ -365,9 +365,45 @@ test("a capture refused at a turn state names the command that ends that turn", 
   const lander = await readyAt("promoting");
   assert.match(lander, /a landing in flight whose next move is the lander's/u, lander);
   assert.match(lander, /forge resume ISS-673$/u, lander);
-  assert.match(await readyAt("done"), /reads `done`, which is past the build/u, "the finished landing keeps its reading");
   for (const state of ["ready", "head-owed", "records-owed"]) {
     assert.equal(await readyAt(state), null, `${state} is a state the capture writes over`);
+  }
+});
+
+/* A reopen starts a second landing of the same issue, and the first one's `done` is what it met:
+   the status licenses the capture over a finished landing, and nothing licenses one over a live
+   landing (ISS-2073). */
+const REBUILT = ["reopen", "open", "confirmed", "approved", "in_progress"];
+const PAST = ["developed", "testing", "awaiting_release", "closed", "on_hold", "waiting"];
+
+test("a finished landing gives way to a capture once the issue is built again, and a live one never does", async () => {
+  for (const status of [...REBUILT, ...PAST]) {
+    for (const state of Object.keys(LANDING_STATES).filter((one) => !["ready", "head-owed", "records-owed", "done"].includes(one))) {
+      assert.ok(await readyAt(state, {}, status), `${state} is a landing in flight at ${status}, and the capture is refused`);
+    }
+  }
+  const first = { candidate: "c0ffee10000000000000000000000000000beef", intended: "1a2b3c40000000000000000000000000000fade",
+    release: "3.36.1", deployment: "the-first-deployment" };
+  for (const status of REBUILT) {
+    const wrote = readyCheckpoint("ISS-673", "the-builder", CAPTURE, landingOf(at("done", first)), status);
+    assert.equal(wrote.state, LANDING_READY, `at ${status} the capture writes ready over done`);
+    assert.equal(wrote.head, NEW, "at the head it captured");
+    for (const name of ["candidate", "intended", "release", "deployment", "reconciled"]) {
+      assert.equal(wrote[name], undefined, `and nothing of the first landing's ${name} is carried into the second`);
+    }
+  }
+});
+
+test("a finished landing refuses the capture past the build, naming the reopen, and at a head it merged, naming a commit on top", async () => {
+  for (const status of PAST) {
+    const past = await readyAt("done", {}, status);
+    assert.match(past, new RegExp(`reads \`done\`, a landing that has ended, and ISS-673 stands at \`${status}\`, which is no rebuild`, "u"), past);
+    assert.match(past, /\n {2}forge advance ISS-673 --reopen --why "<what the finding is>"\n {2}forge claim ISS-673 --pushed --ready$/u, past);
+  }
+  for (const name of ["head", "intended", "reconciled", "candidate"]) {
+    const merged = await readyAt("done", { [name]: NEW }, "reopen");
+    assert.match(merged, /captures 5a1b2c3 for a second landing, which is a commit the first one already carries/u, `${name}: ${merged}`);
+    assert.match(merged, /Commit the fix on top of it, push it, then ask again:\n {2}forge claim ISS-673 --pushed --ready$/u, merged);
   }
 });
 
