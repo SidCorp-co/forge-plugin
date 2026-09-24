@@ -237,6 +237,17 @@ test("the pairs that clear the floor are named, figure by figure", () => {
   assert.doesNotMatch(printed, /thin-one/u);
 });
 
+/* A flag is read before the window is, so an empty window is no reason to take an unreadable one. */
+for (const [flag, refusal] of [["--horizon", /stats models: --horizon takes a window/u],
+  ["--requests", /stats models: --requests takes an integer/u]]) {
+  test(`an unreadable ${flag} is refused over a window that holds no run`, () => {
+    const run = asked(tempRoom("stats-models-empty-"), flag, "zzz");
+    assert.notEqual(run.status, 0, run.stdout);
+    assert.match(run.stderr, refusal);
+    assert.doesNotMatch(run.stdout, /No issue-flow run/u);
+  });
+}
+
 test("an empty window answers a reader asking for JSON in JSON", () => {
   const run = asked(corpus(), "--json", "--since", "1d");
   assert.equal(run.status, 0, run.stderr);
