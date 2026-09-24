@@ -19,11 +19,10 @@ reading to ask for instead; one sharing less says on its head line how many rows
 figures read as a partial move, not a clean one. A reading has one anchor, so `--against` and
 `--since-release` together are refused rather than combined: each is its own reading.
 
-Read since a release, the comparison also prints what it is confounded by: the releases that landed
-after it inside the window, the runs that saw one land while they ran, and a session that may still
-have held an older copy — and its recent side is the last runs by end time, not the runs begun since,
-which `forge stats change <version>` reads. That block qualifies every figure the reading prints: a
-difference read across more than one release is not the named release's alone to be credited with.
+Read since a release, the comparison also prints what it is confounded by, and that block qualifies
+every figure the reading prints: a difference it says more than one release stands behind is not the
+named release's alone to be credited with. What the flag takes is `forge stats eval -h`'s to say,
+and each line of the block says what it counts.
 
 Note what each says about its own completeness: a window short of full, a copy no longer in the
 cache, a run that saw a release land. Those qualify every figure below them.
