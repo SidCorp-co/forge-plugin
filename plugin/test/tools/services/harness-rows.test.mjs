@@ -45,7 +45,7 @@ test("every harness row is a row of the report's own vocabulary, with no second 
   const rows = await harnessLines(false);
   assert.deepEqual(rows.map((row) => row.label), ["cloudflare", "coolify", "codex", "chatgpt",
     "codex url", "codex key", "vi-natural url", "vi-natural key", "vi-natural model",
-    "chatgpt url", "chatgpt key", "chatgpt framing"]);
+    "chatgpt url", "chatgpt key", "chatgpt framing", "anthropic key", "anthropic endpoint"]);
   for (const row of rows) {
     assert.ok(["ok", "note", "miss"].includes(row.level), `${row.label} answered the level ${row.level}`);
     assert.equal(row.ok, undefined, `${row.label} still carries a boolean beside its level`);

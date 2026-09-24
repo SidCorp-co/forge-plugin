@@ -109,7 +109,7 @@ test("a member whose kept history no longer reaches the wave's start is a lower 
 });
 
 test("the verb is listed and its help names every flag it reads", async () => {
-  assert.match(USAGE, /\|waves>/u);
+  assert.match(USAGE, /\|waves[|>]/u);
   const { tracker, forge } = await standing(PROFILED, {}, {}, null, ["forge_issues", "forge_comments"]);
   try {
     const help = await forge("stats", "waves", "-h");

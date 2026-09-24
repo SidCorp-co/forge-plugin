@@ -52,6 +52,18 @@ export const STORES = [
         without: "which `forge chatgpt image` is refused without" },
     ],
   },
+  /* The provider that bills a Claude token, and the only thing `forge stats surface` takes a token
+     count from; no gateway file stands behind it, a gateway's own count being another provider's. */
+  {
+    store: "anthropic",
+    label: "anthropic",
+    behind: null,
+    keys: [
+      { key: "key", flag: "anthropic-key", asks: "key", secret: true },
+      { key: "url", flag: "anthropic-url", asks: "endpoint", gates: false, said: "endpoint",
+        without: "which reads Anthropic's own origin where it is unset" },
+    ],
+  },
 ];
 
 const storeOf = (name) => STORES.find((one) => one.store === name) ?? null;

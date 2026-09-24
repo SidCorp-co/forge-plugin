@@ -36,6 +36,7 @@ test("one call carrying every flag of the table reaches every writer, and each w
     "--vi-url", "https://vi.example", "--vi-key", "vi-key", "--vi-model", "vi/model",
     "--chatgpt-url", "https://gpt.example/mcp", "--chatgpt-key", "gpt-key",
     "--chatgpt-prefix", "Flat vector, no text.",
+    "--anthropic-key", "count-key", "--anthropic-url", "https://count.example",
   ], { withheld: ["comment"] });
   const saved = run.saved();
   assert.equal(saved.token, "fresh-token");
@@ -47,9 +48,11 @@ test("one call carrying every flag of the table reaches every writer, and each w
   assert.deepEqual(saved.vi, { url: "https://vi.example", key: "vi-key", model: "vi/model" });
   assert.deepEqual(saved.chatgpt,
     { url: "https://gpt.example/mcp", key: "gpt-key", prefix: "Flat vector, no text." });
+  assert.deepEqual(saved.anthropic, { key: "count-key", url: "https://count.example" });
   assert.deepEqual(MACHINE_FLAGS,
     ["job", "hide", "show", "coolify-route", "token", "url", "codex-url", "codex-key",
-      "vi-url", "vi-key", "vi-model", "chatgpt-url", "chatgpt-key", "chatgpt-prefix"],
+      "vi-url", "vi-key", "vi-model", "chatgpt-url", "chatgpt-key", "chatgpt-prefix",
+      "anthropic-key", "anthropic-url"],
     "and the flags that reached them are the flags the two-stores check filters, off the same table");
 });
 

@@ -602,3 +602,27 @@ person instead of asking again is `docs/cli/chatgpt.md`'s.
 - **AC-19-9-9** · Rev: 1 · Proof: plugin/test/tools/services/chatgpt/chatgpt-detach.test.mjs "a detached picture is spawned under the action that asked for it, and collects as one"
   WHERE a turn is sent from a process that outlives the invocation the CLI SHALL invoke that process
   under the action the caller asked for.
+
+### EI-11 — The token-count endpoint
+
+Rev: 1 · Enforces: BR-13, BR-14 · Reached from: `plugin/src/stats/surface/count.mjs`
+
+The provider that bills a Claude token is the only thing that can count one, so the texts this
+product serves an agent are sent to that provider's count endpoint, one text a request, under the
+model the caller names and a key this machine's own configuration holds. Nothing is estimated in its place:
+where the model, the key or a single answer is missing, the figure it would have been is reported
+as not measured, with what would measure it, and never as a number. What the reading walks and what
+a priced read means is `docs/cli/stats-the-surface.md`'s.
+
+- **AC-19-11-1** · Rev: 1 · Proof: plugin/test/stats/surface.test.mjs "a counted row is the endpoint's input_tokens for that text under the named model, and the total is their sum"
+  WHEN a text is counted THEN the CLI SHALL report the tokens the endpoint answered for that text
+  under the named model, and SHALL name that model and the origin it asked.
+- **AC-19-11-2** · Rev: 1 · Proof: plugin/test/stats/surface.test.mjs "without the key every token figure is not measured, the key's flag is named, and nothing is sent"
+  IF the model or the key is missing THEN the CLI SHALL send nothing to the endpoint, and SHALL
+  report every token figure as not measured naming what is missing.
+- **AC-19-11-3** · Rev: 1 · Proof: plugin/test/stats/surface.test.mjs "a text whose count failed prints no number, and the total is not measured with how many failed and why"
+  IF the count of any text fails THEN the CLI SHALL print no number for that text or for the total,
+  and SHALL say how many failed and why the first did.
+- **AC-19-11-4** · Rev: 1 · Proof: plugin/test/stats/surface.test.mjs "a block copied into a second text raises the repetition, and a text added raises the total"
+  WHEN a block of lines is copied into a second text, or a text is added, THEN the repetition or
+  the total SHALL rise with it.

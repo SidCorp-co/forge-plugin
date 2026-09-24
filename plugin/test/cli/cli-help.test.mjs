@@ -24,6 +24,7 @@ import { BODY_FIELDS } from "../../src/flow/override.mjs";
 import { configPath, userConfig } from "../../src/resolve/config.mjs";
 import { projectRecord, tempRoom } from "../fixtures.mjs";
 import { OWN } from "../fixtures/own-project.mjs";
+import { surfaceNodes } from "../../src/stats/surface/nodes.mjs";
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const ROOT = new URL("../../../", import.meta.url).pathname;
@@ -151,7 +152,7 @@ const SUBJECT_HELP = [
   ["knowledge", KNOWLEDGE, KNOWLEDGE_SAYS, ["list", "get", "write", "search", "delete"]],
   ["cloudflare", CLOUDFLARE, CLOUDFLARE_SAYS,
     ["zones", "zone", "dns", "purge", "search", "login", "accounts"]],
-  ["stats", STATS, STATS_SAYS, ["runs", "models", "eval", "change", "marks", "diagnose", "waves"]],
+  ["stats", STATS, STATS_SAYS, ["runs", "models", "eval", "change", "marks", "diagnose", "waves", "surface"]],
   ["codex", CODEX, CODEX_SAYS,
     ["consult", "verdict", "pending", "show", "log", "stats", "eval", "marks", "replay", "complexity"]],
   ["spec", SPEC, { check: CHECK_USAGE }, ["check"]],
@@ -328,6 +329,15 @@ test("every verb's help and every action's is under the cap, at the widest state
   }
   assert.deepEqual(over, []);
   assert.ok(widest > 0, "and the reasons differ in length, or this case measures one of them twice");
+});
+
+/* The cap above holds one text at a time and `forge stats surface` holds their sum, so a name this
+   table walks and that reading does not is a text whose growth the sum never sees: the reading keeps
+   its own list of which verbs have subjects, and this table is the one that has to agree with it. */
+test("every name this table asks for help is a text the surface reading walks", async () => {
+  const walked = new Set((await surfaceNodes()).map((one) => one.name));
+  const missing = EVERY_HELP.map((argv) => `forge ${argv.join(" ")} -h`).filter((name) => !walked.has(name));
+  assert.deepEqual(missing, []);
 });
 
 /* The set is read off the text the name's own `-h` prints, for a verb as for an action: the text is

@@ -55,7 +55,7 @@ const SURFACE = {
   hooks: ["hook", "last", "off", "on", "how"],
   feedback: ["title", "kind", "with"],
   doctor: ["token", "url", "codex-url", "codex-key", "vi-url", "vi-key", "vi-model",
-    "chatgpt-url", "chatgpt-key", "chatgpt-prefix", "coolify-route", "hide", "show", "job", "ship",
+    "chatgpt-url", "chatgpt-key", "chatgpt-prefix", "anthropic-key", "anthropic-url", "coolify-route", "hide", "show", "job", "ship",
     "set", "flow",
     "refresh", "confirm", "line", "was", "title", "confidence", "meta"],
   stats: [],
