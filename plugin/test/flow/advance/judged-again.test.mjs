@@ -62,10 +62,10 @@ test("a reopen judges again, so a verdict from before its triage earns nothing",
   ], "one item names the set");
   assert.deepEqual(judgedOwed(stale, "ISS-3").map((one) => one.command), [
     "forge record verdict ISS-3 --commit <sha> --evidence <attachment|url|sha>"
-    + " --criterion 1 --verdict pass --criterion 2 --verdict pass --criterion 3 --verdict pass",
+    + " --verdict <pass|fail|skipped|short> --criterion 1 --criterion 2 --criterion 3",
   ], "and one write answers it, its shared flags before the first --criterion");
   assert.deepEqual(judgedOwed(view(shipped, [marked, early, wrong]), "ISS-3").map((one) => one.command), [
-    "forge record verdict ISS-3 --criterion 1 --verdict pass --commit <sha> --evidence <attachment|url|sha>",
+    "forge record verdict ISS-3 --criterion 1 --verdict <pass|fail|skipped|short> --commit <sha> --evidence <attachment|url|sha>",
   ], "while one stale verdict keeps the item and the command it had");
 });
 

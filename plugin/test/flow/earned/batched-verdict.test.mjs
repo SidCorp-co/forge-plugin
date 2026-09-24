@@ -134,10 +134,10 @@ test("several criteria with no verdict are one owed item carrying one write", ()
   const none = judgedOwed(viewFrom("the-uuid", issue, [mark]), "ISS-7");
   assert.deepEqual(none.map((one) => one.what), ["criteria 1, 2, 3 have no verdict"]);
   assert.equal(none[0].command, `forge record verdict ISS-7 --commit ${COMMIT} --evidence <attachment|url|sha>`
-    + " --criterion 1 --verdict pass --criterion 2 --verdict pass --criterion 3 --verdict pass");
+    + " --verdict <pass|fail|skipped|short> --criterion 1 --criterion 2 --criterion 3");
   const one = judgedOwed(viewFrom("the-uuid", issue, [mark, comment(render("verdict", [verdictOf(1), verdictOf(2)]))]), "ISS-7");
   assert.deepEqual(one.map((held) => held.what), ["criterion 3 has no verdict"], "and one owed criterion reads as it did");
-  assert.match(one[0].command, /--criterion 3 --verdict pass --commit 43b811e/u);
+  assert.match(one[0].command, /--criterion 3 --verdict <pass\|fail\|skipped\|short> --commit 43b811e/u);
 });
 
 /* Spawned from here down: the count of writes is the whole point, and only the tracker counts them. */

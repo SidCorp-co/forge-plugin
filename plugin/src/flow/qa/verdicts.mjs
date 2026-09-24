@@ -1,6 +1,6 @@
 /* Whether an issue's verdicts were judged by somebody other than the run that built the change. `earned.mjs` spends the first reading at `testing`, a promotion the second; why each is the shape it is: docs/cli/the-judge-and-the-deploy.md. */
 import { INHERITED, INHERITED_MEANS, OWN_ID } from "../../resolve/config.mjs";
-import { JUDGE_FROM } from "../machine.mjs";
+import { JUDGE_FROM, valuesOf } from "../machine.mjs";
 import { QA_MODES, judgementOf } from "../../tracker/project-config.mjs";
 import { isCommit, sameCommit, shortSha as short } from "../../tracker/evidence.mjs";
 import { REBUILT_FORM, builderProblem } from "../landing/reconstruction.mjs";
@@ -72,8 +72,8 @@ export const judgeAsk = (ref, at, landing, held = null, merged = null) => {
   const numbers = Array.isArray(at) ? at : [at];
   if (!landing) return REBUILT_FORM(ref, short(merged) || "<the sha the default branch carries>");
   return `${inheritedJudge(held ?? {}) ? "FORGE_SESSION_ID=<an-id-of-its-own> " : ""}`
-    + `forge record verdict ${ref}`
-    + numbers.map((number) => ` --criterion ${number} --verdict pass`).join("")
+    + `forge record verdict ${ref} --verdict ${valuesOf("verdict", "verdict")}`
+    + numbers.map((number) => ` --criterion ${number}`).join("")
     + ` --commit ${short(landing.head) || "<sha>"} `
     + `--evidence ${short(landing.deployment) || "<what you exercised>"}`;
 };

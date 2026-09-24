@@ -9,6 +9,7 @@ import { LANDING_DONE, LANDING_HEAD_OWED, LANDING_READY } from "./checkpoint.mjs
 import { carriedByLanding } from "../worklog.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { sameCommit, shortSha } from "../../tracker/evidence.mjs";
+import { valuesOf } from "../machine.mjs";
 
 /* Git licenses this write and the caller's word does not: the one fact it records, that the branch
    this project lands changes on carries the head, is read off refs already in this checkout. Which
@@ -122,7 +123,8 @@ const CAPTURE_SAID = (ref, head) => ({
  *  written against a candidate after this capture, so none is asked for here. `view` is `viewFrom`'s. */
 export const recaptureRefusal = (ref, head, { latest, verdicts, criteria }, independent, said = CAPTURE_SAID(ref, head)) => {
   const review = latest.review?.record.fields ?? null;
-  const ask = `forge record review ${ref} --reviewer codex --commit ${shortSha(head)} --outcome approved`;
+  const ask = `forge record review ${ref} --reviewer codex --commit ${shortSha(head)} `
+    + `--outcome ${valuesOf("review", "outcome")}`;
   const { out, why, again } = said;
   if (!review?.commit || !sameCommit(review.commit, head) || review.outcome !== "approved") {
     const held = review?.commit
@@ -143,7 +145,7 @@ export const recaptureRefusal = (ref, head, { latest, verdicts, criteria }, inde
   });
   return `${out}, and this project's judge is the run that built it, whose verdicts on criterion `
     + `${at.join(", ")} do not pass that head. Judge ${shortSha(head)}, then ask again:\n`
-    + `  forge record verdict ${ref} --commit ${shortSha(head)} --evidence <attachment|url|sha>`
-    + unjudged.map((number) => ` --criterion ${number} --verdict pass`).join("")
+    + `  forge record verdict ${ref} --commit ${shortSha(head)} --evidence <attachment|url|sha> `
+    + `--verdict ${valuesOf("verdict", "verdict")}` + unjudged.map((number) => ` --criterion ${number}`).join("")
     + `\n  ${again}`;
 };

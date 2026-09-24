@@ -622,5 +622,11 @@ export const SHAPES = {
   },
 };
 
+/** What an owed command prints for a closed-set flag: every value the write accepts, off the field
+ *  the write refuses against. One literal there reads as an example, and the value was then learned
+ *  from the second refusal rather than the first (ISS-184). */
+export const valuesOf = (kind, flag) =>
+  `<${SHAPES[kind].fields.find((field) => field.flag === flag).oneOf.join("|")}>`;
+
 /* Said once, so the report's count line and the brief's cannot disagree; silent at the one `latest` gives. */
 export const heldSaid = (kind, held) => (held > 1 ? `${held} ${SHAPES[kind].heading} records` : null);

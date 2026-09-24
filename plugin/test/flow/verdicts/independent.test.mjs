@@ -208,7 +208,7 @@ test("a judge refused on a checkpoint holding no identity is handed the verdict 
     { issue: { sessionContext: { landing: ORDINARY } } });
   assert.equal(asked.length, 1, `one item: ${asked.map((one) => one.what)}`);
   assert.equal(asked[0].command,
-    "forge record verdict ISS-8 --criterion 1 --verdict pass --criterion 2 --verdict pass "
+    "forge record verdict ISS-8 --verdict <pass|fail|skipped|short> --criterion 1 --criterion 2 "
       + `--commit ${MERGED.slice(0, 7)} --evidence <what you exercised>`,
     "the verdict write, with what there is to cite named where no identity stands in for it");
   assert.doesNotMatch(asked[0].command, /forge resume/u);

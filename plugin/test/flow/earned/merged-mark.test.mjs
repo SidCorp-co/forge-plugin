@@ -78,7 +78,7 @@ test("developed needs the mark, its commit, and an approving review of that comm
     "a read that asked for changes on one head is refused for the outcome, not for naming another");
   assert.deepEqual(missing("developed", view(stamped, [...landed, review("c8c3550")])), [],
     "and an approving read of the head the mark names earns the rung with no consult log read");
-  assert.match(commands("developed", view(stamped, landed))[0], /--commit c8c3550 --outcome approved/u,
+  assert.match(commands("developed", view(stamped, landed))[0], /--commit c8c3550 --outcome <approved\|changes-requested>/u,
     "the commit the review owes is the one the mark named");
 });
 
@@ -91,7 +91,7 @@ test("tested needs one verdict per criterion, passing, at the merged commit", ()
     ["the criteria field holds no numbered line, so there is nothing to judge"]);
   const one = view(issue, [landed, verdict(1, "pass")]);
   assert.deepEqual(judging(one), ["criterion 2 has no verdict"]);
-  assert.match(judgingAsks(one)[0], /--criterion 2 --verdict pass --commit c8c3550/u);
+  assert.match(judgingAsks(one)[0], /--criterion 2 --verdict <pass\|fail\|skipped\|short> --commit c8c3550/u);
   assert.deepEqual(judging(view(issue, [landed, verdict(1, "pass"), verdict(2, "pass")])), []);
   const failed = verdict(1, "fail", "c8c3550", { why: "the column stayed empty" });
   assert.deepEqual(judging(view(issue, [landed, failed, verdict(2, "pass")])),
@@ -124,7 +124,7 @@ test("a verdict at the judged head stands where the landing moved none of the ch
       + "verdicts on criterion 1, 2 judged bc40edc and the evidence was taken before those paths moved"],
     "one item for the set, because a path list per criterion is what a run reads past");
   assert.match(judgingAsks(view(issue, [at("judged head bc40edc; landing moved docs/a.md"), ...verdicts]))[0],
-    /--criterion <n> --verdict pass --commit 9a4d36d/u, "and the re-judging is at the landed head");
+    /--criterion <n> --verdict <pass\|fail\|skipped\|short> --commit 9a4d36d/u, "and the re-judging is at the landed head");
   assert.deepEqual(owed("judged head bc40edc"),
     ["the verdicts on criterion 1, 2 judged bc40edc, which the mark names as the judged head, and "
       + "the mark says nothing about what the landing moved, so nothing says those verdicts survived it"]);

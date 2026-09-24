@@ -326,7 +326,7 @@ test("the capture out of head-owed takes a head an approved review names, and no
   assert.match(none, /ISS-673 carries no review/u, none);
   const other = recaptureRefusal("ISS-673", NEW, viewOf({ review: { commit: HANDED, outcome: "approved" } }), true);
   assert.match(other, /captures 5a1b2c3, and the latest review on ISS-673 judged 9e24c2a/u, other);
-  assert.match(other, /forge record review ISS-673 --reviewer codex --commit 5a1b2c3 --outcome approved/u, other);
+  assert.match(other, /forge record review ISS-673 --reviewer codex --commit 5a1b2c3 --outcome <approved\|changes-requested>/u, other);
   const asked = recaptureRefusal("ISS-673", NEW, viewOf({ review: { commit: NEW, outcome: "changes-requested" } }), true);
   assert.match(asked, /says changes-requested/u, asked);
   assert.equal(recaptureRefusal("ISS-673", NEW, viewOf({ review: APPROVED }), true), null,
@@ -338,7 +338,7 @@ test("where the builder judges, every criterion's latest verdict has to pass the
     [1, { commit: HANDED, verdict: "pass" }], [2, { commit: NEW, verdict: "fail" }],
   ] }), false);
   assert.match(stale, /criterion 1 at 9e24c2a \(pass\), 2 at 5a1b2c3 \(fail\)/u, stale);
-  assert.match(stale, /--criterion 1 --verdict pass --criterion 2 --verdict pass/u, stale);
+  assert.match(stale, /--verdict <pass\|fail\|skipped\|short> --criterion 1 --criterion 2\n/u, stale);
   const missing = recaptureRefusal("ISS-673", NEW, viewOf({ review: APPROVED, verdicts: [[1, { commit: NEW, verdict: "pass" }]] }), false);
   assert.match(missing, /criterion 2 unjudged/u, missing);
   assert.equal(recaptureRefusal("ISS-673", NEW, viewOf({ review: APPROVED, verdicts: [
