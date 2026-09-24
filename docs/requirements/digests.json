@@ -321,6 +321,18 @@
       "rev": 1,
       "digest": "b13dc6a0df78d607e67d70f3b230673808be78aa69d7deefc303fde4bc289e7e"
     },
+    "NFR-13": {
+      "rev": 1,
+      "digest": "77e69258a54c527217f06eac615e06c7eb7311d1a532eca18743662a39daece8"
+    },
+    "AC-17-13-1": {
+      "rev": 1,
+      "digest": "1e71fb4fc1e9c312b8c1ba732db02ec33396c181c51376601e11b869c7853a51"
+    },
+    "AC-17-13-2": {
+      "rev": 1,
+      "digest": "c5040e5ed797c53964d45de9f56618035c0fe6e3dfb1679ff3a325464ab9f73d"
+    },
     "EI-01": {
       "rev": 3,
       "digest": "551c490a1ea697dfb9e0b984eefe19fab32c1a717351ed898677556e5d830163"

@@ -241,3 +241,25 @@ whatever the population looked like the day someone last measured it.
   run SHALL be silent; WHERE the same population is shifted up, an ordinary run of the shifted
   population judged against the ceiling drawn from the population before it SHALL be said to be
   over.
+
+### NFR-13 — The gate's instrument answers as the runtime it stands in for
+
+Rev: 1 · Enforces: BR-12
+
+The gate loads a read audit into every process of a step, so that what each test file read is known,
+and it does so by standing a module of its own where this repository imports a file-system builtin.
+One case replaced a builtin's function and asked the runtime to bring its named exports in step,
+which the runtime does and the audit's stand-in did not: the case was red in every gate and green in
+every run of it alone, and the re-run the gate uses to tell a case its neighbours broke from one the
+tree broke ran without the audit, so it read the instrument's failure as company's (ISS-2419). An
+instrument that changes what it measures makes the red it reports its own, and the re-run that
+judges a red stands where that red stood.
+
+- **AC-17-13-1** · Rev: 1 · Proof: plugin/test/tools/gates/reads/synced.test.mjs "a function replaced on a builtin's default object and synced reaches a by-name importer under the audit"
+  WHEN a process under the gate's read audit replaces a file-system function on the builtin's
+  default object and asks the runtime to bring the builtin's named exports in step THEN a module of
+  this repository that imported that function by name SHALL call the replacement, as it does
+  without the audit.
+- **AC-17-13-2** · Rev: 1 · Proof: plugin/test/tools/gates/attribution.test.mjs "a case red under the read audit alone reproduces alone, its re-run recording inside its own room"
+  WHEN the gate re-runs a failing case alone THEN the re-run SHALL run under the read audit its
+  step ran under, recording into the re-run's own room.

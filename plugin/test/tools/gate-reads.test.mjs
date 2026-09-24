@@ -386,8 +386,8 @@ test("every export of every shimmed builtin is classified, so a name node adds f
 
 test("a member the audit classifies nowhere is wrapped to blind the file that called it", () => {
   const source = shimSource("node:fs", { readFileSync: () => {}, inventedRead: () => {} });
-  assert.match(source, /export const readFileSync = asked\(real\.readFileSync\);/u);
-  assert.match(source, /export const inventedRead = blinded\(real\.inventedRead, "inventedRead: classified in no set/u);
+  assert.match(source, /export let readFileSync = asked\(real\.readFileSync\);/u);
+  assert.match(source, /export let inventedRead = blinded\(real\.inventedRead, "inventedRead: classified in no set/u);
 });
 
 /* A wrapper that dropped what the export held would change what the suite does — `promisify(exists)`

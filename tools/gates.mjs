@@ -6,7 +6,7 @@
    it cannot place widens the run instead of narrowing it. */
 import { spawnSync } from "node:child_process";
 import { availableParallelism, loadavg } from "node:os";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { crossTree, gitFiles, uncommittedInShared } from "./checkout.mjs";
@@ -533,6 +533,7 @@ for (const step of planned) {
     const said = step.tests && !error ? attribute(step, {
       root: ROOT, scratch, cases: casesPath(scratch, step.label),
       record: alonePath(record, step.label), say: console.log,
+      audited: (room) => auditEnv(join(room, "gate-reads"), ROOT),
     }) : null;
     if (said) for (const line of attributionLines(said)) console.log(line);
     /* Before the branch below and not inside it: a recurrence beside a case that reproduced is a

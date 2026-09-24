@@ -72,13 +72,16 @@ export const argvFor = (one) => [process.execPath, "--test", "--test-concurrency
 
 /** One run per case and one only: a tree failure retried into green is the one thing this may not
  *  do. Its own room below the gate's, so what a re-run leaves cannot fail the step it is judging;
- *  both record variables emptied, or one case's re-run overwrites the whole step's per-file seconds. */
-const reran = (one, { root, scratch }) => {
+ *  both record variables emptied, or one case's re-run overwrites the whole step's per-file seconds.
+ *  Under the instrument the step ran under, `audited` naming its environment for the room: a re-run
+ *  without it differs from the step in the instrument as well as the company, and a case the
+ *  instrument alone breaks reads as one its neighbours broke (ISS-2419). */
+const reran = (one, { root, scratch, audited }) => {
   const room = mkdtempSync(join(scratch, "isolation-"));
   const argv = argvFor(one);
   const at = Date.now();
-  const { status, error } = spawnSync(argv[0], argv.slice(1),
-    { cwd: root, stdio: "inherit", env: { ...process.env, TMPDIR: room, GATE_FILE_TIMES: "", [CASES_ENV]: "" } });
+  const env = { ...process.env, ...audited(room), TMPDIR: room, GATE_FILE_TIMES: "", [CASES_ENV]: "" };
+  const { status, error } = spawnSync(argv[0], argv.slice(1), { cwd: root, stdio: "inherit", env });
   return { reproduced: Boolean(error) || status !== 0, took: Math.round((Date.now() - at) / 1000) };
 };
 
@@ -107,13 +110,13 @@ const remember = (at, digest, cases, when) => {
   }
 };
 
-export const attribute = (step, { root, scratch, cases, record, say }) => {
+export const attribute = (step, { root, scratch, cases, record, say, audited }) => {
   const found = casesFrom(cases);
   if (!found) return null;
   say(`\n=== isolation: ${step.label} — ${found.cases.length} failing case(s), `
     + `each re-run once, alone, at this head ===`);
   const seen = previously(record, step.digest);
-  const judged = found.cases.map((one) => ({ one, repeat: seen(one), ...reran(one, { root, scratch }) }));
+  const judged = found.cases.map((one) => ({ one, repeat: seen(one), ...reran(one, { root, scratch, audited }) }));
   const quiet = judged.filter((each) => !each.reproduced).map((each) => each.one);
   const at = new Date().toISOString();
   remember(record, step.digest, quiet, at);
