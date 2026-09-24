@@ -32,6 +32,8 @@ import { refusalIn } from "./corpus/refusals.mjs";
 import { PHASES } from "../guides/phases.mjs";
 import { FORMS, READ_AS } from "../resolve/handler.mjs";
 import { fail } from "../resolve/settings.mjs";
+import { canonical } from "../resolve/canonical.mjs";
+import { checkoutAt } from "../git/checkout-at.mjs";
 import { flags } from "../resolve/flags.mjs";
 
 const REPEATED = 3;
@@ -48,8 +50,8 @@ export const RUNS_USAGE = [
   "",
   "  --since 3d     the window, in d, h or m; the whole corpus unless you say otherwise",
   "  --checkout <dir>  an absolute directory, whose transcript root is derived from its path;",
-  "                 the working directory unless you say otherwise, so a run from a worktree names",
-  "                 the checkout the runs were worked in",
+  "                 the checkout the working directory belongs to unless you say otherwise, so a",
+  "                 run from a worktree reads the checkout it was cut from",
   "  --json         the whole table rather than the top rows, for a diff between two weeks",
 ].join("\n");
 
@@ -553,8 +555,21 @@ export const sourceLines = (sources) => sources.map((one) =>
   `${one.path}  ${one.transcripts} transcript(s), ${one.taken} counted here`
   + `${one.temporary ? "  — a temporary filesystem, swept on reboot and between" : ""}`);
 
+/** The checkout the working directory belongs to, which is the one the ship reads its marks against:
+ *  a worktree's own path slugs to a root no transcript sits under (ISS-2094). Said on standard error
+ *  where it moved, since a figure that moved because the root did is not a figure that moved, and
+ *  standard output under `--json` is one document. No checkout at all leaves the directory as it is. */
+const standingIn = (verb) => {
+  const here = process.cwd();
+  const repository = checkoutAt(here)?.repository ?? null;
+  if (repository === null || repository === canonical(here)) return here;
+  console.error(`${verb}: reading the checkout ${repository}, which the working directory ${here} `
+    + "belongs to; --checkout names another.");
+  return repository;
+};
+
 export const checkoutFrom = (given, verb) => {
-  if (given === undefined) return process.cwd();
+  if (given === undefined) return standingIn(verb);
   if (!given.startsWith("/")) {
     fail(`${verb}: --checkout takes an absolute directory, not \`${given}\`. `
       + "The transcript root is derived from that path; no transcript is opened by name.");

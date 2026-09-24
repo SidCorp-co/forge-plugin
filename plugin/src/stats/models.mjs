@@ -28,7 +28,7 @@ export const MODELS_USAGE = [
   "",
   "  --since 3d     the window, in d, h or m; the whole corpus unless you say otherwise",
   "  --checkout <dir>  an absolute directory, whose transcript root is derived from its path;",
-  "                 the working directory unless you say otherwise",
+  "                 the checkout the working directory belongs to unless you say otherwise",
   "  --horizon 1d   how long after a run an outcome still counts as its own; one day otherwise",
   "  --requests n   the tracker requests this reading may spend; past it an outcome figure prints",
   "                 unavailable, or `cut short` with the pairs it left unread where it read some,",

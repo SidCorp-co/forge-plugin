@@ -2,7 +2,9 @@
    that are not git. Two answers to "the base" is a precedence rule nobody wrote down. */
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
+
+import { checkoutAt } from "../plugin/src/git/checkout-at.mjs";
 
 export const REMOTE = "origin";
 const FALLBACK = ["master", "main"];
@@ -52,11 +54,9 @@ export const lines = (text) => (text ?? "").split("\n").filter(Boolean);
 export const gitCommonDir = (from) =>
   gitOut(["rev-parse", "--path-format=absolute", "--git-common-dir"], from);
 
-export const checkoutRoot = (from) => {
-  const common = gitCommonDir(from);
-  if (!common) stop(`${from} is no git checkout, so there is no repository to work in.`);
-  return dirname(common);
-};
+/** The stats reader's answer too, so a mark a ship writes and a reading taken in a worktree name one checkout (ISS-2094). */
+export const checkoutRoot = (from) =>
+  checkoutAt(from)?.repository ?? stop(`${from} is no git checkout, so there is no repository to work in.`);
 
 /** Every read of the remote's branch, spelled out: abbreviated, it is a name a local branch wins, and `plugin/test/run/run-shadowed-ref.test.mjs` is what that costs (ISS-1127). */
 export const remoteRef = (branch) => `${TRACKING}${branch}`;
