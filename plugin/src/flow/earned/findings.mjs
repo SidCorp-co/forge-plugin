@@ -28,11 +28,11 @@ export const handleIn = (answer) => {
    quotes a record of its own left the record's keys unread. */
 const titleOf = (comment, record) => record.fields.title ?? HEADING.exec(comment.body ?? "")?.[1] ?? "untitled";
 
-/** Every folded finding on the page, oldest first. A comment with no id is a row nobody can name, and is left out rather than owed an answer nothing could give. */
+/** Every folded finding on the page, oldest first. A comment whose id heads no handle is a row nobody can name, and is left out rather than owed an answer no write could give. */
 export const foldedIn = (comments) => comments
-  .map((one) => ({ one, record: parseAll(one.body ?? "").find((held) => held.kind === FOLDED) }))
-  .filter(({ one, record }) => record && idOf(one))
-  .map(({ one, record }) => ({ handle: handleOf(idOf(one)), title: titleOf(one, record) }));
+  .map((one) => ({ one, record: parseAll(one.body ?? "").find((held) => held.kind === FOLDED), handle: handleIn(one) }))
+  .filter(({ record, handle }) => record && handle)
+  .map(({ one, record, handle }) => ({ handle, title: titleOf(one, record) }));
 
 const naming = (handle) => new RegExp(`(?<![0-9a-f])${handle.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}(?![0-9a-f])`, "iu");
 

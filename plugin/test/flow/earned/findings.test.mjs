@@ -45,6 +45,8 @@ test("the fold's comment is the filing, then a folded record carrying its title"
   const quoting = { ...folded(), body: foldedBody(TITLE, "```forge-record\nmoved: x\n```\n\n## Outcome\n\nit takes it") };
   assert.deepEqual(foldedIn([quoting]), [{ handle: HANDLE, title: TITLE }]);
   assert.deepEqual(foldedIn([{ ...folded(), documentId: undefined }]), [], "a row with no id is one nobody can name");
+  assert.deepEqual(foldedIn([folded(1, "comment-uuid"), folded(1, "abc")]), [],
+    "nor is one whose id heads no handle, since no declining could name it");
 });
 
 test("an unanswered finding is owed at testing and at approved, by handle and title", () => {
