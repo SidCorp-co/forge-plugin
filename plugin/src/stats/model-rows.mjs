@@ -1,5 +1,6 @@
 /* The rows `forge stats models` prints and the one boundary it will compare across. Why each rule is
-   the shape it is, and what the reading refuses to conclude: docs/cli/stats-the-model.md. */
+   the shape it is, and what the reading refuses to conclude: docs/cli/stats-the-model.md; what the
+   landing figure counts and why a figure read partly says so: docs/cli/stats-the-model-figures.md. */
 import { SHORT, afterRun, outcomesOf, pairsOf } from "./eval/outcomes.mjs";
 import { MODEL_MIXED, MODEL_NONE, RUNG_UNKNOWN } from "./corpus/transcripts.mjs";
 import { medianOrZero, minutes } from "./figures.mjs";
