@@ -11,6 +11,7 @@ import {
   BASE, BRANCH, KEY, OWNED, builderRan, context, forgetInstall, git, landingRan, marks, ready, seeded, sha,
   tracker, world,
 } from "../fixture.mjs";
+import { escaped } from "../../../fixtures.mjs";
 
 const { landingOf } = await import("../../../../src/flow/landing/checkpoint.mjs");
 
@@ -55,7 +56,7 @@ test("a records turn whose review asks for changes captures the fix, and the nex
   assert.ok(unasked.stderr.includes(`forge record review ${KEY} --reviewer codex --commit ${short(landed)} --outcome changes-requested`),
     `and a change found short is said at the commit that landed:\n${said(unasked)}`);
   assert.equal(landing().state, "records-owed", "nothing was written");
-  assert.match(unasked.stderr, new RegExp(`--pushed: ${BRANCH} at ${short(tip)}, base \\w+, 1 file\\(s\\) touched — read and not written, because the call was refused above`, "u"),
+  assert.match(unasked.stderr, new RegExp(`--pushed: ${escaped(`${BRANCH} at ${short(tip)}`)}, base \\w+, 1 file\\(s\\) touched — read and not written, because the call was refused above`, "u"),
     `the capture says it was not written:\n${said(unasked)}`);
   assert.doesNotMatch(said(unasked), /file\(s\) touched\.$/mu, `and prints no line reading as a capture written:\n${said(unasked)}`);
 
@@ -78,7 +79,7 @@ test("a records turn whose review asks for changes captures the fix, and the nex
   assert.equal(landing().state, "ready", said(captured));
   assert.equal(landing().head, tip, "at the head the records judged");
   assert.equal(landing().intended, undefined, "and nothing of the first landing is carried into the second");
-  assert.match(captured.stderr, new RegExp(`^--pushed: ${BRANCH} at ${short(tip)}, base \\w+, 1 file\\(s\\) touched\\.$`, "mu"),
+  assert.match(captured.stderr, new RegExp(`^--pushed: ${escaped(`${BRANCH} at ${short(tip)}`)}, base \\w+, 1 file\\(s\\) touched\\.$`, "mu"),
     `the capture a write carried says so:\n${said(captured)}`);
   assert.doesNotMatch(said(captured), /not written/u, said(captured));
 
