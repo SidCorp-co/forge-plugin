@@ -8,12 +8,16 @@ because the steps name the criteria they serve.
 
 **A payload file is this run's and not the tree's, so it is written outside the checkout** — under
 whatever directory the project names for this run's own scratch, where that directory is itself
-outside the checkout, and the system's temporary one in every other case. Both writes take a path
-and nothing but a path, so a file left in the working tree is one the project's own checkers walk,
-and what comes back names a repository checker rather than the change: at the baseline that is the
-shape of a tree already red, which a run either believes or spends the round disproving. Outside the
-checkout is also the only answer that holds where the worktree is not the checkout root, which is
-where a delegated run always stands. Every later file a verb reads off a path goes the same way.
+outside the checkout, and in every other case under a directory the run makes for itself in the
+system's temporary one. A directory keyed on the session id is not the run's own wherever that id
+was inherited: every agent a session dispatches carries it, so the host's scratchpad is the whole
+wave's, and a sibling writing the same name there replaces the file with nothing said.
+`forge doctor` says which of the two this run was handed. Both writes take a path and nothing but a path,
+so a file left in the working tree is one the project's own checkers walk, and what comes back names
+a repository checker rather than the change: at the baseline that is the shape of a tree already
+red, which a run either believes or spends the round disproving. Outside the checkout is also the
+only answer that holds where the worktree is not the checkout root, which is where a delegated run
+always stands. Every later file a verb reads off a path goes the same way.
 
 Criteria are numbered, one outcome per line a reader could check without opening the diff, and the
 write refuses the compounds it can prove. What it cannot prove is a conjunction inside one outcome —

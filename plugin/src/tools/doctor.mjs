@@ -26,6 +26,7 @@ import {
 import { readClaudeMd, reviewClaudeMd } from "../checks/claude-md.mjs";
 import { checkClaudeMdLocally, reportClaudeMd } from "./services/doctor/repo.mjs";
 import { harnessLines } from "./services/doctor/harness.mjs";
+import { scratchRow } from "./services/doctor/scratch.mjs";
 import { installRows } from "./services/doctor/install.mjs";
 import { owingEscapeRows, owingEscapesFrom } from "../checks/docs/owing-escapes.mjs";
 import { everyIssue } from "../tracker/issues.mjs";
@@ -65,6 +66,11 @@ const checkSession = () => {
     return line(OK, "session id", `none held yet — the next verb needing one mints it and saves it at ${sessionPath()}`);
   }
   return line(source === INHERITED ? NOTE : OK, "session id", `${id}  ← ${said}`);
+};
+
+const checkScratch = () => {
+  const { level, said } = scratchRow();
+  line(level, "scratch", said);
 };
 
 /* A gate a switch of its own holds down, read from the gates: printing one undo while another
@@ -446,6 +452,7 @@ export const doctor = async (argv) => {
   if (token.value) line(OK, "token", `${masked(token.value, full)}  ← ${token.from}`);
   else line(BAD, "token", "run `forge doctor --token <pat>` to save one");
   checkSession();
+  checkScratch();
 
   const stale = mcpForgeIgnored();
   /* Each half is named separately: a project whose credentials are already saved and whose slug

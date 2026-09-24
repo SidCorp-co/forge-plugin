@@ -106,3 +106,11 @@ is not: [the brief](the-brief.md).
 
 Which subject each row and each flag belongs to, which level a row carries, and what a bare reading
 withholds: [the subjects](the-subjects.md).
+
+**And it says where this run's own files go, on the row under the session id**, because it is the
+same fact about a wave: every agent a session dispatches inherits its id, so a directory keyed on
+it — the host's scratchpad among them — is shared by every run of that wave, and two runs writing
+the obvious name for a plan into it leave one plan with nothing said (ISS-1344). The row is a note
+and never a miss: a session nobody dispatched also reads its id off the host, and doctor cannot
+tell that session from one run of a wave, so it says what follows where the run was dispatched and
+leaves the one command, `mktemp -d`, rather than failing a box that may be right.

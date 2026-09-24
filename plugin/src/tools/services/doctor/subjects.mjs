@@ -7,7 +7,8 @@
    caller types and the fifty routes out of a refusal across this tree stay correct. */
 const MACHINE = [
   "Usage: forge doctor machine [--full]",
-  "The endpoint, the credential, the session id this run holds, and the gates switched off here.",
+  "The endpoint, the credential, the session id this run holds, the scratch directory it writes",
+  "under, and the gates switched off here.",
   "",
   "  forge doctor --token <pat>  the tracker credential, saved outside every repository at",
   "                              owner-only permissions. The row prints it masked; --full whole.",
