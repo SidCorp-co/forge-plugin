@@ -1,11 +1,33 @@
 /* Every rule here is asked a second time, of the stored plan rather than the file, and over the
    criteria field the write cannot see: a plan that arrived by any route answers to the same shape,
    and a number it cites is weighed against the criteria only the issue holds. */
-import { criteriaUncovered, need, planSteps, planTyped, sectionsOwed, stepsUncited, witnessedAnswers, witnessedOn } from "../machine.mjs";
+import { criteriaUncovered, declaredAs, need, planSteps, planTyped, sectionsOwed, stepsUncited, witnessedAnswers, witnessedOn } from "../machine.mjs";
+
+/* The two lines the ship steps read. Each missing one is named on its own, so a plan that declares
+   one is never told it declares neither (ISS-312). */
+const REQUIRED = ["screen", "schema"];
+const labelOf = (name) => `${name[0].toUpperCase()}${name.slice(1)}`;
+const asLine = (name) => `\`${labelOf(name)}: yes|no\``;
+
+const declarationsOwed = (flags, ref) => {
+  const missing = REQUIRED.filter((key) => !flags[key]);
+  if (!missing.length) return [];
+  if (missing.length === REQUIRED.length) {
+    return [need(
+      `the plan declares neither ${declaredAs(REQUIRED).map(asLine).join(" nor ")}, and the two decide what the ship steps owe`,
+      `forge record plan ${ref} <plan.md>, with both lines in it`,
+    )];
+  }
+  const [held] = declaredAs(REQUIRED.filter((key) => flags[key]));
+  return [need(
+    `the plan declares \`${labelOf(held)}\` but not ${asLine(declaredAs(missing)[0])}, and the two decide what the ship steps owe`,
+    `forge record plan ${ref} <plan.md>, with that line in it`,
+  )];
+};
 
 /** Every shortfall of a plan's shape at `approved`; `asks` is false where the rung waives the plan. */
 export const planShapeOwed = (asks, plan, flags, criteria, ref) => {
-  const out = [];
+  const out = asks && plan ? declarationsOwed(flags, ref) : [];
   if (asks && plan && !planTyped(plan)) {
     out.push(need(
       `the plan is untyped — it carries none of the sections a typed plan owes: ${sectionsOwed(plan, flags).join(" · ")}`,

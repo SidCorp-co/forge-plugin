@@ -3,6 +3,7 @@
 import { DECISION_TAKES, FINDING_TAKES, MEMBER_TAKES, WHERE_TAKES, decisionProblem, findingProblem,
   memberProblem, whereProblem } from "./record/content.mjs";
 import { CODE_SPAN, SPAN, blanked, fenceMarked } from "../prose.mjs";
+import { MARKUP_PATTERN } from "../markdown.mjs";
 import { entriesIn, firstKindIn } from "./machine/block.mjs";
 
 export { blockOf, readRecords, tagFor } from "./machine/block.mjs";
@@ -29,7 +30,11 @@ export const unwrap = (text) => String(text ?? "").trim();
 const DECLARED = {
   screen: "screen change", schema: "schema coupling", deploy: "deploy coupling", look: "user-facing outcome",
 };
-const DECLARED_VALUE = ":\\s*(yes|no)\\b";
+/* Markup may stand at the joints — a bold label closing after its colon, or before it, or an emphasised
+   value — and nowhere else. One pattern, so the reader and the protector below cannot disagree about
+   which lines are declarations (ISS-312); the class is markdown.mjs's, never a second spelling. */
+const MARKED = `(?:${MARKUP_PATTERN})*`;
+const DECLARED_VALUE = `${MARKED}:(?:${MARKUP_PATTERN}|\\s)*(yes|no)\\b`;
 const lineFor = (name) => new RegExp(`${name}${DECLARED_VALUE}`, "giu");
 
 export const planFlags = (plan) => {
