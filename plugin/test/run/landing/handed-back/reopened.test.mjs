@@ -11,9 +11,9 @@ import { join } from "node:path";
 import {
   BASE, BRANCH, BUILDER, KEY, OWNED, builderRan, comments, context, earning, forgetInstall, git, issue, landingRan, ready, seeded,
   sha, tracker, world,
-} from "./fixture.mjs";
+} from "../fixture.mjs";
 
-const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
+const { landingOf } = await import("../../../../src/flow/landing/checkpoint.mjs");
 
 test.after(() => tracker.close());
 
