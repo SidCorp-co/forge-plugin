@@ -83,7 +83,7 @@ export const pricedParts = (guideParts, texts, flow) => {
 const summed = (values) => (values.every(Number.isInteger) ? values.reduce((sum, one) => sum + one, 0) : null);
 
 /** The whole reading off texts already read and counted: rows, totals, repetition, and why a figure is missing. */
-export const readingOf = ({ texts, repeated, why, model, origin, parts = null }) => {
+const readingOf = ({ texts, repeated, why, model, origin, parts = null }) => {
   const failed = texts.filter((one) => one.unmeasured);
   const totalWhy = why ?? (failed.length
     ? `${failed.length} of ${texts.length} text(s) could not be counted, first ${failed[0].name}: ${failed[0].unmeasured}`

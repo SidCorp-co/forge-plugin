@@ -5,7 +5,7 @@
 import { clockFor, deadlineOf, parsedOr, ranOut } from "../../wire/request.mjs";
 
 export const KEY_VARIABLE = "ANTHROPIC_API_KEY";
-export const ORIGIN_VARIABLE = "ANTHROPIC_BASE_URL";
+const ORIGIN_VARIABLE = "ANTHROPIC_BASE_URL";
 const ORIGIN = "https://api.anthropic.com";
 const ROUTE = "/v1/messages/count_tokens";
 const VERSION = "2023-06-01";

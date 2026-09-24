@@ -4,7 +4,7 @@ Every other figure `forge stats` prints is time, rounds or calls. The help and g
 serves are a fixed cost every run pays before it does any work, and the unit that cost is budgeted
 in is the token. Measured by hand on 2026-09-13, a quarter of one table's reads were of a part the
 reading run already held, and 45% of the `forge record <kind> -h` texts were lines another kind
-prints too. The per-text cap in `plugin/test/cli/cli-help.test.mjs` sees none of that: it holds each
+prints too. The per-text cap the help cases hold sees none of that: it holds each
 text alone, so splitting one text in two makes both halves greener while the sum a run reads grows.
 This subject reports the sum, and the repetition inside it (ISS-1327).
 
