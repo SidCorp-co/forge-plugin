@@ -101,6 +101,16 @@ export const stampedNow = (shape) => Object.fromEntries(shape.fields
 /** The head the baseline write would stamp, asked for through that write's own stamp so the two cannot disagree about which commit is in hand — a dirty checkout and no checkout both answer with none, which is the head that write would fail to stamp too. */
 export const headNow = () => stampedNow(SHAPES.baseline).head ?? null;
 
+/** The paths this checkout holds that `commit` does not carry, read only where `commit` is the head the checkout stands at; null where it is another commit or no checkout answers, since then this tree says nothing about what that commit holds. The status is read untrimmed, its first column being a space for a change left unstaged. */
+export const uncommittedOver = (commit) => {
+  const head = git(["rev-parse", "HEAD"]);
+  if (!head || git(["rev-parse", "--verify", "--quiet", `${commit}^{commit}`]) !== head) return null;
+  const status = spawnSync("git", CLEAN, { cwd: process.cwd(), encoding: "utf8" });
+  if (status.status !== 0) return null;
+  const paths = status.stdout.split("\n").filter(Boolean).map((line) => line.slice(3));
+  return paths.length ? paths : null;
+};
+
 export const owedOn = async (bytes, entries, last, scope = null) => {
   const { numbered, recheckOwed, recheckPlan, undecidedIn, unverdicted, verdictForm } = await replies();
   const { verdictsBy } = await consultLog();

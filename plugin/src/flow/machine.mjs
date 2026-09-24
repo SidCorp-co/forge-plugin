@@ -384,7 +384,7 @@ export const SHAPES = {
     fields: [
       FIELD("criterion", "Criterion", { criterion: true }),
       FIELD("verdict", "Verdict", { oneOf: VERDICTS }),
-      FIELD("commit", "Commit", { commit: true }),
+      FIELD("commit", "Commit", { commit: true, judged: true }),
       FIELD("evidence", "Evidence", { many: true, least: 0, evidence: true, owed: OWES.verdict }),
       FIELD("why", "Why", { optional: true, prose: true }),
       FIELD("filed", "Filed as", { optional: true }),
@@ -405,7 +405,7 @@ export const SHAPES = {
     heading: "Code review",
     fields: [
       FIELD("reviewer", "Reviewer"),
-      FIELD("commit", "Head judged", { commit: true }),
+      FIELD("commit", "Head judged", { commit: true, judged: true }),
       FIELD("outcome", "Outcome", { oneOf: OUTCOMES }),
       FIELD("finding", "Findings", { many: true, least: 0, each: findingProblem, form: FINDING_TAKES, prose: true }),
     ],
