@@ -68,8 +68,7 @@ export const judgeProblems = (view) => (asksIndependent(view.release)
    route that only reports where the landing is leaves the reader following it nowhere (ISS-1784).
    Two answers and not three: a checkpoint that stands is answerable by a verdict whatever it holds,
    and the branch that stood between handed back a command reprinting the refusal (ISS-1788).
-   The shared flags stand before the first --criterion because `blocksIn` gives each block only what
-   precedes it, so a commit after the list reached the last criterion alone (ISS-2371). */
+   Shared flags lead: `blocksIn` gives a block only what precedes the first --criterion (ISS-2371). */
 export const judgeAsk = (ref, at, landing, held = null, merged = null) => {
   const numbers = Array.isArray(at) ? at : [at];
   if (!landing) return REBUILT_FORM(ref, short(merged) || "<the sha the default branch carries>");
