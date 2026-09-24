@@ -130,7 +130,7 @@ test("the consult that takes the log onto a hundred-mark names the eval; the one
     logConsult(PLANTED(200));
     assert.match(crossingSaid(crossing), /^codex: 200 answered consults in the log — `forge codex eval`\. The reading is held as mark 200, and no consult has been answered after it yet: `forge codex eval --against 200` can be read once 50 more have been answered, and shares none of the recent window once 100 have\.$/u);
     const [record] = marksOf("consults");
-    assert.deepEqual(Object.keys(record), ["kind", "mark", "at", "device", "size", "total", "now", "shifts"],
+    assert.deepEqual(Object.keys(record), ["kind", "mark", "at", "device", "size", "total", "now", "comparability", "shifts"],
       "the object `codex eval --json` prints, under the mark's own three fields and the device it was taken on, "
       + "less the earlier window no reader of a stored reading takes — this writer spread its reading raw "
       + "until the store's own write became what drops it (ISS-2106)");

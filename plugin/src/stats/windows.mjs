@@ -20,6 +20,21 @@ export const comparedWindows = ({ size, total, against, overlap, now, before, se
   shifts: before ? separates(now, before) : [],
 });
 
+/** Why a first reading is no comparison: nothing was measured ahead of its window. */
+export const NO_WINDOW_BEFORE = "there is no window before it";
+
+/** Whether a reading is a comparison, and each way it falls short, over the rows each window holds —
+ *  `before` null where there is no window — so each harness counts its own unit and says it in the
+ *  same words. The reach rides beside the verdict, since the corpus it was read off cannot be asked
+ *  later what it held — docs/cli/stats-the-eval.md. */
+export const comparabilityOf = ({ size, now, before, reach }) => {
+  const short = [];
+  if (now < size) short.push(`the recent window holds ${now} of ${size}`);
+  if (before === null) short.push(NO_WINDOW_BEFORE);
+  else if (before < size) short.push(`the window before it holds ${before} of ${size}`);
+  return { comparable: !short.length, short, reach };
+};
+
 /** One count per value of each dimension — `{ name: { value: count } }` — kept on a window for when its rows are gone. */
 export const tallied = (rows, dimensions) => Object.fromEntries(dimensions.map(([name, of]) => {
   const held = {};

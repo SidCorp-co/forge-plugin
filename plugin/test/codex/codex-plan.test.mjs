@@ -471,7 +471,7 @@ test("--json is the comparison as one object, in stats eval's outer shape, and i
   const verdicts = rows.map((one, n) => SCORED(n));
   const { now } = evalWindows([...rows, ...verdicts]);
   const held = evalObject([...rows, ...verdicts]);
-  assert.deepEqual(Object.keys(held), ["size", "total", "now", "before", "shifts"]);
+  assert.deepEqual(Object.keys(held), ["size", "total", "now", "before", "comparability", "shifts"]);
   assert.equal(held.size, 100);
   assert.equal(held.total, 250);
   for (const window of [held.now, held.before]) {
@@ -514,6 +514,7 @@ test("--json is the comparison as one object, in stats eval's outer shape, and i
       now: { consults: 0, from: null, to: null, stats: statsOf([]),
         mix: { slot: {}, model: {}, prompt: {}, effort: {}, "effort resolved": {}, "effort via": {} }, groups: [] },
       before: null,
+      comparability: { comparable: false, short: ["the recent window holds 0 of 100", "there is no window before it"], reach: null },
       shifts: [],
     });
   } finally {
