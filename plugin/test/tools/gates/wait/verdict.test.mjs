@@ -11,7 +11,7 @@ import { DEADLINE, gateDecided, gateStarted, gatesHere, GONE, NO_GATE, verdictPa
 import { DECLINED } from "../../../../../tools/gates/machine.mjs";
 import { recordDir } from "../../../../../tools/gates/timing.mjs";
 import { STEPS } from "../../../../../tools/gates/steps.mjs";
-import { git, heldGate, reachedTheStep, run, scratch, stopGate } from "../scratch.mjs";
+import { git, heldGate, reachedTheStep, run, scratch, sibling, stopGate } from "../scratch.mjs";
 import { BRIEFLY, heard, holding, ofOne, TICK, waited } from "./waiting.mjs";
 import { patience } from "../../../patience.mjs";
 
@@ -341,9 +341,10 @@ test("a gate that declined the machine is read back as declined, not as a pass",
   const gate = heldGate(work, ["--full"]);
   try {
     await reachedTheStep(gate, "the gate holding the machine's only place never reached its hanging step");
-    const said = run(work, ["--full"]);
+    const other = sibling(work);
+    const said = run(other, ["--full"]);
     assert.equal(said.status, DECLINED, said.stdout + said.stderr);
-    assert.equal(recordOf(work).verdict, "declined", said.stdout);
+    assert.equal(recordOf(other).verdict, "declined", said.stdout);
     assert.match(said.stdout.trim().split("\n").at(-1), /^gate verdict: declined — with no step spent/u, said.stdout);
   } finally {
     await stopGate(gate);
@@ -373,7 +374,7 @@ test("a tree declined for the place is told what waits for it, and is handed the
   const gate = heldGate(work, ["--full"]);
   try {
     await reachedTheStep(gate, "the gate holding the machine's only place never reached its hanging step");
-    const declined = run(work, ["--full"]);
+    const declined = run(sibling(work), ["--full"]);
     assert.equal(declined.status, DECLINED, declined.stdout + declined.stderr);
     assert.match(declined.stderr, /Wait for a place, then gate again: node tools\/gates\.mjs --wait slot/u,
       `the decline named no command:\n${declined.stderr}`);

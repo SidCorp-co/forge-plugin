@@ -3,31 +3,13 @@
    and nothing here decides what it reads (ISS-917). */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { existsSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
-import { DECLINED, gatesOn, placeFor, runnersOf } from "../../../../tools/gates/machine.mjs";
-import { escaped, tempRoom } from "../../fixtures.mjs";
-import { entryNames, HANGS_IN, heldGate, reachedTheStep, projectRecordAt, run, runsFile, scratch,
-  stopGate } from "./scratch.mjs";
-
-const TICK = 100;
-
-/* One directory per process, the three files the count reads. `cwd` is a link because /proc's is,
-   and a relative runner path in a command line resolves against nothing else. */
-const table = (rows) => {
-  const at = tempRoom("proc-");
-  for (const [nth, row] of rows.entries()) {
-    const pid = row.pid ?? 1000 + nth;
-    const dir = join(at, String(pid));
-    mkdirSync(dir);
-    writeFileSync(join(dir, "cmdline"), `${row.argv.join("\0")}\0`);
-    writeFileSync(join(dir, "stat"), `${pid} (node) R 1 ${pid} ${pid} `
-      + `${new Array(16).fill("0").join(" ")} ${row.start * TICK}\n`);
-    symlinkSync(row.cwd ?? at, join(dir, "cwd"));
-  }
-  return at;
-};
+import { DECLINED, gatesOn, placeFor, runnersOf } from "../../../../../tools/gates/machine.mjs";
+import { escaped } from "../../../fixtures.mjs";
+import { entryNames, HANGS_IN, heldGate, reachedTheStep, procTable as table, projectRecordAt, run, runsFile, scratch,
+  sibling, stopGate } from "../scratch.mjs";
 
 const ours = (tree) => new Set([join(tree, "tools", "gates.mjs")]);
 
@@ -136,12 +118,13 @@ const room = (name, runs) => scratch(name, null, null, { hanging: HANGS_IN, runs
 
 test("a second gate of one checkout declines the machine, says every clause it owes, and the place comes back when the first has gone", async () => {
   const { at, work } = room("machine-ceiling", 1);
-  const ours = new Set([join(work, "tools", "gates.mjs")]);
+  const other = sibling(work);
+  const ours = new Set([join(work, "tools", "gates.mjs"), join(other, "tools", "gates.mjs")]);
   const declared = { value: 1, from: "the case" };
   const first = heldGate(work, ["--full"]);
   try {
     await reachedTheStep(first, "the gate this case holds open never reached its hanging step");
-    const second = run(work, ["--full"]);
+    const second = run(other, ["--full"]);
     assert.equal(second.status, DECLINED, `${second.stdout}${second.stderr}`);
     assert.notEqual(DECLINED, 1, "a declined machine and a refused tree exit the same status");
     const said = second.stderr;
@@ -152,7 +135,7 @@ test("a second gate of one checkout declines the machine, says every clause it o
     assert.match(said, new RegExp(`pid ${first.pid} {2}gating ${escaped(work)}`, "u"), "the gate it counted, and that gate's tree");
     assert.ok(said.includes("Or raise `forge doctor --set runs=<n>` above 1."),
       `the route that raises it:\n${said}`);
-    assert.ok(said.includes(`nothing here judges ${work}`), `it claimed something about the tree:\n${said}`);
+    assert.ok(said.includes(`nothing here judges ${other}`), `it claimed something about the tree:\n${said}`);
     assert.deepEqual(entryNames(work), [], "a declined gate recorded a pass");
     assert.ok(!existsSync(runsFile(work)), "a declined gate recorded a run figure");
     assert.equal(placeFor(ours, { declared }).declined, true, "the held gate is not the one being counted");
@@ -165,10 +148,10 @@ test("a second gate of one checkout declines the machine, says every clause it o
   }
 });
 
-test("a machine that declares no number lets a second gate of the same checkout run beside the first", async () => {
+test("a machine that declares no number lets a gate of a second worktree of the checkout run beside the first", async () => {
   const { at, work } = room("machine-unset", null);
   const first = heldGate(work, ["--full"]);
-  const second = heldGate(work, ["--full"]);
+  const second = heldGate(sibling(work), ["--full"]);
   try {
     await reachedTheStep(first, "the first gate never reached its hanging step");
     await reachedTheStep(second, "a machine that declared nothing turned the second gate away");
