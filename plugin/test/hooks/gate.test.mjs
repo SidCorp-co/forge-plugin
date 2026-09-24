@@ -144,8 +144,10 @@ test("a gate that crashes is skipped and logged, and the line goes on", () => {
   const ev = { tool_name: "Write", tool_input: { file_path: join(room, "docs", "PLAN.md") }, cwd: room, session_id: `g4-${Date.now()}` };
   const held = run(["post", "../../test/boom-gate", "codex-turn"], ev);
   assert.match(held.stderr, /boom-gate failed and was skipped: boom/u);
-  assert.match(answered(held, { skipped: ["../../test/boom-gate"] }).hookSpecificOutput.additionalContext,
-    /You changed a document/u, "the gate after it still spoke");
+  const told = answered(held, { skipped: ["../../test/boom-gate"] }).hookSpecificOutput.additionalContext;
+  assert.match(told, /You changed a document/u, "the gate after it still spoke");
+  assert.match(told, /boom-gate could not judge this call and did not hold it: boom\nThat is a defect in this plugin/u,
+    "and the crash reaches the session in the same answer, not on stderr alone");
   const log = readFileSync(join(HOME, "forge", "hook-log.jsonl"), "utf8").trim().split("\n").map((one) => JSON.parse(one));
   assert.ok(log.some((one) => one.decision === "error" && /boom/u.test(one.reason)), "the crash is a line in the log");
 });
@@ -277,4 +279,39 @@ test("a transcript holding an advisor result stops neither the consult after it 
   assert.equal(answered(run(registered, ev)), null, "the consult goes, whatever the advisor said and the intent left out");
   const wrote = { ...ev, tool_input: { command: `printf x > ${pathed(join(cwd, "work.mjs"))}` } };
   assert.equal(answered(run(registered, wrote)), null, "and so does the write after it, with the tree unconsulted");
+});
+
+/* A gate that meets `fail()` — the tracker turning its token down — stands down in the answer rather than ending the
+   process with an empty stdout, which a session reads as the gate allowing, and the line goes on (ISS-215). */
+const REFUSED = "../../test/refused-gate";
+
+test("a gate refused through fail() stands down in the answer, and the gate after it still refuses", () => {
+  const cwd = dirtyRepo();
+  const ev = { tool_name: "Bash", tool_input: { command: "git stash" }, cwd, session_id: `refused-${Date.now()}` };
+  const held = run(["pre", REFUSED, "bash-guard"], ev, { FORGE_SESSION_ID: ev.session_id });
+  assert.equal(held.status, 0, `the process was not ended by the refusal: ${held.stderr}`);
+  const answer = answered(held, { skipped: [REFUSED] }).hookSpecificOutput;
+  assert.equal(answer.permissionDecision, "deny", "bash-guard, named after it, still answered");
+  assert.match(answer.permissionDecisionReason, /git stash silently reverts/u);
+  assert.match(answer.additionalContext, /refused-gate could not judge this call and did not hold it: UNAUTHENTICATED: Forge answered 401/u,
+    "and the stand-down travels beside the refusal rather than being dropped by it");
+});
+
+test("a stand-down before a call is context the session reads, and grants no permission", () => {
+  const ev = { tool_name: "Bash", tool_input: { command: "true" }, cwd: dirtyRepo(), session_id: `alone-${Date.now()}` };
+  const answer = answered(run(["pre", REFUSED], ev), { skipped: [REFUSED] });
+  assert.equal(answer.hookSpecificOutput.hookEventName, "PreToolUse");
+  assert.equal(answer.hookSpecificOutput.permissionDecision, undefined, "the permission flow is left as it was");
+  assert.match(answer.hookSpecificOutput.additionalContext, /`forge doctor` checks the endpoint, the token and the project a gate reads/u);
+  assert.match(answer.hookSpecificOutput.additionalContext, /`forge doctor --token <pat>`/u);
+  assert.match(answer.hookSpecificOutput.additionalContext, /`forge hooks --how stood-down`/u);
+  assert.doesNotMatch(answer.hookSpecificOutput.additionalContext, /defect in this plugin/u,
+    "a refusal is the tracker's answer, not this plugin's crash");
+});
+
+test("a stand-down on a stop event is the answer's warning, that event having no context to carry", () => {
+  const ev = { hook_event_name: "Stop", cwd: dirtyRepo(), session_id: `stop-${Date.now()}` };
+  const answer = answered(run(["stop", REFUSED], ev), { skipped: [REFUSED] });
+  assert.match(answer.systemMessage, /refused-gate could not judge this call/u);
+  assert.equal(answer.hookSpecificOutput, undefined, "and no tool event's field is sent on an event that has none");
 });

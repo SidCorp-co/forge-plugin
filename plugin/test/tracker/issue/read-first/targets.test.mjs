@@ -369,20 +369,27 @@ test("with no endpoint saved the gate stands down", async () => {
   assert.equal(run.status, 0, "silently: a project that never configured this CLI is not owed a refusal");
 });
 
+/* The stand-down is said where the session reads it, never on stderr alone (ISS-215). */
+const stoodDown = (run) => run.out?.hookSpecificOutput?.additionalContext ?? "";
+
 test("a tracker that will not answer leaves the write alone and says why", async () => {
-  const run = await gate(edgeWrite(), { url: "http://127.0.0.1:1/mcp", exit: 1 });
-  assert.equal(run.out, null,
-    "nothing is denied on no evidence, this gate having ended the process rather than decided");
-  assert.match(run.stderr, /Forge did not answer/u, "and the reason is on the line");
+  const run = await gate(edgeWrite(), { url: "http://127.0.0.1:1/mcp", skipped: ["issue-read-first"] });
+  assert.equal(run.out.hookSpecificOutput.permissionDecision, undefined, "nothing is denied on no evidence");
+  assert.match(stoodDown(run), /issue-read-first could not judge this call and did not hold it: Forge did not answer/u,
+    "and the session is told which gate stood down, and why");
+  assert.match(stoodDown(run), /`forge doctor` checks the endpoint, the token and the project a gate reads/u);
 });
 
-/* That stand-down is the process exiting, so anything registered after this gate would be skipped
-   by it. The line is the constraint, and it is checked rather than remembered. */
-test("this gate is last on the pre line, because its stand-down ends the process", () => {
-  const wired = JSON.parse(readFileSync(new URL("../../../../hooks/hooks.json", import.meta.url), "utf8"));
-  const pre = wired.hooks.PreToolUse[0].hooks[0].command;
-  assert.match(pre, /issue-read-first"?\s*$/u,
-    "issue-read-first stands down by exiting, so a gate named after it on this line would not run");
+test("a token the tracker turns down stands the gate down in the answer, not in an exit", async () => {
+  state.status = 401;
+  try {
+    const run = await gate(edgeWrite(), { skipped: ["issue-read-first"] });
+    assert.equal(run.status, 0, "the process answered rather than exiting 1 with nothing on stdout");
+    assert.match(stoodDown(run), /Forge answered 401/u);
+    assert.match(stoodDown(run), /`forge doctor --token <pat>` replaces a token the tracker refused/u);
+  } finally {
+    delete state.status;
+  }
 });
 
 /* The other half of this gate: a filing carries no issue to read the comments of, and what it owes

@@ -157,7 +157,7 @@ test("two keys that both fail are refused for the first of them, not the first t
     },
   };
   const run = await raw({ action: "archive", documentId: "ISS-29", data: { issueId: "ISS-30" } },
-    { session: "probe-both-fail", exit: 1 });
+    { session: "probe-both-fail", skipped: ["issue-read-first"] });
   delete state.answer;
   assert.match(run.stderr, /ISS-29 is not on this project's tracker/u,
     "the first ref named is the one the command is refused for");
