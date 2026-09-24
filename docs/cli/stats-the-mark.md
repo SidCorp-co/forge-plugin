@@ -44,10 +44,30 @@ different pairs.
 `--against <mark>` puts the stored reading's recent window where the sliding before would stand, and
 the rest of the comparison is computed by the lines the sliding one takes — the same figure line,
 group block, moved rows and shifts — so a stored before and a live before never disagree about what a
-run cost. A mark is named by its count, the number the mark line printed; `--against` alone takes
-the newest held. The screen's before line names the mark and says when the two windows overlap,
-which they do until the corpus has moved a full window past the mark, and the JSON carries `against`
-at the top. A mark nobody wrote is refused by name, with the list subject that shows what is held:
+run cost. A mark is named by its count, the number the mark line printed. The screen's before line
+names the mark, and the JSON carries `against` at the top.
+
+**A stored reading is only as readable as it is apart from the recent window.** At the moment a
+mark is written its window *is* the recent one, and it stays mostly the recent one until the corpus
+or the log has moved half a window past it: on 2026-09-19 a release's printed command compared fifty
+runs with fifty of which only three differed, and a consult mark shared 92 of its hundred. A figure
+read off that pair looks exactly like one read off two disjoint windows. So the before line says how
+many rows the two share and how many more have to arrive before they share none, and the JSON carries
+the same under `overlap`. Past half shared the verb refuses rather than answering, naming what it
+shares, how many more rows it owes before it can be read, and the newest reading sharing none, or the
+sliding comparison where none does. A refusal someone can act on beats a figure nobody can.
+Exactly half is read, with the overlap stated, since partial overlap is the common case and is
+readable once it is said. A shared row is counted where each harness orders its rows: a run by when
+it ended, capped at what the stored window held, and a consult by its place in the answered log, so
+one logged later under an equal clock is not taken for the mark's own.
+
+**An anchor flag given no value resolves to the last reading wholly apart from what is being judged**,
+because the newest held is the one most likely to be that same window, and the apart one is what a
+run doing this by hand went looking for. With no such reading held, it is refused the same way. The
+lines a release and a crossing print when they write a reading say, for the same reason, that
+nothing has arrived after it yet and how many rows must before its command can be read.
+
+A mark nobody wrote is refused by name, with the list subject that shows what is held:
 `forge stats marks` for this project's runs readings, `forge codex marks` for the device's consult
 readings. A runs reading is the project's, resolved by the project it is held under; a consult
 reading is the device's, as the log is, so every checkout sees it. The evaluator's method names the

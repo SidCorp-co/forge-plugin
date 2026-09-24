@@ -16,6 +16,7 @@ import { flags } from "../resolve/flags.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
 import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, tallied, twoWindows } from "../stats/windows.mjs";
 import { CONSULTS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "../stats/marks/marks.mjs";
+import { overlapOf } from "../stats/marks/overlap.mjs";
 import { deviceOf } from "../resolve/machine/device.mjs";
 
 const DEFAULT_WINDOW = 100;
@@ -224,7 +225,7 @@ const evalHead = (held) => {
       + "nothing yet to compare this one against."];
   }
   if (held.against !== undefined) {
-    return [first, heldAtMark(before.consults, held.against, span(before), now.from <= before.to)];
+    return [first, heldAtMark(before.consults, held.against, span(before), held.overlap, CONSULT_TERMS)];
   }
   return [first, `the ${before.consults} before them  ${span(before)}`
     + (before.consults < MARK ? `  — the log does not reach a full ${MARK} further back` : "")];
@@ -286,7 +287,9 @@ export const EVAL_USAGE = [
   "comparison once, and --against puts that reading in the before window's place. `forge codex stats`",
   "takes a window.",
   "",
-  "  --against [<mark>]  the reading held at that mark as the before window, or the newest held",
+  "  --against [<mark>]  the reading held at that mark as the before window, or alone the newest held",
+  "                      that shares none of the recent window; one sharing more than half of it is",
+  "                      refused with what it shares and what is still to be answered",
   "  --json              the comparison alone, one object, in the outer shape `forge stats eval --json` prints",
 ].join("\n");
 
@@ -319,11 +322,29 @@ export const windowObject = (rows, verdicts) => ({
   groups: [...byKey(rows).values()].map((group) => groupObject(group, verdicts)),
 });
 
+/* An answered consult is the row here, and it arrives by being answered. */
+const CONSULT_TERMS = { unit: "consult(s)", noun: "consult", arrived: "been answered" };
+
+/* By place in the answered log and never by timestamp: the stored window is the answered consults
+   ending at its mark, the recent one those ending at the log's last, and a consult logged later with
+   an equal or earlier clock is still after the mark. */
+const sharedConsults = (recent, total, reading) => {
+  const [held, since] = [reading.mark - reading.now.consults + 1, total - recent + 1];
+  const shared = Math.max(0, Math.min(reading.mark, total) - Math.max(held, since) + 1);
+  return { shared, ahead: shared ? Math.max(0, held - since) : 0 };
+};
+
+const overlapIn = (recent, total, reading) => {
+  const { shared, ahead } = sharedConsults(recent, total, reading);
+  return overlapOf(shared, recent, MARK, ahead);
+};
+
 /** The comparison in the outer shape `stats eval --json` prints (`evalRuns` in stats/eval/eval.mjs). */
 export const compared = (now, before, verdicts, total, against = null) => comparedWindows({
   size: MARK,
   total,
   against,
+  overlap: against ? overlapIn(now.length, total, against) : undefined,
   now: windowObject(now, verdicts),
   before: against ? against.now : before.length ? windowObject(before, verdicts) : null,
   separates: changedBetween,
@@ -340,7 +361,22 @@ export const crossingSaid = ({ mark, at, said, entries }) => {
   /* Which machine asked, and no scope: what a consult reading is held under is `marks.mjs`. */
   const wrote = writeMark({ kind: CONSULTS, mark, at: new Date().toISOString(), device: deviceOf(),
     ...evalObject(entries.slice(0, at + 1)) });
-  return `${said} ${wroteSaid(wrote, mark, "forge codex eval")}`;
+  const ahead = { count: Math.min(MARK, mark), size: MARK, terms: CONSULT_TERMS };
+  return `${said} ${wroteSaid(wrote, mark, "forge codex eval", ahead)}`;
+};
+
+/* What the anchor resolver needs of the recent window, and how this verb names a reading and asks for it. */
+const recentOf = (entries) => {
+  const { now, total } = evalWindows(entries);
+  return {
+    sharedWith: (reading) => sharedConsults(now.length, total, reading),
+    rows: now.length,
+    size: MARK,
+    terms: CONSULT_TERMS,
+    nameOf: (one) => `mark ${one.mark}`,
+    askOf: (one) => `forge codex eval --against ${one.mark}`,
+    slide: "forge codex eval",
+  };
 };
 
 const WINDOW_FLAGS = ["--last", "--days", "--root", "--here"];
@@ -354,9 +390,11 @@ export const printEval = (argv) => {
       + "that takes a window.");
   }
   const { json } = flags(rest, "codex eval", ["--json"], { usage: EVAL_USAGE });
+  const entries = logEntries();
   const stored = against === undefined ? null
-    : resolveAgainst(CONSULTS, against, { verb: "codex eval", list: "forge codex marks", writes: WRITES });
-  const held = evalObject(logEntries(), stored);
+    : resolveAgainst(CONSULTS, against, { verb: "codex eval", list: "forge codex marks", writes: WRITES,
+      recent: recentOf(entries) });
+  const held = evalObject(entries, stored);
   if (json) return console.log(JSON.stringify(held, null, 2));
   if (!held.now.consults) return console.log(`No answered consult logged yet, so there is nothing to compare. ${logPath()}`);
   for (const line of evalLines(held)) console.log(line);

@@ -34,6 +34,7 @@ import { exclusive, flags, partition, pullRepeated, unknownFlag, wantsHelp } fro
 import { dispositionOf, localGuide, localRows, localSlugs, trackerHeader, visibleGuides, withholds } from "./guides/guides.mjs";
 import { briefGoals, servesOwed } from "./tracker/knowledge/brief.mjs";
 import { goalBlock } from "./goals.mjs";
+import { typedBack } from "./refusal.mjs";
 import { finderSaid, notAnothers, renew } from "./flow/lease.mjs";
 import { retiredFlagIn } from "./resolve/retiring.mjs";
 
@@ -83,9 +84,6 @@ const offsetFrom = (raw) => {
   if (!Number.isInteger(value) || value < 0) fail(`--offset takes an integer from 0 up, not \`${raw}\`.`);
   return value;
 };
-
-/* The footer below is a command a reader pastes, so a value a shell would split travels quoted. */
-const typedBack = (value) => (/^[\w.:@/-]+$/u.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`);
 
 /* The next page's whole call in the caller's own terms, because a footer naming a flag already at its ceiling is the unactionable advice ISS-264 was closed on. */
 const nextCall = (asked, offset) => [

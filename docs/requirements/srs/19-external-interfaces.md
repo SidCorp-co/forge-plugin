@@ -244,6 +244,12 @@ it. Reading is all this product does there.
   WHERE a stored reading is named as the before window the CLI SHALL compare the current window with
   the recent window that reading holds, through the reader the sliding comparison uses, and SHALL say
   that the two overlap where they do.
+- **AC-19-8-133** · Rev: 1 · Proof: plugin/test/stats/marks/overlap.test.mjs "a reading sharing most of the recent window is refused with what it shares, what it owes and the newest reading sharing none"
+  IF a stored reading named as the before window shares more than half of the current window THEN
+  the CLI SHALL refuse the comparison, naming how much the two share and how much more has to
+  arrive before it can be read, and SHALL take for an anchor flag given no value the newest reading
+  that shares none of the current window, because a figure read off two windows that are mostly
+  the same rows looks like a comparison and answers none.
 - **AC-19-8-10** · Rev: 1 · Proof: plugin/test/stats/corpus/guide-parts.test.mjs "guide parts are a table of their own — calls, runs, runs that read again — and the class table keeps one row"
   WHEN a profile is printed THEN the CLI SHALL list each guide part the window's runs read with its
   calls, the runs that read it and the runs that read it more than once, read off the call's own

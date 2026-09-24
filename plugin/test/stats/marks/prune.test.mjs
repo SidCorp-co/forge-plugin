@@ -252,7 +252,7 @@ test("every consumer of a stored reading reads the same with the two fields and 
   const release = "3.35.950";
   /* The log the consult eval compares against, and the reading held over it: planted the same in
      both homes, what is under test being the stored side of that comparison and not the live one. */
-  const logged = Array.from({ length: 120 }, (one, n) => ({
+  const logged = Array.from({ length: 150 }, (one, n) => ({
     kind: "consult", ok: true, id: `p${n}`, at: new Date(Date.UTC(2026, 8, 5) + n * 60_000).toISOString(),
     root: "/planted", reply: "CODEX: 0 findings",
   }));
@@ -265,9 +265,12 @@ test("every consumer of a stored reading reads the same with the two fields and 
     assert.match(await releaseMark(PROJECT, { version: release, head: "abc1234", issues: ["ISS-2106"] }),
       new RegExp(`held as ${release.replace(/\./gu, "\\.")}`, "u"));
     assert.equal(writeMark({ kind: CONSULTS, mark: 100, at: at(52), device: "fixture-device",
-      ...evalObject(logged) }), WRITTEN);
+      ...evalObject(logged.slice(0, 100)) }), WRITTEN);
     captured = readFileSync(marksPath(), "utf8").trim().split("\n");
     assert.equal(captured.length, 3, "one record per writer, as the store holds them");
+    /* Half a window past every mark on both sides, so each consumer below is a reading: a stored
+       reading sharing most of the recent window is refused, which says nothing about the two fields. */
+    corpusOf(125, room);
   } finally {
     Object.assign(process.env, was);
   }
