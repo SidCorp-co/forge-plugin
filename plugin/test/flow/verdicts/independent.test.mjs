@@ -12,7 +12,8 @@ import { tempHome } from "../../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempHome("verdict-independent").path;
 const { render } = await import("../../../src/flow/record/page.mjs");
 const { NO_VERIFICATION, deployedOwed, judgedOwed, viewFrom } = await import("../../../src/flow/earned.mjs");
-const { JUDGE_FROM } = await import("../../../src/flow/machine.mjs");
+const { JUDGE_FROM, SHAPES } = await import("../../../src/flow/machine.mjs");
+const { blocksIn } = await import("../../../src/flow/record/record.mjs");
 const { judgeAsk, judgeProblem, judgedAt } = await import("../../../src/flow/qa/verdicts.mjs");
 const { releaseFrom } = await import("../../../src/tracker/project-config.mjs");
 
@@ -208,8 +209,8 @@ test("a judge refused on a checkpoint holding no identity is handed the verdict 
     { issue: { sessionContext: { landing: ORDINARY } } });
   assert.equal(asked.length, 1, `one item: ${asked.map((one) => one.what)}`);
   assert.equal(asked[0].command,
-    "forge record verdict ISS-8 --verdict <pass|fail|skipped|short> --criterion 1 --criterion 2 "
-      + `--commit ${MERGED.slice(0, 7)} --evidence <what you exercised>`,
+    `forge record verdict ISS-8 --commit ${MERGED.slice(0, 7)} --evidence <what you exercised> `
+      + "--verdict <pass|fail|skipped|short> --criterion 1 --criterion 2",
     "the verdict write, with what there is to cite named where no identity stands in for it");
   assert.doesNotMatch(asked[0].command, /forge resume/u);
 });
@@ -303,6 +304,22 @@ test("the problem a verdict has is one reading, so a caller outside the check re
   assert.match(judgeProblem(verdictOf(1, { judge: BUILDER }), CHECKPOINT), /the builder's own id/u);
   assert.match(judgeAsk("ISS-8", 1, { deployment: DEPLOYED }), /--commit <sha> /u,
     "a checkpoint the shape does not hold whole still prints a typeable command, not an empty flag");
+});
+
+/* The verb gives each block what stands before the first --criterion and nothing after it, so a
+   command naming the commit after the list handed it to the last criterion alone, and the others fell
+   back to whatever the latest verdict cited — under a second judge, the builder's own (ISS-2371). */
+test("the judge's write for several criteria gives every criterion the commit and the evidence", () => {
+  const command = judgeAsk("ISS-8", [1, 2], { head: MERGED, deployment: DEPLOYED });
+  const argv = command.split(" ").slice(4);
+  const single = SHAPES.verdict.fields.filter((one) => !one.many).map((one) => `--${one.flag}`);
+  const blocks = blocksIn(argv, "criterion", single, "record verdict");
+  const valueOf = (block, flag) => block[block.indexOf(flag) + 1];
+  assert.equal(blocks.length, 2, command);
+  for (const block of blocks) {
+    assert.equal(valueOf(block, "--commit"), MERGED.slice(0, 7), `every block carries the head: ${block}`);
+    assert.equal(valueOf(block, "--evidence"), DEPLOYED.slice(0, 7), `and cites the deployment: ${block}`);
+  }
 });
 
 /* The window the capture is taken in closes at the merge, so an issue whose run died inside it
