@@ -2,8 +2,9 @@
 
 **The log is the session.** There is no session id, so a consult opens with this repository's last
 three answered ones and their verdicts. Findings are numbered `F1…` across angles and a verdict names
-them — `--accepted F1,F3 --rejected F2=why`, never a count: 185 accepted to 14 rejected was the count
-form saying nothing. What is replayed is the findings, the rulings and what became of each, not the
+them — `--accepted F1,F3 --rejected F2=why`, and `--misreasoned F4=why` for one right about what and
+wrong about why, which [the finding](codex-the-finding.md) explains, never a count: 185 accepted
+to 14 rejected was the count form saying nothing. What is replayed is the findings, the rulings and what became of each, not the
 prose: the gateway reported no cache creation in 108 consults, so every replayed character was paid for
 on every call. A recheck's REFUTED rulings record themselves as the verdict on the consult they judged
 (CONFIRMED stays open) over every finding the author has not ruled on; one they have keeps the ruling
@@ -93,17 +94,6 @@ mark landing on one would pass in silence and never come round. The verb puts th
 the hundred before, per model and prompt version, through these same readers, and names what separates
 the windows — a slot, the model behind it, a prompt version, an effort — so the numbers are read
 against whatever upgrade lies between. Its write at the mark: stats-the-mark.md.
-
-**A finding can be right about what and wrong about why.** `--misreasoned F1=<why>` rules one whose
-conclusion held and whose stated mechanism did not. An acceptance cannot say that, so a reviewer that
-reasons well and one that guesses a mechanism and lands on a true conclusion read the same, and at a
-hundred percent kept the figure cannot rank the prompt versions it exists for. The ruling is a mark
-on the accepted side rather than a side of its own, because the question a commit asks is whether a
-finding survived, and this one did. From that ruling on, a plain `--accepted` is the claim that the
-finding was right about both. So `eval` puts the share right about how beside the share kept, and
-counts it only over findings ruled one way or the other. A finding accepted before the ruling
-existed, or taken by a recheck, has no mechanism ruling and adds nothing to that share. Guessing
-which of those were right would invent the very data the share measures (ISS-1823).
 
 What a row of this log can be replayed into, and what a rebuild proves, is
 [`codex — the replay`](codex-the-replay.md).
