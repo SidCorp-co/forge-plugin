@@ -72,6 +72,7 @@ how many topics there may be.
 | [codex — the complexity](cli/codex-the-complexity.md) | Why a proposed complexity is never the field, why the confidence gates nothing, why no date travels, which model answers and why its family is not refused, and what the measurement must show first. |
 | [codex — the request](cli/codex-the-request.md) | Which cache the request is written for, what a consult replays, what a path may reach, and what the reviewer's tools mean by no argument. |
 | [codex — the log](cli/codex-the-log.md) | What the log makes a session out of, what the stats window answers, and what makes anyone run it. |
+| [codex — the eval](cli/codex-the-eval.md) | Why a reading short of two windows is judged rather than only counted, what tells a log that lost depth from a young one, and why every consult reading on the device is searched. |
 | [codex — the commit gate](cli/codex-the-commit.md) | What a commit is asked for, what that demand is scoped to where a checkout is shared, and why the switch that turns the gate off is named rather than an environment variable. |
 | [codex — the replay](cli/codex-the-replay.md) | What proves a past payload can be rebuilt, which two cases refuse a row rather than replay it loosely, the one text the log keeps and its caps, and what a share of a window is worth. |
 | [`beside`](cli/beside.md) | The two questions the create path asks before it files, and the floor. |

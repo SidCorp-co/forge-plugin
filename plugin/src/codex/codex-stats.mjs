@@ -258,7 +258,7 @@ const windowLines = (held) => {
 
 /* The window lines say what was selected; this says whether it was evidence. A log that lost its
    depth prints the same counts as a young one, so only a reading held when it was deeper separates
-   the two (ISS-1373, the consult side of ISS-1328). A reading stored before the judgement existed
+   the two — docs/cli/codex-the-eval.md. A reading stored before the judgement existed
    carries none, and is judged by nothing here. */
 const judgedLines = (held) => {
   const said = held.comparability;

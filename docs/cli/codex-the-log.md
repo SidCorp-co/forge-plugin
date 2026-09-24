@@ -94,13 +94,8 @@ mark landing on one would pass in silence and never come round. The verb puts th
 the hundred before, per model and prompt version, through these same readers, and names what separates
 the windows — a slot, the model behind it, a prompt version, the effort rung the request carried —
 so the numbers are read
-against whatever upgrade lies between. A reading either of whose windows falls short of a hundred is
-judged not a comparison in a line of its own, as `forge stats eval` judges its runs (ISS-1373): this
-log can lose depth as the run corpus can, and a log that did prints the same counts as a young one.
-So the line also says how far back the log reaches against the consult readings held on this device,
-each read for the log's floor it recorded, or its window's where it recorded none, and where none
-reaches earlier it says the record is silent rather than that the log was never deeper. Its write at
-the mark: stats-the-mark.md.
+against whatever upgrade lies between. Its write at the mark: stats-the-mark.md; its
+judgement: [the eval](codex-the-eval.md).
 
 What a row of this log can be replayed into, and what a rebuild proves, is
 [`codex — the replay`](codex-the-replay.md).

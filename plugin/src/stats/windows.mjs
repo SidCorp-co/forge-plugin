@@ -21,7 +21,7 @@ export const comparedWindows = ({ size, total, against, overlap, now, before, se
 });
 
 /** Why a first reading is no comparison: nothing was measured ahead of its window. */
-export const NO_WINDOW_BEFORE = "there is no window before it";
+const NO_WINDOW_BEFORE = "there is no window before it";
 
 /** Whether a reading is a comparison, and each way it falls short, over the rows each window holds —
  *  `before` null where there is no window — so each harness counts its own unit and says it in the

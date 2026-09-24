@@ -29,7 +29,7 @@ export const reachOf = (scope, from, kinds = PROJECT_KINDS) =>
   (Number.isFinite(from) ? { from, earlier: earlierReach(scope, from, kinds) } : null);
 
 /** What a corpus is called and whose depth a reading once saw, in the words of the harness asking. */
-export const PROJECT_REACH = { corpus: "corpus", whose: "this project", held: "held for this project" };
+const PROJECT_REACH = { corpus: "corpus", whose: "this project", held: "held for this project" };
 export const DEVICE_REACH = { corpus: "log", whose: "this device", held: "held on this device" };
 
 /* What a reader told only that depth is gone cannot work out: which of the places the corpus was read from the system sweeps, and so whether the loss is the host's or this reading's (ISS-1578). */
