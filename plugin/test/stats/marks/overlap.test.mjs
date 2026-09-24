@@ -7,7 +7,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
-import { WINDOW, evalRuns, runsMark } from "../../../src/stats/eval/eval.mjs";
+import { WINDOW, evalRuns, flagsAsked, runsMark } from "../../../src/stats/eval/eval.mjs";
 import { overlapOf } from "../../../src/stats/marks/overlap.mjs";
 import { CONSULTS, writeMark } from "../../../src/stats/marks/marks.mjs";
 import { evalObject } from "../../../src/codex/codex-stats.mjs";
@@ -135,4 +135,12 @@ test("the consult eval refuses a mark sharing most of its recent window, by plac
   assert.equal(asked.stderr.trim(), "codex eval: mark 100 shares 70 of the recent 100 consult(s), so most of both sides "
     + "would be the same consult(s); it can be read once 20 more have been answered, and shares none once 70 have. "
     + "`forge codex eval` compares the recent window with the one before it, which share nothing.");
+});
+
+test("a checkout a refusal names back reaches a shell as the one argument it was typed as", () => {
+  for (const checkout of ["/work/plain-app", "/work/$HOME/app", "/work/`id`/app", "/work/a; rm -rf x", "/work/it's here"]) {
+    const typed = spawnSync("bash", ["-c", `printf '%s\\n' forge stats eval${flagsAsked(checkout, "20")}`], { encoding: "utf8" });
+    assert.deepEqual(typed.stdout.trimEnd().split("\n"), ["forge", "stats", "eval", "--checkout", checkout, "--size", "20"],
+      `nothing in ${checkout} is expanded, split or run`);
+  }
 });

@@ -583,8 +583,9 @@ const recentOf = (corpus, size, asked, nameOf, flagOf) => {
   };
 };
 
-const typed = (value) => (/[\s"'$`\\]/u.test(value) ? JSON.stringify(value) : value);
-const flagsAsked = (checkout, size) =>
+/* A command a reader pastes, so a checkout a shell would split or expand travels single-quoted. */
+const typed = (value) => (/^[\w.:@/-]+$/u.test(value) ? value : `'${value.replaceAll("'", "'\\''")}'`);
+export const flagsAsked = (checkout, size) =>
   (checkout === undefined ? "" : ` --checkout ${typed(checkout)}`) + (size === undefined ? "" : ` --size ${size}`);
 
 export const printEval = async (argv) => {
