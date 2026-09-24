@@ -294,14 +294,18 @@ export const evalLines = (held) => {
 
 export const MARKS_USAGE = [
   "Usage: forge codex marks",
-  "The readings held on this device, one line each, newest first.",
+  `The consult readings held on this device, one line each, newest first: each the window of ${MARK}`,
+  "answered consults that the consult crossing a hundred-mark wrote, and each a mark",
+  "`forge codex eval --against` takes. The readings of this project's issue-flow runs are",
+  "`forge stats marks`.",
 ].join("\n");
 
 export const STATS_USAGE = [
   "Usage: forge codex stats [--last n] [--days n] [--root p] [--here]",
-  "What the harness did over a window: calls against their budget, replies that could not check,",
-  "rechecks that raised something New, tokens by kind, and the prompt versions that ran; then a pass",
-  "beside a recheck, each with its own count, cache share and calls histogram.",
+  "What the consults of a window cost and did: calls against their budget, replies that could not",
+  "check, rechecks that raised something New, tokens by kind, and the prompt versions that ran; then",
+  "a pass beside a recheck, each with its own count, cache share and calls histogram. Where the",
+  "issue-flow runs of a window spent their time and rounds is `forge stats runs`.",
   "",
   "  --last n       consults back from the newest",
   "  --days n       consults inside that many days instead",
@@ -325,7 +329,7 @@ export const EVAL_USAGE = [
   `The last ${MARK} answered consults on this device against the ${MARK} before them, over every project`,
   "the log holds, per model, effort and prompt. The consult that crosses a hundred-mark writes the",
   "comparison once, and --against puts that reading in the before window's place. `forge codex stats`",
-  "takes a window.",
+  "takes a window. The same comparison over this project's issue-flow runs is `forge stats eval`.",
   "",
   "  --against [<mark>]  the reading held at that mark as the before window, or alone the newest held",
   "                      that shares none of the recent window; one sharing more than half of it is",
