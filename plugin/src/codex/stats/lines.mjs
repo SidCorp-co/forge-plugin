@@ -1,5 +1,5 @@
 /* The one printer of the consult log's figures, off the objects `figures.mjs` returns: a window,
-   a group of it, and a group on either side of the eval's two windows. docs/cli/codex-the-log.md. */
+   a group of it, and a group on either side of the eval's two windows. docs/cli/codex-the-stats.md. */
 import { WHEN } from "../../stats/windows.mjs";
 
 export const share = (many, of) => (of ? `${Math.round((many / of) * 100)}%` : "—");
@@ -39,7 +39,7 @@ export const scoreLine = (label, row) =>
   + `${String(row.median).padStart(4)}s median  ${row.input ? Math.round((row.cached / row.input) * 100) : 0}% cached`;
 
 /** A group's stats half on the line under its score. */
-export const groupStatLine = (held) =>
+const groupStatLine = (held) =>
   `${" ".repeat(24)} ${held.rechecks} recheck(s), ${held.raisedNew} raised New  ${held.incomplete} could not check  `
   + `${held.atBudget} of ${held.budgeted} ended at budget  ${held.retried} retried at the ceiling`;
 

@@ -1,14 +1,14 @@
 /* The one reader of the consult log's figures: a group of answered consults in, its figures out,
    whatever the rows were grouped by. `stats` groups a window by nothing, by model or by prompt, and
    `eval` groups two windows by model and prompt at once; each asks this module, so a figure is
-   defined once and two verbs quoting it cannot disagree (ISS-349). docs/cli/codex-the-log.md. */
+   defined once and two verbs quoting it cannot disagree (ISS-349). docs/cli/codex-the-stats.md. */
 import { answered, verdictsBy } from "../codex-log.mjs";
 import { countedIn, modelKey, numbered, ruledOn } from "../log/replies.mjs";
 import { incompleteIn, newFindingsIn } from "../codex-plan.mjs";
 import { groupBy } from "../../stats/windows.mjs";
 import { median } from "../../stats/median.mjs";
 
-export const KINDS = ["input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens", "output_tokens"];
+const KINDS = ["input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens", "output_tokens"];
 
 /* Unknown, never assumed: `--rounds` and `codex.rounds` were both settable before the budget was
    recorded, so calling an old row three would misclassify exactly the rate it is quoted for. What
@@ -88,7 +88,7 @@ const scoreFigures = (rows, scored) => {
 };
 
 /** One group's figures, both halves, computed once: `scored` is the verdict of each consult, keyed as `verdictsBy` keys it. */
-export const figuresOf = (rows, scored) => ({ consults: rows.length, score: scoreFigures(rows, scored), stats: statsOf(rows) });
+const figuresOf = (rows, scored) => ({ consults: rows.length, score: scoreFigures(rows, scored), stats: statsOf(rows) });
 
 /** Every group of `rows` under `keyOf`, in the order each key first appears, the verdicts read once for all of them. */
 export const groupsOf = (rows, verdicts, keyOf) => {

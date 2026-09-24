@@ -1,4 +1,4 @@
-/* What a reviewer's reply says, and what a round then makes of it: the count it gives of itself, the findings and their ids, the rulings a recheck answers with, the digest a later request replays instead of the prose, the record a disposition becomes, what is still undecided, what a recheck has to verify, and the per-model score the log is kept as an eval set for. Nothing here opens the file — it is handed rows, which is what keeps the dependency running one way. docs/cli/codex-the-log.md. */
+/* What a reviewer's reply says, and what a round then makes of it: the count it gives of itself, the findings and their ids, the rulings a recheck answers with, the digest a later request replays instead of the prose, the record a disposition becomes, what is still undecided, and what a recheck has to verify. Nothing here opens the file — it is handed rows, which is what keeps the dependency running one way. docs/cli/codex-the-log.md. */
 import { ANGLES } from "../codex-api.mjs";
 import { HUMAN_REF } from "../../tracker/issues.mjs";
 import { jsonlBack, jsonlMark } from "../../hooks/log/hook-log-file.mjs";
