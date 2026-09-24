@@ -106,3 +106,8 @@ is not: [the brief](the-brief.md).
 
 Which subject each row and each flag belongs to, which level a row carries, and what a bare reading
 withholds: [the subjects](the-subjects.md).
+
+**The scratch row sits under the session id because it is the same question asked of a
+directory**, and it is a note and never a miss: a session nobody dispatched reads its id off the host
+exactly as one run of a wave does, so doctor cannot tell a box that is right from one that is shared,
+and says what follows where the run was dispatched rather than failing it (ISS-1344).

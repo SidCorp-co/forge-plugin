@@ -81,5 +81,7 @@ identity of your own costs you: there is no tree to stand in for one, and no sec
 looking for.
 
 Your captures do need somewhere to go, and it is outside the checkout you are judging — the directory
-this run was given for its own scratch, or the system's temporary one where it was given none. A file
-left inside a checkout is a write into the very thing you were sent to judge.
+this run was given for its own scratch, or where it was given none, a directory you make for yourself
+in the system's temporary one. A directory keyed on the session id you inherited is the whole wave's,
+and a sibling writing the same name there replaces your capture with nothing said. A file left inside
+a checkout is a write into the very thing you were sent to judge.

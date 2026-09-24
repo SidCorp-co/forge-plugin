@@ -35,6 +35,7 @@ import { masked } from "./services/masked.mjs";
 import { copyToRun, FROZEN } from "./plugin-copy.mjs";
 import { stubRows } from "./services/skill-stubs.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
+import { scratchRow } from "../resolve/session/scratch.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
@@ -65,6 +66,11 @@ const checkSession = () => {
     return line(OK, "session id", `none held yet — the next verb needing one mints it and saves it at ${sessionPath()}`);
   }
   return line(source === INHERITED ? NOTE : OK, "session id", `${id}  ← ${said}`);
+};
+
+const checkScratch = () => {
+  const { owed, said } = scratchRow();
+  line(owed ? NOTE : OK, "scratch", said);
 };
 
 /* A gate a switch of its own holds down, read from the gates: printing one undo while another
@@ -446,6 +452,7 @@ export const doctor = async (argv) => {
   if (token.value) line(OK, "token", `${masked(token.value, full)}  ← ${token.from}`);
   else line(BAD, "token", "run `forge doctor --token <pat>` to save one");
   checkSession();
+  checkScratch();
 
   const stale = mcpForgeIgnored();
   /* Each half is named separately: a project whose credentials are already saved and whose slug
