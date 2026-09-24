@@ -76,17 +76,19 @@ const headsSaid = (brief) => {
 
 const leased = (brief) => {
   const one = brief.lease;
-  if (!one) return [];
+  /* Through the readers the refusals use, so this and `--take` cannot say different things. Printed
+     with no lease too: a run that finished gave its lease back and left the checkpoint (ISS-2073). */
+  const landing = brief.landing
+    ? [landingLine(brief.landing), `  whose turn: ${landingTurn(brief.landing) ?? "nobody's — the state names none"}`,
+      ...headsSaid(brief)]
+    : [];
+  if (!one) return landing;
   return [
     `${one.state}: session ${one.holder} (${one.agent}, pid ${one.pid}), renewed `
     + `${atMinute(one.renewedAt)} for ${one.minutes} minute(s), ${one.claims} claim(s) on the record`,
     ...(one.holderShared ? [SHARED_HOLDER] : []),
     ...(one.holderWorking ? workingSaid(one.holderWorking, one).split("\n") : []),
-    /* Through the readers the refusals use, so this and `--take` cannot say different things. */
-    ...(brief.landing
-      ? [landingLine(brief.landing), `  whose turn: ${landingTurn(brief.landing) ?? "nobody's — the state names none"}`,
-        ...headsSaid(brief)]
-      : []),
+    ...landing,
   ];
 };
 

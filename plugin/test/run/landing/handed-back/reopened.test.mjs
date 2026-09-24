@@ -63,6 +63,14 @@ test("a reopened issue's second landing captures the fix over the first one's do
   assert.ok(brief.stdout.includes(`heads: the checkpoint answers for the landing it names at \`done\`, at `
     + `${short(first.head)}, and the worklog for a later capture, at ${short(tip)}, which the second landing begins with:\n`
     + `      forge claim ${KEY} --pushed --ready`), `the brief says which head each block answers for:\n${brief.stdout}`);
+  /* And with no lease on the issue, which is how a finished run leaves it. */
+  const { lease, ...unleased } = context();
+  issue().sessionContext = unleased;
+  const bare = await builderRan(["resume", KEY]);
+  issue().sessionContext = { ...unleased, lease };
+  assert.equal(bare.status, 0, said(bare));
+  assert.ok(bare.stdout.includes(`the worklog for a later capture, at ${short(tip)}, which the second landing begins with:`),
+    `the brief says it with no lease on the issue too:\n${bare.stdout}`);
 
   const captured = await builderRan(["claim", KEY, "--pushed", "--ready"]);
   assert.equal(captured.status, 0, said(captured));
