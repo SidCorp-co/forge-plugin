@@ -283,7 +283,7 @@ test("a transcript holding an advisor result stops neither the consult after it 
 
 /* A gate that meets `fail()` — the tracker turning its token down — stands down in the answer rather than ending the
    process with an empty stdout, which a session reads as the gate allowing, and the line goes on (ISS-215). */
-const REFUSED = "../../test/refused-gate";
+const REFUSED = "../../test/fixtures/refused-gate";
 
 test("a gate refused through fail() stands down in the answer, and the gate after it still refuses", () => {
   const cwd = dirtyRepo();
