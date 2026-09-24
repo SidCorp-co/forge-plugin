@@ -7,13 +7,13 @@ import test, { after, before } from "node:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { dirtyRepo, git, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
-import { trackerFor } from "../../fixtures/own-project.mjs";
+import { dirtyRepo, git, ranAsync, tempHome, tempRoom } from "../../../fixtures.mjs";
+import { trackerFor } from "../../../fixtures/own-project.mjs";
 
 process.env.XDG_CONFIG_HOME = tempHome("judged-tree").path;
-const { uncommittedOver } = await import("../../../src/flow/worklog.mjs");
+const { uncommittedOver } = await import("../../../../src/flow/worklog.mjs");
 
-const FORGE = new URL("../../../bin/forge", import.meta.url).pathname;
+const FORGE = new URL("../../../../bin/forge", import.meta.url).pathname;
 const head = (room) => git(room, "rev-parse", "HEAD").stdout.trim();
 
 /* One checkout with an older commit under its head and a tracked file changed on top; one that is
