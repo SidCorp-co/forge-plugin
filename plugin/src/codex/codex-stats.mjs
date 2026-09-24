@@ -14,9 +14,10 @@ import { incompleteIn, newFindingsIn, rungIn } from "./codex-plan.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
-import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, tallied, twoWindows } from "../stats/windows.mjs";
+import { WHEN, comparabilityOf, comparedWindows, groupBy, shiftBetween, shiftLine, tallied, twoWindows } from "../stats/windows.mjs";
 import { CONSULTS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "../stats/marks/marks.mjs";
 import { overlapOf } from "../stats/marks/overlap.mjs";
+import { DEVICE_REACH, reachOf, reachSaid } from "../stats/marks/reach.mjs";
 import { deviceOf } from "../resolve/machine/device.mjs";
 
 const DEFAULT_WINDOW = 100;
@@ -242,21 +243,33 @@ const shown = (shifts) => {
    key folds slots and efforts together and a stored window has no rows to ask. */
 export const changedBetween = (now, before) => shiftBetween(now.mix, before.mix);
 
-const evalHead = (held) => {
+const windowLines = (held) => {
   const { now, before } = held;
   const span = (window) => `${window.from} to ${window.to}`;
   const first = `the last ${now.consults} answered consult(s)  ${span(now)}`
     + (now.consults < MARK ? `  — ${MARK} is a full window and the log holds no more` : "");
-  if (!before) {
-    return [first, `no window before them: the log holds ${now.consults} answered consult(s) in all, so there is `
-      + "nothing yet to compare this one against."];
-  }
+  if (!before) return [first, `no window before them: the log holds ${held.total} answered consult(s) in all.`];
   if (held.against !== undefined) {
     return [first, heldAtMark(before.consults, held.against, span(before), held.overlap, CONSULT_TERMS)];
   }
   return [first, `the ${before.consults} before them  ${span(before)}`
     + (before.consults < MARK ? `  — the log does not reach a full ${MARK} further back` : "")];
 };
+
+/* The window lines say what was selected; this says whether it was evidence. A log that lost its
+   depth prints the same counts as a young one, so only a reading held when it was deeper separates
+   the two — docs/cli/codex-the-eval.md. A reading stored before the judgement existed
+   carries none, and is judged by nothing here. */
+const judgedLines = (held) => {
+  const said = held.comparability;
+  if (!said || said.comparable) return [];
+  return [
+    `not a comparison: ${said.short.join(", and ")}, over a log holding ${held.total} answered consult(s) in all.`,
+    ...(said.reach ? [`  ${reachSaid(said.reach, [], DEVICE_REACH)}.`] : []),
+  ];
+};
+
+const evalHead = (held) => [...windowLines(held), ...judgedLines(held)];
 
 /** The screen, off the object `--json` prints: one reader for a live before and a stored one. */
 export const evalLines = (held) => {
@@ -379,20 +392,31 @@ const withRungs = (window) => {
   return { ...window, mix, groups };
 };
 
-/** The comparison in the outer shape `stats eval --json` prints (`evalRuns` in stats/eval/eval.mjs). */
-export const compared = (now, before, verdicts, total, against = null) => comparedWindows({
-  size: MARK,
-  total,
-  against,
-  overlap: against ? overlapIn(now.length, total, against) : undefined,
-  now: windowObject(now, verdicts),
-  before: against ? withRungs(against.now) : before.length ? windowObject(before, verdicts) : null,
-  separates: changedBetween,
-});
+/** The comparison in the outer shape `stats eval --json` prints (`evalRuns` in stats/eval/eval.mjs).
+ *  `reach` is how far back the log goes against the readings held, which `evalObject` reads. */
+export const compared = (now, before, verdicts, total, against = null, reach = null) => {
+  const nowHeld = windowObject(now, verdicts);
+  const beforeHeld = against ? withRungs(against.now) : before.length ? windowObject(before, verdicts) : null;
+  return comparedWindows({
+    size: MARK,
+    total,
+    against,
+    overlap: against ? overlapIn(now.length, total, against) : undefined,
+    now: nowHeld,
+    before: beforeHeld,
+    comparability: comparabilityOf({ size: MARK, now: nowHeld.consults, before: beforeHeld?.consults ?? null, reach }),
+    separates: changedBetween,
+  });
+};
+
+/* The log's own floor, its first answered consult, and never the recent window's: a window on a
+   deep log begins long after the log does, and the reading a crossing stores is read back for how
+   deep the log went. Every consult reading held is searched, being the device's as the log is. */
+const logReach = (entries) => reachOf(null, Date.parse(answered(entries)[0]?.at), [CONSULTS]);
 
 export const evalObject = (entries, against = null) => {
   const { now, before, total } = evalWindows(entries);
-  return compared(now, before, entries.filter((one) => one.kind === "verdict"), total, against);
+  return compared(now, before, entries.filter((one) => one.kind === "verdict"), total, against, logReach(entries));
 };
 
 /** What the consult that crossed a mark says, having written the reading once: the log as it stood
@@ -436,7 +460,7 @@ export const printEval = (argv) => {
       recent: recentOf(entries) });
   const held = evalObject(entries, stored);
   if (json) return console.log(JSON.stringify(held, null, 2));
-  if (!held.now.consults) return console.log(`No answered consult logged yet, so there is nothing to compare. ${logPath()}`);
+  if (!held.now.consults) return console.log(`No answered consult is in the log, so there is nothing to compare. ${logPath()}`);
   for (const line of evalLines(held)) console.log(line);
 };
 

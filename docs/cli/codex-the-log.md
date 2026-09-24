@@ -94,7 +94,8 @@ mark landing on one would pass in silence and never come round. The verb puts th
 the hundred before, per model and prompt version, through these same readers, and names what separates
 the windows — a slot, the model behind it, a prompt version, the effort rung the request carried —
 so the numbers are read
-against whatever upgrade lies between. Its write at the mark: stats-the-mark.md.
+against whatever upgrade lies between. Its write at the mark: stats-the-mark.md; its
+judgement: [the eval](codex-the-eval.md).
 
 What a row of this log can be replayed into, and what a rebuild proves, is
 [`codex — the replay`](codex-the-replay.md).
