@@ -28,9 +28,6 @@ import { printWavesEval } from "../waves/eval.mjs";
 import { typedBack } from "../../refusal.mjs";
 import { UNITS, durationOf } from "../window/duration.mjs";
 
-/* Re-exported for the case that reads the phrase through this module; its one definition is windows.mjs's. */
-export { NO_WINDOW_BEFORE } from "../windows.mjs";
-
 export const WINDOW = 50;
 
 /* Under this a median is one or two runs wearing a statistic, so the count prints and the median

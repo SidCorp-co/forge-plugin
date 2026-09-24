@@ -6,7 +6,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { NO_WINDOW_BEFORE, WINDOW, evalLines, evalRuns, releaseMark, runsMark } from "../../../src/stats/eval/eval.mjs";
+import { WINDOW, evalLines, evalRuns, releaseMark, runsMark } from "../../../src/stats/eval/eval.mjs";
+import { NO_WINDOW_BEFORE } from "../../../src/stats/windows.mjs";
 import { marksOf, marksPath, scopeOf, writeMark } from "../../../src/stats/marks/marks.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 import { escaped, tempRoom } from "../../fixtures.mjs";
