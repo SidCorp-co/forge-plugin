@@ -1,5 +1,5 @@
 /* The refusal reader `stats runs` and the waves share: docs/cli/stats-the-refusals.md */
-import { VERB_NAMES } from "../resolve/visibility.mjs";
+import { VERB_NAMES } from "../../resolve/visibility.mjs";
 
 const shortened = (line) =>
   (line.trim().slice(0, 110) || "(empty)").replaceAll(/ISS-\d+/gu, "ISS-nn").replaceAll(/[0-9a-f]{7,}/gu, "<sha>");

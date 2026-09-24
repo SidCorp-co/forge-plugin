@@ -28,7 +28,7 @@ import { add, medianOrZero, minutes, share, stamp } from "./figures.mjs";
 import { reachOf, reachSaid } from "./marks/reach.mjs";
 import { scopeOf } from "./marks/marks.mjs";
 import { claimedIn, parkWritersIn, rulingsIn } from "./joined.mjs";
-import { refusalIn } from "./refusals.mjs";
+import { refusalIn } from "./corpus/refusals.mjs";
 import { PHASES } from "../guides/phases.mjs";
 import { FORMS, READ_AS } from "../resolve/handler.mjs";
 import { fail } from "../resolve/settings.mjs";
