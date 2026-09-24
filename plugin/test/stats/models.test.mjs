@@ -84,6 +84,28 @@ test("a run that captured the ready checkpoint reached the landing, having calle
   assert.match(run.stdout, new RegExp(String.raw`^${OPUS}\s+reached the landing\s+0/1`, "mu"));
 });
 
+/* The verification record is the landing where the release reaches production on its own, and a
+   class every project has, so a checkout that declares no ship still reads a measured figure. */
+test("a run whose only landing is the verification record reached the landing, on a checkout declaring no ship", () => {
+  const room = tempRoom("stats-models-verified-");
+  indexIn(room, "session-one", "a0001.output",
+    transcriptOf([SONNET], "forge record verification ISS-99 --deployment prod"));
+  indexIn(room, "session-one", "a0002.output", transcriptOf([OPUS]));
+  const run = asked(room);
+  assert.equal(run.status, 0, run.stderr);
+  assert.match(run.stdout, new RegExp(String.raw`^${SONNET}\s+reached the landing\s+1/1`, "mu"));
+  assert.match(run.stdout, new RegExp(String.raw`^${OPUS}\s+reached the landing\s+0/1`, "mu"));
+});
+
+/* A cut row is keyed by its cell and its model, and the cap slices the top ten off this order, so
+   two arms of one size in one cell are ordered by the part of the key the run count left open. */
+test("two cut rows of one cell and one size are ordered by model, whichever was read first", () => {
+  const runs = [SONNET, OPUS].map((model, n) => runFrom(`/p/${n}`, `s${n}`, transcriptOf([model])));
+  const order = (held) => cutRows(held, null, null).map((row) => row.model);
+  assert.deepEqual(order(runs), [OPUS, SONNET]);
+  assert.deepEqual(order([...runs].reverse()), [OPUS, SONNET], "and reading them the other way round moves nothing");
+});
+
 test("a run at no rung keeps a row of its own in the cut", () => {
   const run = asked(corpus());
   assert.equal(run.status, 0, run.stderr);
@@ -222,6 +244,21 @@ test("an empty window answers a reader asking for JSON in JSON", () => {
   assert.equal(held.runs, 0);
   assert.equal(held.corpus, 5, "and the corpus behind the empty window is still counted");
   assert.deepEqual([held.models, held.cut, held.comparable], [[], [], []]);
+  assert.deepEqual([held.skipped, held.outsideWindow, held.unreadable], [0, 5, 0],
+    "and what the reading left out is said in JSON as it is in prose");
+});
+
+test("a window holding runs says in JSON what the reading left out", () => {
+  const room = corpus();
+  indexIn(room, "session-one", "a0006.output", [
+    JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "list the files" } }),
+    use("l0", 0, "Bash", { command: "ls" }),
+    result("l0", 1, "a b"),
+  ].join("\n"));
+  const held = JSON.parse(asked(room, "--json").stdout);
+  assert.equal(held.runs, 5);
+  assert.deepEqual([held.skipped, held.outsideWindow, held.unreadable], [1, 0, 0],
+    "the transcript that is no issue-flow run is counted as skipped");
 });
 
 test("an unreadable --since names stats models in its own refusal, not another subject's", () => {

@@ -19,8 +19,8 @@ const ACCEPTED = "consult findings accepted";
 const REJECTED = "consult findings rejected";
 const CORRECTED = "corrected after the run";
 
-/* Not that the landing succeeded, only that the run got that far. Both forms are `shipsIn`'s. */
-const reachedOn = (run) => run.ships.passes > 0 || run.ships.ready > 0;
+/* Not that the landing succeeded, only that the run got that far, read off the run's one reader of it. */
+const reachedOn = (run) => run.reached;
 
 const countFigure = (name, count, over, runs = over) =>
   ({ name, count: over > 0 ? count : null, over, runs });
@@ -122,7 +122,8 @@ export const cutRows = (runs, read, declared, unrecognised = []) =>
         spend: spendOf(mine, declared, unrecognised),
         got: gotOf(mine, read),
       })))
-    .sort((left, right) => right.runs - left.runs || left.cell.localeCompare(right.cell));
+    .sort((left, right) => right.runs - left.runs || left.cell.localeCompare(right.cell)
+      || left.model.localeCompare(right.model));
 
 /* Rows that name no model anyone could dispatch to: every figure of theirs prints, none is a side. */
 const BUCKETS = new Set([MODEL_MIXED, MODEL_NONE]);

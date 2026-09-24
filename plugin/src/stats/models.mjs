@@ -136,7 +136,8 @@ export const printModels = async (rest) => {
   const { corpus, runs, skipped, outsideWindow, unreadable, sources } =
     windowedIn(root, from, classesFor(declared, await phase7For(directory)));
   const aside = readingAside({ skipped, outsideWindow, unreadable });
-  const shape = { root, sources, project: directory };
+  /* What the reading left out travels in JSON as it does in prose, `stats runs` carrying the same three. */
+  const shape = { root, sources, project: directory, skipped, outsideWindow, unreadable };
   /* An empty window answers a reader asking for JSON in JSON: a consumer diffing two weeks meets the
      empty one first, and prose with a zero exit status is the shape it cannot parse. */
   if (!runs.length) {

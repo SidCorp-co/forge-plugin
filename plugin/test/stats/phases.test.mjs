@@ -272,7 +272,7 @@ test("a consult before the plan write is the plan's, and the review opens on the
    under the other, so a marker that opened a segment measured neither order's phase 6: the late
    note fell into phase 8, and the early one swallowed every call to the end of a run that never
    invoked the ship at all (ISS-1583). */
-const noteRun = (order) => {
+const noteRunOf = (order) => {
   const upTo5 = [
     ["p1", 10, "forge claim ISS-99"],
     ["p2", 20, "forge record baseline ISS-99 --gate 'npm run check' --result green"],
@@ -289,13 +289,17 @@ const noteRun = (order) => {
     unshipped: [[50, ...note], [70, "npm run check"], [90, "forge claim ISS-99 --pushed --ready"]],
   }[order];
   const calls = [...upTo5, ...tail.map(([start, command], n) => [`n${n}`, start, command])];
+  /* The closing report, well after the last result, so the tail the fold credits is a figure a case can read. */
+  const report = JSON.stringify({ timestamp: at(400), message: { role: "assistant", content: [{ type: "text", text: "done" }] } });
   const text = [
     JSON.stringify({ timestamp: at(0), type: "user", message: { role: "user", content: "Skill forge:issue-flow ISS-99" } }),
     ...calls.flatMap(([id, start, command]) =>
       [use(id, start, "Bash", { command }), result(id, start + 5, "done")]),
+    report,
   ].join("\n");
-  return runFrom("/f/a.output", "s", text).phases;
+  return runFrom("/f/a.output", "s", text);
 };
+const noteRun = (order) => noteRunOf(order).phases;
 
 test("the note is counted in phase 6 in either order, and opens no segment behind it", () => {
   const late = noteRun("after");
@@ -330,9 +334,27 @@ test("the note is counted in phase 6 in either order, and opens no segment behin
     "the checkpoint it leaves instead of a ship is the landing, and opens the phase the landing opens");
 });
 
-test("the profile says which order each run took over the note and the ship", () => {
+/* The note's row books its call at 6 and leaves the run where it was, so a run whose last call is
+   the note is still shipping when it closes, and the report after it is the shipping phase's. */
+test("the closing report is the phase the run stands in, never the phase the last call's row books", () => {
+  const late = noteRun("after");
+  assert.equal(late[6].seconds, 20, "the note keeps its own interval, from the gate's result to its own");
+  assert.equal(late[7].seconds, 345,
+    "and the 305 seconds from its result to the report land in the shipping phase with the ship and the gate");
+});
+
+/* The mode that lands a batch calls no ship and leaves the ready checkpoint, which is the landing
+   the phase table already opens on, so the order is read against it as against a ship. */
+test("a note posted before the ready checkpoint is posted before the landing", () => {
+  assert.equal(noteRunOf("unshipped").notes, "before", "a run that left the checkpoint reached the landing");
+  assert.equal(noteRunOf("unshipped").reached, true, "and says so on the one reader every verb spends");
+  assert.equal(noteRunOf("before").notes, "before");
+  assert.equal(noteRunOf("after").notes, "after");
+});
+
+test("the profile says which order each run took over the note and the landing", () => {
   const run = ask(corpus());
-  assert.match(run.stdout, /^notes {11}0 posted before a ship, 0 after one, 0 in a run that never shipped$/mu,
+  assert.match(run.stdout, /^notes {11}0 posted before the landing, 0 after it, 0 in a run that never reached it$/mu,
     "the fixture run posts none, and three zeroes is the answer rather than a missing line");
   assert.equal(segmented([{ class: "forge record note" }, { class: "read" }])[1].phase, 0,
     "the note moves the phase for nothing after it, which is what the two orders need");

@@ -18,7 +18,7 @@ import {
 import { declaredIn, declaredSaid } from "./corpus/declared.mjs";
 import { TABLE } from "./corpus/generations.mjs";
 import { actLines, phase7For } from "./corpus/release.mjs";
-import { FLOW_BRIEF, PRICES, callsIn, markerOf, modelRun, rungRun } from "./corpus/transcripts.mjs";
+import { FLOW_BRIEF, LANDING, PRICES, callsIn, markerOf, modelRun, rungRun } from "./corpus/transcripts.mjs";
 import { corpusUnder, readTranscript, rootFor } from "./corpus/corpus.mjs";
 import {
   conditionLines, countIn, declareLines, foldPhases, helpLine, helpOver, listing, perRung,
@@ -119,18 +119,19 @@ const said = (command) => command.replaceAll(/\s+/gu, " ").trim().slice(0, 160);
 
 /* The phase a call sits in, and the segments the markers cut. A marker already passed cannot pull
    the run backwards; every other rule is the marker row's own, so this holds no phase number and
-   renumbering a row in `transcripts.mjs` moves the cut with it. */
+   renumbering a row in `transcripts.mjs` moves the cut with it. `cursor` is where the run stands
+   after the call, which parts from where it is booked only on a row declared `only` (ISS-1913). */
 export const segmented = (calls) => {
   const seen = new Set();
   let phase = 0;
   return calls.map((call) => {
     const marker = markerOf(call.class);
-    if (marker?.only) return { ...call, phase: marker.phase };
+    if (marker?.only) return { ...call, phase: marker.phase, cursor: phase };
     if (marker && marker.phase > phase && !seen.has(marker.phase) && phase >= (marker.after ?? 0)) {
       seen.add(marker.phase);
       phase = marker.phase;
     }
-    return { ...call, phase };
+    return { ...call, phase, cursor: phase };
   });
 };
 
@@ -192,22 +193,22 @@ const shipsIn = (calls) => {
     passes: passes.length,
     resumed: passes.filter((call) => RESUMED.test(call.shell)).length,
     rejected: calls.some((call) => reportsShip(call) && REJECTED_PUSH.test(call.body)) ? 1 : 0,
-    /* The other way a run leaves a change for the branch: the mode that lands a batch calls no
-       ship, and that checkpoint is a class of its own rather than a flag read off a claim's line. */
-    ready: calls.some((call) => call.class === READY_CLASS) ? 1 : 0,
   };
 };
+
+/* Where a run first stood in the landing's phase, or -1: the one reader of whether it got there, so
+   every way the marker row names counts for every verb reporting it, none holding a narrower list (ISS-1913). */
+const landingIn = (calls) => calls.findIndex((call) => call.cursor >= LANDING);
 
 const NOTE = "forge record note";
 const NOTE_ORDERS = ["before", "after", "unshipped"];
 
-/* The split the phase table stopped showing once the note row opened no segment: three answers, so a run that wrote one and reached no landing is a reading rather than a gap. */
-const noteOrder = (calls) => {
+/* The split the phase table stopped showing once the note row opened no segment: three answers, so a run that wrote one and reached no landing is a reading rather than a gap. The third keeps its key, which `--json` has always printed, and means no landing of any kind. */
+const noteOrder = (calls, landing) => {
   const note = calls.findIndex((call) => call.class === NOTE);
   if (note < 0) return null;
-  const ship = calls.findIndex((call) => call.class === "ship");
-  if (ship < 0) return "unshipped";
-  return note < ship ? "before" : "after";
+  if (landing < 0) return "unshipped";
+  return note < landing ? "before" : "after";
 };
 
 const editsIn = (calls) => new Map(EDIT_ROUTES.map((route) => {
@@ -219,6 +220,7 @@ export const runFrom = (path, session, text, classes = undefined) => {
   const read = callsIn(text, classes);
   const calls = segmented(read.calls);
   if (!calls.length) return null;
+  const landing = landingIn(calls);
   /* The transcript's own bounds rather than the calls', for the reason callsIn states. */
   const startedAt = Math.min(read.firstAt ?? calls[0].at, calls[0].at);
   const endedAt = read.lastAt;
@@ -292,7 +294,8 @@ export const runFrom = (path, session, text, classes = undefined) => {
     rechecks: counted("forge codex recheck"),
     verdicts: counted("forge record verdict"),
     ships: shipsIn(calls),
-    notes: noteOrder(calls),
+    reached: landing >= 0,
+    notes: noteOrder(calls, landing),
     edits: editsIn(calls),
     byClass,
     refusals,
@@ -544,8 +547,8 @@ const profileLines = (held, all = false) => [
   `edits           per run ${held.edits.map((one) => `${one.route} ${one.perRun}`).join(", ")} · `
     + `median chars/call ${held.edits.map((one) => `${one.route} ${one.medianChars}`).join(", ")}`,
   shipLine(held),
-  `notes           ${held.notes.before} posted before a ship, ${held.notes.after} after one, `
-    + `${held.notes.unshipped} in a run that never shipped`,
+  `notes           ${held.notes.before} posted before the landing, ${held.notes.after} after it, `
+    + `${held.notes.unshipped} in a run that never reached it`,
   ...declareLines(held),
   `timeouts        ${held.timeouts}`,
   `other errors    ${held.errors.reduce((sum, [, many]) => sum + many, 0)} non-zero exit(s) refused by no rule of this plugin`
