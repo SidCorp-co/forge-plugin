@@ -66,6 +66,16 @@ up the ladder the record has carried the issue is the record's own answer, and a
 person an act leaves the issue standing at the rung it earned with the checkpoint finished all the
 same.
 
+`done` is final for the landing that wrote it and for no later one. Once a finding sends the change
+back, a second landing of the same issue needs a checkpoint of its own. The record says so: the
+issue stands at the reopen, or at a status of the flow below the one a build hands over at. So the
+capture at that push writes `ready` over the finished checkpoint, whole, and carries nothing of the
+first landing into the second. That record is the license, and the caller's word is not. At a status
+past the build the finished checkpoint still refuses the capture, since nothing on the record says
+the landing it describes was superseded. A head the first landing already carries is refused
+too, since landing it again merges nothing. A reopen moves only the status, so the first landing's
+checkpoint stays readable until that capture replaces it.
+
 What the commit a landing builds is, and what a reading taken over it is a fact about: [`the-candidate.md`](the-candidate.md).
 What a checkpoint nobody captured may say instead, and the one key a declaration buys: [`the-reconstruction.md`](the-reconstruction.md).
 Whose turn each state names and the four routes a turn is handed back by: [`the-turn.md`](the-turn.md).

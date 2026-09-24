@@ -476,7 +476,7 @@ export const claim = async (argv) => {
   /* A gone holder is a reclaim like any other, so the park counting reclaims of one status keeps counting the runs that died there — except where the record already calls the take a handoff, the dispatcher that exited being the one holder whose going is not a crash of this issue's (ISS-919). */
   const how = howsFor({ unheld, handed })[state];
   const checkpoint = given.ready
-    ? readyCheckpoint(ref, holder, patch, landingOf(context))
+    ? readyCheckpoint(ref, holder, patch, landingOf(context), issue.status)
     : (given.rebuilt
       ? rebuiltCheckpoint(ref, holder, given.rebuilt, {
         deployment: given.deployment,

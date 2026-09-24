@@ -14,6 +14,7 @@ import { carriedByLanding } from "../worklog.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { sameCommit, shortSha } from "../../tracker/evidence.mjs";
 import { valuesOf } from "../machine.mjs";
+import { landsAgain, reopenForm } from "../route.mjs";
 
 /* Git licenses this write and the caller's word does not: the one fact it records, that the branch
    this project lands changes on carries the head, is read off refs already in this checkout. Which
@@ -96,8 +97,7 @@ export const rebuiltCheckpoint = (ref, holder, head,
 const CAPTURED_OVER = new Set([LANDING_READY, LANDING_HEAD_OWED, LANDING_RECORDS_OWED]);
 
 /* What every other state names instead, one way out apiece, since a refusal naming only the resume
-   sends a run to read what this one already knew (ISS-2406). `done` keeps the reading ISS-2073
-   owns. */
+   sends a run to read what this one already knew (ISS-2406). `done` is read on its own below. */
 const OUT_OF = {
   [LANDING_BUILDER_OWED]: (ref, landing) => `the landing handed the branch back for a reading of `
     + `the candidate it built, and that turn ends in the reconciliation rather than a new head:\n`
@@ -119,13 +119,40 @@ const readyRefused = (ref, landing) => {
     + `Read where it is:\n  forge resume ${ref}`;
 };
 
-export const readyCheckpoint = (ref, holder, patch, landing) => {
+/* The commits a checkpoint names for the change it landed, any of which a records turn's review may
+   have read it at and none of which a later landing merges again: the release, the reconciled
+   candidate, the candidate and the branch's head. */
+const landedOf = (landing) => [...new Set([landing.intended, landing.reconciled, landing.candidate,
+  landing.head].filter(Boolean))];
+
+/* A finished landing gives way to a second one of the same issue, and never a landing in flight: the
+   license is the issue's status, which says the change is being built again, and the head has to be
+   one that landing did not already merge. The capture then starts the second landing whole, the
+   first one's state table being over rather than moved (ISS-2073). */
+const againRefused = (ref, head, landing, status) => {
+  const said = `the landing checkpoint on ${ref} reads \`${LANDING_DONE}\`, a landing that has ended`;
+  if (!landsAgain(status)) {
+    return `${said}, and ${ref} stands at \`${status || "no status"}\`, which is no rebuild: a second `
+      + `landing begins only once the issue goes back to be built again, so --ready here would write `
+      + `the finished landing's reading away. Where a finding sends the change back, reopen it, then `
+      + `capture the fix:\n  ${reopenForm(ref)}\n  forge claim ${ref} --pushed --ready`;
+  }
+  if (!landedOf(landing).some((one) => sameCommit(one, head))) return null;
+  return `${said}, and --ready captures ${shortSha(head)} for a second landing, which is a commit the `
+    + `first one already carries, so landing it again merges nothing. Commit the fix on top of it, `
+    + `push it, then ask again:\n  forge claim ${ref} --pushed --ready`;
+};
+
+export const readyCheckpoint = (ref, holder, patch, landing, status) => {
   if (!patch?.head || !patch.base || !patch.touched) {
     fail(`claim --ready writes the checkpoint off the capture --pushed makes, and this one captured `
       + `no change — the \`--pushed\` line below says why. Capture at the push, before the merge:\n`
       + `  forge claim ${ref} --pushed --ready`);
   }
-  if (landing && !CAPTURED_OVER.has(landing.state)) fail(readyRefused(ref, landing));
+  if (landing?.state === LANDING_DONE) {
+    const refused = againRefused(ref, patch.head, landing, status);
+    if (refused) fail(refused);
+  } else if (landing && !CAPTURED_OVER.has(landing.state)) fail(readyRefused(ref, landing));
   return {
     state: LANDING_READY,
     builder: holder,
@@ -178,11 +205,6 @@ export const recaptureRefusal = (ref, head, { latest, verdicts, criteria }, inde
     + `--verdict ${valuesOf("verdict", "verdict")}` + unjudged.map((number) => ` --criterion ${number}`).join("")
     + `\n  ${again}`;
 };
-
-/* The commits a checkpoint names for the change it landed, any of which a records turn's review may
-   have read it at: the release, the reconciled candidate, the candidate and the branch's head. */
-const landedOf = (landing) => [...new Set([landing.intended, landing.reconciled, landing.candidate,
-  landing.head].filter(Boolean))];
 
 const reviewsOf = (comments) => comments
   .flatMap((one) => parseAll(one.body ?? "").map((record) => ({ at: one.createdAt ?? "", record })))
