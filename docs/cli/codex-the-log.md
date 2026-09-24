@@ -13,7 +13,7 @@ rather than over it. The record says finding by finding which of its rulings a r
 later recheck revises its own word and never the author's. A verdict lands by default on this run's last
 consult that made findings and heard nothing, and `--of` names another. The commit gate waits on
 both: [the commit gate](codex-the-commit.md), and its how document carries the counts. Usage is summed over a consult's calls; logged from the
-last call alone, `log --score` counted a third of the input. A consult that recorded no duration is left
+last call alone, the per-model score counted a third of the input. A consult that recorded no duration is left
 out of the median rather than counted as nought: three untimed rows beside one that took a minute
 answered nought seconds. A `started` entry is written before the call, because a consult
 that dies mid-flight reaches no handler and a review that vanished is what an eval most wants to see.
@@ -68,6 +68,15 @@ check, how many were retried at the ceiling, how many rechecks raised something 
 kind, and which prompt versions ran. A row written before a field existed is counted from its own
 reply, using the same predicate the field is written with, so the window before a change and the window
 after it are read the same way rather than one of them looking clean for want of a column.
+
+**`stats` is the one aggregation of the log, and `eval` is `stats` over two windows.** Two readers of
+one set of rows, the per-model score and the window's stats, were caught copied from each other
+mid-drift (ISS-327), so a group of rows becomes figures in one place whatever it was grouped by:
+`--by model` and `--by prompt` print each group's findings, what was kept of them, its median and its
+cache share beside its rechecks and budget, and the window left ungrouped prints the same figures
+once for itself. The verdicts are the whole log's, as the eval's are, because a verdict lands after
+its consult. `log --score` printed the per-model half over every consult the log held, and is now
+refused with the `forge codex stats --by model --last <n>` that reads those same rows (ISS-349).
 
 **A pass and a recheck are two shapes of round, so `stats` prices them apart.** Each gets its own
 count, cache share and calls histogram, read off the row's own `recheck`, which a pass leaves absent:

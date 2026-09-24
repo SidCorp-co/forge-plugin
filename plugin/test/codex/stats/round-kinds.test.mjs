@@ -8,7 +8,9 @@ import { tempRoom } from "../../fixtures.mjs";
 process.env.XDG_CONFIG_HOME = tempRoom("forge-codex-round-kinds-");
 
 const { logPath } = await import("../../../src/codex/codex-log.mjs");
-const { printStats, roundKindLines, roundKindsOf } = await import("../../../src/codex/codex-stats.mjs");
+const { printStats } = await import("../../../src/codex/codex-stats.mjs");
+const { roundKindsOf } = await import("../../../src/codex/stats/figures.mjs");
+const { roundKindLines } = await import("../../../src/codex/stats/lines.mjs");
 
 const ROW = (held = {}) => ({ kind: "consult", ok: true, at: "2026-09-04T00:00:00.000Z", reply: "CODEX: 0 findings", root: "/r", usage: {}, ...held });
 const RECHECK = (held) => ROW({ recheck: true, files: ["a.mjs"], ...held });

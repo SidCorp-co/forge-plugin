@@ -8,13 +8,15 @@ import { isAbsolute } from "node:path";
 
 import { DIFF_CHARS, digest } from "./codex-api.mjs";
 import { MARK, answered, hereOf, inRepo, logEntries, logPath } from "./codex-log.mjs";
-import { modelKey, numbered, scoreOf } from "./log/replies.mjs";
+import { modelKey, numbered } from "./log/replies.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
-import { incompleteIn, newFindingsIn, rungIn } from "./codex-plan.mjs";
+import { rungIn } from "./codex-plan.mjs";
+import { groupsOf, promptKey, roundKindsOf, statsOf } from "./stats/figures.mjs";
+import { groupLines, groupedLines, roundKindLines, scoreLine, statLines } from "./stats/lines.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
-import { WHEN, comparabilityOf, comparedWindows, groupBy, shiftBetween, shiftLine, tallied, twoWindows } from "../stats/windows.mjs";
+import { comparabilityOf, comparedWindows, shiftBetween, shiftLine, tallied, twoWindows } from "../stats/windows.mjs";
 import { CONSULTS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, writeMark, wroteSaid } from "../stats/marks/marks.mjs";
 import { overlapOf } from "../stats/marks/overlap.mjs";
 import { DEVICE_REACH, reachOf, reachSaid } from "../stats/marks/reach.mjs";
@@ -22,24 +24,12 @@ import { deviceOf } from "../resolve/machine/device.mjs";
 
 const DEFAULT_WINDOW = 100;
 const REPLAY_WINDOW = 30;
-const KINDS = ["input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens", "output_tokens"];
 
 const counted = (raw, what, floor = 1) => {
   const value = Number(raw);
   if (!Number.isInteger(value) || value < floor) fail(`codex: ${what} takes an integer of ${floor} or more, not \`${raw}\`.`);
   return value;
 };
-
-/* Unknown, never assumed: `--rounds` and `codex.rounds` were both settable before the budget was
-   recorded, so calling an old row three would misclassify exactly the rate it is quoted for. What
-   needs no assumption is the calls histogram, which is where the cap's signature shows anyway. */
-const budgetOf = (row) => row.budget ?? row.cap ?? null;
-
-/* Recomputed where the row predates the field: the predicate is one definition, so the same
-   sentence is read the same way whichever side of the change wrote it. */
-const wasIncomplete = (row) => (row.incomplete === undefined ? incompleteIn(row.reply) : row.incomplete);
-const newFindingsOf = (row) =>
-  (row.newFindings === undefined ? newFindingsIn(numbered(row.reply, row.files)) : row.newFindings);
 
 /* A checkout named is its repository: a consult taken in a worktree of it is that repository's (ISS-898). */
 export const windowOf = (entries, { last = DEFAULT_WINDOW, days, root } = {}) => {
@@ -51,155 +41,58 @@ export const windowOf = (entries, { last = DEFAULT_WINDOW, days, root } = {}) =>
   return since ? own : own.slice(-last);
 };
 
-const share = (many, of) => (of ? `${Math.round((many / of) * 100)}%` : "—");
+/* The groupings `--by` takes, the window being one group of itself. */
+const BY = { window: () => "the window", model: modelKey, prompt: promptKey };
 
-/** The prompt a row ran at: the version and the digest of the text actually sent, so an edit nobody bumped for still separates two windows. */
-const promptKey = (row) => (row.prompt ? `v${row.prompt.v} ${row.prompt.sha}` : "unversioned");
-
-export const statsOf = (rows) => {
-  const spent = Object.fromEntries(KINDS.map((kind) => [kind, 0]));
-  const versions = new Map();
-  const calls = new Map();
-  const held = { consults: rows.length, budgeted: 0, atBudget: 0, incomplete: 0, retried: 0, rechecks: 0, raisedNew: 0, newFindings: 0 };
-  for (const row of rows) {
-    const budget = budgetOf(row);
-    if (budget !== null) {
-      held.budgeted += 1;
-      if (row.retriedFrom !== undefined || (row.calls ?? 0) >= budget) held.atBudget += 1;
-    }
-    calls.set(row.calls ?? 0, (calls.get(row.calls ?? 0) ?? 0) + 1);
-    if (wasIncomplete(row)) held.incomplete += 1;
-    if ((row.attempt ?? 1) > 1) held.retried += 1;
-    if (row.recheck) {
-      held.rechecks += 1;
-      const many = newFindingsOf(row);
-      held.newFindings += many;
-      if (many) held.raisedNew += 1;
-    }
-    for (const kind of KINDS) spent[kind] += row.usage?.[kind] ?? 0;
-    const key = promptKey(row);
-    versions.set(key, (versions.get(key) ?? 0) + 1);
-  }
-  const read = spent.cache_read_input_tokens;
-  const sent = spent.input_tokens + read + spent.cache_creation_input_tokens;
-  return {
-    ...held,
-    spent,
-    sent,
-    cached: sent ? read / sent : 0,
-    versions: [...versions.entries()],
-    calls: [...calls.entries()].sort((a, b) => a[0] - b[0]),
-  };
-};
-
-const statLines = (held) => {
-  const per = (many) => (held.consults ? Math.round(many / held.consults) : 0);
-  return [
-    `consults          ${held.consults}`,
-    `calls reached     ${held.calls.map(([many, rows]) => `${many}:${rows}`).join("  ")}`,
-    `ended at budget   ${held.atBudget} of the ${held.budgeted} that recorded one  `
-      + `${share(held.atBudget, held.budgeted)}`,
-    `said it could not check  ${held.incomplete}  ${share(held.incomplete, held.consults)}`,
-    `retried at the ceiling   ${held.retried}  ${share(held.retried, held.consults)}`,
-    `rechecks          ${held.rechecks}, ${held.raisedNew} raised a New finding `
-      + `${share(held.raisedNew, held.rechecks)}, ${held.newFindings} of them in all`,
-    `tokens per consult  ${per(held.spent.input_tokens)} in, ${per(held.spent.cache_read_input_tokens)} from cache, `
-      + `${per(held.spent.cache_creation_input_tokens)} written, ${per(held.spent.output_tokens)} out`,
-    `read from cache   ${Math.round(held.cached * 100)}% of ${held.sent} input token(s)`,
-    ...held.versions.map(([name, many]) => `prompt ${name}  ${many} consult(s)`),
-  ];
-};
-
-/* A retried row is kept out of its kind's histogram and its tokens are kept in: its `calls` has
-   counted two different things over the log's life, while its usage was both attempts' throughout. */
-const ROUND_KINDS = [["pass", (row) => !row.recheck], ["recheck", (row) => Boolean(row.recheck)]];
-
-export const roundKindsOf = (rows) => ROUND_KINDS.map(([name, is]) => {
-  const own = rows.filter(is);
-  const held = statsOf(own);
-  const once = own.filter((row) => (row.attempt ?? 1) === 1);
-  return { name, consults: own.length, sent: held.sent, cached: held.cached, retried: held.retried, calls: statsOf(once).calls };
-});
-
-export const roundKindLines = (kinds) => kinds.map(({ name, consults, sent, cached, retried, calls }) => {
-  const label = `${name.padEnd(8)} ${String(consults).padStart(4)} consult(s)`;
-  if (!consults) return `${label}  none in this window`;
-  const read = sent ? `${Math.round(cached * 100)}% of ${sent} input token(s)` : "— no input token recorded";
-  const reached = calls.length ? calls.map(([many, count]) => `${many}:${count}`).join("  ") : "—";
-  return `${label}  read from cache ${read}  calls reached ${reached}  retried ${retried}`;
-});
+const windowGroupLines = (group, rows) => [
+  ...statLines(group.stats),
+  scoreLine(group.key, group.score),
+  "\nby round kind, a retried consult counted apart from the calls it reached",
+  ...roundKindLines(roundKindsOf(rows)),
+];
 
 export const printStats = (rest) => {
-  const { last, days, root, here } = flags(rest, "codex stats", ["--here"], { usage: STATS_USAGE });
+  const { last, days, root, here, by = "window" } = flags(rest, "codex stats", ["--here"], { usage: STATS_USAGE });
+  if (!Object.hasOwn(BY, by)) fail(`codex: stats --by takes ${Object.keys(BY).join(", ")}, not \`${by}\`.`);
   const asked = {
     last: last === undefined ? undefined : counted(last, "--last"),
     days: days === undefined ? undefined : counted(days, "--days"),
     root: here ? process.cwd() : root,
   };
-  const rows = windowOf(logEntries(), asked);
+  const entries = logEntries();
+  const rows = windowOf(entries, asked);
   if (!rows.length) return console.log(`No answered consult in that window. ${logPath()}`);
   const named = asked.days ? `the last ${asked.days} day(s)` : `the last ${asked.last ?? DEFAULT_WINDOW} consult(s)`;
-  console.log(`${named}${asked.root ? ` in ${asked.root}` : ""}, ${rows[0].at} to ${rows.at(-1).at}\n`);
-  for (const line of statLines(statsOf(rows))) console.log(line);
-  console.log("\nby round kind, a retried consult counted apart from the calls it reached");
-  for (const line of roundKindLines(roundKindsOf(rows))) console.log(line);
+  console.log(`${named}${asked.root ? ` in ${asked.root}` : ""}, ${rows[0].at} to ${rows.at(-1).at}`
+    + `${by === "window" ? "" : `, by ${by}`}\n`);
+  const groups = groupsOf(rows, entries.filter((one) => one.kind === "verdict"), BY[by]);
+  const lines = by === "window" ? windowGroupLines(groups[0], rows) : groups.flatMap(groupedLines);
+  for (const line of lines) console.log(line);
   console.log("\nWhether a reply could not check, and whether a recheck raised something New, are read "
     + "from the reply itself where the row predates the field, so both windows are counted the same way. "
-    + "A budget cannot be recovered that way and is left unknown, which is what the calls line is for.");
+    + "A budget cannot be recovered that way and is left unknown, which is what the calls line is for. "
+    + "What was kept is read off every verdict the log holds, a verdict landing after its consult.");
 };
 
 /* What the cadence line points at: the last hundred answered consults against the hundred before
    them, so a harness upgrade is read off the log rather than off the feel of the next few consults.
-   Every number is a column one of the two readers above already computes — a second copy would
-   answer differently from `stats` the day either moved. The crossing writes the comparison once and
-   `--against` reads it back as the before window — docs/cli/stats-the-mark.md. */
+   Each window is grouped through the reader `stats` groups through, so no figure here is counted a
+   second way. The crossing writes the comparison once and `--against` reads it back as the before
+   window — docs/cli/stats-the-mark.md. */
 export const evalWindows = (entries, size = MARK) => {
   const own = answered(entries);
   return { ...twoWindows(own, size), total: own.length };
 };
 
 /* Both dimensions in one key: it is what the issue asks the numbers per, and it is the only key
-   under which `scoreOf` answers with exactly one row rather than re-splitting by effort inside. */
+   under which a group is one model's score rather than re-split by effort inside. */
 const keyOf = (row) => `${modelKey(row)}  prompt ${promptKey(row)}`;
 
-const byKey = (rows) => groupBy(rows, keyOf);
-
-/* The whole log's verdicts, not the window's: a verdict is written after the consult it scores and
-   lands outside the window as often as in it. Scored on the window alone every model reads 0 kept,
-   which looks like a log nobody ruled on rather than like a defect. */
-const groupNumbers = (rows, verdicts) => ({ score: scoreOf([...verdicts, ...rows])[0], held: statsOf(rows) });
-
-/* An absent measurement is said, never averaged as a zero: a group whose rows predate `usage` would
-   otherwise read as the cheap window, which is the one mistake the comparison exists to avoid. */
 /* How many rows a figure stands on: a median over the timed rows and tokens over the metered ones. */
 const coverageOf = (rows) => ({
   timed: rows.filter((row) => row.ms !== undefined).length,
   metered: rows.filter((row) => row.usage && Object.keys(row.usage).length).length,
 });
-
-const groupLines = (group, when) => {
-  if (!group) return [`  ${when.padEnd(WHEN)} not in this window`];
-  const { score, stats: held, timed, metered } = group;
-  const ruled = score.accepted + score.rejected;
-  /* Over the findings ruled on how, never over every acceptance: one ruled before the third ruling existed says nothing about its mechanism, and a reading stored before the counts has none. */
-  const how = (score.sound ?? 0) + (score.misreasoned ?? 0);
-  const per = (many) => Math.round(many / metered);
-  const short = (many) => many < group.consults;
-  return [
-    `  ${when.padEnd(WHEN)} ${String(group.consults).padStart(3)} consult(s)  ${String(score.findings).padStart(4)} finding(s) `
-      + `(${score.zero} found none)  ${ruled ? `${share(score.accepted, ruled)} kept of ${ruled} ruled` : "none ruled on"}  `
-      + `${how ? `${share(score.sound ?? 0, how)} right about how of ${how}` : "none ruled on how"}  `
-      + `${held.raisedNew} of ${held.rechecks} recheck(s) raised New  `
-      + `${timed ? `${score.median}s median${short(timed) ? ` of the ${timed} timed` : ""}` : "none timed"}  `
-      + `${held.incomplete} could not check`,
-    metered
-      ? `  ${" ".repeat(WHEN)} tokens/consult${short(metered) ? ` over the ${metered} that recorded usage` : ""}  `
-        + `${per(held.spent.input_tokens)} in, `
-        + `${per(held.spent.cache_read_input_tokens)} from cache, ${per(held.spent.cache_creation_input_tokens)} written, `
-        + `${per(held.spent.output_tokens)} out`
-      : `  ${" ".repeat(WHEN)} no consult here recorded what it spent`,
-  ];
-};
 
 /* The rung the request carried, not the level `effortFor` resolved: where the model id carries the
    effort, the id is what ran, and a machine with no ladder sends one rung whatever level each row
@@ -301,12 +194,15 @@ export const MARKS_USAGE = [
 ].join("\n");
 
 export const STATS_USAGE = [
-  "Usage: forge codex stats [--last n] [--days n] [--root p] [--here]",
-  "What the consults of a window cost and did: calls against their budget, replies that could not",
-  "check, rechecks that raised something New, tokens by kind, and the prompt versions that ran; then",
-  "a pass beside a recheck, each with its own count, cache share and calls histogram. Where the",
-  "issue-flow runs of a window spent their time and rounds is `forge stats runs`.",
+  "Usage: forge codex stats [--by window|model|prompt] [--last n] [--days n] [--root p] [--here]",
+  "The figures of a window's consults, the one aggregation of the log: what they cost and did —",
+  "calls against their budget, replies that could not check, rechecks that raised something New,",
+  "tokens by kind, the prompt versions that ran — and what they found and what of it was kept, read",
+  "off every verdict the log holds. Where the issue-flow runs of a window spent their time and",
+  "rounds is `forge stats runs`.",
   "",
+  "  --by g         window (the default) prints the window as one group, then a pass beside a",
+  "                 recheck; model and prompt print one group each, both halves of its figures",
   "  --last n       consults back from the newest",
   "  --days n       consults inside that many days instead",
   "  --root p       a checkout, whose repository's consults are read from every worktree of it;",
@@ -326,10 +222,11 @@ export const REPLAY_USAGE = [
 
 export const EVAL_USAGE = [
   "Usage: forge codex eval [--against [<mark>]] [--json]",
-  `The last ${MARK} answered consults on this device against the ${MARK} before them, over every project`,
-  "the log holds, per model, effort and prompt. The consult that crosses a hundred-mark writes the",
-  "comparison once, and --against puts that reading in the before window's place. `forge codex stats`",
-  "takes a window. The same comparison over this project's issue-flow runs is `forge stats eval`.",
+  `\`forge codex stats\` over two windows: the last ${MARK} answered consults on this device against the`,
+  `${MARK} before them, over every project the log holds, each grouped per model, effort and prompt, with`,
+  "what separates the two windows named. The consult that crosses a hundred-mark writes the comparison",
+  "once, and --against puts that reading in the before window's place. The same comparison over this",
+  "project's issue-flow runs is `forge stats eval`.",
   "",
   "  --against [<mark>]  the reading held at that mark as the before window, or alone the newest held",
   "                      that shares none of the recent window; one sharing more than half of it is",
@@ -339,11 +236,10 @@ export const EVAL_USAGE = [
 
 /* One group per key, its rows' own figures: the same numbers the screen prints, under one spelling
    each, so a reader that parses it and a reader of the screen quote the same window (ISS-484). */
-const groupObject = (rows, verdicts) => {
-  const { score, held } = groupNumbers(rows, verdicts);
+const groupObject = ({ key, rows, score, stats }) => {
   const [row] = rows;
   return {
-    key: keyOf(row),
+    key,
     slot: row.slot ?? "unrecorded",
     model: row.model ?? "unrecorded",
     prompt: promptKey(row),
@@ -351,8 +247,8 @@ const groupObject = (rows, verdicts) => {
     effortVia: row.effortVia ?? "unrecorded",
     consults: rows.length,
     ...coverageOf(rows),
-    score,
-    stats: held,
+    score: { model: modelKey(row), ...score },
+    stats,
   };
 };
 
@@ -363,7 +259,7 @@ export const windowObject = (rows, verdicts) => ({
   to: rows.at(-1)?.at ?? null,
   stats: statsOf(rows),
   mix: tallied(rows, DIMENSIONS),
-  groups: [...byKey(rows).values()].map((group) => groupObject(group, verdicts)),
+  groups: groupsOf(rows, verdicts, keyOf).map(groupObject),
 });
 
 /* An answered consult is the row here, and it arrives by being answered. */

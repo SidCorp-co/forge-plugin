@@ -10,7 +10,7 @@ import { flags, pullRepeated } from "../../resolve/flags.mjs";
 import { DIAGNOSTIC, PROPOSAL, answered, byRun, hereOf, inRepo, isAnswered, logBytes, logConsult, logEntries, logPath, maskedDeep,
   pairedLog, runOf, verdictsBy } from "../codex-log.mjs";
 import { budgetMs } from "../../resolve/settings.mjs";
-import { countedIn, misreasonedSaid, recheckSaid, scoreOf, unverdicted, verdictRecord } from "./replies.mjs";
+import { countedIn, misreasonedSaid, recheckSaid, unverdicted, verdictRecord } from "./replies.mjs";
 
 const LOG_TAIL = 10;
 
@@ -97,31 +97,31 @@ export const logLine = (stored, full) => {
   return [head, files, check, sent, "", entry.reply ?? entry.error ?? "", ""].filter((one) => one !== null).join("\n");
 };
 
-const scoreLine = (row) =>
-  `${row.model.padEnd(24)} ${String(row.consults).padStart(4)} consults  ${String(row.findings).padStart(4)} findings `
-  + `(${row.zero} none)  ${String(row.accepted).padStart(4)} accepted  ${String(row.rejected).padStart(3)} rejected  `
-  + `${String(row.sound).padStart(3)} right about how  ${String(row.misreasoned).padStart(3)} right in conclusion only  `
-  + `${String(row.median).padStart(4)}s median  ${row.input ? Math.round((row.cached / row.input) * 100) : 0}% cached`;
-
 export const LOG_USAGE = [
-  "Usage: forge codex log [--last n] [--id i] [--full] [--score]",
-  "Past consults, for scoring the advice later.",
+  "Usage: forge codex log [--last n] [--id i] [--full]",
+  "Past consults, newest last. What they found and what of it was kept, per model or prompt, is",
+  "`forge codex stats --by model`.",
   "",
   "  --last n       how many print; the newest of them",
   "  --id i         one consult and its recheck, by the id the reply printed",
   "  --full         each entry whole rather than a line",
-  "  --score        per model instead: consults, findings, what was kept, time, cache",
 ].join("\n");
+
+/* Refused for one release rather than dropped as a stranger flag, so a recipe still typing it is
+   told where its figures went: the window that reads every consult `--score` read is the log's
+   whole count, `stats` reading every project's consults unless a checkout is named (ISS-349). */
+const scoreMoved = (many) => "codex: `log --score` is `forge codex stats --by model` now, which prints the same "
+  + "figures per model over a window, beside each model's rechecks, budget and retries. "
+  + (many
+    ? `Over every consult \`--score\` read: \`forge codex stats --by model --last ${many}\`.`
+    : "The log holds no answered consult yet: `forge codex stats --by model`.");
 
 /* `--id` and not `--last 1`: two consults in flight make "the last one" a race. */
 export const printLog = (rest) => {
-  const { last, id, full, score } = flags(rest, "codex log", ["--full", "--score"], { usage: LOG_USAGE });
+  if (rest.includes("--score")) fail(scoreMoved(answered(logEntries()).length));
+  const { last, id, full } = flags(rest, "codex log", ["--full"], { usage: LOG_USAGE });
   const entries = pairedLog(logEntries());
   if (!entries.length) return console.log(`No consults logged yet. ${logPath()} appears on the first.`);
-  if (score) {
-    for (const row of scoreOf(entries)) console.log(scoreLine(row));
-    return;
-  }
   if (id) {
     const held = entries.filter((one) => one.id === id || one.of === id);
     if (!held.length) fail(`codex: no consult logged as ${id}.`);
