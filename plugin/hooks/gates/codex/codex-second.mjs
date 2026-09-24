@@ -93,8 +93,9 @@ const ESCAPE = "For the session: `forge hooks --off codex-second` — an inline 
   + "prefix never reaches a hook.";
 
 const DOOR = "commit";
-const MALFORMED = "`codex.owed` in this project's configuration is a list of the doors a consult is demanded at, out of "
-  + `${OWED_DOORS.join(", ")}. Drop the key and the commit alone asks.`;
+const malformed = (unknown) => `Name only doors out of ${OWED_DOORS.join(", ")} in \`codex.owed\`, or drop `
+  + `the key and the commit alone asks.\n\n${unknown} is no door this reads: that key in this project's `
+  + "configuration is a list of the doors a consult is demanded at.";
 
 /* The record and the log resolve under XDG_CONFIG_HOME and a hook reads the session's, so a consult made under another one is recorded where this never looks: unsaid, that refused files a consult had already read while `pending` answered nothing pending about them, and the only way out it offered was turning the review off (ISS-189). */
 const readIn = () => `Read from ${typed(configDir("forge"))}, so a consult recorded under another `
@@ -131,16 +132,17 @@ export const run = (ev) => {
      Ahead of the door key, which is that tree's to set and unreadable while the tree is. */
   if (aim.tree === NOWHERE) {
     deny(
-      "Which tree this commit closes over cannot be read from the command — a `cd -`, a bare `cd` or a "
+      "Spell the tree out — `cd <path> && git commit …`, or `git -C <path> commit …` — then re-send. "
+        + `${ESCAPE}\n\n`
+        + "Which tree this commit closes over cannot be read from the command — a `cd -`, a bare `cd` or a "
         + "destination built from a value names no directory this reading can check, so what the commit "
-        + "stages cannot be asked for.\n\nDo this: spell the tree out — `cd <path> && git commit …`, or "
-        + `\`git -C <path> commit …\` — then re-send. ${ESCAPE}`
+        + "stages cannot be asked for."
         + how(),
     );
   }
   const at = resolve(ev.cwd ?? process.cwd(), aim.tree ?? ".");
   const owed = codexOwedOf(projectFileAt(at)?.codex);
-  if (owed.unknown) deny(`${owed.unknown} is no door this reads. ${MALFORMED}${how()}`);
+  if (owed.unknown) deny(`${malformed(owed.unknown)}${how()}`);
   if (!owed.value.includes(DOOR)) done();
   const root = repoRoot(at);
   if (!root) done();
@@ -162,16 +164,17 @@ export const run = (ev) => {
     /* Every consult reads the working copy, so for a path the index holds apart from it no consult clears the hold and naming one is a refusal nobody can act on: staging what was read is the route (ISS-1011). */
     const stale = demand.filter((rel) => apart.includes(rel));
     const unread = demand.filter((rel) => !apart.includes(rel));
+    const consult = `\`${cd}echo "<what you were doing>" | forge codex consult --diff --only blocker,major `
+      + `${six(unread)}\``;
+    const stage = `\`${cd}git add ${six(stale)}\`, or commit with \`-a\``;
     deny(
-      `Codex has not read what this commit stages in ${root} (${six(demand)}`
-        + `${demand.length > 6 ? ` and ${demand.length - 6} more` : ""}, recorded ${ageOf(waiting.at)}).${also}\n\n`
-        + `Do this: ${unread.length ? `\`${cd}echo "<what you were doing>" | forge codex consult --diff `
-          + `--only blocker,major ${six(unread)}\`.` : ""}`
-        + `${stale.length ? `${unread.length ? " And the" : "The"} staged copy of ${six(stale)} is not the `
-          + `copy on disk a consult would read, so no consult clears ${stale.length > 1 ? "them" : "it"}: `
-          + `\`${cd}git add ${six(stale)}\`, or commit with \`-a\`.` : ""}`
-        + ` Then re-send. ${readIn()} `
-        + `\`forge codex pending --drop\` discards them unread. ${ESCAPE}`
+      `${unread.length ? `Run ${consult}` : `Stage what was read — ${stage}`}`
+        + `${unread.length && stale.length ? `, and stage what was read — ${stage}` : ""}. Then re-send. `
+        + `${readIn()} \`forge codex pending --drop\` discards them unread. ${ESCAPE}\n\n`
+        + `Codex has not read what this commit stages in ${root} (${six(demand)}`
+        + `${demand.length > 6 ? ` and ${demand.length - 6} more` : ""}, recorded ${ageOf(waiting.at)}).${also}`
+        + `${stale.length ? ` The staged copy of ${six(stale)} is not the copy on disk a consult would `
+          + `read, so no consult clears ${stale.length > 1 ? "them" : "it"}.` : ""}`
         + how(),
     );
   }
@@ -179,9 +182,9 @@ export const run = (ev) => {
   const open = unverdicted(log(), root);
   if (open) {
     deny(
-      `Consult ${open.id} made ${open.ids.join(", ")} on ${open.files.join(", ")}; nothing says what became of ${open.open.join(", ")}.${also}\n\n`
-        + `Do this: \`${verdictForm(open.id)}\`, then re-send. ${readIn()} `
-        + `A --recheck records the verdict for what it refutes. ${ESCAPE}`
+      `Run \`${verdictForm(open.id)}\`, then re-send. ${readIn()} `
+        + `A --recheck records the verdict for what it refutes. ${ESCAPE}\n\n`
+        + `Consult ${open.id} made ${open.ids.join(", ")} on ${open.files.join(", ")}; nothing says what became of ${open.open.join(", ")}.${also}`
         + how(),
     );
   }

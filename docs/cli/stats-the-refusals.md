@@ -5,9 +5,11 @@ keyed by, and the wrong rows it was built to avoid: [stats — the rows](stats-r
 
 A row is a line one of this plugin's own refusals was written in, and the row is the line that
 **names the rule** — so the listing reads as which rules fire and how often. Four shapes, each read
-off the source that writes it: a gate's `Hold —` or `Refused.` opener, the `How:` line every gate's
-refusal ends with, a tracker refusal's `<name> refused:` with its reason inline or on the next line,
-and a verb's own refusal sentence, which opens with a verb this CLI has. Where a body carries more
+off the source that writes it: a gate's `Hold —` or `Refused —` opener (`Refused.` in older logs),
+the `How:` line every gate's refusal ends with, a tracker refusal's `<name> refused:` with its reason
+inline or on the next line, and a verb's own refusal sentence, which opens with a verb this CLI has.
+A gate's refusal leads with its route, so for a gate the row is the route line, which is as much
+one rule's as the shape line was; a window spanning the change reads one rule under two rows. Where a body carries more
 than one, the last is the row: a `forge` command prints its provenance banner before it refuses, and
 keying on the body's first line filed 187 of those banners under a row that named nothing.
 

@@ -23,8 +23,9 @@ direction: a clean checkout stands the rules down and nothing is refused.
 Both are literals in their hook, never loaded from a file: the wording belongs beside the decision
 that produces it, and a message assembled somewhere else drifts from what the code actually refused.
 
-**A refusal:** what was refused, the rule in one clause, one action, `How: forge hooks --how
-<hook>`, and the line the runner appends. Nothing else: it lands in a context window every call. The
+**A refusal:** one action first, then what was refused and the rule in one clause, `How: forge hooks
+--how <hook>`, and the line the runner appends. Nothing else: it lands in a context window every call.
+The action leads because a reader under load keeps the first sentence and drops the rest. The
 learning-gate message ran 864 characters of conditions and categories; it is 434, and those it kept
 are the test to apply before re-sending.
 

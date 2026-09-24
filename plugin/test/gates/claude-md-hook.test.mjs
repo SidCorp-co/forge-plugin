@@ -9,6 +9,7 @@ import { dirname, join } from "node:path";
 import test from "node:test";
 
 import { callHook, homeEnv, tempRoom } from "../fixtures.mjs";
+import { assertRouteFirst } from "../fixtures/route-first.mjs";
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "claude-md.mjs");
 const HOME = homeEnv("claude-md");
@@ -48,7 +49,7 @@ test("a claim the write introduces is refused, named, with one move and where th
   assert.equal(allowed, false);
   assert.match(reason, /`scripts\/gate\.mjs` names no such path/u);
   assert.match(reason, /`verify` is in no package\.json here/u);
-  assert.match(reason, /correct each claim, or delete it/u);
+  assert.match(reason, /^Correct each claim below, or delete it/u);
   assert.match(reason, /forge hooks --how claude-md/u);
   assert.ok(reason.length < 500, `${reason.length} characters printed on a refused write`);
 });
@@ -62,4 +63,10 @@ test("a project's own guides and every other file are its business", () => {
   guide("# CLAUDE.md\n\nRead `scripts/nothing-here.mjs`.\n");
   assert.equal(decide(join(room, "package.json")).allowed, true);
   assert.equal(decide().allowed, false, "and CLAUDE.md itself still answers");
+});
+
+/* AC-07-3-4. One refusal, the claims it lists coming after the route. */
+test("every refusal this gate writes leads with its route", () => {
+  guide("# CLAUDE.md\n\nRead `scripts/never-there.mjs`.\n");
+  assertRouteFirst(decide().reason, "a claim the tree does not bear out");
 });

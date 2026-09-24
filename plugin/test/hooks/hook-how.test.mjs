@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 
 import { NARRATES } from "../../src/checks/docs/doc-shape.mjs";
 import { RETIRED } from "../../src/checks/retired-names.mjs";
+import { ROUTE_NOT_VERDICT } from "../../src/hooks/log/hook-log.mjs";
 
 const PLUGIN = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const HOOKS = join(PLUGIN, "hooks");
@@ -92,16 +93,33 @@ test("each document opens with its claim, argues briefly, and points nowhere unr
   }
 });
 
+const forge = (...argv) => spawnSync(process.execPath, [CLI, "hooks", ...argv], { encoding: "utf8" });
+
 test("the reasoning is what --how prints, and a near miss is named", () => {
-  const forge = (...argv) => spawnSync(process.execPath, [CLI, "hooks", ...argv], { encoding: "utf8" });
-  const out = forge("--how", "codex-second");
+  const out = forge("--how", "polling");
   assert.equal(out.status, 0);
   assert.equal(
     out.stdout.trimEnd(),
-    readFileSync(join(HOW, "codex-second.md"), "utf8").trimEnd(),
-    "the file itself, so the argument has one home",
+    readFileSync(join(HOW, "polling.md"), "utf8").trimEnd(),
+    "the file itself, so the argument has one home, and a topic no gate is named for carries nothing more",
   );
   const missed = forge("--how", "codex-secnod");
   assert.equal(missed.status, 1);
   assert.match(missed.stderr, /No hook named codex-secnod\. Did you mean: codex-second/u);
+});
+
+/* AC-07-3-5. The line is the printer's and not the page's: every page sits at the ceiling above, and a
+   sentence twenty pages carried would be twenty copies of one rule. */
+test("a gate's page is printed with the line saying its refusal is the route", () => {
+  const refusing = forge("--how", "codex-second");
+  assert.equal(refusing.status, 0, refusing.stderr);
+  assert.equal(
+    refusing.stdout.trimEnd(),
+    `${readFileSync(join(HOW, "codex-second.md"), "utf8").trimEnd()}\n\n${ROUTE_NOT_VERDICT}`,
+    "the page whole, and then the line",
+  );
+  assert.match(ROUTE_NOT_VERDICT, /the route to take, not a verdict on the call/u);
+  const speaking = forge("--how", "codex-turn");
+  assert.equal(speaking.status, 0, speaking.stderr);
+  assert.doesNotMatch(speaking.stdout, /not a verdict/u, "a gate that refuses nothing is not told its refusal is a route");
 });

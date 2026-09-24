@@ -10,6 +10,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { FROZEN } from "../../src/tools/plugin-copy.mjs";
+import { ROUTE_NOT_VERDICT } from "../../src/hooks/log/hook-log.mjs";
+import { assertRouteFirst } from "../fixtures/route-first.mjs";
 import { callHook, escaped, pathed, tempRoom } from "../fixtures.mjs";
 
 const PLUGIN = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -127,13 +129,13 @@ test("the refusal states the rule and gives one action, and the page it names an
   const held = writes(join("plugin", "hooks", "hooks.json"));
   assert.match(held.reason, /reaches a session only at its next start/u, held.reason);
   assert.match(held.reason, /every open session runs the old copy until then/u, held.reason);
-  assert.match(held.reason, /Do this: say in one line why no live home fits/u, held.reason);
+  assert.match(held.reason, /^Hold — say in one line why no live home fits/u, held.reason);
   assert.match(held.reason, /How: `forge hooks --how restart-owed`$/u, held.reason);
 
   const page = spawnSync(process.execPath, [CLI, "hooks", "--how", "restart-owed"], { encoding: "utf8", env: ENV });
   assert.equal(page.status, 0, page.stderr);
   assert.equal(page.stdout.trimEnd(),
-    readFileSync(join(PLUGIN, "hooks", "how", "restart-owed.md"), "utf8").trimEnd());
+    `${readFileSync(join(PLUGIN, "hooks", "how", "restart-owed.md"), "utf8").trimEnd()}\n\n${ROUTE_NOT_VERDICT}`);
 });
 
 test("the switch reaches this gate by name, and says which event it is registered on", () => {
@@ -252,4 +254,10 @@ test("doctor names the restart set, read from the one place the release step rea
   const said = new RegExp(`restart set\\s+${escaped(FROZEN.join(", "))}`, "u");
   assert.match(run.stdout, said, `doctor does not print the set:\n${run.stdout}`);
   assert.match(run.stdout, /a session keeps these as of its start/u, run.stdout);
+});
+
+/* AC-07-3-4. One refusal, reached by the tool route and by the shell's. */
+test("every refusal this gate writes leads with its route", () => {
+  assertRouteFirst(writes(join("plugin", "hooks", "hooks.json")).reason, "a tool write");
+  assertRouteFirst(runs("echo x > plugin/hooks/hooks.json").reason, "a shell write");
 });

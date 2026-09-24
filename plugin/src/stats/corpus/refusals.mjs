@@ -9,12 +9,12 @@ const shortened = (line) =>
    A body that only quotes a refusal goes on printing past it. */
 const GATE_HOW = /^How: `forge hooks --how \S+`$/u;
 
-/* A gate's two openers and the transport's `<name> refused:`, the rule after the colon for a
+/* A gate's openers and the transport's `<name> refused:`, the rule after the colon for a
    transport failure and on the next line for a tool's. Read first: a refusal opening on one goes on
    to quote the lines it was refused over, which look like the shape below. */
-const MARKED = /^(?:Hold — .*|Refused\. .*|\S+ refused:.*)$/u;
+const MARKED = /^(?:Hold — .*|Refused(?:\.| —) .*|\S+ refused:.*)$/u;
 /* The same openers over the whole body, unsplit where none is in it. A prefilter and not a second matcher: `/m` sees a break at a bare CR that `split` does not, so the split still decides. */
-const ANY_MARKED = /^(?:Hold — |Refused\. |\S+ refused:)/mu;
+const ANY_MARKED = /^(?:Hold — |Refused(?:\.| —) |\S+ refused:)/mu;
 
 /* `settings.mjs` refuses with a verb and no marker, and so does a line an ANSWERING call printed —
    `project id: …` — hence the failed-call guard and a marked line's precedence over this shape. */

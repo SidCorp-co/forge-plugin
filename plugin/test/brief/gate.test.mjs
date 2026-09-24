@@ -6,6 +6,7 @@ import { mkdirSync, readdirSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { callHook, tempRoom } from "../fixtures.mjs";
+import { assertRouteFirst } from "../fixtures/route-first.mjs";
 import { HOOK, brief, homeFor, repository } from "./fixture.mjs";
 
 const repo = repository();
@@ -94,4 +95,12 @@ test("the switch turns the gate off, and it fires while the switch does not name
   mkdirSync(join(who.config, "forge"), { recursive: true });
   writeFileSync(join(who.config, "forge", "config.json"), JSON.stringify({ hooksOff: ["brief"] }));
   assert.equal(dispatch(who, "ISS-7, rebase first.", { skipped: ["brief"] }).allowed, true);
+});
+
+/* AC-07-3-4. The gate refuses on one shape, so its one refusal is the case. */
+test("every refusal this gate writes leads with its route", () => {
+  const who = homeFor();
+  const said = dispatch(who, "ISS-7 in wt-ISS-7. The branch needs a rebase before its ship.");
+  assert.match(said.reason, /^Hold — run `forge brief ISS-7/u);
+  assertRouteFirst(said.reason, "a typed brief");
 });

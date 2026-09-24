@@ -10,6 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { callHook, tempRoom } from "../fixtures.mjs";
+import { assertRouteFirst } from "../fixtures/route-first.mjs";
 import { namesPath } from "../../src/flow/record/merged.mjs";
 
 const PLUGIN = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -145,4 +146,12 @@ test("the gate decides with the tracker unreachable, so it asks the tracker noth
     JSON.stringify({ url: "http://127.0.0.1:1/mcp", token: "t", retrySeconds: 0 }));
   assert.equal(writes("plugin/src/unplanned.mjs").allowed, false);
   assert.equal(writes("plugin/src/planned.mjs").allowed, true);
+});
+
+/* AC-07-3-4. One refusal: the correction is the route and the path outside the plan comes after it. */
+test("every refusal this gate writes leads with its route", async () => {
+  await scope([["ISS-411", PLAN]]);
+  const said = writes("plugin/src/unplanned.mjs");
+  assert.match(said.reason, /^Hold — post the correction, then re-send\.\n {2}forge record correction/u);
+  assertRouteFirst(said.reason, "a write outside the plan");
 });

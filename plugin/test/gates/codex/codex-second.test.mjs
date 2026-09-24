@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { answered, callHook, pathed, tempRoom, typed } from "../../fixtures.mjs";
+import { answered, callHook, pathed, projectEntry, projectRecord, tempRoom, typed } from "../../fixtures.mjs";
+import { assertRouteFirst } from "../../fixtures/route-first.mjs";
 import { commitAim } from "../../../hooks/gates/codex/codex-second.mjs";
 import { clearableOf, stagedIn } from "../../../src/codex/codex-state.mjs";
 import { digest } from "../../../src/codex/codex-api.mjs";
@@ -119,7 +120,7 @@ test("a commit is judged by the tree it names, not the shell's", () => {
   const out = because(gate({ command: `git -C ${pathed(elsewhere)} commit -m x`, pending: ["work.mjs"], pendingIn: elsewhere }));
   assert.ok(out.includes(`stages in ${elsewhere}`), "the tree the command names is the one judged");
   /* Judged there, it has to be consulted there: the paths listed are that tree's, and so is the log. */
-  assert.ok(out.includes(`Do this: \`cd ${typed(elsewhere)} && echo`), "the command runs where the commit lands");
+  assert.ok(out.startsWith(`Run \`cd ${typed(elsewhere)} && echo`), "the command runs where the commit lands");
   const held = realpathSync(away(true));
   assert.ok(
     gate({ command: `git --git-dir=${pathed(join(held, ".git"))} commit -m x`, pending: ["work.mjs"], pendingIn: held }),
@@ -373,4 +374,33 @@ test("the consult a refusal asks for leaves the path whose staged copy nobody re
   assert.match(said, /restaged\.mjs/u);
   const staged = spawnSync("git", ["-C", repo, "show", ":restaged.mjs"], { cwd: repo, encoding: "utf8" }).stdout;
   assert.equal(staged, "// staged unread\n", "which is the copy that refusal stands between and the history");
+});
+
+/* AC-07-3-4. Each refusal this gate reaches, the one naming only a staged copy among them: that one
+   has no consult to run, so it opens on staging. */
+test("every refusal this gate writes leads with its route", () => {
+  const record = ["docs/PLAN.md"];
+  writeFileSync(join(REPO, "docs", "PLAN.md"), "# PLAN\n");
+  const found = { kind: "consult", id: "c9", at: at(300_000), root: realpathSync(REPO), ok: true, files: ["a.mjs"], reply: "- **F1 — New — major:** `a.mjs:1` — x." };
+  const { repo, home } = four();
+  const root = realpathSync(repo);
+  const both = fourSaid(repo, home, "git commit -m x");
+  writeFileSync(join(home, "forge", "codex.json"),
+    JSON.stringify({ turns: { [root]: { files: ["restaged.mjs"], at: Date.now() - 90_000 } } }));
+  const reasons = {
+    unread: because(gate({ command: "git commit -m x", pending: record, stage: record })),
+    unruled: because(gate({ command: "git commit -m x", log: `${JSON.stringify(found)}\n` })),
+    "no tree": because(gate({ command: "cd - && git commit -m x" })),
+    "unread and a staged copy": both,
+    "a staged copy alone": fourSaid(repo, home, "git commit -m x"),
+  };
+  projectRecord(REPO, room, { slug: "fixture", codex: { owed: ["refuse"] } });
+  try {
+    reasons["no door"] = because(gate({ command: "git commit -m x" }));
+  } finally {
+    rmSync(projectEntry(REPO, room), { force: true });
+  }
+  for (const [label, reason] of Object.entries(reasons)) assertRouteFirst(reason, label);
+  assert.match(reasons["a staged copy alone"], /^Stage what was read — `git add [^`]*restaged\.mjs`/u);
+  assert.match(reasons["no door"], /^Name only doors out of /u, "the key's own route, and not a guess at a door");
 });

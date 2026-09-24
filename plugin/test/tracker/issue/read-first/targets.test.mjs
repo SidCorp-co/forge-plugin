@@ -11,6 +11,7 @@ import { isReference } from "../../../../src/tracker/issues.mjs";
 import { shellText, starts } from "../../../../hooks/_hook.mjs";
 import { OWN } from "../../../fixtures/own-project.mjs";
 import { pathed, projectRoom, tempRoom } from "../../../fixtures.mjs";
+import { assertRouteFirst } from "../../../fixtures/route-first.mjs";
 import { HOME, OTHER, UUID, because, comment, edgeWrite, gate, live, raw, state }
   from "./gate.mjs";
 
@@ -321,7 +322,7 @@ test("the uuid form is denied where the reference form is", async () => {
 test("two issues in one command are one deny naming both", async () => {
   state.comments = { [UUID]: [comment("c1", "one issue owes this")], [OTHER]: [comment("c2", "the other owes this")] };
   const run = await gate(`${edgeWrite()} && ${edgeWrite("ISS-30")}`);
-  assert.match(because(run), /this writes to ISS-29, ISS-30/u);
+  assert.match(because(run), /This writes to ISS-29, ISS-30/u);
 });
 
 test("an issue with no comments is not denied, and no round is spent on a read", async () => {
@@ -456,7 +457,7 @@ test("with no endpoint saved a verb held back still answers for the route it wra
       { url: "", withheld: { new: kept }, session: `probe-withheld-${kept}` });
     assert.equal(run.out.hookSpecificOutput.permissionDecision, "deny", kept);
     assert.match(because(run), new RegExp(`\`forge new\` is ${kept} on this machine`, "u"));
-    assert.match(because(run), /The raw call is not the way round that/u, kept);
+    assert.match(because(run), /^Use `forge new` and not the raw call/u, kept);
   }
 });
 
@@ -507,3 +508,24 @@ test("a plan whose body cites five clauses writes only to the issue it names", (
 /* A worktree of this same project: a `cd` in the cases above reaches a tree the gate can name a
    project for, which is what those cases were about before a directory naming none went silent. */
 const SAME_PROJECT = projectRoom(tempRoom("same-project-"), HOME.path, OWN);
+
+/* AC-07-3-4. Every refusal this gate relays, composed where the verbs that print the same words
+   compose it, each read for the order: the thread to read, a thread past what can be credited, a
+   body the flow cannot carry, one that reads as a fix, and a raw route a verb wraps, typed and held back. */
+test("every refusal this gate relays leads with its route", async () => {
+  const reasons = {};
+  state.comments = { [UUID]: [comment("c1", "read this before you write")] };
+  reasons.thread = because(await gate(edgeWrite()));
+  state.comments = { [UUID]: Array.from({ length: 401 }, (_, at) => comment(`past${at}`, "one of many")) };
+  reasons["a thread past the credits"] = because(await gate("forge advance ISS-29"));
+  state.comments = {};
+  reasons["a body the flow cannot carry"] = because(await filing({ title: "fix", description: "It is broken." }));
+  reasons["a body that reads as a fix"] = because(await filing({ title: "forge issue writes an edge a token can write",
+    description: "`forge issue` should take the `data.relations` route." }));
+  reasons["a route a verb wraps"] = because(await filing({ title: TITLED, description: WHOLE }));
+  reasons["a route whose verb is held back"] = because(await filing({ title: TITLED, description: WHOLE },
+    { url: "", withheld: { new: "off" }, session: "probe-order-withheld" }));
+  for (const [label, reason] of Object.entries(reasons)) assertRouteFirst(reason, label);
+  assert.doesNotMatch(reasons["a body that reads as a fix"], /under `clear:`/u, "the fix's own head, not the shape's");
+  assert.match(reasons["a thread past the credits"], /^Hold — re-send the same command/u, "the short thread's own head");
+});

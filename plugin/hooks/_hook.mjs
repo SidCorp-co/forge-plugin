@@ -197,7 +197,15 @@ export const logged = (decision, reason, target = null) => {
     session: event.session_id ?? "",
     target: scrubbed(target ?? ti.file_path ?? ti.notebook_path ?? ti.command ?? ""),
     reason: scrubbed(String(reason).split("\n")[0]),
+    ...refusedIn(reason),
   });
+};
+
+/* A refusal leads with its route and says what it refused in the paragraph after, so the first line
+   alone is the action; the shape is kept beside it, since a false positive is found by its shape. */
+const refusedIn = (reason) => {
+  const [, next] = String(reason).split("\n\n");
+  return next?.trim() ? { refused: scrubbed(next.trim().split("\n")[0]) } : {};
 };
 
 

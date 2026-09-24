@@ -8,6 +8,7 @@ import { join } from "node:path";
 
 import { linting } from "../../src/hooks/lint-delegate.mjs";
 import { answered, callHook, homeEnv, pathed, tempRoom } from "../fixtures.mjs";
+import { assertRouteFirst } from "../fixtures/route-first.mjs";
 
 const HOOK = new URL("../../hooks/entries/code-quality.mjs", import.meta.url).pathname;
 const REPO = new URL("../../..", import.meta.url).pathname.replace(/\/$/u, "");
@@ -39,7 +40,7 @@ test("a finding is refused in the delegate's protocol and written to the log lik
     const entry = JSON.parse(readFileSync(LOG, "utf8").trim().split("\n").pop());
     assert.equal(entry.hook, "code-quality");
     assert.equal(entry.decision, "block");
-    assert.match(entry.reason, /code-quality: .*cq-probe.* — code-quality\/comment-density/u, "the log names the rule, not only the file");
+    assert.match(entry.refused, /code-quality: .*cq-probe.* — code-quality\/comment-density/u, "the log names the rule, not only the file");
     /* The same content named again — a grep, say — is not a second block. */
     const again = callHook(HOOK, { session_id: entry.session, tool_name: "Bash", tool_input: { command: `grep -n one ${pathed(file)}` }, cwd: REPO }, HOME);
     assert.equal(again.stdout.trim(), "", "reported once per content");
@@ -199,4 +200,23 @@ test("a file already reported at its content takes no place under the cap", () =
   const out = walked(files.slice(0, 6), undefined, { skip: (file) => file === files[0] });
   assert.deepEqual(out.map((one) => [one.file, one.unread ?? null]), files.slice(1, 6).map((one) => [one, null]),
     "the sixth file reaches the linter because the first was answered already");
+});
+
+/* AC-07-3-4. The findings are the linter's words, so the route ahead of them is the gate's own. */
+test("every refusal this gate writes leads with its route", () => {
+  const file = join(REPO, "plugin", "test", `cq-order-${randomUUID().slice(0, 8)}.mjs`);
+  writeFileSync(file, DENSE);
+  try {
+    const run = callHook(
+      HOOK,
+      { session_id: randomUUID(), tool_name: "Write", tool_input: { file_path: file }, cwd: REPO },
+      HOME,
+    );
+    const out = JSON.parse(run.stdout);
+    assert.equal(out.decision, "block");
+    assertRouteFirst(out.reason, "a finding");
+    assert.match(out.reason, /\n\ncode-quality: /u, "the finding follows the route");
+  } finally {
+    rmSync(file, { force: true });
+  }
 });

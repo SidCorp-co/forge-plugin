@@ -9,6 +9,7 @@ import { mkdirSync, realpathSync, symlinkSync, utimesSync, writeFileSync } from 
 import { join } from "node:path";
 
 import { answered, callHook, escaped, homeEnv, pathed, tempRoom } from "../fixtures.mjs";
+import { assertRouteFirst } from "../fixtures/route-first.mjs";
 
 const HOOK = new URL("../../hooks/entries/learning-landed.mjs", import.meta.url).pathname;
 const HOME = homeEnv("learning-landed");
@@ -392,4 +393,9 @@ test("a tracked link is judged by what it points at, not by its own name", () =>
     HOME,
   );
   assert.match(JSON.parse(run.stdout).reason, /SKILL\.md/u, "the link is clean; the write is not");
+});
+
+/* AC-07-3-4. One refusal, the files it names and the bar coming after the route. */
+test("every refusal this gate writes leads with its route", () => {
+  assertRouteFirst(landed(randomUUID(), "arrived-in-order.md"), "a memory no route asked about");
 });

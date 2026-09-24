@@ -114,9 +114,10 @@ test("a payload naming no action, or one that is not a name, claims nothing", ()
 
 test("the refusal names the verb and what it does that the raw call does not", () => {
   const said = wrappedRefusal("forge_issues", "create");
+  assert.match(said, /^Type `forge new` instead\./u, "the route first");
   assert.match(said, /forge_issues create is what `forge new` wraps/u);
   assert.match(said, /takes the reading this route skips/u);
-  assert.equal(said.split("\n").length, 1, "one line, as a spent turn is owed");
+  assert.equal(said.split("\n\n").length, 2, "the route and its reason, and nothing else, as a spent turn is owed");
 });
 
 /* A whole key where a tool name goes: the generated help names routes that way, so the refusal has to

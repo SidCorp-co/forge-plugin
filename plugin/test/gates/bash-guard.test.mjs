@@ -10,6 +10,7 @@ import test from "node:test";
 import { waitsIn } from "../../src/hooks/shell-spans.mjs";
 import { WAIT_COMMAND } from "../../src/hooks/wait-idiom.mjs";
 import { callHook, cleanRepo, dirtyRepo, homeEnv, projectRoom, tempRoom } from "../fixtures.mjs";
+import { assertRouteFirst } from "../fixtures/route-first.mjs";
 
 const HOOK = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "entries", "bash-guard.mjs");
 const HOME = homeEnv("bash-guard");
@@ -40,7 +41,7 @@ test("the command itself is refused, and the refusal names the rule and a way ou
   const { allowed, reason } = decide(`${STAGE_ALL} && git commit -m done`);
   assert.equal(allowed, false);
   assert.match(reason, /stages everything in the tree/u);
-  assert.match(reason, /Instead: Stage the paths you changed/u);
+  assert.match(reason, /^Refused — stage the paths you changed/u);
   assert.match(reason, /forge hooks --how bash-guard/u);
   assert.equal(decide(BY_NAME).allowed, false, "selects by name, so it is not the pid you meant");
 });
@@ -471,4 +472,28 @@ test("the wait this gate prescribes is the one the page it points at prescribes"
   const page = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "..", "hooks", "how", "polling.md"), "utf8");
   assert.ok(page.includes(WAIT_COMMAND),
     `\`forge hooks --how polling\` prescribes the same command, character for character:\n${page}`);
+});
+
+/* AC-07-3-4. One call per rule and the poll, each in a session of its own so each is the whole text;
+   the marker is followed by the route in the same sentence, never standing alone as `Refused.`. */
+test("every refusal this gate writes leads with its route", () => {
+  const stash = `git ${"stash"}`;
+  const shown = (command, cwd = DIRTY) => JSON.parse(from(cwd, command)).hookSpecificOutput.permissionDecisionReason;
+  const reasons = {
+    "--fix": shown(`npx eslint . --${"fix"}`),
+    "by name": shown(BY_NAME),
+    "stage all": shown(`${STAGE_ALL} && git commit -m done`),
+    "stash, dirty": shown(stash),
+    "stash, shared": shown(`${stash} pop`, sharedStack().second),
+    checkout: shown(`git ${"checkout"} -- tracked.txt`),
+    reset: shown(`git ${"reset"} --hard`),
+    sleep: shown(`until test -f /tmp/done; do ${"sleep"} 5; done`),
+  };
+  const session = randomUUID();
+  decideIn(session, "tail -50 /tmp/ship.log");
+  reasons["read again"] = decideIn(session, "tail -50 /tmp/ship.log").reason;
+  for (const [label, reason] of Object.entries(reasons)) {
+    assert.match(reason, /^Refused — /u, label);
+    assertRouteFirst(reason, label);
+  }
 });

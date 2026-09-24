@@ -43,6 +43,9 @@ const movesTheStash = (one) => {
   return !LEAVES_BOTH.has(next);
 };
 
+/* Each rule's `instead` is a sentence of its own, and the refusal leads with it after a dash. */
+const lead = (text) => text.charAt(0).toLowerCase() + text.slice(1);
+
 const RULES = [
   {
     // `--fix-type` writes too; `--fix-dry-run` writes nothing and is how you see the diff first. A runner keeps its command as arguments and is not in the shared grammar; a path names it too.
@@ -257,20 +260,20 @@ export const run = (ev) => {
     if (asks && !found) continue;
     const doubt = atStake === "dirty" ? found : [];
     const unsure = doubt.includes(NOWHERE) ? UNNAMED : (doubt.length > 1 ? UNSURE : "");
-    const full = `Refused. ${cause}\n\nInstead: ${instead}${unsure}${topic ? how(topic) : how()}`;
+    /* The route first, lower-cased onto the marker so the marker is never a sentence on its own. */
+    const full = `Refused — ${lead(instead)}${unsure}\n\n${cause}${topic ? how(topic) : how()}`;
     deny(sayOnce(sessionKey(ev), "bash-guard", full, { route: topic || "bash-guard" }));
   }
 
   const again = readAgain(ev, (ev.tool_input ?? {}).command ?? "");
   if (again) {
     deny(
-      `Refused. This is the read before it, typed again with nothing done between: ${again.join(", ")}. `
-      + "A read repeated with nothing between it and the last one is a wait spent asking."
-      + "\n\nInstead: if the work writing it is still running, wait on it with one call that comes back to "
-      + `you — its own verdict call, or \`${WAIT_COMMAND}\` on the pid `
-      + "writing it. If it has already ended, then "
+      "Refused — wait on the work writing it with one call that comes back to you, its own verdict call "
+      + `or \`${WAIT_COMMAND}\` on the pid writing it, if it is still running. If it has already ended, `
       + "the read before this one came too early: ask the finished log what you now want to know, which "
-      + `is a different question. This rule says a thing once, so sending this again passes.${how("polling")}`,
+      + "is a different question. This rule says a thing once, so sending this again passes.\n\n"
+      + `This is the read before it, typed again with nothing done between: ${again.join(", ")}. `
+      + `A read repeated with nothing between it and the last one is a wait spent asking.${how("polling")}`,
     );
   }
 };

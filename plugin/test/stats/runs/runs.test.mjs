@@ -8,6 +8,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { callsIn, shellOf } from "../../../src/stats/corpus/transcripts.mjs";
+import { refusalIn } from "../../../src/stats/corpus/refusals.mjs";
 import { classOf } from "../../../src/stats/corpus/classes.mjs";
 import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 import { unionSeconds } from "../../../src/stats/runs.mjs";
@@ -480,4 +481,12 @@ test("the rung table names the record it read each rung off, so a verb that read
   const rungs = run.stdout.slice(run.stdout.indexOf("rung "));
   assert.match(rungs, /the run's own record/u,
     "this verb asks the tracker for no issue, so the rung here is whatever the run recorded and nothing else");
+});
+
+/* A gate's refusal now leads with its route after a dash; the opener an older log carries still reads. */
+test("a refusal opening on either of bash-guard's openers is marked, whatever the call exited", () => {
+  const route = "Refused — stage the paths you changed.\n\ngit add -A stages everything.\n\nHow: `forge hooks --how bash-guard`";
+  assert.equal(refusalIn({ body: `${route}\nEXIT=0`, error: false }), "Refused — stage the paths you changed.");
+  assert.equal(refusalIn({ body: "Refused. git add -A stages everything.\nEXIT=0", error: false }),
+    "Refused. git add -A stages everything.");
 });

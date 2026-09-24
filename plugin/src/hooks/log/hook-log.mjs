@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { hookLogPath, hookEntries, jsonLines } from "./hook-log-file.mjs";
 import { readAction } from "../../tracker/issue-read.mjs";
 import { didYouMean } from "../../suggest.mjs";
-import { HOOKS_DIR, hookEvent, hookNames, offNow, setHook } from "../hook-switch.mjs";
+import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, setHook } from "../hook-switch.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
 import { helpOf } from "../../resolve/visibility.mjs";
@@ -40,9 +40,22 @@ const documented = () => {
   }
 };
 
+/* Said once here rather than on every page: each page is at its size cap, and a line twenty pages
+   repeat is twenty copies of one rule. It goes under a gate that can refuse, read off the gate's own
+   source, so a topic page, a retired name and a gate that only says something are printed alone. */
+export const ROUTE_NOT_VERDICT = "A refusal from this gate is the route to take, not a verdict on the "
+  + "call: its first sentence says what to do next, and what follows is the shape it refused and why.";
+
+const REFUSES = /\b(?:deny|block)\(/u;
+const refuses = (name) => {
+  const file = gateFile(name);
+  return Boolean(file) && REFUSES.test(readFileSync(file, "utf8"));
+};
+
 const reasoning = (name) => {
   if (!documented().includes(name)) fail(didYouMean("hook", name, documented()));
   console.log(readFileSync(join(HOW_DIR, `${name}.md`), "utf8").trimEnd());
+  if (refuses(name)) console.log(`\n${ROUTE_NOT_VERDICT}`);
 };
 
 /* Refusals as against notes, which do not inflate the count. Why they are logged: `_hook.mjs`. */

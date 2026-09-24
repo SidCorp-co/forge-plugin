@@ -13,6 +13,7 @@ import { answered, callHook, cleanRepo, escaped, pathed, projectRecord, projectR
 import { FIELD, KEY } from "../../../src/flow/lease.mjs";
 import { sessionKey } from "../../../src/shown/ledger.mjs";
 import { OWN } from "../../fixtures/own-project.mjs";
+import { assertRouteFirst } from "../../fixtures/route-first.mjs";
 
 const HOOK = new URL("../../../hooks/entries/turn/stop-check.mjs", import.meta.url).pathname;
 const GATE = new URL("../../../hooks/gate.mjs", import.meta.url).pathname;
@@ -586,4 +587,19 @@ test("the same red item does not refuse the stop after this one", () => {
   const session = randomUUID();
   assert.match(stopped(env, { session_id: session, transcript_path: path, cwd }).reason, /Consult c9/u);
   assert.equal(stopped(env, { session_id: session, transcript_path: path, cwd }), null, "it refused twice");
+});
+
+/* AC-07-3-4. The stop's list of red items and the configuration it cannot read, each read for the
+   order: every item carries its own clearing line, and the head over them is the route. */
+test("every refusal this gate writes leads with its route", () => {
+  const cwd = cleanRepo();
+  const red = stopped(room(`${consult(realpathSync(cwd))}\n`), { transcript_path: transcript(), cwd });
+  assertRouteFirst(red.reason, "work left red");
+  let malformed = "";
+  try {
+    judgedStop({ hook_event_name: "SubagentStop", agent_type: "forge:runner" }, "runner");
+  } catch (error) {
+    malformed = error.message;
+  }
+  assertRouteFirst(malformed, "a stop.agents that is no list");
 });

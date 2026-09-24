@@ -384,10 +384,10 @@ export const wrappedRefusal = (tool, action) => {
   const said = found.key.replace(".", " ");
   const gone = unavailable(found.verb);
   if (gone) {
-    return `${said} is what ${found.line} wraps, and ${gone.replace(/\.$/u, "")}. `
-      + "The raw call is not the way round that.";
+    return `Use ${found.line} and not the raw call — ${gone.replace(/\.$/u, "")}.\n\n`
+      + `${said} is what ${found.line} wraps, and the raw call is not the way round its absence.`;
   }
-  return `${said} is what ${found.line} wraps: type it instead — it makes this call `
+  return `Type ${found.line} instead.\n\n${said} is what ${found.line} wraps: it makes this call `
     + "and takes the reading this route skips.";
 };
 

@@ -212,7 +212,8 @@ test("a refused compound command says none of it ran, and one command or one pip
   const said = (command, id) => answered(run(["bash-guard"], { tool_name: "Bash", tool_input: { command }, cwd, session_id: id },
     { FORGE_SESSION_ID: id }))?.hookSpecificOutput?.permissionDecisionReason ?? "";
   const whole = said("git add a.txt && git stash", `whole-${Date.now()}`);
-  assert.match(whole, /^Refused\. git stash silently reverts/u, "the gate's own reason still opens the refusal");
+  assert.match(whole, /^Refused — copy the file aside to undo a probe/u, "the gate's own route still opens the refusal");
+  assert.match(whole, /git stash silently reverts/u, "with its reason after it");
   assert.match(whole, /\n\nNothing in this command ran, the parts before the refused one included, so it is re-sent whole\./u);
   assert.match(said("git stash", `one-${Date.now()}`), /git stash silently reverts/u);
   assert.doesNotMatch(said("git stash", `one-${Date.now()}`), /Nothing in this command ran/u, "one command needs no telling");
