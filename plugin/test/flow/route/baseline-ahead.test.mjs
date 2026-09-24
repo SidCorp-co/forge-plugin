@@ -36,6 +36,8 @@ test("--owed names the published baseline and the write that cites it, and says 
     "with nothing published the silence is said rather than left to read as a pass");
   assert.match(bare, /forge record baseline ISS-3 --gate "<the project's gate>"/u, "and the fresh run is named");
   assert.doesNotMatch(bare, /--cited/u, "nothing invites a citation there is no authority for");
+  assert.match(bare, /Nothing has ever published one for this project on this machine/u,
+    "and a store holding nothing for the project says the route is closed rather than empty for now");
   publish(HEAD, "1.2.3");
   const said = baselineAhead(below, "ISS-3", HEAD);
   assert.match(said, /a ship published a whole-tree result for the commit this checkout stands at/u);
@@ -50,6 +52,8 @@ test("the rehearsal reads the head in hand, and a publication for any other comm
     "a newer publication beside this head's does not displace it");
   const elsewhere = baselineAhead(below, "ISS-3", "9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f9f");
   assert.match(elsewhere, /no ship has published/u, "a head between two published commits is its own tree");
+  assert.doesNotMatch(elsewhere, /Nothing has ever published/u,
+    "and a project something has published for is told only that this head went without");
   assert.match(baselineAhead(below, "ISS-3", null), /no ship has published/u,
     "and a checkout whose head cannot be read at all is the same answer");
   assert.equal(headNow(), stampedNow(SHAPES.baseline).head ?? null,
