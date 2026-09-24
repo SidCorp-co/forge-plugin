@@ -44,3 +44,14 @@ sample and never the whole window: what it cannot reach is a file dirty at every
 the log holds no copy of by design (`cli/codex-the-replay.md`). So a prompt switch still stands on that
 sample, on the first live run of the new prompt read by hand, and on `forge codex eval` a hundred
 consults later; the replay's figures are read for the share they are rather than treated as a score.
+
+**A finding can be right about what and wrong about why.** `--misreasoned F1=<why>` rules one whose
+conclusion held and whose stated mechanism did not. An acceptance cannot say that, so a reviewer that
+reasons well and one that guesses a mechanism and lands on a true conclusion read the same, and at a
+hundred percent kept the figure cannot rank the prompt versions it exists for. The ruling is a mark
+on the accepted side rather than a side of its own, because the question a commit asks is whether a
+finding survived, and this one did. From that ruling on, a plain `--accepted` is the claim that the
+finding was right about both. So `eval` puts the share right about how beside the share kept, and
+counts it only over findings ruled one way or the other. A finding accepted before the ruling
+existed, or taken by a recheck, has no mechanism ruling and adds nothing to that share. Guessing
+which of those were right would invent the very data the share measures (ISS-1823).

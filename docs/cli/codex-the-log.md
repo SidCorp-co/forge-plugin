@@ -2,8 +2,9 @@
 
 **The log is the session.** There is no session id, so a consult opens with this repository's last
 three answered ones and their verdicts. Findings are numbered `F1…` across angles and a verdict names
-them — `--accepted F1,F3 --rejected F2=why`, never a count: 185 accepted to 14 rejected was the count
-form saying nothing. What is replayed is the findings, the rulings and what became of each, not the
+them — `--accepted F1,F3 --rejected F2=why`, and `--misreasoned F4=why` for one right about what and
+wrong about why, which [the finding](codex-the-finding.md) explains, never a count: 185 accepted
+to 14 rejected was the count form saying nothing. What is replayed is the findings, the rulings and what became of each, not the
 prose: the gateway reported no cache creation in 108 consults, so every replayed character was paid for
 on every call. A recheck's REFUTED rulings record themselves as the verdict on the consult they judged
 (CONFIRMED stays open) over every finding the author has not ruled on; one they have keeps the ruling

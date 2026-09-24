@@ -10,7 +10,7 @@ import { flags, pullRepeated } from "../../resolve/flags.mjs";
 import { DIAGNOSTIC, PROPOSAL, answered, byRun, hereOf, inRepo, isAnswered, logBytes, logConsult, logEntries, logPath, maskedDeep,
   pairedLog, runOf, verdictsBy } from "../codex-log.mjs";
 import { budgetMs } from "../../resolve/settings.mjs";
-import { countedIn, recheckSaid, scoreOf, unverdicted, verdictRecord } from "./replies.mjs";
+import { countedIn, misreasonedSaid, recheckSaid, scoreOf, unverdicted, verdictRecord } from "./replies.mjs";
 
 const LOG_TAIL = 10;
 
@@ -43,7 +43,7 @@ export const logLine = (stored, full) => {
   }
   if (entry.kind === "verdict") {
     const note = [entry.note, recheckSaid(entry)].filter(Boolean).join("  ");
-    return `${entry.at}  verdict on ${entry.of}: ${entry.accepted} accepted, ${entry.rejected} rejected`
+    return `${entry.at}  verdict on ${entry.of}: ${entry.accepted} accepted${misreasonedSaid(entry)}, ${entry.rejected} rejected`
       + `${wroteIt(entry)}${note ? `  ${note}` : ""}`;
   }
   const answer = stored.ok ? `${(stored.reply ?? "").length}ch` : `failed: ${entry.error ?? "?"}`;
@@ -100,6 +100,7 @@ export const logLine = (stored, full) => {
 const scoreLine = (row) =>
   `${row.model.padEnd(24)} ${String(row.consults).padStart(4)} consults  ${String(row.findings).padStart(4)} findings `
   + `(${row.zero} none)  ${String(row.accepted).padStart(4)} accepted  ${String(row.rejected).padStart(3)} rejected  `
+  + `${String(row.sound).padStart(3)} right about how  ${String(row.misreasoned).padStart(3)} right in conclusion only  `
   + `${String(row.median).padStart(4)}s median  ${row.input ? Math.round((row.cached / row.input) * 100) : 0}% cached`;
 
 export const LOG_USAGE = [
@@ -132,13 +133,16 @@ export const printLog = (rest) => {
 };
 
 export const VERDICT_USAGE = [
-  'Usage: forge codex verdict --accepted F1,F3 --rejected F2=why [--note "why"] [--of <id>]',
+  'Usage: forge codex verdict --accepted F1,F3 --rejected F2=why [--misreasoned F4=why] [--note "why"] [--of <id>]',
   "What became of each finding, which is the half of an eval set only the caller holds. A recheck",
   "records one for what it refuted, and a commit waits for one. What you record here is yours: a",
   "recheck after it leaves it standing, reason and all, and says on its way out what it found instead.",
   "",
-  "  --accepted F1,F3   the findings taken; repeatable",
+  "  --accepted F1,F3   the findings taken, right about what was wrong and about why; repeatable",
   "  --rejected F2=why  the findings turned down, each with its reason; repeatable",
+  "  --misreasoned F4=why  the findings taken whose conclusion held and whose stated mechanism did",
+  "                     not, each with what the mechanism got wrong; a commit reads them as accepted,",
+  "                     and `forge codex eval` counts them apart from the ones right about both; repeatable",
   "  --note t           one line about the consult as a whole",
   "  --of <id>          the consult this verdict is about, any run's in this repository; without it,",
   "                     this run's open one in any worktree of the repository, and never another run's",
@@ -183,8 +187,9 @@ const notOurs = (bytes, root, here, run) => {
 export const verdict = (rest, root) => {
   const { values: accepted, rest: r1 } = pullRepeated(rest, "--accepted", "codex verdict", { usage: VERDICT_USAGE });
   const { values: rejected, rest: r2 } = pullRepeated(r1, "--rejected", "codex verdict", { usage: VERDICT_USAGE });
-  const { note, of } = flags(r2, "codex verdict", [], { usage: VERDICT_USAGE });
-  if (!accepted.length && !rejected.length && !note) fail(VERDICT_USAGE);
+  const { values: misreasoned, rest: r3 } = pullRepeated(r2, "--misreasoned", "codex verdict", { usage: VERDICT_USAGE });
+  const { note, of } = flags(r3, "codex verdict", [], { usage: VERDICT_USAGE });
+  if (!accepted.length && !rejected.length && !misreasoned.length && !note) fail(VERDICT_USAGE);
   /* This run's last consult in this repository that made findings and heard nothing back, not the
      last answer: after a converged recheck the last answer found nothing, and a verdict landed on it
      twice. Every worktree of the repository is one place here, and `--of` reaches any run's. */
@@ -202,6 +207,7 @@ export const verdict = (rest, root) => {
   const held = verdictRecord(last, {
     accepted: accepted.length ? accepted.join(",") : undefined,
     rejected: rejected.length ? rejected.join(",") : undefined,
+    misreasoned: misreasoned.length ? misreasoned.join(",") : undefined,
     note,
   }, verdictsBy(entries).get(last.id ?? last.at) ?? null);
   if (held.problem) fail(`codex: ${held.problem}`);
