@@ -195,8 +195,9 @@ const movedOf = (all, day, profile) => {
 };
 
 /** The first moment anything was recorded on this device, for the range a refusal names. */
-const firstOf = (all, entries) => {
-  const moments = [...all.map((run) => run.startedAt), ...answered(entries).map((one) => Date.parse(one.at)).filter(Number.isFinite)];
+const firstOf = (all, entries, passes) => {
+  const moments = [...all.map((run) => run.startedAt), ...passes.map((one) => one.at),
+    ...answered(entries).map((one) => Date.parse(one.at)).filter(Number.isFinite)];
   return moments.length ? Math.min(...moments) : null;
 };
 
@@ -216,7 +217,7 @@ export const corporaOf = async (read, since = null) => {
 export const readingOf = ({ projects, entries = logEntries(), hooks = hookEntries() }) => {
   const all = projects.flatMap((one) => one.runs).sort((left, right) => left.startedAt - right.startedAt);
   const passes = projects.flatMap((one) => one.passes ?? []);
-  return { projects, all, passes, entries, hooks, first: firstOf(all, entries) };
+  return { projects, all, passes, entries, hooks, first: firstOf(all, entries, passes) };
 };
 
 export const contentOf = async (reading, day, { unread = [], match } = {}) => {

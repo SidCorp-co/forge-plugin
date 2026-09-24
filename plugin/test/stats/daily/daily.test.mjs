@@ -163,6 +163,17 @@ test("a landing a session that is no run typed is counted on the day, and stats 
     said.stdout);
 });
 
+test("a day whose only record is a landing a dispatching session typed is read, and stats runs says it", () => {
+  const held = device();
+  dispatcherLanded(held, daysAgo(1));
+  const { headline } = contentFor(held, daysAgo(1)).landings;
+  assert.deepEqual({ passes: headline.passes, outsideRuns: headline.outsideRuns }, { passes: 2, outsideRuns: 2 },
+    "the landings alone hold the day, so it is not refused as earlier than anything held");
+  const said = spawnSync(FORGE, ["stats", "runs", "--checkout", held.checkout], { encoding: "utf8", cwd: held.room, env: envOf(held) });
+  assert.match(said.stdout, /^No issue-flow run for this project/u, said.stdout);
+  assert.match(said.stdout, /^landings {8}2 pass\(es\)/mu, "and the landings are printed beside the runs it found none of");
+});
+
 test("consults are counted for the day, one row per model and prompt version", () => {
   const on = `${daysAgo(1)}T10:00:00.000Z`;
   const held = device({ days: [daysAgo(1)], consults: [consult(on), consult(on, { id: "c-2", prompt: { v: 4, sha: "def456" } }),

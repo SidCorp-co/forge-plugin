@@ -601,7 +601,7 @@ export const printRuns = async (rest) => {
   }
   if (!runs.length) {
     return console.log(`No issue-flow run for this project${since ? ` in the last ${since}` : ""}. ${aside}.\n`
-      + `${sourceLines(sources).join("\n")}`
+      + `${landingLine(held.landings)}\n${sourceLines(sources).join("\n")}`
       + derivedFrom(directory));
   }
   console.log(`${held.runs} issue-flow run(s)${since ? ` in the last ${since}` : ""}, `
