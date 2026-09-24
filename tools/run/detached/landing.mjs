@@ -5,15 +5,13 @@
    stopping the caller stops nothing of the landing, and what the landing did is kept where a later
    call finds it. */
 import { spawn } from "node:child_process";
-import { closeSync, existsSync, openSync, readFileSync, readSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, openSync, readFileSync, readSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { constants } from "node:os";
 import { join } from "node:path";
 import { clearInterval, setInterval } from "node:timers";
 
-import { gitOut, read, stop } from "../../checkout.mjs";
-import { PROC, startedAt } from "../../gates/machine.mjs";
-import { WAIT_COMMAND } from "../../../plugin/src/hooks/wait-idiom.mjs";
-import { heldMinutes } from "../../../plugin/src/host/call-ceiling.mjs";
+import { read, stop } from "../../checkout.mjs";
+import { gitDir, recordIn, reservationIn, startOf, stillLanding, waitCommand } from "./record.mjs";
 
 /** The verbs that hold the landing lock, and so the ones whose death strands it. */
 export const DETACHES = new Set(["ship", "land", "land-ready"]);
@@ -27,48 +25,24 @@ const MARK = "FORGE_LANDING_DETACHED";
    drains whatever is left, so nothing is lost to it. */
 const TICK_MS = 100;
 
-/* The record is one per tree, in its own git directory: a later call finds it without knowing the
-   caller's TMPDIR, and a second landing of a tree whose landing still runs is refused off it. The
-   output files are one per caller, named for its pid, so two callers that pass that check in the
-   same instant each keep their own and meet at the landing lock, as two landings always have. */
-const gitDir = (tree) => gitOut(["rev-parse", "--absolute-git-dir"], tree);
-
-const recordIn = (dir) => join(dir, "forge-landing.json");
-
+/* The output files are one per caller, named for its pid, so two callers that pass the record's
+   check in the same instant each keep their own and meet at the landing lock, as two landings
+   always have. */
 const outputsIn = (dir, pid) => ({ out: join(dir, `forge-landing-${pid}.out`), err: join(dir, `forge-landing-${pid}.err`) });
-
-const waitOn = (pid) => WAIT_COMMAND.replace("<seconds>", String(heldMinutes() * 60)).replace("<pid>", String(pid));
 
 const where = (files) => `its output is kept in ${files.out} and ${files.err}, and how it ended in ${files.record}`;
 
-/* The kernel's ticks since boot at which a process began, so a pid reused by a later process is
-   told from the one a record names; null off a machine with no /proc. */
-const startOf = (pid) => {
-  try {
-    return startedAt(readFileSync(join(PROC, String(pid), "stat"), "utf8"));
-  } catch {
-    return null;
-  }
+const busySaid = (was, wait) => `a ${was.verb ?? "landing"} of this tree is still running as pid ${was.pid}, `
+  + `since ${was.since}, and one landing per tree is what keeps its files its own: ${where(was)}. Wait on it `
+  + `in one call, which answers how it ended: ${wait}`;
+
+/* Renamed into place, so a wait woken by the write never reads the record half-written and takes an
+   empty file for a tree that holds none. */
+const recorded = (path, body) => {
+  const next = `${path}.${process.pid}`;
+  writeFileSync(next, `${JSON.stringify(body, null, 2)}\n`);
+  renameSync(next, path);
 };
-
-/* The pid alone is not the landing: the kernel reuses them. A record that carries the process's start
-   is matched on both, and one that could not read it is matched on the pid alone, which refuses a
-   landing rather than letting it run beside a live one. */
-const stillLanding = (was) => {
-  if (!Number.isInteger(was?.pid) || was.pid < 2 || was.ended) return false;
-  try {
-    process.kill(was.pid, 0);
-  } catch (error) {
-    if (error.code !== "EPERM") return false;
-  }
-  return was.start === null || was.start === undefined || startOf(was.pid) === was.start;
-};
-
-const busySaid = (was, files) => `a ${was.verb ?? "landing"} of this tree is still running as pid ${was.pid}, `
-  + `since ${was.since}, and one landing per tree is what keeps its files its own: ${where(files)}. Wait on it, `
-  + `then read that record: ${waitOn(was.pid)}`;
-
-const recorded = (path, body) => writeFileSync(path, `${JSON.stringify(body, null, 2)}\n`);
 
 /* How long the landing waits for its caller's record naming it before writing its own: the caller
    writes it the moment the spawn returns, so this only runs out where the caller died in between. */
@@ -101,7 +75,10 @@ export const asDetached = (verb, argv) => {
     start: startOf(process.pid), since: new Date().toISOString(), ...outputsIn(dir, caller), record };
   recorded(record, started);
   process.on("SIGHUP", () => {});
-  process.on("exit", (code) => recorded(record, { ...started, ended: { code, at: new Date().toISOString() } }));
+  /* The step it stopped at beside the code, so a wait says where a failed landing failed without
+     reading its output. */
+  process.on("exit", (code) => recorded(record,
+    { ...started, ended: { code, step: lastStep(started.out), at: new Date().toISOString() } }));
   return true;
 };
 
@@ -140,8 +117,8 @@ const endedBySignal = (pid, signal, files) => {
     + `${where(files)}.`;
 };
 
-const leftSaid = (pid, signal, files) => `\nthis call was stopped by ${signal} and the landing was not: it runs `
-  + `on as pid ${pid}, and ${where(files)}. Wait on it: ${waitOn(pid)}`;
+const leftSaid = (pid, signal, files, wait) => `\nthis call was stopped by ${signal} and the landing was not: it runs `
+  + `on as pid ${pid}, and ${where(files)}. Wait on it in one call, which answers how it ended: ${wait}`;
 
 const CALLER_STOPS = ["SIGTERM", "SIGINT", "SIGHUP"];
 
@@ -174,7 +151,7 @@ const startingSaid = (path) => {
    record is written here before the reservation is dropped, and the landing waits for it. */
 const launched = ({ verb, argv, script, tree, dir, record }) => {
   const was = read(record);
-  if (stillLanding(was)) stop(busySaid(was, was));
+  if (stillLanding(was)) stop(busySaid(was, waitCommand(script, tree)));
   for (const one of [was?.out, was?.err]) if (typeof one === "string" && one.startsWith(dir)) rmSync(one, { force: true });
   const files = { ...outputsIn(dir, process.pid), record };
   const [out, err] = [openSync(files.out, "w"), openSync(files.err, "w")];
@@ -200,7 +177,7 @@ export const detach = async (verb, argv, script) => {
   const tree = process.cwd();
   const dir = gitDir(tree);
   if (!dir) return null;
-  const hold = join(dir, "forge-landing.starting");
+  const hold = reservationIn(dir);
   if (!reserved(hold)) stop(startingSaid(hold));
   let launch;
   try {
@@ -209,6 +186,7 @@ export const detach = async (verb, argv, script) => {
     rmSync(hold, { force: true });
   }
   const { child, files } = launch;
+  const wait = waitCommand(script, tree);
   const ended = new Promise((done) => {
     child.once("error", (error) => done({ error }));
     child.once("exit", (code, signal) => done({ code, signal }));
@@ -219,13 +197,13 @@ export const detach = async (verb, argv, script) => {
   }
   console.log(`  this ${verb} runs as pid ${child.pid} in a session of its own, so stopping this call stops `
     + `nothing of it; \`kill -- -${child.pid}\` stops it, gate and all. What it prints is relayed here, and ${where(files)}. `
-    + `A later call waits on it with ${waitOn(child.pid)}`);
+    + `A later call waits on it, from any directory, and is answered how it ended: ${wait}`);
   const relays = [following(files.out, process.stdout), following(files.err, process.stderr)];
   const pump = () => relays.forEach((one) => one.pump());
   const tick = setInterval(pump, TICK_MS);
   const stopped = (signal) => {
     pump();
-    console.error(leftSaid(child.pid, signal, files));
+    console.error(leftSaid(child.pid, signal, files, wait));
     process.exit(128 + constants.signals[signal]);
   };
   for (const signal of CALLER_STOPS) process.on(signal, stopped);
@@ -251,9 +229,10 @@ export const DETACH_HELP = [
   "stops nothing of the landing, and `kill -- -<pid>` is what stops the landing, gate and all. Its",
   "output is kept in the tree's git directory as forge-landing-<caller pid>.out and .err, and",
   "forge-landing.json names them and records how the landing ended, so a later call reads what a",
-  "stopped caller no longer can. A landing ended by a signal leaves the lock naming its pid, refused",
-  "with the command that clears it, and a second landing of a tree whose landing is still running —",
-  "the pid that record names, begun at the moment it records — is refused with the pid to wait on.",
+  "stopped caller no longer can: `wait` is that call. A landing ended by a signal leaves the lock",
+  "naming its pid, refused with the command that clears it, and a second landing of a tree whose",
+  "landing is still running — the pid that record names, begun at the moment it records — is",
+  "refused with the wait that answers how that one ended.",
   "Two calls of one tree in the same instant launch one landing: forge-landing.starting is held from",
   "that check to the record, and one a dead call left is refused with the command that clears it.",
 ];

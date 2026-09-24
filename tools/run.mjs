@@ -9,6 +9,7 @@ import { defaultBranch, git, gitOut, loud, Stop, stop } from "./checkout.mjs";
 import { flagLines, VERBS, verbUsage, wanted } from "./run/args.mjs";
 import { REPLAY_HELP } from "./run/replayed.mjs";
 import { asDetached, detach, DETACH_HELP, DETACHES } from "./run/detached/landing.mjs";
+import { landingWait } from "./run/detached/wait.mjs";
 import { land } from "./run/land.mjs";
 import { landReady } from "./run/land-ready.mjs";
 import { named, NO_MARK, ship, shipHelp } from "./run/ship.mjs";
@@ -24,7 +25,7 @@ const SELF = `node ${join(basename(HERE), "tools", "run.mjs")}`;
 const sig = (verb) => VERBS.get(verb).signature;
 
 const usage = () => [
-  `Usage: ${SELF} <start|relink|finish|ship|land|land-ready|review> [args]`,
+  `Usage: ${SELF} <start|relink|finish|ship|land|land-ready|wait|review> [args]`,
   "The repository's own steps around one change: the worktree a run works in, the release that puts",
   "its commit in the plugin copy the next session loads, and the call that ends that workspace again.",
   "Everything else is the change itself.",
@@ -73,6 +74,14 @@ const usage = () => [
   "                          step number. Naming no issue takes every one this project left ready,",
   "                          in the order they were captured; it prints that set, the state each",
   "                          checkpoint reads and what it left out, before it spends anything",
+  `  ${sig("wait")}`,
+  "                          wait on the landing of a tree, one this call did not start included,",
+  "                          and exit with what that landing recorded: its own code where it ended,",
+  "                          at once where it had already; 76 where it is gone having recorded no",
+  "                          end or was ended by a signal, which is a failure and never a success;",
+  "                          77 at this wait's own deadline with the landing still running, M",
+  "                          minutes and at most what a call can hold; 78 where the tree holds no",
+  "                          landing record at all. It reads the record and never a process or a log",
   `  ${sig("review")}   the range the next review reads, or --done to move the mark to it`,
   "",
   ...flagLines([...VERBS.values()].flatMap((one) => one.flags)),
@@ -135,6 +144,7 @@ const VERB_RUNS = new Map([
   ["ship", ship],
   ["land", (read) => land(read, SELF)],
   ["land-ready", (read) => landReady(read, { ...named(), root: HERE, base: defaultBranch(HERE), self: SELF })],
+  ["wait", (read) => landingWait(read, { script: fileURLToPath(import.meta.url) })],
   ["review", review]]);
 
 const main = async (argv) => {
