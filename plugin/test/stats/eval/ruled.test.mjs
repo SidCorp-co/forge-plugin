@@ -71,7 +71,7 @@ test("a ruling call pairs with the entry its own run wrote, whatever other runs 
   assert.equal(twice.pairs.length, 0, "two calls of one run reaching its one entry leave it to neither");
 });
 
-/* The run corpus's figure and `forge codex log --score` read one helper, so the two cannot disagree
+/* The run corpus's figure and `forge codex stats --by model` read one helper, `ruledOn`, so the two cannot disagree
    about a verdict on a finding the consult never made (ISS-1680). */
 
 test("the eval pairs each run's ruling to the verdict its own run logged, and says why a call went unpaired", () => {
