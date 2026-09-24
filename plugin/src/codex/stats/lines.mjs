@@ -31,7 +31,7 @@ export const roundKindLines = (kinds) => kinds.map(({ name, consults, sent, cach
   return `${label}  read from cache ${read}  calls reached ${reached}  retried ${retried}`;
 });
 
-/** A group's score half on one line, the line `forge codex log --score` printed per model. */
+/** A group's score half on one line, the line `log --score` printed per model before ISS-349 retired it. */
 export const scoreLine = (label, row) =>
   `${label.padEnd(24)} ${String(row.consults).padStart(4)} consults  ${String(row.findings).padStart(4)} findings `
   + `(${row.zero} none)  ${String(row.accepted).padStart(4)} accepted  ${String(row.rejected).padStart(3)} rejected  `
