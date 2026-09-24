@@ -2953,6 +2953,14 @@
       "rev": 1,
       "digest": "2996f2a5500d66a6703f1c7ea66f148d771ee9da25f5b851acb27dee13ea84b1"
     },
+    "AC-06-6-9": {
+      "rev": 1,
+      "digest": "423ab16ff577bc0cbff481e8ad2659eb2f5ba991acb9765cf6e9a13f84ecb75b"
+    },
+    "AC-06-6-10": {
+      "rev": 1,
+      "digest": "dbff5ef9aeb78ceab7346440d584667e38d7699923c561e4ab2efd22220088fc"
+    },
     "UC-06-7": {
       "rev": 1,
       "digest": "bc16b32ede5359237b116416cc9410d964342c26696a71971f5daaeedf7adbcf"
