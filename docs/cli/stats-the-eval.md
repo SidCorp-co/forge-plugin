@@ -62,7 +62,12 @@ each window its `runs`, `profile`, `groups` by copy and `outcomes`. Nothing in i
 another field: the bounds are the profile's and the shortfall is the size less the runs, so a reader
 holds one spelling of each figure and the screen computes the rest (ISS-492). `comparability` is the
 exception the mark earned — the judgement rides on the record because the corpus it was taken against
-cannot be asked later what it held. `forge codex eval --json` answers in the same outer shape, each window its
+cannot be asked later what it held. `copies` and `total` are two populations and not a rate:
+`copies` counts every copy under this machine's plugin cache root, whichever project it served, and
+`total` this project's runs, so a figure per copy is taken against `served`, the copies at least one of
+this project's runs began under, and `populations` names what each of the three counts is over
+(ISS-2031). A reading held under contract rev 1 carries the same machine-wide `copies` and no
+`served`, so a rate off one of those has no denominator on the record. `forge codex eval --json` answers in the same outer shape, each window its
 `consults`, its `stats` and its `groups` per model, effort and prompt; the two readers the
 harness-eval method names take the same argument and are quoted the same way (ISS-484).
 

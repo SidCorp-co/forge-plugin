@@ -157,7 +157,10 @@ test("a held reading carries the device it was taken on and the contract it was 
     assert.match(record.device, /^[0-9a-f]{16}$/u, "criterion 8");
     assert.deepEqual(Object.keys(record.contract).sort(), ["act", "declares", "rev", "said", "table"],
       "criterion 9: the phase-7 act and what it was said as, the class table, and the declared set");
-    assert.equal(record.contract.rev, 1, "under a revision this code owns, so a rule that moves can move it");
+    assert.equal(record.contract.rev, 2, "under a revision this code owns, so a rule that moves can move it; 2 since ISS-2031");
+    assert.equal(typeof record.copies, "number", "ISS-2031: the machine-wide count keeps the key the rev 1 marks hold it under");
+    assert.equal(typeof record.served, "number");
+    assert.ok(record.populations.copies, "and the stored reading names what each count is over");
     assert.equal(record.contract.table, record.now.profile.table,
       "and the table is the one the figures were actually computed with");
   } finally {
