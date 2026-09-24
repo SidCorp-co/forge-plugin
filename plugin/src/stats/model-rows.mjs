@@ -1,6 +1,6 @@
 /* The rows `forge stats models` prints and the one boundary it will compare across. Why each rule is
    the shape it is, and what the reading refuses to conclude: docs/cli/stats-the-model.md. */
-import { afterRun, outcomesOf, pairsOf } from "./eval/outcomes.mjs";
+import { SHORT, afterRun, outcomesOf, pairsOf } from "./eval/outcomes.mjs";
 import { MODEL_MIXED, MODEL_NONE, RUNG_UNKNOWN } from "./corpus/transcripts.mjs";
 import { medianOrZero, minutes } from "./figures.mjs";
 import { profileOf, runsUnder } from "./runs.mjs";
@@ -14,7 +14,9 @@ export const enough = (over, runs) => over >= FLOOR && runs >= FLOOR;
 export const THIN = "thin";
 export const WHOLE = "all";
 
-const REACHED = "reached the landing";
+/* Named for what it reads, the run's own transcript: a run can take this step and its issue still
+   not land, and an issue can land by a run that is not this one (ISS-2287). */
+const REACHED = "run took the landing step";
 const ACCEPTED = "consult findings accepted";
 const REJECTED = "consult findings rejected";
 const CORRECTED = "corrected after the run";
@@ -34,9 +36,19 @@ const acceptedFrom = (rejected) =>
   countFigure(ACCEPTED, rejected.count === null ? 0 : rejected.over - rejected.count,
     rejected.over, rejected.runs);
 
+/** How many of a figure's pairs a read that did not complete left out, and whether the spent request
+ *  budget is what left them: a pair kept out by the horizon is one no budget could have read yet. A
+ *  figure read partly is a figure over a prefix, which prints like a whole one unless it says so. */
+const shortfallOf = (figure, spent) => {
+  const unreadPairs = (figure.unread ?? [])
+    .filter((one) => one.why !== SHORT)
+    .reduce((sum, one) => sum + one.pairs, 0);
+  return { ...figure, unreadPairs, cut: Boolean(spent?.stopped) && unreadPairs > 0 };
+};
+
 const gotOf = (runs, read) => {
   const reached = countFigure(REACHED, runs.filter(reachedOn).length, runs.length);
-  if (!read) return [reached];
+  if (!read) return [shortfallOf(reached, null)];
   const held = outcomesOf(runs, read);
   const rejected = held.figures.find((one) => one.name === REJECTED);
   return [
@@ -44,7 +56,7 @@ const gotOf = (runs, read) => {
     ...(rejected ? [acceptedFrom(rejected)] : []),
     ...held.figures,
     afterRun(CORRECTED, pairsOf(runs, read.documents), read.threads, read.horizon, read.now, correctionsIn),
-  ];
+  ].map((one) => shortfallOf(one, read.spent));
 };
 
 /** Medians over one population, the runs of that model, so the row carries the count once, and the
@@ -136,10 +148,12 @@ const pairsOver = (arms) => {
   return held;
 };
 
-/** The whole of what this reading will call comparable; outside it a row prints its count and `thin`. */
+/** The whole of what this reading will call comparable; outside it a row prints its count and `thin`.
+ *  A figure the spent budget cut short on an arm is no side either: the part it read is whichever
+ *  issues the walk reached first, not a sample of that arm. */
 export const comparableIn = (cells) => cells.flatMap(({ cell, figures }) =>
   [...figures].flatMap(([figure, arms]) =>
-    pairsOver(arms.filter((arm) => enough(arm.over, arm.runs) && !BUCKETS.has(arm.model))
+    pairsOver(arms.filter((arm) => enough(arm.over, arm.runs) && !arm.cut && !BUCKETS.has(arm.model))
       .map((arm) => arm.model).sort())
       .map((pair) => ({ cell, figure, pair }))));
 
@@ -149,16 +163,16 @@ const SPEND_FIGURES = ["wall", "tool", "calls", "gate", "consult", "recheck"];
    figure's its own, and a class never recognised measured nothing, so it stands as no population. */
 const figuresIn = (rows) => {
   const held = new Map();
-  const put = (name, row, over, runs) => {
+  const put = (name, row, over, runs, cut = false) => {
     if (!held.has(name)) held.set(name, []);
-    held.get(name).push({ model: row.model, over, runs });
+    held.get(name).push({ model: row.model, over, runs, cut });
   };
   for (const row of rows) {
     for (const name of SPEND_FIGURES) {
       if (!(row.spend.unrecognised ?? []).includes(name)) put(name, row, row.spend.over, row.runs);
     }
     /* The figure's own contributing runs, never the row's: nine unread threads leave one run. */
-    for (const one of row.got ?? []) put(one.name, row, one.over, one.runs ?? row.runs);
+    for (const one of row.got ?? []) put(one.name, row, one.over, one.runs ?? row.runs, Boolean(one.cut));
   }
   return held;
 };
@@ -183,7 +197,10 @@ export const readingOf = (runs, read, declared, corpus = runs.length) => {
     models,
     cut,
     comparable: comparableIn(cellsOf(models, cut)),
-    read: read ? { horizon: read.horizon, now: read.now, requests: read.spent.requests } : null,
+    read: read
+      ? { horizon: read.horizon, now: read.now, requests: read.spent.requests, most: read.spent.most,
+        stopped: read.spent.stopped }
+      : null,
   };
 };
 

@@ -30,18 +30,28 @@ export const MODELS_USAGE = [
   "  --checkout <dir>  an absolute directory, whose transcript root is derived from its path;",
   "                 the working directory unless you say otherwise",
   "  --horizon 1d   how long after a run an outcome still counts as its own; one day otherwise",
-  "  --requests n   the tracker requests this reading may spend; past it the outcome figures print",
-  "                 unavailable and every cost figure still prints",
+  "  --requests n   the tracker requests this reading may spend; past it an outcome figure prints",
+  "                 unavailable, or `cut short` with the pairs it left unread where it read some,",
+  "                 and every cost figure still prints",
   "  --json         every figure, its population and every comparable pair, as one object",
 ].join("\n");
 
 const thin = (over, runs) => (enough(over, runs) ? "" : `  ${THIN}`);
 const said = (figure) => (figure.count === null ? UNAVAILABLE : `${figure.count}/${figure.over}`);
 
+/* On the row and not only in JSON: a count over the part a read reached prints like a whole one, and
+   the budget it ran out of is the flag that reads more. */
+const shortfall = (figure, read) => {
+  if (!figure.unreadPairs) return "";
+  const unread = `${figure.unreadPairs} pair(s) unread`;
+  return figure.cut ? `  cut short, ${unread}: --requests above ${read?.most}` : `  ${unread}`;
+};
+
 const MODEL_WIDE = 26;
 const FIGURE_WIDE = 26;
 const CELL_WIDE = 18;
 const COUNT_WIDE = 14;
+const RUNS_WIDE = 6;
 /* Wide enough for the word rather than the figure, as the rung table's gate column is. */
 const MEASURED = UNRECOGNISED.length + 2;
 
@@ -62,13 +72,21 @@ const spendLines = (rows) => [
     + thin(row.spend.over, row.runs)),
 ];
 
+/* The runs behind a figure beside its count, because a pair figure's count is not its runs: forty-one
+   pairs can be one run, and only `--json` said which. */
+const delivered = (one, row, read) => {
+  const runs = one.runs ?? row.runs;
+  return `${said(one).padStart(COUNT_WIDE)}${String(runs).padStart(RUNS_WIDE)}`
+    + `${thin(one.over, runs)}${shortfall(one, read)}`;
+};
+
 const gotLines = (rows, read) => [
   "",
   `what a run of each model got — horizon ${saidHorizon(read.horizon)}, read ${stamp(read.now)}`,
-  `${"model".padEnd(MODEL_WIDE)}${"figure".padEnd(FIGURE_WIDE)}${"count/over".padStart(COUNT_WIDE)}`,
+  `${"model".padEnd(MODEL_WIDE)}${"figure".padEnd(FIGURE_WIDE)}${"count/over".padStart(COUNT_WIDE)}`
+  + `${"runs".padStart(RUNS_WIDE)}`,
   ...rows.flatMap((row) => row.got.map((one) =>
-    `${row.model.padEnd(MODEL_WIDE)}${one.name.padEnd(FIGURE_WIDE)}`
-    + `${said(one).padStart(COUNT_WIDE)}${thin(one.over, one.runs ?? row.runs)}`)),
+    `${row.model.padEnd(MODEL_WIDE)}${one.name.padEnd(FIGURE_WIDE)}${delivered(one, row, read)}`)),
 ];
 
 /* Which reading answered the rung, said on the table that prints it: `stats runs` reads the same
@@ -94,13 +112,13 @@ const cutLines = (cut, all, said) => [
 /** What each cell delivered, beside what it cost. The rows are capped before their figures are
  *  spread, and by the cap the table above used: a row printed there and cut short here reads as an
  *  arm that delivered less. */
-const cutGotLines = (cut, all) => [
+const cutGotLines = (cut, all, read) => [
   "",
   `${"model".padEnd(MODEL_WIDE)}${"rung/complexity".padEnd(CELL_WIDE)}${"figure".padEnd(FIGURE_WIDE)}`
-  + `${"count/over".padStart(COUNT_WIDE)}`,
+  + `${"count/over".padStart(COUNT_WIDE)}${"runs".padStart(RUNS_WIDE)}`,
   ...capped(cut, all).flatMap((row) => row.got.map((one) =>
     `${row.model.padEnd(MODEL_WIDE)}${row.cell.padEnd(CELL_WIDE)}${one.name.padEnd(FIGURE_WIDE)}`
-    + `${said(one).padStart(COUNT_WIDE)}${thin(one.over, one.runs ?? row.runs)}`)),
+    + delivered(one, row, read))),
   ...elided(cut, all),
 ];
 
@@ -123,7 +141,7 @@ export const modelLines = (held, all = false) => [
   ...spendLines(held.models),
   ...gotLines(held.models, held.read),
   ...cutLines(held.cut, all, rungsRead(held)),
-  ...cutGotLines(held.cut, all),
+  ...cutGotLines(held.cut, all, held.read),
   ...comparableLines(held.comparable, held.models.length, all),
 ];
 

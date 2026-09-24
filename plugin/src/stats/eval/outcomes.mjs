@@ -22,7 +22,8 @@ export const DURING_RUN = "during run";
 
 const NO_PAIRS = "the runs of this window own no issue this reading could establish";
 const NO_ENDPOINT = "no Forge endpoint is configured, so no tracker read could be made";
-const SHORT = "its run has not finished the horizon";
+/* Not a read that failed: a pair this reason keeps out is one no budget could have read yet. */
+export const SHORT = "its run has not finished the horizon";
 
 /** One budget for the whole eval, charged through `callTool`'s `spend`, whose accounting is the transport's. */
 export const budgetOf = (most = BUDGET) => {

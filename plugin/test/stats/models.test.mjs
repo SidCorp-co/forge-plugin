@@ -77,24 +77,24 @@ test("the model rows add up to the runs the reading counted", () => {
     .reduce((sum, found) => sum + Number(found[0].trim().split(/\s+/u)[1]), 0), 5);
 });
 
-test("a run that captured the ready checkpoint reached the landing, having called no ship", () => {
+test("a run that captured the ready checkpoint took the landing step, having called no ship", () => {
   const run = asked(corpus());
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, new RegExp(String.raw`^${SONNET}\s+reached the landing\s+1/1`, "mu"));
-  assert.match(run.stdout, new RegExp(String.raw`^${OPUS}\s+reached the landing\s+0/1`, "mu"));
+  assert.match(run.stdout, new RegExp(String.raw`^${SONNET}\s+run took the landing step\s+1/1\s+1\s`, "mu"));
+  assert.match(run.stdout, new RegExp(String.raw`^${OPUS}\s+run took the landing step\s+0/1\s+1\s`, "mu"));
 });
 
 /* The verification record is the landing where the release reaches production on its own, and a
    class every project has, so a checkout that declares no ship still reads a measured figure. */
-test("a run whose only landing is the verification record reached the landing, on a checkout declaring no ship", () => {
+test("a run whose only landing is the verification record took the landing step, on a checkout declaring no ship", () => {
   const room = tempRoom("stats-models-verified-");
   indexIn(room, "session-one", "a0001.output",
     transcriptOf([SONNET], "forge record verification ISS-99 --deployment prod"));
   indexIn(room, "session-one", "a0002.output", transcriptOf([OPUS]));
   const run = asked(room);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, new RegExp(String.raw`^${SONNET}\s+reached the landing\s+1/1`, "mu"));
-  assert.match(run.stdout, new RegExp(String.raw`^${OPUS}\s+reached the landing\s+0/1`, "mu"));
+  assert.match(run.stdout, new RegExp(String.raw`^${SONNET}\s+run took the landing step\s+1/1\s+1\s`, "mu"));
+  assert.match(run.stdout, new RegExp(String.raw`^${OPUS}\s+run took the landing step\s+0/1\s+1\s`, "mu"));
 });
 
 /* A cut row is keyed by its cell and its model, and the cap slices the top ten off this order, so
@@ -171,8 +171,8 @@ test("a cell is compared on what it delivered and not on its minutes alone", () 
   assert.ok(held.some((one) => one.cell === "fix/s" && one.figure === "corrected after the run"),
     "the cell's delivery figure is comparable, so a dispatcher reads more than its minutes there");
   const printed = modelLines(reading(models, cut), true).join("\n");
-  assert.match(printed, /^left\s+fix\/s\s+corrected after the run\s+1\/10$/mu);
-  assert.match(printed, /^right\s+fix\/s\s+corrected after the run\s+8\/10$/mu);
+  assert.match(printed, /^left\s+fix\/s\s+corrected after the run\s+1\/10\s+10$/mu);
+  assert.match(printed, /^right\s+fix\/s\s+corrected after the run\s+8\/10\s+10$/mu);
 });
 
 test("an accounting row keeps every figure it counted and is never a side of a comparison", () => {
@@ -203,7 +203,7 @@ test("a figure over many pairs of few runs is many observations of few runs, and
   const held = comparableIn(cellsOf(models, []));
   assert.equal(held.length, 0, "forty-one observations of three runs is three observations of the model");
   const printed = modelLines(reading(models, [])).join("\n");
-  assert.match(printed, /^left\s+parked or dropped\s+41\/41\s+thin$/mu);
+  assert.match(printed, /^left\s+parked or dropped\s+41\/41\s+3\s+thin$/mu);
 });
 
 test("a figure's own runs qualify it, so nine unread threads do not lend the tenth their count", () => {
@@ -213,7 +213,7 @@ test("a figure's own runs qualify it, so nine unread threads do not lend the ten
     "forty-one pairs one run wrote is one run, whatever the nine beside it did");
   assert.ok(comparableIn(cellsOf(alone, [])).some((one) => one.figure === "wall"),
     "and the spend figures, which every one of the ten runs stands in, still compare");
-  assert.match(modelLines(reading(alone, [])).join("\n"), /^left\s+parked or dropped\s+1\/41\s+thin$/mu);
+  assert.match(modelLines(reading(alone, [])).join("\n"), /^left\s+parked or dropped\s+1\/41\s+1\s+thin$/mu);
 
   const spread = ["left", "right"].map((model) => rowOver(model, FLOOR, behind(FLOOR)));
   assert.equal(comparableIn(cellsOf(spread, [])).filter((one) => one.figure === "parked or dropped").length, 1,
@@ -278,7 +278,7 @@ test("a class this reading never recognised prints the word and is compared on n
 });
 
 test("every cut row the spend table printed has all of its delivery figures printed too", () => {
-  const delivered = ["reached the landing", "reopened", "parked or dropped"]
+  const delivered = ["run took the landing step", "reopened", "parked or dropped"]
     .map((name) => ({ name, count: 1, over: FLOOR }));
   const cut = Array.from({ length: 12 }, (_, at) => cellOver("arm", `fix/c${at}`, FLOOR, delivered));
   const printed = modelLines({ ...reading([], cut), cut }, false).join("\n");
@@ -367,4 +367,51 @@ test("the reading says how many rungs it read off the tracker rather than off th
     "said of the transcript and not of a record, one of the three having printed no record at all");
   assert.match(said, /at the rung it recorded there, or at none where neither source answered/u,
     "and the remainder covers the run neither source could class, which is not a run that recorded one");
+});
+
+/* A budget spent part way through the walk: the thread of one issue was never read, the other's was. */
+const SPENT = { requests: 400, most: 400, stopped: "the eval's request budget of 400 request(s) is spent" };
+const PAGING = "the thread's paging stopped part way";
+const partly = (threads, spent, now = Date.now()) =>
+  ({ ...READ, threads, now, spent, ruled: new Map(), parks: { owned: new Map(), loose: new Map() } });
+
+test("a figure the spent budget left short says so on its row, with the pairs it left and the flag", () => {
+  const held = readingOf([ranOn("ISS-1"), ranOn("ISS-2")],
+    partly(new Map([["ISS-1", { unread: PAGING }], ["ISS-2", { records: [] }]]), SPENT), null);
+  const reopened = held.models[0].got.find((one) => one.name === "reopened");
+  assert.deepEqual([reopened.count, reopened.over, reopened.unreadPairs, reopened.cut], [0, 1, 1, true],
+    "one pair read and found nothing, one never read, and JSON carries which");
+  const printed = modelLines(held, true).join("\n");
+  assert.match(printed, /\sreopened\s+0\/1\s+1\s+thin {2}cut short, 1 pair\(s\) unread: --requests above 400$/mu);
+  assert.match(printed, /\sfix\/s\s+reopened\s+unavailable\s+0\s+thin {2}cut short, 1 pair\(s\) unread: --requests above 400$/mu,
+    "and the cut table's row says it too, where the one pair of its cell was the one never read");
+  assert.doesNotMatch(printed, /\strivial\/xs\s+reopened\s.*unread/u, "while the cell read whole says nothing");
+  const landing = held.models[0].got.find((one) => one.name === "run took the landing step");
+  assert.deepEqual([landing.unreadPairs, landing.cut], [0, false], "the transcript figure read nothing it could lose");
+});
+
+test("a pair unread while the budget held prints as unread and names no flag", () => {
+  const held = readingOf([ranOn("ISS-1")], partly(new Map([["ISS-1", { unread: PAGING }]]), { requests: 3, most: 400, stopped: null }), null);
+  const reopened = held.models[0].got.find((one) => one.name === "reopened");
+  assert.deepEqual([reopened.unreadPairs, reopened.cut], [1, false]);
+  const printed = modelLines(held, true).join("\n");
+  assert.match(printed, /\sreopened\s+unavailable\s+0\s+thin {2}1 pair\(s\) unread$/mu);
+  assert.doesNotMatch(printed, /--requests above/u);
+});
+
+test("a pair its horizon has not reached is not a pair the budget left unread", () => {
+  const held = readingOf([ranOn("ISS-1")], partly(new Map([["ISS-1", { records: [] }]]), SPENT, 0), null);
+  const reopened = held.models[0].got.find((one) => one.name === "reopened");
+  assert.deepEqual([reopened.unreadPairs, reopened.cut], [0, false],
+    "the run has not finished the horizon, which no larger budget reads sooner");
+  assert.doesNotMatch(modelLines(held, true).join("\n"), /\sreopened\s.*unread/u);
+});
+
+test("two arms are not compared on a figure the spent budget cut short on either of them", () => {
+  const figure = (cut) => [{ name: "reopened", count: 1, over: FLOOR, runs: FLOOR, unreadPairs: cut ? 4 : 0, cut }];
+  const compared = (left, right) => comparableIn(cellsOf([rowOver("left", FLOOR, figure(left)),
+    rowOver("right", FLOOR, figure(right))], [])).filter((one) => one.figure === "reopened").length;
+  assert.equal(compared(false, false), 1, "both read whole, and the pair clears the floor");
+  assert.equal(compared(true, false), 0, "cut short on one arm");
+  assert.equal(compared(false, true), 0, "cut short on the other");
 });
