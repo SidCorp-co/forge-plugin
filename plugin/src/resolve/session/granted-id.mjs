@@ -47,7 +47,7 @@ export const CALLS_THE_WRITER = new RegExp(String.raw`(?:^|[\s;&|()])[^\s;&|()]*
 const OPENS_A_BODY = new RegExp(String.raw`[(${BACKTICK}]|<<`, "u");
 const SEPARATOR = /^[ \t]*(&&|\|\||;|\n|\||&)/u;
 
-const TAKEN_BACK = /(?:^|[;&|\n({])\s*(?:unset\b|source\b|\.\s|sudo\b|su\b|env\s+-[ui]\b)/u;
+const TAKEN_BACK = /(?:^|[;&|\n({])\s*(?:unset\b|source\b|\.\s|sudo\b|su\b|env\s+(?:-[ui]\b|--unset\b|--ignore-environment\b))/u;
 const EVERY_TAKE_BACK = new RegExp(TAKEN_BACK.source, "gu");
 
 const VAR = "FORGE_SESSION_ID";

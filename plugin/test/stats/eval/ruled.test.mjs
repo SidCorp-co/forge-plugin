@@ -120,6 +120,10 @@ test("a ruling call whose text names no id takes the one its run's claims printe
     [null], "and a text that names ids without granting one is not the run's either");
   assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", "worktree"), verdict("unset FORGE_SESSION_ID; forge codex verdict --accepted F1")]),
     [null], "nor one that takes the environment back");
+  for (const back of ["env --unset=FORGE_SESSION_ID", "env --unset FORGE_SESSION_ID", "env --ignore-environment", "env -u FORGE_SESSION_ID"]) {
+    assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", "asked"), verdict(`${back} forge codex verdict --accepted F1`)]), [null],
+      `in either spelling of env's: \`${back}\``);
+  }
   assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", "worktree"), claim("iss-2-bbbbbbbb", "worktree"), verdict()]),
     [null], "claims that printed two ids name none of them");
   assert.deepEqual(runOf([claim("iss-1-aaaaaaaa", "worktree"), claim("wave", "inherited"), verdict()]),
