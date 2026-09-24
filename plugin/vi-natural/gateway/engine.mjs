@@ -32,7 +32,8 @@ async function ask(client, system, task, payload, temperature) {
  *  reason to store a word in another language (ISS-412). */
 function problemIn(key, source, candidate, gates) {
   const own = gates.skipVerify.has(key) ? null : gates.verify(source, candidate);
-  return own || script.diff(source, candidate);
+  const found = [own, script.diff(source, candidate)].filter(Boolean);
+  return found.length ? found.join("; ") : null;
 }
 
 /** Every gate a candidate has to clear before it may be written. */

@@ -108,6 +108,14 @@ test("a key exempt from the placeholder check is still held to the script on bot
   assert.equal(client.asked.get(SOURCE), 2, "refused on the first ask, so asked again, and refused there too");
 });
 
+test("a rendering breaking both the caller's verifier and the script is refused with both named", async () => {
+  const source = "four facts {count}";
+  const client = clientFor(() => "bốn факt");
+  const { problems } = await translateItems(client, [["1", source]]);
+  assert.match(problems[0]?.reason ?? "", /missing \{count\}/u, "the placeholder diagnostic stands");
+  assert.match(problems[0]?.reason ?? "", /"факt" \(Cyrillic\) at offset 4/u, "and the script one is not hidden behind it");
+});
+
 /** The layer every tracker write goes through, run for real against a gateway that answers `reply`. */
 const layerWrites = async (t, reply, payload) => {
   const room = await gatewayOn(t, reply, "vi-script-");
