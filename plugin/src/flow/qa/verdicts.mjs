@@ -67,15 +67,17 @@ export const judgeProblems = (view) => (asksIndependent(view.release)
    Where there is no checkpoint the ask is not another verdict but the write that puts one there: a
    route that only reports where the landing is leaves the reader following it nowhere (ISS-1784).
    Two answers and not three: a checkpoint that stands is answerable by a verdict whatever it holds,
-   and the branch that stood between handed back a command reprinting the refusal (ISS-1788). */
+   and the branch that stood between handed back a command reprinting the refusal (ISS-1788).
+   The shared flags stand before the first --criterion because `blocksIn` gives each block only what
+   precedes it, so a commit after the list reached the last criterion alone (ISS-2371). */
 export const judgeAsk = (ref, at, landing, held = null, merged = null) => {
   const numbers = Array.isArray(at) ? at : [at];
   if (!landing) return REBUILT_FORM(ref, short(merged) || "<the sha the default branch carries>");
   return `${inheritedJudge(held ?? {}) ? "FORGE_SESSION_ID=<an-id-of-its-own> " : ""}`
-    + `forge record verdict ${ref} --verdict ${valuesOf("verdict", "verdict")}`
-    + numbers.map((number) => ` --criterion ${number}`).join("")
-    + ` --commit ${short(landing.head) || "<sha>"} `
-    + `--evidence ${short(landing.deployment) || "<what you exercised>"}`;
+    + `forge record verdict ${ref} --commit ${short(landing.head) || "<sha>"} `
+    + `--evidence ${short(landing.deployment) || "<what you exercised>"} `
+    + `--verdict ${valuesOf("verdict", "verdict")}`
+    + numbers.map((number) => ` --criterion ${number}`).join("");
 };
 
 /* What a void gives up, for a landing that has to name it: judged by somebody other than the checkpoint's builder, and citing the identity the landing is about to stop holding. Whether a verdict still standing cites what is running now is the same citation read per verdict, which is `judgeProblem`'s and is spent at `testing`, and a successor builder's verdicts are neither's on a project that asked for no judge. It asks that predicate rather than keeping two of its filters: a landing counting a verdict the transition then refuses spends a promotion on a judgement that earns nothing (ISS-2045). */
