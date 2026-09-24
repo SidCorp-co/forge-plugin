@@ -10,6 +10,7 @@ import { retiredRefusal } from "./resolve/retiring.mjs";
 import { argvOf, handledBy, refusedFor, routeSaid, saidFor } from "./resolve/handler.mjs";
 import { fail } from "./resolve/settings.mjs";
 import { releaseOwed } from "./flow/lease.mjs";
+import { unwrittenSaid } from "./flow/worklog.mjs";
 
 const offered = offeredVerbs();
 
@@ -110,6 +111,7 @@ if (form) {
     process.exit(0);
   }
   await verb(argv, { readAs: `forge ${form.verb}` });
+  unwrittenSaid();
   await releaseOwed();
   process.exit(0);
 }
@@ -142,6 +144,7 @@ if (!verb.answersHelp && wantsHelp(rest)) {
 /* An unhandled fetch rejection reads as a bug in this CLI rather than a network that is down. */
 try {
   await verb(rest);
+  unwrittenSaid();
   await releaseOwed();
 } catch (error) {
   /* Through `fail`, so a verb holding a payload nothing else holds gets it printed on a throw too. */

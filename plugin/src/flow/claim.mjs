@@ -18,7 +18,7 @@ import { partForStatus } from "../guides/served.mjs";
 import { kindsHeld, parse } from "./record/page.mjs";
 import { parkAs, transitionTo } from "./advance.mjs";
 import { buildsAt } from "./earned.mjs";
-import { OPEN_KEPT, droppedHead, merged, patchFrom, worklogFor, worklogOf, workNow } from "./worklog.mjs";
+import { OPEN_KEPT, droppedHead, merged, patchFrom, saidWritten, worklogFor, worklogOf, workNow } from "./worklog.mjs";
 import {
   LANDING_BUILDER_OWED,
   LANDING_HEAD_OWED,
@@ -33,7 +33,7 @@ import {
   landingOf,
 } from "./landing/checkpoint.mjs";
 import { REBUILT_FORM, handWrittenOf, holdersOf } from "./landing/reconstruction.mjs";
-import { readyCheckpoint, rebuiltCheckpoint, recaptureRefusal } from "./landing/written.mjs";
+import { readyCheckpoint, rebuiltCheckpoint, recaptureRefusal, reworkRefusal } from "./landing/written.mjs";
 import { finishLanded } from "./landing/landed.mjs";
 import {
   MECHANISM,
@@ -117,7 +117,7 @@ export const USAGE = [
   "  --pushed        the branch, head, base and files touched, off git now",
   "  --review        the last codex consult, its findings and what it owes, off the log",
   `  --open <line>   a scratch decision or a dead end, appended; past ${OPEN_KEPT} the oldest goes`,
-  "  --ready         with --pushed: `ready` off that capture, from `head-owed` too",
+  "  --ready         with --pushed: `ready`, from `head-owed`, `records-owed` too",
   "  --take          the lease where the checkpoint names your turn",
   "  --judged        the QA turn handed back, from `qa-owed` or from none, and the lease with it",
   "  --reconciled <sha>  the builder's turn handed back, from `builder-owed` at that sha",
@@ -463,9 +463,12 @@ export const claim = async (argv) => {
       + `established that run stopped, say so:\n  forge claim ${ref} ${STOPPED}`);
   }
   /* Before the write and after every refusal of the lease, so a caller the lease turns away is told that first; a capture that read no head is `readyCheckpoint`'s to refuse. */
-  if (given.ready && patch?.head && landingHere?.state === LANDING_HEAD_OWED) {
+  if (given.ready && patch?.head && [LANDING_HEAD_OWED, LANDING_RECORDS_OWED].includes(landingHere?.state)) {
     const view = viewFrom(documentId, issue, (await commentPage(documentId)).comments ?? []);
-    const refused = recaptureRefusal(ref, patch.head, view, judgementOf(await releasePolicy()) === INDEPENDENT);
+    const independent = judgementOf(await releasePolicy()) === INDEPENDENT;
+    const refused = landingHere.state === LANDING_HEAD_OWED
+      ? recaptureRefusal(ref, patch.head, view, independent)
+      : reworkRefusal(ref, patch.head, landingHere, view, independent);
     if (refused) fail(refused);
   }
   /* Off the remnant where there is no lease to read it from, so the flag that clears the refusal is not the way to lose the one line the refusal just printed. */
@@ -489,6 +492,7 @@ export const claim = async (argv) => {
     landing: checkpoint ?? undefined,
   });
   await setLease(documentId, next, ref, () => context);
+  saidWritten(patch);
   const taken = leaseOf(next);
   console.log(`${ref}  ${how ?? RENEWED}: ${describe(taken, source)}`);
   if (state === "live") console.log(handedSaid(ref, lease));

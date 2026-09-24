@@ -13,7 +13,8 @@ process.env.AI_AGENT = "a-test-agent";
 process.env.CLAUDE_PID = "4242";
 const { claimed, leaseOf } = await import("../../../src/flow/lease.mjs");
 const { takeRefusal } = await import("../../../src/flow/lease/takeover.mjs");
-const { recaptureRefusal } = await import("../../../src/flow/landing/written.mjs");
+const { readyCheckpoint, recaptureRefusal, reworkRefusal } = await import("../../../src/flow/landing/written.mjs");
+const { refusing } = await import("../../../src/resolve/settings.mjs");
 const {
   LANDING_READY, LANDING_STATES, landingLine, landingOf, landingTurn, landingVoided,
 } = await import("../../../src/flow/landing/checkpoint.mjs");
@@ -64,9 +65,10 @@ test("every state is reachable from ready, names exactly one turn, and ends at d
     assert.ok(LANDING_STATES[one].next.includes("head-owed"), `${one} hands a branch back for a new head`);
   }
   /* A row rather than `marked` renamed: the status step runs at two states, so the turn returns to
-     the one it came from (ISS-923). */
-  assert.deepEqual(LANDING_STATES["records-owed"], { turn: "builder", next: ["marked", "judged"] },
-    "the turn a record only the builder can answer hands back, and the two states it returns to");
+     the one it came from (ISS-923), or to the build where its review found the landed change short
+     (ISS-2406). */
+  assert.deepEqual(LANDING_STATES["records-owed"], { turn: "builder", next: ["marked", "judged", "ready"] },
+    "the turn a record only the builder can answer hands back, the two states it returns to, and the capture");
   for (const one of ["marked", "judged"]) {
     assert.ok(LANDING_STATES[one].next.includes("records-owed"),
       `${one} is a state the status step runs at, so the turn is handed back from it`);
@@ -344,4 +346,57 @@ test("where the builder judges, every criterion's latest verdict has to pass the
   assert.equal(recaptureRefusal("ISS-673", NEW, viewOf({ review: APPROVED, verdicts: [
     [1, { commit: NEW, verdict: "pass" }], [2, { commit: NEW, verdict: "short" }],
   ] }), false), null, "a head every criterion judged is the head the capture takes");
+});
+
+/* A refusal naming only the resume sent the builder to read what the refusal already knew, so each
+   state a capture cannot write over names its own way out (ISS-2406). */
+const CAPTURE = { head: NEW, base: HANDED, touched: "plugin/src/flow/claim.mjs", branch: "iss-673-6", at: AT };
+const readyAt = (state, over = {}) =>
+  refusing(() => readyCheckpoint("ISS-673", "the-builder", CAPTURE, landingOf(at(state, over))))
+    .then(() => null, (error) => error.message);
+
+test("a capture refused at a turn state names the command that ends that turn", async () => {
+  const builder = await readyAt("builder-owed", { candidate: "c0ffee10000000000000000000000000000beef" });
+  assert.match(builder, /reads `builder-owed`/u, builder);
+  assert.match(builder, /forge claim ISS-673 --take\n  forge claim ISS-673 --reconciled c0ffee1$/u, builder);
+  const judge = await readyAt("qa-owed");
+  assert.match(judge, /reads `qa-owed`: the turn is the judge's/u, judge);
+  assert.match(judge, /forge claim ISS-673 --judged$/u, judge);
+  const lander = await readyAt("promoting");
+  assert.match(lander, /a landing in flight whose next move is the lander's/u, lander);
+  assert.match(lander, /forge resume ISS-673$/u, lander);
+  assert.match(await readyAt("done"), /reads `done`, which is past the build/u, "the finished landing keeps its reading");
+  for (const state of ["ready", "head-owed", "records-owed"]) {
+    assert.equal(await readyAt(state), null, `${state} is a state the capture writes over`);
+  }
+});
+
+/* The records turn's review reads the landed change at whichever commit the checkpoint names for it. */
+const LANDED = { intended: "1a2b3c40000000000000000000000000000fade", candidate: "2b3c4d50000000000000000000000000000fade" };
+const reworkAt = (records) => reworkRefusal("ISS-673", NEW, landingOf(at("records-owed", LANDED)), {
+  ...viewOf(records.at(-1)?.latest ?? {}),
+  comments: records.map((one, index) => ({ createdAt: `2026-09-07T12:0${index}:00.000Z`, body: one.body })),
+}, true);
+const reviewed = (commit, outcome) => ({
+  body: `## Review\n\n\`\`\`forge-record\nreviewer: codex\ncommit: ${commit}\noutcome: ${outcome}\n\`\`\`\n\n\`forge-record: review · contract 1\``,
+  latest: { review: { commit, outcome } },
+});
+
+test("the capture out of records-owed takes a new head only where a review of the landed change asks for changes", () => {
+  const none = reworkAt([]);
+  assert.match(none, /no review on ISS-673 reads the landed change at 1a2b3c4, 2b3c4d5, 9e24c2a/u, none);
+  assert.match(none, /forge claim ISS-673 --recorded\n/u, "the records written hand the turn back");
+  assert.match(none, /forge record review ISS-673 --reviewer codex --commit 1a2b3c4 --outcome changes-requested\n/u,
+    "and a landed change found short is said at the commit that landed");
+  const approved = reworkAt([reviewed(LANDED.intended, "approved")]);
+  assert.match(approved, /the latest review of the landed change, at 1a2b3c4, says approved/u, approved);
+  const short = reviewed(LANDED.candidate, "changes-requested");
+  const unreviewed = reworkAt([short]);
+  assert.match(unreviewed, /captures 5a1b2c3 for a second landing, and the latest review on ISS-673 judged 2b3c4d5/u, unreviewed);
+  assert.match(unreviewed, /forge record review ISS-673 --reviewer codex --commit 5a1b2c3 --outcome/u, unreviewed);
+  assert.equal(reworkAt([short, reviewed(NEW, "approved")]), null, "a head a review approved after the landed change was found short");
+  const again = reworkRefusal("ISS-673", LANDED.intended, landingOf(at("records-owed", LANDED)), {
+    ...viewOf({ review: { commit: LANDED.intended, outcome: "approved" } }), comments: [short],
+  }, true);
+  assert.match(again, /which is a commit the first landing already carries, so landing it again merges nothing/u, again);
 });

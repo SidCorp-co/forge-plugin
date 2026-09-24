@@ -3,7 +3,7 @@
    knew and would otherwise go down with its shell (ISS-44). docs/cli/resume.md. */
 import { spawnSync } from "node:child_process";
 
-import { fail } from "../resolve/settings.mjs";
+import { fail, keepOnFailure } from "../resolve/settings.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
 import { pluginCopy } from "../tools/plugin-copy.mjs";
 
@@ -152,18 +152,21 @@ const emptyWhy = (git) => {
 
 const captured = (git) => Boolean(git?.touched) && Boolean(git.base) && git.base !== git.head;
 
+/* What a capture read, which is the same sentence whether or not a write carried it. */
+const readOf = (held) => `${held.branch} at ${shortSha(held.head)}, `
+  + (captured(held) ? `base ${shortSha(held.base)}, ${held.files} file(s) touched` : `and no diff behind it — ${emptyWhy(held)}`);
+
 /* ISS-65's silence is kept for the diff and dropped for the pointer, which a branch just cut is all there is of. What that costs and buys: docs/cli/the-work.md. */
 export const capturedLine = (held) => {
   if (!held) {
     return `--pushed: nothing to capture — ${EMPTY.none}. The worklog is unchanged, and what it `
       + "holds is whatever the last capture wrote.";
   }
-  const where = `${held.branch} at ${shortSha(held.head)}`;
   if (!captured(held)) {
-    return `--pushed: ${where}, and no diff behind it — ${emptyWhy(held)}. The branch and the head `
+    return `--pushed: ${readOf(held)}. The branch and the head `
       + "are written and the touched set is cleared with them. Capture again at the push.";
   }
-  return `--pushed: ${where}, base ${shortSha(held.base)}, ${held.files} file(s) touched.`;
+  return `--pushed: ${readOf(held)}.`;
 };
 
 /* Null where the install record says nothing: a copy invented here is the very fact this prevents. */
@@ -174,19 +177,51 @@ const copyNow = () => {
   return `${held.name} ${held.running}${behind}`;
 };
 
+/* The capture's line waits for the lease write carrying it, because printed at the reading it told a
+   run whose call was refused afterwards that the worklog had moved (ISS-2406). Keyed by the patch,
+   the one object every such write is handed. */
+const UNSAID = new Map();
+
+const unwrittenLine = (held, why) =>
+  `--pushed: ${readOf(held)} — read and not written, ${why}, so the worklog holds whatever the `
+  + "last capture wrote. Capture it again on a call that writes it.";
+
+/** Said once the write carrying `patch` has landed, and never again for the same capture. */
+export const saidWritten = (patch) => {
+  const held = patch ? UNSAID.get(patch) : null;
+  if (!held) return;
+  UNSAID.delete(patch);
+  held.drop();
+  console.error(held.line);
+};
+
+/** Every capture this call read and no write carried, said at the call's end. */
+export const unwrittenSaid = () => {
+  for (const [patch, held] of UNSAID) {
+    held.drop();
+    console.error(unwrittenLine(patch, "since nothing this call wrote carries the worklog"));
+  }
+  UNSAID.clear();
+};
+
 /* Asked for and not made is not written silently: no git is the wrong directory, no consult is early. */
 export const patchFrom = async ({ pushed = false, review = false, open = [] }) => {
   const patch = {};
+  const now = pushed ? gitNow() : null;
   if (pushed) {
-    const now = gitNow();
     if (!now) fail(`--pushed reads the branch and head from git, and ${process.cwd()} is no checkout.`);
-    console.error(capturedLine(now));
     Object.assign(patch, now, { copy: copyNow() });
   }
   const held = review ? await reviewNow() : null;
   if (review && !held) console.error("--review: no answered consult for this checkout yet, so the review block is unchanged.");
   if (held) patch.review = held;
   if (open.length) patch.open = open;
+  if (now) {
+    UNSAID.set(patch, {
+      line: capturedLine(now),
+      drop: keepOnFailure(unwrittenLine(now, "because the call was refused above")),
+    });
+  }
   return Object.keys(patch).length ? patch : null;
 };
 

@@ -7,11 +7,17 @@ import { basename, dirname, join, resolve } from "node:path";
 import { checkoutAt } from "../git/checkout-at.mjs";
 import { configDir, configPath, once, readJson, userConfig } from "./config.mjs";
 
-/* Registered by a caller holding something no exit may lose — a body that arrived on stdin. */
-let kept = null;
+/* Registered by a caller holding something no exit may lose — a body that arrived on stdin, or a
+   line owed only once a write lands. Several, each dropped by the caller that registered it. */
+const kept = [];
 
 export const keepOnFailure = (text) => {
-  kept = text;
+  const held = { text };
+  kept.push(held);
+  return () => {
+    const at = kept.indexOf(held);
+    if (at >= 0) kept.splice(at, 1);
+  };
 };
 
 /** What `fail` throws inside `refusing`, where there is no process of this CLI's own to end — the release script files an issue mid-release, and an exit there leaves one half done. */
@@ -34,7 +40,7 @@ export const refusing = async (run) => {
 export const fail = (message) => {
   if (embedded) throw new Refusal(message);
   console.error(message);
-  if (kept) console.error(kept);
+  for (const one of kept) console.error(one.text);
   process.exit(1);
 };
 

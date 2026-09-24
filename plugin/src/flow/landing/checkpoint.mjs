@@ -33,8 +33,9 @@ export const LANDING_STATES = {
   installed: { turn: "lander", next: ["marked"] },
   marked: { turn: "lander", next: ["qa-owed", "done", "records-owed"] },
   /* The two the status step runs at, the turn being handed back mid-step: returned to `marked` from
-     `judged`, an after-merge landing would ask a judge that has answered to answer again. */
-  "records-owed": { turn: "builder", next: ["marked", "judged"] },
+     `judged`, an after-merge landing would ask a judge that has answered to answer again. `ready`
+     is the capture's, and `reworkRefusal` says what licenses it (ISS-2406). */
+  "records-owed": { turn: "builder", next: ["marked", "judged", "ready"] },
   done: { turn: null, next: [] },
 };
 
