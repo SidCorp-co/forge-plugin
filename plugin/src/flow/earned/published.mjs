@@ -18,9 +18,9 @@ export const publishedFor = (project, commit) => jsonlAt(publishedPath())
 /** Whether anything was ever published for the project on this machine: an empty answer for one head is a route not yet populated, and one for every head is a route no release here takes. */
 export const everPublished = (project) => jsonlAt(publishedPath()).some(ofProject(project));
 
-export const UNDECLARED_GATE = "<the project's gate>";
+const UNDECLARED_GATE = "<the project's gate>";
 
-/** The gate commands the project declared under `stats.commands.gate`, as it typed them; read and never inferred from the tree (ISS-1093). */
+/** Never inferred from the tree (ISS-1093). */
 export const declaredGates = (directory = process.cwd()) => declaredCommands("gate", declaredIn(directory));
 
 /** The command a baseline form is filled with: the first the project declared, or the placeholder where it declared none. */

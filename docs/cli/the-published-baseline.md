@@ -25,9 +25,8 @@ default branch does not hold is one run's own and nobody else's, so it is refuse
 gate never becomes the next run's authority. A checkout with uncommitted work is refused because the
 reading would be of content no commit carries. A scope short of whole is refused because what it did
 not run has no answer. What stays the caller's word is `--result`, exactly as it always was on a
-baseline of one's own. A project that wants its runs unable to publish at all withholds the verb
-from their job; every job's verb list is configuration, and the rule stays silent where the project
-has not decided.
+baseline of one's own. A project that wants its runs unable to publish at all leaves the verb out of
+the job they run under.
 
 The gate the result is of is the project's own declaration, `stats.commands.gate`, which the stats
 and codex doors already read: the first command there fills every baseline form `--owed` prints and

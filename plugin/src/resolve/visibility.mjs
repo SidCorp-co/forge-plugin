@@ -60,7 +60,6 @@ export const VERBS = [
   ["next", "[--count n] [--why] [--json] [--graph [ISS-45]] [--holding ISS-45] [--checkout <dir>]",
     "the open issues to work next, ranked off their metadata; writes nothing", "forge_issues",
     { group: BACKLOG }],
-  /* Reads git and writes one machine's store and no tracker route, so no credential withholds it. */
   ["baseline", "publish --commit <sha> --result R --scope whole [--gate G] [--version V]",
     "a release's whole-tree gate result, published for the commit it pushed so a branch cut there cites it",
     null, { group: FLOW }],

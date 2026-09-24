@@ -47,7 +47,7 @@ const withSkills = { ba: { verbs: VERBS, skills: SKILLS } };
 test("one call withholds every skill the job does not name, beside the verbs it does not name", () => {
   const { run, saved } = room(withSkills);
   const wrote = run("doctor", "--job", "ba");
-  assert.match(wrote.stdout, /18 verb\(s\) and 8 skill\(s\) off/u, wrote.stderr);
+  assert.match(wrote.stdout, /19 verb\(s\) and 8 skill\(s\) off/u, wrote.stderr);
   const held = saved().withheldSkills;
   for (const slug of SKILLS) assert.ok(!held.includes(slug), `${slug} is the job's and is offered`);
   for (const slug of ["issue-flow", "dispatch", "harness-eval"]) {

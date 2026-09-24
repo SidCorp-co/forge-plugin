@@ -144,7 +144,7 @@ test("the install after that promotion holds the version the release commit carr
   assert.equal(landing().release, versionAt(work, landed), said);
 });
 
-/* The other release route publishes what the ship publishes, so a run cutting from a head this landing released cites the gate rather than running one. Only the call-site half is reachable here — that the publish cannot break a landing — because `greenHeld` reads *this* repository's step table and the world a landing fixture builds is not this repository, so no publication is obtainable however green anything is; the positive path is proven over the same function, against a ledger of its own, in `plugin/test/flow/earned/published-baseline.test.mjs`. */
+/* The other release route publishes what the ship publishes, so a run cutting from a head this landing released cites the gate rather than running one. Only the call-site half is reachable here — that the publish cannot break a landing — because `greenHeld` reads *this* repository's step table and the world a landing fixture builds is not this repository, so no publication is obtainable however green anything is; the positive path is proven over the same function, against a ledger of its own, in `plugin/test/flow/published/published-baseline.test.mjs`. */
 test("the landing offers the head it released to the publisher, and is not stopped by what it answers", async () => {
   const { at, work, head, base } = world({ base: "other" });
   seeded({ landing: ready(head, base) });
