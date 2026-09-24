@@ -4,9 +4,9 @@
    docs/cli/stats-the-landing.md. */
 import { statSync } from "node:fs";
 
-import { classOf } from "./corpus/classes.mjs";
-import { sessionsUnder, readTranscript } from "./corpus/corpus.mjs";
-import { shellOf } from "./corpus/transcripts.mjs";
+import { classOf } from "./classes.mjs";
+import { sessionsUnder, readTranscript } from "./corpus.mjs";
+import { shellOf } from "./transcripts.mjs";
 
 /** The row every landing pass is filed under, whichever route a project lands by. */
 const SHIP_CLASS = "ship";

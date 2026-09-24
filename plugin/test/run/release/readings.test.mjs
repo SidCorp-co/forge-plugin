@@ -9,7 +9,7 @@ import { join } from "node:path";
 import {
   BASE, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, NEXT_UUID, UUID, context, ctx, forgetInstall, ready,
   seeded, sha, tracker, world,
-} from "./fixture.mjs";
+} from "../landing/fixture.mjs";
 
 const { landReady } = await import("../../../../tools/run/land-ready.mjs");
 const { Stop } = await import("../../../../tools/checkout.mjs");

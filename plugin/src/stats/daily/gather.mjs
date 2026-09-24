@@ -7,7 +7,7 @@ import { releasesOn } from "./releases.mjs";
 import { opportunitiesOf } from "./opportunities.mjs";
 import { corpusOf } from "../corpus/read.mjs";
 import { profileOf } from "../runs.mjs";
-import { landingsOver, landingsUnder } from "../landings.mjs";
+import { landingsOver, landingsUnder } from "../corpus/landings.mjs";
 import { classesFor } from "../corpus/classes.mjs";
 import { movedIn } from "../eval/eval.mjs";
 import { FLOOR, THIN } from "../model-rows.mjs";

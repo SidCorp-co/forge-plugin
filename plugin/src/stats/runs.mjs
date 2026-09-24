@@ -36,7 +36,7 @@ import { canonical } from "../resolve/canonical.mjs";
 import { checkoutAt } from "../git/checkout-at.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { durationOf } from "./window/duration.mjs";
-import { RESUMED, landingLine, landingsOver, landingsUnder, passesIn } from "./landings.mjs";
+import { RESUMED, landingLine, landingsOver, landingsUnder, passesIn } from "./corpus/landings.mjs";
 
 const REPEATED = 3;
 const LONG_WAIT_MINUTES = 10;
