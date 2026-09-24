@@ -128,7 +128,10 @@ const entry = (index) => ({ key: `Hold — rule ${index}`, calls: 20 - index, ru
 
 test("opportunities rank by calls paid, list ten, count the rest, and name the open issue each matches or say none", async () => {
   const held = friction({ refusals: Array.from({ length: 12 }, (_, index) => entry(index)) });
-  const matcher = { match: async (text) => (text.includes("rule 0") ? { key: "ISS-9", title: "The rule" } : null) };
+  const matcher = { match: async (text) => {
+    if (text.includes("rule 2")) throw new Error("the semantic query could not run: 503");
+    return text.includes("rule 0") ? { key: "ISS-9", title: "The rule" } : null;
+  } };
   const found = await opportunitiesOf(held, matcher);
   assert.equal(found.listed.length, LISTED);
   assert.equal(found.unlisted, 2);
@@ -136,8 +139,10 @@ test("opportunities rank by calls paid, list ten, count the rest, and name the o
   assert.deepEqual(found.listed[0].match, { key: "ISS-9", title: "The rule" });
   assert.equal(found.listed[1].match, null);
   assert.equal(found.listed[1].unmatched, null);
+  assert.deepEqual([found.listed[2].match, found.listed[2].unmatched], [null, "the semantic query could not run: 503"]);
   const page = pageOf(content({ opportunities: found }));
   assert.ok(page.includes("ISS-9 — The rule"));
   assert.ok(page.includes("matches no open issue: no filing yet"));
+  assert.ok(page.includes("not matched: the semantic query could not run: 503"));
   assert.ok(page.includes("proposes no change") && page.includes("<code>forge stats eval</code>"));
 });
