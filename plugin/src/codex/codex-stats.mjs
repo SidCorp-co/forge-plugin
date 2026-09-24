@@ -10,7 +10,7 @@ import { DIFF_CHARS, digest } from "./codex-api.mjs";
 import { MARK, answered, hereOf, inRepo, logEntries, logPath } from "./codex-log.mjs";
 import { modelKey, numbered, scoreOf } from "./log/replies.mjs";
 import { gitRootOf } from "./codex-tools.mjs";
-import { incompleteIn, newFindingsIn } from "./codex-plan.mjs";
+import { incompleteIn, newFindingsIn, rungIn } from "./codex-plan.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { shortSha } from "../tracker/evidence.mjs";
@@ -200,16 +200,40 @@ const groupLines = (group, when) => {
   ];
 };
 
-/* Five dimensions and not one: the slot stayed `codex` while the model behind it changed, and a
-   comparison keyed on either alone names the wrong change or none. The channel is the fifth because
-   the same level means two different things either side of the release that moved it. */
+/* The rung the request carried, not the level `effortFor` resolved: where the model id carries the
+   effort, the id is what ran, and a machine with no ladder sends one rung whatever level each row
+   resolved. A row that records no channel says nothing about what it sent, so it is not read as its
+   level. Constant within a group, since the group's key holds the model and, off the model channel,
+   the level. */
+const rungOf = (row) => {
+  if (row.effortVia === "model") return rungIn(row.model) ?? "unrecorded";
+  if (row.effortVia === "parameter") return row.effort ?? "unrecorded";
+  return "unrecorded";
+};
+
+/* Six dimensions and not one: the slot stayed `codex` while the model behind it changed, and a
+   comparison keyed on either alone names the wrong change or none. The resolved level is its own
+   dimension beside the rung and never blended into it, and the channel is counted because the same
+   level means two different things either side of the release that moved it. */
+const RESOLVED = "effort resolved";
 const DIMENSIONS = [
   ["slot", (row) => row.slot ?? "unrecorded"],
   ["model", (row) => row.model ?? "unrecorded"],
   ["prompt", promptKey],
-  ["effort", (row) => row.effort ?? "unrecorded"],
+  ["effort", rungOf],
+  [RESOLVED, (row) => row.effort ?? "unrecorded"],
   ["effort via", (row) => row.effortVia ?? "unrecorded"],
 ];
+
+/* The resolved level is printed only where it says something the rung does not: on a machine whose
+   channel is the parameter the two lines count the same thing. */
+const sameCounts = (one, other) => one.values.length === other.values.length
+  && one.values.every((value) => other.values.some((held) =>
+    held.value === value.value && held.now === value.now && held.before === value.before));
+const shown = (shifts) => {
+  const rung = shifts.find((one) => one.name === "effort");
+  return shifts.filter((one) => one.name !== RESOLVED || !rung || !sameCounts(one, rung));
+};
 
 /* Counted, not merely present: a window that went 99 low-effort to one has the same values in it, and
    "unchanged" is the one word that must not describe the mix these numbers are read against. Named
@@ -246,7 +270,7 @@ export const evalLines = (held) => {
     "",
     ...groups.flatMap((key) => [key, ...groupLines(nowBy.get(key), "now"), ...groupLines(beforeBy.get(key), "before")]),
     ...(before
-      ? ["", "what separates the two windows, in consults before → now", ...held.shifts.map((shift) => shiftLine(shift))]
+      ? ["", "what separates the two windows, in consults before → now", ...shown(held.shifts).map((shift) => shiftLine(shift))]
       : []),
     "",
     "Whether a reply could not check, and whether a recheck raised something New, are read from the "
@@ -306,7 +330,7 @@ const groupObject = (rows, verdicts) => {
     slot: row.slot ?? "unrecorded",
     model: row.model ?? "unrecorded",
     prompt: promptKey(row),
-    effort: row.effort ?? "unrecorded",
+    effort: rungOf(row),
     effortVia: row.effortVia ?? "unrecorded",
     consults: rows.length,
     ...coverageOf(rows),
@@ -342,6 +366,19 @@ const overlapIn = (recent, total, reading) => {
   return overlapOf(shared, recent, MARK, ahead);
 };
 
+/* A reading stored before the rung was tallied holds the resolved level under `effort`, so its rungs
+   are re-tallied off its groups, each of which names its model, its channel and its count, and the
+   counts it stored move to the resolved level they always were. */
+const withRungs = (window) => {
+  if (!window.mix || !("effort" in window.mix) || RESOLVED in window.mix) return window;
+  const groups = window.groups.map((group) => ({ ...group, effort: rungOf(group) }));
+  const rungs = {};
+  for (const group of groups) rungs[group.effort] = (rungs[group.effort] ?? 0) + group.consults;
+  const mix = Object.fromEntries(Object.entries(window.mix).flatMap(([name, held]) =>
+    (name === "effort" ? [["effort", rungs], [RESOLVED, held]] : [[name, held]])));
+  return { ...window, mix, groups };
+};
+
 /** The comparison in the outer shape `stats eval --json` prints (`evalRuns` in stats/eval/eval.mjs). */
 export const compared = (now, before, verdicts, total, against = null) => comparedWindows({
   size: MARK,
@@ -349,7 +386,7 @@ export const compared = (now, before, verdicts, total, against = null) => compar
   against,
   overlap: against ? overlapIn(now.length, total, against) : undefined,
   now: windowObject(now, verdicts),
-  before: against ? against.now : before.length ? windowObject(before, verdicts) : null,
+  before: against ? withRungs(against.now) : before.length ? windowObject(before, verdicts) : null,
   separates: changedBetween,
 });
 

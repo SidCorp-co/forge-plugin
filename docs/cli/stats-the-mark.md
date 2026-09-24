@@ -77,7 +77,11 @@ Two fields exist for the stored side alone. The shifts are tallied off each wind
 rows, because a stored window has none: a runs window carries `spanned`, the count of runs that saw
 a release land (its rung counts are already in the profile), and a consult window carries `from`,
 `to` and `mix`, one count per value of slot, model, prompt and effort — a consult group's key folds
-slots and efforts together, so nothing else in the object holds those counts. A stored window's
+slots and efforts together, so nothing else in the object holds those counts. The effort counted is
+the rung the request carried, because on the model channel a level that resolved differently still
+went out as the model id's one rung; the resolved level is its own count beside it. A reading stored
+before the rung was counted holds the levels under `effort`, and is re-tallied off its groups on the
+way in, since each names its model, its channel and its count. A stored window's
 scores are the ones written at the mark; a verdict recorded after it does not rescore it, which is
 what pinning is for.
 
