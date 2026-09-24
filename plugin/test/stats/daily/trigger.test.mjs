@@ -2,11 +2,12 @@
    a second one. The writer itself is stood in for, so a case proves the start without running it. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { EventEmitter } from "node:events";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { dailyDue } from "../../../src/stats/daily/trigger.mjs";
-import { reportsWhere } from "../../../src/stats/daily/store.mjs";
+import { reportsWhere, shownDeep, writePage } from "../../../src/stats/daily/store.mjs";
 import { PROJECT_KEYS } from "../../../src/tools/services/project-file.mjs";
 import { daysAgo, device } from "./fixture-daily.mjs";
 
@@ -84,4 +85,29 @@ test("the report key takes daily or off and refuses anything else", () => {
   assert.equal(PROJECT_KEYS.report.judge("daily"), null);
   assert.equal(PROJECT_KEYS.report.judge("off"), null);
   assert.match(PROJECT_KEYS.report.judge("weekly"), /`report` in .* is one of off, daily, not `"weekly"`/u);
+});
+
+test("a spawn that fails on a later tick is heard, and gives the mark back", async () => {
+  const held = device({ project: { report: "daily" } });
+  const day = new Date(NOON - 86_400_000).toISOString().slice(0, 10);
+  const start = () => {
+    const child = new EventEmitter();
+    setTimeout(() => child.emit("error", new Error("spawn EAGAIN")), 0);
+    return child;
+  };
+  assert.equal(under(held, () => dailyDue("/plugin", { start, now: NOON, cwd: held.checkout })), null);
+  await new Promise((done) => setTimeout(done, 20));
+  assert.equal(existsSync(join(held.reports, `${day}.writing`)), false);
+});
+
+test("a path that walks out of an allowed root through .. is masked", () => {
+  assert.equal(shownDeep({ said: "cat /work/p/../../private/file /work/p/src/a.mjs" }, ["/work/p"]).said, "cat … /work/p/src/a.mjs");
+});
+
+test("a page is written whole or not at all, and a failed rewrite leaves the page it would have replaced", () => {
+  const { reports } = device();
+  writePage(reports, "2026-09-20.html", "the good page");
+  mkdirSync(join(reports, `2026-09-20.html.${process.pid}.tmp`));
+  assert.throws(() => writePage(reports, "2026-09-20.html", "a rewrite"));
+  assert.equal(readFileSync(join(reports, "2026-09-20.html"), "utf8"), "the good page");
 });

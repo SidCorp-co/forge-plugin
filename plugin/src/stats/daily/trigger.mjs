@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { yesterday } from "./day.mjs";
-import { markPath, pagePath, reportsWhere, writerHolds } from "./store.mjs";
+import { clearMark, markPath, pagePath, reportsWhere, writerHolds } from "./store.mjs";
 import { projectFileAt } from "../../resolve/settings.mjs";
 
 /** The project key's values: `off`, where a project that never set it stands, and `daily`. */
@@ -35,8 +35,18 @@ export const dailyDue = (root, { start = spawn, now = Date.now(), cwd = process.
     if (where.refused) return null;
     const day = yesterday(now);
     if (existsSync(pagePath(where.dir, day)) || writerHolds(where.dir, day) || !taken(where.dir, day)) return null;
-    const child = start(process.execPath, [join(root, "bin", "forge"), "stats", "daily", "--day", day],
-      { cwd, detached: true, stdio: "ignore" });
+    let child;
+    try {
+      child = start(process.execPath, [join(root, "bin", "forge"), "stats", "daily", "--day", day],
+        { cwd, detached: true, stdio: "ignore" });
+    } catch {
+      clearMark(where.dir, day);
+      return null;
+    }
+    /* A spawn that fails does so on a later tick, as an event: heard, and the mark this process took
+       given back, or the session start dies of it and the day stays held by nobody. */
+    child.on?.("error", () => clearMark(where.dir, day));
+    if (!child.pid) return null;
     writeFileSync(markPath(where.dir, day), `${child.pid}\n`);
     child.unref();
     return { day, pid: child.pid };

@@ -1,8 +1,8 @@
 /* Where the daily reports live and what may be written into one: the directory, the held days, the
    writer's mark, the content each page carries for the index to read back, and the masking every
    string passes before it reaches a file a person may forward — docs/cli/stats.md. */
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { isAbsolute, join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { isAbsolute, join, resolve } from "node:path";
 
 import { configDir, configPath, readJson } from "../../resolve/config.mjs";
 import { masked } from "../../hooks/log/scrub.mjs";
@@ -71,10 +71,24 @@ export const readPage = (dir, day) => {
   }
 };
 
+/** A page written whole or not at all: a held page is what stops the next writer, so one cut short
+ *  by a killed process would stand in for a report forever, and a failed rewrite would take the good
+ *  one with it. */
 export const writePage = (dir, name, html) => {
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, name), html);
-  return join(dir, name);
+  const path = join(dir, name);
+  const temporary = `${path}.${process.pid}.tmp`;
+  try {
+    writeFileSync(temporary, html);
+    renameSync(temporary, path);
+  } finally {
+    try {
+      rmSync(temporary, { force: true });
+    } catch {
+      /* not a file of this writer's: left where it stands */
+    }
+  }
+  return path;
 };
 
 /** Whether a writer holds the day: its mark names a process still running. A mark whose process
@@ -109,8 +123,11 @@ const PATH = /(?<![\w.~-])\/[^\s"'`<>()[\]{}|;,]+/gu;
 
 /** A string as it may appear on a page: credentials masked by the refusal log's own mask, and every
  *  absolute path outside the directories named here cut to an ellipsis. */
-const shown = (text, allowed) => masked(text).replace(PATH, (path) =>
-  (allowed.some((root) => path === root || path.startsWith(`${root}/`)) ? path : "…"));
+/* Judged resolved, so a `..` cannot walk a path that starts inside a root out of it. */
+const shown = (text, allowed) => masked(text).replace(PATH, (path) => {
+  const whole = resolve(path);
+  return allowed.some((root) => whole === resolve(root) || whole.startsWith(`${resolve(root)}/`)) ? path : "…";
+});
 
 /** Every string in a value passed through `shown`, at every depth. */
 export const shownDeep = (value, allowed) => {
