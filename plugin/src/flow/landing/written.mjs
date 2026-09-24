@@ -5,7 +5,11 @@
    docs/cli/the-checkpoint.md, and docs/cli/the-reconstruction.md for the second. */
 import { DERIVED_BUILDER, HAND_WRITTEN, REBUILT_FORM, RECOVER_THE_BUILDER, UNRECOVERABLE }
   from "./reconstruction.mjs";
-import { LANDING_DONE, LANDING_HEAD_OWED, LANDING_READY } from "./checkpoint.mjs";
+import {
+  LANDING_BUILDER_OWED, LANDING_DONE, LANDING_HEAD_OWED, LANDING_QA_OWED, LANDING_READY,
+  LANDING_RECORDS_OWED, LANDING_STATES,
+} from "./checkpoint.mjs";
+import { parseAll } from "../record/page.mjs";
 import { carriedByLanding } from "../worklog.mjs";
 import { fail } from "../../resolve/settings.mjs";
 import { sameCommit, shortSha } from "../../tracker/evidence.mjs";
@@ -87,16 +91,41 @@ export const rebuiltCheckpoint = (ref, holder, head,
   };
 };
 
+/* The states a capture writes over: its own, and the two builder's turns a new head answers, each
+   licensed by `claim` off the records before this is reached. */
+const CAPTURED_OVER = new Set([LANDING_READY, LANDING_HEAD_OWED, LANDING_RECORDS_OWED]);
+
+/* What every other state names instead, one way out apiece, since a refusal naming only the resume
+   sends a run to read what this one already knew (ISS-2406). `done` keeps the reading ISS-2073
+   owns. */
+const OUT_OF = {
+  [LANDING_BUILDER_OWED]: (ref, landing) => `the landing handed the branch back for a reading of `
+    + `the candidate it built, and that turn ends in the reconciliation rather than a new head:\n`
+    + `  forge claim ${ref} --take\n`
+    + `  forge claim ${ref} --reconciled ${landing.candidate ? shortSha(landing.candidate) : "<the candidate's sha>"}`,
+  [LANDING_QA_OWED]: (ref) => `the turn is the judge's, and it ends with the judge's own hand-back, `
+    + `after which the state names whose turn is next:\n  forge claim ${ref} --judged`,
+};
+
+const readyRefused = (ref, landing) => {
+  const said = `the landing checkpoint on ${ref} reads \`${landing.state}\``;
+  const own = OUT_OF[landing.state];
+  if (own) return `${said}: ${own(ref, landing)}`;
+  if (LANDING_STATES[landing.state]?.turn === "lander") {
+    return `${said}, a landing in flight whose next move is the lander's, so --ready would write its `
+      + `reading away. A turn it hands back to the builder is named where it stands:\n  forge resume ${ref}`;
+  }
+  return `${said}, which is past the build, so --ready would write the landing's own reading away. `
+    + `Read where it is:\n  forge resume ${ref}`;
+};
+
 export const readyCheckpoint = (ref, holder, patch, landing) => {
   if (!patch?.head || !patch.base || !patch.touched) {
     fail(`claim --ready writes the checkpoint off the capture --pushed makes, and this one captured `
-      + `no change — the line above says why. Capture at the push, before the merge:\n`
+      + `no change — the \`--pushed\` line below says why. Capture at the push, before the merge:\n`
       + `  forge claim ${ref} --pushed --ready`);
   }
-  if (landing && landing.state !== LANDING_READY && landing.state !== LANDING_HEAD_OWED) {
-    fail(`the landing checkpoint on ${ref} reads \`${landing.state}\`, which is past the build, so `
-      + `--ready would write the landing's own reading away. Read where it is:\n  forge resume ${ref}`);
-  }
+  if (landing && !CAPTURED_OVER.has(landing.state)) fail(readyRefused(ref, landing));
   return {
     state: LANDING_READY,
     builder: holder,
@@ -148,4 +177,50 @@ export const recaptureRefusal = (ref, head, { latest, verdicts, criteria }, inde
     + `  forge record verdict ${ref} --commit ${shortSha(head)} --evidence <attachment|url|sha> `
     + `--verdict ${valuesOf("verdict", "verdict")}` + unjudged.map((number) => ` --criterion ${number}`).join("")
     + `\n  ${again}`;
+};
+
+/* The commits a checkpoint names for the change it landed, any of which a records turn's review may
+   have read it at: the release, the reconciled candidate, the candidate and the branch's head. */
+const landedOf = (landing) => [...new Set([landing.intended, landing.reconciled, landing.candidate,
+  landing.head].filter(Boolean))];
+
+const reviewsOf = (comments) => comments
+  .flatMap((one) => parseAll(one.body ?? "").map((record) => ({ at: one.createdAt ?? "", record })))
+  .filter((one) => one.record.kind === "review")
+  .sort((a, b) => a.at.localeCompare(b.at));
+
+const REWORK_SAID = (ref, head) => ({
+  out: `claim --ready out of \`${LANDING_RECORDS_OWED}\` captures ${shortSha(head)} for a second landing`,
+  why: "the landing merges the head this write names, so it takes a head a review approved and no other",
+  again: `forge claim ${ref} --pushed --ready`,
+});
+
+/** What refuses the capture out of `records-owed`, or null. The turn goes back to the build only
+ *  where its review found the landed change short: the latest review of any commit the checkpoint
+ *  names for that change says `changes-requested`. The head it takes is none of those commits, a
+ *  second landing of one merging nothing, and is held to what the capture out of `head-owed` asks.
+ *  `view` is `viewFrom`'s. */
+export const reworkRefusal = (ref, head, landing, view, independent) => {
+  const landed = landedOf(landing);
+  const said = REWORK_SAID(ref, head);
+  if (landed.some((one) => sameCommit(one, head))) {
+    return `${said.out}, which is a commit the first landing already carries, so landing it again `
+      + `merges nothing. Commit the fix on top of it, review that head`
+      + `${independent ? "" : " and judge it"}, push it, then ask again:\n  ${said.again}`;
+  }
+  const asked = reviewsOf(view.comments ?? [])
+    .filter((one) => landed.some((sha) => sameCommit(one.record.fields.commit, sha)))
+    .at(-1)?.record.fields ?? null;
+  if (asked?.outcome !== "changes-requested") {
+    const held = asked
+      ? `the latest review of the landed change, at ${shortSha(asked.commit)}, says ${asked.outcome ?? "nothing"}`
+      : `no review on ${ref} reads the landed change at ${landed.map(shortSha).join(", ")}`;
+    return `${said.out}, and ${held}: a records turn goes back to the build only where its review `
+      + `found the landed change short. Where the records are written, hand the turn back:\n`
+      + `  forge claim ${ref} --recorded\n`
+      + `Where the landed change is short, say so at the commit that landed, then ask again:\n`
+      + `  forge record review ${ref} --reviewer codex --commit ${shortSha(landed[0])} --outcome changes-requested\n`
+      + `  ${said.again}`;
+  }
+  return recaptureRefusal(ref, head, view, independent, said);
 };

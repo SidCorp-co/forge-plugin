@@ -8,7 +8,7 @@ it does: [`claim.md`](claim.md).
 
 ## The turn is handed back, never abandoned
 
-Four states name a turn that is not the lander's, and each has one route out, a flag of the claim the
+Four states name a turn that is not the lander's, and each has a route out, a flag of the claim the
 run holding it makes: without one, that state is where a landing goes to die.
 
 `--judged` is the judge's: it takes the turn, writes its verdicts as any run does, and says the turn
@@ -84,3 +84,13 @@ What `--recorded` does not do is read those records back. It is the reading `--j
 same reason: a hand-back its own holder could be refused is a state nobody can leave. A turn handed
 back with nothing written is answered by the walk, which stops at the same rung and hands it over
 again, having earned nothing on the way.
+
+`--pushed --ready` is the records turn's other way out, where the turn's own review finds the landed
+change short. That review is what the turn exists to take, and what it can find is owed a new head
+rather than a record, so the build is where the issue belongs again: `--recorded` would hand back a
+turn whose records say the change is wrong, and a reopen moves the status and leaves the checkpoint
+where it was. The capture is licensed off the record rather than the caller's word — the latest
+review of any commit the checkpoint names for the landed change asks for changes — and the head it
+takes is held to what the capture out of `head-owed` asks, a commit already landed being refused
+because landing it again merges nothing. It writes the checkpoint whole, so nothing of the first
+landing's candidate or release is read as the second's.

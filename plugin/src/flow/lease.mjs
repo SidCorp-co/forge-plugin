@@ -15,7 +15,7 @@ import { scoped, tried } from "../tracker/rest.mjs";
 import {
   LANDING, READ_THE_STATE, landingMoved, landingNext, landingOf,
 } from "./landing/checkpoint.mjs";
-import { KEY as WORKLOG, worklogFor } from "./worklog.mjs";
+import { KEY as WORKLOG, saidWritten, worklogFor } from "./worklog.mjs";
 
 export const FIELD = "sessionContext";
 export const KEY = "lease";
@@ -436,6 +436,7 @@ const takenByWriting = async (documentId, ref, context, next, patch, over = null
     over,
   });
   await setLease(documentId, sent, ref, () => context);
+  saidWritten(patch);
   console.error(over
     ? reclaimedByWriting(ref, leaseOf(sent), over, { gone, handed })
     : tookByWriting(ref, leaseOf(sent), left));
@@ -508,6 +509,7 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
   }));
   if (state === "mine") {
     await setLease(documentId, value(context, lease), ref, () => context);
+    saidWritten(patch);
     return sent;
   }
   /* Lapsed is the one another run may take: the last read decides, and the notice waits for the write. */
@@ -522,6 +524,7 @@ export const renew = async (documentId, ref, next = undefined, patch = null, { f
     read = again;
     return value(again, now);
   }, ref, () => read);
+  saidWritten(patch);
   if (renewed) console.error(renewedLapsed(ref, renewed));
   return sent;
 };
