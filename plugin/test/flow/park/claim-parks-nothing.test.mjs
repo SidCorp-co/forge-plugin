@@ -33,13 +33,14 @@ const issue = (key, status, history) => ({
 
 const THIRD = issue("ISS-90", "in_progress", [reclaim(ago(300), "in_progress"), reclaim(ago(200), "in_progress")]);
 const FIRST = issue("ISS-91", "in_progress", [{ ...reclaim(ago(300), "in_progress"), how: "claim" }]);
+const SECOND = issue("ISS-93", "in_progress", [reclaim(ago(300), "in_progress")]);
 const PARKED = issue("ISS-92", "on_hold", [reclaim(ago(400), "in_progress"), reclaim(ago(300), "in_progress"),
   reclaim(ago(200), "in_progress")]);
 
 const state = {
   calls: [],
   config: { baseBranch: "master", releaseModel: "publish", pipelineConfig: { autoProdDeploy: false } },
-  issues: [THIRD, FIRST, PARKED],
+  issues: [THIRD, FIRST, SECOND, PARKED],
   comments: {
     [PARKED.documentId]: [{ documentId: "the-park", createdAt: ago(150), authorId: "agent",
       body: render("park", { kind: "crashed", why: "three reclaims of in_progress" }, "in_progress") }],
@@ -92,6 +93,15 @@ test("a first reclaim prints its count and no park command, and moves nothing ei
   assert.doesNotMatch(run.stdout, /forge record park/u, "one reclaim is a run resumed");
   assert.equal(FIRST.status, "in_progress");
   assert.deepEqual(movesOf(FIRST.documentId), []);
+});
+
+test("a second reclaim is still under the threshold: its count, no park command, nothing moved", async () => {
+  const run = await claim("ISS-93");
+  assert.equal(run.status, 0, `${run.stdout}${run.stderr}`);
+  assert.match(run.stdout, /Reclaim 2 of in_progress/u);
+  assert.doesNotMatch(run.stdout, /forge record park/u, "two reclaims are not yet past it");
+  assert.equal(SECOND.status, "in_progress");
+  assert.deepEqual(movesOf(SECOND.documentId), []);
 });
 
 test("a claim of an issue parked as crashed writes its own row and no second one", async () => {
