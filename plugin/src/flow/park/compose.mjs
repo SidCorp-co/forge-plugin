@@ -60,7 +60,7 @@ export const parkPayload = (view, ref, kind, why, evidence = [], { left = null, 
    move it made, and the way back it leaves is a status write no entry check reads (ISS-2449). Here
    rather than in `parkChecked`, which a writer may skip and the landing's conflict park did. */
 const unpairable = (view, ref, body) => {
-  const gaps = shapeGaps("park", parse(body), view.names ?? attachmentNames(view.issue, view.comments));
+  const gaps = shapeGaps("park", parse(body), view.names ?? attachmentNames(view.issue, view.comments ?? []));
   if (!gaps.length) return;
   refuse(`the park of ${ref} was not sent: the record it would post is one the park reader drops, `
     + `so nothing would pair it with the move and the way back would be a status write. It carries `
