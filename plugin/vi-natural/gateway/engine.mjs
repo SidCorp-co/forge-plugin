@@ -2,6 +2,7 @@
 
 import * as cta from "../text/cta.mjs";
 import * as placeholders from "../text/placeholders.mjs";
+import * as script from "../text/script.mjs";
 import { BATCH_TASK, systemPrompt } from "../text/prompts.mjs";
 import { BARE_HINT, PLACEHOLDER_HINT } from "../vi-text.mjs";
 import { chunkItems, err, parseJsonObject } from "../util.mjs";
@@ -26,18 +27,25 @@ async function ask(client, system, task, payload, temperature) {
   return parseJsonObject(await client.chat(system, user, { temperature }));
 }
 
+/** What is wrong with a candidate's text, or null. The script is held on every key: a caller's own
+ *  verifier replaces the placeholder one and `--ignore` exempts a key from it, and neither is a
+ *  reason to store a word in another language (ISS-412). */
+function problemIn(key, source, candidate, gates) {
+  const own = gates.skipVerify.has(key) ? null : gates.verify(source, candidate);
+  const found = [own, script.diff(source, candidate)].filter(Boolean);
+  return found.length ? found.join("; ") : null;
+}
+
 /** Every gate a candidate has to clear before it may be written. */
 function rejected(key, source, candidate, gates) {
-  const { verify, skipVerify, bareCta, ctaIndex } = gates;
-  if (!skipVerify.has(key) && verify(source, candidate)) return true;
-  return bareCta.has(key) && !cta.isBare(candidate, ctaIndex);
+  if (problemIn(key, source, candidate, gates)) return true;
+  return gates.bareCta.has(key) && !cta.isBare(candidate, gates.ctaIndex);
 }
 
 /** Second chance for one string, with the rule it broke restated. */
 async function translateOne(client, system, task, entry, gates) {
   const { key, source, temperature, contexts } = entry;
   const bare = gates.bareCta.has(key);
-  const verify = gates.skipVerify.has(key) ? null : gates.verify;
   const required = [...placeholders.extract(source).keys()].sort();
   let hint = required.length ? PLACEHOLDER_HINT.replace("%s", required.join(", ")) : "";
   if (bare) hint += BARE_HINT;
@@ -52,7 +60,7 @@ async function translateOne(client, system, task, entry, gates) {
   if (typeof candidate !== "string" || !candidate.trim()) {
     return { reason: "model returned nothing for this key" };
   }
-  const problem = verify ? verify(source, candidate) : null;
+  const problem = problemIn(key, source, candidate, gates);
   if (problem) return { reason: `rejected after retry: ${problem}` };
   if (bare && !cta.isBare(candidate, gates.ctaIndex)) {
     return { reason: `CTA still carries an object after retry ("${candidate}")` };
@@ -62,7 +70,8 @@ async function translateOne(client, system, task, entry, gates) {
 
 /** Translate [key, text] pairs. Returns { results, problems }.
  *
- *  A key only reaches `results` if its translation carries exactly the placeholders of its source.
+ *  A key only reaches `results` if its translation carries exactly the placeholders of its source,
+ *  and no character in a script its source does not carry.
  *  Anything that fails twice is left out and reported, so a broken string never silently lands in a
  *  locale file. */
 export async function translateItems(client, items, options = {}) {
