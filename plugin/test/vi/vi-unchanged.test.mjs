@@ -3,49 +3,20 @@
    answers with whatever it was asked (ISS-84), so no live call is spent on a code. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createServer } from "node:http";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { projectRecord, ranAsync, tempRoom } from "../fixtures.mjs";
+import { projectRecord, ranAsync } from "../fixtures.mjs";
+import { gatewayOn as served } from "./fake-gateway.mjs";
 import { TRANSLATE_UNCHANGED } from "../../src/tools/vi-exit.mjs";
 
 const BUNDLED = fileURLToPath(new URL("../../bin/vi-natural", import.meta.url));
 const LAYER = new URL("../../src/tools/vi.mjs", import.meta.url);
 const SOURCE = "git fetch origin";
 
-/** A gateway answering every string with `reply` of it, and a room whose config points at it. */
-const gatewayOn = async (t, reply) => {
-  const server = createServer((request, response) => {
-    let body = "";
-    request.on("data", (chunk) => {
-      body += chunk;
-    });
-    request.on("end", () => {
-      // The payload is the last blank-line-separated part: pretty-printed JSON holds no blank line,
-      // and the task before it does hold braces of its own.
-      const sent = JSON.parse(JSON.parse(body).messages.at(-1).content.split("\n\n").at(-1));
-      // A verb that sends key context sends `{ k, s }` per string where translate sends the string.
-      const stringOf = (value) => (typeof value === "string" ? value : value.s);
-      const answer = Object.fromEntries(Object.entries(sent).map(([key, held]) => [key, reply(stringOf(held))]));
-      response.writeHead(200, { "Content-Type": "text/event-stream" });
-      response.end(`data: ${JSON.stringify({ choices: [{ delta: { content: JSON.stringify(answer) } }] })}\n\ndata: [DONE]\n\n`);
-    });
-  });
-  await new Promise((listening) => server.listen(0, "127.0.0.1", listening));
-  t.after(() => {
-    server.closeAllConnections();
-    server.close();
-  });
-  const room = tempRoom("vi-unchanged-");
-  mkdirSync(join(room, "vi-natural"));
-  const gateway = { base_url: `http://127.0.0.1:${server.address().port}/v1`, api_key: "k", model: "m" };
-  writeFileSync(join(room, "vi-natural", "config.json"), JSON.stringify(gateway));
-  return room;
-};
-
+const gatewayOn = (t, reply) => served(t, reply, "vi-unchanged-");
 const ran = (room, argv) => ranAsync(BUNDLED, argv, { ...process.env, XDG_CONFIG_HOME: room }, room);
 const translate = (room, text) => ran(room, ["translate", "--kind", "prose", "--no-glossary", text]);
 
