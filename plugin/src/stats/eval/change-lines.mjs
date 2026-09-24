@@ -3,8 +3,7 @@
 import { angleBlock } from "./angles.mjs";
 import { mixLines } from "./mix.mjs";
 import { claimLines } from "./claims.mjs";
-
-const stamp = (iso) => iso.slice(0, 16).replace("T", " ");
+import { stamp } from "../figures.mjs";
 
 const ROW = 11;
 

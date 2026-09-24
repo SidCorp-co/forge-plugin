@@ -49,7 +49,7 @@ test("a reading taken in a worktree reads the checkout it was cut from, and says
 
   const run = statsIn(room, tree);
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /^1 issue-flow run\(s\), 2026-09-01 00:00 to 2026-09-01 00:41$/mu, run.stdout);
+  assert.match(run.stdout, /^1 issue-flow run\(s\), 2026-09-01 00:00Z to 2026-09-01 00:41Z$/mu, run.stdout);
   assert.ok(run.stdout.includes(join(room, `claude-${process.getuid()}`, slugFor(checkout))),
     `the root read is the checkout's\n${run.stdout}`);
   assert.equal(run.stderr,

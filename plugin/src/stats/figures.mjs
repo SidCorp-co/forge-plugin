@@ -14,4 +14,6 @@ export const scaled = (value) => {
 };
 export const share = (part, whole) => (whole ? `${Math.round((part / whole) * 100)}%` : "—");
 export const add = (map, key, by = 1) => map.set(key, (map.get(key) ?? 0) + by);
-export const stamp = (at) => new Date(at).toISOString().slice(0, 16).replace("T", " ");
+/* UTC to the minute with its zone said, because a bound printed without one is read in the reader's
+   own zone, and a `--since` typed off it then names a different span. */
+export const stamp = (at) => `${new Date(at).toISOString().slice(0, 16).replace("T", " ")}Z`;

@@ -166,7 +166,7 @@ test("a reading held deeper than the corpus reaches is what tells a swept corpus
 
   const silent = askStats(room, ["eval", "--checkout", PROJECT], home);
   assert.equal(silent.status, 0, silent.stderr);
-  assert.match(silent.stdout, /the corpus reaches back to 2026-09-01 00:00; no reading held for this project/u, silent.stdout);
+  assert.match(silent.stdout, /the corpus reaches back to 2026-09-01 00:00Z; no reading held for this project/u, silent.stdout);
   assert.match(silent.stdout, /which is not to say the corpus was never deeper — a mark is a snapshot and not a history/u,
     "the record's silence is silence, never evidence the depth was never there");
 
@@ -182,8 +182,13 @@ test("a reading held deeper than the corpus reaches is what tells a swept corpus
   const said = askStats(room, ["eval", "--checkout", PROJECT], home);
   assert.equal(said.status, 0, said.stderr);
   assert.match(said.stdout,
-    /the corpus reaches back to 2026-09-01 00:00; release 3\.35\.339's reading reached back to 2026-08-30 00:00, so depth this project once read is no longer here\./u,
+    /the corpus reaches back to 2026-09-01 00:00Z; release 3\.35\.339's reading reached back to 2026-08-30 00:00Z, so depth this project once read is no longer here\./u,
     said.stdout);
+  const listed = askStats(room, ["marks", "--checkout", PROJECT], home);
+  assert.equal(listed.status, 0, listed.stderr);
+  assert.match(listed.stdout,
+    /^mark {4}70 {2}2026-09-01 00:00Z {2}release 3\.35\.339 at no head recorded {3}50 run\(s\) {2}2026-08-30 00:00Z to 2026-09-01 00:00Z$/mu,
+    listed.stdout);
 
   /* A mark taken over a deep corpus records a LATE floor in its window — the recent fifty begin long
      after the corpus does — so the reading's own corpus reach is the field carrying the depth, and a
@@ -197,7 +202,7 @@ test("a reading held deeper than the corpus reaches is what tells a swept corpus
     process.env.XDG_CONFIG_HOME = was;
   }
   const deeper = askStats(room, ["eval", "--checkout", PROJECT], home);
-  assert.match(deeper.stdout, /mark 100's reading reached back to 2026-08-23 16:00/u,
+  assert.match(deeper.stdout, /mark 100's reading reached back to 2026-08-23 16:00Z,/u,
     `${deeper.stdout}\nthe window floor of that mark is later than the corpus reaches now, and only its own reach carries the depth`);
 
   const held = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--json"], home).stdout);
@@ -261,6 +266,41 @@ test("--json is the comparison alone, --size sets both windows, and a bad size i
   const wrong = ask(room, "--sizee", "3");
   assert.equal(wrong.status, 1);
   assert.match(wrong.stderr, /No stats eval flag named --sizee/u);
+});
+
+/* A bound printed without its zone is read as local time, and the window is credited to the wrong
+   day's releases (ISS-486). A bound is pasted into git's `--since`, so the case is that git: the same
+   bound selects the same commits in UTC and seven hours east of it. */
+const commitsSince = (bound, zone) => {
+  const repo = tempRoom("stats-eval-git-");
+  const env = { ...process.env, TZ: zone, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1",
+    GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@t", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@t" };
+  const git = (argv, dated = {}) => spawnSync("git", argv, { cwd: repo, encoding: "utf8", env: { ...env, ...dated } });
+  git(["init", "-q"]);
+  for (const when of ["2026-09-03T01:30:00Z", "2026-09-03T02:30:00Z"]) {
+    git(["commit", "-q", "--allow-empty", "-m", when], { GIT_AUTHOR_DATE: when, GIT_COMMITTER_DATE: when });
+  }
+  return git(["log", `--since=${bound}`, "--format=%s"]).stdout.trim().split("\n");
+};
+
+test("every bound the eval prints ends in its zone, git reads it alike in any zone, and --json keeps the instant", () => {
+  const room = corpusOf(100);
+  const out = ask(room).stdout;
+  assert.match(out, /^the last 50 issue-flow run\(s\) {2}2026-09-03 02:00Z to 2026-09-05 03:18Z$/mu, out);
+  assert.match(out, /^the 50 before them {2}2026-09-01 00:00Z to 2026-09-03 01:18Z$/mu, out);
+  assert.match(out, /^ {2}now {6}50 run\(s\) {2}2026-09-03 02:00Z to 2026-09-05 03:18Z {2}/mu, out);
+  assert.match(out, /^ {2}before {3}50 run\(s\) {2}2026-09-01 00:00Z to 2026-09-03 01:18Z {2}/mu, out);
+
+  const bound = out.match(/^the last 50 issue-flow run\(s\) {2}(\S+ \S+) to /mu)[1];
+  assert.deepEqual(commitsSince(bound, "UTC"), ["2026-09-03T02:30:00Z"]);
+  assert.deepEqual(commitsSince(bound, "Asia/Ho_Chi_Minh"), ["2026-09-03T02:30:00Z"],
+    "a zone east of UTC reads the pasted bound as the same instant");
+  assert.deepEqual(commitsSince(bound.replace(/Z$/u, ""), "Asia/Ho_Chi_Minh"),
+    ["2026-09-03T02:30:00Z", "2026-09-03T01:30:00Z"], "the zoneless bound is the misreading this pins against");
+
+  const held = JSON.parse(ask(room, "--json").stdout);
+  assert.equal(held.now.profile.from, BASE + 50 * HOUR * 1000);
+  assert.equal(held.now.profile.to, BASE + (99 * HOUR + 18 * 60) * 1000);
 });
 
 test("the eval subject stands beside runs in the verb's own help", () => {

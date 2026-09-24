@@ -588,7 +588,7 @@ test("a stored consult reading is the before window, scored as it was at the mar
   const missing = ask("eval", "--against", "999");
   assert.match(`${missing.status} ${missing.stderr}`, /^1 codex eval: no consults reading at mark 999 on this device\. `forge codex marks` lists what is held\./u);
   const listed = ask("marks");
-  assert.match(listed.stdout, /^mark {3}200 {2}2026-09-05 00:00 {2}100 consult\(s\) {2}2026-09-01T01:40:00\.000Z to 2026-09-01T03:19:00\.000Z$/mu, listed.stderr);
+  assert.match(listed.stdout, /^mark {3}200 {2}2026-09-05 00:00Z {2}100 consult\(s\) {2}2026-09-01T01:40:00\.000Z to 2026-09-01T03:19:00\.000Z$/mu, listed.stderr);
 
   /* Criterion 13: the rows are gone and later verdicts reject everything, and the stored side still
      reads as it was scored at the mark. */

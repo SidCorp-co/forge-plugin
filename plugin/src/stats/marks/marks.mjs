@@ -12,6 +12,7 @@ import { underLock } from "../../resolve/machine/file-lock.mjs";
 import { checkoutAt } from "../../git/checkout-at.mjs";
 import { fail, projectAt } from "../../resolve/settings.mjs";
 import { aheadSaid, anchoredAt, overlapSaid } from "./overlap.mjs";
+import { stamp } from "../figures.mjs";
 
 export const RUNS = "runs";
 export const CONSULTS = "consults";
@@ -284,12 +285,11 @@ export const resolveAgainst = (kind, asked, { scope = null, verb, list, writes, 
   return anchoredAt(held, found, { ...recent, flag: "--against" }, verb);
 };
 
-const WHEN = 16;
-export const stamped = (iso) => iso.slice(0, 16).replace("T", " ");
+const WHEN = stamp(0).length;
 /** The `--against` line both evals print, ending on what it shares of the recent window. The count is each eval's own unit, the span its own reading and the overlap its own rows; the wording and the two spaces are neither, and a case pinning them could otherwise drift in one harness alone. */
 export const heldAtMark = (count, mark, span, overlap, terms) =>
   `the ${count} held at mark ${mark}  ${span}${overlapSaid(overlap, terms)}`;
 
 /** One line per reading, newest first; `describe` says the recent window's size and bounds in its kind's units. */
 export const markLines = (records, describe) =>
-  [...records].reverse().map((one) => `mark ${String(one.mark).padStart(5)}  ${stamped(one.at).padEnd(WHEN)}  ${describe(one)}`);
+  [...records].reverse().map((one) => `mark ${String(one.mark).padStart(5)}  ${stamp(one.at).padEnd(WHEN)}  ${describe(one)}`);
