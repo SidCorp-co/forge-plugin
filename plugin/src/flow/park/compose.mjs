@@ -4,8 +4,8 @@ import { lengthOf } from "../../tracker/field-write.mjs";
 import { attachmentNames, evidenceProblem } from "../../tracker/evidence.mjs";
 import { SHOWS_EVIDENCE, commandAt } from "../machine.mjs";
 import { Refused, refuse } from "../../refusal.mjs";
-import { render } from "../record/page.mjs";
-import { ANSWERED_BY_COMMENT, PARK_STATUS, answersByComment, atLeast, payloadOwed, setForm } from "../earned.mjs";
+import { parse, render } from "../record/page.mjs";
+import { ANSWERED_BY_COMMENT, PARK_STATUS, answersByComment, atLeast, payloadOwed, setForm, shapeGaps } from "../earned.mjs";
 import { undoForm } from "../record/merged.mjs";
 
 /* A needs_info park owes the readings only the question shape carries. */
@@ -51,7 +51,21 @@ const asksFor = (view, asked, ref) => {
 export const parkPayload = (view, ref, kind, why, evidence = [], { left = null, asked = null } = {}) => {
   const status = PARK_STATUS[kind];
   const said = { reason: why, ...waitsFor(status), ...(status === ANSWERED_BY_COMMENT ? asksFor(view, asked, ref) : {}) };
-  return { status, said, body: render("park", { kind, why, evidence }, left ?? view.issue.status) };
+  const body = render("park", { kind, why, evidence }, left ?? view.issue.status);
+  unpairable(view, ref, body);
+  return { status, said, body };
+};
+
+/* Measured by the reader's own rule, because a park `parkThatSet` drops is one nothing pairs with the
+   move it made, and the way back it leaves is a status write no entry check reads (ISS-2449). Here
+   rather than in `parkChecked`, which a writer may skip and the landing's conflict park did. */
+const unpairable = (view, ref, body) => {
+  const gaps = shapeGaps("park", parse(body), view.names ?? attachmentNames(view.issue, view.comments ?? []));
+  if (!gaps.length) return;
+  refuse(`the park of ${ref} was not sent: the record it would post is one the park reader drops, `
+    + `so nothing would pair it with the move and the way back would be a status write. It carries `
+    + `${gaps.join("; ")}. A park's evidence is an attachment on the issue, a URL or a commit: cite `
+    + `one of those, or put what is not one in the reason.`);
 };
 
 /** Every refusal a typed park or drop answers to, raised before its first write. */

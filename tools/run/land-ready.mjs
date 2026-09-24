@@ -145,7 +145,9 @@ const mergeStep = async (one) => {
         : `, and the checkpoint reads \`${landing.state}\`, past the states a branch is handed back `
           + `from. Read where it is:\n  forge resume ${key}`}`;
     const view = await asked(() => viewOf(documentId));
-    await asked(() => parkAs(view, key, "blocked", why, conflicts));
+    /* The two commits the merge was taken between, and not the paths: the reader keeps a park whose
+       evidence is a commit, and the paths are in the reason already (ISS-2449). */
+    await asked(() => parkAs(view, key, "blocked", why, [landing.head, at.pin]));
     stop(`${key} is parked as blocked and nothing of it was edited, pushed or installed.`);
   });
 };
