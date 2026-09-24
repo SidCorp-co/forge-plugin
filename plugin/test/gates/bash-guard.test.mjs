@@ -250,6 +250,19 @@ test("reading the stash is not reverting it", () => {
   assert.equal(decide(`git ${verb}`).allowed, false);
 });
 
+/* `create` writes a commit object and stores it nowhere, yet the dirty-tree rule kept its own list
+   of safe subcommands without it and refused it for reverting a tree it leaves alone (ISS-387). */
+test("a stash that leaves the tree and the stack alone is allowed in a dirty tree", () => {
+  const verb = "stash";
+  assert.equal(decide(`git ${verb} create`).allowed, true);
+  assert.equal(decide(`git ${verb} create "probe"`).allowed, true);
+  for (const moves of ["", " push -m probe", " pop", " apply", " drop", " store abc123", " -q", " >out"]) {
+    const said = decide(`git ${verb}${moves}`);
+    assert.equal(said.allowed, false, `git ${verb}${moves} still moves the tree or the stack`);
+    assert.match(said.reason, /silently reverts/u, `and git ${verb}${moves} says so`);
+  }
+});
+
 /* One token elsewhere in a body turned every literal in it into a command: the escape names were one
    pattern for every language, and a python heredoc appending JavaScript test cases was refused for a
    verb inside its data, because that data also said `spawnSync` — which python cannot call (ISS-212). */
@@ -379,6 +392,8 @@ test("a stash that moves a shared stack is refused in a clean worktree too", () 
   assert.equal(from(cleanRepo(), `git ${verb} pop`).trim(), "", "one worktree keeps today's reading");
   assert.equal(from(second, `git ${verb} list`).trim(), "", "reading the stack still moves nothing");
   assert.equal(from(second, `git ${verb} show -p`).trim(), "", "nor does showing one");
+  assert.equal(from(second, `git ${verb} create`).trim(), "", "nor does a snapshot stored nowhere");
+  assert.match(refused, /`git stash list`, `git stash show` and `git stash create` move nothing/u, "the route out names every form it allows");
   assert.match(from(cleanRepo(), `git -C ${room} ${verb} pop`), /stack belongs to the repository/u, "counted in the tree named");
   assert.match(from(DIRTY, `git ${verb}`), /silently reverts/u, "and a dirty single worktree reads as it did");
 });
