@@ -4,7 +4,7 @@
    the take they leave. */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 
 import { escaped, projectRoom, ranAsync, tempHome, tempRoom } from "../../fixtures.mjs";
@@ -120,9 +120,61 @@ test("a live lease is refused where the claiming run's id names no issue, and na
   heldBy(DISPATCHER);
   const refused = await claim([], "a-whole-wave-of-runs");
   assert.equal(refused.status, 1, `an id naming no issue proves no dispatch:\n${refused.stdout}${refused.stderr}`);
-  assert.match(refused.stderr, /names no run dispatched to ISS-1091/u);
-  assert.match(refused.stderr, /forge-run-id beside its git directory/u,
-    "and the route out is the tree cut for that run, not the claim that just failed");
+  assert.match(refused.stderr, /a-whole-wave-of-runs, which names no issue at all/u,
+    "said as an id that names nothing, not as a dispatch to some other issue");
+  assert.match(refused.stderr, /only an id minted as `iss-<n>\[\+<n>\.\.\.\]-<8 hex>` names/u, "and the form that does");
+  assert.match(refused.stderr, /carries no forge-run-id beside its git directory/u);
+  assert.match(refused.stderr, new RegExp(`\`forge brief ISS-1091 --tree ${escaped(realpathSync(AWAY))}\``, "u"),
+    "and the route out is the brief that gives this tree one, not the claim that just failed");
+});
+
+/* The incident this was filed from: an outside dispatcher declared its own uuid, handed it over in
+   the variable, and cut a tree nothing minted into, so the variable has to go as well as the tree
+   getting an id (ISS-1682). */
+test("a declared uuid in the variable, from a tree carrying no id, is told both halves of the way out", async () => {
+  heldBy(DISPATCHER);
+  const declared = "b29fa178-0769-4aa8-a9d3-2fe263ba922f";
+  const refused = await claim([], declared);
+  assert.equal(refused.status, 1, `a uuid names no issue:\n${refused.stdout}${refused.stderr}`);
+  assert.match(refused.stderr, new RegExp(`${declared}, which names no issue at all`, "u"));
+  assert.match(refused.stderr, /`forge brief ISS-1091 --tree /u, "the tree is given an id");
+  assert.match(refused.stderr, new RegExp(`${RUN_ID_VAR} is what this call resolved and it outranks any tree, so unset it too`, "u"),
+    "and the variable that would outrank it is dropped");
+});
+
+/* The whole route a run of an outside dispatcher takes: a tree nobody minted for, the brief the dispatch
+   sends, and then the claim from that tree with nothing set, which is where the incident stopped. */
+test("a tree the brief gave an id takes the lease its dispatcher holds, with no flag and no variable", async () => {
+  const tree = projectRoom(tempRoom("dispatched-briefed-"), CHILD_HOME, OWN);
+  const briefed = await ranAsync(FORGE, ["brief", "ISS-1091", "--tree", tree], ENV, tree);
+  assert.equal(briefed.status, 0, `the brief should have printed:\n${briefed.stdout}${briefed.stderr}`);
+  const minted = /^FORGE_SESSION_ID=(\S+)$/mu.exec(briefed.stdout)?.[1];
+  assert.deepEqual(runsFor(minted), ["iss-1091"], `the brief printed ${minted}`);
+
+  heldBy(DISPATCHER);
+  const took = await ranAsync(FORGE, ["claim", "ISS-1091"], { ...ENV, FORGE_SESSION_ID: "" }, tree);
+  assert.equal(took.status, 0, `the briefed tree is the dispatch:\n${took.stdout}${took.stderr}`);
+  assert.match(took.stdout, new RegExp(`ISS-1091 {2}handed: session ${escaped(minted)}`, "u"));
+  assert.equal(wrote().at(-1)?.history.at(-1)?.how, "handed");
+});
+
+test("a batch the brief minted into a bare tree takes the lease on each of its issues", async () => {
+  const tree = projectRoom(tempRoom("dispatched-briefed-batch-"), CHILD_HOME, OWN);
+  const briefed = await ranAsync(FORGE, ["brief", "ISS-1084", "--batch", "ISS-1091,ISS-1133", "--tree", tree], ENV, tree);
+  assert.equal(briefed.status, 0, `the brief should have printed:\n${briefed.stdout}${briefed.stderr}`);
+  const minted = /^FORGE_SESSION_ID=(\S+)$/mu.exec(briefed.stdout)?.[1];
+  assert.deepEqual(runsFor(minted), ["iss-1084", "iss-1091", "iss-1133"], `the brief printed ${minted}`);
+  try {
+    for (const key of ["ISS-1084", "ISS-1091", "ISS-1133"]) {
+      ISSUE.issueId = key;
+      heldBy(DISPATCHER);
+      const took = await ranAsync(FORGE, ["claim", key], { ...ENV, FORGE_SESSION_ID: "" }, tree);
+      assert.equal(took.status, 0, `${key} is a member of the batch:\n${took.stdout}${took.stderr}`);
+      assert.match(took.stdout, new RegExp(`${key} {2}handed: session ${escaped(minted)}`, "u"));
+    }
+  } finally {
+    ISSUE.issueId = "ISS-1091";
+  }
 });
 
 test("a live lease is refused past the statuses a run is dispatched at", async () => {
@@ -174,7 +226,7 @@ test("an id shaped like a mint but not minted licenses nothing", async () => {
     heldBy(DISPATCHER);
     const refused = await claim([], who);
     assert.equal(refused.status, 1, `${who} took a live lease:\n${refused.stdout}${refused.stderr}`);
-    assert.match(refused.stderr, /names no run dispatched to ISS-1091/u);
+    assert.match(refused.stderr, /which names no issue at all/u);
   }
 });
 
@@ -185,7 +237,8 @@ test("an id minted for another issue takes nothing, and every dispatchable statu
   heldBy(DISPATCHER);
   const other = await claim([], "iss-1084-deadbeef");
   assert.equal(other.status, 1, `another issue's run is a second run here:\n${other.stdout}${other.stderr}`);
-  assert.match(other.stderr, /names no run dispatched to ISS-1091/u);
+  assert.match(other.stderr, /iss-1084-deadbeef, the id of the run dispatched to ISS-1084, and not to ISS-1091/u,
+    "said as a run bound elsewhere, which is a different fault from an id that names nothing");
   for (const status of ["open", "confirmed", "approved", "reopen"]) {
     heldBy(DISPATCHER, { status });
     const took = await claim();
@@ -216,7 +269,7 @@ test("a tree that names this run, overridden by a variable that does not, is tol
   heldBy(DISPATCHER);
   const outside = await claim([], "a-whole-wave-of-runs");
   assert.equal(outside.status, 1, `outside the tree it is a second run:\n${outside.stdout}${outside.stderr}`);
-  assert.match(outside.stderr, /make the call from the tree cut for that run/u);
+  assert.match(outside.stderr, /`forge brief ISS-1091 --tree /u);
   assert.match(outside.stderr, new RegExp(`${RUN_ID_VAR} is what this call resolved`, "u"),
     "and unsetting the override, without which moving to the tree changes nothing");
 });
@@ -254,11 +307,24 @@ test("a batch id that does not name this issue takes nothing, and is sent to a t
   heldBy(DISPATCHER);
   const refused = await claim([], "iss-1084+1133-deadbeef");
   assert.equal(refused.status, 1, `another run's batch is a second run here:\n${refused.stdout}${refused.stderr}`);
-  assert.match(refused.stderr, /names no run dispatched to ISS-1091/u);
-  assert.match(refused.stderr, /make the call from the tree cut for that run/u,
-    "the tree cut for the run, since a batch member past the head never gets one of its own");
+  assert.match(refused.stderr, /the id of the run dispatched to ISS-1084, ISS-1133, and not to ISS-1091/u);
+  assert.match(refused.stderr, /`forge brief ISS-1091 --tree /u,
+    "the brief for the tree it stands in, which exists, since a batch member past the head never gets one of its own");
   assert.doesNotMatch(refused.stderr, /worktree cut for it/u,
     "and not a tree named for the issue, which for a batchmate is a path nothing will cut");
+});
+
+/* A run standing in the tree cut for another issue is sent to the tree cut for its own run, told what the
+   tree it is in names, and never offered a brief that would be refused for that tree's id. */
+test("a claim from a tree minted for another issue says what that tree names", async () => {
+  const { tree, minted } = cutFor("dispatched-other-tree-", ["ISS-1084"]);
+  heldBy(DISPATCHER);
+  const refused = await ranAsync(FORGE, ["claim", "ISS-1091"], { ...ENV, FORGE_SESSION_ID: "" }, tree);
+  assert.equal(refused.status, 1, `another issue's tree is a second run here:\n${refused.stdout}${refused.stderr}`);
+  assert.match(refused.stderr, /make the call from the tree cut for that run/u);
+  assert.match(refused.stderr, new RegExp(`The tree it stands in holds ${escaped(minted)}, which names ISS-1084`, "u"));
+  assert.doesNotMatch(refused.stderr, /forge brief/u);
+  assert.doesNotMatch(refused.stderr, /unset it too/u, "the tree resolved this id, so there is no variable to drop");
 });
 
 /* The other three conditions are unchanged, and a batch caller meets each of them as a single-issue

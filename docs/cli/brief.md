@@ -14,7 +14,17 @@ dispatcher sends, so the fix removes it there.
 
 - **The tree**: its branch and head come from `git worktree list`. The id and scratch directory come
   from the records in that tree's own git directory, and a line is printed only where its record
-  exists. A project that mints neither gets neither.
+  exists.
+- **The run id, written where the tree has none**: a brief naming an issue and a tree gives that tree
+  its `forge-run-id`, in the one form the lease reads, `iss-<n>[+<n>...]-<8 hex>` — the key, then each
+  `--batch` key. Without it a run is never placed as the one its issue was dispatched to, and the only
+  writer used to be a tool of this repository that no other project has: a dispatcher elsewhere
+  declared an id of its own, which names no issue, and its run could take no lease (ISS-1682). A
+  ledger of that dispatcher's was the other place to read the binding from, and it is one this plugin
+  cannot see. The brief is the moment of dispatch and the verb every dispatch of a role runs, so the
+  binding is made there. An id already in the tree is read and never extended, since the run it names
+  may still be standing in that tree; one that does not name every key refuses the brief. The scratch
+  directory is not minted: it is the run's own, made when a workspace starts.
 - **What the other trees hold**: both readings for each tree, the uncommitted files and what is
   committed against the remote's default branch. Commits alone answer empty for a tree with twenty
   files open in it, and that empty looks exactly like an idle tree.
