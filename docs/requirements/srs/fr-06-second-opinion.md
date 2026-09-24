@@ -268,6 +268,11 @@ outcome; leaving it unruled makes "resolved or still open" a guess.
   of the repository whichever run made it, and WHERE the review is found only outside the repository
   or nowhere the refusal SHALL say which, because a refusal worded as though the identifier were
   unknown sends the caller to read the raw log for it.
+- **AC-06-5-13** · Rev: 1 · Proof: plugin/test/codex/log/misreasoned.test.mjs "a finding ruled misreasoned opens the commit gate as an acceptance does"
+  WHEN a finding is ruled right in its conclusion and wrong in its mechanism THEN the disposition
+  SHALL be stored against the identifier the review gave together with what the mechanism got wrong,
+  and every check of whether a finding survived SHALL read it as accepted, because the change the
+  finding asked for was still owed and only its account of why was not.
 
 ### UC-06-6 — Compare the log's last hundred consults with the hundred before them
 
@@ -307,6 +312,11 @@ alone.
   WHERE the log does not reach two full windows the CLI SHALL compare as far back as it reaches and
   SHALL say how far short of a window it fell, rather than compare against consults the log does not
   hold.
+- **AC-06-6-8** · Rev: 1 · Proof: plugin/test/codex/log/misreasoned.test.mjs "the eval puts the share right about how beside the kept share, over the findings ruled on how alone"
+  WHEN the comparison is printed THEN the CLI SHALL state the share of findings right about their
+  mechanism apart from the share kept, and SHALL count it only over findings ruled one way or the
+  other on their mechanism, because a disposition recorded before that ruling existed says nothing
+  about a mechanism and would read as sound if it were counted.
 
 ### UC-06-7 — A call the project names waits for the same reading the commit waits for
 
