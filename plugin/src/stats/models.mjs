@@ -149,6 +149,7 @@ export const printModels = async (rest) => {
   const { since, checkout, horizon, requests, json } = flags(rest, VERB, ["--json"], { usage: MODELS_USAGE });
   const from = windowFrom(since, VERB);
   const directory = checkoutFrom(checkout, VERB);
+  const asked = { horizon: horizonOf(horizon, VERB), most: spend(requests, VERB) };
   const root = rootFor(directory);
   const declared = declaredIn(directory);
   const { corpus, runs, skipped, outsideWindow, unreadable, sources } =
@@ -166,8 +167,7 @@ export const printModels = async (rest) => {
       + `${sourceLines(sources).join("\n")}`
       + derivedFrom(directory));
   }
-  const read = await outcomeReadFor(corpus, runs, directory,
-    { horizon: horizonOf(horizon, VERB), most: spend(requests, VERB) });
+  const read = await outcomeReadFor(corpus, runs, directory, asked);
   const held = readingOf(runs, read, declared, corpus.length);
   if (json) return console.log(JSON.stringify({ ...shape, ...held }, null, 2));
   console.log(`${held.runs} issue-flow run(s)${since ? ` in the last ${since}` : ""} over `
