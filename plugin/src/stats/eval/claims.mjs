@@ -26,18 +26,20 @@ export const WHAT_A_CLAIM_BUYS = "A kept claim is a prediction that held. It is 
   + "harness improved: pre-declaration makes a prediction falsifiable, and supplies no counterfactual, "
   + "no independence between changes and no statistical power.";
 
+const VERB = "stats change";
+
 /** `<angle>:<falls|rises>`, refused by name against the two closed sets it draws on. */
-export const claimAsked = (raw, verb = "stats change") => {
+export const claimAsked = (raw) => {
   const [angle, direction, ...over] = String(raw ?? "").split(":");
   if (over.length || !angle || !direction) {
-    fail(`${verb}: --claim takes <angle>:<direction>, not \`${raw}\`. `
+    fail(`${VERB}: --claim takes <angle>:<direction>, not \`${raw}\`. `
       + `There is: ${ANGLE_NAMES.join(", ")}, each as ${DIRECTION_NAMES.join(" or ")}.`);
   }
   if (!Object.hasOwn(ANGLES, angle)) {
-    fail(`${verb}: no angle named ${angle}. There is: ${ANGLE_NAMES.join(", ")}.`);
+    fail(`${VERB}: no angle named ${angle}. There is: ${ANGLE_NAMES.join(", ")}.`);
   }
   if (!Object.hasOwn(DIRECTIONS, direction)) {
-    fail(`${verb}: no direction named ${direction}. A figure ${DIRECTION_NAMES.join(" or ")}.`);
+    fail(`${VERB}: no direction named ${direction}. A figure ${DIRECTION_NAMES.join(" or ")}.`);
   }
   return { angle, direction };
 };
@@ -61,10 +63,10 @@ export const claimFor = (scope, issue) => claimsOf(scope, issue).at(-1) ?? null;
  *  could not place carries `landingKnown: false` rather than an implied boundary, and the reading
  *  that judges it checks again against the install moment of the copy that carried the change. That
  *  second check is the one that decides. */
-export const writeClaim = (scope, issue, asked, verb = "stats change") => {
+export const writeClaim = (scope, issue, asked) => {
   const landed = releasesNaming(scope, issue);
   if (landed.length) {
-    fail(`${verb}: ${issue} landed in release ${landed.at(-1).version}, so a claim about it now would `
+    fail(`${VERB}: ${issue} landed in release ${landed.at(-1).version}, so a claim about it now would `
       + "explain the figure rather than predict it. A claim is written before the change lands.");
   }
   const record = {

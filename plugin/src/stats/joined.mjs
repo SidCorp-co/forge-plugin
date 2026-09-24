@@ -2,8 +2,8 @@
    claims and what it cannot: docs/cli/stats-the-eval.md. */
 import { ASKED, WORKTREE } from "../resolve/config.mjs";
 import { idGrantedBy, movesTheId } from "../resolve/session/granted-id.mjs";
+import { CLAIM_CLASS } from "./corpus/classes.mjs";
 
-const CLAIMS = "forge claim";
 const RULED = "forge codex verdict";
 const PARKED = "forge record park";
 const ADVANCES = "forge advance";
@@ -20,7 +20,7 @@ const HELD = new RegExp(String.raw`${GRANTED}session (?<id>\S+) \((?:id from (?<
 export const claimedIn = (calls) => {
   const held = new Set();
   for (const call of calls) {
-    if (call.class !== CLAIMS) continue;
+    if (call.class !== CLAIM_CLASS) continue;
     for (const found of String(call.body ?? "").matchAll(OWNED)) held.add(found.groups.ref.toUpperCase());
   }
   return [...held];
@@ -41,7 +41,7 @@ const claimedRun = (calls) => {
   const printed = new Set();
   const own = new Set();
   for (const call of calls) {
-    if (call.class !== CLAIMS) continue;
+    if (call.class !== CLAIM_CLASS) continue;
     const moved = movesTheId(call.command ?? "");
     for (const found of String(call.body ?? "").matchAll(HELD)) {
       printed.add(found.groups.id);

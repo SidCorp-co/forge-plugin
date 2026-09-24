@@ -8,9 +8,11 @@ import { scopeFor } from "../corpus/release.mjs";
 import { corpusOf } from "../corpus/read.mjs";
 import { deviceOf } from "../../resolve/machine/device.mjs";
 import { checkoutFrom, derivedFrom, profileOf, readingAside } from "../runs.mjs";
-import { stamp } from "../figures.mjs";
+import { flagSaid, stamp } from "../figures.mjs";
 import { UNRECORDED, copyAt, servedCopies, spansInstall } from "../versions.mjs";
-import { WHEN, comparabilityOf, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows } from "../windows.mjs";
+import {
+  WHEN, byEnd, comparabilityOf, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows,
+} from "../windows.mjs";
 import {
   RELEASES, RUNS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, resolveRelease,
   releaseSaid, scopeOf, sinceReleaseIn, writeMark, wroteSaid,
@@ -104,10 +106,6 @@ export const saidHorizon = (ms) => {
   }
   return `${Math.round(ms / 1000)}s`;
 };
-
-/* By the run's own last record, landed or not: a run that parked spent its minutes the same as one
-   that closed, and the comparison is of cost. The profile sorts by start; a window is by end. */
-const byEnd = (runs) => [...runs].sort((left, right) => left.endedAt - right.endedAt);
 
 const SPANNED = "saw a release land";
 const STEADY = "one copy throughout";
@@ -488,16 +486,14 @@ const readingOf = (directory, corpus, size, against = null, read = null) => {
 const WRITES = "one is written when this project's corpus reaches a multiple of fifty runs, by this verb or by a release";
 const RELEASE_WRITES = "the release step writes one at every release";
 
-const anchorAsked = (flag, value) => (value === null ? flag : `${flag} ${value}`);
-
 /* Every line answers for the one point a reading was taken at: the before window comes from it, the
    header names it, the confounding count measures from it. Two flags name two, so the pair is refused
    rather than one taking the figures while the other takes the words. */
 const oneAnchorOnly = (against, release) => fail(
-  `stats eval: ${anchorAsked("--against", against)} and ${anchorAsked("--since-release", release)} name two anchors, `
+  `stats eval: ${flagSaid("--against", against)} and ${flagSaid("--since-release", release)} name two anchors, `
   + "and a reading has one — the before window, the header line and the confounding lines all read it. "
-  + `Run one alone: \`forge stats eval ${anchorAsked("--against", against)}\` for the reading held at a count mark, `
-  + `or \`forge stats eval ${anchorAsked("--since-release", release)}\` for the one held at a release.`,
+  + `Run one alone: \`forge stats eval ${flagSaid("--against", against)}\` for the reading held at a count mark, `
+  + `or \`forge stats eval ${flagSaid("--since-release", release)}\` for the one held at a release.`,
 );
 
 /** The count is the corpus's own, read each time and never off the store, so no stale memory of a

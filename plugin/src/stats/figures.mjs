@@ -13,6 +13,18 @@ export const scaled = (value) => {
   return found ? `${Math.round((value / found[0]) * 10) / 10}${found[1]}` : String(Math.round(value));
 };
 export const share = (part, whole) => (whole ? `${Math.round((part / whole) * 100)}%` : "—");
+/** A share to one decimal, as the angle and the mix blocks print their floors. */
+export const percent = (value) => `${(value * 100).toFixed(1)}%`;
+/** Words folded greedily to a width, each line after the first opening with `indent`, which counts
+ *  towards the width as the words do. */
+export const foldedWords = (words, width, indent = "") => words.reduce((lines, word) => {
+  const last = lines.at(-1);
+  if (last && `${last} ${word}`.length <= width) lines[lines.length - 1] = `${last} ${word}`;
+  else lines.push(`${indent}${word}`);
+  return lines;
+}, []);
+/** A flag as a refusal repeats it back: with its value, or bare where it was given none. */
+export const flagSaid = (flag, value) => (value === null ? flag : `${flag} ${value}`);
 export const add = (map, key, by = 1) => map.set(key, (map.get(key) ?? 0) + by);
 /* UTC to the minute with its zone said, because a bound printed without one is read in the reader's
    own zone, and a `--since` typed off it then names a different span. */

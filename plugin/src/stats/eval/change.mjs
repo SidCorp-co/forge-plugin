@@ -4,7 +4,7 @@
 import { corpusOf } from "../corpus/read.mjs";
 import { checkoutFrom, profileOf } from "../runs.mjs";
 import { RELEASES, marksOf } from "../marks/marks.mjs";
-import { DISPOSITIONS, angleOf, anglesAsked, blocksOf, floorsOver } from "./angles.mjs";
+import { A_PRICE, DISPOSITIONS, angleOf, anglesAsked, blocksOf, floorsOver } from "./angles.mjs";
 import { mixFloorsOver, mixOver, mixWhy } from "./mix.mjs";
 import { FLOOR } from "./eval.mjs";
 import { claimAsked, claimFor, claimJudged, claimSaid, writeClaim } from "./claims.mjs";
@@ -37,11 +37,9 @@ export const NO_COUNTERFACTUAL = "No comparison here supplies a counterfactual: 
 /** What none of these figures measures. The angle set is prices end to end, and the phase durations
  *  `stats eval` prints are no part of this reading: a phase that lengthens because a run now reads a
  *  reference it once skipped is an improvement wearing a regression's shape. */
-export const NOT_MEASURED = "Every figure here is a price — what a run spent, never what it came back "
-  + "with — so all of them improving is as consistent with runs having skipped what they owed as with "
-  + "the harness needing less of them. A phase duration is how the work was spent and not whether the "
-  + "result was good, which is why no phase table is joined to this reading. Nothing here is a quality "
-  + "measure.";
+export const NOT_MEASURED = `Every figure here is ${A_PRICE} A phase duration is how the work was `
+  + "spent and not whether the result was good, which is why no phase table is joined to this reading. "
+  + "Nothing here is a quality measure.";
 
 const BIRTH = "the directory's birth time";
 const MODIFIED = "the directory's modification time, substituted because the filesystem reports no birth time";

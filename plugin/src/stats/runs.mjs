@@ -358,14 +358,15 @@ const tokensOver = (runs) => {
   const requests = measured.reduce((sum, run) => sum + run.tokens.requests, 0);
   const summed = (name) => measured.reduce((sum, run) => sum + run.tokens[name], 0);
   const each = (pick) => Object.fromEntries(Object.keys(PRICES).map((name) => [name, pick(name)]));
+  const total = each(summed);
   return {
     runs: measured.length,
     unmeasuredRuns: runs.length - measured.length,
     requests,
     unmeasured: runs.reduce((sum, run) => sum + run.tokens.unmeasured, 0),
-    total: each(summed),
+    total,
     perRun: each((name) => (measured.length ? medianOrZero(measured.map((run) => run.tokens[name])) : null)),
-    perRequest: each((name) => (requests ? summed(name) / requests : null)),
+    perRequest: each((name) => (requests ? total[name] / requests : null)),
   };
 };
 
@@ -413,9 +414,10 @@ export const profileOf = (runs, declared = null, act = null) => {
   const per = (pick) => medianOrZero(runs.map(pick));
   return {
     runs: runs.length,
-    /* What classed these calls, in the two halves `MOVED_AT` in classes.mjs accounts for, carried so
-       that a stored reading standing as a before window is compared row by row only where both
-       halves of it agree with this one's. */
+    /* What classed these calls — the table's generation, and beside it what the project declared and
+       what its release model answered, as corpus/generations.mjs accounts for them — carried so that
+       a stored reading standing as a before window is compared row by row only where each of them
+       agrees with this one's. */
     table: TABLE,
     declares: declaredSaid(declared),
     /* The answer the release model gave and never its own word, for the reason `ACTS` in

@@ -2,7 +2,7 @@
    against this corpus's own adjacent-block floor rather than against zero. What an angle is, what
    its population means and what the floor is not — docs/cli/stats-the-angles.md. */
 import { median } from "../median.mjs";
-import { scaled } from "../figures.mjs";
+import { foldedWords, percent, scaled } from "../figures.mjs";
 import { profileOf } from "../runs.mjs";
 import { UNAVAILABLE } from "./outcomes.mjs";
 import { fail } from "../../resolve/settings.mjs";
@@ -75,7 +75,10 @@ export const ANGLES = {
     asks: "the share of run-and-part pairs whose run read that part more than once",
     over: "run-and-part pair(s) this window's runs read",
     better: -1,
-    of: (profile) => (partPairs(profile) ? partsAgain(profile) / partPairs(profile) : null),
+    of: (profile) => {
+      const pairs = partPairs(profile);
+      return pairs ? partsAgain(profile) / pairs : null;
+    },
     countOf: partPairs,
   },
   "cache-read": { asks: "median tokens a run read back from the prompt cache", ...perRun("cacheRead") },
@@ -102,10 +105,13 @@ const NAMES = Object.keys(ANGLES);
  *  asked-for selection's count because the claim is about what this verb measures at all rather than
  *  about what one call chose to print. The claim that every one of them is a price is held by a case
  *  and not by this sentence, which cannot check itself. */
+/** The clause every statement of what these readings leave out turns on, `stats change`'s among them. */
+export const A_PRICE = "a price — what a run spent, never what it came back with — so all of them "
+  + "improving is as consistent with runs having skipped what they owed as with the harness needing "
+  + "less of them.";
+
 export const NOT_MEASURED = `what none of the ${NAMES.length} angles this verb holds measures: every `
-  + "one is a price — what a run spent, never what it came back with — so all of them improving is as "
-  + "consistent with runs having skipped what they owed as with the harness needing less of them. "
-  + "No figure in this reading is a quality measure.";
+  + `one is ${A_PRICE} No figure in this reading is a quality measure.`;
 
 /** Which angles this call asks for, refused before anything is read. A name the set does not hold is
  *  refused with the set, as the subject slot already refuses one; a name given twice is refused
@@ -125,18 +131,48 @@ export const anglesAsked = (raw, verb = "stats eval") => {
   return asked;
 };
 
-/** The profile of every block of `size` consecutive runs, in the order handed over. */
-export const blocksOf = (ordered, size) => {
+/** Every block of `size` consecutive runs, in the order handed over — the positions the angle floor
+ *  and the mix reference both slide over. */
+export const slid = (ordered, size) => {
   const held = [];
-  for (let at = 0; at + size <= ordered.length; at += 1) held.push(profileOf(ordered.slice(at, at + size)));
+  for (let at = 0; at + size <= ordered.length; at += 1) held.push(ordered.slice(at, at + size));
   return held;
 };
 
+/** Each of those blocks as the profile the angles read their figures off. */
+export const blocksOf = (ordered, size) => slid(ordered, size).map((rows) => profileOf(rows));
+
 /** The middle is `median.mjs`'s, which is this repository's one answer to it. A percentile in the tail
  *  has no such home and takes the nearest rank — the smallest observation at or above the share asked
- *  for — which is what makes twenty the count a p95 stops being the largest shift seen at. The mix
- *  reference takes the same one, so two references built the same way answer the same way. */
-export const atRank = (sorted, at) => sorted[Math.max(0, Math.ceil(at * sorted.length) - 1)];
+ *  for — which is what makes twenty the count a p95 stops being the largest shift seen at. */
+const atRank = (sorted, at) => sorted[Math.max(0, Math.ceil(at * sorted.length) - 1)];
+
+/** The reading both references take over the adjacent positions of two blocks of the sizes compared:
+ *  `figureAt(at)` is the figure the position starting at `at` yields, or null where it yields none,
+ *  and a position yielding none is counted rather than read. `values` is the sorted working, kept
+ *  apart from the reading so a caller printing the reading whole never prints it. */
+export const positionsOver = (beforeSize, nowSize, total, figureAt) => {
+  const values = [];
+  let dropped = 0;
+  for (let at = 0; at <= total - beforeSize - nowSize; at += 1) {
+    const one = figureAt(at);
+    if (one === null) dropped += 1;
+    else values.push(one);
+  }
+  values.sort((left, right) => left - right);
+  return {
+    floor: {
+      before: beforeSize,
+      now: nowSize,
+      over: values.length,
+      dropped,
+      median: median(values),
+      p90: values.length ? atRank(values, 0.9) : null,
+      p95: values.length ? atRank(values, 0.95) : null,
+    },
+    values,
+  };
+};
 
 /** The floor for each named angle, off one pass of block profiles: two adjacent blocks of the sizes
  *  actually being compared, slid a run at a time, each angle's own figure taken over both sides.
@@ -148,28 +184,14 @@ export const atRank = (sorted, at) => sorted[Math.max(0, Math.ceil(at * sorted.l
  *  positions that yielded one. That is this reading's own rule applied to its floor before it is
  *  applied to anything else. */
 export const floorsOver = (befores, nows, beforeSize, nowSize, total, names = NAMES) => {
-  const last = total - beforeSize - nowSize;
   return new Map(names.map((name) => {
     const { of } = ANGLES[name];
-    const shifts = [];
-    let dropped = 0;
-    for (let at = 0; at <= last; at += 1) {
+    const { floor, values } = positionsOver(beforeSize, nowSize, total, (at) => {
       const was = of(befores[at]);
       const now = of(nows[at + beforeSize]);
-      if (was === null || now === null || was === 0) dropped += 1;
-      else shifts.push(Math.abs(now - was) / was);
-    }
-    shifts.sort((left, right) => left - right);
-    return [name, {
-      before: beforeSize,
-      now: nowSize,
-      over: shifts.length,
-      dropped,
-      median: median(shifts),
-      p90: shifts.length ? atRank(shifts, 0.9) : null,
-      p95: shifts.length ? atRank(shifts, 0.95) : null,
-      shifts,
-    }];
+      return was === null || now === null || was === 0 ? null : Math.abs(now - was) / was;
+    });
+    return [name, { ...floor, shifts: values }];
   }));
 };
 
@@ -288,7 +310,6 @@ export const anglesOver = ({ ordered, held, names, runFloor }) => {
   return names.map((name) => angleOf(name, { before, now }, floors.get(name) ?? null, runFloor, recomputed));
 };
 
-const percent = (value) => `${(value * 100).toFixed(1)}%`;
 const signed = (value) => `${value > 0 ? "+" : ""}${percent(value)}`;
 /* Kept readable across eight orders of magnitude, a share of 0.041 and a cache-read median of
    29,611,755 printing in one column with neither rounded into the other's precision. Past a thousand
@@ -327,14 +348,9 @@ const recomputedLine = (one) => `  ${"held".padEnd(ROW)}`
 /** The set as help lists it, folded to the width the help is written in — read off the map rather
  *  than written beside it, a list of names in help text being the copy that goes stale the first
  *  time the set changes, and folded rather than one line because the cap that help is held to is
- *  what an angle added past the eighth would otherwise break. */
-export const angleList = (indent, width) => NAMES.reduce((lines, name, at) => {
-  const last = lines.at(-1);
-  const one = at === NAMES.length - 1 ? name : `${name},`;
-  if (last && `${last} ${one}`.length <= width) lines[lines.length - 1] = `${last} ${one}`;
-  else lines.push(`${indent}${one}`);
-  return lines;
-}, []);
+ *  what a longer set would otherwise break. */
+export const angleList = (indent, width) =>
+  foldedWords(NAMES.map((name, at) => (at === NAMES.length - 1 ? name : `${name},`)), width, indent);
 
 /** One angle's block. Exported because a reading holding several comparisons prints the blocks of
  *  each and states what the set does not measure once, over the whole of it, rather than under every
