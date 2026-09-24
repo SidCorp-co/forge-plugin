@@ -5,6 +5,8 @@ import { everyIssue } from "../../tracker/issues.mjs";
 import { criterionNumber } from "../../flow/machine.mjs";
 import { parseAll } from "../../flow/record/page.mjs";
 import { pairedOneToOne } from "../joined.mjs";
+import { answered } from "../../codex/codex-log.mjs";
+import { ruledOn } from "../../codex/log/replies.mjs";
 import { accountCredentials } from "../../resolve/settings.mjs";
 
 export const HORIZON = 86_400_000;
@@ -254,9 +256,10 @@ export const parkedFor = (pairs, threads, { owned, loose }) => {
  *  cut: a competitor outside the window still spoils a match, so `--size` cannot decide whether a
  *  call was paired. */
 export const ruledOver = (runs, entries) => {
+  const consults = new Map(answered(entries).map((one) => [one.id ?? one.at, one]));
   const timed = entries
     .filter((one) => one.kind === "verdict")
-    .map((one) => ({ at: Date.parse(one.at) || 0, of: one.of ?? null, accepted: one.accepted ?? 0, rejected: one.rejected ?? 0 }));
+    .map((one) => ({ at: Date.parse(one.at) || 0, of: one.of ?? null, ...ruledOn(one, consults.get(one.of)) }));
   const spans = runs.flatMap((run) => run.rulings);
   const { pairs } = pairedOneToOne(spans, timed, SLACK);
   return new Map(pairs.map((one) => [one.span, one.entry]));

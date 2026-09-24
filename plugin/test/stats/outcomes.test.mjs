@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 import { claimedIn, pairedOneToOne, parkWritersIn, rulingsIn } from "../../src/stats/joined.mjs";
 import {
-  AFTER_RUN, DURING_RUN, UNAVAILABLE, budgetOf, outcomesOf, pairsOf, parkedFor, parkedOver, threadOf, unreadIn,
+  AFTER_RUN, DURING_RUN, UNAVAILABLE, budgetOf, outcomesOf, pairsOf, parkedFor, parkedOver, ruledOver, threadOf, unreadIn,
 } from "../../src/stats/eval/outcomes.mjs";
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
 import { RUNS_USAGE, runsUnder } from "../../src/stats/runs.mjs";
@@ -318,6 +318,23 @@ test("a ruling entry two calls could claim is attributed to neither, and the pai
     call("gate", { at: 5, endedAt: 6, shell: "forge codex verdict --of zz" }),
   ]), [{ at: 1, endedAt: 2, of: "ab12" }, { at: 3, endedAt: 4, of: null }],
   "the consult a ruling names, where it names one, and only off a ruling call");
+});
+
+/* The run corpus's figure and `forge codex log --score` read one helper, so the two cannot disagree
+   about a verdict on a finding the consult never made (ISS-1680). */
+test("a ruling paired to a verdict on a finding its consult never made counts no finding", () => {
+  const phantom = { kind: "verdict", of: "z", at: new Date(1050).toISOString(), accepted: 1, rejected: 0, kept: ["F1"], dropped: {} };
+  const real = { kind: "verdict", of: "r", at: new Date(2050).toISOString(), accepted: 0, rejected: 1, kept: [], dropped: { F1: "no" } };
+  const entries = [
+    { kind: "consult", id: "z", ok: true, root: "/a", at: "1", reply: "CODEX: 0 findings\n- **Major:** none." },
+    { kind: "consult", id: "r", ok: true, root: "/a", at: "2", reply: "CODEX: 1 findings\n- **F1 — New — major:** `a.mjs:1` — a." },
+    phantom, real,
+  ];
+  const spans = [{ at: 1000, endedAt: 1100, of: "z" }, { at: 2000, endedAt: 2100, of: "r" }];
+  const ruled = ruledOver([{ ...run(), rulings: spans }], entries);
+  assert.equal(ruled.get(spans[0]).accepted, 0, "the phantom acceptance is not a finding ruled");
+  assert.equal(ruled.get(spans[0]).rejected, 0);
+  assert.equal(ruled.get(spans[1]).rejected, 1, "a verdict on a finding the reply made still counts");
 });
 
 test("the rejected-findings figure counts findings, needs no tracker, and is unavailable where nothing was ruled", () => {

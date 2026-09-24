@@ -27,6 +27,7 @@ const {
   recheckRisks,
   rulingsIn,
   rulingsUnread,
+  ruledOn,
   scoreOf,
   undecidedIn,
   unverdicted,
@@ -493,6 +494,27 @@ test("two consults answered by one rung score as one group, whatever level each 
   const scored = scoreOf(rows);
   assert.equal(scored.length, 1, "one rung is one treatment");
   assert.equal(scored[0].consults, 2);
+});
+
+/* The fifteen rows ISS-651 left in the developer's log ruled on an id the parser invented for a reply
+   counting itself at zero; the log keeps them, and the score counts only what the reply made. */
+test("a verdict on a finding the consult never made counts for nothing, and the row stays", () => {
+  const zero = { kind: "consult", id: "z", ok: true, root: "/a", at: "1", model: "m", reply: "CODEX: 0 findings\n\n- **Blocker:** none found." };
+  const made = { kind: "consult", id: "r", ok: true, root: "/a", at: "2", model: "m",
+    reply: "CODEX: 2 findings\n- **F1 — New — major:** `a.mjs:1` — a.\n- **F2 — New — minor:** `a.mjs:2` — b." };
+  const phantom = { kind: "verdict", of: "z", at: "3", accepted: 2, rejected: 1, kept: ["F1", "F2"], dropped: { F3: "no" } };
+  const real = { kind: "verdict", of: "r", at: "4", accepted: 1, rejected: 1, kept: ["F1"], dropped: { F2: "wrong" } };
+  const [row] = scoreOf([zero, made, phantom, real]);
+  assert.equal(row.accepted, 1, "the phantom row's two acceptances are not counted, the real one is");
+  assert.equal(row.rejected, 1, "nor its rejection");
+  assert.deepEqual(ruledOn(phantom, zero), { accepted: 0, rejected: 0 });
+  assert.deepEqual(ruledOn(real, made), { accepted: 1, rejected: 1 }, "a row naming only ids the reply made reads as its own totals");
+  assert.equal(verdictsBy([zero, phantom]).get("z"), phantom, "the row itself is still read back whole");
+  const counted = { kind: "verdict", of: "z", accepted: 3, rejected: 1 };
+  assert.deepEqual(ruledOn(counted, zero), { accepted: 3, rejected: 1 }, "a count-form row names no id, so its totals stand");
+  assert.deepEqual(ruledOn({ ...counted, counted: true, kept: ["F9"], dropped: {} }, zero), { accepted: 3, rejected: 1 },
+    "and a count-form row a later word added ids to keeps its totals too");
+  assert.deepEqual(ruledOn(phantom, undefined), { accepted: 2, rejected: 1 }, "with no consult to read, the totals are all there is");
 });
 
 /* Every shape logged against ISS-1336 and ISS-1681 in one case, plus the one the head grammar refuses:
