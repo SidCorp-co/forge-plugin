@@ -1,11 +1,11 @@
 /* A project whose configuration names a prose language has every body and prose field rewritten on
-   the way out (tools/vi.mjs), and a rewrite renames prose, so a key travels in a form the rewrite copies byte for byte: a fenced block, or a code span. `content.mjs` and `record/block.mjs`, the carrying of a record, are what is imported here, and neither imports this, so both sides can still import it. */
+   the way out (tools/vi.mjs), and a rewrite renames prose, so a key travels in a form the rewrite copies byte for byte: a fenced block, or a code span. `content.mjs` and `machine/block.mjs`, the carrying of a record, are what is imported here, and neither imports this, so both sides can still import it. */
 import { DECISION_TAKES, FINDING_TAKES, MEMBER_TAKES, WHERE_TAKES, decisionProblem, findingProblem,
   memberProblem, whereProblem } from "./record/content.mjs";
 import { CODE_SPAN, SPAN, blanked, fenceMarked } from "../prose.mjs";
-import { entriesIn, firstKindIn } from "./record/block.mjs";
+import { entriesIn, firstKindIn } from "./machine/block.mjs";
 
-export { blockOf, readRecords, tagFor } from "./record/block.mjs";
+export { blockOf, readRecords, tagFor } from "./machine/block.mjs";
 
 /** An ISO stamp to the minute, as every screen in this tree shows one; apart from `lease.mjs`'s and `stats/runs.mjs`'s, which take milliseconds. */
 export const atMinute = (at) => String(at ?? "").slice(0, 16);
