@@ -26,7 +26,7 @@ import { fail, useProject } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
 import { printWavesEval } from "../waves/eval.mjs";
 import { typedBack } from "../../refusal.mjs";
-import { UNITS, durationOf } from "../duration.mjs";
+import { UNITS, durationOf } from "../window/duration.mjs";
 
 export const WINDOW = 50;
 

@@ -35,7 +35,7 @@ import { fail } from "../resolve/settings.mjs";
 import { canonical } from "../resolve/canonical.mjs";
 import { checkoutAt } from "../git/checkout-at.mjs";
 import { flags } from "../resolve/flags.mjs";
-import { durationOf } from "./duration.mjs";
+import { durationOf } from "./window/duration.mjs";
 
 const REPEATED = 3;
 const LONG_WAIT_MINUTES = 10;

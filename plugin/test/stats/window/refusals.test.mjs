@@ -5,9 +5,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { spawnSync } from "node:child_process";
-import { durationOf } from "../../src/stats/duration.mjs";
-import { FORGE, PROJECT, corpusOf } from "./fixture-eval.mjs";
-import { tempRoom } from "../fixtures.mjs";
+import { durationOf } from "../../../src/stats/window/duration.mjs";
+import { FORGE, PROJECT, corpusOf } from "../fixture-eval.mjs";
+import { tempRoom } from "../../fixtures.mjs";
 
 const room = corpusOf(4);
 
