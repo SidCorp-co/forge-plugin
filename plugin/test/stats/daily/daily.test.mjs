@@ -2,10 +2,13 @@
    where, what it leaves alone, and what each section of the day's content holds. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { NAME, consult, daily, daysAgo, device, today } from "./fixture-daily.mjs";
+import { NAME, consult, daily, daysAgo, device, envOf, today } from "./fixture-daily.mjs";
+import { FORGE } from "../fixture-runs.mjs";
+import { slugFor } from "../../../src/stats/corpus/corpus.mjs";
 import { contentOf } from "../../../src/stats/daily/store.mjs";
 
 const written = (held) => (existsSync(held.reports) ? readdirSync(held.reports) : []);
@@ -123,9 +126,41 @@ test("a figure no reader computes names the missing reading and its issue", () =
   }
 });
 
-test("the landings are the profile's ship and gate figures for the day", () => {
+test("the landings are the landing reader's passes and the profile's gate figures for the day", () => {
   const { headline } = contentFor(device({ days: [daysAgo(1)] }), daysAgo(1)).landings;
-  assert.deepEqual(headline, { passes: 1, resumed: 0, rejectedRuns: 0, gateCalls: 1, gateMinutes: 2 });
+  assert.deepEqual(headline, { passes: 1, resumed: 0, outsideRuns: 0, rejectedRuns: 0, gateCalls: 1, gateMinutes: 2 });
+});
+
+/* A dispatching session's own transcript, which is no issue-flow run: the two landings it typed on
+   the day, and a mention of the verb that lands nothing. */
+const dispatcherLanded = (held, on) => {
+  const use = (id, at, command) => JSON.stringify({ timestamp: `${on}T${at}.000Z`, type: "assistant",
+    message: { role: "assistant", content: [{ type: "tool_use", id, name: "Bash", input: { command } }] } });
+  const store = join(held.room, ".claude", "projects", slugFor(held.checkout));
+  writeFileSync(join(store, "session-dispatcher.jsonl"), [
+    JSON.stringify({ timestamp: `${on}T09:00:00.000Z`, type: "user", message: { role: "user", content: "fold the wave" } }),
+    use("d1", "09:10:00", "node tools/run.mjs land-ready ISS-9 ISS-10 2>&1 | tail -40"),
+    use("d2", "11:00:00", "cd /w && node tools/run.mjs land-ready ISS-11"),
+    use("d3", "11:30:00", 'pgrep -f "tools/run.mjs land-ready"'),
+  ].join("\n") + "\n");
+};
+
+/* Criteria 6 and 7 of ISS-2435: the one reader, read by both verbs over one device. */
+test("a landing a session that is no run typed is counted on the day, and stats runs counts the same passes", () => {
+  const held = device({ days: [daysAgo(1)] });
+  dispatcherLanded(held, daysAgo(1));
+  const { headline, trend } = contentFor(held, daysAgo(1)).landings;
+  assert.deepEqual({ passes: headline.passes, outsideRuns: headline.outsideRuns }, { passes: 3, outsideRuns: 2 },
+    "the run's own ship pass and the dispatcher's two land-ready passes, the mention of one among neither");
+  assert.equal(trend.at(-1).passes, 3, "and the trend's day is the headline's");
+  const runs = spawnSync(FORGE, ["stats", "runs", "--checkout", held.checkout, "--json"],
+    { encoding: "utf8", cwd: held.room, env: envOf(held) });
+  assert.equal(runs.status, 0, runs.stderr);
+  const { landings } = JSON.parse(runs.stdout);
+  assert.deepEqual(landings, { passes: 3, resumed: 0, outsideRuns: 2 }, "the landings stats runs reads are the ones the day showed");
+  const said = spawnSync(FORGE, ["stats", "runs", "--checkout", held.checkout], { encoding: "utf8", cwd: held.room, env: envOf(held) });
+  assert.match(said.stdout, /^landings {8}3 pass\(es\) in every transcript of the project, 2 of them in a session no issue-flow run holds/mu,
+    said.stdout);
 });
 
 test("consults are counted for the day, one row per model and prompt version", () => {

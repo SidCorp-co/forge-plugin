@@ -190,7 +190,7 @@ const GENERATIONS = (table, declares = DECLARED, release = ACT) => profile({
   release,
   classes: [["read", 3000, 4000], [POLL, 200, 12_000], [WAIT, 160, 48_000], ["gate", 300, 19_000],
     [SHELL, 400, 8000], [DEPLOY, 40, 2400], ["forge claim", 90, 900], [READY_CLASS, 20, 200],
-    ...SHELL_EDITS.map((label, at) => [label, 30 + at, 600 + at])],
+    ["ship", 12, 1200], ...SHELL_EDITS.map((label, at) => [label, 30 + at, 600 + at])],
 });
 const crossedIn = (held) => held.rows.filter((one) => one.crossed).map((one) => one.label);
 /* The rows whose population moved after generation `held`: `MOVED_AT` stamps every row the table
@@ -209,8 +209,8 @@ test("a stored reading taken at an earlier generation is crossed on the rows tha
   const held = classesCompared(GENERATIONS(TABLE), GENERATIONS(TABLE - 1));
   assert.deepEqual(new Set(crossedIn(held)), new Set(movedSince(TABLE - 1)),
     "every row whose population moved at this generation, which is what `MOVED_AT` names");
-  assert.ok(crossedIn(held).includes(READY_CLASS),
-    "the landing checkpoint's row was born at this generation, so its two sides count different populations");
+  assert.ok(crossedIn(held).includes("ship"),
+    "the ship row took the land-ready calls at this generation, so its two sides count different populations");
   const gate = held.rows.find((one) => one.label === "gate");
   assert.equal(gate.crossed, false, "a row the generation left alone is comparable across it");
   assert.equal(gate.shift, 0, "and goes on printing its move");
@@ -224,8 +224,9 @@ test("a stored reading taken at an earlier generation is crossed on the rows tha
   assert.ok(said, lines.join("\n"));
   for (const label of movedSince(TABLE - 1)) assert.ok(said.includes(label), `${label} is named: ${said}`);
   assert.ok(said.includes(`classed by class table generation ${TABLE - 1}, against generation ${TABLE}`), said);
-  assert.ok(said.includes("The other 1 row(s) stand"), said);
-  assert.ok(lines.some((line) => line.includes("over the 1 with a mean on both sides")),
+  const standing = held.rows.length - crossedIn(held).length;
+  assert.ok(said.includes(`The other ${standing} row(s) stand`), said);
+  assert.ok(lines.some((line) => line.includes(`over the ${standing} with a mean on both sides`)),
     "and a crossed row is outside the denominator of what moved");
 });
 
@@ -322,7 +323,7 @@ test("a reading written before the declarations were carried is told from a proj
   const bare = classesCompared(GENERATIONS(TABLE),
     profile({ table: TABLE, classes: [["read", 3000, 4000], ["gate", 300, 19_000]] }));
   assert.deepEqual(new Set(crossedIn(bare)),
-    new Set(["gate", ...DECIDED_BY_RELEASE.filter((one) => one !== "ship")]),
+    new Set(["gate", ...DECIDED_BY_RELEASE]),
     "no words at all is not the same as no words declared, and a reading carrying no act either is "
     + "comparable on none of the rows an act decides");
   const none = classesCompared(GENERATIONS(TABLE, "gate=\nship=\ntest=\ncleanup="),

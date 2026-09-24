@@ -99,7 +99,7 @@ export const WAIT = "wait";
 
 const VERB_ENDS = String.raw`(?![\w-])`;
 
-/* This repository's own commands, and the fallback for every project that declares none, so a reading taken here does not move. The ship one and the cleanup one are the invocation and never the mention, which is what the leading binary buys: `pgrep -f "tools/run.mjs ship"` is a run WAITING for one. Each stops where a verb name stops and not at a word boundary, which ends a word at a hyphen and would read the sibling verb this repository ships, `land-ready`, as `land` (ISS-1714). */
+/* This repository's own commands, and the fallback for every project that declares none, so a reading taken here does not move. The ship one and the cleanup one are the invocation and never the mention, which is what the leading binary buys: `pgrep -f "tools/run.mjs ship"` is a run WAITING for one. Each stops where a verb name stops and not at a word boundary, which ends a word at a hyphen and would read the sibling verb this repository ships, `land-ready`, as `land` (ISS-1714). The ship row is both verbs that land a release here, `ship` and `land-ready` (ISS-2435). */
 /* The deploy tool's own verbs, matched where a command actually starts — so a run that reaches this
    platform through this CLI is the `forge coolify` row above and only the tool typed directly is
    this one. Not a host: the tracker serves a production deploy binding for no project in the room,
@@ -110,7 +110,7 @@ const DEPLOY_ACT = String.raw`coolify[ 	]+(?:deploy|deployment)` + VERB_ENDS;
 const BUILT_IN = {
   cleanup: String.raw`node[ \t]+\S*tools/run\.mjs[ \t]+finish` + VERB_ENDS,
   gate: String.raw`(?:npm run check|node\s+\S*tools/gates\.mjs)`,
-  ship: String.raw`node[ \t]+\S*tools/run\.mjs[ \t]+ship` + VERB_ENDS,
+  ship: String.raw`node[ \t]+\S*tools/run\.mjs[ \t]+(?:ship|land-ready)` + VERB_ENDS,
   test: String.raw`(?:node --test|npm (?:run )?test|npx vitest|npx playwright)`,
 };
 

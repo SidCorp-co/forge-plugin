@@ -28,7 +28,7 @@ import { readingFor, readingTitle, REVIEWED, reviewBody, reviewedAt, reviewRepor
 import { hookEntries } from "../../plugin/src/hooks/log/hook-log-file.mjs";
 import { typed } from "../../plugin/src/hooks/shell-spans.mjs";
 import { freezesSession, FROZEN, pluginCopy } from "../../plugin/src/tools/plugin-copy.mjs";
-import { releaseMark, runsMark } from "../../plugin/src/stats/eval/eval.mjs";
+import { releaseReadings } from "./release/readings.mjs";
 import { partForLanding } from "../../plugin/src/guides/served.mjs";
 
 const HERE = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -296,15 +296,9 @@ const shipSteps = (tree, root, base, note) => {
       if (landed) tierCeiling(tree, was, landed);
       gateGrew(tree);
       await reviewOwed(tree);
-      const mark = await runsMark(root);
-      if (mark) console.log(`  ${mark}`);
       publishes(tree, base, copy?.installed);
-      /* Whatever the corpus count, so a comparison can be taken since THIS release: the version, the
-         head and the keys this tree landed are what a reading taken later cannot work out for itself,
-         and the keys are what resolves a change to the copy that carried it. */
-      const held = await releaseMark(root, { version: copy?.installed, head: gitOut(["rev-parse", "HEAD"], tree),
+      await releaseReadings(root, { version: copy?.installed, head: gitOut(["rev-parse", "HEAD"], tree),
         issues: keysHere(tree) });
-      if (held) console.log(`  ${held}`);
       await checkpointsFinished({ tree, base, copy, resume: again(), installs: installs(), ships: SELF + " ship" });
       /* Inside the step and not after the whole run, so a `--from 9` resume carries it too. */
       partForLanding((phase) => console.log(`\n${phase}`));

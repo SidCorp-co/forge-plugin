@@ -36,6 +36,7 @@ import { canonical } from "../resolve/canonical.mjs";
 import { checkoutAt } from "../git/checkout-at.mjs";
 import { flags } from "../resolve/flags.mjs";
 import { durationOf } from "./window/duration.mjs";
+import { RESUMED, landingLine, landingsOver, landingsUnder, passesIn } from "./landings.mjs";
 
 const REPEATED = 3;
 const LONG_WAIT_MINUTES = 10;
@@ -135,7 +136,6 @@ const LOG_READ = /\.log\b/u;
 const READS_A_LOG = new Set(["read", POLL, WAIT, DEPLOY]);
 const reportsShip = (call) =>
   call.class === "ship" || (READS_A_LOG.has(call.class) && LOG_READ.test(call.shell));
-const RESUMED = /--from\s+\d/u;
 
 /* The passes a landing took: every ship call, those resumed with --from, and whether a push came
    back rejected. */
@@ -246,6 +246,7 @@ export const runFrom = (path, session, text, classes = undefined) => {
     rechecks: counted("forge codex recheck"),
     verdicts: counted("forge record verdict"),
     ships: shipsIn(calls),
+    passes: passesIn(calls),
     reached: landing >= 0,
     notes: noteOrder(calls, landing),
     edits: editsIn(calls),
@@ -261,12 +262,13 @@ export const runFrom = (path, session, text, classes = undefined) => {
   };
 };
 
+/* The transcript folded, and whether it is an issue-flow run: a transcript that is not one is still
+   read for the landings it typed. */
 const flowRun = (path, session, text, classes) => {
   const run = runFrom(path, session, text, classes);
-  if (!run) return null;
+  if (!run) return { run: null, flow: false };
   /* Either class a claim carries: a run whose only one is the landing checkpoint is a run. */
-  return FLOW_BRIEF.test(run.brief) || run.byClass.has("forge claim") || run.byClass.has(READY_CLASS)
-    ? run : null;
+  return { run, flow: FLOW_BRIEF.test(run.brief) || run.byClass.has("forge claim") || run.byClass.has(READY_CLASS) };
 };
 
 /** Every transcript under the derived root, folded. A file that is not an issue-flow run is
@@ -274,6 +276,7 @@ const flowRun = (path, session, text, classes) => {
  *  a quiet week. */
 export const runsUnder = (root, since, classes = undefined) => {
   const runs = [];
+  const passes = [];
   let skipped = 0;
   let outsideWindow = 0;
   let unreadable = 0;
@@ -286,14 +289,16 @@ export const runsUnder = (root, since, classes = undefined) => {
     }
     /* Guarded per file: the shape is the host's, and one record it changed must cost this reading
        that transcript rather than the corpus. What it cost is printed rather than swallowed. */
-    let run = null;
+    let folded = null;
     try {
-      run = flowRun(path, session, text, classes);
+      folded = flowRun(path, session, text, classes);
     } catch {
       unreadable += 1;
       continue;
     }
-    if (!run) {
+    const { run, flow } = folded;
+    passes.push(...(run?.passes ?? []).filter((one) => !since || one.at >= since).map((one) => ({ ...one, inRun: flow })));
+    if (!flow) {
       skipped += 1;
       continue;
     }
@@ -306,7 +311,7 @@ export const runsUnder = (root, since, classes = undefined) => {
     runs.push(run);
   }
   runs.sort((left, right) => left.startedAt - right.startedAt);
-  return { runs, skipped, outsideWindow, unreadable, sources };
+  return { runs, passes, skipped, outsideWindow, unreadable, sources };
 };
 
 const mergedClasses = (runs, pick) => {
@@ -499,6 +504,7 @@ const profileLines = (held, all = false) => [
   `edits           per run ${held.edits.map((one) => `${one.route} ${one.perRun}`).join(", ")} · `
     + `median chars/call ${held.edits.map((one) => `${one.route} ${one.medianChars}`).join(", ")}`,
   shipLine(held),
+  ...(held.landings ? [landingLine(held.landings)] : []),
   `notes           ${held.notes.before} posted before the landing, ${held.notes.after} after it, `
     + `${held.notes.unshipped} in a run that never reached it`,
   ...declareLines(held),
@@ -581,9 +587,12 @@ export const printRuns = async (rest) => {
   const root = rootFor(directory);
   const declared = declaredIn(directory);
   const act = await phase7For(directory);
-  const { runs, skipped, outsideWindow, unreadable, sources } = runsUnder(root, from, classesFor(declared, act));
+  const classes = classesFor(declared, act);
+  const { runs, passes, skipped, outsideWindow, unreadable, sources } = runsUnder(root, from, classes);
   const aside = readingAside({ skipped, outsideWindow, unreadable });
-  const held = profileOf(runs, declared, act);
+  /* Beside the profile and never in it: the profile is what a reading stores, and it is a figure of
+     runs where this one is a figure of every transcript. */
+  const held = { ...profileOf(runs, declared, act), landings: landingsOver(landingsUnder(root, classes, passes, from)) };
   const reach = since === undefined ? reachOf(scopeOf(directory), held.from) : null;
   if (json) {
     return console.log(JSON.stringify(

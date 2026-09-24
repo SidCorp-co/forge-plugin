@@ -28,7 +28,7 @@ const content = (extra = {}) => ({
     projects: [row("alpha", 12)], phases: [row("4 Implement", 12), row("7 Ship", 3)], rungs: [row("fix", 12)],
     models: [row("claude-opus-5", 12)], effort: MISSING.effort,
   },
-  landings: { headline: { passes: 5, resumed: 1, rejectedRuns: 0, gateCalls: 7, gateMinutes: 31.5 },
+  landings: { headline: { passes: 5, resumed: 1, outsideRuns: 4, rejectedRuns: 0, gateCalls: 7, gateMinutes: 31.5 },
     trend: DAYS.map((day) => ({ day, passes: 3 })), missing: [MISSING.firstGate, MISSING.causes, MISSING.gateLost] },
   consults: { headline: { answered: 8, atBudget: 2, budgeted: 8, incomplete: 1, retried: 0 },
     trend: DAYS.map((day) => ({ day, answered: 4 })),
@@ -77,6 +77,11 @@ test("each section opens with its headline beside a seven-day trend", () => {
     assert.ok(body.indexOf('class="headline"') < body.indexOf('<figure class="trend">'), id);
     assert.match(body, /seven days: 09-14 .*, 09-20 /u);
   }
+});
+
+test("the landings headline says how many of the day's passes no issue-flow run holds", () => {
+  const page = pageOf(content());
+  assert.ok(page.includes("<strong>5 landing pass(es)</strong>, 4 of them in a session no issue-flow run holds"), page);
 });
 
 test("the page loads nothing from the network", () => {
