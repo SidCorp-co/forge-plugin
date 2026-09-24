@@ -22,7 +22,7 @@ export const USAGE = [
   "  models    what a run of each model spent against what it got, and which arms are comparable",
   "  eval      the last fifty runs against the fifty before them, with what separates them named",
   "  change    one change as the unit: the runs that ran the copy carrying it, against those before",
-  "  marks     the readings held for this project, newest first",
+  "  marks     the run readings `stats eval --against` takes, held for this project, newest first",
   "  diagnose  a second model's reading of the runs you name: what went wrong, cited call by call",
   "  waves     what each dispatch wave cost its dispatcher, and the hand-backs and replaced runs in it",
   "  surface   what the help and guide texts this copy serves cost in tokens, and what repeats in them",
