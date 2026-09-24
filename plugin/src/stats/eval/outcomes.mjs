@@ -156,13 +156,15 @@ export const afterRun = (name, pairs, threads, horizon, now, hit) => {
   let count = 0;
   let later = 0;
   for (const pair of pairs) {
+    /* The horizon first: a pair it keeps out is out whether or not its thread read, and a read that
+       failed on it would name a cause no larger budget removes. */
+    if (!matured(pair, horizon, now)) {
+      unread.push(SHORT);
+      continue;
+    }
     const held = threads.get(pair.ref);
     if (!held?.records) {
       unread.push(held?.unread ?? "no thread was read for it");
-      continue;
-    }
-    if (!matured(pair, horizon, now)) {
-      unread.push(SHORT);
       continue;
     }
     over += 1;

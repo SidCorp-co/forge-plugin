@@ -405,6 +405,10 @@ test("a pair its horizon has not reached is not a pair the budget left unread", 
   assert.deepEqual([reopened.unreadPairs, reopened.cut], [0, false],
     "the run has not finished the horizon, which no larger budget reads sooner");
   assert.doesNotMatch(modelLines(held, true).join("\n"), /\sreopened\s.*unread/u);
+  const unreadToo = readingOf([ranOn("ISS-1")], partly(new Map([["ISS-1", { unread: PAGING }]]), SPENT, 0), null);
+  const early = unreadToo.models[0].got.find((one) => one.name === "reopened");
+  assert.deepEqual([early.unreadPairs, early.cut], [0, false],
+    "and a thread the budget left unread is still no shortfall where the horizon keeps its pair out anyway");
 });
 
 test("two arms are not compared on a figure the spent budget cut short on either of them", () => {
