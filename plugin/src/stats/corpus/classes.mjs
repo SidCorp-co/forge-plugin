@@ -26,6 +26,9 @@ const WHOLE_SET = /--send[= \t]+bodies\b/u;
  *  own row rather than that claim's, the claim opening a run and this checkpoint ending one. The
  *  flag is read here so no second reader spells it. */
 export const READY_CLASS = row("claim", "ready");
+
+/** The claim's own row, which opens a run and which the joins and the generation table read. */
+export const CLAIM_CLASS = row("claim");
 const READY = /--ready\b/u;
 
 export const RECHECK_CLASS = row("codex", "recheck");
@@ -152,8 +155,9 @@ export const namedRows = () => [...new Set([
 export const EDIT_ROUTES = ["edit", "write", "edit heredoc", "edit file", "edit sed"];
 
 /** Those a shell types, which the `deploy` row above takes a line that writes a file and then reads
- *  a deployment out of. Off the routes, so a fourth is in both lists or neither. */
-export const SHELL_EDITS = EDIT_ROUTES.slice(2);
+ *  a deployment out of: the routes no tool mints. Off the routes, so a fourth is in both lists or
+ *  neither. */
+export const SHELL_EDITS = EDIT_ROUTES.filter((route) => !Object.values(TOOL_CLASS).includes(route));
 
 export const classOf = (name, shell, classes = CLASSES) => {
   if (name !== "Bash") return TOOL_CLASS[name] ?? name.toLowerCase();
@@ -161,5 +165,5 @@ export const classOf = (name, shell, classes = CLASSES) => {
     const found = typeof match === "function" ? match(shell) : match.test(shell) && label;
     if (found) return found;
   }
-  return "shell";
+  return SHELL;
 };

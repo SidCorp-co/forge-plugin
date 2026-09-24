@@ -42,10 +42,15 @@ const ACT = "taken under different answers to what this project's release model 
  *  step are told apart where one deploys production on its own and the other ships nothing. */
 const actOf = (profile) => (typeof profile?.release === "string" ? profile.release : null);
 
+/* What a project decided that a reading carries beside the table's generation: the answer each side
+   gave, what a difference is called, and the rows a difference crosses. */
+const CROSSINGS = [[wordsOf, WORDS, DECLARABLE], [actOf, ACT, DECIDED_BY_RELEASE]];
+
 /* Which rows hold a different population on the two sides, and why. What moves a row's population is
-   `MOVED_AT` in classes.mjs; the readings here are: a stored reading taken at an earlier generation
-   is crossed on the rows that have moved since, and one naming no generation is crossed on every row
-   rather than on the ones it happens to share, the table behind it being unreadable (ISS-2086). */
+   `MOVED_AT` in corpus/generations.mjs; the readings here are: a stored reading taken at an earlier
+   generation is crossed on the rows that have moved since, and one naming no generation is crossed on
+   every row rather than on the ones it happens to share, the table behind it being unreadable
+   (ISS-2086). */
 const crossedIn = (before, now) => {
   const held = generationOf(before);
   const why = [];
@@ -60,15 +65,13 @@ const crossedIn = (before, now) => {
     why.push(`${GENERATIONS} class table generation ${held}, against generation ${generationOf(now)}`);
     moved = (label) => (MOVED_AT.get(label) ?? 0) > held;
   }
-  if (held !== null && wordsOf(before) !== wordsOf(now)) {
-    why.push(WORDS);
-    const declared = moved;
-    moved = (label) => declared(label) || DECLARABLE.includes(label);
-  }
-  if (held !== null && actOf(before) !== actOf(now)) {
-    why.push(ACT);
-    const said = moved;
-    moved = (label) => said(label) || DECIDED_BY_RELEASE.includes(label);
+  if (held !== null) {
+    for (const [answerOf, said, rows] of CROSSINGS) {
+      if (answerOf(before) === answerOf(now)) continue;
+      why.push(said);
+      const prior = moved;
+      moved = (label) => prior(label) || rows.includes(label);
+    }
   }
   return { crossed: moved, why };
 };
@@ -141,14 +144,14 @@ export const classesCompared = (now, before) => {
 
 const NAME = 26;
 const TITLE = "seconds a call by class, before → now";
-const percent = (value) => `${value > 0 ? "+" : ""}${Math.round(value * 100)}%`;
+const signedWhole = (value) => `${value > 0 ? "+" : ""}${Math.round(value * 100)}%`;
 const bound = `±${Math.round(MOVED * 100)}%`;
 
 const sideSaid = (side) => `${String(side.calls).padStart(5)} call(s) @ `
   + `${(side.seconds === null ? "—" : `${side.seconds.toFixed(1)}s`).padStart(7)}`;
 
 const classRow = (one) => `  ${one.label.padEnd(NAME)}${sideSaid(one.before)} → ${sideSaid(one.now)}`
-  + `${(one.shift === null ? "—" : percent(one.shift)).padStart(8)}`
+  + `${(one.shift === null ? "—" : signedWhole(one.shift)).padStart(8)}`
   + `   lookups ${one.before.lookups} → ${one.now.lookups}`;
 
 /* A move that rounds to nothing is said in words rather than printed as a signed zero: a tenth of a
@@ -158,7 +161,7 @@ const spent = (one) => (one.toolMinutes
   ? `${one.toolMinutes > 0 ? "+" : ""}${one.toolMinutes} tool-min`
   : "under a tenth of a tool-minute");
 
-const movedSaid = (one) => `  ${one.label.padEnd(NAME)}${percent(one.shift)} a call, `
+const movedSaid = (one) => `  ${one.label.padEnd(NAME)}${signedWhole(one.shift)} a call, `
   + `${spent(one)} over ${one.now.calls} call(s)`;
 
 /* Its own line rather than a mark on the row, because a crossed row has to reach the reader whatever

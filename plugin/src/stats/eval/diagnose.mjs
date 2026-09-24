@@ -8,7 +8,8 @@ import { readTranscript, rootFor } from "../corpus/corpus.mjs";
 import { declaredIn } from "../corpus/declared.mjs";
 import { callsIn } from "../corpus/transcripts.mjs";
 import { checkoutFrom, derivedFrom, runsUnder, segmented, windowFrom } from "../runs.mjs";
-import { stamp } from "../figures.mjs";
+import { flagSaid, foldedWords, stamp } from "../figures.mjs";
+import { byEnd } from "../windows.mjs";
 import { askApi, sameFamily } from "../../codex/codex-api.mjs";
 import { DIAGNOSTIC, logConsult } from "../../codex/codex-log.mjs";
 import { EFFORTS, defaultEffort, effortVia, rungFor } from "../../codex/codex-plan.mjs";
@@ -40,12 +41,7 @@ const EXCERPTED = "each call below is excerpted, not read: what a bound cut is u
 /** A sentence folded to the width a help text is written in, read off the sentence rather than
  *  written beside it: a statement of this reading's own, copied into help, is the copy that goes
  *  stale the first time the statement is reworded. */
-export const folded = (text, width) => text.split(" ").reduce((lines, word) => {
-  const last = lines.at(-1);
-  if (last && `${last} ${word}`.length <= width) lines[lines.length - 1] = `${last} ${word}`;
-  else lines.push(word);
-  return lines;
-}, []);
+export const folded = (text, width) => foldedWords(text.split(" "), width);
 
 export const DIAGNOSE_USAGE = [
   "Usage: forge stats diagnose [--checkout <dir>] [--last 20 | --since 3d | --issues ISS-nn,ISS-nn]",
@@ -69,31 +65,29 @@ export const DIAGNOSE_USAGE = [
   "  --json         the reading alone, one object",
 ].join("\n");
 
-const anchorAsked = (flag, value) => `${flag} ${value}`;
-
 /* One set per reading, for the reason the eval keeps one anchor: the runs read are what every line
    of the reading is about, and two ways of naming them is two readings wearing one screen. */
-export const setAsked = ({ last, since, issues }, verb = "stats diagnose") => {
+const VERB = "stats diagnose";
+
+export const setAsked = ({ last, since, issues }) => {
   const named = [["--last", last], ["--since", since], ["--issues", issues]]
     .filter(([, value]) => value !== undefined);
   if (named.length > 1) {
-    fail(`${verb}: ${named.map(([flag, value]) => anchorAsked(flag, value)).join(" and ")} name `
+    fail(`${VERB}: ${named.map(([flag, value]) => flagSaid(flag, value)).join(" and ")} name `
       + `${named.length} sets of runs, and a reading is taken over one. Run one alone: `
-      + `${named.map(([flag, value]) => `\`forge ${verb} ${anchorAsked(flag, value)}\``).join(", or ")}.`);
+      + `${named.map(([flag, value]) => `\`forge ${VERB} ${flagSaid(flag, value)}\``).join(", or ")}.`);
   }
-  if (since !== undefined) return { kind: "window", since, from: windowFrom(since, verb) };
+  if (since !== undefined) return { kind: "window", since, from: windowFrom(since, VERB) };
   if (issues !== undefined) {
     const keys = String(issues).split(",").map((one) => one.trim()).filter((one) => one.length);
-    if (!keys.length) fail(`${verb}: --issues was given no issue key. Write them as \`--issues ISS-12,ISS-13\`.`);
+    if (!keys.length) fail(`${VERB}: --issues was given no issue key. Write them as \`--issues ISS-12,ISS-13\`.`);
     return { kind: "keys", keys };
   }
   if (last === undefined) return { kind: "count", last: LAST };
   const many = Number(last);
-  if (!Number.isInteger(many) || many < 1) fail(`${verb}: --last takes an integer of 1 or more, not \`${last}\`.`);
+  if (!Number.isInteger(many) || many < 1) fail(`${VERB}: --last takes an integer of 1 or more, not \`${last}\`.`);
   return { kind: "count", last: many };
 };
-
-const byEnd = (runs) => [...runs].sort((left, right) => left.endedAt - right.endedAt);
 
 /** The runs this reading is over, and what of the caller's set it could not reach. A key naming no
  *  run of this corpus is reported by name: a reader shown a conclusion drawn from a set they cannot

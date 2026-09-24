@@ -35,12 +35,24 @@ export const comparabilityOf = ({ size, now, before, reach }) => {
   return { comparable: !short.length, short, reach };
 };
 
-/** One count per value of each dimension — `{ name: { value: count } }` — kept on a window for when its rows are gone. */
-export const tallied = (rows, dimensions) => Object.fromEntries(dimensions.map(([name, of]) => {
+/** The runs by their own last record, landed or not, which is the order a window is cut in: a run
+ *  that parked spent its minutes the same as one that closed, and the comparison is of cost. The
+ *  profile sorts by start. */
+export const byEnd = (runs) => [...runs].sort((left, right) => left.endedAt - right.endedAt);
+
+/** How many rows answer each value `of` gives, as `{ value: count }`. */
+export const countBy = (rows, of) => {
   const held = {};
-  for (const row of rows) held[of(row)] = (held[of(row)] ?? 0) + 1;
-  return [name, held];
-}));
+  for (const row of rows) {
+    const value = of(row);
+    held[value] = (held[value] ?? 0) + 1;
+  }
+  return held;
+};
+
+/** One count per value of each dimension — `{ name: { value: count } }` — kept on a window for when its rows are gone. */
+export const tallied = (rows, dimensions) =>
+  Object.fromEntries(dimensions.map(([name, of]) => [name, countBy(rows, of)]));
 
 /** What separates two windows, off their tallies and never their rows: a stored before has none. */
 export const shiftBetween = (now, before) =>

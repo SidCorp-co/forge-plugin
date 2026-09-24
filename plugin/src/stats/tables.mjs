@@ -105,7 +105,7 @@ export const listing = (title, rows, line, all) =>
    never a class this reading could not see: the last phases were the two that read `unrecognised`,
    for want of a marker that is not a command a project declares, and they now open on this CLI's own
    records as the ones before them always have (ISS-1586, ISS-1975). */
-const phaseRow = (held, phase) => {
+const phaseRow = (phase) => {
   return `${phase.name.padEnd(12)}${String(phase.runs).padStart(5)}${phase.medianMinutes.toFixed(1).padStart(9)}`
     + `${phase.totalMinutes.toFixed(0).padStart(9)}${phase.medianCalls.toFixed(1).padStart(11)}  `
     + phase.byClass.map(([label, one]) => `${label} ${one.calls} ${minutes(one.wait).toFixed(0)}m`).join(" · ");
@@ -115,7 +115,7 @@ export const phaseLines = (held) => [
   "",
   `${"phase".padEnd(12)}${"runs".padStart(5)}${"min med".padStart(9)}${"min sum".padStart(9)}`
   + `${"calls med".padStart(11)}  what fills it (calls, wait)`,
-  ...held.phases.map((phase) => phaseRow(held, phase)),
+  ...held.phases.map(phaseRow),
 ];
 
 /** A class this reading could not recognise: nothing in the window was classed as it and the checkout declares no command for it. Zero and unrecognised are different answers, which is the rule this verb's outcome figures already keep (ISS-1586). */
