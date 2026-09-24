@@ -6,26 +6,32 @@ import { fail } from "../../resolve/settings.mjs";
 /* More than half shared is most of both sides being the same rows, which no figure can read past. */
 const readable = (shared, recent) => shared * 2 <= recent;
 
-/* Rows arrive one at a time: a window short of its size grows and keeps every row it shares, and a
-   full one drops its oldest, which is a shared row while any is left. */
-const arrivalsUntil = (shared, recent, size, done) => {
-  let [left, count, many] = [shared, recent, 0];
+/* Rows arrive one at a time: a window short of its size grows and keeps every row it holds, and a
+   full one drops its oldest — first the `ahead` rows older than the shared ones, which a recent window
+   wider than the stored one holds, and then the shared rows themselves. */
+const arrivalsUntil = ({ shared, recent, size, ahead }, done) => {
+  let [older, left, count, many] = [ahead, shared, recent, 0];
   while (!done(left, count)) {
     many += 1;
     if (count < size) count += 1;
+    else if (older > 0) older -= 1;
     else left -= 1;
   }
   return many;
 };
 
 /** The overlap `--json` carries: the rows shared, the recent window's size, and the arrivals still
- *  owed before the reading can be read and before it shares none. */
-export const overlapOf = (shared, recent, size) => ({
-  shared,
-  recent,
-  untilReadable: arrivalsUntil(shared, recent, size, readable),
-  untilDisjoint: arrivalsUntil(shared, recent, size, (left) => left === 0),
-});
+ *  owed before the reading can be read and before it shares none. `ahead` is the recent rows older
+ *  than every shared one. */
+export const overlapOf = (shared, recent, size, ahead = 0) => {
+  const held = { shared, recent, size, ahead };
+  return {
+    shared,
+    recent,
+    untilReadable: arrivalsUntil(held, readable),
+    untilDisjoint: arrivalsUntil(held, (left) => left === 0),
+  };
+};
 
 /** The clause every anchored before line ends on. `terms` is the harness's unit, as `{ unit, arrived }`. */
 export const overlapSaid = (overlap, { unit, arrived }) => (overlap.shared
@@ -40,10 +46,14 @@ export const aheadSaid = (command, count, size, { noun, arrived }) => {
     + `${arrived}, and shares none of the recent window once ${ahead.untilDisjoint} have`;
 };
 
-/* `recent` is what the caller knows of its recent window: `sharedWith(reading)`, the window's `rows`
-   and `size`, its `terms`, and how a reading is named (`nameOf`), asked for (`askOf`) and passed over
-   (`slide`, the sliding comparison, which shares nothing by construction). */
-const measured = (recent, reading) => overlapOf(recent.sharedWith(reading), recent.rows, recent.size);
+/* `recent` is what the caller knows of its recent window: `sharedWith(reading)`, which answers
+   `{ shared, ahead }`, the window's `rows` and `size`, its `terms`, and how a reading is named
+   (`nameOf`), asked for (`askOf`) and passed over (`slide`, the sliding comparison, which shares
+   nothing by construction) — the last two as the caller would type them again. */
+const measured = (recent, reading) => {
+  const { shared, ahead } = recent.sharedWith(reading);
+  return overlapOf(shared, recent.rows, recent.size, ahead);
+};
 
 const sharedSaid = (recent, named, overlap) => {
   const { unit, arrived } = recent.terms;

@@ -115,7 +115,7 @@ test("a stored reading is the before window, and the screen says where the windo
 
     const newest = askStats(room, ["eval", "--checkout", PROJECT, "--against", "--json"], home);
     assert.equal(newest.status, 1, "bare --against takes only a reading sharing none of the recent window (ISS-1890)");
-    assert.match(newest.stderr, /mark 50, the newest, shares 25 of the recent 50 run\(s\), and none once 25 more have ended\. `forge stats eval --against 50` reads it with that overlap stated\./u);
+    assert.match(newest.stderr, /mark 50, the newest, shares 25 of the recent 50 run\(s\), and none once 25 more have ended\. `forge stats eval --checkout \S+ --against 50` reads it with that overlap stated\./u);
     const sliding = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--json"], home).stdout);
     assert.equal(sliding.against, undefined, "and without it nothing is pinned");
     assert.equal(sliding.before.runs, 25);

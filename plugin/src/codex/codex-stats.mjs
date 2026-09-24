@@ -329,8 +329,14 @@ const CONSULT_TERMS = { unit: "consult(s)", noun: "consult", arrived: "been answ
    ending at its mark, the recent one those ending at the log's last, and a consult logged later with
    an equal or earlier clock is still after the mark. */
 const sharedConsults = (recent, total, reading) => {
-  const first = Math.max(reading.mark - reading.now.consults + 1, total - recent + 1);
-  return Math.max(0, Math.min(reading.mark, total) - first + 1);
+  const [held, since] = [reading.mark - reading.now.consults + 1, total - recent + 1];
+  const shared = Math.max(0, Math.min(reading.mark, total) - Math.max(held, since) + 1);
+  return { shared, ahead: shared ? Math.max(0, held - since) : 0 };
+};
+
+const overlapIn = (recent, total, reading) => {
+  const { shared, ahead } = sharedConsults(recent, total, reading);
+  return overlapOf(shared, recent, MARK, ahead);
 };
 
 /** The comparison in the outer shape `stats eval --json` prints (`evalRuns` in stats/eval/eval.mjs). */
@@ -338,7 +344,7 @@ export const compared = (now, before, verdicts, total, against = null) => compar
   size: MARK,
   total,
   against,
-  overlap: against ? overlapOf(sharedConsults(now.length, total, against), now.length, MARK) : undefined,
+  overlap: against ? overlapIn(now.length, total, against) : undefined,
   now: windowObject(now, verdicts),
   before: against ? against.now : before.length ? windowObject(before, verdicts) : null,
   separates: changedBetween,

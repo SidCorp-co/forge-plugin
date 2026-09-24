@@ -27,11 +27,14 @@ test("what is owed is stepped arrival by arrival: a short window grows keeping w
 });
 
 test("a runs reading shares no more runs than its own window holds, whatever size the recent window is read at", () => {
-  const runs = runsOf(100);
-  const stored = { kind: "runs", mark: 100, now: evalRuns(runs, [], WINDOW).now };
-  const wide = evalRuns(runs, [], 100, stored);
-  assert.deepEqual(wide.overlap, { shared: 50, recent: 100, untilReadable: 0, untilDisjoint: 50 },
-    "every one of the hundred ended before the stored window closed, and fifty of them are its");
+  const runs = runsOf(200);
+  const stored = { kind: "runs", mark: 100, now: evalRuns(runs.slice(0, 100), [], WINDOW).now };
+  const wide = evalRuns(runs.slice(0, 100), [], 100, stored);
+  assert.deepEqual(wide.overlap, { shared: 50, recent: 100, untilReadable: 0, untilDisjoint: 100 },
+    "every one of the hundred ended before the stored window closed, fifty of them are its, and the fifty older go first");
+  assert.equal(evalRuns(runs.slice(0, 150), [], 100, stored).overlap.shared, 50,
+    "so fifty arrivals push out only the runs older than the stored window");
+  assert.equal(evalRuns(runs.slice(0, 200), [], 100, stored).overlap.shared, 0, "and a hundred push out all of it");
 });
 
 const PLANTED = (n, clock = n) => ({
@@ -69,7 +72,7 @@ test("a reading sharing most of the recent window is refused with what it shares
     assert.equal(refused.stdout, "", "no figure beside the refusal");
     assert.equal(refused.stderr.trim(), "stats eval: mark 100 shares 40 of the recent 50 run(s), so most of both sides "
       + "would be the same run(s); it can be read once 15 more have ended, and shares none once 40 have. The newest "
-      + "reading sharing none is mark 50: `forge stats eval --against 50`.");
+      + `reading sharing none is mark 50: \`forge stats eval --checkout ${PROJECT} --against 50\`.`);
 
     const bare = JSON.parse(askStats(room, ["eval", "--checkout", PROJECT, "--against", "--json"], home).stdout);
     assert.equal(bare.against, 50, "bare --against passes over the newer mark 100 for the newest sharing none");
@@ -87,7 +90,7 @@ test("with no reading sharing none, the refusal and a bare flag name the sliding
     const { home, room } = place();
     assert.match(await runsMark(PROJECT), /held as mark 50/u);
     corpusOf(60, room);
-    const slide = "`forge stats eval` compares the recent window with the one before it, which share nothing.";
+    const slide = `\`forge stats eval --checkout ${PROJECT}\` compares the recent window with the one before it, which share nothing.`;
     const named = askStats(room, ["eval", "--checkout", PROJECT, "--against", "50"], home);
     assert.equal(named.status, 1);
     assert.match(named.stderr, /^stats eval: mark 50 shares 40 of the recent 50 run\(s\), so most of both sides/u);
@@ -98,6 +101,16 @@ test("with no reading sharing none, the refusal and a bare flag name the sliding
       + "window, and no reading held shares none yet: mark 50, the newest, shares 40 of the recent 50 run(s), so most "
       + "of both sides would be the same run(s); it can be read once 15 more have ended, and shares none once 40 have. "
       + slide);
+
+    /* A command a refusal names is the one the caller typed with the anchor swapped, so it reads the
+       same checkout over the same window and is answered rather than refused again. */
+    const narrow = askStats(room, ["eval", "--checkout", PROJECT, "--size", "20", "--against"], home);
+    assert.equal(narrow.status, 1);
+    const typed = /`forge (stats eval --checkout \S+ --size 20 --against 50)` reads it with that overlap stated\.$/u.exec(narrow.stderr.trim());
+    assert.ok(typed, narrow.stderr);
+    const followed = askStats(room, typed[1].split(" ").slice(1), home);
+    assert.equal(followed.status, 0, followed.stderr);
+    assert.match(followed.stdout, /^the 50 held at mark 50 {2}.* — shares 10 of the recent 20 run\(s\), and none once 10 more have ended$/mu);
   } finally {
     Object.assign(process.env, was);
   }

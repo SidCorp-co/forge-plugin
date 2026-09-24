@@ -207,9 +207,18 @@ const RUN_TERMS = { unit: "run(s)", noun: "run", arrived: "ended" };
 
 /* The recent runs a stored reading's window held: both windows are the latest runs by end, so over one
    corpus they are the recent runs that had ended by the time that window closed — and never more than
-   it held, since a `--size` wider than the stored window reaches runs from before it. */
-const sharedRuns = (recent, reading) =>
-  Math.min(recent.filter((run) => run.endedAt <= reading.now.profile.to).length, reading.now.runs);
+   it held, since a `--size` wider than the stored window reaches runs from before it, which are the
+   `ahead` of them. */
+const sharedRuns = (recent, reading) => {
+  const ended = recent.filter((run) => run.endedAt <= reading.now.profile.to).length;
+  const shared = Math.min(ended, reading.now.runs);
+  return { shared, ahead: ended - shared };
+};
+
+const overlapIn = (recent, reading, size) => {
+  const { shared, ahead } = sharedRuns(recent, reading);
+  return overlapOf(shared, recent.length, size, ahead);
+};
 
 /** Why a first reading is no comparison: nothing was measured ahead of its window. */
 export const NO_WINDOW_BEFORE = "there is no window before it";
@@ -235,7 +244,7 @@ export const evalRuns = (runs, copies, size = WINDOW, against = null, read = nul
     size,
     total: runs.length,
     against,
-    overlap: against ? overlapOf(sharedRuns(now, against), now.length, size) : undefined,
+    overlap: against ? overlapIn(now, against, size) : undefined,
     now: nowHeld,
     before: beforeHeld,
     comparability: comparabilityOf({ size, now: nowHeld, before: beforeHeld, reach }),
@@ -558,8 +567,10 @@ export const releaseMark = async (directory, { version, head, issues = [] }, siz
   return `stats: this release is held as ${version} over ${corpus.runs.length} run(s). ${releaseSaid(wrote, version, ahead)}`;
 };
 
-/* What the anchor resolvers need of the recent window, and how this verb names a reading and asks for it. */
-const recentOf = (corpus, size, nameOf, flagOf) => {
+/* What the anchor resolvers need of the recent window, and how this verb names a reading and asks for
+   it — `asked` being the checkout and size this call was given, so a command a refusal names reads the
+   corpus and the window the refused one did. */
+const recentOf = (corpus, size, asked, nameOf, flagOf) => {
   const { now } = twoWindows(byEnd(corpus.runs), size);
   return {
     sharedWith: (reading) => sharedRuns(now, reading),
@@ -567,10 +578,14 @@ const recentOf = (corpus, size, nameOf, flagOf) => {
     size,
     terms: RUN_TERMS,
     nameOf,
-    askOf: (one) => `forge stats eval ${flagOf(one)}`,
-    slide: "forge stats eval",
+    askOf: (one) => `forge stats eval${asked} ${flagOf(one)}`,
+    slide: `forge stats eval${asked}`,
   };
 };
+
+const typed = (value) => (/[\s"'$`\\]/u.test(value) ? JSON.stringify(value) : value);
+const flagsAsked = (checkout, size) =>
+  (checkout === undefined ? "" : ` --checkout ${typed(checkout)}`) + (size === undefined ? "" : ` --size ${size}`);
 
 export const printEval = async (argv) => {
   if (argv.includes("--waves")) return printWavesEval(argv.filter((one) => one !== "--waves"));
@@ -583,15 +598,16 @@ export const printEval = async (argv) => {
   const names = anglesAsked(angles);
   const asked = { horizon: horizonOf(horizon), most: spend(requests) };
   const directory = checkoutFrom(checkout, "stats eval");
+  const asAsked = flagsAsked(checkout, size);
   const corpus = await corpusOf(directory);
   /* The reading asked for is resolved before the corpus is judged: a mark nobody wrote is refused by
      name whatever the corpus holds, rather than answered with the empty corpus's sentence. */
   const stored = against === undefined ? null
     : resolveAgainst(RUNS, against, { scope: corpus.scope, verb: "stats eval", list: "forge stats marks", writes: WRITES,
-      recent: recentOf(corpus, window, (one) => `mark ${one.mark}`, (one) => `--against ${one.mark}`) });
+      recent: recentOf(corpus, window, asAsked, (one) => `mark ${one.mark}`, (one) => `--against ${one.mark}`) });
   const since = release === undefined ? null
     : resolveRelease(corpus.scope, release, { verb: "stats eval", list: "forge stats marks", writes: RELEASE_WRITES,
-      recent: recentOf(corpus, window, (one) => `release ${one.version}`, (one) => `--since-release ${one.version}`) });
+      recent: recentOf(corpus, window, asAsked, (one) => `release ${one.version}`, (one) => `--since-release ${one.version}`) });
   if (!corpus.runs.length) {
     return console.log(`No issue-flow run under ${corpus.root}, so there is nothing to compare. `
       + `${readingAside(corpus)}.${derivedFrom(directory)}`);
