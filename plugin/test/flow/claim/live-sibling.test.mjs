@@ -272,7 +272,7 @@ test("the flag takes the lease while that work is still standing, and the histor
     assert.equal(took.status, 0, `${took.stdout}${took.stderr}`);
     assert.match(took.stdout, /renewed: session iss-1872-a4e81e39/u, "the take the caller asserted");
     assert.equal(onTheRecord().history.length, 0,
-      "and a holder retaking its own lease is no handoff, so the park counting crashes counts nothing here");
+      "and a holder retaking its own lease is no handoff, so the count of reclaims counts nothing here");
     assert.equal(state.wrote, 1,
       "one write reached the tracker, which is what makes the refusal's count of none an assertion that can fail");
   } finally {

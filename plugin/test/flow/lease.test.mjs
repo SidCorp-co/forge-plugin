@@ -20,9 +20,7 @@ const {
   leaseOf, nextLine, nothingWorked, idsHere, reclaimRefusal,
   stateOf, writeRefusal, writtenBy,
 } = await import("../../src/flow/lease.mjs");
-const {
-  RECLAIMS_BEFORE_PARK, historyLine, parkAnswers, parksAsCrashed, reclaimsOf,
-} = await import("../../src/flow/lease/crash-park.mjs");
+const { historyLine, reclaimsOf } = await import("../../src/flow/lease/crash-park.mjs");
 const { agentOf, pidOf } = await import("../../src/flow/lease/holder.mjs");
 const { SHARED_HOLDER, sharedHolder } = await import("../../src/flow/lease/dispatched.mjs");
 const {
@@ -31,7 +29,7 @@ const {
 const { sessionKey } = await import("../../src/shown/ledger.mjs");
 const { retryOf } = await import("../../src/tracker/rest.mjs");
 const { ROUTES } = await import("../../src/tracker/routes.mjs");
-const { USAGE, nextLines, parkWrite } = await import("../../src/flow/claim.mjs");
+const { USAGE, nextLines } = await import("../../src/flow/claim.mjs");
 
 const FORGE = new URL("../../bin/forge", import.meta.url).pathname;
 const AT = "2026-09-02T12:00:00.000Z";
@@ -210,18 +208,6 @@ test("a reclaim reads out the line it took over and the line it took on, and tel
   assert.deepEqual(nextLines("claim", null, "write the plan"), ["Next: write the plan"]);
 });
 
-/* Three writes make a park and the third carried the field it read before the second: it put back
-   the line the transition had just cleared. */
-test("the write that acknowledges a park clears the line, as its transition did", () => {
-  const holding = claimed(null, { holder: "one", at: AT, minutes: 30, next: "fold F1", how: "claim", status: "in_progress" });
-  const parked = claimed(holding, { ...parkWrite(leaseOf(holding)), how: "parked", status: "in_progress" });
-  assert.equal(leaseOf(parked).next, null, "a park is a transition, and the step it left is over");
-  assert.equal(leaseOf(parked).history.at(-1).next, "fold F1", "while the history keeps where it died");
-  const asked = claimed(holding, { ...parkWrite(leaseOf(holding), "read the history first"), how: "parked", status: "in_progress" });
-  assert.equal(leaseOf(asked).next, "read the history first",
-    "and a line this claim asked for survives the park, or the claim printed one it then took away");
-});
-
 /* Two runs of this suite left 6198 temp directories behind, and one run of it filled the mount a
    shell needed (ISS-42). The fixture that makes one owns removing it. */
 test("the temporary config directory a fixture makes is gone once it is asked to go", () => {
@@ -231,43 +217,18 @@ test("the temporary config directory a fixture makes is gone once it is asked to
   assert.ok(!existsSync(one.path), "and the same removal is what it registered to run at exit");
 });
 
-/* Read from the history the claim just wrote rather than from the run making it: a park whose
-   transition never landed is still owed, and the next claim is what owes it. */
-test("the third reclaim of one status parks the issue, and other statuses do not count", () => {
+/* Counted per status and by the reclaim word alone, so a first claim, a handoff and a take made at another status each leave the count where it was (ISS-693). */
+test("reclaims are counted per status, and a first claim counts for none", () => {
   const history = (...how) => held("a-run", AT, 30, how.map(([one, status]) => ({ holder: one, at: AT, how: "reclaim", status })));
   assert.equal(reclaimsOf(history(), "open"), 0);
-  assert.ok(!parksAsCrashed(null, "open"), "an issue nobody claimed has crashed nowhere");
-  assert.ok(!parksAsCrashed(history(["a", "open"]), "open"), "one reclaim is a run resumed");
-  assert.ok(!parksAsCrashed(history(["a", "open"], ["b", "open"]), "open"), `${RECLAIMS_BEFORE_PARK} is not the park`);
-  assert.ok(parksAsCrashed(history(["a", "open"], ["b", "open"], ["c", "open"]), "open"), "the third is");
-  assert.ok(!parksAsCrashed(history(["a", "open"], ["b", "open"], ["c", "developed"]), "developed"), "counted per status");
+  assert.equal(reclaimsOf(null, "open"), 0, "an issue nobody claimed holds no reclaim");
+  assert.equal(reclaimsOf(history(["a", "open"], ["b", "open"], ["c", "open"]), "open"), 3);
+  assert.equal(reclaimsOf(history(["a", "open"], ["b", "open"], ["c", "developed"]), "developed"), 1, "counted per status");
+  assert.equal(reclaimsOf(history(["a", "open"], ["b", "open"], ["c", "developed"]), "open"), 2, "and the other status is not added in");
   const claims = held("a-run", AT, 30, ["a", "b", "c"].map((one) => ({ holder: one, at: AT, how: "claim", status: "open" })));
-  assert.ok(!parksAsCrashed(claims, "open"), "a first claim is nobody's crash");
-});
-
-test("a park answered is a park not repeated, and a status dying again parks again", () => {
-  const entry = (how, status) => ({ holder: "a-run", at: AT, how, status });
-  const three = [1, 2, 3].map(() => entry("reclaim", "open"));
-  const answered = held("a-run", AT, 30, [...three, entry("parked", "open")]);
-  assert.equal(reclaimsOf(answered, "open"), 0, "the park answered those three");
-  assert.ok(!parksAsCrashed(answered, "open"), "or a person resuming it would park it again at once");
-  assert.ok(parksAsCrashed(held("a-run", AT, 30, [...answered.history, ...three]), "open"),
-    "three more after the park, and the status is dying again");
-  assert.ok(parksAsCrashed(held("a-run", AT, 30, [...three, entry("parked", "developed")]), "open"),
-    "a park at another status answers nothing here");
-});
-
-/* A park's third write says the history is answered, and a run can die before it. The record is
-   the checkpoint: a crashed park older than the reclaims it would answer answered an earlier crash. */
-test("a park older than the crashes it would answer answers none of them", () => {
-  const entry = (how, status, at) => ({ holder: "a-run", at, how, status });
-  const three = ["10:00", "10:30", "11:00"].map((clock) => entry("reclaim", "open", `2026-09-02T${clock}:00.000Z`));
-  const lease = held("a-run", AT, 30, three);
-  assert.ok(parkAnswers(lease, "open", "2026-09-02T11:30:00.000Z"), "a park written after them is theirs");
-  assert.ok(!parkAnswers(lease, "open", "2026-09-02T10:45:00.000Z"), "one written among them is an earlier crash's");
-  assert.ok(!parkAnswers(lease, "open", null), "and a park with no time answers nothing");
-  assert.ok(!parkAnswers(held("a-run", AT, 30, three.slice(0, 2)), "open", "2026-09-02T11:30:00.000Z"),
-    "two reclaims earn no park to answer");
+  assert.equal(reclaimsOf(claims, "open"), 0, "a first claim is nobody's reclaim");
+  const handed = held("a-run", AT, 30, ["a", "b", "c"].map((one) => ({ holder: one, at: AT, how: "handed", status: "open" })));
+  assert.equal(reclaimsOf(handed, "open"), 0, "and a handoff is none either");
 });
 
 test("the claim history is appended by the write that made it, and a renew appends nothing", () => {

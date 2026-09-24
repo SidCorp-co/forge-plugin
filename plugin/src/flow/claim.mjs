@@ -1,5 +1,5 @@
-/* The pick: the lease a run takes before it writes anything, the reclaim of one a dead run left
-   behind, and the park a status that keeps crashing earns. docs/cli/claim.md. */
+/* The pick: the lease a run takes before it writes anything, and the reclaim of one a dead run left
+   behind. It moves no status and posts no record: a park is `forge record park`'s. docs/cli/claim.md. */
 import { flags, pullRepeated, wantsHelp } from "../resolve/flags.mjs";
 import { MINTED, sessionOf, sessionSourced } from "../resolve/config.mjs";
 import { fail } from "../resolve/settings.mjs";
@@ -15,8 +15,7 @@ import { namedIn, rungFieldsOf, viewFrom } from "./earned.mjs";
 import { scopeFrom } from "./record/plan-scope.mjs";
 import { laneLines, openingLines, workLines } from "../guides/phases.mjs";
 import { partForStatus } from "../guides/served.mjs";
-import { kindsHeld, parse } from "./record/page.mjs";
-import { parkAs, transitionTo } from "./advance.mjs";
+import { kindsHeld } from "./record/page.mjs";
 import { buildsAt } from "./earned.mjs";
 import { OPEN_KEPT, droppedHead, merged, patchFrom, saidWritten, worklogFor, worklogOf, workNow } from "./worklog.mjs";
 import {
@@ -58,7 +57,6 @@ import {
   nextLine,
   nothingWorked,
   oweRelease,
-  readContext,
   reclaimRefusal,
   setLease,
   stateOf,
@@ -66,9 +64,7 @@ import {
   writeRefusal, HANDED,
   unheldRefusal,
 } from "./lease.mjs";
-import {
-  RECLAIMS_BEFORE_PARK, historyLine, parkAnswers, parksAsCrashed, reclaimsOf,
-} from "./lease/crash-park.mjs";
+import { RECLAIMS_BEFORE_PARK, historyLine, reclaimsOf } from "./lease/crash-park.mjs";
 import { takeLease, takeRefusal } from "./lease/takeover.mjs";
 import { SHARED_HOLDER, handedOn, handedSaid, notHandedHere, sharedHolder } from "./lease/dispatched.mjs";
 import { holderGoneSaid, workUnder } from "./lease/holder.mjs";
@@ -76,7 +72,6 @@ import { workingRefusal } from "./lease/working.mjs";
 import { bandWith, straddleSaid, straddles, unplaceable } from "../wire/shared-clock.mjs";
 
 const MAX_MINUTES = 24 * 60;
-const PARKS_IN = "on_hold";
 
 /* Beside the advisory rather than above the lease line: both are what the run does next, where the lines above are what this write did. A claim opens a phase's work, so the part is the one its status owes. */
 /* And the opening above both, because a run handed an issue past `open` redoes the phases behind it otherwise, through the renderer `forge resume` prints so the two cannot say different things about one record. Both printers are exported so a case reads what each verb prints rather than what that renderer returns, a renderer nobody prints passing every case that asks it for lines (ISS-804). */
@@ -143,23 +138,6 @@ const minutesFrom = (raw) => {
   }
   return value;
 };
-
-/* The crashed park the record ends with: the status it left and when it was written, or nothing. */
-const crashedPark = (comments) => {
-  const parks = comments
-    .map((one) => ({ at: one.createdAt ?? "", record: parse(one.body ?? "") }))
-    .filter((one) => one.record?.kind === "park");
-  const last = parks.at(-1);
-  return last?.record.fields.kind === "crashed"
-    ? { left: last.record.fields.left, at: last.at }
-    : null;
-};
-
-/* A park is a transition, so it clears the line it follows, or this third write would put back what
-   the transition just took away. A line this claim asked for survives it: the person resuming reads
-   it, and writing it, printing it and taking it away again would be the input dropped. */
-export const parkWrite = (lease, next = null) =>
-  ({ holder: lease.holder, minutes: lease.minutes, next: next ?? null });
 
 /* The line taken over from is not the line taken on: printing the incoming one as the last
    holder's would say the dead run left a note its successor wrote. A take is a handoff too, and so
@@ -323,40 +301,16 @@ const takeTurn = async (documentId, ref, issue, context, { holder, source, minut
   return taken;
 };
 
-/* The acknowledgement is the third write, and a run can die before it: on an issue already parked,
-   the record names the status it left and the history it answered is answered from there. */
-const answerPark = async (documentId, ref, context, line) => {
-  const lease = leaseOf(context);
-  const { comments } = await commentPage(documentId);
-  const park = crashedPark(comments);
-  if (!park || !parkAnswers(lease, park.left, park.at)) return false;
-  await setLease(documentId, claimed(context, { ...parkWrite(lease, line), how: "parked", status: park.left }), ref,
-    () => context);
-  console.log(`${ref} is parked as crashed for what it did at ${park.left}, and its history now says so.`);
-  return true;
-};
-
-/* Three writes for one park, and the last says the park was answered: a run that dies between them
-   leaves the park owed, so the record is written again only where it did not land. */
-const parkCrashed = async (documentId, ref, issue, context, line) => {
-  const status = issue.status;
-  const lease = leaseOf(context);
-  const why = `${reclaimsOf(lease, status)} reclaims of ${status}, so the status and not the run is `
-    + `where this dies. Claims at ${status}: ${historyLine(lease, status)}`;
-  const view = { documentId, issue };
-  const { comments } = await commentPage(documentId);
-  const written = crashedPark(comments);
-  const stands = written?.left === status && parkAnswers(lease, status, written.at);
-  if (stands) await transitionTo(view, PARKS_IN, ref);
-  else await parkAs(view, ref, "crashed", why);
-  /* Read again: both branches above renew the lease, so the context this call arrived with is a value the field no longer holds. Building the acknowledgement on it would write the renewal back out of the record, and conditioning it on that value is a refusal this run earns against itself. And judged again on what came back, because a read is not a claim: a run that took the issue while this one was transitioning would otherwise have its own holder written back to it under a precondition that matches, and be told the lease is somebody else's. */
-  const held = await readContext(documentId);
-  const now = leaseOf(held);
-  const state = stateOf(now, sessionOf());
-  if (state !== "mine" && state !== "lapsed") fail(writeRefusal(state, ref, now));
-  await setLease(documentId,
-    claimed(held, { ...parkWrite(now, line), how: "parked", status }), ref, () => held);
-  console.log(`${ref} kept crashing at ${status}. The lease is yours and the issue is a person's.`);
+/* Said and never done, for the reason the threshold carries in crash-park.mjs: past it the caller reads the history and the park command, and decides. */
+const reclaimLines = (ref, lease, status) => {
+  const count = reclaimsOf(lease, status);
+  const said = `Reclaim ${count} of ${status}: the lease before this one lapsed without being handed on.`;
+  if (count <= RECLAIMS_BEFORE_PARK) return [said];
+  return [said,
+    `Claims at ${status}: ${historyLine(lease, status)}`,
+    `This claim moved no status. Where ${status} is where runs die rather than where retried dispatches `
+      + `and readings stopped, set it down for a person:\n  forge record park ${ref} --kind crashed `
+      + `--why "${count} reclaims of ${status}: <what you read that says the runs died here>"`];
 };
 
 export const claim = async (argv) => {
@@ -473,7 +427,7 @@ export const claim = async (argv) => {
   }
   /* Off the remnant where there is no lease to read it from, so the flag that clears the refusal is not the way to lose the one line the refusal just printed. */
   const left = lease?.next ?? nextLeft(context);
-  /* A gone holder is a reclaim like any other, so the park counting reclaims of one status keeps counting the runs that died there — except where the record already calls the take a handoff, the dispatcher that exited being the one holder whose going is not a crash of this issue's (ISS-919). */
+  /* A gone holder is a reclaim like any other, so the count of reclaims at one status keeps counting the runs that stopped there — except where the record already calls the take a handoff, the dispatcher that exited being the one holder whose going is not a crash of this issue's (ISS-919). */
   const how = howsFor({ unheld, handed })[state];
   const checkpoint = given.ready
     ? readyCheckpoint(ref, holder, patch, landingOf(context), issue.status)
@@ -503,19 +457,8 @@ export const claim = async (argv) => {
   const account = handWrittenOf(checkpoint)?.why;
   if (account) console.log(`What licensed it: ${account}.`);
   for (const one of nextLines(how, left, taken.next)) console.log(one);
-  /* Beside the lease it is about, and above every route out of here: a claim that answers a park
-     returns below, and the run would take the lease without being told what it matched on. */
   if (sharedHolder(taken, mine)) console.log(SHARED_HOLDER);
-  /* Decided after the write, so what decides is the history this claim has just added to. */
-  if (issue.status === PARKS_IN) {
-    if (await answerPark(documentId, ref, next, line)) return undefined;
-  } else if (parksAsCrashed(taken, issue.status)) {
-    return parkCrashed(documentId, ref, issue, next, line);
-  }
-  if (how === RECLAIM) {
-    console.log(`Reclaim ${reclaimsOf(taken, issue.status)} of ${issue.status}: `
-      + `the one after ${RECLAIMS_BEFORE_PARK} parks the issue as crashed.`);
-  }
+  if (how === RECLAIM) for (const one of reclaimLines(ref, taken, issue.status)) console.log(one);
   return advise(documentId, issue, worklogOf(next));
 };
 claim.answersHelp = true;
