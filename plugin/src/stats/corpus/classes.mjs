@@ -22,13 +22,13 @@ const row = (...words) => FORGE_ROW + words.filter(Boolean).join(" ");
 export const WHOLE_SET_CLASS = row("codex", "whole-set");
 const WHOLE_SET = /--send[= \t]+bodies\b/u;
 
+/** The claim's own row, which opens a run and which the joins and the generation table read. */
+export const CLAIM_CLASS = row("claim");
+
 /** The landing a run leaves for another actor to make: a capture on this CLI's own claim, and its
  *  own row rather than that claim's, the claim opening a run and this checkpoint ending one. The
  *  flag is read here so no second reader spells it. */
 export const READY_CLASS = row("claim", "ready");
-
-/** The claim's own row, which opens a run and which the joins and the generation table read. */
-export const CLAIM_CLASS = row("claim");
 const READY = /--ready\b/u;
 
 export const RECHECK_CLASS = row("codex", "recheck");

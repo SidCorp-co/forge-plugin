@@ -65,10 +65,10 @@ export const DIAGNOSE_USAGE = [
   "  --json         the reading alone, one object",
 ].join("\n");
 
-/* One set per reading, for the reason the eval keeps one anchor: the runs read are what every line
-   of the reading is about, and two ways of naming them is two readings wearing one screen. */
 const VERB = "stats diagnose";
 
+/* One set per reading, for the reason the eval keeps one anchor: the runs read are what every line
+   of the reading is about, and two ways of naming them is two readings wearing one screen. */
 export const setAsked = ({ last, since, issues }) => {
   const named = [["--last", last], ["--since", since], ["--issues", issues]]
     .filter(([, value]) => value !== undefined);
