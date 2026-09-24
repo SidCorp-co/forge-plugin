@@ -88,6 +88,7 @@ const ACCEPTED = {
   "the refused shape inside a comment": `/* ${MADE}assert.match(said, new RegExp(\`in \${work}\`, "u")); */\nconst n = 1;\n`,
   "a pattern that interpolates nothing": `${MADE}assert.match(said, new RegExp("in \\\\S+", "u"));\n`,
   "a pattern spelt out as a raw template, brackets and all": `${MADE}assert.match(said, new RegExp(String.raw\`(?!\\()in\`, "u"));\n`,
+  "a raw template whose spelt-out text holds the name a path is bound to": `${MADE}assert.match(said, new RegExp(String.raw\`^work took the step\\s+1\`, "u"));\n`,
   "a list joined into a pattern, which is no directory": `const RUNGS = ["a", "b"];\nassert.match(said, new RegExp(\`one of \${RUNGS.join("|")}\`, "u"));\n`,
   "a whole concatenation put through the escape": `${MADE}const at = tmpdir();\nassert.match(said, new RegExp(\`in \${escaped(at + work)}\`, "u"));\n`,
   "a whole pattern put through the escape, interpolation and all": `${MADE}assert.match(said, new RegExp(escaped(\`^\${work}$\`), "u"));\n`,
