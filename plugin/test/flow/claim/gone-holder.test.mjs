@@ -171,13 +171,14 @@ test("the take goes into the claim history as the reclaim it is", async () => {
   assert.match(took.stdout, /Reclaim 1 of approved/u, "and the count is read back to the caller");
 });
 
-test("the park that answers a status where runs keep dying counts this take among them", async () => {
+test("the count of reclaims at a status counts this take among them, and the claim parks nothing", async () => {
   heldBy({ history: [reclaimed(ago(300)), reclaimed(ago(200))] });
   const took = await ran(["claim", "ISS-919"]);
   assert.equal(took.status, 0, took.stderr);
-  assert.match(took.stdout, /kept crashing at approved/u,
-    "the third reclaim of one status is a person's, whichever of the three proved its holder gone");
-  assert.equal(ISSUE.status, "on_hold", "and the issue is parked on the tracker");
+  assert.match(took.stdout, /Reclaim 3 of approved/u,
+    "the third reclaim of one status, whichever of the three proved its holder gone");
+  assert.match(took.stdout, /forge record park ISS-919 --kind crashed/u, "named to the caller as the park to judge");
+  assert.equal(ISSUE.status, "approved", "and the issue stays where it stood");
 });
 
 test("a payload write meeting that same lease takes it rather than being refused", async () => {

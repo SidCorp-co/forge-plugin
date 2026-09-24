@@ -90,8 +90,8 @@ forty-five of the hour a default one runs now (ISS-1091).
 minted, and the mint spells the issue into it — `iss-1091-90f5a52f` is ISS-1091's (ISS-467). A run
 holding that id is, by construction, the run that issue was dispatched to. So a live lease held by
 anybody whose id does not also name that issue no longer refuses its claim, and the handoff goes on
-the claim history under a word of its own, because a crash park counts runs that died at a status
-and a dispatcher that never held the work is not one of them.
+the claim history under a word of its own, because the count a reclaim prints counts runs that
+stopped at a status, and a dispatcher that never held the work is not one of them.
 
 **Three conditions keep it to the dispatch**, each a case where a live lease is work rather than a
 hold. The landing checkpoint governs wherever its state names a turn, so an issue-bound id cannot

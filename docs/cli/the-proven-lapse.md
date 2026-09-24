@@ -19,8 +19,8 @@ beside it refuses. A change that dropped the age comparison instead would have t
 with it, and the guard that stops a takeover mid-build has nothing to do with the round being
 removed.
 
-**The record keeps the word the typed reclaim kept**, because the crash park counts the reclaims of a
-status to find where runs die, and a pickup that stopped being typed is no less a run that died
-there. It also keeps the displaced run and the moment its lease ran out, which no other claim row
+**The record keeps the word the typed reclaim kept**, because the count a reclaim prints reads the
+reclaims of a status to show where runs stop, and a pickup that stopped being typed is no less a
+run that died there. It also keeps the displaced run and the moment its lease ran out, which no other claim row
 does: every other caller read a refusal naming both before it wrote, and this one read nothing at
 all.

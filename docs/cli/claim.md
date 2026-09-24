@@ -29,7 +29,16 @@ the same three calls. That read is the last call before the write: the comment g
 passes was a round trip sitting between the two, and a review of this issue's own change caught it
 there, widening a window nothing in this CLI could close by as long as a comments list takes. A
 reclaim is a handoff between two holders, though, so a holder taking its own lapsed lease back
-appends nothing to the history and brings no park closer.
+appends nothing to the history and adds nothing to the count a reclaim prints.
+
+**A claim takes the lease and writes nothing else.** It moved the issue to `on_hold` and posted a
+`crashed` park once a status had been reclaimed three times, and forge-dev ISS-946 showed what that
+count was made of: four dispatch attempts on distinct sessions, one a job that never started and the
+last the caller itself, parked mid-flight with a green typecheck (ISS-693). The caller is the one
+process that knows whether it is alive, and the retry bound on a dispatched run is whatever
+dispatched it; a count read at claim time can tell neither a retried dispatch nor a reading lease
+from a run that died. So the count is said to the caller rather than acted on, and the park stays
+`forge record park`'s, written by a caller that judged it.
 
 The holder is the harness's own session, read twice to check that it is stable for the life of a
 process tree. Outside a harness it is a file under the config directory, which names a machine
@@ -64,8 +73,7 @@ names the source of the id it holds, so a wave sharing one is visible before it 
 after.
 
 Each payload write costs the lease a read and a write, and a read back on top of them where the far
-end refuses no stale write; and every one of them pays, because a park is three writes and an upload
-of four files is four: a run reclaimed halfway through has to be refused at the next of them rather
+end refuses no stale write; and every one of them pays, because an upload of four files is four writes: a run reclaimed halfway through has to be refused at the next of them rather
 than carried to the end.
 
 What the lease records beside the holder, and the two readings that settle a lease its duration
@@ -75,8 +83,8 @@ cannot: [the dead holder](the-dead-holder.md).
 the claim, on `forge advance` and on any `forge record` that writes; every renew keeps it, because a
 payload write is not a new step; and the transition it precedes clears it, because that step is over.
 A claim that takes an issue over prints it, `forge advance --owed` prints it above the shortfall,
-and the claim history keeps the line that was current at each reclaim, so a crash loop shows where each attempt
-died rather than only that it did. Nothing checks the sentence — it earns no status and it is the
+and the claim history keeps the line that was current at each reclaim, so a status runs keep stopping
+at shows where each attempt stopped rather than only that it did. Nothing checks the sentence — it earns no status and it is the
 run's note to its successor, not a payload. It is written by the renew that precedes the write it
 belongs to, which is the same call that refuses a stale holder, so a write that then fails can leave
 the line describing a step that never started; that costs a sentence and never a fact, because what

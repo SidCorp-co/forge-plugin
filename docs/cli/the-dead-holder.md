@@ -34,8 +34,8 @@ reach and why a live reading here is no reading at all. An id that exists but th
 signal counts as answering, another user's run being nobody's to declare dead. And the domain is
 readable where the kernel publishes both of its halves; elsewhere the lease records none, and a
 lease with no domain, or another's, is left to its clock exactly as every lease was before this.
-The take is a reclaim like any other on the claim history, so the park that answers a status where
-runs keep dying counts it — except where the record already calls the take a handoff, the
+The take is a reclaim like any other on the claim history, so the count of reclaims a claim prints
+counts it — except where the record already calls the take a handoff, the
 dispatcher that exited being the one holder whose going is not a crash of this issue's.
 
 **A holder a worktree minted names the tree and not the run standing in it.** The id lives beside
