@@ -8,13 +8,13 @@ import { join } from "node:path";
 import {
   BASE, KEY, NEXT_BRANCH, NEXT_KEY, NEXT_OWNED, NEXT_UUID, context, ctx, ready, seeded, sha, tracker,
   world,
-} from "./fixture.mjs";
-import { tempRoom } from "../../fixtures.mjs";
+} from "../fixture.mjs";
+import { tempRoom } from "../../../fixtures.mjs";
 
-const { landReady } = await import("../../../../tools/run/land-ready.mjs");
-const { Stop } = await import("../../../../tools/checkout.mjs");
-const { DECLINED } = await import("../../../../tools/gates/machine.mjs");
-const { landingOf } = await import("../../../src/flow/landing/checkpoint.mjs");
+const { landReady } = await import("../../../../../tools/run/land-ready.mjs");
+const { Stop } = await import("../../../../../tools/checkout.mjs");
+const { DECLINED } = await import("../../../../../tools/gates/machine.mjs");
+const { landingOf } = await import("../../../../src/flow/landing/checkpoint.mjs");
 
 test.after(() => tracker.close());
 
