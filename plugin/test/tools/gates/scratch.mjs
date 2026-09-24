@@ -1,6 +1,6 @@
 /* A checkout of the runner's own per case, and a configuration home beside it: a case's questions are about that tree and that box, never this repository's and never whoever ran the suite. */
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -124,6 +124,28 @@ export const stopGate = async (child) => {
   child.stderr.destroy();
 };
 
+const TICK = 100;
+
+/* One directory per process, the files the count reads. `cwd` is a link because /proc's is, and a relative runner path in a
+   command line resolves against nothing else; `out` is where the process's standard output goes, a link as /proc's is. */
+export const procTable = (rows) => {
+  const at = tempRoom("proc-");
+  for (const [nth, row] of rows.entries()) {
+    const pid = row.pid ?? 1000 + nth;
+    const dir = join(at, String(pid));
+    mkdirSync(dir);
+    writeFileSync(join(dir, "cmdline"), `${row.argv.join("\0")}\0`);
+    writeFileSync(join(dir, "stat"), `${pid} (node) R 1 ${pid} ${pid} `
+      + `${new Array(16).fill("0").join(" ")} ${row.start * TICK}\n`);
+    symlinkSync(row.cwd ?? at, join(dir, "cwd"));
+    if (row.out) {
+      mkdirSync(join(dir, "fd"));
+      symlinkSync(row.out, join(dir, "fd", "1"));
+    }
+  }
+  return at;
+};
+
 /* A step writing the hook stamp room into whatever temporary directory it was handed, which is the
    shape a suite has when nothing points TMPDIR at a room of its own (ISS-361). */
 export const LEAKS = "node -e \"const fs=require('node:fs'),os=require('node:os'),p=require('node:path');"
@@ -191,6 +213,14 @@ export const scratch = (name, failing, leaking,
   git(work, "commit", "-m", "the tree");
   git(work, "checkout", "-b", "work");
   return { at, work };
+};
+
+/** A second worktree of a scratch checkout, cut beside it: a second gate of the same tree is refused before any ceiling is
+ *  read (ISS-1705), so a case about the ceiling needs a second tree to put its second gate in. */
+export const sibling = (work, name = "sibling") => {
+  const tree = join(work, "..", name);
+  git(work, "worktree", "add", "-q", "-b", name, tree);
+  return tree;
 };
 
 // One landing under a path of every step, so a run over it fills the record whole: a question about a tree the record already answers for is one a scoped landing cannot ask.

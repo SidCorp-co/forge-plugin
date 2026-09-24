@@ -1,12 +1,14 @@
 /* Which gates of this checkout are running, and whether this one may join them. Counted off the process table rather than
    off files a gate leaves behind: a file has to be reclaimed when its holder is killed and reclaiming a shared name is a race
    two gates can both win, where a process is its own record and a killed gate has none. A wait of the same runner is not one
-   of them: counted, it would decline a gate that could have run and look like a run to a second wait (`gates.mjs -h`). */
-import { readFileSync, readdirSync, readlinkSync } from "node:fs";
+   of them: counted, it would decline a gate that could have run and look like a run to a second wait (`gates.mjs -h`). Two
+   gates of one tree are refused outright rather than counted, since they share one record and the later judges nothing. */
+import { readFileSync, readdirSync, readlinkSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 
 import { gitOut, lines } from "../checkout.mjs";
 import { parallelRuns } from "../../plugin/src/resolve/settings.mjs";
+import { WAIT_COMMAND } from "../../plugin/src/hooks/wait-idiom.mjs";
 
 export const PROC = "/proc";
 const RUNNER = join("tools", "gates.mjs");
@@ -94,3 +96,36 @@ export const placeFor = (ours, { proc = PROC, declared = parallelRuns(), pid = p
   const ahead = mine === -1 ? running : running.slice(0, mine);
   return { declared, ahead, declined: ahead.length >= declared.value };
 };
+
+/** The earliest gate of this same tree the kernel started before this one, or null: the later of two gates over one tree is the one
+    refused, so the first is never turned away for a second it could not have seen coming. Counted whatever number is declared. */
+export const treeHeldBy = (root, ours, { proc = PROC, pid = process.pid } = {}) => {
+  const running = gatesOn(ours, proc);
+  if (running === null) return null;
+  const mine = running.findIndex((one) => one.pid === pid);
+  const ahead = mine === -1 ? running : running.slice(0, mine);
+  return ahead.find((one) => one.tree === root && one.pid !== pid) ?? null;
+};
+
+/** The file a process's standard output is written to, or null where it reaches none: a pipe, a socket, a terminal or `/dev/null`.
+    Judged by what the descriptor opens and never by the name, a regular file under `/dev/shm` being a log like any other. */
+export const outputOf = (pid, proc = PROC) => {
+  const fd = join(proc, String(pid), "fd", "1");
+  try {
+    return statSync(fd).isFile() ? readlinkSync(fd) : null;
+  } catch {
+    return null;
+  }
+};
+
+/** The refusal of a second gate over one tree, its route the one-call wait on the gate already running. */
+export const heldSaid = (root, holder, { output, seconds }) => [
+  `This gate refused to start and judged nothing: a gate of this same tree is already running, and two gates over one tree`
+    + ` read and write one record at once, so the later answers about neither.`,
+  `  pid ${holder.pid}  gating ${holder.tree}  ${output === null
+    ? "its output reaches no file"
+    : `writing to ${output}`}`,
+  `Wait for it: ${WAIT_COMMAND.replace("<seconds>", String(seconds)).replace("<pid>", String(holder.pid))}`,
+  `Then read its verdict: node tools/gates.mjs ${WAIT}`,
+  `No step ran and nothing was recorded, so nothing here judges ${root}.`,
+].join("\n");

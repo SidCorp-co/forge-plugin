@@ -16,7 +16,7 @@ import { CALL_CEILING_SECONDS } from "../plugin/src/host/call-ceiling.mjs";
 import { attribute, attributionLines, CASES_ENV } from "./gates/reporters/isolation.mjs";
 import { cheapestFirst, ENTRIES_PER_STEP, ledgerFor, LEDGER_UNSEEN, recordPass, secondsFor } from "./gates/ledger.mjs";
 import { PUTS_IT_BACK, said as saidMissing, unresolvedIn } from "../plugin/src/resolve/installed.mjs";
-import { DECLINED, placeFor, RAISE, runnersOf, SLOT, WAIT } from "./gates/machine.mjs";
+import { DECLINED, heldSaid, outputOf, placeFor, RAISE, runnersOf, SLOT, treeHeldBy, WAIT } from "./gates/machine.mjs";
 import { fileRecurrences, reachedBy, recurrencesIn } from "./gates/recurrence.mjs";
 import { deadClaim, escapedClaim, escapedStep, ledgerSaid, readsSaid, severalCauses, stepRead, stepSaid,
   wroteSets } from "./gates/report/said.mjs";
@@ -29,6 +29,7 @@ import { auditEnv, claimsJudged, contextOf, manifestsIn, readsDir, recordSets, s
   stepEscapes, stepSetFrom } from "./gates/reads/sets.mjs";
 import { ATTRIBUTION_HELP } from "./gates/help/attribution.mjs";
 import { READS_HELP } from "./gates/help/reads.mjs";
+import { MACHINE_HELP } from "./gates/help/machine.mjs";
 import { gateTmp, leakMessage, roomLeft } from "./gates/stamp-room.mjs";
 import { alonePath, casesPath, CEILING_PERCENTILE, REVIEW, fileTimesPath, recordDir, recordRun, roomPath,
   runKey, seriesFile } from "./gates/timing.mjs";
@@ -107,36 +108,7 @@ Every step runs under a temporary directory of this run's own, and a step that l
 hook stamps in it is failed: on a developer's machine that directory is the room every hook reaps
 before every stamp, and a suite that fills it is a cost no green can show.
 
-Before any of that, before the table and before the first step, it counts the gates of this checkout
-already running and declines where they have reached the number this project declares — one number,
-${RAISE}, absent which nothing is counted and nothing declines. A decline exits ${DECLINED}
-rather than 1, names each gate it counted and the tree that gate is judging, records no pass and no
-figure, and says no verdict about this tree: a run that spent twenty-five minutes and then reported
-the tree is what this exists to stop, and a refusal costing the caller a step has already lost the
-argument.
-
-What it counts is gates, not load. Four whole runs of this gate at one-minute loads of 5.6, 5.9,
-10.5 and 24.7 did not order by whether they passed (ISS-917), and three whole gates at once, at load
-27, were all green. What it counts them off is the process table: a gate is a node process running a
-runner of one of this checkout's worktrees, and the order is the kernel's own start time for each,
-which is fixed before either gate runs a line. A file left behind would have to be reclaimed when
-its holder is killed, and reclaiming a shared name is a race two gates can both win.
-
-The ceiling is advisory and not mutual exclusion. A gate becomes countable when the shell
-\`npm run check\` spawned execs node, so two gates starting inside that window — milliseconds, and
-only ever a gate's own fork-to-exec — can both admit themselves; the cost of that is one extra gate
-on a box measured to carry three with no loss. Not counted at all: a gate of another checkout, a
-build of another project, a gate belonging to another user, and every gate on a machine whose
-process table cannot be read, which declines nobody. Only the process running a runner is counted,
-never one that merely names its path, because a run declined for somebody's \`grep\` costs a wave a
-round.
-
-The number also divides the cores a test step spends, and the run prints what it sized itself to, so
-a step that took longer for a smaller fan-out cannot be read as a starved machine. A box that has
-declared nothing spends every core, as it always did. What that costs is measured here over 175 files
-and 2368 cases — the same work took 276s at 3 workers, 223s at 6, 228s at 12 and 231s at 18 — and it
-is paid deliberately: a gate that overruns the machine does not come back slower, it comes back
-\`unproved\` and is spent again whole.
+${MACHINE_HELP}
 
 A run in the shared checkout is refused while that checkout holds uncommitted paths: more than one
 session stands there, so the result would be about a tree none of them owns. A worktree is never
@@ -285,6 +257,17 @@ if (waiting) {
     : await waitForVerdict(ROOT, { minutes }));
 }
 
+const ours = runnersOf(ROOT);
+
+/* Before the start record, because the later of two gates over one tree writing a line there is what a wait reading
+   that record would be handed in place of the earlier gate's verdict (ISS-1705). */
+const holder = treeHeldBy(ROOT, ours);
+
+if (holder !== null) {
+  console.error(heldSaid(ROOT, holder, { output: outputOf(holder.pid), seconds: DEFAULT_MINUTES * 60 }));
+  process.exit(DECLINED);
+}
+
 const dirty = uncommittedInShared(ROOT);
 const listed = (say) => {
   for (const one of dirty) say(`    ${one}`);
@@ -338,7 +321,7 @@ try {
 
 /* Before the table, the record and the first step, because a refusal that cost the caller a step has
    already lost the argument. It says nothing about the tree and records nothing of it. */
-const place = placeFor(runnersOf(ROOT));
+const place = placeFor(ours);
 
 if (place.declined) {
   console.error(`\nThis gate declined the machine and judged nothing.`);
