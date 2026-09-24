@@ -12,6 +12,8 @@ export const form = (head, tail) => ({
 const TRANSCRIPT = ".jsonl";
 
 export const AGENT_FILE = form("agent-", TRANSCRIPT);
+/** A session's own transcript, beside the directory its agents' are kept in. */
+export const SESSION_FILE = form("", TRANSCRIPT);
 export const AGENTS_DIR = "subagents";
 
 export const TASK_FILE = form("a", ".output");

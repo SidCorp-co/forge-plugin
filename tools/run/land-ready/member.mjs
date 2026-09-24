@@ -3,6 +3,7 @@
    hold, and why these are the only steps it spends per member: docs/cli/the-checkpoint.md. */
 import { stop, Stop } from "../../checkout.mjs";
 import { shortly } from "../install.mjs";
+import { releaseReadings } from "../release/readings.mjs";
 import { stillReads } from "./candidate.mjs";
 import { Refusal, refusing } from "../../../plugin/src/resolve/settings.mjs";
 import { Refused } from "../../../plugin/src/refusal.mjs";
@@ -144,8 +145,12 @@ export const OWED_TO_QA = (key, landing, what) =>
   + `    ... the verdicts, then: forge claim ${key} --judged`;
 
 export const markStep = async (one) => {
-  const { at, ctx: { base } } = one;
+  const { at, ctx: { base, root } } = one;
   const landed = intendedOf(at);
+  /* Once for the release and ahead of every member's mark, so the reading names the whole candidate;
+     here rather than in a step of its own because this is the first step after the install. A resume
+     reaching it again writes nothing twice: a release reading is held once per version. */
+  await releaseReadings(root, { version: releaseOf(at), head: landed, issues: at.members.map((member) => member.key) });
   await perMemberOwed(at, async (member) => {
     const { key, documentId, landing } = member;
     const { comments } = await asked(() => commentPage(documentId));

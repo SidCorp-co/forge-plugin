@@ -7,6 +7,8 @@ import { releasesOn } from "./releases.mjs";
 import { opportunitiesOf } from "./opportunities.mjs";
 import { corpusOf } from "../corpus/read.mjs";
 import { profileOf } from "../runs.mjs";
+import { landingsOver, landingsUnder } from "../corpus/landings.mjs";
+import { classesFor } from "../corpus/classes.mjs";
 import { movedIn } from "../eval/eval.mjs";
 import { FLOOR, THIN } from "../model-rows.mjs";
 import { median } from "../median.mjs";
@@ -89,17 +91,27 @@ const runsSection = (all, day, projects) => {
   };
 };
 
-const landingsOf = (runs) => {
-  if (!runs.length) return null;
-  const held = profileOf(runs);
-  const gate = held.byClass.find(([label]) => label === GATE_CLASS)?.[1] ?? { calls: 0, wait: 0 };
-  return { passes: held.ships.passes, resumed: held.ships.resumed, rejectedRuns: held.ships.rejectedRuns,
-    gateCalls: gate.calls, gateMinutes: minutes(gate.wait) };
+/* The passes and their resumes are the landing reader's, off every transcript and at each pass's own
+   time, because a landing a dispatching session types is in no run; the rejected pushes and the gate
+   are figures of the day's runs. */
+const landingsOf = (runs, passes) => {
+  const landed = landingsOver(passes);
+  if (!runs.length && !landed.passes) return null;
+  const held = runs.length ? profileOf(runs) : null;
+  const gate = held?.byClass.find(([label]) => label === GATE_CLASS)?.[1] ?? { calls: 0, wait: 0 };
+  return { passes: landed.passes, resumed: landed.resumed, outsideRuns: landed.outsideRuns,
+    rejectedRuns: held?.ships.rejectedRuns ?? 0, gateCalls: gate.calls, gateMinutes: minutes(gate.wait) };
 };
 
-const landingsSection = (all, day) => ({
-  headline: landingsOf(runsOn(all, day)),
-  trend: trendDays(day).map((one) => ({ day: one, passes: landingsOf(runsOn(all, one))?.passes ?? null })),
+const passesOn = (passes, day) => passes.filter((one) => within(one.at, day));
+
+/** Where the page's landings begin: the first day its trend draws. */
+export const landingsFrom = (day) => boundsOf(trendDays(day)[0]).from;
+
+const landingsSection = (all, passes, day) => ({
+  headline: landingsOf(runsOn(all, day), passesOn(passes, day)),
+  trend: trendDays(day).map((one) => ({ day: one,
+    passes: landingsOf(runsOn(all, one), passesOn(passes, one))?.passes ?? null })),
   missing: [MISSING.firstGate, MISSING.causes, MISSING.gateLost],
 });
 
@@ -183,17 +195,19 @@ const movedOf = (all, day, profile) => {
 };
 
 /** The first moment anything was recorded on this device, for the range a refusal names. */
-const firstOf = (all, entries) => {
-  const moments = [...all.map((run) => run.startedAt), ...answered(entries).map((one) => Date.parse(one.at)).filter(Number.isFinite)];
+const firstOf = (all, entries, passes) => {
+  const moments = [...all.map((run) => run.startedAt), ...passes.map((one) => one.at),
+    ...answered(entries).map((one) => Date.parse(one.at)).filter(Number.isFinite)];
   return moments.length ? Math.min(...moments) : null;
 };
 
-/** Every registered project's corpus, read once each. */
-export const corporaOf = async (read) => {
+/** Every registered project's corpus, read once each, and its landings from `since` on. */
+export const corporaOf = async (read, since = null) => {
   const projects = [];
   for (const one of read) {
     const corpus = await corpusOf(one.checkout);
-    projects.push({ ...one, runs: corpus.runs });
+    const passes = landingsUnder(corpus.root, classesFor(corpus.declared, corpus.act), corpus.passes, since);
+    projects.push({ ...one, runs: corpus.runs, passes });
   }
   return projects;
 };
@@ -202,11 +216,12 @@ export const corporaOf = async (read) => {
  *  names and the report itself come off one reading. */
 export const readingOf = ({ projects, entries = logEntries(), hooks = hookEntries() }) => {
   const all = projects.flatMap((one) => one.runs).sort((left, right) => left.startedAt - right.startedAt);
-  return { projects, all, entries, hooks, first: firstOf(all, entries) };
+  const passes = projects.flatMap((one) => one.passes ?? []);
+  return { projects, all, passes, entries, hooks, first: firstOf(all, entries, passes) };
 };
 
 export const contentOf = async (reading, day, { unread = [], match } = {}) => {
-  const { projects, all, entries, hooks } = reading;
+  const { projects, all, passes, entries, hooks } = reading;
   const runs = runsSection(all, day, projects);
   const { profile, ...runsShown } = runs;
   const releases = await releasesOn(day, all);
@@ -218,7 +233,7 @@ export const contentOf = async (reading, day, { unread = [], match } = {}) => {
     projects: projects.map((one) => ({ name: one.name, slug: one.slug, checkout: one.checkout })),
     unread: unread.map((one) => ({ name: one.name, slug: one.slug })),
     runs: runsShown,
-    landings: landingsSection(all, day),
+    landings: landingsSection(all, passes, day),
     consults: consultsSection(entries, day),
     friction,
     releases,

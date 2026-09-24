@@ -32,6 +32,16 @@ test("a declared command is the class, and it replaces the built-in rather than 
   }
 });
 
+/* Criterion 4 of ISS-2435: the route every release on a `ship: ready` project lands by. */
+test("a landing through land-ready is a ship pass, and neither its sibling verb nor a mention of it is", () => {
+  assert.equal(said("node /w/tools/run.mjs land-ready ISS-9 ISS-10"), "ship", "the landing verb is the ship row");
+  assert.equal(said("cd /w && node tools/run.mjs land-ready ISS-9 2>&1 | tail -40"), "ship",
+    "and so is a landing whose output is read in the same call");
+  assert.notEqual(said("node /w/tools/run.mjs land ISS-9"), "ship", "while `land` installs nothing and lands no release");
+  assert.equal(said('until ! pgrep -f "tools/run.mjs land-ready"; do sleep 10; done'), POLL,
+    "and a wait for one polls for the process by name rather than landing anything");
+});
+
 test("several commands may be declared for one class, and a class declares nothing by omission", () => {
   const declared = { gate: ["make check", "make check-fast"] };
   assert.equal(said("make check-fast", declared), "gate");
@@ -281,9 +291,12 @@ test("a ready checkpoint is the landing's own class", () => {
 });
 
 test("the rows this generation moved are the ones it names", () => {
-  for (const label of [DEPLOY, "read", POLL, WAIT, SHELL, "forge claim", READY_CLASS, ...SHELL_EDITS]) {
+  for (const label of ["ship", "read", SHELL]) {
     assert.equal(MOVED_AT.get(label), TABLE,
       `${label} holds a different population than it did at the generation before this one`);
+  }
+  for (const label of [DEPLOY, POLL, WAIT, "forge claim", READY_CLASS, ...SHELL_EDITS]) {
+    assert.equal(MOVED_AT.get(label), 3, `${label} last moved at the generation that added the wait row`);
   }
   assert.equal(MOVED_AT.get("gate"), 1, "while a row nothing moved names the first table");
   assert.equal(MOVED_AT.get("git"), 1,
@@ -316,9 +329,9 @@ test("every row the table names carries the generation it was born or last moved
 test("the discriminator and the generation each have one home the table reads", () => {
   assert.ok(classesFor(null).some(([label, match]) => label === WAIT && match.source.includes(WAITS_ON_PID)),
     "the table matches on the shared fragment rather than spelling the argument again");
-  assert.equal(MOVED_AT.get(WAIT), TABLE, "the row this generation added names this generation");
+  assert.equal(MOVED_AT.get(WAIT), 3, "the row generation 3 added names that generation");
   for (const label of [WAIT, POLL, "read"]) {
-    assert.equal(MOVED_AT.get(label), TABLE, `${label} holds a different population than it did before`);
+    assert.ok(MOVED_AT.get(label) >= 3, `${label} holds a different population than it did before the wait row`);
   }
   assert.equal(MOVED_AT.get("gate"), 1, "while a row nothing moved names the first table");
 });

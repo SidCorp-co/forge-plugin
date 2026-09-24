@@ -78,9 +78,10 @@ const runsHtml = (runs, days) => {
 const landingsHtml = (landings, days) => {
   const held = landings.headline;
   const head = held
-    ? `<p class="headline"><strong>${esc(held.passes)} landing pass(es)</strong>, ${esc(held.resumed)} resumed with --from, `
+    ? `<p class="headline"><strong>${esc(held.passes)} landing pass(es)</strong>, ${esc(held.outsideRuns)} of them in a session `
+      + `no issue-flow run holds, ${esc(held.resumed)} resumed with --from, `
       + `a push rejected in ${esc(held.rejectedRuns)} run(s), ${esc(held.gateMinutes)} gate minute(s) spent over ${esc(held.gateCalls)} gate call(s).</p>`
-    : `<p class="headline"><strong>No run</strong> ended on this day, so no landing figure is read.</p>`;
+    : `<p class="headline"><strong>No landing pass</strong> was typed and no run ended on this day, so no landing figure is read.</p>`;
   return `<section id="landings"><h2>Landings</h2>${head}`
     + trendSvg("landing passes a day", days, landings.trend.map((one) => one.passes))
     + `<ul>${landings.missing.map((one) => `<li>${missing(one)}</li>`).join("")}</ul></section>`;

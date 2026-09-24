@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { basename, join } from "node:path";
 import { homedir, tmpdir } from "node:os";
 
-import { AGENTS_DIR, AGENT_FILE, TASKS_DIR, TASK_FILE } from "../../host/layout.mjs";
+import { AGENTS_DIR, AGENT_FILE, SESSION_FILE, TASKS_DIR, TASK_FILE } from "../../host/layout.mjs";
 import { canonical } from "../../resolve/canonical.mjs";
 
 const transcriptBase = () => join(tmpdir(), `claude-${process.getuid?.() ?? 0}`);
@@ -39,6 +39,15 @@ export const sourcesFor = (root) => [
   { path: join(durableBase(), basename(root)), temporary: false, held: AGENTS_DIR, shape: AGENT_FILE.shape },
   { path: root, temporary: true, held: TASKS_DIR, shape: TASK_FILE.shape },
 ];
+
+/** The sessions' own transcripts, which `corpusUnder` does not read: no issue-flow run is among them,
+ *  and the landing a dispatching session types is (ISS-2435). */
+export const sessionsUnder = (root) => {
+  const store = join(durableBase(), basename(root));
+  return namesIn(store)
+    .filter((entry) => !entry.isDirectory() && SESSION_FILE.shape.test(entry.name))
+    .map((entry) => ({ path: join(store, entry.name) }));
+};
 
 /** Every transcript of one project, each source's own count beside it — the count being what a reader needs to tell a swept index from a corpus that was never deeper. */
 /* The index entries are symlinks into the store, so the same transcript is under both roots and only the path each resolves to says so: counted twice it would double every figure computed over the corpus (ISS-1578). */

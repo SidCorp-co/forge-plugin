@@ -4,7 +4,7 @@
 import { existsSync } from "node:fs";
 
 import { dayIn, dayRefusal, heldRange, yesterday } from "./day.mjs";
-import { contentOf, corporaOf, readingOf } from "./gather.mjs";
+import { contentOf, corporaOf, landingsFrom, readingOf } from "./gather.mjs";
 import { backlogMatcher } from "./opportunities.mjs";
 import { indexPageOf, pageOf } from "./page.mjs";
 import { projectsOn, registered } from "./projects.mjs";
@@ -63,7 +63,7 @@ export const printDaily = async (rest) => {
       return null;
     }
     const found = projectsOn();
-    const reading = readingOf({ projects: await corporaOf(found.read) });
+    const reading = readingOf({ projects: await corporaOf(found.read, landingsFrom(day)) });
     refusedIfDue(day, reading);
     const allowed = [reports.dir, ...found.read.map((one) => one.checkout)];
     const content = shownDeep(await contentOf(reading, day, {

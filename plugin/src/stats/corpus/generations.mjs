@@ -7,7 +7,7 @@ import {
 
 /** The generation of the class table. A row added or removed, or a pattern changed so a call moves
  *  between rows, is a new generation, and a reading carries the one that classed it. */
-export const TABLE = 3;
+export const TABLE = 4;
 
 /** The table before readings carried a generation; those cross every row. */
 const FIRST = 1;
@@ -18,9 +18,10 @@ const FIRST = 1;
  *  this is at or below `g`. A removed row keeps its entry; one that took another's calls is stamped
  *  where it took them. The table's alone: what a project decides is below. */
 export const MOVED_AT = new Map([
-  ...["gate", "ship", "test", "cleanup", "git", "edit", "write", WHOLE_SET_CLASS, RECHECK_CLASS]
+  ...["gate", "test", "cleanup", "git", "edit", "write", WHOLE_SET_CLASS, RECHECK_CLASS]
     .map((label) => [label, FIRST]),
-  ["read", 3], [POLL, 3], [WAIT, 3], [SHELL, 3], [DEPLOY, 3], [CLAIM_CLASS, 3], [READY_CLASS, 3],
+  ["ship", 4], ["read", 4], [SHELL, 4],
+  [POLL, 3], [WAIT, 3], [DEPLOY, 3], [CLAIM_CLASS, 3], [READY_CLASS, 3],
   ...SHELL_EDITS.map((label) => [label, 3])]);
 
 /** The rows a project's release model decides — `DECLARABLE`'s parallel for the half its own words

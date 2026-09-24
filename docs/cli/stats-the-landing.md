@@ -50,5 +50,16 @@ by each, and the `edits` line puts that number beside the route. The `ships` lin
 passes, resumes and rejected pushes: a landing that raced a sibling's paid the gate twice. Every
 other verb is one row.
 
+**A landing is counted wherever it was typed, because a run is no longer where it is typed.** Where a
+run stops at the ready checkpoint the landing belongs to the session that dispatched it, which is no
+issue-flow run, and whose own transcript the run corpus does not read at all. On this repository's
+corpus that was 120 `land-ready` calls in two such transcripts from 2026-09-23 on, and a daily page
+reading one landing pass for a day on which 39 copies were installed; widening the ship row alone
+moved a week of that page by one pass. So the `landings` line, and the daily page's Landings section,
+read one figure off every transcript the project holds, each pass at the moment it was typed rather
+than at the end of the session it sits in, and say how many of them no run holds. The `ships` line
+stays what it was, the passes of runs. The ship row is both verbs that land a release here, `ship`
+and `land-ready` (ISS-2435).
+
 The refusals a window met and the other non-zero exits beside them, which share this classifier and
 are a listing rather than a row: [stats — the refusals](stats-the-refusals.md).
