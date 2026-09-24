@@ -164,7 +164,14 @@ export const parkWrite = (lease, next = null) =>
 /* The line taken over from is not the line taken on: printing the incoming one as the last
    holder's would say the dead run left a note its successor wrote. A take is a handoff too, and so
    is a claim on a field that lost its holder and kept the line. */
-const HANDOFF = new Set(["reclaim", "take", "handed", "unheld"]);
+export const HANDOFF = new Set(["reclaim", "take", "handed", "unheld"]);
+
+/* The word a claim's grant line prints under, by the state of the lease it found; a state naming none
+   prints RENEWED. The eval joins a run to its issue by these words and no others, so the suite holds
+   every one of them to the list that join counts. */
+export const RENEWED = "renewed";
+export const howsFor = ({ unheld, handed }) => ({ free: unheld ? "unheld" : "claim", live: HANDED,
+  expired: RECLAIM, gone: handed ? HANDED : RECLAIM, mine: null, lapsed: null });
 
 export const nextLines = (how, left, taken) => [
   HANDOFF.has(how) && left ? `Next, left by the run before: ${left}` : null,
@@ -463,8 +470,7 @@ export const claim = async (argv) => {
   /* Off the remnant where there is no lease to read it from, so the flag that clears the refusal is not the way to lose the one line the refusal just printed. */
   const left = lease?.next ?? nextLeft(context);
   /* A gone holder is a reclaim like any other, so the park counting reclaims of one status keeps counting the runs that died there — except where the record already calls the take a handoff, the dispatcher that exited being the one holder whose going is not a crash of this issue's (ISS-919). */
-  const how = { free: unheld ? "unheld" : "claim", live: HANDED, expired: RECLAIM,
-    gone: handed ? HANDED : RECLAIM, mine: null, lapsed: null }[state];
+  const how = howsFor({ unheld, handed })[state];
   const checkpoint = given.ready
     ? readyCheckpoint(ref, holder, patch, landingOf(context))
     : (given.rebuilt
@@ -483,7 +489,7 @@ export const claim = async (argv) => {
   });
   await setLease(documentId, next, ref, () => context);
   const taken = leaseOf(next);
-  console.log(`${ref}  ${how ?? "renewed"}: ${describe(taken)}`);
+  console.log(`${ref}  ${how ?? RENEWED}: ${describe(taken)}`);
   if (state === "live") console.log(handedSaid(ref, lease));
   if (state === "gone") console.log(holderGoneSaid(lease, undefined, { asserted: given.stopped }));
   if (checkpoint) console.log(`${landingLine(checkpoint)} — taken from here by \`${takeRoute(ref)}\`.`);
