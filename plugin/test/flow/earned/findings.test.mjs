@@ -81,6 +81,13 @@ test("past the judging, a carrying criterion owes a verdict that did not fail", 
     assert.deepEqual(owed, [`criterion 2 carries finding ${HANDLE} and has no verdict, so the finding it carries stands unjudged`], status);
     assert.match(findingItems(owedAt(status, [folded(), verdict(2, "fail")], carried))[0] ?? "", /criterion 2 carries finding 6bd04311 and failed its verdict/u);
     assert.deepEqual(findingItems(owedAt(status, [folded(), verdict(2, "pass")], carried)), [], `${status}: a pass answers it`);
+    /* The standard `testing` holds every criterion to: a whole skipped or short verdict stands, a gappy one does not. */
+    const skipped = { ...verdict(2, "skipped"), body: render("verdict", { criterion: 2, verdict: "skipped", commit: "43b811e", evidence: [], why: "no route reached it" }) };
+    const short = { ...verdict(2, "short"), body: render("verdict", { criterion: 2, verdict: "short", commit: "43b811e", evidence: ["43b811e"], why: "met short", filed: "ISS-81" }) };
+    assert.deepEqual(findingItems(owedAt(status, [folded(), skipped], carried)), [], `${status}: a whole skipped verdict stands`);
+    assert.deepEqual(findingItems(owedAt(status, [folded(), short], carried)), [], `${status}: a whole short verdict stands`);
+    const gappy = { ...verdict(2, "short"), body: render("verdict", { criterion: 2, verdict: "short", commit: "43b811e", evidence: ["43b811e"], why: "met short" }) };
+    assert.match(findingItems(owedAt(status, [folded(), gappy], carried))[0] ?? "", /has a verdict that is not a whole payload/u);
     assert.equal(findingItems(owedAt(status, [folded()], { status: "testing" })).length, 1, `${status}: and one never answered is still listed`);
   }
   assert.deepEqual(findingItems(owedAt("testing", [folded()], carried)), [],
