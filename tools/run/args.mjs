@@ -37,6 +37,13 @@ export const VERBS = new Map([
     ],
     words: Number.POSITIVE_INFINITY,
   }],
+  ["wait", {
+    signature: "wait [--tree PATH] [M]",
+    flags: [
+      takes("--tree", "PATH", "the tree whose landing to wait on, from any directory; the one this call stands in where it is not given"),
+    ],
+    words: 1,
+  }],
   ["review", {
     signature: "review [--done [ref]]",
     flags: [takes("--done", "[ref]",

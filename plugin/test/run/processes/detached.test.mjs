@@ -6,76 +6,10 @@ import test from "node:test";
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync, readlinkSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { setTimeout as sleep } from "node:timers/promises";
 
-import { alive, BARE, committed, git, pushed, ROOT, runIn, SCRIPT, scratch } from "../run-fixtures.mjs";
-
-const LOCK = "forge-ship-lock";
-const RECORD = "forge-landing.json";
-const MARK = "FORGE_LANDING_DETACHED";
-
-/* The project's gate as a scratch checkout's `check`: it says it started, writes what it inherited of
-   the mark, and holds the step for as long as a case needs a landing standing in its gate. */
-const sleepingGate = (ms) => `node -e "const f=require('fs');f.writeFileSync('../gate-env',String(process.env.${MARK}));`
-  + `f.writeFileSync('../gate-started','');setTimeout(()=>f.writeFileSync('../gate-done',''),${ms})"`;
-
-const remoted = (name, gate) => {
-  const room = scratch(name, gate);
-  git(room.at, "init", "--bare", "origin.git");
-  git(room.work, "init", "-b", "master");
-  committed(room.work, "one");
-  git(room.work, "remote", "add", "origin", join(room.at, "origin.git"));
-  git(room.work, "push", "origin", "HEAD:master");
-  return room;
-};
-
-const inGit = (work, name) => join(work, ".git", name);
-
-const running = (pid) => {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return error.code === "EPERM";
-  }
-};
-
-const until = async (what, done, ms = 60_000) => {
-  const by = Date.now() + ms;
-  while (!done()) {
-    if (Date.now() > by) throw new Error(`${what} did not happen within ${ms}ms`);
-    await sleep(50);
-  }
-};
-
-/* A caller with pipes of its own, as a harness's shell is; `group` gives it a process group to be
-   killed by, which is the whole of what a harness stopping a background shell reaches. */
-const caller = (work, argv, { group = false } = {}) => {
-  const one = spawn(process.execPath, [join(work, SCRIPT), ...argv],
-    { cwd: work, env: BARE, detached: group, stdio: ["ignore", "pipe", "pipe"] });
-  const said = { out: "", err: "" };
-  one.stdout.on("data", (chunk) => { said.out += chunk; });
-  one.stderr.on("data", (chunk) => { said.err += chunk; });
-  const exited = new Promise((done) => one.once("exit", (code, signal) => done({ code, signal })));
-  return { one, said, exited };
-};
-
-const landingPid = async (said) => {
-  await until("the caller naming the landing's pid", () => /runs as pid \d+/u.test(said.out), 20_000);
-  return Number(/runs as pid (\d+)/u.exec(said.out)[1]);
-};
-
-/* Whatever a case started is ended by the case, so a failed assertion leaves no scratch landing
-   standing in a room nobody reads again. */
-const ended = (pid) => {
-  try {
-    process.kill(-pid, "SIGKILL");
-  } catch {
-    /* already gone */
-  }
-};
-
-const recordOf = (work) => JSON.parse(readFileSync(inGit(work, RECORD), "utf8"));
+import { alive, BARE, git, pushed, ROOT, runIn, SCRIPT } from "../run-fixtures.mjs";
+import { caller, ended, inGit, landingPid, LOCK, RECORD, recordOf, remoted, running, sleepingGate, until }
+  from "./landing-fixtures.mjs";
 
 test("a ship whose caller's process group is killed mid-gate still pushes and drops its lock", async () => {
   const { at, work } = remoted("detached-killed", sleepingGate(1500));
@@ -124,7 +58,8 @@ test("each landing verb names its pid, its output files and its record before it
       assert.ok(first.includes(inGit(work, name)), `${name} is not named:\n${first}`);
     }
     assert.ok(first.includes("kill -- -"), first);
-    assert.match(first, /tail --pid=\d+ -f \/dev\/null/u, first);
+    assert.ok(first.includes(`node ${join(work, SCRIPT)} wait --tree ${work}`), `the wait on this tree is not named:\n${first}`);
+    assert.ok(!first.includes("tail --pid"), first);
     assert.notEqual(Number(/runs as pid (\d+)/u.exec(first)[1]), run.pid, "the landing ran in the caller");
   }
 });
@@ -182,7 +117,8 @@ test("a second landing of a tree whose landing still runs is refused with the pi
     assert.ok(!/step 1\//u.test(second.stdout), `the refused landing ran a step:\n${second.stdout}`);
     assert.ok(second.stderr.includes(`still running as pid ${pid}`), second.stderr);
     assert.ok(second.stderr.includes(recordOf(work).out), second.stderr);
-    assert.ok(second.stderr.includes(`tail --pid=${pid} -f /dev/null`), second.stderr);
+    assert.ok(second.stderr.includes(`node ${join(work, SCRIPT)} wait --tree ${work}`), second.stderr);
+    assert.ok(!second.stderr.includes("tail --pid"), second.stderr);
     assert.equal(recordOf(work).pid, pid, "the refused landing wrote over the running one's record");
   } finally {
     ended(pid);
