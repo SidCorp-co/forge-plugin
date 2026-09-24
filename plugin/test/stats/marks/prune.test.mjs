@@ -11,6 +11,7 @@ import { releaseMark, runsMark } from "../../../src/stats/eval/eval.mjs";
 import { CLAIMS, CONSULTS, RELEASES, RUNS, WRITTEN, marksOf, marksPath, scopeOf, writeMark }
   from "../../../src/stats/marks/marks.mjs";
 import { evalObject } from "../../../src/codex/codex-stats.mjs";
+import { stamp } from "../../../src/stats/figures.mjs";
 import { tempRoom } from "../../fixtures.mjs";
 import { FORGE, PROJECT, askStats, at, corpusOf } from "../fixture-eval.mjs";
 
@@ -238,6 +239,31 @@ test("a reading written while the pruning pass runs is still held once the pass 
     "the pass reporting what it rewrote, whichever of the two took the lock first");
 });
 
+/* When the corpus was read, which is the wall clock of the call and not a figure off a reading: the
+   JSON's `readAt`, and the minute the outcome line stamps from it. The one masked value, on the one
+   line that prints it, and the dead fields below carry a year no reading of this corpus can, so
+   masking it hides nothing this case is looking for. */
+const READ_LINE = /^(what became of the work — horizon \S+, read )\d{4}-\d{2}-\d{2} \d{2}:\d{2}Z$/gmu;
+const settled = (text) => text.replace(/"readAt": "[^"]+"/gu, "\"readAt\": \"<when>\"")
+  .replace(READ_LINE, "$1<when>");
+
+/* The pair below is two calls, seconds apart on a loaded gate, so a minute boundary between them is a
+   real chance: what the comparison reads has to be the same whichever minute each call was made in
+   (ISS-2379). */
+test("two renderings either side of a minute boundary compare equal, and ones a horizon apart do not", () => {
+  const rendering = (horizon, readAt) => [
+    "reach: 3 of 5 issue(s) the stored reading owned", "",
+    `what became of the work — horizon ${horizon}, read ${stamp(Date.parse(readAt))}`,
+    "    3 run-and-issue pair(s) owned by this window, 0 run(s) whose issues this reading could not establish", "",
+  ].join("\n");
+  const before = rendering("1d", "2026-09-24T19:36:59.900Z");
+  const after = rendering("1d", "2026-09-24T19:37:00.100Z");
+  assert.notEqual(before, after, "the two calls stamp different minutes, which is the boundary this case is about");
+  assert.equal(settled(after), settled(before), "and the comparison reads them as one reading");
+  assert.notEqual(settled(rendering("7d", "2026-09-24T19:36:59.900Z")), settled(before),
+    "while a horizon apart is still a difference, the mask taking the minute and nothing else on the line");
+});
+
 /* Criterion 11, and the load-bearing assumption of the whole change (consult 8492 F1): that the
    trace of stored-reading consumers is exhaustive, so that dropping these two fields loses nothing
    any code path can ask for. One store carrying them and one without, identical otherwise, put
@@ -343,10 +369,6 @@ test("every consumer of a stored reading reads the same with the two fields and 
   const asked = (home, argv) => spawnSync(FORGE, argv, {
     encoding: "utf8", env: { ...process.env, XDG_CONFIG_HOME: home, TMPDIR: room, HOME: user },
   });
-  /* When the corpus was read, which is the wall clock of the call and not a figure off a reading. The
-     one masked value, and the dead fields below carry a year no reading of this corpus can, so
-     masking it hides nothing this case is looking for. */
-  const settled = (text) => text.replace(/"readAt": "[^"]+"/gu, "\"readAt\": \"<when>\"");
   const CONSUMERS = [
     ["the runs eval against a count mark", ["stats", "eval", "--checkout", PROJECT, "--against", "100"]],
     ["the runs eval as JSON", ["stats", "eval", "--checkout", PROJECT, "--against", "100", "--json"]],
@@ -360,6 +382,7 @@ test("every consumer of a stored reading reads the same with the two fields and 
     ["the consult eval against a mark", ["codex", "eval", "--against", "100"]],
     ["the consult eval as JSON", ["codex", "eval", "--against", "100", "--json"]],
   ];
+  let stamped = 0;
   for (const [what, argv] of CONSUMERS) {
     const read = asked(fatHome, argv);
     const cut = asked(leanHome, argv);
@@ -369,7 +392,10 @@ test("every consumer of a stored reading reads the same with the two fields and 
     assert.equal(cut.stderr, read.stderr, `criterion 11: ${what} says the same either way`);
     assert.doesNotMatch(read.stdout, /nonesuch|777|1999/u,
       `${what}: and no figure of the dead fields reaches a reader`);
+    if (settled(read.stdout).includes(", read <when>")) stamped += 1;
   }
+  /* A mask that met no line would leave the minute in the comparison again with nothing saying so. */
+  assert.ok(stamped > 0, "the outcome line's minute was met and masked in at least one consumer's reading");
   /* And the store each consumer read is still the store it was handed: a reading that wrote a mark
      would have made every comparison above one between two different populations. */
   for (const home of [fatHome, leanHome]) {
