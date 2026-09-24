@@ -4,6 +4,7 @@
 import { HANDLE_LENGTH, blockOf, handleOf, need, tagFor } from "../machine.mjs";
 import { parseAll } from "../record/page.mjs";
 import { CONTRACT } from "../../guides/contract.mjs";
+import { escaped } from "../../markdown.mjs";
 
 const FOLDED = "folded";
 export const DECLINED = "declined";
@@ -34,7 +35,7 @@ export const foldedIn = (comments) => comments
   .filter(({ record, handle }) => record && handle)
   .map(({ one, record, handle }) => ({ handle, title: titleOf(one, record) }));
 
-const naming = (handle) => new RegExp(`(?<![0-9a-f])${handle.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&")}(?![0-9a-f])`, "iu");
+const naming = (handle) => new RegExp(`(?<![0-9a-f])${escaped(handle)}(?![0-9a-f])`, "iu");
 
 /** The criterion carrying a finding: the first whose line names its handle. */
 const carrierOf = (criteria, handle) => criteria.find((one) => naming(handle).test(one.text)) ?? null;
