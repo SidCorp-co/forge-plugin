@@ -42,6 +42,25 @@ export const ranOut = (dropped, deadline) => (dropped.name === "TimeoutError"
   ? `ran out after ${deadline.value}s (${deadline.from})`
   : dropped.message);
 
+/* A process its own caller kills at an instant — a hook, under what hooks.json registers — names that clock once, and every attempt and every wait between attempts stays inside it: a budget the retries can run past is not one (ISS-215). One process answers one event, so the clock is the process's; a process that names none keeps the ladder it had. */
+let ceiling = null;
+
+export const boundedBy = (left, from) => {
+  ceiling = left ? { left, from } : null;
+};
+
+/** What the process's clock has left in milliseconds, or Infinity where nothing named one. */
+export const ceilingLeft = () => (ceiling ? Math.max(0, Math.floor(ceiling.left())) : Infinity);
+
+/** Which clock `ceilingLeft` reads, for a refusal that has to say what ran out. */
+export const ceilingFrom = () => ceiling?.from ?? null;
+
+/** One attempt's deadline, cut to what the process's clock has left where that is the shorter. */
+export const within = (deadline) => {
+  const millis = ceilingLeft();
+  return millis >= deadline.millis ? deadline : { millis, value: millis / 1000, from: ceiling.from };
+};
+
 /* Covers the body read as well as the headers, since a 200 whose body stalls is no success, and is built per attempt because a signal already aborted refuses the next before it is sent. */
 export const clockFor = (deadline, signal = null) => {
   const held = AbortSignal.timeout(deadline.millis);

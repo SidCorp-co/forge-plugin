@@ -49,7 +49,7 @@ let session = 0;
 /* `harness` is the shape production has: no hook is handed a `FORGE_SESSION_ID`, so the id it holds
    is whatever dispatched the session and the run's own is in the command it is judging (ISS-497). */
 export const gate = async (command,
-  { url = live(), fresh = true, harness = null, cwd = process.cwd(), exit = 0 } = {}) => {
+  { url = live(), fresh = true, harness = null, cwd = process.cwd(), exit = 0, skipped = [] } = {}) => {
   if (fresh) session += 1;
   endpoint(url);
   const env = { ...process.env, HOME: HOME.path, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: `probe-${session}` };
@@ -57,19 +57,19 @@ export const gate = async (command,
     delete env.FORGE_SESSION_ID;
     env.CLAUDE_CODE_SESSION_ID = harness;
   }
-  const run = await callHookAsync(HOOK, { tool_name: "Bash", tool_input: { command }, cwd }, env, cwd, { exit });
-  return { ...run, out: answered(run, { exit }) };
+  const run = await callHookAsync(HOOK, { tool_name: "Bash", tool_input: { command }, cwd }, env, cwd, { exit, skipped });
+  return { ...run, out: answered(run, { exit, skipped }) };
 };
 export const because = (run) => run.out?.hookSpecificOutput?.permissionDecisionReason ?? "";
 
 export const raw = async (input,
-  { name = "mcp__forge__forge_issues", url = live(), withheld = null, exit = 0,
+  { name = "mcp__forge__forge_issues", url = live(), withheld = null, exit = 0, skipped = [],
     session: held = "probe-filing" } = {}) => {
   endpoint(url, withheld);
   const run = await callHookAsync(HOOK, { tool_name: name, tool_input: input, cwd: process.cwd() }, {
     ...process.env, HOME: HOME.path, XDG_CONFIG_HOME: HOME.path, FORGE_SESSION_ID: held,
-  }, process.cwd(), { exit });
-  return { ...run, out: answered(run, { exit }) };
+  }, process.cwd(), { exit, skipped });
+  return { ...run, out: answered(run, { exit, skipped }) };
 };
 
 /* The write shape this gate still answers for, so a case about the key it reads has something to

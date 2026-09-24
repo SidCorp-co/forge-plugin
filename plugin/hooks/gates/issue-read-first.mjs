@@ -42,7 +42,7 @@ const directoryOf = (text, at, here) => {
    together: `useProject` is global, so the project is half the key and two groups stay serial
    (ISS-1458). A refusal is taken in the order the refs came rather than the order the tracker
    answered in, so which of two unresolvable keys a command is refused for does not move — which is
-   why the walk is soft: a hard one exits from inside whichever answered first. */
+   why the walk is soft: a hard one refuses from inside whichever answered first. */
 const resolved = async (refs, slug, walked) => {
   if (!walked.has(slug)) walked.set(slug, new Map());
   const held = walked.get(slug);
@@ -56,7 +56,7 @@ const resolved = async (refs, slug, walked) => {
   });
 };
 
-// A tracker that will not answer prints its reason and exits: this gate is last on the line for it.
+// A tracker that will not answer is a `fail()`, which the harness turns into this gate standing down where the session reads it: `forge hooks --how stood-down`.
 export const run = async (ev) => {
   const text = shellText(joined(ev.tool_input?.command));
   const spoken = startsAt(text);

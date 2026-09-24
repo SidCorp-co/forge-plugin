@@ -14,5 +14,5 @@ filing, never again on a filed one. `forge hooks --off issue-read-first` clears 
 CLI's own copy, so a refusal you believe wrong goes to the tracker's own screens and a note there.
 
 Not judged: whether the issue is true, worth doing or a fit; whether a body carrying the mark by
-hand is really a fix; whether a duplicate is one, the measure being shared words. Silent with no
-endpoint configured, and on a tracker that will not answer.
+hand is really a fix; whether a duplicate is one, the measure being shared words. No endpoint, or
+a tracker not answering: `forge hooks --how stood-down`.

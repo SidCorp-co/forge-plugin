@@ -15,5 +15,5 @@ skills the session loaded. `plugin/src/tools/plugin-copy.mjs` declares that set 
 names what a change moved. Renaming a gate is in it: the registration pins the names.
 
 Not judged: whether the chosen copy's gates are any good. Uncommitted edits are what fires inside a
-checkout; a gate that throws on load stands down for the session, on stderr and in the log, and a
+checkout; a gate that throws on load stands down for the session, telling it and the log, and a
 copy that will not load at all leaves the harness beside the entry to answer.

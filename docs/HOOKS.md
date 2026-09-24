@@ -90,11 +90,10 @@ where the old arrangement let each print its own. The same gate text runs alone 
 names off the line. Which copy that text comes from is chosen per call rather than frozen at
 registration: `forge hooks --how copies`.
 
-One gate asks the tracker before it can answer, and a call it cannot make ends the process with its
-own reason on stderr. That is a stand-down and not a failure: the write it guards travels on the
-transport that just failed, so there is nothing left to guard. It is therefore registered last on
-its line, where no gate after it is lost to that exit, and a case asserts the order — a rule that
-lived in a comment asking the next author to be careful would be no rule.
+**A gate that cannot judge stands down in the event's own answer**, never on stderr alone, which a
+session does not show. Why it lets the call through while the CLI's verbs refuse is `forge hooks
+--how stood-down`. No gate ends the process, so none has to stand last on its line, and the hook's
+clock bounds every tracker call a gate makes, retries included.
 
 Those solo lines sit in `entries/` rather than beside the runner because one directory holding the
 harness, the runner and a line per gate is a list and not a shape — the width check says so at eleven

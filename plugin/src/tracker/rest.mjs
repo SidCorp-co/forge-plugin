@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { clockFor, deadlineOf, parsedOr, ranOut, secondsGiven } from "../wire/request.mjs";
+import { ceilingFrom, ceilingLeft, clockFor, deadlineOf, parsedOr, ranOut, secondsGiven, within } from "../wire/request.mjs";
 import { sawAnswer, sharedNow } from "../wire/shared-clock.mjs";
 import { reserveIn, sawBudget, settled, unpredictedIn } from "../wire/budget.mjs";
 import { configDir, once, readJson, userConfig } from "../resolve/config.mjs";
@@ -123,8 +123,9 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
   let text = "";
   let response = null;
   let dropped = null;
+  let bound = deadline;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    const stop = spend?.();
+    const stop = spend?.() ?? (ceilingLeft() > 0 ? null : `Nothing was sent: ${ceilingFrom()} had no time left.`);
     if (stop) return { response: null, text: "", dropped: null, spent: stop };
     [text, response, dropped] = ["", null, null];
     /* Only a reservation this attempt took is its to retire: one an abort ended before it took any
@@ -132,9 +133,10 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
     let took = false;
     const unpredicted = unpredictedIn(key);
     try {
-      const clock = clockFor(deadline, signal);
+      bound = within(deadline);
+      const clock = clockFor(bound, signal);
       const armed = performance.now();
-      took = await paced(key, clock, () => deadline.millis - (performance.now() - armed));
+      took = await paced(key, clock, () => bound.millis - (performance.now() - armed));
       const sentAt = performance.now();
       response = await make(clock);
       sawAnswer(response.headers, sentAt, performance.now());
@@ -151,12 +153,19 @@ const attempted = async (make, repeatable, { once = false, spend = null, waits =
     if (!again || attempt === attempts) break;
     const limited = again === "rate-limited";
     const wait = limited ? retryAfter(text, response.headers) : backoff(attempt);
-    const answered = dropped ? ranOut(dropped, deadline) : `answered ${response.status}`;
+    const answered = dropped ? ranOut(dropped, bound) : `answered ${response.status}`;
     const said = limited ? `rate-limited this call ${unpredicted}` : answered;
+    /* A wait the process's clock cannot hold is not slept into the kill: the caller is told now, while it can still answer. */
+    const left = ceilingLeft();
+    if (wait * 1000 >= left) {
+      const spent = `Forge ${said.trimEnd()}, and waiting ${wait}s to send it again would outlast the `
+        + `${left / 1000}s left of ${ceilingFrom()}, so it was not sent again.`;
+      return { response, text, dropped, deadline: bound, spent };
+    }
     console.error(`Forge ${said}; waiting ${wait}s (attempt ${attempt} of ${attempts}).`);
     await sleep(wait);
   }
-  return { response, text, dropped, deadline };
+  return { response, text, dropped, deadline: bound };
 };
 
 /* The tracker's own validation error is the diagnostic; nothing here re-derives it. Each message is

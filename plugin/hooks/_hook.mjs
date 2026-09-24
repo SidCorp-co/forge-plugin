@@ -8,6 +8,8 @@ import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { logHook } from "../src/hooks/log/hook-log-file.mjs";
+import { Refusal, refusing } from "../src/resolve/settings.mjs";
+import { boundedBy } from "../src/wire/request.mjs";
 import { scrubbed } from "../src/hooks/log/scrub.mjs";
 import { NOWHERE, STARTS, WRITES, namesOf, placeable, spans, standsIn, unquote } from "../src/hooks/shell-spans.mjs";
 import { glued } from "../src/hooks/assembled.mjs";
@@ -99,14 +101,34 @@ const refusal = (reason, ev) => {
   return filed(`${reason}${String(reason).includes("\n") ? "\n\n" : " "}${WHOLE}`, ev);
 };
 
+/* A gate that could not judge lets the call through and says so on the channel the session reads, never on stderr alone; how/stood-down.md says why. A refusal `fail()` raised already carries its own route; a crash is this plugin's defect, and the same two commands are where either starts. */
+const STOOD_DOWN = (name, error) => `forge hooks: ${name} could not judge this call and did not hold it: `
+  + `${String(error.message).trim()}\n${error instanceof Refusal ? "" : "That is a defect in this plugin, not in the call. "}`
+  + "`forge doctor` checks the endpoint, the token and the project a gate reads, and `forge doctor --token <pat>` "
+  + `replaces a token the tracker refused. Why the call went through: \`forge hooks --how stood-down\`.`;
+
+/* Where the session reads a hook's words: a tool event's own context, and a warning on any other. */
+const TOOL_EVENTS = { pre: "PreToolUse", post: "PostToolUse" };
+const toolEventOf = (kind, ev) => {
+  const named = ev?.hook_event_name;
+  if (named) return /^(?:Pre|Post)ToolUse$/u.test(named) ? named : null;
+  return kind === "stop" ? null : TOOL_EVENTS[kind] ?? TOOL_EVENTS.post;
+};
+
+/* A refusal after a gate stood down still carries the stand-down, since the refusal answers for one gate and not for the one that could not judge. */
+const toldBeside = (stoodDown) => (stoodDown.length ? { additionalContext: stoodDown.join("\n\n") } : {});
+
 /* Ten processes per call was the whole cost of the hooks, 38 ms of each 50 being Node starting. One
    process per event: the first refusal answers before a call; after one every block and context is kept. */
 export const dispatch = async (given, ev = readEvent()) => {
   const names = given.filter((one) => !(one in DEADLINES));
   const kind = given.find((one) => one in DEADLINES);
   if (kind) deadline = DEADLINES[kind];
+  boundedBy(remaining, "the hook event's clock, under what hooks.json registers");
+  const toolEvent = toolEventOf(kind, ev);
   const blocks = [];
   const contexts = [];
+  const stoodDown = [];
   /* A gate that did not run writes exactly what one that allowed writes, so every branch that skips one says so on stderr, where whoever ran this reads it; out of time before a call refuses it instead, a re-send getting a fresh clock, and a kill leaves neither. */
   for (const name of names) {
     if (hookOff(name)) {
@@ -118,7 +140,7 @@ export const dispatch = async (given, ev = readEvent()) => {
       if (kind === "pre") {
         const reason = `The hooks ran out of time before ${name} could decide this call. Re-send it.`;
         logged("deny", reason);
-        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: await refusal(reason, ev) } });
+        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: await refusal(reason, ev), ...toldBeside(stoodDown) } });
         return;
       }
       logged("error", `${name} skipped: the post clock ran out before it`);
@@ -129,25 +151,29 @@ export const dispatch = async (given, ev = readEvent()) => {
       const file = gateFile(name);
       if (!file) throw new Error(`no gates/${name}.mjs in this copy`);
       const gate = await import(pathToFileURL(file).href);
-      await gate.run(ev);
+      /* Inside `refusing`, `fail()` throws rather than exiting, so a gate that meets one is caught here like any other and the gates after it still answer. */
+      await refusing(() => gate.run(ev));
     } catch (error) {
       if (!(error instanceof Decision)) {
         logged("error", `${name} failed: ${error.message}`);
         process.stderr.write(`forge hooks: ${name} failed and was skipped: ${error.message}\n`);
+        stoodDown.push(STOOD_DOWN(name, error));
         continue;
       }
       if (error.kind === "deny") {
-        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: await refusal(error.message, ev) } });
+        emit({ hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: await refusal(error.message, ev), ...toldBeside(stoodDown) } });
         return;
       }
       if (error.kind === "block") blocks.push(error.message);
       if (error.kind === "context") contexts.push(error.message);
     }
   }
-  if (!blocks.length && !contexts.length) return;
+  if (!blocks.length && !contexts.length && !stoodDown.length) return;
+  const told = toolEvent ? [...contexts, ...stoodDown] : contexts;
   emit({
     ...(blocks.length ? { decision: "block", reason: await filed(blocks.join("\n\n"), ev) } : {}),
-    ...(contexts.length ? { hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: contexts.join("\n\n") } } : {}),
+    ...(told.length ? { hookSpecificOutput: { hookEventName: toolEvent ?? TOOL_EVENTS.post, additionalContext: told.join("\n\n") } } : {}),
+    ...(stoodDown.length && !toolEvent ? { systemMessage: stoodDown.join("\n\n") } : {}),
   });
 };
 
