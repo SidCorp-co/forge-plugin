@@ -5,15 +5,24 @@ consult log, `forge stats eval` for the issue-flow corpus. Neither writes at you
 `--json` where a figure has to be quoted exactly, and keep the screen form for the shape of the
 comparison.
 
-Two comparisons, and the question decides which. The sliding one — the default — puts the latest
+Three readings, and the question decides which. The sliding one — the default — puts the latest
 window against the one before it, and answers *what changed lately*. The pinned one, `--against
 <mark>`, puts the latest window against the reading written when the corpus or the log last crossed
 a mark, and answers *whether the change that landed since is better than the state before it*: the
 before window is the same bytes every time you ask, so two readings a day apart compare against one
-benchmark. `forge stats marks` and `forge codex marks` list what is held; `--against` alone takes the
-newest reading that shares none of the recent window. A pinned before sharing most of the recent
-window is refused, and the refusal names the reading to ask for instead; one sharing less says on its
-head line how many rows it shares, and its figures read as a partial move, not a clean one.
+benchmark. The release one, `forge stats eval --since-release <version>`, puts there instead the
+reading held when that release landed, and answers *whether what shipped in that release made the
+runs better*; the consult log holds no such reading. `forge stats marks` and `forge codex marks` list
+what is held; either anchor given alone takes the newest reading that shares none of the recent
+window. A pinned before sharing most of the recent window is refused, and the refusal names the
+reading to ask for instead; one sharing less says on its head line how many rows it shares, and its
+figures read as a partial move, not a clean one. A reading has one anchor, so `--against` and
+`--since-release` together are refused rather than combined: each is its own reading.
+
+Read since a release, the comparison also prints what it is confounded by, and that block qualifies
+every figure the reading prints: a difference it says more than one release stands behind is not the
+named release's alone to be credited with. What the flag takes is `forge stats eval -h`'s to say,
+and each line of the block says what it counts.
 
 Note what each says about its own completeness: a window short of full, a copy no longer in the
 cache, a run that saw a release land. Those qualify every figure below them.
