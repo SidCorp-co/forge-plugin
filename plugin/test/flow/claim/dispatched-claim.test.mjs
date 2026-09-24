@@ -263,6 +263,8 @@ test("a tree that names this run, overridden by a variable that does not, is tol
     { ...ENV, FORGE_SESSION_ID: "" }, tree);
   assert.equal(took.status, 0, `unset, the tree answers:\n${took.stdout}${took.stderr}`);
   assert.match(took.stdout, /handed: session iss-1091-/u, "under the id the tree minted");
+  assert.match(took.stdout, /handed: session iss-1091-\S+ \(id from worktree; /u,
+    "and the line says the id was the tree's, which is what a transcript reader credits a run's calls by");
 
   /* And the same caller one directory earlier, which is where a run reads this refusal first: a
      route naming only the tree leaves the variable it would arrive still holding. */

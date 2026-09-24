@@ -86,6 +86,8 @@ test("an advance to developed leaves nothing holding the issue, and another run 
   assert.equal(judge.status, 0, `the next run should have claimed it:\n${judge.stdout}${judge.stderr}`);
   assert.match(judge.stdout, new RegExp(`ISS-1617  claim: session ${JUDGE}`, "u"),
     "as an ordinary first claim, which is what a released issue is owed");
+  assert.match(judge.stdout, new RegExp(`ISS-1617  claim: session ${JUDGE} \\(id from asked; `, "u"),
+    "and says the id was the one the run was handed");
   assert.doesNotMatch(judge.stderr, /--unheld/u, "with no flag asserting a run died on it");
   assert.doesNotMatch(judge.stderr, /--stopped/u, "and none asserting a run was stopped");
   assert.doesNotMatch(judge.stdout + judge.stderr, /Wait for it/u, "and no clock to wait out");
