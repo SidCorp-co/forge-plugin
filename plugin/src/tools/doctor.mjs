@@ -26,7 +26,6 @@ import {
 import { readClaudeMd, reviewClaudeMd } from "../checks/claude-md.mjs";
 import { checkClaudeMdLocally, reportClaudeMd } from "./services/doctor/repo.mjs";
 import { harnessLines } from "./services/doctor/harness.mjs";
-import { scratchRow } from "./services/doctor/scratch.mjs";
 import { installRows } from "./services/doctor/install.mjs";
 import { owingEscapeRows, owingEscapesFrom } from "../checks/docs/owing-escapes.mjs";
 import { everyIssue } from "../tracker/issues.mjs";
@@ -36,6 +35,7 @@ import { masked } from "./services/masked.mjs";
 import { copyToRun, FROZEN } from "./plugin-copy.mjs";
 import { stubRows } from "./services/skill-stubs.mjs";
 import { rolesDiffer, rolesIn } from "./roles.mjs";
+import { scratchRow } from "../resolve/session/scratch.mjs";
 import { flags, helpAskedOf, partition, pullRepeated } from "../resolve/flags.mjs";
 import { HOOKS_DIR, gateFile, hookEvent, hookNames, offNow, strandedSwitches } from "../hooks/hook-switch.mjs";
 import { usageOf } from "../resolve/visibility.mjs";
@@ -69,8 +69,8 @@ const checkSession = () => {
 };
 
 const checkScratch = () => {
-  const { level, said } = scratchRow();
-  line(level, "scratch", said);
+  const { owed, said } = scratchRow();
+  line(owed ? NOTE : OK, "scratch", said);
 };
 
 /* A gate a switch of its own holds down, read from the gates: printing one undo while another
