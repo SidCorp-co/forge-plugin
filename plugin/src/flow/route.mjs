@@ -10,7 +10,7 @@ import { statusKind } from "../tracker/rest.mjs";
 import { slugIfAny } from "../resolve/settings.mjs";
 import { headNow } from "./worklog.mjs";
 import { freshForm } from "./earned/baseline.mjs";
-import { citeForm } from "./earned/published.mjs";
+import { citeForm, declaredGate, everPublished } from "./earned/published.mjs";
 import {
   BASELINE_AT,
   CHECKS,
@@ -264,11 +264,16 @@ export const baselineAhead = (view, ref, head = headNow()) => {
   /* Membership of the sequence and not `!atLeast`, which is true of every side status too: a park from the judging rung sits in `waiting` and a reopen in a status of its own, and both are past the baseline rather than before it, so telling either to spend one names a phase already done and buries the park answer or the triage actually owed. */
   const at = ORDER.indexOf(view.issue.status);
   if (at < 0 || at >= ORDER.indexOf(BASELINE_AT)) return null;
-  const form = citeForm(ref, slugIfAny(), head);
+  const project = slugIfAny();
+  const form = citeForm(ref, project, head);
   if (!form) {
+    /* Unpopulated and unreachable read alike without this: one says wait for the next release, the other that every baseline here is a fresh run until something publishes. */
+    const closed = everPublished(project) ? "" : ` Nothing has ever published one for this project `
+      + "on this machine, so the citation route stays closed and every baseline is a fresh run until a "
+      + "release runs `forge baseline publish` for the head it pushed.";
     return `Ahead: ${BASELINE_AT} is earned by a baseline and no ship has published a whole-tree `
-      + `result for the commit this checkout stands at, so the run is this run's:\n`
-      + `  ${freshForm(ref, "<the project's gate>")}`;
+      + `result for the commit this checkout stands at, so the run is this run's.${closed}\n`
+      + `  ${freshForm(ref, declaredGate())}`;
   }
   return `Ahead: ${BASELINE_AT} is earned by a baseline and a ship published a whole-tree result for `
     + `the commit this checkout stands at, so cite it rather than running one:\n  ${form}`;

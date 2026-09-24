@@ -11,16 +11,27 @@ head re-runs nothing, so the seconds were already saved. What no run could skip 
 the invocation, the wait on it, and a record of its own saying what the last ten runs had said about
 the same tree.
 
-## Only a ship publishes one, and that is the whole of why it is believed
+## Only a release publishes one, and that is the whole of why it is believed
 
-A citation is worth more than a claim because of who wrote the thing cited. A ship's result has a
-known author, a whole scope by construction, and a commit the ship names anyway. Nothing has to
-declare which command the project's gate runs, and no digest set has to travel on the record to
-prove the claim, because the claim is the ship's and not the citing run's.
+A citation is worth more than a claim because of what the thing cited answers for: the commit every
+branch is cut from, measured over the whole set on committed content. This repository's ship
+publishes as it releases; any other project's release publishes with `forge baseline publish`, after
+its push. The verb is the plugin's so that a project adopting it inherits the route that discharges
+the baseline and not only the demand — before it, every adopting project paid a whole gate before
+the first edit of every issue, and no configuration it could write avoided that.
 
-That is why no verb of this CLI writes a published baseline. A run publishing its own would let one
-run's ad-hoc gate become the next run's authority, which is exactly the hole in citing *a recorded
-gate result* with nobody named as its author.
+The authority is held by what the verb refuses rather than by who may run it. A commit the remote's
+default branch does not hold is one run's own and nobody else's, so it is refused, and one run's own
+gate never becomes the next run's authority. A checkout with uncommitted work is refused because the
+reading would be of content no commit carries. A scope short of whole is refused because what it did
+not run has no answer. What stays the caller's word is `--result`, exactly as it always was on a
+baseline of one's own. A project that wants its runs unable to publish at all leaves the verb out of
+the job they run under.
+
+The gate the result is of is the project's own declaration, `stats.commands.gate`, which the stats
+and codex doors already read: the first command there fills every baseline form `--owed` prints and
+is what a publish records by default, and a publish naming a command the project does not declare is
+refused. Nothing reads the shape of a checkout to guess it (ISS-1093).
 
 ## The commit, and nothing near it
 
@@ -33,8 +44,8 @@ What already fails travels with the result, and that is not a courtesy. A citati
 commit leaves the citing run to guess what the tree was failing when the ship measured it, and a run
 that guesses attributes an inherited failure to itself.
 
-A scope the publisher cannot call whole is not published at all. The ship gates the whole set, so a
-partial scope is a defect in its own reading of the gate's record rather than a result to hand on
+A scope the publisher cannot call whole is not published at all. A release gates the whole set, so
+a partial scope is a defect in its own reading of the gate's record rather than a result to hand on
 with a caveat.
 
 ## Why the authority is settled at the write
@@ -57,6 +68,13 @@ That asymmetry is the safety property rather than a cost of it. A missing public
 run, which is what the run would have spent anyway; a publication that travelled would let a run
 lean on a green nothing in front of it can check. Only the first of those is reachable from here,
 and it was chosen for that reason.
+
+So the store stays one machine's, and says so: a publish prints the file it wrote to, and a run in a
+project nothing has ever published for on this machine is told the citation route is closed rather
+than merely unpopulated. Moving the store beside the gate ledger in the git common directory would
+share it only between worktrees of one clone, which is no wider than the machine; a store that
+travelled between machines would be a format other checkouts are made against, and a separate
+decision from this one.
 
 The rung is no part of it either, and used to be. While the rung was the condition, the saving read
 as a concession granted to a small issue — which had the rule backwards, since what a tree fails is

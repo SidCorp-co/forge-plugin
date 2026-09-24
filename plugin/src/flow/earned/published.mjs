@@ -1,21 +1,35 @@
-/* The whole-tree gate result a ship published for the head it released, which is the one authority a baseline citation rests on. Keyed on the project and the commit, because a commit is the only thing here that says the tree is the same tree: no ancestry walk and no newest-published fallback answers for a head nothing was published for. A ship writes it and the citing write reads it — no verb of this CLI writes one, or one run's own gate would become the next run's authority, and settling the authority at the write is what leaves every entry check judging the record alone. */
+/* The whole-tree gate result a release published for the head it pushed, which is the one authority a baseline citation rests on. Keyed on the project and the commit, because a commit is the only thing here that says the tree is the same tree: no ancestry walk and no newest-published fallback answers for a head nothing was published for. A release writes it — this repository's ship directly, any other project's through `forge baseline publish`, which refuses every commit but the one its remote's default branch holds — and the citing write reads it, and settling the authority at the write is what leaves every entry check judging the record alone. One machine's file, and said to be: docs/cli/the-published-baseline.md. */
 import { join } from "node:path";
 
 import { appendJsonl, jsonlAt } from "../../hooks/log/hook-log-file.mjs";
 import { configDir } from "../../resolve/config.mjs";
+import { declaredCommands, declaredIn } from "../../stats/corpus/declared.mjs";
 import { freshForm } from "./baseline.mjs";
 
 const WHOLE = "whole";
 
 export const publishedPath = () => join(configDir("forge"), "gate-baselines.jsonl");
 
+const ofProject = (project) => (one) => (one.project ?? null) === (project ?? null);
+
 export const publishedFor = (project, commit) => jsonlAt(publishedPath())
-  .findLast((one) => (one.project ?? null) === (project ?? null) && one.commit === commit) ?? null;
+  .findLast((one) => ofProject(project)(one) && one.commit === commit) ?? null;
+
+/** Whether anything was ever published for the project on this machine: an empty answer for one head is a route not yet populated, and one for every head is a route no release here takes. */
+export const everPublished = (project) => jsonlAt(publishedPath()).some(ofProject(project));
+
+const UNDECLARED_GATE = "<the project's gate>";
+
+/** Never inferred from the tree (ISS-1093). */
+export const declaredGates = (directory = process.cwd()) => declaredCommands("gate", declaredIn(directory));
+
+/** The command a baseline form is filled with: the first the project declared, or the placeholder where it declared none. */
+export const declaredGate = (directory = process.cwd()) => declaredGates(directory)[0] ?? UNDECLARED_GATE;
 
 export const WROTE = "wrote";
 export const HELD = "held";
 export const PART = "part";
-const FAILED = "failed";
+export const FAILED = "failed";
 
 /** A ship's publish, and the one word saying what became of it. A scope the ship cannot call whole is a defect in its own reading of the gate's record and not a green a later run may lean on, so it is not published at all. */
 export const publishBaseline = ({ project, commit, gate, result, scope, version = null }) => {
@@ -36,7 +50,8 @@ export const publishBaseline = ({ project, commit, gate, result, scope, version 
 
 export const publishedSaid = (outcome, commit) => ({
   [WROTE]: `the gate's whole-tree result is published for ${commit}, so a branch cut here cites it `
-    + `rather than running one — \`forge advance <ref> --owed\` prints the write`,
+    + `rather than running one — \`forge advance <ref> --owed\` prints the write. It is readable on this `
+    + `machine only, in ${publishedPath()}`,
   [HELD]: `${commit} already holds a published result, so nothing was written`,
   [PART]: `nothing is published for ${commit}: the gate's record does not hold every step of the `
     + `whole table green at it, and a result that cannot say \`whole\` is no result to cite`,
@@ -46,8 +61,9 @@ export const publishedSaid = (outcome, commit) => ({
 export const citationProblem = (ref, project, got) => {
   if (!got.cited || publishedFor(project, got.commit)) return null;
   return `--commit to name a commit some ship published a whole-tree result for. Nothing is `
-    + `published for ${got.commit}, and only a ship publishes one, so a citation naming it is a `
-    + `green from nowhere. Measure this tree instead:\n  ${freshForm(ref, got.gate)}`;
+    + `published for ${got.commit}, and only a ship publishes one — \`forge baseline publish\`, run by `
+    + `a release for the head it pushed — so a citation naming it is a green from nowhere. Measure `
+    + `this tree instead:\n  ${freshForm(ref, got.gate)}`;
 };
 
 /** The write that cites what is published for one head, or null. A head this cannot be given at all — no checkout, or one with uncommitted work in it — answers null too, that being the head the write would fail to stamp. */

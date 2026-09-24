@@ -60,6 +60,9 @@ export const VERBS = [
   ["next", "[--count n] [--why] [--json] [--graph [ISS-45]] [--holding ISS-45] [--checkout <dir>]",
     "the open issues to work next, ranked off their metadata; writes nothing", "forge_issues",
     { group: BACKLOG }],
+  ["baseline", "publish --commit <sha> --result R --scope whole [--gate G] [--version V]",
+    "a release's whole-tree gate result, published for the commit it pushed so a branch cut there cites it",
+    null, { group: FLOW }],
   /* Reads git and the plugin cache and no tracker route, so no credential withholds it. */
   ["brief", "[ISS-45] [--tree <dir>]",
     "the message a dispatch sends: the readings a run cannot take itself, generated, never typed",

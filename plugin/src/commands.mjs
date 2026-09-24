@@ -462,6 +462,7 @@ export const commands = {
   resume: loads("./flow/resume.mjs", "resume"),
   record: loads("./flow/record/record.mjs", "record"),
   advance: loads("./flow/advance.mjs", "advance"),
+  baseline: loads("./flow/earned/publish.mjs", "baseline"),
   /* The one composition in this table: `spec/` reads the checkout and may not import the workflow, and the rung `--status` prints is derived from workflow records, so the two halves are wired here — and loaded here, a caller typing any other verb needing neither of them. */
   spec: async () => {
     const [{ spec }, { statusOf }] = await Promise.all([
