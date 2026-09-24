@@ -57,7 +57,11 @@ the log by the `--of` the call names and otherwise by the log's own entry inside
 the pairing is one-to-one. A call whose own command grants its run an id takes that run's one entry
 among those it reaches, over any call carrying no id, and never an entry another run wrote; an id
 counts as a run's only where `runFrom` says it was asked for or found in the run's own tree, since an
-inherited one names a wave and a saved one a machine. Both this and the park attribution above are resolved **over the whole
+inherited one names a wave and a saved one a machine. A call whose text names no id at all is its
+run's where that run's claims printed one id read from either of those two sources: a run standing in
+a worktree grants its calls nothing in their text, and its claim line is the one place its id is
+written down. A claim line printing no source, a claim whose own text granted the id, and a run whose
+claims printed two ids name no run for its calls, since each is an id the calls may not have resolved. Both this and the park attribution above are resolved **over the whole
 corpus, before either window is cut**: a competitor outside the displayed windows still spoils a
 match, and two owners either side of a boundary would each be the only candidate its own window could
 see. So `--size` cannot decide what paired, or what a park was counted against.

@@ -56,6 +56,7 @@ const ANY_VALUE = String.raw`(?:"([^"]*)"|'([^']*)'|([^\s;&|)]*))`;
 
 /** Every id the text names, read wider than one it may grant, and why that asymmetry is the safe direction: docs/cli/the-granted-id.md. */
 const EVERY_VALUE = new RegExp(String.raw`\bFORGE_SESSION_ID=${ANY_VALUE}`, "gu");
+const ASSIGNS_THE_ID = new RegExp(EVERY_VALUE.source, "u");
 
 const EVERY_WORD = new RegExp(String.raw`${ANY_WORD}+`, "gu");
 const WRAPPER = /^(?:export|env)$/u;
@@ -124,6 +125,12 @@ export const lastIdGranted = (commands) => {
   let found = null;
   for (const command of [commands ?? []].flat()) found = grantEnding(String(command ?? "")) ?? found;
   return found;
+};
+
+/** Whether the text assigns the name or takes the environment back at all, granting or not: a command that does either is not run under the id its run holds elsewhere. */
+export const movesTheId = (command) => {
+  const text = Array.isArray(command) ? command.join("\n") : String(command ?? "");
+  return ASSIGNS_THE_ID.test(text) || TAKEN_BACK.test(masked(text));
 };
 
 export const idGrantedBy = (command) => {
