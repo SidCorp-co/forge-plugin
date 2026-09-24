@@ -90,16 +90,10 @@ where the old arrangement let each print its own. The same gate text runs alone 
 names off the line. Which copy that text comes from is chosen per call rather than frozen at
 registration: `forge hooks --how copies`.
 
-**A gate that cannot judge lets the call through, and says so to the session.** A reason on stderr
-alone is no answer, a session never showing it: an expired token let writes and filings through
-unchecked, four times in one afternoon, and nothing said so. Refusing instead was weighed and not
-taken. What the gates guard can be put right after the write, and a refusal on no
-evidence stops every issue write for as long as the tracker or the token is down; the CLI's own
-verbs do refuse, because each is the write itself and has nothing to send without the tracker. So
-the two routes to one tracker differ on purpose, and `forge hooks --how stood-down` is where a
-session reads that. No gate ends the process, so none has to stand last on its line.
-The hook's clock bounds every tracker call a gate makes, retries included: a wait longer than what
-is left is not slept into the kill, and the gate stands down while it can still answer.
+**A gate that cannot judge stands down in the event's own answer**, never on stderr alone, which a
+session does not show. Why it lets the call through while the CLI's verbs refuse is `forge hooks
+--how stood-down`. No gate ends the process, so none has to stand last on its line, and the hook's
+clock bounds every tracker call a gate makes, retries included.
 
 Those solo lines sit in `entries/` rather than beside the runner because one directory holding the
 harness, the runner and a line per gate is a list and not a shape — the width check says so at eleven

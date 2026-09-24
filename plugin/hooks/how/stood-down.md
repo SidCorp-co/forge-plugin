@@ -13,8 +13,8 @@ machine's token is down. The CLI's own verbs refuse instead, because each one is
 and has nothing to send without the tracker.
 
 How to clear it: `forge doctor` reads the endpoint, the token and the project a gate uses;
-`forge doctor --token <pat>` saves a token the tracker refused. A failure doctor does not explain is
-this plugin's own defect, filed where `forge new -h` says one goes.
+`forge doctor --token <pat>` saves a token the tracker refused. A note calling it a defect in this
+plugin is the gate's own code throwing, which nothing about the call clears.
 
 Not judged: whether the gate would have refused the call. No endpoint configured, and a directory
 naming no project, stay silent: nothing there was decided.
