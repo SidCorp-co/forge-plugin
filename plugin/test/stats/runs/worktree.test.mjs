@@ -89,10 +89,13 @@ test("the ship's checkout and the stats reader's are one answer", () => {
   assert.equal(JSON.parse(statsIn(room, tree, "--json").stdout).project, checkoutRoot(tree));
 });
 
+/* The refusal's wording is `runs.test.mjs`'s to pin; what is this case's is that a worktree reaches
+   the argument's refusal before any resolution, so nothing is resolved for an argument refused. */
 test("a relative --checkout is still refused at the argument", () => {
   const { room, tree } = checkoutWithWorktree();
   const run = statsIn(room, tree, "--checkout", "../elsewhere");
   assert.equal(run.status, 1);
-  assert.match(run.stderr, /--checkout takes an absolute directory, not `\.\.\/elsewhere`/u);
-  assert.match(run.stderr, /no transcript is opened by name/u);
+  assert.equal(run.stdout, "");
+  assert.ok(run.stderr.includes("`../elsewhere`"), run.stderr);
+  assert.doesNotMatch(run.stderr, /reading the checkout/u, "no resolution is said for a refused argument");
 });
