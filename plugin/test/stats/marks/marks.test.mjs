@@ -136,7 +136,7 @@ test("a stored reading is the before window, and the screen says where the windo
 
     const listed = askStats(room, ["marks", "--checkout", PROJECT], home);
     assert.equal(listed.status, 0, listed.stderr);
-    assert.match(listed.stdout, /^mark {4}50 {2}\d{4}-\d\d-\d\d \d\d:\d\d {3}50 run\(s\) {2}\d{4}-\d\d-\d\d \d\d:\d\d to \d{4}-\d\d-\d\d \d\d:\d\d$/mu, listed.stdout);
+    assert.match(listed.stdout, /^mark {4}50 {2}\d{4}-\d\d-\d\d \d\d:\d\dZ {3}50 run\(s\) {2}\d{4}-\d\d-\d\d \d\d:\d\dZ to \d{4}-\d\d-\d\d \d\d:\d\dZ$/mu, listed.stdout);
     const elsewhere = askStats(room, ["marks", "--checkout", "/fixture/elsewhere"], home);
     assert.match(elsewhere.stdout, /^No reading is held for this project yet/u, "a runs reading is its project's");
     /* The store's own once: the same kind, mark and root twice is one record; and a write that fails

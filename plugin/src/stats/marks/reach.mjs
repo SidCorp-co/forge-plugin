@@ -1,7 +1,6 @@
 /* How deep a corpus is against the readings held for it — docs/cli/stats-the-eval.md. */
-import { RELEASES, RUNS, marksOf, stamped } from "./marks.mjs";
-
-const at = (ms) => stamped(new Date(ms).toISOString());
+import { RELEASES, RUNS, marksOf } from "./marks.mjs";
+import { stamp } from "../figures.mjs";
 
 /* The runs side's kinds: a count mark is written only at a multiple of the window, so between two
    crossings the release marks are the only readings there are. */
@@ -41,9 +40,9 @@ const sweptSaid = (sources) => {
 };
 
 export const reachSaid = (reach, sources = [], terms = PROJECT_REACH) =>
-  `the ${terms.corpus} reaches back to ${at(reach.from)}; `
+  `the ${terms.corpus} reaches back to ${stamp(reach.from)}; `
   + (reach.earlier
-    ? `${reach.earlier.by}'s reading reached back to ${at(reach.earlier.from)}, `
+    ? `${reach.earlier.by}'s reading reached back to ${stamp(reach.earlier.from)}, `
       + `so depth ${terms.whose} once read is no longer here${sweptSaid(sources)}`
     : `no reading ${terms.held} records an earlier reach, which is not to say the ${terms.corpus} was `
       + "never deeper — a mark is a snapshot and not a history");

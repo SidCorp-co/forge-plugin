@@ -138,7 +138,7 @@ test("the eval writes the reading it has just computed, so a project that runs n
 
   const held = askStats(room, ["marks", "--checkout", PROJECT], home);
   assert.equal(held.status, 0, held.stderr);
-  assert.match(held.stdout, /^mark {4}50 {2}\d{4}-\d\d-\d\d \d\d:\d\d {3}50 run\(s\)/mu,
+  assert.match(held.stdout, /^mark {4}50 {2}\d{4}-\d\d-\d\d \d\d:\d\dZ {3}50 run\(s\)/mu,
     `criterion 3: and the reading is held afterwards — ${held.stdout}`);
 });
 

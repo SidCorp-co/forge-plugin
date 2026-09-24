@@ -260,3 +260,9 @@ test("a release inside the span whose reading names no issue is named by its ver
   assert.equal(held.exposures[WIDER].changes, 2);
   assert.match(screen(held), /ISS-2, 1\.0\.2 \(no issue on its reading\)/u);
 });
+
+test("the installed moment and the next copy's end in their zone, so git reads them as the same instant", () => {
+  const said = screen(readingOf());
+  assert.match(said, /^ {2}installed {2}2026-09-03 12:00Z, by the directory's birth time$/mu, said);
+  assert.match(said, /^ {2}next {7}1\.0\.2 at 2026-09-03 15:00Z, by the directory's birth time$/mu, said);
+});

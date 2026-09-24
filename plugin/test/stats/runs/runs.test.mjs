@@ -24,7 +24,7 @@ test("every row of a fixture run is what the transcript adds up to", () => {
   const out = run.stdout;
   const has = (line) => assert.ok(out.includes(line), `${line}\n--- printed ---\n${out}`);
 
-  has("1 issue-flow run(s), 2026-09-01 00:00 to 2026-09-01 00:41");
+  has("1 issue-flow run(s), 2026-09-01 00:00Z to 2026-09-01 00:41Z");
   has("1 transcript(s) skipped as no issue-flow run");
   /* Sixteen calls over 2500s, 1660s of them spent waiting on a tool, so 840s is the model's. */
   has("wall            41.7 min in all, median 41.7/run, longest 41.7");
@@ -74,6 +74,8 @@ test("--json carries what the screen leaves out", () => {
   assert.equal(held.runs, 1);
   assert.equal(held.skipped, 1);
   assert.equal(held.project, PROJECT);
+  assert.equal(held.from, BASE, "the screen's zoned bound is the screen's; --json keeps the instant it was");
+  assert.equal(held.to, BASE + 41 * 60 * 1000 + 40 * 1000);
   assert.match(held.root, /claude-\d+\/-fixture-project$/u);
   assert.equal(held.unanswered, 1);
   assert.deepEqual(held.perRun, {
@@ -123,7 +125,7 @@ test("the whole corpus reports its reach, and a windowed reading reports none", 
 
   const silent = probe();
   assert.equal(silent.status, 0, silent.stderr);
-  assert.match(silent.stdout, /the corpus reaches back to 2026-09-01 00:00; no reading held for this project records an earlier reach/u,
+  assert.match(silent.stdout, /the corpus reaches back to 2026-09-01 00:00Z; no reading held for this project records an earlier reach/u,
     silent.stdout);
 
   const root = join(room, `claude-${process.getuid()}`, slugFor(PROJECT));
@@ -136,7 +138,7 @@ test("the whole corpus reports its reach, and a windowed reading reports none", 
     process.env.XDG_CONFIG_HOME = was;
   }
   const said = probe();
-  assert.match(said.stdout, /mark 50's reading reached back to 2026-08-31 00:00, so depth this project once read is no longer here/u,
+  assert.match(said.stdout, /mark 50's reading reached back to 2026-08-31 00:00Z, so depth this project once read is no longer here/u,
     said.stdout);
 
   const windowed = probe("--since", "300d");

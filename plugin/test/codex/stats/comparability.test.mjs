@@ -75,7 +75,7 @@ test("a consult reading held deeper than the log reaches is what tells a lost lo
 
   const silent = screen(shallow);
   assert.match(silent,
-    /^ {2}the log reaches back to 2026-09-01 10:00; no reading held on this device records an earlier reach, which is not to say the log was never deeper — a mark is a snapshot and not a history\.$/mu,
+    /^ {2}the log reaches back to 2026-09-01 10:00Z; no reading held on this device records an earlier reach, which is not to say the log was never deeper — a mark is a snapshot and not a history\.$/mu,
     silent);
 
   /* A reading stored before the reach was recorded carries only its window, whose `from` is a logged
@@ -84,7 +84,7 @@ test("a consult reading held deeper than the log reaches is what tells a lost lo
     now: { consults: 100, from: new Date(BASE + 60 * MINUTE).toISOString(), to: new Date(BASE + 159 * MINUTE).toISOString() } });
   const legacy = screen(shallow);
   assert.match(legacy,
-    /^ {2}the log reaches back to 2026-09-01 10:00; mark 100's reading reached back to 2026-09-01 01:00, so depth this device once read is no longer here\.$/mu,
+    /^ {2}the log reaches back to 2026-09-01 10:00Z; mark 100's reading reached back to 2026-09-01 01:00Z, so depth this device once read is no longer here\.$/mu,
     legacy);
   assert.notEqual(legacy, silent);
 
@@ -93,7 +93,7 @@ test("a consult reading held deeper than the log reaches is what tells a lost lo
   writeMark({ kind: "consults", mark: 300, at: new Date(BASE).toISOString(),
     now: { consults: 100, from: new Date(BASE + 500 * MINUTE).toISOString(), to: new Date(BASE + 599 * MINUTE).toISOString() },
     comparability: { comparable: true, short: [], reach: { from: BASE, earlier: null } } });
-  assert.match(screen(shallow), /mark 300's reading reached back to 2026-09-01 00:00, so depth this device once read is no longer here/u,
+  assert.match(screen(shallow), /mark 300's reading reached back to 2026-09-01 00:00Z, so depth this device once read is no longer here/u,
     "the deepest reading held is the one named, by the reach it carries and not by its window's floor");
 
   const held = evalObject(shallow);
