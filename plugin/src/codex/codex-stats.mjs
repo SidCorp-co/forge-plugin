@@ -180,11 +180,14 @@ const groupLines = (group, when) => {
   if (!group) return [`  ${when.padEnd(WHEN)} not in this window`];
   const { score, stats: held, timed, metered } = group;
   const ruled = score.accepted + score.rejected;
+  /* Over the findings ruled on how, never over every acceptance: one ruled before the third ruling existed says nothing about its mechanism, and a reading stored before the counts has none. */
+  const how = (score.sound ?? 0) + (score.misreasoned ?? 0);
   const per = (many) => Math.round(many / metered);
   const short = (many) => many < group.consults;
   return [
     `  ${when.padEnd(WHEN)} ${String(group.consults).padStart(3)} consult(s)  ${String(score.findings).padStart(4)} finding(s) `
       + `(${score.zero} found none)  ${ruled ? `${share(score.accepted, ruled)} kept of ${ruled} ruled` : "none ruled on"}  `
+      + `${how ? `${share(score.sound ?? 0, how)} right about how of ${how}` : "none ruled on how"}  `
       + `${held.raisedNew} of ${held.rechecks} recheck(s) raised New  `
       + `${timed ? `${score.median}s median${short(timed) ? ` of the ${timed} timed` : ""}` : "none timed"}  `
       + `${held.incomplete} could not check`,

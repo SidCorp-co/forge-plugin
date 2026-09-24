@@ -28,13 +28,19 @@ export const recheckSaid = (held) => {
   ].filter(Boolean).join(CLAUSE);
 };
 
+/* The accepted ones the author said were right about the what and wrong about the why, as a clause the two verdict printers share. */
+export const misreasonedSaid = (held) => {
+  const wrong = Object.entries(held?.misreasoned ?? {});
+  return wrong.length ? `, ${wrong.length} of them on a false mechanism (${wrong.map(([id, why]) => `${id}: ${why}`).join("; ")})` : "";
+};
+
 const verdictLine = (held) => {
   const kept = held.kept?.length ? ` (${held.kept.join(", ")})` : "";
   const dropped = held.dropped && Object.keys(held.dropped).length
     ? ` (${Object.entries(held.dropped).map(([id, why]) => (why ? `${id}: ${why}` : id)).join("; ")})`
     : "";
   const said = [held.note, recheckSaid(held)].filter(Boolean).join(" — ");
-  return `${held.accepted} accepted${kept}, ${held.rejected} rejected${dropped}${said ? ` — ${said}` : ""}`;
+  return `${held.accepted} accepted${kept}${misreasonedSaid(held)}, ${held.rejected} rejected${dropped}${said ? ` — ${said}` : ""}`;
 };
 
 const CLAUSE = "; ";
@@ -216,27 +222,44 @@ const spelled = (raw) => {
 };
 const isCount = (raw) => raw !== undefined && /^\d+$/u.test(String(raw).trim());
 
-export const verdictRecord = (last, { accepted, rejected, note }, prior = null) => {
+/* A third ruling is a mark on an acceptance and never a side of its own: every reader of what is decided reads `kept` and `dropped`, so a finding ruled misreasoned opens every door an accepted one does. `sound` is what a plain acceptance says from here on, and a finding in neither list was ruled before the question could be asked, so nothing reads it as either (ISS-1823). */
+const RULINGS = ["accepted", "rejected", "misreasoned"];
+const twoRulings = (lists) => {
+  const seen = new Map();
+  for (const [at, list] of lists.entries()) {
+    for (const { id } of list) {
+      if (seen.has(id) && seen.get(id) !== at) return `${id} cannot be both ${RULINGS[seen.get(id)]} and ${RULINGS[at]}.`;
+      seen.set(id, at);
+    }
+  }
+  return null;
+};
+
+export const verdictRecord = (last, { accepted, rejected, misreasoned, note }, prior = null) => {
   const at = new Date().toISOString();
   /* A write that names no note keeps the one already recorded: a second ruling is about findings, and dropping the line about the consult is the same silent replacement a recheck made (ISS-1881). */
   const said = note ?? authorNote(prior);
   const base = { kind: "verdict", at, of: last.id ?? last.at, files: last.files, ...(said ? { note: said } : {}) };
   const known = numbered(last.reply).map((one) => one.id);
   const made = known.length ? `it made ${known.join(", ")}` : "it made no findings";
-  if (isCount(accepted) || isCount(rejected)) {
+  if (isCount(accepted) || isCount(rejected) || isCount(misreasoned)) {
     return { problem: `a verdict names findings, not counts — --accepted F1,F3 --rejected F2=why; consult ${base.of}: ${made}.` };
   }
-  if (accepted === undefined && rejected === undefined) {
+  if (accepted === undefined && rejected === undefined && misreasoned === undefined) {
     if (known.length) return { problem: `consult ${base.of} made ${known.join(", ")}: say which you accepted and which you rejected.` };
     return { record: { ...base, accepted: 0, rejected: 0, kept: [], dropped: {} }, undecided: 0 };
   }
-  const kept = spelled(accepted);
+  const sound = spelled(accepted).map(({ id }) => ({ id, sound: true }));
   const dropped = spelled(rejected);
-  for (const { id } of [...kept, ...dropped]) {
+  const wrong = spelled(misreasoned);
+  for (const { id } of [...sound, ...dropped, ...wrong]) {
     if (!known.includes(id)) return { problem: `consult ${base.of} made no finding ${id}; it made ${known.join(", ") || "none"}.` };
   }
-  const twice = kept.map((one) => one.id).filter((id) => dropped.some((one) => one.id === id));
-  if (twice.length) return { problem: `${twice.join(", ")} cannot be both accepted and rejected.` };
+  const bare = wrong.find((one) => !one.why);
+  if (bare) return { problem: `--misreasoned ${bare.id} names no mechanism: --misreasoned ${bare.id}=<what the finding got wrong about why>.` };
+  const twice = twoRulings([sound, dropped, wrong]);
+  if (twice) return { problem: twice };
+  const kept = [...sound, ...wrong.map(({ id, why }) => ({ id, misreasoned: why }))];
   const record = { ...base, ...joined(prior, kept, dropped, known.length) };
   return { record, undecided: undecidedIn(known, record).length };
 };
@@ -245,6 +268,7 @@ export const verdictRecord = (last, { accepted, rejected, note }, prior = null) 
 export const outcomeOf = (held, id) => {
   if (!held) return null;
   if (held.dropped && id in held.dropped) return `rejected${held.dropped[id] ? ` — ${held.dropped[id]}` : ""}`;
+  if (held.misreasoned && id in held.misreasoned) return `accepted — right in conclusion, wrong in mechanism: ${held.misreasoned[id]}`;
   if (held.kept?.includes(id)) return "accepted";
   return held.note ?? null;
 };
@@ -446,6 +470,11 @@ const joined = (prior, kept, dropped, total, auto = false) => {
   const counted = Boolean(prior && (prior.counted || (!prior.kept && !prior.dropped)));
   const reopened = [...(prior?.reopened ?? []).filter((id) => !said.has(id)), ...dropped.filter((one) => one.reopen).map((one) => one.id)];
   const autoAll = [...(prior?.auto ?? []).filter((id) => !said.has(id)), ...(auto ? [...said] : [])];
+  const soundAll = [...(prior?.sound ?? []).filter((id) => !said.has(id)), ...kept.filter((one) => one.sound).map((one) => one.id)];
+  const wrongAll = {
+    ...Object.fromEntries(Object.entries(prior?.misreasoned ?? {}).filter(([id]) => !said.has(id))),
+    ...Object.fromEntries(kept.filter((one) => one.misreasoned !== undefined).map((one) => [one.id, one.misreasoned])),
+  };
   const rejected = counted ? Math.max(prior.rejected ?? 0, Object.keys(droppedAll).length) : Object.keys(droppedAll).length;
   return {
     accepted: counted ? Math.max(keptAll.length, Math.min(prior.accepted ?? 0, total - rejected)) : keptAll.length,
@@ -455,6 +484,8 @@ const joined = (prior, kept, dropped, total, auto = false) => {
     ...(counted ? { counted } : {}),
     ...(reopened.length ? { reopened } : {}),
     ...(autoAll.length ? { auto: autoAll } : {}),
+    ...(soundAll.length ? { sound: soundAll } : {}),
+    ...(Object.keys(wrongAll).length ? { misreasoned: wrongAll } : {}),
   };
 };
 
@@ -514,12 +545,15 @@ export const modelKey = (one) => {
 
 /** What one verdict row ruled, counted over the findings its consult's own reply carries: before ISS-651 the parser gave a positional id to a summary bullet in a reply counting itself at zero, and fifteen rows ruled on those ids. The log is append-only and the only copy of the corpus, so the row stays and the count skips what it names beyond the reply (ISS-1680). A count-form row names no id, and a recheck's rulings are the lines `numbered` leaves out, so its typed totals are all there is to read; a row whose consult the log does not hold is read by its totals for the same reason. */
 export const ruledOn = (verdict, consult) => {
-  const typed = { accepted: verdict.accepted ?? 0, rejected: verdict.rejected ?? 0 };
+  const typed = { accepted: verdict.accepted ?? 0, rejected: verdict.rejected ?? 0, sound: 0, misreasoned: 0 };
   if (!consult || verdict.counted || (!verdict.kept && !verdict.dropped)) return typed;
   const made = new Set(numbered(consult.reply).map((one) => one.id));
+  const madeIn = (ids) => ids.filter((id) => made.has(id)).length;
   return {
-    accepted: (verdict.kept ?? []).filter((id) => made.has(id)).length,
-    rejected: Object.keys(verdict.dropped ?? {}).filter((id) => made.has(id)).length,
+    accepted: madeIn(verdict.kept ?? []),
+    rejected: madeIn(Object.keys(verdict.dropped ?? {})),
+    sound: madeIn(verdict.sound ?? []),
+    misreasoned: madeIn(Object.keys(verdict.misreasoned ?? {})),
   };
 };
 
@@ -528,7 +562,7 @@ export const scoreOf = (entries) => {
   const rows = new Map();
   for (const one of answered(entries)) {
     const key = modelKey(one);
-    const row = rows.get(key) ?? { model: key, consults: 0, findings: 0, zero: 0, accepted: 0, rejected: 0, seconds: [], cached: 0, input: 0 };
+    const row = rows.get(key) ?? { model: key, consults: 0, findings: 0, zero: 0, accepted: 0, rejected: 0, sound: 0, misreasoned: 0, seconds: [], cached: 0, input: 0 };
     const counted = countedIn(one.reply);
     row.consults += 1;
     if (counted) {
@@ -540,6 +574,8 @@ export const scoreOf = (entries) => {
       const ruled = ruledOn(held, one);
       row.accepted += ruled.accepted;
       row.rejected += ruled.rejected;
+      row.sound += ruled.sound;
+      row.misreasoned += ruled.misreasoned;
     }
     if (one.ms !== undefined) row.seconds.push(Math.round(one.ms / 1000));
     const usage = one.usage ?? {};
