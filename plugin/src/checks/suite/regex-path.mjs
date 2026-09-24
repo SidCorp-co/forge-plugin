@@ -172,7 +172,9 @@ const partsAt = (text, from) => {
     else residue += one;
     at += 1;
   }
-  return words(residue).length ? [...parts, { at: from, to: at }] : parts;
+  /* The residue is read as the residue: the spelt-out text of a template beside it is characters,
+     so a word in it that happens to name a path in this file is not that path (ISS-2287). */
+  return words(residue).length ? [...parts, { at: from, to: at, residue }] : parts;
 };
 
 const says = (rel, line, source) =>
@@ -190,7 +192,7 @@ export const pathsIn = (text, rel, known = new Set()) => {
   /* Blanked whole, so a fixture spelling the refused shape inside a template is the case's data. */
   for (const hit of blanked(text).matchAll(/\bRegExp\s*\(/gu)) {
     for (const part of partsAt(read, hit.index + hit[0].length)) {
-      const source = read.slice(part.at, part.to);
+      const source = part.residue ?? read.slice(part.at, part.to);
       const here = (name) => reads(name, part.at);
       if (makesAPath(source, here) || words(source).some(here)) {
         found.push(says(rel, lineAt(text, part.at), text.slice(part.at, part.to).trim()));

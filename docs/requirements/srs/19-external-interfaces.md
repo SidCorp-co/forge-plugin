@@ -363,6 +363,17 @@ it. Reading is all this product does there.
   WHEN a stats subject reads its own --since window through a parser more than one subject shares
   THEN the CLI SHALL refuse an unreadable one by naming the verb the caller typed rather than
   another subject sharing that parser.
+- **AC-19-8-45** · Rev: 1 · Proof: plugin/test/stats/models.test.mjs "a figure the spent budget left short says so on its row, with the pairs it left and the flag"
+  IF a model reading's request budget ran out before a figure's pairs were read THEN the CLI SHALL
+  say on that figure's row that it was cut short, how many pairs it left unread and the flag that
+  reads more, and SHALL count no pair its horizon has not yet reached among them.
+- **AC-19-8-46** · Rev: 1 · Proof: plugin/test/stats/models.test.mjs "two arms are not compared on a figure the spent budget cut short on either of them"
+  IF the spent request budget cut a figure short on either of two arms THEN the CLI SHALL leave that
+  figure out of what it names as comparable between them.
+- **AC-19-8-47** · Rev: 1 · Proof: plugin/test/stats/models.test.mjs "a run that captured the ready checkpoint took the landing step, having called no ship"
+  WHEN a model reading prints what a run of each model got THEN the CLI SHALL name the landing figure
+  as the run's own step rather than the issue's landing, and SHALL print beside every figure's count
+  the runs behind it.
 
 - **AC-19-8-50** · Rev: 1 · Proof: plugin/test/stats/runs/condition.test.mjs "compactions and the runs that met one are two counts, because a run that compacted three times is one run that ran out of room"
   WHEN a profile is printed THEN the CLI SHALL count every compaction the window's runs met and,

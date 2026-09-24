@@ -11,7 +11,7 @@ onto the next run, onto the reviewer and onto whoever reopens the issue. A readi
 by wall time would find that model first and print a number to two decimal places about it.
 
 So no figure here stands alone. Every model row carries a spend half — the medians `stats runs`
-already computes over a set of runs — and a got half: whether the runs reached the landing at all,
+already computes over a set of runs — and a got half: whether the run took its landing step at all,
 how many consult findings were accepted against them and how many rejected, how many gate runs they
 spent, and what the tracker says happened afterwards. Both halves come from the folds the other two
 subjects already use, `profileOf` and `outcomesOf`, so a figure cannot move in one reading without

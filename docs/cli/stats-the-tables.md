@@ -56,8 +56,8 @@ own call and moves the run's phase for nothing after it, and the two orders are 
 over 434 runs, 101 posted the note before a ship, 157 after one and 37 in a run that never shipped.
 A run taking either order is visible rather than reclassified into the other (ISS-1583). The landing
 the order is read against is every way the landing's phase opens, the ready checkpoint and the
-verification record as well as the ship, and `stats models` counts a run as having reached the
-landing off the same reading, so the two verbs cannot answer differently about one run (ISS-1913).
+verification record as well as the ship, and `stats models` counts a run as having taken the
+landing step off the same reading, so the two verbs cannot answer differently about one run (ISS-1913).
 
 Each of those last two rules is declared on the marker row it constrains rather than beside the cut
 it makes, so a phase number is written once. Renumbering a phase then moves the cut with it; a

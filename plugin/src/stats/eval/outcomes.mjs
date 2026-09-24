@@ -22,7 +22,8 @@ export const DURING_RUN = "during run";
 
 const NO_PAIRS = "the runs of this window own no issue this reading could establish";
 const NO_ENDPOINT = "no Forge endpoint is configured, so no tracker read could be made";
-const SHORT = "its run has not finished the horizon";
+/* Not a read that failed: a pair this reason keeps out is one no budget could have read yet. */
+export const SHORT = "its run has not finished the horizon";
 
 /** One budget for the whole eval, charged through `callTool`'s `spend`, whose accounting is the transport's. */
 export const budgetOf = (most = BUDGET) => {
@@ -155,13 +156,15 @@ export const afterRun = (name, pairs, threads, horizon, now, hit) => {
   let count = 0;
   let later = 0;
   for (const pair of pairs) {
+    /* The horizon first: a pair it keeps out is out whether or not its thread read, and a read that
+       failed on it would name a cause no larger budget removes. */
+    if (!matured(pair, horizon, now)) {
+      unread.push(SHORT);
+      continue;
+    }
     const held = threads.get(pair.ref);
     if (!held?.records) {
       unread.push(held?.unread ?? "no thread was read for it");
-      continue;
-    }
-    if (!matured(pair, horizon, now)) {
-      unread.push(SHORT);
       continue;
     }
     over += 1;
