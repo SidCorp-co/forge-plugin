@@ -413,8 +413,8 @@ test("what separates the windows is counted per value, not merely listed", () =>
   assert.match(said, /none ruled on/u, "no verdict in the log is said, not shown as a share");
 
   const mixed = evalLines(compared(
-    Array.from({ length: 4 }, (one, n) => WINDOWED(n + 200, )).map((row) => ({ ...row, effort: "high" })),
-    Array.from({ length: 4 }, (one, n) => WINDOWED(n + 100)),
+    Array.from({ length: 4 }, (one, n) => WINDOWED(n + 200, )).map((row) => ({ ...row, effort: "high", effortVia: "parameter" })),
+    Array.from({ length: 4 }, (one, n) => ({ ...WINDOWED(n + 100), effortVia: "parameter" })),
     [], 8,
   )).join("\n");
   assert.match(mixed, /effort {2}high — → 4, medium 4 → —/u, "the same dimension in different amounts still reads as a move");
@@ -479,7 +479,7 @@ test("--json is the comparison as one object, in stats eval's outer shape, and i
     assert.deepEqual(Object.keys(window), ["consults", "from", "to", "stats", "mix", "groups"]);
     assert.equal(window.consults, 100);
     assert.ok(window.from < window.to);
-    assert.deepEqual(Object.keys(window.mix), ["slot", "model", "prompt", "effort", "effort via"]);
+    assert.deepEqual(Object.keys(window.mix), ["slot", "model", "prompt", "effort", "effort resolved", "effort via"]);
     assert.equal(window.groups.reduce((sum, group) => sum + group.consults, 0), window.consults, "the groups partition the window");
     for (const group of window.groups) {
       assert.deepEqual(Object.keys(group),
@@ -491,7 +491,7 @@ test("--json is the comparison as one object, in stats eval's outer shape, and i
   const [group] = held.now.groups;
   assert.equal(group.model, "new-model");
   assert.equal(group.prompt, "v2 bbb");
-  assert.equal(group.effort, "medium");
+  assert.equal(group.effort, "unrecorded", "a row naming no channel says nothing about the rung it sent");
   assert.deepEqual(group.score, scoreOf([...verdicts, ...now])[0], "the score the screen's kept share is read off");
   assert.deepEqual(group.stats, statsOf(now), "the stats the screen's token line is read off");
   assert.equal(group.stats.spent.input_tokens, 100_000);
@@ -512,7 +512,7 @@ test("--json is the comparison as one object, in stats eval's outer shape, and i
       size: 100,
       total: 0,
       now: { consults: 0, from: null, to: null, stats: statsOf([]),
-        mix: { slot: {}, model: {}, prompt: {}, effort: {}, "effort via": {} }, groups: [] },
+        mix: { slot: {}, model: {}, prompt: {}, effort: {}, "effort resolved": {}, "effort via": {} }, groups: [] },
       before: null,
       shifts: [],
     });
