@@ -97,6 +97,7 @@ how many topics there may be.
 | [stats — the condition](cli/stats-the-condition.md) | Why a compaction, an API error and a human prompt are counted apart from a refusal this plugin wrote, why each is named or counted twice rather than once, and why none of the three is an angle. |
 | [stats — the mark](cli/stats-the-mark.md) | Why the reading is written at the crossing and never again, and what `--against` puts back in the sliding window's place. |
 | [stats — the outcome](cli/stats-the-outcome.md) | The four figures beside the costs, and the release mark. |
+| [stats — the surface](cli/stats-the-surface.md) | Why a token on the served surface is counted by the provider that bills it and never estimated, which texts are walked and which are not, and what a priced read means. |
 | [doctor](cli/doctor.md) | Why every missing piece is reported together, and why one verb reports every level of configuration and reads a key back before calling it set. |
 | [the project's own file](cli/the-project-file.md) | Why the keys of a checkout's own file are declared rather than discovered, why a write is one key's span in its text, and whose sentence refuses a value. |
 | [the subjects](cli/the-subjects.md) | Why one report has subjects rather than one list, where each flag is described now that sixteen of them do not fit one help, what a bare reading withholds, and why what a project has not decided is a reading of its own. |
