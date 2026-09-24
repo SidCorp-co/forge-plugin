@@ -512,6 +512,17 @@ export const modelKey = (one) => {
   return `${one.model ?? one.slot ?? "?"}${level} via ${via}`;
 };
 
+/** What one verdict row ruled, counted over the findings its consult's own reply carries: before ISS-651 the parser gave a positional id to a summary bullet in a reply counting itself at zero, and fifteen rows ruled on those ids. The log is append-only and the only copy of the corpus, so the row stays and the count skips what it names beyond the reply (ISS-1680). A count-form row names no id, and a recheck's rulings are the lines `numbered` leaves out, so its typed totals are all there is to read; a row whose consult the log does not hold is read by its totals for the same reason. */
+export const ruledOn = (verdict, consult) => {
+  const typed = { accepted: verdict.accepted ?? 0, rejected: verdict.rejected ?? 0 };
+  if (!consult || verdict.counted || (!verdict.kept && !verdict.dropped)) return typed;
+  const made = new Set(numbered(consult.reply).map((one) => one.id));
+  return {
+    accepted: (verdict.kept ?? []).filter((id) => made.has(id)).length,
+    rejected: Object.keys(verdict.dropped ?? {}).filter((id) => made.has(id)).length,
+  };
+};
+
 export const scoreOf = (entries) => {
   const scored = verdictsBy(entries);
   const rows = new Map();
@@ -526,8 +537,9 @@ export const scoreOf = (entries) => {
     }
     const held = scored.get(one.id ?? one.at);
     if (held) {
-      row.accepted += held.accepted ?? 0;
-      row.rejected += held.rejected ?? 0;
+      const ruled = ruledOn(held, one);
+      row.accepted += ruled.accepted;
+      row.rejected += ruled.rejected;
     }
     if (one.ms !== undefined) row.seconds.push(Math.round(one.ms / 1000));
     const usage = one.usage ?? {};
