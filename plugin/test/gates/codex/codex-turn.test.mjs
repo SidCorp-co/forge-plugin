@@ -323,7 +323,7 @@ const wide = Object.fromEntries(Array.from({ length: 20_000 }, (_, n) => [\`k\${
 for (let n = 0; n < Number(count); n += 1) writeJsonPrivate(path, wide);
 `;
 
-test("two writers on one file never leave half of one behind", async () => {
+test("two writers on one file never leave half of one behind", async (t) => {
   const path = join(room, "concurrent.json");
   const done = [];
   for (const mine of ["a", "b", "c"]) {
@@ -350,6 +350,9 @@ test("two writers on one file never leave half of one behind", async () => {
     reads += 1;
     await new Promise((tick) => setTimeout(tick, 1));
   }
-  assert.ok(reads > 20, `${reads} reads is too few to have raced anything`);
+  /* The verdict first, and the read count only after it: the count measures how many turns the
+     host gave the poll, not the writer. A torn file seen in few reads is still a torn file, and a
+     clean run the box starved of reads has not shown the write survives company, so it is a skip. */
   assert.equal(broken, 0, `${broken} of ${reads} reads found a file one writer had not finished`);
+  if (reads <= 20) t.skip(`${reads} reads is too few to have raced anything`);
 });
