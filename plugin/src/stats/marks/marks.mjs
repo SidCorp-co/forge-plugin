@@ -73,21 +73,22 @@ let held = null;
 const stateOf = (path) => {
   try {
     const at = statSync(path, { bigint: true });
-    return `${at.dev}:${at.ino}:${at.size}:${at.mtimeNs}:${at.ctimeNs}`;
+    return { size: Number(at.size), key: `${at.dev}:${at.ino}:${at.size}:${at.mtimeNs}:${at.ctimeNs}` };
   } catch {
     return null;
   }
 };
 
 /* Stated before the read, so bytes read after a concurrent append are newer than the state they are
-   held under, and the next asking sees a state that moved and reads again rather than serving less
-   than the file holds. */
+   held under. Held only where the bytes are exactly the size stated: more is an append landing
+   between the two, and none from a file stated as holding some is a read `jsonlBytes` answered
+   with nothing because it failed, which held would stand for the store until the file next moved. */
 const storeBytes = () => {
   const path = marksPath();
   const state = stateOf(path);
-  if (state !== null && held?.path === path && held.state === state) return held.bytes;
+  if (state !== null && held?.path === path && held.key === state.key) return held.bytes;
   const bytes = jsonlBytes(path);
-  held = state === null ? null : { path, state, bytes };
+  held = state?.size === bytes.length ? { path, key: state.key, bytes } : null;
   return bytes;
 };
 

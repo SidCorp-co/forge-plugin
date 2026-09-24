@@ -2,6 +2,8 @@
    it now is (ISS-1510). Which reading answers is `marks.test.mjs`; what a pass rewrites, `prune.test.mjs`. */
 import assert from "node:assert/strict";
 import test from "node:test";
+import fs from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import { spawnSync } from "node:child_process";
 import { appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -131,5 +133,28 @@ test("a reading after a pass rewrote the store returns the rewritten records", a
     rmSync(`${marksPath()}.pruned`);
     assert.deepEqual(marksHeld().map((one) => [one.mark, one.before]), [[50, undefined]],
       "criterion 5: the record as the pass rewrote it");
+  });
+});
+
+/* The finding a first reading of this change raised: a read that failed while the file stood is
+   answered with no bytes, and those are not the store. The failure is made in this process and taken
+   away again without the file moving, so only what was held can answer the second reading. */
+test("a read that failed is not held, so the next reading returns what the store holds", async () => {
+  await inHome(tempRoom("stats-once-failed-"), () => {
+    assert.equal(writeMark(reading(50)), "written");
+    const read = fs.readFileSync;
+    fs.readFileSync = (path, ...rest) => {
+      if (String(path) === marksPath()) throw Object.assign(new Error("too many open files"), { code: "EMFILE" });
+      return read(path, ...rest);
+    };
+    syncBuiltinESMExports();
+    try {
+      assert.deepEqual(marksHeld(), [], "the failed read answers with no readings, as it always did");
+    } finally {
+      fs.readFileSync = read;
+      syncBuiltinESMExports();
+    }
+    assert.deepEqual(marksHeld().map((one) => one.mark), [50], "and the next reading is of the store");
+    assert.equal(writeMark(reading(50)), "held", "so a write of a mark already held appends no second one");
   });
 });
