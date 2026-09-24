@@ -10,7 +10,7 @@ process.env.XDG_CONFIG_HOME = tempRoom("waves-");
 const { PROJECT, REFUSED_BODY, at, dispatch, fold, readsOf, row, standing, took } = await import("../fixture-waves.mjs");
 const { claimed } = await import("../../../src/flow/lease.mjs");
 const { handBacksOf, rowOf, waveLines } = await import("../../../src/stats/waves/profile.mjs");
-const { refusalIn } = await import("../../../src/stats/runs.mjs");
+const { refusalIn } = await import("../../../src/stats/corpus/refusals.mjs");
 const { USAGE } = await import("../../../src/stats/stats.mjs");
 
 const DISPATCHER = [

@@ -18,7 +18,7 @@ import {
 import { declaredIn, declaredSaid } from "./corpus/declared.mjs";
 import { TABLE } from "./corpus/generations.mjs";
 import { actLines, phase7For } from "./corpus/release.mjs";
-import { FLOW_BRIEF, PRICES, callsIn, markerOf, modelRun, rungRun } from "./corpus/transcripts.mjs";
+import { FLOW_BRIEF, LANDING, PRICES, callsIn, markerOf, modelRun, rungRun } from "./corpus/transcripts.mjs";
 import { corpusUnder, readTranscript, rootFor } from "./corpus/corpus.mjs";
 import {
   conditionLines, countIn, declareLines, foldPhases, helpLine, helpOver, listing, perRung,
@@ -28,8 +28,8 @@ import { add, medianOrZero, minutes, share, stamp } from "./figures.mjs";
 import { reachOf, reachSaid } from "./marks/reach.mjs";
 import { scopeOf } from "./marks/marks.mjs";
 import { claimedIn, parkWritersIn, rulingsIn } from "./joined.mjs";
+import { refusalIn } from "./corpus/refusals.mjs";
 import { PHASES } from "../guides/phases.mjs";
-import { VERB_NAMES } from "../resolve/visibility.mjs";
 import { FORMS, READ_AS } from "../resolve/handler.mjs";
 import { fail } from "../resolve/settings.mjs";
 import { flags } from "../resolve/flags.mjs";
@@ -57,55 +57,6 @@ export const RUNS_USAGE = [
    reading, and counting those made a transcript that MENTIONED a timeout into one that hit it. */
 const timedOut = (call) => /Exit code 143/u.test(call.body) || (call.error && /timed out/iu.test(call.body));
 
-const shortened = (line) =>
-  (line.trim().slice(0, 110) || "(empty)").replaceAll(/ISS-\d+/gu, "ISS-nn").replaceAll(/[0-9a-f]{7,}/gu, "<sha>");
-
-/* Every gate's refusal ends on the line `how()` writes, whatever it opens with, and the harness
-   returns a denial as the whole result — so where that line is last, the rule is named on the first.
-   A body that only quotes a refusal goes on printing past it. */
-const GATE_HOW = /^How: `forge hooks --how \S+`$/u;
-
-/* A gate's two openers and the transport's `<name> refused:`, which carries the rule after the colon for
-   a transport failure and on the next line for a tool's. These are read first, because a refusal
-   opening on one goes on to quote the lines it was refused over and those look like the shape below. */
-const MARKED = /^(?:Hold — .*|Refused\. .*|\S+ refused:.*)$/u;
-/* The same three openers over the whole body, to leave it unsplit where none is in it — the corpus is whole gate runs and whole file reads. A negative prefilter and not a second matcher: `/m` sees a break at a bare CR that `split` does not, so the split still decides for whatever this admits. */
-const ANY_MARKED = /^(?:Hold — |Refused\. |\S+ refused:)/mu;
-
-/* `settings.mjs` refuses with a verb this CLI has and no marker, and so does a line an ANSWERING
-   call printed — `project id: …`. Hence both the failed-call guard and the precedence a marked line
-   holds over this shape wherever each sits, which docs/cli/stats-the-refusals.md costs out both
-     ways. */
-const VERB_SENTENCE = new RegExp(String.raw`^(?:forge )?(?:${VERB_NAMES.join("|")})\b.*?: .*$`, "u");
-
-const TOOL_RULE = /^\S+ refused:[ \t]*(?<rule>.*)$/u;
-
-const lastOf = (lines, shape) => {
-  for (let at = lines.length - 1; at >= 0; at -= 1) if (shape.test(lines[at])) return at;
-  return -1;
-};
-
-/** The line naming the rule a call was refused by, or null where it met none of this plugin's own.
- *  Never the body's first line by default: a `forge` command prints its provenance banner before it
- *  refuses, and reading line one filed 187 of those banners under a row that names no rule. */
-export const refusalIn = (call) => {
-  const whole = call.body.trim();
-  if (!call.error && !ANY_MARKED.test(whole)) return null;
-  const lines = whole.split("\n").filter((one) => one.trim());
-  if (!lines.length) return null;
-  if (call.error && GATE_HOW.test(lines.at(-1))) return shortened(lines[0]);
-  /* A marked line counts however the call exited: a run that pipes a refusal through `tail`, or
-     ends the line with `; echo EXIT=$?`, met it just the same and the shell answered 0 for it.
-     411 of this project's 813 marked refusals arrived that way, against seven bodies that merely
-     quoted one — which is the trade, and docs/cli/stats-the-refusals.md carries it. */
-  let at = lastOf(lines, MARKED);
-  if (at < 0 && call.error) at = lastOf(lines, VERB_SENTENCE);
-  if (at < 0) return null;
-  const tool = TOOL_RULE.exec(lines[at]);
-  if (!tool) return shortened(lines[at]);
-  return shortened(tool.groups.rule || lines[at + 1] || lines[at]);
-};
-
 /* Three claims, output being no provenance: the line printed, it names a pair the handler routes, and the call's class is that form — `transcripts.mjs` deciding what ran, so a heredoc is stripped and a mention is no command position, judged where every class is. */
 const FORM_SAID = new RegExp(`^${READ_AS} (?<form>\\S+) as forge (?<verb>\\S+)`, "mu");
 
@@ -119,18 +70,19 @@ const said = (command) => command.replaceAll(/\s+/gu, " ").trim().slice(0, 160);
 
 /* The phase a call sits in, and the segments the markers cut. A marker already passed cannot pull
    the run backwards; every other rule is the marker row's own, so this holds no phase number and
-   renumbering a row in `transcripts.mjs` moves the cut with it. */
+   renumbering a row in `transcripts.mjs` moves the cut with it. `cursor` is where the run stands
+   after the call, which parts from where it is booked only on a row declared `only` (ISS-1913). */
 export const segmented = (calls) => {
   const seen = new Set();
   let phase = 0;
   return calls.map((call) => {
     const marker = markerOf(call.class);
-    if (marker?.only) return { ...call, phase: marker.phase };
+    if (marker?.only) return { ...call, phase: marker.phase, cursor: phase };
     if (marker && marker.phase > phase && !seen.has(marker.phase) && phase >= (marker.after ?? 0)) {
       seen.add(marker.phase);
       phase = marker.phase;
     }
-    return { ...call, phase };
+    return { ...call, phase, cursor: phase };
   });
 };
 
@@ -192,22 +144,22 @@ const shipsIn = (calls) => {
     passes: passes.length,
     resumed: passes.filter((call) => RESUMED.test(call.shell)).length,
     rejected: calls.some((call) => reportsShip(call) && REJECTED_PUSH.test(call.body)) ? 1 : 0,
-    /* The other way a run leaves a change for the branch: the mode that lands a batch calls no
-       ship, and that checkpoint is a class of its own rather than a flag read off a claim's line. */
-    ready: calls.some((call) => call.class === READY_CLASS) ? 1 : 0,
   };
 };
+
+/* Where a run first stood in the landing's phase, or -1: the one reader of whether it got there, so
+   every way the marker row names counts for every verb reporting it, none holding a narrower list (ISS-1913). */
+const landingIn = (calls) => calls.findIndex((call) => call.cursor >= LANDING);
 
 const NOTE = "forge record note";
 const NOTE_ORDERS = ["before", "after", "unshipped"];
 
-/* The split the phase table stopped showing once the note row opened no segment: three answers, so a run that wrote one and reached no landing is a reading rather than a gap. */
-const noteOrder = (calls) => {
+/* The split the phase table stopped showing once the note row opened no segment: three answers, so a run that wrote one and reached no landing is a reading rather than a gap. The third keeps its key, which `--json` has always printed, and means no landing of any kind. */
+const noteOrder = (calls, landing) => {
   const note = calls.findIndex((call) => call.class === NOTE);
   if (note < 0) return null;
-  const ship = calls.findIndex((call) => call.class === "ship");
-  if (ship < 0) return "unshipped";
-  return note < ship ? "before" : "after";
+  if (landing < 0) return "unshipped";
+  return note < landing ? "before" : "after";
 };
 
 const editsIn = (calls) => new Map(EDIT_ROUTES.map((route) => {
@@ -219,6 +171,7 @@ export const runFrom = (path, session, text, classes = undefined) => {
   const read = callsIn(text, classes);
   const calls = segmented(read.calls);
   if (!calls.length) return null;
+  const landing = landingIn(calls);
   /* The transcript's own bounds rather than the calls', for the reason callsIn states. */
   const startedAt = Math.min(read.firstAt ?? calls[0].at, calls[0].at);
   const endedAt = read.lastAt;
@@ -292,7 +245,8 @@ export const runFrom = (path, session, text, classes = undefined) => {
     rechecks: counted("forge codex recheck"),
     verdicts: counted("forge record verdict"),
     ships: shipsIn(calls),
-    notes: noteOrder(calls),
+    reached: landing >= 0,
+    notes: noteOrder(calls, landing),
     edits: editsIn(calls),
     byClass,
     refusals,
@@ -544,8 +498,8 @@ const profileLines = (held, all = false) => [
   `edits           per run ${held.edits.map((one) => `${one.route} ${one.perRun}`).join(", ")} · `
     + `median chars/call ${held.edits.map((one) => `${one.route} ${one.medianChars}`).join(", ")}`,
   shipLine(held),
-  `notes           ${held.notes.before} posted before a ship, ${held.notes.after} after one, `
-    + `${held.notes.unshipped} in a run that never shipped`,
+  `notes           ${held.notes.before} posted before the landing, ${held.notes.after} after it, `
+    + `${held.notes.unshipped} in a run that never reached it`,
   ...declareLines(held),
   `timeouts        ${held.timeouts}`,
   `other errors    ${held.errors.reduce((sum, [, many]) => sum + many, 0)} non-zero exit(s) refused by no rule of this plugin`

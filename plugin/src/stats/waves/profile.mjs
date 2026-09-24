@@ -4,7 +4,8 @@
    record carries is not counted: docs/cli/stats-the-waves.md. */
 import { dispatchersOf, headlinesOf, landed } from "./find.mjs";
 import { stamp } from "../figures.mjs";
-import { checkoutFrom, refusalIn, windowFrom } from "../runs.mjs";
+import { checkoutFrom, windowFrom } from "../runs.mjs";
+import { refusalIn } from "../corpus/refusals.mjs";
 import { cacheRoot, copyAt, installedCopies } from "../versions.mjs";
 import { readMember, wavesOf } from "../../flow/record/wave.mjs";
 import { NO_LONGER_OWES } from "../../flow/earned/park-status.mjs";

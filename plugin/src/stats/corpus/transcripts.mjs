@@ -163,11 +163,14 @@ export const MARKERS = [
      which `ENDS_PHASE` already calls this phase's. Not the landing mark and not the `deploy` row:
      where the merge sits before the judging both fall in phases 4 and 5, and either as a marker
      would take those phases' calls into this one (ISS-1975). */
-  { phase: 7, classes: ["ship", READY_CLASS, "forge record verification"] },
+  { phase: 7, classes: ["ship", READY_CLASS, "forge record verification"], landing: true },
   { phase: 8, classes: ["cleanup", "forge record gap", "forge knowledge write"], after: 7 },
 ];
 
 export const markerOf = (label) => MARKERS.find((row) => row.classes.includes(label)) ?? null;
+
+/** The phase a run has reached the landing in, off the row that declares it, so a verb asking whether a run got there reads the cut the phase table makes. */
+export const LANDING = MARKERS.find((row) => row.landing).phase;
 
 /* A name that is not a string is what a change on the host's side looks like from here. */
 const string = (value) => (typeof value === "string" ? value : "");

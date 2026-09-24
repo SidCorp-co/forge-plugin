@@ -24,8 +24,10 @@ export const foldPhases = (calls, startedAt, endedAt) => {
     held.byClass.set(call.class, { calls: was.calls + 1, wait: was.wait + call.wait });
     last = Math.max(last, call.endedAt);
   }
-  /* The closing report is generation the wall counts and no phase did, off the loop's own cursor (ISS-308). */
-  if (calls.length) phases[calls.at(-1).phase].seconds += Math.max(0, endedAt - last) / 1000;
+  /* The closing report is generation the wall counts and no phase did, credited to the phase the run
+     stands in and never to the last call's own row, which a row declared `only` books elsewhere
+     (ISS-308, ISS-1913). */
+  if (calls.length) phases[calls.at(-1).cursor].seconds += Math.max(0, endedAt - last) / 1000;
   return phases;
 };
 
