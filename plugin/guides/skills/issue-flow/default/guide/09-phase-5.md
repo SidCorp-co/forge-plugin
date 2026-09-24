@@ -13,9 +13,9 @@ is two searches rather than one, and an assertion that cannot fail covers nothin
 from this phase; both `developed` and `testing` move at the landing on the record written
 here,
 whether this run makes that landing or leaves it ready for the one that does. Which head, what each
-kind of change owes as evidence and how to capture it: `forge guide issue-flow verification`. What a
-record holds before either status is earned, and on which outcomes:
-`forge guide contract developed`, `forge guide contract testing`.
+kind of change owes as evidence and how to capture it is the verification reference again, read for
+that question: `forge guide issue-flow verification`. What a record holds before either status is
+earned, and on which outcomes: `forge guide contract developed`, `forge guide contract testing`.
 
 **Where that judgement is an independent run's, this run stops short of judging and prepares what
 that run cannot get anywhere else.** A verdict carrying this run's id counts towards

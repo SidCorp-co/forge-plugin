@@ -16,8 +16,8 @@ deployment itself reports serving. A deploy command's exit code says a command r
 head says what somebody pushed; neither is the identity, and a judging run that finds none is
 refused and comes back having judged nothing. It reads the identity back for itself rather than
 taking this run's word for it, so what this phase leaves is what its own reading is compared
-against. Which head, what each kind of change owes as evidence and how to capture it: `forge guide
-issue-flow verification`.
+against. Which head, what each kind of change owes as evidence and how to capture it is the
+verification reference again, read for that question: `forge guide issue-flow verification`.
 
 **Then the two runs part, and which of them judges is the declaration Phase 0 read.**
 

@@ -10,5 +10,4 @@
 5. **Learn selectively, and encode rather than write.** Most rounds record nothing. One thing is
    reported the moment it happens, before the workaround: a defect in this plugin, filed where
    `forge new -h` says such a filing goes or nowhere if it says there is none. What that filing
-   carries and what a learning must pass: `forge guide issue-flow learning`. What became of it goes
-   in the report.
+   carries: `forge guide issue-flow learning`. What became of it goes in the report.

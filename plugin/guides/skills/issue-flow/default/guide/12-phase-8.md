@@ -19,6 +19,7 @@ Then apply Rule 5. A defect of the plugin this run met is in its report and on n
 this project sends none: a round that met one and filed nothing did what was asked of it.
 <!-- forge:end -->
 
-What a learning must pass, and where one lands: `forge guide issue-flow learning`.
+What a learning must pass, and where one lands, is the reference Rule 5 cited, read again here for
+that question: `forge guide issue-flow learning`.
 
 **Then go back to Phase 1.** The run ends when no unblocked issue is left. Report once, at the end.
