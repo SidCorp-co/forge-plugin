@@ -70,6 +70,10 @@ test("the newer word on an id takes its mechanism mark with it, and a recheck ad
   assert.deepEqual(ruledOn(auto, THREE), { accepted: 2, rejected: 0, sound: 1, misreasoned: 0 });
   const older = { kind: "verdict", of: "c1", accepted: 2, rejected: 0, kept: ["F1", "F2"], dropped: {} };
   assert.deepEqual(ruledOn(older, THREE), { accepted: 2, rejected: 0, sound: 0, misreasoned: 0 }, "a row from before adds to the kept side and to no mechanism figure");
+  const overCount = verdictRecord(THREE, { misreasoned: `F1=${LINK}` }, { accepted: 3, rejected: 0 }).record;
+  assert.equal(overCount.counted, true);
+  assert.deepEqual(ruledOn(overCount, THREE), { accepted: 3, rejected: 0, sound: 0, misreasoned: 1 }, "a mark over a count-form prior still counts, by id");
+  assert.deepEqual(ruledOn(verdictRecord(THREE, { accepted: "F2" }, { accepted: 3, rejected: 0 }).record, THREE).sound, 1);
   const carried = verdictFromRulings(plan, 0, "1. **CANNOT TELL** — a\n2. **CONFIRMED** — b", "r2", first).record;
   assert.deepEqual([carried.sound, carried.misreasoned], [["F2"], { F1: LINK }], "a recheck carries the author's marks through");
 });

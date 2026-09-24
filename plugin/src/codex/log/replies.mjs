@@ -545,16 +545,14 @@ export const modelKey = (one) => {
 
 /** What one verdict row ruled, counted over the findings its consult's own reply carries: before ISS-651 the parser gave a positional id to a summary bullet in a reply counting itself at zero, and fifteen rows ruled on those ids. The log is append-only and the only copy of the corpus, so the row stays and the count skips what it names beyond the reply (ISS-1680). A count-form row names no id, and a recheck's rulings are the lines `numbered` leaves out, so its typed totals are all there is to read; a row whose consult the log does not hold is read by its totals for the same reason. */
 export const ruledOn = (verdict, consult) => {
-  const typed = { accepted: verdict.accepted ?? 0, rejected: verdict.rejected ?? 0, sound: 0, misreasoned: 0 };
-  if (!consult || verdict.counted || (!verdict.kept && !verdict.dropped)) return typed;
-  const made = new Set(numbered(consult.reply).map((one) => one.id));
-  const madeIn = (ids) => ids.filter((id) => made.has(id)).length;
-  return {
-    accepted: madeIn(verdict.kept ?? []),
-    rejected: madeIn(Object.keys(verdict.dropped ?? {})),
-    sound: madeIn(verdict.sound ?? []),
-    misreasoned: madeIn(Object.keys(verdict.misreasoned ?? {})),
-  };
+  const made = consult ? new Set(numbered(consult.reply).map((one) => one.id)) : null;
+  const madeIn = (ids) => (made ? ids.filter((id) => made.has(id)).length : ids.length);
+  /* A mechanism mark is always by id, so it is counted by id even on a row whose totals are a count's: a later word ruling on how over a count-form prior is new data, not the old count's. */
+  const how = { sound: madeIn(verdict.sound ?? []), misreasoned: madeIn(Object.keys(verdict.misreasoned ?? {})) };
+  if (!consult || verdict.counted || (!verdict.kept && !verdict.dropped)) {
+    return { accepted: verdict.accepted ?? 0, rejected: verdict.rejected ?? 0, ...how };
+  }
+  return { accepted: madeIn(verdict.kept ?? []), rejected: madeIn(Object.keys(verdict.dropped ?? {})), ...how };
 };
 
 export const scoreOf = (entries) => {
