@@ -4,7 +4,7 @@
    status, printed by `forge guide contract`. */
 import {
   ANSWERS_LOOK, CLOSES_FROM, FINDINGS, SHAPES, TRIAGES, looksIn, looksTo, need, planFlags,
-  somebodyLooked, unwrap, witnessedOn,
+  somebodyLooked, unwrap, valuesOf, witnessedOn,
 } from "./machine.mjs";
 import { planShapeOwed } from "./earned/plan-owed.mjs";
 import { ANSWERED_BY_COMMENT, PARK_STATUS, SIDE, answersByComment, sameLanding } from "./earned/park-status.mjs";
@@ -226,7 +226,7 @@ const reviewOwed = (view, ref) => {
   const merged = markedCommit(view.comments);
   const reviewed = reviewedHead(view.comments);
   const ask = `forge record review ${ref} --reviewer codex --commit ${merged ?? "<sha>"} `
-    + `--outcome approved --finding "F1 accepted"`;
+    + `--outcome ${valuesOf("review", "outcome")} --finding "F1 accepted"`;
   const owed = payloadOwed(view, "review", "no code review of the head that landed", ask);
   if (owed.length) return owed;
   const held = view.latest.review.record.fields;
@@ -245,11 +245,11 @@ const reviewOwed = (view, ref) => {
 /* Both verdict shortfalls fold here, so neither drifts into the other's shape (ISS-297): several
    criteria are one item and one write, shared flags before the first --criterion `blocksIn` splits on. */
 const askOne = (ref, number, commit) =>
-  `forge record verdict ${ref} --criterion ${number} --verdict pass --commit ${commit} `
-  + `--evidence <attachment|url|sha>`;
+  `forge record verdict ${ref} --criterion ${number} --verdict ${valuesOf("verdict", "verdict")} `
+  + `--commit ${commit} --evidence <attachment|url|sha>`;
 const askAll = (ref, numbers, commit) =>
-  `forge record verdict ${ref} --commit ${commit} --evidence <attachment|url|sha>`
-  + numbers.map((number) => ` --criterion ${number} --verdict pass`).join("");
+  `forge record verdict ${ref} --commit ${commit} --evidence <attachment|url|sha> `
+  + `--verdict ${valuesOf("verdict", "verdict")}` + numbers.map((number) => ` --criterion ${number}`).join("");
 const foldVerdicts = (ref, numbers, commit, one, many) =>
   (numbers.length > 1
     ? [need(many(numbers.join(", ")), askAll(ref, numbers, commit))]
@@ -268,8 +268,8 @@ const equivalenceOwed = (view, ref, judged, moved, numbers) => {
   return need(
     `the landing moved ${moved.join(", ")}, which this change touched, so ${at} judged ${judged} `
       + `and the evidence was taken before those paths moved`,
-    `forge record verdict ${ref} --criterion <n> --verdict pass --commit ${markedCommit(view.comments)} `
-      + `--evidence <attachment|url|sha>`,
+    `forge record verdict ${ref} --criterion <n> --verdict ${valuesOf("verdict", "verdict")} `
+      + `--commit ${markedCommit(view.comments)} --evidence <attachment|url|sha>`,
   );
 };
 
@@ -376,8 +376,8 @@ const shownOwed = (view, ref) => {
     `the plan declares a screen change, and the verdict on ${at} cites no attachment this issue `
       + `carries, so nothing on the record is a thing a person looked at`,
     `forge attach issue ${ref} <the rendered state>, then forge record verdict ${ref} `
-      + `--commit ${markedCommit(view.comments) ?? "<sha>"} --evidence <that attachment>`
-      + numbers.map((number) => ` --criterion ${number} --verdict pass`).join(""),
+      + `--commit ${markedCommit(view.comments) ?? "<sha>"} --evidence <that attachment> `
+      + `--verdict ${valuesOf("verdict", "verdict")}` + numbers.map((number) => ` --criterion ${number}`).join(""),
   )];
 };
 
@@ -519,7 +519,8 @@ export const CHECKS = {
       view,
       "confirmation",
       "no confirmation: what the issue is in the code's own terms, where you looked, and the finding",
-      `forge record confirmation ${ref} --is "<what it is>" --where <where> --finding holds`,
+      `forge record confirmation ${ref} --is "<what it is>" --where <where> `
+        + `--finding ${valuesOf("confirmation", "finding")}`,
     ),
   /* Three payloads and two phases behind them: the reading is decided and the plan written while the issue stands at `confirmed`, and this is the one rung that refuses without all three. Each is waived by its own row, so a rung dropping the plan still owes the decision if no row says otherwise (ISS-1066). */
   approved: (view, ref) => {

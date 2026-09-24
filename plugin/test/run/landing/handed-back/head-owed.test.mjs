@@ -102,7 +102,7 @@ test("a red gate hands the branch back at head-owed, and its fixed head lands on
   const unjudged = await asBuilder(["claim", KEY, "--pushed", "--ready"]);
   assert.equal(unjudged.status, 1, said(unjudged));
   assert.match(unjudged.stderr, /verdicts on criterion 1 unjudged/u, said(unjudged));
-  assert.ok(unjudged.stderr.includes(`--criterion 1 --verdict pass`), `with the write that answers it:\n${said(unjudged)}`);
+  assert.ok(unjudged.stderr.includes(`--verdict <pass|fail|skipped|short> --criterion 1`), `with the write that answers it:\n${said(unjudged)}`);
 
   const verdict = await asBuilder(["record", "verdict", KEY, "--criterion", "1", "--verdict", "pass",
     "--commit", tip, "--evidence", tip]);

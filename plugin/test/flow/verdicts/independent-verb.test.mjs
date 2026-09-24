@@ -113,7 +113,7 @@ test("advance to the rung is refused while the standing verdicts are the builder
   assert.match(said, /criteria 1, 2 carries the builder's own id/u, said);
   assert.doesNotMatch(said, /criterion 2 carries the builder's own id/u,
     "one line names both, rather than one line for each burying the fact to act on");
-  assert.match(said, /forge record verdict ISS-8 --criterion 1 --verdict pass --criterion 2 [^\n]*--evidence 9e24c2a/u,
+  assert.match(said, /forge record verdict ISS-8 --verdict <pass\|fail\|skipped\|short> --criterion 1 --criterion 2 [^\n]*--evidence 9e24c2a/u,
     "and the item carries the write that answers it, citing the identity to judge against");
 });
 
