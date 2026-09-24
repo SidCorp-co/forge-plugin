@@ -25,8 +25,9 @@ test("dispatch Phase 4 gives each run of a wave a scratch directory of its own, 
     const said = served("dispatch", flow, "4");
     for (const [what, phrase] of [
       ["one directory per run where the wave holds more than one", "one scratch directory per run where the wave holds more than one"],
-      ["the inherited id as the cause", "Every agent a session dispatches inherits that session's id"],
-      ["the host's scratchpad as a directory keyed on it", "the host's own scratchpad among them, is the wave's and not the run's"],
+      ["the inherited id as the cause", "each run a dispatcher sends carries the dispatcher's own"],
+      ["the host's scratchpad as keyed on it", "The host keys its scratchpad on the session id"],
+      ["whose that makes it", "is the wave's and not the run's"],
       ["the route a project's own directory takes", "The brief prints a run's own directory as `TMPDIR` where the project mints one"],
       ["a wave of one", "A wave of one shares nothing and needs neither"],
       ["that a judging run writes files", "It still writes files — its captures"],

@@ -1,9 +1,10 @@
 ## Phase 4 — Give each run its tree, and read the rest
 
 One tree per run where more than one run shares a checkout, and for the same reason one scratch
-directory per run where the wave holds more than one. Every agent a session dispatches inherits that
-session's id, so a directory keyed on it, the host's own scratchpad among them, is the wave's and not
-the run's: two runs writing the obvious name for a plan into it leave one plan, and neither is told.
+directory per run where the wave holds more than one. The host keys its scratchpad on the session
+id, and each run a dispatcher sends carries the dispatcher's own, so that scratchpad, like anything
+else keyed on the id, is the wave's and not the run's: two runs writing the obvious name for a plan
+into it leave one plan, and neither is told.
 The brief prints a run's own directory as `TMPDIR` where the project mints one; nothing typed beside
 the brief can hand one over, so where it prints none the run makes its own. A wave of one shares
 nothing and needs neither.
