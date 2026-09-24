@@ -28,8 +28,8 @@ const entriesOf = (friction) => [
 const ranked = (entries) => [...entries].sort((left, right) =>
   right.calls - left.calls || (right.minutes ?? 0) - (left.minutes ?? 0) || right.runs - left.runs);
 
-/** Which open issue of the plugin's backlog reads like an entry, through the filing path's own
- *  neighbour search at its own floor. Null where the backlog cannot be asked, with why. */
+/** A matcher over the plugin's open backlog, the nearest neighbour `neighboursOf` keeps being an
+ *  entry's owner; or why the backlog could not be asked. */
 export const backlogMatcher = async (registered) => {
   const plugin = registered.find((one) => one.slug === PROJECT);
   if (!plugin) return { refused: `the plugin's backlog, ${PROJECT}, is not a project registered on this device` };
