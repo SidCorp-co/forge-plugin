@@ -3,7 +3,7 @@
    what to change is the evaluator's reading — docs/cli/stats.md. */
 import { PROJECT } from "../../tracker/filing/plugin-defect.mjs";
 import { neighboursOf } from "../../tracker/filing/neighbours.mjs";
-import { everyIssue } from "../../tracker/issues.mjs";
+import { everyIssue, shortOf } from "../../tracker/issues.mjs";
 import { accountCredentials, refusing, useProject } from "../../resolve/settings.mjs";
 
 /** How many entries are listed, and so matched: each match is a search of the backlog. */
@@ -28,20 +28,26 @@ const entriesOf = (friction) => [
 const ranked = (entries) => [...entries].sort((left, right) =>
   right.calls - left.calls || (right.minutes ?? 0) - (left.minutes ?? 0) || right.runs - left.runs);
 
+const endpointHeld = () => Boolean(accountCredentials().url.value && accountCredentials().token.value);
+
 /** A matcher over the plugin's open backlog, the nearest neighbour `neighboursOf` keeps being an
- *  entry's owner; or why the backlog could not be asked. */
-export const backlogMatcher = async (registered) => {
+ *  entry's owner; or why the backlog could not be asked. The tracker's two reads are the caller's to
+ *  stand in for. */
+export const backlogMatcher = async (registered, { read = everyIssue, near = neighboursOf, held = endpointHeld } = {}) => {
   const plugin = registered.find((one) => one.slug === PROJECT);
   if (!plugin) return { refused: `the plugin's backlog, ${PROJECT}, is not a project registered on this device` };
-  if (!accountCredentials().url.value || !accountCredentials().token.value) return { refused: "no Forge endpoint is saved on this machine" };
+  if (!held()) return { refused: "no Forge endpoint is saved on this machine" };
   try {
     return await refusing(async () => {
       useProject({ slug: PROJECT, from: "the plugin's own backlog" });
-      const open = await everyIssue({ status: "open" }, { soft: true });
+      const open = await read({ status: "open" }, { soft: true });
       if (open.refused) return { refused: String(open.refused).split("\n")[0] };
+      /* A backlog read short cannot say an entry matches none of it. */
+      const short = shortOf(open, "the plugin's open backlog");
+      if (short) return { refused: short.split("\n")[0] };
       return {
         match: async (text) => {
-          const found = await neighboursOf({ seed: text, place: null }, open.rows);
+          const found = await near({ seed: text, place: null }, open.rows);
           const nearest = found.suggestions.find((one) => one.score !== null) ?? null;
           /* A search that could not run found nothing and is not a backlog without a match. */
           if (!nearest && found.notes.length) throw new Error(found.notes[0]);

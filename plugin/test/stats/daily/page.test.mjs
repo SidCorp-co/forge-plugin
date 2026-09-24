@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { SORT_SCRIPT, pageOf } from "../../../src/stats/daily/page.mjs";
 import { indexLineOf, summaryOf } from "../../../src/stats/daily/summary.mjs";
-import { LISTED, opportunitiesOf } from "../../../src/stats/daily/opportunities.mjs";
+import { LISTED, backlogMatcher, opportunitiesOf } from "../../../src/stats/daily/opportunities.mjs";
 import { sidesOf } from "../../../src/stats/daily/releases.mjs";
 import { MISSING } from "../../../src/stats/daily/gather.mjs";
 import { runFrom } from "../../../src/stats/runs.mjs";
@@ -145,4 +145,19 @@ test("opportunities rank by calls paid, list ten, count the rest, and name the o
   assert.ok(page.includes("matches no open issue: no filing yet"));
   assert.ok(page.includes("not matched: the semantic query could not run: 503"));
   assert.ok(page.includes("proposes no change") && page.includes("<code>forge stats eval</code>"));
+});
+
+test("a backlog read short, or a search that could not run, is said as not matched and never as matching none", async () => {
+  const registered = [{ name: "forge-plugin", slug: "forge-plugin" }];
+  const held = () => true;
+  const near = async () => ({ suggestions: [], notes: [] });
+  const short = await backlogMatcher(registered, { held, near, read: async () => ({ rows: [], whole: false, pages: 1 }) });
+  assert.match(short.refused, /the plugin's open backlog reached 0 issue\(s\) over 1 page\(s\) and the reading is incomplete/u);
+  const found = await opportunitiesOf(friction({ refusals: [entry(0)] }), short);
+  assert.deepEqual([found.listed[0].match, found.listed[0].unmatched], [null, short.refused]);
+  const whole = await backlogMatcher(registered, { held, read: async () => ({ rows: [], whole: true, pages: 1 }),
+    near: async () => ({ suggestions: [], notes: ["the semantic query could not run: 503"] }) });
+  await assert.rejects(() => whole.match("x"), /could not run: 503/u);
+  const none = await backlogMatcher(registered, { held, near, read: async () => ({ rows: [], whole: true, pages: 1 }) });
+  assert.equal(await none.match("x"), null);
 });
