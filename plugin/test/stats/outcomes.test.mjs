@@ -6,7 +6,8 @@ import test, { after } from "node:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { claimedIn, pairedOneToOne, parkWritersIn, rulingsIn } from "../../src/stats/joined.mjs";
+import { GRANTS, claimedIn, pairedOneToOne, parkWritersIn, rulingsIn } from "../../src/stats/joined.mjs";
+import { HANDOFF, RENEWED, howsFor } from "../../src/flow/claim.mjs";
 import {
   AFTER_RUN, DURING_RUN, UNAVAILABLE, budgetOf, outcomesOf, pairsOf, parkedFor, parkedOver, ruledOver, threadOf, unreadIn,
 } from "../../src/stats/eval/outcomes.mjs";
@@ -43,7 +44,7 @@ ${key}  ${how}: session iss-1-abc (agent, pid 1), renewed 2026-09-08T00:00 for 3
     "a recovered lease owns its issue as fully as a fresh claim");
   assert.deepEqual(claimedIn([call("forge claim", { body: granted("ISS-3", "take") })]), ["ISS-3"],
     "and so does a taken handoff");
-  for (const how of ["renewed", "judged", "reconciled"]) {
+  for (const how of ["unheld", "renewed", "judged", "reconciled"]) {
     assert.deepEqual(claimedIn([call("forge claim", { body: granted("ISS-4", how) })]), ["ISS-4"], how);
   }
 
@@ -76,6 +77,18 @@ ${key}  ${how}: session iss-1-abc (agent, pid 1), renewed 2026-09-08T00:00 for 3
   const runs = [run({ issues: ["ISS-1", "ISS-2"] }), run({ issues: ["ISS-2"] }), run()];
   assert.equal(pairsOf(runs).length, 3, "one issue owned by two runs is two pairs, each anchored to its run");
   assert.equal(unreadIn(runs), 1, "a run with no ownership established is unread");
+});
+
+test("every word a claim prints its grant under, and every word its handoff reads, is a word the join counts", () => {
+  const printed = new Set();
+  for (const unheld of [false, true]) {
+    for (const handed of [false, true]) {
+      for (const how of Object.values(howsFor({ unheld, handed }))) printed.add(how ?? RENEWED);
+    }
+  }
+  for (const word of [...printed, ...HANDOFF]) {
+    assert.ok(GRANTS.includes(word), `\`${word}\` is printed by a claim and joins no run to its issue`);
+  }
 });
 
 test("each outcome figure prints over its own population, and an empty population is unavailable rather than zero", () => {
