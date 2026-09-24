@@ -53,3 +53,8 @@ export const installedCopies = (root) => {
 export const copyAt = (copies, when) => copies.filter((one) => one.at <= when).at(-1)?.copy ?? UNRECORDED;
 
 export const spansInstall = (copies, run) => copies.some((one) => one.at > run.startedAt && one.at <= run.endedAt);
+
+/* The copies this corpus's runs began under, counted once each: the cache root holds every copy the
+   machine installed, whichever project it served, so this is the one a per-copy rate is taken against. */
+export const servedCopies = (copies, runs) =>
+  new Set(runs.map((run) => copyAt(copies, run.startedAt)).filter((one) => one !== UNRECORDED)).size;

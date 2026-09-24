@@ -9,7 +9,7 @@ import { corpusOf } from "../corpus/read.mjs";
 import { deviceOf } from "../../resolve/machine/device.mjs";
 import { checkoutFrom, derivedFrom, profileOf, readingAside } from "../runs.mjs";
 import { stamp } from "../figures.mjs";
-import { UNRECORDED, copyAt, spansInstall } from "../versions.mjs";
+import { UNRECORDED, copyAt, servedCopies, spansInstall } from "../versions.mjs";
 import { WHEN, comparedWindows, groupBy, shiftBetween, shiftLine, twoWindows } from "../windows.mjs";
 import {
   RELEASES, RUNS, againstIn, heldAtMark, markLines, marksOf, resolveAgainst, resolveRelease,
@@ -20,6 +20,7 @@ import { overlapOf, overlapSaid } from "../marks/overlap.mjs";
 import { BUDGET, HORIZON, UNAVAILABLE, budgetOf, outcomesOf, parkedOver, readThreads, ruledOver } from "./outcomes.mjs";
 import { classesCompared, latencyLines } from "./latency.mjs";
 import { NOT_MEASURED, angleList, anglesAsked, anglesOver, anglesSaid } from "./angles.mjs";
+import { POPULATIONS, contractOf } from "./reading.mjs";
 import { logEntries } from "../../codex/codex-log.mjs";
 import { fail, useProject } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
@@ -469,22 +470,6 @@ const outcomeRead = async (corpus, directory, size, spending) => {
 
 /** The object `--json` prints, and the record the ship writes: one assembly, so a stored reading is
  *  what the verb would have computed at that moment. */
-/* The rule set that produced a reading's figures, bumped when one of them moves. Two readings whose
-   field names match can measure different populations — on this repository two admission tests over
-   one transcript set disagreed by a third — so a held reading says what it was taken under rather
-   than leaving a reader to assume the answer is today's (ISS-1984). */
-const CONTRACT = 1;
-
-/* Read off the profile rather than worked out again here, so a reading says what its own figures
-   were computed with and cannot disagree with them. */
-const contractOf = (profile) => ({
-  rev: CONTRACT,
-  act: profile?.release ?? null,
-  said: profile?.releaseSaid ?? null,
-  table: profile?.table ?? null,
-  declares: profile?.declares ?? null,
-});
-
 const readingOf = (directory, corpus, size, against = null, read = null) => {
   const compared = evalRuns(corpus.runs, corpus.copies, size, against, read,
     reachOf(corpus.scope, corpus.runs[0]?.startedAt), corpus.declared, corpus.act);
@@ -498,6 +483,8 @@ const readingOf = (directory, corpus, size, against = null, read = null) => {
     skipped: corpus.skipped,
     unreadable: corpus.unreadable,
     copies: corpus.copies.length,
+    served: servedCopies(corpus.copies, corpus.runs),
+    populations: POPULATIONS,
     ...(read ? { requests: read.spent.requests } : {}),
     ...compared,
   };

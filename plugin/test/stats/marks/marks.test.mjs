@@ -110,7 +110,7 @@ test("a stored reading is the before window, and the screen says where the windo
     assert.deepEqual(json.before, record.now, "the stored recent window, byte for byte, as the before");
     assert.equal(json.before.outcomes, undefined, "which is why the before side of a pinned comparison has no outcome figure");
     assert.equal(json.now.runs, 50);
-    assert.deepEqual(Object.keys(json).slice(9, 14), ["requests", "size", "total", "against", "overlap"]);
+    assert.deepEqual(Object.keys(json).slice(11, 16), ["requests", "size", "total", "against", "overlap"]);
     assert.deepEqual(json.overlap, { shared: 25, recent: 50, untilReadable: 0, untilDisjoint: 25 });
 
     const newest = askStats(room, ["eval", "--checkout", PROJECT, "--against", "--json"], home);

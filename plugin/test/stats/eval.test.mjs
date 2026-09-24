@@ -11,7 +11,7 @@ import { WINDOW, evalRuns, evalLines } from "../../src/stats/eval/eval.mjs";
 import { scopeFor } from "../../src/stats/corpus/release.mjs";
 import { profileOf } from "../../src/stats/runs.mjs";
 import { slugFor } from "../../src/stats/corpus/corpus.mjs";
-import { UNRECORDED, copyAt, installedCopies, spansInstall } from "../../src/stats/versions.mjs";
+import { UNRECORDED, copyAt, installedCopies, servedCopies, spansInstall } from "../../src/stats/versions.mjs";
 import { shiftBetween, tallied, twoWindows } from "../../src/stats/windows.mjs";
 import { evalObject, evalWindows } from "../../src/codex/codex-stats.mjs";
 import { SAYS } from "../../src/stats/stats.mjs";
@@ -54,6 +54,15 @@ test("the copy a run began under is the newest installed before its first record
   assert.equal(spansInstall(copies, { startedAt: 150, endedAt: 250 }), true);
   assert.equal(spansInstall(copies, { startedAt: 200, endedAt: 250 }), false, "an install at the first record is the run's own copy");
   assert.equal(spansInstall(copies, { startedAt: 210, endedAt: 250 }), false);
+});
+
+/* ISS-2031: the cache root is machine-wide, so the copies a rate is taken against are the ones a run of this corpus began under. */
+test("the copies that served a run count each once, and leave out a copy no run began under and a run older than every copy", () => {
+  const copies = [{ copy: "1.0.0", at: 100, born: true }, { copy: "1.1.0", at: 200, born: true }, { copy: "1.2.0", at: 300, born: true }];
+  const runs = [{ startedAt: 50 }, { startedAt: 150 }, { startedAt: 160 }, { startedAt: 310 }];
+  assert.equal(servedCopies(copies, runs), 2, "1.0.0 twice and 1.2.0 once; 1.1.0 served none, and the run at 50 is unrecorded");
+  assert.equal(servedCopies(copies, [{ startedAt: 50 }]), 0, "a run older than every copy is no copy served");
+  assert.equal(servedCopies([], runs), 0);
 });
 
 test("installed copies are read off the cache directory with their creation moment, oldest first", () => {
@@ -209,10 +218,16 @@ test("--json is the comparison alone, --size sets both windows, and a bad size i
   assert.equal(held.before.runs, 50);
   assert.equal(held.project, PROJECT);
   assert.equal(held.copies, 0);
+  assert.equal(held.served, 0);
   assert.deepEqual(Object.keys(held),
     ["root", "scope", "sources", "project", "device", "contract", "skipped", "unreadable", "copies",
-      "requests", "size", "total", "now",
+      "served", "populations", "requests", "size", "total", "now",
       "before", "comparability", "moved", "classes", "shifts", "angles", "notMeasured"]);
+  assert.deepEqual(Object.keys(held.populations), ["total", "copies", "served"],
+    "ISS-2031: every count at the top of the reading names what it was counted over");
+  assert.match(held.populations.total, /this project's admitted issue-flow run/u);
+  assert.match(held.populations.copies, /this machine's plugin cache root, whichever project each served/u);
+  assert.match(held.populations.served, /at least one of this project's admitted runs began under/u);
   assert.deepEqual(held.comparability,
     { comparable: true, short: [], reach: { from: BASE, earlier: null } },
     "two full windows: the judgement is on the record either way, and the reach is the corpus's own floor, not the window's");
