@@ -35,6 +35,7 @@ import { INDEPENDENT } from "../../plugin/src/flow/qa/verdicts.mjs";
 import { judgementOf, landingRoute, releasePolicy } from "../../plugin/src/tracker/project-config.mjs";
 import { landingScope } from "../../plugin/src/resolve/settings.mjs";
 import { scoped } from "../../plugin/src/tracker/rest.mjs";
+import { DECLINED, SLOT, WAIT } from "../gates/machine.mjs";
 
 /* The route this task branches on, off the project's record. docs/cli/the-checkpoint.md. */
 const BEFORE_MERGE = "before-merge";
@@ -363,6 +364,12 @@ const gateStep = async (one) => {
   /* A gate that never ran says nothing about any branch, so nothing is handed to anybody over it. */
   if (run.error) stop(`npm could not be run: ${run.error.message}. Nothing of any branch was judged.`);
   if (run.status === 0) return;
+  /* Declined for want of a place, the gate ran no step either, so no set is split and no branch handed back over it. */
+  if (run.status === DECLINED) {
+    stop(`npm run check declined the candidate ${shortly(at.candidate)} for want of a gate place and ran no step, `
+      + `so no branch of ${keysOf(at)} was judged and nothing was handed back: each checkpoint is still the `
+      + `landing's turn. Wait for a place, then land again:\n    node tools/gates.mjs ${WAIT} ${SLOT}`);
+  }
   const said = `npm run check exited ${run.status} over the candidate ${shortly(at.candidate)}.`;
   if (at.members.length > 1) {
     at.split = true;
