@@ -3,8 +3,8 @@
 Run the workflow through without asking. A stop is earned by irreversibility, never by visibility.
 Exactly three:
 
-1. **A destructive migration**, classified by `forge guide issue-flow verification`. Say what is
-   lost, and ask.
+1. **A destructive migration**, classified by the verification reference Phase 4 reads. Say what
+   is lost, and ask.
 2. **An ambiguity of the kind Rule 3 admits.**
 3. **A failure with no way back**: a deploy that will not roll back, a gate still red after the fix,
    an integration path that changed underneath you.

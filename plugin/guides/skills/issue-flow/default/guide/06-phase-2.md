@@ -12,8 +12,9 @@ backlog something about the brief.
 
 When you must ask, the readings go up in the shape `forge record question -h` takes, so the person
 chooses between visible results rather than between readings. Then park it with kind `question` and
-move to the next issue. What the decision record earns: `forge guide contract approved`.
+move to the next issue. What the decision record earns is read with the rest of `approved` at
+Phase 3.
 
 **A credential Phase 0 found missing is asked for here**, once Phase 1's claim is taken, and never
 at Phase 7. It is the question record alone and not the park. What stands as evidence while the
-answer is outstanding: `forge guide issue-flow verification`.
+answer is outstanding is Phase 5's question, and the verification reference it reads answers it.

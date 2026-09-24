@@ -69,4 +69,6 @@ reviewer, and the recheck is unreachable rather than discharged.
 The pass's own shape, what a consult taken to clear a commit gate earns instead, and what the review
 record holds: `forge guide contract the-review`.
 
-Baseline, gates and evidence: `forge guide issue-flow verification`.
+The order a change is proved in, a migration's classification among it:
+`forge guide issue-flow verification`, read again here for that question, the baseline having been
+Phase 0's.
