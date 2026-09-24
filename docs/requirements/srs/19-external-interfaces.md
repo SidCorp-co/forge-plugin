@@ -370,6 +370,9 @@ it. Reading is all this product does there.
   WHEN a stats subject reads its own --since window through a parser more than one subject shares
   THEN the CLI SHALL refuse an unreadable one by naming the verb the caller typed rather than
   another subject sharing that parser.
+- **AC-19-8-135** · Rev: 1 · Proof: plugin/test/stats/window/refusals.test.mjs "every verb that parses a window refuses an unreadable one naming the flag the caller typed"
+  WHEN a verb reads a window through a parser that more than one of its flags or another verb's
+  flags share THEN the CLI SHALL refuse an unreadable one by naming the flag the caller typed.
 - **AC-19-8-45** · Rev: 1 · Proof: plugin/test/stats/models.test.mjs "a figure the spent budget left short says so on its row, with the pairs it left and the flag"
   IF a model reading's request budget ran out before a figure's pairs were read THEN the CLI SHALL
   say on that figure's row that it was cut short, how many pairs it left unread and the flag that

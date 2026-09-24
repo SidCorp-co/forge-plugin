@@ -35,11 +35,10 @@ import { fail } from "../resolve/settings.mjs";
 import { canonical } from "../resolve/canonical.mjs";
 import { checkoutAt } from "../git/checkout-at.mjs";
 import { flags } from "../resolve/flags.mjs";
+import { durationOf } from "./window/duration.mjs";
 
 const REPEATED = 3;
 const LONG_WAIT_MINUTES = 10;
-const WINDOW = /^(?<many>\d+)(?<unit>[dhm])$/u;
-const UNITS = { d: 86_400_000, h: 3_600_000, m: 60_000 };
 
 export const RUNS_USAGE = [
   "Usage: forge stats runs [--since 3d] [--checkout <dir>] [--json]",
@@ -532,11 +531,7 @@ const profileLines = (held, all = false) => [
 
 export const windowFrom = (since, verb = "stats runs") => {
   if (since === undefined) return null;
-  const asked = WINDOW.exec(since)?.groups;
-  if (!asked || Number(asked.many) < 1) {
-    fail(`${verb}: --since takes a window like \`3d\`, \`12h\` or \`90m\`, not \`${since}\`.`);
-  }
-  return Date.now() - Number(asked.many) * UNITS[asked.unit];
+  return Date.now() - durationOf(since, verb, "--since");
 };
 
 /** What a reading passed over, in the words both `stats runs` and `stats eval` say it in. A window

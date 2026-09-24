@@ -7,12 +7,8 @@ import { phase7For } from "../corpus/release.mjs";
 import { readTranscript, rootFor } from "../corpus/corpus.mjs";
 import { declaredIn } from "../corpus/declared.mjs";
 import { callsIn } from "../corpus/transcripts.mjs";
-import { checkoutFrom, derivedFrom, runsUnder, segmented } from "../runs.mjs";
+import { checkoutFrom, derivedFrom, runsUnder, segmented, windowFrom } from "../runs.mjs";
 import { stamp } from "../figures.mjs";
-/* One way and never back: the window a caller names is parsed by the reader the eval already has,
-   and the case below that refuses `diagnose` anywhere in the eval's own source is what keeps this a
-   direction rather than a pair; `plugin/test/stats/eval/diagnose.test.mjs` is where that case lives. */
-import { horizonOf } from "./eval.mjs";
 import { askApi, sameFamily } from "../../codex/codex-api.mjs";
 import { DIAGNOSTIC, logConsult } from "../../codex/codex-log.mjs";
 import { EFFORTS, defaultEffort, effortVia, rungFor } from "../../codex/codex-plan.mjs";
@@ -85,7 +81,7 @@ export const setAsked = ({ last, since, issues }, verb = "stats diagnose") => {
       + `${named.length} sets of runs, and a reading is taken over one. Run one alone: `
       + `${named.map(([flag, value]) => `\`forge ${verb} ${anchorAsked(flag, value)}\``).join(", or ")}.`);
   }
-  if (since !== undefined) return { kind: "window", since, from: Date.now() - horizonOf(since, verb) };
+  if (since !== undefined) return { kind: "window", since, from: windowFrom(since, verb) };
   if (issues !== undefined) {
     const keys = String(issues).split(",").map((one) => one.trim()).filter((one) => one.length);
     if (!keys.length) fail(`${verb}: --issues was given no issue key. Write them as \`--issues ISS-12,ISS-13\`.`);

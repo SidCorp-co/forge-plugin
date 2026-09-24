@@ -26,15 +26,13 @@ import { fail, useProject } from "../../resolve/settings.mjs";
 import { flags } from "../../resolve/flags.mjs";
 import { printWavesEval } from "../waves/eval.mjs";
 import { typedBack } from "../../refusal.mjs";
+import { UNITS, durationOf } from "../window/duration.mjs";
 
 export const WINDOW = 50;
 
 /* Under this a median is one or two runs wearing a statistic, so the count prints and the median
    does not — for a whole window under `--since-release`, and for one copy's side of a row. */
 export const FLOOR = 3;
-
-const UNITS = { d: 86_400_000, h: 3_600_000, m: 60_000 };
-const ASKED = /^(?<many>\d+)(?<unit>[dhm])$/u;
 
 export const MARKS_USAGE = [
   "Usage: forge stats marks [--checkout <dir>]",
@@ -97,11 +95,7 @@ export const spend = (raw, verb = "stats eval") => {
 
 export const horizonOf = (raw, verb = "stats eval") => {
   if (raw === undefined) return HORIZON;
-  const asked = ASKED.exec(raw)?.groups;
-  if (!asked || Number(asked.many) < 1) {
-    fail(`${verb}: --horizon takes a window like \`3d\`, \`12h\` or \`90m\`, not \`${raw}\`.`);
-  }
-  return Number(asked.many) * UNITS[asked.unit];
+  return durationOf(raw, verb, "--horizon");
 };
 
 export const saidHorizon = (ms) => {
