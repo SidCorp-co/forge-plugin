@@ -11,7 +11,7 @@ process.env.XDG_CONFIG_HOME = sandbox;
 
 const { logConsult, logEntries } = await import("../../../src/codex/codex-log.mjs");
 const { findingsIn, numbered } = await import("../../../src/codex/log/replies.mjs");
-const { statsOf } = await import("../../../src/codex/codex-stats.mjs");
+const { statsOf } = await import("../../../src/codex/stats/figures.mjs");
 
 const REPLY = [
   "CODEX: 3 findings (1 blocker, 1 major, 1 minor)",

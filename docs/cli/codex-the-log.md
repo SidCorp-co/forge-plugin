@@ -13,7 +13,7 @@ rather than over it. The record says finding by finding which of its rulings a r
 later recheck revises its own word and never the author's. A verdict lands by default on this run's last
 consult that made findings and heard nothing, and `--of` names another. The commit gate waits on
 both: [the commit gate](codex-the-commit.md), and its how document carries the counts. Usage is summed over a consult's calls; logged from the
-last call alone, `log --score` counted a third of the input. A consult that recorded no duration is left
+last call alone, the per-model score counted a third of the input. A consult that recorded no duration is left
 out of the median rather than counted as nought: three untimed rows beside one that took a minute
 answered nought seconds. A `started` entry is written before the call, because a consult
 that dies mid-flight reaches no handler and a review that vanished is what an eval most wants to see.
@@ -61,21 +61,8 @@ failure. `--of` reaches any run's consult in the repository, a later run owing a
 earlier one's being the ordinary case. A row written before the field answers by its checkout path,
 so one from a worktree since removed stays unreachable from elsewhere (ISS-898).
 
-**A harness with no numbers on itself is tuned by memory.** `forge codex stats` reads a window —
-`--last n`, `--days n`, `--root p` or `--here` — and answers the questions a change to the harness is
-judged by: how many consults ended at the budget they were given, how many replies said they could not
-check, how many were retried at the ceiling, how many rechecks raised something New, the tokens by
-kind, and which prompt versions ran. A row written before a field existed is counted from its own
-reply, using the same predicate the field is written with, so the window before a change and the window
-after it are read the same way rather than one of them looking clean for want of a column.
-
-**A pass and a recheck are two shapes of round, so `stats` prices them apart.** Each gets its own
-count, cache share and calls histogram, read off the row's own `recheck`, which a pass leaves absent:
-one cache figure over both kinds read rechecks shifting from three calls to one as the harness
-caching less, when a one-call round reads no cache by construction (ISS-83). A retried consult is counted in its
-kind's retried figure and in no bucket of its histogram, because its `calls` counted the retry
-attempt alone until ISS-540 and the whole conversation after, and nothing on the row but its date
-says which.
+What the stats window answers, how it groups, and why a pass and a recheck are priced apart is
+[codex — the stats](codex-the-stats.md).
 
 **A number nobody looks at is not a measurement.** The reviewer slot moved to another model after one
 eval done by hand, and the runs since judge the harness by the feel of the next few consults: reading

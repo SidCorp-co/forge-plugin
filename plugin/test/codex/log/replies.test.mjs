@@ -28,12 +28,12 @@ const {
   rulingsIn,
   rulingsUnread,
   ruledOn,
-  scoreOf,
   undecidedIn,
   unverdicted,
   verdictFromRulings,
   verdictRecord,
 } = await import("../../../src/codex/log/replies.mjs");
+const { scoreOf } = await import("../../../src/codex/stats/figures.mjs");
 
 /* A verdict is a separate record; replaying advice without what was done with it made resolved /
    still open a guess. */

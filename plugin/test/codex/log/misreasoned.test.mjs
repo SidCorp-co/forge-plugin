@@ -14,10 +14,11 @@ const room = standsInNoTree("forge-codex-misreasoned");
 
 const { logEntries, logPath } = await import("../../../src/codex/codex-log.mjs");
 const {
-  digestOf, outcomeOf, ruledOn, scoreOf, undecidedIn, unverdicted, verdictFromRulings, verdictRecord,
+  digestOf, outcomeOf, ruledOn, undecidedIn, unverdicted, verdictFromRulings, verdictRecord,
 } = await import("../../../src/codex/log/replies.mjs");
-const { logLine, printLog, verdict, VERDICT_USAGE } = await import("../../../src/codex/log/verbs.mjs");
-const { evalLines, evalObject } = await import("../../../src/codex/codex-stats.mjs");
+const { logLine, verdict, VERDICT_USAGE } = await import("../../../src/codex/log/verbs.mjs");
+const { evalLines, evalObject, printStats } = await import("../../../src/codex/codex-stats.mjs");
+const { scoreOf } = await import("../../../src/codex/stats/figures.mjs");
 const { refusing } = await import("../../../src/resolve/settings.mjs");
 const { repoRoot } = await import("../../../src/git/repo-root.mjs");
 
@@ -163,6 +164,6 @@ test("the log line and the per-model score name the findings ruled on a false me
   assert.match(logLine(row, false), /verdict on v1: 2 accepted, 1 of them on a false mechanism \(F1: a link matched by \* is not traversed; brace expansion reaches across it\), 1 rejected/u);
   assert.doesNotMatch(logLine({ ...row, misreasoned: undefined }, false), /false mechanism/u, "and says nothing where none was");
   logged([MINE, row]);
-  const { said } = await asVerb(() => printLog(["--score"]));
+  const { said } = await asVerb(() => printStats(["--by", "model"]));
   assert.match(said, /2 accepted +1 rejected +1 right about how +1 right in conclusion only/u);
 });

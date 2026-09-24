@@ -1,4 +1,4 @@
-/* What a reviewer's reply says, and what a round then makes of it: the count it gives of itself, the findings and their ids, the rulings a recheck answers with, the digest a later request replays instead of the prose, the record a disposition becomes, what is still undecided, what a recheck has to verify, and the per-model score the log is kept as an eval set for. Nothing here opens the file — it is handed rows, which is what keeps the dependency running one way. docs/cli/codex-the-log.md. */
+/* What a reviewer's reply says, and what a round then makes of it: the count it gives of itself, the findings and their ids, the rulings a recheck answers with, the digest a later request replays instead of the prose, the record a disposition becomes, what is still undecided, and what a recheck has to verify. Nothing here opens the file — it is handed rows, which is what keeps the dependency running one way. docs/cli/codex-the-log.md. */
 import { ANGLES } from "../codex-api.mjs";
 import { HUMAN_REF } from "../../tracker/issues.mjs";
 import { jsonlBack, jsonlMark } from "../../hooks/log/hook-log-file.mjs";
@@ -6,7 +6,6 @@ import { masked } from "../../hooks/log/scrub.mjs";
 import { escaped } from "../../markdown.mjs";
 import { fenceMarked } from "../../prose.mjs";
 import { pathed } from "../../hooks/shell-spans.mjs";
-import { median } from "../../stats/median.mjs";
 import { answered, byRun, inRepo, isAnswered, judgedBy, maskedDeep, shortOfWhole, verdictsBy } from "../codex-log.mjs";
 
 /* A row of the older shape folded its composed clause into its note, and `composedAt` says where — read as a whole clause and never as a substring of the author's prose, which "Evidence from recheck r7 supports my rejection" is; the composed form was always clauses joined by the same separator, so the boundary is the format. `authorNote` is what is left for the next write to carry, because carrying the whole would say the earlier recheck's status on the next recheck's row. */
@@ -466,7 +465,7 @@ const joined = (prior, kept, dropped, total, auto = false) => {
     ...Object.fromEntries(Object.entries(prior?.dropped ?? {}).filter(([id]) => !said.has(id))),
     ...Object.fromEntries(dropped.filter((one) => !one.reopen).map((one) => [one.id, one.why ?? ""])),
   };
-  /* A count-form prior decided every id it never named; only what a recheck reopens is open again. Its totals are carried for `log --score`, the rejected side first and the accepted side capped so the two never exceed the findings made: a count cannot say which of its ids a later word moved. */
+  /* A count-form prior decided every id it never named; only what a recheck reopens is open again. Its totals are carried for the per-model score `forge codex stats --by model` prints, the rejected side first and the accepted side capped so the two never exceed the findings made: a count cannot say which of its ids a later word moved. */
   const counted = Boolean(prior && (prior.counted || (!prior.kept && !prior.dropped)));
   const reopened = [...(prior?.reopened ?? []).filter((id) => !said.has(id)), ...dropped.filter((one) => one.reopen).map((one) => one.id)];
   const autoAll = [...(prior?.auto ?? []).filter((id) => !said.has(id)), ...(auto ? [...said] : [])];
@@ -553,33 +552,4 @@ export const ruledOn = (verdict, consult) => {
     return { accepted: verdict.accepted ?? 0, rejected: verdict.rejected ?? 0, ...how };
   }
   return { accepted: madeIn(verdict.kept ?? []), rejected: madeIn(Object.keys(verdict.dropped ?? {})), ...how };
-};
-
-export const scoreOf = (entries) => {
-  const scored = verdictsBy(entries);
-  const rows = new Map();
-  for (const one of answered(entries)) {
-    const key = modelKey(one);
-    const row = rows.get(key) ?? { model: key, consults: 0, findings: 0, zero: 0, accepted: 0, rejected: 0, sound: 0, misreasoned: 0, seconds: [], cached: 0, input: 0 };
-    const counted = countedIn(one.reply);
-    row.consults += 1;
-    if (counted) {
-      row.findings += counted.total;
-      if (counted.total === 0) row.zero += 1;
-    }
-    const held = scored.get(one.id ?? one.at);
-    if (held) {
-      const ruled = ruledOn(held, one);
-      row.accepted += ruled.accepted;
-      row.rejected += ruled.rejected;
-      row.sound += ruled.sound;
-      row.misreasoned += ruled.misreasoned;
-    }
-    if (one.ms !== undefined) row.seconds.push(Math.round(one.ms / 1000));
-    const usage = one.usage ?? {};
-    row.cached += usage.cache_read_input_tokens ?? 0;
-    row.input += (usage.input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0);
-    rows.set(key, row);
-  }
-  return [...rows.values()].map((row) => ({ ...row, median: median(row.seconds) ?? 0, seconds: undefined }));
 };
